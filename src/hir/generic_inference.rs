@@ -14,26 +14,35 @@ impl Resolver<'_> {
         args: &[Expr],
         bindings: &BTreeMap<String, Binding>,
     ) -> Option<Vec<Type>> {
-        let FunctionExecutionId::Monomorphic(caller_declaration) = caller else {
-            return None;
-        };
-        if self
-            .declarations
-            .type_parameters(caller_declaration)
-            .is_some_and(|parameters| !parameters.is_empty())
+        if !matches!(caller, FunctionExecutionId::Monomorphic(_))
             || target.type_parameters.is_empty()
             || args.len() != target.params.len()
         {
             return None;
         }
+        let mut remaining = MAX_EVIDENCE_NODES;
+        self.infer_call_arguments_with_budget(caller, target, args, bindings, &mut remaining, 0)
+    }
+
+    fn infer_call_arguments_with_budget(
+        &self,
+        caller: &FunctionExecutionId,
+        target: &crate::ast::Function,
+        args: &[Expr],
+        bindings: &BTreeMap<String, Binding>,
+        remaining: &mut usize,
+        depth: usize,
+    ) -> Option<Vec<Type>> {
+        if target.type_parameters.is_empty() || args.len() != target.params.len() {
+            return None;
+        }
         let owner = DeclarationId::new(target.stable_id.clone());
         let mut inferred = vec![None; target.type_parameters.len()];
-        let mut remaining = MAX_EVIDENCE_NODES;
         for (formal, argument) in target.params.iter().zip(args) {
             let formal = self
                 .resolve_function_type(target, &formal.ty, formal.span)
                 .ok()?;
-            let actual = self.evidence_type(caller, argument, bindings, &mut remaining, 0)?;
+            let actual = self.evidence_type(caller, argument, bindings, remaining, depth)?;
             let mut pending = vec![(&formal, &actual)];
             while let Some((formal, actual)) = pending.pop() {
                 if matches!(formal, ResolvedType::TypeParameter { owner: parameter_owner, .. } if *parameter_owner == owner)
@@ -42,7 +51,7 @@ impl Resolver<'_> {
                         unreachable!("type-parameter match retained its shape");
                     };
                     let slot = inferred.get_mut(usize::try_from(*index).ok()?)?;
-                    let ty = self.evidence_source_type(actual)?;
+                    let ty = self.evidence_source_type(caller, actual)?;
                     if slot.as_ref().is_some_and(|old| old != &ty) {
                         return None;
                     }
@@ -105,7 +114,8 @@ impl Resolver<'_> {
                 type_arguments,
                 ..
             } => self
-                .resolve_type(
+                .resolve_call_type_argument(
+                    caller,
                     &Type::Named {
                         name: type_name.clone(),
                         arguments: type_arguments.clone(),
@@ -163,12 +173,8 @@ impl Resolver<'_> {
                     == self.evidence_type(caller, else_branch, bindings, remaining, depth + 1)?)
                 .then_some(then_branch)
             }
-            ExprKind::Call {
-                name,
-                type_arguments,
-                args,
-            } => {
-                self.evidence_call_result(caller, name, type_arguments, args.len(), expression.span)
+            ExprKind::Call { .. } => {
+                self.evidence_call_result(caller, expression, bindings, remaining, depth + 1)
             }
             ExprKind::Block { statements, tail } if statements.is_empty() => {
                 self.evidence_type(caller, tail, bindings, remaining, depth + 1)
@@ -180,17 +186,26 @@ impl Resolver<'_> {
     fn evidence_call_result(
         &self,
         caller: &FunctionExecutionId,
-        name: &str,
-        type_arguments: &[Type],
-        argument_count: usize,
-        span: Span,
+        expression: &Expr,
+        bindings: &BTreeMap<String, Binding>,
+        remaining: &mut usize,
+        depth: usize,
     ) -> Option<ResolvedType> {
+        let ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+        } = &expression.kind
+        else {
+            return None;
+        };
+        let span = expression.span;
         let target = self
             .program
             .functions
             .iter()
-            .find(|function| function.name == name)?;
-        if argument_count != target.params.len() {
+            .find(|function| function.name == *name)?;
+        if args.len() != target.params.len() {
             return None;
         }
         if target.type_parameters.is_empty() {
@@ -199,10 +214,18 @@ impl Resolver<'_> {
                     .ok()
             })?;
         }
-        if type_arguments.len() != target.type_parameters.len() {
+        let inferred;
+        let arguments = if type_arguments.is_empty() {
+            inferred = self
+                .infer_call_arguments_with_budget(caller, target, args, bindings, remaining, depth);
+            inferred.as_deref()?
+        } else {
+            type_arguments
+        };
+        if arguments.len() != target.type_parameters.len() {
             return None;
         }
-        let resolved = type_arguments
+        let resolved = arguments
             .iter()
             .map(|argument| self.resolve_call_type_argument(caller, argument, span))
             .collect::<Result<Vec<_>, _>>()
@@ -212,14 +235,18 @@ impl Resolver<'_> {
             .then(|| {
                 super::monomorphize::substitute_source_function_type(
                     target,
-                    type_arguments,
+                    arguments,
                     &target.return_type,
                 )
                 .and_then(|result| self.resolve_call_type_argument(caller, &result, span).ok())
             })?
     }
 
-    fn evidence_source_type(&self, ty: &ResolvedType) -> Option<Type> {
+    fn evidence_source_type(
+        &self,
+        caller: &FunctionExecutionId,
+        ty: &ResolvedType,
+    ) -> Option<Type> {
         match ty {
             ResolvedType::Unit => None,
             ResolvedType::I64 => Some(Type::I64),
@@ -235,7 +262,27 @@ impl Resolver<'_> {
             ResolvedType::Str => Some(Type::Str),
             ResolvedType::SliceU8 => Some(Type::SliceU8),
             ResolvedType::ArrayU8(length) => Some(Type::ArrayU8(*length)),
-            ResolvedType::TypeParameter { .. } => None,
+            ResolvedType::TypeParameter { owner, index } => {
+                let FunctionExecutionId::Monomorphic(caller) = caller else {
+                    return None;
+                };
+                if owner != caller {
+                    return None;
+                }
+                let function = self
+                    .program
+                    .functions
+                    .iter()
+                    .find(|function| function.stable_id == caller.as_str())?;
+                Some(Type::Named {
+                    name: function
+                        .type_parameters
+                        .get(usize::try_from(*index).ok()?)?
+                        .name
+                        .clone(),
+                    arguments: Vec::new(),
+                })
+            }
             ResolvedType::Nominal {
                 declaration,
                 arguments,
@@ -243,7 +290,7 @@ impl Resolver<'_> {
                 name: self.evidence_nominal_name(declaration)?.to_owned(),
                 arguments: arguments
                     .iter()
-                    .map(|argument| self.evidence_source_type(argument))
+                    .map(|argument| self.evidence_source_type(caller, argument))
                     .collect::<Option<Vec<_>>>()?,
             }),
         }
@@ -374,6 +421,7 @@ mod tests {
             r#"
 module test.hir_inference_bounds;
 @id("app.id") fn id<T>(value: T) -> T { value }
+@id("app.outer") fn outer<T>(value: T) -> T { value }
 @id("app.main") fn main() -> i64 { 0 }
 "#,
             "hir-inference-bounds.spx",
@@ -396,6 +444,17 @@ module test.hir_inference_bounds;
             };
         }
         expression
+    }
+
+    fn omitted_id(value: Expr) -> Expr {
+        Expr {
+            kind: ExprKind::Call {
+                name: "id".to_owned(),
+                type_arguments: Vec::new(),
+                args: vec![value],
+            },
+            span: Span::default(),
+        }
     }
 
     #[test]
@@ -441,6 +500,102 @@ module test.hir_inference_bounds;
         });
         assert!(resolver
             .infer_call_arguments(&caller, &wide, &beyond, &bindings)
+            .is_none());
+
+        let literal = || Expr {
+            kind: ExprKind::Int(1),
+            span: Span::default(),
+        };
+        let mut nested = literal();
+        for _ in 0..127 {
+            nested = omitted_id(nested);
+        }
+        assert_eq!(
+            resolver.infer_call_arguments(&caller, target, &[nested], &bindings),
+            Some(vec![Type::I64])
+        );
+        let mut too_deep = literal();
+        for _ in 0..128 {
+            too_deep = omitted_id(too_deep);
+        }
+        assert!(resolver
+            .infer_call_arguments(&caller, target, &[too_deep], &bindings)
+            .is_none());
+
+        // 2,047 nested calls consume two evidence nodes each; two literal
+        // siblings make the exact shared 4,096-node limit.
+        let mut nested_siblings = (0..2_047)
+            .map(|_| omitted_id(literal()))
+            .collect::<Vec<_>>();
+        nested_siblings.extend([literal(), literal()]);
+        let mut wide_nested = target.clone();
+        wide_nested.params = vec![target.params[0].clone(); nested_siblings.len()];
+        assert_eq!(
+            resolver.infer_call_arguments(&caller, &wide_nested, &nested_siblings, &bindings),
+            Some(vec![Type::I64])
+        );
+        wide_nested.params.push(target.params[0].clone());
+        nested_siblings.push(literal());
+        assert!(resolver
+            .infer_call_arguments(&caller, &wide_nested, &nested_siblings, &bindings)
+            .is_none());
+    }
+
+    #[test]
+    fn direct_hir_inference_retains_a_generic_caller_symbol_through_nested_omission() {
+        let program = program();
+        let resolver = resolver(&program);
+        let caller = FunctionExecutionId::Monomorphic(DeclarationId::new("app.outer"));
+        let target = program
+            .functions
+            .iter()
+            .find(|function| function.stable_id == "app.id")
+            .expect("fixture generic function");
+        let nested = Expr {
+            kind: ExprKind::Call {
+                name: "id".to_owned(),
+                type_arguments: Vec::new(),
+                args: vec![Expr {
+                    kind: ExprKind::Var("value".to_owned()),
+                    span: Span::default(),
+                }],
+            },
+            span: Span::default(),
+        };
+        let mut bindings = BTreeMap::new();
+        bindings.insert(
+            "value".to_owned(),
+            Binding {
+                id: ValueId::local(&caller, "test.value"),
+                ty: ResolvedType::TypeParameter {
+                    owner: DeclarationId::new("app.outer"),
+                    index: 0,
+                },
+                ownership: OwnershipMode::Value,
+                mutable: false,
+            },
+        );
+        assert_eq!(
+            resolver.infer_call_arguments(&caller, target, &[nested], &bindings),
+            Some(vec![Type::Named {
+                name: "T".to_owned(),
+                arguments: Vec::new(),
+            }])
+        );
+        bindings.get_mut("value").expect("fixture binding").ty = ResolvedType::TypeParameter {
+            owner: DeclarationId::new("app.id"),
+            index: 0,
+        };
+        assert!(resolver
+            .infer_call_arguments(
+                &caller,
+                target,
+                &[Expr {
+                    kind: ExprKind::Var("value".to_owned()),
+                    span: Span::default(),
+                }],
+                &bindings,
+            )
             .is_none());
     }
 }

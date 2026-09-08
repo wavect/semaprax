@@ -74,3 +74,6 @@ cargo test --locked --offline -p semaprax --test owned_data generic_owned_functi
 
 Local results do not establish hosted or public support. Earlier graph, cleanup,
 prelude and public descriptor schemas retain their existing meaning.
+
+[Version 3](GENERIC-ARGUMENT-INFERENCE-V3.md) extends nested omitted calls and
+symbolic generic-caller inference while preserving this original v2 boundary.

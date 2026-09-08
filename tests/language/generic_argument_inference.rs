@@ -29,11 +29,7 @@ fn argument_inference_materializes_exact_scalar_vectors() {
 }
 #[test]
 fn argument_inference_rejects_conflicting_and_unsupported_evidence() {
-    for call in [
-        "same(1,true)",
-        "identity(identity(1))",
-        "identity({let x=1;x})",
-    ] {
+    for call in ["same(1,true)", "identity({let x=1;x})"] {
         let source = format!("{SCALAR} @id(\"infer.main\") fn main()->i64{{{call}}}");
         let errors = semaprax::check(&source, "bad-inference.spx").unwrap_err();
         assert!(
@@ -151,6 +147,7 @@ fn argument_inference_v2_reads_expression_types_without_evaluating_them() {
         ("1<2", "bool", "bool"),
         ("if true {declared(7)} else {9}", "i64", "i64"),
         ("identity<i64>(1)", "i64", "i64"),
+        ("identity(1)", "i64", "i64"),
         ("declared(identity<i64>(7))", "i64", "i64"),
     ] {
         let inferred=format!("{prefix} @id(\"infer.invoke\") fn invoke()->{result}{{identity({expression})}} @id(\"infer.main\") fn main()->i64{{0}}");
@@ -207,11 +204,10 @@ module test.inference_order;
 }
 
 #[test]
-fn argument_inference_v2_keeps_missing_partial_and_generic_caller_evidence_closed() {
+fn argument_inference_keeps_missing_and_partial_evidence_closed() {
     for body in [
         "@id(\"infer.partial\") fn partial<T,U>(left:T,right:U)->T{left} @id(\"infer.main\") fn main()->i64{partial<i64>(1,true)}",
         "@id(\"infer.missing\") fn missing<T,U>(left:T)->T{left} @id(\"infer.main\") fn main()->i64{missing(1)}",
-        "@id(\"infer.forward\") fn forward<T>(value:T)->T{identity(value)} @id(\"infer.main\") fn main()->i64{forward<i64>(1)}",
     ] {
         let errors=semaprax::check(&format!("{SCALAR} {body}"),"inference-v2-hostile.spx").unwrap_err();
         assert!(errors.iter().any(|error|error.code=="SPX-T225"),"{body}: {errors:?}");
@@ -223,7 +219,7 @@ fn argument_inference_v2_evidence_depth_boundary_is_exact() {
     use semaprax::ast::{Expr, ExprKind, UnaryOp};
     // The text parser has its own enclosing-expression depth bound. Construct
     // the argument AST after parsing to isolate this evidence walk's boundary.
-    let program = |depth: usize, vector: &str| {
+    let program = |depth: usize, vector: &str, nested_calls: bool| {
         let source = format!("{SCALAR} @id(\"infer.invoke\") fn invoke()->bool{{identity{vector}(true)}} @id(\"infer.main\") fn main()->i64{{0}}");
         let mut parsed = semaprax::check(&source, "inference-depth.spx").unwrap();
         let function = parsed
@@ -240,25 +236,35 @@ fn argument_inference_v2_evidence_depth_boundary_is_exact() {
         for _ in 0..depth {
             args[0] = Expr {
                 span: args[0].span,
-                kind: ExprKind::Unary {
-                    op: UnaryOp::Not,
-                    value: Box::new(args[0].clone()),
+                kind: if nested_calls {
+                    ExprKind::Call {
+                        name: "identity".into(),
+                        type_arguments: Vec::new(),
+                        args: vec![args[0].clone()],
+                    }
+                } else {
+                    ExprKind::Unary {
+                        op: UnaryOp::Not,
+                        value: Box::new(args[0].clone()),
+                    }
                 },
             };
         }
         parsed
     };
-    for (depth, vector) in [(127, ""), (128, "<bool>")] {
-        let parsed = program(depth, vector);
+    for (depth, vector, calls) in [(127, "", false), (128, "<bool>", false), (127, "", true)] {
+        let parsed = program(depth, vector, calls);
         assert!(semaprax::verify::verify(&parsed).is_empty());
         let resolved = semaprax::hir::resolve(&parsed).unwrap();
         semaprax::hir::validate(&resolved).unwrap();
     }
-    let errors = semaprax::verify::verify(&program(128, ""));
-    assert!(
-        errors.iter().any(|error| error.code == "SPX-T225"),
-        "{errors:?}"
-    );
+    for calls in [false, true] {
+        let errors = semaprax::verify::verify(&program(128, "", calls));
+        assert!(
+            errors.iter().any(|error| error.code == "SPX-T225"),
+            "nested calls={calls}: {errors:?}"
+        );
+    }
 }
 
 #[test]
@@ -318,4 +324,98 @@ module test.inferred_nominal_slots;
         errors.iter().any(|error| error.code == "SPX-O101"),
         "{errors:?}"
     );
+}
+
+#[test]
+fn argument_inference_v3_symbolic_forwarding_matches_explicit_instances_and_replays() {
+    let explicit = r#"
+module test.inferred_symbolic;
+@id("map.first") fn first<A,B>(left:A,right:B)->A{left}
+@id("map.permute") fn permute<A,B>(left:A,right:B)->B{first<B,A>(right,left)}
+@id("map.repeat") fn repeat<A>(value:A)->A{first<A,A>(value,value)}
+@id("map.concrete") fn concrete<A>(value:A)->i64{first<i64,A>(7,value)}
+@id("map.transitive") fn transitive<A,B>(left:A,right:B)->A{permute<B,A>(right,left)}
+@id("map.run") fn run()->bool{permute<i64,bool>(7,true)}
+@id("map.main") fn main()->i64{transitive<i64,bool>(concrete<bool>(repeat<bool>(true)),true)}
+"#;
+    // Keep source positions equal so complete HIR instance equality includes
+    // spans; canonical projection and graph replay are also checked separately.
+    let mut inferred = explicit.to_owned();
+    for (callee, vector) in [
+        ("first", "<B,A>"),
+        ("first", "<A,A>"),
+        ("first", "<i64,A>"),
+        ("permute", "<B,A>"),
+        ("permute", "<i64,bool>"),
+        ("transitive", "<i64,bool>"),
+        ("concrete", "<bool>"),
+        ("repeat", "<bool>"),
+    ] {
+        inferred = inferred.replace(
+            &format!("{callee}{vector}("),
+            &format!("{callee}{}(", " ".repeat(vector.len())),
+        );
+    }
+    checked(&inferred);
+    checked(explicit);
+    let resolve = |source: &str| {
+        semaprax::hir::resolve(&semaprax::check(source, "symbolic-inference.spx").unwrap()).unwrap()
+    };
+    let actual = resolve(&inferred);
+    let expected = resolve(explicit);
+    assert_eq!(actual.function_instances, expected.function_instances);
+    assert_eq!(actual.function_templates, expected.function_templates);
+    for replacement in [
+        semaprax::hir::ResolvedType::TypeParameter {
+            owner: semaprax::hir::DeclarationId::new("foreign"),
+            index: 0,
+        },
+        semaprax::hir::ResolvedType::TypeParameter {
+            owner: semaprax::hir::DeclarationId::new("map.permute"),
+            index: 2,
+        },
+        semaprax::hir::ResolvedType::Bool,
+    ] {
+        let mut forged = actual.clone();
+        let template = forged
+            .function_templates
+            .iter_mut()
+            .find(|t| t.id.as_str() == "map.permute")
+            .unwrap();
+        let semaprax::hir::ResolvedExprKind::Block { tail, .. } = &mut template.body.kind else {
+            panic!("block")
+        };
+        let semaprax::hir::ResolvedExprKind::Call {
+            callee,
+            type_arguments,
+            instance,
+            ..
+        } = &mut tail.kind
+        else {
+            panic!("call")
+        };
+        type_arguments[0] = replacement;
+        *instance = Some(semaprax::hir::FunctionInstanceId::derive(
+            callee,
+            type_arguments,
+        ));
+        assert_eq!(
+            semaprax::hir::validate(&forged).unwrap_err().code,
+            "SPX-H006"
+        );
+    }
+}
+
+#[test]
+fn argument_inference_v3_symbolic_missing_conflict_and_cycles_fail_closed() {
+    for (declarations, code) in [
+        ("@id(\"bad.outer\") fn outer<T>(value:T)->T{same(value,true)}", "SPX-T225"),
+        ("@id(\"bad.missing\") fn missing<T,U>(value:T)->T{value} @id(\"bad.outer\") fn outer<T>(value:T)->T{missing(value)}", "SPX-T225"),
+        ("@id(\"bad.first\") fn first<T,U>(left:T,right:U)->i64{second(right,left)} @id(\"bad.second\") fn second<T,U>(left:T,right:U)->i64{first(right,left)}", "SPX-T226"),
+        ("@id(\"bad.recursive\") fn recursive<T>(value:T)->T{recursive(value)}", "SPX-T226"),
+    ] {
+        let source=format!("{SCALAR} {declarations} @id(\"infer.main\") fn main()->i64{{0}}");
+        let errors=semaprax::check(&source,"symbolic-inference-hostile.spx").unwrap_err();
+        assert!(errors.iter().any(|e|e.code==code),"{declarations}: {errors:?}");
+    }
 }

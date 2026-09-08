@@ -443,11 +443,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         let inferred_arguments;
                         let type_arguments = if type_arguments.is_empty() {
                             inferred_arguments = crate::source_verify::generic_inference::arguments(
+                                self.program,
                                 self.current,
                                 target,
                                 args,
                                 &self.scopes[scope].bindings,
                                 self.functions,
+                                self.types,
                             );
                             inferred_arguments.as_deref().unwrap_or(type_arguments)
                         } else {

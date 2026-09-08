@@ -94,6 +94,40 @@ module fixture.app;
     );
 }
 
+#[test]
+fn inferred_generic_instance_symbolic_nested_calls_replay_their_own_source() {
+    let make = |label: &str, explicit: bool| {
+        let fixture = Fixture::owned_vec(label, false);
+        let path = fixture.0.join("src/app.spx");
+        let inner = if explicit { "<U, T>" } else { "" };
+        let relay = if explicit { "<bool, i64>" } else { "" };
+        let source = format!(
+            r#"
+module fixture.app;
+@id("inferred.pair") record Pair<T, U> {{
+ @id("inferred.payload") payload: T,
+ @id("inferred.marker") marker: U,
+}}
+@id("inferred.inner") fn inner<A, B>(tag: A, value: own Pair<Bytes, B>) -> Pair<Bytes, B> {{ value }}
+@id("inferred.relay") fn relay<T, U>(value: own Pair<Bytes, T>, tag: U) -> Pair<Bytes, T> {{ inner{inner}(tag, value) }}
+@id("inferred.main") fn main() -> i64 {{
+ let input = [1u8];
+ let value = relay{relay}(relay{relay}(Pair<Bytes, bool> {{ payload: bytes_copy(array_as_slice(input)), marker: true }}, 7), 1 + 2);
+ match own value {{ Pair {{ payload, marker }} => if marker {{ 0 }} else {{ 1 }}, }}
+}}
+@id("fixture.public") fn published() -> i64 {{ 0 }}
+"#
+        );
+        let parsed = semaprax::parse(&source, &path).unwrap();
+        std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+        fixture
+    };
+    assert_inferred_roots(
+        make("generic-inference-symbolic-explicit", true),
+        make("generic-inference-symbolic-omitted", false),
+    );
+}
+
 fn assert_inferred_roots(explicit: Fixture, inferred: Fixture) {
     let explicit_revision = explicit.revision();
     let inferred_revision = inferred.revision();

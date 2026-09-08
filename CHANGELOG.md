@@ -8,6 +8,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Extend argument inference through nested omitted calls and generic callers, retaining scoped symbolic forwarding identities, independent bounded evidence, exact graph/root replay and ordinary evaluation-once ownership settlement.
+
 - Extend private generic argument inference to complete ordered vectors and bounded expression type evidence, with independent source/HIR derivation and unchanged concrete instance, ownership and cleanup admission.
 
 - Add durable Agent migration handoffs, trusted-store destination recovery and repeated revision chains with cumulative call, byte, stage and fuel accounting; preserve frozen operation checkpoint v2 bytes and bind additive migrated evidence to the handoff.

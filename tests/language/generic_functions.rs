@@ -1259,7 +1259,10 @@ module test.generic_inference_generic_caller;
 @id("test.outer") fn outer<U>(value: U) -> U { id(value) }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
-    assert!(error_codes(generic_caller_inference).contains(&"SPX-T225"));
+    assert!(error_codes(generic_caller_inference).is_empty());
+    let symbolic = hir::resolve(&parse_source(generic_caller_inference)).unwrap();
+    hir::validate(&symbolic).unwrap();
+    assert!(symbolic.function_instances.is_empty());
 
     let expression_inference = r#"
 module test.generic_inference_expression;

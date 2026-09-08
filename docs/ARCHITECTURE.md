@@ -2352,6 +2352,12 @@ argument evaluation. Their bounded type-evidence traversal observes expression
 types without invoking ordinary expression checking or ownership transitions.
 They retain the explicit concrete instance representation;
 source and graph replay remain bound to each projection's own source revision.
+The declaration precheck in `source_verify/declaration/functions` independently
+builds scoped static type facts for omitted generic-template mappings before
+checking every admitted concrete substitution. Unknown or shadowed facts cannot
+supply a stale mapping. HIR inference retains caller-owned parameter identities,
+and nested evidence shares one bounded walk; graph mapping continues to consume
+checked symbolic calls through authenticated structural paths.
 
 `execution_revision/typed_migration` consumes actual durable suspension evidence,
 rechecks old/new retained State schemas and executes the pure migration. Its

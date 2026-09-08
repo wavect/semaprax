@@ -1,7 +1,10 @@
 //! Function-level checks: declaration admission, generic call cycles, and the
 //! per-function body, contract, and effect checks.
 
-use crate::ast::{Function, ImportDeclaration, InterfaceDeclaration, ParamMode, Program, Type};
+use crate::ast::{
+    Expr, ExprKind, Function, ImportDeclaration, InterfaceDeclaration, MatchPattern, ParamMode,
+    Program, RecordMatchFieldPattern, Statement, Type,
+};
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding};
 use crate::source_verify::declared_type::generic_result;
@@ -431,21 +434,45 @@ pub(super) fn check_generic_function_cycles<'p>(
     generic_functions: &HashSet<&'p str>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    let functions = program
+        .functions
+        .iter()
+        .map(|function| (function.name.as_str(), function))
+        .collect::<HashMap<_, _>>();
+    let types = TypeTable::new(program);
     for function in program
         .functions
         .iter()
         .filter(|function| !function.type_parameters.is_empty())
     {
+        let mut bindings = function
+            .params
+            .iter()
+            .map(|parameter| (parameter.name.clone(), static_binding(parameter.ty.clone())))
+            .collect::<HashMap<_, _>>();
         for expression in function
             .requires
             .iter()
             .chain(std::iter::once(&function.body))
             .chain(&function.ensures)
         {
+            check_omitted_generic_mappings(
+                program,
+                function,
+                expression,
+                &mut bindings,
+                &functions,
+                &types,
+                diagnostics,
+                0,
+            );
             expression.visit_call_instances(&mut |callee, arguments, span| {
                 if let Some(target) = program.functions.iter().find(|target| {
                     target.name == callee && !target.type_parameters.is_empty()
                 }) {
+                    if arguments.is_empty() {
+                        return;
+                    }
                     if !generic_function_arguments_are_forwarded(function, target, arguments) {
                         diagnostics.push(error(
                             program,
@@ -497,6 +524,425 @@ pub(super) fn check_generic_function_cycles<'p>(
                 function.span,
             ));
         }
+    }
+}
+
+const MAX_STATIC_MAPPING_DEPTH: usize = 128;
+
+fn static_binding(ty: Type) -> Binding {
+    Binding {
+        ty,
+        mode: ParamMode::Value,
+        availability: Availability::Available,
+        moved_places: HashMap::new(),
+        definitely_partial: HashSet::new(),
+        native_unit_discard: false,
+        mutable: false,
+        active_loans: BTreeSet::new(),
+        borrow_origin: None,
+    }
+}
+
+/// Carries the lexical scope, declaration table, and bounded traversal state
+/// required to authenticate an omitted symbolic mapping before body checking.
+#[allow(clippy::too_many_arguments)]
+fn check_omitted_generic_mappings(
+    program: &Program,
+    current: &Function,
+    expression: &Expr,
+    bindings: &mut HashMap<String, Binding>,
+    functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
+    diagnostics: &mut Vec<Diagnostic>,
+    depth: usize,
+) {
+    if depth >= MAX_STATIC_MAPPING_DEPTH {
+        expression.visit_call_instances(&mut |callee, arguments, span| {
+            if arguments.is_empty()
+                && functions
+                    .get(callee)
+                    .is_some_and(|target| !target.type_parameters.is_empty())
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T225",
+                    format!(
+                        "generic function `{}` has an omitted type-argument mapping beyond the bounded static traversal",
+                        current.name
+                    ),
+                    span,
+                ));
+            }
+        });
+        return;
+    }
+    let next = depth + 1;
+    match &expression.kind {
+        ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+        } => {
+            for argument in args {
+                check_omitted_generic_mappings(
+                    program,
+                    current,
+                    argument,
+                    bindings,
+                    functions,
+                    types,
+                    diagnostics,
+                    next,
+                );
+            }
+            let Some(target) = functions.get(name.as_str()) else {
+                return;
+            };
+            if target.type_parameters.is_empty() || !type_arguments.is_empty() {
+                return;
+            }
+            let inferred = crate::source_verify::generic_inference::arguments(
+                program, current, target, args, bindings, functions, types,
+            );
+            if !inferred.as_ref().is_some_and(|arguments| {
+                generic_function_arguments_are_forwarded(current, target, arguments)
+            }) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T225",
+                    format!(
+                        "generic function `{}` must supply admitted explicit type-argument mappings when calling generic function `{name}`",
+                        current.name
+                    ),
+                    expression.span,
+                ));
+            }
+        }
+        ExprKind::Block { statements, tail } => {
+            let mut scope = bindings.clone();
+            for statement in statements {
+                match statement {
+                    Statement::Let {
+                        name,
+                        declared,
+                        value,
+                        ..
+                    } => {
+                        check_omitted_generic_mappings(
+                            program,
+                            current,
+                            value,
+                            &mut scope,
+                            functions,
+                            types,
+                            diagnostics,
+                            next,
+                        );
+                        let ty = declared.clone().or_else(|| {
+                            crate::source_verify::generic_inference::expression_type(
+                                program, current, value, &scope, functions, types,
+                            )
+                        });
+                        scope.remove(name);
+                        if let Some(ty) = ty {
+                            scope.insert(name.clone(), static_binding(ty));
+                        }
+                    }
+                    Statement::Assign { value, .. } => check_omitted_generic_mappings(
+                        program,
+                        current,
+                        value,
+                        &mut scope,
+                        functions,
+                        types,
+                        diagnostics,
+                        next,
+                    ),
+                    Statement::Unsafe { body, .. } => check_omitted_generic_mappings(
+                        program,
+                        current,
+                        body,
+                        &mut scope,
+                        functions,
+                        types,
+                        diagnostics,
+                        next,
+                    ),
+                    Statement::While {
+                        condition, body, ..
+                    } => {
+                        check_omitted_generic_mappings(
+                            program,
+                            current,
+                            condition,
+                            &mut scope,
+                            functions,
+                            types,
+                            diagnostics,
+                            next,
+                        );
+                        check_omitted_generic_mappings(
+                            program,
+                            current,
+                            body,
+                            &mut scope,
+                            functions,
+                            types,
+                            diagnostics,
+                            next,
+                        );
+                    }
+                    Statement::For {
+                        item, values, body, ..
+                    } => {
+                        check_omitted_generic_mappings(
+                            program,
+                            current,
+                            values,
+                            &mut scope,
+                            functions,
+                            types,
+                            diagnostics,
+                            next,
+                        );
+                        let mut body_scope = scope.clone();
+                        body_scope.remove(item);
+                        check_omitted_generic_mappings(
+                            program,
+                            current,
+                            body,
+                            &mut body_scope,
+                            functions,
+                            types,
+                            diagnostics,
+                            next,
+                        );
+                    }
+                }
+            }
+            check_omitted_generic_mappings(
+                program,
+                current,
+                tail,
+                &mut scope,
+                functions,
+                types,
+                diagnostics,
+                next,
+            );
+        }
+        ExprKind::Unary { value, .. }
+        | ExprKind::Try { operand: value }
+        | ExprKind::Project { base: value, .. } => check_omitted_generic_mappings(
+            program,
+            current,
+            value,
+            bindings,
+            functions,
+            types,
+            diagnostics,
+            next,
+        ),
+        ExprKind::Binary { left, right, .. } => {
+            for child in [left.as_ref(), right.as_ref()] {
+                check_omitted_generic_mappings(
+                    program,
+                    current,
+                    child,
+                    bindings,
+                    functions,
+                    types,
+                    diagnostics,
+                    next,
+                );
+            }
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            for child in [
+                condition.as_ref(),
+                then_branch.as_ref(),
+                else_branch.as_ref(),
+            ] {
+                check_omitted_generic_mappings(
+                    program,
+                    current,
+                    child,
+                    bindings,
+                    functions,
+                    types,
+                    diagnostics,
+                    next,
+                );
+            }
+        }
+        ExprKind::ConstructRecord { fields, .. } | ExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                check_omitted_generic_mappings(
+                    program,
+                    current,
+                    &field.value,
+                    bindings,
+                    functions,
+                    types,
+                    diagnostics,
+                    next,
+                );
+            }
+        }
+        ExprKind::UpdateRecord { base, fields } => {
+            check_omitted_generic_mappings(
+                program,
+                current,
+                base,
+                bindings,
+                functions,
+                types,
+                diagnostics,
+                next,
+            );
+            for field in fields {
+                check_omitted_generic_mappings(
+                    program,
+                    current,
+                    &field.value,
+                    bindings,
+                    functions,
+                    types,
+                    diagnostics,
+                    next,
+                );
+            }
+        }
+        ExprKind::Match {
+            scrutinee, arms, ..
+        } => {
+            check_omitted_generic_mappings(
+                program,
+                current,
+                scrutinee,
+                bindings,
+                functions,
+                types,
+                diagnostics,
+                next,
+            );
+            for arm in arms {
+                let mut arm_scope = bindings.clone();
+                clear_pattern_bindings(&arm.pattern, &mut arm_scope);
+                if let Some(guard) = &arm.guard {
+                    check_omitted_generic_mappings(
+                        program,
+                        current,
+                        guard,
+                        &mut arm_scope,
+                        functions,
+                        types,
+                        diagnostics,
+                        next,
+                    );
+                }
+                check_omitted_generic_mappings(
+                    program,
+                    current,
+                    &arm.value,
+                    &mut arm_scope,
+                    functions,
+                    types,
+                    diagnostics,
+                    next,
+                );
+            }
+        }
+        ExprKind::MethodCall { receiver, args, .. } => {
+            check_omitted_generic_mappings(
+                program,
+                current,
+                receiver,
+                bindings,
+                functions,
+                types,
+                diagnostics,
+                next,
+            );
+            for argument in args {
+                check_omitted_generic_mappings(
+                    program,
+                    current,
+                    argument,
+                    bindings,
+                    functions,
+                    types,
+                    diagnostics,
+                    next,
+                );
+            }
+        }
+        ExprKind::SuperMethod { args, .. } => {
+            for argument in args {
+                check_omitted_generic_mappings(
+                    program,
+                    current,
+                    argument,
+                    bindings,
+                    functions,
+                    types,
+                    diagnostics,
+                    next,
+                );
+            }
+        }
+        ExprKind::Int(_)
+        | ExprKind::Int32(_)
+        | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
+        | ExprKind::Char(_)
+        | ExprKind::Float32(_)
+        | ExprKind::Float64(_)
+        | ExprKind::Bool(_)
+        | ExprKind::String(_)
+        | ExprKind::ArrayU8(_)
+        | ExprKind::RepeatArrayU8 { .. }
+        | ExprKind::Var(_) => {}
+    }
+}
+
+fn clear_pattern_bindings(pattern: &MatchPattern, bindings: &mut HashMap<String, Binding>) {
+    match pattern {
+        MatchPattern::Variant { fields, .. } => {
+            for field in fields {
+                bindings.remove(&field.binding);
+            }
+        }
+        MatchPattern::Record { fields, .. } => {
+            for field in fields {
+                clear_record_pattern_bindings(&field.pattern, bindings);
+            }
+        }
+        MatchPattern::Binding { name, .. } => {
+            bindings.remove(name);
+        }
+        MatchPattern::Wildcard { .. } | MatchPattern::Literal { .. } | MatchPattern::Or { .. } => {}
+    }
+}
+
+fn clear_record_pattern_bindings(
+    pattern: &RecordMatchFieldPattern,
+    bindings: &mut HashMap<String, Binding>,
+) {
+    match pattern {
+        RecordMatchFieldPattern::Binding { name, .. } => {
+            bindings.remove(name);
+        }
+        RecordMatchFieldPattern::Record { fields, .. } => {
+            for field in fields {
+                clear_record_pattern_bindings(&field.pattern, bindings);
+            }
+        }
+        RecordMatchFieldPattern::Wildcard { .. } => {}
     }
 }
 
@@ -864,5 +1310,129 @@ pub(super) fn check_function_bodies<'p>(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod generic_inference_tests {
+    use super::*;
+    use std::path::Path;
+
+    fn parsed(source: &str) -> Program {
+        crate::parse(source, Path::new("generic-forwarding-precheck.spx")).unwrap()
+    }
+
+    fn mapping_diagnostics(program: &Program) -> Vec<Diagnostic> {
+        let call_graph = program
+            .functions
+            .iter()
+            .map(|function| {
+                let mut callees = Vec::new();
+                for expression in function
+                    .requires
+                    .iter()
+                    .chain(std::iter::once(&function.body))
+                    .chain(&function.ensures)
+                {
+                    expression.visit_calls(&mut |callee, _| callees.push(callee.to_owned()));
+                }
+                (function.name.clone(), callees)
+            })
+            .collect();
+        let generic_functions = program
+            .functions
+            .iter()
+            .filter(|function| !function.type_parameters.is_empty())
+            .map(|function| function.name.as_str())
+            .collect();
+        let mut diagnostics = Vec::new();
+        check_generic_function_cycles(program, &call_graph, &generic_functions, &mut diagnostics);
+        diagnostics
+    }
+
+    fn nested_calls(count: usize, explicit: bool) -> Program {
+        let mut program = parsed(
+            r#"
+module test.generic_precheck;
+@id("infer.id") fn id<T>(value:T)->T{value}
+@id("infer.outer") fn outer<T>(value:T)->T{value}
+@id("app.main") fn main()->i64{0}
+"#,
+        );
+        let mut expression = Expr {
+            kind: ExprKind::Var("value".to_owned()),
+            span: crate::ast::Span::default(),
+        };
+        for _ in 0..count {
+            expression = Expr {
+                kind: ExprKind::Call {
+                    name: "id".to_owned(),
+                    type_arguments: if explicit {
+                        vec![Type::Named {
+                            name: "T".to_owned(),
+                            arguments: Vec::new(),
+                        }]
+                    } else {
+                        Vec::new()
+                    },
+                    args: vec![expression],
+                },
+                span: crate::ast::Span::default(),
+            };
+        }
+        program
+            .functions
+            .iter_mut()
+            .find(|function| function.name == "outer")
+            .unwrap()
+            .body = expression;
+        program
+    }
+
+    #[test]
+    fn omitted_mapping_depth_fails_closed_without_rejecting_explicit_mapping() {
+        assert!(mapping_diagnostics(&nested_calls(128, false)).is_empty());
+        let omitted_program = nested_calls(129, false);
+        let omitted = mapping_diagnostics(&omitted_program);
+        assert!(omitted.iter().any(|diagnostic| {
+            diagnostic.code == "SPX-T225"
+                && diagnostic
+                    .message
+                    .contains("beyond the bounded static traversal")
+        }));
+        let explicit_program = nested_calls(129, true);
+        assert!(mapping_diagnostics(&explicit_program).is_empty());
+    }
+
+    #[test]
+    fn unknown_let_shadow_cannot_reuse_the_outer_parameter_fact() {
+        let program = parsed(
+            r#"
+module test.generic_shadow;
+@id("infer.id") fn id<T>(value:T)->T{value}
+@id("infer.outer") fn outer<T>(value:T)->T{{let value=missing;id(value)}}
+@id("app.main") fn main()->i64{0}
+"#,
+        );
+        let diagnostics = mapping_diagnostics(&program);
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T225"));
+    }
+
+    #[test]
+    fn match_binding_shadow_cannot_reuse_the_outer_parameter_fact() {
+        let program = parsed(
+            r#"
+module test.generic_match_shadow;
+@id("infer.id") fn id<T>(value:T)->T{value}
+@id("infer.outer") fn outer<T>(value:T)->T{match value{value=>id(value),}}
+@id("app.main") fn main()->i64{0}
+"#,
+        );
+        let diagnostics = mapping_diagnostics(&program);
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T225"));
     }
 }

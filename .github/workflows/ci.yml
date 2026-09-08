@@ -172,6 +172,7 @@ jobs:
           cargo test --locked --offline -p semaprax --lib generic_inference
           cargo test --locked --offline -p semaprax --test language generic_argument_inference
           cargo test --locked --offline -p semaprax --test language generic_function_hostiles_are_stable_and_fail_closed
+          cargo test --locked --offline -p semaprax --test ir graph_generic_mapping
           cargo test --locked --offline -p semaprax --test workspace inferred_generic_instance
           cargo test --locked --offline -p semaprax --test owned_data generic_owned_function_runtime::inference
 

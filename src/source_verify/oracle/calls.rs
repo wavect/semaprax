@@ -292,7 +292,7 @@ pub(super) fn oracle_call(
         let inferred_arguments;
         let type_arguments = if type_arguments.is_empty() {
             inferred_arguments = crate::source_verify::generic_inference::arguments(
-                current, target, args, variables, functions,
+                program, current, target, args, variables, functions, types,
             );
             inferred_arguments.as_deref().unwrap_or(type_arguments)
         } else {

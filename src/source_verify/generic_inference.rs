@@ -1,8 +1,12 @@
 //! Bounded argument-directed inference. This pass observes type facts only;
 //! ordinary argument checking remains the sole source ownership authority.
 use super::binding::Binding;
-use super::declared_type::substitute_function_type;
-use crate::ast::{BinaryOp, Expr, ExprKind, Function, Type, UnaryOp};
+use super::declared_type::{
+    generic_function_arguments_are_admitted, generic_function_arguments_are_forwarded,
+    substitute_function_type,
+};
+use super::type_table::TypeTable;
+use crate::ast::{BinaryOp, Expr, ExprKind, Function, Program, Type, UnaryOp};
 use std::collections::HashMap;
 
 const MAX_EVIDENCE_DEPTH: usize = 128;
@@ -21,13 +25,66 @@ impl EvidenceBudget {
 }
 
 pub(super) fn arguments(
+    program: &Program,
     current: &Function,
     target: &Function,
     args: &[Expr],
     bindings: &HashMap<String, Binding>,
     functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
 ) -> Option<Vec<Type>> {
-    if !current.type_parameters.is_empty() || args.len() != target.params.len() {
+    let mut budget = EvidenceBudget::default();
+    infer_arguments(
+        program,
+        current,
+        target,
+        args,
+        bindings,
+        functions,
+        types,
+        &mut budget,
+        0,
+    )
+}
+
+/// One bounded static type fact for the template-forwarding precheck. This
+/// observes the same expression forms as call inference and never checks or
+/// evaluates the expression.
+pub(super) fn expression_type(
+    program: &Program,
+    current: &Function,
+    expression: &Expr,
+    bindings: &HashMap<String, Binding>,
+    functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
+) -> Option<Type> {
+    evidence(
+        program,
+        current,
+        expression,
+        bindings,
+        functions,
+        types,
+        &mut EvidenceBudget::default(),
+        0,
+    )
+}
+
+/// Keeps one call's immutable declaration context and mutable evidence budget
+/// together so recursive omitted calls cannot reset either bound.
+#[allow(clippy::too_many_arguments)]
+fn infer_arguments(
+    program: &Program,
+    current: &Function,
+    target: &Function,
+    args: &[Expr],
+    bindings: &HashMap<String, Binding>,
+    functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
+    budget: &mut EvidenceBudget,
+    depth: usize,
+) -> Option<Vec<Type>> {
+    if target.type_parameters.is_empty() || args.len() != target.params.len() {
         return None;
     }
     let parameters = target
@@ -37,9 +94,10 @@ pub(super) fn arguments(
         .map(|(index, parameter)| (parameter.name.as_str(), index))
         .collect::<HashMap<_, _>>();
     let mut inferred = vec![None; target.type_parameters.len()];
-    let mut budget = EvidenceBudget::default();
     for (formal, expression) in target.params.iter().zip(args) {
-        let actual = evidence(expression, bindings, functions, &mut budget, 0)?;
+        let actual = evidence(
+            program, current, expression, bindings, functions, types, budget, depth,
+        )?;
         let mut pending = vec![(&formal.ty, &actual)];
         while let Some((formal, actual)) = pending.pop() {
             if let Type::Named { name, arguments } = formal {
@@ -90,10 +148,16 @@ fn ordered(ty: &Type) -> bool {
     )
 }
 
+/// Pure structural evidence shares the enclosing call's budget and does not
+/// enter the ordinary expression verifier.
+#[allow(clippy::too_many_arguments)]
 fn evidence(
+    program: &Program,
+    current: &Function,
     expression: &Expr,
     bindings: &HashMap<String, Binding>,
     functions: &HashMap<&str, &Function>,
+    types: &TypeTable<'_>,
     budget: &mut EvidenceBudget,
     depth: usize,
 ) -> Option<Type> {
@@ -125,7 +189,9 @@ fn evidence(
             arguments: type_arguments.clone(),
         },
         ExprKind::Unary { op, value } => {
-            let value = evidence(value, bindings, functions, budget, next)?;
+            let value = evidence(
+                program, current, value, bindings, functions, types, budget, next,
+            )?;
             match op {
                 UnaryOp::Neg if matches!(value, Type::I64 | Type::I32 | Type::F32 | Type::F64) => {
                     value
@@ -135,8 +201,12 @@ fn evidence(
             }
         }
         ExprKind::Binary { op, left, right } => {
-            let left = evidence(left, bindings, functions, budget, next)?;
-            let right = evidence(right, bindings, functions, budget, next)?;
+            let left = evidence(
+                program, current, left, bindings, functions, types, budget, next,
+            )?;
+            let right = evidence(
+                program, current, right, bindings, functions, types, budget, next,
+            )?;
             if left != right {
                 return None;
             }
@@ -158,42 +228,81 @@ fn evidence(
             then_branch,
             else_branch,
         } => {
-            if evidence(condition, bindings, functions, budget, next)? != Type::Bool {
+            if evidence(
+                program, current, condition, bindings, functions, types, budget, next,
+            )? != Type::Bool
+            {
                 return None;
             }
-            let then_branch = evidence(then_branch, bindings, functions, budget, next)?;
-            let else_branch = evidence(else_branch, bindings, functions, budget, next)?;
+            let then_branch = evidence(
+                program,
+                current,
+                then_branch,
+                bindings,
+                functions,
+                types,
+                budget,
+                next,
+            )?;
+            let else_branch = evidence(
+                program,
+                current,
+                else_branch,
+                bindings,
+                functions,
+                types,
+                budget,
+                next,
+            )?;
             if then_branch != else_branch {
                 return None;
             }
             then_branch
         }
-        ExprKind::Block { statements, tail } if statements.is_empty() => {
-            evidence(tail, bindings, functions, budget, next)?
-        }
+        ExprKind::Block { statements, tail } if statements.is_empty() => evidence(
+            program, current, tail, bindings, functions, types, budget, next,
+        )?,
         ExprKind::Call {
             name,
             type_arguments,
             args,
         } => {
             let target = functions.get(name.as_str())?;
-            if args.len() != target.params.len()
-                || (!target.type_parameters.is_empty()
-                    && type_arguments.len() != target.type_parameters.len())
-            {
+            if args.len() != target.params.len() {
                 return None;
             }
-            if target.type_parameters.is_empty() {
+            let arguments = if target.type_parameters.is_empty() {
                 if !type_arguments.is_empty() {
                     return None;
                 }
-                target.return_type.clone()
+                return Some(target.return_type.clone());
             } else if type_arguments.is_empty() {
+                infer_arguments(
+                    program, current, target, args, bindings, functions, types, budget, next,
+                )?
+            } else if type_arguments.len() != target.type_parameters.len() {
                 return None;
             } else {
-                substitute_function_type(target, type_arguments, &target.return_type)?
+                type_arguments.clone()
+            };
+            if !generic_arguments_are_admitted(program, current, target, &arguments, types) {
+                return None;
             }
+            substitute_function_type(target, &arguments, &target.return_type)?
         }
         _ => return None,
     })
+}
+
+fn generic_arguments_are_admitted(
+    program: &Program,
+    current: &Function,
+    target: &Function,
+    arguments: &[Type],
+    types: &TypeTable<'_>,
+) -> bool {
+    generic_function_arguments_are_admitted(target, arguments, types)
+        || generic_function_arguments_are_forwarded(current, target, arguments)
+        || crate::vec_ops::source_arguments_are_admitted(program, target, arguments)
+        || crate::box_ops::source_arguments_are_admitted(program, target, arguments)
 }

@@ -179,3 +179,99 @@ ensures truth<A>(left)
         0
     );
 }
+
+#[test]
+fn inferred_forwarding_preserves_symbolic_mapping_and_rejects_concrete_lookalikes() {
+    let inferred = SOURCE
+        .replace("first<A,B>(left,right)", "first(left,right)")
+        .replace("first<B,A>(right,left)", "first(right,left)")
+        .replace("first<A,A>(value,value)", "first(value,value)")
+        .replace("first<i64,A>(7,value)", "first(7,value)")
+        .replace("identity<i64,i64>(1,2)", "identity(1,2)")
+        .replace("swap<i64,i64>(1,2)", "swap(1,2)")
+        .replace("repeat<i64>(3)", "repeat(3)")
+        .replace("concrete<i64>(4)", "concrete(4)");
+    let explicit = semaprax::check(SOURCE, "explicit-mapping.spx").unwrap();
+    let program = semaprax::check(&inferred, "inferred-mapping.spx").unwrap();
+    let bytes = graph::to_json(&program).unwrap();
+    graph::verify_json(&program, &bytes).unwrap();
+    let value: Value = serde_json::from_str(&bytes).unwrap();
+    let expected: Value = serde_json::from_str(&graph::to_json(&explicit).unwrap()).unwrap();
+    assert_eq!(value["schema"], "semaprax.graph.v35");
+    assert_eq!(
+        value["generic_template_forwarding"],
+        expected["generic_template_forwarding"]
+    );
+    assert_ne!(value["revision"], expected["revision"]);
+    let instances = value["generic_instance_ownership"].as_array().unwrap();
+    let edge = |name: &str| {
+        &instances
+            .iter()
+            .find(|instance| instance["template"] == name)
+            .unwrap()["call_edges"][0]
+    };
+    assert_eq!(
+        edge("m.identity")["callee_concrete_arguments"],
+        edge("m.swap")["callee_concrete_arguments"]
+    );
+    assert_eq!(
+        edge("m.identity")["callee_instance"],
+        edge("m.swap")["callee_instance"]
+    );
+    assert_ne!(
+        edge("m.identity")["forwarded_argument_mapping"],
+        edge("m.swap")["forwarded_argument_mapping"]
+    );
+    for instance in instances {
+        let reference = expected["generic_instance_ownership"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|other| {
+                other["template"] == instance["template"]
+                    && other["type_arguments"] == instance["type_arguments"]
+            })
+            .unwrap();
+        let mappings = |entry: &Value| {
+            entry["call_edges"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|edge| edge["forwarded_argument_mapping"].clone())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(mappings(instance), mappings(reference));
+    }
+    // Both calls specialize to <i64,i64>. Only retained symbolic source can
+    // distinguish identity from swap, even if the forged edge looks concrete.
+    let mut forged = value.clone();
+    let slot = forged["generic_instance_ownership"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|instance| instance["template"] == "m.swap")
+        .unwrap();
+    slot["call_edges"][0]["forwarded_argument_mapping"] =
+        edge("m.identity")["forwarded_argument_mapping"].clone();
+    assert_eq!(
+        graph::verify_json(&program, &serde_json::to_string(&forged).unwrap()).unwrap_err()[0].code,
+        "SPX-G411"
+    );
+    let canonical = semaprax::format::canonical(&program);
+    assert_eq!(
+        bytes,
+        graph::to_json(&semaprax::check(&canonical, "inferred-mapping.spx").unwrap()).unwrap()
+    );
+
+    let unused = inferred.replace("identity(1,2)+swap(1,2)+repeat(3)+concrete(4)", "0");
+    let unused = semaprax::check(&unused, "inferred-unused-mapping.spx").unwrap();
+    let unused_graph: Value = serde_json::from_str(&graph::to_json(&unused).unwrap()).unwrap();
+    assert!(unused_graph["generic_instance_ownership"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    assert_eq!(
+        unused_graph["generic_template_forwarding"],
+        value["generic_template_forwarding"]
+    );
+}

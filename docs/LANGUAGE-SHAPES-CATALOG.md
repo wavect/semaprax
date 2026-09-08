@@ -831,6 +831,41 @@ fn compare(left: i32, right: i32) -> i64
 fn main() -> i64
 ```
 
+### `iterator.map` (`examples/iterator-operations.spx`)
+
+```semaprax
+@id("iterator.map")
+fn map<T, U>(input: own Iter<T>, capacity: usize, transform: fn(T) -> U) -> Vec<U>
+```
+
+### `iterator.filter` (`examples/iterator-operations.spx`)
+
+```semaprax
+@id("iterator.filter")
+fn filter<T>(input: own Iter<T>, capacity: usize, keep: fn(T) -> bool) -> Vec<T>
+```
+
+### `iterator.fold` (`examples/iterator-operations.spx`)
+
+```semaprax
+@id("iterator.fold")
+fn fold<T, A>(input: own Iter<T>, initial: A, combine: fn(A, T) -> A) -> A
+```
+
+### `iterator.map-via` (`examples/iterator-operations.spx`)
+
+```semaprax
+@id("iterator.map-via")
+fn map_via<U, T>(input: own Iter<T>, capacity: usize, transform: fn(T) -> U) -> Vec<U>
+```
+
+### `app.main` (`examples/iterator-operations.spx`)
+
+```semaprax
+@id("app.main")
+fn main() -> i64
+```
+
 ### `app.main` (`examples/lifecycle.spx`)
 
 ```semaprax

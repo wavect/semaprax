@@ -535,6 +535,36 @@
       "signature": "@id(\"app.main\")\nfn main() -> i64\n"
     },
     {
+      "id": "iterator.map",
+      "kind": "function",
+      "path": "examples/iterator-operations.spx",
+      "signature": "@id(\"iterator.map\")\nfn map<T, U>(input: own Iter<T>, capacity: usize, transform: fn(T) -> U) -> Vec<U>\n"
+    },
+    {
+      "id": "iterator.filter",
+      "kind": "function",
+      "path": "examples/iterator-operations.spx",
+      "signature": "@id(\"iterator.filter\")\nfn filter<T>(input: own Iter<T>, capacity: usize, keep: fn(T) -> bool) -> Vec<T>\n"
+    },
+    {
+      "id": "iterator.fold",
+      "kind": "function",
+      "path": "examples/iterator-operations.spx",
+      "signature": "@id(\"iterator.fold\")\nfn fold<T, A>(input: own Iter<T>, initial: A, combine: fn(A, T) -> A) -> A\n"
+    },
+    {
+      "id": "iterator.map-via",
+      "kind": "function",
+      "path": "examples/iterator-operations.spx",
+      "signature": "@id(\"iterator.map-via\")\nfn map_via<U, T>(input: own Iter<T>, capacity: usize, transform: fn(T) -> U) -> Vec<U>\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/iterator-operations.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
       "id": "app.main",
       "kind": "function",
       "path": "examples/lifecycle.spx",

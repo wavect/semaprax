@@ -8,6 +8,19 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the private Owning Iterators v1 implementation tranche for scalar
+  `Iter<T>`/`IterStep<T>` and consuming `vec_into_iter`/`iter_next`, with
+  Prelude v7, CleanupPlan v10, Graph v38, and ProgramRoot binding. Local
+  interpreter and C11 O0/O2 observations cover all eight scalar types, order,
+  empty/exhaustion, early drop, `Done`/`Yield` reconstruction, contracts,
+  private returns, and forged native cursors. The same corpus passes Core Wasm with exact scope settlement; hosted promotion and the
+  broader iterator, owning-payload, lazy-adapter, and public-ABI work remain
+  pending.
+
+- Repair Closure exhaustiveness in projection and semantic test traversals and
+  native-builder mutable AST traversal, plus narrowly mechanical `-D warnings`
+  hygiene exposed by the cancelled CI run. Hosted revalidation remains pending.
+
 - Add scalar closure construction inside generic collection functions and bounded
   loops, with concrete instance identity remapping, independent scoped HIR
   validation, and source-only template body facts in Graph v37/ProgramRoot.

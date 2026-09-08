@@ -14,10 +14,13 @@ pub(crate) fn program_uses_vec(program: &ResolvedProgram) -> bool {
         )
         .any(|function| {
             crate::cleanup::is_owned_bounded_vec_type(&function.return_type)
-                || function
-                    .params
-                    .iter()
-                    .any(|param| crate::cleanup::is_owned_bounded_vec_type(&param.ty))
+                || crate::iterator_ops::is_iter(&function.return_type)
+                || crate::iterator_ops::is_step(&function.return_type)
+                || function.params.iter().any(|param| {
+                    crate::cleanup::is_owned_bounded_vec_type(&param.ty)
+                        || crate::iterator_ops::is_iter(&param.ty)
+                        || crate::iterator_ops::is_step(&param.ty)
+                })
                 || std::iter::once(&function.body)
                     .chain(function.requires.iter())
                     .chain(function.ensures.iter())
@@ -28,7 +31,8 @@ pub(crate) fn program_uses_vec(program: &ResolvedProgram) -> bool {
                             &mut |callee, instance, type_arguments| {
                                 found |= instance.is_none()
                                     && type_arguments.len() == 1
-                                    && crate::vec_ops::by_id(callee.as_str()).is_some();
+                                    && (crate::vec_ops::by_id(callee.as_str()).is_some()
+                                        || crate::iterator_ops::by_id(callee.as_str()).is_some());
                             },
                         );
                         found

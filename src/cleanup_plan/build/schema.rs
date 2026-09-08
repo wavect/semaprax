@@ -2,11 +2,18 @@ use crate::cleanup::{CleanupInventory, FieldLivenessShape, CLEANUP_INVENTORY_SCH
 use crate::diagnostic::Diagnostic;
 
 use super::super::{
-    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7,
-    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V5,
+    CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 
 pub(super) fn initial(inventory: &CleanupInventory) -> Result<&'static str, Diagnostic> {
+    if inventory
+        .flags
+        .iter()
+        .any(|flag| flag.lifecycle.as_str() == crate::cleanup::ITER_DROP_LIFECYCLE_ID)
+    {
+        return Ok(CLEANUP_PLAN_SCHEMA_V10);
+    }
     if inventory.slots.iter().try_fold(false, |nested, slot| {
         crate::cleanup::cleanup_shape_profile(&slot.shape)
             .map(|profile| nested || profile.has_nested_owned_bytes)
@@ -31,6 +38,7 @@ pub(super) fn includes_v5(schema: &str) -> bool {
             | CLEANUP_PLAN_SCHEMA_V7
             | CLEANUP_PLAN_SCHEMA_V8
             | CLEANUP_PLAN_SCHEMA_V9
+            | CLEANUP_PLAN_SCHEMA_V10
     )
 }
 
@@ -41,30 +49,39 @@ pub(super) fn includes_v6(schema: &str) -> bool {
             | CLEANUP_PLAN_SCHEMA_V7
             | CLEANUP_PLAN_SCHEMA_V8
             | CLEANUP_PLAN_SCHEMA_V9
+            | CLEANUP_PLAN_SCHEMA_V10
     )
 }
 
 pub(super) fn promote_v6(schema: &mut &'static str) {
     if !matches!(
         *schema,
-        CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8 | CLEANUP_PLAN_SCHEMA_V9
+        CLEANUP_PLAN_SCHEMA_V7
+            | CLEANUP_PLAN_SCHEMA_V8
+            | CLEANUP_PLAN_SCHEMA_V9
+            | CLEANUP_PLAN_SCHEMA_V10
     ) {
         *schema = CLEANUP_PLAN_SCHEMA_V6;
     }
 }
 
 pub(super) fn promote_v8(schema: &mut &'static str) {
-    if *schema != CLEANUP_PLAN_SCHEMA_V9 {
+    if !matches!(*schema, CLEANUP_PLAN_SCHEMA_V9 | CLEANUP_PLAN_SCHEMA_V10) {
         *schema = CLEANUP_PLAN_SCHEMA_V8;
     }
 }
 
 pub(super) fn promote_v9(schema: &mut &'static str) {
-    *schema = CLEANUP_PLAN_SCHEMA_V9;
+    if *schema != CLEANUP_PLAN_SCHEMA_V10 {
+        *schema = CLEANUP_PLAN_SCHEMA_V9;
+    }
 }
 
 pub(super) fn promote_v7(schema: &mut &'static str) {
-    if !matches!(*schema, CLEANUP_PLAN_SCHEMA_V8 | CLEANUP_PLAN_SCHEMA_V9) {
+    if !matches!(
+        *schema,
+        CLEANUP_PLAN_SCHEMA_V8 | CLEANUP_PLAN_SCHEMA_V9 | CLEANUP_PLAN_SCHEMA_V10
+    ) {
         *schema = CLEANUP_PLAN_SCHEMA_V7;
     }
 }

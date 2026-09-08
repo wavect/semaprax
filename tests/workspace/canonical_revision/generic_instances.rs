@@ -27,6 +27,72 @@ module fixture.app;
     fixture
 }
 
+#[test]
+fn iterator_workspace_binds_v7_v38_and_rejects_mutated_program_roots() {
+    let fixture = Fixture::owned_vec("iterator-v7-prelude", false);
+    let source = r#"
+module fixture.app;
+@id("fixture.main") fn main() -> i64 {
+    let values = vec_push<i64>(vec_with_capacity<i64>(1usize), 7);
+    let step = iter_next<i64>(vec_into_iter<i64>(values));
+    match own step { IterStep::Done{} => 1, IterStep::Yield{item,rest} => item, }
+}
+@id("fixture.public") fn published() -> i64 { 0 }
+"#;
+    let path = fixture.0.join("src/app.spx");
+    let parsed = semaprax::parse(source, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+
+    let graph = semaprax::graph::to_json(&parsed).unwrap();
+    assert!(
+        graph.contains("\"schema\":\"semaprax.graph.v38\""),
+        "{graph}"
+    );
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let semantic: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    assert_eq!(
+        semantic["payload"]["prelude_digest"],
+        framed(
+            b"semaprax.semantic-workspace-revision.prelude.digest.v1\0",
+            include_bytes!("../../fixtures/prelude-v7.contract"),
+        )
+    );
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes(),
+        )
+        .unwrap(),
+        root
+    );
+
+    let changed = source.replace("), 7)", "), 8)");
+    let changed_program = semaprax::parse(&changed, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&changed_program)).unwrap();
+    let changed_revision = fixture.revision();
+    let changed_workspace = changed_revision.canonical_workspace_revision().unwrap();
+    let changed_root = changed_workspace.program_root().unwrap();
+    assert_ne!(
+        workspace.semantic_program().digest(),
+        changed_workspace.semantic_program().digest()
+    );
+    assert!(ProgramRoot::replay(
+        &changed_workspace,
+        root.program_root_digest(),
+        root.to_json().as_bytes(),
+    )
+    .is_err());
+    assert!(ProgramRoot::replay(
+        &workspace,
+        changed_root.program_root_digest(),
+        changed_root.to_json().as_bytes(),
+    )
+    .is_err());
+}
+
 fn inferred_fixture(label: &str, explicit: bool) -> Fixture {
     let fixture = Fixture::owned_vec(label, false);
     let arguments = if explicit { "<bool>" } else { "" };

@@ -5,12 +5,17 @@ use crate::hir::{
 };
 
 use super::{replay_error, type_needs_drop};
-use crate::cleanup_plan::{CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9};
+use crate::cleanup_plan::{
+    CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+};
 
 fn nested_schema(schema: &str) -> bool {
     matches!(
         schema,
-        CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8 | CLEANUP_PLAN_SCHEMA_V9
+        CLEANUP_PLAN_SCHEMA_V7
+            | CLEANUP_PLAN_SCHEMA_V8
+            | CLEANUP_PLAN_SCHEMA_V9
+            | CLEANUP_PLAN_SCHEMA_V10
     )
 }
 
@@ -86,6 +91,20 @@ fn derive(
                     shapes.push(FieldLivenessShape::Leaf {
                         flag: next_flag_id(function, next_flag)?,
                         lifecycle: DeclarationId::new(crate::cleanup::VEC_DROP_LIFECYCLE_ID),
+                    });
+                    continue;
+                }
+                if crate::iterator_ops::is_iter(&ty) {
+                    if function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V10 {
+                        return Err(replay_error(
+                            function,
+                            "iterator cleanup requires schema v10",
+                        ));
+                    }
+                    charge_leaf(function, budget)?;
+                    shapes.push(FieldLivenessShape::Leaf {
+                        flag: next_flag_id(function, next_flag)?,
+                        lifecycle: DeclarationId::new(crate::cleanup::ITER_DROP_LIFECYCLE_ID),
                     });
                     continue;
                 }
@@ -188,6 +207,22 @@ fn derive(
                             for field in &case.fields {
                                 let ty =
                                     crate::hir::substitute_type(&field.ty, declaration, arguments)?;
+                                if type_needs_drop(program, function, &ty)? {
+                                    let container = ResolvedType::Nominal {
+                                        declaration: declaration.clone(),
+                                        arguments: arguments.clone(),
+                                    };
+                                    if crate::cleanup::variant_leaf_lifecycle(
+                                        &container, &case.id, &field.id, &ty,
+                                    )
+                                    .is_none()
+                                    {
+                                        return Err(replay_error(
+                                            function,
+                                            "variant owner is outside its admitted cleanup profile",
+                                        ));
+                                    }
+                                }
                                 case_fields.push((field.id.clone(), field.index));
                                 entries.push(ty);
                             }

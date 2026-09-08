@@ -966,3 +966,9 @@ mod inference;
 
 #[path = "generic_owned_function_runtime/function_values.rs"]
 mod function_values;
+
+#[path = "generic_owned_function_runtime/iterators.rs"]
+mod iterators;
+
+#[path = "generic_owned_function_runtime/iterator_failures.rs"]
+mod iterator_failures;

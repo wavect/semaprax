@@ -408,6 +408,7 @@ pub(super) fn check_expr(
             fields,
             ..
         } => {
+            if type_name=="Iter" {diagnostics.push(error(program,"SPX-T290","Iter carriers can only be created by vec_into_iter",expr.span));return None;}
             let declaration = types.declaration(type_name);
             let instance = Type::Named {
                 name: type_name.clone(),

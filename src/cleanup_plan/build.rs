@@ -32,6 +32,7 @@ mod call_reference;
 mod generic_variant;
 #[cfg(test)]
 mod hostile_tests;
+mod iterator;
 mod owned_try;
 mod record_destructure;
 mod schema;
@@ -2905,6 +2906,14 @@ impl<'a> PlanBuilder<'a> {
                                 )));
                             }
                             crate::host_io_ops::resolved_params(op)
+                        } else if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
+                            iterator::resolved_params(
+                                op,
+                                instance.is_some(),
+                                args.len(),
+                                type_arguments,
+                                &expression.id,
+                            )?
                         } else if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                             bounded_vec::resolved_params(
                                 op,

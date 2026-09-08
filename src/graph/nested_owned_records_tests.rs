@@ -272,6 +272,7 @@ module test.graph_nested_update;
   @id("update.pair.left") left: Leaf,
   @id("update.pair.right") right: Leaf,
 }
+
 @id("update.apply") fn apply(value: own Pair, replacement: own Leaf) -> Pair {
   value with { left: replacement }
 }
@@ -303,5 +304,125 @@ module test.graph_nested_update;
     assert_eq!(
         super::graph_schema(&with_loan).unwrap_err().code,
         "SPX-G410"
+    );
+}
+
+#[test]
+fn iterator_v10_does_not_bypass_nested_update_loan_authentication() {
+    let source = r#"
+module test.graph_iterator_nested_update;
+@id("iter.update.leaf") record Leaf { @id("iter.update.leaf.payload") payload: Bytes, }
+@id("iter.update.pair") record Pair {
+  @id("iter.update.pair.left") left: Leaf,
+  @id("iter.update.pair.right") right: Leaf,
+}
+@id("iter.update.apply") fn apply(value: own Pair, replacement: own Leaf) -> Pair {
+  let unused = vec_into_iter<i64>(vec_with_capacity<i64>(0usize));
+  value with { left: replacement }
+}
+@id("iter.update.inspect") fn inspect(value: own Pair) -> usize {
+  let unused = vec_into_iter<i64>(vec_with_capacity<i64>(0usize));
+  let view = bytes_as_slice(value.right.payload);
+  byte_len(view)
+}
+@id("iter.update.consume") fn consume(values: own Vec<i64>) -> i64 {
+  let step = iter_next<i64>(vec_into_iter<i64>(values));
+  match own step { IterStep::Done{} => 0, IterStep::Yield{item,rest} => item, }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let mut program = destructure_program(source);
+    assert!(program.functions.iter().any(
+        |function| function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V10
+    ));
+    assert_eq!(super::graph_schema(&program).unwrap(), "semaprax.graph.v38");
+    assert_eq!(
+        super::graph_schema_from_parts_and_instances(
+            &program.interfaces,
+            &program.types,
+            &program.functions,
+            &program.function_templates,
+            &program.function_instances,
+        )
+        .unwrap(),
+        "semaprax.graph.v38"
+    );
+    let inspect = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "iter.update.inspect")
+        .expect("nested loan-bearing companion exists");
+    inspect.loan_plan.loans[0].origin.projections.clear();
+    assert_eq!(super::graph_schema(&program).unwrap_err().code, "SPX-G410");
+    assert_eq!(
+        super::graph_schema_from_parts_and_instances(
+            &program.interfaces,
+            &program.types,
+            &program.functions,
+            &program.function_templates,
+            &program.function_instances,
+        )
+        .unwrap_err()
+        .code,
+        "SPX-G410"
+    );
+}
+
+#[test]
+fn iterator_prelude_presence_keeps_legacy_parts_graph_schema() {
+    let program =
+        destructure_program("module test.iterator_unused; @id(\"app.main\") fn main()->i64{7}");
+    let expected = super::graph_schema(&program).unwrap();
+    assert_ne!(expected, "semaprax.graph.v38");
+    assert_eq!(
+        super::graph_schema_from_parts_and_instances(
+            &program.interfaces,
+            &program.types,
+            &program.functions,
+            &program.function_templates,
+            &program.function_instances,
+        )
+        .unwrap(),
+        expected
+    );
+}
+
+#[test]
+fn local_done_constructor_selects_v7_and_v38_without_iterator_operations() {
+    let source = r#"
+module test.iterator_local_done;
+@id("app.main") fn main()->i64 {
+  let step=IterStep<i64>::Done{};
+  match own step {
+    IterStep::Done{}=>0,
+    IterStep::Yield{item,rest}=>item,
+  }
+}
+"#;
+    let parsed = crate::parse(source, Path::new("iterator-local-done.spx"))
+        .expect("local Done fixture parses");
+    assert_eq!(
+        crate::prelude::selected_for_program(&parsed).0,
+        crate::prelude::SCHEMA_V7
+    );
+    let checked = crate::check(source, Path::new("iterator-local-done.spx"))
+        .expect("local Done fixture checks");
+    let program = crate::hir::resolve(&checked).expect("local Done fixture resolves");
+    assert!(super::prelude_binding::uses_iterator(&program));
+    assert_eq!(
+        super::prelude_binding::schema(&program),
+        crate::prelude::SCHEMA_V7
+    );
+    assert_eq!(super::graph_schema(&program).unwrap(), "semaprax.graph.v38");
+    assert_eq!(
+        super::graph_schema_from_parts_and_instances(
+            &program.interfaces,
+            &program.types,
+            &program.functions,
+            &program.function_templates,
+            &program.function_instances,
+        )
+        .unwrap(),
+        "semaprax.graph.v38"
     );
 }

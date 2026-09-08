@@ -34,7 +34,8 @@ pub(super) fn call_behavior(
                 | crate::vec_ops::VecOp::ReserveExact
                 | crate::vec_ops::VecOp::Set
         )
-    ) || is_fallible_byte_operation(callee)
+    ) || callee.as_str() == crate::iterator_ops::NEXT_ID
+        || is_fallible_byte_operation(callee)
         || (callee.as_str() == crate::box_ops::NEW_ID
             && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]));
     (op, deferred)

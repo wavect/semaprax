@@ -416,6 +416,12 @@ impl<'a> TypeTable<'a> {
                 Frame::Enter(ty) => match ty {
                     Type::String | Type::Bytes => return true,
                     Type::Named { name, arguments } => {
+                        if crate::iterator_ops::ast_is_iterator(&Type::Named {
+                            name: name.clone(),
+                            arguments: arguments.clone(),
+                        }) {
+                            return true;
+                        }
                         if name == "Vec"
                             && arguments.len() == 1
                             && crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
@@ -633,6 +639,11 @@ impl<'a> TypeTable<'a> {
     /// two cases that both contain owned bytes. Compiler-owned prelude
     /// identities retain their separate closed admission.
     pub(super) fn is_flat_owned_byte_variant(&self, ty: &Type) -> bool {
+        if matches!(ty,Type::Named{name,..} if name=="IterStep")
+            && crate::iterator_ops::ast_is_iterator(ty)
+        {
+            return true;
+        }
         let Type::Named { name, arguments } = ty else {
             return false;
         };

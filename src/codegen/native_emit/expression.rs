@@ -18,6 +18,7 @@ use super::{
 
 mod box_ops;
 mod host_command;
+mod iterator_ops;
 mod nested_owned;
 mod owned_try;
 mod owned_values;
@@ -875,6 +876,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                         return self.emit_vec_op(expr, op, type_arguments, args);
                     }
+                    if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
+                        return self.emit_iterator_op(expr, op, type_arguments, args);
+                    }
                     if let Some(op) = crate::box_ops::by_id(callee.as_str()) {
                         return self.emit_box_op(expr, op, type_arguments, args);
                     }
@@ -1053,7 +1057,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     "owned call argument was not staged in its canonical epoch",
                                 ));
                             }
-                            if crate::cleanup::is_owned_bounded_box_type(expected) {
+                            if crate::iterator_ops::is_iter(expected) {
+                                format!("spx_iter_move(spx_ctx, &{value})")
+                            } else if crate::cleanup::is_owned_bounded_box_type(expected) {
                                 format!("spx_box_move(spx_ctx, &{value})")
                             } else if is_vec {
                                 format!("spx_vec_move(spx_ctx, &{value})")
@@ -1658,7 +1664,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             })?;
                     let value = self.emit_expr(&initializer.value)?;
                     self.require_type(&value.ty, &field.ty, "variant field initializer")?;
-                    if matches!(field.ty, ResolvedType::Bytes) {
+                    if matches!(field.ty, ResolvedType::Bytes)
+                        || crate::iterator_ops::is_iter(&field.ty)
+                    {
                         let plan = self.bytes_plan.ok_or_else(|| {
                             backend_error("owned Bytes variant field has no cleanup plan")
                         })?;
@@ -1680,11 +1688,18 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.line(&format!("memset(&{temporary}, 0, sizeof({temporary}));"));
                 let case_symbol = c_case_symbol(case);
                 for (field, value) in values {
-                    if field.size != 0 && !matches!(field.ty, ResolvedType::Bytes) {
+                    if field.size != 0
+                        && !matches!(field.ty, ResolvedType::Bytes)
+                        && !crate::iterator_ops::is_iter(&field.ty)
+                    {
                         self.line(&format!(
                             "{temporary}.spx_payload.{case_symbol}.{} = {};",
                             c_field_symbol(&field.field),
-                            value.code
+                            if crate::iterator_ops::is_step(&expr.ty) {
+                                super::super::native_iter::item_bits(&value.code, &value.ty)
+                            } else {
+                                value.code
+                            }
                         ));
                     }
                 }
@@ -1956,7 +1971,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     &field.ty,
                                     "match payload binding",
                                 )?;
-                                let name = if matches!(field.ty, ResolvedType::Bytes) {
+                                let name = if matches!(field.ty, ResolvedType::Bytes)
+                                    || crate::iterator_ops::is_iter(&field.ty)
+                                {
                                     match (*mode, pattern_field.binding.ownership) {
                                         (hir::ResolvedMatchMode::Own, hir::OwnershipMode::Own) => {
                                             self.bytes_plan
@@ -2009,6 +2026,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                             ));
                                         }
                                     }
+                                } else if pattern_field.binding.ownership
+                                    == hir::OwnershipMode::Value
+                                    && crate::iterator_ops::is_step(&scrutinee.ty)
+                                {
+                                    super::super::native_iter::item_read(&staged, &field.ty)
                                 } else if pattern_field.binding.ownership
                                     == hir::OwnershipMode::Value
                                 {
@@ -2073,7 +2095,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         let anchors = match &arm.pattern {
                             hir::ResolvedMatchPattern::Variant { fields, .. } => fields
                                 .iter()
-                                .filter(|field| matches!(field.binding.ty, ResolvedType::Bytes))
+                                .filter(|field| is_direct_plan_owned(&field.binding.ty))
                                 .map(|field| {
                                     crate::cleanup_plan::StorageId::Value(field.binding.id.clone())
                                 })

@@ -74,13 +74,20 @@ impl FunctionPlan {
             match &arm.pattern {
                 crate::hir::ResolvedMatchPattern::Variant { fields, .. } => {
                     for field in fields {
-                        let local =
-                            self.add_local(parameter_count, scalar_wasm_type(&field.binding.ty)?)?;
-                        if self
-                            .scalar_bindings
-                            .insert(field.binding.id.clone(), local)
-                            .is_some()
-                        {
+                        let duplicate = if is_aggregate(program, &field.binding.ty)? {
+                            let (size, align) =
+                                aggregate_size_align(program, variant_layouts, &field.binding.ty)?;
+                            self.aggregate_bindings
+                                .insert(field.binding.id.clone(), frame.allocate(size, align)?)
+                                .is_some()
+                        } else {
+                            let local = self
+                                .add_local(parameter_count, scalar_wasm_type(&field.binding.ty)?)?;
+                            self.scalar_bindings
+                                .insert(field.binding.id.clone(), local)
+                                .is_some()
+                        };
+                        if duplicate {
                             return Err(error(format!(
                                 "duplicate match binding identity `{}`",
                                 field.binding.id

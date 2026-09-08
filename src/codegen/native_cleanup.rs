@@ -222,10 +222,13 @@ pub(crate) fn classify<'a>(
     let bytes_lifecycle = DeclarationId::new(crate::cleanup::BYTES_DROP_LIFECYCLE_ID);
     let vec_lifecycle = DeclarationId::new(crate::cleanup::VEC_DROP_LIFECYCLE_ID);
     let box_lifecycle = DeclarationId::new(crate::cleanup::BOX_DROP_LIFECYCLE_ID);
+    let iter_lifecycle = DeclarationId::new(crate::cleanup::ITER_DROP_LIFECYCLE_ID);
 
     for slot in &plan.slots {
         let expected_lifecycle = if matches!(slot.ty, ResolvedType::Bytes) {
             &bytes_lifecycle
+        } else if crate::iterator_ops::is_iter(&slot.ty) {
+            &iter_lifecycle
         } else if crate::cleanup::is_owned_bounded_vec_type(&slot.ty) {
             &vec_lifecycle
         } else if crate::cleanup::is_owned_bounded_box_type(&slot.ty) {
@@ -276,6 +279,13 @@ pub(crate) fn classify<'a>(
                 return Err(unsupported(
                     function,
                     "compiler-owned Box slot has a noncanonical lifecycle",
+                ));
+            }
+        } else if crate::iterator_ops::is_iter(&slot.ty) {
+            if lifecycle != &iter_lifecycle {
+                return Err(unsupported(
+                    function,
+                    "iterator has a noncanonical lifecycle",
                 ));
             }
         } else {

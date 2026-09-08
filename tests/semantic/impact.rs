@@ -58,6 +58,10 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
     }
     match &expression.kind {
         ResolvedExprKind::FunctionReference { .. } => None,
+        ResolvedExprKind::Closure { captures, body, .. } => captures
+            .iter()
+            .find_map(|capture| first_call(&capture.value, template))
+            .or_else(|| first_call(body, template)),
         ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
             .chain(args.iter())
             .find_map(|arg| first_call(arg, template)),

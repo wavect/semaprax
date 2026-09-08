@@ -452,6 +452,15 @@ their exact graph strings in SemanticProgram v3. These modules keep function
 identity in checked declarations rather than source names, backend addresses, or
 Wasm table indexes.
 
+`src/iterator_ops.rs` owns the closed scalar `Iter<T>` / `IterStep<T>` identities
+and consuming operation signatures. `src/prelude.rs` selects additive Prelude
+v7 without rewriting v1-v6 bytes; `src/cleanup/iterator.rs` and
+`src/cleanup_plan/build/iterator.rs` derive the v10 lifecycle and conditional
+`Yield/rest` owner path, while replay independently rederives it. Graph v38,
+workspace prelude binding, cache tokens, and ProgramRoot retain the selected
+types, consuming calls, cleanup schema, and exact v7 contract. Native and Wasm
+lowering consume that checked representation; the profile has no public ABI.
+
 Function Values v2's private generic-collection profile is owned by
 `src/source_verify/declared_type/generic_collection.rs` and
 `src/hir/generic_collection.rs`; `src/hir/validation/generic_template.rs`
@@ -2296,6 +2305,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Standard library | `std/<package>/` Project packages, `src/project/standard_dependencies.rs` for closed bundled dependency expansion, `std/packages.json` tier and target metadata, generated `std/catalog.json`; `src/cli/help.rs` embeds the generated Markdown catalog unchanged and derives exact module/name/stable-ID lookups from the JSON catalog; gate `tests/project/standard_library.rs` |
 | Owned bounded Vec | `src/vec_ops.rs` owns exact compiler intrinsic identities/signatures and bounds; `src/prelude.rs` owns `core.vec`, preserves frozen five-operation `semaprax.prelude.v2`, and selects additive v3 only for reserve/set/clear use; v6 binds the additive owned Bytes profile through graph and semantic workspace revisions. `src/codegen/native_vec/owned_payload.rs`, native expression `vec_ops/owned_payload.rs` and Wasm `aggregate/vec_owned_payload.rs` implement recursive initialized-payload settlement and versioned host imports. Source/HIR authenticate explicit scalar and admitted owned Bytes instances and same-owner rebind; cleanup and backends consume those identities. The bounded source `for item in values { body }` profile is resolver-owned sugar over one frozen simple immutable `Vec<T>` binding: it snapshots len once and lowers to existing len/get/while HIR, adding no HIR node, stable ID, graph/cleanup schema, prelude, backend operation, package declaration, or public ABI. Gates live in the existing language and owned-data harnesses; [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md), [Owned Bounded Vec v2](OWNED-BOUNDED-VEC-V2.md) and [Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md) own the exact profiles. |
 | Owned bounded Box | `src/box_ops.rs` owns exact compiler identities and scalar/Bytes operation admission; `src/prelude.rs` preserves v1-v4 and adds v5 for owned Bytes payloads. `src/cleanup_plan/deferred_commit.rs` classifies allocation-before-transfer; `replay/resolved_call.rs` independently checks that ordering. `src/codegen/native_box/owned_payload.rs` and native/Wasm `box_ops/owned_payload.rs` consume the checked plan and implement recursive Bytes settlement through explicit v2 host imports. `src/project/std_mem.rs` still authenticates the frozen scalar no-export wrappers. [Box v1](OWNED-BOUNDED-BOX-V1.md) and [Box v2](OWNED-BOUNDED-BOX-V2.md) own their contracts; authored records named Box, broader aggregates, regions/arenas and public ABI remain separate. |
+| Owning iterators | `src/iterator_ops.rs` owns the two compiler operation identities and scalar admission; `src/prelude.rs` owns `core.iter` and `core.iter-step` and selects additive v7. `src/cleanup/iterator.rs`, `src/cleanup_plan/build/iterator.rs`, and replay retain `core.iter.drop` plus the conditional `Yield/rest` owner path in CleanupPlan v10. Graph/prelude bindings, canonical workspace revision, ProgramRoot, and cache codec preserve the selected v7/v10 facts. Native/Wasm lowering remains private; [Owning Iterators v1](OWNING-ITERATORS-V1.md) owns the profile and its pending executable evidence. |
 | Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |
 
 This table is the single module-level map. Other contributor documents should

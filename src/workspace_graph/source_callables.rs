@@ -9,7 +9,7 @@ pub(crate) fn checked_source_callable_closures(
     if !sources.iter().any(|source| {
         matches!(
             source.source_graph_schema(),
-            "semaprax.graph.v36" | "semaprax.graph.v37"
+            "semaprax.graph.v36" | "semaprax.graph.v37" | "semaprax.graph.v38"
         )
     }) {
         return Ok(Vec::new());
@@ -20,7 +20,7 @@ pub(crate) fn checked_source_callable_closures(
         let parsed = crate::parse(source.source(), source.path()).map_err(|e| vec![e])?;
         if matches!(
             source.source_graph_schema(),
-            "semaprax.graph.v36" | "semaprax.graph.v37"
+            "semaprax.graph.v36" | "semaprax.graph.v37" | "semaprax.graph.v38"
         ) && parsed
             .functions
             .iter()

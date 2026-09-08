@@ -922,7 +922,12 @@ impl<'a> HirValidator<'a> {
                             || !(super::type_reachability::nested_record_copy_scalar_is_admitted(
                                 &field.ty,
                             ) || matches!(field.ty, ResolvedType::TypeParameter { .. })
-                                || (owned_byte_variant && field.ty == ResolvedType::Bytes))
+                                || (owned_byte_variant && field.ty == ResolvedType::Bytes)
+                                || crate::iterator_ops::is_step_rest_field(
+                                    &declaration.id,
+                                    &case.id,
+                                    field,
+                                ))
                         {
                             return Err(hir_error(format!(
                                 "field {field_position} of case `{}` is invalid or disagrees with its declaration index",
@@ -947,6 +952,11 @@ impl<'a> HirValidator<'a> {
                             }
                         }
                         if owned_byte_variant
+                            || crate::iterator_ops::is_step_rest_field(
+                                &declaration.id,
+                                &case.id,
+                                field,
+                            )
                             || super::type_reachability::nested_record_copy_scalar_is_admitted(
                                 &field.ty,
                             )
@@ -3704,6 +3714,11 @@ impl<'a> HirValidator<'a> {
                             });
                         }
                         ResolvedExprKind::ConstructRecord { record, fields } => {
+                            if record.as_str() == crate::iterator_ops::ITER_ID {
+                                return Err(hir_error(
+                                    "iterator owner cannot be authored as a record",
+                                ));
+                            }
                             let declaration = self
                                 .program
                                 .declarations
@@ -7121,6 +7136,9 @@ impl<'a> HirValidator<'a> {
                 (then_branch.ty.clone(), then_branch.ownership)
             }
             ResolvedExprKind::ConstructRecord { record, fields } => {
+                if record.as_str() == crate::iterator_ops::ITER_ID {
+                    return Err(hir_error("iterator owner cannot be authored as a record"));
+                }
                 let declaration = self
                     .program
                     .declarations

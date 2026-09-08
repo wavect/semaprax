@@ -1272,7 +1272,11 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
     if matches!(
         schema,
-        "semaprax.graph.v34" | "semaprax.graph.v35" | "semaprax.graph.v36" | "semaprax.graph.v37"
+        "semaprax.graph.v34"
+            | "semaprax.graph.v35"
+            | "semaprax.graph.v36"
+            | "semaprax.graph.v37"
+            | "semaprax.graph.v38"
     ) {
         return Err(Diagnostic::io(
             "SPX-G410",
@@ -1525,18 +1529,27 @@ pub(crate) fn graph_schema_from_parts_without_loans(
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> Result<&'static str, Diagnostic> {
-    if functions.iter().any(|function| {
+    let has_v10_iterator_cleanup = functions.iter().any(|function| {
+        function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V10
+    });
+    let has_nested_cleanup = functions.iter().any(|function| {
         matches!(
             function.cleanup_plan.schema,
             crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V7
                 | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V8
                 | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V9
         )
-    }) && native_import::declares_native_rust_import(interfaces)
+    });
+    if (has_v10_iterator_cleanup || has_nested_cleanup)
+        && native_import::declares_native_rust_import(interfaces)
     {
         return Err(Diagnostic::io(
             "SPX-G410",
-            "native Rust import Graph v25 cannot mask nested owned-record Graph v26-v31 semantics",
+            if has_v10_iterator_cleanup {
+                "native Rust import Graph v25 cannot mask CleanupPlan v10 iterator semantics"
+            } else {
+                "native Rust import Graph v25 cannot mask nested owned-record Graph v26-v31 semantics"
+            },
         ));
     }
     if native_import::declares_native_rust_import(interfaces) {
@@ -3963,6 +3976,10 @@ fn render_graph_json(
     }
     if !prelude_binding::uses_box(program) {
         selected_types.remove(&DeclarationId::new(crate::prelude::BOX_ID));
+    }
+    if !prelude_binding::uses_iterator(program) {
+        selected_types.remove(&DeclarationId::new(crate::iterator_ops::ITER_ID));
+        selected_types.remove(&DeclarationId::new(crate::iterator_ops::STEP_ID));
     }
     let mut selected_interfaces = match view {
         GraphView::Module => program

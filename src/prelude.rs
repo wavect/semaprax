@@ -21,6 +21,7 @@ pub(crate) const SCHEMA_V3: &str = "semaprax.prelude.v3";
 pub(crate) const SCHEMA_V4: &str = "semaprax.prelude.v4";
 pub(crate) const SCHEMA_V5: &str = "semaprax.prelude.v5";
 pub(crate) const SCHEMA_V6: &str = "semaprax.prelude.v6";
+pub(crate) const SCHEMA_V7: &str = "semaprax.prelude.v7";
 
 pub(crate) const OPTION_ID: &str = "core.option";
 pub(crate) const OPTION_NONE_ID: &str = "core.option.none";
@@ -37,14 +38,25 @@ pub(crate) const BOX_ID: &str = "core.box";
 
 pub(crate) fn declarations() -> &'static [TypeDeclaration] {
     static DECLARATIONS: OnceLock<Vec<TypeDeclaration>> = OnceLock::new();
-    DECLARATIONS.get_or_init(|| vec![option(), result(), owned_vec(), owned_box()])
+    DECLARATIONS.get_or_init(|| {
+        vec![
+            option(),
+            result(),
+            owned_vec(),
+            owned_box(),
+            owned_iter(),
+            iter_step(),
+        ]
+    })
 }
 
 pub(crate) fn declarations_for_program(
     program: &crate::ast::Program,
 ) -> &'static [TypeDeclaration] {
-    if crate::box_ops::program_uses_owned_payload(program) || program_uses_box(program) {
+    if crate::iterator_ops::program_uses_iterator(program) {
         declarations()
+    } else if crate::box_ops::program_uses_owned_payload(program) || program_uses_box(program) {
+        &declarations()[..4]
     } else if program_uses_vec(program) {
         &declarations()[..3]
     } else {
@@ -53,7 +65,7 @@ pub(crate) fn declarations_for_program(
 }
 
 pub(crate) fn is_reserved_type_name(name: &str) -> bool {
-    matches!(name, "Option" | "Result" | "Vec")
+    matches!(name, "Option" | "Result" | "Vec" | "Iter" | "IterStep")
 }
 
 pub(crate) fn is_compiler_owned_id(id: &str) -> bool {
@@ -70,6 +82,12 @@ pub(crate) fn is_compiler_owned_id(id: &str) -> bool {
             | RESULT_ERR_ERROR_ID
             | VEC_ID
             | BOX_ID
+            | crate::iterator_ops::ITER_ID
+            | crate::iterator_ops::STEP_ID
+            | crate::iterator_ops::DONE_ID
+            | crate::iterator_ops::YIELD_ID
+            | crate::iterator_ops::ITEM_ID
+            | crate::iterator_ops::REST_ID
     )
 }
 
@@ -116,8 +134,29 @@ pub(crate) fn all_type_ids_v4() -> [&'static str; 11] {
         BOX_ID,
     ]
 }
+pub(crate) fn all_type_ids_v7() -> [&'static str; 17] {
+    [
+        OPTION_ID,
+        OPTION_NONE_ID,
+        OPTION_SOME_ID,
+        OPTION_SOME_VALUE_ID,
+        RESULT_ID,
+        RESULT_OK_ID,
+        RESULT_OK_VALUE_ID,
+        RESULT_ERR_ID,
+        RESULT_ERR_ERROR_ID,
+        VEC_ID,
+        BOX_ID,
+        crate::iterator_ops::ITER_ID,
+        crate::iterator_ops::STEP_ID,
+        crate::iterator_ops::DONE_ID,
+        crate::iterator_ops::YIELD_ID,
+        crate::iterator_ops::ITEM_ID,
+        crate::iterator_ops::REST_ID,
+    ]
+}
 
-pub(crate) fn all_reserved_ids() -> [&'static str; 22] {
+pub(crate) fn all_reserved_ids() -> [&'static str; 30] {
     [
         OPTION_ID,
         OPTION_NONE_ID,
@@ -141,6 +180,14 @@ pub(crate) fn all_reserved_ids() -> [&'static str; 22] {
         crate::box_ops::NEW_ID,
         crate::box_ops::GET_ID,
         crate::box_ops::INTO_INNER_ID,
+        crate::iterator_ops::ITER_ID,
+        crate::iterator_ops::STEP_ID,
+        crate::iterator_ops::DONE_ID,
+        crate::iterator_ops::YIELD_ID,
+        crate::iterator_ops::ITEM_ID,
+        crate::iterator_ops::REST_ID,
+        crate::iterator_ops::INTO_ITER_ID,
+        crate::iterator_ops::NEXT_ID,
     ]
 }
 
@@ -186,7 +233,9 @@ fn write_vec_v3_contract(output: &mut Vec<u8>) {
 }
 
 pub(crate) fn contract_bytes_v4() -> Vec<u8> {
-    let mut output = contract_bytes_for(SCHEMA_V4, declarations());
+    // v4 froze before Iter and IterStep existed.  New compiler declarations
+    // must never rewrite this historical contract or digest.
+    let mut output = contract_bytes_for(SCHEMA_V4, &declarations()[..4]);
     write_vec_contract(&mut output);
     write_vec_v3_contract(&mut output);
     let mut contract = String::new();
@@ -209,10 +258,24 @@ pub(crate) fn contract_bytes_v6() -> Vec<u8> {
     output
 }
 
+pub(crate) fn contract_bytes_v7() -> Vec<u8> {
+    let legacy = String::from_utf8(contract_bytes_v6()).expect("prelude contract is UTF-8");
+    let mut output = legacy.replacen(SCHEMA_V6, SCHEMA_V7, 1).into_bytes();
+    output.extend_from_slice(b"record core.iter Iter<T>\nrepresentation core.iter opaque logical:Vec<T>,cursor:usize\nvariant core.iter-step IterStep<T>\n0 core.iter-step.done Done\n1 core.iter-step.yield Yield core.iter-step.yield.item:item:T core.iter-step.yield.rest:rest:Iter<T>\noperation core.vec.into-iter vec_into_iter <T>(own:Vec<T>)->own:Iter<T>\noperation core.iter.next iter_next <T>(own:Iter<T>)->own:IterStep<T>\nelements i64,i32,u8,usize,char,f32,f64,bool\nrule iter_next consumes_iterator_and_yield_rest_owns_successor\nrule iter_done_has_no_payload\ncleanup_plan semaprax.cleanup-plan.v10\n");
+    output
+}
+
 pub(crate) fn digest_text_v6() -> String {
     format!(
         "sha256:{:x}",
         crate::digest_hex::LowerHex(Sha256::digest(contract_bytes_v6()))
+    )
+}
+
+pub(crate) fn digest_text_v7() -> String {
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(contract_bytes_v7()))
     )
 }
 
@@ -499,7 +562,9 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
-    if crate::vec_ops::program_uses_owned_payload(program) {
+    if crate::iterator_ops::program_uses_iterator(program) {
+        (SCHEMA_V7, contract_bytes_v7(), digest_text_v7())
+    } else if crate::vec_ops::program_uses_owned_payload(program) {
         (SCHEMA_V6, contract_bytes_v6(), digest_text_v6())
     } else if crate::box_ops::program_uses_owned_payload(program) {
         (SCHEMA_V5, contract_bytes_v5(), digest_text_v5())
@@ -734,5 +799,73 @@ mod tests {
         assert_eq!(selected_for_source("module test.imported;use function @id(\"std.mem.box.new\") from std.mem as new;@id(\"app.main\") fn main()->i64{let value=new<i64>(1);0}").0,SCHEMA_V4);
         assert_eq!(selected_for_source("module test.spoof;use function @id(\"std.mem.box.new\") from user.mem as new;@id(\"app.main\") fn main()->i64{let value=new<i64>(1);0}").0,SCHEMA_V1);
         assert_eq!(selected_for_source("module test.legacy;@id(\"legacy.box\") record Box<T>{@id(\"legacy.box.value\") value:T,}@id(\"app.main\") fn main()->i64{0}").0,SCHEMA_V1);
+    }
+
+    #[test]
+    fn iterator_contract_is_additive_v7_and_keeps_v4_frozen() {
+        let contract = String::from_utf8(contract_bytes_v7()).unwrap();
+        assert_eq!(
+            contract.as_bytes(),
+            include_bytes!("../tests/fixtures/prelude-v7.contract")
+        );
+        assert!(contract.starts_with("semaprax.prelude.v7\n"));
+        for fact in [
+            "record core.iter Iter<T>",
+            "representation core.iter opaque logical:Vec<T>,cursor:usize",
+            "variant core.iter-step IterStep<T>",
+            "0 core.iter-step.done Done",
+            "1 core.iter-step.yield Yield core.iter-step.yield.item:item:T core.iter-step.yield.rest:rest:Iter<T>",
+            "operation core.vec.into-iter vec_into_iter <T>(own:Vec<T>)->own:Iter<T>",
+            "operation core.iter.next iter_next <T>(own:Iter<T>)->own:IterStep<T>",
+            "cleanup_plan semaprax.cleanup-plan.v10",
+        ] {
+            assert!(contract.contains(fact), "missing {fact}");
+        }
+        assert_eq!(
+            digest_text_v4(),
+            "sha256:04d6c7bcff11395cfe72c429f6cf1b076f766fdbabba423edbb02e1692d1fd89"
+        );
+        assert_eq!(
+            digest_text_v7(),
+            "sha256:b19b2ff6923513d3fbf9e42666e3d9e11638fc01abe839a9b69334f8cf80d4dc"
+        );
+    }
+}
+
+fn owned_iter() -> TypeDeclaration {
+    let mut declaration = owned_vec();
+    declaration.stable_id = crate::iterator_ops::ITER_ID.into();
+    declaration.name = "Iter".into();
+    declaration
+}
+fn iter_step() -> TypeDeclaration {
+    TypeDeclaration {
+        stable_id: crate::iterator_ops::STEP_ID.into(),
+        explicit_id: true,
+        name: "IterStep".into(),
+        name_span: Span::default(),
+        type_parameters: vec![parameter("T")],
+        kind: TypeDeclarationKind::Variant {
+            cases: vec![
+                case(crate::iterator_ops::DONE_ID, "Done", Vec::new()),
+                case(
+                    crate::iterator_ops::YIELD_ID,
+                    "Yield",
+                    vec![
+                        field(crate::iterator_ops::ITEM_ID, "item", parameter_type("T")),
+                        field(
+                            crate::iterator_ops::REST_ID,
+                            "rest",
+                            Type::Named {
+                                name: "Iter".into(),
+                                arguments: vec![parameter_type("T")],
+                            },
+                        ),
+                    ],
+                ),
+            ],
+        },
+        extends: None,
+        span: Span::default(),
     }
 }

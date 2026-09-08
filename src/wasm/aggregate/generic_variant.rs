@@ -43,7 +43,11 @@ impl Emitter<'_> {
     ) -> Result<(), Diagnostic> {
         let storage = fields
             .iter()
-            .filter(|field| field.binding.ty == ResolvedType::Bytes)
+            .filter(|field| {
+                field.binding.ty == ResolvedType::Bytes
+                    || crate::iterator_ops::is_iter(&field.binding.ty)
+                    || crate::iterator_ops::is_step(&field.binding.ty)
+            })
             .map(|field| crate::cleanup_plan::StorageId::Value(field.binding.id.clone()))
             .collect::<std::collections::BTreeSet<_>>();
         if storage.is_empty() {

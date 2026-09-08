@@ -830,6 +830,16 @@ jobs:
           node --version
           cargo test --locked -p semaprax --test language owned_bounded_vec_v1:: -- --nocapture
           cargo test --locked -p semaprax --test owned_data owned_bounded_vec_runtime:: -- --nocapture
+      - name: Require Owning Iterators v1 identity, replay, and backend settlement
+        if: runner.os == 'Linux'
+        env:
+          SPX_REQUIRE_CLANG: "1"
+          SPX_REQUIRE_NODE: "1"
+        run: |
+          node --version
+          cargo test --locked -p semaprax --lib iterator -- --nocapture
+          cargo test --locked -p semaprax --test workspace canonical_revision::generic_instances::iterator_workspace_binds_v7_v38_and_rejects_mutated_program_roots -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data owning_iterators -- --nocapture
       - name: Require native O0/O2 and Core-Wasm scalar status equivalence
         if: runner.os == 'Linux'
         env:

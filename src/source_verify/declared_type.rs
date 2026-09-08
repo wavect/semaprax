@@ -216,6 +216,9 @@ pub(super) fn check_declared_type(
             name: name.clone(),
             arguments: arguments.clone(),
         };
+        if crate::iterator_ops::ast_is_iterator(&instance) {
+            continue;
+        }
         let admitted_owned_record = types.is_nested_owned_byte_record(&instance);
         let admitted_owned_record_template =
             types.is_nested_owned_byte_record_template(&instance, parameters);
@@ -975,7 +978,8 @@ pub(super) fn check_ownership_mode(
         }
         return;
     }
-    let requires_explicit_mode = types.contains_resource(&param.ty)
+    let requires_explicit_mode = crate::iterator_ops::ast_is_iterator(&param.ty)
+        || types.contains_resource(&param.ty)
         || types.contains_owned_bytes(&param.ty)
         || matches!(&param.ty, Type::Named { name, arguments } if arguments.len() == 1 && types.declaration(name).is_some_and(|d| matches!(d.stable_id.as_str(), crate::prelude::BOX_ID | crate::prelude::VEC_ID)));
     match (requires_explicit_mode, param.mode) {

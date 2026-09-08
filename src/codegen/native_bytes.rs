@@ -60,6 +60,7 @@ impl NativeBytesPlan {
                 &mut |place, flag, lifecycle| {
                     let kind = match lifecycle.as_str() {
                         crate::cleanup::BYTES_DROP_LIFECYCLE_ID => OwnedLeafKind::Bytes,
+                        crate::cleanup::ITER_DROP_LIFECYCLE_ID => OwnedLeafKind::Iter,
                         crate::cleanup::VEC_DROP_LIFECYCLE_ID if place.projections.is_empty() => {
                             OwnedLeafKind::Vec
                         }
@@ -428,11 +429,10 @@ impl NativeBytesPlan {
                 }
                 let slot = &self.slots[place];
                 output.push_str(&format!(
-                    "        if ({}) spx_runtime_invariant_failure(\"owned variant parameter leaf already live\");\n        {} = spx_bytes_move(&({parameter}->spx_payload.{}.{}));\n        {} = true;\n",
+                    "        if ({}) spx_runtime_invariant_failure(\"owned variant parameter leaf already live\");\n        {} = {};\n        {} = true;\n",
                     slot.flag,
                     slot.value,
-                    c_case_symbol(case_id),
-                    c_field_symbol(field_id),
+                    slot.kind.move_call(&format!("({parameter}->spx_payload.{}.{})",c_case_symbol(case_id),c_field_symbol(field_id))),
                     slot.flag,
                 ));
             }
@@ -839,12 +839,12 @@ impl NativeBytesPlan {
                 }
                 let slot = &self.slots[place];
                 output.push_str(&format!(
-                    "if (({discriminant}).spx_tag == UINT32_C({})) {{\n    if (!{}) spx_runtime_invariant_failure(\"dead active owned variant field\");\n    ({carrier}).spx_payload.{}.{} = spx_bytes_move(&{});\n    {} = false;\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant field is live\");\n",
+                    "if (({discriminant}).spx_tag == UINT32_C({})) {{\n    if (!{}) spx_runtime_invariant_failure(\"dead active owned variant field\");\n    ({carrier}).spx_payload.{}.{} = {};\n    {} = false;\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant field is live\");\n",
                     case.tag,
                     slot.flag,
                     c_case_symbol(case_id),
                     c_field_symbol(field_id),
-                    slot.value,
+                    slot.kind.move_call(&slot.value),
                     slot.flag,
                     slot.flag,
                 ));
@@ -945,12 +945,11 @@ impl NativeBytesPlan {
             }
             let slot = &self.slots[place];
             output.push_str(&format!(
-                "if (({carrier}).spx_tag == UINT32_C({})) {{\n    if ({}) spx_runtime_invariant_failure(\"owned variant result leaf already live\");\n    {} = spx_bytes_move(&(({carrier}).spx_payload.{}.{}));\n    {} = true;\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant result leaf is live\");\n",
+                "if (({carrier}).spx_tag == UINT32_C({})) {{\n    if ({}) spx_runtime_invariant_failure(\"owned variant result leaf already live\");\n    {} = {};\n    {} = true;\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant result leaf is live\");\n",
                 case.tag,
                 slot.flag,
                 slot.value,
-                c_case_symbol(case_id),
-                c_field_symbol(field_id),
+                slot.kind.move_call(&format!("(({carrier}).spx_payload.{}.{})",c_case_symbol(case_id),c_field_symbol(field_id))),
                 slot.flag,
                 slot.flag,
             ));

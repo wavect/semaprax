@@ -65,6 +65,7 @@ mod failure_detail;
 mod function_values;
 mod generic_owned;
 pub mod internal_strings;
+mod iterator;
 mod nested_owned;
 pub(crate) mod network;
 mod owned_box;
@@ -2190,6 +2191,9 @@ use nested_owned::{
 /// the bounded concrete authored generic extension. Backend selection consumes
 /// the shared HIR classifier so it cannot reinterpret generic ownership.
 fn is_admitted_owned_byte_variant(declarations: &hir::DeclarationIndex, ty: &ResolvedType) -> bool {
+    if crate::iterator_ops::step_shape(declarations, ty) {
+        return true;
+    }
     let ResolvedType::Nominal {
         declaration,
         arguments,
@@ -2297,7 +2301,9 @@ fn variant_constructor_is_admitted(
         seen.insert(field.field.clone())
             && field.value.ty == *declared_ty
             && field.value.ownership
-                == if *declared_ty == ResolvedType::Bytes {
+                == if *declared_ty == ResolvedType::Bytes
+                    || crate::iterator_ops::is_iter(declared_ty)
+                {
                     hir::OwnershipMode::Own
                 } else {
                     hir::OwnershipMode::Value
@@ -2367,7 +2373,9 @@ fn variant_pattern_is_admitted(
             {
                 return false;
             }
-            let expected_ownership = if *declared_ty == ResolvedType::Bytes {
+            let expected_ownership = if *declared_ty == ResolvedType::Bytes
+                || crate::iterator_ops::is_iter(declared_ty)
+            {
                 match mode {
                     hir::ResolvedMatchMode::Own => hir::OwnershipMode::Own,
                     hir::ResolvedMatchMode::Borrow => hir::OwnershipMode::Borrow,
@@ -2556,6 +2564,7 @@ fn scan_closure(
                     || crate::byte_ops::by_id(callee.as_str()).is_some()
                     || crate::vec_ops::by_id(callee.as_str()).is_some()
                     || crate::box_ops::by_id(callee.as_str()).is_some()
+                    || crate::iterator_ops::by_id(callee.as_str()).is_some()
                     || crate::host_io_ops::by_id(callee.as_str()).is_some();
                 let execution = instance
                     .as_ref()
@@ -3114,6 +3123,7 @@ enum Value {
     ArrayU8(Arc<[u8]>),
     Bytes(OwnedBytesValue),
     Vec(Arc<owned_vec::OwnedVecValue>),
+    Iter(Arc<iterator::IteratorValue>),
     Box(Arc<owned_box::OwnedBoxValue>),
     String(String),
     BorrowedStr(BorrowedStrValue),
@@ -3768,6 +3778,10 @@ impl Evaluator<'_> {
             | (Value::Bool(_), ResolvedType::Bool)
             | (Value::Bytes(_), ResolvedType::Bytes) => true,
             (Value::Variant(carrier), expected) => &carrier.ty == expected,
+            (Value::Iter(carrier), expected) => {
+                crate::iterator_ops::is_iter(expected)
+                    && crate::iterator_ops::element(expected) == Some(&carrier.vector.element)
+            }
             (Value::Record(carrier), ResolvedType::Nominal { declaration, .. }) => {
                 &carrier.record == declaration
                     && is_admitted_owned_byte_record(self.declarations, ty)
@@ -4343,6 +4357,8 @@ impl Evaluator<'_> {
                 let vec_intrinsic = owned_vec::is_intrinsic_call(callee, instance, type_arguments);
                 let box_intrinsic = owned_box::is_intrinsic_call(callee, instance, type_arguments);
                 if !vec_intrinsic
+                    && !(instance.is_none()
+                        && crate::iterator_ops::by_id(callee.as_str()).is_some())
                     && !box_intrinsic
                     && instance.is_some() != !type_arguments.is_empty()
                 {
@@ -4542,6 +4558,9 @@ impl Evaluator<'_> {
                         )),
                         _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
                     };
+                }
+                if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
+                    return self.evaluate_iterator_op(op, type_arguments, args, environment, depth);
                 }
                 if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                     return self.evaluate_vec_op(op, type_arguments, args, environment, depth);

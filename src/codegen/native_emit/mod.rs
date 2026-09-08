@@ -1,7 +1,8 @@
+mod owned_moves;
 use super::{
     backend_error, c_i32, c_i64, native_box, native_byte_data, native_bytes, native_command,
-    native_command_io, native_host_output, native_resource, native_runtime, native_vec,
-    resource_lowering_gate, COutput, NATIVE_SCALAR_RUNTIME_C,
+    native_command_io, native_host_output, native_iter, native_resource, native_runtime,
+    native_vec, resource_lowering_gate, COutput, NATIVE_SCALAR_RUNTIME_C,
 };
 #[cfg(test)]
 use super::{
@@ -438,8 +439,11 @@ fn emit_native_prelude_inner(
     if program_uses_byte_data(program) || strings.provider_carriers {
         native_byte_data::emit_runtime(output);
     }
-    if native_vec::program_uses_vec(program) {
+    if native_vec::program_uses_vec(program) || native_iter::program_uses_iterator(program) {
         native_vec::emit_runtime(output, program);
+    }
+    if native_iter::program_uses_iterator(program) {
+        native_iter::emit_runtime(output);
     }
     if native_box::program_uses_box(program) {
         native_box::emit_runtime(output, program);
@@ -898,6 +902,8 @@ fn c_value_type(
 ) -> Result<String, Diagnostic> {
     if matches!(ty, ResolvedType::Function { .. }) {
         function_value::c_type(program, ty)
+    } else if let Some(iterator) = native_iter::c_type(ty) {
+        Ok(iterator.to_owned())
     } else if crate::cleanup::is_owned_bounded_vec_type(ty) {
         Ok("spx_vec_v1".to_owned())
     } else if crate::cleanup::is_owned_bounded_box_type(ty) {
@@ -922,10 +928,12 @@ fn is_direct_plan_owned(ty: &ResolvedType) -> bool {
     matches!(ty, ResolvedType::Bytes)
         || crate::cleanup::is_owned_bounded_vec_type(ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
+        || crate::iterator_ops::is_iter(ty)
 }
 
 fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
     Ok(matches!(ty, ResolvedType::ArrayU8(length) if *length != 0)
+        || crate::iterator_ops::is_step(ty)
         || record_declaration_id(program, ty)?.is_some()
         || variant_declaration_id(program, ty)?.is_some())
 }
@@ -941,7 +949,8 @@ fn record_declaration_id<'a>(
     else {
         return Ok(None);
     };
-    if crate::cleanup::is_owned_bounded_vec_type(ty)
+    if crate::iterator_ops::is_iter(ty)
+        || crate::cleanup::is_owned_bounded_vec_type(ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
     {
         return Ok(None);
@@ -990,7 +999,8 @@ fn variant_declaration_id<'a>(
         return Ok(None);
     }
     if arguments.len() != item.type_parameters.len()
-        || (!crate::hir::admitted_owned_byte_prelude_instance(declaration, arguments)
+        || (!crate::iterator_ops::step_shape(&program.declarations, ty)
+            && !crate::hir::admitted_owned_byte_prelude_instance(declaration, arguments)
             && !crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, ty)
             && arguments.iter().any(|argument| {
                 !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
@@ -2015,13 +2025,7 @@ fn emit_function(
             .as_ref()
             .ok_or_else(|| backend_error("owned Bytes result has no cleanup plan"))?
             .provisional()?;
-        let move_call = if matches!(function.return_type, ResolvedType::Bytes) {
-            format!("spx_bytes_move(&{value})")
-        } else if crate::cleanup::is_owned_bounded_box_type(&function.return_type) {
-            format!("spx_box_move(spx_ctx, &{value})")
-        } else {
-            format!("spx_vec_move(spx_ctx, &{value})")
-        };
+        let move_call = owned_moves::owned_move(&function.return_type, value);
         output.push_str(&format!(
             "    if (!{flag}) spx_runtime_invariant_failure(\"dead owned provisional result\");\n    *spx_result_out = {move_call};\n    {flag} = false;\n"
         ));

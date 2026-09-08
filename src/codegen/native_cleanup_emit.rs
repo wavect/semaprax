@@ -144,6 +144,10 @@ pub(crate) fn emit_with_block_prologues(
                 let value = storage_binding(bindings, &action.source.storage)?;
                 writeln!(output, "    spx_vec_drop(spx_ctx, &{value});")
                     .expect("writing to a string cannot fail");
+            } else if action.lifecycle_id.as_str() == crate::cleanup::ITER_DROP_LIFECYCLE_ID {
+                let value = storage_binding(bindings, &action.source.storage)?;
+                writeln!(output, "    spx_iter_drop(spx_ctx, &{value});")
+                    .expect("writing to a string cannot fail");
             } else if action.lifecycle_id.as_str() == crate::cleanup::BOX_DROP_LIFECYCLE_ID {
                 let value = storage_binding(bindings, &action.source.storage)?;
                 writeln!(output, "    spx_box_drop(spx_ctx, &{value});")

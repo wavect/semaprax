@@ -8,7 +8,9 @@ use crate::hir::{FunctionInstanceId, ResolvedExpr, ResolvedExprKind, ResolvedTyp
 use super::{Environment, Evaluator, Flow, Value};
 
 pub(super) fn is_collection_type(ty: &ResolvedType) -> bool {
-    crate::cleanup::is_owned_bounded_vec_type(ty) || crate::cleanup::is_owned_bounded_box_type(ty)
+    crate::iterator_ops::is_iter(ty)
+        || crate::cleanup::is_owned_bounded_vec_type(ty)
+        || crate::cleanup::is_owned_bounded_box_type(ty)
 }
 
 pub(super) fn instance_is_admitted(

@@ -212,6 +212,75 @@ pub(super) fn oracle_call(
             CheckedValue::returned(op.ast_return_type(element), op.returns_owner())
         });
     }
+    if let Some(op) = crate::iterator_ops::by_name(name) {
+        let element = type_arguments.first();
+        if type_arguments.len() != 1
+            || element.is_none_or(|ty| !crate::iterator_ops::ast_element_is_admitted(ty))
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T290",
+                format!("iterator operation `{name}` requires one explicit admitted type argument"),
+                expr.span,
+            ));
+        }
+        if args.len() != 1 {
+            diagnostics.push(error(
+                program,
+                "SPX-T290",
+                format!(
+                    "iterator operation `{name}` expects 1 argument, received {}",
+                    args.len()
+                ),
+                expr.span,
+            ));
+        }
+        let params = element
+            .map(|element| crate::iterator_ops::ast_params(op, element))
+            .unwrap_or_default();
+        for (index, arg) in args.iter().enumerate() {
+            let actual = check_expr(
+                program,
+                current,
+                arg,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let Some(param) = params.get(index) else {
+                continue;
+            };
+            if let Some(actual) = actual.as_ref().filter(|actual| actual.ty != param.ty) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T205",
+                    format!(
+                        "argument `{}` to `{name}` expects {}, received {}",
+                        param.name, param.ty, actual.ty
+                    ),
+                    arg.span,
+                ));
+            }
+            check_argument_ownership(
+                program,
+                current,
+                name,
+                arg,
+                param,
+                actual.as_ref(),
+                variables,
+                types,
+                allow_moves,
+                false,
+                false,
+                diagnostics,
+            );
+        }
+        return element.map(|element| CheckedValue::returned(op.ast_return_type(element), true));
+    }
     if let Some(op) = crate::box_ops::by_name(name) {
         let element = type_arguments.first();
         if type_arguments.len() != 1

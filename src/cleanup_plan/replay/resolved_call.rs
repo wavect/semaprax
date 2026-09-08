@@ -59,6 +59,21 @@ pub(super) fn resolved_call_params(
         if let Some(op) = crate::command_io_ops::by_id(callee.as_str()) {
             return Ok(crate::command_io_ops::resolved_params(op));
         }
+        if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
+            let [element] = type_arguments else {
+                return Err(replay_error(
+                    function,
+                    "iterator call has incorrect type arity",
+                ));
+            };
+            if !crate::iterator_ops::resolved_element_is_admitted(element) {
+                return Err(replay_error(
+                    function,
+                    "iterator call has unsupported element",
+                ));
+            }
+            return Ok(crate::iterator_ops::resolved_params(op, element));
+        }
         if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
             let [element] = type_arguments else {
                 return Err(replay_error(
@@ -106,6 +121,7 @@ pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool
                     | crate::vec_ops::VecOp::Set
             )
         )
+            || callee.as_str() == crate::iterator_ops::NEXT_ID
             || crate::byte_ops::by_id(callee.as_str())
                 .is_some_and(crate::byte_ops::ByteOp::is_fallible)
             || (callee.as_str() == crate::box_ops::NEW_ID

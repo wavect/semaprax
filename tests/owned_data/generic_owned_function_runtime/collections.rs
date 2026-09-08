@@ -63,6 +63,13 @@ pub(super) fn run_source_value(source: &str, value: i64) {
     run_source_with_expected(source, Expected::Value(value));
 }
 
+pub(super) fn run_source_postcondition_failure(source: &str) {
+    run_source_with_expected(
+        source,
+        Expected::Failure("semaprax.contract.v1", 2, "SEMAPRAX contract failure"),
+    );
+}
+
 fn run_source_with_expected(source: &str, expected: Expected) {
     let parsed = semaprax::check(source, "generic-collections-runtime.spx").unwrap();
     let canonical = semaprax::format::canonical(&parsed);
@@ -143,6 +150,7 @@ WebAssembly.instantiate(bytes,{env}).then(({instance})=>{for(let i=0;i<4;i+=1){l
         .arg(match expected {
             Expected::Value(_) => "0",
             Expected::Failure("semaprax.contract.v1", 1, _) => "9",
+            Expected::Failure("semaprax.contract.v1", 2, _) => "10",
             Expected::Failure("semaprax.vec.v1", 1, _) => "13",
             Expected::Failure("semaprax.vec.v1", 3, _) => "15",
             Expected::Failure(..) => {

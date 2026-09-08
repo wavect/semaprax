@@ -20,6 +20,7 @@ mod generic_record;
 mod generic_variant;
 mod http_io;
 pub(super) mod internal_strings;
+mod iterator_ops;
 mod nested_owned;
 mod network_io;
 mod owned_stack;
@@ -359,6 +360,7 @@ impl FunctionPlan {
                     if lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::cleanup::VEC_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::cleanup::BOX_DROP_LIFECYCLE_ID
+                        && lifecycle.as_str() != crate::cleanup::ITER_DROP_LIFECYCLE_ID
                     {
                         return Err(error("Bytes CleanupPlan leaf has the wrong lifecycle"));
                     }
@@ -375,6 +377,8 @@ impl FunctionPlan {
                             place.storage,
                             crate::cleanup_plan::StorageId::CallArgument { .. }
                         )
+                        && !crate::iterator_ops::is_iter(&slot.ty)
+                        && !crate::iterator_ops::is_step(&slot.ty)
                     {
                         let carrier = add_local(I64)?;
                         if cleanup_call_argument_carriers
@@ -1019,6 +1023,9 @@ fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagn
 }
 
 fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    if crate::iterator_ops::is_step(ty) {
+        return Ok(true);
+    }
     let ResolvedType::Nominal {
         declaration,
         arguments,
@@ -1062,6 +1069,9 @@ fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Di
     {
         return Ok(false);
     }
+    if crate::iterator_ops::is_iter(ty) || crate::iterator_ops::is_step(ty) {
+        return Ok(true);
+    }
     Ok(matches!(ty, ResolvedType::ArrayU8(_))
         || is_record(program, ty)?
         || is_variant(program, ty)?)
@@ -1089,6 +1099,12 @@ fn aggregate_size_align(
         && crate::hir::closure::requires_closures(program)
     {
         return Ok((80, 8));
+    }
+    if crate::iterator_ops::is_iter(ty) {
+        return Ok((16, 8));
+    }
+    if crate::iterator_ops::is_step(ty) {
+        return Ok((32, 8));
     }
     if is_record(program, ty)? {
         let layout = layout(program, ty)?;
@@ -2663,6 +2679,8 @@ fn emit_profile_with_scalar_exports(
     Ok(module)
 }
 
+// This adapter is the shared standard-profile boundary. The underlying
+// profile additionally receives its explicit mode flag.
 #[allow(clippy::too_many_arguments)]
 fn emit_function(
     program: &ResolvedProgram,
@@ -3204,16 +3222,24 @@ impl Emitter<'_> {
         for action in actions {
             let vec_leaf = action.lifecycle_id.as_str() == crate::cleanup::VEC_DROP_LIFECYCLE_ID;
             let box_leaf = action.lifecycle_id.as_str() == crate::cleanup::BOX_DROP_LIFECYCLE_ID;
+            let iter_leaf = action.lifecycle_id.as_str() == crate::cleanup::ITER_DROP_LIFECYCLE_ID;
             if action.lifecycle_id.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
                 && !vec_leaf
                 && !box_leaf
+                && !iter_leaf
             {
                 return Err(error(
                     "byte-data WebAssembly cleanup requires compiler-owned Bytes leaves",
                 ));
             }
             let value = self.cleanup_value_at(&action.source)?;
-            if vec_leaf {
+            if iter_leaf {
+                if !crate::iterator_ops::is_iter(value_type(&value)) {
+                    return Err(error(
+                        "Iter CleanupPlan finalizer type disagrees with lifecycle",
+                    ));
+                }
+            } else if vec_leaf {
                 if !crate::cleanup::is_owned_bounded_vec_type(value_type(&value)) {
                     return Err(error(
                         "Vec CleanupPlan finalizer type disagrees with lifecycle",
@@ -3241,11 +3267,19 @@ impl Emitter<'_> {
             self.output.push(0x20);
             write_u32(self.output, flag);
             self.output.extend([0x04, 0x40]);
-            self.get_scalar(&value);
+            if iter_leaf {
+                let Value::Aggregate { pointer, .. } = &value else {
+                    return Err(error("Iter cleanup leaf is not aggregate storage"));
+                };
+                self.emit_pointer(*pointer);
+                self.load_scalar(&ResolvedType::I64);
+            } else {
+                self.get_scalar(&value);
+            }
             self.output.push(0x10);
             write_u32(
                 self.output,
-                if vec_leaf {
+                if vec_leaf || iter_leaf {
                     vec_import_base(self.program) + 5
                 } else if box_leaf {
                     box_import_base(self.program) + 3
@@ -3255,7 +3289,11 @@ impl Emitter<'_> {
             );
             // Poison the moved/dropped carrier locally. Any backend mistake
             // that reads it later reaches the host's malformed-token trap.
-            self.clear_scalar(&value)?;
+            if iter_leaf {
+                self.clear_iterator(&value)?;
+            } else {
+                self.clear_scalar(&value)?;
+            }
             self.output.extend([0x41, 0x00, 0x21]);
             write_u32(self.output, flag);
             self.output.push(0x0b);
@@ -3275,6 +3313,8 @@ impl Emitter<'_> {
                     if binding.ty == ResolvedType::Bytes
                         || crate::cleanup::is_owned_bounded_vec_type(&binding.ty)
                         || crate::cleanup::is_owned_bounded_box_type(&binding.ty)
+                        || crate::iterator_ops::is_iter(&binding.ty)
+                        || crate::iterator_ops::is_step(&binding.ty)
                     {
                         anchors.push(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
                     }
@@ -3289,6 +3329,8 @@ impl Emitter<'_> {
                     value.ty == ResolvedType::Bytes
                         || crate::cleanup::is_owned_bounded_vec_type(&value.ty)
                         || crate::cleanup::is_owned_bounded_box_type(&value.ty)
+                        || crate::iterator_ops::is_iter(&value.ty)
+                        || crate::iterator_ops::is_step(&value.ty)
                 }) {
                     anchors.push(crate::cleanup_plan::StorageId::Temporary(value.id.clone()));
                 }
@@ -5263,62 +5305,13 @@ impl Emitter<'_> {
                 if mode == crate::hir::ResolvedMatchMode::Own {
                     self.apply_variant_case_transitions(expression, case)?;
                 }
-                for pattern_field in fields {
-                    let field = case_layout
-                        .field(&pattern_field.field)
-                        .cloned()
-                        .ok_or_else(|| {
-                            error(format!(
-                                "match case `{case}` has no field `{}`",
-                                pattern_field.field
-                            ))
-                        })?;
-                    require_type(
-                        &pattern_field.binding.ty,
-                        &field.ty,
-                        "match payload binding",
-                    )?;
-                    let pointer = Pointer {
-                        local: scrutinee.local,
-                        offset: scrutinee
-                            .offset
-                            .checked_add(layout.payload_offset)
-                            .and_then(|offset| offset.checked_add(field.offset))
-                            .ok_or_else(|| error("match payload pointer overflows u32"))?,
-                    };
-                    let local = self
-                        .plan
-                        .scalar_bindings
-                        .get(&pattern_field.binding.id)
-                        .copied()
-                        .ok_or_else(|| {
-                            error(format!(
-                                "missing match binding `{}`",
-                                pattern_field.binding.id
-                            ))
-                        })?;
-                    let source = Value::ScalarMemory {
-                        pointer,
-                        ty: field.ty.clone(),
-                    };
-                    let destination_binding = Value::Scalar {
-                        local,
-                        ty: field.ty.clone(),
-                    };
-                    if field.ty == ResolvedType::Bytes
-                        && mode == crate::hir::ResolvedMatchMode::Borrow
-                    {
-                        self.copy_borrowed_scalar_alias(&destination_binding, &source)?;
-                    } else {
-                        self.copy_value(
-                            &destination_binding,
-                            &source,
-                            "variant match field binding",
-                        )?;
-                    }
-                    self.bindings
-                        .insert(pattern_field.binding.id.clone(), destination_binding);
-                }
+                self.bind_variant_match_fields(
+                    fields,
+                    &case_layout,
+                    scrutinee,
+                    layout.payload_offset,
+                    mode,
+                )?;
                 if mode == crate::hir::ResolvedMatchMode::Own {
                     self.emit_pointer(scrutinee);
                     self.output.extend([0x41, 0x00, 0x41]);
@@ -6030,6 +6023,9 @@ impl Emitter<'_> {
             }
         }
         if instance.is_none() {
+            if let Some(op) = crate::iterator_ops::by_id(callee.as_str()) {
+                return self.emit_iterator_op(expr, op, type_arguments, args);
+            }
             if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                 return self.emit_vec_op(expr, op, type_arguments, args);
             }
@@ -8197,6 +8193,9 @@ impl Emitter<'_> {
                         "{context} mixes scalar and aggregate values"
                     )));
                 };
+                if self.copy_iterator_value(*destination, *source, ty)? {
+                    return Ok(());
+                }
                 if is_record(self.program, ty)? {
                     let record_layout = layout(self.program, ty)?;
                     if nested_owned::record_contains_owned_bytes(self.program, ty)? {

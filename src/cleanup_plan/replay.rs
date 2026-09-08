@@ -25,9 +25,9 @@ use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
     CleanupTransition, ConditionalVariantCase, ConditionalVariantEntry, EdgeCondition, EdgeId,
     ExitContinuation, ExitTarget, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
-    StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
-    CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7,
-    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V2,
+    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6,
+    CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 mod path_summary;
 use path_summary::{
@@ -1825,6 +1825,7 @@ fn collect_expression_statuses(
                     && (crate::string_ops::by_id(callee.as_str()).is_some()
                         || crate::str_ops::by_id(callee.as_str()).is_some()
                         || crate::vec_ops::by_id(callee.as_str()).is_some()
+                        || crate::iterator_ops::by_id(callee.as_str()).is_some()
                         || crate::box_ops::by_id(callee.as_str()).is_some()
                         || crate::byte_ops::by_id(callee.as_str()).is_some())
                 {
@@ -2636,6 +2637,7 @@ fn validate_blocks_and_edges(
                             | CLEANUP_PLAN_SCHEMA_V7
                             | CLEANUP_PLAN_SCHEMA_V8
                             | CLEANUP_PLAN_SCHEMA_V9
+                            | CLEANUP_PLAN_SCHEMA_V10
                     ) && matches!(
                         plan.edges[edge.0 as usize].condition,
                         EdgeCondition::VariantCase { matches: true, .. }
@@ -3608,6 +3610,10 @@ fn expression_skeleton(
                             crate::byte_ops::resolved_params(op)
                         } else if let Some(op) = host_io_intrinsic {
                             crate::host_io_ops::resolved_params(op)
+                        } else if instance.is_none()
+                            && crate::iterator_ops::by_id(callee.as_str()).is_some()
+                        {
+                            resolved_call_params(program, function, callee, None, type_arguments)?
                         } else if let Some(op) = vec_intrinsic {
                             let [element] = type_arguments.as_slice() else {
                                 return Err(replay_error(

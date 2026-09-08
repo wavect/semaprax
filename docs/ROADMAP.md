@@ -60,6 +60,18 @@ Completion claims remain owned by the completion matrix and exact evidence.
    Make the support/publication decision explicitly. Internal generic
    admission alone never widens a public ABI.
 
+The bounded Owning Iterators v1 tranche is in implementation, not promoted
+LANG-07 completion. It introduces private scalar `Iter<T>` / `IterStep<T>`
+ownership with Prelude v7, CleanupPlan v10, Graph v38, and ProgramRoot replay.
+The local interpreter and C11 O0/O2 corpus has observed all eight scalar
+elements, ordered/empty/exhausted steps, early settlement, private returns,
+contract failure, and forged-cursor rejection. The focused Core-Wasm corpus
+also passes, including repaired match-scope settlement. The authored
+Linux selector is `Require Owning Iterators v1 identity, replay, and backend
+settlement`; it is not hosted evidence. Iterator interfaces, lazy adapters,
+owning payloads, consuming loop syntax, public ABI, and the broader LANG-07
+collection goal remain open.
+
 ## Current priority: post-v0.2 promotion boundaries
 
 The `v0.2.0` prerelease is published from exact commit

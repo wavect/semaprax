@@ -457,32 +457,7 @@ impl DeclarationIndex {
                         return None;
                     };
                     let item = self.declaration(&declaration)?;
-                    if declaration.as_str() == crate::prelude::VEC_ID
-                        && arguments.len() == 1
-                        && crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
-                    {
-                        let facts = TypeFacts {
-                            copy: false,
-                            contains_resource: false,
-                            sized: true,
-                            needs_drop: true,
-                            layout_key: format!("vec:{}", arguments[0].identity_key()),
-                        };
-                        memo.insert(identity, facts.clone());
-                        results.push(facts);
-                        continue;
-                    }
-                    if declaration.as_str() == crate::prelude::BOX_ID
-                        && arguments.len() == 1
-                        && crate::box_ops::resolved_box_element_is_admitted(&arguments[0])
-                    {
-                        let facts = TypeFacts {
-                            copy: false,
-                            contains_resource: false,
-                            sized: true,
-                            needs_drop: true,
-                            layout_key: format!("box:{}", arguments[0].identity_key()),
-                        };
+                    if let Some(facts) = owned_builtin_facts(&declaration, &arguments) {
                         memo.insert(identity, facts.clone());
                         results.push(facts);
                         continue;
@@ -1494,4 +1469,32 @@ impl Drop for DeclarationIndex {
             }
         }
     }
+}
+
+fn owned_builtin_facts(
+    declaration: &DeclarationId,
+    arguments: &[ResolvedType],
+) -> Option<TypeFacts> {
+    if let Some(facts) = crate::iterator_ops::type_facts(declaration, arguments) {
+        return Some(facts);
+    }
+    let [element] = arguments else {
+        return None;
+    };
+    let prefix = match declaration.as_str() {
+        crate::prelude::VEC_ID if crate::vec_ops::resolved_vec_element_is_admitted(element) => {
+            "vec"
+        }
+        crate::prelude::BOX_ID if crate::box_ops::resolved_box_element_is_admitted(element) => {
+            "box"
+        }
+        _ => return None,
+    };
+    Some(TypeFacts {
+        copy: false,
+        contains_resource: false,
+        sized: true,
+        needs_drop: true,
+        layout_key: format!("{prefix}:{}", element.identity_key()),
+    })
 }

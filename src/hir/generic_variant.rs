@@ -89,6 +89,9 @@ pub(crate) fn match_result(
     ty: &ResolvedType,
     ownership: OwnershipMode,
 ) -> bool {
+    if iterator_match_result(program, mode, ty, ownership) {
+        return true;
+    }
     bounded_template(program, function).is_some()
         && ((ownership == OwnershipMode::Value
             && super::type_reachability::nested_record_copy_scalar_is_admitted(ty))
@@ -103,6 +106,9 @@ pub(crate) fn match_result_execution(
     ty: &ResolvedType,
     ownership: OwnershipMode,
 ) -> bool {
+    if iterator_match_result(program, mode, ty, ownership) {
+        return true;
+    }
     let FunctionExecutionId::Generic(id) = execution else {
         return false;
     };
@@ -187,4 +193,16 @@ pub(crate) fn concrete_signature(
             (parameter.ownership == OwnershipMode::Own && carrier(&parameter.ty))
                 || (parameter.ownership == OwnershipMode::Value && scalar(&parameter.ty))
         })
+}
+
+// Iterator v1 retains the same checked owning-variant reconstruction path.
+fn iterator_match_result(
+    program: &ResolvedProgram,
+    mode: ResolvedMatchMode,
+    ty: &ResolvedType,
+    ownership: OwnershipMode,
+) -> bool {
+    mode == ResolvedMatchMode::Own
+        && ownership == OwnershipMode::Own
+        && crate::iterator_ops::step_shape(&program.declarations, ty)
 }

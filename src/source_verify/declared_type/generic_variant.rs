@@ -143,6 +143,14 @@ pub(in crate::source_verify) fn match_result(
     ty: &Type,
     ownership: ParamMode,
 ) -> bool {
+    if mode == crate::ast::MatchMode::Own
+        && ownership == ParamMode::Own
+        && matches!(ty, Type::Named { name, arguments } if name == "IterStep"
+            && matches!(arguments.as_slice(), [element] if crate::iterator_ops::ast_element_is_admitted(element)))
+        && types.is_flat_owned_byte_variant(ty)
+    {
+        return true;
+    }
     template.is_some_and(|function| profile(function, types))
         && ((ownership == ParamMode::Value && crate::vec_ops::ast_element_is_admitted(ty))
             || (mode == crate::ast::MatchMode::Own

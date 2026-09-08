@@ -129,6 +129,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/closure/materialize.rs"),
         include_str!("../../../../../src/hir/function_value.rs"),
         include_str!("../../../../../src/hir/function_value/resolve.rs"),
+        include_str!("../../../../../src/hir/generic_result.rs"),
         include_str!("../../../../../src/hir/generic_variant.rs"),
         include_str!("../../../../../src/hir/agent_nodes.rs"),
         include_str!("../../../../../src/hir/agent_validation.rs"),
@@ -136,6 +137,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/resolve_class.rs"),
         include_str!("../../../../../src/hir/resolve_expr.rs"),
         include_str!("../../../../../src/hir/resolve_box_call.rs"),
+        include_str!("../../../../../src/hir/resolve_box_call/iterator.rs"),
         include_str!("../../../../../src/hir/resolve_vec_call.rs"),
         include_str!("../../../../../src/hir/resolve_expr_frame.rs"),
         include_str!("../../../../../src/hir/resolve_expr_reference.rs"),
@@ -170,6 +172,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     let cleanup = concat!(
         include_str!("../../../../../src/cleanup.rs"),
         include_str!("../../../../../src/cleanup/generic_record.rs"),
+        include_str!("../../../../../src/cleanup/iterator.rs"),
     );
     let lower = concat!(
         include_str!("../../../../../src/cleanup_plan/build.rs"),
@@ -177,6 +180,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/cleanup_plan/build/generic_variant.rs"),
         include_str!("../../../../../src/cleanup_plan/build/bounded_box.rs"),
         include_str!("../../../../../src/cleanup_plan/build/bounded_vec.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/iterator.rs"),
         include_str!("../../../../../src/cleanup_plan/build/owned_try.rs"),
         include_str!("../../../../../src/cleanup_plan/build/record_destructure.rs"),
         include_str!("../../../../../src/cleanup_plan/build/record_destructure/update.rs"),

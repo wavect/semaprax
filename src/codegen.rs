@@ -35,6 +35,7 @@ mod native_conformance_materialize;
 mod native_conformance_wire;
 mod native_host_contract;
 mod native_host_output;
+mod native_iter;
 #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
 mod native_module_lease;
 mod native_owned_data_provider;

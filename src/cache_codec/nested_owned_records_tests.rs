@@ -12,5 +12,8 @@ fn nested_cleanup_plan_versions_are_exact_closed_static_tokens() {
     assert!(static_token("semaprax.cleanup-plan.v7 ").is_err());
     assert!(static_token("semaprax.cleanup-plan.v8+v7").is_err());
     assert!(static_token("semaprax.cleanup-plan.v9+v8").is_err());
-    assert!(static_token("semaprax.cleanup-plan.v10").is_err());
+    assert_eq!(
+        static_token("semaprax.cleanup-plan.v10").unwrap(),
+        "semaprax.cleanup-plan.v10"
+    );
 }

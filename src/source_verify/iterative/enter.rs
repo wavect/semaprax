@@ -344,6 +344,22 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             implicit_unique_ownership: false,
                         }
                     }))
+                } else if let Some(op) = crate::iterator_ops::by_name(name) {
+                    let element = type_arguments.first();
+                    if type_arguments.len() != 1
+                        || args.len() != 1
+                        || element
+                            .is_none_or(|ty| !crate::iterator_ops::ast_element_is_admitted(ty))
+                    {
+                        self.diagnostics.push(error(self.program,"SPX-T290","iterator operations require one concrete scalar type argument and one owned argument",expression.span));
+                    }
+                    VerifierCallTarget::Ordinary(element.map(|element| {
+                        VerifierFunctionSignature::Specialized {
+                            params: crate::iterator_ops::ast_params(op, element),
+                            return_type: op.ast_return_type(element),
+                            implicit_unique_ownership: false,
+                        }
+                    }))
                 } else if let Some(op) = crate::box_ops::by_name(name) {
                     let element = type_arguments.first();
                     if type_arguments.len() != 1
@@ -825,6 +841,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 fields,
                 ..
             } => {
+                if type_name == "Iter" {
+                    return Err(error(
+                        self.program,
+                        "SPX-T290",
+                        "Iter carriers can only be created by vec_into_iter",
+                        expression.span,
+                    ));
+                }
                 let instance = Type::Named {
                     name: type_name.clone(),
                     arguments: type_arguments.clone(),

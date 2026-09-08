@@ -16,6 +16,9 @@ use crate::hir::{
 };
 
 mod generic_record;
+mod iterator;
+pub(crate) use iterator::variant_leaf_lifecycle;
+pub const ITER_DROP_LIFECYCLE_ID: &str = "core.iter.drop";
 
 #[cfg(test)]
 thread_local! {
@@ -496,6 +499,11 @@ pub(crate) fn type_needs_resource_cleanup(
                 declaration,
                 arguments,
             } => {
+                if declaration.as_str() == crate::iterator_ops::ITER_ID
+                    && matches!(arguments.as_slice(), [element] if crate::iterator_ops::resolved_element_is_admitted(element))
+                {
+                    return Ok(true);
+                }
                 if declaration.as_str() == crate::prelude::BOX_ID
                     && matches!(arguments.as_slice(), [element] if crate::box_ops::resolved_box_element_is_admitted(element))
                 {
@@ -850,11 +858,15 @@ impl InventoryBuilder<'_> {
                         shapes.push(FieldLivenessShape::Leaf { flag, lifecycle });
                         continue;
                     }
-                    if is_owned_bounded_vec_type(ty) {
+                    if is_owned_bounded_vec_type(ty) || crate::iterator_ops::is_iter(ty) {
                         let flag_index = u32::try_from(self.flags.len())
                             .map_err(|_| cleanup_error("too many cleanup liveness flags"))?;
                         let flag = LivenessFlagId(flag_index);
-                        let lifecycle = DeclarationId::new(VEC_DROP_LIFECYCLE_ID);
+                        let lifecycle = DeclarationId::new(if crate::iterator_ops::is_iter(ty) {
+                            ITER_DROP_LIFECYCLE_ID
+                        } else {
+                            VEC_DROP_LIFECYCLE_ID
+                        });
                         self.flags.push(CleanupFlag {
                             id: flag,
                             place: CleanupPlace {
@@ -960,17 +972,14 @@ impl InventoryBuilder<'_> {
                                         arguments,
                                     )?;
                                     let shape = if self.needs_drop(&field_ty)? {
-                                        if field_ty != ResolvedType::Bytes {
-                                            return Err(cleanup_error(
-                                                "droppable variant field is outside the direct-Bytes v1 slice",
-                                            ));
-                                        }
+                                        let leaf_lifecycle = variant_leaf_lifecycle(ty, &case.id, &field.id, &field_ty)
+                                            .ok_or_else(|| cleanup_error("droppable variant field is outside its admitted cleanup profile"))?;
                                         let flag_index =
                                             u32::try_from(self.flags.len()).map_err(|_| {
                                                 cleanup_error("too many cleanup liveness flags")
                                             })?;
                                         let flag = LivenessFlagId(flag_index);
-                                        let lifecycle = DeclarationId::new(BYTES_DROP_LIFECYCLE_ID);
+                                        let lifecycle = DeclarationId::new(leaf_lifecycle);
                                         let mut leaf_projections = projections.clone();
                                         leaf_projections.push(case.id.clone());
                                         leaf_projections.push(field.id.clone());

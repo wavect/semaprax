@@ -13,7 +13,7 @@ impl PlanBuilder<'_> {
         storage: &StorageId,
         projections: &[crate::hir::DeclarationId],
     ) -> Result<Option<FieldLivenessShape>, Diagnostic> {
-        if !crate::cleanup::is_owned_bounded_box_type(ty) {
+        if !crate::cleanup::is_owned_bounded_box_type(ty) && !crate::iterator_ops::is_iter(ty) {
             return Ok(None);
         }
         let flag = LivenessFlagId(self.next_flag);
@@ -21,7 +21,11 @@ impl PlanBuilder<'_> {
             .next_flag
             .checked_add(1)
             .ok_or_else(|| plan_error("too many cleanup liveness flags"))?;
-        let lifecycle = crate::hir::DeclarationId::new(crate::cleanup::BOX_DROP_LIFECYCLE_ID);
+        let lifecycle = crate::hir::DeclarationId::new(if crate::iterator_ops::is_iter(ty) {
+            crate::cleanup::ITER_DROP_LIFECYCLE_ID
+        } else {
+            crate::cleanup::BOX_DROP_LIFECYCLE_ID
+        });
         self.leaves.insert(
             flag,
             LeafMetadata {

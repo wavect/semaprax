@@ -1,6 +1,7 @@
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{
-    StorageId, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8,
+    CLEANUP_PLAN_SCHEMA_V9,
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{PlaceProjection, ResolvedFunction, ResolvedProgram};
@@ -12,6 +13,19 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
     generic_composition: bool,
 ) -> Result<Option<&'static str>, Diagnostic> {
     let functions = functions.into_iter().collect::<Vec<_>>();
+    // v10 is selected by the iterator lifecycle.  It may compose with an
+    // older nested storage shape, so its numeric selector cannot erase the
+    // independently retained shape facts that guard Graph v26-v31.
+    let has_nested_storage = functions.iter().try_fold(false, |found, function| {
+        function
+            .cleanup
+            .slots
+            .iter()
+            .try_fold(found, |found, slot| {
+                crate::cleanup::cleanup_shape_profile(&slot.shape)
+                    .map(|profile| found || profile.has_nested_owned_bytes)
+            })
+    })?;
     let has_nested_update = functions
         .iter()
         .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V9);
@@ -19,7 +33,8 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
         || functions
             .iter()
             .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V8);
-    let has_nested_cleanup = has_nested_destructure
+    let has_nested_cleanup = has_nested_storage
+        || has_nested_destructure
         || functions
             .iter()
             .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V7);
@@ -50,8 +65,12 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
             if loan.origin.projections.len() < 2
                 || !matches!(
                     function.cleanup_plan.schema,
-                    CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8 | CLEANUP_PLAN_SCHEMA_V9
+                    CLEANUP_PLAN_SCHEMA_V7
+                        | CLEANUP_PLAN_SCHEMA_V8
+                        | CLEANUP_PLAN_SCHEMA_V9
+                        | CLEANUP_PLAN_SCHEMA_V10
                 )
+                || !function_has_nested_storage(function)?
                 || !loan_origin_is_nested_owned_leaf(function, loan)
                 || program.is_some_and(|program| {
                     !crate::hir::is_authenticated_nested_projected_byte_loan(
@@ -88,6 +107,17 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
             "semaprax.graph.v26"
         },
     ))
+}
+
+fn function_has_nested_storage(function: &ResolvedFunction) -> Result<bool, Diagnostic> {
+    function
+        .cleanup
+        .slots
+        .iter()
+        .try_fold(false, |found, slot| {
+            crate::cleanup::cleanup_shape_profile(&slot.shape)
+                .map(|profile| found || profile.has_nested_owned_bytes)
+        })
 }
 
 pub(super) fn select_schema<'a>(
@@ -171,6 +201,66 @@ fn composition_error(message: &str) -> Diagnostic {
     Diagnostic::io("SPX-G410", message)
 }
 
+fn parts_use_iterator(
+    types: &[crate::hir::ResolvedTypeDeclaration],
+    functions: &[ResolvedFunction],
+    templates: &[crate::hir::ResolvedFunctionTemplate],
+    instances: &[crate::hir::ResolvedFunctionInstance],
+) -> bool {
+    fn function_uses_iterator(function: &ResolvedFunction) -> bool {
+        let expressions = function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures);
+        expressions.any(crate::iterator_ops::resolved_expression_uses_iterator)
+            || crate::iterator_ops::resolved_type_uses_iterator(&function.return_type)
+            || function
+                .params
+                .iter()
+                .any(|parameter| crate::iterator_ops::resolved_type_uses_iterator(&parameter.ty))
+    }
+    types
+        .iter()
+        .filter(|declaration| {
+            !matches!(
+                declaration.id.as_str(),
+                crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID
+            )
+        })
+        .any(|declaration| match &declaration.kind {
+            crate::hir::ResolvedTypeDeclarationKind::Record { fields }
+            | crate::hir::ResolvedTypeDeclarationKind::Class { fields, .. } => fields
+                .iter()
+                .any(|field| crate::iterator_ops::resolved_type_uses_iterator(&field.ty)),
+            crate::hir::ResolvedTypeDeclarationKind::Variant { cases } => cases
+                .iter()
+                .flat_map(|case| &case.fields)
+                .any(|field| crate::iterator_ops::resolved_type_uses_iterator(&field.ty)),
+            crate::hir::ResolvedTypeDeclarationKind::Resource { .. } => false,
+        })
+        || functions.iter().any(function_uses_iterator)
+        || templates.iter().any(|template| {
+            crate::iterator_ops::resolved_type_uses_iterator(&template.return_type)
+                || template.params.iter().any(|parameter| {
+                    crate::iterator_ops::resolved_type_uses_iterator(&parameter.ty)
+                })
+                || template
+                    .requires
+                    .iter()
+                    .chain(std::iter::once(&template.body))
+                    .chain(&template.ensures)
+                    .any(crate::iterator_ops::resolved_expression_uses_iterator)
+        })
+        || instances.iter().any(|instance| {
+            instance
+                .type_arguments
+                .iter()
+                .any(crate::iterator_ops::resolved_type_uses_iterator)
+                || function_uses_iterator(&instance.function)
+        })
+}
+
 // Frozen workspace source metadata retains its versioned pre-v34 contract.
 pub(crate) fn graph_schema_from_parts_and_instances(
     interfaces: &[crate::hir::ResolvedInterface],
@@ -179,6 +269,37 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     function_templates: &[crate::hir::ResolvedFunctionTemplate],
     function_instances: &[crate::hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
+    if functions
+        .iter()
+        .chain(function_instances.iter().map(|instance| &instance.function))
+        .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V10)
+        && super::native_import::declares_native_rust_import(interfaces)
+    {
+        return Err(Diagnostic::io(
+            "SPX-G410",
+            "native Rust import Graph v25 cannot mask CleanupPlan v10 iterator semantics",
+        ));
+    }
+    if parts_use_iterator(types, functions, function_templates, function_instances) {
+        // Validate all older cleanup/loan composition first.  v38 is the
+        // projection version for the iterator facts, never a bypass for the
+        // retained cleanup evidence.
+        select_schema(
+            None,
+            functions
+                .iter()
+                .chain(function_instances.iter().map(|instance| &instance.function)),
+            super::native_import::declares_native_rust_import(interfaces),
+            super::graph_schema_from_parts_without_loans(
+                interfaces,
+                types,
+                functions,
+                function_templates,
+            )?,
+            false,
+        )?;
+        return Ok("semaprax.graph.v38");
+    }
     if functions
         .iter()
         .chain(function_instances.iter().map(|instance| &instance.function))
@@ -228,6 +349,33 @@ pub(crate) fn graph_schema_from_parts_and_instances(
 }
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
+    if program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V10)
+        && super::native_import::declares_native_rust_import(&program.interfaces)
+    {
+        return Err(Diagnostic::io(
+            "SPX-G410",
+            "native Rust import Graph v25 cannot mask CleanupPlan v10 iterator semantics",
+        ));
+    }
+    if super::prelude_binding::uses_iterator(program) {
+        program_schema(
+            program,
+            !program.function_instances.is_empty()
+                || requires_generic_result_schema(program)
+                || super::generic_mapping::requires_v35(&program.function_templates)
+                || crate::hir::function_value::requires_function_values(program),
+        )?;
+        return Ok("semaprax.graph.v38");
+    }
     if crate::hir::closure::requires_closure_projection(program) {
         return Ok("semaprax.graph.v37");
     }
@@ -280,6 +428,7 @@ fn program_schema(
     program: &ResolvedProgram,
     generic_composition: bool,
 ) -> Result<&'static str, Diagnostic> {
+    let has_iterator = super::prelude_binding::uses_iterator(program);
     let schema = select_schema(
         Some(program),
         program
@@ -295,6 +444,9 @@ fn program_schema(
         )?,
         generic_composition,
     )?;
+    if has_iterator {
+        return Ok("semaprax.graph.v38");
+    }
     if crate::hir::function_value::requires_function_values(program) {
         if !generic_composition {
             return Err(composition_error("function values require Graph v36"));
@@ -345,6 +497,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v35"
             | "semaprax.graph.v36"
             | "semaprax.graph.v37"
+            | "semaprax.graph.v38"
     )
 }
 
@@ -362,6 +515,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v35"
             | "semaprax.graph.v36"
             | "semaprax.graph.v37"
+            | "semaprax.graph.v38"
     )
 }
 
@@ -377,6 +531,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v35"
             | "semaprax.graph.v36"
             | "semaprax.graph.v37"
+            | "semaprax.graph.v38"
     )
 }
 

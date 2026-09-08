@@ -363,6 +363,9 @@ pub(super) fn resolver_admits_flat_owned_byte_variant(
     declarations: &DeclarationIndex,
     ty: &ResolvedType,
 ) -> bool {
+    if crate::iterator_ops::step_shape(declarations, ty) {
+        return true;
+    }
     let ResolvedType::Nominal {
         declaration,
         arguments,

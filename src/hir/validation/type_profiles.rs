@@ -246,6 +246,9 @@ pub(super) fn resolved_type_is_flat_owned_byte_variant(
     program: &ResolvedProgram,
     ty: &ResolvedType,
 ) -> bool {
+    if crate::iterator_ops::step_shape(&program.declarations, ty) {
+        return true;
+    }
     let ResolvedType::Nominal {
         declaration,
         arguments,

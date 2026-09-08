@@ -1033,7 +1033,8 @@ impl Resolver<'_> {
                             && matches!(resolved.as_slice(), [argument]
                                 if crate::box_ops::resolved_box_element_is_admitted(argument));
                         if resolved.len() != parameters.len()
-                            || (!admitted_vec
+                            || (!crate::iterator_ops::is_iter(&instance) && !crate::iterator_ops::is_step(&instance)
+                                && !admitted_vec
                                 && !admitted_box
 
                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
@@ -1158,7 +1159,9 @@ impl Resolver<'_> {
             .declarations
             .type_parameters(&declaration)
             .is_none_or(|parameters| parameters.len() != resolved.len())
-            || (!transparent_vec
+            || (!crate::iterator_ops::is_iter(&instance)
+                && !crate::iterator_ops::is_step(&instance)
+                && !transparent_vec
                 && !specialized_vec_wrapper
                 && !transparent_box
                 && !specialized_box_wrapper

@@ -89,7 +89,10 @@ impl SemanticProgram {
             closure
                 .get("graph")
                 .and_then(serde_json::Value::as_str)
-                .is_some_and(|graph| graph.contains("\"schema\":\"semaprax.graph.v37\""))
+                .is_some_and(|graph| {
+                    graph.contains("\"schema\":\"semaprax.graph.v37\"")
+                        || graph.contains("\"schema\":\"semaprax.graph.v38\"")
+                })
         });
         let (schema, domain): (&str, &[u8]) = if has_snapshot_closure || source_has_snapshot_closure
         {

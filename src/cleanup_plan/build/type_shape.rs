@@ -107,18 +107,14 @@ impl PlanBuilder<'_> {
                         let field_ty =
                             crate::hir::substitute_type(&field.ty, declaration, arguments)?;
                         let shape = if self.needs_drop(&field_ty)? {
-                            if field_ty != ResolvedType::Bytes {
-                                return Err(plan_error(
-                                    "droppable variant field is outside the direct-Bytes v1 slice",
-                                ));
-                            }
+                            let leaf_lifecycle = crate::cleanup::variant_leaf_lifecycle(ty, &case.id, &field.id, &field_ty)
+                                .ok_or_else(|| plan_error("droppable variant field is outside its admitted cleanup profile"))?;
                             let flag = LivenessFlagId(self.next_flag);
                             self.next_flag = self
                                 .next_flag
                                 .checked_add(1)
                                 .ok_or_else(|| plan_error("too many cleanup liveness flags"))?;
-                            let lifecycle =
-                                DeclarationId::new(crate::cleanup::BYTES_DROP_LIFECYCLE_ID);
+                            let lifecycle = DeclarationId::new(leaf_lifecycle);
                             let mut leaf_projections = projections.clone();
                             leaf_projections.push(case.id.clone());
                             leaf_projections.push(field.id.clone());

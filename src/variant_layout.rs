@@ -39,6 +39,7 @@ pub(crate) struct VariantFieldLayout {
 pub(crate) enum VariantFieldValueKind {
     Copy,
     OwnedBytes,
+    OwnedIterator,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -110,9 +111,10 @@ impl VariantLayout {
             && arguments.as_slice() == [ResolvedType::U8];
         let compiler_owned_byte_algebra =
             crate::hir::admitted_owned_byte_prelude_instance(variant, arguments);
+        let compiler_iterator_step = crate::iterator_ops::is_step(instance);
         let authored_generic_owned =
             crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, instance);
-        if (compiler_owned_byte_algebra || authored_generic_owned)
+        if (compiler_owned_byte_algebra || authored_generic_owned || compiler_iterator_step)
             && (program.declarations.type_parameters(variant)
                 != Some(declaration.type_parameters.as_slice())
                 || program.declarations.variant_cases(variant) != Some(cases.as_slice()))
@@ -125,6 +127,7 @@ impl VariantLayout {
             || (!compiler_byte_option
                 && !compiler_owned_byte_algebra
                 && !authored_generic_owned
+                && !compiler_iterator_step
                 && arguments
                     .iter()
                     .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)))
@@ -317,9 +320,27 @@ fn layout_case(
             )));
         }
         let concrete_ty = substitute_type(&field.ty, variant, arguments)?;
+        let compiler_iterator_item = variant.as_str() == crate::iterator_ops::STEP_ID
+            && case.id.as_str() == crate::iterator_ops::YIELD_ID
+            && field.id.as_str() == crate::iterator_ops::ITEM_ID;
         let (size, field_align, value_kind) = if concrete_ty == ResolvedType::Bytes {
             let (size, align) = owned_bytes_size_align(target);
             (size, align, VariantFieldValueKind::OwnedBytes)
+        } else if crate::iterator_ops::is_iter(&concrete_ty) {
+            (
+                match target {
+                    VariantTarget::Native64 => 48,
+                    VariantTarget::Wasm32 => 16,
+                },
+                8,
+                VariantFieldValueKind::OwnedIterator,
+            )
+        } else if compiler_iterator_item
+            && crate::iterator_ops::resolved_element_is_admitted(&concrete_ty)
+        {
+            // IterStep reserves one canonical eight-byte item-bits slot for
+            // every admitted scalar, independent of the scalar's load width.
+            (8, 8, VariantFieldValueKind::Copy)
         } else {
             let (size, align) = scalar_size_align(target, &concrete_ty).map_err(|_| {
                 layout_error(format!(

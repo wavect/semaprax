@@ -23,13 +23,14 @@ fn current_source_graph_schemas_are_admitted_without_widening_unknown_schemas() 
     assert!(is_source_graph_schema("semaprax.graph.v38"));
     assert!(is_source_graph_schema("semaprax.graph.v39"));
     assert!(is_source_graph_schema("semaprax.graph.v40"));
+    assert!(is_source_graph_schema("semaprax.graph.v41"));
     for mutation in [
         "semaprax.graph.v26 ",
         "semaprax.graph.v026",
         "semaprax.graph.v27+v25",
         "semaprax.graph.v29+v25",
         "semaprax.graph.v31+v29",
-        "semaprax.graph.v41",
+        "semaprax.graph.v42",
     ] {
         assert!(!is_source_graph_schema(mutation));
     }

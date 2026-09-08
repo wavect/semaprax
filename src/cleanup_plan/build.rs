@@ -6749,7 +6749,7 @@ interface HostEcho permits { host.echo } {
         ];
         assert_eq!(
             actual,
-            [9_224, 152_294],
+            [9_224, 152_774],
             "inventory/lowering owned-capacity high-water pins drifted"
         );
         assert!(actual[0] <= 6_492_084);

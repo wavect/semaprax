@@ -37,6 +37,7 @@ jobs:
           check_blob crates/semaprax-native-rust-interop-builder/src/implementation/hir_analysis/fingerprint.rs 34531c47dce35843bfbc96db270c914680d97bfd
           check_blob crates/semaprax-native-rust-interop-builder/src/implementation/hir_analysis/type_identity.rs 9c6a950bdf2940b9902f14aaf6e21335acf0e42b
           check_blob crates/semaprax-native-rust-interop-builder/src/implementation/phase_a.rs 9fa06799588d6a199f5802fb59074fa01b4c4df5
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/tests.rs 066f8415c0aedbd7995be05da4c77ee3005b1ec9
           check_blob tests/projections/region_report.rs e95667bb0b0560e178d740643eae0bea5cde156c
 
       - name: Apply exact compatibility patch
@@ -142,6 +143,12 @@ jobs:
           )
 
           replace_once(
+              f"{root}/tests.rs",
+              "        | ResolvedType::SliceU8 => 0,\n",
+              "        | ResolvedType::SliceU8\n        | ResolvedType::Function { .. } => 0,\n",
+          )
+
+          replace_once(
               "tests/projections/region_report.rs",
               "            hir::ResolvedExprKind::Call { args, .. } => {\n                for argument in args {\n                    collect_expr(argument, ids);\n                }\n            }\n",
               "            hir::ResolvedExprKind::FunctionReference { .. } => {}\n            hir::ResolvedExprKind::Invoke { callable, args } => {\n                collect_expr(callable, ids);\n                for argument in args {\n                    collect_expr(argument, ids);\n                }\n            }\n            hir::ResolvedExprKind::Call { args, .. } => {\n                for argument in args {\n                    collect_expr(argument, ids);\n                }\n            }\n",
@@ -165,6 +172,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
+            echo "main moved during guarded repair; refusing to push" >&2
+            exit 1
+          fi
           git rm .github/workflows/_repair-native-function-values.yml
           git config user.name "Riedl Kevin, Bsc."
           git config user.email "kevin.riedl.privat@gmail.com"

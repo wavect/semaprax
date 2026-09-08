@@ -485,7 +485,7 @@ pub(crate) fn type_needs_resource_cleanup(
                 arguments,
             } => {
                 if declaration.as_str() == crate::prelude::BOX_ID
-                    && matches!(arguments.as_slice(), [element] if crate::box_ops::resolved_element_is_admitted(element))
+                    && matches!(arguments.as_slice(), [element] if crate::box_ops::resolved_box_element_is_admitted(element))
                 {
                     return Ok(true);
                 }

@@ -19,6 +19,7 @@ pub(crate) const SCHEMA_V1: &str = "semaprax.prelude.v1";
 pub(crate) const SCHEMA_V2: &str = "semaprax.prelude.v2";
 pub(crate) const SCHEMA_V3: &str = "semaprax.prelude.v3";
 pub(crate) const SCHEMA_V4: &str = "semaprax.prelude.v4";
+pub(crate) const SCHEMA_V5: &str = "semaprax.prelude.v5";
 
 pub(crate) const OPTION_ID: &str = "core.option";
 pub(crate) const OPTION_NONE_ID: &str = "core.option.none";
@@ -41,7 +42,7 @@ pub(crate) fn declarations() -> &'static [TypeDeclaration] {
 pub(crate) fn declarations_for_program(
     program: &crate::ast::Program,
 ) -> &'static [TypeDeclaration] {
-    if program_uses_box(program) {
+    if crate::box_ops::program_uses_owned_payload(program) || program_uses_box(program) {
         declarations()
     } else if program_uses_vec(program) {
         &declarations()[..3]
@@ -192,6 +193,13 @@ pub(crate) fn contract_bytes_v4() -> Vec<u8> {
     output.extend_from_slice(contract.as_bytes());
     output
 }
+pub(crate) fn contract_bytes_v5() -> Vec<u8> {
+    let mut output = contract_bytes_v4();
+    let legacy = String::from_utf8(output.clone()).expect("prelude contract is UTF-8");
+    output = legacy.replacen(SCHEMA_V4, SCHEMA_V5, 1).into_bytes();
+    output.extend_from_slice(b"operation core.box.new box_new <Bytes>(own:Bytes)->own:Box<Bytes>\noperation core.box.into-inner box_into_inner <Bytes>(own:Box<Bytes>)->own:Bytes\nrule core.box.get <Bytes>=closed\nwasm_imports spx_box_new_v2,spx_box_get_v2,spx_box_into_inner_v2,spx_box_drop_v2\n");
+    output
+}
 
 fn write_vec_contract(output: &mut Vec<u8>) {
     let mut contract = String::new();
@@ -292,6 +300,9 @@ pub(crate) fn digest_v3() -> [u8; 32] {
 pub(crate) fn digest_v4() -> [u8; 32] {
     Sha256::digest(contract_bytes_v4()).into()
 }
+pub(crate) fn digest_v5() -> [u8; 32] {
+    Sha256::digest(contract_bytes_v5()).into()
+}
 
 pub(crate) fn digest_text_v1() -> String {
     let digest = digest_v1();
@@ -324,6 +335,15 @@ pub(crate) fn digest_text_v3() -> String {
 }
 pub(crate) fn digest_text_v4() -> String {
     let digest = digest_v4();
+    let mut output = String::with_capacity("sha256:".len() + digest.len() * 2);
+    output.push_str("sha256:");
+    for byte in digest {
+        write!(output, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    output
+}
+pub(crate) fn digest_text_v5() -> String {
+    let digest = digest_v5();
     let mut output = String::with_capacity("sha256:".len() + digest.len() * 2);
     output.push_str("sha256:");
     for byte in digest {
@@ -464,7 +484,9 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
-    if program_uses_box(program) {
+    if crate::box_ops::program_uses_owned_payload(program) {
+        (SCHEMA_V5, contract_bytes_v5(), digest_text_v5())
+    } else if program_uses_box(program) {
         (SCHEMA_V4, contract_bytes_v4(), digest_text_v4())
     } else if program_uses_vec_v3(program) {
         (SCHEMA_V3, contract_bytes_v3(), digest_text_v3())

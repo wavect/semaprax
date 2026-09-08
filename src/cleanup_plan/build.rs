@@ -3528,7 +3528,8 @@ impl<'a> PlanBuilder<'a> {
                 } => {
                     if index == args.len() {
                         let mut state = flow.state;
-                        let (vec_op, defer_commit) = super::deferred_commit::call_behavior(callee);
+                        let (vec_op, defer_commit) =
+                            super::deferred_commit::call_behavior(expression);
                         if !defer_commit {
                             for commit in &commits {
                                 self.consume_place(&commit.source, &mut state, &expression.id)?;
@@ -5170,10 +5171,9 @@ impl<'a> PlanBuilder<'a> {
             }
         }
 
-        // This is the only caller-to-callee ownership boundary.  The
-        // transition contains every and only owned parameter epoch in signature
+        // This boundary lists every owned parameter epoch in signature
         // order; once emitted, even a nonzero call status cannot restore them.
-        let (vec_op, defer_commit) = super::deferred_commit::call_behavior(callee);
+        let (vec_op, defer_commit) = super::deferred_commit::call_behavior(expression);
         if !defer_commit {
             for commit in &commits {
                 self.consume_place(&commit.source, &mut current_state, &expression.id)?;

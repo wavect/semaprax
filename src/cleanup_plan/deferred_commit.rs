@@ -15,7 +15,17 @@ use crate::hir::DeclarationId;
 
 /// The bounded Vec operation this callee names, and whether the call defers its
 /// owner commit until the propagated status is known to be zero.
-pub(super) fn call_behavior(callee: &DeclarationId) -> (Option<crate::vec_ops::VecOp>, bool) {
+pub(super) fn call_behavior(
+    expression: &crate::hir::ResolvedExpr,
+) -> (Option<crate::vec_ops::VecOp>, bool) {
+    let crate::hir::ResolvedExprKind::Call {
+        callee,
+        type_arguments,
+        ..
+    } = &expression.kind
+    else {
+        return (None, false);
+    };
     let op = crate::vec_ops::by_id(callee.as_str());
     let deferred = matches!(
         op,
@@ -24,7 +34,9 @@ pub(super) fn call_behavior(callee: &DeclarationId) -> (Option<crate::vec_ops::V
                 | crate::vec_ops::VecOp::ReserveExact
                 | crate::vec_ops::VecOp::Set
         )
-    ) || is_fallible_byte_operation(callee);
+    ) || is_fallible_byte_operation(callee)
+        || (callee.as_str() == crate::box_ops::NEW_ID
+            && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]));
     (op, deferred)
 }
 

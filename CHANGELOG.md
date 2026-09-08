@@ -8,6 +8,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private owned `Box<Bytes>` allocation and consuming extraction across source/HIR, interpreter, native C11 and Core Wasm. Prelude v5 binds the additive contract; v2 Wasm imports prevent a legacy scalar host from silently leaking the payload. Allocation refusal keeps the staged Bytes owner live until ordinary cleanup, independently replayed before lowering. Focused local probes cover success, contract failure, allocation refusal, repeated settlement and frozen scalar compatibility; hosted and public promotion remain pending.
+
 - Added exact argument-directed generic inference at monomorphic call sites,
   preserving explicit concrete HIR instances and ownership transfer boundaries.
   Seven language checks, private ProgramRoot replay and all-eight-scalar runtime

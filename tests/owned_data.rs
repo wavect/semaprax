@@ -75,3 +75,6 @@ mod public_utf8_api;
 mod useful_data_usize;
 #[path = "owned_data/usize_mul.rs"]
 mod usize_mul;
+
+#[path = "owned_data/owned_box_bytes_runtime.rs"]
+mod owned_box_bytes_runtime;

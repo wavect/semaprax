@@ -244,7 +244,7 @@ fn link_scalar_workspace_impl(
             )
         },
     );
-    if uses_vec || uses_owned_result {
+    if uses_vec || uses_box || uses_owned_result {
         compiler_types.extend(types);
         types = compiler_types;
     }

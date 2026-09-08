@@ -287,7 +287,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     let element = type_arguments.first();
                     if type_arguments.len() != 1
                         || element.is_none_or(|ty| {
-                            !crate::box_ops::ast_element_is_admitted(ty)
+                            !crate::box_ops::ast_operation_element_is_admitted(op, ty)
                                 && !crate::box_ops::source_parameter_is_admitted(
                                     self.program,
                                     self.current,
@@ -299,7 +299,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T285",
-                            format!("box operation `{name}` requires one explicit Copy-scalar type argument"),
+                            format!("box operation `{name}` requires one explicit admitted type argument"),
                             expression.span,
                         ));
                     }

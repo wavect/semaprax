@@ -1,6 +1,15 @@
 //! Reachability-gated C11 runtime for internal Owned Bounded Box v1.
 
-pub(super) fn emit_runtime(output: &mut impl super::COutput) {
+mod owned_payload;
+
+pub(super) fn emit_runtime(
+    output: &mut impl super::COutput,
+    program: &crate::hir::ResolvedProgram,
+) {
+    if crate::box_ops::resolved_program_uses_owned_payload(program) {
+        owned_payload::emit_runtime(output);
+        return;
+    }
     output.push_str(NATIVE_BOX_RUNTIME_C);
 }
 

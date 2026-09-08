@@ -45,7 +45,7 @@ pub(super) fn resolved_params(
 ) -> Result<Vec<ResolvedParam>, Diagnostic> {
     if has_instance
         || argument_count != 1
-        || !matches!(type_arguments, [element] if crate::box_ops::resolved_element_is_admitted(element))
+        || !matches!(type_arguments, [element] if crate::box_ops::resolved_operation_element_is_admitted(op, element))
     {
         return Err(plan_error(format!(
             "cleanup bounded Box call `{expression}` has inconsistent shape"

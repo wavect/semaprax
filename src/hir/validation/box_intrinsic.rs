@@ -61,7 +61,7 @@ pub(super) fn is_intrinsic_id(callee: &DeclarationId) -> bool {
 pub(super) fn is_type(declaration: &DeclarationId, arguments: &[ResolvedType]) -> bool {
     super::vec_intrinsic::is_type(declaration, arguments)
         || (declaration.as_str() == crate::prelude::BOX_ID
-            && matches!(arguments, [element] if crate::box_ops::resolved_element_is_admitted(element)))
+            && matches!(arguments, [element] if crate::box_ops::resolved_box_element_is_admitted(element)))
 }
 pub(super) fn signature(
     callee: &DeclarationId,
@@ -78,7 +78,7 @@ pub(super) fn signature(
         return Ok(None);
     };
     if instance.is_some()
-        || !matches!(type_arguments, [element] if crate::box_ops::resolved_element_is_admitted(element))
+        || !matches!(type_arguments, [element] if crate::box_ops::resolved_operation_element_is_admitted(op, element))
         || args.len() != 1
     {
         return Err(hir_error("invalid box operation call shape"));

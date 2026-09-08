@@ -54,7 +54,7 @@ impl Drop for OwnedBoxValue {
     }
 }
 
-fn scalar_matches(value: &Value, ty: &ResolvedType) -> bool {
+fn element_matches(value: &Value, ty: &ResolvedType) -> bool {
     matches!(
         (value, ty),
         (Value::Int(_), ResolvedType::I64)
@@ -65,6 +65,7 @@ fn scalar_matches(value: &Value, ty: &ResolvedType) -> bool {
             | (Value::Float32(_), ResolvedType::F32)
             | (Value::Float64(_), ResolvedType::F64)
             | (Value::Bool(_), ResolvedType::Bool)
+            | (Value::Bytes(_), ResolvedType::Bytes)
     )
 }
 
@@ -103,7 +104,7 @@ impl Evaluator<'_> {
         let [element] = type_arguments else {
             return Err(Flow::Guard("invalid compiler-owned bounded Box type"));
         };
-        if !crate::box_ops::resolved_element_is_admitted(element) || args.len() != 1 {
+        if !crate::box_ops::resolved_operation_element_is_admitted(op, element) || args.len() != 1 {
             return Err(Flow::Guard("invalid compiler-owned bounded Box call"));
         }
         let value = if op == crate::box_ops::BoxOp::Get {
@@ -123,7 +124,7 @@ impl Evaluator<'_> {
         };
         match op {
             crate::box_ops::BoxOp::New => {
-                if !scalar_matches(&value, element) {
+                if !element_matches(&value, element) {
                     return Err(Flow::Guard("forged bounded Box element type"));
                 }
                 self.box_live_allocations

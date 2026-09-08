@@ -63,3 +63,27 @@ pub(super) fn resolved_call_params(
         })?;
     Ok(target.params.clone())
 }
+
+// Independently replay the exact failure-before-transfer operation profile.
+pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool {
+    matches!(
+        &expression.kind,
+        crate::hir::ResolvedExprKind::Call {
+            callee,
+            instance: None,
+            type_arguments,
+            ..
+        } if matches!(
+            crate::vec_ops::by_id(callee.as_str()),
+            Some(
+                crate::vec_ops::VecOp::Push
+                    | crate::vec_ops::VecOp::ReserveExact
+                    | crate::vec_ops::VecOp::Set
+            )
+        )
+            || crate::byte_ops::by_id(callee.as_str())
+                .is_some_and(crate::byte_ops::ByteOp::is_fallible)
+            || (callee.as_str() == crate::box_ops::NEW_ID
+                && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]))
+    )
+}

@@ -1,5 +1,7 @@
 //! Core-Wasm lowering for compiler-owned bounded Box operations.
 
+mod owned_payload;
+
 use super::*;
 
 impl Emitter<'_> {
@@ -13,7 +15,7 @@ impl Emitter<'_> {
         let [element] = type_arguments else {
             return Err(error("Box operation requires one exact type argument"));
         };
-        if !crate::box_ops::resolved_element_is_admitted(element) || args.len() != 1 {
+        if !crate::box_ops::resolved_operation_element_is_admitted(op, element) || args.len() != 1 {
             return Err(error(
                 "Box operation disagrees with its admitted scalar profile",
             ));
@@ -28,6 +30,9 @@ impl Emitter<'_> {
             &op.resolved_return_type(element),
             "Box operation result",
         )?;
+        if *element == ResolvedType::Bytes {
+            return self.emit_box_bytes_op(expr, op, args);
+        }
         let tag = vec_element_tag(element)?;
         let base = box_import_base(self.program);
         match op {
@@ -122,5 +127,23 @@ impl Emitter<'_> {
             "borrowed Box carrier",
         )?;
         Ok(value)
+    }
+}
+
+pub(super) fn import_names(program: &ResolvedProgram) -> [&'static str; 4] {
+    if crate::box_ops::resolved_program_uses_owned_payload(program) {
+        [
+            "spx_box_new_v2",
+            "spx_box_get_v2",
+            "spx_box_into_inner_v2",
+            "spx_box_drop_v2",
+        ]
+    } else {
+        [
+            "spx_box_new",
+            "spx_box_get",
+            "spx_box_into_inner",
+            "spx_box_drop",
+        ]
     }
 }

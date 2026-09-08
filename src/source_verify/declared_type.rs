@@ -211,7 +211,7 @@ pub(super) fn check_declared_type(
                     if arguments.is_empty() && parameters.contains(name.as_str())));
         let admitted_box = name == "Box"
             && arguments.len() == 1
-            && (crate::box_ops::ast_element_is_admitted(&arguments[0])
+            && (crate::box_ops::ast_box_element_is_admitted(&arguments[0])
                 || matches!(&arguments[0],Type::Named{name,arguments} if arguments.is_empty()&&parameters.contains(name.as_str())));
         if arguments
             .iter()
@@ -221,7 +221,8 @@ pub(super) fn check_declared_type(
                 && !admitted_owned_record
                 && !admitted_owned_record_template
                 && !admitted_owned_variant
-                && !admitted_result_template)
+                && !admitted_result_template
+                && !admitted_box)
         {
             diagnostics.push(error(
                 program,

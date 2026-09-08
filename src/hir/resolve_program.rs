@@ -77,7 +77,7 @@ impl Resolver<'_> {
             return Ok(true);
         }
         if crate::box_ops::source_wrapper(self.program, function).is_some()
-            && matches!(arguments, [argument] if crate::box_ops::resolved_element_is_admitted(argument))
+            && matches!(arguments, [argument] if crate::box_ops::resolved_box_element_is_admitted(argument))
         {
             return Ok(true);
         }
@@ -1026,7 +1026,7 @@ impl Resolver<'_> {
                                 if crate::vec_ops::resolved_element_is_admitted(argument));
                         let admitted_box = declaration.as_str() == crate::prelude::BOX_ID
                             && matches!(resolved.as_slice(), [argument]
-                                if crate::box_ops::resolved_element_is_admitted(argument));
+                                if crate::box_ops::resolved_box_element_is_admitted(argument));
                         if resolved.len() != parameters.len()
                             || (!admitted_vec
                                 && !admitted_box

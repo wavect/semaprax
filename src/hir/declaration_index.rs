@@ -461,7 +461,7 @@ impl DeclarationIndex {
                     }
                     if declaration.as_str() == crate::prelude::BOX_ID
                         && arguments.len() == 1
-                        && crate::box_ops::resolved_element_is_admitted(&arguments[0])
+                        && crate::box_ops::resolved_box_element_is_admitted(&arguments[0])
                     {
                         let facts = TypeFacts {
                             copy: false,

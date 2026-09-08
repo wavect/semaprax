@@ -1,5 +1,7 @@
 //! Native expression lowering for compiler-owned bounded Box operations.
 
+mod owned_payload;
+
 use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedExpr, ResolvedType};
 
@@ -18,10 +20,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 "bounded Box operation has incorrect type arity",
             ));
         };
-        if !crate::box_ops::resolved_element_is_admitted(element) || args.len() != 1 {
+        if !crate::box_ops::resolved_operation_element_is_admitted(op, element) || args.len() != 1 {
             return Err(backend_error(
                 "bounded Box operation has invalid resolved shape",
             ));
+        }
+        if *element == ResolvedType::Bytes {
+            return self.emit_box_bytes_op(expr, op, args);
         }
         let tag = match element {
             ResolvedType::I64 => 1,

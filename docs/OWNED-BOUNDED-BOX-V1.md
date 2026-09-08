@@ -4,6 +4,9 @@ Audience: language users, standard-library authors, and compiler contributors.
 
 Status: locally exercised bounded implementation tranche; hosted promotion and
 the broader allocation model remain pending.
+The additive `Box<Bytes>` profile is specified separately in
+[Owned Bounded Box v2](OWNED-BOUNDED-BOX-V2.md); this v1 document retains the
+scalar contract and compatibility claims that predate that extension.
 This document owns one compiler-provided uniquely owned allocation for Copy
 scalar payloads and the corresponding authenticated `std.mem` surface. It
 does not define a public aggregate ABI, allocator interface, region, arena, or
@@ -31,9 +34,6 @@ synchronously and returns a Copy of the payload without changing ownership.
 `box_into_inner` consumes the sole owner, returns the payload, and settles the
 allocation exactly once. An owner not consumed by `box_into_inner` is settled
 exactly once by ordinary lexical cleanup.
-
-The carrier is non-Copy regardless of `T`. Its allocation identity, address,
-layout, and target storage strategy are not observable language values.
 
 ## Prelude and compatibility
 
@@ -95,7 +95,7 @@ remain promotion work. All affected completion rows remain Partial.
 
 ## Nonclaims
 
-There is no owned, aggregate, `Bytes`, `String`, Vec, variant, resource, or
+There is no owned aggregate, `String`, Vec, variant, resource, or
 nested Box payload; mutable Box borrow; replacement; pinning; raw pointer;
 custom allocator; allocator transfer; placement allocation; allocator identity
 or layout guarantee; region or arena syntax; bulk release; ARC, shared or weak

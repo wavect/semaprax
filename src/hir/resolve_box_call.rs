@@ -166,7 +166,7 @@ pub(super) fn schedule<'expr>(
         ));
     }
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
-    if !crate::box_ops::resolved_element_is_admitted(&element)
+    if !crate::box_ops::resolved_operation_element_is_admitted(op, &element)
         && !crate::box_ops::resolved_parameter_is_admitted(function, op, &element)
         && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(&element, owner))
     {
@@ -219,7 +219,7 @@ pub(super) fn finish(
     let ty = op.resolved_return_type(&element);
     Ok(ResolvedExpr {
         id: ExpressionId::new(function, path),
-        ownership: if op == crate::box_ops::BoxOp::New {
+        ownership: if op == crate::box_ops::BoxOp::New || element == ResolvedType::Bytes {
             OwnershipMode::Own
         } else {
             OwnershipMode::Value
@@ -259,7 +259,7 @@ pub(super) fn resolve_reference(
         ));
     }
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
-    if !crate::box_ops::resolved_element_is_admitted(&element)
+    if !crate::box_ops::resolved_operation_element_is_admitted(op, &element)
         && !crate::box_ops::resolved_parameter_is_admitted(function, op, &element)
         && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(&element, owner))
     {

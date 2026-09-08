@@ -2428,10 +2428,11 @@ fn emit_profile_with_scalar_exports(
         }
     }
     if uses_box {
-        function_import(&mut imports, "env", "spx_box_new", box_new.unwrap());
-        function_import(&mut imports, "env", "spx_box_get", box_read.unwrap());
-        function_import(&mut imports, "env", "spx_box_into_inner", box_read.unwrap());
-        function_import(&mut imports, "env", "spx_box_drop", box_drop.unwrap());
+        let names = box_ops::import_names(program);
+        function_import(&mut imports, "env", names[0], box_new.unwrap());
+        function_import(&mut imports, "env", names[1], box_read.unwrap());
+        function_import(&mut imports, "env", names[2], box_read.unwrap());
+        function_import(&mut imports, "env", names[3], box_drop.unwrap());
     }
     section(&mut module, 2, imports);
 

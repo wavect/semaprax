@@ -5983,23 +5983,7 @@ fn finish_call_states(
     // before the owner transfer commits, so their status observation precedes
     // the call-commit and a failed call leaves the owner in its call-argument
     // slot for the ordinary region cleanup.
-    let defer_commit = matches!(
-        &expression.kind,
-        ResolvedExprKind::Call {
-            callee,
-            instance: None,
-            ..
-        } if matches!(
-            crate::vec_ops::by_id(callee.as_str()),
-            Some(
-                crate::vec_ops::VecOp::Push
-                    | crate::vec_ops::VecOp::ReserveExact
-                    | crate::vec_ops::VecOp::Set
-            )
-        )
-            || crate::byte_ops::by_id(callee.as_str())
-                .is_some_and(crate::byte_ops::ByteOp::is_fallible)
-    );
+    let defer_commit = resolved_call::defers_owner_commit(expression);
     let infallible_compiler_operation = infallible_compiler_operation
         || matches!(
             &expression.kind,

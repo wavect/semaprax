@@ -422,7 +422,7 @@ fn emit_native_prelude_inner(
         native_vec::emit_runtime(output, program);
     }
     if native_box::program_uses_box(program) {
-        native_box::emit_runtime(output);
+        native_box::emit_runtime(output, program);
     }
 }
 
@@ -457,7 +457,7 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
         }
         pending.extend(resolved_expr_children(expression));
     }
-    false
+    crate::box_ops::resolved_program_uses_owned_payload(program)
 }
 
 /// Whether any resolved signature, body, or contract admits an owned string

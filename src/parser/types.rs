@@ -141,6 +141,9 @@ impl Parser {
         }
         let mut arguments = Vec::new();
         loop {
+            if self.at(&TokenKind::Comma) {
+                return Err(self.error_here("SPX-P106", "expected generic type argument"));
+            }
             arguments.push(self.ty()?);
             if self.at(&TokenKind::Gt) {
                 break;

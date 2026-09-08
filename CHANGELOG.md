@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the source-authored `std.path.value` owned Path library with checked
+  logical prefixes, lexical queries, consuming parent traversal and joins into
+  caller-supplied buffers. Bundled dependency composition preserves the original
+  `std.path` byte helpers and adds no filesystem authority or public nominal ABI.
+  Shared-loan replay now authenticates completion of synchronous borrowed calls
+  used directly as contract roots, preserving previously accepted plan bytes.
+
 - Add source-authored `std.io` Reader/Writer cursors over caller-owned Bytes,
   checked bounds, consuming transitions and bundled dependency use. Internal
   Project calls now compose explicit owned-record signatures, and empty-export

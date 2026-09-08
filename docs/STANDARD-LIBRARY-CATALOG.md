@@ -1595,6 +1595,126 @@ fn extension_start(path: borrow Slice<u8>) -> usize
     ensures result <= byte_len(path)
 ```
 
+## `std.path.value`
+
+Package `std/path-value`, tier `portable`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.path.value = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.path.value.path`
+
+A Path is caller-owned byte storage plus a logical POSIX lexical prefix.
+It does not grant filesystem or platform path authority.
+
+```semaprax
+record Path {
+    data: Bytes,
+    length: usize,
+}
+```
+
+### `std.path.value.prefix-valid`
+
+```semaprax
+fn path_prefix_valid(data: borrow Slice<u8>, length: usize) -> bool
+    requires length <= byte_len(data)
+```
+
+### `std.path.value.valid`
+
+```semaprax
+fn path_valid(path: borrow Path) -> bool
+```
+
+### `std.path.value.from-bytes`
+
+```semaprax
+fn path_from_bytes(data: own Bytes) -> Path
+    requires path_prefix_valid(bytes_as_slice(data), byte_len(bytes_as_slice(data)))
+```
+
+### `std.path.value.length`
+
+```semaprax
+fn path_length(path: borrow Path) -> usize
+    requires path_valid(path)
+```
+
+### `std.path.value.capacity`
+
+```semaprax
+fn path_capacity(path: borrow Path) -> usize
+    requires path_valid(path)
+```
+
+### `std.path.value.absolute`
+
+```semaprax
+fn path_is_absolute(path: borrow Path) -> bool
+    requires path_valid(path)
+```
+
+### `std.path.value.segment-count`
+
+```semaprax
+fn path_segment_count(path: borrow Path) -> usize
+    requires path_valid(path)
+```
+
+### `std.path.value.file-name-start`
+
+```semaprax
+fn path_file_name_start(path: borrow Path) -> usize
+    requires path_valid(path)
+```
+
+### `std.path.value.parent-end`
+
+```semaprax
+fn path_parent_end(path: borrow Path) -> usize
+    requires path_valid(path)
+```
+
+### `std.path.value.extension-start`
+
+```semaprax
+fn path_extension_start(path: borrow Path) -> usize
+    requires path_valid(path)
+```
+
+### `std.path.value.byte-at`
+
+```semaprax
+fn path_byte_at(path: borrow Path, index: usize) -> u8
+    requires path_valid(path) && index < path.length
+```
+
+### `std.path.value.parent`
+
+```semaprax
+fn path_parent(path: own Path) -> Path
+    requires path_valid(path)
+```
+
+### `std.path.value.finish`
+
+```semaprax
+fn path_finish(path: own Path) -> Bytes
+    requires path_valid(path)
+```
+
+### `std.path.value.join-length`
+
+```semaprax
+fn path_join_length(base: borrow Path, child: borrow Path) -> usize
+    requires path_valid(base) && path_valid(child)
+```
+
+### `std.path.value.join`
+
+```semaprax
+fn path_join(base: borrow Path, child: borrow Path, buffer: own Bytes) -> Path
+    requires path_valid(base) && path_valid(child) && path_join_length(base, child) <= byte_len(bytes_as_slice(buffer))
+```
+
 ## `std.random`
 
 Package `std/random`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.random = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

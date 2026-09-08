@@ -71,6 +71,17 @@ the destination program point as an end summary. A path with no later use ends
 the loan at the earliest authenticated edge that preserves all observable
 left-to-right and lazy-control-flow behavior.
 
+A synchronous borrowed call that completes a contract or body root has no
+outgoing edge after that root. If the ordinary lifetime construction otherwise
+has no termination edge, completion is recorded on the incoming edge to that
+exact root's After point. Only non-executable terminal After points of the
+function's requires/body/ensures roots are excluded; evaluated call arguments
+and uses remain live, overlap rejection still runs, and child lifetimes must
+remain contained by their parents. Independent replay derives the same edges.
+Already accepted plans use their original path without additional work charges
+or changed bytes. This handles terminal contract calls without a new runtime
+borrow carrier or cleanup action.
+
 `Try` and `TryOption` operand completion has two authenticated successors:
 normal unwrapping and immediate residual return from the enclosing contract,
 body, or postcondition root. A loan used later remains live only on the normal

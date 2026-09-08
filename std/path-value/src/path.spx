@@ -1,0 +1,133 @@
+module std.path.value;
+
+// A Path is caller-owned byte storage plus a logical POSIX lexical prefix.
+// It does not grant filesystem or platform path authority.
+@id("std.path.value.path")
+record Path {
+    @id("std.path.value.path.data")
+    data: Bytes,
+    @id("std.path.value.path.length")
+    length: usize,
+}
+
+@id("std.path.value.prefix-valid")
+fn path_prefix_valid(data: borrow Slice<u8>, length: usize) -> bool
+    requires length <= byte_len(data)
+{
+    let mut index = 0usize;
+    let mut valid = true;
+    while index < length {
+        let byte = match byte_get(data, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        valid = valid && byte != 0u8;
+        index = index + 1usize;
+        index < length
+    }
+    valid
+}
+
+@id("std.path.value.valid")
+fn path_valid(path: borrow Path) -> bool
+{
+    match borrow path { Path { data, length } => { let capacity = byte_len(bytes_as_slice(data)); if length <= capacity { path_prefix_valid(bytes_as_slice(data), length) } else { false } }, }
+}
+
+@id("std.path.value.from-bytes")
+fn path_from_bytes(data: own Bytes) -> Path
+    requires path_prefix_valid(bytes_as_slice(data), byte_len(bytes_as_slice(data)))
+{
+    let length = byte_len(bytes_as_slice(data));
+    Path { data: data, length: length }
+}
+
+@id("std.path.value.length")
+fn path_length(path: borrow Path) -> usize
+    requires path_valid(path)
+{
+    path.length
+}
+
+@id("std.path.value.capacity")
+fn path_capacity(path: borrow Path) -> usize
+    requires path_valid(path)
+{
+    match borrow path { Path { data, length: _ } => byte_len(bytes_as_slice(data)), }
+}
+
+@id("std.path.value.absolute")
+fn path_is_absolute(path: borrow Path) -> bool
+    requires path_valid(path)
+{
+    match borrow path { Path { data, length } => if length == 0usize { false } else { match byte_get(bytes_as_slice(data), 0usize) { Option::Some { value } => value == 47u8, Option::None {} => false, } }, }
+}
+
+@id("std.path.value.segment-count")
+fn path_segment_count(path: borrow Path) -> usize
+    requires path_valid(path)
+{
+    match borrow path { Path { data, length } => { let view = bytes_as_slice(data); let mut index = 0usize; let mut segments = 0usize; let mut inside = false; while index < length { let separator = match byte_get(view, index) { Option::Some { value } => value == 47u8, Option::None {} => false, }; segments = if !separator && !inside { segments + 1usize } else { segments }; inside = !separator; index = index + 1usize; index < length } segments }, }
+}
+
+@id("std.path.value.file-name-start")
+fn path_file_name_start(path: borrow Path) -> usize
+    requires path_valid(path)
+{
+    match borrow path { Path { data, length } => { let view = bytes_as_slice(data); let mut index = 0usize; let mut start = 0usize; while index < length { let separator = match byte_get(view, index) { Option::Some { value } => value == 47u8, Option::None {} => false, }; start = if separator { index + 1usize } else { start }; index = index + 1usize; index < length } start }, }
+}
+
+@id("std.path.value.parent-end")
+fn path_parent_end(path: borrow Path) -> usize
+    requires path_valid(path)
+{
+    match borrow path { Path { data, length } => { let view = bytes_as_slice(data); let absolute = if length == 0usize { false } else { match byte_get(view, 0usize) { Option::Some { value } => value == 47u8, Option::None {} => false, } }; let root_prefix = if absolute { 1usize } else { 0usize }; let mut index = 0usize; let mut previous_component_end = 0usize; let mut parent = root_prefix; let mut inside = false; while index < length { let separator = match byte_get(view, index) { Option::Some { value } => value == 47u8, Option::None {} => false, }; parent = if !separator && !inside { if previous_component_end > 0usize { previous_component_end } else { root_prefix } } else { parent }; previous_component_end = if separator { previous_component_end } else { index + 1usize }; inside = !separator; index = index + 1usize; index < length } parent }, }
+}
+
+@id("std.path.value.extension-start")
+fn path_extension_start(path: borrow Path) -> usize
+    requires path_valid(path)
+{
+    match borrow path { Path { data, length } => { let view = bytes_as_slice(data); let mut index = 0usize; let mut name_start = 0usize; let mut extension = length; while index < length { let byte = match byte_get(view, index) { Option::Some { value } => value, Option::None {} => 0u8, }; name_start = if byte == 47u8 { index + 1usize } else { name_start }; extension = if byte == 47u8 { length } else { if byte == 46u8 && index > name_start { index + 1usize } else { extension } }; index = index + 1usize; index < length } extension }, }
+}
+
+@id("std.path.value.byte-at")
+fn path_byte_at(path: borrow Path, index: usize) -> u8
+    requires path_valid(path) && index < path.length
+{
+    match borrow path { Path { data, length: _ } => match byte_get(bytes_as_slice(data), index) { Option::Some { value } => value, Option::None {} => 0u8, }, }
+}
+
+@id("std.path.value.parent")
+fn path_parent(path: own Path) -> Path
+    requires path_valid(path)
+{
+    let parent = path_parent_end(path);
+    match own path { Path { data, length: _ } => Path { data: data, length: parent }, }
+}
+
+@id("std.path.value.finish")
+fn path_finish(path: own Path) -> Bytes
+    requires path_valid(path)
+{
+    match own path { Path { data, length: _ } => data, }
+}
+
+@id("std.path.value.join-length")
+fn path_join_length(base: borrow Path, child: borrow Path) -> usize
+    requires path_valid(base) && path_valid(child)
+{
+    if path_is_absolute(child) { path_length(child) } else { let separator = if path_length(base) == 0usize || path_length(child) == 0usize { 0usize } else { let last = path_byte_at(base, path_length(base) - 1usize); if last == 47u8 { 0usize } else { 1usize } }; path_length(base) + separator + path_length(child) }
+}
+
+@id("std.path.value.join")
+fn path_join(base: borrow Path, child: borrow Path, buffer: own Bytes) -> Path
+    requires path_valid(base) && path_valid(child) && path_join_length(base, child) <= byte_len(bytes_as_slice(buffer))
+{
+    let base_length = path_length(base);
+    let child_length = path_length(child);
+    let child_absolute = path_is_absolute(child);
+    let base_count = if child_absolute { 0usize } else { base_length };
+    let separator = if child_absolute || base_length == 0usize || child_length == 0usize { 0usize } else { if path_byte_at(base, base_length - 1usize) == 47u8 { 0usize } else { 1usize } };
+    let total = base_count + separator + child_length;
+    let mut output = buffer;
+    let _ = match borrow base { Path { data: base_data, length: _ } => match borrow child { Path { data: child_data, length: _ } => { let base_view = bytes_as_slice(base_data); let child_view = bytes_as_slice(child_data); let mut index = 0usize; while index < total { let byte = if index < base_count { match byte_get(base_view, index) { Option::Some { value } => value, Option::None {} => 0u8, } } else { if index == base_count && separator == 1usize { 47u8 } else { match byte_get(child_view, index - base_count - separator) { Option::Some { value } => value, Option::None {} => 0u8, } } }; output = bytes_set(output, index, byte); index = index + 1usize; index < total } true }, }, };
+    Path { data: output, length: total }
+}

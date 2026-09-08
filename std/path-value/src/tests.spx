@@ -1,0 +1,151 @@
+module std.path.value.tests;
+use type @id("std.path.value.path") from std.path.value as Path;
+use function @id("std.path.value.prefix-valid") from std.path.value as path_prefix_valid;
+use function @id("std.path.value.valid") from std.path.value as path_valid;
+use function @id("std.path.value.from-bytes") from std.path.value as path_from_bytes;
+use function @id("std.path.value.length") from std.path.value as path_length;
+use function @id("std.path.value.capacity") from std.path.value as path_capacity;
+use function @id("std.path.value.absolute") from std.path.value as path_is_absolute;
+use function @id("std.path.value.segment-count") from std.path.value as path_segment_count;
+use function @id("std.path.value.file-name-start") from std.path.value as path_file_name_start;
+use function @id("std.path.value.parent-end") from std.path.value as path_parent_end;
+use function @id("std.path.value.extension-start") from std.path.value as path_extension_start;
+use function @id("std.path.value.byte-at") from std.path.value as path_byte_at;
+use function @id("std.path.value.parent") from std.path.value as path_parent;
+use function @id("std.path.value.finish") from std.path.value as path_finish;
+use function @id("std.path.value.join-length") from std.path.value as path_join_length;
+use function @id("std.path.value.join") from std.path.value as path_join;
+
+@id("std.path.value.tests.from-raw")
+fn path_from_raw(data: borrow Slice<u8>) -> Path
+{
+    path_from_bytes(bytes_copy(data))
+}
+
+@id("std.path.value.tests.observers")
+fn observers() -> bool
+{
+    let raw = [47u8, 117u8, 115u8, 114u8, 47u8, 98u8, 105u8, 110u8];
+    let prefix = [47u8, 117u8];
+    let path = path_from_raw(array_as_slice(raw));
+    path_prefix_valid(array_as_slice(prefix), 2usize) && path_valid(path) && path_length(path) == 8usize && path_capacity(path) == 8usize && path_is_absolute(path) && path_segment_count(path) == 2usize && path_file_name_start(path) == 5usize && path_parent_end(path) == 4usize && path_extension_start(path) == 8usize && path_byte_at(path, 7usize) == 110u8
+}
+
+@id("std.path.value.tests.extensions")
+fn extensions() -> bool
+{
+    let hidden_raw = [46u8, 101u8, 110u8, 118u8];
+    let archive_raw = [97u8, 46u8, 116u8, 97u8, 114u8, 46u8, 103u8, 122u8];
+    let hidden = path_from_raw(array_as_slice(hidden_raw));
+    let archive = path_from_raw(array_as_slice(archive_raw));
+    path_extension_start(hidden) == 4usize && path_extension_start(archive) == 6usize
+}
+
+@id("std.path.value.tests.non-utf8-logical-prefix")
+fn non_utf8_logical_prefix() -> bool
+{
+    let raw = [255u8, 0u8];
+    let path = Path { data: bytes_copy(array_as_slice(raw)), length: 1usize };
+    path_valid(path) && path_length(path) == 1usize && path_byte_at(path, 0usize) == 255u8
+}
+
+@id("std.path.value.tests.parent")
+fn parent_case() -> bool
+{
+    let nested_raw = [47u8, 117u8, 115u8, 114u8, 47u8, 98u8, 105u8, 110u8];
+    let root_raw = [47u8];
+    let all_separators_raw = [47u8, 47u8, 47u8];
+    let parent = path_parent(path_from_raw(array_as_slice(nested_raw)));
+    let root = path_from_raw(array_as_slice(root_raw));
+    let root_end = path_parent_end(root);
+    let root_parent = path_parent(root);
+    let all_separators = path_from_raw(array_as_slice(all_separators_raw));
+    let all_end = path_parent_end(all_separators);
+    let all_parent = path_parent(all_separators);
+    let exact = path_length(parent) == 4usize && path_byte_at(parent, 3usize) == 114u8;
+    let backing = path_finish(parent);
+    exact && byte_len(bytes_as_slice(backing)) == 8usize && root_end == 1usize && path_is_absolute(root_parent) && path_length(root_parent) == 1usize && all_end == 1usize && path_is_absolute(all_parent) && path_length(all_parent) == 1usize
+}
+
+@id("std.path.value.tests.parent-relative")
+fn parent_relative() -> bool
+{
+    let leaf_raw = [97u8];
+    let repeated_raw = [97u8, 47u8, 47u8, 98u8, 47u8];
+    let leaf = path_from_raw(array_as_slice(leaf_raw));
+    let repeated = path_from_raw(array_as_slice(repeated_raw));
+    path_parent_end(leaf) == 0usize && path_parent_end(repeated) == 1usize
+}
+
+@id("std.path.value.tests.join")
+fn join_case() -> bool
+{
+    let base_raw = [47u8, 117u8, 115u8, 114u8];
+    let child_raw = [98u8, 105u8, 110u8];
+    let base = path_from_raw(array_as_slice(base_raw));
+    let child = path_from_raw(array_as_slice(child_raw));
+    let joined = path_join(base, child, bytes_zeroed(12usize));
+    let copied = path_join_length(base, child) == 8usize && path_length(joined) == 8usize && path_capacity(joined) == 12usize && path_byte_at(joined, 0usize) == 47u8 && path_byte_at(joined, 3usize) == 114u8 && path_byte_at(joined, 4usize) == 47u8 && path_byte_at(joined, 7usize) == 110u8;
+    let backing = path_finish(joined);
+    let suffix_unchanged = match byte_get(bytes_as_slice(backing), 8usize) { Option::Some { value } => value == 0u8, Option::None {} => false, };
+    copied && suffix_unchanged
+}
+
+@id("std.path.value.tests.join-empty-base")
+fn join_empty_base() -> bool
+{
+    let empty_raw = [0u8; 0];
+    let child_raw = [98u8];
+    let base = path_from_raw(array_as_slice(empty_raw));
+    let child = path_from_raw(array_as_slice(child_raw));
+    let joined = path_join(base, child, bytes_zeroed(1usize));
+    path_length(joined) == 1usize && path_byte_at(joined, 0usize) == 98u8
+}
+
+@id("std.path.value.tests.join-empty-child")
+fn join_empty_child() -> bool
+{
+    let base_raw = [97u8];
+    let empty_raw = [0u8; 0];
+    let base = path_from_raw(array_as_slice(base_raw));
+    let child = path_from_raw(array_as_slice(empty_raw));
+    let joined = path_join(base, child, bytes_zeroed(1usize));
+    path_length(joined) == 1usize && path_byte_at(joined, 0usize) == 97u8
+}
+
+@id("std.path.value.tests.join-both-empty")
+fn join_both_empty() -> bool
+{
+    let empty_raw = [0u8; 0];
+    let empty = path_from_raw(array_as_slice(empty_raw));
+    let joined = path_join(empty, empty, bytes_zeroed(0usize));
+    path_length(joined) == 0usize
+}
+
+@id("std.path.value.tests.join-trailing")
+fn join_trailing() -> bool
+{
+    let trailing_raw = [97u8, 47u8];
+    let child_raw = [98u8];
+    let base = path_from_raw(array_as_slice(trailing_raw));
+    let child = path_from_raw(array_as_slice(child_raw));
+    let joined = path_join(base, child, bytes_zeroed(3usize));
+    path_length(joined) == 3usize && path_byte_at(joined, 1usize) == 47u8
+}
+
+@id("std.path.value.tests.join-absolute")
+fn join_absolute() -> bool
+{
+    let base_raw = [97u8, 47u8];
+    let child_raw = [47u8, 120u8];
+    let base = path_from_raw(array_as_slice(base_raw));
+    let child = path_from_raw(array_as_slice(child_raw));
+    let joined = path_join(base, child, bytes_zeroed(2usize));
+    path_is_absolute(joined) && path_length(joined) == 2usize && path_byte_at(joined, 1usize) == 120u8
+}
+
+@id("std.path.value.tests.main")
+fn main() -> i64
+{
+    if observers() && join_case() { 0 } else { 1 }
+}

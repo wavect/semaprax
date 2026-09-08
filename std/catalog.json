@@ -3165,6 +3165,233 @@
     {
       "declarations": [
         {
+          "description": [
+            "A Path is caller-owned byte storage plus a logical POSIX lexical prefix.",
+            "It does not grant filesystem or platform path authority."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "record Path {",
+            "    data: Bytes,",
+            "    length: usize,",
+            "}"
+          ],
+          "id": "std.path.value.path",
+          "kind": "record",
+          "name": "Path",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_prefix_valid(data: borrow Slice<u8>, length: usize) -> bool",
+            "    requires length <= byte_len(data)"
+          ],
+          "id": "std.path.value.prefix-valid",
+          "kind": "function",
+          "name": "path_prefix_valid",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_valid(path: borrow Path) -> bool"
+          ],
+          "id": "std.path.value.valid",
+          "kind": "function",
+          "name": "path_valid",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_from_bytes(data: own Bytes) -> Path",
+            "    requires path_prefix_valid(bytes_as_slice(data), byte_len(bytes_as_slice(data)))"
+          ],
+          "id": "std.path.value.from-bytes",
+          "kind": "function",
+          "name": "path_from_bytes",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_length(path: borrow Path) -> usize",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.path.value.length",
+          "kind": "function",
+          "name": "path_length",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_capacity(path: borrow Path) -> usize",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.path.value.capacity",
+          "kind": "function",
+          "name": "path_capacity",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_is_absolute(path: borrow Path) -> bool",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.path.value.absolute",
+          "kind": "function",
+          "name": "path_is_absolute",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_segment_count(path: borrow Path) -> usize",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.path.value.segment-count",
+          "kind": "function",
+          "name": "path_segment_count",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_file_name_start(path: borrow Path) -> usize",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.path.value.file-name-start",
+          "kind": "function",
+          "name": "path_file_name_start",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_parent_end(path: borrow Path) -> usize",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.path.value.parent-end",
+          "kind": "function",
+          "name": "path_parent_end",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_extension_start(path: borrow Path) -> usize",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.path.value.extension-start",
+          "kind": "function",
+          "name": "path_extension_start",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_byte_at(path: borrow Path, index: usize) -> u8",
+            "    requires path_valid(path) && index < path.length"
+          ],
+          "id": "std.path.value.byte-at",
+          "kind": "function",
+          "name": "path_byte_at",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_parent(path: own Path) -> Path",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.path.value.parent",
+          "kind": "function",
+          "name": "path_parent",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_finish(path: own Path) -> Bytes",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.path.value.finish",
+          "kind": "function",
+          "name": "path_finish",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_join_length(base: borrow Path, child: borrow Path) -> usize",
+            "    requires path_valid(base) && path_valid(child)"
+          ],
+          "id": "std.path.value.join-length",
+          "kind": "function",
+          "name": "path_join_length",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_join(base: borrow Path, child: borrow Path, buffer: own Bytes) -> Path",
+            "    requires path_valid(base) && path_valid(child) && path_join_length(base, child) <= byte_len(bytes_as_slice(buffer))"
+          ],
+          "id": "std.path.value.join",
+          "kind": "function",
+          "name": "path_join",
+          "requires": 1
+        }
+      ],
+      "dependency": "std.path.value = \"^0.1.0\"",
+      "module": "std.path.value",
+      "package": "std/path-value",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
           "description": [],
           "effects": [],
           "ensures": 1,

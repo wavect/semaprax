@@ -630,6 +630,16 @@ fn io_cursors_execute_on_all_three_backends() {
     );
 }
 
+#[test]
+fn typed_paths_execute_on_all_three_backends() {
+    run_examples_and_conformance(
+        packages()
+            .into_iter()
+            .filter(|p| p.module == "std.path.value")
+            .collect(),
+    );
+}
+
 fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
     assert!(!selected.is_empty());
     let scratch = temporary("lanes");
@@ -638,7 +648,13 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             .join("std")
             .join(&package.directory)
             .join("semaprax.toml");
-        project::with_authenticated_project(&manifest, |snapshot| {
+        let manifests = if package.module == "std.path.value" {
+            typed_paths::conformance_manifests(&scratch, &manifest)
+        } else {
+            vec![manifest]
+        };
+        for manifest in manifests {
+            project::with_authenticated_project(&manifest, |snapshot| {
             snapshot.check()?;
             let options = project::ProjectExecutionOptions::default();
             let entry = snapshot.execute_entry(&options)?;
@@ -682,12 +698,16 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             }
             let wasm = snapshot.test_wasm_module()?;
             // Buffer-filling packages must balance the exact one-entry byte arena.
-            let arena = matches!(package.module.as_str(), "std.data.json.dec" | "std.io");
+            let arena = matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.path.value");
             for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
                 let present = wasm.windows(name.len()).any(|w| w == name.as_bytes());
-                assert_eq!(present, arena, "{}: `{name}` import", package.directory);
+                // Individual typed-Path observation cases allocate via copy
+                // without importing the buffer-writing operations.
+                if package.module != "std.path.value" {
+                    assert_eq!(present, arena, "{}: `{name}` import", package.directory);
+                }
             }
-            let live_entry_bound = if arena { 1 } else { 4096 };
+            let live_entry_bound = if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
             let wasm_path = scratch.join(format!("{}-tests.wasm", package.directory));
             std::fs::write(&wasm_path, wasm).unwrap();
             let script = scratch.join(format!("{}-tests.mjs", package.directory));
@@ -729,6 +749,7 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
             Ok(())
         })
         .unwrap();
+        }
     }
     let _ = std::fs::remove_dir_all(scratch);
 }
@@ -1432,3 +1453,6 @@ fn library_modules_verify_inside_their_packages_only() {
 
 #[path = "standard_library/io_cursors.rs"]
 mod io_cursors;
+
+#[path = "standard_library/typed_paths.rs"]
+mod typed_paths;

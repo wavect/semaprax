@@ -1,7 +1,7 @@
 # Standard Library v1
 
-- Status: versioned reference; 26 packages are present under `std/`: nine
-  `core`, thirteen `portable`, three `alloc`, and one `test`. Every package remains
+- Status: versioned reference; 27 packages are present under `std/`: nine
+  `core`, fourteen `portable`, three `alloc`, and one `test`. Every package remains
   Partial until its complete required scope and promotion evidence exist; every
   other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
@@ -160,7 +160,8 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Partial: borrowed byte length, emptiness, exact equality, prefix, and substring search; iteration, split, trim, and normalization are Missing |
 | `std.format` | Type-safe formatting without runtime format-string ambiguity | Missing |
 | `std.io` | Reader, Writer, buffered I/O, streams, line processing, and standard streams | Partial: source-authored nongeneric Reader and Writer records compose caller-supplied `Bytes` buffers with `usize` cursors through consuming transitions and no public exports, using internal owned-data Project imports; interpreter, native C11, and Core Wasm consume the same checked HIR. Focused local package, dependency, contract, and cross-engine evidence passes. Buffered I/O, streams, line processing, standard streams, and public generic or nominal widening are Missing |
-| `std.path` | Platform-neutral path values and explicit platform conversion | Partial: allocation-free inspection of canonical slash-separated path bytes for absoluteness, trailing separators, nonempty segment count, filename start, parent boundary, and extension boundary; typed path values, normalization, safe joining, traversal policy, and platform conversion are Missing |
+| `std.path` | Platform-neutral path values and explicit platform conversion | Partial: the original public package provides allocation-free inspection of canonical slash-separated path bytes for absoluteness, trailing separators, nonempty segment count, filename start, parent boundary, and extension boundary; typed Path values are supplied separately by `std.path.value`, while normalization, safe joining beyond its admitted caller-buffer operation, traversal policy, and platform conversion remain Missing |
+| `std.path.value` | Source-authored typed lexical Path values and caller-buffer composition | Partial: ordinary nongeneric `Path` records combine a `Bytes` backing value with a `usize` logical length; NUL-free POSIX lexical bytes, checked bounds, consuming parent/finish transitions, and caller-buffer join are admitted through the internal profile, with focused local interpreter, C11 O0/O2, Core-Wasm, graph replay, contract, and bundled-dependency evidence passing; UTF-8 interpretation, filesystem authority, public generic or nominal widening, and broader path policy remain Missing |
 | `std.fs` | Scoped file and directory access, metadata, and atomic file operations | Missing |
 | `std.env` | Explicit environment access with capability and deterministic test replacement | Missing; `args_len` and `arg_utf8` are the current surface |
 | `std.process` | Bounded process launch, pipes, exit, and settlement | Missing |

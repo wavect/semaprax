@@ -628,6 +628,61 @@ fn build_cfg_plan_counted(
             }
         }
     }
+    // A contract/body root has no outgoing CFG edge. A synchronous call
+    // ending at that root completes on its incoming After edge, rather than
+    // needing a nonexistent successor. Only admit this formerly rejected
+    // terminal shape; already admitted v1 plans retain identical bytes.
+    if termination_edges.iter().any(Vec::is_empty) {
+        let mut terminal_roots = BTreeSet::new();
+        for root in function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(function.ensures.iter())
+        {
+            charge(work)?;
+            terminal_roots.insert(cfg.node(root, LoanPointPhase::After)?);
+        }
+        for nodes in &mut live {
+            for (index, point) in cfg.points.iter().enumerate() {
+                charge(work)?;
+                if point.phase == LoanPointPhase::After
+                    && cfg.successors[index].is_empty()
+                    && terminal_roots.contains(&(index as u16))
+                {
+                    nodes.remove(&(index as u16));
+                }
+            }
+        }
+        for (child, parent) in parents.iter().enumerate() {
+            if let Some(parent) = parent {
+                for node in &live[child] {
+                    charge(work)?;
+                    if !live[parent.0 as usize].contains(node) {
+                        return Err(error("terminal loan child escapes its parent lifetime"));
+                    }
+                }
+            }
+        }
+        // Recompute edge proof only for a previously rejected terminal shape.
+        for edges in &mut termination_edges {
+            edges.clear();
+        }
+        for loans in &mut edge_live {
+            loans.clear();
+        }
+        for (loan_index, nodes) in live.iter().enumerate() {
+            let id = LoanId(loan_index as u16);
+            for (edge_index, (from, to)) in cfg.edges.iter().copied().enumerate() {
+                charge(work)?;
+                if nodes.contains(&from) && nodes.contains(&to) {
+                    edge_live[edge_index].push(id);
+                } else if nodes.contains(&from) && !nodes.contains(&to) {
+                    termination_edges[loan_index].push(edge_index as u16);
+                }
+            }
+        }
+    }
     materialize_cfg_plan(cfg, drafts, parents, edge_live, termination_edges)
 }
 

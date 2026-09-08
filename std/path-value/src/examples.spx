@@ -1,0 +1,27 @@
+module std.path.value.examples;
+use type @id("std.path.value.path") from std.path.value as Path;
+use function @id("std.path.value.from-bytes") from std.path.value as path_from_bytes;
+use function @id("std.path.value.length") from std.path.value as path_length;
+use function @id("std.path.value.absolute") from std.path.value as path_is_absolute;
+use function @id("std.path.value.join") from std.path.value as path_join;
+use function @id("std.path.value.byte-at") from std.path.value as path_byte_at;
+use function @id("std.path.value.finish") from std.path.value as path_finish;
+
+@id("std.path.value.examples.roundtrip")
+fn roundtrip() -> i64
+{
+    let base_bytes = bytes_set(bytes_set(bytes_set(bytes_set(bytes_zeroed(4usize), 0usize, 47u8), 1usize, 117u8), 2usize, 115u8), 3usize, 114u8);
+    let child_bytes = bytes_set(bytes_set(bytes_set(bytes_zeroed(3usize), 0usize, 98u8), 1usize, 105u8), 2usize, 110u8);
+    let base = path_from_bytes(base_bytes);
+    let child = path_from_bytes(child_bytes);
+    let joined = path_join(base, child, bytes_zeroed(8usize));
+    let exact = path_length(joined) == 8usize && path_is_absolute(joined) && path_byte_at(joined, 4usize) == 47u8 && path_byte_at(joined, 7usize) == 110u8;
+    let finished = path_finish(joined);
+    if exact && byte_len(bytes_as_slice(finished)) == 8usize { 0 } else { 1 }
+}
+
+@id("std.path.value.examples.main")
+fn main() -> i64
+{
+    roundtrip()
+}

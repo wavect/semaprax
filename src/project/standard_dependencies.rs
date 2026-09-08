@@ -132,6 +132,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.path.value",
+        path: "dependencies/std.path.value/0.1.0/path.spx",
+        source: include_str!("../../std/path-value/src/path.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.random",
         path: "dependencies/std.random/0.1.0/random.spx",
         source: include_str!("../../std/random/src/random.spx"),

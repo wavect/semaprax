@@ -286,3 +286,63 @@ fn loan_free_function_above_cfg_point_bound_preserves_legacy_admission() {
     assert!(plan.endpoints.is_empty());
     assert!(plan.edges.is_empty());
 }
+
+#[test]
+fn terminal_borrowed_contract_call_has_authenticated_completion_edge() {
+    let source = r#"
+module test.terminal_loan;
+@id("terminal.check") fn checked(view:borrow Slice<u8>)->bool { byte_len(view) <= 8usize }
+@id("terminal.make") fn make(data:own Bytes)->Bytes
+    requires checked(bytes_as_slice(data))
+{ data }
+@id("terminal.body") fn final_call(data:own Bytes)->bool { checked(bytes_as_slice(data)) }
+@id("terminal.ensures") fn post(data:own Bytes)->bool
+    ensures checked(bytes_as_slice(data))
+{ true }
+@id("terminal.main") fn main()->i64 { 0 }
+"#;
+    let ast = crate::parse(source, Path::new("terminal-loan.spx")).unwrap();
+    assert!(crate::verify::verify(&ast).is_empty());
+    let program = crate::hir::resolve(&ast).expect("terminal borrowed call resolves");
+    crate::hir::validate(&program).expect("terminal loan independently replays");
+    for target in ["terminal.body", "terminal.ensures"] {
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == target)
+            .unwrap();
+        assert!(!function.loan_plan.loans.is_empty());
+        assert!(function
+            .loan_plan
+            .loans
+            .iter()
+            .all(|loan| !loan.end_edges.is_empty()));
+    }
+    let index = program
+        .functions
+        .iter()
+        .position(|function| function.id.as_str() == "terminal.make")
+        .unwrap();
+    let function = &program.functions[index];
+    let loan = function
+        .loan_plan
+        .loans
+        .iter()
+        .find(|loan| matches!(loan.cause, LoanCause::BorrowedCall { .. }))
+        .unwrap();
+    assert!(!loan.end_edges.is_empty());
+    assert!(loan
+        .ends
+        .iter()
+        .any(|point| point.expression == function.requires[0].id
+            && point.phase == LoanPointPhase::After));
+    let mut forged = program.clone();
+    let loan = forged.functions[index]
+        .loan_plan
+        .loans
+        .iter_mut()
+        .find(|loan| matches!(loan.cause, LoanCause::BorrowedCall { .. }))
+        .unwrap();
+    loan.end_edges.clear();
+    assert!(crate::hir::validate(&forged).is_err());
+}

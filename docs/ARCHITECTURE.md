@@ -2355,5 +2355,10 @@ source and graph replay remain bound to each projection's own source revision.
 rechecks old/new retained State schemas and executes the pure migration. Its
 private `MigrationSeed` is the only initial-state entry to the iterative driver;
 `iterative/effects/continuation` carries cumulative usage and binds subsequent
-execution to that seed. Submitted JSON cannot construct a seed. The current
-continuation is in-memory and does not provide persisted migration recovery.
+execution to that seed. `typed_migration/handoff` owns the bounded handoff
+codec, while `typed_migration/durable` commits the handoff before destination
+work and recovers only against caller-trusted snapshots and independently bound
+runtime roots. The recovered object exposes only durable execution.
+`iterative/effects/durable` retains the v2 local journal and carries the immutable
+migration baseline into additive v3 evidence and cumulative budgets. Parsed
+hashes alone cannot authorize seed recovery or host work.

@@ -9,12 +9,15 @@ use crate::agent_runtime_v2::checkpoint::{
     CheckpointIdentity, CheckpointLimits, CheckpointUsage, EffectContext, JournalEvent,
     OperationCheckpoint, RecoveryDisposition,
 };
+use crate::execution_revision::typed::migration::MigrationSeed;
 
 pub struct DurableTypedRun {
     run: TypedEffectRun,
     checkpoint: String,
     digest: String,
     usage: CheckpointUsage,
+    iterations: usize,
+    stages: usize,
 }
 impl DurableTypedRun {
     pub fn run(&self) -> &TypedEffectRun {
@@ -28,6 +31,12 @@ impl DurableTypedRun {
     }
     pub fn usage(&self) -> CheckpointUsage {
         self.usage
+    }
+    pub fn iterations(&self) -> usize {
+        self.iterations
+    }
+    pub fn stages(&self) -> usize {
+        self.stages
     }
 }
 pub struct DurableTypedFailure {
@@ -77,6 +86,7 @@ struct DurableDriver<'a> {
     persistence_error: Option<Vec<Diagnostic>>,
     failure: Option<&'static str>,
     physical_calls: usize,
+    seed_binding: Option<String>,
 }
 fn diagnostic(reason: &str) -> Vec<Diagnostic> {
     error(&format!("durable.{reason}"))
@@ -281,10 +291,19 @@ impl IterativeDriver for DurableDriver<'_> {
         )
     }
     fn before_effect(&mut self, context: LiveContext<'_>) -> Result<(), Vec<Diagnostic>> {
-        let expected_policy = digest(
+        let ordinary_policy = digest(
             b"semaprax.agent-iteration-policy.v2\0",
             format!("{}\0{}", self.compiled.lifecycle.digest(), context.turn).as_bytes(),
         );
+        let expected_policy = self
+            .seed_binding
+            .as_ref()
+            .map_or(ordinary_policy.clone(), |seed| {
+                digest(
+                    b"semaprax.agent-migrated-iteration-policy.v1\0",
+                    format!("{}\0{}", ordinary_policy, seed).as_bytes(),
+                )
+            });
         if context.policy != expected_policy {
             return Err(diagnostic("policy.substitution"));
         }
@@ -381,32 +400,115 @@ impl CompiledTypedEffects {
         store: &mut dyn CheckpointStore,
         max_reserved_fuel: u64,
     ) -> Result<DurableTypedRun, DurableTypedFailure> {
+        self.run_durable_inner(
+            task,
+            proposals,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            execution_revision_digest,
+            program_root_digest,
+            retained_checkpoint,
+            store,
+            max_reserved_fuel,
+            None,
+        )
+    }
+
+    /// Resume a migration-owned State through the same persisted effect journal.
+    /// The seed is opaque and can only be produced by the checked migration path.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn run_durable_from_seed(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        handler: &mut dyn TypedEffectHandler,
+        stages: IterativeBudget,
+        effects: EffectBudget,
+        cancellation: &AgentCancellation,
+        execution_revision_digest: &str,
+        program_root_digest: &str,
+        retained_checkpoint: Option<&str>,
+        store: &mut dyn CheckpointStore,
+        max_reserved_fuel: u64,
+        seed: &MigrationSeed,
+    ) -> Result<DurableTypedRun, DurableTypedFailure> {
+        self.run_durable_inner(
+            task,
+            proposals,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            execution_revision_digest,
+            program_root_digest,
+            retained_checkpoint,
+            store,
+            max_reserved_fuel,
+            Some(seed),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn run_durable_inner(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        handler: &mut dyn TypedEffectHandler,
+        stages: IterativeBudget,
+        effects: EffectBudget,
+        cancellation: &AgentCancellation,
+        execution_revision_digest: &str,
+        program_root_digest: &str,
+        retained_checkpoint: Option<&str>,
+        store: &mut dyn CheckpointStore,
+        max_reserved_fuel: u64,
+        seed: Option<&MigrationSeed>,
+    ) -> Result<DurableTypedRun, DurableTypedFailure> {
         let fail = |diagnostics: Vec<Diagnostic>| DurableTypedFailure {
             diagnostics,
             terminal: None,
             checkpoint: retained_checkpoint.unwrap_or("").to_owned(),
         };
         let requested = super::super::invocation_digest(task, proposals, stages);
-        let invocation = digest(
-            b"semaprax.agent-durable-typed-invocation.v2\0",
-            format!(
-                "{}\0{},{},{},{}\0{}",
-                requested,
-                effects.max_calls,
-                effects.max_argument_bytes,
-                effects.max_result_bytes,
-                effects.max_total_bytes,
-                max_reserved_fuel
-            )
-            .as_bytes(),
-        );
+        let invocation = match seed {
+            None => digest(
+                b"semaprax.agent-durable-typed-invocation.v2\0",
+                format!(
+                    "{}\0{},{},{},{}\0{}",
+                    requested,
+                    effects.max_calls,
+                    effects.max_argument_bytes,
+                    effects.max_result_bytes,
+                    effects.max_total_bytes,
+                    max_reserved_fuel
+                )
+                .as_bytes(),
+            ),
+            Some(seed) => digest(
+                b"semaprax.agent-migrated-durable-typed-invocation.v1\0",
+                format!(
+                    "{}\0{}\0{}\0{},{},{},{}\0{}",
+                    requested,
+                    seed.binding_digest(),
+                    crate::agent_lifecycle::encode_value(seed.value()),
+                    effects.max_calls,
+                    effects.max_argument_bytes,
+                    effects.max_result_bytes,
+                    effects.max_total_bytes,
+                    max_reserved_fuel
+                )
+                .as_bytes(),
+            ),
+        };
         let identity = CheckpointIdentity {
             execution_revision: execution_revision_digest.to_owned(),
             program_root: program_root_digest.to_owned(),
             registry: self.digest().to_owned(),
             invocation,
         };
-        let budget = EffectBudget {
+        let full_budget = EffectBudget {
             max_calls: effects.max_calls.min(self.limits.max_calls),
             max_argument_bytes: effects
                 .max_argument_bytes
@@ -414,12 +516,39 @@ impl CompiledTypedEffects {
             max_result_bytes: effects.max_result_bytes.min(self.limits.max_result_bytes),
             max_total_bytes: effects.max_total_bytes.min(self.limits.max_total_bytes),
         };
+        let prior = seed.map(MigrationSeed::usage).unwrap_or_default();
+        if seed.is_some_and(|seed| seed.max_reserved_fuel() != max_reserved_fuel) {
+            return Err(fail(diagnostic("seed.fuel_binding")));
+        }
+        let remaining = |total: u64, used: u64, field: &str| {
+            total
+                .checked_sub(used)
+                .ok_or_else(|| fail(diagnostic(field)))
+        };
+        let remaining_calls = remaining(full_budget.max_calls as u64, prior.calls, "seed.calls")?;
+        let remaining_total = remaining(
+            full_budget.max_total_bytes as u64,
+            prior
+                .argument_bytes
+                .checked_add(prior.result_bytes)
+                .ok_or_else(|| fail(diagnostic("seed.bytes")))?,
+            "seed.bytes",
+        )?;
+        let remaining_fuel = remaining(max_reserved_fuel, prior.reserved_fuel, "seed.fuel")?;
+        let budget = EffectBudget {
+            max_calls: usize::try_from(remaining_calls)
+                .map_err(|_| fail(diagnostic("seed.calls")))?,
+            max_argument_bytes: full_budget.max_argument_bytes,
+            max_result_bytes: full_budget.max_result_bytes,
+            max_total_bytes: usize::try_from(remaining_total)
+                .map_err(|_| fail(diagnostic("seed.bytes")))?,
+        };
         let limits = CheckpointLimits {
-            calls: budget.max_calls as u64,
-            argument_bytes: budget.max_total_bytes as u64,
-            result_bytes: budget.max_total_bytes as u64,
-            total_bytes: budget.max_total_bytes as u64,
-            reserved_fuel: max_reserved_fuel,
+            calls: remaining_calls,
+            argument_bytes: remaining_total,
+            result_bytes: remaining_total,
+            total_bytes: remaining_total,
+            reserved_fuel: remaining_fuel,
         };
         let journal = match retained_checkpoint {
             Some(document) => OperationCheckpoint::decode_with_limits(document, &identity, limits)
@@ -432,6 +561,32 @@ impl CompiledTypedEffects {
         if journal.recovery_disposition() == RecoveryDisposition::UncertainIntent {
             return Err(fail(diagnostic("uncertain_intent")));
         }
+        let journal_stages = journal
+            .events()
+            .filter(|event| matches!(event, JournalEvent::StageReservation { .. }))
+            .count();
+        let effective_stages = match seed {
+            None => IterativeBudget {
+                max_iterations: stages.max_iterations.min(self.max_iterations),
+                ..stages
+            },
+            Some(seed) => {
+                let max_iterations = stages.max_iterations.min(self.max_iterations);
+                let consumed_stages = seed
+                    .prior_stages()
+                    .checked_add(journal_stages)
+                    .ok_or_else(|| fail(diagnostic("seed.stages")))?;
+                if seed.prior_iterations() >= max_iterations || consumed_stages >= stages.max_stages
+                {
+                    return Err(fail(diagnostic("seed.destination_exhausted")));
+                }
+                IterativeBudget {
+                    max_iterations: max_iterations - seed.prior_iterations(),
+                    max_stages: stages.max_stages - consumed_stages,
+                    max_steps_per_stage: stages.max_steps_per_stage,
+                }
+            }
+        };
         let replay = journal
             .events()
             .filter(|event| !matches!(event, JournalEvent::StageReservation { .. }))
@@ -451,17 +606,46 @@ impl CompiledTypedEffects {
             persistence_error: None,
             failure: None,
             physical_calls: 0,
+            seed_binding: seed.map(|seed| seed.binding_digest().to_owned()),
         };
-        let stages = IterativeBudget {
-            max_iterations: stages.max_iterations.min(self.max_iterations),
-            ..stages
+        let outcome = match seed {
+            Some(seed) => self.lifecycle.run_with_driver_seed(
+                task,
+                proposals,
+                &mut driver,
+                effective_stages,
+                cancellation,
+                seed,
+            ),
+            None => self.lifecycle.run_with_driver(
+                task,
+                proposals,
+                &mut driver,
+                effective_stages,
+                cancellation,
+            ),
         };
-        let outcome =
-            self.lifecycle
-                .run_with_driver(task, proposals, &mut driver, stages, cancellation);
         let checkpoint = driver.journal.canonical_json();
         let checkpoint_digest = driver.journal.digest();
-        let usage = driver.journal.usage();
+        let local_usage = driver.journal.usage();
+        let usage = CheckpointUsage {
+            calls: prior
+                .calls
+                .checked_add(local_usage.calls)
+                .ok_or_else(|| fail(diagnostic("usage.calls")))?,
+            argument_bytes: prior
+                .argument_bytes
+                .checked_add(local_usage.argument_bytes)
+                .ok_or_else(|| fail(diagnostic("usage.arguments")))?,
+            result_bytes: prior
+                .result_bytes
+                .checked_add(local_usage.result_bytes)
+                .ok_or_else(|| fail(diagnostic("usage.results")))?,
+            reserved_fuel: prior
+                .reserved_fuel
+                .checked_add(local_usage.reserved_fuel)
+                .ok_or_else(|| fail(diagnostic("usage.fuel")))?,
+        };
         let lifecycle = match outcome {
             Ok(run) => run,
             Err(DriverFailure::Diagnostics(diagnostics)) => {
@@ -490,7 +674,31 @@ impl CompiledTypedEffects {
                 checkpoint,
             });
         }
-        let evidence=format!("{{\"schema\":\"semaprax.agent-durable-typed-evidence.v2\",\"registry\":{},\"lifecycle_evidence\":{},\"checkpoint\":{},\"physical_calls\":{},\"calls\":{},\"argument_bytes\":{},\"result_bytes\":{},\"reserved_fuel\":{},\"failure\":{}}}\n",quote_json(self.digest()),quote_json(lifecycle.evidence_digest()),quote_json(&checkpoint_digest),driver.physical_calls,usage.calls,usage.argument_bytes,usage.result_bytes,usage.reserved_fuel,driver.failure.map(quote_json).unwrap_or_else(||"null".into()));
+        let prior_iterations = seed
+            .map(MigrationSeed::prior_iterations)
+            .unwrap_or_default();
+        let iterations = prior_iterations
+            .checked_add(lifecycle.iterations())
+            .ok_or_else(|| fail(diagnostic("usage.iterations")))?;
+        let prior_stages = seed.map(MigrationSeed::prior_stages).unwrap_or_default();
+        let local_stages = driver
+            .journal
+            .events()
+            .filter(|event| matches!(event, JournalEvent::StageReservation { .. }))
+            .count();
+        let durable_stages = prior_stages
+            .checked_add(local_stages)
+            .ok_or_else(|| fail(diagnostic("usage.stages")))?;
+        let (evidence, evidence_domain) = match seed {
+            None => (
+                format!("{{\"schema\":\"semaprax.agent-durable-typed-evidence.v2\",\"registry\":{},\"lifecycle_evidence\":{},\"checkpoint\":{},\"physical_calls\":{},\"calls\":{},\"argument_bytes\":{},\"result_bytes\":{},\"reserved_fuel\":{},\"failure\":{}}}\n",quote_json(self.digest()),quote_json(lifecycle.evidence_digest()),quote_json(&checkpoint_digest),driver.physical_calls,usage.calls,usage.argument_bytes,usage.result_bytes,usage.reserved_fuel,driver.failure.map(quote_json).unwrap_or_else(||"null".into())),
+                b"semaprax.agent-durable-typed-evidence.v2\0".as_slice(),
+            ),
+            Some(seed) => (
+                format!("{{\"schema\":\"semaprax.agent-migrated-durable-typed-evidence.v3\",\"registry\":{},\"lifecycle_evidence\":{},\"checkpoint\":{},\"seed\":{},\"physical_calls\":{},\"prior_calls\":{},\"prior_argument_bytes\":{},\"prior_result_bytes\":{},\"prior_reserved_fuel\":{},\"local_calls\":{},\"local_argument_bytes\":{},\"local_result_bytes\":{},\"local_reserved_fuel\":{},\"calls\":{},\"argument_bytes\":{},\"result_bytes\":{},\"reserved_fuel\":{},\"prior_iterations\":{},\"local_iterations\":{},\"iterations\":{},\"prior_stages\":{},\"local_stages\":{},\"stages\":{},\"failure\":{}}}\n",quote_json(self.digest()),quote_json(lifecycle.evidence_digest()),quote_json(&checkpoint_digest),quote_json(seed.binding_digest()),driver.physical_calls,prior.calls,prior.argument_bytes,prior.result_bytes,prior.reserved_fuel,local_usage.calls,local_usage.argument_bytes,local_usage.result_bytes,local_usage.reserved_fuel,usage.calls,usage.argument_bytes,usage.result_bytes,usage.reserved_fuel,prior_iterations,lifecycle.iterations(),iterations,prior_stages,local_stages,durable_stages,driver.failure.map(quote_json).unwrap_or_else(||"null".into())),
+                b"semaprax.agent-migrated-durable-typed-evidence.v3\0".as_slice(),
+            ),
+        };
         let run = TypedEffectRun {
             lifecycle,
             dispatched: driver.physical_calls,
@@ -499,10 +707,7 @@ impl CompiledTypedEffects {
             result_bytes: usize::try_from(usage.result_bytes)
                 .map_err(|_| fail(diagnostic("usage.overflow")))?,
             failure: driver.failure,
-            digest: digest(
-                b"semaprax.agent-durable-typed-evidence.v2\0",
-                evidence.as_bytes(),
-            ),
+            digest: digest(evidence_domain, evidence.as_bytes()),
             evidence,
         };
         Ok(DurableTypedRun {
@@ -510,6 +715,8 @@ impl CompiledTypedEffects {
             checkpoint,
             digest: checkpoint_digest,
             usage,
+            iterations,
+            stages: durable_stages,
         })
     }
 }

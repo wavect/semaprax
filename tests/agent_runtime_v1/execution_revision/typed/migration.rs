@@ -362,3 +362,6 @@ fn migrate(old: own State) -> NewState {
     assert_eq!(failure.usage().calls, before.calls);
     assert_eq!(failure.usage().reserved_fuel, before.reserved_fuel + 2);
 }
+
+#[path = "migration/durable.rs"]
+mod durable;

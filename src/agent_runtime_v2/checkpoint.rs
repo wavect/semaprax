@@ -9,6 +9,14 @@ mod codec;
 mod tests;
 mod value;
 
+pub(crate) fn encode_retained_value(value: &RetainedValue) -> Result<Value, Diagnostic> {
+    value::encode(value)
+}
+
+pub(crate) fn decode_retained_value(value: &Value) -> Result<RetainedValue, Diagnostic> {
+    value::decode(value)
+}
+
 pub const CHECKPOINT_SCHEMA: &str = "semaprax.agent-operation-checkpoint.v2";
 const MAX_BYTES: usize = 2_097_152;
 const MAX_ENTRIES: usize = 4096;

@@ -47,6 +47,8 @@ impl AgentRuntimeV2 {
             run,
             evidence,
             revision: self.revision,
+            migration_handoff: None,
+            migrated_checkpoint: None,
         })
     }
 }
@@ -56,8 +58,34 @@ pub struct AgentRuntimeV2DurableEvidence {
     run: DurableTypedRun,
     evidence: ExecutionRoot,
     revision: ExecutionRoot,
+    migration_handoff: Option<String>,
+    migrated_checkpoint: Option<String>,
 }
 impl AgentRuntimeV2DurableEvidence {
+    pub(super) fn from_migration(
+        run: DurableTypedRun,
+        evidence: ExecutionRoot,
+        revision: ExecutionRoot,
+        handoff: String,
+        checkpoint: String,
+    ) -> Self {
+        Self {
+            run,
+            evidence,
+            revision,
+            migration_handoff: Some(handoff),
+            migrated_checkpoint: Some(checkpoint),
+        }
+    }
+    /// Snapshot from the caller-owned store, including any durable migration handoff.
+    pub fn checkpoint(&self) -> &str {
+        self.migrated_checkpoint
+            .as_deref()
+            .unwrap_or_else(|| self.run.checkpoint())
+    }
+    pub fn migration_handoff_digest(&self) -> Option<&str> {
+        self.migration_handoff.as_deref()
+    }
     pub fn run(&self) -> &DurableTypedRun {
         &self.run
     }

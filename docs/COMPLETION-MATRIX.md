@@ -54,8 +54,13 @@ transition; trusted-store recovery replays under fresh grants and never
 automatically dispatches an uncertain intent. [State migration v2](AGENT-STATE-MIGRATION-V2.md)
 now passes a checked pure migration and actual old/new ProgramRoot integration,
 carrying cumulative usage into fresh-authorized continuation without initialize.
-Persisted migration handoff, recovery of the continuation and repeated chains
-remain open. [Execution-root association](EXECUTION-ROOT-ASSOCIATION-V1.md)
+[Durable migration v3](AGENT-STATE-MIGRATION-V3.md) now passes three local
+integration cases for persisted handoff, trusted-store recovery, lost
+acknowledgements, exact runtime binding and repeated A→B→C chains, including
+replayed B suspension without repeated host calls. Cumulative stages and fuel
+include prior handoffs and recovery reservations; two closed handoff codec
+checks also pass. Transactional preparation, cross-store coordination,
+automatic reconciliation and hosted promotion remain open. [Execution-root association](EXECUTION-ROOT-ASSOCIATION-V1.md)
 now has locally passing V1/V2/V3 and iterative invocation association tests.
 [Generic compiler collections](GENERIC-COMPILER-COLLECTIONS-V1.md) pass focused
 source/HIR/graph, ProgramRoot replay, and interpreter/C11 O0/O2/Core-Wasm

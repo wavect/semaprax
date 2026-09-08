@@ -1,11 +1,18 @@
 //! Checked, consuming migration from an actual durable Suspend into a new runtime.
-//! This module does not decode checkpoint documents or deserialize resume tokens.
+//! Persisted recovery uses caller-trusted snapshots bound to exact runtime roots.
+#[path = "typed_migration/durable.rs"]
+mod durable;
+#[path = "typed_migration/handoff.rs"]
+mod handoff;
 use super::*;
 use crate::agent_lifecycle::iterative::IterativeStatus;
 use crate::agent_runtime_v2::checkpoint::CheckpointUsage;
 use crate::hir::{self, DeclarationId, ResolvedType, ResolvedTypeDeclarationKind};
 use crate::interpreter::retained_call::{
     evaluate_retained_call, prepare_retained_call, RetainedCallOutcome, RetainedValue,
+};
+pub use durable::{
+    resume_migrated_agent_runtime_v2, DurableMigrationFailure, ResumedMigratedAgentRuntimeV2,
 };
 
 /// An internally produced initial State, never constructed from submitted JSON.
@@ -177,7 +184,7 @@ pub fn migrate_suspended_agent_runtime_v2(
     max_reserved_fuel: u64,
 ) -> std::result::Result<MigratedAgentRuntimeV2, AgentRuntimeV2MigrationFailure> {
     let mut charged_usage = suspended.run().usage();
-    let charged_iterations = suspended.run().run().lifecycle().iterations();
+    let charged_iterations = suspended.run().iterations();
     let mut charged_stages = 0;
     let result = (|| -> Result<MigratedAgentRuntimeV2> {
         if previous.revision.digest() != expected_previous_revision
@@ -193,17 +200,9 @@ pub fn migrate_suspended_agent_runtime_v2(
         if run.status() != IterativeStatus::Suspend || suspended.run().run().failure().is_some() {
             return Err(refused("migration.requires_actual_suspend"));
         }
-        // Replayed stages consume real reservations too. Count the producer's
-        // complete journal, rather than refunding earlier replay attempts by using
-        // only the final lifecycle's stage transcript.
-        let journal: serde_json::Value = serde_json::from_str(suspended.run().checkpoint())
-            .map_err(|_| refused("migration.actual_checkpoint"))?;
-        let prior_stages = journal["entries"]
-            .as_array()
-            .ok_or_else(|| refused("migration.actual_checkpoint"))?
-            .iter()
-            .filter(|entry| entry["event"]["kind"] == "stage_reservation")
-            .count();
+        // Cumulative counters include the handoff baseline and every replay reservation.
+        let prior_stages = suspended.run().stages();
+        let prior_iterations = suspended.run().iterations();
         charged_stages = prior_stages;
         let value = run
             .value()
@@ -238,7 +237,7 @@ pub fn migrate_suspended_agent_runtime_v2(
                 .argument_bytes
                 .checked_add(usage.result_bytes)
                 .is_none_or(|bytes| bytes > destination.effects.max_total_bytes as u64)
-            || run.iterations() >= destination.budget.max_iterations
+            || prior_iterations >= destination.budget.max_iterations
             || prior_stages >= destination.budget.max_stages
         {
             return Err(refused("migration.prior_usage_exhausts_destination"));
@@ -252,32 +251,36 @@ pub fn migrate_suspended_agent_runtime_v2(
             value,
             max_migration_steps,
         )?;
-        let binding = root(
-            "semaprax.agent-state-migration.v1",
-            json!({
-                "previous_program_root": previous.program_root,
-                "destination_program_root": destination.program_root,
-                "previous_execution_revision": previous.revision.digest(),
-                "destination_execution_revision": destination.revision.digest(),
-                "previous_evidence": suspended.evidence_root().digest(),
-                "previous_checkpoint": suspended.run().checkpoint_digest(),
-                "migration_function": migration_function,
-                "max_migration_steps": max_migration_steps,
-                "max_reserved_fuel": max_reserved_fuel,
-                "prior_iterations": run.iterations(), "prior_stages": prior_stages,
-                "calls": usage.calls, "argument_bytes": usage.argument_bytes,
-                "result_bytes": usage.result_bytes, "reserved_fuel": usage.reserved_fuel,
-                "previous_state": crate::agent_lifecycle::encode_value(value),
-                "migrated_state": crate::agent_lifecycle::encode_value(&migrated),
-            }),
-        );
+        let mut facts = json!({
+            "previous_program_root": previous.program_root,
+            "destination_program_root": destination.program_root,
+            "previous_execution_revision": previous.revision.digest(),
+            "destination_execution_revision": destination.revision.digest(),
+            "previous_evidence": suspended.evidence_root().digest(),
+            "previous_checkpoint": suspended.run().checkpoint_digest(),
+            "migration_function": migration_function,
+            "max_migration_steps": max_migration_steps,
+            "max_reserved_fuel": max_reserved_fuel,
+            "prior_iterations": prior_iterations, "prior_stages": prior_stages,
+            "calls": usage.calls, "argument_bytes": usage.argument_bytes,
+            "result_bytes": usage.result_bytes, "reserved_fuel": usage.reserved_fuel,
+            "previous_state": crate::agent_lifecycle::encode_value(value),
+            "migrated_state": crate::agent_lifecycle::encode_value(&migrated),
+        });
+        let schema = if let Some(predecessor) = suspended.migration_handoff_digest() {
+            facts["previous_handoff"] = json!(predecessor);
+            "semaprax.agent-state-migration.v2"
+        } else {
+            "semaprax.agent-state-migration.v1"
+        };
+        let binding = root(schema, facts);
         Ok(MigratedAgentRuntimeV2 {
             runtime: destination,
             seed: MigrationSeed {
                 value: migrated,
                 binding,
                 usage,
-                iterations: run.iterations(),
+                iterations: prior_iterations,
                 stages: prior_stages,
                 max_reserved_fuel,
             },

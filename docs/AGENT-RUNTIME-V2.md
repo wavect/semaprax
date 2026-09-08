@@ -58,3 +58,7 @@ ceiling. Replay reserves additional fuel, so its evidence differs even when
 its terminal value is unchanged. State migration remains a separate addition;
 a suspended value alone grants no resume authority. Hosted support requires
 exact-commit evidence and is not inferred from local execution.
+
+[Durable migration v3](AGENT-STATE-MIGRATION-V3.md) adds a persisted handoff
+and trusted-store recovery for checked migrated State. Its joined evidence
+retains the handoff digest and exposes the complete recoverable checkpoint.

@@ -17,6 +17,7 @@ Audience: all documentation readers.
 - [Direct Agent Runtime v2](AGENT-RUNTIME-V2.md)
 - [Agent operation checkpoint v2](AGENT-OPERATION-CHECKPOINT-V2.md)
 - [Agent state migration v2](AGENT-STATE-MIGRATION-V2.md)
+- [Durable Agent state migration v3](AGENT-STATE-MIGRATION-V3.md)
 - [Generic authored variants v1](GENERIC-AUTHORED-VARIANTS-V1.md)
 - [Generic argument inference v1](GENERIC-ARGUMENT-INFERENCE-V1.md)
 - [Execution root association v1](EXECUTION-ROOT-ASSOCIATION-V1.md)

@@ -60,7 +60,7 @@ jobs:
         run: |
           cargo test --locked --offline -p semaprax --lib agent_lifecycle::iterative::
           cargo test --locked --offline -p semaprax --lib agent_runtime_v2::checkpoint::tests
-          cargo test --locked --offline -p semaprax --lib execution_revision::typed::migration::tests
+          cargo test --locked --offline -p semaprax --lib execution_revision::typed::migration
           cargo test --locked --offline -p semaprax --lib retained_copy_record_calls_return_exact_fields_and_reject_forged_values
       - name: Check retained Project and iterative runtime root association
         if: runner.os != 'Windows'

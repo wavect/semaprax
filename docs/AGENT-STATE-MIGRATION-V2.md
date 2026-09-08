@@ -48,3 +48,7 @@ an exhausted pure migration returns its reserved fuel in failure accounting.
 The destination continuation currently produces in-memory execution evidence;
 persisted migration handoff, checkpoint recovery of that continuation, repeated
 migration chains, reconciliation and hosted support remain separate work.
+
+[Durable migration v3](AGENT-STATE-MIGRATION-V3.md) extends this consuming
+preparation with persisted handoff and destination recovery. Its evidence
+is tracked separately.

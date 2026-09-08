@@ -8,6 +8,15 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add bounded filesystem reads and create-new writes through explicit providers,
+  with source-authored `std.fs` composition of Path, Reader and Writer, bundled
+  dependencies, Graph v41 replay, and the private Project v14 execution profile.
+  Interpreter, C11 O0/O2 and Core Wasm cover typed operations, byte/operation
+  limits, failure priority, repeated calls and owned-result cleanup. The Unix
+  provider retains a directory descriptor and rejects symlink traversal; writes
+  never overwrite and do not promise rollback of physical effects. Broader
+  filesystem facilities and cross-platform promotion remain open.
+
 - Add the source-authored `std.path.value` owned Path library with checked
   logical prefixes, lexical queries, consuming parent traversal and joins into
   caller-supplied buffers. Bundled dependency composition preserves the original

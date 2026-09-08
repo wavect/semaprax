@@ -59,6 +59,7 @@ pub mod doc;
 pub mod doctor;
 pub mod economic_agent;
 pub mod execution_revision;
+pub(crate) mod filesystem_ops;
 pub mod format;
 pub mod freestanding_object;
 pub mod graph;
@@ -150,6 +151,7 @@ pub mod wit_component;
 pub mod workspace;
 pub mod workspace_patch_evidence;
 
+pub mod filesystem_provider;
 mod graph_cleanup;
 mod graph_loan;
 pub(crate) mod host_io_ops;

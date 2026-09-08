@@ -1,7 +1,7 @@
 # Standard Library v1
 
-- Status: versioned reference; 27 packages are present under `std/`: nine
-  `core`, fourteen `portable`, three `alloc`, and one `test`. Every package remains
+- Status: versioned reference; 28 packages are present under `std/`: nine
+  `core`, fourteen `portable`, three `alloc`, one `hosted`, and one `test`. Every package remains
   Partial until its complete required scope and promotion evidence exist; every
   other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
@@ -27,6 +27,13 @@ directory below `std/` holding a Project manifest and three modules:
 | `std.<name>` | The library module. It declares only public functions and types; it never defines `main`. |
 | `std.<name>.examples` | The Project entry. Its `main` demonstrates idiomatic use and returns `0`. |
 | `std.<name>.tests` | The single Project test module. Its `main` is the conformance suite and returns `0`, or a bitmask naming the failed checks. |
+
+Hosted packages with an effect profile follow the same three-module shape, but
+their structural `main` functions are not conformance evidence. Their examples
+and tests must each execute an explicit stable-ID `fn () -> bool` command
+through an invocation-owned provider injected by the host, so the checked
+effect path is exercised. A pure `main` that only returns `0` is present for
+Project structure and does not demonstrate hosted behavior.
 
 Host-specific operations may be implemented in Rust, C, Wasm, or a platform
 language, but their public contract is a SEMAPRAX semantic interface: a
@@ -162,7 +169,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.io` | Reader, Writer, buffered I/O, streams, line processing, and standard streams | Partial: source-authored nongeneric Reader and Writer records compose caller-supplied `Bytes` buffers with `usize` cursors through consuming transitions and no public exports, using internal owned-data Project imports; interpreter, native C11, and Core Wasm consume the same checked HIR. Focused local package, dependency, contract, and cross-engine evidence passes. Buffered I/O, streams, line processing, standard streams, and public generic or nominal widening are Missing |
 | `std.path` | Platform-neutral path values and explicit platform conversion | Partial: the original public package provides allocation-free inspection of canonical slash-separated path bytes for absoluteness, trailing separators, nonempty segment count, filename start, parent boundary, and extension boundary; typed Path values are supplied separately by `std.path.value`, while normalization, safe joining beyond its admitted caller-buffer operation, traversal policy, and platform conversion remain Missing |
 | `std.path.value` | Source-authored typed lexical Path values and caller-buffer composition | Partial: ordinary nongeneric `Path` records combine a `Bytes` backing value with a `usize` logical length; NUL-free POSIX lexical bytes, checked bounds, consuming parent/finish transitions, and caller-buffer join are admitted through the internal profile, with focused local interpreter, C11 O0/O2, Core-Wasm, graph replay, contract, and bundled-dependency evidence passing; UTF-8 interpretation, filesystem authority, public generic or nominal widening, and broader path policy remain Missing |
-| `std.fs` | Scoped file and directory access, metadata, and atomic file operations | Missing |
+| `std.fs` | Scoped file and directory access, metadata, and atomic file operations | Partial: the additive `filesystem-io.v1` package composes `std.path.value::Path`, `std.io::Reader`, and `std.io::Writer` through `read` and create-new `write-new`, with explicit `fs.read`/`fs.write` permits and invocation-owned `FileProvider` injection across interpreter, native callback, and Core-Wasm lanes. Its examples and conformance functions execute a bool filesystem command against the injected provider; the pure Project `main` functions are structural only. Directory traversal, metadata, atomic replacement, and the rest of the required `std.fs` scope remain Missing |
 | `std.env` | Explicit environment access with capability and deterministic test replacement | Missing; `args_len` and `arg_utf8` are the current surface |
 | `std.process` | Bounded process launch, pipes, exit, and settlement | Missing |
 | `std.time` | Durations, monotonic time, wall time, and deadlines | Partial: nonnegative millisecond conversion/decomposition with floor and ceiling rounding, elapsed and remaining-duration calculation, deadline comparison, and saturating duration addition; duration types, clock reads, instants, sleeps, and timers are Missing |

@@ -106,3 +106,16 @@ pub fn execute_network_command(
         stderr,
     })
 }
+
+/// Execute checked filesystem meaning with explicitly supplied authority.
+/// No default root, process filesystem, or rollback of physical effects exists.
+pub fn execute_filesystem_command(
+    program: &ResolvedProgram,
+    entry_id: &str,
+    provider: &mut dyn crate::filesystem_provider::FileProvider,
+    max_steps: usize,
+) -> Result<CommandEvaluation, Diagnostic> {
+    crate::interpreter::filesystem::command::evaluate_resolved_filesystem_command(
+        program, entry_id, provider, max_steps,
+    )
+}

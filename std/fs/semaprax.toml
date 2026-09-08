@@ -1,0 +1,24 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-fs"
+version = "0.1.0"
+profile = "filesystem-io.v1"
+
+[modules]
+entry = "std.fs.examples"
+sources = ["src/examples.spx", "src/fs.spx", "src/tests.spx"]
+tests = ["std.fs.tests"]
+
+[exports]
+web = []
+
+[command]
+function = "std.fs.examples.roundtrip"
+
+[capabilities]
+required = ["fs.read", "fs.write"]
+
+[dependencies]
+std.io = "^0.1.0"
+std.path.value = "^0.1.0"

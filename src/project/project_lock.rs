@@ -87,7 +87,8 @@ pub fn render_project_lock(snapshot: &ProjectSnapshot) -> Result<String, Vec<Dia
         | ProjectProfile::LanguageCommandIoV1
         | ProjectProfile::LineCommandIoV1
         | ProjectProfile::NetworkCommandIoV1
-        | ProjectProfile::HttpsCommandIoV1 => ("unproven", None),
+        | ProjectProfile::HttpsCommandIoV1
+        | ProjectProfile::FilesystemIoV1 => ("unproven", None),
     };
     let default_targets = [
         PACKAGE_TARGET_NATIVE64.to_owned(),

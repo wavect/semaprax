@@ -23,6 +23,7 @@ mod aggregate;
 mod arithmetic;
 mod command_io;
 mod data_exports;
+mod filesystem_ops;
 mod function_value;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod generic_function_component_v9;
@@ -933,13 +934,7 @@ pub fn emit_resolved_module_with_byte_exports(
     aggregate::emit_byte_exports(program, &plans)
 }
 
-/// Private selected-HIR inventory for newer generated owned npm runtimes.
-pub(crate) fn owned_arena_capacity(
-    program: &ResolvedProgram,
-    roots: &[crate::hir::DeclarationId],
-) -> Result<u32, Diagnostic> {
-    aggregate::owned_arena_capacity(program, roots)
-}
+pub(crate) use aggregate::owned_arena_capacity;
 
 /// Emit selected Useful Data wrappers plus success-only stdout transcript
 /// exports from already validated resolved HIR.
@@ -990,6 +985,8 @@ pub(crate) fn emit_resolved_https_command_io_v1(
 ) -> Result<Vec<u8>, Diagnostic> {
     http_io::emit_resolved_https_command_io_v1(program, command_id)
 }
+
+pub use filesystem_ops::emit_resolved_filesystem_ops_v1;
 
 /// Emit the additive Project-v7 line-command boundary. Admission remains in
 /// the shared command profile; the backend adds range descriptors and the

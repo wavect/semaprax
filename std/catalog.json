@@ -2121,6 +2121,53 @@
       "declarations": [
         {
           "description": [],
+          "effects": [
+            "fs.read"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn read(path: own Path, max: usize) -> Reader",
+            "    uses { fs.read }",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.fs.read",
+          "kind": "function",
+          "name": "read",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [
+            "fs.write"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn write_new(path: own Path, writer: own Writer) -> usize",
+            "    uses { fs.write }",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.fs.write-new",
+          "kind": "function",
+          "name": "write_new",
+          "requires": 1
+        }
+      ],
+      "dependency": "std.fs = \"^0.1.0\"",
+      "module": "std.fs",
+      "package": "std/fs",
+      "required_profile": "filesystem-io.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "hosted"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
           "effects": [],
           "ensures": 1,
           "head": [

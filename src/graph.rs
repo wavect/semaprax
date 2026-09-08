@@ -26,12 +26,14 @@ macro_rules! format {
 
 mod agent_instances;
 mod expression;
+mod filesystem;
 mod function_values;
 use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
+use filesystem::{graph_json, string_array};
+use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
-use generic_instances::{graph_json, legacy_graph_json};
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
 pub(crate) use generic_mapping::requires_v35;
 
@@ -1279,6 +1281,7 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             | "semaprax.graph.v38"
             | "semaprax.graph.v39"
             | "semaprax.graph.v40"
+            | "semaprax.graph.v41"
     ) {
         return Err(Diagnostic::io(
             "SPX-G410",
@@ -5567,17 +5570,6 @@ fn unary_text(op: UnaryOp) -> &'static str {
 
 fn binary_text(op: BinaryOp) -> &'static str {
     op.text()
-}
-
-fn string_array(values: &[String]) -> String {
-    format!(
-        "[{}]",
-        values
-            .iter()
-            .map(|value| quote_json(value))
-            .collect::<Vec<_>>()
-            .budgeted_join(",")
-    )
 }
 
 #[cfg(test)]

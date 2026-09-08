@@ -60,6 +60,7 @@ pub(crate) enum CommandOperationProfile {
     /// handling, protocol negotiation, and connection reuse owned by the
     /// injected provider.
     HttpV1,
+    FilesystemV1,
 }
 
 /// Validate exactly the operations reachable from the selected command.
@@ -92,6 +93,8 @@ pub(crate) fn validate_operation_profile(
     let mut saw_network = false;
     let mut saw_service = false;
     let mut saw_http = false;
+    let mut saw_filesystem = false;
+    let mut saw_other_host = false;
 
     while let Some((execution_id, function)) = pending_functions.pop() {
         if !visited.insert(execution_id) {
@@ -105,20 +108,25 @@ pub(crate) fn validate_operation_profile(
         while let Some(expression) = expressions.pop() {
             match &expression.kind {
                 ResolvedExprKind::ByteRange { .. } => saw_range = true,
-                ResolvedExprKind::HostCommandCall(call) => match call.operation {
-                    ResolvedHostCommandOperation::StdoutAppend
-                    | ResolvedHostCommandOperation::StderrAppend => saw_append = true,
-                    ResolvedHostCommandOperation::StderrWrite => saw_legacy_write = true,
-                    ResolvedHostCommandOperation::ArgsLen
-                    | ResolvedHostCommandOperation::ArgUtf8
-                    | ResolvedHostCommandOperation::StdinRead => {}
-                    network if crate::network_io_ops::is_network(network) => {
-                        saw_network = true;
-                        saw_service |= crate::network_io_ops::is_service(network);
-                        saw_http |= crate::network_io_ops::is_http(network);
+                ResolvedExprKind::HostCommandCall(call) => {
+                    saw_other_host |= !crate::filesystem_ops::is_filesystem(call.operation);
+                    match call.operation {
+                        ResolvedHostCommandOperation::FileRead
+                        | ResolvedHostCommandOperation::FileWriteNew => saw_filesystem = true,
+                        ResolvedHostCommandOperation::StdoutAppend
+                        | ResolvedHostCommandOperation::StderrAppend => saw_append = true,
+                        ResolvedHostCommandOperation::StderrWrite => saw_legacy_write = true,
+                        ResolvedHostCommandOperation::ArgsLen
+                        | ResolvedHostCommandOperation::ArgUtf8
+                        | ResolvedHostCommandOperation::StdinRead => {}
+                        network if crate::network_io_ops::is_network(network) => {
+                            saw_network = true;
+                            saw_service |= crate::network_io_ops::is_service(network);
+                            saw_http |= crate::network_io_ops::is_http(network);
+                        }
+                        _ => unreachable!("closed host-command operation inventory"),
                     }
-                    _ => unreachable!("closed host-command operation inventory"),
-                },
+                }
                 ResolvedExprKind::Call {
                     callee, instance, ..
                 } => {
@@ -140,6 +148,18 @@ pub(crate) fn validate_operation_profile(
         }
     }
 
+    if saw_filesystem && profile != CommandOperationProfile::FilesystemV1 {
+        return Err(profile_error(
+            "filesystem operations require Filesystem I/O v1",
+        ));
+    }
+    if profile == CommandOperationProfile::FilesystemV1 {
+        return if saw_filesystem && !saw_other_host && !saw_legacy_write {
+            Ok(())
+        } else {
+            Err(profile_error("Filesystem I/O v1 requires filesystem operations and excludes other host authority"))
+        };
+    }
     match profile {
         CommandOperationProfile::LanguageV1 | CommandOperationProfile::LineV1 if saw_network => {
             Err(profile_error(
@@ -183,7 +203,8 @@ pub(crate) fn validate_operation_profile(
         | CommandOperationProfile::LineV1
         | CommandOperationProfile::NetworkV1
         | CommandOperationProfile::ServiceV1
-        | CommandOperationProfile::HttpV1 => Ok(()),
+        | CommandOperationProfile::HttpV1
+        | CommandOperationProfile::FilesystemV1 => Ok(()),
     }
 }
 
@@ -211,7 +232,7 @@ pub(crate) fn by_name(name: &str) -> Option<ResolvedHostCommandOperation> {
         STDERR_WRITE_NAME => Some(ResolvedHostCommandOperation::StderrWrite),
         STDOUT_APPEND_NAME => Some(ResolvedHostCommandOperation::StdoutAppend),
         STDERR_APPEND_NAME => Some(ResolvedHostCommandOperation::StderrAppend),
-        _ => crate::network_io_ops::by_name(name),
+        _ => crate::filesystem_ops::by_name(name).or_else(|| crate::network_io_ops::by_name(name)),
     }
 }
 
@@ -223,7 +244,7 @@ pub(crate) fn by_id(id: &str) -> Option<ResolvedHostCommandOperation> {
         STDERR_WRITE_ID => Some(ResolvedHostCommandOperation::StderrWrite),
         STDOUT_APPEND_ID => Some(ResolvedHostCommandOperation::StdoutAppend),
         STDERR_APPEND_ID => Some(ResolvedHostCommandOperation::StderrAppend),
-        _ => crate::network_io_ops::by_id(id),
+        _ => crate::filesystem_ops::by_id(id).or_else(|| crate::network_io_ops::by_id(id)),
     }
 }
 
@@ -235,6 +256,9 @@ pub(crate) const fn name(op: ResolvedHostCommandOperation) -> &'static str {
         ResolvedHostCommandOperation::StderrWrite => STDERR_WRITE_NAME,
         ResolvedHostCommandOperation::StdoutAppend => STDOUT_APPEND_NAME,
         ResolvedHostCommandOperation::StderrAppend => STDERR_APPEND_NAME,
+        filesystem if crate::filesystem_ops::is_filesystem(filesystem) => {
+            crate::filesystem_ops::name(filesystem)
+        }
         network => crate::network_io_ops::name(network),
     }
 }
@@ -247,6 +271,9 @@ pub(crate) const fn id(op: ResolvedHostCommandOperation) -> &'static str {
         ResolvedHostCommandOperation::StderrWrite => STDERR_WRITE_ID,
         ResolvedHostCommandOperation::StdoutAppend => STDOUT_APPEND_ID,
         ResolvedHostCommandOperation::StderrAppend => STDERR_APPEND_ID,
+        filesystem if crate::filesystem_ops::is_filesystem(filesystem) => {
+            crate::filesystem_ops::id(filesystem)
+        }
         network => crate::network_io_ops::id(network),
     }
 }
@@ -260,6 +287,9 @@ pub(crate) const fn effect(op: ResolvedHostCommandOperation) -> &'static str {
         ResolvedHostCommandOperation::StderrWrite => STDERR_WRITE_EFFECT,
         ResolvedHostCommandOperation::StdoutAppend => STDOUT_WRITE_EFFECT,
         ResolvedHostCommandOperation::StderrAppend => STDERR_WRITE_EFFECT,
+        filesystem if crate::filesystem_ops::is_filesystem(filesystem) => {
+            crate::filesystem_ops::effect(filesystem)
+        }
         network => crate::network_io_ops::effect(network),
     }
 }
@@ -273,6 +303,9 @@ pub(crate) const fn failure(op: ResolvedHostCommandOperation) -> CommandIoFailur
             CommandIoFailure::Status
         }
         ResolvedHostCommandOperation::StdoutAppend | ResolvedHostCommandOperation::StderrAppend => {
+            CommandIoFailure::Status
+        }
+        ResolvedHostCommandOperation::FileRead | ResolvedHostCommandOperation::FileWriteNew => {
             CommandIoFailure::Status
         }
         network => {
@@ -304,6 +337,12 @@ pub(crate) const fn status_metadata(
             })
         }
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::StderrWrite => None,
+        filesystem if crate::filesystem_ops::is_filesystem(filesystem) => {
+            Some(CommandIoStatusMetadata {
+                domain: crate::filesystem_ops::STATUS_DOMAIN,
+                codes: &crate::filesystem_ops::STATUS_CODES,
+            })
+        }
         http if crate::network_io_ops::is_http(http) => Some(CommandIoStatusMetadata {
             domain: crate::network_io_ops::HTTP_STATUS_DOMAIN,
             codes: &crate::network_io_ops::HTTP_STATUS_CODES,
@@ -326,6 +365,9 @@ pub(crate) const fn arity(op: ResolvedHostCommandOperation) -> usize {
         ResolvedHostCommandOperation::StdoutAppend | ResolvedHostCommandOperation::StderrAppend => {
             1
         }
+        filesystem if crate::filesystem_ops::is_filesystem(filesystem) => {
+            crate::filesystem_ops::arity(filesystem)
+        }
         network => crate::network_io_ops::arity(network),
     }
 }
@@ -340,6 +382,9 @@ pub(crate) const fn ast_return_type(op: ResolvedHostCommandOperation) -> Type {
         }
         ResolvedHostCommandOperation::ArgUtf8 => Type::Str,
         ResolvedHostCommandOperation::StdinRead => Type::Bytes,
+        filesystem if crate::filesystem_ops::is_filesystem(filesystem) => {
+            crate::filesystem_ops::ast_return_type(filesystem)
+        }
         network => crate::network_io_ops::ast_return_type(network),
     }
 }
@@ -354,6 +399,9 @@ pub(crate) const fn return_type(op: ResolvedHostCommandOperation) -> ResolvedTyp
         }
         ResolvedHostCommandOperation::ArgUtf8 => ResolvedType::Str,
         ResolvedHostCommandOperation::StdinRead => ResolvedType::Bytes,
+        filesystem if crate::filesystem_ops::is_filesystem(filesystem) => {
+            crate::filesystem_ops::return_type(filesystem)
+        }
         network => crate::network_io_ops::return_type(network),
     }
 }
@@ -368,6 +416,9 @@ pub(crate) const fn result_ownership(op: ResolvedHostCommandOperation) -> Owners
         }
         ResolvedHostCommandOperation::ArgUtf8 => OwnershipMode::Borrow,
         ResolvedHostCommandOperation::StdinRead => OwnershipMode::Own,
+        filesystem if crate::filesystem_ops::is_filesystem(filesystem) => {
+            crate::filesystem_ops::result_ownership(filesystem)
+        }
         network => crate::network_io_ops::result_ownership(network),
     }
 }
@@ -398,11 +449,16 @@ pub(crate) const fn admitted_in_while(op: ResolvedHostCommandOperation) -> bool 
         | ResolvedHostCommandOperation::ArgUtf8
         | ResolvedHostCommandOperation::StdinRead
         | ResolvedHostCommandOperation::StderrWrite => false,
+        ResolvedHostCommandOperation::FileRead => false,
+        ResolvedHostCommandOperation::FileWriteNew => true,
         network => crate::network_io_ops::admitted_in_while(network),
     }
 }
 
 pub(crate) fn accepts_ast(op: ResolvedHostCommandOperation, index: usize, ty: &Type) -> bool {
+    if crate::filesystem_ops::is_filesystem(op) {
+        return crate::filesystem_ops::accepts_ast(op, index, ty);
+    }
     if crate::network_io_ops::is_network(op) {
         return crate::network_io_ops::accepts_ast(op, index, ty);
     }
@@ -421,6 +477,9 @@ pub(crate) fn accepts_resolved(
     index: usize,
     ty: &ResolvedType,
 ) -> bool {
+    if crate::filesystem_ops::is_filesystem(op) {
+        return crate::filesystem_ops::accepts_resolved(op, index, ty);
+    }
     if crate::network_io_ops::is_network(op) {
         return crate::network_io_ops::accepts_resolved(op, index, ty);
     }
@@ -444,6 +503,9 @@ pub(crate) fn accepts_resolved(
 }
 
 pub(crate) fn ast_params(op: ResolvedHostCommandOperation) -> Vec<Param> {
+    if crate::filesystem_ops::is_filesystem(op) {
+        return crate::filesystem_ops::ast_params(op);
+    }
     if crate::network_io_ops::is_network(op) {
         return crate::network_io_ops::ast_params(op);
     }

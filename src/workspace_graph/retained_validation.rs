@@ -1258,7 +1258,11 @@ pub(super) fn project_effects_admitted(
     effects: &[String],
     natives: &ScalarNativeImports,
 ) -> bool {
-    effects.is_empty()
+    (profile == crate::project::ProjectProfile::FilesystemIoV1
+        && effects
+            .iter()
+            .all(|effect| crate::filesystem_ops::FILESYSTEM_EFFECTS.contains(&effect.as_str())))
+        || effects.is_empty()
         || natives.effects_admitted(effects)
         || (matches!(
             profile,
@@ -1290,6 +1294,7 @@ pub(super) fn project_effects_admitted(
 
 pub(super) fn project_linker_name(profile: crate::project::ProjectProfile) -> &'static str {
     match profile {
+        crate::project::ProjectProfile::FilesystemIoV1 => "Filesystem I/O v1 linker",
         crate::project::ProjectProfile::ScalarV1 => "pure scalar linker",
         crate::project::ProjectProfile::UsefulTextConsumerV1 => "Useful Text Consumer linker",
         crate::project::ProjectProfile::UsefulDataV1 => "Useful Data linker",
@@ -1316,7 +1321,12 @@ pub(super) fn permits_admitted(
     entry_module: &str,
     natives: &ScalarNativeImports,
 ) -> bool {
-    module.permits.is_empty()
+    (profile == crate::project::ProjectProfile::FilesystemIoV1
+        && module
+            .permits
+            .iter()
+            .all(|effect| crate::filesystem_ops::FILESYSTEM_EFFECTS.contains(&effect.as_str())))
+        || module.permits.is_empty()
         || natives.effects_admitted(&module.permits)
         || (matches!(
             profile,

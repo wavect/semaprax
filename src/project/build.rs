@@ -83,6 +83,10 @@ fn finish_build(
             source_digest: file.source_digest().to_owned(),
         })
         .collect();
+    let filesystem_roots = manifest
+        .command()
+        .map(|id| vec![id.to_owned()])
+        .unwrap_or_default();
     let semantic_parts = graph.into_project_semantic_parts(
         &workspace_revision,
         graph_source_facts,
@@ -90,7 +94,11 @@ fn finish_build(
         manifest.entry(),
         manifest.test_module(),
         crate::workspace_graph::ProjectWebRoots {
-            stable_ids: manifest.web_exports(),
+            stable_ids: if manifest.project_profile() == super::ProjectProfile::FilesystemIoV1 {
+                &filesystem_roots
+            } else {
+                manifest.web_exports()
+            },
             profile: manifest.project_profile(),
             dependency_anchors: !manifest.dependency_sources().is_empty(),
         },

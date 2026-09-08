@@ -23,6 +23,9 @@ pub(crate) enum NativeOutputProfile {
     /// HTTPS Client I/O v1: the line-command input/output machinery plus one
     /// bounded libcurl-backed `https_get` operation.
     HttpsCommandIo,
+    /// Filesystem I/O v1: a closed read/write operation pair backed only by
+    /// callbacks supplied to the generated runner for this invocation.
+    FilesystemCommandIo,
 }
 
 /// Representation and provider carrier support are separate decisions:
@@ -62,7 +65,8 @@ impl NativeOutputProfile {
             | Self::LanguageCommandIo
             | Self::LineCommandIo
             | Self::NetworkCommandIo
-            | Self::HttpsCommandIo => StringRuntimeSelection::FROZEN,
+            | Self::HttpsCommandIo
+            | Self::FilesystemCommandIo => StringRuntimeSelection::FROZEN,
         }
     }
 
@@ -100,6 +104,7 @@ impl NativeOutputProfile {
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
+                | Self::FilesystemCommandIo
         )
     }
 

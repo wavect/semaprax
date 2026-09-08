@@ -1,0 +1,28 @@
+module std.fs;
+use type @id("std.path.value.path") from std.path.value as Path;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.path.value.valid") from std.path.value as path_valid;
+use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.io.writer.cursor") from std.io as writer_position;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+
+permit { fs.read, fs.write }
+
+@id("std.fs.read")
+fn read(path: own Path, max: usize) -> Reader
+    uses { fs.read }
+    requires path_valid(path)
+{
+    match own path { Path { data, length } => reader_from_bytes(file_read(bytes_as_slice(data), length, max)), }
+}
+
+@id("std.fs.write-new")
+fn write_new(path: own Path, writer: own Writer) -> usize
+    uses { fs.write }
+    requires path_valid(path)
+{
+    let written = writer_position(writer);
+    let buffer = writer_finish(writer);
+    match own path { Path { data, length } => file_write_new(bytes_as_slice(data), length, bytes_as_slice(buffer), written), }
+}

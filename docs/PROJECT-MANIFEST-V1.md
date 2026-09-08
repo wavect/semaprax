@@ -401,3 +401,22 @@ roots, TLS 1.2/1.3 validation, redirect and response bounds, HTTP/2 negotiation,
 and HTTP/1.1 fallback. A live-fetch browser adapter, HTTP/3, cross-platform
 libcurl provisioning, and multi-engine browser evidence remain separate
 promotion work and fail closed rather than using Project v12’s raw-socket ABI.
+
+## Additive Project Manifest v14 filesystem-command profile
+
+V14 preserves every v1-v13 canonical manifest and adds exactly
+`profile = "filesystem-io.v1"`. It selects one explicitly identified `() ->
+bool` filesystem command, requires the exact sorted capabilities `fs.read` and
+`fs.write`, and requires `web = []` (no web exports). The selected closure is
+validated under [Filesystem I/O v1](FILESYSTEM-IO-V1.md), including its
+relative logical-path grammar, operation and byte budgets, closed status
+domain, create-new write semantics, and explicit invocation-owned
+`FileProvider`.
+
+The profile admits checked `std.fs` composition over the bundled
+`std.io` Reader/Writer and `std.path.value` Path identities. Interpreter,
+native callback, and injected Core-Wasm execution receive a provider selected
+by the host for that invocation; the Project route grants no ambient
+filesystem, process, network, home, or secret authority and creates no public
+nominal filesystem descriptor or receipt. Directory traversal, metadata, atomic replacement,
+and the remaining `std.fs` scope stay outside Project v14.

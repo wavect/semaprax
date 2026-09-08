@@ -135,6 +135,7 @@ pub(crate) fn evaluate_resolved_network_command(
 
     let command_input = CommandInputState {
         network: Some(NetworkState::new(provider)),
+        filesystem: None,
         arguments: arguments
             .iter()
             .map(|value| Arc::<[u8]>::from(value.as_bytes()))

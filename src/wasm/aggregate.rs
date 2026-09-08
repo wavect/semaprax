@@ -16,6 +16,7 @@ pub(in crate::wasm) use function_value::{
     box_import_base, program_uses_owned_buffer, vec_import_base,
 };
 use function_value::{executable_functions, hex_execution_identity, program_uses_byte_range};
+mod filesystem_ops;
 mod generic_record;
 mod generic_variant;
 mod http_io;
@@ -26,7 +27,7 @@ mod network_io;
 mod owned_stack;
 mod owned_strings;
 mod post_transitions;
-pub(super) fn owned_arena_capacity(
+pub(crate) fn owned_arena_capacity(
     program: &ResolvedProgram,
     roots: &[crate::hir::DeclarationId],
 ) -> Result<u32, Diagnostic> {
@@ -196,6 +197,7 @@ struct FunctionPlan {
     frame_base: u32,
     status: u32,
     command_byte: Option<u32>,
+    filesystem_scan: Option<(u32, u32, u32)>,
     external_root_bytes: Option<u32>,
     result_staged: Option<u32>,
     has_try: bool,
@@ -327,6 +329,13 @@ impl FunctionPlan {
                 .any(|effect| super::command_io::needs_command_byte(effect)))
         .then(|| add_local(I32))
         .transpose()?;
+        let filesystem_scan = (!standalone_strings
+            && program.permits.iter().any(|effect| {
+                effect == crate::filesystem_ops::READ_EFFECT
+                    || effect == crate::filesystem_ops::WRITE_EFFECT
+            }))
+        .then(|| Ok((add_local(I64)?, add_local(I64)?, add_local(I64)?)))
+        .transpose()?;
         let external_root_bytes = function
             .params
             .iter()
@@ -413,6 +422,7 @@ impl FunctionPlan {
             frame_base,
             status,
             command_byte,
+            filesystem_scan,
             external_root_bytes,
             result_staged,
             has_try,
@@ -1451,7 +1461,12 @@ fn emit_byte_exports_profile(
     command_io: Option<&super::command_io::CommandPlan>,
     owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
-    if program_uses_owned_buffer(program) {
+    let uses_owned_buffer = program_uses_owned_buffer(program);
+    let private_filesystem = command_io
+        .is_some_and(super::command_io::CommandPlan::is_filesystem_command)
+        && plans.is_empty()
+        && owned_plans.is_empty();
+    if uses_owned_buffer && !private_filesystem {
         return Err(Diagnostic::io(
             "SPX-W115",
             "Owned Bounded Byte Buffer v1 is internal-only and has no public WebAssembly adapter",
@@ -1488,6 +1503,8 @@ fn emit_byte_exports_profile(
     let line_command_io = command_io.is_some_and(super::command_io::CommandPlan::is_line_command);
     let network_io = command_io.is_some_and(super::command_io::CommandPlan::is_network_command);
     let http_io = command_io.is_some_and(super::command_io::CommandPlan::is_http_command);
+    let filesystem_ops =
+        command_io.is_some_and(super::command_io::CommandPlan::is_filesystem_command);
     if program
         .types
         .iter()
@@ -1501,7 +1518,9 @@ fn emit_byte_exports_profile(
         record_layout.validate(program)?;
     }
 
-    let public_global_count = if line_command_io || network_io || http_io {
+    let public_global_count = if filesystem_ops {
+        18_u32
+    } else if line_command_io || network_io || http_io {
         16_u32
     } else if command_io.is_some() {
         15
@@ -1571,6 +1590,16 @@ fn emit_byte_exports_profile(
         &mut types,
         &mut type_indexes,
     );
+    let byte_set = uses_owned_buffer.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64, I32],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
     let text_helper_type = uses_str_ops.then(|| {
         intern_type(
             Signature {
@@ -1687,6 +1716,8 @@ fn emit_byte_exports_profile(
         network_io.then(|| super::network_io::intern_import_types(&mut types, &mut type_indexes));
     let http_import_type =
         http_io.then(|| super::http_io::intern_import_type(&mut types, &mut type_indexes));
+    let filesystem_import_types = filesystem_ops
+        .then(|| super::filesystem_ops::intern_import_types(&mut types, &mut type_indexes));
     let owned_utf8_validate = (!owned_plans.is_empty()).then(|| {
         intern_type(
             Signature {
@@ -1701,7 +1732,12 @@ fn emit_byte_exports_profile(
     let import_count = SCALAR_IMPORT_COUNT
         + BYTE_IMPORT_COUNT
         + command_import_count
-        + u32::from(owned_utf8_validate.is_some());
+        + u32::from(owned_utf8_validate.is_some())
+        + if uses_owned_buffer {
+            OWNED_BUFFER_IMPORT_COUNT
+        } else {
+            0
+        };
     let mut function_indexes = executable_functions
         .iter()
         .enumerate()
@@ -1723,6 +1759,18 @@ fn emit_byte_exports_profile(
         );
     }
 
+    if uses_owned_buffer {
+        let base = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT + command_import_count;
+        for (id, index) in [
+            (crate::byte_ops::ZEROED_ID, base),
+            (crate::byte_ops::SET_ID, base + 1),
+        ] {
+            function_indexes.insert(
+                FunctionExecutionId::Monomorphic(DeclarationId::new(id)),
+                index,
+            );
+        }
+    }
     let mut module = b"\0asm\x01\0\0\0".to_vec();
     let mut type_section = Vec::new();
     write_u32(&mut type_section, types.len() as u32);
@@ -1760,6 +1808,13 @@ fn emit_byte_exports_profile(
     }
     if let Some(ty) = http_import_type {
         super::http_io::emit_import(&mut imports, ty);
+    }
+    if let Some(types) = &filesystem_import_types {
+        super::filesystem_ops::emit_imports(&mut imports, types);
+    }
+    if let Some(ty) = byte_set {
+        function_import(&mut imports, "env", "spx_bytes_zeroed", byte_unary);
+        function_import(&mut imports, "env", "spx_bytes_set", ty);
     }
     if let Some(ty) = owned_utf8_validate {
         function_import(&mut imports, "env", "spx_owned_utf8_validate_v1", ty);
@@ -1847,8 +1902,11 @@ fn emit_byte_exports_profile(
         // Generic language failures continue to use only the ordinary status
         // global and must never be attributed to this domain.
         globals.extend([I32, 0x01, 0x41, 0x00, 0x0b]);
-        if line_command_io || network_io || http_io {
+        if line_command_io || network_io || http_io || filesystem_ops {
             super::line_command_io::append_global(&mut globals);
+        }
+        if filesystem_ops {
+            super::filesystem_ops::append_globals(&mut globals);
         }
     }
     for _ in 0..private_range_global_count {
@@ -1859,7 +1917,7 @@ fn emit_byte_exports_profile(
     let mut exports = Vec::new();
     write_u32(
         &mut exports,
-        (if line_command_io || network_io || http_io {
+        (if line_command_io || network_io || http_io || filesystem_ops {
             12_u32
         } else if command_io.is_some() {
             11_u32
@@ -1900,6 +1958,8 @@ fn emit_byte_exports_profile(
             super::network_io::append_export(&mut exports);
         } else if http_io {
             super::http_io::append_export(&mut exports);
+        } else if filesystem_ops {
+            super::filesystem_ops::append_export(&mut exports);
         }
     }
     let wrapper_base = import_count
@@ -5728,6 +5788,9 @@ impl Emitter<'_> {
         self.emit_pointer(pointer);
         self.output.extend([0x42, 0x00, 0x37, 0x03, 0x00]);
         match call.operation {
+            filesystem if crate::filesystem_ops::is_filesystem(filesystem) => {
+                return self.emit_filesystem_command_call(expr, call, &arguments, local, pointer);
+            }
             http if crate::network_io_ops::is_http(http) => {
                 return self.emit_http_command_call(expr, call, &arguments, local, pointer);
             }
@@ -6659,7 +6722,15 @@ impl Emitter<'_> {
                 let local = self.plan.expr_scalar(expr)?;
                 self.get_scalar(&values[0]);
                 self.output.push(0x10);
-                write_u32(self.output, BYTE_ZEROED_IMPORT);
+                write_u32(
+                    self.output,
+                    self.function_indexes
+                        .get(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                            crate::byte_ops::ZEROED_ID,
+                        )))
+                        .copied()
+                        .unwrap_or(BYTE_ZEROED_IMPORT),
+                );
                 self.output.push(0x21);
                 write_u32(self.output, local);
                 Ok(Value::Scalar {
@@ -6673,7 +6744,15 @@ impl Emitter<'_> {
                 self.get_scalar(&values[1]);
                 self.get_scalar(&values[2]);
                 self.output.push(0x10);
-                write_u32(self.output, BYTE_SET_IMPORT);
+                write_u32(
+                    self.output,
+                    self.function_indexes
+                        .get(&FunctionExecutionId::Monomorphic(DeclarationId::new(
+                            crate::byte_ops::SET_ID,
+                        )))
+                        .copied()
+                        .unwrap_or(BYTE_SET_IMPORT),
+                );
                 self.output.push(0x21);
                 write_u32(self.output, local);
                 Ok(Value::Scalar {

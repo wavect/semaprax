@@ -1,4 +1,5 @@
 mod tables;
+use super::profile::{PROJECT_FILESYSTEM_CAPABILITIES_V1, PROJECT_PROFILE_FILESYSTEM_IO_V1};
 
 pub use tables::{
     ManifestLayout, PackageDependency, PackageDependencySource, RustDependency, MAX_DEPENDENCIES,
@@ -52,6 +53,7 @@ pub const PROJECT_SCHEMA_V11: &str = "semaprax.project.v11";
 /// Additive Project Manifest v12 schema for bounded language network commands.
 pub const PROJECT_SCHEMA_V12: &str = "semaprax.project.v12";
 /// Additive Project Manifest v13 schema for bounded HTTPS commands.
+pub const PROJECT_SCHEMA_V14: &str = "semaprax.project.v14";
 pub const PROJECT_SCHEMA_V13: &str = "semaprax.project.v13";
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 pub const MAX_NAME_BYTES: usize = 64;
@@ -636,6 +638,48 @@ impl ProjectManifest {
                         parse_array_assignment(lines[10], "tests")?,
                     )
                 }
+                PROJECT_SCHEMA_V14 => {
+                    if lines.len() != 11 || lines.last() != Some(&"") {
+                        return Err(grammar(
+                            "Project v14 manifest must contain exactly ten ordered assignments and one terminal LF",
+                        ));
+                    }
+                    let version = parse_string_assignment(lines[2], "version")?;
+                    if !valid_semver(&version) {
+                        return Err(grammar(
+                            "Project v14 version must be canonical Semantic Versioning text of at most 128 bytes",
+                        ));
+                    }
+                    if parse_string_assignment(lines[3], "profile")?
+                        != PROJECT_PROFILE_FILESYSTEM_IO_V1
+                    {
+                        return Err(grammar("Project v14 profile is not filesystem-io.v1"));
+                    }
+                    let command = parse_string_assignment(lines[7], "command")?;
+                    let capabilities = parse_array_assignment(lines[8], "capabilities")?;
+                    if !capabilities
+                        .iter()
+                        .map(String::as_str)
+                        .eq(PROJECT_FILESYSTEM_CAPABILITIES_V1)
+                    {
+                        return Err(grammar(
+                            "Project v14 capabilities must be exactly [\"fs.read\", \"fs.write\"]",
+                        ));
+                    }
+                    (
+                        PROJECT_SCHEMA_V14,
+                        parse_string_assignment(lines[1], "name")?,
+                        Some(version),
+                        ProjectProfile::FilesystemIoV1,
+                        parse_string_assignment(lines[4], "entry")?,
+                        parse_array_assignment(lines[5], "sources")?,
+                        parse_array_assignment(lines[6], "web_exports")?,
+                        Some(command),
+                        None,
+                        capabilities,
+                        parse_array_assignment(lines[9], "tests")?,
+                    )
+                }
                 _ => {
                     return Err(grammar(
                         "Project manifest schema is neither semaprax.manifest.v1 nor an admitted semaprax.project.v1-v13 frozen schema",
@@ -658,6 +702,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V11 => "Project v11",
             PROJECT_SCHEMA_V12 => "Project v12",
             PROJECT_SCHEMA_V13 => "Project v13",
+            PROJECT_SCHEMA_V14 => "Project v14",
             _ => unreachable!("schema was selected by the closed parser"),
         };
         if !valid_name(&name) {
@@ -722,6 +767,7 @@ impl ProjectManifest {
         }
         if web_exports.is_empty()
             && !(schema == PROJECT_SCHEMA_V8 && profile == ProjectProfile::OwnedDataApiV1)
+            && profile != ProjectProfile::FilesystemIoV1
         {
             return Err(grammar(format!(
                 "{version_label} requires 1..=32 explicit web export identities"
@@ -738,8 +784,9 @@ impl ProjectManifest {
         }
         if let Some(command) = &command {
             if !valid_stable_id(command)
-                || web_exports.len() != 1
-                || web_exports.first() != Some(command)
+                || (profile == ProjectProfile::FilesystemIoV1 && !web_exports.is_empty())
+                || (profile != ProjectProfile::FilesystemIoV1
+                    && (web_exports.len() != 1 || web_exports.first() != Some(command)))
             {
                 return Err(grammar(format!(
                     "{version_label} web_exports must contain exactly the command stable ID"
@@ -1094,6 +1141,8 @@ impl ProjectManifest {
                 render_array(&self.web_exports),
                 self.test_module,
             )
+        } else if self.schema == PROJECT_SCHEMA_V14 {
+            format!("schema = \"{PROJECT_SCHEMA_V14}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = []\ncommand = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n", self.name, self.package_version.as_deref().unwrap(), self.profile.name().unwrap(), self.entry, render_array(&self.sources), self.command.as_deref().unwrap(), render_array(&self.capabilities), self.test_module)
         } else if self.schema == PROJECT_SCHEMA_V11 {
             format!(
                 "schema = \"{PROJECT_SCHEMA_V11}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",

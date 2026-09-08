@@ -227,9 +227,16 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
                 library.path.display(),
                 function.name
             );
-            assert!(
-                function.effects.is_empty(),
-                "{}: `{}` declares effects, but this package is listed on all three effect-free targets",
+            let expected_effects: Vec<String> =
+                match (package.module.as_str(), function.stable_id.as_str()) {
+                    ("std.fs", "std.fs.read") => vec!["fs.read".into()],
+                    ("std.fs", "std.fs.write-new") => vec!["fs.write".into()],
+                    _ => vec![],
+                };
+            assert_eq!(
+                function.effects,
+                expected_effects,
+                "{}: `{}` declares an unexpected effect inventory",
                 library.path.display(),
                 function.name
             );
@@ -266,9 +273,17 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
             "{}: examples module imports nothing from the library",
             library.path.display()
         );
-        assert!(
-            library.program.permits.is_empty(),
-            "{}: portable library declarations carry no ambient capabilities",
+        let expected_permits: Vec<String> = if package.module == "std.fs" {
+            assert_eq!(package.tier, "hosted");
+            assert_eq!(required_consumer_profile(&package), "filesystem-io.v1");
+            vec!["fs.read".into(), "fs.write".into()]
+        } else {
+            vec![]
+        };
+        assert_eq!(
+            library.program.permits,
+            expected_permits,
+            "{}: library declarations must carry exactly their admitted capabilities",
             library.path.display()
         );
     }
@@ -644,6 +659,10 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
     assert!(!selected.is_empty());
     let scratch = temporary("lanes");
     for package in selected {
+        if package.module == "std.fs" {
+            filesystem::run_conformance();
+            continue;
+        }
         let manifest = root()
             .join("std")
             .join(&package.directory)
@@ -1456,3 +1475,6 @@ mod io_cursors;
 
 #[path = "standard_library/typed_paths.rs"]
 mod typed_paths;
+
+#[path = "standard_library/filesystem.rs"]
+mod filesystem;

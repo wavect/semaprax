@@ -1,3 +1,4 @@
+pub(crate) use super::filesystem::{graph_schema, graph_schema_from_parts_and_instances};
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{
     StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
@@ -264,7 +265,7 @@ fn parts_use_iterator(
 }
 
 // Frozen workspace source metadata retains its versioned pre-v34 contract.
-pub(crate) fn graph_schema_from_parts_and_instances(
+pub(super) fn pre_filesystem_schema_from_parts(
     interfaces: &[crate::hir::ResolvedInterface],
     types: &[crate::hir::ResolvedTypeDeclaration],
     functions: &[ResolvedFunction],
@@ -361,7 +362,9 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     )
 }
 
-pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
+pub(super) fn pre_filesystem_graph_schema(
+    program: &ResolvedProgram,
+) -> Result<&'static str, Diagnostic> {
     let iterator_schema = iterator_loop_schema(
         program.functions.iter().chain(
             program
@@ -536,6 +539,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v38"
             | "semaprax.graph.v39"
             | "semaprax.graph.v40"
+            | "semaprax.graph.v41"
     )
 }
 
@@ -556,6 +560,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v38"
             | "semaprax.graph.v39"
             | "semaprax.graph.v40"
+            | "semaprax.graph.v41"
     )
 }
 
@@ -574,6 +579,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v38"
             | "semaprax.graph.v39"
             | "semaprax.graph.v40"
+            | "semaprax.graph.v41"
     )
 }
 

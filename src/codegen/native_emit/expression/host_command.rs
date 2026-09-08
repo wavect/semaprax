@@ -22,7 +22,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ResolvedExprKind::HostCommandCall(call) => {
                 use hir::ResolvedHostCommandOperation as Operation;
 
-                if !self.output_profile.is_language_command() {
+                if !self.output_profile.is_language_command()
+                    && self.output_profile != NativeOutputProfile::FilesystemCommandIo
+                {
                     return Err(backend_error(
                         "command I/O operation requires the native language-command profile",
                     ));
@@ -41,6 +43,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     | Operation::NetStreamStdout
                     | Operation::NetWait
                     | Operation::NetClose => self.emit_network_command_expr(expr, call)?,
+                    Operation::FileRead | Operation::FileWriteNew => {
+                        self.emit_filesystem_command_expr(expr, call)?
+                    }
                     Operation::HttpsGet => self.emit_https_command_expr(expr, call)?,
                     Operation::NetTlsConnect
                     | Operation::NetListen
@@ -212,6 +217,87 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 .ok_or_else(|| backend_error("https_get has no canonical owned result transfer"))?
                 .to_owned(),
             ty: ResolvedType::Bytes,
+        })
+    }
+
+    /// Lower one callback-backed filesystem operation. The generated helper
+    /// is the sole path to host authority; semantic C receives neither a path
+    /// API nor a filesystem context directly.
+    fn emit_filesystem_command_expr(
+        &mut self,
+        expr: &ResolvedExpr,
+        call: &hir::ResolvedHostCommandCall,
+    ) -> Result<CValue, Diagnostic> {
+        use crate::filesystem_ops as ops;
+        use hir::ResolvedHostCommandOperation as Operation;
+
+        if self.output_profile != NativeOutputProfile::FilesystemCommandIo
+            || !ops::is_filesystem(call.operation)
+        {
+            return Err(backend_error(
+                "filesystem operation requires the native filesystem-command profile",
+            ));
+        }
+        let name = ops::name(call.operation);
+        if call.args.len() != ops::arity(call.operation) {
+            return Err(backend_error(format!("{name} arity disagrees with HIR")));
+        }
+        let mut staged = Vec::with_capacity(call.args.len());
+        for (index, argument) in call.args.iter().enumerate() {
+            let value = self.emit_expr(argument)?;
+            let expected = if ops::accepts_resolved(call.operation, index, &ResolvedType::SliceU8) {
+                ResolvedType::SliceU8
+            } else {
+                ResolvedType::Usize
+            };
+            self.require_type(&value.ty, &expected, &format!("{name} argument {index}"))?;
+            staged.push(value.code);
+        }
+        let helper = match call.operation {
+            Operation::FileRead => "spx_host_file_read_v1",
+            Operation::FileWriteNew => "spx_host_file_write_new_v1",
+            _ => unreachable!("filesystem operation membership was checked above"),
+        };
+        let arguments = staged.join(", ");
+        if call.operation == Operation::FileRead {
+            let plan = self
+                .bytes_plan
+                .ok_or_else(|| backend_error("file_read owned result has no cleanup plan"))?;
+            let temporary = plan
+                .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                .to_owned();
+            self.line(&format!(
+                "spx_status = {helper}(spx_ctx, {arguments}, &{temporary});"
+            ));
+            self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+            let transitions = plan.apply_at(&expr.id)?;
+            for line in transitions.lines() {
+                self.line(line);
+            }
+            return Ok(CValue {
+                code: plan
+                    .result_at(&expr.id)
+                    .ok_or_else(|| {
+                        backend_error("file_read has no canonical owned result transfer")
+                    })?
+                    .to_owned(),
+                ty: ResolvedType::Bytes,
+            });
+        }
+        let temporary = self.temporary(&ResolvedType::Usize)?;
+        self.line(&format!(
+            "spx_status = {helper}(spx_ctx, {arguments}, &{temporary});"
+        ));
+        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        if let Some(plan) = self.bytes_plan {
+            let transitions = plan.apply_at(&expr.id)?;
+            for line in transitions.lines() {
+                self.line(line);
+            }
+        }
+        Ok(CValue {
+            code: temporary,
+            ty: ResolvedType::Usize,
         })
     }
 

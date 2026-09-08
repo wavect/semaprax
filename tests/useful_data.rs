@@ -30,6 +30,13 @@ mod command_v1;
 mod command_v2;
 #[path = "useful_data/config_validator_project.rs"]
 mod config_validator_project;
+#[path = "useful_data/filesystem_interpreter.rs"]
+mod filesystem_interpreter;
+#[cfg(unix)]
+#[path = "useful_data/filesystem_io_native.rs"]
+mod filesystem_io_native;
+#[path = "useful_data/filesystem_ops_wasm.rs"]
+mod filesystem_ops_wasm;
 #[path = "useful_data/interpreter.rs"]
 mod interpreter;
 #[path = "useful_data/language_command_io_native.rs"]

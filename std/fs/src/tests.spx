@@ -1,0 +1,41 @@
+module std.fs.tests;
+use type @id("std.path.value.path") from std.path.value as Path;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.path.value.from-bytes") from std.path.value as path_from_bytes;
+use function @id("std.fs.read") from std.fs as read;
+use function @id("std.fs.write-new") from std.fs as write_new;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
+use function @id("std.io.reader.peek") from std.io as reader_peek;
+use function @id("std.io.reader.advance") from std.io as reader_advance;
+use function @id("std.io.reader.remaining") from std.io as reader_remaining;
+
+permit { fs.read, fs.write }
+
+@id("std.fs.tests.empty")
+fn empty_file() -> bool
+    uses { fs.read, fs.write }
+{
+    let path = path_from_bytes(bytes_set(bytes_zeroed(1usize), 0usize, 101u8));
+    let written = write_new(path, writer_from_bytes(bytes_zeroed(4usize)));
+    let next_path = path_from_bytes(bytes_set(bytes_zeroed(1usize), 0usize, 101u8));
+    let reader = read(next_path, 0usize);
+    written == 0usize && reader_remaining(reader) == 0usize
+}
+
+@id("std.fs.tests.prefix")
+fn logical_prefix() -> bool
+    uses { fs.write }
+{
+    let backing = bytes_set(bytes_set(bytes_zeroed(3usize), 0usize, 112u8), 2usize, 255u8);
+    let path = Path { data: backing, length: 1usize };
+    let writer = writer_write_u8(writer_from_bytes(bytes_zeroed(2usize)), 65u8);
+    write_new(path, writer) == 1usize
+}
+
+@id("std.fs.tests.main")
+fn main() -> i64
+{
+    0
+}

@@ -60,14 +60,17 @@
 
 mod api_admission;
 mod closures;
+mod command_state;
 mod expression_children;
 mod failure_detail;
+pub(crate) mod filesystem;
 mod function_values;
 mod generic_owned;
 pub mod internal_strings;
 mod iterator;
 mod nested_owned;
 pub(crate) mod network;
+use command_state::CommandInputState;
 mod owned_box;
 mod owned_buffer;
 mod owned_try;
@@ -3041,6 +3044,7 @@ pub(crate) fn evaluate_resolved_language_command(
         stdin: Arc::from(stdin),
         stdin_consumed: false,
         network: None,
+        filesystem: None,
     };
     let mut evaluator = Evaluator {
         admitted: FunctionLookup::Borrowed(&admitted),
@@ -3517,13 +3521,6 @@ struct Evaluator<'a> {
     trace_identities: BTreeMap<String, Arc<str>>,
     trace_phase: ResolvedTracePhase,
     failure_detail: Option<ContractFailureDetail>,
-}
-
-struct CommandInputState<'a> {
-    network: Option<network::NetworkState<'a>>,
-    arguments: Vec<Arc<[u8]>>,
-    stdin: Arc<[u8]>,
-    stdin_consumed: bool,
 }
 
 use function_values::{evaluate_resolved_entry, evaluate_resolved_entry_with_utf8_budget};
@@ -4105,6 +4102,9 @@ impl Evaluator<'_> {
             ResolvedExprKind::HostCommandCall(call) => {
                 use hir::ResolvedHostCommandOperation as Operation;
                 match call.operation {
+                    Operation::FileRead | Operation::FileWriteNew => {
+                        self.evaluate_filesystem_operation(call, environment, depth)
+                    }
                     Operation::NetConnect
                     | Operation::NetSend
                     | Operation::NetRecv

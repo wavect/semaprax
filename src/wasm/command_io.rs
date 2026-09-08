@@ -30,6 +30,8 @@ pub(super) fn prepare(
         super::network_io::check_permits(&program.permits)?;
     } else if operation_profile == crate::command_io_ops::CommandOperationProfile::HttpV1 {
         super::http_io::check_permits(&program.permits)?;
+    } else if operation_profile == crate::command_io_ops::CommandOperationProfile::FilesystemV1 {
+        super::filesystem_ops::check_permits(&program.permits)?;
     } else if program.permits
         != [
             crate::command_io_ops::ARGS_READ_EFFECT,
@@ -80,6 +82,10 @@ impl CommandPlan {
         self.operation_profile == crate::command_io_ops::CommandOperationProfile::HttpV1
     }
 
+    pub(super) fn is_filesystem_command(&self) -> bool {
+        self.operation_profile == crate::command_io_ops::CommandOperationProfile::FilesystemV1
+    }
+
     /// Command imports, plus the network imports appended after them for the
     /// network profile only.
     pub(super) fn import_count(&self) -> u32 {
@@ -87,6 +93,8 @@ impl CommandPlan {
             IMPORT_COUNT + super::network_io::IMPORT_COUNT
         } else if self.is_http_command() {
             IMPORT_COUNT + super::http_io::IMPORT_COUNT
+        } else if self.is_filesystem_command() {
+            IMPORT_COUNT + super::filesystem_ops::IMPORT_COUNT
         } else {
             IMPORT_COUNT
         }
@@ -123,6 +131,8 @@ pub(super) fn emit_wrapper_body(target_index: u32, plan: &CommandPlan) -> Vec<u8
         super::network_io::emit_reset(&mut body);
     } else if plan.is_http_command() {
         super::http_io::emit_reset(&mut body);
+    } else if plan.is_filesystem_command() {
+        super::filesystem_ops::emit_reset(&mut body);
     }
     body.extend([0x23, 0x00, 0x22]);
     write_u32(&mut body, OLD_STACK);

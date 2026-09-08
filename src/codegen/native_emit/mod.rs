@@ -24,10 +24,12 @@ use std::fmt::Write as _;
 mod closure;
 mod compiler;
 mod expression;
+mod filesystem_io;
 mod function_value;
 mod generic_record;
 mod generic_variant;
 mod http_io;
+mod literals;
 mod nested_owned;
 mod network_io;
 mod output_profile;
@@ -42,7 +44,9 @@ pub(super) use compiler::{
     write_compile_and_publish_c, write_compile_and_publish_c_with_curl,
     write_compile_and_publish_c_with_threads,
 };
+pub use filesystem_io::{emit_c_with_filesystem_io, emit_hir_c_with_filesystem_io};
 pub use http_io::{emit_c_with_https_io, emit_hir_c_with_https_io};
+pub(super) use literals::c_string;
 use nested_owned::{borrowed_aggregate_byte_paths, borrowed_aggregate_path_suffix};
 pub use network_io::{emit_c_with_network_io, emit_hir_c_with_network_io};
 pub(super) use output_profile::NativeOutputProfile;
@@ -97,6 +101,8 @@ pub(super) fn emit_hir_c_with_labels(
     }
     if output_profile == NativeOutputProfile::NetworkCommandIo {
         network_io::emit_runtime(&mut output, program);
+    } else if output_profile == NativeOutputProfile::FilesystemCommandIo {
+        filesystem_io::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::HttpsCommandIo {
         http_io::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::LineCommandIo {
@@ -172,6 +178,8 @@ pub(super) fn emit_hir_c_with_labels(
         if output_profile == NativeOutputProfile::NetworkCommandIo {
             network_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);
+        } else if output_profile == NativeOutputProfile::FilesystemCommandIo {
+            filesystem_io::emit_runner(&mut output, symbol);
         } else if output_profile == NativeOutputProfile::HttpsCommandIo {
             http_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);
@@ -2448,22 +2456,4 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             )))
         }
     }
-}
-
-pub(super) fn c_string(value: &str) -> String {
-    let mut escaped = crate::bounded_output::CappedString::new();
-    for byte in value.as_bytes() {
-        match *byte {
-            b'\\' => escaped.push_str("\\\\"),
-            b'"' => escaped.push_str("\\\""),
-            b'\n' => escaped.push_str("\\n"),
-            b'\r' => escaped.push_str("\\r"),
-            b'\t' => escaped.push_str("\\t"),
-            b'?' | 0x00..=0x1f | 0x7f..=0xff => {
-                write!(escaped, "\\{byte:03o}").expect("writing to a string cannot fail");
-            }
-            value => escaped.push(char::from(value)),
-        }
-    }
-    escaped.into_string()
 }

@@ -591,6 +591,11 @@ pub(super) fn byte_capacity_expression(
                                 site: expression.id.as_str().to_owned(),
                                 source: byte_slice_transcript_source(program, &call.args[0]),
                             })
+                        } else if call.operation == ResolvedHostCommandOperation::FileRead {
+                            Some(CapacityFlow::BytesCopy {
+                                site: expression.id.as_str().to_owned(),
+                                conservative_payload_bytes: crate::filesystem_ops::MAX_FILE_BYTES,
+                            })
                         } else if call.operation == ResolvedHostCommandOperation::NetRecv {
                             // One bounded network read is an owned-byte
                             // allocation site with the conservative chunk

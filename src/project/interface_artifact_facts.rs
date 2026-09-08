@@ -334,7 +334,8 @@ fn derive_source_interface(
         | ProjectProfile::LanguageCommandIoV1
         | ProjectProfile::LineCommandIoV1
         | ProjectProfile::NetworkCommandIoV1
-        | ProjectProfile::HttpsCommandIoV1 => return Ok(None),
+        | ProjectProfile::HttpsCommandIoV1
+        | ProjectProfile::FilesystemIoV1 => return Ok(None),
     };
     let canonical_bytes = String::from_utf8(bytes)
         .map_err(|_| invalid("compiler-owned interface descriptor is not canonical UTF-8"))?;

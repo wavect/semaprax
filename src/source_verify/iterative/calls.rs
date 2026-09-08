@@ -195,7 +195,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         | crate::hir::ResolvedHostCommandOperation::StderrAppend => {
                             ParamMode::Value
                         }
-                        network => match crate::network_io_ops::result_ownership(network) {
+                        operation => match crate::command_io_ops::result_ownership(operation) {
                             crate::hir::OwnershipMode::Own => ParamMode::Own,
                             _ => ParamMode::Value,
                         },

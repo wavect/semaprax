@@ -1065,6 +1065,26 @@ fn decode_base64_quad(first: u8, second: u8, third: u8, fourth: u8) -> i64
     ensures result >= -1 && result <= 16777215
 ```
 
+## `std.fs`
+
+Package `std/fs`, tier `hosted`, status partial. Required project profile: `filesystem-io.v1`. Dependency: `std.fs = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.fs.read`
+
+```semaprax
+fn read(path: own Path, max: usize) -> Reader
+    uses { fs.read }
+    requires path_valid(path)
+```
+
+### `std.fs.write-new`
+
+```semaprax
+fn write_new(path: own Path, writer: own Writer) -> usize
+    uses { fs.write }
+    requires path_valid(path)
+```
+
 ## `std.http`
 
 Package `std/http`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.http = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

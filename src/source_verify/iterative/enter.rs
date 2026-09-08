@@ -634,10 +634,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 | crate::hir::ResolvedHostCommandOperation::StderrAppend => {
                                     ParamMode::Value
                                 }
-                                network => match crate::network_io_ops::result_ownership(network) {
-                                    crate::hir::OwnershipMode::Own => ParamMode::Own,
-                                    _ => ParamMode::Value,
-                                },
+                                operation => {
+                                    match crate::command_io_ops::result_ownership(operation) {
+                                        crate::hir::OwnershipMode::Own => ParamMode::Own,
+                                        _ => ParamMode::Value,
+                                    }
+                                }
                             },
                             native_unit: false,
                         },

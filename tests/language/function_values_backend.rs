@@ -71,6 +71,7 @@ fn function_table_index_uses_signed_i32_immediates() {
         let output = Command::new("node")
             .arg(script)
             .arg(&root)
+            .arg("64")
             .output()
             .unwrap();
         assert!(

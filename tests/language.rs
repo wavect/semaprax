@@ -138,3 +138,6 @@ mod function_values;
 mod function_values_backend;
 #[path = "language/function_values_runtime.rs"]
 mod function_values_runtime;
+
+#[path = "language/function_values_generic.rs"]
+mod function_values_generic;

@@ -91,7 +91,11 @@ impl Resolver<'_> {
         let Some(binding) = bindings.get(name) else {
             return Ok(None);
         };
-        if !is_signature(&binding.ty) {
+        if !is_signature(&binding.ty)
+            && !function
+                .monomorphic_declaration()
+                .is_some_and(|owner| super::super::generic_collection::callback(&binding.ty, owner))
+        {
             return Err(error("called binding is not an admitted function value"));
         }
         Ok(Some(ResolvedExpr {
@@ -126,6 +130,34 @@ pub(in crate::hir) fn finish(
         },
         span,
     };
-    validate_invocation(&expr)?;
+    super::validate_invocation_scoped(&expr, function.monomorphic_declaration())?;
     Ok(expr)
+}
+
+impl Resolver<'_> {
+    pub(in crate::hir) fn resolve_generic_callable_type(
+        &self,
+        function: &crate::ast::Function,
+        parameters: &[Type],
+        result: &Type,
+        span: crate::ast::Span,
+    ) -> Result<ResolvedType, Diagnostic> {
+        let ty = ResolvedType::Function {
+            parameters: parameters
+                .iter()
+                .map(|ty| self.resolve_function_type(function, ty, span))
+                .collect::<Result<_, _>>()?,
+            result: Box::new(self.resolve_function_type(function, result, span)?),
+        };
+        if !is_signature(&ty)
+            && !(function.type_parameters.len() == 1
+                && super::super::generic_collection::callback(
+                    &ty,
+                    &DeclarationId::new(&function.stable_id),
+                ))
+        {
+            return Err(error("invalid scoped callable signature"));
+        }
+        Ok(ty)
+    }
 }

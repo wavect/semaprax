@@ -60,6 +60,11 @@ fn expressions(root: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
         out.push(expression);
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => pending.extend(args),
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.push(callable);
+                pending.extend(args);
+            }
+            ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(&call.args),
             ResolvedExprKind::Unary { value, .. }

@@ -1096,6 +1096,9 @@ impl Resolver<'_> {
         ty: &Type,
         span: Span,
     ) -> Result<ResolvedType, Diagnostic> {
+        if let Type::Function { parameters, result } = ty {
+            return self.resolve_generic_callable_type(function, parameters, result, span);
+        }
         let Type::Named { name, arguments } = ty else {
             return self.resolve_type(ty, span);
         };

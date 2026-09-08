@@ -2,6 +2,9 @@
 
 Status: implementation in progress; no hosted or public ABI support claim.
 
+Audience: language users, compiler contributors, backend implementers, and
+workspace-service authors.
+
 This additive LANG-07 foundation supplies noncapturing function values for
 subsequent closures and iterator adapters. It does not complete those milestones.
 
@@ -102,12 +105,19 @@ executable checks pass; hosted claims require the exact published commit.
 
 ## Batch verification status
 
-Local focused validation passed seven language/runtime cases, including required
-C11 O0/O2 and Node execution, and eight HIR/graph hostile cases. Subsequent
-Wasm table-index and workspace semantic-program additions await revalidation.
-Workspace fixtures now canonicalize their temporary directory to satisfy the
-real-directory ancestor contract on macOS. Deep or large callback fixtures
-exposed a frontend stack overflow that remains under investigation. Full gates
-and hosted validation have not been run for this batch. Captures, iterator
-adapters, owned aggregate composition, and public callable ABI remain outside
-this initial implementation.
+The combined v1/v2 language selector passes 15 local cases, including required
+C11 O0/O2 and Node execution, the signed table-index boundary, lexical binding
+precedence, generic template hostility, and owned-export argument snapshots.
+Two additional adapter runtime corpora pass on interpreter, native O0/O2 and
+Core Wasm, checking all eight scalar types, empty input, selection/fold order,
+callback failure and balanced owner settlement. Eight library hostile cases and four workspace checks pass, including v3
+ordinary/mixed callable bodies and v4 retained unused generic callback templates.
+Comment-only edits preserve semantic identity while changing the exact-source
+ProgramRoot.
+
+The flat 65-target source corpus passes without stack overflow; the supplied
+deep source reproductions reject with the documented SPX-P207 nesting bound.
+Full gates and hosted validation have not been run for this batch. Captures,
+iterator interfaces and public callable ABI remain unfinished. See
+[Function Values v2](FUNCTION-VALUES-V2.md) for the private generic callback
+profile and its remaining boundaries.

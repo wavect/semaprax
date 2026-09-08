@@ -6,7 +6,7 @@ use super::*;
 // reuses the private owned-data planner.
 use crate::wasm::internal_strings::error;
 use crate::wasm::internal_strings::Export;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 pub(super) const LITERAL_IMPORT: u32 = 0;
 pub(super) const CLONE_IMPORT: u32 = 1;
@@ -211,6 +211,8 @@ pub(in crate::wasm) fn emit(
             program,
             function,
             &function_indexes,
+            &HashMap::new(),
+            &HashMap::new(),
             &layouts,
             None,
             None,

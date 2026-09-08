@@ -721,7 +721,11 @@ fn validate_wire_shape(value: &Value) -> Result<(), Vec<Diagnostic>> {
                 || (key == "semantic_program"
                     && matches!(
                         node_value.get("schema").and_then(Value::as_str),
-                        Some(SemanticProgram::SCHEMA_V2 | SemanticProgram::SCHEMA_V3)
+                        Some(
+                            SemanticProgram::SCHEMA_V2
+                                | SemanticProgram::SCHEMA_V3
+                                | SemanticProgram::SCHEMA_V4
+                        )
                     )))
         {
             return Err(invalid(

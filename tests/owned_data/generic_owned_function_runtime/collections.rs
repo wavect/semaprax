@@ -43,7 +43,11 @@ fn run_profile(mode: u32) {
         "@id(\"app.main\") fn main()->i64{{{}}}",
         calls.join("+")
     ));
-    let parsed = semaprax::check(&source, "generic-collections-runtime.spx").unwrap();
+    run_source(&source, mode);
+}
+
+pub(super) fn run_source(source: &str, mode: u32) {
+    let parsed = semaprax::check(source, "generic-collections-runtime.spx").unwrap();
     let canonical = semaprax::format::canonical(&parsed);
     let reparsed = semaprax::check(&canonical, "generic-collections-canonical.spx").unwrap();
     assert_eq!(canonical, semaprax::format::canonical(&reparsed));
@@ -52,8 +56,9 @@ fn run_profile(mode: u32) {
     let graph = semaprax::graph::to_json(&parsed).unwrap();
     semaprax::graph::verify_json(&parsed, &graph).unwrap();
     let root = std::env::temp_dir().join(format!(
-        "semaprax-generic-collections-{}",
-        std::process::id()
+        "semaprax-generic-collections-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
     ));
     std::fs::create_dir_all(&root).unwrap();
     let expected = match mode {
@@ -61,7 +66,7 @@ fn run_profile(mode: u32) {
         1 => Expected::Failure("semaprax.contract.v1", 1, "SEMAPRAX contract failure"),
         _ => Expected::Failure("semaprax.vec.v1", 1, "bounded Vec capacity failure"),
     };
-    run_interpreter_source("generic collections", &source, expected);
+    run_interpreter_source("generic collections", source, expected);
     run_native_collections(&parsed, expected);
     let core_wasm = wasm::emit_module(&parsed).unwrap();
     for payload in wasmparser::Parser::new(0).parse_all(&core_wasm) {

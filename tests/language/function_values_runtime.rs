@@ -8,6 +8,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use semaprax::interpreter::{self, InterpreterOptions};
 use semaprax::{codegen, format, parse, verify, wasm};
 
+#[path = "function_values_owned_runtime.rs"]
+mod function_values_owned_runtime;
+
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 const SOURCE: &str = r#"

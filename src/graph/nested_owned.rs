@@ -181,7 +181,11 @@ pub(crate) fn graph_schema_from_parts_and_instances(
 ) -> Result<&'static str, Diagnostic> {
     if functions
         .iter()
+        .chain(function_instances.iter().map(|instance| &instance.function))
         .any(crate::hir::function_value::function_uses_value)
+        || function_templates
+            .iter()
+            .any(crate::hir::function_value::template_uses_value)
     {
         return Ok("semaprax.graph.v36");
     }

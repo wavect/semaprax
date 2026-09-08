@@ -141,6 +141,22 @@ impl Resolver<'_> {
     /// calls, strings, unsafe boundaries, generic calls, non-scalar calls)
     /// is rejected fail-closed so loop cleanup stays edge-free.
     pub(super) fn reject_while_disallowed(&self, expression: &Expr) -> Result<(), Diagnostic> {
+        self.reject_while_disallowed_scoped(expression, None)
+    }
+    pub(super) fn reject_while_disallowed_scoped(
+        &self,
+        expression: &Expr,
+        execution: Option<&FunctionExecutionId>,
+    ) -> Result<(), Diagnostic> {
+        let generic = execution
+            .and_then(FunctionExecutionId::monomorphic_declaration)
+            .and_then(|owner| {
+                self.program
+                    .functions
+                    .iter()
+                    .find(|f| f.stable_id == owner.as_str())
+            })
+            .filter(|f| crate::source_verify::generic_collection_profile(f));
         enum Item<'a> {
             Expression(&'a Expr),
             Statement(&'a Statement),
@@ -235,7 +251,7 @@ impl Resolver<'_> {
                     if let Some(operation) = vec_operation {
                         if !operation.admitted_in_while()
                             || type_arguments.len() != 1
-                            || !crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
+                            || !(crate::vec_ops::ast_element_is_admitted(&type_arguments[0]) || generic.is_some_and(|f| matches!(&type_arguments[0], Type::Named { name, arguments } if arguments.is_empty() && f.type_parameters.iter().any(|parameter| parameter.name == *name))))
                             || args.len() != operation.arity()
                         {
                             return Err(self.error(

@@ -963,3 +963,6 @@ mod authored_variants;
 
 #[path = "generic_owned_function_runtime/inference.rs"]
 mod inference;
+
+#[path = "generic_owned_function_runtime/function_values.rs"]
+mod function_values;

@@ -352,7 +352,8 @@ pub(super) fn validate_type(
                 ty,
                 &template.id,
                 template.type_parameters.len(),
-            ) || super::super::generic_collection::scalar(ty)))
+            ) || super::super::generic_collection::scalar(ty)
+                || super::super::generic_collection::callback(ty, &template.id)))
         || (super::super::generic_result::profile(template)
             && (super::super::generic_result::slot(
                 ty,
@@ -718,4 +719,177 @@ impl HirValidator<'_> {
             (false, false),
         )
     }
+}
+
+impl HirValidator<'_> {
+    pub(super) fn validate_template_callable(
+        &mut self,
+        template: &ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        expression: &ResolvedExpr,
+        values: &mut BTreeMap<ValueId, ResolvedType>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        if !super::super::generic_collection::profile(template) {
+            return Err(hir_error(
+                "callable templates require the bounded generic collection profile",
+            ));
+        }
+        match &expression.kind {
+            ResolvedExprKind::FunctionReference { target } => {
+                super::super::function_value::validate_reference(
+                    self.program,
+                    target,
+                    &expression.ty,
+                )
+            }
+            ResolvedExprKind::Invoke { callable, args } => {
+                super::super::function_value::validate_invocation_scoped(
+                    expression,
+                    Some(&template.id),
+                )?;
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    callable,
+                    values,
+                    &format!("{path}.callable"),
+                )?;
+                for (index, argument) in args.iter().enumerate() {
+                    self.validate_template_expr(
+                        template,
+                        execution,
+                        argument,
+                        values,
+                        &format!("{path}.arg.{index}"),
+                    )?;
+                }
+                Ok(())
+            }
+            _ => Err(hir_error("expected generic callable expression")),
+        }
+    }
+    pub(super) fn while_callable_arguments<'e>(
+        &self,
+        expression: &'e ResolvedExpr,
+    ) -> Result<Vec<&'e ResolvedExpr>, Diagnostic> {
+        match &expression.kind {
+            ResolvedExprKind::FunctionReference { target } => {
+                super::super::function_value::validate_reference(
+                    self.program,
+                    target,
+                    &expression.ty,
+                )?;
+                Ok(Vec::new())
+            }
+            ResolvedExprKind::Invoke { args, .. } => {
+                super::super::function_value::validate_invocation(expression)?;
+                Ok(args.iter().collect())
+            }
+            _ => Err(hir_error("expected bounded while callable")),
+        }
+    }
+}
+
+impl HirValidator<'_> {
+    pub(super) fn validate_template_mutation(
+        &mut self,
+        template: &ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        statement: &ResolvedStatement,
+        values: &mut BTreeMap<ValueId, ResolvedType>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        if !super::super::generic_collection::profile(template) {
+            return Err(hir_error(
+                "generic mutation requires the bounded collection profile",
+            ));
+        }
+        match statement {
+            ResolvedStatement::Assign {
+                binding,
+                field,
+                value,
+                ..
+            } => {
+                if field.is_some()
+                    || !template_mutable_binding(template, binding)
+                    || values.get(&binding.id) != Some(&binding.ty)
+                    || binding.ty != value.ty
+                    || binding.ownership != template_ownership(self.program, template, &binding.ty)
+                {
+                    return Err(hir_error(
+                        "generic collection assignment has invalid target or type",
+                    ));
+                }
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    value,
+                    values,
+                    &format!("{path}.value"),
+                )
+            }
+            ResolvedStatement::While {
+                condition, body, ..
+            } => {
+                if condition.ty != ResolvedType::Bool
+                    || !matches!(body.kind, ResolvedExprKind::Block { .. })
+                {
+                    return Err(hir_error(
+                        "generic collection loop requires bool condition and block body",
+                    ));
+                }
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    condition,
+                    &mut values.clone(),
+                    &format!("{path}.condition"),
+                )?;
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    body,
+                    &mut values.clone(),
+                    &format!("{path}.body"),
+                )
+            }
+            _ => Err(hir_error("expected generic collection mutation")),
+        }
+    }
+}
+
+fn template_mutable_binding(
+    template: &ResolvedFunctionTemplate,
+    binding: &ResolvedBinding,
+) -> bool {
+    let mut pending = vec![&template.body];
+    let mut matched = false;
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Block { statements, .. } = &expression.kind {
+            for statement in statements {
+                if let ResolvedStatement::Let {
+                    binding: declared,
+                    mutable,
+                    ..
+                } = statement
+                {
+                    if declared.id == binding.id {
+                        if matched
+                            || !mutable
+                            || declared.name != binding.name
+                            || declared.ty != binding.ty
+                            || declared.ownership != binding.ownership
+                        {
+                            return false;
+                        }
+                        matched = true;
+                    }
+                }
+            }
+        }
+        super::super::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    matched
 }

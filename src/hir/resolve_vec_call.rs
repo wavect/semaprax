@@ -51,6 +51,7 @@ fn resolve_element(
 
 pub(super) fn validate_whole_assignment(
     resolver: &Resolver<'_>,
+    execution: &FunctionExecutionId,
     target: &ResolvedBinding,
     value: &ResolvedExpr,
 ) -> Result<(), Diagnostic> {
@@ -66,6 +67,7 @@ pub(super) fn validate_whole_assignment(
         ));
     }
     if (value.ownership != OwnershipMode::Value || !is_scalar_resolved_type(&value.ty))
+        && !scoped_collection_assignment(resolver, execution, target, value)
         && !crate::vec_ops::is_same_owner_reassignment_hir_source(
             resolver.program,
             value,
@@ -220,4 +222,44 @@ pub(super) fn resolve_reference(
     let mut resolved = finish(resolver, function, path, span, op, element, args)?;
     resolved.id = id;
     Ok(resolved)
+}
+
+fn scoped_collection_assignment(
+    resolver: &Resolver<'_>,
+    execution: &FunctionExecutionId,
+    target: &ResolvedBinding,
+    value: &ResolvedExpr,
+) -> bool {
+    let Some(owner) = execution.monomorphic_declaration() else {
+        return false;
+    };
+    if !resolver.program.functions.iter().any(|f| {
+        f.stable_id == owner.as_str() && crate::source_verify::generic_collection_profile(f)
+    }) {
+        return false;
+    }
+    if value.ownership == OwnershipMode::Value
+        && super::generic_collection::parameter(&value.ty, owner)
+    {
+        return true;
+    }
+    if !super::generic_collection::slot(&value.ty, owner, 1)
+        || value.ownership != OwnershipMode::Own
+    {
+        return false;
+    }
+    let ResolvedExprKind::Call {
+        callee,
+        type_arguments,
+        instance,
+        args,
+    } = &value.kind
+    else {
+        return false;
+    };
+    instance.is_none()
+        && crate::vec_ops::by_id(callee.as_str())
+            .is_some_and(|op| op.reopens_same_owner() && args.len() == op.arity())
+        && matches!(type_arguments.as_slice(), [argument] if super::generic_collection::parameter(argument, owner))
+        && matches!(&args[0].kind, ResolvedExprKind::Place(place) if place.root == target.id && place.projections.is_empty())
 }

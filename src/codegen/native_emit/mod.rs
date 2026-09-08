@@ -602,7 +602,12 @@ fn program_uses_borrowed_str(program: &ResolvedProgram, include_instances: bool)
 /// arithmetic that lowers through the u8 runtime helpers.
 fn program_uses_u8_arithmetic(program: &ResolvedProgram) -> bool {
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
-    for function in &program.functions {
+    for function in program.functions.iter().chain(
+        program
+            .function_instances
+            .iter()
+            .map(|instance| &instance.function),
+    ) {
         pending.push(&function.body);
         for contract in function.requires.iter().chain(&function.ensures) {
             pending.push(contract);
@@ -629,7 +634,12 @@ fn program_uses_u8_arithmetic(program: &ResolvedProgram) -> bool {
 
 fn program_uses_usize_arithmetic(program: &ResolvedProgram) -> bool {
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
-    for function in &program.functions {
+    for function in program.functions.iter().chain(
+        program
+            .function_instances
+            .iter()
+            .map(|instance| &instance.function),
+    ) {
         pending.push(&function.body);
         pending.extend(function.requires.iter());
         pending.extend(function.ensures.iter());

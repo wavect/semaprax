@@ -389,3 +389,66 @@ edits while exact source and root replay remain distinct. Both are selected by
 the independent GEN-05B Linux job; its successful exact-commit hosted result is
 recorded in the [owning evidence status](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md).
 This targeted result does not promote the complete canonical-workspace surface.
+
+## Additive semantic-program node v3: checked callable closures
+
+A retained Project selects
+`semaprax.semantic-workspace-revision.semantic-program.v3` when at least one
+retained `entry`, `public_api`, or `tests` program requires Function Values v1.
+The v3 payload keeps the v1 normalized-source and prelude facts and appends
+`checked_callable_closures`; it does not add function-valued public descriptors
+or grant a workspace graph execution authority. Projects with no function
+values retain their selected v1 or v2 node and exact bytes.
+
+`checked_callable_closures` is an array in fixed `entry`, `public_api`, `tests`
+role order, omitting roles that have neither callable facts nor generic
+instances. Every item has exactly these keys in canonical order:
+
+```text
+defining_revision,defining_revision_kind,graph,role
+```
+
+`defining_revision_kind` is the literal `"normalized_project_semantics"` and
+`defining_revision` is the existing length-framed digest under
+`semaprax.generic-instance-program-revision.v1\0` of canonical JSON containing
+the original semantic-program payload as `semantic_source` and the canonical
+Project manifest as `manifest`. `graph` is the complete canonical graph JSON
+string, not a nested reinterpreted JSON object. A callable closure contains
+exact `"schema":"semaprax.graph.v36"` bytes. Its Function Values facts use
+the exact graph strings `"kind":"function_reference"`,
+`"kind":"invoke"`, `"candidate_targets"`, and the top-level
+`"function_value_targets"`; declaration IDs and canonical callable-signature
+strings remain inside those retained graph bytes. A role that combines generic
+instances and function values has one Graph v36 string in this array; v3 does
+not emit `generic_instance_closures` beside it.
+
+The selected node digest uses
+`semaprax.semantic-workspace-revision.semantic-program.digest.v3\0` and the
+existing length-framed digest algorithm. ProgramRoot binds the selected schema,
+exact node bytes, and digest. Workspace and ProgramRoot replay rebuild every
+closure from the retained Project, so a different function target, candidate
+set, graph string, root, or raw-source pairing is rejected even if supplied
+with self-consistent replacement digests. As with v1 and v2, these canonical
+objects are descriptive checked projections and confer neither execution nor
+publication authority.
+
+## Omitted callable source templates: semantic-program v4
+
+When a checked source module contains callable-bearing generic templates omitted
+from every executable role closure, semantic-program v4 additionally retains
+`checked_source_callable_closures`. Each entry binds a stable source path, sorted
+omitted template identities, and Graph v36 replayed through the same checked
+workspace synthetic-source resolver and call-edge verification used by Phase A.
+These source graphs preserve checked template signatures and bodies without
+adding uncalled templates to executable entry, public API, or test closures.
+
+The defining revision is marked `normalized_source_workspace`. Canonical AST
+reparse removes comment trivia and its span shifts before this source graph is
+resolved. SourceProjection still binds exact original source bytes. Thus comment
+edits preserve checked semantic-program facts while changing ProgramRoot's exact
+source association. No source graph confers filesystem or execution authority.
+
+Only a nonempty omitted-callable source closure selects the v4 schema and digest
+domain. Existing v1/v2 and ordinary or mixed callable v3 documents preserve their
+bytes. V4 retains the existing checked role graph list alongside the additional
+source closure list, with bounded builder and combined source-graph output work.

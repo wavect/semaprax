@@ -19,6 +19,7 @@ mod package;
 mod prelude_binding;
 mod project_render;
 mod retained_validation;
+pub(crate) mod source_callables;
 use crate::ast::{
     Expr, ExprKind, Function, ModuleUse, ModuleUseKind, ParamMode, Program, Span, Type,
     TypeDeclaration, TypeDeclarationKind,

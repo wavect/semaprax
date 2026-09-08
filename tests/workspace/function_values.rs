@@ -36,7 +36,7 @@ module fixture.app;
             let parsed = semaprax::parse(text, root.join(path)).unwrap();
             std::fs::write(root.join(path), semaprax::format::canonical(&parsed)).unwrap();
         }
-        std::fs::write(root.join("semaprax.toml"),"schema = \"semaprax.manifest.v1\"\n[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n[modules]\nentry = \"fixture.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"fixture.tests\"]\n[exports]\nweb = [\"fixture.public\"]\n").unwrap();
+        std::fs::write(root.join("semaprax.toml"),"schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"fixture.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"fixture.tests\"]\n\n[exports]\nweb = [\"fixture.public\"]\n").unwrap();
         Self { root, source }
     }
     fn revision(&self) -> Arc<ProjectRevision> {
@@ -155,4 +155,130 @@ fn internal_function_values_changed_target_rejects_cross_paired_roots() {
         second_root.to_json().as_bytes()
     )
     .is_err());
+}
+
+#[test]
+fn internal_function_values_and_generic_instances_share_one_checked_closure() {
+    let fixture = Fixture::new("decrement");
+    let source = fixture
+        .source
+        .replace("callback(41)", "callback(identity<i64>(41))")
+        + "\n@id(\"fixture.identity\") fn identity<T>(value:T)->T {value}\n";
+    let path = fixture.root.join("src/app.spx");
+    let checked = semaprax::check(&source, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&checked)).unwrap();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let payload: serde_json::Value =
+        serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    let closures = payload["payload"]["checked_callable_closures"]
+        .as_array()
+        .unwrap();
+    let entry = closures
+        .iter()
+        .find(|closure| closure["role"] == "entry")
+        .unwrap();
+    let graph: serde_json::Value = serde_json::from_str(entry["graph"].as_str().unwrap()).unwrap();
+    assert_eq!(graph["schema"], "semaprax.graph.v36");
+    assert!(!revision.entry_program().function_instances.is_empty());
+    let graph_text = entry["graph"].as_str().unwrap();
+    assert!(graph_text.contains("fixture.identity"));
+    assert!(graph_text.contains("candidate_targets"));
+    assert_eq!(
+        payload["schema"],
+        "semaprax.semantic-workspace-revision.semantic-program.v3"
+    );
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
+}
+
+#[test]
+fn internal_function_values_uninstantiated_template_retains_v36_source_metadata() {
+    let fixture = Fixture::new("increment");
+    let source = r#"
+module fixture.app;
+@id("fixture.unused") fn unused<T>(values:own Vec<T>,callback:fn(T)->T)->T {
+    vec_get<T>(values,0usize)
+}
+@id("fixture.main") fn main()->i64 {0}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+    let path = fixture.root.join("src/app.spx");
+    let checked = semaprax::check(source, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&checked)).unwrap();
+    let revision = fixture.revision();
+    assert!(revision.entry_program().function_instances.is_empty());
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    assert_eq!(
+        workspace.semantic_program().schema(),
+        "semaprax.semantic-workspace-revision.semantic-program.v4"
+    );
+    assert!(workspace
+        .semantic_program()
+        .to_json()
+        .contains("semaprax.graph.v36"));
+    let semantic: serde_json::Value =
+        serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    let source_closures = semantic["payload"]["checked_source_callable_closures"]
+        .as_array()
+        .unwrap();
+    assert_eq!(source_closures.len(), 1);
+    assert_eq!(source_closures[0]["path"], "src/app.spx");
+    assert_eq!(
+        source_closures[0]["omitted_callable_templates"],
+        serde_json::json!(["fixture.unused"])
+    );
+    let source_graph: serde_json::Value =
+        serde_json::from_str(source_closures[0]["graph"].as_str().unwrap()).unwrap();
+    assert_eq!(source_graph["schema"], "semaprax.graph.v36");
+    assert_eq!(
+        semaprax::project::SemanticWorkspaceRevision::replay(
+            &revision,
+            workspace.workspace_revision(),
+            workspace.to_json().as_bytes()
+        )
+        .unwrap(),
+        workspace
+    );
+    std::fs::write(
+        &path,
+        format!(
+            "// projection-only comment\n{}",
+            semaprax::format::canonical(&checked)
+        ),
+    )
+    .unwrap();
+    let commented_revision = fixture.revision();
+    let commented = commented_revision.canonical_workspace_revision().unwrap();
+    assert_eq!(
+        workspace.semantic_program().digest(),
+        commented.semantic_program().digest()
+    );
+    assert_eq!(workspace.semantic_digest(), commented.semantic_digest());
+    assert_ne!(
+        workspace.source_projection_digest(),
+        commented.source_projection_digest()
+    );
+    assert_ne!(
+        workspace.program_root().unwrap().program_root_digest(),
+        commented.program_root().unwrap().program_root_digest()
+    );
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
 }

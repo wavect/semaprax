@@ -120,3 +120,44 @@ fn function_values_have_no_implicit_pointer_equality() {
     let errors = semaprax::check(&source, "function-equality.spx").unwrap_err();
     assert!(errors.iter().any(|e| e.code == "SPX-T207"), "{errors:?}");
 }
+
+#[test]
+fn function_values_keep_a_wide_flat_reference_universe_without_recursive_source_shape() {
+    let targets = (0..=64)
+        .map(|index| {
+            format!("@id(\"fv.wide.{index:02}\") fn target_{index:02}(value:i64)->i64{{{index}}}")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    let references = (0..64)
+        .map(|index| format!("let retained_{index:02}=target_{index:02};"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let source = format!(
+        "module test.function_values_wide;\n{targets}\n@id(\"fv.choose\") fn choose()->fn(i64)->i64{{{references} target_64}}\n@id(\"fv.apply\") fn apply(callback:fn(i64)->i64,value:i64)->i64{{callback(value)}}\n@id(\"app.main\") fn main()->i64{{let callback=choose(); apply(callback,0)}}\n"
+    );
+    let (_, resolved) = checked(&source);
+    assert_eq!(hir::function_value::target_universe(&resolved).len(), 65);
+}
+
+#[test]
+fn function_values_lexical_scalar_shadow_never_becomes_a_function_reference() {
+    let source = r#"
+module test.function_values_scope;
+@id("fv.inc") fn inc(value:i64)->i64{value+1}
+@id("fv.chosen") fn chosen(value:i64)->i64{value-1}
+@id("fv.apply") fn apply(callback:fn(i64)->i64,value:i64)->i64{callback(value)}
+@id("fv.shadow") fn shadow(inc:i64, callback:fn(i64)->i64)->i64{
+  if true { callback(inc) } else { callback(inc) }
+}
+@id("app.main") fn main()->i64{let callback=chosen; shadow(41,callback)}
+"#;
+    let (_, resolved) = checked(source);
+    assert_eq!(
+        hir::function_value::target_universe(&resolved)
+            .iter()
+            .map(|function| function.id.as_str())
+            .collect::<Vec<_>>(),
+        ["fv.chosen"],
+    );
+}

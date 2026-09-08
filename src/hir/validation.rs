@@ -1221,7 +1221,7 @@ impl<'a> HirValidator<'a> {
         }
         match &expression.kind {
             ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
-                return Err(hir_error("function values are outside generic templates"))
+                self.validate_template_callable(template, execution, expression, values, path)?
             }
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
@@ -1359,11 +1359,13 @@ impl<'a> HirValidator<'a> {
                             self.insert_value(&binding.id)?;
                             block_values.insert(binding.id.clone(), binding.ty.clone());
                         }
-                        ResolvedStatement::Assign { .. } => {
-                            return Err(hir_error(
-                                "generic template statements cannot assign to local bindings",
-                            ));
-                        }
+                        ResolvedStatement::Assign { .. } => self.validate_template_mutation(
+                            template,
+                            execution,
+                            statement,
+                            &mut block_values,
+                            &statement_path,
+                        )?,
                         ResolvedStatement::Unsafe { body, .. } => {
                             self.validate_template_expr(
                                 template,
@@ -1373,9 +1375,13 @@ impl<'a> HirValidator<'a> {
                                 &format!("{statement_path}.body"),
                             )?;
                         }
-                        ResolvedStatement::While { .. } => {
-                            return Err(hir_error("generic templates cannot contain while loops"));
-                        }
+                        ResolvedStatement::While { .. } => self.validate_template_mutation(
+                            template,
+                            execution,
+                            statement,
+                            &mut block_values,
+                            &statement_path,
+                        )?,
                     }
                 }
                 self.validate_template_expr_with_context(
@@ -1514,9 +1520,12 @@ impl<'a> HirValidator<'a> {
             };
             match &expression.kind {
                 ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
-                    return Err(hir_error(
-                        "function values are outside bounded while profile",
-                    ))
+                    pending.extend(
+                        self.while_callable_arguments(expression)?
+                            .into_iter()
+                            .rev()
+                            .map(Item::Expression),
+                    );
                 }
                 ResolvedExprKind::Int(_)
                 | ResolvedExprKind::Int32(_)

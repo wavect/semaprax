@@ -18,6 +18,8 @@ impl SemanticProgram {
 
     pub const SCHEMA_V3: &'static str = "semaprax.semantic-workspace-revision.semantic-program.v3";
 
+    pub const SCHEMA_V4: &'static str = "semaprax.semantic-workspace-revision.semantic-program.v4";
+
     pub(super) fn derive(
         revision: &ProjectRevision,
         mut payload: Value,
@@ -60,7 +62,33 @@ impl SemanticProgram {
                 "graph": graph,
             }));
         }
-        let (schema, domain): (&str, &[u8]) = if has_callable_closure {
+        let retained_templates = [
+            revision.entry_program(),
+            revision.public_api_program(),
+            revision.test_program(),
+        ]
+        .into_iter()
+        .flat_map(|program| {
+            program
+                .function_templates
+                .iter()
+                .map(|template| template.id.as_str().to_owned())
+        })
+        .collect();
+        let source_closures =
+            crate::workspace_graph::source_callables::checked_source_callable_closures(
+                revision.sources(),
+                &retained_templates,
+                &defining_revision,
+            )?;
+        let (schema, domain): (&str, &[u8]) = if !source_closures.is_empty() {
+            payload["checked_callable_closures"] = json!(closures);
+            payload["checked_source_callable_closures"] = json!(source_closures);
+            (
+                Self::SCHEMA_V4,
+                b"semaprax.semantic-workspace-revision.semantic-program.digest.v4\0",
+            )
+        } else if has_callable_closure {
             payload["checked_callable_closures"] = json!(closures);
             (
                 Self::SCHEMA_V3,

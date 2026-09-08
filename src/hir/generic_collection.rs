@@ -12,6 +12,10 @@ pub(crate) fn slot(ty: &ResolvedType, owner: &DeclarationId, count: usize) -> bo
 pub(crate) fn parameter(ty: &ResolvedType, owner: &DeclarationId) -> bool {
     matches!(ty, ResolvedType::TypeParameter { owner: parameter_owner, index: 0 } if parameter_owner == owner)
 }
+pub(crate) fn callback(ty: &ResolvedType, owner: &DeclarationId) -> bool {
+    let leaf = |ty: &ResolvedType| scalar(ty) || parameter(ty, owner);
+    matches!(ty, ResolvedType::Function { parameters, result } if parameters.len() <= 8 && parameters.iter().all(leaf) && leaf(result))
+}
 pub(crate) fn profile(template: &ResolvedFunctionTemplate) -> bool {
     let slot = |ty: &ResolvedType| slot(ty, &template.id, template.type_parameters.len());
     let copy = |ty: &ResolvedType| scalar(ty) || parameter(ty, &template.id);
@@ -25,7 +29,8 @@ pub(crate) fn profile(template: &ResolvedFunctionTemplate) -> bool {
         && (slot(&template.return_type) || copy(&template.return_type))
         && template.params.iter().all(|p| {
             (slot(&p.ty) && p.ownership == OwnershipMode::Own)
-                || (copy(&p.ty) && p.ownership == OwnershipMode::Value)
+                || ((copy(&p.ty) || callback(&p.ty, &template.id))
+                    && p.ownership == OwnershipMode::Value)
         })
 }
 pub(crate) fn arguments(arguments: &[ResolvedType]) -> bool {
@@ -37,6 +42,7 @@ pub(crate) fn concrete_signature(function: &super::ResolvedFunction) -> bool {
         && (carrier(&function.return_type) || scalar(&function.return_type))
         && function.params.iter().all(|p| {
             (carrier(&p.ty) && p.ownership == OwnershipMode::Own)
-                || (scalar(&p.ty) && p.ownership == OwnershipMode::Value)
+                || ((scalar(&p.ty) || super::function_value::is_signature(&p.ty))
+                    && p.ownership == OwnershipMode::Value)
         })
 }

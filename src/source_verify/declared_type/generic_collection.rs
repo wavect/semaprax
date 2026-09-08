@@ -6,6 +6,16 @@ pub(in crate::source_verify) fn slot(function: &Function, ty: &Type) -> bool {
     };
     matches!(ty, Type::Named { name, arguments } if matches!(name.as_str(), "Box" | "Vec") && matches!(arguments.as_slice(), [Type::Named { name, arguments }] if name == &parameter.name && arguments.is_empty()))
 }
+pub(in crate::source_verify) fn callback(function: &Function, ty: &Type) -> bool {
+    let [parameter] = function.type_parameters.as_slice() else {
+        return false;
+    };
+    let leaf = |ty: &Type| {
+        function_value_scalar_type(ty)
+            || matches!(ty, Type::Named { name, arguments } if name == &parameter.name && arguments.is_empty())
+    };
+    matches!(ty, Type::Function { parameters, result } if parameters.len() <= 8 && parameters.iter().all(leaf) && leaf(result))
+}
 pub(crate) fn profile(function: &Function) -> bool {
     let [parameter] = function.type_parameters.as_slice() else {
         return false;
@@ -22,6 +32,6 @@ pub(crate) fn profile(function: &Function) -> bool {
     uses && (slot(function, &function.return_type) || copy(&function.return_type))
         && function.params.iter().all(|p| {
             (slot(function, &p.ty) && p.mode == ParamMode::Own)
-                || (copy(&p.ty) && p.mode == ParamMode::Value)
+                || ((copy(&p.ty) || callback(function, &p.ty)) && p.mode == ParamMode::Value)
         })
 }

@@ -34,16 +34,17 @@ pub(crate) fn substitute_type(
     enum Frame<'a> {
         Enter(&'a ResolvedType),
         Finish(&'a DeclarationId, usize),
+        FinishCallable(usize),
     }
     let mut frames = vec![Frame::Enter(template)];
     let mut resolved = Vec::new();
     while let Some(frame) = frames.pop() {
         match frame {
             Frame::Enter(template) => match template {
-                ResolvedType::Function { .. } => {
-                    return Err(hir_error(
-                        "function values are outside generic substitution",
-                    ))
+                ResolvedType::Function { parameters, result } => {
+                    frames.push(Frame::FinishCallable(parameters.len()));
+                    frames.push(Frame::Enter(result));
+                    frames.extend(parameters.iter().rev().map(Frame::Enter));
                 }
                 ResolvedType::Unit => resolved.push(ResolvedType::Unit),
                 ResolvedType::I64 => resolved.push(ResolvedType::I64),
@@ -89,6 +90,20 @@ pub(crate) fn substitute_type(
                     frames.extend(arguments.iter().rev().map(Frame::Enter));
                 }
             },
+            Frame::FinishCallable(count) => {
+                let result = resolved
+                    .pop()
+                    .ok_or_else(|| hir_error("incomplete callable substitution"))?;
+                let split = resolved
+                    .len()
+                    .checked_sub(count)
+                    .ok_or_else(|| hir_error("incomplete callable parameters"))?;
+                let parameters = resolved.drain(split..).collect();
+                resolved.push(ResolvedType::Function {
+                    parameters,
+                    result: Box::new(result),
+                });
+            }
             Frame::Finish(declaration, count) => {
                 let split = resolved
                     .len()
@@ -118,13 +133,18 @@ pub(super) fn substitute_source_function_type(
     enum Frame<'a> {
         Enter(&'a Type),
         Finish(&'a str, usize),
+        FinishCallable(usize),
     }
     let mut frames = vec![Frame::Enter(template)];
     let mut resolved = Vec::new();
     while let Some(frame) = frames.pop() {
         match frame {
             Frame::Enter(template) => match template {
-                Type::Function { .. } => return None,
+                Type::Function { parameters, result } => {
+                    frames.push(Frame::FinishCallable(parameters.len()));
+                    frames.push(Frame::Enter(result));
+                    frames.extend(parameters.iter().rev().map(Frame::Enter));
+                }
                 Type::I64 => resolved.push(Type::I64),
                 Type::I32 => resolved.push(Type::I32),
                 Type::Char => resolved.push(Type::Char),
@@ -156,6 +176,15 @@ pub(super) fn substitute_source_function_type(
                     frames.extend(nested.iter().rev().map(Frame::Enter));
                 }
             },
+            Frame::FinishCallable(count) => {
+                let result = resolved.pop()?;
+                let split = resolved.len().checked_sub(count)?;
+                let parameters = resolved.drain(split..).collect();
+                resolved.push(Type::Function {
+                    parameters,
+                    result: Box::new(result),
+                });
+            }
             Frame::Finish(name, count) => {
                 let split = resolved.len().checked_sub(count)?;
                 let arguments = resolved.drain(split..).collect();
@@ -321,11 +350,33 @@ pub(super) fn materialize_template_expr(
     path: &str,
 ) -> Result<ResolvedExpr, Diagnostic> {
     let kind = match &expression.kind {
-        ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
-            return Err(hir_error(
-                "function values are outside generic substitution",
-            ))
-        }
+        ResolvedExprKind::FunctionReference { target } => ResolvedExprKind::FunctionReference {
+            target: target.clone(),
+        },
+        ResolvedExprKind::Invoke { callable, args } => ResolvedExprKind::Invoke {
+            callable: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                callable,
+                values,
+                &format!("{path}.callable"),
+            )?),
+            args: args
+                .iter()
+                .enumerate()
+                .map(|(index, arg)| {
+                    materialize_template_expr(
+                        template,
+                        arguments,
+                        execution,
+                        arg,
+                        values,
+                        &format!("{path}.arg.{index}"),
+                    )
+                })
+                .collect::<Result<_, _>>()?,
+        },
         ResolvedExprKind::Int(value) => ResolvedExprKind::Int(*value),
         ResolvedExprKind::Int32(value) => ResolvedExprKind::Int32(*value),
         ResolvedExprKind::Char(value) => ResolvedExprKind::Char(*value),
@@ -519,13 +570,68 @@ pub(super) fn materialize_template_expr(
                             span: *span,
                         });
                     }
-                    ResolvedStatement::Assign { .. } => {
-                        return Err(hir_error(
-                            "generic template statements cannot assign to local bindings",
-                        ));
+                    ResolvedStatement::Assign {
+                        binding,
+                        field,
+                        value,
+                        span,
+                    } => {
+                        if !super::generic_collection::profile(template) || field.is_some() {
+                            return Err(hir_error(
+                                "generic mutation requires the bounded collection profile",
+                            ));
+                        }
+                        materialized.push(ResolvedStatement::Assign {
+                            binding: ResolvedBinding {
+                                id: block_values.get(&binding.id).cloned().ok_or_else(|| {
+                                    hir_error("generic assignment target is out of scope")
+                                })?,
+                                name: binding.name.clone(),
+                                ownership: binding.ownership,
+                                ty: substitute_type(&binding.ty, &template.id, arguments)?,
+                                span: binding.span,
+                            },
+                            field: None,
+                            value: materialize_template_expr(
+                                template,
+                                arguments,
+                                execution,
+                                value,
+                                &block_values,
+                                &format!("{statement_path}.value"),
+                            )?,
+                            span: *span,
+                        });
                     }
-                    ResolvedStatement::While { .. } => {
-                        return Err(hir_error("generic templates cannot contain while loops"));
+                    ResolvedStatement::While {
+                        condition,
+                        body,
+                        span,
+                    } => {
+                        if !super::generic_collection::profile(template) {
+                            return Err(hir_error(
+                                "generic loops require the bounded collection profile",
+                            ));
+                        }
+                        materialized.push(ResolvedStatement::While {
+                            condition: Box::new(materialize_template_expr(
+                                template,
+                                arguments,
+                                execution,
+                                condition,
+                                &block_values,
+                                &format!("{statement_path}.condition"),
+                            )?),
+                            body: Box::new(materialize_template_expr(
+                                template,
+                                arguments,
+                                execution,
+                                body,
+                                &block_values,
+                                &format!("{statement_path}.body"),
+                            )?),
+                            span: *span,
+                        });
                     }
                     ResolvedStatement::Unsafe { audit, body, span } => {
                         let body = materialize_template_expr(

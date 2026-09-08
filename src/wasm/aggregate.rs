@@ -7,6 +7,13 @@ use std::collections::{BTreeMap, HashMap};
 
 mod collect_block;
 mod expressions;
+mod function_value;
+#[cfg(test)]
+use function_value::hex_identity;
+pub(in crate::wasm) use function_value::{
+    box_import_base, program_uses_owned_buffer, vec_import_base,
+};
+use function_value::{executable_functions, hex_execution_identity, program_uses_byte_range};
 mod generic_record;
 mod generic_variant;
 mod http_io;
@@ -15,7 +22,6 @@ mod nested_owned;
 mod network_io;
 mod owned_stack;
 mod owned_strings;
-
 pub(super) fn owned_arena_capacity(
     program: &ResolvedProgram,
     roots: &[crate::hir::DeclarationId],
@@ -55,35 +61,6 @@ const BYTE_AS_SLICE_IMPORT: u32 = SCALAR_IMPORT_COUNT + 3;
 const BYTE_ZEROED_IMPORT: u32 = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT;
 const BYTE_SET_IMPORT: u32 = BYTE_ZEROED_IMPORT + 1;
 const OWNED_UTF8_LITERAL_BASE: u32 = 196_608;
-
-fn vec_import_base(program: &ResolvedProgram) -> u32 {
-    SCALAR_IMPORT_COUNT
-        + if super::program_uses_byte_data(program) {
-            BYTE_IMPORT_COUNT
-        } else {
-            0
-        }
-        + if program_uses_owned_buffer(program) {
-            OWNED_BUFFER_IMPORT_COUNT
-        } else {
-            0
-        }
-}
-
-fn box_import_base(program: &ResolvedProgram) -> u32 {
-    vec_import_base(program)
-        + if super::program_uses_vec(program) {
-            VEC_IMPORT_COUNT
-        } else {
-            0
-        }
-        + if super::vec_ops::program_uses_extended_vec(program) {
-            EXTENDED_VEC_IMPORT_COUNT
-        } else {
-            0
-        }
-}
-
 #[derive(Default)]
 struct OwnedUtf8Literals {
     offsets: HashMap<String, u32>,
@@ -226,6 +203,8 @@ struct FunctionPlan {
     aggregate_expressions: HashMap<ExpressionId, u32>,
     aggregate_bindings: HashMap<ValueId, u32>,
     call_out: HashMap<ExpressionId, u32>,
+    function_callables: HashMap<ExpressionId, u32>,
+    function_arguments: HashMap<ExpressionId, u32>,
     range_descriptors: HashMap<ExpressionId, u32>,
     range_scratch: Option<RangeScratch>,
     cleanup_flags: std::collections::BTreeMap<crate::cleanup::LivenessFlagId, u32>,
@@ -438,6 +417,8 @@ impl FunctionPlan {
             aggregate_expressions: HashMap::new(),
             aggregate_bindings: HashMap::new(),
             call_out: HashMap::new(),
+            function_callables: HashMap::new(),
+            function_arguments: HashMap::new(),
             range_descriptors: HashMap::new(),
             range_scratch,
             cleanup_flags,
@@ -546,7 +527,9 @@ impl FunctionPlan {
             }
             if matches!(
                 expr.kind,
-                ResolvedExprKind::Call { .. } | ResolvedExprKind::HostCommandCall(_)
+                ResolvedExprKind::Call { .. }
+                    | ResolvedExprKind::HostCommandCall(_)
+                    | ResolvedExprKind::Invoke { .. }
             ) {
                 let (size, align) = scalar_size_align(&expr.ty)?;
                 self.call_out
@@ -571,15 +554,28 @@ impl FunctionPlan {
             ResolvedExprKind::Invoke { callable, args } => {
                 self.collect_expr(program, variant_layouts, callable, parameter_count, frame)?;
                 self.collect_exprs(program, variant_layouts, args, parameter_count, frame)?;
-                return Err(error(
-                    "function values require the Wasm core function-value emitter",
-                ));
+                let local = self.add_local(parameter_count, I32)?;
+                if self
+                    .function_callables
+                    .insert(expr.id.clone(), local)
+                    .is_some()
+                {
+                    return Err(error("aggregate function invocation scratch repeats"));
+                }
+                for argument in args {
+                    let local = self.add_local(parameter_count, scalar_wasm_type(&argument.ty)?)?;
+                    if self
+                        .function_arguments
+                        .insert(argument.id.clone(), local)
+                        .is_some()
+                    {
+                        return Err(error(
+                            "aggregate function invocation argument scratch repeats",
+                        ));
+                    }
+                }
             }
-            ResolvedExprKind::FunctionReference { .. } => {
-                return Err(error(
-                    "function values require the Wasm core function-value emitter",
-                ))
-            }
+            ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::Call { args, .. } => {
                 self.collect_exprs(program, variant_layouts, args, parameter_count, frame)?
             }
@@ -1164,6 +1160,7 @@ fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
         ResolvedType::Bool => Ok(I32),
+        ResolvedType::Function { .. } => Ok(I32),
         _ => Err(error(format!(
             "non-scalar type `{}` reached scalar aggregate lowering",
             ty.identity_key()
@@ -1209,6 +1206,7 @@ fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
         ResolvedType::F32 => Ok((4, 4)),
         ResolvedType::F64 => Ok((8, 8)),
         ResolvedType::Bool => Ok((4, 4)),
+        ResolvedType::Function { .. } => Ok((4, 4)),
         _ => Err(error(format!(
             "non-scalar type `{}` has no Wasm32 scalar layout",
             ty.identity_key()
@@ -1287,6 +1285,8 @@ pub(super) fn lower_selected_functions(
             program,
             function,
             &function_indexes,
+            &HashMap::new(),
+            &HashMap::new(),
             &variant_layouts,
             None,
             None,
@@ -1391,6 +1391,8 @@ pub(super) fn lower_selected_function_instances(
                 program,
                 &instance.function,
                 &function_indexes,
+                &HashMap::new(),
+                &HashMap::new(),
                 &variant_layouts,
                 None,
                 None,
@@ -1615,6 +1617,14 @@ fn emit_byte_exports_profile(
             &mut type_indexes,
         ));
     }
+    let function_value_plan = function_value::table_plan(program);
+    let function_type_indexes = function_value::type_indexes(
+        &function_value_plan.signatures,
+        &mut types,
+        &mut type_indexes,
+    )?;
+    let function_tables = function_value::table_indexes(&function_value_plan.targets)?;
+
     let mut wrapper_types = plans
         .iter()
         .map(|plan| {
@@ -1784,6 +1794,15 @@ fn emit_byte_exports_profile(
     }
     section(&mut module, 3, functions);
 
+    if !function_value_plan.signatures.is_empty() {
+        let mut tables = Vec::new();
+        write_u32(&mut tables, 1);
+        tables.extend([0x70, 0x01]);
+        write_u32(&mut tables, function_value_plan.targets.len() as u32);
+        write_u32(&mut tables, function_value_plan.targets.len() as u32);
+        section(&mut module, 4, tables);
+    }
+
     let mut memory = Vec::new();
     write_u32(&mut memory, 1);
     let base_memory_pages = if has_owned_utf8 {
@@ -1929,6 +1948,22 @@ fn emit_byte_exports_profile(
     }
     section(&mut module, 7, exports);
 
+    if !function_value_plan.signatures.is_empty() {
+        let mut elements = Vec::new();
+        write_u32(&mut elements, 1);
+        elements.extend([0x00, 0x41, 0x00, 0x0b]);
+        write_u32(&mut elements, function_value_plan.targets.len() as u32);
+        for target in &function_value_plan.targets {
+            let execution = function_value::execution_target(target);
+            write_u32(
+                &mut elements,
+                *function_indexes
+                    .get(&execution)
+                    .ok_or_else(|| error("aggregate function table target is not executable"))?,
+            );
+        }
+        section(&mut module, 9, elements);
+    }
     let mut code = Vec::new();
     let body_count = u32::try_from(
         executable_functions.len()
@@ -1955,6 +1990,8 @@ fn emit_byte_exports_profile(
             program,
             function,
             &function_indexes,
+            &function_tables,
+            &function_type_indexes,
             &variant_layouts,
             host_output.then_some(super::host_output::DATA_GLOBALS),
             range_bindings.as_ref(),
@@ -2038,70 +2075,6 @@ fn emit_byte_exports_profile(
 /// Every body a module lowers: the monomorphic closure in canonical order,
 /// then each checked generic instance under its generic execution identity. A
 /// template is never executable.
-fn executable_functions(
-    program: &ResolvedProgram,
-) -> Vec<(&ResolvedFunction, FunctionExecutionId)> {
-    program
-        .functions
-        .iter()
-        .map(|function| {
-            (
-                function,
-                FunctionExecutionId::Monomorphic(function.id.clone()),
-            )
-        })
-        .chain(program.function_instances.iter().map(|instance| {
-            (
-                &instance.function,
-                FunctionExecutionId::Generic(instance.id.clone()),
-            )
-        }))
-        .collect()
-}
-
-fn program_uses_byte_range(program: &ResolvedProgram) -> bool {
-    program
-        .functions
-        .iter()
-        .chain(
-            program
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        )
-        .any(|function| {
-            // Record/variant matching selects v5/v6 even when the same function
-            // contains ranges. Replayed status sources retain the operation
-            // identity independently of the enclosing plan's schema.
-            function.cleanup_plan.status_sources.iter().any(|source| {
-                matches!(
-                    &source.producer,
-                    crate::cleanup_plan::StatusProducer::PropagatedCall { callee }
-                        if callee.as_str() == crate::byte_ops::RANGE_ID
-                )
-            })
-        })
-}
-
-pub(super) fn program_uses_owned_buffer(program: &ResolvedProgram) -> bool {
-    executable_functions(program).iter().any(|(function, _)| {
-        function
-            .requires
-            .iter()
-            .chain(std::iter::once(&function.body))
-            .chain(&function.ensures)
-            .any(|expression| {
-                let mut found = false;
-                crate::hir::visit_resolved_calls(expression, &mut |callee, instance, _| {
-                    found |= instance.is_none()
-                        && crate::byte_ops::by_id(callee.as_str())
-                            .is_some_and(crate::byte_ops::ByteOp::is_owned_buffer_chain);
-                });
-                found
-            })
-    })
-}
-
 fn emit_profile(
     program: &ResolvedProgram,
     test_exports: bool,
@@ -2331,6 +2304,13 @@ fn emit_profile_with_scalar_exports(
             &mut type_indexes,
         ));
     }
+    let function_value_plan = function_value::table_plan(program);
+    let function_type_indexes = function_value::type_indexes(
+        &function_value_plan.signatures,
+        &mut types,
+        &mut type_indexes,
+    )?;
+    let function_tables = function_value::table_indexes(&function_value_plan.targets)?;
     let wrapper_type = intern_type(
         Signature {
             params: Vec::new(),
@@ -2462,6 +2442,14 @@ fn emit_profile_with_scalar_exports(
         write_u32(&mut function_section, ty);
     }
     section(&mut module, 3, function_section);
+    if !function_value_plan.signatures.is_empty() {
+        let mut tables = Vec::new();
+        write_u32(&mut tables, 1);
+        tables.extend([0x70, 0x01]);
+        write_u32(&mut tables, function_value_plan.targets.len() as u32);
+        write_u32(&mut tables, function_value_plan.targets.len() as u32);
+        section(&mut module, 4, tables);
+    }
     let owned_utf8 = super::program_uses_strings(program);
     let mut utf8_literals = OwnedUtf8Literals::default();
     let mut memory = Vec::new();
@@ -2612,6 +2600,22 @@ fn emit_profile_with_scalar_exports(
     }
     section(&mut module, 7, exports);
 
+    if !function_value_plan.signatures.is_empty() {
+        let mut elements = Vec::new();
+        write_u32(&mut elements, 1);
+        elements.extend([0x00, 0x41, 0x00, 0x0b]);
+        write_u32(&mut elements, function_value_plan.targets.len() as u32);
+        for target in &function_value_plan.targets {
+            let execution = function_value::execution_target(target);
+            write_u32(
+                &mut elements,
+                *function_indexes
+                    .get(&execution)
+                    .ok_or_else(|| error("aggregate function table target is not executable"))?,
+            );
+        }
+        section(&mut module, 9, elements);
+    }
     let mut code = Vec::new();
     write_u32(
         &mut code,
@@ -2623,6 +2627,8 @@ fn emit_profile_with_scalar_exports(
             program,
             function,
             &function_indexes,
+            &function_tables,
+            &function_type_indexes,
             &variant_layouts,
             host_output.then_some(super::host_output::ROOT_GLOBALS),
             range_bindings.as_ref(),
@@ -2653,31 +2659,12 @@ fn emit_profile_with_scalar_exports(
     Ok(module)
 }
 
-fn hex_identity(id: &DeclarationId) -> String {
-    let mut output = String::new();
-    for byte in id.as_str().bytes() {
-        use std::fmt::Write as _;
-        write!(output, "{byte:02x}").expect("writing to String cannot fail");
-    }
-    output
-}
-
-fn hex_execution_identity(id: &FunctionExecutionId) -> String {
-    if let FunctionExecutionId::Monomorphic(declaration) = id {
-        return hex_identity(declaration);
-    }
-    let mut output = String::new();
-    for byte in id.identity_key().bytes() {
-        use std::fmt::Write as _;
-        write!(output, "{byte:02x}").expect("writing to String cannot fail");
-    }
-    output
-}
-
 fn emit_function(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     function_indexes: &HashMap<FunctionExecutionId, u32>,
+    function_tables: &HashMap<DeclarationId, u32>,
+    function_type_indexes: &HashMap<String, u32>,
     variant_layouts: &VariantLayoutCache,
     host_output: Option<super::host_output::Globals>,
     range_bindings: Option<&RangeBindings>,
@@ -2687,6 +2674,8 @@ fn emit_function(
         program,
         function,
         function_indexes,
+        function_tables,
+        function_type_indexes,
         variant_layouts,
         host_output,
         range_bindings,
@@ -2700,6 +2689,8 @@ fn emit_function_profile(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
     function_indexes: &HashMap<FunctionExecutionId, u32>,
+    function_tables: &HashMap<DeclarationId, u32>,
+    function_type_indexes: &HashMap<String, u32>,
     variant_layouts: &VariantLayoutCache,
     host_output: Option<super::host_output::Globals>,
     range_bindings: Option<&RangeBindings>,
@@ -2852,6 +2843,8 @@ fn emit_function_profile(
         function,
         variant_layouts,
         function_indexes,
+        function_tables,
+        function_type_indexes,
         plan: &plan,
         return_type: &function.return_type,
         cleanup_plan: &function.cleanup_plan,
@@ -3080,6 +3073,8 @@ struct Emitter<'a> {
     function: &'a ResolvedFunction,
     variant_layouts: &'a VariantLayoutCache,
     function_indexes: &'a HashMap<FunctionExecutionId, u32>,
+    function_tables: &'a HashMap<DeclarationId, u32>,
+    function_type_indexes: &'a HashMap<String, u32>,
     plan: &'a FunctionPlan,
     return_type: &'a ResolvedType,
     cleanup_plan: &'a crate::cleanup_plan::CleanupPlan,
@@ -4295,10 +4290,11 @@ impl Emitter<'_> {
 
     fn emit_complex_expr(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic> {
         match &expr.kind {
-            ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
-                return Err(error(
-                    "function values require the Wasm core function-value emitter",
-                ))
+            ResolvedExprKind::FunctionReference { target } => {
+                self.emit_function_reference(expr, target)
+            }
+            ResolvedExprKind::Invoke { callable, args } => {
+                self.emit_function_invoke(expr, callable, args)
             }
             ResolvedExprKind::Int(value) => {
                 let destination = self.plan.expr_scalar(expr)?;

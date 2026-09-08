@@ -149,8 +149,8 @@ pub(super) fn check_declared_type(
             } = ty
             {
                 if slots.len() > 8
-                    || !slots.iter().all(function_value_scalar_type)
-                    || !function_value_scalar_type(result)
+                    || !slots.iter().all(|ty| function_value_scalar_type(ty) || matches!(ty, Type::Named { name, arguments } if parameters.contains(name.as_str()) && arguments.is_empty()))
+                    || !(function_value_scalar_type(result) || matches!(result.as_ref(), Type::Named { name, arguments } if parameters.contains(name.as_str()) && arguments.is_empty()))
                 {
                     diagnostics.push(error(
                         program,

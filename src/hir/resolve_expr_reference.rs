@@ -904,7 +904,7 @@ impl Resolver<'_> {
                                 }
                                 None => {
                                     super::resolve_vec_call::validate_whole_assignment(
-                                        self, &target, &value,
+                                        self, function, &target, &value,
                                     )?;
                                 }
                             }
@@ -945,8 +945,8 @@ impl Resolver<'_> {
                             span,
                             ..
                         } => {
-                            self.reject_while_disallowed(condition)?;
-                            self.reject_while_disallowed(body)?;
+                            self.reject_while_disallowed_scoped(condition, Some(function))?;
+                            self.reject_while_disallowed_scoped(body, Some(function))?;
                             let resolved_condition = self.resolve_expr_recursive_reference(
                                 function,
                                 condition,

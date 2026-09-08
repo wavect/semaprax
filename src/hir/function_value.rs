@@ -39,7 +39,12 @@ pub(crate) fn walk<'a>(function: &'a ResolvedFunction, mut visit: impl FnMut(&'a
 }
 pub fn target_universe(program: &ResolvedProgram) -> Vec<&ResolvedFunction> {
     let mut ids = BTreeSet::new();
-    for f in &program.functions {
+    for f in program.functions.iter().chain(
+        program
+            .function_instances
+            .iter()
+            .map(|instance| &instance.function),
+    ) {
         walk(f, |e| {
             if let ResolvedExprKind::FunctionReference { target } = &e.kind {
                 ids.insert(target.clone());
@@ -64,19 +69,17 @@ pub fn compatible_targets<'a>(
         .collect()
 }
 pub fn requires_function_values(program: &ResolvedProgram) -> bool {
-    program.functions.iter().any(|f| {
-        let mut found = matches!(f.return_type, ResolvedType::Function { .. })
-            || f.params
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
                 .iter()
-                .any(|p| matches!(p.ty, ResolvedType::Function { .. }));
-        walk(f, |e| {
-            found |= matches!(
-                e.kind,
-                ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. }
-            )
-        });
-        found
-    })
+                .map(|instance| &instance.function),
+        )
+        .any(function_uses_value)
+        || program.function_templates.iter().any(template_uses_value)
 }
 pub(crate) fn validate_reference(
     program: &ResolvedProgram,
@@ -96,6 +99,12 @@ pub(crate) fn validate_reference(
     Ok(())
 }
 pub(crate) fn validate_invocation(expression: &ResolvedExpr) -> Result<(), Diagnostic> {
+    validate_invocation_scoped(expression, None)
+}
+pub(crate) fn validate_invocation_scoped(
+    expression: &ResolvedExpr,
+    owner: Option<&DeclarationId>,
+) -> Result<(), Diagnostic> {
     let ResolvedExprKind::Invoke { callable, args } = &expression.kind else {
         return Err(error("expected invocation"));
     };
@@ -103,7 +112,8 @@ pub(crate) fn validate_invocation(expression: &ResolvedExpr) -> Result<(), Diagn
         return Err(error("invocation target is not a function value"));
     };
     if !matches!(&callable.kind,ResolvedExprKind::Place(place) if place.projections.is_empty())
-        || !is_signature(&callable.ty)
+        || !(is_signature(&callable.ty)
+            || owner.is_some_and(|owner| super::generic_collection::callback(&callable.ty, owner)))
         || callable.ownership != OwnershipMode::Value
         || args.len() != parameters.len()
         || args
@@ -157,27 +167,47 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
             "function value target universe exceeds 256 declarations",
         ));
     }
-    let mut edges = std::collections::BTreeMap::<DeclarationId, BTreeSet<DeclarationId>>::new();
-    for f in &program.functions {
+    use super::FunctionExecutionId;
+    let mut edges =
+        std::collections::BTreeMap::<FunctionExecutionId, BTreeSet<FunctionExecutionId>>::new();
+    let functions = program
+        .functions
+        .iter()
+        .map(|function| {
+            (
+                FunctionExecutionId::Monomorphic(function.id.clone()),
+                function,
+            )
+        })
+        .chain(program.function_instances.iter().map(|instance| {
+            (
+                FunctionExecutionId::Generic(instance.id.clone()),
+                &instance.function,
+            )
+        }));
+    for (execution, f) in functions {
         let mut targets = BTreeSet::new();
-        super::visit_resolved_calls(&f.body, &mut |target, _, _| {
-            targets.insert(target.clone());
-        });
-        for contract in f.requires.iter().chain(&f.ensures) {
-            super::visit_resolved_calls(contract, &mut |target, _, _| {
-                targets.insert(target.clone());
-            });
-        }
-        walk(f, |e| {
-            if let ResolvedExprKind::Invoke { callable, .. } = &e.kind {
+        walk(f, |e| match &e.kind {
+            ResolvedExprKind::Call {
+                callee, instance, ..
+            } => {
+                targets.insert(
+                    instance
+                        .as_ref()
+                        .map(|instance| FunctionExecutionId::Generic(instance.clone()))
+                        .unwrap_or_else(|| FunctionExecutionId::Monomorphic(callee.clone())),
+                );
+            }
+            ResolvedExprKind::Invoke { callable, .. } => {
                 targets.extend(
                     compatible_targets(program, &callable.ty)
                         .into_iter()
-                        .map(|f| f.id.clone()),
+                        .map(|target| FunctionExecutionId::Monomorphic(target.id.clone())),
                 );
             }
+            _ => {}
         });
-        edges.insert(f.id.clone(), targets);
+        edges.insert(execution, targets);
     }
     for root in edges.keys() {
         let mut visited = BTreeSet::new();
@@ -214,3 +244,30 @@ pub(crate) fn function_uses_value(f: &ResolvedFunction) -> bool {
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) fn template_uses_value(template: &super::ResolvedFunctionTemplate) -> bool {
+    let mut pending = template
+        .requires
+        .iter()
+        .chain(std::iter::once(&template.body))
+        .chain(&template.ensures)
+        .collect::<Vec<_>>();
+    if matches!(template.return_type, ResolvedType::Function { .. })
+        || template
+            .params
+            .iter()
+            .any(|p| matches!(p.ty, ResolvedType::Function { .. }))
+    {
+        return true;
+    }
+    while let Some(expression) = pending.pop() {
+        if matches!(
+            expression.kind,
+            ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. }
+        ) {
+            return true;
+        }
+        super::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    false
+}

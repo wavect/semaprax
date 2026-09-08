@@ -332,6 +332,10 @@ pub(super) fn check_function_declarations<'p>(
                 );
                 if !((param.mode == ParamMode::Value
                     && (generic_function_signature_slot(&param.ty, &parameter_names)
+                        || (collection
+                            && crate::source_verify::declared_type::generic_collection::callback(
+                                function, &param.ty,
+                            ))
                         || ((collection || variant)
                             && crate::vec_ops::ast_element_is_admitted(&param.ty))))
                     || (param.mode == ParamMode::Own
@@ -980,6 +984,7 @@ pub(super) fn check_function_bodies<'p>(
             );
         }
         if !template.type_parameters.is_empty()
+            && !crate::source_verify::declared_type::generic_collection::profile(template)
             && (template
                 .params
                 .iter()

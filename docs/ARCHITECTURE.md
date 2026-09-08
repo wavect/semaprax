@@ -442,6 +442,29 @@ in SemanticProgram v2, which the existing ProgramRoot segment authenticates. `sr
 `src/properties.rs`, and `src/hygienic.rs` build bounded read-only views over
 verified representations.
 
+`src/source_verify/function_value_inventory.rs` owns lexical bare-reference
+inventory and conservative callback dependency candidates for Function Values
+v1; `src/hir/function_value.rs` independently authenticates the admitted target
+universe and signatures. `src/graph/function_values.rs` owns the additive Graph
+v36 callable type, reference, invocation, candidate-target, and target-universe
+facts. `src/project/canonical_workspace_revision/generic_instances.rs` retains
+their exact graph strings in SemanticProgram v3. These modules keep function
+identity in checked declarations rather than source names, backend addresses, or
+Wasm table indexes.
+
+Function Values v2's private generic-collection profile is owned by
+`src/source_verify/declared_type/generic_collection.rs` and
+`src/hir/generic_collection.rs`; `src/hir/validation/generic_template.rs`
+rechecks its substituted callable expressions and mutable collection bodies.
+The template cycle graph uses persistent template declaration identities. Every
+materialized generic call separately carries a `FunctionInstanceId` derived from
+that template identity and its exact substituted type vector, so callback
+spelling cannot alter a cycle or instance edge. Callable parameters are Copy
+`Value` slots with no cleanup owner; only the admitted `Box<T>`/`Vec<T>` carrier
+slots remain `Own`. Source and HIR substitution preserve those parameter modes
+while rechecking the concrete callable signature before normal cleanup and
+backend lowering.
+
 A graph, report, review, or evidence capsule is descriptive data. It is not a
 capability, signature, approval, or commit token.
 
@@ -2220,8 +2243,8 @@ a supported language, CLI, ABI, or runtime surface.
 | Area | Primary owners |
 | --- | --- |
 | Source projection | `src/ast.rs`, `src/lexer.rs`, `src/parser.rs`, `src/format.rs` |
-| Verification | `src/verify.rs`, `src/source_verify.rs`, `src/source_verify/` — `declaration/` owns the per-pass declaration checks, `iterative/` the frame machine, `oracle/` the test-only recursive cross-check, `hints.rs` the shared fix hints both verifiers attach to unknown-function, generic-argument, literal-suffix, and borrowed-view diagnostics, and `loans.rs`/`place.rs` the loan lifecycle |
-| HIR | `src/hir.rs`, `src/hir/` — `ids.rs`, `nodes.rs`, and `expr_nodes.rs` own the data model; `resolve_*.rs` own AST lowering; `validation.rs` owns core validation |
+| Verification | `src/verify.rs`, `src/source_verify.rs`, `src/source_verify/` — `declaration/` owns the per-pass declaration checks, `iterative/` the frame machine, `oracle/` the test-only recursive cross-check, `function_value_inventory.rs` the lexical function-value reference/candidate inventory, `hints.rs` the shared fix hints both verifiers attach to unknown-function, generic-argument, literal-suffix, and borrowed-view diagnostics, and `loans.rs`/`place.rs` the loan lifecycle |
+| HIR | `src/hir.rs`, `src/hir/` — `ids.rs`, `nodes.rs`, and `expr_nodes.rs` own the data model; `resolve_*.rs` own AST lowering; `function_value.rs` owns independent callable target/signature validation; `validation.rs` owns core validation |
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
 | Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs`, `src/doc.rs`, `src/query.rs`; `tests/projections/shapes_catalog.rs` generates the Markdown and JSON language-shape catalogs, `tests/documentation.rs::agent_quick_reference` generates the indexed diagnostic-help companion from the compiler-checked language card, and `src/cli/help.rs` selects bounded exact or smallest-exemplar shape, diagnostic, and language-section results from those static projections |
 | Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |

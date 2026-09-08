@@ -1359,8 +1359,8 @@ impl Resolver<'_> {
                             Statement::While {
                                 condition, body, ..
                             } => {
-                                self.reject_while_disallowed(condition)?;
-                                self.reject_while_disallowed(body)?;
+                                self.reject_while_disallowed_scoped(condition, Some(function))?;
+                                self.reject_while_disallowed_scoped(body, Some(function))?;
                                 frames.push(Frame::BlockWhileCondition {
                                     span,
                                     path: path.clone(),
@@ -1537,7 +1537,7 @@ impl Resolver<'_> {
                         }
                         None => {
                             super::resolve_vec_call::validate_whole_assignment(
-                                self, &target, &value,
+                                self, function, &target, &value,
                             )?;
                         }
                     }

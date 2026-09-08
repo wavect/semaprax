@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private noncapturing Function Values v1 with checked declaration-identity
+  references and indirect invocation, Graph v36 projection, and retained
+  SemanticProgram v3 callable closures. Public ABI and hosted promotion remain
+  outside this additive profile.
+
+- Add the private generic-collection callback profile for Function Values v2;
+  focused collection execution and ownership checks remain pending.
+
 - Extend argument inference through nested omitted calls and generic callers, retaining scoped symbolic forwarding identities, independent bounded evidence, exact graph/root replay and ordinary evaluation-once ownership settlement.
 
 - Extend private generic argument inference to complete ordered vectors and bounded expression type evidence, with independent source/HIR derivation and unchanged concrete instance, ownership and cleanup admission.

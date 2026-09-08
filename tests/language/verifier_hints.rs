@@ -1,8 +1,9 @@
 //! Verifier fix hints for the type-level habits an agent brings from other
-//! languages: a misspelled or foreign function name, a generic call or generic
-//! variant without explicit type arguments, an unsuffixed integer literal
-//! against a narrower operand, and an owned `string` handed to a byte or host
-//! operation. Every case keeps its stable code; only the `help` line is new.
+//! languages: a misspelled or foreign function name, a generic call whose
+//! argument cannot drive bounded inference, a generic variant without explicit
+//! type arguments, an unsuffixed integer literal against a narrower operand,
+//! and an owned `string` handed to a byte or host operation. Every case keeps
+//! its stable code; only the `help` line is new.
 
 use std::path::Path;
 
@@ -140,9 +141,9 @@ fn immutable_parameter_names_the_mutable_copy_repair() {
 }
 
 #[test]
-fn generic_call_without_type_arguments_shows_the_call_shape() {
+fn generic_call_with_unsupported_inference_expression_shows_the_call_shape() {
     let diagnostic = only(
-        "module habit.generic;\n@id(\"habit.id\")\nfn id<T>(v: T) -> T\n{\n    v\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    id(4)\n}\n",
+        "module habit.generic;\n@id(\"habit.id\")\nfn id<T>(v: T) -> T\n{\n    v\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    id(2 + 2)\n}\n",
         "SPX-T225",
     );
     assert!(help(&diagnostic).contains("id<i64>(…)"), "{diagnostic}");

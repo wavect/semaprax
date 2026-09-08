@@ -399,19 +399,26 @@ pub(crate) fn is_same_owner_reassignment_source(
     else {
         return false;
     };
-    let op = by_name(callee)
-        .filter(|op| op.reopens_same_owner())
-        .or_else(|| {
-            program
-                .functions
-                .iter()
-                .find(|function| function.name == *callee)
-                .and_then(|function| source_wrapper(program, function))
-                .filter(|op| op.reopens_same_owner())
-        });
+    let direct = by_name(callee).filter(|op| op.reopens_same_owner());
+    let wrapper = program
+        .functions
+        .iter()
+        .find(|function| function.name == *callee)
+        .and_then(|function| source_wrapper(program, function))
+        .filter(|op| op.reopens_same_owner());
+    let op = direct.or(wrapper);
+    let owner_type_matches = match type_arguments.as_slice() {
+        [element] => ast_vec(element.clone()) == *ty,
+        [] if direct.is_none() && wrapper.is_some() => matches!(
+            ty,
+            Type::Named { name, arguments }
+                if name == "Vec"
+                    && matches!(arguments.as_slice(), [element] if ast_element_is_admitted(element))
+        ),
+        _ => false,
+    };
     op.is_some_and(|op| args.len() == op.arity())
-        && type_arguments.len() == 1
-        && ast_vec(type_arguments[0].clone()) == *ty
+        && owner_type_matches
         && matches!(&args[0].kind, ExprKind::Var(source) if source == name)
 }
 

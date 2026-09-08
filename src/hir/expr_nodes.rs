@@ -22,7 +22,20 @@ pub struct ResolvedExpr {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResolvedClosureCapture {
+    /// Private body parameter receiving this scalar snapshot.
+    pub binding: ResolvedBinding,
+    /// Exact outer-scope scalar place read when the closure is constructed.
+    pub value: ResolvedExpr,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResolvedExprKind {
+    Closure {
+        parameters: Vec<ResolvedBinding>,
+        captures: Vec<ResolvedClosureCapture>,
+        body: Box<ResolvedExpr>,
+    },
     FunctionReference {
         target: DeclarationId,
     },

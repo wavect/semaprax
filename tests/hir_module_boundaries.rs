@@ -3,6 +3,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     let validation = concat!(
         include_str!("../src/hir/validation.rs"),
         include_str!("../src/hir/validation/callable_types.rs"),
+        include_str!("../src/hir/validation/closure.rs"),
         include_str!("../src/hir/generic_result.rs"),
         include_str!("../src/hir/generic_mapping.rs"),
         include_str!("../src/hir/validation/box_intrinsic.rs"),

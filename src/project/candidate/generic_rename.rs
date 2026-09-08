@@ -194,6 +194,13 @@ fn normalize_template_spans(template: &mut ResolvedFunctionTemplate) {
 fn normalize_expression_spans(expression: &mut ResolvedExpr) {
     expression.span = Span::default();
     match &mut expression.kind {
+        // A closure body is a separately invoked execution region. Its capture
+        // expressions belong to this enclosing declaration's structural span.
+        ResolvedExprKind::Closure { captures, .. } => {
+            for capture in captures {
+                normalize_expression_spans(&mut capture.value);
+            }
+        }
         ResolvedExprKind::FunctionReference { .. } => {}
         ResolvedExprKind::Invoke { callable, args } => {
             normalize_expression_spans(callable);

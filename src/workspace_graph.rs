@@ -2544,6 +2544,12 @@ fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::
 fn resolved_function_imports(function: &hir::ResolvedFunction) -> BTreeSet<hir::DeclarationId> {
     fn visit(expression: &hir::ResolvedExpr, imports: &mut BTreeSet<hir::DeclarationId>) {
         match &expression.kind {
+            hir::ResolvedExprKind::Closure { captures, body, .. } => {
+                for capture in captures {
+                    visit(&capture.value, imports);
+                }
+                visit(body, imports);
+            }
             hir::ResolvedExprKind::NativeRustImportCall(call) => {
                 imports.insert(call.import.clone());
                 for argument in &call.args {
@@ -4612,6 +4618,25 @@ impl<'a> CheckedValueNode<'a> {
                 F::Wildcard => None,
             },
             Self::Expression(expression) => match &expression.kind {
+                E::Closure {
+                    parameters,
+                    captures,
+                    body,
+                } => {
+                    if index < parameters.len() {
+                        Some(Self::Binding(&parameters[index]))
+                    } else if index < parameters.len() + captures.len() * 2 {
+                        let offset = index - parameters.len();
+                        if offset % 2 == 0 {
+                            Some(Self::Binding(&captures[offset / 2].binding))
+                        } else {
+                            Some(Self::Expression(&captures[offset / 2].value))
+                        }
+                    } else {
+                        (index == parameters.len() + captures.len() * 2)
+                            .then_some(Self::Expression(body))
+                    }
+                }
                 E::ByteRange {
                     source, start, end, ..
                 } => [source.as_ref(), start.as_ref(), end.as_ref()]
@@ -5841,222 +5866,7 @@ fn budgeted_edge_clone(edge: &WorkspaceEdge) -> WorkspaceEdge {
     }
 }
 
-fn visit_ast_call_sites(
-    expression: &Expr,
-    path: &str,
-    visit: &mut impl FnMut(&str, &str) -> Result<(), Vec<Diagnostic>>,
-) -> Result<(), Vec<Diagnostic>> {
-    match &expression.kind {
-        ExprKind::Call { name, args, .. } => {
-            visit(name, path)?;
-            for (index, argument) in args.iter().enumerate() {
-                visit_ast_call_sites(
-                    argument,
-                    &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}")),
-                    visit,
-                )?;
-            }
-        }
-        ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. } => {}
-        ExprKind::Unary { value, .. } => {
-            visit_ast_call_sites(
-                value,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.value")),
-                visit,
-            )?;
-        }
-        ExprKind::Binary { left, right, .. } => {
-            visit_ast_call_sites(
-                left,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.left")),
-                visit,
-            )?;
-            visit_ast_call_sites(
-                right,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.right")),
-                visit,
-            )?;
-        }
-        ExprKind::Block { statements, tail } => {
-            for (index, statement) in statements.iter().enumerate() {
-                match statement {
-                    crate::ast::Statement::Let { value, .. }
-                    | crate::ast::Statement::Assign { value, .. } => visit_ast_call_sites(
-                        value,
-                        &crate::bounded_output::budgeted_format(format_args!(
-                            "{path}.s{index}.value"
-                        )),
-                        visit,
-                    )?,
-                    crate::ast::Statement::Unsafe { body, .. } => visit_ast_call_sites(
-                        body,
-                        &crate::bounded_output::budgeted_format(format_args!(
-                            "{path}.s{index}.value"
-                        )),
-                        visit,
-                    )?,
-                    crate::ast::Statement::While {
-                        condition, body, ..
-                    } => {
-                        visit_ast_call_sites(
-                            condition,
-                            &crate::bounded_output::budgeted_format(format_args!(
-                                "{path}.s{index}.condition"
-                            )),
-                            visit,
-                        )?;
-                        visit_ast_call_sites(
-                            body,
-                            &crate::bounded_output::budgeted_format(format_args!(
-                                "{path}.s{index}.body"
-                            )),
-                            visit,
-                        )?;
-                    }
-                    crate::ast::Statement::For { values, body, .. } => {
-                        // Bounded `for` traversal is lowered, so its authored
-                        // children do not sit at `.values` and `.body`.
-                        // `hir::resolve_for::lower` desugars the statement at
-                        // `s{index}` into `s{index}.value`: `.s0` binds the
-                        // length, `.s1` the index, `.s2` is the `while`, and
-                        // the authored body is resolved at
-                        // `.value.s2.body.s1.value` behind the item binding at
-                        // `.value.s2.body.s0`. The source is admitted only as
-                        // an immutable binding (`SPX-T284`), so it reaches the
-                        // lowering as the place argument of the `vec_len`
-                        // call. Naming the authored paths is what keeps this
-                        // reconstruction independent of the HIR while still
-                        // describing the same program.
-                        visit_ast_call_sites(
-                            values,
-                            &crate::bounded_output::budgeted_format(format_args!(
-                                "{path}.s{index}.value.s0.value.arg.0"
-                            )),
-                            visit,
-                        )?;
-                        visit_ast_call_sites(
-                            body,
-                            &crate::bounded_output::budgeted_format(format_args!(
-                                "{path}.s{index}.value.s2.body.s1.value"
-                            )),
-                            visit,
-                        )?;
-                    }
-                }
-            }
-            visit_ast_call_sites(
-                tail,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.tail")),
-                visit,
-            )?;
-        }
-        ExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            visit_ast_call_sites(
-                condition,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.condition")),
-                visit,
-            )?;
-            visit_ast_call_sites(
-                then_branch,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.then")),
-                visit,
-            )?;
-            visit_ast_call_sites(
-                else_branch,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.else")),
-                visit,
-            )?;
-        }
-        ExprKind::ConstructRecord { fields, .. } | ExprKind::ConstructVariant { fields, .. } => {
-            for (index, field) in fields.iter().enumerate() {
-                visit_ast_call_sites(
-                    &field.value,
-                    &crate::bounded_output::budgeted_format(format_args!(
-                        "{path}.field.{index}.value"
-                    )),
-                    visit,
-                )?;
-            }
-        }
-        ExprKind::Match {
-            scrutinee, arms, ..
-        } => {
-            visit_ast_call_sites(
-                scrutinee,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.scrutinee")),
-                visit,
-            )?;
-            for (index, arm) in arms.iter().enumerate() {
-                if let Some(guard) = &arm.guard {
-                    visit_ast_call_sites(
-                        guard.as_ref(),
-                        &crate::bounded_output::budgeted_format(format_args!(
-                            "{path}.arm.{index}.guard"
-                        )),
-                        visit,
-                    )?;
-                }
-                visit_ast_call_sites(
-                    &arm.value,
-                    &crate::bounded_output::budgeted_format(format_args!(
-                        "{path}.arm.{index}.value"
-                    )),
-                    visit,
-                )?;
-            }
-        }
-        ExprKind::Try { operand } => {
-            visit_ast_call_sites(
-                operand,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.operand")),
-                visit,
-            )?;
-        }
-        ExprKind::UpdateRecord { base, fields } => {
-            visit_ast_call_sites(
-                base,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
-                visit,
-            )?;
-            for (index, field) in fields.iter().enumerate() {
-                visit_ast_call_sites(
-                    &field.value,
-                    &crate::bounded_output::budgeted_format(format_args!(
-                        "{path}.field.{index}.value"
-                    )),
-                    visit,
-                )?;
-            }
-        }
-        ExprKind::Project { base, .. } => {
-            visit_ast_call_sites(
-                base,
-                &crate::bounded_output::budgeted_format(format_args!("{path}.base")),
-                visit,
-            )?;
-        }
-        ExprKind::Int(_)
-        | ExprKind::Int32(_)
-        | ExprKind::Char(_)
-        | ExprKind::Uint8(_)
-        | ExprKind::Usize(_)
-        | ExprKind::Float32(_)
-        | ExprKind::Float64(_)
-        | ExprKind::Bool(_)
-        | ExprKind::String(_)
-        | ExprKind::Var(_) => {}
-        // Method calls resolve to hoisted functions in HIR; the AST-level
-        // call-site walk sees them through the resolved Call edge instead.
-        ExprKind::MethodCall { .. } => {}
-        // `super.method(...)` also resolves to a hoisted parent method in HIR.
-        ExprKind::SuperMethod { .. } => {}
-    }
-    Ok(())
-}
+use source_callables::visit_ast_call_sites;
 
 fn validate_stub_signatures(
     programs: &[Program],

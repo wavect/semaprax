@@ -4,6 +4,9 @@ use crate::hir::{ResolvedExpr, ResolvedExprKind};
 
 pub(super) fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            captures.iter().map(|capture| &capture.value).collect()
+        }
         ResolvedExprKind::Call { args, .. } => args.iter().collect(),
         ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
             .chain(args.iter())

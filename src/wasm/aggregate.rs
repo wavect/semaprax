@@ -5,6 +5,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 
+#[path = "closure.rs"]
+mod closure;
 mod collect_block;
 mod expressions;
 mod function_value;
@@ -341,7 +343,7 @@ impl FunctionPlan {
                 })
             })
             .transpose()?;
-        let has_try = expression_has_try(&function.body);
+        let has_try = expressions::expression_has_try(&function.body);
         let result_staged = if has_try { Some(add_local(I32)?) } else { None };
         let mut cleanup_flags = std::collections::BTreeMap::new();
         let mut cleanup_place_flags = std::collections::BTreeMap::new();
@@ -551,6 +553,17 @@ impl FunctionPlan {
         }
 
         match &expr.kind {
+            ResolvedExprKind::Closure { captures, .. } => {
+                for capture in captures {
+                    self.collect_expr(
+                        program,
+                        variant_layouts,
+                        &capture.value,
+                        parameter_count,
+                        frame,
+                    )?;
+                }
+            }
             ResolvedExprKind::Invoke { callable, args } => {
                 self.collect_expr(program, variant_layouts, callable, parameter_count, frame)?;
                 self.collect_exprs(program, variant_layouts, args, parameter_count, frame)?;
@@ -825,71 +838,6 @@ impl FunctionPlan {
     }
 }
 
-fn expression_has_try(expression: &ResolvedExpr) -> bool {
-    match &expression.kind {
-        ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
-        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
-        ResolvedExprKind::Invoke { callable, args } => {
-            expression_has_try(callable) || args.iter().any(expression_has_try)
-        }
-        ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_try),
-        ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_try),
-        ResolvedExprKind::ByteRange {
-            source, start, end, ..
-        } => expression_has_try(source) || expression_has_try(start) || expression_has_try(end),
-        ResolvedExprKind::Unary { value, .. }
-        | ResolvedExprKind::Project { base: value, .. }
-        | ResolvedExprKind::Upcast { source: value } => expression_has_try(value),
-        ResolvedExprKind::Binary { left, right, .. } => {
-            expression_has_try(left) || expression_has_try(right)
-        }
-        ResolvedExprKind::Block { statements, tail } => {
-            statements.iter().any(|statement| {
-                (0..statement.child_count()).any(|index| {
-                    expression_has_try(
-                        statement
-                            .child(index)
-                            .expect("resolved statement child count is canonical"),
-                    )
-                })
-            }) || expression_has_try(tail)
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            expression_has_try(condition)
-                || expression_has_try(then_branch)
-                || expression_has_try(else_branch)
-        }
-        ResolvedExprKind::ConstructRecord { fields, .. }
-        | ResolvedExprKind::ConstructVariant { fields, .. } => {
-            fields.iter().any(|field| expression_has_try(&field.value))
-        }
-        ResolvedExprKind::Match {
-            scrutinee, arms, ..
-        } => expression_has_try(scrutinee) || arms.iter().any(|arm| expression_has_try(&arm.value)),
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
-        }
-        ResolvedExprKind::Int(_)
-        | ResolvedExprKind::Int32(_)
-        | ResolvedExprKind::Char(_)
-        | ResolvedExprKind::Uint8(_)
-        | ResolvedExprKind::Usize(_)
-        | ResolvedExprKind::Float32(_)
-        | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::ArrayU8(_)
-        | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_)
-        | ResolvedExprKind::BorrowPlace { .. }
-        | ResolvedExprKind::FunctionReference { .. } => false,
-    }
-}
-
 fn expression_uses_str_ops(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
         ResolvedExprKind::Invoke { callable, args } => {
@@ -970,6 +918,9 @@ fn expression_uses_str_ops(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::Place(_)
         | ResolvedExprKind::BorrowPlace { .. }
         | ResolvedExprKind::FunctionReference { .. } => false,
+        ResolvedExprKind::Closure { captures, .. } => captures
+            .iter()
+            .any(|capture| expression_uses_str_ops(&capture.value)),
     }
 }
 
@@ -1101,6 +1052,11 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
 }
 
 fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    if matches!(ty, ResolvedType::Function { .. })
+        && crate::hir::closure::requires_closures(program)
+    {
+        return Ok(true);
+    }
     if crate::cleanup::is_owned_bounded_vec_type(ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
     {
@@ -1129,6 +1085,11 @@ fn aggregate_size_align(
     variant_layouts: &VariantLayoutCache,
     ty: &ResolvedType,
 ) -> Result<(u32, u32), Diagnostic> {
+    if matches!(ty, ResolvedType::Function { .. })
+        && crate::hir::closure::requires_closures(program)
+    {
+        return Ok((80, 8));
+    }
     if is_record(program, ty)? {
         let layout = layout(program, ty)?;
         Ok((layout.size, layout.align))
@@ -1479,7 +1440,14 @@ fn emit_byte_exports_profile(
             "Owned Bounded Byte Buffer v1 is internal-only and has no public WebAssembly adapter",
         ));
     }
-    let executable_functions = executable_functions(program);
+    let function_value_plan = function_value::table_plan(program)?;
+    let mut executable_functions = executable_functions(program);
+    executable_functions.extend(
+        function_value_plan
+            .bodies
+            .iter()
+            .map(|body| (body, FunctionExecutionId::Monomorphic(body.id.clone()))),
+    );
     let has_owned_utf8 = owned_plans
         .iter()
         .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8)
@@ -1617,13 +1585,15 @@ fn emit_byte_exports_profile(
             &mut type_indexes,
         ));
     }
-    let function_value_plan = function_value::table_plan(program);
     let function_type_indexes = function_value::type_indexes(
         &function_value_plan.signatures,
         &mut types,
         &mut type_indexes,
+        function_value_plan.closure_profile,
     )?;
     let function_tables = function_value::table_indexes(&function_value_plan.targets)?;
+    let adapter_types =
+        closure::adapter_types(&function_value_plan, &mut types, &mut type_indexes)?;
 
     let mut wrapper_types = plans
         .iter()
@@ -1780,16 +1750,21 @@ fn emit_byte_exports_profile(
     section(&mut module, 2, imports);
 
     let mut functions = Vec::new();
-    let function_count = u32::try_from(function_types.len() + wrapper_types.len())
-        .map_err(|_| error("too many Public Useful Data functions"))?
-        .checked_add(text_helper_count)
-        .ok_or_else(|| error("too many Public Useful Data functions"))?;
+    let function_count =
+        u32::try_from(function_types.len() + wrapper_types.len() + adapter_types.len())
+            .map_err(|_| error("too many Public Useful Data functions"))?
+            .checked_add(text_helper_count)
+            .ok_or_else(|| error("too many Public Useful Data functions"))?;
     write_u32(&mut functions, function_count);
     if let Some(text_helper_type) = text_helper_type {
         write_u32(&mut functions, text_helper_type);
         write_u32(&mut functions, text_helper_type);
     }
-    for type_index in function_types.into_iter().chain(wrapper_types) {
+    for type_index in function_types
+        .into_iter()
+        .chain(wrapper_types)
+        .chain(adapter_types.iter().copied())
+    {
         write_u32(&mut functions, type_index);
     }
     section(&mut module, 3, functions);
@@ -1948,18 +1923,25 @@ fn emit_byte_exports_profile(
     }
     section(&mut module, 7, exports);
 
+    let closure_adapter_base = function_indexes.values().copied().max().unwrap_or(0)
+        + 1
+        + (plans.len() + owned_plans.len() + usize::from(command_io.is_some())) as u32;
     if !function_value_plan.signatures.is_empty() {
         let mut elements = Vec::new();
         write_u32(&mut elements, 1);
         elements.extend([0x00, 0x41, 0x00, 0x0b]);
         write_u32(&mut elements, function_value_plan.targets.len() as u32);
-        for target in &function_value_plan.targets {
+        for (ordinal, target) in function_value_plan.targets.iter().enumerate() {
             let execution = function_value::execution_target(target);
             write_u32(
                 &mut elements,
-                *function_indexes
-                    .get(&execution)
-                    .ok_or_else(|| error("aggregate function table target is not executable"))?,
+                if function_value_plan.closure_profile {
+                    closure_adapter_base + ordinal as u32
+                } else {
+                    *function_indexes
+                        .get(&execution)
+                        .ok_or_else(|| error("aggregate function table target is not executable"))?
+                },
             );
         }
         section(&mut module, 9, elements);
@@ -1969,7 +1951,8 @@ fn emit_byte_exports_profile(
         executable_functions.len()
             + plans.len()
             + owned_plans.len()
-            + usize::from(command_io.is_some()),
+            + usize::from(command_io.is_some())
+            + adapter_types.len(),
     )
     .map_err(|_| error("too many Public Useful Data bodies"))?
     .checked_add(text_helper_count)
@@ -2053,6 +2036,7 @@ fn emit_byte_exports_profile(
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
+    closure::append_adapters(&mut code, &function_value_plan, &function_indexes)?;
     section(&mut module, 10, code);
     if has_owned_utf8 {
         let mut data = Vec::new();
@@ -2276,7 +2260,14 @@ fn emit_profile_with_scalar_exports(
         )
     });
 
-    let executable_functions = executable_functions(program);
+    let function_value_plan = function_value::table_plan(program)?;
+    let mut executable_functions = executable_functions(program);
+    executable_functions.extend(
+        function_value_plan
+            .bodies
+            .iter()
+            .map(|body| (body, FunctionExecutionId::Monomorphic(body.id.clone()))),
+    );
     let public_global_count = if host_output { 5_u32 } else { 1_u32 };
     let range_bindings = build_range_bindings(
         program,
@@ -2304,13 +2295,15 @@ fn emit_profile_with_scalar_exports(
             &mut type_indexes,
         ));
     }
-    let function_value_plan = function_value::table_plan(program);
     let function_type_indexes = function_value::type_indexes(
         &function_value_plan.signatures,
         &mut types,
         &mut type_indexes,
+        function_value_plan.closure_profile,
     )?;
     let function_tables = function_value::table_indexes(&function_value_plan.targets)?;
+    let adapter_types =
+        closure::adapter_types(&function_value_plan, &mut types, &mut type_indexes)?;
     let wrapper_type = intern_type(
         Signature {
             params: Vec::new(),
@@ -2431,7 +2424,7 @@ fn emit_profile_with_scalar_exports(
     let mut function_section = Vec::new();
     write_u32(
         &mut function_section,
-        u32::try_from(function_types.len() + 1 + scalar_export_types.len())
+        u32::try_from(function_types.len() + 1 + scalar_export_types.len() + adapter_types.len())
             .map_err(|_| error("too many aggregate functions"))?,
     );
     for ty in function_types {
@@ -2440,6 +2433,9 @@ fn emit_profile_with_scalar_exports(
     write_u32(&mut function_section, wrapper_type);
     for ty in scalar_export_types {
         write_u32(&mut function_section, ty);
+    }
+    for ty in &adapter_types {
+        write_u32(&mut function_section, *ty);
     }
     section(&mut module, 3, function_section);
     if !function_value_plan.signatures.is_empty() {
@@ -2600,18 +2596,25 @@ fn emit_profile_with_scalar_exports(
     }
     section(&mut module, 7, exports);
 
+    let closure_adapter_base = function_indexes.values().copied().max().unwrap_or(0)
+        + 1
+        + (1 + scalar_exports.len()) as u32;
     if !function_value_plan.signatures.is_empty() {
         let mut elements = Vec::new();
         write_u32(&mut elements, 1);
         elements.extend([0x00, 0x41, 0x00, 0x0b]);
         write_u32(&mut elements, function_value_plan.targets.len() as u32);
-        for target in &function_value_plan.targets {
+        for (ordinal, target) in function_value_plan.targets.iter().enumerate() {
             let execution = function_value::execution_target(target);
             write_u32(
                 &mut elements,
-                *function_indexes
-                    .get(&execution)
-                    .ok_or_else(|| error("aggregate function table target is not executable"))?,
+                if function_value_plan.closure_profile {
+                    closure_adapter_base + ordinal as u32
+                } else {
+                    *function_indexes
+                        .get(&execution)
+                        .ok_or_else(|| error("aggregate function table target is not executable"))?
+                },
             );
         }
         section(&mut module, 9, elements);
@@ -2619,7 +2622,7 @@ fn emit_profile_with_scalar_exports(
     let mut code = Vec::new();
     write_u32(
         &mut code,
-        u32::try_from(executable_functions.len() + 1 + scalar_exports.len())
+        u32::try_from(executable_functions.len() + 1 + scalar_exports.len() + adapter_types.len())
             .map_err(|_| error("too many aggregate function bodies"))?,
     );
     for (function, _) in &executable_functions {
@@ -2654,6 +2657,7 @@ fn emit_profile_with_scalar_exports(
         write_u32(&mut code, adapter.len() as u32);
         code.extend(adapter);
     }
+    closure::append_adapters(&mut code, &function_value_plan, &function_indexes)?;
     section(&mut module, 10, code);
     owned_strings::emit_literal_data(&mut module, owned_utf8, &utf8_literals)?;
     Ok(module)
@@ -4290,6 +4294,7 @@ impl Emitter<'_> {
 
     fn emit_complex_expr(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic> {
         match &expr.kind {
+            ResolvedExprKind::Closure { .. } => self.emit_closure(expr),
             ResolvedExprKind::FunctionReference { target } => {
                 self.emit_function_reference(expr, target)
             }
@@ -8760,27 +8765,7 @@ fn emit_wrapper(main_index: u32, host_output: bool) -> Vec<u8> {
     body
 }
 
-fn emit_arithmetic_trap_case(
-    body: &mut Vec<u8>,
-    status_local: u32,
-    expected: i32,
-    import: u32,
-    left: i64,
-    right: i64,
-) {
-    body.push(0x20);
-    write_u32(body, status_local);
-    body.push(0x41);
-    write_i64(body, i64::from(expected));
-    body.push(0x46);
-    body.extend([0x04, 0x40, 0x42]);
-    write_i64(body, left);
-    body.push(0x42);
-    write_i64(body, right);
-    body.push(0x10);
-    write_u32(body, import);
-    body.extend([0x1a, 0x00, 0x0b]);
-}
+use expressions::emit_arithmetic_trap_case;
 
 #[cfg(test)]
 #[path = "aggregate_range_tests.rs"]

@@ -1,5 +1,8 @@
 //! Internal callable bodies retain scalar Project signatures and exact roots.
 use semaprax::project::{with_authenticated_project, ProgramRoot, ProjectRevision};
+
+#[path = "function_values/closures.rs"]
+mod closures;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -39,6 +42,21 @@ module fixture.app;
         std::fs::write(root.join("semaprax.toml"),"schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"fixture.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"fixture.tests\"]\n\n[exports]\nweb = [\"fixture.public\"]\n").unwrap();
         Self { root, source }
     }
+    fn capturing_closure() -> Self {
+        let mut fixture = Self::new("increment");
+        fixture.source = r#"
+module fixture.app;
+@id("fixture.make") fn make(offset:i64)->fn(i64)->i64 { fn(value:i64)->i64 { offset + value } }
+@id("fixture.main") fn main()->i64 { let callback=make(40); callback(2) }
+@id("fixture.public") fn published()->i64 { 0 }
+"#
+        .to_owned();
+        let path = fixture.root.join("src/app.spx");
+        let parsed = semaprax::parse(&fixture.source, &path).unwrap();
+        std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
+        fixture
+    }
+
     fn revision(&self) -> Arc<ProjectRevision> {
         with_authenticated_project(&self.root.join("semaprax.toml"), |snapshot| {
             Ok(snapshot.retain_revision())

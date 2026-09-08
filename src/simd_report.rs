@@ -606,6 +606,12 @@ impl Walker<'_> {
             }
         }
         match &expr.kind {
+            ResolvedExprKind::Closure { captures, .. } => {
+                self.push_ineligible(expr, REASON_CALL);
+                for capture in captures {
+                    self.scan_expr(&capture.value);
+                }
+            }
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Uint8(_)

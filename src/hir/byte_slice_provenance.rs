@@ -326,6 +326,9 @@ pub(super) fn derive_byte_slice_provenance(
             .collect::<Vec<_>>();
         while let Some(expression) = pending.pop() {
             match &expression.kind {
+                ResolvedExprKind::Closure { captures, .. } => {
+                    pending.extend(captures.iter().map(|capture| &capture.value))
+                }
                 ResolvedExprKind::FunctionReference { .. } => {}
                 ResolvedExprKind::Invoke { callable, args } => {
                     pending.push(callable);

@@ -10,6 +10,8 @@ use crate::ast::{ModuleUseKind, Program};
 use crate::diagnostic::Diagnostic;
 use crate::hir;
 
+mod scalar_link;
+
 use super::{
     budgeted_edge_clone, graph_error, limit_error, push_edge, reserve_builder_structure,
     visit_ast_call_sites, CallOccurrenceKey, WorkspaceDeclarationFact, WorkspaceEdge,
@@ -334,6 +336,12 @@ fn visit_resolved_calls(
     visit: &mut impl FnMut(&hir::ResolvedExpr, &hir::DeclarationId),
 ) {
     match &expression.kind {
+        hir::ResolvedExprKind::Closure { captures, body, .. } => {
+            for capture in captures {
+                visit_resolved_calls(&capture.value, visit);
+            }
+            visit_resolved_calls(body, visit);
+        }
         hir::ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -763,6 +771,37 @@ fn collect_resolved_expression_type_sites(
 ) -> Result<(), Vec<Diagnostic>> {
     let expression_id = crate::bounded_output::budgeted_format(format_args!("{}", expression.id));
     match &expression.kind {
+        hir::ResolvedExprKind::Closure {
+            parameters, body, ..
+        } => {
+            for (index, parameter) in parameters.iter().enumerate() {
+                collect_resolved_type_sites(
+                    owner.as_str(),
+                    &parameter.ty,
+                    &format!("{path}.closure.param.{index}"),
+                    Some(&expression_id),
+                    imported,
+                    out,
+                )?;
+            }
+            if let hir::ResolvedType::Function { result, .. } = &expression.ty {
+                collect_resolved_type_sites(
+                    owner.as_str(),
+                    result,
+                    &format!("{path}.closure.result"),
+                    Some(&expression_id),
+                    imported,
+                    out,
+                )?;
+            }
+            collect_resolved_expression_type_sites(
+                owner,
+                body,
+                &format!("{path}.closure.body"),
+                imported,
+                out,
+            )?;
+        }
         hir::ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -1265,145 +1304,6 @@ pub(super) fn project_linker_name(profile: crate::project::ProjectProfile) -> &'
         crate::project::ProjectProfile::OwnedUtf8ApiV1 => "Owned UTF-8 API v1 linker",
         crate::project::ProjectProfile::NestedOwnedRecordApiV1 => {
             "Nested Owned Record API v1 linker"
-        }
-    }
-}
-
-impl ScalarNativeImports {
-    /// Whether every one of these declared effects or module permits is
-    /// carried by a retained Native Rust import. With nothing retained only
-    /// the empty declaration is admitted, which is the historical rule.
-    pub(super) fn effects_admitted(&self, declared: &[String]) -> bool {
-        declared.iter().all(|effect| self.effects.contains(effect))
-    }
-
-    /// Link one scalar closure, retaining the selected interfaces and their
-    /// imports in the linked declaration index. With nothing retained this is
-    /// the unchanged pure scalar linker.
-    pub(super) fn link(
-        self,
-        module: String,
-        entrypoint: hir::DeclarationId,
-        functions: Vec<hir::LinkedScalarFunction>,
-        scalar: super::owned_generics::RetainedScalarParts,
-        declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
-        require_main_display_name: bool,
-    ) -> Result<hir::ResolvedProgram, Diagnostic> {
-        let super::owned_generics::RetainedScalarParts {
-            types,
-            function_templates,
-            function_instances,
-        } = scalar;
-        let mut declaration_facts = BTreeMap::new();
-        for linked in &functions {
-            let owner = declarations
-                .get(linked.function.id.as_str())
-                .and_then(|fact| fact.owner.as_deref())
-                .map(hir::DeclarationId::new);
-            retain_linked_fact(
-                declarations,
-                &mut declaration_facts,
-                &linked.function.id,
-                hir::DeclarationKind::Function,
-                owner.as_ref(),
-            )?;
-        }
-        for template in &function_templates {
-            retain_linked_fact(
-                declarations,
-                &mut declaration_facts,
-                &template.id,
-                hir::DeclarationKind::Function,
-                None,
-            )?;
-        }
-        for declaration in &types {
-            let kind = match &declaration.kind {
-                hir::ResolvedTypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
-                hir::ResolvedTypeDeclarationKind::Class { .. } => hir::DeclarationKind::Class,
-                hir::ResolvedTypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
-                hir::ResolvedTypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
-            };
-            retain_linked_fact(
-                declarations,
-                &mut declaration_facts,
-                &declaration.id,
-                kind,
-                None,
-            )?;
-            match &declaration.kind {
-                hir::ResolvedTypeDeclarationKind::Record { fields }
-                | hir::ResolvedTypeDeclarationKind::Class { fields, .. } => {
-                    for field in fields {
-                        retain_linked_fact(
-                            declarations,
-                            &mut declaration_facts,
-                            &field.id,
-                            hir::DeclarationKind::Field,
-                            Some(&declaration.id),
-                        )?;
-                    }
-                }
-                hir::ResolvedTypeDeclarationKind::Variant { cases } => {
-                    for case in cases {
-                        retain_linked_fact(
-                            declarations,
-                            &mut declaration_facts,
-                            &case.id,
-                            hir::DeclarationKind::VariantCase,
-                            Some(&declaration.id),
-                        )?;
-                        for field in &case.fields {
-                            retain_linked_fact(
-                                declarations,
-                                &mut declaration_facts,
-                                &field.id,
-                                hir::DeclarationKind::CaseField,
-                                Some(&case.id),
-                            )?;
-                        }
-                    }
-                }
-                hir::ResolvedTypeDeclarationKind::Resource { drop } => {
-                    retain_linked_fact(
-                        declarations,
-                        &mut declaration_facts,
-                        &drop.id,
-                        hir::DeclarationKind::ResourceDrop,
-                        Some(&declaration.id),
-                    )?;
-                }
-            }
-        }
-        for interface in &self.interfaces {
-            retain_linked_fact(
-                declarations,
-                &mut declaration_facts,
-                &interface.id,
-                hir::DeclarationKind::Interface,
-                None,
-            )?;
-            for import in &interface.imports {
-                retain_linked_fact(
-                    declarations,
-                    &mut declaration_facts,
-                    &import.id,
-                    hir::DeclarationKind::Import,
-                    Some(&interface.id),
-                )?;
-            }
-        }
-        let parts = hir::LinkedScalarProjectParts {
-            types,
-            interfaces: self.interfaces,
-            function_templates,
-            function_instances,
-            declaration_facts,
-        };
-        if require_main_display_name {
-            hir::link_scalar_project_workspace(module, entrypoint, functions, parts)
-        } else {
-            hir::link_scalar_project_exports(module, entrypoint, functions, parts)
         }
     }
 }

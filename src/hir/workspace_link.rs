@@ -41,6 +41,7 @@ pub(crate) fn link_package_scalar_workspace(
 }
 
 pub(crate) struct LinkedScalarProjectParts {
+    pub(crate) private_callable_functions: BTreeSet<DeclarationId>,
     pub(crate) types: Vec<ResolvedTypeDeclaration>,
     pub(crate) interfaces: Vec<ResolvedInterface>,
     pub(crate) function_templates: Vec<ResolvedFunctionTemplate>,
@@ -97,7 +98,10 @@ fn link_scalar_workspace_impl(
             .all(|effect| import_effects.contains(effect))
             || (!is_owned_method
                 && !parts.as_ref().is_some_and(|parts| {
-                    generic_result::concrete_signature(function)
+                    (function.id != entrypoint
+                        && parts.private_callable_functions.contains(&function.id)
+                        && function_value::private_helper_signature(function))
+                        || generic_result::concrete_signature(function)
                         || generic_collection::concrete_signature(function)
                         || (generic_variant::concrete_signature(&parts.types, function)
                             && function

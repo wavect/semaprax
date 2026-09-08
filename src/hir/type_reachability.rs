@@ -101,6 +101,12 @@ fn collect_function(function: &ResolvedFunction, declarations: &mut BTreeSet<Dec
 fn collect_expression(expression: &ResolvedExpr, declarations: &mut BTreeSet<DeclarationId>) {
     collect_type(&expression.ty, declarations);
     match &expression.kind {
+        ResolvedExprKind::Closure { body, captures, .. } => {
+            collect_expression(body, declarations);
+            for capture in captures {
+                collect_expression(&capture.value, declarations);
+            }
+        }
         ResolvedExprKind::FunctionReference { .. } => {}
         ResolvedExprKind::Invoke { callable, args } => {
             collect_expression(callable, declarations);

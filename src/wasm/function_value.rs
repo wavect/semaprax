@@ -12,6 +12,11 @@ pub(super) fn collect_locals(
     layout: &mut LocalLayout,
 ) -> Result<(), Diagnostic> {
     match &expr.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            for capture in captures {
+                collect_locals(&capture.value, parameter_count, layout)?;
+            }
+        }
         ResolvedExprKind::Invoke { callable, args } => {
             collect_locals(callable, parameter_count, layout)?;
             for arg in args {

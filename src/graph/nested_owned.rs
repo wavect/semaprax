@@ -182,6 +182,13 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     if functions
         .iter()
         .chain(function_instances.iter().map(|instance| &instance.function))
+        .any(super::function_values::function_has_closure)
+    {
+        return Ok("semaprax.graph.v37");
+    }
+    if functions
+        .iter()
+        .chain(function_instances.iter().map(|instance| &instance.function))
         .any(crate::hir::function_value::function_uses_value)
         || function_templates
             .iter()
@@ -218,6 +225,9 @@ pub(crate) fn graph_schema_from_parts_and_instances(
 }
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
+    if crate::hir::closure::requires_closures(program) {
+        return Ok("semaprax.graph.v37");
+    }
     if crate::hir::function_value::requires_function_values(program) {
         return Ok("semaprax.graph.v36");
     }
@@ -286,7 +296,11 @@ fn program_schema(
         if !generic_composition {
             return Err(composition_error("function values require Graph v36"));
         }
-        return Ok("semaprax.graph.v36");
+        return Ok(if crate::hir::closure::requires_closures(program) {
+            "semaprax.graph.v37"
+        } else {
+            "semaprax.graph.v36"
+        });
     }
     if super::generic_mapping::requires_v35(&program.function_templates) {
         if !generic_composition {
@@ -325,6 +339,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v34"
             | "semaprax.graph.v35"
             | "semaprax.graph.v36"
+            | "semaprax.graph.v37"
     )
 }
 
@@ -341,6 +356,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v34"
             | "semaprax.graph.v35"
             | "semaprax.graph.v36"
+            | "semaprax.graph.v37"
     )
 }
 
@@ -355,6 +371,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v34"
             | "semaprax.graph.v35"
             | "semaprax.graph.v36"
+            | "semaprax.graph.v37"
     )
 }
 

@@ -107,6 +107,21 @@ fn fixed_expression_identity_slots(kind: &ExprKind) -> usize {
 fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> {
     let mut slots = fixed_expression_identity_slots(&expression.kind);
     match &expression.kind {
+        ExprKind::Closure {
+            params,
+            return_type,
+            body,
+        } => {
+            // Derived function/result identities plus up to eight capture bindings
+            // and their scalar read expressions.
+            slots = checked_builder_sum(slots, 2 + 8 * 5)?;
+            for parameter in params {
+                slots = checked_builder_sum(slots, 1)?;
+                slots = checked_builder_sum(slots, ast_type_identity_slots(&parameter.ty)?)?;
+            }
+            slots = checked_builder_sum(slots, ast_type_identity_slots(return_type)?)?;
+            slots = checked_builder_sum(slots, ast_expr_identity_slots(body)?)?;
+        }
         ExprKind::Call {
             type_arguments,
             args,

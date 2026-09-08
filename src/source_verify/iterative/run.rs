@@ -47,6 +47,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     + diagnostics_owned_capacity(self.diagnostics),
             );
             match frame {
+                VerifierFrame::ResumeClosure { expression, scope } => {
+                    self.resume_closure(expression, scope)?
+                }
                 VerifierFrame::Enter { expression, scope } => {
                     self.frame_enter(expression, scope)?
                 }

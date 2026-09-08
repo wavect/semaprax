@@ -1,6 +1,11 @@
 //! Genuine first-class scalar callable values, independent of backend addresses.
 use semaprax::hir::{self, ResolvedExprKind, ResolvedType};
 
+#[path = "function_values/closures.rs"]
+mod closures;
+#[path = "function_values/native_closures.rs"]
+mod native_closures;
+
 const PROGRAM: &str = r#"
 module test.function_values;
 @id("fv.inc") fn inc(value:i64)->i64 { value + 1 }
@@ -161,3 +166,6 @@ module test.function_values_scope;
         ["fv.chosen"],
     );
 }
+
+#[path = "function_values/wasm_closures.rs"]
+mod wasm_closures;

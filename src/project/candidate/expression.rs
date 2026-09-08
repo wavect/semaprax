@@ -919,6 +919,7 @@ fn ast_at_mut<'a>(expression: &'a mut Expr, path: &[usize]) -> Result<&'a mut Ex
 
 fn ast_children(expression: &Expr) -> Vec<&Expr> {
     match &expression.kind {
+        ExprKind::Closure { body, .. } => vec![body],
         ExprKind::Call { args, .. } | ExprKind::SuperMethod { args, .. } => args.iter().collect(),
         ExprKind::MethodCall { receiver, args, .. } => {
             std::iter::once(receiver.as_ref()).chain(args).collect()
@@ -977,6 +978,7 @@ fn ast_children(expression: &Expr) -> Vec<&Expr> {
 
 fn ast_children_mut(expression: &mut Expr) -> Vec<&mut Expr> {
     match &mut expression.kind {
+        ExprKind::Closure { body, .. } => vec![body],
         ExprKind::Call { args, .. } | ExprKind::SuperMethod { args, .. } => {
             args.iter_mut().collect()
         }
@@ -1050,6 +1052,7 @@ fn ast_children_mut(expression: &mut Expr) -> Vec<&mut Expr> {
 
 fn ast_kind(kind: &ExprKind) -> &'static str {
     match kind {
+        ExprKind::Closure { .. } => "closure",
         ExprKind::Int(_) => "i64",
         ExprKind::Int32(_) => "i32",
         ExprKind::Char(_) => "char",
@@ -1080,6 +1083,7 @@ fn ast_kind(kind: &ExprKind) -> &'static str {
 
 fn hir_kind(kind: &ResolvedExprKind) -> &'static str {
     match kind {
+        ResolvedExprKind::Closure { .. } => "closure",
         ResolvedExprKind::Int(_) => "i64",
         ResolvedExprKind::Int32(_) => "i32",
         ResolvedExprKind::Char(_) => "char",

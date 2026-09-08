@@ -149,6 +149,11 @@ fn main() -> i64 {
 /// Collects every direct child expression of a resolved expression.
 fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
     match &expression.kind {
+        hir::ResolvedExprKind::Closure { captures, body, .. } => captures
+            .iter()
+            .map(|capture| &capture.value)
+            .chain(std::iter::once(body.as_ref()))
+            .collect(),
         hir::ResolvedExprKind::FunctionReference { .. } => Vec::new(),
         hir::ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
             .chain(args.iter())

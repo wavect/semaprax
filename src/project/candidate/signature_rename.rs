@@ -150,6 +150,14 @@ impl Rename<'_> {
         self.budget(depth)?;
         let next = depth + 1;
         match &mut expression.kind {
+            ExprKind::Closure { params, body, .. } => {
+                let mut local = scope.clone();
+                for parameter in params {
+                    let mut name = parameter.name.clone();
+                    self.binding(&mut name, &mut local)?;
+                }
+                self.expression(body, &local, next)?;
+            }
             ExprKind::Var(name) => Self::reference(name, scope)?,
             ExprKind::Block { statements, tail } => {
                 let mut local = scope.clone();

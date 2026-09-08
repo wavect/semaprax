@@ -6,6 +6,9 @@ pub(super) fn replay_expression_child(
     index: usize,
 ) -> Option<&ResolvedExpr> {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            captures.get(index).map(|capture| &capture.value)
+        }
         ResolvedExprKind::FunctionReference { .. } => None,
         ResolvedExprKind::Invoke { args, .. } => args.get(index),
         ResolvedExprKind::Call { args, .. } => args.get(index),

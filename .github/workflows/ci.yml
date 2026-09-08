@@ -167,12 +167,17 @@ jobs:
           cargo test --locked --offline -p semaprax --test workspace owned_box_bytes_workspace
           cargo test --locked --offline -p semaprax --test owned_data owned_bounded_box
 
-      - name: LANG-07 first-class function values
+      - name: LANG-07 function values and scalar snapshot closures
         env:
           SPX_REQUIRE_CLANG: "1"
           SPX_REQUIRE_NODE: "1"
         run: |
           cargo test --locked --offline -p semaprax --lib function_values
+          cargo test --locked --offline -p semaprax --lib closures_hir
+          cargo test --locked --offline -p semaprax --lib closure_ast_tag
+          cargo test --locked --offline -p semaprax --lib wasm_closures
+          cargo test --locked --offline -p semaprax --lib closure_body
+          cargo test --locked --offline -p semaprax --lib closure_creation_alone
           cargo test --locked --offline -p semaprax --test language function_values
           cargo test --locked --offline -p semaprax --test workspace function_values
           cargo test --locked --offline -p semaprax --test owned_data function_values

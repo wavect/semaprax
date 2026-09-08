@@ -105,6 +105,15 @@ pub(super) fn reject_while_disallowed_oracle(
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<(), ()> {
     match &expression.kind {
+        ExprKind::Closure { .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T288",
+                "closure creation inside while bodies is not admitted",
+                expression.span,
+            ));
+            Err(())
+        }
         ExprKind::Int(_)
         | ExprKind::Int32(_)
         | ExprKind::Char(_)

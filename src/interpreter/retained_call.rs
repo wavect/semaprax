@@ -369,6 +369,8 @@ pub fn evaluate_retained_call(
         indices: &prepared.function_indices,
     };
 
+    let closure_functions =
+        super::closures::checked_functions(program).map_err(|error| vec![error])?;
     std::thread::scope(|scope| {
         let worker = std::thread::Builder::new()
             .name("semaprax-retained-call".to_owned())
@@ -376,6 +378,7 @@ pub fn evaluate_retained_call(
             .spawn_scoped(scope, move || {
                 let mut evaluator = Evaluator::new_prepared(
                     lookup,
+                    closure_functions,
                     &program.declarations,
                     max_steps,
                     0,

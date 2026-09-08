@@ -612,6 +612,7 @@ fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
     let native_sdk = include_str!("../../src/project/native_sdk.rs");
     let wasm = concat!(
         include_str!("../../src/wasm.rs"),
+        include_str!("../../src/wasm/arithmetic.rs"),
         include_str!("../../src/wasm/function_value.rs"),
         include_str!("../../src/wasm/box_ops.rs"),
         include_str!("../../src/wasm/http_io.rs"),

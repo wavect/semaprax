@@ -221,6 +221,7 @@ codec_struct!(ResolvedBinding {
     ty,
     span
 });
+codec_struct!(ResolvedClosureCapture { binding, value });
 codec_struct!(ResolvedExpr {
     id,
     ty,
@@ -237,7 +238,7 @@ codec_enum!(ResolvedExprKind {
     21=>ConstructRecord{record,fields},22=>ConstructVariant{variant,case,fields},23=>Match{mode,scrutinee,arms},
     24=>Try{operand,result,ok_case,ok_field,err_case,err_field,residual_type},
     25=>TryOption{operand,option,some_case,some_field,none_case,residual_type},
-    26=>UpdateRecord{base,record,fields},27=>Project{base,field},28=>Upcast{source},29=>FunctionReference{target},30=>Invoke{callable,args}
+    26=>UpdateRecord{base,record,fields},27=>Project{base,field},28=>Upcast{source},29=>FunctionReference{target},30=>Invoke{callable,args},31=>Closure{parameters,captures,body}
 });
 codec_struct!(ResolvedMatchArm {
     pattern,
@@ -254,3 +255,6 @@ codec_struct!(ResolvedFieldInitializer { field, value });
 codec_enum!(ResolvedStatement {0=>Let{binding,mutable,value,span},1=>Assign{binding,field,value,span},2=>Unsafe{audit,body,span},3=>While{condition,body,span}});
 codec_struct!(Place { root, projections });
 codec_enum!(PlaceProjection {0=>Field(field),1=>VariantField{case,field}});
+
+#[cfg(test)]
+mod tests;

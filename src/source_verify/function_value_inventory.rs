@@ -215,6 +215,17 @@ fn reference_signature(
     scope: &Scope<'_>,
     functions: &HashMap<&str, &Function>,
 ) -> Option<Type> {
+    if let ExprKind::Closure {
+        params,
+        return_type,
+        ..
+    } = &value.kind
+    {
+        return Some(Type::Function {
+            parameters: params.iter().map(|param| param.ty.clone()).collect(),
+            result: Box::new(return_type.clone()),
+        });
+    }
     let ExprKind::Var(name) = &value.kind else {
         return None;
     };

@@ -54,6 +54,7 @@ fn expression(
     }
     let next = depth + 1;
     match &mut expression.kind {
+        ExprKind::Closure { body, .. } => self::expression(body, next, nodes, visit)?,
         ExprKind::Call { args, .. } | ExprKind::SuperMethod { args, .. } => {
             for arg in args {
                 self::expression(arg, next, nodes, visit)?;

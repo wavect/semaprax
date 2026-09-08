@@ -30,6 +30,9 @@ impl Resolver<'_> {
         bindings: &BTreeMap<String, Binding>,
         path: &str,
     ) -> Result<ResolvedExpr, Diagnostic> {
+        if matches!(expr.kind, ExprKind::Closure { .. }) {
+            return self.resolve_closure(function, expr, bindings, path, true);
+        }
         if let Some(reference) = self.function_reference(function, expr, bindings, path)? {
             return Ok(reference);
         }
@@ -66,6 +69,7 @@ impl Resolver<'_> {
         }
         let id = ExpressionId::new(function, path);
         let (kind, ty, ownership) = match &expr.kind {
+            ExprKind::Closure { .. } => unreachable!("handled above"),
             ExprKind::Int(value) => (
                 ResolvedExprKind::Int(*value),
                 ResolvedType::I64,

@@ -64,6 +64,10 @@ fn expressions(root: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
                 pending.push(callable);
                 pending.extend(args);
             }
+            ResolvedExprKind::Closure { captures, body, .. } => {
+                pending.push(body);
+                pending.extend(captures.iter().map(|capture| &capture.value));
+            }
             ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(&call.args),

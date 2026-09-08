@@ -123,6 +123,9 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir.rs"),
         include_str!("../../../../../src/hir/generic_collection.rs"),
         include_str!("../../../../../src/hir/generic_inference.rs"),
+        include_str!("../../../../../src/hir/closure.rs"),
+        include_str!("../../../../../src/hir/closure/resolve.rs"),
+        include_str!("../../../../../src/hir/closure/validation.rs"),
         include_str!("../../../../../src/hir/function_value.rs"),
         include_str!("../../../../../src/hir/function_value/resolve.rs"),
         include_str!("../../../../../src/hir/generic_variant.rs"),
@@ -143,6 +146,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     let hir_validator = concat!(
         include_str!("../../../../../src/hir/validation.rs"),
         include_str!("../../../../../src/hir/validation/callable_types.rs"),
+        include_str!("../../../../../src/hir/validation/closure.rs"),
         include_str!("../../../../../src/hir/validation/generic_variant.rs"),
         include_str!("../../../../../src/hir/validation/box_intrinsic.rs"),
         include_str!("../../../../../src/hir/validation/vec_intrinsic.rs"),
@@ -157,6 +161,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     let verifier = concat!(
         include_str!("../../../../../src/source_verify.rs"),
         include_str!("../../../../../src/source_verify/generic_inference.rs"),
+        include_str!("../../../../../src/source_verify/closure.rs"),
         include_str!("../../../../../src/source_verify/function_value_inventory.rs"),
         include_str!("../../../../../src/source_verify/hints.rs"),
         include_str!("../../../../../src/source_verify/owned_buffer.rs"),

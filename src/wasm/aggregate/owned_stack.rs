@@ -9,6 +9,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::{error, Diagnostic, FunctionPlan, ResolvedProgram, VariantLayoutCache};
 use crate::hir::DeclarationId;
 
+mod closures;
+
 pub(super) fn derive(
     program: &ResolvedProgram,
     layouts: &VariantLayoutCache,
@@ -62,6 +64,9 @@ fn derive_weighted(
         return Err(error(
             "owned-data stack inventory is outside the monomorphic bound",
         ));
+    }
+    if crate::hir::closure::requires_closures(program) {
+        return closures::derive(program, layouts, roots, weight);
     }
     let calls = crate::call_index::PersistentCallIndex::build(program)?;
     // Public admission is selected-closure-only. Unrelated recursive or generic
@@ -125,10 +130,10 @@ fn derive_weighted(
     longest_paths(&frames, &selected_calls)
 }
 
-pub(super) fn longest_paths(
-    frames: &BTreeMap<DeclarationId, u32>,
-    calls: &BTreeMap<DeclarationId, BTreeSet<DeclarationId>>,
-) -> Result<BTreeMap<DeclarationId, u32>, Diagnostic> {
+pub(super) fn longest_paths<K: Ord + Clone>(
+    frames: &BTreeMap<K, u32>,
+    calls: &BTreeMap<K, BTreeSet<K>>,
+) -> Result<BTreeMap<K, u32>, Diagnostic> {
     if frames.len() != calls.len()
         || calls.iter().any(|(owner, callees)| {
             !frames.contains_key(owner) || callees.iter().any(|callee| !frames.contains_key(callee))
@@ -136,7 +141,7 @@ pub(super) fn longest_paths(
     {
         return Err(error("owned-data stack call inventory is incomplete"));
     }
-    let mut extents: BTreeMap<DeclarationId, u32> = BTreeMap::new();
+    let mut extents: BTreeMap<K, u32> = BTreeMap::new();
     // At most one pass per admitted function. This avoids recursion and fails
     // closed if no leaf can be resolved (including a self-edge or cycle).
     while extents.len() != frames.len() {
@@ -170,6 +175,7 @@ pub(super) fn longest_paths(
 mod tests {
     use super::*;
 
+    mod closure_runtime;
     mod runtime;
 
     #[test]

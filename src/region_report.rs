@@ -417,6 +417,11 @@ fn collect_expr(
     facts: &mut FunctionFacts,
 ) {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            for capture in captures {
+                collect_expr(&capture.value, scope_end, resolved, facts);
+            }
+        }
         ResolvedExprKind::FunctionReference { .. } => {}
         ResolvedExprKind::Invoke { callable, args } => {
             collect_expr(callable, scope_end, resolved, facts);

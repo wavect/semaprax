@@ -48,6 +48,7 @@ pub(super) fn check_expr(
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<CheckedValue> {
     match &expr.kind {
+        ExprKind::Closure { .. } => super::closure::oracle(program, current, expr, variables, functions, types, diagnostics),
         ExprKind::Int(_) => Some(CheckedValue::value(Type::I64)),
         ExprKind::Int32(_) => Some(CheckedValue::value(Type::I32)),
         ExprKind::Char(_) => Some(CheckedValue::value(Type::Char)),

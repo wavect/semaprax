@@ -82,6 +82,7 @@ mod byte_capacity;
 mod byte_slice_provenance;
 #[cfg(test)]
 mod capacity_probe;
+pub mod closure;
 mod expr_nodes;
 pub mod function_value;
 mod ids;
@@ -262,9 +263,9 @@ use capacity_probe::{
     validation_scope_owned_capacity,
 };
 pub use expr_nodes::{
-    PatternValue, ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer, ResolvedMatchArm,
-    ResolvedMatchPattern, ResolvedMatchPatternField, ResolvedRecordMatchFieldPattern,
-    ResolvedRecordMatchPatternField, ResolvedStatement,
+    PatternValue, ResolvedClosureCapture, ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer,
+    ResolvedMatchArm, ResolvedMatchPattern, ResolvedMatchPatternField,
+    ResolvedRecordMatchFieldPattern, ResolvedRecordMatchPatternField, ResolvedStatement,
 };
 pub use ids::{DeclarationId, ExpressionId, FunctionExecutionId, FunctionInstanceId, ValueId};
 pub(crate) use monomorphize::substitute_type;

@@ -105,6 +105,7 @@ pub(super) fn expression_uses_name(expression: &Expr, name: &str) -> bool {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
+            ExprKind::Closure { .. } => {}
             ExprKind::Var(candidate) if candidate == name => return true,
             ExprKind::Call { args, .. } | ExprKind::SuperMethod { args, .. } => {
                 pending.extend(args)

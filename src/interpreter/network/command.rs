@@ -144,6 +144,7 @@ pub(crate) fn evaluate_resolved_network_command(
     };
     let mut evaluator = Evaluator {
         admitted: FunctionLookup::Borrowed(&admitted),
+        closure_functions: super::super::closures::checked_functions(program)?,
         declarations: &program.declarations,
         steps: 0,
         budget: max_steps,

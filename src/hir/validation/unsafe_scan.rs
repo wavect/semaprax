@@ -8,6 +8,9 @@ pub(super) fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
+            ResolvedExprKind::Closure { captures, .. } => {
+                pending.extend(captures.iter().map(|capture| &capture.value))
+            }
             ResolvedExprKind::Block { statements, tail } => {
                 pending.push(tail);
                 for statement in statements.iter().rev() {

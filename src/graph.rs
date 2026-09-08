@@ -1107,6 +1107,11 @@ fn collect_result_propagations<'a>(
     propagations: &mut Vec<&'a ResolvedExpr>,
 ) {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            for capture in captures {
+                collect_result_propagations(&capture.value, propagations);
+            }
+        }
         ResolvedExprKind::FunctionReference { .. } => {}
         ResolvedExprKind::Invoke { callable, args } => {
             collect_result_propagations(callable, propagations);
@@ -1267,7 +1272,7 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
     if matches!(
         schema,
-        "semaprax.graph.v34" | "semaprax.graph.v35" | "semaprax.graph.v36"
+        "semaprax.graph.v34" | "semaprax.graph.v35" | "semaprax.graph.v36" | "semaprax.graph.v37"
     ) {
         return Err(Diagnostic::io(
             "SPX-G410",
@@ -1340,6 +1345,10 @@ fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
+            ResolvedExprKind::Closure { captures, body, .. } => {
+                pending.push(body);
+                pending.extend(captures.iter().map(|capture| &capture.value));
+            }
             ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.push(callable);
@@ -1419,6 +1428,12 @@ fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
 /// graph schema so its canonical bytes do not change.
 fn expression_has_explicit_match_mode(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            expression_has_explicit_match_mode(body)
+                || captures
+                    .iter()
+                    .any(|capture| expression_has_explicit_match_mode(&capture.value))
+        }
         ResolvedExprKind::FunctionReference { .. } => false,
         ResolvedExprKind::Invoke { callable, args } => {
             expression_has_explicit_match_mode(callable)
@@ -1752,6 +1767,12 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
         return true;
     }
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            expression_has_usize(body)
+                || captures
+                    .iter()
+                    .any(|capture| expression_has_usize(&capture.value))
+        }
         ResolvedExprKind::FunctionReference { .. } => false,
         ResolvedExprKind::Invoke { callable, args } => {
             expression_has_usize(callable) || args.iter().any(expression_has_usize)
@@ -1826,6 +1847,12 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
 /// statement anywhere inside its blocks, branches, arms, or nested bodies.
 fn expression_has_while(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            expression_has_while(body)
+                || captures
+                    .iter()
+                    .any(|capture| expression_has_while(&capture.value))
+        }
         ResolvedExprKind::FunctionReference { .. } => false,
         ResolvedExprKind::Invoke { callable, args } => {
             expression_has_while(callable) || args.iter().any(expression_has_while)
@@ -1959,6 +1986,12 @@ fn expression_has_stdout_write(expression: &ResolvedExpr) -> bool {
 
 fn expression_has_command_io(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            expression_has_command_io(body)
+                || captures
+                    .iter()
+                    .any(|capture| expression_has_command_io(&capture.value))
+        }
         ResolvedExprKind::FunctionReference { .. } => false,
         ResolvedExprKind::Invoke { callable, args } => {
             expression_has_command_io(callable) || args.iter().any(expression_has_command_io)
@@ -2057,6 +2090,12 @@ fn expression_has_command_append(expression: &ResolvedExpr) -> bool {
 
 fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            expression_has_record_pattern(body)
+                || captures
+                    .iter()
+                    .any(|capture| expression_has_record_pattern(&capture.value))
+        }
         ResolvedExprKind::FunctionReference { .. } => false,
         ResolvedExprKind::Invoke { callable, args } => {
             expression_has_record_pattern(callable)
@@ -2146,6 +2185,12 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
 /// blocks, branches, nested matches, or guards.
 fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            expression_has_refutable_match(body)
+                || captures
+                    .iter()
+                    .any(|capture| expression_has_refutable_match(&capture.value))
+        }
         ResolvedExprKind::FunctionReference { .. } => false,
         ResolvedExprKind::Invoke { callable, args } => {
             expression_has_refutable_match(callable)
@@ -2288,6 +2333,11 @@ fn agent_reference_index_json(
 
 fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSet<ValueId>) {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            for capture in captures {
+                collect_agent_contract_values(&capture.value, values);
+            }
+        }
         ResolvedExprKind::FunctionReference { .. } => {}
         ResolvedExprKind::Invoke { callable, args } => {
             collect_agent_contract_values(callable, values);
@@ -2414,7 +2464,7 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
 
 pub(crate) fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnostic> {
     Ok(match &expression.kind {
-        ResolvedExprKind::FunctionReference {..} | ResolvedExprKind::Invoke {..} => return Err(Diagnostic::io("SPX-G411","function values require Graph v36")),
+        ResolvedExprKind::Closure {..} | ResolvedExprKind::FunctionReference {..} | ResolvedExprKind::Invoke {..} => return Err(Diagnostic::io("SPX-G411","function values require Graph v36")),
         ResolvedExprKind::Int(value) => format!(
             "{{\"kind\":\"int\",\"value\":{}}}",
             quote_json(&value.to_string())
@@ -4701,6 +4751,11 @@ fn visit_expr_call_instances(
         visit(expression, callee, type_arguments, instance);
     }
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            for capture in captures {
+                visit_expr_call_instances(&capture.value, visit);
+            }
+        }
         ResolvedExprKind::FunctionReference { .. } => {}
         ResolvedExprKind::Invoke { callable, args } => {
             visit_expr_call_instances(callable, visit);
@@ -4800,6 +4855,11 @@ fn visit_expr_call_instances(
 
 fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&DeclarationId)) {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            for capture in captures {
+                visit_expr_calls(&capture.value, visit);
+            }
+        }
         ResolvedExprKind::FunctionReference { target } => visit(target),
         ResolvedExprKind::Invoke { callable, args } => {
             visit_expr_calls(callable, visit);
@@ -4922,6 +4982,12 @@ fn collect_expr_type_declarations(
 ) {
     collect_nominal_declarations(&expression.ty, declarations);
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            for capture in captures {
+                collect_expr_type_declarations(&capture.value, declarations);
+            }
+            collect_expr_type_declarations(body, declarations);
+        }
         ResolvedExprKind::FunctionReference { .. } => {}
         ResolvedExprKind::Invoke { callable, args } => {
             collect_expr_type_declarations(callable, declarations);
@@ -5199,6 +5265,12 @@ fn type_facts_array(
 fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, ResolvedType>) {
     collect_type(&expression.ty, types);
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            for capture in captures {
+                collect_expr_types(&capture.value, types);
+            }
+            collect_expr_types(body, types);
+        }
         ResolvedExprKind::FunctionReference { .. } => {}
         ResolvedExprKind::Invoke { callable, args } => {
             collect_expr_types(callable, types);

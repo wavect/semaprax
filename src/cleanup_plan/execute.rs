@@ -283,6 +283,11 @@ fn collect_variant_domains(
             | hir::ResolvedExprKind::String(_)
             | hir::ResolvedExprKind::Place(_)
             | hir::ResolvedExprKind::BorrowPlace { .. } => {}
+            hir::ResolvedExprKind::Closure { captures, .. } => {
+                for capture in captures {
+                    visit(program, &capture.value, domains)?;
+                }
+            }
             hir::ResolvedExprKind::FunctionReference { .. } => {}
             hir::ResolvedExprKind::Invoke { callable, args } => {
                 visit(program, callable, domains)?;

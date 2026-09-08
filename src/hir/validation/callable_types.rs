@@ -152,3 +152,46 @@ impl HirValidator<'_> {
         Ok(())
     }
 }
+
+impl HirValidator<'_> {
+    pub(super) fn finish_expr(
+        &self,
+        expression: &ResolvedExpr,
+        ty: &ResolvedType,
+        ownership: OwnershipMode,
+    ) -> Result<(), Diagnostic> {
+        self.require_type(&expression.ty, ty, "expression")?;
+        if expression.ownership != ownership {
+            return Err(hir_error(format!(
+                "expression `{}` has inconsistent ownership",
+                expression.id
+            )));
+        }
+        Ok(())
+    }
+}
+
+impl HirValidator<'_> {
+    /// Float literals must stay finite so canonical source projection and
+    /// every backend agree on the exact value; infinities and NaNs cannot be
+    /// written as literals and hostile HIR is rejected here.
+    pub(super) fn validate_finite_f32(&self, bits: u32) -> Result<(), Diagnostic> {
+        if f32::from_bits(bits).is_finite() {
+            Ok(())
+        } else {
+            Err(hir_error(
+                "f32 literal bits are not a finite IEEE-754 value",
+            ))
+        }
+    }
+
+    pub(super) fn validate_finite_f64(&self, bits: u64) -> Result<(), Diagnostic> {
+        if f64::from_bits(bits).is_finite() {
+            Ok(())
+        } else {
+            Err(hir_error(
+                "f64 literal bits are not a finite IEEE-754 value",
+            ))
+        }
+    }
+}

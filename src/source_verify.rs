@@ -28,6 +28,7 @@ use crate::diagnostic::Diagnostic;
 mod arguments;
 mod binding;
 mod capacity;
+pub(crate) mod closure;
 mod declaration;
 mod declared_type;
 mod diagnostics;

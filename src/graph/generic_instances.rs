@@ -162,11 +162,16 @@ pub(super) fn graph_json(
         quote_json(base),
         facts
     );
-    Ok(if hir::function_value::requires_function_values(program) {
+    let graph = if hir::function_value::requires_function_values(program) {
         function_values::append_targets(graph, program)
     } else {
         graph
-    })
+    };
+    if hir::closure::requires_closures(program) {
+        function_values::append_closures(graph, program)
+    } else {
+        Ok(graph)
+    }
 }
 
 fn digest(domain: &str, parts: &[&str]) -> String {

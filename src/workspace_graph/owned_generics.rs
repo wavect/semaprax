@@ -593,7 +593,8 @@ pub(super) fn private_signature(
     module: &WorkspaceResolvedModule,
     function: &hir::ResolvedFunction,
 ) -> bool {
-    hir::generic_result::concrete_signature(function)
+    private_callable_signature(workspace, module, function)
+        || hir::generic_result::concrete_signature(function)
         || hir::generic_collection::concrete_signature(function)
         || (hir::generic_variant::concrete_signature(&module.types, function)
             && function
@@ -613,4 +614,65 @@ pub(super) fn private_signature(
                                 && fact.origin == hir::IdentityOrigin::Explicit
                         })
                 }))
+}
+
+fn private_callable_signature(
+    workspace: &super::ValidatedWorkspaceHir,
+    module: &WorkspaceResolvedModule,
+    function: &hir::ResolvedFunction,
+) -> bool {
+    if !hir::function_value::private_helper_signature(function) {
+        return false;
+    }
+    let mut foreign = false;
+    for caller_module in &workspace.modules {
+        if caller_module.module == module.module {
+            continue;
+        }
+        for caller in caller_module.functions.iter().chain(
+            caller_module
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        ) {
+            visit_call_sites(caller, &mut |callee, _, _| {
+                foreign |= *callee == function.id;
+            });
+        }
+    }
+    !foreign
+}
+
+/// Ephemeral linker admission derived from checked module ownership and calls.
+pub(super) fn private_callable_link_ids(
+    functions: &[hir::LinkedScalarFunction],
+    declarations: &BTreeMap<String, super::WorkspaceDeclarationFact>,
+) -> BTreeSet<hir::DeclarationId> {
+    functions
+        .iter()
+        .filter_map(|linked| {
+            let function = &linked.function;
+            let fact = declarations.get(function.id.as_str())?;
+            if fact.owner.is_some()
+                || fact.module.is_none()
+                || !hir::function_value::private_helper_signature(function)
+            {
+                return None;
+            }
+            let mut foreign = false;
+            for caller in functions {
+                if declarations
+                    .get(caller.function.id.as_str())
+                    .and_then(|fact| fact.module.as_ref())
+                    == fact.module.as_ref()
+                {
+                    continue;
+                }
+                visit_call_sites(&caller.function, &mut |callee, _, _| {
+                    foreign |= *callee == function.id;
+                });
+            }
+            (!foreign).then(|| function.id.clone())
+        })
+        .collect()
 }

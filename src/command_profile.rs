@@ -173,7 +173,9 @@ fn validate_function(
             )));
         }
         match &expression.kind {
-            ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
+            ResolvedExprKind::Closure { .. }
+            | ResolvedExprKind::FunctionReference { .. }
+            | ResolvedExprKind::Invoke { .. } => {
                 return Err(admission(
                     "function values are outside Useful Data Command v2".to_owned(),
                 ))

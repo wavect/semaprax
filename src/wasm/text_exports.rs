@@ -352,7 +352,8 @@ fn validate_function(
     let mut pending = vec![&function.body];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
-            ResolvedExprKind::FunctionReference { .. }
+            ResolvedExprKind::Closure { .. }
+            | ResolvedExprKind::FunctionReference { .. }
             | ResolvedExprKind::Invoke { .. }
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::NativeRustImportCall(_)

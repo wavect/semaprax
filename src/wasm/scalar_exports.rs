@@ -465,6 +465,10 @@ fn validate_expression_profile(
             )));
         }
         match &expression.kind {
+            ResolvedExprKind::Closure { captures, body, .. } => {
+                pending.push(body);
+                pending.extend(captures.iter().map(|capture| &capture.value));
+            }
             ResolvedExprKind::FunctionReference { .. }
                 if hir::function_value::is_signature(&expression.ty) => {}
             ResolvedExprKind::FunctionReference { .. } => return Err(admission(format!(

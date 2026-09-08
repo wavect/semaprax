@@ -28,6 +28,7 @@ impl Evaluator<'_> {
             Value::Record(value) => Value::Record(Arc::clone(value)),
             Value::Variant(value) => Value::Variant(Arc::clone(value)),
             Value::Function(target) => Value::Function(target.clone()),
+            Value::Closure(value) => Value::Closure(Arc::clone(value)),
             Value::Moved => Value::Moved,
         })
     }
@@ -39,6 +40,7 @@ impl Evaluator<'_> {
         depth: usize,
     ) -> Result<Value, Flow> {
         match &expression.kind {
+            ResolvedExprKind::Closure { .. } => self.make_closure(expression, environment, depth),
             ResolvedExprKind::FunctionReference { target } => {
                 let function = self
                     .admitted
@@ -51,7 +53,28 @@ impl Evaluator<'_> {
             }
             ResolvedExprKind::Invoke { callable, args } => {
                 // Capture the operand before any argument is evaluated.
-                let Value::Function(target) = self.evaluate(callable, environment, depth)? else {
+                let callable_value = self.evaluate(callable, environment, depth)?;
+                if let Value::Closure(closure) = callable_value {
+                    if closure.result != expression.ty || closure.parameters.len() != args.len() {
+                        return Err(Flow::Guard("closure invocation signature mismatch"));
+                    }
+                    let mut frame = closure
+                        .captures
+                        .iter()
+                        .map(|(id, value)| Ok((id.clone(), self.clone_value(value)?)))
+                        .collect::<Result<Vec<_>, Flow>>()?;
+                    for (parameter, argument) in closure.parameters.iter().zip(args) {
+                        if parameter.ty != argument.ty {
+                            return Err(Flow::Guard("closure argument type mismatch"));
+                        }
+                        frame.push((
+                            parameter.id.clone(),
+                            self.evaluate(argument, environment, depth)?,
+                        ));
+                    }
+                    return self.call_frame(&closure.function, frame, depth + 1);
+                }
+                let Value::Function(target) = callable_value else {
                     return Err(Flow::Guard("indirect operand is not a function value"));
                 };
                 let function = self
@@ -113,4 +136,76 @@ pub(super) fn scan_targets<'a>(
         }
     }
     Ok(())
+}
+
+pub(super) fn evaluate_resolved_entry<'a>(
+    entry: &'a ResolvedFunction,
+    arguments: &[(String, ArgumentValue)],
+    admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
+    program: &'a hir::ResolvedProgram,
+    budget: usize,
+    host_stdout: bool,
+) -> (Result<Value, Flow>, usize, Vec<u8>) {
+    let (outcome, steps, transcript, _) = evaluate_resolved_entry_with_utf8_budget(
+        entry,
+        arguments,
+        admitted,
+        program,
+        budget,
+        host_stdout,
+        Utf8MaterializationBudget::UnlimitedLegacy,
+    );
+    (outcome, steps, transcript)
+}
+
+pub(super) fn evaluate_resolved_entry_with_utf8_budget<'a>(
+    entry: &'a ResolvedFunction,
+    arguments: &[(String, ArgumentValue)],
+    admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
+    program: &'a hir::ResolvedProgram,
+    budget: usize,
+    host_stdout: bool,
+    utf8_materialization_budget: Utf8MaterializationBudget,
+) -> (Result<Value, Flow>, usize, Vec<u8>, (u64, u64)) {
+    let closure_functions = match closures::checked_functions(program) {
+        Ok(functions) => functions,
+        Err(_) => {
+            return (
+                Err(Flow::Guard("invalid checked closure function")),
+                0,
+                Vec::new(),
+                (0, 0),
+            )
+        }
+    };
+    let mut evaluator = Evaluator {
+        admitted: FunctionLookup::Borrowed(admitted),
+        closure_functions,
+        declarations: &program.declarations,
+        steps: 0,
+        budget,
+        next_byte_allocation: 0,
+        allocated_byte_payload: 0,
+        box_live_allocations: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        utf8_materialization_budget,
+        stdout_transcript: host_stdout.then(Vec::new),
+        stderr_transcript: None,
+        command_input: None,
+        cancellation: PreparedCancellation::Never,
+        trace_limit: 0,
+        trace_events: Vec::new(),
+        dropped_trace_events: 0,
+        current_function: None,
+        trace_identities: BTreeMap::new(),
+        trace_phase: ResolvedTracePhase::Body,
+        failure_detail: None,
+    };
+    let outcome = evaluator.evaluate_entry(entry, arguments);
+    let utf8_usage = evaluator.utf8_materialization_budget.usage();
+    (
+        outcome,
+        evaluator.steps,
+        evaluator.stdout_transcript.unwrap_or_default(),
+        utf8_usage,
+    )
 }

@@ -465,6 +465,19 @@ slots remain `Own`. Source and HIR substitution preserve those parameter modes
 while rechecking the concrete callable signature before normal cleanup and
 backend lowering.
 
+Scalar Snapshot Closures v1 is checked by `src/source_verify/closure.rs` and
+independently by `src/hir/closure/` and `src/hir/validation/closure.rs`. Each
+creation expression owns a derived private function identity and an ordered
+inventory of scalar place snapshots. Ordinary runtime/ownership visitors inspect
+capture reads; the body is a separate checked function with its own loan and
+cleanup plans. `src/graph/function_values.rs` adds Graph v37 body definitions and
+capture facts, retained by SemanticProgram v5. The interpreter retains the
+compiler-derived body products. Native `native_emit/closure.rs` uses typed
+entry thunks and eight scalar cells; `wasm/closure.rs` uses environment-aware
+table adapters and caller-owned aggregate frame slots. Copies and returned
+closures preserve snapshots without transferring any owning payload. See
+[the closure contract](CLOSURES-V1.md) for bounds and pending promotion evidence.
+
 A graph, report, review, or evidence capsule is descriptive data. It is not a
 capability, signature, approval, or commit token.
 

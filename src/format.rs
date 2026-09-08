@@ -10,6 +10,8 @@ use std::fmt::Write as _;
 mod agents;
 #[path = "format/capacity.rs"]
 mod capacity;
+#[path = "format/closure.rs"]
+mod closure;
 #[path = "format/comments.rs"]
 pub mod comments;
 #[cfg(test)]
@@ -17,6 +19,7 @@ pub mod comments;
 mod iterative_tests;
 #[path = "format/literals.rs"]
 mod literals;
+use closure::contains_record_construction;
 
 use capacity::{legacy_canonical_temporary_bytes, legacy_expr_temporary_bytes};
 pub(crate) use literals::{canonical_f32_bits, canonical_f64_bits, write_escaped, write_joined};
@@ -750,6 +753,14 @@ fn write_expr_measured(
                         output.write_char('"').unwrap();
                     }
                     ExprKind::Var(name) => output.write_str(name).unwrap(),
+                    ExprKind::Closure {
+                        params,
+                        return_type,
+                        body,
+                    } => {
+                        closure::write_signature(&mut output, params, return_type);
+                        frames.push(Frame::Expr(body, 0));
+                    }
                     ExprKind::Call {
                         name,
                         type_arguments,
@@ -1341,115 +1352,6 @@ fn write_record_match_pattern(
             }
         }
     }
-}
-
-fn contains_record_construction(value: &Expr) -> bool {
-    use ContainsRecordFrame as Frame;
-    fn child(value: &Expr, index: usize) -> Option<&Expr> {
-        match &value.kind {
-            ExprKind::Call { args, .. } => args.get(index),
-            ExprKind::Unary { value, .. }
-            | ExprKind::Try { operand: value }
-            | ExprKind::Project { base: value, .. } => (index == 0).then_some(value),
-            ExprKind::UpdateRecord { base, fields } => {
-                if index == 0 {
-                    Some(base)
-                } else {
-                    fields.get(index - 1).map(|field| &field.value)
-                }
-            }
-            ExprKind::Binary { left, right, .. } => {
-                [left.as_ref(), right.as_ref()].get(index).copied()
-            }
-            ExprKind::Block { statements, tail } => {
-                let mut offset = 0;
-                for statement in statements {
-                    let count = statement.child_count();
-                    if index < offset + count {
-                        return statement.child(index - offset);
-                    }
-                    offset += count;
-                }
-                (index == offset).then_some(tail)
-            }
-            ExprKind::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => [
-                condition.as_ref(),
-                then_branch.as_ref(),
-                else_branch.as_ref(),
-            ]
-            .get(index)
-            .copied(),
-            ExprKind::Match {
-                scrutinee, arms, ..
-            } => {
-                if index == 0 {
-                    Some(scrutinee)
-                } else {
-                    let mut cursor = index - 1;
-                    for arm in arms {
-                        if let Some(guard) = arm.guard.as_deref() {
-                            if cursor == 0 {
-                                return Some(guard);
-                            }
-                            cursor -= 1;
-                        }
-                        if cursor == 0 {
-                            return Some(&arm.value);
-                        }
-                        cursor -= 1;
-                    }
-                    None
-                }
-            }
-            ExprKind::MethodCall { receiver, args, .. } => {
-                if index == 0 {
-                    Some(receiver)
-                } else {
-                    args.get(index - 1)
-                }
-            }
-            ExprKind::SuperMethod { args, .. } => args.get(index),
-            ExprKind::ConstructRecord { .. }
-            | ExprKind::ConstructVariant { .. }
-            | ExprKind::Int(_)
-            | ExprKind::Int32(_)
-            | ExprKind::Char(_)
-            | ExprKind::Uint8(_)
-            | ExprKind::Usize(_)
-            | ExprKind::ArrayU8(_)
-            | ExprKind::RepeatArrayU8 { .. }
-            | ExprKind::Float32(_)
-            | ExprKind::Float64(_)
-            | ExprKind::Bool(_)
-            | ExprKind::String(_)
-            | ExprKind::Var(_) => None,
-        }
-    }
-    let mut frames = FormatFrameStack::new(Frame::Enter(value), ScratchStackKind::ContainsRecord);
-    while let Some(frame) = frames.pop() {
-        match frame {
-            Frame::Enter(value) => {
-                if matches!(
-                    value.kind,
-                    ExprKind::ConstructRecord { .. } | ExprKind::ConstructVariant { .. }
-                ) {
-                    return true;
-                }
-                frames.push(Frame::Children(value, 0));
-            }
-            Frame::Children(value, index) => {
-                if let Some(child) = child(value, index) {
-                    frames.push(Frame::Children(value, index + 1));
-                    frames.push(Frame::Enter(child));
-                }
-            }
-        }
-    }
-    false
 }
 
 fn write_function_body(

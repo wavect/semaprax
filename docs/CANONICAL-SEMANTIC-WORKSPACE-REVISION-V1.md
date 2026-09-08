@@ -452,3 +452,17 @@ Only a nonempty omitted-callable source closure selects the v4 schema and digest
 domain. Existing v1/v2 and ordinary or mixed callable v3 documents preserve their
 bytes. V4 retains the existing checked role graph list alongside the additional
 source closure list, with bounded builder and combined source-graph output work.
+
+## Scalar snapshot closures: semantic-program v5
+
+A linked role containing a scalar snapshot closure selects semantic-program v5.
+It retains `checked_callable_closures` and `checked_source_callable_closures`
+using the same normalized semantic subject as v3/v4. Graph v37 records the
+creation's ordered capture reads, parameter identities and derived body target;
+`closure_definitions` retains each private body, scalar signature, result,
+cleanup plan and loan plan. Invocation candidates include compatible derived
+body targets. The semantic-program digest uses the distinct v5 domain.
+Programs without snapshot closures retain their prior schema and bytes.
+Exact source bytes still belong to SourceProjection and ProgramRoot. Neither
+submitted closure facts nor a self-consistent digest can replace checked-source
+replay. See [Scalar Snapshot Closures v1](CLOSURES-V1.md).

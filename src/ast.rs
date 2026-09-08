@@ -257,6 +257,15 @@ impl Drop for Program {
 
         while let Some(mut expression) = expressions.pop() {
             match mem::replace(&mut expression.kind, ExprKind::Int(0)) {
+                ExprKind::Closure {
+                    params,
+                    return_type,
+                    body,
+                } => {
+                    types.extend(params.into_iter().map(|param| param.ty));
+                    types.push(return_type);
+                    expressions.push(*body);
+                }
                 ExprKind::Call {
                     type_arguments,
                     args,
@@ -718,7 +727,19 @@ pub struct Expr {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClosureParam {
+    pub name: String,
+    pub ty: Type,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExprKind {
+    Closure {
+        params: Vec<ClosureParam>,
+        return_type: Type,
+        body: Box<Expr>,
+    },
     Int(i64),
     /// An `i32` literal stored as its exact value.
     Int32(i32),
@@ -1182,6 +1203,7 @@ impl Expr {
 
     pub(crate) fn child(&self, index: usize) -> Option<&Expr> {
         match &self.kind {
+            ExprKind::Closure { body, .. } => (index == 0).then_some(body),
             ExprKind::Call { args, .. } => args.get(index),
             ExprKind::MethodCall { receiver, args, .. } => (index == 0)
                 .then_some(receiver.as_ref())

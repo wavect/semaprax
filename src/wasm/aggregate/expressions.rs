@@ -160,3 +160,94 @@ impl Emitter<'_> {
         Ok(())
     }
 }
+
+/// Whether an aggregate expression may select the existing try status lane.
+pub(super) fn expression_has_try(expression: &ResolvedExpr) -> bool {
+    match &expression.kind {
+        ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
+        ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
+        ResolvedExprKind::Invoke { callable, args } => {
+            expression_has_try(callable) || args.iter().any(expression_has_try)
+        }
+        ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_try),
+        ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_try),
+        ResolvedExprKind::ByteRange {
+            source, start, end, ..
+        } => expression_has_try(source) || expression_has_try(start) || expression_has_try(end),
+        ResolvedExprKind::Unary { value, .. }
+        | ResolvedExprKind::Project { base: value, .. }
+        | ResolvedExprKind::Upcast { source: value } => expression_has_try(value),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            expression_has_try(left) || expression_has_try(right)
+        }
+        ResolvedExprKind::Block { statements, tail } => {
+            statements.iter().any(|statement| {
+                (0..statement.child_count()).any(|index| {
+                    expression_has_try(
+                        statement
+                            .child(index)
+                            .expect("resolved statement child count is canonical"),
+                    )
+                })
+            }) || expression_has_try(tail)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expression_has_try(condition)
+                || expression_has_try(then_branch)
+                || expression_has_try(else_branch)
+        }
+        ResolvedExprKind::ConstructRecord { fields, .. }
+        | ResolvedExprKind::ConstructVariant { fields, .. } => {
+            fields.iter().any(|field| expression_has_try(&field.value))
+        }
+        ResolvedExprKind::Match {
+            scrutinee, arms, ..
+        } => expression_has_try(scrutinee) || arms.iter().any(|arm| expression_has_try(&arm.value)),
+        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+            expression_has_try(base) || fields.iter().any(|field| expression_has_try(&field.value))
+        }
+        ResolvedExprKind::Int(_)
+        | ResolvedExprKind::Int32(_)
+        | ResolvedExprKind::Char(_)
+        | ResolvedExprKind::Uint8(_)
+        | ResolvedExprKind::Usize(_)
+        | ResolvedExprKind::Float32(_)
+        | ResolvedExprKind::Float64(_)
+        | ResolvedExprKind::Bool(_)
+        | ResolvedExprKind::ArrayU8(_)
+        | ResolvedExprKind::RepeatArrayU8 { .. }
+        | ResolvedExprKind::String(_)
+        | ResolvedExprKind::Place(_)
+        | ResolvedExprKind::BorrowPlace { .. }
+        | ResolvedExprKind::FunctionReference { .. } => false,
+        ResolvedExprKind::Closure { captures, .. } => captures
+            .iter()
+            .any(|capture| expression_has_try(&capture.value)),
+    }
+}
+
+pub(super) fn emit_arithmetic_trap_case(
+    body: &mut Vec<u8>,
+    status_local: u32,
+    expected: i32,
+    import: u32,
+    left: i64,
+    right: i64,
+) {
+    body.push(0x20);
+    write_u32(body, status_local);
+    body.push(0x41);
+    write_i64(body, i64::from(expected));
+    body.push(0x46);
+    body.extend([0x04, 0x40, 0x42]);
+    write_i64(body, left);
+    body.push(0x42);
+    write_i64(body, right);
+    body.push(0x10);
+    write_u32(body, import);
+    body.extend([0x1a, 0x00, 0x0b]);
+}

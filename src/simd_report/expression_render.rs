@@ -8,6 +8,7 @@ pub(super) fn render_expr(
     output: &mut String,
 ) {
     match &expr.kind {
+        ResolvedExprKind::Closure { .. } => output.push_str("<closure>"),
         ResolvedExprKind::Int(number) => {
             output.push_str(&number.to_string());
         }

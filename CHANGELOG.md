@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private scalar snapshot Closures v1: exact AST/HIR cache carriers,
+  Graph v37 and SemanticProgram v5/ProgramRoot replay, and local interpreter,
+  C11 O0/O2, and Core-Wasm evidence for snapshot timing and captured generic
+  Vec map/filter/fold composition. Owning captures, public callable ABI, and
+  hosted promotion remain pending.
+
 - Add private noncapturing Function Values v1 with checked declaration-identity
   references and indirect invocation, Graph v36 projection, and retained
   SemanticProgram v3 callable closures. Public ABI and hosted promotion remain

@@ -19,6 +19,10 @@ pub(super) struct VerifierScope {
 }
 
 pub(super) enum VerifierFrame<'a> {
+    ResumeClosure {
+        expression: &'a Expr,
+        scope: usize,
+    },
     Enter {
         expression: &'a Expr,
         scope: usize,
@@ -441,6 +445,7 @@ pub(super) fn verifier_frame_owned_capacity(frame: &VerifierFrame<'_>) -> usize 
             .saturating_add(values.iter().map(String::capacity).sum::<usize>())
     };
     match frame {
+        VerifierFrame::ResumeClosure { .. } => 0,
         VerifierFrame::ResumeBinaryRight { baseline_names, .. }
         | VerifierFrame::ResumeIfThen { baseline_names, .. } => strings(baseline_names),
         VerifierFrame::ResumeIfElse {

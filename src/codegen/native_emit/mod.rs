@@ -20,6 +20,7 @@ use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write as _;
 
+mod closure;
 mod compiler;
 mod expression;
 mod function_value;
@@ -114,8 +115,14 @@ pub(super) fn emit_hir_c_with_labels(
         &record_layouts,
         &variant_layouts,
     )?;
+    if hir::closure::requires_closures(program) {
+        closure::emit_carrier_declarations(&mut output, program, &resource_abi)?;
+    }
     function_value::emit_typedefs(&mut output, program, &resource_abi)?;
     emit_function_prototypes(&mut output, program, &functions, &resource_abi)?;
+    if closure::enabled(program) {
+        closure::emit_thunk_prototypes(&mut output, program, &resource_abi)?;
+    }
 
     let emission = NativeEmissionContext {
         program,
@@ -141,6 +148,17 @@ pub(super) fn emit_hir_c_with_labels(
             &FunctionExecutionId::Generic(instance.id.clone()),
             &emission,
         )?;
+    }
+    if closure::enabled(program) {
+        for function in closure::closure_functions(program)? {
+            emit_function(
+                &mut output,
+                &function,
+                &FunctionExecutionId::Monomorphic(function.id.clone()),
+                &emission,
+            )?;
+        }
+        closure::emit_thunks(&mut output, program, &emission)?;
     }
 
     if output_profile.is_command() {
@@ -367,12 +385,12 @@ fn emit_native_prelude_inner(
     } else {
         output.push_str(NATIVE_SCALAR_RUNTIME_C);
     }
-    if program_uses_u8_arithmetic(program) {
+    if closure::enabled(program) || program_uses_u8_arithmetic(program) {
         // Checked u8 helpers stay out of programs that cannot reach them, so
         // existing projections keep their exact committed bytes.
         output.push_str(NATIVE_U8_RUNTIME_C);
     }
-    if program_uses_usize_arithmetic(program) {
+    if closure::enabled(program) || program_uses_usize_arithmetic(program) {
         // Portable usize is semantic u64 on every target. Keep its helpers
         // reachability-gated so programs without usize preserve exact bytes.
         output.push_str(NATIVE_USIZE_RUNTIME_C);
@@ -879,7 +897,7 @@ fn c_value_type(
     ty: &ResolvedType,
 ) -> Result<String, Diagnostic> {
     if matches!(ty, ResolvedType::Function { .. }) {
-        function_value::c_type(ty)
+        function_value::c_type(program, ty)
     } else if crate::cleanup::is_owned_bounded_vec_type(ty) {
         Ok("spx_vec_v1".to_owned())
     } else if crate::cleanup::is_owned_bounded_box_type(ty) {
@@ -1605,10 +1623,10 @@ static __attribute__((unused)) spx_status_token spx_rt_usize_rem(
 }
 "#;
 
-struct NativeEmissionContext<'a> {
-    program: &'a ResolvedProgram,
-    resource_abi: &'a native_resource::NativeResourceAbi,
-    functions: &'a HashMap<FunctionExecutionId, CFunction>,
+pub(super) struct NativeEmissionContext<'a> {
+    pub(super) program: &'a ResolvedProgram,
+    pub(super) resource_abi: &'a native_resource::NativeResourceAbi,
+    pub(super) functions: &'a HashMap<FunctionExecutionId, CFunction>,
     contract_labels: &'a HashMap<ExpressionId, String>,
     record_layouts: &'a AggregateLayoutCache,
     variant_layouts: &'a VariantLayoutCache,
@@ -2158,10 +2176,10 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
 
 #[derive(Clone)]
 pub(super) struct CFunction {
-    symbol: String,
-    params: Vec<ResolvedType>,
-    param_ownerships: Vec<crate::hir::OwnershipMode>,
-    return_type: ResolvedType,
+    pub(super) symbol: String,
+    pub(super) params: Vec<ResolvedType>,
+    pub(super) param_ownerships: Vec<crate::hir::OwnershipMode>,
+    pub(super) return_type: ResolvedType,
 }
 
 pub(super) fn function_index(
@@ -2232,6 +2250,29 @@ pub(super) fn function_index(
             return Err(backend_error(format!(
                 "duplicate resolved function instance `{}`",
                 instance.id
+            )));
+        }
+    }
+    for function in closure::closure_functions(program)? {
+        let execution = FunctionExecutionId::Monomorphic(function.id.clone());
+        let metadata = CFunction {
+            symbol: c_function_symbol(&function.id),
+            params: function
+                .params
+                .iter()
+                .map(|param| param.ty.clone())
+                .collect(),
+            param_ownerships: function
+                .params
+                .iter()
+                .map(|param| param.ownership)
+                .collect(),
+            return_type: function.return_type.clone(),
+        };
+        if functions.insert(execution, metadata).is_some() {
+            return Err(backend_error(format!(
+                "duplicate native closure identity `{}`",
+                function.id
             )));
         }
     }

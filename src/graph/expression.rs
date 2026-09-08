@@ -12,7 +12,7 @@ pub(super) fn expr_json(
         quote_json(ownership_text(expression.ownership))
     );
     let output = match &expression.kind {
-        ResolvedExprKind::FunctionReference {..} | ResolvedExprKind::Invoke {..} => function_values::expression_json(program,expression,&header)?,
+        ResolvedExprKind::Closure {..} | ResolvedExprKind::FunctionReference {..} | ResolvedExprKind::Invoke {..} => function_values::expression_json(program,expression,&header)?,
         ResolvedExprKind::Int(value) => {
             format!(
                 "{{{header},\"kind\":\"int\",\"value\":{}}}",

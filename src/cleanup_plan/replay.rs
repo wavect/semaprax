@@ -601,7 +601,8 @@ fn expression_path_counts_with_while(
 ) -> Result<HirPathCounts, Diagnostic> {
     fn child(expression: &ResolvedExpr, mut index: usize) -> Option<&ResolvedExpr> {
         match &expression.kind {
-            ResolvedExprKind::FunctionReference { .. }
+            ResolvedExprKind::Closure { .. }
+            | ResolvedExprKind::FunctionReference { .. }
             | ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
@@ -729,7 +730,8 @@ fn expression_path_counts_with_while(
                         .fold(HirPathCounts::ONE, sequence_path_counts)
                 };
                 let counts = match &expression.kind {
-                    ResolvedExprKind::FunctionReference { .. }
+                    ResolvedExprKind::Closure { .. }
+                    | ResolvedExprKind::FunctionReference { .. }
                     | ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
@@ -1022,7 +1024,8 @@ fn expression_skeleton_work_upper(
             .expect("skeleton census frame retained");
         if *next == 0 {
             let local = match &expression.kind {
-                ResolvedExprKind::FunctionReference { .. }
+                ResolvedExprKind::Closure { .. }
+                | ResolvedExprKind::FunctionReference { .. }
                 | ResolvedExprKind::Int(_)
                 | ResolvedExprKind::Int32(_)
                 | ResolvedExprKind::Char(_)
@@ -1764,7 +1767,7 @@ fn collect_expression_statuses(
             continue;
         }
         match &expression.kind {
-            ResolvedExprKind::FunctionReference { .. } => {}
+            ResolvedExprKind::Closure { .. } | ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::ByteRange { operation, .. } => {
                 if operation.as_str() != crate::byte_ops::RANGE_ID {
                     return Err(replay_error(
@@ -3447,7 +3450,8 @@ fn expression_skeleton(
             Frame::Eval(expression) => {
                 debug_assert!(produced.is_none());
                 match &expression.kind {
-                    ResolvedExprKind::FunctionReference { .. }
+                    ResolvedExprKind::Closure { .. }
+                    | ResolvedExprKind::FunctionReference { .. }
                     | ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)

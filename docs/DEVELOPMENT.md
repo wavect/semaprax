@@ -34,7 +34,7 @@ Additional required references:
 
 | Change area | Owning references |
 | --- | --- |
-| First-class function values and indirect invocation | [Function Values v1](FUNCTION-VALUES-V1.md), [Function Values v2](FUNCTION-VALUES-V2.md), [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) |
+| First-class function values and indirect invocation | [Function Values v1](FUNCTION-VALUES-V1.md), [Function Values v2](FUNCTION-VALUES-V2.md), [Scalar Snapshot Closures v1](CLOSURES-V1.md), [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) |
 | Generic argument inference | [Argument Inference v1](GENERIC-ARGUMENT-INFERENCE-V1.md), [Argument Inference v2](GENERIC-ARGUMENT-INFERENCE-V2.md), [Argument Inference v3](GENERIC-ARGUMENT-INFERENCE-V3.md) |
 | Records, variants, generics, matching, `Option`, `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |
 | Standard-library packages under `std/`, their catalogs, tiers, and gates | [Standard Library v1](STANDARD-LIBRARY-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |

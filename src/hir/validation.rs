@@ -9,6 +9,7 @@ use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 mod borrowed_str;
 mod box_intrinsic;
 mod callable_types;
+mod closure;
 mod generic_record_composition;
 mod generic_template;
 mod host_command;
@@ -1220,6 +1221,11 @@ impl<'a> HirValidator<'a> {
             ));
         }
         match &expression.kind {
+            ResolvedExprKind::Closure { .. } => {
+                return Err(hir_error(
+                    "closures inside generic templates are not admitted",
+                ))
+            }
             ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
                 self.validate_template_callable(template, execution, expression, values, path)?
             }
@@ -1519,6 +1525,11 @@ impl<'a> HirValidator<'a> {
                 }
             };
             match &expression.kind {
+                ResolvedExprKind::Closure { .. } => {
+                    return Err(hir_error(
+                        "closure creation inside while bodies is not admitted",
+                    ))
+                }
                 ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
                     pending.extend(
                         self.while_callable_arguments(expression)?
@@ -3182,6 +3193,10 @@ impl<'a> HirValidator<'a> {
                     }
                     self.validate_type(&expression.ty)?;
                     match &expression.kind {
+                        ResolvedExprKind::Closure { .. } => {
+                            self.validate_closure(function, expression, &scope, &path)?;
+                            scopes.push(scope);
+                        }
                         ResolvedExprKind::FunctionReference { target } => {
                             super::function_value::validate_reference(
                                 self.program,
@@ -5985,45 +6000,6 @@ impl<'a> HirValidator<'a> {
         Ok(())
     }
 
-    fn finish_expr(
-        &self,
-        expression: &ResolvedExpr,
-        ty: &ResolvedType,
-        ownership: OwnershipMode,
-    ) -> Result<(), Diagnostic> {
-        self.require_type(&expression.ty, ty, "expression")?;
-        if expression.ownership != ownership {
-            return Err(hir_error(format!(
-                "expression `{}` has inconsistent ownership",
-                expression.id
-            )));
-        }
-        Ok(())
-    }
-
-    /// Float literals must stay finite so canonical source projection and
-    /// every backend agree on the exact value; infinities and NaNs cannot be
-    /// written as literals and hostile HIR is rejected here.
-    fn validate_finite_f32(&self, bits: u32) -> Result<(), Diagnostic> {
-        if f32::from_bits(bits).is_finite() {
-            Ok(())
-        } else {
-            Err(hir_error(
-                "f32 literal bits are not a finite IEEE-754 value",
-            ))
-        }
-    }
-
-    fn validate_finite_f64(&self, bits: u64) -> Result<(), Diagnostic> {
-        if f64::from_bits(bits).is_finite() {
-            Ok(())
-        } else {
-            Err(hir_error(
-                "f64 literal bits are not a finite IEEE-754 value",
-            ))
-        }
-    }
-
     fn finish_try_expr(
         &self,
         function: &FunctionExecutionId,
@@ -6268,6 +6244,10 @@ impl<'a> HirValidator<'a> {
         self.validate_type(&expression.ty)?;
 
         let (ty, ownership) = match &expression.kind {
+            ResolvedExprKind::Closure { .. } => {
+                self.validate_closure(function, expression, scope, path)?;
+                (expression.ty.clone(), OwnershipMode::Value)
+            }
             ResolvedExprKind::FunctionReference { target } => {
                 super::function_value::validate_reference(self.program, target, &expression.ty)?;
                 (expression.ty.clone(), OwnershipMode::Value)
@@ -8392,7 +8372,8 @@ impl<'a> HirValidator<'a> {
         while let Some(frame) = frames.pop() {
             match frame {
                 Frame::Enter(expression, scope_index) => match &expression.kind {
-                    ResolvedExprKind::FunctionReference { .. } => {}
+                    ResolvedExprKind::Closure { .. }
+                    | ResolvedExprKind::FunctionReference { .. } => {}
                     ResolvedExprKind::Invoke { args, .. } => {
                         for arg in args.iter().rev() {
                             frames.push(Frame::Enter(arg, scope_index));

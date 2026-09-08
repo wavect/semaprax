@@ -394,6 +394,7 @@ impl ScanState<'_> {
             return Some(REASON_SCAN_STEP_BUDGET_EXHAUSTED);
         }
         match &expression.kind {
+            ExprKind::Closure { .. } => Some(REASON_UNSUPPORTED_CALLEE),
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Uint8(_)

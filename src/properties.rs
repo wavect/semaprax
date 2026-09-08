@@ -1,16 +1,14 @@
 //! Deterministic, read-only Property-Test Generation v1.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
-
-use sha2::{Digest as _, Sha256};
-
 use crate::ast::{
     BinaryOp, Expr, ExprKind, Function, ParamMode, Program, Statement, Type, UnaryOp,
 };
 use crate::bounded_output::{with_limit, BudgetedJoin as _};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::{format, graph, parse, patch, verify};
+use sha2::{Digest as _, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 macro_rules! bformat {
     ($($argument:tt)*) => {
@@ -582,6 +580,7 @@ impl<'a> Analyzer<'a> {
             return Some(REASON_EVALUATION_STEP_BUDGET_EXHAUSTED);
         }
         match &expression.kind {
+            ExprKind::Closure { .. } => Some(REASON_UNSUPPORTED_CALLEE),
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Uint8(_)
@@ -662,6 +661,7 @@ impl<'a> Analyzer<'a> {
             return Outcome::Exhausted;
         }
         match &expression.kind {
+            ExprKind::Closure { .. } => Outcome::Unsupported(REASON_UNSUPPORTED_CALLEE),
             ExprKind::Int(value) => Outcome::Value(Value::Int(*value)),
             ExprKind::Int32(value) => Outcome::Value(Value::Int32(*value)),
             ExprKind::Uint8(value) => Outcome::Value(Value::Uint8(*value)),

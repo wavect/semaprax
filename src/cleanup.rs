@@ -1133,6 +1133,9 @@ impl InventoryBuilder<'_> {
                     let mut enter = None;
                     let mut action = None;
                     match &expression.kind {
+                        ResolvedExprKind::Closure { captures, .. } => {
+                            enter = captures.get(index).map(|capture| &capture.value);
+                        }
                         ResolvedExprKind::FunctionReference { .. } => {}
                         ResolvedExprKind::Invoke { callable, args } => {
                             enter = if index == 0 {

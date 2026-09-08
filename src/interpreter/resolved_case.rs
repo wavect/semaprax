@@ -91,6 +91,8 @@ pub(crate) fn evaluate_resolved_zero_arg_i64_function(
     // Even uncalled attached instances must authenticate before execution.
     hir::validate(program).map_err(|error| vec![error])?;
 
+    let closure_functions =
+        super::closures::checked_functions(program).map_err(|error| vec![error])?;
     std::thread::scope(|scope| {
         let worker = std::thread::Builder::new()
             .name("semaprax-resolved-evaluate".to_owned())
@@ -98,6 +100,7 @@ pub(crate) fn evaluate_resolved_zero_arg_i64_function(
             .spawn_scoped(scope, || {
                 let mut evaluator = Evaluator::new_prepared(
                     FunctionLookup::Borrowed(&admitted),
+                    closure_functions,
                     &program.declarations,
                     max_steps,
                     0,

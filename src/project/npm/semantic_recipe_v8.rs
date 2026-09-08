@@ -497,9 +497,11 @@ fn render_expr(
     local_index: &mut usize,
 ) -> Result<String, Diagnostic> {
     match &expression.kind {
-        ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => Err(
-            package_error("function values are outside semantic recipe v8"),
-        ),
+        ResolvedExprKind::Closure { .. }
+        | ResolvedExprKind::FunctionReference { .. }
+        | ResolvedExprKind::Invoke { .. } => Err(package_error(
+            "function values are outside semantic recipe v8",
+        )),
         ResolvedExprKind::Int(value) => Ok(value.to_string()),
         ResolvedExprKind::Int32(value) => Ok(format!("{value}i32")),
         ResolvedExprKind::Char(value) => render_char(*value),

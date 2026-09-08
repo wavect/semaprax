@@ -590,6 +590,9 @@ fn expression_reaches_import(root: &ResolvedExpr) -> bool {
     let mut pending = vec![root];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
+            ResolvedExprKind::Closure { captures, .. } => {
+                pending.extend(captures.iter().map(|capture| &capture.value))
+            }
             ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.extend(args);

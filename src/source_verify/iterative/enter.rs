@@ -30,6 +30,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         scope: usize,
     ) -> Result<(), Diagnostic> {
         match &expression.kind {
+            ExprKind::Closure { .. } => self.enter_closure(expression, scope)?,
             ExprKind::Int(_) => self.values.push(Some(CheckedValue::value(Type::I64))),
             ExprKind::Int32(_) => self.values.push(Some(CheckedValue::value(Type::I32))),
             ExprKind::Char(_) => self.values.push(Some(CheckedValue::value(Type::Char))),

@@ -344,6 +344,9 @@ fn walk_expression<'a>(
 
 fn push_children<'a>(expression: &'a ResolvedExpr, pending: &mut Vec<&'a ResolvedExpr>) {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            pending.extend(captures.iter().rev().map(|capture| &capture.value));
+        }
         ResolvedExprKind::FunctionReference { .. } => {}
         ResolvedExprKind::Invoke { callable, args } => {
             pending.extend(args.iter().rev());
@@ -702,6 +705,7 @@ fn ownership_name(mode: OwnershipMode) -> &'static str {
 
 fn expression_kind(kind: &ResolvedExprKind) -> &'static str {
     match kind {
+        ResolvedExprKind::Closure { .. } => "closure",
         ResolvedExprKind::Int(_) => "i64",
         ResolvedExprKind::Int32(_) => "i32",
         ResolvedExprKind::Char(_) => "char",

@@ -20,6 +20,8 @@ impl SemanticProgram {
 
     pub const SCHEMA_V4: &'static str = "semaprax.semantic-workspace-revision.semantic-program.v4";
 
+    pub const SCHEMA_V5: &'static str = "semaprax.semantic-workspace-revision.semantic-program.v5";
+
     pub(super) fn derive(
         revision: &ProjectRevision,
         mut payload: Value,
@@ -38,11 +40,13 @@ impl SemanticProgram {
         );
         let mut closures = Vec::new();
         let mut has_callable_closure = false;
+        let mut has_snapshot_closure = false;
         for (role, program) in [
             ("entry", revision.entry_program()),
             ("public_api", revision.public_api_program()),
             ("tests", revision.test_program()),
         ] {
+            has_snapshot_closure |= crate::hir::closure::requires_closures(program);
             let has_callables = crate::hir::function_value::requires_function_values(program);
             has_callable_closure |= has_callables;
             if !has_callables
@@ -81,7 +85,14 @@ impl SemanticProgram {
                 &retained_templates,
                 &defining_revision,
             )?;
-        let (schema, domain): (&str, &[u8]) = if !source_closures.is_empty() {
+        let (schema, domain): (&str, &[u8]) = if has_snapshot_closure {
+            payload["checked_callable_closures"] = json!(closures);
+            payload["checked_source_callable_closures"] = json!(source_closures);
+            (
+                Self::SCHEMA_V5,
+                b"semaprax.semantic-workspace-revision.semantic-program.digest.v5\0",
+            )
+        } else if !source_closures.is_empty() {
             payload["checked_callable_closures"] = json!(closures);
             payload["checked_source_callable_closures"] = json!(source_closures);
             (

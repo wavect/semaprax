@@ -102,3 +102,96 @@ fn function_values_generic_adapters_preserve_selection_and_fold_order() {
 "#;
     collections::run_source(&source, 0);
 }
+
+#[test]
+fn captured_closures_cross_generic_map_filter_fold_with_the_shared_vec_runtime_host() {
+    let source = String::from(ADAPTERS)
+        + r#"
+@id("adapter.run") fn run()->i64 {
+ let map_offset=1;
+ let mapped_callback=fn(value:i64)->i64 {value+map_offset};
+ let filter_floor=2;
+ let kept_callback=fn(value:i64)->bool {value>filter_floor};
+ let fold_base=10;
+ let folded_callback=fn(left:i64,right:i64)->i64 {left*fold_base+right};
+ let first=vec_push<i64>(vec_with_capacity<i64>(3usize),1);
+ let second=vec_push<i64>(first,3);
+ let values=vec_push<i64>(second,2);
+ fold<i64>(filter<i64>(map<i64>(values,mapped_callback),kept_callback),0,folded_callback)
+}
+@id("app.main") fn main()->i64 {run()}
+"#;
+    collections::run_source_value(&source, 43);
+}
+
+#[test]
+fn function_values_generic_callbacks_fail_after_a_committed_output_push() {
+    for (adapter, callback) in [("map", "guard_map"), ("filter", "guard_filter")] {
+        let source = format!(
+            r#"{ADAPTERS}
+@id("adapter.guard-map") fn guard_map(value:i64)->i64 requires value<2 {{value}}
+@id("adapter.guard-filter") fn guard_filter(value:i64)->bool requires value<2 {{true}}
+@id("app.main") fn main()->i64 {{
+ let first=vec_push<i64>(vec_with_capacity<i64>(2usize),1);
+ let input=vec_push<i64>(first,2);
+ let output={adapter}<i64>(input,{callback});
+ if vec_len<i64>(output)==1usize {{1}} else {{0}}
+}}
+"#
+        );
+        collections::run_source(&source, 1);
+    }
+}
+
+#[test]
+fn function_values_generic_adapters_settle_input_after_output_capacity_limit() {
+    for adapter in ["map_refusal", "filter_refusal"] {
+        let source = format!(
+            r#"{ADAPTERS}
+@id("adapter.map-refusal") fn map_refusal<T>(values:own Vec<T>, callback:fn(T)->T)->Vec<T> {{
+ let count=vec_len<T>(values);
+ let capacity=8192usize+1usize;
+ let output=vec_with_capacity<T>(capacity);
+ output
+}}
+@id("adapter.filter-refusal") fn filter_refusal<T>(values:own Vec<T>, predicate:fn(T)->bool)->Vec<T> {{
+ let count=vec_len<T>(values);
+ let capacity=8192usize+1usize;
+ let output=vec_with_capacity<T>(capacity);
+ output
+}}
+@id("adapter.identity") fn identity(value:i64)->i64 {{value}}
+@id("adapter.keep") fn keep(value:i64)->bool {{true}}
+@id("app.main") fn main()->i64 {{
+ let input=vec_push<i64>(vec_with_capacity<i64>(1usize),7);
+ let output={adapter}<i64>(input,{callback});
+ if vec_len<i64>(output)==1usize {{1}} else {{0}}
+}}
+"#,
+            callback = if adapter == "map_refusal" {
+                "identity"
+            } else {
+                "keep"
+            },
+        );
+        collections::run_source(&source, 3);
+    }
+}
+
+#[test]
+fn function_values_generic_adapters_settle_input_after_backend_output_allocation_refusal() {
+    for (adapter, callback) in [("map", "identity"), ("filter", "keep")] {
+        let source = format!(
+            r#"{ADAPTERS}
+@id("adapter.identity") fn identity(value:i64)->i64 {{value}}
+@id("adapter.keep") fn keep(value:i64)->bool {{true}}
+@id("app.main") fn main()->i64 {{
+ let input=vec_push<i64>(vec_with_capacity<i64>(1usize),7);
+ let output={adapter}<i64>(input,{callback});
+ if vec_len<i64>(output)==1usize {{1}} else {{0}}
+}}
+"#
+        );
+        collections::run_backend_output_allocation_refusal(&source);
+    }
+}

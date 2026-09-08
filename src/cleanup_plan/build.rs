@@ -2664,7 +2664,8 @@ impl<'a> PlanBuilder<'a> {
                     block,
                     state,
                 } => match &expression.kind {
-                    ResolvedExprKind::FunctionReference { .. }
+                    ResolvedExprKind::Closure { .. }
+                    | ResolvedExprKind::FunctionReference { .. }
                     | ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
@@ -4910,11 +4911,13 @@ impl<'a> PlanBuilder<'a> {
                     owned_source: None,
                 })
             }
-            ResolvedExprKind::FunctionReference { .. } => Ok(EvalResult {
-                block,
-                state,
-                owned_source: None,
-            }),
+            ResolvedExprKind::Closure { .. } | ResolvedExprKind::FunctionReference { .. } => {
+                Ok(EvalResult {
+                    block,
+                    state,
+                    owned_source: None,
+                })
+            }
             ResolvedExprKind::Invoke { args, .. } => self.lower_call(
                 expression,
                 &crate::hir::function_value::INVOKE_ID,

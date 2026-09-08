@@ -222,6 +222,22 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
         reject_nul_identity("resolved expression", expression.id.as_str())?;
         audit_resolved_type(&expression.ty)?;
         match &expression.kind {
+            ResolvedExprKind::Closure {
+                parameters,
+                captures,
+                body,
+            } => {
+                for parameter in parameters {
+                    reject_nul_identity("closure parameter", parameter.id.as_str())?;
+                    audit_resolved_type(&parameter.ty)?;
+                }
+                for capture in captures {
+                    reject_nul_identity("closure capture", capture.binding.id.as_str())?;
+                    audit_resolved_type(&capture.binding.ty)?;
+                    pending.push(&capture.value);
+                }
+                pending.push(body);
+            }
             ResolvedExprKind::FunctionReference { target } => {
                 reject_nul_identity("function reference", target.as_str())?
             }
@@ -860,6 +876,12 @@ pub(crate) fn visit_resolved_calls(
             visit_resolved_calls(start, visit);
             visit_resolved_calls(end, visit);
         }
+        ResolvedExprKind::Closure { body, captures, .. } => {
+            visit_resolved_calls(body, visit);
+            for capture in captures {
+                visit_resolved_calls(&capture.value, visit);
+            }
+        }
         ResolvedExprKind::FunctionReference { target } => visit(target, None, &[]),
         ResolvedExprKind::Invoke { callable, args } => {
             visit_resolved_calls(callable, visit);
@@ -998,6 +1020,13 @@ pub(crate) fn workspace_call_sites(
         sites: &mut Vec<(DeclarationId, String, DeclarationId)>,
     ) {
         match &expression.kind {
+            ResolvedExprKind::Closure { body, captures, .. } => {
+                let closure_owner = super::closure::closure_id(&expression.id);
+                walk(&closure_owner, body, sites);
+                for capture in captures {
+                    walk(owner, &capture.value, sites);
+                }
+            }
             ResolvedExprKind::FunctionReference { target } => sites.push((
                 owner.clone(),
                 expression.id.as_str().to_owned(),

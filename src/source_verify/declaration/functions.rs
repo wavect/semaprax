@@ -582,6 +582,7 @@ fn check_omitted_generic_mappings(
     }
     let next = depth + 1;
     match &expression.kind {
+        ExprKind::Closure { .. } => {}
         ExprKind::Call {
             name,
             type_arguments,

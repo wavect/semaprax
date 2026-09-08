@@ -4,11 +4,14 @@ use std::collections::BTreeMap;
 
 use super::{backend_error, c_value_type, CEmitter, COutput, CValue};
 
-pub(super) fn c_type(ty: &ResolvedType) -> Result<String, Diagnostic> {
+pub(super) fn c_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<String, Diagnostic> {
     if !hir::function_value::is_signature(ty) {
         return Err(backend_error(
             "native function-value type is not an admitted scalar signature",
         ));
+    }
+    if super::closure::enabled(program) {
+        return super::closure::carrier_type(ty);
     }
     let mut symbol = String::from("spx_fn_");
     for byte in ty.identity_key().bytes() {
@@ -23,6 +26,9 @@ pub(super) fn emit_typedefs(
     program: &ResolvedProgram,
     resource_abi: &super::native_resource::NativeResourceAbi,
 ) -> Result<(), Diagnostic> {
+    if super::closure::enabled(program) {
+        return Ok(());
+    }
     let mut signatures = BTreeMap::new();
     for function in &program.functions {
         insert(&mut signatures, &function.return_type)?;
@@ -46,10 +52,13 @@ pub(super) fn emit_typedefs(
         write!(
             output,
             "typedef spx_status_token (*{})(struct spx_context *spx_ctx",
-            c_type(&ResolvedType::Function {
-                parameters: parameters.clone(),
-                result: result.clone()
-            })?
+            c_type(
+                program,
+                &ResolvedType::Function {
+                    parameters: parameters.clone(),
+                    result: result.clone()
+                }
+            )?
         )
         .expect("writing to a string cannot fail");
         for parameter in &parameters {
@@ -96,7 +105,7 @@ pub(super) fn emit_reference<O: COutput>(
         unreachable!()
     };
     hir::function_value::validate_reference(emitter.program, target, &expr.ty)?;
-    let target = emitter
+    let _target = emitter
         .functions
         .get(&crate::hir::FunctionExecutionId::Monomorphic(
             target.clone(),
@@ -104,8 +113,17 @@ pub(super) fn emit_reference<O: COutput>(
         .ok_or_else(|| {
             backend_error("function reference target is not indexed for native emission")
         })?;
+    let code = if super::closure::enabled(emitter.program) {
+        format!(
+            "(({}){{ .entry = {}, .cells = {{0}} }})",
+            c_type(emitter.program, &expr.ty)?,
+            super::closure::reference_thunk_symbol(&expr.id)
+        )
+    } else {
+        _target.symbol.clone()
+    };
     Ok(CValue {
-        code: target.symbol.clone(),
+        code,
         ty: expr.ty.clone(),
     })
 }
@@ -149,11 +167,19 @@ pub(super) fn emit_invoke<O: COutput>(
         .map(|value| value.code.as_str())
         .collect::<Vec<_>>()
         .join(", ");
-    emitter.line(&format!(
-        "spx_status = {staged}(spx_ctx{}{}, &{temporary});",
-        if arguments.is_empty() { "" } else { ", " },
-        arguments
-    ));
+    if super::closure::enabled(emitter.program) {
+        emitter.line(&format!(
+            "spx_status = {staged}.entry(spx_ctx, {staged}.cells{}{}, &{temporary});",
+            if arguments.is_empty() { "" } else { ", " },
+            arguments
+        ));
+    } else {
+        emitter.line(&format!(
+            "spx_status = {staged}(spx_ctx{}{}, &{temporary});",
+            if arguments.is_empty() { "" } else { ", " },
+            arguments
+        ));
+    }
     emitter.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
     emitter.require_type(&expr.ty, result, "function invocation result")?;
     Ok(CValue {
@@ -198,6 +224,9 @@ pub(super) fn resolved_expr_children<'a>(
             .into_iter(),
         ),
         ResolvedExprKind::Call { args, .. } => Box::new(args.iter()),
+        ResolvedExprKind::Closure { captures, .. } => {
+            Box::new(captures.iter().map(|capture| &capture.value))
+        }
         ResolvedExprKind::Invoke { callable, args } => {
             Box::new(std::iter::once(callable.as_ref()).chain(args.iter()))
         }

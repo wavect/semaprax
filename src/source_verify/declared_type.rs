@@ -607,6 +607,7 @@ fn generic_function_expression_is_admitted(expression: &Expr, composition: bool)
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
+            ExprKind::Closure { .. } => return false,
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
@@ -750,6 +751,7 @@ fn substitute_forwarded_call_arguments(
     expression: &mut Expr,
 ) -> Option<()> {
     match &mut expression.kind {
+        ExprKind::Closure { .. } => return None,
         ExprKind::Call {
             type_arguments,
             args,

@@ -318,6 +318,7 @@ pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
     let entry = &program.functions[prepared.entry_index];
     let mut evaluator = Evaluator::new_prepared(
         lookup,
+        super::closures::checked_functions(program).map_err(|error| vec![error])?,
         &program.declarations,
         max_steps,
         max_events,

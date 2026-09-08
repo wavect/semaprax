@@ -860,6 +860,9 @@ impl<'a> Node<'a> {
                 F::Wildcard => None,
             },
             Self::Expression(e) => match &e.kind {
+                E::Closure { captures, .. } => captures
+                    .get(index)
+                    .map(|capture| Self::Expression(&capture.value)),
                 E::FunctionReference { .. } => None,
                 E::Invoke { callable, args } => std::iter::once(callable.as_ref())
                     .chain(args.iter())

@@ -463,7 +463,8 @@ fn validate_function(
             )));
         }
         match &expression.kind {
-            ResolvedExprKind::FunctionReference { .. }
+            ResolvedExprKind::Closure { .. }
+            | ResolvedExprKind::FunctionReference { .. }
             | ResolvedExprKind::Invoke { .. }
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::NativeRustImportCall(_)

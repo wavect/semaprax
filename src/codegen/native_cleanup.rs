@@ -736,6 +736,15 @@ fn validate_expression(
 ) -> Result<(), Diagnostic> {
     validate_supported_type(program, function, &expression.ty, "expression")?;
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            for capture in captures {
+                validate_expression(program, function, &capture.value)?;
+            }
+            return Err(unsupported(
+                function,
+                format!("does not support closure `{}`", expression.id),
+            ));
+        }
         ResolvedExprKind::FunctionReference { .. } => {
             return Err(unsupported(
                 function,

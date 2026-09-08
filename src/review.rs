@@ -630,6 +630,7 @@ fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>> {
     let mut call_sites = 0usize;
     while let Some(expression) = stack.pop() {
         match &expression.kind {
+            ExprKind::Closure { body, .. } => stack.push(body),
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Char(_)

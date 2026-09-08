@@ -215,6 +215,21 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
     while let Some((value, parent_precedence)) = stack.pop() {
         let rendered = cached_rendered(value, parent_precedence);
         match &value.kind {
+            ExprKind::Closure {
+                params,
+                return_type,
+                body,
+            } => {
+                total = total
+                    .saturating_add(rendered)
+                    .saturating_add(display_len(return_type));
+                for param in params {
+                    total = total
+                        .saturating_add(param.name.len())
+                        .saturating_add(display_len(&param.ty));
+                }
+                stack.push((body, 0));
+            }
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Char(_)

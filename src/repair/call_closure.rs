@@ -76,6 +76,16 @@ fn collect_calls(
     call_sites: &mut usize,
 ) {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            // Creation evaluates snapshots only. Its private body is not an
+            // immediate execution, but its already-checked direct calls are
+            // still dependencies and bounded repair call sites whenever the
+            // closure is later invoked or escapes through this function.
+            for capture in captures {
+                collect_calls(&capture.value, known, calls, call_sites);
+            }
+            collect_calls(body, known, calls, call_sites);
+        }
         ResolvedExprKind::FunctionReference { target } => {
             if known.contains(target) {
                 calls.insert(target.clone());
@@ -181,5 +191,31 @@ fn collect_calls(
         }
         ResolvedExprKind::Project { base, .. } => collect_calls(base, known, calls, call_sites),
         ResolvedExprKind::Upcast { source } => collect_calls(source, known, calls, call_sites),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn closure_body_calls_contribute_dependencies_and_call_site_budget_without_counting_creation() {
+        let source = r#"
+module repair.closure_budget;
+@id("repair.helper") fn helper(value:i64)->i64 {value+1}
+@id("app.main") fn main()->i64 {
+ let offset=40;
+ let callback=fn(value:i64)->i64 {helper(offset+value)};
+ callback(1)
+}
+"#;
+        let parsed = crate::check(source, "repair-closure-budget.spx").unwrap();
+        let resolved = hir::resolve(&parsed).unwrap();
+        let graph = call_graph(&resolved).unwrap();
+        assert_eq!(graph.call_sites, 2, "closure creation is not a call site");
+        assert_eq!(
+            graph.edges[&DeclarationId::new("app.main")],
+            BTreeSet::from([DeclarationId::new("repair.helper")])
+        );
     }
 }

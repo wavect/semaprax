@@ -179,6 +179,7 @@ mod ast {
         ty,
         span
     });
+    codec_struct!(ClosureParam { name, ty, span });
     codec_struct!(Expr { kind, span });
     codec_enum!(ExprKind {
         0 => Int(value), 1 => Int32(value), 2 => Char(value), 3 => Uint8(value),
@@ -194,7 +195,7 @@ mod ast {
         19 => ConstructRecord { type_name, type_span, type_arguments, fields },
         20 => ConstructVariant { type_name, type_span, type_arguments, case_name, case_span, fields },
         21 => Match { mode, scrutinee, arms }, 22 => Try { operand },
-        23 => UpdateRecord { base, fields }, 24 => Project { base, field, field_span }
+        23 => UpdateRecord { base, fields }, 24 => Project { base, field, field_span }, 25 => Closure { params, return_type, body }
     });
     codec_struct!(MatchArm {
         pattern,

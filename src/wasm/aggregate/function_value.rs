@@ -10,15 +10,18 @@ use crate::hir::{
 
 use super::{error, scalar_wasm_type, Signature, I32};
 
-pub(super) struct TablePlan<'a> {
-    pub(super) targets: Vec<&'a ResolvedFunction>,
+pub(super) struct TablePlan {
+    pub(super) targets: Vec<ResolvedFunction>,
+    pub(super) bodies: Vec<ResolvedFunction>,
+    pub(super) captures: BTreeMap<DeclarationId, Vec<ResolvedType>>,
+    pub(super) closure_profile: bool,
     pub(super) signatures: Vec<ResolvedType>,
 }
 
 /// The aggregate functions retain their checked `(args..., result-out) -> status`
 /// ABI. Function carriers are table indices, and each `call_indirect` uses the
 /// corresponding status ABI type rather than the core scalar return ABI.
-pub(super) fn table_plan(program: &ResolvedProgram) -> TablePlan<'_> {
+pub(super) fn table_plan(program: &ResolvedProgram) -> Result<TablePlan, Diagnostic> {
     let mut signatures = BTreeMap::new();
     for function in program.functions.iter().chain(
         program
@@ -32,10 +35,40 @@ pub(super) fn table_plan(program: &ResolvedProgram) -> TablePlan<'_> {
             }
         });
     }
-    TablePlan {
-        targets: crate::hir::function_value::target_universe(program),
-        signatures: signatures.into_values().collect(),
+    let mut targets = crate::hir::function_value::target_universe(program)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut bodies = Vec::new();
+    let mut captures = BTreeMap::new();
+    for site in crate::hir::closure::inventory(program) {
+        let ResolvedExprKind::Closure {
+            captures: values, ..
+        } = &site.kind
+        else {
+            unreachable!()
+        };
+        let body = crate::hir::closure::closure_function(program, site)?;
+        captures.insert(
+            body.id.clone(),
+            values
+                .iter()
+                .map(|value| value.binding.ty.clone())
+                .collect(),
+        );
+        let mut target = body.clone();
+        target.params.drain(..values.len());
+        targets.push(target);
+        bodies.push(body);
     }
+    targets.sort_by(|left, right| left.id.cmp(&right.id));
+    Ok(TablePlan {
+        closure_profile: !bodies.is_empty(),
+        targets,
+        bodies,
+        captures,
+        signatures: signatures.into_values().collect(),
+    })
 }
 
 pub(super) fn abi_signature(signature: &ResolvedType) -> Result<Signature, Diagnostic> {
@@ -59,10 +92,14 @@ pub(super) fn type_indexes(
     signatures: &[ResolvedType],
     types: &mut Vec<Signature>,
     indexes: &mut HashMap<Signature, u32>,
+    closure_profile: bool,
 ) -> Result<HashMap<String, u32>, Diagnostic> {
     let mut result = HashMap::new();
     for signature in signatures {
-        let abi = abi_signature(signature)?;
+        let mut abi = abi_signature(signature)?;
+        if closure_profile {
+            abi.params.insert(0, I32);
+        }
         let index = super::intern_type(abi, types, indexes);
         if result.insert(signature.identity_key(), index).is_some() {
             return Err(error("aggregate function invocation signature repeats"));
@@ -72,7 +109,7 @@ pub(super) fn type_indexes(
 }
 
 pub(super) fn table_indexes(
-    targets: &[&ResolvedFunction],
+    targets: &[ResolvedFunction],
 ) -> Result<HashMap<DeclarationId, u32>, Diagnostic> {
     let mut indexes = HashMap::new();
     for (ordinal, target) in targets.iter().enumerate() {
@@ -106,6 +143,9 @@ impl super::Emitter<'_> {
         expr: &ResolvedExpr,
         target: &DeclarationId,
     ) -> Result<super::Value, Diagnostic> {
+        if self.closure_profile() {
+            return self.emit_closure_reference(expr, target);
+        }
         let local = self.plan.expr_scalar(expr)?;
         let table = *self
             .function_tables
@@ -141,13 +181,22 @@ impl super::Emitter<'_> {
             ));
         }
         let callable_value = self.emit_expr(callable)?;
-        self.require_scalar(&callable_value, signature, "function invocation callable")?;
+        if !self.closure_profile() {
+            self.require_scalar(&callable_value, signature, "function invocation callable")?;
+        }
         let scratch = *self
             .plan
             .function_callables
             .get(&expr.id)
             .ok_or_else(|| error("aggregate function invocation has no callable scratch"))?;
-        self.get_scalar(&callable_value);
+        if self.closure_profile() {
+            let super::Value::Aggregate { pointer, .. } = &callable_value else {
+                return Err(error("closure invocation carrier is not aggregate"));
+            };
+            self.emit_pointer(*pointer);
+        } else {
+            self.get_scalar(&callable_value);
+        }
         self.output.push(0x21);
         super::write_u32(self.output, scratch);
 
@@ -169,6 +218,10 @@ impl super::Emitter<'_> {
             stages.push(stage);
         }
         self.apply_call_commit(&expr.id)?;
+        if self.closure_profile() {
+            self.output.push(0x20);
+            super::write_u32(self.output, scratch);
+        }
         for stage in stages {
             self.output.push(0x20);
             super::write_u32(self.output, stage);
@@ -185,6 +238,9 @@ impl super::Emitter<'_> {
         self.emit_pointer(pointer);
         self.output.push(0x20);
         super::write_u32(self.output, scratch);
+        if self.closure_profile() {
+            self.output.extend([0x28, 0x02, 0x00]);
+        }
         self.output.push(0x11);
         super::write_u32(
             self.output,

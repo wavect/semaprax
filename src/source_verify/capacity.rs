@@ -302,6 +302,11 @@ pub(super) fn source_capacity_expr_type(
     }
 
     let immediate = |expression: &Expr, bindings: &BTreeMap<String, Type>| match &expression.kind {
+        ExprKind::Closure {
+            params,
+            return_type,
+            ..
+        } => Some(super::closure::source_signature(params, return_type)),
         ExprKind::Int(_) => Some(Type::I64),
         ExprKind::Int32(_) => Some(Type::I32),
         ExprKind::Char(_) => Some(Type::Char),
@@ -1042,6 +1047,7 @@ fn source_capacity_expr(
                     }
                 }
                 match &expression.kind {
+                    ExprKind::Closure { .. } => frames.push(Frame::Emit(CapacityFlow::Empty)),
                     ExprKind::Call { name, args, .. } => {
                         let target = context.ordinary.get(name.as_str()).copied();
                         let effect = if name == crate::byte_ops::COPY_NAME {

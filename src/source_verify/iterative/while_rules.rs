@@ -202,6 +202,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             };
 
             match &expression.kind {
+                ExprKind::Closure { .. } => {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T288",
+                        "closure creation inside while bodies is not admitted",
+                        expression.span,
+                    ));
+                    results.push(Err(()));
+                }
                 ExprKind::Int(_)
                 | ExprKind::Int32(_)
                 | ExprKind::Char(_)

@@ -67,7 +67,9 @@ fn expression_json(
         quote_json(ownership_text(expression.ownership))
     );
     let output = match &expression.kind {
-        ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => return Err(projection_error("function values are outside package report v2 contracts")),
+        ResolvedExprKind::Closure { .. }
+        | ResolvedExprKind::FunctionReference { .. }
+        | ResolvedExprKind::Invoke { .. } => return Err(projection_error("function values are outside package report v2 contracts")),
         ResolvedExprKind::Int(value) => bf!(
             "{{{header},\"kind\":\"int\",\"value\":\"{value}\"}}"
         ),

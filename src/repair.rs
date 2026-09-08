@@ -458,6 +458,7 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
     let mut call_sites = 0usize;
     while let Some(expression) = expressions.pop() {
         match &expression.kind {
+            ExprKind::Closure { body, .. } => expressions.push(body),
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
@@ -604,6 +605,7 @@ fn scalar_type(ty: &Type) -> bool {
 
 fn scalar_expr(expression: &Expr) -> bool {
     match &expression.kind {
+        ExprKind::Closure { .. } => false,
         ExprKind::Int(_)
         | ExprKind::Int32(_)
         | ExprKind::Char(_)

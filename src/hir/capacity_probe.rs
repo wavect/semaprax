@@ -153,6 +153,26 @@ pub(super) fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
         std::mem::size_of::<ResolvedExpr>().saturating_add(resolved_expr_owned_capacity(value))
     };
     match &expression.kind {
+        ResolvedExprKind::Closure {
+            parameters,
+            captures,
+            body,
+        } => {
+            bytes += parameters.capacity() * std::mem::size_of::<ResolvedBinding>()
+                + parameters
+                    .iter()
+                    .map(resolved_binding_owned_capacity)
+                    .sum::<usize>();
+            bytes += captures.capacity() * std::mem::size_of::<super::ResolvedClosureCapture>()
+                + captures
+                    .iter()
+                    .map(|capture| {
+                        resolved_binding_owned_capacity(&capture.binding)
+                            + resolved_expr_owned_capacity(&capture.value)
+                    })
+                    .sum::<usize>();
+            bytes += child(body);
+        }
         ResolvedExprKind::FunctionReference { target } => bytes += target.as_str().len(),
         ResolvedExprKind::Invoke { callable, args } => {
             bytes += child(callable)

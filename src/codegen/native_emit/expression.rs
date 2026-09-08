@@ -713,6 +713,32 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             } => self.emit_byte_range_expr(expr, operation, source, start, end),
             ResolvedExprKind::HostCommandCall(_) => self.emit_host_command_expr(expr),
             ResolvedExprKind::Call { .. } => self.emit_call_expr(expr),
+            ResolvedExprKind::Closure { captures, .. } => {
+                if !super::closure::enabled(self.program) {
+                    return Err(backend_error(
+                        "capturing closure lowering requires the closure native profile",
+                    ));
+                }
+                let carrier = self.temporary(&expr.ty)?;
+                self.line(&format!(
+                    "{carrier}.entry = {};",
+                    super::closure::thunk_symbol(&expr.id)
+                ));
+                for (slot, capture) in captures.iter().enumerate() {
+                    let value = self.emit_expr(&capture.value)?;
+                    self.require_type(&value.ty, &capture.binding.ty, "closure capture")?;
+                    let staged = self.temporary(&value.ty)?;
+                    self.line(&format!("{staged} = {};", value.code));
+                    self.line(&format!(
+                        "{carrier}.cells[{slot}] = {};",
+                        super::closure::pack(&value.ty, &staged)?
+                    ));
+                }
+                Ok(CValue {
+                    code: carrier,
+                    ty: expr.ty.clone(),
+                })
+            }
             ResolvedExprKind::FunctionReference { .. } => {
                 super::function_value::emit_reference(self, expr)
             }

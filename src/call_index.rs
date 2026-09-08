@@ -102,6 +102,14 @@ impl PersistentCallIndex {
         for function in &program.functions {
             let mut dependencies = BTreeSet::new();
             hir::function_value::walk(function, |expression| match &expression.kind {
+                // Persistent dependencies retain body callees for linking and
+                // review. Creation is still an atomic Copy operation; exact
+                // execution edges belong to the derived closure body graph.
+                ResolvedExprKind::Closure { body, .. } => {
+                    hir::visit_resolved_calls(body, &mut |callee, _, _| {
+                        dependencies.insert(callee.clone());
+                    });
+                }
                 ResolvedExprKind::FunctionReference { target } => {
                     dependencies.insert(target.clone());
                 }
@@ -237,6 +245,9 @@ impl PersistentCallIndex {
         const { assert!(std::mem::size_of::<Frame<'static>>() == 16) };
         fn child(expression: &ResolvedExpr, index: usize) -> Option<&ResolvedExpr> {
             match &expression.kind {
+                ResolvedExprKind::Closure { captures, .. } => {
+                    captures.get(index).map(|capture| &capture.value)
+                }
                 ResolvedExprKind::FunctionReference { .. } => None,
                 ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
                     .chain(args.iter())

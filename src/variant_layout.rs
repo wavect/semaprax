@@ -472,6 +472,15 @@ fn collect_expr_variant_types(
         };
         collect_variant_type(program, &expression.ty, instances)?;
         match &expression.kind {
+            ResolvedExprKind::Closure { captures, body, .. } => {
+                pending.push(Work::Expression(body));
+                pending.extend(
+                    captures
+                        .iter()
+                        .rev()
+                        .map(|capture| Work::Expression(&capture.value)),
+                );
+            }
             ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.extend(args.iter().rev().map(Work::Expression));

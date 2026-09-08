@@ -70,6 +70,9 @@ impl Resolver<'_> {
                     bindings,
                     path,
                 } => match &expr.kind {
+                    ExprKind::Closure { .. } => {
+                        results.push(self.resolve_closure(function, expr, &bindings, &path, false)?)
+                    }
                     ExprKind::Int(value) => results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),
                         ty: ResolvedType::I64,

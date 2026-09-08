@@ -266,6 +266,9 @@ pub(crate) fn push_resolved_expression_children_in_authored_order<'a>(
     pending: &mut Vec<&'a ResolvedExpr>,
 ) {
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, .. } => {
+            pending.extend(captures.iter().rev().map(|capture| &capture.value))
+        }
         ResolvedExprKind::Block { statements, tail } => {
             pending.push(tail);
             for statement in statements.iter().rev() {
@@ -482,7 +485,8 @@ pub(super) fn byte_capacity_expression(
                     }
                 }
                 match &expression.kind {
-                    ResolvedExprKind::FunctionReference { .. } => {
+                    ResolvedExprKind::Closure { .. }
+                    | ResolvedExprKind::FunctionReference { .. } => {
                         frames.push(Frame::Emit(CapacityFlow::Empty))
                     }
                     ResolvedExprKind::Invoke { callable, args } => {
@@ -498,6 +502,23 @@ pub(super) fn byte_capacity_expression(
                                     ),
                                     callee: f.id.as_str().to_owned(),
                                 })
+                                .chain(
+                                    super::closure::inventory(program)
+                                        .into_iter()
+                                        .filter(|closure| closure.ty == callable.ty)
+                                        .map(|closure| {
+                                            let id = super::closure::closure_id(&closure.id);
+                                            CapacityFlow::Call {
+                                                site: format!(
+                                                    "{}:candidate:{}:{}",
+                                                    expression.id.as_str(),
+                                                    id.as_str().len(),
+                                                    id.as_str()
+                                                ),
+                                                callee: id.as_str().to_owned(),
+                                            }
+                                        }),
+                                )
                                 .collect();
                         frames.push(Frame::Sequence(args.len() + 2));
                         frames.push(Frame::Emit(CapacityFlow::Alternative(alternatives)));
@@ -766,9 +787,14 @@ pub(crate) fn byte_data_capacity_inputs(
 ) -> Result<Vec<crate::byte_data_capacity::FunctionCapacityInput>, Diagnostic> {
     use crate::byte_data_capacity::{ArrayStorageKind, CapacityFlow, FunctionCapacityInput};
 
+    let closure_functions = super::closure::inventory(program)
+        .into_iter()
+        .map(|expression| super::closure::closure_function(program, expression))
+        .collect::<Result<Vec<_>, _>>()?;
     let functions = program
         .functions
         .iter()
+        .chain(&closure_functions)
         .map(|function| (function.id.as_str(), function))
         .chain(
             program

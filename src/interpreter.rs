@@ -59,6 +59,7 @@
 //! changes no source.
 
 mod api_admission;
+mod closures;
 mod expression_children;
 mod failure_detail;
 mod function_values;
@@ -886,12 +887,7 @@ pub fn evaluate_resolved_owned_data(
             .stack_size(EVALUATION_STACK_BYTES)
             .spawn_scoped(scope, || {
                 let (evaluated, steps_used, _) = evaluate_resolved_entry(
-                    entry,
-                    &arguments,
-                    &admitted,
-                    &program.declarations,
-                    max_steps,
-                    false,
+                    entry, &arguments, &admitted, &program, max_steps, false,
                 );
                 let mut cleanup_events = Vec::with_capacity(1);
                 let outcome = match evaluated {
@@ -1108,12 +1104,7 @@ pub(crate) fn evaluate_resolved_public_api(
             .stack_size(EVALUATION_STACK_BYTES)
             .spawn_scoped(scope, || {
                 let (evaluated, steps_used, _) = evaluate_resolved_entry(
-                    entry,
-                    &arguments,
-                    &admitted,
-                    &program.declarations,
-                    max_steps,
-                    false,
+                    entry, &arguments, &admitted, &program, max_steps, false,
                 );
                 let mut cleanup_events = Vec::with_capacity(1);
                 let outcome = match evaluated {
@@ -1323,12 +1314,7 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
             .stack_size(EVALUATION_STACK_BYTES)
             .spawn_scoped(scope, || {
                 let (evaluated, steps_used, _) = evaluate_resolved_entry(
-                    entry,
-                    &arguments,
-                    &admitted,
-                    &program.declarations,
-                    max_steps,
-                    false,
+                    entry, &arguments, &admitted, &program, max_steps, false,
                 );
                 let mut cleanup_events = Vec::with_capacity(1);
                 let outcome = match evaluated {
@@ -1536,7 +1522,7 @@ pub(crate) fn evaluate_resolved_owned_utf8_api(
                         entry,
                         &arguments,
                         &admitted,
-                        &program.declarations,
+                        &program,
                         max_steps,
                         false,
                         Utf8MaterializationBudget::fixed(),
@@ -2025,7 +2011,7 @@ fn interpret_on_current_thread(
         entry,
         &parsed_arguments,
         &admitted,
-        &resolved.declarations,
+        &resolved,
         options.max_steps,
         false,
     );
@@ -2449,7 +2435,7 @@ fn scan_closure(
     program: &hir::ResolvedProgram,
 ) -> Result<BTreeSet<String>, Vec<Diagnostic>> {
     fn scan<'a>(
-        expression: &'a ResolvedExpr,
+        expression: &ResolvedExpr,
         function: &ResolvedFunction,
         program: &'a hir::ResolvedProgram,
         admitted: &BTreeMap<&'a str, &'a ResolvedFunction>,
@@ -2609,6 +2595,12 @@ fn scan_closure(
             }
             _ => Ok(()),
         }?;
+        if matches!(expression.kind, ResolvedExprKind::Closure { .. }) {
+            let body =
+                hir::closure::closure_function(program, expression).map_err(|error| vec![error])?;
+            let roots = resolved_function_value_types(&body);
+            scan(&body.body, &body, program, admitted, &roots, visited, queue)?;
+        }
         for child in child_expressions(expression) {
             scan(
                 child, function, program, admitted, root_types, visited, queue,
@@ -2623,8 +2615,10 @@ fn scan_closure(
             let execution = instance
                 .as_ref()
                 .map_or_else(|| callee.as_str(), hir::FunctionInstanceId::as_str);
-            if admitted.contains_key(execution) && visited.insert(execution) {
-                queue.push(execution);
+            if let Some((id, _)) = admitted.get_key_value(execution) {
+                if visited.insert(*id) {
+                    queue.push(*id);
+                }
             }
         }
         Ok(())
@@ -2903,14 +2897,8 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
     }
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
     scan_closure(entry_id, &admitted, program)?;
-    let (evaluated, steps_used, mut transcript) = evaluate_resolved_entry(
-        entry,
-        &[],
-        &admitted,
-        &program.declarations,
-        max_steps,
-        true,
-    );
+    let (evaluated, steps_used, mut transcript) =
+        evaluate_resolved_entry(entry, &[], &admitted, &program, max_steps, true);
     let outcome = match evaluated {
         Ok(Value::Int(value)) => ResolvedEvaluationOutcome::ReturnedI64(value),
         Ok(_) => ResolvedEvaluationOutcome::GuardError(
@@ -3047,6 +3035,7 @@ pub(crate) fn evaluate_resolved_language_command(
     };
     let mut evaluator = Evaluator {
         admitted: FunctionLookup::Borrowed(&admitted),
+        closure_functions: closures::checked_functions(program).map_err(|error| vec![error])?,
         declarations: &program.declarations,
         steps: 0,
         budget: max_steps,
@@ -3121,6 +3110,7 @@ enum Value {
     Float64(f64),
     Bool(bool),
     Function(hir::DeclarationId),
+    Closure(Arc<closures::ClosureValue>),
     ArrayU8(Arc<[u8]>),
     Bytes(OwnedBytesValue),
     Vec(Arc<owned_vec::OwnedVecValue>),
@@ -3498,6 +3488,7 @@ impl<'a> FunctionLookup<'a> {
 
 struct Evaluator<'a> {
     admitted: FunctionLookup<'a>,
+    closure_functions: BTreeMap<hir::ExpressionId, ResolvedFunction>,
     declarations: &'a hir::DeclarationIndex,
     steps: usize,
     budget: usize,
@@ -3525,69 +3516,12 @@ struct CommandInputState<'a> {
     stdin_consumed: bool,
 }
 
-fn evaluate_resolved_entry<'a>(
-    entry: &'a ResolvedFunction,
-    arguments: &[(String, ArgumentValue)],
-    admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
-    declarations: &'a hir::DeclarationIndex,
-    budget: usize,
-    host_stdout: bool,
-) -> (Result<Value, Flow>, usize, Vec<u8>) {
-    let (outcome, steps, transcript, _) = evaluate_resolved_entry_with_utf8_budget(
-        entry,
-        arguments,
-        admitted,
-        declarations,
-        budget,
-        host_stdout,
-        Utf8MaterializationBudget::UnlimitedLegacy,
-    );
-    (outcome, steps, transcript)
-}
-
-fn evaluate_resolved_entry_with_utf8_budget<'a>(
-    entry: &'a ResolvedFunction,
-    arguments: &[(String, ArgumentValue)],
-    admitted: &'a BTreeMap<&'a str, &'a ResolvedFunction>,
-    declarations: &'a hir::DeclarationIndex,
-    budget: usize,
-    host_stdout: bool,
-    utf8_materialization_budget: Utf8MaterializationBudget,
-) -> (Result<Value, Flow>, usize, Vec<u8>, (u64, u64)) {
-    let mut evaluator = Evaluator {
-        admitted: FunctionLookup::Borrowed(admitted),
-        declarations,
-        steps: 0,
-        budget,
-        next_byte_allocation: 0,
-        allocated_byte_payload: 0,
-        box_live_allocations: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-        utf8_materialization_budget,
-        stdout_transcript: host_stdout.then(Vec::new),
-        stderr_transcript: None,
-        command_input: None,
-        cancellation: PreparedCancellation::Never,
-        trace_limit: 0,
-        trace_events: Vec::new(),
-        dropped_trace_events: 0,
-        current_function: None,
-        trace_identities: BTreeMap::new(),
-        trace_phase: ResolvedTracePhase::Body,
-        failure_detail: None,
-    };
-    let outcome = evaluator.evaluate_entry(entry, arguments);
-    let utf8_usage = evaluator.utf8_materialization_budget.usage();
-    (
-        outcome,
-        evaluator.steps,
-        evaluator.stdout_transcript.unwrap_or_default(),
-        utf8_usage,
-    )
-}
+use function_values::{evaluate_resolved_entry, evaluate_resolved_entry_with_utf8_budget};
 
 impl Evaluator<'_> {
     fn new_prepared<'a>(
         admitted: FunctionLookup<'a>,
+        closure_functions: BTreeMap<hir::ExpressionId, ResolvedFunction>,
         declarations: &'a hir::DeclarationIndex,
         budget: usize,
         trace_limit: usize,
@@ -3595,6 +3529,7 @@ impl Evaluator<'_> {
     ) -> Evaluator<'a> {
         Evaluator {
             admitted,
+            closure_functions,
             declarations,
             steps: 0,
             budget,
@@ -3990,7 +3925,9 @@ impl Evaluator<'_> {
     ) -> Result<Value, Flow> {
         self.begin_expression(expression, depth)?;
         match &expression.kind {
-            ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
+            ResolvedExprKind::Closure { .. }
+            | ResolvedExprKind::FunctionReference { .. }
+            | ResolvedExprKind::Invoke { .. } => {
                 self.evaluate_function_value(expression, environment, depth)
             }
             ResolvedExprKind::Int(value) => Ok(Value::Int(*value)),
@@ -6070,6 +6007,7 @@ mod tests {
         ] {
             let mut evaluator = Evaluator {
                 admitted: FunctionLookup::Borrowed(&admitted),
+                closure_functions: closures::checked_functions(&program).unwrap(),
                 declarations: &program.declarations,
                 steps: 0,
                 budget: 10_000,
@@ -6155,6 +6093,7 @@ fn inspect(value: borrow Either<Bytes, Bytes>) -> i64 {
         ] {
             let mut evaluator = Evaluator {
                 admitted: FunctionLookup::Borrowed(&admitted),
+                closure_functions: closures::checked_functions(&program).unwrap(),
                 declarations: &program.declarations,
                 steps: 0,
                 budget: 10_000,
@@ -6528,7 +6467,7 @@ fn inspect(value: borrow Either<Bytes, Bytes>) -> i64 {
             entry,
             &[],
             &admitted,
-            &concat.declarations,
+            &concat,
             100,
             false,
             Utf8MaterializationBudget::Fixed {
@@ -6566,7 +6505,7 @@ fn inspect(value: borrow Either<Bytes, Bytes>) -> i64 {
             entry,
             &[],
             &admitted,
-            &from_char.declarations,
+            &from_char,
             100,
             false,
             Utf8MaterializationBudget::Fixed {
@@ -6668,7 +6607,7 @@ fn inspect(value: borrow Either<Bytes, Bytes>) -> i64 {
             entry,
             &[],
             &admitted,
-            &place.declarations,
+            &place,
             100,
             false,
             Utf8MaterializationBudget::fixed(),
@@ -6698,7 +6637,7 @@ fn inspect(value: borrow Either<Bytes, Bytes>) -> i64 {
                 entry,
                 &[],
                 &admitted,
-                &transfer.declarations,
+                &transfer,
                 100,
                 false,
                 Utf8MaterializationBudget::fixed(),

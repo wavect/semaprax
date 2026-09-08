@@ -12,6 +12,20 @@ pub fn scalar(ty: &ResolvedType) -> bool {
 pub fn is_signature(ty: &ResolvedType) -> bool {
     matches!(ty, ResolvedType::Function { parameters, result } if parameters.len() <= 8 && parameters.iter().all(scalar) && scalar(result))
 }
+/// Internal helpers may transport scalar callable values; this does not admit
+/// those signatures at an imported or selected public boundary.
+pub(crate) fn private_helper_signature(function: &ResolvedFunction) -> bool {
+    let slot = |ty: &ResolvedType| scalar(ty) || is_signature(ty);
+    function.effects.is_empty()
+        && function.params.len() <= 8
+        && function
+            .params
+            .iter()
+            .all(|p| p.ownership == OwnershipMode::Value && slot(&p.ty))
+        && slot(&function.return_type)
+        && (function.params.iter().any(|p| is_signature(&p.ty))
+            || is_signature(&function.return_type))
+}
 pub fn signature(function: &ResolvedFunction) -> Option<ResolvedType> {
     (function.effects.is_empty()
         && function.params.len() <= 8
@@ -162,7 +176,7 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
     if !requires_function_values(program) {
         return Ok(());
     }
-    if target_universe(program).len() > 256 {
+    if target_universe(program).len() + super::closure::inventory(program).len() > 256 {
         return Err(error(
             "function value target universe exceeds 256 declarations",
         ));
@@ -170,9 +184,14 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
     use super::FunctionExecutionId;
     let mut edges =
         std::collections::BTreeMap::<FunctionExecutionId, BTreeSet<FunctionExecutionId>>::new();
+    let closure_functions = super::closure::inventory(program)
+        .into_iter()
+        .map(|expression| super::closure::closure_function(program, expression))
+        .collect::<Result<Vec<_>, _>>()?;
     let functions = program
         .functions
         .iter()
+        .chain(&closure_functions)
         .map(|function| {
             (
                 FunctionExecutionId::Monomorphic(function.id.clone()),
@@ -199,6 +218,16 @@ pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
                 );
             }
             ResolvedExprKind::Invoke { callable, .. } => {
+                targets.extend(
+                    super::closure::inventory(program)
+                        .into_iter()
+                        .filter(|closure| closure.ty == callable.ty)
+                        .map(|closure| {
+                            FunctionExecutionId::Monomorphic(super::closure::closure_id(
+                                &closure.id,
+                            ))
+                        }),
+                );
                 targets.extend(
                     compatible_targets(program, &callable.ty)
                         .into_iter()
@@ -236,7 +265,9 @@ pub(crate) fn function_uses_value(f: &ResolvedFunction) -> bool {
     walk(f, |e| {
         found |= matches!(
             e.kind,
-            ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. }
+            ResolvedExprKind::Closure { .. }
+                | ResolvedExprKind::FunctionReference { .. }
+                | ResolvedExprKind::Invoke { .. }
         )
     });
     found
@@ -263,7 +294,9 @@ pub(crate) fn template_uses_value(template: &super::ResolvedFunctionTemplate) ->
     while let Some(expression) = pending.pop() {
         if matches!(
             expression.kind,
-            ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. }
+            ResolvedExprKind::Closure { .. }
+                | ResolvedExprKind::FunctionReference { .. }
+                | ResolvedExprKind::Invoke { .. }
         ) {
             return true;
         }

@@ -8,6 +8,16 @@ This file contains repository operating invariants. The internal documentation
 map and change protocol live in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md); the
 module map lives only in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Subagent model selection
+
+Prefer a cheaper, less capable model for delegated work whenever it can handle
+that bounded task reliably. Use Luna for straightforward tests, documentation,
+and mechanical changes; use Terra for implementation that needs more reasoning.
+Reserve the strongest models for complex semantic work, difficult debugging, or
+review where a cheaper model is insufficient. Give subagents concise, relevant
+context and escalate only when needed. This preference applies across sessions
+unless the user explicitly overrides it.
+
 ## Read order
 
 Before changing semantics, read:

@@ -345,7 +345,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     // file: a helper relocated into a sibling submodule must still count as
     // present in the root and absent from the projection.
     let root = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("../../src/workspace_graph.rs"),
         include_str!("../../src/workspace_graph/diagnostics.rs"),
         include_str!("../../src/workspace_graph/generic_type_import.rs"),

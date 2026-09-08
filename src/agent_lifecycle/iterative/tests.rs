@@ -1,7 +1,7 @@
 use super::*;
 use crate::agent_lifecycle::tests::{DEFINITION, MODULE, RUNTIME_V1};
 
-fn source(terminal: &str) -> String {
+pub(super) fn source(terminal: &str) -> String {
     let start = MODULE.find("@id(\"fixture.agent.fn.reduce\")").unwrap();
     let end = MODULE[start..].find("@id(\"app.main\")").unwrap() + start;
     let reducer = format!(

@@ -314,10 +314,25 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let arm_value = self.values.pop().unwrap_or(None);
         if let Some(value) = &arm_value {
             reject_native_unit_value(self.program, &arm.value, value, self.diagnostics);
-            reject_aggregate_match_result(self.program, &arm.value, value, self.diagnostics);
+            if !crate::source_verify::declared_type::generic_variant::match_result(
+                self.functions.get(self.current.name.as_str()).copied(),
+                self.types,
+                state.mode,
+                &value.ty,
+                value.mode,
+            ) {
+                reject_aggregate_match_result(self.program, &arm.value, value, self.diagnostics);
+            }
         }
         if let Some(arm_value) = arm_value {
             if state.needs_drop
+                && !crate::source_verify::declared_type::generic_variant::match_result(
+                    self.functions.get(self.current.name.as_str()).copied(),
+                    self.types,
+                    state.mode,
+                    &arm_value.ty,
+                    arm_value.mode,
+                )
                 && (state.mode == MatchMode::Value
                     || !matches!(arm_value.ty, Type::I64 | Type::Bool)
                     || arm_value.mode != ParamMode::Value)

@@ -12,6 +12,22 @@ pub(super) fn match_result_is_admitted(
     scrutinee: &ResolvedExpr,
     arms: &[ResolvedMatchArm],
 ) -> bool {
+    if let ResolvedExprKind::Match { mode, .. } = &expression.kind {
+        if hir::generic_variant::match_result(
+            program,
+            function,
+            *mode,
+            &expression.ty,
+            expression.ownership,
+        ) && super::variant_pattern_is_admitted(
+            &program.declarations,
+            *mode,
+            &scrutinee.ty,
+            arms,
+        ) {
+            return true;
+        }
+    }
     if hir::bounded_owned_record_template_for_function(program, function).is_none() {
         return false;
     }

@@ -339,12 +339,20 @@ pub(super) fn validate_type(
     template: &ResolvedFunctionTemplate,
     ty: &ResolvedType,
 ) -> Result<(), Diagnostic> {
-    let admitted = (super::super::generic_collection::profile(template)
-        && (super::super::generic_collection::slot(
+    let admitted = (super::super::generic_variant::profile(program, template)
+        && (super::super::generic_variant::slot(
+            &program.declarations,
             ty,
             &template.id,
             template.type_parameters.len(),
-        ) || super::super::generic_collection::scalar(ty)))
+        ) || *ty == ResolvedType::Bytes
+            || super::super::generic_collection::scalar(ty)))
+        || (super::super::generic_collection::profile(template)
+            && (super::super::generic_collection::slot(
+                ty,
+                &template.id,
+                template.type_parameters.len(),
+            ) || super::super::generic_collection::scalar(ty)))
         || (super::super::generic_result::profile(template)
             && (super::super::generic_result::slot(
                 ty,
@@ -580,7 +588,9 @@ pub(super) fn substitutions(
     template: &ResolvedFunctionTemplate,
     transparent_owned_wrapper: bool,
 ) -> Vec<Vec<ResolvedType>> {
-    if super::super::generic_collection::profile(template) {
+    if super::super::generic_variant::profile(program, template) {
+        super::super::generic_variant::substitutions()
+    } else if super::super::generic_collection::profile(template) {
         vec_wrapper_substitutions()
     } else if super::super::generic_result::profile(template) {
         super::super::generic_result::substitutions(&template.return_type)
@@ -679,5 +689,33 @@ impl HirValidator<'_> {
                 "generic Result helper received unsupported expression",
             )),
         }
+    }
+}
+
+impl HirValidator<'_> {
+    pub(super) fn validate_function_template_type(
+        &self,
+        template: &ResolvedFunctionTemplate,
+        ty: &ResolvedType,
+    ) -> Result<(), Diagnostic> {
+        generic_template::validate_type(self.program, template, ty)
+    }
+
+    pub(super) fn validate_template_expr(
+        &mut self,
+        template: &ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        expression: &ResolvedExpr,
+        values: &mut BTreeMap<ValueId, ResolvedType>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        self.validate_template_expr_with_context(
+            template,
+            execution,
+            expression,
+            values,
+            path,
+            (false, false),
+        )
     }
 }

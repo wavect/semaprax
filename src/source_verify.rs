@@ -152,3 +152,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
 mod iterative_verifier_tests;
 
 pub(crate) use declared_type::generic_collection::profile as generic_collection_profile;
+
+pub(crate) fn generic_variant_profile(program: &Program, function: &Function) -> bool {
+    declared_type::generic_variant::profile(function, &type_table::TypeTable::new(program))
+}

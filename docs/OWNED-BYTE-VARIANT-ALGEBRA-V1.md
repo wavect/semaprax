@@ -23,6 +23,10 @@ or admit mixed/general/nested owned propagation, broader multi-case generic
 instances, nesting, components, Project exports, callable interfaces, or
 native Rust interoperability.
 
+The additive [Generic Authored Variants v1](GENERIC-AUTHORED-VARIANTS-V1.md)
+profile extends private function composition over the existing one-owned-case
+concrete carriers, with independent validation of every Copy substitution.
+
 ## Closed admission
 
 An admitted authored variant:

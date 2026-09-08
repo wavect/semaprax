@@ -525,7 +525,66 @@ fn generic_collections_program_root_replays_private_owned_carriers() {
     .err()
     .expect("scalar public boundary must reject Box");
     assert!(
-        errors.iter().any(|error| error.code == "SPX-H006"),
+        errors.iter().any(|error| error.code == "SPX-W115"
+            && error.message == "Public Scalar Export Profile v1 does not admit generic function templates or instances"),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn generic_authored_variant_program_root_replays_private_case_ownership() {
+    let fixture = Fixture::owned_vec("generic-authored-variant-root", false);
+    let text = r#"module fixture.app;
+@id("fixture.choice") variant Choice<P,T>{@id("fixture.data") Data{@id("fixture.payload") payload:P,@id("fixture.marker") marker:T,},@id("fixture.empty") Empty{@id("fixture.empty.marker") marker:T,},}
+@id("fixture.rebuild") fn rebuild<T>(value:own Choice<Bytes,T>)->Choice<Bytes,T>{match own value{Choice::Data{payload,marker}=>Choice<Bytes,T>::Data{payload:payload,marker:marker},Choice::Empty{marker}=>Choice<Bytes,T>::Empty{marker:marker},}}
+@id("fixture.make") fn make()->Choice<Bytes,bool>{let input=[9u8];Choice<Bytes,bool>::Data{payload:bytes_copy(array_as_slice(input)),marker:true}}
+@id("fixture.consume") fn consume(value:own Choice<Bytes,bool>)->i64{match own value{Choice::Data{payload,marker}=>if marker{1}else{0},Choice::Empty{marker}=>if marker{1}else{0},}}
+@id("fixture.main") fn main()->i64{consume(rebuild<bool>(make()))}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+    let path = fixture.0.join("src/app.spx");
+    let parsed = semaprax::parse(text, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let node: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    assert!(!node["payload"]["generic_instance_closures"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
+    assert_eq!(
+        SemanticWorkspaceRevision::replay(
+            &revision,
+            workspace.workspace_revision(),
+            workspace.to_json().as_bytes()
+        )
+        .unwrap(),
+        workspace
+    );
+    let public_owner = text.replace(
+        "fn published()->i64 {0}",
+        "fn published()->Choice<Bytes,bool> {make()}",
+    );
+    let parsed = semaprax::parse(&public_owner, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let errors = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .err()
+    .expect("scalar public boundary must reject authored variants");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-W115"
+            && error.message == "Public Scalar Export Profile v1 does not admit authored resource, record, or variant declarations"),
         "{errors:?}"
     );
 }

@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, HashMap};
 mod collect_block;
 mod expressions;
 mod generic_record;
+mod generic_variant;
 mod http_io;
 pub(super) mod internal_strings;
 mod nested_owned;
@@ -3359,47 +3360,6 @@ impl Emitter<'_> {
         self.emit_cleanup_actions(&exit.finalize_in_order)
     }
 
-    fn emit_owned_variant_match_cleanup(
-        &mut self,
-        fields: &[crate::hir::ResolvedMatchPatternField],
-    ) -> Result<(), Diagnostic> {
-        let storage = fields
-            .iter()
-            .filter(|field| field.binding.ty == ResolvedType::Bytes)
-            .map(|field| crate::cleanup_plan::StorageId::Value(field.binding.id.clone()))
-            .collect::<std::collections::BTreeSet<_>>();
-        if storage.is_empty() {
-            return Ok(());
-        }
-        let mut regions = self.cleanup_plan.regions.iter().filter(|region| {
-            storage
-                .iter()
-                .all(|candidate| region.slots.contains(candidate))
-        });
-        let region = regions
-            .next()
-            .ok_or_else(|| error("owned variant bindings have no CleanupPlan region"))?;
-        if regions.next().is_some() {
-            return Err(error(
-                "owned variant bindings map to ambiguous cleanup regions",
-            ));
-        }
-        let exit = self
-            .cleanup_plan
-            .exits
-            .get(region.normal_scope_end.0 as usize)
-            .filter(|exit| exit.id == region.normal_scope_end)
-            .ok_or_else(|| error("owned variant match region has no normal exit"))?;
-        if !matches!(
-            exit.continuation,
-            crate::cleanup_plan::ExitContinuation::Continue(_)
-        ) || exit.leaves_regions.as_slice() != [region.id]
-        {
-            return Err(error("owned variant match cleanup exit is not canonical"));
-        }
-        self.emit_cleanup_actions(&exit.finalize_in_order)
-    }
-
     fn cleanup_value_at(
         &self,
         place: &crate::cleanup_plan::CleanupPlace,
@@ -4606,6 +4566,13 @@ impl Emitter<'_> {
                 let aggregate_result = is_aggregate(self.program, &expr.ty)?;
                 if aggregate_result
                     && !generic_record::match_result_is_admitted(self.program, self.function, expr)
+                    && !crate::hir::generic_variant::match_result(
+                        self.program,
+                        self.function,
+                        *mode,
+                        &expr.ty,
+                        expr.ownership,
+                    )
                 {
                     return Err(error("copy match result must be i64 or bool"));
                 }
@@ -4713,9 +4680,16 @@ impl Emitter<'_> {
                 } else {
                     self.fail_if(STATUS_INTERNAL_INVALID_TAG)?;
                 }
-                let destination = Value::Scalar {
-                    local: self.plan.expr_scalar(expr)?,
-                    ty: expr.ty.clone(),
+                let destination = if aggregate_result {
+                    Value::Aggregate {
+                        pointer: self.plan.expr_pointer(expr)?,
+                        ty: expr.ty.clone(),
+                    }
+                } else {
+                    Value::Scalar {
+                        local: self.plan.expr_scalar(expr)?,
+                        ty: expr.ty.clone(),
+                    }
                 };
                 let emission = VariantMatchEmission {
                     destination: &destination,
@@ -4726,6 +4700,9 @@ impl Emitter<'_> {
                     expression: &expr.id,
                 };
                 self.emit_match_arms(&emission, 0)?;
+                if aggregate_result {
+                    self.apply_variant_match_continuation(expr, &destination)?;
+                }
                 Ok(destination)
             }
             ResolvedExprKind::Try {

@@ -48,7 +48,18 @@ graph projection or backend.
 The additive `agent_lifecycle/iterative` module owns checked Step transitions,
 per-turn authorization, bounded stage execution, and iterative evidence. Its
 step validator maps checked variant fields back to exact State/Result records;
-the frozen one-pass lifecycle retains its existing owner. `execution_revision`
+the frozen one-pass lifecycle retains its existing owner. The `iterative/effects`
+module binds scalar operation registries to deployed contracts, meters calls and
+encoded argument/result bytes, and validates host results before reduction.
+`agent_runtime_v2` exposes the direct consuming producer implemented by
+`execution_revision/typed`; it owns exact invocation inputs and joins evidence
+only from the run it actually executes. The private `iterative/driver` reserves
+stages and exposes the effect and transition boundaries to
+`iterative/effects/durable`, which owns the trusted-store execution adapter.
+`agent_runtime_v2/checkpoint` owns only the closed journal codec and accounting;
+its hashes confer no authority. The durable producer replays checked stages and
+fresh authorizations before accepting retained host observations, charges replay
+fuel, and stops on uncertain delivery. `execution_revision`
 joins retained Project source, ProgramRoot, deployment, invocation and actual
 lifecycle evidence through opaque consuming producers. These associations grant
 no host authority. The generic collection helper under `hir/generic_collection`
@@ -62,6 +73,15 @@ validation check all eight concrete Copy substitutions; Box/Vec interpreters
 and backends consume the same canonical cleanup plans and runtime carriers.
 The [owning specification](GENERIC-COMPILER-COLLECTIONS-V1.md) defines the exact
 private signature boundary.
+
+Authored generic variant admission is owned by the independent
+`source_verify/declared_type/generic_variant` and `hir/generic_variant` profiles.
+The HIR validator checks all concrete substitutions and match bindings.
+`cleanup_plan/build/generic_variant` produces the canonical arm-result and
+continuation transfers; native and Wasm helpers consume those transfers in
+order. Private workspace signature admission checks retained declaration facts
+in both workspace collection and HIR linking. Public signatures retain their
+separate admission boundary.
 
 ## Representations
 

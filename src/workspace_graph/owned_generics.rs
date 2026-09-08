@@ -585,3 +585,32 @@ fn visit_call_sites(
         hir::visit_resolved_calls(postcondition, visit);
     }
 }
+
+/// Internal scalar-root closures may retain exact owned generic carriers.
+/// This predicate is never used to admit selected public ABI declarations.
+pub(super) fn private_signature(
+    workspace: &super::ValidatedWorkspaceHir,
+    module: &WorkspaceResolvedModule,
+    function: &hir::ResolvedFunction,
+) -> bool {
+    hir::generic_result::concrete_signature(function)
+        || hir::generic_collection::concrete_signature(function)
+        || (hir::generic_variant::concrete_signature(&module.types, function)
+            && function
+                .params
+                .iter()
+                .map(|p| &p.ty)
+                .chain(std::iter::once(&function.return_type))
+                .all(|ty| {
+                    let hir::ResolvedType::Nominal { declaration, .. } = ty else {
+                        return true;
+                    };
+                    workspace
+                        .declarations
+                        .get(declaration.as_str())
+                        .is_some_and(|fact| {
+                            fact.kind == hir::DeclarationKind::Variant
+                                && fact.origin == hir::IdentityOrigin::Explicit
+                        })
+                }))
+}

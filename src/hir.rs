@@ -630,3 +630,5 @@ pub(crate) mod generic_collection;
 pub(crate) mod generic_result;
 
 pub(crate) mod generic_mapping;
+
+pub(crate) mod generic_variant;

@@ -706,10 +706,25 @@ pub(super) fn oracle_match(
         );
         if let Some(value) = &arm_value {
             reject_native_unit_value(program, &arm.value, value, diagnostics);
-            reject_aggregate_match_result(program, &arm.value, value, diagnostics);
+            if !crate::source_verify::declared_type::generic_variant::match_result(
+                functions.get(current.name.as_str()).copied(),
+                types,
+                *mode,
+                &value.ty,
+                value.mode,
+            ) {
+                reject_aggregate_match_result(program, &arm.value, value, diagnostics);
+            }
         }
         if let Some(arm_value) = arm_value {
             if variant_needs_drop
+                && !crate::source_verify::declared_type::generic_variant::match_result(
+                    functions.get(current.name.as_str()).copied(),
+                    types,
+                    *mode,
+                    &arm_value.ty,
+                    arm_value.mode,
+                )
                 && (*mode == MatchMode::Value
                     || !matches!(arm_value.ty, Type::I64 | Type::Bool)
                     || arm_value.mode != ParamMode::Value)

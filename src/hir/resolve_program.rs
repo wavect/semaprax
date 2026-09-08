@@ -99,6 +99,9 @@ impl Resolver<'_> {
         if forwarded {
             return Ok(true);
         }
+        if crate::source_verify::generic_variant_profile(self.program, function) {
+            return Ok(super::generic_variant::arguments(arguments));
+        }
         if crate::source_verify::generic_collection_profile(function) {
             return Ok(super::generic_collection::arguments(arguments));
         }
@@ -623,7 +626,12 @@ impl Resolver<'_> {
                     op.param_ownership(index)
                 } else if let Some(op) = transparent_box_wrapper {
                     op.param_ownership()
-                } else if super::generic_collection::slot(
+                } else if super::generic_variant::slot(
+                    &self.declarations,
+                    &ty,
+                    &function_id,
+                    function.type_parameters.len(),
+                ) || super::generic_collection::slot(
                     &ty,
                     &function_id,
                     function.type_parameters.len(),
@@ -692,6 +700,12 @@ impl Resolver<'_> {
                         function.type_parameters.len(),
                     )
                     || super::generic_collection::slot(
+                        &return_type,
+                        &function_id,
+                        function.type_parameters.len(),
+                    )
+                    || super::generic_variant::slot(
+                        &self.declarations,
                         &return_type,
                         &function_id,
                         function.type_parameters.len(),
@@ -1141,6 +1155,12 @@ impl Resolver<'_> {
                 && !transparent_box
                 && !specialized_box_wrapper
                 && !super::generic_collection::slot(
+                    &instance,
+                    &owner,
+                    function.type_parameters.len(),
+                )
+                && !super::generic_variant::slot(
+                    &self.declarations,
                     &instance,
                     &owner,
                     function.type_parameters.len(),

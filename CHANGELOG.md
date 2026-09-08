@@ -8,6 +8,27 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added trusted-store checkpoints around each typed iterative effect, with
+  persisted stage fuel reservations, intent/observation/transition generations,
+  exact call and byte accounting, fresh-authorized recovery, and fail-closed
+  uncertain delivery. Terminal failure survives a lost final store acknowledgement.
+  Four execution and eight hostile decoder checks pass locally.
+
+- Added private authored generic variants with one owned Bytes case and all
+  eight Copy substitutions, including owning match/branch/call composition.
+  Native selected-case destructuring now precedes arm construction, with
+  outgoing ownership transferred only after the result exists. The 18-profile
+  runtime corpus passes on interpreter, native O0/O2 and Core Wasm.
+  Exact private variant/collection signatures now survive HIR linking; attempted
+  public owning results reach the unchanged Scalar Export Profile and reject
+  with its SPX-W115 diagnostic instead of the earlier private-linker SPX-H006.
+
+- Added a deployed typed scalar operation registry with exact argument/result
+  contracts, per-turn authorization, and call/byte ceilings. Direct Runtime v2
+  compiles retained Agent source into this iterative product and joins its actual
+  execution to deployment, instance and evidence roots. Five registry checks and
+  the three-turn/two-operation Runtime integration pass locally.
+
 - Added private generic Box/Vec functions over all eight Copy scalars, with
   exact source/HIR materialization, graph and ProgramRoot replay, and runtime
   success/failure settlement on interpreter, native O0/O2 and Core Wasm.

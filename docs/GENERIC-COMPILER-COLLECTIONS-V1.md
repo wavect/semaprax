@@ -32,3 +32,9 @@ contract failure and Vec capacity failure. Native allocation accounting and
 result sentinels, and Wasm generation-aware handle accounting, remain checked
 across four repeated invocations per profile. Existing Box/Vec runtime checks
 also pass locally. Physical hosted evidence remains separate.
+
+The private Project HIR linker also retains exact bounded collection signatures.
+An attempted selected public Box result now reaches the unchanged Public Scalar
+Export Profile v1 and rejects with SPX-W115 (generic templates or instances are
+not admitted). The former SPX-H006 was an earlier private-linker rejection, not
+the public signature contract.

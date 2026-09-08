@@ -314,6 +314,10 @@ pub(super) fn check_function_declarations<'p>(
                     function.span,
                 ));
             }
+            let variant = crate::source_verify::declared_type::generic_variant::profile(
+                function,
+                &TypeTable::new(program),
+            );
             let owned_result = generic_result::profile(function);
             let collection =
                 crate::source_verify::declared_type::generic_collection::profile(function);
@@ -325,9 +329,16 @@ pub(super) fn check_function_declarations<'p>(
                 );
                 if !((param.mode == ParamMode::Value
                     && (generic_function_signature_slot(&param.ty, &parameter_names)
-                        || (collection && crate::vec_ops::ast_element_is_admitted(&param.ty))))
+                        || ((collection || variant)
+                            && crate::vec_ops::ast_element_is_admitted(&param.ty))))
                     || (param.mode == ParamMode::Own
                         && (owned_record
+                            || (variant
+                                && crate::source_verify::declared_type::generic_variant::slot(
+                                    function,
+                                    &param.ty,
+                                    &TypeTable::new(program),
+                                ))
                             || (collection
                                 && crate::source_verify::declared_type::generic_collection::slot(
                                     function, &param.ty,
@@ -346,6 +357,7 @@ pub(super) fn check_function_declarations<'p>(
                 }
             }
             if !owned_result
+                && !variant
                 && !collection
                 && !generic_function_signature_slot(&function.return_type, &parameter_names)
                 && !generic_function_owned_record_slot(
@@ -387,7 +399,11 @@ pub(super) fn check_function_declarations<'p>(
                 .iter()
                 .chain(&function.ensures)
                 .any(|expression| !generic_function_expression_is_direct_scalar(expression));
-            let invalid_body = !generic_result::body(function, &function.body)
+            let invalid_body = !crate::source_verify::declared_type::generic_variant::body(
+                function,
+                &types,
+                &function.body,
+            ) && !generic_result::body(function, &function.body)
                 && !generic_function_expression_is_direct_scalar(&function.body)
                 && !generic_function_expression_is_owned_record_composition(
                     function,
@@ -546,6 +562,7 @@ pub(super) fn check_function_bodies<'p>(
             let substitutions = if generic_result::profile(template) {
                 generic_result::substitutions(template)
             } else if owned_record
+                || crate::source_verify::declared_type::generic_variant::profile(template, types)
                 || crate::source_verify::declared_type::generic_collection::profile(template)
             {
                 owned_record_function_substitutions(template.type_parameters.len())

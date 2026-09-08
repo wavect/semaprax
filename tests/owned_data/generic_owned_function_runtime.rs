@@ -957,3 +957,6 @@ fn generic_forwarding_instance_closure_bound_is_exact() {
 
 #[path = "generic_owned_function_runtime/collections.rs"]
 mod collections;
+
+#[path = "generic_owned_function_runtime/authored_variants.rs"]
+mod authored_variants;

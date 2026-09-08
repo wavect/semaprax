@@ -23,6 +23,21 @@ pub(super) fn admits_owned_match_result(
     scrutinee: &ResolvedExpr,
     arms: &[ResolvedMatchArm],
 ) -> bool {
+    if let ResolvedExprKind::Match { mode, .. } = expression.kind {
+        if crate::hir::generic_variant::match_result(
+            program,
+            function,
+            mode,
+            &expression.ty,
+            expression.ownership,
+        ) {
+            return expression.ownership == OwnershipMode::Own
+                && !arms.is_empty()
+                && arms.iter().all(|arm| {
+                    arm.value.ty == expression.ty && arm.value.ownership == OwnershipMode::Own
+                });
+        }
+    }
     if crate::hir::bounded_owned_record_template_for_function(program, function).is_none() {
         return false;
     }

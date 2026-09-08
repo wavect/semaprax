@@ -204,3 +204,6 @@ fn execution_roots_bind_retained_source_and_actual_run() {
 
 #[path = "execution_revision/iterative.rs"]
 mod iterative;
+
+#[path = "execution_revision/typed.rs"]
+mod typed;

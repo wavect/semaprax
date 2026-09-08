@@ -27,6 +27,7 @@ use super::{
 
 mod bounded_box;
 mod bounded_vec;
+mod generic_variant;
 #[cfg(test)]
 mod hostile_tests;
 mod owned_try;
@@ -4050,9 +4051,6 @@ impl<'a> PlanBuilder<'a> {
                             "droppable match scrutinee reached the copy-only cleanup slice",
                         ));
                     }
-                    // Refutable Match v1: Copy-scalar scrutinees lower to the
-                    // literal/guard decision chain; aggregates keep the
-                    // pre-feature variant/record lowering below.
                     if matches!(
                         scrutinee.ty,
                         ResolvedType::I64
@@ -4200,7 +4198,11 @@ impl<'a> PlanBuilder<'a> {
                         results.push(EvalResult {
                             block: join,
                             state: merged_state,
-                            owned_source: None,
+                            owned_source: generic_variant::destination(
+                                self,
+                                expression,
+                                active_region,
+                            )?,
                         });
                     } else {
                         let arm = &arms[index];
@@ -4311,11 +4313,13 @@ impl<'a> PlanBuilder<'a> {
                     arm_region,
                 } => {
                     let mut result = results.pop().expect("match arm result retained");
-                    if result.owned_source.is_some() {
-                        return Err(plan_error(
-                            "droppable match arm reached the copy-only cleanup slice",
-                        ));
-                    }
+                    generic_variant::finish_arm(
+                        self,
+                        expression,
+                        &arms[index].value,
+                        &mut result,
+                        active_region,
+                    )?;
                     if let Some(arm_region) = arm_region {
                         (result.block, result.state) =
                             self.exit_scope(result.block, result.state, arm_region)?;
@@ -6478,11 +6482,7 @@ impl<'a> PlanBuilder<'a> {
                 arm_state,
                 arm_region.unwrap_or(region),
             )?;
-            if result.owned_source.is_some() {
-                return Err(plan_error(
-                    "droppable match arm reached the copy-only cleanup slice",
-                ));
-            }
+            generic_variant::finish_arm(self, expression, &arm.value, &mut result, region)?;
             if let Some(arm_region) = arm_region {
                 (result.block, result.state) =
                     self.exit_scope(result.block, result.state, arm_region)?;
@@ -6502,7 +6502,7 @@ impl<'a> PlanBuilder<'a> {
         Ok(EvalResult {
             block: join,
             state: merged_state,
-            owned_source: None,
+            owned_source: generic_variant::destination(self, expression, region)?,
         })
     }
 

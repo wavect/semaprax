@@ -4,7 +4,7 @@ use semaprax::agent_lifecycle::iterative::{
 };
 use semaprax::execution_revision::iterative::bind_iterative_execution_revision;
 
-fn fixture() -> Fixture {
+pub(super) fn fixture() -> Fixture {
     let fixture = Fixture::new();
     let path = fixture.0.join("src/app.spx");
     let source = std::fs::read_to_string(&path).unwrap();

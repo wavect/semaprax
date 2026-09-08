@@ -2184,25 +2184,16 @@ impl Resolver<'_> {
                                         &matched_type,
                                         &instance_arguments,
                                     )?;
-                                    let field_facts = self
-                                        .declarations
-                                        .type_facts(&field_ty)
-                                        .ok_or_else(|| {
-                                            self.error(
-                                                "SPX-H006",
-                                                "variant pattern field has no authenticated type facts",
-                                                field.span,
-                                            )
-                                        })?;
-                                    let ownership = if field_facts.needs_drop {
+                                    let ownership = self.function_expression_ownership(
+                                        function,
+                                        &field_ty,
                                         match mode {
                                             ResolvedMatchMode::Own => OwnershipMode::Own,
                                             ResolvedMatchMode::Borrow => OwnershipMode::Borrow,
                                             ResolvedMatchMode::Value => OwnershipMode::Value,
-                                        }
-                                    } else {
-                                        OwnershipMode::Value
-                                    };
+                                        },
+                                        field.span,
+                                    )?;
                                     let binding = ResolvedBinding {
                                         id: ValueId::local(
                                             function,

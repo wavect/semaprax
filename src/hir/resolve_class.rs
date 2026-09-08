@@ -150,7 +150,12 @@ impl Resolver<'_> {
             if let Some(template) = self.program.functions.iter().find(|candidate| {
                 candidate.stable_id == owner.as_str() && !candidate.type_parameters.is_empty()
             }) {
-                if super::generic_collection::slot(ty, owner, template.type_parameters.len())
+                if super::generic_variant::slot(
+                    &self.declarations,
+                    ty,
+                    owner,
+                    template.type_parameters.len(),
+                ) || super::generic_collection::slot(ty, owner, template.type_parameters.len())
                     || super::generic_result::slot(ty, owner, template.type_parameters.len())
                 {
                     return Ok(non_copy_mode);

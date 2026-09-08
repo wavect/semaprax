@@ -49,7 +49,8 @@ jobs:
         run: python scripts/agent-proposal-clients.py
       - name: Check bounded iterative lifecycle and retained Copy records
         run: |
-          cargo test --locked --offline -p semaprax --lib agent_lifecycle::iterative::tests
+          cargo test --locked --offline -p semaprax --lib agent_lifecycle::iterative::
+          cargo test --locked --offline -p semaprax --lib agent_runtime_v2::checkpoint::tests
           cargo test --locked --offline -p semaprax --lib retained_copy_record_calls_return_exact_fields_and_reject_forged_values
       - name: Check retained Project and iterative runtime root association
         if: runner.os != 'Windows'
@@ -138,6 +139,13 @@ jobs:
           cargo test --locked --offline -p semaprax --test language generic_collections_next
           cargo test --locked --offline -p semaprax --test workspace generic_collections_program_root_replays_private_owned_carriers
           cargo test --locked --offline -p semaprax --test owned_data generic_collections_all_scalars_execute_on_every_engine
+
+      - name: GEN-06 authored generic variant ownership
+        run: |
+          cargo test --locked --offline -p semaprax --test language generic_authored_variants_next
+          cargo test --locked --offline -p semaprax --lib authored_variant_match_oracle_and_forged_arm_ownership
+          cargo test --locked --offline -p semaprax --test workspace generic_authored_variant_program_root
+          cargo test --locked --offline -p semaprax --test owned_data authored_variants
 
       - name: GEN-06 all-scalar owned Result propagation
         shell: bash

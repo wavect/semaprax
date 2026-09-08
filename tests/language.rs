@@ -126,3 +126,6 @@ mod generic_multi_owner_next;
 
 #[path = "language/generic_collections_next.rs"]
 mod generic_collections_next;
+
+#[path = "language/generic_authored_variants_next.rs"]
+mod generic_authored_variants_next;

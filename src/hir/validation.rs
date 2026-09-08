@@ -1183,32 +1183,6 @@ impl<'a> HirValidator<'a> {
         Ok(())
     }
 
-    fn validate_function_template_type(
-        &self,
-        template: &ResolvedFunctionTemplate,
-        ty: &ResolvedType,
-    ) -> Result<(), Diagnostic> {
-        generic_template::validate_type(self.program, template, ty)
-    }
-
-    fn validate_template_expr(
-        &mut self,
-        template: &ResolvedFunctionTemplate,
-        execution: &FunctionExecutionId,
-        expression: &ResolvedExpr,
-        values: &mut BTreeMap<ValueId, ResolvedType>,
-        path: &str,
-    ) -> Result<(), Diagnostic> {
-        self.validate_template_expr_with_context(
-            template,
-            execution,
-            expression,
-            values,
-            path,
-            (false, false),
-        )
-    }
-
     fn validate_template_expr_with_context(
         &mut self,
         template: &ResolvedFunctionTemplate,
@@ -1230,6 +1204,10 @@ impl<'a> HirValidator<'a> {
         }
         if generic_template::body_type_requires_validation(self.program, template, &expression.ty) {
             self.validate_function_template_type(template, &expression.ty)?;
+        }
+        if generic_variant::handles(self.program, template, expression) {
+            return self
+                .validate_template_authored_variant(template, execution, expression, values, path);
         }
         if generic_template::is_owned_record_expression(expression)
             && !generic_template::has_owned_record_composition(self.program, template)
@@ -5593,6 +5571,13 @@ impl<'a> HirValidator<'a> {
                         unreachable!()
                     };
                     if *mode != ResolvedMatchMode::Value
+                        && !super::generic_variant::match_result_execution(
+                            self.program,
+                            function,
+                            *mode,
+                            &arm.value.ty,
+                            arm.value.ownership,
+                        )
                         && (!matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool)
                             || arm.value.ownership != OwnershipMode::Value)
                     {
@@ -7727,6 +7712,13 @@ impl<'a> HirValidator<'a> {
                         }
                     }
                     if *mode != ResolvedMatchMode::Value
+                        && !super::generic_variant::match_result_execution(
+                            self.program,
+                            function,
+                            *mode,
+                            &arm.value.ty,
+                            arm.value.ownership,
+                        )
                         && (!matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool)
                             || arm.value.ownership != OwnershipMode::Value)
                     {
@@ -9237,3 +9229,5 @@ fn deep(bytes: borrow Slice<u8>) -> usize {
         drop(program);
     }
 }
+
+mod generic_variant;

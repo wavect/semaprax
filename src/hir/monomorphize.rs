@@ -668,27 +668,35 @@ pub(super) fn materialize_template_expr(
             variant,
             case,
             fields,
-        } if super::generic_result::profile(template) => ResolvedExprKind::ConstructVariant {
-            variant: variant.clone(),
-            case: case.clone(),
-            fields: fields
-                .iter()
-                .enumerate()
-                .map(|(index, field)| {
-                    Ok(ResolvedFieldInitializer {
-                        field: field.field.clone(),
-                        value: materialize_template_expr(
-                            template,
-                            arguments,
-                            execution,
-                            &field.value,
-                            values,
-                            &format!("{path}.field.{index}.value"),
-                        )?,
+        } if super::generic_result::profile(template)
+            || super::generic_variant::symbolic_slot(
+                &expression.ty,
+                &template.id,
+                template.type_parameters.len(),
+            ) =>
+        {
+            ResolvedExprKind::ConstructVariant {
+                variant: variant.clone(),
+                case: case.clone(),
+                fields: fields
+                    .iter()
+                    .enumerate()
+                    .map(|(index, field)| {
+                        Ok(ResolvedFieldInitializer {
+                            field: field.field.clone(),
+                            value: materialize_template_expr(
+                                template,
+                                arguments,
+                                execution,
+                                &field.value,
+                                values,
+                                &format!("{path}.field.{index}.value"),
+                            )?,
+                        })
                     })
-                })
-                .collect::<Result<Vec<_>, Diagnostic>>()?,
-        },
+                    .collect::<Result<Vec<_>, Diagnostic>>()?,
+            }
+        }
         ResolvedExprKind::Try {
             operand,
             result,
@@ -782,6 +790,32 @@ fn materialize_pattern(
                 values,
                 &format!("{path}.record"),
             )?,
+        }),
+        ResolvedMatchPattern::Variant {
+            variant,
+            case,
+            fields,
+        } => Ok(ResolvedMatchPattern::Variant {
+            variant: variant.clone(),
+            case: case.clone(),
+            fields: fields
+                .iter()
+                .enumerate()
+                .map(|(index, field)| {
+                    let id = ValueId::local(execution, &format!("{path}.binding.{index}"));
+                    values.insert(field.binding.id.clone(), id.clone());
+                    Ok(super::ResolvedMatchPatternField {
+                        field: field.field.clone(),
+                        binding: ResolvedBinding {
+                            id,
+                            name: field.binding.name.clone(),
+                            ty: substitute_type(&field.binding.ty, &template.id, arguments)?,
+                            ownership: field.binding.ownership,
+                            span: field.binding.span,
+                        },
+                    })
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?,
         }),
         ResolvedMatchPattern::Wildcard => Ok(ResolvedMatchPattern::Wildcard),
         _ => Err(hir_error(

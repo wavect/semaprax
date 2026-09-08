@@ -33,9 +33,11 @@ impl Resolver<'_> {
                 &self.declarations, &scrutinee.ty, owner,
                 self.program.functions.iter().find(|candidate| candidate.stable_id == owner.as_str())
                     .map_or(0, |candidate| candidate.type_parameters.len())));
+        let template_variant = matches!(function,FunctionExecutionId::Monomorphic(owner) if self.program.functions.iter().find(|candidate|candidate.stable_id==owner.as_str()).is_some_and(|candidate|super::generic_variant::slot(&self.declarations,&scrutinee.ty,owner,candidate.type_parameters.len())));
         let facts = self.declarations.type_facts(&scrutinee.ty);
         let copy = facts.as_ref().is_some_and(|facts| facts.copy);
         let owned = template_owned
+            || template_variant
             || facts
                 .as_ref()
                 .is_some_and(|facts| facts.needs_drop && !facts.copy);
@@ -44,12 +46,14 @@ impl Resolver<'_> {
                 copy && scrutinee.ownership == OwnershipMode::Value
             }
             (DeclarationKind::Variant, ResolvedMatchMode::Own) => {
-                resolver_admits_flat_owned_byte_variant(&self.declarations, &scrutinee.ty)
+                (template_variant
+                    || resolver_admits_flat_owned_byte_variant(&self.declarations, &scrutinee.ty))
                     && owned
                     && scrutinee.ownership == OwnershipMode::Own
             }
             (DeclarationKind::Variant, ResolvedMatchMode::Borrow) => {
-                resolver_admits_flat_owned_byte_variant(&self.declarations, &scrutinee.ty)
+                (template_variant
+                    || resolver_admits_flat_owned_byte_variant(&self.declarations, &scrutinee.ty))
                     && owned
                     && matches!(
                         scrutinee.ownership,

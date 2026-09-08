@@ -4,7 +4,6 @@
 //! replay-validated plan's exact storage, transitions, flags, and finalizer
 //! order. The value emitter may only perform an owned move after this bridge
 //! authenticates the corresponding transition.
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::cleanup::FieldLivenessShape;
@@ -18,6 +17,7 @@ use super::native_emit::{c_case_symbol, c_field_symbol};
 mod nested_owned;
 mod owned_leaf;
 mod record_if;
+mod variant_match;
 use owned_leaf::{emit_transfer, OwnedLeafKind};
 
 #[derive(Clone, Debug)]
@@ -738,40 +738,6 @@ impl NativeBytesPlan {
             .get(destination)
             .ok_or_else(|| error("Bytes branch destination is not indexed"))?;
         Ok(emit_transfer(source, destination, "branch transfer"))
-    }
-
-    pub(super) fn transfer_variant_branch_to(
-        &self,
-        source_at: &ExpressionId,
-        destination_storage: &StorageId,
-        carrier: &str,
-        layout: &VariantLayout,
-    ) -> Result<String, Diagnostic> {
-        let source = self
-            .transitions
-            .get(source_at)
-            .into_iter()
-            .flatten()
-            .rev()
-            .find_map(|transition| match transition {
-                CleanupTransition::TransferVariant {
-                    destination,
-                    variant,
-                    ..
-                } if variant == &layout.variant => Some(destination.clone()),
-                CleanupTransition::InitializeVariant {
-                    destination,
-                    variant,
-                    ..
-                } if variant == &layout.variant => Some(destination.clone()),
-                _ => None,
-            })
-            .ok_or_else(|| error("owned variant branch has no authenticated source"))?;
-        let destination = CleanupPlace {
-            storage: destination_storage.clone(),
-            projections: Vec::new(),
-        };
-        self.emit_variant_transfer(&source, &destination, carrier, layout)
     }
 
     pub(super) fn call_argument(

@@ -96,7 +96,28 @@ fn link_scalar_workspace_impl(
             .iter()
             .all(|effect| import_effects.contains(effect))
             || (!is_owned_method
-                && !(parts.is_some() && generic_result::concrete_signature(function))
+                && !parts.as_ref().is_some_and(|parts| {
+                    generic_result::concrete_signature(function)
+                        || generic_collection::concrete_signature(function)
+                        || (generic_variant::concrete_signature(&parts.types, function)
+                            && function
+                                .params
+                                .iter()
+                                .map(|p| &p.ty)
+                                .chain(std::iter::once(&function.return_type))
+                                .all(|ty| {
+                                    let ResolvedType::Nominal { declaration, .. } = ty else {
+                                        return true;
+                                    };
+                                    parts
+                                        .declaration_facts
+                                        .get(declaration)
+                                        .is_some_and(|fact| {
+                                            fact.kind == DeclarationKind::Variant
+                                                && fact.origin == IdentityOrigin::Explicit
+                                        })
+                                }))
+                })
                 && (function
                     .params
                     .iter()
@@ -167,6 +188,11 @@ fn link_scalar_workspace_impl(
         )
         .any(resolved_function_uses_box);
     let uses_owned_result = functions.iter().any(generic_result::concrete_signature)
+        || parts.as_ref().is_some_and(|parts| {
+            functions
+                .iter()
+                .any(|function| generic_variant::concrete_signature(&parts.types, function))
+        })
         || parts
             .iter()
             .flat_map(|parts| &parts.function_templates)

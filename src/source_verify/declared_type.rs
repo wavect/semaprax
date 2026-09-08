@@ -948,13 +948,13 @@ pub(super) fn check_record_pattern(
     enum Frame<'a, 't> {
         Enter {
             pattern_type: &'a str,
-            fields: &'a [RecordMatchFieldPattern],
+            fields: &'a [RecordMatchPatternField],
             expected: Type,
             span: Span,
         },
         Fields {
             pattern_type: &'a str,
-            fields: &'a [RecordMatchFieldPattern],
+            fields: &'a [RecordMatchPatternField],
             expected: Type,
             declared_fields: &'t [FieldDeclaration],
             index: usize,

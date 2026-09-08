@@ -202,6 +202,9 @@ fn execution_roots_bind_retained_source_and_actual_run() {
     .unwrap();
 }
 
+#[path = "execution_revision/workspace.rs"]
+mod workspace;
+
 #[path = "execution_revision/iterative.rs"]
 mod iterative;
 

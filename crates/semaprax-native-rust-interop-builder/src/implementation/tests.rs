@@ -355,6 +355,17 @@ fn observe_cleanup_function(
                     observe_place(source, false, observed);
                     observe_place(destination, false, observed);
                 }
+                CleanupTransition::ReserveRenewal { binding, .. } => {
+                    observe_place(binding, false, observed);
+                }
+                CleanupTransition::Renew {
+                    source,
+                    destination,
+                    ..
+                } => {
+                    observe_place(source, false, observed);
+                    observe_place(destination, false, observed);
+                }
                 CleanupTransition::TransferVariant {
                     source,
                     destination,

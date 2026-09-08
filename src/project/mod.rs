@@ -63,6 +63,7 @@ mod target_cache;
 #[cfg(test)]
 mod tests;
 mod v8_promotion;
+mod workspace_execution;
 
 use std::collections::BTreeSet;
 use std::ops::Deref;
@@ -465,6 +466,12 @@ pub use v8_promotion::{
     ProjectV8PromotionGateObservation, ProjectV8PromotionGateOutcome, ProjectV8PromotionReceipt,
     ProjectV8PromotionSubject, MAX_PROJECT_V8_PROMOTION_RECEIPT_BYTES,
     PROJECT_V8_PROMOTION_RECEIPT_SCHEMA,
+};
+pub use workspace_execution::{
+    WorkspaceExecution, WorkspaceExecutionBinding, WorkspaceExecutionEvidence,
+    WorkspaceExecutionRootVersion, MAX_WORKSPACE_EXECUTION_BINDING_BYTES,
+    WORKSPACE_EXECUTION_BINDING_SCHEMA, WORKSPACE_RUNTIME_ASSOCIATION_SCHEMA,
+    WORKSPACE_RUNTIME_EVIDENCE_SCHEMA,
 };
 
 /// Prepare the additive WP-10/WP-11 owned-data package from held HIR and the

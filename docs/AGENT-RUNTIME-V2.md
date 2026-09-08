@@ -62,3 +62,7 @@ exact-commit evidence and is not inferred from local execution.
 [Durable migration v3](AGENT-STATE-MIGRATION-V3.md) adds a persisted handoff
 and trusted-store recovery for checked migrated State. Its joined evidence
 retains the handoff digest and exposes the complete recoverable checkpoint.
+
+[Workspace Execution Association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md)
+adds exact semantic-service generation selection, authority-free receipt replay,
+and consuming producer/evidence associations without changing these root bytes.

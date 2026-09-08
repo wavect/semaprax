@@ -898,6 +898,18 @@ MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
 [Persistent Incremental Semantic Service
 v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
 
+`src/project/workspace_execution.rs` owns the exact SEG-04 binding selector and
+receipt replay for one retained service generation and its selected
+ProgramRoot; it accepts no caller-supplied root decoding or authority. Its
+`runtime.rs` child owns the consuming `bind_once`, `bind_iterative`, and
+`bind_typed` delegates and joins evidence only from the producer run that
+actually executes. Typed `run_current` holds the service borrow across the
+freshness check and run; typed durable execution delegates the existing
+caller-owned trusted checkpoint store. These modules add no snapshot
+structure, disk store, wire, MCP, CLI, task/proposal authority, or migration
+association, and preserve historical bindings across refresh while rejecting
+stale current execution.
+
 `src/project/semantic_service/history.rs` owns the bounded immutable snapshots
 and revision-bound queries over successful validation and refresh outcomes;
 failed attempts append nothing, and ordering means only mutex-serialized

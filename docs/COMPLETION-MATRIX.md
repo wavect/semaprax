@@ -62,6 +62,15 @@ include prior handoffs and recovery reservations; two closed handoff codec
 checks also pass. Transactional preparation, cross-store coordination,
 automatic reconciliation and hosted promotion remain open. [Execution-root association](EXECUTION-ROOT-ASSOCIATION-V1.md)
 now has locally passing V1/V2/V3 and iterative invocation association tests.
+[Workspace execution association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md) joins
+one exact immutable semantic-service generation to those consuming producers.
+Four new local tests select and execute V1/V2/V3 bindings, reject reminted
+receipts, replay against a fresh service, preserve historical bindings after
+exact refresh, refuse stale current execution before host calls, and replay
+typed durable completion without redispatch. The twelve-test `execution_revision`
+selector includes the existing migration chains. This does not promote a
+durable semantic service, wire execution route, hosted support, or a new
+cross-workspace migration association.
 [Generic compiler collections](GENERIC-COMPILER-COLLECTIONS-V1.md) pass focused
 source/HIR/graph, ProgramRoot replay, and interpreter/C11 O0/O2/Core-Wasm
 execution with repeated success and contract/capacity failure settlement.

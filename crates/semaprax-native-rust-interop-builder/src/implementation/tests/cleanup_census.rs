@@ -885,6 +885,8 @@ fn main() -> i64 {{
                 semaprax::cleanup_plan::CleanupTransition::Initialize { at, .. }
                 | semaprax::cleanup_plan::CleanupTransition::InitializeVariant { at, .. }
                 | semaprax::cleanup_plan::CleanupTransition::Transfer { at, .. }
+                | semaprax::cleanup_plan::CleanupTransition::Renew { at, .. }
+                | semaprax::cleanup_plan::CleanupTransition::ReserveRenewal { at, .. }
                 | semaprax::cleanup_plan::CleanupTransition::TransferVariant { at, .. }
                 | semaprax::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
                     at, ..

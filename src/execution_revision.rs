@@ -58,7 +58,7 @@ impl ExecutionRoot {
         &self.json
     }
 }
-fn root(schema: &str, facts: serde_json::Value) -> ExecutionRoot {
+pub(crate) fn root(schema: &str, facts: serde_json::Value) -> ExecutionRoot {
     let mut value = json!({"schema": schema, "facts": facts});
     let bytes = format!(
         "{}\n",

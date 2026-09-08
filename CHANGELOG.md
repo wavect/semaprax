@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Bind acyclic, iterative, and typed Agent runtimes to exact immutable semantic
+  service generations through additive workspace execution receipts. Replaying
+  a receipt reselects compiler-owned state; current execution rejects drift
+  before host calls while historical bindings retain their original generation.
+  Join only actual producer evidence and preserve typed durable checkpoint
+  replay. Twelve focused execution-root tests pass locally, including the new
+  V1/V2/V3, forgery, refresh, and zero-host replay cases.
+- Complete private native-builder cleanup test visitors for the additive
+  iterator renewal transitions; the private test target compiles locally.
+
 - Add private one/two-parameter generic iterator operations with ordered Copy
   substitutions, explicit argument permutation, and authored map/filter/fold.
   Conditional same-owner Vec updates inside consuming loops use additive

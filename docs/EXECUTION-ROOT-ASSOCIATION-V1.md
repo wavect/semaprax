@@ -67,3 +67,7 @@ InstanceRoot keeps the requested ceilings and separately commits deployed and
 effective iteration limits. Narrowing either deployment ceiling stops before a
 second read; the successful three-turn fixture explicitly admits three turns and
 three calls in its source profile.
+
+[Workspace Execution Association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md)
+adds exact semantic-service generation selection, authority-free receipt replay,
+and consuming producer/evidence associations without changing these root bytes.

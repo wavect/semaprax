@@ -9,7 +9,7 @@ use semaprax::agent_lifecycle::iterative::{
 use semaprax::agent_runtime_v2::bind_agent_runtime_v2;
 use semaprax::interpreter::retained_call::RetainedValue;
 
-fn operations() -> Vec<EffectOperation> {
+pub(super) fn operations() -> Vec<EffectOperation> {
     ["fixture.read", "fixture.read.second"]
         .into_iter()
         .map(|id| EffectOperation {
@@ -27,9 +27,9 @@ fn operations() -> Vec<EffectOperation> {
         })
         .collect()
 }
-struct Handler {
-    calls: Vec<String>,
-    wrong: bool,
+pub(super) struct Handler {
+    pub(super) calls: Vec<String>,
+    pub(super) wrong: bool,
 }
 impl TypedEffectHandler for Handler {
     fn execute(
@@ -52,7 +52,7 @@ impl TypedEffectHandler for Handler {
         )])
     }
 }
-fn typed_fixture() -> Fixture {
+pub(super) fn typed_fixture() -> Fixture {
     let fixture = super::iterative::fixture();
     let path = fixture.0.join("src/app.spx");
     let source = std::fs::read_to_string(&path)

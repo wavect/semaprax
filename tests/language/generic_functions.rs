@@ -629,7 +629,6 @@ fn nested_owning_generic_relay_source_and_hir_boundaries_fail_closed() {
         admitted.replace("own Box<Pair<Bytes, T>>", "Box<Pair<Bytes, T>>"),
         admitted.replace("own Pair<Box<Bytes>, T>", "borrow Pair<Box<Bytes>, T>"),
         admitted.replace("relay_box<u8>(boxed)", "relay_box<string>(boxed)"),
-        admitted.replace("relay_pair<u8>(paired)", "relay_pair(paired)"),
         admitted.replace("Box<Pair<Bytes, T>>", "Box<Pair<String, T>>"),
     ] {
         let diagnostics = error_codes(&hostile);
@@ -640,6 +639,11 @@ fn nested_owning_generic_relay_source_and_hir_boundaries_fail_closed() {
             "hostile source unexpectedly admitted: {diagnostics:?}\n{hostile}"
         );
     }
+
+    let inferred = admitted.replace("relay_pair<u8>(paired)", "relay_pair(paired)");
+    assert!(error_codes(&inferred).is_empty());
+    let inferred_resolved = hir::resolve(&parse_source(&inferred)).unwrap();
+    hir::validate(&inferred_resolved).unwrap();
 
     let mut resolved = hir::resolve(&parse_source(&admitted)).unwrap();
     hir::validate(&resolved).unwrap();

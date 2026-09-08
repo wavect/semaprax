@@ -344,7 +344,7 @@ pub(crate) fn prepare(
             max_bytes,
         );
     }
-    if manifest.is_v3() {
+    if manifest.project_profile().uses_useful_data_exports() {
         return data::prepare(
             manifest,
             program,

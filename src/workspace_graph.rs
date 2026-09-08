@@ -31,9 +31,10 @@ use crate::{format, graph, hir, prelude, workspace};
 use diagnostics::{graph_error, limit_error, project_function_error, use_error};
 #[cfg(test)]
 use expected_projection::dependency_depths;
+#[cfg(test)]
+use expected_projection::synthetic_builder_bytes;
 use expected_projection::{
-    collect_expected_edges, synthetic_builder_bytes, synthetic_program, validate_dependency_dag,
-    verify_resolved_call_edges,
+    collect_expected_edges, synthetic_program, validate_dependency_dag, verify_resolved_call_edges,
 };
 use operation_sidecar::build_operation_sidecar;
 pub(crate) use operation_sidecar::project_operation_sidecar;
@@ -95,6 +96,8 @@ const NONCLAIMS: [&str; 18] = [
 ];
 thread_local! {
     static ACTIVE_BUILDER_LIMIT: Cell<usize> = const { Cell::new(MAX_BUILDER_BYTES) };
+    #[cfg(test)]
+    static CORE_BUILD_ATTEMPTS: Cell<usize> = const { Cell::new(0) };
 }
 // Fixed resolver nodes are bounded by the structural bundles asserted below:
 // every HIR node, cleanup slot, and plan entry derived from one AST node fits
@@ -1188,7 +1191,13 @@ impl WorkspaceGraphBuild {
         }
 
         if self.edges.iter().any(|edge| {
-            reachable_paths.contains(edge.caller_path.as_str()) && edge.kind == "type_import"
+            reachable_paths.contains(edge.caller_path.as_str())
+                && edge.kind == "type_import"
+                && !((profile == crate::project::ProjectProfile::UsefulDataV1)
+                    && self.hir.modules.iter().any(|module| {
+                        module.path == edge.caller_path
+                            && retained_validation::useful_data_v1_dependency_fallback(module)
+                    }))
         }) {
             return Err(vec![graph_error(
                 "SPX-G172",
@@ -1210,12 +1219,15 @@ impl WorkspaceGraphBuild {
         let mut functions = Vec::new();
         let mut types = Vec::new();
         let mut entrypoints = Vec::new();
+        let mut incompatible_dependency_functions = BTreeSet::new();
         let mut retained_modules = 0usize;
         for module in &self.hir.modules {
             if !reachable_paths.contains(module.path.as_str()) {
                 continue;
             }
             retained_modules += 1;
+            let dependency_fallback = profile == crate::project::ProjectProfile::UsefulDataV1
+                && retained_validation::useful_data_v1_dependency_fallback(module);
             let permits_admitted =
                 retained_validation::permits_admitted(profile, module, entry_module, &natives);
             let project_shape_admitted = profile.is_owned_api()
@@ -1234,7 +1246,7 @@ impl WorkspaceGraphBuild {
                     None,
                 )]);
             }
-            if !project_shape_admitted {
+            if !project_shape_admitted && !dependency_fallback {
                 return Err(vec![project_function_error(
                     module,
                     format!(
@@ -1248,6 +1260,17 @@ impl WorkspaceGraphBuild {
                 types.extend(module.types.iter().cloned());
             }
             for function in &module.functions {
+                if dependency_fallback
+                    && (!hir::useful_data_workspace_return_admitted(&function.return_type)
+                        || function.params.iter().any(|parameter| {
+                            !hir::useful_data_workspace_parameter_admitted(
+                                &parameter.ty,
+                                parameter.ownership,
+                            )
+                        }))
+                {
+                    incompatible_dependency_functions.insert(function.id.clone());
+                }
                 let dependency_anchor = dependency_anchors
                     && module.path.starts_with("dependencies/")
                     && module.module != entry_module
@@ -1355,6 +1378,13 @@ impl WorkspaceGraphBuild {
                 Some(entrypoint_span),
             )]);
         }
+        if !incompatible_dependency_functions.is_empty() {
+            functions = retained_validation::retain_legacy_useful_data_dependency_closure(
+                functions,
+                &incompatible_dependency_functions,
+                resolved_function_callees,
+            )?;
+        }
         let scalar = if profile == crate::project::ProjectProfile::ScalarV1 {
             owned_generics::retained_scalar_generics(
                 &self.hir.modules,
@@ -1381,7 +1411,8 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::UsefulTextConsumerV1 => {
                 hir::link_useful_text_workspace(entry_module.to_owned(), entrypoint, functions)
             }
-            crate::project::ProjectProfile::UsefulDataV1 => {
+            crate::project::ProjectProfile::UsefulDataV1
+            | crate::project::ProjectProfile::UsefulDataV2 => {
                 hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
             }
             crate::project::ProjectProfile::UsefulDataCommandV1 => {
@@ -1598,7 +1629,8 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::UsefulTextConsumerV1 => {
                 hir::link_useful_text_workspace(base.module, base.entrypoint, functions)
             }
-            crate::project::ProjectProfile::UsefulDataV1 => {
+            crate::project::ProjectProfile::UsefulDataV1
+            | crate::project::ProjectProfile::UsefulDataV2 => {
                 hir::link_useful_data_workspace(base.module, base.entrypoint, functions)
             }
             crate::project::ProjectProfile::UsefulDataCommandV1 => {
@@ -2226,6 +2258,8 @@ impl WorkspaceGraphBuild {
                 .flat_map(|module| &module.interfaces),
         );
         for module in &self.hir.modules {
+            let dependency_fallback = profile == crate::project::ProjectProfile::UsefulDataV1
+                && retained_validation::useful_data_v1_dependency_fallback(module);
             let permits_admitted =
                 retained_validation::permits_admitted(profile, module, entry_module, &natives);
             let project_shape_admitted = profile.is_owned_api()
@@ -2244,7 +2278,7 @@ impl WorkspaceGraphBuild {
                     None,
                 )]);
             }
-            if !project_shape_admitted {
+            if !project_shape_admitted && !dependency_fallback {
                 return Err(vec![project_function_error(
                     module,
                     format!(
@@ -2308,6 +2342,7 @@ impl WorkspaceGraphBuild {
                         ) | (hir::ResolvedType::Str, hir::OwnershipMode::Borrow)
                     ),
                     crate::project::ProjectProfile::UsefulDataV1
+                    | crate::project::ProjectProfile::UsefulDataV2
                     | crate::project::ProjectProfile::UsefulDataCommandV1
                     | crate::project::ProjectProfile::UsefulDataCommandV2
                     | crate::project::ProjectProfile::LanguageCommandIoV1
@@ -2335,6 +2370,7 @@ impl WorkspaceGraphBuild {
                         hir::ResolvedType::I64 | hir::ResolvedType::Bool
                     ),
                     crate::project::ProjectProfile::UsefulDataV1
+                    | crate::project::ProjectProfile::UsefulDataV2
                     | crate::project::ProjectProfile::UsefulDataCommandV1
                     | crate::project::ProjectProfile::UsefulDataCommandV2
                     | crate::project::ProjectProfile::LanguageCommandIoV1
@@ -2364,7 +2400,7 @@ impl WorkspaceGraphBuild {
                     || (profile == crate::project::ProjectProfile::ScalarV1
                         && owned_generics::private_signature(&self.hir, module, function))
                     || (admitted_return && function.params.iter().all(admitted_parameter));
-                if !signature_admitted {
+                if !signature_admitted && !dependency_fallback {
                     return Err(vec![Diagnostic::error(
                         "SPX-G174",
                         format!(
@@ -2388,7 +2424,16 @@ impl WorkspaceGraphBuild {
                 }
             }
         }
-        if !profile.is_owned_api() && self.edges.iter().any(|edge| edge.kind == "type_import") {
+        if !profile.is_owned_api()
+            && self.edges.iter().any(|edge| {
+                edge.kind == "type_import"
+                    && !(profile == crate::project::ProjectProfile::UsefulDataV1
+                        && self.hir.modules.iter().any(|module| {
+                            module.path == edge.caller_path
+                                && retained_validation::useful_data_v1_dependency_fallback(module)
+                        }))
+            })
+        {
             return Err(vec![graph_error(
                 "SPX-G172",
                 "workspace scalar linker does not admit `use type` imports",
@@ -4178,46 +4223,63 @@ fn build_owned_inner(
     validate_synthetic_main_id_collisions(&programs, &authored)?;
     validate_uses(&programs, &module_paths, &authored)?;
     let dependency_depths = validate_dependency_dag(&programs)?;
-    let mut resolve_builder_bytes = 0usize;
-    let mut runtime_builder_bytes = 0usize;
-    for program in &programs {
-        let costs = synthetic_builder_bytes(program, &authored, &programs)?;
-        resolve_builder_bytes = checked_usage(
-            resolve_builder_bytes,
-            costs.raw_clone_and_hir,
-            "builder_bytes",
-            active_builder_limit(),
-        )?;
-        runtime_builder_bytes = checked_usage(
-            runtime_builder_bytes,
-            costs.runtime,
-            "builder_bytes",
-            active_builder_limit(),
-        )?;
-    }
-    let checked_retention_prebound = checked_usage(
-        resolve_builder_bytes,
-        runtime_builder_bytes,
-        "builder_bytes",
-        active_builder_limit(),
-    )?;
+    let (mut resolve_builder_bytes, checked_retention_prebound) =
+        expected_projection::checked_retention_prebound(&programs, &authored)?;
     if let Some(cache) = frontend.as_deref() {
         cache.checked_retention_prebound(checked_retention_prebound)?;
     }
-    let (core, overflowed, core_builder_bytes) =
-        crate::bounded_output::with_limit_usage(active_builder_limit(), || {
-            charge_builder_prebound(resolve_builder_bytes)?;
-            build_resolved_core(
-                &programs,
-                &module_paths,
-                &dependency_depths,
-                &authored,
-                frontend.as_deref_mut(),
-            )
-        });
-    if overflowed {
-        return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
-    }
+    // Each attempt is an isolated sequential builder phase. Nested budgets
+    // retain their parent's monotonic charge and cannot retry an overflow.
+    let mut retry_allowed = active_builder_limit() == MAX_BUILDER_BYTES
+        && crate::bounded_output::active_remaining().is_none();
+    let mut checkpoint = if retry_allowed {
+        frontend
+            .as_deref()
+            .and_then(|cache| cache.checkpoint_core_attempt())
+    } else {
+        None
+    };
+    retry_allowed &= frontend.is_none() || checkpoint.is_some();
+    let mut core_builder_bytes = 0usize;
+    let mut second_attempt = false;
+    let core = loop {
+        #[cfg(test)]
+        CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(attempts.get() + 1));
+        let (core, overflowed, consumed) =
+            crate::bounded_output::with_limit_usage(active_builder_limit(), || {
+                charge_builder_prebound(resolve_builder_bytes)?;
+                build_resolved_core(
+                    &programs,
+                    &module_paths,
+                    &dependency_depths,
+                    &authored,
+                    frontend.as_deref_mut(),
+                )
+            });
+        core_builder_bytes = core_builder_bytes.max(consumed);
+        if !overflowed {
+            break core;
+        }
+        // Drop every partial checked tree before computing or allocating the
+        // next phase. Its debit remains in the maximum phase receipt.
+        drop(core);
+        if second_attempt || !retry_allowed {
+            return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
+        }
+        second_attempt = true;
+        if let (Some(cache), Some(checkpoint)) = (frontend.as_deref_mut(), checkpoint.take()) {
+            cache.rollback_core_attempt(checkpoint);
+        }
+        let (tighter, total) =
+            expected_projection::retention_prebound_mode(&programs, &authored, true, 2)?;
+        if tighter >= resolve_builder_bytes {
+            return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
+        }
+        if let Some(cache) = frontend.as_deref() {
+            cache.checked_retention_prebound(total)?;
+        }
+        resolve_builder_bytes = tighter;
+    };
     let (modules, module_paths, dependency_depths, declaration_facts, expected_edges) = core?;
     let dependency_depth = dependency_depths.values().copied().max().unwrap_or(0);
     let resolved_cross_file_edges = expected_edges.len();

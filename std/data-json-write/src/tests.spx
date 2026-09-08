@@ -1,4 +1,11 @@
 module std.data.json.write.tests;
+use function @id("std.data.json.write.code_byte") from std.data.json.write as code_byte;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.data.json.write.count-into") from std.data.json.write as count_into;
+use function @id("std.data.json.write.quoted-into") from std.data.json.write as quoted_into;
+use function @id("std.data.json.write.quoted-remaining-len") from std.data.json.write as quoted_remaining_len;
+use function @id("std.data.json.write.quoted-range-len") from std.data.json.write as quoted_range_len;
 use function @id("std.data.json.write.byte_code") from std.data.json.write as byte_code;
 use function @id("std.data.json.write.digit_code") from std.data.json.write as digit_code;
 use function @id("std.data.json.write.encoded_at") from std.data.json.write as encoded_at;
@@ -14,7 +21,7 @@ use function @id("std.data.json.write.width_at") from std.data.json.write as wid
 @id("std.data.json.write.tests.codes")
 fn codes() -> bool
 {
-    byte_code(0u8) == 0 && byte_code(65u8) == 65 && byte_code(255u8) == 255 && hex_digit(0) == 48 && hex_digit(9) == 57 && hex_digit(10) == 97 && hex_digit(15) == 102 && hex_digit(16) == 48
+    code_byte(0) == 0u8 && code_byte(255) == 255u8 && byte_code(0u8) == 0 && byte_code(65u8) == 65 && byte_code(255u8) == 255 && hex_digit(0) == 48 && hex_digit(9) == 57 && hex_digit(10) == 97 && hex_digit(15) == 102 && hex_digit(16) == 48
 }
 
 @id("std.data.json.write.tests.widths")
@@ -42,7 +49,7 @@ fn strings() -> bool
 {
     let sample = [97u8, 34u8, 10u8, 1u8];
     let view = array_as_slice(sample);
-    quoted_len(view) == 13usize && quoted_byte(view, 0usize) == 34 && quoted_byte(view, 1usize) == 97 && quoted_byte(view, 2usize) == 92 && quoted_byte(view, 3usize) == 34 && quoted_byte(view, 4usize) == 92 && quoted_byte(view, 5usize) == 110 && quoted_byte(view, 12usize) == 34 && quoted_byte(view, 13usize) == -1
+    quoted_len(view) == 13usize && quoted_range_len(view, 1usize) == 12usize && quoted_byte(view, 0usize) == 34 && quoted_byte(view, 1usize) == 97 && quoted_byte(view, 2usize) == 92 && quoted_byte(view, 3usize) == 34 && quoted_byte(view, 4usize) == 92 && quoted_byte(view, 5usize) == 110 && quoted_byte(view, 12usize) == 34 && quoted_byte(view, 13usize) == -1
 }
 
 @id("std.data.json.write.tests.encoded")

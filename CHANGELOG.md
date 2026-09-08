@@ -8,6 +8,34 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add allocation-free JSON cursor adapters: `decode_into` and `quoted_into`
+  consume an owned `Writer` after exact capacity preflight while borrowing a
+  `Reader`, and `count_into` renders a `usize` value into that writer. The
+  additive Project v16 `useful-data.v2` profile keeps private owned cursor
+  composition separate from the frozen Useful Data v1 byte-export boundary.
+  Legacy byte-only consumers retain their public boundary while unused newer
+  dependency members stay outside the linked program.
+  The standalone decoder/writer corpus passes on the interpreter, native C11
+  `-O0`/`-O2`, and repeated Core Wasm, including a 300-byte decoded input; six
+  malformed-input, insufficient-capacity, and forged-cursor contract-rejection
+  cases pass. The named Project v16 gate
+  `profile_admission::project_v16_json_cursor_public_facade_replays_and_executes`
+  passes deterministic npm reconstruction, replay, and Node execution.
+  The named cross-package gate
+  `private_json_cursor_roundtrip_executes_across_project_backends` passes the
+  local interpreter entry and repeated test, native C11 `-O0`/`-O2`, and
+  repeated Core Wasm with a strict two-entry arena under the unchanged 16 MiB
+  budget. These are local observations and do not claim hosted or public
+  support.
+
+- Refine workspace build-memory prebounds using bounded dependency identities
+  and proven AST storage facts. Earlier successful budget receipts and fixed
+  limits remain unchanged; a refused production build may retry once with the
+  tighter bound after discarding its partial core and staged cache entries.
+  Explicit smaller limits and nested budgets keep their original single-attempt
+  behavior. JSON conformance scratch directories now remain distinct when
+  decoder and writer checks run concurrently.
+
 - Extend private `std.fs` with typed metadata, canonical immediate directory
   listing, directory creation/removal, and atomic file replacement through
   explicit providers. Project v15 and Graph v42 preserve the v1 profiles.

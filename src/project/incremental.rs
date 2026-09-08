@@ -340,6 +340,15 @@ pub(crate) struct FrontendPass {
     functions_reused: usize,
 }
 
+/// Core construction has not published anything yet. Only scalar telemetry is
+/// checkpointed; staged checked modules start empty and are dropped on refusal.
+pub(crate) struct CoreAttemptCheckpoint {
+    resolved: usize,
+    checked_reused: usize,
+    functions_resolved: usize,
+    functions_reused: usize,
+}
+
 pub(crate) struct SelectiveResolvedModule {
     pub(crate) resolved: crate::hir::ResolvedProgram,
     pub(crate) function_costs: BTreeMap<String, usize>,
@@ -353,6 +362,26 @@ impl SelectiveResolvedModule {
     }
 }
 impl FrontendPass {
+    pub(crate) fn checkpoint_core_attempt(&self) -> Option<CoreAttemptCheckpoint> {
+        if !self.next_checked.is_empty() {
+            return None;
+        }
+        Some(CoreAttemptCheckpoint {
+            resolved: self.resolved,
+            checked_reused: self.checked_reused,
+            functions_resolved: self.functions_resolved,
+            functions_reused: self.functions_reused,
+        })
+    }
+
+    pub(crate) fn rollback_core_attempt(&mut self, checkpoint: CoreAttemptCheckpoint) {
+        self.next_checked.clear();
+        self.resolved = checkpoint.resolved;
+        self.checked_reused = checkpoint.checked_reused;
+        self.functions_resolved = checkpoint.functions_resolved;
+        self.functions_reused = checkpoint.functions_reused;
+    }
+
     pub(crate) fn checked_retention_prebound(&self, bytes: usize) -> Result<()> {
         if self.semantic && bytes > MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND {
             return Err(capacity(
@@ -579,6 +608,27 @@ mod semantic_tests {
             functions_resolved: 0,
             functions_reused: 0,
         };
+        let checkpoint = pass.checkpoint_core_attempt().unwrap();
+        assert!(pass.checked_module("local.spx", &synthetic).is_some());
+        assert!(pass.checkpoint_core_attempt().is_none());
+        pass.resolved = 9;
+        pass.functions_resolved = 17;
+        pass.rollback_core_attempt(checkpoint);
+        assert!(pass.next_checked.is_empty());
+        assert_eq!(
+            (
+                pass.resolved,
+                pass.checked_reused,
+                pass.functions_resolved,
+                pass.functions_reused
+            ),
+            (0, 0, 0, 0)
+        );
+        assert_eq!(
+            pass.checked.len(),
+            1,
+            "immutable prior cache authority survives rollback"
+        );
         assert!(pass.checked_module("local.spx", &synthetic).is_some());
         let mut signature = synthetic.clone();
         signature.functions[0].params[0].ty = crate::ast::Type::I32;

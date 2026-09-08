@@ -1,0 +1,79 @@
+module std.data.json.dec.tests;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.data.json.dec.at_is") from std.data.json.dec as at_is;
+use function @id("std.data.json.dec.decode-into") from std.data.json.dec as decode_into;
+use function @id("std.data.json.dec.prefix_eq") from std.data.json.dec as prefix_eq;
+use function @id("std.io.reader.advance") from std.io as reader_advance;
+use function @id("std.io.reader.finish") from std.io as reader_finish;
+use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.io.reader.cursor") from std.io as reader_position;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.cursor") from std.io as writer_position;
+use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
+
+@id("std.data.json.dec.tests.cursor-escape")
+fn cursor_escape() -> bool
+{
+    let escaped = [88u8, 34u8, 97u8, 92u8, 110u8, 98u8, 34u8];
+    let reader = reader_advance(reader_from_bytes(bytes_copy(array_as_slice(escaped))), 1usize);
+    let output = writer_write_u8(writer_from_bytes(bytes_zeroed(4usize)), 33u8);
+    let decoded = decode_into(reader, output);
+    let escaped_want = [33u8, 97u8, 10u8, 98u8];
+    let escaped_cursor = reader_position(reader) == 1usize;
+    let escaped_output = writer_position(decoded) == 4usize;
+    let escaped_bytes = writer_finish(decoded);
+    let escaped_source = reader_finish(reader);
+    escaped_cursor && escaped_output && prefix_eq(bytes_as_slice(escaped_bytes), array_as_slice(escaped_want), 4usize) && byte_len(bytes_as_slice(escaped_source)) == 7usize
+}
+
+@id("std.data.json.dec.tests.cursor-surrogate")
+fn cursor_surrogate() -> bool
+{
+    let unicode = [34u8, 92u8, 117u8, 68u8, 56u8, 51u8, 68u8, 92u8, 117u8, 68u8, 69u8, 48u8, 48u8, 34u8];
+    let reader = reader_from_bytes(bytes_copy(array_as_slice(unicode)));
+    let emoji = decode_into(reader, writer_from_bytes(bytes_zeroed(4usize)));
+    let emoji_want = [240u8, 159u8, 152u8, 128u8];
+    let surrogate_cursor = writer_position(emoji) == 4usize;
+    let emoji_bytes = writer_finish(emoji);
+    surrogate_cursor && prefix_eq(bytes_as_slice(emoji_bytes), array_as_slice(emoji_want), 4usize)
+}
+
+@id("std.data.json.dec.tests.cursor-empty")
+fn cursor_empty() -> bool
+{
+    let empty_raw = [34u8, 34u8];
+    let empty_want = [9u8];
+    let reader = reader_from_bytes(bytes_copy(array_as_slice(empty_raw)));
+    let empty = decode_into(reader, writer_write_u8(writer_from_bytes(bytes_zeroed(1usize)), 9u8));
+    let empty_cursor = writer_position(empty) == 1usize;
+    let empty_bytes = writer_finish(empty);
+    empty_cursor && prefix_eq(bytes_as_slice(empty_bytes), array_as_slice(empty_want), 1usize)
+}
+
+@id("std.data.json.dec.tests.cursor-large")
+fn cursor_large() -> bool
+{
+    let mut input = bytes_zeroed(302usize);
+    input = bytes_set(input, 0usize, 34u8);
+    let mut index = 1usize;
+    while index < 301usize {
+        input = bytes_set(input, index, 97u8);
+        index = index + 1usize;
+        index < 301usize
+    }
+    input = bytes_set(input, 301usize, 34u8);
+    let reader = Reader { data: input, position: 0usize };
+    let output = Writer { data: bytes_set(bytes_zeroed(304usize), 303usize, 99u8), position: 2usize };
+    let decoded = decode_into(reader, output);
+    let count = writer_position(decoded);
+    let data = writer_finish(decoded);
+    count == 302usize && at_is(bytes_as_slice(data), 0usize, 0u8) && at_is(bytes_as_slice(data), 2usize, 97u8) && at_is(bytes_as_slice(data), 301usize, 97u8) && at_is(bytes_as_slice(data), 303usize, 99u8)
+}
+
+@id("std.data.json.dec.tests.main")
+fn main() -> i64
+{
+    0
+}

@@ -287,3 +287,90 @@ fn record_pattern_identity_slots(
     }
     Ok(slots)
 }
+
+/// These checked roots have a primitive type and Value ownership. Their full
+/// expression identity remains charged; they have neither a nominal result
+/// DeclarationId nor an owned cleanup temporary (collect_owned_temporary).
+/// Operands are visited and charged independently, including effectful calls.
+/// Keep uncertain places, calls, and constructors at legacy BASE; structural
+/// control-flow roots qualify only when every possible result is scalar.
+pub(super) fn scalar_expression_identity_discount(kind: &ExprKind) -> usize {
+    match kind {
+        ExprKind::Int(_)
+        | ExprKind::Int32(_)
+        | ExprKind::Char(_)
+        | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
+        | ExprKind::Float32(_)
+        | ExprKind::Float64(_)
+        | ExprKind::Bool(_)
+        | ExprKind::Unary { .. }
+        | ExprKind::Binary { .. } => 2,
+        ExprKind::Block { tail, .. } if scalar_result(tail, 0) => 2,
+        ExprKind::If {
+            then_branch,
+            else_branch,
+            ..
+        } if scalar_result(then_branch, 0) && scalar_result(else_branch, 0) => 2,
+        ExprKind::Match { arms, .. }
+            if !arms.is_empty() && arms.iter().all(|arm| scalar_result(&arm.value, 0)) =>
+        {
+            2
+        }
+        _ => 0,
+    }
+}
+
+/// Result-only structural proof; preceding effects/owners remain independently
+/// charged by the normal visitor. There is no name lookup or evaluation. The
+/// fixed traversal ceiling only makes deeper uncertain shapes conservative.
+fn scalar_result(expression: &Expr, depth: usize) -> bool {
+    if depth >= 128 {
+        return false;
+    }
+    match &expression.kind {
+        ExprKind::Int(_)
+        | ExprKind::Int32(_)
+        | ExprKind::Char(_)
+        | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
+        | ExprKind::Float32(_)
+        | ExprKind::Float64(_)
+        | ExprKind::Bool(_)
+        | ExprKind::Unary { .. }
+        | ExprKind::Binary { .. } => true,
+        ExprKind::Block { tail, .. } => scalar_result(tail, depth + 1),
+        ExprKind::If {
+            then_branch,
+            else_branch,
+            ..
+        } => scalar_result(then_branch, depth + 1) && scalar_result(else_branch, depth + 1),
+        ExprKind::Match { arms, .. } => {
+            !arms.is_empty() && arms.iter().all(|arm| scalar_result(&arm.value, depth + 1))
+        }
+        _ => false,
+    }
+}
+
+#[cfg(test)]
+mod scalar_result_tests {
+    #[test]
+    fn identity_prebound_control_flow_requires_every_result_to_be_scalar() {
+        for (body, discount) in [
+            ("if true { 1 } else { 2 }", 2),
+            ("if true { input } else { 2 }", 0),
+            ("match true { true => 1, false => 2, }", 2),
+            ("match true { true => candidate(), false => 2, }", 0),
+        ] {
+            let program = crate::parse(
+                &format!("module test; @id(\"test.main\") fn main() -> i64 {{ {body} }}"),
+                std::path::Path::new("result-shape.spx"),
+            )
+            .unwrap();
+            assert_eq!(
+                super::scalar_expression_identity_discount(&program.functions[0].body.kind),
+                discount
+            );
+        }
+    }
+}

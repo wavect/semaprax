@@ -18,6 +18,8 @@ use super::{
     HIR_STRUCTURE_EXPANSION_FACTOR, MAX_DEPENDENCY_DEPTH,
 };
 
+#[path = "expected_projection/call_identity.rs"]
+mod call_identity;
 #[path = "expected_projection/cost.rs"]
 pub(super) mod cost;
 #[path = "expected_projection/declaration_cost.rs"]
@@ -26,6 +28,8 @@ mod declaration_cost;
 mod defaults;
 #[path = "expected_projection/identity_slots.rs"]
 mod identity_slots;
+#[path = "expected_projection/local_identity.rs"]
+mod local_identity;
 #[path = "expected_projection/statement_segment.rs"]
 mod statement_segment;
 use cost::{ExpandedDefaultCost, GenericInstanceCost, StructuralCost};
@@ -49,7 +53,17 @@ pub(super) fn synthetic_builder_bytes(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     programs: &[Program],
 ) -> Result<SyntheticBuilderCosts, Vec<Diagnostic>> {
-    let mut raw = StructuralCost::new();
+    synthetic_builder_bytes_scoped(program, authored, programs, None, 0)
+}
+
+fn synthetic_builder_bytes_scoped(
+    program: &Program,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+    maximum_identity: Option<usize>,
+    layout_mode: u8,
+) -> Result<SyntheticBuilderCosts, Vec<Diagnostic>> {
+    let mut raw = StructuralCost::raw_ast(layout_mode >= 1).with_inline_values(layout_mode >= 2);
     ast_program_cost(program, &mut raw)?;
     let mut identity_slots = ast_program_identity_slots(program)?;
     let mut runtime = StructuralCost::new();
@@ -148,6 +162,14 @@ pub(super) fn synthetic_builder_bytes(
         let synthetic_main = synthetic_main_runtime_cost(&program.module)?;
         runtime.add_split(synthetic_main.total, synthetic_main.string_bytes)?;
     }
+    if layout_mode >= 2 {
+        identity_slots = identity_slots
+            .checked_sub(call_identity::discount(program, authored))
+            .expect("scalar calls retain their expression and callee identity slots");
+    }
+    identity_slots = identity_slots
+        .checked_sub(raw.scalar_identity_discount)
+        .expect("raw scalar discount retains each expression identity slot");
     let generic_instances = generic_instance_source_cost(program)?;
     identity_slots = checked_builder_sum(identity_slots, generic_instances.identity_slots)?;
     let hir_input = checked_usage(
@@ -175,12 +197,17 @@ pub(super) fn synthetic_builder_bytes(
                 .and_then(|strings| structure.checked_add(strings))
         })
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
-    let maximum_identity_bytes = authored
-        .keys()
-        .map(|id| id.len())
-        .chain(prelude::all_ids().into_iter().map(str::len))
-        .max()
-        .unwrap_or(0);
+    let maximum_identity_bytes = maximum_identity.unwrap_or_else(|| {
+        authored
+            .keys()
+            .map(|id| id.len())
+            .chain(prelude::all_ids().into_iter().map(str::len))
+            .max()
+            .unwrap_or(0)
+    });
+    let fixed_hir_upper = fixed_hir_upper
+        .checked_sub(raw.literal_fixed_discount)
+        .expect("literal storage discount retains the complete reduced fixed bundle");
     let identity_occurrence_upper = identity_slots
         .checked_mul(maximum_identity_bytes)
         .and_then(|bytes| bytes.checked_mul(HIR_IDENTITY_COPY_FACTOR))
@@ -203,6 +230,126 @@ pub(super) fn synthetic_builder_bytes(
         )?,
         runtime: runtime.total,
     })
+}
+
+/// Preserve the exact legacy receipt whenever it fits. Only a legacy builder
+/// refusal activates the narrower, still conservative identity universe.
+pub(super) fn checked_retention_prebound(
+    programs: &[Program],
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+) -> Result<(usize, usize), Vec<Diagnostic>> {
+    match retention_prebound(programs, authored, false) {
+        Ok(costs) => Ok(costs),
+        Err(errors) if cost::is_builder_refusal(&errors) => {
+            match retention_prebound(programs, authored, true) {
+                Ok(costs) => Ok(costs),
+                Err(errors) if cost::is_builder_refusal(&errors) => {
+                    retention_prebound_mode(programs, authored, true, 2)
+                }
+                Err(errors) => Err(errors),
+            }
+        }
+        Err(errors) => Err(errors),
+    }
+}
+fn retention_prebound(
+    programs: &[Program],
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    dependency_scoped: bool,
+) -> Result<(usize, usize), Vec<Diagnostic>> {
+    retention_prebound_mode(programs, authored, dependency_scoped, 0)
+}
+pub(super) fn retention_prebound_mode(
+    programs: &[Program],
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    dependency_scoped: bool,
+    layout_mode: u8,
+) -> Result<(usize, usize), Vec<Diagnostic>> {
+    let mut resolve = 0usize;
+    let mut runtime = 0usize;
+    for program in programs {
+        let maximum = if dependency_scoped {
+            Some(dependency_identity_max(program, authored, programs)?)
+        } else {
+            None
+        };
+        let costs = if maximum.is_some() {
+            synthetic_builder_bytes_scoped(program, authored, programs, maximum, layout_mode)?
+        } else {
+            synthetic_builder_bytes(program, authored, programs)?
+        };
+        resolve = checked_usage(
+            resolve,
+            costs.raw_clone_and_hir,
+            "builder_bytes",
+            active_builder_limit(),
+        )?;
+        runtime = checked_usage(
+            runtime,
+            costs.runtime,
+            "builder_bytes",
+            active_builder_limit(),
+        )?;
+    }
+    let total = checked_usage(resolve, runtime, "builder_bytes", active_builder_limit())?;
+    Ok((resolve, total))
+}
+
+/// A synthetic module retains its own declarations and explicit imported
+/// declarations; imported bodies are stubs except checked compiler wrappers.
+/// Including *every* declaration in transitive provider modules is therefore
+/// a superset of all declaration identities that its resolver can retain.
+/// Reverse dependents and unrelated modules cannot become lookup authority.
+/// Fixed stack scratch avoids allocating an uncharged traversal collection.
+fn dependency_identity_max(
+    program: &Program,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+) -> Result<usize, Vec<Diagnostic>> {
+    if programs.len() > super::MAX_FILES {
+        return Err(vec![limit_error("files", super::MAX_FILES)]);
+    }
+    let mut reachable = [false; super::MAX_FILES];
+    let own = programs
+        .iter()
+        .position(|candidate| candidate.module == program.module)
+        .ok_or_else(|| vec![graph_error("SPX-G173", "identity scope module is absent")])?;
+    reachable[own] = true;
+    loop {
+        let mut changed = false;
+        for (index, module) in programs.iter().enumerate() {
+            if !reachable[index] {
+                continue;
+            }
+            for item in &module.module_uses {
+                let target = programs
+                    .iter()
+                    .position(|candidate| candidate.module == item.target_module)
+                    .ok_or_else(|| {
+                        vec![graph_error("SPX-G173", "identity scope provider is absent")]
+                    })?;
+                if !reachable[target] {
+                    reachable[target] = true;
+                    changed = true;
+                }
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    Ok(authored
+        .iter()
+        .filter(|(_, declaration)| {
+            programs
+                .iter()
+                .enumerate()
+                .any(|(index, module)| reachable[index] && module.module == declaration.module)
+        })
+        .map(|(id, _)| id.len())
+        .chain(prelude::all_ids().into_iter().map(str::len))
+        .max()
+        .unwrap_or(0))
 }
 
 fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost, Vec<Diagnostic>> {
@@ -331,13 +478,13 @@ fn synthetic_main_runtime_cost(module: &str) -> Result<StructuralCost, Vec<Diagn
 
 fn ast_program_cost(program: &Program, cost: &mut StructuralCost) -> Result<(), Vec<Diagnostic>> {
     cost.program(program)?;
-    cost.string(&program.path)?;
-    cost.string(&program.module)?;
+    cost.embedded_string(&program.path)?;
+    cost.embedded_string(&program.module)?;
     for module_use in &program.module_uses {
         cost.value(module_use)?;
-        cost.string(&module_use.persistent_id)?;
-        cost.string(&module_use.target_module)?;
-        cost.string(&module_use.alias)?;
+        cost.embedded_string(&module_use.persistent_id)?;
+        cost.embedded_string(&module_use.target_module)?;
+        cost.embedded_string(&module_use.alias)?;
     }
     for permit in &program.permits {
         cost.string(permit)?;
@@ -347,15 +494,15 @@ fn ast_program_cost(program: &Program, cost: &mut StructuralCost) -> Result<(), 
     }
     for interface in &program.interfaces {
         cost.value(interface)?;
-        cost.string(&interface.stable_id)?;
-        cost.string(&interface.name)?;
+        cost.embedded_string(&interface.stable_id)?;
+        cost.embedded_string(&interface.name)?;
         for permit in &interface.permits {
             cost.string(permit)?;
         }
         for import in &interface.imports {
             cost.value(import)?;
-            cost.string(&import.stable_id)?;
-            cost.string(&import.name)?;
+            cost.embedded_string(&import.stable_id)?;
+            cost.embedded_string(&import.name)?;
             for param in &import.params {
                 ast_param_cost(param, cost)?;
             }
@@ -363,9 +510,9 @@ fn ast_program_cost(program: &Program, cost: &mut StructuralCost) -> Result<(), 
                 cost.string(effect)?;
             }
             if let crate::ast::ImportFailure::Status { domain_id } = &import.failure {
-                cost.string(domain_id)?;
+                cost.embedded_string(domain_id)?;
             }
-            cost.string(&import.consumes)?;
+            cost.embedded_string(&import.consumes)?;
         }
     }
     for function in &program.functions {
@@ -379,22 +526,22 @@ fn ast_type_declaration_cost(
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
     cost.value(declaration)?;
-    cost.string(&declaration.stable_id)?;
-    cost.string(&declaration.name)?;
+    cost.embedded_string(&declaration.stable_id)?;
+    cost.embedded_string(&declaration.name)?;
     for parameter in &declaration.type_parameters {
         cost.value(parameter)?;
-        cost.string(&parameter.name)?;
+        cost.embedded_string(&parameter.name)?;
     }
     match &declaration.kind {
         TypeDeclarationKind::Resource { lifecycles } => {
             for lifecycle in lifecycles {
                 cost.value(lifecycle)?;
                 if let Some(id) = &lifecycle.stable_id {
-                    cost.string(id)?;
+                    cost.embedded_string(id)?;
                 }
                 if let crate::ast::ResourceLifecycleKind::Imported { import_key } = &lifecycle.kind
                 {
-                    cost.string(import_key)?;
+                    cost.embedded_string(import_key)?;
                 }
             }
         }
@@ -414,8 +561,8 @@ fn ast_type_declaration_cost(
         TypeDeclarationKind::Variant { cases } => {
             for case in cases {
                 cost.value(case)?;
-                cost.string(&case.stable_id)?;
-                cost.string(&case.name)?;
+                cost.embedded_string(&case.stable_id)?;
+                cost.embedded_string(&case.name)?;
                 for field in &case.fields {
                     ast_field_cost(field, cost)?;
                 }
@@ -437,18 +584,18 @@ fn ast_pattern_cost(
             fields,
             ..
         } => {
-            cost.string(type_name)?;
-            cost.string(case_name)?;
+            cost.embedded_string(type_name)?;
+            cost.embedded_string(case_name)?;
             for field in fields {
                 cost.value(field)?;
-                cost.string(&field.name)?;
-                cost.string(&field.binding)?;
+                cost.embedded_string(&field.name)?;
+                cost.embedded_string(&field.binding)?;
             }
         }
         crate::ast::MatchPattern::Record {
             type_name, fields, ..
         } => {
-            cost.string(type_name)?;
+            cost.embedded_string(type_name)?;
             for field in fields {
                 ast_record_pattern_field_cost(field, cost)?;
             }
@@ -464,7 +611,7 @@ fn ast_pattern_cost(
             }
         }
         crate::ast::MatchPattern::Binding { name, .. } => {
-            cost.string(name)?;
+            cost.embedded_string(name)?;
         }
     }
     Ok(())
@@ -474,15 +621,15 @@ fn ast_record_pattern_field_cost(
     field: &crate::ast::RecordMatchPatternField,
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
-    cost.value(field)?;
-    cost.string(&field.name)?;
+    cost.inline_pattern_parent(field, &field.pattern)?;
+    cost.embedded_string(&field.name)?;
     cost.value(&field.pattern)?;
     match &field.pattern {
-        crate::ast::RecordMatchFieldPattern::Binding { name, .. } => cost.string(name)?,
+        crate::ast::RecordMatchFieldPattern::Binding { name, .. } => cost.embedded_string(name)?,
         crate::ast::RecordMatchFieldPattern::Record {
             type_name, fields, ..
         } => {
-            cost.string(type_name)?;
+            cost.embedded_string(type_name)?;
             for field in fields {
                 ast_record_pattern_field_cost(field, cost)?;
             }
@@ -1717,4 +1864,102 @@ pub(super) fn verify_resolved_call_edges(
         )]);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod identity_prebound_tests {
+    use super::{checked_retention_prebound, dependency_identity_max, retention_prebound};
+    use crate::ast::Program;
+    fn fixture(count: usize, padding: usize, reverse: bool) -> Vec<Program> {
+        let long = format!("consumer.{}", "x".repeat(padding));
+        let mut provider = String::from("module provider;\n");
+        for index in 0..count {
+            provider.push_str(&format!(
+                "@id(\"provider.f{index}\") fn f{index}(seed:i64)->i64 {{ seed+{index} }}\n"
+            ));
+        }
+        let mut consumer = format!("module consumer;\n@id(\"{long}\") fn target()->i64{{0}}\n");
+        if reverse {
+            consumer = consumer.replacen(
+                "module consumer;\n",
+                "module consumer;\nuse function @id(\"provider.f0\") from provider as f0;\n",
+                1,
+            );
+        } else {
+            provider = provider.replacen(
+                "module provider;\n",
+                &format!(
+                    "module provider;\nuse function @id(\"{long}\") from consumer as target;\n"
+                ),
+                1,
+            );
+        }
+        [provider, consumer]
+            .into_iter()
+            .enumerate()
+            .map(|(index, text)| {
+                crate::parse(
+                    &text,
+                    std::path::Path::new(if index == 0 {
+                        "provider.spx"
+                    } else {
+                        "consumer.spx"
+                    }),
+                )
+                .unwrap()
+            })
+            .collect()
+    }
+    #[test]
+    fn identity_prebound_preserves_every_legacy_accepted_receipt() {
+        let programs = fixture(3, 40, true);
+        let authored = super::super::index_authored(&programs).unwrap();
+        let old = retention_prebound(&programs, &authored, false).unwrap();
+        assert_eq!(
+            checked_retention_prebound(&programs, &authored).unwrap(),
+            old
+        );
+    }
+    #[test]
+    fn identity_prebound_excludes_reverse_dependent_names_only_after_refusal() {
+        let programs = fixture(310, 220, true);
+        let authored = super::super::index_authored(&programs).unwrap();
+        assert!(retention_prebound(&programs, &authored, false).is_err());
+        assert!(dependency_identity_max(&programs[0], &authored, &programs).unwrap() < 100);
+        assert_eq!(
+            checked_retention_prebound(&programs, &authored).unwrap(),
+            retention_prebound(&programs, &authored, true).unwrap()
+        );
+    }
+    #[test]
+    fn identity_prebound_still_charges_reachable_long_identities() {
+        let programs = fixture(800, 220, false);
+        let authored = super::super::index_authored(&programs).unwrap();
+        assert!(dependency_identity_max(&programs[0], &authored, &programs).unwrap() >= 220);
+        assert!(checked_retention_prebound(&programs, &authored).is_err());
+    }
+    #[test]
+    fn identity_prebound_json_cursor_package_is_bounded() {
+        let programs = [
+            (
+                "dec.spx",
+                include_str!("../../std/data-json-dec/src/dec.spx"),
+            ),
+            (
+                "examples.spx",
+                include_str!("../../std/data-json-dec/src/examples.spx"),
+            ),
+            (
+                "tests.spx",
+                include_str!("../../std/data-json-dec/src/tests.spx"),
+            ),
+            ("io.spx", include_str!("../../std/io/src/io.spx")),
+        ]
+        .into_iter()
+        .map(|(path, text)| crate::parse(text, std::path::Path::new(path)).unwrap())
+        .collect::<Vec<_>>();
+        let authored = super::super::index_authored(&programs).unwrap();
+        checked_retention_prebound(&programs, &authored)
+            .expect("complete JSON cursor dependency pre-bound");
+    }
 }

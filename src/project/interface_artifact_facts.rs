@@ -329,6 +329,7 @@ fn derive_source_interface(
         }
         ProjectProfile::UsefulTextConsumerV1
         | ProjectProfile::UsefulDataV1
+        | ProjectProfile::UsefulDataV2
         | ProjectProfile::UsefulDataCommandV1
         | ProjectProfile::UsefulDataCommandV2
         | ProjectProfile::LanguageCommandIoV1

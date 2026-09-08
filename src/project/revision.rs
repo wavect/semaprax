@@ -266,6 +266,7 @@ impl ProjectRevision {
                 ProjectProfile::ScalarV1 => unreachable!("scalar profile returned above"),
                 ProjectProfile::UsefulTextConsumerV1 => "v2",
                 ProjectProfile::UsefulDataV1 => "v3",
+                ProjectProfile::UsefulDataV2 => "v16",
                 ProjectProfile::UsefulDataCommandV1 => "v4",
                 ProjectProfile::UsefulDataCommandV2 => "v5",
                 ProjectProfile::LanguageCommandIoV1 => "v6",

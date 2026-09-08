@@ -18,10 +18,11 @@ use super::{
     PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
     PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
-use super::{PROJECT_SCHEMA_V14, PROJECT_SCHEMA_V15};
+use super::{PROJECT_SCHEMA_V14, PROJECT_SCHEMA_V15, PROJECT_SCHEMA_V16};
 use crate::diagnostic::Diagnostic;
 use crate::package_range;
 use crate::project::profile::PROJECT_PROFILE_FILESYSTEM_IO_V2;
+use crate::project::profile::PROJECT_PROFILE_USEFUL_DATA_V2;
 use crate::project::profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_INPUT_V1,
     PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_HTTPS_COMMAND_CAPABILITIES_V1,
@@ -534,6 +535,7 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
         if exports.len() > super::MAX_WEB_EXPORTS
             || (exports.is_empty()
                 && profile != PROJECT_PROFILE_OWNED_DATA_API_V1
+                && profile != PROJECT_PROFILE_USEFUL_DATA_V2
                 && !matches!(
                     profile,
                     PROJECT_PROFILE_FILESYSTEM_IO_V1 | PROJECT_PROFILE_FILESYSTEM_IO_V2
@@ -665,6 +667,7 @@ fn lower_profile(
             ),
             ProjectProfile::ScalarV1 => (PROJECT_SCHEMA, None, &[]),
             ProjectProfile::UsefulTextConsumerV1 => (PROJECT_SCHEMA_V2, None, &[]),
+            ProjectProfile::UsefulDataV2 => (PROJECT_SCHEMA_V16, None, &[]),
             ProjectProfile::UsefulDataV1 => (PROJECT_SCHEMA_V3, None, &[]),
             ProjectProfile::UsefulDataCommandV1 => (
                 PROJECT_SCHEMA_V4,
@@ -1279,6 +1282,7 @@ fn valid_table_name(name: &str) -> bool {
 fn profile_by_name(name: &str) -> Option<ProjectProfile> {
     Some(match name {
         PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1 => ProjectProfile::UsefulTextConsumerV1,
+        PROJECT_PROFILE_USEFUL_DATA_V2 => ProjectProfile::UsefulDataV2,
         PROJECT_PROFILE_USEFUL_DATA_V1 => ProjectProfile::UsefulDataV1,
         PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1 => ProjectProfile::UsefulDataCommandV1,
         PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2 => ProjectProfile::UsefulDataCommandV2,

@@ -27,17 +27,9 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf()
 }
 
-fn temporary(label: &str) -> PathBuf {
-    let path = std::env::temp_dir().join(format!(
-        "semaprax-standard-library-{label}-{}",
-        std::process::id()
-    ));
-    let _ = std::fs::remove_dir_all(&path);
-    std::fs::create_dir_all(&path).unwrap();
-    // The Project loader authenticates directory ancestry and rejects a
-    // symlinked temp root such as macOS `/var`, so hand it the real path.
-    path.canonicalize().unwrap()
-}
+#[path = "standard_library/temporary.rs"]
+mod temporary;
+use temporary::temporary;
 
 #[derive(Clone, Debug)]
 struct PackageMetadata {
@@ -678,6 +670,11 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             .join("semaprax.toml");
         let manifests = if package.module == "std.path.value" {
             typed_paths::conformance_manifests(&scratch, &manifest)
+        } else if matches!(
+            package.module.as_str(),
+            "std.data.json.dec" | "std.data.json.write"
+        ) {
+            json_cursors::conformance_manifests(&scratch, &manifest, &package.module)
         } else {
             vec![manifest]
         };
@@ -725,17 +722,18 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
                 return Ok(());
             }
             let wasm = snapshot.test_wasm_module()?;
+            let cursor_case = json_cursors::is_cursor_case(&manifest);
             // Buffer-filling packages must balance the exact one-entry byte arena.
-            let arena = matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.path.value");
+            let arena = cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.path.value");
             for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
                 let present = wasm.windows(name.len()).any(|w| w == name.as_bytes());
                 // Individual typed-Path observation cases allocate via copy
                 // without importing the buffer-writing operations.
-                if package.module != "std.path.value" {
+                if package.module != "std.path.value" && !cursor_case {
                     assert_eq!(present, arena, "{}: `{name}` import", package.directory);
                 }
             }
-            let live_entry_bound = if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
+            let live_entry_bound = if cursor_case { 2 } else if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
             let wasm_path = scratch.join(format!("{}-tests.wasm", package.directory));
             std::fs::write(&wasm_path, wasm).unwrap();
             let script = scratch.join(format!("{}-tests.mjs", package.directory));
@@ -1489,3 +1487,6 @@ mod typed_paths;
 mod filesystem;
 #[path = "standard_library/filesystem_v2.rs"]
 mod filesystem_v2;
+
+#[path = "standard_library/json_cursors.rs"]
+mod json_cursors;

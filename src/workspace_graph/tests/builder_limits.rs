@@ -282,3 +282,76 @@ fn a_for_item_binding_is_charged_exactly_like_a_let_binding() {
     assert!(charged > 0, "a for item binding must be charged");
     assert_eq!(charged, widened("let"));
 }
+
+/// Tune only the fixture size, never the production bound. The largest legacy
+/// prebound that fits leaves less than one statement of room for actual core
+/// structures, forcing a real first-attempt overflow.
+fn core_retry_fixture() -> Vec<WorkspaceSource> {
+    let sources = |count| {
+        vec![
+        stub_charge_provider(count),
+        canonical_source("stub/consumer.spx", "module stub.consumer; use function @id(\"stub.wide\") from stub.provider as wide; @id(\"stub.consumer.main\") fn main() -> i64 { wide(0) }"),
+    ]
+    };
+    let fits = |count| {
+        let programs = parsed_sources(&sources(count));
+        let authored = index_authored(&programs).unwrap();
+        expected_projection::retention_prebound_mode(&programs, &authored, false, 0).is_ok()
+    };
+    assert!(fits(1));
+    assert!(!fits(1024));
+    let (mut low, mut high) = (1, 1024);
+    while low + 1 < high {
+        let middle = low + (high - low) / 2;
+        if fits(middle) {
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
+    sources(low)
+}
+
+#[test]
+fn identity_prebound_production_core_retry_preserves_phase_debit_and_nested_refusal() {
+    let sources = core_retry_fixture();
+    let programs = parsed_sources(&sources);
+    let authored = index_authored(&programs).unwrap();
+    let original =
+        expected_projection::retention_prebound_mode(&programs, &authored, false, 0).unwrap();
+    let tight =
+        expected_projection::retention_prebound_mode(&programs, &authored, true, 2).unwrap();
+    assert!(original.1 <= MAX_BUILDER_BYTES && tight.1 < original.1);
+
+    CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(0));
+    let (nested, _, nested_debit) =
+        crate::bounded_output::with_limit_usage(MAX_BUILDER_BYTES, || {
+            build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES)
+        });
+    let errors = nested
+        .err()
+        .expect("enclosing budget must not be reset for retry");
+    assert_eq!(errors[0].code, "SPX-G171");
+    assert_eq!(CORE_BUILD_ATTEMPTS.with(Cell::get), 1);
+    assert!(nested_debit >= original.0);
+
+    CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(0));
+    let built = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES).unwrap();
+    assert_eq!(CORE_BUILD_ATTEMPTS.with(Cell::get), 2);
+    assert!(
+        built.usage.builder_bytes >= original.0,
+        "failed first phase is not refunded"
+    );
+    assert!(built.usage.builder_bytes <= MAX_BUILDER_BYTES);
+    let repeated = build_owned_with_builder_limit(sources.clone(), MAX_BUILDER_BYTES).unwrap();
+    assert_eq!(built.usage.builder_bytes, repeated.usage.builder_bytes);
+    assert_eq!(built.edges, repeated.edges);
+
+    CORE_BUILD_ATTEMPTS.with(|attempts| attempts.set(0));
+    let explicit = build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES - 1);
+    assert_exact_builder_limit_error(
+        &explicit.err().expect("explicit smaller cap stays exact"),
+        MAX_BUILDER_BYTES - 1,
+    );
+    assert_eq!(CORE_BUILD_ATTEMPTS.with(Cell::get), 1);
+}

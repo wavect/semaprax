@@ -1,4 +1,6 @@
 module std.data.json.write;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
 
 @id("std.data.json.write.byte_code")
 fn byte_code(byte: u8) -> i64
@@ -14,6 +16,21 @@ fn byte_code(byte: u8) -> i64
         scanning
     }
     value
+}
+
+@id("std.data.json.write.code_byte")
+fn code_byte(value: i64) -> u8
+{
+    let mut probe = 0u8;
+    let mut step = 0;
+    let mut scanning = step < value && step < 255;
+    while scanning {
+        probe = probe + 1u8;
+        step = step + 1;
+        scanning = step < value && step < 255;
+        scanning
+    }
+    probe
 }
 
 @id("std.data.json.write.hex_digit")
@@ -56,12 +73,12 @@ fn encoded_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
     match byte_get(input, index) { Option::Some { value: byte } => escape_byte(byte, offset), Option::None {} => -1, }
 }
 
-@id("std.data.json.write.quoted_len")
-fn quoted_len(input: borrow Slice<u8>) -> usize
+@id("std.data.json.write.quoted-range-len")
+fn quoted_range_len(input: borrow Slice<u8>, start: usize) -> usize
     ensures result >= 2usize
 {
     let length = byte_len(input);
-    let mut index = 0usize;
+    let mut index = start;
     let mut total = 2usize;
     let mut scanning = index < length;
     while scanning {
@@ -71,6 +88,13 @@ fn quoted_len(input: borrow Slice<u8>) -> usize
         scanning
     }
     total
+}
+
+@id("std.data.json.write.quoted_len")
+fn quoted_len(input: borrow Slice<u8>) -> usize
+    ensures result >= 2usize
+{
+    quoted_range_len(input, 0usize)
 }
 
 @id("std.data.json.write.quoted_byte")
@@ -92,6 +116,22 @@ fn quoted_byte(input: borrow Slice<u8>, index: usize) -> i64
         scanning
     }
     if index >= length { -1 } else { if inner { encoded_at(input, source, target - consumed) } else { 34 } }
+}
+
+@id("std.data.json.write.quoted-remaining-len")
+fn quoted_remaining_len(input: borrow Reader) -> usize
+    requires match borrow input { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    ensures result >= 2usize
+{
+    match borrow input { Reader { data: reader_data, position: reader_position } => quoted_range_len(bytes_as_slice(reader_data), reader_position), }
+}
+
+@id("std.data.json.write.quoted-into")
+fn quoted_into(input: borrow Reader, output: own Writer) -> Writer
+    requires match borrow input { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && quoted_remaining_len(input) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let mut out = output_data; let mut written = output_position + 1usize; out = bytes_set(out, output_position, 34u8); let closing = match borrow input { Reader { data: reader_data, position: reader_position } => { let view = bytes_as_slice(reader_data); let length = byte_len(view); let mut source = reader_position; let mut scanning = source < length; while scanning { let width = width_at(view, source); let mut offset = 0usize; let mut emitting = offset < width; while emitting { let value = if width == 1usize { match byte_get(view, source) { Option::Some { value } => value, Option::None {} => 0u8, } } else { code_byte(encoded_at(view, source, offset)) }; out = bytes_set(out, written, value); written = written + 1usize; offset = offset + 1usize; emitting = offset < width; emitting } source = source + 1usize; scanning = source < length; scanning } written }, }; out = bytes_set(out, closing, 34u8); Writer { data: out, position: closing + 1usize } }, }
 }
 
 @id("std.data.json.write.digit_code")
@@ -142,4 +182,11 @@ fn usize_byte(value: usize, index: usize) -> i64
         scanning
     }
     if index >= length { -1 } else { digit_code(remaining % 10usize) }
+}
+
+@id("std.data.json.write.count-into")
+fn count_into(value: usize, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && usize_len(value) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let length = usize_len(value); let mut out = output_data; let mut written = output_position; let mut index = 0usize; let mut writing = index < length; while writing { out = bytes_set(out, written, code_byte(usize_byte(value, index))); written = written + 1usize; index = index + 1usize; writing = index < length; writing } Writer { data: out, position: written } }, }
 }

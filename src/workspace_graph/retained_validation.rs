@@ -10,13 +10,36 @@ use crate::ast::{ModuleUseKind, Program};
 use crate::diagnostic::Diagnostic;
 use crate::hir;
 
+mod dependency_closure;
 mod scalar_link;
+
+pub(super) use dependency_closure::retain_legacy_useful_data_dependency_closure;
 
 use super::{
     budgeted_edge_clone, graph_error, limit_error, push_edge, reserve_builder_structure,
     visit_ast_call_sites, CallOccurrenceKey, WorkspaceDeclarationFact, WorkspaceEdge,
     WorkspaceResolvedModule, MAX_CALLS,
 };
+
+/// A bundled dependency may carry newer declarations beside its legacy scalar
+/// surface.  A v1 consumer retains that newer surface only when an otherwise
+/// admitted declaration calls it; authored modules never use this exception.
+pub(super) fn useful_data_v1_dependency_fallback(module: &WorkspaceResolvedModule) -> bool {
+    module.path.starts_with("dependencies/")
+        && (!module.types.is_empty()
+            || !module.interfaces.is_empty()
+            || !module.function_templates.is_empty()
+            || !module.function_instances.is_empty()
+            || module.functions.iter().any(|function| {
+                !hir::useful_data_workspace_return_admitted(&function.return_type)
+                    || function.params.iter().any(|parameter| {
+                        !hir::useful_data_workspace_parameter_admitted(
+                            &parameter.ty,
+                            parameter.ownership,
+                        )
+                    })
+            }))
+}
 
 pub(super) fn validate_retained_facts(
     programs: &[Program],
@@ -1298,7 +1321,8 @@ pub(super) fn project_linker_name(profile: crate::project::ProjectProfile) -> &'
         | crate::project::ProjectProfile::FilesystemIoV2 => "Filesystem I/O v1 linker",
         crate::project::ProjectProfile::ScalarV1 => "pure scalar linker",
         crate::project::ProjectProfile::UsefulTextConsumerV1 => "Useful Text Consumer linker",
-        crate::project::ProjectProfile::UsefulDataV1 => "Useful Data linker",
+        crate::project::ProjectProfile::UsefulDataV1
+        | crate::project::ProjectProfile::UsefulDataV2 => "Useful Data linker",
         crate::project::ProjectProfile::UsefulDataCommandV1 => "Useful Data Command linker",
         crate::project::ProjectProfile::UsefulDataCommandV2 => "Useful Data Command v2 linker",
         crate::project::ProjectProfile::LanguageCommandIoV1 => "Language Command I/O v1 linker",

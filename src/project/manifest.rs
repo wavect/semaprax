@@ -22,7 +22,8 @@ use super::profile::{
     PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1, PROJECT_PROFILE_NETWORK_COMMAND_IO_V1,
     PROJECT_PROFILE_OWNED_DATA_API_V1, PROJECT_PROFILE_OWNED_UTF8_API_V1,
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
-    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_DATA_V2,
+    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 
 /// Frozen scalar Project Manifest v1 schema.
@@ -55,9 +56,11 @@ pub const PROJECT_SCHEMA_V10: &str = "semaprax.project.v10";
 pub const PROJECT_SCHEMA_V11: &str = "semaprax.project.v11";
 /// Additive Project Manifest v12 schema for bounded language network commands.
 pub const PROJECT_SCHEMA_V12: &str = "semaprax.project.v12";
-/// Additive Project Manifest v13 schema for bounded HTTPS commands.
+/// Additive Project Manifest v16 schema for private owned data and frozen byte exports.
+pub const PROJECT_SCHEMA_V16: &str = "semaprax.project.v16";
 pub const PROJECT_SCHEMA_V15: &str = "semaprax.project.v15";
 pub const PROJECT_SCHEMA_V14: &str = "semaprax.project.v14";
+/// Additive Project Manifest v13 schema for bounded HTTPS commands.
 pub const PROJECT_SCHEMA_V13: &str = "semaprax.project.v13";
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 pub const MAX_NAME_BYTES: usize = 64;
@@ -202,27 +205,29 @@ impl ProjectManifest {
                         parse_array_assignment(lines[7], "tests")?,
                     )
                 }
-                PROJECT_SCHEMA_V3 => {
+                PROJECT_SCHEMA_V3 | PROJECT_SCHEMA_V16 => {
+                    let v2 = schema == PROJECT_SCHEMA_V16;
+                    let label = if v2 { "Project v16" } else { "Project v3" };
                     if lines.len() != 9 || lines.last() != Some(&"") {
-                        return Err(grammar(
-                            "Project v3 manifest must contain exactly eight ordered assignments and one terminal LF",
-                        ));
+                        return Err(grammar(format!(
+                            "{label} manifest must contain exactly eight ordered assignments and one terminal LF",
+                        )));
                     }
                     let version = parse_string_assignment(lines[2], "version")?;
                     if !valid_semver(&version) {
-                        return Err(grammar(
-                            "Project v3 version must be canonical Semantic Versioning text of at most 128 bytes",
-                        ));
+                        return Err(grammar(format!(
+                            "{label} version must be canonical Semantic Versioning text of at most 128 bytes",
+                        )));
                     }
                     let profile = parse_string_assignment(lines[3], "profile")?;
-                    if profile != PROJECT_PROFILE_USEFUL_DATA_V1 {
-                        return Err(grammar("Project v3 profile is not useful-data.v1"));
+                    if profile != if v2 { PROJECT_PROFILE_USEFUL_DATA_V2 } else { PROJECT_PROFILE_USEFUL_DATA_V1 } {
+                        return Err(grammar(if v2 { "Project v16 profile is not useful-data.v2" } else { "Project v3 profile is not useful-data.v1" }));
                     }
                     (
-                        PROJECT_SCHEMA_V3,
+                        if v2 { PROJECT_SCHEMA_V16 } else { PROJECT_SCHEMA_V3 },
                         parse_string_assignment(lines[1], "name")?,
                         Some(version),
-                        ProjectProfile::UsefulDataV1,
+                        if v2 { ProjectProfile::UsefulDataV2 } else { ProjectProfile::UsefulDataV1 },
                         parse_string_assignment(lines[4], "entry")?,
                         parse_array_assignment(lines[5], "sources")?,
                         parse_array_assignment(lines[6], "web_exports")?,
@@ -697,6 +702,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA => "Project v1",
             PROJECT_SCHEMA_V2 => "Project v2",
             PROJECT_SCHEMA_V3 => "Project v3",
+            PROJECT_SCHEMA_V16 => "Project v16",
             PROJECT_SCHEMA_V4 => "Project v4",
             PROJECT_SCHEMA_V5 => "Project v5",
             PROJECT_SCHEMA_V6 => "Project v6",
@@ -774,6 +780,7 @@ impl ProjectManifest {
         if web_exports.is_empty()
             && !(schema == PROJECT_SCHEMA_V8 && profile == ProjectProfile::OwnedDataApiV1)
             && !profile.is_filesystem()
+            && profile != ProjectProfile::UsefulDataV2
         {
             return Err(grammar(format!(
                 "{version_label} requires 1..=32 explicit web export identities"
@@ -1031,9 +1038,10 @@ impl ProjectManifest {
                 render_array(&self.web_exports),
                 self.test_module,
             )
-        } else if self.schema == PROJECT_SCHEMA_V3 {
+        } else if matches!(self.schema, PROJECT_SCHEMA_V3 | PROJECT_SCHEMA_V16) {
             format!(
-                "schema = \"{PROJECT_SCHEMA_V3}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",
+                "schema = \"{}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",
+                self.schema,
                 self.name,
                 self.package_version
                     .as_deref()

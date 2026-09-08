@@ -1,8 +1,17 @@
-schema = "semaprax.project.v8"
+schema = "semaprax.manifest.v1"
+
+[package]
 name = "std-data-json-dec"
 version = "0.1.0"
 profile = "owned-data-api.v1"
+
+[modules]
 entry = "std.data.json.dec.examples"
 sources = ["src/dec.spx", "src/examples.spx", "src/tests.spx"]
-web_exports = ["std.data.json.dec.slice_eq"]
 tests = ["std.data.json.dec.tests"]
+
+[exports]
+web = ["std.data.json.dec.slice_eq"]
+
+[dependencies]
+std.io = "=0.1.0"

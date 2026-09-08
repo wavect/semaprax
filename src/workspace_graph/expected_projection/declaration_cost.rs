@@ -13,9 +13,9 @@ pub(super) fn ast_field_cost(
     field: &crate::ast::FieldDeclaration,
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
-    cost.value(field)?;
-    cost.string(&field.stable_id)?;
-    cost.string(&field.name)?;
+    cost.inline_type_parent(field)?;
+    cost.embedded_string(&field.stable_id)?;
+    cost.embedded_string(&field.name)?;
     ast_type_cost(&field.ty, cost)
 }
 
@@ -35,12 +35,12 @@ pub(super) fn ast_function_signature_cost(
     function: &Function,
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
-    cost.value(function)?;
-    cost.string(&function.stable_id)?;
-    cost.string(&function.name)?;
+    cost.function_signature(function)?;
+    cost.embedded_string(&function.stable_id)?;
+    cost.embedded_string(&function.name)?;
     for parameter in &function.type_parameters {
         cost.value(parameter)?;
-        cost.string(&parameter.name)?;
+        cost.embedded_string(&parameter.name)?;
     }
     for param in &function.params {
         ast_param_cost(param, cost)?;
@@ -82,17 +82,25 @@ pub(super) fn ast_param_cost(
     param: &crate::ast::Param,
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
-    cost.value(param)?;
-    cost.string(&param.name)?;
+    cost.inline_type_parent(param)?;
+    cost.embedded_string(&param.name)?;
     ast_type_cost(&param.ty, cost)
 }
 
 pub(super) fn ast_type_cost(ty: &Type, cost: &mut StructuralCost) -> Result<(), Vec<Diagnostic>> {
     cost.value(ty)?;
     if let Type::Named { name, arguments } = ty {
-        cost.string(name)?;
+        cost.embedded_string(name)?;
         for argument in arguments {
             ast_type_cost(argument, cost)?;
+        }
+    }
+    if cost.is_raw_fallback() {
+        if let Type::Function { parameters, result } = ty {
+            for parameter in parameters {
+                ast_type_cost(parameter, cost)?;
+            }
+            ast_type_cost(result, cost)?;
         }
     }
     Ok(())
@@ -103,6 +111,7 @@ pub(super) fn ast_expr_cost(
     cost: &mut StructuralCost,
 ) -> Result<(), Vec<Diagnostic>> {
     cost.value(expression)?;
+    cost.account_scalar_identity(&expression.kind)?;
     match &expression.kind {
         ExprKind::Closure {
             params,
@@ -110,14 +119,14 @@ pub(super) fn ast_expr_cost(
             body,
         } => {
             for parameter in params {
-                cost.value(parameter)?;
-                cost.string(&parameter.name)?;
+                cost.inline_type_parent(parameter)?;
+                cost.embedded_string(&parameter.name)?;
                 ast_type_cost(&parameter.ty, cost)?;
             }
             ast_type_cost(return_type, cost)?;
             ast_expr_cost(body, cost)?;
         }
-        ExprKind::Var(name) => cost.string(name)?,
+        ExprKind::Var(name) => cost.embedded_string(name)?,
         ExprKind::ArrayU8(values) => cost.add(values.len())?,
         ExprKind::RepeatArrayU8 { .. } => {}
         ExprKind::Call {
@@ -125,7 +134,7 @@ pub(super) fn ast_expr_cost(
             type_arguments,
             args,
         } => {
-            cost.string(name)?;
+            cost.embedded_string(name)?;
             for ty in type_arguments {
                 ast_type_cost(ty, cost)?;
             }
@@ -140,7 +149,14 @@ pub(super) fn ast_expr_cost(
         }
         ExprKind::Block { statements, tail } => {
             for statement in statements {
-                cost.value(statement)?;
+                if matches!(
+                    statement,
+                    crate::ast::Statement::Let { .. } | crate::ast::Statement::Assign { .. }
+                ) {
+                    cost.inline_expr_parent(statement)?;
+                } else {
+                    cost.value(statement)?;
+                }
                 // Charge the string every statement actually carries. Unsafe
                 // boundaries carry their verbatim audit summary, `while`
                 // carries no binding at all, bounded `for` traversal carries
@@ -150,12 +166,23 @@ pub(super) fn ast_expr_cost(
                 // `Statement::name` panics for every statement that is not a
                 // `let` or an assignment.
                 match statement {
-                    crate::ast::Statement::Unsafe { audit, .. } => cost.string(audit)?,
+                    crate::ast::Statement::Unsafe { audit, .. } => cost.embedded_string(audit)?,
                     crate::ast::Statement::While { .. } => cost.string("")?,
                     crate::ast::Statement::For { item, .. }
-                    | crate::ast::Statement::ForOwn { item, .. } => cost.string(item)?,
+                    | crate::ast::Statement::ForOwn { item, .. } => cost.embedded_string(item)?,
                     crate::ast::Statement::Let { name, .. }
-                    | crate::ast::Statement::Assign { name, .. } => cost.string(name)?,
+                    | crate::ast::Statement::Assign { name, .. } => cost.embedded_string(name)?,
+                }
+                if cost.is_raw_fallback() {
+                    match statement {
+                        crate::ast::Statement::Assign {
+                            field: Some(field), ..
+                        } => cost.embedded_string(&field.name)?,
+                        crate::ast::Statement::Let {
+                            declared: Some(ty), ..
+                        } => ast_type_cost(ty, cost)?,
+                        _ => {}
+                    }
                 }
                 for index in 0..statement.child_count() {
                     if let Some(child) = statement.child(index) {
@@ -186,16 +213,16 @@ pub(super) fn ast_expr_cost(
             fields,
             ..
         } => {
-            cost.string(type_name)?;
+            cost.embedded_string(type_name)?;
             if let ExprKind::ConstructVariant { case_name, .. } = &expression.kind {
-                cost.string(case_name)?;
+                cost.embedded_string(case_name)?;
             }
             for ty in type_arguments {
                 ast_type_cost(ty, cost)?;
             }
             for field in fields {
-                cost.value(field)?;
-                cost.string(&field.name)?;
+                cost.inline_expr_parent(field)?;
+                cost.embedded_string(&field.name)?;
                 ast_expr_cost(&field.value, cost)?;
             }
         }
@@ -204,7 +231,7 @@ pub(super) fn ast_expr_cost(
         } => {
             ast_expr_cost(scrutinee, cost)?;
             for arm in arms {
-                cost.value(arm)?;
+                cost.match_arm(arm)?;
                 ast_pattern_cost(&arm.pattern, cost)?;
                 ast_expr_cost(&arm.value, cost)?;
             }
@@ -213,14 +240,14 @@ pub(super) fn ast_expr_cost(
         ExprKind::UpdateRecord { base, fields } => {
             ast_expr_cost(base, cost)?;
             for field in fields {
-                cost.value(field)?;
-                cost.string(&field.name)?;
+                cost.inline_expr_parent(field)?;
+                cost.embedded_string(&field.name)?;
                 ast_expr_cost(&field.value, cost)?;
             }
         }
         ExprKind::Project { base, field, .. } => {
             ast_expr_cost(base, cost)?;
-            cost.string(field)?;
+            cost.embedded_string(field)?;
         }
         ExprKind::MethodCall {
             receiver,
@@ -230,7 +257,7 @@ pub(super) fn ast_expr_cost(
             ..
         } => {
             ast_expr_cost(receiver, cost)?;
-            cost.string(method)?;
+            cost.embedded_string(method)?;
             for ty in type_arguments {
                 ast_type_cost(ty, cost)?;
             }
@@ -239,7 +266,7 @@ pub(super) fn ast_expr_cost(
             }
         }
         ExprKind::SuperMethod { method, args, .. } => {
-            cost.string(method)?;
+            cost.embedded_string(method)?;
             for argument in args {
                 ast_expr_cost(argument, cost)?;
             }
@@ -251,8 +278,12 @@ pub(super) fn ast_expr_cost(
         | ExprKind::Usize(_)
         | ExprKind::Float32(_)
         | ExprKind::Float64(_)
-        | ExprKind::Bool(_)
-        | ExprKind::String(_) => {}
+        | ExprKind::Bool(_) => {}
+        ExprKind::String(value) => {
+            if cost.is_raw_fallback() {
+                cost.embedded_string(value)?;
+            }
+        }
     }
     Ok(())
 }

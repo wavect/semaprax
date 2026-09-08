@@ -1,4 +1,5 @@
 //! Replay omitted callable templates through the existing checked source path.
+use super::expected_projection::synthetic_builder_bytes;
 use super::*;
 
 pub(crate) fn checked_source_callable_closures(

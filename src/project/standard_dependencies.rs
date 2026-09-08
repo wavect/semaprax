@@ -57,7 +57,7 @@ const PACKAGES: &[BundledPackage] = &[
         name: "std.data.json.dec",
         path: "dependencies/std.data.json.dec/0.1.0/dec.spx",
         source: include_str!("../../std/data-json-dec/src/dec.spx"),
-        dependencies: &[],
+        dependencies: &["std.io"],
     },
     BundledPackage {
         name: "std.data.json.digits",
@@ -87,7 +87,7 @@ const PACKAGES: &[BundledPackage] = &[
         name: "std.data.json.write",
         path: "dependencies/std.data.json.write/0.1.0/write.spx",
         source: include_str!("../../std/data-json-write/src/write.spx"),
-        dependencies: &[],
+        dependencies: &["std.io"],
     },
     BundledPackage {
         name: "std.data.toml",

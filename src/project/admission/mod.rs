@@ -34,6 +34,7 @@ pub(super) enum PreparedProjectAdmission {
     ScalarNativeCallbackV1,
     UsefulTextConsumerV1,
     UsefulDataV1,
+    UsefulDataV2,
     UsefulDataCommandV1,
     UsefulDataCommandV2,
     LanguageCommandIoV1,
@@ -56,6 +57,7 @@ impl PreparedProjectAdmission {
         match self {
             Self::ScalarV1(_) | Self::ScalarNativeCallbackV1 => ProjectProfile::ScalarV1,
             Self::UsefulTextConsumerV1 => ProjectProfile::UsefulTextConsumerV1,
+            Self::UsefulDataV2 => ProjectProfile::UsefulDataV2,
             Self::UsefulDataV1 => ProjectProfile::UsefulDataV1,
             Self::UsefulDataCommandV1 => ProjectProfile::UsefulDataCommandV1,
             Self::UsefulDataCommandV2 => ProjectProfile::UsefulDataCommandV2,
@@ -142,6 +144,13 @@ pub(super) fn prepare(
         ProjectProfile::UsefulTextConsumerV1 => {
             legacy::useful_text(program, manifest.web_exports())?;
             Ok(PreparedProjectAdmission::UsefulTextConsumerV1)
+        }
+        ProjectProfile::UsefulDataV2 => {
+            crate::hir::validate(program)?;
+            if !manifest.web_exports().is_empty() {
+                legacy::useful_data(program, manifest.web_exports())?;
+            }
+            Ok(PreparedProjectAdmission::UsefulDataV2)
         }
         ProjectProfile::UsefulDataV1 => {
             legacy::useful_data(program, manifest.web_exports())?;

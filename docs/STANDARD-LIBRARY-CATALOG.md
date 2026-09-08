@@ -525,6 +525,12 @@ fn emit_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
     ensures result >= -1 && result <= 255
 ```
 
+### `std.data.json.dec.scan-string`
+
+```semaprax
+fn scan_string(input: borrow Slice<u8>, start: usize, measure: bool) -> usize
+```
+
 ### `std.data.json.dec.decoded_len`
 
 ```semaprax
@@ -535,6 +541,13 @@ fn decoded_len(input: borrow Slice<u8>, start: usize) -> usize
 
 ```semaprax
 fn decoded_size(input: borrow Slice<u8>) -> usize
+```
+
+### `std.data.json.dec.decode-into`
+
+```semaprax
+fn decode_into(input: borrow Reader, output: own Writer) -> Writer
+    requires match borrow input { Reader { data: source, position: start } => match borrow output { Writer { data: target, position: write } => start <= byte_len(bytes_as_slice(source)) && !is_failure(bytes_as_slice(source), decoded_len(bytes_as_slice(source), start)) && write <= byte_len(bytes_as_slice(target)) && decoded_len(bytes_as_slice(source), start) <= byte_len(bytes_as_slice(target)) - write, }, }
 ```
 
 ### `std.data.json.dec.capacity`
@@ -881,13 +894,19 @@ fn is_utf8(input: borrow Slice<u8>) -> bool
 
 ## `std.data.json.write`
 
-Package `std/data-json-write`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.write = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/data-json-write`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.data.json.write = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.data.json.write.byte_code`
 
 ```semaprax
 fn byte_code(byte: u8) -> i64
     ensures result >= 0 && result <= 255
+```
+
+### `std.data.json.write.code_byte`
+
+```semaprax
+fn code_byte(value: i64) -> u8
 ```
 
 ### `std.data.json.write.hex_digit`
@@ -924,6 +943,13 @@ fn encoded_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
     ensures result >= -1 && result <= 255
 ```
 
+### `std.data.json.write.quoted-range-len`
+
+```semaprax
+fn quoted_range_len(input: borrow Slice<u8>, start: usize) -> usize
+    ensures result >= 2usize
+```
+
 ### `std.data.json.write.quoted_len`
 
 ```semaprax
@@ -936,6 +962,22 @@ fn quoted_len(input: borrow Slice<u8>) -> usize
 ```semaprax
 fn quoted_byte(input: borrow Slice<u8>, index: usize) -> i64
     ensures result >= -1 && result <= 255
+```
+
+### `std.data.json.write.quoted-remaining-len`
+
+```semaprax
+fn quoted_remaining_len(input: borrow Reader) -> usize
+    requires match borrow input { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    ensures result >= 2usize
+```
+
+### `std.data.json.write.quoted-into`
+
+```semaprax
+fn quoted_into(input: borrow Reader, output: own Writer) -> Writer
+    requires match borrow input { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && quoted_remaining_len(input) <= byte_len(bytes_as_slice(data)) - position, }
 ```
 
 ### `std.data.json.write.digit_code`
@@ -957,6 +999,13 @@ fn usize_len(value: usize) -> usize
 ```semaprax
 fn usize_byte(value: usize, index: usize) -> i64
     ensures result >= -1 && result <= 57
+```
+
+### `std.data.json.write.count-into`
+
+```semaprax
+fn count_into(value: usize, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && usize_len(value) <= byte_len(bytes_as_slice(data)) - position, }
 ```
 
 ## `std.data.toml`

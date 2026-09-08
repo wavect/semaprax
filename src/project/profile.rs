@@ -2,6 +2,7 @@
 /// profile; downstream consumers receive this closed enum rather than infer
 /// authority from a schema string or boolean flag.
 pub const PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1: &str = "useful-text-consumer.v1";
+pub const PROJECT_PROFILE_USEFUL_DATA_V2: &str = "useful-data.v2";
 pub const PROJECT_PROFILE_USEFUL_DATA_V1: &str = "useful-data.v1";
 pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1: &str = "useful-data-command.v1";
 pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2: &str = "useful-data-command.v2";
@@ -65,6 +66,7 @@ pub enum ProjectProfile {
     ScalarV1,
     UsefulTextConsumerV1,
     UsefulDataV1,
+    UsefulDataV2,
     UsefulDataCommandV1,
     UsefulDataCommandV2,
     LanguageCommandIoV1,
@@ -83,10 +85,14 @@ impl ProjectProfile {
     pub(crate) const fn is_filesystem(self) -> bool {
         matches!(self, Self::FilesystemIoV1 | Self::FilesystemIoV2)
     }
+    pub(crate) const fn uses_useful_data_exports(self) -> bool {
+        matches!(self, Self::UsefulDataV1 | Self::UsefulDataV2)
+    }
     pub(crate) const fn is_owned_api(self) -> bool {
         matches!(
             self,
-            Self::FilesystemIoV1
+            Self::UsefulDataV2
+                | Self::FilesystemIoV1
                 | Self::FilesystemIoV2
                 | Self::OwnedDataApiV1
                 | Self::FlatOwnedRecordApiV1
@@ -99,6 +105,7 @@ impl ProjectProfile {
         match self {
             Self::ScalarV1 => None,
             Self::UsefulTextConsumerV1 => Some(PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1),
+            Self::UsefulDataV2 => Some(PROJECT_PROFILE_USEFUL_DATA_V2),
             Self::UsefulDataV1 => Some(PROJECT_PROFILE_USEFUL_DATA_V1),
             Self::UsefulDataCommandV1 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1),
             Self::UsefulDataCommandV2 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2),

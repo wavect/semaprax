@@ -121,3 +121,67 @@ fn project_v10_execution_replays_and_pathless_web_error_is_version_exact() {
     })
     .unwrap();
 }
+
+#[test]
+fn project_v16_json_cursor_public_facade_replays_and_executes() {
+    let manifest_text = "schema = \"semaprax.project.v16\"\nname = \"cursor-facade\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v2\"\nentry = \"cursor.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"cursor.length\"]\ntests = [\"profile.tests\"]\n";
+    let app = r#"module cursor.app;
+@id("cursor.reader") record Reader { @id("cursor.reader.data") data:Bytes, }
+@id("cursor.private") fn private_cursor(value:own Reader)->Reader {value}
+@id("cursor.size") fn size(value:usize)->usize ensures result==value {value}
+@id("cursor.length") fn length(value:borrow Slice<u8>)->usize {size(byte_len(value))}
+@id("cursor.main") fn main()->i64 {0}
+"#;
+    let fixture = fixture("v16", manifest_text, app, TESTS);
+    with_authenticated_project(&manifest(&fixture.0), |snapshot| {
+        snapshot.check()?;
+        let build = snapshot.build_npm_inline(MAX_PROJECT_NPM_BUILD_BYTES)?;
+        semaprax::project::ProjectNpmBuild::inspect_envelope(build.envelope(), build.max_bytes())
+            .map_err(|error| vec![error])?;
+        assert_eq!(
+            snapshot
+                .build_npm_inline(MAX_PROJECT_NPM_BUILD_BYTES)?
+                .envelope(),
+            build.envelope()
+        );
+        snapshot.build_npm(&fixture.0.join("package"))?;
+        Ok(())
+    })
+    .unwrap();
+    let script = r#"import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { instantiate } from './package/semaprax.bindings.js';
+const runtime = await instantiate(new Uint8Array(fs.readFileSync(new URL('./package/app.wasm', import.meta.url))));
+for (let i = 0; i < 2; i++) {
+  assert.equal(runtime.functions['cursor.length'](new Uint8Array([0, 255, 34])), 3n);
+  assert.equal(runtime.functions['cursor.length'](new Uint8Array()), 0n);
+}
+
+assert.equal(runtime.functions['cursor.private'], undefined);
+"#;
+    std::fs::write(fixture.0.join("check.mjs"), script).unwrap();
+    let output = std::process::Command::new("node")
+        .arg(fixture.0.join("check.mjs"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    std::fs::write(
+        manifest(&fixture.0),
+        manifest_text.replace("web_exports = [\"cursor.length\"]", "web_exports = []"),
+    )
+    .unwrap();
+    with_authenticated_project(&manifest(&fixture.0), |snapshot| {
+        assert!(snapshot
+            .build_npm_inline(MAX_PROJECT_NPM_BUILD_BYTES)
+            .is_err());
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[path = "profile_admission/dependency_closure.rs"]
+mod dependency_closure;

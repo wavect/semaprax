@@ -1,4 +1,7 @@
 module std.data.json.dec.tests;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.data.json.dec.decode-into") from std.data.json.dec as decode_into;
 use function @id("std.data.json.dec.at_in") from std.data.json.dec as at_in;
 use function @id("std.data.json.dec.at_is") from std.data.json.dec as at_is;
 use function @id("std.data.json.dec.byte_code") from std.data.json.dec as byte_code;
@@ -16,6 +19,7 @@ use function @id("std.data.json.dec.failure") from std.data.json.dec as failure;
 use function @id("std.data.json.dec.hex_at") from std.data.json.dec as hex_at;
 use function @id("std.data.json.dec.is_failure") from std.data.json.dec as is_failure;
 use function @id("std.data.json.dec.scalar_at") from std.data.json.dec as scalar_at;
+use function @id("std.data.json.dec.scan-string") from std.data.json.dec as scan_string;
 use function @id("std.data.json.dec.simple_scalar") from std.data.json.dec as simple_scalar;
 use function @id("std.data.json.dec.prefix_eq") from std.data.json.dec as prefix_eq;
 use function @id("std.data.json.dec.slice_eq") from std.data.json.dec as slice_eq;
@@ -91,7 +95,7 @@ fn lengths() -> bool
     let source = array_as_slice(raw);
     let unicode = [34u8, 92u8, 117u8, 68u8, 56u8, 51u8, 68u8, 92u8, 117u8, 68u8, 69u8, 48u8, 48u8, 34u8];
     let emoji = array_as_slice(unicode);
-    decoded_len(source, 0usize) == 3usize && decoded_size(source) == 3usize && decoded_len(emoji, 0usize) == 4usize && decoded_size(emoji) == 4usize && capacity() == 256usize
+    scan_string(source, 0usize, false) == 6usize && scan_string(source, 0usize, true) == 3usize && decoded_len(source, 0usize) == 3usize && decoded_size(source) == 3usize && decoded_len(emoji, 0usize) == 4usize && decoded_size(emoji) == 4usize && capacity() == 256usize
 }
 
 @id("std.data.json.dec.tests.buffer")

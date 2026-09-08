@@ -345,7 +345,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     // file: a helper relocated into a sibling submodule must still count as
     // present in the root and absent from the projection.
     let root = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("../../src/workspace_graph.rs"),
         include_str!("../../src/workspace_graph/diagnostics.rs"),
         include_str!("../../src/workspace_graph/generic_type_import.rs"),
@@ -355,10 +355,15 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         include_str!("../../src/workspace_graph/project_render.rs"),
         include_str!("../../src/workspace_graph/source_callables.rs"),
         include_str!("../../src/workspace_graph/retained_validation.rs"),
+        include_str!("../../src/workspace_graph/retained_validation/dependency_closure.rs"),
         include_str!("../../src/workspace_graph/retained_validation/scalar_link.rs"),
     );
     let root = root.as_str();
     let projection_root = include_str!("../../src/workspace_graph/expected_projection.rs");
+    let projection_local_identity =
+        include_str!("../../src/workspace_graph/expected_projection/local_identity.rs");
+    let projection_call_identity =
+        include_str!("../../src/workspace_graph/expected_projection/call_identity.rs");
     let projection_cost = include_str!("../../src/workspace_graph/expected_projection/cost.rs");
     let projection_declaration_cost =
         include_str!("../../src/workspace_graph/expected_projection/declaration_cost.rs");
@@ -369,7 +374,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let projection_defaults =
         include_str!("../../src/workspace_graph/expected_projection/defaults.rs");
     let projection = format!(
-        "{projection_root}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}\n{projection_statement_segment}\n{projection_defaults}"
+        "{projection_root}\n{projection_local_identity}\n{projection_call_identity}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}\n{projection_statement_segment}\n{projection_defaults}"
     );
 
     assert!(root.contains("mod expected_projection;"));
@@ -383,6 +388,8 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         "pub(super) raw_clone_and_hir: usize,",
         "pub(super) runtime: usize,",
         "pub(super) fn synthetic_builder_bytes(",
+        "pub(super) fn checked_retention_prebound(",
+        "pub(super) fn retention_prebound_mode(",
         "pub(super) fn checked_builder_sum(left: usize, right: usize) -> Result<usize, Vec<Diagnostic>> {",
         "pub(super) fn rewrite_type_runtime_cost(",
         "pub(super) fn validate_dependency_dag(",

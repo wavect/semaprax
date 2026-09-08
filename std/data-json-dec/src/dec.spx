@@ -1,4 +1,6 @@
 module std.data.json.dec;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
 
 @id("std.data.json.dec.at_is")
 fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
@@ -68,21 +70,7 @@ fn escape_end(input: borrow Slice<u8>, start: usize) -> usize
 @id("std.data.json.dec.string_end")
 fn string_end(input: borrow Slice<u8>, start: usize) -> usize
 {
-    let mut index = start + 1usize;
-    let mut fault = start;
-    let mut bad = !at_is(input, start, 34u8);
-    let mut running = !bad;
-    while running {
-        let closed = at_is(input, index, 34u8);
-        let step = if closed { index } else { token_end(input, index) };
-        let broken = !closed && is_failure(input, step);
-        fault = if broken { index } else { fault };
-        bad = broken;
-        index = if closed || broken { index } else { step };
-        running = !closed && !broken;
-        running
-    }
-    if bad { failure(input, fault) } else { index + 1usize }
+    scan_string(input, start, false)
 }
 
 @id("std.data.json.dec.token_end")
@@ -177,8 +165,8 @@ fn emit_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
     if at_is(input, index, 92u8) { utf8_at(scalar_at(input, index), offset) } else { raw }
 }
 
-@id("std.data.json.dec.decoded_len")
-fn decoded_len(input: borrow Slice<u8>, start: usize) -> usize
+@id("std.data.json.dec.scan-string")
+fn scan_string(input: borrow Slice<u8>, start: usize, measure: bool) -> usize
 {
     let mut index = start + 1usize;
     let mut total = 0usize;
@@ -189,14 +177,20 @@ fn decoded_len(input: borrow Slice<u8>, start: usize) -> usize
         let closed = at_is(input, index, 34u8);
         let step = if closed { index } else { token_end(input, index) };
         let broken = !closed && is_failure(input, step);
-        total = if closed || broken { total } else { total + emit_len(input, index) };
+        total = if closed || broken || !measure { total } else { total + emit_len(input, index) };
         fault = if broken { index } else { fault };
         bad = broken;
         index = if closed || broken { index } else { step };
         running = !closed && !broken;
         running
     }
-    if bad { failure(input, fault) } else { total }
+    if bad { failure(input, fault) } else { if measure { total } else { index + 1usize } }
+}
+
+@id("std.data.json.dec.decoded_len")
+fn decoded_len(input: borrow Slice<u8>, start: usize) -> usize
+{
+    scan_string(input, start, true)
 }
 
 @id("std.data.json.dec.decoded_size")
@@ -205,6 +199,13 @@ fn decoded_size(input: borrow Slice<u8>) -> usize
     let end = string_end(input, 0usize);
     let total = decoded_len(input, 0usize);
     if is_failure(input, end) { end } else { if end == byte_len(input) { total } else { failure(input, end) } }
+}
+
+@id("std.data.json.dec.decode-into")
+fn decode_into(input: borrow Reader, output: own Writer) -> Writer
+    requires match borrow input { Reader { data: source, position: start } => match borrow output { Writer { data: target, position: write } => start <= byte_len(bytes_as_slice(source)) && !is_failure(bytes_as_slice(source), decoded_len(bytes_as_slice(source), start)) && write <= byte_len(bytes_as_slice(target)) && decoded_len(bytes_as_slice(source), start) <= byte_len(bytes_as_slice(target)) - write, }, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let mut next = output_data; let written = match borrow input { Reader { data: source, position: start } => { let view = bytes_as_slice(source); let total = decoded_len(view, start); let mut index = start + 1usize; let mut part = 0usize; let mut count = 0usize; let mut running = count < total; while running { let value = if at_is(view, index, 92u8) { code_byte(emit_at(view, index, part)) } else { match byte_get(view, index) { Option::Some { value } => value, Option::None {} => 0u8, } }; next = bytes_set(next, output_position + count, value); let last = part + 1usize >= emit_len(view, index); index = if last { token_end(view, index) } else { index }; part = if last { 0usize } else { part + 1usize }; count = count + 1usize; running = count < total; running } total }, }; Writer { data: next, position: output_position + written } }, }
 }
 
 @id("std.data.json.dec.capacity")

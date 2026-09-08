@@ -82,6 +82,7 @@ pub fn render_project_lock(snapshot: &ProjectSnapshot) -> Result<String, Vec<Dia
         ),
         ProjectProfile::UsefulTextConsumerV1
         | ProjectProfile::UsefulDataV1
+        | ProjectProfile::UsefulDataV2
         | ProjectProfile::UsefulDataCommandV1
         | ProjectProfile::UsefulDataCommandV2
         | ProjectProfile::LanguageCommandIoV1

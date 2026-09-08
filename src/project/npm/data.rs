@@ -18,7 +18,10 @@ use super::{
     valid_package_name, valid_package_semver, valid_sha256_fact, NpmArtifact, NpmBuildIdentity,
     ProjectNpmBuild, PROJECT_NPM_BUILD_SCHEMA_V2,
 };
-use crate::project::{ProjectManifest, PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_SCHEMA_V3};
+use crate::project::{
+    ProjectManifest, PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_DATA_V2,
+    PROJECT_SCHEMA_V16, PROJECT_SCHEMA_V3,
+};
 
 pub(super) const USEFUL_DATA_PACKAGE_PATHS: [&str; 6] = [
     "app.wasm",
@@ -119,9 +122,18 @@ pub(super) fn prepare(
 }
 
 fn require_profile(manifest: &ProjectManifest) -> Result<&str, Diagnostic> {
-    if !manifest.is_v3() || manifest.profile() != Some(PROJECT_PROFILE_USEFUL_DATA_V1) {
+    if !matches!(
+        (manifest.schema(), manifest.profile()),
+        (PROJECT_SCHEMA_V3, Some(PROJECT_PROFILE_USEFUL_DATA_V1))
+            | (PROJECT_SCHEMA_V16, Some(PROJECT_PROFILE_USEFUL_DATA_V2))
+    ) {
         return Err(package_error(
             "npm data facade requires the useful-data.v1 Project v3 profile",
+        ));
+    }
+    if manifest.web_exports().is_empty() {
+        return Err(package_error(
+            "private useful-data.v2 Project has no public npm artifact",
         ));
     }
     manifest
@@ -474,8 +486,10 @@ pub(super) fn validate_replayed(
     identity: NpmBuildIdentity<'_>,
     artifacts: &[NpmArtifact; 6],
 ) -> Result<(), Diagnostic> {
-    if identity.project_schema != PROJECT_SCHEMA_V3
-        || !valid_package_name(identity.package)
+    if !matches!(
+        identity.project_schema,
+        PROJECT_SCHEMA_V3 | PROJECT_SCHEMA_V16
+    ) || !valid_package_name(identity.package)
         || !valid_package_semver(identity.version)
         || !valid_sha256_fact(identity.project_revision)
         || !valid_sha256_fact(identity.workspace_revision)

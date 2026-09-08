@@ -1,0 +1,93 @@
+module std.data.json.write.tests;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.io.reader.advance") from std.io as reader_advance;
+use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.cursor") from std.io as writer_position;
+use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
+use function @id("std.data.json.write.count-into") from std.data.json.write as count_into;
+use function @id("std.data.json.write.quoted-into") from std.data.json.write as quoted_into;
+use function @id("std.data.json.write.quoted-remaining-len") from std.data.json.write as quoted_remaining_len;
+
+@id("std.data.json.write.tests.at")
+fn at(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(input, index) { Option::Some { value } => value == expected, Option::None {} => false, }
+}
+
+@id("std.data.json.write.tests.cursor-exact")
+fn cursor_exact() -> bool
+{
+    let source = [88u8, 34u8, 10u8, 195u8, 169u8];
+    let reader = reader_advance(reader_from_bytes(bytes_copy(array_as_slice(source))), 1usize);
+    let exact = quoted_into(reader, writer_write_u8(writer_from_bytes(bytes_zeroed(9usize)), 91u8));
+    let position = writer_position(exact);
+    let bytes = writer_finish(exact);
+    let view = bytes_as_slice(bytes);
+    position == 9usize && at(view, 0usize, 91u8) && at(view, 1usize, 34u8) && at(view, 2usize, 92u8) && at(view, 3usize, 34u8) && at(view, 4usize, 92u8) && at(view, 5usize, 110u8) && at(view, 6usize, 195u8) && at(view, 7usize, 169u8) && at(view, 8usize, 34u8)
+}
+
+@id("std.data.json.write.tests.cursor-empty")
+fn cursor_empty() -> bool
+{
+    let reader = reader_from_bytes(bytes_zeroed(0usize));
+    let encoded = quoted_into(reader, writer_from_bytes(bytes_zeroed(2usize)));
+    let position = writer_position(encoded);
+    let bytes = writer_finish(encoded);
+    let view = bytes_as_slice(bytes);
+    quoted_remaining_len(reader) == 2usize && position == 2usize && at(view, 0usize, 34u8) && at(view, 1usize, 34u8)
+}
+
+@id("std.data.json.write.tests.cursor-composed")
+fn cursor_composed() -> bool
+{
+    let source = [88u8, 34u8, 10u8, 195u8, 169u8];
+    let reader = reader_advance(reader_from_bytes(bytes_copy(array_as_slice(source))), 1usize);
+    let output_source = [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 77u8];
+    let writer = writer_write_u8(writer_from_bytes(bytes_copy(array_as_slice(output_source))), 91u8);
+    let completed = count_into(120usize, quoted_into(reader, writer));
+    let bytes = writer_finish(completed);
+    let view = bytes_as_slice(bytes);
+    at(view, 0usize, 91u8) && at(view, 1usize, 34u8) && at(view, 2usize, 92u8) && at(view, 3usize, 34u8) && at(view, 4usize, 92u8) && at(view, 5usize, 110u8) && at(view, 6usize, 195u8) && at(view, 7usize, 169u8) && at(view, 8usize, 34u8) && at(view, 9usize, 49u8) && at(view, 10usize, 50u8) && at(view, 11usize, 48u8) && at(view, 23usize, 77u8)
+}
+
+@id("std.data.json.write.tests.cursor-count-zero")
+fn cursor_count_zero() -> bool
+{
+    let written = count_into(0usize, writer_from_bytes(bytes_zeroed(1usize)));
+    let position = writer_position(written);
+    let bytes = writer_finish(written);
+    let view = bytes_as_slice(bytes);
+    position == 1usize && at(view, 0usize, 48u8)
+}
+
+@id("std.data.json.write.tests.cursor-large")
+fn cursor_large() -> bool
+{
+    let mut source = bytes_zeroed(300usize);
+    let mut index = 0usize;
+    let mut filling = true;
+    while filling {
+        source = bytes_set(source, index, 97u8);
+        index = index + 1usize;
+        filling = index < 300usize;
+        filling
+    }
+    let reader = reader_from_bytes(source);
+    let mut target = bytes_zeroed(304usize);
+    target = bytes_set(target, 0usize, 91u8);
+    target = bytes_set(target, 303usize, 77u8);
+    let written = quoted_into(reader, Writer { data: target, position: 1usize });
+    let position = writer_position(written);
+    let bytes = writer_finish(written);
+    let view = bytes_as_slice(bytes);
+    position == 303usize && at(view, 0usize, 91u8) && at(view, 1usize, 34u8) && at(view, 2usize, 97u8) && at(view, 301usize, 97u8) && at(view, 302usize, 34u8) && at(view, 303usize, 77u8)
+}
+
+@id("std.data.json.write.tests.main")
+fn main() -> i64
+{
+    0
+}

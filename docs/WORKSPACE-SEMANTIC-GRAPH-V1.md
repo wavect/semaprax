@@ -168,6 +168,50 @@ are reserved against the same `builder_bytes` budget, and an overflow of
 either is `SPX-G171`, so a looser pre-bound refuses earlier and a tighter one
 refuses later, without either removing the retained-memory bound.
 
+The legacy estimate uses the longest authored identity in the whole workspace.
+If that estimate would exceed the builder limit, an additive fallback repeats
+the same arithmetic with each module's own transitive dependency closure and
+the frozen prelude as its identity scope. Reverse-dependent test declarations
+cannot occur in that module's synthetic HIR and therefore cannot enlarge its
+identity bound. Every previously accepted estimate is retained exactly; the
+fallback runs only after a builder-limit refusal. Structural and string factors,
+the 16 MiB limit, and actual allocation charges remain unchanged.
+
+If both estimates refuse, a third attempt accounts inline AST storage once:
+embedded String headers, and the audited inline expression and pattern fields,
+are already included in their enclosing values. Every separately visited
+expression keeps its complete raw footprint. Primitive literal roots omit
+only the fixed owned storage-slot, flag, place, and plan-slot structures that
+their Value ownership and literal lowering never create; their state,
+transition, and control-flow metadata and all bookkeeping remain charged.
+Compile-time bundle assertions preserve the remaining fixed HIR bound.
+String-literal and assignment-field payloads and nested declared/function types are explicitly
+charged. Primitive literals and checked scalar unary/binary roots retain their
+expression identity but need neither a nominal result-type identity nor an
+owned cleanup temporary; their operands remain independently charged. This
+also applies to scalar-valued blocks and uniform scalar control-flow results.
+Ordinary nongeneric calls use their exact authored local/imported return type,
+or the frozen byte-operation signature, to establish the same two absent
+slots; expression and callee identities remain charged. Unknown, generic,
+nominal, and potentially shadowed calls retain their conservative charges.
+Unshadowed primitive value parameters and uniquely declared scalar locals omit
+one unused nominal-type slot per read, retaining both the expression identity
+and the binding identity of the resulting Place. Local facts begin only after
+their initializer and end with their declaring block; duplicate, pattern, loop,
+and closure bindings remain conservative. Assignments cannot establish a fact,
+and native import precedence remains unchanged. All other identity slots and every expansion factor stay unchanged. Standalone
+strings, synthetic runtime structures, generic-instance estimates, and transient
+imported bodies retain their prior charges. Successful receipts from either
+earlier attempt remain byte-for-byte unchanged.
+
+At the production default builder limit, an unnested core phase that exceeds
+its budget after accepting an earlier estimate may retry once with the tighter
+raw-AST estimate. The failed partial core is dropped and private frontend
+attempt state is rolled back before retry. The recorded sequential-phase debit
+is the maximum of both attempts; no enclosing budget is reset or refunded.
+Explicit smaller-limit invocations and nested budgets retain their original
+refusal behavior, and a successful first attempt retains its original receipt.
+
 The identity factor was re-derived from measurement. A declaration identity at
 one resolved occurrence is retained by the HIR node, the declaration, type and
 call indexes, the validation sets, the cleanup inventory, the cleanup-plan

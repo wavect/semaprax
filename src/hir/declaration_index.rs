@@ -3,6 +3,8 @@
 use super::*;
 
 mod linked_owned_data;
+mod owned_builtin;
+use owned_builtin::owned_builtin_facts;
 
 /// A deterministic, display-name-to-identity index.
 ///
@@ -739,12 +741,15 @@ impl DeclarationIndex {
     }
 
     pub(super) fn from_verified(program: &Program) -> Result<Self, Diagnostic> {
+        Self::from_verified_with_prelude(program, crate::prelude::declarations_for_program(program))
+    }
+
+    pub(super) fn from_verified_with_prelude(
+        program: &Program,
+        prelude: &[crate::ast::TypeDeclaration],
+    ) -> Result<Self, Diagnostic> {
         let mut index = Self::default();
-        for declaration in program
-            .types
-            .iter()
-            .chain(crate::prelude::declarations_for_program(program))
-        {
+        for declaration in program.types.iter().chain(prelude) {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
                 TypeDeclarationKind::Record { .. } => DeclarationKind::Record,
@@ -812,11 +817,7 @@ impl DeclarationIndex {
                 );
             }
         }
-        for declaration in program
-            .types
-            .iter()
-            .chain(crate::prelude::declarations_for_program(program))
-        {
+        for declaration in program.types.iter().chain(prelude) {
             let TypeDeclarationKind::Resource { lifecycles } = &declaration.kind else {
                 continue;
             };
@@ -881,11 +882,7 @@ impl DeclarationIndex {
             )
             .at_path(&program.path));
         }
-        for declaration in program
-            .types
-            .iter()
-            .chain(crate::prelude::declarations_for_program(program))
-        {
+        for declaration in program.types.iter().chain(prelude) {
             let (TypeDeclarationKind::Record { fields }
             | TypeDeclarationKind::Class { fields, .. }) = &declaration.kind
             else {
@@ -1013,11 +1010,7 @@ impl DeclarationIndex {
                     .insert(DeclarationId::new(method.stable_id.clone()), Vec::new());
             }
         }
-        for declaration in program
-            .types
-            .iter()
-            .chain(crate::prelude::declarations_for_program(program))
-        {
+        for declaration in program.types.iter().chain(prelude) {
             let TypeDeclarationKind::Variant { cases } = &declaration.kind else {
                 continue;
             };
@@ -1469,32 +1462,4 @@ impl Drop for DeclarationIndex {
             }
         }
     }
-}
-
-fn owned_builtin_facts(
-    declaration: &DeclarationId,
-    arguments: &[ResolvedType],
-) -> Option<TypeFacts> {
-    if let Some(facts) = crate::iterator_ops::type_facts(declaration, arguments) {
-        return Some(facts);
-    }
-    let [element] = arguments else {
-        return None;
-    };
-    let prefix = match declaration.as_str() {
-        crate::prelude::VEC_ID if crate::vec_ops::resolved_vec_element_is_admitted(element) => {
-            "vec"
-        }
-        crate::prelude::BOX_ID if crate::box_ops::resolved_box_element_is_admitted(element) => {
-            "box"
-        }
-        _ => return None,
-    };
-    Some(TypeFacts {
-        copy: false,
-        contains_resource: false,
-        sized: true,
-        needs_drop: true,
-        layout_key: format!("{prefix}:{}", element.identity_key()),
-    })
 }

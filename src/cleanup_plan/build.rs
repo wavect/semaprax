@@ -1323,7 +1323,22 @@ impl<'a> PlanBuilder<'a> {
         state.conditional_variants.push(ConditionalFlowVariant {
             root: destination.clone(),
             variant: variant.clone(),
-            cases: vec![(case.clone(), flags)],
+            cases: if variant.as_str() == crate::iterator_ops::STEP_ID {
+                // Keep the closed domain at a consuming match boundary: both
+                // guarded arms are checked even for an authored Done value.
+                self.program
+                    .declarations
+                    .variant_cases(variant)
+                    .ok_or_else(|| plan_error("constructed iterator step has no case domain"))?
+                    .iter()
+                    .map(|candidate| {
+                        let prefix = destination.projected(candidate.id.clone());
+                        (candidate.id.clone(), self.flags_under(&prefix))
+                    })
+                    .collect()
+            } else {
+                vec![(case.clone(), flags)]
+            },
         });
         Ok(())
     }

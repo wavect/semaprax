@@ -98,7 +98,7 @@ pub(super) fn expected_declaration_facts_for(
         include_vec || include_box || include_iterator,
         include_iterator,
     )?;
-    if include_box {
+    if include_box || include_iterator {
         let declaration = prelude::declarations()
             .iter()
             .find(|d| d.stable_id == prelude::BOX_ID)

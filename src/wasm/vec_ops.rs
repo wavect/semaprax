@@ -25,6 +25,9 @@ pub(crate) fn program_uses_vec(program: &ResolvedProgram) -> bool {
                     .chain(function.requires.iter())
                     .chain(function.ensures.iter())
                     .any(|expression| {
+                        if crate::iterator_ops::resolved_expression_uses_iterator(expression) {
+                            return true;
+                        }
                         let mut found = false;
                         crate::hir::visit_resolved_calls(
                             expression,

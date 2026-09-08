@@ -1,7 +1,7 @@
 # Owning Iterators v1
 
-Status: focused cross-engine runtime corpus passes locally; projection checks and
-exact-head hosted promotion are tracked separately.
+Status: focused cross-engine runtime, projection, and ProgramRoot replay corpora
+pass locally; exact-head hosted promotion remains pending.
 
 This LANG-07 profile introduces a first-class consuming iterator protocol over
 bounded scalar vectors. It is the ownership foundation for subsequent iterator
@@ -28,6 +28,10 @@ tag determines which payload is live before any payload authority is granted.
 Private functions can consume and return the exact `IterStep<T>` type, including
 reconstructing `Done` or `Yield` through an owning match. The item is copied and
 the rest is transferred; reconstruction never copies an iterator owner.
+A local or directly matched `Done` constructor selects the same iterator
+prelude and graph without requiring an iterator intrinsic call. Cleanup
+construction and independent replay retain the closed guarded case domain;
+only the constructed case initializes runtime ownership flags.
 
 | Source operation | Stable identity | Signature |
 | --- | --- | --- |

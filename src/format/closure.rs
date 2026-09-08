@@ -127,3 +127,14 @@ pub(super) fn write_signature(
     write_type(output, result);
     output.write_char(' ').unwrap();
 }
+
+/// Qualified iterator constructors parse directly in a match scrutinee. Avoid
+/// turning the contextual ownership word into a legacy call named `own`.
+pub(super) fn match_scrutinee_needs_delimiters(mode: crate::ast::MatchMode, value: &Expr) -> bool {
+    if mode != crate::ast::MatchMode::Value
+        && matches!(&value.kind, ExprKind::ConstructVariant { type_name, .. } if type_name == "IterStep")
+    {
+        return false;
+    }
+    contains_record_construction(value)
+}

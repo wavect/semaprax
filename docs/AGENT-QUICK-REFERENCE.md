@@ -636,15 +636,28 @@ Other first-attempt diagnostics and their fixes:
 
 ### Bounded Vec traversal
 
-The one admitted collection traversal form is
+The borrowed Vec traversal form is
 `for item in values { body }`, where `values` is a simple immutable `Vec<T>`
 binding and `T` is one of the eight Copy scalars. It snapshots the length once,
 visits elements in ascending index order, freezes `values`, and discards the
 body result. Keep the item immutable and do not move, mutate, or reassign the
 vector inside the body. Computed iterable expressions, owned elements,
-consuming traversal, `break`/`continue`, iterator objects, adapters, and
-closures remain unavailable. See
+consuming traversal, and `break`/`continue` remain outside this `for` form. See
 [Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md).
+
+### Consuming scalar iterators
+
+`vec_into_iter<T>(values)` moves a scalar vector into a non-Copy `Iter<T>`.
+`iter_next<T>(iterator)` consumes it and returns `IterStep<T>`: use
+`match own` with `IterStep::Done {}` and `IterStep::Yield { item, rest }`.
+The item is Copy; `rest` owns the remaining iterator. Pass `rest` to the next
+step or let scope cleanup settle it. Reusing a consumed iterator is an
+ownership error. Private helpers may consume and return the same iterator
+or step type. Explicit `IterStep<T>::Done {}` also works without a vector.
+All eight Copy scalars are admitted; owned items, lazy adapters, consuming
+loop syntax, and public iterator signatures remain separate work. See
+[Owning Iterators v1](OWNING-ITERATORS-V1.md) and the separate
+[closure profile](CLOSURES-V2.md).
 
 ## Projects
 

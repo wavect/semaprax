@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Repair local-only iterator step construction across prelude selection, graph
+  classification, cleanup case-state replay, backend runtime activation, and
+  canonical owning matches. Add repeated cross-engine regressions for bound
+  and direct `Done` constructors; preserve legacy graph and prelude selection.
+  Retain complete iterator declaration and cleanup facts in both workspace
+  linkers, restore Box's frozen prelude slice, and verify ProgramRoot replay.
+
 - Add the private Owning Iterators v1 implementation tranche for scalar
   `Iter<T>`/`IterStep<T>` and consuming `vec_into_iter`/`iter_next`, with
   Prelude v7, CleanupPlan v10, Graph v38, and ProgramRoot binding. Local

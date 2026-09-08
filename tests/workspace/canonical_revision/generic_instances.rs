@@ -93,6 +93,42 @@ module fixture.app;
     .is_err());
 }
 
+#[test]
+fn iterator_local_done_workspace_retains_the_complete_v7_prelude() {
+    let fixture = Fixture::owned_vec("iterator-local-done-root", false);
+    let source = r#"
+module fixture.app;
+@id("fixture.main") fn main() -> i64 {
+    let step = IterStep<i64>::Done {};
+    match own step { IterStep::Done {} => 7, IterStep::Yield {item,rest} => item, }
+}
+@id("fixture.public") fn published() -> i64 { 0 }
+"#;
+    let path = fixture.0.join("src/app.spx");
+    let parsed = semaprax::parse(source, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let semantic: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    assert_eq!(
+        semantic["payload"]["prelude_digest"],
+        framed(
+            b"semaprax.semantic-workspace-revision.prelude.digest.v1\0",
+            include_bytes!("../../fixtures/prelude-v7.contract"),
+        )
+    );
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
+}
+
 fn inferred_fixture(label: &str, explicit: bool) -> Fixture {
     let fixture = Fixture::owned_vec(label, false);
     let arguments = if explicit { "<bool>" } else { "" };

@@ -191,6 +191,15 @@ fn link_scalar_workspace_impl(
                 .map(|instance| &instance.function),
         )
         .any(resolved_function_uses_box);
+    let uses_iterator = functions
+        .iter()
+        .chain(
+            parts
+                .iter()
+                .flat_map(|parts| &parts.function_instances)
+                .map(|instance| &instance.function),
+        )
+        .any(resolved_function_uses_iterator);
     let uses_owned_result = functions.iter().any(generic_result::concrete_signature)
         || parts.as_ref().is_some_and(|parts| {
             functions
@@ -201,11 +210,12 @@ fn link_scalar_workspace_impl(
             .iter()
             .flat_map(|parts| &parts.function_templates)
             .any(generic_result::profile);
-    let (mut declarations, mut compiler_types) = if uses_vec || uses_box || uses_owned_result {
-        workspace_compiler_prelude_for(uses_vec, uses_box)?
-    } else {
-        (DeclarationIndex::default(), Vec::new())
-    };
+    let (mut declarations, mut compiler_types) =
+        if uses_vec || uses_box || uses_iterator || uses_owned_result {
+            workspace_compiler_prelude_for(uses_vec, uses_box, uses_iterator)?
+        } else {
+            (DeclarationIndex::default(), Vec::new())
+        };
     match &parts {
         Some(parts) => declarations.extend_linked_scalar_data(
             &parts.types,
@@ -248,7 +258,7 @@ fn link_scalar_workspace_impl(
             )
         },
     );
-    if uses_vec || uses_box || uses_owned_result {
+    if uses_vec || uses_box || uses_iterator || uses_owned_result {
         compiler_types.extend(types);
         types = compiler_types;
     }
@@ -460,7 +470,17 @@ pub(crate) fn link_owned_data_api_workspace(
                 .map(|instance| &instance.function),
         )
         .any(resolved_function_uses_box);
-    let (mut declarations, mut types) = workspace_compiler_prelude_for(uses_vec, uses_box)?;
+    let uses_iterator = functions
+        .iter()
+        .chain(
+            parts
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(resolved_function_uses_iterator);
+    let (mut declarations, mut types) =
+        workspace_compiler_prelude_for(uses_vec, uses_box, uses_iterator)?;
     declarations.extend_linked_owned_data(
         &parts.types,
         &parts.interfaces,
@@ -998,21 +1018,28 @@ fn workspace_compiler_prelude(
 fn workspace_compiler_prelude_for_vec(
     include_vec: bool,
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
-    workspace_compiler_prelude_for(include_vec, false)
+    workspace_compiler_prelude_for(include_vec, false, false)
 }
 
 fn workspace_compiler_prelude_for(
     include_vec: bool,
     include_box: bool,
+    include_iterator: bool,
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
-    let declarations = compiler_prelude_declarations_for(include_vec, include_box)?;
     let prelude_program = workspace_linker_prelude_program();
-    let compiler_declarations = if include_box {
+    let compiler_declarations = if include_iterator {
         crate::prelude::declarations()
+    } else if include_box {
+        &crate::prelude::declarations()[..4]
     } else if include_vec {
         &crate::prelude::declarations()[..3]
     } else {
         crate::prelude::declarations_for_program(&prelude_program)
+    };
+    let declarations = if include_iterator {
+        DeclarationIndex::from_verified_with_prelude(&prelude_program, compiler_declarations)?
+    } else {
+        compiler_prelude_declarations_for(include_vec, include_box)?
     };
     let compiler_types = compiler_declarations
         .iter()
@@ -1160,6 +1187,20 @@ fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnos
         instance.function.cleanup_plan = cleanup_plan;
     }
     Ok(())
+}
+
+fn resolved_function_uses_iterator(function: &ResolvedFunction) -> bool {
+    crate::iterator_ops::resolved_type_uses_iterator(&function.return_type)
+        || function
+            .params
+            .iter()
+            .any(|param| crate::iterator_ops::resolved_type_uses_iterator(&param.ty))
+        || function
+            .requires
+            .iter()
+            .chain(function.ensures.iter())
+            .chain(std::iter::once(&function.body))
+            .any(crate::iterator_ops::resolved_expression_uses_iterator)
 }
 
 #[cfg(test)]

@@ -858,7 +858,7 @@ fn write_expr_measured(
                     } => {
                         output.write_str("match ").unwrap();
                         output.write_str(mode.source_prefix()).unwrap();
-                        let delimited = contains_record_construction(scrutinee);
+                        let delimited = closure::match_scrutinee_needs_delimiters(*mode, scrutinee);
                         if delimited {
                             output.write_char('(').unwrap();
                         }

@@ -401,7 +401,7 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                 arms,
             } => {
                 total = total.saturating_add(mode.source_prefix().len());
-                if contains_record_construction(scrutinee) {
+                if closure::match_scrutinee_needs_delimiters(*mode, scrutinee) {
                     total = total.saturating_add(cached_rendered(scrutinee, 0).saturating_add(2));
                 }
                 let mut parts = Vec::with_capacity(arms.len());

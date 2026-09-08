@@ -205,19 +205,17 @@ pub(crate) fn ast_expression_uses_iterator(expression: &crate::ast::Expr) -> boo
                 type_name,
                 type_arguments,
                 ..
-            } => {
-                if matches!(type_name.as_str(), "Iter" | "IterStep")
-                    || type_arguments.iter().any(ast_type_uses_iterator)
-                {
-                    return true;
-                }
+            } if matches!(type_name.as_str(), "Iter" | "IterStep")
+                || type_arguments.iter().any(ast_type_uses_iterator) =>
+            {
+                return true;
             }
             _ => {}
         }
-        for index in (0..expression.child_count()).rev() {
-            if let Some(child) = expression.child(index) {
-                pending.push(child);
-            }
+        let mut index = 0;
+        while let Some(child) = expression.child(index) {
+            pending.push(child);
+            index += 1;
         }
     }
     false
@@ -291,10 +289,10 @@ pub(crate) fn resolved_expression_uses_iterator(expression: &crate::hir::Resolve
                     return true;
                 }
             }
-            crate::hir::ResolvedExprKind::ConstructVariant { variant, .. } => {
-                if variant.as_str() == STEP_ID {
-                    return true;
-                }
+            crate::hir::ResolvedExprKind::ConstructVariant { variant, .. }
+                if variant.as_str() == STEP_ID =>
+            {
+                return true;
             }
             _ => {}
         }

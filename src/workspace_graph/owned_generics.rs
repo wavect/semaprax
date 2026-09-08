@@ -560,6 +560,7 @@ pub(super) fn close_owned_data_closure(
                 && crate::byte_ops::by_id(callee.as_str()).is_none()
                 && crate::vec_ops::by_id(callee.as_str()).is_none()
                 && crate::box_ops::by_id(callee.as_str()).is_none()
+                && crate::iterator_ops::by_id(callee.as_str()).is_none()
                 && crate::host_io_ops::by_id(callee.as_str()).is_none()
                 && crate::command_io_ops::by_id(callee.as_str()).is_none()
             {

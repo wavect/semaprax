@@ -371,7 +371,7 @@ fn emit_native_prelude_inner(
     native_runtime::emit_status_runtime_for_profile(
         output,
         needs_borrowed_str || program_uses_byte_data(program) || strings.provider_carriers,
-        native_vec::program_uses_vec(program),
+        native_vec::program_uses_vec(program) || native_iter::program_uses_iterator(program),
         native_box::program_uses_box(program),
     );
     output.push_str(&resource_abi.declarations);

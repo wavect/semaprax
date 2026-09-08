@@ -230,3 +230,30 @@ fn owning_iterators_wasm_has_valid_typed_moves_without_owner_memory_copy() {
 fn owning_iterators_all_scalars_step_reconstruction_and_return() {
     collections::run_source_value(&source_with_reconstruction(true), 8);
 }
+
+#[test]
+fn owning_iterators_local_done_carrier_without_intrinsics_or_owner_signature() {
+    collections::run_source_value(
+        r#"module test.iterator_local_done;
+@id("app.main") fn main()->i64 {
+ let finished=IterStep<i64>::Done {};
+ match own finished {
+  IterStep::Done {} => 7,
+  IterStep::Yield {item,rest} => 0,
+ }
+}
+"#,
+        7,
+    );
+    collections::run_source_value(
+        r#"module test.iterator_direct_done;
+@id("app.main") fn main()->i64 {
+ match own IterStep<i64>::Done {} {
+  IterStep::Done {} => 7,
+  IterStep::Yield {item,rest} => 0,
+ }
+}
+"#,
+        7,
+    );
+}

@@ -208,7 +208,7 @@ fn parts_use_iterator(
     instances: &[crate::hir::ResolvedFunctionInstance],
 ) -> bool {
     fn function_uses_iterator(function: &ResolvedFunction) -> bool {
-        let expressions = function
+        let mut expressions = function
             .requires
             .iter()
             .chain(std::iter::once(&function.body))

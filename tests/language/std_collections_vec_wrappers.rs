@@ -129,7 +129,7 @@ fn exact_wrappers_preserve_authored_and_intrinsic_hir_and_graph_identity() {
 }
 
 #[test]
-fn exact_wrappers_admit_all_copy_scalars_only_with_explicit_arguments() {
+fn exact_wrappers_admit_all_copy_scalars_and_bounded_argument_inference() {
     for (ty, literal) in [
         ("i64", "7"),
         ("i32", "7i32"),
@@ -154,7 +154,9 @@ fn exact_wrappers_admit_all_copy_scalars_only_with_explicit_arguments() {
         WRAPPERS.replace("with_capacity<i64>(2usize)", "with_capacity<Bytes>(2usize)");
     assert!(errors(&unsupported).contains(&"SPX-T225"));
     let inferred_new = WRAPPERS.replace("reserve_exact<i64>(values", "reserve_exact(values");
-    assert!(errors(&inferred_new).contains(&"SPX-T225"));
+    let inferred_program = parsed(&inferred_new);
+    assert!(verify::verify(&inferred_program).is_empty());
+    hir::validate(&hir::resolve(&inferred_program).unwrap()).unwrap();
     let oversized = r#"
 module test.vec_reserve;
 @id("app.main") fn main() -> Vec<i64> {

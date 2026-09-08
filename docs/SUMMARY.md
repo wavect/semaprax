@@ -78,6 +78,7 @@ Audience: all documentation readers.
 - [Refutable match](REFUTABLE-MATCH-V1.md)
 - [String operations](STRING-OPS-V1.md)
 - [IO Cursors v1](IO-CURSORS-V1.md)
+- [Typed Path v1](TYPED-PATH-V1.md)
 - [Native inline String settlement](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)
 - [Native String contents](NATIVE-STRING-CONTENTS-V1.md)
 - [Native owned-data internal String settlement](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)

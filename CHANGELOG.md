@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private consuming `for own` traversal over scalar iterators, including
+  generic callbacks and same-owner vector accumulation. The hidden Step
+  protocol preserves exact loop ownership with additive CleanupPlan v11 and
+  Graph v39. Fix native conditional owner materialization and Wasm borrowed
+  remainder/aliased-move handling. Focused interpreter, C11 O0/O2, Core-Wasm,
+  graph and ProgramRoot replay checks pass locally; hosted promotion is pending.
+
 - Compose private generic iterator helpers with scalar callbacks and step
   reconstruction. Source and HIR retain scoped `Iter<T>`/`IterStep<T>` ownership;
   existing Prelude v7, CleanupPlan v10, and Graph v38 remain authoritative.

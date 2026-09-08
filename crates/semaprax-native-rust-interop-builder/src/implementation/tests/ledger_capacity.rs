@@ -142,12 +142,15 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/resolve_expr_frame.rs"),
         include_str!("../../../../../src/hir/resolve_expr_reference.rs"),
         include_str!("../../../../../src/hir/resolve_for.rs"),
+        include_str!("../../../../../src/hir/resolve_for_own.rs"),
+        include_str!("../../../../../src/hir/iterator_loop.rs"),
         include_str!("../../../../../src/hir/resolve_pattern.rs"),
         include_str!("../../../../../src/hir/resolve_program.rs"),
         include_str!("../../../../../src/hir/resolve_statement.rs"),
     );
     let hir_validator = concat!(
         include_str!("../../../../../src/hir/validation.rs"),
+        include_str!("../../../../../src/hir/validation/iterator_loops.rs"),
         include_str!("../../../../../src/hir/validation/callable_types.rs"),
         include_str!("../../../../../src/hir/validation/closure.rs"),
         include_str!("../../../../../src/hir/validation/generic_variant.rs"),

@@ -92,6 +92,7 @@ impl SemanticProgram {
                 .is_some_and(|graph| {
                     graph.contains("\"schema\":\"semaprax.graph.v37\"")
                         || graph.contains("\"schema\":\"semaprax.graph.v38\"")
+                        || graph.contains("\"schema\":\"semaprax.graph.v39\"")
                 })
         });
         let (schema, domain): (&str, &[u8]) = if has_snapshot_closure || source_has_snapshot_closure

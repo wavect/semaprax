@@ -181,7 +181,7 @@ impl Resolver<'_> {
                         pending.push(Item::Expression(condition));
                         continue;
                     }
-                    Statement::For { span, .. } => {
+                    Statement::For { span, .. } | Statement::ForOwn { span, .. } => {
                         return Err(self.error(
                             "SPX-H006",
                             "nested for traversal reached bounded-loop HIR admission",

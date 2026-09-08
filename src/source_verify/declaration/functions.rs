@@ -708,6 +708,9 @@ fn check_omitted_generic_mappings(
                     }
                     Statement::For {
                         item, values, body, ..
+                    }
+                    | Statement::ForOwn {
+                        item, values, body, ..
                     } => {
                         check_omitted_generic_mappings(
                             program,

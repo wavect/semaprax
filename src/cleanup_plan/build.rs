@@ -696,7 +696,11 @@ impl<'a> PlanBuilder<'a> {
                 conditional_variants: Vec::new(),
             },
             pending_try_residuals: Vec::new(),
-            schema: schema::initial(&function.cleanup)?,
+            schema: if crate::hir::iterator_loop::function_contains(function) {
+                super::CLEANUP_PLAN_SCHEMA_V11
+            } else {
+                schema::initial(&function.cleanup)?
+            },
         };
         builder.seed_entry(root)?;
         Ok(builder)

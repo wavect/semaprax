@@ -975,3 +975,6 @@ mod iterator_failures;
 
 #[path = "generic_owned_function_runtime/generic_iterators.rs"]
 mod generic_iterators;
+
+#[path = "generic_owned_function_runtime/iterator_loops.rs"]
+mod iterator_loops;

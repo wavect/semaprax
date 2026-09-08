@@ -363,8 +363,10 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         include_str!("../../src/workspace_graph/expected_projection/declaration_cost.rs");
     let projection_identity_slots =
         include_str!("../../src/workspace_graph/expected_projection/identity_slots.rs");
+    let projection_statement_segment =
+        include_str!("../../src/workspace_graph/expected_projection/statement_segment.rs");
     let projection = format!(
-        "{projection_root}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}"
+        "{projection_root}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}\n{projection_statement_segment}"
     );
 
     assert!(root.contains("mod expected_projection;"));

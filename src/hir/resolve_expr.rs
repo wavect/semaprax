@@ -1381,6 +1381,16 @@ impl Resolver<'_> {
                                     path: format!("{path}.s{index}.condition"),
                                 });
                             }
+                            Statement::ForOwn { .. } => super::resolve_for_own::schedule(
+                                &mut frames,
+                                span,
+                                path.clone(),
+                                statements,
+                                tail,
+                                index,
+                                scope,
+                                resolved,
+                            ),
                             Statement::For {
                                 item, values, body, ..
                             } => super::resolve_for::schedule(
@@ -1683,30 +1693,16 @@ impl Resolver<'_> {
                         resolved,
                     });
                 }
-                Frame::BlockForBody {
-                    span,
-                    path,
-                    statements,
-                    tail,
-                    index,
-                    scope,
-                    resolved,
-                    source,
-                    element,
-                } => super::resolve_for::resume(
+                Frame::ForOwn(frame) => super::resolve_for_own::resume(
+                    self,
                     function,
+                    *frame,
                     &mut frames,
                     &mut results,
-                    span,
-                    path,
-                    statements,
-                    tail,
-                    index,
-                    scope,
-                    resolved,
-                    source,
-                    element,
-                ),
+                )?,
+                frame @ Frame::BlockForBody { .. } => {
+                    super::resolve_for_own::resume_vec(function, frame, &mut frames, &mut results)
+                }
                 Frame::FinishBlock {
                     span,
                     path,

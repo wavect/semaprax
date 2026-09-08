@@ -1277,6 +1277,7 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             | "semaprax.graph.v36"
             | "semaprax.graph.v37"
             | "semaprax.graph.v38"
+            | "semaprax.graph.v39"
     ) {
         return Err(Diagnostic::io(
             "SPX-G410",
@@ -1529,17 +1530,8 @@ pub(crate) fn graph_schema_from_parts_without_loans(
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> Result<&'static str, Diagnostic> {
-    let has_v10_iterator_cleanup = functions.iter().any(|function| {
-        function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V10
-    });
-    let has_nested_cleanup = functions.iter().any(|function| {
-        matches!(
-            function.cleanup_plan.schema,
-            crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V7
-                | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V8
-                | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V9
-        )
-    });
+    let has_v10_iterator_cleanup = functions.iter().any(nested_owned::has_iterator_cleanup);
+    let has_nested_cleanup = functions.iter().any(nested_owned::has_nested_cleanup);
     if (has_v10_iterator_cleanup || has_nested_cleanup)
         && native_import::declares_native_rust_import(interfaces)
     {
@@ -5594,3 +5586,7 @@ mod tests;
 #[cfg(test)]
 #[path = "graph/nested_owned_records_tests.rs"]
 mod nested_owned_records_tests;
+
+#[cfg(test)]
+#[path = "graph/iterator_loop_tests.rs"]
+mod iterator_loop_tests;

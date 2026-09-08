@@ -6,7 +6,8 @@ use crate::hir::{
 
 use super::{replay_error, type_needs_drop};
 use crate::cleanup_plan::{
-    CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V7,
+    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 
 fn nested_schema(schema: &str) -> bool {
@@ -16,6 +17,7 @@ fn nested_schema(schema: &str) -> bool {
             | CLEANUP_PLAN_SCHEMA_V8
             | CLEANUP_PLAN_SCHEMA_V9
             | CLEANUP_PLAN_SCHEMA_V10
+            | CLEANUP_PLAN_SCHEMA_V11
     )
 }
 
@@ -95,7 +97,10 @@ fn derive(
                     continue;
                 }
                 if crate::iterator_ops::is_iter(&ty) {
-                    if function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V10 {
+                    if !matches!(
+                        function.cleanup_plan.schema,
+                        CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11
+                    ) {
                         return Err(replay_error(
                             function,
                             "iterator cleanup requires schema v10",

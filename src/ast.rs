@@ -310,7 +310,8 @@ impl Drop for Program {
                                 expressions.push(*condition);
                                 expressions.push(*body);
                             }
-                            Statement::For { values, body, .. } => {
+                            Statement::For { values, body, .. }
+                            | Statement::ForOwn { values, body, .. } => {
                                 expressions.push(*values);
                                 expressions.push(*body);
                             }
@@ -1034,6 +1035,17 @@ pub enum Statement {
         body: Box<Expr>,
         span: Span,
     },
+    /// Consuming iterator traversal: `for own item in iterator { body }`.
+    ///
+    /// This stays distinct from [`Statement::For`] so the older Vec traversal
+    /// retains its exact syntax and cache codec representation.
+    ForOwn {
+        item: String,
+        item_span: Span,
+        values: Box<Expr>,
+        body: Box<Expr>,
+        span: Span,
+    },
 }
 
 impl Statement {
@@ -1045,7 +1057,7 @@ impl Statement {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
             Self::Unsafe { body, .. } => body,
-            Self::While { .. } | Self::For { .. } => {
+            Self::While { .. } | Self::For { .. } | Self::ForOwn { .. } => {
                 panic!("loop statements expose source/condition and body children")
             }
         }
@@ -1056,7 +1068,7 @@ impl Statement {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
             Self::Unsafe { body, .. } => body,
-            Self::While { .. } | Self::For { .. } => {
+            Self::While { .. } | Self::For { .. } | Self::ForOwn { .. } => {
                 panic!("loop statements expose source/condition and body children")
             }
         }
@@ -1067,7 +1079,7 @@ impl Statement {
     pub fn name(&self) -> &str {
         match self {
             Self::Let { name, .. } | Self::Assign { name, .. } => name,
-            Self::Unsafe { .. } | Self::While { .. } | Self::For { .. } => {
+            Self::Unsafe { .. } | Self::While { .. } | Self::For { .. } | Self::ForOwn { .. } => {
                 panic!("only let and assignment statements declare a binding")
             }
         }
@@ -1092,7 +1104,7 @@ impl Statement {
     pub fn child_count(&self) -> usize {
         match self {
             Self::Let { .. } | Self::Assign { .. } | Self::Unsafe { .. } => 1,
-            Self::While { .. } | Self::For { .. } => 2,
+            Self::While { .. } | Self::For { .. } | Self::ForOwn { .. } => 2,
         }
     }
 
@@ -1104,7 +1116,9 @@ impl Statement {
             Self::While {
                 condition, body, ..
             } => [condition.as_ref(), body.as_ref()].get(index).copied(),
-            Self::For { values, body, .. } => [values.as_ref(), body.as_ref()].get(index).copied(),
+            Self::For { values, body, .. } | Self::ForOwn { values, body, .. } => {
+                [values.as_ref(), body.as_ref()].get(index).copied()
+            }
         }
     }
 }

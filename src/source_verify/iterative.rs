@@ -123,6 +123,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             values,
             body,
             ..
+        }
+        | Statement::ForOwn {
+            item,
+            item_span,
+            values,
+            body,
+            ..
         } = next_statement
         {
             self.begin_for_statement(

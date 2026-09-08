@@ -27,7 +27,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     ));
                     return Err(());
                 }
-                Item::Statement(Statement::For { span, .. }) => {
+                Item::Statement(Statement::For { span, .. } | Statement::ForOwn { span, .. }) => {
                     self.diagnostics.push(error(
                         self.program,
                         "SPX-T284",
@@ -123,7 +123,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         frames.push(Frame::Expression(condition));
                         continue;
                     }
-                    Statement::For { span, .. } => {
+                    Statement::For { span, .. } | Statement::ForOwn { span, .. } => {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T284",

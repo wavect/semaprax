@@ -1034,3 +1034,73 @@ module fixture.app;
     )
     .is_err());
 }
+
+#[test]
+fn generic_iterator_loop_program_root_retains_private_v39_instance() {
+    let fixture = Fixture::owned_vec("generic-iterator-loop-root", false);
+    let source = r#"
+module fixture.app;
+@id("fixture.fold") fn fold<T>(values:own Iter<T>,expected:T)->i64{
+    let mut count=0usize;
+    let mut exact=true;
+    for own item in values {
+        count=count+1usize;
+        exact=exact && item==expected;
+        0
+    }
+    if exact && count==2usize {1}else{0}
+}
+@id("fixture.main") fn main()->i64{
+    let mut values=vec_with_capacity<i64>(2usize);
+    values=vec_push<i64>(values,7);
+    values=vec_push<i64>(values,7);
+    fold<i64>(vec_into_iter<i64>(values),7)
+}
+@id("fixture.public") fn published()->i64{0}
+"#;
+    let path = fixture.0.join("src/app.spx");
+    let parsed = semaprax::parse(source, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let semantic: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    let closures = semantic["payload"]["generic_instance_closures"]
+        .as_array()
+        .unwrap();
+    assert!(!closures.is_empty());
+    assert!(closures.iter().any(|closure| {
+        let graph: Value = serde_json::from_str(closure["graph"].as_str().unwrap()).unwrap();
+        graph["schema"] == "semaprax.graph.v39"
+            && graph["generic_instance_ownership"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|instance| {
+                    instance["template"] == "fixture.fold"
+                        && instance["cleanup_plan_schema"] == "semaprax.cleanup-plan.v11"
+                })
+    }));
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
+
+    let changed = source.replace("values),7)", "values),8)");
+    assert_ne!(source, changed);
+    let changed_program = semaprax::parse(&changed, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&changed_program)).unwrap();
+    let changed_revision = fixture.revision();
+    let changed_workspace = changed_revision.canonical_workspace_revision().unwrap();
+    assert!(ProgramRoot::replay(
+        &changed_workspace,
+        root.program_root_digest(),
+        root.to_json().as_bytes()
+    )
+    .is_err());
+}

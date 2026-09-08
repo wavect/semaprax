@@ -4,23 +4,8 @@ use super::*;
 
 mod command_io;
 
-pub(super) fn source_capacity_functions(program: &Program) -> Vec<(Option<&str>, &Function)> {
-    let mut functions = program
-        .functions
-        .iter()
-        .map(|function| (None, function))
-        .collect::<Vec<_>>();
-    for declaration in &program.types {
-        if let TypeDeclarationKind::Class { methods, .. } = &declaration.kind {
-            functions.extend(
-                methods
-                    .iter()
-                    .map(|method| (Some(declaration.name.as_str()), method)),
-            );
-        }
-    }
-    functions
-}
+mod functions;
+pub(super) use functions::source_capacity_functions;
 
 pub(super) struct SourceCapacityContext<'a> {
     pub(super) types: &'a TypeTable<'a>,
@@ -737,7 +722,8 @@ pub(super) fn source_transcript_source_from_roots(
                         }
                         Statement::Unsafe { .. }
                         | Statement::While { .. }
-                        | Statement::For { .. } => {}
+                        | Statement::For { .. }
+                        | Statement::ForOwn { .. } => {}
                     }
                 }
                 if let Some((name, value)) = pending {
@@ -1414,7 +1400,8 @@ fn source_capacity_expr(
                             body,
                             ..
                         }
-                        | Statement::For { values, body, .. } => {
+                        | Statement::For { values, body, .. }
+                        | Statement::ForOwn { values, body, .. } => {
                             frames.push(Frame::BlockAfter {
                                 statements,
                                 next: next + 1,

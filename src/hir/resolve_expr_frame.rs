@@ -25,6 +25,7 @@ use super::nodes::{
 use super::Binding;
 
 pub(super) enum Frame<'expr> {
+    ForOwn(Box<super::resolve_for_own::ForOwnFrame<'expr>>),
     Enter {
         expr: &'expr Expr,
         bindings: Rc<BTreeMap<String, Binding>>,
@@ -404,7 +405,11 @@ pub(super) fn frame_owned_capacity(
     frame: &Frame<'_>,
     seen_scopes: &mut std::collections::HashSet<*const BTreeMap<String, Binding>>,
 ) -> usize {
+    if let Frame::ForOwn(frame) = frame {
+        return super::resolve_for_own::capacity(frame, seen_scopes);
+    }
     let path = match frame {
+        Frame::ForOwn(_) => unreachable!("handled above"),
         Frame::FinishInvoke { path, .. }
         | Frame::Enter { path, .. }
         | Frame::FinishNativeCall { path, .. }

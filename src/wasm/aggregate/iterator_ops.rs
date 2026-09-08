@@ -40,6 +40,16 @@ impl Emitter<'_> {
                     .ok_or_else(|| error("match payload pointer overflows u32"))?,
             };
             let source = value_at(pointer, field.ty.clone(), self.program)?;
+            if mode == crate::hir::ResolvedMatchMode::Borrow
+                && crate::iterator_ops::is_iter(&field.ty)
+            {
+                // A borrowed iterator field is an alias into the authenticated
+                // active Step payload. It must not pass through the consuming
+                // iterator move path or clear the loop-carried remainder.
+                self.bindings
+                    .insert(pattern_field.binding.id.clone(), source);
+                continue;
+            }
             let destination = if is_aggregate(self.program, &field.ty)? {
                 Value::Aggregate {
                     pointer: Pointer {
@@ -91,6 +101,19 @@ impl Emitter<'_> {
         source: Pointer,
         ty: &ResolvedType,
     ) -> Result<bool, Diagnostic> {
+        if destination.local == source.local && destination.offset == source.offset {
+            if crate::iterator_ops::is_step(ty) {
+                // Even an aliased materialization must authenticate the tag
+                // before a later match is allowed to inspect its payload.
+                self.emit_pointer(source);
+                self.output.extend([0x28, 0x02, 0x00, 0x41, 0x02, 0x4f]);
+                self.trap_if();
+                return Ok(true);
+            }
+            if crate::iterator_ops::is_iter(ty) {
+                return Ok(true);
+            }
+        }
         if crate::iterator_ops::is_iter(ty) {
             for offset in [ITER_HANDLE_OFFSET, ITER_CURSOR_OFFSET] {
                 self.emit_pointer(Pointer {

@@ -102,6 +102,7 @@ mod resolve_expr_frame;
 #[cfg(test)]
 mod resolve_expr_reference;
 mod resolve_for;
+mod resolve_for_own;
 mod resolve_pattern;
 mod resolve_program;
 mod resolve_statement;
@@ -631,6 +632,7 @@ mod record_tests;
 pub(crate) mod generic_collection;
 mod generic_inference;
 pub(crate) mod generic_result;
+pub(crate) mod iterator_loop;
 
 pub(crate) mod generic_mapping;
 

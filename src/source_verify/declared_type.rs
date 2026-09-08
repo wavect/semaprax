@@ -839,7 +839,8 @@ fn substitute_forwarded_call_arguments(
                         substitute_forwarded_call_arguments(function, arguments, condition)?;
                         substitute_forwarded_call_arguments(function, arguments, body)?;
                     }
-                    crate::ast::Statement::For { values, body, .. } => {
+                    crate::ast::Statement::For { values, body, .. }
+                    | crate::ast::Statement::ForOwn { values, body, .. } => {
                         substitute_forwarded_call_arguments(function, arguments, values)?;
                         substitute_forwarded_call_arguments(function, arguments, body)?;
                     }

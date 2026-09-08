@@ -100,7 +100,8 @@ pub(in crate::implementation) fn scan_ast_capacity<'a>(
                                 // it is charged as one local binding of that
                                 // width. Charging it as nothing would let a
                                 // `for` binding escape the builder bound.
-                                crate::ast::Statement::For { item, .. } => {
+                                crate::ast::Statement::For { item, .. }
+                                | crate::ast::Statement::ForOwn { item, .. } => {
                                     Some((count.checked_add(1)?, bytes.checked_add(item.len())?))
                                 }
                                 crate::ast::Statement::Unsafe { .. }

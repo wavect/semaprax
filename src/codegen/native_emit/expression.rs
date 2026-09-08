@@ -1203,6 +1203,19 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 // The expression has already been evaluated;
                                 // its zero-sized Copy value has no C storage.
                                 "UINT8_C(0)".to_owned()
+                            } else if crate::iterator_ops::is_step(&binding.ty) {
+                                // The cleanup plan has already transferred the
+                                // conditional Iter leaf. Keep only the checked
+                                // tag and Copy item in the loop carrier.
+                                let local = format!("spx_local_{}", self.next_local);
+                                self.next_local += 1;
+                                self.line(&format!(
+                                    "{} {local} = {{0}};",
+                                    c_value_type(self.program, self.resource_abi, &binding.ty)?,
+                                ));
+                                self.copy_variant_join_carrier(&local, &value.code, &binding.ty)?;
+                                self.line(&format!("(void){local};"));
+                                local
                             } else if self.record_contains_owned_bytes(&binding.ty)? {
                                 let local = format!("spx_local_{}", self.next_local);
                                 self.next_local += 1;
@@ -1321,6 +1334,25 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                                 self.line(line);
                                             }
                                         }
+                                        continue;
+                                    }
+                                    if crate::iterator_ops::is_step(&binding.ty) {
+                                        let target_name = self
+                                            .variables
+                                            .get(&binding.id)
+                                            .ok_or_else(|| {
+                                                backend_error(format!(
+                                                    "assignment target `{}` has no native local",
+                                                    binding.id
+                                                ))
+                                            })?
+                                            .name
+                                            .clone();
+                                        self.copy_variant_join_carrier(
+                                            &target_name,
+                                            &value.code,
+                                            &binding.ty,
+                                        )?;
                                         continue;
                                     }
                                     let target =

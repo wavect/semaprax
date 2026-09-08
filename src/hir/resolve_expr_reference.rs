@@ -976,23 +976,14 @@ impl Resolver<'_> {
                                 span: condition.span.merge(*span),
                             });
                         }
-                        Statement::For {
-                            item,
-                            item_span,
-                            values,
-                            body,
-                            span,
-                        } => resolved_statements.push(super::resolve_for::resolve_reference(
-                            self,
-                            function,
-                            &scope,
-                            &statement_path,
-                            item,
-                            *item_span,
-                            values,
-                            body,
-                            *span,
-                        )?),
+                        Statement::ForOwn { .. } | Statement::For { .. } => resolved_statements
+                            .push(super::resolve_for_own::resolve_statement_reference(
+                                self,
+                                function,
+                                &scope,
+                                &statement_path,
+                                statement,
+                            )?),
                     }
                 }
                 let tail = self.resolve_expr_recursive_reference(

@@ -374,7 +374,8 @@ fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Resul
                         }
                         Statement::Assign { field: None, .. }
                         | Statement::While { .. }
-                        | Statement::For { .. } => {}
+                        | Statement::For { .. }
+                        | Statement::ForOwn { .. } => {}
                         Statement::Assign { field: Some(_), .. } | Statement::Unsafe { .. } => {
                             return Err(invalid(
                                 "movement does not relocate field mutation or audited boundaries",

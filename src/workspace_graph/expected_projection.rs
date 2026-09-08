@@ -24,6 +24,8 @@ pub(super) mod cost;
 mod declaration_cost;
 #[path = "expected_projection/identity_slots.rs"]
 mod identity_slots;
+#[path = "expected_projection/statement_segment.rs"]
+mod statement_segment;
 use cost::{ExpandedDefaultCost, GenericInstanceCost, StructuralCost};
 use declaration_cost::{
     ast_field_cost, ast_function_contract_cost, ast_function_cost, ast_function_signature_cost,
@@ -1591,13 +1593,7 @@ fn collect_expression_type_edges(
                     // children keep the paths `hir::resolve_for::lower` gives
                     // them rather than `.values` and `.body`.
                     // `visit_ast_call_sites` names the same two.
-                    let segment = match (statement, child_index) {
-                        (crate::ast::Statement::While { .. }, 0) => "condition",
-                        (crate::ast::Statement::While { .. }, _) => "body",
-                        (crate::ast::Statement::For { .. }, 0) => "value.s0.value.arg.0",
-                        (crate::ast::Statement::For { .. }, _) => "value.s2.body.s1.value",
-                        _ => "value",
-                    };
+                    let segment = statement_segment::child(statement, child_index);
                     collect_expression_type_edges(
                         program,
                         owner,

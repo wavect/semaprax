@@ -35,6 +35,16 @@ pub(crate) fn slot(
         })
 }
 pub(crate) fn profile(program: &ResolvedProgram, template: &ResolvedFunctionTemplate) -> bool {
+    if super::generic_collection::profile(template) {
+        let mut pending = vec![&template.body];
+        while let Some(expression) = pending.pop() {
+            if matches!(&expression.ty, ResolvedType::Nominal { declaration, .. } if declaration.as_str() == crate::iterator_ops::STEP_ID)
+            {
+                return true;
+            }
+            super::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+        }
+    }
     if super::generic_collection::profile(template) && std::iter::once(&template.return_type).chain(template.params.iter().map(|p| &p.ty)).any(|ty| matches!(ty, ResolvedType::Nominal { declaration, .. } if declaration.as_str() == crate::iterator_ops::STEP_ID)) { return true; }
     let carrier = |ty: &ResolvedType| {
         slot(

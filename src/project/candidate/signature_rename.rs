@@ -181,6 +181,9 @@ impl Rename<'_> {
                         }
                         Statement::For {
                             item, values, body, ..
+                        }
+                        | Statement::ForOwn {
+                            item, values, body, ..
                         } => {
                             self.expression(values, &local, next)?;
                             let mut body_scope = local.clone();

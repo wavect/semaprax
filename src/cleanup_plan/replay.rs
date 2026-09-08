@@ -25,9 +25,9 @@ use super::{
     BlockId, CleanupPlace, CleanupRegionId, CleanupResultSource, CleanupTerminator,
     CleanupTransition, ConditionalVariantCase, ConditionalVariantEntry, EdgeCondition, EdgeId,
     ExitContinuation, ExitTarget, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
-    StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V2,
-    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6,
-    CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11,
+    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
+    CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 mod path_summary;
 use path_summary::{
@@ -2638,6 +2638,7 @@ fn validate_blocks_and_edges(
                             | CLEANUP_PLAN_SCHEMA_V8
                             | CLEANUP_PLAN_SCHEMA_V9
                             | CLEANUP_PLAN_SCHEMA_V10
+                            | CLEANUP_PLAN_SCHEMA_V11
                     ) && matches!(
                         plan.edges[edge.0 as usize].condition,
                         EdgeCondition::VariantCase { matches: true, .. }

@@ -9,7 +9,10 @@ pub(crate) fn checked_source_callable_closures(
     if !sources.iter().any(|source| {
         matches!(
             source.source_graph_schema(),
-            "semaprax.graph.v36" | "semaprax.graph.v37" | "semaprax.graph.v38"
+            "semaprax.graph.v36"
+                | "semaprax.graph.v37"
+                | "semaprax.graph.v38"
+                | "semaprax.graph.v39"
         )
     }) {
         return Ok(Vec::new());
@@ -20,7 +23,10 @@ pub(crate) fn checked_source_callable_closures(
         let parsed = crate::parse(source.source(), source.path()).map_err(|e| vec![e])?;
         if matches!(
             source.source_graph_schema(),
-            "semaprax.graph.v36" | "semaprax.graph.v37" | "semaprax.graph.v38"
+            "semaprax.graph.v36"
+                | "semaprax.graph.v37"
+                | "semaprax.graph.v38"
+                | "semaprax.graph.v39"
         ) && parsed
             .functions
             .iter()
@@ -189,6 +195,27 @@ pub(super) fn visit_ast_call_sites(
                             body,
                             &crate::bounded_output::budgeted_format(format_args!(
                                 "{path}.s{index}.value.s2.body.s1.value"
+                            )),
+                            visit,
+                        )?;
+                    }
+                    crate::ast::Statement::ForOwn { values, body, .. } => {
+                        // Consuming iterator traversal has a distinct HIR
+                        // lowering. Its iterator source is staged at `.s0`,
+                        // and the yielded-item binding is at
+                        // `.s1.body.s0.value.arm.1.binding.0`; its authored
+                        // body follows that binding at `.arm.1.value.s0.value`.
+                        visit_ast_call_sites(
+                            values,
+                            &crate::bounded_output::budgeted_format(format_args!(
+                                "{path}.s{index}.value.s0.value.arg.0"
+                            )),
+                            visit,
+                        )?;
+                        visit_ast_call_sites(
+                            body,
+                            &crate::bounded_output::budgeted_format(format_args!(
+                                "{path}.s{index}.value.s1.body.s0.value.arm.1.value.s0.value"
                             )),
                             visit,
                         )?;

@@ -281,9 +281,11 @@ pub(super) fn ast_child_identity_path_increment(
                     complex && child_index % 2 == 1,
                 ) {
                     (crate::ast::Statement::While { .. }, false) => ".condition",
-                    (crate::ast::Statement::For { .. }, false) => ".values",
+                    (crate::ast::Statement::For { .. }, false)
+                    | (crate::ast::Statement::ForOwn { .. }, false) => ".values",
                     (crate::ast::Statement::While { .. }, true)
                     | (crate::ast::Statement::For { .. }, true)
+                    | (crate::ast::Statement::ForOwn { .. }, true)
                     | (crate::ast::Statement::Unsafe { .. }, _) => ".body",
                     _ => ".value",
                 };

@@ -152,7 +152,8 @@ pub(super) fn ast_expr_cost(
                 match statement {
                     crate::ast::Statement::Unsafe { audit, .. } => cost.string(audit)?,
                     crate::ast::Statement::While { .. } => cost.string("")?,
-                    crate::ast::Statement::For { item, .. } => cost.string(item)?,
+                    crate::ast::Statement::For { item, .. }
+                    | crate::ast::Statement::ForOwn { item, .. } => cost.string(item)?,
                     crate::ast::Statement::Let { name, .. }
                     | crate::ast::Statement::Assign { name, .. } => cost.string(name)?,
                 }

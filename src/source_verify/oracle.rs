@@ -1161,6 +1161,44 @@ pub(super) fn check_expr(
                             diagnostics,
                         );
                     }
+                    Statement::ForOwn { item, item_span, values, body, .. } => {
+                        let actual = check_expr(program, current, values, &mut scope, functions, types, result_type, allow_moves, diagnostics);
+                        let element = actual.as_ref().and_then(|actual| match &actual.ty {
+                            Type::Named { name, arguments } if name == "Iter" && actual.mode == ParamMode::Own
+                                && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)
+                                    || crate::source_verify::declared_type::generic_collection::slot(current, &actual.ty)) => Some(arguments[0].clone()),
+                            _ => None,
+                        });
+                        if element.is_none() {
+                            diagnostics.push(error(program, "SPX-T284", "for own traversal requires an owned Iter<T> for a Copy scalar T", values.span));
+                        }
+                        if !allow_moves {
+                            diagnostics.push(error(program, "SPX-T253", "for own statements are not allowed in contract expressions", values.span));
+                        } else if element.is_some() {
+                            mark_value_sources_moved(program, values, &mut scope, types, diagnostics);
+                        }
+                        let baseline = scope.clone();
+                        let _ = reject_while_disallowed_oracle(program, body, functions, diagnostics);
+                        let item_inserted = !scope.contains_key(item);
+                        if !item_inserted {
+                            diagnostics.push(error(program, "SPX-T209", format!("loop item `{item}` shadows an existing value"), *item_span));
+                        } else if let Some(element) = element {
+                            scope.insert(item.clone(), Binding { ty:element, mode:ParamMode::Value,
+                                availability:Availability::Available, moved_places:HashMap::new(), definitely_partial:HashSet::new(),
+                                native_unit_discard:false, mutable:false, active_loans:BTreeSet::new(), borrow_origin:None });
+                        }
+                        let _ = check_expr(program, current, body, &mut scope, functions, types, result_type, allow_moves, diagnostics);
+                        if item_inserted { scope.remove(item); }
+                        let mut names = baseline.keys().collect::<Vec<_>>();
+                        names.sort();
+                        for name in names {
+                            let before = &baseline[name];
+                            if scope.get(name).is_none_or(|after| after.availability != before.availability
+                                || after.moved_places != before.moved_places || after.definitely_partial != before.definitely_partial) {
+                                diagnostics.push(error(program, "SPX-T252", format!("ownership of `{name}` changes inside a for own loop"), body.span));
+                            }
+                        }
+                    }
                     Statement::For {
                         item, item_span, values, body, ..
                     } => {

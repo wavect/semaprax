@@ -464,6 +464,15 @@ workspace prelude binding, cache tokens, and ProgramRoot retain the selected
 types, consuming calls, cleanup schema, and exact v7 contract. Native and Wasm
 lowering consume that checked representation; the profile has no public ABI.
 
+`src/hir/resolve_for_own.rs` lowers consuming traversal to one hidden Step slot,
+a borrowed Done/Yield condition, and an owning Step replacement. The independent
+`src/hir/iterator_loop.rs` recognizer authenticates the mutable seed and complete
+loop protocol; `src/hir/validation/iterator_loops.rs` preserves the ordinary
+body admission and exact ownership boundary. Cleanup build and replay select
+v11, and graph selection independently binds it through v39. Wasm borrowed
+remainder bindings alias the active payload; consuming moves may clear only a
+distinct source slot. Native conditional owners stay in canonical plan storage.
+
 Function Values v2's private generic-collection profile is owned by
 `src/source_verify/declared_type/generic_collection.rs` and
 `src/hir/generic_collection.rs`; `src/hir/validation/generic_template.rs`

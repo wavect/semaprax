@@ -238,7 +238,8 @@ mod ast {
         1 => Assign { name, name_span, field, value, span },
         2 => Unsafe { audit, audit_span, body, span },
         3 => While { condition, body, span },
-        4 => For { item, item_span, values, body, span }
+        4 => For { item, item_span, values, body, span },
+        5 => ForOwn { item, item_span, values, body, span }
     });
     codec_enum!(UnaryOp { 0 => Neg, 1 => Not });
     codec_enum!(BinaryOp {

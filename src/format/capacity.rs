@@ -328,6 +328,10 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                             .len()
                             .saturating_add(cached_rendered(values, 0))
                             .saturating_add(9),
+                        Statement::ForOwn { item, values, .. } => item
+                            .len()
+                            .saturating_add(cached_rendered(values, 0))
+                            .saturating_add(13),
                     };
                     total = total.saturating_add(part);
                     parts.push(part);

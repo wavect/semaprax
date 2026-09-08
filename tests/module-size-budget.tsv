@@ -15,7 +15,6 @@ src/codegen/native_callable_provider_v3.rs	1678
 src/codegen/native_emit/expression.rs	2708
 src/codegen/native_emit/mod.rs	2469
 src/economic_agent/tests.rs	1914
-src/format.rs	1509
 src/graph.rs	5596
 src/hir/resolve_expr.rs	3113
 src/hir/resolve_expr_reference.rs	1846

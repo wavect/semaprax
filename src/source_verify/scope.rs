@@ -118,6 +118,7 @@ pub(super) enum VerifierFrame<'a> {
         item: &'a str,
         item_inserted: bool,
         source: Option<&'a str>,
+        baseline: Option<HashMap<String, Binding>>,
     },
     ResumeBlockTail {
         parent_scope: usize,

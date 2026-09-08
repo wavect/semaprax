@@ -199,6 +199,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     item,
                     item_inserted,
                     source,
+                    baseline,
                 } => self.frame_resume_for_body(
                     expression,
                     statements,
@@ -210,6 +211,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     item,
                     item_inserted,
                     source,
+                    baseline,
                 )?,
                 VerifierFrame::ResumeBlockTail {
                     parent_scope,

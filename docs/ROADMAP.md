@@ -69,8 +69,9 @@ contract failure, and forged-cursor rejection. The focused Core-Wasm corpus
 also passes, including repaired match-scope settlement. The authored
 Linux selector is `Require Owning Iterators v1 identity, replay, and backend
 settlement`; it is not hosted evidence. Iterator interfaces, lazy adapters,
-owning payloads, consuming loop syntax, public ABI, and the broader LANG-07
-collection goal remain open.
+owning payloads, public ABI, and the broader LANG-07 collection goal remain open.
+The additive consuming-loop tranche uses a hidden Step carrier with Graph v39
+and CleanupPlan v11; its local evidence is tracked in the completion matrix.
 
 ## Current priority: post-v0.2 promotion boundaries
 

@@ -16,6 +16,8 @@ mod agents;
 mod closures;
 mod depth;
 mod entry;
+#[path = "parser/for_loop.rs"]
+mod for_loop;
 mod hints;
 mod lookahead;
 mod patterns;
@@ -1443,21 +1445,7 @@ impl Parser {
     }
 
     fn for_statement(&mut self) -> Result<Statement, Diagnostic> {
-        let start = self.keyword("for")?.span;
-        let (item, item_span) = self.ident("loop item binding")?;
-        self.keyword("in")?;
-        let values = self
-            .expression_with_record_literals(0, false)
-            .map_err(|diagnostic| self.range_for_hint(diagnostic))?;
-        let body = self.block("`for` body")?;
-        let span = start.merge(body.span);
-        Ok(Statement::For {
-            item,
-            item_span,
-            values: Box::new(values),
-            body: Box::new(body),
-            span,
-        })
+        for_loop::parse(self)
     }
 
     /// Unsafe Boundary Mechanics v1: an unsafe boundary statement is

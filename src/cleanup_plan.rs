@@ -29,6 +29,7 @@ pub const CLEANUP_PLAN_SCHEMA_V8: &str = "semaprax.cleanup-plan.v8";
 pub const CLEANUP_PLAN_SCHEMA_V9: &str = "semaprax.cleanup-plan.v9";
 
 pub const CLEANUP_PLAN_SCHEMA_V10: &str = "semaprax.cleanup-plan.v10";
+pub const CLEANUP_PLAN_SCHEMA_V11: &str = "semaprax.cleanup-plan.v11";
 
 macro_rules! numeric_id {
     ($name:ident) => {

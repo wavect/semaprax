@@ -158,6 +158,9 @@ fn visit(
                     }
                     Statement::For {
                         item, values, body, ..
+                    }
+                    | Statement::ForOwn {
+                        item, values, body, ..
                     } => {
                         visit(values, &mut block, functions, output, universe);
                         let mut loop_scope = block.clone();

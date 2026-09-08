@@ -86,7 +86,8 @@ fn expression(
                         self::expression(condition, next, nodes, visit)?;
                         self::expression(body, next, nodes, visit)?;
                     }
-                    Statement::For { values, body, .. } => {
+                    Statement::For { values, body, .. }
+                    | Statement::ForOwn { values, body, .. } => {
                         self::expression(values, next, nodes, visit)?;
                         self::expression(body, next, nodes, visit)?;
                     }

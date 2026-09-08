@@ -393,7 +393,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             }
             // While statements never route through this frame:
             // they complete through ResumeWhileBody instead.
-            Statement::While { .. } | Statement::For { .. } => {}
+            Statement::While { .. } | Statement::For { .. } | Statement::ForOwn { .. } => {}
         }
         // Most blocks have no borrowed local at all. Avoid rescanning every
         // accumulated scalar binding after each statement in that common
@@ -525,25 +525,41 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         body: &'p Expr,
     ) -> Result<(), Diagnostic> {
         let actual = self.values.pop().unwrap_or(None);
+        let consuming = matches!(statements[index], Statement::ForOwn { .. });
         let source = match &values.kind {
-            crate::ast::ExprKind::Var(name) => Some(name.as_str()),
+            crate::ast::ExprKind::Var(name) if !consuming => Some(name.as_str()),
             _ => None,
         };
         let element = actual.as_ref().and_then(|actual| match &actual.ty {
             Type::Named { name, arguments }
-                if name == "Vec" && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)) =>
-            {
-                Some(arguments[0].clone())
-            }
+                if name == (if consuming { "Iter" } else { "Vec" })
+                    && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)
+                        || (consuming && crate::source_verify::declared_type::generic_collection::slot(self.current, &actual.ty)))
+                    && (!consuming || actual.mode == ParamMode::Own) => Some(arguments[0].clone()),
             _ => None,
         });
-        if source.is_none() || element.is_none() {
-            self.diagnostics.push(error(
-                self.program,
-                "SPX-T284",
-                "for traversal requires a simple immutable binding of exact Vec<T> for a Copy scalar T",
-                values.span,
-            ));
+        if (!consuming && source.is_none()) || element.is_none() {
+            self.diagnostics.push(error(self.program, "SPX-T284",
+                if consuming { "for own traversal requires an owned Iter<T> for a Copy scalar T" }
+                else { "for traversal requires a simple immutable binding of exact Vec<T> for a Copy scalar T" }, values.span));
+        }
+        if consuming {
+            if !self.allow_moves {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T253",
+                    "for own statements are not allowed in contract expressions",
+                    values.span,
+                ));
+            } else if element.is_some() {
+                mark_value_sources_moved(
+                    self.program,
+                    values,
+                    &mut self.scopes[block_scope].bindings,
+                    self.types,
+                    self.diagnostics,
+                );
+            }
         }
         if let Some(source) = source {
             if self.scopes[block_scope]
@@ -560,6 +576,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             }
             let _ = self.reject_for_body_disallowed(body, source);
         }
+        let baseline = consuming.then(|| self.scopes[block_scope].bindings.clone());
         let _ = self.reject_while_disallowed(body);
         let item_inserted = !self.scopes[block_scope].bindings.contains_key(item);
         if !item_inserted {
@@ -600,6 +617,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 item,
                 item_inserted,
                 source,
+                baseline,
             });
         self.frames
             .push(crate::source_verify::scope::VerifierFrame::Enter {
@@ -622,10 +640,36 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         item: &str,
         item_inserted: bool,
         source: Option<&str>,
+        baseline: Option<HashMap<String, Binding>>,
     ) -> Result<(), Diagnostic> {
         let _ = self.values.pop();
         if item_inserted {
             self.scopes[block_scope].bindings.remove(item);
+        }
+        if let Some(baseline) = baseline {
+            let mut names = baseline.keys().collect::<Vec<_>>();
+            names.sort();
+            for name in names {
+                let before = &baseline[name];
+                if self.scopes[block_scope]
+                    .bindings
+                    .get(name)
+                    .is_none_or(|after| {
+                        after.availability != before.availability
+                            || after.moved_places != before.moved_places
+                            || after.definitely_partial != before.definitely_partial
+                    })
+                {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T252",
+                        format!("ownership of `{name}` changes inside a for own loop"),
+                        statements[index]
+                            .child(1)
+                            .map_or(Span::default(), |body| body.span),
+                    ));
+                }
+            }
         }
         if let Some(source) = source {
             let changed = self.scopes[block_scope]

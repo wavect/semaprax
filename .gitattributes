@@ -6,6 +6,7 @@
 *.json text eol=lf
 *.js text eol=lf
 *.toml text eol=lf
+*.contract text eol=lf
 Cargo.lock text eol=lf
 *.tsv text eol=lf
 *.yml text eol=lf

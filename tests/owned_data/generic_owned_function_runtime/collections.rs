@@ -125,10 +125,9 @@ fn run_native_collections(parsed: &semaprax::ast::Program, expected: Expected) {
     let generated = codegen::emit_c(parsed).unwrap();
     assert_eq!(generated, codegen::emit_c(parsed).unwrap());
     let mut ownership_surface = generated.clone();
-    for admitted in ["memcpy(entry->domain_storage, status.domain_id, domain_size);"] {
-        assert_eq!(ownership_surface.matches(admitted).count(), 1);
-        ownership_surface = ownership_surface.replacen(admitted, "", 1);
-    }
+    let admitted = "memcpy(entry->domain_storage, status.domain_id, domain_size);";
+    assert_eq!(ownership_surface.matches(admitted).count(), 1);
+    ownership_surface = ownership_surface.replacen(admitted, "", 1);
     assert!(!ownership_surface.contains("memcpy("));
     let tracked = generated
         .replace("malloc(", "spx_test_malloc(")

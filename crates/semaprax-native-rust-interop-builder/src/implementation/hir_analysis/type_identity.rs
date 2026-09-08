@@ -67,6 +67,9 @@ pub(in crate::implementation) fn type_identity_metrics(
                     return Err(b109("max_builder_bytes", MAX_BUILDER_BYTES));
                 }
                 let metric = match ty {
+                    ResolvedType::Function { .. } => {
+                        return Err(b107("scalar value signature required"));
+                    }
                     ResolvedType::Unit => Some(leaf("unit".len())),
                     ResolvedType::I64 => Some(leaf("i64".len())),
                     ResolvedType::I32 => Some(leaf("i32".len())),
@@ -214,6 +217,9 @@ pub(in crate::implementation) fn fingerprint_type_identity(
     while let Some(frame) = frames.pop() {
         match frame {
             TypeIdentityFrame::Enter(ty) => match ty {
+                ResolvedType::Function { .. } => {
+                    return Err(b107("scalar value signature required"));
+                }
                 ResolvedType::Unit
                 | ResolvedType::I64
                 | ResolvedType::I32
@@ -454,6 +460,19 @@ pub(in crate::implementation) fn fingerprint_expression_types_scratch(
                 })?;
                 maximum = maximum.max(type_identity_scratch_upper(&expression.ty)?);
                 match &expression.kind {
+                    ResolvedExprKind::FunctionReference { .. } => {}
+                    ResolvedExprKind::Invoke { callable, args } => {
+                        push(
+                            &mut stack,
+                            &mut stack_len,
+                            Frame::Exprs(args, 0, child_depth),
+                        )?;
+                        push(
+                            &mut stack,
+                            &mut stack_len,
+                            Frame::Expr(callable, child_depth),
+                        )?;
+                    }
                     ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)

@@ -214,6 +214,13 @@ fn reported_binding_ids_equal_the_resolved_hir_inventory() {
                     collect_expr(&arm.value, ids);
                 }
             }
+            hir::ResolvedExprKind::FunctionReference { .. } => {}
+            hir::ResolvedExprKind::Invoke { callable, args } => {
+                collect_expr(callable, ids);
+                for argument in args {
+                    collect_expr(argument, ids);
+                }
+            }
             hir::ResolvedExprKind::Call { args, .. } => {
                 for argument in args {
                     collect_expr(argument, ids);

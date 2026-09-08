@@ -19,6 +19,7 @@ fn hir_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
         | ResolvedType::Bytes
         | ResolvedType::Str
         | ResolvedType::SliceU8 => Some(0),
+        ResolvedType::Function { .. } => None,
         ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
         ResolvedType::Nominal {
             declaration,
@@ -150,6 +151,11 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
             .and_then(|bytes| bytes.checked_add(hir_type_owned_capacity(&expression.ty)?))
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         match &expression.kind {
+            ResolvedExprKind::FunctionReference { .. } => {}
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.push(callable.as_ref());
+                pending.extend(args);
+            }
             ResolvedExprKind::ArrayU8(values) => {
                 total = total
                     .checked_add(values.capacity())

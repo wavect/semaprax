@@ -142,6 +142,14 @@ pub(in crate::implementation) fn resolved_expression_child<'a>(
         Some((path_index, child))
     };
     match &expression.kind {
+        ResolvedExprKind::Invoke { callable, args } => {
+            let child = if index == 0 {
+                callable.as_ref()
+            } else {
+                args.get(index.checked_sub(1)?)?
+            };
+            advance(index.checked_add(1)?, index, child)
+        }
         ResolvedExprKind::Call { args, .. } => {
             advance(index.checked_add(1)?, index, args.get(index)?)
         }
@@ -272,7 +280,8 @@ pub(in crate::implementation) fn resolved_expression_child<'a>(
             };
             advance(index.checked_add(1)?, index, child)
         }
-        ResolvedExprKind::Int(_)
+        ResolvedExprKind::FunctionReference { .. }
+        | ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)

@@ -391,7 +391,8 @@ fn ast_resource_leaf_count(
                 | crate::ast::Type::String
                 | crate::ast::Type::Str
                 | crate::ast::Type::ArrayU8(_)
-                | crate::ast::Type::SliceU8,
+                | crate::ast::Type::SliceU8
+                | crate::ast::Type::Function { .. },
                 _,
             ) => {
                 values[value_len] = 0;

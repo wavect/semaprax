@@ -190,7 +190,8 @@ fn observed_type_bytes(ty: &ResolvedType) -> usize {
         | ResolvedType::ArrayU8(_)
         | ResolvedType::Bytes
         | ResolvedType::Str
-        | ResolvedType::SliceU8 => 0,
+        | ResolvedType::SliceU8
+        | ResolvedType::Function { .. } => 0,
         ResolvedType::TypeParameter { owner, .. } => owner.as_str().len(),
         ResolvedType::Nominal {
             declaration,

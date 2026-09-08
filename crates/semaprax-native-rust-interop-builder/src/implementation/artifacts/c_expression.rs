@@ -336,7 +336,9 @@ fn c_expression_linear(
                         arguments.len(),
                     ));
                 }
-                ResolvedExprKind::ConstructRecord { .. }
+                ResolvedExprKind::FunctionReference { .. }
+                | ResolvedExprKind::Invoke { .. }
+                | ResolvedExprKind::ConstructRecord { .. }
                 | ResolvedExprKind::ConstructVariant { .. }
                 | ResolvedExprKind::Match { .. }
                 | ResolvedExprKind::Try { .. }

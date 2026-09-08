@@ -439,7 +439,9 @@ pub(in crate::implementation) fn hash_expr(
                 frame(hasher, identity.as_bytes());
                 frame(hasher, ownership(expression.ownership));
                 match &expression.kind {
-                    ResolvedExprKind::Int32(_)
+                    ResolvedExprKind::FunctionReference { .. }
+                    | ResolvedExprKind::Invoke { .. }
+                    | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
                     | ResolvedExprKind::Usize(_)

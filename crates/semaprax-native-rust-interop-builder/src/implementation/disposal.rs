@@ -229,6 +229,11 @@ fn drain_disposal_frames(
         if let Some(expression) = pending_expression.take() {
             disposal_push(frames, ResolvedDisposeFrame::Type(expression.ty));
             match expression.kind {
+                ResolvedExprKind::FunctionReference { .. } => {}
+                ResolvedExprKind::Invoke { callable, args } => {
+                    disposal_push(frames, ResolvedDisposeFrame::Exprs(args));
+                    pending_expression = Some(*callable);
+                }
                 ResolvedExprKind::Int(_)
                 | ResolvedExprKind::Int32(_)
                 | ResolvedExprKind::Char(_)
@@ -389,11 +394,16 @@ fn drain_disposal_frames(
                     disposal_push(frames, ResolvedDisposeFrame::Type(field.binding.ty));
                 }
             }
-            ResolvedDisposeFrame::Type(ty) => {
-                if let ResolvedType::Nominal { arguments, .. } = ty {
+            ResolvedDisposeFrame::Type(ty) => match ty {
+                ResolvedType::Nominal { arguments, .. } => {
                     disposal_push(frames, ResolvedDisposeFrame::Types(arguments));
                 }
-            }
+                ResolvedType::Function { parameters, result } => {
+                    disposal_push(frames, ResolvedDisposeFrame::Types(parameters));
+                    disposal_push(frames, ResolvedDisposeFrame::Type(*result));
+                }
+                _ => {}
+            },
             ResolvedDisposeFrame::Types(mut types) => {
                 if let Some(ty) = types.pop() {
                     disposal_push(frames, ResolvedDisposeFrame::Types(types));

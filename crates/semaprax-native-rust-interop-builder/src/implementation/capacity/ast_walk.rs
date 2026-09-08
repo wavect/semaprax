@@ -416,6 +416,7 @@ fn ast_type_identity_key_len(program: &Program, root: &crate::ast::Type) -> Opti
                 results[result_len] = "slice-u8".len();
                 result_len = result_len.checked_add(1)?;
             }
+            Frame::Enter(crate::ast::Type::Function { .. }) => return None,
             Frame::Enter(crate::ast::Type::Named { name, arguments }) => {
                 let declaration = program
                     .types

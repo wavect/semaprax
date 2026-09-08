@@ -21,7 +21,8 @@ pub(super) fn cleanup_retained_stats(
             | crate::ast::Type::String
             | crate::ast::Type::Str
             | crate::ast::Type::ArrayU8(_)
-            | crate::ast::Type::SliceU8 => CleanupTypeKey::Scalar,
+            | crate::ast::Type::SliceU8
+            | crate::ast::Type::Function { .. } => CleanupTypeKey::Scalar,
             crate::ast::Type::Bytes => CleanupTypeKey::Unknown,
             crate::ast::Type::Named { name, .. } => {
                 if let Some(index) = program

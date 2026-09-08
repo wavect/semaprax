@@ -550,7 +550,10 @@ fn cleanup_binding_flow<'a>(
         }
 
         let mut child_cursor = next_child;
-        if let Some((child_index, child)) = ast_child(expression, &mut child_cursor) {
+        let child = (!matches!(expression.kind, crate::ast::ExprKind::Closure { .. }))
+            .then(|| ast_child(expression, &mut child_cursor))
+            .flatten();
+        if let Some((child_index, child)) = child {
             if stack_len == traversal.len() {
                 return Err(b109(
                     "max_semantic_expression_depth",
@@ -590,6 +593,10 @@ fn cleanup_binding_flow<'a>(
                     child_index == 0 || (!is_guard && consume)
                 }
                 crate::ast::ExprKind::Try { .. } => true,
+                // A closure body is structurally retained, but construction
+                // only snapshots its captures; the body has no creation-time
+                // ownership or failure effect.
+                crate::ast::ExprKind::Closure { .. } => false,
                 crate::ast::ExprKind::Project { .. }
                 | crate::ast::ExprKind::Unary { .. }
                 | crate::ast::ExprKind::Binary { .. } => false,

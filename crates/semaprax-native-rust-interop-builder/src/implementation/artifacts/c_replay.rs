@@ -169,6 +169,9 @@ fn replay_c_expression(
                     Vec::with_capacity(args.len()),
                     context,
                 )),
+                ResolvedExprKind::Closure { .. } => {
+                    return Err(b107("scalar value signature required"));
+                }
                 _ => return Err(b107("scalar value signature required")),
             },
             Frame::Unary(op, context) => {
@@ -588,6 +591,9 @@ fn replay_c_expression_linear_independent(
                         0,
                         arguments.len(),
                     ));
+                }
+                ResolvedExprKind::Closure { .. } => {
+                    return Err(b107("scalar value signature required"));
                 }
                 _ => return Err(b107("scalar value signature required")),
             },

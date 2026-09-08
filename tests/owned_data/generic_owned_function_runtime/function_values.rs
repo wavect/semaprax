@@ -195,3 +195,89 @@ fn function_values_generic_adapters_settle_input_after_backend_output_allocation
         collections::run_backend_output_allocation_refusal(&source);
     }
 }
+
+#[test]
+fn generic_closure_bodies_remint_all_scalars_and_snapshot_after_outer_mutation() {
+    let mut source = String::from(ADAPTERS);
+    source.push_str(
+        r#"
+@id("adapter.replace") fn replace<T>(values:own Vec<T>, replacement:T)->Vec<T> {
+ let callback=fn(value:T)->T {replacement};
+ map<T>(values,callback)
+}
+@id("adapter.loop-snapshot") fn loop_snapshot<T>(values:own Vec<T>, replacement:T)->i64 {
+ let mut index=0usize; let mut checked=0;
+ while index<2usize {
+  let item=vec_get<T>(values,index);
+  let callback=fn(value:T)->T {if index==0usize {replacement} else {value}};
+  index=index+1usize;
+  let observed=callback(item);
+  let expected=if index==1usize {replacement} else {item};
+  checked=checked+if observed==expected {1} else {0}; true
+ }
+ checked
+}
+"#,
+    );
+    let mut calls = Vec::new();
+    for (ty, input, replacement) in [
+        ("i64", "1", "9"),
+        ("i32", "1i32", "9i32"),
+        ("u8", "1u8", "9u8"),
+        ("usize", "1usize", "9usize"),
+        ("char", "'a'", "'x'"),
+        ("f32", "1.5f32", "9.0f32"),
+        ("f64", "1.5", "9.0"),
+        ("bool", "false", "true"),
+    ] {
+        source.push_str(&format!(r#"
+@id("adapter.run-closure.{ty}") fn run_closure_{ty}()->i64 {{
+ let input=vec_push<{ty}>(vec_with_capacity<{ty}>(1usize),{input});
+ let mapped=replace<{ty}>(input,{replacement});
+ let empty=replace<{ty}>(vec_with_capacity<{ty}>(0usize),{replacement});
+ let first_snapshot=vec_push<{ty}>(vec_with_capacity<{ty}>(2usize),{input});
+ let snapshot_input=vec_push<{ty}>(first_snapshot,{input});
+ let snapshot=loop_snapshot<{ty}>(snapshot_input,{replacement});
+ if vec_len<{ty}>(mapped)==1usize && vec_get<{ty}>(mapped,0usize)=={replacement} && vec_len<{ty}>(empty)==0usize && snapshot==2 {{1}} else {{0}}
+}}
+"#));
+        calls.push(format!("run_closure_{ty}()"));
+    }
+    source.push_str(&format!(
+        "@id(\"app.main\") fn main()->i64{{{}}}",
+        calls.join("+")
+    ));
+    collections::run_source_value(&source, 8);
+}
+
+#[test]
+fn generic_closure_empty_map_skips_callback_and_helper_failure_settles_live_vectors() {
+    let empty = format!(
+        r#"{ADAPTERS}
+@id("adapter.guard") fn guard(value:i64)->i64 requires false {{value}}
+@id("adapter.empty") fn empty()->i64 {{
+ let callback=fn(value:i64)->i64 {{guard(value)}};
+ let output=map<i64>(vec_with_capacity<i64>(0usize),callback);
+ if vec_len<i64>(output)==0usize {{1}} else {{0}}
+}}
+@id("app.main") fn main()->i64{{empty()}}
+"#
+    );
+    collections::run_source_value(&empty, 1);
+    let failure = format!(
+        r#"{ADAPTERS}
+@id("adapter.guard") fn guard(value:i64,index:usize)->i64 requires index==0usize {{value}}
+@id("adapter.generic-live") fn generic_live<T>(values:own Vec<T>)->Vec<T> {{
+ let output=vec_with_capacity<T>(1usize); let index=1usize;
+ let callback=fn(value:i64)->i64 {{guard(value,index)}};
+ let trigger=callback(0); output
+}}
+@id("app.main") fn main()->i64 {{
+ let input=vec_push<i64>(vec_with_capacity<i64>(1usize),7);
+ let output=generic_live<i64>(input);
+ if vec_len<i64>(output)==0usize {{0}} else {{0}}
+}}
+"#
+    );
+    collections::run_source(&failure, 1);
+}

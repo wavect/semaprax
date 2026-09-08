@@ -460,6 +460,25 @@ pub(in crate::implementation) fn fingerprint_expression_types_scratch(
                 })?;
                 maximum = maximum.max(type_identity_scratch_upper(&expression.ty)?);
                 match &expression.kind {
+                    ResolvedExprKind::Closure {
+                        parameters,
+                        captures,
+                        body,
+                    } => {
+                        for binding in parameters {
+                            maximum = maximum.max(fingerprint_binding_type_scratch(binding)?);
+                        }
+                        for capture in captures {
+                            maximum =
+                                maximum.max(fingerprint_binding_type_scratch(&capture.binding)?);
+                            push(
+                                &mut stack,
+                                &mut stack_len,
+                                Frame::Expr(&capture.value, child_depth),
+                            )?;
+                        }
+                        push(&mut stack, &mut stack_len, Frame::Expr(body, child_depth))?;
+                    }
                     ResolvedExprKind::FunctionReference { .. } => {}
                     ResolvedExprKind::Invoke { callable, args } => {
                         push(

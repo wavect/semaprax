@@ -19,7 +19,16 @@ fn hir_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
         | ResolvedType::Bytes
         | ResolvedType::Str
         | ResolvedType::SliceU8 => Some(0),
-        ResolvedType::Function { .. } => None,
+        ResolvedType::Function { parameters, result } => parameters
+            .iter()
+            .try_fold(
+                parameters
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<ResolvedType>())?,
+                |bytes, parameter| bytes.checked_add(hir_type_owned_capacity(parameter)?),
+            )?
+            .checked_add(std::mem::size_of::<ResolvedType>())?
+            .checked_add(hir_type_owned_capacity(result)?),
         ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),
         ResolvedType::Nominal {
             declaration,
@@ -151,6 +160,40 @@ fn hir_expr_owned_capacity(expression: &ResolvedExpr) -> Result<usize, Diagnosti
             .and_then(|bytes| bytes.checked_add(hir_type_owned_capacity(&expression.ty)?))
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         match &expression.kind {
+            ResolvedExprKind::Closure {
+                parameters,
+                captures,
+                body,
+            } => {
+                add_capacity(
+                    &mut total,
+                    parameters.capacity(),
+                    std::mem::size_of::<crate::hir::ResolvedBinding>(),
+                )?;
+                for parameter in parameters {
+                    total = total
+                        .checked_add(
+                            hir_binding_owned_capacity(parameter)
+                                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
+                        )
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                }
+                add_capacity(
+                    &mut total,
+                    captures.capacity(),
+                    std::mem::size_of::<crate::hir::ResolvedClosureCapture>(),
+                )?;
+                for capture in captures {
+                    total = total
+                        .checked_add(
+                            hir_binding_owned_capacity(&capture.binding)
+                                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
+                        )
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                    pending.push(&capture.value);
+                }
+                pending.push(body);
+            }
             ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.push(callable.as_ref());

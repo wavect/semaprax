@@ -478,6 +478,13 @@ table adapters and caller-owned aggregate frame slots. Copies and returned
 closures preserve snapshots without transferring any owning payload. See
 [the closure contract](CLOSURES-V1.md) for bounds and pending promotion evidence.
 
+The [generic construction extension](CLOSURES-V2.md) uses
+`src/hir/closure/materialize.rs` to substitute scoped types and rebuild private
+body identities from exact concrete creation sites. Source verification checks
+every admitted scalar substitution, including unused templates. The graph
+retains symbolic template closure bodies separately from the executable
+inventory; only concrete bodies reach interpreter and backend target tables.
+
 A graph, report, review, or evidence capsule is descriptive data. It is not a
 capability, signature, approval, or commit token.
 

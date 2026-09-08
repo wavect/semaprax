@@ -29,6 +29,7 @@ pub(in crate::implementation) fn scan_ast_capacity<'a>(
                     .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
                 stats.max_depth = stats.max_depth.max(depth);
                 let indexed_children = match &expression.kind {
+                    crate::ast::ExprKind::Closure { .. } => 1,
                     crate::ast::ExprKind::Call { args, .. } => args.len(),
                     crate::ast::ExprKind::MethodCall { args, .. } => args.len() + 1,
                     crate::ast::ExprKind::SuperMethod { args, .. } => args.len(),
@@ -120,6 +121,31 @@ pub(in crate::implementation) fn scan_ast_capacity<'a>(
                         .checked_add(
                             depth
                                 .checked_mul(binding_statements)
+                                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
+                        )
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                }
+                if let crate::ast::ExprKind::Closure { params, .. } = &expression.kind {
+                    let parameter_name_bytes = params
+                        .iter()
+                        .try_fold(0usize, |bytes, parameter| {
+                            bytes.checked_add(parameter.name.len())
+                        })
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                    stats.local_bindings = stats
+                        .local_bindings
+                        .checked_add(params.len())
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                    stats.binding_name_bytes = stats
+                        .binding_name_bytes
+                        .checked_add(parameter_name_bytes)
+                        .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+                    stats.binding_depth_sum = stats
+                        .binding_depth_sum
+                        .checked_add(
+                            depth
+                                .checked_add(1)
+                                .and_then(|body_depth| body_depth.checked_mul(params.len()))
                                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
                         )
                         .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;

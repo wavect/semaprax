@@ -592,7 +592,7 @@ pub(super) fn owned_record_function_substitutions(parameter_count: usize) -> Vec
 }
 
 pub(super) fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
-    generic_function_expression_is_admitted(expression, false)
+    generic_function_expression_is_admitted(expression, false, false)
 }
 
 pub(super) fn generic_function_expression_is_owned_record_composition(
@@ -603,11 +603,23 @@ pub(super) fn generic_function_expression_is_owned_record_composition(
     generic_composition::is_admitted(function, types, expression)
 }
 
-fn generic_function_expression_is_admitted(expression: &Expr, composition: bool) -> bool {
+pub(super) fn generic_collection_expression_is_admitted(expression: &Expr) -> bool {
+    generic_function_expression_is_admitted(expression, false, true)
+}
+fn generic_function_expression_is_admitted(
+    expression: &Expr,
+    composition: bool,
+    closures: bool,
+) -> bool {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
-            ExprKind::Closure { .. } => return false,
+            ExprKind::Closure { body, .. } => {
+                if !closures {
+                    return false;
+                }
+                pending.push(body);
+            }
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Char(_)
@@ -751,7 +763,17 @@ fn substitute_forwarded_call_arguments(
     expression: &mut Expr,
 ) -> Option<()> {
     match &mut expression.kind {
-        ExprKind::Closure { .. } => return None,
+        ExprKind::Closure {
+            params,
+            return_type,
+            body,
+        } => {
+            for param in params {
+                param.ty = substitute_function_type(function, arguments, &param.ty)?;
+            }
+            *return_type = substitute_function_type(function, arguments, return_type)?;
+            substitute_forwarded_call_arguments(function, arguments, body)?;
+        }
         ExprKind::Call {
             type_arguments,
             args,
@@ -787,8 +809,15 @@ fn substitute_forwarded_call_arguments(
         ExprKind::Block { statements, tail } => {
             for statement in statements {
                 match statement {
-                    crate::ast::Statement::Let { value, .. }
-                    | crate::ast::Statement::Assign { value, .. } => {
+                    crate::ast::Statement::Let {
+                        declared, value, ..
+                    } => {
+                        if let Some(ty) = declared {
+                            *ty = substitute_function_type(function, arguments, ty)?;
+                        }
+                        substitute_forwarded_call_arguments(function, arguments, value)?;
+                    }
+                    crate::ast::Statement::Assign { value, .. } => {
                         substitute_forwarded_call_arguments(function, arguments, value)?;
                     }
                     crate::ast::Statement::Unsafe { body, .. } => {

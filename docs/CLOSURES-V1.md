@@ -35,8 +35,9 @@ are not authored: each is exactly one unprojected scalar place read.
 The body admits scalar literals, local bindings and mutation, ordinary scalar
 operators, conditionals, bounded while loops, and calls to eligible ordinary
 local scalar functions. Body-local owning allocations, nested anonymous
-closures, generic calls, anonymous closures within generic templates, and
-closure creation inside while bodies remain closed. Body analysis is bounded
+closures and generic calls remain closed. Anonymous closures within generic
+templates and closure creation inside while bodies are separately specified by
+the additive [Closures v2 profile](CLOSURES-V2.md). Body analysis is bounded
 at 4,096 nodes. Unsupported source profiles use `SPX-T288`.
 
 A closure has the same `fn(T0,...) -> R` signature as a compatible named function.
@@ -90,7 +91,8 @@ Focused local evidence covers snapshot timing, parameter shadowing, private
 return/escape, all eight Copy scalar capture types, AST/HIR carrier replay,
 Graph v37, SemanticProgram v5/ProgramRoot replay, and repeated generic
 map/filter/fold execution with an explicit Core-Wasm Vec host settlement
-inventory. It does not admit owning captures, generic-template closures,
+inventory. Generic-template and loop construction belong to the separate v2
+profile and its evidence. This profile does not admit owning captures,
 public callable signatures, or hosted execution.
 
 Focused checks must cover snapshot timing, scalar captures, parameter shadowing,

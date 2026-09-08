@@ -131,3 +131,94 @@ fn function_values_generic_unmaterialized_templates_reject_hostile_mutations() {
         assert_eq!(error.code, "SPX-H006", "mutation {mutation}: {error:?}");
     }
 }
+
+const GENERIC_TEMPLATE_CLOSURE: &str = r#"
+module test.generic_template_closure;
+@id("gc.fill") fn fill<T>(values:own Vec<T>,replacement:T)->Vec<T>{
+    let length=vec_len<T>(values);
+    let mut output=vec_with_capacity<T>(length);
+    let mut index=0usize;
+    while index<length {
+        let callback=fn(item:T)->T{replacement};
+        output=vec_push<T>(output,callback(vec_get<T>(values,index)));
+        index=index+1usize;
+        index<length
+    }
+    output
+}
+@id("gc.main") fn main()->i64{
+    let i64s=fill<i64>(vec_push<i64>(vec_with_capacity<i64>(1usize),1),2);
+    let i32s=fill<i32>(vec_push<i32>(vec_with_capacity<i32>(1usize),1i32),2i32);
+    let u8s=fill<u8>(vec_push<u8>(vec_with_capacity<u8>(1usize),1u8),2u8);
+    let usizes=fill<usize>(vec_push<usize>(vec_with_capacity<usize>(1usize),1usize),2usize);
+    let chars=fill<char>(vec_push<char>(vec_with_capacity<char>(1usize),'a'),'b');
+    let f32s=fill<f32>(vec_push<f32>(vec_with_capacity<f32>(1usize),1.0f32),2.0f32);
+    let f64s=fill<f64>(vec_push<f64>(vec_with_capacity<f64>(1usize),1.0f64),2.0f64);
+    let bools=fill<bool>(vec_push<bool>(vec_with_capacity<bool>(1usize),true),false);
+    if vec_len<i64>(i64s)+vec_len<i32>(i32s)+vec_len<u8>(u8s)+vec_len<usize>(usizes)+vec_len<char>(chars)+vec_len<f32>(f32s)+vec_len<f64>(f64s)+vec_len<bool>(bools)==8usize {0} else {1}
+}
+"#;
+
+#[test]
+fn generic_closure_templates_materialize_per_scalar_instance_with_distinct_creation_ids() {
+    let ast = semaprax::check(GENERIC_TEMPLATE_CLOSURE, "generic-template-closures.spx").unwrap();
+    let program = hir::resolve(&ast).unwrap();
+    hir::validate(&program).unwrap();
+    assert_eq!(program.function_instances.len(), 8);
+    let closures = hir::closure::inventory(&program);
+    assert_eq!(closures.len(), 8);
+    let ids = closures
+        .iter()
+        .map(|closure| closure.id.clone())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        ids.len(),
+        closures.len(),
+        "each concrete generic body owns its closure creation identity"
+    );
+    assert!(hir::closure::requires_closure_projection(&program));
+    let graph = graph::to_json(&ast).unwrap();
+    assert!(graph.contains("semaprax.graph.v37"), "{graph}");
+    graph::verify_json(&ast, &graph).unwrap();
+}
+
+#[test]
+fn generic_closure_template_keeps_unused_symbolic_shape_and_closed_profiles_closed() {
+    let unused = GENERIC_TEMPLATE_CLOSURE.replace(
+        "    let i64s=fill<i64>(vec_push<i64>(vec_with_capacity<i64>(1usize),1),2);\n    let i32s=fill<i32>(vec_push<i32>(vec_with_capacity<i32>(1usize),1i32),2i32);\n    let u8s=fill<u8>(vec_push<u8>(vec_with_capacity<u8>(1usize),1u8),2u8);\n    let usizes=fill<usize>(vec_push<usize>(vec_with_capacity<usize>(1usize),1usize),2usize);\n    let chars=fill<char>(vec_push<char>(vec_with_capacity<char>(1usize),'a'),'b');\n    let f32s=fill<f32>(vec_push<f32>(vec_with_capacity<f32>(1usize),1.0f32),2.0f32);\n    let f64s=fill<f64>(vec_push<f64>(vec_with_capacity<f64>(1usize),1.0f64),2.0f64);\n    let bools=fill<bool>(vec_push<bool>(vec_with_capacity<bool>(1usize),true),false);\n    if vec_len<i64>(i64s)+vec_len<i32>(i32s)+vec_len<u8>(u8s)+vec_len<usize>(usizes)+vec_len<char>(chars)+vec_len<f32>(f32s)+vec_len<f64>(f64s)+vec_len<bool>(bools)==8usize {0} else {1}",
+        "    0",
+    );
+    let ast = semaprax::check(&unused, "unused-generic-template-closure.spx").unwrap();
+    let program = hir::resolve(&ast).unwrap();
+    assert!(program.function_instances.is_empty());
+    assert!(hir::closure::requires_closure_projection(&program));
+    assert!(!hir::closure::requires_closures(&program));
+    let graph = graph::to_json(&ast).unwrap();
+    assert!(graph.contains("semaprax.graph.v37"), "{graph}");
+    assert!(graph.contains("\"kind\":\"closure\""), "{graph}");
+    graph::verify_json(&ast, &graph).unwrap();
+
+    for source in [
+        unused.replace(
+            "fn(item:T)->T{replacement}",
+            "fn(item:T)->T{let nested=fn()->T{replacement};nested()}",
+        ),
+        unused.replace(
+            "fn(item:T)->T{replacement}",
+            "fn(item:T)->T{bytes_zeroed(1usize)}",
+        ),
+        unused.replace(
+            "@id(\"gc.fill\") fn fill<T>(values:own Vec<T>,replacement:T)->Vec<T>{\n    let length=vec_len<T>(values);\n    let mut output=vec_with_capacity<T>(length);\n    let mut index=0usize;\n    while index<length {\n        let callback=fn(item:T)->T{replacement};\n        output=vec_push<T>(output,callback(vec_get<T>(values,index)));\n        index=index+1usize;\n        index<length\n    }\n    output\n}",
+            "@id(\"gc.make\") fn make<T>(replacement:T)->i64{let callback=fn(item:T)->T{replacement};0}",
+        ),
+    ] {
+        let diagnostics =
+            semaprax::check(&source, "closed-generic-template-closure.spx").unwrap_err();
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "SPX-T288"),
+            "{diagnostics:?}"
+        );
+    }
+}

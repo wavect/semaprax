@@ -25,6 +25,7 @@ Audience: all documentation readers.
 - [Function Values v1](FUNCTION-VALUES-V1.md)
 - [Function Values v2: generic collection callbacks](FUNCTION-VALUES-V2.md)
 - [Scalar Snapshot Closures v1](CLOSURES-V1.md)
+- [Generic and Loop Closures v2](CLOSURES-V2.md)
 - [Execution root association v1](EXECUTION-ROOT-ASSOCIATION-V1.md)
 - [Generic compiler collections v1](GENERIC-COMPILER-COLLECTIONS-V1.md)
 - [Standard library catalog](STANDARD-LIBRARY-CATALOG.md)

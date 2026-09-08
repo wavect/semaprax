@@ -175,6 +175,7 @@ jobs:
           cargo test --locked --offline -p semaprax --lib function_values
           cargo test --locked --offline -p semaprax --lib closures_hir
           cargo test --locked --offline -p semaprax --lib closure_ast_tag
+          cargo test --locked --offline -p semaprax --lib generic_closure
           cargo test --locked --offline -p semaprax --lib wasm_closures
           cargo test --locked --offline -p semaprax --lib closure_body
           cargo test --locked --offline -p semaprax --lib closure_creation_alone

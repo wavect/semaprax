@@ -126,6 +126,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/closure.rs"),
         include_str!("../../../../../src/hir/closure/resolve.rs"),
         include_str!("../../../../../src/hir/closure/validation.rs"),
+        include_str!("../../../../../src/hir/closure/materialize.rs"),
         include_str!("../../../../../src/hir/function_value.rs"),
         include_str!("../../../../../src/hir/function_value/resolve.rs"),
         include_str!("../../../../../src/hir/generic_variant.rs"),

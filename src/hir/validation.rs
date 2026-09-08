@@ -1222,9 +1222,7 @@ impl<'a> HirValidator<'a> {
         }
         match &expression.kind {
             ResolvedExprKind::Closure { .. } => {
-                return Err(hir_error(
-                    "closures inside generic templates are not admitted",
-                ))
+                self.validate_template_closure(template, execution, expression, values, path)?
             }
             ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
                 self.validate_template_callable(template, execution, expression, values, path)?
@@ -1525,10 +1523,13 @@ impl<'a> HirValidator<'a> {
                 }
             };
             match &expression.kind {
-                ResolvedExprKind::Closure { .. } => {
-                    return Err(hir_error(
-                        "closure creation inside while bodies is not admitted",
-                    ))
+                ResolvedExprKind::Closure { captures, .. } => {
+                    pending.extend(
+                        captures
+                            .iter()
+                            .rev()
+                            .map(|capture| Item::Expression(&capture.value)),
+                    );
                 }
                 ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
                     pending.extend(

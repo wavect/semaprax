@@ -230,6 +230,16 @@ fn scoped_collection_assignment(
     target: &ResolvedBinding,
     value: &ResolvedExpr,
 ) -> bool {
+    if let ResolvedType::TypeParameter { owner, index: 0 } = &value.ty {
+        if value.ownership == OwnershipMode::Value
+            && resolver.program.functions.iter().any(|function| {
+                function.stable_id == owner.as_str()
+                    && crate::source_verify::generic_collection_profile(function)
+            })
+        {
+            return true;
+        }
+    }
     let Some(owner) = execution.monomorphic_declaration() else {
         return false;
     };

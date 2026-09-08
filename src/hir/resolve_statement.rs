@@ -193,13 +193,8 @@ impl Resolver<'_> {
             };
 
             match &expression.kind {
-                ExprKind::Closure { .. } => {
-                    return Err(self.error(
-                        "SPX-T288",
-                        "closure creation inside while bodies is not admitted",
-                        expression.span,
-                    ))
-                }
+                ExprKind::Closure { .. } => {}
+
                 ExprKind::Int(_)
                 | ExprKind::Int32(_)
                 | ExprKind::Char(_)

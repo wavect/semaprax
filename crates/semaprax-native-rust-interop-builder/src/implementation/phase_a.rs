@@ -1177,7 +1177,8 @@ pub(super) fn validate_selected_scalar_closure(
                 pending.push(then_branch);
                 pending.push(else_branch);
             }
-            ResolvedExprKind::FunctionReference { .. }
+            ResolvedExprKind::Closure { .. }
+            | ResolvedExprKind::FunctionReference { .. }
             | ResolvedExprKind::Invoke { .. }
             | ResolvedExprKind::ConstructRecord { .. }
             | ResolvedExprKind::ArrayU8(_)

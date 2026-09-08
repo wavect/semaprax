@@ -1424,7 +1424,12 @@ impl Resolver<'_> {
                     };
                     let statement_path = format!("{path}.s{index}");
                     if let Some(declared_ast) = declared {
-                        let declared_ty = self.resolve_type(declared_ast, *name_span)?;
+                        let declared_ty = self.resolve_binding_annotation(
+                            function,
+                            &scope,
+                            declared_ast,
+                            *name_span,
+                        )?;
                         if value.ty != declared_ty {
                             let ResolvedType::Nominal {
                                 declaration: child_id,

@@ -46,7 +46,7 @@ impl SemanticProgram {
             ("public_api", revision.public_api_program()),
             ("tests", revision.test_program()),
         ] {
-            has_snapshot_closure |= crate::hir::closure::requires_closures(program);
+            has_snapshot_closure |= crate::hir::closure::requires_closure_projection(program);
             let has_callables = crate::hir::function_value::requires_function_values(program);
             has_callable_closure |= has_callables;
             if !has_callables
@@ -85,7 +85,14 @@ impl SemanticProgram {
                 &retained_templates,
                 &defining_revision,
             )?;
-        let (schema, domain): (&str, &[u8]) = if has_snapshot_closure {
+        let source_has_snapshot_closure = source_closures.iter().any(|closure| {
+            closure
+                .get("graph")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|graph| graph.contains("\"schema\":\"semaprax.graph.v37\""))
+        });
+        let (schema, domain): (&str, &[u8]) = if has_snapshot_closure || source_has_snapshot_closure
+        {
             payload["checked_callable_closures"] = json!(closures);
             payload["checked_source_callable_closures"] = json!(source_closures);
             (

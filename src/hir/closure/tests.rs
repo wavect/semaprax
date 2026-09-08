@@ -130,3 +130,90 @@ fn closures_hir_rejects_authored_private_identity_collision() {
         .iter()
         .any(|d| d.code == "SPX-H006" && d.message.contains("collid")));
 }
+
+fn generic_resolved() -> ResolvedProgram {
+    let source = r#"module test.generic_closures;
+@id("gc.fill") fn fill<T>(values:own Vec<T>, replacement:T)->Vec<T>{
+ let callback=fn(item:T)->T{let mut copy:T=item;copy=replacement;copy};
+ vec_push<T>(values,callback(replacement))
+}
+@id("gc.main") fn main()->i64{
+ let left=fill<i64>(vec_with_capacity<i64>(1usize),7);
+ let right=fill<bool>(vec_with_capacity<bool>(1usize),true);
+ vec_get<i64>(left,0usize)
+}"#;
+    crate::hir::resolve(&crate::check(source, "generic-closures.spx").unwrap()).unwrap()
+}
+
+#[test]
+fn generic_closure_materialization_uses_distinct_execution_identities() {
+    let program = generic_resolved();
+    crate::hir::validate(&program).unwrap();
+    let sites = inventory(&program);
+    assert_eq!(sites.len(), 2);
+    assert_ne!(closure_id(&sites[0].id), closure_id(&sites[1].id));
+    for site in sites {
+        let product = closure_function(&program, site).unwrap();
+        assert!(product
+            .params
+            .iter()
+            .all(|p| super::super::function_value::scalar(&p.ty)));
+    }
+}
+
+#[test]
+fn generic_closure_template_rejects_forged_capture_scope_and_shape() {
+    for mutation in 0..4 {
+        let mut program = generic_resolved();
+        let template = &mut program.function_templates[0];
+        let ResolvedExprKind::Block { statements, .. } = &mut template.body.kind else {
+            panic!("block")
+        };
+        let ResolvedStatement::Let { value, .. } = &mut statements[0] else {
+            panic!("let")
+        };
+        let ResolvedExprKind::Closure { captures, body, .. } = &mut value.kind else {
+            panic!("closure")
+        };
+        match mutation {
+            0 => captures[0].value.kind = ResolvedExprKind::Bool(true),
+            1 => {
+                captures[0].binding.ty = ResolvedType::TypeParameter {
+                    owner: DeclarationId::new("forged.owner"),
+                    index: 0,
+                }
+            }
+            2 => body.id = value.id.clone(),
+            _ => {
+                let ResolvedExprKind::Block { statements, .. } = &mut body.kind else {
+                    panic!("closure body")
+                };
+                let ResolvedStatement::Let { mutable, .. } = &mut statements[0] else {
+                    panic!("local")
+                };
+                *mutable = false;
+            }
+        }
+        rejects(&program);
+    }
+}
+
+#[test]
+fn generic_closure_unused_template_still_checks_every_scalar_substitution() {
+    let source = r#"module test.generic_closure_all_scalars;
+@id("gc.fill") fn fill<T>(values:own Vec<T>, replacement:T)->Vec<T>{
+ let callback=fn(item:T)->T{item+replacement};
+ vec_push<T>(values,callback(replacement))
+}
+@id("gc.main") fn main()->i64{0}
+"#;
+    // Integer-only samples would succeed, but bool and char cannot satisfy
+    // this arithmetic body. Unused templates must not skip those checks.
+    let diagnostics = crate::check(source, "generic-closure-all-scalars.spx").unwrap_err();
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-T208"),
+        "{diagnostics:?}"
+    );
+}

@@ -167,8 +167,17 @@ pub(super) fn graph_json(
     } else {
         graph
     };
-    if hir::closure::requires_closures(program) {
-        function_values::append_closures(graph, program)
+    if hir::closure::requires_closure_projection(program) {
+        let graph = function_values::append_closures(graph, program)?;
+        if program
+            .function_templates
+            .iter()
+            .any(hir::closure::template_has_closure)
+        {
+            function_values::append_template_closures(graph, program)
+        } else {
+            Ok(graph)
+        }
     } else {
         Ok(graph)
     }

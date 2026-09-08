@@ -300,3 +300,113 @@ module fixture.app;
         root
     );
 }
+
+#[test]
+fn unused_generic_closure_template_binds_graph_v37_semantic_program_v5_and_program_root() {
+    let fixture = Fixture::new("increment");
+    let source = r#"
+module fixture.app;
+@id("fixture.fill") fn fill<T>(values:own Vec<T>,replacement:T)->Vec<T>{
+    let length=vec_len<T>(values);
+    let mut output=vec_with_capacity<T>(length);
+    let mut index=0usize;
+    while index<length {
+        let callback=fn(item:T)->T{replacement};
+        output=vec_push<T>(output,callback(vec_get<T>(values,index)));
+        index=index+1usize;
+        index<length
+    }
+    output
+}
+@id("fixture.main") fn main()->i64 {0}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+    let path = fixture.root.join("src/app.spx");
+    let checked = semaprax::check(source, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&checked)).unwrap();
+    let revision = fixture.revision();
+    assert!(revision.entry_program().function_instances.is_empty());
+    assert!(
+        !semaprax::hir::closure::requires_closure_projection(revision.entry_program()),
+        "an omitted template has no executable closure product"
+    );
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    assert_eq!(
+        workspace.semantic_program().schema(),
+        "semaprax.semantic-workspace-revision.semantic-program.v5"
+    );
+    let semantic: serde_json::Value =
+        serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    let source_closures = semantic["payload"]["checked_source_callable_closures"]
+        .as_array()
+        .unwrap();
+    assert_eq!(source_closures.len(), 1);
+    assert_eq!(
+        source_closures[0]["omitted_callable_templates"],
+        serde_json::json!(["fixture.fill"])
+    );
+    let graph: serde_json::Value =
+        serde_json::from_str(source_closures[0]["graph"].as_str().unwrap()).unwrap();
+    assert_eq!(graph["schema"], "semaprax.graph.v37");
+    let definitions = graph["template_closure_definitions"].as_array().unwrap();
+    assert_eq!(definitions.len(), 1);
+    assert_eq!(definitions[0]["template"], "fixture.fill");
+    assert_eq!(definitions[0]["signature"]["kind"], "function");
+    assert_eq!(definitions[0]["body"]["kind"], "block");
+    assert_eq!(definitions[0]["body"]["tail"]["kind"], "place");
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
+    let forged = workspace.to_json().replacen(
+        "\\\"kind\\\":\\\"closure\\\"",
+        "\\\"kind\\\":\\\"function_reference\\\"",
+        1,
+    );
+    assert_ne!(forged, workspace.to_json());
+    assert!(semaprax::project::SemanticWorkspaceRevision::replay(
+        &revision,
+        workspace.workspace_revision(),
+        forged.as_bytes()
+    )
+    .is_err());
+    let changed_source = source.replace("fn(item:T)->T{replacement}", "fn(item:T)->T{item}");
+    let changed = semaprax::check(&changed_source, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&changed)).unwrap();
+    let changed_workspace = fixture.revision().canonical_workspace_revision().unwrap();
+    assert_ne!(
+        workspace.semantic_program().digest(),
+        changed_workspace.semantic_program().digest(),
+        "the checked symbolic closure body participates in SemanticProgram replay"
+    );
+    assert!(ProgramRoot::replay(
+        &changed_workspace,
+        root.program_root_digest(),
+        root.to_json().as_bytes()
+    )
+    .is_err());
+    std::fs::write(&path, semaprax::format::canonical(&checked)).unwrap();
+    std::fs::write(
+        &path,
+        format!(
+            "// source projection only\n{}",
+            semaprax::format::canonical(&checked)
+        ),
+    )
+    .unwrap();
+    let commented = fixture.revision().canonical_workspace_revision().unwrap();
+    assert_eq!(
+        workspace.semantic_program().digest(),
+        commented.semantic_program().digest()
+    );
+    assert_ne!(
+        root.program_root_digest(),
+        commented.program_root().unwrap().program_root_digest()
+    );
+}

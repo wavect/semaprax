@@ -889,6 +889,9 @@ fn template_mutable_binding(
                 }
             }
         }
+        if let ResolvedExprKind::Closure { body, .. } = &expression.kind {
+            pending.push(body);
+        }
         super::super::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
     matched

@@ -125,6 +125,82 @@ pub(super) fn append_closures(
     Ok(graph)
 }
 
+/// Symbolic closure facts retained by an unmaterialized generic template.
+///
+/// Concrete closure definitions are executable products derived from concrete
+/// instance bodies. A template must not manufacture one of those products,
+/// yet its closure body is still checked source meaning. Keep that body in a
+/// separate source-only projection so a template-body substitution cannot be
+/// hidden behind the v1 closure creation summary.
+pub(super) fn append_template_closures(
+    mut graph: String,
+    program: &ResolvedProgram,
+) -> Result<String, Diagnostic> {
+    let mut definitions = Vec::new();
+    for template in &program.function_templates {
+        let mut pending = template
+            .requires
+            .iter()
+            .chain(std::iter::once(&template.body))
+            .chain(&template.ensures)
+            .collect::<Vec<_>>();
+        while let Some(expression) = pending.pop() {
+            let ResolvedExprKind::Closure {
+                parameters,
+                captures,
+                body,
+            } = &expression.kind
+            else {
+                crate::hir::push_resolved_expression_children_in_authored_order(
+                    expression,
+                    &mut pending,
+                );
+                continue;
+            };
+            if !matches!(expression.ty, ResolvedType::Function { .. }) {
+                return Err(Diagnostic::io(
+                    "SPX-G411",
+                    "template closure has no callable signature",
+                ));
+            }
+            let parameters = parameters
+                .iter()
+                .map(binding_json)
+                .collect::<Vec<_>>()
+                .join(",");
+            let captures = captures
+                .iter()
+                .map(|capture| {
+                    Ok(format!(
+                        "{{\"binding\":{},\"value\":{}}}",
+                        binding_json(&capture.binding),
+                        super::expr_json(program, &capture.value)?
+                    ))
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?
+                .join(",");
+            definitions.push(format!(
+                "{{\"template\":{},\"creation\":{},\"target\":{},\"signature\":{},\"parameters\":[{parameters}],\"captures\":[{captures}],\"body\":{}}}",
+                quote_json(template.id.as_str()),
+                quote_json(expression.id.as_str()),
+                quote_json(hir::closure::closure_id(&expression.id).as_str()),
+                super::type_json(&expression.ty),
+                super::expr_json(program, body)?,
+            ));
+            crate::hir::push_resolved_expression_children_in_authored_order(
+                expression,
+                &mut pending,
+            );
+        }
+    }
+    graph.pop();
+    graph.push_str(&format!(
+        ",\"template_closure_definitions\":[{}]}}",
+        definitions.join(",")
+    ));
+    Ok(graph)
+}
+
 pub(super) fn function_has_closure(function: &ResolvedFunction) -> bool {
     let mut found = false;
     hir::function_value::walk(function, |expression| {

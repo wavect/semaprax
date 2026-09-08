@@ -6,6 +6,8 @@ use super::*;
 pub(super) enum ResolvedDisposeFrame {
     ExprBox(Box<ResolvedExpr>),
     Exprs(Vec<ResolvedExpr>),
+    Bindings(Vec<crate::hir::ResolvedBinding>),
+    Captures(Vec<crate::hir::ResolvedClosureCapture>),
     Statements(Vec<ResolvedStatement>),
     Fields(Vec<crate::hir::ResolvedFieldInitializer>),
     Arms(Vec<crate::hir::ResolvedMatchArm>),
@@ -229,6 +231,15 @@ fn drain_disposal_frames(
         if let Some(expression) = pending_expression.take() {
             disposal_push(frames, ResolvedDisposeFrame::Type(expression.ty));
             match expression.kind {
+                ResolvedExprKind::Closure {
+                    parameters,
+                    captures,
+                    body,
+                } => {
+                    disposal_push(frames, ResolvedDisposeFrame::ExprBox(body));
+                    disposal_push(frames, ResolvedDisposeFrame::Captures(captures));
+                    disposal_push(frames, ResolvedDisposeFrame::Bindings(parameters));
+                }
                 ResolvedExprKind::FunctionReference { .. } => {}
                 ResolvedExprKind::Invoke { callable, args } => {
                     disposal_push(frames, ResolvedDisposeFrame::Exprs(args));
@@ -327,6 +338,19 @@ fn drain_disposal_frames(
                 if let Some(expression) = expressions.pop() {
                     disposal_push(frames, ResolvedDisposeFrame::Exprs(expressions));
                     pending_expression = Some(expression);
+                }
+            }
+            ResolvedDisposeFrame::Bindings(mut bindings) => {
+                if let Some(binding) = bindings.pop() {
+                    disposal_push(frames, ResolvedDisposeFrame::Bindings(bindings));
+                    disposal_push(frames, ResolvedDisposeFrame::Type(binding.ty));
+                }
+            }
+            ResolvedDisposeFrame::Captures(mut captures) => {
+                if let Some(capture) = captures.pop() {
+                    disposal_push(frames, ResolvedDisposeFrame::Captures(captures));
+                    disposal_push(frames, ResolvedDisposeFrame::Type(capture.binding.ty));
+                    pending_expression = Some(capture.value);
                 }
             }
             ResolvedDisposeFrame::Statements(mut statements) => {

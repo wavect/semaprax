@@ -52,3 +52,56 @@ impl HirValidator<'_> {
         self.finish_expr(expression, &expression.ty, OwnershipMode::Value)
     }
 }
+
+impl HirValidator<'_> {
+    pub(super) fn validate_template_closure(
+        &mut self,
+        template: &ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        expression: &ResolvedExpr,
+        values: &mut BTreeMap<ValueId, ResolvedType>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        if !super::super::generic_collection::profile(template) {
+            return Err(hir_error(
+                "generic closure requires the private scalar collection profile",
+            ));
+        }
+        super::super::closure::validate_shape_scoped(self.program, expression, Some(&template.id))?;
+        let ResolvedExprKind::Closure {
+            captures,
+            parameters,
+            body,
+        } = &expression.kind
+        else {
+            unreachable!()
+        };
+        for (index, capture) in captures.iter().enumerate() {
+            self.validate_template_expr(
+                template,
+                execution,
+                &capture.value,
+                values,
+                &format!("{path}.capture.{index}"),
+            )?;
+        }
+        let mut body_values = BTreeMap::new();
+        for binding in captures
+            .iter()
+            .map(|capture| &capture.binding)
+            .chain(parameters.iter())
+        {
+            if !self.value_ids.insert(binding.id.clone())
+                || body_values
+                    .insert(binding.id.clone(), binding.ty.clone())
+                    .is_some()
+            {
+                return Err(hir_error("generic closure bindings collide"));
+            }
+        }
+        let body_execution =
+            FunctionExecutionId::Monomorphic(super::super::closure::closure_id(&expression.id));
+        self.validate_template_expr(template, &body_execution, body, &mut body_values, "body")?;
+        self.finish_expr(expression, &expression.ty, OwnershipMode::Value)
+    }
+}

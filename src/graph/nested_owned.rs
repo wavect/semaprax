@@ -183,6 +183,9 @@ pub(crate) fn graph_schema_from_parts_and_instances(
         .iter()
         .chain(function_instances.iter().map(|instance| &instance.function))
         .any(super::function_values::function_has_closure)
+        || function_templates
+            .iter()
+            .any(crate::hir::closure::template_has_closure)
     {
         return Ok("semaprax.graph.v37");
     }
@@ -225,7 +228,7 @@ pub(crate) fn graph_schema_from_parts_and_instances(
 }
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
-    if crate::hir::closure::requires_closures(program) {
+    if crate::hir::closure::requires_closure_projection(program) {
         return Ok("semaprax.graph.v37");
     }
     if crate::hir::function_value::requires_function_values(program) {
@@ -296,11 +299,13 @@ fn program_schema(
         if !generic_composition {
             return Err(composition_error("function values require Graph v36"));
         }
-        return Ok(if crate::hir::closure::requires_closures(program) {
-            "semaprax.graph.v37"
-        } else {
-            "semaprax.graph.v36"
-        });
+        return Ok(
+            if crate::hir::closure::requires_closure_projection(program) {
+                "semaprax.graph.v37"
+            } else {
+                "semaprax.graph.v36"
+            },
+        );
     }
     if super::generic_mapping::requires_v35(&program.function_templates) {
         if !generic_composition {

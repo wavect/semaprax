@@ -5,6 +5,18 @@ pub(crate) fn validate_shape(
     program: &ResolvedProgram,
     expression: &ResolvedExpr,
 ) -> Result<(), Diagnostic> {
+    validate_shape_scoped(program, expression, None)
+}
+
+pub(crate) fn validate_shape_scoped(
+    program: &ResolvedProgram,
+    expression: &ResolvedExpr,
+    owner: Option<&DeclarationId>,
+) -> Result<(), Diagnostic> {
+    let scalar = |ty: &ResolvedType| {
+        super::super::function_value::scalar(ty)
+            || owner.is_some_and(|owner| super::super::generic_collection::parameter(ty, owner))
+    };
     let ResolvedExprKind::Closure {
         parameters,
         captures,
@@ -21,7 +33,10 @@ pub(crate) fn validate_shape(
         return Err(hir_error("closure signature is missing"));
     };
     if expression.ownership != OwnershipMode::Value
-        || !super::super::function_value::is_signature(&expression.ty)
+        || !(super::super::function_value::is_signature(&expression.ty)
+            || owner.is_some_and(|owner| {
+                super::super::generic_collection::callback(&expression.ty, owner)
+            }))
         || captures.len() > MAX_CAPTURES
         || parameters.len() != types.len()
         || body.ty != **result
@@ -44,7 +59,7 @@ pub(crate) fn validate_shape(
             || capture.binding.ty != capture.value.ty
             || capture.binding.ownership != OwnershipMode::Value
             || capture.value.ownership != OwnershipMode::Value
-            || !super::super::function_value::scalar(&capture.value.ty)
+            || !scalar(&capture.value.ty)
             || !names.insert(capture.binding.name.as_str())
         {
             return Err(hir_error("closure capture binding is not canonical"));
@@ -74,10 +89,7 @@ pub(crate) fn validate_shape(
     let mut count = 0usize;
     while let Some(node) = pending.pop() {
         count += 1;
-        if count > 4096
-            || node.ownership != OwnershipMode::Value
-            || !super::super::function_value::scalar(&node.ty)
-        {
+        if count > 4096 || node.ownership != OwnershipMode::Value || !scalar(&node.ty) {
             return Err(hir_error(
                 "closure body is outside the bounded scalar profile",
             ));
@@ -139,9 +151,7 @@ pub(crate) fn validate_shape(
                 for statement in statements.iter().rev() {
                     match statement {
                         ResolvedStatement::Let { binding, value, .. } => {
-                            if !super::super::function_value::scalar(&binding.ty)
-                                || binding.ownership != OwnershipMode::Value
-                            {
+                            if !scalar(&binding.ty) || binding.ownership != OwnershipMode::Value {
                                 return Err(hir_error("closure locals must be scalar"));
                             }
                             pending.push(value);

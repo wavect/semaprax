@@ -64,6 +64,7 @@ const CAPACITY_SOURCE: &str = concat!(
     include_str!("capacity/declaration_dag.rs"),
     include_str!("capacity/cleanup_events.rs"),
     include_str!("capacity/cleanup_retained.rs"),
+    include_str!("capacity/cleanup_retained/closure.rs"),
     include_str!("capacity/hir_pre_resolve.rs"),
     include_str!("capacity/hir_owned.rs"),
 );

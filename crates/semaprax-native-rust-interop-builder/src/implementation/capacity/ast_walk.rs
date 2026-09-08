@@ -103,6 +103,9 @@ pub(in crate::implementation) fn ast_child<'a>(
         Some((path_index, child))
     };
     match &expression.kind {
+        crate::ast::ExprKind::Closure { body, .. } => {
+            (index == 0).then(|| advance(1, 0, body.as_ref()))?
+        }
         crate::ast::ExprKind::Call { args, .. } => {
             advance(index.checked_add(1)?, index, args.get(index)?)
         }
@@ -245,6 +248,7 @@ pub(super) fn ast_child_identity_path_increment(
     program: &Program,
 ) -> usize {
     match &expression.kind {
+        crate::ast::ExprKind::Closure { .. } => ".closure.body".len(),
         crate::ast::ExprKind::Call { name, .. } => {
             let prefix = if program
                 .interfaces

@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add scalar closure construction inside generic collection functions and bounded
+  loops, with concrete instance identity remapping, independent scoped HIR
+  validation, and source-only template body facts in Graph v37/ProgramRoot.
+  Preserve per-iteration snapshots and collection settlement across interpreter,
+  native C11, and Core Wasm; extend native Rust builder accounting while keeping
+  its public callable boundary closed.
+
 - Add private scalar snapshot Closures v1: exact AST/HIR cache carriers,
   Graph v37 and SemanticProgram v5/ProgramRoot replay, and local interpreter,
   C11 O0/O2, and Core-Wasm evidence for snapshot timing and captured generic

@@ -117,6 +117,10 @@ pub(in crate::implementation) fn validate_native_rust_expression_budget_for_clos
             .checked_add(1)
             .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         match &expression.kind {
+            ResolvedExprKind::Closure { captures, body, .. } => {
+                pending.extend(captures.iter().map(|capture| (&capture.value, child_depth)));
+                pending.push((body, child_depth));
+            }
             ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::Invoke { callable, args } => {
                 pending.push((callable, child_depth));

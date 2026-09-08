@@ -351,9 +351,7 @@ pub(super) fn materialize_template_expr(
 ) -> Result<ResolvedExpr, Diagnostic> {
     let kind = match &expression.kind {
         ResolvedExprKind::Closure { .. } => {
-            return Err(hir_error(
-                "closures inside generic templates are not admitted",
-            ))
+            super::closure::materialize(template, arguments, execution, expression, values, path)?
         }
         ResolvedExprKind::FunctionReference { target } => ResolvedExprKind::FunctionReference {
             target: target.clone(),

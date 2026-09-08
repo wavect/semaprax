@@ -331,7 +331,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 }
                                 if mutable
                                     && (actual.mode != ParamMode::Value
-                                        || !is_scalar_source_type(&actual.ty))
+                                        || !crate::source_verify::closure::scoped_scalar(
+                                            self.current,
+                                            &actual.ty,
+                                        ))
                                     && !owned_reopen
                                 {
                                     self.diagnostics.push(error(

@@ -15,7 +15,7 @@ use crate::source_verify::declared_type::{
     generic_function_expression_is_owned_record_composition,
     generic_function_has_owned_record_composition, generic_function_owned_record_slot,
     generic_function_signature_slot, owned_record_function_substitutions,
-    scalar_function_substitutions, validation_specialize_function,
+    scalar_function_substitutions,
 };
 use crate::source_verify::diagnostics::{
     error, invalid_stable_id, reject_native_unit_value, reject_reserved_host_id, require_bool,
@@ -400,6 +400,11 @@ pub(super) fn check_function_declarations<'p>(
                     function.span,
                 ));
             }
+            if let Err(diagnostic) =
+                crate::source_verify::closure::validate_generic_syntax(program, function)
+            {
+                diagnostics.push(diagnostic);
+            }
             let types = TypeTable::new(program);
             let invalid_contract = function
                 .requires
@@ -417,6 +422,8 @@ pub(super) fn check_function_declarations<'p>(
                     &types,
                     &function.body,
                 );
+            let invalid_body = invalid_body && !(crate::source_verify::generic_collection_profile(function)
+                && crate::source_verify::declared_type::generic_collection_expression_is_admitted(&function.body));
             if invalid_contract || invalid_body {
                 diagnostics.push(error(
                     program,
@@ -1039,7 +1046,14 @@ pub(super) fn check_function_bodies<'p>(
             };
             substitutions
                 .iter()
-                .filter_map(|arguments| validation_specialize_function(template, arguments))
+                .filter_map(|arguments| {
+                    crate::source_verify::closure::specialize_checked(
+                        program,
+                        template,
+                        arguments,
+                        diagnostics,
+                    )
+                })
                 .collect()
         } else {
             Vec::new()

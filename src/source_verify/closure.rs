@@ -8,19 +8,25 @@ use crate::ast::{ClosureParam, Expr, ExprKind, ParamMode, Program, Statement, Ty
 use crate::diagnostic::Diagnostic;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
-pub(crate) fn capture_names(
+pub(crate) fn capture_names_scoped(
     program: &Program,
     params: &[ClosureParam],
     return_type: &Type,
     body: &Expr,
     outer: &BTreeMap<&str, &Type>,
+    scope: Option<&crate::ast::Function>,
 ) -> Result<Vec<String>, Diagnostic> {
+    let scalar = |ty: &Type| {
+        function_value_scalar_type(ty) || scope.is_some_and(|function| {
+        super::generic_collection_profile(function) && matches!(ty, Type::Named { name, arguments } if arguments.is_empty() && function.type_parameters.iter().any(|p| p.name == *name))
+    })
+    };
     let reject = |message| error(program, "SPX-T288", message, body.span);
     if params.len() > 8
-        || !function_value_scalar_type(return_type)
+        || !scalar(return_type)
         || params
             .iter()
-            .any(|p| !function_value_scalar_type(&p.ty) || !source_identifier(&p.name))
+            .any(|p| !scalar(&p.ty) || !source_identifier(&p.name))
     {
         return Err(reject(
             "closures require zero through eight named scalar parameters and a scalar result",
@@ -50,7 +56,7 @@ pub(crate) fn capture_names(
                 let Some(statement) = statements.get(next) else { pending.push(Item::Expr(tail, locals)); continue; };
                 match statement {
                     Statement::Let { name, declared, value, .. } => {
-                        if declared.as_ref().is_some_and(|ty| !function_value_scalar_type(ty)) { return Err(reject("closure locals must be Copy scalars")); }
+                        if declared.as_ref().is_some_and(|ty| !scalar(ty)) { return Err(reject("closure locals must be Copy scalars")); }
                         let prior = locals.clone(); locals.insert(name);
                         pending.push(Item::Block(statements, next + 1, tail, locals));
                         pending.push(Item::Expr(value, prior));
@@ -71,7 +77,7 @@ pub(crate) fn capture_names(
                 ExprKind::Int(_) | ExprKind::Int32(_) | ExprKind::Char(_) | ExprKind::Uint8(_) | ExprKind::Usize(_) | ExprKind::Float32(_) | ExprKind::Float64(_) | ExprKind::Bool(_) => {}
                 ExprKind::Var(name) => {
                     if locals.contains(name.as_str()) { continue; }
-                    if name == "result" || outer.get(name.as_str()).is_none_or(|ty| !function_value_scalar_type(ty)) { return Err(reject("closures capture only lexical Copy scalar values")); }
+                    if name == "result" || outer.get(name.as_str()).is_none_or(|ty| !scalar(ty)) { return Err(reject("closures capture only lexical Copy scalar values")); }
                     captures.insert(name.clone());
                     if captures.len() > 8 { return Err(reject("closure capture inventory exceeds eight scalar snapshots")); }
                 }
@@ -122,7 +128,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         else {
             unreachable!()
         };
-        if !self.current.type_parameters.is_empty() {
+        if !self.current.type_parameters.is_empty()
+            && !super::generic_collection_profile(self.current)
+        {
             return Err(error(
                 self.program,
                 "SPX-T288",
@@ -135,7 +143,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             .iter()
             .map(|(name, binding)| (name.as_str(), &binding.ty))
             .collect();
-        let names = capture_names(self.program, params, return_type, body, &outer)?;
+        let names = capture_names_scoped(
+            self.program,
+            params,
+            return_type,
+            body,
+            &outer,
+            Some(self.current),
+        )?;
         let mut bindings = HashMap::new();
         for name in names {
             let binding = &self.scopes[scope].bindings[&name];
@@ -226,7 +241,7 @@ pub(super) fn oracle(
     else {
         unreachable!()
     };
-    if !current.type_parameters.is_empty() {
+    if !current.type_parameters.is_empty() && !super::generic_collection_profile(current) {
         diagnostics.push(error(
             program,
             "SPX-T288",
@@ -239,7 +254,14 @@ pub(super) fn oracle(
         .iter()
         .map(|(name, binding)| (name.as_str(), &binding.ty))
         .collect();
-    let names = match capture_names(program, params, return_type, body, &outer_types) {
+    let names = match capture_names_scoped(
+        program,
+        params,
+        return_type,
+        body,
+        &outer_types,
+        Some(current),
+    ) {
         Ok(names) => names,
         Err(error) => {
             diagnostics.push(error);
@@ -301,4 +323,113 @@ pub(super) fn source_signature(params: &[ClosureParam], result: &Type) -> Type {
             .collect(),
         result: Box::new(result.clone()),
     }
+}
+
+/// Validate authored template closure boundaries before concrete specialization.
+/// This check carries no capture/type authority; normal source checking still
+/// checks each scalar substitution and its lexical snapshot inventory.
+pub(super) fn validate_generic_syntax(
+    program: &Program,
+    function: &crate::ast::Function,
+) -> Result<(), Diagnostic> {
+    if function.type_parameters.is_empty() {
+        return Ok(());
+    }
+    let mut pending = vec![(&function.body, false)];
+    while let Some((expression, in_closure)) = pending.pop() {
+        if let ExprKind::Closure {
+            params,
+            return_type,
+            body,
+        } = &expression.kind
+        {
+            let scalar = |ty: &Type| {
+                function_value_scalar_type(ty)
+                    || matches!(ty, Type::Named { name, arguments } if arguments.is_empty() && function.type_parameters.iter().any(|parameter| parameter.name == *name))
+            };
+            if in_closure
+                || !super::generic_collection_profile(function)
+                || params.len() > 8
+                || !scalar(return_type)
+                || params.iter().any(|param| !scalar(&param.ty))
+            {
+                return Err(error(
+                    program,
+                    "SPX-T288",
+                    "generic scalar collection closures cannot be nested",
+                    expression.span,
+                ));
+            }
+            pending.push((body, true));
+            continue;
+        }
+        if in_closure {
+            match &expression.kind {
+                ExprKind::Int(_)
+                | ExprKind::Int32(_)
+                | ExprKind::Char(_)
+                | ExprKind::Uint8(_)
+                | ExprKind::Usize(_)
+                | ExprKind::Float32(_)
+                | ExprKind::Float64(_)
+                | ExprKind::Bool(_)
+                | ExprKind::Var(_)
+                | ExprKind::Unary { .. }
+                | ExprKind::Binary { .. }
+                | ExprKind::Block { .. }
+                | ExprKind::If { .. } => {}
+                ExprKind::Call {
+                    name,
+                    type_arguments,
+                    ..
+                } if type_arguments.is_empty()
+                    && program
+                        .functions
+                        .iter()
+                        .find(|candidate| candidate.name == *name)
+                        .and_then(function_value_signature)
+                        .is_some() => {}
+                _ => {
+                    return Err(error(
+                        program,
+                        "SPX-T288",
+                        "generic closure bodies require ordinary scalar expressions and calls",
+                        expression.span,
+                    ))
+                }
+            }
+        }
+        let mut index = 0;
+        while let Some(child) = expression.child(index) {
+            pending.push((child, in_closure));
+            index += 1;
+        }
+    }
+    Ok(())
+}
+
+/// Every admitted collection substitution must be checked, including unused
+/// templates. Unsupported specialization must never erase validation work.
+pub(super) fn specialize_checked(
+    program: &Program,
+    template: &crate::ast::Function,
+    arguments: &[Type],
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<crate::ast::Function> {
+    let specialized = super::declared_type::validation_specialize_function(template, arguments);
+    if specialized.is_none() && super::generic_collection_profile(template) {
+        diagnostics.push(error(
+            program,
+            "SPX-T288",
+            "generic collection template cannot be checked for every scalar substitution",
+            template.span,
+        ));
+    }
+    specialized
+}
+
+pub(super) fn scoped_scalar(function: &crate::ast::Function, ty: &Type) -> bool {
+    function_value_scalar_type(ty)
+        || (super::generic_collection_profile(function)
+            && matches!(ty, Type::Named { name, arguments } if arguments.is_empty() && function.type_parameters.iter().any(|parameter| parameter.name == *name)))
 }

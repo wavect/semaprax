@@ -142,6 +142,16 @@ pub(in crate::implementation) fn resolved_expression_child<'a>(
         Some((path_index, child))
     };
     match &expression.kind {
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            let child = if index < captures.len() {
+                &captures.get(index)?.value
+            } else if index == captures.len() {
+                body.as_ref()
+            } else {
+                return None;
+            };
+            advance(index.checked_add(1)?, index, child)
+        }
         ResolvedExprKind::Invoke { callable, args } => {
             let child = if index == 0 {
                 callable.as_ref()

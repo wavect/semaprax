@@ -76,15 +76,9 @@ fn record_kind(
     if !arguments.is_empty() {
         return None;
     }
-    let Some(id) = resolve_type_id(module, name, programs) else {
-        return None;
-    };
-    let Some(target) = authored.get(id.as_str()) else {
-        return None;
-    };
-    let Some(declaration) = target.ty else {
-        return None;
-    };
+    let id = resolve_type_id(module, name, programs)?;
+    let target = authored.get(id.as_str())?;
+    let declaration = target.ty?;
     let owns_bytes = record_shape(
         target.module,
         declaration,

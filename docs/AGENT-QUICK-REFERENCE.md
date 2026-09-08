@@ -657,7 +657,9 @@ or step type. Explicit `IterStep<T>::Done {}` also works without a vector.
 All eight Copy scalars are admitted; owned items, lazy adapters, consuming
 loop syntax, and public iterator signatures remain separate work. See
 [Owning Iterators v1](OWNING-ITERATORS-V1.md) and the separate
-[closure profile](CLOSURES-V2.md).
+[closure profile](CLOSURES-V2.md). Private helpers may use one scoped generic
+`T` for iterator parameters and results, reconstruct steps, and invoke scalar
+callbacks under [Generic Iterator Helpers v1](GENERIC-ITERATORS-V1.md).
 
 ## Projects
 

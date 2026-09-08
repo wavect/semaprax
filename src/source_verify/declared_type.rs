@@ -216,7 +216,14 @@ pub(super) fn check_declared_type(
             name: name.clone(),
             arguments: arguments.clone(),
         };
-        if crate::iterator_ops::ast_is_iterator(&instance) {
+        if crate::iterator_ops::ast_is_iterator(&instance)
+            || (matches!(
+                (name.as_str(), declaration.stable_id.as_str()),
+                ("Iter", crate::iterator_ops::ITER_ID) | ("IterStep", crate::iterator_ops::STEP_ID)
+            ) && parameters.len() == 1
+                && matches!(arguments.as_slice(), [Type::Named { name, arguments }]
+                    if arguments.is_empty() && parameters.contains(name.as_str())))
+        {
             continue;
         }
         let admitted_owned_record = types.is_nested_owned_byte_record(&instance);

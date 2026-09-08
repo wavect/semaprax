@@ -696,6 +696,44 @@ fn owned_box() -> TypeDeclaration {
     }
 }
 
+fn owned_iter() -> TypeDeclaration {
+    let mut declaration = owned_vec();
+    declaration.stable_id = crate::iterator_ops::ITER_ID.into();
+    declaration.name = "Iter".into();
+    declaration
+}
+fn iter_step() -> TypeDeclaration {
+    TypeDeclaration {
+        stable_id: crate::iterator_ops::STEP_ID.into(),
+        explicit_id: true,
+        name: "IterStep".into(),
+        name_span: Span::default(),
+        type_parameters: vec![parameter("T")],
+        kind: TypeDeclarationKind::Variant {
+            cases: vec![
+                case(crate::iterator_ops::DONE_ID, "Done", Vec::new()),
+                case(
+                    crate::iterator_ops::YIELD_ID,
+                    "Yield",
+                    vec![
+                        field(crate::iterator_ops::ITEM_ID, "item", parameter_type("T")),
+                        field(
+                            crate::iterator_ops::REST_ID,
+                            "rest",
+                            Type::Named {
+                                name: "Iter".into(),
+                                arguments: vec![parameter_type("T")],
+                            },
+                        ),
+                    ],
+                ),
+            ],
+        },
+        extends: None,
+        span: Span::default(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -829,45 +867,5 @@ mod tests {
             digest_text_v7(),
             "sha256:b19b2ff6923513d3fbf9e42666e3d9e11638fc01abe839a9b69334f8cf80d4dc"
         );
-    }
-}
-
-#[allow(clippy::items_after_test_module)]
-fn owned_iter() -> TypeDeclaration {
-    let mut declaration = owned_vec();
-    declaration.stable_id = crate::iterator_ops::ITER_ID.into();
-    declaration.name = "Iter".into();
-    declaration
-}
-#[allow(clippy::items_after_test_module)]
-fn iter_step() -> TypeDeclaration {
-    TypeDeclaration {
-        stable_id: crate::iterator_ops::STEP_ID.into(),
-        explicit_id: true,
-        name: "IterStep".into(),
-        name_span: Span::default(),
-        type_parameters: vec![parameter("T")],
-        kind: TypeDeclarationKind::Variant {
-            cases: vec![
-                case(crate::iterator_ops::DONE_ID, "Done", Vec::new()),
-                case(
-                    crate::iterator_ops::YIELD_ID,
-                    "Yield",
-                    vec![
-                        field(crate::iterator_ops::ITEM_ID, "item", parameter_type("T")),
-                        field(
-                            crate::iterator_ops::REST_ID,
-                            "rest",
-                            Type::Named {
-                                name: "Iter".into(),
-                                arguments: vec![parameter_type("T")],
-                            },
-                        ),
-                    ],
-                ),
-            ],
-        },
-        extends: None,
-        span: Span::default(),
     }
 }

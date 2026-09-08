@@ -66,13 +66,16 @@ no host authority. The generic collection helper under `hir/generic_collection`
 owns exact private Box/Vec signature admission; source verification and HIR
 materialization independently validate concrete substitutions.
 
-Private generic collection admission lives in
+Private generic collection and iterator-helper admission lives in
 `src/source_verify/declared_type/generic_collection.rs` and the independent
 `src/hir/generic_collection.rs` profile. Existing monomorphization and HIR
 validation check all eight concrete Copy substitutions; Box/Vec interpreters
 and backends consume the same canonical cleanup plans and runtime carriers.
 The [owning specification](GENERIC-COMPILER-COLLECTIONS-V1.md) defines the exact
 private signature boundary.
+The [generic iterator profile](GENERIC-ITERATORS-V1.md) reuses those source/HIR
+classifiers for scoped `Iter<T>` and `IterStep<T>`, with exact Step field
+identities and independent match-binding ownership validation.
 
 Authored generic variant admission is owned by the independent
 `source_verify/declared_type/generic_variant` and `hir/generic_variant` profiles.

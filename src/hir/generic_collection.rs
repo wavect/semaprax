@@ -6,7 +6,7 @@ pub(crate) fn scalar(ty: &ResolvedType) -> bool {
 pub(crate) fn slot(ty: &ResolvedType, owner: &DeclarationId, count: usize) -> bool {
     count == 1
         && matches!(ty, ResolvedType::Nominal { declaration, arguments }
- if matches!(declaration.as_str(), crate::prelude::BOX_ID | crate::prelude::VEC_ID)
+ if matches!(declaration.as_str(), crate::prelude::BOX_ID | crate::prelude::VEC_ID | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID)
  && matches!(arguments.as_slice(), [ResolvedType::TypeParameter { owner: parameter_owner, index: 0 }] if parameter_owner == owner))
 }
 pub(crate) fn parameter(ty: &ResolvedType, owner: &DeclarationId) -> bool {
@@ -22,7 +22,8 @@ pub(crate) fn profile(template: &ResolvedFunctionTemplate) -> bool {
     let mut uses = slot(&template.return_type) || template.params.iter().any(|p| slot(&p.ty));
     super::visit_resolved_calls(&template.body, &mut |id, _, _| {
         uses |= crate::box_ops::by_id(id.as_str()).is_some()
-            || crate::vec_ops::by_id(id.as_str()).is_some();
+            || crate::vec_ops::by_id(id.as_str()).is_some()
+            || crate::iterator_ops::by_id(id.as_str()).is_some();
     });
     template.type_parameters.len() == 1
         && uses
@@ -37,7 +38,7 @@ pub(crate) fn arguments(arguments: &[ResolvedType]) -> bool {
     matches!(arguments, [ty] if scalar(ty))
 }
 pub(crate) fn concrete_signature(function: &super::ResolvedFunction) -> bool {
-    let carrier = |ty: &ResolvedType| matches!(ty, ResolvedType::Nominal { declaration, arguments } if matches!(declaration.as_str(), crate::prelude::BOX_ID | crate::prelude::VEC_ID) && self::arguments(arguments));
+    let carrier = |ty: &ResolvedType| matches!(ty, ResolvedType::Nominal { declaration, arguments } if matches!(declaration.as_str(), crate::prelude::BOX_ID | crate::prelude::VEC_ID | crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID) && self::arguments(arguments));
     (carrier(&function.return_type) || function.params.iter().any(|p| carrier(&p.ty)))
         && (carrier(&function.return_type) || scalar(&function.return_type))
         && function.params.iter().all(|p| {

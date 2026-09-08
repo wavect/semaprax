@@ -426,3 +426,68 @@ module test.iterator_local_done;
         "semaprax.graph.v38"
     );
 }
+
+#[test]
+fn generic_iterator_helpers_retain_instances_and_v10_cleanup() {
+    let source = r#"
+module test.generic_iterator_helpers;
+@id("iter.start") fn start<T>(values:own Vec<T>)->Iter<T>{vec_into_iter<T>(values)}
+@id("iter.advance") fn advance<T>(values:own Iter<T>)->IterStep<T>{iter_next<T>(values)}
+@id("iter.first") fn first<T>(values:own Vec<T>)->IterStep<T>{advance<T>(start<T>(values))}
+@id("iter.rebuild") fn rebuild<T>(step:own IterStep<T>)->IterStep<T>{
+  match own step {
+    IterStep::Done{}=>IterStep<T>::Done{},
+    IterStep::Yield{item,rest}=>IterStep<T>::Yield{item:item,rest:rest},
+  }
+}
+@id("iter.project") fn project<T>(step:own IterStep<T>, fallback:T, callback:fn(T)->T)->T {
+    match own step { IterStep::Done{}=>fallback, IterStep::Yield{item,rest}=>callback(item), }
+}
+@id("app.main") fn main()->i64{
+  let values=vec_push<i64>(vec_with_capacity<i64>(1usize),7);
+  let step=rebuild<i64>(first<i64>(values));
+  let replacement=11;
+  let callback=fn(value:i64)->i64{replacement};
+  project<i64>(step,0,callback)
+}
+"#;
+    let checked = crate::check(source, Path::new("generic-iterator-helpers.spx")).unwrap();
+    let resolved = crate::hir::resolve(&checked).unwrap();
+    assert_eq!(
+        super::graph_schema(&resolved).unwrap(),
+        "semaprax.graph.v38"
+    );
+    let mut forged_hir = resolved.clone();
+    let template = forged_hir
+        .function_templates
+        .iter_mut()
+        .find(|template| template.id.as_str() == "iter.advance")
+        .unwrap();
+    let crate::hir::ResolvedType::Nominal { arguments, .. } = &mut template.params[0].ty else {
+        panic!("iterator parameter must retain its nominal type");
+    };
+    arguments[0] = crate::hir::ResolvedType::TypeParameter {
+        owner: crate::hir::DeclarationId::new("iter.start"),
+        index: 0,
+    };
+    assert!(crate::hir::validate(&forged_hir).is_err());
+    let graph = crate::graph::to_json(&checked).unwrap();
+    crate::graph::verify_json(&checked, &graph).unwrap();
+    let wire: serde_json::Value = serde_json::from_str(&graph).unwrap();
+    let instances = wire["generic_instance_ownership"].as_array().unwrap();
+    assert_eq!(instances.len(), 5);
+    assert_eq!(wire["closure_definitions"].as_array().unwrap().len(), 1);
+    assert!(instances
+        .iter()
+        .all(|instance| instance["cleanup_plan_schema"]
+            == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V10));
+    let mut forged = wire.clone();
+    forged["generic_instance_ownership"]
+        .as_array_mut()
+        .unwrap()
+        .reverse();
+    assert!(crate::graph::verify_json(&checked, &forged.to_string()).is_err());
+    let mut forged = wire;
+    forged["generic_instance_ownership"][0]["concrete_instance"] = "forged-instance".into();
+    assert!(crate::graph::verify_json(&checked, &forged.to_string()).is_err());
+}

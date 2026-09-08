@@ -39,7 +39,7 @@ Additional required references:
 | Records, variants, generics, matching, `Option`, `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |
 | Standard-library packages under `std/`, their catalogs, tiers, and gates | [Standard Library v1](STANDARD-LIBRARY-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
 | Owned bounded-vector operations or source `for` traversal | [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md), [Owned Bounded Vec v2](OWNED-BOUNDED-VEC-V2.md), [Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md), [While Loops v1](WHILE-LOOPS-V1.md) |
-| Consuming scalar `Iter<T>` / `IterStep<T>` operations | [Owning Iterators v1](OWNING-ITERATORS-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
+| Consuming scalar `Iter<T>` / `IterStep<T>` operations | [Owning Iterators v1](OWNING-ITERATORS-V1.md), [Generic Iterator Helpers v1](GENERIC-ITERATORS-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
 | Compiler-owned Box allocation or authenticated `std.mem` wrappers | [Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [Standard Library v1](STANDARD-LIBRARY-V1.md) |
 | Generic owned Result propagation | [Generic Owned Result v1](GENERIC-OWNED-RESULT-V1.md), [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md), [Concrete Generic Owned-Byte Records v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) |
 | Cleanup, resource ownership, callable settlement | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) |

@@ -162,7 +162,9 @@ impl HirValidator<'_> {
                             .find(|item| item.id == field.field)
                             .ok_or_else(|| hir_error("authored match has a foreign field"))?;
                         let ty = substitute_type(&expected.ty, declaration, arguments)?;
-                        let ownership = if ty == ResolvedType::Bytes {
+                        let ownership = if template_ownership(self.program, template, &ty)
+                            == OwnershipMode::Own
+                        {
                             if *mode == ResolvedMatchMode::Own {
                                 OwnershipMode::Own
                             } else {

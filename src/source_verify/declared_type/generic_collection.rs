@@ -4,7 +4,7 @@ pub(in crate::source_verify) fn slot(function: &Function, ty: &Type) -> bool {
     let [parameter] = function.type_parameters.as_slice() else {
         return false;
     };
-    matches!(ty, Type::Named { name, arguments } if matches!(name.as_str(), "Box" | "Vec") && matches!(arguments.as_slice(), [Type::Named { name, arguments }] if name == &parameter.name && arguments.is_empty()))
+    matches!(ty, Type::Named { name, arguments } if matches!(name.as_str(), "Box" | "Vec" | "Iter" | "IterStep") && matches!(arguments.as_slice(), [Type::Named { name, arguments }] if name == &parameter.name && arguments.is_empty()))
 }
 pub(in crate::source_verify) fn callback(function: &Function, ty: &Type) -> bool {
     let [parameter] = function.type_parameters.as_slice() else {
@@ -27,7 +27,9 @@ pub(crate) fn profile(function: &Function) -> bool {
     let mut uses = slot(function, &function.return_type)
         || function.params.iter().any(|p| slot(function, &p.ty));
     function.body.visit_calls(&mut |name, _| {
-        uses |= crate::box_ops::by_name(name).is_some() || crate::vec_ops::by_name(name).is_some();
+        uses |= crate::box_ops::by_name(name).is_some()
+            || crate::vec_ops::by_name(name).is_some()
+            || crate::iterator_ops::by_name(name).is_some();
     });
     uses && (slot(function, &function.return_type) || copy(&function.return_type))
         && function.params.iter().all(|p| {

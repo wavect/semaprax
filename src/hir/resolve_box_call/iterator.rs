@@ -19,8 +19,10 @@ pub(super) fn schedule<'expr>(
             span,
         ));
     }
-    let element = resolver.resolve_type(&type_arguments[0], span)?;
-    if !crate::iterator_ops::resolved_element_is_admitted(&element) {
+    let element = resolve_element(resolver, function, &type_arguments[0], span)?;
+    if !crate::iterator_ops::resolved_element_is_admitted(&element)
+        && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::super::generic_collection::parameter(&element, owner))
+    {
         return Err(resolver.error(
             "SPX-T290",
             "iterator elements must be concrete Copy scalars",
@@ -82,8 +84,10 @@ pub(super) fn reference(
     if call.type_arguments.len() != 1 || call.args.len() != 1 {
         return Err(Diagnostic::io("SPX-H006", "invalid iterator call shape"));
     }
-    let element = resolver.resolve_type(&call.type_arguments[0], call.span)?;
-    if !crate::iterator_ops::resolved_element_is_admitted(&element) {
+    let element = resolve_element(resolver, function, &call.type_arguments[0], call.span)?;
+    if !crate::iterator_ops::resolved_element_is_admitted(&element)
+        && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::super::generic_collection::parameter(&element, owner))
+    {
         return Err(Diagnostic::io("SPX-H006", "invalid iterator element"));
     }
     let argument = resolver.resolve_expr_recursive_reference(
@@ -93,4 +97,21 @@ pub(super) fn reference(
         &format!("{}.arg0", call.path),
     )?;
     finish(function, call.path, call.span, op, element, vec![argument])
+}
+
+fn resolve_element(
+    resolver: &Resolver<'_>,
+    function: &FunctionExecutionId,
+    ty: &Type,
+    span: Span,
+) -> Result<ResolvedType, Diagnostic> {
+    if let FunctionExecutionId::Monomorphic(owner) = function {
+        if let Some(candidate) = resolver.program.functions.iter().find(|candidate| {
+            candidate.stable_id == owner.as_str()
+                && crate::source_verify::generic_collection_profile(candidate)
+        }) {
+            return resolver.resolve_function_type(candidate, ty, span);
+        }
+    }
+    resolver.resolve_type(ty, span)
 }

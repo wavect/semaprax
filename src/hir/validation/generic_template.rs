@@ -393,7 +393,8 @@ pub(super) fn is_vec_wrapper_call(
     instance.is_none()
         && (super::super::generic_collection::profile(template)
             && (crate::vec_ops::by_id(callee.as_str()).is_some()
-                || crate::box_ops::by_id(callee.as_str()).is_some())
+                || crate::box_ops::by_id(callee.as_str()).is_some()
+                || crate::iterator_ops::by_id(callee.as_str()).is_some())
             || crate::vec_ops::hir_wrapper_in_program(program, template)
                 == crate::vec_ops::by_id(callee.as_str()))
         && matches!(type_arguments,

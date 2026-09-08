@@ -21,6 +21,11 @@ pub(crate) fn slot(
     owner: &DeclarationId,
     count: usize,
 ) -> bool {
+    if super::generic_collection::slot(ty, owner, count)
+        && matches!(ty, ResolvedType::Nominal { declaration, .. } if declaration.as_str() == crate::iterator_ops::STEP_ID)
+    {
+        return true;
+    }
     count == 1
         && matches!(ty, ResolvedType::Nominal { arguments, .. }
             if matches!(arguments.as_slice(), [ResolvedType::Bytes, ResolvedType::TypeParameter { owner: parameter_owner, index: 0 }] if parameter_owner == owner))
@@ -30,6 +35,7 @@ pub(crate) fn slot(
         })
 }
 pub(crate) fn profile(program: &ResolvedProgram, template: &ResolvedFunctionTemplate) -> bool {
+    if super::generic_collection::profile(template) && std::iter::once(&template.return_type).chain(template.params.iter().map(|p| &p.ty)).any(|ty| matches!(ty, ResolvedType::Nominal { declaration, .. } if declaration.as_str() == crate::iterator_ops::STEP_ID)) { return true; }
     let carrier = |ty: &ResolvedType| {
         slot(
             &program.declarations,
@@ -129,6 +135,11 @@ pub(crate) fn match_result_execution(
 }
 
 pub(crate) fn symbolic_slot(ty: &ResolvedType, owner: &DeclarationId, count: usize) -> bool {
+    if super::generic_collection::slot(ty, owner, count)
+        && matches!(ty, ResolvedType::Nominal { declaration, .. } if declaration.as_str() == crate::iterator_ops::STEP_ID)
+    {
+        return true;
+    }
     count == 1
         && matches!(ty,ResolvedType::Nominal{arguments,..} if matches!(arguments.as_slice(),[ResolvedType::Bytes,ResolvedType::TypeParameter{owner:parameter_owner,index:0}] if parameter_owner==owner))
 }

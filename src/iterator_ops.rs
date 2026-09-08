@@ -379,7 +379,6 @@ pub(crate) fn validate_declarations(
     Ok(())
 }
 
-#[allow(clippy::items_after_test_module)]
 pub(crate) fn is_step_rest_field(
     owner: &DeclarationId,
     case: &DeclarationId,

@@ -838,8 +838,8 @@ jobs:
         run: |
           node --version
           cargo test --locked -p semaprax --lib iterator -- --nocapture
-          cargo test --locked -p semaprax --test workspace canonical_revision::generic_instances::iterator_ -- --nocapture
-          cargo test --locked -p semaprax --test owned_data owning_iterators -- --nocapture
+          cargo test --locked -p semaprax --test workspace iterator -- --nocapture
+          cargo test --locked -p semaprax --test owned_data iterator -- --nocapture
       - name: Require native O0/O2 and Core-Wasm scalar status equivalence
         if: runner.os == 'Linux'
         env:

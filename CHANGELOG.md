@@ -8,6 +8,17 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Compose private generic iterator helpers with scalar callbacks and step
+  reconstruction. Source and HIR retain scoped `Iter<T>`/`IterStep<T>` ownership;
+  existing Prelude v7, CleanupPlan v10, and Graph v38 remain authoritative.
+  The eight-scalar runtime corpus passes interpreter, C11 O0/O2, and Core Wasm,
+  including callback contract failure and repeated settlement. Graph and
+  ProgramRoot reject forged instance/scoped identities and changed source.
+  Public iterator ABI and consuming loops remain separate work.
+- Repair the prior head's CI failures by consolidating Closure test visitors,
+  keeping production iterator/prelude helpers before test modules, and
+  completing closure/iterator documentation metadata and catalog entries.
+
 - Repair local-only iterator step construction across prelude selection, graph
   classification, cleanup case-state replay, backend runtime activation, and
   canonical owning matches. Add repeated cross-engine regressions for bound

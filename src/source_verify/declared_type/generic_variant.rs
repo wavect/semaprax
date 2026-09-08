@@ -6,6 +6,11 @@ pub(in crate::source_verify) fn slot(
     ty: &Type,
     types: &TypeTable<'_>,
 ) -> bool {
+    if generic_collection::slot(function, ty)
+        && matches!(ty, Type::Named { name, .. } if name == "IterStep")
+    {
+        return true;
+    }
     let [parameter] = function.type_parameters.as_slice() else {
         return false;
     };
@@ -27,6 +32,13 @@ pub(in crate::source_verify) fn slot(
         })
 }
 pub(in crate::source_verify) fn profile(function: &Function, types: &TypeTable<'_>) -> bool {
+    if generic_collection::profile(function)
+        && std::iter::once(&function.return_type)
+            .chain(function.params.iter().map(|p| &p.ty))
+            .any(|ty| matches!(ty, Type::Named { name, .. } if name == "IterStep"))
+    {
+        return true;
+    }
     let [parameter] = function.type_parameters.as_slice() else {
         return false;
     };

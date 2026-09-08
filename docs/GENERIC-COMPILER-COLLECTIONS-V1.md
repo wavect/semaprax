@@ -38,3 +38,8 @@ An attempted selected public Box result now reaches the unchanged Public Scalar
 Export Profile v1 and rejects with SPX-W115 (generic templates or instances are
 not admitted). The former SPX-H006 was an earlier private-linker rejection, not
 the public signature contract.
+
+[Generic Iterator Helpers v1](GENERIC-ITERATORS-V1.md) extends this private
+profile to the existing `Iter<T>` and `IterStep<T>` carriers and consuming
+protocol, including callbacks and explicit step reconstruction. It preserves
+the earlier Box/Vec contract and keeps public signatures separately closed.

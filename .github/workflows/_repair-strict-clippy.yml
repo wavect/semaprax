@@ -27,10 +27,10 @@ jobs:
               exit 1
             fi
           }
-          check_blob src/simd_report.rs ba82e8b73b04c369a6b61b5534be1d7cb229c9fb
-          check_blob src/wasm/aggregate/function_value.rs a51fff4f572a9874d43d14fd0044a48fc5e5003a
-          check_blob src/wasm/aggregate.rs dff4cd7af4ad0d2d59d59ea9e7430460828ffcd9
-          check_blob src/source_verify/function_value_inventory.rs fb9f31c1fe02b02b76f07e6986f5540f90a45d2d
+          check_blob src/simd_report.rs 21faaf8a50fd23b6653d134d6c53e4a39447dc4d
+          check_blob src/wasm/aggregate/function_value.rs d93e3109f420ae2e0579a815edd7a524117f0c30
+          check_blob src/wasm/aggregate.rs 959b98ba7d65518cdaf031b86c15af4f6a76fa46
+          check_blob src/source_verify/function_value_inventory.rs 7db4f19c544664349a32f78438e3b96b03f5651f
 
       - name: Apply exact clippy fixes
         shell: bash
@@ -41,8 +41,9 @@ jobs:
           def replace_once(path, old, new):
               p = Path(path)
               text = p.read_text()
-              if text.count(old) != 1:
-                  raise SystemExit(f"patch anchor count for {path} is {text.count(old)}, expected 1")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"patch anchor count for {path} is {count}, expected 1")
               p.write_text(text.replace(old, new, 1))
 
           replace_once(
@@ -56,26 +57,29 @@ jobs:
               "pub(super) fn execution_target<'a>(target: &'a ResolvedFunction) -> FunctionExecutionId {",
               "pub(super) fn execution_target(target: &ResolvedFunction) -> FunctionExecutionId {",
           )
-          replace_once(
-              "src/wasm/aggregate/function_value.rs",
-              '''        let table = *self
-            .function_tables
-            .get(target)
-            .ok_or_else(|| error("function reference has no aggregate WebAssembly table slot"))?;
-        self.output.push(0x41);
-        super::write_i64(
-            self.output,
-            i64::try_from(table).map_err(|_| error("function table index exceeds signed i32"))?,
-        );''',
-              '''        let table = *self
-            .function_tables
-            .get(target)
-            .ok_or_else(|| error("function reference has no aggregate WebAssembly table slot"))?;
-        let table =
-            i32::try_from(table).map_err(|_| error("function table index exceeds signed i32"))?;
-        self.output.push(0x41);
-        super::write_i64(self.output, i64::from(table));''',
-          )
+
+          old = "\n".join([
+              "        let table = *self",
+              "            .function_tables",
+              "            .get(target)",
+              "            .ok_or_else(|| error(\"function reference has no aggregate WebAssembly table slot\"))?;",
+              "        self.output.push(0x41);",
+              "        super::write_i64(",
+              "            self.output,",
+              "            i64::try_from(table).map_err(|_| error(\"function table index exceeds signed i32\"))?,",
+              "        );",
+          ])
+          new = "\n".join([
+              "        let table = *self",
+              "            .function_tables",
+              "            .get(target)",
+              "            .ok_or_else(|| error(\"function reference has no aggregate WebAssembly table slot\"))?;",
+              "        let table =",
+              "            i32::try_from(table).map_err(|_| error(\"function table index exceeds signed i32\"))?;",
+              "        self.output.push(0x41);",
+              "        super::write_i64(self.output, i64::from(table));",
+          ])
+          replace_once("src/wasm/aggregate/function_value.rs", old, new)
 
           replace_once(
               "src/wasm/aggregate.rs",
@@ -83,25 +87,27 @@ jobs:
               "#[allow(clippy::too_many_arguments)]\nfn emit_function(\n    program: &ResolvedProgram,",
           )
 
-          replace_once(
-              "src/source_verify/function_value_inventory.rs",
-              '''    functions
-        .iter()
-        .filter_map(|(name, function)| {
-            (universe.contains(*name)
-                && function_value_signature(function).as_ref() == Some(signature))
-            .then(|| (*name).to_owned())
-        })
-        .collect()''',
-              '''    functions
-        .iter()
-        .filter(|(name, function)| {
-            universe.contains(*name)
-                && function_value_signature(function).as_ref() == Some(signature)
-        })
-        .map(|(name, _)| (*name).to_owned())
-        .collect()''',
-          )
+          old = "\n".join([
+              "    functions",
+              "        .iter()",
+              "        .filter_map(|(name, function)| {",
+              "            (universe.contains(*name)",
+              "                && function_value_signature(function).as_ref() == Some(signature))",
+              "            .then(|| (*name).to_owned())",
+              "        })",
+              "        .collect()",
+          ])
+          new = "\n".join([
+              "    functions",
+              "        .iter()",
+              "        .filter(|(name, function)| {",
+              "            universe.contains(*name)",
+              "                && function_value_signature(function).as_ref() == Some(signature)",
+              "        })",
+              "        .map(|(name, _)| (*name).to_owned())",
+              "        .collect()",
+          ])
+          replace_once("src/source_verify/function_value_inventory.rs", old, new)
           PY
 
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772

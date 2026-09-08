@@ -285,7 +285,7 @@ fn owned_bytes_into_a_slice_parameter_names_the_views() {
         "SPX-T205",
     );
     assert!(
-        help(&diagnostic).contains("array_as_slice(array))"),
+        help(&diagnostic).contains("array_as_slice(array)"),
         "{diagnostic}"
     );
 }

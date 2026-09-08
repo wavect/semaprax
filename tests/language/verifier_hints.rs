@@ -143,7 +143,7 @@ fn immutable_parameter_names_the_mutable_copy_repair() {
 #[test]
 fn generic_call_with_unsupported_inference_expression_shows_the_call_shape() {
     let diagnostic = only(
-        "module habit.generic;\n@id(\"habit.id\")\nfn id<T>(v: T) -> T\n{\n    v\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    id(2 + 2)\n}\n",
+        "module habit.generic;\n@id(\"habit.id\")\nfn id<T>(v: T) -> T\n{\n    v\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    id({ let n = 2; n + 2 })\n}\n",
         "SPX-T225",
     );
     assert!(help(&diagnostic).contains("id<i64>(…)"), "{diagnostic}");

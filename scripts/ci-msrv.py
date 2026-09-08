@@ -119,6 +119,15 @@ def main(argv=None):
         # Project/npm fixtures in this shard share process/filesystem resources;
         # serial execution prevents cross-test contention from stalling the job.
         test_arguments.append("--test-threads=1")
+    if (
+        sys.platform == "darwin"
+        and args.label == "Rust macOS"
+        and args.shard == "integration-2"
+    ):
+        # macOS /usr/bin/git is an xcrun shim. The bounded Git publication
+        # fixtures clear their environment, and concurrent shim invocations can
+        # exit 1 without output. Drive this merged harness one test at a time.
+        test_arguments.append("--test-threads=1")
 
     # One Cargo invocation; preserve its first failure and exact exit status.
     command = shard["command"] + (["--", *test_arguments] if test_arguments else [])

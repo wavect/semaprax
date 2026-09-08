@@ -891,7 +891,7 @@ fn consume(value: own Either<Bytes, Bytes>) -> i64 {{
 }
 
 #[test]
-fn concrete_owned_generic_variant_profile_rejects_broader_two_owned_and_closed_shapes() {
+fn concrete_owned_generic_variant_profile_admits_parameter_slot_but_rejects_broader_shapes() {
     let declaration = r#"
 @id("test.either")
 variant Either<L, R> {
@@ -909,10 +909,16 @@ variant Either<L, R> {
         assert!(error_codes(&source).contains(&expected), "{module}");
     }
 
-    let nonconcrete = format!(
-        "module test.nonconcrete;\n{declaration}\n@id(\"test.bad\") fn bad<T>(value: own Either<Bytes, T>) -> i64 {{ 0 }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}"
+    let parameter_slot = format!(
+        "module test.parameter_slot;\n{declaration}\n@id(\"test.admitted\") fn admitted<T>(value: own Either<Bytes, T>) -> i64 {{ 0 }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}"
     );
-    assert!(error_codes(&nonconcrete).contains(&"SPX-T268"));
+    let parameter_slot = parse(
+        &parameter_slot,
+        Path::new("owned-generic-variant-parameter-slot.spx"),
+    )
+    .unwrap();
+    assert!(verify::verify(&parameter_slot).is_empty());
+    hir::validate(&hir::resolve(&parameter_slot).unwrap()).unwrap();
 
     let nested = format!(
         "module test.nested_owned_variant;\n{declaration}\n@id(\"test.outer\") variant Outer<T> {{ @id(\"test.outer.value\") Value {{ @id(\"test.outer.value.value\") value: T, }}, }}\n@id(\"test.bad\") fn bad(value: own Outer<Either<Bytes, i64>>) -> i64 {{ 0 }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}"

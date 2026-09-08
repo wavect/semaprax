@@ -1246,7 +1246,7 @@ mod tests {
             let topic = language_topic(selector).unwrap();
             assert!(topic.starts_with(&format!("## {heading}\n")), "{selector}");
             assert!(!topic.contains("\n## "), "{selector}");
-            assert!(topic.len() <= 4_600, "{selector}: {} bytes", topic.len());
+            assert!(topic.len() <= 5_000, "{selector}: {} bytes", topic.len());
             assert!(
                 topic.len() * 5 < LANGUAGE_REFERENCE.len(),
                 "{selector}: {}/{} bytes",

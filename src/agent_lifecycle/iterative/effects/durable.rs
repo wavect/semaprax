@@ -477,7 +477,7 @@ impl CompiledTypedEffects {
             }) => {
                 return Err(DurableTypedFailure {
                     diagnostics,
-                    terminal: Some(terminal),
+                    terminal: Some(*terminal),
                     checkpoint,
                 })
             }

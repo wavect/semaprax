@@ -284,10 +284,10 @@ pub(crate) fn resolved_expression_uses_iterator(expression: &crate::hir::Resolve
                     return true;
                 }
             }
-            crate::hir::ResolvedExprKind::ConstructRecord { record, .. } => {
-                if record.as_str() == ITER_ID {
-                    return true;
-                }
+            crate::hir::ResolvedExprKind::ConstructRecord { record, .. }
+                if record.as_str() == ITER_ID =>
+            {
+                return true;
             }
             crate::hir::ResolvedExprKind::ConstructVariant { variant, .. }
                 if variant.as_str() == STEP_ID =>
@@ -379,6 +379,24 @@ pub(crate) fn validate_declarations(
     Ok(())
 }
 
+#[allow(clippy::items_after_test_module)]
+pub(crate) fn is_step_rest_field(
+    owner: &DeclarationId,
+    case: &DeclarationId,
+    field: &crate::hir::ResolvedFieldDeclaration,
+) -> bool {
+    owner.as_str() == STEP_ID
+        && case.as_str() == YIELD_ID
+        && field.id.as_str() == REST_ID
+        && field.index == 1
+        && field.name == "rest"
+        && field.ty
+            == resolved_iter(ResolvedType::TypeParameter {
+                owner: owner.clone(),
+                index: 0,
+            })
+}
+
 #[cfg(test)]
 mod tests {
     const SOURCE: &str = r#"module test.iterators;
@@ -430,21 +448,4 @@ mod tests {
             "{diagnostics:?}"
         );
     }
-}
-
-pub(crate) fn is_step_rest_field(
-    owner: &DeclarationId,
-    case: &DeclarationId,
-    field: &crate::hir::ResolvedFieldDeclaration,
-) -> bool {
-    owner.as_str() == STEP_ID
-        && case.as_str() == YIELD_ID
-        && field.id.as_str() == REST_ID
-        && field.index == 1
-        && field.name == "rest"
-        && field.ty
-            == resolved_iter(ResolvedType::TypeParameter {
-                owner: owner.clone(),
-                index: 0,
-            })
 }

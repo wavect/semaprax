@@ -128,10 +128,6 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
                     .find_map(|field| first_call(&field.value, template))
             })
         }
-        ResolvedExprKind::Closure { captures, body, .. } => captures
-            .iter()
-            .find_map(|capture| first_call(&capture.value, template))
-            .or_else(|| first_call(body, template)),
     }
 }
 

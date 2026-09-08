@@ -832,12 +832,14 @@ mod tests {
     }
 }
 
+#[allow(clippy::items_after_test_module)]
 fn owned_iter() -> TypeDeclaration {
     let mut declaration = owned_vec();
     declaration.stable_id = crate::iterator_ops::ITER_ID.into();
     declaration.name = "Iter".into();
     declaration
 }
+#[allow(clippy::items_after_test_module)]
 fn iter_step() -> TypeDeclaration {
     TypeDeclaration {
         stable_id: crate::iterator_ops::STEP_ID.into(),

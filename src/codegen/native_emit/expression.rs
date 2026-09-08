@@ -814,8 +814,22 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         op: UnaryOp,
         operand: &ResolvedExpr,
     ) -> Result<CValue, Diagnostic> {
-        let value = self.emit_expr(operand)?;
-        self.emit_unary_value(expr, op, value)
+        let mut pending: Vec<(UnaryOp, &ResolvedExpr)> = Vec::new();
+        pending.push((op, expr));
+        let mut current = operand;
+        while let ResolvedExprKind::Unary {
+            op: next_op,
+            value: next_value,
+        } = &current.kind
+        {
+            pending.push((*next_op, current));
+            current = next_value;
+        }
+        let mut value = self.emit_expr(current)?;
+        for (op, expr) in pending.into_iter().rev() {
+            value = self.emit_unary_value(expr, op, value)?;
+        }
+        Ok(value)
     }
 
     fn emit_unary_value(

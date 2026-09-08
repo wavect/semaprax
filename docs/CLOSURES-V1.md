@@ -5,6 +5,9 @@ SemanticProgram v5/ProgramRoot replay, and generic Vec map/filter/fold across
 the interpreter, C11 O0/O2, and Core Wasm. Hosted and public promotion remain
 pending.
 
+Audience: language users, compiler contributors, backend implementers, and
+workspace-service authors.
+
 This additive LANG-07 profile extends Function Values v1/v2 with anonymous
 functions carrying scalar snapshots. It is not a general owning closure ABI.
 

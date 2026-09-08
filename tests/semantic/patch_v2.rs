@@ -94,10 +94,6 @@ fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a Re
             })
         }
         ResolvedExprKind::Project { base, .. } => first_call(base, template),
-        ResolvedExprKind::Closure { captures, body, .. } => captures
-            .iter()
-            .find_map(|capture| first_call(&capture.value, template))
-            .or_else(|| first_call(body, template)),
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)

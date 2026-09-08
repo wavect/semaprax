@@ -215,12 +215,6 @@ fn reported_binding_ids_equal_the_resolved_hir_inventory() {
                 }
             }
             hir::ResolvedExprKind::FunctionReference { .. } => {}
-            hir::ResolvedExprKind::Closure { captures, body, .. } => {
-                for capture in captures {
-                    collect_expr(&capture.value, ids);
-                }
-                collect_expr(body, ids);
-            }
             hir::ResolvedExprKind::Invoke { callable, args } => {
                 collect_expr(callable, ids);
                 for argument in args {

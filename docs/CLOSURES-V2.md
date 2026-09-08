@@ -3,6 +3,9 @@
 Status: locally exercised across source/HIR/graph/cache replay, ProgramRoot,
 interpreter, native C11 O0/O2, and Core Wasm. Hosted promotion remains pending.
 
+Audience: language users, compiler contributors, backend implementers, and
+workspace-service authors.
+
 This additive profile extends [Closures v1](CLOSURES-V1.md) to construction
 inside private generic collection functions and bounded loop bodies. It keeps
 the same scalar snapshot semantics and private callable representation.

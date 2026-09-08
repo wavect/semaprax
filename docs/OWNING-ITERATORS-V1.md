@@ -3,6 +3,9 @@
 Status: focused cross-engine runtime, projection, and ProgramRoot replay corpora
 pass locally; exact-head hosted promotion remains pending.
 
+Audience: language users, compiler contributors, backend implementers, and
+workspace-service authors.
+
 This LANG-07 profile introduces a first-class consuming iterator protocol over
 bounded scalar vectors. It is the ownership foundation for subsequent iterator
 loops and adapters, not an eager vector transformation.

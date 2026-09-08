@@ -11,6 +11,7 @@ use crate::ast::{
 use crate::diagnostic::Diagnostic;
 use std::collections::{BTreeMap, BTreeSet};
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn default_expr_expanded_cost(
     ty: &Type,
     module: &str,

@@ -69,7 +69,7 @@ printf '%s\n' \
     '  ]' \
     '}' > "$package_root/release-manifest.json"
 printf '%s\n' \
-    'module release.smoke;' \
+    'module app;' \
     '' \
     '@id("release.smoke.main")' \
     'fn main() -> i64 { 42 }' > "$package_root/smoke/meaning.spx"

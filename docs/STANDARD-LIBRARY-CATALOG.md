@@ -1175,6 +1175,108 @@ fn content_length(response: borrow Slice<u8>) -> i64
     ensures result >= -1
 ```
 
+## `std.io`
+
+Package `std/io`, tier `portable`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.io = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.io.reader`
+
+```semaprax
+record Reader {
+    data: Bytes,
+    position: usize,
+}
+```
+
+### `std.io.writer`
+
+```semaprax
+record Writer {
+    data: Bytes,
+    position: usize,
+}
+```
+
+### `std.io.reader.from-bytes`
+
+```semaprax
+fn reader_from_bytes(data: own Bytes) -> Reader
+    ensures result.position == 0usize
+```
+
+### `std.io.reader.cursor`
+
+```semaprax
+fn reader_position(reader: borrow Reader) -> usize
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.io.reader.remaining`
+
+```semaprax
+fn reader_remaining(reader: borrow Reader) -> usize
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.io.reader.peek`
+
+```semaprax
+fn reader_peek(reader: borrow Reader) -> u8
+    requires match borrow reader { Reader { data, position } => position < byte_len(bytes_as_slice(data)), }
+```
+
+### `std.io.reader.advance`
+
+```semaprax
+fn reader_advance(reader: own Reader, count: usize) -> Reader
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.io.reader.finish`
+
+```semaprax
+fn reader_finish(reader: own Reader) -> Bytes
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.io.writer.from-bytes`
+
+```semaprax
+fn writer_from_bytes(data: own Bytes) -> Writer
+    ensures result.position == 0usize
+```
+
+### `std.io.writer.cursor`
+
+```semaprax
+fn writer_position(writer: borrow Writer) -> usize
+    requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.io.writer.remaining`
+
+```semaprax
+fn writer_remaining(writer: borrow Writer) -> usize
+    requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.io.writer.write-u8`
+
+```semaprax
+fn writer_write_u8(writer: own Writer, value: u8) -> Writer
+    requires match borrow writer { Writer { data, position } => position < byte_len(bytes_as_slice(data)), }
+```
+
+### `std.io.writer.finish`
+
+`writer_finish` returns the caller-provided buffer: bytes in `[0, position)`
+were initialized by `writer_write_u8`; the remaining suffix is unchanged.
+
+```semaprax
+fn writer_finish(writer: own Writer) -> Bytes
+    requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
 ## `std.mem`
 
 Package `std/mem`, tier `alloc`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.mem = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

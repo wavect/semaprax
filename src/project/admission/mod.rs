@@ -167,9 +167,7 @@ pub(super) fn prepare(
             legacy::https_command(program, manifest.command().unwrap_or(""))?;
             Ok(PreparedProjectAdmission::HttpsCommandIoV1)
         }
-        ProjectProfile::OwnedDataApiV1
-            if manifest.is_no_export_std_collections() || manifest.is_no_export_std_mem() =>
-        {
+        ProjectProfile::OwnedDataApiV1 if manifest.web_exports().is_empty() => {
             Ok(PreparedProjectAdmission::OwnedDataNoExports)
         }
         ProjectProfile::OwnedDataApiV1 => owned::prepare(program, manifest, subject)

@@ -233,6 +233,7 @@ pub(super) enum VerifierFrame<'a> {
         scope: usize,
     },
     ResumeRecordMatchArm {
+        owns_record_input: bool,
         arm: &'a crate::ast::MatchArm,
         parent_scope: usize,
         arm_scope: usize,

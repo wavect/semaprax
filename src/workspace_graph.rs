@@ -14,6 +14,8 @@ mod diagnostics;
 mod expected_projection;
 mod generic_type_import;
 mod operation_sidecar;
+mod owned_function_import;
+use owned_function_import::validate_imported_function;
 mod owned_generics;
 mod package;
 mod prelude_binding;
@@ -5492,93 +5494,6 @@ fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
         }
     }
 }
-fn validate_imported_function(
-    caller: &Program,
-    module_use: &ModuleUse,
-    target: &AuthoredDeclaration<'_>,
-    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
-    programs: &[Program],
-) -> Result<(), Vec<Diagnostic>> {
-    let function = target.function.expect("function target carries a function");
-    let transparent_vec_wrapper = programs
-        .iter()
-        .find(|program| program.module == target.module)
-        .is_some_and(|program| crate::vec_ops::source_wrapper(program, function).is_some());
-    let transparent_box_wrapper = programs
-        .iter()
-        .find(|program| program.module == target.module)
-        .is_some_and(|program| crate::box_ops::source_wrapper(program, function).is_some());
-    if transparent_vec_wrapper || transparent_box_wrapper {
-        return Ok(());
-    }
-    let byte_parameter = package::admitted_byte_parameter;
-    let has_byte_parameter = function.params.iter().any(byte_parameter);
-    let scalar_return = matches!(
-        function.return_type,
-        Type::I64
-            | Type::I32
-            | Type::Char
-            | Type::U8
-            | Type::Usize
-            | Type::F32
-            | Type::F64
-            | Type::Bool
-    );
-    if !function.type_parameters.is_empty()
-        || function.params.iter().any(|param| {
-            param.mode != ParamMode::Value
-                && !byte_parameter(param)
-                && !(param.mode == ParamMode::Borrow && param.ty == Type::Str)
-        })
-        || (has_byte_parameter && !scalar_return)
-    {
-        return Err(vec![use_error(
-            caller,
-            module_use,
-            package::import_profile_refusal(),
-        )]);
-    }
-    for param in &function.params {
-        if byte_parameter(param) {
-            continue;
-        }
-        if !signature_type_is_admitted(
-            target.module,
-            &param.ty,
-            caller,
-            authored,
-            programs,
-            &mut BTreeSet::new(),
-        ) {
-            return Err(vec![use_error(
-                caller,
-                module_use,
-                "function signature leaves the admitted scalar/Copy workspace domain",
-            )
-            .with_help(PROJECT_SIGNATURE_HELP)]);
-        }
-    }
-    let ty = &function.return_type;
-    {
-        if !signature_type_is_admitted(
-            target.module,
-            ty,
-            caller,
-            authored,
-            programs,
-            &mut BTreeSet::new(),
-        ) {
-            return Err(vec![use_error(
-                caller,
-                module_use,
-                "function signature leaves the admitted scalar/Copy workspace domain",
-            )
-            .with_help(PROJECT_SIGNATURE_HELP)]);
-        }
-    }
-    Ok(())
-}
-
 fn signature_type_is_admitted(
     module: &str,
     ty: &Type,

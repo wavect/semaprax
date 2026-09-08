@@ -84,7 +84,7 @@ optional table is omitted when it would be empty.
 | --- | --- | --- | --- |
 | `[package]` | `name`, `version`, `profile` | required | Package identity. `name` matches `[a-z][a-z0-9-]*` within 64 bytes. `version` is canonical Semantic Versioning text within 128 bytes and is always present. `profile` selects one profile contract from the table below; omitting it selects the scalar contract. |
 | `[modules]` | `entry`, `sources`, `tests` | required | Source modules. `entry` and the single `tests` module are bounded module names and must differ. `sources` lists 2 to 16 strictly byte-sorted canonical relative `.spx` paths. |
-| `[exports]` | `web` | required | Exported semantic interfaces: 1 to 32 strictly byte-sorted stable IDs. For a command profile it contains exactly the command function. |
+| `[exports]` | `web` | required | Exported semantic interfaces: 1 to 32 strictly byte-sorted stable IDs, or an empty list for an `owned-data-api.v1` internal library. For a command profile it contains exactly the command function. |
 | `[command]` | `function`, `input` | required for command profiles, forbidden otherwise | Entry point of a command profile. `input` is required exactly when the profile fixes an input contract. |
 | `[capabilities]` | `required` | required for command profiles, forbidden otherwise | Required capabilities. Each command profile fixes the exact list. |
 | `[dependencies]` | one `name = "range"` row per dependency | optional | Dependency requirements. Names are dotted lowercase package identities (`[a-z][a-z0-9._-]*` of at most 128 bytes with non-empty `.`-separated segments, e.g. `examples.meaning`), strictly byte-sorted, matching the resolver package identity; ranges use only `=x.y.z`, `~x.y.z`, or `^x.y.z` with canonical `u32` components, the grammar of [Offline Semantic Lock v3](OFFLINE-SEMANTIC-PACKAGE-LOCK-V3.md). At most 64 rows. `semaprax resolve` selects them against a content-addressed cache ([Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md)). |
@@ -140,10 +140,12 @@ archives.
 | `network-command-io.v1` | `semaprax.project.v12` | [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md) |
 | `https-command-io.v1` | `semaprax.project.v13` | [HTTPS Client I/O v1](HTTPS-CLIENT-IO-V1.md) |
 
-The table layout retains its nonempty `[exports]` requirement. The exact
-no-export `std.collections` exception owned by Public Owned Data API v1 uses
-the frozen eight-line Project v8 layout so no general table-manifest or public
-API surface is widened.
+The `[exports]` table remains required. The additive
+[IO Cursors v1](IO-CURSORS-V1.md) library route permits `web = []` for the
+`owned-data-api.v1` profile in either layout. That route checks internal
+entry/test closures and produces no public descriptor or public package;
+nonempty selections retain all existing public API rules. Other profiles
+still require nonempty exports.
 
 The profile-specific rules the frozen layouts encode by position apply
 unchanged: the six command profiles require `[command]` and the exact

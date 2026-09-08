@@ -77,6 +77,7 @@ Audience: all documentation readers.
 - [While loops](WHILE-LOOPS-V1.md)
 - [Refutable match](REFUTABLE-MATCH-V1.md)
 - [String operations](STRING-OPS-V1.md)
+- [IO Cursors v1](IO-CURSORS-V1.md)
 - [Native inline String settlement](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)
 - [Native String contents](NATIVE-STRING-CONTENTS-V1.md)
 - [Native owned-data internal String settlement](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)

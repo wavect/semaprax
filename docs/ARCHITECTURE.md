@@ -2313,6 +2313,24 @@ a supported language, CLI, ABI, or runtime surface.
 9. Proof data never authorizes a physical finalizer, build, or publication.
 10. No feature is complete without the completion matrix's executable gate.
 
+### Internal owned-data libraries
+
+`workspace_graph/owned_function_import.rs` authenticates explicit nongeneric
+record signatures over Bytes and Copy scalars. `expected_projection/defaults.rs`
+precharges checking-only empty byte leaves with separate admitted/closed memo
+entries; actual execution retains the provider body and ordinary HIR/cleanup
+replay. Ordinary owning record-match results use the same result transfer
+before arm settlement in source verification, HIR, cleanup replay, interpreter,
+C11 and Core Wasm. No target repairs the canonical plan.
+
+The Project v8 empty-export route admits checked internal libraries in either
+manifest layout while leaving descriptor and public-package routes absent.
+Nonempty exports retain their original admission rules. `std/io` owns the
+source-level Reader/Writer cursor contracts and composes only caller-provided
+buffers; `standard_dependencies.rs` bundles its exact module. The standard
+library harness projects record and function documentation through its catalog
+child and exercises the package across the three execution lanes.
+
 ## Repository map
 
 | Area | Primary owners |

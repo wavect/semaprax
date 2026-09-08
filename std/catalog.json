@@ -2341,6 +2341,197 @@
           "effects": [],
           "ensures": 0,
           "head": [
+            "record Reader {",
+            "    data: Bytes,",
+            "    position: usize,",
+            "}"
+          ],
+          "id": "std.io.reader",
+          "kind": "record",
+          "name": "Reader",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "record Writer {",
+            "    data: Bytes,",
+            "    position: usize,",
+            "}"
+          ],
+          "id": "std.io.writer",
+          "kind": "record",
+          "name": "Writer",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn reader_from_bytes(data: own Bytes) -> Reader",
+            "    ensures result.position == 0usize"
+          ],
+          "id": "std.io.reader.from-bytes",
+          "kind": "function",
+          "name": "reader_from_bytes",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reader_position(reader: borrow Reader) -> usize",
+            "    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.reader.cursor",
+          "kind": "function",
+          "name": "reader_position",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reader_remaining(reader: borrow Reader) -> usize",
+            "    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.reader.remaining",
+          "kind": "function",
+          "name": "reader_remaining",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reader_peek(reader: borrow Reader) -> u8",
+            "    requires match borrow reader { Reader { data, position } => position < byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.reader.peek",
+          "kind": "function",
+          "name": "reader_peek",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reader_advance(reader: own Reader, count: usize) -> Reader",
+            "    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.reader.advance",
+          "kind": "function",
+          "name": "reader_advance",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reader_finish(reader: own Reader) -> Bytes",
+            "    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.reader.finish",
+          "kind": "function",
+          "name": "reader_finish",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn writer_from_bytes(data: own Bytes) -> Writer",
+            "    ensures result.position == 0usize"
+          ],
+          "id": "std.io.writer.from-bytes",
+          "kind": "function",
+          "name": "writer_from_bytes",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn writer_position(writer: borrow Writer) -> usize",
+            "    requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.writer.cursor",
+          "kind": "function",
+          "name": "writer_position",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn writer_remaining(writer: borrow Writer) -> usize",
+            "    requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.writer.remaining",
+          "kind": "function",
+          "name": "writer_remaining",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn writer_write_u8(writer: own Writer, value: u8) -> Writer",
+            "    requires match borrow writer { Writer { data, position } => position < byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.writer.write-u8",
+          "kind": "function",
+          "name": "writer_write_u8",
+          "requires": 1
+        },
+        {
+          "description": [
+            "`writer_finish` returns the caller-provided buffer: bytes in `[0, position)`",
+            "were initialized by `writer_write_u8`; the remaining suffix is unchanged."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn writer_finish(writer: own Writer) -> Bytes",
+            "    requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.writer.finish",
+          "kind": "function",
+          "name": "writer_finish",
+          "requires": 1
+        }
+      ],
+      "dependency": "std.io = \"^0.1.0\"",
+      "module": "std.io",
+      "package": "std/io",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
             "fn new<T>(value: T) -> Box<T>"
           ],
           "id": "std.mem.box.new",

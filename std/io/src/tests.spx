@@ -1,0 +1,41 @@
+module std.io.tests;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.io.reader.advance") from std.io as reader_advance;
+use function @id("std.io.reader.finish") from std.io as reader_finish;
+use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.io.reader.peek") from std.io as reader_peek;
+use function @id("std.io.reader.cursor") from std.io as reader_position;
+use function @id("std.io.reader.remaining") from std.io as reader_remaining;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.cursor") from std.io as writer_position;
+use function @id("std.io.writer.remaining") from std.io as writer_remaining;
+use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
+
+@id("std.io.tests.cursors")
+fn cursors() -> bool
+{
+    let writer0 = writer_from_bytes(bytes_zeroed(2usize));
+    let empty = writer_position(writer0) == 0usize && writer_remaining(writer0) == 2usize;
+    let writer1 = writer_write_u8(writer0, 0u8);
+    let writer2 = writer_write_u8(writer1, 255u8);
+    let full = writer_position(writer2) == 2usize && writer_remaining(writer2) == 0usize;
+    let reader0 = reader_from_bytes(writer_finish(writer2));
+    let start_value = reader_peek(reader0) == 0u8;
+    let start = reader_position(reader0) == 0usize && reader_remaining(reader0) == 2usize && start_value;
+    let reader1 = reader_advance(reader0, 1usize);
+    let middle_value = reader_peek(reader1) == 255u8;
+    let middle = reader_position(reader1) == 1usize && reader_remaining(reader1) == 1usize && middle_value;
+    let reader2 = reader_advance(reader1, 8usize);
+    let end_value = reader_remaining(reader2) == 0usize;
+    let end = reader_position(reader2) == 2usize && reader_remaining(reader2) == 0usize && end_value;
+    let bytes = reader_finish(reader2);
+    empty && full && start && middle && end && byte_len(bytes_as_slice(bytes)) == 2usize
+}
+
+@id("std.io.tests.main")
+fn main() -> i64
+{
+    if cursors() { 0 } else { 1 }
+}

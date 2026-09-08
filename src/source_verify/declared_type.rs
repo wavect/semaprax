@@ -1259,3 +1259,14 @@ pub(super) mod generic_collection;
 pub(super) mod generic_result;
 
 pub(super) mod generic_variant;
+
+/// Ordinary resource-free record algebra may return a Copy value or transfer
+/// an existing Bytes/record owner; borrowed values never escape a match arm.
+pub(super) fn ordinary_record_match_result(
+    ty: &Type,
+    mode: ParamMode,
+    types: &TypeTable<'_>,
+) -> bool {
+    (mode == ParamMode::Value && super::type_table::owned_byte_record_copy_field_is_admitted(ty))
+        || (mode == ParamMode::Own && (*ty == Type::Bytes || types.is_nested_owned_byte_record(ty)))
+}

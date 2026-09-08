@@ -21,7 +21,9 @@ pub(super) fn match_result_is_admitted(
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
 ) -> bool {
-    if hir::bounded_owned_record_template_for_function(program, function).is_none() {
+    let generic = hir::bounded_owned_record_template_for_function(program, function).is_some();
+    let ordinary = program.functions.iter().any(|item| item.id == function.id);
+    if !generic && !ordinary {
         return false;
     }
     let ResolvedExprKind::Match {
@@ -39,6 +41,10 @@ pub(super) fn match_result_is_admitted(
     else {
         return false;
     };
+    let ordinary_shape = ordinary
+        && hir::is_admitted_nested_owned_byte_record(&program.declarations, &scrutinee.ty)
+        && (expression.ty == ResolvedType::Bytes
+            || hir::is_admitted_nested_owned_byte_record(&program.declarations, &expression.ty));
     *mode == hir::ResolvedMatchMode::Own
         && expression.ty == arm.value.ty
         && expression.ownership == OwnershipMode::Own
@@ -47,7 +53,7 @@ pub(super) fn match_result_is_admitted(
         && instance == &scrutinee.ty
         && matches!(&scrutinee.ty, ResolvedType::Nominal { declaration, .. }
             if declaration == record)
-        && is_admitted(program, &expression.ty).unwrap_or(false)
+        && (ordinary_shape || (generic && is_admitted(program, &expression.ty).unwrap_or(false)))
 }
 
 impl<'a, O: COutput> CEmitter<'a, O> {
@@ -71,10 +77,24 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     pub(super) fn finish_generic_owned_match_result(
         &mut self,
         expression: &ResolvedExpr,
+        arm_value: &ResolvedExpr,
         value: &mut CValue,
     ) -> Result<(), Diagnostic> {
         if self.bytes_plan.is_none() {
             return Err(backend_error("owned record match has no cleanup plan"));
+        }
+        if expression.ty == ResolvedType::Bytes {
+            let plan = self.bytes_plan.expect("owned match plan checked above");
+            if matches!(arm_value.kind, ResolvedExprKind::Place(_)) {
+                for line in plan.apply_at(&arm_value.id)?.lines() {
+                    self.line(line);
+                }
+            }
+            value.code = plan
+                .result_at(&arm_value.id)
+                .ok_or_else(|| backend_error("owned Bytes match has no result transfer"))?
+                .to_owned();
+            return Ok(());
         }
         let layout = self.record_layout(&expression.ty)?.clone();
         let destination = self.temporary(&expression.ty)?;

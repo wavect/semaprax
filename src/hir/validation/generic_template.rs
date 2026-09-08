@@ -200,6 +200,47 @@ fn owned_record_template_execution<'a>(
     matched
 }
 
+/// Recompute ordinary record-result ownership from retained type facts.
+fn admits_ordinary_record_result(
+    program: &ResolvedProgram,
+    execution: &FunctionExecutionId,
+    expression: &ResolvedExpr,
+    arm: &ResolvedMatchArm,
+) -> bool {
+    if matches!(execution, FunctionExecutionId::Generic(_)) {
+        return false;
+    }
+    let ResolvedExprKind::Match {
+        mode,
+        scrutinee,
+        arms,
+    } = &expression.kind
+    else {
+        return false;
+    };
+    if arms.len() != 1
+        || expression.ty != arm.value.ty
+        || expression.ownership != arm.value.ownership
+    {
+        return false;
+    }
+    let copy = expression.ownership == OwnershipMode::Value
+        && super::super::type_reachability::nested_record_copy_scalar_is_admitted(&expression.ty);
+    let owns = *mode == ResolvedMatchMode::Own
+        && scrutinee.ownership == OwnershipMode::Own
+        && expression.ownership == OwnershipMode::Own
+        && super::super::type_reachability::is_admitted_nested_owned_byte_record(
+            &program.declarations,
+            &scrutinee.ty,
+        )
+        && (expression.ty == ResolvedType::Bytes
+            || super::super::type_reachability::is_admitted_nested_owned_byte_record(
+                &program.declarations,
+                &expression.ty,
+            ));
+    copy || owns
+}
+
 fn validate_record_match_result(
     program: &ResolvedProgram,
     execution: &FunctionExecutionId,
@@ -208,6 +249,7 @@ fn validate_record_match_result(
 ) -> Result<(), Diagnostic> {
     if matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool)
         || admits_owned_record_match_result(program, execution, expression, arm)
+        || admits_ordinary_record_result(program, execution, expression, arm)
     {
         Ok(())
     } else {

@@ -1,0 +1,8 @@
+schema = "semaprax.project.v8"
+name = "std-io"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+entry = "std.io.examples"
+sources = ["src/examples.spx", "src/io.spx", "src/tests.spx"]
+web_exports = []
+tests = ["std.io.tests"]

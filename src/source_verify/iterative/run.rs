@@ -392,13 +392,18 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     scope,
                 } => self.frame_resume_match_scrutinee(expression, scrutinee, arms, scope)?,
                 VerifierFrame::ResumeRecordMatchArm {
+                    owns_record_input,
                     arm,
                     parent_scope,
                     arm_scope,
                     outer_names,
-                } => {
-                    self.frame_resume_record_match_arm(arm, parent_scope, arm_scope, outer_names)?
-                }
+                } => self.frame_resume_record_match_arm(
+                    arm,
+                    parent_scope,
+                    arm_scope,
+                    outer_names,
+                    owns_record_input,
+                )?,
                 VerifierFrame::PrepareVariantMatchArm(state) => {
                     self.frame_prepare_variant_match_arm(state)?
                 }

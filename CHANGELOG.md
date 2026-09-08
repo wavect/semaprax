@@ -8,6 +8,15 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add source-authored `std.io` Reader/Writer cursors over caller-owned Bytes,
+  checked bounds, consuming transitions and bundled dependency use. Internal
+  Project calls now compose explicit owned-record signatures, and empty-export
+  owned-data libraries run in both manifest layouts without a public descriptor.
+  Independent cleanup replay and interpreter/native/Wasm lanes retain result
+  transfers before arm cleanup. Focused tests cover binary roundtrips, contract
+  failures, borrowed-owner escape, forged identities and missing transfers;
+  generated catalogs now include the record declarations.
+
 - Preserve both immutable workspace generations through typed Agent migration,
   durable recovery and chained migration using additive provenance receipts.
   Recovery rechecks compiler-owned bindings and exact receipts; current-run

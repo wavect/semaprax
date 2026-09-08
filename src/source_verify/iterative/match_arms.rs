@@ -24,6 +24,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         parent_scope: usize,
         arm_scope: usize,
         outer_names: Vec<String>,
+        owns_record_input: bool,
     ) -> Result<(), Diagnostic> {
         if arm_scope + 1 != self.scopes.len() {
             return Err(Diagnostic::io(
@@ -51,6 +52,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         });
         if result.as_ref().is_some_and(|value| {
             (!matches!(value.ty, Type::I64 | Type::Bool) || value.mode != ParamMode::Value)
+                && !(generic_template.is_some_and(|function| function.type_parameters.is_empty())
+                    && (value.mode == ParamMode::Value || owns_record_input)
+                    && crate::source_verify::declared_type::ordinary_record_match_result(&value.ty, value.mode, self.types))
                 && !(generic_owned_result
                     && (((value.ty == self.current.return_type || self.types.is_nested_owned_byte_record(&value.ty)) && value.mode == ParamMode::Own)
                         || (value.mode == ParamMode::Value

@@ -350,6 +350,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         include_str!("../../src/workspace_graph/diagnostics.rs"),
         include_str!("../../src/workspace_graph/generic_type_import.rs"),
         include_str!("../../src/workspace_graph/owned_generics.rs"),
+        include_str!("../../src/workspace_graph/owned_function_import.rs"),
         include_str!("../../src/workspace_graph/prelude_binding.rs"),
         include_str!("../../src/workspace_graph/project_render.rs"),
         include_str!("../../src/workspace_graph/source_callables.rs"),
@@ -365,8 +366,10 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         include_str!("../../src/workspace_graph/expected_projection/identity_slots.rs");
     let projection_statement_segment =
         include_str!("../../src/workspace_graph/expected_projection/statement_segment.rs");
+    let projection_defaults =
+        include_str!("../../src/workspace_graph/expected_projection/defaults.rs");
     let projection = format!(
-        "{projection_root}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}\n{projection_statement_segment}"
+        "{projection_root}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}\n{projection_statement_segment}\n{projection_defaults}"
     );
 
     assert!(root.contains("mod expected_projection;"));

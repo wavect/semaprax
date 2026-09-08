@@ -60,18 +60,19 @@ tests = ["frame_payload.tests"]
 
 The existing canonical name, Semantic Versioning, module, source-path,
 stable-ID, and ordering rules apply unchanged. `sources` contains 2–16
-strictly sorted unique paths. `web_exports` contains 1–32 strictly sorted
-unique stable IDs. One authenticated standard-package exception uses the same
-eight-assignment layout with an empty list: name `std-collections`, version
-`0.1.0`, entry `std.collections.examples`, exact sources
-`src/collections.spx`, `src/examples.spx`, and `src/tests.spx`, and test module
-`std.collections.tests`. Its library source must contain exactly the eight
-authenticated transparent wrappers owned by
-[Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md), yielding an empty public API
-descriptor. A lookalike name, profile, inventory, module, wrapper, or nonempty
-export list rejects with `SPX-J100`; all other Project v8 manifests retain the
-1–32 rule. There are no `command`, `input`, or `capabilities` fields. Unknown,
-missing, extra, duplicated, or reordered assignments reject.
+strictly sorted unique paths. A public API selects 1–32 strictly sorted unique
+`web_exports` stable IDs. The additive [IO Cursors v1](IO-CURSORS-V1.md)
+library route also admits `web_exports = []` for ordinary Project v8 libraries.
+It checks and executes internal entry/test closures without producing a public
+descriptor or public package artifact. Public artifact requests remain refused;
+a nonempty export selection still uses every original public API rule.
+
+The exact bundled `std.collections` and `std.mem` no-export alias packages
+retain their additional source and inventory authentication and reject nonempty
+exports for those exact manifest shapes. Other libraries gain no intrinsic-alias
+authority from an empty export list. There are no `command`, `input`, or
+`capabilities` fields. Unknown, missing, extra, duplicated, or reordered
+assignments reject.
 
 Project v8 enters the existing closed `ProjectProfile` dispatch as one distinct
 variant. Schema or profile text is never converted into loose feature flags

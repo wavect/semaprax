@@ -404,6 +404,10 @@ pub(super) fn oracle_match(
             .is_some_and(|function| generic_function_has_owned_record_composition(function, types));
         if result.as_ref().is_some_and(|value| {
             (!matches!(value.ty, Type::I64 | Type::Bool) || value.mode != ParamMode::Value)
+                && !(generic_template.is_some_and(|function| function.type_parameters.is_empty())
+                    && (value.mode == ParamMode::Value
+                        || (*mode == MatchMode::Own && scrutinee_value.mode == ParamMode::Own && types.is_nested_owned_byte_record(&scrutinee_value.ty)))
+                    && crate::source_verify::declared_type::ordinary_record_match_result(&value.ty, value.mode, types))
                 && !(generic_owned_result
                     && (((value.ty == current.return_type || types.is_nested_owned_byte_record(&value.ty)) && value.mode == ParamMode::Own)
                         || (value.mode == ParamMode::Value

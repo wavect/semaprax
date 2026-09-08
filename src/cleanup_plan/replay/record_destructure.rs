@@ -38,7 +38,10 @@ pub(super) fn admits_owned_match_result(
                 });
         }
     }
-    if crate::hir::bounded_owned_record_template_for_function(program, function).is_none() {
+    let generic =
+        crate::hir::bounded_owned_record_template_for_function(program, function).is_some();
+    let ordinary = program.functions.iter().any(|item| item.id == function.id);
+    if !generic && !ordinary {
         return false;
     }
     let ResolvedExprKind::Match { mode, .. } = &expression.kind else {
@@ -51,6 +54,13 @@ pub(super) fn admits_owned_match_result(
     else {
         return false;
     };
+    let ordinary_shape = ordinary
+        && crate::hir::is_admitted_nested_owned_byte_record(&program.declarations, &scrutinee.ty)
+        && (expression.ty == ResolvedType::Bytes
+            || crate::hir::is_admitted_nested_owned_byte_record(
+                &program.declarations,
+                &expression.ty,
+            ));
     *mode == ResolvedMatchMode::Own
         && expression.ty == arm.value.ty
         && expression.ownership == OwnershipMode::Own
@@ -59,7 +69,12 @@ pub(super) fn admits_owned_match_result(
         && instance == &scrutinee.ty
         && matches!(&scrutinee.ty, ResolvedType::Nominal { declaration, .. }
             if declaration == record)
-        && crate::hir::is_admitted_nested_owned_byte_record(&program.declarations, &expression.ty)
+        && (ordinary_shape
+            || (generic
+                && crate::hir::is_admitted_nested_owned_byte_record(
+                    &program.declarations,
+                    &expression.ty,
+                )))
 }
 
 pub(super) fn finish_owned_match_result(

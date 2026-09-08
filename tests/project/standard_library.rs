@@ -14,7 +14,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use semaprax::{codegen, format, parse, project, verify, wasm};
+use semaprax::{codegen, format, project, verify, wasm};
 
 use super::owned_bounded_vec_dependencies::{compile_and_run_c, run_internal_wasm};
 
@@ -157,9 +157,10 @@ fn package_sources(package: &PackageMetadata) -> (LibrarySource, String, String)
     for relative in &sources {
         let path = package_root.join(relative);
         let source = std::fs::read_to_string(&path).unwrap();
-        let program = parse(&source, &path).unwrap_or_else(|error| panic!("{error}"));
+        let (program, comments) =
+            semaprax::parse_with_comments(&source, &path).unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(
-            format::canonical(&program),
+            format::comments::canonical_with_comments(&program, &comments),
             source,
             "{} is not canonical",
             path.display()
@@ -244,6 +245,18 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
             );
             assert_ne!(function.name, "main");
         }
+        for declaration in &library.program.types {
+            assert!(
+                declaration.explicit_id
+                    && declaration
+                        .stable_id
+                        .starts_with(&format!("{}.", package.module))
+            );
+            assert!(conformance.contains(&format!(
+                "use type @id(\"{}\") from {} as ",
+                declaration.stable_id, package.module
+            )));
+        }
         assert!(
             library
                 .program
@@ -254,8 +267,8 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
             library.path.display()
         );
         assert!(
-            library.program.types.is_empty() && library.program.permits.is_empty(),
-            "{}: the core-tier slice admits functions only",
+            library.program.permits.is_empty(),
+            "{}: portable library declarations carry no ambient capabilities",
             library.path.display()
         );
     }
@@ -604,8 +617,23 @@ fn run_text_package_native_conformance(
 
 #[test]
 fn examples_and_conformance_return_zero_on_interpreter_native_and_wasm() {
+    run_examples_and_conformance(packages());
+}
+
+#[test]
+fn io_cursors_execute_on_all_three_backends() {
+    run_examples_and_conformance(
+        packages()
+            .into_iter()
+            .filter(|p| p.module == "std.io")
+            .collect(),
+    );
+}
+
+fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
+    assert!(!selected.is_empty());
     let scratch = temporary("lanes");
-    for package in packages() {
+    for package in selected {
         let manifest = root()
             .join("std")
             .join(&package.directory)
@@ -653,10 +681,8 @@ fn examples_and_conformance_return_zero_on_interpreter_native_and_wasm() {
                 return Ok(());
             }
             let wasm = snapshot.test_wasm_module()?;
-            // The decoded-string package is the one standard-library package
-            // whose conformance fills an owned bounded byte buffer, so it alone
-            // reaches the host-arena protocol and must balance a one-entry arena.
-            let arena = package.module == "std.data.json.dec";
+            // Buffer-filling packages must balance the exact one-entry byte arena.
+            let arena = matches!(package.module.as_str(), "std.data.json.dec" | "std.io");
             for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
                 let present = wasm.windows(name.len()).any(|w| w == name.as_bytes());
                 assert_eq!(present, arena, "{}: `{name}` import", package.directory);
@@ -1346,104 +1372,9 @@ fn declaration_head(source: &str, stable_id: &str) -> Vec<String> {
         .collect()
 }
 
-fn render_catalogs() -> (String, String) {
-    let mut human = String::new();
-    human.push_str("# Standard library catalog\n\n");
-    human.push_str(
-        "Status: generated from `std/` through the `semaprax doc` documentation model by `tests/project.rs::standard_library`; edit the sources, then regenerate with `cargo test --locked -p semaprax --test project -- --ignored standard_library::regenerate_catalogs`.\n\n",
-    );
-    human.push_str("Audience: agents and humans choosing a standard-library declaration.\n\n");
-    human.push_str(
-        "Every declaration below is verified, canonical, and executed by its package's conformance module on the interpreter, native C11, and Core Wasm lanes. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract; `std/catalog.json` is the same catalog for tools.\n\nConsume a package from an installed compiler by adding its dependency line to the extensible manifest, then importing the selected stable identity: `[dependencies] std.num = \"^0.1.0\"` and `use function @id(\"std.num.abs\") from std.num as abs;`. Set `[package] profile` to the package's required profile below; `scalar` means omit the profile key. The compiler supplies the closed bundled package without a source checkout, cache, or network access.\n",
-    );
-    let mut modules = Vec::new();
-    for package in packages() {
-        let (library, _, _) = package_sources(&package);
-        let profile = required_consumer_profile(&package);
-        human.push_str(&format!(
-            "\n## `{}`\n\nPackage `std/{}`, tier `{}`, status {}. Required project profile: `{profile}`. Dependency: `{} = \"^0.1.0\"`. Targets: {}.\n",
-            package.module,
-            package.directory,
-            package.tier,
-            package.status,
-            package.module,
-            package
-                .targets
-                .iter()
-                .map(|target| format!("`{target}`"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-        // The catalog is a projection of the same documentation model that
-        // `semaprax doc` renders, so the bundled skill cannot drift from the
-        // graph; the source-text slice below cross-checks every signature.
-        let (program, comments) =
-            semaprax::parse_with_comments(&library.source, &library.path).unwrap();
-        let document = semaprax::doc::document(&program, &comments);
-        let mut declarations = Vec::new();
-        for entry in document
-            .entries
-            .iter()
-            .filter(|entry| entry.kind == "function")
-        {
-            let head: Vec<String> = entry
-                .signature
-                .lines()
-                .filter(|line| !line.trim_start().starts_with("@id("))
-                .map(str::to_owned)
-                .collect();
-            assert_eq!(
-                head,
-                declaration_head(&library.source, &entry.id),
-                "{}: the documentation signature must equal the source text",
-                entry.id
-            );
-            let function = library
-                .program
-                .functions
-                .iter()
-                .find(|function| function.stable_id == entry.id)
-                .unwrap();
-            human.push_str(&format!("\n### `{}`\n\n", entry.id));
-            for line in &entry.description {
-                human.push_str(line);
-                human.push('\n');
-            }
-            if !entry.description.is_empty() {
-                human.push('\n');
-            }
-            human.push_str(&format!("```semaprax\n{}\n```\n", head.join("\n")));
-            declarations.push(serde_json::json!({
-                "id": entry.id,
-                "kind": "function",
-                "name": entry.name,
-                "description": entry.description,
-                "head": head,
-                "effects": function.effects,
-                "requires": function.requires.len(),
-                "ensures": function.ensures.len(),
-            }));
-        }
-        modules.push(serde_json::json!({
-            "module": package.module,
-            "package": format!("std/{}", package.directory),
-            "dependency": format!("{} = \"^0.1.0\"", package.module),
-            "required_profile": profile,
-            "tier": package.tier,
-            "targets": package.targets,
-            "status": package.status,
-            "declarations": declarations,
-        }));
-    }
-    let agent = serde_json::json!({
-        "schema": CATALOG_SCHEMA,
-        "modules": modules,
-    });
-    (
-        human,
-        format!("{}\n", serde_json::to_string_pretty(&agent).unwrap()),
-    )
-}
+#[path = "standard_library/catalog.rs"]
+mod catalog;
+use catalog::render_catalogs;
 
 #[test]
 fn committed_catalogs_match_the_sources() {
@@ -1498,3 +1429,6 @@ fn library_modules_verify_inside_their_packages_only() {
         );
     }
 }
+
+#[path = "standard_library/io_cursors.rs"]
+mod io_cursors;

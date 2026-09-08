@@ -5,8 +5,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ast::{
-    Expr, ExprKind, FieldInitializer, Function, ModuleUse, ModuleUseKind, Program, Span, Type,
-    TypeDeclaration, TypeDeclarationKind,
+    Expr, ExprKind, Function, ModuleUse, ModuleUseKind, Program, Span, Type, TypeDeclaration,
+    TypeDeclarationKind,
 };
 use crate::diagnostic::Diagnostic;
 use crate::{hir, prelude};
@@ -22,6 +22,8 @@ use super::{
 pub(super) mod cost;
 #[path = "expected_projection/declaration_cost.rs"]
 mod declaration_cost;
+#[path = "expected_projection/defaults.rs"]
+mod defaults;
 #[path = "expected_projection/identity_slots.rs"]
 mod identity_slots;
 #[path = "expected_projection/statement_segment.rs"]
@@ -31,6 +33,7 @@ use declaration_cost::{
     ast_field_cost, ast_function_contract_cost, ast_function_cost, ast_function_signature_cost,
     ast_param_cost,
 };
+use defaults::{default_expr, default_expr_expanded_cost};
 use identity_slots::{
     ast_function_identity_slots, ast_program_identity_slots, ast_type_declaration_identity_slots,
     ast_type_identity_slots,
@@ -50,7 +53,7 @@ pub(super) fn synthetic_builder_bytes(
     ast_program_cost(program, &mut raw)?;
     let mut identity_slots = ast_program_identity_slots(program)?;
     let mut runtime = StructuralCost::new();
-    let mut default_memo = BTreeMap::new();
+    let mut default_memo = [BTreeMap::new(), BTreeMap::new()];
     let mut transient_import_clone = 0usize;
     for module_use in &program.module_uses {
         if module_use.kind == ModuleUseKind::Protocol {
@@ -117,6 +120,7 @@ pub(super) fn synthetic_builder_bytes(
                 programs,
                 &mut default_memo,
                 &mut BTreeSet::new(),
+                super::owned_function_import::admitted(program, target, authored, programs),
             )?;
             runtime.add_split(cost.bytes, cost.string_bytes)?;
             identity_slots = checked_builder_sum(identity_slots, cost.identity_slots)?;
@@ -489,175 +493,6 @@ fn ast_record_pattern_field_cost(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn default_expr_expanded_cost(
-    ty: &Type,
-    module: &str,
-    caller: &Program,
-    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
-    programs: &[Program],
-    memo: &mut BTreeMap<String, ExpandedDefaultCost>,
-    visiting: &mut BTreeSet<String>,
-) -> Result<ExpandedDefaultCost, Vec<Diagnostic>> {
-    match ty {
-        Type::I64
-        | Type::I32
-        | Type::Char
-        | Type::U8
-        | Type::Usize
-        | Type::F32
-        | Type::F64
-        | Type::Bool
-        | Type::String
-        | Type::Str => Ok(ExpandedDefaultCost {
-            bytes: std::mem::size_of::<Expr>(),
-            string_bytes: 0,
-            identity_slots: 0,
-        }),
-        Type::SliceU8 => Err(vec![graph_error(
-            "SPX-G173",
-            "borrowed `Slice<u8>` has no synthesizable workspace default",
-        )]),
-        Type::ArrayU8(_) | Type::Bytes | Type::Function { .. } => Err(vec![graph_error(
-            "SPX-G173",
-            "internal byte-data types have no synthesizable workspace default",
-        )]),
-        Type::Named { name, arguments } if arguments.is_empty() => {
-            let target_id = resolve_type_id(module, name, programs).ok_or_else(|| {
-                vec![graph_error(
-                    "SPX-G173",
-                    "default-expression type identity cost lookup disagrees",
-                )]
-            })?;
-            if let Some(cost) = memo.get(&target_id) {
-                return Ok(*cost);
-            }
-            if !visiting.insert(crate::bounded_output::budgeted_clone(&target_id)) {
-                return Err(vec![graph_error(
-                    "SPX-G173",
-                    "default-expression type cost contains a recursive cycle",
-                )]);
-            }
-            let target = authored.get(target_id.as_str()).ok_or_else(|| {
-                vec![graph_error(
-                    "SPX-G173",
-                    "default-expression type authority is absent",
-                )]
-            })?;
-            let declaration = target.ty.ok_or_else(|| {
-                vec![graph_error(
-                    "SPX-G173",
-                    "default-expression type authority has the wrong kind",
-                )]
-            })?;
-            let alias = caller
-                .module_uses
-                .iter()
-                .find(|item| item.kind == ModuleUseKind::Type && item.persistent_id == target_id)
-                .map(|item| item.alias.as_str())
-                .ok_or_else(|| {
-                    vec![graph_error(
-                        "SPX-G173",
-                        "default-expression type lacks direct caller alias authority",
-                    )]
-                })?;
-            let mut cost = StructuralCost::structure(std::mem::size_of::<Expr>());
-            let mut identity_slots = 1usize;
-            cost.string(alias)?;
-            match &declaration.kind {
-                TypeDeclarationKind::Record { fields } => {
-                    for field in fields {
-                        cost.add(std::mem::size_of::<FieldInitializer>())?;
-                        cost.string(&field.name)?;
-                        let nested = default_expr_expanded_cost(
-                            &field.ty,
-                            target.module,
-                            caller,
-                            authored,
-                            programs,
-                            memo,
-                            visiting,
-                        )?;
-                        cost.add_split(nested.bytes, nested.string_bytes)?;
-                        identity_slots = checked_builder_sum(
-                            identity_slots,
-                            nested.identity_slots.checked_add(1).ok_or_else(|| {
-                                vec![limit_error("builder_bytes", active_builder_limit())]
-                            })?,
-                        )?;
-                    }
-                }
-                TypeDeclarationKind::Class { fields, .. } => {
-                    for field in fields {
-                        cost.add(std::mem::size_of::<FieldInitializer>())?;
-                        cost.string(&field.name)?;
-                        let nested = default_expr_expanded_cost(
-                            &field.ty,
-                            target.module,
-                            caller,
-                            authored,
-                            programs,
-                            memo,
-                            visiting,
-                        )?;
-                        cost.add_split(nested.bytes, nested.string_bytes)?;
-                        identity_slots = checked_builder_sum(
-                            identity_slots,
-                            nested.identity_slots.checked_add(1).ok_or_else(|| {
-                                vec![limit_error("builder_bytes", active_builder_limit())]
-                            })?,
-                        )?;
-                    }
-                }
-                TypeDeclarationKind::Variant { cases } => {
-                    let case = cases.first().ok_or_else(|| {
-                        vec![graph_error("SPX-G172", "imported Copy variant has no case")]
-                    })?;
-                    cost.string(&case.name)?;
-                    identity_slots = checked_builder_sum(identity_slots, 1)?;
-                    for field in &case.fields {
-                        cost.add(std::mem::size_of::<FieldInitializer>())?;
-                        cost.string(&field.name)?;
-                        let nested = default_expr_expanded_cost(
-                            &field.ty,
-                            target.module,
-                            caller,
-                            authored,
-                            programs,
-                            memo,
-                            visiting,
-                        )?;
-                        cost.add_split(nested.bytes, nested.string_bytes)?;
-                        identity_slots = checked_builder_sum(
-                            identity_slots,
-                            nested.identity_slots.checked_add(1).ok_or_else(|| {
-                                vec![limit_error("builder_bytes", active_builder_limit())]
-                            })?,
-                        )?;
-                    }
-                }
-                TypeDeclarationKind::Resource { .. } => {
-                    return Err(vec![graph_error(
-                        "SPX-G172",
-                        "resource return is not admitted",
-                    )]);
-                }
-            }
-            visiting.remove(&target_id);
-            let expanded = ExpandedDefaultCost {
-                bytes: cost.total,
-                string_bytes: cost.string_bytes,
-                identity_slots,
-            };
-            memo.insert(target_id, expanded);
-            Ok(expanded)
-        }
-        Type::Named { .. } => Err(vec![graph_error(
-            "SPX-G172",
-            "generic return is not admitted",
-        )]),
-    }
-}
-
 pub(super) fn validate_dependency_dag(
     programs: &[Program],
 ) -> Result<BTreeMap<&str, usize>, Vec<Diagnostic>> {
@@ -815,7 +650,11 @@ pub(super) fn synthetic_program(
         rewrite_type(&mut function.return_type, target.module, program, programs)?;
         function.requires.clear();
         function.ensures.clear();
-        function.body = default_expr(&function.return_type, &type_declarations)?;
+        function.body = default_expr(
+            &function.return_type,
+            &type_declarations,
+            super::owned_function_import::admitted(program, target, authored, programs),
+        )?;
         synthetic.functions.push(function);
     }
     if !synthetic
@@ -885,112 +724,6 @@ pub(super) fn rewrite_type(
         })?;
     *name = crate::bounded_output::budgeted_clone(alias);
     Ok(())
-}
-
-fn default_expr(
-    ty: &Type,
-    declarations: &[(&str, &TypeDeclaration)],
-) -> Result<Expr, Vec<Diagnostic>> {
-    reserve_builder_structure(std::mem::size_of::<Expr>())?;
-    let span = Span::default();
-    let kind = match ty {
-        Type::I64 => ExprKind::Int(0),
-        Type::I32 => ExprKind::Int32(0),
-        Type::Char => ExprKind::Char(0),
-        Type::U8 => ExprKind::Uint8(0),
-        Type::Usize => ExprKind::Usize(0),
-        Type::F32 => ExprKind::Float32(0),
-        Type::F64 => ExprKind::Float64(0),
-        Type::Bool => ExprKind::Bool(false),
-        Type::String => ExprKind::String(String::new()),
-        Type::Str => {
-            return Err(vec![graph_error(
-                "SPX-G173",
-                "borrowed `str` has no synthesizable workspace default",
-            )]);
-        }
-        Type::SliceU8 => {
-            return Err(vec![graph_error(
-                "SPX-G173",
-                "borrowed `Slice<u8>` has no synthesizable workspace default",
-            )]);
-        }
-        Type::ArrayU8(_) | Type::Bytes | Type::Function { .. } => {
-            return Err(vec![graph_error(
-                "SPX-G173",
-                "internal byte-data types have no synthesizable workspace default",
-            )]);
-        }
-        Type::Named { name, arguments } if arguments.is_empty() => {
-            let declaration = declarations
-                .binary_search_by_key(&name.as_str(), |(name, _)| *name)
-                .map(|index| declarations[index].1)
-                .map_err(|_| {
-                    vec![graph_error(
-                        "SPX-G173",
-                        "default imported type lookup disagrees",
-                    )]
-                })?;
-            match &declaration.kind {
-                TypeDeclarationKind::Record { fields }
-                | TypeDeclarationKind::Class { fields, .. } => ExprKind::ConstructRecord {
-                    type_name: crate::bounded_output::budgeted_clone(name),
-                    type_span: span,
-                    type_arguments: Vec::new(),
-                    fields: fields
-                        .iter()
-                        .map(|field| {
-                            reserve_builder_structure(std::mem::size_of::<FieldInitializer>())?;
-                            Ok(FieldInitializer {
-                                name: crate::bounded_output::budgeted_clone(&field.name),
-                                name_span: span,
-                                value: default_expr(&field.ty, declarations)?,
-                                span,
-                            })
-                        })
-                        .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?,
-                },
-                TypeDeclarationKind::Variant { cases } => {
-                    let case = cases.first().ok_or_else(|| {
-                        vec![graph_error("SPX-G172", "imported Copy variant has no case")]
-                    })?;
-                    ExprKind::ConstructVariant {
-                        type_name: crate::bounded_output::budgeted_clone(name),
-                        type_span: span,
-                        type_arguments: Vec::new(),
-                        case_name: crate::bounded_output::budgeted_clone(&case.name),
-                        case_span: span,
-                        fields: case
-                            .fields
-                            .iter()
-                            .map(|field| {
-                                reserve_builder_structure(std::mem::size_of::<FieldInitializer>())?;
-                                Ok(FieldInitializer {
-                                    name: crate::bounded_output::budgeted_clone(&field.name),
-                                    name_span: span,
-                                    value: default_expr(&field.ty, declarations)?,
-                                    span,
-                                })
-                            })
-                            .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?,
-                    }
-                }
-                TypeDeclarationKind::Resource { .. } => {
-                    return Err(vec![graph_error(
-                        "SPX-G172",
-                        "resource return is not admitted",
-                    )])
-                }
-            }
-        }
-        Type::Named { .. } => {
-            return Err(vec![graph_error(
-                "SPX-G172",
-                "generic return is not admitted",
-            )])
-        }
-    };
-    Ok(Expr { kind, span })
 }
 
 pub(super) fn collect_expected_edges(

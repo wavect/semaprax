@@ -6,11 +6,10 @@ const MANIFEST: &str = "schema = \"semaprax.project.v8\"\nname = \"frame-payload
 const COLLECTIONS_MANIFEST: &str = "schema = \"semaprax.project.v8\"\nname = \"std-collections\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"\nentry = \"std.collections.examples\"\nsources = [\"src/collections.spx\", \"src/examples.spx\", \"src/tests.spx\"]\nweb_exports = []\ntests = [\"std.collections.tests\"]\n";
 
 #[test]
-fn v8_admits_only_the_exact_no_export_std_collections_manifest() {
+fn v8_no_export_libraries_preserve_std_collections_wrapper_restrictions() {
     let manifest = ProjectManifest::parse(COLLECTIONS_MANIFEST).unwrap();
     assert!(manifest.web_exports().is_empty());
     for hostile in [
-        COLLECTIONS_MANIFEST.replace("std-collections", "std-collection"),
         COLLECTIONS_MANIFEST.replace("owned-data-api.v1", "useful-data.v1"),
         COLLECTIONS_MANIFEST.replace(
             "web_exports = []",
@@ -77,10 +76,6 @@ fn v8_rejects_shape_profile_order_count_and_capacity_drift() {
             "sources = [\"src/app.spx\"]",
         ),
         MANIFEST.replace(
-            "web_exports = [\"frame.payload\", \"frame.payload-maybe\", \"frame.payload-result\"]",
-            "web_exports = []",
-        ),
-        MANIFEST.replace(
             "frame.payload-maybe\", \"frame.payload-result",
             "frame.payload-result\", \"frame.payload-maybe",
         ),
@@ -141,7 +136,7 @@ fn v8_pins_source_and_export_minus_one_exact_and_plus_one_boundaries() {
             .collect::<Vec<_>>()
             .join(", ")
     };
-    for (count, admitted) in [(0, false), (1, true), (32, true), (33, false)] {
+    for (count, admitted) in [(0, true), (1, true), (32, true), (33, false)] {
         let candidate = MANIFEST.replace(
             "\"frame.payload\", \"frame.payload-maybe\", \"frame.payload-result\"",
             &exports(count),
@@ -199,4 +194,16 @@ fn earlier_schemas_reject_v8_profile_and_preserve_canonical_bytes() {
             .is_err());
         }
     }
+}
+
+#[test]
+fn v8_no_export_library_is_canonical_without_a_package_name_exception() {
+    let source = MANIFEST.replace(
+        "web_exports = [\"frame.payload\", \"frame.payload-maybe\", \"frame.payload-result\"]",
+        "web_exports = []",
+    );
+    let manifest = ProjectManifest::parse(&source).unwrap();
+    assert!(manifest.web_exports().is_empty());
+    assert_eq!(manifest.schema(), PROJECT_SCHEMA_V8);
+    assert_eq!(manifest.project_profile(), ProjectProfile::OwnedDataApiV1);
 }

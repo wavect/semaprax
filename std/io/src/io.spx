@@ -1,0 +1,96 @@
+module std.io;
+
+@id("std.io.reader")
+record Reader {
+    @id("std.io.reader.data")
+    data: Bytes,
+    @id("std.io.reader.position")
+    position: usize,
+}
+
+@id("std.io.writer")
+record Writer {
+    @id("std.io.writer.data")
+    data: Bytes,
+    @id("std.io.writer.position")
+    position: usize,
+}
+
+@id("std.io.reader.from-bytes")
+fn reader_from_bytes(data: own Bytes) -> Reader
+    ensures result.position == 0usize
+{
+    Reader { data: data, position: 0usize }
+}
+
+@id("std.io.reader.cursor")
+fn reader_position(reader: borrow Reader) -> usize
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    reader.position
+}
+
+@id("std.io.reader.remaining")
+fn reader_remaining(reader: borrow Reader) -> usize
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match borrow reader { Reader { data, position } => byte_len(bytes_as_slice(data)) - position, }
+}
+
+@id("std.io.reader.peek")
+fn reader_peek(reader: borrow Reader) -> u8
+    requires match borrow reader { Reader { data, position } => position < byte_len(bytes_as_slice(data)), }
+{
+    match borrow reader { Reader { data, position } => match byte_get(bytes_as_slice(data), position) { Option::Some { value } => value, Option::None {} => 0u8, }, }
+}
+
+@id("std.io.reader.advance")
+fn reader_advance(reader: own Reader, count: usize) -> Reader
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match own reader { Reader { data, position } => { let length = byte_len(bytes_as_slice(data)); let next = if count <= length - position { position + count } else { length }; Reader { data: data, position: next } }, }
+}
+
+@id("std.io.reader.finish")
+fn reader_finish(reader: own Reader) -> Bytes
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match own reader { Reader { data, position } => data, }
+}
+
+@id("std.io.writer.from-bytes")
+fn writer_from_bytes(data: own Bytes) -> Writer
+    ensures result.position == 0usize
+{
+    Writer { data: data, position: 0usize }
+}
+
+@id("std.io.writer.cursor")
+fn writer_position(writer: borrow Writer) -> usize
+    requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    writer.position
+}
+
+@id("std.io.writer.remaining")
+fn writer_remaining(writer: borrow Writer) -> usize
+    requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match borrow writer { Writer { data, position } => byte_len(bytes_as_slice(data)) - position, }
+}
+
+@id("std.io.writer.write-u8")
+fn writer_write_u8(writer: own Writer, value: u8) -> Writer
+    requires match borrow writer { Writer { data, position } => position < byte_len(bytes_as_slice(data)), }
+{
+    match own writer { Writer { data, position } => { let mut next = data; next = bytes_set(next, position, value); Writer { data: next, position: position + 1usize } }, }
+}
+
+// `writer_finish` returns the caller-provided buffer: bytes in `[0, position)`
+// were initialized by `writer_write_u8`; the remaining suffix is unchanged.
+@id("std.io.writer.finish")
+fn writer_finish(writer: own Writer) -> Bytes
+    requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match own writer { Writer { data, position } => data, }
+}

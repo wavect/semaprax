@@ -1,0 +1,30 @@
+module std.io.examples;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.io.reader.advance") from std.io as reader_advance;
+use function @id("std.io.reader.finish") from std.io as reader_finish;
+use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.io.reader.peek") from std.io as reader_peek;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
+
+@id("std.io.examples.roundtrip")
+fn roundtrip() -> i64
+{
+    let writer0 = writer_from_bytes(bytes_zeroed(2usize));
+    let writer1 = writer_write_u8(writer0, 0u8);
+    let writer2 = writer_write_u8(writer1, 255u8);
+    let reader0 = reader_from_bytes(writer_finish(writer2));
+    let first = reader_peek(reader0) == 0u8;
+    let reader1 = reader_advance(reader0, 1usize);
+    let second = reader_peek(reader1) == 255u8;
+    let bytes = reader_finish(reader1);
+    if first && second && byte_len(bytes_as_slice(bytes)) == 2usize { 0 } else { 1 }
+}
+
+@id("std.io.examples.main")
+fn main() -> i64
+{
+    roundtrip()
+}

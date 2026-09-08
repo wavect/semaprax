@@ -522,7 +522,9 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
         }
     }
     if let Some(exports) = table_list(tables, "exports", "web") {
-        if !(1..=super::MAX_WEB_EXPORTS).contains(&exports.len()) {
+        if exports.len() > super::MAX_WEB_EXPORTS
+            || (exports.is_empty() && profile != PROJECT_PROFILE_OWNED_DATA_API_V1)
+        {
             diagnostics.push(if exports.len() > super::MAX_WEB_EXPORTS {
                 capacity("web_exports", super::MAX_WEB_EXPORTS).remove(0)
             } else {

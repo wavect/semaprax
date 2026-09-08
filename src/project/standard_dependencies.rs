@@ -102,6 +102,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.io",
+        path: "dependencies/std.io/0.1.0/io.spx",
+        source: include_str!("../../std/io/src/io.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.mem",
         path: "dependencies/std.mem/0.1.0/mem.spx",
         source: include_str!("../../std/mem/src/mem.spx"),

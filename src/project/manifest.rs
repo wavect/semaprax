@@ -720,7 +720,9 @@ impl ProjectManifest {
                 "the exact std.mem Project v8 package requires an empty web_exports list",
             ));
         }
-        if web_exports.is_empty() && !std_collections_no_export_shape && !std_mem_no_export_shape {
+        if web_exports.is_empty()
+            && !(schema == PROJECT_SCHEMA_V8 && profile == ProjectProfile::OwnedDataApiV1)
+        {
             return Err(grammar(format!(
                 "{version_label} requires 1..=32 explicit web export identities"
             )));

@@ -1,7 +1,7 @@
 # Standard Library v1
 
-- Status: versioned reference; 25 packages are present under `std/`: nine
-  `core`, twelve `portable`, three `alloc`, and one `test`. Every package remains
+- Status: versioned reference; 26 packages are present under `std/`: nine
+  `core`, thirteen `portable`, three `alloc`, and one `test`. Every package remains
   Partial until its complete required scope and promotion evidence exist; every
   other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
@@ -84,14 +84,14 @@ The gate enforces 1, 3, 5, 6, 7, and 8 today. Contracts (4) are required by
 this document and reviewed; a declaration without one is a review finding, not
 yet a gate failure. The exact `std.collections` transparent aliases are the
 contract-authoring exception described above, not contract-free new behavior.
-Records, variants, and ordinary generic declarations are
-admitted by the language but not yet by the general cross-file Project route.
-The one bounded exception is the authenticated `std.collections`
-transparent-wrapper profile: each wrapper forwards its single explicit
-Copy-scalar type argument to the matching compiler-owned Vec intrinsic without
-changing that intrinsic's HIR or status identity. The remaining slice holds
-functions over `i64`, `bool`, `u8`, `usize`, `borrow Slice<u8>`, and `borrow
-str` only. The Useful Text public export profile remains
+Internal owned-data Project calls additionally admit explicit nongeneric
+record trees over Bytes and Copy scalars. The `std.io` library uses this lane
+for its Reader/Writer types, borrowed observations and consuming transitions.
+Public descriptors remain separately restricted. The authenticated
+`std.collections` transparent wrappers forward an explicit Copy-scalar argument
+to their exact compiler intrinsics without changing HIR or status identity;
+this does not admit general public generic signatures. Other library profiles
+retain their existing scalar and borrowed-view boundaries. The Useful Text public export profile remains
 contract-free, so `std.text` cannot yet satisfy the reviewed contract
 requirement even though its bounded conformance package is executable.
 
@@ -159,7 +159,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.bytes` | Buffers, spans, readers, writers, endian operations, and encoding | Partial: byte-to-integer conversion, guarded indexing, first-index search, counting, ASCII classification, slice equality, prefix and suffix tests, and little- and big-endian 16- and 32-bit reads over `borrow Slice<u8>`; buffers, writers, and encodings are Missing |
 | `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Partial: borrowed byte length, emptiness, exact equality, prefix, and substring search; iteration, split, trim, and normalization are Missing |
 | `std.format` | Type-safe formatting without runtime format-string ambiguity | Missing |
-| `std.io` | Reader, Writer, buffered I/O, streams, line processing, and standard streams | Missing; `stdout_write`, `stderr_write`, and `stdin_read` are the current surface |
+| `std.io` | Reader, Writer, buffered I/O, streams, line processing, and standard streams | Partial: source-authored nongeneric Reader and Writer records compose caller-supplied `Bytes` buffers with `usize` cursors through consuming transitions and no public exports, using internal owned-data Project imports; interpreter, native C11, and Core Wasm consume the same checked HIR. Focused local package, dependency, contract, and cross-engine evidence passes. Buffered I/O, streams, line processing, standard streams, and public generic or nominal widening are Missing |
 | `std.path` | Platform-neutral path values and explicit platform conversion | Partial: allocation-free inspection of canonical slash-separated path bytes for absoluteness, trailing separators, nonempty segment count, filename start, parent boundary, and extension boundary; typed path values, normalization, safe joining, traversal policy, and platform conversion are Missing |
 | `std.fs` | Scoped file and directory access, metadata, and atomic file operations | Missing |
 | `std.env` | Explicit environment access with capability and deterministic test replacement | Missing; `args_len` and `arg_utf8` are the current surface |
@@ -211,6 +211,11 @@ These compiler bounds decide how large one package can be:
   requires between one and thirty-two `web_exports`. Records, variants,
   generics, strings, and bytes therefore stay inside one file until a wider
   Project profile admits them across files.
+- The internal owned-data library profile used by `std.io` admits ordinary
+  nongeneric records over Bytes and Copy scalars through authenticated Project
+  imports. An empty export list selects checked entry/test execution without a
+  public descriptor. Nonempty public selections retain their original rules;
+  public generic and nominal ABI admission remains unchanged.
 - The Workspace Semantic Graph pre-bound charges an upper estimate of resolver
   memory against a 16 MiB budget before linking. The split pre-bound
   described in [Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md#limits-and-budget)

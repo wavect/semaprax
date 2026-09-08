@@ -354,6 +354,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 }
             }
             self.frames.push(VerifierFrame::ResumeRecordMatchArm {
+                owns_record_input: match_mode == MatchMode::Own
+                    && scrutinee_value.mode == ParamMode::Own
+                    && self.types.is_nested_owned_byte_record(&scrutinee_value.ty),
                 arm: first,
                 parent_scope: scope,
                 arm_scope,

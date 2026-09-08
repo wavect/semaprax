@@ -20,7 +20,9 @@ pub(super) fn match_result_is_admitted(
     function: &ResolvedFunction,
     expression: &ResolvedExpr,
 ) -> bool {
-    if hir::bounded_owned_record_template_for_function(program, function).is_none() {
+    let generic = hir::bounded_owned_record_template_for_function(program, function).is_some();
+    let ordinary = program.functions.iter().any(|item| item.id == function.id);
+    if !generic && !ordinary {
         return false;
     }
     let ResolvedExprKind::Match {
@@ -38,6 +40,10 @@ pub(super) fn match_result_is_admitted(
     else {
         return false;
     };
+    let ordinary_shape = ordinary
+        && hir::is_admitted_nested_owned_byte_record(&program.declarations, &scrutinee.ty)
+        && (expression.ty == ResolvedType::Bytes
+            || hir::is_admitted_nested_owned_byte_record(&program.declarations, &expression.ty));
     *mode == hir::ResolvedMatchMode::Own
         && expression.ty == arm.value.ty
         && expression.ownership == OwnershipMode::Own
@@ -46,7 +52,7 @@ pub(super) fn match_result_is_admitted(
         && instance == &scrutinee.ty
         && matches!(&scrutinee.ty, ResolvedType::Nominal { declaration, .. }
             if declaration == record)
-        && is_admitted(program, &expression.ty).unwrap_or(false)
+        && (ordinary_shape || (generic && is_admitted(program, &expression.ty).unwrap_or(false)))
 }
 
 pub(super) fn is_admitted(

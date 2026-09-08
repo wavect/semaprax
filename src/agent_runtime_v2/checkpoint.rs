@@ -305,16 +305,13 @@ impl OperationCheckpoint {
                     return Err(rejected("intent.usage"));
                 }
                 match last {
-                    None if context.turn == 0 => (),
+                    None if context.turn == 0 => {}
                     Some(JournalEvent::Transition {
                         context: before,
                         transition,
                         ..
                     }) if transition == "Continue"
-                        && before.turn.checked_add(1) == Some(context.turn) =>
-                    {
-                        ()
-                    }
+                        && before.turn.checked_add(1) == Some(context.turn) => {}
                     _ => return Err(rejected("intent.order")),
                 }
             }

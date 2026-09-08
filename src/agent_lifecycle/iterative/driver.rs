@@ -4,7 +4,7 @@ use super::*;
 pub(crate) enum DriverFailure {
     Diagnostics(Vec<Diagnostic>),
     Persistence {
-        terminal: IterativeRun,
+        terminal: Box<IterativeRun>,
         diagnostics: Vec<Diagnostic>,
     },
 }
@@ -303,7 +303,7 @@ impl CompiledIterativeLifecycle {
                 };
                 return Err(if let Some(status) = selected {
                     DriverFailure::Persistence {
-                        terminal: run.finish(status, Some(value), self.digest()),
+                        terminal: Box::new(run.finish(status, Some(value), self.digest())),
                         diagnostics,
                     }
                 } else {

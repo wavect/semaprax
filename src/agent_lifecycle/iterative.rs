@@ -1,6 +1,10 @@
 //! Additive bounded iterative lifecycle, reusing checked retained stage calls.
 use super::*;
 pub(crate) mod driver;
+#[allow(
+    clippy::items_after_test_module,
+    reason = "the effects module keeps its private test fixtures adjacent to the code they exercise"
+)]
 pub mod effects;
 mod render;
 mod step;

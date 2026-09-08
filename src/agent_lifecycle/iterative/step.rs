@@ -2,13 +2,17 @@
 use super::*;
 use crate::hir::{DeclarationId, ResolvedType, ResolvedTypeDeclarationKind};
 
+type StepFieldMapping = Vec<(DeclarationId, DeclarationId)>;
+
+struct StepCase {
+    id: DeclarationId,
+    role: &'static str,
+    fields: StepFieldMapping,
+}
+
 pub(super) struct StepShape {
     pub id: DeclarationId,
-    cases: Vec<(
-        DeclarationId,
-        &'static str,
-        Vec<(DeclarationId, DeclarationId)>,
-    )>,
+    cases: Vec<StepCase>,
     state: DeclarationId,
     result: DeclarationId,
 }
@@ -92,7 +96,11 @@ impl StepShape {
                     fields.push((source.id.clone(), target.id.clone()));
                 }
             }
-            mapped.push((case.id.clone(), name, fields));
+            mapped.push(StepCase {
+                id: case.id.clone(),
+                role: name,
+                fields,
+            });
         }
         Ok(Self {
             id: declared.id.clone(),
@@ -106,8 +114,9 @@ impl StepShape {
         let cases: Vec<_> = self
             .cases
             .iter()
-            .map(|(id, role, mapping)| {
-                let fields: Vec<_> = mapping
+            .map(|case| {
+                let fields: Vec<_> = case
+                    .fields
                     .iter()
                     .map(|(source, target)| {
                         format!(
@@ -119,8 +128,8 @@ impl StepShape {
                     .collect();
                 format!(
                     "{{\"role\":{},\"case\":{},\"fields\":[{}]}}",
-                    quote_json(role),
-                    quote_json(id.as_str()),
+                    quote_json(case.role),
+                    quote_json(case.id.as_str()),
                     fields.join(",")
                 )
             })
@@ -144,16 +153,16 @@ impl StepShape {
         if value.variant != self.id {
             return Err(vec![bad("step.value.identity")]);
         }
-        let (_, name, mapping) = self
+        let case = self
             .cases
             .iter()
-            .find(|(id, _, _)| *id == value.case)
+            .find(|case| case.id == value.case)
             .ok_or_else(|| vec![bad("step.value.case")])?;
-        if value.fields.len() != mapping.len() {
+        if value.fields.len() != case.fields.len() {
             return Err(vec![bad("step.value.fields")]);
         }
         let mut fields = Vec::new();
-        for (source, target) in mapping {
+        for (source, target) in &case.fields {
             let matches: Vec<_> = value.fields.iter().filter(|f| f.field == *source).collect();
             if matches.len() != 1 {
                 return Err(vec![bad("step.value.field")]);
@@ -163,13 +172,13 @@ impl StepShape {
                 value: matches[0].value.clone(),
             });
         }
-        if *name == "Fail" {
-            return Ok((name, fields.remove(0).value));
+        if case.role == "Fail" {
+            return Ok((case.role, fields.remove(0).value));
         }
         Ok((
-            name,
+            case.role,
             RetainedValue::Record(RetainedRecord {
-                record: if *name == "Complete" {
+                record: if case.role == "Complete" {
                     self.result.clone()
                 } else {
                     self.state.clone()

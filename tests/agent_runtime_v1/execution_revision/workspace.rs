@@ -376,3 +376,6 @@ fn workspace_execution_retains_historical_generation_across_exact_refresh() {
 
 #[path = "workspace/typed.rs"]
 mod typed;
+
+#[path = "workspace/migration.rs"]
+mod migration;

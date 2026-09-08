@@ -207,4 +207,4 @@ fn direct_runtime_v2_consumes_typed_product_and_binds_actual_producer() {
 mod durable;
 
 #[path = "typed/migration.rs"]
-mod migration;
+pub(in crate::execution_revision) mod migration;

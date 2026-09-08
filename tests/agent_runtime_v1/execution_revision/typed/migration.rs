@@ -364,4 +364,4 @@ fn migrate(old: own State) -> NewState {
 }
 
 #[path = "migration/durable.rs"]
-mod durable;
+pub(in crate::execution_revision) mod durable;

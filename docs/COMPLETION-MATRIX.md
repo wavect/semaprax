@@ -71,6 +71,14 @@ typed durable completion without redispatch. The twelve-test `execution_revision
 selector includes the existing migration chains. This does not promote a
 durable semantic service, wire execution route, hosted support, or a new
 cross-workspace migration association.
+The additive [Workspace execution migration v1](WORKSPACE-EXECUTION-MIGRATION-V1.md)
+now joins both retained generations and their original runtime associations
+through pure migration, durable recovery, and subsequent migration. Local
+injected-handler cases cover A→B→C with recovered B suspension and nine
+cumulative calls, reminted receipt refusal, stale destination refusal before
+host/store, and preserved terminal evidence after lost acknowledgement.
+Recovery still requires the caller's trusted checkpoint and independently
+trusted handoff digest. This adds no durable service or execution wire route.
 [Generic compiler collections](GENERIC-COMPILER-COLLECTIONS-V1.md) pass focused
 source/HIR/graph, ProgramRoot replay, and interpreter/C11 O0/O2/Core-Wasm
 execution with repeated success and contract/capacity failure settlement.

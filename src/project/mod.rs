@@ -468,10 +468,13 @@ pub use v8_promotion::{
     PROJECT_V8_PROMOTION_RECEIPT_SCHEMA,
 };
 pub use workspace_execution::{
-    WorkspaceExecution, WorkspaceExecutionBinding, WorkspaceExecutionEvidence,
-    WorkspaceExecutionRootVersion, MAX_WORKSPACE_EXECUTION_BINDING_BYTES,
-    WORKSPACE_EXECUTION_BINDING_SCHEMA, WORKSPACE_RUNTIME_ASSOCIATION_SCHEMA,
-    WORKSPACE_RUNTIME_EVIDENCE_SCHEMA,
+    prepare_workspace_migration, resume_workspace_migration, WorkspaceExecution,
+    WorkspaceExecutionBinding, WorkspaceExecutionEvidence, WorkspaceExecutionRootVersion,
+    WorkspaceMigrationEvidence, WorkspaceMigrationExecution, WorkspaceMigrationFailure,
+    WorkspaceSuspensionEvidence, MAX_WORKSPACE_EXECUTION_BINDING_BYTES,
+    MAX_WORKSPACE_MIGRATION_RECEIPT_BYTES, WORKSPACE_EXECUTION_BINDING_SCHEMA,
+    WORKSPACE_MIGRATION_ASSOCIATION_SCHEMA, WORKSPACE_MIGRATION_EVIDENCE_SCHEMA,
+    WORKSPACE_RUNTIME_ASSOCIATION_SCHEMA, WORKSPACE_RUNTIME_EVIDENCE_SCHEMA,
 };
 
 /// Prepare the additive WP-10/WP-11 owned-data package from held HIR and the

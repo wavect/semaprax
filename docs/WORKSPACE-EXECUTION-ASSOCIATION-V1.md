@@ -93,3 +93,7 @@ source rejection, and stale `run_current` rejection before host dispatch.
 Receipts are checked for private invocation-data disclosure. This is local
 injected-handler evidence, not hosted, native/Wasm Agent execution, a durable
 semantic service, or a new cross-workspace migration protocol.
+
+The additive [Workspace Execution Migration v1](WORKSPACE-EXECUTION-MIGRATION-V1.md)
+profile composes two retained workspace producers through the existing migration
+and trusted recovery paths without changing this single-generation contract.

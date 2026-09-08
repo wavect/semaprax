@@ -28,6 +28,7 @@ Audience: all documentation readers.
 - [Generic and Loop Closures v2](CLOSURES-V2.md)
 - [Execution root association v1](EXECUTION-ROOT-ASSOCIATION-V1.md)
 - [Workspace execution association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md)
+- [Workspace execution migration v1](WORKSPACE-EXECUTION-MIGRATION-V1.md)
 - [Generic compiler collections v1](GENERIC-COMPILER-COLLECTIONS-V1.md)
 - [Generic Iterator Helpers v1](GENERIC-ITERATORS-V1.md)
 - [Generic Iterator Operations v1](GENERIC-ITERATOR-OPERATIONS-V1.md)

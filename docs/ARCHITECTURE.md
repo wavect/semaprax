@@ -910,6 +910,18 @@ structure, disk store, wire, MCP, CLI, task/proposal authority, or migration
 association, and preserve historical bindings across refresh while rejecting
 stale current execution.
 
+`src/project/workspace_execution/runtime/migration.rs` owns the bounded
+workspace-to-workspace migration child. It consumes matching old and
+destination workspace runtime producers plus actual durable Suspend evidence,
+verifies provenance, and delegates pure migration and recovery to the existing
+state-migration/runtime producers. It emits a public migration association
+only from the checked bindings and actual run evidence; receipt replay
+reconstructs fresh retained state and exact-compares canonical bytes. The
+child keeps checkpoint-store authority caller-owned, permits recovered runs
+only through the durable path, and checks destination currentness before any
+stage, store, or host operation. It adds no disk store, service wire, MCP, CLI,
+snapshot structure, task/proposal authority, or automatic retry.
+
 `src/project/semantic_service/history.rs` owns the bounded immutable snapshots
 and revision-bound queries over successful validation and refresh outcomes;
 failed attempts append nothing, and ordering means only mutex-serialized

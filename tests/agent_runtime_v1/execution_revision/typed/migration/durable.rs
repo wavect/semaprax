@@ -6,7 +6,7 @@ const COMPLETE: &str =
 const SUSPEND: &str =
     "Step::Suspend { objective: state.objective, budget: state.budget, epoch: state.epoch }";
 
-fn first() -> Fixture {
+pub(in crate::execution_revision) fn first() -> Fixture {
     let fixture = typed_fixture();
     let path = fixture.0.join("src/app.spx");
     let original = std::fs::read_to_string(&path).unwrap();
@@ -25,7 +25,7 @@ fn write(fixture: &Fixture, source: &str) {
 }
 /// Preserve all preceding State declarations; replace only current role bodies
 /// and Step, then append the exact successor record and pure migration.
-fn successor(
+pub(in crate::execution_revision) fn successor(
     previous: &Fixture,
     from: &str,
     to: &str,
@@ -233,17 +233,17 @@ fn bind(fixture: &Fixture, objective: &[u8]) -> AgentRuntimeV2 {
     })
     .unwrap()
 }
-fn handler() -> Handler {
+pub(in crate::execution_revision) fn handler() -> Handler {
     Handler {
         calls: Vec::new(),
         wrong: false,
     }
 }
 #[derive(Default)]
-struct Store {
-    document: String,
-    commits: usize,
-    fail: Option<&'static str>,
+pub(in crate::execution_revision) struct Store {
+    pub(in crate::execution_revision) document: String,
+    pub(in crate::execution_revision) commits: usize,
+    pub(in crate::execution_revision) fail: Option<&'static str>,
 }
 impl CheckpointStore for Store {
     fn commit(&mut self, generation: u64, document: &str) -> Result<(), CheckpointStoreError> {

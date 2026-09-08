@@ -58,7 +58,7 @@ fn iterative_inputs(binding: &WorkspaceExecutionBinding) -> (String, Vec<String>
     (deployment, proposals)
 }
 
-fn typed_inputs(binding: &WorkspaceExecutionBinding) -> (String, Vec<String>) {
+pub(super) fn typed_inputs(binding: &WorkspaceExecutionBinding) -> (String, Vec<String>) {
     let source = &binding.project_revision().sources()[0];
     let lifecycle = compile_source_agent_lifecycle_v2(
         source.source(),
@@ -88,7 +88,7 @@ fn typed_inputs(binding: &WorkspaceExecutionBinding) -> (String, Vec<String>) {
     (deployment, proposals)
 }
 
-fn typed_binding(
+pub(super) fn typed_binding(
     binding: &WorkspaceExecutionBinding,
     deployment: &str,
     proposals: &[String],

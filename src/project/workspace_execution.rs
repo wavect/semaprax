@@ -13,8 +13,11 @@ use super::{ProjectRevision, SemanticWorkspaceService, SemanticWorkspaceSnapshot
 
 mod runtime;
 pub use runtime::{
-    WorkspaceExecution, WorkspaceExecutionEvidence, WORKSPACE_RUNTIME_ASSOCIATION_SCHEMA,
-    WORKSPACE_RUNTIME_EVIDENCE_SCHEMA,
+    prepare_workspace_migration, resume_workspace_migration, WorkspaceExecution,
+    WorkspaceExecutionEvidence, WorkspaceMigrationEvidence, WorkspaceMigrationExecution,
+    WorkspaceMigrationFailure, WorkspaceSuspensionEvidence, MAX_WORKSPACE_MIGRATION_RECEIPT_BYTES,
+    WORKSPACE_MIGRATION_ASSOCIATION_SCHEMA, WORKSPACE_MIGRATION_EVIDENCE_SCHEMA,
+    WORKSPACE_RUNTIME_ASSOCIATION_SCHEMA, WORKSPACE_RUNTIME_EVIDENCE_SCHEMA,
 };
 
 pub const WORKSPACE_EXECUTION_BINDING_SCHEMA: &str = "semaprax.workspace-execution-binding.v1";

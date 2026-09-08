@@ -317,3 +317,11 @@ impl WorkspaceExecution<AgentRuntimeV2> {
         ))
     }
 }
+
+mod migration;
+pub use migration::{
+    prepare_workspace_migration, resume_workspace_migration, WorkspaceMigrationEvidence,
+    WorkspaceMigrationExecution, WorkspaceMigrationFailure, WorkspaceSuspensionEvidence,
+    MAX_WORKSPACE_MIGRATION_RECEIPT_BYTES, WORKSPACE_MIGRATION_ASSOCIATION_SCHEMA,
+    WORKSPACE_MIGRATION_EVIDENCE_SCHEMA,
+};

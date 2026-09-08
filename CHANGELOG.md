@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Preserve both immutable workspace generations through typed Agent migration,
+  durable recovery and chained migration using additive provenance receipts.
+  Recovery rechecks compiler-owned bindings and exact receipts; current-run
+  paths refuse stale destinations before host or store work. Focused local
+  tests cover recovered A→B→C chains, forged receipts, stale destinations and
+  preserved terminal failures after checkpoint acknowledgement loss.
+
 - Bind acyclic, iterative, and typed Agent runtimes to exact immutable semantic
   service generations through additive workspace execution receipts. Replaying
   a receipt reselects compiler-owned state; current execution rejects drift

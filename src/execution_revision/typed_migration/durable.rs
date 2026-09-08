@@ -119,6 +119,9 @@ pub struct ResumedMigratedAgentRuntimeV2 {
     snapshot: Snapshot,
 }
 impl ResumedMigratedAgentRuntimeV2 {
+    pub(crate) fn migration_root(&self) -> &ExecutionRoot {
+        self.migrated.migration_root()
+    }
     pub fn run_durable(
         self,
         handler: &mut dyn TypedEffectHandler,

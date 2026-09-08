@@ -209,7 +209,8 @@ pub(super) fn check_declared_type(
             && (crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
                 || matches!(&arguments[0], Type::Named { name, arguments }
                     if arguments.is_empty() && parameters.contains(name.as_str())));
-        let admitted_box = name == "Box"
+        let admitted_box = declaration.stable_id == crate::prelude::BOX_ID
+            && name == "Box"
             && arguments.len() == 1
             && (crate::box_ops::ast_box_element_is_admitted(&arguments[0])
                 || matches!(&arguments[0],Type::Named{name,arguments} if arguments.is_empty()&&parameters.contains(name.as_str())));
@@ -947,13 +948,13 @@ pub(super) fn check_record_pattern(
     enum Frame<'a, 't> {
         Enter {
             pattern_type: &'a str,
-            fields: &'a [RecordMatchPatternField],
+            fields: &'a [RecordMatchFieldPattern],
             expected: Type,
             span: Span,
         },
         Fields {
             pattern_type: &'a str,
-            fields: &'a [RecordMatchPatternField],
+            fields: &'a [RecordMatchFieldPattern],
             expected: Type,
             declared_fields: &'t [FieldDeclaration],
             index: usize,

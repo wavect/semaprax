@@ -382,6 +382,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             | Type::Bytes
             | Type::Str
             | Type::SliceU8
+            | Type::Function { .. }
             | Type::Named { .. } => None,
         });
         let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());

@@ -25,6 +25,9 @@ macro_rules! format {
 }
 
 mod agent_instances;
+mod expression;
+mod function_values;
+use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
 pub(crate) use generic_instances::to_legacy_hir_json;
@@ -1104,6 +1107,13 @@ fn collect_result_propagations<'a>(
     propagations: &mut Vec<&'a ResolvedExpr>,
 ) {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            collect_result_propagations(callable, propagations);
+            for arg in args {
+                collect_result_propagations(arg, propagations);
+            }
+        }
         ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
             propagations.push(expression);
             collect_result_propagations(operand, propagations);
@@ -1255,7 +1265,10 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if matches!(schema, "semaprax.graph.v34" | "semaprax.graph.v35") {
+    if matches!(
+        schema,
+        "semaprax.graph.v34" | "semaprax.graph.v35" | "semaprax.graph.v36"
+    ) {
         return Err(Diagnostic::io(
             "SPX-G410",
             "Graph v34 is outside frozen evidence admission",
@@ -1327,6 +1340,11 @@ fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
+            ResolvedExprKind::FunctionReference { .. } => {}
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.push(callable);
+                pending.extend(args);
+            }
             ResolvedExprKind::ByteRange { .. } => return true,
             ResolvedExprKind::Call { args, .. } => pending.extend(args),
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
@@ -1401,6 +1419,11 @@ fn expression_has_byte_range(expression: &ResolvedExpr) -> bool {
 /// graph schema so its canonical bytes do not change.
 fn expression_has_explicit_match_mode(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => false,
+        ResolvedExprKind::Invoke { callable, args } => {
+            expression_has_explicit_match_mode(callable)
+                || args.iter().any(expression_has_explicit_match_mode)
+        }
         ResolvedExprKind::Match {
             mode,
             scrutinee,
@@ -1674,6 +1697,9 @@ pub(crate) fn graph_schema_from_parts_without_loans(
 
 fn type_has_usize(ty: &ResolvedType) -> bool {
     match ty {
+        ResolvedType::Function { parameters, result } => {
+            parameters.iter().any(type_has_usize) || type_has_usize(result)
+        }
         ResolvedType::Usize
         | ResolvedType::ArrayU8(_)
         | ResolvedType::Bytes
@@ -1726,6 +1752,10 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
         return true;
     }
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => false,
+        ResolvedExprKind::Invoke { callable, args } => {
+            expression_has_usize(callable) || args.iter().any(expression_has_usize)
+        }
         ResolvedExprKind::Usize(_) => true,
         ResolvedExprKind::Block { statements, tail } => {
             statements.iter().any(|statement| {
@@ -1796,6 +1826,10 @@ fn expression_has_usize(expression: &ResolvedExpr) -> bool {
 /// statement anywhere inside its blocks, branches, arms, or nested bodies.
 fn expression_has_while(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => false,
+        ResolvedExprKind::Invoke { callable, args } => {
+            expression_has_while(callable) || args.iter().any(expression_has_while)
+        }
         ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -1925,6 +1959,10 @@ fn expression_has_stdout_write(expression: &ResolvedExpr) -> bool {
 
 fn expression_has_command_io(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => false,
+        ResolvedExprKind::Invoke { callable, args } => {
+            expression_has_command_io(callable) || args.iter().any(expression_has_command_io)
+        }
         ResolvedExprKind::HostCommandCall(_) => true,
         ResolvedExprKind::ByteRange {
             source, start, end, ..
@@ -2019,6 +2057,11 @@ fn expression_has_command_append(expression: &ResolvedExpr) -> bool {
 
 fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => false,
+        ResolvedExprKind::Invoke { callable, args } => {
+            expression_has_record_pattern(callable)
+                || args.iter().any(expression_has_record_pattern)
+        }
         ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -2103,6 +2146,11 @@ fn expression_has_record_pattern(expression: &ResolvedExpr) -> bool {
 /// blocks, branches, nested matches, or guards.
 fn expression_has_refutable_match(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => false,
+        ResolvedExprKind::Invoke { callable, args } => {
+            expression_has_refutable_match(callable)
+                || args.iter().any(expression_has_refutable_match)
+        }
         ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -2240,6 +2288,13 @@ fn agent_reference_index_json(
 
 fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSet<ValueId>) {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            collect_agent_contract_values(callable, values);
+            for arg in args {
+                collect_agent_contract_values(arg, values);
+            }
+        }
         ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -2359,6 +2414,7 @@ fn collect_agent_contract_values(expression: &ResolvedExpr, values: &mut BTreeSe
 
 pub(crate) fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<String, Diagnostic> {
     Ok(match &expression.kind {
+        ResolvedExprKind::FunctionReference {..} | ResolvedExprKind::Invoke {..} => return Err(Diagnostic::io("SPX-G411","function values require Graph v36")),
         ResolvedExprKind::Int(value) => format!(
             "{{\"kind\":\"int\",\"value\":{}}}",
             quote_json(&value.to_string())
@@ -4645,6 +4701,13 @@ fn visit_expr_call_instances(
         visit(expression, callee, type_arguments, instance);
     }
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            visit_expr_call_instances(callable, visit);
+            for arg in args {
+                visit_expr_call_instances(arg, visit);
+            }
+        }
         ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -4737,6 +4800,13 @@ fn visit_expr_call_instances(
 
 fn visit_expr_calls(expression: &ResolvedExpr, visit: &mut impl FnMut(&DeclarationId)) {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { target } => visit(target),
+        ResolvedExprKind::Invoke { callable, args } => {
+            visit_expr_calls(callable, visit);
+            for arg in args {
+                visit_expr_calls(arg, visit);
+            }
+        }
         ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -4852,6 +4922,13 @@ fn collect_expr_type_declarations(
 ) {
     collect_nominal_declarations(&expression.ty, declarations);
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            collect_expr_type_declarations(callable, declarations);
+            for arg in args {
+                collect_expr_type_declarations(arg, declarations);
+            }
+        }
         ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -5084,385 +5161,6 @@ fn close_type_declarations(
     Ok(())
 }
 
-fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<String, Diagnostic> {
-    let header = format!(
-        "\"id\":{},\"type_id\":{},\"ownership_mode\":{}",
-        quote_json(expression.id.as_str()),
-        quote_json(&expression.ty.identity_key()),
-        quote_json(ownership_text(expression.ownership))
-    );
-    let output = match &expression.kind {
-        ResolvedExprKind::Int(value) => {
-            format!(
-                "{{{header},\"kind\":\"int\",\"value\":{}}}",
-                quote_json(&value.to_string())
-            )
-        }
-        ResolvedExprKind::Int32(value) => {
-            format!("{{{header},\"kind\":\"int32\",\"value\":{value}}}")
-        }
-        ResolvedExprKind::Char(value) => format!(
-            "{{{header},\"kind\":\"char\",\"value\":{value},\"display\":{}}}",
-            quote_json(&crate::format::canonical_char(*value))
-        ),
-        ResolvedExprKind::Uint8(value) => {
-            format!("{{{header},\"kind\":\"uint8\",\"value\":{value}}}")
-        }
-        ResolvedExprKind::Usize(value) => format!(
-            "{{{header},\"kind\":\"usize\",\"value\":{}}}",
-            quote_json(&value.to_string())
-        ),
-        ResolvedExprKind::ArrayU8(values) => format!(
-            "{{{header},\"kind\":\"array_u8\",\"form\":\"explicit\",\"length\":{},\"values\":[{}]}}",
-            values.len(),
-            values.iter().map(u8::to_string).collect::<Vec<_>>().budgeted_join(",")
-        ),
-        ResolvedExprKind::RepeatArrayU8 { value, count } => format!(
-            "{{{header},\"kind\":\"array_u8\",\"form\":\"repeat\",\"length\":{count},\"value\":{value}}}"
-        ),
-        ResolvedExprKind::Float32(bits) => format!(
-            "{{{header},\"kind\":\"float32\",\"bits\":\"{bits:08x}\",\"value\":{}}}",
-            quote_json(&crate::format::canonical_f32_bits(*bits))
-        ),
-        ResolvedExprKind::Float64(bits) => format!(
-            "{{{header},\"kind\":\"float64\",\"bits\":\"{bits:016x}\",\"value\":{}}}",
-            quote_json(&crate::format::canonical_f64_bits(*bits))
-        ),
-        ResolvedExprKind::Bool(value) => {
-            format!("{{{header},\"kind\":\"bool\",\"value\":{value}}}")
-        }
-        ResolvedExprKind::String(value) => format!(
-            "{{{header},\"kind\":\"string\",\"value\":{},\"display\":{}}}",
-            quote_json(value),
-            quote_json(&crate::format::canonical_string(value))
-        ),
-        ResolvedExprKind::Place(place) => format!(
-            "{{{header},\"kind\":\"place\",\"place\":{}}}",
-            place_json(place)
-        ),
-        ResolvedExprKind::BorrowPlace { operation, place } => format!(
-            "{{{header},\"kind\":\"byte_view\",\"operation\":{},\"place\":{}}}",
-            quote_json(operation.as_str()),
-            place_json(place)
-        ),
-        ResolvedExprKind::ByteRange { operation, source, start, end } => format!(
-            "{{{header},\"kind\":\"byte_range\",\"operation\":{},\"source\":{},\"start\":{},\"end\":{},\"status_domain\":{},\"status_codes\":{{\"start_after_end\":{},\"end_out_of_bounds\":{}}}}}",
-            quote_json(operation.as_str()), expr_json(program, source)?,
-            expr_json(program, start)?, expr_json(program, end)?,
-            quote_json(crate::byte_ops::RANGE_STATUS_DOMAIN),
-            crate::byte_ops::RANGE_START_AFTER_END_CODE,
-            crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
-        ),
-        ResolvedExprKind::Call {
-            callee,
-            type_arguments,
-            instance,
-            args,
-        } => {
-            let args = args
-                .iter()
-                .map(|argument| expr_json(program, argument))
-                .collect::<Result<Vec<_>, _>>()?
-                .budgeted_join(",");
-            if let Some(instance) = instance {
-                format!(
-                    "{{{header},\"kind\":\"call_instance\",\"template\":{},\"instance\":{},\"type_arguments\":[{}],\"args\":[{}]}}",
-                    quote_json(callee.as_str()),
-                    quote_json(instance.as_str()),
-                    type_arguments.iter().map(type_json).collect::<Vec<_>>().budgeted_join(","),
-                    args
-                )
-            } else {
-                format!(
-                    "{{{header},\"kind\":\"call\",\"callee\":{},\"args\":[{}]}}",
-                    quote_json(callee.as_str()),
-                    args
-                )
-            }
-        }
-        ResolvedExprKind::NativeRustImportCall(call) => {
-            let args = call
-                .args
-                .iter()
-                .map(|argument| expr_json(program, argument))
-                .collect::<Result<Vec<_>, _>>()?
-                .budgeted_join(",");
-            format!(
-                "{{{header},\"kind\":\"native_rust_import_call\",\"import\":{},\"result\":{},\"args\":[{}]}}",
-                quote_json(call.import.as_str()),
-                quote_json(native_import::result_text(&call.result)),
-                args
-            )
-        }
-        ResolvedExprKind::HostCommandCall(call) => {
-            let args = call
-                .args
-                .iter()
-                .map(|argument| expr_json(program, argument))
-                .collect::<Result<Vec<_>, _>>()?
-                .budgeted_join(",");
-            format!(
-                "{{{header},\"kind\":\"host_command_call\",\"operation\":{},\"args\":[{}]}}",
-                quote_json(crate::command_io_ops::id(call.operation)),
-                args
-            )
-        }
-        ResolvedExprKind::Unary { op, value } => format!(
-            "{{{header},\"kind\":\"unary\",\"op\":{},\"value\":{}}}",
-            quote_json(unary_text(*op)),
-            expr_json(program, value)?
-        ),
-        ResolvedExprKind::Binary { op, left, right } => format!(
-            "{{{header},\"kind\":\"binary\",\"op\":{},\"left\":{},\"right\":{}}}",
-            quote_json(binary_text(*op)),
-            expr_json(program, left)?,
-            expr_json(program, right)?
-        ),
-        ResolvedExprKind::Block { statements, tail } => format!(
-            "{{{header},\"kind\":\"block\",\"statements\":[{}],\"tail\":{}}}",
-            statements
-                .iter()
-                .map(|statement| statement_json(program, statement))
-                .collect::<Result<Vec<_>, _>>()?
-                .budgeted_join(","),
-            expr_json(program, tail)?
-        ),
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => format!(
-            "{{{header},\"kind\":\"if\",\"condition\":{},\"then\":{},\"else\":{}}}",
-            expr_json(program, condition)?,
-            expr_json(program, then_branch)?,
-            expr_json(program, else_branch)?
-        ),
-        ResolvedExprKind::ConstructRecord { record, fields } => {
-            let instance = match &expression.ty {
-                ResolvedType::Nominal { arguments, .. } if !arguments.is_empty() => {
-                    format!(",\"record_type\":{}", type_json(&expression.ty))
-                }
-                _ => String::new(),
-            };
-            format!(
-                "{{{header},\"kind\":\"construct_record\",\"record\":{}{instance},\"fields\":[{}]}}",
-                quote_json(record.as_str()),
-                fields
-                    .iter()
-                    .map(|initializer| {
-                        Ok(format!(
-                            "{{\"field\":{},\"value\":{}}}",
-                            quote_json(initializer.field.as_str()),
-                            expr_json(program, &initializer.value)?
-                        ))
-                    })
-                    .collect::<Result<Vec<_>, Diagnostic>>()?
-                    .budgeted_join(",")
-            )
-        }
-        ResolvedExprKind::ConstructVariant {
-            variant,
-            case,
-            fields,
-        } => format!(
-            "{{{header},\"kind\":\"construct_variant\",\"variant\":{},\"case\":{},\"fields\":[{}]}}",
-            quote_json(variant.as_str()),
-            quote_json(case.as_str()),
-            fields
-                .iter()
-                .map(|initializer| {
-                    Ok(format!(
-                        "{{\"field\":{},\"value\":{}}}",
-                        quote_json(initializer.field.as_str()),
-                        expr_json(program, &initializer.value)?
-                    ))
-                })
-                .collect::<Result<Vec<_>, Diagnostic>>()?
-                .budgeted_join(",")
-        ),
-        ResolvedExprKind::Match {
-            mode,
-            scrutinee,
-            arms,
-        } => {
-            // Refutable Match v1: matches carrying guards or literal/or
-            // patterns project `"exhaustive":false` plus additive per-arm
-            // guard nodes; every pre-feature match keeps the exact
-            // `"exhaustive":true` bytes.
-            let exhaustive = !arms.iter().any(|arm| {
-                arm.guard.is_some()
-                    || matches!(
-                        &arm.pattern,
-                        crate::hir::ResolvedMatchPattern::Literal(_)
-                            | crate::hir::ResolvedMatchPattern::Or(_)
-                            | crate::hir::ResolvedMatchPattern::Binding(_)
-                    )
-            });
-            format!(
-                "{{{header},\"kind\":\"match\"{},\"exhaustive\":{exhaustive},\"scrutinee\":{},\"arms\":[{}]}}",
-                explicit_match_mode_json(*mode),
-                expr_json(program, scrutinee)?,
-                arms.iter()
-                    .enumerate()
-                    .map(|(index, arm)| {
-                        let arm_id = format!("{}:match-arm:{index}", expression.id.as_str());
-                        let pattern_id = format!("{arm_id}:pattern");
-                        let guard = match &arm.guard {
-                            Some(guard) => {
-                                let guard_id = format!("{arm_id}:guard");
-                                format!(
-                                    ",\"guard\":{{\"id\":{},\"kind\":\"guard\",\"condition\":{}}}",
-                                    quote_json(&guard_id),
-                                    expr_json(program, guard)?
-                                )
-                            }
-                            None => String::new(),
-                        };
-                        Ok(format!(
-                            "{{\"id\":{},\"kind\":\"match_arm\",\"pattern\":{},\"value\":{}{guard}}}",
-                            quote_json(&arm_id),
-                            graph_match_pattern_json(&arm.pattern, &pattern_id),
-                            expr_json(program, &arm.value)?
-                        ))
-                    })
-                    .collect::<Result<Vec<_>, Diagnostic>>()?
-                    .budgeted_join(",")
-            )
-        }
-        ResolvedExprKind::Try {
-            operand,
-            result,
-            ok_case,
-            ok_field,
-            err_case,
-            err_field,
-            residual_type,
-        } => format!(
-            "{{{header},\"kind\":\"try_result\",\"evaluation\":\"once\",\"operand\":{},\"source_result_type_id\":{},\"source_result_type\":{},\"residual_result_type_id\":{},\"residual_result_type\":{},\"result\":{},\"ok_case\":{},\"ok_field\":{},\"err_case\":{},\"err_field\":{},\"err_exit\":\"normal_result\",\"epilogue\":\"shared_postconditions\"}}",
-            expr_json(program, operand)?,
-            quote_json(&operand.ty.identity_key()),
-            type_json(&operand.ty),
-            quote_json(&residual_type.identity_key()),
-            type_json(residual_type),
-            quote_json(result.as_str()),
-            quote_json(ok_case.as_str()),
-            quote_json(ok_field.as_str()),
-            quote_json(err_case.as_str()),
-            quote_json(err_field.as_str())
-        ),
-        ResolvedExprKind::TryOption {
-            operand,
-            option,
-            some_case,
-            some_field,
-            none_case,
-            residual_type,
-        } => format!(
-            "{{{header},\"kind\":\"try_option\",\"evaluation\":\"once\",\"operand\":{},\"source_option_type_id\":{},\"source_option_type\":{},\"residual_option_type_id\":{},\"residual_option_type\":{},\"option\":{},\"some_case\":{},\"some_field\":{},\"none_case\":{},\"none_exit\":\"normal_result\",\"epilogue\":\"shared_postconditions\"}}",
-            expr_json(program, operand)?,
-            quote_json(&operand.ty.identity_key()),
-            type_json(&operand.ty),
-            quote_json(&residual_type.identity_key()),
-            type_json(residual_type),
-            quote_json(option.as_str()),
-            quote_json(some_case.as_str()),
-            quote_json(some_field.as_str()),
-            quote_json(none_case.as_str())
-        ),
-        ResolvedExprKind::UpdateRecord {
-            base,
-            record,
-            fields,
-        } => format!(
-            "{{{header},\"kind\":\"update_record\",\"base\":{},\"record\":{},\"fields\":[{}]}}",
-            expr_json(program, base)?,
-            quote_json(record.as_str()),
-            fields
-                .iter()
-                .map(|initializer| {
-                    Ok(format!(
-                        "{{\"field\":{},\"value\":{}}}",
-                        quote_json(initializer.field.as_str()),
-                        expr_json(program, &initializer.value)?
-                    ))
-                })
-                .collect::<Result<Vec<_>, Diagnostic>>()?
-                .budgeted_join(",")
-        ),
-        ResolvedExprKind::Project { base, field } => format!(
-            "{{{header},\"kind\":\"project\",\"base\":{},\"field\":{}}}",
-            expr_json(program, base)?,
-            quote_json(field.as_str())
-        ),
-        ResolvedExprKind::Upcast { source } => format!(
-            "{{{header},\"kind\":\"upcast\",\"source\":{}}}",
-            expr_json(program, source)?
-        ),
-    };
-    Ok(output)
-}
-
-fn statement_json(
-    program: &ResolvedProgram,
-    statement: &ResolvedStatement,
-) -> Result<String, Diagnostic> {
-    match statement {
-        ResolvedStatement::Let {
-            binding,
-            mutable,
-            value,
-            ..
-        } => {
-            // The mutable flag is additive and emitted only for `let mut`
-            // bindings so pre-mutation graphs stay byte-identical.
-            let mutable_field = if *mutable { ",\"mutable\":true" } else { "" };
-            Ok(format!(
-                "{{\"kind\":\"let\",\"binding\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}}{},\"value\":{}}}",
-                quote_json(binding.id.as_str()),
-                quote_json(&binding.name),
-                quote_json(&binding.ty.identity_key()),
-                quote_json(ownership_text(binding.ownership)),
-                mutable_field,
-                expr_json(program, value)?
-            ))
-        }
-        ResolvedStatement::Assign {
-            binding,
-            field,
-            value,
-            ..
-        } => {
-            // The field attribute is additive and emitted only on
-            // `<binding>.<field>` targets so pre-field-mutation graphs stay
-            // byte-identical.
-            let field_attribute = match field {
-                Some(field) => format!(",\"field\":{}", quote_json(field.as_str())),
-                None => String::new(),
-            };
-            Ok(format!(
-                "{{\"kind\":\"assign\",\"target\":{{\"id\":{},\"name\":{},\"type_id\":{},\"ownership_mode\":{}}},\"value\":{}{field_attribute}}}",
-                quote_json(binding.id.as_str()),
-                quote_json(&binding.name),
-                quote_json(&binding.ty.identity_key()),
-                quote_json(ownership_text(binding.ownership)),
-                expr_json(program, value)?
-            ))
-        }
-        ResolvedStatement::Unsafe { audit, body, .. } => Ok(format!(
-            "{{\"kind\":\"unsafe\",\"audit\":{},\"body\":{}}}",
-            quote_json(audit),
-            expr_json(program, body)?
-        )),
-        ResolvedStatement::While {
-            condition, body, ..
-        } => Ok(format!(
-            "{{\"kind\":\"while\",\"condition\":{},\"body\":{}}}",
-            expr_json(program, condition)?,
-            expr_json(program, body)?
-        )),
-    }
-}
-
 fn place_json(place: &Place) -> String {
     format!(
         "{{\"root\":{},\"projections\":[{}]}}",
@@ -5501,6 +5199,13 @@ fn type_facts_array(
 fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, ResolvedType>) {
     collect_type(&expression.ty, types);
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            collect_expr_types(callable, types);
+            for arg in args {
+                collect_expr_types(arg, types);
+            }
+        }
         ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -5646,6 +5351,12 @@ fn collect_record_pattern_types(
 }
 
 fn collect_type(ty: &ResolvedType, types: &mut BTreeMap<String, ResolvedType>) {
+    if let ResolvedType::Function { parameters, result } = ty {
+        for p in parameters {
+            collect_type(p, types);
+        }
+        collect_type(result, types);
+    }
     types.entry(ty.identity_key()).or_insert_with(|| ty.clone());
     if let ResolvedType::Nominal { arguments, .. } = ty {
         for argument in arguments {
@@ -5656,6 +5367,7 @@ fn collect_type(ty: &ResolvedType, types: &mut BTreeMap<String, ResolvedType>) {
 
 fn type_json(ty: &ResolvedType) -> String {
     match ty {
+        ResolvedType::Function{parameters,result}=>function_values::type_json(parameters,result),
         ResolvedType::Unit => "{\"kind\":\"primitive\",\"name\":\"unit\"}".to_owned(),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),
         ResolvedType::I32 => "{\"kind\":\"primitive\",\"name\":\"i32\"}".to_owned(),

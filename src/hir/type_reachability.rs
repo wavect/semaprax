@@ -101,6 +101,13 @@ fn collect_function(function: &ResolvedFunction, declarations: &mut BTreeSet<Dec
 fn collect_expression(expression: &ResolvedExpr, declarations: &mut BTreeSet<DeclarationId>) {
     collect_type(&expression.ty, declarations);
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            collect_expression(callable, declarations);
+            for arg in args {
+                collect_expression(arg, declarations);
+            }
+        }
         ResolvedExprKind::ByteRange {
             source, start, end, ..
         } => {
@@ -421,6 +428,9 @@ fn classify_nested_owned_byte_record(
 
     while let Some(frame) = frames.pop() {
         match frame {
+            Frame::Type(ResolvedType::Function { .. }, _) => {
+                return NestedOwnedRecordAdmission::OutsideProfile
+            }
             Frame::Type(ResolvedType::Bytes, _) => {
                 byte_paths.push(path.clone());
                 if byte_paths.len() > MAX_NESTED_OWNED_BYTE_LEAVES {

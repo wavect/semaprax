@@ -280,6 +280,7 @@ fn materialize_result(
     wire: WireResult,
 ) -> Result<TraceResult, MaterializeError> {
     match (&function.return_type, wire) {
+        (ResolvedType::Function { .. }, _) => Err(MaterializeError::ResultTypeMismatch),
         (ResolvedType::I64, WireResult::I64(value)) => Ok(TraceResult::I64(value)),
         (ResolvedType::I32, WireResult::I64(value)) => i32::try_from(value)
             .map(TraceResult::Int32)

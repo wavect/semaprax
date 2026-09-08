@@ -153,6 +153,10 @@ fn main() -> i64 {
 /// Collects every direct child expression of a resolved expression.
 fn children(expression: &hir::ResolvedExpr) -> Vec<&hir::ResolvedExpr> {
     match &expression.kind {
+        hir::ResolvedExprKind::FunctionReference { .. } => Vec::new(),
+        hir::ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
+            .chain(args.iter())
+            .collect(),
         hir::ResolvedExprKind::Call { args, .. } => args.iter().collect(),
         hir::ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
         hir::ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),

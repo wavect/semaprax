@@ -8,7 +8,7 @@ use crate::source_verify::arguments::{
 };
 use crate::source_verify::binding::{Availability, CheckedValue};
 use crate::source_verify::declared_type::{
-    check_declared_type, generic_function_arguments_are_admitted,
+    check_declared_type, function_value_signature, generic_function_arguments_are_admitted,
     generic_function_arguments_are_forwarded, validation_specialize_signature,
 };
 use crate::source_verify::diagnostics::{error, source_identifier};
@@ -104,6 +104,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     CheckedValue { ty: binding.ty.clone(), mode: binding.mode, native_unit: binding.native_unit_discard }
                 });
+                let value = value.or_else(|| {
+                    self.functions
+                        .get(name.as_str())
+                        .and_then(|function| function_value_signature(function))
+                        .map(CheckedValue::value)
+                });
                 if value.is_none() {
                     self.diagnostics.push(hints::with_optional_help(
                         error(
@@ -151,7 +157,61 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     .iter()
                     .flat_map(|interface| &interface.imports)
                     .find(|import| import.native_rust && import.name == *name);
-                let target = if let Some(import) = native {
+                let callable_binding = self.scopes[scope]
+                    .bindings
+                    .get(name)
+                    .map(|binding| binding.ty.clone());
+                let target = if let Some(binding_type) = callable_binding {
+                    match binding_type {
+                        Type::Function { parameters, result } => {
+                            if !type_arguments.is_empty() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T225",
+                                    "function values do not accept type arguments",
+                                    expression.span,
+                                ));
+                            }
+                            if args.len() != parameters.len() {
+                                self.diagnostics.push(error(
+                                    self.program,
+                                    "SPX-T204",
+                                    format!(
+                                        "`{name}` expects {} arguments, received {}",
+                                        parameters.len(),
+                                        args.len()
+                                    ),
+                                    expression.span,
+                                ));
+                            }
+                            VerifierCallTarget::Ordinary(Some(
+                                VerifierFunctionSignature::Specialized {
+                                    params: parameters
+                                        .into_iter()
+                                        .enumerate()
+                                        .map(|(index, ty)| crate::ast::Param {
+                                            name: format!("argument{index}"),
+                                            mode: ParamMode::Value,
+                                            ty,
+                                            span: expression.span,
+                                        })
+                                        .collect(),
+                                    return_type: *result,
+                                    implicit_unique_ownership: false,
+                                },
+                            ))
+                        }
+                        _ => {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T287",
+                                format!("`{name}` is a bound value, not a function value"),
+                                expression.span,
+                            ));
+                            VerifierCallTarget::Ordinary(None)
+                        }
+                    }
+                } else if let Some(import) = native {
                     if !type_arguments.is_empty() || args.len() != import.params.len() {
                         self.diagnostics.push(error(
                             self.program,

@@ -96,6 +96,29 @@ impl PersistentCallIndex {
             )?;
         }
 
+        // Graph v36 call closure includes conservative indirect candidates.
+        // Direct call-site records stay direct: one invocation is not forged
+        // into several independent source call expressions.
+        for function in &program.functions {
+            let mut dependencies = BTreeSet::new();
+            hir::function_value::walk(function, |expression| match &expression.kind {
+                ResolvedExprKind::FunctionReference { target } => {
+                    dependencies.insert(target.clone());
+                }
+                ResolvedExprKind::Invoke { callable, .. } => dependencies.extend(
+                    hir::function_value::compatible_targets(program, &callable.ty)
+                        .into_iter()
+                        .map(|target| target.id.clone()),
+                ),
+                _ => {}
+            });
+            index
+                .calls_by_owner
+                .get_mut(&function.id)
+                .expect("registered function")
+                .extend(dependencies);
+        }
+
         let owners = index
             .kinds_by_owner
             .keys()
@@ -214,6 +237,10 @@ impl PersistentCallIndex {
         const { assert!(std::mem::size_of::<Frame<'static>>() == 16) };
         fn child(expression: &ResolvedExpr, index: usize) -> Option<&ResolvedExpr> {
             match &expression.kind {
+                ResolvedExprKind::FunctionReference { .. } => None,
+                ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
+                    .chain(args.iter())
+                    .nth(index),
                 ResolvedExprKind::Call { args, .. } => args.get(index),
                 ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
                 ResolvedExprKind::HostCommandCall(call) => call.args.get(index),

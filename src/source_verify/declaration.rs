@@ -97,21 +97,20 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     check_class_cycles(program, &class_parents, &mut diagnostics);
     check_class_overrides(program, &types, &class_parents, &mut diagnostics);
 
+    let function_value_targets =
+        crate::source_verify::function_value_inventory::function_value_targets(program, &functions);
     let call_graph = program
         .functions
         .iter()
         .map(|function| {
-            let mut callees = Vec::new();
-            for contract in &function.requires {
-                contract.visit_calls(&mut |callee, _| callees.push(callee.to_owned()));
-            }
-            function
-                .body
-                .visit_calls(&mut |callee, _| callees.push(callee.to_owned()));
-            for contract in &function.ensures {
-                contract.visit_calls(&mut |callee, _| callees.push(callee.to_owned()));
-            }
-            (function.name.clone(), callees)
+            (
+                function.name.clone(),
+                crate::source_verify::function_value_inventory::calls(
+                    function,
+                    &functions,
+                    &function_value_targets,
+                ),
+            )
         })
         .collect::<HashMap<_, _>>();
     let generic_functions = program

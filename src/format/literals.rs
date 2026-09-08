@@ -24,3 +24,22 @@ pub(crate) fn canonical_f32_bits(bits: u32) -> String {
         format!("{text}.0")
     }
 }
+
+pub(crate) fn write_escaped(output: &mut impl std::fmt::Write, value: &str) {
+    for value in value.chars() {
+        match value {
+            '\\' => output.write_str("\\\\").unwrap(),
+            '"' => output.write_str("\\\"").unwrap(),
+            value => output.write_char(value).unwrap(),
+        }
+    }
+}
+
+pub(crate) fn write_joined(output: &mut impl std::fmt::Write, values: &[String], separator: &str) {
+    for (index, value) in values.iter().enumerate() {
+        if index != 0 {
+            output.write_str(separator).unwrap();
+        }
+        output.write_str(value).unwrap();
+    }
+}

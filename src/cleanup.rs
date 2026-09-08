@@ -40,6 +40,15 @@ fn note_capacity_high_water(bytes: usize) {
 #[cfg(test)]
 fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
     match ty {
+        ResolvedType::Function { parameters, result } => {
+            parameters.capacity() * std::mem::size_of::<ResolvedType>()
+                + std::mem::size_of::<ResolvedType>()
+                + parameters
+                    .iter()
+                    .map(resolved_type_owned_capacity)
+                    .sum::<usize>()
+                + resolved_type_owned_capacity(result)
+        }
         ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32
@@ -479,7 +488,10 @@ pub(crate) fn type_needs_resource_cleanup(
         }
         match ty {
             ResolvedType::Bytes => return Ok(true),
-            ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 => {}
+            ResolvedType::Function { .. }
+            | ResolvedType::String
+            | ResolvedType::Str
+            | ResolvedType::SliceU8 => {}
             ResolvedType::Nominal {
                 declaration,
                 arguments,
@@ -1121,6 +1133,14 @@ impl InventoryBuilder<'_> {
                     let mut enter = None;
                     let mut action = None;
                     match &expression.kind {
+                        ResolvedExprKind::FunctionReference { .. } => {}
+                        ResolvedExprKind::Invoke { callable, args } => {
+                            enter = if index == 0 {
+                                Some(callable.as_ref())
+                            } else {
+                                args.get(index - 1)
+                            };
+                        }
                         ResolvedExprKind::Call { args, .. } => {
                             enter = args.get(index);
                         }

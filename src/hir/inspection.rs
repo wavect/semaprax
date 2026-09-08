@@ -11,6 +11,7 @@ use super::*;
 /// schema for constructing HIR outside the compiler is future work.
 pub fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     validate_core(program)?;
+    super::function_value::validate_program(program)?;
     validate_attached_identity_references(program)?;
     crate::cleanup::validate_program(program)?;
     crate::cleanup_plan::validate_program(program)?;
@@ -157,6 +158,10 @@ fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic> {
     let mut pending = vec![root];
     while let Some(ty) = pending.pop() {
         match ty {
+            ResolvedType::Function { parameters, result } => {
+                pending.extend(parameters);
+                pending.push(result);
+            }
             ResolvedType::Unit
             | ResolvedType::I64
             | ResolvedType::I32
@@ -217,6 +222,13 @@ fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic> {
         reject_nul_identity("resolved expression", expression.id.as_str())?;
         audit_resolved_type(&expression.ty)?;
         match &expression.kind {
+            ResolvedExprKind::FunctionReference { target } => {
+                reject_nul_identity("function reference", target.as_str())?
+            }
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.push(callable);
+                pending.extend(args);
+            }
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
@@ -848,6 +860,13 @@ pub(crate) fn visit_resolved_calls(
             visit_resolved_calls(start, visit);
             visit_resolved_calls(end, visit);
         }
+        ResolvedExprKind::FunctionReference { target } => visit(target, None, &[]),
+        ResolvedExprKind::Invoke { callable, args } => {
+            visit_resolved_calls(callable, visit);
+            for arg in args {
+                visit_resolved_calls(arg, visit);
+            }
+        }
         ResolvedExprKind::Call {
             callee,
             instance,
@@ -979,6 +998,17 @@ pub(crate) fn workspace_call_sites(
         sites: &mut Vec<(DeclarationId, String, DeclarationId)>,
     ) {
         match &expression.kind {
+            ResolvedExprKind::FunctionReference { target } => sites.push((
+                owner.clone(),
+                expression.id.as_str().to_owned(),
+                target.clone(),
+            )),
+            ResolvedExprKind::Invoke { callable, args } => {
+                walk(owner, callable, sites);
+                for arg in args {
+                    walk(owner, arg, sites);
+                }
+            }
             ResolvedExprKind::ByteRange {
                 source, start, end, ..
             } => {

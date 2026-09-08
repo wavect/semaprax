@@ -32,6 +32,10 @@ fn declaration_symbol(id: &str) -> String {
 
 fn first_call<'a>(expression: &'a ResolvedExpr, template: &str) -> Option<&'a ResolvedExpr> {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => None,
+        ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
+            .chain(args.iter())
+            .find_map(|arg| first_call(arg, template)),
         ResolvedExprKind::Call { callee, args, .. } => {
             if callee.as_str() == template {
                 return Some(expression);

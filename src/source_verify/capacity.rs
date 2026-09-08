@@ -250,7 +250,8 @@ fn source_array_payload(types: &TypeTable<'_>, ty: &Type) -> Result<u32, ()> {
             | Type::String
             | Type::Bytes
             | Type::Str
-            | Type::SliceU8 => {}
+            | Type::SliceU8
+            | Type::Function { .. } => {}
         }
     }
     Ok(total)
@@ -1603,7 +1604,7 @@ pub(super) fn verify_byte_data_capacity(
                     ArrayStorageKind::Parameter,
                     &parameter.ty,
                 )
-                .map_err(|()| source_capacity_invariant(&function.stable_id))?;
+                .map_err(|()| command_io::source_capacity_invariant(&function.stable_id))?;
                 bindings.insert(parameter.name.clone(), parameter.ty.clone());
             }
             source_capacity_slot(
@@ -1613,7 +1614,7 @@ pub(super) fn verify_byte_data_capacity(
                 ArrayStorageKind::ProvisionalResult,
                 &function.return_type,
             )
-            .map_err(|()| source_capacity_invariant(&function.stable_id))?;
+            .map_err(|()| command_io::source_capacity_invariant(&function.stable_id))?;
             let mut execution = function
                 .requires
                 .iter()
@@ -1628,7 +1629,7 @@ pub(super) fn verify_byte_data_capacity(
                         &context,
                         false,
                     )
-                    .map_err(|()| source_capacity_invariant(&function.stable_id))
+                    .map_err(|()| command_io::source_capacity_invariant(&function.stable_id))
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             execution.push(
@@ -1641,7 +1642,7 @@ pub(super) fn verify_byte_data_capacity(
                     &context,
                     true,
                 )
-                .map_err(|()| source_capacity_invariant(&function.stable_id))?,
+                .map_err(|()| command_io::source_capacity_invariant(&function.stable_id))?,
             );
             execution.extend(
                 function
@@ -1658,7 +1659,7 @@ pub(super) fn verify_byte_data_capacity(
                             &context,
                             false,
                         )
-                        .map_err(|()| source_capacity_invariant(&function.stable_id))
+                        .map_err(|()| command_io::source_capacity_invariant(&function.stable_id))
                     })
                     .collect::<Result<Vec<_>, _>>()?,
             );
@@ -1670,12 +1671,4 @@ pub(super) fn verify_byte_data_capacity(
         })
         .collect::<Result<Vec<_>, crate::byte_data_capacity::CapacityError>>()?;
     crate::byte_data_capacity::analyze(&inputs).map(|_| ())
-}
-
-fn source_capacity_invariant(function: &str) -> crate::byte_data_capacity::CapacityError {
-    crate::byte_data_capacity::CapacityError {
-        diagnostic: crate::byte_data_capacity::CapacityDiagnostic::Invariant,
-        function: Some(function.to_owned()),
-        detail: "source byte-data capacity projection could not be reconstructed".to_owned(),
-    }
 }

@@ -44,7 +44,7 @@ codec_struct!(ByteSliceProvenance {
     producer,
     ranges
 });
-codec_enum!(ResolvedType {0=>Unit,1=>I64,2=>I32,3=>Char,4=>U8,5=>Usize,6=>ArrayU8(length),7=>F32,8=>F64,9=>Bool,10=>String,11=>Bytes,12=>Str,13=>SliceU8,14=>TypeParameter{owner,index},15=>Nominal{declaration,arguments}});
+codec_enum!(ResolvedType {0=>Unit,1=>I64,2=>I32,3=>Char,4=>U8,5=>Usize,6=>ArrayU8(length),7=>F32,8=>F64,9=>Bool,10=>String,11=>Bytes,12=>Str,13=>SliceU8,14=>TypeParameter{owner,index},15=>Nominal{declaration,arguments},16=>Function{parameters,result}});
 codec_struct!(TypeFacts {
     copy,
     contains_resource,
@@ -237,7 +237,7 @@ codec_enum!(ResolvedExprKind {
     21=>ConstructRecord{record,fields},22=>ConstructVariant{variant,case,fields},23=>Match{mode,scrutinee,arms},
     24=>Try{operand,result,ok_case,ok_field,err_case,err_field,residual_type},
     25=>TryOption{operand,option,some_case,some_field,none_case,residual_type},
-    26=>UpdateRecord{base,record,fields},27=>Project{base,field},28=>Upcast{source}
+    26=>UpdateRecord{base,record,fields},27=>Project{base,field},28=>Upcast{source},29=>FunctionReference{target},30=>Invoke{callable,args}
 });
 codec_struct!(ResolvedMatchArm {
     pattern,

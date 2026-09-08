@@ -417,6 +417,13 @@ fn collect_expr(
     facts: &mut FunctionFacts,
 ) {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            collect_expr(callable, scope_end, resolved, facts);
+            for arg in args {
+                collect_expr(arg, scope_end, resolved, facts);
+            }
+        }
         ResolvedExprKind::Place(place) => {
             facts.uses.push((place.root.as_str().to_owned(), scope_end));
         }

@@ -347,6 +347,12 @@ fn visit_resolved_calls(
                 visit_resolved_calls(argument, visit);
             }
         }
+        hir::ResolvedExprKind::Invoke { callable, args } => {
+            visit_resolved_calls(callable, visit);
+            for argument in args {
+                visit_resolved_calls(argument, visit);
+            }
+        }
         hir::ResolvedExprKind::NativeRustImportCall(call) => {
             for argument in &call.args {
                 visit_resolved_calls(argument, visit);
@@ -425,7 +431,8 @@ fn visit_resolved_calls(
         | hir::ResolvedExprKind::Float32(_)
         | hir::ResolvedExprKind::Float64(_)
         | hir::ResolvedExprKind::Bool(_)
-        | hir::ResolvedExprKind::Place(_) => {}
+        | hir::ResolvedExprKind::Place(_)
+        | hir::ResolvedExprKind::FunctionReference { .. } => {}
     }
 }
 
@@ -784,7 +791,8 @@ fn collect_resolved_expression_type_sites(
         hir::ResolvedExprKind::String(_) => {}
         hir::ResolvedExprKind::ArrayU8(_)
         | hir::ResolvedExprKind::RepeatArrayU8 { .. }
-        | hir::ResolvedExprKind::BorrowPlace { .. } => {}
+        | hir::ResolvedExprKind::BorrowPlace { .. }
+        | hir::ResolvedExprKind::FunctionReference { .. } => {}
         hir::ResolvedExprKind::Call {
             type_arguments,
             args,
@@ -802,6 +810,24 @@ fn collect_resolved_expression_type_sites(
                     out,
                 )?;
             }
+            for (index, argument) in args.iter().enumerate() {
+                collect_resolved_expression_type_sites(
+                    owner,
+                    argument,
+                    &crate::bounded_output::budgeted_format(format_args!("{path}.arg.{index}")),
+                    imported,
+                    out,
+                )?;
+            }
+        }
+        hir::ResolvedExprKind::Invoke { callable, args } => {
+            collect_resolved_expression_type_sites(
+                owner,
+                callable,
+                &crate::bounded_output::budgeted_format(format_args!("{path}.callable")),
+                imported,
+                out,
+            )?;
             for (index, argument) in args.iter().enumerate() {
                 collect_resolved_expression_type_sites(
                     owner,

@@ -326,6 +326,11 @@ pub(super) fn derive_byte_slice_provenance(
             .collect::<Vec<_>>();
         while let Some(expression) = pending.pop() {
             match &expression.kind {
+                ResolvedExprKind::FunctionReference { .. } => {}
+                ResolvedExprKind::Invoke { callable, args } => {
+                    pending.push(callable);
+                    pending.extend(args);
+                }
                 ResolvedExprKind::Call { args, .. } => pending.extend(args),
                 ResolvedExprKind::ByteRange {
                     source, start, end, ..

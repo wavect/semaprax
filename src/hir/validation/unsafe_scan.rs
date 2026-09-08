@@ -21,6 +21,11 @@ pub(super) fn contains_unsafe_boundary(expression: &ResolvedExpr) -> bool {
                     }
                 }
             }
+            ResolvedExprKind::FunctionReference { .. } => {}
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.extend(args.iter().rev());
+                pending.push(callable);
+            }
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
             ResolvedExprKind::NativeRustImportCall(call) => {
                 pending.extend(call.args.iter().rev());

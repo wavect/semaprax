@@ -57,6 +57,18 @@ pub(crate) fn type_facts_layout_upper(
 
 fn resolved_type_owned_capacity(ty: &crate::hir::ResolvedType) -> Option<usize> {
     match ty {
+        crate::hir::ResolvedType::Function { parameters, result } => parameters
+            .iter()
+            .try_fold(
+                resolved_type_owned_capacity(result)?
+                    .checked_add(std::mem::size_of::<crate::hir::ResolvedType>())?,
+                |bytes, ty| bytes.checked_add(resolved_type_owned_capacity(ty)?),
+            )?
+            .checked_add(
+                parameters
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<crate::hir::ResolvedType>())?,
+            ),
         crate::hir::ResolvedType::Unit
         | crate::hir::ResolvedType::I64
         | crate::hir::ResolvedType::I32

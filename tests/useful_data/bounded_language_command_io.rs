@@ -83,6 +83,13 @@ fn collect_operations(
         operations.push(call.operation);
     }
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            collect_operations(callable, operations);
+            for arg in args {
+                collect_operations(arg, operations);
+            }
+        }
         ResolvedExprKind::HostCommandCall(call) => {
             for argument in &call.args {
                 collect_operations(argument, operations);

@@ -158,6 +158,12 @@ impl Resolver<'_> {
                         span: expr.span,
                     }),
                     ExprKind::Var(name) => {
+                        if let Some(reference) =
+                            self.function_reference(function, expr, &bindings, &path)?
+                        {
+                            results.push(reference);
+                            continue;
+                        }
                         let binding = bindings.get(name).ok_or_else(|| {
                             self.error("SPX-H002", format!("unresolved value `{name}`"), expr.span)
                         })?;
@@ -177,6 +183,29 @@ impl Resolver<'_> {
                         type_arguments,
                         args,
                     } => {
+                        if let Some(callable) =
+                            self.invocation_target(function, name, &bindings, &path, expr.span)?
+                        {
+                            if !type_arguments.is_empty() {
+                                return Err(super::function_value::error(
+                                    "function value call cannot have type arguments",
+                                ));
+                            }
+                            frames.push(Frame::FinishInvoke {
+                                span: expr.span,
+                                path: path.clone(),
+                                callable,
+                                argument_count: args.len(),
+                            });
+                            frames.push(Frame::ChildNext {
+                                children: args,
+                                index: 0,
+                                bindings,
+                                path,
+                                segment: "arg",
+                            });
+                            continue;
+                        }
                         if let Some(import_id) =
                             self.declarations.native_rust_import_id(name).cloned()
                         {
@@ -814,6 +843,17 @@ impl Resolver<'_> {
                         ),
                         span,
                     });
+                }
+                Frame::FinishInvoke {
+                    span,
+                    path,
+                    callable,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    results.push(super::function_value::resolve::finish(
+                        function, &path, span, callable, args,
+                    )?);
                 }
                 Frame::FinishCall {
                     span,

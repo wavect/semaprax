@@ -953,6 +953,8 @@ pub(super) fn check_function_bodies<'p>(
     types: &TypeTable<'p>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    let function_value_targets =
+        crate::source_verify::function_value_inventory::function_value_targets(program, functions);
     for template in &program.functions {
         let type_parameters = template
             .type_parameters
@@ -976,6 +978,20 @@ pub(super) fn check_function_bodies<'p>(
                 &type_parameters,
                 diagnostics,
             );
+        }
+        if !template.type_parameters.is_empty()
+            && (template
+                .params
+                .iter()
+                .any(|parameter| matches!(parameter.ty, Type::Function { .. }))
+                || matches!(template.return_type, Type::Function { .. }))
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T287",
+                "generic function signatures cannot contain function values",
+                template.span,
+            ));
         }
         let generic_parameter_list_is_valid = (1..=2).contains(&template.type_parameters.len())
             && template
@@ -1214,12 +1230,16 @@ pub(super) fn check_function_bodies<'p>(
             }
             required_lifecycle_effects
                 .extend(types.lifecycle_effects(&function.return_type, import_keys));
-            function.body.visit_calls(&mut |callee, _| {
-                if let Some(target) = functions.get(callee) {
+            for callee in crate::source_verify::function_value_inventory::calls(
+                function,
+                functions,
+                &function_value_targets,
+            ) {
+                if let Some(target) = functions.get(callee.as_str()) {
                     required_lifecycle_effects
                         .extend(types.lifecycle_effects(&target.return_type, import_keys));
                 }
-            });
+            }
             for effect in required_lifecycle_effects {
                 if !declared.contains(effect.as_str()) {
                     diagnostics.push(
@@ -1251,8 +1271,13 @@ pub(super) fn check_function_bodies<'p>(
                     ));
                 }
             }
-            function.body.visit_calls(&mut |callee, span| {
-                if let Some(op) = crate::host_io_ops::by_name(callee) {
+            for callee in crate::source_verify::function_value_inventory::calls(
+                function,
+                functions,
+                &function_value_targets,
+            ) {
+                let span = function.body.span;
+                if let Some(op) = crate::host_io_ops::by_name(&callee) {
                     if !declared.contains(op.effect()) {
                         diagnostics.push(error(
                             program,
@@ -1265,9 +1290,9 @@ pub(super) fn check_function_bodies<'p>(
                             span,
                         ));
                     }
-                    return;
+                    continue;
                 }
-                if let Some(op) = crate::command_io_ops::by_name(callee) {
+                if let Some(op) = crate::command_io_ops::by_name(&callee) {
                     for effect in crate::command_io_ops::required_effects(op) {
                         if !declared.contains(effect) {
                             diagnostics.push(error(
@@ -1281,9 +1306,9 @@ pub(super) fn check_function_bodies<'p>(
                             ));
                         }
                     }
-                    return;
+                    continue;
                 }
-                if let Some(target) = functions.get(callee) {
+                if let Some(target) = functions.get(callee.as_str()) {
                     for effect in &target.effects {
                         if !declared.contains(effect.as_str()) {
                             diagnostics.push(error(
@@ -1298,7 +1323,7 @@ pub(super) fn check_function_bodies<'p>(
                         }
                     }
                 }
-            });
+            }
             if !template.type_parameters.is_empty() {
                 let added = diagnostics
                     .drain(specialized_diagnostic_start..)
@@ -1323,20 +1348,27 @@ mod generic_inference_tests {
     }
 
     fn mapping_diagnostics(program: &Program) -> Vec<Diagnostic> {
+        let functions = program
+            .functions
+            .iter()
+            .map(|function| (function.name.as_str(), function))
+            .collect::<HashMap<_, _>>();
+        let function_value_targets =
+            crate::source_verify::function_value_inventory::function_value_targets(
+                program, &functions,
+            );
         let call_graph = program
             .functions
             .iter()
             .map(|function| {
-                let mut callees = Vec::new();
-                for expression in function
-                    .requires
-                    .iter()
-                    .chain(std::iter::once(&function.body))
-                    .chain(&function.ensures)
-                {
-                    expression.visit_calls(&mut |callee, _| callees.push(callee.to_owned()));
-                }
-                (function.name.clone(), callees)
+                (
+                    function.name.clone(),
+                    crate::source_verify::function_value_inventory::calls(
+                        function,
+                        &functions,
+                        &function_value_targets,
+                    ),
+                )
             })
             .collect();
         let generic_functions = program

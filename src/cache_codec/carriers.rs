@@ -16,7 +16,7 @@ mod ast {
         0 => I64, 1 => I32, 2 => Char, 3 => U8, 4 => Usize,
         5 => ArrayU8(length), 6 => F32, 7 => F64, 8 => Bool,
         9 => String, 10 => Bytes, 11 => Str, 12 => SliceU8,
-        13 => Named { name, arguments }
+        13 => Named { name, arguments }, 14 => Function { parameters, result }
     });
     codec_enum!(ParamMode { 0 => Value, 1 => Own, 2 => Borrow, 3 => Shared });
     codec_enum!(MatchMode { 0 => Value, 1 => Own, 2 => Borrow });

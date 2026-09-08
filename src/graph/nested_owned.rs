@@ -179,6 +179,12 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     function_templates: &[crate::hir::ResolvedFunctionTemplate],
     function_instances: &[crate::hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
+    if functions
+        .iter()
+        .any(crate::hir::function_value::function_uses_value)
+    {
+        return Ok("semaprax.graph.v36");
+    }
     let schema = select_schema(
         None,
         functions
@@ -208,6 +214,9 @@ pub(crate) fn graph_schema_from_parts_and_instances(
 }
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
+    if crate::hir::function_value::requires_function_values(program) {
+        return Ok("semaprax.graph.v36");
+    }
     if program.function_instances.is_empty()
         && !requires_generic_result_schema(program)
         && !super::generic_mapping::requires_v35(&program.function_templates)
@@ -241,7 +250,8 @@ pub(super) fn generic_payload_schema(
         program,
         !program.function_instances.is_empty()
             || requires_generic_result_schema(program)
-            || super::generic_mapping::requires_v35(&program.function_templates),
+            || super::generic_mapping::requires_v35(&program.function_templates)
+            || crate::hir::function_value::requires_function_values(program),
     )
 }
 
@@ -268,6 +278,12 @@ fn program_schema(
         )?,
         generic_composition,
     )?;
+    if crate::hir::function_value::requires_function_values(program) {
+        if !generic_composition {
+            return Err(composition_error("function values require Graph v36"));
+        }
+        return Ok("semaprax.graph.v36");
+    }
     if super::generic_mapping::requires_v35(&program.function_templates) {
         if !generic_composition {
             return Err(composition_error(
@@ -304,6 +320,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v33"
             | "semaprax.graph.v34"
             | "semaprax.graph.v35"
+            | "semaprax.graph.v36"
     )
 }
 
@@ -319,6 +336,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v33"
             | "semaprax.graph.v34"
             | "semaprax.graph.v35"
+            | "semaprax.graph.v36"
     )
 }
 
@@ -332,6 +350,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v33"
             | "semaprax.graph.v34"
             | "semaprax.graph.v35"
+            | "semaprax.graph.v36"
     )
 }
 

@@ -102,7 +102,7 @@ pub(super) fn ast_type_owned_capacity(ty: &Type) -> usize {
         | Type::F32
         | Type::F64
         | Type::Bool => 0,
-        Type::String | Type::Bytes | Type::Str | Type::SliceU8 => 0,
+        Type::String | Type::Bytes | Type::Str | Type::SliceU8 | Type::Function { .. } => 0,
         Type::Named { name, arguments } => name
             .capacity()
             .saturating_add(arguments.capacity() * std::mem::size_of::<Type>())

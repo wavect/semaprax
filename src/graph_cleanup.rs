@@ -479,6 +479,7 @@ fn result_source_json(source: &CleanupResultSource) -> String {
 
 fn type_json(ty: &ResolvedType) -> String {
     match ty {
+        ResolvedType::Function{parameters,result}=>format!("{{\"kind\":\"function\",\"parameters\":[{}],\"result\":{}}}",parameters.iter().map(type_json).collect::<Vec<_>>().join(","),type_json(result)),
         ResolvedType::Unit => "{\"kind\":\"primitive\",\"name\":\"unit\"}".to_owned(),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),
         ResolvedType::I32 => "{\"kind\":\"primitive\",\"name\":\"i32\"}".to_owned(),

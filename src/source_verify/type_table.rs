@@ -211,6 +211,7 @@ impl<'a> TypeTable<'a> {
         enum Frame<'a> {
             Enter(&'a Type),
             Finish(&'a str, usize),
+            FinishFunction(usize),
         }
         let mut frames = vec![Frame::Enter(template)];
         let mut resolved = Vec::new();
@@ -230,6 +231,11 @@ impl<'a> TypeTable<'a> {
                     Type::Bytes => resolved.push(Type::Bytes),
                     Type::Str => resolved.push(Type::Str),
                     Type::SliceU8 => resolved.push(Type::SliceU8),
+                    Type::Function { parameters, result } => {
+                        frames.push(Frame::FinishFunction(parameters.len()));
+                        frames.push(Frame::Enter(result));
+                        frames.extend(parameters.iter().rev().map(Frame::Enter));
+                    }
                     Type::Named {
                         name,
                         arguments: nested,
@@ -254,6 +260,14 @@ impl<'a> TypeTable<'a> {
                     resolved.push(Type::Named {
                         name: name.to_owned(),
                         arguments: nested,
+                    });
+                }
+                Frame::FinishFunction(count) => {
+                    let split = resolved.len().checked_sub(count + 1)?;
+                    let mut parts = resolved.drain(split..).collect::<Vec<_>>();
+                    resolved.push(Type::Function {
+                        parameters: parts.drain(..count).collect(),
+                        result: Box::new(parts.pop()?),
                     });
                 }
             }
@@ -298,7 +312,8 @@ impl<'a> TypeTable<'a> {
             | Type::Bool
             | Type::Bytes
             | Type::Str
-            | Type::SliceU8 => false,
+            | Type::SliceU8
+            | Type::Function { .. } => false,
             Type::Named { name, arguments } => {
                 if !visiting.insert(name.clone()) {
                     return false;
@@ -450,7 +465,8 @@ impl<'a> TypeTable<'a> {
                             frames.push(Frame::Enter(field_ty));
                         }
                     }
-                    Type::I64
+                    Type::Function { .. }
+                    | Type::I64
                     | Type::I32
                     | Type::Char
                     | Type::U8
@@ -506,7 +522,8 @@ impl<'a> TypeTable<'a> {
                         pending.push(field_ty);
                     }
                 }
-                Type::I64
+                Type::Function { .. }
+                | Type::I64
                 | Type::I32
                 | Type::Char
                 | Type::U8
@@ -846,7 +863,10 @@ pub(super) fn classify_nested_owned_byte_record(
                 | Type::Bool,
                 _,
             ) => unreachable!("admitted scalar handled above"),
-            Frame::Type(Type::ArrayU8(_) | Type::String | Type::Str | Type::SliceU8, _) => {
+            Frame::Type(
+                Type::ArrayU8(_) | Type::String | Type::Str | Type::SliceU8 | Type::Function { .. },
+                _,
+            ) => {
                 return NestedOwnedRecordAdmission::OutsideProfile;
             }
             Frame::Fields(declaration, fields, arguments, index, depth) => {

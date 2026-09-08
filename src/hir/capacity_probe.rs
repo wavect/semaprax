@@ -94,6 +94,15 @@ pub(super) fn place_projection_owned_capacity(projection: &PlaceProjection) -> u
 #[cfg(test)]
 pub(super) fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize {
     match ty {
+        ResolvedType::Function { parameters, result } => {
+            parameters.capacity() * std::mem::size_of::<ResolvedType>()
+                + std::mem::size_of::<ResolvedType>()
+                + parameters
+                    .iter()
+                    .map(resolved_type_owned_capacity)
+                    .sum::<usize>()
+                + resolved_type_owned_capacity(result)
+        }
         ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32
@@ -144,6 +153,12 @@ pub(super) fn resolved_expr_owned_capacity(expression: &ResolvedExpr) -> usize {
         std::mem::size_of::<ResolvedExpr>().saturating_add(resolved_expr_owned_capacity(value))
     };
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { target } => bytes += target.as_str().len(),
+        ResolvedExprKind::Invoke { callable, args } => {
+            bytes += child(callable)
+                + args.capacity() * std::mem::size_of::<ResolvedExpr>()
+                + args.iter().map(resolved_expr_owned_capacity).sum::<usize>()
+        }
         ResolvedExprKind::Place(place) => bytes += resolved_place_owned_capacity(place),
         ResolvedExprKind::BorrowPlace { operation, place } => {
             bytes += operation.as_str().len() + resolved_place_owned_capacity(place);

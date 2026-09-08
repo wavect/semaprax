@@ -860,6 +860,11 @@ impl<'a> Node<'a> {
                 F::Wildcard => None,
             },
             Self::Expression(e) => match &e.kind {
+                E::FunctionReference { .. } => None,
+                E::Invoke { callable, args } => std::iter::once(callable.as_ref())
+                    .chain(args.iter())
+                    .nth(index)
+                    .map(Self::Expression),
                 E::Call { args, .. } => args.get(index).map(Self::Expression),
                 E::NativeRustImportCall(c) => c.args.get(index).map(Self::Expression),
                 E::HostCommandCall(c) => c.args.get(index).map(Self::Expression),

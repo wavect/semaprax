@@ -5,6 +5,9 @@ use crate::hir::{ResolvedExpr, ResolvedExprKind};
 pub(super) fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
     match &expression.kind {
         ResolvedExprKind::Call { args, .. } => args.iter().collect(),
+        ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
+            .chain(args.iter())
+            .collect(),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
         ResolvedExprKind::Unary { value, .. }
@@ -58,7 +61,8 @@ pub(super) fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr>
             collected.extend(fields.iter().map(|field| &field.value));
             collected
         }
-        ResolvedExprKind::Int(_)
+        ResolvedExprKind::FunctionReference { .. }
+        | ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
         | ResolvedExprKind::Uint8(_)

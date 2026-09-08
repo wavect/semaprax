@@ -23,6 +23,13 @@ pub struct ResolvedExpr {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResolvedExprKind {
+    FunctionReference {
+        target: DeclarationId,
+    },
+    Invoke {
+        callable: Box<ResolvedExpr>,
+        args: Vec<ResolvedExpr>,
+    },
     Int(i64),
     /// An `i32` literal held as its exact value.
     Int32(i32),

@@ -441,6 +441,9 @@ fn recipe_type(
     parameter_owner: Option<&DeclarationId>,
 ) -> Result<String, Diagnostic> {
     match ty {
+        ResolvedType::Function { .. } => Err(package_error(
+            "function values are outside semantic recipe v8",
+        )),
         ResolvedType::I64 => Ok("i64".to_owned()),
         ResolvedType::I32 => Ok("i32".to_owned()),
         ResolvedType::Char => Ok("char".to_owned()),
@@ -494,6 +497,9 @@ fn render_expr(
     local_index: &mut usize,
 ) -> Result<String, Diagnostic> {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => Err(
+            package_error("function values are outside semantic recipe v8"),
+        ),
         ResolvedExprKind::Int(value) => Ok(value.to_string()),
         ResolvedExprKind::Int32(value) => Ok(format!("{value}i32")),
         ResolvedExprKind::Char(value) => render_char(*value),

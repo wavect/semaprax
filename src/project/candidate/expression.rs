@@ -1092,6 +1092,8 @@ fn hir_kind(kind: &ResolvedExprKind) -> &'static str {
         ResolvedExprKind::Bool(_) => "bool",
         ResolvedExprKind::String(_) => "string",
         ResolvedExprKind::Place(_) => "place",
+        ResolvedExprKind::FunctionReference { .. } => "function_reference",
+        ResolvedExprKind::Invoke { .. } => "invoke",
         ResolvedExprKind::Call { .. } => "call",
         ResolvedExprKind::BorrowPlace { .. } => "borrow_place",
         ResolvedExprKind::ByteRange { .. } => "byte_range",

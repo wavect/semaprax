@@ -1,5 +1,8 @@
 //! Independent structural validation of attached cleanup plans without invoking the builder.
 
+mod expression_children;
+use expression_children::replay_expression_child;
+
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 #[cfg(test)]
@@ -598,7 +601,8 @@ fn expression_path_counts_with_while(
 ) -> Result<HirPathCounts, Diagnostic> {
     fn child(expression: &ResolvedExpr, mut index: usize) -> Option<&ResolvedExpr> {
         match &expression.kind {
-            ResolvedExprKind::Int(_)
+            ResolvedExprKind::FunctionReference { .. }
+            | ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
             | ResolvedExprKind::Uint8(_)
@@ -621,6 +625,7 @@ fn expression_path_counts_with_while(
             ResolvedExprKind::Binary { left, right, .. } => {
                 [left.as_ref(), right.as_ref()].get(index).copied()
             }
+            ResolvedExprKind::Invoke { args, .. } => args.get(index),
             ResolvedExprKind::Call { args, .. } => args.get(index),
             ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
             ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
@@ -724,7 +729,8 @@ fn expression_path_counts_with_while(
                         .fold(HirPathCounts::ONE, sequence_path_counts)
                 };
                 let counts = match &expression.kind {
-                    ResolvedExprKind::Int(_)
+                    ResolvedExprKind::FunctionReference { .. }
+                    | ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
@@ -784,7 +790,9 @@ fn expression_path_counts_with_while(
                             }
                         }
                     }
-                    ResolvedExprKind::Call { .. } | ResolvedExprKind::NativeRustImportCall(_) => {
+                    ResolvedExprKind::Invoke { .. }
+                    | ResolvedExprKind::Call { .. }
+                    | ResolvedExprKind::NativeRustImportCall(_) => {
                         let accumulator = sequence(children);
                         HirPathCounts {
                             failed: accumulator.failed.saturating_add(accumulator.normal),
@@ -1014,7 +1022,8 @@ fn expression_skeleton_work_upper(
             .expect("skeleton census frame retained");
         if *next == 0 {
             let local = match &expression.kind {
-                ResolvedExprKind::Int(_)
+                ResolvedExprKind::FunctionReference { .. }
+                | ResolvedExprKind::Int(_)
                 | ResolvedExprKind::Int32(_)
                 | ResolvedExprKind::Char(_)
                 | ResolvedExprKind::Uint8(_)
@@ -1031,7 +1040,9 @@ fn expression_skeleton_work_upper(
                 }
                 ResolvedExprKind::Unary { .. } => 8,
                 ResolvedExprKind::Binary { .. } => 12,
-                ResolvedExprKind::Call { args, .. } => args.len().saturating_mul(6) + 14,
+                ResolvedExprKind::Invoke { args, .. } | ResolvedExprKind::Call { args, .. } => {
+                    args.len().saturating_mul(6) + 14
+                }
                 ResolvedExprKind::NativeRustImportCall(call) => {
                     call.args.len().saturating_mul(4) + 8
                 }
@@ -1753,6 +1764,7 @@ fn collect_expression_statuses(
             continue;
         }
         match &expression.kind {
+            ResolvedExprKind::FunctionReference { .. } => {}
             ResolvedExprKind::ByteRange { operation, .. } => {
                 if operation.as_str() != crate::byte_ops::RANGE_ID {
                     return Err(replay_error(
@@ -1767,6 +1779,17 @@ fn collect_expression_statuses(
                     },
                     producer: StatusProducer::PropagatedCall {
                         callee: operation.clone(),
+                    },
+                });
+            }
+            ResolvedExprKind::Invoke { .. } => {
+                statuses.push(StatusSource {
+                    id: StatusSourceId {
+                        expression: expression.id.clone(),
+                        lane: StatusLane::OperationFailure,
+                    },
+                    producer: StatusProducer::PropagatedCall {
+                        callee: crate::hir::function_value::INVOKE_ID.clone(),
                     },
                 });
             }
@@ -3424,7 +3447,8 @@ fn expression_skeleton(
             Frame::Eval(expression) => {
                 debug_assert!(produced.is_none());
                 match &expression.kind {
-                    ResolvedExprKind::Int(_)
+                    ResolvedExprKind::FunctionReference { .. }
+                    | ResolvedExprKind::Int(_)
                     | ResolvedExprKind::Int32(_)
                     | ResolvedExprKind::Char(_)
                     | ResolvedExprKind::Uint8(_)
@@ -3519,6 +3543,28 @@ fn expression_skeleton(
                             }
                         );
                         push_frame!(frames, Frame::Eval(left));
+                    }
+                    ResolvedExprKind::Invoke { args, .. } => {
+                        let params = crate::hir::function_value::invocation_params(expression)?;
+                        work.charge(1, "indirect call skeleton root state")?;
+                        let states = vec![(empty_expr_path(), Vec::new())];
+                        if let Some(argument) = args.first() {
+                            push_frame!(
+                                frames,
+                                Frame::CallArgument {
+                                    expression,
+                                    params,
+                                    args,
+                                    index: 0,
+                                    states
+                                }
+                            );
+                            push_frame!(frames, Frame::Eval(argument));
+                        } else {
+                            produced = Some(finish_call_states(
+                                program, function, expression, states, work,
+                            )?);
+                        }
                     }
                     ResolvedExprKind::Call {
                         callee,
@@ -4941,7 +4987,8 @@ fn validate_match_skeleton_shape(
         | ResolvedType::Bytes
         | ResolvedType::Str
         | ResolvedType::SliceU8
-        | ResolvedType::TypeParameter { .. } => false,
+        | ResolvedType::TypeParameter { .. }
+        | ResolvedType::Function { .. } => false,
     };
     let is_variant = match &scrutinee.ty {
         ResolvedType::Nominal { declaration, .. } => program
@@ -7424,93 +7471,6 @@ fn validate_staged_target(
     Ok(())
 }
 
-fn replay_expression_child(expression: &ResolvedExpr, index: usize) -> Option<&ResolvedExpr> {
-    match &expression.kind {
-        ResolvedExprKind::Call { args, .. } => args.get(index),
-        ResolvedExprKind::NativeRustImportCall(call) => call.args.get(index),
-        ResolvedExprKind::HostCommandCall(call) => call.args.get(index),
-        ResolvedExprKind::ByteRange {
-            source, start, end, ..
-        } => [source.as_ref(), start.as_ref(), end.as_ref()]
-            .get(index)
-            .copied(),
-        ResolvedExprKind::Unary { value, .. }
-        | ResolvedExprKind::Try { operand: value, .. }
-        | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. }
-        | ResolvedExprKind::Upcast { source: value } => (index == 0).then_some(value),
-        ResolvedExprKind::Binary { left, right, .. } => {
-            [left.as_ref(), right.as_ref()].get(index).copied()
-        }
-        ResolvedExprKind::Block { statements, tail } => {
-            let mut offset = 0;
-            for statement in statements {
-                let count = statement.child_count();
-                if index < offset + count {
-                    return statement.child(index - offset);
-                }
-                offset += count;
-            }
-            (index == offset).then_some(tail)
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => [
-            condition.as_ref(),
-            then_branch.as_ref(),
-            else_branch.as_ref(),
-        ]
-        .get(index)
-        .copied(),
-        ResolvedExprKind::ConstructRecord { fields, .. }
-        | ResolvedExprKind::ConstructVariant { fields, .. } => {
-            fields.get(index).map(|field| &field.value)
-        }
-        ResolvedExprKind::Match {
-            scrutinee, arms, ..
-        } => {
-            if index == 0 {
-                Some(scrutinee.as_ref())
-            } else {
-                // Refutable Match v1: each arm contributes its optional
-                // guard first, then its value.
-                let mut cursor = index - 1;
-                for arm in arms {
-                    if let Some(guard) = &arm.guard {
-                        if cursor == 0 {
-                            return Some(guard.as_ref());
-                        }
-                        cursor -= 1;
-                    }
-                    if cursor == 0 {
-                        return Some(&arm.value);
-                    }
-                    cursor -= 1;
-                }
-                None
-            }
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => (index == 0)
-            .then_some(base.as_ref())
-            .or_else(|| fields.get(index - 1).map(|field| &field.value)),
-        ResolvedExprKind::Int(_)
-        | ResolvedExprKind::Int32(_)
-        | ResolvedExprKind::Char(_)
-        | ResolvedExprKind::Uint8(_)
-        | ResolvedExprKind::Usize(_)
-        | ResolvedExprKind::ArrayU8(_)
-        | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::Float32(_)
-        | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_)
-        | ResolvedExprKind::BorrowPlace { .. } => None,
-    }
-}
-
 fn expression_has_kind(
     expression: &ResolvedExpr,
     predicate: impl Fn(&ResolvedExprKind) -> bool,
@@ -7953,6 +7913,12 @@ fn collect_expression_facts(
         let (current, next_child) = stack[len].take().expect("expression-fact frame retained");
         if next_child == 0 {
             let fact = match &current.kind {
+                ResolvedExprKind::Invoke { callable, args } => Some(CallFact {
+                    callee: crate::hir::function_value::INVOKE_ID.clone(),
+                    instance: None,
+                    arguments: args.iter().map(|a| a.id.clone()).collect(),
+                    type_arguments: vec![callable.ty.clone()],
+                }),
                 ResolvedExprKind::Call {
                     callee,
                     instance,

@@ -30,6 +30,8 @@ mod exact_program_context;
 mod exact_program_context_v2;
 #[path = "workspace/exact_program_context_v2_refresh.rs"]
 mod exact_program_context_v2_refresh;
+#[path = "workspace/function_values.rs"]
+mod function_values;
 #[path = "workspace/graph_phase_a_surface.rs"]
 mod graph_phase_a_surface;
 #[path = "workspace/interface_artifact_facts.rs"]

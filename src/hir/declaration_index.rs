@@ -394,6 +394,19 @@ impl DeclarationIndex {
                         continue;
                     }
                     let scalar = match &ty {
+                        ResolvedType::Function { .. } => {
+                            if !super::function_value::is_signature(&ty) {
+                                return None;
+                            }
+                            results.push(TypeFacts {
+                                copy: true,
+                                contains_resource: false,
+                                sized: true,
+                                needs_drop: false,
+                                layout_key: identity.clone(),
+                            });
+                            continue;
+                        }
                         ResolvedType::Unit => {
                             Some((true, false, false, "native-rust-import-result:unit"))
                         }
@@ -1411,6 +1424,9 @@ impl DeclarationIndex {
         while let Some(frame) = frames.pop() {
             match frame {
                 Frame::Enter(ty) => match ty {
+                    ty @ Type::Function { .. } => {
+                        resolved.push(super::function_value::resolve::source_type(ty)?)
+                    }
                     Type::I64 => resolved.push(ResolvedType::I64),
                     Type::I32 => resolved.push(ResolvedType::I32),
                     Type::Char => resolved.push(ResolvedType::Char),

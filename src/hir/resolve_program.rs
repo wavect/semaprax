@@ -962,6 +962,11 @@ impl Resolver<'_> {
         let mut result = None;
         while let Some(frame) = frames.pop() {
             match frame {
+                Frame::Enter(ty @ Type::Function { .. }) => {
+                    result = Some(super::function_value::resolve::source_type(ty).ok_or_else(
+                        || super::function_value::error("invalid callable signature"),
+                    )?)
+                }
                 Frame::Enter(Type::I64) => result = Some(ResolvedType::I64),
                 Frame::Enter(Type::I32) => result = Some(ResolvedType::I32),
                 Frame::Enter(Type::Char) => result = Some(ResolvedType::Char),

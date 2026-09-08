@@ -19,7 +19,7 @@ mod iterative_tests;
 mod literals;
 
 use capacity::{legacy_canonical_temporary_bytes, legacy_expr_temporary_bytes};
-pub(crate) use literals::{canonical_f32_bits, canonical_f64_bits};
+pub(crate) use literals::{canonical_f32_bits, canonical_f64_bits, write_escaped, write_joined};
 /// Canonical `char` literal text for one Unicode scalar value. Printable
 /// ASCII (except quote and backslash) and the named escapes project directly;
 /// every other scalar projects as lowercase `\u{...}` so the round trip is
@@ -106,10 +106,11 @@ enum ContainsRecordFrame<'a> {
     Enter(&'a Expr),
     Children(&'a Expr, usize),
 }
-
 enum TypeFormatFrame<'a> {
     Type(&'a crate::ast::Type),
     Arguments(&'a [crate::ast::Type], usize),
+    FunctionParameters(&'a [crate::ast::Type], usize),
+    FunctionResult(&'a crate::ast::Type),
 }
 
 #[derive(Clone, Copy)]
@@ -1190,6 +1191,11 @@ pub(crate) fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Typ
             Frame::Type(crate::ast::Type::Bytes) => output.write_str("Bytes").unwrap(),
             Frame::Type(crate::ast::Type::Str) => output.write_str("str").unwrap(),
             Frame::Type(crate::ast::Type::SliceU8) => output.write_str("Slice<u8>").unwrap(),
+            Frame::Type(crate::ast::Type::Function { parameters, result }) => {
+                output.write_str("fn(").unwrap();
+                frames.push(Frame::FunctionResult(result));
+                frames.push(Frame::FunctionParameters(parameters, 0));
+            }
             Frame::Type(crate::ast::Type::Named { name, arguments }) => {
                 output.write_str(name).unwrap();
                 if !arguments.is_empty() {
@@ -1207,6 +1213,19 @@ pub(crate) fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Typ
                 } else {
                     output.write_char('>').unwrap();
                 }
+            }
+            Frame::FunctionParameters(parameters, index) => {
+                if let Some(parameter) = parameters.get(index) {
+                    if index != 0 {
+                        output.write_str(", ").unwrap();
+                    }
+                    frames.push(Frame::FunctionParameters(parameters, index + 1));
+                    frames.push(Frame::Type(parameter));
+                }
+            }
+            Frame::FunctionResult(result) => {
+                output.write_str(") -> ").unwrap();
+                frames.push(Frame::Type(result));
             }
         }
     }
@@ -1584,24 +1603,5 @@ fn write_block_statement(
             write_indent(output, depth);
             writeln!(output, "}}").unwrap();
         }
-    }
-}
-
-pub(crate) fn write_escaped(output: &mut impl std::fmt::Write, value: &str) {
-    for value in value.chars() {
-        match value {
-            '\\' => output.write_str("\\\\").unwrap(),
-            '"' => output.write_str("\\\"").unwrap(),
-            value => output.write_char(value).unwrap(),
-        }
-    }
-}
-
-pub(crate) fn write_joined(output: &mut impl std::fmt::Write, values: &[String], separator: &str) {
-    for (index, value) in values.iter().enumerate() {
-        if index != 0 {
-            output.write_str(separator).unwrap();
-        }
-        output.write_str(value).unwrap();
     }
 }

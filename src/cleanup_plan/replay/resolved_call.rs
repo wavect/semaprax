@@ -19,6 +19,31 @@ pub(super) fn resolved_call_params(
     type_arguments: &[ResolvedType],
 ) -> Result<Vec<ResolvedParam>, Diagnostic> {
     if instance.is_none() {
+        if callee == &*crate::hir::function_value::INVOKE_ID {
+            let [signature @ ResolvedType::Function { parameters, .. }] = type_arguments else {
+                return Err(replay_error(
+                    function,
+                    "indirect call lacks exact callable signature",
+                ));
+            };
+            if !crate::hir::function_value::is_signature(signature) {
+                return Err(replay_error(
+                    function,
+                    "indirect call signature is not admitted",
+                ));
+            }
+            return Ok(parameters
+                .iter()
+                .enumerate()
+                .map(|(index, ty)| ResolvedParam {
+                    id: crate::hir::ValueId::intrinsic_parameter(callee.as_str(), index),
+                    name: format!("arg{index}"),
+                    ty: ty.clone(),
+                    ownership: crate::hir::OwnershipMode::Value,
+                    span: crate::ast::Span::default(),
+                })
+                .collect());
+        }
         if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
             return Ok(crate::string_ops::resolved_params(op));
         }

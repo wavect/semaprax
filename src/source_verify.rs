@@ -31,6 +31,7 @@ mod capacity;
 mod declaration;
 mod declared_type;
 mod diagnostics;
+pub(crate) mod function_value_inventory;
 mod generic_inference;
 mod hints;
 mod iterative;

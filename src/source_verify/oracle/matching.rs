@@ -438,6 +438,7 @@ pub(super) fn oracle_match(
         | Type::Bytes
         | Type::Str
         | Type::SliceU8
+        | Type::Function { .. }
         | Type::Named { .. } => None,
     });
     let variant_name = variant_instance.as_ref().map(|(name, _)| name.clone());

@@ -64,7 +64,7 @@ pub(super) fn reject_aggregate_equality(
 ) {
     if matches!(
         value.ty,
-        Type::Named { .. } | Type::ArrayU8(_) | Type::Bytes
+        Type::Function { .. } | Type::Named { .. } | Type::ArrayU8(_) | Type::Bytes
     ) {
         diagnostics.push(
             error(
@@ -91,6 +91,7 @@ pub(super) fn require_bool(
     kind: &str,
 ) {
     contract.visit_calls(&mut |callee, span| {
+        if variables.contains_key(callee) { return; }
         if let Some(target) = functions.get(callee) {
             if !target.effects.is_empty() {
                 diagnostics.push(

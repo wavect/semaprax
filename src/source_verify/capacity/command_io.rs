@@ -57,3 +57,13 @@ pub(super) fn flow(
         | ResolvedHostCommandOperation::NetCloseListener => None,
     }
 }
+
+pub(super) fn source_capacity_invariant(
+    function: &str,
+) -> crate::byte_data_capacity::CapacityError {
+    crate::byte_data_capacity::CapacityError {
+        diagnostic: crate::byte_data_capacity::CapacityDiagnostic::Invariant,
+        function: Some(function.to_owned()),
+        detail: "source byte-data capacity projection could not be reconstructed".to_owned(),
+    }
+}

@@ -10,6 +10,7 @@
     dead_code,
     reason = "sealed validation and test-only replay seams remain non-public"
 )]
+mod diagnostics;
 mod expected_projection;
 mod generic_type_import;
 mod operation_sidecar;
@@ -24,6 +25,7 @@ use crate::ast::{
 };
 use crate::diagnostic::Diagnostic;
 use crate::{format, graph, hir, prelude, workspace};
+use diagnostics::{graph_error, limit_error, project_function_error, use_error};
 #[cfg(test)]
 use expected_projection::dependency_depths;
 use expected_projection::{
@@ -2562,6 +2564,12 @@ fn resolved_function_imports(function: &hir::ResolvedFunction) -> BTreeSet<hir::
                     visit(argument, imports);
                 }
             }
+            hir::ResolvedExprKind::Invoke { callable, args } => {
+                visit(callable, imports);
+                for argument in args {
+                    visit(argument, imports);
+                }
+            }
             hir::ResolvedExprKind::Unary { value, .. }
             | hir::ResolvedExprKind::Try { operand: value, .. }
             | hir::ResolvedExprKind::TryOption { operand: value, .. }
@@ -2625,7 +2633,8 @@ fn resolved_function_imports(function: &hir::ResolvedFunction) -> BTreeSet<hir::
             | hir::ResolvedExprKind::ArrayU8(_)
             | hir::ResolvedExprKind::RepeatArrayU8 { .. }
             | hir::ResolvedExprKind::BorrowPlace { .. }
-            | hir::ResolvedExprKind::Place(_) => {}
+            | hir::ResolvedExprKind::Place(_)
+            | hir::ResolvedExprKind::FunctionReference { .. } => {}
         }
     }
 
@@ -4609,6 +4618,13 @@ impl<'a> CheckedValueNode<'a> {
                     .copied()
                     .map(Self::Expression),
                 E::Call { args, .. } => args.get(index).map(Self::Expression),
+                E::Invoke { callable, args } => {
+                    if index == 0 {
+                        Some(Self::Expression(callable))
+                    } else {
+                        args.get(index - 1).map(Self::Expression)
+                    }
+                }
                 E::NativeRustImportCall(call) => call.args.get(index).map(Self::Expression),
                 E::HostCommandCall(call) => call.args.get(index).map(Self::Expression),
                 E::Unary { value, .. }
@@ -4680,7 +4696,8 @@ impl<'a> CheckedValueNode<'a> {
                 | E::ArrayU8(_)
                 | E::RepeatArrayU8 { .. }
                 | E::BorrowPlace { .. }
-                | E::Place(_) => None,
+                | E::Place(_)
+                | E::FunctionReference { .. } => None,
             },
         }
     }
@@ -5439,7 +5456,8 @@ fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
         | Type::Str
         | Type::SliceU8
         | Type::ArrayU8(_)
-        | Type::Bytes => false,
+        | Type::Bytes
+        | Type::Function { .. } => false,
         Type::Named { name, arguments } => {
             names.contains(name.as_str())
                 || arguments
@@ -5554,7 +5572,7 @@ fn signature_type_is_admitted(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => false,
+        Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes | Type::Function { .. } => false,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -5677,7 +5695,7 @@ fn exposed_type_reference_is_directly_imported(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) => false,
+        Type::SliceU8 | Type::ArrayU8(_) | Type::Function { .. } => false,
         Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
@@ -5754,7 +5772,7 @@ fn type_reference_is_admitted(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) => false,
+        Type::SliceU8 | Type::ArrayU8(_) | Type::Function { .. } => false,
         Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {
@@ -6715,43 +6733,8 @@ fn top_level_declaration(
     hir::DeclarationId::new(crate::bounded_output::budgeted_clone(current.id.as_str()))
 }
 
-fn use_error(program: &Program, module_use: &ModuleUse, message: &str) -> Diagnostic {
-    Diagnostic::error("SPX-G172", message, module_use.span).at_path(&program.path)
-}
-
-fn graph_error(code: &'static str, message: impl Into<String>) -> Diagnostic {
-    Diagnostic::io(code, message)
-}
-
-fn project_function_error(
-    module: &WorkspaceResolvedModule,
-    message: impl Into<String>,
-    span: Option<Span>,
-) -> Diagnostic {
-    Diagnostic::error(
-        "SPX-G172",
-        message,
-        span.unwrap_or(Span {
-            start: 0,
-            end: 0,
-            line: 1,
-            column: 1,
-        }),
-    )
-    .at_path(&module.path)
-}
-
 const PROVIDER_MAIN_HELP: &str = "`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`";
 const PROJECT_SIGNATURE_HELP: &str = "Project v1 function boundaries admit only Copy scalar values; keep records, classes, variants, Option, and Result inside functions, or select a project profile that explicitly admits the required public carrier";
-
-fn limit_error(field: &'static str, maximum: usize) -> Diagnostic {
-    graph_error(
-        "SPX-G171",
-        crate::bounded_output::budgeted_format(format_args!(
-            "Workspace Semantic Graph `{field}` exceeds {maximum}"
-        )),
-    )
-}
 
 #[cfg(test)]
 #[path = "workspace_graph/tests.rs"]

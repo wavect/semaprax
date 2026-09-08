@@ -30,6 +30,40 @@ impl Resolver<'_> {
         bindings: &BTreeMap<String, Binding>,
         path: &str,
     ) -> Result<ResolvedExpr, Diagnostic> {
+        if let Some(reference) = self.function_reference(function, expr, bindings, path)? {
+            return Ok(reference);
+        }
+        if let ExprKind::Call {
+            name,
+            type_arguments,
+            args,
+        } = &expr.kind
+        {
+            if let Some(callable) =
+                self.invocation_target(function, name, bindings, path, expr.span)?
+            {
+                if !type_arguments.is_empty() {
+                    return Err(super::function_value::error(
+                        "function value call cannot have type arguments",
+                    ));
+                }
+                let args = args
+                    .iter()
+                    .enumerate()
+                    .map(|(i, arg)| {
+                        self.resolve_expr_recursive_reference(
+                            function,
+                            arg,
+                            bindings,
+                            &format!("{path}.arg.{i}"),
+                        )
+                    })
+                    .collect::<Result<_, _>>()?;
+                return super::function_value::resolve::finish(
+                    function, path, expr.span, callable, args,
+                );
+            }
+        }
         let id = ExpressionId::new(function, path);
         let (kind, ty, ownership) = match &expr.kind {
             ExprKind::Int(value) => (

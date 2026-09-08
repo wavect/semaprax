@@ -628,6 +628,14 @@ impl CleanupPlan {
 #[allow(dead_code)]
 fn resolved_type_owned_capacity(ty: &ResolvedType) -> Option<usize> {
     match ty {
+        ResolvedType::Function { parameters, result } => parameters
+            .iter()
+            .try_fold(
+                parameters.capacity() * std::mem::size_of::<ResolvedType>()
+                    + std::mem::size_of::<ResolvedType>(),
+                |n, t| n.checked_add(resolved_type_owned_capacity(t)?),
+            )?
+            .checked_add(resolved_type_owned_capacity(result)?),
         ResolvedType::Unit
         | ResolvedType::I64
         | ResolvedType::I32

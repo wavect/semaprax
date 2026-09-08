@@ -14,6 +14,31 @@ impl Parser {
         if let Some(diagnostic) = self.unit_type() {
             return Err(diagnostic);
         }
+        if self.at_keyword("fn") {
+            self.bump();
+            self.expect(&TokenKind::LParen, "`(` after `fn` in function type")?;
+            let mut parameters = Vec::new();
+            if !self.at(&TokenKind::RParen) {
+                loop {
+                    parameters.push(self.ty()?);
+                    if self.at(&TokenKind::RParen) {
+                        break;
+                    }
+                    if !self.take(&TokenKind::Comma) || self.at(&TokenKind::RParen) {
+                        return Err(self.error_here(
+                            "SPX-P106",
+                            "function parameters require comma-separated types without a trailing comma",
+                        ));
+                    }
+                }
+            }
+            self.expect(&TokenKind::RParen, "`)` after function type parameters")?;
+            self.expect(&TokenKind::Arrow, "`->` after function type parameters")?;
+            return Ok(Type::Function {
+                parameters,
+                result: Box::new(self.ty()?),
+            });
+        }
         if self.take(&TokenKind::LBracket) {
             let (element, _) = self.qualified_ident("fixed-array element type")?;
             if element != "u8" {
@@ -116,9 +141,6 @@ impl Parser {
         }
         let mut arguments = Vec::new();
         loop {
-            if !matches!(self.current().kind, TokenKind::Ident(_)) {
-                return Err(self.error_here("SPX-P106", "expected generic type argument"));
-            }
             arguments.push(self.ty()?);
             if self.at(&TokenKind::Gt) {
                 break;

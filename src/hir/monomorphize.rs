@@ -40,6 +40,11 @@ pub(crate) fn substitute_type(
     while let Some(frame) = frames.pop() {
         match frame {
             Frame::Enter(template) => match template {
+                ResolvedType::Function { .. } => {
+                    return Err(hir_error(
+                        "function values are outside generic substitution",
+                    ))
+                }
                 ResolvedType::Unit => resolved.push(ResolvedType::Unit),
                 ResolvedType::I64 => resolved.push(ResolvedType::I64),
                 ResolvedType::I32 => resolved.push(ResolvedType::I32),
@@ -119,6 +124,7 @@ pub(super) fn substitute_source_function_type(
     while let Some(frame) = frames.pop() {
         match frame {
             Frame::Enter(template) => match template {
+                Type::Function { .. } => return None,
                 Type::I64 => resolved.push(Type::I64),
                 Type::I32 => resolved.push(Type::I32),
                 Type::Char => resolved.push(Type::Char),
@@ -315,6 +321,11 @@ pub(super) fn materialize_template_expr(
     path: &str,
 ) -> Result<ResolvedExpr, Diagnostic> {
     let kind = match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
+            return Err(hir_error(
+                "function values are outside generic substitution",
+            ))
+        }
         ResolvedExprKind::Int(value) => ResolvedExprKind::Int(*value),
         ResolvedExprKind::Int32(value) => ResolvedExprKind::Int32(*value),
         ResolvedExprKind::Char(value) => ResolvedExprKind::Char(*value),

@@ -167,6 +167,14 @@ jobs:
           cargo test --locked --offline -p semaprax --test workspace owned_box_bytes_workspace
           cargo test --locked --offline -p semaprax --test owned_data owned_bounded_box
 
+      - name: LANG-07 first-class function values
+        env:
+          SPX_REQUIRE_CLANG: "1"
+          SPX_REQUIRE_NODE: "1"
+        run: |
+          cargo test --locked --offline -p semaprax --lib function_values
+          cargo test --locked --offline -p semaprax --test language function_values
+
       - name: GEN-06 exact argument inference
         run: |
           cargo test --locked --offline -p semaprax --lib generic_inference

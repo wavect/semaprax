@@ -719,8 +719,10 @@ fn validate_wire_shape(value: &Value) -> Result<(), Vec<Diagnostic>> {
             || !node_value.contains_key("payload")
             || !(node_value.get("schema").and_then(Value::as_str) == Some(schema)
                 || (key == "semantic_program"
-                    && node_value.get("schema").and_then(Value::as_str)
-                        == Some(SemanticProgram::SCHEMA_V2)))
+                    && matches!(
+                        node_value.get("schema").and_then(Value::as_str),
+                        Some(SemanticProgram::SCHEMA_V2 | SemanticProgram::SCHEMA_V3)
+                    )))
         {
             return Err(invalid(
                 "canonical semantic workspace node value is invalid",

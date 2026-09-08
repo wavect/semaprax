@@ -12,14 +12,15 @@ use crate::command_io_ops::CommandOperationProfile;
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::graph;
 use crate::hir::{
-    self, FunctionExecutionId, IdentityOrigin, ResolvedExpr, ResolvedExprKind, ResolvedProgram,
-    ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
+    self, DeclarationId, FunctionExecutionId, IdentityOrigin, ResolvedExpr, ResolvedExprKind,
+    ResolvedProgram, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
 use crate::variant_layout::{VariantLayoutCache, VariantTarget};
 
 mod aggregate;
 mod command_io;
 mod data_exports;
+mod function_value;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod generic_function_component_v9;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
@@ -189,6 +190,10 @@ fn functions_use_strings<'a>(
         }
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.push(callable);
+                pending.extend(args.iter());
+            }
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::ByteRange {
@@ -253,7 +258,8 @@ fn functions_use_strings<'a>(
             | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
-            | ResolvedExprKind::BorrowPlace { .. } => {}
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::FunctionReference { .. } => {}
         }
     }
     false
@@ -295,6 +301,10 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
         }
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => pending.extend(args),
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.push(callable);
+                pending.extend(args);
+            }
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(&call.args),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(&call.args),
             ResolvedExprKind::ByteRange {
@@ -359,7 +369,8 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
-            | ResolvedExprKind::BorrowPlace { .. } => {}
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::FunctionReference { .. } => {}
         }
     }
     false
@@ -381,6 +392,10 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
         }
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.push(callable);
+                pending.extend(args.iter());
+            }
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::ByteRange {
@@ -445,7 +460,8 @@ fn program_uses_string_ops(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
-            | ResolvedExprKind::BorrowPlace { .. } => {}
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::FunctionReference { .. } => {}
         }
     }
     false
@@ -469,6 +485,10 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
         }
         match &expression.kind {
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.push(callable);
+                pending.extend(args.iter());
+            }
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::ByteRange {
@@ -528,7 +548,8 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
             | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
-            | ResolvedExprKind::BorrowPlace { .. } => {}
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::FunctionReference { .. } => {}
         }
     }
     false
@@ -569,6 +590,12 @@ fn collect_string_data(program: &ResolvedProgram) -> StringData {
         // Reuse the same traversal shape as `program_uses_strings`, pushing
         // children in reverse so pre-order stays deterministic.
         match &expression.kind {
+            ResolvedExprKind::Invoke { callable, args } => {
+                for arg in args.iter().rev() {
+                    pending.push(arg);
+                }
+                pending.push(callable);
+            }
             ResolvedExprKind::Call { args, .. } => {
                 for arg in args.iter().rev() {
                     pending.push(arg);
@@ -654,7 +681,8 @@ fn collect_string_data(program: &ResolvedProgram) -> StringData {
             | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
-            | ResolvedExprKind::BorrowPlace { .. } => {}
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::FunctionReference { .. } => {}
         }
     }
     data
@@ -682,6 +710,9 @@ struct LocalLayout<'a> {
     /// keyed by expression identity. The scrutinee evaluates once here and
     /// every arm test re-reads it.
     match_scratch: HashMap<String, u32>,
+    function_scratch: HashMap<String, u32>,
+    function_tables: HashMap<DeclarationId, u32>,
+    function_types: HashMap<String, u32>,
     /// Interned string literal offsets for the whole program, when strings
     /// are admitted at all.
     string_data: Option<&'a StringData>,
@@ -1401,6 +1432,50 @@ fn emit_resolved_module_internal(
         })
         .collect::<Vec<_>>();
 
+    let (function_targets, function_invocation_signatures) = function_value::table_plan(program);
+    let mut function_table_indexes = HashMap::new();
+    let mut function_type_indexes = HashMap::new();
+    for signature in &function_invocation_signatures {
+        let ResolvedType::Function { parameters, result } = signature else {
+            unreachable!()
+        };
+        let type_index = intern_type(
+            Signature {
+                params: parameters
+                    .iter()
+                    .map(wasm_type)
+                    .collect::<Result<Vec<_>, _>>()?,
+                results: vec![wasm_type(result)?],
+            },
+            &mut types,
+            &mut type_indexes,
+        );
+        function_type_indexes.insert(signature.identity_key(), type_index);
+    }
+    for (index, target) in function_targets.iter().enumerate() {
+        let signature = hir::function_value::signature(target).ok_or_else(|| {
+            Diagnostic::io("SPX-W101", "function table contains an ineligible target")
+        })?;
+        let ResolvedType::Function { parameters, result } = &signature else {
+            unreachable!()
+        };
+        let type_index = intern_type(
+            Signature {
+                params: parameters
+                    .iter()
+                    .map(wasm_type)
+                    .collect::<Result<Vec<_>, _>>()?,
+                results: vec![wasm_type(result)?],
+            },
+            &mut types,
+            &mut type_indexes,
+        );
+        function_table_indexes.insert(target.id.clone(), index as u32);
+        function_type_indexes
+            .entry(signature.identity_key())
+            .or_insert(type_index);
+    }
+
     let function_indexes: HashMap<_, _> = executable_functions
         .iter()
         .enumerate()
@@ -1486,6 +1561,16 @@ fn emit_resolved_module_internal(
         write_u32(&mut functions, type_index);
     }
     section(&mut module, 3, functions);
+
+    if !function_invocation_signatures.is_empty() {
+        let mut tables = crate::bounded_output::CappedVec::new();
+        write_u32(&mut tables, 1);
+        tables.push(0x70);
+        tables.push(0x01);
+        write_u32(&mut tables, function_targets.len() as u32);
+        write_u32(&mut tables, function_targets.len() as u32);
+        section(&mut module, 4, tables);
+    }
 
     if !owned_plans.is_empty() || uses_strings || !text_exports.is_empty() {
         let mut memories = crate::bounded_output::CappedVec::new();
@@ -1609,6 +1694,9 @@ fn emit_resolved_module_internal(
             u8_scratch: None,
             usize_scratch: None,
             match_scratch: HashMap::new(),
+            function_scratch: HashMap::new(),
+            function_tables: function_table_indexes.clone(),
+            function_types: function_type_indexes.clone(),
             string_data: Some(&string_data),
             string_ops_v2_base,
             string_numeric_text_base,
@@ -1731,6 +1819,24 @@ fn emit_resolved_module_internal(
             write_u32(&mut code, body.len() as u32);
             code.extend_from_slice(&body);
         }
+    }
+    if !function_invocation_signatures.is_empty() {
+        let mut elements = crate::bounded_output::CappedVec::new();
+        write_u32(&mut elements, 1);
+        elements.push(0x00);
+        elements.extend_bytes(&[0x41, 0x00, 0x0b]);
+        write_u32(&mut elements, function_targets.len() as u32);
+        for target in &function_targets {
+            write_u32(
+                &mut elements,
+                *function_indexes
+                    .get(&FunctionExecutionId::Monomorphic(target.id.clone()))
+                    .ok_or_else(|| {
+                        Diagnostic::io("SPX-W104", "function table target is not executable")
+                    })?,
+            );
+        }
+        section(&mut module, 9, elements);
     }
     section(&mut module, 10, code);
     // String literal bytes live in one deterministic data segment so host
@@ -3233,170 +3339,7 @@ fn reject_native_rust_imports(program: &Program) -> Result<(), Diagnostic> {
     }
 }
 
-fn collect_locals(
-    expr: &ResolvedExpr,
-    parameter_count: u32,
-    layout: &mut LocalLayout,
-) -> Result<(), Diagnostic> {
-    match &expr.kind {
-        ResolvedExprKind::Call { args, .. } => {
-            for arg in args {
-                collect_locals(arg, parameter_count, layout)?;
-            }
-        }
-        ResolvedExprKind::NativeRustImportCall(call) => {
-            for arg in &call.args {
-                collect_locals(arg, parameter_count, layout)?;
-            }
-        }
-        ResolvedExprKind::HostCommandCall(call) => {
-            for arg in &call.args {
-                collect_locals(arg, parameter_count, layout)?;
-            }
-        }
-        ResolvedExprKind::ByteRange {
-            source, start, end, ..
-        } => {
-            collect_locals(source, parameter_count, layout)?;
-            collect_locals(start, parameter_count, layout)?;
-            collect_locals(end, parameter_count, layout)?;
-        }
-        ResolvedExprKind::Unary { value, .. } => {
-            collect_locals(value, parameter_count, layout)?;
-        }
-        ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
-            collect_locals(operand, parameter_count, layout)?;
-        }
-        ResolvedExprKind::Binary { left, right, .. } => {
-            collect_locals(left, parameter_count, layout)?;
-            collect_locals(right, parameter_count, layout)?;
-        }
-        ResolvedExprKind::Block { statements, tail } => {
-            for statement in statements {
-                match statement {
-                    ResolvedStatement::Let { binding, value, .. } => {
-                        collect_locals(value, parameter_count, layout)?;
-                        let index = parameter_count + layout.declarations.len() as u32;
-                        layout.declarations.push(binding.ty.clone());
-                        if layout.lets.insert(binding.id.clone(), index).is_some() {
-                            return Err(Diagnostic::io(
-                                "SPX-W108",
-                                format!("duplicate WebAssembly local identity `{}`", binding.id),
-                            ));
-                        }
-                    }
-                    // An assignment target reuses its `let` local and an
-                    // unsafe boundary adds none; only their values contribute
-                    // to the local walk.
-                    ResolvedStatement::Assign { value, .. } => {
-                        collect_locals(value, parameter_count, layout)?;
-                    }
-                    ResolvedStatement::Unsafe { body, .. } => {
-                        collect_locals(body, parameter_count, layout)?;
-                    }
-                    ResolvedStatement::While {
-                        condition, body, ..
-                    } => {
-                        collect_locals(condition, parameter_count, layout)?;
-                        collect_locals(body, parameter_count, layout)?;
-                    }
-                }
-            }
-            collect_locals(tail, parameter_count, layout)?;
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            collect_locals(condition, parameter_count, layout)?;
-            collect_locals(then_branch, parameter_count, layout)?;
-            collect_locals(else_branch, parameter_count, layout)?;
-        }
-        ResolvedExprKind::ConstructRecord { fields, .. } => {
-            for field in fields {
-                collect_locals(&field.value, parameter_count, layout)?;
-            }
-        }
-        ResolvedExprKind::ConstructVariant { fields, .. } => {
-            for field in fields {
-                collect_locals(&field.value, parameter_count, layout)?;
-            }
-        }
-        ResolvedExprKind::Match {
-            scrutinee, arms, ..
-        } => {
-            collect_locals(scrutinee, parameter_count, layout)?;
-            if matches!(
-                scrutinee.ty,
-                ResolvedType::I64
-                    | ResolvedType::I32
-                    | ResolvedType::U8
-                    | ResolvedType::Char
-                    | ResolvedType::Bool
-            ) {
-                // Refutable Match v1: stage the scrutinee once in its own
-                // dedicated local so every arm test re-reads exactly one
-                // evaluation.
-                let index = parameter_count + layout.declarations.len() as u32;
-                layout.declarations.push(scrutinee.ty.clone());
-                if layout
-                    .match_scratch
-                    .insert(expr.id.as_str().to_owned(), index)
-                    .is_some()
-                {
-                    return Err(Diagnostic::io(
-                        "SPX-W108",
-                        format!(
-                            "duplicate WebAssembly local identity for match `{}`",
-                            expr.id
-                        ),
-                    ));
-                }
-                // Binding arms alias the staged scrutinee local: reading the
-                // binding reads exactly one evaluation of the scrutinee.
-                for arm in arms {
-                    if let crate::hir::ResolvedMatchPattern::Binding(binding) = &arm.pattern {
-                        layout.lets.insert(binding.id.clone(), index);
-                    }
-                }
-            }
-            for arm in arms {
-                if let Some(guard) = &arm.guard {
-                    collect_locals(guard.as_ref(), parameter_count, layout)?;
-                }
-                collect_locals(&arm.value, parameter_count, layout)?;
-            }
-        }
-        ResolvedExprKind::Project { base, .. } => {
-            collect_locals(base, parameter_count, layout)?;
-        }
-        ResolvedExprKind::Upcast { source } => {
-            collect_locals(source, parameter_count, layout)?;
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            collect_locals(base, parameter_count, layout)?;
-            for field in fields {
-                collect_locals(&field.value, parameter_count, layout)?;
-            }
-        }
-        ResolvedExprKind::Int(_)
-        | ResolvedExprKind::Int32(_)
-        | ResolvedExprKind::Char(_)
-        | ResolvedExprKind::Uint8(_)
-        | ResolvedExprKind::Usize(_)
-        | ResolvedExprKind::Float32(_)
-        | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::ArrayU8(_)
-        | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_)
-        | ResolvedExprKind::BorrowPlace { .. } => {}
-    }
-    Ok(())
-}
-
+use function_value::collect_locals;
 fn emit_expr(
     output: &mut impl ByteOutput,
     expr: &ResolvedExpr,
@@ -3487,6 +3430,60 @@ fn emit_expr(
             if matches!(expr.ty, ResolvedType::String) {
                 call_import(output, STRING_IMPORT_BASE_CLONE);
             }
+        }
+        ResolvedExprKind::FunctionReference { target } => {
+            output.push(0x41);
+            write_i32(
+                output,
+                i32::try_from(*layout.function_tables.get(target).ok_or_else(|| {
+                    Diagnostic::io(
+                        "SPX-W104",
+                        "function reference has no WebAssembly table slot",
+                    )
+                })?)
+                .map_err(|_| {
+                    Diagnostic::io("SPX-W104", "function table index exceeds signed i32")
+                })?,
+            );
+        }
+        ResolvedExprKind::Invoke { callable, args } => {
+            hir::function_value::validate_invocation(expr)?;
+            let scratch = *layout
+                .function_scratch
+                .get(expr.id.as_str())
+                .ok_or_else(|| {
+                    Diagnostic::io(
+                        "SPX-W108",
+                        "function invocation has no WebAssembly scratch local",
+                    )
+                })?;
+            emit_expr(
+                output,
+                callable,
+                value_indexes,
+                function_indexes,
+                layout,
+                result,
+            )?;
+            local_set(output, scratch);
+            for arg in args {
+                emit_expr(output, arg, value_indexes, function_indexes, layout, result)?;
+            }
+            local_get(output, scratch);
+            output.push(0x11);
+            write_u32(
+                output,
+                *layout
+                    .function_types
+                    .get(&callable.ty.identity_key())
+                    .ok_or_else(|| {
+                        Diagnostic::io(
+                            "SPX-W104",
+                            "function invocation has no WebAssembly signature type",
+                        )
+                    })?,
+            );
+            output.push(0x00);
         }
         ResolvedExprKind::Call {
             callee,
@@ -4585,6 +4582,10 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
                 pending.push(right);
             }
             ResolvedExprKind::Call { args, .. } => pending.extend(args.iter()),
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.push(callable);
+                pending.extend(args.iter());
+            }
             ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter()),
             ResolvedExprKind::ByteRange {
@@ -4644,7 +4645,8 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
             | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
-            | ResolvedExprKind::BorrowPlace { .. } => {}
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::FunctionReference { .. } => {}
         }
     }
     false
@@ -4682,6 +4684,12 @@ fn contains_checked_arithmetic(expression: &ResolvedExpr, target: &ResolvedType)
         ResolvedExprKind::Call { args, .. } => args
             .iter()
             .any(|argument| contains_checked_arithmetic(argument, target)),
+        ResolvedExprKind::Invoke { callable, args } => {
+            contains_checked_arithmetic(callable, target)
+                || args
+                    .iter()
+                    .any(|argument| contains_checked_arithmetic(argument, target))
+        }
         ResolvedExprKind::NativeRustImportCall(call) => call
             .args
             .iter()
@@ -4749,7 +4757,8 @@ fn contains_checked_arithmetic(expression: &ResolvedExpr, target: &ResolvedType)
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_)
-        | ResolvedExprKind::BorrowPlace { .. } => false,
+        | ResolvedExprKind::BorrowPlace { .. }
+        | ResolvedExprKind::FunctionReference { .. } => false,
     }
 }
 
@@ -4766,7 +4775,9 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::Usize => Ok(I64),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
-        ResolvedType::Bool | ResolvedType::Nominal { .. } => Ok(I32),
+        ResolvedType::Bool | ResolvedType::Nominal { .. } | ResolvedType::Function { .. } => {
+            Ok(I32)
+        }
         // Owned strings lower to an abstract host handle riding the i64 lane.
         ResolvedType::String | ResolvedType::Str | ResolvedType::SliceU8 | ResolvedType::Bytes => {
             Ok(I64)
@@ -4785,20 +4796,7 @@ fn wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
     }
 }
 
-fn intern_type(
-    signature: Signature,
-    types: &mut Vec<Signature>,
-    indexes: &mut HashMap<Signature, u32>,
-) -> u32 {
-    if let Some(index) = indexes.get(&signature) {
-        return *index;
-    }
-    let index = types.len() as u32;
-    types.push(signature.clone());
-    indexes.insert(signature, index);
-    index
-}
-
+use function_value::intern_type;
 fn function_import(output: &mut impl ByteOutput, module: &str, name: &str, type_index: u32) {
     write_name(output, module);
     write_name(output, name);

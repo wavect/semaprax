@@ -389,6 +389,11 @@ fn check_type(
     declared_types: &std::collections::BTreeSet<&str>,
 ) -> Result<(), Diagnostic> {
     match ty {
+        Type::Function { .. } => Err(signature_error(
+            &protocol.name,
+            &method.name,
+            "function values are outside Protocol Projection v1".to_owned(),
+        )),
         Type::I64 | Type::I32 | Type::Char | Type::U8 | Type::F32 | Type::F64 | Type::Bool => {
             Ok(())
         }

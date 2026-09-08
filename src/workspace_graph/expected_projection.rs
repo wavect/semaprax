@@ -657,7 +657,7 @@ fn default_expr_expanded_cost(
             "SPX-G173",
             "borrowed `Slice<u8>` has no synthesizable workspace default",
         )]),
-        Type::ArrayU8(_) | Type::Bytes => Err(vec![graph_error(
+        Type::ArrayU8(_) | Type::Bytes | Type::Function { .. } => Err(vec![graph_error(
             "SPX-G173",
             "internal byte-data types have no synthesizable workspace default",
         )]),
@@ -1055,7 +1055,7 @@ fn default_expr(
                 "borrowed `Slice<u8>` has no synthesizable workspace default",
             )]);
         }
-        Type::ArrayU8(_) | Type::Bytes => {
+        Type::ArrayU8(_) | Type::Bytes | Type::Function { .. } => {
             return Err(vec![graph_error(
                 "SPX-G173",
                 "internal byte-data types have no synthesizable workspace default",

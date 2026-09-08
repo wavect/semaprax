@@ -189,11 +189,14 @@ pub(super) fn check_native_rust_imports<'p>(
                         param.span,
                     ));
                 }
-                if matches!(param.ty, Type::ArrayU8(_) | Type::Bytes) {
+                if matches!(
+                    param.ty,
+                    Type::ArrayU8(_) | Type::Bytes | Type::Function { .. }
+                ) {
                     diagnostics.push(error(
                         program,
                         "SPX-T268",
-                        "fixed arrays and `Bytes` cannot cross an import boundary",
+                        "fixed arrays, `Bytes`, and function values cannot cross an import boundary",
                         param.span,
                     ));
                 }
@@ -380,6 +383,14 @@ pub(super) fn check_declared_fields<'p>(
                 .collect::<HashSet<_>>();
             let is_class = matches!(declaration.kind, TypeDeclarationKind::Class { .. });
             for field in fields {
+                if matches!(field.ty, Type::Function { .. }) {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T287",
+                        "function values cannot be stored in records, variants, or classes",
+                        field.span,
+                    ));
+                }
                 // Class Inheritance v1: owned strings inside class members are
                 // closed. The cleanup plan deliberately keeps strings out of
                 // the resource-lifecycle inventory, so an aggregate carrying

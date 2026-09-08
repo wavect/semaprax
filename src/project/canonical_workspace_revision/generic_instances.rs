@@ -1,4 +1,4 @@
-//! Additive checked generic-instance closure in the existing semantic-program node.
+//! Additive checked generic and callable closures in the semantic-program node.
 use serde_json::{json, Value};
 
 use super::{canonical_json, framed_digest};
@@ -15,6 +15,8 @@ pub struct SemanticProgram {
 impl SemanticProgram {
     pub const SCHEMA: &'static str = "semaprax.semantic-workspace-revision.semantic-program.v1";
     pub const SCHEMA_V2: &'static str = "semaprax.semantic-workspace-revision.semantic-program.v2";
+
+    pub const SCHEMA_V3: &'static str = "semaprax.semantic-workspace-revision.semantic-program.v3";
 
     pub(super) fn derive(
         revision: &ProjectRevision,
@@ -33,12 +35,16 @@ impl SemanticProgram {
             subject.as_bytes(),
         );
         let mut closures = Vec::new();
+        let mut has_callable_closure = false;
         for (role, program) in [
             ("entry", revision.entry_program()),
             ("public_api", revision.public_api_program()),
             ("tests", revision.test_program()),
         ] {
-            if program.function_instances.is_empty()
+            let has_callables = crate::hir::function_value::requires_function_values(program);
+            has_callable_closure |= has_callables;
+            if !has_callables
+                && program.function_instances.is_empty()
                 && !crate::graph::requires_v35(&program.function_templates)
             {
                 continue;
@@ -54,7 +60,13 @@ impl SemanticProgram {
                 "graph": graph,
             }));
         }
-        let (schema, domain): (&str, &[u8]) = if closures.is_empty() {
+        let (schema, domain): (&str, &[u8]) = if has_callable_closure {
+            payload["checked_callable_closures"] = json!(closures);
+            (
+                Self::SCHEMA_V3,
+                b"semaprax.semantic-workspace-revision.semantic-program.digest.v3\0",
+            )
+        } else if closures.is_empty() {
             (
                 Self::SCHEMA,
                 b"semaprax.semantic-workspace-revision.semantic-program.digest.v1\0",

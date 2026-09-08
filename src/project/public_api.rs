@@ -590,6 +590,11 @@ fn expression_reaches_import(root: &ResolvedExpr) -> bool {
     let mut pending = vec![root];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
+            ResolvedExprKind::FunctionReference { .. } => {}
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.extend(args);
+                pending.push(callable);
+            }
             ResolvedExprKind::NativeRustImportCall(_) | ResolvedExprKind::HostCommandCall(_) => {
                 return true
             }

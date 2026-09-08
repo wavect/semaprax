@@ -713,6 +713,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             } => self.emit_byte_range_expr(expr, operation, source, start, end),
             ResolvedExprKind::HostCommandCall(_) => self.emit_host_command_expr(expr),
             ResolvedExprKind::Call { .. } => self.emit_call_expr(expr),
+            ResolvedExprKind::FunctionReference { .. } => {
+                super::function_value::emit_reference(self, expr)
+            }
+            ResolvedExprKind::Invoke { callable, args } => {
+                super::function_value::emit_invoke(self, expr, callable, args)
+            }
             ResolvedExprKind::NativeRustImportCall(call) => Err(backend_error(format!(
                 "native Rust import `{}` is unavailable in the ordinary native backend",
                 call.import

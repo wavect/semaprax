@@ -344,6 +344,11 @@ fn walk_expression<'a>(
 
 fn push_children<'a>(expression: &'a ResolvedExpr, pending: &mut Vec<&'a ResolvedExpr>) {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            pending.extend(args.iter().rev());
+            pending.push(callable);
+        }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)
@@ -429,6 +434,10 @@ fn collect_expression_uses(
         uses.insert("expression_type");
     }
     match &expression.kind {
+        ResolvedExprKind::FunctionReference {
+            target: declaration,
+        } => matches_id(declaration, target, "function_reference", uses),
+        ResolvedExprKind::Invoke { .. } => {}
         ResolvedExprKind::Place(place) => collect_place_uses(place, target, uses),
         ResolvedExprKind::BorrowPlace { operation, place } => {
             matches_id(operation, target, "borrow_operation", uses);
@@ -707,6 +716,8 @@ fn expression_kind(kind: &ResolvedExprKind) -> &'static str {
         ResolvedExprKind::Place(_) => "place",
         ResolvedExprKind::BorrowPlace { .. } => "borrow_place",
         ResolvedExprKind::ByteRange { .. } => "byte_range",
+        ResolvedExprKind::FunctionReference { .. } => "function_reference",
+        ResolvedExprKind::Invoke { .. } => "invoke",
         ResolvedExprKind::Call { .. } => "call",
         ResolvedExprKind::NativeRustImportCall(_) => "native_import_call",
         ResolvedExprKind::HostCommandCall(_) => "host_command_call",

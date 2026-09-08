@@ -30,6 +30,12 @@ pub(super) enum Frame<'expr> {
         bindings: Rc<BTreeMap<String, Binding>>,
         path: String,
     },
+    FinishInvoke {
+        span: Span,
+        path: String,
+        callable: ResolvedExpr,
+        argument_count: usize,
+    },
     FinishNativeCall {
         span: Span,
         path: String,
@@ -399,7 +405,8 @@ pub(super) fn frame_owned_capacity(
     seen_scopes: &mut std::collections::HashSet<*const BTreeMap<String, Binding>>,
 ) -> usize {
     let path = match frame {
-        Frame::Enter { path, .. }
+        Frame::FinishInvoke { path, .. }
+        | Frame::Enter { path, .. }
         | Frame::FinishNativeCall { path, .. }
         | Frame::FinishCall { path, .. }
         | Frame::FinishStringOp { path, .. }
@@ -486,6 +493,7 @@ pub(super) fn frame_owned_capacity(
         _ => 0,
     };
     let retained = match frame {
+        Frame::FinishInvoke { callable, .. } => resolved_expr_owned_capacity(callable),
         Frame::FinishMethodCall { type_arguments, .. } => {
             type_arguments.capacity() * std::mem::size_of::<ResolvedType>()
                 + type_arguments
@@ -504,6 +512,10 @@ pub(super) fn frame_owned_capacity(
                     .map(resolved_type_owned_capacity)
                     .sum::<usize>()
                 + match return_source_type {
+                    Type::Function { parameters, .. } => {
+                        parameters.capacity() * std::mem::size_of::<Type>()
+                            + std::mem::size_of::<Type>()
+                    }
                     Type::I64
                     | Type::I32
                     | Type::Char

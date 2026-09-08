@@ -61,6 +61,7 @@
 mod api_admission;
 mod expression_children;
 mod failure_detail;
+mod function_values;
 mod generic_owned;
 pub mod internal_strings;
 mod nested_owned;
@@ -2450,7 +2451,7 @@ fn scan_closure(
     fn scan<'a>(
         expression: &'a ResolvedExpr,
         function: &ResolvedFunction,
-        program: &hir::ResolvedProgram,
+        program: &'a hir::ResolvedProgram,
         admitted: &BTreeMap<&'a str, &'a ResolvedFunction>,
         root_types: &BTreeMap<ValueId, ResolvedType>,
         visited: &mut BTreeSet<&'a str>,
@@ -2613,6 +2614,7 @@ fn scan_closure(
                 child, function, program, admitted, root_types, visited, queue,
             )?;
         }
+        function_values::scan_targets(expression, program, admitted, visited, queue)?;
         if let ResolvedExprKind::Call {
             callee, instance, ..
         } = &expression.kind
@@ -2804,7 +2806,9 @@ fn resolved_data_parameter_is_admitted(
 ) -> bool {
     match (ty, ownership) {
         (ty, hir::OwnershipMode::Value)
-            if is_admitted_resolved_scalar(ty) || matches!(ty, ResolvedType::ArrayU8(_)) =>
+            if is_admitted_resolved_scalar(ty)
+                || hir::function_value::is_signature(ty)
+                || matches!(ty, ResolvedType::ArrayU8(_)) =>
         {
             true
         }
@@ -2836,6 +2840,7 @@ fn resolved_data_result_is_admitted(
     declarations: &hir::DeclarationIndex,
 ) -> bool {
     is_admitted_resolved_scalar(ty)
+        || hir::function_value::is_signature(ty)
         || matches!(ty, ResolvedType::ArrayU8(_) | ResolvedType::Bytes)
         || owned_vec::is_collection_type(ty)
         || is_admitted_owned_byte_record(declarations, ty)
@@ -3115,6 +3120,7 @@ enum Value {
     Float32(f32),
     Float64(f64),
     Bool(bool),
+    Function(hir::DeclarationId),
     ArrayU8(Arc<[u8]>),
     Bytes(OwnedBytesValue),
     Vec(Arc<owned_vec::OwnedVecValue>),
@@ -3660,35 +3666,6 @@ impl Evaluator<'_> {
         Ok(value.to_owned())
     }
 
-    /// The runtime value carrier deliberately has no `Clone` implementation.
-    /// Every semantic copy therefore passes through this evaluator-owned seam,
-    /// making owned UTF-8 accounting compiler-enforced at future call sites.
-    fn clone_value(&mut self, value: &Value) -> Result<Value, Flow> {
-        Ok(match value {
-            Value::Int(value) => Value::Int(*value),
-            Value::Int32(value) => Value::Int32(*value),
-            Value::Uint8(value) => Value::Uint8(*value),
-            Value::Usize(value) => Value::Usize(*value),
-            Value::Char(value) => Value::Char(*value),
-            Value::Float32(value) => Value::Float32(*value),
-            Value::Float64(value) => Value::Float64(*value),
-            Value::Bool(value) => Value::Bool(*value),
-            Value::ArrayU8(value) => Value::ArrayU8(Arc::clone(value)),
-            Value::Bytes(value) => Value::Bytes(value.clone()),
-            Value::Vec(value) => Value::Vec(Arc::clone(value)),
-            Value::Box(value) => Value::Box(Arc::clone(value)),
-            Value::String(value) => Value::String(self.materialize_utf8_copy(value)?),
-            Value::BorrowedStr(value) => Value::BorrowedStr(value.clone()),
-            Value::BorrowedSlice(value) => Value::BorrowedSlice(value.clone()),
-            Value::OptionU8(value) => Value::OptionU8(*value),
-            // Aggregate aliases preserve the existing authenticated-borrow
-            // semantics; Arc cloning does not duplicate any nested payload.
-            Value::Record(value) => Value::Record(Arc::clone(value)),
-            Value::Variant(value) => Value::Variant(Arc::clone(value)),
-            Value::Moved => Value::Moved,
-        })
-    }
-
     /// Field Mutation v1: replace exactly one direct scalar Copy field of a
     /// named record or class binding, leaving every other field untouched.
     ///
@@ -4013,6 +3990,9 @@ impl Evaluator<'_> {
     ) -> Result<Value, Flow> {
         self.begin_expression(expression, depth)?;
         match &expression.kind {
+            ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
+                self.evaluate_function_value(expression, environment, depth)
+            }
             ResolvedExprKind::Int(value) => Ok(Value::Int(*value)),
             ResolvedExprKind::Int32(value) => Ok(Value::Int32(*value)),
             ResolvedExprKind::Uint8(value) => Ok(Value::Uint8(*value)),

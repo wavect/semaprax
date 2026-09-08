@@ -80,6 +80,12 @@ pub(super) fn legacy_graph_json(
     selected_types: &BTreeSet<DeclarationId>,
     view: &GraphView<'_>,
 ) -> Result<String, Diagnostic> {
+    if hir::function_value::requires_function_values(program) {
+        return Err(Diagnostic::io(
+            "SPX-G411",
+            "function values require Graph v36",
+        ));
+    }
     render_graph_json(
         program,
         source_revision,
@@ -100,6 +106,7 @@ pub(super) fn graph_json(
     if program.function_instances.is_empty()
         && !nested_owned::requires_generic_result_schema(program)
         && !generic_mapping::requires_v35(&program.function_templates)
+        && !hir::function_value::requires_function_values(program)
     {
         return legacy_graph_json(
             program,
@@ -149,12 +156,17 @@ pub(super) fn graph_json(
         .expect("string write");
     }
     graph.pop();
-    Ok(format!(
+    let graph = format!(
         "{},\"base_schema\":{},\"generic_instance_ownership\":[{}]}}",
         graph,
         quote_json(base),
         facts
-    ))
+    );
+    Ok(if hir::function_value::requires_function_values(program) {
+        function_values::append_targets(graph, program)
+    } else {
+        graph
+    })
 }
 
 fn digest(domain: &str, parts: &[&str]) -> String {

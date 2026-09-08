@@ -291,6 +291,13 @@ fn source_type(
         ));
     }
     Ok(match source {
+        Type::Function { parameters, result } => ResolvedType::Function {
+            parameters: parameters
+                .iter()
+                .map(|ty| source_type(program, ty, work, depth + 1))
+                .collect::<Result<Vec<_>>>()?,
+            result: Box::new(source_type(program, result, work, depth + 1)?),
+        },
         Type::I64 => ResolvedType::I64,
         Type::I32 => ResolvedType::I32,
         Type::Char => ResolvedType::Char,

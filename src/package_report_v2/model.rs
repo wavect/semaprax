@@ -619,6 +619,15 @@ fn ownership_text(ownership: OwnershipMode) -> &'static str {
 
 pub(super) fn type_json(ty: &ResolvedType) -> String {
     match ty {
+        ResolvedType::Function { parameters, result } => bf!(
+            "{{\"kind\":\"function\",\"parameters\":[{}],\"result\":{}}}",
+            parameters
+                .iter()
+                .map(type_json)
+                .collect::<Vec<_>>()
+                .join(","),
+            type_json(result)
+        ),
         ResolvedType::Unit => bounded_output::budgeted_clone("{\"kind\":\"unit\"}"),
         ResolvedType::I64 => primitive("i64"),
         ResolvedType::I32 => primitive("i32"),

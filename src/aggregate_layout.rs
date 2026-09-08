@@ -257,6 +257,9 @@ fn layout_type(
             let (size, align) = scalar_size_align(target, ty)?;
             scalar_layout(target, ty, size, align)
         }
+        ResolvedType::Function { .. } => Err(layout_error(
+            "function values cannot appear in executable aggregate layouts v1",
+        )),
         ResolvedType::ArrayU8(length) => Ok(ValueLayout {
             size: *length,
             align: 1,
@@ -541,7 +544,8 @@ fn concrete_layout_instance_is_admitted(
                 | ResolvedType::String
                 | ResolvedType::Str
                 | ResolvedType::SliceU8
-                | ResolvedType::TypeParameter { .. },
+                | ResolvedType::TypeParameter { .. }
+                | ResolvedType::Function { .. },
                 _,
             ) => return false,
             Frame::Fields(declaration, fields, arguments, index, depth) => {
@@ -706,6 +710,10 @@ fn collect_expr_record_types(
         };
         collect_record_type(program, &expression.ty, instances)?;
         match &expression.kind {
+            ResolvedExprKind::Invoke { callable, args } => {
+                pending.extend(args.iter().rev().map(Work::Expression));
+                pending.push(Work::Expression(callable));
+            }
             ResolvedExprKind::Call { args, .. } => {
                 pending.extend(args.iter().rev().map(Work::Expression));
             }
@@ -807,7 +815,8 @@ fn collect_expr_record_types(
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::String(_)
             | ResolvedExprKind::Place(_)
-            | ResolvedExprKind::BorrowPlace { .. } => {}
+            | ResolvedExprKind::BorrowPlace { .. }
+            | ResolvedExprKind::FunctionReference { .. } => {}
         }
     }
     Ok(())

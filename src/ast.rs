@@ -41,6 +41,12 @@ pub enum Type {
     /// A non-escaping immutable byte view rooted in one external invocation
     /// input. It is written exactly `Slice<u8>` and has no owned form.
     SliceU8,
+    /// A noncapturing source-level callable signature. The resolved function
+    /// reference retains its declaration identity separately from this type.
+    Function {
+        parameters: Vec<Type>,
+        result: Box<Type>,
+    },
     Named {
         name: String,
         arguments: Vec<Type>,
@@ -52,6 +58,8 @@ impl fmt::Display for Type {
         enum Frame<'a> {
             Type(&'a Type),
             Arguments(&'a [Type], usize),
+            FunctionParameters(&'a [Type], usize),
+            FunctionResult(&'a Type),
         }
         let mut frames = vec![Frame::Type(self)];
         while let Some(frame) = frames.pop() {
@@ -69,6 +77,11 @@ impl fmt::Display for Type {
                 Frame::Type(Type::Bytes) => f.write_str("Bytes")?,
                 Frame::Type(Type::Str) => f.write_str("str")?,
                 Frame::Type(Type::SliceU8) => f.write_str("Slice<u8>")?,
+                Frame::Type(Type::Function { parameters, result }) => {
+                    f.write_str("fn(")?;
+                    frames.push(Frame::FunctionResult(result));
+                    frames.push(Frame::FunctionParameters(parameters, 0));
+                }
                 Frame::Type(Type::Named { name, arguments }) => {
                     f.write_str(name)?;
                     if !arguments.is_empty() {
@@ -86,6 +99,19 @@ impl fmt::Display for Type {
                     } else {
                         f.write_str(">")?;
                     }
+                }
+                Frame::FunctionParameters(parameters, index) => {
+                    if let Some(parameter) = parameters.get(index) {
+                        if index != 0 {
+                            f.write_str(", ")?;
+                        }
+                        frames.push(Frame::FunctionParameters(parameters, index + 1));
+                        frames.push(Frame::Type(parameter));
+                    }
+                }
+                Frame::FunctionResult(result) => {
+                    f.write_str(") -> ")?;
+                    frames.push(Frame::Type(result));
                 }
             }
         }
@@ -364,8 +390,25 @@ impl Drop for Program {
         }
 
         while let Some(mut ty) = types.pop() {
-            if let Type::Named { arguments, .. } = mem::replace(&mut ty, Type::I64) {
-                types.extend(arguments);
+            match mem::replace(&mut ty, Type::I64) {
+                Type::Named { arguments, .. } => types.extend(arguments),
+                Type::Function { parameters, result } => {
+                    types.extend(parameters);
+                    types.push(*result);
+                }
+                Type::I64
+                | Type::I32
+                | Type::Char
+                | Type::U8
+                | Type::Usize
+                | Type::ArrayU8(_)
+                | Type::F32
+                | Type::F64
+                | Type::Bool
+                | Type::String
+                | Type::Bytes
+                | Type::Str
+                | Type::SliceU8 => {}
             }
         }
     }

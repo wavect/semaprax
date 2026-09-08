@@ -54,7 +54,8 @@ impl Representation {
             ResolvedType::U8 => Some(Self::U8),
             ResolvedType::Usize => Some(Self::U64),
             ResolvedType::String => Some(Self::Text),
-            ResolvedType::Unit
+            ResolvedType::Function { .. }
+            | ResolvedType::Unit
             | ResolvedType::Char
             | ResolvedType::ArrayU8(_)
             | ResolvedType::F32

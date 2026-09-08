@@ -131,3 +131,10 @@ mod generic_collections_next;
 
 #[path = "language/generic_authored_variants_next.rs"]
 mod generic_authored_variants_next;
+
+#[path = "language/function_values.rs"]
+mod function_values;
+#[path = "language/function_values_backend.rs"]
+mod function_values_backend;
+#[path = "language/function_values_runtime.rs"]
+mod function_values_runtime;

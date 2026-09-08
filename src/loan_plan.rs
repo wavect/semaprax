@@ -908,6 +908,10 @@ fn statement_exit(statement: &ResolvedStatement) -> &ResolvedExpr {
 
 fn evaluation_children(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => Vec::new(),
+        ResolvedExprKind::Invoke { callable, args } => std::iter::once(callable.as_ref())
+            .chain(args.iter())
+            .collect(),
         ResolvedExprKind::Call { args, .. } => args.iter().collect(),
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
@@ -1260,6 +1264,11 @@ fn charge(work: &mut WorkCounter) -> Result<(), Diagnostic> {
 
 fn push_children<'a>(expression: &'a ResolvedExpr, pending: &mut Vec<&'a ResolvedExpr>) {
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            pending.extend(args.iter().rev());
+            pending.push(callable);
+        }
         ResolvedExprKind::Block { statements, tail } => {
             pending.push(tail);
             for statement in statements.iter().rev() {

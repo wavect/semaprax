@@ -54,6 +54,7 @@ pub(super) fn inline_array_payload_bytes(
             ));
         }
         match ty {
+            ResolvedType::Function { .. } => {}
             ResolvedType::ArrayU8(length) => {
                 total = total
                     .checked_add(length)
@@ -275,6 +276,11 @@ pub(crate) fn push_resolved_expression_children_in_authored_order<'a>(
                 }
             }
         }
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            pending.extend(args.iter().rev());
+            pending.push(callable);
+        }
         ResolvedExprKind::Call { args, .. } => pending.extend(args.iter().rev()),
         ResolvedExprKind::NativeRustImportCall(call) => pending.extend(call.args.iter().rev()),
         ResolvedExprKind::HostCommandCall(call) => pending.extend(call.args.iter().rev()),
@@ -476,6 +482,30 @@ pub(super) fn byte_capacity_expression(
                     }
                 }
                 match &expression.kind {
+                    ResolvedExprKind::FunctionReference { .. } => {
+                        frames.push(Frame::Emit(CapacityFlow::Empty))
+                    }
+                    ResolvedExprKind::Invoke { callable, args } => {
+                        let alternatives =
+                            super::function_value::compatible_targets(program, &callable.ty)
+                                .into_iter()
+                                .map(|f| CapacityFlow::Call {
+                                    site: format!(
+                                        "{}:candidate:{}:{}",
+                                        expression.id.as_str(),
+                                        f.id.as_str().len(),
+                                        f.id.as_str()
+                                    ),
+                                    callee: f.id.as_str().to_owned(),
+                                })
+                                .collect();
+                        frames.push(Frame::Sequence(args.len() + 2));
+                        frames.push(Frame::Emit(CapacityFlow::Alternative(alternatives)));
+                        for arg in args.iter().rev() {
+                            frames.push(Frame::Visit(arg, false));
+                        }
+                        frames.push(Frame::Visit(callable, false));
+                    }
                     ResolvedExprKind::Call {
                         callee,
                         instance,

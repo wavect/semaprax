@@ -311,6 +311,11 @@ pub fn build_trace_path_certificate(
                             | ResolvedType::String
                             | ResolvedType::Str => TracePathOutcome::ScalarSuccess,
                             ResolvedType::Bytes => TracePathOutcome::OwnedSuccess,
+                            ResolvedType::Function { .. } => {
+                                return Err(certificate_error(
+                                    "function value result is outside callable v2",
+                                ))
+                            }
                             ResolvedType::SliceU8 => {
                                 return Err(certificate_error(
                                     "borrowed byte-slice result is outside callable v2",

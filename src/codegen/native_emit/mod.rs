@@ -22,6 +22,7 @@ use std::fmt::Write as _;
 
 mod compiler;
 mod expression;
+mod function_value;
 mod generic_record;
 mod generic_variant;
 mod http_io;
@@ -113,6 +114,7 @@ pub(super) fn emit_hir_c_with_labels(
         &record_layouts,
         &variant_layouts,
     )?;
+    function_value::emit_typedefs(&mut output, program, &resource_abi)?;
     emit_function_prototypes(&mut output, program, &functions, &resource_abi)?;
 
     let emission = NativeEmissionContext {
@@ -652,76 +654,7 @@ fn program_uses_usize_arithmetic(program: &ResolvedProgram) -> bool {
 }
 
 /// Every direct resolved child of an expression.
-fn resolved_expr_children<'a>(
-    expression: &'a ResolvedExpr,
-) -> Box<dyn Iterator<Item = &'a ResolvedExpr> + 'a> {
-    match &expression.kind {
-        ResolvedExprKind::Binary { left, right, .. } => {
-            Box::new([left.as_ref(), right.as_ref()].into_iter())
-        }
-        ResolvedExprKind::ByteRange {
-            source, start, end, ..
-        } => Box::new([source.as_ref(), start.as_ref(), end.as_ref()].into_iter()),
-        ResolvedExprKind::Unary { value, .. }
-        | ResolvedExprKind::Try { operand: value, .. }
-        | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. }
-        | ResolvedExprKind::Upcast { source: value } => Box::new(std::iter::once(value.as_ref())),
-        ResolvedExprKind::Block { statements, tail } => Box::new(
-            statements
-                .iter()
-                .flat_map(|statement| {
-                    (0..statement.child_count()).filter_map(move |index| statement.child(index))
-                })
-                .chain(std::iter::once(tail.as_ref())),
-        ),
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => Box::new(
-            [
-                condition.as_ref(),
-                then_branch.as_ref(),
-                else_branch.as_ref(),
-            ]
-            .into_iter(),
-        ),
-        ResolvedExprKind::Call { args, .. } => Box::new(args.iter()),
-        ResolvedExprKind::NativeRustImportCall(call) => Box::new(call.args.iter()),
-        ResolvedExprKind::HostCommandCall(call) => Box::new(call.args.iter()),
-        ResolvedExprKind::ConstructRecord { fields, .. }
-        | ResolvedExprKind::ConstructVariant { fields, .. } => {
-            Box::new(fields.iter().map(|field| &field.value))
-        }
-        ResolvedExprKind::Match {
-            scrutinee, arms, ..
-        } => Box::new(
-            std::iter::once(scrutinee.as_ref()).chain(
-                arms.iter()
-                    .filter_map(|arm| arm.guard.as_deref())
-                    .chain(arms.iter().map(|arm| &arm.value)),
-            ),
-        ),
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            Box::new(std::iter::once(base.as_ref()).chain(fields.iter().map(|field| &field.value)))
-        }
-        ResolvedExprKind::BorrowPlace { .. } => Box::new(std::iter::empty()),
-        ResolvedExprKind::Int(_)
-        | ResolvedExprKind::Int32(_)
-        | ResolvedExprKind::Char(_)
-        | ResolvedExprKind::Uint8(_)
-        | ResolvedExprKind::Usize(_)
-        | ResolvedExprKind::Float32(_)
-        | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::String(_)
-        | ResolvedExprKind::ArrayU8(_)
-        | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::Place(_) => Box::new(std::iter::empty()),
-    }
-}
-
+use function_value::resolved_expr_children;
 fn emit_aggregate_declarations(
     output: &mut impl COutput,
     program: &ResolvedProgram,
@@ -935,7 +868,9 @@ fn c_value_type(
     resource_abi: &native_resource::NativeResourceAbi,
     ty: &ResolvedType,
 ) -> Result<String, Diagnostic> {
-    if crate::cleanup::is_owned_bounded_vec_type(ty) {
+    if matches!(ty, ResolvedType::Function { .. }) {
+        function_value::c_type(ty)
+    } else if crate::cleanup::is_owned_bounded_vec_type(ty) {
         Ok("spx_vec_v1".to_owned())
     } else if crate::cleanup::is_owned_bounded_box_type(ty) {
         Ok("spx_box_v1".to_owned())
@@ -1212,6 +1147,11 @@ pub(super) fn preflight_resource_lowering(
     // until a public host ownership boundary is defined and proven.
     let mut staged_output = crate::bounded_output::CappedString::new();
     emit_native_prelude(&mut staged_output, resource_abi, program);
+    if let Err(diagnostic) =
+        function_value::emit_typedefs(&mut staged_output, program, resource_abi)
+    {
+        first_failure.get_or_insert(diagnostic);
+    }
     if let Err(diagnostic) =
         emit_function_prototypes(&mut staged_output, program, functions, resource_abi)
     {

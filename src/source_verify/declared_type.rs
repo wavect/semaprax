@@ -143,6 +143,25 @@ pub(super) fn check_declared_type(
     let mut pending = vec![ty];
     while let Some(ty) = pending.pop() {
         let Type::Named { name, arguments } = ty else {
+            if let Type::Function {
+                parameters: slots,
+                result,
+            } = ty
+            {
+                if slots.len() > 8
+                    || !slots.iter().all(function_value_scalar_type)
+                    || !function_value_scalar_type(result)
+                {
+                    diagnostics.push(error(
+                        program,
+                        "SPX-T287",
+                        "function values require zero to eight Copy scalar parameters and a Copy scalar result",
+                        span,
+                    ));
+                }
+                pending.push(result);
+                pending.extend(slots.iter().rev());
+            }
             continue;
         };
         if parameters.contains(name.as_str()) {
@@ -263,6 +282,38 @@ pub(super) fn check_declared_type(
     }
 }
 
+pub(super) fn function_value_scalar_type(ty: &Type) -> bool {
+    matches!(
+        ty,
+        Type::I64
+            | Type::I32
+            | Type::Char
+            | Type::U8
+            | Type::Usize
+            | Type::F32
+            | Type::F64
+            | Type::Bool
+    )
+}
+
+pub(super) fn function_value_signature(function: &Function) -> Option<Type> {
+    (function.type_parameters.is_empty()
+        && function.effects.is_empty()
+        && function.params.len() <= 8
+        && function.params.iter().all(|parameter| {
+            parameter.mode == ParamMode::Value && function_value_scalar_type(&parameter.ty)
+        })
+        && function_value_scalar_type(&function.return_type))
+    .then(|| Type::Function {
+        parameters: function
+            .params
+            .iter()
+            .map(|parameter| parameter.ty.clone())
+            .collect(),
+        result: Box::new(function.return_type.clone()),
+    })
+}
+
 pub(super) fn direct_function_type_argument(ty: &Type) -> bool {
     matches!(ty, Type::I64 | Type::Bool)
 }
@@ -279,7 +330,8 @@ pub(super) fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&s
         | Type::F64
         | Type::Bytes
         | Type::Str
-        | Type::SliceU8 => false,
+        | Type::SliceU8
+        | Type::Function { .. } => false,
         Type::Named { name, arguments } => {
             arguments.is_empty() && parameters.contains(name.as_str())
         }
@@ -430,6 +482,7 @@ pub(super) fn substitute_function_type(
     enum Frame<'a> {
         Enter(&'a Type),
         Finish(&'a str, usize),
+        FinishFunction(usize),
     }
     let mut frames = vec![Frame::Enter(template)];
     let mut resolved = Vec::new();
@@ -449,6 +502,11 @@ pub(super) fn substitute_function_type(
                 Type::Bytes => resolved.push(Type::Bytes),
                 Type::Str => resolved.push(Type::Str),
                 Type::SliceU8 => resolved.push(Type::SliceU8),
+                Type::Function { parameters, result } => {
+                    frames.push(Frame::FinishFunction(parameters.len()));
+                    frames.push(Frame::Enter(result));
+                    frames.extend(parameters.iter().rev().map(Frame::Enter));
+                }
                 Type::Named {
                     name,
                     arguments: nested,
@@ -473,6 +531,15 @@ pub(super) fn substitute_function_type(
                 resolved.push(Type::Named {
                     name: name.to_owned(),
                     arguments,
+                });
+            }
+            Frame::FinishFunction(count) => {
+                let split = resolved.len().checked_sub(count + 1)?;
+                let mut parts = resolved.drain(split..).collect::<Vec<_>>();
+                let result = Box::new(parts.pop()?);
+                resolved.push(Type::Function {
+                    parameters: parts,
+                    result,
                 });
             }
         }

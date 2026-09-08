@@ -24,6 +24,11 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
         "src/graph/prelude_binding.rs",
         "pub fn select_prelude() { /* changed */ }\n",
     );
+    repository.write(
+        "src/graph/function_values.rs",
+        "pub fn function_values() {}\n",
+    );
+    repository.write("src/graph/expression.rs", "pub fn expression() {}\n");
     let plan = repository.changed_plan(&[]).unwrap();
     assert!(plan.contains("effective\tfull\n"));
     assert!(plan.contains(

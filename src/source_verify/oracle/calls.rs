@@ -1,6 +1,6 @@
 //! Test-only recursive checking of call and method-call expressions.
 
-use crate::ast::{Expr, Function, ImportResult, ParamMode, Program, Type};
+use crate::ast::{Expr, Function, ImportResult, Param, ParamMode, Program, Type};
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::arguments::{
     activate_borrowed_bytes_call_loans, check_argument_ownership, release_borrowed_bytes_call_loans,
@@ -31,6 +31,98 @@ pub(super) fn oracle_call(
     allow_moves: bool,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<CheckedValue> {
+    if let Some(binding_type) = variables
+        .get(name.as_str())
+        .map(|binding| binding.ty.clone())
+    {
+        let Type::Function { parameters, result } = binding_type else {
+            diagnostics.push(error(
+                program,
+                "SPX-T287",
+                format!("`{name}` is a bound value, not a function value"),
+                expr.span,
+            ));
+            return None;
+        };
+        if !type_arguments.is_empty() {
+            diagnostics.push(error(
+                program,
+                "SPX-T225",
+                "function values do not accept type arguments",
+                expr.span,
+            ));
+        }
+        if args.len() != parameters.len() {
+            diagnostics.push(error(
+                program,
+                "SPX-T204",
+                format!(
+                    "`{name}` expects {} arguments, received {}",
+                    parameters.len(),
+                    args.len()
+                ),
+                expr.span,
+            ));
+        }
+        let params = parameters
+            .into_iter()
+            .enumerate()
+            .map(|(index, ty)| Param {
+                name: format!("argument{index}"),
+                mode: ParamMode::Value,
+                ty,
+                span: expr.span,
+            })
+            .collect::<Vec<_>>();
+        for (index, arg) in args.iter().enumerate() {
+            let actual = check_expr(
+                program,
+                current,
+                arg,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let Some(param) = params.get(index) else {
+                continue;
+            };
+            if let Some(actual) = actual
+                .as_ref()
+                .filter(|actual| !actual.native_unit && actual.ty != param.ty)
+            {
+                diagnostics.push(hints::with_optional_help(
+                    error(
+                        program,
+                        "SPX-T205",
+                        format!(
+                            "argument `{}` to `{name}` expects {}, received {}",
+                            param.name, param.ty, actual.ty
+                        ),
+                        arg.span,
+                    ),
+                    hints::argument_view_help(name, &param.ty, &actual.ty),
+                ));
+            }
+            check_argument_ownership(
+                program,
+                current,
+                name,
+                arg,
+                param,
+                actual.as_ref(),
+                variables,
+                types,
+                allow_moves,
+                false,
+                false,
+                diagnostics,
+            );
+        }
+        return Some(CheckedValue::returned(*result, false));
+    }
     if let Some(op) = crate::vec_ops::by_name(name) {
         let element = type_arguments.first();
         if type_arguments.len() != 1

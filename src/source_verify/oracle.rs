@@ -8,7 +8,8 @@ use self::matching::oracle_match;
 use self::while_oracle::{check_while_statement, reject_while_disallowed_oracle};
 use super::binding::{Availability, Binding, CheckedValue};
 use super::declared_type::{
-    check_declared_type, ordinary_option_argument, ordinary_result_arguments,
+    check_declared_type, function_value_signature, ordinary_option_argument,
+    ordinary_result_arguments,
 };
 use super::diagnostics::{error, reject_native_unit_value, source_identifier};
 use super::hints;
@@ -148,6 +149,12 @@ pub(super) fn check_expr(
                     mode: binding.mode,
                     native_unit: binding.native_unit_discard,
                 }
+            })
+            .or_else(|| {
+                functions
+                    .get(name.as_str())
+                    .and_then(|function| function_value_signature(function))
+                    .map(CheckedValue::value)
             })
             .or_else(|| {
                 diagnostics.push(hints::with_optional_help(

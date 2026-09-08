@@ -8,6 +8,7 @@ use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
 mod borrowed_str;
 mod box_intrinsic;
+mod callable_types;
 mod generic_record_composition;
 mod generic_template;
 mod host_command;
@@ -797,6 +798,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::String
                             | ResolvedType::Bytes
                             | ResolvedType::Str
+                            | ResolvedType::Function { .. }
                             | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy record template",
@@ -963,6 +965,7 @@ impl<'a> HirValidator<'a> {
                             | ResolvedType::String
                             | ResolvedType::Bytes
                             | ResolvedType::Str
+                            | ResolvedType::Function { .. }
                             | ResolvedType::SliceU8 => {
                                 return Err(hir_error(format!(
                                     "field `{}` has an invalid generic copy payload template",
@@ -1217,6 +1220,9 @@ impl<'a> HirValidator<'a> {
             ));
         }
         match &expression.kind {
+            ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
+                return Err(hir_error("function values are outside generic templates"))
+            }
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
@@ -1507,6 +1513,11 @@ impl<'a> HirValidator<'a> {
                 }
             };
             match &expression.kind {
+                ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
+                    return Err(hir_error(
+                        "function values are outside bounded while profile",
+                    ))
+                }
                 ResolvedExprKind::Int(_)
                 | ResolvedExprKind::Int32(_)
                 | ResolvedExprKind::Char(_)
@@ -2434,6 +2445,17 @@ impl<'a> HirValidator<'a> {
         allowed_effects: Option<&BTreeSet<String>>,
     ) -> Result<(), Diagnostic> {
         enum Frame<'e> {
+            InvokeNext {
+                expression: &'e ResolvedExpr,
+                index: usize,
+                scope: BTreeMap<ValueId, ValidationBinding>,
+                path: String,
+            },
+            InvokeAfter {
+                expression: &'e ResolvedExpr,
+                index: usize,
+                path: String,
+            },
             RestorePublication(bool),
             Enter {
                 expression: &'e ResolvedExpr,
@@ -2767,7 +2789,9 @@ impl<'a> HirValidator<'a> {
                 validation_scope_owned_capacity(scope)
             };
             let path = match frame {
-                Frame::Enter { path, .. }
+                Frame::InvokeNext { path, .. }
+                | Frame::InvokeAfter { path, .. }
+                | Frame::Enter { path, .. }
                 | Frame::BinaryLeft { path, .. }
                 | Frame::IfCondition { path, .. }
                 | Frame::IfThen { path, .. }
@@ -2798,7 +2822,9 @@ impl<'a> HirValidator<'a> {
                 _ => 0,
             };
             let retained = match frame {
-                Frame::Enter { scope: value, .. } => scope(value),
+                Frame::InvokeNext { scope: value, .. } | Frame::Enter { scope: value, .. } => {
+                    scope(value)
+                }
                 Frame::BinaryRight { baseline, .. } => baseline
                     .as_ref()
                     .map_or(0, |(outer_ids, value)| ids(outer_ids) + scope(value)),
@@ -3079,6 +3105,53 @@ impl<'a> HirValidator<'a> {
                         .sum::<usize>(),
             );
             match frame {
+                Frame::InvokeNext {
+                    expression,
+                    index,
+                    scope,
+                    path,
+                } => {
+                    let ResolvedExprKind::Invoke { callable, args } = &expression.kind else {
+                        unreachable!()
+                    };
+                    let child = if index == 0 {
+                        Some(callable.as_ref())
+                    } else {
+                        args.get(index - 1)
+                    };
+                    if let Some(child) = child {
+                        let child_path = if index == 0 {
+                            format!("{path}.callable")
+                        } else {
+                            format!("{path}.arg.{}", index - 1)
+                        };
+                        frames.push(Frame::InvokeAfter {
+                            expression,
+                            index,
+                            path,
+                        });
+                        frames.push(Frame::Enter {
+                            expression: child,
+                            scope,
+                            path: child_path,
+                        });
+                    } else {
+                        scopes.push(scope);
+                    }
+                }
+                Frame::InvokeAfter {
+                    expression,
+                    index,
+                    path,
+                } => {
+                    let scope = scopes.pop().expect("invocation child scope");
+                    frames.push(Frame::InvokeNext {
+                        expression,
+                        index: index + 1,
+                        scope,
+                        path,
+                    });
+                }
                 Frame::RestorePublication(enabled) => publication.enabled = enabled,
                 Frame::Enter {
                     expression,
@@ -3100,6 +3173,24 @@ impl<'a> HirValidator<'a> {
                     }
                     self.validate_type(&expression.ty)?;
                     match &expression.kind {
+                        ResolvedExprKind::FunctionReference { target } => {
+                            super::function_value::validate_reference(
+                                self.program,
+                                target,
+                                &expression.ty,
+                            )?;
+                            self.finish_expr(expression, &expression.ty, OwnershipMode::Value)?;
+                            scopes.push(scope);
+                        }
+                        ResolvedExprKind::Invoke { .. } => {
+                            super::function_value::validate_invocation(expression)?;
+                            frames.push(Frame::InvokeNext {
+                                expression,
+                                index: 0,
+                                scope,
+                                path,
+                            });
+                        }
                         ResolvedExprKind::Int(_) => {
                             self.finish_expr(expression, &ResolvedType::I64, OwnershipMode::Value)?;
                             scopes.push(scope);
@@ -4110,6 +4201,13 @@ impl<'a> HirValidator<'a> {
                             ResolvedType::Bool
                         }
                         BinaryOp::Eq | BinaryOp::Ne => {
+                            if matches!(left.ty, ResolvedType::Function { .. })
+                                || matches!(right.ty, ResolvedType::Function { .. })
+                            {
+                                return Err(hir_error(
+                                    "function value equality is outside the admitted profile",
+                                ));
+                            }
                             self.require_type(&left.ty, &right.ty, "equality operands")?;
                             ResolvedType::Bool
                         }
@@ -6161,6 +6259,32 @@ impl<'a> HirValidator<'a> {
         self.validate_type(&expression.ty)?;
 
         let (ty, ownership) = match &expression.kind {
+            ResolvedExprKind::FunctionReference { target } => {
+                super::function_value::validate_reference(self.program, target, &expression.ty)?;
+                (expression.ty.clone(), OwnershipMode::Value)
+            }
+            ResolvedExprKind::Invoke { callable, args } => {
+                super::function_value::validate_invocation(expression)?;
+                self.validate_expr_recursive_reference(
+                    function,
+                    callable,
+                    scope,
+                    &format!("{path}.callable"),
+                    allow_moves,
+                    allowed_effects,
+                )?;
+                for (i, arg) in args.iter().enumerate() {
+                    self.validate_expr_recursive_reference(
+                        function,
+                        arg,
+                        scope,
+                        &format!("{path}.arg.{i}"),
+                        allow_moves,
+                        allowed_effects,
+                    )?;
+                }
+                (expression.ty.clone(), OwnershipMode::Value)
+            }
             ResolvedExprKind::String(_) => (ResolvedType::String, OwnershipMode::Own),
             ResolvedExprKind::Int(_) => (ResolvedType::I64, OwnershipMode::Value),
             ResolvedExprKind::Int32(_) => (ResolvedType::I32, OwnershipMode::Value),
@@ -6668,6 +6792,13 @@ impl<'a> HirValidator<'a> {
                         ResolvedType::Bool
                     }
                     BinaryOp::Eq | BinaryOp::Ne => {
+                        if matches!(left.ty, ResolvedType::Function { .. })
+                            || matches!(right.ty, ResolvedType::Function { .. })
+                        {
+                            return Err(hir_error(
+                                "function value equality is outside the admitted profile",
+                            ));
+                        }
                         self.require_type(&left.ty, &right.ty, "equality operands")?;
                         ResolvedType::Bool
                     }
@@ -8252,6 +8383,12 @@ impl<'a> HirValidator<'a> {
         while let Some(frame) = frames.pop() {
             match frame {
                 Frame::Enter(expression, scope_index) => match &expression.kind {
+                    ResolvedExprKind::FunctionReference { .. } => {}
+                    ResolvedExprKind::Invoke { args, .. } => {
+                        for arg in args.iter().rev() {
+                            frames.push(Frame::Enter(arg, scope_index));
+                        }
+                    }
                     ResolvedExprKind::Place(place) => {
                         let Some(binding) = scopes[scope_index].get(&place.root) else {
                             continue;
@@ -8569,150 +8706,6 @@ impl<'a> HirValidator<'a> {
             .collect()
     }
 
-    fn validate_type(&self, ty: &ResolvedType) -> Result<(), Diagnostic> {
-        enum Frame<'a> {
-            Enter(&'a ResolvedType),
-            Finish(&'a ResolvedType),
-        }
-        let mut frames = vec![Frame::Enter(ty)];
-        while let Some(frame) = frames.pop() {
-            match frame {
-                Frame::Enter(
-                    ResolvedType::Unit
-                    | ResolvedType::I64
-                    | ResolvedType::I32
-                    | ResolvedType::Char
-                    | ResolvedType::U8
-                    | ResolvedType::Usize
-                    | ResolvedType::ArrayU8(_)
-                    | ResolvedType::F32
-                    | ResolvedType::F64
-                    | ResolvedType::Bool
-                    | ResolvedType::String
-                    | ResolvedType::Bytes
-                    | ResolvedType::Str
-                    | ResolvedType::SliceU8,
-                ) => {}
-                Frame::Enter(ResolvedType::TypeParameter { .. }) => {
-                    return Err(hir_error(
-                        "uninstantiated type parameters are not valid in executable HIR",
-                    ));
-                }
-                Frame::Enter(
-                    ty @ ResolvedType::Nominal {
-                        declaration,
-                        arguments,
-                    },
-                ) => {
-                    let kind = self
-                        .program
-                        .declarations
-                        .declaration(declaration)
-                        .map(|item| item.kind)
-                        .filter(|kind| {
-                            matches!(
-                                kind,
-                                DeclarationKind::Resource
-                                    | DeclarationKind::Record
-                                    | DeclarationKind::Class
-                                    | DeclarationKind::Variant
-                            )
-                        })
-                        .ok_or_else(|| {
-                            hir_error(format!(
-                                "nominal type `{declaration}` is not a resolved type declaration"
-                            ))
-                        })?;
-                    let parameters = self
-                        .program
-                        .declarations
-                        .type_parameters(declaration)
-                        .ok_or_else(|| {
-                            hir_error(format!("nominal type `{declaration}` has no parameters"))
-                        })?;
-                    if arguments.len() != parameters.len() {
-                        return Err(hir_error(format!(
-                            "nominal type `{declaration}` has incorrect argument arity"
-                        )));
-                    }
-                    let admitted_owned_record = super::type_reachability::is_flat_owned_byte_record(
-                        &self.program.declarations,
-                        ty,
-                    );
-                    let admitted_nested_owned_record =
-                        super::type_reachability::is_admitted_nested_owned_byte_record(
-                            &self.program.declarations,
-                            ty,
-                        );
-                    let admitted_owned_variant =
-                        super::type_reachability::is_admitted_concrete_owned_byte_variant(
-                            &self.program.declarations,
-                            ty,
-                        );
-                    let admitted_owned_generic = box_intrinsic::is_type(declaration, arguments);
-                    if !arguments.is_empty()
-                        && (!matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
-                            || (!admitted_owned_byte_prelude_instance(declaration, arguments)
-                                && !admitted_owned_record
-                                && !admitted_nested_owned_record
-                                && !admitted_owned_variant
-                                && !admitted_owned_generic
-                                && (arguments.as_slice() != [ResolvedType::U8]
-                                    || declaration.as_str() != crate::prelude::OPTION_ID)
-                                && arguments.iter().any(|argument| {
-                                    !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                                })))
-                    {
-                        return Err(hir_error(format!(
-                            "nominal type `{declaration}` has unsupported generic arguments"
-                        )));
-                    }
-                    frames.push(Frame::Finish(ty));
-                    for argument in arguments.iter().rev() {
-                        frames.push(Frame::Enter(argument));
-                    }
-                }
-                Frame::Finish(ty) => {
-                    self.program.declarations.type_facts(ty).ok_or_else(|| {
-                        hir_error(format!(
-                            "type `{}` has no semantic facts",
-                            ty.identity_key()
-                        ))
-                    })?;
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn validate_declared_ownership(
-        &self,
-        ty: &ResolvedType,
-        ownership: OwnershipMode,
-    ) -> Result<(), Diagnostic> {
-        if ty == &ResolvedType::Str {
-            return if ownership == OwnershipMode::Borrow {
-                Ok(())
-            } else {
-                Err(hir_error("borrowed `str` must have borrow ownership"))
-            };
-        }
-        let facts = self.program.declarations.type_facts(ty).ok_or_else(|| {
-            hir_error(format!(
-                "type `{}` has no semantic facts",
-                ty.identity_key()
-            ))
-        })?;
-        if (facts.copy && ownership != OwnershipMode::Value)
-            || (!facts.copy && ownership == OwnershipMode::Value)
-        {
-            return Err(hir_error(format!(
-                "type `{}` has an invalid ownership mode",
-                ty.identity_key()
-            )));
-        }
-        Ok(())
-    }
     fn validate_argument_ownership(
         &self,
         argument: &ResolvedExpr,

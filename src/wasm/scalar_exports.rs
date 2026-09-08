@@ -456,12 +456,29 @@ fn validate_expression_profile(
 ) -> Result<(), Diagnostic> {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
-        if expression.ownership != OwnershipMode::Value || scalar_type(&expression.ty).is_none() {
+        if expression.ownership != OwnershipMode::Value
+            || (scalar_type(&expression.ty).is_none()
+                && !hir::function_value::is_signature(&expression.ty))
+        {
             return Err(admission(format!(
                 "Public Scalar Export Profile v1 function `{function_id}` contains a non-value scalar expression"
             )));
         }
         match &expression.kind {
+            ResolvedExprKind::FunctionReference { .. }
+                if hir::function_value::is_signature(&expression.ty) => {}
+            ResolvedExprKind::FunctionReference { .. } => return Err(admission(format!(
+                "Public Scalar Export Profile v1 function `{function_id}` contains an invalid function value"
+            ))),
+            ResolvedExprKind::Invoke { callable, args }
+                if hir::function_value::is_signature(&callable.ty) =>
+            {
+                pending.push(callable);
+                pending.extend(args.iter());
+            }
+            ResolvedExprKind::Invoke { .. } => return Err(admission(format!(
+                "Public Scalar Export Profile v1 function `{function_id}` contains an invalid function invocation"
+            ))),
             ResolvedExprKind::Int(_)
             | ResolvedExprKind::Int32(_)
             | ResolvedExprKind::Char(_)
@@ -581,7 +598,8 @@ fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
         | ResolvedType::ArrayU8(_)
         | ResolvedType::Bytes
         | ResolvedType::TypeParameter { .. }
-        | ResolvedType::Nominal { .. } => None,
+        | ResolvedType::Nominal { .. }
+        | ResolvedType::Function { .. } => None,
     }
 }
 

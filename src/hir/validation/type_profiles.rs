@@ -174,6 +174,7 @@ pub(crate) fn resolved_type_contains_owned_bytes(
     let mut visited = BTreeSet::new();
     while let Some(ty) = pending.pop() {
         match ty {
+            ResolvedType::Function { .. } => {}
             ResolvedType::Bytes => return true,
             ResolvedType::Nominal {
                 declaration,

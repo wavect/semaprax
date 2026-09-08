@@ -194,6 +194,13 @@ fn normalize_template_spans(template: &mut ResolvedFunctionTemplate) {
 fn normalize_expression_spans(expression: &mut ResolvedExpr) {
     expression.span = Span::default();
     match &mut expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {}
+        ResolvedExprKind::Invoke { callable, args } => {
+            normalize_expression_spans(callable);
+            for argument in args {
+                normalize_expression_spans(argument);
+            }
+        }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)

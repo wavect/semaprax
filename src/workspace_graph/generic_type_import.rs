@@ -27,7 +27,9 @@ pub(super) fn template_is_admitted(declaration: &TypeDeclaration) -> bool {
             Type::Named { name, arguments } => {
                 arguments.is_empty() && parameters.contains(name.as_str())
             }
-            Type::String | Type::Str | Type::SliceU8 | Type::ArrayU8(_) => false,
+            Type::String | Type::Str | Type::SliceU8 | Type::ArrayU8(_) | Type::Function { .. } => {
+                false
+            }
         })
 }
 

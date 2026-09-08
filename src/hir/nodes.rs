@@ -121,6 +121,10 @@ pub struct ByteSliceProvenance {
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ResolvedType {
+    Function {
+        parameters: Vec<ResolvedType>,
+        result: Box<ResolvedType>,
+    },
     Unit,
     I64,
     /// A checked signed 32-bit integer.
@@ -177,7 +181,8 @@ impl ResolvedType {
     pub fn nominal_id(&self) -> Option<&DeclarationId> {
         match self {
             Self::Nominal { declaration, .. } => Some(declaration),
-            Self::Unit
+            Self::Function { .. }
+            | Self::Unit
             | Self::I64
             | Self::I32
             | Self::Char
@@ -200,12 +205,18 @@ impl ResolvedType {
         enum Frame<'a> {
             Enter(&'a ResolvedType),
             Finish(&'a DeclarationId, usize),
+            FinishFunction(usize),
         }
         let mut frames = vec![Frame::Enter(self)];
         let mut keys = Vec::<String>::new();
         while let Some(frame) = frames.pop() {
             match frame {
                 Frame::Enter(ty) => match ty {
+                    Self::Function { parameters, result } => {
+                        frames.push(Frame::FinishFunction(parameters.len()));
+                        frames.push(Frame::Enter(result));
+                        frames.extend(parameters.iter().rev().map(Frame::Enter));
+                    }
                     Self::Unit => keys.push("unit".to_owned()),
                     Self::I64 => keys.push("i64".to_owned()),
                     Self::I32 => keys.push("i32".to_owned()),
@@ -233,6 +244,17 @@ impl ResolvedType {
                         frames.extend(arguments.iter().rev().map(Frame::Enter));
                     }
                 },
+                Frame::FinishFunction(count) => {
+                    let split = keys
+                        .len()
+                        .checked_sub(count + 1)
+                        .expect("function key children retained");
+                    let mut key = format!("function:v1:{count}:");
+                    for child in keys.drain(split..) {
+                        write!(key, "{}:{child}", child.len()).expect("string write");
+                    }
+                    keys.push(key);
+                }
                 Frame::Finish(declaration, count) => {
                     let split = keys
                         .len()

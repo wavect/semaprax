@@ -568,6 +568,18 @@ impl FunctionPlan {
         }
 
         match &expr.kind {
+            ResolvedExprKind::Invoke { callable, args } => {
+                self.collect_expr(program, variant_layouts, callable, parameter_count, frame)?;
+                self.collect_exprs(program, variant_layouts, args, parameter_count, frame)?;
+                return Err(error(
+                    "function values require the Wasm core function-value emitter",
+                ));
+            }
+            ResolvedExprKind::FunctionReference { .. } => {
+                return Err(error(
+                    "function values require the Wasm core function-value emitter",
+                ))
+            }
             ResolvedExprKind::Call { args, .. } => {
                 self.collect_exprs(program, variant_layouts, args, parameter_count, frame)?
             }
@@ -821,6 +833,9 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
         ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => true,
         ResolvedExprKind::Call { args, .. } => args.iter().any(expression_has_try),
+        ResolvedExprKind::Invoke { callable, args } => {
+            expression_has_try(callable) || args.iter().any(expression_has_try)
+        }
         ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().any(expression_has_try),
         ResolvedExprKind::HostCommandCall(call) => call.args.iter().any(expression_has_try),
         ResolvedExprKind::ByteRange {
@@ -874,12 +889,16 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_)
-        | ResolvedExprKind::BorrowPlace { .. } => false,
+        | ResolvedExprKind::BorrowPlace { .. }
+        | ResolvedExprKind::FunctionReference { .. } => false,
     }
 }
 
 fn expression_uses_str_ops(expression: &ResolvedExpr) -> bool {
     match &expression.kind {
+        ResolvedExprKind::Invoke { callable, args } => {
+            expression_uses_str_ops(callable) || args.iter().any(expression_uses_str_ops)
+        }
         ResolvedExprKind::Call { callee, args, .. } => {
             crate::str_ops::by_id(callee.as_str()).is_some_and(|op| {
                 matches!(
@@ -953,7 +972,8 @@ fn expression_uses_str_ops(expression: &ResolvedExpr) -> bool {
         | ResolvedExprKind::RepeatArrayU8 { .. }
         | ResolvedExprKind::String(_)
         | ResolvedExprKind::Place(_)
-        | ResolvedExprKind::BorrowPlace { .. } => false,
+        | ResolvedExprKind::BorrowPlace { .. }
+        | ResolvedExprKind::FunctionReference { .. } => false,
     }
 }
 
@@ -4275,6 +4295,11 @@ impl Emitter<'_> {
 
     fn emit_complex_expr(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic> {
         match &expr.kind {
+            ResolvedExprKind::FunctionReference { .. } | ResolvedExprKind::Invoke { .. } => {
+                return Err(error(
+                    "function values require the Wasm core function-value emitter",
+                ))
+            }
             ResolvedExprKind::Int(value) => {
                 let destination = self.plan.expr_scalar(expr)?;
                 self.output.push(0x42);

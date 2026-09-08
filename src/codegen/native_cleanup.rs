@@ -580,6 +580,10 @@ fn validate_supported_type(
     context: &str,
 ) -> Result<(), Diagnostic> {
     match ty {
+        ResolvedType::Function { .. } => Err(unsupported(
+            function,
+            format!("does not support function {context} values in the cleanup proof slice"),
+        )),
         ResolvedType::Unit => Err(unsupported(
             function,
             format!("does not support a unit {context} value"),
@@ -732,6 +736,25 @@ fn validate_expression(
 ) -> Result<(), Diagnostic> {
     validate_supported_type(program, function, &expression.ty, "expression")?;
     match &expression.kind {
+        ResolvedExprKind::FunctionReference { .. } => {
+            return Err(unsupported(
+                function,
+                format!(
+                    "does not support function references in expression `{}`",
+                    expression.id
+                ),
+            ));
+        }
+        ResolvedExprKind::Invoke { callable, args } => {
+            validate_expression(program, function, callable)?;
+            for argument in args {
+                validate_expression(program, function, argument)?;
+            }
+            return Err(unsupported(
+                function,
+                format!("does not support function invocation `{}`", expression.id),
+            ));
+        }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)

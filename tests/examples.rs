@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use semaprax::{format, graph, hir, parse, verify};
+use semaprax::{graph, hir, parse, verify};
 
 #[test]
 fn every_committed_example_is_canonical_and_verified() {
@@ -15,7 +15,8 @@ fn every_committed_example_is_canonical_and_verified() {
 
     for path in paths {
         let source = std::fs::read_to_string(&path).unwrap();
-        let program = parse(&source, &path).unwrap_or_else(|error| panic!("{error}"));
+        let (program, comments) =
+            semaprax::parse_with_comments(&source, &path).unwrap_or_else(|error| panic!("{error}"));
         let diagnostics = verify::verify(&program);
         assert!(
             diagnostics.is_empty(),
@@ -26,7 +27,7 @@ fn every_committed_example_is_canonical_and_verified() {
             panic!("{} did not resolve: {diagnostics:#?}", path.display())
         });
         assert_eq!(
-            format::canonical(&program),
+            semaprax::format::comments::canonical_with_comments(&program, &comments),
             source,
             "{} is not canonical",
             path.display()
@@ -82,9 +83,10 @@ fn every_example_below_the_top_level_is_canonical() {
 
     for path in paths {
         let source = std::fs::read_to_string(&path).unwrap();
-        let program = parse(&source, &path).unwrap_or_else(|error| panic!("{error}"));
+        let (program, comments) =
+            semaprax::parse_with_comments(&source, &path).unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(
-            format::canonical(&program),
+            semaprax::format::comments::canonical_with_comments(&program, &comments),
             source,
             "{} is not canonical; run `semaprax fmt` on it",
             path.display()
@@ -106,9 +108,10 @@ fn every_standard_library_source_is_canonical() {
 
     for path in paths {
         let source = std::fs::read_to_string(&path).unwrap();
-        let program = parse(&source, &path).unwrap_or_else(|error| panic!("{error}"));
+        let (program, comments) =
+            semaprax::parse_with_comments(&source, &path).unwrap_or_else(|error| panic!("{error}"));
         assert_eq!(
-            format::canonical(&program),
+            semaprax::format::comments::canonical_with_comments(&program, &comments),
             source,
             "{} is not canonical; run `semaprax fmt` on it",
             path.display()

@@ -12,6 +12,7 @@ const RELEASE_BLOCKERS: &[&str] = &[
     "project-v1",
     "native-rust-sdk-v1",
     "verify",
+    "verify-build",
     "verify-tests",
     "desktop-native-product",
     "ios-static-cross-check",
@@ -311,4 +312,52 @@ fn aggregate_gate_rejects_failed_skipped_cancelled_missing_and_foreign_results()
         String::from_utf8_lossy(&output.stdout).trim(),
         "gate verdicts checked"
     );
+}
+
+#[test]
+fn build_validation_runs_independently_without_losing_platform_coverage() {
+    let workflow = workflow();
+    let build = job(&workflow, "verify-build");
+    let evidence = job(&workflow, "verify");
+    for lane in [build, evidence] {
+        assert!(lane.contains("os: [ubuntu-latest, macos-latest, windows-latest]"));
+        assert!(lane.contains("fail-fast: false"));
+        assert!(
+            !lane.contains("    needs:"),
+            "validation lanes must start independently"
+        );
+        assert!(lane.contains("toolchain: 1.97.1"));
+        assert!(lane.contains("CARGO_PROFILE_TEST_DEBUG: \"0\""));
+    }
+    for command in [
+        "cargo fmt --all --check",
+        "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings",
+        "cargo test --locked --workspace --all-features --doc",
+        "cargo doc --locked --workspace --all-features --no-deps",
+        "cargo build --locked --workspace --release",
+        "cargo package --locked -p semaprax",
+        "node scripts/verify-web.mjs target/control-flow-web",
+    ] {
+        assert_eq!(
+            build.matches(command).count(),
+            1,
+            "missing or duplicate {command}"
+        );
+        assert!(
+            !evidence.contains(command),
+            "build work still serializes evidence: {command}"
+        );
+    }
+    assert!(build.contains("RUSTDOCFLAGS: -D warnings"));
+    for gate in [
+        "Require Windows callable-v2 and private callable-v3 physical evidence",
+        "Require native cleanup sanitizers (Linux)",
+        "Require private Native Rust Interop ASan + UBSan round trip (Linux)",
+    ] {
+        assert!(
+            evidence.contains(gate),
+            "lost distinct physical evidence: {gate}"
+        );
+        assert!(!build.contains(gate));
+    }
 }

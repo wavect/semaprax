@@ -18,6 +18,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   [Generic Iterator Operations v1](docs/GENERIC-ITERATOR-OPERATIONS-V1.md);
   public generic ABI and hosted promotion remain separate.
 
+- Separate cross-platform Rust build validation from focused runtime evidence
+  in CI, retaining both as release blockers. Run the complete MSRV check once
+  across its four test shards and remove two identical generic-lane test
+  repetitions. Cache the pinned mdBook tool and upload the book only for Pages
+  deployment. Hosted timing and platform validation remain pending.
+
 - Add private consuming `for own` traversal over scalar iterators, including
   generic callbacks and same-owner vector accumulation. The hidden Step
   protocol preserves exact loop ownership with additive CleanupPlan v11 and

@@ -114,20 +114,23 @@ change, not a reduction in coverage.
 
 The current-toolchain Rust lane uses the same closed four-way Cargo target
 inventory on Linux, macOS, and Windows: one lib/bin shard and three integration
-target shards run in parallel, while formatting, strict Clippy, documentation,
-release builds, examples, sanitizers, and physical platform gates remain in a
-separate blocking job for each host. Windows retains its existing exclusion of
+target shards run in parallel. Focused runtime tests, sanitizers, and physical
+platform gates remain in a separate blocking evidence job for each host.
+Formatting, Clippy, doctests, rustdoc, release builds, packaging, and examples
+run in the independent `verify-build` matrix, so they no longer wait for that
+evidence. Windows retains its existing exclusion of
 the separately owned native-Rust-interop package; the router validates that
 exclusion against Cargo metadata instead of accepting a free-form omitted
 target. Unknown target kinds or package exclusions fail closed. The release
-gate requires both matrices.
+gate requires all three matrices.
 
 The Rust 1.88 minimum-version lane partitions the complete Cargo workspace
 target inventory into a lib/bin shard and three integration-target shards using
 `scripts/ci-msrv.py`. Every shard retains workspace-wide feature unification,
-locked dependencies, the all-targets/all-features check, and the 20-minute job
-limit. Matrix fail-fast is disabled so every shard reports its result after a
-peer failure. Shared integration target names stay together;
+locked dependencies, and the 20-minute job limit. The unit shard alone runs the
+whole-workspace all-targets/all-features check; repeating that identical check
+in the three integration shards adds no target coverage. Matrix fail-fast is
+disabled so every shard reports its result after a peer failure. Shared integration target names stay together;
 unknown target kinds fail closed instead of silently losing coverage. The
 release gate requires the complete matrix. This changes scheduling only, not
 the local `full` profile or any test, admission limit, or release requirement.
@@ -168,7 +171,9 @@ same harness regenerates and pins the diagnostic-help JSON from the reference's
 correction table and requires every marked failing block to have indexed help.
 The
 docs workflow builds the mdBook using the pinned version in
-`.github/workflows/docs.yml`.
+`.github/workflows/docs.yml`. The pinned mdBook installation is cached by
+version, runner OS, and architecture and its version is checked before use.
+Every Docs run still builds the book; only deployable main pushes upload it.
 
 If documentation changes a technical claim, run the evidence that owns that
 claim. Editing prose does not substitute for implementation evidence.

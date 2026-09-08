@@ -162,7 +162,6 @@ jobs:
       - name: LANG-07 owned Bytes Box transfer and failure settlement
         run: |
           cargo test --locked --offline -p semaprax --lib owned_bytes_box
-          cargo test --locked --offline -p semaprax --lib prelude::tests
           cargo test --locked --offline -p semaprax --test owned_data owned_box_bytes
           cargo test --locked --offline -p semaprax --test workspace owned_box_bytes_workspace
           cargo test --locked --offline -p semaprax --test owned_data owned_bounded_box
@@ -215,7 +214,6 @@ jobs:
           cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::copy_success_result
           cargo test --locked -p semaprax --test language owned_result_variants::mixed_owned_result_postfix_try_uses_exact_residual_profile -- --exact
           cargo test --locked -p semaprax --test ir graph_generic_results
-          cargo test --locked -p semaprax --test ir graph_generic_mapping
           cargo test --locked -p semaprax --test workspace canonical_revision::generic_instances::explicit_forwarding_program_root_binds_v35_symbolic_mapping -- --exact
           cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::mixed_result
           cargo test --locked -p semaprax --lib cleanup_plan::replay::mixed_result_tests::mixed_result_residual_replay_keeps_empty_error_cases_and_rejects_missing_transfer -- --exact
@@ -670,7 +668,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
         with:
           toolchain: 1.97.1
-          components: rustfmt, clippy
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -743,8 +740,6 @@ jobs:
         run: cargo fetch --locked
       - name: Fetch the standalone owned-data Rust setup dependency closure
         run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
-      - run: cargo fmt --all --check
-      - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - name: Execute source Agent lifecycle
         if: runner.os == 'Linux'
         run: |
@@ -920,6 +915,115 @@ jobs:
           ASAN_OPTIONS: detect_leaks=0:halt_on_error=1:abort_on_error=1
           UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
         run: cargo test --locked -p semaprax-native-rust-interop --lib implementation::tests::linked_bridge_round_trips_rust_to_semaprax_to_rust_and_closes_failures -- --exact --nocapture
+
+  verify-build:
+    name: Rust build ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      # Keep the test compiler inside the cache host's 256-MiB executable bound
+      # and avoid linking debug symbols into every integration-test binary.
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Allow Windows to check out long evidence paths
+        shell: bash
+        run: |
+          # Guarded here rather than with a step-level runner condition:
+          # tests/native_rust_interop_ci_contract.rs pins the exact number of
+          # Windows-gated steps in the Public SDK job, and this one is
+          # incidental to that contract's subject.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Resolve the real held rustc image (Unix)
+        if: runner.os != 'Windows'
+        run: echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
+      - name: Resolve the held Clang and deterministic archiver images (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          clang_path="$(command -v clang)"
+          test -x "$clang_path"
+          echo "CLANG=$clang_path" >> "$GITHUB_ENV"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            archiver_path=/usr/bin/libtool
+          else
+            archiver_path="$(readlink -f /usr/bin/ar)"
+          fi
+          test -x "$archiver_path"
+          echo "SEMAPRAX_ARCHIVER=$archiver_path" >> "$GITHUB_ENV"
+      - name: Resolve the real held rustc image (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "RUSTC=$(rustup which rustc)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Keep Windows compiler and test artifacts compact
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "CARGO_PROFILE_DEV_DEBUG=0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CARGO_PROFILE_TEST_DEBUG=0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CARGO_INCREMENTAL=0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Resolve the authenticated Windows SDK and MSVC environment
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSINSTALL=%%i"
+          if not defined VSINSTALL exit /b 1
+          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -no_logo -arch=x64 -host_arch=x64
+          if not defined VCToolsInstallDir exit /b 1
+          set "SEMAPRAX_VCTOOLS=%VCToolsInstallDir%"
+          if "%SEMAPRAX_VCTOOLS:~-1%"=="\" set "SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS:~0,-1%"
+          set "SEMAPRAX_LINKER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\link.exe"
+          set "SEMAPRAX_ARCHIVER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\lib.exe"
+          if not exist "%SEMAPRAX_VCTOOLS%" exit /b 1
+          if not exist "%SEMAPRAX_LINKER%" exit /b 1
+          if not exist "%SEMAPRAX_ARCHIVER%" exit /b 1
+          echo INCLUDE=%INCLUDE%>>"%GITHUB_ENV%"
+          echo LIB=%LIB%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_ARCHIVER=%SEMAPRAX_ARCHIVER%>>"%GITHUB_ENV%"
+          echo CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
+          echo LINK=>>"%GITHUB_ENV%"
+          echo _LINK_=>>"%GITHUB_ENV%"
+      - name: Resolve the held Clang image (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $clang = (Get-Command clang.exe -ErrorAction Stop).Source
+          if (-not [System.IO.Path]::IsPathFullyQualified($clang)) { throw "clang path is not absolute" }
+          "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Provision the native HTTPS development interface (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev
+      - name: Fetch the complete locked workspace dependency closure
+        run: cargo fetch --locked
+      - name: Fetch the standalone owned-data Rust setup dependency closure
+        run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
+      - run: cargo fmt --all --check
+      - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - run: cargo test --locked --workspace --all-features --doc
       - run: cargo doc --locked --workspace --all-features --no-deps
         env:
@@ -1422,7 +1526,9 @@ jobs:
         run: cargo fetch --locked
       - name: Fetch the standalone owned-data Rust setup dependency closure
         run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
-      - run: cargo check --locked --workspace --all-targets --all-features
+      - name: Check every workspace target once on the minimum toolchain
+        if: matrix.shard == 'unit'
+        run: cargo check --locked --workspace --all-targets --all-features
       - name: Test the complete workspace target shard
         run: python3 scripts/ci-msrv.py --shard "${{ matrix.shard }}"
 
@@ -1444,6 +1550,7 @@ jobs:
       - project-v1
       - native-rust-sdk-v1
       - verify
+      - verify-build
       - verify-tests
       - desktop-native-product
       - ios-static-cross-check
@@ -1467,7 +1574,7 @@ jobs:
           SEMAPRAX_CI_NEEDS: ${{ toJSON(needs) }}
         run: |
           python3 scripts/ci-required-checks.py \
-            --min-jobs 18 \
+            --min-jobs 19 \
             --sha "${{ github.sha }}" \
             --head-sha "$(git rev-parse HEAD)"
 

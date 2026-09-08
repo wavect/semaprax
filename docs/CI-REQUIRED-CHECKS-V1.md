@@ -93,7 +93,8 @@ after the rule is switched on.
 The names below are what CI actually publishes, read from the live check runs on
 `main` at the timestamp above and cross-checked against the workflow's matrix
 expansion. A ruleset matches a check by this exact string, so the inventory is
-recorded rather than paraphrased.
+recorded rather than paraphrased. The `verify-build` row is an authored
+addition awaiting hosted execution.
 
 ```sh
 gh api repos/wavect/semaprax/commits/main/check-runs \
@@ -109,6 +110,7 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | `project-v1` | `Project Manifest v1 (ubuntu-24.04 \| macos-15 \| windows-2025)` | 3 |
 | `native-rust-sdk-v1` | `Public Native Rust SDK v1 (ubuntu-latest \| macos-latest \| windows-latest)` | 3 |
 | `verify` | `Rust ubuntu-latest`, `Rust macos-latest`, `Rust windows-latest` | 3 |
+| `verify-build` | `Rust build ubuntu-latest`, `Rust build macos-latest`, `Rust build windows-latest` | 3 |
 | `verify-tests` | `Rust tests <os> (unit \| integration-0 \| integration-1 \| integration-2)` over the three hosts | 12 |
 | `desktop-native-product` | `Private desktop + native UI product (windows-2025 \| macos-15)` | 2 |
 | `ios-static-cross-check` | `Private iOS static loader + host runtime` | 1 |
@@ -120,15 +122,18 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | `msrv` | `Rust 1.88 minimum (unit \| integration-0 \| integration-1 \| integration-2)` | 4 |
 | `release-gate` | **`Release gate`** | 1 |
 
-That is 40 blocking contexts plus the aggregate. `release-artifacts`
+The authored workflow additionally includes the three AGENT-06 client contexts
+and the GEN-05B closure context. With `verify-build`, it declares 47 blocking
+contexts plus the aggregate; the new build contexts await hosted execution.
+`release-artifacts`
 (`Release artifact (<target>)`) and `publish-release` (`Publish tag release`)
 run only on `refs/tags/v*` and are not candidates for a branch rule. The `Docs`
 workflow adds `Build book` and, on `main` pushes only, `Deploy to GitHub Pages`.
 
 ## The aggregate gate
 
-`.github/workflows/ci.yml` shards across nineteen jobs whose names and matrix
-legs change often. Pinning nineteen-plus expanded context names into a ruleset
+`.github/workflows/ci.yml` shards across nineteen blocking jobs whose names and
+matrix legs change often. Pinning nineteen-plus expanded context names into a ruleset
 would make every sharding change a repository-administration change. The
 proposal requires exactly one context instead: **`Release gate`**, the job that
 already aggregates every release blocker.
@@ -142,7 +147,7 @@ An aggregate is only worth requiring if it cannot be satisfied vacuously. The
   environment, and fails unless **every** upstream entry has
   `result == "success"` -- `failure`, `skipped`, and `cancelled` are all
   rejected by name;
-- passes `--min-jobs 18`, so an accidentally emptied or narrowed `needs:` list
+- passes `--min-jobs 19`, so an accidentally emptied or narrowed `needs:` list
   cannot pass vacuously on `{}`;
 - checks out the repository and compares `git rev-parse HEAD` against
   `${{ github.sha }}`, so a verdict cannot be attributed to another commit.
@@ -205,7 +210,8 @@ proposed as a required context, because its `push` trigger is filtered to
 never carry a `Build book` result, and the rule would be unsatisfiable for
 exactly the route this proposal preserves.
 Making it required means first widening that trigger to every branch, which adds
-a `cargo install --locked mdbook` to every branch push. That trade is a
+a book build to every branch push (the pinned mdBook installation is cached).
+That trade is a
 maintainer decision and is deliberately left open rather than made here.
 Documentation regressions are already caught locally by `tests/documentation.rs`
 per [Quality gates](QUALITY-GATES.md#documentation-changes).

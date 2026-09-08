@@ -159,6 +159,8 @@ fn msrv_matrix_preserves_checks_timeout_complete_results_and_release_dependency(
     ] {
         assert!(msrv.contains(required), "missing MSRV contract: {required}");
     }
+    assert!(msrv.contains("if: matrix.shard == 'unit'\n        run: cargo check --locked --workspace --all-targets --all-features"));
+    assert_eq!(msrv.matches("run: cargo check ").count(), 1);
     assert!(msrv.find("cargo check").unwrap() < msrv.find("python3 scripts/ci-msrv.py").unwrap());
     for forbidden in [
         "continue-on-error",

@@ -6,3 +6,8 @@ pub use crate::execution_revision::typed::{
 };
 
 pub mod checkpoint;
+
+pub use crate::execution_revision::typed::{
+    migrate_suspended_agent_runtime_v2, AgentRuntimeV2MigrationEvidence,
+    AgentRuntimeV2MigrationFailure, MigratedAgentRuntimeV2,
+};

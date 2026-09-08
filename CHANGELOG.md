@@ -8,6 +8,19 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added exact argument-directed generic inference at monomorphic call sites,
+  preserving explicit concrete HIR instances and ownership transfer boundaries.
+  Seven language checks, private ProgramRoot replay and all-eight-scalar runtime
+  success/failure settlement pass locally.
+- Added consuming State migration from actual durable Suspend evidence into a
+  differently rooted retained Agent, through a pure checked function replayed
+  twice. Destination execution skips initialize, binds fresh authorizations and
+  retains prior call, byte, stage and fuel charges, including failed migration
+  fuel reservations. Focused unit and joined-runtime checks pass locally.
+- Fixed YAML interpretation of unquoted Rust test-prefix selectors in CI run
+  steps; GitHub had rejected the workflow before creating jobs. Added focused
+  inference and migration selectors. Hosted execution remains unobserved.
+
 - Added trusted-store checkpoints around each typed iterative effect, with
   persisted stage fuel reservations, intent/observation/transition generations,
   exact call and byte accounting, fresh-authorized recovery, and fail-closed

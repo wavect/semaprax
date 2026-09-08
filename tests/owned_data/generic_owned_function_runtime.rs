@@ -960,3 +960,6 @@ mod collections;
 
 #[path = "generic_owned_function_runtime/authored_variants.rs"]
 mod authored_variants;
+
+#[path = "generic_owned_function_runtime/inference.rs"]
+mod inference;

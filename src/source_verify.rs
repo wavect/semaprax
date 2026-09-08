@@ -31,6 +31,7 @@ mod capacity;
 mod declaration;
 mod declared_type;
 mod diagnostics;
+mod generic_inference;
 mod hints;
 mod iterative;
 mod loans;

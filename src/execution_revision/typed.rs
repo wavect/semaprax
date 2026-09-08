@@ -239,3 +239,10 @@ pub fn bind_agent_runtime_v2(
 #[path = "typed_durable.rs"]
 mod durable;
 pub use durable::AgentRuntimeV2DurableEvidence;
+
+#[path = "typed_migration.rs"]
+pub(crate) mod migration;
+pub use migration::{
+    migrate_suspended_agent_runtime_v2, AgentRuntimeV2MigrationEvidence,
+    AgentRuntimeV2MigrationFailure, MigratedAgentRuntimeV2,
+};

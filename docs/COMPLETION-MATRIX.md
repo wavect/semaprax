@@ -51,7 +51,11 @@ host calls, changed-task rejection and intent/observation lost-ack recovery.
 local execution checks and eight decoder checks: every retained stage reserves
 fuel before execution; every effect persists intent, observation and checked
 transition; trusted-store recovery replays under fresh grants and never
-automatically dispatches an uncertain intent. State migration remains open. [Execution-root association](EXECUTION-ROOT-ASSOCIATION-V1.md)
+automatically dispatches an uncertain intent. [State migration v2](AGENT-STATE-MIGRATION-V2.md)
+now passes a checked pure migration and actual old/new ProgramRoot integration,
+carrying cumulative usage into fresh-authorized continuation without initialize.
+Persisted migration handoff, recovery of the continuation and repeated chains
+remain open. [Execution-root association](EXECUTION-ROOT-ASSOCIATION-V1.md)
 now has locally passing V1/V2/V3 and iterative invocation association tests.
 [Generic compiler collections](GENERIC-COMPILER-COLLECTIONS-V1.md) pass focused
 source/HIR/graph, ProgramRoot replay, and interpreter/C11 O0/O2/Core-Wasm
@@ -64,6 +68,12 @@ public-profile rejection pass after the HIR linker admission fix. The generated 
 client CI matrix is authored for Linux, macOS and Windows; exact-head hosted
 evidence remains unobserved. These additions do not complete the programme rows
 or widen the public generic boundary.
+
+[Argument inference v1](GENERIC-ARGUMENT-INFERENCE-V1.md) now passes seven
+source/HIR/graph checks, private ProgramRoot replay, and all-eight-scalar
+ownership settlement on interpreter, native O0/O2 and Core Wasm. It derives one
+Copy parameter from exact argument types at monomorphic call sites; broader
+inference and constraints remain open.
 
 ## Current summary
 

@@ -440,6 +440,18 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             }
                             return Some(VerifierFunctionSignature::Borrowed(target));
                         }
+                        let inferred_arguments;
+                        let type_arguments = if type_arguments.is_empty() {
+                            inferred_arguments = crate::source_verify::generic_inference::arguments(
+                                self.current,
+                                target,
+                                args,
+                                &self.scopes[scope].bindings,
+                            );
+                            inferred_arguments.as_deref().unwrap_or(type_arguments)
+                        } else {
+                            type_arguments
+                        };
                         if type_arguments.len() != target.type_parameters.len() {
                             self.diagnostics.push(error(
                                 self.program,

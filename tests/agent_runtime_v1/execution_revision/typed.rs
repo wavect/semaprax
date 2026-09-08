@@ -205,3 +205,6 @@ fn direct_runtime_v2_consumes_typed_product_and_binds_actual_producer() {
 
 #[path = "typed/durable.rs"]
 mod durable;
+
+#[path = "typed/migration.rs"]
+mod migration;

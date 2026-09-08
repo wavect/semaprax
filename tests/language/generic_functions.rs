@@ -1249,12 +1249,20 @@ module test.same_signature_instances;
 
 #[test]
 fn generic_function_hostiles_are_stable_and_fail_closed() {
-    let inference = r#"
-module test.generic_inference;
+    let generic_caller_inference = r#"
+module test.generic_inference_generic_caller;
 @id("test.id") fn id<T>(value: T) -> T { value }
-@id("app.main") fn main() -> i64 { id(1) }
+@id("test.outer") fn outer<U>(value: U) -> U { id(value) }
+@id("app.main") fn main() -> i64 { 0 }
 "#;
-    assert!(error_codes(inference).contains(&"SPX-T225"));
+    assert!(error_codes(generic_caller_inference).contains(&"SPX-T225"));
+
+    let expression_inference = r#"
+module test.generic_inference_expression;
+@id("test.id") fn id<T>(value: T) -> T { value }
+@id("app.main") fn main() -> i64 { id(1 + 2) }
+"#;
+    assert!(error_codes(expression_inference).contains(&"SPX-T225"));
 
     let indirect_cycle = r#"
 module test.generic_cycle;

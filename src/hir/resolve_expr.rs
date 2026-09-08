@@ -15,8 +15,8 @@ use super::expr_nodes::{
     PatternValue, ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer, ResolvedMatchArm,
     ResolvedMatchPattern, ResolvedMatchPatternField, ResolvedStatement,
 };
-use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, FunctionInstanceId, ValueId};
-use super::monomorphize::{substitute_source_function_type, substitute_type};
+use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, ValueId};
+use super::monomorphize::substitute_type;
 use super::nodes::{
     is_scalar_resolved_type, DeclarationKind, OwnershipMode, ResolvedBinding,
     ResolvedHostCommandCall, ResolvedImportResultKind, ResolvedMatchMode,
@@ -377,60 +377,15 @@ impl Resolver<'_> {
                                         expr.span,
                                     )
                                 })?;
-                            let resolved_arguments = type_arguments
-                                .iter()
-                                .map(|argument| {
-                                    self.resolve_call_type_argument(function, argument, expr.span)
-                                })
-                                .collect::<Result<Vec<_>, _>>()?;
-                            let (instance, return_source_type) = if target
-                                .type_parameters
-                                .is_empty()
-                            {
-                                if !resolved_arguments.is_empty() {
-                                    return Err(self.error(
-                                        "SPX-H006",
-                                        format!(
-                                            "monomorphic function `{template}` has type arguments"
-                                        ),
-                                        expr.span,
-                                    ));
-                                }
-                                (None, target.return_type.clone())
-                            } else {
-                                if resolved_arguments.len() != target.type_parameters.len()
-                                    || !self.generic_function_arguments_are_admitted(
-                                        function,
-                                        target,
-                                        &resolved_arguments,
-                                    )?
-                                {
-                                    return Err(self.error(
-                                            "SPX-H006",
-                                            format!(
-                                                "generic function `{template}` has invalid type arguments"
-                                            ),
-                                            expr.span,
-                                        ));
-                                }
-                                let instance =
-                                    FunctionInstanceId::derive(&template, &resolved_arguments);
-                                let return_type = substitute_source_function_type(
-                                        target,
-                                        type_arguments,
-                                        &target.return_type,
-                                    )
-                                    .ok_or_else(|| {
-                                        self.error(
-                                            "SPX-H006",
-                                            format!(
-                                                "generic function `{template}` return substitution failed"
-                                            ),
-                                            expr.span,
-                                        )
-                                    })?;
-                                (Some(instance), return_type)
-                            };
+                            let (resolved_arguments, instance, return_source_type) = self
+                                .ordinary_call_signature(
+                                    function,
+                                    target,
+                                    type_arguments,
+                                    args,
+                                    &bindings,
+                                    expr.span,
+                                )?;
                             frames.push(Frame::FinishCall {
                                 span: expr.span,
                                 path: path.clone(),

@@ -2344,3 +2344,16 @@ the contract binds the complete module. Use **original source order**, not the
 alphabetical order `mod` declarations are formatted into, whenever the contract
 slices a region between two markers. `tests/source_locked_contracts.rs` fails
 when a reader binds a module root but not its submodules.
+
+
+The bounded generic inference helpers in `source_verify/generic_inference` and
+`hir/generic_inference` independently unify exact argument types before normal
+argument evaluation. They retain the explicit concrete instance representation;
+source and graph replay remain bound to each projection's own source revision.
+
+`execution_revision/typed_migration` consumes actual durable suspension evidence,
+rechecks old/new retained State schemas and executes the pure migration. Its
+private `MigrationSeed` is the only initial-state entry to the iterative driver;
+`iterative/effects/continuation` carries cumulative usage and binds subsequent
+execution to that seed. Submitted JSON cannot construct a seed. The current
+continuation is in-memory and does not provide persisted migration recovery.

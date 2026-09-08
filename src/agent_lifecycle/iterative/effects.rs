@@ -1,9 +1,10 @@
 //! Additive typed host boundary bound to exact deployed tool contracts.
 //! Reducers retain Outcome{Bytes,i64}; Bytes contains the canonical typed result.
+pub(crate) mod continuation;
 use super::*;
 pub mod durable;
-pub use durable::{DurableTypedFailure, DurableTypedRun};
 use crate::agent_deployment::BoundAgentDeployment;
+pub use durable::{DurableTypedFailure, DurableTypedRun};
 use serde_json::Value;
 use std::collections::BTreeSet;
 

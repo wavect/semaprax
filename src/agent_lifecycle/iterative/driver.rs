@@ -98,6 +98,30 @@ impl CompiledIterativeLifecycle {
         budget: IterativeBudget,
         cancellation: &AgentCancellation,
     ) -> Result<IterativeRun, DriverFailure> {
+        self.run_with_driver_initial(task, proposals, driver, budget, cancellation, None)
+    }
+
+    pub(crate) fn run_with_driver_seed(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        driver: &mut dyn IterativeDriver,
+        budget: IterativeBudget,
+        cancellation: &AgentCancellation,
+        seed: &crate::execution_revision::typed::migration::MigrationSeed,
+    ) -> Result<IterativeRun, DriverFailure> {
+        self.run_with_driver_initial(task, proposals, driver, budget, cancellation, Some(seed))
+    }
+
+    fn run_with_driver_initial(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        driver: &mut dyn IterativeDriver,
+        budget: IterativeBudget,
+        cancellation: &AgentCancellation,
+        seed: Option<&crate::execution_revision::typed::migration::MigrationSeed>,
+    ) -> Result<IterativeRun, DriverFailure> {
         if budget.max_iterations > 4096 || budget.max_stages > 12289 {
             return Err(vec![bad("budget.capacity")].into());
         }
@@ -109,7 +133,19 @@ impl CompiledIterativeLifecycle {
             effects: 0,
             value: None,
             authorization_bindings: Vec::new(),
-            invocation_digest: invocation_digest(task, proposals, budget),
+            invocation_digest: match seed {
+                None => invocation_digest(task, proposals, budget),
+                Some(seed) => digest(
+                    b"semaprax.agent-migrated-invocation.v1\0",
+                    format!(
+                        "{}\0{}\0{}",
+                        invocation_digest(task, proposals, budget),
+                        seed.binding_digest(),
+                        encode_value(seed.value())
+                    )
+                    .as_bytes(),
+                ),
+            },
             evidence: String::new(),
             digest: String::new(),
         };
@@ -148,14 +184,17 @@ impl CompiledIterativeLifecycle {
         if budget.max_iterations == 0 {
             stop!(IterativeStatus::BudgetExhausted, None);
         }
-        let mut state = evaluate!(
-            &inner.binding.initialize,
-            &[payload(
-                &inner.binding.task,
-                task.objective.clone(),
-                task.budget
-            )]
-        );
+        let mut state = match seed {
+            Some(seed) => seed.value().clone(),
+            None => evaluate!(
+                &inner.binding.initialize,
+                &[payload(
+                    &inner.binding.task,
+                    task.objective.clone(),
+                    task.budget
+                )]
+            ),
+        };
         if !inner.carries(&state, "state") {
             return Err(vec![bad("initialize.identity")].into());
         }
@@ -181,6 +220,13 @@ impl CompiledIterativeLifecycle {
                 b"semaprax.agent-iteration-policy.v2\0",
                 format!("{}\0{}", self.digest(), run.iterations).as_bytes(),
             );
+            let policy = match seed {
+                None => policy,
+                Some(seed) => digest(
+                    b"semaprax.agent-migrated-iteration-policy.v1\0",
+                    format!("{}\0{}", policy, seed.binding_digest()).as_bytes(),
+                ),
+            };
             let mut args = vec![state.clone()];
             args.extend(projected.iter().cloned());
             driver.before_stage("authorize", run.iterations, budget.max_steps_per_stage)?;

@@ -51,10 +51,12 @@ jobs:
         run: |
           cargo test --locked --offline -p semaprax --lib agent_lifecycle::iterative::
           cargo test --locked --offline -p semaprax --lib agent_runtime_v2::checkpoint::tests
+          cargo test --locked --offline -p semaprax --lib execution_revision::typed::migration::tests
           cargo test --locked --offline -p semaprax --lib retained_copy_record_calls_return_exact_fields_and_reject_forged_values
       - name: Check retained Project and iterative runtime root association
         if: runner.os != 'Windows'
-        run: cargo test --locked --offline -p semaprax --test agent_runtime_v1 execution_revision::
+        run: |
+          cargo test --locked --offline -p semaprax --test agent_runtime_v1 execution_revision::
 
   gen05b-generic-instance-closure:
     name: GEN-05B generic instance semantic closure
@@ -139,6 +141,13 @@ jobs:
           cargo test --locked --offline -p semaprax --test language generic_collections_next
           cargo test --locked --offline -p semaprax --test workspace generic_collections_program_root_replays_private_owned_carriers
           cargo test --locked --offline -p semaprax --test owned_data generic_collections_all_scalars_execute_on_every_engine
+
+      - name: GEN-06 exact argument inference
+        run: |
+          cargo test --locked --offline -p semaprax --test language generic_argument_inference
+          cargo test --locked --offline -p semaprax --test language generic_function_hostiles_are_stable_and_fail_closed
+          cargo test --locked --offline -p semaprax --test workspace inferred_generic_instance
+          cargo test --locked --offline -p semaprax --test owned_data inferred_owned_calls
 
       - name: GEN-06 authored generic variant ownership
         run: |
@@ -695,7 +704,8 @@ jobs:
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - name: Execute source Agent lifecycle
         if: runner.os == 'Linux'
-        run: cargo test --locked --offline -p semaprax --test agent_runtime_v1 source_agent_lifecycle:: -- --nocapture
+        run: |
+          cargo test --locked --offline -p semaprax --test agent_runtime_v1 source_agent_lifecycle:: -- --nocapture
       - name: Require nested generic-owned relay and forwarding on every internal backend
         if: runner.os == 'Linux'
         env:

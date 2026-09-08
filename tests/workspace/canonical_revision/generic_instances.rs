@@ -27,6 +27,113 @@ module fixture.app;
     fixture
 }
 
+fn inferred_fixture(label: &str, explicit: bool) -> Fixture {
+    let fixture = Fixture::owned_vec(label, false);
+    let arguments = if explicit { "<bool>" } else { "" };
+    let source = format!(
+        r#"
+module fixture.app;
+@id("inferred.pair") record Pair<T, U> {{
+ @id("inferred.payload") payload: T,
+ @id("inferred.marker") marker: U,
+}}
+@id("inferred.relay") fn relay<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ value }}
+@id("inferred.main") fn main() -> i64 {{
+ let input = [1u8];
+ let value = relay{arguments}(Pair<Bytes, bool> {{ payload: bytes_copy(array_as_slice(input)), marker: true }});
+ match own value {{ Pair {{ payload, marker }} => if marker {{ 0 }} else {{ 1 }}, }}
+}}
+@id("fixture.public") fn published() -> i64 {{ 0 }}
+"#
+    );
+    let parsed = semaprax::parse(&source, fixture.0.join("src/app.spx")).unwrap();
+    std::fs::write(
+        fixture.0.join("src/app.spx"),
+        semaprax::format::canonical(&parsed),
+    )
+    .unwrap();
+    fixture
+}
+
+#[test]
+fn inferred_generic_instance_program_roots_replay_their_own_source() {
+    let explicit = inferred_fixture("generic-inference-explicit", true);
+    let inferred = inferred_fixture("generic-inference-omitted", false);
+    let explicit_revision = explicit.revision();
+    let inferred_revision = inferred.revision();
+    let explicit_workspace = explicit_revision.canonical_workspace_revision().unwrap();
+    let inferred_workspace = inferred_revision.canonical_workspace_revision().unwrap();
+    let instances = |workspace: &SemanticWorkspaceRevision| {
+        let node: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+        node["payload"]["generic_instance_closures"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|closure| {
+                let graph: Value =
+                    serde_json::from_str(closure["graph"].as_str().unwrap()).unwrap();
+                graph["generic_instance_ownership"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|instance| {
+                        for key in [
+                            "template",
+                            "type_arguments",
+                            "execution_instance",
+                            "parameters",
+                            "result",
+                            "cleanup_plan_schema",
+                        ] {
+                            assert!(!instance[key].is_null(), "missing checked fact {key}");
+                        }
+                        json!([
+                            instance["template"],
+                            instance["type_arguments"],
+                            instance["execution_instance"],
+                            instance["parameters"],
+                            instance["result"],
+                            instance["cleanup_plan_schema"],
+                            instance["cleanup_inventory"],
+                            instance["cleanup_plan"],
+                        ])
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
+    };
+    let inferred_instances = instances(&inferred_workspace);
+    assert!(!inferred_instances.is_empty());
+    assert_eq!(inferred_instances, instances(&explicit_workspace));
+    assert_ne!(
+        inferred_workspace.source_projection_digest(),
+        explicit_workspace.source_projection_digest()
+    );
+    let inferred_root = inferred_workspace.program_root().unwrap();
+    let explicit_root = explicit_workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &inferred_workspace,
+            inferred_root.program_root_digest(),
+            inferred_root.to_json().as_bytes(),
+        )
+        .unwrap(),
+        inferred_root
+    );
+    assert!(ProgramRoot::replay(
+        &explicit_workspace,
+        inferred_root.program_root_digest(),
+        inferred_root.to_json().as_bytes(),
+    )
+    .is_err());
+    assert!(ProgramRoot::replay(
+        &inferred_workspace,
+        explicit_root.program_root_digest(),
+        explicit_root.to_json().as_bytes(),
+    )
+    .is_err());
+}
+
 #[test]
 fn generic_instance_program_root_binds_checked_ownership_and_rejects_cross_pairs() {
     let first = fixture("generic-first", true);

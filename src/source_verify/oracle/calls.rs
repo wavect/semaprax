@@ -291,6 +291,15 @@ pub(super) fn oracle_call(
             }
             return Some(target.clone());
         }
+        let inferred_arguments;
+        let type_arguments = if type_arguments.is_empty() {
+            inferred_arguments = crate::source_verify::generic_inference::arguments(
+                current, target, args, variables,
+            );
+            inferred_arguments.as_deref().unwrap_or(type_arguments)
+        } else {
+            type_arguments
+        };
         if type_arguments.len() != target.type_parameters.len() {
             diagnostics.push(
                 error(

@@ -2199,7 +2199,6 @@ impl WorkspaceGraphBuild {
             shared_prelude_ids: self.hir.shared_prelude_ids.into_iter().collect(),
         })
     }
-
     fn validate_entire_project_workspace(
         &self,
         entry_module: &str,
@@ -2350,7 +2349,8 @@ impl WorkspaceGraphBuild {
                 );
                 let signature_admitted = class_method
                     || (profile == crate::project::ProjectProfile::ScalarV1
-                        && hir::generic_result::concrete_signature(function))
+                        && (hir::generic_result::concrete_signature(function)
+                            || hir::generic_collection::concrete_signature(function)))
                     || (admitted_return && function.params.iter().all(admitted_parameter));
                 if !signature_admitted {
                     return Err(vec![Diagnostic::error(

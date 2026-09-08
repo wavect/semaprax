@@ -123,3 +123,6 @@ mod generic_record_composition_next;
 
 #[path = "language/generic_multi_owner_next.rs"]
 mod generic_multi_owner_next;
+
+#[path = "language/generic_collections_next.rs"]
+mod generic_collections_next;

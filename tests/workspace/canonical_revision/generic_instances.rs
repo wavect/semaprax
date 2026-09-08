@@ -472,3 +472,60 @@ fn explicit_forwarding_program_root_binds_v35_symbolic_mapping() {
     )
     .is_err());
 }
+
+#[test]
+fn generic_collections_program_root_replays_private_owned_carriers() {
+    let fixture = Fixture::owned_vec("generic-collections-root", false);
+    let text = r#"module fixture.app;
+@id("fixture.make") fn make<T>(value:T)->Box<T> {box_new<T>(value)}
+@id("fixture.take") fn take<T>(value:own Box<T>)->T {box_into_inner<T>(value)}
+@id("fixture.vector") fn vector<T>(value:T)->Vec<T> {vec_push<T>(vec_with_capacity<T>(1usize),value)}
+@id("fixture.read") fn read<T>(value:own Vec<T>)->T {vec_get<T>(value,0usize)}
+@id("fixture.main") fn main()->i64 {read<i64>(vector<i64>(take<i64>(make<i64>(7))))}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+    let path = fixture.0.join("src/app.spx");
+    let parsed = semaprax::parse(text, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let node: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    assert!(!node["payload"]["generic_instance_closures"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
+    assert_eq!(
+        SemanticWorkspaceRevision::replay(
+            &revision,
+            workspace.workspace_revision(),
+            workspace.to_json().as_bytes()
+        )
+        .unwrap(),
+        workspace
+    );
+    let public_owner = text.replace(
+        "fn published()->i64 {0}",
+        "fn published()->Box<i64> {make<i64>(7)}",
+    );
+    let parsed = semaprax::parse(&public_owner, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let errors = with_authenticated_project(&fixture.manifest(), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .err()
+    .expect("scalar public boundary must reject Box");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-H006"),
+        "{errors:?}"
+    );
+}

@@ -53,6 +53,7 @@ use crate::interpreter::retained_call::{
 
 pub mod authorization;
 pub mod durable;
+pub mod iterative;
 mod source;
 mod stages;
 

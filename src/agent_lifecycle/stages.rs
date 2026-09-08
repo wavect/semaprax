@@ -599,6 +599,15 @@ pub(super) fn bind(
     type_ids: &[(&'static str, String)],
     operation_ids: &[(&'static str, String)],
 ) -> Result<StageBinding, Vec<Diagnostic>> {
+    bind_with_step_result(program, type_ids, operation_ids, None)
+}
+
+pub(super) fn bind_with_step_result(
+    program: &hir::ResolvedProgram,
+    type_ids: &[(&'static str, String)],
+    operation_ids: &[(&'static str, String)],
+    step: Option<&DeclarationId>,
+) -> Result<StageBinding, Vec<Diagnostic>> {
     let mut types = Vec::with_capacity(TYPE_ROLES.len());
     for role in TYPE_ROLES {
         let id = type_ids
@@ -685,7 +694,8 @@ pub(super) fn bind(
         "reduce.outcome",
     )
     .map_err(|error| vec![error])?;
-    result(reduce_fn, &nominal(&types[5].1), "reduce").map_err(|error| vec![error])?;
+    result(reduce_fn, &nominal(step.unwrap_or(&types[5].1)), "reduce")
+        .map_err(|error| vec![error])?;
 
     let order = topological_order(&ALL_ROLES, &stage_edges())
         .ok_or_else(|| vec![invariant("stage_graph.acyclic")])?;

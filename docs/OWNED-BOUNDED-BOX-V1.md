@@ -14,6 +14,9 @@ shared-ownership model.
 `Box<T>` is the compiler-owned nominal type with stable identity `core.box`.
 `T` is exactly one of `i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, or
 `bool`; every operation spells that type argument explicitly.
+[Generic Compiler Collections v1](GENERIC-COMPILER-COLLECTIONS-V1.md) adds private
+function composition over these exact carriers and all eight substitutions;
+it does not change allocation or public ABI contracts.
 
 | Source | Stable identity | Signature |
 | --- | --- | --- |

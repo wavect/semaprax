@@ -626,6 +626,7 @@ mod iterative_validator_tests;
 #[path = "hir/record_tests.rs"]
 mod record_tests;
 
+pub(crate) mod generic_collection;
 pub(crate) mod generic_result;
 
 pub(crate) mod generic_mapping;

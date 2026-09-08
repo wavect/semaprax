@@ -954,3 +954,6 @@ fn generic_forwarding_instance_closure_bound_is_exact() {
         "{errors:?}"
     );
 }
+
+#[path = "generic_owned_function_runtime/collections.rs"]
+mod collections;

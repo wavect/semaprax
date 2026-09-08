@@ -19,12 +19,14 @@ pub(super) fn instance_is_admitted(
             .iter()
             .find(|template| template.id == instance.template)
             .is_some_and(|template| {
-                crate::box_ops::hir_wrapper_in_program(program, template).is_some()
-                    && crate::box_ops::hir_arguments_are_admitted(
-                        program,
-                        template,
-                        &instance.type_arguments,
-                    )
+                (crate::hir::generic_collection::profile(template)
+                    && crate::hir::generic_collection::arguments(&instance.type_arguments)
+                    || crate::box_ops::hir_wrapper_in_program(program, template).is_some()
+                        && crate::box_ops::hir_arguments_are_admitted(
+                            program,
+                            template,
+                            &instance.type_arguments,
+                        ))
                     && crate::hir::is_exact_materialized_function_instance(template, instance)
             })
 }
@@ -165,5 +167,69 @@ impl Evaluator<'_> {
                     .ok_or(Flow::Guard("empty bounded Box carrier"))
             }
         }
+    }
+}
+
+/// Reconstruct only the existing finite Box/Vec tables. The envelope verifier
+/// independently compares schema, class, and retryability to this rendering.
+pub(super) fn rebuild_collection_status(
+    domain: Option<&str>,
+    code: u64,
+) -> Result<String, crate::diagnostic::Diagnostic> {
+    let admitted = match domain {
+        Some(crate::box_ops::STATUS_DOMAIN) => {
+            code == u64::from(crate::box_ops::ALLOCATION_FAILURE_CODE)
+        }
+        Some(crate::vec_ops::STATUS_DOMAIN) => [
+            crate::vec_ops::PUSH_FULL_CODE,
+            crate::vec_ops::GET_OUT_OF_BOUNDS_CODE,
+            crate::vec_ops::ALLOCATION_FAILURE_CODE,
+        ]
+        .into_iter()
+        .any(|known| code == u64::from(known)),
+        _ => false,
+    };
+    if !admitted {
+        return Err(super::consistency_error(
+            "interpreted failures only ever carry compiler-owned status domains".to_owned(),
+        ));
+    }
+    Ok(NormalizedStatus::try_new(
+        domain.expect("admitted collection domain"),
+        u32::try_from(code).expect("finite collection status code"),
+        StatusClass::Adapter,
+        Retryability::Known(false),
+    )
+    .expect("compiler collection status table is valid")
+    .to_json())
+}
+
+#[cfg(test)]
+mod status_tests {
+    #[test]
+    fn collection_status_reconstruction_is_closed() {
+        for (domain, codes) in [
+            (crate::box_ops::STATUS_DOMAIN, vec![1]),
+            (crate::vec_ops::STATUS_DOMAIN, vec![1, 2, 3]),
+        ] {
+            for code in codes {
+                let rendered = super::rebuild_collection_status(Some(domain), code).unwrap();
+                let status: serde_json::Value = serde_json::from_str(&rendered).unwrap();
+                super::super::verify_status(&status).unwrap();
+                for (field, value) in [
+                    ("class", serde_json::json!("contract")),
+                    ("retryable", serde_json::json!(true)),
+                    ("code", serde_json::json!(0)),
+                    ("code", serde_json::json!(4)),
+                    ("code", serde_json::json!(4294967297u64)),
+                    ("domain_id", serde_json::json!("foreign.box")),
+                ] {
+                    let mut forged = status.clone();
+                    forged[field] = value;
+                    assert!(super::super::verify_status(&forged).is_err(), "{forged}");
+                }
+            }
+        }
+        assert!(super::rebuild_collection_status(Some(crate::box_ops::STATUS_DOMAIN), 2).is_err());
     }
 }

@@ -339,9 +339,18 @@ pub(super) fn validate_type(
     template: &ResolvedFunctionTemplate,
     ty: &ResolvedType,
 ) -> Result<(), Diagnostic> {
-    let admitted = (super::super::generic_result::profile(template)
-        && (super::super::generic_result::slot(ty, &template.id, template.type_parameters.len())
-            || *ty == ResolvedType::Bytes))
+    let admitted = (super::super::generic_collection::profile(template)
+        && (super::super::generic_collection::slot(
+            ty,
+            &template.id,
+            template.type_parameters.len(),
+        ) || super::super::generic_collection::scalar(ty)))
+        || (super::super::generic_result::profile(template)
+            && (super::super::generic_result::slot(
+                ty,
+                &template.id,
+                template.type_parameters.len(),
+            ) || *ty == ResolvedType::Bytes))
         || matches!(
             ty,
             ResolvedType::I64 | ResolvedType::Bool | ResolvedType::String
@@ -373,8 +382,11 @@ pub(super) fn is_vec_wrapper_call(
     instance: &Option<FunctionInstanceId>,
 ) -> bool {
     instance.is_none()
-        && crate::vec_ops::hir_wrapper_in_program(program, template)
-            == crate::vec_ops::by_id(callee.as_str())
+        && (super::super::generic_collection::profile(template)
+            && (crate::vec_ops::by_id(callee.as_str()).is_some()
+                || crate::box_ops::by_id(callee.as_str()).is_some())
+            || crate::vec_ops::hir_wrapper_in_program(program, template)
+                == crate::vec_ops::by_id(callee.as_str()))
         && matches!(type_arguments,
             [ResolvedType::TypeParameter { owner, index: 0 }] if owner == &template.id)
 }
@@ -568,7 +580,9 @@ pub(super) fn substitutions(
     template: &ResolvedFunctionTemplate,
     transparent_owned_wrapper: bool,
 ) -> Vec<Vec<ResolvedType>> {
-    if super::super::generic_result::profile(template) {
+    if super::super::generic_collection::profile(template) {
+        vec_wrapper_substitutions()
+    } else if super::super::generic_result::profile(template) {
         super::super::generic_result::substitutions(&template.return_type)
     } else if transparent_owned_wrapper {
         vec_wrapper_substitutions()

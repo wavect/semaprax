@@ -99,6 +99,9 @@ impl Resolver<'_> {
         if forwarded {
             return Ok(true);
         }
+        if crate::source_verify::generic_collection_profile(function) {
+            return Ok(super::generic_collection::arguments(arguments));
+        }
         let result_type =
             self.resolve_function_type(function, &function.return_type, function.span)?;
         if super::generic_result::slot(
@@ -620,7 +623,11 @@ impl Resolver<'_> {
                     op.param_ownership(index)
                 } else if let Some(op) = transparent_box_wrapper {
                     op.param_ownership()
-                } else if super::generic_result::slot(
+                } else if super::generic_collection::slot(
+                    &ty,
+                    &function_id,
+                    function.type_parameters.len(),
+                ) || super::generic_result::slot(
                     &ty,
                     &function_id,
                     function.type_parameters.len(),
@@ -680,6 +687,11 @@ impl Resolver<'_> {
                 ownership: if (transparent_vec_wrapper.is_some() && return_type.is_uniquely_owned())
                     || (transparent_box_wrapper == Some(crate::box_ops::BoxOp::New))
                     || super::generic_result::slot(
+                        &return_type,
+                        &function_id,
+                        function.type_parameters.len(),
+                    )
+                    || super::generic_collection::slot(
                         &return_type,
                         &function_id,
                         function.type_parameters.len(),
@@ -1128,6 +1140,11 @@ impl Resolver<'_> {
                 && !specialized_vec_wrapper
                 && !transparent_box
                 && !specialized_box_wrapper
+                && !super::generic_collection::slot(
+                    &instance,
+                    &owner,
+                    function.type_parameters.len(),
+                )
                 && !super::generic_result::slot(&instance, &owner, function.type_parameters.len())
                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
                 && !super::type_reachability::is_flat_owned_byte_record(

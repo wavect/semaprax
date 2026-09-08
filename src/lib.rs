@@ -57,6 +57,7 @@ pub mod digest_hex;
 pub mod doc;
 pub mod doctor;
 pub mod economic_agent;
+pub mod execution_revision;
 pub mod format;
 pub mod freestanding_object;
 pub mod graph;

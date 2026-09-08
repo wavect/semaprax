@@ -13,6 +13,9 @@ pub(super) fn template_ownership(
     if let Some(ownership) = crate::box_ops::template_ownership(template, ty) {
         return ownership;
     }
+    if super::super::generic_collection::slot(ty, &template.id, template.type_parameters.len()) {
+        return OwnershipMode::Own;
+    }
     match ty {
         ResolvedType::String => OwnershipMode::Own,
         ResolvedType::Str => OwnershipMode::Borrow,
@@ -134,6 +137,9 @@ pub(super) fn generic_instance_arguments_are_admitted(
     else {
         return false;
     };
+    if super::super::generic_collection::profile(template) {
+        return super::super::generic_collection::arguments(arguments);
+    }
     if super::super::generic_result::profile(template) {
         return super::super::generic_result::arguments(&template.return_type, arguments);
     }

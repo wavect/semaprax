@@ -137,6 +137,7 @@ fn resolve_element(
             .find(|candidate| candidate.stable_id == owner.as_str())
             .filter(|candidate| {
                 crate::box_ops::source_wrapper(resolver.program, candidate) == Some(op)
+                    || crate::source_verify::generic_collection_profile(candidate)
             })
         {
             return resolver.resolve_function_type(candidate, ty, span);
@@ -167,6 +168,7 @@ pub(super) fn schedule<'expr>(
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
     if !crate::box_ops::resolved_element_is_admitted(&element)
         && !crate::box_ops::resolved_parameter_is_admitted(function, op, &element)
+        && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(&element, owner))
     {
         return Err(resolver.error(
             "SPX-H006",
@@ -259,6 +261,7 @@ pub(super) fn resolve_reference(
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
     if !crate::box_ops::resolved_element_is_admitted(&element)
         && !crate::box_ops::resolved_parameter_is_admitted(function, op, &element)
+        && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(&element, owner))
     {
         return Err(resolver.error(
             "SPX-H006",

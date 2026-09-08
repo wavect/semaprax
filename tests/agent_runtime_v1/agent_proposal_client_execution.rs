@@ -1,5 +1,4 @@
 //! Physical compilation and execution of the generated Proposal clients.
-#![cfg(unix)]
 
 use std::ffi::OsStr;
 use std::fs;
@@ -86,6 +85,8 @@ switch (process.argv[2]) {
 const PYTHON_RUNNER: &str = r#"import sys
 import record
 import variant
+
+sys.stdout.reconfigure(encoding="utf-8", newline="\n")
 
 text = "é" * 2048
 record_value = {
@@ -239,7 +240,24 @@ impl ExecutableClients {
         let cargo = command("SEMAPRAX_TEST_CARGO", "cargo");
         let tsc = command("SEMAPRAX_TEST_TSC", "tsc");
 
-        let version = run(&tsc, ["--version"], &root.0);
+        // A provisioned JS entry avoids executing Windows npm .cmd wrappers.
+        let tsc_js = std::env::var_os("SEMAPRAX_TEST_TSC_JS").map(PathBuf::from);
+        if let Some(path) = &tsc_js {
+            assert!(
+                path.is_absolute() && path.is_file(),
+                "TSC JS must be an absolute file"
+            );
+        }
+        let compile_typescript = |args: &[&OsStr], cwd: &Path| {
+            if let Some(path) = &tsc_js {
+                let mut arguments = vec![path.as_os_str()];
+                arguments.extend_from_slice(args);
+                run(&node, arguments, cwd)
+            } else {
+                run(&tsc, args.iter().copied(), cwd)
+            }
+        };
+        let version = compile_typescript(&[OsStr::new("--version")], &root.0);
         assert_eq!(
             String::from_utf8(version.stdout).unwrap().trim(),
             "Version 5.8.3"
@@ -266,9 +284,8 @@ impl ExecutableClients {
         fs::write(typescript.join("runner.ts"), TYPESCRIPT_RUNNER).unwrap();
         fs::write(typescript.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
         let out = typescript.join("out");
-        run(
-            &tsc,
-            [
+        compile_typescript(
+            &[
                 "--strict".as_ref(),
                 "--noEmitOnError".as_ref(),
                 "--target".as_ref(),
@@ -347,7 +364,10 @@ impl ExecutableClients {
         );
 
         Self {
-            rust: cargo_target.join("debug/generated-proposal-client"),
+            rust: cargo_target.join("debug").join(format!(
+                "generated-proposal-client{}",
+                std::env::consts::EXE_SUFFIX
+            )),
             root,
             node,
             python,

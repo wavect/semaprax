@@ -142,7 +142,7 @@ An aggregate is only worth requiring if it cannot be satisfied vacuously. The
   environment, and fails unless **every** upstream entry has
   `result == "success"` -- `failure`, `skipped`, and `cancelled` are all
   rejected by name;
-- passes `--min-jobs 16`, so an accidentally emptied or narrowed `needs:` list
+- passes `--min-jobs 18`, so an accidentally emptied or narrowed `needs:` list
   cannot pass vacuously on `{}`;
 - checks out the repository and compares `git rev-parse HEAD` against
   `${{ github.sha }}`, so a verdict cannot be attributed to another commit.

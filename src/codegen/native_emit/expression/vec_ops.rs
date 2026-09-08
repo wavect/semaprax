@@ -37,8 +37,18 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             _ => unreachable!("admitted bounded Vec element is scalar"),
         };
         let mut values = Vec::with_capacity(args.len());
-        for argument in args {
-            values.push(self.emit_expr(argument)?);
+        for (index, argument) in args.iter().enumerate() {
+            let value = self.emit_expr(argument)?;
+            // Stage at the argument's canonical boundary. Producers may have
+            // already reached this epoch; the shared plan helper authenticates
+            // that case without replaying initialization or earlier transfers.
+            values.push(self.stage_bytes_call_argument(
+                &expr.id,
+                index,
+                argument,
+                op.param_ownership(index),
+                value,
+            )?);
         }
         let return_type = op.resolved_return_type(element);
         self.require_type(&expr.ty, &return_type, "bounded Vec operation result")?;
@@ -72,9 +82,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 )?;
                 self.require_type(&values[1].ty, element, "Vec push element")?;
                 let plan = plan.ok_or_else(|| backend_error("Vec push has no cleanup plan"))?;
-                for line in plan.apply_at(&args[0].id)?.lines() {
-                    self.line(line);
-                }
                 let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
                 let source = source.to_owned();
                 let source_flag = source_flag.to_owned();
@@ -107,9 +114,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     "Vec reserve additional",
                 )?;
                 let plan = plan.ok_or_else(|| backend_error("Vec reserve has no cleanup plan"))?;
-                for line in plan.apply_at(&args[0].id)?.lines() {
-                    self.line(line);
-                }
                 let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
                 let source = source.to_owned();
                 let source_flag = source_flag.to_owned();
@@ -139,9 +143,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 self.require_type(&values[1].ty, &ResolvedType::Usize, "Vec set index")?;
                 self.require_type(&values[2].ty, element, "Vec set element")?;
                 let plan = plan.ok_or_else(|| backend_error("Vec set has no cleanup plan"))?;
-                for line in plan.apply_at(&args[0].id)?.lines() {
-                    self.line(line);
-                }
                 let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
                 let source = source.to_owned();
                 let source_flag = source_flag.to_owned();
@@ -170,9 +171,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     "Vec clear owner",
                 )?;
                 let plan = plan.ok_or_else(|| backend_error("Vec clear has no cleanup plan"))?;
-                for line in plan.apply_at(&args[0].id)?.lines() {
-                    self.line(line);
-                }
                 let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
                 let source = source.to_owned();
                 let source_flag = source_flag.to_owned();

@@ -53,6 +53,8 @@
 //! `Bytes` carrier produces exactly one boundary cleanup event. Cleanup order
 //! is read from that inventory; it is never sorted or repaired here.
 
+mod copy_records;
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -282,7 +284,7 @@ pub fn prepare_retained_call(
             entry.span,
         )]);
     }
-    let admitted = admitted_resolved_functions(program);
+    let admitted = copy_records::admitted_functions(program);
     if !admitted.contains_key(entry_id) {
         return Err(vec![located(
             REASON_UNSUPPORTED_CALLEE,

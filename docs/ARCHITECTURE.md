@@ -45,6 +45,24 @@ No backend bypasses source verification or validated-HIR checks. Cleanup-plan
 vectors are canonical execution order and must not be sorted or repaired by a
 graph projection or backend.
 
+The additive `agent_lifecycle/iterative` module owns checked Step transitions,
+per-turn authorization, bounded stage execution, and iterative evidence. Its
+step validator maps checked variant fields back to exact State/Result records;
+the frozen one-pass lifecycle retains its existing owner. `execution_revision`
+joins retained Project source, ProgramRoot, deployment, invocation and actual
+lifecycle evidence through opaque consuming producers. These associations grant
+no host authority. The generic collection helper under `hir/generic_collection`
+owns exact private Box/Vec signature admission; source verification and HIR
+materialization independently validate concrete substitutions.
+
+Private generic collection admission lives in
+`src/source_verify/declared_type/generic_collection.rs` and the independent
+`src/hir/generic_collection.rs` profile. Existing monomorphization and HIR
+validation check all eight concrete Copy substitutions; Box/Vec interpreters
+and backends consume the same canonical cleanup plans and runtime carriers.
+The [owning specification](GENERIC-COMPILER-COLLECTIONS-V1.md) defines the exact
+private signature boundary.
+
 ## Representations
 
 The registry compiler and unpublished full toolchain share one compiler library

@@ -34,6 +34,22 @@ executed. **Local, partial** records only the selected local gates identified
 by the evidence owner, not an entire work package or the current hosted head.
 Neither state supports a hosted or public promotion claim.
 
+## Current goal implementation batch
+
+The additive [iterative lifecycle v2](AGENT-ITERATIVE-LIFECYCLE-V2.md) has six
+locally passing focused tests for checked Continue/Complete/Suspend/Fail,
+per-turn authorization, bounded execution, cancellation, source-Agent binding,
+and invocation-bound evidence. It retains one injected read operation; multiple
+typed operations, durable iterative checkpoints, migration and direct Runtime
+v2 remain open. [Execution-root association](EXECUTION-ROOT-ASSOCIATION-V1.md)
+now has locally passing V1/V2/V3 and iterative invocation association tests.
+[Generic compiler collections](GENERIC-COMPILER-COLLECTIONS-V1.md) pass focused
+source/HIR/graph, ProgramRoot replay, and interpreter/C11 O0/O2/Core-Wasm
+execution with repeated success and contract/capacity failure settlement. The generated Proposal
+client CI matrix is authored for Linux, macOS and Windows; exact-head hosted
+evidence remains unobserved. These additions do not complete the programme rows
+or widen the public generic boundary.
+
 ## Current summary
 
 **Overall product objective: Partial**

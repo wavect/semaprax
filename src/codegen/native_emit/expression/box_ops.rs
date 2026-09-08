@@ -35,6 +35,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             _ => unreachable!("admitted bounded Box element is scalar"),
         };
         let value = self.emit_expr(&args[0])?;
+        let value =
+            self.stage_bytes_call_argument(&expr.id, 0, &args[0], op.param_ownership(), value)?;
         let return_type = op.resolved_return_type(element);
         self.require_type(&expr.ty, &return_type, "bounded Box operation result")?;
         match op {
@@ -84,9 +86,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let plan = self
                     .bytes_plan
                     .ok_or_else(|| backend_error("Box consume has no cleanup plan"))?;
-                for line in plan.apply_at(&args[0].id)?.lines() {
-                    self.line(line);
-                }
                 let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
                 let source = source.to_owned();
                 let source_flag = source_flag.to_owned();

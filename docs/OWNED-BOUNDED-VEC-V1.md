@@ -19,6 +19,10 @@ standard-library declaration, or ABI.
 `T` is exactly one of `i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, or
 `bool`. Type inference, `Bytes`, `String`, authored aggregates, variants,
 resources, nested vectors, and nonconcrete element types are rejected.
+The additive [generic compiler collection profile](GENERIC-COMPILER-COLLECTIONS-V1.md)
+admits a scoped type parameter inside private function templates only after
+independently validating every concrete Copy substitution. It preserves this
+runtime profile and public ABI boundary.
 
 The compiler-owned operations are:
 

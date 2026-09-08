@@ -315,6 +315,8 @@ pub(super) fn check_function_declarations<'p>(
                 ));
             }
             let owned_result = generic_result::profile(function);
+            let collection =
+                crate::source_verify::declared_type::generic_collection::profile(function);
             for param in &function.params {
                 let owned_record = generic_function_owned_record_slot(
                     function,
@@ -322,9 +324,14 @@ pub(super) fn check_function_declarations<'p>(
                     &TypeTable::new(program),
                 );
                 if !((param.mode == ParamMode::Value
-                    && generic_function_signature_slot(&param.ty, &parameter_names))
+                    && (generic_function_signature_slot(&param.ty, &parameter_names)
+                        || (collection && crate::vec_ops::ast_element_is_admitted(&param.ty))))
                     || (param.mode == ParamMode::Own
                         && (owned_record
+                            || (collection
+                                && crate::source_verify::declared_type::generic_collection::slot(
+                                    function, &param.ty,
+                                ))
                             || (owned_result && generic_result::slot(function, &param.ty)))))
                 {
                     diagnostics.push(error(
@@ -339,6 +346,7 @@ pub(super) fn check_function_declarations<'p>(
                 }
             }
             if !owned_result
+                && !collection
                 && !generic_function_signature_slot(&function.return_type, &parameter_names)
                 && !generic_function_owned_record_slot(
                     function,
@@ -537,7 +545,9 @@ pub(super) fn check_function_bodies<'p>(
                 || generic_function_owned_record_slot(template, &template.return_type, types);
             let substitutions = if generic_result::profile(template) {
                 generic_result::substitutions(template)
-            } else if owned_record {
+            } else if owned_record
+                || crate::source_verify::declared_type::generic_collection::profile(template)
+            {
                 owned_record_function_substitutions(template.type_parameters.len())
             } else {
                 scalar_function_substitutions(template.type_parameters.len())

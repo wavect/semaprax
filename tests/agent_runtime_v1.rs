@@ -641,3 +641,6 @@ struct NeverHost;
     }
     fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "agent_runtime_v1/execution_revision.rs"]
+mod execution_revision;

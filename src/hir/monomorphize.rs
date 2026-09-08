@@ -377,11 +377,19 @@ pub(super) fn materialize_template_expr(
                 == crate::box_ops::by_id(callee.as_str())
                 && instance.is_none()
                 && type_arguments.len() == 1;
+            let collection_call = super::generic_collection::profile(template)
+                && instance.is_none()
+                && type_arguments.len() == 1
+                && (crate::box_ops::by_id(callee.as_str()).is_some()
+                    || crate::vec_ops::by_id(callee.as_str()).is_some());
             let forwarded_generic_call = instance.as_ref().is_some_and(|instance| {
                 !type_arguments.is_empty()
                     && FunctionInstanceId::derive(callee, type_arguments) == *instance
             });
-            if (!transparent_vec_call && !transparent_box_call && !forwarded_generic_call)
+            if (!collection_call
+                && !transparent_vec_call
+                && !transparent_box_call
+                && !forwarded_generic_call)
                 && (instance.is_some() || !type_arguments.is_empty())
             {
                 return Err(hir_error(

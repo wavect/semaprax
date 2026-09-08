@@ -150,3 +150,5 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
 #[cfg(test)]
 #[path = "source_verify/iterative_verifier_tests.rs"]
 mod iterative_verifier_tests;
+
+pub(crate) use declared_type::generic_collection::profile as generic_collection_profile;

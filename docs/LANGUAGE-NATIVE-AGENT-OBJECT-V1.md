@@ -1016,7 +1016,7 @@ of that earlier document. Generation and replay perform no filesystem,
 network, provider, tool, process, compilation, execution, packaging, or
 publication operation.
 
-An additive provisioned Linux gate now materializes the generated record and
+An additive provisioned client gate materializes the generated record and
 variant clients in isolated temporary projects, strict-compiles TypeScript
 5.8.3, byte-compiles Python, builds Rust with an offline generated lock and a
 private Cargo target, executes all three, and submits every emitted document to
@@ -1026,7 +1026,14 @@ three clients, and integer/case rejection in TypeScript and Python; Rust's
 bounded integer types and closed enum make those two hostile values
 unconstructable. This is execution evidence for the generated
 artifacts; generation and replay themselves remain authority-free and do not
-spawn these tools.
+spawn these tools. The `agent-proposal-clients` CI matrix provisions this same
+gate on Linux, macOS and Windows. `scripts/agent-proposal-clients.py` supplies
+absolute host tools and invokes the locked TypeScript JavaScript entry through
+Node, avoiding platform-specific npm wrappers. Python writes explicit UTF-8/LF
+and the Rust runner uses the host executable suffix; emitted bytes are still
+compared exactly, without newline or encoding normalization. The matrix is
+required by the aggregate release gate. The provisioned gate passes locally on macOS. Hosted results for this addition
+remain unobserved until the exact pushed commit passes.
 
 ## Generated Proposal to Runtime v1 compatibility
 

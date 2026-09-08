@@ -1765,7 +1765,7 @@ fn emit_function(
     let mut variables = HashMap::new();
     let mut borrowed_aggregate_bytes = HashMap::new();
     for (index, param) in function.params.iter().enumerate() {
-        let name = if matches!(param.ty, ResolvedType::Bytes) {
+        let name = if is_direct_plan_owned(&param.ty) {
             match param.ownership {
                 crate::hir::OwnershipMode::Own => bytes_plan
                     .as_ref()

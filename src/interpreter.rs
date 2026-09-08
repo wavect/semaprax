@@ -5818,11 +5818,7 @@ fn verify_status(status: &serde_json::Value) -> Result<(), Diagnostic> {
                 ));
             }
         }
-        _ => {
-            return Err(consistency_error(
-                "interpreted failures only ever carry compiler-owned status domains".to_owned(),
-            ))
-        }
+        _ => owned_box::rebuild_collection_status(status["domain_id"].as_str(), code)?,
     };
     if rebuilt
         != format!(

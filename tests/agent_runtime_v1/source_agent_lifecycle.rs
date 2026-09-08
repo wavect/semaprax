@@ -55,7 +55,7 @@ agent FixtureAgent {{
     )
 }
 
-fn source_module(reduce_id: &str, extra: &str) -> String {
+pub(super) fn source_module(reduce_id: &str, extra: &str) -> String {
     format!("{MODULE}\n{}\n{extra}", source_agent_block(reduce_id))
 }
 

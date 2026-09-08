@@ -8,6 +8,24 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added private generic Box/Vec functions over all eight Copy scalars, with
+  exact source/HIR materialization, graph and ProgramRoot replay, and runtime
+  success/failure settlement on interpreter, native O0/O2 and Core Wasm.
+  Native intrinsic arguments now stage through the canonical transfer boundary;
+  owned collection parameters reference their live cleanup slots. Interpreter
+  report replay recognizes only the finite existing Box/Vec status tables.
+- Added bounded iterative Agent Step execution with fresh per-turn authorization,
+  cancellation and budget ceilings, exact source-Agent binding, and immutable
+  invocation-bound evidence. Joined roots associate retained ProgramRoot v1-v3,
+  deployment, invocation and actual one-pass or iterative execution. Iterative
+  execution obeys both deployed turn and call ceilings. Copy-only Observation
+  results use a narrow retained-call extension. Focused local checks pass;
+  typed multi-effect checkpoints and migration remain follow-on work.
+- Made the generated Proposal-client execution gate portable across Linux,
+  macOS and Windows with exact UTF-8/LF output and provisioned TypeScript JS
+  execution through Node. All three clients compile and execute locally on
+  macOS; the added blocking CI matrix awaits exact-head hosted evidence.
+
 - Added structural nested generic record composition and multiple owning
   parameters, with explicit reconstruction into different nominal result types.
   Source and HIR validate substituted fields, recursive patterns and complete

@@ -193,8 +193,8 @@ fn run_nested_case(allowed: bool, inferred_text: &str, explicit_text: &str) {
     if std::env::var_os("SEMAPRAX_REQUIRE_GENERIC_OWNED_BACKENDS").is_some() {
         assert!(clang && node);
     }
-    let inferred = semaprax::check(&inferred_text, "inference-nested.spx").unwrap();
-    let explicit = semaprax::check(&explicit_text, "inference-nested-explicit.spx").unwrap();
+    let inferred = semaprax::check(inferred_text, "inference-nested.spx").unwrap();
+    let explicit = semaprax::check(explicit_text, "inference-nested-explicit.spx").unwrap();
     let inferred_hir = hir::resolve(&inferred).unwrap();
     let explicit_hir = hir::resolve(&explicit).unwrap();
     hir::validate(&inferred_hir).unwrap();
@@ -244,13 +244,13 @@ fn run_nested_case(allowed: bool, inferred_text: &str, explicit_text: &str) {
     } else {
         Expected::Failure("semaprax.contract.v1", 1, "SEMAPRAX contract failure")
     };
-    run_interpreter_source("nested inferred owned calls", &inferred_text, expected);
+    run_interpreter_source("nested inferred owned calls", inferred_text, expected);
     if clang {
         run_native(&inferred, expected);
         native_copy_count(&inferred, allowed, if allowed { 8 } else { 1 });
     }
     if node {
-        run_wasm_source(&inferred, &explicit_text, expected);
+        run_wasm_source(&inferred, explicit_text, expected);
         wasm_copy_count(&inferred, allowed, if allowed { 8 } else { 1 });
     }
 }

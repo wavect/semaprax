@@ -4,6 +4,8 @@ Status: bounded live adapter with 12 focused local cases passed: four durable
 execution cases and eight checkpoint codec cases. The two focused joined
 Runtime v2 cases also pass locally, covering ordinary and durable execution.
 
+Audience: runtime integrators and compiler contributors.
+
 `CompiledTypedEffects::run_durable` executes the same retained iterative stages
 and typed registry through the private IterativeDriver hooks. The ordinary
 one-read lifecycle and non-durable typed registry paths remain unchanged.

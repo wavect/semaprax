@@ -194,6 +194,36 @@ pub(super) fn validate_join_compatibility(
     Ok(())
 }
 
+#[allow(clippy::items_after_test_module)]
+pub(super) fn retained_units(state: &PathState) -> usize {
+    state.renewals.iter().fold(0usize, |total, (at, flags)| {
+        total
+            .saturating_add(at.as_str().len())
+            .saturating_add(flags.len())
+            .saturating_add(1)
+    })
+}
+#[allow(clippy::items_after_test_module)]
+pub(super) fn charge_transition(
+    function: &ResolvedFunction,
+    transition: &CleanupTransition,
+    state: &PathState,
+    budget: &mut ReplayBudget,
+) -> Result<(), Diagnostic> {
+    let units = match transition {
+        CleanupTransition::ReserveRenewal { at, .. } => state
+            .live_order
+            .len()
+            .saturating_add(at.as_str().len())
+            .saturating_add(1),
+        CleanupTransition::Renew { .. } => {
+            retained_units(state).saturating_add(state.live_order.len())
+        }
+        _ => 0,
+    };
+    budget.charge(function, units, "renewal history materialization")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -264,32 +294,4 @@ module test.iterator_renewal;
         downgraded.cleanup_plan.schema = CLEANUP_PLAN_SCHEMA_V11;
         assert!(validate_structure(&program, &downgraded).is_err());
     }
-}
-
-pub(super) fn retained_units(state: &PathState) -> usize {
-    state.renewals.iter().fold(0usize, |total, (at, flags)| {
-        total
-            .saturating_add(at.as_str().len())
-            .saturating_add(flags.len())
-            .saturating_add(1)
-    })
-}
-pub(super) fn charge_transition(
-    function: &ResolvedFunction,
-    transition: &CleanupTransition,
-    state: &PathState,
-    budget: &mut ReplayBudget,
-) -> Result<(), Diagnostic> {
-    let units = match transition {
-        CleanupTransition::ReserveRenewal { at, .. } => state
-            .live_order
-            .len()
-            .saturating_add(at.as_str().len())
-            .saturating_add(1),
-        CleanupTransition::Renew { .. } => {
-            retained_units(state).saturating_add(state.live_order.len())
-        }
-        _ => 0,
-    };
-    budget.charge(function, units, "renewal history materialization")
 }

@@ -93,7 +93,7 @@ fn std_mem_manifest_and_sources_reject_hostile_lookalikes() {
         MANIFEST.replace("std-mem", "std_mem"),
         MANIFEST.replace("owned-data-api.v1", "useful-data.v1"),
         MANIFEST.replace("web_exports = []", "web_exports = [\"std.mem.box.get\"]"),
-        MANIFEST.replace("std.mem.examples", "user.mem.examples"),
+        MANIFEST.replace("std.mem.examples", "invalid..module"),
     ] {
         let errors = ProjectManifest::parse(&hostile).unwrap_err();
         assert!(errors

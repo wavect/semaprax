@@ -16,7 +16,9 @@ pub(crate) fn selected_schema(
     let has_nested_record_update =
         record_destructure::update::function_contains(program, function)?;
     Ok(
-        if crate::hir::iterator_loop::function_requires_renewal(function) {
+        if crate::iterator_ops::function_uses_owned_iterator(function) {
+            CLEANUP_PLAN_SCHEMA_V13
+        } else if crate::hir::iterator_loop::function_requires_renewal(function) {
             CLEANUP_PLAN_SCHEMA_V12
         } else if crate::hir::iterator_loop::function_contains(function) {
             CLEANUP_PLAN_SCHEMA_V11

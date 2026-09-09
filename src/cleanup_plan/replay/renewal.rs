@@ -6,10 +6,11 @@ pub(super) fn validate_binding(
     at: &ExpressionId,
     place: &CleanupPlace,
 ) -> Result<(), Diagnostic> {
-    if function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V12
-        || !crate::hir::iterator_loop::renewal_binding(function, at).is_some_and(|binding| {
-            *place == CleanupPlace::whole(StorageId::Value(binding.id.clone()))
-        })
+    if !matches!(
+        function.cleanup_plan.schema,
+        CLEANUP_PLAN_SCHEMA_V12 | CLEANUP_PLAN_SCHEMA_V13
+    ) || !crate::hir::iterator_loop::renewal_binding(function, at)
+        .is_some_and(|binding| *place == CleanupPlace::whole(StorageId::Value(binding.id.clone())))
     {
         return Err(replay_error(
             function,

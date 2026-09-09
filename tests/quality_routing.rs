@@ -32,6 +32,10 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     repository.write("src/graph/filesystem.rs", "pub fn filesystem() {}\n");
     repository.write("src/graph/environment.rs", "pub fn environment() {}\n");
     repository.write("src/graph/process.rs", "pub fn process() {}\n");
+    repository.write(
+        "src/graph/owned_iterator.rs",
+        "pub fn owned_iterator() {}\n",
+    );
     let plan = repository.changed_plan(&[]).unwrap();
     assert!(plan.contains("effective\tfull\n"));
     assert!(plan.contains(
@@ -39,6 +43,9 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     ));
     assert!(plan.contains(
         "path\tsrc/graph/process.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
+    ));
+    assert!(plan.contains(
+        "path\tsrc/graph/owned_iterator.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
     ));
 }
 

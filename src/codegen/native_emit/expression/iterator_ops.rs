@@ -30,6 +30,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ResolvedType::F32 => 6,
             ResolvedType::F64 => 7,
             ResolvedType::Bool => 8,
+            ResolvedType::Bytes => 9,
             _ => unreachable!(),
         };
         let value = self.emit_expr(&args[0])?;
@@ -61,6 +62,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 .to_owned()
         };
         match op {
+            crate::iterator_ops::IteratorOp::VecIntoIter if *element == ResolvedType::Bytes => self
+                .line(&format!(
+                    "{destination} = spx_iter_bytes_from_vec(spx_ctx, &{source});"
+                )),
+            crate::iterator_ops::IteratorOp::Next if *element == ResolvedType::Bytes => {
+                self.line(&format!(
+                    "spx_status = spx_iter_bytes_next(spx_ctx, &{source}, &{destination});"
+                ));
+                self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+            }
             crate::iterator_ops::IteratorOp::VecIntoIter => self.line(&format!(
                 "{destination} = spx_iter_from_vec(spx_ctx, &{source}, UINT32_C({tag}));"
             )),

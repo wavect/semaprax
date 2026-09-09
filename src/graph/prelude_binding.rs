@@ -220,7 +220,9 @@ fn uses_vec_v3(program: &ResolvedProgram) -> bool {
 }
 
 pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
-    if uses_iterator(program) {
+    if super::owned_iterator::requires(program) {
+        prelude::SCHEMA_V8
+    } else if uses_iterator(program) {
         prelude::SCHEMA_V7
     } else if crate::vec_ops::resolved_program_uses_owned_payload(program) {
         prelude::SCHEMA_V6
@@ -238,7 +240,9 @@ pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
 }
 
 pub(super) fn digest(program: &ResolvedProgram) -> String {
-    if uses_iterator(program) {
+    if super::owned_iterator::requires(program) {
+        prelude::digest_text_v8()
+    } else if uses_iterator(program) {
         prelude::digest_text_v7()
     } else if crate::vec_ops::resolved_program_uses_owned_payload(program) {
         prelude::digest_text_v6()

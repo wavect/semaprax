@@ -9,6 +9,8 @@ workspace-service authors.
 This LANG-07 profile introduces a first-class consuming iterator protocol over
 bounded scalar vectors. It is the ownership foundation for subsequent iterator
 loops and adapters, not an eager vector transformation.
+Owning `Bytes` payload traversal is the additive
+[Owning Iterator Payloads v2](OWNING-ITERATOR-PAYLOADS-V2.md) profile.
 
 ## Checked types and operations
 

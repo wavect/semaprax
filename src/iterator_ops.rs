@@ -1,6 +1,10 @@
 //! Exact consuming scalar iterator protocol. Runtime adapters receive no ambient authority.
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{DeclarationId, OwnershipMode, ResolvedParam, ResolvedType, ValueId};
+mod owned;
+#[cfg(test)]
+mod owned_tests;
+pub(crate) use owned::*;
 pub(crate) const ITER_ID: &str = "core.iter";
 pub(crate) const STEP_ID: &str = "core.iter-step";
 pub(crate) const DONE_ID: &str = "core.iter-step.done";
@@ -79,10 +83,10 @@ pub(crate) fn by_id(id: &str) -> Option<IteratorOp> {
     ALL.into_iter().find(|op| op.id() == id)
 }
 pub(crate) fn ast_element_is_admitted(ty: &Type) -> bool {
-    crate::vec_ops::ast_element_is_admitted(ty)
+    crate::vec_ops::ast_element_is_admitted(ty) || *ty == Type::Bytes
 }
 pub(crate) fn resolved_element_is_admitted(ty: &ResolvedType) -> bool {
-    crate::vec_ops::resolved_element_is_admitted(ty)
+    crate::vec_ops::resolved_element_is_admitted(ty) || *ty == ResolvedType::Bytes
 }
 fn nominal(name: &str, element: Type) -> Type {
     Type::Named {
@@ -316,7 +320,12 @@ pub(crate) fn type_facts(
         sized: true,
         needs_drop: true,
         layout_key: format!(
-            "iterator-v1:{}:{}",
+            "iterator-{}:{}:{}",
+            if arguments[0] == ResolvedType::Bytes {
+                "v2"
+            } else {
+                "v1"
+            },
             declaration.as_str(),
             arguments[0].identity_key()
         ),
@@ -426,7 +435,7 @@ mod tests {
         assert_eq!(crate::hir::validate(&forged).unwrap_err().code, "SPX-H006");
     }
     #[test]
-    fn iterator_source_rejects_implicit_copy_and_owned_element() {
+    fn iterator_source_rejects_implicit_copy_and_unsupported_owned_element() {
         let diagnostics = crate::check(
             &SOURCE.replace("match own step", "match step"),
             "iterator-copy.spx",
@@ -438,7 +447,7 @@ mod tests {
                 .any(|diagnostic| diagnostic.code == "SPX-O111"),
             "{diagnostics:?}"
         );
-        let source="module test.invalid_iter; @id(\"it.main\") fn main()->i64{let values=vec_with_capacity<Bytes>(1usize);let iterator=vec_into_iter<Bytes>(values);0}";
+        let source="module test.invalid_iter; @id(\"it.main\") fn main()->i64{let values=vec_with_capacity<Bytes>(1usize);let iterator=vec_into_iter<String>(values);0}";
         let diagnostics = crate::check(source, "iterator-owned.spx").unwrap_err();
         assert!(
             diagnostics

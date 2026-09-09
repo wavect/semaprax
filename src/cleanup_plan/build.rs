@@ -713,7 +713,9 @@ impl<'a> PlanBuilder<'a> {
                 conditional_variants: Vec::new(),
             },
             pending_try_residuals: Vec::new(),
-            schema: if crate::hir::iterator_loop::function_requires_renewal(function) {
+            schema: if crate::iterator_ops::function_uses_owned_iterator(function) {
+                super::CLEANUP_PLAN_SCHEMA_V13
+            } else if crate::hir::iterator_loop::function_requires_renewal(function) {
                 super::CLEANUP_PLAN_SCHEMA_V12
             } else if crate::hir::iterator_loop::function_contains(function) {
                 super::CLEANUP_PLAN_SCHEMA_V11

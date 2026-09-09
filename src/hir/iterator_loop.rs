@@ -6,6 +6,7 @@ pub(crate) use renewal::{function_requires_renewal, renewal_binding, template_re
 pub(crate) struct IteratorLoop<'a> {
     pub(crate) step: &'a ResolvedBinding,
     pub(crate) authored_body: &'a ResolvedExpr,
+    pub(crate) owned_item: Option<&'a ResolvedBinding>,
 }
 fn zero(value: &ResolvedExpr) -> bool {
     value.ownership == OwnershipMode::Value
@@ -58,7 +59,7 @@ fn replacement<'a>(
     };
     let element = step_element(&value.ty, owner)?;
     if fields[0].binding.ty != *element
-        || fields[0].binding.ownership != OwnershipMode::Value
+        || fields[0].binding.ownership != crate::iterator_ops::item_ownership(element, false)
         || fields[1].binding.ty != crate::iterator_ops::resolved_iter(element.clone())
         || fields[1].binding.ownership != OwnershipMode::Own
     {
@@ -149,15 +150,27 @@ fn recognize_scoped<'a>(
         return None;
     };
     if fields[0].binding.ty != *element
-        || fields[0].binding.ownership != OwnershipMode::Value
+        || fields[0].binding.ownership != crate::iterator_ops::item_ownership(element, true)
         || fields[1].binding.ty != crate::iterator_ops::resolved_iter(element.clone())
         || fields[1].binding.ownership != OwnershipMode::Borrow
     {
         return None;
     }
+    let owned_item = if *element == ResolvedType::Bytes {
+        let ResolvedExprKind::Match { arms, .. } = &value.kind else {
+            return None;
+        };
+        let ResolvedMatchPattern::Variant { fields, .. } = &arms[1].pattern else {
+            return None;
+        };
+        Some(&fields[0].binding)
+    } else {
+        None
+    };
     Some(IteratorLoop {
         step,
         authored_body,
+        owned_item,
     })
 }
 pub(crate) fn function_contains(function: &ResolvedFunction) -> bool {

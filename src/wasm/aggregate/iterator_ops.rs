@@ -1,8 +1,16 @@
 //! Core Wasm lowering for the closed owning scalar iterator protocol.
+mod owned;
 use super::*;
+pub(super) const OWNED_IMPORT_COUNT: u32 = owned::IMPORT_COUNT;
+pub(super) fn owned_import_names() -> [&'static str; OWNED_IMPORT_COUNT as usize] {
+    owned::import_names()
+}
+pub(super) fn owned_import_base(program: &ResolvedProgram) -> u32 {
+    owned::import_base(program)
+}
 
 const ITER_HANDLE_OFFSET: u32 = 0;
-const ITER_CURSOR_OFFSET: u32 = 8;
+pub(super) const ITER_CURSOR_OFFSET: u32 = 8;
 const STEP_TAG_OFFSET: u32 = 0;
 const STEP_ITEM_OFFSET: u32 = 8;
 const STEP_REST_OFFSET: u32 = 16;
@@ -192,6 +200,14 @@ impl Emitter<'_> {
             &op.resolved_return_type(element),
             "iterator operation result",
         )?;
+        if *element == ResolvedType::Bytes {
+            return match op {
+                crate::iterator_ops::IteratorOp::VecIntoIter => {
+                    self.emit_owned_vec_into_iter(expr, args)
+                }
+                crate::iterator_ops::IteratorOp::Next => self.emit_owned_iter_next(expr, args),
+            };
+        }
         match op {
             crate::iterator_ops::IteratorOp::VecIntoIter => {
                 self.emit_vec_into_iter(expr, element, args)

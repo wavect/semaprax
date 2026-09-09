@@ -692,3 +692,6 @@ fn canonical_revision_tracks_manifest_and_dependency_descriptions() {
 
 #[path = "canonical_revision/generic_instances.rs"]
 mod generic_instances;
+
+#[path = "canonical_revision/owned_iterators.rs"]
+mod owned_iterators;

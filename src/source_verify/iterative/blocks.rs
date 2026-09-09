@@ -534,7 +534,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             Type::Named { name, arguments }
                 if name == (if consuming { "Iter" } else { "Vec" })
                     && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)
-                        || (consuming && crate::source_verify::declared_type::generic_collection::slot(self.current, &actual.ty)))
+                        || (consuming && (*ty == Type::Bytes || crate::source_verify::declared_type::generic_collection::slot(self.current, &actual.ty))))
                     && (!consuming || actual.mode == ParamMode::Own) => Some(arguments[0].clone()),
             _ => None,
         });
@@ -577,7 +577,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             let _ = self.reject_for_body_disallowed(body, source);
         }
         let baseline = consuming.then(|| self.scopes[block_scope].bindings.clone());
-        let _ = self.reject_while_disallowed(body);
+        let _ = self.reject_iterator_body(
+            body,
+            (consuming && element == Some(Type::Bytes)).then_some(item),
+        );
         let item_inserted = !self.scopes[block_scope].bindings.contains_key(item);
         if !item_inserted {
             self.diagnostics.push(error(
@@ -592,8 +595,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 self.scopes[block_scope].bindings.insert(
                     item.to_owned(),
                     Binding {
+                        mode: if consuming && element == Type::Bytes {
+                            ParamMode::Own
+                        } else {
+                            ParamMode::Value
+                        },
                         ty: element,
-                        mode: ParamMode::Value,
                         availability: Availability::Available,
                         moved_places: HashMap::new(),
                         definitely_partial: HashSet::new(),

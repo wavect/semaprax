@@ -3,8 +3,8 @@ use crate::diagnostic::Diagnostic;
 
 use super::super::{
     CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
-    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7,
-    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V5,
+    CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 
 pub(super) fn initial(inventory: &CleanupInventory) -> Result<&'static str, Diagnostic> {
@@ -42,6 +42,7 @@ pub(super) fn includes_v5(schema: &str) -> bool {
             | CLEANUP_PLAN_SCHEMA_V10
             | CLEANUP_PLAN_SCHEMA_V11
             | CLEANUP_PLAN_SCHEMA_V12
+            | CLEANUP_PLAN_SCHEMA_V13
     )
 }
 
@@ -55,6 +56,7 @@ pub(super) fn includes_v6(schema: &str) -> bool {
             | CLEANUP_PLAN_SCHEMA_V10
             | CLEANUP_PLAN_SCHEMA_V11
             | CLEANUP_PLAN_SCHEMA_V12
+            | CLEANUP_PLAN_SCHEMA_V13
     )
 }
 
@@ -67,6 +69,7 @@ pub(super) fn promote_v6(schema: &mut &'static str) {
             | CLEANUP_PLAN_SCHEMA_V10
             | CLEANUP_PLAN_SCHEMA_V11
             | CLEANUP_PLAN_SCHEMA_V12
+            | CLEANUP_PLAN_SCHEMA_V13
     ) {
         *schema = CLEANUP_PLAN_SCHEMA_V6;
     }
@@ -79,6 +82,7 @@ pub(super) fn promote_v8(schema: &mut &'static str) {
             | CLEANUP_PLAN_SCHEMA_V10
             | CLEANUP_PLAN_SCHEMA_V11
             | CLEANUP_PLAN_SCHEMA_V12
+            | CLEANUP_PLAN_SCHEMA_V13
     ) {
         *schema = CLEANUP_PLAN_SCHEMA_V8;
     }
@@ -87,7 +91,10 @@ pub(super) fn promote_v8(schema: &mut &'static str) {
 pub(super) fn promote_v9(schema: &mut &'static str) {
     if !matches!(
         *schema,
-        CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11 | CLEANUP_PLAN_SCHEMA_V12
+        CLEANUP_PLAN_SCHEMA_V10
+            | CLEANUP_PLAN_SCHEMA_V11
+            | CLEANUP_PLAN_SCHEMA_V12
+            | CLEANUP_PLAN_SCHEMA_V13
     ) {
         *schema = CLEANUP_PLAN_SCHEMA_V9;
     }
@@ -101,6 +108,7 @@ pub(super) fn promote_v7(schema: &mut &'static str) {
             | CLEANUP_PLAN_SCHEMA_V10
             | CLEANUP_PLAN_SCHEMA_V11
             | CLEANUP_PLAN_SCHEMA_V12
+            | CLEANUP_PLAN_SCHEMA_V13
     ) {
         *schema = CLEANUP_PLAN_SCHEMA_V7;
     }

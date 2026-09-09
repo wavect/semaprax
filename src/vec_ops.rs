@@ -350,6 +350,9 @@ pub(crate) fn program_uses_owned_payload(program: &crate::ast::Program) -> bool 
 }
 
 pub(crate) fn resolved_program_uses_owned_payload(program: &crate::hir::ResolvedProgram) -> bool {
+    if crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
+        return true;
+    }
     fn has_vec_bytes(ty: &ResolvedType) -> bool {
         matches!(ty, ResolvedType::Nominal { declaration, arguments }
             if declaration.as_str() == crate::prelude::VEC_ID

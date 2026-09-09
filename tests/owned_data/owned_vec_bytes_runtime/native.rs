@@ -1,6 +1,8 @@
 //! Native O0/O2 settlement probe for the owned Bytes Vec profile.
 use semaprax::codegen;
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
+static NEXT_NATIVE_CASE: AtomicU64 = AtomicU64::new(0);
 
 pub(super) fn run_native(
     source: &str,
@@ -49,6 +51,10 @@ pub(super) fn run_native(
                 "(spx_bytes_v1 *)spx_test_calloc((size_t)target, sizeof(spx_bytes_v1))"
             },
         )
+        .replace(
+            "(uint8_t *)calloc((size_t)count, sizeof(uint8_t))",
+            "(uint8_t *)spx_test_calloc((size_t)count, sizeof(uint8_t))",
+        )
         .replace("(spx_bytes_v1*)calloc(", "(spx_bytes_v1*)spx_test_calloc(")
         .replace(
             "#define SPX_VEC_REALLOC realloc",
@@ -84,8 +90,9 @@ static __attribute__((unused)) void *spx_test_refused_calloc(size_t n,size_t s){
 static __attribute__((unused)) void spx_test_free(void*p){if(p){if(!spx_test_live_allocations)abort();--spx_test_live_allocations;free(p);}}"#;
     for opt in ["-O0", "-O2"] {
         let base = std::env::temp_dir().join(format!(
-            "semaprax-owned-vec-bytes-native-{}-{opt}",
-            std::process::id()
+            "semaprax-owned-vec-bytes-native-{}-{}-{opt}",
+            std::process::id(),
+            NEXT_NATIVE_CASE.fetch_add(1, Ordering::Relaxed)
         ));
         let c = base.with_extension("c");
         let bin = base.with_extension(std::env::consts::EXE_EXTENSION);

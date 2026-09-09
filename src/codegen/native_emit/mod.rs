@@ -169,7 +169,6 @@ pub(super) fn emit_hir_c_with_labels(
         }
         closure::emit_thunks(&mut output, program, &emission)?;
     }
-
     if output_profile.is_command() {
         let command = selected_command
             .ok_or_else(|| backend_error("native command selection is unavailable"))?;
@@ -249,7 +248,6 @@ pub(super) fn emit_hir_c_with_labels(
     }
     Ok(output.into_string())
 }
-
 /// Emit one length-indexed, alignment-one C type for each reachable nonempty
 /// fixed byte array. `[u8; 0]` is erased from physical C storage altogether;
 /// its expressions use a compiler-only scalar sentinel that is never stored,
@@ -389,6 +387,7 @@ fn emit_native_prelude_inner(
         needs_borrowed_str || program_uses_byte_data(program) || strings.provider_carriers,
         native_vec::program_uses_vec(program) || native_iter::program_uses_iterator(program),
         native_box::program_uses_box(program),
+        crate::iterator_ops::resolved_program_uses_owned_iterator(program),
     );
     output.push_str(&resource_abi.declarations);
     output.push_str("#include <stdio.h>\n\n");
@@ -459,7 +458,7 @@ fn emit_native_prelude_inner(
         native_vec::emit_runtime(output, program);
     }
     if native_iter::program_uses_iterator(program) {
-        native_iter::emit_runtime(output);
+        native_iter::emit_runtime(output, program);
     }
     if native_box::program_uses_box(program) {
         native_box::emit_runtime(output, program);
@@ -467,6 +466,9 @@ fn emit_native_prelude_inner(
 }
 
 fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
+    if crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
+        return true;
+    }
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
     for function in &program.functions {
         if matches!(

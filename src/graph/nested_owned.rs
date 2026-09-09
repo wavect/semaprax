@@ -1,8 +1,9 @@
-pub(crate) use super::process::{graph_schema, graph_schema_from_parts_and_instances};
+pub(crate) use super::owned_iterator::{graph_schema, graph_schema_from_parts_and_instances};
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{
     StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
-    CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V13, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8,
+    CLEANUP_PLAN_SCHEMA_V9,
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{PlaceProjection, ResolvedFunction, ResolvedProgram};
@@ -72,6 +73,7 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
                         | CLEANUP_PLAN_SCHEMA_V10
                         | CLEANUP_PLAN_SCHEMA_V11
                         | CLEANUP_PLAN_SCHEMA_V12
+                        | CLEANUP_PLAN_SCHEMA_V13
                 )
                 || !function_has_nested_storage(function)?
                 || !loan_origin_is_nested_owned_leaf(function, loan)
@@ -284,7 +286,10 @@ pub(super) fn pre_filesystem_schema_from_parts(
         .any(|function| {
             matches!(
                 function.cleanup_plan.schema,
-                CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11 | CLEANUP_PLAN_SCHEMA_V12
+                CLEANUP_PLAN_SCHEMA_V10
+                    | CLEANUP_PLAN_SCHEMA_V11
+                    | CLEANUP_PLAN_SCHEMA_V12
+                    | CLEANUP_PLAN_SCHEMA_V13
             )
         })
         && super::native_import::declares_native_rust_import(interfaces)
@@ -386,7 +391,10 @@ pub(super) fn pre_filesystem_graph_schema(
         .any(|function| {
             matches!(
                 function.cleanup_plan.schema,
-                CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11 | CLEANUP_PLAN_SCHEMA_V12
+                CLEANUP_PLAN_SCHEMA_V10
+                    | CLEANUP_PLAN_SCHEMA_V11
+                    | CLEANUP_PLAN_SCHEMA_V12
+                    | CLEANUP_PLAN_SCHEMA_V13
             )
         })
         && super::native_import::declares_native_rust_import(&program.interfaces)
@@ -542,6 +550,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v41"
             | "semaprax.graph.v42"
             | "semaprax.graph.v43"
+            | "semaprax.graph.v45"
     )
 }
 
@@ -565,6 +574,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v41"
             | "semaprax.graph.v42"
             | "semaprax.graph.v43"
+            | "semaprax.graph.v45"
     )
 }
 
@@ -586,6 +596,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v41"
             | "semaprax.graph.v42"
             | "semaprax.graph.v43"
+            | "semaprax.graph.v45"
     )
 }
 
@@ -630,12 +641,17 @@ fn iterator_loop_schema<'a>(
     for function in functions {
         let expected_loop = crate::hir::iterator_loop::function_contains(function);
         let expected_renewal = crate::hir::iterator_loop::function_requires_renewal(function);
-        if expected_loop
-            != matches!(
-                function.cleanup_plan.schema,
-                CLEANUP_PLAN_SCHEMA_V11 | CLEANUP_PLAN_SCHEMA_V12
-            )
-            || expected_renewal != (function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V12)
+        let owned_iterator = crate::iterator_ops::function_uses_owned_iterator(function);
+        if owned_iterator && function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V13 {
+            return Err(composition_error("owned iterator cleanup schema disagrees"));
+        }
+        if !owned_iterator
+            && (expected_loop
+                != matches!(
+                    function.cleanup_plan.schema,
+                    CLEANUP_PLAN_SCHEMA_V11 | CLEANUP_PLAN_SCHEMA_V12 | CLEANUP_PLAN_SCHEMA_V13
+                )
+                || expected_renewal != (function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V12))
         {
             return Err(composition_error(
                 "iterator loop shape and CleanupPlan v11/v12 selection disagree",
@@ -656,7 +672,10 @@ fn iterator_loop_schema<'a>(
 pub(super) fn has_iterator_cleanup(function: &ResolvedFunction) -> bool {
     matches!(
         function.cleanup_plan.schema,
-        CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11 | CLEANUP_PLAN_SCHEMA_V12
+        CLEANUP_PLAN_SCHEMA_V10
+            | CLEANUP_PLAN_SCHEMA_V11
+            | CLEANUP_PLAN_SCHEMA_V12
+            | CLEANUP_PLAN_SCHEMA_V13
     )
 }
 

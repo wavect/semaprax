@@ -18,8 +18,19 @@ pub(super) fn emit_status_runtime_for_profile(
     borrowed_str: bool,
     vec_authority: bool,
     box_authority: bool,
+    owned_iterator: bool,
 ) {
-    emit_status_runtime_profile(output, borrowed_str, vec_authority, box_authority);
+    if owned_iterator {
+        let mut runtime = String::new();
+        emit_status_runtime_profile(&mut runtime, borrowed_str, vec_authority, box_authority);
+        output.push_str(&runtime.replacen(
+            "    uint32_t type_tag;\n    bool live;",
+            "    uint32_t type_tag;\n    bool live;\n    uint64_t iterator_end;",
+            1,
+        ));
+    } else {
+        emit_status_runtime_profile(output, borrowed_str, vec_authority, box_authority);
+    }
 }
 
 fn emit_status_runtime_profile(

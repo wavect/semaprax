@@ -360,6 +360,11 @@ pub(in crate::wasm) fn box_import_base(program: &ResolvedProgram) -> u32 {
         } else {
             0
         }
+        + if crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
+            super::OWNED_ITER_IMPORT_COUNT
+        } else {
+            0
+        }
 }
 
 pub(super) fn executable_functions(

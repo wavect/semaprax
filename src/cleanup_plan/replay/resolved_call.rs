@@ -122,6 +122,8 @@ pub(super) fn defers_owner_commit(expression: &crate::hir::ResolvedExpr) -> bool
             )
         )
             || callee.as_str() == crate::iterator_ops::NEXT_ID
+            || (callee.as_str() == crate::iterator_ops::INTO_ITER_ID
+                && matches!(type_arguments.as_slice(), [crate::hir::ResolvedType::Bytes]))
             || crate::byte_ops::by_id(callee.as_str())
                 .is_some_and(crate::byte_ops::ByteOp::is_fallible)
             || (callee.as_str() == crate::box_ops::NEW_ID

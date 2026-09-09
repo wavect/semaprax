@@ -11,6 +11,13 @@ impl HirValidator<'_> {
         &self,
         expression: &ResolvedExpr,
     ) -> Result<(), Diagnostic> {
+        self.validate_iterator_body(expression, None)
+    }
+    fn validate_iterator_body(
+        &self,
+        expression: &ResolvedExpr,
+        owned_item: Option<&ResolvedBinding>,
+    ) -> Result<(), Diagnostic> {
         enum Item<'a> {
             Expression(&'a ResolvedExpr),
             IndexedMatchNext {
@@ -229,11 +236,14 @@ impl HirValidator<'_> {
                     // rejected by the byte-capacity analysis after HIR replay.
                     let scalar_signature = target.effects.is_empty()
                         && crate::hir::is_scalar_resolved_type(&target.return_type)
-                        && target.params.iter().all(|param| {
+                        && target.params.iter().zip(args).all(|(param, argument)| {
                             (param.ownership == OwnershipMode::Value
                                 && crate::hir::is_scalar_resolved_type(&param.ty))
                                 || (param.ownership == OwnershipMode::Borrow
                                     && param.ty == ResolvedType::SliceU8)
+                                || (param.ownership == OwnershipMode::Own && param.ty == ResolvedType::Bytes
+                                    && argument.ownership == OwnershipMode::Own && argument.ty == ResolvedType::Bytes
+                                    && owned_item.is_some_and(|item| matches!(&argument.kind, ResolvedExprKind::Place(place) if place.root == item.id && place.projections.is_empty())))
                         });
                     if !scalar_signature {
                         return Err(hir_error(format!(
@@ -262,7 +272,7 @@ impl HirValidator<'_> {
                                     ),
                                 ));
                             }
-                        } else {
+                        } else if parameter.ownership != OwnershipMode::Own {
                             pending.push(Item::Expression(argument));
                         }
                     }
@@ -448,7 +458,7 @@ impl HirValidator<'_> {
             if !crate::iterator_ops::step_shape(&self.program.declarations, &protocol.step.ty) {
                 return Err(hir_error("iterator loop has unauthenticated Step metadata"));
             }
-            self.validate_while_admission(protocol.authored_body)
+            self.validate_iterator_body(protocol.authored_body, protocol.owned_item)
         } else {
             self.validate_while_admission(condition)?;
             self.validate_while_admission(body)

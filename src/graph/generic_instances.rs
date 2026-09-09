@@ -83,6 +83,7 @@ pub(super) fn legacy_graph_json(
     if super::filesystem::requires(program)
         || super::environment::requires(program)
         || super::process::requires(program)
+        || super::owned_iterator::requires(program)
     {
         return Err(Diagnostic::io(
             "SPX-G411",
@@ -120,6 +121,7 @@ pub(super) fn pre_filesystem_graph_json(
         if super::filesystem::requires(program)
             || super::environment::requires(program)
             || super::process::requires(program)
+            || super::owned_iterator::requires(program)
         {
             return render_graph_json(
                 program,

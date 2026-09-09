@@ -1,11 +1,24 @@
 //! Inline consuming scalar iterator carriers. They reuse the authenticated
 //! bounded-Vec runtime and never allocate an iterator wrapper.
 
-pub(super) fn emit_runtime(output: &mut impl super::COutput) {
+mod owned;
+pub(super) fn emit_runtime(
+    output: &mut impl super::COutput,
+    program: &crate::hir::ResolvedProgram,
+) {
     use super::native_emit::{c_case_symbol, c_field_symbol};
     use crate::hir::DeclarationId;
+    let owned = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
+    let runtime = if owned {
+        RUNTIME_C
+            .replace("spx_iter_move(", "spx_iter_scalar_move(")
+            .replace("spx_iter_drop(", "spx_iter_scalar_drop(")
+            + owned::RUNTIME
+    } else {
+        RUNTIME_C.to_owned()
+    };
     output.push_str(
-        &RUNTIME_C
+        &runtime
             .replace(
                 "ITER_CASE",
                 &c_case_symbol(&DeclarationId::new(crate::iterator_ops::YIELD_ID)),
@@ -55,7 +68,13 @@ pub(super) fn c_type(ty: &crate::hir::ResolvedType) -> Option<&'static str> {
     if crate::iterator_ops::is_iter(ty) {
         Some("spx_iter_v1")
     } else if crate::iterator_ops::is_step(ty) {
-        Some("spx_iter_step_v1")
+        Some(
+            if crate::iterator_ops::element(ty) == Some(&crate::hir::ResolvedType::Bytes) {
+                "spx_iter_bytes_step_v2"
+            } else {
+                "spx_iter_step_v1"
+            },
+        )
     } else {
         None
     }

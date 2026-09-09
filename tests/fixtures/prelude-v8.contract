@@ -1,0 +1,69 @@
+semaprax.prelude.v8
+variant core.option Option<T>
+0 core.option.none None
+1 core.option.some Some core.option.some.value:value:T
+variant core.result Result<T,E>
+0 core.result.ok Ok core.result.ok.value:value:T
+1 core.result.err Err core.result.err.error:error:E
+record core.vec Vec<T>
+record core.box Box<T>
+elements i64,i32,u8,usize,char,f32,f64,bool
+operation core.vec.with-capacity vec_with_capacity <T>(value:usize)->own:Vec<T>
+operation core.vec.push vec_push <T>(own:Vec<T>,value:T)->own:Vec<T>
+operation core.vec.len vec_len <T>(borrow:Vec<T>)->value:usize
+operation core.vec.capacity vec_capacity <T>(borrow:Vec<T>)->value:usize
+operation core.vec.get vec_get <T>(borrow:Vec<T>,value:usize)->value:T
+limit max_capacity 8192
+status semaprax.vec.v1 push_full:1 get_out_of_bounds:2 allocation_failure:3
+operation core.vec.reserve-exact vec_reserve_exact <T>(own:Vec<T>,value:usize)->own:Vec<T>
+operation core.vec.set vec_set <T>(own:Vec<T>,value:usize,value:T)->own:Vec<T>
+operation core.vec.clear vec_clear <T>(own:Vec<T>)->own:Vec<T>
+rule reserve_exact target_capacity=max(old_capacity,length+additional) overflow_or_above_max_or_allocation_failure=semaprax.vec.v1:3
+rule set index_out_of_bounds=semaprax.vec.v1:2
+rule clear length=0 capacity=old_capacity
+rule successful_owner_mutation generation=next
+operation core.box.new box_new <T>(value:T)->own:Box<T>
+operation core.box.get box_get <T>(borrow:Box<T>)->value:T
+operation core.box.into-inner box_into_inner <T>(own:Box<T>)->value:T
+elements i64,i32,u8,usize,char,f32,f64,bool
+limit max_live_allocations 4096
+status semaprax.box.v1 allocation_failure:1
+operation core.box.new box_new <Bytes>(own:Bytes)->own:Box<Bytes>
+operation core.box.into-inner box_into_inner <Bytes>(own:Box<Bytes>)->own:Bytes
+rule core.box.get <Bytes>=closed
+wasm_imports spx_box_new_v2,spx_box_get_v2,spx_box_into_inner_v2,spx_box_drop_v2
+profile core.vec.owned-bytes.v1 element:Bytes carrier_charge:16 max_capacity:8192
+operation core.vec.with-capacity vec_with_capacity <Bytes>(value:usize)->own:Vec<Bytes>
+operation core.vec.push vec_push <Bytes>(own:Vec<Bytes>,own:Bytes)->own:Vec<Bytes>
+operation core.vec.len vec_len <Bytes>(borrow:Vec<Bytes>)->value:usize
+operation core.vec.capacity vec_capacity <Bytes>(borrow:Vec<Bytes>)->value:usize
+operation core.vec.reserve-exact vec_reserve_exact <Bytes>(own:Vec<Bytes>,value:usize)->own:Vec<Bytes>
+operation core.vec.set vec_set <Bytes>(own:Vec<Bytes>,value:usize,own:Bytes)->own:Vec<Bytes>
+operation core.vec.clear vec_clear <Bytes>(own:Vec<Bytes>)->own:Vec<Bytes>
+rule core.vec.get <Bytes>=closed
+rule owned_vec_push_set_reserve failure_before_owner_commit
+rule owned_vec_set drops_replaced_payload_once
+rule owned_vec_clear_drop drops_initialized_payloads_in_index_order
+wasm_imports spx_vec_with_capacity_v2,spx_vec_push_v2,spx_vec_len_v2,spx_vec_capacity_v2,spx_vec_get_v2,spx_vec_drop_v2,spx_vec_reserve_exact_v2,spx_vec_set_v2,spx_vec_clear_v2
+record core.iter Iter<T>
+representation core.iter opaque logical:Vec<T>,cursor:usize
+variant core.iter-step IterStep<T>
+0 core.iter-step.done Done
+1 core.iter-step.yield Yield core.iter-step.yield.item:item:T core.iter-step.yield.rest:rest:Iter<T>
+operation core.vec.into-iter vec_into_iter <T>(own:Vec<T>)->own:Iter<T>
+operation core.iter.next iter_next <T>(own:Iter<T>)->own:IterStep<T>
+elements i64,i32,u8,usize,char,f32,f64,bool
+rule iter_next consumes_iterator_and_yield_rest_owns_successor
+rule iter_done_has_no_payload
+cleanup_plan semaprax.cleanup-plan.v10
+profile core.iter.owned-bytes.v2 element:Bytes
+operation core.vec.into-iter vec_into_iter <Bytes>(own:Vec<Bytes>)->own:Iter<Bytes>
+operation core.iter.next iter_next <Bytes>(own:Iter<Bytes>)->own:IterStep<Bytes>
+rule owned_iter distinct_authority initialized_window:[cursor,length) detached_prefix:[0,cursor)
+rule owned_iter_next validation_before_commit atomic_item_and_remainder_transfer
+rule owned_iter_drop suffix_index_order_then_backing
+rule owned_iter_yield owners:item,rest
+cleanup_plan semaprax.cleanup-plan.v13
+wasm_import env.spx_iter_bytes_into_v2 (i64,i32)->i32
+wasm_import env.spx_iter_bytes_next_v2 (i64,i64,i32)->i32
+wasm_import env.spx_iter_bytes_drop_v2 (i64,i64)->void

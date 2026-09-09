@@ -182,7 +182,7 @@ fn owning_iterators_cleanup_v10_rejects_downgrade_and_conditional_owner_forgery(
 }
 
 #[test]
-fn owning_iterators_reject_reuse_and_non_scalar_elements() {
+fn owning_iterators_reject_reuse_and_unsupported_elements() {
     let reused = r#"
 module iterator.reuse;
 @id("app.main") fn main()->i64 {
@@ -199,7 +199,9 @@ module iterator.reuse;
             .any(|diagnostic| diagnostic.code == "SPX-O101"),
         "{errors:?}"
     );
-    for ty in ["Bytes", "String", "Vec<i64>", "fn(i64)->i64"] {
+    let bytes = "module iterator.bytes; @id(\"bytes\") fn bytes(value:own Iter<Bytes>)->i64{0} @id(\"app.main\") fn main()->i64{0}";
+    semaprax::check(bytes, "iterator-bytes.spx").unwrap();
+    for ty in ["String", "Vec<i64>", "fn(i64)->i64"] {
         let source=format!("module iterator.invalid; @id(\"invalid\") fn invalid(value:own Iter<{ty}>)->i64{{0}} @id(\"app.main\") fn main()->i64{{0}}");
         let first = semaprax::check(&source, "iterator-invalid.spx").unwrap_err();
         let second = semaprax::check(&source, "iterator-invalid.spx").unwrap_err();

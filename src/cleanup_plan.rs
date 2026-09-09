@@ -31,6 +31,8 @@ pub const CLEANUP_PLAN_SCHEMA_V9: &str = "semaprax.cleanup-plan.v9";
 pub const CLEANUP_PLAN_SCHEMA_V10: &str = "semaprax.cleanup-plan.v10";
 pub const CLEANUP_PLAN_SCHEMA_V11: &str = "semaprax.cleanup-plan.v11";
 pub const CLEANUP_PLAN_SCHEMA_V12: &str = "semaprax.cleanup-plan.v12";
+/// Owned iterator items and the detached-prefix remainder are independent owners.
+pub const CLEANUP_PLAN_SCHEMA_V13: &str = "semaprax.cleanup-plan.v13";
 
 macro_rules! numeric_id {
     ($name:ident) => {

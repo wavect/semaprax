@@ -1,11 +1,3 @@
-use same_file::Handle;
-use sha2::{Digest, Sha256};
-use std::collections::HashMap;
-use std::fmt::Write as _;
-use std::fs::{self, OpenOptions};
-use std::io::Write;
-use std::path::Path;
-
 use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::command_io_ops::CommandOperationProfile;
 use crate::diagnostic::{quote_json, Diagnostic};
@@ -15,9 +7,14 @@ use crate::hir::{
     ResolvedProgram, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind, ValueId,
 };
 use crate::variant_layout::{VariantLayoutCache, VariantTarget};
-
 use arithmetic::{contains_u8_arithmetic, contains_usize_arithmetic, needs_i32_wide_scratch};
-
+use same_file::Handle;
+use sha2::{Digest, Sha256};
+use std::collections::HashMap;
+use std::fmt::Write as _;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::path::Path;
 mod aggregate;
 mod arithmetic;
 mod command_io;
@@ -275,6 +272,9 @@ fn functions_use_strings<'a>(
 }
 
 fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
+    if crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
+        return true;
+    }
     let mut pending = Vec::new();
     for function in &program.functions {
         if matches!(

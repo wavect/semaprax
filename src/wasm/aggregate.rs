@@ -61,6 +61,7 @@ const BYTE_IMPORT_COUNT: u32 = 4;
 const OWNED_BUFFER_IMPORT_COUNT: u32 = 2;
 const VEC_IMPORT_COUNT: u32 = 6;
 const EXTENDED_VEC_IMPORT_COUNT: u32 = 3;
+const OWNED_ITER_IMPORT_COUNT: u32 = iterator_ops::OWNED_IMPORT_COUNT;
 const BOX_IMPORT_COUNT: u32 = 4;
 const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
 pub(super) const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
@@ -2274,6 +2275,7 @@ fn emit_profile_with_scalar_exports(
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let uses_vec = super::program_uses_vec(program);
     let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
+    let uses_owned_iterator = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
     let uses_box = super::program_uses_box(program);
     if program
         .types
@@ -2426,6 +2428,36 @@ fn emit_profile_with_scalar_exports(
             &mut type_indexes,
         )
     });
+    let iter_into = uses_owned_iterator.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let iter_next = uses_owned_iterator.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64, I32],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let iter_drop = uses_owned_iterator.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64],
+                results: Vec::new(),
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
     let box_new = uses_box.then(|| {
         intern_type(
             Signature {
@@ -2541,6 +2573,11 @@ fn emit_profile_with_scalar_exports(
                     } else {
                         0
                     }
+                    + if uses_owned_iterator {
+                        OWNED_ITER_IMPORT_COUNT
+                    } else {
+                        0
+                    }
                     + if uses_box { BOX_IMPORT_COUNT } else { 0 }
                     + u32::try_from(index).unwrap_or(u32::MAX),
             )
@@ -2570,6 +2607,11 @@ fn emit_profile_with_scalar_exports(
             + if uses_vec { VEC_IMPORT_COUNT } else { 0 }
             + if uses_extended_vec {
                 EXTENDED_VEC_IMPORT_COUNT
+            } else {
+                0
+            }
+            + if uses_owned_iterator {
+                OWNED_ITER_IMPORT_COUNT
             } else {
                 0
             }
@@ -2608,6 +2650,12 @@ fn emit_profile_with_scalar_exports(
             function_import(&mut imports, "env", names[7], vec_set.unwrap());
             function_import(&mut imports, "env", names[8], vec_read.unwrap());
         }
+    }
+    if uses_owned_iterator {
+        let names = iterator_ops::owned_import_names();
+        function_import(&mut imports, "env", names[0], iter_into.unwrap());
+        function_import(&mut imports, "env", names[1], iter_next.unwrap());
+        function_import(&mut imports, "env", names[2], iter_drop.unwrap());
     }
     if uses_box {
         let names = box_ops::import_names(program);
@@ -2729,6 +2777,13 @@ fn emit_profile_with_scalar_exports(
         .and_then(|value| {
             value.checked_add(if uses_extended_vec {
                 EXTENDED_VEC_IMPORT_COUNT
+            } else {
+                0
+            })
+        })
+        .and_then(|value| {
+            value.checked_add(if uses_owned_iterator {
+                OWNED_ITER_IMPORT_COUNT
             } else {
                 0
             })
@@ -3455,18 +3510,30 @@ impl Emitter<'_> {
             write_u32(self.output, flag);
             self.output.extend([0x04, 0x40]);
             if iter_leaf {
-                let Value::Aggregate { pointer, .. } = &value else {
+                let Value::Aggregate { pointer, ty } = &value else {
                     return Err(error("Iter cleanup leaf is not aggregate storage"));
                 };
                 self.emit_pointer(*pointer);
                 self.load_scalar(&ResolvedType::I64);
+                if *ty == crate::iterator_ops::resolved_iter(ResolvedType::Bytes) {
+                    self.emit_pointer(Pointer {
+                        offset: pointer.offset + iterator_ops::ITER_CURSOR_OFFSET,
+                        ..*pointer
+                    });
+                    self.load_scalar(&ResolvedType::Usize);
+                }
             } else {
                 self.get_scalar(&value);
             }
             self.output.push(0x10);
             write_u32(
                 self.output,
-                if vec_leaf || iter_leaf {
+                if iter_leaf
+                    && *value_type(&value)
+                        == crate::iterator_ops::resolved_iter(ResolvedType::Bytes)
+                {
+                    iterator_ops::owned_import_base(self.program) + 2
+                } else if vec_leaf || iter_leaf {
                     vec_import_base(self.program) + 5
                 } else if box_leaf {
                     box_import_base(self.program) + 3

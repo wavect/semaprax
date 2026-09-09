@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the private owned iterator payload profile for `Iter<Bytes>` and
+  `IterStep<Bytes>`. Prelude v8, Graph v45, and CleanupPlan v13 bind the exact
+  detached-prefix item/rest transfer and preserve prior scalar iterator,
+  vector, and cache bytes. Focused library, interpreter/native C11 `-O0`/`-O2`,
+  workspace, and Core Wasm checks pass, including graph/Prelude and cache
+  replay, exact failure settlement, and malformed-provider output rejection.
+  Hosted promotion, public generic iterator ABI, and broader iterator scope
+  remain pending. Also close the omitted Graph v44 process-profile rejection
+  in frozen evidence admission without changing serialized graph bytes.
+
 - Extend `std.test.bytes` with reusable named snapshot fixtures and Copy
   comparison results containing equality, lengths, and the relative first
   difference. Borrowed fixtures and Reader cursors remain unchanged, with no

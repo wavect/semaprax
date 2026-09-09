@@ -81,3 +81,6 @@ mod owned_box_bytes_runtime;
 
 #[path = "owned_data/owned_vec_bytes_runtime.rs"]
 mod owned_vec_bytes_runtime;
+
+#[path = "owned_data/owned_iterator_payloads.rs"]
+mod owned_iterator_payloads;

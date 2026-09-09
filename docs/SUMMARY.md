@@ -100,6 +100,7 @@ Audience: all documentation readers.
 - [Owned Bounded Box](OWNED-BOUNDED-BOX-V1.md)
 - [Owned Bounded Box v2](OWNED-BOUNDED-BOX-V2.md)
 - [Owning Iterators v1](OWNING-ITERATORS-V1.md)
+- [Owning Iterator Payloads v2](OWNING-ITERATOR-PAYLOADS-V2.md)
 - [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md)
 - [Owning Iterator Renewal v1](OWNING-ITERATOR-RENEWAL-V1.md)
 - [Bounded JSON scanner](BOUNDED-JSON-SCANNER-V1.md)

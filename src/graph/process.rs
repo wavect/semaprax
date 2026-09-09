@@ -159,6 +159,9 @@ permit { process.environment.read, process.execute }
         assert!(crate::graph::to_legacy_json(&source).is_err());
         let value: serde_json::Value = serde_json::from_str(&graph).unwrap();
         assert_eq!(value["schema"], "semaprax.graph.v44");
+        let rejection = crate::graph::reject_evidence_schema(value["schema"].as_str().unwrap())
+            .expect_err("registered process graphs stay outside frozen evidence admission");
+        assert_eq!(rejection.code, "SPX-G410");
         assert_eq!(
             value["bounded_environment_io"]["schema"],
             "semaprax.environment-input.v1"

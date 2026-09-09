@@ -81,8 +81,8 @@ pub(super) fn resume<'a>(
                     function,
                     &format!("{statement_path}.value.s1.body.s0.value.arm.1.binding.0"),
                 ),
+                ownership: crate::iterator_ops::item_ownership(&element, false),
                 ty: element,
-                ownership: OwnershipMode::Value,
                 mutable: false,
             },
         );
@@ -240,7 +240,10 @@ fn lower(
                         &format!("{p}.binding.0"),
                         item,
                         element.clone(),
-                        OwnershipMode::Value,
+                        crate::iterator_ops::item_ownership(
+                            &element,
+                            ownership == OwnershipMode::Borrow,
+                        ),
                     )
                 },
             },
@@ -419,7 +422,7 @@ pub(super) fn resolve_reference(
                 &format!("{path}.value.s1.body.s0.value.arm.1.binding.0"),
             ),
             ty: element.clone(),
-            ownership: OwnershipMode::Value,
+            ownership: crate::iterator_ops::item_ownership(&element, false),
             mutable: false,
         },
     );

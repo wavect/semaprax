@@ -22,6 +22,7 @@ pub(crate) const SCHEMA_V4: &str = "semaprax.prelude.v4";
 pub(crate) const SCHEMA_V5: &str = "semaprax.prelude.v5";
 pub(crate) const SCHEMA_V6: &str = "semaprax.prelude.v6";
 pub(crate) const SCHEMA_V7: &str = "semaprax.prelude.v7";
+pub(crate) const SCHEMA_V8: &str = "semaprax.prelude.v8";
 
 pub(crate) const OPTION_ID: &str = "core.option";
 pub(crate) const OPTION_NONE_ID: &str = "core.option.none";
@@ -263,6 +264,19 @@ pub(crate) fn contract_bytes_v7() -> Vec<u8> {
     let mut output = legacy.replacen(SCHEMA_V6, SCHEMA_V7, 1).into_bytes();
     output.extend_from_slice(b"record core.iter Iter<T>\nrepresentation core.iter opaque logical:Vec<T>,cursor:usize\nvariant core.iter-step IterStep<T>\n0 core.iter-step.done Done\n1 core.iter-step.yield Yield core.iter-step.yield.item:item:T core.iter-step.yield.rest:rest:Iter<T>\noperation core.vec.into-iter vec_into_iter <T>(own:Vec<T>)->own:Iter<T>\noperation core.iter.next iter_next <T>(own:Iter<T>)->own:IterStep<T>\nelements i64,i32,u8,usize,char,f32,f64,bool\nrule iter_next consumes_iterator_and_yield_rest_owns_successor\nrule iter_done_has_no_payload\ncleanup_plan semaprax.cleanup-plan.v10\n");
     output
+}
+
+pub(crate) fn contract_bytes_v8() -> Vec<u8> {
+    let legacy = String::from_utf8(contract_bytes_v7()).expect("prelude contract is UTF-8");
+    let mut output = legacy.replacen(SCHEMA_V7, SCHEMA_V8, 1).into_bytes();
+    output.extend_from_slice(b"profile core.iter.owned-bytes.v2 element:Bytes\noperation core.vec.into-iter vec_into_iter <Bytes>(own:Vec<Bytes>)->own:Iter<Bytes>\noperation core.iter.next iter_next <Bytes>(own:Iter<Bytes>)->own:IterStep<Bytes>\nrule owned_iter distinct_authority initialized_window:[cursor,length) detached_prefix:[0,cursor)\nrule owned_iter_next validation_before_commit atomic_item_and_remainder_transfer\nrule owned_iter_drop suffix_index_order_then_backing\nrule owned_iter_yield owners:item,rest\ncleanup_plan semaprax.cleanup-plan.v13\nwasm_import env.spx_iter_bytes_into_v2 (i64,i32)->i32\nwasm_import env.spx_iter_bytes_next_v2 (i64,i64,i32)->i32\nwasm_import env.spx_iter_bytes_drop_v2 (i64,i64)->void\n");
+    output
+}
+pub(crate) fn digest_text_v8() -> String {
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(contract_bytes_v8()))
+    )
 }
 
 pub(crate) fn digest_text_v6() -> String {
@@ -562,7 +576,9 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
-    if crate::iterator_ops::program_uses_iterator(program) {
+    if crate::iterator_ops::program_uses_owned_iterator(program) {
+        (SCHEMA_V8, contract_bytes_v8(), digest_text_v8())
+    } else if crate::iterator_ops::program_uses_iterator(program) {
         (SCHEMA_V7, contract_bytes_v7(), digest_text_v7())
     } else if crate::vec_ops::program_uses_owned_payload(program) {
         (SCHEMA_V6, contract_bytes_v6(), digest_text_v6())

@@ -78,6 +78,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
     /// `byte_get`/`Option<u8>` match. Every other construct is rejected
     /// fail-closed so loop cleanup stays edge-free.
     pub(super) fn reject_while_disallowed(&mut self, expression: &'p Expr) -> Result<(), ()> {
+        self.reject_iterator_body(expression, None)
+    }
+    pub(super) fn reject_iterator_body(
+        &mut self,
+        expression: &'p Expr,
+        owned_item: Option<&str>,
+    ) -> Result<(), ()> {
         enum Frame<'a> {
             Expression(&'a Expr),
             Statement(&'a Statement),
@@ -334,10 +341,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if let Some(declared) = self.functions.get(name.as_str()) {
                         let scalar_signature = declared.effects.is_empty()
                             && is_scalar_source_type(&declared.return_type)
-                            && declared.params.iter().all(|param| {
+                            && declared.params.iter().zip(args).all(|(param, argument)| {
                                 (param.mode == ParamMode::Value && is_scalar_source_type(&param.ty))
                                     || (param.mode == ParamMode::Borrow
                                         && param.ty == Type::SliceU8)
+                                    || (param.mode == ParamMode::Own && param.ty == Type::Bytes
+                                        && owned_item.is_some_and(|item| matches!(&argument.kind, ExprKind::Var(name) if name == item)))
                             });
                         if !scalar_signature {
                             self.diagnostics.push(error(

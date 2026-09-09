@@ -158,8 +158,10 @@ impl PlanBuilder<'_> {
         else {
             return Ok(());
         };
-        if self.schema != super::super::CLEANUP_PLAN_SCHEMA_V12
-            || crate::hir::iterator_loop::renewal_binding(self.function, &value.id).is_none()
+        if !matches!(
+            self.schema,
+            super::super::CLEANUP_PLAN_SCHEMA_V12 | super::super::CLEANUP_PLAN_SCHEMA_V13
+        ) || crate::hir::iterator_loop::renewal_binding(self.function, &value.id).is_none()
         {
             return Ok(());
         }

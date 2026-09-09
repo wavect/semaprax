@@ -5,6 +5,8 @@ Audience: language users and compiler contributors.
 Status: locally exercised additive owned-payload profile; hosted promotion
 remains pending. This extends [scalar Vec v1](OWNED-BOUNDED-VEC-V1.md)
 with owned Bytes payloads. It does not redefine that frozen scalar contract.
+Consuming payload traversal is specified separately in
+[Owning Iterator Payloads v2](OWNING-ITERATOR-PAYLOADS-V2.md).
 
 ## Owned operations
 

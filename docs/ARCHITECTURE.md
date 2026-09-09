@@ -483,6 +483,16 @@ not select reservations or grant runtime authority. Source and HIR generic
 collection classifiers admit the bounded one- or two-type-parameter operation
 shape; cache encoding retains its exact ordered type vector and renewal facts.
 
+The additive owned-payload iterator is split across
+`src/interpreter/iterator.rs`, which validates the initialized suffix and uses a
+detached-prefix sentinel for the moved slot, and
+`src/codegen/native_iter/owned.rs`, which changes the native authority kind,
+zeroes the moved Vec slot, and settles only the remaining suffix. Core Wasm
+imports and lowering live in `src/wasm/aggregate/iterator_ops/owned.rs`; its
+separate iterator authority prevents Vec operations from accepting iterator
+carriers. These modules consume the selected Prelude v8, CleanupPlan v13, and
+Graph v45 facts; focused native/Wasm verification remains pending.
+
 Function Values v2's private generic-collection profile is owned by
 `src/source_verify/declared_type/generic_collection.rs` and
 `src/hir/generic_collection.rs`; `src/hir/validation/generic_template.rs`

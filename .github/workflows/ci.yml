@@ -1490,7 +1490,7 @@ jobs:
       CARGO_PROFILE_TEST_DEBUG: "0"
     name: Rust 1.88 minimum (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

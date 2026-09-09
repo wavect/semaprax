@@ -264,6 +264,7 @@ impl Emitter<'_> {
             self.output.push(0x21);
             write_u32(self.output, self.plan.status);
             self.output.extend([0x0b, 0x0b, 0x0b]);
+            self.control_depth -= 1;
         }
         if matches!(call.operation, Op::EnvNameUtf8 | Op::EnvValueUtf8) {
             self.output.push(0x20);

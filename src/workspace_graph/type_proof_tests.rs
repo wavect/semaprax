@@ -788,7 +788,7 @@ module graph.v14;
         // independent replay below remain exact.
         assert_eq!(
             document_sha,
-            "sha256:f513844ceead19191d002f5d079cfd696fdc307097e1205ab221ea53f32685f9"
+            "sha256:fe35bd414f6c11ddcb2eaf78d615655a07ce2a7c97fcb46ed682fd2bb99c2ab1"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

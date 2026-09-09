@@ -555,10 +555,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             // Only that budget field changed; every other field of the rendered
             // document is byte for byte identical, checked by rendering the same
             // document under both factors and diffing it field by field.
-            "sha256:4173bd3c26a1baab0b9784438f79db5385b53ca2aa38fd1efa10107f39dd1529",
-            "sha256:adca110a8f979054ec6016ad0b8cc6085915f6a26d6c50c7a37539dabc945bed",
-            "sha256:2eefdc321184b2e9bed53c5f4f82e6cccdb1f2b7ca093bb1cc96786176e0c8bb",
-            "sha256:2c659a3f3acde6a62cf5857741798952e2a3f790625dd2ffcfa30a0b68f027cd"
+            "sha256:5c679b5435c3463819dd14ef03f41b8c7ed3e2c71a22e11eacc388ad2e1dfd09",
+            "sha256:14643ac68fcd48efd4f5140a734f79781049edf081d8dc04c11b4547d00a6dc0",
+            "sha256:822ebe39cf4b127bf055b891e5bdeb1788fc110a6693738594dae2874294b651",
+            "sha256:09796ff34909f402de02cd8cf816f96f0056b1ea6a927bda3cc1e885da2ec6cb"
         ]
     );
     for artifact in &contexts {
@@ -617,8 +617,8 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         [
             // Re-pinned after type-fact cycle detection began retaining exact
             // concrete nominal identities; only `used_builder_bytes` moved.
-            "sha256:5fe18a14bf835556c2271cf1f95edd19f6f49d4c190eee7e216bc516efd06149",
-            "sha256:2cbfcbfa110f89304facc61ecf5a5cb18a6c14202752ad05f5ec3725d5352a55",
+            "sha256:6a6b69b3d556329ff37f64d1df2c62ed83f46785c1f71137ed1ee22a3fa529f9",
+            "sha256:dfd3ffa38bffaa7b7c6a29d7a05d6c08387e9a7d045d1ad90491fb4bf64b611b",
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -755,7 +755,7 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         document_sha(&review.json),
         // Re-pinned after type-fact cycle detection began retaining exact
         // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:98b0693dc3d3dbda414ca4aa8386a8fa791353928e0e0cd43e15fa81b296522b"
+        "sha256:ba839e37859038cf75ba9af0d56b86cdfe5139267b977c73a5ce0c74766950e6"
     );
     let direct_context = analysis
         .render_context(

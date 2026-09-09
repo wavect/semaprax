@@ -306,7 +306,7 @@ fn private_ios_swift_hosted_gate_is_mandatory_and_fail_closed() {
     for required in [
         "Private Swift/iOS application + XCFramework runtime",
         "runs-on: macos-26",
-        "timeout-minutes: 40",
+        "timeout-minutes: 60",
         "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7",
         "dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master",
         "toolchain: 1.97.1",

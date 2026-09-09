@@ -295,6 +295,10 @@ pub(super) fn derive_byte_slice_provenance(
     let mut root_types = BTreeMap::<ValueId, ResolvedType>::new();
     let command_argument_root =
         ValueId::intrinsic_parameter(crate::command_io_ops::ARG_UTF8_ID, usize::MAX);
+    let environment_root =
+        ValueId::intrinsic_parameter(crate::environment_ops::ARENA_ID, usize::MAX);
+    let mut environment_views = BTreeSet::<ValueId>::new();
+    let mut environment_aliases = Vec::new();
     let mut command_argument_views = BTreeSet::<ValueId>::new();
     let mut borrowed_pattern_origins = BTreeMap::<ValueId, Place>::new();
     let mut aliases = Vec::<(&ResolvedBinding, bool, &ResolvedExpr)>::new();
@@ -372,6 +376,18 @@ pub(super) fn derive_byte_slice_provenance(
                                 })
                             ) {
                                 command_argument_views.insert(binding.id.clone());
+                            }
+                            if matches!(&value.kind, ResolvedExprKind::HostCommandCall(call) if crate::environment_ops::is_lookup(call.operation))
+                            {
+                                environment_views.insert(binding.id.clone());
+                            }
+                            if binding.ty == ResolvedType::Str {
+                                if let ResolvedExprKind::Place(place) = &value.kind {
+                                    if place.projections.is_empty() {
+                                        environment_aliases
+                                            .push((binding.id.clone(), place.root.clone()));
+                                    }
+                                }
                             }
                             if binding.ty == ResolvedType::SliceU8 {
                                 aliases.push((binding, *mutable, value));
@@ -453,6 +469,20 @@ pub(super) fn derive_byte_slice_provenance(
             }
         }
     }
+    // Resolve only aliases already authenticated as immutable borrowed-str
+    // bindings by HIR validation. Each successful pass adds a retained binding;
+    // cycles or unrelated roots gain no environment origin.
+    loop {
+        let before = environment_views.len();
+        for (binding, source) in &environment_aliases {
+            if environment_views.contains(source) {
+                environment_views.insert(binding.clone());
+            }
+        }
+        if before == environment_views.len() {
+            break;
+        }
+    }
     let mut unresolved = aliases;
     loop {
         let before = unresolved.len();
@@ -526,7 +556,9 @@ pub(super) fn derive_byte_slice_provenance(
                 facts.insert(
                     binding.id.clone(),
                     ByteSliceProvenance {
-                        root: if root_kind == ByteSliceRootKind::CommandArguments {
+                        root: if environment_views.contains(&place.root) {
+                            environment_root.clone()
+                        } else if root_kind == ByteSliceRootKind::CommandArguments {
                             command_argument_root.clone()
                         } else {
                             place.root.clone()

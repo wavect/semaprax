@@ -2212,6 +2212,126 @@
       "declarations": [
         {
           "description": [],
+          "effects": [
+            "process.environment.read"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn count() -> usize",
+            "    uses { process.environment.read }"
+          ],
+          "id": "std.env.count",
+          "kind": "function",
+          "name": "count",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [
+            "process.environment.read"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn name_len(index: usize) -> usize",
+            "    uses { process.environment.read }"
+          ],
+          "id": "std.env.name-len",
+          "kind": "function",
+          "name": "name_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [
+            "process.environment.read"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn value_len(index: usize) -> usize",
+            "    uses { process.environment.read }"
+          ],
+          "id": "std.env.value-len",
+          "kind": "function",
+          "name": "value_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [
+            "process.environment.read"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn name_is(index: usize, key: borrow str) -> bool",
+            "    uses { process.environment.read }"
+          ],
+          "id": "std.env.name-is",
+          "kind": "function",
+          "name": "name_is",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [
+            "process.environment.read"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn index_of(key: borrow str) -> usize",
+            "    uses { process.environment.read }"
+          ],
+          "id": "std.env.index-of",
+          "kind": "function",
+          "name": "index_of",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [
+            "process.environment.read"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn name_into(index: usize, output: own Writer) -> Writer",
+            "    uses { process.environment.read }"
+          ],
+          "id": "std.env.name-into",
+          "kind": "function",
+          "name": "name_into",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [
+            "process.environment.read"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn value_into(index: usize, output: own Writer) -> Writer",
+            "    uses { process.environment.read }"
+          ],
+          "id": "std.env.value-into",
+          "kind": "function",
+          "name": "value_into",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.env = \"^0.1.0\"",
+      "module": "std.env",
+      "package": "std/env",
+      "required_profile": "environment-io.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "hosted"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
           "effects": [],
           "ensures": 0,
           "head": [

@@ -102,6 +102,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.env",
+        path: "dependencies/std.env/0.1.0/env.spx",
+        source: include_str!("../../std/env/src/env.spx"),
+        dependencies: &["std.format", "std.io"],
+    },
+    BundledPackage {
         name: "std.format",
         path: "dependencies/std.format/0.1.0/format.spx",
         source: include_str!("../../std/format/src/format.spx"),

@@ -217,6 +217,7 @@ pub(in crate::wasm) fn emit(
             None,
             None,
             Some(&mut literals),
+            None,
             true,
         )?;
         append_body(&mut code, body)?;

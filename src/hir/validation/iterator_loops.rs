@@ -192,6 +192,24 @@ impl HirValidator<'_> {
                         pending.extend(args[1..].iter().rev().map(Item::Expression));
                         continue;
                     }
+                    if let Some(operation) = crate::str_ops::by_id(callee.as_str()) {
+                        if !crate::environment_ops::program_uses_environment(self.program)
+                            || args.len() != operation.arity()
+                            || expression.ty != operation.return_type()
+                            || expression.ownership != OwnershipMode::Value
+                            || args.iter().any(|argument| {
+                                argument.ty != ResolvedType::Str
+                                    || argument.ownership != OwnershipMode::Borrow
+                                    || !matches!(&argument.kind, ResolvedExprKind::Place(place) if place.projections.is_empty())
+                            })
+                        {
+                            return Err(hir_error("environment loop text reads require exact immutable named borrowed-str inputs"));
+                        }
+                        // Full expression replay authenticates each binding and
+                        // immutable borrowed-str origin; these closed readers
+                        // return only a scalar and cannot retain their inputs.
+                        continue;
+                    }
                     if let Some(operation) = crate::byte_ops::by_id(callee.as_str()) {
                         owned_buffer::require_admitted_while_operation(
                             self, expression, callee, operation, args,

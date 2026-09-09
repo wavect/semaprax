@@ -27,6 +27,8 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf()
 }
 
+#[path = "standard_library/environment.rs"]
+mod environment;
 #[path = "standard_library/formatting.rs"]
 mod formatting;
 #[path = "standard_library/logging.rs"]
@@ -236,6 +238,7 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
                         | "std.fs.create-dir"
                         | "std.fs.remove",
                     ) => vec!["fs.write".into()],
+                    ("std.env", _) => vec!["process.environment.read".into()],
                     _ => vec![],
                 };
             assert_eq!(
@@ -282,6 +285,10 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
             assert_eq!(package.tier, "hosted");
             assert_eq!(required_consumer_profile(&package), "filesystem-io.v2");
             vec!["fs.read".into(), "fs.write".into()]
+        } else if package.module == "std.env" {
+            assert_eq!(package.tier, "hosted");
+            assert_eq!(required_consumer_profile(&package), "environment-io.v1");
+            vec!["process.environment.read".into()]
         } else {
             vec![]
         };
@@ -667,6 +674,10 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
         if package.module == "std.fs" {
             filesystem::run_conformance();
             filesystem_v2::run_conformance();
+            continue;
+        }
+        if package.module == "std.env" {
+            environment::run_conformance();
             continue;
         }
         let manifest = root()

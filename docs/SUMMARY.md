@@ -80,6 +80,7 @@ Audience: all documentation readers.
 - [Refutable match](REFUTABLE-MATCH-V1.md)
 - [String operations](STRING-OPS-V1.md)
 - [IO Cursors v1](IO-CURSORS-V1.md)
+- [Bounded Environment I/O v1](BOUNDED-ENVIRONMENT-IO-V1.md)
 - [Typed Path v1](TYPED-PATH-V1.md)
 - [Filesystem I/O v1](FILESYSTEM-IO-V1.md)
 - [Filesystem I/O v2](FILESYSTEM-IO-V2.md)

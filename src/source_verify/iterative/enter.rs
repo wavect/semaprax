@@ -637,6 +637,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 operation => {
                                     match crate::command_io_ops::result_ownership(operation) {
                                         crate::hir::OwnershipMode::Own => ParamMode::Own,
+                                        crate::hir::OwnershipMode::Borrow => ParamMode::Borrow,
                                         _ => ParamMode::Value,
                                     }
                                 }

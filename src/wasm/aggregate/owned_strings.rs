@@ -117,7 +117,7 @@ pub(super) fn emit_literal_data(
     super::write_u32(&mut data, 1);
     data.push(0x00);
     data.push(0x41);
-    super::write_i64(&mut data, i64::from(super::OWNED_UTF8_LITERAL_BASE));
+    super::write_i64(&mut data, i64::from(literals.base()));
     data.push(0x0b);
     super::write_u32(
         &mut data,

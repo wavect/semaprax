@@ -57,10 +57,10 @@
 //! This tranche contains no JIT/AOT/Cranelift machinery, no incremental
 //! persistence, no hot reload, no debugger mapping, executes no target, and
 //! changes no source.
-
 mod api_admission;
 mod closures;
 mod command_state;
+pub(crate) mod environment;
 mod expression_children;
 mod failure_detail;
 pub(crate) mod filesystem;
@@ -79,7 +79,6 @@ mod prepared;
 mod resolved_case;
 pub mod retained_call;
 mod scalar_profile;
-
 pub use failure_detail::{ContractArgument, ContractFailureDetail};
 pub(crate) use resolved_case::evaluate_resolved_zero_arg_i64_function;
 
@@ -3046,6 +3045,7 @@ pub(crate) fn evaluate_resolved_language_command(
         stdin_consumed: false,
         network: None,
         filesystem: None,
+        environment: None,
     };
     let mut evaluator = Evaluator {
         admitted: FunctionLookup::Borrowed(&admitted),
@@ -4126,6 +4126,9 @@ impl Evaluator<'_> {
                         "args_len reached an evaluator without command input",
                     ))?;
                     Ok(Value::Usize(input.arguments.len() as u64))
+                }
+                env if crate::environment_ops::is_environment(env) => {
+                    self.evaluate_environment_operation(call, environment, depth)
                 }
                 Operation::ArgUtf8 => {
                     let [argument] = call.args.as_slice() else {

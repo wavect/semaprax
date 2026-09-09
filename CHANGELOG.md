@@ -8,6 +8,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the private `std.env` environment snapshot package and Project
+  `environment-io.v1` composition. The bounded operation vocabulary, immutable
+  UTF-8 snapshot constructor, capability checks, graph facts, package metadata,
+  catalogs, and source links are in place. Four focused carrier cases cover
+  empty, success, failure, and malformed Wasm paths; fourteen selected library
+  checks cover the snapshot and environment admission surfaces, including the
+  provider constructor on Node. The named gates
+  `environment_manifest_is_canonical_and_authority_is_closed` and
+  `environment_package_executes_all_functions_with_injected_snapshot` pass:
+  the two Project commands pass on the
+  interpreter, native C11, and repeated Core Wasm, including the bundled
+  consumer; five focused useful-data environment checks also pass. The package
+  is local/private evidence only, with no hosted CI or public ABI claim.
+
 - Add the private `std.log` structured JSON-lines Writer. Its owned `Event`
   carries level, sequence, name, and message fields; append preflights level,
   UTF-8, and complete caller-owned Writer capacity before emitting one exact

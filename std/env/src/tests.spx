@@ -1,0 +1,80 @@
+module std.env.tests;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.env.count") from std.env as count;
+use function @id("std.env.name-len") from std.env as name_len;
+use function @id("std.env.value-len") from std.env as value_len;
+use function @id("std.env.name-is") from std.env as name_is;
+use function @id("std.env.index-of") from std.env as index_of;
+use function @id("std.env.name-into") from std.env as name_into;
+use function @id("std.env.value-into") from std.env as value_into;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+
+permit { process.environment.read }
+
+@id("std.env.tests.byte-is")
+fn byte_is(data: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(data, index) { Option::Some { value } => value == expected, Option::None {} => false, }
+}
+
+@id("std.env.tests.both")
+fn both(left: bool, right: bool) -> bool
+{
+    left && right
+}
+
+@id("std.env.tests.conformance")
+fn conformance() -> bool
+    uses { process.environment.read }
+{
+    let alpha_key = "A";
+    let zed_key = "Z";
+    let missing_key = "missing";
+    let alpha_view = string_as_str(alpha_key);
+    let zed_view = string_as_str(zed_key);
+    let missing_view = string_as_str(missing_key);
+    let total = count();
+    let alpha = index_of(alpha_view);
+    let zed = index_of(zed_view);
+    let name_output = name_into(alpha, writer_from_bytes(bytes_zeroed(1usize)));
+    let name_data = writer_finish(name_output);
+    let name_bytes = bytes_as_slice(name_data);
+    let value_output = value_into(alpha, writer_from_bytes(bytes_zeroed(5usize)));
+    let value_data = writer_finish(value_output);
+    let value_bytes = bytes_as_slice(value_data);
+    let unicode_output = value_into(zed, writer_from_bytes(bytes_zeroed(2usize)));
+    let unicode_data = writer_finish(unicode_output);
+    let unicode_bytes = bytes_as_slice(unicode_data);
+    let name_ok = byte_is(name_bytes, 0usize, 65u8);
+    let value_first = byte_is(value_bytes, 0usize, 97u8);
+    let value_second = byte_is(value_bytes, 1usize, 108u8);
+    let value_third = byte_is(value_bytes, 2usize, 112u8);
+    let value_fourth = byte_is(value_bytes, 3usize, 104u8);
+    let value_last = byte_is(value_bytes, 4usize, 97u8);
+    let unicode_first = byte_is(unicode_bytes, 0usize, 195u8);
+    let unicode_second = byte_is(unicode_bytes, 1usize, 169u8);
+    both(text_search(), both(both(both(both(total == 2usize, alpha == 0usize), both(zed == 1usize, name_len(alpha) == 1usize)), both(both(value_len(alpha) == 5usize, value_len(zed) == 2usize), both(name_is(alpha, alpha_view), both(name_is(zed, zed_view), !name_is(alpha, zed_view))))), both(both(both(index_of(missing_view) == total, name_ok), both(value_first, value_second)), both(both(value_third, value_fourth), both(value_last, both(unicode_first, unicode_second))))))
+}
+
+@id("std.env.tests.main")
+fn main() -> i64
+{
+    0
+}
+
+@id("std.env.tests.text-search")
+fn text_search() -> bool
+    uses { process.environment.read }
+{
+    let text = env_value_utf8(0usize);
+    let middle_string = "ph";
+    let end_string = "ha";
+    let empty_string = "";
+    let mismatch_string = "omega";
+    let middle = string_as_str(middle_string);
+    let ending = string_as_str(end_string);
+    let empty = string_as_str(empty_string);
+    let mismatch = string_as_str(mismatch_string);
+    both(both(str_contains(text, middle), str_contains(text, ending)), both(both(str_contains(text, empty), str_starts_with(text, empty)), both(!str_contains(text, mismatch), !str_starts_with(text, middle))))
+}

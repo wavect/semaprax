@@ -94,7 +94,9 @@ fn finish_build(
         manifest.entry(),
         manifest.test_module(),
         crate::workspace_graph::ProjectWebRoots {
-            stable_ids: if manifest.project_profile().is_filesystem() {
+            stable_ids: if manifest.project_profile().is_filesystem()
+                || manifest.project_profile() == super::ProjectProfile::EnvironmentIoV1
+            {
                 &filesystem_roots
             } else {
                 manifest.web_exports()

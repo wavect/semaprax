@@ -30,6 +30,8 @@ mod command_v1;
 mod command_v2;
 #[path = "useful_data/config_validator_project.rs"]
 mod config_validator_project;
+#[path = "useful_data/environment_io.rs"]
+mod environment_io;
 #[path = "useful_data/filesystem_interpreter.rs"]
 mod filesystem_interpreter;
 #[cfg(unix)]

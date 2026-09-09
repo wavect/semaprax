@@ -30,6 +30,7 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     );
     repository.write("src/graph/expression.rs", "pub fn expression() {}\n");
     repository.write("src/graph/filesystem.rs", "pub fn filesystem() {}\n");
+    repository.write("src/graph/environment.rs", "pub fn environment() {}\n");
     let plan = repository.changed_plan(&[]).unwrap();
     assert!(plan.contains("effective\tfull\n"));
     assert!(plan.contains(

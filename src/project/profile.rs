@@ -1,3 +1,19 @@
+pub const PROJECT_PROFILE_ENVIRONMENT_IO_V1: &str = "environment-io.v1";
+pub const PROJECT_ENVIRONMENT_CAPABILITIES_V1: [&str; 5] = [
+    "process.args.read",
+    "process.environment.read",
+    "process.stderr.write",
+    "process.stdin.read",
+    "process.stdout.write",
+];
+pub(crate) fn valid_environment_capabilities(values: &[String]) -> bool {
+    values.iter().any(|v| v == "process.environment.read")
+        && values
+            .iter()
+            .all(|v| PROJECT_ENVIRONMENT_CAPABILITIES_V1.contains(&v.as_str()))
+        && values.windows(2).all(|v| v[0] < v[1])
+}
+
 /// Additive Project profile names. The manifest schema selects exactly one
 /// profile; downstream consumers receive this closed enum rather than infer
 /// authority from a schema string or boolean flag.
@@ -75,6 +91,7 @@ pub enum ProjectProfile {
     HttpsCommandIoV1,
     FilesystemIoV1,
     FilesystemIoV2,
+    EnvironmentIoV1,
     OwnedDataApiV1,
     FlatOwnedRecordApiV1,
     OwnedUtf8ApiV1,
@@ -94,6 +111,7 @@ impl ProjectProfile {
             Self::UsefulDataV2
                 | Self::FilesystemIoV1
                 | Self::FilesystemIoV2
+                | Self::EnvironmentIoV1
                 | Self::OwnedDataApiV1
                 | Self::FlatOwnedRecordApiV1
                 | Self::OwnedUtf8ApiV1
@@ -112,6 +130,7 @@ impl ProjectProfile {
             Self::LanguageCommandIoV1 => Some(PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1),
             Self::LineCommandIoV1 => Some(PROJECT_PROFILE_LINE_COMMAND_IO_V1),
             Self::NetworkCommandIoV1 => Some(PROJECT_PROFILE_NETWORK_COMMAND_IO_V1),
+            Self::EnvironmentIoV1 => Some(PROJECT_PROFILE_ENVIRONMENT_IO_V1),
             Self::FilesystemIoV2 => Some(PROJECT_PROFILE_FILESYSTEM_IO_V2),
             Self::FilesystemIoV1 => Some(PROJECT_PROFILE_FILESYSTEM_IO_V1),
             Self::HttpsCommandIoV1 => Some(PROJECT_PROFILE_HTTPS_COMMAND_IO_V1),

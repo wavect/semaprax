@@ -38,6 +38,48 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let expected = crate::command_io_ops::return_type(call.operation);
                 self.require_type(&expr.ty, &expected, "command I/O result")?;
                 match call.operation {
+                    Operation::EnvLen | Operation::EnvNameUtf8 | Operation::EnvValueUtf8 => {
+                        if self.output_profile != NativeOutputProfile::EnvironmentCommandIo {
+                            return Err(backend_error(
+                                "environment operation requires its additive native profile",
+                            ));
+                        }
+                        let temporary = self.temporary(&expected)?;
+                        let helper = match call.operation {
+                            Operation::EnvLen => "spx_host_env_len_v1",
+                            Operation::EnvNameUtf8 => "spx_host_env_name_utf8_v1",
+                            _ => "spx_host_env_value_utf8_v1",
+                        };
+                        if call.operation == Operation::EnvLen {
+                            self.line(&format!("spx_status = {helper}(spx_ctx, &{temporary});"));
+                        } else {
+                            let [argument] = call.args.as_slice() else {
+                                return Err(backend_error(
+                                    "environment lookup arity disagrees with HIR",
+                                ));
+                            };
+                            let value = self.emit_expr(argument)?;
+                            self.require_type(
+                                &value.ty,
+                                &ResolvedType::Usize,
+                                "environment index",
+                            )?;
+                            self.line(&format!(
+                                "spx_status = {helper}(spx_ctx, {}, &{temporary});",
+                                value.code
+                            ));
+                        }
+                        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                        if let Some(plan) = self.bytes_plan {
+                            for line in plan.apply_at(&expr.id)?.lines() {
+                                self.line(line);
+                            }
+                        }
+                        CValue {
+                            code: temporary,
+                            ty: expected,
+                        }
+                    }
                     Operation::NetConnect
                     | Operation::NetSend
                     | Operation::NetRecv

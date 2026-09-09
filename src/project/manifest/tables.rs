@@ -12,6 +12,12 @@
 //! manifest whose bytes differ from its own rendering and names the first
 //! differing line, so agents get a byte-precise fix instead of a shape error.
 
+use super::PROJECT_SCHEMA_V17;
+use crate::project::profile::{
+    valid_environment_capabilities, PROJECT_ENVIRONMENT_CAPABILITIES_V1,
+    PROJECT_PROFILE_ENVIRONMENT_IO_V1,
+};
+
 use super::{
     valid_semver, ProjectManifest, MAX_VERSION_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
     PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V13, PROJECT_SCHEMA_V2,
@@ -425,6 +431,7 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
             | PROJECT_PROFILE_HTTPS_COMMAND_IO_V1
             | PROJECT_PROFILE_FILESYSTEM_IO_V1
             | PROJECT_PROFILE_FILESYSTEM_IO_V2
+            | PROJECT_PROFILE_ENVIRONMENT_IO_V1
     );
     if command_profile {
         if let Some(command) = tables.iter().find(|table| table.name == "command") {
@@ -474,16 +481,20 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
             PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1 => &[PROJECT_COMMAND_STDOUT_CAPABILITY],
             PROJECT_PROFILE_NETWORK_COMMAND_IO_V1 => &PROJECT_NETWORK_COMMAND_CAPABILITIES_V1,
             PROJECT_PROFILE_HTTPS_COMMAND_IO_V1 => &PROJECT_HTTPS_COMMAND_CAPABILITIES_V1,
+            PROJECT_PROFILE_ENVIRONMENT_IO_V1 => &PROJECT_ENVIRONMENT_CAPABILITIES_V1,
             PROJECT_PROFILE_FILESYSTEM_IO_V2 => &PROJECT_FILESYSTEM_CAPABILITIES_V1,
             PROJECT_PROFILE_FILESYSTEM_IO_V1 => &PROJECT_FILESYSTEM_CAPABILITIES_V1,
             _ => &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2,
         };
         if let Some(required) = table_list(tables, "capabilities", "required") {
-            if !required
-                .iter()
-                .map(String::as_str)
-                .eq(expected_capabilities.iter().copied())
-            {
+            if if profile == PROJECT_PROFILE_ENVIRONMENT_IO_V1 {
+                !valid_environment_capabilities(required)
+            } else {
+                !required
+                    .iter()
+                    .map(String::as_str)
+                    .eq(expected_capabilities.iter().copied())
+            } {
                 diagnostics.push(scaffold_diagnostic(format!(
                     "{LABEL} profile `{profile}` requires `[capabilities] required = {}`",
                     super::render_array(
@@ -538,7 +549,9 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
                 && profile != PROJECT_PROFILE_USEFUL_DATA_V2
                 && !matches!(
                     profile,
-                    PROJECT_PROFILE_FILESYSTEM_IO_V1 | PROJECT_PROFILE_FILESYSTEM_IO_V2
+                    PROJECT_PROFILE_FILESYSTEM_IO_V1
+                        | PROJECT_PROFILE_FILESYSTEM_IO_V2
+                        | PROJECT_PROFILE_ENVIRONMENT_IO_V1
                 ))
         {
             diagnostics.push(if exports.len() > super::MAX_WEB_EXPORTS {
@@ -562,7 +575,9 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
         if let Some(command) = table_text(tables, "command", "function").filter(|_| {
             !matches!(
                 profile,
-                PROJECT_PROFILE_FILESYSTEM_IO_V1 | PROJECT_PROFILE_FILESYSTEM_IO_V2
+                PROJECT_PROFILE_FILESYSTEM_IO_V1
+                    | PROJECT_PROFILE_FILESYSTEM_IO_V2
+                    | PROJECT_PROFILE_ENVIRONMENT_IO_V1
             )
         }) {
             if exports.len() != 1 || exports.first().map(String::as_str) != Some(command) {
@@ -655,6 +670,11 @@ fn lower_profile(
     let profile_name = profile.name().unwrap_or("scalar");
     let (schema, expected_input, expected_capabilities): (&str, Option<&str>, &[&str]) =
         match profile {
+            ProjectProfile::EnvironmentIoV1 => (
+                PROJECT_SCHEMA_V17,
+                None,
+                &PROJECT_ENVIRONMENT_CAPABILITIES_V1,
+            ),
             ProjectProfile::FilesystemIoV2 => (
                 PROJECT_SCHEMA_V15,
                 None,
@@ -726,11 +746,14 @@ fn lower_profile(
             None => format!("{LABEL} profile `{profile_name}` does not admit `[command] input`"),
         }));
     }
-    if !capabilities
-        .iter()
-        .map(String::as_str)
-        .eq(expected_capabilities.iter().copied())
-    {
+    if if profile == ProjectProfile::EnvironmentIoV1 {
+        !valid_environment_capabilities(capabilities)
+    } else {
+        !capabilities
+            .iter()
+            .map(String::as_str)
+            .eq(expected_capabilities.iter().copied())
+    } {
         return Err(grammar(if expected_capabilities.is_empty() {
             format!("{LABEL} profile `{profile_name}` does not admit a `[capabilities]` table")
         } else {
@@ -1294,6 +1317,7 @@ fn profile_by_name(name: &str) -> Option<ProjectProfile> {
         PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1 => ProjectProfile::NestedOwnedRecordApiV1,
         PROJECT_PROFILE_NETWORK_COMMAND_IO_V1 => ProjectProfile::NetworkCommandIoV1,
         PROJECT_PROFILE_HTTPS_COMMAND_IO_V1 => ProjectProfile::HttpsCommandIoV1,
+        PROJECT_PROFILE_ENVIRONMENT_IO_V1 => ProjectProfile::EnvironmentIoV1,
         PROJECT_PROFILE_FILESYSTEM_IO_V2 => ProjectProfile::FilesystemIoV2,
         PROJECT_PROFILE_FILESYSTEM_IO_V1 => ProjectProfile::FilesystemIoV1,
         _ => return None,

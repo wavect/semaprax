@@ -482,6 +482,9 @@ pub enum ResolvedHostCommandOperation {
     FileCreateDir,
     FileRemove,
     FileWriteAtomic,
+    EnvLen,
+    EnvNameUtf8,
+    EnvValueUtf8,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

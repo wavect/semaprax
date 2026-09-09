@@ -1446,6 +1446,7 @@ impl WorkspaceGraphBuild {
             }
             crate::project::ProjectProfile::FilesystemIoV1
             | crate::project::ProjectProfile::FilesystemIoV2
+            | crate::project::ProjectProfile::EnvironmentIoV1
             | crate::project::ProjectProfile::OwnedDataApiV1 => {
                 unreachable!("Project v8 uses the exact function-reachable linker")
             }
@@ -1697,6 +1698,7 @@ impl WorkspaceGraphBuild {
             }
             crate::project::ProjectProfile::FilesystemIoV1
             | crate::project::ProjectProfile::FilesystemIoV2
+            | crate::project::ProjectProfile::EnvironmentIoV1
             | crate::project::ProjectProfile::OwnedDataApiV1 => {
                 unreachable!("Project v8 uses the exact function-reachable linker")
             }
@@ -2351,6 +2353,7 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::HttpsCommandIoV1
                     | crate::project::ProjectProfile::FilesystemIoV1
                     | crate::project::ProjectProfile::FilesystemIoV2
+                    | crate::project::ProjectProfile::EnvironmentIoV1
                     | crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::FlatOwnedRecordApiV1
                     | crate::project::ProjectProfile::OwnedUtf8ApiV1
@@ -2381,6 +2384,7 @@ impl WorkspaceGraphBuild {
                     }
                     crate::project::ProjectProfile::FilesystemIoV1
                     | crate::project::ProjectProfile::FilesystemIoV2
+                    | crate::project::ProjectProfile::EnvironmentIoV1
                     | crate::project::ProjectProfile::OwnedDataApiV1 => {
                         hir::owned_data_api_workspace_return_admitted(&function.return_type)
                     }

@@ -46,7 +46,7 @@ impl HirValidator<'_> {
         let params = crate::command_io_ops::resolved_params(operation);
         if call.args.len() != params.len()
             || expression.ty != crate::command_io_ops::return_type(operation)
-            || expression.ownership != OwnershipMode::Value
+            || expression.ownership != crate::command_io_ops::result_ownership(operation)
         {
             return Err(hir_error(
                 "while loop command I/O call has a non-canonical shape",

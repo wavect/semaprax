@@ -62,6 +62,7 @@ pub(crate) enum CommandOperationProfile {
     HttpV1,
     FilesystemV1,
     FilesystemV2,
+    EnvironmentV1,
 }
 
 /// Validate exactly the operations reachable from the selected command.
@@ -97,6 +98,7 @@ pub(crate) fn validate_operation_profile(
     let mut saw_filesystem = false;
     let mut saw_filesystem_v2 = false;
     let mut saw_other_host = false;
+    let mut saw_environment = false;
 
     while let Some((execution_id, function)) = pending_functions.pop() {
         if !visited.insert(execution_id) {
@@ -113,6 +115,9 @@ pub(crate) fn validate_operation_profile(
                 ResolvedExprKind::HostCommandCall(call) => {
                     saw_other_host |= !crate::filesystem_ops::is_filesystem(call.operation);
                     match call.operation {
+                        env if crate::environment_ops::is_environment(env) => {
+                            saw_environment = true
+                        }
                         fs if crate::filesystem_ops::is_filesystem(fs) => {
                             saw_filesystem = true;
                             saw_filesystem_v2 |= crate::filesystem_ops::is_v2(fs);
@@ -152,6 +157,18 @@ pub(crate) fn validate_operation_profile(
         }
     }
 
+    if saw_environment && profile != CommandOperationProfile::EnvironmentV1 {
+        return Err(profile_error(
+            "environment operations require Environment I/O v1",
+        ));
+    }
+    if profile == CommandOperationProfile::EnvironmentV1 {
+        return if saw_environment && !saw_network && !saw_filesystem && !saw_legacy_write {
+            Ok(())
+        } else {
+            Err(profile_error("Environment I/O v1 requires environment access and excludes network, filesystem and legacy writes"))
+        };
+    }
     if saw_filesystem
         && !matches!(
             profile,
@@ -222,7 +239,8 @@ pub(crate) fn validate_operation_profile(
         | CommandOperationProfile::ServiceV1
         | CommandOperationProfile::HttpV1
         | CommandOperationProfile::FilesystemV1
-        | CommandOperationProfile::FilesystemV2 => Ok(()),
+        | CommandOperationProfile::FilesystemV2
+        | CommandOperationProfile::EnvironmentV1 => Ok(()),
     }
 }
 
@@ -250,7 +268,9 @@ pub(crate) fn by_name(name: &str) -> Option<ResolvedHostCommandOperation> {
         STDERR_WRITE_NAME => Some(ResolvedHostCommandOperation::StderrWrite),
         STDOUT_APPEND_NAME => Some(ResolvedHostCommandOperation::StdoutAppend),
         STDERR_APPEND_NAME => Some(ResolvedHostCommandOperation::StderrAppend),
-        _ => crate::filesystem_ops::by_name(name).or_else(|| crate::network_io_ops::by_name(name)),
+        _ => crate::environment_ops::by_name(name)
+            .or_else(|| crate::filesystem_ops::by_name(name))
+            .or_else(|| crate::network_io_ops::by_name(name)),
     }
 }
 
@@ -262,12 +282,15 @@ pub(crate) fn by_id(id: &str) -> Option<ResolvedHostCommandOperation> {
         STDERR_WRITE_ID => Some(ResolvedHostCommandOperation::StderrWrite),
         STDOUT_APPEND_ID => Some(ResolvedHostCommandOperation::StdoutAppend),
         STDERR_APPEND_ID => Some(ResolvedHostCommandOperation::StderrAppend),
-        _ => crate::filesystem_ops::by_id(id).or_else(|| crate::network_io_ops::by_id(id)),
+        _ => crate::environment_ops::by_id(id)
+            .or_else(|| crate::filesystem_ops::by_id(id))
+            .or_else(|| crate::network_io_ops::by_id(id)),
     }
 }
 
 pub(crate) const fn name(op: ResolvedHostCommandOperation) -> &'static str {
     match op {
+        env if crate::environment_ops::is_environment(env) => crate::environment_ops::name(env),
         ResolvedHostCommandOperation::ArgsLen => ARGS_LEN_NAME,
         ResolvedHostCommandOperation::ArgUtf8 => ARG_UTF8_NAME,
         ResolvedHostCommandOperation::StdinRead => STDIN_READ_NAME,
@@ -283,6 +306,7 @@ pub(crate) const fn name(op: ResolvedHostCommandOperation) -> &'static str {
 
 pub(crate) const fn id(op: ResolvedHostCommandOperation) -> &'static str {
     match op {
+        env if crate::environment_ops::is_environment(env) => crate::environment_ops::id(env),
         ResolvedHostCommandOperation::ArgsLen => ARGS_LEN_ID,
         ResolvedHostCommandOperation::ArgUtf8 => ARG_UTF8_ID,
         ResolvedHostCommandOperation::StdinRead => STDIN_READ_ID,
@@ -298,6 +322,7 @@ pub(crate) const fn id(op: ResolvedHostCommandOperation) -> &'static str {
 
 pub(crate) const fn effect(op: ResolvedHostCommandOperation) -> &'static str {
     match op {
+        env if crate::environment_ops::is_environment(env) => crate::environment_ops::EFFECT,
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::ArgUtf8 => {
             ARGS_READ_EFFECT
         }
@@ -314,6 +339,7 @@ pub(crate) const fn effect(op: ResolvedHostCommandOperation) -> &'static str {
 
 pub(crate) const fn failure(op: ResolvedHostCommandOperation) -> CommandIoFailure {
     match op {
+        env if crate::environment_ops::is_environment(env) => CommandIoFailure::Status,
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::StderrWrite => {
             CommandIoFailure::Infallible
         }
@@ -338,6 +364,10 @@ pub(crate) const fn status_metadata(
     op: ResolvedHostCommandOperation,
 ) -> Option<CommandIoStatusMetadata> {
     match op {
+        env if crate::environment_ops::is_environment(env) => Some(CommandIoStatusMetadata {
+            domain: crate::environment_ops::STATUS_DOMAIN,
+            codes: &crate::environment_ops::STATUS_CODES,
+        }),
         ResolvedHostCommandOperation::ArgUtf8 => Some(CommandIoStatusMetadata {
             domain: INPUT_STATUS_DOMAIN,
             codes: &[ARG_INDEX_OUT_OF_BOUNDS, ARG_INVALID_UTF8],
@@ -376,6 +406,7 @@ pub(crate) const fn status_metadata(
 
 pub(crate) const fn arity(op: ResolvedHostCommandOperation) -> usize {
     match op {
+        env if crate::environment_ops::is_environment(env) => crate::environment_ops::arity(env),
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::StdinRead => 0,
         ResolvedHostCommandOperation::ArgUtf8 | ResolvedHostCommandOperation::StderrWrite => 1,
         ResolvedHostCommandOperation::StdoutAppend | ResolvedHostCommandOperation::StderrAppend => {
@@ -390,6 +421,9 @@ pub(crate) const fn arity(op: ResolvedHostCommandOperation) -> usize {
 
 pub(crate) const fn ast_return_type(op: ResolvedHostCommandOperation) -> Type {
     match op {
+        env if crate::environment_ops::is_environment(env) => {
+            crate::environment_ops::ast_return_type(env)
+        }
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::StderrWrite => {
             Type::Usize
         }
@@ -407,6 +441,9 @@ pub(crate) const fn ast_return_type(op: ResolvedHostCommandOperation) -> Type {
 
 pub(crate) const fn return_type(op: ResolvedHostCommandOperation) -> ResolvedType {
     match op {
+        env if crate::environment_ops::is_environment(env) => {
+            crate::environment_ops::return_type(env)
+        }
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::StderrWrite => {
             ResolvedType::Usize
         }
@@ -424,6 +461,9 @@ pub(crate) const fn return_type(op: ResolvedHostCommandOperation) -> ResolvedTyp
 
 pub(crate) const fn result_ownership(op: ResolvedHostCommandOperation) -> OwnershipMode {
     match op {
+        env if crate::environment_ops::is_environment(env) => {
+            crate::environment_ops::result_ownership(env)
+        }
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::StderrWrite => {
             OwnershipMode::Value
         }
@@ -458,6 +498,7 @@ pub(crate) fn required_effects(
 /// results (`stdin_read`, `net_recv`) and the legacy single writes stay out.
 pub(crate) const fn admitted_in_while(op: ResolvedHostCommandOperation) -> bool {
     match op {
+        env if crate::environment_ops::is_environment(env) => true,
         ResolvedHostCommandOperation::StdoutAppend | ResolvedHostCommandOperation::StderrAppend => {
             true
         }
@@ -476,6 +517,9 @@ pub(crate) const fn admitted_in_while(op: ResolvedHostCommandOperation) -> bool 
 }
 
 pub(crate) fn accepts_ast(op: ResolvedHostCommandOperation, index: usize, ty: &Type) -> bool {
+    if crate::environment_ops::is_environment(op) {
+        return crate::environment_ops::accepts_ast(op, index, ty);
+    }
     if crate::filesystem_ops::is_filesystem(op) {
         return crate::filesystem_ops::accepts_ast(op, index, ty);
     }
@@ -497,6 +541,9 @@ pub(crate) fn accepts_resolved(
     index: usize,
     ty: &ResolvedType,
 ) -> bool {
+    if crate::environment_ops::is_environment(op) {
+        return crate::environment_ops::accepts_resolved(op, index, ty);
+    }
     if crate::filesystem_ops::is_filesystem(op) {
         return crate::filesystem_ops::accepts_resolved(op, index, ty);
     }
@@ -523,6 +570,9 @@ pub(crate) fn accepts_resolved(
 }
 
 pub(crate) fn ast_params(op: ResolvedHostCommandOperation) -> Vec<Param> {
+    if crate::environment_ops::is_environment(op) {
+        return crate::environment_ops::ast_params(op);
+    }
     if crate::filesystem_ops::is_filesystem(op) {
         return crate::filesystem_ops::ast_params(op);
     }

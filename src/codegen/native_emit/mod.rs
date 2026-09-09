@@ -20,7 +20,6 @@ use crate::hir::{
 use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
 use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write as _;
-
 mod closure;
 mod compiler;
 mod expression;
@@ -109,6 +108,8 @@ pub(super) fn emit_hir_c_with_labels(
         filesystem_io_v2::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::HttpsCommandIo {
         http_io::emit_runtime(&mut output, program);
+    } else if output_profile == NativeOutputProfile::EnvironmentCommandIo {
+        environment_io::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::LineCommandIo {
         native_host_output::emit_line_command_runtime(&mut output);
         native_command_io::emit_line_runtime(&mut output);
@@ -189,6 +190,8 @@ pub(super) fn emit_hir_c_with_labels(
         } else if output_profile == NativeOutputProfile::HttpsCommandIo {
             http_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);
+        } else if output_profile == NativeOutputProfile::EnvironmentCommandIo {
+            environment_io::emit_runner(&mut output, symbol);
         } else if output_profile.is_language_command() {
             native_command_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);
@@ -2463,3 +2466,4 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         }
     }
 }
+pub(super) mod environment_io;

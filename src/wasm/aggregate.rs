@@ -20,6 +20,7 @@ mod filesystem_ops;
 mod filesystem_v2;
 mod generic_record;
 mod generic_variant;
+mod host_command;
 mod http_io;
 pub(super) mod internal_strings;
 mod iterator_ops;
@@ -61,7 +62,7 @@ const VEC_IMPORT_COUNT: u32 = 6;
 const EXTENDED_VEC_IMPORT_COUNT: u32 = 3;
 const BOX_IMPORT_COUNT: u32 = 4;
 const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
-const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
+pub(super) const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
 const BYTE_DROP_IMPORT: u32 = SCALAR_IMPORT_COUNT + 2;
 const BYTE_AS_SLICE_IMPORT: u32 = SCALAR_IMPORT_COUNT + 3;
 const BYTE_ZEROED_IMPORT: u32 = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT;
@@ -69,18 +70,23 @@ const BYTE_SET_IMPORT: u32 = BYTE_ZEROED_IMPORT + 1;
 const OWNED_UTF8_LITERAL_BASE: u32 = 196_608;
 #[derive(Default)]
 struct OwnedUtf8Literals {
+    base: Option<u32>,
     offsets: HashMap<String, u32>,
     bytes: Vec<u8>,
 }
 
 impl OwnedUtf8Literals {
+    fn base(&self) -> u32 {
+        self.base.unwrap_or(OWNED_UTF8_LITERAL_BASE)
+    }
     fn intern(&mut self, value: &str) -> Result<(u32, u32), Diagnostic> {
         if let Some(offset) = self.offsets.get(value) {
             return Ok((*offset, value.len() as u32));
         }
         let relative = u32::try_from(self.bytes.len())
             .map_err(|_| error("owned UTF-8 literal table overflows u32"))?;
-        let offset = OWNED_UTF8_LITERAL_BASE
+        let offset = self
+            .base()
             .checked_add(relative)
             .ok_or_else(|| error("owned UTF-8 literal address overflows"))?;
         let length = u32::try_from(value.len())
@@ -1277,6 +1283,7 @@ pub(super) fn lower_selected_functions(
             None,
             None,
             None,
+            None,
         )?);
     }
     Ok(SelectedAggregateLowering {
@@ -1383,6 +1390,7 @@ pub(super) fn lower_selected_function_instances(
                 None,
                 None,
                 None,
+                None,
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -1460,11 +1468,11 @@ fn emit_byte_exports_profile(
     owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
     let uses_owned_buffer = program_uses_owned_buffer(program);
-    let private_filesystem = command_io
-        .is_some_and(super::command_io::CommandPlan::is_filesystem_command)
+    let private_command = command_io
+        .is_some_and(|plan| plan.is_filesystem_command() || plan.is_environment_command())
         && plans.is_empty()
         && owned_plans.is_empty();
-    if uses_owned_buffer && !private_filesystem {
+    if uses_owned_buffer && !private_command {
         return Err(Diagnostic::io(
             "SPX-W115",
             "Owned Bounded Byte Buffer v1 is internal-only and has no public WebAssembly adapter",
@@ -1478,9 +1486,12 @@ fn emit_byte_exports_profile(
             .iter()
             .map(|body| (body, FunctionExecutionId::Monomorphic(body.id.clone()))),
     );
-    let has_owned_utf8 = owned_plans
-        .iter()
-        .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8)
+    let has_owned_utf8 = (command_io
+        .is_some_and(super::command_io::CommandPlan::is_environment_command)
+        && super::program_uses_strings(program))
+        || owned_plans
+            .iter()
+            .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8)
         || executable_functions.iter().any(|(function, _)| {
             function.return_type == ResolvedType::String
                 || function
@@ -1490,9 +1501,16 @@ fn emit_byte_exports_profile(
         });
     let uses_str_ops = program_uses_str_ops(program);
     let text_helper_count = if uses_str_ops { 2_u32 } else { 0 };
-    let mut owned_utf8_literals = OwnedUtf8Literals::default();
+    let mut owned_utf8_literals = OwnedUtf8Literals {
+        base: command_io
+            .filter(|plan| plan.is_environment_command())
+            .map(|_| 393_216),
+        ..Default::default()
+    };
     if (plans.is_empty() && command_io.is_none() && owned_plans.is_empty())
-        || (!super::program_uses_byte_data(program) && owned_plans.is_empty())
+        || (!super::program_uses_byte_data(program)
+            && owned_plans.is_empty()
+            && !command_io.is_some_and(super::command_io::CommandPlan::is_environment_command))
     {
         return Err(error(
             "Public Useful Data Export v1 requires selected byte-data exports",
@@ -1503,6 +1521,8 @@ fn emit_byte_exports_profile(
     let http_io = command_io.is_some_and(super::command_io::CommandPlan::is_http_command);
     let filesystem_ops =
         command_io.is_some_and(super::command_io::CommandPlan::is_filesystem_command);
+    let environment_io =
+        command_io.is_some_and(super::command_io::CommandPlan::is_environment_command);
     if program
         .types
         .iter()
@@ -1516,7 +1536,9 @@ fn emit_byte_exports_profile(
         record_layout.validate(program)?;
     }
 
-    let public_global_count = if filesystem_ops {
+    let public_global_count = if environment_io {
+        17_u32
+    } else if filesystem_ops {
         18_u32
     } else if line_command_io || network_io || http_io {
         16_u32
@@ -1608,6 +1630,28 @@ fn emit_byte_exports_profile(
             &mut type_indexes,
         )
     });
+    let environment_utf8_type = environment_io.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I32, I32],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let environment_utf8_count = u32::from(environment_utf8_type.is_some());
+    let environment_text_type = environment_io.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64],
+                results: vec![I32],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let environment_text_count = environment_text_type.map_or(0, |_| 2_u32);
 
     let mut function_types = Vec::with_capacity(executable_functions.len());
     for (function, _) in &executable_functions {
@@ -1719,6 +1763,8 @@ fn emit_byte_exports_profile(
     let filesystem_v2_types = command_io
         .is_some_and(super::command_io::CommandPlan::is_filesystem_v2)
         .then(|| super::filesystem_v2::intern_import_types(&mut types, &mut type_indexes));
+    let environment_import_types = environment_io
+        .then(|| super::environment_io::intern_import_types(&mut types, &mut type_indexes));
     let owned_utf8_validate = (!owned_plans.is_empty()).then(|| {
         intern_type(
             Signature {
@@ -1745,7 +1791,11 @@ fn emit_byte_exports_profile(
         .map(|(index, (_, execution))| {
             (
                 execution.clone(),
-                import_count + text_helper_count + u32::try_from(index).unwrap_or(u32::MAX),
+                import_count
+                    + text_helper_count
+                    + environment_utf8_count
+                    + environment_text_count
+                    + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
         .collect::<HashMap<_, _>>();
@@ -1816,6 +1866,9 @@ fn emit_byte_exports_profile(
     if let Some(types) = &filesystem_v2_types {
         super::filesystem_v2::emit_imports(&mut imports, types);
     }
+    if let Some(types) = &environment_import_types {
+        super::environment_io::emit_imports(&mut imports, types);
+    }
     if let Some(ty) = byte_set {
         function_import(&mut imports, "env", "spx_bytes_zeroed", byte_unary);
         function_import(&mut imports, "env", "spx_bytes_set", ty);
@@ -1829,12 +1882,19 @@ fn emit_byte_exports_profile(
     let function_count =
         u32::try_from(function_types.len() + wrapper_types.len() + adapter_types.len())
             .map_err(|_| error("too many Public Useful Data functions"))?
-            .checked_add(text_helper_count)
+            .checked_add(text_helper_count + environment_utf8_count + environment_text_count)
             .ok_or_else(|| error("too many Public Useful Data functions"))?;
     write_u32(&mut functions, function_count);
     if let Some(text_helper_type) = text_helper_type {
         write_u32(&mut functions, text_helper_type);
         write_u32(&mut functions, text_helper_type);
+    }
+    if let Some(environment_utf8_type) = environment_utf8_type {
+        write_u32(&mut functions, environment_utf8_type);
+    }
+    if let Some(environment_text_type) = environment_text_type {
+        write_u32(&mut functions, environment_text_type);
+        write_u32(&mut functions, environment_text_type);
     }
     for type_index in function_types
         .into_iter()
@@ -1856,7 +1916,9 @@ fn emit_byte_exports_profile(
 
     let mut memory = Vec::new();
     write_u32(&mut memory, 1);
-    let base_memory_pages = if has_owned_utf8 {
+    let base_memory_pages = if has_owned_utf8 && environment_io {
+        7
+    } else if has_owned_utf8 {
         4
     } else if command_io.is_some() {
         6
@@ -1906,8 +1968,11 @@ fn emit_byte_exports_profile(
         // Generic language failures continue to use only the ordinary status
         // global and must never be attributed to this domain.
         globals.extend([I32, 0x01, 0x41, 0x00, 0x0b]);
-        if line_command_io || network_io || http_io || filesystem_ops {
+        if line_command_io || network_io || http_io || filesystem_ops || environment_io {
             super::line_command_io::append_global(&mut globals);
+        }
+        if environment_io {
+            super::environment_io::append_global(&mut globals);
         }
         if filesystem_ops {
             super::filesystem_ops::append_globals(&mut globals);
@@ -1921,7 +1986,9 @@ fn emit_byte_exports_profile(
     let mut exports = Vec::new();
     write_u32(
         &mut exports,
-        (if line_command_io || network_io || http_io || filesystem_ops {
+        (if environment_io {
+            13_u32
+        } else if line_command_io || network_io || http_io || filesystem_ops {
             12_u32
         } else if command_io.is_some() {
             11_u32
@@ -1959,8 +2026,13 @@ fn emit_byte_exports_profile(
         http_io,
         filesystem_ops,
     );
+    if environment_io {
+        super::line_command_io::append_export(&mut exports);
+        super::environment_io::append_export(&mut exports);
+    }
     let wrapper_base = import_count
         .checked_add(text_helper_count)
+        .and_then(|value| value.checked_add(environment_utf8_count + environment_text_count))
         .and_then(|value| value.checked_add(u32::try_from(executable_functions.len()).ok()?))
         .ok_or_else(|| error("Public Useful Data wrapper index overflows u32"))?;
     for (ordinal, plan) in plans.iter().enumerate() {
@@ -2029,7 +2101,7 @@ fn emit_byte_exports_profile(
             + adapter_types.len(),
     )
     .map_err(|_| error("too many Public Useful Data bodies"))?
-    .checked_add(text_helper_count)
+    .checked_add(text_helper_count + environment_utf8_count + environment_text_count)
     .ok_or_else(|| error("too many Public Useful Data bodies"))?;
     write_u32(&mut code, body_count);
     if uses_str_ops {
@@ -2039,6 +2111,21 @@ fn emit_byte_exports_profile(
         code.extend(starts_with);
         let mut contains = Vec::new();
         super::text_exports::emit_contains_bounded_scan_body(&mut contains);
+        write_u32(&mut code, contains.len() as u32);
+        code.extend(contains);
+    }
+    let environment_utf8_index = environment_io.then_some(import_count + text_helper_count);
+    if environment_utf8_index.is_some() {
+        let mut validator = Vec::new();
+        super::text_exports::emit_utf8_validator_body(&mut validator);
+        write_u32(&mut code, validator.len() as u32);
+        code.extend(validator);
+        let mut starts_with = Vec::new();
+        super::environment_io::text::emit_starts_with_body(&mut starts_with);
+        write_u32(&mut code, starts_with.len() as u32);
+        code.extend(starts_with);
+        let mut contains = Vec::new();
+        super::environment_io::text::emit_contains_body(&mut contains);
         write_u32(&mut code, contains.len() as u32);
         code.extend(contains);
     }
@@ -2053,6 +2140,7 @@ fn emit_byte_exports_profile(
             host_output.then_some(super::host_output::DATA_GLOBALS),
             range_bindings.as_ref(),
             has_owned_utf8.then_some(&mut owned_utf8_literals),
+            environment_utf8_index,
         )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
@@ -2117,7 +2205,7 @@ fn emit_byte_exports_profile(
         write_u32(&mut data, 1);
         data.push(0x00);
         data.push(0x41);
-        write_i64(&mut data, i64::from(OWNED_UTF8_LITERAL_BASE));
+        write_i64(&mut data, i64::from(owned_utf8_literals.base()));
         data.push(0x0b);
         write_u32(
             &mut data,
@@ -2710,6 +2798,7 @@ fn emit_profile_with_scalar_exports(
             host_output.then_some(super::host_output::ROOT_GLOBALS),
             range_bindings.as_ref(),
             owned_utf8.then_some(&mut utf8_literals),
+            None,
         )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
@@ -2750,6 +2839,7 @@ fn emit_function(
     host_output: Option<super::host_output::Globals>,
     range_bindings: Option<&RangeBindings>,
     owned_utf8_literals: Option<&mut OwnedUtf8Literals>,
+    environment_utf8_index: Option<u32>,
 ) -> Result<Vec<u8>, Diagnostic> {
     emit_function_profile(
         program,
@@ -2761,6 +2851,7 @@ fn emit_function(
         host_output,
         range_bindings,
         owned_utf8_literals,
+        environment_utf8_index,
         false,
     )
 }
@@ -2776,6 +2867,7 @@ fn emit_function_profile(
     host_output: Option<super::host_output::Globals>,
     range_bindings: Option<&RangeBindings>,
     owned_utf8_literals: Option<&mut OwnedUtf8Literals>,
+    environment_utf8_index: Option<u32>,
     standalone_strings: bool,
 ) -> Result<Vec<u8>, Diagnostic> {
     let owned_string_profile = owned_utf8_literals.is_some();
@@ -2938,6 +3030,7 @@ fn emit_function_profile(
         host_output,
         range_bindings,
         owned_utf8_literals,
+        environment_utf8_index,
         standalone_strings,
     };
     for contract in &function.requires {
@@ -3172,6 +3265,7 @@ struct Emitter<'a> {
     host_output: Option<super::host_output::Globals>,
     range_bindings: Option<&'a RangeBindings>,
     owned_utf8_literals: Option<&'a mut OwnedUtf8Literals>,
+    environment_utf8_index: Option<u32>,
     standalone_strings: bool,
 }
 
@@ -5731,264 +5825,6 @@ impl Emitter<'_> {
         Ok(())
     }
 
-    fn emit_host_command_call(
-        &mut self,
-        expr: &ResolvedExpr,
-        call: &crate::hir::ResolvedHostCommandCall,
-    ) -> Result<Value, Diagnostic> {
-        use crate::hir::ResolvedHostCommandOperation as Op;
-
-        if call.args.len() != crate::command_io_ops::arity(call.operation) {
-            return Err(error(
-                "host command operation arity disagrees with resolved HIR",
-            ));
-        }
-        let mut arguments = Vec::with_capacity(call.args.len());
-        for argument in &call.args {
-            arguments.push(self.emit_expr(argument)?);
-        }
-        self.apply_call_commit(&expr.id)?;
-        let local = self.plan.expr_scalar(expr)?;
-        if call.operation == Op::ArgsLen {
-            self.output.push(0x10);
-            write_u32(self.output, super::command_io::ARGS_LEN_IMPORT);
-            self.output.push(0x21);
-            write_u32(self.output, local);
-            self.output.push(0x20);
-            write_u32(self.output, local);
-            self.output.extend([0x42]);
-            write_i64(self.output, crate::command_io_ops::MAX_ARGUMENTS as i64);
-            self.output.push(0x56); // i64.gt_u
-            self.emit_command_failure_if(
-                &expr.id,
-                super::host_output::COMMAND_STDOUT_GLOBALS,
-                super::host_output::COMMAND_STDERR_GLOBALS,
-            )?;
-            return Ok(Value::Scalar {
-                local,
-                ty: ResolvedType::Usize,
-            });
-        }
-
-        let offset = self
-            .plan
-            .call_out
-            .get(&expr.id)
-            .copied()
-            .ok_or_else(|| error("host command result has no exact out slot"))?;
-        let pointer = Pointer {
-            local: self.plan.frame_base,
-            offset,
-        };
-        // Poison the provider out-slot before entry. A conforming provider
-        // writes it only on status zero.
-        self.emit_pointer(pointer);
-        self.output.extend([0x42, 0x00, 0x37, 0x03, 0x00]);
-        match call.operation {
-            filesystem if crate::filesystem_ops::is_filesystem(filesystem) => {
-                return self.emit_filesystem_command_call(expr, call, &arguments, local, pointer);
-            }
-            http if crate::network_io_ops::is_http(http) => {
-                return self.emit_http_command_call(expr, call, &arguments, local, pointer);
-            }
-            network if crate::network_io_ops::is_network(network) => {
-                return self.emit_network_command_call(expr, call, &arguments, local, pointer);
-            }
-            Op::ArgUtf8 => {
-                self.require_scalar(&arguments[0], &ResolvedType::Usize, "arg_utf8 index")?;
-                self.get_scalar(&arguments[0]);
-                self.emit_pointer(pointer);
-                self.output.push(0x10);
-                write_u32(self.output, super::command_io::ARG_UTF8_IMPORT);
-            }
-            Op::StdinRead => {
-                self.emit_pointer(pointer);
-                self.output.push(0x10);
-                write_u32(self.output, super::command_io::STDIN_READ_IMPORT);
-            }
-            Op::StderrWrite => {
-                self.require_scalar(
-                    &arguments[0],
-                    &ResolvedType::SliceU8,
-                    "stderr_write argument",
-                )?;
-                self.get_scalar(&arguments[0]);
-                self.output.push(0x21);
-                write_u32(self.output, local);
-                let staged = Value::Scalar {
-                    local,
-                    ty: ResolvedType::SliceU8,
-                };
-                self.validate_byte_slice(&staged);
-                self.emit_command_transcript_write(
-                    &expr.id,
-                    local,
-                    super::host_output::COMMAND_STDERR_GLOBALS,
-                    super::host_output::COMMAND_STDOUT_GLOBALS,
-                )?;
-                return Ok(Value::Scalar {
-                    local,
-                    ty: ResolvedType::Usize,
-                });
-            }
-            Op::StdoutAppend | Op::StderrAppend => {
-                self.require_scalar(
-                    &arguments[0],
-                    &ResolvedType::SliceU8,
-                    "command append argument",
-                )?;
-                self.get_scalar(&arguments[0]);
-                self.output.push(0x21);
-                write_u32(self.output, local);
-                let staged = Value::Scalar {
-                    local,
-                    ty: ResolvedType::SliceU8,
-                };
-                self.validate_byte_slice(&staged);
-                let (channel, other) = if call.operation == Op::StdoutAppend {
-                    (
-                        super::host_output::COMMAND_STDOUT_GLOBALS,
-                        super::host_output::COMMAND_STDERR_GLOBALS,
-                    )
-                } else {
-                    (
-                        super::host_output::COMMAND_STDERR_GLOBALS,
-                        super::host_output::COMMAND_STDOUT_GLOBALS,
-                    )
-                };
-                self.emit_command_transcript_append(&expr.id, local, channel, other)?;
-                return Ok(Value::Scalar {
-                    local,
-                    ty: ResolvedType::Usize,
-                });
-            }
-            Op::ArgsLen => unreachable!("handled above"),
-            _ => unreachable!("network operations return above"),
-        }
-        self.output.push(0x21);
-        write_u32(self.output, self.plan.status);
-
-        // Fail closed if an independently supplied provider returns a code
-        // outside the operation's exact normalized sub-domain.
-        self.output.push(0x20);
-        write_u32(self.output, self.plan.status);
-        match call.operation {
-            Op::ArgUtf8 => self.output.extend([0x41, 0x02, 0x4b]), // status > 2
-            Op::StdinRead => {
-                self.output.extend([0x41, 0x03, 0x49, 0x20]); // status < 3 ||
-                write_u32(self.output, self.plan.status);
-                self.output.extend([0x41, 0x04, 0x4b, 0x72]);
-                self.output.push(0x20);
-                write_u32(self.output, self.plan.status);
-                self.output.extend([0x45, 0x45, 0x71]); // and status != 0
-            }
-            _ => unreachable!("fallible operation checked above"),
-        }
-        self.output.extend([0x04, 0x40, 0x41]);
-        write_i64(self.output, i64::from(STATUS_INTERNAL_INVALID_TAG));
-        self.output.push(0x21);
-        write_u32(self.output, self.plan.status);
-        self.output.push(0x0b);
-        if call.operation == Op::StdinRead {
-            // Status zero is not enough: stdin must return one tagged,
-            // nonzero owned-arena token within the invocation capacity.
-            self.output.push(0x20);
-            write_u32(self.output, self.plan.status);
-            self.output.extend([0x45, 0x04, 0x40]);
-            self.emit_pointer(pointer);
-            self.load_scalar(&ResolvedType::Bytes);
-            self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x41]);
-            write_i64(self.output, i64::from(i32::MIN));
-            self.output.extend([0x71, 0x45]);
-            self.emit_pointer(pointer);
-            self.load_scalar(&ResolvedType::Bytes);
-            self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x41]);
-            write_i64(self.output, i64::from(0x7fff_ffff_u32));
-            self.output.extend([0x71, 0x45, 0x72]);
-            self.emit_pointer(pointer);
-            self.load_scalar(&ResolvedType::Bytes);
-            self.output.extend([0xa7, 0x41]);
-            write_i64(self.output, crate::command_io_ops::MAX_INPUT_BYTES as i64);
-            self.output.extend([0x4b, 0x72, 0x04, 0x40, 0x41]);
-            write_i64(self.output, i64::from(STATUS_INTERNAL_INVALID_TAG));
-            self.output.push(0x21);
-            write_u32(self.output, self.plan.status);
-            self.output.extend([0x0b]);
-
-            // Structural tagging is insufficient: authenticate exact arena
-            // membership and recorded length through a closed recoverable
-            // 0=member / 1=not-member provider contract before CleanupPlan is
-            // allowed to initialize the owned result slot. This also checks
-            // zero-length carriers instead of treating length zero as proof.
-            self.output.push(0x20);
-            write_u32(self.output, self.plan.status);
-            self.output.extend([0x45, 0x04, 0x40]);
-            self.emit_pointer(pointer);
-            self.load_scalar(&ResolvedType::Bytes);
-            self.output.push(0x10);
-            write_u32(self.output, super::command_io::OWNED_BYTES_VALIDATE_IMPORT);
-            self.output.push(0x22);
-            write_u32(
-                self.output,
-                self.plan
-                    .command_byte
-                    .ok_or_else(|| error("command provider validation local is absent"))?,
-            );
-            self.output.extend([0x41, 0x01, 0x4b, 0x20]); // status > 1 || status == 1
-            write_u32(
-                self.output,
-                self.plan
-                    .command_byte
-                    .ok_or_else(|| error("command provider validation local is absent"))?,
-            );
-            self.output
-                .extend([0x41, 0x01, 0x46, 0x72, 0x04, 0x40, 0x41]);
-            write_i64(self.output, i64::from(STATUS_INTERNAL_INVALID_TAG));
-            self.output.push(0x21);
-            write_u32(self.output, self.plan.status);
-            self.output.extend([0x0b, 0x0b, 0x0b]);
-        }
-        // Authenticate the operation-specific command-input domain separately
-        // from the shared language status code. Arithmetic, contract, and
-        // internal fail-stop statuses leave this marker at zero.
-        let (first_code, second_code) = match call.operation {
-            Op::ArgUtf8 => (1, 2),
-            Op::StdinRead => (3, 4),
-            _ => unreachable!("only fallible command operations reach the marker"),
-        };
-        self.output.push(0x20);
-        write_u32(self.output, self.plan.status);
-        self.output.extend([0x41]);
-        write_i64(self.output, first_code);
-        self.output.extend([0x46, 0x20]);
-        write_u32(self.output, self.plan.status);
-        self.output.extend([0x41]);
-        write_i64(self.output, second_code);
-        self.output.extend([0x46, 0x72, 0x04, 0x40, 0x20]);
-        write_u32(self.output, self.plan.status);
-        self.output.push(0x24);
-        write_u32(self.output, super::command_io::INPUT_STATUS_GLOBAL);
-        self.output.push(0x0b);
-        self.output.push(0x20);
-        write_u32(self.output, self.plan.status);
-        self.output.extend([0x04, 0x40]);
-        self.emit_failure_cleanup(&expr.id, StatusLane::OperationFailure)?;
-        self.output.push(0x0c);
-        write_u32(
-            self.output,
-            self.control_depth + self.status_exit_extra_depth,
-        );
-        self.output.push(0x0b);
-        self.emit_pointer(pointer);
-        self.load_scalar(&expr.ty);
-        self.output.push(0x21);
-        write_u32(self.output, local);
-        Ok(Value::Scalar {
-            local,
-            ty: expr.ty.clone(),
-        })
-    }
-
     fn emit_call(
         &mut self,
         expr: &ResolvedExpr,
@@ -6799,14 +6635,26 @@ impl Emitter<'_> {
                 }
             }
             crate::str_ops::StrOp::StartsWith | crate::str_ops::StrOp::Contains => {
-                self.emit_text_helper_view(&values[0]);
-                self.emit_text_helper_view(&values[1]);
-                let execution = FunctionExecutionId::Monomorphic(DeclarationId::new(op.id()));
-                let helper = self
-                    .function_indexes
-                    .get(&execution)
-                    .copied()
-                    .ok_or_else(|| error("borrowed text helper is not indexed"))?;
+                let helper = if let Some(validator) = self.environment_utf8_index {
+                    // Environment helper parameters retain aggregate byte
+                    // carriers and authenticate every byte through the host.
+                    self.emit_text_helper_view(&values[0]);
+                    self.emit_text_helper_view(&values[1]);
+                    validator
+                        + if op == crate::str_ops::StrOp::StartsWith {
+                            1
+                        } else {
+                            2
+                        }
+                } else {
+                    self.emit_text_helper_view(&values[0]);
+                    self.emit_text_helper_view(&values[1]);
+                    let execution = FunctionExecutionId::Monomorphic(DeclarationId::new(op.id()));
+                    self.function_indexes
+                        .get(&execution)
+                        .copied()
+                        .ok_or_else(|| error("borrowed text helper is not indexed"))?
+                };
                 self.output.push(0x10);
                 write_u32(self.output, helper);
             }

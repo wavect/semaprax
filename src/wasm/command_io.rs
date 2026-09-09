@@ -36,6 +36,8 @@ pub(super) fn prepare(
             | crate::command_io_ops::CommandOperationProfile::FilesystemV2
     ) {
         super::filesystem_ops::check_permits(&program.permits)?;
+    } else if operation_profile == crate::command_io_ops::CommandOperationProfile::EnvironmentV1 {
+        super::environment_io::check_permits(&program.permits)?;
     } else if program.permits
         != [
             crate::command_io_ops::ARGS_READ_EFFECT,
@@ -97,6 +99,10 @@ impl CommandPlan {
         self.operation_profile == crate::command_io_ops::CommandOperationProfile::FilesystemV2
     }
 
+    pub(super) fn is_environment_command(&self) -> bool {
+        self.operation_profile == crate::command_io_ops::CommandOperationProfile::EnvironmentV1
+    }
+
     /// Command imports, plus the network imports appended after them for the
     /// network profile only.
     pub(super) fn import_count(&self) -> u32 {
@@ -112,6 +118,8 @@ impl CommandPlan {
                 } else {
                     0
                 }
+        } else if self.is_environment_command() {
+            IMPORT_COUNT + super::environment_io::IMPORT_COUNT
         } else {
             IMPORT_COUNT
         }
@@ -123,6 +131,7 @@ impl CommandPlan {
 /// through the same path, so any network permit reserves it too.
 pub(super) fn needs_command_byte(permit: &str) -> bool {
     permit == crate::command_io_ops::ARGS_READ_EFFECT
+        || permit == crate::environment_ops::EFFECT
         || crate::network_io_ops::NETWORK_EFFECTS.contains(&permit)
 }
 
@@ -141,8 +150,11 @@ pub(super) fn emit_wrapper_body(target_index: u32, plan: &CommandPlan) -> Vec<u8
     body.extend([0x41, 0x00, 0x24, 0x01]); // public status = success
     body.extend([0x41, 0x00, 0x24]);
     write_u32(&mut body, INPUT_STATUS_GLOBAL);
-    if line_command_io {
+    if line_command_io || plan.is_environment_command() {
         super::line_command_io::emit_reset(&mut body);
+    }
+    if plan.is_environment_command() {
+        super::environment_io::emit_reset(&mut body);
     }
     if plan.is_network_command() {
         super::network_io::emit_reset(&mut body);

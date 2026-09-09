@@ -6,6 +6,7 @@
 //! bytes.
 
 use crate::diagnostic::Diagnostic;
+use crate::environment_snapshot::EnvironmentSnapshot;
 use crate::hir::ResolvedProgram;
 use crate::interpreter::{CommandEvaluation, ResolvedEvaluation};
 use crate::network_provider::NetworkProvider;
@@ -40,6 +41,15 @@ pub struct HostedCommandInput {
     pub stdin: Vec<u8>,
 }
 
+/// Immutable, caller-injected input for Environment I/O v1. The optional
+/// snapshot keeps invocation itself authority-free; an environment operation
+/// reports its checked authority-denied language status when it is absent.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct HostedEnvironmentCommandInput {
+    pub command: HostedCommandInput,
+    pub environment: Option<EnvironmentSnapshot>,
+}
+
 /// Settled hosted command result. Both transcripts are empty unless the
 /// language entry returned a bool.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -65,6 +75,30 @@ pub fn execute_language_command(
         &input.stdin,
         max_steps,
     )?;
+    Ok(HostedCommandResult {
+        evaluation,
+        stdout,
+        stderr,
+    })
+}
+
+/// Execute one Environment I/O v1 command against caller-owned argv, stdin,
+/// and an optional immutable environment snapshot.
+pub fn execute_environment_command(
+    program: &ResolvedProgram,
+    entry_id: &str,
+    input: &HostedEnvironmentCommandInput,
+    max_steps: usize,
+) -> Result<HostedCommandResult, Vec<Diagnostic>> {
+    let (evaluation, stdout, stderr) =
+        crate::interpreter::environment::evaluate_resolved_environment_command(
+            program,
+            entry_id,
+            &input.command.arguments,
+            &input.command.stdin,
+            input.environment.clone(),
+            max_steps,
+        )?;
     Ok(HostedCommandResult {
         evaluation,
         stdout,

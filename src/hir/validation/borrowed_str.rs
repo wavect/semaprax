@@ -23,12 +23,17 @@ impl HirValidator<'_> {
                 Ok((place.clone(), true))
             }
             ResolvedExprKind::HostCommandCall(call)
-                if call.operation == ResolvedHostCommandOperation::ArgUtf8 =>
+                if call.operation == ResolvedHostCommandOperation::ArgUtf8
+                    || crate::environment_ops::is_lookup(call.operation) =>
             {
                 Ok((
                     Place {
                         root: ValueId::intrinsic_parameter(
-                            crate::command_io_ops::ARG_UTF8_ID,
+                            if crate::environment_ops::is_lookup(call.operation) {
+                                crate::environment_ops::ARENA_ID
+                            } else {
+                                crate::command_io_ops::ARG_UTF8_ID
+                            },
                             usize::MAX,
                         ),
                         projections: Vec::new(),

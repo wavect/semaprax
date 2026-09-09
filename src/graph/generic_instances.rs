@@ -80,7 +80,7 @@ pub(super) fn legacy_graph_json(
     selected_types: &BTreeSet<DeclarationId>,
     view: &GraphView<'_>,
 ) -> Result<String, Diagnostic> {
-    if super::filesystem::requires(program) {
+    if super::filesystem::requires(program) || super::environment::requires(program) {
         return Err(Diagnostic::io(
             "SPX-G411",
             "filesystem calls require Graph v41",
@@ -114,7 +114,7 @@ pub(super) fn pre_filesystem_graph_json(
         && !generic_mapping::requires_v35(&program.function_templates)
         && !hir::function_value::requires_function_values(program)
     {
-        if super::filesystem::requires(program) {
+        if super::filesystem::requires(program) || super::environment::requires(program) {
             return render_graph_json(
                 program,
                 source_revision,

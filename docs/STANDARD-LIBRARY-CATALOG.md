@@ -1114,6 +1114,59 @@ fn decode_base64_quad(first: u8, second: u8, third: u8, fourth: u8) -> i64
     ensures result >= -1 && result <= 16777215
 ```
 
+## `std.env`
+
+Package `std/env`, tier `hosted`, status partial. Required project profile: `environment-io.v1`. Dependency: `std.env = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.env.count`
+
+```semaprax
+fn count() -> usize
+    uses { process.environment.read }
+```
+
+### `std.env.name-len`
+
+```semaprax
+fn name_len(index: usize) -> usize
+    uses { process.environment.read }
+```
+
+### `std.env.value-len`
+
+```semaprax
+fn value_len(index: usize) -> usize
+    uses { process.environment.read }
+```
+
+### `std.env.name-is`
+
+```semaprax
+fn name_is(index: usize, key: borrow str) -> bool
+    uses { process.environment.read }
+```
+
+### `std.env.index-of`
+
+```semaprax
+fn index_of(key: borrow str) -> usize
+    uses { process.environment.read }
+```
+
+### `std.env.name-into`
+
+```semaprax
+fn name_into(index: usize, output: own Writer) -> Writer
+    uses { process.environment.read }
+```
+
+### `std.env.value-into`
+
+```semaprax
+fn value_into(index: usize, output: own Writer) -> Writer
+    uses { process.environment.read }
+```
+
 ## `std.format`
 
 Package `std/format`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.format = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

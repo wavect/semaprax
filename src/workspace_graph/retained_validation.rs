@@ -1281,10 +1281,14 @@ pub(super) fn project_effects_admitted(
     effects: &[String],
     natives: &ScalarNativeImports,
 ) -> bool {
-    (profile.is_filesystem()
-        && effects
-            .iter()
-            .all(|effect| crate::filesystem_ops::FILESYSTEM_EFFECTS.contains(&effect.as_str())))
+    (profile == crate::project::ProjectProfile::EnvironmentIoV1
+        && effects.iter().all(|effect| {
+            crate::project::PROJECT_ENVIRONMENT_CAPABILITIES_V1.contains(&effect.as_str())
+        }))
+        || (profile.is_filesystem()
+            && effects
+                .iter()
+                .all(|effect| crate::filesystem_ops::FILESYSTEM_EFFECTS.contains(&effect.as_str())))
         || effects.is_empty()
         || natives.effects_admitted(effects)
         || (matches!(
@@ -1317,6 +1321,7 @@ pub(super) fn project_effects_admitted(
 
 pub(super) fn project_linker_name(profile: crate::project::ProjectProfile) -> &'static str {
     match profile {
+        crate::project::ProjectProfile::EnvironmentIoV1 => "Environment I/O v1 linker",
         crate::project::ProjectProfile::FilesystemIoV1
         | crate::project::ProjectProfile::FilesystemIoV2 => "Filesystem I/O v1 linker",
         crate::project::ProjectProfile::ScalarV1 => "pure scalar linker",
@@ -1346,11 +1351,15 @@ pub(super) fn permits_admitted(
     entry_module: &str,
     natives: &ScalarNativeImports,
 ) -> bool {
-    (profile.is_filesystem()
-        && module
-            .permits
-            .iter()
-            .all(|effect| crate::filesystem_ops::FILESYSTEM_EFFECTS.contains(&effect.as_str())))
+    (profile == crate::project::ProjectProfile::EnvironmentIoV1
+        && module.permits.iter().all(|effect| {
+            crate::project::PROJECT_ENVIRONMENT_CAPABILITIES_V1.contains(&effect.as_str())
+        }))
+        || (profile.is_filesystem()
+            && module
+                .permits
+                .iter()
+                .all(|effect| crate::filesystem_ops::FILESYSTEM_EFFECTS.contains(&effect.as_str())))
         || module.permits.is_empty()
         || natives.effects_admitted(&module.permits)
         || (matches!(
@@ -1425,4 +1434,52 @@ fn retain_linked_fact(
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod environment_profile_tests {
+    use super::{project_effects_admitted, scalar_native_imports};
+    use crate::project::ProjectProfile;
+
+    #[test]
+    fn environment_workspace_effect_lane_is_explicit_and_closed() {
+        let profile = ProjectProfile::EnvironmentIoV1;
+        let natives = scalar_native_imports(profile, std::iter::empty());
+        for effect in crate::project::PROJECT_ENVIRONMENT_CAPABILITIES_V1 {
+            assert!(project_effects_admitted(
+                profile,
+                &[effect.to_owned()],
+                &natives
+            ));
+        }
+        for effect in [
+            "fs.read",
+            "fs.write",
+            "net.connect",
+            "process.environment.write",
+        ] {
+            assert!(!project_effects_admitted(
+                profile,
+                &[effect.to_owned()],
+                &natives
+            ));
+        }
+        for old in [
+            ProjectProfile::ScalarV1,
+            ProjectProfile::UsefulDataV1,
+            ProjectProfile::UsefulDataV2,
+            ProjectProfile::OwnedDataApiV1,
+            ProjectProfile::LanguageCommandIoV1,
+            ProjectProfile::LineCommandIoV1,
+            ProjectProfile::FilesystemIoV1,
+            ProjectProfile::FilesystemIoV2,
+        ] {
+            let natives = scalar_native_imports(old, std::iter::empty());
+            assert!(!project_effects_admitted(
+                old,
+                &[crate::environment_ops::EFFECT.to_owned()],
+                &natives
+            ));
+        }
+    }
 }

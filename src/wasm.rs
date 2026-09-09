@@ -23,6 +23,7 @@ mod aggregate;
 mod arithmetic;
 mod command_io;
 mod data_exports;
+pub(crate) mod environment_io;
 mod filesystem_ops;
 mod filesystem_v2;
 mod function_value;

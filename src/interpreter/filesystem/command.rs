@@ -110,6 +110,7 @@ pub(crate) fn evaluate_profile(
     let command_input = CommandInputState {
         network: None,
         filesystem: Some(FileState::new(provider)),
+        environment: None,
         arguments: Vec::new(),
         stdin: Arc::from([]),
         stdin_consumed: false,

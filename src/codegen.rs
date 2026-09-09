@@ -1367,3 +1367,6 @@ fn backend_error(message: impl Into<String>) -> Diagnostic {
 #[cfg(test)]
 #[path = "codegen/tests.rs"]
 mod tests;
+
+/// Emit an environment command with explicitly injected immutable snapshots.
+pub use native_emit::environment_io::emit as emit_hir_c_with_environment_io;

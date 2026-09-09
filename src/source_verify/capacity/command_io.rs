@@ -50,7 +50,10 @@ pub(super) fn flow(
             site,
             conservative_payload_bytes: crate::network_io_ops::MAX_CHUNK_BYTES,
         }),
-        ResolvedHostCommandOperation::FileWriteNew
+        ResolvedHostCommandOperation::EnvLen
+        | ResolvedHostCommandOperation::EnvNameUtf8
+        | ResolvedHostCommandOperation::EnvValueUtf8
+        | ResolvedHostCommandOperation::FileWriteNew
         | ResolvedHostCommandOperation::FileStat
         | ResolvedHostCommandOperation::FileCreateDir
         | ResolvedHostCommandOperation::FileRemove

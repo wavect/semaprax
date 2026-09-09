@@ -2,6 +2,26 @@ module std.test.bytes;
 use type @id("std.io.reader") from std.io as Reader;
 use function @id("std.test.failure_bit_unless") from std.test as failure_bit_unless;
 
+@id("std.test.bytes.snapshot")
+record Snapshot {
+    @id("std.test.bytes.snapshot.name")
+    name: Bytes,
+    @id("std.test.bytes.snapshot.expected")
+    expected: Bytes,
+}
+
+@id("std.test.bytes.snapshot-comparison")
+record SnapshotComparison {
+    @id("std.test.bytes.snapshot-comparison.equal")
+    equal: bool,
+    @id("std.test.bytes.snapshot-comparison.expected-len")
+    expected_len: usize,
+    @id("std.test.bytes.snapshot-comparison.actual-len")
+    actual_len: usize,
+    @id("std.test.bytes.snapshot-comparison.first-difference")
+    first_difference: usize,
+}
+
 @id("std.test.bytes.equal")
 fn equal_bytes(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
 {
@@ -34,4 +54,20 @@ fn failure_bit_equal_remaining(left: borrow Reader, right: borrow Reader, failur
     ensures result == 0 || result == failure_bit
 {
     failure_bit_unless(equal_remaining(left, right), failure_bit)
+}
+
+@id("std.test.bytes.snapshot-new")
+fn snapshot_new(name: own Bytes, expected: own Bytes) -> Snapshot
+{
+    Snapshot { name: name, expected: expected }
+}
+
+@id("std.test.bytes.compare-snapshot")
+fn compare_snapshot(snapshot: borrow Snapshot, actual: borrow Reader) -> SnapshotComparison
+    requires match borrow actual { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    let expected_len = match borrow snapshot { Snapshot { name: _, expected } => byte_len(bytes_as_slice(expected)), };
+    let actual_len = match borrow actual { Reader { data, position } => byte_len(bytes_as_slice(data)) - position, };
+    let first_difference = match borrow snapshot { Snapshot { name: _, expected } => match borrow actual { Reader { data, position } => { let expected_view = bytes_as_slice(expected); let actual_view = bytes_as_slice(data); let limit = if expected_len <= actual_len { expected_len } else { actual_len }; let mut index = 0usize; let mut first = limit; let mut differing = false; let mut scanning = index < limit; while scanning { let expected_byte = match byte_get(expected_view, index) { Option::Some { value } => value, Option::None {} => 0u8, }; let actual_byte = match byte_get(actual_view, position + index) { Option::Some { value } => value, Option::None {} => 0u8, }; let _ = if expected_byte != actual_byte { first = index; differing = true; true } else { false }; index = index + 1usize; scanning = index < limit && !differing; scanning } first }, }, };
+    SnapshotComparison { equal: first_difference == expected_len && expected_len == actual_len, expected_len: expected_len, actual_len: actual_len, first_difference: first_difference }
 }

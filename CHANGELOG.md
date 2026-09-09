@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Extend `std.test.bytes` with reusable named snapshot fixtures and Copy
+  comparison results containing equality, lengths, and the relative first
+  difference. Borrowed fixtures and Reader cursors remain unchanged, with no
+  new allocation or filesystem authority. Focused source-package and bundled
+  consumer cases pass locally across the interpreter, C11 O0/O2, and repeated
+  Core Wasm, including invalid-cursor cleanup.
+
 - Add authenticated Project-linked State migration and workspace typed binding.
   A single declared or explicitly imported migration function extends the
   checked role closure; additive migration root v3 binds its exact source

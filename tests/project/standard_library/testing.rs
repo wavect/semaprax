@@ -28,6 +28,30 @@ pub(super) fn run_if_supported(package: &PackageMetadata) -> bool {
 }
 
 pub(super) fn run_source_package(package: &str, module: &str, library: &str) {
+    run_source_package_case(package, module, library, None);
+}
+
+#[test]
+fn snapshot_fixtures_and_bundled_consumers_execute_across_engines() {
+    let source = std::fs::read_to_string(root().join("std/test-bytes/src/tests.spx")).unwrap();
+    let parsed = semaprax::parse(&source, "snapshot-cases.spx").unwrap();
+    let cases = parsed
+        .functions
+        .iter()
+        .filter(|function| function.name.starts_with("test_snapshot_"))
+        .collect::<Vec<_>>();
+    assert_eq!(cases.len(), 4, "snapshot case inventory changed");
+    for case in cases {
+        run_source_package_case(
+            "test-bytes",
+            "std.test.bytes",
+            "bytes.spx",
+            Some(&case.name),
+        );
+    }
+}
+
+fn run_source_package_case(package: &str, module: &str, library: &str, selected: Option<&str>) {
     let directory = temporary(&format!("{package}-package"));
     std::fs::create_dir_all(directory.join("src")).unwrap();
     for file in [library, "examples.spx", "tests.spx"] {
@@ -36,6 +60,29 @@ pub(super) fn run_source_package(package: &str, module: &str, library: &str) {
                 .unwrap();
         let parsed = semaprax::parse(&source, file).unwrap();
         assert_eq!(format::canonical(&parsed), source);
+        let source = if file == "tests.spx" {
+            if let Some(case) = selected {
+                let mut parsed = parsed;
+                let entry = semaprax::parse(
+                    &format!(
+                        "module selected; @id(\"selected.main\") fn main() -> i64 {{ {case}() }}"
+                    ),
+                    "selected.spx",
+                )
+                .unwrap();
+                parsed
+                    .functions
+                    .iter_mut()
+                    .find(|function| function.name == "main")
+                    .unwrap()
+                    .body = entry.functions[0].body.clone();
+                format::canonical(&parsed)
+            } else {
+                source
+            }
+        } else {
+            source
+        };
         std::fs::write(directory.join("src").join(file), source).unwrap();
     }
     let manifest_source =
@@ -124,8 +171,9 @@ std.test.bytes = "=0.1.0"
         "let left = Reader {data: bytes_zeroed(1usize), position: 2usize}; let right = Reader {data: bytes_zeroed(0usize), position: 0usize}; failure_bit_equal_remaining(left, right, 4)",
         "let data = [255u8]; failure_bit_equal_bytes(array_as_slice(data), array_as_slice(data), 0)",
         "let left = Reader {data: bytes_zeroed(0usize), position: 0usize}; let right = Reader {data: bytes_zeroed(0usize), position: 0usize}; failure_bit_equal_remaining(left, right, -1)",
+        "let snapshot = Snapshot {name: bytes_zeroed(0usize), expected: bytes_zeroed(0usize)}; let actual = Reader {data: bytes_zeroed(0usize), position: 1usize}; let comparison = compare_snapshot(snapshot, actual); if comparison.equal {0} else {1}",
     ].into_iter().enumerate() {
-        let source = format!("module consumer.tests;\nuse type @id(\"std.io.reader\") from std.io as Reader;\nuse function @id(\"std.test.bytes.equal-remaining\") from std.test.bytes as equal_remaining;\nuse function @id(\"std.test.bytes.failure-bit-equal\") from std.test.bytes as failure_bit_equal_bytes;\nuse function @id(\"std.test.bytes.failure-bit-equal-remaining\") from std.test.bytes as failure_bit_equal_remaining;\n@id(\"consumer.tests.main\") fn main()->i64 {{ {body} }}");
+        let source = format!("module consumer.tests;\nuse type @id(\"std.io.reader\") from std.io as Reader;\nuse type @id(\"std.test.bytes.snapshot\") from std.test.bytes as Snapshot;\nuse type @id(\"std.test.bytes.snapshot-comparison\") from std.test.bytes as SnapshotComparison;\nuse function @id(\"std.test.bytes.compare-snapshot\") from std.test.bytes as compare_snapshot;\nuse function @id(\"std.test.bytes.equal-remaining\") from std.test.bytes as equal_remaining;\nuse function @id(\"std.test.bytes.failure-bit-equal\") from std.test.bytes as failure_bit_equal_bytes;\nuse function @id(\"std.test.bytes.failure-bit-equal-remaining\") from std.test.bytes as failure_bit_equal_remaining;\n@id(\"consumer.tests.main\") fn main()->i64 {{ {body} }}");
         let parsed = semaprax::parse(&source, "byte-test-contract.spx").unwrap();
         std::fs::write(directory.join("src/tests.spx"), format::canonical(&parsed)).unwrap();
         project::with_authenticated_project(&directory.join("semaprax.toml"), |snapshot| {

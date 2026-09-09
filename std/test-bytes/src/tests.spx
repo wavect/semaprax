@@ -1,10 +1,18 @@
 module std.test.bytes.tests;
 use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use type @id("std.test.bytes.snapshot") from std.test.bytes as Snapshot;
+use type @id("std.test.bytes.snapshot-comparison") from std.test.bytes as SnapshotComparison;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
 use function @id("std.test.failure_bit_unless") from std.test as failure_bit_unless;
 use function @id("std.test.bytes.equal") from std.test.bytes as equal_bytes;
 use function @id("std.test.bytes.equal-remaining") from std.test.bytes as equal_remaining;
 use function @id("std.test.bytes.failure-bit-equal") from std.test.bytes as failure_bit_equal_bytes;
 use function @id("std.test.bytes.failure-bit-equal-remaining") from std.test.bytes as failure_bit_equal_remaining;
+use function @id("std.test.bytes.snapshot-new") from std.test.bytes as snapshot_new;
+use function @id("std.test.bytes.compare-snapshot") from std.test.bytes as compare_snapshot;
 
 @id("std.test.bytes.tests.test-empty")
 fn test_empty() -> i64
@@ -93,6 +101,58 @@ fn test_maximum_bit() -> i64
     let left = [0u8];
     let right = [1u8];
     failure_bit_unless(failure_bit_equal_bytes(array_as_slice(left), array_as_slice(right), 9223372036854775807) == 9223372036854775807, 512)
+}
+
+@id("std.test.bytes.tests.test-snapshot-empty")
+fn test_snapshot_empty() -> i64
+{
+    let name = bytes_set(bytes_zeroed(1usize), 0usize, 101u8);
+    let snapshot = snapshot_new(name, bytes_zeroed(0usize));
+    let actual = Reader { data: bytes_zeroed(0usize), position: 0usize };
+    let comparison = compare_snapshot(snapshot, actual);
+    failure_bit_unless(comparison.equal && comparison.expected_len == 0usize && comparison.actual_len == 0usize && comparison.first_difference == 0usize && actual.position == 0usize, 1024)
+}
+
+@id("std.test.bytes.tests.test-snapshot-binary-reuse")
+fn test_snapshot_binary_reuse() -> i64
+{
+    let name = bytes_set(bytes_zeroed(1usize), 0usize, 98u8);
+    let expected = bytes_set(bytes_set(bytes_set(bytes_zeroed(3usize), 0usize, 0u8), 1usize, 255u8), 2usize, 1u8);
+    let snapshot = snapshot_new(name, expected);
+    let first = Reader { data: bytes_set(bytes_set(bytes_set(bytes_zeroed(3usize), 0usize, 0u8), 1usize, 255u8), 2usize, 1u8), position: 0usize };
+    let first_comparison = compare_snapshot(snapshot, first);
+    let second = Reader { data: bytes_set(bytes_set(bytes_set(bytes_set(bytes_zeroed(4usize), 0usize, 9u8), 1usize, 0u8), 2usize, 254u8), 3usize, 1u8), position: 1usize };
+    let second_comparison = compare_snapshot(snapshot, second);
+    failure_bit_unless(first_comparison.equal && first_comparison.expected_len == 3usize && first_comparison.actual_len == 3usize && first_comparison.first_difference == 3usize && !second_comparison.equal && second_comparison.expected_len == 3usize && second_comparison.actual_len == 3usize && second_comparison.first_difference == 1usize && first.position == 0usize && second.position == 1usize, 2048)
+}
+
+@id("std.test.bytes.tests.test-snapshot-prefix")
+fn test_snapshot_prefix() -> i64
+{
+    let name = bytes_set(bytes_zeroed(1usize), 0usize, 112u8);
+    let expected = bytes_set(bytes_set(bytes_set(bytes_zeroed(3usize), 0usize, 0u8), 1usize, 255u8), 2usize, 1u8);
+    let snapshot = snapshot_new(name, expected);
+    let actual = Reader { data: bytes_set(bytes_set(bytes_zeroed(2usize), 0usize, 0u8), 1usize, 255u8), position: 0usize };
+    let comparison = compare_snapshot(snapshot, actual);
+    failure_bit_unless(!comparison.equal && comparison.expected_len == 3usize && comparison.actual_len == 2usize && comparison.first_difference == 2usize && actual.position == 0usize, 4096)
+}
+
+@id("std.test.bytes.tests.test-snapshot-writer-output")
+fn test_snapshot_writer_output() -> i64
+{
+    let name = bytes_set(bytes_zeroed(1usize), 0usize, 119u8);
+    let expected = bytes_set(bytes_set(bytes_zeroed(2usize), 0usize, 0u8), 1usize, 255u8);
+    let snapshot = snapshot_new(name, expected);
+    let output0 = writer_from_bytes(bytes_zeroed(3usize));
+    let output1 = writer_write_u8(output0, 9u8);
+    let output2 = writer_write_u8(output1, 0u8);
+    let output3 = writer_write_u8(output2, 255u8);
+    let actual = Reader { data: writer_finish(output3), position: 1usize };
+    let exact = compare_snapshot(snapshot, actual);
+    let actual_position = actual.position;
+    let longer = Reader { data: bytes_set(bytes_set(bytes_set(bytes_set(bytes_zeroed(4usize), 0usize, 9u8), 1usize, 0u8), 2usize, 255u8), 3usize, 7u8), position: 1usize };
+    let prefix = compare_snapshot(snapshot, longer);
+    failure_bit_unless(exact.equal && exact.expected_len == 2usize && exact.actual_len == 2usize && exact.first_difference == 2usize && actual_position == 1usize && !prefix.equal && prefix.expected_len == 2usize && prefix.actual_len == 3usize && prefix.first_difference == 2usize && longer.position == 1usize, 8192)
 }
 
 @id("std.test.bytes.tests.main")

@@ -1,10 +1,14 @@
 module std.test.bytes.examples;
 use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.test.bytes.snapshot") from std.test.bytes as Snapshot;
+use type @id("std.test.bytes.snapshot-comparison") from std.test.bytes as SnapshotComparison;
 use function @id("std.test.failure_bit_unless") from std.test as failure_bit_unless;
 use function @id("std.test.bytes.equal") from std.test.bytes as equal_bytes;
 use function @id("std.test.bytes.equal-remaining") from std.test.bytes as equal_remaining;
 use function @id("std.test.bytes.failure-bit-equal") from std.test.bytes as failure_bit_equal_bytes;
 use function @id("std.test.bytes.failure-bit-equal-remaining") from std.test.bytes as failure_bit_equal_remaining;
+use function @id("std.test.bytes.snapshot-new") from std.test.bytes as snapshot_new;
+use function @id("std.test.bytes.compare-snapshot") from std.test.bytes as compare_snapshot;
 
 @id("std.test.bytes.examples.main")
 fn main() -> i64
@@ -15,9 +19,15 @@ fn main() -> i64
     let prefix = [0u8, 255u8];
     let maximum_left = [0u8];
     let maximum_right = [1u8];
+    let snapshot_name = [115u8, 110u8, 97u8, 112u8];
+    let snapshot_expected = [0u8, 255u8, 1u8];
+    let snapshot = snapshot_new(bytes_copy(array_as_slice(snapshot_name)), bytes_copy(array_as_slice(snapshot_expected)));
+    let snapshot_actual = [0u8, 255u8, 1u8];
+    let snapshot_reader = Reader { data: bytes_copy(array_as_slice(snapshot_actual)), position: 0usize };
+    let comparison = compare_snapshot(snapshot, snapshot_reader);
     let left_data = bytes_set(bytes_set(bytes_set(bytes_zeroed(4usize), 0usize, 9u8), 1usize, 0u8), 2usize, 255u8);
     let right_data = bytes_set(bytes_set(bytes_set(bytes_zeroed(4usize), 0usize, 8u8), 1usize, 0u8), 2usize, 255u8);
     let left = Reader { data: left_data, position: 1usize };
     let right = Reader { data: right_data, position: 1usize };
-    failure_bit_unless(failure_bit_equal_bytes(array_as_slice(empty), array_as_slice(empty), 1) == 0, 1) + failure_bit_unless(failure_bit_equal_bytes(array_as_slice(binary), array_as_slice(unequal), 2) == 2, 2) + failure_bit_unless(failure_bit_equal_bytes(array_as_slice(binary), array_as_slice(prefix), 4) == 4, 4) + failure_bit_unless(failure_bit_equal_remaining(left, right, 8) == 0, 8) + failure_bit_unless(equal_bytes(array_as_slice(binary), array_as_slice(binary)) && equal_remaining(left, right) && failure_bit_equal_bytes(array_as_slice(maximum_left), array_as_slice(maximum_right), 9223372036854775807) == 9223372036854775807 && left.position == 1usize && right.position == 1usize, 16)
+    failure_bit_unless(failure_bit_equal_bytes(array_as_slice(empty), array_as_slice(empty), 1) == 0, 1) + failure_bit_unless(failure_bit_equal_bytes(array_as_slice(binary), array_as_slice(unequal), 2) == 2, 2) + failure_bit_unless(failure_bit_equal_bytes(array_as_slice(binary), array_as_slice(prefix), 4) == 4, 4) + failure_bit_unless(failure_bit_equal_remaining(left, right, 8) == 0, 8) + failure_bit_unless(equal_bytes(array_as_slice(binary), array_as_slice(binary)) && equal_remaining(left, right) && failure_bit_equal_bytes(array_as_slice(maximum_left), array_as_slice(maximum_right), 9223372036854775807) == 9223372036854775807 && comparison.equal && comparison.expected_len == 3usize && comparison.actual_len == 3usize && comparison.first_difference == 3usize && left.position == 1usize && right.position == 1usize && snapshot_reader.position == 0usize, 16)
 }

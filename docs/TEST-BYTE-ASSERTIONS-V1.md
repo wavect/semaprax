@@ -71,9 +71,41 @@ positive failure-bit results through `i64::MAX`.
 passes five invalid-cursor/bit cases across those engines, including repeated
 Wasm settlement. The existing bundled scalar `std.test`/`std.time` consumer and
 unchanged scalar source preserve the old facade. These are local observations,
-not hosted promotion or a completed fixtures/property/fuzz/snapshot facility.
+not hosted promotion or a completed testing facility.
 
 The source ownership is the sibling `std/test-bytes` package; the existing
 `std.io.Reader` identity supplies the Reader shape. This expands the source
 helper family without introducing a new report model. The package manifest and generated catalog expose this private dependency without
 widening the scalar package's public descriptor.
+
+## Reusable snapshot fixtures
+
+The additive snapshot facility is ordinary source data inside the same private
+package. `Snapshot` owns a caller-supplied `name: Bytes` and `expected: Bytes`;
+`SnapshotComparison` is a Copy record with `equal: bool`, `expected_len: usize`,
+`actual_len: usize`, and `first_difference: usize`. Neither record grants a
+filesystem path, update permission, or report-publication authority. The name is
+retained fixture data; the runtime report continues to identify named test
+functions through their existing stable IDs.
+
+`compare_snapshot(snapshot: borrow Snapshot, actual: borrow Reader)` returns
+that comparison record. It compares all expected bytes with the actual Reader's
+remaining range, validates the actual cursor before scanning, and preserves
+both borrowed owners. `first_difference` is the first differing byte index
+relative to that remaining range; when one value is a prefix of the other it
+is their shared length. For equal values it is their common length, including
+zero for two empty values. The explicit equality bit disambiguates that result.
+The operation uses caller lengths without a new cap or an allocation site.
+
+A fixture may be reused against several independently owned Readers. Writer
+output composes by finishing its buffer and constructing a Reader at the
+appropriate position; unwritten suffix bytes remain ordinary input and are
+not silently trimmed. Test functions may pass the equality result to the
+existing failure-bit helpers. Snapshot files, automatic updates, external
+fixture discovery, property generation, and report-schema changes are separate
+features. The named `snapshot_fixtures_and_bundled_consumers_execute_across_engines`
+gate executes all four named snapshot tests independently, including binary
+Writer output and a longer actual suffix, as well as the package example
+on the interpreter, C11 O0/O2, and repeated Core Wasm. The existing contract
+gate additionally rejects a forged actual Reader cursor and settles all three
+Bytes owners. These focused checks pass locally; hosted promotion remains open.

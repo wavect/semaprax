@@ -4729,6 +4729,38 @@
           "effects": [],
           "ensures": 0,
           "head": [
+            "record Snapshot {",
+            "    name: Bytes,",
+            "    expected: Bytes,",
+            "}"
+          ],
+          "id": "std.test.bytes.snapshot",
+          "kind": "record",
+          "name": "Snapshot",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "record SnapshotComparison {",
+            "    equal: bool,",
+            "    expected_len: usize,",
+            "    actual_len: usize,",
+            "    first_difference: usize,",
+            "}"
+          ],
+          "id": "std.test.bytes.snapshot-comparison",
+          "kind": "record",
+          "name": "SnapshotComparison",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
             "fn equal_bytes(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool"
           ],
           "id": "std.test.bytes.equal",
@@ -4779,6 +4811,31 @@
           "kind": "function",
           "name": "failure_bit_equal_remaining",
           "requires": 3
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn snapshot_new(name: own Bytes, expected: own Bytes) -> Snapshot"
+          ],
+          "id": "std.test.bytes.snapshot-new",
+          "kind": "function",
+          "name": "snapshot_new",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn compare_snapshot(snapshot: borrow Snapshot, actual: borrow Reader) -> SnapshotComparison",
+            "    requires match borrow actual { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.test.bytes.compare-snapshot",
+          "kind": "function",
+          "name": "compare_snapshot",
+          "requires": 1
         }
       ],
       "dependency": "std.test.bytes = \"^0.1.0\"",

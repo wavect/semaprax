@@ -2412,6 +2412,26 @@ fn failure_bit_unless(condition: bool, failure_bit: i64) -> i64
 
 Package `std/test-bytes`, tier `test`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.test.bytes = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
+### `std.test.bytes.snapshot`
+
+```semaprax
+record Snapshot {
+    name: Bytes,
+    expected: Bytes,
+}
+```
+
+### `std.test.bytes.snapshot-comparison`
+
+```semaprax
+record SnapshotComparison {
+    equal: bool,
+    expected_len: usize,
+    actual_len: usize,
+    first_difference: usize,
+}
+```
+
 ### `std.test.bytes.equal`
 
 ```semaprax
@@ -2442,6 +2462,19 @@ fn failure_bit_equal_remaining(left: borrow Reader, right: borrow Reader, failur
     requires match borrow left { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
     requires match borrow right { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
     ensures result == 0 || result == failure_bit
+```
+
+### `std.test.bytes.snapshot-new`
+
+```semaprax
+fn snapshot_new(name: own Bytes, expected: own Bytes) -> Snapshot
+```
+
+### `std.test.bytes.compare-snapshot`
+
+```semaprax
+fn compare_snapshot(snapshot: borrow Snapshot, actual: borrow Reader) -> SnapshotComparison
+    requires match borrow actual { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
 ```
 
 ## `std.text`

@@ -149,7 +149,7 @@ fn msrv_matrix_preserves_checks_timeout_complete_results_and_release_dependency(
         .0;
     for required in [
         "name: Rust 1.88 minimum (${{ matrix.shard }})",
-        "timeout-minutes: 20",
+        "timeout-minutes: 40",
         "fail-fast: false",
         "shard: [unit, integration-0, integration-1, integration-2]",
         "toolchain: \"1.88\"",
@@ -200,7 +200,7 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
         .0;
     for required in [
         "name: Rust tests ${{ matrix.os }} (${{ matrix.shard }})",
-        "timeout-minutes: 60",
+        "timeout-minutes: 90",
         "fail-fast: false",
         "os: [ubuntu-latest, macos-latest, windows-latest]",
         "shard: [unit, integration-0, integration-1, integration-2]",

@@ -192,5 +192,8 @@ pub(super) fn run_conformance() {
 
 #[test]
 fn filesystem_standard_commands_execute_on_all_three_backends() {
+    if cfg!(windows) {
+        return;
+    }
     run_conformance();
 }

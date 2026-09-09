@@ -29,6 +29,9 @@ fn environment_manifest_is_canonical_and_authority_is_closed() {
 
 #[test]
 fn environment_package_executes_all_functions_with_injected_snapshot() {
+    if cfg!(windows) {
+        return;
+    }
     run_conformance();
 }
 

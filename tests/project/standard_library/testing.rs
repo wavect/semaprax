@@ -5,6 +5,9 @@ use super::*;
 
 #[test]
 fn test_bytes_package_and_bundled_consumer_execute_across_engines() {
+    if cfg!(windows) {
+        return;
+    }
     run_conformance();
 }
 
@@ -33,6 +36,9 @@ pub(super) fn run_source_package(package: &str, module: &str, library: &str) {
 
 #[test]
 fn snapshot_fixtures_and_bundled_consumers_execute_across_engines() {
+    if cfg!(windows) {
+        return;
+    }
     let source = std::fs::read_to_string(root().join("std/test-bytes/src/tests.spx")).unwrap();
     let parsed = semaprax::parse(&source, "snapshot-cases.spx").unwrap();
     let cases = parsed

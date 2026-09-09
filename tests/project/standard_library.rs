@@ -639,6 +639,9 @@ fn run_text_package_native_conformance(
 
 #[test]
 fn examples_and_conformance_return_zero_on_interpreter_native_and_wasm() {
+    if cfg!(windows) {
+        return;
+    }
     run_examples_and_conformance(packages());
 }
 

@@ -74,7 +74,7 @@ fn private_json_cursor_roundtrip_executes_across_project_backends() {
             super::compile_and_run_c(&c, &scratch, optimization, "0");
         }
         let core =
-            wasm::emit_resolved_module(snapshot.test_program()).map_err(|error| vec![error])?;
+            wasm::emit_resolved_module(snapshot.entry_program()).map_err(|error| vec![error])?;
         let wasm_path = scratch.join("json-roundtrip.wasm");
         std::fs::write(&wasm_path, core).unwrap();
         let script = scratch.join("json-roundtrip.mjs");

@@ -189,7 +189,7 @@ pub(crate) fn compile_resolved_agent_observation_schema(
         return Err(vec![invariant("observation_role.definition_mismatch")]);
     }
     let shape = shape::derive_role(
-        &resolved,
+        resolved,
         &observation_type_id,
         "observation_type",
         invariant,

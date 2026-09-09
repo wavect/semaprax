@@ -49,6 +49,7 @@ impl Emitter<'_> {
         Ok(())
     }
     /// Read a little-endian word through the authenticated byte provider, never raw linear memory.
+    #[allow(clippy::too_many_arguments)]
     fn process_word(
         &mut self,
         carrier: u32,

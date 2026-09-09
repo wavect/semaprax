@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static WASM_FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
+#[allow(clippy::duplicate_mod)]
 #[path = "owned_vec_bytes_runtime/native.rs"]
 mod native;
 

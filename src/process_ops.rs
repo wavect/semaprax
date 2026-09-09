@@ -25,7 +25,7 @@ pub(crate) const MAX_ARGUMENTS: u64 = crate::process_provider::MAX_ARGUMENTS as 
 pub(crate) const MAX_INPUT_BYTES: u64 = crate::process_provider::MAX_INPUT_BYTES as u64;
 pub(crate) const MAX_OUTPUT_BYTES: u64 = crate::process_provider::MAX_OUTPUT_BYTES as u64;
 pub(crate) const HEADER_BYTES: u64 = 32;
-pub(crate) const MAX_WAIT_MILLIS: u64 = crate::process_provider::MAX_TIMEOUT_MS as u64;
+pub(crate) const MAX_WAIT_MILLIS: u64 = crate::process_provider::MAX_TIMEOUT_MS;
 pub(crate) const MAX_OPERATIONS: u64 = crate::process_provider::MAX_RUNS as u64;
 pub(crate) const MAX_TOTAL_BYTES: u64 = crate::process_provider::MAX_TOTAL_BYTES as u64;
 pub(crate) const fn is_process(op: Op) -> bool {

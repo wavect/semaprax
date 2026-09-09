@@ -144,10 +144,9 @@ impl ProjectRevision {
                         && provider.functions.iter().any(|function| {
                             function.stable_id == migration_id && function.explicit_id
                         })
+                        && found.replace(candidate.path().to_owned()).is_some()
                     {
-                        if found.replace(candidate.path().to_owned()).is_some() {
-                            return Err(fail("linked Agent migration declaration is ambiguous"));
-                        }
+                        return Err(fail("linked Agent migration declaration is ambiguous"));
                     }
                 }
                 found.ok_or_else(|| {

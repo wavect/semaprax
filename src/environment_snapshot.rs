@@ -21,6 +21,7 @@ pub enum EnvironmentSnapshotError {
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct EnvironmentSnapshot {
+    #[allow(clippy::type_complexity)]
     entries: Arc<[(Arc<[u8]>, Arc<[u8]>)]>,
     byte_len: usize,
 }
@@ -110,6 +111,7 @@ impl EnvironmentSnapshot {
         })
     }
 
+    #[allow(clippy::type_complexity)]
     pub(crate) fn raw_entry(&self, index: usize) -> Option<(Arc<[u8]>, Arc<[u8]>)> {
         self.entries
             .get(index)
@@ -185,7 +187,7 @@ mod tests {
             snapshot.entries().collect::<Vec<_>>(),
             vec![("A", "one"), ("z", ""), ("é", "two")]
         );
-        assert_eq!(snapshot.byte_len(), 1 + 3 + 1 + 0 + 2 + 3);
+        assert_eq!(snapshot.byte_len(), 1 + 3 + 1 + 2 + 3);
         assert_eq!(snapshot.get(3), None);
     }
 

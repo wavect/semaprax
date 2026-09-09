@@ -110,6 +110,7 @@ pub(crate) fn evaluate_resolved_environment_command(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn evaluate_profile(
     program: &hir::ResolvedProgram,
     entry_id: &str,
@@ -357,6 +358,7 @@ impl Evaluator<'_> {
     }
 }
 
+#[allow(clippy::items_after_test_module)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -419,6 +421,7 @@ mod tests {
     }
 }
 
+#[allow(clippy::items_after_test_module)]
 pub(super) fn handles(operation: Operation) -> bool {
     crate::environment_ops::is_environment(operation) || crate::process_ops::is_process(operation)
 }

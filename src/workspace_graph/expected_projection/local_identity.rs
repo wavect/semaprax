@@ -7,8 +7,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_NAMES: usize = 4096;
 
-pub(super) fn discount<'a>(
-    function: &'a Function,
+pub(super) fn discount(
+    function: &Function,
     program: &Program,
     parameters: &BTreeSet<&str>,
     declared: &BTreeMap<&str, Option<usize>>,

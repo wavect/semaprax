@@ -176,7 +176,7 @@ pub(crate) fn compile_resolved_agent_proposal_schema(
     crate::hir::validate(resolved).map_err(|error| vec![error])?;
     let proposal_type_id = compiled.definition().proposal_type_id().to_owned();
     let shape =
-        shape::derive(&resolved, &proposal_type_id).map_err(|diagnostic| vec![diagnostic])?;
+        shape::derive(resolved, &proposal_type_id).map_err(|diagnostic| vec![diagnostic])?;
     let rendered_shape = shape::render(&shape);
     let proposal_type_revision = digest(
         TYPE_REVISION_DOMAIN,

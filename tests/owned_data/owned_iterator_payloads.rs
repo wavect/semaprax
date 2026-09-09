@@ -1,5 +1,6 @@
 //! Owned iteration transfers payloads and the remaining window independently.
 use semaprax::interpreter;
+#[allow(clippy::duplicate_mod)]
 #[path = "owned_vec_bytes_runtime/native.rs"]
 mod native;
 #[path = "owned_iterator_payloads/wasm.rs"]

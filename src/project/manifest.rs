@@ -1,4 +1,7 @@
-use super::profile::{valid_environment_capabilities, PROJECT_PROFILE_ENVIRONMENT_IO_V1};
+use super::profile::{
+    valid_environment_capabilities, valid_process_capabilities, PROJECT_PROFILE_ENVIRONMENT_IO_V1,
+    PROJECT_PROFILE_PROCESS_IO_V1,
+};
 mod tables;
 use super::profile::{
     PROJECT_FILESYSTEM_CAPABILITIES_V1, PROJECT_PROFILE_FILESYSTEM_IO_V1,
@@ -29,8 +32,7 @@ use super::profile::{
 
 /// Frozen scalar Project Manifest v1 schema.
 pub const PROJECT_SCHEMA: &str = "semaprax.project.v1";
-/// Additive Project Manifest v2 schema used by the Useful Text Consumer
-/// profile. V1 parsing and rendering remain byte-for-byte unchanged.
+/// Additive Project Manifest v2 schema; v1 parsing and rendering remain byte-for-byte unchanged.
 pub const PROJECT_SCHEMA_V2: &str = "semaprax.project.v2";
 /// Additive Project Manifest v3 schema used by the Portable Indexed Byte Data
 /// public adapter. V1 and v2 parsing and rendering remain byte-for-byte
@@ -59,6 +61,8 @@ pub const PROJECT_SCHEMA_V11: &str = "semaprax.project.v11";
 pub const PROJECT_SCHEMA_V12: &str = "semaprax.project.v12";
 /// Additive Project Manifest v16 schema for private owned data and frozen byte exports.
 pub const PROJECT_SCHEMA_V17: &str = "semaprax.project.v17";
+/// Additive Project Manifest v18 schema for explicit bounded process commands.
+pub const PROJECT_SCHEMA_V18: &str = "semaprax.project.v18";
 pub const PROJECT_SCHEMA_V16: &str = "semaprax.project.v16";
 pub const PROJECT_SCHEMA_V15: &str = "semaprax.project.v15";
 pub const PROJECT_SCHEMA_V14: &str = "semaprax.project.v14";
@@ -73,9 +77,7 @@ pub const MAX_STABLE_ID_BYTES: usize = 128;
 pub const MAX_SOURCES: usize = 16;
 pub const MAX_WEB_EXPORTS: usize = 32;
 pub const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
-
-/// One exact, closed Project manifest. `schema` is the frozen profile contract
-/// the manifest lowers to: a frozen `semaprax.project.v1`-`v13` layout names it
+/// One exact manifest. `schema` is the frozen profile contract; a `semaprax.project.v1`-`v13` layout names it
 /// directly, and the extensible `semaprax.manifest.v1` table layout selects it
 /// through `[package] profile`. Every project route reads only the contract.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -692,37 +694,37 @@ impl ProjectManifest {
                         parse_array_assignment(lines[9], "tests")?,
                     )
                 }
-                PROJECT_SCHEMA_V17 => {
-
+                PROJECT_SCHEMA_V17 | PROJECT_SCHEMA_V18 => {
                     if lines.len() != 11 || lines.last() != Some(&"") {
                         return Err(grammar(
-                            "Project v17 manifest must contain exactly ten ordered assignments and one terminal LF",
+                            "Project v17/v18 manifest must contain exactly ten ordered assignments and one terminal LF",
                         ));
                     }
+                    let process = schema == PROJECT_SCHEMA_V18;
                     let version = parse_string_assignment(lines[2], "version")?;
                     if !valid_semver(&version) {
                         return Err(grammar(
-                            "Project v17 version must be canonical Semantic Versioning text of at most 128 bytes",
+                            "Project v17/v18 version must be canonical Semantic Versioning text of at most 128 bytes",
                         ));
                     }
                     if parse_string_assignment(lines[3], "profile")?
-                        != PROJECT_PROFILE_ENVIRONMENT_IO_V1
+                        != if process { PROJECT_PROFILE_PROCESS_IO_V1 } else { PROJECT_PROFILE_ENVIRONMENT_IO_V1 }
                     {
-                        return Err(grammar("Project v17 profile is not environment-io.v1"));
+                        return Err(grammar("Project v17/v18 profile does not match its frozen schema"));
                     }
                     let command = parse_string_assignment(lines[7], "command")?;
                     let capabilities = parse_array_assignment(lines[8], "capabilities")?;
-                    if !valid_environment_capabilities(&capabilities)
+                    if !(if process { valid_process_capabilities(&capabilities) } else { valid_environment_capabilities(&capabilities) })
                     {
                         return Err(grammar(
-                            "Project v17 capabilities must include process.environment.read and only admitted command effects",
+                            "Project v17/v18 capabilities must include the required profile effect and only admitted command effects",
                         ));
                     }
                     (
-                        PROJECT_SCHEMA_V17,
+                        if process { PROJECT_SCHEMA_V18 } else { PROJECT_SCHEMA_V17 },
                         parse_string_assignment(lines[1], "name")?,
                         Some(version),
-                        ProjectProfile::EnvironmentIoV1,
+                        if process { ProjectProfile::ProcessIoV1 } else { ProjectProfile::EnvironmentIoV1 },
                         parse_string_assignment(lines[4], "entry")?,
                         parse_array_assignment(lines[5], "sources")?,
                         parse_array_assignment(lines[6], "web_exports")?,
@@ -746,6 +748,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V3 => "Project v3",
             PROJECT_SCHEMA_V16 => "Project v16",
             PROJECT_SCHEMA_V17 => "Project v17",
+            PROJECT_SCHEMA_V18 => "Project v18",
             PROJECT_SCHEMA_V4 => "Project v4",
             PROJECT_SCHEMA_V5 => "Project v5",
             PROJECT_SCHEMA_V6 => "Project v6",
@@ -824,6 +827,7 @@ impl ProjectManifest {
             && !(schema == PROJECT_SCHEMA_V8 && profile == ProjectProfile::OwnedDataApiV1)
             && !profile.is_filesystem()
             && profile != ProjectProfile::EnvironmentIoV1
+            && profile != ProjectProfile::ProcessIoV1
             && profile != ProjectProfile::UsefulDataV2
         {
             return Err(grammar(format!(
@@ -841,10 +845,13 @@ impl ProjectManifest {
         }
         if let Some(command) = &command {
             if !valid_stable_id(command)
-                || ((profile.is_filesystem() || profile == ProjectProfile::EnvironmentIoV1)
+                || ((profile.is_filesystem()
+                    || profile == ProjectProfile::EnvironmentIoV1
+                    || profile == ProjectProfile::ProcessIoV1)
                     && !web_exports.is_empty())
                 || (!profile.is_filesystem()
                     && profile != ProjectProfile::EnvironmentIoV1
+                    && profile != ProjectProfile::ProcessIoV1
                     && (web_exports.len() != 1 || web_exports.first() != Some(command)))
             {
                 return Err(grammar(format!(
@@ -1203,7 +1210,7 @@ impl ProjectManifest {
             )
         } else if matches!(
             self.schema,
-            PROJECT_SCHEMA_V14 | PROJECT_SCHEMA_V15 | PROJECT_SCHEMA_V17
+            PROJECT_SCHEMA_V14 | PROJECT_SCHEMA_V15 | PROJECT_SCHEMA_V17 | PROJECT_SCHEMA_V18
         ) {
             format!("schema = \"{}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = []\ncommand = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n", self.schema, self.name, self.package_version.as_deref().unwrap(), self.profile.name().unwrap(), self.entry, render_array(&self.sources), self.command.as_deref().unwrap(), render_array(&self.capabilities), self.test_module)
         } else if self.schema == PROJECT_SCHEMA_V11 {

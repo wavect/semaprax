@@ -96,6 +96,7 @@ fn finish_build(
         crate::workspace_graph::ProjectWebRoots {
             stable_ids: if manifest.project_profile().is_filesystem()
                 || manifest.project_profile() == super::ProjectProfile::EnvironmentIoV1
+                || manifest.project_profile() == super::ProjectProfile::ProcessIoV1
             {
                 &filesystem_roots
             } else {

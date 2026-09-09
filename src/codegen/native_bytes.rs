@@ -450,8 +450,14 @@ impl NativeBytesPlan {
         self.variant_storage.contains(storage)
     }
     pub(super) fn apply_at(&self, at: &ExpressionId) -> Result<String, Diagnostic> {
+        self.apply_transitions(self.transitions.get(at).into_iter().flatten())
+    }
+    fn apply_transitions<'a>(
+        &self,
+        transitions: impl Iterator<Item = &'a CleanupTransition>,
+    ) -> Result<String, Diagnostic> {
         let mut output = String::new();
-        for transition in self.transitions.get(at).into_iter().flatten() {
+        for transition in transitions {
             match transition {
                 CleanupTransition::Transfer {
                     source,
@@ -493,12 +499,6 @@ impl NativeBytesPlan {
             }
         }
         Ok(output)
-    }
-    pub(super) fn authenticate_transfers_at(
-        &self,
-        at: &ExpressionId,
-    ) -> Result<String, Diagnostic> {
-        nested_owned::authenticate_transfers_at(self, at)
     }
     pub(super) fn apply_variant_case_at(
         &self,

@@ -7,6 +7,15 @@ impl Emitter<'_> {
         expression: &ExpressionId,
         value: &Value,
     ) -> Result<(), Diagnostic> {
+        self.apply_post_transitions_matching(expression, value, None)
+    }
+
+    pub(super) fn apply_post_transitions_matching(
+        &mut self,
+        expression: &ExpressionId,
+        value: &Value,
+        match_phase: Option<(&BTreeSet<crate::cleanup_plan::StorageId>, bool)>,
+    ) -> Result<(), Diagnostic> {
         let transitions = self
             .cleanup_plan
             .blocks
@@ -21,6 +30,20 @@ impl Emitter<'_> {
                     at == expression
                 }
                 _ => false,
+            })
+            .filter(|transition| {
+                match_phase.is_none_or(|(bindings, entering)| {
+                    let binding_transfer = match transition {
+                        crate::cleanup_plan::CleanupTransition::Transfer {
+                            destination, ..
+                        }
+                        | crate::cleanup_plan::CleanupTransition::Renew { destination, .. } => {
+                            bindings.contains(&destination.storage)
+                        }
+                        _ => false,
+                    };
+                    binding_transfer == entering
+                })
             })
             .cloned()
             .collect::<Vec<_>>();

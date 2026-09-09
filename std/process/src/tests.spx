@@ -1,0 +1,106 @@
+module std.process.tests;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use type @id("std.process.argv") from std.process as Argv;
+use type @id("std.process.output") from std.process as Output;
+use function @id("std.process.byte-usize") from std.process as byte_usize;
+use function @id("std.process.u32-byte") from std.process as u32_byte;
+use function @id("std.process.reader-non-nul") from std.process as reader_non_nul;
+use function @id("std.process.argv-new") from std.process as argv_new;
+use function @id("std.process.argv-count") from std.process as argv_count;
+use function @id("std.process.argv-push") from std.process as argv_push;
+use function @id("std.process.run") from std.process as run;
+use function @id("std.process.header-byte") from std.process as header_byte;
+use function @id("std.process.word-u32") from std.process as word_u32;
+use function @id("std.process.header-zeroes") from std.process as header_zeroes;
+use function @id("std.process.termination-kind-raw") from std.process as termination_kind_raw;
+use function @id("std.process.termination-code-raw") from std.process as termination_code_raw;
+use function @id("std.process.termination-valid") from std.process as termination_valid;
+use function @id("std.process.lengths-valid") from std.process as lengths_valid;
+use function @id("std.process.valid") from std.process as valid;
+use function @id("std.process.termination-kind") from std.process as termination_kind;
+use function @id("std.process.termination-code") from std.process as termination_code;
+use function @id("std.process.stdout-len") from std.process as stdout_len;
+use function @id("std.process.stderr-len") from std.process as stderr_len;
+use function @id("std.process.copy-range") from std.process as copy_range;
+use function @id("std.process.stdout-into") from std.process as stdout_into;
+use function @id("std.process.stderr-into") from std.process as stderr_into;
+
+permit { process.execute }
+
+@id("std.process.tests.utilities")
+fn utilities() -> bool
+{
+    let empty = Reader { data: bytes_zeroed(0usize), position: 0usize };
+    byte_usize(255u8) == 255usize && u32_byte(256usize, 1usize) == 1u8 && reader_non_nul(empty)
+}
+
+@id("std.process.tests.header")
+fn header(output: borrow Output) -> bool
+    requires valid(output)
+{
+    header_byte(output, 0usize) == 1u8 && word_u32(output, 0usize) == 1usize && header_zeroes(output, 1usize, 7usize)
+}
+
+@id("std.process.tests.termination")
+fn termination(output: borrow Output) -> bool
+    requires valid(output)
+{
+    termination_kind_raw(output) == 0usize && termination_code_raw(output) == 4294967295usize && termination_valid(output) && termination_kind(output) == 0usize && termination_code(output) == 4294967295usize
+}
+
+@id("std.process.tests.lengths")
+fn lengths(output: borrow Output) -> bool
+    requires valid(output)
+{
+    lengths_valid(output, 34usize) && stdout_len(output) == 1usize && stderr_len(output) == 1usize
+}
+
+@id("std.process.tests.copy")
+fn copy(output: borrow Output) -> bool
+    requires valid(output)
+{
+    let target = Writer { data: bytes_zeroed(1usize), position: 0usize };
+    let copied = copy_range(output, 32usize, 1usize, target);
+    match own copied { Writer { data, position } => match byte_get(bytes_as_slice(data), 0usize) { Option::Some { value } => position == 1usize && value == 65u8, Option::None {} => false, }, }
+}
+
+@id("std.process.tests.stdout")
+fn stdout(output: borrow Output) -> bool
+    requires valid(output)
+{
+    let target = Writer { data: bytes_zeroed(1usize), position: 0usize };
+    let written = stdout_into(output, target);
+    match own written { Writer { data, position } => match byte_get(bytes_as_slice(data), 0usize) { Option::Some { value } => position == 1usize && value == 65u8, Option::None {} => false, }, }
+}
+
+@id("std.process.tests.stderr")
+fn stderr(output: borrow Output) -> bool
+    requires valid(output)
+{
+    let target = Writer { data: bytes_zeroed(1usize), position: 0usize };
+    let written = stderr_into(output, target);
+    match own written { Writer { data, position } => match byte_get(bytes_as_slice(data), 0usize) { Option::Some { value } => position == 1usize && value == 33u8, Option::None {} => false, }, }
+}
+
+@id("std.process.tests.conformance")
+fn conformance() -> bool
+    uses { process.execute }
+{
+    let raw = bytes_set(bytes_zeroed(1usize), 0usize, 255u8);
+    let first = Reader { data: raw, position: 0usize };
+    let args = argv_push(first, argv_new(bytes_zeroed(16usize)));
+    let empty = Reader { data: bytes_zeroed(0usize), position: 0usize };
+    let complete = argv_push(empty, args);
+    let count = argv_count(complete);
+    let stdin_data = bytes_set(bytes_set(bytes_zeroed(2usize), 0usize, 88u8), 1usize, 66u8);
+    let stdin = Reader { data: stdin_data, position: 1usize };
+    let output = run(7usize, complete, stdin, 100usize, 2usize, 2usize);
+    utilities() && count == 2usize && valid(output) && header(output) && termination(output) && lengths(output) && copy(output) && stdout(output) && stderr(output)
+}
+
+@id("std.process.tests.main")
+fn main() -> i64
+{
+    0
+}

@@ -106,6 +106,8 @@ pub mod patch_evidence;
 pub mod plugin_manifest;
 #[allow(dead_code, reason = "path-included by the unpublished native builder")]
 mod private_capacity_contract;
+pub(crate) mod process_ops;
+pub mod process_provider;
 pub mod project;
 pub mod project_revision_store;
 #[doc(hidden)]

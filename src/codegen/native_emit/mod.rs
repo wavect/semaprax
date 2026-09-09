@@ -36,7 +36,6 @@ mod output_profile;
 mod owned_strings;
 mod string_views;
 mod symbols;
-
 #[cfg(test)]
 use compiler::write_and_compile_c_with_runner;
 pub(super) use compiler::{
@@ -53,13 +52,10 @@ pub use network_io::{emit_c_with_network_io, emit_hir_c_with_network_io};
 pub(super) use output_profile::NativeOutputProfile;
 use output_profile::StringRuntimeSelection;
 pub(super) use symbols::{c_case_symbol, c_field_symbol, c_record_symbol, c_variant_symbol};
-
 #[path = "../../native_scratch.rs"]
 mod native_scratch;
-
 #[cfg(all(test, any(unix, windows)))]
 mod scratch_tests;
-
 pub(super) fn emit_hir_c_with_labels(
     program: &ResolvedProgram,
     contract_labels: &HashMap<ExpressionId, String>,
@@ -108,6 +104,8 @@ pub(super) fn emit_hir_c_with_labels(
         filesystem_io_v2::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::HttpsCommandIo {
         http_io::emit_runtime(&mut output, program);
+    } else if output_profile == NativeOutputProfile::ProcessCommandIo {
+        process_io::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::EnvironmentCommandIo {
         environment_io::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::LineCommandIo {
@@ -135,7 +133,6 @@ pub(super) fn emit_hir_c_with_labels(
     if closure::enabled(program) {
         closure::emit_thunk_prototypes(&mut output, program, &resource_abi)?;
     }
-
     let emission = NativeEmissionContext {
         program,
         resource_abi: &resource_abi,
@@ -190,6 +187,8 @@ pub(super) fn emit_hir_c_with_labels(
         } else if output_profile == NativeOutputProfile::HttpsCommandIo {
             http_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);
+        } else if output_profile == NativeOutputProfile::ProcessCommandIo {
+            process_io::emit_runner(&mut output, symbol);
         } else if output_profile == NativeOutputProfile::EnvironmentCommandIo {
             environment_io::emit_runner(&mut output, symbol);
         } else if output_profile.is_language_command() {
@@ -2467,3 +2466,4 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     }
 }
 pub(super) mod environment_io;
+pub(super) mod process_io;

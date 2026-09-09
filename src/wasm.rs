@@ -1,11 +1,10 @@
+use same_file::Handle;
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
-
-use same_file::Handle;
-use sha2::{Digest, Sha256};
 
 use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::command_io_ops::CommandOperationProfile;
@@ -43,6 +42,7 @@ mod option_propagation_component_v10;
 mod owned;
 mod owned_data_exports;
 mod owned_data_public;
+pub(crate) mod process_io;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod record_pattern_component_v8;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]

@@ -57,6 +57,28 @@ pub(super) fn match_result_is_admitted(
 }
 
 impl<'a, O: COutput> CEmitter<'a, O> {
+    pub(super) fn finish_record_match_phase(
+        &mut self,
+        expression: &ResolvedExpr,
+        anchors: &BTreeSet<crate::cleanup_plan::StorageId>,
+        value: &mut CValue,
+    ) -> Result<(), Diagnostic> {
+        let plan = self
+            .bytes_plan
+            .ok_or_else(|| backend_error("owned match has no cleanup plan"))?;
+        let preflight = plan.record_match_phase(&expression.id, anchors, false, true)?;
+        let transfers = plan.record_match_phase(&expression.id, anchors, false, false)?;
+        for line in preflight.lines().chain(transfers.lines()) {
+            self.line(line);
+        }
+        if expression.ty == ResolvedType::Bytes {
+            if let Some(result) = plan.result_at(&expression.id) {
+                value.code = result.to_owned();
+            }
+        }
+        Ok(())
+    }
+
     pub(super) fn generic_projected_bytes_value(
         &self,
         root: &crate::hir::ValueId,

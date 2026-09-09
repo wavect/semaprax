@@ -1,15 +1,4 @@
-//! Executable gate for the standard library slice under `std/`.
-//!
-//! Every package below `std/` is an ordinary Project v1 whose entry module is
-//! its examples module and whose single test module is its conformance suite.
-//! This module proves, for each package, that the library sources are
-//! canonical, that every public declaration carries a `std.`-prefixed stable
-//! identity and is exercised by the conformance module, that examples and
-//! conformance return `0` on the interpreter, native C11 at O0 and O2, and
-//! Core Wasm under Node, and that the committed human and agent catalogs are
-//! exactly what the sources generate. [Standard Library v1] owns the contract.
-//!
-//! [Standard Library v1]: ../../docs/STANDARD-LIBRARY-V1.md
+//! Standard-library identity, catalog and executable conformance gates.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -33,6 +22,8 @@ mod environment;
 mod formatting;
 #[path = "standard_library/logging.rs"]
 mod logging;
+#[path = "standard_library/process.rs"]
+mod process;
 
 #[path = "standard_library/temporary.rs"]
 mod temporary;
@@ -239,6 +230,7 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
                         | "std.fs.remove",
                     ) => vec!["fs.write".into()],
                     ("std.env", _) => vec!["process.environment.read".into()],
+                    ("std.process", "std.process.run") => vec!["process.execute".into()],
                     _ => vec![],
                 };
             assert_eq!(
@@ -289,6 +281,10 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
             assert_eq!(package.tier, "hosted");
             assert_eq!(required_consumer_profile(&package), "environment-io.v1");
             vec!["process.environment.read".into()]
+        } else if package.module == "std.process" {
+            assert_eq!(package.tier, "hosted");
+            assert_eq!(required_consumer_profile(&package), "process-io.v1");
+            vec!["process.execute".into()]
         } else {
             vec![]
         };
@@ -678,6 +674,10 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
         }
         if package.module == "std.env" {
             environment::run_conformance();
+            continue;
+        }
+        if package.module == "std.process" {
+            process::run_conformance();
             continue;
         }
         let manifest = root()

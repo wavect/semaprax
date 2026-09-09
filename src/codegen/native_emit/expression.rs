@@ -1753,11 +1753,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "irrefutable record match must have exactly one arm",
                         ));
                     };
+                    let anchors = match &arm.pattern {
+                        hir::ResolvedMatchPattern::Record { fields, .. } => {
+                            nested_owned::owned_record_pattern_anchors(fields)?
+                        }
+                        _ => Default::default(),
+                    };
                     if *mode == hir::ResolvedMatchMode::Own {
                         let preflight = self
                             .bytes_plan
                             .ok_or_else(|| backend_error("owned record match has no cleanup plan"))?
-                            .authenticate_transfers_at(&expr.id)?;
+                            .record_match_phase(&expr.id, &anchors, true, true)?;
                         for line in preflight.lines() {
                             self.line(line);
                         }
@@ -1801,7 +1807,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         let transitions = self
                             .bytes_plan
                             .expect("owned match plan checked above")
-                            .apply_at(&expr.id)?;
+                            .record_match_phase(&expr.id, &anchors, true, false)?;
                         for line in transitions.lines() {
                             self.line(line);
                         }
@@ -1858,7 +1864,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 "owned record match requires one exact record pattern",
                             ));
                         };
-                        let anchors = nested_owned::owned_record_pattern_anchors(fields)?;
+                        let _ = fields;
                         let cleanup = self
                             .bytes_plan
                             .expect("owned match plan checked above")
@@ -1866,6 +1872,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         for line in cleanup.lines() {
                             self.line(line);
                         }
+                    }
+                    if *mode == hir::ResolvedMatchMode::Own {
+                        self.finish_record_match_phase(expr, &anchors, &mut value)?;
                     }
                     self.variables = saved;
                     return Ok(CValue {

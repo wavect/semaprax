@@ -62,7 +62,9 @@ impl Emitter<'_> {
             self.output.push(0x42);
             write_i64(
                 self.output,
-                if crate::environment_ops::is_environment(call.operation) {
+                if crate::environment_ops::is_environment(call.operation)
+                    || crate::process_ops::is_process(call.operation)
+                {
                     -1
                 } else {
                     0
@@ -71,6 +73,9 @@ impl Emitter<'_> {
             self.output.extend([0x37, 0x03, 0x00]);
         }
         match call.operation {
+            Op::ProcessRun => {
+                return self.emit_process_command_call(expr, &arguments, local, pointer)
+            }
             Op::EnvLen => {
                 self.emit_pointer(pointer);
                 self.output.push(0x10);

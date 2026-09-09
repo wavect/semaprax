@@ -581,7 +581,27 @@ pub(super) fn byte_capacity_expression(
                         }
                     }
                     ResolvedExprKind::HostCommandCall(call) => {
-                        let effect = if call.operation == ResolvedHostCommandOperation::StdinRead {
+                        let effect = if call.operation == ResolvedHostCommandOperation::ProcessRun {
+                            Some(CapacityFlow::BytesCopy {
+                                site: expression.id.as_str().to_owned(),
+                                conservative_payload_bytes: crate::process_ops::output_capacity(
+                                    call.args.get(6).and_then(|e| {
+                                        if let ResolvedExprKind::Usize(v) = &e.kind {
+                                            Some(*v)
+                                        } else {
+                                            None
+                                        }
+                                    }),
+                                    call.args.get(7).and_then(|e| {
+                                        if let ResolvedExprKind::Usize(v) = &e.kind {
+                                            Some(*v)
+                                        } else {
+                                            None
+                                        }
+                                    }),
+                                ),
+                            })
+                        } else if call.operation == ResolvedHostCommandOperation::StdinRead {
                             Some(CapacityFlow::StdinRead {
                                 site: expression.id.as_str().to_owned(),
                                 conservative_payload_bytes: crate::command_io_ops::MAX_INPUT_BYTES,

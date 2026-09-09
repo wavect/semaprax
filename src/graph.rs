@@ -29,15 +29,16 @@ mod environment;
 mod expression;
 mod filesystem;
 mod function_values;
+mod process;
 use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
-use environment::graph_json;
 use filesystem::string_array;
 use generic_instances::legacy_graph_json;
 pub(crate) use generic_instances::to_legacy_hir_json;
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
 pub(crate) use generic_mapping::requires_v35;
+use process::graph_json;
 
 #[path = "graph/native_import.rs"]
 mod native_import;

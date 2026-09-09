@@ -1,4 +1,5 @@
 pub const PROJECT_PROFILE_ENVIRONMENT_IO_V1: &str = "environment-io.v1";
+pub const PROJECT_PROFILE_PROCESS_IO_V1: &str = "process-io.v1";
 pub const PROJECT_ENVIRONMENT_CAPABILITIES_V1: [&str; 5] = [
     "process.args.read",
     "process.environment.read",
@@ -11,6 +12,21 @@ pub(crate) fn valid_environment_capabilities(values: &[String]) -> bool {
         && values
             .iter()
             .all(|v| PROJECT_ENVIRONMENT_CAPABILITIES_V1.contains(&v.as_str()))
+        && values.windows(2).all(|v| v[0] < v[1])
+}
+pub const PROJECT_PROCESS_CAPABILITIES_V1: [&str; 6] = [
+    "process.args.read",
+    "process.environment.read",
+    "process.execute",
+    "process.stderr.write",
+    "process.stdin.read",
+    "process.stdout.write",
+];
+pub(crate) fn valid_process_capabilities(values: &[String]) -> bool {
+    values.iter().any(|v| v == "process.execute")
+        && values
+            .iter()
+            .all(|v| PROJECT_PROCESS_CAPABILITIES_V1.contains(&v.as_str()))
         && values.windows(2).all(|v| v[0] < v[1])
 }
 
@@ -92,6 +108,7 @@ pub enum ProjectProfile {
     FilesystemIoV1,
     FilesystemIoV2,
     EnvironmentIoV1,
+    ProcessIoV1,
     OwnedDataApiV1,
     FlatOwnedRecordApiV1,
     OwnedUtf8ApiV1,
@@ -112,6 +129,7 @@ impl ProjectProfile {
                 | Self::FilesystemIoV1
                 | Self::FilesystemIoV2
                 | Self::EnvironmentIoV1
+                | Self::ProcessIoV1
                 | Self::OwnedDataApiV1
                 | Self::FlatOwnedRecordApiV1
                 | Self::OwnedUtf8ApiV1
@@ -131,6 +149,7 @@ impl ProjectProfile {
             Self::LineCommandIoV1 => Some(PROJECT_PROFILE_LINE_COMMAND_IO_V1),
             Self::NetworkCommandIoV1 => Some(PROJECT_PROFILE_NETWORK_COMMAND_IO_V1),
             Self::EnvironmentIoV1 => Some(PROJECT_PROFILE_ENVIRONMENT_IO_V1),
+            Self::ProcessIoV1 => Some(PROJECT_PROFILE_PROCESS_IO_V1),
             Self::FilesystemIoV2 => Some(PROJECT_PROFILE_FILESYSTEM_IO_V2),
             Self::FilesystemIoV1 => Some(PROJECT_PROFILE_FILESYSTEM_IO_V1),
             Self::HttpsCommandIoV1 => Some(PROJECT_PROFILE_HTTPS_COMMAND_IO_V1),

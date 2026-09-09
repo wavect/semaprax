@@ -1331,6 +1331,7 @@ impl WorkspaceGraphBuild {
                     profile,
                     crate::project::ProjectProfile::LanguageCommandIoV1
                         | crate::project::ProjectProfile::LineCommandIoV1
+                        | crate::project::ProjectProfile::ProcessIoV1
                 ) || function.effects.is_empty()
                 {
                     functions.push(hir::LinkedScalarFunction {
@@ -1447,6 +1448,7 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::FilesystemIoV1
             | crate::project::ProjectProfile::FilesystemIoV2
             | crate::project::ProjectProfile::EnvironmentIoV1
+            | crate::project::ProjectProfile::ProcessIoV1
             | crate::project::ProjectProfile::OwnedDataApiV1 => {
                 unreachable!("Project v8 uses the exact function-reachable linker")
             }
@@ -1699,6 +1701,7 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::FilesystemIoV1
             | crate::project::ProjectProfile::FilesystemIoV2
             | crate::project::ProjectProfile::EnvironmentIoV1
+            | crate::project::ProjectProfile::ProcessIoV1
             | crate::project::ProjectProfile::OwnedDataApiV1 => {
                 unreachable!("Project v8 uses the exact function-reachable linker")
             }
@@ -2075,6 +2078,7 @@ impl WorkspaceGraphBuild {
             web_roots.profile,
             crate::project::ProjectProfile::LanguageCommandIoV1
                 | crate::project::ProjectProfile::LineCommandIoV1
+                | crate::project::ProjectProfile::ProcessIoV1
         ) {
             let [command_id] = web_roots.stable_ids else {
                 return Err(vec![graph_error(
@@ -2354,6 +2358,7 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::FilesystemIoV1
                     | crate::project::ProjectProfile::FilesystemIoV2
                     | crate::project::ProjectProfile::EnvironmentIoV1
+                    | crate::project::ProjectProfile::ProcessIoV1
                     | crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::FlatOwnedRecordApiV1
                     | crate::project::ProjectProfile::OwnedUtf8ApiV1
@@ -2385,6 +2390,7 @@ impl WorkspaceGraphBuild {
                     crate::project::ProjectProfile::FilesystemIoV1
                     | crate::project::ProjectProfile::FilesystemIoV2
                     | crate::project::ProjectProfile::EnvironmentIoV1
+                    | crate::project::ProjectProfile::ProcessIoV1
                     | crate::project::ProjectProfile::OwnedDataApiV1 => {
                         hir::owned_data_api_workspace_return_admitted(&function.return_type)
                     }

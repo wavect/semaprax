@@ -29,6 +29,7 @@ pub(crate) enum NativeOutputProfile {
     /// Filesystem I/O v2 extends the callback-only v1 carrier.
     FilesystemCommandIoV2,
     EnvironmentCommandIo,
+    ProcessCommandIo,
 }
 
 /// Representation and provider carrier support are separate decisions:
@@ -71,7 +72,8 @@ impl NativeOutputProfile {
             | Self::HttpsCommandIo
             | Self::FilesystemCommandIo
             | Self::FilesystemCommandIoV2
-            | Self::EnvironmentCommandIo => StringRuntimeSelection::FROZEN,
+            | Self::EnvironmentCommandIo
+            | Self::ProcessCommandIo => StringRuntimeSelection::FROZEN,
         }
     }
 
@@ -97,6 +99,7 @@ impl NativeOutputProfile {
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
                 | Self::EnvironmentCommandIo
+                | Self::ProcessCommandIo
         )
     }
 
@@ -113,6 +116,7 @@ impl NativeOutputProfile {
                 | Self::FilesystemCommandIo
                 | Self::FilesystemCommandIoV2
                 | Self::EnvironmentCommandIo
+                | Self::ProcessCommandIo
         )
     }
 
@@ -126,6 +130,7 @@ impl NativeOutputProfile {
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
                 | Self::EnvironmentCommandIo
+                | Self::ProcessCommandIo
         )
     }
 }

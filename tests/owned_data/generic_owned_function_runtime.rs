@@ -981,3 +981,6 @@ mod iterator_loops;
 
 #[path = "generic_owned_function_runtime/iterator_operations.rs"]
 mod iterator_operations;
+
+#[path = "generic_owned_function_runtime/record_match_phases.rs"]
+mod record_match_phases;

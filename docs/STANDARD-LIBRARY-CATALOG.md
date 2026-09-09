@@ -2065,6 +2065,195 @@ fn path_join(base: borrow Path, child: borrow Path, buffer: own Bytes) -> Path
     requires path_valid(base) && path_valid(child) && path_join_length(base, child) <= byte_len(bytes_as_slice(buffer))
 ```
 
+## `std.process`
+
+Package `std/process`, tier `hosted`, status partial. Required project profile: `process-io.v1`. Dependency: `std.process = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.process.argv`
+
+```semaprax
+record Argv {
+    data: Bytes,
+    count: usize,
+    length: usize,
+}
+```
+
+### `std.process.output`
+
+```semaprax
+record Output {
+    data: Bytes,
+}
+```
+
+### `std.process.byte-usize`
+
+```semaprax
+fn byte_usize(value: u8) -> usize
+```
+
+### `std.process.u32-byte`
+
+```semaprax
+fn u32_byte(value: usize, index: usize) -> u8
+    requires value <= 65536usize
+    requires index < 4usize
+```
+
+### `std.process.reader-non-nul`
+
+```semaprax
+fn reader_non_nul(input: borrow Reader) -> bool
+    requires match borrow input { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.process.argv-new`
+
+```semaprax
+fn argv_new(data: own Bytes) -> Argv
+    requires byte_len(bytes_as_slice(data)) >= 4usize
+```
+
+### `std.process.argv-count`
+
+```semaprax
+fn argv_count(argv: borrow Argv) -> usize
+    requires match borrow argv { Argv { data, count, length } => length >= 4usize && length <= byte_len(bytes_as_slice(data)) && count <= 16usize, }
+```
+
+### `std.process.argv-push`
+
+```semaprax
+fn argv_push(input: own Reader, argv: own Argv) -> Argv
+    requires match borrow input { Reader { data, position } => position <= byte_len(bytes_as_slice(data)) && reader_non_nul(input), }
+    requires match borrow argv { Argv { data, count, length } => count < 16usize && length >= 4usize && length <= byte_len(bytes_as_slice(data)) && byte_len(bytes_as_slice(data)) - length >= 4usize + reader_remaining(input), }
+```
+
+### `std.process.run`
+
+```semaprax
+fn run(tool: usize, argv: own Argv, stdin: own Reader, timeout_ms: usize, stdout_max: usize, stderr_max: usize) -> Output
+    uses { process.execute }
+    requires timeout_ms >= 1usize && timeout_ms <= 30000usize
+    requires stdout_max <= 65504usize && stderr_max <= 65504usize && stdout_max <= 65504usize - stderr_max
+    requires match borrow argv { Argv { data, count, length } => count <= 16usize && length >= 4usize && length <= byte_len(bytes_as_slice(data)), }
+    requires match borrow stdin { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.process.header-byte`
+
+```semaprax
+fn header_byte(output: borrow Output, index: usize) -> u8
+    requires index < 32usize
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }
+```
+
+### `std.process.word-u32`
+
+```semaprax
+fn word_u32(output: borrow Output, offset: usize) -> usize
+    requires offset <= 24usize
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= offset + 8usize, }
+```
+
+### `std.process.header-zeroes`
+
+```semaprax
+fn header_zeroes(output: borrow Output, start: usize, count: usize) -> bool
+    requires start <= 32usize && count <= 32usize - start
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }
+```
+
+### `std.process.termination-kind-raw`
+
+```semaprax
+fn termination_kind_raw(output: borrow Output) -> usize
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }
+```
+
+### `std.process.termination-code-raw`
+
+```semaprax
+fn termination_code_raw(output: borrow Output) -> usize
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }
+```
+
+### `std.process.termination-valid`
+
+```semaprax
+fn termination_valid(output: borrow Output) -> bool
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }
+```
+
+### `std.process.lengths-valid`
+
+```semaprax
+fn lengths_valid(output: borrow Output, total: usize) -> bool
+    requires total >= 32usize && total <= 65536usize
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) == total, }
+```
+
+### `std.process.valid`
+
+```semaprax
+fn valid(output: borrow Output) -> bool
+```
+
+### `std.process.termination-kind`
+
+```semaprax
+fn termination_kind(output: borrow Output) -> usize
+    requires valid(output)
+```
+
+### `std.process.termination-code`
+
+```semaprax
+fn termination_code(output: borrow Output) -> usize
+    requires valid(output)
+    requires termination_kind(output) <= 1usize
+```
+
+### `std.process.stdout-len`
+
+```semaprax
+fn stdout_len(output: borrow Output) -> usize
+    requires valid(output)
+```
+
+### `std.process.stderr-len`
+
+```semaprax
+fn stderr_len(output: borrow Output) -> usize
+    requires valid(output)
+```
+
+### `std.process.copy-range`
+
+```semaprax
+fn copy_range(output: borrow Output, start: usize, length: usize, target: own Writer) -> Writer
+    requires valid(output)
+    requires match borrow output { Output { data } => start <= byte_len(bytes_as_slice(data)) && length <= byte_len(bytes_as_slice(data)) - start, }
+    requires match borrow target { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && length <= byte_len(bytes_as_slice(data)) - position, }
+```
+
+### `std.process.stdout-into`
+
+```semaprax
+fn stdout_into(output: borrow Output, target: own Writer) -> Writer
+    requires valid(output)
+    requires match borrow target { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && stdout_len(output) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
+### `std.process.stderr-into`
+
+```semaprax
+fn stderr_into(output: borrow Output, target: own Writer) -> Writer
+    requires valid(output)
+    requires match borrow target { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && stderr_len(output) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
 ## `std.random`
 
 Package `std/random`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.random = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

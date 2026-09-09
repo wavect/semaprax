@@ -3,7 +3,7 @@
 //! This is deliberately isolated from the scalar encoder so existing scalar,
 //! owned-resource, callable, and Component byte contracts remain unchanged.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 #[path = "closure.rs"]
 mod closure;
@@ -29,6 +29,7 @@ mod network_io;
 mod owned_stack;
 mod owned_strings;
 mod post_transitions;
+mod process_io;
 pub(crate) fn owned_arena_capacity(
     program: &ResolvedProgram,
     roots: &[crate::hir::DeclarationId],
@@ -206,6 +207,7 @@ struct FunctionPlan {
     command_byte: Option<u32>,
     filesystem_scan: Option<(u32, u32, u32)>,
     filesystem_list_scan: Option<[u32; 6]>,
+    process_scan: Option<[u32; 6]>,
     external_root_bytes: Option<u32>,
     result_staged: Option<u32>,
     has_try: bool,
@@ -339,6 +341,22 @@ impl FunctionPlan {
         .transpose()?;
         let (filesystem_scan, filesystem_list_scan) =
             filesystem_v2::allocate_scan_locals(program, standalone_strings, &mut add_local)?;
+        let process_scan = (!standalone_strings
+            && program
+                .permits
+                .iter()
+                .any(|p| p == crate::process_ops::EFFECT))
+        .then(|| {
+            Ok::<_, Diagnostic>([
+                add_local(I64)?,
+                add_local(I64)?,
+                add_local(I64)?,
+                add_local(I64)?,
+                add_local(I64)?,
+                add_local(I64)?,
+            ])
+        })
+        .transpose()?;
         let external_root_bytes = function
             .params
             .iter()
@@ -426,6 +444,7 @@ impl FunctionPlan {
             status,
             command_byte,
             filesystem_scan,
+            process_scan,
             filesystem_list_scan,
             external_root_bytes,
             result_staged,
@@ -1523,6 +1542,7 @@ fn emit_byte_exports_profile(
         command_io.is_some_and(super::command_io::CommandPlan::is_filesystem_command);
     let environment_io =
         command_io.is_some_and(super::command_io::CommandPlan::is_environment_command);
+    let process_io = command_io.is_some_and(super::command_io::CommandPlan::is_process_command);
     if program
         .types
         .iter()
@@ -1536,7 +1556,9 @@ fn emit_byte_exports_profile(
         record_layout.validate(program)?;
     }
 
-    let public_global_count = if environment_io {
+    let public_global_count = if process_io {
+        20_u32
+    } else if environment_io {
         17_u32
     } else if filesystem_ops {
         18_u32
@@ -1763,6 +1785,8 @@ fn emit_byte_exports_profile(
     let filesystem_v2_types = command_io
         .is_some_and(super::command_io::CommandPlan::is_filesystem_v2)
         .then(|| super::filesystem_v2::intern_import_types(&mut types, &mut type_indexes));
+    let process_import_types =
+        process_io.then(|| super::process_io::intern_import_types(&mut types, &mut type_indexes));
     let environment_import_types = environment_io
         .then(|| super::environment_io::intern_import_types(&mut types, &mut type_indexes));
     let owned_utf8_validate = (!owned_plans.is_empty()).then(|| {
@@ -1869,6 +1893,9 @@ fn emit_byte_exports_profile(
     if let Some(types) = &environment_import_types {
         super::environment_io::emit_imports(&mut imports, types);
     }
+    if let Some(types) = &process_import_types {
+        super::process_io::emit_imports(&mut imports, types);
+    }
     if let Some(ty) = byte_set {
         function_import(&mut imports, "env", "spx_bytes_zeroed", byte_unary);
         function_import(&mut imports, "env", "spx_bytes_set", ty);
@@ -1974,6 +2001,9 @@ fn emit_byte_exports_profile(
         if environment_io {
             super::environment_io::append_global(&mut globals);
         }
+        if process_io {
+            super::process_io::append_globals(&mut globals);
+        }
         if filesystem_ops {
             super::filesystem_ops::append_globals(&mut globals);
         }
@@ -1986,7 +2016,9 @@ fn emit_byte_exports_profile(
     let mut exports = Vec::new();
     write_u32(
         &mut exports,
-        (if environment_io {
+        (if process_io {
+            14_u32
+        } else if environment_io {
             13_u32
         } else if line_command_io || network_io || http_io || filesystem_ops {
             12_u32
@@ -2029,6 +2061,9 @@ fn emit_byte_exports_profile(
     if environment_io {
         super::line_command_io::append_export(&mut exports);
         super::environment_io::append_export(&mut exports);
+    }
+    if process_io {
+        super::process_io::append_export(&mut exports);
     }
     let wrapper_base = import_count
         .checked_add(text_helper_count)
@@ -3990,6 +4025,14 @@ impl Emitter<'_> {
         &mut self,
         expression: &ExpressionId,
     ) -> Result<(), Diagnostic> {
+        self.authenticate_record_match_phase(expression, None)
+    }
+
+    fn authenticate_record_match_phase(
+        &mut self,
+        expression: &ExpressionId,
+        match_phase: Option<(&BTreeSet<crate::cleanup_plan::StorageId>, bool)>,
+    ) -> Result<(), Diagnostic> {
         let transfers = self
             .cleanup_plan
             .blocks
@@ -4005,7 +4048,13 @@ impl Emitter<'_> {
                     at,
                     source,
                     destination,
-                } if at == expression => Some((source.clone(), destination.clone())),
+                } if at == expression
+                    && match_phase.is_none_or(|(bindings, entering)| {
+                        bindings.contains(&destination.storage) == entering
+                    }) =>
+                {
+                    Some((source.clone(), destination.clone()))
+                }
                 _ => None,
             })
             .collect::<Vec<_>>();
@@ -4755,8 +4804,21 @@ impl Emitter<'_> {
                         }
                     };
                     let saved = self.bindings.clone();
+                    // One expression identity can carry both destructuring
+                    // entry and the enclosing match's result handoff. Select
+                    // exact authored binding destinations without reordering
+                    // any canonical transition vector.
+                    let match_bindings = match &arm.pattern {
+                        crate::hir::ResolvedMatchPattern::Record { fields, .. } => {
+                            nested_owned::owned_record_pattern_anchors(fields)?
+                        }
+                        _ => BTreeSet::new(),
+                    };
                     if *mode == crate::hir::ResolvedMatchMode::Own {
-                        self.authenticate_record_match_transfers(&expr.id)?;
+                        self.authenticate_record_match_phase(
+                            &expr.id,
+                            Some((&match_bindings, true)),
+                        )?;
                     }
                     match &arm.pattern {
                         crate::hir::ResolvedMatchPattern::Wildcard => {}
@@ -4779,7 +4841,11 @@ impl Emitter<'_> {
                         }
                     }
                     if *mode == crate::hir::ResolvedMatchMode::Own {
-                        self.apply_post_transitions(&expr.id, &scrutinee)?;
+                        self.apply_post_transitions_matching(
+                            &expr.id,
+                            &scrutinee,
+                            Some((&match_bindings, true)),
+                        )?;
                         self.poison_owned_record(&scrutinee)?;
                     }
                     // `emit_expr` applies the arm-value-keyed transfer before
@@ -4790,6 +4856,15 @@ impl Emitter<'_> {
                     self.copy_value(&destination, &value, "record match arm result")?;
                     if *mode == crate::hir::ResolvedMatchMode::Own {
                         self.emit_owned_record_match_cleanup(&arm.pattern)?;
+                        self.authenticate_record_match_phase(
+                            &expr.id,
+                            Some((&match_bindings, false)),
+                        )?;
+                        self.apply_post_transitions_matching(
+                            &expr.id,
+                            &destination,
+                            Some((&match_bindings, false)),
+                        )?;
                     }
                     self.bindings = saved;
                     return Ok(destination);

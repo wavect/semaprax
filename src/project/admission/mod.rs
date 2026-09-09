@@ -44,6 +44,7 @@ pub(super) enum PreparedProjectAdmission {
     FilesystemIoV1,
     FilesystemIoV2,
     EnvironmentIoV1,
+    ProcessIoV1,
     /// An authenticated no-export alloc-tier standard package retains its
     /// internal owned closure without constructing a public descriptor.
     OwnedDataNoExports,
@@ -67,6 +68,7 @@ impl PreparedProjectAdmission {
             Self::NetworkCommandIoV1 => ProjectProfile::NetworkCommandIoV1,
             Self::FilesystemIoV1 => ProjectProfile::FilesystemIoV1,
             Self::EnvironmentIoV1 => ProjectProfile::EnvironmentIoV1,
+            Self::ProcessIoV1 => ProjectProfile::ProcessIoV1,
             Self::FilesystemIoV2 => ProjectProfile::FilesystemIoV2,
             Self::HttpsCommandIoV1 => ProjectProfile::HttpsCommandIoV1,
             Self::OwnedDataNoExports | Self::OwnedDataApiV1(_) => ProjectProfile::OwnedDataApiV1,
@@ -181,6 +183,10 @@ pub(super) fn prepare(
         ProjectProfile::EnvironmentIoV1 => {
             super::environment::admit(program, manifest)?;
             Ok(PreparedProjectAdmission::EnvironmentIoV1)
+        }
+        ProjectProfile::ProcessIoV1 => {
+            super::process::admit(program, manifest)?;
+            Ok(PreparedProjectAdmission::ProcessIoV1)
         }
         ProjectProfile::FilesystemIoV2 => {
             super::filesystem::admit(program, manifest)?;

@@ -38,8 +38,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let expected = crate::command_io_ops::return_type(call.operation);
                 self.require_type(&expr.ty, &expected, "command I/O result")?;
                 match call.operation {
+                    Operation::ProcessRun => self.emit_process_command_expr(expr, call)?,
                     Operation::EnvLen | Operation::EnvNameUtf8 | Operation::EnvValueUtf8 => {
-                        if self.output_profile != NativeOutputProfile::EnvironmentCommandIo {
+                        if !matches!(
+                            self.output_profile,
+                            NativeOutputProfile::EnvironmentCommandIo
+                                | NativeOutputProfile::ProcessCommandIo
+                        ) {
                             return Err(backend_error(
                                 "environment operation requires its additive native profile",
                             ));
@@ -264,6 +269,52 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             code: plan
                 .result_at(&expr.id)
                 .ok_or_else(|| backend_error("https_get has no canonical owned result transfer"))?
+                .to_owned(),
+            ty: ResolvedType::Bytes,
+        })
+    }
+
+    fn emit_process_command_expr(
+        &mut self,
+        expr: &ResolvedExpr,
+        call: &hir::ResolvedHostCommandCall,
+    ) -> Result<CValue, Diagnostic> {
+        if self.output_profile != NativeOutputProfile::ProcessCommandIo || call.args.len() != 8 {
+            return Err(backend_error(
+                "process_run requires Process I/O v1 and eight arguments",
+            ));
+        }
+        let mut staged = Vec::with_capacity(8);
+        for (index, argument) in call.args.iter().enumerate() {
+            let value = self.emit_expr(argument)?;
+            if !crate::process_ops::accepts_resolved(index, &value.ty) {
+                return Err(backend_error(
+                    "process_run argument type disagrees with HIR",
+                ));
+            }
+            // Freeze each argument before evaluating a later effectful expression.
+            let temporary = self.temporary(&value.ty)?;
+            self.line(&format!("{temporary} = {};", value.code));
+            staged.push(temporary);
+        }
+        let arguments = staged.join(", ");
+        let plan = self
+            .bytes_plan
+            .ok_or_else(|| backend_error("process result has no cleanup plan"))?;
+        let temporary = plan
+            .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+            .to_owned();
+        self.line(&format!(
+            "spx_status = spx_host_process_run_v1(spx_ctx, {arguments}, &{temporary});"
+        ));
+        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        for line in plan.apply_at(&expr.id)?.lines() {
+            self.line(line);
+        }
+        Ok(CValue {
+            code: plan
+                .result_at(&expr.id)
+                .ok_or_else(|| backend_error("process result lacks canonical transfer"))?
                 .to_owned(),
             ty: ResolvedType::Bytes,
         })

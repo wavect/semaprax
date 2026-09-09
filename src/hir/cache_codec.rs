@@ -107,7 +107,7 @@ codec_struct!(ResolvedNativeRustImportCall {
     args,
     result
 });
-codec_enum!(ResolvedHostCommandOperation {0=>ArgsLen,1=>ArgUtf8,2=>StdinRead,3=>StderrWrite,4=>StdoutAppend,5=>StderrAppend,6=>NetConnect,7=>NetSend,8=>NetRecv,9=>NetStreamStdout,10=>NetWait,11=>NetClose,12=>NetTlsConnect,13=>NetListen,14=>NetAccept,15=>NetCloseListener,16=>NetTlsAccept,17=>HttpsGet,18=>FileRead,19=>FileWriteNew,20=>FileStat,21=>FileList,22=>FileCreateDir,23=>FileRemove,24=>FileWriteAtomic,25=>EnvLen,26=>EnvNameUtf8,27=>EnvValueUtf8});
+codec_enum!(ResolvedHostCommandOperation {0=>ArgsLen,1=>ArgUtf8,2=>StdinRead,3=>StderrWrite,4=>StdoutAppend,5=>StderrAppend,6=>NetConnect,7=>NetSend,8=>NetRecv,9=>NetStreamStdout,10=>NetWait,11=>NetClose,12=>NetTlsConnect,13=>NetListen,14=>NetAccept,15=>NetCloseListener,16=>NetTlsAccept,17=>HttpsGet,18=>FileRead,19=>FileWriteNew,20=>FileStat,21=>FileList,22=>FileCreateDir,23=>FileRemove,24=>FileWriteAtomic,25=>EnvLen,26=>EnvNameUtf8,27=>EnvValueUtf8,28=>ProcessRun});
 codec_struct!(ResolvedHostCommandCall {
     expression,
     operation,

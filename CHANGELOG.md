@@ -8,6 +8,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Record the private `std.process` bounded process slice. Example, conformance,
+  and bundled-consumer commands pass locally on the interpreter, native C11
+  `-O0`/`-O2`, and Core Wasm. Five focused physical Darwin provider cases also
+  pass, covering the registered local provider path. Linux physical-provider,
+  hosted, public, and broader process support remain open; this does not promote
+  the full process profile.
+
+- Record the nested record-match entry/result phase ownership fix. The named
+  `nested_record_match_entry_and_result_phases_settle_across_engines` gate now
+  passes interpreter, native, and Core Wasm success and postcondition-failure
+  cases while preserving canonical cleanup vectors.
+
 - Add the private `std.env` environment snapshot package and Project
   `environment-io.v1` composition. The bounded operation vocabulary, immutable
   UTF-8 snapshot constructor, capability checks, graph facts, package metadata,

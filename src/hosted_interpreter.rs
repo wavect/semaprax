@@ -169,3 +169,29 @@ pub fn execute_filesystem_command_v2(
         crate::command_io_ops::CommandOperationProfile::FilesystemV2,
     )
 }
+
+/// Execute a private process command through a caller-supplied provider and
+/// immutable parent command/environment input. No ambient process authority.
+pub fn execute_process_command(
+    program: &ResolvedProgram,
+    entry_id: &str,
+    input: &HostedEnvironmentCommandInput,
+    provider: &mut dyn crate::process_provider::ProcessProvider,
+    max_steps: usize,
+) -> Result<HostedCommandResult, Vec<Diagnostic>> {
+    let (evaluation, stdout, stderr) = crate::interpreter::environment::evaluate_profile(
+        program,
+        entry_id,
+        &input.command.arguments,
+        &input.command.stdin,
+        input.environment.clone(),
+        Some(provider),
+        max_steps,
+        crate::command_io_ops::CommandOperationProfile::ProcessV1,
+    )?;
+    Ok(HostedCommandResult {
+        evaluation,
+        stdout,
+        stderr,
+    })
+}

@@ -92,6 +92,7 @@ pub fn render_project_lock(snapshot: &ProjectSnapshot) -> Result<String, Vec<Dia
         | ProjectProfile::FilesystemIoV1
         | ProjectProfile::FilesystemIoV2
         | ProjectProfile::EnvironmentIoV1 => ("unproven", None),
+        ProjectProfile::ProcessIoV1 => ("unproven", None),
     };
     let default_targets = [
         PACKAGE_TARGET_NATIVE64.to_owned(),

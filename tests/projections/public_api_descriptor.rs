@@ -619,6 +619,8 @@ fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
         include_str!("../../src/wasm/filesystem_v2.rs"),
         include_str!("../../src/wasm/environment_io.rs"),
         include_str!("../../src/wasm/environment_text.rs"),
+        include_str!("../../src/wasm/process_io.rs"),
+        include_str!("../../src/wasm/aggregate/process_io.rs"),
         include_str!("../../src/wasm/http_io.rs"),
         include_str!("../../src/wasm/vec_ops.rs"),
         include_str!("../../src/wasm/network_io.rs"),

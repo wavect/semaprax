@@ -1370,3 +1370,6 @@ mod tests;
 
 /// Emit an environment command with explicitly injected immutable snapshots.
 pub use native_emit::environment_io::emit as emit_hir_c_with_environment_io;
+
+/// Emit a process command with explicit registered-tool callbacks.
+pub use native_emit::process_io::emit as emit_hir_c_with_process_io;

@@ -26,7 +26,9 @@ pub(super) fn prepare(
     operation_profile: crate::command_io_ops::CommandOperationProfile,
 ) -> Result<CommandPlan, Diagnostic> {
     crate::hir::validate(program)?;
-    if operation_profile == crate::command_io_ops::CommandOperationProfile::NetworkV1 {
+    if operation_profile == crate::command_io_ops::CommandOperationProfile::ProcessV1 {
+        super::process_io::check_permits(&program.permits)?;
+    } else if operation_profile == crate::command_io_ops::CommandOperationProfile::NetworkV1 {
         super::network_io::check_permits(&program.permits)?;
     } else if operation_profile == crate::command_io_ops::CommandOperationProfile::HttpV1 {
         super::http_io::check_permits(&program.permits)?;
@@ -100,13 +102,23 @@ impl CommandPlan {
     }
 
     pub(super) fn is_environment_command(&self) -> bool {
-        self.operation_profile == crate::command_io_ops::CommandOperationProfile::EnvironmentV1
+        matches!(
+            self.operation_profile,
+            crate::command_io_ops::CommandOperationProfile::EnvironmentV1
+                | crate::command_io_ops::CommandOperationProfile::ProcessV1
+        )
+    }
+
+    pub(super) fn is_process_command(&self) -> bool {
+        self.operation_profile == crate::command_io_ops::CommandOperationProfile::ProcessV1
     }
 
     /// Command imports, plus the network imports appended after them for the
     /// network profile only.
     pub(super) fn import_count(&self) -> u32 {
-        if self.is_network_command() {
+        if self.is_process_command() {
+            IMPORT_COUNT + super::environment_io::IMPORT_COUNT + super::process_io::IMPORT_COUNT
+        } else if self.is_network_command() {
             IMPORT_COUNT + super::network_io::IMPORT_COUNT
         } else if self.is_http_command() {
             IMPORT_COUNT + super::http_io::IMPORT_COUNT
@@ -132,6 +144,7 @@ impl CommandPlan {
 pub(super) fn needs_command_byte(permit: &str) -> bool {
     permit == crate::command_io_ops::ARGS_READ_EFFECT
         || permit == crate::environment_ops::EFFECT
+        || permit == crate::process_ops::EFFECT
         || crate::network_io_ops::NETWORK_EFFECTS.contains(&permit)
 }
 
@@ -156,7 +169,9 @@ pub(super) fn emit_wrapper_body(target_index: u32, plan: &CommandPlan) -> Vec<u8
     if plan.is_environment_command() {
         super::environment_io::emit_reset(&mut body);
     }
-    if plan.is_network_command() {
+    if plan.is_process_command() {
+        super::process_io::emit_reset(&mut body);
+    } else if plan.is_network_command() {
         super::network_io::emit_reset(&mut body);
     } else if plan.is_http_command() {
         super::http_io::emit_reset(&mut body);
@@ -176,7 +191,9 @@ pub(super) fn emit_wrapper_body(target_index: u32, plan: &CommandPlan) -> Vec<u8
     write_u32(&mut body, target_index);
     body.extend([0x21]);
     write_u32(&mut body, STATUS);
-    if plan.is_network_command() {
+    if plan.is_process_command() {
+        super::process_io::emit_settle(&mut body, STATUS, RESULT);
+    } else if plan.is_network_command() {
         super::network_io::emit_settle(&mut body);
     }
     body.push(0x20);

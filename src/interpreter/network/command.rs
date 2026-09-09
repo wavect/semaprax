@@ -137,6 +137,7 @@ pub(crate) fn evaluate_resolved_network_command(
         network: Some(NetworkState::new(provider)),
         filesystem: None,
         environment: None,
+        process: None,
         arguments: arguments
             .iter()
             .map(|value| Arc::<[u8]>::from(value.as_bytes()))

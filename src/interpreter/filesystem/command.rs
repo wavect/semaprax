@@ -111,6 +111,7 @@ pub(crate) fn evaluate_profile(
         network: None,
         filesystem: Some(FileState::new(provider)),
         environment: None,
+        process: None,
         arguments: Vec::new(),
         stdin: Arc::from([]),
         stdin_consumed: false,

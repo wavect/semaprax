@@ -485,6 +485,7 @@ pub enum ResolvedHostCommandOperation {
     EnvLen,
     EnvNameUtf8,
     EnvValueUtf8,
+    ProcessRun,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

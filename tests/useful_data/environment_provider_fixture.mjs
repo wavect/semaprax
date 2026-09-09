@@ -5,7 +5,21 @@ function environmentProvider(module) {
   const view=()=>new DataView(memory().buffer);
   const carrier=(root,length)=>BigInt.asIntN(64,(BigInt(root>>>0)<<32n)|BigInt(length>>>0));
   const split=value=>{const word=BigInt.asUintN(64,value);return [Number(word>>32n),Number(word&0xffffffffn)]};
-  const bytes=value=>{const [root,length]=split(value);if(root&0x80000000){const data=owned.get(root&0x7fffffff);if(!data||data.length!==length)throw Error('owned carrier');return data}if(root+length>memory().buffer.byteLength)throw Error('input range');return new Uint8Array(memory().buffer,root,length)};
+  const bytes=value=>{
+    const [root,length]=split(value);
+    if((root&0xc0000000)===0x40000000){
+      const pointer=(root&0xffff)*8,identity=(root>>>16)&0x1fff,v=view();
+      if(!identity||pointer+32>v.byteLength||v.getUint32(pointer,true)!==identity||v.getUint32(pointer+4,true)!==pointer||v.getBigUint64(pointer+24,true)!==BigInt(length))throw Error('range descriptor');
+      const ultimate=v.getBigInt64(pointer+8,true),offset=v.getBigUint64(pointer+16,true);
+      if((split(ultimate)[0]&0xc0000000)===0x40000000)throw Error('nested range descriptor');
+      const data=bytes(ultimate);
+      if(offset>BigInt(data.length)||BigInt(length)>BigInt(data.length)-offset)throw Error('range extent');
+      return data.subarray(Number(offset),Number(offset)+length);
+    }
+    if(root&0x80000000){const data=owned.get(root&0x7fffffff);if(!data||data.length!==length)throw Error('owned carrier');return data}
+    if(root+length>memory().buffer.byteLength)throw Error('input range');
+    return new Uint8Array(memory().buffer,root,length);
+  };
   const allocate=data=>{if(data.length>65536||owned.size>=4096)throw Error('arena capacity');const id=next++;owned.set(id,new Uint8Array(data));return carrier(0x80000000|id,data.length)};
   const out=(p,value)=>view().setBigInt64(p,BigInt(value),true);
   const entries=[['A','alpha'],['Z','é']];let refs=[];

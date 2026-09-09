@@ -1,0 +1,218 @@
+module std.process;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.io.reader.remaining") from std.io as reader_remaining;
+
+permit { process.execute }
+
+@id("std.process.argv")
+record Argv {
+    @id("std.process.argv.data")
+    data: Bytes,
+    @id("std.process.argv.count")
+    count: usize,
+    @id("std.process.argv.length")
+    length: usize,
+}
+
+@id("std.process.output")
+record Output {
+    @id("std.process.output.data")
+    data: Bytes,
+}
+
+@id("std.process.byte-usize")
+fn byte_usize(value: u8) -> usize
+{
+    let mut converted = 0usize;
+    let mut step = 0u8;
+    let mut counting = step < value;
+    while counting {
+        converted = converted + 1usize;
+        step = step + 1u8;
+        counting = step < value;
+        counting
+    }
+    converted
+}
+
+@id("std.process.u32-byte")
+fn u32_byte(value: usize, index: usize) -> u8
+    requires value <= 65536usize
+    requires index < 4usize
+{
+    let divisor = if index == 0usize { 1usize } else { if index == 1usize { 256usize } else { if index == 2usize { 65536usize } else { 16777216usize } } };
+    let target = value / divisor % 256usize;
+    let mut converted = 0u8;
+    let mut step = 0usize;
+    let mut counting = step < target;
+    while counting {
+        converted = converted + 1u8;
+        step = step + 1usize;
+        counting = step < target;
+        counting
+    }
+    converted
+}
+
+@id("std.process.reader-non-nul")
+fn reader_non_nul(input: borrow Reader) -> bool
+    requires match borrow input { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match borrow input { Reader { data, position } => { let view = bytes_as_slice(data); let limit = byte_len(view); let mut index = position; let mut valid = true; let mut scanning = index < limit && valid; while scanning { let value = match byte_get(view, index) { Option::Some { value } => value, Option::None {} => 0u8, }; valid = value != 0u8; index = index + 1usize; scanning = index < limit && valid; scanning } valid }, }
+}
+
+@id("std.process.argv-new")
+fn argv_new(data: own Bytes) -> Argv
+    requires byte_len(bytes_as_slice(data)) >= 4usize
+{
+    let mut next = data;
+    next = bytes_set(next, 0usize, 0u8);
+    next = bytes_set(next, 1usize, 0u8);
+    next = bytes_set(next, 2usize, 0u8);
+    next = bytes_set(next, 3usize, 0u8);
+    Argv { data: next, count: 0usize, length: 4usize }
+}
+
+@id("std.process.argv-count")
+fn argv_count(argv: borrow Argv) -> usize
+    requires match borrow argv { Argv { data, count, length } => length >= 4usize && length <= byte_len(bytes_as_slice(data)) && count <= 16usize, }
+{
+    argv.count
+}
+
+@id("std.process.argv-push")
+fn argv_push(input: own Reader, argv: own Argv) -> Argv
+    requires match borrow input { Reader { data, position } => position <= byte_len(bytes_as_slice(data)) && reader_non_nul(input), }
+    requires match borrow argv { Argv { data, count, length } => count < 16usize && length >= 4usize && length <= byte_len(bytes_as_slice(data)) && byte_len(bytes_as_slice(data)) - length >= 4usize + reader_remaining(input), }
+{
+    match own input { Reader { data: input_data, position: input_position } => match own argv { Argv { data: argv_data, count, length } => { let view = bytes_as_slice(input_data); let input_length = byte_len(view) - input_position; let next_count = count + 1usize; let mut next = argv_data; next = bytes_set(next, 0usize, u32_byte(next_count, 0usize)); next = bytes_set(next, 1usize, u32_byte(next_count, 1usize)); next = bytes_set(next, 2usize, u32_byte(next_count, 2usize)); next = bytes_set(next, 3usize, u32_byte(next_count, 3usize)); next = bytes_set(next, length, u32_byte(input_length, 0usize)); next = bytes_set(next, length + 1usize, u32_byte(input_length, 1usize)); next = bytes_set(next, length + 2usize, u32_byte(input_length, 2usize)); next = bytes_set(next, length + 3usize, u32_byte(input_length, 3usize)); let mut index = 0usize; let mut writing = index < input_length; while writing { let value = match byte_get(view, input_position + index) { Option::Some { value } => value, Option::None {} => 0u8, }; next = bytes_set(next, length + 4usize + index, value); index = index + 1usize; writing = index < input_length; writing } Argv { data: next, count: next_count, length: length + 4usize + input_length } }, }, }
+}
+
+@id("std.process.run")
+fn run(tool: usize, argv: own Argv, stdin: own Reader, timeout_ms: usize, stdout_max: usize, stderr_max: usize) -> Output
+    uses { process.execute }
+    requires timeout_ms >= 1usize && timeout_ms <= 30000usize
+    requires stdout_max <= 65504usize && stderr_max <= 65504usize && stdout_max <= 65504usize - stderr_max
+    requires match borrow argv { Argv { data, count, length } => count <= 16usize && length >= 4usize && length <= byte_len(bytes_as_slice(data)), }
+    requires match borrow stdin { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match own argv { Argv { data: argv_data, count: _, length } => match own stdin { Reader { data: stdin_data, position } => { let all = bytes_as_slice(stdin_data); let input = byte_range(all, position, byte_len(all)); let input_length = byte_len(input); Output { data: process_run(tool, bytes_as_slice(argv_data), length, input, input_length, timeout_ms, stdout_max, stderr_max) } }, }, }
+}
+
+@id("std.process.header-byte")
+fn header_byte(output: borrow Output, index: usize) -> u8
+    requires index < 32usize
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }
+{
+    match borrow output { Output { data } => match byte_get(bytes_as_slice(data), index) { Option::Some { value } => value, Option::None {} => 0u8, }, }
+}
+
+@id("std.process.word-u32")
+fn word_u32(output: borrow Output, offset: usize) -> usize
+    requires offset <= 24usize
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= offset + 8usize, }
+{
+    byte_usize(header_byte(output, offset)) + 256usize * byte_usize(header_byte(output, offset + 1usize)) + 65536usize * byte_usize(header_byte(output, offset + 2usize)) + 16777216usize * byte_usize(header_byte(output, offset + 3usize))
+}
+
+@id("std.process.header-zeroes")
+fn header_zeroes(output: borrow Output, start: usize, count: usize) -> bool
+    requires start <= 32usize && count <= 32usize - start
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }
+{
+    match borrow output { Output { data } => { let view = bytes_as_slice(data); let mut index = 0usize; let mut valid = true; let mut scanning = index < count && valid; while scanning { let value = match byte_get(view, start + index) { Option::Some { value } => value, Option::None {} => 1u8, }; valid = value == 0u8; index = index + 1usize; scanning = index < count && valid; scanning } valid }, }
+}
+
+@id("std.process.termination-kind-raw")
+fn termination_kind_raw(output: borrow Output) -> usize
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }
+{
+    byte_usize(header_byte(output, 8usize)) % 4usize
+}
+
+@id("std.process.termination-code-raw")
+fn termination_code_raw(output: borrow Output) -> usize
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }
+{
+    byte_usize(header_byte(output, 8usize)) / 4usize + 64usize * byte_usize(header_byte(output, 9usize)) + 16384usize * byte_usize(header_byte(output, 10usize)) + 4194304usize * byte_usize(header_byte(output, 11usize)) + 1073741824usize * (byte_usize(header_byte(output, 12usize)) % 4usize)
+}
+
+@id("std.process.termination-valid")
+fn termination_valid(output: borrow Output) -> bool
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }
+{
+    let kind = termination_kind_raw(output);
+    let code = termination_code_raw(output);
+    header_byte(output, 12usize) <= 3u8 && header_zeroes(output, 13usize, 3usize) && (kind == 0usize && code <= 4294967295usize || kind == 1usize && code >= 1usize && code <= 255usize)
+}
+
+@id("std.process.lengths-valid")
+fn lengths_valid(output: borrow Output, total: usize) -> bool
+    requires total >= 32usize && total <= 65536usize
+    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) == total, }
+{
+    let stdout = word_u32(output, 16usize);
+    let stderr = word_u32(output, 24usize);
+    header_zeroes(output, 20usize, 4usize) && header_zeroes(output, 28usize, 4usize) && stdout <= total - 32usize && stderr <= total - 32usize - stdout && 32usize + stdout + stderr == total
+}
+
+@id("std.process.valid")
+fn valid(output: borrow Output) -> bool
+{
+    match borrow output { Output { data } => { let total = byte_len(bytes_as_slice(data)); if total < 32usize || total > 65536usize { false } else { header_byte(output, 0usize) == 1u8 && header_zeroes(output, 1usize, 7usize) && termination_valid(output) && lengths_valid(output, total) } }, }
+}
+
+@id("std.process.termination-kind")
+fn termination_kind(output: borrow Output) -> usize
+    requires valid(output)
+{
+    termination_kind_raw(output)
+}
+
+@id("std.process.termination-code")
+fn termination_code(output: borrow Output) -> usize
+    requires valid(output)
+    requires termination_kind(output) <= 1usize
+{
+    termination_code_raw(output)
+}
+
+@id("std.process.stdout-len")
+fn stdout_len(output: borrow Output) -> usize
+    requires valid(output)
+{
+    word_u32(output, 16usize)
+}
+
+@id("std.process.stderr-len")
+fn stderr_len(output: borrow Output) -> usize
+    requires valid(output)
+{
+    word_u32(output, 24usize)
+}
+
+@id("std.process.copy-range")
+fn copy_range(output: borrow Output, start: usize, length: usize, target: own Writer) -> Writer
+    requires valid(output)
+    requires match borrow output { Output { data } => start <= byte_len(bytes_as_slice(data)) && length <= byte_len(bytes_as_slice(data)) - start, }
+    requires match borrow target { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && length <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own target { Writer { data, position } => { let mut next = data; let end = match borrow output { Output { data: source } => { let view = bytes_as_slice(source); let mut index = 0usize; let mut writing = index < length; while writing { let value = match byte_get(view, start + index) { Option::Some { value } => value, Option::None {} => 0u8, }; next = bytes_set(next, position + index, value); index = index + 1usize; writing = index < length; writing } position + length }, }; Writer { data: next, position: end } }, }
+}
+
+@id("std.process.stdout-into")
+fn stdout_into(output: borrow Output, target: own Writer) -> Writer
+    requires valid(output)
+    requires match borrow target { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && stdout_len(output) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    copy_range(output, 32usize, stdout_len(output), target)
+}
+
+@id("std.process.stderr-into")
+fn stderr_into(output: borrow Output, target: own Writer) -> Writer
+    requires valid(output)
+    requires match borrow target { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && stderr_len(output) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    copy_range(output, 32usize + stdout_len(output), stderr_len(output), target)
+}

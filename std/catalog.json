@@ -4086,6 +4086,352 @@
         {
           "description": [],
           "effects": [],
+          "ensures": 0,
+          "head": [
+            "record Argv {",
+            "    data: Bytes,",
+            "    count: usize,",
+            "    length: usize,",
+            "}"
+          ],
+          "id": "std.process.argv",
+          "kind": "record",
+          "name": "Argv",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "record Output {",
+            "    data: Bytes,",
+            "}"
+          ],
+          "id": "std.process.output",
+          "kind": "record",
+          "name": "Output",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn byte_usize(value: u8) -> usize"
+          ],
+          "id": "std.process.byte-usize",
+          "kind": "function",
+          "name": "byte_usize",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn u32_byte(value: usize, index: usize) -> u8",
+            "    requires value <= 65536usize",
+            "    requires index < 4usize"
+          ],
+          "id": "std.process.u32-byte",
+          "kind": "function",
+          "name": "u32_byte",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reader_non_nul(input: borrow Reader) -> bool",
+            "    requires match borrow input { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.process.reader-non-nul",
+          "kind": "function",
+          "name": "reader_non_nul",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn argv_new(data: own Bytes) -> Argv",
+            "    requires byte_len(bytes_as_slice(data)) >= 4usize"
+          ],
+          "id": "std.process.argv-new",
+          "kind": "function",
+          "name": "argv_new",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn argv_count(argv: borrow Argv) -> usize",
+            "    requires match borrow argv { Argv { data, count, length } => length >= 4usize && length <= byte_len(bytes_as_slice(data)) && count <= 16usize, }"
+          ],
+          "id": "std.process.argv-count",
+          "kind": "function",
+          "name": "argv_count",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn argv_push(input: own Reader, argv: own Argv) -> Argv",
+            "    requires match borrow input { Reader { data, position } => position <= byte_len(bytes_as_slice(data)) && reader_non_nul(input), }",
+            "    requires match borrow argv { Argv { data, count, length } => count < 16usize && length >= 4usize && length <= byte_len(bytes_as_slice(data)) && byte_len(bytes_as_slice(data)) - length >= 4usize + reader_remaining(input), }"
+          ],
+          "id": "std.process.argv-push",
+          "kind": "function",
+          "name": "argv_push",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [
+            "process.execute"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn run(tool: usize, argv: own Argv, stdin: own Reader, timeout_ms: usize, stdout_max: usize, stderr_max: usize) -> Output",
+            "    uses { process.execute }",
+            "    requires timeout_ms >= 1usize && timeout_ms <= 30000usize",
+            "    requires stdout_max <= 65504usize && stderr_max <= 65504usize && stdout_max <= 65504usize - stderr_max",
+            "    requires match borrow argv { Argv { data, count, length } => count <= 16usize && length >= 4usize && length <= byte_len(bytes_as_slice(data)), }",
+            "    requires match borrow stdin { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.process.run",
+          "kind": "function",
+          "name": "run",
+          "requires": 4
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn header_byte(output: borrow Output, index: usize) -> u8",
+            "    requires index < 32usize",
+            "    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }"
+          ],
+          "id": "std.process.header-byte",
+          "kind": "function",
+          "name": "header_byte",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn word_u32(output: borrow Output, offset: usize) -> usize",
+            "    requires offset <= 24usize",
+            "    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= offset + 8usize, }"
+          ],
+          "id": "std.process.word-u32",
+          "kind": "function",
+          "name": "word_u32",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn header_zeroes(output: borrow Output, start: usize, count: usize) -> bool",
+            "    requires start <= 32usize && count <= 32usize - start",
+            "    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }"
+          ],
+          "id": "std.process.header-zeroes",
+          "kind": "function",
+          "name": "header_zeroes",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn termination_kind_raw(output: borrow Output) -> usize",
+            "    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }"
+          ],
+          "id": "std.process.termination-kind-raw",
+          "kind": "function",
+          "name": "termination_kind_raw",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn termination_code_raw(output: borrow Output) -> usize",
+            "    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }"
+          ],
+          "id": "std.process.termination-code-raw",
+          "kind": "function",
+          "name": "termination_code_raw",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn termination_valid(output: borrow Output) -> bool",
+            "    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) >= 32usize, }"
+          ],
+          "id": "std.process.termination-valid",
+          "kind": "function",
+          "name": "termination_valid",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn lengths_valid(output: borrow Output, total: usize) -> bool",
+            "    requires total >= 32usize && total <= 65536usize",
+            "    requires match borrow output { Output { data } => byte_len(bytes_as_slice(data)) == total, }"
+          ],
+          "id": "std.process.lengths-valid",
+          "kind": "function",
+          "name": "lengths_valid",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn valid(output: borrow Output) -> bool"
+          ],
+          "id": "std.process.valid",
+          "kind": "function",
+          "name": "valid",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn termination_kind(output: borrow Output) -> usize",
+            "    requires valid(output)"
+          ],
+          "id": "std.process.termination-kind",
+          "kind": "function",
+          "name": "termination_kind",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn termination_code(output: borrow Output) -> usize",
+            "    requires valid(output)",
+            "    requires termination_kind(output) <= 1usize"
+          ],
+          "id": "std.process.termination-code",
+          "kind": "function",
+          "name": "termination_code",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn stdout_len(output: borrow Output) -> usize",
+            "    requires valid(output)"
+          ],
+          "id": "std.process.stdout-len",
+          "kind": "function",
+          "name": "stdout_len",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn stderr_len(output: borrow Output) -> usize",
+            "    requires valid(output)"
+          ],
+          "id": "std.process.stderr-len",
+          "kind": "function",
+          "name": "stderr_len",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn copy_range(output: borrow Output, start: usize, length: usize, target: own Writer) -> Writer",
+            "    requires valid(output)",
+            "    requires match borrow output { Output { data } => start <= byte_len(bytes_as_slice(data)) && length <= byte_len(bytes_as_slice(data)) - start, }",
+            "    requires match borrow target { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && length <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.process.copy-range",
+          "kind": "function",
+          "name": "copy_range",
+          "requires": 3
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn stdout_into(output: borrow Output, target: own Writer) -> Writer",
+            "    requires valid(output)",
+            "    requires match borrow target { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && stdout_len(output) <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.process.stdout-into",
+          "kind": "function",
+          "name": "stdout_into",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn stderr_into(output: borrow Output, target: own Writer) -> Writer",
+            "    requires valid(output)",
+            "    requires match borrow target { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && stderr_len(output) <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.process.stderr-into",
+          "kind": "function",
+          "name": "stderr_into",
+          "requires": 2
+        }
+      ],
+      "dependency": "std.process = \"^0.1.0\"",
+      "module": "std.process",
+      "package": "std/process",
+      "required_profile": "process-io.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "hosted"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
           "ensures": 1,
           "head": [
             "fn normalize_seed(value: i64) -> i64",

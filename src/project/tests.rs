@@ -3,6 +3,9 @@ use sha2::{Digest as _, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[path = "tests/process_profile.rs"]
+mod process_profile;
+
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
 fn canonical_source(path: &str, source: &str) -> String {

@@ -1,6 +1,6 @@
 //! Exact C member paths for authenticated nested record cleanup leaves.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::cleanup_plan::{CleanupTransition, StorageId};
 use crate::diagnostic::Diagnostic;
@@ -70,6 +70,7 @@ pub(super) fn materialize_variant_borrow_view(
 pub(super) fn authenticate_transfers_at(
     plan: &super::NativeBytesPlan,
     at: &ExpressionId,
+    phase: Option<(&BTreeSet<StorageId>, bool)>,
 ) -> Result<String, Diagnostic> {
     // Several canonical transfers may share an expression boundary. Treat
     // them as one ordered transaction: later transfers can consume a slot
@@ -77,7 +78,17 @@ pub(super) fn authenticate_transfers_at(
     // pre-transaction runtime state would reject a valid chain.
     let mut initial = BTreeMap::<String, (bool, String)>::new();
     let mut simulated = BTreeMap::<String, bool>::new();
-    for transition in plan.transitions.get(at).into_iter().flatten() {
+    for transition in plan
+        .transitions
+        .get(at)
+        .into_iter()
+        .flatten()
+        .filter(|transition| {
+            phase.is_none_or(|(bindings, entering)| {
+                record_match_entry(transition, bindings) == entering
+            })
+        })
+    {
         let CleanupTransition::Transfer {
             source,
             destination,
@@ -243,4 +254,39 @@ pub(super) fn authenticate_variant_case_at(
         ));
     }
     Ok(output)
+}
+
+// Destructuring targets the independently checked arm bindings. Enclosing
+// result transfers may share this expression ID, but execute only after the
+// arm and its scope cleanup. Filtering retains each phase's canonical order.
+fn record_match_entry(transition: &CleanupTransition, bindings: &BTreeSet<StorageId>) -> bool {
+    matches!(transition, CleanupTransition::Transfer { destination, .. }
+        if bindings.contains(&destination.storage))
+}
+
+impl super::NativeBytesPlan {
+    pub(in crate::codegen) fn authenticate_transfers_at(
+        &self,
+        at: &ExpressionId,
+    ) -> Result<String, Diagnostic> {
+        authenticate_transfers_at(self, at, None)
+    }
+    pub(in crate::codegen) fn record_match_phase(
+        &self,
+        at: &ExpressionId,
+        bindings: &BTreeSet<StorageId>,
+        entering: bool,
+        authenticate_only: bool,
+    ) -> Result<String, Diagnostic> {
+        if authenticate_only {
+            return authenticate_transfers_at(self, at, Some((bindings, entering)));
+        }
+        self.apply_transitions(
+            self.transitions
+                .get(at)
+                .into_iter()
+                .flatten()
+                .filter(|transition| record_match_entry(transition, bindings) == entering),
+        )
+    }
 }

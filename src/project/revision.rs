@@ -280,6 +280,7 @@ impl ProjectRevision {
                 ProjectProfile::FilesystemIoV1 => "v14",
                 ProjectProfile::FilesystemIoV2 => "v15",
                 ProjectProfile::EnvironmentIoV1 => "v17",
+                ProjectProfile::ProcessIoV1 => "v18",
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",

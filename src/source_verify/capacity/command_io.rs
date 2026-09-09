@@ -19,6 +19,25 @@ pub(super) fn flow(
 ) -> Option<CapacityFlow> {
     let site = path.to_owned();
     match operation {
+        ResolvedHostCommandOperation::ProcessRun => Some(CapacityFlow::BytesCopy {
+            site,
+            conservative_payload_bytes: crate::process_ops::output_capacity(
+                args.get(6).and_then(|e| {
+                    if let crate::ast::ExprKind::Usize(v) = &e.kind {
+                        Some(*v)
+                    } else {
+                        None
+                    }
+                }),
+                args.get(7).and_then(|e| {
+                    if let crate::ast::ExprKind::Usize(v) = &e.kind {
+                        Some(*v)
+                    } else {
+                        None
+                    }
+                }),
+            ),
+        }),
         ResolvedHostCommandOperation::StdinRead => Some(CapacityFlow::StdinRead {
             site,
             conservative_payload_bytes: crate::command_io_ops::MAX_INPUT_BYTES,

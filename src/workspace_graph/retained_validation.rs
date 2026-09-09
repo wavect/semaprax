@@ -1285,6 +1285,10 @@ pub(super) fn project_effects_admitted(
         && effects.iter().all(|effect| {
             crate::project::PROJECT_ENVIRONMENT_CAPABILITIES_V1.contains(&effect.as_str())
         }))
+        || (profile == crate::project::ProjectProfile::ProcessIoV1
+            && effects.iter().all(|effect| {
+                crate::project::PROJECT_PROCESS_CAPABILITIES_V1.contains(&effect.as_str())
+            }))
         || (profile.is_filesystem()
             && effects
                 .iter()
@@ -1322,6 +1326,7 @@ pub(super) fn project_effects_admitted(
 pub(super) fn project_linker_name(profile: crate::project::ProjectProfile) -> &'static str {
     match profile {
         crate::project::ProjectProfile::EnvironmentIoV1 => "Environment I/O v1 linker",
+        crate::project::ProjectProfile::ProcessIoV1 => "Process I/O v1 linker",
         crate::project::ProjectProfile::FilesystemIoV1
         | crate::project::ProjectProfile::FilesystemIoV2 => "Filesystem I/O v1 linker",
         crate::project::ProjectProfile::ScalarV1 => "pure scalar linker",
@@ -1355,6 +1360,10 @@ pub(super) fn permits_admitted(
         && module.permits.iter().all(|effect| {
             crate::project::PROJECT_ENVIRONMENT_CAPABILITIES_V1.contains(&effect.as_str())
         }))
+        || (profile == crate::project::ProjectProfile::ProcessIoV1
+            && module.permits.iter().all(|effect| {
+                crate::project::PROJECT_PROCESS_CAPABILITIES_V1.contains(&effect.as_str())
+            }))
         || (profile.is_filesystem()
             && module
                 .permits

@@ -70,6 +70,7 @@ pub mod internal_strings;
 mod iterator;
 mod nested_owned;
 pub(crate) mod network;
+pub(crate) mod process;
 use command_state::CommandInputState;
 mod owned_box;
 mod owned_buffer;
@@ -79,9 +80,6 @@ mod prepared;
 mod resolved_case;
 pub mod retained_call;
 mod scalar_profile;
-pub use failure_detail::{ContractArgument, ContractFailureDetail};
-pub(crate) use resolved_case::evaluate_resolved_zero_arg_i64_function;
-
 use api_admission::{
     owned_utf8_api_result_matches, public_api_argument_matches, public_api_parameter_type_matches,
     public_api_result_is_admitted, require_acyclic_public_api_closure,
@@ -89,9 +87,10 @@ use api_admission::{
     validate_public_api_borrowed_input_bound,
 };
 use expression_children::child_expressions;
-use scalar_profile::{is_admitted_resolved_scalar, pattern_value_matches};
-
+pub use failure_detail::{ContractArgument, ContractFailureDetail};
 use hir::ResolvedHostCommandOperation as Operation;
+pub(crate) use resolved_case::evaluate_resolved_zero_arg_i64_function;
+use scalar_profile::{is_admitted_resolved_scalar, pattern_value_matches};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::{path::Path, sync::Arc};
 
@@ -3046,6 +3045,7 @@ pub(crate) fn evaluate_resolved_language_command(
         network: None,
         filesystem: None,
         environment: None,
+        process: None,
     };
     let mut evaluator = Evaluator {
         admitted: FunctionLookup::Borrowed(&admitted),
@@ -4127,7 +4127,7 @@ impl Evaluator<'_> {
                     ))?;
                     Ok(Value::Usize(input.arguments.len() as u64))
                 }
-                env if crate::environment_ops::is_environment(env) => {
+                env if environment::handles(env) => {
                     self.evaluate_environment_operation(call, environment, depth)
                 }
                 Operation::ArgUtf8 => {

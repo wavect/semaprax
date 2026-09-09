@@ -61,6 +61,8 @@ mod network_io_interpreter;
 mod network_io_native;
 #[path = "useful_data/network_io_wasm.rs"]
 mod network_io_wasm;
+#[path = "useful_data/process_io.rs"]
+mod process_io;
 #[path = "useful_data/project.rs"]
 mod project;
 #[path = "useful_data/vector_stats_project.rs"]

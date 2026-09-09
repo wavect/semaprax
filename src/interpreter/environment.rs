@@ -98,6 +98,39 @@ pub(crate) fn evaluate_resolved_environment_command(
     snapshot: Option<EnvironmentSnapshot>,
     max_steps: usize,
 ) -> Result<(CommandEvaluation, Vec<u8>, Vec<u8>), Vec<Diagnostic>> {
+    evaluate_profile(
+        program,
+        entry_id,
+        arguments,
+        stdin,
+        snapshot,
+        None,
+        max_steps,
+        crate::command_io_ops::CommandOperationProfile::EnvironmentV1,
+    )
+}
+
+pub(crate) fn evaluate_profile(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    arguments: &[String],
+    stdin: &[u8],
+    snapshot: Option<EnvironmentSnapshot>,
+    mut process_provider: Option<&mut dyn crate::process_provider::ProcessProvider>,
+    max_steps: usize,
+    profile: crate::command_io_ops::CommandOperationProfile,
+) -> Result<(CommandEvaluation, Vec<u8>, Vec<u8>), Vec<Diagnostic>> {
+    let process = profile == crate::command_io_ops::CommandOperationProfile::ProcessV1;
+    let admitted_effects: &[&str] = if process {
+        &super::process::ADMITTED_EFFECTS
+    } else {
+        &ADMITTED_EFFECTS
+    };
+    let required_effect = if process {
+        crate::process_ops::EFFECT
+    } else {
+        crate::environment_ops::EFFECT
+    };
     hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
     if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
         return Err(vec![option_error(format!(
@@ -115,11 +148,11 @@ pub(crate) fn evaluate_resolved_environment_command(
         || program
             .permits
             .iter()
-            .any(|permit| !ADMITTED_EFFECTS.contains(&permit.as_str()))
+            .any(|permit| !admitted_effects.contains(&permit.as_str()))
         || !program
             .permits
             .iter()
-            .any(|permit| permit == crate::environment_ops::EFFECT)
+            .any(|permit| permit == required_effect)
     {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
@@ -142,7 +175,7 @@ pub(crate) fn evaluate_resolved_environment_command(
                 && function
                     .effects
                     .iter()
-                    .all(|effect| ADMITTED_EFFECTS.contains(&effect.as_str()))
+                    .all(|effect| admitted_effects.contains(&effect.as_str()))
         })
         .map(|function| (function.id.as_str(), function))
         .collect::<BTreeMap<_, _>>();
@@ -158,18 +191,17 @@ pub(crate) fn evaluate_resolved_environment_command(
             format!("hosted environment command entry `{entry_id}` must have type `fn () -> bool`"),
         )]);
     }
-    crate::command_io_ops::validate_operation_profile(
-        program,
-        &entry.id,
-        crate::command_io_ops::CommandOperationProfile::EnvironmentV1,
-    )
-    .map_err(|diagnostic| vec![diagnostic])?;
+    crate::command_io_ops::validate_operation_profile(program, &entry.id, profile)
+        .map_err(|diagnostic| vec![diagnostic])?;
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
     scan_closure(entry_id, &admitted, program)?;
     let command_input = CommandInputState {
         network: None,
         filesystem: None,
         environment: Some(EnvironmentState::new(snapshot)),
+        process: process_provider
+            .as_mut()
+            .map(|provider| super::process::ProcessState::new(&mut **provider)),
         arguments: arguments
             .iter()
             .map(|value| Arc::<[u8]>::from(value.as_bytes()))
@@ -200,7 +232,18 @@ pub(crate) fn evaluate_resolved_environment_command(
         trace_phase: ResolvedTracePhase::Body,
         failure_detail: None,
     };
-    let evaluated = evaluator.call_frame(entry, Vec::new(), 0);
+    let mut evaluated = evaluator.call_frame(entry, Vec::new(), 0);
+    if let Some(process) = evaluator
+        .command_input
+        .as_mut()
+        .and_then(|state| state.process.take())
+    {
+        if let Err(failure) = process.settle() {
+            if evaluated.is_ok() {
+                evaluated = Err(super::process::failure(failure));
+            }
+        }
+    }
     let outcome = match evaluated {
         Ok(Value::Bool(value)) => CommandEvaluationOutcome::ReturnedBool(value),
         Ok(_) => CommandEvaluationOutcome::GuardError(
@@ -279,6 +322,9 @@ impl Evaluator<'_> {
         environment: &mut super::Environment,
         depth: usize,
     ) -> Result<Value, Flow> {
+        if crate::process_ops::is_process(call.operation) {
+            return self.evaluate_process_operation(call, environment, depth);
+        }
         if call.args.len() != crate::environment_ops::arity(call.operation) {
             return Err(Flow::Guard("invalid environment operation arity"));
         }
@@ -371,4 +417,8 @@ mod tests {
         };
         assert_eq!(status.code(), crate::environment_ops::INDEX_OUT_OF_BOUNDS);
     }
+}
+
+pub(super) fn handles(operation: Operation) -> bool {
+    crate::environment_ops::is_environment(operation) || crate::process_ops::is_process(operation)
 }

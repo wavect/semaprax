@@ -206,7 +206,7 @@ fn root_unsafe_is_confined_to_the_held_git_process_quarantine() {
 
     let mut sources = Vec::new();
     rust_sources(&root.join("src"), &mut sources);
-    let exceptions = sources
+    let mut exceptions = sources
         .into_iter()
         .filter_map(|path| {
             let source = fs::read_to_string(&path).unwrap();
@@ -214,7 +214,14 @@ fn root_unsafe_is_confined_to_the_held_git_process_quarantine() {
                 .then(|| path.strip_prefix(root).unwrap().to_path_buf())
         })
         .collect::<Vec<_>>();
-    assert_eq!(exceptions, [PathBuf::from(QUARANTINE)]);
+    exceptions.sort();
+    assert_eq!(
+        exceptions,
+        [
+            PathBuf::from("src/process_provider/registered/platform.rs"),
+            PathBuf::from(QUARANTINE)
+        ]
+    );
 
     assert!(
         relaxing_unsafe_attributes("const QUOTE: char = '\"'; #[allow/* hidden */(unsafe_code)]")

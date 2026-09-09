@@ -90,7 +90,7 @@ fn std_mem_project_checks_and_runs_without_a_public_descriptor() {
 #[test]
 fn std_mem_manifest_and_sources_reject_hostile_lookalikes() {
     for hostile in [
-        MANIFEST.replace("std-mem", "std-memory"),
+        MANIFEST.replace("std-mem", "std_mem"),
         MANIFEST.replace("owned-data-api.v1", "useful-data.v1"),
         MANIFEST.replace("web_exports = []", "web_exports = [\"std.mem.box.get\"]"),
         MANIFEST.replace("std.mem.examples", "user.mem.examples"),

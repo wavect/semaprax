@@ -54,12 +54,12 @@ fn project_v13_manifest_round_trips_the_exact_https_profile() {
 fn exhaustive_linux_ci_provisions_the_native_https_development_interface() {
     let workflow = include_str!("../../.github/workflows/ci.yml");
     let prerequisite = "- name: Provision the native HTTPS development interface (Linux)";
-    assert_eq!(workflow.matches(prerequisite).count(), 3);
+    assert_eq!(workflow.matches(prerequisite).count(), 4);
     assert_eq!(
         workflow
             .matches("sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev")
             .count(),
-        3
+        4
     );
     for (job, next, test_gate) in [
         ("verify", "verify-tests", "cargo test"),

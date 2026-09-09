@@ -518,7 +518,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         document_digest(graph.to_json().as_bytes()),
         // Re-pinned after type-fact cycle detection began retaining exact
         // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:92e7a34a23910c3d47b83bc103d6959dac98954e69ed9f2c6fbd734771df4f33"
+        "sha256:b4d4eebf15ef248452bbf9900e25080709bb780e3eb33373932ad9e82d203615"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -932,14 +932,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:5d5e9c4b594461f2ae660ad7a451b306682a14ba0d7d825304a2aa2be9c1c48e",
-            "sha256:2a31122b7c152f6059e85a40018aa60d9cdabc31d1ffe4b5a4e90ba840e869bb",
-            "sha256:93b8bb8f5a0ad13b37101e6dd6ad346c701339e9383b21992ef6c916e4f62e34",
-            "sha256:363be2a9aba01005b5dab174ead6dff310b7d6c64c354a25d394d7ec38899008",
-            "sha256:62252bdd8fe49545b30d9a1367910db963ee9fd64431829803721142e9563bd3",
-            "sha256:778a464bc9c5d3b9ff8aa8c15af09044a9df8308c6bd1b56e1740f21aee692f7",
-            "sha256:e1a10be33e165aa85e25e9a4e5c5faf6d92e23e5eb7b26e7915739ea88707b92",
-            "sha256:676036c875ee3f9324cbb659c920f4697f1d42573a20778d0ead3a46d3c68469",
+            "sha256:69d6966635ebb3310247beb304eca57f08b562085d09b0c7a9480374db0a8844",
+            "sha256:d4520e55955eff8dd64dd0f8bc296e12e1a2cec96e25a94b3a01c1f5abd08217",
+            "sha256:91ee1c1e9af6fd881f4bf7f9caeb1b982c102b237a2795621e0faf1c0f51b182",
+            "sha256:ecc168f8a8c0c01b677921d7c6adddc70585260e3d494e2a48077cdc70b25aac",
+            "sha256:de76455f2eaad87fafa95923ec922c558491ee078d11c70e6ba0c7af072aa243",
+            "sha256:16e53e504b4b270bdaf9afef61c2d8a6b1c85334bdf7cffdb1510a79e1ca5138",
+            "sha256:d74d48124ae7e0842d1a187b0111d9b4f6c6129b1115de2b1dc9b88231fdbc7d",
+            "sha256:999bb04710befd1ae8418b0361b603a052270140bc9c3193724621b791cb8f9c",
         ]
     );
 

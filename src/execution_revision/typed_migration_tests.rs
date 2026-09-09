@@ -100,3 +100,36 @@ fn migration_replays_exact_old_and_new_nominal_state_without_effects() {
         flat_state(&drifted, &old).unwrap()
     );
 }
+
+#[test]
+fn migration_rejects_borrowed_owned_old_state_parameter() {
+    let borrowed = SOURCE
+        .replace(
+            "record OldState { @id(\"old.count\") count: i64, }",
+            "record OldState { @id(\"old.count\") count: i64, @id(\"old.payload\") payload: Bytes, }",
+        )
+        .replace(
+            "fn migrate(old: OldState) -> NewState",
+            "fn migrate(old: borrow OldState) -> NewState",
+        )
+        .replace(
+            "fn wrong(old: OldState) -> i64",
+            "fn wrong(old: own OldState) -> i64",
+        );
+    let program = hir::resolve(&crate::check(&borrowed, "migration.spx").unwrap()).unwrap();
+    let errors = prepare_migration_call(
+        &program,
+        "state.migrate",
+        &DeclarationId::new("old.State"),
+        &DeclarationId::new("new.State"),
+    )
+    .unwrap_err();
+    assert!(
+        errors.iter().any(|error| {
+            error.code == "SPX-G583"
+                && error.message
+                    == "ExecutionRevision association rejected: migration.pure_signature"
+        }),
+        "{errors:?}"
+    );
+}

@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add authenticated Project-linked State migration and workspace typed binding.
+  A single declared or explicitly imported migration function extends the
+  checked role closure; additive migration root v3 binds its exact source
+  association while legacy root v1/v2 bytes remain unchanged. Durable recovery
+  reconstructs the closure without evaluating migration again, preserves
+  cumulative usage, and skips destination initialization. Focused local linked
+  migration, selection refusal, recovery, and workspace currentness cases pass.
+
 - Add the private `std.agent` source package and the linked Project lifecycle
   boundary. Task, Context, Observation, and Outcome records plus checked
   lifecycle and outcome helpers compose as ordinary source data; the linked

@@ -97,10 +97,10 @@ driver path; no native C11 or Wasm Agent-stage execution claim follows from
 this binding.
 
 The linked runtime may use the existing durable producer and its caller-owned
-checkpoint boundary. Migration to another ProgramRoot revision and migration resume remain rejected for this linked path
-until an additionally authenticated migration-function closure is supplied;
-a suspended value or an unbound linked closure cannot create migration
-authority.
+checkpoint boundary. [Project Linked Agent Migration v1](PROJECT-LINKED-AGENT-MIGRATION-V1.md)
+adds migration and recovery through a separately authenticated, explicitly
+selected migration-function closure. A suspended value or an unbound linked
+closure cannot create migration authority.
 
 ## Compatibility and boundaries
 
@@ -118,7 +118,7 @@ recovery with completed replay, suspend-terminal replay, and migration refusal.
 The four `testing` package cases also pass across the interpreter, native C11
 `-O0`/`-O2`, and Core Wasm, including the `std.agent` epoch `-1`/maximum
 boundaries and the `std.test.bytes` regression. This evidence is local and
-injected-driver scoped; linked migration, native/Wasm Agent-stage execution,
+injected-driver scoped; native/Wasm Agent-stage execution,
 live providers, hosted support, and the full `std.agent` scope remain open.
 
 ## Owning implementation

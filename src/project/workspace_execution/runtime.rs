@@ -10,7 +10,8 @@ use crate::agent_lifecycle::iterative::IterativeBudget;
 use crate::agent_lifecycle::{AgentReadOperation, CheckpointStore, LifecycleBudget, LifecycleTask};
 use crate::agent_runtime::AgentCancellation;
 use crate::agent_runtime_v2::{
-    bind_agent_runtime_v2, AgentRuntimeV2, AgentRuntimeV2DurableEvidence, AgentRuntimeV2Evidence,
+    bind_agent_runtime_v2, bind_linked_agent_runtime_v2, AgentRuntimeV2,
+    AgentRuntimeV2DurableEvidence, AgentRuntimeV2Evidence,
 };
 use crate::diagnostic::Diagnostic;
 use crate::execution_revision::iterative::{
@@ -161,6 +162,49 @@ impl WorkspaceExecutionBinding {
     ) -> Result<WorkspaceExecution<AgentRuntimeV2>> {
         let program = self.program_root();
         let runtime = bind_agent_runtime_v2(
+            self.project_revision().clone(),
+            program,
+            program.digest(),
+            source_path,
+            agent_id,
+            step_type_id,
+            selector_field_id,
+            operations,
+            deployment_source,
+            task,
+            proposals,
+            budget,
+            effects,
+        )?;
+        let association = self.join_runtime(
+            "typed",
+            runtime.deployment_root(),
+            runtime.instance_root(),
+            runtime.execution_revision(),
+        );
+        Ok(WorkspaceExecution {
+            binding: self.clone(),
+            runtime,
+            association,
+        })
+    }
+    /// Bind imported Agent roles from this exact retained workspace generation.
+    #[allow(clippy::too_many_arguments)]
+    pub fn bind_linked_typed(
+        &self,
+        source_path: &str,
+        agent_id: &str,
+        step_type_id: &str,
+        selector_field_id: &str,
+        operations: Vec<EffectOperation>,
+        deployment_source: &str,
+        task: LifecycleTask,
+        proposals: &[String],
+        budget: IterativeBudget,
+        effects: EffectBudget,
+    ) -> Result<WorkspaceExecution<AgentRuntimeV2>> {
+        let program = self.program_root();
+        let runtime = bind_linked_agent_runtime_v2(
             self.project_revision().clone(),
             program,
             program.digest(),

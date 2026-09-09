@@ -4,6 +4,8 @@
 mod durable;
 #[path = "typed_migration/handoff.rs"]
 mod handoff;
+#[path = "typed_migration/linked.rs"]
+mod linked;
 use super::*;
 use crate::agent_lifecycle::iterative::IterativeStatus;
 use crate::agent_runtime_v2::checkpoint::CheckpointUsage;
@@ -193,16 +195,6 @@ pub fn migrate_suspended_agent_runtime_v2(
         {
             return Err(refused("migration.stale_revision"));
         }
-        if [&previous, &destination].iter().any(|runtime| {
-            runtime
-                .lifecycle
-                .canonical_json()
-                .starts_with("{\"schema\":\"semaprax.agent-typed-effects.v4\"")
-        }) {
-            return Err(refused(
-                "migration.linked_profile_requires_authenticated_migration_root",
-            ));
-        }
         if previous.program_root == destination.program_root {
             return Err(refused("migration.unchanged_program"));
         }
@@ -220,8 +212,9 @@ pub fn migrate_suspended_agent_runtime_v2(
         if crate::agent_lifecycle::encode_value(value).len() > 262_144 {
             return Err(refused("migration.input_state_capacity"));
         }
-        let old_program = selected_program(&previous)?;
-        let new_program = selected_program(&destination)?;
+        let programs = linked::programs(&previous, &destination, migration_function)?;
+        let old_program = programs.previous;
+        let new_program = programs.destination;
         let old_state = state_type(&previous)?;
         let new_state = state_type(&destination)?;
         let old_shape = flat_state(&old_program, &old_state)?;
@@ -277,7 +270,11 @@ pub fn migrate_suspended_agent_runtime_v2(
             "previous_state": crate::agent_lifecycle::encode_value(value),
             "migrated_state": crate::agent_lifecycle::encode_value(&migrated),
         });
-        let schema = if let Some(predecessor) = suspended.migration_handoff_digest() {
+        let schema = if let Some(linked_sources) = programs.linked_sources {
+            facts["linked_sources"] = linked_sources;
+            facts["previous_handoff"] = json!(suspended.migration_handoff_digest());
+            "semaprax.agent-state-migration.v3"
+        } else if let Some(predecessor) = suspended.migration_handoff_digest() {
             facts["previous_handoff"] = json!(predecessor);
             "semaprax.agent-state-migration.v2"
         } else {
@@ -379,29 +376,7 @@ fn evaluate_migration(
     value: &RetainedValue,
     max_steps: usize,
 ) -> Result<RetainedValue> {
-    let call = prepare_retained_call(program, function)?;
-    let entry = program
-        .functions
-        .iter()
-        .find(|entry| entry.id.as_str() == function)
-        .ok_or_else(|| refused("migration.function"))?;
-    let nominal = |id: &DeclarationId| ResolvedType::Nominal {
-        declaration: id.clone(),
-        arguments: Vec::new(),
-    };
-    if entry.params.len() != 1
-        || entry.params[0].ty != nominal(old_state)
-        || entry.return_type != nominal(new_state)
-        || call.function_ids().any(|id| {
-            program
-                .functions
-                .iter()
-                .find(|item| item.id.as_str() == id)
-                .is_none_or(|item| !item.effects.is_empty())
-        })
-    {
-        return Err(refused("migration.pure_signature"));
-    }
+    let call = prepare_migration_call(program, function, old_state, new_state)?;
     let first = evaluate_retained_call(program, &call, std::slice::from_ref(value), max_steps)?;
     let second = evaluate_retained_call(program, &call, std::slice::from_ref(value), max_steps)?;
     if first.outcome != second.outcome {
@@ -416,6 +391,45 @@ fn evaluate_migration(
         return Err(refused("migration.result_state"));
     }
     Ok(value)
+}
+
+/// Identical checked call boundary for fresh evaluation and trusted recovery.
+fn prepare_migration_call(
+    program: &hir::ResolvedProgram,
+    function: &str,
+    old_state: &DeclarationId,
+    new_state: &DeclarationId,
+) -> Result<crate::interpreter::retained_call::PreparedRetainedCall> {
+    let call = prepare_retained_call(program, function)?;
+    let entry = program
+        .functions
+        .iter()
+        .find(|entry| entry.id.as_str() == function)
+        .ok_or_else(|| refused("migration.function"))?;
+    let nominal = |id: &DeclarationId| ResolvedType::Nominal {
+        declaration: id.clone(),
+        arguments: Vec::new(),
+    };
+    if entry.params.len() != 1
+        || !(entry.params[0].ownership == hir::OwnershipMode::Own
+            || (entry.params[0].ownership == hir::OwnershipMode::Value
+                && program
+                    .declarations
+                    .type_facts(&nominal(old_state))
+                    .is_some_and(|facts| facts.copy)))
+        || entry.params[0].ty != nominal(old_state)
+        || entry.return_type != nominal(new_state)
+        || call.function_ids().any(|id| {
+            program
+                .functions
+                .iter()
+                .find(|item| item.id.as_str() == id)
+                .is_none_or(|item| !item.effects.is_empty())
+        })
+    {
+        return Err(refused("migration.pure_signature"));
+    }
+    Ok(call)
 }
 
 #[cfg(test)]

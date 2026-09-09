@@ -3,6 +3,9 @@
 Status: bounded local verification passes for the selected `std.process` and
 Darwin provider paths; the complete profile and cross-platform gates remain pending.
 
+Audience: compiler contributors, standard-library authors, host-adapter
+implementers, and reviewers of capability boundaries.
+
 Bounded Process I/O v1 defines one explicit process request and one complete
 result. It does not grant checked code ambient process authority, shell access,
 or arbitrary executable lookup.

@@ -493,7 +493,13 @@ fn linked_agent_migration_cannot_fall_back_to_isolated_source() {
     .expect("linked migration requires a separately authenticated migration root");
     assert!(failure.diagnostics().iter().any(|diagnostic| diagnostic
         .message
-        .contains("migration.linked_profile_requires_authenticated_migration_root")));
+        .contains("linked Agent migration function is not declared or explicitly imported by selected source")));
     assert_eq!(failure.usage(), usage);
     assert_eq!(handler.calls, ["fixture.read"]);
 }
+
+#[path = "linked/workspace.rs"]
+mod workspace;
+
+#[path = "linked/migration.rs"]
+mod linked_migration;

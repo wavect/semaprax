@@ -33,11 +33,23 @@ or replay rejection reports the existing `SPX-G583` diagnostic.
 
 ## Consuming runtime producers
 
-The binding exposes `bind_once`, `bind_iterative`, and `bind_typed`. Each
+The binding exposes `bind_once`, `bind_iterative`, `bind_typed`, and
+`bind_linked_typed`. Each
 delegates to its existing runtime producer with the internally selected
 Project and ProgramRoot. The binding itself is opaque and cloneable only as a
 reference to the same immutable generation; it opens no store and gains no
 handler, task, proposal, filesystem, network, or publication authority.
+
+`bind_linked_typed` selects imported Agent roles from that exact retained
+workspace generation and delegates to the linked Agent runtime v2 producer.
+Imported roles therefore retain the workspace's exact Project and ProgramRoot
+binding; the result uses the same closed `typed` runtime kind and
+`semaprax.workspace-runtime-association.v1` association as an ordinary typed
+binding. It reuses the existing currentness, run, durable, and migration
+producer paths rather than introducing a second workspace association. Its
+two focused `workspace_linked_typed_*` tests pass locally: imported roles run
+three turns with joined evidence, and an in-memory refresh of an imported
+helper rejects the stale binding before any host call.
 
 Binding computes a runtime association over the exact deployment, invocation,
 and execution revision before execution. Only a consuming `run` can produce

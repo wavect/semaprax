@@ -60,6 +60,33 @@ impl ProjectRevision {
         agent_id: &str,
         expected_definition: &str,
     ) -> Result<LinkedAgentProgram, Vec<Diagnostic>> {
+        self.linked_agent_selection(source_path, agent_id, expected_definition, None)
+    }
+
+    /// Only one explicitly selected migration declaration can extend the role
+    /// closure. No caller-provided HIR or collection of extra roots is accepted.
+    pub(crate) fn linked_agent_migration_program(
+        &self,
+        source_path: &str,
+        agent_id: &str,
+        expected_definition: &str,
+        migration_function: &str,
+    ) -> Result<LinkedAgentProgram, Vec<Diagnostic>> {
+        self.linked_agent_selection(
+            source_path,
+            agent_id,
+            expected_definition,
+            Some(migration_function),
+        )
+    }
+
+    fn linked_agent_selection(
+        &self,
+        source_path: &str,
+        agent_id: &str,
+        expected_definition: &str,
+        migration_function: Option<&str>,
+    ) -> Result<LinkedAgentProgram, Vec<Diagnostic>> {
         let fail = |detail| vec![Diagnostic::io("SPX-G582", detail)];
         let source = self
             .sources()
@@ -95,6 +122,47 @@ impl ProjectRevision {
             }
             roots.push(id.to_owned());
         }
+        let role_roots = roots.clone();
+        let migration_source = if let Some(migration_id) = migration_function {
+            let local = parsed
+                .functions
+                .iter()
+                .any(|function| function.stable_id == migration_id && function.explicit_id);
+            let import = parsed.module_uses.iter().find(|item| {
+                item.kind == crate::ast::ModuleUseKind::Function
+                    && item.persistent_id == migration_id
+            });
+            let path = if local {
+                source_path.to_owned()
+            } else if let Some(import) = import {
+                let mut found = None;
+                for candidate in self.sources() {
+                    let provider =
+                        crate::parse(candidate.source(), std::path::Path::new(candidate.path()))
+                            .map_err(|error| vec![error])?;
+                    if provider.module == import.target_module
+                        && provider.functions.iter().any(|function| {
+                            function.stable_id == migration_id && function.explicit_id
+                        })
+                    {
+                        if found.replace(candidate.path().to_owned()).is_some() {
+                            return Err(fail("linked Agent migration declaration is ambiguous"));
+                        }
+                    }
+                }
+                found.ok_or_else(|| {
+                    fail("linked Agent migration import has no retained declaration")
+                })?
+            } else {
+                return Err(fail("linked Agent migration function is not declared or explicitly imported by selected source"));
+            };
+            if !roots.iter().any(|id| id == migration_id) {
+                roots.push(migration_id.to_owned());
+            }
+            Some(path)
+        } else {
+            None
+        };
         // Replay only retained owned bytes under the ordinary bounded Phase-A
         // verifier. This creates no shared cache publication or path authority.
         let paths = self
@@ -127,7 +195,7 @@ impl ProjectRevision {
             .collect::<Vec<_>>();
         let program = graph.linked_agent_role_program(&parsed.module, &roots, &types)?;
         hir::validate(&program).map_err(|error| vec![error])?;
-        for id in &roots {
+        for id in &role_roots {
             let function = program
                 .functions
                 .iter()
@@ -137,19 +205,24 @@ impl ProjectRevision {
                 return Err(fail("linked Agent deterministic role carries effects"));
             }
         }
-        let association = crate::execution_revision::root(
-            "semaprax.agent-linked-source.v1",
-            serde_json::json!({
-                "project_revision": self.project_revision(),
-                "workspace_revision": self.workspace_revision(),
-                "source_path": source_path,
-                "source_revision": source.source_revision(),
-                "agent_id": agent_id,
-                "definition_digest": definition.definition().digest(),
-                "roles": roots,
-                "functions": program.functions.iter().map(|function| function.id.as_str()).collect::<Vec<_>>(),
-            }),
-        );
+        let mut facts = serde_json::json!({
+            "project_revision": self.project_revision(),
+            "workspace_revision": self.workspace_revision(),
+            "source_path": source_path,
+            "source_revision": source.source_revision(),
+            "agent_id": agent_id,
+            "definition_digest": definition.definition().digest(),
+            "roles": role_roots,
+            "functions": program.functions.iter().map(|function| function.id.as_str()).collect::<Vec<_>>(),
+        });
+        let schema = if let Some(migration_id) = migration_function {
+            facts["migration_function"] = serde_json::json!(migration_id);
+            facts["migration_source_path"] = serde_json::json!(migration_source);
+            "semaprax.agent-linked-migration-source.v1"
+        } else {
+            "semaprax.agent-linked-source.v1"
+        };
+        let association = crate::execution_revision::root(schema, facts);
         Ok(LinkedAgentProgram {
             program,
             source_revision: source.source_revision().to_owned(),

@@ -265,15 +265,21 @@ pub fn resume_migrated_agent_runtime_v2(
         "migrated_state",
     ];
     let chained = schema == "semaprax.agent-state-migration.v2";
-    if (!chained && schema != "semaprax.agent-state-migration.v1")
-        || facts
-            .as_object()
-            .is_none_or(|map| map.len() != fields.len() + usize::from(chained))
+    let linked_schema = schema == "semaprax.agent-state-migration.v3";
+    if (!chained && !linked_schema && schema != "semaprax.agent-state-migration.v1")
+        || facts.as_object().is_none_or(|map| {
+            map.len() != fields.len() + usize::from(chained) + 2 * usize::from(linked_schema)
+        })
         || fields.iter().any(|field| facts.get(*field).is_none())
         || chained
             && facts["previous_handoff"]
                 .as_str()
                 .is_none_or(|digest| !hash_valid(digest))
+        || linked_schema
+            && (facts.get("previous_handoff").is_none()
+                || !(facts["previous_handoff"].is_null()
+                    || facts["previous_handoff"].as_str().is_some_and(hash_valid))
+                || !facts["linked_sources"].is_object())
     {
         return Err(refused("migration.handoff.root"));
     }
@@ -301,8 +307,17 @@ pub fn resume_migrated_agent_runtime_v2(
             return Err(refused("migration.handoff.producer"));
         }
     }
-    let old_program = selected_program(&previous)?;
-    let new_program = selected_program(&destination)?;
+    let function = facts["migration_function"]
+        .as_str()
+        .ok_or_else(|| refused("migration.function"))?;
+    let programs = linked::programs(&previous, &destination, function)?;
+    match &programs.linked_sources {
+        Some(expected) if linked_schema && facts["linked_sources"] == *expected => {}
+        None if !linked_schema => {}
+        _ => return Err(refused("migration.linked_source_drift")),
+    }
+    let old_program = programs.previous;
+    let new_program = programs.destination;
     let old_state = state_type(&previous)?;
     let new_state = state_type(&destination)?;
     if flat_state(&old_program, &old_state)? != flat_state(&new_program, &old_state)? {
@@ -329,32 +344,7 @@ pub fn resume_migrated_agent_runtime_v2(
     {
         return Err(refused("migration.result_state"));
     }
-    let function = facts["migration_function"]
-        .as_str()
-        .ok_or_else(|| refused("migration.function"))?;
-    let call = prepare_retained_call(&new_program, function)?;
-    let entry = new_program
-        .functions
-        .iter()
-        .find(|entry| entry.id.as_str() == function)
-        .ok_or_else(|| refused("migration.function"))?;
-    let nominal = |id| ResolvedType::Nominal {
-        declaration: id,
-        arguments: Vec::new(),
-    };
-    if entry.params.len() != 1
-        || entry.params[0].ty != nominal(old_state)
-        || entry.return_type != nominal(new_state)
-        || call.function_ids().any(|id| {
-            new_program
-                .functions
-                .iter()
-                .find(|entry| entry.id.as_str() == id)
-                .is_none_or(|entry| !entry.effects.is_empty())
-        })
-    {
-        return Err(refused("migration.pure_signature"));
-    }
+    prepare_migration_call(&new_program, function, &old_state, &new_state)?;
     let seed = MigrationSeed {
         value: handoff.value.clone(),
         binding,

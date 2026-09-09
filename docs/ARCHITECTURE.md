@@ -2488,6 +2488,11 @@ execution to that seed. `typed_migration/handoff` owns the bounded handoff
 codec, while `typed_migration/durable` commits the handoff before destination
 work and recovers only against caller-trusted snapshots and independently bound
 runtime roots. The recovered object exposes only durable execution.
+`typed_migration/linked` reconstructs the exact checked role association and
+selects a single declared or explicitly imported migration through
+`project/agent_linked`; migration preparation and recovery share that selection
+and the owned-parameter/pure-call validator. Linked migration root v3 carries
+the selected source associations while both direct paths retain v1/v2 bytes.
 `iterative/effects/durable` retains the v2 local journal and carries the immutable
 migration baseline into additive v3 evidence and cumulative budgets. Parsed
 hashes alone cannot authorize seed recovery or host work.

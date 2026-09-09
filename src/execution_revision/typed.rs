@@ -102,6 +102,76 @@ pub fn bind_agent_runtime_v2(
     budget: IterativeBudget,
     effects: EffectBudget,
 ) -> Result<AgentRuntimeV2> {
+    bind_runtime(
+        project,
+        program,
+        expected_program_digest,
+        source_path,
+        agent_id,
+        step_type_id,
+        selector_field_id,
+        operations,
+        deployment_source,
+        task,
+        proposals,
+        budget,
+        effects,
+        false,
+    )
+}
+
+/// Bind deterministic roles from the exact retained Project dependency closure.
+#[allow(clippy::too_many_arguments)]
+pub fn bind_linked_agent_runtime_v2(
+    project: Arc<ProjectRevision>,
+    program: ProgramRootRef<'_>,
+    expected_program_digest: &str,
+    source_path: &str,
+    agent_id: &str,
+    step_type_id: &str,
+    selector_field_id: &str,
+    operations: Vec<EffectOperation>,
+    deployment_source: &str,
+    task: LifecycleTask,
+    proposals: &[String],
+    budget: IterativeBudget,
+    effects: EffectBudget,
+) -> Result<AgentRuntimeV2> {
+    bind_runtime(
+        project,
+        program,
+        expected_program_digest,
+        source_path,
+        agent_id,
+        step_type_id,
+        selector_field_id,
+        operations,
+        deployment_source,
+        task,
+        proposals,
+        budget,
+        effects,
+        true,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn bind_runtime(
+    project: Arc<ProjectRevision>,
+    program: ProgramRootRef<'_>,
+    expected_program_digest: &str,
+    source_path: &str,
+    agent_id: &str,
+    step_type_id: &str,
+    selector_field_id: &str,
+    operations: Vec<EffectOperation>,
+    deployment_source: &str,
+    task: LifecycleTask,
+    proposals: &[String],
+    budget: IterativeBudget,
+    effects: EffectBudget,
+    linked: bool,
+) -> Result<AgentRuntimeV2> {
     let total = proposals
         .iter()
         .try_fold(0usize, |total, proposal| total.checked_add(proposal.len()));
@@ -145,7 +215,12 @@ pub fn bind_agent_runtime_v2(
         .iter()
         .find(|source| source.path() == source_path)
         .ok_or_else(|| refused("source path is not retained by Project"))?;
-    let checked = crate::check(source.source(), source_path)?;
+    let checked = if linked {
+        crate::parse(source.source(), std::path::Path::new(source_path))
+            .map_err(|error| vec![error])?
+    } else {
+        crate::check(source.source(), source_path)?
+    };
     let declaration = checked
         .agents
         .iter()
@@ -181,14 +256,29 @@ pub fn bind_agent_runtime_v2(
             .min(deployed_calls),
         ..budget
     };
-    let lifecycle = compile_typed_effects(
-        source.source(),
-        source_path,
-        &bound,
-        step_type_id,
-        selector_field_id,
-        operations,
-    )?;
+    let lifecycle = if linked {
+        let linked_program = project.linked_agent_program(
+            source_path,
+            agent_id,
+            source_definition.definition().canonical_source(),
+        )?;
+        crate::agent_lifecycle::iterative::effects::compile_linked_typed_effects(
+            linked_program,
+            &bound,
+            step_type_id,
+            selector_field_id,
+            operations,
+        )?
+    } else {
+        compile_typed_effects(
+            source.source(),
+            source_path,
+            &bound,
+            step_type_id,
+            selector_field_id,
+            operations,
+        )?
+    };
     let deployment = root(
         "semaprax.deployment-root.v3",
         json!({

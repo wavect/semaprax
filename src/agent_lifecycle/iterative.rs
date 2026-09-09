@@ -176,10 +176,55 @@ pub fn compile_agent_lifecycle_v2(
 ) -> Result<CompiledIterativeLifecycle, Vec<Diagnostic>> {
     let module_path = module_path.as_ref();
     let compiled = compile_agent_definition(definition_source)?;
-    let definition = compiled.definition();
     let checked = crate::check(module_source, module_path)?;
     let source_revision = crate::graph::revision(&checked);
     let program = hir::resolve(&checked)?;
+    compile_resolved_lifecycle(
+        program,
+        source_revision,
+        &compiled,
+        |_, _, _| compile_agent_proposal_schema(module_source, module_path, definition_source),
+        step_type_id,
+        None,
+    )
+}
+
+pub(crate) fn compile_linked_agent_lifecycle(
+    linked: crate::project::agent_linked::LinkedAgentProgram,
+    definition_source: &str,
+    step_type_id: &str,
+) -> Result<CompiledIterativeLifecycle, Vec<Diagnostic>> {
+    let compiled = compile_agent_definition(definition_source)?;
+    compile_resolved_lifecycle(
+        linked.program,
+        linked.revision,
+        &compiled,
+        |program, _, definition| {
+            crate::agent_proposal::compile_resolved_agent_proposal_schema(
+                program,
+                linked.source_revision,
+                definition,
+            )
+        },
+        step_type_id,
+        Some(&linked.association),
+    )
+}
+
+fn compile_resolved_lifecycle(
+    program: hir::ResolvedProgram,
+    source_revision: String,
+    compiled: &crate::agent_definition::CompiledAgentDefinition,
+    proposal: impl FnOnce(
+        &hir::ResolvedProgram,
+        &str,
+        &crate::agent_definition::CompiledAgentDefinition,
+    ) -> Result<CompiledAgentProposalSchema, Vec<Diagnostic>>,
+    step_type_id: &str,
+    linked_association: Option<&str>,
+) -> Result<CompiledIterativeLifecycle, Vec<Diagnostic>> {
+    hir::validate(&program).map_err(|error| vec![error])?;
+    let definition = compiled.definition();
     let mut type_ids = Vec::new();
     for role in stages::TYPE_ROLES {
         type_ids.push((
@@ -203,8 +248,8 @@ pub fn compile_agent_lifecycle_v2(
     let step = step::StepShape::bind(&program, step_type_id, &type_ids[1].1, &type_ids[5].1)?;
     let binding =
         stages::bind_with_step_result(&program, &type_ids, &operation_ids, Some(&step.id))?;
-    let proposal = compile_agent_proposal_schema(module_source, module_path, definition_source)?;
-    let source = render::render(
+    let proposal = proposal(&program, &source_revision, compiled)?;
+    let mut source = render::render(
         definition.agent_id(),
         definition.digest(),
         proposal.schema().digest(),
@@ -212,6 +257,17 @@ pub fn compile_agent_lifecycle_v2(
         &source_revision,
         &step,
     );
+    if let Some(association) = linked_association {
+        let mut document: serde_json::Value =
+            serde_json::from_str(&source).map_err(|_| vec![bad("linked.document")])?;
+        document["schema"] = "semaprax.agent-iterative-lifecycle.v3".into();
+        document["linked_source"] =
+            serde_json::from_str(association).map_err(|_| vec![bad("linked.association")])?;
+        source = format!(
+            "{}\n",
+            serde_json::to_string(&document).map_err(|_| vec![bad("linked.document")])?
+        );
+    }
     if source.len() > MAX_LIFECYCLE_BYTES {
         return Err(vec![bad("lifecycle.bytes")]);
     }
@@ -223,7 +279,11 @@ pub fn compile_agent_lifecycle_v2(
         proposal,
         binding,
         digest: digest(
-            b"semaprax.agent-iterative-lifecycle.v2\0",
+            if linked_association.is_some() {
+                b"semaprax.agent-iterative-lifecycle.v3\0"
+            } else {
+                b"semaprax.agent-iterative-lifecycle.v2\0"
+            },
             source.as_bytes(),
         ),
         source,

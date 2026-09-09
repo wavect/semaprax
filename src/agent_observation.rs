@@ -164,6 +164,16 @@ pub fn compile_source_agent_observation_schema(
     let compiled_definition = compile_source_agent_declaration(declaration)?;
     let source_revision = crate::graph::revision(&program);
     let resolved = crate::hir::resolve(&program)?;
+    compile_resolved_agent_observation_schema(&resolved, source_revision, &compiled_definition)
+}
+
+pub(crate) fn compile_resolved_agent_observation_schema(
+    resolved: &crate::hir::ResolvedProgram,
+    source_revision: String,
+    compiled_definition: &crate::agent_definition::CompiledAgentDefinition,
+) -> Result<CompiledAgentObservationSchema, Vec<Diagnostic>> {
+    crate::hir::validate(resolved).map_err(|error| vec![error])?;
+    let agent_id = compiled_definition.definition().agent_id();
     let resolved_agent = resolved
         .agents
         .iter()

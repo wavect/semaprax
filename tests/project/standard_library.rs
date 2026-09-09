@@ -675,8 +675,7 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             environment::run_conformance();
             continue;
         }
-        if package.module == "std.test.bytes" {
-            testing::run_conformance();
+        if testing::run_if_supported(&package) {
             continue;
         }
         if package.module == "std.process" {

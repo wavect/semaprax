@@ -1,0 +1,71 @@
+module std.agent;
+
+@id("std.agent.task")
+record Task {
+    @id("std.agent.task.objective")
+    objective: Bytes,
+    @id("std.agent.task.budget")
+    budget: i64,
+}
+
+@id("std.agent.context")
+record Context {
+    @id("std.agent.context.objective")
+    objective: Bytes,
+    @id("std.agent.context.budget")
+    budget: i64,
+    @id("std.agent.context.epoch")
+    epoch: i64,
+}
+
+@id("std.agent.observation")
+record Observation {
+    @id("std.agent.observation.budget")
+    budget: i64,
+    @id("std.agent.observation.epoch")
+    epoch: i64,
+}
+
+@id("std.agent.outcome")
+record Outcome {
+    @id("std.agent.outcome.value")
+    value: Bytes,
+    @id("std.agent.outcome.status")
+    status: i64,
+}
+
+@id("std.agent.initialize")
+fn initialize(task: own Task) -> Context
+    ensures result.epoch == 0
+{
+    match own task { Task { objective, budget } => Context { objective: objective, budget: budget, epoch: 0 }, }
+}
+
+@id("std.agent.observe")
+fn observe(context: borrow Context) -> Observation
+    ensures result.budget == context.budget
+    ensures result.epoch == context.epoch
+{
+    Observation { budget: context.budget, epoch: context.epoch }
+}
+
+@id("std.agent.advance")
+fn advance(context: own Context) -> Context
+    requires context.epoch >= 0 && context.epoch < 9223372036854775807
+    ensures result.epoch >= 1
+{
+    match own context { Context { objective, budget, epoch } => Context { objective: objective, budget: budget, epoch: epoch + 1 }, }
+}
+
+@id("std.agent.outcome-bytes")
+fn outcome_bytes(outcome: own Outcome) -> Bytes
+{
+    match own outcome { Outcome { value, status: _ } => value, }
+}
+
+@id("std.agent.outcome-status")
+fn outcome_status(outcome: borrow Outcome) -> i64
+    ensures result == outcome.status
+{
+    outcome.status
+}

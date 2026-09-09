@@ -267,10 +267,35 @@ use function @id("reader.inspect") from reader.provider as inspect;
         "fn inspect(value:own Reader)",
         "fn inspect(value:borrow Reader)",
     );
-    assert!(
-        build_owned(sources(app, &borrowed)).is_err(),
-        "new mixed-result lane requires owned input"
+    let borrowed_app = app.replace(
+        "if info.cursor==0usize { 1 } else { 0 }",
+        "let again=inspect(reader); if info.cursor==0usize && again.cursor==0usize { 1 } else { 0 }",
     );
+    let borrowed_built = build_owned(sources(&borrowed_app, &borrowed))
+        .expect("borrowed owned-record input may return authenticated Copy data");
+    let borrowed_linked = borrowed_built
+        .linked_owned_data_api_program_with_roots("reader.app", &[])
+        .unwrap();
+    hir::validate(&borrowed_linked).unwrap();
+    let observed =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&borrowed_linked, "app.main", 100_000)
+            .unwrap();
+    assert!(matches!(
+        observed.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+    ));
+    for hostile in [
+        app.replace(
+            "use type @id(\"reader.info\") from reader.provider as Info;",
+            "",
+        ),
+        app.replace(
+            "use type @id(\"reader.info\")",
+            "use type @id(\"reader.other-info\")",
+        ),
+    ] {
+        assert!(build_owned(sources(&hostile, &borrowed)).is_err());
+    }
     let generic = provider.replace(
         "fn inspect(value:own Reader)",
         "fn inspect<T>(value:own Reader)",

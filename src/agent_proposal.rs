@@ -164,6 +164,16 @@ pub fn compile_agent_proposal_schema(
     let program = crate::check(module_source, module_path)?;
     let source_revision = crate::graph::revision(&program);
     let resolved = crate::hir::resolve(&program)?;
+    compile_resolved_agent_proposal_schema(&resolved, source_revision, &compiled)
+}
+
+/// Internal checked-HIR lane; callers bind the source association separately.
+pub(crate) fn compile_resolved_agent_proposal_schema(
+    resolved: &crate::hir::ResolvedProgram,
+    source_revision: String,
+    compiled: &crate::agent_definition::CompiledAgentDefinition,
+) -> Result<CompiledAgentProposalSchema, Vec<Diagnostic>> {
+    crate::hir::validate(resolved).map_err(|error| vec![error])?;
     let proposal_type_id = compiled.definition().proposal_type_id().to_owned();
     let shape =
         shape::derive(&resolved, &proposal_type_id).map_err(|diagnostic| vec![diagnostic])?;

@@ -24,6 +24,12 @@ struct BundledPackage {
 
 const PACKAGES: &[BundledPackage] = &[
     BundledPackage {
+        name: "std.agent",
+        path: "dependencies/std.agent/0.1.0/agent.spx",
+        source: include_str!("../../std/agent/src/agent.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.bytes",
         path: "dependencies/std.bytes/0.1.0/bytes.spx",
         source: include_str!("../../std/bytes/src/bytes.spx"),

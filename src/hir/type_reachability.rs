@@ -17,7 +17,17 @@ pub(crate) fn reachable_authored_types(
     interfaces: &[ResolvedInterface],
     available: &BTreeMap<DeclarationId, ResolvedTypeDeclaration>,
 ) -> Result<Vec<ResolvedTypeDeclaration>, Diagnostic> {
-    let mut selected = BTreeSet::new();
+    reachable_authored_types_with_roots(functions, instances, interfaces, available, &[])
+}
+
+pub(crate) fn reachable_authored_types_with_roots(
+    functions: &[LinkedScalarFunction],
+    instances: &[ResolvedFunctionInstance],
+    interfaces: &[ResolvedInterface],
+    available: &BTreeMap<DeclarationId, ResolvedTypeDeclaration>,
+    roots: &[DeclarationId],
+) -> Result<Vec<ResolvedTypeDeclaration>, Diagnostic> {
+    let mut selected = roots.iter().cloned().collect::<BTreeSet<_>>();
     for linked in functions {
         collect_function(&linked.function, &mut selected);
     }

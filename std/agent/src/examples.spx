@@ -1,0 +1,26 @@
+module std.agent.examples;
+use type @id("std.agent.task") from std.agent as Task;
+use type @id("std.agent.outcome") from std.agent as Outcome;
+use type @id("std.agent.context") from std.agent as Context;
+use type @id("std.agent.observation") from std.agent as Observation;
+use function @id("std.agent.initialize") from std.agent as initialize;
+use function @id("std.agent.observe") from std.agent as observe;
+use function @id("std.agent.advance") from std.agent as advance;
+use function @id("std.agent.outcome-bytes") from std.agent as outcome_bytes;
+use function @id("std.agent.outcome-status") from std.agent as outcome_status;
+
+@id("std.agent.examples.main")
+fn main() -> i64
+{
+    let objective = [103u8, 111u8];
+    let task = Task { objective: bytes_copy(array_as_slice(objective)), budget: 7 };
+    let context = initialize(task);
+    let observation = observe(context);
+    let next = advance(context);
+    let value = [111u8, 107u8];
+    let outcome = Outcome { value: bytes_copy(array_as_slice(value)), status: 3 };
+    let status = outcome_status(outcome);
+    let released = outcome_bytes(outcome);
+    let view = bytes_as_slice(released);
+    if observation.budget == 7 && observation.epoch == 0 && next.budget == 7 && next.epoch == 1 && status == 3 && byte_len(view) == 2usize { 0 } else { 1 }
+}

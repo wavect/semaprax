@@ -208,3 +208,6 @@ mod durable;
 
 #[path = "typed/migration.rs"]
 pub(in crate::execution_revision) mod migration;
+
+#[path = "typed/linked.rs"]
+mod linked;

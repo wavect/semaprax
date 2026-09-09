@@ -739,15 +739,17 @@ fn borrow_alias(value: &Value) -> Result<Value, Flow> {
     })
 }
 
-/// Internal owned-input calls may publish an authenticated non-generic Copy
+/// Internal owned or borrowed record calls may publish an authenticated Copy
 /// record tree. This adds no public descriptor or owning result carrier.
 pub(super) fn owned_input_copy_result_is_admitted(
     function: &hir::ResolvedFunction,
     declarations: &hir::DeclarationIndex,
 ) -> bool {
     if !function.params.iter().any(|parameter| {
-        parameter.ownership == hir::OwnershipMode::Own
-            && is_admitted_owned_byte_record(declarations, &parameter.ty)
+        matches!(
+            parameter.ownership,
+            hir::OwnershipMode::Own | hir::OwnershipMode::Borrow
+        ) && is_admitted_owned_byte_record(declarations, &parameter.ty)
     }) || !record_construction_is_admitted(declarations, &function.return_type)
         || is_admitted_owned_byte_record(declarations, &function.return_type)
     {

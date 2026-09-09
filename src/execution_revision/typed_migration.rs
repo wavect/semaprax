@@ -193,6 +193,16 @@ pub fn migrate_suspended_agent_runtime_v2(
         {
             return Err(refused("migration.stale_revision"));
         }
+        if [&previous, &destination].iter().any(|runtime| {
+            runtime
+                .lifecycle
+                .canonical_json()
+                .starts_with("{\"schema\":\"semaprax.agent-typed-effects.v4\"")
+        }) {
+            return Err(refused(
+                "migration.linked_profile_requires_authenticated_migration_root",
+            ));
+        }
         if previous.program_root == destination.program_root {
             return Err(refused("migration.unchanged_program"));
         }

@@ -8,6 +8,83 @@ Every declaration below is verified, canonical, and executed by its package's co
 
 Consume a package from an installed compiler by adding its dependency line to the extensible manifest, then importing the selected stable identity: `[dependencies] std.num = "^0.1.0"` and `use function @id("std.num.abs") from std.num as abs;`. Set `[package] profile` to the package's required profile below; `scalar` means omit the profile key. The compiler supplies the closed bundled package without a source checkout, cache, or network access.
 
+## `std.agent`
+
+Package `std/agent`, tier `agent`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.agent = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.agent.task`
+
+```semaprax
+record Task {
+    objective: Bytes,
+    budget: i64,
+}
+```
+
+### `std.agent.context`
+
+```semaprax
+record Context {
+    objective: Bytes,
+    budget: i64,
+    epoch: i64,
+}
+```
+
+### `std.agent.observation`
+
+```semaprax
+record Observation {
+    budget: i64,
+    epoch: i64,
+}
+```
+
+### `std.agent.outcome`
+
+```semaprax
+record Outcome {
+    value: Bytes,
+    status: i64,
+}
+```
+
+### `std.agent.initialize`
+
+```semaprax
+fn initialize(task: own Task) -> Context
+    ensures result.epoch == 0
+```
+
+### `std.agent.observe`
+
+```semaprax
+fn observe(context: borrow Context) -> Observation
+    ensures result.budget == context.budget
+    ensures result.epoch == context.epoch
+```
+
+### `std.agent.advance`
+
+```semaprax
+fn advance(context: own Context) -> Context
+    requires context.epoch >= 0 && context.epoch < 9223372036854775807
+    ensures result.epoch >= 1
+```
+
+### `std.agent.outcome-bytes`
+
+```semaprax
+fn outcome_bytes(outcome: own Outcome) -> Bytes
+```
+
+### `std.agent.outcome-status`
+
+```semaprax
+fn outcome_status(outcome: borrow Outcome) -> i64
+    ensures result == outcome.status
+```
+
 ## `std.async`
 
 Package `std/async`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.async = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

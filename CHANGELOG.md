@@ -8,6 +8,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the private `std.agent` source package and the linked Project lifecycle
+  boundary. Task, Context, Observation, and Outcome records plus checked
+  lifecycle and outcome helpers compose as ordinary source data; the linked
+  path derives the Proposal schema from the retained Project closure and binds
+  it to the additive typed iterative runtime while preserving the existing
+  scalar/public package bytes and direct Runtime v2 binder. All six linked-role
+  cases pass locally, and the four standard-library testing cases pass across
+  interpreter, native C11 `-O0`/`-O2`, and Core Wasm, including epoch boundary
+  cases and the byte-assertion regression. Linked migration, native/Wasm
+  Agent-stage execution, live providers, hosted support, and full `std.agent`
+  completion remain open.
+
 - Add the sibling private `std.test.bytes` assertion package while preserving
   the existing scalar `std.test` facade and public descriptor. Exact slice and
   Reader-suffix comparisons, cursor validation, unchanged Reader positions, and

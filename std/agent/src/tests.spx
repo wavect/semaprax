@@ -1,0 +1,50 @@
+module std.agent.tests;
+use type @id("std.agent.task") from std.agent as Task;
+use type @id("std.agent.outcome") from std.agent as Outcome;
+use type @id("std.agent.context") from std.agent as Context;
+use type @id("std.agent.observation") from std.agent as Observation;
+use function @id("std.agent.initialize") from std.agent as initialize;
+use function @id("std.agent.observe") from std.agent as observe;
+use function @id("std.agent.advance") from std.agent as advance;
+use function @id("std.agent.outcome-bytes") from std.agent as outcome_bytes;
+use function @id("std.agent.outcome-status") from std.agent as outcome_status;
+
+@id("std.agent.tests.roles")
+fn roles() -> bool
+{
+    let objective = [97u8, 0u8, 255u8];
+    let task = Task { objective: bytes_copy(array_as_slice(objective)), budget: 5 };
+    let context = initialize(task);
+    let observation = observe(context);
+    let next = advance(context);
+    let objective_matches = match borrow next { Context { objective: retained_objective, budget: _, epoch: _ } => { let view = bytes_as_slice(retained_objective); let first = match byte_get(view, 0usize) { Option::Some { value } => value, Option::None {} => 1u8, }; let second = match byte_get(view, 1usize) { Option::Some { value } => value, Option::None {} => 1u8, }; let third = match byte_get(view, 2usize) { Option::Some { value } => value, Option::None {} => 1u8, }; byte_len(view) == 3usize && first == 97u8 && second == 0u8 && third == 255u8 }, };
+    observation.budget == 5 && observation.epoch == 0 && next.budget == 5 && next.epoch == 1 && objective_matches
+}
+
+@id("std.agent.tests.outcome")
+fn outcome() -> bool
+{
+    let data = [255u8, 0u8];
+    let item = Outcome { value: bytes_copy(array_as_slice(data)), status: -9 };
+    let status = outcome_status(item);
+    let released = outcome_bytes(item);
+    let view = bytes_as_slice(released);
+    let first = match byte_get(view, 0usize) { Option::Some { value } => value, Option::None {} => 1u8, };
+    let second = match byte_get(view, 1usize) { Option::Some { value } => value, Option::None {} => 1u8, };
+    status == -9 && byte_len(view) == 2usize && first == 255u8 && second == 0u8
+}
+
+@id("std.agent.tests.advance-boundary")
+fn advance_boundary() -> bool
+{
+    let objective = [1u8];
+    let context = Context { objective: bytes_copy(array_as_slice(objective)), budget: -7, epoch: 9223372036854775806 };
+    let next = advance(context);
+    next.budget == -7 && next.epoch == 9223372036854775807
+}
+
+@id("std.agent.tests.main")
+fn main() -> i64
+{
+    if roles() && outcome() && advance_boundary() { 0 } else { 1 }
+}

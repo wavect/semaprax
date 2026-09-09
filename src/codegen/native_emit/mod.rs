@@ -1909,9 +1909,7 @@ fn emit_function(
     {
         emitter.line("(void)spx_result;");
     }
-    for index in 0..function.params.len() {
-        emitter.line(&format!("(void)spx_param_{index};"));
-    }
+    emitter.mark_unused_parameter_aliases()?;
     for contract in &function.requires {
         let condition = emitter.emit_expr(contract)?;
         emitter.require_type(&condition.ty, &ResolvedType::Bool, "precondition")?;

@@ -57,6 +57,24 @@ pub(super) fn match_result_is_admitted(
 }
 
 impl<'a, O: COutput> CEmitter<'a, O> {
+    pub(super) fn mark_unused_parameter_aliases(&mut self) -> Result<(), Diagnostic> {
+        for (index, parameter) in self.function.params.iter().enumerate() {
+            self.line(&format!("(void)spx_param_{index};"));
+            if parameter.ownership == OwnershipMode::Borrow {
+                for path in super::borrowed_aggregate_byte_paths(
+                    self.program,
+                    self.record_layouts,
+                    self.variant_layouts,
+                    &parameter.ty,
+                )? {
+                    let suffix = super::borrowed_aggregate_path_suffix(&path)?;
+                    self.line(&format!("(void)spx_param_{index}_borrow_{suffix};"));
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub(super) fn finish_record_match_phase(
         &mut self,
         expression: &ResolvedExpr,

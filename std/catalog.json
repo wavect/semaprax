@@ -5,6 +5,148 @@
         {
           "description": [],
           "effects": [],
+          "ensures": 0,
+          "head": [
+            "record Task {",
+            "    objective: Bytes,",
+            "    budget: i64,",
+            "}"
+          ],
+          "id": "std.agent.task",
+          "kind": "record",
+          "name": "Task",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "record Context {",
+            "    objective: Bytes,",
+            "    budget: i64,",
+            "    epoch: i64,",
+            "}"
+          ],
+          "id": "std.agent.context",
+          "kind": "record",
+          "name": "Context",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "record Observation {",
+            "    budget: i64,",
+            "    epoch: i64,",
+            "}"
+          ],
+          "id": "std.agent.observation",
+          "kind": "record",
+          "name": "Observation",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "record Outcome {",
+            "    value: Bytes,",
+            "    status: i64,",
+            "}"
+          ],
+          "id": "std.agent.outcome",
+          "kind": "record",
+          "name": "Outcome",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn initialize(task: own Task) -> Context",
+            "    ensures result.epoch == 0"
+          ],
+          "id": "std.agent.initialize",
+          "kind": "function",
+          "name": "initialize",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 2,
+          "head": [
+            "fn observe(context: borrow Context) -> Observation",
+            "    ensures result.budget == context.budget",
+            "    ensures result.epoch == context.epoch"
+          ],
+          "id": "std.agent.observe",
+          "kind": "function",
+          "name": "observe",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn advance(context: own Context) -> Context",
+            "    requires context.epoch >= 0 && context.epoch < 9223372036854775807",
+            "    ensures result.epoch >= 1"
+          ],
+          "id": "std.agent.advance",
+          "kind": "function",
+          "name": "advance",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn outcome_bytes(outcome: own Outcome) -> Bytes"
+          ],
+          "id": "std.agent.outcome-bytes",
+          "kind": "function",
+          "name": "outcome_bytes",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn outcome_status(outcome: borrow Outcome) -> i64",
+            "    ensures result == outcome.status"
+          ],
+          "id": "std.agent.outcome-status",
+          "kind": "function",
+          "name": "outcome_status",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.agent = \"^0.1.0\"",
+      "module": "std.agent",
+      "package": "std/agent",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "agent"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
           "ensures": 1,
           "head": [
             "fn clamp_wait_ms(timeout_ms: usize) -> usize",

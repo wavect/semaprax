@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-agent"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+
+[modules]
+entry = "std.agent.examples"
+sources = ["src/agent.spx", "src/examples.spx", "src/tests.spx"]
+tests = ["std.agent.tests"]
+
+[exports]
+web = []

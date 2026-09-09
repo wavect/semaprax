@@ -152,12 +152,37 @@ pub fn compile_typed_effects(
     selector_field_id: &str,
     operations: Vec<EffectOperation>,
 ) -> Result<CompiledTypedEffects, Vec<Diagnostic>> {
-    let mut lifecycle = compile_agent_lifecycle_v2(
+    let lifecycle = compile_agent_lifecycle_v2(
         module_source,
         module_path,
         deployment.runtime_v1_definition(),
         step_type_id,
     )?;
+    compile_lifecycle_effects(lifecycle, deployment, selector_field_id, operations, false)
+}
+
+pub(crate) fn compile_linked_typed_effects(
+    linked: crate::project::agent_linked::LinkedAgentProgram,
+    deployment: &BoundAgentDeployment,
+    step_type_id: &str,
+    selector_field_id: &str,
+    operations: Vec<EffectOperation>,
+) -> Result<CompiledTypedEffects, Vec<Diagnostic>> {
+    let lifecycle = super::compile_linked_agent_lifecycle(
+        linked,
+        deployment.runtime_v1_definition(),
+        step_type_id,
+    )?;
+    compile_lifecycle_effects(lifecycle, deployment, selector_field_id, operations, true)
+}
+
+fn compile_lifecycle_effects(
+    mut lifecycle: CompiledIterativeLifecycle,
+    deployment: &BoundAgentDeployment,
+    selector_field_id: &str,
+    operations: Vec<EffectOperation>,
+    linked: bool,
+) -> Result<CompiledTypedEffects, Vec<Diagnostic>> {
     let definition: Value = serde_json::from_str(deployment.semantic_definition().canonical_json())
         .map_err(|_| error("definition"))?;
     let bound: Value =
@@ -288,11 +313,25 @@ pub fn compile_typed_effects(
         max_result_bytes: limit("max_tool_result_bytes")?.min(MAX_READ_BYTES),
         max_total_bytes: limit("max_total_tool_bytes")?,
     };
-    let source = format!("{{\"schema\":\"semaprax.agent-typed-effects.v3\",\"deployment_digest\":{},\"selector\":{},\"operations\":[{}],\"result_transport\":\"canonical_typed_fields_in_outcome_bytes\",\"lifecycle\":{}}}\n", quote_json(deployment.digest()), quote_json(selector_field_id), rows.join(","), lifecycle.canonical_json().trim_end());
+    let mut source = format!("{{\"schema\":\"semaprax.agent-typed-effects.v3\",\"deployment_digest\":{},\"selector\":{},\"operations\":[{}],\"result_transport\":\"canonical_typed_fields_in_outcome_bytes\",\"lifecycle\":{}}}\n", quote_json(deployment.digest()), quote_json(selector_field_id), rows.join(","), lifecycle.canonical_json().trim_end());
     if source.len() > MAX_LIFECYCLE_BYTES {
         return Err(error("document.capacity"));
     }
-    lifecycle.inner.digest = digest(b"semaprax.agent-typed-effects.v3\0", source.as_bytes());
+    if linked {
+        source = source.replacen(
+            "semaprax.agent-typed-effects.v3",
+            "semaprax.agent-typed-effects.v4",
+            1,
+        );
+    }
+    lifecycle.inner.digest = digest(
+        if linked {
+            b"semaprax.agent-typed-effects.v4\0"
+        } else {
+            b"semaprax.agent-typed-effects.v3\0"
+        },
+        source.as_bytes(),
+    );
     lifecycle.inner.source = source;
     Ok(CompiledTypedEffects {
         lifecycle,

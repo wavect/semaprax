@@ -97,6 +97,32 @@ impl AgentInteractionContractFacts {
                 "Agent interaction contracts require every source Agent",
             ));
         }
+        let linked_graph = if programs
+            .iter()
+            .any(|program| !program.agents.is_empty() && !program.module_uses.is_empty())
+        {
+            let paths = files
+                .iter()
+                .map(|file| file.path().to_owned())
+                .collect::<Vec<_>>();
+            let path_set = crate::semantic_workspace::render_path_set(&paths)?;
+            let inputs = files
+                .iter()
+                .map(|file| crate::semantic_workspace::SemanticWorkspaceSource {
+                    path: file.path().to_owned(),
+                    source: file.source().to_owned(),
+                })
+                .collect();
+            let (_, _, revision, graph) =
+                crate::semantic_workspace::preflight_owned(&path_set, inputs)?
+                    .into_snapshot_parts();
+            if revision != source_workspace_revision {
+                return Err(stale("linked Agent workspace differs"));
+            }
+            Some(graph)
+        } else {
+            None
+        };
         let mut facts = Vec::with_capacity(definitions.len());
         for definition in definitions {
             let agent_id = definition.definition().agent_id();
@@ -110,13 +136,58 @@ impl AgentInteractionContractFacts {
                         .any(|agent| agent.stable_id == agent_id)
                 })
                 .ok_or_else(|| invalid("Agent interaction contract source module is missing"))?;
-            let proposal = compile_agent_proposal_schema(
-                file.source(),
-                file.path(),
-                definition.definition().canonical_source(),
-            )?;
-            let observation =
-                compile_source_agent_observation_schema(file.source(), file.path(), agent_id)?;
+            let linked = if !program.module_uses.is_empty() {
+                let agent = program
+                    .agents
+                    .iter()
+                    .find(|agent| agent.stable_id == agent_id)
+                    .ok_or_else(|| invalid("linked Agent missing"))?;
+                let functions = ["initialize", "observe", "authorize", "reduce"]
+                    .iter()
+                    .map(|role| {
+                        definition
+                            .definition()
+                            .operation(role)
+                            .map(|(id, _)| id.to_owned())
+                            .ok_or_else(|| invalid("linked Agent role missing"))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                let types = agent
+                    .types
+                    .iter()
+                    .map(|role| crate::hir::DeclarationId::new(&role.stable_id))
+                    .collect::<Vec<_>>();
+                Some(
+                    linked_graph
+                        .as_ref()
+                        .ok_or_else(|| invalid("linked graph missing"))?
+                        .linked_agent_role_program(&program.module, &functions, &types)?,
+                )
+            } else {
+                None
+            };
+            let proposal = if let Some(linked) = &linked {
+                crate::agent_proposal::compile_resolved_agent_proposal_schema(
+                    linked,
+                    file.source_revision().to_owned(),
+                    definition,
+                )?
+            } else {
+                compile_agent_proposal_schema(
+                    file.source(),
+                    file.path(),
+                    definition.definition().canonical_source(),
+                )?
+            };
+            let observation = if let Some(linked) = &linked {
+                crate::agent_observation::compile_resolved_agent_observation_schema(
+                    linked,
+                    file.source_revision().to_owned(),
+                    definition,
+                )?
+            } else {
+                compile_source_agent_observation_schema(file.source(), file.path(), agent_id)?
+            };
             if proposal.definition_digest() != definition.definition().digest()
                 || observation.definition_digest() != definition.definition().digest()
                 || proposal.schema().agent_id() != agent_id
@@ -132,18 +203,38 @@ impl AgentInteractionContractFacts {
             }
             let proposal_schema = proposal.schema().canonical_json().to_owned();
             let observation_schema = observation.schema().canonical_json().to_owned();
-            verify_agent_proposal_schema_bundle(
-                file.source(),
-                file.path(),
-                definition.definition().canonical_source(),
-                &proposal_schema,
-            )?;
-            verify_source_agent_observation_schema_bundle(
-                file.source(),
-                file.path(),
-                agent_id,
-                &observation_schema,
-            )?;
+            if let Some(linked) = &linked {
+                let proposal_replay =
+                    crate::agent_proposal::compile_resolved_agent_proposal_schema(
+                        linked,
+                        file.source_revision().to_owned(),
+                        definition,
+                    )?;
+                let observation_replay =
+                    crate::agent_observation::compile_resolved_agent_observation_schema(
+                        linked,
+                        file.source_revision().to_owned(),
+                        definition,
+                    )?;
+                if proposal_replay.schema().canonical_json() != proposal_schema
+                    || observation_replay.schema().canonical_json() != observation_schema
+                {
+                    return Err(stale("linked Agent schema replay differs"));
+                }
+            } else {
+                verify_agent_proposal_schema_bundle(
+                    file.source(),
+                    file.path(),
+                    definition.definition().canonical_source(),
+                    &proposal_schema,
+                )?;
+                verify_source_agent_observation_schema_bundle(
+                    file.source(),
+                    file.path(),
+                    agent_id,
+                    &observation_schema,
+                )?;
+            }
             let proposal_type_id = proposal.schema().proposal_type_id().to_owned();
             let proposal_type_revision = proposal.schema().proposal_type_revision().to_owned();
             let observation_type_id = observation.schema().observation_type_id().to_owned();

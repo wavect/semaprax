@@ -15,6 +15,7 @@ Audience: all documentation readers.
 - [Agent iterative lifecycle v2](AGENT-ITERATIVE-LIFECYCLE-V2.md)
 - [Agent typed effects v3](AGENT-TYPED-EFFECTS-V3.md)
 - [Direct Agent Runtime v2](AGENT-RUNTIME-V2.md)
+- [Project Linked Agent Lifecycle v1](PROJECT-LINKED-AGENT-LIFECYCLE-V1.md)
 - [Agent operation checkpoint v2](AGENT-OPERATION-CHECKPOINT-V2.md)
 - [Agent state migration v2](AGENT-STATE-MIGRATION-V2.md)
 - [Durable Agent state migration v3](AGENT-STATE-MIGRATION-V3.md)

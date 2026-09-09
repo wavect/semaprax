@@ -21,7 +21,9 @@ pub(super) fn admitted(
             .iter()
             .any(|parameter| record(&parameter.ty));
     let copy_result = function.params.iter().any(|parameter| {
-        parameter.mode == ParamMode::Own && (parameter.ty == Type::Bytes || record(&parameter.ty))
+        (parameter.mode == ParamMode::Own && parameter.ty == Type::Bytes)
+            || (matches!(parameter.mode, ParamMode::Own | ParamMode::Borrow)
+                && record(&parameter.ty))
     }) && record_kind(
         target.module,
         &function.return_type,

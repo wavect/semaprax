@@ -7,6 +7,7 @@
 
 mod admission;
 mod agent_contract_facts;
+pub(crate) mod agent_linked;
 mod agent_lowering;
 mod authority;
 mod build;

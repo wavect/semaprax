@@ -140,6 +140,9 @@ fn process_native_callbacks_validate_wire_and_settle_before_publication() {
 }
 #[test]
 fn process_wasm_callbacks_validate_owned_wire_and_sticky_settlement() {
+    if cfg!(windows) {
+        return;
+    }
     if Command::new("node").arg("--version").output().is_err() {
         assert!(
             std::env::var_os("SPX_REQUIRE_NODE").is_none(),

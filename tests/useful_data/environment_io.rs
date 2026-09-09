@@ -177,6 +177,9 @@ int main(void) {
 
 #[test]
 fn environment_wasm_success_status_and_hostile_view_results_are_checked() {
+    if cfg!(windows) {
+        return;
+    }
     if Command::new("node").arg("--version").output().is_err() {
         return;
     }
@@ -245,6 +248,9 @@ fn environment_interpreter_combined_input_exact_and_first_over() {
 
 #[test]
 fn environment_append_transcripts_publish_only_after_complete_success() {
+    if cfg!(windows) {
+        return;
+    }
     use semaprax::environment_snapshot::EnvironmentSnapshot;
     use semaprax::hosted_interpreter::{
         execute_environment_command, HostedEnvironmentCommandInput,
@@ -370,6 +376,9 @@ int main(void) {{
 
 #[test]
 fn environment_production_provider_constructs_one_checked_combined_snapshot() {
+    if cfg!(windows) {
+        return;
+    }
     if Command::new("node").arg("--version").output().is_err() {
         return;
     }

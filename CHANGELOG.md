@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the sibling private `std.test.bytes` assertion package while preserving
+  the existing scalar `std.test` facade and public descriptor. Exact slice and
+  Reader-suffix comparisons, cursor validation, unchanged Reader positions, and
+  failure-bit wrappers use the private `useful-data.v2` profile with no exports
+  and exact `std.io` plus `std.test` dependencies. Execution and invalid-cursor
+  gates pass locally; richer fixtures, property tests, fuzzing, and snapshots
+  remain open.
+
 - Record the private `std.process` bounded process slice. Example, conformance,
   and bundled-consumer commands pass locally on the interpreter, native C11
   `-O0`/`-O2`, and Core Wasm. Five focused physical Darwin provider cases also

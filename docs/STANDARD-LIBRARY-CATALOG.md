@@ -2331,6 +2331,42 @@ fn failure_bit_unless(condition: bool, failure_bit: i64) -> i64
     ensures result == 0 || result == failure_bit
 ```
 
+## `std.test.bytes`
+
+Package `std/test-bytes`, tier `test`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.test.bytes = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.test.bytes.equal`
+
+```semaprax
+fn equal_bytes(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+```
+
+### `std.test.bytes.equal-remaining`
+
+```semaprax
+fn equal_remaining(left: borrow Reader, right: borrow Reader) -> bool
+    requires match borrow left { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    requires match borrow right { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.test.bytes.failure-bit-equal`
+
+```semaprax
+fn failure_bit_equal_bytes(left: borrow Slice<u8>, right: borrow Slice<u8>, failure_bit: i64) -> i64
+    requires failure_bit > 0
+    ensures result == 0 || result == failure_bit
+```
+
+### `std.test.bytes.failure-bit-equal-remaining`
+
+```semaprax
+fn failure_bit_equal_remaining(left: borrow Reader, right: borrow Reader, failure_bit: i64) -> i64
+    requires failure_bit > 0
+    requires match borrow left { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    requires match borrow right { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    ensures result == 0 || result == failure_bit
+```
+
 ## `std.text`
 
 Package `std/text`, tier `core`, status partial. Required project profile: `useful-text-consumer.v1`. Dependency: `std.text = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

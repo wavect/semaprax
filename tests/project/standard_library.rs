@@ -1,5 +1,3 @@
-//! Standard-library identity, catalog and executable conformance gates.
-
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -24,9 +22,10 @@ mod formatting;
 mod logging;
 #[path = "standard_library/process.rs"]
 mod process;
-
 #[path = "standard_library/temporary.rs"]
 mod temporary;
+#[path = "standard_library/testing.rs"]
+mod testing;
 use temporary::temporary;
 
 #[derive(Clone, Debug)]
@@ -676,6 +675,10 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             environment::run_conformance();
             continue;
         }
+        if package.module == "std.test.bytes" {
+            testing::run_conformance();
+            continue;
+        }
         if package.module == "std.process" {
             process::run_conformance();
             continue;
@@ -787,8 +790,6 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
     let _ = std::fs::remove_dir_all(scratch);
 }
 
-/// Every source-portable standard-library module stands alone when vendored.
-/// `std.collections` and `std.mem` use compiler-authenticated transparent generic wrappers.
 #[test]
 fn every_library_module_is_self_contained_when_vendored() {
     let scratch = temporary("vendored");

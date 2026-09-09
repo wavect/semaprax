@@ -4587,6 +4587,77 @@
           "effects": [],
           "ensures": 0,
           "head": [
+            "fn equal_bytes(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.test.bytes.equal",
+          "kind": "function",
+          "name": "equal_bytes",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn equal_remaining(left: borrow Reader, right: borrow Reader) -> bool",
+            "    requires match borrow left { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }",
+            "    requires match borrow right { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.test.bytes.equal-remaining",
+          "kind": "function",
+          "name": "equal_remaining",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn failure_bit_equal_bytes(left: borrow Slice<u8>, right: borrow Slice<u8>, failure_bit: i64) -> i64",
+            "    requires failure_bit > 0",
+            "    ensures result == 0 || result == failure_bit"
+          ],
+          "id": "std.test.bytes.failure-bit-equal",
+          "kind": "function",
+          "name": "failure_bit_equal_bytes",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn failure_bit_equal_remaining(left: borrow Reader, right: borrow Reader, failure_bit: i64) -> i64",
+            "    requires failure_bit > 0",
+            "    requires match borrow left { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }",
+            "    requires match borrow right { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }",
+            "    ensures result == 0 || result == failure_bit"
+          ],
+          "id": "std.test.bytes.failure-bit-equal-remaining",
+          "kind": "function",
+          "name": "failure_bit_equal_remaining",
+          "requires": 3
+        }
+      ],
+      "dependency": "std.test.bytes = \"^0.1.0\"",
+      "module": "std.test.bytes",
+      "package": "std/test-bytes",
+      "required_profile": "useful-data.v2",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "test"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
             "fn text_byte_len(value: borrow str) -> i64"
           ],
           "id": "std.text.byte_len",

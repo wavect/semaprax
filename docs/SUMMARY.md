@@ -71,6 +71,7 @@ Audience: all documentation readers.
 - [Standard Library v1](STANDARD-LIBRARY-V1.md)
 - [Format Writer v1](FORMAT-WRITER-V1.md)
 - [Log Writer v1](LOG-WRITER-V1.md)
+- [Test Byte Assertions v1](TEST-BYTE-ASSERTIONS-V1.md)
 
 ## Bounded language references
 

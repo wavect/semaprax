@@ -1,0 +1,37 @@
+module std.test.bytes;
+use type @id("std.io.reader") from std.io as Reader;
+use function @id("std.test.failure_bit_unless") from std.test as failure_bit_unless;
+
+@id("std.test.bytes.equal")
+fn equal_bytes(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+{
+    let left_length = byte_len(left);
+    let right_length = byte_len(right);
+    if left_length != right_length { false } else { let mut index = 0usize; let mut equal = true; let mut scanning = index < left_length && equal; while scanning { let left_byte = match byte_get(left, index) { Option::Some { value } => value, Option::None {} => 0u8, }; let right_byte = match byte_get(right, index) { Option::Some { value } => value, Option::None {} => 1u8, }; equal = left_byte == right_byte; index = index + 1usize; scanning = index < left_length && equal; scanning } equal }
+}
+
+@id("std.test.bytes.equal-remaining")
+fn equal_remaining(left: borrow Reader, right: borrow Reader) -> bool
+    requires match borrow left { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    requires match borrow right { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match borrow left { Reader { data: left_data, position: left_position } => match borrow right { Reader { data: right_data, position: right_position } => { let left_view = bytes_as_slice(left_data); let right_view = bytes_as_slice(right_data); equal_bytes(byte_range(left_view, left_position, byte_len(left_view)), byte_range(right_view, right_position, byte_len(right_view))) }, }, }
+}
+
+@id("std.test.bytes.failure-bit-equal")
+fn failure_bit_equal_bytes(left: borrow Slice<u8>, right: borrow Slice<u8>, failure_bit: i64) -> i64
+    requires failure_bit > 0
+    ensures result == 0 || result == failure_bit
+{
+    failure_bit_unless(equal_bytes(left, right), failure_bit)
+}
+
+@id("std.test.bytes.failure-bit-equal-remaining")
+fn failure_bit_equal_remaining(left: borrow Reader, right: borrow Reader, failure_bit: i64) -> i64
+    requires failure_bit > 0
+    requires match borrow left { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    requires match borrow right { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    ensures result == 0 || result == failure_bit
+{
+    failure_bit_unless(equal_remaining(left, right), failure_bit)
+}

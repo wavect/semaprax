@@ -1,0 +1,18 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-test-bytes"
+version = "0.1.0"
+profile = "useful-data.v2"
+
+[modules]
+entry = "std.test.bytes.examples"
+sources = ["src/bytes.spx", "src/examples.spx", "src/tests.spx"]
+tests = ["std.test.bytes.tests"]
+
+[exports]
+web = []
+
+[dependencies]
+std.io = "=0.1.0"
+std.test = "=0.1.0"

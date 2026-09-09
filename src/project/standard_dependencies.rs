@@ -180,6 +180,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.test.bytes",
+        path: "dependencies/std.test.bytes/0.1.0/bytes.spx",
+        source: include_str!("../../std/test-bytes/src/bytes.spx"),
+        dependencies: &["std.io", "std.test"],
+    },
+    BundledPackage {
         name: "std.text",
         path: "dependencies/std.text/0.1.0/text.spx",
         source: include_str!("../../std/text/src/text.spx"),

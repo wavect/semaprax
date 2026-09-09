@@ -1,0 +1,102 @@
+module std.test.bytes.tests;
+use type @id("std.io.reader") from std.io as Reader;
+use function @id("std.test.failure_bit_unless") from std.test as failure_bit_unless;
+use function @id("std.test.bytes.equal") from std.test.bytes as equal_bytes;
+use function @id("std.test.bytes.equal-remaining") from std.test.bytes as equal_remaining;
+use function @id("std.test.bytes.failure-bit-equal") from std.test.bytes as failure_bit_equal_bytes;
+use function @id("std.test.bytes.failure-bit-equal-remaining") from std.test.bytes as failure_bit_equal_remaining;
+
+@id("std.test.bytes.tests.test-empty")
+fn test_empty() -> i64
+{
+    let first = [0u8; 0];
+    let second = [0u8; 0];
+    failure_bit_unless(equal_bytes(array_as_slice(first), array_as_slice(second)) && failure_bit_equal_bytes(array_as_slice(first), array_as_slice(second), 1) == 0, 1)
+}
+
+@id("std.test.bytes.tests.test-binary")
+fn test_binary() -> i64
+{
+    let left = [0u8, 255u8, 1u8];
+    let right = [0u8, 254u8, 1u8];
+    failure_bit_unless(!equal_bytes(array_as_slice(left), array_as_slice(right)) && failure_bit_equal_bytes(array_as_slice(left), array_as_slice(right), 2) == 2, 2)
+}
+
+@id("std.test.bytes.tests.test-prefix")
+fn test_prefix() -> i64
+{
+    let complete = [0u8, 255u8, 1u8];
+    let short = [0u8, 255u8];
+    failure_bit_unless(!equal_bytes(array_as_slice(complete), array_as_slice(short)) && failure_bit_equal_bytes(array_as_slice(complete), array_as_slice(short), 4) == 4, 4)
+}
+
+@id("std.test.bytes.tests.test-remaining")
+fn test_remaining() -> i64
+{
+    let left_data = bytes_set(bytes_set(bytes_set(bytes_zeroed(4usize), 0usize, 9u8), 1usize, 0u8), 2usize, 255u8);
+    let right_data = bytes_set(bytes_set(bytes_set(bytes_zeroed(4usize), 0usize, 8u8), 1usize, 0u8), 2usize, 255u8);
+    let left = Reader { data: left_data, position: 1usize };
+    let right = Reader { data: right_data, position: 1usize };
+    failure_bit_unless(equal_remaining(left, right) && failure_bit_equal_remaining(left, right, 8) == 0 && left.position == 1usize && right.position == 1usize, 8)
+}
+
+@id("std.test.bytes.tests.test-remaining-byte")
+fn test_remaining_byte() -> i64
+{
+    let left_data = bytes_set(bytes_set(bytes_zeroed(3usize), 1usize, 7u8), 2usize, 9u8);
+    let right_data = bytes_set(bytes_set(bytes_zeroed(3usize), 1usize, 7u8), 2usize, 8u8);
+    let left = Reader { data: left_data, position: 1usize };
+    let right = Reader { data: right_data, position: 1usize };
+    failure_bit_unless(!equal_remaining(left, right) && failure_bit_equal_remaining(left, right, 16) == 16 && left.position == 1usize && right.position == 1usize, 16)
+}
+
+@id("std.test.bytes.tests.test-remaining-length")
+fn test_remaining_length() -> i64
+{
+    let left_data = bytes_set(bytes_set(bytes_zeroed(3usize), 1usize, 7u8), 2usize, 9u8);
+    let right_data = bytes_set(bytes_zeroed(2usize), 1usize, 7u8);
+    let left = Reader { data: left_data, position: 1usize };
+    let right = Reader { data: right_data, position: 1usize };
+    failure_bit_unless(!equal_remaining(left, right) && failure_bit_equal_remaining(left, right, 32) == 32 && left.position == 1usize && right.position == 1usize, 32)
+}
+
+@id("std.test.bytes.tests.test-exhausted")
+fn test_exhausted() -> i64
+{
+    let empty = Reader { data: bytes_zeroed(0usize), position: 0usize };
+    let exhausted_data = bytes_set(bytes_zeroed(1usize), 0usize, 255u8);
+    let exhausted = Reader { data: exhausted_data, position: 1usize };
+    failure_bit_unless(equal_remaining(empty, exhausted) && failure_bit_equal_remaining(empty, exhausted, 64) == 0 && empty.position == 0usize && exhausted.position == 1usize, 64)
+}
+
+@id("std.test.bytes.tests.test-self")
+fn test_self() -> i64
+{
+    let data = bytes_set(bytes_set(bytes_zeroed(3usize), 1usize, 7u8), 2usize, 9u8);
+    let reader = Reader { data: data, position: 1usize };
+    failure_bit_unless(equal_remaining(reader, reader) && failure_bit_equal_remaining(reader, reader, 128) == 0 && reader.position == 1usize, 128)
+}
+
+@id("std.test.bytes.tests.test-offsets")
+fn test_offsets() -> i64
+{
+    let left_data = bytes_set(bytes_set(bytes_set(bytes_zeroed(3usize), 0usize, 4u8), 1usize, 7u8), 2usize, 9u8);
+    let right_data = bytes_set(bytes_set(bytes_zeroed(2usize), 0usize, 7u8), 1usize, 9u8);
+    let left = Reader { data: left_data, position: 1usize };
+    let right = Reader { data: right_data, position: 0usize };
+    failure_bit_unless(equal_remaining(left, right) && failure_bit_equal_remaining(left, right, 256) == 0 && left.position == 1usize && right.position == 0usize, 256)
+}
+
+@id("std.test.bytes.tests.test-maximum-bit")
+fn test_maximum_bit() -> i64
+{
+    let left = [0u8];
+    let right = [1u8];
+    failure_bit_unless(failure_bit_equal_bytes(array_as_slice(left), array_as_slice(right), 9223372036854775807) == 9223372036854775807, 512)
+}
+
+@id("std.test.bytes.tests.main")
+fn main() -> i64
+{
+    test_empty() + test_binary() + test_prefix() + test_remaining() + test_remaining_byte() + test_remaining_length() + test_exhausted() + test_self() + test_offsets() + test_maximum_bit()
+}

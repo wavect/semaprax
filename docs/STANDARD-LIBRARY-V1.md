@@ -1,7 +1,7 @@
 # Standard Library v1
 
-- Status: versioned reference; 32 packages are present under `std/`: nine
-  `core`, sixteen `portable`, three `alloc`, three `hosted`, and one `test`. Every package remains
+- Status: versioned reference; 33 packages are present under `std/`: nine
+  `core`, sixteen `portable`, three `alloc`, three `hosted`, and two `test`. Every package remains
   Partial until its complete required scope and promotion evidence exist; every
   other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
@@ -193,7 +193,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.task` | Structured tasks, cancellation, scheduling, and channels | Missing; [Scoped Task Model v1](SCOPED-TASKS-V1.md) is the design. `std.async` holds the pure bounded-readiness-loop helpers (timeout clamping, exponential backoff, retry policy, round-robin handle selection, stream-end detection) for `net_wait`-driven loops |
 | `std.log` | Structured logging with field identities and redaction | Partial: source-authored `Event` values carry level, sequence, name, and message fields into one caller-owned Writer as a complete JSON-lines object. Level and fixed-byte helpers, decimal sequence formatting via `std.data.json.write.count_into`/`usize_len`, JSON quoting, UTF-8 validation, and exact whole-event capacity preflight are composed through the private `useful-data.v2` profile with exactly bundled `std.data.json.utf8`, `std.data.json.write`, and `std.io` dependencies. The canonical package has a 59-byte escaped-line golden and five unwritten zero suffix bytes; fifteen expanded cases are in `tests/project/standard_library/log_cases.spx`, with exact local call closures and required type imports. Focused local gates `logging::log_writer_executes_on_all_three_backends` and `logging::log_writer_preflight_rejects_invalid_events` pass: all fifteen cases plus the canonical package execute on interpreter, C11 `-O0`/`-O2`, and repeated Core Wasm with exact zero-to-three live Bytes bounds; nine rejection cases pass twice with exact contract status. The existing UTF-8 package conformance also passes after the direct ASCII scan optimization. General logging sinks, filtering, timestamps, redaction, concurrency, and hosted execution remain Missing. [Log Writer v1](LOG-WRITER-V1.md) owns the additive contract |
 | `std.metrics` | Counters, gauges, histograms, and effect-neutral instrumentation | Missing |
-| `std.test` | Assertions, fixtures, property tests, fuzz targets, and snapshots | Partial: scalar equality predicates and deterministic unit or caller-selected failure status helpers for the current return-code test model; rich diagnostics, fixtures, property tests, fuzz targets, and snapshots are Missing |
+| `std.test` | Assertions, fixtures, property tests, fuzz targets, and snapshots | Partial: scalar equality predicates and deterministic unit or caller-selected failure status helpers remain in `std.test`; the sibling `std.test.bytes` package adds exact `Slice<u8>` equality, Reader-suffix equality with cursor validation and position preservation, and failure-bit wrappers. Richer fixtures, property tests, fuzz targets, snapshots, and broader diagnostics remain open |
 | `std.agent` | Agent types, model roles, context, Proposal grammar, approval, effects, checkpoints, and evidence | Missing; [Agent Runtime v1](AGENT-RUNTIME-V1.md) is the design |
 
 A module is Partial when its package passes the gate on every listed target

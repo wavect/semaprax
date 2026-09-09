@@ -1278,7 +1278,7 @@ jobs:
   ios-swift-app-cross-check:
     name: Private Swift/iOS application + XCFramework runtime
     runs-on: macos-26
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - name: Allow Windows to check out long evidence paths
         shell: bash

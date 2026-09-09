@@ -2,7 +2,7 @@
 //!
 //! Hosts inject a [`ProcessProvider`]. The interpreter admits a complete request
 //! and debits its invocation budget before calling that provider. Supported Unix
-//! hosts can explicitly register held tools through [`registered`].
+//! hosts can explicitly register held tools through `registered`.
 
 use std::collections::VecDeque;
 

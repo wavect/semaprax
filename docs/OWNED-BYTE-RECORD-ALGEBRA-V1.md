@@ -2,7 +2,9 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: local implementation tranche; hosted promotion is not claimed.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Public aggregate ABI and
+broader ownership support remain separate.
 
 ## Purpose
 
@@ -110,9 +112,10 @@ path.
 
 ## Evidence boundary
 
-Completion requires source round-trip and diagnostics, hostile HIR and replay
-mutation tests, interpreter execution, native C11 execution at `-O0` and
-`-O2`, and Node/Core-Wasm execution. Runtime evidence must cover multiple
-direct byte fields, borrow followed by own, repeated entry, exact-once cleanup,
-and failure settlement. Local evidence does not claim hosted promotion or any
-public ABI widening.
+The maintained corpus covers source round-trip and diagnostics, hostile HIR and
+replay mutation tests, interpreter execution, native C11 execution at `-O0` and
+`-O2`, and Node/Core-Wasm execution. Runtime cases cover multiple direct byte
+fields, borrow followed by own, repeated entry, exact-once cleanup, and failure
+settlement. The admitted implementation is **HOSTED GREEN** for v0.4.0.
+Historical local executions retain their original provenance; neither they nor
+release CI widen this profile into a public aggregate ABI.

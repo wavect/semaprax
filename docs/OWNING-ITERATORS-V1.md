@@ -1,14 +1,15 @@
 # Owning Iterators v1
 
-Status: focused cross-engine runtime, projection, and ProgramRoot replay corpora
-pass locally; exact-head hosted promotion remains pending.
+Status: implemented private protocol; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md), including the admitted
+cross-engine runtime, projection, and ProgramRoot replay corpus.
 
 Audience: language users, compiler contributors, backend implementers, and
 workspace-service authors.
 
 This LANG-07 profile introduces a first-class consuming iterator protocol over
-bounded scalar vectors. It is the ownership foundation for subsequent iterator
-loops and adapters, not an eager vector transformation.
+bounded scalar vectors. It is the ownership foundation for separately implemented
+iterator loops and adapters, not an eager vector transformation.
 Owning `Bytes` payload traversal is the additive
 [Owning Iterator Payloads v2](OWNING-ITERATOR-PAYLOADS-V2.md) profile.
 
@@ -95,10 +96,13 @@ composition, result/argument failure, and repeated exact settlement on the
 interpreter, C11 O0/O2, and Core Wasm. Hostility includes forged type arguments,
 case/tag identities, omitted or duplicated conditional owners, stale source
 binding, changed cleanup schema, reordered transfers, and shallow owner copies.
+The implemented corpus is hosted green at the release baseline; these checks
+remain required regressions for later changes.
 
-Owning payloads, generic authored iterator implementations, associated types,
-lazy closure adapters, public iterator ABI, and hosted promotion remain
-separate work within the full language goal. Consuming loop syntax is specified
-and implemented separately by [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md);
-that profile does not widen this protocol's frozen v1 contract. This initial
-protocol must not be described as completion of that broader iterator goal.
+Generic authored iterator implementations, associated types, lazy closure
+adapters and public iterator ABI remain separate work within the full language
+goal. Bytes payloads, [consuming loops](OWNING-ITERATOR-LOOPS-V1.md),
+[conditional renewal](OWNING-ITERATOR-RENEWAL-V1.md), and
+[generic helpers/operations](GENERIC-ITERATOR-OPERATIONS-V1.md) are implemented
+additive contracts. They do not widen this protocol's frozen scalar v1 meaning
+or complete the broader iterator/library goal.

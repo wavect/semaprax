@@ -1,7 +1,7 @@
 # Owning Iterator Loops v1
 
-Status: bounded implementation with focused local evidence; hosted promotion
-is pending.
+Status: implemented bounded traversal; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: language users, compiler contributors, backend implementers, and
 workspace-service authors.
@@ -56,17 +56,20 @@ the same ownership boundary before execution.
 ## Exclusions and required evidence
 
 This v1 profile has no `break` or `continue`, owned payload elements, iterator
-adapters, generic iterator implementations, or public iterator ABI. It does
-not claim hosted support.
+adapters, general authored iterator implementations, or public iterator ABI.
+The implemented [Bytes payload extension](OWNING-ITERATOR-PAYLOADS-V2.md)
+and [generic iterator operations](GENERIC-ITERATOR-OPERATIONS-V1.md) retain
+their own admission and schema boundaries.
 
 Focused evidence must cover all eight scalar types, empty and exhausted
 iterators, ordered accumulation, source use-after-consume rejection, body and
 `iter_next` failure settlement, repeated invocation, v11/Graph-v39 hostile
-replay, and interpreter, C11 O0/O2, and Core Wasm equivalence before promotion.
+replay, and interpreter, C11 O0/O2, and Core Wasm equivalence.
 
-The focused local iterator selector passes the eight-scalar interpreter,
+The maintained iterator selector covers the eight-scalar interpreter,
 C11 O0/O2, and Core-Wasm corpus, including captured generic callbacks,
 vector accumulation, empty/multiple-yield loops, body-contract failure,
 repeated settlement, and consumed-source rejection. The workspace selector
 also verifies private generic loop instances and exact ProgramRoot/source
-replay. These observations do not constitute hosted evidence.
+replay. Its release evidence is hosted green; the original focused local runs
+remain historical witnesses rather than the current evidence ceiling.

@@ -1,7 +1,7 @@
 # Owning Iterator Renewal v1
 
-Status: private implementation with focused local runtime and replay evidence;
-hosted promotion remains pending.
+Status: implemented private renewal profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: compiler contributors, reviewers, and agent authors.
 
@@ -52,9 +52,9 @@ position and renewal boundary before backends consume the checked plan.
 
 The `iterator` library selector exercises independent renewal replay, omitted
 reservations, ordinary-transfer substitutions, and v12/v40 downgrades. The
-owned-data `iterator_operations` selector passes locally on interpreter,
-C11 O0/O2, and Core Wasm for all 64 scalar pairs, conditional capacity failure,
-and callback failure after staging the output owner. Repeated runs verify
-exact allocation settlement. [Generic Iterator Operations v1](GENERIC-ITERATOR-OPERATIONS-V1.md)
-records the shared corpus and authored Linux selector; hosted promotion remains
-pending.
+owned-data `iterator_operations` selector exercises interpreter, C11 O0/O2,
+and Core Wasm for all 64 scalar pairs, conditional capacity failure, and
+callback failure after staging the output owner. Repeated runs verify exact
+allocation settlement. [Generic Iterator Operations v1](GENERIC-ITERATOR-OPERATIONS-V1.md)
+records the shared corpus and Linux selector. The implemented release corpus
+is hosted green; historical local results retain their original scope.

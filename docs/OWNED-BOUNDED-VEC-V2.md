@@ -2,11 +2,11 @@
 
 Audience: language users and compiler contributors.
 
-Status: locally exercised additive owned-payload profile; hosted promotion
-remains pending. This extends [scalar Vec v1](OWNED-BOUNDED-VEC-V1.md)
-with owned Bytes payloads. It does not redefine that frozen scalar contract.
-Consuming payload traversal is specified separately in
-[Owning Iterator Payloads v2](OWNING-ITERATOR-PAYLOADS-V2.md).
+Status: implemented additive owned-payload profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+This extends [scalar Vec v1](OWNED-BOUNDED-VEC-V1.md) with owned Bytes payloads.
+It does not redefine that frozen scalar contract. Consuming payload traversal
+is implemented separately in [Owning Iterator Payloads v2](OWNING-ITERATOR-PAYLOADS-V2.md).
 
 ## Owned operations
 
@@ -68,13 +68,15 @@ The focused selectors are `owned_bytes_vec` in the library harness,
 in the workspace harness. Their assertions cover exact ownership, canonical
 round-trip, frozen contract bytes, wrong-prelude graph rejection, ProgramRoot
 replay, repeated mutation, contract and allocation failure, and balanced
-native allocations and Wasm handles. Implementation is not promoted until the
-selectors pass; hosted support requires separately observed hosted evidence.
-Local runtime cases also cover private function composition, mixed scalar and
-owned vectors, and mutable same-owner replacement.
+native allocations and Wasm handles. Runtime cases also cover private function
+composition, mixed scalar and owned vectors, and mutable same-owner replacement.
+The implemented corpus has hosted-green v0.4.0 evidence; earlier local results
+remain historical witnesses.
 
 The scalar `std.collections` aliases and public descriptors remain frozen.
-This tranche does not claim public generic ABI, broader generic function
-substitutions, other owned payload types, pop/removal, consuming iterators,
-closures, collection adapters, regions, arenas, shared ownership or hosted
-support. These remain part of the full language and library goal.
+This tranche does not supply a public generic ABI, broader generic function
+substitutions, other owned payload types, pop/removal, regions, arenas or shared
+ownership. Consuming Bytes traversal is the implemented Iterator Payloads v2
+extension; callbacks, closures and adapters likewise retain their separate
+owning profiles. Their existence does not widen the operations in this document
+or complete the full language and library goal.

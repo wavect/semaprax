@@ -1,7 +1,8 @@
 # Scalar Snapshot Closures v2: generic construction and loops
 
-Status: locally exercised across source/HIR/graph/cache replay, ProgramRoot,
-interpreter, native C11 O0/O2, and Core Wasm. Hosted promotion remains pending.
+Status: implemented additive profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md), covering admitted
+source/HIR/graph/cache replay, ProgramRoot, interpreter, C11 O0/O2 and Core Wasm.
 
 Audience: language users, compiler contributors, backend implementers, and
 workspace-service authors.
@@ -70,6 +71,8 @@ Existing AST/HIR closure carrier tags, scalar environment layouts, prelude,
 host imports, cleanup schemas, and public descriptors remain unchanged. This
 profile does not admit owning captures, capturing another callable, nested
 anonymous closures, public callable ABI, or a consuming iterator protocol.
+The separately implemented iterator protocols do not change this closure
+profile's creation or invocation meaning.
 
 ## Required evidence
 
@@ -79,11 +82,12 @@ outer mutation, empty traversal, helper failure with live input/output owners,
 exact source/HIR cache and graph replay, unused-template ProgramRoot retention,
 and hostile cross-instance identities and scoped capture types. Runtime checks
 must execute interpreter, C11 O0/O2, and Core Wasm with repeated owner settlement.
-Local passage and exact-commit hosted promotion are separate evidence.
+The released implementation has hosted-green evidence; historical local runs
+retain their original execution identity.
 
-Focused local evidence uses `generic_closure` in the library, language,
-workspace, and owned-data harnesses. It includes independent symbolic and
-concrete HIR hostility, mutable annotated scalar locals, capture snapshots
-checked separately on consecutive iterations, all eight scalar substitutions
-in one module, source-only template body changes, and repeated native/Wasm
-allocation settlement on success and checked helper failure.
+Focused evidence uses `generic_closure` in the library, language, workspace,
+and owned-data harnesses. It includes independent symbolic and concrete HIR
+hostility, mutable annotated scalar locals, capture snapshots checked separately
+on consecutive iterations, all eight scalar substitutions in one module,
+source-only template body changes, and repeated native/Wasm allocation settlement
+on success and checked helper failure.

@@ -2,8 +2,9 @@
 
 Audience: language users and compiler contributors.
 
-Status: locally exercised additive `Box<Bytes>` tranche. Hosted/public
-promotion remains pending; the completion matrix records local evidence only.
+Status: implemented additive `Box<Bytes>` profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Public aggregate ABI and general allocator support remain separate.
 
 This document defines the v2 extension to the compiler-owned bounded Box
 profile. The scalar v1 contract remains frozen in
@@ -51,15 +52,16 @@ admitted programs.
 
 ## Evidence boundary
 
-The focused local tranche covers source/HIR admission, exact ownership and
-lexical cleanup, interpreter execution, native C11 O0/O2 repeated execution,
-allocation refusal after Bytes creation, contract failure before and after
-Box creation, and Core-Wasm execution with a host that tracks Bytes handles.
-The Wasm host also checks recursive drop, consuming detachment and legacy-host
-refusal. Source admission rejects `box_get<Bytes>` with `SPX-T285`.
+The focused corpus covers source/HIR admission, exact ownership and lexical
+cleanup, interpreter execution, native C11 O0/O2 repeated execution, allocation
+refusal after Bytes creation, contract failure before and after Box creation,
+and Core-Wasm execution with a host that tracks Bytes handles. The Wasm host
+also checks recursive drop, consuming detachment and legacy-host refusal.
+Source admission rejects `box_get<Bytes>` with `SPX-T285`.
 
-These tests are local evidence only. They do not establish hosted execution,
-public ABI support, production allocator guarantees, or hosted promotion.
+The implemented release corpus is hosted green. Historical local observations
+retain their original subjects; neither classification establishes public ABI
+support or production allocator guarantees.
 
 ## Nonclaims
 

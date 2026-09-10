@@ -2,11 +2,12 @@
 
 Audience: language users, standard-library authors, and compiler contributors.
 
-Status: implementation tranche. This document owns one internal, explicitly
-instantiated `Vec<T>` profile for Copy scalar elements. It defines no public
-aggregate ABI and does not implement Iterator.
-The additive [owned Bytes profile](OWNED-BOUNDED-VEC-V2.md) has a separate
-contract and evidence boundary.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+This document owns one internal, explicitly instantiated `Vec<T>` profile for
+Copy scalar elements. It defines no public aggregate ABI and does not implement
+Iterator. The additive [owned Bytes profile](OWNED-BOUNDED-VEC-V2.md) has a
+separate contract and the same release evidence baseline.
 
 The separately versioned
 [Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md)
@@ -20,8 +21,8 @@ standard-library declaration, or ABI.
 `Vec<T>` is the compiler-owned nominal type with stable identity `core.vec`.
 `T` is exactly one of `i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, or
 `bool`. Type inference, `Bytes`, `String`, authored aggregates, variants,
-resources, nested vectors, and nonconcrete element types are rejected.
-The additive [generic compiler collection profile](GENERIC-COMPILER-COLLECTIONS-V1.md)
+resources, nested vectors, and nonconcrete element types are rejected by this
+v1 profile. The additive [generic compiler collection profile](GENERIC-COMPILER-COLLECTIONS-V1.md)
 admits a scoped type parameter inside private function templates only after
 independently validating every concrete Copy substitution. It preserves this
 runtime profile and public ABI boundary.
@@ -112,6 +113,8 @@ functions still cannot stand in for these authenticated aliases.
 
 ## Current gate and promotion evidence
 
+The implemented release corpus is **HOSTED GREEN**. Its maintained checks cover:
+
 - canonical source and Graph projection plus exact HIR nominal, operation, type
   argument, ownership, and materialized-wrapper identities for all eight Copy
   scalars;
@@ -121,33 +124,38 @@ functions still cannot stand in for these authenticated aliases.
 - independent cleanup replay for construction, push, loop-carried replacement,
   precondition failure, postcondition failure, and hostile transition/order/
   liveness mutations;
-- repeated focused local interpreter, native C11 O0/O2, and Core-Wasm execution
-  for empty, full, push/get/len/capacity, exact reserve, set, clear, loop-carried
-  growth, and exact failures, with no shallow owner copy and exact observed
-  capacities;
-- focused local canonical-source/HIR evidence for bounded `for` traversal over
-  every Copy scalar, plus empty, singleton, multi-element, full-capacity,
-  repeated re-entry, and body-failure execution on the interpreter, native C11
-  O0/O2, and Core-Wasm;
+- repeated interpreter, native C11 O0/O2, and Core-Wasm execution for empty,
+  full, push/get/len/capacity, exact reserve, set, clear, loop-carried growth,
+  and exact failures, with no shallow owner copy and exact observed capacities;
+- canonical-source/HIR evidence for bounded `for` traversal over every Copy
+  scalar, plus empty, singleton, multi-element, full-capacity, repeated re-entry,
+  and body-failure execution on the interpreter, native C11 O0/O2, and Core-Wasm;
 - frozen prelude-v1/v2 contract bytes and digests, plus native and Core-Wasm
-  reachability checks proving legacy Vec source does not emit v3 helpers; and
+  reachability checks proving legacy Vec source does not emit v3 helpers;
 - the `std.collections` manifest, scalar-result example, eight-scalar conformance
-  source, bundled dependency entry, closed package metadata, focused local
-  Project/package selectors, and byte-exact generated catalogs. This promotes
-  only that exact package slice locally; the broader collection and
-  hosted-support nonclaims below keep the module Partial; and
+  source, bundled dependency entry, closed package metadata, Project/package
+  selectors, and byte-exact generated catalogs; and
 - the committed `examples/vector-stats-project` accumulate-and-filter example
   project, whose entry and conformance modules both return `0` on those same
   three engines and whose accumulating function is driven at seven element
   counts and three thresholds, so the loop-carried profile is exercised from
   committed source rather than from a hand-built plan.
 
+Historical focused local executions remain witnesses of their original runs.
+The broader collection module stays Partial because its full functionality and
+public support are not supplied by this bounded vector profile.
+
 ## Nonclaims
 
-There is no `pop`, insertion, removal, implicit or amortized growth, shrink,
-owned element, general iterator, iterator object, closure adapter, escaping borrow, mutable reference,
-public Project/FFI/WIT/Component representation, hosted promotion, or production
-support. `std.iter` remains blocked on its independent interface,
-associated-type, closure, and lifetime contracts. The separately versioned
-[Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md) owns the later, narrow
-`std.mem` allocation slice; Vec traversal does not imply it.
+This v1 profile supplies no `pop`, insertion, removal, implicit or amortized
+growth, shrink, owned element, general iterator interface, escaping borrow,
+mutable reference, public Project/FFI/WIT/Component representation, or production
+support. `std.iter` remains absent pending its independent library contract.
+
+Owned Bytes vectors, [consuming iterators](OWNING-ITERATORS-V1.md),
+[iterator loops](OWNING-ITERATOR-LOOPS-V1.md),
+[function values](FUNCTION-VALUES-V2.md), [closures](CLOSURES-V2.md), and
+[generic iterator operations](GENERIC-ITERATOR-OPERATIONS-V1.md) are implemented
+additive profiles, not missing v0.4.0 functionality or behavior silently added
+to this scalar contract. [Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md)
+owns the separate narrow `std.mem` allocation slice.

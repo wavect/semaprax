@@ -1,12 +1,15 @@
 # Function Values v2: generic collection callbacks
 
-Status: local focused language and all-engine adapter evidence passes; unhosted.
+Status: implemented private callback profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: language users, compiler contributors, collection-adapter authors,
 and backend implementers.
 
 This additive prerequisite advances reusable collection adapters. It does not
 introduce iterator objects, consuming `next`, captures, or a public callable ABI.
+Those implemented iterator and scalar-closure additions retain their separate
+contracts rather than changing this callback profile.
 
 ## Scoped callable signature
 
@@ -20,8 +23,9 @@ generic argument substitutions remain closed.
 Every concrete substitution independently checks the exact scalar callable
 signature from Function Values v1. References still identify monomorphic,
 effect-free local declarations; generic target references remain unsupported.
-Callables carry no environment or owner. Invocation evaluates arguments once,
-left to right, and propagates the selected target's ordinary checked failures.
+Callables carry no environment or owner in this profile. Invocation evaluates
+arguments once, left to right, and propagates the selected target's ordinary
+checked failures.
 
 ## Reusable adapters
 
@@ -58,12 +62,17 @@ existing representation.
 Focused language evidence lives in `function_values_generic`; all-scalar adapter
 execution and ownership settlement belong to the owned-data generic collection
 harness. Success, empty input, callback failure and hostile template mutation
-pass locally. Native allocation accounting and Wasm generation tracking require
-zero live owners after repeated success and callback failure. Public package
-use, iterator interfaces, captures and hosted promotion remain unfinished.
+have hosted-green release evidence. Native allocation accounting and Wasm
+generation tracking require zero live owners after repeated success and callback
+failure. Earlier local executions retain their original scope.
+
+Public package use and general iterator interfaces remain unfinished. Scalar
+captures and generic/loop closure construction are implemented in
+[Closures v1](CLOSURES-V1.md) and [v2](CLOSURES-V2.md); consuming traversal
+and generic iterator operations likewise have their own versioned profiles.
 
 SemanticProgram v4 also retains checked source graphs for unused generic
 callback templates omitted from executable reachability. Its focused workspace
-check passes, including exact replay and comment-only semantic stability; the
+check covers exact replay and comment-only semantic stability; the
 [canonical workspace contract](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md) owns
 that additive projection. It grants no runtime reachability or authority.

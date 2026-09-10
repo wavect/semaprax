@@ -1,12 +1,15 @@
 # Function Values v1
 
-Status: implementation in progress; no hosted or public ABI support claim.
+Status: implemented private callable profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Public callable ABI and the general iterator interface remain separate.
 
 Audience: language users, compiler contributors, backend implementers, and
 workspace-service authors.
 
-This additive LANG-07 foundation supplies noncapturing function values for
-subsequent closures and iterator adapters. It does not complete those milestones.
+This additive LANG-07 foundation supplies noncapturing function values for the
+separately implemented closure and bounded collection-adapter profiles. It does
+not complete the broader closure or iterator milestones.
 
 ## Source and eligibility
 
@@ -100,24 +103,28 @@ source/graph/Wasm round trips, and repeated interpreter/C11 O0/O2/Wasm execution
 Hostile coverage must reject unknown or ineligible references, altered signatures,
 forged graph targets/candidates, excess target count, public callable boundaries,
 and unsupported generic or owned signatures. Frozen graph and backend fixtures
-remain preservation evidence. Completion status changes only after these
-executable checks pass; hosted claims require the exact published commit.
+remain preservation evidence. The implemented corpus has hosted-green release
+evidence; changed behavior requires its own executable checks.
 
 ## Batch verification status
 
-The combined v1/v2 language selector passes 15 local cases, including required
-C11 O0/O2 and Node execution, the signed table-index boundary, lexical binding
-precedence, generic template hostility, and owned-export argument snapshots.
-Two additional adapter runtime corpora pass on interpreter, native O0/O2 and
-Core Wasm, checking all eight scalar types, empty input, selection/fold order,
-callback failure and balanced owner settlement. Eight library hostile cases and four workspace checks pass, including v3
-ordinary/mixed callable bodies and v4 retained unused generic callback templates.
-Comment-only edits preserve semantic identity while changing the exact-source
-ProgramRoot.
+The original local combined v1/v2 language selector passed 15 cases, including
+required C11 O0/O2 and Node execution, the signed table-index boundary, lexical
+binding precedence, generic template hostility, and owned-export argument
+snapshots. Two additional adapter runtime corpora passed on interpreter, native
+O0/O2 and Core Wasm, checking all eight scalar types, empty input, selection/fold
+order, callback failure and balanced owner settlement. Eight library hostile
+cases and four workspace checks passed, including v3 ordinary/mixed callable
+bodies and v4 retained unused generic callback templates. Comment-only edits
+preserve semantic identity while changing the exact-source ProgramRoot.
 
-The flat 65-target source corpus passes without stack overflow; the supplied
+The flat 65-target source corpus passed without stack overflow; the supplied
 deep source reproductions reject with the documented SPX-P207 nesting bound.
-Full gates and hosted validation have not been run for this batch. Captures,
-iterator interfaces and public callable ABI remain unfinished. See
-[Function Values v2](FUNCTION-VALUES-V2.md) for the private generic callback
-profile and its remaining boundaries.
+These counts describe the historical local witness, not the current test
+inventory. The released implementation's current classification is HOSTED GREEN.
+
+[Function Values v2](FUNCTION-VALUES-V2.md) owns private generic callbacks.
+[Closures v1](CLOSURES-V1.md) and [v2](CLOSURES-V2.md) already implement scalar
+snapshots and their generic/loop construction. Owning captures, general iterator
+interfaces and public callable ABI remain unfinished; scalar captures are no
+longer a wholly future feature.

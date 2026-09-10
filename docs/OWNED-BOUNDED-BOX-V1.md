@@ -2,11 +2,12 @@
 
 Audience: language users, standard-library authors, and compiler contributors.
 
-Status: locally exercised bounded implementation tranche; hosted promotion and
-the broader allocation model remain pending.
-The additive `Box<Bytes>` profile is specified separately in
-[Owned Bounded Box v2](OWNED-BOUNDED-BOX-V2.md); this v1 document retains the
-scalar contract and compatibility claims that predate that extension.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The broader allocation model remains incomplete. The additive `Box<Bytes>`
+profile is implemented separately in [Owned Bounded Box v2](OWNED-BOUNDED-BOX-V2.md);
+this v1 document retains the scalar contract and compatibility claims that
+predate that extension.
 This document owns one compiler-provided uniquely owned allocation for Copy
 scalar payloads and the corresponding authenticated `std.mem` surface. It
 does not define a public aggregate ABI, allocator interface, region, arena, or
@@ -69,8 +70,7 @@ source, example, test, or nonempty export list fails closed.
 
 ## Required focused evidence
 
-Promotion requires focused source/HIR, cleanup, package, and runtime selectors
-covering:
+The maintained source/HIR, cleanup, package, and runtime selectors cover:
 
 - exact explicit instantiation and stable intrinsic/wrapper identity for all
   eight Copy scalars;
@@ -84,22 +84,26 @@ covering:
   3-by-8 conformance, bundled dependency resolution, and generated catalogs;
   and
 - rejection of inference, missing or surplus type arguments, unsupported or
-  owned payloads, forged intrinsic/wrapper identities, authored-Box collision,
-  owner reuse, and escaping loans.
+  owned payloads within this scalar profile, forged intrinsic/wrapper identities,
+  authored-Box collision, owner reuse, and escaping loans.
 
-The focused source/HIR, cleanup replay, package/catalog, interpreter, native
-C11 `-O0`/`-O2`, internal Core-Wasm, allocation-refusal, lexical-drop, and
-hostile carrier/identity selectors pass locally at this revision. Evidence is
-still unhosted, and contract-failure cleanup plus the broader allocation model
-remain promotion work. All affected completion rows remain Partial.
+The implemented source/HIR, cleanup replay, package/catalog, interpreter, native
+C11 `-O0`/`-O2`, internal Core-Wasm, allocation-refusal, lexical-drop, and hostile
+carrier/identity selectors use the hosted-green release baseline. Their earlier
+local runs are historical witnesses. The broader allocation and public-support
+objectives keep the affected mature-product rows Partial; they do not leave the
+released implementation's hosted evidence pending.
 
 ## Nonclaims
 
-There is no owned aggregate, `String`, Vec, variant, resource, or
-nested Box payload; mutable Box borrow; replacement; pinning; raw pointer;
-custom allocator; allocator transfer; placement allocation; allocator identity
-or layout guarantee; region or arena syntax; bulk release; ARC, shared or weak
-ownership; cross-thread sharing; public Project/FFI/WIT/Component Box ABI;
-Iterator integration; hosted promotion; or production support. `std.mem`
-advances only this exact Box slice; its broader ownership helpers, regions,
-arenas, and shared immutable values remain missing.
+This scalar v1 profile supplies no owned aggregate, `String`, Vec, variant,
+resource, or nested Box payload; mutable Box borrow; replacement; pinning;
+raw pointer; custom allocator; allocator transfer; placement allocation;
+allocator identity or layout guarantee; region or arena syntax; bulk release;
+ARC, shared or weak ownership; cross-thread sharing; public
+Project/FFI/WIT/Component Box ABI; or production support.
+
+The implemented Bytes extension and private generic collection/iterator helpers
+retain their separate contracts. `std.mem` advances only its exact scalar Box
+aliases; broader ownership helpers, regions, arenas, and shared immutable values
+remain missing.

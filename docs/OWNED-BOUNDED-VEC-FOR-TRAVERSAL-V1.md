@@ -2,10 +2,11 @@
 
 Audience: language users, standard-library authors, and compiler contributors.
 
-Status: bounded implementation tranche. This document owns one source-level
-traversal form over the internal [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md)
-profile. It is not a general Iterator design and adds no standard-library
-declaration or public aggregate ABI.
+Status: implemented bounded traversal; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+This document owns one source-level traversal form over the internal
+[Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md) profile. It is not a general
+Iterator design and adds no standard-library declaration or public aggregate ABI.
 
 ## Exact source profile
 
@@ -62,7 +63,8 @@ a `for` with `SPX-G173` rather than admitting a wrong edge.
 
 ## Focused local evidence
 
-The current worktree passes:
+The historical local witness used these reproducible selectors; the released
+implementation now has hosted-green evidence under the baseline above:
 
 ```sh
 cargo test --locked -p semaprax --test language vec_for
@@ -84,11 +86,12 @@ Together those focused selectors establish:
   types, attempts to consume or rebind the source, item reassignment, and
   nested traversal.
 
-Hosted passage remains required. The completion rows therefore stay Partial
-and this profile remains local and unhosted. Because the source form lowers
-entirely into the existing HIR vocabulary and carries no origin marker, HIR
-validation applies the ordinary checks for those existing nodes rather than a
-new traversal-specific canonical-shape rule.
+The mature-product completion rows stay Partial because the general iterator
+and lifetime goals remain open, not because this released traversal lacks
+hosted evidence. Because the source form lowers entirely into the existing HIR
+vocabulary and carries no origin marker, HIR validation applies the ordinary
+checks for those existing nodes rather than a new traversal-specific
+canonical-shape rule.
 
 ## Nonclaims
 
@@ -97,6 +100,13 @@ This profile does not provide an iterator object or interface, `IntoIterator`,
 `collect`, closures or first-class functions, associated types, lifetime
 inference, mutable references, escaping borrows, consuming iteration, owned or
 aggregate elements, mutation during traversal, arbitrary iterable expressions,
-early `break`/`continue`, a public generic ABI, or hosted/production support.
+early `break`/`continue`, a public generic ABI, or production support.
 It does not satisfy `std.iter`; that package remains Missing pending its own
-interface, associated-type, closure, and lifetime contracts.
+complete library contract.
+
+[Owning Iterators v1](OWNING-ITERATORS-V1.md),
+[consuming loops](OWNING-ITERATOR-LOOPS-V1.md),
+[function values](FUNCTION-VALUES-V2.md), [closures](CLOSURES-V2.md), and
+[generic iterator operations](GENERIC-ITERATOR-OPERATIONS-V1.md) are already
+implemented separate profiles. Their capabilities must not be attributed to
+this frozen borrowed-vector traversal syntax.

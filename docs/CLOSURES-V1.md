@@ -1,9 +1,9 @@
 # Scalar Snapshot Closures v1
 
-Status: locally exercised for private Copy-scalar snapshots, Graph v37,
-SemanticProgram v5/ProgramRoot replay, and generic Vec map/filter/fold across
-the interpreter, C11 O0/O2, and Core Wasm. Hosted and public promotion remain
-pending.
+Status: implemented private Copy-scalar snapshot profile; **HOSTED GREEN** under
+the [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md), including its admitted
+Graph v37, SemanticProgram v5/ProgramRoot and interpreter/C11/Core-Wasm corpus.
+Public callable ABI and owning captures remain separate.
 
 Audience: language users, compiler contributors, backend implementers, and
 workspace-service authors.
@@ -90,13 +90,14 @@ Programs without closures retain their prior named-function representation.
 
 ## Evidence required for promotion
 
-Focused local evidence covers snapshot timing, parameter shadowing, private
+The implemented corpus covers snapshot timing, parameter shadowing, private
 return/escape, all eight Copy scalar capture types, AST/HIR carrier replay,
 Graph v37, SemanticProgram v5/ProgramRoot replay, and repeated generic
 map/filter/fold execution with an explicit Core-Wasm Vec host settlement
-inventory. Generic-template and loop construction belong to the separate v2
-profile and its evidence. This profile does not admit owning captures,
-public callable signatures, or hosted execution.
+inventory. Its current release evidence is hosted green; prior local observations
+remain historical witnesses. Generic-template and loop construction belong to
+the implemented v2 profile. This profile does not admit owning captures or public
+callable signatures.
 
 Focused checks must cover snapshot timing, scalar captures, parameter shadowing,
 zero/eight captures and first-over-limit rejection, capture/body identity

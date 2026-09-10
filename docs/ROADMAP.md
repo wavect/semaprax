@@ -1,789 +1,404 @@
 # Roadmap
 
-Status: living future-sequencing document; not implementation evidence.
+Status: living future-sequencing document, reconciled with the **HOSTED GREEN**
+v0.4.0 implementation baseline. This roadmap is not execution evidence.
 
 Audience: contributors, maintainers, and project evaluators.
 
-The roadmap orders future outcomes. It is not implementation status and does
-not repeat completed milestone history. Use the [completion
-matrix](COMPLETION-MATRIX.md) for current claims and the
-[changelog](../CHANGELOG.md) for what changed.
+The roadmap orders work that remains. Use the
+[completion matrix](COMPLETION-MATRIX.md) for current product claims, the
+[v0.4.0 baseline](RELEASE-0.4.0-STATUS.md) for accepted release evidence, and
+the [changelog](../CHANGELOG.md) for implementation history. Versioned
+specifications own exact admission, compatibility, and support boundaries.
 
 SEMAPRAX follows risk rather than feature count. Stable semantic identity,
-sound ownership, replayable change authority, and honest target boundaries take
-priority over broad syntax or generated artifact volume.
+sound ownership, replayable change authority, and explicit target boundaries
+take priority over broad syntax or generated artifact volume. Completing a
+bounded implementation does not reduce the mature-product requirement.
+
+## Current release baseline
+
+The v0.4.0 code baseline is **HOSTED GREEN**. Its published three-archive
+milestone is complete; see the
+[release record](RELEASE-PROCESS.md#040-hosted-release-evidence). Completed
+release checks are regression obligations for future code changes, not an
+unexecuted implementation backlog. Historical local runs retain their original
+subjects, counts, and timings; they are no longer the released implementation's
+only evidence classification.
+
+The full product remains **Partial**. Public package publication, stable API
+support, broader target/provider functionality, and the final validation
+application are distinct from the accepted release. An implemented private
+profile remains private until its owning support decision changes.
+
+The numbered 0.3 and 0.4 headings below retain their established workstream
+names and link anchors. They describe remaining ownership and ecosystem
+outcomes, not unpublished release versions or an unsuccessful v0.4.0 release.
 
 ## Unified semantic program implementation sequence
 
-The active implementation objective spans this entire sequence. Closing the
-GEN-05 internal graph tranche does not complete it. Canonical source,
-ProgramRoot, semantic graph, source Agent, Proposal grammar, deployment,
-executable harness, checkpoint, semantic transaction, target artifact and
-evidence must become authenticated projections of one checked program.
-Completion claims remain owned by the completion matrix and exact evidence.
+Canonical source, ProgramRoot, semantic graph, source Agent, Proposal grammar,
+deployment, executable harness, checkpoint, semantic transaction, target
+artifact, and evidence must be authenticated projections of one checked
+program. Do not introduce a competing static graph or use a runtime receipt
+as mutation, execution, or publication authority.
 
-1. **GEN-05B/C — semantic closure and hosted internal corpus.** Retain exact
-   concrete generic identities, ordered substitutions, ownership and call
-   facts, independently selected cleanup, ProgramRoot association and hostile
-   replay. Preserve old graph/cleanup bytes and public descriptors. Complete
-   the exact Linux evidence for flat composition and scalar dependencies;
-   distinguish historical-byte evidence from current replay determinism.
-2. **GEN-06 — internal generic semantics.** Implement owned `Result` propagation
-   and `?`, nested expression-result composition, explicit non-identity type
-   forwarding, ownership-equivalent result reconstruction, two-owner
-   parameters/results, generic variants, and generic bounded `Box`/`Vec` use.
-   Add constraints and inference only after the explicit forms work. The
-   [Generic Owned Result](GENERIC-OWNED-RESULT-V1.md) tranche begins this work;
-   its initial substitutions are not the whole milestone.
-3. **AGENT-06 — compiled iterative lifecycle.** Implement `AgentStep::continue`,
-   typed suspend/fail, multiple typed effects, effect-specific authorization,
-   checkpoints around every registered effect, state migration between
-   ProgramRoot revisions, direct Runtime-v2 consumption and hosted
-   cross-platform generated Proposal clients. Reuse source Agent declarations,
-   deployment separation and the existing first checkpoint.
-4. **SEG-04 — static and runtime roots.** Connect ProgramRoot, DeploymentRoot,
-   InstanceRoot, EvidenceRoot and ExecutionRevision without introducing a
-   competing static graph. Generic ownership and cleanup must be shared by
-   semantic service, query, Agent context and runtime projections.
-5. **LANG-07 — collections.** Generalize owned payloads, iterators, closures,
-   map/filter/fold, public package use, regions/arenas and target-neutral
-   collection descriptors. Verify cleanup under contract and allocation
-   failures and promote the existing bounded collection foundation.
-6. **STD-08 — Everyday profile.** Deliver composable Reader/Writer, typed Path,
-   `std.fs`, `std.data.json`, `std.format`, structured `std.log`, `std.env`,
-   `std.process`, richer `std.test` and `std.agent` on that substrate.
-7. **ABI-09 — separate public generic programme.** After internal ownership
-   closure, define a versioned target-neutral type grammar, ordered template
-   identities, semantic compatibility and candidate ABI-delta evidence.
-   Generate Rust, TypeScript/Wasm, C and C++ consumers; verify hostile metadata
-   replay, allocation/failure settlement and cross-platform hosted execution.
-   Make the support/publication decision explicitly. Internal generic
-   admission alone never widens a public ABI.
+| Workstream | Released foundation, HOSTED GREEN | Next implementation outcome |
+| --- | --- | --- |
+| GEN-05B/C: semantic closure | Exact concrete generic identities, substitutions, ownership/call facts, cleanup replay, ProgramRoot association, flat/nested composition, and scalar dependency coverage | Preserve the completed internal closure and frozen historical schemas while extending genuinely new generic semantics. |
+| GEN-06: internal generic semantics | Owned Result propagation and `?`, explicit nonidentity forwarding, nested record reconstruction, multiple record owners, authored variants, compiler collections, and argument inference through v3 | Broaden constrained generic semantics, evidence expressions and carrier composition without implicit ownership conversion or public ABI widening. |
+| AGENT-06: iterative lifecycle | Checked Continue/Complete/Suspend/Fail, multiple typed effects, per-turn authorization, Direct Runtime v2, per-operation durable checkpoints, pure/durable State migration, and generated Proposal clients | Extend provider integration, Proposal/result shapes, target execution and maintained packaging; preserve the implemented durable and linked-role paths rather than rebuilding a one-pass bridge. |
+| SEG-04: static/runtime association | ProgramRoot, DeploymentRoot, InstanceRoot, EvidenceRoot and ExecutionRevision associations, exact workspace generation selection, currentness checks, linked Project roles and linked/workspace migration | Complete the broader durable semantic-service lifecycle and shared runtime/tooling projections without making receipts authoritative. |
+| LANG-07: collections | Scalar and Bytes Vec/Box profiles, consuming iterators and loops, owned Bytes traversal, conditional renewal, function values, scalar-snapshot/generic closures, and bounded generic map/filter/fold | Add broader owned payloads, iterator interfaces and lazy adapters, owning captures, general lifetime rules and intentionally supported package/ABI surfaces. |
+| STD-08: Everyday profile | The bundled library includes bounded Reader/Writer, typed Path, filesystem/environment/process I/O, JSON cursors, formatting/logging, byte assertions/snapshots and private linked `std.agent` roles | Complete each required module's remaining scope and target/provider availability, then ship the complete Everyday profile and remaining offline templates. |
+| ABI-09: public generic programme | Existing public profiles remain separately closed; internal generic implementation does not change their signatures | Specify a versioned target-neutral type grammar, ordered template identities, compatibility and ABI-delta evidence before generating and supporting public generic consumers. |
 
-The bounded Owning Iterators v1 tranche is in implementation, not promoted
-LANG-07 completion. It introduces private scalar `Iter<T>` / `IterStep<T>`
-ownership with Prelude v7, CleanupPlan v10, Graph v38, and ProgramRoot replay.
-The local interpreter and C11 O0/O2 corpus has observed all eight scalar
-elements, ordered/empty/exhausted steps, early settlement, private returns,
-contract failure, and forged-cursor rejection. The focused Core-Wasm corpus
-also passes, including repaired match-scope settlement. The authored
-Linux selector is `Require Owning Iterators v1 identity, replay, and backend
-settlement`; it is not hosted evidence. Iterator interfaces, lazy adapters,
-owning payloads, public ABI, and the broader LANG-07 collection goal remain open.
-The additive consuming-loop tranche uses a hidden Step carrier with Graph v39
-and CleanupPlan v11; its local evidence is tracked in the completion matrix.
+The owning references for these released foundations are collected in the
+[release implementation map](RELEASE-0.4.0-STATUS.md#released-implementation-map).
+The following sequence starts from those implementations, not their earlier
+local-only or specification-only status paragraphs.
 
 ## Current priority: post-v0.4 promotion boundaries
 
-The `v0.4.0` prerelease is published from exact commit
-`dfc15e2ddc818fa97744b5a9d69fd6108dd6a321` on 2026-09-10T10:31:03Z; the three
-host-built archives and digests are recorded in the
-[release evidence](RELEASE-PROCESS.md#040-hosted-release-evidence). The prior
-`v0.2.0` prerelease remains published from exact commit
-`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` with all 45 jobs in
-[tag run 33608662244](https://github.com/wavect/semaprax/actions/runs/33608662244)
-passing, including the blocking aggregation, Linux/macOS/Windows archive smokes,
-and final publication; see
-[its release evidence](RELEASE-PROCESS.md#v020-hosted-release-evidence).
+Keep three decisions separate: whether a feature exists, whether its admitted
+release corpus is green, and whether an API/package/target is publicly supported.
+The first two are settled for the implemented v0.4.0 slices. The third remains
+explicit where the owning specification still marks a surface private,
+unpublished, or unpromoted.
 
-That closes the v0.4.0 tag/artifact milestone (and before it v0.2.0), not the
-full product objective.
-The approved distribution split still keeps private-host libraries out of the
-standalone registry package; the released full-toolchain binaries remain
-pre-alpha. Generated Rust/npm packages, Project v8-v10 profiles, transport v5,
-and private platform integrations retain their specification-owned support and
-publication boundaries.
+1. Identify the precise public surface to support: generated Rust/npm packages,
+   Project v8-v11 profiles, read-only transports v5/v6, or a platform adapter.
+   Retain the existing descriptor, HIR, ownership, settlement and legacy
+   compatibility contracts. Do not treat registration or publication as a
+   consequence of a CI label.
+2. Add only the coverage required by a genuinely broader claim: additional
+   browser engines, real devices, architecture/toolchain combinations,
+   installed-archive workflows, or hostile physical hosts outside the admitted
+   release profile. An explicitly ignored test is not selected merely because
+   its harness runs. Conversely, an already selected green gate is not pending.
+3. Complete missing integration, including any still-unimplemented held-image
+   handoff from the signed doctor generation store to the Linux provisioner.
+   Equivalent production confinement on macOS and Windows is a separate
+   implementation problem, not a failed Linux release check.
+4. Record the support/publication decision, its exact version and target scope,
+   and any prerequisite profile decisions. Require fresh evidence for later
+   code changes rather than attributing them to v0.4.0.
 
-The tagged workflow executed the current nonignored repository inventory and
-explicit release jobs across its selected hosts. Remaining work is therefore
-about gates the workflow deliberately does not imply:
-
-1. run explicitly provisioned or ignored archive-consumer, browser-engine,
-   physical-device, and hostile-host cases required by each owning contract;
-2. decide whether and how generated Rust/npm builders and the Project v8-v10
-   profiles become supported or registry-published surfaces;
-3. broaden the line-filter from hosted native and Node/Core-Wasm evidence to
-   real-browser or multi-engine evidence before making that claim;
-4. connect the installed signed-generation store to the authored Linux
-   offline-doctor provisioner through an authority-preserving held-image
-   handoff, execute the real-tool, binfmt/kernel-policy and hostile settlement
-   gates, then implement equivalent tool/input, filesystem/broker, network and
-   descendant closure for macOS and Windows; and
-5. preserve the exact release gate and artifact inventory for every subsequent
-    tag rather than treating v0.2.0 or v0.4.0 evidence as evidence for a later
-    head.
-
-The [v0.2 audit](COMPLETION-MATRIX.md#v02-product-exit-audit) and the new
-[v0.4 audit](COMPLETION-MATRIX.md#v04-product-exit-audit) now record the
-published milestones and their remaining product gaps.
+The full-toolchain archives remain pre-alpha and do not publish workspace-private
+library crates. The source-selected/private-host distribution boundary must
+remain explicit until promoted workflows intentionally hide it from users.
 
 ## Developer preview: promote the authored Project v8 slice
 
-Implementation remains ahead of the intended support sequence: the
-additive [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) Project v8
-profile, npm/Wasm route, safe Rust package route, reference-interpreter lane,
-frame-payload validation product, and read-only Project Agent Transport v5 are
-present in v0.2.0 and their nonignored regressions ran in the exact tag matrix.
-That is hosted regression evidence, not an automatic support or registry
-publication decision. Explicitly provisioned/ignored gates and v1–v7
-compatibility remain mandatory where their owning specifications require them.
+The heading retains its existing link anchor; the Project v8 slice is now
+implemented and **HOSTED GREEN**, not merely authored. Its canonical descriptor,
+reference interpreter, npm/Core-Wasm carrier, safe Rust consumer route,
+frame-payload product, and read-only transport retain the exact
+[Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) contract.
 
-The next outcomes are therefore validation and promotion, not another semantic
-widening:
+Next, decide which generated package and runtime/browser breadth will be
+supported. Preserve v1-v7 known answers, independent descriptor/carrier replay,
+copy-out and failure settlement, private-frame exclusion, baseline/display-rename
+identity and no-clobber publication. The direct-Bytes browser fixture and its
+hostile-input/capacity/authentication cases remain the owning regression gate;
+add engines only for a broader stated support target. Do not infer such breadth
+from the frame-format corpus alone.
 
-1. map each still-ignored or separately provisioned gate to a maintained
-   blocking promotion job rather than inferring it from the general Rust suite;
-2. complete the browser/runtime breadth required by the intended support claim;
-3. preserve descriptor, HIR-link, carrier, settlement, v1–v7 known answers,
-   and baseline/display-renamed consumer identity at the promotion head; and
-4. record an explicit generated-package publication/support decision before
-   describing the bounded API as promoted or supported.
+[Project Agent Transport v5](PROJECT-AGENT-TRANSPORT-V5.md) is the implemented
+read-only descriptor/inline-carrier route. [Transport v6](PROJECT-AGENT-TRANSPORT-V6.md)
+and its [generated SDK](PROJECT-AGENT-TRANSPORT-V6-SDK-V1.md) extend that narrow
+operation class across exactly Project v8-v11. Their implementation evidence is
+hosted green. Support still requires an intentional transport/client packaging
+decision and the prerequisite Project-profile decisions; no read-only method
+acquires write, process, or publication authority.
 
-The real-browser requirement includes the provisioned
-[direct-Bytes boundary fixture](../platform-tests/owned-data-browser-v1/README.md),
-not only the frame-format corpus. Its newly authored hostile-input, capacity,
-artifact-authentication and failure-recovery cases must run on each selected
-engine before promotion; a missing prerequisite is not a successful skip.
+The additive profiles already implemented after v8 are:
 
-The authored additive read-only [Project Agent Transport
-v5](PROJECT-AGENT-TRANSPORT-V5.md) exposes only the canonical API descriptor and
-bounded inline npm carrier. Promotion must still prove exact revision and typed
-descriptor replay, zero write/process/publication authority, and byte-frozen
-v2–v4 behavior before any broader agent workflow is considered.
+| Profile | Existing bounded implementation | Remaining support boundary |
+| --- | --- | --- |
+| Project v9 | [Flat owned records](PUBLIC-FLAT-OWNED-RECORD-API-V1.md), ordinary profile admission, descriptor-bound Wasm/npm and native/Rust routes, and the [safe C++ adapter](PUBLIC-FLAT-OWNED-RECORD-CXX-ADAPTER-V1.md) | Explicit v9 promotion, maintained packages and additional aggregate/physical-host scope required by that decision. |
+| Project v10 | [Owned UTF-8](PUBLIC-OWNED-UTF8-API-V1.md), exact-length validated strings, native/Wasm ownership and consumer settlement | Prerequisite v9 promotion and an explicit v10 support decision; raw Bytes and validated String remain different contracts. |
+| Project v11 | [Nested owned records](PUBLIC-NESTED-OWNED-RECORD-API-V1.md), stable-field-ID paths, private multi-handle carriers and bounded multi-owner settlement | Prerequisite v9/v10 decisions and explicit v11 package/support scope. |
 
-The additive read-only [Project Agent Transport
-v6](PROJECT-AGENT-TRANSPORT-V6.md) carries the same narrow operation class
-across exactly Project v8-v11 with manifest-selected typed descriptor/carrier
-bindings. It is implementation and focused evidence, not promotion: complete
-hosted and generated-client conformance and the prerequisite v9-v11 package
-support decisions remain sequenced before a supported public-agent API claim.
+The v8 boundary still excludes authored records/variants, nested algebraic data,
+owned UTF-8, allocator transfer, callbacks, async work and general aggregate ABI.
+Their existence in later or private profiles does not widen v8. The
+[profile-admission dispatcher](PROJECT-PROFILE-ADMISSION-V1.md) remains the
+ordinary Phase-A authority-neutral gate; it is not itself promotion.
 
-Records, authored variants, nested algebraic data, owned UTF-8 strings,
-allocator transfer, callbacks, async work, and general public aggregate ABIs
-remain outside the Project v8 preview. Project v9 flat owned records and
-Project v10 owned UTF-8 are additive implementation tranches, not promotions
-of the Project v8 preview; internal record/variant support is not a public
-aggregate ABI.
-Project v11 nested owned records are likewise an additive implementation
-tranche and remain blocked on explicit v9 and v10 promotion decisions.
-The versioned specification owns exact identifiers, admission, lifetime,
-compatibility, and promotion gates.
-
-The first controlled widening after that promotion is the additive
-[Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md): one
-monomorphic result record with exactly one direct `Bytes` field and only direct
-`i64`/`bool`/`usize` siblings. Its descriptor and host projections must remain
-layout-independent. Its descriptor-bound npm/Core-Wasm and
-native-provider/safe-Rust routes are now wired while preserving the v8 target
-routes. Their nonignored regressions ran in the v0.2.0 tag matrix; the
-descriptor-derived safe C++17 value adapter now has local real-provider O0/O2
-evidence while keeping its carrier and byte handle private. The generated
-packages are still unpublished, and explicit promotion remains outstanding.
-
-The authority-neutral [Project Profile Admission
-v1](PROJECT-PROFILE-ADMISSION-V1.md) dispatcher is now authored as the sole
-ordinary Phase-A profile gate. It routes the existing v9 descriptor and Wasm
-adapter through normal Project construction and Revision Store replay while
-preserving v1-v8 and v10 schemas. Its focused nonignored evidence ran in the
-tagged Rust inventory but does not promote or publish any Project profile.
-
-The next additive string tranche is specified by
-[Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md). Project v10 is gated
-on promoted Project v9 and keeps raw `Bytes` distinct from length-delimited,
-strictly validated host strings. Its implementation and executable evidence
-likewise have exact-tag regression coverage while remaining unpublished.
-Neither tranche is promoted, and regression execution alone is not a
-publication or support decision.
-
-Project v11 is the next additive, still-unpromoted tranche described by
-[Public Nested Owned-Record API v1](PUBLIC-NESTED-OWNED-RECORD-API-V1.md). It
-uses complete stable-field-ID paths and private multi-handle carriers for
-bounded acyclic result records; it adds no public aggregate ABI and does not
-promote or widen v8-v10.
-
-Before string promotion, execute the v10 inline Wasm ownership and derived
-arena-capacity regressions together with the native provider's physical
-allocation-settlement and sanitizer regressions, and establish cross-backend
-settlement evidence. Execute the separate authored ordinary/stdout native
-cleanup and embedded-NUL contents corrections, then resolve ordinary Wasm
-String settlement. The explicitly amended
-[owned-data provider correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
-extends native cleanup/contents to already admitted standalone SDK internal
-Strings, including emitted unselected functions; execute its physical and
-external-consumer gates without inferring wider Project admission. Frozen
-command/callable String limitations remain separate.
-Do not widen the existing literal/direct-call admission to make a fixture pass.
+Native and standalone-Wasm internal String cleanup/contents corrections are
+implemented. Preserve their existing physical allocation, failure, exact-length,
+embedded-NUL, sanitizer and external-consumer gates. Broaden ordinary or public
+String admission only through the owning contract, not to make a fixture pass.
 
 ## Graph-operational development foundation
 
-Source-native Agent compilation now reaches the existing bounded Lifecycle v1
-without a separately supplied AgentDefinition: one checked `.spx` Agent is
-selected by stable identity, lowered through the frozen v1 compiler, and
-replayed against both lifecycle bytes and semantic source revision. Generated
-Proposal record and variant clients also have an authored provisioned Linux
-gate that strict-compiles and executes TypeScript, Python, and offline Rust,
-then re-admits every emitted document through the canonical decoder. Next run
-that combined gate on a pushed revision, then extend the lifecycle beyond one
-acyclic pass and its single injected read; do not infer compiled model/effect
-roles, Runtime v2, packaging, public ABI, provider transport, or cross-platform
-support from this bridge.
+The [graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md) remains the
+complete requirement ledger. Its bounded implemented slices have the accepted
+release evidence; operation count and generated artifact volume do not complete
+the programme.
 
-Source-backed [candidate archives](PROJECT-CANDIDATE-ARCHIVE-V1.md) and their
-explicit [immutable store](CANDIDATE-ARCHIVE-STORE-V1.md) now author recovery
-without the original raw checkout. Execute source/capsule remint rejection,
-private-root/no-clobber/stage/post-pivot cases, and startup historical-candidate
-rebase before promoting persistence. Host-policy v3 selects existing archives
-before frames without restoring approval or making old source current.
-An explicit private-root retention registry now authors consecutive durable
-checkpoint/plan metadata from successful typed store receipts, with exact
-cursor recovery and no subject restoration or deletion. An opt-in
-[host lifecycle coordinator](SEMANTIC-RETENTION-HOST-LIFECYCLE-V1.md) now holds
-that startup-selected root identity and checkpoints successful typed
-image/candidate/draft receipts without obscuring store success when registry
-publication fails. An opt-in [v5 session attachment](SEMANTIC-RETENTION-PROTOCOL-SESSION-V1.md)
-holds the coordinator for the embedding-session lifetime. A separate optional
-[candidate archive-store route](IMAGE-CANDIDATE-ARCHIVE-STORE-PROTOCOL-V1.md)
-holds a distinct startup-selected private store, persists one exact retained
-complete candidate and automatically checkpoints only its successful typed
-receipt. Requests select neither root, and registry failure never negates store
-success. The additive [automatic durable candidate/draft
-lifecycle](AUTOMATIC-CANDIDATE-DRAFT-LIFECYCLE-V1.md) now composes both held
-roots for complete candidates and incomplete drafts. It can reconstruct an
-exact typed receipt from an immutable archive stranded before checkpointing,
-advance once after explicit cursor recovery, or recognize the exact subject as
-already retained without weakening ordinary no-adoption publication. This is a
-host-library boundary; workspace-session startup integration, warm HIR loading,
-separately authorized eviction/GC and measured recovery cost remain future
-work.
+### Agent execution and revision changes
 
-The additive [workspace protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md) now composes
-host-selected semantic, candidate, diagnostic, test, pathless-build and optional
-startup-approved Git publication slices. Execute the capability-denial matrix,
-legacy-preservation cases, cold refresh failures, retained-candidate/cleared-draft
-lifecycle, carrier replay and publication uncertainty cases before promotion.
-The [typed clients and schema bundle](IMAGE-AGENT-DISCOVERY-V5.md) still need
-executed cross-language checks and completion of explicitly opaque payload
-references; outer parameter typing is not complete semantic-report validation.
+Build on source-owned Agent declarations, checked interaction facts, generated
+Proposal clients and the current [typed iterative runtime](AGENT-RUNTIME-V2.md).
+The old one-pass lifecycle and frozen Runtime v1 compatibility adapter remain
+compatibility profiles, not the current implementation ceiling.
 
-The bounded AGENT-04 [Proposal-to-Runtime v1 compatibility
-adapter](AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md) closes only the manual
-fixture wrapper from an exact decoded Proposal record or Copy-scalar variant
-to the frozen Runtime v1 final message. Runtime v1 remains frozen, and no
-Proposal case or field becomes a Runtime action or tool selection. Next Agent
-outcomes remain direct provider Proposal input, generated tool-action/schema
-integration, broader Proposal shapes, hosted/cross-platform generated-client
-execution, iterative typed lifecycle execution beyond the source-selected
-one-pass bridge, and an independently versioned Runtime v2 that consumes
-semantic Agent facts directly.
+Per-operation checkpoints, trusted-store recovery, pure State migration,
+persisted handoffs, repeated migration chains, imported Project roles and
+workspace associations are implemented. Preserve consumed per-turn grants,
+exact root/invocation binding, nonrefundable cumulative work, zero redispatch
+of recorded observations and refusal of uncertain intent. Next outcomes are
+broader providers and nominal Proposal/result shapes, native/Wasm Agent-stage
+execution, supported packaging/public ABI, distributed writer coordination,
+automatic reconciliation and any stronger cross-store handoff contract.
+Ordinary library execution on native/Wasm is not Agent-stage execution there.
 
-For source publication, preserve the supported two-session workflow: review and
-export first, then use a new independently host-approved commit session to restore
-and publish the exact candidate. No request or later approval may relax the
-startup authority boundary; provider deadlines are not reset. Broader interactive
-approval lifecycle, long-lived publication authority and raw-checkout integration
-remain future work requiring explicit contract decisions.
+### Semantic changes, queries and service lifecycle
 
-The [integrated Git workflow](PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md) now
-authors signature migration, sibling merge/conflict, source/semantic review,
-explicit interpreter test requests and separate v5 commit sessions using real
-bare SHA1/SHA256 Git providers. Execute both formats and stale-ref/approval
-cases before treating this as the requested demonstrated vertical slice. Its
-Copy/scalar fixture and target projection assertions do not establish general
-owned-resource, external ABI, native/Wasm runtime, or physical race coverage.
+Existing image, candidate and draft APIs provide bounded typed changes,
+replayable deltas, holes, static conformance, diagnostic repair, signature and
+field migration, cross-file moves, rebase/merge, tests and source review. The
+universal transaction family is separately scoped: [v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md)
+adds revision-scoped authored-body ReplaceExpression, and
+[composition v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md) adds its exact
+structural diff, rename rebase and ordered sibling-rename merge. Do not describe
+all composition as missing, or those admitted operations as general merging.
 
-Live refresh now has an opt-in source-authenticated frontend-cache route; it
-avoids repeated parsing/formatting for unaffected modules while rebuilding all
-checked HIR and linked semantics. An embedding-host API also batches immutable
-image/discovery reads on bounded scoped workers with ordered results and final
-source authentication; the CLI stream remains sequential. Execute cold/cached
-equivalence, rollback, physical-source hostility and parallel-order/drift cases
-before promoting either mechanism. Candidate builds
-produce bounded Web/npm artifact reports through actual existing carrier
-construction/replay. Warm checked-HIR reuse, filesystem artifact materialization,
-general package-consumer relationships and measured task-level cost improvements
-remain open. No compiler, test, client snippet, benchmark or hosted gate was run
-for this v5 batch; the full programme stays Partial.
+Extend these into general ownership-sensitive intentions, broader interfaces,
+contracts, semantic conflict handling and incomplete-expression states.
+Comments and unrelated trivia must be preserved by any newly claimed editing
+route. Exact nominal/field/case identity and caller-independent replay remain
+required. Static protocol mappings do not implement runtime interfaces or
+dynamic dispatch.
 
-The additive ProgramRoot-v2 exact context now remains selected through
-authority-free query and transaction replay and bounded service-history reads
-without changing the frozen v1 wires. The next SEG-02 lifecycle step is still
-candidate-safe Project Lock replay: until that is available, candidate
-ProgramRoot-v2 derivation and exact service refresh must continue to fail
-closed rather than copy or weaken external facts.
+ProgramRoot v2/v3, exact context, query/transaction replay and retained
+service-history selection already compose through the implemented semantic
+service. The separately versioned [stdio](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md)
+and [MCP](PERSISTENT-SEMANTIC-SERVICE-MCP-V1.md) facades expose their bounded
+authority-free routes. Complete candidate-safe dependency-lock integration
+where a route still rejects it; do not copy old external facts into a successor.
+Broader durable/shared service state, warm checked-HIR reuse, incremental
+semantic invalidation/rechecking and measured complete-workflow savings remain
+separate from the implemented exact-source frontend cache.
 
-ProgramRoot v3 separately associates ordered compiler-derived contract facts
-and the declared executable test inventory without relabeling either as proof,
-coverage, or execution. Exact Program Context v2 now carries the versioned
-workspace/v3 selector through typed operations and admits a candidate-safe
-exact service refresh only after independent successor-context replay against
-the frontend-built Project. It preserves every existing operation, receipt,
-and history wire; successor facts are freshly supplied and replayed rather
-than implicitly copied from the current generation. Durable
-service state, transport exposure, execution, commit, and publication remain
-later lifecycle steps.
+### Recovery, retention and publication
 
-Universal Semantic Transaction v2 now promotes exactly one additive operation:
-revision-scoped authored body `ReplaceExpression` for explicit monomorphic
-source functions, including `main`. Core, persistent-service ordinary and exact
-ProgramRoot-v2/v3 routes, and the one-shot `change preview` adapter remain
-authority-free and preserve v1 bytes. Contract or implicit-node replacement,
-generic/synthetic/imported targets, comments/trivia-preserving editing,
-multi-operation composition, commit, and publication remain later work.
+Source-backed images, candidate/draft archives, held private stores, typed
+receipts, retention checkpoints, startup selection and the automatic durable
+candidate/draft lifecycle are implemented. Their recovery rebuilds checked
+source; it does not restore write approval, make historical source current or
+constitute warm HIR persistence. Complete workspace-session startup integration,
+authorised eviction/garbage collection and measured recovery cost without
+weakening no-clobber or no-adoption rules.
 
-Actual source-exact parse/format reuse, expression holes, owning-Bytes parameter
-mapping and typed diagnostic repair history now have authored implementations.
-Separate canonical Git publication now has bounded Linux/macOS bare SHA1/SHA256
-routes; Linux executes the held image in the held repository, while macOS admits
-only a suspended launch that attests the held executable vnode and cwd before
-resume. Both close ambient descriptors/environment and prove leader reap and
-group quiescence before ordinary return. Validate both formats, exact readback/content bindings,
-substitution/settlement hostility and ref-race failures before promotion, then
-extend host/checkout interoperability without granting process or publication
-authority to query sessions. Same-principal repository-content mutation remains
-outside this boundary. Full incremental semantic checking, warm cross-process HIR,
-general interfaces and measured complete workflows remain exit conditions.
+Preserve the supported two-session publication workflow: review/export, then
+restore and publish through a new independently host-approved commit session.
+No request or later approval can relax startup authority, and no retry resets
+an external provider's deadline. Managed `ACTIVE` publication remains distinct
+from canonical Git publication and from visibility to arbitrary raw-path readers.
 
-All eleven requested operation classes now have bounded authored slices. The new
-[static conformance](STATIC-PROTOCOL-CONFORMANCE-V1.md),
-[interface intention](PROJECT-INTERFACE-CHANGE-V1.md) and
-[source-sidecar queries](IMAGE-PROTOCOL-CONFORMANCE-V1.md) need executed
-source round-trip, missing-member/signature rejection, candidate replay and
-frozen runtime-Graph/protocol compatibility evidence. Their static mappings may
-now import an exact receiver, protocol and member-function set into an explicit
-Project destination, while protocol imports stay outside runtime HIR and Graph.
-They do not establish runtime interfaces or dynamic dispatch. Broaden ownership,
-contracts and generic conformance only after that bounded evidence exists;
-operation count does not reduce the full-goal acceptance criteria.
+The admitted integrated Git workflows and Linux/macOS bare SHA1/SHA256 providers
+are implemented with hosted-green release evidence. Maintain exact readback,
+content/ref association, held executable/repository identity, failure settlement,
+leader reap and group quiescence. Broader checkout/host interoperability,
+interactive approval, long-lived publication authority and same-principal
+repository-content hostility remain separately scoped work.
 
-Source-backed image storage/refresh, semantic delta replay and diagnostic
-protocol v4 now have exact-tag nonignored regression coverage. The integrated
-signature workflow reaches separate managed `ACTIVE` publication only.
+### Supported clients and editor workflows
 
-The closed `function_signature_review_publish_v1` workflow now has exact-subject
-local evidence for generated TypeScript, Python, and Rust clients, bounded
-reference-interpreter tests, source-backed recovery handoff, separately approved
-real local bare SHA-256 Git publication, receipt inspection, and ten hostile
-transitions. This does not generalize signature migration, prove native/Wasm or
-deployed runtime behavior, or select MCP/editor, hosted/cross-platform,
-full-quality, or task-economics gates. Warm/incremental reuse, general
-interfaces and intentions, broader canonical-source publication, and
-representative measured workflows remain exit conditions; Phase 1 and the
-programme stay Partial.
+Generated TypeScript, Python and Rust clients, typed application diagnostics,
+per-step response accountability, the bounded supported signature workflow,
+source-backed recovery handoff, the zero-authority workflow package, and its
+MCP adapter are implemented. Their admitted release evidence is hosted green;
+local bare-Git transcripts remain local transcripts with their original subject.
+A package transport does not by itself establish registry support, every MCP
+host or broader workflow semantics.
 
-The selected workflow now also has closed per-step response accountability,
-typed v5 application diagnostics in all three generated clients, and a
-domain-separated generated-client contract revision. The zero-authority
-`@semaprax/agent-workflow` package composes that surface into the exact review
-and separately approved publication sequence; its explicitly provisioned local
-Unix raw-v5 gate passed offline pack/install, package-name import, real stdio
-sessions, and local SHA-256 Git publication. A zero-authority package transport
-now composes the same generated codec through pinned MCP initialization and
-`tools/call`; the owning real `serve-workspace-mcp` review/publication gate is
-authored but unrun. Automatic repair remains unavailable for
-this signature change and is exposed as an empty typed compiler catalogue; a
-semantic rejection separately offers only the non-executing typed
-`start_new_review_with_different_intention` transition. Real Extension Host
-task execution, MCP Tasks or other general scheduling,
-registry/hosted/cross-platform support, broader workflows, and full programme
-evidence remain open Phase 1 work. One bounded candidate-test task now supplies
-cooperative cancellation and source/session invalidation through v5, ordinary
-MCP tools, and the editor controller without making publication cancellable.
-
-The complete requirement ledger is the
-[graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md). Image facets,
-read-only/candidate-only protocol discovery, immutable typed candidate previews,
-body-hole drafts and ordered Copy signature mapping are now authored additions,
-not verified completion. Extend those bounded forms into general operations,
-broader ownership-sensitive signature migration and incomplete-expression states.
-Expression replacement, additive contracts and conservative stable-ID
-rebase/merge now have exact-tag nonignored regression coverage; broaden these alongside
-general declaration/record/interface operations and full semantic conflict coverage;
-broaden and validate the separately authorized test/build/source-commit slices; then
-establish incremental reuse, persistence, general semantic reconciliation, and representative
-task-level benchmarks without reducing the original goal.
-
-Typed function creation, immutable Copy-capture extraction and complete
-candidate recovery capsules now have exact-tag nonignored regression coverage. Extend their bounded
-forms without treating source-replayed recovery as warm HIR persistence or
-complete session/draft recovery.
-
-Cross-file scalar function moves and Copy record-field migration now have
-exact-tag nonignored regression paths. Continue beyond the bounded static interface and
-replayable diagnostic repair slices into general conformance, repair classes
-and ownership-sensitive changes. New data-access and audit HIR
-facets still need reverse dependency indexes and candidate deltas; current
-Project unsafe admission is unchanged.
-
-Candidate test relevance/execution, rejected-attempt diagnostics and the bounded
-managed-publication bridge have exact-tag nonignored coverage. Execute the separate canonical
-Git publication scenarios, then broaden general repair/interface operations and the integrated signature-evolution
-demonstration before claiming the agent workflow complete. Interpreter reports
-must not substitute for native/Wasm conformance or hosted full gates.
-
-The first [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
-foundation has exact-tag nonignored regression coverage: immutable retained Project/HIR state, canonical
-rebuildable image bytes, typed stable-ID lookup, and bounded existing analysis.
-Canonical `.spx` remains the Git and human-review authority. Retain the tagged
-replay, drift, capacity, compatibility, and zero-write evidence and complete
-any separately provisioned gates before promotion. Then separately specify incremental invalidation/rechecking,
-revision-bound edit operations and deltas, typed holes, and representative
-performance/token measurements. No persistent cache or general graph mutation
-is implied by the first image, and the full programme remains Partial.
+Complete the explicitly opaque payload references before claiming full
+semantic-report validation. Extend editor task execution, packaging and host
+breadth deliberately. Preserve the bounded candidate-test task's cooperative
+cancellation and source/session invalidation without making publication
+cancellable. The signature-change repair catalogue remains empty where the
+compiler cannot soundly generate a repair; a suggested new review is not an
+executed repair. General scheduling, broader repairs and representative
+end-to-end task/token economics remain open.
 
 ## 0.3: ownership and fast development
 
-Goal: make the language safer and faster to iterate on without widening public
-ABIs prematurely.
+Goal: complete language safety and the fast development loop without widening
+public ABIs prematurely. This is a retained workstream name, not a pending
+v0.3 release.
 
 ### Language and ownership outcomes
 
-- generalize unique ownership beyond the current bounded Copy, string, byte,
-  resource, flat owned-byte record, and flat owned-byte variant slices; the
-  authored [Acyclic Nested Owned-Byte Records
-  v1](NESTED-OWNED-BYTE-RECORDS-V1.md) is the next internal movement/cleanup
-  tranche; the additive [Nested Exact Destructuring
-  v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) extends it with bounded recursive
-  `match own`/`match borrow`; the additive [Nested Immutable Update
-  v1](NESTED-OWNED-RECORD-UPDATE-V1.md) then adds bounded top-level
-  reconstruction without admitting mutation or public layout. All remain
-  unpromoted until their complete three-engine gates run;
-- use the bounded [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) as the
-  independently replayed proof foundation; the exact-tag nonignored
-  [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
-  admits one direct `Bytes` field; Graph v32/v33 now compose owned-variant
-  cleanup with unprojected or stable-field-projected loans without masking
-  either contract, while the nested-record tranche authors
-  bounded multi-field paths; general lifetime inference, mutable borrowing,
-  escape analysis, variants and public borrowed ABIs remain later work;
-- make cleanup plans cover general control flow, nested aggregates, calls, and
-  FFI with independently replayed exactly-once behavior;
-- build beyond the locally executable internal
-  [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) only after
-  specifying loop-driven fill or growth and wider element meaning; its exact
-  interpreter/native/Core-Wasm write-once evidence does not create a public
-  Project/FFI layout, `std.*` surface, or hosted/browser support claim;
-- integrate regions/arenas and opt-in shared immutable ARC only after their
-  proof models have executable language and runtime counterparts;
-- define restricted raw-memory operations and an auditable `unsafe` policy;
-- extend aggregate, `Option`, `Result`, and matching beyond the exact
-  [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) profiles,
-  retaining the locally exercised flat [Concrete Generic Owned-Byte Records
-  v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) composition and its exact
-  cross-file Project execution behind the unchanged scalar-only v8 boundary
-  plus the bounded acyclic one-owner-identical-return authored-record relay.
-  Its focused local corpus exercises `Box<Pair<Bytes,T>>` and
-  `Pair<Box<Bytes>,T>` over all eight explicit Copy scalars. A dedicated named
-  Linux step now carries exact nested-relay and identity-forwarding selectors
-  and is hosted green in CI run 34048713967, Ubuntu job 101528399406. ScalarV1
-  exact reachable bodies may now compose the flat generic-owned record
-  internally, independent of provenance, while callable and public signatures
-  stay value-scalar. One exact
-  Subject-v3 dependency provides cross-package evidence through
-  `fn() -> i64`; the slice changes no package or Wasm schema. Direct acyclic
-  identity forwarding between already-admitted generic templates now derives a
-  transitive concrete-instance closure of at most 256 entries locally without widening bodies,
-  signatures, effects, packages, or public ABIs. Additive Graph v34 instance
-  ownership, independent cleanup-schema replay, bounded Agent Context v2
-  queries, and SemanticProgram-v2/ProgramRoot binding are implemented. The
-  bounded GEN-05B/GEN-05C tranche is complete: the independent
-  `GEN-05B generic instance semantic closure` Linux job passed on implementation
-  commit `c27d06f0cf74749804237a43cc71c248b319cfe0` in
-  [run 34058787739, job 101555489228](https://github.com/wavect/semaprax/actions/runs/34058787739/job/101555489228).
-  The [owning evidence status](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md)
-  records the exact scope; broader generic semantics and public ABI remain
-  separate milestones. Frozen Graph v14 consumers retain their bytes.
-  Direct-scalar and pure flat whole-owner relays retain CleanupPlan v2;
-  explicit flat record matching selects v5, and nested-owned relays select v7. The completed local flat expression tranche
-  composes one owner into the identical result over all eight Copy scalars via
-  projection, top-level immutable update, a borrow match returning a bound
-  Copy field, and an own match reconstructing the same owner. Its focused gate
-  covers update/reconstruction failure settlement, hostile HIR/backend
-  mutation replay, repeated interpreter/native O0/O2/Core-Wasm execution, and
-  no added aggregate `memory.copy` against the direct-relay baseline. Continue
-  with nested expression-result composition, standalone constructors,
-  consuming projections, authored generic variants, broader non-Copy
-  propagation, explicit Graph/schema work if required, and a distinct public
-  generic ABI;
-- complete mutation and generic interactions across interpreter, native, and
-  Wasm lanes.
+The released foundation includes bounded concrete/generic owned records,
+recursive destructuring and immutable update, owned variants and Results,
+shared/projected loans, synchronous borrowed calls, byte buffers, Vec/Box,
+consuming iterators and the current function-value/closure profiles. Preserve
+their admitted interpreter, native C11 O0/O2 and Core-Wasm behavior and exact
+source/HIR/graph/cleanup/ProgramRoot replay.
+
+Next outcomes:
+
+- Generalize ownership and `?` across additional nested carriers, calls, control
+  flow and FFI. Extend generic constraints, inference and result composition
+  beyond their explicit current domains; nominal reconstruction is not a
+  layout-based cast. Retain all-eight-scalar, multi-owner and nonidentity
+  forwarding regressions and the concrete-instance closure bound.
+- Extend borrowing with general lifetime inference, mutable/escaping borrows,
+  cross-file lifetime meaning and intentionally public borrowed APIs. Preserve
+  the implemented projected/nested shared-loan paths and exact no-use-after-move
+  diagnostics.
+- Extend collections beyond the current scalar/Bytes payloads and exact
+  capacity/renewal rules. General iterator interfaces, associated types, lazy
+  adapters, owning closure captures, general collection mutation and public
+  generic descriptors remain distinct from the implemented bounded loops and
+  map/filter/fold helpers.
+- Give regions/arenas and shared immutable ARC executable language/runtime
+  counterparts. Proof/report models do not perform allocation or physical
+  finalization. Define restricted raw-memory operations and an auditable unsafe
+  policy before claiming general raw-memory support.
 
 ### Development-loop outcomes
 
-- retain the tagged nonignored [standalone Wasm String settlement](WASM-INTERNAL-STRINGS-V1.md)
-  compiler/arena/facade and cross-backend corpus and complete its separately
-  provisioned gates before promotion; its explicit
-  scalar boundary and bounded acyclic closure do not replace the separate
-  ordinary-Wasm, general owned-value or Component Model completion gates;
-- retain the tagged nonignored explicit [internal String Web package](WASM-INTERNAL-STRINGS-WEB-V1.md)
-  CLI, bounded publication and Node/TypeScript/browser consumer coverage, then
-  complete any separately provisioned engine gates;
-  this packages the selected runtime, not general String-valued public APIs,
-  Project integration, browser isolation or ordinary-Wasm settlement;
-- retain the tagged nonignored [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
-  conformance route and strict report replay gates; broader interpreter
-  entry values and Project integration require their own explicit admission
-  decision rather than silently widening older profiles;
-- complete separately provisioned gates and explicitly promote the retained
-  [Prepared Project Interpreter and Source Trace v1](PROJECT-PREPARED-INTERPRETER-V1.md),
-  then evolve it into incremental refresh without weakening revision binding;
-- retain the tagged nonignored [same-worker revision replacement](PROJECT-PREPARED-REVISION-REPLACEMENT-V1.md)
-  stale-base, failure-preservation, and worker-lifecycle evidence and complete
-  its remaining promotion gates before using
-  it as an editor integration boundary; incremental parsing/linking and
-  dependency-aware cache reuse remain separate work;
-- extend its expression-origin trace into source-level debugger and diagnostic
-  mapping across target runtimes;
-- mature the tagged nonignored
-  [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md), which persists
-  exact authenticated Project inputs only through one injected trusted,
-  current-euid-owned `0700` held root under an explicit host-exclusive
-  same-principal, ancestor, and Darwin-ACL mutation precondition; its authored
-  hardening keeps persistence fail-closed while allowing unrelated reads past
-  one untraversed inert stage identity and exposes only an authority-neutral
-  locator for full-replay ambiguity resolution. The additive exact-tag nonignored
-  [Windows-entry-v1 authority](PROJECT-REVISION-STORE-WINDOWS-V1.md) preserves
-  ordinary Unix-v1 bytes through a separate schema and explicit APIs. It
-  accepts only fixed local NTFS under exact effective-SID and
-  protected-DACL admission, relative held handles, a validated identity mutex,
-  and one non-replacing handle-relative publication pivot. It deliberately remains
-  neither an ambient cache nor a verifier bypass;
-- broaden context and impact edges beyond the current bounded call and
-  workspace families;
-- measure semantic-context cost and usefulness on representative repositories
-  and actual model tokenizers.
+Build on the implemented internal-String interpreter/Wasm/Web-package routes,
+prepared Project interpreter/source trace, same-worker revision replacement,
+revision stores and exact-source frontend-cache reuse. These are not pending
+first hosted execution. Their bounded admission and support decisions remain
+owned by their specifications.
+
+Complete incremental semantic checking and dependency-aware invalidation,
+warm cross-process HIR reuse, source-level debugging/profiling and target-runtime
+trace mapping. Broaden context and impact edges and measure useful task-level
+savings with representative repositories and actual model tokenizers.
+
+Preserve Unix and Windows revision-store authority as separate explicit
+contracts. A held authenticated input store is neither an ambient cache nor a
+verifier bypass; Windows SID/DACL/NTFS handling is not inferred from Unix
+permissions. Recovery and source refresh must preserve prior state on rejection.
 
 Exit condition: representative owned applications pass the same success,
-failure, cleanup, and contract corpus through the development, native, and
+failure, cleanup and contract corpus through development, native and
 WebAssembly lanes, with stable source/graph migrations.
 
 ## 0.4: components, packages, and interoperability
 
-The first bounded offline lock is implemented as a read-only graph over an
-explicit finite set of integrity-bound Package Report subjects. It establishes
-canonical coordinates, dependency-first order, graph rejection, exact target
-intersection, and declared-capability closure without a registry, fetch,
-resolver, scripts, compilation, or publication authority. Its nonignored gates
-ran in the `v0.2.0` tag matrix, and it is not yet the production package manager described by this
-milestone.
-
-An additive Semantic Package Report v2 implementation is also covered by the
-nonignored `v0.2.0` tag matrix but remains unpromoted. It makes the report
-subject self-contained and source-authenticated and
-projects stable type, ownership, effect, structural-contract, reachable-type,
-and ternary target facts. Compatibility classification remains a subsequent
-stage and no milestone status is promoted.
-
-An additive source-authenticated Lock v2 and stable-ID-only Compatibility
-Evidence v1 are authored above Report v2. Their nonignored regression coverage
-ran in the `v0.2.0` tag matrix; unknown semantic closure or lock context drift
-remains indeterminate and the milestone is not promoted.
-
-An additive Offline Deterministic Package Resolver v1 is authored above those
-exact V2 subjects. It selects a first-feasible, bounded, source-replayed graph
-under strict semantic-version, target, and declared-capability policy and emits
-one independently replayed Lock-v2 result. Its nonignored regression coverage
-ran in the `v0.2.0` tag matrix. It is not acquisition, a registry/cache, a
-published lock workflow, a
-build sandbox, target execution, trusted provenance, or runtime capability
-enforcement, so the milestone remains unpromoted.
-
-An additive Offline Published Semantic Lock Snapshot v1 now captures exact
-Resolver-v1 input, unchanged resolution evidence, and unchanged Lock-v2 bytes,
-then optionally publishes that fixed three-file inventory into one fresh local
-directory through the existing safe lower authority state machine. Its
-nonignored hostile replay, bound, and publication evidence ran in the `v0.2.0`
-tag matrix. This is not an
-updateable package lock workflow, registry/cache, trusted provenance, build,
-target execution, or sandbox, so 0.4 remains unpromoted.
-
-Additive Subject/Lock v3 and Resolver v2 are authored as the bounded
-package-authenticated dependency-range prerequisite. They add exact, tilde,
-and caret constraint intersection and bind every selected version back to its
-authenticated requirement. Their nonignored regression evidence ran in the
-`v0.2.0` tag matrix but remains unpromoted;
-general compatibility negotiation, acquisition, registry/cache, supported
-publication, and trusted provenance remain later work.
-
-An additive Offline Effect-Free Scalar Core-Wasm Package Build v1 is authored
-above exact Resolver-v1 replay. Its intentionally narrow first slice accepts
-one dependency-free selected Subject v2, replays the embedded canonical source,
-emits the unchanged scalar Core-Wasm profile, authenticates the exact runtime
-import/export inventory, and returns canonical manifest/evidence bytes. A
-separate safe crate provides create-new exact-inventory local publication after
-independent replay. Its nonignored hostile wire, association, cross-pairing,
-bound, and publication evidence ran in the `v0.2.0` tag matrix. This is not
-multi-package source
-linking, acquisition, a registry/cache, trusted provenance, runtime execution,
-capability enforcement, or a hermetic sandbox, so 0.4 remains unpromoted.
-
-An additive Offline Multi-Package Source Capsule v1 is authored above exact
-Resolver-v1 replay. It admits two through four effect-free scalar packages,
-requires the source-derived import graph to equal the selected Subject-v2
-dependency graph, exact-compares normalized Report-v2 interfaces, binds an
-explicit root and only its explicit exports, and retains the ordinary linked
-HIR behind a crate-private replay seam. Its nonignored focused evidence ran in
-the `v0.2.0` tag matrix. It is
-not a package build, acquisition, publication, provenance, target execution,
-runtime enforcement, or hermetic sandbox, so 0.4 remains unpromoted.
-
-An additive Linked Scalar Core-Wasm Package Build v2 now consumes only that
-capsule's exact replay receipt and retained linked HIR. It binds the selected
-package closure, explicit root and root-owned exports, source-set/link facts,
-and distinct canonical v2 manifest/evidence around the unchanged scalar Wasm
-emitter. The safe publisher reuses the v1 held-authority state machine rather
-than adding platform authority. Two-package, hostile cross-pair/mutation,
-fixed-point/boundary, and publication-settlement evidence has nonignored
-exact-tag coverage; no target conformance, acquisition, trusted provenance, or hermetic
-sandbox is claimed, so 0.4 remains unpromoted.
-
-Goal: turn bounded reports and private host evidence into a supported,
-versioned ecosystem surface.
+Goal: turn the implemented bounded ecosystem into intentionally supported,
+versioned package and host surfaces. The v0.4.0 artifact release is complete;
+this wider ecosystem objective remains Partial.
 
 ### Package outcomes
 
-- interface-first manifests that carry the bounded resolver into a published
-  lockfile workflow with target matrices, capability closure, provenance,
-  licenses, and reproducible artifact records;
-- retain the exact-tag source-capsule, linked-build-v2, shared-publication, and
-  build-v1 preservation evidence and complete their separately provisioned gates;
-- compatibility analysis over types, effects, contracts, ownership, and target
-  availability;
-- a package registry and offline cache model with explicit least authority;
-- stable migration rules for language, graph, patch, package, and ABI schemas.
+Package reports, semantic locks, bounded offline resolvers, source capsules,
+linked scalar Core-Wasm builds, safe local publication and the table manifest
+are implemented with hosted-green evidence. The exact v1/v2/v3 report, lock,
+resolver and source-subject relationships remain separately versioned. A held
+source subject or deterministic build manifest is not trusted publisher
+provenance, an acquired registry package or a hermetic OS sandbox.
+
+Next, deliver generic cross-package signatures, broader semantic compatibility
+negotiation, an intentionally supported lock/resolve/build workflow, registry
+and offline acquisition/cache policy, licenses/provenance and reproducible
+artifact records. Preserve target/capability intersection and strict source/
+interface replay. Complete migrations across language, graph, patch, package
+and ABI schemas without reassigning frozen identities.
 
 ### Standard library outcomes
 
-[Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract and the
-required module set; nine `core`-tier packages (`std.bytes`, `std.core`,
-`std.data.json.digits`, `std.encoding`, `std.num`, `std.num.overflow`,
-`std.random`, `std.text`, and `std.time`), twelve `portable`-tier packages
-(`std.async`, `std.data.csv`, `std.data.json`, `std.data.json.token`,
-`std.data.json.doc`, `std.data.json.utf8`, `std.data.json.write`,
-`std.data.toml`, `std.http`, `std.net`, `std.path`, and `std.url`), and one
-`test`-tier package
-(`std.test`) pass their
-conformance suites
-on the interpreter, native C11, and Core Wasm lanes.
+[Standard Library v1](STANDARD-LIBRARY-V1.md) owns the complete required module
+set and tier contracts; the [generated catalogue](STANDARD-LIBRARY-CATALOG.md)
+owns exact declarations. The v0.4.0 tree contains 34 packages: nine core,
+sixteen portable, three alloc, three hosted, one agent and two test. Their
+implemented profiles have hosted-green release evidence, while their full
+required module scope remains Partial.
 
-The first `alloc`-tier package, `std.collections`, now has a locally exercised
-exact eight-alias Owned Bounded Vec v1 surface, example, explicit
-eight-Copy-scalar conformance, bundled dependency entry, generated catalogs,
-and no public exports. Iterators and broader collections remain later outcomes.
-The next bounded language tranche adds only source `for item in values { body }`
-over one simple immutable `Vec<T>` binding. It snapshots length once, visits
-Copy elements in ascending index order, freezes the source, discards body
-results, and resolves into the existing len/get/while HIR. This is not an
-iterator abstraction, adds nothing to the package catalog or public ABI, and
-does not advance `std.iter`. Consuming `for own` traversal is now covered by
-the separately implemented [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md)
-profile; iterator interfaces, associated types, adapters, closures, and
-lifetime inference remain later outcomes.
+Already implemented are the authenticated scalar Vec/Box aliases, scalar and
+Bytes collection extensions, private iterator helpers and operations, JSON
+cursor adapters, Reader/Writer, typed paths, filesystem/environment/process
+profiles, formatting/logging and byte assertion/snapshot helpers. The private
+`std.agent` package supplies ordinary checked records and deterministic roles;
+its values do not grant runtime capabilities or complete the full Agent library.
 
-The separately bounded `std.mem` Box tranche now has locally exercised package,
-catalog, interpreter, native C11, and Core-Wasm evidence: three authenticated
-no-export aliases for compiler-owned `new`, synchronous `get`, and consuming
-`into_inner`, explicitly instantiated over the eight Copy scalars. This
-establishes one unique allocation/extraction path without
-claiming owned payloads, allocator interfaces, public generic ABI, regions,
-arenas, shared ownership, or Iterator integration. Those broader `std.mem`
-outcomes remain sequenced after exact hosted Box evidence.
-
-- build beyond the exact ScalarV1 internal flat generic-owned body profile and
-  its no-argument `i64` dependency fixture, whose cross-package and public
-  signatures stay scalar, so records,
-  variants, generics, strings, and bytes can eventually cross package
-  boundaries; then move `Option`, `Result`, ordering, text, and byte operations
-  from compiler-owned functions into `std.*` interfaces;
-- broaden the closed bundled cross-package `use` path into ordinary resolved
-  package builds and supported package distribution;
-- widen the byte-data web export boundary beyond slice-only parameters;
-- record target availability as a semantic-graph fact rather than package
-  metadata;
-- deterministic effect handlers for tests, then the `hosted` tier modules in
-  the order the Everyday profile needs them: `std.env`, `std.io`, `std.fs`,
-  `std.path`, `std.time`, `std.process`; the network fixture provider of
-  [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md) is the
-  first such handler and has local evidence only;
-- `semaprax new cli|service|web|agent` templates available offline; `library`
-  exists through both the public capsule and the private staged authority.
+Finish composable streams/traversal, broader filesystem/process/network provider
+profiles, missing required modules, richer testing and the complete Everyday
+profile. Broaden the bounded bundled `use` path into supported package builds.
+Moving operations into `std.*` must preserve stable identity, checked contracts,
+effects and target facts, rather than adding handwritten metadata detached from
+compiler meaning. Ship the remaining offline `cli|service|web|agent` templates;
+the existing `library` and calculator/scaffold routes remain regression baselines.
 
 ### ABI and host outcomes
 
-- stable canonical and native ABIs for aggregates, resources, borrowed views,
-  strings, errors, callbacks, and async work;
-- supported C/C++, Rust, Java/Kotlin, Swift/Objective-C, JavaScript/TypeScript,
-  and WIT consumers with conformance suites;
-- WebAssembly Component Model publication and multi-runtime execution;
-- replacement of private loader/host fixtures with intentionally public,
-  reviewed APIs where appropriate;
-- capability-limited plugin loading and hostile-plugin tests.
+Specify and support general aggregate, resource, borrowed-view, String, error,
+callback and async ABIs. Public generic ABI remains its own programme after
+internal semantic closure. Generate and exercise Rust, TypeScript/Wasm, C and
+C++ consumers against versioned identities, semantic compatibility and
+candidate ABI deltas before declaring support.
+
+Build on existing private and bounded C/C++, Rust, Java/Kotlin, Swift/Objective-C,
+JavaScript/TypeScript and WIT adapters. Add intentionally supported distribution,
+architecture/toolchain coverage and maintained consumers. Complete Component
+Model publication, resources and multiple runtime execution, plus
+capability-limited plugin loading and hostile-plugin coverage. A private
+Component fixture is not a stable public Component ABI; a simulator is not a
+physical device.
 
 Exit condition: one versioned package is consumed from every supported host
-language and target lane with reproducible builds, compatibility checks, and
+language and target lane with reproducible builds, compatibility checks and
 no undocumented ambient authority.
 
 ## 0.5: concurrency and applications
 
-Goal: demonstrate that verified shared meaning can support real applications
+Goal: demonstrate that verified shared meaning supports real applications
 without pretending every platform is identical.
 
 ### Concurrency and services
 
-- extend the bounded Rust scoped-thread runtime into language task syntax,
-  task HIR/Graph nodes, deterministic schedule replay, backend lowering, and
-  `Sendable`/`Shareable` checks;
-- deterministic effect handlers and test schedule replay;
-- general command, filesystem, network, clock, and service I/O through explicit
-  capabilities; the bounded TCP client tranche
-  ([Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)) has
-  landed locally with a Project v12 profile, a fixture-backed CLI verb, and
-  fixture-only npm/Web lanes; the hosted-provider extension now adds Rustls
-  TLS clients, TCP bind/accept, fixture-v2 accept queues, and a bounded Rust
-  task scope, leaving native/Wasm service ABI, server TLS, DNS policy, real
-  hosted Web transports, and language-level structured tasks;
-- server/edge packaging, observability, deployment diagnostics, and load tests.
+The bounded Rust scoped-thread runtime, fixture-backed command/network I/O,
+TCP/TLS/listener operations, HTTPS client routes, aggregate deadlines and
+caller-selected handlers are implemented. Their admitted release evidence is
+hosted green. Native libcurl, fixture-backed Web and loopback-browser evidence
+retain their exact provider/host scope.
+
+Extend this foundation into language task syntax, task HIR/graph nodes,
+`Sendable`/`Shareable` checking, deterministic schedule replay, dependency
+scheduling and native/Wasm task lowering. Complete broader live browser service
+adapters, server TLS, DNS policy, HTTP/3, structured async services and
+cross-platform provider provisioning. Finish general capability-controlled
+command, filesystem, network and clock I/O, then server/edge packaging,
+observability, deployment diagnostics and load/conformance tests.
 
 ### Application model
 
-- typed state, actions, update functions, semantic view trees, navigation,
-  localization, assets, accessibility, and lifecycle;
-- accessible DOM/CSS and hydration for the web;
-- supported Swift/Apple, Kotlin/Android, Windows, Linux, and desktop adapters;
-- explicit platform blocks and custom accelerated rendering escape hatches;
-- distributable artifacts with permissions, entitlements, manifests, and
-  signing metadata while credentials remain outside compiler authority.
+Deliver typed state/actions/update/view, semantic controls, navigation,
+localization, assets, accessibility and lifecycle. Build accessible DOM/CSS and
+SSR/hydration on the web, plus intentionally supported Apple, Android, Windows,
+macOS and Linux application adapters. Preserve explicit platform blocks and
+custom accelerated-rendering escape hatches.
+
+Create distributable artifacts with permissions, entitlements, manifests and
+signing metadata while credentials remain outside compiler authority. Private
+framework/JNI/desktop fixtures are foundations, not completed application
+platform support.
 
 Exit condition: one shared application has maintained web, iOS, Android,
-macOS, Windows, and Linux clients with declared platform differences and
+macOS, Windows and Linux clients with declared platform differences and
 representative hosted or device evidence.
 
 ## 1.0: validate the complete programming system
 
-The 1.0 gate is the final product in the
-[completion matrix](COMPLETION-MATRIX.md#final-validation-product), not a
-version-number aspiration.
+The 1.0 gate is the [final validation product](COMPLETION-MATRIX.md#final-validation-product),
+not a version-number aspiration. It requires a maintained offline-first product
+with all six client platforms from shared SEMAPRAX source; native notifications,
+secure storage, local databases, authentication and background synchronization;
+native or WASI server execution; a custom accelerated visual; one C library,
+one JavaScript package and one WebAssembly component.
 
-It requires one maintained offline-first product with:
-
-- all six client platforms from the shared SEMAPRAX program;
-- native notifications, secure storage, local databases, authentication, and
-  background synchronization;
-- native or WASI server execution;
-- a custom accelerated visual;
-- one C library, one JavaScript package, and one WebAssembly component;
-- reproducible builds, compatibility and migration evidence, and representative
-  CI/simulator/device execution;
-- complete language safety, debugger/diagnostic, package, capability, and
-  operations gates for the features the product uses.
-
-No narrow report, generated fixture, or private platform adapter substitutes
-for this maintained end-to-end proof.
-
-## Research profiles after the core product
-
-Economic-agent work remains optional and subordinate to the language's
-authority model. The current injected-host policy and evidence core grants no
-built-in provider transport, wallet, key, mainnet, or signing authority. Any
-future profile must preserve explicit capabilities, approvals, custody
-separation, idempotent settlement, private-data boundaries, and complete audit
-traces without weakening the core product gates.
+Every claimed artifact must be built and exercised on its representative
+CI/simulator/device lane with compatibility, migration and reproducibility
+evidence. Complete language safety, diagnostics/debugging/profiling, package,
+capability and operations gates for the features used. No narrow report,
+generated fixture, private adapter or successful release substitutes for this
+maintained end-to-end product.

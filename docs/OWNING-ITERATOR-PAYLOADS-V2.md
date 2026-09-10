@@ -1,8 +1,8 @@
 # Owning Iterator Payloads v2
 
-Status: implemented privately with focused local library, workspace,
-interpreter, native C11 `-O0`/`-O2`, and Core Wasm evidence. Hosted promotion
-and the broader iterator goal remain open.
+Status: implemented private payload profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The broader iterator and public-library goals remain incomplete.
 
 Audience: language, ownership, cleanup, backend, and standard-library
 contributors.
@@ -56,8 +56,9 @@ payload carrier and ownership transitions. Forged or stale carrier, type,
 case, cleanup, or source bindings fail closed and confer no authority.
 
 This profile adds no ambient allocator, host capability, transport, or public
-generic iterator ABI. Generic authored iterator implementations, closure
-adapters, broader payload types, and hosted promotion remain separate scope.
+generic iterator ABI. Generic authored iterator implementations, lazy closure
+adapters and broader payload types remain separate scope. The scalar callback
+and closure profiles are implemented but do not widen this Bytes payload ABI.
 
 ## Graph and cache binding
 
@@ -71,9 +72,10 @@ v7, CleanupPlan v10-v12, and earlier graph and cache bytes remain unchanged.
 
 ## Focused local evidence
 
-The executable `iterator` library filter, `owned_iterator` workspace filter,
-and `owned_iterator_payloads` owned-data filter cover empty and exhausted
-`Vec<Bytes>`, ordered yields,
+The original local corpus remains a historical witness; the implemented
+release corpus is now hosted green. The executable `iterator` library filter,
+`owned_iterator` workspace filter, and `owned_iterator_payloads` owned-data
+filter cover empty and exhausted `Vec<Bytes>`, ordered yields,
 multi-byte payloads, early drop, complete `for own` traversal, item and rest
 failure, sticky cleanup, repeated exact settlement, and cross-layer replay on
 the interpreter, native C11 `-O0`/`-O2`, and Core Wasm. Separate scalar-iterator
@@ -82,8 +84,7 @@ and owned-Vec preservation cases pass. Borrowed
 success, invalid step tags, and borrowed payload carriers before compiler
 commit. Malformed-provider tests inspect the retained host state and perform
 explicit host cleanup; they do not claim automatic settlement after a trap.
-The existing Linux iterator selector includes these cases; this is local
-evidence, not a hosted support claim.
+The existing Linux iterator selector includes these cases.
 
 ## Core Wasm host boundary
 

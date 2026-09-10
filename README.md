@@ -51,8 +51,12 @@ failed command means.
 
 The published tag is the
 [v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0)
-smoke-test archives, SHA256 checksums, and release evidence in the
-[release process](docs/RELEASE-PROCESS.md). The
+(2026-09-10, `dfc15e2d`) with smoke-tested archives, SHA256 checksums, and
+hosted release evidence in the
+[release process](docs/RELEASE-PROCESS.md#040-hosted-release-evidence); the
+prior `v0.2.0` remains archived at
+[its release record](docs/RELEASE-PROCESS.md#v020-hosted-release-evidence).
+The
 development changelog is now summarized in [CHANGELOG.md](CHANGELOG.md),
 with compact highlights in [docs/CHANGELOG-SUMMARY.md](docs/CHANGELOG-SUMMARY.md)
 and full historical detail archived at

@@ -1,4 +1,4 @@
-name: v0.4.0 documentation status reconciliation
+name: v0.4.0 full documentation audit validation
 
 on:
   push:
@@ -9,151 +9,216 @@ permissions:
   contents: write
 
 jobs:
-  reconcile-and-audit:
+  validate-and-prepare:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      BASELINE: 3d34cff7aa984bbb0e1de02d3140d1368399b575
+      RESTORE_REF: 38e46fb228a24de8a3ac861883ca252756bb5b93
+      MDBOOK_VERSION: 0.5.4
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: main
           fetch-depth: 0
-      - name: Reconcile final current implementation pages
+          persist-credentials: false
+      - name: Apply exact audited documentation edits without overwriting concurrent bodies
         shell: python
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          from pathlib import Path
-          import re
-
-          targets = {
-              'AGENT-PAYMENT-HARNESS-V1.md',
-              'AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md',
-              'AGENT-TRANSPORT-V1.md',
-              'AUTOMATIC-CANDIDATE-DRAFT-LIFECYCLE-V1.md',
-              'BOUNDED-STDOUT-TRANSCRIPT-V1.md',
-              'CLI-HELP-V2.md',
-              'DOCTOR-OFFLINE-BUNDLE-V1.md',
-              'DOCTOR-OFFLINE-WORKER-V1.md',
-              'DOCTOR-SEALED-INPUT-V1.md',
-              'EXACT-PROGRAM-CONTEXT-V1.md',
-              'EXACT-PROGRAM-CONTEXT-V2.md',
-              'EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md',
-              'HTTPS-CLIENT-IO-V1.md',
-              'HUMAN-DIAGNOSTICS-V1.md',
-              'HYGIENIC-GEN-V1.md',
-              'IMAGE-C-ARTIFACTS-V1.md',
-              'IMAGE-SOURCE-COMMIT-PROTOCOL-V5.md',
-              'IMAGE-SUPPORTED-WORKFLOW-RESPONSE-ACCOUNTABILITY-V1.md',
-              'IMAGE-TYPED-RESPONSE-CLIENTS-V1.md',
-              'INSTALLED-AGENT-GUIDANCE-V1.md',
-              'INSTALLED-DIAGNOSTICS-V1.md',
-              'INSTALLED-FIX-PLAN-V1.md',
-              'INTERFACE-ARTIFACT-FACTS-V1.md',
-              'LANGUAGE-NATIVE-AGENT-LOWERING-V1.md',
-              'LANGUAGE-NATIVE-AGENT-OBJECT-V1.md',
-              'NEW-PROJECT-PUBLICATION-V1.md',
-              'OFFLINE-PACKAGE-COMPATIBILITY-EVIDENCE-V1.md',
-              'OFFLINE-PACKAGE-RESOLVER-V1.md',
-              'OFFLINE-PACKAGE-RESOLVER-V2.md',
-              'OFFLINE-SEMANTIC-PACKAGE-LOCK-V3.md',
-              'PACKAGE-REPORT-V2.md',
-              'PROGRAM-ROOT-V1.md',
-              'PROJECT-AGENT-TRANSPORT-V2.md',
-              'PROJECT-CANDIDATE-ANALYSIS-COVERAGE-CHANGE-V1.md',
-              'PROJECT-CANDIDATE-ANALYSIS-EVIDENCE-V1.md',
-              'PROJECT-CANDIDATE-ENVIRONMENT-CONSUMER-REVIEW-V1.md',
-              'PROJECT-CANDIDATE-FUNCTION-REFERENCE-REBIND-V1.md',
-              'PROJECT-CANDIDATE-PACKAGE-CONSUMER-REPLAY-V1.md',
-              'PROJECT-CANDIDATE-SYMBOL-DIAGNOSTICS-V1.md',
-              'PROJECT-DEPENDENCIES-V1.md',
-              'PROJECT-DEPENDENCY-RESOLUTION-V1.md',
-              'PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md',
-              'PROJECT-LOCK-V1.md',
-              'PROJECT-MEMBER-RENAME-V1.md',
-              'PROJECT-NOMINAL-RENAME-V1.md',
-              'PROJECT-RENAME-TRANSACTION-V1.md',
-              'PROJECT-SEMANTIC-CACHE-V1.md',
-              'PROJECT-TARGET-CACHE-V1.md',
-              'PROJECTED-OWNED-BYTES-BORROWED-CALL-V1.md',
-              'SEMANTIC-IMAGE-CLEANUP-DEPENDENCIES-V1.md',
-              'UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md',
-          }
-
-          replacement = [
-              'Status: implemented bounded profile; **HOSTED GREEN** under the',
-              '[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,',
-              'authoring-time, ignored, physical/provisioned, benchmark, or exact-subject',
-              'observations below retain their narrower scope. Public promotion, registry',
-              'publication and broader product completion remain separately gated.',
-          ]
-
-          changed = []
-          for name in sorted(targets):
-              path = Path('docs') / name
-              if not path.is_file():
-                  raise SystemExit(f'missing target: {name}')
-              text = path.read_text(encoding='utf-8')
-              if 'HOSTED GREEN' in '\n'.join(text.splitlines()[:20]):
-                  continue
-              lines = text.splitlines()
-              idx = next((i for i, line in enumerate(lines[:30]) if line.startswith('Status:')), None)
-              if idx is None:
-                  raise SystemExit(f'no Status in first 30 lines: {name}')
-              end = idx + 1
-              while end < len(lines) and lines[end].strip() and not lines[end].startswith('Audience:') and not lines[end].startswith('#'):
+          import base64, hashlib, importlib.util, json, lzma, os, pathlib, re, subprocess, urllib.request
+          root = pathlib.Path.cwd()
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'docs-audit-result'
+          out.mkdir()
+          def git(*args):
+              return subprocess.check_output(['git', *args])
+          assert os.environ['GITHUB_REPOSITORY'] == 'wavect/semaprax'
+          def blob(sha):
+              url = 'https://api.github.com/repos/wavect/semaprax/git/blobs/' + sha
+              req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+              with urllib.request.urlopen(req, timeout=60) as response:
+                  data = json.loads(response.read(200000))
+              raw = base64.b64decode(data['content'])
+              assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == sha
+              return raw
+          chunks = ['1e2b677446bf7806f93456ece60b40baa7068b33', '713637d9eab14ee23dca4562ff860e47e49d3ef8', 'f13270102ba96e494ee094b83fafe3fde62411b2']
+          compressed = base64.b64decode(b''.join(blob(sha) for sha in chunks), validate=True)
+          assert hashlib.sha256(compressed).hexdigest() == 'ca0ed58d39091408b768621262a7627e159fab6b33117210c4e829fbdcd7fa37'
+          decoder = lzma.LZMADecompressor(memlimit=128 * 1024 * 1024)
+          payload = decoder.decompress(compressed, max_length=2 * 1024 * 1024)
+          assert decoder.eof and not decoder.unused_data
+          recipe = json.loads(payload)
+          assert recipe['baseline'] == os.environ['BASELINE']
+          assert len(recipe['files']) == 182
+          baseline = recipe['baseline']
+          old_paths = set(git('ls-tree', '-r', '--name-only', baseline, '--', 'docs/').decode().splitlines())
+          assert len(old_paths) == 485
+          def without_status(text):
+              lines = text.splitlines(keepends=True)
+              start = next((i for i, line in enumerate(lines[:24]) if line.startswith('Status:')), None)
+              if start is None:
+                  return text
+              end = start + 1
+              while end < len(lines) and lines[end].strip() and not lines[end].startswith('Audience:'):
                   end += 1
-              lines[idx:end] = replacement
-              path.write_text('\n'.join(lines) + ('\n' if text.endswith('\n') else ''), encoding='utf-8')
-              changed.append(name)
-
-          failures = []
-          for name in sorted(targets):
-              text = (Path('docs') / name).read_text(encoding='utf-8')
-              first = text.splitlines()[:12]
-              if not any(line.startswith('Status:') for line in first):
-                  failures.append((name, 'Status'))
-              if not any(line.startswith('Audience:') for line in first):
-                  failures.append((name, 'Audience'))
-              if 'HOSTED GREEN' not in '\n'.join(text.splitlines()[:20]):
-                  failures.append((name, 'HOSTED GREEN'))
-          if failures:
-              raise SystemExit(f'metadata failures: {failures}')
-
-          print(f'changed {len(changed)} docs')
-          for name in changed:
-              print(name)
-
-          suspicious = re.compile(r'(?i)\b(authored|unrun|unhosted|locally?|pending|not run|not yet run|no hosted|hosted[^.\n]{0,40}(?:pending|required|open)|in progress)\b')
-          rows = []
-          for path in sorted(Path('docs').glob('*.md')):
-              lines = path.read_text(encoding='utf-8').splitlines()
-              idx = next((i for i, line in enumerate(lines[:30]) if line.startswith('Status:')), None)
-              if idx is None:
-                  continue
-              end = idx + 1
-              while end < len(lines) and lines[end].strip() and not lines[end].startswith('Audience:') and not lines[end].startswith('#'):
-                  end += 1
-              block = ' '.join(line.strip() for line in lines[idx:end])
-              if suspicious.search(block) and 'HOSTED GREEN' not in block:
-                  rows.append(f'{path.name}\t{block}')
-          Path('status-audit.txt').write_text('\n'.join(rows) + ('\n' if rows else ''), encoding='utf-8')
-          print(f'remaining suspicious status blocks: {len(rows)}')
-      - name: Commit reconciled documentation
+              return ''.join(lines[:start] + ['Status: <compared separately>\n'] + lines[end:])
+          expected = {}
+          digest = hashlib.sha256()
+          for name, edits in recipe['files']:
+              path = pathlib.PurePosixPath(name)
+              assert path.parts[0] == 'docs' and '..' not in path.parts and name not in expected
+              assert name.endswith('.md') or name == 'docs/audit/verify_v040.py'
+              old = git('show', baseline + ':' + name).decode('utf-8') if name in old_paths else ''
+              current_path = root / path
+              current = current_path.read_text(encoding='utf-8') if current_path.exists() else ''
+              new = old
+              boundary = len(old)
+              for start, end, replacement in reversed(edits):
+                  assert 0 <= start <= end <= boundary
+                  new = new[:start] + replacement + new[end:]
+                  boundary = start
+              if current not in (old, new) and without_status(current) != without_status(old):
+                  raise RuntimeError('Concurrent non-status change requires review: ' + name)
+              expected[name] = new
+              digest.update(name.encode() + b'\0' + hashlib.sha256(new.encode()).digest())
+          assert digest.hexdigest() == recipe['result_sha256'] == '20c4a0238546df706726d052b1ec6b3131b9c8ec2e85c0a593db51ec104e6499'
+          for name, text in expected.items():
+              path = root / name
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(text, encoding='utf-8')
+          spec = importlib.util.spec_from_file_location('audit_check', root / 'docs/audit/verify_v040.py')
+          checker = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(checker)
+          rows = ['path\taudit_disposition']
+          counts = {}
+          for name in sorted(old_paths):
+              old = git('show', baseline + ':' + name)
+              new = (root / name).read_bytes()
+              if name in checker.EMBEDDED:
+                  kind = 'compiler-embedded; preserved byte-for-byte'
+              elif checker.historical(name):
+                  kind = 'historical/provenance; preserved byte-for-byte'
+              elif not name.endswith('.md'):
+                  kind = 'data/asset; preserved byte-for-byte'
+              elif old != new:
+                  kind = 'reviewed; current prose/references reconciled'
+              else:
+                  kind = 'reviewed; no correction required'
+              counts[kind] = counts.get(kind, 0) + 1
+              rows.append(name + '\t' + kind)
+          (root / 'docs/audit/v0.4.0-inventory.tsv').write_text('\n'.join(rows) + '\n', encoding='utf-8')
+          workflow = '.github/workflows/docs-v040-final-reconcile.yml'
+          restored = git('show', os.environ['RESTORE_REF'] + ':' + workflow)
+          assert hashlib.sha1(b'blob ' + str(len(restored)).encode() + b'\0' + restored).hexdigest() == '0942dbadb7b31bc07e13a40762ed807b26f648cb'
+          (root / workflow).write_bytes(restored)
+          changed = git('diff', '--name-only', 'v0.4.0', '--').decode().splitlines()
+          assert all(p.startswith('docs/') or p in {'README.md', workflow} for p in changed), changed
+          (out / 'inventory-counts.json').write_text(json.dumps(counts, indent=2) + '\n')
+          (out / 'recipe-manifest.json').write_text(json.dumps({'baseline': baseline, 'paths': sorted(expected), 'result_sha256': digest.hexdigest()}, indent=2) + '\n')
+          print(json.dumps(counts, indent=2))
+      - name: Run complete documentation consistency and preservation checks
         shell: bash
         run: |
           set -euo pipefail
-          if ! git diff --quiet -- docs; then
-            git diff --check
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add docs
-            git commit -m 'docs: finish current v0.4.0 implementation status audit'
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
-      - name: Upload remaining-status audit
+          python3 docs/audit/verify_v040.py --baseline "$BASELINE" --output "$RUNNER_TEMP/docs-audit-result/validation.json"
+          git diff --check
+      - name: Execute the four unchanged source-only documentation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib
+          source = pathlib.Path('tests/documentation.rs').read_text(encoding='utf-8')
+          first = source[:source.index('mod editor_grammar {')]
+          for line in ['#[path = "documentation/benchmark_fixtures.rs"]\n', 'mod benchmark_fixtures;\n', '#[path = "documentation/performance_benchmark_suite.rs"]\n', 'mod performance_benchmark_suite;\n']:
+              assert first.count(line) == 1
+              first = first.replace(line, '')
+          tail = source[source.index('mod language_tour {'):source.index('mod agent_quick_reference {')]
+          harness = first + tail
+          assert harness.count('#[test]') == 4
+          path = pathlib.Path(os.environ['RUNNER_TEMP']) / 'docs-audit-result/source-only-documentation-tests.rs'
+          path.write_text(harness, encoding='utf-8')
+          PY
+          rustc --version | tee "$RUNNER_TEMP/docs-audit-result/rustc-version.txt"
+          CARGO_MANIFEST_DIR="$GITHUB_WORKSPACE" rustc --edition=2021 --test "$RUNNER_TEMP/docs-audit-result/source-only-documentation-tests.rs" -o "$RUNNER_TEMP/docs-audit-result/documentation-tests"
+          "$RUNNER_TEMP/docs-audit-result/documentation-tests" --nocapture | tee "$RUNNER_TEMP/docs-audit-result/documentation-tests.log"
+      - name: Restore pinned mdBook
+        id: mdbook-cache
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: ${{ runner.temp }}/mdbook
+          key: mdbook-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.MDBOOK_VERSION }}
+      - name: Install pinned mdBook when not cached
+        if: steps.mdbook-cache.outputs.cache-hit != 'true'
+        run: cargo install --locked mdbook --version "$MDBOOK_VERSION" --root "$RUNNER_TEMP/mdbook"
+      - name: Build the complete documentation book
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$("$RUNNER_TEMP/mdbook/bin/mdbook" --version)" = "mdbook v$MDBOOK_VERSION"
+          "$RUNNER_TEMP/mdbook/bin/mdbook" build 2>&1 | tee "$RUNNER_TEMP/docs-audit-result/mdbook-build.log"
+      - name: Record actual hosted validation and recheck final documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'docs-audit-result'
+          result = json.loads((out / 'validation.json').read_text())
+          assert result['passed'] and not result['errors']
+          run_url = 'https://github.com/wavect/semaprax/actions/runs/' + os.environ['GITHUB_RUN_ID']
+          text = '\n## Hosted validation record\n\n'
+          text += f"[Audit run {os.environ['GITHUB_RUN_ID']}]({run_url}) executed the checks against the final audited documentation prepared from `{os.environ['GITHUB_SHA']}`.\n\n"
+          text += f"The directory check passed for **{result['markdown_files']} Markdown pages**, **{result['local_links_checked']} local links**, **{result['chapter_anchors_checked']} chapter anchors**, and all **{result['language_tour_excerpts']} source-cited tour excerpts**. Metadata and catalog coverage passed; **{result['preserved_files_checked']} protected files** and all pre-existing fenced examples remained unchanged.\n\n"
+          text += 'The **four original source-only documentation tests passed**, and the complete **mdBook 0.5.4 build passed**. The final report was then included in a repeated check and book build. The full compiler/runtime suite was not rerun by this documentation-only audit; its accepted v0.4.0 HOSTED GREEN baseline remains separate.\n'
+          path = pathlib.Path('docs/DOCUMENTATION-AUDIT-0.4.0.md')
+          path.write_text(path.read_text(encoding='utf-8') + text, encoding='utf-8')
+          PY
+          python3 docs/audit/verify_v040.py --baseline "$BASELINE" --output "$RUNNER_TEMP/docs-audit-result/validation.json"
+          "$RUNNER_TEMP/docs-audit-result/documentation-tests" --nocapture | tee "$RUNNER_TEMP/docs-audit-result/documentation-tests-final.log"
+          "$RUNNER_TEMP/mdbook/bin/mdbook" build 2>&1 | tee "$RUNNER_TEMP/docs-audit-result/mdbook-build-final.log"
+          git diff --check
+      - name: Prepare reviewed Git objects without moving any branch
+        shell: python
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          import hashlib, json, os, pathlib, shutil, subprocess, urllib.request
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'docs-audit-result'
+          def git(*args):
+              return subprocess.check_output(['git', *args])
+          def api(path, data=None):
+              url = 'https://api.github.com/repos/wavect/semaprax/' + path
+              raw = None if data is None else json.dumps(data).encode()
+              req = urllib.request.Request(url, data=raw, headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json'}, method='GET' if data is None else 'POST')
+              with urllib.request.urlopen(req, timeout=120) as response:
+                  return json.load(response)
+          parent = os.environ['GITHUB_SHA']
+          assert api('git/ref/heads/main')['object']['sha'] == parent, 'main advanced; no branch will be changed'
+          names = set(git('diff', '--name-only', 'HEAD', '--').decode().splitlines())
+          names.update(git('ls-files', '--others', '--exclude-standard').decode().splitlines())
+          workflow = '.github/workflows/docs-v040-final-reconcile.yml'
+          assert all(p.startswith('docs/') or p == workflow for p in names), sorted(names)
+          entries = [{'path': name, 'mode': '100644', 'type': 'blob', 'content': pathlib.Path(name).read_text(encoding='utf-8')} for name in sorted(names)]
+          base_tree = git('rev-parse', 'HEAD^{tree}').decode().strip()
+          tree = api('git/trees', {'base_tree': base_tree, 'tree': entries})
+          message = 'docs: complete v0.4.0 full documentation audit\n\nAudit every pre-existing docs file; reconcile current release status and\nbody descriptions, semantic/library/toolchain summaries, ownership references\nand book navigation. Preserve historical evidence, frozen examples and\ncompiler-embedded guidance. Add per-file inventory and read-only checker.\n\nValidated by four unchanged source-only documentation tests, complete\nmetadata/link/anchor/preservation checks and mdBook 0.5.4. Restore the\npre-existing reconciliation helper without changing compiler/runtime code.\n\nAudit run: ' + os.environ['GITHUB_RUN_ID']
+          commit = api('git/commits', {'message': message, 'tree': tree['sha'], 'parents': [parent]})
+          prepared = {'commit_sha': commit['sha'], 'tree_sha': tree['sha'], 'parent_sha': parent, 'baseline': os.environ['BASELINE'], 'restored_workflow_ref': os.environ['RESTORE_REF'], 'changed_files': sorted(names), 'validation': 'passed; four original documentation tests and mdBook 0.5.4', 'run_id': os.environ['GITHUB_RUN_ID'], 'branch_updated': False}
+          (out / 'prepared-commit.json').write_text(json.dumps(prepared, indent=2) + '\n')
+          (out / 'documentation.patch').write_bytes(git('diff', '--', 'docs/'))
+          shutil.copyfile('docs/DOCUMENTATION-AUDIT-0.4.0.md', out / 'DOCUMENTATION-AUDIT-0.4.0.md')
+          shutil.copyfile('docs/audit/v0.4.0-inventory.tsv', out / 'v0.4.0-inventory.tsv')
+          shutil.copyfile('docs/audit/verify_v040.py', out / 'verify_v040.py')
+          print(json.dumps(prepared, indent=2))
+          print('Prepared immutable objects only. main was not changed by this workflow.')
+      - name: Retain audit results and exact prepared commit
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: semaprax-v040-remaining-status-audit
-          path: status-audit.txt
+          name: semaprax-v040-complete-documentation-audit
+          path: ${{ runner.temp }}/docs-audit-result/
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 7

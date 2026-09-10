@@ -371,6 +371,7 @@ Audience: all documentation readers.
 - [Quality gates](QUALITY-GATES.md)
 - [Required CI checks](CI-REQUIRED-CHECKS-V1.md)
 - [Release process and tag evidence](RELEASE-PROCESS.md)
+- [v0.4.0 implementation and evidence baseline](RELEASE-0.4.0-STATUS.md)
 - [Roadmap](ROADMAP.md)
 - [Protocol migrations](MIGRATIONS.md)
 

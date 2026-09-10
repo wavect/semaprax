@@ -1,6 +1,7 @@
 # Base64 v1
 
-Status: implemented bounded source profile; local evidence only. Decoding and
+Status: implemented bounded source profile; hosted-green on the named
+`std-library-depth` CI job at 78ee5107, outside the v0.4.0 release baseline. Decoding and
 unpadded or URL-safe alphabets remain out of scope.
 
 Audience: language users, compiler contributors, standard-library authors, and

@@ -2,10 +2,10 @@
 
 Audience: embedding hosts, agent authors, protocol implementers, and reviewers.
 
-Status: implementation and executable regression cases authored, **unrun**.
-The user's instruction deliberately skips tests, compiler/interpreter/target
-execution, and long local quality gates. This is not verified completion,
-performance, publication, or complete-programme evidence.
+Status: implemented bounded workspace protocol; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The earlier authoring-only status is superseded. This does not establish
+performance, unrestricted publication, or complete-programme support.
 
 V5 adds a host-configured session and explicit live-source refresh without
 changing v1–v4 method lists or response bytes. Its envelope is
@@ -299,11 +299,9 @@ semantic work. Query/report owners retain their own smaller limits.
 
 `with_git_commit_host` attaches a fixed manifest-matching Git authority only
 before the first frame. `approve_git_commit` is a separate host API, never an
-RPC method. In this implementation approval also must precede the first frame.
-An attempted relaxation to approve within an already active session was rejected
-by the environment's automatic security review as weakening that temporal
-authorization boundary, and was not applied. The supported review workflow is
-to review/export a candidate first, then open a separate host-approved commit
+RPC method. Approval also must precede the first frame; an active session
+cannot widen that temporal authorization boundary. The supported review workflow
+is to review/export a candidate first, then open a separate host-approved commit
 session and restore its exact source-backed capsule. Requests cannot self-approve
 or replace the fixed Git target, executable, repository, or commit metadata.
 
@@ -341,13 +339,17 @@ Existing source, candidate, draft, diagnostic, test, target, and publication
 codes remain intact. Invalid JSON-RPC parameters and unavailable methods use
 the existing transport error codes.
 
-`tests/image_transport_v5/workspace.rs` authors preview without state revival,
-absorbing-drift recovery,
-historical-candidate rebase, explicit transient invalidation, failed-refresh
-preservation, notification/parameter rejection, unchanged-image refresh,
-manifest-change refusal, selected capabilities, and v1/v2/v4 compatibility
-regressions. Existing v3 tests and separate v5 discovery, artifact, and commit
-tests own their domains. These tests have not been executed in this change.
-Verified full workflow, latency/memory benchmarks, exhaustive race testing,
-cross-process warm reuse, and all remaining programme requirements are still
-outstanding evidence, not implied by the v5 label.
+`tests/image_transport_v5/workspace.rs` covers preview without state revival,
+absorbing-drift recovery, historical-candidate rebase, explicit transient
+invalidation, failed-refresh preservation, notification/parameter rejection,
+unchanged-image refresh, manifest-change refusal, selected capabilities, and
+v1/v2/v4 compatibility regressions. Existing v3 tests and separate v5 discovery,
+artifact, and commit tests own their domains. The implemented release corpus is
+**HOSTED GREEN**; the earlier skipped local authoring pass is historical.
+
+The [supported product workflow](IMAGE-SUPPORTED-PRODUCT-WORKFLOW-V1.md)
+composes its own bounded review/publication sequence. Its existence does not
+complete every graph-operational requirement. Representative latency/memory
+benchmarks, exhaustive physical race coverage, cross-process warm reuse and
+broader workflow support remain separate goals, not pending execution of the
+already implemented v5 release gates.

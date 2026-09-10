@@ -2,10 +2,9 @@
 
 Audience: embedding hosts, agent authors, compiler maintainers, and reviewers.
 
-Status: implementation and focused executable regressions authored, **unrun**.
-Tests, compiler/interpreter execution, and long local gates are intentionally
-skipped under the user's instruction. This is not verified completion or
-measured performance evidence.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+Broader completion and measured performance remain separate.
 
 `VNextSession::open_with_frontend_cache(&absolute_manifest, policy)` enables
 invocation-owned parsed/canonical AST reuse for v5 live refresh. The existing
@@ -66,11 +65,12 @@ and rechecks before swapping all retained state, retaining historical complete
 candidates and clearing drafts/attempts exactly as the ordinary v5 route does.
 Startup-only Git host attachment and approval guards remain unchanged.
 
-`tests/image_protocol/workspace_frontend_cache_v1.rs` authors cold identity/discovery
+`tests/image_protocol/workspace_frontend_cache_v1.rs` covers cold identity/discovery
 equivalence, zero-parser warm refresh, leaf/provider invalidation, preview and
 failed-refresh rollback, full semantic rejection, stale-session recovery, and
 physical hardlink rejection despite exact cached source bytes. Existing cache,
-v5 registry lifecycle, and publication tests remain additional unrun evidence.
+v5 registry lifecycle, and publication regressions share the HOSTED GREEN
+v0.4.0 baseline.
 No latency, throughput, memory, or concurrent-refresh benchmark is claimed.
 
 The CLI's closed host-policy v4 adds a required `semantic_cache` boolean to all
@@ -84,10 +84,10 @@ A separate [persistent cache](PERSISTENT-SEMANTIC-CACHE-V1.md) now supplies
 selection. The constructors described above still create in-process caches;
 none implicitly opens a root or trusts submitted HIR. The persistent route
 has its own key-custody and compiler-installation trust contract.
-`tests/workspace/session_semantic_cache_cli.rs` additionally authors unchanged
+`tests/workspace/session_semantic_cache_cli.rs` additionally covers unchanged
 refresh checked-HIR reuse, cold/AST/semantic image and discovery equivalence,
 old-version rejection, strict boolean/dependent selection, and RPC override
-rejection. Its direct semantic-session regression also authors absorbing source
+rejection. Its direct semantic-session regression also covers absorbing source
 drift, preview and wrong-revision rollback, one-module resolution/two-module
 reuse on successful recovery, and all-module reuse only after adoption. These
-regressions also remain unrun.
+regressions are also HOSTED GREEN for the released implementation.

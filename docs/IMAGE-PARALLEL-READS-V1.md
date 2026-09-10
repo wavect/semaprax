@@ -2,8 +2,9 @@
 
 Audience: embedding hosts, compiler contributors, and agent adapter authors.
 
-Status: code and regressions authored, **unrun**. No compiler, test, scheduler,
-latency, throughput, or memory gate has been executed in this change.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+This is not a latency, throughput, total-memory or scheduling benchmark.
 
 `VNextSession::handle_read_batch(frames, workers)` is an explicit host API for
 concurrent immutable image and discovery reads. The additive
@@ -95,14 +96,15 @@ API. An agent cannot request worker count or widen the supported read subset.
 Default method capabilities and ordinary response bytes remain unchanged. Transport
 scheduling across independent incoming streams, cancellation, and measured
 throughput improvements remain outstanding. Selected parallel candidate reads
-are authored in the separate retained-read extension. Candidate impact summary
+are implemented in the separate retained-read extension. Candidate impact summary
 and page reads join that immutable detached subset: each worker recomputes the
 same candidate-bound artifact, mutates no registry, and returns bytes in request
 order. This scheduling does not make a truncated impact artifact complete.
 
-`tests/image_protocol/parallel_reads_v1.rs` authors sequential-byte equality across
+`tests/image_protocol/parallel_reads_v1.rs` covers sequential-byte equality across
 worker counts, request-order preservation, operation exclusion, invalid input,
 silent notifications, startup approval preservation, and absorbing drift.
 Module regressions force worker overlap and check that a worker panic still
-joins other workers. These cases are unrun; they do not establish a measured
-performance improvement or a complete concurrent transport implementation.
+joins other workers. These implemented regressions are HOSTED GREEN for v0.4.0;
+they do not establish a measured performance improvement or a complete
+concurrent transport implementation.

@@ -2,9 +2,9 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: locally evidenced, Partial. Exact-head hosted promotion, safe Windows
-v2 package publication, npm registry publication, and release promotion remain
-open.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Safe Windows v2 package
+publication, npm registry publication and broader public support remain separate.
 
 Project Manifest v3 is the additive public Project boundary for the bounded
 [`useful-data.v1`](PORTABLE-INDEXED-BYTE-DATA-V1.md) profile. It does not
@@ -83,17 +83,18 @@ clobbering existing bytes. The v2 publication route deliberately fails closed
 on Windows until the public crate has an equivalently strong handle-relative
 primitive. This asymmetry is a safety boundary, not Windows support evidence.
 
-## Local executable evidence
+## Executable evidence
 
 `examples/binary-frame-project` exercises a fixed magic array, `Slice<u8>`,
 bounded `while`, total indexed reads, owned `Bytes` copy/move/drop behavior,
-explicit stable-ID exports, and a useful-data test closure. Focused local tests
-cover canonical v3 parsing/rendering and v1/v2 preservation, graph/linking
-replay, interpreter test execution, Core-Wasm emission, strict JavaScript and
-TypeScript generation, carrier replay/tamper rejection, Unix publication, and
-offline pack/install followed by compiler-free installed consumption.
+explicit stable-ID exports, and a useful-data test closure. The maintained
+regressions cover canonical v3 parsing/rendering and v1/v2 preservation,
+graph/linking replay, interpreter test execution, Core-Wasm emission, strict
+JavaScript and TypeScript generation, carrier replay/tamper rejection, Unix
+publication, and offline pack/install followed by compiler-free installed
+consumption. The admitted release corpus is **HOSTED GREEN** for v0.4.0.
 
-This evidence does not claim exact-head Linux/macOS/Windows/Rust-1.85 success,
-safe Windows v2 publication, npm registry behavior, package signing,
-provenance, compatibility resolution, Component Model support, or release
-promotion. Completion-matrix statuses and totals therefore do not change.
+That evidence does not establish safe Windows v2 publication, npm registry
+behavior, package signing/provenance, general compatibility resolution,
+Component Model support, or production readiness. Those are separate support
+or product gates; the broader completion-matrix status remains Partial.

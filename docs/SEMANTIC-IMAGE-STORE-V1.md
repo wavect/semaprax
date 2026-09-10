@@ -2,10 +2,9 @@
 
 Audience: embedding-host authors, agent builders, compiler contributors, and reviewers.
 
-Status: implementation and regression evidence authored, unrun. Compiler,
-interpreter, test, executable, and long quality gates were deliberately skipped
-under the user's instruction. This is not verified cold-load, durability,
-performance, or full-programme completion evidence.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+No broader durability, performance or full-programme completion is implied.
 
 This additive lifecycle persists an image's exact canonical Project inputs
 through the existing [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md).
@@ -140,16 +139,21 @@ diagnostics retain their owning meanings.
 
 ## Authored evidence and limits
 
-`src/project/image_store.rs` owns this lifecycle. Five authored, unrun tests in
+`src/project/image_store.rs` owns this lifecycle. The original five-case corpus in
 `tests/semantic/image_store.rs` cover unchanged `Arc` reuse, manual source
 and manifest refresh, reverse-import invalidation, stale/invalid-source
 preservation, cold rebuilding after dropping retained state, working-copy
 independence, duplicate persistence, corruption/deletion, and hostile receipt
 or compiler-locator substitution. Disk cases are limited to the existing
-supported Unix store platforms.
+supported Unix store platforms. The implemented release corpus is HOSTED GREEN
+for v0.4.0; historical test counts do not define the current inventory.
 
 This slice does not provide persistent HIR/index reuse, warm cross-process
 compilation, selective module recompilation, automatic cache discovery,
 eviction, crash recovery, new durability guarantees, signatures/approval,
 current-source freshness, target execution, or evidence that the full
 graph-operational persistence/performance programme is complete.
+
+The separate [authenticated cache store](SEMANTIC-CACHE-STORE-V1.md) and
+[frontend/semantic reuse](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) are implemented
+additions, not behavior silently added to this source-rebuilding store profile.

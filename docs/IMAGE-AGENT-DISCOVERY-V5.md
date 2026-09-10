@@ -1,6 +1,8 @@
 # Image Agent Discovery v5
 
-Status: Partial; implementation and focused regressions authored, unrun.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope. Broader SDK
+and graph-operational completion remain Partial.
 
 Audience: agent builders, typed-client authors, and compiler contributors.
 
@@ -249,12 +251,12 @@ or selection inconsistencies; `SPX-G289` rejects oversized discovery payloads.
 Ordinary protocol grammar, authority, stale revision, and overflow diagnostics
 remain unchanged.
 
-Focused module regressions author selected-profile method exclusions, resolved
+Focused module regressions cover selected-profile method exclusions, resolved
 constructor references, explicit opaque-report listings, optional/null shape
 differences, digest/control patterns, typed builder names, integer checks,
 literal LF source escapes, concrete candidate schemas, optional frontend work,
 unsupported-assertion rejection, transitive metadata selection, and bounded
-generated source. They were not run.
-No compiler, interpreter, generated client, target, or local quality gate was
-executed for this change. Full SDK conformance and exhaustive report schemas
-remain open work.
+generated source. The implemented release corpus is HOSTED GREEN for v0.4.0.
+The earlier authoring-time lack of execution is not the current evidence status.
+Complete report schemas, broader SDK support and any additional consumer scope
+remain separate from the released bounded client and discovery implementation.

@@ -2,10 +2,12 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: local implementation tranche; hosted promotion is not claimed.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Public aggregate ABI and
+broader owned propagation remain separate.
 
 The additive [Generic Owned Result v1](GENERIC-OWNED-RESULT-V1.md) tranche is
-being implemented separately. It extends exact residual propagation to
+implemented separately. It extends exact residual propagation to
 `Result<Bytes, E>` and explicit generic functions; the frozen profile below
 continues to define its earlier admitted shapes and bytes.
 
@@ -139,27 +141,14 @@ translated into an ordinary language failure status.
 
 ## Evidence boundary
 
-Completion requires source round-trip and stable diagnostics, hostile HIR and
-replay mutation tests, interpreter execution, native C11 execution at `-O0`
-and `-O2`, and Node/Core-Wasm execution under tight owned-token capacity.
-Evidence covers authored and compiler-owned cases, borrow followed by own,
-dynamic parameters/results/calls, repeated entry, inactive cases, invalid
-carriers, payload-free conditional cases, exact-once cleanup, and failure
-settlement. The concrete authored-generic extension additionally covers both
-argument positions, exact owner/index substitution, opposite live-case vectors,
-partial construction, failure inside an owned arm, exact semantic status,
-native and Wasm shallow-copy rejection, and repeated recovery. The exact
-authored two-owned profile additionally covers both live branches, dynamic
-parameter/result/call transfer, branch-specific authentication and finalizers,
-partial construction and owned-arm failure on each branch, forged carrier/case
-rejection, exact statuses, tight capacity, and repeated recovery on all three
-engines. The exact compiler-owned `Result<Bytes, Bytes>` profile separately
-covers the same two active branches, dynamic forwarding, staged-call and arm
-failure settlement, hostile conditional-plan mutations, invalid native tags,
-tag-last publication, and shallow-copy rejection. Its exact owned postfix `?`
-evidence additionally covers evaluation once, Ok-payload move, Err residual
-transfer, shared postconditions, guarded finalization, sticky failure, and
-re-entry on interpreter, native C11 `-O0`/`-O2`, and Core-Wasm. Mixed/general,
-nested, generic-function, and public-ABI propagation remain closed. Evidence
-in this tranche is local only; it does not claim hosted promotion or a public
-ABI widening.
+The maintained corpus covers source round-trip and stable diagnostics, hostile
+HIR and replay mutation tests, interpreter execution, native C11 execution at
+`-O0` and `-O2`, and Node/Core-Wasm execution under tight owned-token capacity.
+It covers authored and compiler-owned cases, borrow followed by own, dynamic
+parameters/results/calls, repeated entry, inactive cases, invalid carriers,
+payload-free conditional cases, exact-once cleanup, failure settlement, the
+concrete authored-generic extension, the exact two-owned profile, and exact
+`Result<Bytes, Bytes>` / owned postfix `?` behavior described above. The
+implemented release corpus is **HOSTED GREEN** for v0.4.0. Mixed/general,
+nested, generic-function and public-ABI propagation remain closed; release CI
+does not widen this bounded ownership contract.

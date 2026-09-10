@@ -19,13 +19,18 @@ fn format_writer_preflight_rejects_short_and_forged_output() {
         "let output = Writer { data: bytes_zeroed(2usize), position: 0usize }; let written = append_usize(100usize, output); written.position",
         "let output = Writer { data: bytes_zeroed(4usize), position: 0usize }; let written = append_bool(false, output); written.position",
         "let output = Writer { data: bytes_zeroed(1usize), position: 2usize }; let written = append_bool(true, output); written.position",
+        // Padded output preflights the whole field, not just the content.
+        "let text = \"abc\"; let output = Writer { data: bytes_zeroed(3usize), position: 0usize }; let written = append_str_left(string_as_str(text), 4usize, 32u8, output); written.position",
+        "let output = Writer { data: bytes_zeroed(2usize), position: 0usize }; let written = append_usize_right(7usize, 3usize, 48u8, output); written.position",
+        "let output = Writer { data: bytes_zeroed(4usize), position: 2usize }; let written = append_fill(32u8, 3usize, output); written.position",
+        "let output = Writer { data: bytes_zeroed(3usize), position: 4usize }; let written = append_fill(32u8, 0usize, output); written.position",
     ].into_iter().enumerate() {
         let directory = scratch.join(index.to_string());
         std::fs::create_dir_all(directory.join("src")).unwrap();
         let manifest = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"format-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v2\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = []\n\n[dependencies]\nstd.format = \"=0.1.0\"\n";
         std::fs::write(directory.join("semaprax.toml"), manifest).unwrap();
         std::fs::write(directory.join("src/app.spx"), "module consumer.app;\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    0\n}\n").unwrap();
-        let source = format!("module consumer.tests;\nuse type @id(\"std.io.writer\") from std.io as Writer;\nuse function @id(\"std.format.append-str\") from std.format as append_str;\nuse function @id(\"std.format.append-i64\") from std.format as append_i64;\nuse function @id(\"std.format.append-usize\") from std.format as append_usize;\nuse function @id(\"std.format.append-bool\") from std.format as append_bool;\n@id(\"consumer.invalid\") fn invalid() -> usize {{ {body} }}\n@id(\"consumer.tests.main\") fn main() -> i64 {{ if invalid() == 0usize {{ 0 }} else {{ 1 }} }}\n");
+        let source = format!("module consumer.tests;\nuse type @id(\"std.io.writer\") from std.io as Writer;\nuse function @id(\"std.format.append-str\") from std.format as append_str;\nuse function @id(\"std.format.append-i64\") from std.format as append_i64;\nuse function @id(\"std.format.append-usize\") from std.format as append_usize;\nuse function @id(\"std.format.append-bool\") from std.format as append_bool;\nuse function @id(\"std.format.append-str-left\") from std.format as append_str_left;\nuse function @id(\"std.format.append-usize-right\") from std.format as append_usize_right;\nuse function @id(\"std.format.append-fill\") from std.format as append_fill;\n@id(\"consumer.invalid\") fn invalid() -> usize {{ {body} }}\n@id(\"consumer.tests.main\") fn main() -> i64 {{ if invalid() == 0usize {{ 0 }} else {{ 1 }} }}\n");
         let parsed = semaprax::parse(&source, "format-contract.spx").unwrap();
         std::fs::write(directory.join("src/tests.spx"), semaprax::format::canonical(&parsed)).unwrap();
         project::with_authenticated_project(&directory.join("semaprax.toml"), |snapshot| {
@@ -86,7 +91,7 @@ pub(super) fn conformance_manifests(
         .unwrap();
         manifests.push(directory.join("semaprax.toml"));
     }
-    assert_eq!(manifests.len(), 8, "format conformance case disappeared");
+    assert_eq!(manifests.len(), 13, "format conformance case disappeared");
     manifests
 }
 

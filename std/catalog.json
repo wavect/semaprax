@@ -2601,6 +2601,65 @@
           "kind": "function",
           "name": "append_bool",
           "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn pad_len(content: usize, width: usize) -> usize",
+            "    ensures result >= content && result >= width"
+          ],
+          "id": "std.format.pad-len",
+          "kind": "function",
+          "name": "pad_len",
+          "requires": 0
+        },
+        {
+          "description": [
+            "`count` copies of one fill byte, preflighted against the live capacity."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn append_fill(fill: u8, count: usize, output: own Writer) -> Writer",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && count <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.format.append-fill",
+          "kind": "function",
+          "name": "append_fill",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Left-aligned text in a field of `width`: the content, then fill bytes.  A",
+            "content longer than the field is written in full and never truncated."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn append_str_left(value: borrow str, width: usize, fill: u8, output: own Writer) -> Writer",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && pad_len(byte_len(str_as_bytes(value)), width) <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.format.append-str-left",
+          "kind": "function",
+          "name": "append_str_left",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Right-aligned decimal in a field of `width`: fill bytes, then the digits."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn append_usize_right(value: usize, width: usize, fill: u8, output: own Writer) -> Writer",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && pad_len(usize_len(value), width) <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.format.append-usize-right",
+          "kind": "function",
+          "name": "append_usize_right",
+          "requires": 1
         }
       ],
       "dependency": "std.format = \"^0.1.0\"",

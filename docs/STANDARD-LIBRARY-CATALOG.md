@@ -1318,6 +1318,41 @@ fn append_bool(value: bool, output: own Writer) -> Writer
     requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && if value { 4usize } else { 5usize } <= byte_len(bytes_as_slice(data)) - position, }
 ```
 
+### `std.format.pad-len`
+
+```semaprax
+fn pad_len(content: usize, width: usize) -> usize
+    ensures result >= content && result >= width
+```
+
+### `std.format.append-fill`
+
+`count` copies of one fill byte, preflighted against the live capacity.
+
+```semaprax
+fn append_fill(fill: u8, count: usize, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && count <= byte_len(bytes_as_slice(data)) - position, }
+```
+
+### `std.format.append-str-left`
+
+Left-aligned text in a field of `width`: the content, then fill bytes.  A
+content longer than the field is written in full and never truncated.
+
+```semaprax
+fn append_str_left(value: borrow str, width: usize, fill: u8, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && pad_len(byte_len(str_as_bytes(value)), width) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
+### `std.format.append-usize-right`
+
+Right-aligned decimal in a field of `width`: fill bytes, then the digits.
+
+```semaprax
+fn append_usize_right(value: usize, width: usize, fill: u8, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && pad_len(usize_len(value), width) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
 ## `std.fs`
 
 Package `std/fs`, tier `hosted`, status partial. Required project profile: `filesystem-io.v2`. Dependency: `std.fs = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

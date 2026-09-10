@@ -262,6 +262,7 @@ jobs:
           cargo test --locked -p semaprax --test project standard_library::path_normalize -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::path_normalize::path_normalization_executes_on_all_three_backends -- --exact --nocapture
           cargo test --locked -p semaprax --test project standard_library::typed_paths -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::formatting -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::json_cursors -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::logging -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::catalog -- --nocapture

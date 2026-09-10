@@ -36,6 +36,41 @@ The helper functions `byte`, `digit_byte`, `usize_len`, `usize_byte`,
 used by the append operations. Their contracts reject out-of-range byte or
 digit requests and out-of-range indexes before a write.
 
+## Field padding
+
+Aligned output is the additive half of the same profile:
+
+```text
+std.format.pad_len(content: usize, width: usize) -> usize
+std.format.append_fill(fill: u8, count: usize, output: own std.io.Writer)
+    -> std.io.Writer
+std.format.append_str_left(value: borrow str, width: usize, fill: u8,
+    output: own std.io.Writer) -> std.io.Writer
+std.format.append_usize_right(value: usize, width: usize, fill: u8,
+    output: own std.io.Writer) -> std.io.Writer
+```
+
+`pad_len` is the field width actually written: the larger of the content length
+and the requested width, so a field is never narrower than its content.
+Content longer than the field is written in full and **never truncated**; the
+caller sees the true bytes and the returned cursor, rather than a silently
+clipped value. `append_str_left` writes the content and then fill bytes;
+`append_usize_right` writes fill bytes and then the decimal digits.
+`append_fill` is the shared primitive and is useful alone for separators and
+indentation, with a `count` of zero writing nothing and leaving the cursor
+untouched.
+
+Each padded operation preflights `pad_len` — the whole field, not just the
+content — against the writer's remaining capacity, so a buffer that could hold
+the content but not its padding fails before any byte is written. The fill byte
+is an ordinary `u8`; the profile applies no character, Unicode or locale
+policy, and a fill byte that is not printable is written as given. Alignment is
+byte alignment: for non-ASCII text the field counts UTF-8 bytes, not display
+columns.
+
+General format strings, arbitrary alignment modes, grouping separators, and
+floating-point rendering remain Missing.
+
 ## Writer contract and evaluation
 
 Every append operation preflights the Writer position and exact remaining

@@ -8,6 +8,22 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add field padding to `std.format` under the existing
+  [Format Writer v1](docs/FORMAT-WRITER-V1.md) contract: `pad_len` is the field
+  width actually written (never narrower than the content), `append_fill`
+  writes one repeated byte, `append_str_left` writes left-aligned text and
+  `append_usize_right` right-aligned decimals. Each padded operation
+  preflights the whole field rather than only its content, so a buffer that
+  could hold the content but not its padding fails before any byte is written,
+  and content longer than the field is written in full rather than truncated.
+  Five named cases join the existing corpus as individual bounded projects on
+  the interpreter, native C11 `-O0`/`-O2` and repeated Core Wasm, and four
+  further short or forged-output cases reject padded writes with the exact
+  `requires`-false status. Alignment is byte alignment and the fill byte
+  carries no character or locale policy; general format strings, arbitrary
+  alignment modes, grouping separators and floating-point rendering remain
+  Missing.
+
 - Add the bundled `std.path.normalize` package,
   [Path Normalization v1](docs/PATH-NORMALIZATION-V1.md): lexical normalization
   of the typed `Path` values `std.path.value` owns. `normalized_len` and

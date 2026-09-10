@@ -130,3 +130,35 @@ fn append_bool(value: bool, output: own Writer) -> Writer
 {
     match own output { Writer { data: output_data, position: output_position } => { let length = if value { 4usize } else { 5usize }; let mut next = output_data; let mut index = 0usize; let mut writing = index < length; while writing { let item = if value { if index == 0usize { 116u8 } else { if index == 1usize { 114u8 } else { if index == 2usize { 117u8 } else { 101u8 } } } } else { if index == 0usize { 102u8 } else { if index == 1usize { 97u8 } else { if index == 2usize { 108u8 } else { if index == 3usize { 115u8 } else { 101u8 } } } } }; next = bytes_set(next, output_position + index, item); index = index + 1usize; writing = index < length; writing } Writer { data: next, position: output_position + length } }, }
 }
+
+@id("std.format.pad-len")
+fn pad_len(content: usize, width: usize) -> usize
+    ensures result >= content && result >= width
+{
+    if width > content { width } else { content }
+}
+
+// `count` copies of one fill byte, preflighted against the live capacity.
+@id("std.format.append-fill")
+fn append_fill(fill: u8, count: usize, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && count <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let mut next = output_data; let mut index = 0usize; let mut writing = index < count; while writing { next = bytes_set(next, output_position + index, fill); index = index + 1usize; writing = index < count; writing } Writer { data: next, position: output_position + count } }, }
+}
+
+// Left-aligned text in a field of `width`: the content, then fill bytes.  A
+// content longer than the field is written in full and never truncated.
+@id("std.format.append-str-left")
+fn append_str_left(value: borrow str, width: usize, fill: u8, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && pad_len(byte_len(str_as_bytes(value)), width) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let view = str_as_bytes(value); let content = byte_len(view); let total = pad_len(content, width); let mut next = output_data; let mut index = 0usize; let mut writing = index < total; while writing { let item = if index < content { match byte_get(view, index) { Option::Some { value: item } => item, Option::None {} => 0u8, } } else { fill }; next = bytes_set(next, output_position + index, item); index = index + 1usize; writing = index < total; writing } Writer { data: next, position: output_position + total } }, }
+}
+
+// Right-aligned decimal in a field of `width`: fill bytes, then the digits.
+@id("std.format.append-usize-right")
+fn append_usize_right(value: usize, width: usize, fill: u8, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && pad_len(usize_len(value), width) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let digits = usize_len(value); let total = pad_len(digits, width); let padding = total - digits; let mut next = output_data; let mut index = 0usize; let mut writing = index < total; while writing { let item = if index < padding { fill } else { usize_byte(value, index - padding) }; next = bytes_set(next, output_position + index, item); index = index + 1usize; writing = index < total; writing } Writer { data: next, position: output_position + total } }, }
+}

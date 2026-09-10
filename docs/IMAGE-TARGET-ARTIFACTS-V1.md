@@ -1,6 +1,8 @@
 # Image target and artifact projections v1
 
-Status: authored, unrun; full programme and target execution remain unverified.
+Status: implemented bounded projection profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Full-programme support and
+actual target execution remain separate from these compiler projections.
 Audience: semantic agent clients, compiler contributors, and embedding hosts.
 
 `ProjectSemanticImage::target_admission` derives actual compiler-emission facts
@@ -64,9 +66,11 @@ Existing host source authentication surrounds queries; v5 does not change the
 method sets of v1–v4. The distinction between build and artifact-materialization
 authority remains explicit.
 
-`tests/image_protocol/target_artifacts_v1.rs` authors membership, actual carrier binding,
+`tests/image_protocol/target_artifacts_v1.rs` covers membership, actual carrier binding,
 export/source provenance, exact replay/mutation, capacity and no-write checks.
-No tests, compiler gates or generated artifacts were executed during this work.
+These implemented regressions have **HOSTED GREEN** v0.4.0 release evidence.
+They validate bounded compiler projections and no-write behavior; they do not
+turn a pathless artifact report into runtime execution or publication support.
 
 The additive [Candidate Artifact Delta v1](PROJECT-CANDIDATE-ARTIFACT-DELTA-V1.md)
 compares these actual projections across a replayed candidate's original and

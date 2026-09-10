@@ -1,6 +1,8 @@
 # Image protocol conformance v1
 
-Status: authored, unrun; no verified completion promotion.
+Status: implemented bounded static-conformance query; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). This does not promote dynamic
+dispatch, behavioral proof, target execution or publication support.
 Audience: compiler contributors and semantic agent client authors.
 
 `ProjectSemanticImage::protocol_conformance` exposes canonical, source-backed
@@ -57,8 +59,9 @@ effect/precondition admission, as specified in
 provide dynamic dispatch, a runtime witness table, cross-module implementation
 bindings, behavioral contract proof, target execution or publication authority.
 
-`tests/image_protocol/protocol_conformance_v1.rs` authors exact replay, mutation/stale
+`tests/image_protocol/protocol_conformance_v1.rs` covers exact replay, mutation/stale
 rejection, source binding and empty inventory cases. The v4 transport regression
-authors discovery, base/candidate chunk selection and legacy-profile exclusion.
-No tests, compiler checks, interpreter runs or target executions were performed
-for this change, at the user's request.
+covers discovery, base/candidate chunk selection and legacy-profile exclusion.
+The implemented release regressions are **HOSTED GREEN** for v0.4.0; the earlier
+authoring-time skipped local run is historical and does not define current
+evidence status.

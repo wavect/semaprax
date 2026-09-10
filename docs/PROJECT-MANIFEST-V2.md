@@ -1,11 +1,14 @@
 # Project Manifest v2
 
-Status: versioned bounded reference; the completion matrix owns product status.
+Status: versioned bounded reference; **HOSTED GREEN** for the admitted v0.4.0
+implementation. The [completion matrix](COMPLETION-MATRIX.md) owns broader
+product status and public-support decisions.
 
 Audience: language users, tool authors, and compiler contributors.
 
-Project Manifest v2 is the locally evidenced packaging profile for one Useful
-Text Consumer v1 project. Exact-head hosted promotion is pending.
+Project Manifest v2 is the implemented packaging profile for one Useful Text
+Consumer v1 project. The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md)
+supersedes the former exact-head hosted-pending classification.
 
 The canonical manifest adds required `version` and
 `profile = "useful-text-consumer.v1"` fields to the bounded Project authority.
@@ -60,16 +63,19 @@ prefix under the held destination, and leave foreign replacement bytes alone;
 there is no new cleanup or rollback. The correction changes no artifact,
 carrier, descriptor, or Windows route. Real-carrier Unix regression cases in
 `src/project/npm/publication/tests.rs` and thread-local test-hook isolation
-cases in `hook_tests.rs` are authored but unrun. The hooks exist only in Unix
-test builds and do not add production concurrency authority.
+cases in `hook_tests.rs` are part of the hosted-green v0.4.0 regression corpus.
+The hooks exist only in Unix test builds and do not add production concurrency
+authority.
 
-Local evidence builds the real config-validator fixture, preserves exports by
-stable ID across a display rename, performs offline `npm pack`, installs the
-result into a compiler-free consumer with scripts disabled, type-checks its
-declarations, and executes it when the required local tools are available.
-These are local pack/install tests, not npm-registry publication, registry
-compatibility, signing, provenance, dependency resolution, lockfile, or
-production-distribution claims.
+Historical local evidence built the real config-validator fixture, preserved
+exports by stable ID across a display rename, performed offline `npm pack`,
+installed the result into a compiler-free consumer with scripts disabled,
+type-checked its declarations, and executed it when the required local tools
+were available. Those local observations retain their original provenance.
+The released implementation is additionally **HOSTED GREEN**; neither class of
+evidence constitutes npm-registry publication, registry compatibility,
+signing, provenance, dependency resolution, lockfile, or production-distribution
+support.
 
 See [Useful Text Consumer v1](USEFUL-TEXT-CONSUMER-V1.md) for the closed
 language and ABI boundary.

@@ -1,9 +1,14 @@
 # Generic Argument Inference v3
 
-Status: local, partial. Fifteen language checks, six direct inference/precheck
+Status: implemented private profile; **HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Public generic ABI and support promotion remain separately gated.
+
+Historical local witness: fifteen language checks, six direct inference/precheck
 checks, five graph mapping checks, three private ProgramRoot replays and three
-owned runtime corpora pass. Interpreter, native O0/O2 and Core Wasm agree on
-success, failure cleanup and evaluation-once probes. No hosted/public claim.
+owned runtime corpora passed. Interpreter, native O0/O2 and Core Wasm agreed on
+success, failure cleanup and evaluation-once probes. These counts describe that
+local execution, not a new test run or the current evidence ceiling.
 
 Audience: compiler contributors and reviewers.
 
@@ -88,5 +93,7 @@ cargo test --locked --offline -p semaprax --test workspace inferred_generic_inst
 cargo test --locked --offline -p semaprax --test owned_data generic_owned_function_runtime::inference
 ```
 
-Public generic descriptors and signatures remain separately gated. Local
-execution and replay do not establish hosted or public support.
+Public generic descriptors and signatures remain separately gated. The accepted
+v0.4.0 baseline supersedes the former local-only release status; it does not
+establish public support or evidence for later code changes. Historical local
+counts and any exact workflow records retain their original execution scope.

@@ -1,9 +1,14 @@
 # Generic Argument Inference v2
 
-Status: local, partial. Thirteen source/HIR/graph checks, two independent
+Status: implemented private profile; **HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Public generic ABI and support promotion remain separately gated.
+
+Historical local witness: thirteen source/HIR/graph checks, two independent
 inference checks, two private ProgramRoot replays and both owned runtime corpora
-pass. Interpreter, native O0/O2 and Core Wasm agree, including evaluation-once
-probes and contract-failure cleanup. Hosted and public support are not claimed.
+passed. Interpreter, native O0/O2 and Core Wasm agreed, including evaluation-once
+probes and contract-failure cleanup. These are historical local counts, not a
+new test run or the current evidence ceiling.
 
 Audience: compiler contributors and reviewers.
 
@@ -62,7 +67,7 @@ and match evidence remain open. Public generic signatures are unchanged.
 
 The existing named Linux `GEN-06 exact argument inference` selector owns source,
 HIR and graph replay, generic-call hostility, private workspace ProgramRoot
-replay and owned runtime settlement. Its local commands are:
+replay and owned runtime settlement. Its reproducible commands are:
 
 ```sh
 cargo test --locked --offline -p semaprax --lib generic_inference
@@ -72,8 +77,10 @@ cargo test --locked --offline -p semaprax --test workspace inferred_generic_inst
 cargo test --locked --offline -p semaprax --test owned_data generic_owned_function_runtime::inference
 ```
 
-Local results do not establish hosted or public support. Earlier graph, cleanup,
-prelude and public descriptor schemas retain their existing meaning.
+Current release evidence follows the accepted baseline above. Historical local
+results retain their original scope; neither they nor release acceptance grant
+public support. Earlier graph, cleanup, prelude and public descriptor schemas
+retain their existing meaning.
 
 [Version 3](GENERIC-ARGUMENT-INFERENCE-V3.md) extends nested omitted calls and
 symbolic generic-caller inference while preserving this original v2 boundary.

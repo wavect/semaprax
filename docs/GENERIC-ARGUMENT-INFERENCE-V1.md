@@ -1,8 +1,13 @@
 # Generic Argument Inference v1
 
-Status: local, partial. Seven source/HIR/graph checks, exact private ProgramRoot
-replay, and all-eight-scalar interpreter/native O0/O2/Core-Wasm success and
-contract-failure settlement pass. No hosted or public-support claim.
+Status: implemented private profile; **HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Public generic ABI and support promotion remain separately gated.
+
+Historical local witness: seven source/HIR/graph checks, exact private
+ProgramRoot replay, and all-eight-scalar interpreter/native O0/O2/Core-Wasm
+success and contract-failure settlement passed. These counts describe that
+local execution, not a new test run or the current evidence ceiling.
 
 Audience: compiler contributors and reviewers.
 

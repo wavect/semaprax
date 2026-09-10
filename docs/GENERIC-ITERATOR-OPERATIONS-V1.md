@@ -1,7 +1,9 @@
 # Generic Iterator Operations v1
 
-Status: private implementation with focused local runtime and replay evidence;
-hosted promotion remains pending.
+Status: implemented private profile; **HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Focused local runtime and replay results remain historical witnesses.
+Public package/ABI support promotion remains separately gated.
 
 Audience: compiler contributors, reviewers, and agent authors.
 
@@ -55,8 +57,8 @@ or general authored iterator implementation. `map` and `fold` use existing
 Prelude v7, CleanupPlan v11, and Graph v39 meanings. Conditional `filter`
 renewal uses additive CleanupPlan v12 and Graph v40 facts as specified by the
 renewal profile. Earlier versioned contracts remain authoritative and
-unchanged. Public signatures, hosted support, and broader iterator adapters
-remain outside this profile.
+unchanged. Public signatures, public support, and broader iterator adapters
+remain outside this profile; accepted hosted evidence does not widen them.
 
 ## Evidence boundary
 
@@ -77,5 +79,6 @@ checked callable closures, and ProgramRoot replay rejects changed source.
 The existing Linux step
 `Require Owning Iterators v1 identity, replay, and backend settlement` selects
 these tests with the `iterator` filter in the library, owned-data, and workspace
-harnesses. Local evidence does not imply an exact-head hosted result or a public
-package/ABI support claim.
+harnesses. Current release evidence follows the accepted v0.4.0 baseline above.
+Historical local results are not a new exact-head hosted run, and release
+acceptance grants neither public package/ABI support nor evidence for later code.

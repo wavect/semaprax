@@ -1,10 +1,14 @@
 # Generic Owned Result v1
 
-Status: locally implemented for owned-Bytes success with all eight Copy error
-substitutions and Bytes errors, and all eight Copy success substitutions with
-owned-Bytes errors. Focused source/HIR, graph, workspace replay,
-interpreter, native O0/O2 and Core-Wasm evidence is recorded with the change;
-no hosted support claim.
+Status: implemented private profile; **HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Admission covers owned-Bytes success with all eight Copy error substitutions
+and Bytes errors, and all eight Copy success substitutions with owned-Bytes
+errors. Public generic ABI and support remain separately gated.
+
+Historical local source/HIR, graph, workspace replay, interpreter, native O0/O2
+and Core-Wasm witnesses remain attached to their original execution; they are
+not a new test run or the current evidence ceiling.
 
 Audience: compiler contributors and language reviewers.
 
@@ -95,6 +99,13 @@ omitted transitions and invalid carrier tags or payloads.
 
 Historical scalar and two-owned-Bytes Result checks retain their known answers.
 The extension changes no public Project, package, C, C++, Rust, WIT, Component,
-or registry signature. Nested Result payloads, ownership-equivalent reconstruction, multiple owners,
-generic variants and collection payloads remain subsequent implementation
-work in the full goal. This tranche alone does not complete GEN-06.
+or registry signature. Nested Result payloads and broader Result/collection
+payload composition remain outside this profile.
+
+The released implementation separately includes
+[record reconstruction](GENERIC-OWNED-RECORD-COMPOSITION-V2.md),
+[multi-owner records](GENERIC-MULTI-OWNER-RECORDS-V1.md),
+[authored generic variants](GENERIC-AUTHORED-VARIANTS-V1.md), and
+[compiler collections](GENERIC-COMPILER-COLLECTIONS-V1.md). These are no longer
+wholly future implementation tasks, but their owning contracts do not widen
+this Result profile. This tranche alone does not complete GEN-06.

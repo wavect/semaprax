@@ -1,7 +1,9 @@
 # Generic Iterator Helpers v1
 
-Status: focused source/HIR, graph, ProgramRoot, and cross-engine runtime checks
-pass locally; exact-commit hosted promotion remains pending.
+Status: implemented private profile; **HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Focused source/HIR, graph, ProgramRoot, and cross-engine runtime checks also
+have historical local witnesses. Public generic ABI and support remain separate.
 
 Audience: compiler contributors, reviewers, and agent authors.
 
@@ -62,9 +64,14 @@ iteration, discarded remainders, scalar callbacks and captures, helper failure,
 and repeated exact owner settlement on the interpreter, native C11 O0/O2,
 and Core Wasm. Projection tests must check generic identities and cleanup
 selection, reject forged substitution/scoped identities, and reject ProgramRoot
-replay against changed retained source. Local execution and exact-commit
-hosted evidence must be recorded separately.
+replay against changed retained source. Historical local executions and any
+exact-commit workflow records retain their own identities; current release
+acceptance is recorded in the baseline above.
 
 Focused tests use the `generic_iterator` filter in the library, `owned_data`,
 and `workspace` harnesses. The named Linux owning-iterator selector also runs
 these cases through its broader `iterator` filters.
+
+[Generic Iterator Operations v1](GENERIC-ITERATOR-OPERATIONS-V1.md) separately
+extends authored helpers to one or two type parameters and bounded map/filter/fold
+composition. That implemented extension does not change this profile's v1 limits.

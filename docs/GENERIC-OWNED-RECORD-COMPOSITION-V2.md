@@ -1,8 +1,13 @@
 # Generic Owned Record Composition v2
 
 Status: implemented source, HIR, cleanup, graph and backend integration;
-the seven focused language checks and all-eight-scalar runtime corpus pass locally.
-This is internal function semantics, not a new public ABI or hosted claim.
+**HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+This remains internal function semantics, not a new public ABI.
+
+Historical local witness: the seven focused language checks and all-eight-scalar
+runtime corpus passed. Their counts and timings retain their original local
+scope rather than becoming a new test run.
 
 Audience: compiler contributors and language reviewers.
 
@@ -99,9 +104,15 @@ unused-template duplicate-owner rejection (`SPX-O101`).
 The owned-data runtime module `generic_owned_function_runtime::nested_composition`
 compares interpreter, C11 O0/O2 and Core Wasm behavior and resource accounting
 for both branches, reconstruction, observation, updates and contract failure
-after reconstruction. The three runtime profiles pass on all four engine
-configurations (27.23 seconds), with repeated invocations, allocation settlement
-and no additional Wasm memory.copy compared with direct construction. Nested
-update classification substitutes concrete fields independently in construction
-and replay. Native If lowering emits the selected canonical ownership join and
-its call-argument staging before invocation. Hosted evidence remains pending.
+after reconstruction. In the historical local witness, the three runtime
+profiles passed on all four engine configurations (27.23 seconds), with repeated
+invocations, allocation settlement and no additional Wasm memory.copy compared
+with direct construction. Nested update classification substitutes concrete
+fields independently in construction and replay. Native If lowering emits the
+selected canonical ownership join and its call-argument staging before invocation.
+Current release evidence follows the accepted baseline above; the historical
+duration is not a hosted performance claim or evidence for later code changes.
+
+[Generic Multi-Owner Records v1](GENERIC-MULTI-OWNER-RECORDS-V1.md) extends the
+owning-parameter composition separately. It does not retroactively widen this
+version's stated one-owner profile or any public signature.

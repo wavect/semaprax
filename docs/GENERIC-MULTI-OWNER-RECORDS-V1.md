@@ -1,8 +1,12 @@
 # Generic Multi-Owner Records v1
 
-Status: implemented with five focused source/HIR/graph checks and the
-all-eight-scalar allocation-accounted runtime corpus passing locally. Hosted
-promotion and public generic ABI remain separate.
+Status: implemented private profile; **HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Public generic ABI and support promotion remain separately gated.
+
+Historical local witness: five focused source/HIR/graph checks and the
+all-eight-scalar allocation-accounted runtime corpus passed. Those local
+results retain their original scope rather than becoming a new hosted run.
 
 Audience: compiler contributors and language reviewers.
 
@@ -51,9 +55,11 @@ owners, replacing a nested owned field with cleanup v9, duplicate ownership
 rejection, a three-owner case under the existing parameter bound, and refusal
 of unrelated owning carriers. Positive cases cover all eight substitutions,
 canonical source, exact graph replay and hostile HIR parameter ownership.
-`generic_owned_function_runtime::multi_owner` passes reconstruction and nested
+`generic_owned_function_runtime::multi_owner` covers reconstruction and nested
 owner replacement, both success and failure while evaluating the second
-argument after the first owner has staged. All eight substitutions execute on
-interpreter, C11 O0/O2 and Core Wasm (11.66 seconds), with repeated calls,
-allocation settlement and a direct-construction memory.copy comparison. These
-are local execution results, not hosted or public ABI evidence.
+argument after the first owner has staged. In the historical local witness,
+all eight substitutions executed on interpreter, C11 O0/O2 and Core Wasm
+(11.66 seconds), with repeated calls, allocation settlement and a direct-construction
+memory.copy comparison. Current release evidence follows the accepted baseline
+above; the historical duration is not a hosted performance claim or new result.
+Public ABI promotion remains separate.

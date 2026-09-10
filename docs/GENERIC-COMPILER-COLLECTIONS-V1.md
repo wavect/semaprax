@@ -1,6 +1,9 @@
 # Generic Compiler Collections v1
 
-Status: local, partial; source/HIR/graph, ProgramRoot and all-engine runtime checks pass.
+Status: implemented private profile; **HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Source/HIR/graph, ProgramRoot and all-engine runtime checks also have retained
+historical local witnesses. Public generic ABI and support remain separately gated.
 
 Audience: compiler contributors and reviewers.
 
@@ -24,14 +27,16 @@ Core-Wasm with repeated execution, lexical drop, consuming calls, and all Vec
 operations. Its Wasm fixture host rejects stale and duplicate owner settlement and requires
 zero live allocations after each invocation. Native probes count every
 Box/Vec malloc, calloc, realloc, and free; success and precondition/capacity
-failure preserve result sentinels, sticky status, and zero live allocations. No hosted claim follows from local
-execution.
+failure preserve result sentinels, sticky status, and zero live allocations.
+Current release evidence follows the accepted baseline above; historical local
+execution is not independently relabeled as a hosted run.
 
 The runtime corpus additionally exercises nested intrinsic producer staging, generic
 contract failure and Vec capacity failure. Native allocation accounting and
 result sentinels, and Wasm generation-aware handle accounting, remain checked
 across four repeated invocations per profile. Existing Box/Vec runtime checks
-also pass locally. Physical hosted evidence remains separate.
+also passed in the historical local corpus. Release acceptance does not add
+public support, broader physical-host coverage, or evidence for later code.
 
 The private Project HIR linker also retains exact bounded collection signatures.
 An attempted selected public Box result now reaches the unchanged Public Scalar

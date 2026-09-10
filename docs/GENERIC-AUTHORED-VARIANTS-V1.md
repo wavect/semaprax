@@ -1,9 +1,13 @@
 # Generic Authored Variants v1
 
-Status: local source/HIR/graph, cleanup-oracle, and all 18 runtime profiles pass
-on the interpreter, native C11 O0/O2, and Core Wasm. Private Project/ProgramRoot
-replay and exact public-profile rejection also pass; no hosted or public ABI
-promotion is claimed.
+Status: implemented private profile; **HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Public ABI promotion remains separately gated.
+
+Historical local witness: source/HIR/graph, cleanup-oracle, and all 18 runtime
+profiles passed on the interpreter, native C11 O0/O2, and Core Wasm. Private
+Project/ProgramRoot replay and exact public-profile rejection also passed.
+These are historical local results, not a new run or the current evidence ceiling.
 
 Audience: compiler contributors and reviewers.
 
@@ -40,8 +44,9 @@ branches, an owning match used directly as a call argument, borrow observation,
 payload inspection, and precondition failure selected at each scalar instance.
 Native probes count payload allocations and check exact failure status and result
 sentinels at O0/O2. Wasm reentry uses a bounded two-entry owned-byte host and
-compares bulk-copy counts with the corresponding bypass projection. Passing
-local fixtures does not constitute hosted or public ABI promotion.
+compares bulk-copy counts with the corresponding bypass projection. Current
+release evidence follows the accepted baseline above; public ABI promotion is
+not implied, and historical local fixture results retain their original scope.
 
 Private Project HIR linking retains exact authored variant signatures and stable
 declaration facts. Selected public roots still pass the existing Public Scalar

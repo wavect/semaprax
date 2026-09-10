@@ -1,7 +1,9 @@
 # Generic Explicit Forwarding v1
 
-Status: specified next implementation tranche; not admitted or verified by this
-specification alone. No hosted support claim.
+Status: implemented internal function semantics; **HOSTED GREEN** under the
+[accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+This is no longer a specification-only next tranche. Public generic ABI and
+support promotion remain separately gated.
 
 Audience: compiler contributors and language reviewers.
 
@@ -98,19 +100,18 @@ instance identities while exact source/root association still detects drift.
 
 ## Implementation ownership and focused evidence
 
-Source/HIR work replaces identity-only predicates in
-`source_verify/declared_type.rs`, `source_verify/declaration/functions.rs`,
-`hir/resolve_program.rs`, and `hir/validation/generic_template.rs`. Extract a
-shared HIR mapping helper into a new small module; source retains its independent
-check. Keep existing substitution visitors and monomorphizer unless focused
-cases expose a gap. Review call signature validation in `hir/validation.rs`
+Source/HIR validation spans `source_verify/declared_type.rs`,
+`source_verify/declaration/functions.rs`, `hir/resolve_program.rs`, and
+`hir/validation/generic_template.rs`. Source and HIR retain independent mapping
+checks. Existing substitution visitors and the monomorphizer remain subject to
+the focused corpus. Preserve call signature validation in `hir/validation.rs`
 and the 256-entry closure in `hir/resolve_program.rs`; neither may be weakened.
 
-Graph work belongs in a new mapping projection submodule plus
-`graph/generic_instances.rs`, schema selection in `graph/nested_owned.rs`, and
-Agent Context projection in `graph/agent_instances.rs`. Audit workspace schema
-selection and normalized SemanticProgram binding for v35. Avoid growing
-recorded root modules beyond their budgets.
+Mapping projection composes with `graph/generic_instances.rs`, schema selection
+in `graph/nested_owned.rs`, and Agent Context projection in
+`graph/agent_instances.rs`. Preserve workspace schema selection and normalized
+SemanticProgram binding for v35. Avoid growing recorded root modules beyond
+their budgets.
 
 The language harness covers permutation, repetition, differing arity, mixed
 concrete arguments, transitive composition, unused templates, and full owned
@@ -124,6 +125,12 @@ IR tests distinguish mappings whose concrete vectors coincide, check retained
 unused template mappings, and reject edited/reminted graph facts. Workspace
 and Agent Context tests bind v35 facts without changing historical v34 known
 answers or budget behavior. All tests remain modules of existing harnesses.
+
+The implemented source checks include
+`tests/language/generic_explicit_forwarding.rs`. The named GEN-06 selectors in
+`.github/workflows/ci.yml` include language forwarding, runtime forwarding,
+graph mapping, and the exact v35 ProgramRoot binding. Current release evidence
+uses the accepted baseline, not an invented new execution of these commands.
 
 This is internal function semantics. Public C/C++/Rust signatures, Project and
 package callable profiles, WIT/Component adapters, registry contracts and public

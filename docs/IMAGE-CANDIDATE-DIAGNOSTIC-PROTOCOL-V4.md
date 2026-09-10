@@ -2,8 +2,10 @@
 
 Audience: agent builders, embedding hosts, and compiler contributors.
 
-Status: additive implementation with focused authored, unrun regressions.
-No executed validation, hosted-completion, or general repair claim.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+This remains a bounded diagnostic/repair profile, not general repair or
+full-programme completion.
 
 V4 adds a host-selected diagnostic lifecycle over validated candidates. It does
 not require runtime-test authority and does not widen the existing read-only v1,
@@ -132,8 +134,9 @@ Delta reports contain bounded structural semantic differences and static test
 relevance, not executed coverage, runtime behavior, a compatibility guarantee,
 or approval. Runtime test capability remains separately selected and visible.
 
-[Focused authored tests](../tests/image_protocol/diagnostic_transport_v4.rs) cover legacy
+[Focused release tests](../tests/image_protocol/diagnostic_transport_v4.rs) cover legacy
 profile rejection, diagnostics without tests, host-only fixed optional policies,
 exact attempt chunks, retained-base discard, typed repair, semantic-delta
-chunks, registry capacity, source immutability, and absorbing drift. Tests were
-not run for this change.
+chunks, registry capacity, source immutability, and absorbing drift. The
+implemented release corpus is HOSTED GREEN for v0.4.0. Structural deltas remain
+non-execution reports, and actual candidate tests retain their separate grant.

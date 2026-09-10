@@ -1,6 +1,8 @@
 # Typed-draft archive persistence v1
 
-Status: Partial; implementation and regression evidence authored, unrun.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+The broader workspace lifecycle remains Partial.
 
 Audience: embedding hosts, local agent workspace integrators and compiler contributors.
 
@@ -124,13 +126,18 @@ store root, change startup policy, write the store or approve a candidate.
 
 ## Authored evidence and remaining work
 
-`tests/semantic/draft_archive_store.rs` and `tests/semantic/draft_archive_cli.rs` author
+`tests/semantic/draft_archive_store.rs` and `tests/semantic/draft_archive_cli.rs` cover
 source-loss recovery, partial-hole continuation, exact typed selection,
 hostile storage inputs, publication preservation and strict startup policies.
-Tests, compiler checks, CLI executions and long quality gates were not run.
-No completion-matrix row is promoted.
+The implemented release corpus is HOSTED GREEN for v0.4.0. Historical
+authoring-time nonexecution does not limit that current classification.
+No mature-product completion-matrix row is promoted.
 
-This adds explicit durable draft selection. Automatic registry checkpoints,
-branch naming, cursors, pending validation recovery, eviction, cross-platform
-storage support and measured recovery performance remain open. Stored archives
-are disposable recovery inputs; canonical `.spx` remains the source of truth.
+This adds explicit durable draft selection. The separately implemented
+[retention registry](SEMANTIC-RETENTION-REGISTRY-V1.md) and
+[host lifecycle](SEMANTIC-RETENTION-HOST-LIFECYCLE-V1.md) own receipt-driven
+metadata coordination; they do not silently widen this archive contract.
+Broader branch lifecycle, pending-validation recovery, archive eviction,
+cross-platform storage and measured recovery performance remain separate work.
+Stored archives are disposable recovery inputs; canonical `.spx` remains the
+source of truth.

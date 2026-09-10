@@ -4,6 +4,11 @@ on:
     branches: [docs/reconcile-v040-validation]
 permissions:
   contents: read
+# Cancel only the redundant full CI created on this temporary branch.
+# The main branch and its workflow configuration are never changed.
+concurrency:
+  group: ci-CI-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   snapshot:
     name: Export exact source for documentation validation

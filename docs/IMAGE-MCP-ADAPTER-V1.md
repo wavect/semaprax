@@ -1,6 +1,7 @@
 # Semantic workspace MCP adapter v1
 
-Status: implementation and regression evidence authored, unrun.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
 
 Audience: MCP clients, embedding hosts and compiler contributors.
 
@@ -32,7 +33,9 @@ The CLI uses exactly the same startup loader as `serve-workspace`. The existing
 manifest, candidate and diagnostic permissions, optional test/build grants,
 cache strategy, historical archives and separately approved Git host. Archives
 and cache entries load through their existing authenticated owners before Git
-provider startup. No new policy field or inferred permission is introduced.
+provider startup. The additive [read-batch policy v7](IMAGE-READ-BATCH-PROTOCOL-V1.md)
+also uses this loader and exposes only its explicitly selected batch capability.
+The MCP adapter itself introduces no policy field or inferred permission.
 Standard output contains only newline-delimited MCP responses, with no banner.
 
 Embedding hosts first configure an unused `VNextSession`, then consume it through
@@ -112,7 +115,8 @@ response-free initialized notification, calls the selected tool, checks the
 one-text-item/`isError` binding and inner ID zero, then restores the generated
 v5 codec's original correlation ID. Its installed-package review and separately
 approved publication gate now targets real `serve-workspace-mcp`; that additive
-gate is authored but unrun and does not enlarge this adapter's grants.
+gate is part of the HOSTED GREEN v0.4.0 implementation and does not enlarge
+this adapter's grants. This is not registry publication or general MCP support.
 
 ## Authority and result publication
 
@@ -170,15 +174,17 @@ Malformed framing and request shapes use ordinary JSON-RPC error codes. Inner
 semantic diagnostics and existing publication-aware final errors retain their
 ordinary owners.
 
-`tests/image_mcp_transport_v1.rs` and `tests/workspace_mcp_cli_v1.rs` author
+`tests/image_mcp_transport_v1.rs` and `tests/workspace_mcp_cli_v1.rs` cover
 lifecycle, catalogue, exact v5 forwarding, semantic workflow, grant separation,
 malformed input, output and final-authentication cases. The existing full
 workspace loader and old `serve-workspace` route remain covered by their own
-unrun regression suites. Tests, compiler checks, MCP clients and long local
-quality gates were not run in this change.
+maintained regression suites. The admitted release corpus is HOSTED GREEN for
+v0.4.0; the original authoring-time execution note is historical, not current
+release status.
 
-Independent MCP-client conformance, HTTP transport and authorization, real
-Extension Host task evidence, the optional MCP Tasks facility, general
+Broader independent MCP-client conformance, HTTP transport and authorization,
+editor-host coverage beyond the admitted release profile, the optional MCP Tasks
+facility, general
 concurrent scheduling, complete typed report payloads, and measured workflow
 improvements remain open. This adapter does not complete
 the full graph-operational programme or promote a completion-matrix row.

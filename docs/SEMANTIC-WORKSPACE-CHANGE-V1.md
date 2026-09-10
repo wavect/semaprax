@@ -469,5 +469,5 @@ present. The frozen whole-document SHA-256 KAT ledger is:
 | Application receipt | `sha256:2aeb79acfa7420fd57f82d8afa436658c265bf5c02808d13bd7b6acaa6957636` |
 
 The local public C3 suite is 10/10 and the private C3 authority suite is 11/11.
-Exact-head Ubuntu, macOS, and Windows hosted evidence remains pending. This
+Exact-head Ubuntu, macOS, and Windows release evidence is HOSTED GREEN for v0.4.0. This
 document makes no completion status promotion.

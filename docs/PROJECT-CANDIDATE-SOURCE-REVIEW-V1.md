@@ -96,5 +96,5 @@ original checkout changes; it makes no claim about current editor buffers.
 
 `tests/project_candidate/source_review.rs` and `tests/image_v5/source_review.rs`
 author exact source/diff/digest, signature-migration, stale selector, selected
-grant, chunk and parallel-read evidence. They were not executed. This addition
+grant, chunk and parallel-read evidence. Their implemented release coverage is HOSTED GREEN. This addition
 does not promote a completion-matrix row or replace separate commit approval.

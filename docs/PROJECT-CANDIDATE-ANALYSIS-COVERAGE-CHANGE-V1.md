@@ -1,10 +1,8 @@
 # Project Candidate Analysis Coverage Change v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented authority-free library comparison; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+This library profile adds no protocol, generated-client or MCP route.
 
 Audience: agent authors, compiler contributors, and candidate reviewers.
 
@@ -80,4 +78,4 @@ declarations for each side and pins three real `advanced` and three real
 the final candidate's bundle as base evidence fails in the existing owning
 bundle API before any comparison. The cases also pin the 5 MiB cap, false
 grants, stale-candidate rejection, and module-local categorical helper behavior.
-They are authored and unrun.
+They are included in the v0.4.0 hosted-green regression corpus.

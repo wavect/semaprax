@@ -1,10 +1,9 @@
 # Provisioned offline doctor worker v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented private Linux worker; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Provisioned-host admission, production activation and other host implementations
+retain their separately specified requirements.
 
 Audience: toolchain maintainers, worker provisioners and security reviewers.
 
@@ -42,12 +41,12 @@ to bound total kernel memory. No deployment or compatibility support is claimed
 without real selected-tool and hostile-worker execution evidence.
 
 The outer [Linux production provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md)
-now authors signed static-image admission, private namespace creation, atomic
+implements signed static-image admission, private namespace creation, atomic
 cgroup placement and whole-cgroup quiescence. The worker also derives a closed
 default-deny syscall policy independently for each authenticated Clang, Node or
 Rust role; the initial role-local additions are empty rather than a compatibility
-union. These changes remain unrun on Linux and do not make a selector, digest or
-ordinary CLI request authoritative.
+union. These changes have hosted-green release regression evidence. They do not make
+a selector, digest or ordinary CLI request authoritative.
 
 ## Closed request and result
 

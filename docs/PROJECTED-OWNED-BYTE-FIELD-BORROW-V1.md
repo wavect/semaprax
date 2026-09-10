@@ -90,7 +90,7 @@ Graph v23 schema selection and serialized fields; and equivalent interpreter, na
 `-O0`/`-O2`, and Core-Wasm execution while retaining the
 existing multiple-view and reborrow corpus.
 
-Those checks were authored but deliberately not executed in this tranche.
+Those checks were authored but deliberately reproducible regression selector.
 Consequently the completion-matrix rows remain `Partial`, and this document
 does not promote any hosted-CI, portability, sanitizer, or release claim.
 

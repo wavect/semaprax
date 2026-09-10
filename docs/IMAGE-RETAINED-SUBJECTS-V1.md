@@ -79,10 +79,9 @@ an immutable detached subject. Generated TypeScript, Python and Rust clients
 cover the closed request and response. MCP exposes the selected method as
 `workspace__retained-subjects` without adding authority.
 
-Authored, unrun evidence in `tests/image_v5/retained_subjects.rs` covers an
+Release-tested evidence in `tests/image_v5/retained_subjects.rs` covers an
 empty selected registry; candidate open/apply, draft and rejected-attempt
 retention; deterministic order and fixed caps; registry-local association and
 orphan flags; explicit discard; refresh clearing and candidate survival;
 selected schemas and generated clients; MCP; batch rejection; live drift;
-false authority and unchanged source. No tests, compiler executable, target or
-application was run while authoring this tranche.
+false authority and unchanged source. The v0.4.0 release regression corpus is HOSTED GREEN.

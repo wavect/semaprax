@@ -1,10 +1,9 @@
 # Project Lock v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded dependency-free Project lock; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Resolution, acquisition, registry/cache, effects, licenses, SBOMs, provenance,
+signatures and target execution are not supplied by this lock.
 
 Audience: people and agents building with `semaprax.toml`, package-tooling
 authors, and compiler contributors.

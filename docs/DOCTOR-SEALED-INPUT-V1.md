@@ -1,10 +1,9 @@
 # Doctor sealed input v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented private input boundary; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+This primitive alone supplies no profile format, CLI activation, executable isolation
+or WP-05 completion.
 
 Audience: CLI/platform contributors and reviewers.
 
@@ -284,21 +283,21 @@ Launcher admission tests pass the actual returned executable files, not rebuilt
 copies, into both image roles. The ignored production-launcher fixtures use
 factory-created healthy images alongside independently constructed hostile
 images; malformed inputs must still reach launcher rejection tests rather than
-being filtered out by the factory first. These Linux launcher fixtures remain
-unrun; the portable creator tests do not exercise them.
+being filtered out by the factory first. These ignored fixtures require explicit selection and their provisioned Linux
+context; the portable creator tests do not exercise them.
 Storage and structural acceptance do not prove executable startup; the real
 launcher/worker/collector runs need the complete provisioned context described
 in the launcher contract.
 
-The collector's ignored `tests/support/created_handoff.rs` additionally passes
+The collector's ignored `crates/semaprax-doctor-collector/tests/support/created_handoff.rs` additionally passes
 the actual production-created files to the existing trusted launch fixture,
 without serializing or resealing their contents. Independent literal bundle
 and request checks precede native/all worker-to-report observations and an
 unrepaired request-digest rejection. Existing literal-sealing hostile fixtures
 remain independent. This gate requires the full
 [provisioned collector context](DOCTOR-OFFLINE-COLLECTOR-V1.md#evidence-and-non-claims),
-not merely permission to create a memory file. The provisioned handoff cases
-remain unrun; passing creator tests does not supply that launch context.
+not merely permission to create a memory file. The ignored handoff cases retain that separate selection requirement; passing
+creator tests does not supply the launch context.
 
 The separate [offline bundle parser](DOCTOR-OFFLINE-BUNDLE-V1.md) now consumes
 this input through a closed, bounded inventory; it still grants no execution

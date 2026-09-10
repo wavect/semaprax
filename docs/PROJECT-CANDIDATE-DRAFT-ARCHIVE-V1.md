@@ -150,8 +150,8 @@ Authored cases in
 [transport evidence](../tests/image_transport_v5/draft_archive.rs) cover missing
 original source, partial fills, context regeneration, ready and unresolved
 drafts, altered content, host startup rules, current-base RPC recovery and
-unchanged authority. Tests and compiler checks were not run; no completion
-row is promoted.
+unchanged authority. The implemented cases have hosted-green release evidence; broader product
+completion remains separate.
 
 Automatic durable registries, complete session checkpoints, pending validation,
 continuation recovery, approval recovery and measured cross-process performance

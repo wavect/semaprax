@@ -119,7 +119,7 @@ checked-layout agreement including the
 Native64/Wasm32 `bool` divergence, every exclusion reason exercised against
 real programs, CLI exit-code contracts, budget-exhaustion failure, and tamper
 rejection per digest field. No compiler, Node runtime, browser, or any other
-target execution is involved, and hosted promotion remains pending.
+target execution is involved, and release regression evidence is HOSTED GREEN for v0.4.0.
 
 ## Scalar-surface widening (2026-08-23)
 

@@ -1,0 +1,486 @@
+path	audit_disposition
+docs/ABI-REPORT-V1.md	reviewed; current prose/references reconciled
+docs/AGENT-CONTEXT-V1.md	reviewed; no correction required
+docs/AGENT-CONTEXT-V2.md	reviewed; no correction required
+docs/AGENT-DIAGNOSTIC-HELP.json	compiler-embedded; preserved byte-for-byte
+docs/AGENT-ECONOMICS-V1.md	reviewed; no correction required
+docs/AGENT-INTERACTION-CONTRACT-FACTS-V1.md	reviewed; no correction required
+docs/AGENT-ITERATIVE-LIFECYCLE-V2.md	reviewed; no correction required
+docs/AGENT-OBSERVATION-SCHEMA-V1.md	reviewed; no correction required
+docs/AGENT-OPERATION-CHECKPOINT-V2.md	reviewed; no correction required
+docs/AGENT-PAYMENT-HARNESS-V1.md	reviewed; current prose/references reconciled
+docs/AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md	reviewed; current prose/references reconciled
+docs/AGENT-QUICK-REFERENCE.md	compiler-embedded; preserved byte-for-byte
+docs/AGENT-RUNTIME-V1.md	reviewed; no correction required
+docs/AGENT-RUNTIME-V2.md	reviewed; no correction required
+docs/AGENT-STATE-MIGRATION-V2.md	reviewed; no correction required
+docs/AGENT-STATE-MIGRATION-V3.md	reviewed; no correction required
+docs/AGENT-TASK-COMPARISON-V1.md	reviewed; current prose/references reconciled
+docs/AGENT-TASK-ECONOMICS-V1.md	reviewed; current prose/references reconciled
+docs/AGENT-TRANSPORT-V1.md	reviewed; current prose/references reconciled
+docs/AGENT-TYPED-EFFECTS-V3.md	reviewed; no correction required
+docs/ANDROID-JNI-OWNERSHIP-V1.md	reviewed; no correction required
+docs/APPLE-SWIFT-OWNERSHIP-V1.md	reviewed; no correction required
+docs/ARC-ZONES-V1.md	reviewed; current prose/references reconciled
+docs/ARCHITECTURE.md	reviewed; current prose/references reconciled
+docs/AUTOMATIC-CANDIDATE-DRAFT-LIFECYCLE-V1.md	reviewed; current prose/references reconciled
+docs/BOUNDED-ENVIRONMENT-IO-V1.md	reviewed; no correction required
+docs/BOUNDED-JSON-SCANNER-V1.md	reviewed; no correction required
+docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md	reviewed; no correction required
+docs/BOUNDED-LANGUAGE-NETWORK-IO-V1.md	reviewed; no correction required
+docs/BOUNDED-NETWORK-SERVICES-V1.md	reviewed; no correction required
+docs/BOUNDED-PROCESS-IO-V1.md	reviewed; no correction required
+docs/BOUNDED-STDOUT-TRANSCRIPT-V1.md	reviewed; current prose/references reconciled
+docs/C-HEADER-V1.md	reviewed; current prose/references reconciled
+docs/CANDIDATE-ARCHIVE-CLI-V1.md	reviewed; no correction required
+docs/CANDIDATE-ARCHIVE-STORE-V1.md	reviewed; no correction required
+docs/CANDIDATE-CONSTRUCTOR-SCHEMAS-V1.md	reviewed; current prose/references reconciled
+docs/CANDIDATE-GIT-PUBLICATION-CLI-V1.md	reviewed; current prose/references reconciled
+docs/CANONICAL-COMMENTS-V1.md	reviewed; no correction required
+docs/CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md	reviewed; no correction required
+docs/CAPABILITY-MANIFEST-V1.md	reviewed; no correction required
+docs/CHANGELOG-ARCHIVE.md	historical/provenance; preserved byte-for-byte
+docs/CHANGELOG-SUMMARY.md	reviewed; current prose/references reconciled
+docs/CI-REQUIRED-CHECKS-V1.md	reviewed; current prose/references reconciled
+docs/CLASS-INHERITANCE-V1.md	reviewed; no correction required
+docs/CLI-GUIDE.md	reviewed; no correction required
+docs/CLI-HELP-V1.md	reviewed; no correction required
+docs/CLI-HELP-V2.md	reviewed; current prose/references reconciled
+docs/CLI-HELP-V3.md	reviewed; no correction required
+docs/CLI-HELP-V4.md	reviewed; current prose/references reconciled
+docs/CLOSURES-V1.md	reviewed; no correction required
+docs/CLOSURES-V2.md	reviewed; no correction required
+docs/COMPLETION-MATRIX.md	reviewed; current prose/references reconciled
+docs/CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md	reviewed; no correction required
+docs/CONFORMANCE-TRACE-V1.md	reviewed; no correction required
+docs/CONTRACTS-AND-TESTS-FACTS-V1.md	reviewed; no correction required
+docs/CXX-PACKAGE-V1.md	reviewed; no correction required
+docs/CXX-SHIM-V1.md	reviewed; current prose/references reconciled
+docs/DESKTOP-NATIVE-APP-V1.md	reviewed; no correction required
+docs/DESKTOP-NATIVE-UI-V1.md	reviewed; no correction required
+docs/DEVELOPMENT.md	reviewed; current prose/references reconciled
+docs/DIAGNOSTIC-REPAIR-V1.md	reviewed; no correction required
+docs/DOC-PROJECTION-V1.md	reviewed; current prose/references reconciled
+docs/DOCTOR-OFFLINE-BUNDLE-V1.md	reviewed; current prose/references reconciled
+docs/DOCTOR-OFFLINE-COLLECTOR-V1.md	reviewed; current prose/references reconciled
+docs/DOCTOR-OFFLINE-LAUNCHER-V1.md	reviewed; current prose/references reconciled
+docs/DOCTOR-OFFLINE-ROOT-V1.md	reviewed; current prose/references reconciled
+docs/DOCTOR-OFFLINE-WORKER-V1.md	reviewed; current prose/references reconciled
+docs/DOCTOR-PROBE-V1.md	reviewed; current prose/references reconciled
+docs/DOCTOR-PRODUCTION-PROVISIONER-V1.md	reviewed; no correction required
+docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md	historical/provenance; preserved byte-for-byte
+docs/DOCTOR-SEALED-INPUT-V1.md	reviewed; current prose/references reconciled
+docs/DOCTOR-SIGNED-INSTALL-V1.md	reviewed; no correction required
+docs/DRAFT-ARCHIVE-PERSISTENCE-V1.md	reviewed; no correction required
+docs/ECONOMIC-AGENT-V1.md	reviewed; current prose/references reconciled
+docs/EXACT-PROGRAM-CONTEXT-V1.md	reviewed; current prose/references reconciled
+docs/EXACT-PROGRAM-CONTEXT-V2.md	reviewed; current prose/references reconciled
+docs/EXECUTION-ROOT-ASSOCIATION-V1.md	reviewed; no correction required
+docs/EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md	reviewed; current prose/references reconciled
+docs/EXPLICIT-MUTATION-V1.md	reviewed; no correction required
+docs/FIELD-MUTATION-V1.md	reviewed; no correction required
+docs/FILESYSTEM-IO-V1.md	reviewed; no correction required
+docs/FILESYSTEM-IO-V2.md	reviewed; no correction required
+docs/FIRST-CONTRIBUTION.md	reviewed; current prose/references reconciled
+docs/FORMAT-WRITER-V1.md	reviewed; no correction required
+docs/FREESTANDING-V1.md	reviewed; no correction required
+docs/FUNCTION-VALUES-V1.md	reviewed; no correction required
+docs/FUNCTION-VALUES-V2.md	reviewed; no correction required
+docs/GENERIC-ARGUMENT-INFERENCE-V1.md	reviewed; no correction required
+docs/GENERIC-ARGUMENT-INFERENCE-V2.md	reviewed; no correction required
+docs/GENERIC-ARGUMENT-INFERENCE-V3.md	reviewed; no correction required
+docs/GENERIC-AUTHORED-VARIANTS-V1.md	reviewed; no correction required
+docs/GENERIC-COMPILER-COLLECTIONS-V1.md	reviewed; no correction required
+docs/GENERIC-EXPLICIT-FORWARDING-V1.md	reviewed; no correction required
+docs/GENERIC-ITERATOR-OPERATIONS-V1.md	reviewed; no correction required
+docs/GENERIC-ITERATORS-V1.md	reviewed; no correction required
+docs/GENERIC-MULTI-OWNER-RECORDS-V1.md	reviewed; no correction required
+docs/GENERIC-OWNED-RECORD-COMPOSITION-V2.md	reviewed; no correction required
+docs/GENERIC-OWNED-RESULT-V1.md	reviewed; no correction required
+docs/GRAPH-OPERATIONAL-CLIENT-MCP-EXECUTION-EVIDENCE-V1.md	historical/provenance; preserved byte-for-byte
+docs/GRAPH-OPERATIONAL-CLIENT-MCP-EXECUTION-EVIDENCE-V2.md	historical/provenance; preserved byte-for-byte
+docs/GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md	historical/provenance; preserved byte-for-byte
+docs/GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V2.md	historical/provenance; preserved byte-for-byte
+docs/GRAPH-OPERATIONAL-PHASE0-EXECUTION-EVIDENCE-V1.md	historical/provenance; preserved byte-for-byte
+docs/GRAPH-OPERATIONAL-PHASE0-EXECUTION-EVIDENCE-V2.md	historical/provenance; preserved byte-for-byte
+docs/GRAPH-OPERATIONAL-PHASE0-EXECUTION-EVIDENCE-V3.md	historical/provenance; preserved byte-for-byte
+docs/GRAPH-OPERATIONAL-PHASE1-PRODUCT-WORKFLOW-EXECUTION-EVIDENCE-V1.md	historical/provenance; preserved byte-for-byte
+docs/GRAPH-OPERATIONAL-PROGRAMME.md	reviewed; current prose/references reconciled
+docs/GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V1.md	historical/provenance; preserved byte-for-byte
+docs/GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V2.md	historical/provenance; preserved byte-for-byte
+docs/HOST-OWNERSHIP-TRANSACTIONS-V1.md	reviewed; no correction required
+docs/HTTPS-CLIENT-IO-V1.md	reviewed; current prose/references reconciled
+docs/HTTPS-CLIENT-RUNTIME-V1.md	reviewed; no correction required
+docs/HUMAN-DIAGNOSTICS-V1.md	reviewed; current prose/references reconciled
+docs/HYGIENIC-GEN-V1.md	reviewed; current prose/references reconciled
+docs/IMAGE-AGENT-APPLICATION-ERROR-DATA-V1.md	reviewed; no correction required
+docs/IMAGE-AGENT-DISCOVERY-V5.md	reviewed; no correction required
+docs/IMAGE-AGENT-PROTOCOL-V1.md	reviewed; no correction required
+docs/IMAGE-C-ARTIFACTS-V1.md	reviewed; current prose/references reconciled
+docs/IMAGE-CANDIDATE-ARCHIVE-STORE-PROTOCOL-V1.md	reviewed; current prose/references reconciled
+docs/IMAGE-CANDIDATE-DIAGNOSTIC-PROTOCOL-V4.md	reviewed; no correction required
+docs/IMAGE-CANDIDATE-PROTOCOL-V2.md	reviewed; no correction required
+docs/IMAGE-CANDIDATE-TEST-PROTOCOL-V3.md	reviewed; no correction required
+docs/IMAGE-CANDIDATE-TEST-TASKS-V1.md	reviewed; current prose/references reconciled
+docs/IMAGE-MCP-ADAPTER-V1.md	reviewed; no correction required
+docs/IMAGE-OPENAPI-ARTIFACTS-V1.md	reviewed; current prose/references reconciled
+docs/IMAGE-PACKAGED-TYPESCRIPT-WORKFLOW-SDK-V1.md	reviewed; no correction required
+docs/IMAGE-PARALLEL-CANDIDATE-READS-V1.md	reviewed; no correction required
+docs/IMAGE-PARALLEL-READS-V1.md	reviewed; no correction required
+docs/IMAGE-PROTOCOL-CONFORMANCE-V1.md	reviewed; no correction required
+docs/IMAGE-READ-BATCH-PROTOCOL-V1.md	reviewed; no correction required
+docs/IMAGE-RETAINED-SUBJECTS-V1.md	reviewed; current prose/references reconciled
+docs/IMAGE-SOURCE-COMMIT-PROTOCOL-V5.md	reviewed; current prose/references reconciled
+docs/IMAGE-SUPPORTED-PRODUCT-WORKFLOW-V1.md	reviewed; no correction required
+docs/IMAGE-SUPPORTED-WORKFLOW-RESPONSE-ACCOUNTABILITY-V1.md	reviewed; current prose/references reconciled
+docs/IMAGE-TARGET-ARTIFACTS-V1.md	reviewed; no correction required
+docs/IMAGE-TYPED-REQUEST-CLIENTS-V1.md	reviewed; current prose/references reconciled
+docs/IMAGE-TYPED-RESPONSE-CLIENTS-V1.md	reviewed; current prose/references reconciled
+docs/IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md	reviewed; no correction required
+docs/IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md	reviewed; no correction required
+docs/IMAGE-WORKSPACE-PROTOCOL-V5.md	reviewed; no correction required
+docs/INSTALL.md	reviewed; current prose/references reconciled
+docs/INSTALLED-AGENT-GUIDANCE-V1.md	reviewed; current prose/references reconciled
+docs/INSTALLED-DIAGNOSTICS-V1.md	reviewed; current prose/references reconciled
+docs/INSTALLED-FIX-PLAN-V1.md	reviewed; current prose/references reconciled
+docs/INTERFACE-ARTIFACT-FACTS-V1.md	reviewed; current prose/references reconciled
+docs/INTERPRETER-INTERNAL-STRINGS-V1.md	reviewed; no correction required
+docs/INTERPRETER-V1.md	reviewed; no correction required
+docs/IO-CURSORS-V1.md	reviewed; no correction required
+docs/JSON-CURSORS-V1.md	reviewed; no correction required
+docs/LANGUAGE-NATIVE-AGENT-LOWERING-V1.md	reviewed; current prose/references reconciled
+docs/LANGUAGE-NATIVE-AGENT-OBJECT-V1.md	reviewed; current prose/references reconciled
+docs/LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md	reviewed; no correction required
+docs/LANGUAGE-SHAPES-CATALOG.json	compiler-embedded; preserved byte-for-byte
+docs/LANGUAGE-SHAPES-CATALOG.md	compiler-embedded; preserved byte-for-byte
+docs/LANGUAGE-TOUR.md	reviewed; no correction required
+docs/LOG-WRITER-V1.md	reviewed; no correction required
+docs/MIGRATIONS.md	reviewed; no correction required
+docs/NATIVE-ADAPTER-DESCRIPTOR-V1.md	reviewed; no correction required
+docs/NATIVE-CALLABLE-ABI-V2.md	reviewed; no correction required
+docs/NATIVE-CALLABLE-ABI-V3.md	reviewed; no correction required
+docs/NATIVE-CALLABLE-SETTLEMENT-PROOF-V1.md	reviewed; no correction required
+docs/NATIVE-CAPABILITY-TOKENS-V1.md	reviewed; no correction required
+docs/NATIVE-INLINE-STRING-SETTLEMENT-V1.md	reviewed; current prose/references reconciled
+docs/NATIVE-MODULE-LOADER.md	reviewed; no correction required
+docs/NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md	reviewed; current prose/references reconciled
+docs/NATIVE-RUST-INTEROP-V1.md	reviewed; current prose/references reconciled
+docs/NATIVE-SCRATCH-V1.md	reviewed; current prose/references reconciled
+docs/NATIVE-STRING-CONTENTS-V1.md	reviewed; current prose/references reconciled
+docs/NESTED-OWNED-BYTE-RECORDS-V1.md	reviewed; no correction required
+docs/NESTED-OWNED-RECORD-DESTRUCTURING-V1.md	reviewed; no correction required
+docs/NESTED-OWNED-RECORD-UPDATE-V1.md	reviewed; no correction required
+docs/NEW-PROJECT-PUBLICATION-V1.md	reviewed; current prose/references reconciled
+docs/NEW-PROJECT-STANDALONE-V1.md	reviewed; no correction required
+docs/OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md	reviewed; current prose/references reconciled
+docs/OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md	reviewed; current prose/references reconciled
+docs/OFFLINE-PACKAGE-COMPATIBILITY-EVIDENCE-V1.md	reviewed; current prose/references reconciled
+docs/OFFLINE-PACKAGE-LOCK-V1.md	reviewed; current prose/references reconciled
+docs/OFFLINE-PACKAGE-RESOLVER-V1.md	reviewed; current prose/references reconciled
+docs/OFFLINE-PACKAGE-RESOLVER-V2.md	reviewed; current prose/references reconciled
+docs/OFFLINE-PUBLISHED-SEMANTIC-LOCK-SNAPSHOT-V1.md	reviewed; current prose/references reconciled
+docs/OFFLINE-PURE-WASM-PACKAGE-BUILD-V1.md	reviewed; current prose/references reconciled
+docs/OFFLINE-SEMANTIC-PACKAGE-LOCK-V2.md	reviewed; current prose/references reconciled
+docs/OFFLINE-SEMANTIC-PACKAGE-LOCK-V3.md	reviewed; current prose/references reconciled
+docs/OPENAPI-V1.md	reviewed; no correction required
+docs/OWNED-BOUNDED-BOX-V1.md	reviewed; no correction required
+docs/OWNED-BOUNDED-BOX-V2.md	reviewed; no correction required
+docs/OWNED-BOUNDED-BYTE-BUFFER-V1.md	reviewed; no correction required
+docs/OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md	reviewed; no correction required
+docs/OWNED-BOUNDED-VEC-V1.md	reviewed; no correction required
+docs/OWNED-BOUNDED-VEC-V2.md	reviewed; no correction required
+docs/OWNED-BYTE-RECORD-ALGEBRA-V1.md	reviewed; no correction required
+docs/OWNED-BYTE-VARIANT-ALGEBRA-V1.md	reviewed; no correction required
+docs/OWNED-NPM-INVOCATION-V1.md	reviewed; current prose/references reconciled
+docs/OWNED-RESOURCE-VERTICAL-V1.md	reviewed; no correction required
+docs/OWNED-STRING-BORROWED-VIEW-V1.md	reviewed; no correction required
+docs/OWNING-ITERATOR-LOOPS-V1.md	reviewed; no correction required
+docs/OWNING-ITERATOR-PAYLOADS-V2.md	reviewed; no correction required
+docs/OWNING-ITERATOR-RENEWAL-V1.md	reviewed; no correction required
+docs/OWNING-ITERATORS-V1.md	reviewed; no correction required
+docs/PACKAGE-MANIFEST-V1.md	reviewed; no correction required
+docs/PACKAGE-REPORT-V1.md	reviewed; current prose/references reconciled
+docs/PACKAGE-REPORT-V2.md	reviewed; current prose/references reconciled
+docs/PACKAGE-SEMANTIC-GRAPH-V1.md	reviewed; current prose/references reconciled
+docs/PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md	reviewed; no correction required
+docs/PERSISTENT-SEMANTIC-CACHE-V1.md	reviewed; current prose/references reconciled
+docs/PERSISTENT-SEMANTIC-SERVICE-MCP-V1.md	reviewed; no correction required
+docs/PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md	reviewed; no correction required
+docs/PLUGIN-MANIFEST-V1.md	reviewed; current prose/references reconciled
+docs/PORTABLE-INDEXED-BYTE-DATA-V1.md	reviewed; no correction required
+docs/PROGRAM-ROOT-DEPENDENCY-LOCK-ASSOCIATION-V1.md	reviewed; no correction required
+docs/PROGRAM-ROOT-V1.md	reviewed; current prose/references reconciled
+docs/PROGRAM-ROOT-V2.md	reviewed; no correction required
+docs/PROGRAM-ROOT-V3.md	reviewed; no correction required
+docs/PROJECT-AGENT-TRANSPORT-V2.md	reviewed; current prose/references reconciled
+docs/PROJECT-AGENT-TRANSPORT-V5.md	reviewed; no correction required
+docs/PROJECT-AGENT-TRANSPORT-V6-SDK-V1.md	reviewed; no correction required
+docs/PROJECT-AGENT-TRANSPORT-V6.md	reviewed; no correction required
+docs/PROJECT-AGENT-WORKFLOW-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-AGGREGATE-CONSTRUCTORS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-BUILTIN-CALL-CONSTRUCTOR-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-ABI-DELTA-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-ANALYSIS-ARTIFACT-EVIDENCE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-ANALYSIS-COVERAGE-CHANGE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-ANALYSIS-COVERAGE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-ANALYSIS-EVIDENCE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-ANALYSIS-RUNTIME-EVIDENCE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-ARCHIVE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-ARTIFACT-DELTA-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-BLIND-SPOT-DECLARATIONS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-CONTRACT-DELTA-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-DEPENDENCY-NAVIGATION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-DIAGNOSTICS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-DRAFT-ARCHIVE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-DRAFT-MERGE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-DRAFT-REBASE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-DRAFT-RECOVERY-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-ENVIRONMENT-CONSUMER-REVIEW-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-ENVIRONMENT-REVIEW-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-EXTERNAL-API-CONTRACT-DELTA-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-FUNCTION-FACETS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-FUNCTION-REFERENCE-REBIND-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-GIT-PUBLICATION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-HOLES-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-IMPACT-NAVIGATION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-INTERFACE-DELTA-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-MERGE-PREVIEW-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-OWNERSHIP-DELTA-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-PACKAGE-CONSUMER-MIGRATION-V1.md	reviewed; no correction required
+docs/PROJECT-CANDIDATE-PACKAGE-CONSUMER-REPLAY-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-PUBLICATION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-REBASE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-RECOVERY-V1.md	reviewed; no correction required
+docs/PROJECT-CANDIDATE-SEMANTIC-DELTA-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-SYMBOL-DIAGNOSTICS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATE-TESTS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-CANDIDATES-V1.md	reviewed; no correction required
+docs/PROJECT-CONTRACT-CHANGE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-DECLARATION-CHANGE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-DECLARATION-MOVE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-DEPENDENCIES-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-DEPENDENCY-RESOLUTION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-DIAGNOSTIC-CHANGE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-DRAFT-EXPRESSION-CATALOG-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-EXPRESSION-CHANGE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-EXTRACTION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-FIELD-PLACE-CONSTRUCTOR-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-FRONTEND-CACHE-V1.md	reviewed; no correction required
+docs/PROJECT-GENERIC-RENAME-V1.md	reviewed; no correction required
+docs/PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md	reviewed; no correction required
+docs/PROJECT-HOLE-FILL-SUGGESTIONS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-HOLE-NAVIGATION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-INTERFACE-CHANGE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-LINKED-AGENT-LIFECYCLE-V1.md	reviewed; no correction required
+docs/PROJECT-LINKED-AGENT-MIGRATION-V1.md	reviewed; no correction required
+docs/PROJECT-LITERAL-CONSTRUCTORS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-LOCK-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-MANIFEST-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-MANIFEST-V16.md	reviewed; no correction required
+docs/PROJECT-MANIFEST-V18.md	reviewed; no correction required
+docs/PROJECT-MANIFEST-V2.md	reviewed; no correction required
+docs/PROJECT-MANIFEST-V3.md	reviewed; no correction required
+docs/PROJECT-MANIFEST-V4.md	reviewed; no correction required
+docs/PROJECT-MANIFEST-V5.md	reviewed; no correction required
+docs/PROJECT-MEMBER-RENAME-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-NOMINAL-RENAME-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-OWNING-CAPTURE-EXTRACTION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-PREPARED-INTERPRETER-V1.md	reviewed; no correction required
+docs/PROJECT-PREPARED-REVISION-REPLACEMENT-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-PROFILE-ADMISSION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-RECORD-FIELD-CHANGE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-RENAME-TRANSACTION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-REVISION-STORE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-REVISION-STORE-WINDOWS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-SCAFFOLD-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-SCAFFOLD-V2.md	reviewed; no correction required
+docs/PROJECT-SCAFFOLD-V3.md	reviewed; no correction required
+docs/PROJECT-SCALAR-LITERAL-CONSTRUCTORS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-SEMANTIC-CACHE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-SIGNATURE-EVOLUTION-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-SIGNATURE-OWNED-RESULT-WRAP-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-TARGET-CACHE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-TEST-CASES-V1.md	reviewed; current prose/references reconciled
+docs/PROJECT-V8-PROMOTION-RECEIPT-V1.md	reviewed; no correction required
+docs/PROJECT-VARIANT-CASE-CHANGE-V1.md	reviewed; current prose/references reconciled
+docs/PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md	reviewed; current prose/references reconciled
+docs/PROJECTED-OWNED-BYTES-BORROWED-CALL-V1.md	reviewed; current prose/references reconciled
+docs/PROPERTY-TESTS-V1.md	reviewed; no correction required
+docs/PUBLIC-CXX-OWNED-DATA-PACKAGE-V1.md	reviewed; no correction required
+docs/PUBLIC-FLAT-OWNED-RECORD-API-V1.md	reviewed; current prose/references reconciled
+docs/PUBLIC-FLAT-OWNED-RECORD-CXX-ADAPTER-V1.md	reviewed; no correction required
+docs/PUBLIC-NESTED-OWNED-RECORD-API-V1.md	reviewed; current prose/references reconciled
+docs/PUBLIC-OWNED-DATA-API-V1.md	reviewed; current prose/references reconciled
+docs/PUBLIC-OWNED-UTF8-API-V1.md	reviewed; current prose/references reconciled
+docs/PUBLIC-SCALAR-WIT-INTERFACE-V1.md	reviewed; no correction required
+docs/QUALITY-GATES.md	reviewed; current prose/references reconciled
+docs/QUICKSTART.md	reviewed; no correction required
+docs/REFUTABLE-MATCH-V1.md	reviewed; no correction required
+docs/REGION-REPORT-V1.md	reviewed; no correction required
+docs/RELEASE-0.4.0-STATUS.md	reviewed; no correction required
+docs/RELEASE-PROCESS.md	reviewed; current prose/references reconciled
+docs/RFC-0001.md	reviewed; no correction required
+docs/RFC-0002-ALGEBRAIC-DATA.md	reviewed; current prose/references reconciled
+docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md	reviewed; current prose/references reconciled
+docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md	reviewed; no correction required
+docs/RFC-STRING-OO.md	reviewed; no correction required
+docs/ROADMAP.md	reviewed; current prose/references reconciled
+docs/RUST-HOST-SANITIZERS.md	reviewed; no correction required
+docs/SCOPED-TASKS-V1.md	reviewed; current prose/references reconciled
+docs/SEMANTIC-CACHE-STORE-V1.md	reviewed; no correction required
+docs/SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md	reviewed; no correction required
+docs/SEMANTIC-IMAGE-CLEANUP-DEPENDENCIES-V1.md	reviewed; current prose/references reconciled
+docs/SEMANTIC-IMAGE-DEPENDENCIES-V1.md	reviewed; no correction required
+docs/SEMANTIC-IMAGE-DEPENDENCY-NAVIGATION-V1.md	reviewed; no correction required
+docs/SEMANTIC-IMAGE-FACETS-V1.md	reviewed; no correction required
+docs/SEMANTIC-IMAGE-FUNCTION-INSTANCES-V1.md	reviewed; no correction required
+docs/SEMANTIC-IMAGE-FUNCTION-REFERENCE-V1.md	reviewed; no correction required
+docs/SEMANTIC-IMAGE-HIR-RELATIONSHIPS-V1.md	reviewed; no correction required
+docs/SEMANTIC-IMAGE-STORE-V1.md	reviewed; no correction required
+docs/SEMANTIC-IMPACT-V1.md	reviewed; no correction required
+docs/SEMANTIC-PATCH-EVIDENCE-V1.md	reviewed; no correction required
+docs/SEMANTIC-PATCH-EVIDENCE-V2.md	reviewed; no correction required
+docs/SEMANTIC-PATCH-V2.md	reviewed; no correction required
+docs/SEMANTIC-RETENTION-CHECKPOINT-V1.md	reviewed; no correction required
+docs/SEMANTIC-RETENTION-HOST-LIFECYCLE-V1.md	reviewed; no correction required
+docs/SEMANTIC-RETENTION-METADATA-CLI-V1.md	reviewed; no correction required
+docs/SEMANTIC-RETENTION-PROTOCOL-SESSION-V1.md	reviewed; no correction required
+docs/SEMANTIC-RETENTION-REGISTRY-V1.md	reviewed; no correction required
+docs/SEMANTIC-REVIEW-V1.md	reviewed; no correction required
+docs/SEMANTIC-TARGET-EVIDENCE-V1.md	reviewed; no correction required
+docs/SEMANTIC-WORKSPACE-CHANGE-V1.md	reviewed; current prose/references reconciled
+docs/SEMANTIC-WORKSPACE-IMAGE-V1.md	reviewed; no correction required
+docs/SEMANTIC-WORKSPACE-OPERATIONS-V1.md	reviewed; no correction required
+docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md	reviewed; no correction required
+docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md	reviewed; no correction required
+docs/SEMANTIC-WORKSPACE-V1.md	reviewed; current prose/references reconciled
+docs/SHARED-LOAN-PLAN-V1.md	reviewed; current prose/references reconciled
+docs/SIMD-REPORT-V1.md	reviewed; no correction required
+docs/STANDARD-LIBRARY-CATALOG.md	compiler-embedded; preserved byte-for-byte
+docs/STANDARD-LIBRARY-V1.md	reviewed; current prose/references reconciled
+docs/STATIC-PROTOCOL-CONFORMANCE-V1.md	reviewed; current prose/references reconciled
+docs/STRING-OPS-V1.md	reviewed; current prose/references reconciled
+docs/STRUCTURED-TASKS-RUNTIME-V1.md	reviewed; no correction required
+docs/SUMMARY.md	reviewed; current prose/references reconciled
+docs/TEST-BYTE-ASSERTIONS-V1.md	reviewed; no correction required
+docs/TYPED-PATH-V1.md	reviewed; no correction required
+docs/UI-SCHEMA-V1.md	reviewed; current prose/references reconciled
+docs/UNIFIED-CLI-V1.md	reviewed; current prose/references reconciled
+docs/UNIVERSAL-SEMANTIC-QUERY-V1.md	reviewed; no correction required
+docs/UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md	reviewed; current prose/references reconciled
+docs/UNIVERSAL-SEMANTIC-TRANSACTION-V1.md	reviewed; no correction required
+docs/UNIVERSAL-SEMANTIC-TRANSACTION-V2.md	reviewed; no correction required
+docs/UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md	reviewed; no correction required
+docs/UNSAFE-BOUNDARIES-V1.md	reviewed; no correction required
+docs/USEFUL-TEXT-CONSUMER-V1.md	reviewed; no correction required
+docs/VSCODE-SAVED-SOURCE-ADAPTER-V1.md	reviewed; current prose/references reconciled
+docs/WASM-INTERNAL-STRINGS-V1.md	reviewed; current prose/references reconciled
+docs/WASM-INTERNAL-STRINGS-WEB-V1.md	reviewed; current prose/references reconciled
+docs/WASM-OWNED-ABI-V1.md	reviewed; no correction required
+docs/WASM-SCALAR-EXPORTS-V1.md	reviewed; current prose/references reconciled
+docs/WHILE-LOOPS-V1.md	reviewed; no correction required
+docs/WINDOWS-OWNED-NPM-PUBLICATION-V1.md	reviewed; no correction required
+docs/WIT-COMPONENT-BOUNDARY-V1.md	reviewed; no correction required
+docs/WORKSPACE-ANALYSIS-V1.md	reviewed; current prose/references reconciled
+docs/WORKSPACE-EXECUTION-ASSOCIATION-V1.md	reviewed; no correction required
+docs/WORKSPACE-EXECUTION-MIGRATION-V1.md	reviewed; no correction required
+docs/WORKSPACE-SEMANTIC-GRAPH-V1.md	reviewed; current prose/references reconciled
+docs/WORKSPACE-SESSION-CLI-V1.md	reviewed; current prose/references reconciled
+docs/decisions/0001-graphify.md	historical/provenance; preserved byte-for-byte
+docs/decisions/0002-managed-workspace-generations.md	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-client-mcp/85084537bfe41fd1c2d1691b19a25a9955d76731/a20ed6b8b39d8c4e48cd277a4a6936e5acc4b8d20be55ac381d3ae22e26d8ddb/clients-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-client-mcp/85084537bfe41fd1c2d1691b19a25a9955d76731/a20ed6b8b39d8c4e48cd277a4a6936e5acc4b8d20be55ac381d3ae22e26d8ddb/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-client-mcp/85084537bfe41fd1c2d1691b19a25a9955d76731/a20ed6b8b39d8c4e48cd277a4a6936e5acc4b8d20be55ac381d3ae22e26d8ddb/mcp-adapter-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-client-mcp/85084537bfe41fd1c2d1691b19a25a9955d76731/a20ed6b8b39d8c4e48cd277a4a6936e5acc4b8d20be55ac381d3ae22e26d8ddb/mcp-cli-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-client-mcp/85084537bfe41fd1c2d1691b19a25a9955d76731/a20ed6b8b39d8c4e48cd277a4a6936e5acc4b8d20be55ac381d3ae22e26d8ddb/typescript-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-client-mcp/c69600e853a5ecc0df0b23e1329770914ba06e99/a75079dade56fc30ea062fdb327cc40c742659b99f3e2bd10ebb9a41bc54a225/clients-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-client-mcp/c69600e853a5ecc0df0b23e1329770914ba06e99/a75079dade56fc30ea062fdb327cc40c742659b99f3e2bd10ebb9a41bc54a225/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-client-mcp/c69600e853a5ecc0df0b23e1329770914ba06e99/a75079dade56fc30ea062fdb327cc40c742659b99f3e2bd10ebb9a41bc54a225/mcp-adapter-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-client-mcp/c69600e853a5ecc0df0b23e1329770914ba06e99/a75079dade56fc30ea062fdb327cc40c742659b99f3e2bd10ebb9a41bc54a225/mcp-cli-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-client-mcp/c69600e853a5ecc0df0b23e1329770914ba06e99/a75079dade56fc30ea062fdb327cc40c742659b99f3e2bd10ebb9a41bc54a225/typescript-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/canonical-git/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/agent-task-economics-sha1.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/canonical-git/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/agent-task-economics-sha256.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/canonical-git/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/candidate-publication-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/canonical-git/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/canonical-git/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/canonical-git/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/managed-workflow-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/client-mcp/ca1b8e2b5c1df6c61e471bb1a900e4029bc21dca64d4c0a0e34862f97adcaecd/clients-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/client-mcp/ca1b8e2b5c1df6c61e471bb1a900e4029bc21dca64d4c0a0e34862f97adcaecd/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/client-mcp/ca1b8e2b5c1df6c61e471bb1a900e4029bc21dca64d4c0a0e34862f97adcaecd/mcp-adapter-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/client-mcp/ca1b8e2b5c1df6c61e471bb1a900e4029bc21dca64d4c0a0e34862f97adcaecd/mcp-cli-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/client-mcp/ca1b8e2b5c1df6c61e471bb1a900e4029bc21dca64d4c0a0e34862f97adcaecd/typescript-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/client-mcp/ca1b8e2b5c1df6c61e471bb1a900e4029bc21dca64d4c0a0e34862f97adcaecd/typescript-request-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/independent-mcp-sdk/compiler-build-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/independent-mcp-sdk/observation.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/independent-mcp-sdk/server-stderr.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/vscode-host/546162ce9c101050226f554bfb88234475225848739e5d22741f6a62a53bc56b/compiler-build-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/vscode-host/546162ce9c101050226f554bfb88234475225848739e5d22741f6a62a53bc56b/controller-node.tap	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/vscode-host/546162ce9c101050226f554bfb88234475225848739e5d22741f6a62a53bc56b/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/vscode-host/546162ce9c101050226f554bfb88234475225848739e5d22741f6a62a53bc56b/vscode-extension-host.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/4e6751f92525ed8e4bb5e859233616df7adc86d1/76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff/vscode-host/546162ce9c101050226f554bfb88234475225848739e5d22741f6a62a53bc56b/vscode-host-observation.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/canonical-git/9f8a43f4d1f723d4b6d70137ced0a93bf18e0e936c749268c76ff2e3c6ae80c0/agent-task-economics-sha1.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/canonical-git/9f8a43f4d1f723d4b6d70137ced0a93bf18e0e936c749268c76ff2e3c6ae80c0/agent-task-economics-sha256.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/canonical-git/9f8a43f4d1f723d4b6d70137ced0a93bf18e0e936c749268c76ff2e3c6ae80c0/cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/canonical-git/9f8a43f4d1f723d4b6d70137ced0a93bf18e0e936c749268c76ff2e3c6ae80c0/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/client-mcp/9643dd9c3a73095dfa5340fa8efd6a2330d69d12ccfcf1564c3ee770a9b9702a/clients-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/client-mcp/9643dd9c3a73095dfa5340fa8efd6a2330d69d12ccfcf1564c3ee770a9b9702a/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/client-mcp/9643dd9c3a73095dfa5340fa8efd6a2330d69d12ccfcf1564c3ee770a9b9702a/mcp-adapter-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/client-mcp/9643dd9c3a73095dfa5340fa8efd6a2330d69d12ccfcf1564c3ee770a9b9702a/mcp-cli-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/client-mcp/9643dd9c3a73095dfa5340fa8efd6a2330d69d12ccfcf1564c3ee770a9b9702a/typescript-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/client-mcp/9643dd9c3a73095dfa5340fa8efd6a2330d69d12ccfcf1564c3ee770a9b9702a/typescript-request-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/independent-mcp-sdk/compiler-build-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/independent-mcp-sdk/observation.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/independent-mcp-sdk/server-stderr.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/vscode-host/ffcac686e3fff47f719beea8395ed45a915036b80e03840d1c7d992676633749/compiler-build-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/vscode-host/ffcac686e3fff47f719beea8395ed45a915036b80e03840d1c7d992676633749/controller-node.tap	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/vscode-host/ffcac686e3fff47f719beea8395ed45a915036b80e03840d1c7d992676633749/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/vscode-host/ffcac686e3fff47f719beea8395ed45a915036b80e03840d1c7d992676633749/vscode-extension-host.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase0/d85566f0682df0d236f7df3023479dc0ea50d450/77773f4655620b36f9a43f462e128de195345f1b58290823551ebceb908b0f18/vscode-host/ffcac686e3fff47f719beea8395ed45a915036b80e03840d1c7d992676633749/vscode-host-observation.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/generated-product-workflow-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/generated-product-workflow-hostile-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/generated-product-workflow-typescript-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/hostile-workflow.default.snapshot.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/hostile-workflow.observation.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/hostile-workflow.transcript.ndjson	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-python.generated-client.txt	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-python.handoff.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-python.observation.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-python.transcript.ndjson	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-rust.generated-client.txt	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-rust.handoff.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-rust.observation.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-rust.transcript.ndjson	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-typescript.generated-client.txt	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-typescript.handoff.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-typescript.observation.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-phase1-product-workflow/3c605fe3055539a9a5f2bf83e98c8c2a521ff741/8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa/workflow-typescript.transcript.ndjson	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-vscode-host/2888f84f123b7caa44aa6807388d98f851d4beaf/f6f3987f755afcb04bdbf470c38e0530667833d7d1d580bd82579a0bdd46f1d3/compiler-build-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-vscode-host/2888f84f123b7caa44aa6807388d98f851d4beaf/f6f3987f755afcb04bdbf470c38e0530667833d7d1d580bd82579a0bdd46f1d3/controller-node.tap	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-vscode-host/2888f84f123b7caa44aa6807388d98f851d4beaf/f6f3987f755afcb04bdbf470c38e0530667833d7d1d580bd82579a0bdd46f1d3/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-vscode-host/2888f84f123b7caa44aa6807388d98f851d4beaf/f6f3987f755afcb04bdbf470c38e0530667833d7d1d580bd82579a0bdd46f1d3/vscode-extension-host.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-vscode-host/2888f84f123b7caa44aa6807388d98f851d4beaf/f6f3987f755afcb04bdbf470c38e0530667833d7d1d580bd82579a0bdd46f1d3/vscode-host-observation.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-vscode-host/3fccd30b861d48c9d404eb2698fa2eff510569af/29660fc88dac4d3bd11098f7facfe1bd05fda23b378d519d9590f028a3fdc7dd/compiler-build-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-vscode-host/3fccd30b861d48c9d404eb2698fa2eff510569af/29660fc88dac4d3bd11098f7facfe1bd05fda23b378d519d9590f028a3fdc7dd/controller-node.tap	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-vscode-host/3fccd30b861d48c9d404eb2698fa2eff510569af/29660fc88dac4d3bd11098f7facfe1bd05fda23b378d519d9590f028a3fdc7dd/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-vscode-host/3fccd30b861d48c9d404eb2698fa2eff510569af/29660fc88dac4d3bd11098f7facfe1bd05fda23b378d519d9590f028a3fdc7dd/vscode-extension-host.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational-vscode-host/3fccd30b861d48c9d404eb2698fa2eff510569af/29660fc88dac4d3bd11098f7facfe1bd05fda23b378d519d9590f028a3fdc7dd/vscode-host-observation.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational/474c481bf3c3561c144e077f0000460f61af55f2/5269b6acba08a197e6a8411ba95ccdec6e6a4ff724d35681344b5260087cb2e8/agent-task-economics-sha1.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational/474c481bf3c3561c144e077f0000460f61af55f2/5269b6acba08a197e6a8411ba95ccdec6e6a4ff724d35681344b5260087cb2e8/agent-task-economics-sha256.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational/474c481bf3c3561c144e077f0000460f61af55f2/5269b6acba08a197e6a8411ba95ccdec6e6a4ff724d35681344b5260087cb2e8/cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational/474c481bf3c3561c144e077f0000460f61af55f2/5269b6acba08a197e6a8411ba95ccdec6e6a4ff724d35681344b5260087cb2e8/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational/4e6751f92525ed8e4bb5e859233616df7adc86d1/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/agent-task-economics-sha1.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational/4e6751f92525ed8e4bb5e859233616df7adc86d1/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/agent-task-economics-sha256.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational/4e6751f92525ed8e4bb5e859233616df7adc86d1/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/candidate-publication-cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational/4e6751f92525ed8e4bb5e859233616df7adc86d1/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/cargo.log	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational/4e6751f92525ed8e4bb5e859233616df7adc86d1/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/evidence.json	historical/provenance; preserved byte-for-byte
+docs/evidence/graph-operational/4e6751f92525ed8e4bb5e859233616df7adc86d1/e3a9378c33342571621026f9a8c98a191e06e8521faeb97c223a3a0e74801a7f/managed-workflow-cargo.log	historical/provenance; preserved byte-for-byte
+docs/index.md	reviewed; current prose/references reconciled

@@ -11,7 +11,7 @@ changes, or test inventories:
 - current status: [completion matrix](COMPLETION-MATRIX.md);
 - exact protocols and ABIs: their versioned reference documents;
 - required checks: [quality gates](QUALITY-GATES.md);
-- history: [changelog](../CHANGELOG.md).
+- history: [changelog](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md).
 
 SEMAPRAX v0.4 is a set of bounded vertical slices through a larger language
 design (v0.2 remains the first archived tag milestone). The architecture keeps
@@ -113,7 +113,7 @@ publication; the CLI dispatches before legacy output-parent creation. Standalone
 publication rejects safely. Cleanup authority ends before settlement/rename;
 post-publication byte, inventory and path rechecks cannot regain rollback.
 See [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md) for
-admission restrictions and the unrun physical gates.
+admission restrictions and the explicitly scoped physical gates.
 
 The full toolchain's calculator and library generators check exact owned
 template bytes before staging through `NewProjectAuthority` in the lower
@@ -124,7 +124,7 @@ creation; the lower authority independently rejects the same collision.
 Publication latches before final held-byte and destination-path authentication;
 the CLI additionally rechecks the original requested parent spelling. Failure
 after that latch cannot regain cleanup authority. See [Calculator project
-publication v1](NEW-PROJECT-PUBLICATION-V1.md) for the correction and unrun gates.
+publication v1](NEW-PROJECT-PUBLICATION-V1.md) for the correction and maintained regression gates.
 
 `src/project/scaffold.rs` separately derives and independently replays the same
 five calculator files, including the in-project `AGENTS.md` guide, as a bounded
@@ -192,7 +192,7 @@ operation. It requires an externally provisioned clean process,
 private user/mount namespaces and aggregate resource/lifecycle ownership.
 There is no ambient worker discovery, installer or CLI activation. Its reply
 binds observations to request bytes, not executable provenance or admitted
-version policy. Linux execution and hostile fixtures are authored, unrun;
+version policy. Linux execution and hostile fixtures are included in the v0.4.0 hosted-green regression corpus;
 macOS/Windows require separate native implementations. See
 [Provisioned offline doctor worker v1](DOCTOR-OFFLINE-WORKER-V1.md).
 Capture's private native-operations adapter owns OS effects, while native and
@@ -349,15 +349,16 @@ unprojected/projected loan contracts together; Semantic Workspace admits those
 exact schemas and continues to reject unknown spellings. The plan neither changes CleanupPlan
 liveness nor creates runtime
 references; legacy programs retain their prior Graph and cleanup bytes.
-The additive authored-but-unrun
+The implemented additive
 [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
 preserves one direct stable field-ID projection through byte-slice provenance,
 aliases, ranges, and the same plan. Additive Graph v24 owns the new facts while
 unprojected Graph v23 schema selection and serialized fields remain unchanged.
 The interpreter, native C11, and
 Core-Wasm lanes lower that exact profile.
-General nesting, public borrowed ABIs, and hosted promotion remain outside this
-architecture boundary.
+The admitted profile has hosted-green release evidence. General borrowing and
+public borrowed ABIs remain outside this boundary; separately implemented nested
+record profiles retain their own loan and cleanup contracts.
 
 The authored [Acyclic Nested Owned-Byte Records
 v1](NESTED-OWNED-BYTE-RECORDS-V1.md) tranche extends only the internal
@@ -492,7 +493,7 @@ zeroes the moved Vec slot, and settles only the remaining suffix. Core Wasm
 imports and lowering live in `src/wasm/aggregate/iterator_ops/owned.rs`; its
 separate iterator authority prevents Vec operations from accepting iterator
 carriers. These modules consume the selected Prelude v8, CleanupPlan v13, and
-Graph v45 facts; focused native/Wasm verification remains pending.
+Graph v45 facts; the admitted native/Wasm regression corpus is HOSTED GREEN for v0.4.0.
 
 Function Values v2's private generic-collection profile is owned by
 `src/source_verify/declared_type/generic_collection.rs` and
@@ -518,7 +519,7 @@ compiler-derived body products. Native `native_emit/closure.rs` uses typed
 entry thunks and eight scalar cells; `wasm/closure.rs` uses environment-aware
 table adapters and caller-owned aggregate frame slots. Copies and returned
 closures preserve snapshots without transferring any owning payload. See
-[the closure contract](CLOSURES-V1.md) for bounds and pending promotion evidence.
+[the closure contract](CLOSURES-V1.md) for bounds and release regression evidence.
 
 The [generic construction extension](CLOSURES-V2.md) uses
 `src/hir/closure/materialize.rs` to substitute scoped types and rebuild private
@@ -1027,7 +1028,7 @@ image bytes are optional caller-persisted data, never trusted serialized HIR.
 Replay freshly derives and exact-compares the complete canonical image before
 returning it. Digest-bound symbol, Context, and Impact queries grant no file,
 cache, execution, or commit authority. Compiler package version binding is not
-a binary fingerprint. This foundation and its regressions are authored, unrun;
+a binary fingerprint. This foundation and its regressions are included in the v0.4.0 hosted-green regression corpus;
 incremental rechecking, general graph mutation, and persistent daemon caches
 remain outside it. See [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md).
 
@@ -1051,7 +1052,7 @@ Graph and earlier protocol method sets retain their existing contracts. Discover
 facts grant neither execution nor publication authority. These authored slices
 bring all eleven requested operation classes into bounded scope; they do not
 complete general interface semantics or the graph-operational programme, and
-current-head compiler/test evidence remains unrun.
+the admitted implementation has HOSTED GREEN v0.4.0 regression evidence.
 
 ### Unified workspace session v5
 
@@ -1079,7 +1080,7 @@ without making them current. CLI host-policy v3 supplies at most sixteen explici
 store selections; earlier policy versions stay closed. Git authority opens only
 after these loads and remains separately approved. [Candidate Archive](PROJECT-CANDIDATE-ARCHIVE-V1.md),
 [Archive Store](CANDIDATE-ARCHIVE-STORE-V1.md), [Recovery](IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md)
-and [CLI](CANDIDATE-ARCHIVE-CLI-V1.md) own authored/unrun cases and exact bounds.
+and [CLI](CANDIDATE-ARCHIVE-CLI-V1.md) own release-tested cases and exact bounds.
 
 `image_transport/vnext.rs` composes a fixed host-selected policy over the
 existing candidate engine. Read-only access, candidate preparation, diagnostic
@@ -1247,7 +1248,7 @@ all-error batches, and keeps the existing 1 MiB cap. The CLI NDJSON loop remains
 sequential across outer requests. See [Parallel Read Protocol](IMAGE-READ-BATCH-PROTOCOL-V1.md),
 [Frontend Cache](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md) and
 [Parallel Reads](IMAGE-PARALLEL-READS-V1.md) and
-[Parallel Retained Reads](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) for bounds and unrun evidence.
+[Parallel Retained Reads](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) for bounds and release regression evidence.
 
 `image_transport/vnext/commit.rs` holds separately supplied fixed Git authority
 and a startup-only private approval slot. A request cannot choose its repository,
@@ -1296,7 +1297,7 @@ compiler-report schemas; generated clients perform no I/O or execution. See
 [Source Commit v5](IMAGE-SOURCE-COMMIT-PROTOCOL-V5.md),
 [Target/Artifact Projections](IMAGE-TARGET-ARTIFACTS-V1.md), and
 [Workspace Session CLI](WORKSPACE-SESSION-CLI-V1.md). All evidence for this batch
-is authored/unrun; no complete-workflow or current-head promotion follows.
+is included in the v0.4.0 hosted-green regression corpus; no complete-workflow or current-head promotion follows.
 
 ### Project profile and daemon
 
@@ -1464,8 +1465,7 @@ prototype extraction, admission and hygiene rules. The carrier rebuilds all
 canonical Project inputs and regenerates every file before exact comparison.
 Explicit header exclusions do not create ABI symbols; static linkage and
 context/status conventions remain unchanged. See [C Artifacts](IMAGE-C-ARTIFACTS-V1.md).
-The [integrated workflow](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md) is authored,
-unrun and publishes managed generations only; canonical Git files stay unchanged.
+The [integrated workflow](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md) is release-tested and publishes managed generations only; canonical Git files stay unchanged.
 
 `src/project/candidate/` owns immutable source-derived candidate overlays and
 closed typed intentions. The engine mutates invocation-local ASTs; canonical
@@ -1541,7 +1541,7 @@ record/variant eligibility and resource-free owning record/variant eligibility;
 they do not infer ownership from source spelling. Primitive String eligibility
 uses the checked parameter mode and ordinary compiler TypeFacts.
 These facts add no graph wire fields or source authority. These additions are
-authored, unrun.
+included in the v0.4.0 hosted-green regression corpus.
 
 `candidate/expression.rs` joins retained HIR identities to canonical AST
 provenance for typed body-expression replacement, preserving the selected
@@ -1733,7 +1733,7 @@ history ordinals, while ancestry records the two exact parent draft digests;
 neither fact implicitly completes a pending sibling hole. The v5
 `draft_merge.rs` adapter retains only the merged draft under
 the same request/registry boundary. See [Draft Merge](PROJECT-CANDIDATE-DRAFT-MERGE-V1.md).
-These additions and focused regression cases are authored, unrun.
+These additions and focused regression cases are included in the v0.4.0 hosted-green regression corpus.
 
 `candidate/movement.rs` moves eligible functions through stable-ID call/import
 bindings. `candidate/movement_types.rs` checks retained resource-free nominal value facts,
@@ -1807,7 +1807,7 @@ held directories and compares the final reopened parent identity, not only its
 canonical pathname, before reporting success. This detects same-path parent
 replacement without cleanup or rollback; it is an observation, not atomic
 publication. See [Project Manifest v2](PROJECT-MANIFEST-V2.md) for the shared
-boundary and authored, unrun regression modules. Windows routes are unchanged.
+boundary and implemented regression modules. Windows routes are unchanged.
 
 Project v8 adds one closed `owned-data-api.v1` route. `src/project/public_api.rs`
 derives and independently replays the sole semantic API descriptor from the
@@ -1840,12 +1840,12 @@ exact local error identity, and makes post-entry uncertainty and caught reentry
 absorbing poison. Arena imports and result publication observe that same state;
 guarded settlement/scratch cleanup preserves the first thrown value, including
 falsy values. This correction changes v8/v9/v10 runtime JavaScript and integrity
-bindings, not descriptors, Wasm or host signatures. Its regressions are unrun. The
+bindings, not descriptors, Wasm or host signatures. Its released regressions are HOSTED GREEN. The
 private `src/wasm/aggregate/owned_stack.rs` derives selected call-path frame
 extents from the shared HIR call index and actual lowering plans so raw outputs
 cannot overlap deeper helper frames. Native owned handles pair all 4,096 slots
 with nonreused atomic issuance serials within one linked provider runtime;
-contexts remain thread-confined. These corrections have authored, unrun
+contexts remain thread-confined. These corrections have release-tested
 evidence and do not promote any profile. The
 reference-interpreter entry in `src/interpreter.rs` returns a normalized
 scalar/owned/variant value and one explicit copy-out-and-settle boundary event;
@@ -1892,7 +1892,7 @@ The lower package's private `build_script.rs` renders both owned-data build
 script families. It preserves target selection and validates the package path
 before line-oriented Cargo output; path text cannot introduce CR/LF directives.
 See the [path boundary](PUBLIC-OWNED-DATA-API-V1.md#generated-cargo-build-script-path-boundary)
-for the intentional artifact change and authored, unrun regression scope.
+for the intentional artifact change and implemented regression scope.
 
 The generated owned-data Rust invocation guard proves whole-context settlement
 through the existing context-close ABI before any outward value or recoverable
@@ -1912,7 +1912,7 @@ browser subject. Its Rust fixture test authenticates the Project and inline
 carrier; its provisioned browser runner imports the actual generated package
 into a test-owned isolated document for hostile-input and lifecycle checks.
 It does not authenticate the host's source provenance or replace physical
-cleanup evidence. The existing three-engine gate remains authored and unrun.
+cleanup evidence. The existing three-engine gate remains included in the v0.4.0 hosted-green regression corpus.
 
 `examples/frame-payload-project`, `examples/frame-payload-web`,
 `examples/frame-payload-rust`, and `tests/frame_payload_product_v1.rs` form one
@@ -1926,8 +1926,8 @@ browser entry points share one corpus runner. The browser gate consumes
 host-provisioned before/after artifacts rather than authenticating their source
 derivation; the Project test owns that rename proof. Selected local passes do
 not establish exact-head hosted promotion. Gate selection is
-documented in the [web consumer](../examples/frame-payload-web/README.md) and
-[browser fixture](../platform-tests/frame-payload-browser-v1/README.md).
+documented in the [web consumer](https://github.com/wavect/semaprax/blob/main/examples/frame-payload-web/README.md) and
+[browser fixture](https://github.com/wavect/semaprax/blob/main/platform-tests/frame-payload-browser-v1/README.md).
 
 `tests/support/owned_frame_artifacts.rs` shares the held-Project descriptor,
 provider and published-package replay between that product and the explicitly
@@ -2168,7 +2168,7 @@ finite caller-owned catalog of those exact source-replayed V2 subjects. It
 normalizes strict semantic versions and the three frozen range forms, applies
 target and declared-capability admission, explores one transactionally bounded
 DFS trace, and emits exact replay evidence containing one unchanged Lock-v2
-result. The focused public evidence is authored but unrun. This layer performs
+result. The focused public evidence is implemented. This layer performs
 no discovery, registry or network access, fetch, build-script or target
 execution, cache, publication, signature/provenance authentication, or runtime
 capability enforcement. See
@@ -2181,15 +2181,14 @@ embedded byte-for-byte and are never JSON-re-rendered. The pure layer has no
 filesystem authority. The lower `semaprax-offline-wasm-package` crate exposes
 only one fixed three-file create-new publication facade through its existing
 held/no-replace authority state machine; an internal sealed inventory preserves
-the build-v1/v2 names, order, bytes, and failure selection. Evidence is authored
-but unrun and the surface is unpromoted. See [Offline Published Semantic Lock
+the build-v1/v2 names, order, bytes, and failure selection. Evidence is release-tested and the surface is unpromoted. See [Offline Published Semantic Lock
 Snapshot v1](OFFLINE-PUBLISHED-SEMANTIC-LOCK-SNAPSHOT-V1.md).
 
 Additive `package_lock_v3` authenticates package dependency ranges in new
 Subject-v3 envelopes and binds each range to the selected coordinate in a new
 dependency-first Lock-v3 graph. `package_resolver_v2` intersects those root
 and transitive ranges during deterministic bounded search and exactly replays
-Lock v3. These modules are authored but locally unrun. They do not widen the
+Lock v3. These modules are release-tested. They do not widen the
 v1/v2 subjects, locks, resolver, CLI, capsule, build, compatibility, or
 publication surfaces and gain no registry, network, acquisition, cache, build,
 execution, or publication authority. See [Lock v3](OFFLINE-SEMANTIC-PACKAGE-LOCK-V3.md)
@@ -2207,7 +2206,7 @@ the Project linker's authored-`main` rule unchanged. Report source is interface
 evidence only; capsule source is the sole executable code. The explicit
 selected root and only its sorted explicit export IDs are bound in the capsule,
 while a crate-private replay seam retains linked HIR for the separate
-linked-build consumer. The authored surface is unrun and adds no build or
+linked-build consumer. The implemented surface has hosted-green release evidence and adds no build or
 publication authority. See [Offline Multi-Package Source Capsule
 v1](OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md).
 
@@ -2239,7 +2238,7 @@ manifest/evidence pair around the unchanged effect-free scalar Core-Wasm
 emitter, binds the complete selected package closure plus capsule, source-set,
 link, and root-export facts, and revalidates the exact seven-import/export
 inventory. Its two-package, cross-pair, mutation, bound, fixed-point, and
-publisher evidence is authored but unrun. It adds no source reconstruction,
+publisher evidence is implemented. It adds no source reconstruction,
 external tool, registry, runtime, or publication authority. See [Offline
 Linked Scalar Core-Wasm Package Build v2](OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md).
 
@@ -2254,7 +2253,7 @@ Previsibility cleanup is limited to the
 authenticated stage inventory; publication uncertainty is fail-stop. This is
 create-new local publication, not acquisition, a registry/cache, provenance,
 runtime enforcement, or a hermetic operating-system build sandbox. Its
-authored evidence is unrun and the crate is unpromoted. Every platform has the
+implemented regression evidence is hosted green and the crate is unpromoted. Every platform has the
 explicit host precondition excluding every uncooperative mutation of the
 destination path, parent, ancestors, or stage for the invocation. Unix/macOS
 additionally requires and checks a current-euid-owned exact-mode-0700 parent;

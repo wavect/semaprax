@@ -23,6 +23,10 @@ parsing the response as JSON for the test. It does not add a protocol method,
 grant, side channel or runtime
 authority, and it cannot change a request or response.
 
+Current implementation regression evidence is **HOSTED GREEN** under the
+[v0.4.0 baseline](RELEASE-0.4.0-STATUS.md). The exact-subject local
+observations above and below remain historical, not new release measurements.
+
 ## Recorded observations
 
 Each row follows invocation order and records its session, method, associated

@@ -10,7 +10,7 @@ slice, and the functionality or support decision still needed to complete the
 requirement. The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) owns the
 current hosted-green evidence classification.
 
-Historical status transitions belong in the [changelog](../CHANGELOG.md).
+Historical status transitions belong in the [changelog](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md).
 Protocol details, exact known-answer digests, test counts, and historical CI run
 IDs belong in the linked versioned specifications. Future sequencing belongs
 in the [roadmap](ROADMAP.md). The evidence summaries below describe the current
@@ -38,6 +38,11 @@ evidence ceiling. Future or separately unimplemented gates are not marked
 complete by changing an evidence label.
 
 ## Current summary
+
+The separate [Persistent Semantic Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md)
+implements authenticated cross-process checked-HIR reuse with independent
+source/HIR validation. Its release regressions are HOSTED GREEN; full
+incremental compilation and measured task-level performance remain open.
 
 **Release implementation evidence: HOSTED GREEN**
 
@@ -214,7 +219,7 @@ that all of that functionality already exists.
 | `Option` and `Result`; no null or unchecked exceptions | Partial; admitted owned Result construction, matching, calls and same-typed `?` retain evaluation-once, conditional ownership, sticky failure and cleanup across the claimed engines; generic owned Result profiles are additive. | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [owned variants](OWNED-BYTE-VARIANT-ALGEBRA-V1.md), [generic owned Result](GENERIC-OWNED-RESULT-V1.md), [owned-data API](PUBLIC-OWNED-DATA-API-V1.md) | General nested owned propagation, residual conversion, public ABI and complete target behavior are verified beyond the admitted concrete and generic profiles. |
 | Immutable-by-default values and explicit mutation | Partial; bounded scalar, field and immutable nested reconstruction profiles have hosted-green evidence. | [Explicit Mutation](EXPLICIT-MUTATION-V1.md), [Field Mutation](FIELD-MUTATION-V1.md), [Nested Immutable Update](NESTED-OWNED-RECORD-UPDATE-V1.md) | Verify general aggregate, collection, borrowed and concurrency-aware mutation rules. |
 | Unique ownership and move safety | Partial; exact cleanup/replay covers admitted records, variants, Bytes buffers, Vec, scalar/Bytes owning iterators, consuming loops, renewal and generic map/filter/fold. Vec v2 and owned iterator payload v2 retain their separate prelude/graph/cleanup versions and no public generic ABI. | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [Owning Iterators](OWNING-ITERATORS-V1.md), [owned payloads](OWNING-ITERATOR-PAYLOADS-V2.md), [loops](OWNING-ITERATOR-LOOPS-V1.md), [renewal](OWNING-ITERATOR-RENEWAL-V1.md), [generic operations](GENERIC-ITERATOR-OPERATIONS-V1.md), [byte buffer](OWNED-BOUNDED-BYTE-BUFFER-V1.md), [Vec v1](OWNED-BOUNDED-VEC-V1.md), [Vec v2](OWNED-BOUNDED-VEC-V2.md), [bounded traversal](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md), [shared loans](SHARED-LOAN-PLAN-V1.md) | Verify general owned values and `?`, aliases, control flow, FFI, cleanup and public ABI. Iterator interfaces, lazy adapters and payloads beyond the exact admitted Bytes/scalar profiles remain separate. Existing iterator and generic-owned hosted selectors are regression gates, not pending first execution. |
-| Owned allocation and extraction | Partial; frozen scalar Box v1/std.mem and additive Box<Bytes> v2 implement allocation, consuming extraction, recursive lexical cleanup, refusal-before-commit and exact graph/ProgramRoot bindings with hosted-green evidence. | [Box v1](OWNED-BOUNDED-BOX-V1.md), [Box v2](OWNED-BOUNDED-BOX-V2.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) | Broader owned payloads/composition, general allocation, public ABI, regions, arenas and shared ownership are complete. Borrowed `box_get<Bytes>` remains rejected by the owning profile. |
+| Owned allocation and extraction | Partial; frozen scalar Box v1/std.mem and additive `Box<Bytes>` v2 implement allocation, consuming extraction, recursive lexical cleanup, refusal-before-commit and exact graph/ProgramRoot bindings with hosted-green evidence. | [Box v1](OWNED-BOUNDED-BOX-V1.md), [Box v2](OWNED-BOUNDED-BOX-V2.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) | Broader owned payloads/composition, general allocation, public ABI, regions, arenas and shared ownership are complete. Borrowed `box_get<Bytes>` remains rejected by the owning profile. |
 | Borrowed views and lifetime safety | Partial; bounded shared loans, projected fields, synchronous borrowed calls and nested paths have hosted-green evidence. | [Useful Text](USEFUL-TEXT-CONSUMER-V1.md), [Shared Loan Plan](SHARED-LOAN-PLAN-V1.md), [Projected Field Borrow](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md), [Nested Records](NESTED-OWNED-BYTE-RECORDS-V1.md), [Nested Destructuring](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md), [Borrowed Calls](PROJECTED-OWNED-BYTES-BORROWED-CALL-V1.md) | Complete general lifetime inference, mutable and escaping borrows, cross-file use and public host ABI behavior. |
 | Regions and arenas | Partial; report/model scope remains distinct from runtime placement. | [Region Report](REGION-REPORT-V1.md) | Region inference and runtime placement are implemented and verified; the report alone is insufficient. |
 | Shared immutable ARC and managed zones | Partial; proof/model scope is unchanged by hosted execution of its tests. | [ARC Zone Model](ARC-ZONES-V1.md) | Language, runtime, cycle, escape and concurrency semantics execute on supported targets. |

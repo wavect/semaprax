@@ -1,7 +1,8 @@
 # Public Nested Owned-Record API v1
 
-Status: internal additive Project-v11 implementation tranche; unpublished and
-unpromoted.
+Status: implemented bounded Project-v11 API; unpublished and unpromoted.
+Release regression evidence is **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: compiler contributors, generated-package integrators, and promotion
 reviewers.

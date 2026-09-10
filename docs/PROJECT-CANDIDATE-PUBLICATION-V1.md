@@ -157,7 +157,7 @@ bridge diagnostics are `SPX-G245` for grammar/domain restrictions,
 `SPX-G248` for observed postpublication uncertainty. Existing diagnostics retain
 their meaning and may propagate.
 
-Authored, unrun tests in `tests/project_candidate_publication_v1.rs` cover
+Release-tested tests in `tests/project_candidate_publication_v1.rs` cover
 read-only preparation, deterministic proof, real managed publication with raw
 source preservation, stale repeat apply, proof/approval/root substitution,
 exclusive-lock ordering, raw Project drift, and single-file rejection. A unit

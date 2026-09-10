@@ -99,10 +99,9 @@ validated HIR. They do not prove runtime liveness, contract truth, test
 coverage, target admission, external/dynamic callers, compatibility, source
 freshness outside the host boundary, or authority to edit, execute or publish.
 
-Authored, unrun evidence in `tests/image_v5/candidate_function_facets.rs`
+Release-tested evidence in `tests/image_v5/candidate_function_facets.rs`
 covers changed and newly added functions, all nine facets and exact item order,
 candidate/base/sibling/target reference isolation, cursor-option binding,
 unavailable and non-function targets, selected schemas and generated clients,
 MCP, detached parallel/read-batch parity, source drift, registry immutability
-and false authority. No tests, compiler executable, target or application was
-run while authoring this tranche.
+and false authority. The v0.4.0 release regression corpus is HOSTED GREEN.

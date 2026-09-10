@@ -113,6 +113,6 @@ These shapes do not replace ordinary fill validation.
 `tests/project/hole_fill_suggestions.rs` and
 `tests/image_v5/hole_fill_suggestions.rs` author replay, parent retention, source
 preservation, bounds, stale selection, ownership and transport boundaries.
-They have not been executed. Runtime contracts, actual client execution,
-representative tasks and measured improvements remain outstanding; no
-completion row is promoted.
+The implemented regression corpus is HOSTED GREEN. Broader runtime contracts,
+client/product scope, representative tasks and measured improvements remain
+independent completion requirements.

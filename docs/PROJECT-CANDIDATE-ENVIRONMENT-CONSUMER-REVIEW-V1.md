@@ -1,10 +1,9 @@
 # Project Candidate Environment Consumer Review v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded library, transport, discovery and MCP composition;
+**HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Caller declarations and static consumer replay are not live
+provider, environment or deployment observations.
 
 Audience: agent clients and reviewers that need declared environment blind
 spots and a bounded inventory of known package consumers beside one exact
@@ -150,5 +149,5 @@ fail-closed behavior for baseline drift or duplicate external-consumer rows.
 Transport regression sources cover dual host gating, the closed request and
 chunk schema, generic TypeScript/Python/Rust client generation, MCP catalogue
 selection, the 23,265,280-byte selector bound, false grants and exclusion from
-parallel reads. These regressions are authored and unrun. No test target or
-generated consumer was compiled or executed for this Partial stage.
+parallel reads. These regressions are included in the v0.4.0 hosted-green regression corpus. The report remains a bounded declaration/static-consumer composition, not a
+live environment or provider observation.

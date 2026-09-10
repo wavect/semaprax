@@ -76,4 +76,4 @@ must impose its own filesystem and current-source authentication boundaries.
 without file recreation, rebased history restoration after raw edits, continued
 candidate editing, wrong selectors/canonical spelling/authority rejection,
 self-rehashed false base/source/candidate rejection, and raw structural limits.
-All are unrun in this change.
+The implemented release regression corpus is HOSTED GREEN.

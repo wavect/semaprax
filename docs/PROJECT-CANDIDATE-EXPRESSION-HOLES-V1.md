@@ -80,5 +80,4 @@ existing method sets; no request elevates authority.
 type rejection, disjoint selection remapping, mixed body/expression drafts,
 overlap rejection, stale selectors, unresolved materialization rejection and
 unchanged files. `tests/image_protocol/diagnostic_transport_v4.rs` adds the protocol
-lifecycle and legacy rejection scenario. These cases were authored but not run;
-no compiler, interpreter or long quality gate was executed in this work.
+lifecycle and legacy rejection scenario. These implemented regression cases have hosted-green release evidence.

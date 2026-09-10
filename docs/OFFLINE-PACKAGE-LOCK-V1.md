@@ -1,6 +1,8 @@
 # Offline Package Lock v1
 
-- Status: versioned bounded reference; developer preview; unexecuted
+- Status: implemented bounded developer-preview lock; **HOSTED GREEN** under the
+  [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+  Registry, public support and runtime enforcement are not supplied by this lock.
 - Audience: package tooling authors and compiler contributors
 
 Offline Package Lock v1 is an additive, deterministic, read-only lock over an
@@ -197,6 +199,7 @@ version-mismatched dependencies, target confusion, capability closure,
 optional fact preservation, helper-level exact/overflow arithmetic, JSON-depth
 and output boundaries, package-count rejection, and CLI held-file alias
 rejection. Full production-builder exact/+1 fixtures for every independent
-frozen limit remain pending. This implementation and evidence are unexecuted
-in this tranche. No completion-matrix status is promoted and no hosted,
-supported, resolver, registry, or enforcement claim is made.
+frozen limit remain pending. The implemented regression corpus is HOSTED GREEN for v0.4.0. The lock alone
+provides no supported registry or runtime enforcement. The separately
+implemented resolver has its own contract; it is not behavior added to this
+frozen lock profile.

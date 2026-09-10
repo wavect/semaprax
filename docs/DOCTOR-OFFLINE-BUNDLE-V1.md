@@ -1,10 +1,9 @@
 # Doctor offline bundle v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented private inventory and preparation boundary; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+This primitive does not activate the CLI, provision production profiles, isolate
+executables, or complete WP-05.
 
 Audience: CLI/platform contributors and reviewers.
 
@@ -206,7 +205,7 @@ cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::o
 cargo test --locked -p semaprax-native-rust-interop-platform-sys --lib doctor::offline_input::request_handoff
 ```
 
-The collector's `tests/support/prepared_handoff.rs` adds an ignored physical
+The collector's `crates/semaprax-doctor-collector/tests/support/prepared_handoff.rs` adds an ignored physical
 handoff gate: independently literal-checked preparation, sealed acquisition,
 worker execution and exact report delivery for native/all targets, plus
 unrepaired request-digest and bundle-payload drift rejection. It requires the
@@ -221,10 +220,11 @@ It remains unconnected to production launch or profile admission.
 All seven encoder tests and the portable structural/ELF tests passed in the
 local macOS arm64 Rust 1.98 doctor unit-test run (40 tests total). The encoder
 test-module path explicitly selects its own fixtures rather than the parser's
-sibling tests. Provisioned worker/collector handoff gates remain unrun.
+sibling tests. Provisioned worker/collector handoff gates have their own explicitly selected
+host context; the portable encoder witness does not establish their execution.
 Existing sealed-input, CLI report, profile-selection and
-lower-level probe fixtures remain unchanged and required. Completion still
-needs real provisioning, immutable executable/library/configuration inputs,
+lower-level probe fixtures remain unchanged and required. Broader supported-profile completion still needs its admitted provisioning,
+immutable executable/library/configuration inputs,
 OS filesystem/IPC/network containment, descendant settlement, selector-to-host
 admission, and physical selected-tool compatibility at the release head.
 

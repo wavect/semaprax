@@ -44,7 +44,7 @@ one whole live owning helper parameter with no conditional owner or crossing
 loan. Candidate replay and recovery reconstruct the same source, semantic graph,
 ownership, cleanup, interpreter closure, native C closure, and Core Wasm closure
 under their existing profiles and bounds. This is static compiler admission;
-the authored regression sources were not executed here.
+the implemented regression corpus is HOSTED GREEN.
 
 Rebase remains conservative. Any concurrent change to the target body,
 signature, or effects conflicts, as does reuse of the fresh helper identity.
@@ -60,7 +60,7 @@ output-byte limits are unchanged. `SPX-G506` owns unsupported owner shapes,
 `SPX-G507` owns retained owner/cleanup authentication failure, and `SPX-G508`
 owns rebuilt helper ownership correspondence failure.
 
-Authored, unrun cases in
+Release-tested cases in
 `tests/project_candidate/owned_block_extraction.rs` cover local Bytes and String
 transfer, exact helper entry cleanup, canonical replay/recovery, interpreter and
 native/Wasm emission reachability, and fail-closed parameter, projection,

@@ -147,5 +147,6 @@ SEMAPRAX_DOCTOR_ROOT_TEST_CONTEXT=private-user-mount-v1 cargo test --locked \
   -- --ignored --test-threads=1
 ```
 
-All new fixtures and the unchanged input/parser/CLI/lower-probe gates remain
-unrun. No completion status or supported-platform claim changes in this batch.
+The implemented fixtures and input/parser/CLI/lower-probe regression corpus are
+HOSTED GREEN for v0.4.0. This does not activate a production profile or change
+the separately stated supported-platform boundary.

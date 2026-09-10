@@ -86,5 +86,5 @@ Authored evidence is in `tests/project_candidate/lexical_binding.rs` and
 `tests/project_candidate/lexical_binding_rebase.rs`, plus constructor/schema
 module cases. They cover scope, evaluation structure, ownership rejection,
 hole filling, source replay, callee renames and changed-signature conflicts.
-All remain unrun. General imperative constructors, liveness-guided synthesis,
+The implemented cases have hosted-green release evidence. General imperative constructors, liveness-guided synthesis,
 mutable/borrow-preserving bindings and arbitrary source rewriting remain open.

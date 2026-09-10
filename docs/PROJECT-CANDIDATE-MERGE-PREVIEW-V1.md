@@ -124,5 +124,4 @@ Authored regressions in `tests/project_candidate/merge_preview.rs` cover
 ordered replay, exact parents, shared histories, unchanged source and candidate
 state, accepted source comparisons and explicit rejections. Transport cases in
 `tests/image_v5/candidate_merge_preview.rs` cover selected authority, exact
-bindings and the retained-read path. No tests, compiler execution, throughput
-measurement or hosted evidence was run for this change.
+bindings and the retained-read path. The v0.4.0 release regression corpus is HOSTED GREEN.

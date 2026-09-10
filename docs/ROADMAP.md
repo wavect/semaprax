@@ -19,6 +19,11 @@ bounded implementation does not reduce the mature-product requirement.
 
 ## Current release baseline
 
+The separate [Persistent Semantic Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md)
+implements authenticated cross-process checked-HIR reuse with independent
+source/HIR validation. Its release regressions are HOSTED GREEN; full
+incremental compilation and measured task-level performance remain open.
+
 The v0.4.0 code baseline is **HOSTED GREEN**. Its published three-archive
 milestone is complete; see the
 [release record](RELEASE-PROCESS.md#040-hosted-release-evidence). Completed

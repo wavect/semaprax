@@ -150,9 +150,7 @@ authenticates both the root's type and selected field. Record value projection
 still stages an authenticated typed value; it cannot be silently substituted
 for a borrow of the original owned field.
 
-Library and transport regression cases are authored but unrun. No compiler,
-interpreter, backend, generated client, or quality gate was executed for this
-change. The graph-operational programme and completion matrix remain partial.
+Library and transport regression cases are implemented. The v0.4.0 release regression corpus is HOSTED GREEN. The graph-operational programme and completion matrix remain partial.
 
 The string extension has separate
 [candidate regressions](../tests/project_candidate/string_builtin_calls.rs)

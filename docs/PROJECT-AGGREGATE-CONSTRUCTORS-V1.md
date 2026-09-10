@@ -369,10 +369,10 @@ also consume the budget. Child expressions account for the generated nesting;
 no nested match resets the global node count. Match discovery remains bounded
 by the aggregate inventory and rendering limits and the enclosing report cap.
 
-Focused aggregate constructor integration, schema/discovery, and semantic
-rebase regressions are authored but intentionally unrun. Executed canonical
-round-trip, graph, target and runtime evidence remains required before a
-completion claim.
+The implemented aggregate-constructor, schema/discovery and semantic-rebase
+regressions have hosted-green release evidence. Canonical round-trip, graph
+and target admission remain checked boundaries; this does not broaden runtime
+or public ABI support beyond the retained candidate profile.
 
 [Generic constructor regressions](../tests/project_candidate/generic_aggregate_expressions.rs)
 cover ordered arguments, module-local bindings, rejected generic imports, phantom nominal identity, named
@@ -382,12 +382,12 @@ include a checked generic field-type change while the nominal instance and
 function identities remain unchanged. These files are authored evidence only.
 
 [Match regressions](../tests/project_candidate/match_expressions.rs) are
-authored and unrun. They cover stable-ID selection, typed staging, lexical
+included in the v0.4.0 hosted-green regression corpus. They cover stable-ID selection, typed staging, lexical
 bindings, discovery, recovery and rejection. The rebase regressions also cover
 case/payload identity changes with an unchanged variant owner and signature.
 
 [Record update regressions](../tests/project_candidate/record_update.rs)
-are authored and unrun. They exercise typed staging, replacement subsets and
+are included in the v0.4.0 hosted-green regression corpus. They exercise typed staging, replacement subsets and
 order, generic/local/imported owners, discovery, holes, recovery and rejection.
 The rebase fixture also changes an untouched field identity to ensure a
 partial update cannot silently adopt a different record remainder.

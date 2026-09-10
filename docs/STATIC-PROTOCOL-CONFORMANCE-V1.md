@@ -128,9 +128,9 @@ section and cannot honestly represent real implementations. It rejects any
 impl-bearing source with `SPX-Q110` instead of emitting that section. Its
 existing v1 envelope verifier remains unchanged. Protocol-bearing canonical
 source/revision bytes change because declarations previously disappeared during
-formatting; the existing pinned protocol-envelope golden digest must be
-independently rederived after execution is authorized. It has deliberately not
-been guessed or silently updated in this unrun change. The runtime graph schema
+formatting; the existing pinned protocol-envelope golden remains owned by the executable
+replay/compatibility tests. Its bytes must not be guessed or silently changed
+by documentation maintenance. The implemented regression corpus is HOSTED GREEN. The runtime graph schema
 lattice is not expanded by these source facts.
 
 `SPX-Q106` covers invalid explicit/local targets and static declaration grammar;
@@ -144,7 +144,6 @@ Core evidence is authored in `tests/projections/static_protocol_conformance.rs`:
 source round trips, real admitted facts, display-rename stability, exact local
 inventory, ownership/signature/effect/precondition rejection, body verification,
 duplicate identities/pairs/functions, bounds, and legacy projection refusal.
-Workspace/image/candidate integration has separate owning regressions. No test
-was run for this change. Cross-module protocol implementations, generic
+Workspace/image/candidate integration has separate owning regressions. The v0.4.0 release regression corpus is HOSTED GREEN. Cross-module protocol implementations, generic
 conformance, inherited/default methods, dynamic dispatch, runtime witnesses,
 and protocol-typed public APIs remain unsupported.

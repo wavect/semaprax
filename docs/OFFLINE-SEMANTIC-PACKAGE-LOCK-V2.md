@@ -20,7 +20,7 @@ wall-clock measurements.
 
 The lock grants no resolver, registry, network, fetch, build, script, target
 execution, enforcement, persistence, publication, or mutation authority.
-Lock v1, Report v1/v2, and Graph bytes remain unchanged. Evidence is unrun.
+Lock v1, Report v1/v2, and Graph bytes remain unchanged. The implemented release regression corpus is HOSTED GREEN.
 
 ## Public surface and canonical wire
 

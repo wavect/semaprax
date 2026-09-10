@@ -121,8 +121,7 @@ and joining, including every fixed-point probe and digest string.
 Focused source evidence covers two-package linking, exact replay, root-only
 exports, and rejection when dependency metadata names an edge absent from the
 implementation source. Additional hostile and preservation evidence is
-required before promotion. No test or quality gate was run while authoring
-this tranche.
+required before promotion. The v0.4.0 release regression corpus is HOSTED GREEN.
 
 The capsule performs no discovery, acquisition, registry/cache access,
 networking, filesystem or process authority, scripts, external tools, target

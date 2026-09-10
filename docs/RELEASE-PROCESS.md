@@ -37,10 +37,12 @@ Each archive contains `semaprax`, `semapraxd`, `LICENSE`, `README.md`, a fixed
 smoke program, and the deterministic `semaprax.release-artifact.v1` manifest.
 The archive's `semaprax` is the unpublished `semaprax-toolchain` package's
 `semaprax-full` binary, renamed during staging. The standalone crates.io
-package excludes private `doctor`, Native Rust package publication, Windows
-revision-store host operations, and the held-parent staged publication behind
+package excludes private Native Rust package publication, Windows revision-store
+host operations, Windows owned npm publication, and the held-parent staged publication behind
 the full toolchain's `new`; its own `new` is the bounded route owned by
-[standalone project creation](NEW-PROJECT-STANDALONE-V1.md). This distribution split does not
+[standalone project creation](NEW-PROJECT-STANDALONE-V1.md). Both binaries
+dispatch `doctor` through the shared driver; the ordinary unavailable-profile
+path grants no production tool authority. This distribution split does not
 publish any private library crate or promote its platform support.
 The platform script unpacks its completed archive and uses the unpacked
 `semaprax` binary to run `--version`, `version --json`, `check`, and `run`
@@ -174,8 +176,8 @@ output from stale sentinels, exercise paths containing spaces and rejection
 before build/staging effects, and run the actual archive/extraction scripts
 when selected. Unix failures include commands that emit the expected stdout
 but exit unsuccessfully. The Windows fixture also separates PowerShell's location from
-the process working directory. These tests were not run while implementing
-the correction; even when run, fake tools do not prove compiler execution,
+the process working directory. The implemented mechanics regressions are HOSTED GREEN; fake tools do not
+prove compiler execution,
 daemon behavior, release provenance, or a successful product release.
 
 ```sh
@@ -244,6 +246,8 @@ performed and missing prerequisites fail the selected gate:
 cargo test --locked --offline -p semaprax --test release_archive_product_v1 provisioned_archive_owned_frame_consumers_work_outside_checkout -- --ignored --exact
 ```
 
+<a id="v020-hosted-release-evidence"></a>
+
 ## 0.2.0 hosted release evidence
 
 The annotated `v0.2.0` tag resolves to exact commit
@@ -303,14 +307,14 @@ evidence.
 ## 0.4.0 hosted release evidence
 
 The annotated `v0.4.0` tag resolves to exact commit
-`dfc15e2ddc818fa97744b5a9d69fd6108dd6a321`. Its tag-triggered
-workflow completed successfully on 2026-09-10 with all required jobs green.
-That includes the complete release-blocking Linux, macOS, Windows, Rust 1.88,
-dependency, sanitizer, browser, Project, generated-Rust-consumer, desktop,
-Android, iOS, and Component lanes. The blocking release gate then admitted all
-three host-built archive jobs and the final publication job, which published the
-[SEMAPRAX v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0)
-at `2026-09-10T10:31:03Z`.
+`dfc15e2ddc818fa97744b5a9d69fd6108dd6a321`. The accepted implementation and
+release-regression baseline is **HOSTED GREEN**, as recorded in the
+[release baseline](RELEASE-0.4.0-STATUS.md). The release-note length issue was
+a publication issue, not an outstanding implementation or conformance gate.
+The [SEMAPRAX v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0)
+was published at `2026-09-10T10:31:03Z` with the three archives below.
+Historical Actions attempts keep their recorded conclusions; this acceptance
+record does not relabel an attempt or invent a successful run identifier.
 
 The published prerelease contains exactly these release assets (digests as
 reported by the GitHub release API and matching the `SHA256SUMS` generated

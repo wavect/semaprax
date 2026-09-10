@@ -104,7 +104,7 @@ and none starting with `-`; anything else exits with status two.
 `verify` performs no verification itself, does not authenticate the capsule
 beyond reading `schema`, does not apply, publish, or lock anything, and does
 not introduce a new evidence format. Evidence capsules still carry no
-authority ([AGENTS.md](../AGENTS.md)); a passing `verify` is proof data for the
+authority ([AGENTS.md](https://github.com/wavect/semaprax/blob/main/AGENTS.md)); a passing `verify` is proof data for the
 route that owns it, nothing more.
 
 ## `semaprax agent`

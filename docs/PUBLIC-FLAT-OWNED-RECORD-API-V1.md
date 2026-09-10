@@ -1,7 +1,8 @@
 # Public Flat Owned Record API v1
 
-Status: exact-tag hosted nonignored regression coverage at v0.2.0;
-unpublished and unpromoted additive Project-v9 tranche.
+Status: implemented bounded Project-v9 API; generated packages remain unpublished
+and formal public promotion remains open. Release regression evidence is **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: compiler contributors, generated-package integrators, and promotion
 reviewers.
@@ -103,7 +104,7 @@ schemas, generated artifacts, and v8/v10 routes are unchanged.
 
 The lower package's `tests::flat_input_bounds` authors framing, exact/plus-one
 size, canonical replay, digest-work, and public-builder rejection regressions.
-These checks are unrun. Their work observation concerns descriptor hashing,
+The implemented release regression corpus is HOSTED GREEN. Their work observation concerns descriptor hashing,
 not total allocation, parsing cost, caller-owned input storage, or tool execution.
 
 ### Identity-preserving semantic recipe
@@ -198,7 +199,7 @@ then frozen-record construction, with guarded scratch cleanup before outward
 publication. Unexpected post-entry exceptions and caught reentry latch poison;
 cleanup cannot replace an earlier thrown value. Only authenticated checked
 statuses can recover after complete settlement. Wasm, descriptors and public
-types remain unchanged; the real-package failure regressions are unrun.
+types remain unchanged; the released real-package failure regressions are HOSTED GREEN.
 
 The generated Rust invocation guard now closes the complete provider context
 after its owner guard settles but before any outward value or recoverable
@@ -207,7 +208,7 @@ uncertain settlement is fail-stop. This shared v8/v9/v10 correction changes
 generated safe/private Rust and integrity bindings, not provider C/ABI, public
 types, descriptors, or manifest schemas. The private invocation counter resets
 on reinitialization; the linked provider's handle issuer does not. These
-corrections and their hostile-consumer evidence are authored but unrun.
+corrections and their hostile-consumer evidence are implemented.
 
 The later [descriptor-selected private Rust helper correction](PUBLIC-OWNED-DATA-API-V1.md#descriptor-selected-private-rust-helpers)
 omits unused `discard` only for selections with no Bool result field. A Bool
@@ -225,7 +226,7 @@ Strings; native artifacts and dependent bindings intentionally change for those
 subjects. Direct descriptor/provider evidence is not activated Project-v9
 admission, which keeps its existing Wasm restrictions. Public record/field
 types, carrier layout, descriptors, and String-free output remain unchanged.
-The new physical allocation evidence is authored but unrun.
+The new physical allocation evidence is implemented.
 
 ## Evidence boundary
 
@@ -263,14 +264,13 @@ promotion evidence.
 to Project v9: `semaprax-full` owns the six-file held-handle publication, while
 standalone Windows publication rejects safely. The existing-parent/output-leaf
 restrictions are explicit; descriptors, artifacts and Unix routing are unchanged.
-The new filesystem and route evidence remains authored and unrun.
+The new filesystem and route evidence remains included in the v0.4.0 hosted-green regression corpus.
 
 The shared [Cargo build-script path boundary](PUBLIC-OWNED-DATA-API-V1.md#generated-cargo-build-script-path-boundary)
 also applies to the v9 Rust package: reject missing, non-Unicode, or CR/LF
 package paths before any Cargo instruction. Generated `build.rs` and dependent
 manifest bindings intentionally change; descriptors, provider archives, safe
-Rust structs, FFI, and the v9 schema remain unchanged. The checks are authored
-but unrun.
+Rust structs, FFI, and the v9 schema remain unchanged. The checks are release-tested.
 
 The authored physical npm/Core-Wasm and native-provider/safe-Rust routes are
 wired to the exact descriptor. The npm facade authenticates every scalar
@@ -285,14 +285,13 @@ manifest is the sole producer of
 `semaprax.native-rust-flat-owned-record-sdk.v1`; the authority-free root
 descriptor layer defines no second document under that schema.
 
-Local implementation evidence must cover canonical and hostile manifests,
+The maintained implementation corpus covers canonical and hostile manifests,
 descriptor derivation/replay and every-byte mutation, exact one-byte-field
 admission, every excluded field shape, persistent-ID rename behavior,
 TypeScript and safe Rust projections, opaque carrier planning, copy-before-
 settle and publish-after-settle traces, capacity boundaries, and v1-v8 known
-answers. This implementation tranche has not run every broader target consumer
-or complete equivalence gate. Hosted promotion requires one exact blocking
-Linux/macOS/Windows head.
+answers. The implemented release corpus is HOSTED GREEN. Broader target/consumer
+coverage and formal public promotion remain separately scoped requirements.
 
 The focused C11 projection evidence generates the header and actual v9 native
 provider independently, compiles them as separate translation units, links and
@@ -305,8 +304,7 @@ The replay-alignment regressions are authored in
 `tests/project/flat_owned_record_api.rs` and the lower package's
 `flat_descriptor::tests`. A shared hand-authored source/canonical-byte oracle
 connects actual compiler derivation/replay with lower native replay without
-adding dependencies or exposing a new public replay API. These tests remain
-unrun; the private descriptor-size model is only a byte-guard check, not a
+adding dependencies or exposing a new public replay API. The implemented tests have hosted-green release evidence; the private descriptor-size model is only a byte-guard check, not a
 proof of semantic admission or peak allocation.
 
 `tests/project_flat_owned_record_api_v1/semantic_replay.rs` supplements those
@@ -319,7 +317,7 @@ Function-body and function-display-name controls preserve descriptor bytes;
 record and field names are included facts and therefore are negative cases.
 Synthetic revision facts are intentionally equal for this lower-level oracle,
 not evidence of unchanged real Project revisions or source provenance. The
-tests are authored and unrun, and change no descriptor, runtime or golden bytes.
+tests are included in the v0.4.0 hosted-green regression corpus, and change no descriptor, runtime or golden bytes.
 
 `tests/project/v9_recipe_identity.rs` adds actual multi-module Project
 admission and npm replay for colliding display names, retained control-bearing
@@ -327,7 +325,7 @@ identities, and display-only renames. Its native assertion reaches a deliberatel
 rejecting injected publisher only: it proves semantic replay reaches the package
 handoff, not compilation, successful publication, or physical consumer behavior.
 Private recipe tests cover exact historical source bytes and hostile restoration
-headers. All of this additional evidence is authored and unrun.
+headers. All of this additional evidence is included in the v0.4.0 hosted-green regression corpus.
 
 The follow-on published-product fixtures share one four-source subject in
 `tests/support/flat_record_product.rs`. Two `Payload` records have distinct
@@ -351,16 +349,17 @@ persistent-context reuse, and observed recovery is not an allocator-count or
 complete destruction-trace measurement.
 
 The native gate is explicitly selected after tool provisioning; it remains
-ignored in an ordinary test run. These commands are documented, not executed:
+ignored in an ordinary test run. The reproducible regression commands are:
 
 ```sh
 cargo test --locked -p semaprax --test project v9_recipe_consumer::
 cargo test --locked -p semaprax-toolchain --test project_flat_record_sdk_v1 -- --ignored
 ```
 
-Neither fixture is a new public archive verifier. All new physical-consumer
-evidence remains authored and unrun; no hosted release blocker or promotion is
-established by adding it.
+Neither fixture is a new public archive verifier. The admitted release
+regression corpus is HOSTED GREEN. Explicitly provisioned physical-consumer
+gates retain their own selection and host requirements; adding a fixture alone
+is not execution or public promotion.
 
 The additional [mixed-borrow Rust consumer gate](PUBLIC-OWNED-DATA-API-V1.md)
 publishes a real v9 record package whose two exports accept a UTF-8 string and

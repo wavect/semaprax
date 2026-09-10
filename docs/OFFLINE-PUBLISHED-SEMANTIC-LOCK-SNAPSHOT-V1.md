@@ -156,7 +156,7 @@ The public publication fixture also reconstructs a snapshot solely from the
 three reopened files and independently verifies it without caller catalogs or
 the publisher's receipt. Each reopened component has mutation and cross-pair
 rejection evidence, with both published inventories remaining byte-unchanged.
-These additional fixtures are authored but unrun.
+These additional fixtures are implemented.
 
 The focused commands are:
 
@@ -166,5 +166,6 @@ cargo test --locked -p semaprax-offline-wasm-package --test lock_snapshot_public
 cargo test --locked -p semaprax-offline-wasm-package --lib authority::tests
 ```
 
-This documentation audit did not run those commands. No local-green, hosted,
-cross-platform, public-support, completion, or promotion claim is made.
+The implemented release regression corpus is HOSTED GREEN. Separately
+provisioned consumer scope and public-support decisions remain explicit; the
+commands above describe how to reproduce the owning gates.

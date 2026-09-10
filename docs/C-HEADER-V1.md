@@ -109,7 +109,7 @@ reason exercised against real programs, selection edge cases, guard
 stability under formatting-only drift and display-name-only renames, guard
 change under identity rename, budget-exhaustion failure, tampered-envelope
 rejection, and CLI exit-code contracts. No C compiler is invoked and no
-target execution is claimed; hosted promotion remains pending.
+target execution is claimed; release regression evidence is HOSTED GREEN for v0.4.0.
 
 ## Scalar-surface widening (2026-08-23)
 

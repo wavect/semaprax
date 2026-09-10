@@ -124,10 +124,7 @@ test policy grants none. A report digest is integrity evidence, not a secret,
 capability, approval, or replay permission.
 
 Focused regressions in
-`tests/project_candidate/analysis_runtime_evidence.rs` are authored but
-unrun. They pin exact nested reports, the single-row coverage change, passing
+`tests/project_candidate/analysis_runtime_evidence.rs` are release-tested. They pin exact nested reports, the single-row coverage change, passing
 and failing attempts, deterministic composition, selector mismatch rejection,
 immutability, the exported 4-MiB cap with successful evidence below it, and
-strict authority/nonclaim fields. No test,
-compiler, interpreter, application, target, or external service ran while this
-slice was authored.
+strict authority/nonclaim fields. The v0.4.0 release regression corpus is HOSTED GREEN.

@@ -108,7 +108,7 @@ network, process/tool, build, target execution, or daemon authority.
 
 ## Evidence and promotion
 
-Evidence is authored and unrun. The quarantine's focused tests cover closed
+Evidence is included in the v0.4.0 hosted-green regression corpus. The quarantine's focused tests cover closed
 path/name grammar and protected-DACL admission; shared profile tests bind
 distinct Windows identities and preserved legacy bytes. Physical NTFS fixtures
 must run under their explicit private-root/short-name prerequisites before

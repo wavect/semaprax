@@ -1,10 +1,8 @@
 # Offline Deterministic Package Resolver v2
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded resolver; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The generated package surface remains unpublished and unpromoted.
 
 Audience: package-tool authors and compiler contributors.
 
@@ -62,7 +60,7 @@ nested-bound, catalog, policy, and exact-coordinate fixtures using Subject-v3
 exact ranges. `tests/offline_package/ranges.rs` adds genuinely ranged
 dependencies, numeric ordering, later-root intersection and rollback, exact
 Lock-v3/raw-report binding, permutation, and cross-input rejection. These tests
-are authored and locally unrun; no completion row is promoted by their presence.
+are release-tested; no completion row is promoted by their presence.
 
 This is not general SemVer and provides no prereleases, build metadata,
 wildcards, unions, registry, network, fetch, cache, persistence, acquisition,

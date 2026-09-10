@@ -5,7 +5,7 @@ Status: concise release notes for quick orientation.
 Audience: users and contributors wanting the latest changes without scanning the full historical changelog.
 
 For complete chronological detail, including historical context and archived artifacts, use:
-- [CHANGELOG.md](../CHANGELOG.md)
+- [CHANGELOG.md](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md)
 - [docs/CHANGELOG-ARCHIVE.md](CHANGELOG-ARCHIVE.md).
 
 ## 0.4.0 highlights

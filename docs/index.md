@@ -22,7 +22,7 @@ release-note publication issue is not an outstanding code-evidence gate.
 See the [release baseline](RELEASE-0.4.0-STATUS.md) and
 [release record and checksums](RELEASE-PROCESS.md#040-hosted-release-evidence).
 The release remains unsigned, not notarized, and pre-alpha.
-Recent project and tooling notes are summarized in [CHANGELOG.md](../CHANGELOG.md),
+Recent project and tooling notes are summarized in [CHANGELOG.md](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md),
 with compact highlights in [CHANGELOG-SUMMARY.md](CHANGELOG-SUMMARY.md),
 and full history in [docs/CHANGELOG-ARCHIVE.md](CHANGELOG-ARCHIVE.md).
 
@@ -32,15 +32,15 @@ and full history in [docs/CHANGELOG-ARCHIVE.md](CHANGELOG-ARCHIVE.md).
 | --- | --- |
 | Understand the current implementation and evidence stage | [v0.4.0 HOSTED GREEN baseline](RELEASE-0.4.0-STATUS.md) |
 | Install a working toolchain | [Install](INSTALL.md) |
-| Track recent changes | [CHANGELOG](../CHANGELOG.md) |
-| Try the language | Follow the executable [quickstart](QUICKSTART.md), then explore the root [README](../README.md) |
+| Track recent changes | [CHANGELOG](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md) |
+| Try the language | Follow the executable [quickstart](QUICKSTART.md), then explore the root [README](https://github.com/wavect/semaprax/blob/main/README.md) |
 | Learn the language itself | Work through the [language tour](LANGUAGE-TOUR.md) |
 | Write SEMAPRAX as a coding agent with a small context window | Load the compiler-checked [agent quick reference](AGENT-QUICK-REFERENCE.md) |
 | Fix a known `SPX-*` diagnostic without loading the full reference | Run `semaprax help diagnostic <SPX-code>`; `semaprax help diagnostic codes` lists exact supported codes |
 | Find a standard-library declaration and its contract | Read the generated [standard library catalog](STANDARD-LIBRARY-CATALOG.md); [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the tiers and required modules |
-| Find a minimal example to point a command at | [Examples index](../examples/README.md) |
+| Find a minimal example to point a command at | [Examples index](https://github.com/wavect/semaprax/blob/main/examples/README.md) |
 | Find or automate a compiler command | [Using the SEMAPRAX CLI](CLI-GUIDE.md) and [Unified CLI](UNIFIED-CLI-V1.md) |
-| Highlight `.spx` files in Visual Studio Code | The repository's [VS Code extension](../editors/vscode/README.md) |
+| Highlight `.spx` files in Visual Studio Code | The repository's [VS Code extension](https://github.com/wavect/semaprax/blob/main/editors/vscode/README.md) |
 | Understand the language design | [RFC 0001](RFC-0001.md) |
 | Work with records, variants, matching, `Option`, or `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |
 | Understand ownership and cleanup | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
@@ -157,7 +157,7 @@ Versioned reference documents are intentionally precise. They define one wire
 format, report, ABI, admission profile, or evidence boundary. They are useful
 to tool and host authors but are not the recommended introduction to SEMAPRAX.
 
-The exhaustive, audience-separated list is in [SUMMARY.md](SUMMARY.md):
+The exhaustive, audience-separated list is in [source catalog](https://github.com/wavect/semaprax/blob/main/docs/SUMMARY.md):
 
 - public language and workflow references;
 - agent and workspace protocol references;
@@ -173,7 +173,7 @@ The exhaustive, audience-separated list is in [SUMMARY.md](SUMMARY.md):
   versioned agent-facing formats.
 - [Completion matrix](COMPLETION-MATRIX.md) owns product status and completion
   criteria.
-- [Changelog](../CHANGELOG.md) owns historical implementation changes.
+- [Changelog](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md) owns historical implementation changes.
 - [Changelog summary](CHANGELOG-SUMMARY.md) gives a compact latest-notes view.
 - [Roadmap](ROADMAP.md) owns future sequencing, not implementation claims.
 

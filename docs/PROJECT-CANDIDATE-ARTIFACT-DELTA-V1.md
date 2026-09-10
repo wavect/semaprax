@@ -137,8 +137,7 @@ carrier diagnostics can propagate unchanged.
 
 `tests/project_candidate/artifact_delta.rs` owns library evidence;
 `tests/image_transport_v5/artifact_delta.rs` covers build gating, discovery and
-chunking. Tests are authored and unrun. No compiler/test/application executable
-or long local quality gate was run for this batch; no completion row is promoted.
+chunking. The implemented tests have hosted-green release evidence.
 
 Broader carrier types, installed consumer relationships, cross-package migration,
 artifact filesystem authority, runtime compatibility and the full

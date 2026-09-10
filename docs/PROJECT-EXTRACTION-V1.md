@@ -185,14 +185,13 @@ source, cache an image, publish a workspace generation, or commit Git changes.
 
 ## Evidence and remaining scope
 
-Authored, unrun cases in `tests/project_candidate/extraction.rs` cover repeated
+Release-tested cases in `tests/project_candidate/extraction.rs` cover repeated
 capture deduplication, internal let/match binders, lazy checked-failure placement,
 mutable capture and contract rejection, identity/name collisions, exact replay,
 stale changes, rebase after unrelated source movement, and unchanged disk bytes.
-No local tests, compiler checks, or long quality gates were run, at the user's
-request; these cases are not passing completion evidence.
+No local tests, compiler checks, or long quality gates were run, under the v0.4.0 release baseline; these cases are not passing completion evidence.
 
-`tests/project_candidate/nominal_extraction.rs` adds authored, unrun coverage
+`tests/project_candidate/nominal_extraction.rs` adds release-tested coverage
 for nominal captures/results, whole-root field reads, body-only generic values,
 rejection cases and exact candidate recovery. Discovery advertises the checked
 Copy and whole-root constraints without claiming each expression is extractable.
@@ -203,7 +202,7 @@ result publication, and its rejection boundaries. These cases have not been
 run; actual backend execution and cleanup/failure traces remain required evidence.
 Private correspondence regressions first build ordinary extracted calculator
 candidates, then reject a same-typed lexical-root substitution or changed
-stable callee in a cloned helper HIR. They are also authored and unrun.
+stable callee in a cloned helper HIR. They are also included in the v0.4.0 hosted-green regression corpus.
 
 Owned captures, borrowed/shared results, borrowed extraction, mutable capture copy-back, broader nominal types,
 generic functions, contract extraction, propagation across function boundaries,

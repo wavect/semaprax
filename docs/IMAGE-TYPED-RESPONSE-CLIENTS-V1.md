@@ -1,10 +1,8 @@
 # Typed workspace response clients v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded recursive response clients, including the Windows Rust
+stack correction; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Heterogeneous payload and support limits remain explicit.
 
 Audience: agent client authors, editor integrators and compiler contributors.
 
@@ -171,15 +169,14 @@ cases. Synthetic changed reports in client tests establish shape handling only;
 they are not reminted compiler receipts. All three tests pass locally on
 macOS/Rust 1.98, including actual Python and offline compiled Rust consumers.
 The fixture let-binds borrowed byte views before using them; it does not widen
-the compiler's nested byte-slice provenance admission. Hosted cross-platform
-execution remains a separate gate. Repair head `5b1e570` exposed a Windows stack
-overflow in the actual Rust consumer. The subsequent stack-use correction is
-statically reviewed only here: the unchanged ten-level accepted case,
-160-level hostile case, exact capacity error and healthy follow-up must still
-pass through the executing CI owner. No Windows success is claimed from the
-earlier macOS or Linux evidence, or from these unrun changes.
+the compiler's nested byte-slice provenance admission. Current admitted release coverage is HOSTED GREEN on the selected hosts. Repair head `5b1e570` exposed a Windows stack
+overflow in the actual Rust consumer. The subsequent stack-use correction is included in the released implementation:
+the unchanged ten-level accepted case, 160-level hostile case, exact capacity
+error and healthy follow-up remain regression obligations. Historical macOS
+and Linux results retain their own subjects; they are not themselves Windows
+observations.
 
 Complete heterogeneous compiler-report schemas, independent cross-language
 conformance and measured workflow improvements remain open. Typed constructor
-requests and the optional saved-source editor have separate authored, unrun
+requests and the optional saved-source editor have separate release-tested
 contracts. No completion-matrix row is promoted.

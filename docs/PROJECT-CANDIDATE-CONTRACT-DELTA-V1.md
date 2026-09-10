@@ -142,8 +142,7 @@ Interface Delta inventory/capacity diagnostics.
 evidence. `tests/image_transport_v5/contract_delta.rs` covers host gating,
 exact chunk reassembly, stale inputs and physical source drift; the discovery
 module also checks generated method helpers.
-These cases are authored and unrun: no tests, compiler checks, interpreter,
-target executable or long local quality gate was run for this change.
+These cases have hosted-green release evidence.
 
 General invariant dependency graphs, logical contract reasoning, complete
 ownership/cleanup deltas, runtime coverage, executed protocol compatibility and

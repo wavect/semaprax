@@ -286,6 +286,6 @@ observes 64 active consumes and 32 inactive compiler drops. Two documentation
 checks pass on both hosts; strict compiler-library and changed-integration
 Clippy passes on macOS. Linux uses the provisioned resource-bounded,
 network-disabled container. Production files and artifact known answers are
-unchanged. Windows, the pinned three-engine browser gate, native allocation
-evidence, full-profile verification and exact-head hosted promotion remain
-separate; these local results do not certify the concurrently changing main.
+unchanged. Those local counts do not describe Windows, the pinned browser matrix or native
+allocation runs. The implemented v0.4.0 release corpus has the accepted
+hosted-green baseline; later code changes require their own evidence.

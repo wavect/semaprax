@@ -1,10 +1,8 @@
 # Project Member Rename v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded member rename; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+General semantic migration and product completion remain separate.
 
 Audience: compiler contributors, agent builders and semantic tool authors.
 
@@ -112,7 +110,7 @@ Library and v5 transport regression evidence lives in
 must establish source migration, identity preservation, collision and stale
 rejection, independent history replay and unchanged authority. The focused
 member-rename module passes locally. Full quality, hosted,
-interpreter/application and target execution were not run for this batch.
+interpreter/application and target execution were reproducible release regression selectors.
 Broader declaration kinds, unsupported reference forms,
 external consumer migration, general merge normalization and broader execution
 evidence remain outstanding beyond this focused module.

@@ -5,7 +5,7 @@ Status: living internal contributor documentation.
 Audience: new contributors and coding agents making a first change here.
 
 This page is only the sequenced "what do I actually type" layer. It adds no
-rule and repeats no policy. [`AGENTS.md`](../AGENTS.md) owns the operating
+rule and repeats no policy. [`AGENTS.md`](https://github.com/wavect/semaprax/blob/main/AGENTS.md) owns the operating
 invariants and the change protocol, the [development guide](DEVELOPMENT.md)
 owns the [read order](DEVELOPMENT.md#read-before-changing-semantics) and the
 change-area reference table, [quality gates](QUALITY-GATES.md) owns
@@ -40,7 +40,7 @@ full-workspace run. Cheap first shapes:
 - a module split that lowers an entry in `tests/module-size-budget.tsv`.
 
 Do not start with anything the [non-negotiable
-invariants](../AGENTS.md#non-negotiable-invariants) name — evaluation order,
+invariants](https://github.com/wavect/semaprax/blob/main/AGENTS.md#non-negotiable-invariants) name — evaluation order,
 cleanup-plan order, evidence capsules, capabilities. Change protocol item 3
 requires parser, canonical formatter, resolver/HIR, verifier, semantic graph,
 native backend and Wasm backend to move together, which is not a first change.
@@ -184,7 +184,7 @@ prose is not evidence for a technical claim.
   `wasm::internal_strings::tests::nesting::nested_if_compile_on_default_stack`
   on a default-stack debug build. It is not your change; skip it with
   `-- --skip nested_if_compile_on_default_stack`. See
-  [`CLAUDE.md`](../CLAUDE.md).
+  [`CLAUDE.md`](https://github.com/wavect/semaprax/blob/main/CLAUDE.md).
 - **Disk, not time, is the binding limit on `full`.** A
   `--workspace --all-targets` test build links several hundred integration
   binaries and needs well over 10 GB. Build with `CARGO_INCREMENTAL=0` and
@@ -219,7 +219,7 @@ Update exactly the owner of each fact you changed, and nothing else:
 | [Architecture](ARCHITECTURE.md) | Implementation ownership or a trust boundary moved |
 | [Completion matrix](COMPLETION-MATRIX.md) | A row's status or its stated gate changed |
 | [Roadmap](ROADMAP.md) | Sequencing changed — never to assert something is done |
-| [Changelog](../CHANGELOG.md) | Always: this is where history goes |
+| [Changelog](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md) | Always: this is where history goes |
 | The owning versioned specification | Its exact syntax, schema, ABI, diagnostics or admission changed |
 
 New or renamed `docs/*.md` files also need a `docs/SUMMARY.md` entry, an H1 as
@@ -231,7 +231,7 @@ public, hosted, physical-device, current-head or production support.
 
 ## 9. Before you open the pull request
 
-Walk the [change protocol](../AGENTS.md#change-protocol) items in order; it is
+Walk the [change protocol](https://github.com/wavect/semaprax/blob/main/AGENTS.md#change-protocol) items in order; it is
 the checklist, and this page only sequenced the tooling around it. Then confirm
 the two things that belong to this page: the routed profile passed together
 with the focused evidence the owning specification names, and nothing outside

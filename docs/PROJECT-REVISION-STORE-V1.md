@@ -312,8 +312,7 @@ unrelated load availability with one untraversed inert stage, rejection of a
 second, invalid, or non-private stage, cached stage-identity drift, exact
 special-mode rejection, and an expected-plus-one created/stored-file reread
 boundary. The shared reread case uses an unbounded synthetic reader and is
-authored to assert that only expected length plus one is consumed. These tests
-remain unexecuted in this documentation state.
+authored to assert that only expected length plus one is consumed. These implemented tests have hosted-green release evidence.
 
 Project v9 now completes the ordinary descriptor-replayed Phase-A admission
 route before its revision reaches this store. Literal v1-v10 round-trip
@@ -326,7 +325,7 @@ authority. Loading recompiles semantic meaning from exact stored inputs; it is
 not a serialized-verifier bypass or an incremental compiler cache. The store
 does not discover roots, follow symlinks, watch files, start a daemon, open a
 network service, invoke a process/tool, build a target, mutate source, evict,
-recover, repair, clean, or garbage collect. Authored but unrun evidence does
+recover, repair, clean, or garbage collect. release-tested evidence does
 not establish local, hosted, cross-platform, public, mature, or production
 support.
 

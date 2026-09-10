@@ -1,10 +1,8 @@
 # Project target cache v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented scalar Web, pathless C11 and pathless npm cache lanes;
+**HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Target execution and measured performance are not implied.
 
 Audience: compiler contributors and embedding hosts that already hold an
 admitted immutable Project revision.
@@ -60,7 +58,7 @@ Module-local authored regressions cover Web cold/exact/incompatible behavior;
 C cold/exact replay, lane isolation and max-byte key drift; and fail-closed C
 carrier tampering with recovery after restoring the exact entry. npm adds exact
 hit, C/npm lane isolation, limit drift and altered-cache-fact rejection/recovery.
-They were not run. Before any performance claim, these lanes need
+The implemented cases have hosted-green release evidence. Before any performance claim, these lanes need
 executed cold/warm evidence with observed time and memory, broader target
 profiles, exact compatibility matrices, and integration into the measured
 agent lifecycle.

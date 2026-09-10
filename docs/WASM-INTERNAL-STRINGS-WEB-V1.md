@@ -228,7 +228,6 @@ identity text remain separately exercised.
 
 Publication alias coverage now uses the shared mandatory directory-link fixture:
 Unix symbolic links and Windows junctions must preserve the entire foreign target
-and report the exact output/parent diagnostics. The Windows branch is authored
-but unrun here. Other browsers, required Windows execution, complete legacy
-Project preservation and exact-head hosted/release gates remain open. These
-selected local results do not promote a completion-matrix row.
+and report the exact output/parent diagnostics. The admitted Windows regression branch is part of the hosted-green release
+corpus. Additional browsers and broader Project/public support retain their
+own gates; historical local results do not promote a full product row.

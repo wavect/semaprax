@@ -102,7 +102,7 @@ Authored regressions in `tests/project_candidate/variant_case.rs` cover Bytes
 success, exact source/graph/replay, interpreter/native/Wasm admission, String
 and pattern refusal, atomic failure, unrelated merge replay, and competing-case
 conflict. Constructor and v5 response schemas are covered in their existing
-schema-test modules. These sources were not executed for this change.
+schema-test modules. The implemented cases have hosted-green release evidence.
 
 This v1 does not claim String-variant support, construction of the new case,
 exhaustive-handler migration, ABI compatibility, runtime equivalence,

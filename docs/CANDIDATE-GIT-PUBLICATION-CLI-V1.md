@@ -70,4 +70,4 @@ Policy/capsule input validation precedes process authority. The read-only
 candidate restore finishes before publication begins, so a generic outer input
 recheck cannot mask the publication API's explicit post-update uncertainty.
 No image or candidate NDJSON request can select this command or widen its own
-capability. All tests and compiler/executable gates remain unrun in this work.
+capability. The implemented release regression corpus is HOSTED GREEN.

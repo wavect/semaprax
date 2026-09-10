@@ -1,10 +1,8 @@
 # HTTPS Client I/O v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded source/provider, C11, Core-Wasm and npm fixture profiles;
+**HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Node/Chromium and explicit provider limits are unchanged.
 
 Audience: language users, host integrators, compiler contributors, and reviewers.
 
@@ -51,7 +49,7 @@ headers, body, redirects, connection cache and timeouts, and settles before
 publishing output. It requires certificate and hostname verification, permits
 only TLS 1.2 or TLS 1.3, requests HTTP/2 with HTTP/1.1 fallback, and embeds the
 compiler-owned 146-certificate Mozilla root projection documented in
-[`src/codegen/MOZILLA-ROOTS.md`](../src/codegen/MOZILLA-ROOTS.md). It does not
+[`src/codegen/MOZILLA-ROOTS.md`](https://github.com/wavect/semaprax/blob/main/src/codegen/MOZILLA-ROOTS.md). It does not
 read a host trust-store path. The deterministic gate performs an actual
 encrypted localhost handshake using an explicit fixture CA; a separate ignored
 public-endpoint smoke proves the production embedded-root path when public DNS

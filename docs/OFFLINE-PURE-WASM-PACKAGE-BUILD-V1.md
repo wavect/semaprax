@@ -280,6 +280,6 @@ The focused integration evidence is split by failure class:
 - option endpoints, cumulative three-artifact checked accounting, and exact
   evidence/artifact fixed-point boundaries with `limit - 1` rejection.
 
-These tests are authored but were not executed by this implementation batch.
+These implemented regression tests are covered by the v0.4.0 hosted-green baseline.
 They do not promote the profile, publisher, Wasm runtime behavior, or any
 completion-matrix row.

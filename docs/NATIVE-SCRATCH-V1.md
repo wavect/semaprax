@@ -95,7 +95,7 @@ injected success is not evidence of binary creation or real Clang execution.
 Existing native output, command-mode, exit-status, generated-byte and release
 smoke gates remain required.
 
-Focused commands, documented but not executed:
+Focused commands, reproducible release regression selectors:
 
 ```sh
 cargo test --locked -p semaprax --lib codegen::native_emit::native_scratch
@@ -104,5 +104,5 @@ cargo test --locked -p semaprax --bin semaprax native_scratch
 cargo test --locked -p semaprax-toolchain --bin semaprax-full native_scratch
 ```
 
-These tests are authored, not executed. Formatting and adversarial static review
+These implemented regression tests have hosted-green v0.4.0 evidence. Formatting and adversarial static review
 do not prove host execution, release readiness, or completion-matrix promotion.

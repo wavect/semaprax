@@ -1,11 +1,9 @@
 # Image Source Commit Protocol v5
 
 Audience: trusted host integrators and agent-client authors.
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented optional v5 publication extension; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Startup-only host authorization and the separately owned Git boundary are unchanged.
 
 This extension connects retained complete candidates to the existing real local
 [Git publication authority](PROJECT-CANDIDATE-GIT-PUBLICATION-V1.md). Startup
@@ -145,8 +143,8 @@ one-shot success and receipt retrieval, unchanged raw source, consumed approval
 on definite preflight failure, and terminal state after a simulated actual pivot
 whose acknowledgment is lost. An additional v5 frame-level scenario checks
 startup-only capability/approval, exact capsule restore, commit and historical
-status after source drift. They are authored and unrun. The independent
-Git library's real bare-repository regressions remain unrun in this batch too.
+status after source drift. They are included in the v0.4.0 hosted-green regression corpus. The independent Git library's released bare-repository regressions have the
+same baseline, with their own host and authority limits.
 
 This extension does not implement interactive RPC approval, signed approval
 services, remote push, checked-out branch updates, arbitrary process execution,

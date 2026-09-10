@@ -1,7 +1,7 @@
 # Deterministic ARC Zone Model v1
 
-- Status: Locally evidenced hidden proof model; no runtime reference counting,
-  allocator, language syntax, compiler, backend wiring exists or is claimed
+- Status: implemented hidden proof model; v0.4.0 regression evidence is **HOSTED GREEN**.
+  No runtime reference counting, allocator, language syntax or backend wiring is supplied.
 - Version: 0.1
 - Audience: language, compiler, runtime, and conformance-test implementers;
   agents auditing shared-immutable ownership semantics before any

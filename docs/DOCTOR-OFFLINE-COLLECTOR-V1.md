@@ -30,12 +30,13 @@ single-threaded collector with these exclusively transferred live descriptors:
 | 6 | Exclusive reader of the worker's reply pipe |
 | 7 | Exclusive reader of the worker's stderr pipe |
 
-The separate [private launcher](DOCTOR-OFFLINE-LAUNCHER-V1.md) now authors this
+The separate [private launcher](DOCTOR-OFFLINE-LAUNCHER-V1.md) implements this
 worker-start/collector-exec wiring for an already provisioned process. It does
 not remove the external image, loader, namespace or cgroup prerequisites below.
 The outer [Linux production provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md)
-now authors one signed static-image, private-namespace and cgroup-owned handoff,
-but its physical distribution and real-tool gates remain unrun and it does not
+implements one signed static-image, private-namespace and cgroup-owned handoff,
+with hosted-green release regression evidence. Physical distribution and
+real-tool support retain the provisioned gate's exact scope; this does not
 activate ordinary CLI acquisition.
 
 There are no other inherited descriptors, competing readers/writers, foreign
@@ -141,7 +142,7 @@ Authored evidence is split by ownership:
 - Toolchain `doctor/settled_report/tests.rs` covers shared report policy, role
   aliases, versions, invalid UTF-8 and failed observations. Ordinary CLI/library
   parity remains covered separately in `cli_doctor_v1.rs`.
-- Collector `tests/provisioned.rs` contains ignored physical fixtures for the
+- Collector `crates/semaprax-doctor-collector/tests/provisioned.rs` contains ignored physical fixtures for the
   actual native worker-to-report path with a synthetic tool bundle, calibrated
   malformed/replayed replies, complete replies followed by nonzero exit, and
   complete reply/EOF without worker exit.
@@ -153,7 +154,8 @@ Authored evidence is split by ownership:
   execute synthetic bundled programs, not real tool distributions.
 - The separate real-distribution gate described below routes an explicit real
   bundle through the production launcher, worker and collector, using independent
-  expected tool details. It is authored but physically unrun.
+  expected tool details. It requires that separate provisioned context; scripted coverage alone is not
+  its physical execution evidence.
 - The closed-sink case first calibrates a complete large report from the actual
   worker, then observes an exact report prefix before closing its sole reader.
   The checked pipe capacity proves that the complete report was not yet written;
@@ -183,9 +185,11 @@ cargo test --locked -p semaprax-doctor-collector --test provisioned -- --ignored
 Missing prerequisites fail rather than skip or weaken the policy. The external
 provisioner must bound startup and reconcile the entire fixture cgroup on
 failure; reaping the collector alone does not prove descendant settlement.
-The physical gates are authored, not executed. Selected sys unit suites pass
+Physical gates require their specified provisioning; scripted unit coverage
+does not substitute for those gates. Historical selected sys unit suites passed
 locally on Linux AArch64/Rust 1.88: worker wire (7), guard (4), capture (7),
-collector Linux (21), and launcher (13), for 52 tests. This is scoped scripted
+collector Linux (21), and launcher (13), for 52 tests. The current implemented regression corpus is HOSTED GREEN. The
+historical count remains scoped scripted
 control-flow and native input/admission evidence, not physical tool execution,
 process settlement fault injection or complete doctor validation.
 Physical owned-handle close and

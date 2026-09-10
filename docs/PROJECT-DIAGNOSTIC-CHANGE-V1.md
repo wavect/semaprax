@@ -106,10 +106,9 @@ The new regressions in
 cover real repair history, exact replay/recovery, equivalent ordinary source
 revision with distinct candidate history, literal/target/extra-field tampering,
 recursive and successful-attempt rejection, predecessor binding, explicit rebase
-conflict, and unchanged original files. They are authored and unrun at the user's
-request. No compiler check, interpreter, target executable, or local gate was run.
+conflict, and unchanged original files. They are included in the v0.4.0 hosted-green regression corpus under the v0.4.0 release baseline. No target execution is performed by the diagnostic-change operation itself.
 
 [Field-borrow repair cases](../tests/project_candidate/field_borrow_repair.rs)
 add actual `SPX-T266` rejection, nested and branch-local transformations,
 remaining ownership rejection, exact descriptors and history-bound replay.
-These additions are likewise authored and unrun.
+These additions are likewise included in the v0.4.0 hosted-green regression corpus.

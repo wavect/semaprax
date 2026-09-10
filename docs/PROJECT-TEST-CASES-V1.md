@@ -75,8 +75,8 @@ budget exhausted`, or `call-depth bound exceeded`. When the outcome is a
 contract failure with retained detail, two indented lines follow the `failed`
 line (see below). The help line reads `a test passes by returning 0; a nonzero
 return is the failing check's code or count` and, when the module has no
-cases, continues `, so give each check its own `fn test_<name>() -> i64` in
-the test module to have it reported by name`.
+cases, continues `` , so give each check its own `fn test_<name>() -> i64` in
+the test module to have it reported by name ``.
 
 `semaprax run` keeps its lines `project execution failed with language status
 <status-json>`, `project execution exhausted its step budget`, and `project
@@ -165,7 +165,7 @@ keeps working, while one that pins whole test-envelope bytes observes the new
   retain the detail internally but render neither `failure` nor `cases`; their
   wire bytes are unchanged.
 - A `test_` function of a non-admitted shape is not a case. The human report
-  of `semaprax test` prints one stderr line per such function, `note: `<name>`
-  is not a test case: <rule>; …`, naming the first rule it misses (parameters,
+  of `semaprax test` prints one stderr line per such function, `` note: `<name>`
+  is not a test case: <rule>; … ``, naming the first rule it misses (parameters,
   a non-`i64` result, or a missing explicit `@id`); the JSON envelope is
   unchanged and no compiler diagnostic is emitted.

@@ -1,8 +1,8 @@
 # Public Owned UTF-8 API v1
 
-Status: exact-tag hosted nonignored regression coverage at v0.2.0;
-unpublished and unpromoted additive Project-v10 implementation tranche, gated
-on an explicit Project v9 promotion decision.
+Status: implemented bounded Project-v10 API; generated packages remain unpublished
+and explicit v9/v10 promotion decisions remain open. Release evidence is **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: compiler contributors, generated-package integrators, and promotion
 reviewers.
@@ -82,7 +82,7 @@ The v10 Rust package shares the [Cargo build-script path boundary](PUBLIC-OWNED-
 Missing, non-Unicode, and CR/LF package paths reject before Cargo instructions;
 the target guard retains precedence. Only generated `build.rs` and its manifest
 integrity bindings change, not UTF-8 descriptors, provider archives, safe/FFI
-Rust, or package schemas. These regressions are authored but unrun.
+Rust, or package schemas. These regressions are implemented.
 
 The existing closure admission remains narrow: a String-returning function
 must have a literal or direct retained-function call as its body (optionally
@@ -132,7 +132,7 @@ authenticated malformed text; memory/carrier faults and unexpected host
 exceptions cannot masquerade as malformed user bytes. The shared v8/v9/v10
 failure-state correction changes runtime JavaScript and dependent integrity
 bindings, not Wasm, descriptors or public signatures. Its regressions are
-authored but unrun.
+implemented.
 
 The authored shared Rust invocation guard additionally proves the complete
 provider context settled before any outward value or recoverable error,
@@ -142,7 +142,7 @@ proven-closed context may be reinitialized on a later call. Its private
 invocation counter resets while the linked provider's handle issuer remains
 nonreused. Generated safe/private Rust and integrity bindings intentionally change,
 not provider C/ABI, public signatures, descriptor or manifest schemas. These
-regressions are authored but unrun.
+regressions are implemented.
 
 The later [descriptor-selected Rust helper correction](PUBLIC-OWNED-DATA-API-V1.md#descriptor-selected-private-rust-helpers)
 omits unused owner-only FFI declarations for admitted scalar-only v10 selections,
@@ -179,22 +179,23 @@ also reuses that ledger and length-header representation for v8/v9 emitted
 Strings, without changing v10 output or widening selected closure admission.
 Frozen command/callable projections retain their separate String limitations.
 Context-handle closure alone is not proof that
-pre-handle String allocations were freed. Cross-backend failure-settlement
-equivalence and native sanitizer evidence remain unrun gates before promotion.
+pre-handle String allocations were freed. The implemented cross-backend settlement and sanitizer regressions use the
+hosted-green release baseline; broader support and public promotion retain
+their owning gates.
 
 ## Authored evidence
 
 Project v10 follows the separate [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)
 contract: full-toolchain held-handle publication with an existing parent and an
 admitted output leaf; standalone Windows publication rejects safely. This changes
-filesystem routing, not UTF-8 semantics, artifacts or Unix behavior. Its new
-publication and consumer-route regressions remain unrun.
+filesystem routing, not UTF-8 semantics, artifacts or Unix behavior. Its admitted publication and consumer-route regressions have hosted-green
+release evidence.
 
 The shared [descriptor cross-replay cases](PUBLIC-OWNED-DATA-API-V1.md#canonical-public-api-descriptor)
 include authentic v10 `Bytes` and owned-UTF8 counterparts under the same profile
 and synthetic subject facts. Self-replay succeeds; each correctly digested
 descriptor must reject against the other's retained HIR. This is signature
-binding evidence authored but unrun, not cross-schema rejection, source
+binding regression evidence in the v0.4.0 baseline, not cross-schema rejection, source
 provenance, behavioral equivalence or target execution.
 
 `tests/project/v10_recipe_consumer.rs` uses a real four-source Project,
@@ -207,8 +208,7 @@ UTF-8 remaining `Bytes`, late-argument arithmetic failure and subsequent
 reuse. A helper display-only rename must preserve every descriptor fact except
 the three Project revision/graph bindings. Native coverage in this fixture
 stops at the compiler-replayed package passed to an intentionally rejecting
-publisher; it does not compile, publish, or consume a native SDK. No test was
-executed while authoring this fixture.
+publisher; it does not compile, publish, or consume a native SDK. The v0.4.0 release regression corpus is HOSTED GREEN.
 
 ```sh
 cargo test --locked -p semaprax --test project v10_recipe_consumer::
@@ -238,7 +238,7 @@ This gate is explicitly ignored until selected on a provisioned host with
 absolute `CLANG` and `SEMAPRAX_ARCHIVER` paths and native Cargo. Windows also
 requires the existing `SEMAPRAX_VCTOOLS`, `INCLUDE`, `LIB` and
 `SEMAPRAX_LINKER` configuration. Authoring or skipping it does not count as a
-successful SDK gate, and it was not executed in this batch:
+successful SDK gate, and it requires that explicit selection:
 
 ```sh
 cargo test --locked -p semaprax-toolchain --test project_owned_utf8_sdk_v1 -- --ignored
@@ -260,7 +260,7 @@ A separate 65,537-byte source must fail ordinary Project admission with
 callback or publication. This is a compile-time literal-pool boundary, not
 evidence of a native runtime over-limit rejection. These cases do not replace
 physical allocation accounting, failure-path settlement, or maximum input
-coverage. Both gates are authored but unrun; the native one is explicitly
+coverage. Both gates are implemented; the native one is explicitly
 ignored and requires the same provisioned tools described above:
 
 ```sh

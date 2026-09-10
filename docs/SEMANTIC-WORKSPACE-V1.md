@@ -175,5 +175,5 @@ The local parser, initializer authority, replay, hostile filesystem, and
 process-boundary gates are present at the current implementation head. The
 exact literal path-set/manifest/`ACTIVE` replay test pins workspace revision
 `sha256:88181393a052db1605145236cd3fd2e7f3f24256ce0c90d7968d939fc6a4c4ef`.
-The exact-head hosted matrix remains pending. This document makes no completion
-status promotion.
+The implemented release regression corpus is HOSTED GREEN. The full
+workspace/product objective remains separately gated.

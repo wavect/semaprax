@@ -1,10 +1,7 @@
 # Candidate symbol diagnostics v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded diagnostic association and transport integration; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: semantic agent authors, embedding hosts, and compiler maintainers.
 
@@ -119,6 +116,6 @@ remain unchanged.
 actual supported and unsupported repair facts, empty-scope nonclaims, absent
 symbols and missing host grant, continuation invalidation, refresh clearing,
 the fifth-match capacity failure, and single-attempt replay with changed bytes,
-extra LF, and wrong predecessor rejection. All tests remain unrun. This closes a
+extra LF, and wrong predecessor rejection. The implemented tests have hosted-green release evidence. This closes a
 bounded discovery connection, not general diagnostic localization, general
-repair synthesis, executed validation evidence, or full-goal completion.
+repair synthesis or full-goal completion.

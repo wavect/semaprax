@@ -155,7 +155,7 @@ not change. The v5 bundled change-catalogue schema
 closes the optional descriptor objects; heterogeneous hole reports retain their
 previous explicit unbundled-schema status. Discovery grants no source, repair,
 test, build, or publication authority. Schema and end-to-end aggregate
-regressions are authored and unrun.
+regressions are included in the v0.4.0 hosted-green regression corpus.
 
 Record-field projection uses the closed expression
 `{"kind":"project","target":field_id,"base":expression}` with the same optional
@@ -190,8 +190,7 @@ generic flag, and `base_evaluation: once_into_typed_value_binding`. It retains
 `requires_full_candidate_validation: true`. Generic descriptors add the same
 ordered `type_parameters`; their field identity is a template fact, not a
 substituted type. Existing aggregate constructor entries are unchanged. Schema
-regressions and `tests/project_candidate/record_projection.rs` are authored
-and unrun; discovery does not validate an arbitrary proposed base expression.
+regressions and `tests/project_candidate/record_projection.rs` are release-tested; discovery does not validate an arbitrary proposed base expression.
 
 Exhaustive matching uses `{"kind":"match","target":variant_owner_id,
 "value":expression,"arms":[{"target":case_id,"fields":[{"target":payload_id,
@@ -233,7 +232,7 @@ identity origin, and the exact prelude schema/digest object used by constructor
 discovery. Earlier constructor/projection descriptor entries stay unchanged.
 The closed response schema describes the source monomorphic, source generic,
 and compiler-prelude alternatives separately. Matching schema regressions are
-authored and unrun.
+included in the v0.4.0 hosted-green regression corpus.
 
 Record update uses `{"kind":"update","target":record_owner_id,
 "base":expression,"fields":[{"target":field_id,"value":expression}]}` with
@@ -264,8 +263,7 @@ parameters when present. It changes the descriptor kind to `update` and adds
 The field inventory describes available selections, not required replacements.
 The response schema has separate closed source monomorphic and source generic
 forms; no prelude alternative is accepted. Existing constructor, projection,
-and match entries remain unchanged. These schema regressions are authored and
-unrun; discovery confers no source or execution authority.
+and match entries remain unchanged. These schema regressions are release-tested; discovery confers no source or execution authority.
 
 Intent alternatives cover declaration rename, both append and ordered-mapping
 signature forms, whole-body replacement, revision-scoped expression replacement,
@@ -310,7 +308,7 @@ rows use null source locations and the separately authenticated compiler
 provenance described above. These are candidate type selections, not a list
 of types already approved for a proposed signature. The v5 response schema
 closes all three source-monomorphic, source-generic, and prelude forms.
-Focused structural regressions are authored but unrun.
+Focused structural regressions are implemented.
 
 The `add_declaration` payload also accepts two closed type-declaration forms:
 `{"kind":"record","id":owner_id,"name":name,"fields":[field]}` and
@@ -359,8 +357,7 @@ metadata still describes Copy function signatures; it does not impose Copy on fi
 or prove a new type's admission. Newly admitted types become ordinary stable-ID
 nominal and aggregate discovery subjects after full candidate rebuilding;
 discovery itself creates no source or publication authority. Structural
-regressions for the declaration alternatives and discovery forms are authored
-but unrun.
+regressions for the declaration alternatives and discovery forms are release-tested.
 
 Ordered signature mapping retains its existing closed `from` / optional `name`
 constructor. Exact `borrow str` and `borrow Slice<u8>` parameters may now be
@@ -388,7 +385,7 @@ signature does not acquire eligibility merely because its source type has a
 name. `tests/project/signature_catalog.rs` authors nominal/generic identity,
 import-alias identity equivalence, unchanged scalar/Bytes shapes, owning and
 borrowed-view retention constraints, and borrowed caller migration/replay.
-These tests remain unrun.
+The implemented release regression corpus is HOSTED GREEN.
 
 Constructor limits are drawn from the implementation's shared limit constants.
 Depth, aggregate node counts, implicit conditional block nodes, UTF-8 byte

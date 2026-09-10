@@ -117,9 +117,7 @@ full compiler context.
 Library and transport regressions are authored in
 `tests/project/hole_navigation.rs` and `tests/image_v5/hole_navigation.rs`.
 They cover all three hole kinds, scope/effect normalization, pagination,
-reference binding, selected grants, schemas and parallel-read behavior. They
-have not been executed. No tests, compiler, generated client or interpreter was
-run for this change.
+reference binding, selected grants, schemas and parallel-read behavior. The v0.4.0 release regression corpus is HOSTED GREEN.
 
 Navigation currently rebuilds the existing full context before selecting its
 compact projection. Smaller wire payloads do not establish reduced compiler

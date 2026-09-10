@@ -70,7 +70,7 @@ Library regressions cover complete source and declaration composition, exact
 identity joins, authority/nonclaim preservation, stale selectors and malformed
 or oversized nested material. Transport and generated-consumer regressions
 cover discovery, chunk continuation and closed schemas where present. They are
-authored and unrun; no current-head runtime, provider, deployment, generated
+included in the v0.4.0 hosted-green regression corpus; no current-head runtime, provider, deployment, generated
 consumer or quality-gate execution is claimed.
 
 ## Next composition: attached package consumers

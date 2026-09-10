@@ -2,11 +2,9 @@
 
 Audience: agent and tool authors, plus compiler contributors.
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded JSON-RPC transport and one warm in-memory session per process;
+**HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). This v1 protocol does not add persistent indexed revisions.
 
 ## Purpose
 

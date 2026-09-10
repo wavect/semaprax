@@ -1,10 +1,8 @@
 # Offline Semantic Package Lock v3
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded semantic lock; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The package surface remains unpublished and unpromoted.
 
 Audience: package-tool authors and compiler contributors.
 
@@ -61,7 +59,7 @@ exact-range cases. `tests/offline_package/ranges.rs` adds source-replayed
 numeric selection, intersection/backtracking, requirement/selection binding,
 raw report embedding, catalog permutation, grammar, mismatch, mutation, and
 cross-input replay cases. `src/package_range.rs` owns exact/tilde/caret boundary
-fixtures. These tests are authored but have not been run for this batch; the
+fixtures. These tests are covered by the v0.4.0 hosted-green regression baseline; the
 full quality gate and v1/v2 preservation evidence remain required.
 
 The subject and lock are integrity evidence, not authority. This contract adds

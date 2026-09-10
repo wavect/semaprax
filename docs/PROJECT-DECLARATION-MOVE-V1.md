@@ -199,7 +199,7 @@ hygienic alias collisions, contracts, exact replay without source writes,
 fixed-export/main/path rejection, cycles, unrelated rename/body merges,
 competing locations, and stale handles. None has been run in this change.
 
-Additional authored, unrun nominal cases are in
+Additional release-tested nominal cases are in
 `tests/project_candidate/nominal_movement.rs`. They cover destination type
 bindings, aggregate syntax, replay, and rejected relocation shapes. Discovery
 advertises checked nominal identity and type-binding migration constraints;

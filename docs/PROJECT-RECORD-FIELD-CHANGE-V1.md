@@ -224,14 +224,14 @@ String/Bytes owners, exact replay, target-pattern refusal, and owning-default
 bounds. Rebase evidence additionally changes only the retained nominal identity
 beneath an unchanged source alias spelling and requires a conflict.
 
-`tests/project/owned_record_field_addition.rs` adds authored, unrun cases for
+`tests/project/owned_record_field_addition.rs` adds release-tested cases for
 flat owned-byte records, initializer order, owning match bindings, live field
 loans and cleanup order, imported aliases, broader checked Copy fields, and
 scalar default ranges.
 
 `tests/project/resource_free_record_evolution.rs` authors broader owned
-target cases and their ordinary source-admission boundaries. These cases are
-unrun; they do not establish new runtime, matching, borrowing or ABI support.
+target cases and their ordinary source-admission boundaries. These cases have hosted-green release evidence; they do not broaden runtime,
+matching, borrowing or ABI support.
 
 The `project_candidate` and `project` harnesses above were run locally on a
 developer machine, together with `cargo fmt`, `cargo clippy -D warnings` and the

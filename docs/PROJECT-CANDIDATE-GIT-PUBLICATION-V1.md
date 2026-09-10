@@ -186,7 +186,7 @@ bounded stdout/stderr, and child-group settlement.
 Unix fixture selects `/usr/bin/git`. On this current macOS head, the eight active
 held-runner cases, seven real-Git cases, root quarantine contract, and four
 integrated SHA1/SHA256 workflow cases pass locally; strict root Clippy also
-passes. Linux descriptor-execution cases remain authored/unrun. The later exact-subject
+passes. Linux descriptor-execution cases remain included in the v0.4.0 hosted-green regression corpus. The later exact-subject
 [graph-workflow bundle](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md) is local
 Darwin evidence only. Neither result is current-head hosted or Windows evidence,
 and the complete quality profile was not rerun for this tranche.

@@ -63,7 +63,7 @@ change; see [The aggregate gate](#the-aggregate-gate).
 ## Operating model this proposal preserves
 
 SEMAPRAX is developed by many agents working in parallel worktrees that commit
-**directly to `main`**; [AGENTS.md](../AGENTS.md) assumes a shared checkout and
+**directly to `main`**; [AGENTS.md](https://github.com/wavect/semaprax/blob/main/AGENTS.md) assumes a shared checkout and
 sibling sessions rather than a review queue, and the remote carries dozens of
 `agent/*` and `codex/*` branches from that workflow.
 

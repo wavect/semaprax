@@ -149,7 +149,7 @@ as a source path. Project selection and its default manifest remain unchanged.
 On Windows, an extensionless Project-native output receives exactly one `.exe`
 extension. Explicit existing extensions are retained; Unix names are unchanged.
 The routing and naming regressions in `tests/cli_check_routing_v1.rs` and
-`src/cli/native_output_tests.rs` are authored but unrun.
+`src/cli/native_output_tests.rs` are implemented.
 
 `run` and `test` execute in process from the already authenticated linked HIR.
 They do not emit C or Wasm, create a temporary executable, spawn a process,
@@ -442,4 +442,5 @@ no public web export, nominal filesystem ABI, receipt, or other public
 interface. Interpreter, native, and injected Core-Wasm routes receive only an
 explicit invocation provider; the profile grants no ambient filesystem,
 process, network, home, or secret authority. This section records manifest
-and admission ownership only; it makes no hosted or completion claim.
+and admission ownership only; the admitted regression corpus is HOSTED GREEN without implying broader
+provider or full-product completion.

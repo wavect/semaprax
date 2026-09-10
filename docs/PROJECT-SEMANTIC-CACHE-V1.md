@@ -1,10 +1,9 @@
 # Project Semantic Cache v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded checked semantic reuse; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Full incremental checking remains separate; authenticated cross-process HIR
+reuse is implemented in the separately versioned Persistent Semantic Cache v1.
 
 Audience: compiler contributors, embedding hosts, and semantic workspace agents.
 
@@ -154,7 +153,10 @@ signatures/bindings; matching cold rejection diagnostics; failed-build rollback;
 manifest reset; and owned-source image refresh with failed-proposal rollback.
 
 The focused Project semantic-cache corpus, including nonempty combined
-owned-variant/loan Graph v32 cloning, executed locally. No hosted executable,
-generated client, target, or long quality gate was executed. Broader
-incremental-verification performance work remains required before stronger
-completion or speed claims.
+owned-variant/loan Graph v32 cloning, has hosted-green release evidence.
+Historical local execution remains a separate witness. Broader incremental
+verification and measured time/memory improvements remain required before
+stronger completion or speed claims. The separate
+[Persistent Semantic Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md) implements its
+own authenticated cross-process checked-HIR reuse rather than widening this
+in-process profile.

@@ -270,7 +270,7 @@ never mutates a previously returned candidate or live source files.
 
 The unit evidence in
 [`src/project/candidate/signature.rs`](../src/project/candidate/signature.rs)
-is authored but unrun at the user's request. It covers reordered Copy results,
+is implemented under the v0.4.0 release baseline. It covers reordered Copy results,
 retained first-failure selection after dropping or reordering arguments,
 parameter/local name capture attempts, imported and declared-effect call
 ordering, canonical source round trips, removal of a still-used parameter,
@@ -283,7 +283,7 @@ authors full Project candidate/replay checks for reordered and renamed owned
 byte arguments, one and multiple bounded Bytes/String owner-to-view replacements, exact original
 evaluation order followed by mapped-order view derivation, provider
 transfer/duplicate/contract/additive/wrong-kind/over-cap rejection, exact replay, and unchanged
-live source files. These owner-to-view cases have not been executed. The
+live source files. These owner-to-view cases have hosted-green release evidence. The
 closed intention schema and `change/catalog` expose the exact
 `borrow_slice_from_owner` and `borrow_str_from_owner` fields and exclusions. Authored catalogue checks pin
 the lack of external package source rewrite. Authored package-conflict coverage
@@ -307,9 +307,8 @@ Importing a function whose signature exposes owned nominal arguments retains
 Asymmetric conditional variant-owner roots retain `SPX-H006` rejection; the
 positive variant target consumes its first owner and returns its second through
 an admitted straight-line body. These tests do not establish runtime or
-physical cleanup behavior, and current-head hosted validation remains pending.
-The pure reference-interpreter probes are authored executable evidence; no
-interpreter, target, compiler check, or local test was run for this change.
+physical cleanup behavior, and the admitted release regression corpus is HOSTED GREEN.
+The pure reference-interpreter probes are included in the implemented release corpus.
 Declared-effect ordering is a structural regression, not hosted effect-runtime
 evidence.
 
@@ -318,7 +317,7 @@ more than eight conversions, duplicate or cross-owner aliases, an additive owner
 reads, external source rewriting, target-profile widening, runtime support,
 provider or network behavior, ABI or deployment compatibility, or consumer
 acceptance. Library compilation and static formatting/diff checks passed; the
-new cfg and integration regressions are authored and unrun.
+new cfg and integration regressions are included in the v0.4.0 hosted-green regression corpus.
 
 Additional staging changes expression identities, local storage, generated
 code, and interpreter fuel consumption. This is not exact operational-cost
@@ -336,5 +335,5 @@ evidence. Rebase signature fingerprints additionally bind retained nominal
 type identities: unchanged source spelling cannot conceal a different record
 or variant identity on a concurrent base. The regression in
 `tests/project_candidate/rebase.rs` authors that conflict and unchanged-source
-failure behavior. These cases are unrun; neither runtime equivalence nor the
+failure behavior. The implemented cases have hosted-green release evidence. neither runtime equivalence nor the
 full signature-evolution objective is promoted.

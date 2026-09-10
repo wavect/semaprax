@@ -74,4 +74,4 @@ not execution or platform availability evidence.
 Authored tests in the consolidated Project-candidate harness cover unchanged
 and changed exported signatures, reachable nominal shape changes, retained
 target facts, exact replay, tampering, stale selectors, and capacity diagnostics.
-They are intentionally unrun in this tranche.
+Their implemented release regression corpus is HOSTED GREEN.

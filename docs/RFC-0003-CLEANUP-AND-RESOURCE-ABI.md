@@ -8,6 +8,11 @@ evidence, phase 5 target-neutral groundwork partially implemented, and phase 7 p
 
 This RFC defines the target-neutral destruction, cleanup, and failure contract required before SEMAPRAX may execute resources or records containing resources. Phase 1 implements canonical lifecycle/interface/import declarations and their source/HIR checks. Phase 2 implements mandatory target-neutral CleanupPlan v2 for every resolved function, independently rebuilds it after ordinary HIR and inventory validation, serializes it in Graph v10, and proves its current expression/control-flow surface with focused and hostile-HIR tests. Later private native-host and narrow Wasm work implements bounded status, trace, ownership, and adapter evidence described below; it does not implement general imported-call, resource/aggregate, or public native execution. Ordinary native resource builds still reject with `SPX-B104`, and Wasm rejects every shape outside its documented narrow owned ABI.
 
+The admitted private/runtime regression profiles have the
+[HOSTED GREEN v0.4.0 baseline](RELEASE-0.4.0-STATUS.md). Historical run records
+and phase-specific limits below retain their original scope; full resource ABI
+and production platform support remain independent completion gates.
+
 ## Scope and non-goals
 
 This RFC supplies the cleanup foundation for [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md). It covers uniquely owned opaque resources, aggregates that transitively contain them, transfers, partial initialization, ordinary and checked-failure exits, imported finalizers, explicit fallible close operations, and consistent native/Wasm behavior.
@@ -579,13 +584,14 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
    SEMAPRAX close, bidirectional JVM calls, lifecycle/UI, AAR, device runtime,
    general resources/imported finalizers, public admission, or `SPX-B104`.
 
-   A second private phase-6 projection is implemented/configured for Swift and
+   A second private phase-6 projection is implemented for Swift and
    iOS. It uses one stable Swift-owned thread, generation-tagged sessions, the
    exact static callable-v3 lease/receipt ledger, explicit `consume()`, and a
    nonthrowing ARC `deinit` action. Target-bound arm64-device and
    arm64/x86_64-Simulator slices feed a private XCFramework and installed
-   arm64-Simulator app gate. Hosted execution is pending, so this is neither
-   phase-6 completion nor public framework/device/lifecycle evidence.
+   arm64-Simulator app gate. The admitted simulator regression corpus has hosted-green release evidence.
+   This is neither phase-6 completion nor public framework, physical-device
+   or general lifecycle support.
 
    A third private phase-6 adapter is a plain-C dynamic consumer lane and is
    the first non-Rust consumer of the same generated callable-v3 provider ABI.

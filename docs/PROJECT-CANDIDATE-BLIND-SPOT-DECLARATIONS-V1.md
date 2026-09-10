@@ -30,7 +30,7 @@ digest. Responses regenerate the report and return bounded UTF-8 chunks with a
 stable whole-report digest. Their closed chunk schemas feed the existing
 TypeScript, Python and Rust client generator and MCP catalogue. The methods are
 not admitted to parallel reads and add no editor command. These protocol and
-client surfaces are authored/unrun at this source head.
+client surfaces are included in the v0.4.0 hosted-green regression corpus at this source head.
 
 ## Generated-file provenance
 
@@ -130,6 +130,6 @@ replay, stale candidates, child tampering, missing or extra fields, area and
 blind-spot preservation, closed v5 schemas, generated clients, MCP discovery,
 and candidate-only admission.
 
-The regressions are authored and unrun. No test, generated-client, MCP, target,
+The regressions are included in the v0.4.0 hosted-green regression corpus. No test, generated-client, MCP, target,
 provider, network, runtime, filesystem, editor, or quality-gate execution
 evidence is claimed.

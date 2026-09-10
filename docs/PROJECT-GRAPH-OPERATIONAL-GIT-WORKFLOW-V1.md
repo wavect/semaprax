@@ -1,10 +1,8 @@
 # Project graph-operational Git workflow v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: integrated regression executed locally for exact subject
+`4e6751f92525ed8e4bb5e859233616df7adc86d1`; all four selected Git-workflow
+tests passed, including post-CAS result-loss handling. Full goal remains Partial.
 
 Audience: compiler contributors, embedding hosts, and agent workflow integrators.
 
@@ -24,6 +22,10 @@ left-to-right evaluation order. A sibling candidate renames
 `calculator.multiply` to `times` while preserving its declaration ID. Requests
 contain compiler-supported intentions and revision handles, not replacement
 source, paths, Git policy, or approval authority.
+
+Current implementation regression evidence is **HOSTED GREEN** under the
+[v0.4.0 baseline](RELEASE-0.4.0-STATUS.md). The exact-subject local
+observations above and below remain historical, not new release measurements.
 
 ## Twelve connected steps
 
@@ -108,7 +110,7 @@ result-loss coverage, not evidence of an operating-system crash, remote Git,
 power loss, or socket-level lost acknowledgment.
 
 All Git objects and fixture files live under a fresh temporary directory.
-`SEMAPRAX_TEST_GIT`, when explicitly set by the future runner, selects the trusted
+`SEMAPRAX_TEST_GIT`, when explicitly set by the runner, selects the trusted
 Git executable; otherwise the fixture uses `/usr/bin/git`. These Unix-only tests
 require a Git installation with both selected object formats. The adapter's
 bare-repository, no-hook, no-network, bounded-process, and storage-indirection

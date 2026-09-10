@@ -1,10 +1,9 @@
 # Project Dependency Resolution v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded read-only resolution; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The caller supplies the local cache. This route contacts no registry, acquires or
+builds no package, and performs no ACTIVE pivot or artifact publication.
 
 Audience: people and agents building with `semaprax.toml`, package-tooling
 authors, and compiler contributors.

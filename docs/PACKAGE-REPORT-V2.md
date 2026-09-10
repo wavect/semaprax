@@ -1,10 +1,7 @@
 # Semantic Package Report v2
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded source-authenticated report; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 Audience: package tooling authors and compiler contributors.
 
 Semantic Package Report v2 is a deterministic, authority-free semantic
@@ -67,6 +64,6 @@ Focused evidence is authored for source-bound replay, source/semantic
 self-consistent outer re-mint rejection, contract display-rename stability,
 closed ternary target states including forced projection overflow, exact/+1
 limit helpers, malformed/duplicate/extra wire members, non-canonical source,
-and preservation of the v1 golden envelope. The evidence is unrun; broader
+and preservation of the v1 golden envelope. The implemented release regression corpus is HOSTED GREEN; broader
 integration evidence remains required before any completion or hosted
 promotion claim.

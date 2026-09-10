@@ -111,9 +111,8 @@ publication rules are modified.
 ## Evidence
 
 Focused cases in [semantic_graph.rs](../tests/offline_package/semantic_graph.rs)
-are authored but unrun. They exercise source/selection/interface replay,
+are implemented. They exercise source/selection/interface replay,
 coordinate and revision selection, import/call distinctions, independent
 Project association, startup-only attachment, method availability and retained
-read behavior. Tests, compiler execution and quality gates were deliberately
-not run while authoring this tranche; the full graph-operational programme
-remains incomplete.
+read behavior. The released regression corpus is HOSTED GREEN; the full graph-operational
+programme remains incomplete.

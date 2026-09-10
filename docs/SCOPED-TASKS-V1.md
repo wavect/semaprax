@@ -1,7 +1,8 @@
 # Deterministic Scoped Task Model v1
 
-- Status: Locally evidenced proof model. A separately specified bounded Rust
-  scoped-thread runtime exists; language syntax and backend wiring do not.
+- Status: implemented proof model; v0.4.0 regression evidence is **HOSTED GREEN**.
+  A separately specified bounded Rust scoped-thread runtime exists; language task
+  syntax and backend task lowering remain outside this model.
 - Version: 0.1
 - Audience: language, compiler, runtime, and conformance-test implementers;
   agents auditing structured-concurrency semantics before any implementation

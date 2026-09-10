@@ -75,23 +75,24 @@ Consumption mirrors existing String move-checking exactly:
   profile exactly as before.
 
 The separately selected [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
-adds authored, unrun internal String-call evidence behind unchanged external
+adds implemented internal String-call regression evidence behind unchanged external
 scalar/borrowed inputs and scalar results. Its distinct command/report does
 not widen ordinary `interpret` or any Project execution profile.
 
 ## Evidence
 
 The later [native inline String settlement correction](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)
-adds authored, unrun failure-path allocation evidence for ordinary C11 and
+adds hosted-green release failure-path allocation evidence for ordinary C11 and
 stdout-transcript execution. It intentionally changes String-bearing native
 function bodies while preserving intrinsic signatures and diagnostics. It
 is complemented by the authored [native String contents correction](NATIVE-STRING-CONTENTS-V1.md),
 which preserves embedded NUL through all ordinary/native stdout operations.
-Both corrections remain unrun; ordinary Wasm String drop remains open, and
-the value fixtures below are not physical settlement evidence.
+Both native corrections have hosted-green release evidence. Ordinary Wasm
+String drop remains a distinct profile requirement; the value fixtures below
+are not themselves physical settlement evidence.
 
 The explicit [Standalone Wasm Internal String Settlement v1](WASM-INTERNAL-STRINGS-V1.md)
-adds authored, unrun compiler/host ownership evidence without changing
+adds hosted-green release compiler/host ownership evidence without changing
 ordinary Wasm imports or package admission. Its bounded capacity outcomes
 and absorbing unexpected-failure state are separate from language failures.
 

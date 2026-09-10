@@ -87,7 +87,7 @@ The generic String-return fixture also checks the exact four-byte length of
 `a` + U+0000 + `é` after the generic bridge. Equality alone could let a
 terminator-based clone and comparison hide the same truncation. The additional
 length assertion preserves the existing success value and allocation-balance
-checks; it is authored but unrun, like the separate test-only binary-stdout
+checks; it is implemented, like the separate test-only binary-stdout
 setup described in the inline settlement contract.
 
 The value corpus compares interpreter, native O0/O2, and Core-Wasm/Node only
@@ -95,13 +95,13 @@ where those existing profiles admit it. Owned user String signatures remain
 outside the interpreter profile. Node value equality is not physical Wasm
 String settlement; its ordinary host API still lacks a drop operation.
 The separate [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
-adds an authored, unrun opt-in route for String helpers, without changing this
+adds an implemented opt-in route for String helpers, without changing this
 corpus's ordinary-interpreter rejection or adding external String values.
 Frozen command/callable emitted-but-unselected String functions retain their
 separate representation and cleanup limitations; the owned-data provider
-correction has separately authored, unrun evidence.
+correction has separately scoped hosted-green release evidence.
 
-The focused gates (not run for this batch) are:
+The focused gates (reproducible release regression selectors) are:
 
 ```sh
 cargo test --locked -p semaprax --test native string_settlement::
@@ -120,6 +120,6 @@ cargo test --locked -p semaprax --test native string_settlement::provisioned_ord
 cargo test --locked -p semaprax --test native string_settlement::contents::provisioned_embedded_nul_native_values_asan_ubsan -- --ignored --exact
 ```
 
-All new evidence remains unrun. Required target and sanitizer execution,
+The implemented release regression corpus is HOSTED GREEN. Required target and sanitizer execution,
 ordinary Wasm settlement, full interpreter admission, and exact-head package
 promotion remain open; this correction alone is not production readiness.

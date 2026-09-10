@@ -67,9 +67,9 @@ The production acquisition currently returns unavailable using compile-time
 platform facts only: no PATH, HOME, cwd, filesystem, registry or tool access.
 This fail-closed ordinary route does not infer profile authority from the
 separate provisioner. That Linux component verifies a signed fixed inventory,
-creates private namespaces, and retains cgroup settlement, but its real packaged
-tool and hostile-host gates remain unrun and no `AdmittedProfile` conversion is
-exposed. Future supported backends still require complete immutable tool/input
+creates private namespaces, and retains cgroup settlement, with hosted-green release regression evidence. Real packaged-tool and
+hostile-host conformance require the separately specified provisioned context;
+no `AdmittedProfile` conversion is exposed. Future supported backends still require complete immutable tool/input
 closure, OS filesystem/IPC/network boundaries, and owned descendant settlement.
 An identifier, digest, or declared “local” path alone cannot establish those
 properties.
@@ -86,7 +86,7 @@ The separate [provisioned worker](DOCTOR-OFFLINE-WORKER-V1.md) and
 [live collector](DOCTOR-OFFLINE-COLLECTOR-V1.md) now connect controlled execution
 to this library's shared version/report policy without activating ordinary CLI
 discovery. The collector requires an actual exclusively owned worker invocation,
-not caller-supplied reply bytes. Both paths remain authored and unrun. The outer
+not caller-supplied reply bytes. Both paths remain included in the v0.4.0 hosted-green regression corpus. The outer
 production provisioner now authors their signed Linux bootstrap and aggregate
 settlement without changing that evidence state or activating discovery.
 
@@ -214,7 +214,7 @@ with missing/unavailable profiles. Exact canonical failure reports, malformed
 selectors, untouched marker/sentinel inventory, one scoped acquisition, selected
 version separation, and mismatched admission rejection are authored regressions.
 Legacy injected `inspect` fixtures retain their old exact report bytes; new
-profile fixtures exercise the added row. These checks are unrun and fake hosts
+profile fixtures exercise the added row. The implemented release regression corpus is HOSTED GREEN and fake hosts
 prove sequencing only, not physical isolation.
 Linux adds a pure interpreter of the actual BPF instruction vectors for both
 admitted ABIs, foreign-architecture/x32 rejection, and exact deny/allow decisions.
@@ -223,7 +223,7 @@ invocations, assert actual kernel denial and inherited no-new-privileges/filter
 state in a tool and exec descendant, and force real kernel filter-installation
 rejection to prove the executable-entry marker is never created. Unsupported
 Linux ABIs have an explicit pre-fork rejection case, not output/settlement
-support evidence. These new fixtures are also unrun.
+support evidence. The implemented release regression corpus is HOSTED GREEN.
 
 The anonymous-pair correction adds independent literal argument inventories and
 single-bit mutations across all 64 bits of each filtered scalar. Physical cases
@@ -234,13 +234,13 @@ real Rust `Command` fork/exec fallback: both successful descendant execution and
 failed-exec error reporting must work while descendants retain the guard. The
 callback allocates nothing and performs no operation. Existing ordinary spawn,
 capture, descendant-settlement and filter-installation failure cases remain.
-These compatibility checks are authored and unrun, not a full no-network gate.
+These compatibility checks are included in the v0.4.0 hosted-green regression corpus, not a full no-network gate.
 
 ```sh
 cargo test --locked -p semaprax-native-rust-interop-platform-sys doctor::tests
 cargo test --locked -p semaprax-toolchain --test cli_doctor_v1
 ```
 
-These fixtures are authored but not executed in this batch. They need physical
+The implemented release regression corpus is HOSTED GREEN. They need physical
 Linux, macOS, and Windows runs and do not establish no-network enforcement,
 hosted support, or production readiness.

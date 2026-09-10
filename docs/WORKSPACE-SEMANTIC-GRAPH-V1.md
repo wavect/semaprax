@@ -294,7 +294,7 @@ present. The internal literal whole-document fixture pins raw SHA-256
 `sha256:6639d985e25d4d33a72e37034c6e3f116940d3598bbf46162a6baaeb547da972`;
 the distinct public managed-workspace fixture pins raw SHA-256
 `sha256:64dddc0c2046766640ec93b7a7249214d099f683a2b6f26f43cdc22073764a6c`.
-Exact-head hosted evidence remains pending; this document makes no status
+Exact-head release evidence is HOSTED GREEN for v0.4.0; this document makes no status
 promotion.
 
 The additive Project-v7 linker admits one narrow exception to the former

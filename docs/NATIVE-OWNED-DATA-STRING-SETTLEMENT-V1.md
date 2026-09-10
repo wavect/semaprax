@@ -156,7 +156,7 @@ Separate diagnostic cases retain the closed scalar-match boundary for both
 fresh-copy arms and repeated references to the same owned place, and the closed
 Copy-variant match boundary; they are not positive native runtime cases.
 
-The lower package's `tests/ffi_boundaries.rs` also strengthens its generated
+The lower package's `crates/semaprax-native-rust-owned-data-package/src/tests/ffi_boundaries.rs` also strengthens its generated
 safe-Rust fail-stop oracle. A flushed `call-completed` witness precedes harness
 assertions after any returned result or caught panic. Fatal cases must not
 reach it. A separate test-only generated-file mutation keeps the real failing

@@ -1,12 +1,22 @@
 # Project Agent Workflow v1
 
+Status: implemented bounded Project Agent Transport v4 workflow; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+
 Audience: agent and tool authors, plus compiler contributors.
 
-Status: additive Project Agent Transport v4 is exact-tag hosted green at
+### Historical evidence record
+
+The following original record describes its stated subjects and host scope,
+not the current release evidence ceiling.
+
+additive Project Agent Transport v4 is exact-tag hosted green at
 `5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` in the v0.2.0 blocking Project
 Product Acceptance jobs for [Ubuntu](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195951104),
 [macOS](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195940394),
 and [Windows](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195908639).
+
+
 
 ## Scope
 

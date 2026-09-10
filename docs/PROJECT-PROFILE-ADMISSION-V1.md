@@ -49,8 +49,7 @@ provider, or generated package.
 ## Compatibility
 
 Project v1-v8 manifest bytes, target bytes, carriers, and publication behavior
-are required to remain unchanged; the preservation gates are authored but
-unrun. Project v10 keeps its existing descriptor and target behavior. The
+are required to remain unchanged; the preservation gates are release-tested. Project v10 keeps its existing descriptor and target behavior. The
 additive behavior is that a semantically valid v9 subject reaches the existing
 descriptor-driven target route instead of the former unconditional `SPX-W115`
 placeholder rejection. The closed execution-envelope verifier's invalid-schema
@@ -70,7 +69,7 @@ preparation, v9/v10 execution replay, exact pathless-build diagnostics, and
 Revision Store round trips across v1-v10. Existing profile and protocol known
 answers remain the preservation gate.
 
-The implementation and evidence are authored but unrun. This contract does not
+The implementation has HOSTED GREEN v0.4.0 regression evidence. This contract does not
 promote Project v8, v9, or v10; publish an npm or Rust package; widen Agent
 Transport; add a public aggregate ABI; execute a target; or turn prepared state
 into persistent cache or evidence authority.

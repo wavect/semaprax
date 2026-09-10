@@ -1,8 +1,9 @@
 # Agent task comparison v1
 
-Status: reproducible framework and three-task corpus authored, unrun. There are no
-comparative observations or productivity results. The Zero lane is an external,
-unrun reservation rather than an implementation or parity claim.
+Status: implemented comparison framework and three-task corpus; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Comparative model trials have no observations or productivity results. The external
+Zero lane remains an unexecuted reservation, not an implementation or parity claim.
 
 Audience: benchmark operators, agent integrators, and reviewers of comparative
 evidence.
@@ -297,6 +298,7 @@ parallel-read subset. It executes no model, tool, validator, reviewer,
 filesystem, network or runtime operation and grants no source or publication
 authority.
 
-Hostile library regressions are authored but unrun. This tranche records no
-comparative observation, generated-client execution, MCP invocation, test
-result or superiority claim; the framework remains external and unrun.
+Hostile library regressions have HOSTED GREEN v0.4.0 evidence. The framework
+records no comparative model observations or productivity/superiority result.
+Its external trials and the reserved Zero lane have not been executed; passing
+framework tests does not supply those missing experimental observations.

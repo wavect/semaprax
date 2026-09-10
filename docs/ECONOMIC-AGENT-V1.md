@@ -76,7 +76,7 @@ live node, faucet, credential, or external-network request. Process-kill gates
 prove OS process termination and journal replay, not power-loss durability.
 
 The additive public C surface now exposes only the opaque injected-host dialect
-documented below. Its local evidence is green; hosted promotion remains pending
+documented below. Its local evidence is green; release regression evidence is HOSTED GREEN for v0.4.0
 an exact-head 12/12 run with the public gate on all three host operating systems.
 
 ## Exact canonical wire ledger

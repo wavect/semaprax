@@ -72,5 +72,5 @@ Library regressions cover unchanged and changed digest inventories, added and
 removed declared identities, canonical row order, stale base bindings and
 rejection of an attempted URL field. Transport and generated-consumer
 regressions cover discovery, schema closure and chunk continuation where
-present. They are authored and unrun; no provider, network, runtime, deployment,
+present. They are included in the v0.4.0 hosted-green regression corpus; no provider, network, runtime, deployment,
 consumer, compatibility or current-head quality-gate execution is claimed.

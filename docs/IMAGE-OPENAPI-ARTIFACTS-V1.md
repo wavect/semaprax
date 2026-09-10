@@ -116,7 +116,7 @@ Authored cases live in
 [transport evidence](../tests/image_transport_v5/openapi_artifacts.rs). They
 cover source-bound cross-file selection, actual document/file relationships,
 candidate changes, exact replay, hostile selectors and host-selected authority.
-These cases remain unrun; no completion-matrix row is promoted.
+These released cases are HOSTED GREEN; the broader product rows remain Partial.
 
 Rust/C package projections, imported schemas, installed package consumers,
 live conformance, hosting, schema migration, filesystem artifact publication

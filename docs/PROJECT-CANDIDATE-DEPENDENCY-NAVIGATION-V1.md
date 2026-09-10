@@ -101,4 +101,4 @@ Authored library evidence in
 `tests/project_candidate/dependency_navigation.rs` covers changed and
 introduced declarations, exact candidate/base/Project bindings, all four paged
 views, foreign and stale selectors/references/options, source immutability and
-history isolation. The cases were not executed while authoring this tranche.
+history isolation. The implemented cases have hosted-green release evidence.

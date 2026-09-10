@@ -156,7 +156,7 @@ order. Each result contains only the persistent identity, exact manifest
 dependency row, required project profile, and canonical signature, effects,
 and contracts. Results are separated by one blank line. No match exits two,
 emits no stdout, and reports
-`standard library has no exact match for \`<selector>\`` on stderr. The route
+`` standard library has no exact match for `<selector>` `` on stderr. The route
 does not admit fuzzy or prefix matching, so an underspecified query cannot
 silently expand into the full catalog.
 
@@ -188,7 +188,7 @@ modules may reuse an identity such as `app.main`; `path#stable-id` selects one
 exact example. Each result contains the kind, source path, and canonical
 signature. Results are separated by one blank line. No match exits two, emits
 no stdout, and reports
-`language shapes catalog has no exact match for \`<selector>\`` on stderr.
+`` language shapes catalog has no exact match for `<selector>` `` on stderr.
 The route admits no fuzzy or prefix matching.
 
 The full shapes catalog is 22,888 bytes and 7,571 lexical units. The guarded

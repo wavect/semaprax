@@ -27,7 +27,7 @@ Read only the documents that own the facts relevant to the change:
    ABI, report, or target profile.
 
 Use the [roadmap](ROADMAP.md) for sequencing only. Use the
-[changelog](../CHANGELOG.md) for history only. Neither is implementation
+[changelog](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md) for history only. Neither is implementation
 evidence.
 
 Additional required references:
@@ -42,7 +42,7 @@ Additional required references:
 | Source-authored `std.log` structured JSON-lines Writer | [Log Writer v1](LOG-WRITER-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [Format Writer v1](FORMAT-WRITER-V1.md), [JSON Cursors v1](JSON-CURSORS-V1.md), [IO Cursors v1](IO-CURSORS-V1.md) |
 | Source-authored `std.io` Reader/Writer cursors | [IO Cursors v1](IO-CURSORS-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
 | Source-authored `std.test` byte assertions and failure-bit helpers | [Test Byte Assertions v1](TEST-BYTE-ASSERTIONS-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [IO Cursors v1](IO-CURSORS-V1.md) |
-| Explicit bounded environment snapshots or planned `std.env` wrappers | [Bounded Environment I/O v1](BOUNDED-ENVIRONMENT-IO-V1.md), [Bounded Language Command I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), [Capability Manifest v1](CAPABILITY-MANIFEST-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md) |
+| Explicit bounded environment snapshots or source-authored `std.env` wrappers | [Bounded Environment I/O v1](BOUNDED-ENVIRONMENT-IO-V1.md), [Bounded Language Command I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), [Capability Manifest v1](CAPABILITY-MANIFEST-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md) |
 | Bounded process execution, explicit tool registries, or `std.process` | [Bounded Process I/O v1](BOUNDED-PROCESS-IO-V1.md), [Project Manifest v18: Process I/O](PROJECT-MANIFEST-V18.md), [Bounded Environment I/O v1](BOUNDED-ENVIRONMENT-IO-V1.md), [Bounded Language Command I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), [Capability Manifest v1](CAPABILITY-MANIFEST-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md) |
 | JSON Reader/Writer adapters | [JSON Cursors v1](JSON-CURSORS-V1.md), [Bounded JSON Scanner v1](BOUNDED-JSON-SCANNER-V1.md), [IO Cursors v1](IO-CURSORS-V1.md), [Project Manifest v16](PROJECT-MANIFEST-V16.md) |
 | Source-authored typed `std.path.value` Path records | [Typed Path v1](TYPED-PATH-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [IO Cursors v1](IO-CURSORS-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
@@ -196,7 +196,7 @@ or cross-compilation support.
 `tests/full_toolchain_artifact_v1.rs` authors literal-message regressions with
 real pathname witnesses for configured-target output, stale guessed paths,
 duplicate/missing/foreign artifacts, malformed streams and unsuccessful or
-missing completion. These checks remain unrun; they neither compile nor
+missing completion. The implemented release regression corpus is HOSTED GREEN; they neither compile nor
 execute a toolchain when eventually selected. The existing product tests
 separately own actual Cargo and CLI execution.
 

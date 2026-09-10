@@ -2,9 +2,40 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: partially implemented.
+Status: partially implemented at the full RFC scope. Admitted v0.4.0 profiles have
+**HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 This RFC defines the next useful-core tranche: nominal records, algebraic variants, `Option`, `Result`, exhaustive matching, and ownership of aggregate places. It deliberately introduces a resolved semantic layer before new syntax reaches either backend.
+
+## Current implementation baseline
+
+The released implementation includes scalar and owned records and variants,
+checked matching, compiler-owned Option/Result and admitted owned propagation,
+concrete generic ownership, explicit nonidentity forwarding, bounded argument
+inference through v3, nested record reconstruction, multiple record owners,
+private generic authored variants and compiler collections. Their exact scope
+is owned by [Generic Owned Result](GENERIC-OWNED-RESULT-V1.md),
+[Explicit Forwarding](GENERIC-EXPLICIT-FORWARDING-V1.md),
+[Argument Inference v3](GENERIC-ARGUMENT-INFERENCE-V3.md),
+[Record Composition v2](GENERIC-OWNED-RECORD-COMPOSITION-V2.md),
+[Multi-Owner Records](GENERIC-MULTI-OWNER-RECORDS-V1.md),
+[Authored Variants](GENERIC-AUTHORED-VARIANTS-V1.md), and
+[Compiler Collections](GENERIC-COMPILER-COLLECTIONS-V1.md).
+
+All admitted release regressions are HOSTED GREEN. Constraints, broader
+inference, general residual conversions, nested/resource payloads beyond the
+owning profiles, general lifetime rules and a public generic ABI remain open.
+An additive generic/cleanup/graph version does not widen a predecessor's frozen
+contract. Public package and component support remains separately scoped.
+
+## Historical profile and evidence records
+
+The following records retain the original narrower profile boundaries and
+execution subjects. Their mentions of local evidence or future tranches are
+historical; use the current baseline above and staged implementation below for
+current work. Numeric graph/cleanup versions and known-answer bytes continue to
+refer to their original profiles, not to the complete v0.4.0 implementation.
 
 The implemented record slice includes canonical declarations, construction,
 projection, immutable update, persistent record/field identities, resolved HIR,
@@ -399,7 +430,7 @@ while preserving legacy schema selection and cleanup bytes. Graph v32/v33
 compose those unprojected/projected loan facts with the complete owned-variant
 Graph v22 conditional cleanup contract so neither base schema masks the other.
 This proof foundation does
-admit the authored-but-unrun
+admit the implemented
 [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
 only for `bytes_as_slice` of one stable-ID `Bytes` field on a named `own` flat
 record. Constructors, temporaries, deeper projections, variants, generics,
@@ -581,62 +612,74 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 
 ## Staged implementation
 
-1. Add resolved nominal types, HIR, type facts, place paths, and deterministic layout keys without changing source behavior. **Implemented.**
-2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, Graph v12 bounded generic-record identity, Graph v13 exact recursive Copy-record pattern meaning, deterministic target layouts, target-neutral cleanup, bounded public nested-scalar execution, explicitly instantiated direct-scalar generic Copy records, irrefutable recursive Copy-record destructuring, locally exercised flat concrete generic owned-byte records, focused bounded nested concrete generic source/HIR/cleanup/layout evidence, the exact flat and bounded nested one-owner generic-function relays, the flat one-owner-identical-result expression-composition profile, internal cross-file Project linking, and the exact reachable ScalarV1 internal flat generic-owned-record composition behind value-scalar calls/exports are implemented through C11 O0/O2 and Node/Wasm where stated by their owning gates; the expression-composition profile covers all eight Copy substitutions, projection, top-level immutable update, bound-Copy-field borrow matching, same-owner own-match reconstruction, failure settlement, hostile replay, repeated cross-engine execution, and no added aggregate `memory.copy` against its direct-relay baseline. The cross-package fixture authenticates one Subject-v3 dependency and exposes exactly `fn() -> i64`. The older generic-record gate is hosted green in [run 31365363898, Ubuntu job 93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995), and the record-pattern gate is hosted green in [run 31373317800, Ubuntu job 93406925130](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406925130). The pre-nested-relay generic-owned corpus is hosted green in [run 34031917437, Ubuntu job 101482963175](https://github.com/wavect/semaprax/actions/runs/34031917437/job/101482963175); the additive nested-relay and identity-forwarding selectors are hosted green in [run 34048713967, Ubuntu job 101528399406](https://github.com/wavect/semaprax/actions/runs/34048713967/job/101528399406), while the expression-composition and ScalarV1 cross-package selectors remain local. Transaction breadth, refutable ownership-aware patterns beyond the exact profile, variants, nested expression-result composition, standalone generic-owned constructors and consuming projections, nonconcrete/cyclic/class/variant/resource generic records, general generic-function or package-signature composition, Graph/schema widening, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.** The separately owned [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md) profile adds only explicit compiler-owned `Vec<T>` instances over the eight Copy scalars. Its exact eight `std.collections` aliases are authenticated intrinsic forwarding, not general generic-function composition; the three additive operations select `semaprax.prelude.v3` while original-five programs retain frozen v1/v2 prelude bytes and projections, and the aliases neither generalize authored aggregates nor open a public generic ABI.
-3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v2 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
-4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v10, internal layout digest v2, and cleanup-free copy matching. A bounded authored extension separately admits direct `Bytes` plus any of the eight admitted Copy-scalar arguments with one owned case, and one exact two-parameter/two-case `[Bytes, Bytes]` authored shape, through explicit own/borrow matching, conditional cleanup replay, interpreter, native C11 O0/O2, and Core-Wasm locally. The authenticated compiler-owned `Result<Bytes, Bytes>` reuses that path for ordinary internal execution and the exact local `Result<Bytes, Bytes> -> Result<Bytes, Bytes>` postfix-`?` shape. Broader multi-case generic sums, nested/resource arguments, mixed/general or generic-function owned propagation, public ABIs, and hosted promotion remain open.**
-5. Add ordinary prelude `Option` and `Result`. **Implemented for authenticated compiler-owned `semaprax.prelude.v1` variants under direct-scalar Copy limits plus the bounded owned-byte profiles specified by Owned Byte Variant Algebra v1. Exact two-sided `Result<Bytes, Bytes>` supports ordinary internal execution and exact owned postfix `?` with evaluation-once, Ok-payload move, Err residual transfer, shared postconditions and guarded cleanup on interpreter, native C11 O0/O2, and Core-Wasm locally. Mixed/general/nested owned propagation, generic-function carriers, component/FFI mappings, public ABIs, and hosted promotion remain open.**
-6. Add `?` with evaluation-once and unified epilogues. **Implemented for ordinary compiler-owned direct-scalar Copy `Result<T, E>` to `Result<U, E>` and `Option<T>` to `Option<U>`, plus the exact local owned `Result<Bytes, Bytes> -> Result<Bytes, Bytes>` shape. Result Copy propagation uses exact CleanupPlan v2 staging and Graph v10; Option uses authenticated payload-free-None CleanupPlan v3 staging and program-bound Graph v11 unless a later feature selects a higher graph. Exact owned Result propagation reuses CleanupPlan v6 conditional transfer: Ok moves its payload, Err moves the residual, and ownership-only topological joins preserve shared postconditions, sticky failure, and guarded cleanup. Native C11 O0/O2 plus Node/Wasm evidence covers both Copy carriers; Result is hosted green in [run 31353051690](https://github.com/wavect/semaprax/actions/runs/31353051690), and Option is hosted green in [run 31360176398, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31360176398/job/93367728277). Private Source-Result Component v4 maps the exact `Result<i64, bool>` to `Result<bool, bool>` fixture and is hosted green in [run 31356536123, job 93357169796](https://github.com/wavect/semaprax/actions/runs/31356536123/job/93357169796). Private Source-Option Propagation Component v10 maps exactly `Option<i64>` through postfix `?` to `Option<bool>` and is hosted green in [run 31396483313, job 93367728277](https://github.com/wavect/semaprax/actions/runs/31396483313/job/93367728277). Exact owned Result evidence is local on interpreter, native C11 O0/O2, and Core-Wasm only. Residual conversion, mixed/general/nested owned arguments, generic-function `?`, contracts outside the exact owned profile, Project/public ABI, hosted owned promotion, general component mapping, and callable/FFI signatures remain open.**
-7. Add bounded explicitly instantiated generic functions.
-   **Implemented across canonical source, source verification, resolved HIR,
-   program-wide Graph v14, strict native C11 O0/O2, and Node/Wasm. Hosted
-   matrix evidence is green in [run 31385406865, Ubuntu job
-   93445428338](https://github.com/wavect/semaprax/actions/runs/31385406865/job/93445428338);
-   the separate exact private Component v9 profile has local source/Graph/core/
-   plan/profile/raw/DAG evidence and hosted Wasmtime execution in [run
-   31392541096, job
-   93467490492](https://github.com/wavect/semaprax/actions/runs/31392541096/job/93467490492).
-   The exact owning flat generic-record relay plus the bounded nested
-   authored-record relay now compose explicit Copy-scalar substitutions. The
-   focused nested corpus exercises `Box<Pair<Bytes, T>>` and
-   `Pair<Box<Bytes>, T>` in source/HIR for all eight scalars, while representative
-   `bool`/`i64` instances execute locally across the interpreter, native C11
-   O0/O2, and Core-Wasm. Each admitted owning template has one owning parameter
-   and an identical return type; the flat relay retains CleanupPlan v5 and the
-   nested relay retains CleanupPlan v7, both under Graph v14, and the additive
-   hosted gate remains pending. Direct acyclic calls between already-admitted
-   templates additionally forward the exact caller-owned parameter vector and
-   derive a deterministic transitive instance closure of at most 256 entries;
-   this local,
-   unhosted addition preserves the direct-scalar and one-owner-identical-result
-   profiles and the existing Graph v14 identity: direct-scalar forwarding keeps
-   CleanupPlan v2, flat-owned forwarding keeps v5, and nested-owned forwarding
-   keeps v7.
-   The exact additive flat expression-composition body retains one owner and
-   an identical result while admitting projection, top-level immutable update,
-   one bound-Copy-field borrow match, and same-owner own-match reconstruction
-   over all eight Copy scalars. Focused local evidence covers update and
-   reconstruction failure settlement, hostile HIR/backend mutation replay,
-   repeated interpreter, native O0/O2, and Core-Wasm execution, and no added
-   aggregate `memory.copy`
-   against the direct-relay baseline.
-   Inference, constraints, non-identity forwarding, nested expression-result
-   composition, standalone constructors, consuming projections, richer
-   signatures, general composition, Graph/schema widening,
-   callable/resource admission, general/public Component mapping, and stable
-   ABI remain open.**
-8. Add member/case transactions, layout/interface hashes, and context traversal.
-   **Partially implemented: bounded persistent member/case transactions and
-   exact direct-scalar generic-call argument replacement are hosted green in
-   [run 31401200449 attempt
-   2](https://github.com/wavect/semaprax/actions/runs/31401200449/attempts/2),
-   including [Ubuntu job
-   93505622044](https://github.com/wavect/semaprax/actions/runs/31401200449/job/93505622044),
-   while additive Agent Context v2 provides bounded directional call traversal.
-   Bounded read-only Semantic Impact v1 now reports exact source consumers and
-   generic-call reverse callers for one patch, while layout/interface hashes,
-   authenticated patch provenance, multi-file repair, and general
-   repository-wide/non-call traversal and impact remain open.**
+These are implementation stages, not promises tied to a future package version.
+Each released bounded implementation has hosted-green regression evidence;
+full RFC completion still requires the broader gates stated here.
+
+1. **Resolved semantics:** nominal types, HIR, type facts, place paths and
+   deterministic layout keys are implemented. Independent source/HIR replay
+   remains mandatory before backend admission.
+2. **Records:** construction, projection, immutable update, exact recursive
+   Copy/owned destructuring, nested owned records and concrete generic records
+   are implemented under their versioned profiles. The released generic
+   [record composition v2](GENERIC-OWNED-RECORD-COMPOSITION-V2.md) also covers
+   nested expression results, reconstruction into explicitly declared shapes,
+   match/call/branch composition and alias update. [Multiple owning parameters](GENERIC-MULTI-OWNER-RECORDS-V1.md)
+   retain exact nominal typing and transfer each owner once. The ScalarV1
+   dependency fixture retains scalar-only cross-package signatures; it does
+   not provide a public aggregate ABI. Broader resource/cyclic shapes, general
+   ownership-sensitive patterns and public generic package signatures remain open.
+3. **Copy variants:** unit/direct-scalar payloads, exhaustive matching,
+   case identities, deterministic Native64/Wasm32 layout and admitted
+   native/Core-Wasm execution are implemented. Older cleanup v2 and graph
+   contracts retain their original meaning.
+4. **Generic owned variants:** the admitted direct Bytes/Copy payloads,
+   exact owned cases and [private generic authored-variant functions](GENERIC-AUTHORED-VARIANTS-V1.md)
+   support checked construction, owning/borrowing matches, reconstruction,
+   calls and branches within their explicit substitution limits. Broader
+   nested/resource and multi-case composition remains separate; this does not
+   open public variant signatures.
+5. **Option and Result:** authenticated compiler-owned prelude identities and
+   their bounded Copy/owned-byte carriers are implemented. The current
+   [Generic Owned Result](GENERIC-OWNED-RESULT-V1.md) includes
+   `Result<Bytes, E>` for eight Copy error substitutions or Bytes, and
+   `Result<T, Bytes>` for eight Copy success substitutions. Broader payloads,
+   public ABI and general component mappings remain separately gated.
+6. **Propagation:** Copy Result/Option and admitted owned Result `?` execute
+   once, preserve the selected case, and share postconditions and the sticky
+   failure/cleanup epilogue. Mixed Copy/Bytes and generic-function propagation
+   are implemented, not future first steps. Cleanup v2/v3/v6 remain selected
+   by the owning profile. General residual conversion, unrelated live-owner
+   composition beyond admission, resources and public callable/FFI signatures
+   remain separate. The exact historical run/Component records above retain
+   their original subject and cannot be reused as a new target observation.
+7. **Generic functions:** explicit bounded instantiation, exact instance
+   closure, internal ownership, nonidentity [forwarding](GENERIC-EXPLICIT-FORWARDING-V1.md),
+   argument [inference v1–v3](GENERIC-ARGUMENT-INFERENCE-V3.md), private
+   collection and callable/closure composition are implemented. Identity-only
+   programs keep the applicable earlier graph bytes; nonidentity mappings
+   select their additive graph contract. Source and HIR independently check
+   every admitted substitution, not just reachable instances. Constraints,
+   broader evidence expressions, owning closure captures, general composition
+   and public generic ABI remain open.
+8. **Semantic transactions and review:** bounded member/case/nominal rename,
+   declaration and field changes, signature mappings, expression/contract
+   changes, candidate replay/recovery, rebase/merge and context/impact queries
+   are implemented under their owning specifications. The candidate
+   [ABI Delta](PROJECT-CANDIDATE-ABI-DELTA-V1.md) is a structural comparison,
+   not a compatibility guarantee. General semantic conflict resolution,
+   external consumer migration and complete repository-wide behavioral
+   equivalence remain future requirements.
+
+Compiler-owned [Vec v1/v2](OWNED-BOUNDED-VEC-V2.md),
+[Box v1/v2](OWNED-BOUNDED-BOX-V2.md), [owning iterators](OWNING-ITERATORS-V1.md),
+[owned iterator payloads](OWNING-ITERATOR-PAYLOADS-V2.md),
+[function values](FUNCTION-VALUES-V2.md), [scalar snapshot closures](CLOSURES-V2.md)
+and [generic iterator operations](GENERIC-ITERATOR-OPERATIONS-V1.md) are
+implemented additions. They preserve independent prelude, graph, cleanup,
+package-alias and public-export restrictions instead of implicitly changing
+this RFC's older profiles. Broader iterator interfaces, owned captures,
+regions/arenas and general allocation still require their own implementation.
 
 ## Completion evidence
 

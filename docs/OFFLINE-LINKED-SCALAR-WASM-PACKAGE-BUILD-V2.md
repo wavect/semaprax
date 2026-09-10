@@ -119,7 +119,7 @@ SEMAPRAX_OFFLINE_PACKAGE_NODE=/absolute/provisioned/node cargo test --locked -p 
 
 The Node case is not selected by the default test command. Once explicitly
 selected, a missing tool fails rather than skipping. All new evidence is
-authored but unrun; an environment-cleared local consumer is not an OS sandbox.
+implemented; an environment-cleared local consumer is not an OS sandbox.
 No production API, artifact bytes, schema, or diagnostic changed for this gate.
 
 ## Nonclaims

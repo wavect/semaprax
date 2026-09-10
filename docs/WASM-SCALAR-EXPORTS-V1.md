@@ -1,8 +1,17 @@
 # Public Wasm Scalar Exports v1
 
+Status: implemented bounded public Core-Wasm and generated JavaScript/TypeScript
+package profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+
 Audience: language users, tool authors, and compiler contributors.
 
-Status: implemented as a bounded public Core-Wasm and generated JavaScript/
+### Historical evidence record
+
+The following original record describes its stated subjects and host scope,
+not the current release evidence ceiling.
+
+implemented as a bounded public Core-Wasm and generated JavaScript/
 TypeScript package profile. Local executable evidence covers admission,
 deterministic artifacts, Node consumption, status normalization, and stable-ID
 rename preservation. Exact TypeScript 5.8.3 independently compiles the real
@@ -13,6 +22,8 @@ at the v0.2.0 tag commit `5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`
 in [job 100195950702](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195950702).
 It authenticates and executes the direct, baseline Project, and display-renamed
 Project fixtures with the pinned TypeScript compiler and real Chromium.
+
+
 
 The Copy-scalar widening below carries local Node evidence only. That hosted
 Chromium job predates it and exercises the `i64`/`bool` calculator fixtures, so
@@ -268,4 +279,5 @@ publication, dependency resolution, imports/capabilities, resources,
 aggregates, strings, typed arrays, promises, callbacks, async, workers,
 cross-realm identity, CSP generation, SSR/hydration, UI dialect, provenance,
 signing, or production readiness. The internal-body profile is not an aggregate
-package or public ABI; its cross-package fixture has only local, unhosted evidence.
+package or public ABI; its admitted cross-package fixture has hosted-green release evidence while
+retaining scalar-only public signatures.

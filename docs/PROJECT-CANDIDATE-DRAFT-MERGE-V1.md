@@ -148,8 +148,8 @@ draft rebase's region/dependency diagnostics. The inline transport cap remains
 `tests/project_candidate/draft_merge.rs` and
 `tests/image_transport_v5/draft_merge.rs` author compatible checked histories,
 mixed holes, coalescing, conflicting selections, opposing writes, recovery and
-authority-preserving protocol behavior. Tests, compiler checks and long local
-gates were not run. No completion-matrix row is promoted.
+authority-preserving protocol behavior. The implemented corpus has hosted-green release evidence. Broader product
+completion remains separate.
 
 General semantic compatibility, automatic cross-branch hole completion,
 arbitrary disjoint edits inside one protected region, cross-manifest merging, runtime verification and

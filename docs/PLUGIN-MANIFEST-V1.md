@@ -159,7 +159,7 @@ cross-consistency proving that the listed exports carry byte-equal native
 symbols/signatures to what `semaprax abi-report` admits. No Component Model
 runtime or packaging, host loading or lifecycle hooks, versioning
 negotiation, resource-limit enforcement, hostile-plugin execution test, or
-any target execution is involved, and hosted promotion remains pending.
+any target execution is involved, and release regression evidence is HOSTED GREEN for v0.4.0.
 
 See also [CAPABILITY-MANIFEST-V1.md](CAPABILITY-MANIFEST-V1.md) for the
 capability derivation this manifest reuses,

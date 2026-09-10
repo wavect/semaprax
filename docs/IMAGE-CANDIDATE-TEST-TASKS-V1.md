@@ -1,7 +1,7 @@
 # Candidate test tasks v1
 
-- Status: implemented; focused project and compile evidence recorded locally
-- Protocol: additive Semaprax image-agent v5 methods
+- Status: implemented bounded task lifecycle; **HOSTED GREEN** under the
+  [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 - Audience: embedding hosts, MCP/editor clients, and compiler contributors
 
 This contract turns the existing host-granted candidate reference-interpreter

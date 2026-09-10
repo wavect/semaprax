@@ -143,7 +143,7 @@ manifest and retains only drafts before frames and before opening a Git provider
 The live source image remains current even when recovered drafts are historical.
 V1–v5 reject this field. Store roots are never selected by RPC, and no approvals
 or publication state are recovered. See [Typed-draft persistence](DRAFT-ARCHIVE-PERSISTENCE-V1.md)
-for commands, exact bounds and authored/unrun regression evidence.
+for commands, exact bounds and release regression evidence.
 
 Policy `semaprax.workspace-host-policy.v7` requires every v6 field plus
 `read_batch_workers`: null leaves protocol methods unchanged, while an integer
@@ -154,7 +154,7 @@ capabilities and adds no test, build, storage or source authority. Both NDJSON
 and MCP use the same loader. Each outer request remains sequential, while
 explicitly selected immutable inner reads may run concurrently under the
 unchanged wire caps. See [Parallel Read Protocol v1](IMAGE-READ-BATCH-PROTOCOL-V1.md)
-for exact framing, authentication, closed schemas and authored/unrun evidence.
+for exact framing, authentication, closed schemas and release regression evidence.
 
 `git_commit` is null or a closed object containing `git_executable`, `repository`,
 `reference`, `base_commit`, `project_prefix`, `author_name`, `author_email`,

@@ -124,7 +124,7 @@ absence proofs for undeclared systems, generator provenance, external provider
 conformance and new host authority. A report is descriptive evidence bound to
 one immutable candidate, not permission to fetch missing evidence.
 
-Authored, unrun library regressions in
+Release-tested library regressions in
 `tests/project_candidate/analysis_coverage.rs` compare the complete wrapper
 with an independently derived candidate image, observe a changed generated-
 named source and introduced function, preserve all eight blind-spot statuses,
@@ -132,5 +132,4 @@ keep non-native imports partial and provider-like functions separate, preserve
 the Native Rust `SPX-G218` boundary, reject sibling/stale selectors, ignore an
 unlisted deployment input, and prove source/candidate immutability. Transport
 coverage separately owns selected grants, closed schemas, live authentication
-and parallel-read parity. No tests, compiler, target, external service or
-application were run while authoring this tranche.
+and parallel-read parity. The v0.4.0 release regression corpus is HOSTED GREEN.

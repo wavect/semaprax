@@ -3,11 +3,10 @@
 Audience: compiler contributors, Agent Runtime contributors, provider-adapter
 authors, and semantic-workspace integrators.
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded source Agent and its versioned Proposal/Definition/Deployment
+profiles; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Iterative typed execution, durable recovery and migration
+are implemented in additive specifications, not implicitly added to frozen v1 wires.
 
 ## Purpose
 

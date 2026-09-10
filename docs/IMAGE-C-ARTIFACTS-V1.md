@@ -1,10 +1,8 @@
 # Source-bound C artifacts v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented pathless image/candidate and transport projection; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+C source/header projection is not native execution or a general public ABI.
 
 Audience: compiler contributors, semantic agent clients and embedding hosts.
 

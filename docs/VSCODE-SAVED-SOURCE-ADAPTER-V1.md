@@ -8,7 +8,7 @@ broader product completion remain separately gated.
 
 Audience: editor users, extension integrators and compiler contributors.
 
-The optional extension in [editors/vscode](../editors/vscode/README.md) connects
+The optional extension in [editors/vscode](https://github.com/wavect/semaprax/blob/main/editors/vscode/README.md) connects
 an explicitly started local editor session to the existing
 [MCP stdio adapter](IMAGE-MCP-ADAPTER-V1.md). It provides stable-ID selection,
 compiler-derived change discovery, typed-intention submission and read-only
@@ -36,7 +36,7 @@ against the exact saved source into the editor's UTF-16, possibly multiline,
 coordinates. The route is read-only and bounded (4 MiB of output, 30 seconds),
 starts no session, is disabled by an empty `semaprax.compilerPath`, and can be
 switched off with the machine setting `semaprax.checkOnSave`. The extension's
-[README](../editors/vscode/README.md#check-on-save) owns the behavior.
+[README](https://github.com/wavect/semaprax/blob/main/editors/vscode/README.md#check-on-save) owns the behavior.
 
 Also additively, `SEMAPRAX: Go to Declaration by Stable ID`, `SEMAPRAX: Show
 Callers of a Declaration`, `SEMAPRAX: Show Module Documentation`, `SEMAPRAX:
@@ -57,7 +57,7 @@ file, with the same bounds and no session; a project-owned file is not renamed
 there at all, because a standalone patch rewrites one file — that rename
 belongs to the session's replay-checked typed intent. `doc` and `graph` remain
 module routes over one standalone executable module and name that boundary. The
-[README](../editors/vscode/README.md#navigate-by-meaning) owns the behavior.
+[README](https://github.com/wavect/semaprax/blob/main/editors/vscode/README.md#navigate-by-meaning) owns the behavior.
 
 Startup invokes the selected executable directly with
 `serve-workspace-mcp <manifest> <host-policy>` and no shell. The executable and
@@ -278,7 +278,7 @@ protocol/report-validator cases in the extension. None were executed. No
 compiler, Node test runner, generated client, VS Code extension host, package
 installation or local quality gate was run for this change.
 
-`editors/vscode/test/repairs.test.js` adds authored, unrun controller cases for
+`editors/vscode/test/repairs.test.js` adds release-tested controller cases for
 accepted/rejected variants, exact predecessor and proposal bindings, raw report
 hashes, explicit selection, stale state and uncertain retirement. Its mocked
 responses establish intended adapter behavior, not executed compiler or editor
@@ -292,7 +292,7 @@ and that path has executed in a real Extension Host for one exact subject on one
 local product. This is an optional local adapter, not a marketplace release or
 full programme completion.
 
-`editors/vscode/test/holes-suggestions.test.js` adds authored, unrun mock
+`editors/vscode/test/holes-suggestions.test.js` adds release-tested mock
 controller cases for summary binding, malformed or excessive proposals,
 ordinary semantic rejection, busy/delayed requests and no implicit fill or
 preview adoption. These mocks do not exercise the actual VS Code quick pick,

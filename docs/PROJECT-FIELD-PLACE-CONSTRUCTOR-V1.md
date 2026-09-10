@@ -141,7 +141,7 @@ provenance, and target-specific codes.
 
 The focused [candidate regressions](../tests/project_candidate/field_places.rs)
 and [transport regressions](../tests/image_transport_v5/field_place.rs) are
-authored but unrun. They cover direct source storage and loan provenance,
+implemented. They cover direct source storage and loan provenance,
 nominal root mismatch, checked local and constructor scopes, hole lifecycle,
 recovery, rebase boundaries, and closed schema/discovery surfaces.
 No compiler, runtime, generated client, or editor execution is claimed by this

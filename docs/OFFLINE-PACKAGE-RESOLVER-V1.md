@@ -2,11 +2,9 @@
 
 Audience: maintainers, contributors, reviewers, and technical evaluators.
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded authority-free resolver; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Acquisition, registry publication and general package support remain separate.
 
 Offline Deterministic Package Resolver v1 selects one integrity-bound version
 per package from a finite caller-owned catalog of source-replayed subjects. It is an

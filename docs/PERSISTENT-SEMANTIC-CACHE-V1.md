@@ -161,6 +161,7 @@ Private codec regressions additionally cover full HIR with nonempty cleanup and
 loan plans, canonical reencoding, malformed containers, allocation limits,
 unknown tags/tokens, and truncation. Store-local regressions cover private key
 initialization, hostile filesystem shapes, and authentication before decoding.
-These tests were authored but not run. No compiler, interpreter, CLI fixture,
-generated client, target, or long gate was executed for this change. Hosted
-executable evidence and measured cross-process performance remain outstanding.
+These implemented codec, store and cross-process recovery regressions are
+HOSTED GREEN for v0.4.0. The cache can reuse authenticated checked HIR under
+this exact private profile; broader cache compatibility and measured
+cross-process time/memory improvements remain separate requirements.

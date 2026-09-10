@@ -99,11 +99,11 @@ unchanged.
 
 [Candidate regressions](../tests/project_candidate/scalar_literal_constructors.rs)
 and [protocol regressions](../tests/image_v5/literal_constructors.rs) are
-authored but unrun. They cover exact Unicode and IEEE boundaries, signed-float
+implemented. They cover exact Unicode and IEEE boundaries, signed-float
 lowering, canonical source and Graph/HIR replay, expression and hole
 composition, both signature-evolution forms, malformed input, recovery and the
 unchanged narrower record/diagnostic grammars. The existing generated Rust
-client serialized-size gate remains unchanged and unrun.
+client serialized-size gate remains unchanged and is included in the hosted-green release corpus.
 
 No compiler, client, interpreter, backend, test or quality gate was executed
 for this addition. The graph-operational programme remains Partial.

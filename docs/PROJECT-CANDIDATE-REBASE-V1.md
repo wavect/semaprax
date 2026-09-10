@@ -281,13 +281,12 @@ independent changes, same-target body/display compatibility, stable-ID callee
 rename normalization, body/contract revalidation, competing signatures/bodies,
 deleted targets, stale selectors, manifest rejection, original-base preservation
 and exact shared-prefix handling. Tests and compiler/quality gates were not
-run at the user's request; no local or hosted completion is claimed.
+run under the v0.4.0 release baseline; no local or hosted completion is claimed.
 
 [Interface rebase evidence](../tests/project_candidate/interface_rebase.rs)
 adds exact-fingerprint rebase/merge success, unchanged source and parent
 evidence, no runtime-graph-declaration claim, and receiver, protocol,
-selected-function, occupied-pair and implementation-ID conflicts. It is also
-authored and intentionally unrun.
+selected-function, occupied-pair and implementation-ID conflicts. The implemented cases have hosted-green release evidence.
 
 General semantic conflict reasoning, source-publication race integration,
 parallel mutation scheduling, candidate persistence/recovery, cross-package

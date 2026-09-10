@@ -432,3 +432,4 @@ Audience: all documentation readers.
 - [Workspace Archive Recovery v1](IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md)
 - [Generic Template Rename v1](PROJECT-GENERIC-RENAME-V1.md)
 - [Owned Result Signature Wrap v1](PROJECT-SIGNATURE-OWNED-RESULT-WRAP-V1.md)
+- [v0.4.0 full documentation audit](DOCUMENTATION-AUDIT-0.4.0.md)

@@ -146,6 +146,5 @@ imported-helper edits affecting a binding whose own source is unchanged,
 normal source rejection of incompatible requirements, replay tampering and
 stale selection, deterministic output, and source preservation.
 
-All evidence is authored and unrun. No tests, compiler, interpreter, application,
-or long local quality gate was executed for this change. Hosted evidence and
+The implemented release regression corpus is HOSTED GREEN. Broader support and
 the broader graph-operational programme remain outstanding.

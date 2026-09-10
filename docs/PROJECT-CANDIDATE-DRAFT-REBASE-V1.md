@@ -158,8 +158,8 @@ history facts describe the last valid candidate, not the incomplete draft.
 `tests/project_candidate/draft_rebase.rs` and
 `tests/image_transport_v5/draft_rebase.rs` author mixed pending kinds, partial
 history, context/identity remapping, compatible and conflicting source changes,
-historical recovery, stale rejection and authority preservation. Tests, compiler
-checks and long local gates were not run. No completion-matrix row is promoted.
+historical recovery, stale rejection and authority preservation. The implemented corpus has hosted-green release evidence. Broader product
+completion remains separate.
 
 The existing Project, candidate-history, source-traversal and expression limits
 remain in force. The library report is bounded to 1 MiB; protected HIR/type

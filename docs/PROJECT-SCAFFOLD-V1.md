@@ -128,8 +128,10 @@ Focused evidence must prove:
   without treating a test-owned temporary materialization as product
   publication authority.
 
-Focused library, CLI, private-byte-preservation, and quickstart cases passed
-locally. Required-host, release-artifact, and hosted gates remain open.
+The frozen v1 library, CLI, private-byte-preservation and quickstart regression
+corpus is HOSTED GREEN within the v0.4.0 release baseline. Broader installed-host
+and public-support scope remains separate; the v2/v3 successors own their
+additional scaffolding behavior.
 
 ## Nonclaims
 

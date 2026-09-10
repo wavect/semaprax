@@ -168,10 +168,9 @@ shape; only ordinary compiler replay establishes repair admission and identity.
 [Focused authored tests](../tests/project_candidate/diagnostics.rs) cover
 exact diagnostic retention, source/target binding, successful full-admission
 numeric repair, unsupported and out-of-range cases, stale selectors, unchanged
-predecessors/source, accepted outcomes, and structural input rejection. Tests
-were not run for this change.
+predecessors/source, accepted outcomes, and structural input rejection. The implemented cases have hosted-green release evidence.
 
 [Field-borrow repair regressions](../tests/project_candidate/field_borrow_repair.rs)
-are also authored and unrun. They exercise actual projected-view rejection,
+are also included in the v0.4.0 hosted-green regression corpus. They exercise actual projected-view rejection,
 direct-field repair, nested composition, unsupported bases and owner mismatch,
 remaining-invalid candidates, exact repair history and stale/replay boundaries.

@@ -157,7 +157,7 @@ The local evidence gate owns:
 - canonical dense identities, unchanged unprojected Graph v23 schema selection
   and serialized fields, and
   deterministic projected-provenance Graph v24 fixtures;
-- exact unprojected owner roots, the authored-but-unrun direct stable-ID
+- exact unprojected owner roots, the implemented direct stable-ID
   owned-byte field profile, direct loans, parent reborrows, and multiple
   equal-place shared loans;
 - straight-line and branch-specific last-use endpoints, including a move that
@@ -184,10 +184,10 @@ The local evidence gate owns:
   with unprojected or stable-field-projected loans, plus Semantic Workspace and
   checked-HIR cache replay without graph-builder accounting drift.
 
-The dedicated exact-boundary fixtures are authored in the current source tree
-but were not executed by this implementation audit. Their source presence is
-not local-green or hosted evidence; promotion remains contingent on executing
-the focused gate at the exact claimed commit.
+The dedicated exact-boundary fixtures are part of the implemented v0.4.0
+regression corpus, with the accepted hosted-green baseline. Source presence
+alone is not execution evidence; changed implementations require fresh checks
+at their own claimed revision.
 
 Interpreter, native, and Wasm regression gates must continue to prove that
 admitted programs retain identical observable behavior, but they consume no

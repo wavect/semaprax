@@ -18,12 +18,12 @@ ordinary `doctor` discovery or activation. It installs no service, configures no
 host policy, and performs no namespace bootstrap or image-path lookup.
 
 The separate [Linux production provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md)
-now authors the signed outer fixed-descriptor, namespace, cgroup and settlement
+implements the signed outer fixed-descriptor, namespace, cgroup and settlement
 boundary that this launcher previously required entirely from an external host.
 It admits only static launcher/worker/collector ELF images and leaves hostile
-binfmt/kernel policy as an explicit trusted-launch precondition. Its physical
-distribution and real-tool gates remain unrun, so this launcher is still not an
-ordinary CLI or promoted profile route.
+binfmt/kernel policy as an explicit trusted-launch precondition. Its released implementation has hosted-green regression evidence. Physical
+distribution, real-tool support and ordinary CLI activation remain separate
+profile decisions; this launcher is not an ordinary CLI acquisition route.
 
 A trusted provisioner must supply a dedicated single-threaded process with
 exclusively transferred descriptors exactly as follows:
@@ -162,6 +162,7 @@ required. The 13 selected launcher unit tests pass locally on
 Linux AArch64/Rust 1.88; they do not execute the provisioned launch pipeline.
 The [real-distribution gate](DOCTOR-OFFLINE-COLLECTOR-V1.md#real-distribution-production-launcher-gate)
 adds independent all-role expectations through the actual production launcher.
-All physical gates remain authored and unrun. Physical fault injection,
+The admitted release regression corpus is HOSTED GREEN; explicitly
+provisioned physical gates retain their own selection and host requirements. Physical fault injection,
 real-tool compatibility, complete deployment and cross-platform support remain
 pending; ordinary CLI profiles remain unavailable and WP-05 is unpromoted.

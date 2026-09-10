@@ -2,11 +2,8 @@
 
 Audience: agent and tool authors, plus compiler contributors.
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded rename transaction; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Project Rename Transaction v1 is an explicit opt-in extension of
 [Project Agent Transport v2](PROJECT-AGENT-TRANSPORT-V2.md). It changes the

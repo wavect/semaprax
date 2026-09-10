@@ -65,7 +65,7 @@ source/HIR authentication failures, and `SPX-G496` owns caller inventory and
 migration failures. The closed intent schema and candidate catalogue expose
 the same two stable selectors and exclusions.
 
-Authored, unrun regressions in
+Implemented regressions in
 [`tests/project_candidate/signature_ownership.rs`](../tests/project_candidate/signature_ownership.rs)
 cover Bytes and String wrappers, legacy borrowed parameters, bare owning String
 parameter normalization, provider construction, caller projection,

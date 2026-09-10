@@ -1,8 +1,8 @@
 # Public Owned Data API v1
 
-Status: implementation and nonignored regression inventory are exact-tag
-hosted green at v0.2.0; generated packages remain unpublished and formal API
-promotion is not claimed.
+Status: implemented bounded Project-v8 API; generated packages remain unpublished
+and formal public promotion remains open. Release regression evidence is **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: language users, generated-SDK consumers, tool authors, and compiler
 contributors.
@@ -189,13 +189,13 @@ or semantic validity. Provider-validation precedence and accepted descriptor
 bytes remain unchanged. The focused regressions in
 `crates/semaprax-native-rust-owned-data-package/src/descriptor_input_tests.rs`
 cover exact/plus-one input framing, canonical replay, domain separation and
-early rejection through the public builder. They are authored but unrun.
+early rejection through the public builder. They are implemented.
 
 The shared native provider-binding check also compares borrowed text rather
 than formatting a copy of the caller-supplied digest. It retains the exact
 single-binding-line predicate, including rejection of duplicate or malformed
 lines, without imposing a new digest grammar or changing error precedence.
-The same unrun regression module compares the old and new predicates on
+The same released regression module compares the old and new predicates on
 hostile line/digest combinations and an oversized digest mismatch.
 
 The lower native package reader enforces parameter-identity uniqueness within
@@ -203,15 +203,15 @@ each export, matching the compiler's descriptor parser. Correctly recomputing
 the digest does not authorize two parameter ordinals to share an identity.
 This shared v8/v10 rejection leaves canonical compiler-produced bytes and
 identifier grammars unchanged. It is a structural replay check, not independent
-proof of provider semantics. Authored, unrun regressions live in
-`tests/public_api_descriptor_v1/parameter_identity.rs` and
+proof of provider semantics. Implemented regressions live in
+`tests/projections/public_api_descriptor/parameter_identity.rs` and
 `crates/semaprax-native-rust-owned-data-package/src/descriptor/tests.rs`:
 the root cases retain real HIR and exact canonical framing while reminting
 duplicate-ID mutations; lower cases cover both schemas and valid parameter
 boundaries as well as duplicates. Structural uniqueness is per export, not a
 new cross-export identity rule.
 
-The additional `tests/public_api_descriptor_v1/semantic_replay.rs` cases
+The additional `tests/projections/public_api_descriptor/semantic_replay.rs` cases
 distinguish retained-HIR binding from framing and digest rejection. Each pair
 derives two authentic descriptors from separately checked source, first
 replays each against its own HIR, then cross-replays both directions using
@@ -227,7 +227,7 @@ prove equal function behavior. Body-only and function-display-name controls
 preserve descriptor bytes; parameter presentation names are included facts.
 Parameter IDs derive from function identity and ordinal, so no independent
 source-authored parameter-ID mutation is claimed. These added cases are
-authored and unrun; production code, schemas and existing golden bytes remain
+included in the v0.4.0 hosted-green regression corpus; production code, schemas and existing golden bytes remain
 unchanged.
 
 This descriptor is the sole semantic API source for JavaScript bindings,
@@ -330,7 +330,7 @@ Only a successfully initialized invocation owns a context-close obligation.
 Public Rust signatures, provider C and ABI,
 descriptors, and manifest schemas stay unchanged; generated safe/private Rust and
 its integrity bindings intentionally change. Hostile-provider protocol tests
-are authored but unrun; this is not a safety claim against arbitrary malicious
+are implemented; this is not a safety claim against arbitrary malicious
 native machine code.
 
 The subsequent [native internal String correction](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
@@ -341,7 +341,7 @@ length-header helpers and a per-function String ledger. Full translation units
 with Strings, including unselected functions, intentionally change native C and
 dependent artifact bindings; String-free output remains exact. Public types,
 descriptors, schemas, v10 output, and activated Project admission are unchanged.
-Physical allocator and external-consumer evidence is authored but unrun.
+Physical allocator and external-consumer evidence is implemented.
 
 The authored native correction uses a 13-bit one-based slot (`1..=4096`)
 and a nonreused 51-bit issuance serial within one statically linked provider
@@ -375,8 +375,7 @@ reuses the byte-identical v8 input helper; v8 JavaScript remains unchanged by
 that extension. V9/v10 JavaScript and dependent artifact bindings intentionally
 change, not descriptors, Wasm, or TypeScript declarations. Their record-field
 authentication, scalar validation, and consume-before-UTF-8-decoding rules
-remain in force. Real-package hostile-input regressions are authored but
-unrun, not promotion evidence; their owner is
+remain in force. Real-package hostile-input regressions are release-tested, not promotion evidence; their owner is
 [`tests/project/owned_input_admission.rs`](../tests/project/owned_input_admission.rs),
 alongside the preserved v8 renderer known answers.
 
@@ -388,7 +387,7 @@ actual facade's `TypeError` and fixed-input diagnostic, followed by healthy
 same-instance calls. An assertion that a forbidden input was accepted must not
 be swallowed by a capability-detection catch. The direct/variant v8 and UTF-8
 consumer tests also require Node execution instead of returning success when
-Node cannot start. These evidence corrections are authored and unrun; generated
+Node cannot start. These evidence corrections are included in the v0.4.0 hosted-green regression corpus; generated
 runtime bytes, schemas, and support status are unchanged.
 
 The subsequent [owned npm invocation correction](OWNED-NPM-INVOCATION-V1.md)
@@ -426,7 +425,7 @@ Filesystem materialization uses the shared
 [Unix npm publication boundary](PROJECT-MANIFEST-V2.md): final parent binding
 compares held/reopened filesystem identities as well as canonical path text.
 Same-path parent replacement must not turn a package retained in a displaced
-directory into reported success. The added physical regressions are unrun;
+directory into reported success. The admitted release regressions are HOSTED GREEN;
 no Windows routing change or atomic-publication claim follows.
 
 The separately approved [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)
@@ -434,7 +433,7 @@ change routes Project v8–v10 npm/Web filesystem effects through `semaprax-full
 and the existing held-handle platform authority. Standalone Windows publication
 rejects before output effects; inline carriers and generated bytes are unchanged.
 The private route requires an existing parent and an admitted ASCII output leaf.
-Its source-drift, no-clobber and settlement evidence is authored but unrun.
+Its source-drift, no-clobber and settlement evidence is implemented.
 
 The owned-data Rust package uses manifest
 `semaprax.native-rust-owned-data-sdk.v1`. It binds the same canonical API
@@ -473,11 +472,11 @@ The lower package's `build_script::tests` renders both families for all five
 target identities and authors standalone build-script subprocess checks for
 the current host. The two executables are reused across valid-path, CR/LF,
 missing-variable, target-precedence, and platform-specific non-Unicode cases.
-These regressions are unrun. They test the generated instruction boundary, not
+The implemented release regression corpus is HOSTED GREEN. They test the generated instruction boundary, not
 Cargo's downstream execution, archive linking, pathname authority, or a build
 sandbox; the separate real package consumers remain required.
 
-Focused gate (not executed in this tranche):
+Focused gate (reproducible regression selector):
 
 ```sh
 cargo test --locked -p semaprax-native-rust-owned-data-package build_script::tests
@@ -587,7 +586,7 @@ before UTF-8 imports or semantic execution and preserve the fixed borrowed and
 public-result scratch reservation. This shared v8/v9/v10 correction intentionally
 changes their Wasm bytes and dependent artifact bindings, without changing
 descriptors, public call signatures, or v1-v7 artifacts. Its real-engine poison,
-nested-helper, settlement, and re-entry regressions are authored but unrun.
+nested-helper, settlement, and re-entry regressions are implemented.
 
 ## Compatibility
 
@@ -596,7 +595,7 @@ is an explicit correctness exception to the artifact-byte preservation below:
 Wasm modules emitting this operation and their derived integrity bindings change
 across affected profiles, not just v8. It restores multiplication by zero and
 preserves genuine overflow cleanup; schemas, source semantics, descriptors and
-native code are unchanged. Its cross-target regressions are authored and unrun.
+native code are unchanged. Its cross-target regressions are included in the v0.4.0 hosted-green regression corpus.
 
 Project v8 and every protocol above are additive. Project v1–v7 parsing,
 diagnostic selection, canonical manifest bytes, linked meaning, generated
@@ -705,7 +704,7 @@ stage remains for reconciliation; ordinary held handles are still released.
 Settled failures retain exact-inventory cleanup and sticky primary-error
 precedence. This shared boundary also serves the additive v9/v10 packages.
 Private regressions inject closed archive failures and exercise real held-stage
-inventory preservation, including foreign bytes. They remain unrun and do not
+inventory preservation, including foreign bytes. Their release coverage is HOSTED GREEN, but injected archive failures do not
 prove physical archiver settlement or process quiescence.
 
 The seven-file outer package has the same one-way publication boundary:
@@ -716,8 +715,8 @@ published tree for reconciliation; moving a published tree back to its former
 staging name cannot restore deletion authority. Private held-filesystem
 regressions cover preparation cleanup, retained post-transition stages, a real
 no-clobber collision, and Unix post-rename displacement back to the stage name.
-They remain unrun and do not establish hostile same-principal isolation or
-permanent pathname binding.
+Their release coverage is HOSTED GREEN without establishing hostile
+same-principal isolation or permanent pathname binding.
 
 The same retained HIR supplies the interpreter and native O0/O2 corpus checks.
 A separate raw-Wasm ABI observer uses the unchanged production arena/core
@@ -883,7 +882,7 @@ is generated Rust/ABI-double protocol evidence, not real C-provider cleanup,
 physical allocator accounting, panic traversal across FFI, OOM recovery,
 `panic=abort` recovery, or protection against hostile native machine code.
 
-Scoped validation of that joint-failure batch passes all 50 lower-package unit
+Historical scoped validation of that joint-failure batch passed all 50 lower-package unit
 tests on Linux AArch64/Rust 1.88 and macOS AArch64/Rust 1.98. The two new modes
 run across five owned result shapes (`Bytes`, `Option<Bytes>`,
 `Result<Bytes, i64>`, UTF-8, and the flat record), at both optimization levels:
@@ -898,7 +897,9 @@ the two documentation tests pass. The existing frame-product suite also passes
 on both hosts after retaining its exact original browser provisioning command
 and adding an independently pinned variant command: nine tests pass, while the
 three explicitly provisioned TypeScript/sanitizer/npm-installation tests were
-not selected. Windows, full-profile, and hosted claims remain open.
+not selected. Those counts do not describe Windows or unselected gates. The implemented
+release corpus has the current hosted-green baseline; historical executions
+retain their actual selected scope.
 
 The complete existing
 `project_v8_npm_and_rust_routes_run_the_same_corpus_before_and_after_display_rename`
@@ -924,7 +925,7 @@ semantics without weakening publication checks. This is local generated-package
 and consumer evidence, not a Rust-1.85 compiler build, exact Rust 1.85.0,
 Windows, hosted, published-SDK or repository-MSRV evidence.
 
-The provisioned [Owned Data Browser v1 fixture](../platform-tests/owned-data-browser-v1/README.md)
+The provisioned [Owned Data Browser v1 fixture](https://github.com/wavect/semaprax/blob/main/platform-tests/owned-data-browser-v1/README.md)
 imports two actual generated packages in the existing three browser projects,
 with mandatory distinct same-origin URLs and an exact twelve-artifact request
 inventory. The original four-export direct-Bytes Project is unchanged. A separate
@@ -940,9 +941,10 @@ pairs. Required shared/resizable/transfer features fail closed when unavailable.
 Both compiler tests pass locally on Linux Rust 1.88 and macOS Rust 1.98. Actual
 CLI publications passed a local Chromium-only run with cached Playwright 1.62.0
 and Chromium 151.0.7922.34, using unchanged test/config copies and retained input
-bytes. That is not the pinned Playwright 1.55.0 three-browser gate, which remains
-unrun; Firefox/WebKit, hosted provenance, raw-carrier fault coverage and physical
-cleanup traces remain separate obligations. No production, schema, dependency
+bytes. That is not the pinned Playwright 1.55.0 three-browser gate, whose separately provisioned execution cannot be inferred from this local
+witness. Firefox/WebKit breadth, raw-carrier faults and physical cleanup traces
+retain their own selected-gate requirements. The implemented release corpus has
+the current hosted-green baseline. No production, schema, dependency
 or support-status changes follow from extending this evidence fixture.
 
 ### Offline installed-package gate
@@ -1121,7 +1123,7 @@ an explicit retained function that is absent from the selected descriptor. The
 four focused cases pass locally on macOS arm64; this is not cross-backend,
 Windows, minimum-Rust, hosted or support-promotion evidence.
 
-The descriptor fixture `tests/public_api_descriptor_v1/mixed_arity.rs` checks
+The descriptor fixture `tests/projections/public_api_descriptor/mixed_arity.rs` checks
 exact parameter order, names, identities, ordinals, result types and replay,
 including separate seven/eight-parameter selections. A selected ninth parameter
 must yield the exact `SPX-J113` arity diagnostic. The real nine-parameter Project
@@ -1179,14 +1181,15 @@ all 33 requires `SPX-J113` with the exact export-count diagnostic. The previous
 negative selected a nonexistent extra identity, which could conceal a broken
 count guard behind a different rejection.
 
-The companion `public_api_descriptor_v1/limits.rs` changes each of the six
+The companion `tests/projections/public_api_descriptor/limits.rs` changes each of the six
 literal wire limits by minus one and plus one, independently for v8 and v10.
 All 24 submissions retain canonical member order and have freshly recomputed,
 profile-specific digests. Healthy self-replay brackets the mutations; rejection
 must identify invalid limits rather than a stale digest or unrelated subject.
 These are descriptor validation checks, not execution at the runtime capacities.
 All 16 descriptor tests pass in the [scoped local batch](OWNED-NPM-INVOCATION-V1.md#scoped-local-execution)
-on macOS/Rust 1.98 and Linux/Rust 1.88; no hosted promotion follows.
+on macOS/Rust 1.98 and Linux/Rust 1.88; the exact counts remain historical and formal public promotion is separate
+from the current hosted-green release baseline.
 
 ### Owned-output capacity evidence boundary
 

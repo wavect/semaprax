@@ -142,10 +142,9 @@ cargo test --locked -p semaprax --lib project::prepared_interpreter
 cargo test --locked -p semaprax --test interpreter_v1
 ```
 
-These are required gates, not executed results. The implementation must not
-claim hosted support, production readiness, dynamic-path replay, debugger
-support, general incremental compilation, or a memory sandbox from static
-review or authored tests.
+The implemented revision-replacement regression corpus is HOSTED GREEN for
+v0.4.0. This does not establish production readiness, dynamic-path replay,
+debugger support, general incremental compilation, or a memory sandbox.
 
 This operation grants no filesystem refresh, network, clock, backend,
 publication, persistent cache, transport, or mutation authority. A caller using

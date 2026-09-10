@@ -76,12 +76,12 @@ its description, its signature, its facts, and its members.
 
 ## Markdown rendering
 
-The Markdown page starts with `# Module \`<module>\``, a fixed three-line
+The Markdown page starts with `` # Module `<module>` ``, a fixed three-line
 paragraph naming the source of the facts, then bullets for the graph revision,
 permits, and `use` lines. Entries are grouped under `## Records`, `## Variants`,
 `## Classes`, `## Methods`, `## Resources`, `## Interfaces`, `## Protocols`,
 `## Implementations`, and `## Functions`, in that order, omitting empty groups.
-Each entry is `### \`<name>\``, the description lines, the signature in a
+Each entry is `` ### `<name>` ``, the description lines, the signature in a
 `spx` fenced block, an `Identity` bullet, one bullet per fact, and one bullet
 per member kind with the members nested under it, each followed by its
 identity.

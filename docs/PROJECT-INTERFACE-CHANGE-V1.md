@@ -172,9 +172,7 @@ authors conservative rebase/merge success across unrelated body and selected
 display edits, exact replay equivalence, unchanged parents/files, the absence
 of a fabricated runtime-graph declaration, and fail-closed receiver, protocol,
 selected-function, pair, and implementation-identity conflicts. A focused unit
-regression checks one-to-one discovery matching. All are unrun at the user's
-request; no compiler, interpreter, target, or local quality gate was executed
-for this change.
+regression checks one-to-one discovery matching. The implemented release regression corpus is HOSTED GREEN.
 A focused authored Workspace Graph unit regression independently checks that
 `use protocol`, the protocol and member identities, and the source
 implementation identity are absent from both runtime Graph declarations/edges

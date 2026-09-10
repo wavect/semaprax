@@ -126,7 +126,9 @@ embedded fragment digest, and fragment text — including forged-but-re-signed
 envelopes that only the inner replay catches), and CLI exit-code contracts.
 No C++ compiler is invoked and no target execution is claimed; a stable shim
 workflow, exception/ownership policy, maintained adapters, unsafe
-classification, and hosted promotion all remain open.
+classification and public support remain open. The projection's implemented
+regression corpus is HOSTED GREEN; the separately implemented C++ package and
+owned-data adapters retain their own physical-consumer contracts.
 
 ## Scalar-surface widening (2026-08-23)
 

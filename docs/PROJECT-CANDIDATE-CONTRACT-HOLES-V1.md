@@ -146,9 +146,8 @@ constructor limits remain active. Invalid selectors/type preservation use
 draft capacity `SPX-G231` and stale/unresolved drafts `SPX-G232`. Compiler and
 rebase diagnostics propagate from their existing owners.
 
-Authored, unrun evidence lives in
+Release-tested evidence lives in
 `tests/project_candidate/contract_holes.rs` and
-`tests/image_transport_v5/contract_holes.rs`. No compiler, interpreter, tests,
-application executable or long local gate was run for this batch. Recursive
+`tests/image_transport_v5/contract_holes.rs`. The v0.4.0 release regression corpus is HOSTED GREEN. Recursive
 incomplete declarations, general contract inference/proof and executed evidence
 remain outstanding; no completion-matrix row is promoted.

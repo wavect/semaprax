@@ -104,6 +104,6 @@ enumerate storage, overwrite an archive, delete a subject, apply a GC plan,
 select freshness, inspect deployment state, or grant filesystem authority
 beyond the startup-held immutable store operation.
 
-The implementation and hostile cases are authored and intentionally unrun.
-No execution, platform, durability, crash-recovery, generated-client, MCP, or
-completion evidence is claimed by this document.
+The implemented protocol and hostile-input regression corpus are HOSTED GREEN
+for v0.4.0. This does not broaden platform, physical durability, crash-recovery,
+generated-client or MCP support beyond the owning profiles.

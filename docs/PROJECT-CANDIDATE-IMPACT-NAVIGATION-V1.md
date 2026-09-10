@@ -116,12 +116,11 @@ families, proves no runtime liveness, tests or external-consumer compatibility,
 ranks no repair or intent, persists no index, treats bounded/truncated inventory
 as incomplete, and grants no source, execution or publication authority.
 
-Authored, unrun library regressions in
+Release-tested library regressions in
 `tests/project_candidate/impact_navigation.rs` compare every paged row with
 the independently recomputed candidate artifact, preserve compiler order and
 exact metadata, retain truncation/frontier evidence, bind all handles and
 cursors to candidate/query/view/page options, isolate sibling histories, reject
 malformed/stale references, and leave candidates and source unchanged.
 Transport regressions separately cover selected schemas, generated clients,
-MCP, sequential/parallel byte parity and registry immutability. No tests,
-compiler, target, client or application were run while authoring this tranche.
+MCP, sequential/parallel byte parity and registry immutability. The v0.4.0 release regression corpus is HOSTED GREEN.

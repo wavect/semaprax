@@ -23,16 +23,16 @@ the documentation. They are not three products.
 
 | Name | Where it comes from | What it can do |
 | --- | --- | --- |
-| `semaprax` | `cargo install --locked --path .`, or the crates.io compiler package | The standalone compiler: create a calculator project with `new`, then format, check, run, test, inspect, patch, and build source and projects. |
-| `semaprax-full` | `cargo install --locked --path crates/semaprax-toolchain`, from a source checkout only | Everything the standalone compiler does, plus the private host surfaces the published package excludes: `doctor`, Native Rust package publication, Windows revision-store host operations, and the held-parent staged publication route behind its `new`. |
+| `semaprax` | `cargo install --locked --path .`, or the crates.io compiler package | The standalone compiler: create a project with `new`, format, check, run, test, inspect, patch and build admitted source/projects; `doctor` uses the shared fail-closed profile interface. |
+| `semaprax-full` | `cargo install --locked --path crates/semaprax-toolchain`, from a source checkout only | Everything the standalone compiler does, plus private Native Rust package publication, Windows revision-store host operations, Windows owned npm publication, and the held-parent staged publication route behind its `new`. The `doctor` command is shared by both binaries. |
 | `semaprax` inside a tag archive | The [v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0) archives | The archive's `semaprax` *is* the `semaprax-full` binary, renamed during staging, so archive users write `semaprax doctor`, not `semaprax-full doctor`. |
 
 The `semaprax-toolchain` package is `publish = false`; it is never fetched
 from a registry. The naming split and what the standalone package excludes are
 owned by the [release process](RELEASE-PROCESS.md#tag-admission).
 
-Every command shown in this document runs on the standalone `semaprax` except
-`doctor`, and so does every command in the [quickstart](QUICKSTART.md). Both
+Every common command shown here, including `doctor`, is dispatched by both
+binaries; the [quickstart](QUICKSTART.md) also works with the standalone compiler. Both
 binaries accept `semaprax new <destination>`; the standalone compiler creates
 the project through the bounded create-new route in
 [standalone project creation](NEW-PROJECT-STANDALONE-V1.md), while the full
@@ -142,7 +142,7 @@ the same way as Cargo's binary directory above, or invoke the binary by path.
 integrity facts, not signatures, provenance, or publisher authentication. The
 exact published digests, the build evidence behind them, and the full set of
 nonclaims are owned by the release process:
-[hosted release evidence](RELEASE-PROCESS.md#v020-hosted-release-evidence) and
+[v0.4.0 hosted release evidence](RELEASE-PROCESS.md#040-hosted-release-evidence) and
 [nonclaims](RELEASE-PROCESS.md#nonclaims). Do not treat an archive install as
 promotion of any completion-matrix row.
 
@@ -158,8 +158,9 @@ semaprax new first-semaprax
 ```
 
 Wherever this document writes `semaprax-full doctor`, an archive user writes
-`semaprax doctor`. The reverse substitution does not work: the standalone
-compiler refuses `doctor` outright, as shown in the failure table below.
+`semaprax doctor`. The standalone compiler also exposes `doctor` through the
+same shared driver. An unavailable offline profile produces the documented
+fail-closed report; command availability is not production tool authority.
 
 ## Confirm the install works
 

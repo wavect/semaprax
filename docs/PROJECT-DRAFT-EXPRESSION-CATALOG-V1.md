@@ -98,7 +98,7 @@ Draft completion remains explicit and rejects pending holes. Source review,
 retirement of superseded in-memory draft handles, scratch freshness and source
 epoch checks retain their existing editor owners.
 
-Library, transport and editor regression cases are authored but unrun. No
+Library, transport and editor regression cases are implemented. No
 compiler, interpreter, generated client, Node runner, editor host or quality
 gate was executed. The graph-operational programme remains partial, and no
 completion-matrix row is promoted.

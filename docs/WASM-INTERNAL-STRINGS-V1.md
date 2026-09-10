@@ -235,7 +235,7 @@ real engine crash. Boolean-return mint sites are also fault-injected.
 
 Compiler units in `src/wasm/internal_strings/tests.rs` cover the fixed module
 shape, unsupported profile boundaries, guarded matching and selection facts.
-The `tests/nesting.rs` child exercises 32 nested blocks, unary/binary operations,
+The `src/wasm/internal_strings/tests/nesting.rs` child exercises 32 nested blocks, unary/binary operations,
 calls, conditionals, scalar matches and mixed composition on the ordinary test
 thread stack. The separate healthy String work fixture must actually emit a
 module after admission, not stop at an earlier budget refusal. These are

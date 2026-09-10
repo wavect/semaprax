@@ -86,7 +86,7 @@ admitted-closure renderer and is not redirected through this correction.
 Loop fixtures retain existing Copy-only loop admission. Ordinary native
 condition/body cases use scalar-signature helpers that allocate and settle
 one String inside each call; direct String storage in a loop remains
-`SPX-T252`. These fixture corrections are authored and unrun, not a language
+`SPX-T252`. These fixture corrections are included in the v0.4.0 hosted-green regression corpus, not a language
 or backend admission extension.
 
 `tests/native/string_settlement.rs` generates ordinary production C and
@@ -110,15 +110,14 @@ stdout-transcript, contents, v8/v9/v10 provider, and internal interpreter/Wasm
 native parity fixtures retain their exact LF byte assertions. No captured
 output is normalized, no allocation oracle changes, and the helper is not part
 of a generated artifact or production runtime. This portability correction is
-authored but unrun on all hosts.
+implemented on all hosts.
 
 Focused emitter units cover String presence, generic-instance helper
 discovery, bounded output, String-free emission, and frozen profile selection.
 Existing String-operation diagnostics and value-conformance fixtures remain
 required; physical native evidence does not replace them.
 
-Focused execution commands for a subsequently provisioned environment (not run
-for this batch):
+Focused execution commands for the specified provisioned environment:
 
 ```sh
 cargo test --test native string_settlement::
@@ -137,14 +136,13 @@ cargo test --test native string_settlement::provisioned_ordinary_native_string_a
 This cleanup correction does not itself determine String representation. The
 subsequent [native String contents correction](NATIVE-STRING-CONTENTS-V1.md)
 selects the existing length-header runtime for ordinary/stdout generation and
-adds authored, unrun embedded-NUL value evidence. Ordinary Wasm's String host API
+adds release-tested embedded-NUL value evidence. Ordinary Wasm's String host API
 still lacks physical drop settlement, and the ordinary reference interpreter still
 rejects user functions with String-valued signatures. Native allocation
 evidence therefore is not full cross-backend String settlement evidence.
 The distinct [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
-is an authored, unrun opt-in conformance route, not an implicit change to that
+is an implemented opt-in conformance route, not an implicit change to that
 ordinary profile or a target-allocation proof.
 Frozen command/callable projections retain their separate unselected-String
-limitations. The owned-data provider correction is separately authored and
-unrun. These gaps and executed platform/sanitizer evidence remain
+limitations. The owned-data provider correction is separately release-tested. These gaps and executed platform/sanitizer evidence remain
 necessary before broad production-readiness claims.

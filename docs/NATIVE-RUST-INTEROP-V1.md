@@ -188,7 +188,7 @@ The shared Windows directory publisher's legacy rename fallback now explicitly
 zeros its replacement-policy field when switching from the extended flags
 layout. Retries, result mapping, prepared capacity and close behavior stay
 unchanged. Forced-fallback field inspection and native collision fixtures are
-authored but unrun; this correction is not covered by the historical hosted
+implemented; this correction is not covered by the historical hosted
 runs above. See the [publication correction contract](NEW-PROJECT-PUBLICATION-V1.md)
 for the exact API-layout distinction and nonclaims.
 
@@ -384,11 +384,12 @@ built Rust consumer completed the round trip Rust caller → SEMAPRAX export →
 Rust callback → scalar result, including a declared-status failure surfacing
 with its exact domain.
 
-That bidirectional Project evidence is local, single-host, current-head only:
-one macOS `aarch64-apple-darwin` machine. There is no hosted three-host run for
-it, it promotes nothing, and the builder crate and every generated package
-remain unpublished. The hosted runs cited above cover the earlier export-only
-Project surface at their exact tag, not this route.
+The original bidirectional Project witness was local to one macOS
+`aarch64-apple-darwin` machine. Its exact subject remains historical; the
+current implemented release corpus is HOSTED GREEN within its selected host
+profiles. The builder crate and generated packages remain unpublished. The
+earlier export-only run IDs above retain their original tag and scope.
+
 
 ## Diagnostics and nonclaims
 

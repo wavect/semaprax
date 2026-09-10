@@ -294,17 +294,17 @@ source writes, creation followed by rename/body change and merge, a `main`
 placement anchor with existing imports, ID/name collisions, unauthorized
 effects, invalid ownership modes, result scope, raw-source fields, malformed
 bodies, list bounds, and borrowed-byte forwarding to an owned-byte result.
-These regressions have not been run.
+These implemented regressions have hosted-green release evidence.
 
 `candidate/aggregate_nominal.rs` owns nominal selector authentication and
 template discovery; `declaration.rs` owns requested-mode preflight and the
 post-build checked signature gate. Copy and owning modes remain distinct.
-`tests/project_candidate/nominal_declarations.rs` adds authored, unrun cases
+`tests/project_candidate/nominal_declarations.rs` adds release-tested cases
 for unused generic instances, return-only records/variants, monomorphic aliases,
 Option/Result, malformed selectors, non-Copy signatures, recovery and no writes.
 `tests/project_candidate/rebase.rs` adds type-only dependency conflicts.
 
-`tests/project_candidate/owned_declarations.rs` adds authored, unrun
+`tests/project_candidate/owned_declarations.rs` adds release-tested
 composition of data-type creation and local owning helpers, String forwarding,
 checked ownership/cleanup evidence, exact replay, mode rejection and unchanged
 import/source-profile limits. These are not physical execution or allocation
@@ -312,14 +312,14 @@ conformance results.
 
 `candidate/type_declaration.rs` owns record/variant construction, exact planned
 identity inventories and independent source reconstruction.
-`tests/project_candidate/type_declarations.rs` adds authored, unrun type
+`tests/project_candidate/type_declarations.rs` adds release-tested type
 creation, downstream use, identity rejection, bounds and recovery cases. Rebase
 regressions cover creation followed by record evolution and nominal use, plus
 nested identity collisions against independently admitted candidates.
 The former scalar-only field exclusions have explicit positive replay cases
 for `Bytes`, `i32` and existing nominal records; borrowed and self-reference
 inputs retain negative coverage. Additional data-field and ownership cases in
-`tests/project_candidate/data_type_declarations.rs` are authored, unrun.
+`tests/project_candidate/data_type_declarations.rs` are included in the v0.4.0 hosted-green regression corpus.
 
 Creating generic types, classes, resources, interfaces,
 protocols, methods, generic functions, modules, public exports, new imports,

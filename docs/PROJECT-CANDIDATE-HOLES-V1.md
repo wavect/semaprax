@@ -197,6 +197,5 @@ format. They do not add persistence, rebase or publication authority.
 scope/contracts, no incomplete materialization or source/evidence leakage,
 multiple pending holes, failed-fill immutability, local/import call selection,
 stale and duplicate selectors, exact capacity, cross-root determinism, and
-unchanged source files. These tests and compiler/quality gates were not run at
-the user's request. Full programme completion and runtime/hosted guarantees
-remain unclaimed.
+unchanged source files. The implemented regression corpus has hosted-green release evidence. Full
+programme completion and runtime behavior outside this profile remain separate.

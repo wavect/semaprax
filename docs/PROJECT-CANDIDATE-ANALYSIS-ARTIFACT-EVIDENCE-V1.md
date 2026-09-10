@@ -96,15 +96,13 @@ operations. `SPX-G352` reports an internally inconsistent nested shape or
 binding; `SPX-G353` reports final composite capacity overflow. Failure does not
 substitute empty artifact evidence.
 
-Authored, unrun regressions in
+Implemented regressions in
 `tests/project_candidate/analysis_artifact_evidence.rs` compare the complete
 report with independently invoked coverage and delta owners, exercise changed
 and unchanged Web evidence and admitted npm/OpenAPI/C carriers, check exact
 source/hash/export joins, preserve the other seven boundaries, reject stale and
 sibling selectors and unsupported carrier admission, ignore an unlisted
-deployment file, and preserve source and candidate bytes. No test, compiler
-executable, native compilation, target, package manager or application was run
-for this tranche.
+deployment file, and preserve source and candidate bytes. The v0.4.0 release regression corpus is HOSTED GREEN.
 
 ## V5 build-granted transport
 
@@ -136,7 +134,7 @@ the selected tool as `candidate__analysis-artifact-evidence`; selection adds no
 filesystem, compiler-executable, native-compilation, target-execution or
 publication authority.
 
-Authored, unrun transport evidence lives in
+Release-tested transport evidence lives in
 `tests/image_transport_v5/analysis_artifact_evidence.rs`. It covers exact chunk
 reassembly and report-hash consistency, build gating, selected closed schemas,
 all three generated clients, MCP discovery and direct-frame byte parity,

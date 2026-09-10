@@ -305,5 +305,5 @@ are present. The frozen whole-document raw SHA-256 KATs are:
 | Impact capability | `sha256:20c4f1d72f10d75852580da4ad5a1e43e9c69677e26d88c9c8212bf57531727e` |
 | Review | `sha256:ff8dd7f60be9c8fc0ff06a9216c864e502ec5cca6d577ee460f338b6e6a12cf9` |
 
-Exact-head hosted evidence remains pending; this document makes no status
+Exact-head release evidence is HOSTED GREEN for v0.4.0; this document makes no status
 promotion.

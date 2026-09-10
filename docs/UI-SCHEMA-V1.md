@@ -109,7 +109,7 @@ ABI Report v1 signatures for the same program, determinism double runs, every
 record and function exclusion reason exercised against real programs, per-
 digest-field tamper rejection including re-minted forgeries, budget
 exhaustion, and CLI exit-code contracts. No rendering, runtime, DOM, or target
-execution is claimed; hosted promotion remains pending.
+execution is claimed; release regression evidence is HOSTED GREEN for v0.4.0.
 
 See also [ABI-REPORT-V1.md](ABI-REPORT-V1.md) for the sibling read-only
 projection tranche whose function admission profile this slice mirrors.

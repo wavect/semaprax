@@ -116,7 +116,7 @@ the same selections (with byte-equal native prototypes) and what
 `semaprax openapi` publishes as operations for the same program. No
 resolver, lockfile, registry, compatibility engine, conformance test, SBOM
 tooling, compiler, Node runtime, or any other target execution is involved,
-and hosted promotion remains pending.
+and release regression evidence is HOSTED GREEN for v0.4.0.
 
 See also [ABI-REPORT-V1.md](ABI-REPORT-V1.md) for the sibling read-only ABI
 descriptor whose admission profile this report mirrors, and

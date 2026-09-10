@@ -1,10 +1,8 @@
 # Exact Program Context v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded SEG-02 context bridge; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The bridge is not SEG-02 completion, a runtime root, or Agent syntax.
 
 Audience: compiler contributors, semantic-service implementers, and reviewers
 of exact cross-surface ProgramRoot selection.

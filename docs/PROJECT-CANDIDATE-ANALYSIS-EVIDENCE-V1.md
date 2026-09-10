@@ -1,10 +1,8 @@
 # Project Candidate Analysis Evidence v1
 
-Status: implemented bounded profile; **HOSTED GREEN** under the
-[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
-authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
-observations below retain their narrower scope. Public promotion, registry
-publication and broader product completion remain separately gated.
+Status: implemented bounded evidence composition; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+No completeness, compatibility, installed-consumer discovery or publication is implied.
 
 Audience: agent authors, package-tooling hosts and compiler contributors
 reviewing the explicit analysis boundary of one immutable candidate.
@@ -110,12 +108,10 @@ retain a graph/image/candidate; mutate source; or grant publication authority.
 
 ## Evidence
 
-Authored, unrun regressions in `tests/project_candidate/analysis_evidence.rs`
+Implemented regressions in `tests/project_candidate/analysis_evidence.rs`
 construct an exact candidate-era provider report and two-package source capsule,
 compare the nested replay with its independent owner result, preserve seven
 coverage rows exactly, establish `partial` for explicit called, import-only and
 zero-match consumers, retain exact revisions/digests and import/call rows,
 reject stale, baseline, sibling and tampered evidence, preserve sibling
-determinism and leave candidate/source state unchanged. No tests, compiler,
-package build, target, application or quality gate were run while authoring this
-tranche.
+determinism and leave candidate/source state unchanged. The v0.4.0 release regression corpus is HOSTED GREEN.

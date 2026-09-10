@@ -97,7 +97,7 @@ is added.
 
 [Candidate regressions](../tests/project_candidate/literal_constructors.rs)
 and [protocol regressions](../tests/image_v5/literal_constructors.rs) are
-authored but unrun. They require exact literal contents and source replay,
+implemented. They require exact literal contents and source replay,
 ownership/type/provenance checks, failure immutability and discovery alignment.
 The existing generated Rust client serialized-size gate remains unchanged and
 must still pass for every policy; no client-size cap is raised by this work.

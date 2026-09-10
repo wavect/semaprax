@@ -1,9 +1,10 @@
 # Project Candidate External API Contract Delta v1
 
-Status: library implementation authored and unrun. Project Agent Transport v5,
-generated-client and MCP exposure are authored at this source head where noted
-below. The delta compares caller-declared digest inventories and deliberately
-does not assess compatibility.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: reviewers and agent clients comparing the declared external API
 surface of one retained base Project with one exact candidate.

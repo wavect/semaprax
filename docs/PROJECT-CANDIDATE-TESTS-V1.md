@@ -2,10 +2,11 @@
 
 Audience: agent builders, compiler contributors, embedding-host authors, and reviewers.
 
-Status: implementation and regressions authored, unrun. The user explicitly
-requested no local tests, interpreter execution, compiler runs, or long quality
-gates. This specification does not claim an observed passing execution or a
-completed graph-operational programme requirement.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 This additive library route distinguishes a static affected-test plan from an
 explicit request to execute the complete manifest-declared test closure. It

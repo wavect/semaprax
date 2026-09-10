@@ -1,6 +1,10 @@
 # Offline Semantic Package Lock v2
 
-Status: additive implementation and evidence authored, unrun and unpromoted.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 Audience: package tooling authors and compiler contributors.
 
 Lock v2 is a distinct authority-free graph over at most four exact

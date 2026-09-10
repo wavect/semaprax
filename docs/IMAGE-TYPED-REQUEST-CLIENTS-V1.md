@@ -1,6 +1,10 @@
 # Typed workspace request clients v1
 
-Status: implementation plus Python, Rust, and provisioned TypeScript request-admission evidence authored; expanded gate unrun.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: agent client authors, editor integrators and compiler contributors.
 

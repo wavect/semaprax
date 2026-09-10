@@ -2,10 +2,11 @@
 
 Audience: language users, compiler contributors, agent authors, and reviewers.
 
-Status: implementation and regression evidence authored, **unrun**. The user's
-instruction deliberately skips tests, compiler/interpreter/target execution,
-and long quality gates. This is not verified backend, conformance, performance,
-or full-programme completion evidence.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Static implementations bind local protocol requirements to existing ordinary
 functions by persistent declaration identity. The compiler checks these source

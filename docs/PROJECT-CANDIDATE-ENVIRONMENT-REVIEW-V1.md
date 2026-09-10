@@ -1,9 +1,10 @@
 # Project Candidate Environment Review v1
 
-Status: library implementation authored and unrun. Project Agent Transport v5,
-generated-client and MCP exposure are authored at this source head where noted
-below. This review is descriptive evidence and carries no approval or
-publication authority.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: reviewers and agent clients that need one complete source review
 beside an explicit account of deployment, generated-file and external-API blind

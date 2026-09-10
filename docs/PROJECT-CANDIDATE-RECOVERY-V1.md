@@ -2,8 +2,11 @@
 
 Audience: compiler contributors and agents restoring complete candidates.
 
-Status: additive implementation with focused authored, unrun regression tests.
-No executed validation, target execution, or platform-completion claim.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 `ProjectCandidate::recovery_capsule()` produces canonical compact JSON plus one
 LF, with schema `semaprax.project-candidate-recovery.v1`. Its closed fields bind

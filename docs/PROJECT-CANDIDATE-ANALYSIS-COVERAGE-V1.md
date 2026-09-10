@@ -1,8 +1,10 @@
 # Project Candidate Analysis Coverage v1
 
-Status: additive implementation and regression sources authored, **unrun**.
-No completeness percentage, external-input ingestion, target execution, or
-completion-matrix promotion is claimed.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: agent authors, embedding hosts, and compiler contributors reviewing
 an immutable Project candidate before publication.

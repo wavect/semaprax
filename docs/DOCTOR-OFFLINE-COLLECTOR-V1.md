@@ -1,7 +1,10 @@
 # Provisioned offline doctor collector v1
 
-Status: private implementation; selected Linux unit evidence passes locally;
-physical lifecycle evidence unrun and unpromoted.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: toolchain maintainers, trusted provisioners and security reviewers.
 

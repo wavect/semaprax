@@ -2,10 +2,11 @@
 
 Audience: embedding hosts, compiler maintainers, and agents recovering candidates.
 
-Status: implementation and executable regression cases authored, **unrun**.
-The user explicitly skips tests, compiler/interpreter execution, and long local
-quality gates. This is not verified completion, performance, or publication
-evidence.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 `ProjectCandidateArchive::prepare(candidate, expected_candidate)` creates a
 self-contained source-backed archive for one complete candidate. `to_json()`

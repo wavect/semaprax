@@ -1,7 +1,10 @@
 # Candidate Constructor Schemas v1
 
-Status: compiler-owned structural documents with authored, unrun regression
-coverage. No semantic acceptance or hosted-validation claim.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: agent builders, compiler contributors, and reviewers.
 

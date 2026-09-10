@@ -2,8 +2,11 @@
 
 Audience: compiler contributors, agent builders, and reviewers.
 
-Status: additive library implementation with focused authored, unrun tests.
-No test-execution, hosted-validation, or general diagnostic-repair claim.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 A rejected semantic intention remains queryable through a diagnostic record,
 without treating invalid source as a Project revision, candidate, or checked

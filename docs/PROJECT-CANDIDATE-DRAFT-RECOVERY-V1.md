@@ -1,7 +1,10 @@
 # Typed-Hole Draft Recovery v1
 
-Status: implementation and regression evidence authored, unrun. No compiler,
-test, runtime or completion gate was executed for this change.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: embedding hosts, agent client authors and compiler contributors.
 

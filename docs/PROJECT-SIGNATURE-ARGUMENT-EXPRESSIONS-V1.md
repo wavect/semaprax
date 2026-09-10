@@ -2,8 +2,11 @@
 
 Audience: agent authors, compiler contributors, and candidate reviewers.
 
-Status: implementation and regression cases authored, **unrun**. No runtime,
-cross-backend, performance, or complete signature-evolution claim.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 The ordered `parameters` form of `change_function_signature` adds one explicit
 alternative for a fresh scalar or checked Copy nominal parameter:

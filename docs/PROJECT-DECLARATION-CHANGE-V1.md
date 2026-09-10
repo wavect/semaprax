@@ -2,9 +2,11 @@
 
 Audience: compiler contributors and agents constructing Project candidates.
 
-Status: authored, unrun implementation and regression evidence. Local compiler,
-test, and long quality gates were deliberately skipped at the user's request;
-this document makes no verified completion or target-execution claim.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 The additive `add_declaration` intention creates one explicit, monomorphic
 function, record, or variant in an existing Project module. Functions cannot

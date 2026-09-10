@@ -1,7 +1,10 @@
 # Native String Contents v1
 
-Status: corrective implementation and regression evidence authored but unrun;
-no production, package, or cross-platform promotion.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: compiler contributors and native-runtime reviewers.
 

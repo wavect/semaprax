@@ -1,10 +1,10 @@
 # Project Candidate Blind-Spot Declarations v1
 
-Status: library, Project Agent Transport v5, generated-client, MCP-catalogue,
-and regression sources authored, **unrun**. The individual generated-file and
-external-API attachments are descriptive caller declarations. A separate
-bundle composes them with the existing deployment-contract declaration. These
-surfaces do not establish observed, current, or conformant external state.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: agent authors and compiler contributors attaching bounded facts to
 one exact admitted candidate.

@@ -1,7 +1,10 @@
 # Prepared Project Revision Replacement v1
 
-Status: additive implementation and regression evidence authored;
-unrun and unpromoted.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: compiler contributors, editor and agent integrators, and reviewers.
 

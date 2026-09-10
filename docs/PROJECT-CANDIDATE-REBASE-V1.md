@@ -1,8 +1,10 @@
 # Project Candidate Semantic Rebase and Merge v1
 
-Status: authored, unrun; a conservative slice of the
-[graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md). This is not
-arbitrary source merging, behavioral equivalence, or publication authority.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: agent builders, compiler contributors, and reviewers.
 

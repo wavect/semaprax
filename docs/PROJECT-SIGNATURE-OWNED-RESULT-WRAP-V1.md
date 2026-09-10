@@ -1,8 +1,10 @@
 # Project signature owned-result wrapping v1
 
-Status: **Partial; library implementation and regressions are authored and
-unrun.** This stage is a closed local-candidate migration. It is not an ABI,
-package-consumer, deployment, runtime-equivalence, or compatibility claim.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: compiler contributors, SDK integrators, and candidate reviewers.
 

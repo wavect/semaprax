@@ -1,9 +1,10 @@
 # Project Signature Evolution v1
 
-Status: the bounded owner-to-borrowed-slice library path is implemented with
-authored, unrun regressions. Earlier focused owning-signature evidence remains
-recorded below; the graph-operational programme remains Partial, with
-full-profile and hosted validation pending.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: agent builders, compiler contributors, and reviewers.
 

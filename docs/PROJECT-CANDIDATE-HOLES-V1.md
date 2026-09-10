@@ -2,9 +2,11 @@
 
 Audience: agent client authors and compiler contributors.
 
-Status: authored, unrun; a bounded addition to the
-[full graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md), not general
-incomplete-program compilation or completion of that programme.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 `ProjectCandidateDraft` holds an immutable private last-valid
 `Arc<ProjectCandidate>` and a bounded map of pending typed body intentions.

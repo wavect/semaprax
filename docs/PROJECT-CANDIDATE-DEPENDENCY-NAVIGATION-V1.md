@@ -2,9 +2,11 @@
 
 Audience: agent authors, embedding hosts, and compiler contributors.
 
-Status: implementation and regression cases authored, **unrun**. No measured
-token reduction, latency improvement, target execution, or completion promotion
-is claimed.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Candidate dependency navigation exposes the existing four compact dependency
 views over the exact fully admitted revision of one immutable candidate. It

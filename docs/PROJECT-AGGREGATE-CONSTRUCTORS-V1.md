@@ -1,7 +1,10 @@
 # Project Aggregate Expression Constructors v1
 
-Status: authored, unrun; an additive constructor slice of the graph-operational
-programme. No completion-matrix promotion or runtime evidence claim.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 Audience: agent builders, compiler contributors, and reviewers.
 

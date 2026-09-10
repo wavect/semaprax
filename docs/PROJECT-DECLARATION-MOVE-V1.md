@@ -2,9 +2,11 @@
 
 Audience: compiler contributors and agents relocating checked declarations.
 
-Status: authored implementation and unrun regression evidence. The user's
-instruction explicitly skips local compiler, test, executable, and long quality
-gates. This is not verified completion or target-execution evidence.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, or separately provisioned observations below retain
+their narrower scope; public promotion and broader product completion remain
+separately gated.
 
 The additive `move_declaration` intention relocates one existing top-level
 function between already authenticated Project modules. It preserves the

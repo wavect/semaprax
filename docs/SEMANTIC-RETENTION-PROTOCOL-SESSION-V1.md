@@ -1,9 +1,9 @@
 # Semantic retention protocol session v1
 
-Status: **Partial, authored/unrun**. The v5 embedding-host integration and its
-regression are authored. Library compilation is the only executed gate. No wire
-method, immutable subject store, test target, hosted run, GC, or restoration is
-claimed.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+The broader lifecycle remains Partial. This attachment itself adds no wire
+method, immutable subject store, GC or restoration authority.
 
 Audience: embedding hosts, compiler contributors, and protocol reviewers.
 
@@ -67,10 +67,11 @@ mislabel archive export or refresh as storage.
 
 ## Authored evidence
 
-The existing semantic store harness authors a real successful candidate archive
+The existing semantic store harness covers a real successful candidate archive
 store followed by two v5 sessions holding the same explicitly uninitialized
 registry. The first session records generation one. The second returns the
 exact stale cursor outcome while the archive remains present. The regression
 also pins retained latest-outcome bytes and verifies that an unattached session
 reports configuration failure without denying or removing the prior store.
-These cases are authored and intentionally unrun.
+These implemented cases are HOSTED GREEN for v0.4.0. The original compile-only
+validation note is historical, not the current release evidence ceiling.

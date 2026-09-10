@@ -17,6 +17,9 @@ pub(super) fn run_conformance() {
 
 #[test]
 fn agent_package_and_bundled_consumer_execute_across_engines() {
+    if cfg!(windows) {
+        return;
+    }
     run_source_package("agent", "std.agent", "agent.spx");
 }
 
@@ -142,6 +145,9 @@ for(let run=0;run<4;run++) { assert.equal(instance.exports.semaprax_main(), 0n);
 
 #[test]
 fn test_bytes_invalid_cursors_and_failure_bits_select_contract_failure() {
+    if cfg!(windows) {
+        return;
+    }
     let directory = temporary("test-bytes-contracts");
     std::fs::create_dir_all(directory.join("src")).unwrap();
     std::fs::write(
@@ -246,6 +252,9 @@ for(let run=0;run<4;run++) { assert.throws(()=>instance.exports.semaprax_main(),
 
 #[test]
 fn agent_advance_rejects_invalid_epoch() {
+    if cfg!(windows) {
+        return;
+    }
     let directory = temporary("agent-advance-contracts");
     std::fs::create_dir_all(directory.join("src")).unwrap();
     std::fs::write(

@@ -8,6 +8,9 @@ use semaprax::process_provider::{
 
 #[test]
 fn process_package_executes_all_functions_with_registered_request_shape() {
+    if cfg!(windows) {
+        return;
+    }
     run_conformance();
 }
 

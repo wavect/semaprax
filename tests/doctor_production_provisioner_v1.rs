@@ -330,11 +330,11 @@ fn provisioner_source_tripwires(sources: &Sources) -> Result<(), String> {
         &sources.specification,
         "provisioner specification",
         &[
-            "Status: private Linux implementation contract",
+            "Status: implemented bounded profile; **HOSTED GREEN** under the",
             "Missing, malformed, or",
             "noncanonical key material makes the production entry unavailable",
             "namespace, cgroup, sealing, or kernel prerequisites fail rather than skip.",
-            "ordinary CLI activation remain unrun and unpromoted",
+            "does not make an ordinary `semaprax doctor --profile` selector authoritative",
         ],
     )?;
     for (owner, source) in [

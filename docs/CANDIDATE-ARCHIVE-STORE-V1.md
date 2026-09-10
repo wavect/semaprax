@@ -1,6 +1,7 @@
 # Candidate archive store v1
 
-Status: additive Unix implementation and regressions authored; unrun and unverified.
+Status: implemented bounded Unix store; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: embedding hosts, compiler contributors, and agent workflow integrators.
 
@@ -144,7 +145,7 @@ without opening or mutating a store. This is not Windows store support.
 Independent archive/compiler diagnostics are preserved. They are not converted
 to a claim that stored source or a candidate is valid.
 
-`src/candidate_archive_store/tests.rs` authors real filesystem cases for exact
+`src/candidate_archive_store/tests.rs` covers real filesystem cases for exact
 persistence/restoration after original-source removal; no adoption; wrong
 candidate binding and same-length tampering; root permissions/spelling/links;
 cooperative lock contention; selected symlinks/hard links and foreign entries;
@@ -154,8 +155,13 @@ exact load. Fault callbacks are private test seams around real filesystem
 operations. The post-pivot case performs the real rename before an injected
 observation error; it does not claim a physical crash or fsync fault was induced.
 
-All these regressions remain unrun in this change. No compiler gate, test,
-interpreter, target runtime, or filesystem fixture was executed during authoring.
-No semantic cache speedup, serialization of trusted HIR, draft persistence,
-source publication, network, build, or approval authority is provided. The
-graph-operational full goal remains Partial.
+The implemented regressions have **HOSTED GREEN** v0.4.0 release evidence.
+The earlier authoring pass did not execute them locally; that record does not
+leave the released implementation unverified. Compilation for a Unix target
+family is not evidence of physical execution on every host in that family.
+
+No semantic cache speedup, serialization of trusted HIR, source publication,
+network, build, or approval authority is provided. Typed-draft storage and
+[automatic candidate/draft retention](AUTOMATIC-CANDIDATE-DRAFT-LIFECYCLE-V1.md)
+are implemented additive contracts, not missing functionality of this store.
+The graph-operational full goal remains Partial.

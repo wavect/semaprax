@@ -1,6 +1,7 @@
 # Candidate archive CLI v1
 
-Status: implementation and regression cases authored, unrun.
+Status: implemented bounded CLI and startup recovery; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 Audience: local hosts and agent workspace integrators.
 
 ```text
@@ -92,13 +93,17 @@ into a complete candidate by choosing the complete-candidate loader.
 
 ## Evidence and limitations
 
-`tests/semantic/candidate_archive_cli.rs` authors real CLI persist/load after removal
+`tests/semantic/candidate_archive_cli.rs` covers real CLI persist/load after removal
 of the original sources, duplicate publication preservation, startup recovery
 against edited live source, authority exclusion, strict policy/version/count
 checks, and RPC rejection. Historical complete CLI help snapshots remain pinned
-after explicit removal of the two additive command lines. These tests are
-unrun; no compiler or store fixture execution occurred during implementation.
+after explicit removal of the two additive command lines. The implemented
+regression corpus has **HOSTED GREEN** release evidence. The earlier authoring
+pass did not execute it locally; that historical fact is not its current status.
 
 This supplies explicit candidate persistence and startup recovery, not a warm
-cross-process HIR cache, automatic durable registry, complete session checkpoint,
-eviction/GC, runtime verification, or measured performance improvement.
+cross-process HIR cache, complete session checkpoint, eviction/GC, runtime
+verification, or measured performance improvement. The separately implemented
+[automatic candidate/draft lifecycle](AUTOMATIC-CANDIDATE-DRAFT-LIFECYCLE-V1.md)
+composes held stores and retention metadata without changing these v1 CLI
+commands or granting source-publication authority.

@@ -2,10 +2,11 @@
 
 Audience: agent and tool authors, plus compiler contributors.
 
-Status: locally implemented and bounded. This is the first executable slice of
-the roadmap 0.2 item "a persistent graph daemon and JSON-RPC agent
-transport". It adds the transport and one warm in-memory session per process;
-persistent indexed revisions remain open.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 ## Purpose
 

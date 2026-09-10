@@ -1,7 +1,10 @@
 # Semantic Package Report v2
 
-Status: additive implementation and evidence authored, not locally run or
-hosted-promoted.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 Audience: package tooling authors and compiler contributors.
 
 Semantic Package Report v2 is a deterministic, authority-free semantic

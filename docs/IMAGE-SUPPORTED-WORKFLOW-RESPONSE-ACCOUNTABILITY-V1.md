@@ -1,7 +1,10 @@
 # Supported workflow response accountability v1
 
-Status: implemented with focused local discovery and generated-client evidence;
-the broader Phase 1 product surface remains **Partial**.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: agent-client authors, embedding hosts, workflow reviewers, and
 evidence-runner authors.

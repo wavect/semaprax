@@ -2,8 +2,11 @@
 
 Audience: agent and tool authors, plus compiler contributors.
 
-Status: locally evidenced, read-only, single-file. Schema
-`semaprax.hygienic-gen.v1`. Diagnostic family `SPX-Y`.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 ## Command
 

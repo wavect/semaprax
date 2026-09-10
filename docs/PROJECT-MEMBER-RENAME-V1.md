@@ -1,6 +1,10 @@
 # Project Member Rename v1
 
-Status: Partial; focused implementation and regression evidence pass locally.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: compiler contributors, agent builders and semantic tool authors.
 

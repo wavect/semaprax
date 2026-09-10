@@ -1,8 +1,10 @@
 # Doctor sealed input v1
 
-Status: private input-boundary implementation with local Linux acquisition/creator and
-macOS unsupported-host/common-precedence test evidence. This primitive
-alone supplies no profile format, CLI activation, executable isolation, or WP-05 promotion.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: CLI/platform contributors and reviewers.
 

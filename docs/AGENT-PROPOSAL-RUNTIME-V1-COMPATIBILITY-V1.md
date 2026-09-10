@@ -2,8 +2,11 @@
 
 Audience: maintainers, runtime integrators, and compiler contributors.
 
-Status: additive AGENT-04 final-message bridge with locally passed focused
-evidence. This is not a Runtime v1 schema or API revision.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 ## Boundary
 

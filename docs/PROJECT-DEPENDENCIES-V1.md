@@ -1,6 +1,10 @@
 # Project Dependencies v1
 
-Status: additive implementation with local executable gates; unpromoted.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: application authors, package authors, Rust host-adapter authors, and
 compiler contributors.

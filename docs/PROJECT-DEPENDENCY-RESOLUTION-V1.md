@@ -1,10 +1,10 @@
 # Project Dependency Resolution v1
 
-Status: additive implementation with a local executable gate
-(`tests/project.rs::dependency_resolution_v1`); unpromoted. Resolution is a
-read-only analysis over a caller-populated local cache. No registry is
-contacted, no package is acquired or built, and no `ACTIVE` pivot or artifact
-is produced.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: people and agents building with `semaprax.toml`, package-tooling
 authors, and compiler contributors.

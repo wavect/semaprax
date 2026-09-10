@@ -1,7 +1,10 @@
 # Universal Semantic Transaction Composition v1
 
-Status: additive authority-free composition core; five focused integration
-cases passed locally on 2026-09-05.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: compiler contributors, agent-tool authors, and reviewers of
 revision-bound semantic change composition.

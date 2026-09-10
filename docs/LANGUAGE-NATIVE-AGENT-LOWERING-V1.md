@@ -1,8 +1,10 @@
 # Language-native Agent lowering v1
 
-Status: locally exercised bounded AGENT-03 semantic-lowering, Project
-integration, and source-selected Agent Lifecycle v1 bridge. Hosted promotion
-and broader Agent execution remain separate gates.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: compiler contributors, semantic-workspace integrators, and reviewers.
 

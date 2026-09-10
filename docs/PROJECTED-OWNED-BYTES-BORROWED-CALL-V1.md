@@ -1,7 +1,10 @@
 # Projected Owned-Bytes Synchronous Borrowed Call v1
 
-Status: Partial; additive implementation and focused evidence are authored but
-unpromoted.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: compiler, ownership-verifier, backend, and evidence maintainers.
 

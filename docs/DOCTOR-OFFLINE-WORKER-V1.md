@@ -1,6 +1,10 @@
 # Provisioned offline doctor worker v1
 
-Status: authored private Linux worker; unrun and unpromoted.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: toolchain maintainers, worker provisioners and security reviewers.
 

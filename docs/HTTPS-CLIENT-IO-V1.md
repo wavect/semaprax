@@ -1,7 +1,10 @@
 # HTTPS Client I/O v1
 
-Status: locally evidenced source, hosted-provider, native C11, Core-Wasm, and
-generated npm fixture tranche under Node and Chromium.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: language users, host integrators, compiler contributors, and reviewers.
 

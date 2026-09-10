@@ -1,6 +1,10 @@
 # Offline Package Compatibility Evidence v1
 
-Status: additive focused evidence authored, unrun and unpromoted.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 Audience: package tooling authors and compiler contributors.
 
 Exact base/candidate reports must be byte-identical to selected subjects in

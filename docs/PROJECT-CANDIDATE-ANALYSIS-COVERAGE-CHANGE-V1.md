@@ -1,8 +1,10 @@
 # Project Candidate Analysis Coverage Change v1
 
-Status: **Partial, authored/unrun**. The authority-free library report and
-regressions are authored. No test target, protocol route, generated client, MCP
-surface, hosted run, or executed comparison is claimed.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: agent authors, compiler contributors, and candidate reviewers.
 

@@ -1,8 +1,11 @@
 # Image Source Commit Protocol v5
 
 Audience: trusted host integrators and agent-client authors.
-Status: authored optional v5 extension with unrun regression cases. No compiler,
-Git adapter process, test execution or hosted promotion is claimed for this batch.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 This extension connects retained complete candidates to the existing real local
 [Git publication authority](PROJECT-CANDIDATE-GIT-PUBLICATION-V1.md). Startup

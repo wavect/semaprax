@@ -1,8 +1,10 @@
 # Project graph-operational Git workflow v1
 
-Status: integrated regression executed locally for exact subject
-`4e6751f92525ed8e4bb5e859233616df7adc86d1`; all four selected Git-workflow
-tests passed, including post-CAS result-loss handling. Full goal remains Partial.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: compiler contributors, embedding hosts, and agent workflow integrators.
 

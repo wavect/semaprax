@@ -1,7 +1,10 @@
 # Candidate Function Reference Rebind v1
 
-Status: Partial, authored and unrun. This contract adds one authority-free candidate
-navigation operation. It does not promote cross-revision references generally.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: agent authors, compiler contributors, and embedding hosts.
 

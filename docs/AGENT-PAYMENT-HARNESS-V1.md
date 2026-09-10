@@ -1,7 +1,10 @@
 # Agent Payment Harness v1
 
-Status: bounded local implementation; public, hosted, language-syntax, and
-production-payment claims remain unsupported.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: compiler contributors, Agent Runtime integrators, and Economic Agent
 host authors.

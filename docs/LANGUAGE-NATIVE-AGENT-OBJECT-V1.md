@@ -3,13 +3,11 @@
 Audience: compiler contributors, Agent Runtime contributors, provider-adapter
 authors, and semantic-workspace integrators.
 
-Status: bounded phase-1 compiler slice implemented locally, extended by the
-additive Agent Proposal Schema v1 grammar and decoder, the additive
-AgentDefinition v2 / AgentDeployment v1 separation, the additive Agent
-Lifecycle v1 compiled stage binding and single acyclic execution, and the
-additive Agent Checkpoint v1 revision-bound durable slice over that lifecycle's
-single external boundary; long-term language, harness, effects, and durability
-goals remain proposed and unsupported.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 ## Purpose
 

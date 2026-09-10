@@ -2,7 +2,11 @@
 
 Audience: agent and tool authors, plus compiler contributors.
 
-Status: locally implemented and bounded. Hosted promotion is not claimed.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 `semapraxd --stdio` is a persistent, sequential agent session over one exact
 Project Manifest v1 input. The host selects the manifest when the process

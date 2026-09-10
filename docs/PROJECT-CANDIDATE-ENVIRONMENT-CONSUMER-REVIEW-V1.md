@@ -1,9 +1,10 @@
 # Project Candidate Environment Consumer Review v1
 
-Status: **Partial**. The library composition, Project Agent Transport v5 route,
-closed schemas, generic-client discovery, MCP catalogue entry and regression
-sources are authored. The regressions are unrun. This status does not claim a
-current-head test, generated-client, MCP, runtime, provider or deployment pass.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: agent clients and reviewers that need declared environment blind
 spots and a bounded inventory of known package consumers beside one exact

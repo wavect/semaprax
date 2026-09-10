@@ -1,9 +1,10 @@
 # Project Candidate Package Consumer Replay v1
 
-Status: additive implementation with regressions that **execute locally** in
-the `project_candidate` harness.
-No installed-consumer discovery, compatibility, execution or publication claim
-is made.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: compiler contributors, package-tooling hosts and agents reviewing one
 exact Project candidate against an explicit package corpus.

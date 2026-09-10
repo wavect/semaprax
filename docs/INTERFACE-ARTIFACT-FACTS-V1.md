@@ -1,7 +1,10 @@
 # Interface and artifact facts v1
 
-Status: additive SEG-02 input with locally passing focused evidence. This is not SEG-02
-completion or a ProgramRoot v2 implementation.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: compiler contributors, semantic-service implementers, and reviewers
 of source-owned ProgramRoot facts.

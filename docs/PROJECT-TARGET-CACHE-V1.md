@@ -1,8 +1,10 @@
 # Project target cache v1
 
-Status: Partial; exact scalar Web, pathless native-C11 and pathless npm target
-lanes and focused regression sources are authored. No target execution,
-benchmark, test suite, or completion gate was run.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: compiler contributors and embedding hosts that already hold an
 admitted immutable Project revision.

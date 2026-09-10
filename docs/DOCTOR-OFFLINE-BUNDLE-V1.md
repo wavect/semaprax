@@ -1,9 +1,10 @@
 # Doctor offline bundle v1
 
-Status: private inventory parsing and preparation with local macOS structural
-and Linux sealed-input/bundle/request test evidence. No CLI
-activation, production profile provisioning, executable isolation, or WP-05
-promotion.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, physical/provisioned, benchmark, or exact-subject
+observations below retain their narrower scope. Public promotion, registry
+publication and broader product completion remain separately gated.
 
 Audience: CLI/platform contributors and reviewers.
 

@@ -2,9 +2,10 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: locally evidenced. Hosted promotion, safe Windows npm publication,
-registry publication, and release promotion remain open, so the completion
-claim remains Partial.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Safe Windows npm
+publication, registry publication and broader public support remain separate;
+the mature-product claim remains Partial.
 
 ## Closed fixed-adapter profile
 
@@ -85,7 +86,9 @@ the exact input profile, four adapter capabilities, success-only transcript
 policy, 65,536-byte bound, one-write-per-path maximum, bool result, exits
 0/1/2, and Wasm digest. Independent replay rebuilds the semantic recipe,
 selected command, Wasm bytes, metadata, artifact inventory, and v4 payload
-digest. It grants no publication authority.
+digest. It grants no publication authority. The admitted implementation and
+its maintained native/Wasm/Node/package regressions are **HOSTED GREEN** for
+v0.4.0; historical local evidence retains its original provenance.
 
 ## Nonclaims
 
@@ -93,6 +96,6 @@ This profile does not add general or language-level stdin, argv, stderr, files,
 directories, environment access, networking, child processes, callbacks,
 WASI, streaming, multiple writes, dependencies, lockfiles, signing, or
 provenance. It does not claim atomic physical stdout, executable-byte
-determinism, Windows-safe npm publication, registry publication, hosted CI, or
-full v0.2 completion. The generated native runner ABI is internal and is not a
-stable public ABI.
+determinism, Windows-safe npm publication, registry publication, or production
+support. The generated native runner ABI is internal and is not a stable public
+ABI.

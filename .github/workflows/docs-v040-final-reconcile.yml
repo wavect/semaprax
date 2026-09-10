@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: main
           fetch-depth: 0
       - name: Reconcile implemented v0.4.0 documentation statuses
         shell: python
@@ -132,7 +133,6 @@ jobs:
           if missing or no_status:
               raise SystemExit(f'missing={missing} no_status={no_status}')
 
-          # Protect the repository metadata contract used by the documentation test.
           failures = []
           for name in sorted(targets):
               text = (Path('docs') / name).read_text(encoding='utf-8')
@@ -162,4 +162,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs
           git commit -m 'docs: finish v0.4.0 hosted-green status reconciliation'
+          git pull --rebase origin main
           git push origin HEAD:main

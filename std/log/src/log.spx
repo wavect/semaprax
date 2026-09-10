@@ -96,3 +96,44 @@ fn append_event(event: own Event, output: own Writer) -> Writer
 {
     match own event { Event { level, sequence, name, message } => { let prefix = write_fixed(0u8, output); let named_level = write_level(level, prefix); let before_sequence = write_fixed(1u8, named_level); let numbered = count_into(sequence, before_sequence); let before_name = write_fixed(2u8, numbered); let named = quote_bytes(name, before_name); let before_message = write_fixed(3u8, named); let messaged = quote_bytes(message, before_message); write_fixed(4u8, messaged) }, }
 }
+
+// Level filtering. Levels run 0 (trace) to 5 (fatal); an event is enabled when
+// its level is at or above the threshold.
+@id("std.log.level-enabled")
+fn level_enabled(level: u8, threshold: u8) -> bool
+    requires level <= 5u8 && threshold <= 5u8
+{
+    level >= threshold
+}
+
+// The explicit "dropped by policy" transition: it consumes the event, leaves
+// the caller's Writer exactly as it was, and writes nothing.
+@id("std.log.discard-event")
+fn discard_event(event: own Event, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    output
+}
+
+// True when the event both passes the threshold and fits the live capacity.
+@id("std.log.event-admitted")
+fn event_admitted(event: borrow Event, threshold: u8, output: borrow Writer) -> bool
+    requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }
+    requires threshold <= 5u8
+{
+    match borrow event { Event { level, sequence: _, name: _, message: _ } => if level_enabled(level, threshold) { match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && event_json_len(event) <= byte_len(bytes_as_slice(data)) - position, } } else { false }, }
+}
+
+// Writes the event only when it passes the threshold; a filtered event is
+// consumed and the Writer is returned untouched.  Capacity is required only
+// for an event that is actually written.
+@id("std.log.append-event-if")
+fn append_event_if(event: own Event, threshold: u8, output: own Writer) -> Writer
+    requires threshold <= 5u8
+    requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    requires event_admitted(event, threshold, output) || match borrow event { Event { level, sequence: _, name: _, message: _ } => !level_enabled(level, threshold), }
+{
+    let enabled = match borrow event { Event { level, sequence: _, name: _, message: _ } => level_enabled(level, threshold), };
+    if enabled { append_event(event, output) } else { discard_event(event, output) }
+}

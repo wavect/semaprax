@@ -57,6 +57,42 @@ filesystem/process/network effect, or other ambient authority. This is a
 bounded JSON-lines event writer, not a general logging framework, hosted log
 service or production logging facility.
 
+## Level filtering
+
+Filtering is the additive half of the same profile, and it is explicit rather
+than ambient:
+
+```text
+std.log.level_enabled(level: u8, threshold: u8) -> bool
+std.log.event_admitted(event: borrow Event, threshold: u8,
+    output: borrow Writer) -> bool
+std.log.discard_event(event: own Event, output: own Writer)
+    -> std.io.Writer
+std.log.append_event_if(event: own Event, threshold: u8,
+    output: own Writer) -> std.io.Writer
+```
+
+Levels run `0` (trace) to `5` (fatal), and an event is enabled when its level
+is at or above the threshold, so a threshold of `0` admits everything and `5`
+admits only fatal events. `event_admitted` is the borrowed observer a caller
+checks before committing: it is true only when the event both passes the
+threshold and fits the writer's live capacity.
+
+`append_event_if` writes the event exactly as `append_event` does when it
+passes, and otherwise consumes the event and returns the caller's Writer
+untouched, with no byte written and the cursor unchanged. Capacity is therefore
+required only for an event that is actually written: a filtered event needs no
+room at all, which is what makes a small buffer plus a high threshold a valid
+composition rather than a contract failure. `discard_event` is that drop path
+named on its own, for a caller that decides policy itself; both transitions
+consume the event, so a dropped event releases its `name` and `message` bytes
+through ordinary lexical cleanup rather than leaking them.
+
+A filtered event is dropped, not buffered: the profile adds no queue, no sink,
+no timestamp source, no redaction, and no concurrency. Nothing here observes a
+clock or a process, and no filtering decision is taken outside the caller's
+own call.
+
 ## Focused verification
 
 The canonical package checks a complete 59-byte escaped line and all five

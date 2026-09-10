@@ -328,7 +328,9 @@ cursor adapters, Reader/Writer, bounded line processing over those cursors,
 typed paths, filesystem/environment/process profiles, formatting/logging and
 byte assertion/snapshot helpers. Line processing and lexical path
 normalization ship as the sibling `std.io.lines` and `std.path.normalize`
-packages, and `std.format` gained field padding for aligned output; these have
+packages, `std.format` gained field padding for aligned output, `std.bytes`
+gained trimming and delimited-field span cursors, `std.log` gained explicit
+level filtering, and `std.data.csv` gained quote-aware field cursors; these have
 local three-backend evidence and await their hosted result. The private
 `std.agent` package supplies ordinary checked records and deterministic roles;
 its values do not grant runtime capabilities or complete the full Agent library.

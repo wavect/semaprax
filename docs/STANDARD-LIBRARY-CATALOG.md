@@ -453,6 +453,49 @@ fn has_balanced_quotes(record: borrow Slice<u8>) -> bool
 fn is_well_formed_record(record: borrow Slice<u8>) -> bool
 ```
 
+### `std.data.csv.field_end`
+
+Quote-aware field cursors over one CSV record.  A field ends at the first
+comma outside quotes; `""` inside a quoted field is one escaped quote and
+never ends the field.
+
+```semaprax
+fn csv_field_end(record: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(record)
+    ensures result >= start && result <= byte_len(record)
+```
+
+### `std.data.csv.field_start`
+
+```semaprax
+fn csv_field_start(record: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(record)
+    ensures result >= start && result <= byte_len(record)
+```
+
+### `std.data.csv.field_is_quoted`
+
+```semaprax
+fn csv_field_is_quoted(record: borrow Slice<u8>, start: usize) -> bool
+    requires start <= byte_len(record)
+```
+
+### `std.data.csv.content_start`
+
+```semaprax
+fn csv_content_start(record: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(record)
+    ensures result >= start && result <= byte_len(record)
+```
+
+### `std.data.csv.content_end`
+
+```semaprax
+fn csv_content_end(record: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(record)
+    ensures result >= csv_content_start(record, start) && result <= byte_len(record)
+```
+
 ## `std.data.json`
 
 Package `std/data-json`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
@@ -1857,6 +1900,50 @@ fn append_event(event: own Event, output: own Writer) -> Writer
     requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }
     requires match borrow event { Event { level: _, sequence: _, name, message } => is_utf8(bytes_as_slice(name)) && is_utf8(bytes_as_slice(message)), }
     requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && event_json_len(event) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
+### `std.log.level-enabled`
+
+Level filtering. Levels run 0 (trace) to 5 (fatal); an event is enabled when
+its level is at or above the threshold.
+
+```semaprax
+fn level_enabled(level: u8, threshold: u8) -> bool
+    requires level <= 5u8 && threshold <= 5u8
+```
+
+### `std.log.discard-event`
+
+The explicit "dropped by policy" transition: it consumes the event, leaves
+the caller's Writer exactly as it was, and writes nothing.
+
+```semaprax
+fn discard_event(event: own Event, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.log.event-admitted`
+
+True when the event both passes the threshold and fits the live capacity.
+
+```semaprax
+fn event_admitted(event: borrow Event, threshold: u8, output: borrow Writer) -> bool
+    requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }
+    requires threshold <= 5u8
+```
+
+### `std.log.append-event-if`
+
+Writes the event only when it passes the threshold; a filtered event is
+consumed and the Writer is returned untouched.  Capacity is required only
+for an event that is actually written.
+
+```semaprax
+fn append_event_if(event: own Event, threshold: u8, output: own Writer) -> Writer
+    requires threshold <= 5u8
+    requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
+    requires event_admitted(event, threshold, output) || match borrow event { Event { level, sequence: _, name: _, message: _ } => !level_enabled(level, threshold), }
 ```
 
 ## `std.mem`

@@ -8,6 +8,35 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add quote-aware field cursors to `std.data.csv`: `field_end` stops at the
+  first comma outside quotes, `field_start` opens the next field,
+  `field_is_quoted` reports the quoted form, and `content_start` and
+  `content_end` bound a field's content excluding its surrounding quotes. A
+  `""` inside a quoted field is one escaped quote that never ends the field and
+  stays in the content bytes, so decoding remains the caller's step. Empty
+  records, empty quoted fields and consecutive commas yield exact offsets, and
+  a walk terminates because the last field's `field_start` is the record
+  length. The offsets compose with the `std.io.lines` record content and the
+  `std.bytes` trimming offsets, and the package conformance adds a `cursors`
+  bit to its failure mask on the interpreter, native C11 `-O0`/`-O2` and Core
+  Wasm. Typed fields, decoded content, dialects, streaming and writing remain
+  Missing.
+
+- Add explicit level filtering to `std.log` under the existing
+  [Log Writer v1](docs/LOG-WRITER-V1.md) contract: `level_enabled` compares a
+  level against a threshold on the existing 0-5 scale, `event_admitted` is the
+  borrowed observer that is true only when the event both passes the threshold
+  and fits the writer's live capacity, `discard_event` is the named drop path
+  that consumes the event and returns the Writer untouched, and
+  `append_event_if` writes a passing event exactly as `append_event` does.
+  Capacity is required only for an event that is actually written, so a small
+  buffer with a high threshold is a valid composition rather than a contract
+  failure, and a filtered event releases its name and message bytes through
+  ordinary lexical cleanup instead of being buffered. Three named cases join
+  the logger corpus as individual bounded projects on the interpreter, native
+  C11 `-O0`/`-O2` and repeated Core Wasm. No sink, queue, timestamp source,
+  redaction or concurrency is added.
+
 - Add span cursors to `std.bytes`: `is_space`, `trim_start`, `trim_end` and
   `is_blank` for ASCII whitespace, and `field_end`, `field_start` and
   `field_count` for delimiter-separated fields. Field walking preserves empty

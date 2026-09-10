@@ -55,3 +55,66 @@ fn is_well_formed_record(record: borrow Slice<u8>) -> bool
     }
     valid && !quoted
 }
+
+// Quote-aware field cursors over one CSV record.  A field ends at the first
+// comma outside quotes; `""` inside a quoted field is one escaped quote and
+// never ends the field.
+@id("std.data.csv.field_end")
+fn csv_field_end(record: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(record)
+    ensures result >= start && result <= byte_len(record)
+{
+    let length = byte_len(record);
+    let mut index = start;
+    let mut quoted = false;
+    let mut end = length;
+    let mut scanning = index < length;
+    while scanning {
+        let byte = match byte_get(record, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let quote = byte == 34u8;
+        let comma = byte == 44u8;
+        let escaped = if quote && quoted && index + 1usize < length { match byte_get(record, index + 1usize) { Option::Some { value } => value == 34u8, Option::None {} => false, } } else { false };
+        quoted = if quote && !escaped { !quoted } else { quoted };
+        let stop = comma && !quoted;
+        end = if stop { index } else { end };
+        index = if stop { length } else { index + if escaped { 2usize } else { 1usize } };
+        scanning = index < length;
+        scanning
+    }
+    end
+}
+
+@id("std.data.csv.field_start")
+fn csv_field_start(record: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(record)
+    ensures result >= start && result <= byte_len(record)
+{
+    let length = byte_len(record);
+    let end = csv_field_end(record, start);
+    if end < length { end + 1usize } else { length }
+}
+
+@id("std.data.csv.field_is_quoted")
+fn csv_field_is_quoted(record: borrow Slice<u8>, start: usize) -> bool
+    requires start <= byte_len(record)
+{
+    let end = csv_field_end(record, start);
+    if end - start >= 2usize { match byte_get(record, start) { Option::Some { value } => value == 34u8, Option::None {} => false, } } else { false }
+}
+
+@id("std.data.csv.content_start")
+fn csv_content_start(record: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(record)
+    ensures result >= start && result <= byte_len(record)
+{
+    if csv_field_is_quoted(record, start) { start + 1usize } else { start }
+}
+
+@id("std.data.csv.content_end")
+fn csv_content_end(record: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(record)
+    ensures result >= csv_content_start(record, start) && result <= byte_len(record)
+{
+    let end = csv_field_end(record, start);
+    if csv_field_is_quoted(record, start) { end - 1usize } else { end }
+}

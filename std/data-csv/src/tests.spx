@@ -1,5 +1,10 @@
 module std.data.csv.tests;
+use function @id("std.data.csv.content_end") from std.data.csv as content_end;
+use function @id("std.data.csv.content_start") from std.data.csv as content_start;
 use function @id("std.data.csv.field_count") from std.data.csv as field_count;
+use function @id("std.data.csv.field_end") from std.data.csv as field_end;
+use function @id("std.data.csv.field_is_quoted") from std.data.csv as field_is_quoted;
+use function @id("std.data.csv.field_start") from std.data.csv as field_start;
 use function @id("std.data.csv.has_balanced_quotes") from std.data.csv as has_balanced_quotes;
 use function @id("std.data.csv.is_well_formed_record") from std.data.csv as is_well_formed_record;
 
@@ -36,6 +41,22 @@ fn validation() -> bool
     is_well_formed_record(array_as_slice(empty)) && is_well_formed_record(array_as_slice(plain)) && is_well_formed_record(array_as_slice(quoted)) && is_well_formed_record(array_as_slice(escaped)) && !is_well_formed_record(array_as_slice(open)) && !is_well_formed_record(array_as_slice(embedded)) && !is_well_formed_record(array_as_slice(suffix))
 }
 
+@id("std.data.csv.tests.cursors")
+fn cursors() -> bool
+{
+    let record = [97u8, 44u8, 34u8, 98u8, 44u8, 99u8, 34u8, 44u8, 100u8];
+    let view = array_as_slice(record);
+    let plain = field_end(view, 0usize) == 1usize && field_start(view, 0usize) == 2usize && !field_is_quoted(view, 0usize);
+    let bounds = content_start(view, 0usize) == 0usize && content_end(view, 0usize) == 1usize;
+    let quoted = field_is_quoted(view, 2usize) && field_end(view, 2usize) == 7usize && field_start(view, 2usize) == 8usize;
+    let inner = content_start(view, 2usize) == 3usize && content_end(view, 2usize) == 6usize;
+    let last = field_end(view, 8usize) == 9usize && field_start(view, 8usize) == 9usize;
+    let escaped = [34u8, 97u8, 34u8, 34u8, 98u8, 34u8, 44u8, 99u8];
+    let escaped_view = array_as_slice(escaped);
+    let pairs = field_end(escaped_view, 0usize) == 6usize && content_start(escaped_view, 0usize) == 1usize && content_end(escaped_view, 0usize) == 5usize;
+    plain && bounds && quoted && inner && last && pairs
+}
+
 @id("std.data.csv.tests.main")
 fn main() -> i64
 {
@@ -43,5 +64,6 @@ fn main() -> i64
     failed = failed + if fields() { 0 } else { 1 };
     failed = failed + if quotes() { 0 } else { 2 };
     failed = failed + if validation() { 0 } else { 4 };
+    failed = failed + if cursors() { 0 } else { 8 };
     failed
 }

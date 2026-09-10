@@ -169,6 +169,9 @@ fn log_conformance_manifests(scratch: &Path, manifest: &Path) -> Vec<PathBuf> {
         "test_unicode_exact_capacity",
         "test_unicode_wide_exact_capacity",
         "test_long_message",
+        "test_filtered",
+        "test_admitted",
+        "test_thresholds",
     ];
     let parsed = semaprax::parse(SOURCE, "log-cases.spx").unwrap();
     assert_eq!(semaprax::format::canonical(&parsed), SOURCE);

@@ -1,12 +1,30 @@
 module std.data.csv.examples;
+use function @id("std.data.csv.content_end") from std.data.csv as content_end;
+use function @id("std.data.csv.content_start") from std.data.csv as content_start;
 use function @id("std.data.csv.field_count") from std.data.csv as field_count;
+use function @id("std.data.csv.field_end") from std.data.csv as field_end;
+use function @id("std.data.csv.field_start") from std.data.csv as field_start;
 use function @id("std.data.csv.has_balanced_quotes") from std.data.csv as has_balanced_quotes;
 use function @id("std.data.csv.is_well_formed_record") from std.data.csv as is_well_formed_record;
+
+// The record `"a,b",c` walked field by field: the quoted field keeps its comma
+// and its content excludes the surrounding quotes.  Nothing is copied.
+@id("std.data.csv.examples.walk")
+fn walk() -> i64
+{
+    let record = [34u8, 97u8, 44u8, 98u8, 34u8, 44u8, 99u8];
+    let view = array_as_slice(record);
+    let first = field_end(view, 0usize) == 5usize;
+    let inner = content_start(view, 0usize) == 1usize && content_end(view, 0usize) == 4usize;
+    let second = field_start(view, 0usize) == 6usize;
+    let tail = field_end(view, 6usize) == 7usize && content_start(view, 6usize) == 6usize;
+    if first && inner && second && tail { 0 } else { 1 }
+}
 
 @id("std.data.csv.examples.main")
 fn main() -> i64
 {
     let record = [34u8, 97u8, 44u8, 98u8, 34u8, 44u8, 99u8];
     let view = array_as_slice(record);
-    if field_count(view) == 2usize && has_balanced_quotes(view) && is_well_formed_record(view) { 0 } else { 1 }
+    if field_count(view) == 2usize && has_balanced_quotes(view) && is_well_formed_record(view) { walk() } else { 1 }
 }

@@ -845,6 +845,79 @@
           "kind": "function",
           "name": "is_well_formed_record",
           "requires": 0
+        },
+        {
+          "description": [
+            "Quote-aware field cursors over one CSV record.  A field ends at the first",
+            "comma outside quotes; `\"\"` inside a quoted field is one escaped quote and",
+            "never ends the field."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn csv_field_end(record: borrow Slice<u8>, start: usize) -> usize",
+            "    requires start <= byte_len(record)",
+            "    ensures result >= start && result <= byte_len(record)"
+          ],
+          "id": "std.data.csv.field_end",
+          "kind": "function",
+          "name": "csv_field_end",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn csv_field_start(record: borrow Slice<u8>, start: usize) -> usize",
+            "    requires start <= byte_len(record)",
+            "    ensures result >= start && result <= byte_len(record)"
+          ],
+          "id": "std.data.csv.field_start",
+          "kind": "function",
+          "name": "csv_field_start",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn csv_field_is_quoted(record: borrow Slice<u8>, start: usize) -> bool",
+            "    requires start <= byte_len(record)"
+          ],
+          "id": "std.data.csv.field_is_quoted",
+          "kind": "function",
+          "name": "csv_field_is_quoted",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn csv_content_start(record: borrow Slice<u8>, start: usize) -> usize",
+            "    requires start <= byte_len(record)",
+            "    ensures result >= start && result <= byte_len(record)"
+          ],
+          "id": "std.data.csv.content_start",
+          "kind": "function",
+          "name": "csv_content_start",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn csv_content_end(record: borrow Slice<u8>, start: usize) -> usize",
+            "    requires start <= byte_len(record)",
+            "    ensures result >= csv_content_start(record, start) && result <= byte_len(record)"
+          ],
+          "id": "std.data.csv.content_end",
+          "kind": "function",
+          "name": "csv_content_end",
+          "requires": 1
         }
       ],
       "dependency": "std.data.csv = \"^0.1.0\"",
@@ -3619,6 +3692,74 @@
           "kind": "function",
           "name": "append_event",
           "requires": 3
+        },
+        {
+          "description": [
+            "Level filtering. Levels run 0 (trace) to 5 (fatal); an event is enabled when",
+            "its level is at or above the threshold."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn level_enabled(level: u8, threshold: u8) -> bool",
+            "    requires level <= 5u8 && threshold <= 5u8"
+          ],
+          "id": "std.log.level-enabled",
+          "kind": "function",
+          "name": "level_enabled",
+          "requires": 1
+        },
+        {
+          "description": [
+            "The explicit \"dropped by policy\" transition: it consumes the event, leaves",
+            "the caller's Writer exactly as it was, and writes nothing."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn discard_event(event: own Event, output: own Writer) -> Writer",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.log.discard-event",
+          "kind": "function",
+          "name": "discard_event",
+          "requires": 1
+        },
+        {
+          "description": [
+            "True when the event both passes the threshold and fits the live capacity."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn event_admitted(event: borrow Event, threshold: u8, output: borrow Writer) -> bool",
+            "    requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }",
+            "    requires threshold <= 5u8"
+          ],
+          "id": "std.log.event-admitted",
+          "kind": "function",
+          "name": "event_admitted",
+          "requires": 2
+        },
+        {
+          "description": [
+            "Writes the event only when it passes the threshold; a filtered event is",
+            "consumed and the Writer is returned untouched.  Capacity is required only",
+            "for an event that is actually written."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn append_event_if(event: own Event, threshold: u8, output: own Writer) -> Writer",
+            "    requires threshold <= 5u8",
+            "    requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }",
+            "    requires event_admitted(event, threshold, output) || match borrow event { Event { level, sequence: _, name: _, message: _ } => !level_enabled(level, threshold), }"
+          ],
+          "id": "std.log.append-event-if",
+          "kind": "function",
+          "name": "append_event_if",
+          "requires": 4
         }
       ],
       "dependency": "std.log = \"^0.1.0\"",

@@ -2,6 +2,10 @@ module std.log.tests;
 use type @id("std.log.event") from std.log as Event;
 use type @id("std.io.writer") from std.io as Writer;
 use function @id("std.log.append-event") from std.log as append_event;
+use function @id("std.log.append-event-if") from std.log as append_event_if;
+use function @id("std.log.discard-event") from std.log as discard_event;
+use function @id("std.log.event-admitted") from std.log as event_admitted;
+use function @id("std.log.level-enabled") from std.log as level_enabled;
 use function @id("std.log.event-json-len") from std.log as event_json_len;
 use function @id("std.log.fixed-byte") from std.log as fixed_byte;
 use function @id("std.log.fixed-len") from std.log as fixed_len;
@@ -41,6 +45,20 @@ fn test_line() -> i64
     let bytes = writer_finish(output);
     let expected = [123u8, 34u8, 108u8, 101u8, 118u8, 101u8, 108u8, 34u8, 58u8, 34u8, 105u8, 110u8, 102u8, 111u8, 34u8, 44u8, 34u8, 115u8, 101u8, 113u8, 117u8, 101u8, 110u8, 99u8, 101u8, 34u8, 58u8, 55u8, 44u8, 34u8, 101u8, 118u8, 101u8, 110u8, 116u8, 34u8, 58u8, 34u8, 97u8, 92u8, 34u8, 34u8, 44u8, 34u8, 109u8, 101u8, 115u8, 115u8, 97u8, 103u8, 101u8, 34u8, 58u8, 34u8, 92u8, 110u8, 34u8, 125u8, 10u8, 0u8, 0u8, 0u8, 0u8, 0u8];
     if position == 59usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-filtered")
+fn test_filtered() -> i64
+{
+    let name = [97u8];
+    let message = [98u8];
+    let event = Event { level: 1u8, sequence: 3usize, name: bytes_copy(array_as_slice(name)), message: bytes_copy(array_as_slice(message)) };
+    let output = writer_from_bytes(bytes_zeroed(64usize));
+    let written = append_event_if(event, 4u8, output);
+    let position = writer_position(written);
+    let bytes = writer_finish(written);
+    let head = match byte_get(bytes_as_slice(bytes), 0usize) { Option::Some { value } => value, Option::None {} => 1u8, };
+    if position == 0usize && head == 0u8 && byte_len(bytes_as_slice(bytes)) == 64usize { 0 } else { 1 }
 }
 
 @id("std.log.tests.main")

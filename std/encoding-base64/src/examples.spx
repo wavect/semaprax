@@ -1,0 +1,22 @@
+module std.encoding.base64.examples;
+use function @id("std.encoding.base64.byte") from std.encoding.base64 as base64_byte;
+use function @id("std.encoding.base64.len") from std.encoding.base64 as base64_len;
+
+// "fo" encodes to the padded quad "Zm8=": the pull-based accessor produces
+// each digit on demand from the borrowed view, with no intermediate buffer.
+@id("std.encoding.base64.examples.short_input")
+fn short_input() -> i64
+{
+    let source = [102u8, 111u8];
+    let view = array_as_slice(source);
+    let length = base64_len(byte_len(view));
+    let first = base64_byte(view, 0usize) == 90;
+    let pad = base64_byte(view, 3usize) == 61;
+    if length == 4usize && first && pad { 0 } else { 1 }
+}
+
+@id("std.encoding.base64.examples.main")
+fn main() -> i64
+{
+    short_input()
+}

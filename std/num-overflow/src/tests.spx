@@ -9,6 +9,7 @@ use function @id("std.num.overflow.saturating_neg") from std.num.overflow as sat
 use function @id("std.num.overflow.saturating_sub") from std.num.overflow as saturating_sub;
 use function @id("std.num.overflow.sub_overflows") from std.num.overflow as sub_overflows;
 use function @id("std.num.overflow.wrapping_add") from std.num.overflow as wrapping_add;
+use function @id("std.num.overflow.wrapping_mul") from std.num.overflow as wrapping_mul;
 use function @id("std.num.overflow.wrapping_neg") from std.num.overflow as wrapping_neg;
 use function @id("std.num.overflow.wrapping_sub") from std.num.overflow as wrapping_sub;
 
@@ -42,6 +43,18 @@ fn wrapping() -> bool
     wrapping_add(max(), 1) == min() && wrapping_add(min(), -1) == max() && wrapping_add(max(), max()) == -2 && wrapping_add(min(), min()) == 0 && wrapping_add(5, 6) == 11 && wrapping_sub(min(), 1) == max() && wrapping_sub(max(), -1) == min() && wrapping_sub(max(), min()) == -1 && wrapping_sub(min(), max()) == 1 && wrapping_neg(min()) == min() && wrapping_neg(max()) == min() + 1 && wrapping_neg(-3) == 3
 }
 
+@id("std.num.overflow.tests.wrapping_multiplication_boundaries")
+fn wrapping_multiplication_boundaries() -> bool
+{
+    wrapping_mul(min(), -1) == min() && wrapping_mul(min(), min()) == 0 && wrapping_mul(max(), 2) == -2 && wrapping_mul(-1, -1) == 1 && wrapping_mul(0, min()) == 0 && wrapping_mul(min(), 2) == 0 && wrapping_mul(min(), 3) == min()
+}
+
+@id("std.num.overflow.tests.wrapping_multiplication_ordinary")
+fn wrapping_multiplication_ordinary() -> bool
+{
+    wrapping_mul(max(), max()) == 1 && wrapping_mul(max(), -1) == -9223372036854775807 && wrapping_mul(6, 7) == 42 && wrapping_mul(-6, 7) == -42 && wrapping_mul(-6, -7) == 42 && wrapping_mul(1234567891, 987654323) == 1219326314583142793 && wrapping_mul(3037000500, 3037000500) == -9223372036709301616
+}
+
 @id("std.num.overflow.tests.saturating")
 fn saturating() -> bool
 {
@@ -56,5 +69,7 @@ fn main() -> i64
     failed = failed + if multiplicative_predicate() { 0 } else { 2 };
     failed = failed + if wrapping() { 0 } else { 4 };
     failed = failed + if saturating() { 0 } else { 8 };
+    failed = failed + if wrapping_multiplication_boundaries() { 0 } else { 16 };
+    failed = failed + if wrapping_multiplication_ordinary() { 0 } else { 32 };
     failed
 }

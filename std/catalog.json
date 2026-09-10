@@ -1422,6 +1422,23 @@
           "kind": "function",
           "name": "decoded_eq",
           "requires": 0
+        },
+        {
+          "description": [
+            "Compares two decoded JSON string tokens for equality by walking both",
+            "through the existing pull surface (`emit_at`, `emit_len`, `token_end`)",
+            "with no intermediate buffer, so escapes decode before comparison and",
+            "`\"ab\"` equals `\"ab\"`."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn decoded_token_eq(input: borrow Slice<u8>, left: usize, right: usize) -> bool"
+          ],
+          "id": "std.data.json.dec.decoded_token_eq",
+          "kind": "function",
+          "name": "decoded_token_eq",
+          "requires": 0
         }
       ],
       "dependency": "std.data.json.dec = \"^0.1.0\"",
@@ -2512,6 +2529,66 @@
       "module": "std.encoding",
       "package": "std/encoding",
       "required_profile": "scalar",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "description": [
+            "Padded standard Base64 encoding over a borrowed byte view.  There is no",
+            "buffer and no allocation: `base64_byte` is a pull-based digit accessor, so a",
+            "caller writes the encoded digits wherever it wants, one at a time, in any",
+            "order."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn base64_len(input: usize) -> usize",
+            "    ensures result % 4usize == 0usize"
+          ],
+          "id": "std.encoding.base64.len",
+          "kind": "function",
+          "name": "base64_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn byte_at_or_zero(view: borrow Slice<u8>, index: usize) -> i64",
+            "    ensures result >= 0 && result <= 255"
+          ],
+          "id": "std.encoding.base64.byte_at_or_zero",
+          "kind": "function",
+          "name": "byte_at_or_zero",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn base64_byte(view: borrow Slice<u8>, index: usize) -> i64",
+            "    requires index < base64_len(byte_len(view))",
+            "    ensures result >= 43 && result <= 122"
+          ],
+          "id": "std.encoding.base64.byte",
+          "kind": "function",
+          "name": "base64_byte",
+          "requires": 1
+        }
+      ],
+      "dependency": "std.encoding.base64 = \"^0.1.0\"",
+      "module": "std.encoding.base64",
+      "package": "std/encoding-base64",
+      "required_profile": "owned-data-api.v1",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -4244,6 +4321,19 @@
           "id": "std.num.overflow.wrapping_neg",
           "kind": "function",
           "name": "wrapping_neg",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn wrapping_mul(left: i64, right: i64) -> i64",
+            "    ensures mul_overflows(left, right) || result == left * right"
+          ],
+          "id": "std.num.overflow.wrapping_mul",
+          "kind": "function",
+          "name": "wrapping_mul",
           "requires": 0
         },
         {

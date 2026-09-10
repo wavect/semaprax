@@ -2,6 +2,7 @@ module std.num.overflow.examples;
 use function @id("std.num.overflow.add_overflows") from std.num.overflow as add_overflows;
 use function @id("std.num.overflow.saturating_add") from std.num.overflow as saturating_add;
 use function @id("std.num.overflow.wrapping_add") from std.num.overflow as wrapping_add;
+use function @id("std.num.overflow.wrapping_mul") from std.num.overflow as wrapping_mul;
 
 @id("std.num.overflow.examples.main")
 fn main() -> i64
@@ -9,5 +10,6 @@ fn main() -> i64
     let max = 9223372036854775807;
     let capped = saturating_add(max, 1);
     let wrapped = wrapping_add(max, 1);
-    if add_overflows(max, 1) && capped == max && wrapped < 0 { 0 } else { 1 }
+    let wrapped_product = wrapping_mul(max, 2);
+    if add_overflows(max, 1) && capped == max && wrapped < 0 && wrapped_product == -2 { 0 } else { 1 }
 }

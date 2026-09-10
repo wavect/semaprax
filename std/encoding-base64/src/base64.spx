@@ -1,0 +1,37 @@
+module std.encoding.base64;
+use function @id("std.encoding.encode_base64_digit") from std.encoding as encode_base64_digit;
+use function @id("std.encoding.byte_value") from std.encoding as byte_value;
+
+// Padded standard Base64 encoding over a borrowed byte view.  There is no
+// buffer and no allocation: `base64_byte` is a pull-based digit accessor, so a
+// caller writes the encoded digits wherever it wants, one at a time, in any
+// order.
+@id("std.encoding.base64.len")
+fn base64_len(input: usize) -> usize
+    ensures result % 4usize == 0usize
+{
+    (input + 2usize) / 3usize * 4usize
+}
+
+@id("std.encoding.base64.byte_at_or_zero")
+fn byte_at_or_zero(view: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= 0 && result <= 255
+{
+    match byte_get(view, index) { Option::Some { value } => byte_value(value), Option::None {} => 0, }
+}
+
+@id("std.encoding.base64.byte")
+fn base64_byte(view: borrow Slice<u8>, index: usize) -> i64
+    requires index < base64_len(byte_len(view))
+    ensures result >= 43 && result <= 122
+{
+    let length = byte_len(view);
+    let base = index / 4usize * 3usize;
+    let slot = index % 4usize;
+    let first = byte_at_or_zero(view, base);
+    let second = byte_at_or_zero(view, base + 1usize);
+    let third = byte_at_or_zero(view, base + 2usize);
+    let has_second = base + 1usize < length;
+    let has_third = base + 2usize < length;
+    if slot == 0usize { encode_base64_digit(first / 4) } else { if slot == 1usize { encode_base64_digit(first % 4 * 16 + second / 16) } else { if slot == 2usize { if has_second { encode_base64_digit(second % 16 * 4 + third / 64) } else { 61 } } else { if has_third { encode_base64_digit(third % 64) } else { 61 } } } }
+}

@@ -43,6 +43,13 @@ fn wrapping_neg(value: i64) -> i64
     if value == -9223372036854775807 - 1 { value } else { 0 - value }
 }
 
+@id("std.num.overflow.wrapping_mul")
+fn wrapping_mul(left: i64, right: i64) -> i64
+    ensures mul_overflows(left, right) || result == left * right
+{
+    if left == -9223372036854775807 - 1 { if right % 2 == 0 { 0 } else { -9223372036854775807 - 1 } } else { if right == -9223372036854775807 - 1 { if left % 2 == 0 { 0 } else { -9223372036854775807 - 1 } } else { if left == 0 || right == 0 { 0 } else { let magnitude_left = if left < 0 { 0 - left } else { left }; let magnitude_right = if right < 0 { 0 - right } else { right }; let mut product = 0; let mut doubled = magnitude_left; let mut remaining = magnitude_right; while remaining > 0 { product = if remaining % 2 == 1 { wrapping_add(product, doubled) } else { product }; doubled = wrapping_add(doubled, doubled); remaining = remaining / 2; remaining > 0 } if left < 0 == right < 0 { product } else { wrapping_neg(product) } } } }
+}
+
 @id("std.num.overflow.saturating_add")
 fn saturating_add(left: i64, right: i64) -> i64
 {

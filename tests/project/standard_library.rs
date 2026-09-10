@@ -1429,6 +1429,8 @@ fn declaration_head(source: &str, stable_id: &str) -> Vec<String> {
         .collect()
 }
 
+#[path = "standard_library/base64.rs"]
+mod base64;
 #[path = "standard_library/byte_spans.rs"]
 mod byte_spans;
 #[path = "standard_library/catalog.rs"]

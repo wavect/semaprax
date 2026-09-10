@@ -96,6 +96,26 @@ preserving admitted raw input bytes. It does not validate a raw UTF-8 sequence
 that the existing decoder does not validate. It does not retain a decoded
 string object, and no decoded view escapes the call.
 
+## `decoded_token_eq`
+
+`std.data.json.dec.decoded_token_eq(input, left, right)` compares two decoded
+JSON string tokens in `input` for equality. It walks both tokens through the
+package's existing pull surface (`emit_at`, `emit_len`, `token_end`), the same
+surface `decode_into` and the caller-streamed token loop use, so escapes
+decode to their scalar value before either side is compared: a simple escape
+and a `\uXXXX` escape for the same character compare equal, and `"ab"` equals
+a separately positioned `"ab"`. Comparison rejects up front when either
+token's `decoded_len` is a failure or when the two tokens' decoded lengths
+differ, and otherwise compares decoded bytes one emitted position at a time.
+No intermediate buffer is allocated; unlike `decoded_eq`, this comparison is
+not bound by the package's 256-byte comparison capacity.
+
+This is a token-level comparison only. Duplicate-key *detection over a JSON
+document* — walking an object's members and reporting a repeated name — is
+still Missing here; that object walk lives in `std.data.json.doc`, which
+compares member name spans byte for byte and does not yet consult decoded
+values either.
+
 ## `quoted_into`
 
 `std.data.json.write.quoted_into` emits a quoted JSON string for every byte in

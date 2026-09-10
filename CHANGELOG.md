@@ -8,6 +8,29 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add `decoded_token_eq` to `std.data.json.dec`: two JSON string tokens in one
+  input compared by their decoded bytes through the existing pull surface, with
+  no buffer, so `"a\u0062"` and `"ab"` are equal keys and `"\n"` equals
+  `"\u000a"`. Tokens of different decoded length are unequal without decoding
+  either fully. Duplicate-key detection over a whole document still needs the
+  object walk in `std.data.json.doc` and remains Missing.
+
+- Add the bundled `std.encoding.base64` package,
+  [Base64 v1](docs/BASE64-V1.md): pull-based padded standard Base64 encoding
+  over a borrowed byte view. `len` gives the padded output length and `byte`
+  gives its byte at one index, both computed from the input alone with no
+  buffer, so a caller writes the digits into capacity it already owns. It is a
+  sibling package because `std.encoding` sits on the default Project v1 route,
+  which admits only Copy scalar boundaries and rejects a borrowed view.
+  Decoding of padded input, streaming, and URL-safe or unpadded alphabets
+  remain Missing.
+
+- Add `wrapping_mul` to `std.num.overflow`, closing the wrapping-multiplication
+  gap its own required scope recorded as Missing. The result is exact
+  two's-complement wrapping for every operand pair, including `i64::MIN * -1`,
+  `i64::MIN * i64::MIN` and `i64::MAX * 2`, and it never evaluates an
+  overflowing intermediate under the language's checked arithmetic.
+
 - Add a failure-mask discipline to `std.test`, so a nonzero test result names
   the failing check instead of merely being nonzero: `bit_for` is the bit an
   indexed case owns, `bit_is_set` reports membership, `record_failure`

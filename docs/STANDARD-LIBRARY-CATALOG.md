@@ -750,6 +750,17 @@ fn slice_eq(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
 fn decoded_eq(input: borrow Slice<u8>, start: usize, expect: borrow Slice<u8>) -> bool
 ```
 
+### `std.data.json.dec.decoded_token_eq`
+
+Compares two decoded JSON string tokens for equality by walking both
+through the existing pull surface (`emit_at`, `emit_len`, `token_end`)
+with no intermediate buffer, so escapes decode before comparison and
+`"ab"` equals `"ab"`.
+
+```semaprax
+fn decoded_token_eq(input: borrow Slice<u8>, left: usize, right: usize) -> bool
+```
+
 ## `std.data.json.digits`
 
 Package `std/data-json-digits`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.data.json.digits = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
@@ -1287,6 +1298,37 @@ fn encode_base64_digit(value: i64) -> i64
 ```semaprax
 fn decode_base64_quad(first: u8, second: u8, third: u8, fourth: u8) -> i64
     ensures result >= -1 && result <= 16777215
+```
+
+## `std.encoding.base64`
+
+Package `std/encoding-base64`, tier `core`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.encoding.base64 = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.encoding.base64.len`
+
+Padded standard Base64 encoding over a borrowed byte view.  There is no
+buffer and no allocation: `base64_byte` is a pull-based digit accessor, so a
+caller writes the encoded digits wherever it wants, one at a time, in any
+order.
+
+```semaprax
+fn base64_len(input: usize) -> usize
+    ensures result % 4usize == 0usize
+```
+
+### `std.encoding.base64.byte_at_or_zero`
+
+```semaprax
+fn byte_at_or_zero(view: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= 0 && result <= 255
+```
+
+### `std.encoding.base64.byte`
+
+```semaprax
+fn base64_byte(view: borrow Slice<u8>, index: usize) -> i64
+    requires index < base64_len(byte_len(view))
+    ensures result >= 43 && result <= 122
 ```
 
 ## `std.env`
@@ -2187,6 +2229,13 @@ fn wrapping_sub(left: i64, right: i64) -> i64
 
 ```semaprax
 fn wrapping_neg(value: i64) -> i64
+```
+
+### `std.num.overflow.wrapping_mul`
+
+```semaprax
+fn wrapping_mul(left: i64, right: i64) -> i64
+    ensures mul_overflows(left, right) || result == left * right
 ```
 
 ### `std.num.overflow.saturating_add`

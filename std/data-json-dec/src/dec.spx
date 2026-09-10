@@ -258,3 +258,36 @@ fn decoded_eq(input: borrow Slice<u8>, start: usize, expect: borrow Slice<u8>) -
     let view = bytes_as_slice(out);
     ready && prefix_eq(view, expect, write)
 }
+
+// Compares two decoded JSON string tokens for equality by walking both
+// through the existing pull surface (`emit_at`, `emit_len`, `token_end`)
+// with no intermediate buffer, so escapes decode before comparison and
+// `"ab"` equals `"ab"`.
+@id("std.data.json.dec.decoded_token_eq")
+fn decoded_token_eq(input: borrow Slice<u8>, left: usize, right: usize) -> bool
+{
+    let total = decoded_len(input, left);
+    let other = decoded_len(input, right);
+    let mut equal = !is_failure(input, total) && !is_failure(input, other) && total == other;
+    let mut left_index = left + 1usize;
+    let mut left_part = 0usize;
+    let mut right_index = right + 1usize;
+    let mut right_part = 0usize;
+    let mut count = 0usize;
+    let mut scanning = equal && count < total;
+    while scanning {
+        let first = emit_at(input, left_index, left_part);
+        let second = emit_at(input, right_index, right_part);
+        equal = first >= 0 && first == second;
+        let left_last = left_part + 1usize >= emit_len(input, left_index);
+        left_index = if left_last { token_end(input, left_index) } else { left_index };
+        left_part = if left_last { 0usize } else { left_part + 1usize };
+        let right_last = right_part + 1usize >= emit_len(input, right_index);
+        right_index = if right_last { token_end(input, right_index) } else { right_index };
+        right_part = if right_last { 0usize } else { right_part + 1usize };
+        count = count + 1usize;
+        scanning = equal && count < total;
+        scanning
+    }
+    equal
+}

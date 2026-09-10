@@ -11,6 +11,7 @@ use function @id("std.data.json.dec.code_unit") from std.data.json.dec as code_u
 use function @id("std.data.json.dec.decoded_eq") from std.data.json.dec as decoded_eq;
 use function @id("std.data.json.dec.decoded_len") from std.data.json.dec as decoded_len;
 use function @id("std.data.json.dec.decoded_size") from std.data.json.dec as decoded_size;
+use function @id("std.data.json.dec.decoded_token_eq") from std.data.json.dec as decoded_token_eq;
 use function @id("std.data.json.dec.emit_at") from std.data.json.dec as emit_at;
 use function @id("std.data.json.dec.emit_len") from std.data.json.dec as emit_len;
 use function @id("std.data.json.dec.escape_end") from std.data.json.dec as escape_end;
@@ -120,8 +121,16 @@ fn buffer_unicode() -> bool
     decoded_len(emoji, 0usize) == 6usize && decoded_eq(emoji, 0usize, expected)
 }
 
+@id("std.data.json.dec.tests.token_equality")
+fn token_equality() -> bool
+{
+    let raw = [34u8, 97u8, 34u8, 34u8, 97u8, 34u8, 34u8, 97u8, 98u8, 34u8, 34u8, 97u8, 98u8, 34u8, 34u8, 92u8, 110u8, 34u8, 34u8, 92u8, 117u8, 48u8, 48u8, 48u8, 97u8, 34u8, 34u8, 97u8, 99u8, 34u8];
+    let source = array_as_slice(raw);
+    decoded_token_eq(source, 0usize, 3usize) && decoded_token_eq(source, 6usize, 10usize) && decoded_token_eq(source, 14usize, 18usize) && !decoded_token_eq(source, 6usize, 26usize) && !decoded_token_eq(source, 0usize, 6usize)
+}
+
 @id("std.data.json.dec.tests.main")
 fn main() -> i64
 {
-    if primitives() && hex() && escapes() && surrogates() && lone_surrogate() && encoding() && conversion() && tokens() && lengths() && buffer() && buffer_unicode() { 0 } else { 1 }
+    if primitives() && hex() && escapes() && surrogates() && lone_surrogate() && encoding() && conversion() && tokens() && lengths() && buffer() && buffer_unicode() && token_equality() { 0 } else { 1 }
 }

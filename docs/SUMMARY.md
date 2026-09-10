@@ -84,6 +84,7 @@ Audience: all documentation readers.
 - [String operations](STRING-OPS-V1.md)
 - [IO Cursors v1](IO-CURSORS-V1.md)
 - [IO Lines v1](IO-LINES-V1.md)
+- [Base64 v1](BASE64-V1.md)
 - [Bounded Environment I/O v1](BOUNDED-ENVIRONMENT-IO-V1.md)
 - [Bounded Process I/O v1](BOUNDED-PROCESS-IO-V1.md)
 - [Typed Path v1](TYPED-PATH-V1.md)

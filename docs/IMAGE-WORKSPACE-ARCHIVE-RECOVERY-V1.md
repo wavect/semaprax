@@ -1,6 +1,8 @@
 # Image Workspace Archive Recovery v1
 
-Status: Partial; implementation and focused regression evidence authored, unrun.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+The full workspace-recovery programme remains Partial.
 
 Audience: workspace hosts, agent session integrators, and compiler contributors.
 
@@ -83,10 +85,10 @@ image expectations, and `SPX-G223` registry admission. Live Project drift retain
 its ordinary diagnostic and absorbing behavior. Explicit refresh can recover
 the live snapshot; it does not make startup-only restoration available again.
 
-`tests/image_protocol/workspace_archive_recovery_v1.rs` authors sibling-root recovery after
+`tests/image_protocol/workspace_archive_recovery_v1.rs` covers sibling-root recovery after
 the original root is removed, historical query and explicit rebase, startup and
 read-only denials, tamper and typed expectation failures preserving registry
 contents, live drift rejection, explicit refresh, and raw source byte preservation.
-These tests were not run. No compiler, test, interpreter, generated client, or
-target executable was run for this tranche. Full durable workspace orchestration
-and universal source/publication recovery remain outside this foundation.
+These implemented regressions are HOSTED GREEN for v0.4.0. Broader durable
+workspace orchestration and universal source/publication recovery remain outside
+this foundation. Historical authoring notes do not leave release evidence pending.

@@ -88,7 +88,6 @@ jobs:
               path = root / name
               path.parent.mkdir(parents=True, exist_ok=True)
               path.write_text(text, encoding='utf-8')
-          # mdBook SUMMARY entries are local chapter sources, unlike ordinary body links.
           post_fixes = {
               'docs/SUMMARY.md': [
                   ('[Changelog](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md)', '[Changelog](../CHANGELOG.md)'),
@@ -102,6 +101,28 @@ jobs:
               ],
           }
           for name, pairs in post_fixes.items():
+              path = root / name
+              text = path.read_text(encoding='utf-8')
+              for old, new in pairs:
+                  assert text.count(old) == 1, name
+                  text = text.replace(old, new)
+              path.write_text(text, encoding='utf-8')
+          render_fixes = {
+              'docs/CLI-HELP-V4.md': [
+                  ('`standard library has no exact match for \\`<selector>\\``', '`` standard library has no exact match for `<selector>` ``'),
+                  ('`language shapes catalog has no exact match for \\`<selector>\\``', '`` language shapes catalog has no exact match for `<selector>` ``'),
+              ],
+              'docs/DOC-PROJECTION-V1.md': [
+                  ('`# Module \\`<module>\\``', '`` # Module `<module>` ``'),
+                  ('`### \\`<name>\\``', '`` ### `<name>` ``'),
+              ],
+              'docs/PROJECT-TEST-CASES-V1.md': [
+                  ('continues `, so give each check its own `fn test_<name>() -> i64` in\nthe test module to have it reported by name`.', 'continues `` , so give each check its own `fn test_<name>() -> i64` in\nthe test module to have it reported by name ``.'),
+                  ('`note: `<name>`\n  is not a test case: <rule>; …`', '`` note: `<name>`\n  is not a test case: <rule>; … ``'),
+              ],
+              'docs/COMPLETION-MATRIX.md': [('additive Box<Bytes> v2 implement', 'additive `Box<Bytes>` v2 implement')],
+          }
+          for name, pairs in render_fixes.items():
               path = root / name
               text = path.read_text(encoding='utf-8')
               for old, new in pairs:
@@ -136,7 +157,7 @@ jobs:
           changed = git('diff', '--name-only', 'v0.4.0', '--').decode().splitlines()
           assert all(p.startswith('docs/') or p in {'README.md', workflow} for p in changed), changed
           (out / 'inventory-counts.json').write_text(json.dumps(counts, indent=2) + '\n')
-          (out / 'recipe-manifest.json').write_text(json.dumps({'baseline': baseline, 'paths': sorted(expected), 'result_sha256': digest.hexdigest(), 'post_reconciliation_fixes': sorted(post_fixes)}, indent=2) + '\n')
+          (out / 'recipe-manifest.json').write_text(json.dumps({'baseline': baseline, 'paths': sorted(expected), 'result_sha256': digest.hexdigest(), 'post_reconciliation_fixes': sorted(post_fixes), 'rendering_fixes': sorted(render_fixes)}, indent=2) + '\n')
           print(json.dumps(counts, indent=2))
       - name: Run complete documentation consistency and preservation checks
         shell: bash
@@ -200,12 +221,12 @@ jobs:
           "$RUNNER_TEMP/docs-audit-result/documentation-tests" --nocapture | tee "$RUNNER_TEMP/docs-audit-result/documentation-tests-final.log"
           "$RUNNER_TEMP/mdbook/bin/mdbook" build 2>&1 | tee "$RUNNER_TEMP/docs-audit-result/mdbook-build-final.log"
           git diff --check
-      - name: Prepare reviewed Git objects without moving any branch
+      - name: Prepare reviewed documentation tree without moving any branch
         shell: python
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          import hashlib, json, os, pathlib, shutil, subprocess, urllib.request
+          import hashlib, json, os, pathlib, shutil, subprocess, urllib.error, urllib.request
           out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'docs-audit-result'
           def git(*args):
               return subprocess.check_output(['git', *args])
@@ -213,28 +234,33 @@ jobs:
               url = 'https://api.github.com/repos/wavect/semaprax/' + path
               raw = None if data is None else json.dumps(data).encode()
               req = urllib.request.Request(url, data=raw, headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json'}, method='GET' if data is None else 'POST')
-              with urllib.request.urlopen(req, timeout=120) as response:
-                  return json.load(response)
+              try:
+                  with urllib.request.urlopen(req, timeout=120) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as error:
+                  print('GitHub object API:', error.code, error.read(4096).decode('utf-8', errors='replace'))
+                  raise
           parent = os.environ['GITHUB_SHA']
-          assert api('git/ref/heads/main')['object']['sha'] == parent, 'main advanced; no branch will be changed'
           names = set(git('diff', '--name-only', 'HEAD', '--').decode().splitlines())
           names.update(git('ls-files', '--others', '--exclude-standard').decode().splitlines())
           workflow = '.github/workflows/docs-v040-final-reconcile.yml'
           assert all(p.startswith('docs/') or p == workflow for p in names), sorted(names)
-          entries = [{'path': name, 'mode': '100644', 'type': 'blob', 'content': pathlib.Path(name).read_text(encoding='utf-8')} for name in sorted(names)]
-          base_tree = git('rev-parse', 'HEAD^{tree}').decode().strip()
-          tree = api('git/trees', {'base_tree': base_tree, 'tree': entries})
-          message = 'docs: complete v0.4.0 full documentation audit\n\nAudit every pre-existing docs file; reconcile current release status and\nbody descriptions, semantic/library/toolchain summaries, ownership references\nand book navigation. Preserve historical evidence, frozen examples and\ncompiler-embedded guidance. Add per-file inventory and read-only checker.\n\nValidated by four unchanged source-only documentation tests, complete\nmetadata/link/anchor/preservation checks and mdBook 0.5.4. Restore the\npre-existing reconciliation helper without changing compiler/runtime code.\n\nAudit run: ' + os.environ['GITHUB_RUN_ID']
-          commit = api('git/commits', {'message': message, 'tree': tree['sha'], 'parents': [parent]})
-          prepared = {'commit_sha': commit['sha'], 'tree_sha': tree['sha'], 'parent_sha': parent, 'baseline': os.environ['BASELINE'], 'restored_workflow_ref': os.environ['RESTORE_REF'], 'changed_files': sorted(names), 'validation': 'passed; four original documentation tests and mdBook 0.5.4', 'run_id': os.environ['GITHUB_RUN_ID'], 'branch_updated': False}
-          (out / 'prepared-commit.json').write_text(json.dumps(prepared, indent=2) + '\n')
+          doc_names = sorted(p for p in names if p.startswith('docs/'))
+          entries = [{'path': name, 'mode': '100644', 'type': 'blob', 'content': pathlib.Path(name).read_text(encoding='utf-8')} for name in doc_names]
           (out / 'documentation.patch').write_bytes(git('diff', '--', 'docs/'))
-          shutil.copyfile('docs/DOCUMENTATION-AUDIT-0.4.0.md', out / 'DOCUMENTATION-AUDIT-0.4.0.md')
-          shutil.copyfile('docs/audit/v0.4.0-inventory.tsv', out / 'v0.4.0-inventory.tsv')
-          shutil.copyfile('docs/audit/verify_v040.py', out / 'verify_v040.py')
+          (out / 'documentation-tree-entries.json').write_text(json.dumps(entries, ensure_ascii=False), encoding='utf-8')
+          for name in ['docs/DOCUMENTATION-AUDIT-0.4.0.md', 'docs/audit/v0.4.0-inventory.tsv', 'docs/audit/verify_v040.py']:
+              shutil.copyfile(name, out / pathlib.Path(name).name)
+          assert api('git/ref/heads/main')['object']['sha'] == parent, 'main advanced; no branch will be changed'
+          base_tree = git('rev-parse', 'HEAD^{tree}').decode().strip()
+          # The runner creates only documentation objects. The connector restores
+          # the original workflow with its explicit workflow-write authority.
+          tree = api('git/trees', {'base_tree': base_tree, 'tree': entries})
+          prepared = {'tree_sha': tree['sha'], 'parent_sha': parent, 'baseline': os.environ['BASELINE'], 'restore_workflow_blob': '0942dbadb7b31bc07e13a40762ed807b26f648cb', 'restored_workflow_ref': os.environ['RESTORE_REF'], 'changed_docs': doc_names, 'validation': 'passed; four original documentation tests and mdBook 0.5.4', 'run_id': os.environ['GITHUB_RUN_ID'], 'branch_updated': False}
+          (out / 'prepared-tree.json').write_text(json.dumps(prepared, indent=2) + '\n')
           print(json.dumps(prepared, indent=2))
-          print('Prepared immutable objects only. main was not changed by this workflow.')
-      - name: Retain audit results and exact prepared commit
+          print('Prepared documentation tree only. main was not changed by this workflow.')
+      - name: Retain audit results and exact prepared tree
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

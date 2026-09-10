@@ -1,6 +1,7 @@
 # Path Normalization v1
 
-Status: implemented bounded source profile; local evidence only. Platform path
+Status: implemented bounded source profile; hosted-green on the named
+`std-library-depth` CI job at 1dfe12a6, outside the v0.4.0 release baseline. Platform path
 conversion and filesystem authority remain out of scope.
 
 Audience: language users, compiler contributors, standard-library authors, and

@@ -331,8 +331,8 @@ normalization ship as the sibling `std.io.lines` and `std.path.normalize`
 packages, `std.format` gained field padding for aligned output, `std.bytes`
 gained trimming and delimited-field span cursors, `std.log` gained explicit
 level filtering, `std.data.csv` gained quote-aware field cursors, and `std.test`
-gained a diagnosable failure-mask discipline; these have local three-backend
-evidence and await their hosted result. The private
+gained a diagnosable failure-mask discipline; their gates are hosted-green at
+1dfe12a6 under the named `std-library-depth` job and the `verify-tests` shards. The private
 `std.agent` package supplies ordinary checked records and deterministic roles;
 its values do not grant runtime capabilities or complete the full Agent library.
 

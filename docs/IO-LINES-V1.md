@@ -1,6 +1,7 @@
 # IO Lines v1
 
-Status: implemented bounded source profile; local evidence only. The broader
+Status: implemented bounded source profile; hosted-green on the named
+`std-library-depth` CI job at 1dfe12a6, outside the v0.4.0 release baseline. The broader
 Everyday profile and streaming `std.io` scope remain incomplete.
 
 Audience: language users, compiler contributors, standard-library authors, and

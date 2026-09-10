@@ -1,6 +1,8 @@
 # Semantic retention metadata CLI v1
 
-Status: **Partial, authored/unrun**.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+The broader retention programme remains Partial.
 
 Audience: compiler contributors, CLI integrators, and retention-store hosts.
 
@@ -142,12 +144,12 @@ pivot does not approve the plan or authorize a later effect.
 
 ## Evidence status
 
-The existing semantic retention store harness contains an authored CLI
+The existing semantic retention store harness contains a CLI
 round-trip that supplies separate checkpoint, plan and root paths, checks the
 authority-neutral receipt and exact restored bytes, and rejects a wrong plan
-selector without removing the stored pair. That regression has been compiled
-but intentionally not executed. The declaration conversion, canonical
-observation-inventory parser, typed planner dispatch and closed help-catalogue
-gate are authored and have compile-only validation; no inventory-conversion or
-planner test was executed. The completion status remains Partial until the
-completion matrix's required executable gate is run and recorded.
+selector without removing the stored pair. This regression, the declaration
+conversion, canonical observation-inventory parser, typed planner dispatch and
+closed help-catalogue gate are HOSTED GREEN for the v0.4.0 implementation.
+Planning and restored metadata still execute no GC and confer no publication
+authority. Broader retention completion remains governed by the completion
+matrix rather than by this release-evidence classification.

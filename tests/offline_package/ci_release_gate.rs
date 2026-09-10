@@ -5,6 +5,7 @@ use std::process::Command;
 const RELEASE_BLOCKERS: &[&str] = &[
     "agent-proposal-clients",
     "gen05b-generic-instance-closure",
+    "std-io-line-processing",
     "supply-chain",
     "component-runtime-v3",
     "wasm-scalar-exports-browser-v1",

@@ -1,0 +1,17 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-io-lines"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+
+[modules]
+entry = "std.io.lines.examples"
+sources = ["src/examples.spx", "src/lines.spx", "src/tests.spx"]
+tests = ["std.io.lines.tests"]
+
+[exports]
+web = []
+
+[dependencies]
+std.io = "=0.1.0"

@@ -103,6 +103,7 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 
 | Job | Published context names | Count |
 | --- | --- | --- |
+| `std-io-line-processing` | `STD-08 std.io.lines line processing` | 1 |
 | `supply-chain` | `Dependency policy` | 1 |
 | `component-runtime-v3` | `Private Wasmtime Component result runtime` | 1 |
 | `wasm-scalar-exports-browser-v1` | `Public Wasm Scalar Exports v1 Chromium` | 1 |
@@ -123,8 +124,9 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | `release-gate` | **`Release gate`** | 1 |
 
 The authored workflow additionally includes the three AGENT-06 client contexts
-and the GEN-05B closure context. With `verify-build`, it declares 47 blocking
-contexts plus the aggregate; the new build contexts await hosted execution.
+and the GEN-05B closure context. With `verify-build`, it declares 48 blocking
+contexts plus the aggregate; the new build and line-processing contexts await
+hosted execution.
 `release-artifacts`
 (`Release artifact (<target>)`) and `publish-release` (`Publish tag release`)
 run only on `refs/tags/v*` and are not candidates for a branch rule. The `Docs`
@@ -132,8 +134,8 @@ workflow adds `Build book` and, on `main` pushes only, `Deploy to GitHub Pages`.
 
 ## The aggregate gate
 
-`.github/workflows/ci.yml` shards across nineteen blocking jobs whose names and
-matrix legs change often. Pinning nineteen-plus expanded context names into a ruleset
+`.github/workflows/ci.yml` shards across twenty blocking jobs whose names and
+matrix legs change often. Pinning twenty-plus expanded context names into a ruleset
 would make every sharding change a repository-administration change. The
 proposal requires exactly one context instead: **`Release gate`**, the job that
 already aggregates every release blocker.
@@ -147,7 +149,7 @@ An aggregate is only worth requiring if it cannot be satisfied vacuously. The
   environment, and fails unless **every** upstream entry has
   `result == "success"` -- `failure`, `skipped`, and `cancelled` are all
   rejected by name;
-- passes `--min-jobs 19`, so an accidentally emptied or narrowed `needs:` list
+- passes `--min-jobs 20`, so an accidentally emptied or narrowed `needs:` list
   cannot pass vacuously on `{}`;
 - checks out the repository and compares `git rev-parse HEAD` against
   `${{ github.sha }}`, so a verdict cannot be attributed to another commit.

@@ -8,6 +8,25 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the bundled `std.io.lines` package, [IO Lines v1](docs/IO-LINES-V1.md):
+  bounded line processing over the unchanged `std.io` Reader and Writer
+  cursors. `line_end`, `line_terminated` and
+  `line_content_len` observe a borrowed byte view; `reader_line_len` and
+  `reader_line_complete` observe a borrowed Reader; `reader_line_into` copies
+  one line's content into caller-supplied Writer capacity after an exact
+  preflight; `reader_next_line` is the consuming transition past the line and
+  its terminator. One line feed terminates a line, whose content excludes that
+  byte and one immediately preceding carriage return, so LF and CRLF inputs
+  yield identical content and a bare carriage return stays content. Eight named
+  cases run as individual bounded projects on the interpreter, native C11
+  `-O0`/`-O2` and repeated Core Wasm, and nine hostile cases reject short
+  capacity, forged cursors and out-of-range view offsets with the exact
+  `requires`-false status. A graph check pins the selected cleanup schema per
+  shape: v5 for the copy and the record observers, v2 for the pure view
+  helpers, with the caller's Writer as the copy's one owned parameter. No public export, descriptor, stream, standard
+  stream or host authority is added, and existing cursor signatures, contracts
+  and identities are unchanged.
+
 - Add the private owned iterator payload profile for `Iter<Bytes>` and
   `IterStep<Bytes>`. Prelude v8, Graph v45, and CleanupPlan v13 bind the exact
   detached-prefix item/rest transfer and preserve prior scalar iterator,

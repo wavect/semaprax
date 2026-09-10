@@ -1,0 +1,73 @@
+module std.io.lines;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+
+// Line processing over a borrowed byte view.  `line_end` is the absolute offset
+// of the first line-feed at or after `start`, or the view length when the view
+// carries no further terminator.  A line's content excludes that line feed and
+// one immediately preceding carriage return, so canonical LF and CRLF inputs
+// yield the same content bytes.
+@id("std.io.lines.line-end")
+fn line_end(view: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(view)
+    ensures result >= start && result <= byte_len(view)
+{
+    let length = byte_len(view);
+    let mut index = start;
+    let mut scanning = index < length;
+    while scanning {
+        let terminator = match byte_get(view, index) { Option::Some { value } => value == 10u8, Option::None {} => true, };
+        index = if terminator { index } else { index + 1usize };
+        scanning = !terminator && index < length;
+        scanning
+    }
+    index
+}
+
+@id("std.io.lines.line-terminated")
+fn line_terminated(view: borrow Slice<u8>, start: usize) -> bool
+    requires start <= byte_len(view)
+{
+    line_end(view, start) < byte_len(view)
+}
+
+@id("std.io.lines.line-content-len")
+fn line_content_len(view: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(view)
+    ensures result <= byte_len(view) - start
+{
+    let end = line_end(view, start);
+    let prior = if end > start { match byte_get(view, end - 1usize) { Option::Some { value } => value, Option::None {} => 0u8, } } else { 0u8 };
+    if prior == 13u8 { end - start - 1usize } else { end - start }
+}
+
+@id("std.io.lines.reader.line-len")
+fn reader_line_len(reader: borrow Reader) -> usize
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match borrow reader { Reader { data, position } => line_content_len(bytes_as_slice(data), position), }
+}
+
+@id("std.io.lines.reader.line-complete")
+fn reader_line_complete(reader: borrow Reader) -> bool
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match borrow reader { Reader { data, position } => line_terminated(bytes_as_slice(data), position), }
+}
+
+// Copies the current line's content into the caller's Writer capacity after an
+// exact preflight.  The borrowed Reader keeps its position; `reader_next_line`
+// is the consuming transition past the line and its terminator.
+@id("std.io.lines.reader.line-into")
+fn reader_line_into(input: borrow Reader, output: own Writer) -> Writer
+    requires match borrow input { Reader { data: source, position: start } => match borrow output { Writer { data: target, position: write } => start <= byte_len(bytes_as_slice(source)) && write <= byte_len(bytes_as_slice(target)) && line_content_len(bytes_as_slice(source), start) <= byte_len(bytes_as_slice(target)) - write, }, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let mut next = output_data; let written = match borrow input { Reader { data: source, position: start } => { let view = bytes_as_slice(source); let total = line_content_len(view, start); let mut count = 0usize; let mut running = count < total; while running { let value = match byte_get(view, start + count) { Option::Some { value } => value, Option::None {} => 0u8, }; next = bytes_set(next, output_position + count, value); count = count + 1usize; running = count < total; running } total }, }; Writer { data: next, position: output_position + written } }, }
+}
+
+@id("std.io.lines.reader.next-line")
+fn reader_next_line(reader: own Reader) -> Reader
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match own reader { Reader { data, position } => { let length = byte_len(bytes_as_slice(data)); let end = line_end(bytes_as_slice(data), position); let next = if end < length { end + 1usize } else { length }; Reader { data: data, position: next } }, }
+}

@@ -1,0 +1,44 @@
+module std.io.lines.tests;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.io.reader.finish") from std.io as reader_finish;
+use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.io.reader.cursor") from std.io as reader_position;
+use function @id("std.io.lines.line-content-len") from std.io.lines as line_content_len;
+use function @id("std.io.lines.line-end") from std.io.lines as line_end;
+use function @id("std.io.lines.line-terminated") from std.io.lines as line_terminated;
+use function @id("std.io.lines.reader.line-complete") from std.io.lines as reader_line_complete;
+use function @id("std.io.lines.reader.line-into") from std.io.lines as reader_line_into;
+use function @id("std.io.lines.reader.line-len") from std.io.lines as reader_line_len;
+use function @id("std.io.lines.reader.next-line") from std.io.lines as reader_next_line;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.cursor") from std.io as writer_position;
+use function @id("std.io.writer.remaining") from std.io as writer_remaining;
+
+@id("std.io.lines.tests.lines")
+fn lines() -> bool
+{
+    let source = [97u8, 13u8, 10u8, 98u8];
+    let input = bytes_copy(array_as_slice(source));
+    let view = bytes_as_slice(input);
+    let ends = line_end(view, 0usize) == 2usize && line_content_len(view, 0usize) == 1usize && line_terminated(view, 0usize) && !line_terminated(view, 3usize);
+    let reader0 = reader_from_bytes(input);
+    let first = reader_line_len(reader0) == 1usize && reader_line_complete(reader0);
+    let out0 = writer_from_bytes(bytes_zeroed(1usize));
+    let out1 = reader_line_into(reader0, out0);
+    let copied = writer_position(out1) == 1usize && writer_remaining(out1) == 0usize;
+    let reader1 = reader_next_line(reader0);
+    let second = reader_position(reader1) == 3usize && reader_line_len(reader1) == 1usize && !reader_line_complete(reader1);
+    let reader2 = reader_next_line(reader1);
+    let exhausted = reader_position(reader2) == 4usize && reader_line_len(reader2) == 0usize;
+    let retained = reader_finish(reader2);
+    let output = writer_finish(out1);
+    ends && first && copied && second && exhausted && byte_len(bytes_as_slice(retained)) == 4usize && byte_len(bytes_as_slice(output)) == 1usize
+}
+
+@id("std.io.lines.tests.main")
+fn main() -> i64
+{
+    if lines() { 0 } else { 1 }
+}

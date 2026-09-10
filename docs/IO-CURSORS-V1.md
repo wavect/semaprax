@@ -74,7 +74,9 @@ backend meanings remain unchanged outside the admitted cursor transitions.
 
 The profile does not supply a disk/network service or complete `std.io`.
 Arbitrary streaming interfaces and general mutable cursor replacement in loops
-remain open. [Typed paths](TYPED-PATH-V1.md),
+remain open. Line processing over these same cursors is the separate additive
+[IO Lines v1](IO-LINES-V1.md) profile; it changes no shape, signature, or
+contract defined here. [Typed paths](TYPED-PATH-V1.md),
 [filesystem I/O](FILESYSTEM-IO-V1.md), [filesystem v2](FILESYSTEM-IO-V2.md),
 [formatting](FORMAT-WRITER-V1.md), and [logging](LOG-WRITER-V1.md) are implemented
 separate profiles; none is implied solely by a Reader or Writer value.

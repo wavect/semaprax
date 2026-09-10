@@ -1,0 +1,40 @@
+module std.io.lines.examples;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.io.reader.finish") from std.io as reader_finish;
+use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.io.reader.peek") from std.io as reader_peek;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.lines.reader.line-into") from std.io.lines as reader_line_into;
+use function @id("std.io.lines.reader.line-len") from std.io.lines as reader_line_len;
+use function @id("std.io.lines.reader.next-line") from std.io.lines as reader_next_line;
+
+// One CRLF line copied out of a borrowed Reader into caller-supplied Writer
+// capacity, then the consuming transition past its terminator.  Line
+// transitions return records, so a bounded caller unrolls them rather than
+// stepping them inside a `while` body.
+@id("std.io.lines.examples.first_line")
+fn first_line() -> i64
+{
+    let source = [104u8, 13u8, 10u8, 105u8];
+    let input = bytes_copy(array_as_slice(source));
+    let reader0 = reader_from_bytes(input);
+    let head = reader_line_len(reader0) == 1usize;
+    let out0 = writer_from_bytes(bytes_zeroed(2usize));
+    let out1 = reader_line_into(reader0, out0);
+    let reader1 = reader_next_line(reader0);
+    let rest = reader_line_len(reader1) == 1usize;
+    let output = writer_finish(out1);
+    let copied = reader_from_bytes(output);
+    let value = reader_peek(copied) == 104u8;
+    let released = reader_finish(copied);
+    let retained = reader_finish(reader1);
+    if head && rest && value && byte_len(bytes_as_slice(released)) == 2usize && byte_len(bytes_as_slice(retained)) == 4usize { 0 } else { 1 }
+}
+
+@id("std.io.lines.examples.main")
+fn main() -> i64
+{
+    first_line()
+}

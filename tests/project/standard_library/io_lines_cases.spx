@@ -1,0 +1,144 @@
+module std.io.lines.tests;
+use type @id("std.io.reader") from std.io as Reader;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.io.lines.line-content-len") from std.io.lines as line_content_len;
+use function @id("std.io.lines.line-end") from std.io.lines as line_end;
+use function @id("std.io.lines.line-terminated") from std.io.lines as line_terminated;
+use function @id("std.io.reader.finish") from std.io as reader_finish;
+use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.io.lines.reader.line-complete") from std.io.lines as reader_line_complete;
+use function @id("std.io.lines.reader.line-into") from std.io.lines as reader_line_into;
+use function @id("std.io.lines.reader.line-len") from std.io.lines as reader_line_len;
+use function @id("std.io.lines.reader.next-line") from std.io.lines as reader_next_line;
+use function @id("std.io.reader.cursor") from std.io as reader_position;
+use function @id("std.io.reader.remaining") from std.io as reader_remaining;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.cursor") from std.io as writer_position;
+use function @id("std.io.writer.remaining") from std.io as writer_remaining;
+use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
+
+@id("std.io.lines.tests.equal")
+fn equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+{
+    let mut index = 0usize;
+    let mut same = byte_len(left) == byte_len(right);
+    while same && index < byte_len(left) {
+        let a = match byte_get(left, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let b = match byte_get(right, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        same = a == b;
+        index = index + 1usize;
+        same
+    }
+    same
+}
+
+@id("std.io.lines.tests.line-case")
+fn line_case(source: borrow Slice<u8>, output: own Writer, end: usize, content: usize, terminated: bool, next: usize, expected: borrow Slice<u8>) -> i64
+{
+    let input = bytes_copy(source);
+    let view = bytes_as_slice(input);
+    let helpers = line_end(view, 0usize) == end && line_content_len(view, 0usize) == content && line_terminated(view, 0usize) == terminated;
+    let reader0 = reader_from_bytes(input);
+    let observed = reader_line_len(reader0) == content && reader_line_complete(reader0) == terminated;
+    let capacity = writer_remaining(output);
+    let written = reader_line_into(reader0, output);
+    let cursor = writer_position(written) == content && writer_remaining(written) == capacity - content;
+    let reader1 = reader_next_line(reader0);
+    let advanced = reader_position(reader1) == next;
+    let retained = reader_finish(reader1);
+    let kept = byte_len(bytes_as_slice(retained)) == byte_len(source);
+    let bytes = writer_finish(written);
+    let copied = equal(bytes_as_slice(bytes), expected);
+    if helpers && observed && cursor && advanced && kept && copied { 0 } else { 1 }
+}
+
+@id("std.io.lines.tests.test-crlf-line")
+fn test_crlf_line() -> i64
+{
+    let source = [97u8, 13u8, 10u8, 98u8];
+    let expected = [97u8];
+    line_case(array_as_slice(source), writer_from_bytes(bytes_zeroed(1usize)), 2usize, 1usize, true, 3usize, array_as_slice(expected))
+}
+
+@id("std.io.lines.tests.test-lf-line")
+fn test_lf_line() -> i64
+{
+    let source = [120u8, 10u8, 121u8];
+    let expected = [120u8];
+    line_case(array_as_slice(source), writer_from_bytes(bytes_zeroed(1usize)), 1usize, 1usize, true, 2usize, array_as_slice(expected))
+}
+
+@id("std.io.lines.tests.test-empty-line")
+fn test_empty_line() -> i64
+{
+    let source = [10u8, 97u8, 98u8];
+    let expected = [0u8, 0u8];
+    line_case(array_as_slice(source), writer_from_bytes(bytes_zeroed(2usize)), 0usize, 0usize, true, 1usize, array_as_slice(expected))
+}
+
+@id("std.io.lines.tests.test-crlf-only")
+fn test_crlf_only() -> i64
+{
+    let source = [13u8, 10u8];
+    let expected = [0u8];
+    line_case(array_as_slice(source), writer_from_bytes(bytes_zeroed(1usize)), 1usize, 0usize, true, 2usize, array_as_slice(expected))
+}
+
+@id("std.io.lines.tests.test-bare-cr")
+fn test_bare_cr() -> i64
+{
+    let source = [97u8, 13u8, 98u8];
+    let expected = [97u8, 13u8, 98u8];
+    line_case(array_as_slice(source), writer_from_bytes(bytes_zeroed(3usize)), 3usize, 3usize, false, 3usize, array_as_slice(expected))
+}
+
+@id("std.io.lines.tests.test-unterminated-tail")
+fn test_unterminated_tail() -> i64
+{
+    let source = [97u8, 98u8];
+    let expected = [97u8, 98u8];
+    line_case(array_as_slice(source), writer_from_bytes(bytes_zeroed(2usize)), 2usize, 2usize, false, 2usize, array_as_slice(expected))
+}
+
+@id("std.io.lines.tests.test-two-line-walk")
+fn test_two_line_walk() -> i64
+{
+    let source = [97u8, 98u8, 10u8, 99u8, 100u8, 10u8];
+    let expected = [97u8, 98u8, 99u8, 100u8];
+    let input = bytes_copy(array_as_slice(source));
+    let reader0 = reader_from_bytes(input);
+    let out0 = writer_from_bytes(bytes_zeroed(4usize));
+    let out1 = reader_line_into(reader0, out0);
+    let reader1 = reader_next_line(reader0);
+    let out2 = reader_line_into(reader1, out1);
+    let reader2 = reader_next_line(reader1);
+    let walked = reader_position(reader2) == 6usize && reader_remaining(reader2) == 0usize && reader_line_len(reader2) == 0usize && !reader_line_complete(reader2);
+    let retained = reader_finish(reader2);
+    let bytes = writer_finish(out2);
+    if walked && byte_len(bytes_as_slice(retained)) == 6usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.io.lines.tests.test-offset-write")
+fn test_offset_write() -> i64
+{
+    let source = [122u8, 10u8];
+    let expected = [88u8, 122u8];
+    let input = bytes_copy(array_as_slice(source));
+    let reader0 = reader_from_bytes(input);
+    let out0 = writer_from_bytes(bytes_zeroed(2usize));
+    let out1 = writer_write_u8(out0, 88u8);
+    let out2 = reader_line_into(reader0, out1);
+    let cursor = writer_position(out2) == 2usize && writer_remaining(out2) == 0usize;
+    let reader1 = reader_next_line(reader0);
+    let advanced = reader_position(reader1) == 2usize;
+    let retained = reader_finish(reader1);
+    let bytes = writer_finish(out2);
+    if cursor && advanced && byte_len(bytes_as_slice(retained)) == 2usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.io.lines.tests.main")
+fn main() -> i64
+{
+    test_crlf_line()
+}

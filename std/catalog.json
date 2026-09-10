@@ -3207,6 +3207,124 @@
     {
       "declarations": [
         {
+          "description": [
+            "Line processing over a borrowed byte view.  `line_end` is the absolute offset",
+            "of the first line-feed at or after `start`, or the view length when the view",
+            "carries no further terminator.  A line's content excludes that line feed and",
+            "one immediately preceding carriage return, so canonical LF and CRLF inputs",
+            "yield the same content bytes."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn line_end(view: borrow Slice<u8>, start: usize) -> usize",
+            "    requires start <= byte_len(view)",
+            "    ensures result >= start && result <= byte_len(view)"
+          ],
+          "id": "std.io.lines.line-end",
+          "kind": "function",
+          "name": "line_end",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn line_terminated(view: borrow Slice<u8>, start: usize) -> bool",
+            "    requires start <= byte_len(view)"
+          ],
+          "id": "std.io.lines.line-terminated",
+          "kind": "function",
+          "name": "line_terminated",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn line_content_len(view: borrow Slice<u8>, start: usize) -> usize",
+            "    requires start <= byte_len(view)",
+            "    ensures result <= byte_len(view) - start"
+          ],
+          "id": "std.io.lines.line-content-len",
+          "kind": "function",
+          "name": "line_content_len",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reader_line_len(reader: borrow Reader) -> usize",
+            "    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.lines.reader.line-len",
+          "kind": "function",
+          "name": "reader_line_len",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reader_line_complete(reader: borrow Reader) -> bool",
+            "    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.lines.reader.line-complete",
+          "kind": "function",
+          "name": "reader_line_complete",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Copies the current line's content into the caller's Writer capacity after an",
+            "exact preflight.  The borrowed Reader keeps its position; `reader_next_line`",
+            "is the consuming transition past the line and its terminator."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reader_line_into(input: borrow Reader, output: own Writer) -> Writer",
+            "    requires match borrow input { Reader { data: source, position: start } => match borrow output { Writer { data: target, position: write } => start <= byte_len(bytes_as_slice(source)) && write <= byte_len(bytes_as_slice(target)) && line_content_len(bytes_as_slice(source), start) <= byte_len(bytes_as_slice(target)) - write, }, }"
+          ],
+          "id": "std.io.lines.reader.line-into",
+          "kind": "function",
+          "name": "reader_line_into",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reader_next_line(reader: own Reader) -> Reader",
+            "    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.io.lines.reader.next-line",
+          "kind": "function",
+          "name": "reader_next_line",
+          "requires": 1
+        }
+      ],
+      "dependency": "std.io.lines = \"^0.1.0\"",
+      "module": "std.io.lines",
+      "package": "std/io-lines",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
           "description": [],
           "effects": [],
           "ensures": 0,

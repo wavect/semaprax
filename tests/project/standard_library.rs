@@ -656,6 +656,16 @@ fn io_cursors_execute_on_all_three_backends() {
 }
 
 #[test]
+fn io_lines_execute_on_all_three_backends() {
+    run_examples_and_conformance(
+        packages()
+            .into_iter()
+            .filter(|p| p.module == "std.io.lines")
+            .collect(),
+    );
+}
+
+#[test]
 fn typed_paths_execute_on_all_three_backends() {
     run_examples_and_conformance(
         packages()
@@ -736,7 +746,7 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             let wasm = snapshot.test_wasm_module()?;
             let cursor_case = json_cursors::is_cursor_case(&manifest);
             // Each fixture must balance its declared live Bytes bound.
-            let arena = cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.path.value") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest));
+            let arena = cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.io.lines" | "std.path.value") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest));
             for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
                 let present = wasm.windows(name.len()).any(|w| w == name.as_bytes());
                 // Individual typed-Path observation cases allocate via copy
@@ -745,7 +755,7 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
                     assert_eq!(present, arena, "{}: `{name}` import", package.directory);
                 }
             }
-            let live_entry_bound = if package.module == "std.log" { logging::live_byte_bound(&manifest) } else if cursor_case || package.module == "std.format" { 2 } else if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
+            let live_entry_bound = if package.module == "std.log" { logging::live_byte_bound(&manifest) } else if package.module == "std.io.lines" { io_lines::live_byte_bound(&manifest) } else if cursor_case || package.module == "std.format" { 2 } else if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
             let wasm_path = scratch.join(format!("{}-tests.wasm", package.directory));
             std::fs::write(&wasm_path, wasm).unwrap();
             let script = scratch.join(format!("{}-tests.mjs", package.directory));
@@ -1489,6 +1499,8 @@ fn library_modules_verify_inside_their_packages_only() {
 
 #[path = "standard_library/io_cursors.rs"]
 mod io_cursors;
+#[path = "standard_library/io_lines.rs"]
+mod io_lines;
 
 #[path = "standard_library/typed_paths.rs"]
 mod typed_paths;

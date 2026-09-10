@@ -1620,6 +1620,71 @@ fn writer_finish(writer: own Writer) -> Bytes
     requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
 ```
 
+## `std.io.lines`
+
+Package `std/io-lines`, tier `portable`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.io.lines = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.io.lines.line-end`
+
+Line processing over a borrowed byte view.  `line_end` is the absolute offset
+of the first line-feed at or after `start`, or the view length when the view
+carries no further terminator.  A line's content excludes that line feed and
+one immediately preceding carriage return, so canonical LF and CRLF inputs
+yield the same content bytes.
+
+```semaprax
+fn line_end(view: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(view)
+    ensures result >= start && result <= byte_len(view)
+```
+
+### `std.io.lines.line-terminated`
+
+```semaprax
+fn line_terminated(view: borrow Slice<u8>, start: usize) -> bool
+    requires start <= byte_len(view)
+```
+
+### `std.io.lines.line-content-len`
+
+```semaprax
+fn line_content_len(view: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(view)
+    ensures result <= byte_len(view) - start
+```
+
+### `std.io.lines.reader.line-len`
+
+```semaprax
+fn reader_line_len(reader: borrow Reader) -> usize
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.io.lines.reader.line-complete`
+
+```semaprax
+fn reader_line_complete(reader: borrow Reader) -> bool
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.io.lines.reader.line-into`
+
+Copies the current line's content into the caller's Writer capacity after an
+exact preflight.  The borrowed Reader keeps its position; `reader_next_line`
+is the consuming transition past the line and its terminator.
+
+```semaprax
+fn reader_line_into(input: borrow Reader, output: own Writer) -> Writer
+    requires match borrow input { Reader { data: source, position: start } => match borrow output { Writer { data: target, position: write } => start <= byte_len(bytes_as_slice(source)) && write <= byte_len(bytes_as_slice(target)) && line_content_len(bytes_as_slice(source), start) <= byte_len(bytes_as_slice(target)) - write, }, }
+```
+
+### `std.io.lines.reader.next-line`
+
+```semaprax
+fn reader_next_line(reader: own Reader) -> Reader
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
 ## `std.log`
 
 Package `std/log`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.log = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

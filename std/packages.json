@@ -21,6 +21,7 @@
     {"directory": "fs", "module": "std.fs", "tier": "hosted", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "http", "module": "std.http", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "io", "module": "std.io", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "io-lines", "module": "std.io.lines", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "log", "module": "std.log", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "mem", "module": "std.mem", "tier": "alloc", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "net", "module": "std.net", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

@@ -1,0 +1,25 @@
+name: Isolated documentation reconciliation
+on:
+  push:
+    branches: [docs/reconcile-v040-validation]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    name: Export exact source for documentation validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: dcfe193692a257077d278916b035a61c0200a0b4
+          persist-credentials: false
+      - name: Export tracked source only
+        run: |
+          git archive --format=tar.gz --output="$RUNNER_TEMP/semaprax-docs-source.tar.gz" HEAD
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: docs-reconcile-source
+          path: ${{ runner.temp }}/semaprax-docs-source.tar.gz
+          retention-days: 1
+          if-no-files-found: error

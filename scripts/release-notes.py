@@ -37,6 +37,11 @@ def main(argv=None):
     section = changelog_section(
         args.changelog.read_text(encoding="utf-8"), args.version
     )
+    # Single-release hotfix: 0.4.0 section is 126k (>125k GitHub limit); truncate
+    # for this tag only so `gh release create` stops 422ing. Keep the full
+    # CHANGELOG.md intact; this only affects the release notes file.
+    if args.version == "0.4.0" and len(section) > 118_000:
+        section = section[:118_000].rsplit("\n", 1)[0] + "\n\n… (truncated for GitHub 125k limit; see CHANGELOG.md for full 0.4.0 notes)"
     print(f"SEMAPRAX v{args.version} is pre-alpha research software.\n")
     print("## Changes\n")
     print(section)

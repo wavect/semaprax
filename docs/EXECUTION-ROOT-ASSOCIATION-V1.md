@@ -1,8 +1,12 @@
 # Execution root association v1
 
-Status: local, partial; focused V1/V2/V3 and iterative root association tests pass.
+Status: **HOSTED GREEN** for the bounded v0.4.0 V1/V2/V3 and iterative associations.
 
 Audience: compiler contributors and runtime integrators.
+
+The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only evidence status. Existing root schemas and authority boundaries
+are unchanged.
 
 `execution_revision::bind_execution_revision` consumes only retained, checked
 Project source and a compiler-produced ProgramRoot v1, v2, or v3. It checks the
@@ -32,9 +36,10 @@ no filesystem, network, mutation, deployment, checkpoint, or publication authori
 They add no wire import or deserialization route and alter no frozen root bytes.
 
 Focused gate: `cargo test --locked -p semaprax --test agent_runtime_v1
-execution_revision`. This batch covers local retained-source association and
-one acyclic lifecycle. Iterative execution, state migration and durable root-bound
-checkpoint recovery require their own additive protocols and evidence.
+execution_revision`. The original v1 association covers retained source and
+one acyclic lifecycle. Iterative execution, state migration, and durable
+root-bound checkpoint recovery are implemented additive protocols, not behavior
+silently added to this v1 association.
 
 ## Iterative association v2
 
@@ -53,8 +58,8 @@ remains bound to its exact invocation and roots. No API accepts an arbitrary run
 or caller-supplied evidence to mint this association. Suspend is evidence only;
 this API creates no resume or migration token.
 
-The local focused integration selector `execution_revision` now also covers the
-iterative association and passes locally. The retained interpreter
+The focused integration selector `execution_revision` also covers the iterative
+association under the hosted-green release baseline. The retained interpreter
 adds exact flat Copy-record calls over its five existing scalar leaves solely to
 its retained-call function map, allowing Copy-only Observation stages while keeping
 ordinary interpreter entry admission unchanged. Ordinary HIR validation, exact
@@ -71,3 +76,6 @@ three calls in its source profile.
 [Workspace Execution Association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md)
 adds exact semantic-service generation selection, authority-free receipt replay,
 and consuming producer/evidence associations without changing these root bytes.
+[Direct Agent Runtime v2](AGENT-RUNTIME-V2.md) owns the joined typed and durable
+execution roots; [durable migration v3](AGENT-STATE-MIGRATION-V3.md) owns the
+persisted migration extension.

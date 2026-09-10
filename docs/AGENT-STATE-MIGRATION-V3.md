@@ -2,9 +2,10 @@
 
 Audience: runtime integrators and compiler contributors.
 
-Status: locally exercised; hosted promotion remains pending. This adds durable
-continuation to
-[State Migration v2](AGENT-STATE-MIGRATION-V2.md).
+Status: **HOSTED GREEN** for the bounded v0.4.0 durable continuation.
+This adds durable continuation to [State Migration v2](AGENT-STATE-MIGRATION-V2.md).
+The [release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only and hosted-pending evidence classification.
 
 ## Handoff and authority
 
@@ -82,25 +83,27 @@ handoffs and all replay reservations. A chained migration uses an additive v2
 migration root that also binds the predecessor handoff digest. Each destination
 acquires its own caller-owned store and fresh stage authorizations.
 
-This is local retained execution with injected stores and handlers. Distributed
-writer coordination, automatic reconciliation, transactional migration
-preparation, cross-store exactly-once handoff and hosted promotion remain
-separate work. The full Agent, language, standard-library and public ABI goals
-remain open.
+This is retained execution with injected stores and handlers, with hosted-green
+release evidence. Distributed writer coordination, automatic reconciliation,
+transactional migration preparation, and cross-store exactly-once handoff
+remain separate work. The full Agent, language, standard-library and public
+ABI goals remain open.
 
-## Focused local evidence
+## Focused evidence
 
 `cargo test --locked -p semaprax --test agent_runtime_v1 execution_revision::typed::migration`
-passes the existing consuming migration case and three durable integration
-cases. They cover completed replay with zero repeated host calls, rejected
-changed/swapped runtime bindings and altered handoff usage, genesis and
-Intent/Observed/terminal-Transition lost acknowledgements, and A→B→C State
-extension with both fresh and replayed B suspension. Both chains finish with
-nine cumulative calls and iterations; replay raises the charged stage count
-from 28 to 37 while preserving the predecessor handoff and State fields.
+selects the existing consuming migration case and durable integration cases.
+The original three durable cases cover completed replay with zero repeated
+host calls, rejected changed/swapped runtime bindings and altered handoff
+usage, genesis and Intent/Observed/terminal-Transition lost acknowledgements,
+and A→B→C State extension with both fresh and replayed B suspension. Both chains
+finish with nine cumulative calls and iterations; replay raises the charged
+stage count from 28 to 37 while preserving the predecessor handoff and State
+fields.
 
 `cargo test --locked -p semaprax --lib execution_revision::typed::migration`
-passes the original pure migration check and two closed handoff codec checks.
-The four existing durable-driver tests and eight frozen operation-checkpoint
-codec tests also pass. These are focused local checks; no full gate or hosted
-success is claimed.
+selects the original pure migration check and closed handoff codec checks.
+The existing durable-driver and frozen operation-checkpoint codec regressions
+remain part of the evidence. The earlier focused local runs are historical
+witnesses; the current released implementation is **HOSTED GREEN** under the
+v0.4.0 baseline. This does not complete the broader gates listed above.

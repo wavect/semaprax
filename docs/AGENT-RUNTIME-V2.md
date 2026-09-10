@@ -1,8 +1,12 @@
 # Direct Agent Runtime v2
 
-Status: local, partial; focused typed execution and actual-root association pass.
+Status: **HOSTED GREEN** for the bounded v0.4.0 implementation.
 
 Audience: runtime integrators and compiler contributors.
+
+The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only status for typed execution, actual-root association, and the
+implemented durable integrations.
 
 `bind_agent_runtime_v2` consumes an exact retained Project selection, an already
 admitted ProgramRoot v1/v2/v3, source Agent and Step identities, a deployment,
@@ -55,9 +59,10 @@ supplies its actual ProgramRoot and ExecutionRevision to the
 [operation checkpoint implementation](AGENT-OPERATION-CHECKPOINT-V2.md).
 EvidenceRoot v4 additionally binds the checkpoint digest and reserved-fuel
 ceiling. Replay reserves additional fuel, so its evidence differs even when
-its terminal value is unchanged. State migration remains a separate addition;
-a suspended value alone grants no resume authority. Hosted support requires
-exact-commit evidence and is not inferred from local execution.
+its terminal value is unchanged. State migration is an implemented additive
+contract; a suspended value alone still grants no resume authority. Hosted
+evidence for the admitted runtime is green at the v0.4.0 baseline, without
+promoting unimplemented provider transports or general public ABI support.
 
 [Durable migration v3](AGENT-STATE-MIGRATION-V3.md) adds a persisted handoff
 and trusted-store recovery for checked migrated State. Its joined evidence
@@ -66,3 +71,8 @@ retains the handoff digest and exposes the complete recoverable checkpoint.
 [Workspace Execution Association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md)
 adds exact semantic-service generation selection, authority-free receipt replay,
 and consuming producer/evidence associations without changing these root bytes.
+
+[Project Linked Agent Lifecycle v1](PROJECT-LINKED-AGENT-LIFECYCLE-V1.md)
+and [Project Linked Agent Migration v1](PROJECT-LINKED-AGENT-MIGRATION-V1.md)
+add authenticated imported-role and migration closures. They reuse this runtime
+producer while retaining their separately versioned lifecycle and effect wires.

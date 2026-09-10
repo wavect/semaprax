@@ -1,10 +1,13 @@
 # Agent operation checkpoint v2
 
-Status: bounded live adapter with 12 focused local cases passed: four durable
-execution cases and eight checkpoint codec cases. The two focused joined
-Runtime v2 cases also pass locally, covering ordinary and durable execution.
+Status: **HOSTED GREEN** for the bounded v0.4.0 live adapter and joined Runtime v2 integration.
 
 Audience: runtime integrators and compiler contributors.
+
+The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only evidence status. The original focused corpus records four durable
+execution cases and eight checkpoint codec cases, plus ordinary and durable
+joined-runtime integration; the selectors below own the current test inventory.
 
 `CompiledTypedEffects::run_durable` executes the same retained iterative stages
 and typed registry through the private IterativeDriver hooks. The ordinary
@@ -83,9 +86,11 @@ the journal for a later authorized resume.
 DurableTypedRun exposes the typed run, checkpoint bytes/digest and cumulative
 call/byte/reserved-fuel usage. DurableTypedFailure exposes diagnostics, optional
 selected terminal run and the latest local checkpoint candidate. Their evidence
-is immutable and carries no authority. This profile covers local retained
-execution and the caller-injected store/handlers; distributed writers, automatic
-reconciliation, checkpoint migration and hosted clients remain separate gates.
+is immutable and carries no authority. This profile covers retained execution
+and the caller-injected store/handlers. Distributed writers and automatic
+reconciliation remain outside it. [Durable migration v3](AGENT-STATE-MIGRATION-V3.md)
+is an implemented additive contract, not an unimplemented checkpoint feature;
+its current release evidence is also hosted green.
 
 Focused selectors:
 

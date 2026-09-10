@@ -1,9 +1,12 @@
 # Project Linked Agent Migration v1
 
-Status: private additive migration; focused local imported migration, durable
-recovery, selection-refusal, and workspace association checks pass.
+Status: private additive migration; **HOSTED GREEN** for the bounded v0.4.0 implementation.
 
 Audience: Project, Agent lifecycle, runtime, and semantic-graph contributors.
+
+The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only status for imported migration, durable recovery, selection refusal,
+and workspace associations.
 
 This profile extends the authenticated linked Agent lifecycle with a checked
 state migration between two retained Project source revisions. It composes the
@@ -91,9 +94,10 @@ digest, or evidence capsule cannot mint the migration binding.
 
 ## Boundaries and ownership
 
-This is a private Project association. It does not add a public ABI, hosted
-support, native/Wasm Agent-stage execution, live provider, distributed writer
-coordination, or general `std.agent` completion. The focused `linked_agent_imported_migration_durable_recovery_preserves_state_and_usage`
+This is a private Project association with hosted-green release evidence.
+It does not add a public ABI, native/Wasm Agent-stage execution, live provider,
+distributed writer coordination, or general `std.agent` completion. The focused
+`linked_agent_imported_migration_durable_recovery_preserves_state_and_usage`
 and `linked_agent_migration_selection_rejects_alias_and_unimported_stable_id`
 cases cover imported State migration, renamed imports selected by stable ID,
 old payload preservation, skipped initialization, cumulative usage, completed

@@ -1,9 +1,12 @@
 # Project Linked Agent Lifecycle v1
 
-Status: private additive binding; focused local linked-role and standard-package
-evidence passes, while broader lifecycle support remains pending.
+Status: private additive binding; **HOSTED GREEN** for the bounded v0.4.0 implementation.
 
 Audience: Project, Agent lifecycle, runtime, and semantic-graph contributors.
+
+The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only evidence status. Private composition and broader lifecycle support
+remain distinct from release evidence.
 
 This profile binds the typed iterative Agent runtime to an authenticated Project
 role closure. It lets the runtime consume deterministic Agent roles retained by
@@ -111,15 +114,16 @@ AgentDefinition v1, AgentGraph, existing Project manifests, public descriptors,
 or public nominal/owned ABIs. Linked role closure is private Project
 composition only.
 
-Focused local evidence now passes all six `linked_agent_*` cases in
-`agent_runtime_v1::execution_revision::typed`, covering imported three-turn
+The original six focused `linked_agent_*` cases in
+`agent_runtime_v1::execution_revision::typed` cover imported three-turn
 roles, standard-package roles, imported-body/root drift, intent/observed-ack
 recovery with completed replay, suspend-terminal replay, and migration refusal.
-The four `testing` package cases also pass across the interpreter, native C11
-`-O0`/`-O2`, and Core Wasm, including the `std.agent` epoch `-1`/maximum
-boundaries and the `std.test.bytes` regression. This evidence is local and
-injected-driver scoped; native/Wasm Agent-stage execution,
-live providers, hosted support, and the full `std.agent` scope remain open.
+The package cases cover the interpreter, native C11 `-O0`/`-O2`, and Core Wasm,
+including the `std.agent` epoch `-1`/maximum boundaries and the `std.test.bytes`
+regression. The released corpus has hosted-green evidence. Agent execution
+remains injected-driver scoped: native/Wasm Agent-stage execution, live
+providers, and the full `std.agent` scope remain open. Ordinary package
+execution on those backends is not native/Wasm execution of Agent stages.
 
 ## Owning implementation
 

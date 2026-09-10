@@ -1,9 +1,12 @@
 # Workspace Execution Association v1
 
-Status: local, partial; focused generation binding and runtime replay tests pass.
+Status: **HOSTED GREEN** for the bounded v0.4.0 generation binding and runtime replay.
 
 Audience: compiler, Project, ProgramRoot, semantic-service, and runtime
 maintainers.
+
+The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only evidence status without widening the runtime or service contract.
 
 This SEG-04 profile associates runtime execution with one exact immutable
 generation retained by `SemanticWorkspaceService`. It does not change the
@@ -47,9 +50,9 @@ binding; the result uses the same closed `typed` runtime kind and
 `semaprax.workspace-runtime-association.v1` association as an ordinary typed
 binding. It reuses the existing currentness, run, durable, and migration
 producer paths rather than introducing a second workspace association. Its
-two focused `workspace_linked_typed_*` tests pass locally: imported roles run
-three turns with joined evidence, and an in-memory refresh of an imported
-helper rejects the stale binding before any host call.
+two focused `workspace_linked_typed_*` tests cover imported roles running
+three turns with joined evidence and an in-memory refresh of an imported
+helper rejecting the stale binding before any host call.
 
 Binding computes a runtime association over the exact deployment, invocation,
 and execution revision before execution. Only a consuming `run` can produce
@@ -90,21 +93,22 @@ checkpoint storage remains the existing caller-owned durable runtime boundary.
 All existing root, image, service, execution, evidence, and receipt schemas
 retain their prior meaning and bytes.
 
-Focused local evidence is selected by:
+Focused evidence is selected by:
 
 ```sh
 cargo test --locked -p semaprax --test agent_runtime_v1 execution_revision -- --nocapture
 ```
 
-The twelve-test selection includes the existing direct runtime and migration
-chains plus four new workspace tests. The new cases exercise V1/V2/V3 binding
-and actual execution, fresh-service receipt replay, independently reminted
-forgeries, same-source and changed exact-v3 refresh, historical execution,
-three-turn iterative and typed dispatch, zero-host durable replay, foreign
-source rejection, and stale `run_current` rejection before host dispatch.
-Receipts are checked for private invocation-data disclosure. This is local
-injected-handler evidence, not hosted, native/Wasm Agent execution, a durable
-semantic service, or a new cross-workspace migration protocol.
+The original twelve-test selection included the direct runtime and migration
+chains plus four workspace tests; later additions extend that selector. The
+workspace cases exercise V1/V2/V3 binding and actual execution, fresh-service
+receipt replay, independently reminted forgeries, same-source and changed
+exact-v3 refresh, historical execution, three-turn iterative and typed dispatch,
+zero-host durable replay, foreign source rejection, and stale `run_current`
+rejection before host dispatch. Receipts are checked for private invocation-data
+disclosure. The released injected-handler implementation has hosted-green
+evidence; it does not add native/Wasm Agent execution or a durable semantic
+service.
 
 The additive [Workspace Execution Migration v1](WORKSPACE-EXECUTION-MIGRATION-V1.md)
 profile composes two retained workspace producers through the existing migration

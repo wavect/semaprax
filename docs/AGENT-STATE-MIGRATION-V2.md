@@ -1,9 +1,12 @@
 # Agent State Migration v2
 
-Status: local, partial; pure-call, cumulative-accounting and joined-runtime
-integration checks pass for migration from an actual durable `Suspend`.
+Status: **HOSTED GREEN** for the bounded v0.4.0 migration implementation.
 
 Audience: runtime integrators and compiler contributors.
+
+The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only status for pure-call, cumulative-accounting, and joined-runtime
+integration from an actual durable `Suspend`.
 
 `migrate_suspended_agent_runtime_v2` consumes three independently bound
 inputs: the previous `AgentRuntimeV2`, the `AgentRuntimeV2DurableEvidence`
@@ -45,10 +48,12 @@ revision rejection, and destination ceiling exhaustion before host work.
 The integration also verifies that the destination does not execute initialize,
 that the migrated State survives a different destination task input, and that
 an exhausted pure migration returns its reserved fuel in failure accounting.
-The destination continuation currently produces in-memory execution evidence;
-persisted migration handoff, checkpoint recovery of that continuation, repeated
-migration chains, reconciliation and hosted support remain separate work.
+This v2 destination continuation produces in-memory execution evidence.
+Persisted handoff, checkpoint recovery, and repeated migration chains are
+implemented by the additive v3 contract rather than added to this frozen v2
+profile. Automatic reconciliation remains separate functionality.
 
 [Durable migration v3](AGENT-STATE-MIGRATION-V3.md) extends this consuming
-preparation with persisted handoff and destination recovery. Its evidence
-is tracked separately.
+preparation with persisted handoff and destination recovery. Its release
+evidence is hosted green under the same v0.4.0 baseline, with its own wire and
+trust boundaries.

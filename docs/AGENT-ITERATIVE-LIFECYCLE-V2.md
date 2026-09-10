@@ -1,8 +1,12 @@
 # Agent iterative lifecycle v2
 
-Status: local, partial; six focused iterative lifecycle tests pass.
+Status: **HOSTED GREEN** for the bounded v0.4.0 implementation.
 
 Audience: compiler contributors and runtime integrators.
+
+The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only evidence status. The admitted lifecycle and compatibility limits
+below are unchanged.
 
 `agent_lifecycle::iterative::compile_agent_lifecycle_v2` binds the checked
 initialize, observe, authorize and reduce operations from an unchanged
@@ -41,12 +45,17 @@ ordered proposal bytes and all three execution ceilings before any stage
 boundary. It records actual stage order, turn and effect counts, authorization bindings and
 a terminal-carrier digest, without exposing payloads. Its schema and digest
 domain are additive v2; all existing Lifecycle, Definition and Runtime v1
-artifacts remain unchanged. This is a local retained-interpreter profile;
-typed operation registries, per-operation durable recovery and hosted clients
-remain separate gates.
+artifacts remain unchanged. This is a retained-interpreter profile.
+[Typed operation registries](AGENT-TYPED-EFFECTS-V3.md),
+[per-operation durable recovery](AGENT-OPERATION-CHECKPOINT-V2.md), and
+[linked Project roles](PROJECT-LINKED-AGENT-LIFECYCLE-V1.md) are implemented
+additions with their own contracts and the same hosted-green release baseline;
+they do not retroactively widen this v2 wire.
 
 Focused gate: `cargo test --locked -p semaprax --all-features --lib
-agent_lifecycle::iterative::tests` (six cases).
+agent_lifecycle::iterative::tests` (the original six-case focused corpus).
+The selector remains the executable reference; its earlier local run is not
+the current release's evidence ceiling.
 
 The canonical v2 document explicitly records initialize-once, the iteration
 order, Continue targeting observe, terminal cases, and exact Step case/field

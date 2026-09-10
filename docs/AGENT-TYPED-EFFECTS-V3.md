@@ -1,8 +1,11 @@
 # Agent typed effects v3
 
-Status: local, partial; five focused typed-effect tests pass.
+Status: **HOSTED GREEN** for the bounded v0.4.0 implementation.
 
 Audience: compiler contributors and runtime integrators.
+
+The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only evidence status without changing the registry or host boundary.
 
 `agent_lifecycle::iterative::effects::compile_typed_effects` accepts one checked
 module, an immutable BoundAgentDeployment, one Step type identity, one Proposal
@@ -58,12 +61,17 @@ later effect executes after that failure.
 TypedEffectRun exposes immutable counters, failure reason, underlying iterative
 evidence and an additive v3 evidence digest. The evidence commits registry,
 underlying invocation/stage evidence, effective effect ceilings and attempted
-call/byte counters. The run is local retained-interpreter evidence; direct
-Runtime v2 joined roots, per-operation checkpoints, migration and hosted clients
-remain separate gates.
+call/byte counters. Execution remains retained-interpreter and injected-handler
+scoped. [Direct Runtime v2](AGENT-RUNTIME-V2.md),
+[per-operation checkpoints](AGENT-OPERATION-CHECKPOINT-V2.md), and
+[durable migration](AGENT-STATE-MIGRATION-V3.md) are implemented joined
+extensions with hosted-green release evidence, not missing prerequisites for
+this bounded registry. Provider transport and a public general Agent ABI remain
+separate functionality.
 
 Focused gate: `cargo test --locked -p semaprax --all-features --lib
-agent_lifecycle::iterative::effects::tests` (five cases). Cases alternate two
-operations over three turns, retain fresh authorization bindings, reject typed
-result drift and effect/projection substitution, enforce call and deployment
-turn ceilings, and charge oversized failed host work before encoding.
+agent_lifecycle::iterative::effects::tests` (the original five-case corpus).
+Cases alternate two operations over three turns, retain fresh authorization
+bindings, reject typed result drift and effect/projection substitution, enforce
+call and deployment turn ceilings, and charge oversized failed host work before
+encoding.

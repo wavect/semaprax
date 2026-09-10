@@ -1,9 +1,12 @@
 # Workspace Execution Migration v1
 
-Status: implemented with focused local injected-handler evidence; hosted promotion remains open.
+Status: **HOSTED GREEN** for the bounded v0.4.0 injected-handler implementation.
 
 Audience: compiler, Project, ProgramRoot, semantic-service, runtime, and
 durable-checkpoint maintainers.
+
+The [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md) supersedes the former
+local-only and hosted-pending evidence classification.
 
 This profile composes [Workspace Execution Association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md)
 with [Agent State Migration v3](AGENT-STATE-MIGRATION-V3.md). It binds a
@@ -59,17 +62,19 @@ reconciliation, cross-store exactly-once handoff, or a broader migration
 association. Existing workspace roots, runtime associations, state-migration
 handoff/checkpoint bytes, and rich failure values retain their prior meaning.
 
-Focused local evidence uses:
+Focused evidence uses:
 
 ```sh
 cargo test --locked -p semaprax --test agent_runtime_v1 execution_revision -- --nocapture
 ```
 
-All fifteen focused execution tests pass locally. The three workspace migration
-cases exercise A→B→C with recovered B suspension,
+The three workspace migration cases in the original fifteen-test execution
+selection exercise A→B→C with recovered B suspension,
 zero host redispatch on replay, cumulative nine-call completion, independently
 reminted receipt and mismatched predecessor rejection, stale destination
 refusal before host or store,
 and terminal lost acknowledgement with the selected completion preserved.
 The selector also includes the earlier direct runtime, workspace binding,
-and durable migration regressions. No full suite or hosted promotion is claimed.
+and durable migration regressions and later linked-role additions. The
+implemented release corpus is **HOSTED GREEN**; the original local test count
+is a historical corpus description, not a ceiling on current evidence.

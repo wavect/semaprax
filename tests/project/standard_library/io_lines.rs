@@ -88,6 +88,16 @@ fn fails(main: &str) {
 }
 
 #[test]
+fn io_lines_execute_on_all_three_backends() {
+    super::run_examples_and_conformance(
+        super::packages()
+            .into_iter()
+            .filter(|p| p.module == "std.io.lines")
+            .collect(),
+    );
+}
+
+#[test]
 fn io_line_contracts_fail_before_insufficient_capacity_or_forged_cursor() {
     for main in [
         // The copy preflights the whole line against the live writer capacity.

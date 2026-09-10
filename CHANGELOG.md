@@ -8,6 +8,25 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the bundled `std.path.normalize` package,
+  [Path Normalization v1](docs/PATH-NORMALIZATION-V1.md): lexical normalization
+  of the typed `Path` values `std.path.value` owns. `normalized_len` and
+  `normalized_byte` give the exact normalized length and each byte of a
+  borrowed view with no buffer, and `into(borrow Path, own Bytes) -> Path`
+  writes the normalized form into caller-supplied capacity after an exact
+  preflight while preserving the borrowed input. A separator run collapses, `.`
+  vanishes, `..` cancels the nearest retained segment, an uncancelled `..` is
+  kept for a relative path and dropped at an absolute root, a trailing
+  separator is removed, and an empty result is `.` or `/`, so a normalized
+  Path is never zero bytes. Retention is decided without a stack, as the
+  clamped maximum prefix sum of a forward walk that scores `..` as `+1` and an
+  ordinary segment as `-1`. Ten named cases run as individual bounded projects
+  on the interpreter, native C11 `-O0`/`-O2` and repeated Core Wasm, with
+  hostile cases rejecting a short buffer, a forged Path and out-of-range
+  offsets, and a graph check replaying the projection and its per-shape
+  cleanup-schema selection. No public export, descriptor, platform conversion
+  or filesystem authority is added, and `std.path.value` stays byte-identical.
+
 - Add the bundled `std.io.lines` package, [IO Lines v1](docs/IO-LINES-V1.md):
   bounded line processing over the unchanged `std.io` Reader and Writer
   cursors. `line_end`, `line_terminated` and

@@ -70,6 +70,10 @@ single-component paths have an empty parent. An absolute path's parent keeps
 its root: `/` and all-separator paths produce `/`. `path_parent_end` reports
 the same new logical length used by the consuming transition.
 
+Lexical normalization of these values is the separate additive
+[Path Normalization v1](PATH-NORMALIZATION-V1.md) profile; it changes no shape,
+signature, or contract defined here.
+
 ## Package boundary
 
 `std.path.value` is an additive internal nongeneric library profile. It does

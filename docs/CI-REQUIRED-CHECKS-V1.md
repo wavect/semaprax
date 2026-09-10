@@ -103,7 +103,7 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 
 | Job | Published context names | Count |
 | --- | --- | --- |
-| `std-io-line-processing` | `STD-08 std.io.lines line processing` | 1 |
+| `std-library-depth` | `STD-08 std.io.lines and std.path.normalize` | 1 |
 | `supply-chain` | `Dependency policy` | 1 |
 | `component-runtime-v3` | `Private Wasmtime Component result runtime` | 1 |
 | `wasm-scalar-exports-browser-v1` | `Public Wasm Scalar Exports v1 Chromium` | 1 |
@@ -125,7 +125,7 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 
 The authored workflow additionally includes the three AGENT-06 client contexts
 and the GEN-05B closure context. With `verify-build`, it declares 48 blocking
-contexts plus the aggregate; the new build and line-processing contexts await
+contexts plus the aggregate; the new build and library-depth contexts await
 hosted execution.
 `release-artifacts`
 (`Release artifact (<target>)`) and `publish-release` (`Publish tag release`)

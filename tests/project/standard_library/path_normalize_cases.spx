@@ -1,0 +1,175 @@
+module std.path.normalize.tests;
+use type @id("std.path.value.path") from std.path.value as Path;
+use function @id("std.path.normalize.body-owner") from std.path.normalize as body_owner;
+use function @id("std.path.normalize.emitted-offset") from std.path.normalize as emitted_offset;
+use function @id("std.path.normalize.into") from std.path.normalize as path_normalize;
+use function @id("std.path.normalize.is-absolute") from std.path.normalize as is_absolute;
+use function @id("std.path.normalize.kept-bytes") from std.path.normalize as kept_bytes;
+use function @id("std.path.normalize.kept-count") from std.path.normalize as kept_count;
+use function @id("std.path.normalize.leading-parents") from std.path.normalize as leading_parents;
+use function @id("std.path.normalize.normalized-byte") from std.path.normalize as normalized_byte;
+use function @id("std.path.normalize.normalized-len") from std.path.normalize as normalized_len;
+use function @id("std.path.normalize.parent-region") from std.path.normalize as parent_region;
+use function @id("std.path.normalize.path-length") from std.path.normalize as normalized_path_len;
+use function @id("std.path.normalize.seg-end") from std.path.normalize as seg_end;
+use function @id("std.path.normalize.seg-is-dot") from std.path.normalize as seg_is_dot;
+use function @id("std.path.normalize.seg-is-dotdot") from std.path.normalize as seg_is_dotdot;
+use function @id("std.path.normalize.seg-retained") from std.path.normalize as seg_retained;
+use function @id("std.path.normalize.seg-start") from std.path.normalize as seg_start;
+use function @id("std.path.normalize.skip-from") from std.path.normalize as skip_from;
+use function @id("std.path.value.finish") from std.path.value as path_finish;
+use function @id("std.path.value.from-bytes") from std.path.value as path_from_bytes;
+use function @id("std.path.value.length") from std.path.value as path_length;
+
+@id("std.path.normalize.tests.equal")
+fn equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+{
+    let mut index = 0usize;
+    let mut same = byte_len(left) == byte_len(right);
+    while same && index < byte_len(left) {
+        let a = match byte_get(left, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let b = match byte_get(right, index) { Option::Some { value } => value, Option::None {} => 1u8, };
+        same = a == b;
+        index = index + 1usize;
+        same
+    }
+    same
+}
+
+@id("std.path.normalize.tests.probe")
+fn probe(source: borrow Slice<u8>, length: usize) -> usize
+{
+    let absolute = is_absolute(source, length);
+    let skip = skip_from(source, length, 0usize);
+    let parents = leading_parents(source, length);
+    let region = parent_region(parents);
+    let kept = kept_bytes(source, length);
+    let count = kept_count(source, length);
+    let total = normalized_len(source, length);
+    let root = if absolute { 1usize } else { 0usize };
+    let units = count + parents;
+    let separators = if units == 0usize { 0usize } else { units - 1usize };
+    let composed = root + kept + parents * 2usize + separators;
+    let identity = if units == 0usize { total == 1usize } else { total == composed };
+    let regions = region == parents * 3usize && parents <= skip;
+    if identity && regions { total } else { 0usize }
+}
+
+@id("std.path.normalize.tests.probe-segments")
+fn probe_segments(source: borrow Slice<u8>, length: usize) -> bool
+{
+    let start = seg_start(source, length, 0usize);
+    let end = seg_end(source, length, start);
+    let dot = seg_is_dot(source, start, end);
+    let dotdot = seg_is_dotdot(source, start, end);
+    let retained = seg_retained(source, length, start);
+    let offset = emitted_offset(source, length, start);
+    let owner = body_owner(source, length, 0usize);
+    let head = normalized_byte(source, length, 0usize);
+    let region = parent_region(leading_parents(source, length));
+    let bounds = start <= end && end <= length && offset >= region && owner <= length;
+    let cancelled = !(dot && retained) && !(dotdot && retained);
+    let rooted = if is_absolute(source, length) { head == 47u8 } else { head != 47u8 };
+    bounds && cancelled && rooted
+}
+
+@id("std.path.normalize.tests.case")
+fn case(source: borrow Slice<u8>, length: usize, buffer: own Bytes, expected: borrow Slice<u8>) -> i64
+{
+    let path = path_from_bytes(bytes_copy(source));
+    let want = normalized_path_len(path) == byte_len(expected);
+    let normalized = path_normalize(path, buffer);
+    let sized = path_length(normalized) == byte_len(expected);
+    let output = path_finish(normalized);
+    let copied = equal(bytes_as_slice(output), expected);
+    let retained = path_finish(path);
+    let kept = byte_len(bytes_as_slice(retained)) == length;
+    let touched = probe(source, length) >= 1usize && probe_segments(source, length);
+    if want && sized && copied && kept && touched { 0 } else { 1 }
+}
+
+@id("std.path.normalize.tests.test-dot-segment")
+fn test_dot_segment() -> i64
+{
+    let source = [47u8, 97u8, 47u8, 46u8, 47u8, 98u8];
+    let expected = [47u8, 97u8, 47u8, 98u8];
+    case(array_as_slice(source), 6usize, bytes_zeroed(4usize), array_as_slice(expected))
+}
+
+@id("std.path.normalize.tests.test-parent-segment")
+fn test_parent_segment() -> i64
+{
+    let source = [47u8, 97u8, 47u8, 46u8, 46u8, 47u8, 98u8];
+    let expected = [47u8, 98u8];
+    case(array_as_slice(source), 7usize, bytes_zeroed(2usize), array_as_slice(expected))
+}
+
+@id("std.path.normalize.tests.test-trailing-parent")
+fn test_trailing_parent() -> i64
+{
+    let source = [97u8, 47u8, 98u8, 47u8, 46u8, 46u8];
+    let expected = [97u8];
+    case(array_as_slice(source), 6usize, bytes_zeroed(1usize), array_as_slice(expected))
+}
+
+@id("std.path.normalize.tests.test-relative-parents")
+fn test_relative_parents() -> i64
+{
+    let source = [97u8, 47u8, 46u8, 46u8, 47u8, 46u8, 46u8];
+    let expected = [46u8, 46u8];
+    case(array_as_slice(source), 7usize, bytes_zeroed(2usize), array_as_slice(expected))
+}
+
+@id("std.path.normalize.tests.test-root-parent")
+fn test_root_parent() -> i64
+{
+    let source = [47u8, 46u8, 46u8];
+    let expected = [47u8];
+    case(array_as_slice(source), 3usize, bytes_zeroed(1usize), array_as_slice(expected))
+}
+
+@id("std.path.normalize.tests.test-separator-run")
+fn test_separator_run() -> i64
+{
+    let source = [97u8, 47u8, 47u8, 98u8];
+    let expected = [97u8, 47u8, 98u8];
+    case(array_as_slice(source), 4usize, bytes_zeroed(3usize), array_as_slice(expected))
+}
+
+@id("std.path.normalize.tests.test-leading-parent")
+fn test_leading_parent() -> i64
+{
+    let source = [46u8, 46u8, 47u8, 97u8];
+    let expected = [46u8, 46u8, 47u8, 97u8];
+    case(array_as_slice(source), 4usize, bytes_zeroed(4usize), array_as_slice(expected))
+}
+
+@id("std.path.normalize.tests.test-cancelled-chain")
+fn test_cancelled_chain() -> i64
+{
+    let source = [97u8, 47u8, 98u8, 47u8, 46u8, 46u8, 47u8, 46u8, 46u8, 47u8, 99u8];
+    let expected = [99u8];
+    case(array_as_slice(source), 11usize, bytes_zeroed(1usize), array_as_slice(expected))
+}
+
+@id("std.path.normalize.tests.test-empty-relative")
+fn test_empty_relative() -> i64
+{
+    let source = [120u8, 47u8, 46u8, 46u8];
+    let expected = [46u8];
+    case(array_as_slice(source), 4usize, bytes_zeroed(1usize), array_as_slice(expected))
+}
+
+@id("std.path.normalize.tests.test-absolute-chain")
+fn test_absolute_chain() -> i64
+{
+    let source = [47u8, 97u8, 47u8, 98u8, 47u8, 99u8, 47u8, 46u8, 46u8, 47u8, 46u8, 46u8, 47u8, 100u8];
+    let expected = [47u8, 97u8, 47u8, 100u8];
+    case(array_as_slice(source), 14usize, bytes_zeroed(4usize), array_as_slice(expected))
+}
+
+@id("std.path.normalize.tests.main")
+fn main() -> i64
+{
+    test_dot_segment()
+}

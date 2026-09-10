@@ -1,0 +1,102 @@
+module std.path.normalize.tests;
+use type @id("std.path.value.path") from std.path.value as Path;
+use function @id("std.path.normalize.is-absolute") from std.path.normalize as is_absolute;
+use function @id("std.path.normalize.body-owner") from std.path.normalize as body_owner;
+use function @id("std.path.normalize.normalized-byte") from std.path.normalize as normalized_byte;
+use function @id("std.path.normalize.emitted-offset") from std.path.normalize as emitted_offset;
+use function @id("std.path.normalize.into") from std.path.normalize as path_normalize;
+use function @id("std.path.normalize.kept-bytes") from std.path.normalize as kept_bytes;
+use function @id("std.path.normalize.kept-count") from std.path.normalize as kept_count;
+use function @id("std.path.normalize.leading-parents") from std.path.normalize as leading_parents;
+use function @id("std.path.normalize.normalized-len") from std.path.normalize as normalized_len;
+use function @id("std.path.normalize.parent-region") from std.path.normalize as parent_region;
+use function @id("std.path.normalize.path-length") from std.path.normalize as normalized_path_len;
+use function @id("std.path.normalize.seg-end") from std.path.normalize as seg_end;
+use function @id("std.path.normalize.seg-is-dot") from std.path.normalize as seg_is_dot;
+use function @id("std.path.normalize.seg-is-dotdot") from std.path.normalize as seg_is_dotdot;
+use function @id("std.path.normalize.seg-retained") from std.path.normalize as seg_retained;
+use function @id("std.path.normalize.seg-start") from std.path.normalize as seg_start;
+use function @id("std.path.normalize.skip-from") from std.path.normalize as skip_from;
+use function @id("std.path.value.finish") from std.path.value as path_finish;
+use function @id("std.path.value.from-bytes") from std.path.value as path_from_bytes;
+use function @id("std.path.value.length") from std.path.value as path_length;
+
+@id("std.path.normalize.tests.equal")
+fn equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+{
+    let mut index = 0usize;
+    let mut same = byte_len(left) == byte_len(right);
+    while same && index < byte_len(left) {
+        let a = match byte_get(left, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let b = match byte_get(right, index) { Option::Some { value } => value, Option::None {} => 1u8, };
+        same = a == b;
+        index = index + 1usize;
+        same
+    }
+    same
+}
+
+@id("std.path.normalize.tests.segments")
+fn segments() -> bool
+{
+    let source = [47u8, 97u8, 47u8, 46u8, 46u8, 47u8, 98u8];
+    let data = bytes_copy(array_as_slice(source));
+    let view = bytes_as_slice(data);
+    let first = seg_start(view, 7usize, 0usize);
+    let first_end = seg_end(view, 7usize, first);
+    let second = seg_start(view, 7usize, first_end);
+    let second_end = seg_end(view, 7usize, second);
+    let bounds = first == 1usize && first_end == 2usize && second == 3usize && second_end == 5usize;
+    let classified = seg_is_dotdot(view, second, second_end) && !seg_is_dot(view, second, second_end);
+    let ordinary = !seg_is_dotdot(view, first, first_end);
+    bounds && classified && ordinary
+}
+
+@id("std.path.normalize.tests.retention")
+fn retention() -> bool
+{
+    let source = [47u8, 97u8, 47u8, 46u8, 46u8, 47u8, 98u8];
+    let data = bytes_copy(array_as_slice(source));
+    let view = bytes_as_slice(data);
+    let cancelled = !seg_retained(view, 7usize, 1usize);
+    let kept = seg_retained(view, 7usize, 6usize);
+    let counted = kept_count(view, 7usize) == 1usize && kept_bytes(view, 7usize) == 1usize;
+    let skips = skip_from(view, 7usize, 0usize) == 0usize && skip_from(view, 7usize, 2usize) == 1usize;
+    cancelled && kept && counted && skips
+}
+
+@id("std.path.normalize.tests.projection")
+fn projection() -> bool
+{
+    let source = [47u8, 97u8, 47u8, 46u8, 46u8, 47u8, 98u8];
+    let data = bytes_copy(array_as_slice(source));
+    let view = bytes_as_slice(data);
+    let policy = is_absolute(view, 7usize) && leading_parents(view, 7usize) == 0usize;
+    let regions = parent_region(0usize) == 0usize && parent_region(2usize) == 6usize;
+    let offsets = emitted_offset(view, 7usize, 6usize) == 0usize && body_owner(view, 7usize, 0usize) == 6usize;
+    let rendered = normalized_len(view, 7usize) == 2usize && normalized_byte(view, 7usize, 0usize) == 47u8;
+    let tail = normalized_byte(view, 7usize, 1usize) == 98u8;
+    policy && regions && offsets && rendered && tail
+}
+
+@id("std.path.normalize.tests.transition")
+fn transition() -> bool
+{
+    let source = [97u8, 47u8, 98u8, 47u8, 46u8, 46u8, 47u8, 99u8];
+    let expected = [97u8, 47u8, 99u8];
+    let path = path_from_bytes(bytes_copy(array_as_slice(source)));
+    let total = normalized_path_len(path) == 3usize;
+    let normalized = path_normalize(path, bytes_zeroed(3usize));
+    let length = path_length(normalized) == 3usize;
+    let bytes = path_finish(normalized);
+    let want = array_as_slice(expected);
+    let exact = equal(bytes_as_slice(bytes), want);
+    let retained = path_finish(path);
+    total && length && exact && byte_len(bytes_as_slice(retained)) == 8usize
+}
+
+@id("std.path.normalize.tests.main")
+fn main() -> i64
+{
+    if segments() && retention() && projection() && transition() { 0 } else { 1 }
+}

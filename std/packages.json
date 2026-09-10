@@ -28,6 +28,7 @@
     {"directory": "num", "module": "std.num", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "num-overflow", "module": "std.num.overflow", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "path", "module": "std.path", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "path-normalize", "module": "std.path.normalize", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "path-value", "module": "std.path.value", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "process", "module": "std.process", "tier": "hosted", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "random", "module": "std.random", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

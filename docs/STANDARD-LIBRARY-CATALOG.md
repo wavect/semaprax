@@ -2087,6 +2087,169 @@ fn extension_start(path: borrow Slice<u8>) -> usize
     ensures result <= byte_len(path)
 ```
 
+## `std.path.normalize`
+
+Package `std/path-normalize`, tier `portable`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.path.normalize = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.path.normalize.seg-end`
+
+Lexical POSIX normalization over a borrowed view and a logical length.
+Segments are separated by `/`; `.` segments vanish and a `..` segment
+cancels the nearest retained segment to its left.  A reverse scan decides
+retention without a stack: walking right to left, a `..` raises the skip
+count, and an ordinary segment either consumes one skip or survives.
+
+```semaprax
+fn seg_end(view: borrow Slice<u8>, length: usize, start: usize) -> usize
+    requires start <= length && length <= byte_len(view)
+    ensures result >= start && result <= length
+```
+
+### `std.path.normalize.seg-start`
+
+```semaprax
+fn seg_start(view: borrow Slice<u8>, length: usize, from: usize) -> usize
+    requires from <= length && length <= byte_len(view)
+    ensures result >= from && result <= length
+```
+
+### `std.path.normalize.seg-is-dot`
+
+```semaprax
+fn seg_is_dot(view: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(view)
+```
+
+### `std.path.normalize.seg-is-dotdot`
+
+```semaprax
+fn seg_is_dotdot(view: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(view)
+```
+
+### `std.path.normalize.skip-from`
+
+The reverse retention walk as a forward maximum-prefix sum: `..` raises the
+balance, an ordinary segment lowers it, and `.` leaves it alone.  The
+clamped maximum over every prefix starting at `from` is exactly the skip
+count a right-to-left walk would carry when it reaches that point.
+
+```semaprax
+fn skip_from(view: borrow Slice<u8>, length: usize, from: usize) -> usize
+    requires from <= length && length <= byte_len(view)
+```
+
+### `std.path.normalize.seg-retained`
+
+```semaprax
+fn seg_retained(view: borrow Slice<u8>, length: usize, start: usize) -> bool
+    requires start <= length && length <= byte_len(view)
+```
+
+### `std.path.normalize.is-absolute`
+
+```semaprax
+fn is_absolute(view: borrow Slice<u8>, length: usize) -> bool
+    requires length <= byte_len(view)
+```
+
+### `std.path.normalize.leading-parents`
+
+```semaprax
+fn leading_parents(view: borrow Slice<u8>, length: usize) -> usize
+    requires length <= byte_len(view)
+```
+
+### `std.path.normalize.kept-bytes`
+
+Bytes and count of the segments the walk keeps, excluding separators.
+
+```semaprax
+fn kept_bytes(view: borrow Slice<u8>, length: usize) -> usize
+    requires length <= byte_len(view)
+```
+
+### `std.path.normalize.kept-count`
+
+```semaprax
+fn kept_count(view: borrow Slice<u8>, length: usize) -> usize
+    requires length <= byte_len(view)
+```
+
+### `std.path.normalize.normalized-len`
+
+`.` for an empty relative result and `/` for an empty absolute one, so a
+normalized path is never zero bytes.
+
+```semaprax
+fn normalized_len(view: borrow Slice<u8>, length: usize) -> usize
+    requires length <= byte_len(view)
+    ensures result >= 1usize
+```
+
+### `std.path.normalize.parent-region`
+
+Pull-based normalized output: byte `index` of the normalized form, computed
+from the source view alone.  The emitted body is the retained segments in
+source order, preceded for a relative path by the parents the walk could
+not cancel, joined by single separators.
+
+```semaprax
+fn parent_region(parents: usize) -> usize
+```
+
+### `std.path.normalize.emitted-offset`
+
+The body offset at which the retained segment beginning at `start` is
+emitted, counting the leading parents region and one separator per earlier
+retained segment.
+
+```semaprax
+fn emitted_offset(view: borrow Slice<u8>, length: usize, start: usize) -> usize
+    requires start <= length && length <= byte_len(view)
+```
+
+### `std.path.normalize.body-owner`
+
+The source segment start whose emitted bytes cover `body`, or `length` when
+`body` names a separator or a leading parent byte.
+
+```semaprax
+fn body_owner(view: borrow Slice<u8>, length: usize, body: usize) -> usize
+    requires length <= byte_len(view)
+    ensures result <= length
+```
+
+### `std.path.normalize.normalized-byte`
+
+Pull-based normalized output: byte `index` of the normalized form, computed
+from the source view alone.  The emitted body is the retained segments in
+source order, preceded for a relative path by the parents the walk could not
+cancel, joined by single separators.  A byte that names neither a retained
+segment nor a parent is the separator between two units.
+
+```semaprax
+fn normalized_byte(view: borrow Slice<u8>, length: usize, index: usize) -> u8
+    requires length <= byte_len(view) && index < normalized_len(view, length)
+```
+
+### `std.path.normalize.path-length`
+
+```semaprax
+fn normalized_path_len(path: borrow Path) -> usize
+    requires path_valid(path)
+```
+
+### `std.path.normalize.into`
+
+Writes the normalized form into caller-supplied capacity and returns the
+normalized Path over it.  The borrowed input keeps its bytes and length.
+
+```semaprax
+fn path_normalize(path: borrow Path, buffer: own Bytes) -> Path
+    requires path_valid(path) && normalized_path_len(path) <= byte_len(bytes_as_slice(buffer))
+```
+
 ## `std.path.value`
 
 Package `std/path-value`, tier `portable`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.path.value = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

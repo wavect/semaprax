@@ -4118,6 +4118,282 @@
       "declarations": [
         {
           "description": [
+            "Lexical POSIX normalization over a borrowed view and a logical length.",
+            "Segments are separated by `/`; `.` segments vanish and a `..` segment",
+            "cancels the nearest retained segment to its left.  A reverse scan decides",
+            "retention without a stack: walking right to left, a `..` raises the skip",
+            "count, and an ordinary segment either consumes one skip or survives."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn seg_end(view: borrow Slice<u8>, length: usize, start: usize) -> usize",
+            "    requires start <= length && length <= byte_len(view)",
+            "    ensures result >= start && result <= length"
+          ],
+          "id": "std.path.normalize.seg-end",
+          "kind": "function",
+          "name": "seg_end",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn seg_start(view: borrow Slice<u8>, length: usize, from: usize) -> usize",
+            "    requires from <= length && length <= byte_len(view)",
+            "    ensures result >= from && result <= length"
+          ],
+          "id": "std.path.normalize.seg-start",
+          "kind": "function",
+          "name": "seg_start",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn seg_is_dot(view: borrow Slice<u8>, start: usize, end: usize) -> bool",
+            "    requires start <= end && end <= byte_len(view)"
+          ],
+          "id": "std.path.normalize.seg-is-dot",
+          "kind": "function",
+          "name": "seg_is_dot",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn seg_is_dotdot(view: borrow Slice<u8>, start: usize, end: usize) -> bool",
+            "    requires start <= end && end <= byte_len(view)"
+          ],
+          "id": "std.path.normalize.seg-is-dotdot",
+          "kind": "function",
+          "name": "seg_is_dotdot",
+          "requires": 1
+        },
+        {
+          "description": [
+            "The reverse retention walk as a forward maximum-prefix sum: `..` raises the",
+            "balance, an ordinary segment lowers it, and `.` leaves it alone.  The",
+            "clamped maximum over every prefix starting at `from` is exactly the skip",
+            "count a right-to-left walk would carry when it reaches that point."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn skip_from(view: borrow Slice<u8>, length: usize, from: usize) -> usize",
+            "    requires from <= length && length <= byte_len(view)"
+          ],
+          "id": "std.path.normalize.skip-from",
+          "kind": "function",
+          "name": "skip_from",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn seg_retained(view: borrow Slice<u8>, length: usize, start: usize) -> bool",
+            "    requires start <= length && length <= byte_len(view)"
+          ],
+          "id": "std.path.normalize.seg-retained",
+          "kind": "function",
+          "name": "seg_retained",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_absolute(view: borrow Slice<u8>, length: usize) -> bool",
+            "    requires length <= byte_len(view)"
+          ],
+          "id": "std.path.normalize.is-absolute",
+          "kind": "function",
+          "name": "is_absolute",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn leading_parents(view: borrow Slice<u8>, length: usize) -> usize",
+            "    requires length <= byte_len(view)"
+          ],
+          "id": "std.path.normalize.leading-parents",
+          "kind": "function",
+          "name": "leading_parents",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Bytes and count of the segments the walk keeps, excluding separators."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn kept_bytes(view: borrow Slice<u8>, length: usize) -> usize",
+            "    requires length <= byte_len(view)"
+          ],
+          "id": "std.path.normalize.kept-bytes",
+          "kind": "function",
+          "name": "kept_bytes",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn kept_count(view: borrow Slice<u8>, length: usize) -> usize",
+            "    requires length <= byte_len(view)"
+          ],
+          "id": "std.path.normalize.kept-count",
+          "kind": "function",
+          "name": "kept_count",
+          "requires": 1
+        },
+        {
+          "description": [
+            "`.` for an empty relative result and `/` for an empty absolute one, so a",
+            "normalized path is never zero bytes."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn normalized_len(view: borrow Slice<u8>, length: usize) -> usize",
+            "    requires length <= byte_len(view)",
+            "    ensures result >= 1usize"
+          ],
+          "id": "std.path.normalize.normalized-len",
+          "kind": "function",
+          "name": "normalized_len",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Pull-based normalized output: byte `index` of the normalized form, computed",
+            "from the source view alone.  The emitted body is the retained segments in",
+            "source order, preceded for a relative path by the parents the walk could",
+            "not cancel, joined by single separators."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn parent_region(parents: usize) -> usize"
+          ],
+          "id": "std.path.normalize.parent-region",
+          "kind": "function",
+          "name": "parent_region",
+          "requires": 0
+        },
+        {
+          "description": [
+            "The body offset at which the retained segment beginning at `start` is",
+            "emitted, counting the leading parents region and one separator per earlier",
+            "retained segment."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn emitted_offset(view: borrow Slice<u8>, length: usize, start: usize) -> usize",
+            "    requires start <= length && length <= byte_len(view)"
+          ],
+          "id": "std.path.normalize.emitted-offset",
+          "kind": "function",
+          "name": "emitted_offset",
+          "requires": 1
+        },
+        {
+          "description": [
+            "The source segment start whose emitted bytes cover `body`, or `length` when",
+            "`body` names a separator or a leading parent byte."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn body_owner(view: borrow Slice<u8>, length: usize, body: usize) -> usize",
+            "    requires length <= byte_len(view)",
+            "    ensures result <= length"
+          ],
+          "id": "std.path.normalize.body-owner",
+          "kind": "function",
+          "name": "body_owner",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Pull-based normalized output: byte `index` of the normalized form, computed",
+            "from the source view alone.  The emitted body is the retained segments in",
+            "source order, preceded for a relative path by the parents the walk could not",
+            "cancel, joined by single separators.  A byte that names neither a retained",
+            "segment nor a parent is the separator between two units."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn normalized_byte(view: borrow Slice<u8>, length: usize, index: usize) -> u8",
+            "    requires length <= byte_len(view) && index < normalized_len(view, length)"
+          ],
+          "id": "std.path.normalize.normalized-byte",
+          "kind": "function",
+          "name": "normalized_byte",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn normalized_path_len(path: borrow Path) -> usize",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.path.normalize.path-length",
+          "kind": "function",
+          "name": "normalized_path_len",
+          "requires": 1
+        },
+        {
+          "description": [
+            "Writes the normalized form into caller-supplied capacity and returns the",
+            "normalized Path over it.  The borrowed input keeps its bytes and length."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn path_normalize(path: borrow Path, buffer: own Bytes) -> Path",
+            "    requires path_valid(path) && normalized_path_len(path) <= byte_len(bytes_as_slice(buffer))"
+          ],
+          "id": "std.path.normalize.into",
+          "kind": "function",
+          "name": "path_normalize",
+          "requires": 1
+        }
+      ],
+      "dependency": "std.path.normalize = \"^0.1.0\"",
+      "module": "std.path.normalize",
+      "package": "std/path-normalize",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "description": [
             "A Path is caller-owned byte storage plus a logical POSIX lexical prefix.",
             "It does not grant filesystem or platform path authority."
           ],

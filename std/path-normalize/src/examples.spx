@@ -1,0 +1,29 @@
+module std.path.normalize.examples;
+use type @id("std.path.value.path") from std.path.value as Path;
+use function @id("std.path.normalize.into") from std.path.normalize as path_normalize;
+use function @id("std.path.normalize.path-length") from std.path.normalize as normalized_path_len;
+use function @id("std.path.value.finish") from std.path.value as path_finish;
+use function @id("std.path.value.from-bytes") from std.path.value as path_from_bytes;
+use function @id("std.path.value.absolute") from std.path.value as path_is_absolute;
+use function @id("std.path.value.length") from std.path.value as path_length;
+
+// `/src/./lib/../main.spx` normalizes to `/src/main.spx` with no allocation
+// beyond the caller's buffer, and the borrowed input keeps its bytes.
+@id("std.path.normalize.examples.clean")
+fn clean() -> i64
+{
+    let source = [47u8, 115u8, 114u8, 99u8, 47u8, 46u8, 47u8, 108u8, 105u8, 98u8, 47u8, 46u8, 46u8, 47u8, 109u8, 97u8, 105u8, 110u8];
+    let path = path_from_bytes(bytes_copy(array_as_slice(source)));
+    let total = normalized_path_len(path) == 9usize;
+    let normalized = path_normalize(path, bytes_zeroed(9usize));
+    let absolute = path_is_absolute(normalized) && path_length(normalized) == 9usize;
+    let output = path_finish(normalized);
+    let retained = path_finish(path);
+    if total && absolute && byte_len(bytes_as_slice(output)) == 9usize && byte_len(bytes_as_slice(retained)) == 18usize { 0 } else { 1 }
+}
+
+@id("std.path.normalize.examples.main")
+fn main() -> i64
+{
+    clean()
+}

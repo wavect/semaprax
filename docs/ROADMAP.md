@@ -317,8 +317,8 @@ and ABI schemas without reassigning frozen identities.
 
 [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the complete required module
 set and tier contracts; the [generated catalogue](STANDARD-LIBRARY-CATALOG.md)
-owns exact declarations. The v0.4.0 tree contains 35 packages: nine core,
-seventeen portable, three alloc, three hosted, one agent and two test. Their
+owns exact declarations. The v0.4.0 tree contains 36 packages: nine core,
+eighteen portable, three alloc, three hosted, one agent and two test. Their
 implemented profiles have hosted-green release evidence, while their full
 required module scope remains Partial.
 
@@ -326,9 +326,9 @@ Already implemented are the authenticated scalar Vec/Box aliases, scalar and
 Bytes collection extensions, private iterator helpers and operations, JSON
 cursor adapters, Reader/Writer, bounded line processing over those cursors,
 typed paths, filesystem/environment/process profiles, formatting/logging and
-byte assertion/snapshot helpers. Line processing ships as the sibling
-`std.io.lines` package with local three-backend evidence and awaits its hosted
-result. The private
+byte assertion/snapshot helpers. Line processing and lexical path
+normalization ship as the sibling `std.io.lines` and `std.path.normalize`
+packages with local three-backend evidence and await their hosted result. The private
 `std.agent` package supplies ordinary checked records and deterministic roles;
 its values do not grant runtime capabilities or complete the full Agent library.
 

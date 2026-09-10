@@ -118,6 +118,7 @@ pub(super) fn conformance_manifests(scratch: &Path, manifest: &Path, module: &st
         "std.log" => log_conformance_manifests(scratch, manifest),
         "std.io.lines" => super::io_lines::conformance_manifests(scratch, manifest),
         "std.path.value" => super::typed_paths::conformance_manifests(scratch, manifest),
+        "std.path.normalize" => super::path_normalize::conformance_manifests(scratch, manifest),
         "std.data.json.dec" | "std.data.json.write" => {
             super::json_cursors::conformance_manifests(scratch, manifest, module)
         }

@@ -77,7 +77,7 @@ remain with `std.text` and the open `std.io` scope.
 
 ```sh
 cargo test --locked -p semaprax --test project standard_library::io_lines
-cargo test --locked -p semaprax --test project standard_library::io_lines_execute_on_all_three_backends
+cargo test --locked -p semaprax --test project standard_library::io_lines::io_lines_execute_on_all_three_backends
 cargo test --locked -p semaprax --test project standard_library::io_cursors
 ```
 

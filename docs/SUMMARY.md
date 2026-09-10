@@ -87,6 +87,7 @@ Audience: all documentation readers.
 - [Bounded Environment I/O v1](BOUNDED-ENVIRONMENT-IO-V1.md)
 - [Bounded Process I/O v1](BOUNDED-PROCESS-IO-V1.md)
 - [Typed Path v1](TYPED-PATH-V1.md)
+- [Path Normalization v1](PATH-NORMALIZATION-V1.md)
 - [Filesystem I/O v1](FILESYSTEM-IO-V1.md)
 - [Filesystem I/O v2](FILESYSTEM-IO-V2.md)
 - [Native inline String settlement](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)

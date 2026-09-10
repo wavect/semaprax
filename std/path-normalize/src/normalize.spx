@@ -1,0 +1,251 @@
+module std.path.normalize;
+use type @id("std.path.value.path") from std.path.value as Path;
+use function @id("std.path.value.valid") from std.path.value as path_valid;
+
+// Lexical POSIX normalization over a borrowed view and a logical length.
+// Segments are separated by `/`; `.` segments vanish and a `..` segment
+// cancels the nearest retained segment to its left.  A reverse scan decides
+// retention without a stack: walking right to left, a `..` raises the skip
+// count, and an ordinary segment either consumes one skip or survives.
+@id("std.path.normalize.seg-end")
+fn seg_end(view: borrow Slice<u8>, length: usize, start: usize) -> usize
+    requires start <= length && length <= byte_len(view)
+    ensures result >= start && result <= length
+{
+    let mut index = start;
+    let mut scanning = index < length;
+    while scanning {
+        let separator = match byte_get(view, index) { Option::Some { value } => value == 47u8, Option::None {} => true, };
+        index = if separator { index } else { index + 1usize };
+        scanning = !separator && index < length;
+        scanning
+    }
+    index
+}
+
+@id("std.path.normalize.seg-start")
+fn seg_start(view: borrow Slice<u8>, length: usize, from: usize) -> usize
+    requires from <= length && length <= byte_len(view)
+    ensures result >= from && result <= length
+{
+    let mut index = from;
+    let mut scanning = index < length;
+    while scanning {
+        let separator = match byte_get(view, index) { Option::Some { value } => value == 47u8, Option::None {} => false, };
+        index = if separator { index + 1usize } else { index };
+        scanning = separator && index < length;
+        scanning
+    }
+    index
+}
+
+@id("std.path.normalize.seg-is-dot")
+fn seg_is_dot(view: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(view)
+{
+    if end - start == 1usize { match byte_get(view, start) { Option::Some { value } => value == 46u8, Option::None {} => false, } } else { false }
+}
+
+@id("std.path.normalize.seg-is-dotdot")
+fn seg_is_dotdot(view: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(view)
+{
+    if end - start == 2usize { match byte_get(view, start) { Option::Some { value } => value == 46u8, Option::None {} => false, } && match byte_get(view, start + 1usize) { Option::Some { value } => value == 46u8, Option::None {} => false, } } else { false }
+}
+
+// The reverse retention walk as a forward maximum-prefix sum: `..` raises the
+// balance, an ordinary segment lowers it, and `.` leaves it alone.  The
+// clamped maximum over every prefix starting at `from` is exactly the skip
+// count a right-to-left walk would carry when it reaches that point.
+@id("std.path.normalize.skip-from")
+fn skip_from(view: borrow Slice<u8>, length: usize, from: usize) -> usize
+    requires from <= length && length <= byte_len(view)
+{
+    let mut index = seg_start(view, length, from);
+    let mut ups = 0usize;
+    let mut downs = 0usize;
+    let mut best = 0usize;
+    let mut scanning = index < length;
+    while scanning {
+        let end = seg_end(view, length, index);
+        let dot = seg_is_dot(view, index, end);
+        let dotdot = seg_is_dotdot(view, index, end);
+        ups = if dotdot { ups + 1usize } else { ups };
+        downs = if !dotdot && !dot { downs + 1usize } else { downs };
+        let candidate = if ups > downs { ups - downs } else { 0usize };
+        best = if candidate > best { candidate } else { best };
+        index = seg_start(view, length, end);
+        scanning = index < length;
+        scanning
+    }
+    best
+}
+
+@id("std.path.normalize.seg-retained")
+fn seg_retained(view: borrow Slice<u8>, length: usize, start: usize) -> bool
+    requires start <= length && length <= byte_len(view)
+{
+    let end = seg_end(view, length, start);
+    if end == start { false } else { if seg_is_dot(view, start, end) { false } else { if seg_is_dotdot(view, start, end) { false } else { skip_from(view, length, end) == 0usize } } }
+}
+
+@id("std.path.normalize.is-absolute")
+fn is_absolute(view: borrow Slice<u8>, length: usize) -> bool
+    requires length <= byte_len(view)
+{
+    if length == 0usize { false } else { match byte_get(view, 0usize) { Option::Some { value } => value == 47u8, Option::None {} => false, } }
+}
+
+@id("std.path.normalize.leading-parents")
+fn leading_parents(view: borrow Slice<u8>, length: usize) -> usize
+    requires length <= byte_len(view)
+{
+    if is_absolute(view, length) { 0usize } else { skip_from(view, length, 0usize) }
+}
+
+// Bytes and count of the segments the walk keeps, excluding separators.
+@id("std.path.normalize.kept-bytes")
+fn kept_bytes(view: borrow Slice<u8>, length: usize) -> usize
+    requires length <= byte_len(view)
+{
+    let mut index = seg_start(view, length, 0usize);
+    let mut total = 0usize;
+    let mut scanning = index < length;
+    while scanning {
+        let end = seg_end(view, length, index);
+        let keep = seg_retained(view, length, index);
+        total = if keep { total + (end - index) } else { total };
+        index = seg_start(view, length, end);
+        scanning = index < length;
+        scanning
+    }
+    total
+}
+
+@id("std.path.normalize.kept-count")
+fn kept_count(view: borrow Slice<u8>, length: usize) -> usize
+    requires length <= byte_len(view)
+{
+    let mut index = seg_start(view, length, 0usize);
+    let mut count = 0usize;
+    let mut scanning = index < length;
+    while scanning {
+        let end = seg_end(view, length, index);
+        let keep = seg_retained(view, length, index);
+        count = if keep { count + 1usize } else { count };
+        index = seg_start(view, length, end);
+        scanning = index < length;
+        scanning
+    }
+    count
+}
+
+// `.` for an empty relative result and `/` for an empty absolute one, so a
+// normalized path is never zero bytes.
+@id("std.path.normalize.normalized-len")
+fn normalized_len(view: borrow Slice<u8>, length: usize) -> usize
+    requires length <= byte_len(view)
+    ensures result >= 1usize
+{
+    let root = if is_absolute(view, length) { 1usize } else { 0usize };
+    let parents = leading_parents(view, length);
+    let count = kept_count(view, length) + parents;
+    let separators = if count == 0usize { 0usize } else { count - 1usize };
+    let body = kept_bytes(view, length) + parents * 2usize + separators;
+    if root == 1usize { 1usize + body } else { if body == 0usize { 1usize } else { body } }
+}
+
+// Pull-based normalized output: byte `index` of the normalized form, computed
+// from the source view alone.  The emitted body is the retained segments in
+// source order, preceded for a relative path by the parents the walk could
+// not cancel, joined by single separators.
+@id("std.path.normalize.parent-region")
+fn parent_region(parents: usize) -> usize
+{
+    if parents == 0usize { 0usize } else { parents * 3usize }
+}
+
+// The body offset at which the retained segment beginning at `start` is
+// emitted, counting the leading parents region and one separator per earlier
+// retained segment.
+@id("std.path.normalize.emitted-offset")
+fn emitted_offset(view: borrow Slice<u8>, length: usize, start: usize) -> usize
+    requires start <= length && length <= byte_len(view)
+{
+    let mut cursor = seg_start(view, length, 0usize);
+    let mut offset = parent_region(leading_parents(view, length));
+    let mut scanning = cursor < length && cursor < start;
+    while scanning {
+        let end = seg_end(view, length, cursor);
+        let span = if seg_retained(view, length, cursor) { end - cursor + 1usize } else { 0usize };
+        offset = offset + span;
+        cursor = seg_start(view, length, end);
+        scanning = cursor < length && cursor < start;
+        scanning
+    }
+    offset
+}
+
+// The source segment start whose emitted bytes cover `body`, or `length` when
+// `body` names a separator or a leading parent byte.
+@id("std.path.normalize.body-owner")
+fn body_owner(view: borrow Slice<u8>, length: usize, body: usize) -> usize
+    requires length <= byte_len(view)
+    ensures result <= length
+{
+    let mut cursor = seg_start(view, length, 0usize);
+    let mut owner = length;
+    let mut pos = parent_region(leading_parents(view, length));
+    let mut scanning = cursor < length;
+    while scanning {
+        let end = seg_end(view, length, cursor);
+        let keep = seg_retained(view, length, cursor);
+        let span = end - cursor;
+        let inside = keep && body >= pos && body < pos + span;
+        owner = if inside { cursor } else { owner };
+        pos = if keep { pos + span + 1usize } else { pos };
+        cursor = seg_start(view, length, end);
+        scanning = cursor < length;
+        scanning
+    }
+    owner
+}
+
+// Pull-based normalized output: byte `index` of the normalized form, computed
+// from the source view alone.  The emitted body is the retained segments in
+// source order, preceded for a relative path by the parents the walk could not
+// cancel, joined by single separators.  A byte that names neither a retained
+// segment nor a parent is the separator between two units.
+@id("std.path.normalize.normalized-byte")
+fn normalized_byte(view: borrow Slice<u8>, length: usize, index: usize) -> u8
+    requires length <= byte_len(view) && index < normalized_len(view, length)
+{
+    let root = if is_absolute(view, length) { 1usize } else { 0usize };
+    let parents = leading_parents(view, length);
+    let body = if index < root { 0usize } else { index - root };
+    let owner = body_owner(view, length, body);
+    let region = parent_region(parents);
+    let inside_parents = body < region && (body + 1usize) % 3usize != 0usize;
+    let offset = if owner < length { body - emitted_offset(view, length, owner) } else { 0usize };
+    let copied = match byte_get(view, owner + offset) { Option::Some { value } => value, Option::None {} => 46u8, };
+    if index < root { 47u8 } else { if owner < length { copied } else { if inside_parents { 46u8 } else { if region > 0usize && body == region - 1usize { 47u8 } else { if parents + kept_count(view, length) == 0usize { 46u8 } else { 47u8 } } } } }
+}
+
+@id("std.path.normalize.path-length")
+fn normalized_path_len(path: borrow Path) -> usize
+    requires path_valid(path)
+{
+    match borrow path { Path { data, length } => normalized_len(bytes_as_slice(data), length), }
+}
+
+// Writes the normalized form into caller-supplied capacity and returns the
+// normalized Path over it.  The borrowed input keeps its bytes and length.
+@id("std.path.normalize.into")
+fn path_normalize(path: borrow Path, buffer: own Bytes) -> Path
+    requires path_valid(path) && normalized_path_len(path) <= byte_len(bytes_as_slice(buffer))
+{
+    let total = normalized_path_len(path);
+    let mut output = buffer;
+    let _ = match borrow path { Path { data, length } => { let view = bytes_as_slice(data); let mut index = 0usize; while index < total { output = bytes_set(output, index, normalized_byte(view, length, index)); index = index + 1usize; index < total } true }, };
+    Path { data: output, length: total }
+}

@@ -37,15 +37,93 @@ agent operations.
 
 ## Get started
 
-### Requirements
+### 1. Check prerequisites (10s)
 
-- Rust 1.88 or newer
-- Clang for native compilation
-- Node.js 22 or newer for the WebAssembly examples
+| Need | Version | Check | Why you need it |
+| --- | --- | --- | --- |
+| Rust (`cargo`, `rustc`) | 1.88+ | `rustc --version` | Builds and installs the CLIs |
+| Clang | any C11 driver | `clang --version` | Native lane (`--target native`) emits C11 and spawns `clang` |
+| Node.js | 22+ | `node --version` | Verifies Wasm/Web packages; not needed for `check`/`run` |
+| Git | any recent | `git --version` | Only to clone the checkout |
 
-[Install](docs/INSTALL.md) owns the complete routes: which of the two CLIs each
-command needs, Cargo `PATH` setup, how to confirm the install, and what a first
-failed command means.
+```sh
+rustc --version  # ≥1.88
+clang --version
+node --version   # ≥22 for `build --target web` verification
+```
+
+Missing one? `rustup` for Rust, `xcode-select --install` / `apt install clang` / `nvm install 22`. Full prerequisites, `PATH` setup, and what a first failure means live in [Install](docs/INSTALL.md).
+
+### 2. Try without installing (30s) — recommended
+
+```sh
+git clone https://github.com/wavect/semaprax.git
+cd semaprax
+cargo run --locked -p semaprax -- check examples/meaning.spx  # → verified examples/meaning.spx
+cargo run --locked -p semaprax -- run examples/meaning.spx    # → 42
+```
+
+No `cargo install`, no `PATH` edits. This is what the docs and CI use to be unambiguous. Use `semaprax --help` or `semaprax help language` (compiler-checked [agent quick reference](docs/AGENT-QUICK-REFERENCE.md)) for the one-page card without a checkout. Open a `.spx` file in VS Code with the [repository extension](editors/vscode/README.md) for syntax highlighting.
+
+### 3. Install for short commands (optional, 60s)
+
+```sh
+cargo install --locked --path .          # installs `semaprax`
+# for private host surfaces, from the same checkout:
+cargo install --locked --path crates/semaprax-toolchain  # installs `semaprax-full`
+```
+
+If `command not found`, add Cargo's bin dir to `PATH` (details in [Install](docs/INSTALL.md#put-cargos-binary-directory-on-your-path)):
+
+```sh
+export PATH="$HOME/.cargo/bin:$PATH"   # bash/zsh, new shell afterwards
+command -v semaprax
+semaprax check examples/meaning.spx
+semaprax run examples/meaning.spx
+```
+
+Prefer a pre-built binary (no Rust needed)? Download the [v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0) archive for your host and put the unpacked `semaprax` on `PATH`.
+
+### 4. Create your first project (30s)
+
+```sh
+semaprax new first-semaprax
+cd first-semaprax
+semaprax check .   # parse + type-check the generated `semaprax.toml` project
+semaprax test .    # run the project's test
+semaprax run .     # → 42
+```
+
+`new` uses only compiled-in files, writes to a fresh directory under an existing parent, never replaces an entry, and touches no network/Git. Every generated project carries an `AGENTS.md` with the commands and the rules that differ from other languages. Re-run `semaprax help diagnostic SPX-T208` for one indexed correction, or `semaprax help diagnostic codes` for the full inventory.
+
+Need the same five files as a reproducible stdout doc without granting a destination? `semaprax project-scaffold --name first-semaprax` prints the `semaprax.project-scaffold.v2` capsule (caller-materialized data, not a publication API).
+
+Full walkthrough: [quickstart](docs/QUICKSTART.md).
+
+### 5. What you can do next (copy-paste)
+
+```sh
+# bounded semantic view
+semaprax graph examples/meaning.spx
+semaprax context examples/meaning.spx app.main --depth 1 --max-bytes 65536 --max-nodes 256
+
+# build a browser package from a library calculator
+semaprax build examples/calculator.spx --target web \
+  --export calculator.add --export calculator.subtract \
+  --export calculator.multiply --export calculator.divide \
+  --export calculator.is-negative --export calculator.not \
+  -o target/calculator-web
+node scripts/verify-wasm-scalar-exports.mjs target/calculator-web  # → scalar-exports-v1-ok
+
+# multi-file project (check / test / build)
+semaprax check examples/calculator-project/semaprax.toml
+semaprax test examples/calculator-project/semaprax.toml
+semaprax build examples/calculator-project/semaprax.toml --target web -o target/calculator-project-web
+```
+
+The generated JS API uses stable IDs — a display rename does not change the external key; see [Wasm Scalar Exports v1](docs/WASM-SCALAR-EXPORTS-V1.md). The extensible `semaprax.manifest.v1` can also name exact local `Subject-v3` closures and Cargo crate inputs for the Native Rust SDK (no allowlist; `import rust fn` keeps the Rust API outside checked code). Details in [Project Dependencies v1](docs/PROJECT-DEPENDENCIES-V1.md) and [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md).
+
+> Offline packages: the additive [Offline Multi-Package Source Capsule v1](docs/OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md) + [Linked Scalar Core-Wasm Package Build v2](docs/OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md) authenticate a narrow caller-owned scalar closure above offline resolution. Their nonignored hostile evidence ran in the tagged matrix, unpromoted — not a package manager, trusted provenance, or hermetic sandbox.
 
 ### Releases and changelog
 
@@ -61,120 +139,6 @@ development changelog is now summarized in [CHANGELOG.md](CHANGELOG.md),
 with compact highlights in [docs/CHANGELOG-SUMMARY.md](docs/CHANGELOG-SUMMARY.md)
 and full historical detail archived at
 [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
-
-### Check and run a program
-
-```sh
-git clone https://github.com/wavect/semaprax.git
-cd semaprax
-
-cargo run --locked -p semaprax -- check examples/meaning.spx
-cargo run --locked -p semaprax -- run examples/meaning.spx
-```
-
-The example prints `42`.
-
-Install the development CLI locally if you prefer shorter commands:
-
-```sh
-cargo install --locked --path .
-semaprax check examples/meaning.spx
-semaprax run examples/meaning.spx
-```
-
-Use `semaprax <command> --help` for the exact accepted command shape, or see
-the [CLI user guide](docs/CLI-GUIDE.md) for common source, project, formatting,
-and automation workflows. `semaprax help language` prints the compiler-checked
-[agent quick reference](docs/AGENT-QUICK-REFERENCE.md), the one-page card for
-writing `.spx`, without a checkout. Given a stable compiler error code,
-`semaprax help diagnostic <SPX-code>` prints only its indexed correction.
-Opening a `.spx` file in Visual Studio Code
-with the [repository extension](editors/vscode/README.md) loaded gives syntax
-highlighting.
-
-Create a checked calculator project from the built-in template:
-
-```sh
-semaprax new first-semaprax
-cd first-semaprax
-semaprax check .
-semaprax test .
-```
-
-The generator uses only compiled-in files, writes only into a fresh
-destination, and does not initialize Git, install dependencies, or access a
-network. Continue with the executable [quickstart](docs/QUICKSTART.md) to run,
-inspect, and build the project.
-
-Every generated project carries an `AGENTS.md`: the commands and the rules
-that differ from other languages, for coding agents and people alike. To
-obtain the exact same five files as a replayable stdout document without
-granting SEMAPRAX a destination or publication authority:
-
-```sh
-semaprax project-scaffold --name first-semaprax
-```
-
-The `semaprax.project-scaffold.v2` capsule is caller-materialized data, not an
-archive or atomic filesystem publication API.
-
-### Inspect the semantic graph
-
-```sh
-semaprax graph examples/meaning.spx
-semaprax context examples/meaning.spx app.main \
-  --depth 1 --max-bytes 65536 --max-nodes 256
-```
-
-### Build a browser package
-
-```sh
-semaprax build examples/calculator.spx --target web \
-  --export calculator.add --export calculator.subtract \
-  --export calculator.multiply --export calculator.divide \
-  --export calculator.is-negative --export calculator.not \
-  -o target/calculator-web
-
-node scripts/verify-wasm-scalar-exports.mjs target/calculator-web
-```
-
-The verifier calls the generated bindings by stable ID and prints
-`scalar-exports-v1-ok`. Use `scripts/verify-web.mjs` instead for a package
-built from an `app.main` entry, such as `examples/meaning.spx`; it prints that
-program's result.
-
-The generated JavaScript API uses stable IDs, so a source-level display rename
-does not change the external key. The current boundary is intentionally
-limited; see [Wasm Scalar Exports v1](docs/WASM-SCALAR-EXPORTS-V1.md).
-
-### Check a multi-file project
-
-```sh
-semaprax check examples/calculator-project/semaprax.toml
-semaprax test examples/calculator-project/semaprax.toml
-semaprax build examples/calculator-project/semaprax.toml \
-  --target web -o target/calculator-project-web
-```
-
-The extensible `semaprax.manifest.v1` layout can also name exact local
-Subject-v3 files for a complete SEMAPRAX dependency closure and exact Cargo
-crate inputs for the generated Native Rust SDK. There is no crate allowlist:
-typed `import rust fn` adapters can invoke any declared crate while keeping its
-Rust-only API and authority outside checked SEMAPRAX code. The compiler performs no
-implicit acquisition or registry access; see [Project Dependencies
-v1](docs/PROJECT-DEPENDENCIES-V1.md) for the manifest shape, replay boundary,
-and Cargo handoff. [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md) owns the
-underlying bounded project contract.
-
-The additive library-only [Offline Multi-Package Source Capsule v1](docs/OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md)
-authenticates a narrow caller-owned, effect-free scalar package source closure
-above exact offline resolution. [Linked Scalar Core-Wasm Package Build
-v2](docs/OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md) consumes only that
-replayed closure and retained HIR, while the separate safe publisher reuses the
-existing exact three-file authority state machine. Both surfaces and their
-nonignored hostile evidence ran in the tagged-release matrix for this route,
-unpromoted; they are not a package manager, target-conformance result,
-trusted-provenance system, or hermetic build sandbox.
 
 ## A small SEMAPRAX program
 

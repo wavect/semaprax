@@ -1,7 +1,8 @@
 # Semantic Image Analysis Coverage v1
 
-Status: implementation and regression sources authored, unrun. No completeness,
-runtime, deployment, or completion-matrix promotion.
+Status: implemented bounded report; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). No completeness,
+runtime, deployment, or full-product promotion is implied.
 
 Audience: agent authors, embedding hosts, and compiler contributors.
 
@@ -92,7 +93,8 @@ preserves these facts and blind spots, adds candidate/base bindings and no
 authority, and does not reinterpret an unchanged status as verified evidence.
 
 Focused library and transport regressions in
-[image_protocol/analysis_coverage_v1.rs](../tests/image_protocol/analysis_coverage_v1.rs) are
-authored but unrun. Broader deployment ingestion, generator provenance, provider
-conformance, and external-consumer analysis require separate explicit inputs
-and independently designed authority boundaries.
+[image_protocol/analysis_coverage_v1.rs](../tests/image_protocol/analysis_coverage_v1.rs)
+have hosted-green v0.4.0 release evidence. Broader deployment ingestion,
+generator provenance, provider conformance, and external-consumer analysis
+require their own explicit inputs and independently designed authority
+boundaries; a green implementation test does not fill a report's blind spots.

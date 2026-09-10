@@ -2,8 +2,9 @@
 
 Audience: compiler contributors, embedding hosts, and agent adapter authors.
 
-Status: implementation and regression evidence authored, **unrun**. No measured
-latency, memory, token savings, target execution, or completion promotion.
+Status: implemented bounded query; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). No measured latency,
+memory, token savings, target execution, or full-product completion is implied.
 
 `ProjectSemanticImage::declaration_dependencies(expected_image, target)` returns
 a bounded source-derived report for a stable declaration identity. The schema
@@ -65,7 +66,8 @@ child over existing checked inventory/cleanup/loan plans for reverse member
 obligation queries. It preserves this report's payload and uses no second
 source-expression reference collector.
 
-Authored evidence lives in `tests/image_protocol/declaration_dependencies_v1.rs` and
+The hosted-green release corpus is owned by
+`tests/image_protocol/declaration_dependencies_v1.rs` and
 `tests/image_transport_v5/declaration_dependencies.rs`. General package and
 artifact consumers, runtime obligations, and measured index benefits remain
-outstanding.
+outside this bounded query.

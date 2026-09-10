@@ -2,9 +2,9 @@
 
 Audience: agent client authors, embedding-host authors, and compiler contributors.
 
-Status: additive implementation with authored regression coverage; local tests
-and quality gates were intentionally not run for this change. No hosted or
-cross-platform completion claim follows from the implementation.
+Status: implemented bounded read-only protocol; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Broader platform and public
+support remain governed by their owning contracts.
 
 `semaprax serve-image <manifest>` serves one host-selected authenticated Project
 through `semaprax.image-agent-protocol.v1`. This is separate from every existing
@@ -30,7 +30,9 @@ deny edits while these authority handles remain open.
 An image revision is a selection handle, never permission. The only initial
 capability is `semantic_read`. There is no source write, candidate application,
 build, test execution, subprocess, network, arbitrary file read, request-selected
-manifest, durable cache, watcher, incremental refresh, or agent elevation route.
+manifest, durable cache, watcher, incremental refresh, or agent elevation route
+in this v1 profile. Later candidate and workspace profiles retain their own
+explicit startup selections rather than widening read-only v1.
 
 ## Framing
 
@@ -110,5 +112,6 @@ untrusted responses are independently verified.
 method lists, compact workspace handles, semantic and facet queries, authority
 and path rejection, stale image rejection, strict codec reuse, notification
 silence, bounded deterministic framing, Unix absorbing drift, and CLI arity.
-These tests were authored but not run in this change. Existing transport
-preservation suites likewise remain unrun.
+These implemented regressions and the existing transport-preservation suites
+have hosted-green v0.4.0 release evidence. The earlier authoring pass's skipped
+local execution is historical, not the current release evidence status.

@@ -2,8 +2,9 @@
 
 Audience: compiler contributors and agents querying checked HIR relationships.
 
-Status: additive implementation with authored, unrun regressions. No executed
-validation, target-execution, hosted, or broad unsafe-program admission claim.
+Status: implemented bounded projection; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Target execution and broad
+unsafe-program admission are not implied.
 
 The existing `image/facet` interface and `ProjectSemanticImage::expand_facet`
 accept two additional names, `data-access` and `unsafe-boundaries`. Function
@@ -59,13 +60,15 @@ descriptor where available: interface/import identities, declared effects,
 required authority, parameter consumption-on-failure, and result ownership
 provenance. A missing descriptor is explicit, not synthesized.
 
-**Current admission limitation:** all existing Project profiles reject module
-`unsafe` permits (`SPX-G172`), and the ordinary source Graph route rejects native
-Rust imports (`SPX-G218`). Therefore no current successfully admitted Project can
-produce these unsafe/import rows; its unsafe inventory is empty. This code
-preserves the typed projection branch without weakening either boundary or
-claiming an operational unsafe Project profile. A future admission contract must
-supply separate evidence before such source can reach this image API.
+Admission remains owned by the selected Project and source profile. The focused
+calculator Project regression still rejects a module `unsafe` permit with
+`SPX-G172`; advertising an unsafe facet does not admit that source. The later
+Graph v25/image path retains Native Rust import declarations as described by
+[Analysis Coverage v1](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md), so the old blanket
+statement that every native import is rejected by `SPX-G218` no longer describes
+the current code. Declaration retention, an admitted call node, unsafe-region
+admission and physical provider execution remain distinct. The facet projects
+only actual retained checked nodes; it creates none of those admissions itself.
 
 Neither audit text nor required-authority facts grant host authority, establish
 review approval, prove safety, or identify transitive runtime effects. The
@@ -89,8 +92,9 @@ is not a proportional-work or total-memory guarantee. Crossing a limit returns
 `SPX-G228` without partial JSON. Existing exact image/handle/cursor rejection
 remains unchanged, including facet-bound and page-size-bound cursor checks.
 
-[Focused authored regressions](../tests/image_protocol/hir_relationships_v1.rs) cover
+[Focused regressions](../tests/image_protocol/hir_relationships_v1.rs) cover
 contract/body regions, nested stores and shared ValueIds, field identities,
 explicit owned call/result consumption, page concatenation, source provenance,
-facet-handle mismatch, and unchanged unsafe admission. These tests have not
-been run; no new passing-gate claim is made.
+facet-handle mismatch, and the calculator profile's unsafe-permit rejection.
+The implemented corpus has hosted-green v0.4.0 release evidence; this does not
+prove general unsafe source support or physical native-import execution.

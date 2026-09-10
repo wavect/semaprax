@@ -2,8 +2,9 @@
 
 Audience: agent client authors and compiler contributors.
 
-Status: authored, unrun. This additive read-only slice does not complete the
-full graph-operational programme.
+Status: implemented bounded read-only profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). The full graph-operational
+programme remains Partial.
 
 An immutable `ProjectSemanticImage` can return a compact function summary and
 expand revision-bound facets without reading source paths, parsing source
@@ -96,17 +97,18 @@ its normal source-authentication/recheck boundary.
 
 ## Evidence and remaining work
 
-[Authored integration evidence](../tests/image_protocol/facets_v1.rs) covers cross-root
+[Integration evidence](../tests/image_protocol/facets_v1.rs) covers cross-root
 determinism, unchanged Image v1 bytes, real contract expressions, local and
 cross-file callers across body/contract regions, paginated completeness,
 reference rejection across revisions/targets/facets/page sizes, and owned-byte
-loan/cleanup facts. Tests were not run at the user's request; no green-gate or
-hosted-completion claim is made.
+loan/cleanup facts. The implemented regressions have hosted-green v0.4.0 release
+evidence; their earlier authoring-only classification is superseded.
 
-Incremental indexes, persisted typed HIR, expression-level source mutations,
-arbitrary declaration kinds, dynamic/external consumers, target-admission
-execution, inferred test coverage, and all publication authority remain outside
-this query contract.
+Persisted trusted HIR, arbitrary declaration kinds, dynamic/external consumers,
+target-admission execution, inferred test coverage, and all publication authority
+remain outside this query contract. The separately implemented dependency index,
+candidate changes and semantic-service profiles do not alter these facet bytes
+or turn a read-only response into mutation authority.
 
 ## Additive HIR relationships
 
@@ -114,6 +116,12 @@ this query contract.
 `data-access` and `unsafe-boundaries` summary handles and transport facet choices.
 The existing seven facet payloads, handle domains, and cursor calculation remain
 unchanged. Summary/discovery bytes necessarily gain the two advertised names;
-Image v1 serialized bytes and digest do not change. Current Project admission
-still rejects unsafe permits/native imports: the unsafe inventory is empty for
-currently admitted projects, not evidence that unsafe source was newly admitted.
+Image v1 serialized bytes and digest do not change.
+
+The unsafe-permit rejection exercised by the calculator Project remains
+`SPX-G172`. Native Rust import declarations are now retained by the separately
+admitted Graph v25/image path described in
+[Analysis Coverage v1](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md); a blanket claim
+that every native import is rejected is obsolete. A declared import does not
+establish that a call or unsafe region is admitted or executed. Facets report
+only nodes retained by the actual checked profile and grant no new authority.

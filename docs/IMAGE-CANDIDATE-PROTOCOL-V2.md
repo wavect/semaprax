@@ -1,7 +1,8 @@
 # Image Candidate Protocol v2
 
-Status: additive implementation; regression tests are authored but deliberately
-unrun for this change. No hosted or cross-platform completion claim.
+Status: implemented bounded candidate protocol; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Broader support and programme
+completion remain separate from this release evidence.
 
 Audience: agent builders, compiler contributors, and reviewers.
 
@@ -127,16 +128,18 @@ I/O themselves.
 Candidate validation reparses canonical source and independently replays
 existing compiler-owned target projections. It does not execute generated code,
 run Project tests, establish behavioral equivalence, approve changes, or commit
-source. Required external gates remain reported as unrun. Comparison remains
-descriptive; callers must explicitly select the separate merge/rebase methods
-for their bounded reconciliation behavior.
+source. Required external gates remain reported as unrun for that preview.
+This report field does not classify the compiler's released regression corpus.
+Comparison remains descriptive; callers must explicitly select the separate
+merge/rebase methods for their bounded reconciliation behavior.
 
-`tests/image_protocol/candidate_transport_v2.rs` contains authored coverage for profile
-separation, catalog/client consistency, immutable siblings, canonical report
-chunks, replay validation, invalid-intent atomicity, stale handles, hole
-completion boundaries, candidate/draft capacity, retained draft lifetime after
-candidate discard, absorbing Unix source drift, retained-base merge/rebase,
-closed constructor documents, and expression discovery. None were executed here.
+`tests/image_protocol/candidate_transport_v2.rs` covers profile separation,
+catalog/client consistency, immutable siblings, canonical report chunks, replay
+validation, invalid-intent atomicity, stale handles, hole completion boundaries,
+candidate/draft capacity, retained draft lifetime after candidate discard,
+absorbing Unix source drift, retained-base merge/rebase, closed constructor
+documents, and expression discovery. These implemented regressions have
+hosted-green v0.4.0 release evidence.
 
 ## Caller-managed recovery
 
@@ -153,5 +156,7 @@ revision independently admitted by a new host session.
 Restore prepares a complete typed candidate and bounded response before registry
 mutation and final held-source authentication. Malformed/stale/full-registry
 failures leave existing handles untouched. A source-drift failure permanently
-invalidates the session as before. No method persists or restores drafts,
-unresolved holes, approvals, capabilities, session state, or warm HIR.
+invalidates the session as before. No method in this v2 profile persists or
+restores drafts, unresolved holes, approvals, capabilities, session state, or
+warm HIR. The implemented v5 draft-recovery and archive routes retain their
+separate startup, replay and completion boundaries.

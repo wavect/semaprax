@@ -1,7 +1,8 @@
 # Project Candidates and Semantic Change IR v1
 
-Status: authored, unrun. This is a partial implementation of the
-[graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md).
+Status: implemented bounded candidate/change profile; **HOSTED GREEN** under
+[the v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). The
+[graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md) remains Partial.
 
 Audience: agent builders, compiler contributors, and reviewers.
 
@@ -54,7 +55,7 @@ These have the bounded meanings below. They do not assert external consumer
 compatibility, general formal equivalence, runtime behavior, or every platform
 target in the mature language contract.
 
-The current intention catalogue has these authored, unrun admission paths:
+The current intention catalogue has these implemented bounded admission paths:
 
 | Kind | Exact additional fields | Behavior |
 | --- | --- | --- |
@@ -88,11 +89,13 @@ intent value (shown pretty-printed for reading) is:
 ```
 
 The append form does not reorder or remove parameters. The additive
-[ordered signature evolution form](PROJECT-SIGNATURE-EVOLUTION-V1.md) supports
-retaining, reordering, or removing existing by-value built-in Copy parameters
-and adding explicit scalar literals, while staging every original argument in
-its original order. Parameter renaming, conversion, return-type migration and
-ownership-sensitive mapping remain unsupported. Neither form guesses defaults.
+[ordered signature evolution form](PROJECT-SIGNATURE-EVOLUTION-V1.md) owns
+retaining, reordering, or removing parameters and its later bounded ownership
+and argument-expression extensions. The original Copy mapping stages every
+original argument in its original order. Its admission is not a general
+parameter conversion or return-type migration contract. The separately
+versioned [owned-result wrapping](PROJECT-SIGNATURE-OWNED-RESULT-WRAP-V1.md)
+profile does not widen this append form. No form guesses defaults.
 Literal append keeps existing effects and owned
 argument evaluation in left-to-right order. Authenticated caller migration
 visits contracts, ordinary and generic bodies, class bodies, loops, match
@@ -276,14 +279,17 @@ uses the image reader's existing `SPX-G219` host rejection boundary.
 
 ## Evidence and remaining programme
 
-Tests in [project_candidate/candidates.rs](../tests/project_candidate/candidates.rs) and the
-intent module cover append migration, stable-ID body calls, canonical source
-round-trips, branching, sequential changes, stale/tampered replay, real type
-rejection, and no incidental writes. They are authored, unrun at the user's
-request; no local or hosted passing result is claimed.
+Tests in [project_candidate/candidates.rs](../tests/project_candidate/candidates.rs)
+and the intent module cover append migration, stable-ID body calls, canonical
+source round-trips, branching, sequential changes, stale/tampered replay, real
+type rejection, and no incidental writes. The implemented corpus has hosted-green
+v0.4.0 release evidence; the original unrun authoring pass is historical.
 
 The bounded operation, hole, recovery and rebase additions are tracked in the
-[full programme ledger](GRAPH-OPERATIONAL-PROGRAMME.md). General constructors,
-interface implementation, ownership-sensitive migration, affected test execution,
-persistent/incremental HIR and separately authorized source publication remain
-open. Read-only image sessions do not advertise candidate or commit authority.
+[full programme ledger](GRAPH-OPERATIONAL-PROGRAMME.md). Bounded interface changes,
+ownership-sensitive signature/extraction profiles, candidate test execution,
+source-backed recovery and separately authorized publication are implemented
+under their owning contracts, not wholly future features. General constructors,
+complete ownership-sensitive migration, persistent/incremental HIR and broader
+workflow support remain separate goals. Read-only image sessions do not acquire
+candidate or commit authority from these implementation and evidence changes.

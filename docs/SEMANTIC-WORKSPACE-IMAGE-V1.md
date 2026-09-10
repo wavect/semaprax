@@ -1,6 +1,7 @@
 # Semantic Workspace Image v1
 
-Status: first bounded foundation authored, unrun; the full graph-operational
+Status: implemented bounded foundation; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). The full graph-operational
 programme remains Partial.
 
 Audience: agent builders, compiler contributors, and reviewers.
@@ -112,20 +113,22 @@ execution, network, dependency resolution, or target build authority.
 
 ## Evidence and remaining work
 
-[Integration evidence](../tests/workspace/semantic_image.rs) is authored but
-was not run in this change, as explicitly requested. It covers deterministic
+[Integration evidence](../tests/workspace/semantic_image.rs) covers deterministic
 repeated/cross-root derivation, exact graph/source binding, stable-ID lookup,
 bounded context/impact delegation, exact replay, altered/reminted and
 noncanonical inputs, oversize and stale rejection, immutable revision lifetime,
 held-source drift, and absence of incidental filesystem writes. CLI evidence
-is maintained separately with the command implementation. No local or hosted
-quality-gate success is claimed.
+is maintained separately with the command implementation. The implemented
+release corpus is hosted green; the earlier unrun authoring record is historical.
 
-This is the first reusable image foundation, not completion of the
-graph-operational roadmap. It does not add incremental invalidation or
-rechecking, serialized trusted HIR, a persistent daemon image cache, typed
-holes, function-body replacement, signature changes, semantic deltas,
-benchmark results, or broad new graph edge families. The remaining programme
-must establish those surfaces independently while preserving canonical source,
-revision binding, exact replay, deterministic projections, and existing commit
-authority. The completion-matrix rows remain Partial.
+This foundation does not itself add serialized trusted HIR, incremental semantic
+rechecking, a persistent daemon image cache, benchmark results or general graph
+mutation. The release separately implements
+[typed candidates](PROJECT-CANDIDATES-V1.md),
+[typed holes](PROJECT-CANDIDATE-HOLES-V1.md),
+[signature evolution](PROJECT-SIGNATURE-EVOLUTION-V1.md),
+[workspace protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md) and
+[the incremental semantic service](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
+Their existence is no longer future work, but their versioned operations,
+replay, persistence and authority limits remain separate from Image v1.
+The completion-matrix rows retain their broader Partial status.

@@ -2,8 +2,9 @@
 
 Audience: agent authors, embedding hosts, and compiler contributors.
 
-Status: implementation and regression cases authored, **unrun**. This query
-does not promote language profiles, target support or programme completion.
+Status: implemented bounded query; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). This query does not itself
+promote language profiles, target support or programme completion.
 
 An immutable semantic image can list the concrete generic-function instances
 already retained from checked source and expand their exact facets. Canonical
@@ -80,11 +81,13 @@ monomorphic function; that does not create a foreign generic template. Neither
 an absent instance nor a missing caller edge proves absence of runtime use,
 external consumers or future instantiations.
 
-Source generic-to-generic calls also remain rejected by `SPX-T226`. The caller
-collector distinguishes concrete callers structurally, but current admitted
-source cannot produce a concrete generic-instance caller of another generic
-instance. The positive evidence covers ordinary callers; it does not promote
-that excluded source shape.
+Generic-to-generic calls are no longer categorically rejected. The implemented
+[explicit-forwarding contract](GENERIC-EXPLICIT-FORWARDING-V1.md) admits its
+checked symbolic and concrete mappings; the navigation regression now accepts
+`keep<i64>(1)` inside `relay<T>` and retains the resulting relay instance.
+The caller collector still reports only actual retained checked callers.
+Navigation does not widen forwarding, import, signature or execution admission,
+and a retained instance does not by itself establish target execution.
 
 ## References, limits and diagnostics
 
@@ -149,9 +152,10 @@ Graph schemas, earlier protocol profiles and target admission are unchanged.
 ## Evidence
 
 Library [regressions](../tests/image_protocol/function_instances_v1.rs) and transport
-[regressions](../tests/image_v5/function_instances.rs) are authored but unrun. They cover actual
-retained scalar instances, unused templates, exact-instance selection and
-callers, page reconstruction, reference rejection, old-image preservation and
-unchanged generic-import and generic-to-generic-call admission. No generic source is executed by this work.
-Generated-client size/preservation and executable integration gates remain open,
-as do measured task-level context improvements and broader generic admission.
+[regressions](../tests/image_v5/function_instances.rs) have hosted-green release
+evidence. They cover retained scalar instances, unused templates, exact-instance
+selection and callers, page reconstruction, reference rejection, old-image
+preservation, generic-import rejection and admitted explicit concrete forwarding.
+These navigation checks do not execute a generic source program. Generated-client
+regressions likewise retain their bounded release scope; measured task-level
+context improvements and broader generic admission remain separate.

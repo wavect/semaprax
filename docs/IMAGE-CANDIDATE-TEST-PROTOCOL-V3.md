@@ -2,8 +2,9 @@
 
 Audience: embedding hosts, agent builders, and compiler contributors.
 
-Status: authored implementation and regression cases, unrun by user request.
-No current passing gate, native/Wasm execution, or complete programme claim.
+Status: implemented bounded interpreted-test protocol; **HOSTED GREEN** under
+[the v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Native/Wasm execution
+and complete-programme support are not implied.
 
 V3 adds explicit interpreted-test authority to the retained candidate session.
 The host selects `ImageHostCapability::TestEnabled` before requests arrive, or
@@ -28,8 +29,8 @@ The envelope schemas are `semaprax.image-agent-protocol.v3` and
 helpers use v3 identities. Capabilities include `semantic_read`,
 `candidate_prepare` and `candidate_test`, plus exact fixed policy limits.
 `target_execution` remains false: interpreted tests do not execute a native or
-Wasm target. Complete bundled response schemas and executed client compatibility
-remain separate programme requirements.
+Wasm target. Broader nested response-schema coverage and supported-client
+compatibility remain separately owned programme requirements.
 
 V3 retains the candidate lifecycle and adds two methods. Both require exact
 `image_revision` and `candidate_revision` digest fields, and no others:
@@ -66,8 +67,9 @@ select execution, so unresolved holes never become executable candidates.
 Test responses do not mutate or retain registry entries, and no test result can
 publish source. Explicit managed publication remains a separate host API.
 
-Focused evidence is authored in
-[image_protocol/candidate_test_transport_v3.rs](../tests/image_protocol/candidate_test_transport_v3.rs):
-old-profile rejection, host policy disclosure, no request overrides, candidate
-binding, replay-bound success, fuel exhaustion, no source writes and held-input
-drift. These cases have not been run.
+Focused evidence in
+[image_protocol/candidate_test_transport_v3.rs](../tests/image_protocol/candidate_test_transport_v3.rs)
+covers old-profile rejection, host policy disclosure, no request overrides,
+candidate binding, replay-bound success, fuel exhaustion, no source writes and
+held-input drift. The implemented cases have hosted-green v0.4.0 release
+evidence; this does not change the per-request execution meaning above.

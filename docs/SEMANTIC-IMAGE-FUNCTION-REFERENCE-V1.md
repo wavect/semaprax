@@ -2,16 +2,17 @@
 
 Audience: agent client authors, embedding hosts, and compiler contributors.
 
-Status: implementation and regression contracts authored, **unrun**. This
-read-only protocol does not promote a target, grant authority, or complete the
-graph-operational programme.
+Status: implemented bounded reference protocol; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). This read-only protocol does
+not promote a target, grant authority, or complete the graph-operational programme.
 
 An immutable semantic image can export a small, self-authenticating reference
 to one retained source function and later resolve that reference against an
-independently rebuilt copy of the exact same image. This is the stable session
-handoff missing from revision-bound facet handles. Canonical `.spx` remains the
-only repository authority; a reference neither contains program meaning nor
-permits a source, build, execution, test, candidate, or publication operation.
+independently rebuilt copy of the exact same image. This supplies the stable
+session handoff absent from revision-bound facet handles alone. Canonical `.spx`
+remains the only repository authority; a reference neither contains program
+meaning nor permits a source, build, execution, test, candidate, or publication
+operation.
 
 ## Library contract
 
@@ -155,8 +156,9 @@ cover discovery, bundled schemas, generated TypeScript/Python/Rust clients,
 MCP, direct and batched parity, older-profile isolation, hostile inputs,
 recovery, and unchanged source bytes.
 
-These tests are authored but intentionally unrun at the user's request.
-General cross-revision migration, ancestry/compatibility inference, advisory
-search/ranking, dynamic consumers, external
-API compatibility, target artifacts, runtime deployment, execution evidence,
-source materialization and publication remain outside this reference contract.
+The implemented regressions have hosted-green v0.4.0 release evidence. The
+bounded rebind above is implemented; general migration, ancestry/compatibility
+inference, advisory search/ranking, dynamic consumers, external API compatibility,
+target artifacts, runtime deployment, source materialization and publication
+remain outside this reference contract. Query regression success is not target
+execution evidence.

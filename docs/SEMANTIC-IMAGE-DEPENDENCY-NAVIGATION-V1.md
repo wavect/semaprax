@@ -2,9 +2,10 @@
 
 Audience: agent authors, embedding hosts, and compiler contributors.
 
-Status: implementation and regression cases authored, **unrun**. No measured
-model-token savings, latency improvement, execution evidence, or completion
-promotion is claimed.
+Status: implemented bounded navigation; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Measured model-token
+savings, latency improvement, target execution and full-product completion
+remain separate claims.
 
 Dependency navigation provides a summary followed by selected detail pages over
 the existing [immutable-image index](SEMANTIC-IMAGE-DEPENDENCIES-V1.md). An agent
@@ -100,8 +101,9 @@ reuses these inventories over an exact admitted candidate while issuing a
 separate candidate-bound handle and cursor domain. Image references remain
 image-only and their schemas and bytes are unchanged.
 
-Authored evidence is in `tests/image_protocol/dependency_navigation_v1.rs` and
-`tests/image_transport_v5/dependency_navigation.rs`. Pagination completeness,
-reference rejection, source drift, cross-root determinism and batch equivalence
-remain unrun. Representative task-level token, tool-call, correctness and human
-review measurements remain outstanding.
+The hosted-green release corpus is in
+`tests/image_protocol/dependency_navigation_v1.rs` and
+`tests/image_transport_v5/dependency_navigation.rs`. It covers pagination
+completeness, reference rejection, source drift, cross-root determinism and
+batch equivalence. Representative task-level token, tool-call, correctness
+and human-review measurements remain separate from this implementation evidence.

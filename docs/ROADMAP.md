@@ -73,16 +73,21 @@ owning payloads, public ABI, and the broader LANG-07 collection goal remain open
 The additive consuming-loop tranche uses a hidden Step carrier with Graph v39
 and CleanupPlan v11; its local evidence is tracked in the completion matrix.
 
-## Current priority: post-v0.2 promotion boundaries
+## Current priority: post-v0.4 promotion boundaries
 
-The `v0.2.0` prerelease is published from exact commit
-`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`. All 45 jobs in
+The `v0.4.0` prerelease is published from exact commit
+`dfc15e2ddc818fa97744b5a9d69fd6108dd6a321` on 2026-09-10T10:31:03Z; the three
+host-built archives and digests are recorded in the
+[release evidence](RELEASE-PROCESS.md#040-hosted-release-evidence). The prior
+`v0.2.0` prerelease remains published from exact commit
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` with all 45 jobs in
 [tag run 33608662244](https://github.com/wavect/semaprax/actions/runs/33608662244)
-passed, including the blocking aggregation, Linux/macOS/Windows archive smokes,
-and final publication. The exact inventory and checksums are recorded in the
-[release evidence](RELEASE-PROCESS.md#v020-hosted-release-evidence).
+passing, including the blocking aggregation, Linux/macOS/Windows archive smokes,
+and final publication; see
+[its release evidence](RELEASE-PROCESS.md#v020-hosted-release-evidence).
 
-That closes the v0.2.0 tag/artifact milestone, not the full product objective.
+That closes the v0.4.0 tag/artifact milestone (and before it v0.2.0), not the
+full product objective.
 The approved distribution split still keeps private-host libraries out of the
 standalone registry package; the released full-toolchain binaries remain
 pre-alpha. Generated Rust/npm packages, Project v8-v10 profiles, transport v5,
@@ -105,10 +110,12 @@ about gates the workflow deliberately does not imply:
    gates, then implement equivalent tool/input, filesystem/broker, network and
    descendant closure for macOS and Windows; and
 5. preserve the exact release gate and artifact inventory for every subsequent
-   tag rather than treating v0.2.0 evidence as evidence for a later head.
+    tag rather than treating v0.2.0 or v0.4.0 evidence as evidence for a later
+    head.
 
-The [v0.2 audit](COMPLETION-MATRIX.md#v02-product-exit-audit) now records the
-published milestone and its remaining product gaps.
+The [v0.2 audit](COMPLETION-MATRIX.md#v02-product-exit-audit) and the new
+[v0.4 audit](COMPLETION-MATRIX.md#v04-product-exit-audit) now record the
+published milestones and their remaining product gaps.
 
 ## Developer preview: promote the authored Project v8 slice
 

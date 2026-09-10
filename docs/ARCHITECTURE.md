@@ -13,9 +13,10 @@ changes, or test inventories:
 - required checks: [quality gates](QUALITY-GATES.md);
 - history: [changelog](../CHANGELOG.md).
 
-SEMAPRAX v0.2 is a set of bounded vertical slices through a larger language
-design. The architecture keeps human source, verified meaning, agent
-projections, mutation authority, and target execution distinct.
+SEMAPRAX v0.4 is a set of bounded vertical slices through a larger language
+design (v0.2 remains the first archived tag milestone). The architecture keeps
+human source, verified meaning, agent projections, mutation authority, and
+target execution distinct.
 
 ## System shape
 

@@ -355,15 +355,19 @@ and the unapplied repository-rule proposal that would make it a required check
 for `main`. No branch rule is in force today, so a green gate is evidence about
 a commit, not a precondition that any commit had to meet.
 
-The current released baseline is annotated tag `v0.2.0` at exact commit
-`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`. All 45 jobs in
+The current released baseline is annotated tag `v0.4.0` at exact commit
+`dfc15e2ddc818fa97744b5a9d69fd6108dd6a321`, published
+`2026-09-10T10:31:03Z`; the three host-built archives and digests live in the
+[release evidence record](RELEASE-PROCESS.md#040-hosted-release-evidence).
+The prior baseline remains annotated tag `v0.2.0` at exact commit
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` with all 45 jobs in
 [tag run 33608662244](https://github.com/wavect/semaprax/actions/runs/33608662244)
-passed, including the blocking release aggregation, three host-built archive
-smokes, and final prerelease publication. The exact asset inventory and
-digests live in the [release evidence record](RELEASE-PROCESS.md#v020-hosted-release-evidence).
-That run promotes release evidence only where an owning gate selects it; it
-does not turn ignored, unprovisioned, multi-engine, physical-device, registry,
-or production-support requirements into passing evidence.
+passing, including the blocking release aggregation, three host-built archive
+smokes, and final prerelease publication; see
+[its release evidence](RELEASE-PROCESS.md#v020-hosted-release-evidence).
+Either tag run promotes release evidence only where an owning gate selects it;
+it does not turn ignored, unprovisioned, multi-engine, physical-device,
+registry, or production-support requirements into passing evidence.
 
 For platform claims:
 

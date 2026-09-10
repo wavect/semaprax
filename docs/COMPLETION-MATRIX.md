@@ -192,6 +192,43 @@ v2–v7 references, [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V
 [Wasm Scalar Exports](WASM-SCALAR-EXPORTS-V1.md), and
 [Native Rust Interoperability](NATIVE-RUST-INTEROP-V1.md).
 
+## v0.4 product-exit audit
+
+This audit measures the shipped v0.4.0 objective against the broader product
+goal. The annotated tag resolves to
+`dfc15e2ddc818fa97744b5a9d69fd6108dd6a321` and was published as the
+[SEMAPRAX v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0)
+on 2026-09-10T10:31:03Z. Its tag-triggered workflow completed successfully with
+all required jobs green, including the blocking release-gate, three host-built
+archive smokes, and final publication. “Exact-tag hosted” below means only the
+gate actually selected by that run; it does not imply an ignored,
+unprovisioned, broader-browser, physical-device, registry, or production claim.
+See the exact asset inventory and digests in the
+[release evidence](RELEASE-PROCESS.md#040-hosted-release-evidence).
+
+| Exit criterion | Evidence | Remaining gate |
+| --- | --- | --- |
+| Multi-module calculator project | Exact-tag hosted (v0.4.0) | Keep Project Manifest admission and source closure green on subsequent release candidates. |
+| Same verified calculator logic on native and browser lanes | Exact-tag hosted (v0.4.0) | Preserve the identical success/failure corpus on subsequent release candidates and broaden browser engines only when claimed. |
+| Several stable-ID functions callable from TypeScript and Rust | Exact-tag hosted (v0.4.0); builder remains unpublished | Publish an intentionally supported Rust entry point. |
+| Browser calculator consumes Project exports | Exact-tag Chromium, including the display-renamed fixture (v0.4.0) | Add multi-engine evidence only when broader browser compatibility is claimed. |
+| Project daemon inspect/derive/preview/apply/rebuild loop | Exact-tag hosted (v0.4.0) | Preserve Transport v4's bounded authority contract on subsequent release candidates. |
+| Stable external API survives a display rename | Exact-tag hosted (v0.4.0) | Preserve the complete renamed Project and consumer proof on subsequent release candidates. |
+| Project tests demonstrate native/Wasm equivalence | Exact-tag hosted (v0.4.0) | Preserve the full entry/test and consumer corpus on subsequent release candidates. |
+| Multi-module line-filter product | Exact-tag hosted native and Node/Core-Wasm (v0.4.0) | Add real-browser or multi-engine evidence before claiming that breadth. |
+| Full promotion CI for every v0.4.0 release claim | Exact-tag hosted and published (v0.4.0) | Repeat the complete blocking gate for every later release tag. |
+
+The v0.4.0 prerelease was successfully produced from its tagged commit, but
+this broader product-exit audit remains **Partial** for the same reasons as
+v0.2.0: the line-filter still lacks the stated browser breadth and the Rust
+builder remains unpublished. The tag run executes the repository's current
+nonignored test inventory and explicitly selected release jobs. It does not by
+itself complete work-package gates that require separate provisioning, ignored
+cases, more browser engines, registry publication, or an explicit support
+decision.
+
+Evidence owners: same as v0.2.0 above.
+
 ## WP-01–WP-15 implementation and promotion audit
 
 This table tracks the bounded developer-preview programme separately from the
@@ -205,6 +242,7 @@ evidence owners. No row below changes a long-term status to Implemented.
 | WP-02 deterministic version | Exact-tag released | Every archive embedded and reported tag version `0.2.0` and exact commit `5f6fb965`; unpacked human/JSON smokes passed on all three build hosts | Repeat exact tag/version/commit binding for each release; agreement is not a signature. |
 | WP-03 release artifacts | Exact-tag released | Linux x86-64, Apple Silicon macOS, and Windows x86-64 archives passed host-local package/unpack smoke and were published with exact checksums | Add targets only with their own build-host smoke; no cross-host reproducibility is claimed. |
 | WP-04 v0.2 tagged artifact/release promotion | Complete for v0.2.0 | The release gate, three artifact jobs, closed `SHA256SUMS` inventory, and publication job passed at one exact tag; see [release evidence](RELEASE-PROCESS.md#v020-hosted-release-evidence) | A later release requires a new exact-tag record; this completion does not promote unrelated product rows. |
+| WP-04 v0.4 tagged artifact/release promotion | Complete for v0.4.0 | The release gate, three artifact jobs, and publication job passed at exact tag `dfc15e2ddc818fa97744b5a9d69fd6108dd6a321` (2026-09-10); see [release evidence](RELEASE-PROCESS.md#040-hosted-release-evidence) | This records only the prerelease artifact milestone and does not promote unrelated product rows. |
 | WP-05 `doctor` | Exact-tag hosted regression coverage; deterministic signed-release packaging and the Unix signed-generation store have focused local evidence; the Linux provisioner and role-specific worker policies remain unexecuted on an admitted Linux host; ordinary production profiles remain unavailable | [Explicit bounded offline-profile selection](DOCTOR-PROBE-V1.md), sealed-input/bundle parsers, injected-host/version checks, and lower-level settlement tests ran where selected by CI. [Linux Production Provisioner v1](DOCTOR-PRODUCTION-PROVISIONER-V1.md) owns exact release-capsule admission, private namespaces, detached read-only tmpfs root, cgroup limits, held static images, deterministic closed-environment archive construction, and whole-cgroup settlement. [Signed Install v1](DOCTOR-SIGNED-INSTALL-V1.md) locally proves held-root signed-byte installation, cooperative activation/rollback and authenticated inert-stage recovery without execution authority. | Connect the exact active generation to the provisioner without reopening paths, execute the unpacked signed Linux distribution with real tools and hostile authority/settlement cases, record an explicit support handoff, and complete equivalent tool/input, filesystem/broker, network and descendant closure on macOS/Windows; local archive, structural, parser and unit evidence does not establish production confinement. |
 | WP-06 `new` | Exact-tag hosted, partial | Generator, scaffold replay/CLI preservation, Project checks, and platform publication regressions ran in the tagged repository suite | Execute the explicitly provisioned unpacked-archive onboarding cases on each advertised archive before claiming installed-product breadth. |
 | WP-07 quickstart | Exact-tag hosted source workflow; archive onboarding open | Documentation/examples and Project product jobs exercised the checked source workflow | Execute the documented installation and PATH sequence against each candidate distribution before claiming that end-user path. |

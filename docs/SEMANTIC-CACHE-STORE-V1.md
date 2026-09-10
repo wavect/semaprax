@@ -1,6 +1,8 @@
 # Authenticated semantic cache store v1
 
-Status: implementation and focused regressions authored; unrun and unverified.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+The protected-key and immutable-static-installation preconditions remain mandatory.
 
 Audience: trusted compiler hosts, cache integrators, and compiler maintainers.
 
@@ -94,7 +96,7 @@ The public CLI adds:
 semaprax semantic-cache-lifecycle <manifest> <empty-store-root>
 ```
 
-The command composes existing authority boundaries into one bounded authored
+The command composes existing authority boundaries into one bounded implemented
 scenario: initialize the caller-provisioned private root, perform a cold
 source-authenticated semantic open, persist and authenticate one entry, restore
 it into another source-authenticated session, perform an unchanged explicit
@@ -218,14 +220,15 @@ reservation, but no general out-of-memory recovery claim follows.
 | `SPX-I362` | OS entropy/filesystem failure before confirmed publication or during load. |
 | `SPX-I363` | Failure after successful publication or eviction namespace pivot; outcome is uncertain. |
 
-Private tests author envelope success, recomputed-address tampering, wrong key,
+Private tests cover envelope success, recomputed-address tampering, wrong key,
 wrong compiler digest, incompatible authenticated context and oversized header;
-real filesystem tests author private create-new key initialization, mode
+real filesystem tests cover private create-new key initialization, mode
 rejection, repeated initialization, key symlink rejection, tampered invalid
 payload rejection before decoding, and immutable no-replace publication. These
-tests do not expose public key/signing APIs and remain unrun. CLI evidence also
-authors exact eviction and the five-stage lifecycle receipt, source-byte
+tests do not expose public key/signing APIs. CLI evidence also covers exact
+eviction and the five-stage lifecycle receipt, source-byte
 preservation, warm-work facts and cold reconstruction equality. Cross-process
-recovery evidence is separate. No tests, compiler gates, executable fixtures,
-or generated clients ran while authoring this implementation. Cross-process
-cache reuse is not measured performance evidence or full-goal completion.
+recovery retains its separate contract and evidence owner. The implemented
+release regression corpus is HOSTED GREEN for v0.4.0. This one-process lifecycle
+receipt does not itself prove cross-process behavior, and cache reuse is not
+measured performance evidence or full-goal completion.

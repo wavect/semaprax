@@ -1,9 +1,9 @@
 # Semantic retention registry v1
 
-Status: **Partial, authored/unrun**. The library implementation and hostile
-interruption regressions are authored. Only compile and static checks have run;
-the registry has no CLI or session integration and executes no garbage
-collection.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+The broader retention lifecycle remains Partial. This registry module executes
+no garbage collection; session composition is a separately implemented profile.
 
 Audience: embedding hosts that need one durable current selector over bounded,
 authority-neutral image, candidate and draft retention metadata.
@@ -121,10 +121,15 @@ subject or immutable checkpoint/plan pair.
 
 ## Authored evidence
 
-The module regression authors initialization, exact recovery, a pre-persisted
+The module regression covers initialization, exact recovery, a pre-persisted
 pair left before cursor publication, a stale cursor stage, successful consecutive
 CAS advancement, stale-CAS rejection and preservation of both immutable pairs.
 It also rejects an empty receipt generation, malformed/unrelated/unbacked cursor
 stages and a same-owner replacement of the held `metadata` child. These cases
-are authored and unrun; there is no executed interruption, cross-process,
-cross-platform, CLI, session, subject-replay, GC or quality-gate evidence.
+are HOSTED GREEN for the bounded v0.4.0 release implementation. Broader
+cross-process/platform coverage, subject replay and GC execution remain
+separate from this metadata-only registry.
+
+The implemented [host lifecycle](SEMANTIC-RETENTION-HOST-LIFECYCLE-V1.md) and
+[protocol-session attachment](SEMANTIC-RETENTION-PROTOCOL-SESSION-V1.md) compose
+the registry without changing its stored bytes or granting subject authority.

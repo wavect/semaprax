@@ -1,8 +1,20 @@
 module std.data.toml.tests;
 use function @id("std.data.toml.assignment_index") from std.data.toml as assignment_index;
+use function @id("std.data.toml.bare_key_end") from std.data.toml as bare_key_end;
+use function @id("std.data.toml.basic_escape_end") from std.data.toml as basic_escape_end;
+use function @id("std.data.toml.basic_quoted_key_end") from std.data.toml as basic_quoted_key_end;
+use function @id("std.data.toml.hex_run_end") from std.data.toml as hex_run_end;
+use function @id("std.data.toml.is_bare_byte") from std.data.toml as is_bare_byte;
+use function @id("std.data.toml.quote_state") from std.data.toml as quote_state;
 use function @id("std.data.toml.is_bare_key") from std.data.toml as is_bare_key;
 use function @id("std.data.toml.is_blank") from std.data.toml as is_blank;
 use function @id("std.data.toml.is_comment") from std.data.toml as is_comment;
+use function @id("std.data.toml.key_end") from std.data.toml as key_end;
+use function @id("std.data.toml.literal_quoted_key_end") from std.data.toml as literal_quoted_key_end;
+use function @id("std.data.toml.scan_failure") from std.data.toml as scan_failure;
+use function @id("std.data.toml.value_content_end") from std.data.toml as value_content_end;
+use function @id("std.data.toml.value_end") from std.data.toml as value_end;
+use function @id("std.data.toml.value_start") from std.data.toml as value_start;
 
 @id("std.data.toml.tests.keys")
 fn keys() -> bool
@@ -37,6 +49,94 @@ fn assignments() -> bool
     assignment_index(array_as_slice(empty)) == -1 && assignment_index(array_as_slice(first)) == 0 && assignment_index(array_as_slice(middle)) == 2 && assignment_index(array_as_slice(absent)) == -1 && assignment_index(array_as_slice(basic)) == 6 && assignment_index(array_as_slice(literal)) == 6 && assignment_index(array_as_slice(comment)) == -1
 }
 
+@id("std.data.toml.tests.escapes")
+fn escapes() -> bool
+{
+    let backslash_n = [92u8, 110u8];
+    let backslash_u = [92u8, 117u8, 48u8, 48u8, 51u8, 57u8];
+    let backslash_capital_u = [92u8, 85u8, 48u8, 48u8, 48u8, 49u8, 70u8, 51u8, 48u8, 48u8];
+    let backslash_bad_hex = [92u8, 117u8, 48u8, 48u8, 51u8, 122u8];
+    let backslash_other = [92u8, 120u8];
+    let simple = basic_escape_end(array_as_slice(backslash_n), 0usize) == 2usize;
+    let short_unicode = basic_escape_end(array_as_slice(backslash_u), 0usize) == 6usize;
+    let long_unicode = basic_escape_end(array_as_slice(backslash_capital_u), 0usize) == 10usize;
+    let bad_hex = basic_escape_end(array_as_slice(backslash_bad_hex), 0usize) > byte_len(array_as_slice(backslash_bad_hex));
+    let other = basic_escape_end(array_as_slice(backslash_other), 0usize) > byte_len(array_as_slice(backslash_other));
+    let hex = hex_run_end(array_as_slice(backslash_u), 2usize, 4usize) == 6usize;
+    let fault = scan_failure(array_as_slice(backslash_n), 0usize) > byte_len(array_as_slice(backslash_n));
+    simple && short_unicode && long_unicode && bad_hex && other && hex && fault
+}
+
+@id("std.data.toml.tests.quoted_keys")
+fn quoted_keys() -> bool
+{
+    let ascii = [34u8, 97u8, 34u8];
+    let escaped_newline = [34u8, 97u8, 92u8, 110u8, 98u8, 34u8];
+    let multibyte = [34u8, 97u8, 195u8, 169u8, 98u8, 34u8];
+    let bad_escape = [34u8, 98u8, 97u8, 100u8, 92u8, 120u8, 34u8];
+    let unterminated_basic = [34u8, 97u8, 98u8, 99u8];
+    let control_byte = [34u8, 97u8, 1u8, 98u8, 34u8];
+    let literal_ascii = [39u8, 97u8, 39u8];
+    let literal_backslash = [39u8, 97u8, 92u8, 110u8, 98u8, 39u8];
+    let unterminated_literal = [39u8, 97u8, 98u8, 99u8];
+    let literal_control_byte = [39u8, 97u8, 1u8, 98u8, 39u8];
+    let plain = basic_quoted_key_end(array_as_slice(ascii), 0usize) == 3usize;
+    let newline = basic_quoted_key_end(array_as_slice(escaped_newline), 0usize) == 6usize;
+    let unicode = basic_quoted_key_end(array_as_slice(multibyte), 0usize) == 6usize;
+    let bad = basic_quoted_key_end(array_as_slice(bad_escape), 0usize) > byte_len(array_as_slice(bad_escape));
+    let open_basic = basic_quoted_key_end(array_as_slice(unterminated_basic), 0usize) > byte_len(array_as_slice(unterminated_basic));
+    let control = basic_quoted_key_end(array_as_slice(control_byte), 0usize) > byte_len(array_as_slice(control_byte));
+    let literal_plain = literal_quoted_key_end(array_as_slice(literal_ascii), 0usize) == 3usize;
+    let literal_kept = literal_quoted_key_end(array_as_slice(literal_backslash), 0usize) == 6usize;
+    let open_literal = literal_quoted_key_end(array_as_slice(unterminated_literal), 0usize) > byte_len(array_as_slice(unterminated_literal));
+    let literal_control = literal_quoted_key_end(array_as_slice(literal_control_byte), 0usize) > byte_len(array_as_slice(literal_control_byte));
+    plain && newline && unicode && bad && open_basic && control && literal_plain && literal_kept && open_literal && literal_control
+}
+
+@id("std.data.toml.tests.key_forms")
+fn key_forms() -> bool
+{
+    let classified = is_bare_byte(97u8) && !is_bare_byte(34u8);
+    let states = quote_state(34u8, false, false) == 1 && quote_state(39u8, false, false) == 2;
+    let bare = [112u8, 111u8, 114u8, 116u8];
+    let basic = [34u8, 97u8, 34u8, 32u8, 61u8, 32u8, 49u8];
+    let literal = [39u8, 97u8, 39u8, 32u8, 61u8, 32u8, 49u8];
+    let bare_view = array_as_slice(bare);
+    let basic_view = array_as_slice(basic);
+    let literal_view = array_as_slice(literal);
+    let via_bare = key_end(bare_view, 0usize) == bare_key_end(bare_view, 0usize) && key_end(bare_view, 0usize) == 4usize;
+    let via_basic = key_end(basic_view, 0usize) == basic_quoted_key_end(basic_view, 0usize) && key_end(basic_view, 0usize) == 3usize;
+    let via_literal = key_end(literal_view, 0usize) == literal_quoted_key_end(literal_view, 0usize) && key_end(literal_view, 0usize) == 3usize;
+    classified && states && via_bare && via_basic && via_literal
+}
+
+@id("std.data.toml.tests.value_spans")
+fn value_spans() -> bool
+{
+    let quoted_comment = [107u8, 101u8, 121u8, 32u8, 61u8, 32u8, 34u8, 118u8, 97u8, 108u8, 117u8, 101u8, 32u8, 35u8, 32u8, 110u8, 111u8, 116u8, 32u8, 97u8, 32u8, 99u8, 111u8, 109u8, 109u8, 101u8, 110u8, 116u8, 34u8, 32u8, 35u8, 32u8, 99u8, 111u8, 109u8, 109u8, 101u8, 110u8, 116u8];
+    let literal_comment = [107u8, 101u8, 121u8, 32u8, 61u8, 32u8, 39u8, 118u8, 39u8, 32u8, 32u8, 35u8, 32u8, 99u8];
+    let dense = [107u8, 101u8, 121u8, 61u8, 49u8];
+    let trailing_blank = [107u8, 101u8, 121u8, 32u8, 61u8, 32u8, 32u8, 32u8];
+    let empty = [107u8, 101u8, 121u8, 61u8];
+    let quoted_view = array_as_slice(quoted_comment);
+    let literal_view = array_as_slice(literal_comment);
+    let dense_view = array_as_slice(dense);
+    let trailing_view = array_as_slice(trailing_blank);
+    let empty_view = array_as_slice(empty);
+    let quoted_delimiter = assignment_index(quoted_view);
+    let literal_delimiter = assignment_index(literal_view);
+    let dense_delimiter = assignment_index(dense_view);
+    let trailing_delimiter = assignment_index(trailing_view);
+    let empty_delimiter = assignment_index(empty_view);
+    let quoted = value_start(quoted_view, 4usize) == 6usize && value_end(quoted_view, 4usize) == 29usize && quoted_delimiter == 4;
+    let literal = value_start(literal_view, 4usize) == 6usize && value_end(literal_view, 4usize) == 9usize && literal_delimiter == 4;
+    let dense_span = value_start(dense_view, 3usize) == 4usize && value_end(dense_view, 3usize) == 5usize && dense_delimiter == 3;
+    let trailing_span = value_start(trailing_view, 4usize) == 8usize && value_end(trailing_view, 4usize) == 8usize && trailing_delimiter == 4;
+    let empty_span = value_start(empty_view, 3usize) == 4usize && value_end(empty_view, 3usize) == 4usize && empty_delimiter == 3;
+    let content = value_content_end(quoted_view, 6usize) == 30usize;
+    quoted && literal && dense_span && trailing_span && empty_span && content
+}
+
 @id("std.data.toml.tests.main")
 fn main() -> i64
 {
@@ -44,5 +144,9 @@ fn main() -> i64
     failed = failed + if keys() { 0 } else { 1 };
     failed = failed + if lines() { 0 } else { 2 };
     failed = failed + if assignments() { 0 } else { 4 };
+    failed = failed + if escapes() { 0 } else { 8 };
+    failed = failed + if quoted_keys() { 0 } else { 16 };
+    failed = failed + if key_forms() { 0 } else { 32 };
+    failed = failed + if value_spans() { 0 } else { 64 };
     failed
 }

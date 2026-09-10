@@ -1,11 +1,28 @@
 module std.data.toml.examples;
 use function @id("std.data.toml.assignment_index") from std.data.toml as assignment_index;
 use function @id("std.data.toml.is_bare_key") from std.data.toml as is_bare_key;
+use function @id("std.data.toml.key_end") from std.data.toml as key_end;
+use function @id("std.data.toml.value_end") from std.data.toml as value_end;
+use function @id("std.data.toml.value_start") from std.data.toml as value_start;
+
+// `port = 80` walked with the offset cursors: the bare key ends right before
+// the space, the delimiter sits at the `=`, and the value span is `80`, all
+// without allocating.
+@id("std.data.toml.examples.cursors")
+fn cursors() -> i64
+{
+    let line = [112u8, 111u8, 114u8, 116u8, 32u8, 61u8, 32u8, 56u8, 48u8];
+    let view = array_as_slice(line);
+    let delimiter = assignment_index(view);
+    let key = key_end(view, 0usize) == 4usize;
+    let value = delimiter == 5 && value_start(view, 5usize) == 7usize && value_end(view, 5usize) == 9usize;
+    if key && value { 0 } else { 1 }
+}
 
 @id("std.data.toml.examples.main")
 fn main() -> i64
 {
     let key = [115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 45u8, 112u8, 111u8, 114u8, 116u8];
     let line = [112u8, 111u8, 114u8, 116u8, 32u8, 61u8, 32u8, 56u8, 48u8];
-    if is_bare_key(array_as_slice(key)) && assignment_index(array_as_slice(line)) == 5 { 0 } else { 1 }
+    if is_bare_key(array_as_slice(key)) && assignment_index(array_as_slice(line)) == 5 { cursors() } else { 1 }
 }

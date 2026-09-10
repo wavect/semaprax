@@ -1435,6 +1435,8 @@ mod base64;
 mod byte_spans;
 #[path = "standard_library/catalog.rs"]
 mod catalog;
+#[path = "standard_library/toml_cursors.rs"]
+mod toml_cursors;
 use catalog::render_catalogs;
 
 #[test]

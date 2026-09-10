@@ -1198,6 +1198,12 @@ fn count_into(value: usize, output: own Writer) -> Writer
 
 Package `std/data-toml`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.toml = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
+### `std.data.toml.is_bare_byte`
+
+```semaprax
+fn is_bare_byte(byte: u8) -> bool
+```
+
 ### `std.data.toml.is_bare_key`
 
 ```semaprax
@@ -1221,6 +1227,112 @@ fn is_comment(line: borrow Slice<u8>) -> bool
 ```semaprax
 fn assignment_index(line: borrow Slice<u8>) -> i64
     ensures result >= -1
+```
+
+### `std.data.toml.scan_failure`
+
+```semaprax
+fn scan_failure(record: borrow Slice<u8>, offset: usize) -> usize
+    ensures result > byte_len(record)
+```
+
+### `std.data.toml.hex_run_end`
+
+```semaprax
+fn hex_run_end(record: borrow Slice<u8>, start: usize, count: usize) -> usize
+```
+
+### `std.data.toml.basic_escape_end`
+
+The escape at `start` (the backslash itself) admits the TOML basic-string
+escapes `\b \t \n \f \r \" \\`, `\uXXXX` and `\UXXXXXXXX`; any other byte
+after the backslash fails the scan.
+
+```semaprax
+fn basic_escape_end(record: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.toml.basic_quoted_key_end`
+
+Offset just past a `"..."` key starting at `start`, or a failure encoding
+(a result greater than `byte_len(record)`) for an unterminated string, a
+raw control byte below 0x20, or any escape `basic_escape_end` rejects.
+
+```semaprax
+fn basic_quoted_key_end(record: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.toml.literal_quoted_key_end`
+
+Offset just past a `'...'` key starting at `start`, or a failure encoding
+for an unterminated string or a raw control byte below 0x20. A literal
+key admits no escapes: a backslash is an ordinary byte.
+
+```semaprax
+fn literal_quoted_key_end(record: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.toml.bare_key_end`
+
+Offset just past a bare key starting at `start`, reusing `is_bare_key` on
+the growing candidate to admit exactly the same character set, or a
+failure encoding when no bare-key byte is admitted at `start`.
+Walks bytes directly rather than testing a growing `byte_range` sub-slice:
+that shape is admitted by the checker but emits a corrupt slice carrier on
+the Core Wasm lane (issue #100), and this was its only user in the library.
+
+```semaprax
+fn bare_key_end(record: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.toml.key_end`
+
+Offset just past any admitted key form at `start` - bare, basic-quoted, or
+literal-quoted - dispatching on the opening byte, or a failure encoding
+from whichever scanner applies.
+
+```semaprax
+fn key_end(record: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.toml.value_start`
+
+Start offset of the value after the assignment `delimiter`, skipping
+spaces and tabs.
+
+```semaprax
+fn value_start(record: borrow Slice<u8>, delimiter: usize) -> usize
+    ensures result <= byte_len(record)
+```
+
+### `std.data.toml.quote_state`
+
+Offset of the first unquoted `#` at or after `start`, or the end of the
+record when none appears. A `#` inside a basic or literal quoted span
+never ends the value.
+
+```semaprax
+fn quote_state(byte: u8, basic: bool, literal: bool) -> i64
+    ensures result >= 0 && result <= 3
+```
+
+### `std.data.toml.value_content_end`
+
+```semaprax
+fn value_content_end(record: borrow Slice<u8>, start: usize) -> usize
+    ensures result <= byte_len(record)
+```
+
+### `std.data.toml.value_end`
+
+End offset of the value after the assignment `delimiter`: the last byte
+before an unquoted `#` comment or end of line, with trailing spaces and
+tabs excluded.
+
+```semaprax
+fn value_end(record: borrow Slice<u8>, delimiter: usize) -> usize
+    ensures result <= byte_len(record)
+    ensures result >= value_start(record, delimiter)
 ```
 
 ## `std.encoding`

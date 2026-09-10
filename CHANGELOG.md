@@ -8,6 +8,22 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add quoted-key validation and value cursors to `std.data.toml`, closing the
+  key half of its recorded gap. `basic_quoted_key_end` admits the TOML
+  basic-string escapes and rejects an unterminated string, a raw control byte
+  and any other escape; `literal_quoted_key_end` admits `'...'` with no escapes;
+  `key_end` dispatches the bare, basic-quoted and literal-quoted forms; and
+  `value_start`, `value_content_end` and `value_end` bound a value quote-aware,
+  so a `#` inside quotes does not open a comment and trailing spaces and tabs
+  are excluded. Every scanner is an allocation-free offset computation and
+  reports failure through the `byte_len + 1 + offset` sentinel the
+  `std.data.json` family already uses for arbitrary-start scanners. Values stay
+  uninterpreted bytes; tables, decoding, typed values and encoding remain
+  Missing. Bare-key admission walks bytes directly instead of testing a growing
+  `byte_range` sub-slice: that shape is admitted by the checker and executes on
+  the interpreter and native C11, but emits a corrupt slice carrier on the Core
+  Wasm lane, filed as issue #100 with a single-variable reproduction.
+
 - Add `decoded_token_eq` to `std.data.json.dec`: two JSON string tokens in one
   input compared by their decoded bytes through the existing pull surface, with
   no buffer, so `"a\u0062"` and `"ab"` are equal keys and `"\n"` equals

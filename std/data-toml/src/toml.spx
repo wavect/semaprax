@@ -1,5 +1,11 @@
 module std.data.toml;
 
+@id("std.data.toml.is_bare_byte")
+fn is_bare_byte(byte: u8) -> bool
+{
+    byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 45u8 || byte == 95u8
+}
+
 @id("std.data.toml.is_bare_key")
 fn is_bare_key(value: borrow Slice<u8>) -> bool
 {
@@ -64,4 +70,184 @@ fn assignment_index(line: borrow Slice<u8>) -> i64
         index < length && found < 0 && scanning
     }
     found
+}
+
+@id("std.data.toml.scan_failure")
+fn scan_failure(record: borrow Slice<u8>, offset: usize) -> usize
+    ensures result > byte_len(record)
+{
+    byte_len(record) + 1usize + offset
+}
+
+@id("std.data.toml.hex_run_end")
+fn hex_run_end(record: borrow Slice<u8>, start: usize, count: usize) -> usize
+{
+    let mut index = start;
+    let mut remaining = count;
+    let mut valid = true;
+    while remaining > 0usize && valid {
+        valid = match byte_get(record, index) { Option::Some { value: byte } => byte >= 48u8 && byte <= 57u8 || byte >= 97u8 && byte <= 102u8 || byte >= 65u8 && byte <= 70u8, Option::None {} => false, };
+        index = index + 1usize;
+        remaining = remaining - 1usize;
+        remaining > 0usize && valid
+    }
+    if valid { index } else { scan_failure(record, start) }
+}
+
+// The escape at `start` (the backslash itself) admits the TOML basic-string
+// escapes `\b \t \n \f \r \" \\`, `\uXXXX` and `\UXXXXXXXX`; any other byte
+// after the backslash fails the scan.
+@id("std.data.toml.basic_escape_end")
+fn basic_escape_end(record: borrow Slice<u8>, start: usize) -> usize
+{
+    let marker = match byte_get(record, start + 1usize) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
+    let simple = marker == 98u8 || marker == 116u8 || marker == 110u8 || marker == 102u8 || marker == 114u8 || marker == 34u8 || marker == 92u8;
+    let short_unicode = marker == 117u8;
+    let long_unicode = marker == 85u8;
+    if simple { start + 2usize } else { if short_unicode { hex_run_end(record, start + 2usize, 4usize) } else { if long_unicode { hex_run_end(record, start + 2usize, 8usize) } else { scan_failure(record, start) } } }
+}
+
+// Offset just past a `"..."` key starting at `start`, or a failure encoding
+// (a result greater than `byte_len(record)`) for an unterminated string, a
+// raw control byte below 0x20, or any escape `basic_escape_end` rejects.
+@id("std.data.toml.basic_quoted_key_end")
+fn basic_quoted_key_end(record: borrow Slice<u8>, start: usize) -> usize
+{
+    let mut index = start + 1usize;
+    let mut bad = match byte_get(record, start) { Option::Some { value: byte } => byte != 34u8, Option::None {} => true, };
+    let mut running = !bad;
+    while running {
+        let closed = match byte_get(record, index) { Option::Some { value: byte } => byte == 34u8, Option::None {} => false, };
+        let escape = match byte_get(record, index) { Option::Some { value: byte } => byte == 92u8, Option::None {} => false, };
+        let plain = match byte_get(record, index) { Option::Some { value: byte } => byte >= 32u8, Option::None {} => false, };
+        let step = if closed { index } else { if escape { basic_escape_end(record, index) } else { if plain { index + 1usize } else { scan_failure(record, index) } } };
+        bad = step > byte_len(record);
+        index = if closed || bad { index } else { step };
+        running = !closed && !bad;
+        running
+    }
+    if bad { scan_failure(record, index) } else { index + 1usize }
+}
+
+// Offset just past a `'...'` key starting at `start`, or a failure encoding
+// for an unterminated string or a raw control byte below 0x20. A literal
+// key admits no escapes: a backslash is an ordinary byte.
+@id("std.data.toml.literal_quoted_key_end")
+fn literal_quoted_key_end(record: borrow Slice<u8>, start: usize) -> usize
+{
+    let mut index = start + 1usize;
+    let mut bad = match byte_get(record, start) { Option::Some { value: byte } => byte != 39u8, Option::None {} => true, };
+    let mut running = !bad;
+    while running {
+        let closed = match byte_get(record, index) { Option::Some { value: byte } => byte == 39u8, Option::None {} => false, };
+        let plain = match byte_get(record, index) { Option::Some { value: byte } => byte >= 32u8, Option::None {} => false, };
+        bad = !closed && !plain;
+        index = if closed || bad { index } else { index + 1usize };
+        running = !closed && !bad;
+        running
+    }
+    if bad { scan_failure(record, index) } else { index + 1usize }
+}
+
+// Offset just past a bare key starting at `start`, reusing `is_bare_key` on
+// the growing candidate to admit exactly the same character set, or a
+// failure encoding when no bare-key byte is admitted at `start`.
+// Walks bytes directly rather than testing a growing `byte_range` sub-slice:
+// that shape is admitted by the checker but emits a corrupt slice carrier on
+// the Core Wasm lane (issue #100), and this was its only user in the library.
+@id("std.data.toml.bare_key_end")
+fn bare_key_end(record: borrow Slice<u8>, start: usize) -> usize
+{
+    let length = byte_len(record);
+    let mut index = start;
+    let mut admits = index < length;
+    while admits {
+        let bare = match byte_get(record, index) { Option::Some { value } => is_bare_byte(value), Option::None {} => false, };
+        index = if bare { index + 1usize } else { index };
+        admits = bare && index < length;
+        admits
+    }
+    if index > start { index } else { scan_failure(record, start) }
+}
+
+// Offset just past any admitted key form at `start` - bare, basic-quoted, or
+// literal-quoted - dispatching on the opening byte, or a failure encoding
+// from whichever scanner applies.
+@id("std.data.toml.key_end")
+fn key_end(record: borrow Slice<u8>, start: usize) -> usize
+{
+    let opening = match byte_get(record, start) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
+    if opening == 34u8 { basic_quoted_key_end(record, start) } else { if opening == 39u8 { literal_quoted_key_end(record, start) } else { bare_key_end(record, start) } }
+}
+
+// Start offset of the value after the assignment `delimiter`, skipping
+// spaces and tabs.
+@id("std.data.toml.value_start")
+fn value_start(record: borrow Slice<u8>, delimiter: usize) -> usize
+    ensures result <= byte_len(record)
+{
+    let length = byte_len(record);
+    let mut index = if delimiter + 1usize > length { length } else { delimiter + 1usize };
+    let mut skipping = index < length;
+    while skipping {
+        let space = match byte_get(record, index) { Option::Some { value: byte } => byte == 32u8 || byte == 9u8, Option::None {} => false, };
+        index = if space { index + 1usize } else { index };
+        skipping = space && index < length;
+        skipping
+    }
+    index
+}
+
+// Offset of the first unquoted `#` at or after `start`, or the end of the
+// record when none appears. A `#` inside a basic or literal quoted span
+// never ends the value.
+@id("std.data.toml.quote_state")
+fn quote_state(byte: u8, basic: bool, literal: bool) -> i64
+    ensures result >= 0 && result <= 3
+{
+    let next_basic = if byte == 34u8 && !literal { !basic } else { basic };
+    let next_literal = if byte == 39u8 && !basic { !literal } else { literal };
+    if next_basic { 1 } else { 0 } + if next_literal { 2 } else { 0 }
+}
+
+@id("std.data.toml.value_content_end")
+fn value_content_end(record: borrow Slice<u8>, start: usize) -> usize
+    ensures result <= byte_len(record)
+{
+    let length = byte_len(record);
+    let mut index = if start > length { length } else { start };
+    let mut basic = false;
+    let mut literal = false;
+    let mut scanning = index < length;
+    while scanning {
+        let byte = match byte_get(record, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let stop = byte == 35u8 && !basic && !literal;
+        let state = quote_state(byte, basic, literal);
+        basic = state % 2 == 1;
+        literal = state >= 2;
+        index = if stop { index } else { index + 1usize };
+        scanning = !stop && index < length;
+        scanning
+    }
+    index
+}
+
+// End offset of the value after the assignment `delimiter`: the last byte
+// before an unquoted `#` comment or end of line, with trailing spaces and
+// tabs excluded.
+@id("std.data.toml.value_end")
+fn value_end(record: borrow Slice<u8>, delimiter: usize) -> usize
+    ensures result <= byte_len(record)
+    ensures result >= value_start(record, delimiter)
+{
+    let start = value_start(record, delimiter);
+    let mut index = value_content_end(record, start);
+    let mut trimming = index > start;
+    while trimming {
+        let space = match byte_get(record, index - 1usize) { Option::Some { value: byte } => byte == 32u8 || byte == 9u8, Option::None {} => false, };
+        index = if space { index - 1usize } else { index };
+        trimming = space && index > start;
+        trimming
+    }
+    index
 }

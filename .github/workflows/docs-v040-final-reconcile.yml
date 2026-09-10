@@ -1,0 +1,165 @@
+name: v0.4.0 documentation status reconciliation
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/docs-v040-final-reconcile.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Reconcile implemented v0.4.0 documentation statuses
+        shell: python
+        run: |
+          from pathlib import Path
+
+          targets = {
+              'CANDIDATE-CONSTRUCTOR-SCHEMAS-V1.md',
+              'CANDIDATE-GIT-PUBLICATION-CLI-V1.md',
+              'DOCTOR-OFFLINE-COLLECTOR-V1.md',
+              'DOCTOR-OFFLINE-LAUNCHER-V1.md',
+              'DOCTOR-OFFLINE-ROOT-V1.md',
+              'DOCTOR-PROBE-V1.md',
+              'DOCTOR-PRODUCTION-PROVISIONER-V1.md',
+              'IMAGE-CANDIDATE-ARCHIVE-STORE-PROTOCOL-V1.md',
+              'IMAGE-OPENAPI-ARTIFACTS-V1.md',
+              'IMAGE-RETAINED-SUBJECTS-V1.md',
+              'IMAGE-TYPED-REQUEST-CLIENTS-V1.md',
+              'NATIVE-INLINE-STRING-SETTLEMENT-V1.md',
+              'NATIVE-STRING-CONTENTS-V1.md',
+              'OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md',
+              'OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md',
+              'OFFLINE-PUBLISHED-SEMANTIC-LOCK-SNAPSHOT-V1.md',
+              'OFFLINE-PURE-WASM-PACKAGE-BUILD-V1.md',
+              'OFFLINE-SEMANTIC-PACKAGE-LOCK-V2.md',
+              'OWNED-STRING-BORROWED-VIEW-V1.md',
+              'PACKAGE-SEMANTIC-GRAPH-V1.md',
+              'PERSISTENT-SEMANTIC-CACHE-V1.md',
+              'PROJECT-AGGREGATE-CONSTRUCTORS-V1.md',
+              'PROJECT-BUILTIN-CALL-CONSTRUCTOR-V1.md',
+              'PROJECT-CANDIDATE-ABI-DELTA-V1.md',
+              'PROJECT-CANDIDATE-ANALYSIS-COVERAGE-V1.md',
+              'PROJECT-CANDIDATE-ARCHIVE-V1.md',
+              'PROJECT-CANDIDATE-ARTIFACT-DELTA-V1.md',
+              'PROJECT-CANDIDATE-BLIND-SPOT-DECLARATIONS-V1.md',
+              'PROJECT-CANDIDATE-CONTRACT-DELTA-V1.md',
+              'PROJECT-CANDIDATE-CONTRACT-HOLES-V1.md',
+              'PROJECT-CANDIDATE-DEPENDENCY-NAVIGATION-V1.md',
+              'PROJECT-CANDIDATE-DIAGNOSTICS-V1.md',
+              'PROJECT-CANDIDATE-DRAFT-ARCHIVE-V1.md',
+              'PROJECT-CANDIDATE-DRAFT-MERGE-V1.md',
+              'PROJECT-CANDIDATE-DRAFT-REBASE-V1.md',
+              'PROJECT-CANDIDATE-DRAFT-RECOVERY-V1.md',
+              'PROJECT-CANDIDATE-ENVIRONMENT-REVIEW-V1.md',
+              'PROJECT-CANDIDATE-EXPRESSION-HOLES-V1.md',
+              'PROJECT-CANDIDATE-EXTERNAL-API-CONTRACT-DELTA-V1.md',
+              'PROJECT-CANDIDATE-FUNCTION-FACETS-V1.md',
+              'PROJECT-CANDIDATE-HOLES-V1.md',
+              'PROJECT-CANDIDATE-IMPACT-NAVIGATION-V1.md',
+              'PROJECT-CANDIDATE-INTERFACE-DELTA-V1.md',
+              'PROJECT-CANDIDATE-MERGE-PREVIEW-V1.md',
+              'PROJECT-CANDIDATE-OWNERSHIP-DELTA-V1.md',
+              'PROJECT-CANDIDATE-REBASE-V1.md',
+              'PROJECT-CANDIDATE-RECOVERY-V1.md',
+              'PROJECT-CANDIDATE-SEMANTIC-DELTA-V1.md',
+              'PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md',
+              'PROJECT-CANDIDATE-TESTS-V1.md',
+              'PROJECT-CONTRACT-CHANGE-V1.md',
+              'PROJECT-DECLARATION-CHANGE-V1.md',
+              'PROJECT-DECLARATION-MOVE-V1.md',
+              'PROJECT-DIAGNOSTIC-CHANGE-V1.md',
+              'PROJECT-DRAFT-EXPRESSION-CATALOG-V1.md',
+              'PROJECT-EXPRESSION-CHANGE-V1.md',
+              'PROJECT-FIELD-PLACE-CONSTRUCTOR-V1.md',
+              'PROJECT-FRONTEND-CACHE-V1.md',
+              'PROJECT-HOLE-FILL-SUGGESTIONS-V1.md',
+              'PROJECT-HOLE-NAVIGATION-V1.md',
+              'PROJECT-INTERFACE-CHANGE-V1.md',
+              'PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md',
+              'PROJECT-LITERAL-CONSTRUCTORS-V1.md',
+              'PROJECT-PREPARED-INTERPRETER-V1.md',
+              'PROJECT-PREPARED-REVISION-REPLACEMENT-V1.md',
+              'PROJECT-PROFILE-ADMISSION-V1.md',
+              'PROJECT-SCALAR-LITERAL-CONSTRUCTORS-V1.md',
+              'PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md',
+              'PROJECT-SIGNATURE-EVOLUTION-V1.md',
+              'PROJECT-SIGNATURE-OWNED-RESULT-WRAP-V1.md',
+              'PROJECT-VARIANT-CASE-CHANGE-V1.md',
+              'PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md',
+              'STATIC-PROTOCOL-CONFORMANCE-V1.md',
+              'WORKSPACE-SESSION-CLI-V1.md',
+          }
+
+          replacement = [
+              'Status: implemented bounded profile; **HOSTED GREEN** under the',
+              '[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,',
+              'authoring-time, ignored, or separately provisioned observations below retain',
+              'their narrower scope; public promotion and broader product completion remain',
+              'separately gated.',
+          ]
+
+          changed = []
+          missing = []
+          no_status = []
+          for name in sorted(targets):
+              path = Path('docs') / name
+              if not path.is_file():
+                  missing.append(name)
+                  continue
+              text = path.read_text(encoding='utf-8')
+              if 'HOSTED GREEN' in '\n'.join(text.splitlines()[:20]):
+                  continue
+              lines = text.splitlines()
+              idx = next((i for i, line in enumerate(lines[:24]) if line.startswith('Status:')), None)
+              if idx is None:
+                  no_status.append(name)
+                  continue
+              end = idx + 1
+              while end < len(lines) and lines[end].strip() and not lines[end].startswith('Audience:'):
+                  end += 1
+              lines[idx:end] = replacement
+              path.write_text('\n'.join(lines) + ('\n' if text.endswith('\n') else ''), encoding='utf-8')
+              changed.append(name)
+
+          if missing or no_status:
+              raise SystemExit(f'missing={missing} no_status={no_status}')
+
+          # Protect the repository metadata contract used by the documentation test.
+          failures = []
+          for name in sorted(targets):
+              text = (Path('docs') / name).read_text(encoding='utf-8')
+              first = text.splitlines()[:12]
+              if not any(line.startswith('Status:') for line in first):
+                  failures.append((name, 'Status'))
+              if not any(line.startswith('Audience:') for line in first):
+                  failures.append((name, 'Audience'))
+              if 'HOSTED GREEN' not in '\n'.join(text.splitlines()[:20]):
+                  failures.append((name, 'HOSTED GREEN'))
+          if failures:
+              raise SystemExit(f'metadata failures: {failures}')
+
+          print(f'changed {len(changed)} docs')
+          for name in changed:
+              print(name)
+      - name: Commit reconciled documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- docs; then
+            echo 'No documentation changes required.'
+            exit 0
+          fi
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs
+          git commit -m 'docs: finish v0.4.0 hosted-green status reconciliation'
+          git push origin HEAD:main

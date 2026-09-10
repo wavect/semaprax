@@ -1,8 +1,9 @@
 # Filesystem I/O v1
 
-Status: bounded implementation with focused local evidence. This specification
-freezes the admitted local contract; it makes no hosted, registry, release, or
-cross-platform physical-filesystem support claim.
+Status: implemented bounded provider profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The admitted v1 contract remains frozen. Registry publication, broader
+physical-filesystem support and full Everyday completion remain separate.
 
 Audience: language users, standard-library authors, compiler contributors, and
 host-adapter implementers.
@@ -73,9 +74,9 @@ also rejected before a provider receives it.
 
 ## `std.fs` composition
 
-`std.fs` is an additive package which imports the ordinary source-authored
-`std.path.value::Path`, `std.io::Reader`, and `std.io::Writer` identities. Its
-two public source functions are:
+The v1 `std.fs` surface imports the ordinary source-authored
+`std.path.value::Path`, `std.io::Reader`, and `std.io::Writer` identities.
+Its two public source functions are:
 
 | Function | Signature | Behavior |
 | --- | --- | --- |
@@ -90,6 +91,10 @@ unwritten suffix is neither inspected nor written.
 
 Neither wrapper fabricates a Reader, Writer, Path, or Bytes on failure. Ordinary owning matches and function transfers consume the wrapper inputs;
 existing cleanup plans settle staged owners exactly once.
+
+The current bundled package also contains the separately implemented
+[Filesystem I/O v2](FILESYSTEM-IO-V2.md) operations and selects that additive
+profile. This document retains the v1 operation and Project-v14 contract.
 
 ## Provider, native, and Wasm boundaries
 
@@ -168,19 +173,20 @@ unchanged.
 
 ## Focused evidence
 
-The local selector below passes 29 tests: nine library/provider/graph tests,
+The original local selector passed 29 tests: nine library/provider/graph tests,
 four typed Project tests, and sixteen interpreter/native/Wasm operation tests.
-Project conformance executes all three authored `std.fs` commands on the
+That Project conformance exercised all three authored `std.fs` commands on the
 interpreter, C11 at `-O0` and `-O2`, and repeated Core Wasm under Node. Cases
-cover actual Unix files, create-new preservation, invalid paths before dispatch,
+covered actual Unix files, create-new preservation, invalid paths before dispatch,
 logical prefixes, empty files, cumulative bounds, multiple-invalid-input failure
 priority, provider miscounts and exact owned-result cleanup. Metadata, catalog,
-module-size and source-reader checks pass separately.
+module-size and source-reader checks passed separately.
 
 ```sh
 SPX_REQUIRE_CLANG=1 SPX_REQUIRE_NODE=1 cargo test --locked -p semaprax --lib --test useful_data --test project filesystem -- --nocapture
 ```
 
-This is local evidence, not an observed hosted run or cross-platform physical
-provider promotion. Full `std.fs` and Everyday profile completion remain open;
-this tranche supplies bounded whole-file read and create-new write composition.
+The implemented release corpus is hosted green. The historical local counts
+remain attached to that earlier execution, and no broader physical-provider
+platform support is inferred. Full `std.fs` and Everyday completion remain open;
+this v1 profile supplies bounded whole-file read and create-new write composition.

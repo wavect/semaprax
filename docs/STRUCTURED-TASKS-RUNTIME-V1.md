@@ -2,8 +2,9 @@
 
 Audience: maintainers, host integrators, and compiler contributors.
 
-Status: locally evidenced Rust host runtime with invocation-owned HTTPS work;
-language syntax and backend lowering remain open.
+Status: implemented Rust host runtime with invocation-owned HTTPS work;
+**HOSTED GREEN** under the [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Language syntax and backend lowering remain open.
 
 `semaprax::structured_tasks::task_scope` executes real user closures inside a
 lexical scoped-thread lifetime. A scope admits at most 64 tasks, rejects empty,
@@ -42,3 +43,8 @@ Focused evidence:
 ```sh
 cargo test --locked --lib structured_tasks::tests::
 ```
+
+The implemented scoped-runtime and HTTPS-settlement release corpus is hosted
+green. Historical local observations remain witnesses of their original runs;
+they do not turn the Rust host integration into language-level tasks or a new
+backend execution model.

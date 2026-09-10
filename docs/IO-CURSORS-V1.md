@@ -1,6 +1,8 @@
 # IO Cursors v1
 
-Status: implemented with focused local evidence; the broader Everyday profile remains incomplete.
+Status: implemented bounded source profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The broader Everyday profile remains incomplete.
 
 Audience: language users, compiler contributors, standard-library authors, and
 backend implementers.
@@ -70,11 +72,17 @@ ambient I/O, buffered streams, files, sockets, asynchronous operations, or
 standard-stream authority. Existing `Bytes`, contracts, cleanup, graph, and
 backend meanings remain unchanged outside the admitted cursor transitions.
 
-The profile does not claim a disk or network service, host integration, or
-completed `std.io` package. Arbitrary streaming interfaces, mutable cursor
-replacement in loops, typed paths, and file-provider integration remain open.
+The profile does not supply a disk/network service or complete `std.io`.
+Arbitrary streaming interfaces and general mutable cursor replacement in loops
+remain open. [Typed paths](TYPED-PATH-V1.md),
+[filesystem I/O](FILESYSTEM-IO-V1.md), [filesystem v2](FILESYSTEM-IO-V2.md),
+[formatting](FORMAT-WRITER-V1.md), and [logging](LOG-WRITER-V1.md) are implemented
+separate profiles; none is implied solely by a Reader or Writer value.
 
 ## Focused local evidence
+
+The historical local witness used the following selectors. The implemented
+release corpus is now hosted green:
 
 ```sh
 cargo test --locked -p semaprax --lib workspace_graph::owned_function_import
@@ -91,4 +99,4 @@ borrow-escape refusal, no-public-descriptor behavior and bundled dependency use
 without vendored source. The package conformance executes on the interpreter,
 C11 at O0/O2 and Core Wasm, whose one-entry byte arena balances over four runs.
 Catalog and metadata checks preserve canonical signatures and record identities.
-These are local tests with no hosted or filesystem support claim.
+These are cursor/import checks, not evidence of a physical filesystem provider.

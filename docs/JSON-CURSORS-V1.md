@@ -1,7 +1,8 @@
 # JSON Cursor Adapters v1
 
-Status: bounded local implementation; standalone and Project v16 local gates
-pass, including cross-package roundtrip across the admitted Project backends.
+Status: implemented bounded adapters; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md), including the admitted
+standalone, Project v16 and cross-package roundtrip profiles.
 
 Audience: language users, standard-library contributors, and backend
 implementers.
@@ -140,8 +141,9 @@ must consume the same checked HIR meaning. No backend may infer validity from
 the `Reader` or `Writer` carrier layout.
 
 This document makes no public hosted-I/O, physical-device, production, nominal
-ABI, growable-buffer, or owned-document-tree claim. The bounded local
-verification record appears below; the broader Everyday profile remains partial.
+ABI, growable-buffer, or owned-document-tree claim. The implemented adapter
+corpus has hosted-green release evidence; the broader Everyday profile remains
+partial.
 
 ## Project composition
 
@@ -160,19 +162,20 @@ parser.
 
 ## Local verification record
 
-The standalone decoder and writer cursor corpus passes on the interpreter,
-native C11 at `-O0` and `-O2`, and Core Wasm. It includes a 300-byte decoded
-string, demonstrating that the adapters are not limited by the decoder's old
-256-byte comparison buffer. Six malformed-input, insufficient-capacity, and
-forged-cursor contract-rejection cases also pass with no partial output or
-cursor publication.
+The original local standalone decoder and writer cursor corpus passed on the
+interpreter, native C11 at `-O0` and `-O2`, and Core Wasm. It included a 300-byte
+decoded string, demonstrating that the adapters are not limited by the decoder's
+old 256-byte comparison buffer. Six malformed-input, insufficient-capacity,
+and forged-cursor contract-rejection cases also passed with no partial output
+or cursor publication.
 
 Project v16's
 `profile_admission::project_v16_json_cursor_public_facade_replays_and_executes`
-gate passes deterministic npm reconstruction, envelope replay, and repeated
-Node execution. Cross-package decode/requote roundtrip now passes through the
+gate covers deterministic npm reconstruction, envelope replay, and repeated
+Node execution. Cross-package decode/requote roundtrip uses the
 `private_json_cursor_roundtrip_executes_across_project_backends` gate on the
-local interpreter entry and repeated test, native C11 at `-O0` and
-`-O2`, and repeated Core Wasm with a strict two-entry arena. The unchanged
-16 MiB workspace budget fits this gate. These are local results only and do
-not claim hosted or public support.
+interpreter entry and repeated test, native C11 at `-O0` and `-O2`, and repeated
+Core Wasm with a strict two-entry arena. The unchanged 16 MiB workspace budget
+fits this gate. The historical local observations retain their original scope;
+the implemented release corpus is hosted green without changing the public
+export or nominal-ABI boundary.

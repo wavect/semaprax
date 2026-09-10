@@ -1,7 +1,9 @@
 # HTTPS Client Runtime v1
 
-Status: locally evidenced native-host Rust runtime, source operation, and
-Project-v13 native-C11 client; broader generated-target adapters remain open.
+Status: implemented native-host Rust runtime, source operation and Project-v13
+native-C11 client; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Broader generated-target adapters remain open.
 
 Audience: compiler embedders, runtime contributors, and reviewers.
 
@@ -27,7 +29,7 @@ server Rustls policies, then calls `accept_tls`. Accepted TLS streams use the
 same send, receive, close, and settlement paths as client streams. A provider
 without server policy fails before TLS acceptance with `AuthorityDenied`.
 
-Focused local evidence covers redirect resolution, keep-alive reuse, declared
+Focused evidence covers redirect resolution, keep-alive reuse, declared
 and streamed body overflow, insecure URL rejection, authenticated client and
 server TLS over loopback, and settlement:
 
@@ -39,7 +41,9 @@ cargo test --locked -p semaprax --lib network_provider::tcp::tests::
 The ignored `public_https_endpoint_negotiates_and_returns_a_bounded_response`
 case is an opt-in live public-PKI smoke. It is intentionally outside the
 deterministic default gate because DNS, routing, and the remote service are not
-repository-owned inputs.
+repository-owned inputs. The hosted-green baseline applies to the admitted
+release corpus; it does not silently select this external-service smoke or
+relabel a historical loopback observation as public-internet execution.
 
 The additive [HTTPS Client I/O v1](HTTPS-CLIENT-IO-V1.md) profile exposes this
 runtime as the source-level `https_get` operation and returns a canonical byte

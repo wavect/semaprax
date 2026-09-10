@@ -1,6 +1,8 @@
 # Typed Path v1
 
-Status: implemented with focused local evidence; the Everyday profile remains incomplete.
+Status: implemented bounded lexical-path profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The Everyday profile remains incomplete.
 
 Audience: standard-library authors, compiler contributors, and agents working
 with lexical paths.
@@ -77,10 +79,13 @@ existing package descriptors or catalog entries. The original package remains th
 allocation-free byte inspection helpers; this profile supplies the typed Path
 record composition separately.
 
-Path normalization, safe joining beyond the admitted caller-buffer
-operation, filesystem conversion, and platform-specific path policy remain
-outside this profile. Focused source, contract, projection, and cross-engine
-checks pass locally. No hosted or filesystem-support claim is made.
+Path normalization, safe joining beyond the admitted caller-buffer operation,
+filesystem conversion, and platform-specific path policy remain outside this
+profile. Its focused source, contract, projection, and cross-engine release
+corpus is hosted green. [Filesystem I/O v1](FILESYSTEM-IO-V1.md) and
+[v2](FILESYSTEM-IO-V2.md) are implemented separate profiles with a stricter
+relative-path grammar and caller-selected provider authority. A lexical Path
+alone is not filesystem permission or confinement.
 
 ## Focused verification
 
@@ -106,7 +111,9 @@ canonical graph replay with forged field identity and source drift, bundled
 dependency composition, and absent public export authority. Catalogs and
 package metadata are generated from the canonical authored declarations.
 
-Observed local results: all 10 focused loan-plan tests and all 8 typed-path
-Project tests pass. The latter includes the committed main plus all 11 authored
-conformance cases on every listed engine. The 7 existing cursor tests also pass,
-and catalog/metadata checks retain every original `std.path` catalog entry.
+Historical local results: all 10 focused loan-plan tests and all 8 typed-path
+Project tests passed. The latter included the committed main plus all 11 authored
+conformance cases on every listed engine. The 7 existing cursor tests also
+passed, and catalog/metadata checks retained every original `std.path` entry.
+These counts describe that local witness; current implementation evidence follows
+the hosted-green release baseline, without broadening the lexical-path contract.

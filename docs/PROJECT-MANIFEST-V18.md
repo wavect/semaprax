@@ -1,7 +1,8 @@
 # Project Manifest v18: Process I/O
 
-Status: additive manifest specification; selected local process execution and
-Darwin provider evidence pass, while the complete profile remains pending.
+Status: implemented private manifest/profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Broader physical-provider platform support remains separately scoped.
 
 Audience: compiler, project-tooling, and standard-library contributors.
 
@@ -53,13 +54,15 @@ authority.
 The manifest is authenticated as one Project snapshot. Linking and command
 preparation retain ordinary source, dependency, effect, ownership, cleanup,
 and provider checks. The empty export list keeps this route private; it is not
-a public process API and does not imply hosted or production support.
+a public process API and does not establish production support.
 
-The named local package gate passes the example, conformance, and bundled
-consumer commands on the interpreter, native C11 `-O0`/`-O2`, and Core Wasm. Five
-focused physical Darwin provider cases also pass locally. Linux physical-provider,
-hosted, public, replay, and broader process gates remain open; no completion claim
-is made here.
+The package gate covers example, conformance, and bundled-consumer commands
+on the interpreter, native C11 `-O0`/`-O2`, and Core Wasm. The historical local
+witness also included five physical Darwin provider cases; those observations
+retain their original host scope. The implemented manifest, process and replay
+corpus has hosted-green release evidence. Broader public/process functionality
+and additional physical-host claims remain separate from that accepted baseline;
+a backend fixture does not establish an unselected physical-provider scenario.
 
 ## Owning implementation
 

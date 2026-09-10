@@ -8,8 +8,9 @@ Audience: contributors, maintainers, and project evaluators.
 The roadmap orders work that remains. Use the
 [completion matrix](COMPLETION-MATRIX.md) for current product claims, the
 [v0.4.0 baseline](RELEASE-0.4.0-STATUS.md) for accepted release evidence, and
-the [changelog](../CHANGELOG.md) for implementation history. Versioned
-specifications own exact admission, compatibility, and support boundaries.
+the [changelog](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md) for
+implementation history. Versioned specifications own exact admission,
+compatibility, and support boundaries.
 
 SEMAPRAX follows risk rather than feature count. Stable semantic identity,
 sound ownership, replayable change authority, and explicit target boundaries
@@ -57,6 +58,8 @@ The owning references for these released foundations are collected in the
 [release implementation map](RELEASE-0.4.0-STATUS.md#released-implementation-map).
 The following sequence starts from those implementations, not their earlier
 local-only or specification-only status paragraphs.
+
+<a id="current-priority-post-v02-promotion-boundaries"></a>
 
 ## Current priority: post-v0.4 promotion boundaries
 
@@ -359,16 +362,19 @@ without pretending every platform is identical.
 The bounded Rust scoped-thread runtime, fixture-backed command/network I/O,
 TCP/TLS/listener operations, HTTPS client routes, aggregate deadlines and
 caller-selected handlers are implemented. Their admitted release evidence is
-hosted green. Native libcurl, fixture-backed Web and loopback-browser evidence
+hosted green. Explicit host-policy server-side TLS acceptance is implemented
+in [Network Services v1](BOUNDED-NETWORK-SERVICES-V1.md); it is not a wholly
+future feature. Native libcurl, fixture-backed Web and loopback-browser evidence
 retain their exact provider/host scope.
 
 Extend this foundation into language task syntax, task HIR/graph nodes,
 `Sendable`/`Shareable` checking, deterministic schedule replay, dependency
 scheduling and native/Wasm task lowering. Complete broader live browser service
-adapters, server TLS, DNS policy, HTTP/3, structured async services and
-cross-platform provider provisioning. Finish general capability-controlled
-command, filesystem, network and clock I/O, then server/edge packaging,
-observability, deployment diagnostics and load/conformance tests.
+adapters, server request parsing and production service integration, DNS policy,
+HTTP/3, structured async services and cross-platform provider provisioning.
+Finish general capability-controlled command, filesystem, network and clock I/O,
+then server/edge packaging, observability, deployment diagnostics and
+load/conformance tests.
 
 ### Application model
 
@@ -402,3 +408,12 @@ evidence. Complete language safety, diagnostics/debugging/profiling, package,
 capability and operations gates for the features used. No narrow report,
 generated fixture, private adapter or successful release substitutes for this
 maintained end-to-end product.
+
+## Research profiles after the core product
+
+Economic-agent work remains optional and subordinate to the language's
+authority model. The current injected-host policy and evidence core grants no
+built-in provider transport, wallet, key, mainnet, or signing authority. Any
+future profile must preserve explicit capabilities, approvals, custody
+separation, idempotent settlement, private-data boundaries, and complete audit
+traces without weakening the core product gates.

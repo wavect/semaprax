@@ -1,7 +1,8 @@
 # Project Manifest v16: Useful Data v2
 
-Status: additive bounded implementation; focused local verification passes,
-including cross-package roundtrip across the admitted Project backends.
+Status: implemented bounded Project profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md), including the admitted
+cross-package roundtrip across Project backends.
 
 Audience: compiler, project-tooling, and standard-library contributors.
 
@@ -94,10 +95,11 @@ The standard JSON writer cursor corpus additionally exercises private owned
 composition on the interpreter, native C11 at `-O0` and `-O2`, and Core Wasm
 through authenticated Project snapshots; its decoder/writer cases include a
 300-byte decoded string. Six malformed-input, insufficient-capacity, and
-forged-cursor contract-rejection cases pass. Cross-package decode/requote
-roundtrip now passes the named
+forged-cursor contract-rejection cases are retained. Cross-package decode/requote
+roundtrip uses the named
 `private_json_cursor_roundtrip_executes_across_project_backends` gate on the
-local interpreter entry and repeated test, native C11 at `-O0` and `-O2`, and
-repeated Core Wasm with a strict two-entry arena. The unchanged 16 MiB budget
-fits. These are local results;
-they do not claim hosted or public support.
+interpreter entry and repeated test, native C11 at `-O0` and `-O2`, and repeated
+Core Wasm with a strict two-entry arena. The unchanged 16 MiB budget fits.
+The implemented release corpus is hosted green; earlier local observations
+remain historical witnesses. No broader nominal/public ownership support is
+created by that evidence classification.

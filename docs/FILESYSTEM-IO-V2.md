@@ -1,8 +1,9 @@
 # Filesystem I/O v2
 
-Status: private, bounded additive implementation. This document records the
-current `filesystem-io.v2` contract and makes no hosted, release, completion,
-or cross-platform physical-filesystem claim.
+Status: implemented private additive profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+This document records the current `filesystem-io.v2` contract. Full standard-
+library completion and broader physical-filesystem support remain separate.
 
 Audience: language users, standard-library authors, compiler contributors, and
 host-adapter implementers.
@@ -107,3 +108,11 @@ the explicit capabilities `["fs.read", "fs.write"]`. It uses the existing
 `std.io` and `std.path.value` dependencies. Project v14 and
 `filesystem-io.v1` remain frozen and separate.
 
+## Release evidence and remaining scope
+
+The implemented v2 operations, projections, package composition and admitted
+provider/backend checks use the hosted-green v0.4.0 baseline. This status does
+not change the Unix provider's replacement-only atomicity or supply a new
+physical provider on another operating system. Streaming, stronger durability,
+crash recovery, general traversal and the full Everyday profile remain governed
+by their own implementation and support gates.

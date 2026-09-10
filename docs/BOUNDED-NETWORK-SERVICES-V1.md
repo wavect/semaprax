@@ -2,7 +2,8 @@
 
 Audience: language users, host integrators, and compiler contributors.
 
-Status: locally evidenced hosted-provider and language tranche.
+Status: implemented hosted-provider and language profile; **HOSTED GREEN** under
+the [v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 This protocol extends [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)
 without changing its six operations, fixture-v1 bytes, Project-v12 profile, or
@@ -63,3 +64,9 @@ Focused evidence:
 cargo test --locked --lib network_provider::
 cargo test --locked -p semaprax --test useful_data -- network_io_interpreter::hosted_service_profile_executes_tls_and_listen_fixtures --exact
 ```
+
+The admitted provider and source-operation release corpus is hosted green.
+Historical local and loopback observations retain their original scope.
+Hosted CI evidence is distinct from granting production network authority,
+exposing raw browser sockets, or adding the new operations to frozen v1 target
+ABIs. Broader service/runtime integration remains separate work.

@@ -1,7 +1,8 @@
 # Test Byte Assertions v1
 
-Status: additive private `std.test.bytes` slice with focused local execution evidence;
-the complete Everyday testing scope remains open.
+Status: implemented private `std.test.bytes` profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+The complete Everyday testing scope remains open.
 
 Audience: standard-library authors, compiler contributors, and agents writing
 bounded conformance checks.
@@ -62,16 +63,17 @@ has no exports, and depends exactly on `std.io` and `std.test`. The existing
 scalar `std.test` facade and public descriptor remain unchanged; its old
 scalar export profiles cannot admit the Reader-shaped helpers. The focused gate
 `standard_library::testing::test_bytes_package_and_bundled_consumer_execute_across_engines`
-passes source-package and bundled-consumer examples/conformance on the interpreter,
-native C11 `-O0`/`-O2`, and repeated Core Wasm with settled byte owners. It covers
-binary and empty slices, length and byte mismatches, exhausted Readers, different
-positions with equal suffixes, self-comparison, preserved positions, and exact
-positive failure-bit results through `i64::MAX`.
+executes source-package and bundled-consumer examples/conformance on the
+interpreter, native C11 `-O0`/`-O2`, and repeated Core Wasm with settled byte owners.
+It covers binary and empty slices, length and byte mismatches, exhausted Readers,
+different positions with equal suffixes, self-comparison, preserved positions,
+and exact positive failure-bit results through `i64::MAX`.
 `standard_library::testing::test_bytes_invalid_cursors_and_failure_bits_select_contract_failure`
-passes five invalid-cursor/bit cases across those engines, including repeated
+covers five invalid-cursor/bit cases across those engines, including repeated
 Wasm settlement. The existing bundled scalar `std.test`/`std.time` consumer and
-unchanged scalar source preserve the old facade. These are local observations,
-not hosted promotion or a completed testing facility.
+unchanged scalar source preserve the old facade. The implemented release corpus
+is hosted green; the earlier local observations retain their original scope and
+do not complete the broader testing facility.
 
 The source ownership is the sibling `std/test-bytes` package; the existing
 `std.io.Reader` identity supplies the Reader shape. This expands the source
@@ -108,4 +110,5 @@ gate executes all four named snapshot tests independently, including binary
 Writer output and a longer actual suffix, as well as the package example
 on the interpreter, C11 O0/O2, and repeated Core Wasm. The existing contract
 gate additionally rejects a forged actual Reader cursor and settles all three
-Bytes owners. These focused checks pass locally; hosted promotion remains open.
+Bytes owners. The snapshot implementation and its admitted release checks are
+hosted green without granting fixture-file discovery or update authority.

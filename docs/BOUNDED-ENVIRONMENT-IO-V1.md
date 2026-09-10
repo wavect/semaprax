@@ -1,7 +1,8 @@
 # Bounded Environment I/O v1
 
-Status: implemented additive contract shape; focused local verification passes
-on the local interpreter, native C11, Core Wasm, and provider-constructor lanes.
+Status: implemented bounded snapshot profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md), including the admitted
+interpreter, native C11, Core Wasm, and provider-constructor checks.
 
 Audience: compiler contributors, standard-library authors, host-adapter
 implementers, and reviewers of capability boundaries.
@@ -22,8 +23,8 @@ The compiler-owned operations are:
 | `env_value_utf8(index)` | `core.host.env-value-utf8` | fallible borrowed `str` | `process.environment.read` |
 
 The source-authored `std.env` package provides the wrappers in the private
-`environment-io.v1` profile. Its focused conformance and backend verification
-passes locally across the interpreter, native C11, and Core Wasm lanes.
+`environment-io.v1` profile. Its focused conformance and backend checks are
+part of the hosted-green interpreter, native C11, and Core Wasm release corpus.
 
 The Core Wasm provider imports are exact and private to this profile:
 
@@ -125,7 +126,9 @@ read the host environment, home directory, process table, or inherited
 variables directly. The host must inject an explicit snapshot, and an absent
 snapshot must fail closed.
 
-## Planned graph and verification
+<a id="planned-graph-and-verification"></a>
+
+## Implemented graph and verification
 
 The Project profile selects Graph v43. Its graph facts identify
 the three operation IDs, `process.environment.read`, the entry/byte bounds,
@@ -133,8 +136,14 @@ canonical key ordering, UTF-8/NUL/`=` rules, shared arena lifetime, and the
 status domain. Graph v19/v20 command facts and all earlier graph projections
 remain unchanged.
 
-Focused local verification passes for source/HIR admission, snapshot
-constructor hostility, interpreter/native C11/Core Wasm execution, repeated
-lookup and lifetime rules, strict combined capacity, absent-versus-empty
-authority, and legacy-profile rejection. No hosted, production, secret-input,
-or general process-environment support is claimed.
+The maintained corpus covers source/HIR admission, snapshot constructor
+hostility, interpreter/native C11/Core Wasm execution, repeated lookup and
+lifetime rules, strict combined capacity, absent-versus-empty authority, and
+legacy-profile rejection. The implementation has hosted-green release evidence;
+its earlier local observations retain their original scope. Production,
+secret-input handling and general ambient process-environment support are not
+provided by this bounded snapshot profile.
+
+[Bounded Process I/O v1](BOUNDED-PROCESS-IO-V1.md) separately composes these
+inputs with registered-tool execution under Project v18. That implemented
+extension does not grant this environment-only profile process authority.

@@ -1,6 +1,7 @@
 # Log Writer v1
 
-Status: additive source implementation; focused local verification passes.
+Status: implemented additive source profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: standard-library contributors, compiler maintainers, and backend
 implementers.
@@ -52,9 +53,9 @@ The package uses the private `useful-data.v2` profile and exactly the bundled
 `std.data.json.utf8`, `std.data.json.write`, and `std.io` dependencies. It no
 longer depends on `std.format`; `count_into` and `usize_len` come directly from
 the JSON writer package. It has no public exports, hidden allocation,
-filesystem/process/network effect, or other
-ambient authority. This is a bounded JSON-lines event writer, not a general
-logging framework or hosted/production logging claim.
+filesystem/process/network effect, or other ambient authority. This is a
+bounded JSON-lines event writer, not a general logging framework, hosted log
+service or production logging facility.
 
 ## Focused verification
 
@@ -69,7 +70,7 @@ directly instead of probing each byte numerically; multibyte validation and
 the interpreter fuel limit are unchanged. An explicit inventory requires
 every case and direct executed coverage of every public source function.
 
-Focused local gates pass:
+The maintained focused selectors are:
 
 ```text
 logging::log_writer_executes_on_all_three_backends
@@ -77,16 +78,18 @@ logging::log_writer_preflight_rejects_invalid_events
 logging::utf8_ascii_scan_preserves_package_conformance
 ```
 
-The shipped package and all fifteen cases pass on the interpreter, C11 at
-`-O0` and `-O2`, and four repeated Core Wasm invocations. The Wasm harness
-enforces each case’s exact live Bytes bound: zero for pure helpers, one or
-two for individual operations, and three for a complete event and Writer.
-Every invocation returns with no live Bytes. Nine malformed UTF-8, invalid
-level, short-capacity, and forged-cursor cases pass twice through the bundled
-consumer with the exact `requires`-false status. The UTF-8 package’s existing
-conformance also passes on all three backends. Catalog, metadata, formatting,
-document links, and module-size checks pass.
+The original local witness exercised the shipped package and all fifteen cases
+on the interpreter, C11 at `-O0` and `-O2`, and four repeated Core Wasm
+invocations. The Wasm harness enforces each case's exact live Bytes bound:
+zero for pure helpers, one or two for individual operations, and three for a
+complete event and Writer. Every invocation returns with no live Bytes.
+Nine malformed UTF-8, invalid level, short-capacity, and forged-cursor cases
+passed twice through the bundled consumer with the exact `requires`-false
+status. The UTF-8 package's existing conformance also passed on all three
+backends, together with catalog, metadata, formatting, document-link and
+module-size checks.
 
-Broader Everyday standard-library completion remains `Partial`; general logging
-facilities, sinks, filtering, timestamps, concurrency, and hosted execution
-are outside this slice.
+The released implementation is hosted green; the earlier local counts remain
+historical observations. Broader Everyday standard-library completion remains
+`Partial`: general logging facilities, sinks, filtering, timestamps and
+concurrency are outside this source-writer slice.

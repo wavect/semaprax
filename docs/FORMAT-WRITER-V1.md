@@ -1,6 +1,7 @@
 # Format Writer v1
 
-Status: additive source implementation; focused local verification passes.
+Status: implemented additive source profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 
 Audience: standard-library contributors, compiler maintainers, and backend
 implementers.
@@ -55,19 +56,20 @@ the public ABI remain unchanged.
 ## Scope and verification
 
 This slice covers strings, `i64`, `usize`, and `bool` appended into a supplied
-Writer. It does not claim general format strings, floating-point rendering,
-allocation, hosted execution, or production support.
+Writer. It does not supply general format strings, floating-point rendering,
+allocation, or production support.
 
-Focused local verification passes through seven owned-function-import unit
+The historical local verification passed seven owned-function-import unit
 tests, including positive borrowed-`str` and ordinary owned-byte-record imports
 and refusal of a non-byte record. Eight individually runnable named SPX tests
-pass on the interpreter, native C11 at `-O0` and `-O2`, and repeated Core Wasm
+passed on the interpreter, native C11 at `-O0` and `-O2`, and repeated Core Wasm
 with a strict two-entry byte arena; the pure helper case uses zero allocation.
-Five short-output and forged-output preflight cases pass twice with exact
+Five short-output and forged-output preflight cases passed twice with exact
 `requires`-false status through the bundled `std.format` consumer and its
-transitive `std.io` dependency. Metadata and catalog regeneration also pass.
+transitive `std.io` dependency. Metadata and catalog regeneration also passed.
 
 The named tests run individually because the per-function static allocation
-limit is unchanged. This remains a bounded local slice: general format
-strings, floating-point rendering, hosted execution, and production support
-are outside the claim.
+limit is unchanged. The implemented release corpus has hosted-green evidence;
+the historical case counts retain their original local scope. General format
+strings, floating-point rendering and production support remain outside this
+bounded profile.

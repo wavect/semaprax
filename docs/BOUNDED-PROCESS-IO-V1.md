@@ -1,7 +1,9 @@
 # Bounded Process I/O v1
 
-Status: bounded local verification passes for the selected `std.process` and
-Darwin provider paths; the complete profile and cross-platform gates remain pending.
+Status: implemented bounded process profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
+Broader physical-provider platform support and the full process/library goal
+remain separately scoped.
 
 Audience: compiler contributors, standard-library authors, host-adapter
 implementers, and reviewers of capability boundaries.
@@ -114,9 +116,14 @@ descriptor, carrier, and target bytes remain frozen.
 
 The profile's graph facts identify the numeric registry tool, request bounds,
 timeout, cumulative reservation, complete-result settlement, termination
-encoding, output-wire limits, and the closed failure domain. The named local
-package gate covers the interpreter, native C11 `-O0`/`-O2`,
-and Core Wasm example, conformance, and bundled-consumer commands. Five focused
-physical Darwin provider cases also pass locally. Linux physical-provider, hosted,
-public, and broader process gates remain open; this evidence does not complete
-the profile or claim production support.
+encoding, output-wire limits, and the closed failure domain. The package gate
+covers the interpreter, native C11 `-O0`/`-O2`, and Core Wasm example,
+conformance, and bundled-consumer commands. The historical local witness also
+included five physical Darwin provider cases; those observations retain their
+original host and execution scope.
+
+The implemented release corpus is hosted green. Additional physical-host
+support and broader process functionality require their own declared scope and
+provisioned evidence; neither a mock provider nor backend execution proves an
+unselected physical-provider scenario. General public process support,
+production confinement and full standard-library completion are not implied.

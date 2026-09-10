@@ -2,8 +2,9 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: locally evidenced. Hosted promotion and registry publication remain
-open, so the completion claim remains Partial.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Registry publication and
+broader production support remain separate, so the mature-product claim is Partial.
 
 ## Closed profile
 
@@ -59,7 +60,8 @@ The reference `examples/spxgrep-project` performs a real nested indexed-byte
 search. A match writes the original stdin bytes exactly once; absence writes
 nothing. NUL, `0xff`, invalid UTF-8 stdin, empty needles, exact-capacity input,
 combined overflow, carrier tamper, and forced post-return settlement failure
-are part of the local boundary evidence.
+are covered by the maintained release regressions. Their admitted v0.4.0 corpus
+is **HOSTED GREEN**; prior local observations remain historical witnesses.
 
 ## Authority boundary and nonclaims
 

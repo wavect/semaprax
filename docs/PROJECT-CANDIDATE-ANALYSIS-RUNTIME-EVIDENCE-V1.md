@@ -1,9 +1,10 @@
 # Project Candidate Analysis Runtime Evidence v1
 
-Status: additive implementation and regression sources authored, **unrun**.
-This report is reference-interpreter evidence for one exact candidate test
-attempt. It is not native, Wasm, deployment, environment, path-coverage,
-external-service, consumer, or compatibility evidence.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: agent authors, embedding hosts, and compiler contributors reviewing
 an immutable Project candidate before publication.

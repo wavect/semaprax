@@ -1,6 +1,10 @@
 # Project Function Extraction v1
 
-Status: Partial; implementation and regression cases authored, not executed in this change.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler maintainers and agents using immutable Project candidates.
 

@@ -1,6 +1,10 @@
 # Project Manifest v1
 
-Status: versioned bounded reference; the completion matrix owns product status.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: language users, tool authors, and compiler contributors.
 

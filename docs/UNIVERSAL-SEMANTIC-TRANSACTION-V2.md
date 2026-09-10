@@ -1,7 +1,10 @@
 # Universal Semantic Transaction v2
 
-Status: additive bounded implementation; focused local evidence is required
-before promotion.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler contributors, agent-tool authors, and reviewers of semantic
 change evidence.

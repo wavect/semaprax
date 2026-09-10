@@ -2,13 +2,11 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: locally evidenced implementation tranche. This document freezes the
-reviewed contract for six compiler-owned TCP client operations, their closed
-status domain, the deterministic fixture provider, and the target adapters. No
-hosted or public product claim is made. TLS clients and listen sockets are an
-additive hosted-only protocol in [Bounded Network Services v1](BOUNDED-NETWORK-SERVICES-V1.md); they do not mutate this v1 ABI. No DNS-policy, structured-task, or
-production claim is made; the [completion matrix](COMPLETION-MATRIX.md) owns
-status and its "Edge and server" row remains Partial.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 ## Objective
 

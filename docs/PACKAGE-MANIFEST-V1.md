@@ -1,10 +1,10 @@
 # Package Manifest v1
 
-Status: additive implementation with local executable gates; unpromoted. The
-table layout is admitted by every project route. Scalar Project builds link
-the closed compiler-bundled `std.*` inventory and exact project-local ordinary
-package subjects. No acquisition, registry, or ecosystem-promotion claim is
-made.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: people and agents writing `semaprax.toml`, package-tooling authors,
 and compiler contributors.

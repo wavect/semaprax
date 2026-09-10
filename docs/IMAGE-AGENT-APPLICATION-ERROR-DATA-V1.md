@@ -1,7 +1,10 @@
 # Image agent application error data v1
 
-Status: implemented with focused local codec and generated-client evidence;
-no hosted, cross-platform, packaged-SDK, or exact-subject archive is claimed.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: protocol implementers, generated-client authors, embedding hosts,
 and workflow reviewers.

@@ -1,7 +1,10 @@
 # Project Revision Store Windows-entry v1
 
-Status: **authored, locally unrun, unpublished, and unpromoted**. This is a
-separately selected Windows authority, not a supported-platform declaration.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: project-tool authors and platform-host contributors.
 

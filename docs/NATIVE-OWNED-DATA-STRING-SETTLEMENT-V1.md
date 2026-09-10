@@ -1,8 +1,10 @@
 # Native Owned-Data Internal String Settlement v1
 
-Status: corrective implementation and regressions authored, with focused local
-String/Bytes runtime and generated SDK consumer evidence. Remaining validation
-limits are recorded below; no package, platform, or production promotion.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler contributors and standalone native SDK reviewers.
 

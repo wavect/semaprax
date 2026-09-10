@@ -1,6 +1,10 @@
 # Capability-Aware CLI Recovery v3
 
-Status: authored and locally exercised; unpublished and unpromoted.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: CLI users, release engineers, and compiler contributors.
 

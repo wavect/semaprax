@@ -2,9 +2,11 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: Bounded tranche — RFC-STRING-OO badge 4. This document plus
-`tests/language/class_inheritance.rs` are the executable evidence for everything
-claimed here. Nothing in this file claims completion-matrix promotion.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 ## Objective
 

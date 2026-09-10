@@ -1,8 +1,10 @@
 # Project Candidate Managed Publication v1
 
-Status: Partial; all four focused managed-publication regressions passed in the
-reviewed local Phase 0 v2 bundle for exact subject
-`4e6751f92525ed8e4bb5e859233616df7adc86d1`.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler maintainers and hosts explicitly publishing approved Project candidates.
 

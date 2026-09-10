@@ -1,6 +1,10 @@
 # Acyclic nested owned-record immutable update v1
 
-Status: internal implementation tranche; promotion evidence is not yet claimed.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: language, HIR, ownership, cleanup, interpreter, native, Wasm, and
 evidence maintainers.

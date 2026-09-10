@@ -1,6 +1,10 @@
 # Canonical Semantic Workspace Revision v1
 
-Status: local, partial; the completion matrix owns product status.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler contributors, workspace-service authors, agent-tool authors,
 and reviewers of semantic subjects.

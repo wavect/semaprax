@@ -1,7 +1,10 @@
 # Universal Semantic Workflow CLI v1
 
-Status: additive read-only one-shot adapter; five focused integration cases
-passed locally on 2026-09-05.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler contributors, coding agents, CLI users, and reviewers of the
 first simplified semantic workflow surface.

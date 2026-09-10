@@ -2,12 +2,11 @@
 
 Audience: maintainers, host integrators, and compiler contributors.
 
-Status: implemented and CI-configured behind
-`unstable-apple-swift-harness`. Local Rust, generator, source-lock, and strict
-host gates pass. The Apple device/simulator compilation, XCFramework
-inspection, and two installed arm64-Simulator application paths are green in
-[run 31333469714, job
-93295293995](https://github.com/wavect/semaprax/actions/runs/31333469714/job/93295293995).
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 This is one bounded Swift projection of the exact callable-v3
 `token.discard-two` fixture. It is not a public Swift package, framework API,

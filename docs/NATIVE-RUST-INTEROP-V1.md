@@ -2,21 +2,11 @@
 
 Audience: maintainers, host integrators, and compiler contributors.
 
-Status: private A+B and the additive Public Native Rust SDK v1 Phase C
-implementation are exact-tag hosted green at the v0.2.0 commit
-`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` in
-[run 33608662244](https://github.com/wavect/semaprax/actions/runs/33608662244),
-including blocking [Ubuntu](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195951054),
-[macOS](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195956325),
-and [Windows](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195908721)
-jobs. Its builder tooling remains unpublished and it grants no registry,
-installed/public CLI, or root `semaprax` CLI claim. The six
-output artifacts have frozen
-whole-byte known-answer identities after independent exact replay and exhaustive
-byte-edit rejection. That wire freeze alone is not runtime or platform
-evidence; the tagged private A+B gate supplies the promotion evidence.
-Run 33608662244 is release evidence for the exact Phase-C surface at that tag;
-it does not publish the builder or promote later Project-v8/v9/v10 packages.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Native Rust Interoperability v1 is an additive, current-host, scalar bridge. It
 does not change callable v2/v3, the native loader or host, Wasm, `SPX-B104`, or

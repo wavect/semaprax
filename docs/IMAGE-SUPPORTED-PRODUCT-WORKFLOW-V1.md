@@ -1,10 +1,10 @@
 # Supported graph-operational product workflow v1
 
-Status: the closed workflow passed its clean exact-subject local evidence gate
-at commit `3c605fe3055539a9a5f2bf83e98c8c2a521ff741`, bundle
-`8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa`.
-This qualifies only the fixture, profiles, clients, provider, and transitions
-frozen here; full Phase 1 and the graph-operational programme remain **Partial**.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: agent-client authors, embedding hosts, release engineers, and
 programme reviewers.

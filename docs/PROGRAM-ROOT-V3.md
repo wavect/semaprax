@@ -1,8 +1,10 @@
 # ProgramRoot v3
 
-Status: additive SEG-02 successor contract; focused local evidence passes.
-ProgramRoot v1/v2 and Canonical Semantic Workspace Revision v1 remain
-byte-for-byte unchanged.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler contributors, semantic-service implementers, and reviewers
 of exact source-owned ProgramRoot identity.

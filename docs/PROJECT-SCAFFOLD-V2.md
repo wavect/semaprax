@@ -1,7 +1,10 @@
 # Public Project Scaffold Capsule v2
 
-Status: authored implementation with focused local evidence; unpublished and
-unpromoted. Required-host and release-artifact gates remain open.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: new SEMAPRAX users, coding agents, tool integrators, and compiler
 contributors.

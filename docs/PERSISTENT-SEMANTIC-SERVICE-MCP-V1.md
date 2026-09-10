@@ -1,6 +1,10 @@
 # Persistent Semantic Workspace Service MCP v1
 
-Status: additive bounded single-client stdio facade; focused tests passed locally.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: local MCP hosts, agent clients, compiler contributors, and reviewers
 of persistent semantic-service authority boundaries.

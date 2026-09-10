@@ -1,7 +1,10 @@
 # Language-native Agent syntax v1
 
-Status: locally exercised additive parser, AST, and canonical-formatter tranche.
-Semantic execution remains a separate gate.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: language users, compiler contributors, and Agent-system reviewers.
 

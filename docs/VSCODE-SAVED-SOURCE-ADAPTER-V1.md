@@ -1,6 +1,10 @@
 # VS Code saved-source adapter v1
 
-Status: focused local Extension Host evidence executed for exact subject `2888f84f123b7caa44aa6807388d98f851d4beaf`, and the additive real-host candidate-task, diagnostic-position and project-navigation scenario executed for exact subject `3fccd30b861d48c9d404eb2698fa2eff510569af`; extension remains experimental and unpublished.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: editor users, extension integrators and compiler contributors.
 

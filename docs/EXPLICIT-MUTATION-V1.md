@@ -2,9 +2,11 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: Partial — the Immutable-by-default values and explicit mutation row of
-[COMPLETION-MATRIX.md](COMPLETION-MATRIX.md) moves from Missing to Partial on
-the strength of this document plus `tests/language/explicit_mutation.rs`.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 ## Objective
 

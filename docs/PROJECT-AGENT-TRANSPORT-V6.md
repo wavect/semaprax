@@ -2,8 +2,11 @@
 
 Audience: agent and tool authors, plus compiler contributors.
 
-Status: additive implementation with focused local evidence; transport and
-Project v9-v11 package promotion are not claimed.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 ## Scope
 

@@ -1,10 +1,11 @@
 # Project Candidate Git Publication v1
 
 Audience: host integrators and compiler contributors.
-Status: bounded Linux/macOS bare-SHA1-or-SHA256 source-publication route; the
-focused current boundary and real-Git regressions pass locally on macOS. The
-Linux held-descriptor cases are authored and remain unrun on this head. No
-hosted, Windows, full-profile or completion-gate evidence is claimed.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 This route writes actual canonical `.spx` blobs, trees and a commit into one
 explicitly selected local Git repository, then publishes through one expected-old

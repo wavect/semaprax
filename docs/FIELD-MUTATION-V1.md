@@ -2,9 +2,11 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: Partial — extends Explicit Mutation v1 with direct scalar-field
-stores on `let mut` record/class locals; evidence lives in
-`tests/language/field_mutation.rs` plus `examples/field_mutation.spx`.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 ## Objective
 

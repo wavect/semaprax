@@ -1,10 +1,10 @@
 # Packaged TypeScript workflow SDK v1
 
-Status: the explicitly provisioned local Unix package installation and raw-v5
-workflow gate passed 1/1 on 2026-09-03. The additive pinned-MCP transport and
-real `serve-workspace-mcp` form of that gate are authored but unrun. This is
-focused local evidence, not hosted, cross-platform, release,
-registry-publication, or full-quality evidence.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: generated-client consumers, embedding hosts, package reviewers, and
 evidence-runner authors.

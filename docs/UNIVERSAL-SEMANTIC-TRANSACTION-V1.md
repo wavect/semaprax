@@ -1,6 +1,10 @@
 # Universal Semantic Transaction v1
 
-Status: additive bounded kernel; focused local evidence passed on 2026-09-05.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler contributors, agent-tool authors, and reviewers of semantic
 change evidence.

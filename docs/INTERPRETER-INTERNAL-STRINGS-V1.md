@@ -1,9 +1,10 @@
 # Internal String Interpreter v1
 
-Status: additive implementation with bounded, partial local validation;
-the [local validation record](WASM-INTERNAL-STRINGS-V1.md#local-validation-record)
-owns the executed scope. Cross-platform, full-profile, and hosted gates remain;
-no production or support promotion.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: language users, compiler contributors, and conformance reviewers.
 

@@ -1,6 +1,10 @@
 # Public Flat Owned Record C++ Adapter v1
 
-Status: local C++17 integration evidence; unpublished and unpromoted.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler contributors, generated-package integrators, and promotion reviewers.
 

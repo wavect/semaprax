@@ -1,7 +1,10 @@
 # Project Record Field Change v1
 
-Status: Partial. The `tests/project_candidate/record_field.rs` cases now execute
-and pass locally; the remaining authored evidence is still unrun.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler contributors and agents editing immutable Project candidates.
 

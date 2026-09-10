@@ -2,11 +2,11 @@
 
 Audience: maintainers, host integrators, and compiler contributors.
 
-Status: private implementation, local Rust/C/source-lock evidence, and the exact
-API-35 x86_64 APK build/install/Instrumentation path are green in [run
-31324497016, job 93272580149](https://github.com/wavect/semaprax/actions/runs/31324497016/job/93272580149).
-This is bounded hosted Android application evidence, not a public Android
-application boundary.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 This document freezes the first bounded Kotlin/JNI projection of SEMAPRAX
 ownership. It connects three exact generated callable-v3 providers to the

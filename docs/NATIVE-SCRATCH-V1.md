@@ -1,6 +1,10 @@
 # Native compiler scratch v1
 
-Status: authored correction; executable regression gates remain unrun.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). Historical local,
+authoring-time, ignored, device/simulator, or separately provisioned evidence
+below retains its narrower scope; public promotion, registry publication and
+broader product completion remain separately gated.
 
 Audience: compiler contributors, CLI maintainers, and security reviewers.
 

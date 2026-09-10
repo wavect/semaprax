@@ -300,17 +300,33 @@ published archives recorded above. Its local acceptance results must not be
 relabeled as evidence from the tag commit; changes to either require separate
 evidence.
 
-## 0.4.0 release record
+## 0.4.0 hosted release evidence
 
-The `v0.4.0` release commit updates the package, toolchain, private consumer,
-platform-test, lockfile, CLI, doctor, agent-transport, installation, citation,
-and repository metadata surfaces as one version-consistent change. The
-annotated tag starts the ordinary tag workflow; only that exact tag run may
-produce and publish the three v0.4.0 archives and `SHA256SUMS`. Until the run's
-Release gate, archive jobs, and publication job all succeed, this section is a
-release-candidate record rather than hosted artifact evidence. Asset sizes,
-digests, and job links must be added later from the completed tag run and must
-not be predicted from a local build.
+The annotated `v0.4.0` tag resolves to exact commit
+`dfc15e2ddc818fa97744b5a9d69fd6108dd6a321`. Its tag-triggered
+workflow completed successfully on 2026-09-10 with all required jobs green.
+That includes the complete release-blocking Linux, macOS, Windows, Rust 1.88,
+dependency, sanitizer, browser, Project, generated-Rust-consumer, desktop,
+Android, iOS, and Component lanes. The blocking release gate then admitted all
+three host-built archive jobs and the final publication job, which published the
+[SEMAPRAX v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0)
+at `2026-09-10T10:31:03Z`.
+
+The published prerelease contains exactly these release assets (digests as
+reported by the GitHub release API and matching the `SHA256SUMS` generated
+during publication):
+
+| Asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `semaprax-v0.4.0-x86_64-unknown-linux-gnu.tar.gz` | 17,922,460 | `21613bed94c9ed41d8ca67cee0924429fff18b1236198c58b16cb4bfd40786f9` |
+| `semaprax-v0.4.0-aarch64-apple-darwin.tar.gz` | 15,789,284 | `9b4ebf2bc0e9ca8bdb12db4dea795f9bf7b7b8cf73731f077c3bb80221acda60` |
+| `semaprax-v0.4.0-x86_64-pc-windows-msvc.zip` | 18,547,218 | `e175bfc830f189229f0b9881df3afcf0bfb10939cd4a89c5b18bc138def54d07` |
+
+Each archive job built on its advertised host, unpacked its own output, and ran
+the packaged CLI version, JSON version, `check`, and `run` smoke before upload.
+This is exact release-build and smoke evidence; it does not mean every opt-in
+or ignored archive-consumer test ran, establish cross-host byte reproducibility,
+or broaden any feature contract beyond its owning specification.
 
 ## Publication boundary
 

@@ -1,9 +1,9 @@
 # Semantic retention host lifecycle v1
 
-Status: **Partial, authored/unrun**. The typed library coordinator and
-regressions are authored. Library compilation is the only intended executable
-gate for this tranche; no session, protocol, CLI, GC, or hosted evidence is
-claimed.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+The broader lifecycle remains Partial; this coordinator grants no subject
+restoration or garbage-collection authority.
 
 Audience: embedding hosts that already publish immutable semantic images,
 candidate archives, or draft archives and explicitly choose durable retention
@@ -154,7 +154,7 @@ approval, or a runtime/deployment compatibility result.
 
 ## Authored evidence
 
-The existing semantic store harness authors a mixed real image/candidate/draft
+The existing semantic store harness covers a mixed real image/candidate/draft
 receipt batch, startup-uninitialized coordination, exact per-family receipt
 projections, generation-one and consecutive generation-two cursors, reopen by
 the returned exact selector, and a second coordinator's stale then poisoned
@@ -162,7 +162,11 @@ failure without deleting any stored subject. A focused substitution regression
 holds an uninitialized root, replaces its pathname with another private root,
 and requires failure before either directory receives `CURRENT`; restoring the
 original binding permits ordinary reopen. Equal-digest synthetic projection
-rows pin total canonical ordering under reversed input. These additions are
-authored and unrun. No test target, broader filesystem interruption matrix,
-CLI/session route, GC, subject restoration, parallel host, or hosted gate is
-claimed.
+rows pin total canonical ordering under reversed input. The implemented
+regression corpus is HOSTED GREEN for v0.4.0. Broader physical-host coverage,
+subject restoration and GC execution remain separate.
+
+The implemented [protocol-session attachment](SEMANTIC-RETENTION-PROTOCOL-SESSION-V1.md)
+composes this coordinator through its own startup-only host contract. It does
+not turn retention metadata or a successful store receipt into subject or
+publication authority.

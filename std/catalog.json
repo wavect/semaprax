@@ -128,6 +128,110 @@
           "kind": "function",
           "name": "outcome_status",
           "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn stage_after_initialize(next: i64) -> bool",
+            "    ensures result == (next == 1)"
+          ],
+          "id": "std.agent.stage-after-initialize",
+          "kind": "function",
+          "name": "stage_after_initialize",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn stage_after_observe(next: i64) -> bool",
+            "    ensures result == (next == 2)"
+          ],
+          "id": "std.agent.stage-after-observe",
+          "kind": "function",
+          "name": "stage_after_observe",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn stage_after_authorize(next: i64) -> bool",
+            "    ensures result == (next == 3)"
+          ],
+          "id": "std.agent.stage-after-authorize",
+          "kind": "function",
+          "name": "stage_after_authorize",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn stage_after_reduce(next: i64) -> bool",
+            "    ensures result == (next == 1 || next == 4 || next == 5 || next == 6)"
+          ],
+          "id": "std.agent.stage-after-reduce",
+          "kind": "function",
+          "name": "stage_after_reduce",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn stage_transition(current: i64, next: i64) -> bool"
+          ],
+          "id": "std.agent.stage-transition",
+          "kind": "function",
+          "name": "stage_transition",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn stage_is_terminal(stage: i64) -> bool",
+            "    ensures result == (stage != 0 && stage != 1 && stage != 2 && stage != 3)"
+          ],
+          "id": "std.agent.stage-is-terminal",
+          "kind": "function",
+          "name": "stage_is_terminal",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn retry_admitted(attempt: i64, max_attempts: i64) -> bool",
+            "    ensures result == (attempt >= 0 && attempt < max_attempts)"
+          ],
+          "id": "std.agent.retry-admitted",
+          "kind": "function",
+          "name": "retry_admitted",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn retry_delay(attempt: i64, ceiling: i64) -> i64",
+            "    requires attempt >= 0 && ceiling >= 1 && ceiling <= 1073741824",
+            "    ensures result >= 1 && result <= ceiling"
+          ],
+          "id": "std.agent.retry-delay",
+          "kind": "function",
+          "name": "retry_delay",
+          "requires": 1
         }
       ],
       "dependency": "std.agent = \"^0.1.0\"",
@@ -2904,6 +3008,210 @@
     {
       "declarations": [
         {
+          "description": [
+            "Effect-free name and `NAME=VALUE` assignment policy for environment-style",
+            "byte data. Every function here is a pure offset computation over borrowed",
+            "bytes: no host, capability, or environment access, no allocation.",
+            "A byte admitted inside a portable environment-variable name: an ASCII",
+            "letter, digit, or underscore."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn name_byte_is_valid(byte: u8) -> bool"
+          ],
+          "id": "std.env.policy.name-byte-is-valid",
+          "kind": "function",
+          "name": "name_byte_is_valid",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Whether `name`'s first byte is an ASCII digit; a portable name never",
+            "begins with one."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn name_starts_with_digit(name: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.env.policy.name-starts-with-digit",
+          "kind": "function",
+          "name": "name_starts_with_digit",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Portable environment-variable name validity: non-empty, does not begin",
+            "with a digit, and every byte is `A-Z`, `a-z`, `0-9` or `_`. This is the",
+            "POSIX portable character set for names (IEEE Std 1003.1 XBD 8.1, the",
+            "\"Environment Variable\" definition built on the portable filename",
+            "character set); it claims exactly that portable subset and nothing",
+            "broader such as locale-specific or vendor-extended name shapes."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn name_is_valid(name: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.env.policy.name-is-valid",
+          "kind": "function",
+          "name": "name_is_valid",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Environment-variable value validity: contains no NUL byte. Values are",
+            "otherwise arbitrary bytes; this predicate does not require UTF-8 or any",
+            "other text encoding, and an empty value is valid."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn value_is_valid(value: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.env.policy.value-is-valid",
+          "kind": "function",
+          "name": "value_is_valid",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Offset of the first `=` in a `NAME=VALUE` assignment view, or",
+            "`byte_len(view)` when no `=` is present. A separator byte can never sit at",
+            "`byte_len(view)` itself, so that bound doubles as the \"not found\"",
+            "sentinel: the same convention `std.env.index-of` uses `count()` for a",
+            "missing key index."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn assignment_separator(view: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(view)"
+          ],
+          "id": "std.env.policy.assignment-separator",
+          "kind": "function",
+          "name": "assignment_separator",
+          "requires": 0
+        },
+        {
+          "description": [
+            "End offset of the name span: identical to the separator offset, since a",
+            "well-formed assignment's name occupies exactly `view[0..separator]`."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn assignment_name_end(view: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(view)"
+          ],
+          "id": "std.env.policy.assignment-name-end",
+          "kind": "function",
+          "name": "assignment_name_end",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Start offset of the value span, one byte past the separator; clamped to",
+            "`byte_len(view)` when no separator is present so the offset always stays",
+            "in bounds for a caller that slices `view` with it."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn assignment_value_start(view: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(view)"
+          ],
+          "id": "std.env.policy.assignment-value-start",
+          "kind": "function",
+          "name": "assignment_value_start",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Whether `view` is a well-formed `NAME=VALUE` assignment: an `=` is",
+            "present, the name span (1) is a valid portable name, and the value span",
+            "(2) contains no NUL byte. A view with no `=`, an empty name, or a NUL",
+            "anywhere in the name is rejected."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn name_range_is_valid(view: borrow Slice<u8>, end: usize) -> bool",
+            "    requires end <= byte_len(view)"
+          ],
+          "id": "std.env.policy.name-range-is-valid",
+          "kind": "function",
+          "name": "name_range_is_valid",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn value_range_is_valid(view: borrow Slice<u8>, start: usize, end: usize) -> bool",
+            "    requires start <= end && end <= byte_len(view)"
+          ],
+          "id": "std.env.policy.value-range-is-valid",
+          "kind": "function",
+          "name": "value_range_is_valid",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn name_span_is_valid(view: borrow Slice<u8>, end: usize) -> bool",
+            "    requires end <= byte_len(view)"
+          ],
+          "id": "std.env.policy.name-span-is-valid",
+          "kind": "function",
+          "name": "name_span_is_valid",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn value_span_is_valid(view: borrow Slice<u8>, start: usize, end: usize) -> bool",
+            "    requires start <= end && end <= byte_len(view)"
+          ],
+          "id": "std.env.policy.value-span-is-valid",
+          "kind": "function",
+          "name": "value_span_is_valid",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn assignment_is_valid(view: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.env.policy.assignment-is-valid",
+          "kind": "function",
+          "name": "assignment_is_valid",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.env.policy = \"^0.1.0\"",
+      "module": "std.env.policy",
+      "package": "std/env-policy",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
+    },
+    {
+      "declarations": [
+        {
           "description": [],
           "effects": [],
           "ensures": 0,
@@ -3272,6 +3580,122 @@
           "kind": "function",
           "name": "next_entry",
           "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn listing_entry_end(listing: borrow Slice<u8>, start: usize) -> usize",
+            "    requires start <= byte_len(listing)",
+            "    ensures result >= start && result <= byte_len(listing)"
+          ],
+          "id": "std.fs.listing.entry-end",
+          "kind": "function",
+          "name": "listing_entry_end",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn listing_next_start(listing: borrow Slice<u8>, start: usize) -> usize",
+            "    requires start <= byte_len(listing)",
+            "    ensures result >= start && result <= byte_len(listing)"
+          ],
+          "id": "std.fs.listing.next-start",
+          "kind": "function",
+          "name": "listing_next_start",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn listing_entry_count(listing: borrow Slice<u8>) -> usize"
+          ],
+          "id": "std.fs.listing.entry-count",
+          "kind": "function",
+          "name": "listing_entry_count",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn listing_name_is_dot(listing: borrow Slice<u8>, start: usize, end: usize) -> bool",
+            "    requires start <= end && end <= byte_len(listing)"
+          ],
+          "id": "std.fs.listing.name-is-dot",
+          "kind": "function",
+          "name": "listing_name_is_dot",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn listing_name_is_dotdot(listing: borrow Slice<u8>, start: usize, end: usize) -> bool",
+            "    requires start <= end && end <= byte_len(listing)"
+          ],
+          "id": "std.fs.listing.name-is-dotdot",
+          "kind": "function",
+          "name": "listing_name_is_dotdot",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn listing_byte_clean(byte: u8) -> bool"
+          ],
+          "id": "std.fs.listing.byte-clean",
+          "kind": "function",
+          "name": "listing_byte_clean",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn listing_name_clean(listing: borrow Slice<u8>, start: usize, end: usize) -> bool",
+            "    requires start <= end && end <= byte_len(listing)"
+          ],
+          "id": "std.fs.listing.name-clean",
+          "kind": "function",
+          "name": "listing_name_clean",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn listing_entry_valid(listing: borrow Slice<u8>, start: usize, end: usize) -> bool",
+            "    requires start <= end && end <= byte_len(listing)"
+          ],
+          "id": "std.fs.listing.entry-valid",
+          "kind": "function",
+          "name": "listing_entry_valid",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn listing_valid(listing: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.fs.listing.valid",
+          "kind": "function",
+          "name": "listing_valid",
+          "requires": 0
         }
       ],
       "dependency": "std.fs = \"^0.1.0\"",
@@ -5301,6 +5725,31 @@
         },
         {
           "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn argument_is_admissible(argument: borrow Slice<u8>, is_program: bool) -> bool"
+          ],
+          "id": "std.process.argument-is-admissible",
+          "kind": "function",
+          "name": "argument_is_admissible",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn argv_view_count(view: borrow Slice<u8>) -> usize",
+            "    ensures result <= 16usize"
+          ],
+          "id": "std.process.argv-view-count",
+          "kind": "function",
+          "name": "argv_view_count",
+          "requires": 0
+        },
+        {
+          "description": [],
           "effects": [
             "process.execute"
           ],
@@ -5451,6 +5900,43 @@
           "kind": "function",
           "name": "termination_code",
           "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn settlement_is_exit(kind: usize) -> bool"
+          ],
+          "id": "std.process.settlement-is-exit",
+          "kind": "function",
+          "name": "settlement_is_exit",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn settlement_is_signal(kind: usize) -> bool"
+          ],
+          "id": "std.process.settlement-is-signal",
+          "kind": "function",
+          "name": "settlement_is_signal",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn settlement_exit_code(kind: usize, code: usize) -> usize",
+            "    requires settlement_is_exit(kind)"
+          ],
+          "id": "std.process.settlement-exit-code",
+          "kind": "function",
+          "name": "settlement_exit_code",
+          "requires": 1
         },
         {
           "description": [],

@@ -89,6 +89,41 @@ fn argv_push(input: own Reader, argv: own Argv) -> Argv
     match own input { Reader { data: input_data, position: input_position } => match own argv { Argv { data: argv_data, count, length } => { let view = bytes_as_slice(input_data); let input_length = byte_len(view) - input_position; let next_count = count + 1usize; let mut next = argv_data; next = bytes_set(next, 0usize, u32_byte(next_count, 0usize)); next = bytes_set(next, 1usize, u32_byte(next_count, 1usize)); next = bytes_set(next, 2usize, u32_byte(next_count, 2usize)); next = bytes_set(next, 3usize, u32_byte(next_count, 3usize)); next = bytes_set(next, length, u32_byte(input_length, 0usize)); next = bytes_set(next, length + 1usize, u32_byte(input_length, 1usize)); next = bytes_set(next, length + 2usize, u32_byte(input_length, 2usize)); next = bytes_set(next, length + 3usize, u32_byte(input_length, 3usize)); let mut index = 0usize; let mut writing = index < input_length; while writing { let value = match byte_get(view, input_position + index) { Option::Some { value } => value, Option::None {} => 0u8, }; next = bytes_set(next, length + 4usize + index, value); index = index + 1usize; writing = index < input_length; writing } Argv { data: next, count: next_count, length: length + 4usize + input_length } }, }, }
 }
 
+@id("std.process.argument-is-admissible")
+fn argument_is_admissible(argument: borrow Slice<u8>, is_program: bool) -> bool
+{
+    let length = byte_len(argument);
+    let mut index = 0usize;
+    let mut valid = !is_program || length >= 1usize;
+    let mut scanning = index < length && valid;
+    while scanning {
+        let value = match byte_get(argument, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        valid = value != 0u8;
+        index = index + 1usize;
+        scanning = index < length && valid;
+        scanning
+    }
+    valid
+}
+
+@id("std.process.argv-view-count")
+fn argv_view_count(view: borrow Slice<u8>) -> usize
+    ensures result <= 16usize
+{
+    let length = byte_len(view);
+    let mut index = 0usize;
+    let mut count = 0usize;
+    let mut scanning = index < length && count < 16usize;
+    while scanning {
+        let value = match byte_get(view, index) { Option::Some { value } => value, Option::None {} => 1u8, };
+        count = if value == 0u8 { count + 1usize } else { count };
+        index = index + 1usize;
+        scanning = index < length && count < 16usize;
+        scanning
+    }
+    count
+}
+
 @id("std.process.run")
 fn run(tool: usize, argv: own Argv, stdin: own Reader, timeout_ms: usize, stdout_max: usize, stderr_max: usize) -> Output
     uses { process.execute }
@@ -176,6 +211,25 @@ fn termination_code(output: borrow Output) -> usize
     requires termination_kind(output) <= 1usize
 {
     termination_code_raw(output)
+}
+
+@id("std.process.settlement-is-exit")
+fn settlement_is_exit(kind: usize) -> bool
+{
+    kind == 0usize
+}
+
+@id("std.process.settlement-is-signal")
+fn settlement_is_signal(kind: usize) -> bool
+{
+    kind == 1usize
+}
+
+@id("std.process.settlement-exit-code")
+fn settlement_exit_code(kind: usize, code: usize) -> usize
+    requires settlement_is_exit(kind)
+{
+    code
 }
 
 @id("std.process.stdout-len")

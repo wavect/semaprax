@@ -19,6 +19,15 @@ use function @id("std.fs.write-atomic") from std.fs as write_atomic;
 use function @id("std.fs.directory.entry-length") from std.fs as entry_length;
 use function @id("std.fs.directory.entry-byte") from std.fs as entry_byte;
 use function @id("std.fs.directory.next-entry") from std.fs as next_entry;
+use function @id("std.fs.listing.entry-end") from std.fs as listing_entry_end;
+use function @id("std.fs.listing.next-start") from std.fs as listing_next_start;
+use function @id("std.fs.listing.entry-count") from std.fs as listing_entry_count;
+use function @id("std.fs.listing.name-is-dot") from std.fs as listing_name_is_dot;
+use function @id("std.fs.listing.name-is-dotdot") from std.fs as listing_name_is_dotdot;
+use function @id("std.fs.listing.byte-clean") from std.fs as listing_byte_clean;
+use function @id("std.fs.listing.name-clean") from std.fs as listing_name_clean;
+use function @id("std.fs.listing.entry-valid") from std.fs as listing_entry_valid;
+use function @id("std.fs.listing.valid") from std.fs as listing_valid;
 
 permit { fs.read, fs.write }
 
@@ -46,7 +55,7 @@ fn logical_prefix() -> bool
 @id("std.fs.tests.main")
 fn main() -> i64
 {
-    0
+    test_listing_empty() + test_listing_one_entry() + test_listing_two_entries() + test_listing_dotted_name() + test_listing_rejects_dot() + test_listing_rejects_dotdot() + test_listing_rejects_slash() + test_listing_rejects_embedded_nul()
 }
 
 @id("std.fs.tests.child-path")
@@ -83,4 +92,82 @@ fn raw_directory_names() -> bool
     let second = entry_length(second_names) == 1usize && entry_byte(second_names, 0usize) == 255u8;
     let tail = next_entry(second_names);
     info.kind == 2usize && info.size == 0usize && first && second && reader_remaining(tail) == 0usize
+}
+
+@id("std.fs.tests.listing-empty")
+fn test_listing_empty() -> i64
+{
+    let owner = bytes_zeroed(0usize);
+    let view = bytes_as_slice(owner);
+    if listing_entry_count(view) == 0usize && listing_valid(view) { 0 } else { 1 }
+}
+
+@id("std.fs.tests.listing-one-entry")
+fn test_listing_one_entry() -> i64
+{
+    let owner = bytes_set(bytes_set(bytes_zeroed(2usize), 0usize, 97u8), 1usize, 0u8);
+    let view = bytes_as_slice(owner);
+    let end = listing_entry_end(view, 0usize);
+    let next = listing_next_start(view, 0usize);
+    if listing_entry_count(view) == 1usize && end == 1usize && next == 2usize && listing_entry_valid(view, 0usize, end) && listing_valid(view) { 0 } else { 1 }
+}
+
+@id("std.fs.tests.listing-two-entries")
+fn test_listing_two_entries() -> i64
+{
+    let owner = bytes_set(bytes_set(bytes_set(bytes_set(bytes_set(bytes_zeroed(5usize), 0usize, 97u8), 1usize, 0u8), 2usize, 98u8), 3usize, 98u8), 4usize, 0u8);
+    let view = bytes_as_slice(owner);
+    let first_end = listing_entry_end(view, 0usize);
+    let second_start = listing_next_start(view, 0usize);
+    let second_end = listing_entry_end(view, second_start);
+    let tail = listing_next_start(view, second_start);
+    if listing_entry_count(view) == 2usize && first_end == 1usize && second_start == 2usize && second_end == 4usize && tail == 5usize && listing_entry_valid(view, 0usize, first_end) && listing_entry_valid(view, second_start, second_end) && listing_valid(view) { 0 } else { 1 }
+}
+
+@id("std.fs.tests.listing-dotted-name")
+fn test_listing_dotted_name() -> i64
+{
+    let owner = bytes_set(bytes_set(bytes_set(bytes_set(bytes_zeroed(4usize), 0usize, 97u8), 1usize, 46u8), 2usize, 98u8), 3usize, 0u8);
+    let view = bytes_as_slice(owner);
+    let end = listing_entry_end(view, 0usize);
+    if listing_entry_count(view) == 1usize && end == 3usize && !listing_name_is_dot(view, 0usize, end) && !listing_name_is_dotdot(view, 0usize, end) && listing_entry_valid(view, 0usize, end) && listing_valid(view) { 0 } else { 1 }
+}
+
+@id("std.fs.tests.listing-rejects-dot")
+fn test_listing_rejects_dot() -> i64
+{
+    let owner = bytes_set(bytes_set(bytes_zeroed(2usize), 0usize, 46u8), 1usize, 0u8);
+    let view = bytes_as_slice(owner);
+    let end = listing_entry_end(view, 0usize);
+    if listing_entry_count(view) == 1usize && end == 1usize && listing_name_is_dot(view, 0usize, end) && !listing_entry_valid(view, 0usize, end) && !listing_valid(view) { 0 } else { 1 }
+}
+
+@id("std.fs.tests.listing-rejects-dotdot")
+fn test_listing_rejects_dotdot() -> i64
+{
+    let owner = bytes_set(bytes_set(bytes_set(bytes_zeroed(3usize), 0usize, 46u8), 1usize, 46u8), 2usize, 0u8);
+    let view = bytes_as_slice(owner);
+    let end = listing_entry_end(view, 0usize);
+    if listing_entry_count(view) == 1usize && end == 2usize && listing_name_is_dotdot(view, 0usize, end) && !listing_entry_valid(view, 0usize, end) && !listing_valid(view) { 0 } else { 1 }
+}
+
+@id("std.fs.tests.listing-rejects-slash")
+fn test_listing_rejects_slash() -> i64
+{
+    let owner = bytes_set(bytes_set(bytes_set(bytes_set(bytes_zeroed(4usize), 0usize, 97u8), 1usize, 47u8), 2usize, 98u8), 3usize, 0u8);
+    let view = bytes_as_slice(owner);
+    let end = listing_entry_end(view, 0usize);
+    if listing_entry_count(view) == 1usize && end == 3usize && !listing_byte_clean(47u8) && !listing_name_clean(view, 0usize, end) && !listing_entry_valid(view, 0usize, end) && !listing_valid(view) { 0 } else { 1 }
+}
+
+@id("std.fs.tests.listing-rejects-embedded-nul")
+fn test_listing_rejects_embedded_nul() -> i64
+{
+    let owner = bytes_set(bytes_set(bytes_set(bytes_set(bytes_zeroed(4usize), 0usize, 97u8), 1usize, 0u8), 2usize, 98u8), 3usize, 0u8);
+    let view = bytes_as_slice(owner);
+    let first_end = listing_entry_end(view, 0usize);
+    let second_start = listing_next_start(view, 0usize);
+    let second_end = listing_entry_end(view, second_start);
+    let malformed_span_end = 3usize;
+    if listing_entry_count(view) == 2usize && first_end == 1usize && second_start == 2usize && second_end == 3usize && listing_entry_valid(view, 0usize, first_end) && listing_entry_valid(view, second_start, second_end) && listing_valid(view) && !listing_byte_clean(0u8) && !listing_entry_valid(view, 0usize, malformed_span_end) { 0 } else { 1 }
 }

@@ -1,0 +1,25 @@
+module std.env.policy.examples;
+use function @id("std.env.policy.name-is-valid") from std.env.policy as name_is_valid;
+use function @id("std.env.policy.assignment-is-valid") from std.env.policy as assignment_is_valid;
+use function @id("std.env.policy.assignment-name-end") from std.env.policy as assignment_name_end;
+use function @id("std.env.policy.assignment-value-start") from std.env.policy as assignment_value_start;
+
+// `HOME=/root` walked with the offset cursors: the name span ends right
+// before the `=`, and the value span starts right after it, all without
+// allocating.
+@id("std.env.policy.examples.cursors")
+fn cursors() -> i64
+{
+    let assignment = [72u8, 79u8, 77u8, 69u8, 61u8, 47u8, 114u8, 111u8, 111u8, 116u8];
+    let view = array_as_slice(assignment);
+    let name = assignment_name_end(view) == 4usize;
+    let value = assignment_value_start(view) == 5usize;
+    if name && value && assignment_is_valid(view) { 0 } else { 1 }
+}
+
+@id("std.env.policy.examples.main")
+fn main() -> i64
+{
+    let path = [80u8, 65u8, 84u8, 72u8];
+    if name_is_valid(array_as_slice(path)) { cursors() } else { 1 }
+}

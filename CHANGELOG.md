@@ -8,6 +8,42 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add effect-free listing cursors to `std.fs`, so the canonical
+  immediate-name listing `list` already returns can be walked without a
+  provider or any further authority: entry counting, per-entry span offsets,
+  and an entry-name validity predicate rejecting an empty name, an embedded
+  separator or NUL byte, and the two traversal names. No function gained an
+  effect and the module's capability list is unchanged; recursive traversal,
+  streaming and richer metadata remain Missing.
+
+- Add the bundled `std.env.policy` package: a portable environment-variable
+  name predicate, a value predicate, and a `NAME=VALUE` assignment cursor, all
+  effect-free offset computations over borrowed bytes. It is a sibling package
+  rather than more of `std.env` because the completion gate requires every
+  `std.env` function to declare `process.environment.read`, and these functions
+  read no environment - declaring that effect to satisfy a gate would claim a
+  capability they never exercise.
+
+- Add effect-free settlement and argument policy to `std.process`:
+  classification of an existing settlement value as a normal exit or a signal
+  termination - the only two kinds the termination encoding defines, per the
+  `low2-kind-0-exit-u32-or-1-signal` graph fact - exit-code extraction defined
+  only where the process exited normally, and argument-vector admissibility
+  over borrowed bytes. A deadline expiry is deliberately not a settlement
+  class: it is a call-level failure that prevents an output from existing, so
+  classifying an unused bit pattern as one would invent a value no provider
+  emits. Only `std.process.run` still carries `process.execute`; the new
+  functions perform nothing and grant nothing, and broader physical-provider
+  and general process support remain open.
+
+- Add a checked lifecycle policy to `std.agent`: an admitted stage-transition
+  predicate total over the lifecycle vocabulary, a terminality predicate
+  consistent with it, and a deterministic bounded retry policy whose backoff is
+  a pure function of the attempt count. These describe checked meaning only:
+  no clock is read, no stage is executed, and the package gains no capability,
+  effect or permit. Native and Wasm execution of these ordinary library
+  functions still does not execute Agent stages.
+
 - Add quoted-key validation and value cursors to `std.data.toml`, closing the
   key half of its recorded gap. `basic_quoted_key_end` admits the TOML
   basic-string escapes and rejects an unterminated string, a raw control byte

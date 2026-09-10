@@ -80,6 +80,16 @@ fn fails(main: &str) {
 }
 
 #[test]
+fn io_cursors_execute_on_all_three_backends() {
+    super::run_examples_and_conformance(
+        super::packages()
+            .into_iter()
+            .filter(|p| p.module == "std.io")
+            .collect(),
+    );
+}
+
+#[test]
 fn io_cursors_round_trip_boundaries_and_zero_length_observer_execute() {
     returns(
         r#"

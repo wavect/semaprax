@@ -8,6 +8,14 @@ use function @id("std.agent.observe") from std.agent as observe;
 use function @id("std.agent.advance") from std.agent as advance;
 use function @id("std.agent.outcome-bytes") from std.agent as outcome_bytes;
 use function @id("std.agent.outcome-status") from std.agent as outcome_status;
+use function @id("std.agent.stage-after-initialize") from std.agent as stage_after_initialize;
+use function @id("std.agent.stage-after-observe") from std.agent as stage_after_observe;
+use function @id("std.agent.stage-after-authorize") from std.agent as stage_after_authorize;
+use function @id("std.agent.stage-after-reduce") from std.agent as stage_after_reduce;
+use function @id("std.agent.stage-transition") from std.agent as stage_transition;
+use function @id("std.agent.stage-is-terminal") from std.agent as stage_is_terminal;
+use function @id("std.agent.retry-admitted") from std.agent as retry_admitted;
+use function @id("std.agent.retry-delay") from std.agent as retry_delay;
 
 @id("std.agent.tests.roles")
 fn roles() -> bool
@@ -43,8 +51,74 @@ fn advance_boundary() -> bool
     next.budget == -7 && next.epoch == 9223372036854775807
 }
 
+@id("std.agent.tests.stage-helper-initialize")
+fn stage_helper_initialize() -> bool
+{
+    stage_after_initialize(1) && !stage_after_initialize(0)
+}
+
+@id("std.agent.tests.stage-helper-observe")
+fn stage_helper_observe() -> bool
+{
+    stage_after_observe(2) && !stage_after_observe(1)
+}
+
+@id("std.agent.tests.stage-helper-authorize")
+fn stage_helper_authorize() -> bool
+{
+    stage_after_authorize(3) && !stage_after_authorize(2)
+}
+
+@id("std.agent.tests.stage-helper-reduce")
+fn stage_helper_reduce() -> bool
+{
+    stage_after_reduce(4) && !stage_after_reduce(0)
+}
+
+@id("std.agent.tests.stage-row-initialize")
+fn stage_row_initialize() -> bool
+{
+    !stage_transition(0, 0) && stage_transition(0, 1) && !stage_transition(0, 2)
+}
+
+@id("std.agent.tests.stage-row-reduce")
+fn stage_row_reduce() -> bool
+{
+    stage_transition(3, 1) && stage_transition(3, 4) && stage_transition(3, 5) && stage_transition(3, 6) && !stage_transition(3, 0) && !stage_transition(3, 2) && !stage_transition(3, 3)
+}
+
+@id("std.agent.tests.stage-row-terminal")
+fn stage_row_terminal() -> bool
+{
+    !stage_transition(4, 0) && !stage_transition(4, 6) && !stage_transition(5, 0) && !stage_transition(5, 6) && !stage_transition(6, 0) && !stage_transition(6, 6)
+}
+
+@id("std.agent.tests.stage-row-out-of-range")
+fn stage_row_out_of_range() -> bool
+{
+    !stage_transition(-1, 1) && !stage_transition(-1, 6) && !stage_transition(7, 1) && !stage_transition(7, 6)
+}
+
+@id("std.agent.tests.stage-terminality")
+fn stage_terminality() -> bool
+{
+    !stage_is_terminal(0) && !stage_is_terminal(3) && stage_is_terminal(4) && stage_is_terminal(6) && stage_is_terminal(-1) && stage_is_terminal(7)
+}
+
+@id("std.agent.tests.retry-admitted-policy")
+fn retry_admitted_policy() -> bool
+{
+    retry_admitted(0, 4) && retry_admitted(1, 4) && retry_admitted(3, 4) && !retry_admitted(4, 4) && !retry_admitted(5, 4)
+}
+
+@id("std.agent.tests.retry-delay-policy")
+fn retry_delay_policy() -> bool
+{
+    retry_delay(0, 100) == 1 && retry_delay(1, 100) == 2 && retry_delay(3, 100) == 8 && retry_delay(4, 100) == 16 && retry_delay(5, 100) == 32
+}
+
 @id("std.agent.tests.main")
 fn main() -> i64
 {
-    if roles() && outcome() && advance_boundary() { 0 } else { 1 }
+    if roles() && outcome() && advance_boundary() && stage_helper_initialize() && stage_helper_observe() && stage_helper_authorize() && stage_helper_reduce() && stage_row_initialize() && stage_row_reduce() && stage_row_terminal() && stage_row_out_of_range() && stage_terminality() && retry_admitted_policy() && retry_delay_policy() { 0 } else { 1 }
 }

@@ -18,6 +18,7 @@
     {"directory": "encoding", "module": "std.encoding", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "encoding-base64", "module": "std.encoding.base64", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "env", "module": "std.env", "tier": "hosted", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "env-policy", "module": "std.env.policy", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "format", "module": "std.format", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "fs", "module": "std.fs", "tier": "hosted", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "http", "module": "std.http", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

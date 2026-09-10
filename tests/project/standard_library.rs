@@ -646,16 +646,6 @@ fn examples_and_conformance_return_zero_on_interpreter_native_and_wasm() {
 }
 
 #[test]
-fn io_cursors_execute_on_all_three_backends() {
-    run_examples_and_conformance(
-        packages()
-            .into_iter()
-            .filter(|p| p.module == "std.io")
-            .collect(),
-    );
-}
-
-#[test]
 fn typed_paths_execute_on_all_three_backends() {
     run_examples_and_conformance(
         packages()
@@ -1435,6 +1425,8 @@ mod base64;
 mod byte_spans;
 #[path = "standard_library/catalog.rs"]
 mod catalog;
+#[path = "standard_library/env_policy.rs"]
+mod env_policy;
 #[path = "standard_library/toml_cursors.rs"]
 mod toml_cursors;
 use catalog::render_catalogs;

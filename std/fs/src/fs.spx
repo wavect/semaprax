@@ -99,3 +99,104 @@ fn next_entry(reader: own Reader) -> Reader
     let length = entry_length(reader);
     match own reader { Reader { data, position } => { let limit = byte_len(bytes_as_slice(data)); let remaining = limit - position; let count = if remaining == 0usize { 0usize } else { if length < remaining { length + 1usize } else { remaining } }; Reader { data: data, position: position + count } }, }
 }
+
+@id("std.fs.listing.entry-end")
+fn listing_entry_end(listing: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(listing)
+    ensures result >= start && result <= byte_len(listing)
+{
+    let limit = byte_len(listing);
+    let mut index = start;
+    let mut scanning = index < limit;
+    while scanning {
+        let separator = match byte_get(listing, index) { Option::Some { value } => value == 0u8, Option::None {} => true, };
+        index = if separator { index } else { index + 1usize };
+        scanning = !separator && index < limit;
+        scanning
+    }
+    index
+}
+
+@id("std.fs.listing.next-start")
+fn listing_next_start(listing: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(listing)
+    ensures result >= start && result <= byte_len(listing)
+{
+    let limit = byte_len(listing);
+    let end = listing_entry_end(listing, start);
+    if end < limit { end + 1usize } else { limit }
+}
+
+@id("std.fs.listing.entry-count")
+fn listing_entry_count(listing: borrow Slice<u8>) -> usize
+{
+    let limit = byte_len(listing);
+    let mut index = 0usize;
+    let mut count = 0usize;
+    let mut scanning = index < limit;
+    while scanning {
+        let next = listing_next_start(listing, index);
+        count = count + 1usize;
+        index = next;
+        scanning = index < limit;
+        scanning
+    }
+    count
+}
+
+@id("std.fs.listing.name-is-dot")
+fn listing_name_is_dot(listing: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(listing)
+{
+    if end - start == 1usize { match byte_get(listing, start) { Option::Some { value } => value == 46u8, Option::None {} => false, } } else { false }
+}
+
+@id("std.fs.listing.name-is-dotdot")
+fn listing_name_is_dotdot(listing: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(listing)
+{
+    if end - start == 2usize { match byte_get(listing, start) { Option::Some { value } => value == 46u8, Option::None {} => false, } && match byte_get(listing, start + 1usize) { Option::Some { value } => value == 46u8, Option::None {} => false, } } else { false }
+}
+
+@id("std.fs.listing.byte-clean")
+fn listing_byte_clean(byte: u8) -> bool
+{
+    byte != 47u8 && byte != 0u8
+}
+
+@id("std.fs.listing.name-clean")
+fn listing_name_clean(listing: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(listing)
+{
+    let mut index = start;
+    let mut clean = true;
+    while index < end {
+        let byte = match byte_get(listing, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        clean = clean && listing_byte_clean(byte);
+        index = index + 1usize;
+        index < end
+    }
+    clean
+}
+
+@id("std.fs.listing.entry-valid")
+fn listing_entry_valid(listing: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(listing)
+{
+    if start == end { false } else { if listing_name_is_dot(listing, start, end) { false } else { if listing_name_is_dotdot(listing, start, end) { false } else { listing_name_clean(listing, start, end) } } }
+}
+
+@id("std.fs.listing.valid")
+fn listing_valid(listing: borrow Slice<u8>) -> bool
+{
+    let limit = byte_len(listing);
+    let mut index = 0usize;
+    let mut valid = true;
+    while index < limit {
+        let end = listing_entry_end(listing, index);
+        valid = valid && listing_entry_valid(listing, index, end);
+        index = listing_next_start(listing, index);
+        index < limit
+    }
+    valid
+}

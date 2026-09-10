@@ -25,6 +25,11 @@ use function @id("std.process.stderr-len") from std.process as stderr_len;
 use function @id("std.process.copy-range") from std.process as copy_range;
 use function @id("std.process.stdout-into") from std.process as stdout_into;
 use function @id("std.process.stderr-into") from std.process as stderr_into;
+use function @id("std.process.settlement-is-exit") from std.process as settlement_is_exit;
+use function @id("std.process.settlement-is-signal") from std.process as settlement_is_signal;
+use function @id("std.process.settlement-exit-code") from std.process as settlement_exit_code;
+use function @id("std.process.argument-is-admissible") from std.process as argument_is_admissible;
+use function @id("std.process.argv-view-count") from std.process as argv_view_count;
 
 permit { process.execute }
 
@@ -83,6 +88,58 @@ fn stderr(output: borrow Output) -> bool
     match own written { Writer { data, position } => match byte_get(bytes_as_slice(data), 0usize) { Option::Some { value } => position == 1usize && value == 33u8, Option::None {} => false, }, }
 }
 
+@id("std.process.tests.settlement")
+fn settlement(output: borrow Output) -> bool
+    requires valid(output)
+{
+    let kind = termination_kind_raw(output);
+    let code = termination_code_raw(output);
+    settlement_is_exit(kind) && !settlement_is_signal(kind) && settlement_exit_code(kind, code) == 4294967295usize
+}
+
+@id("std.process.tests.settlement-boundary-exit")
+fn settlement_boundary_exit() -> bool
+{
+    settlement_is_exit(0usize) && !settlement_is_signal(0usize) && settlement_exit_code(0usize, 0usize) == 0usize && settlement_exit_code(0usize, 4294967295usize) == 4294967295usize
+}
+
+@id("std.process.tests.settlement-boundary-signal")
+fn settlement_boundary_signal() -> bool
+{
+    settlement_is_signal(1usize) && !settlement_is_exit(1usize)
+}
+
+@id("std.process.tests.settlement-boundaries")
+fn settlement_boundaries() -> bool
+{
+    settlement_boundary_exit() && settlement_boundary_signal()
+}
+
+@id("std.process.tests.argument-policy")
+fn argument_policy() -> bool
+{
+    let program = [108u8, 115u8];
+    let program_view = array_as_slice(program);
+    let empty = [0u8; 0];
+    let empty_view = array_as_slice(empty);
+    let with_nul = [97u8, 0u8, 98u8];
+    let with_nul_view = array_as_slice(with_nul);
+    let one = [97u8, 0u8];
+    let one_view = array_as_slice(one);
+    let two = [97u8, 0u8, 98u8, 0u8];
+    let two_view = array_as_slice(two);
+    let admissible = argument_is_admissible(program_view, true) && argument_is_admissible(program_view, false) && !argument_is_admissible(empty_view, true) && argument_is_admissible(empty_view, false) && !argument_is_admissible(with_nul_view, true) && !argument_is_admissible(with_nul_view, false);
+    let counted = argv_view_count(empty_view) == 0usize && argv_view_count(one_view) == 1usize && argv_view_count(two_view) == 2usize;
+    admissible && counted
+}
+
+@id("std.process.tests.settlement-and-argument-policy")
+fn settlement_and_argument_policy(output: borrow Output) -> bool
+    requires valid(output)
+{
+    settlement(output) && settlement_boundaries() && argument_policy()
+}
+
 @id("std.process.tests.conformance")
 fn conformance() -> bool
     uses { process.execute }
@@ -96,7 +153,7 @@ fn conformance() -> bool
     let stdin_data = bytes_set(bytes_set(bytes_zeroed(2usize), 0usize, 88u8), 1usize, 66u8);
     let stdin = Reader { data: stdin_data, position: 1usize };
     let output = run(7usize, complete, stdin, 100usize, 2usize, 2usize);
-    utilities() && count == 2usize && valid(output) && header(output) && termination(output) && lengths(output) && copy(output) && stdout(output) && stderr(output)
+    utilities() && count == 2usize && valid(output) && header(output) && termination(output) && lengths(output) && copy(output) && stdout(output) && stderr(output) && settlement(output) && settlement_boundaries()
 }
 
 @id("std.process.tests.main")

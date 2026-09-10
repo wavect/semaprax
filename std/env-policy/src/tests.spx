@@ -1,0 +1,103 @@
+module std.env.policy.tests;
+use function @id("std.env.policy.name-byte-is-valid") from std.env.policy as name_byte_is_valid;
+use function @id("std.env.policy.name-starts-with-digit") from std.env.policy as name_starts_with_digit;
+use function @id("std.env.policy.name-is-valid") from std.env.policy as name_is_valid;
+use function @id("std.env.policy.name-range-is-valid") from std.env.policy as name_range_is_valid;
+use function @id("std.env.policy.value-range-is-valid") from std.env.policy as value_range_is_valid;
+use function @id("std.env.policy.name-span-is-valid") from std.env.policy as name_span_is_valid;
+use function @id("std.env.policy.value-span-is-valid") from std.env.policy as value_span_is_valid;
+use function @id("std.env.policy.value-is-valid") from std.env.policy as value_is_valid;
+use function @id("std.env.policy.assignment-separator") from std.env.policy as assignment_separator;
+use function @id("std.env.policy.assignment-name-end") from std.env.policy as assignment_name_end;
+use function @id("std.env.policy.assignment-value-start") from std.env.policy as assignment_value_start;
+use function @id("std.env.policy.assignment-is-valid") from std.env.policy as assignment_is_valid;
+
+@id("std.env.policy.tests.name-bytes")
+fn name_bytes() -> bool
+{
+    let classified = name_byte_is_valid(65u8) && name_byte_is_valid(97u8) && name_byte_is_valid(48u8) && name_byte_is_valid(95u8) && !name_byte_is_valid(61u8) && !name_byte_is_valid(0u8);
+    let path = [80u8, 65u8, 84u8, 72u8];
+    let leading_digit = [49u8, 66u8, 65u8, 68u8];
+    let empty = [0u8; 0];
+    let digit_start = name_starts_with_digit(array_as_slice(path)) == false && name_starts_with_digit(array_as_slice(leading_digit)) == true && name_starts_with_digit(array_as_slice(empty)) == false;
+    classified && digit_start
+}
+
+// `PATH`, `_x` and `A1` are admitted portable names; a leading-digit name,
+// the empty name, a name carrying an embedded `=`, and a name carrying a
+// NUL byte are all rejected.
+@id("std.env.policy.tests.names")
+fn names() -> bool
+{
+    let path = [80u8, 65u8, 84u8, 72u8];
+    let underscore_x = [95u8, 120u8];
+    let alnum = [65u8, 49u8];
+    let leading_digit = [49u8, 66u8, 65u8, 68u8];
+    let empty = [0u8; 0];
+    let equals_inside = [65u8, 61u8, 66u8];
+    let nul_inside = [65u8, 0u8, 66u8];
+    name_is_valid(array_as_slice(path)) && name_is_valid(array_as_slice(underscore_x)) && name_is_valid(array_as_slice(alnum)) && !name_is_valid(array_as_slice(leading_digit)) && !name_is_valid(array_as_slice(empty)) && !name_is_valid(array_as_slice(equals_inside)) && !name_is_valid(array_as_slice(nul_inside))
+}
+
+// Values admit arbitrary non-NUL bytes, including an empty value and a
+// value carrying `=`; a NUL byte anywhere rejects the value.
+@id("std.env.policy.tests.values")
+fn values() -> bool
+{
+    let empty = [0u8; 0];
+    let with_equals = [66u8, 61u8, 67u8];
+    let with_nul = [98u8, 0u8, 99u8];
+    value_is_valid(array_as_slice(empty)) && value_is_valid(array_as_slice(with_equals)) && !value_is_valid(array_as_slice(with_nul))
+}
+
+// `HOME=/root` walked with the offset cursors: the separator sits at 4, the
+// name span ends at 4, and the value span starts at 5.
+@id("std.env.policy.tests.assignment-cursors")
+fn assignment_cursors() -> bool
+{
+    let home = [72u8, 79u8, 77u8, 69u8, 61u8, 47u8, 114u8, 111u8, 111u8, 116u8];
+    let view = array_as_slice(home);
+    assignment_separator(view) == 4usize && assignment_name_end(view) == 4usize && assignment_value_start(view) == 5usize && assignment_is_valid(view)
+}
+
+// A view with no `=` reports the separator, name end and value start all at
+// or past `byte_len(view)`, and is never a valid assignment.
+@id("std.env.policy.tests.assignment-missing-separator")
+fn assignment_missing_separator() -> bool
+{
+    let bare = [80u8, 65u8, 84u8, 72u8];
+    let view = array_as_slice(bare);
+    let length = byte_len(view);
+    assignment_separator(view) == length && assignment_name_end(view) == length && assignment_value_start(view) == length && !assignment_is_valid(view)
+}
+
+// `X=` is a well-formed assignment with an empty value; `=V` has an empty
+// name and is rejected; `A=B=C` keeps only the first `=` as the separator,
+// so the value span `B=C` is admitted with an embedded `=`.
+@id("std.env.policy.tests.assignment-edges")
+fn assignment_edges() -> bool
+{
+    let empty_value = [88u8, 61u8];
+    let empty_name = [61u8, 86u8];
+    let embedded_equals = [65u8, 61u8, 66u8, 61u8, 67u8];
+    let empty_value_view = array_as_slice(empty_value);
+    let empty_name_view = array_as_slice(empty_name);
+    let embedded_view = array_as_slice(embedded_equals);
+    let empty_value_ok = assignment_is_valid(empty_value_view) && assignment_value_start(empty_value_view) == byte_len(empty_value_view);
+    let empty_name_rejected = !assignment_is_valid(empty_name_view);
+    let embedded_ok = assignment_is_valid(embedded_view) && assignment_separator(embedded_view) == 1usize;
+    empty_value_ok && empty_name_rejected && embedded_ok
+}
+
+@id("std.env.policy.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if name_bytes() { 0 } else { 1 };
+    failed = failed + if names() { 0 } else { 2 };
+    failed = failed + if values() { 0 } else { 4 };
+    failed = failed + if assignment_cursors() { 0 } else { 8 };
+    failed = failed + if assignment_missing_separator() { 0 } else { 16 };
+    failed = failed + if assignment_edges() { 0 } else { 32 };
+    failed
+}

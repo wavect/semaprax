@@ -258,7 +258,7 @@ jobs:
           cargo test --locked -p semaprax --test project standard_library::io_lines -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::io_lines::io_lines_execute_on_all_three_backends -- --exact --nocapture
           cargo test --locked -p semaprax --test project standard_library::io_cursors -- --nocapture
-          cargo test --locked -p semaprax --test project standard_library::io_cursors_execute_on_all_three_backends -- --exact --nocapture
+          cargo test --locked -p semaprax --test project standard_library::io_cursors::io_cursors_execute_on_all_three_backends -- --exact --nocapture
           cargo test --locked -p semaprax --test project standard_library::path_normalize -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::path_normalize::path_normalization_executes_on_all_three_backends -- --exact --nocapture
           cargo test --locked -p semaprax --test project standard_library::typed_paths -- --nocapture
@@ -266,6 +266,9 @@ jobs:
           cargo test --locked -p semaprax --test project standard_library::byte_spans -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::base64 -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::toml_cursors -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::env_policy -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::filesystem -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::testing -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::json_cursors -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::logging -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::catalog -- --nocapture

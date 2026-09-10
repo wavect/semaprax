@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-env-policy"
+version = "0.1.0"
+profile = "owned-data-api.v1"
+
+[modules]
+entry = "std.env.policy.examples"
+sources = ["src/examples.spx", "src/policy.spx", "src/tests.spx"]
+tests = ["std.env.policy.tests"]
+
+[exports]
+web = []

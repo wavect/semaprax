@@ -85,6 +85,62 @@ fn outcome_status(outcome: borrow Outcome) -> i64
     ensures result == outcome.status
 ```
 
+### `std.agent.stage-after-initialize`
+
+```semaprax
+fn stage_after_initialize(next: i64) -> bool
+    ensures result == (next == 1)
+```
+
+### `std.agent.stage-after-observe`
+
+```semaprax
+fn stage_after_observe(next: i64) -> bool
+    ensures result == (next == 2)
+```
+
+### `std.agent.stage-after-authorize`
+
+```semaprax
+fn stage_after_authorize(next: i64) -> bool
+    ensures result == (next == 3)
+```
+
+### `std.agent.stage-after-reduce`
+
+```semaprax
+fn stage_after_reduce(next: i64) -> bool
+    ensures result == (next == 1 || next == 4 || next == 5 || next == 6)
+```
+
+### `std.agent.stage-transition`
+
+```semaprax
+fn stage_transition(current: i64, next: i64) -> bool
+```
+
+### `std.agent.stage-is-terminal`
+
+```semaprax
+fn stage_is_terminal(stage: i64) -> bool
+    ensures result == (stage != 0 && stage != 1 && stage != 2 && stage != 3)
+```
+
+### `std.agent.retry-admitted`
+
+```semaprax
+fn retry_admitted(attempt: i64, max_attempts: i64) -> bool
+    ensures result == (attempt >= 0 && attempt < max_attempts)
+```
+
+### `std.agent.retry-delay`
+
+```semaprax
+fn retry_delay(attempt: i64, ceiling: i64) -> i64
+    requires attempt >= 0 && ceiling >= 1 && ceiling <= 1073741824
+    ensures result >= 1 && result <= ceiling
+```
+
 ## `std.async`
 
 Package `std/async`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.async = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
@@ -1496,6 +1552,127 @@ fn value_into(index: usize, output: own Writer) -> Writer
     uses { process.environment.read }
 ```
 
+## `std.env.policy`
+
+Package `std/env-policy`, tier `core`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.env.policy = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.env.policy.name-byte-is-valid`
+
+Effect-free name and `NAME=VALUE` assignment policy for environment-style
+byte data. Every function here is a pure offset computation over borrowed
+bytes: no host, capability, or environment access, no allocation.
+A byte admitted inside a portable environment-variable name: an ASCII
+letter, digit, or underscore.
+
+```semaprax
+fn name_byte_is_valid(byte: u8) -> bool
+```
+
+### `std.env.policy.name-starts-with-digit`
+
+Whether `name`'s first byte is an ASCII digit; a portable name never
+begins with one.
+
+```semaprax
+fn name_starts_with_digit(name: borrow Slice<u8>) -> bool
+```
+
+### `std.env.policy.name-is-valid`
+
+Portable environment-variable name validity: non-empty, does not begin
+with a digit, and every byte is `A-Z`, `a-z`, `0-9` or `_`. This is the
+POSIX portable character set for names (IEEE Std 1003.1 XBD 8.1, the
+"Environment Variable" definition built on the portable filename
+character set); it claims exactly that portable subset and nothing
+broader such as locale-specific or vendor-extended name shapes.
+
+```semaprax
+fn name_is_valid(name: borrow Slice<u8>) -> bool
+```
+
+### `std.env.policy.value-is-valid`
+
+Environment-variable value validity: contains no NUL byte. Values are
+otherwise arbitrary bytes; this predicate does not require UTF-8 or any
+other text encoding, and an empty value is valid.
+
+```semaprax
+fn value_is_valid(value: borrow Slice<u8>) -> bool
+```
+
+### `std.env.policy.assignment-separator`
+
+Offset of the first `=` in a `NAME=VALUE` assignment view, or
+`byte_len(view)` when no `=` is present. A separator byte can never sit at
+`byte_len(view)` itself, so that bound doubles as the "not found"
+sentinel: the same convention `std.env.index-of` uses `count()` for a
+missing key index.
+
+```semaprax
+fn assignment_separator(view: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(view)
+```
+
+### `std.env.policy.assignment-name-end`
+
+End offset of the name span: identical to the separator offset, since a
+well-formed assignment's name occupies exactly `view[0..separator]`.
+
+```semaprax
+fn assignment_name_end(view: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(view)
+```
+
+### `std.env.policy.assignment-value-start`
+
+Start offset of the value span, one byte past the separator; clamped to
+`byte_len(view)` when no separator is present so the offset always stays
+in bounds for a caller that slices `view` with it.
+
+```semaprax
+fn assignment_value_start(view: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(view)
+```
+
+### `std.env.policy.name-range-is-valid`
+
+Whether `view` is a well-formed `NAME=VALUE` assignment: an `=` is
+present, the name span (1) is a valid portable name, and the value span
+(2) contains no NUL byte. A view with no `=`, an empty name, or a NUL
+anywhere in the name is rejected.
+
+```semaprax
+fn name_range_is_valid(view: borrow Slice<u8>, end: usize) -> bool
+    requires end <= byte_len(view)
+```
+
+### `std.env.policy.value-range-is-valid`
+
+```semaprax
+fn value_range_is_valid(view: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(view)
+```
+
+### `std.env.policy.name-span-is-valid`
+
+```semaprax
+fn name_span_is_valid(view: borrow Slice<u8>, end: usize) -> bool
+    requires end <= byte_len(view)
+```
+
+### `std.env.policy.value-span-is-valid`
+
+```semaprax
+fn value_span_is_valid(view: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(view)
+```
+
+### `std.env.policy.assignment-is-valid`
+
+```semaprax
+fn assignment_is_valid(view: borrow Slice<u8>) -> bool
+```
+
 ## `std.format`
 
 Package `std/format`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.format = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
@@ -1693,6 +1870,68 @@ fn entry_byte(reader: borrow Reader, index: usize) -> u8
 ```semaprax
 fn next_entry(reader: own Reader) -> Reader
     requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.fs.listing.entry-end`
+
+```semaprax
+fn listing_entry_end(listing: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(listing)
+    ensures result >= start && result <= byte_len(listing)
+```
+
+### `std.fs.listing.next-start`
+
+```semaprax
+fn listing_next_start(listing: borrow Slice<u8>, start: usize) -> usize
+    requires start <= byte_len(listing)
+    ensures result >= start && result <= byte_len(listing)
+```
+
+### `std.fs.listing.entry-count`
+
+```semaprax
+fn listing_entry_count(listing: borrow Slice<u8>) -> usize
+```
+
+### `std.fs.listing.name-is-dot`
+
+```semaprax
+fn listing_name_is_dot(listing: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(listing)
+```
+
+### `std.fs.listing.name-is-dotdot`
+
+```semaprax
+fn listing_name_is_dotdot(listing: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(listing)
+```
+
+### `std.fs.listing.byte-clean`
+
+```semaprax
+fn listing_byte_clean(byte: u8) -> bool
+```
+
+### `std.fs.listing.name-clean`
+
+```semaprax
+fn listing_name_clean(listing: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(listing)
+```
+
+### `std.fs.listing.entry-valid`
+
+```semaprax
+fn listing_entry_valid(listing: borrow Slice<u8>, start: usize, end: usize) -> bool
+    requires start <= end && end <= byte_len(listing)
+```
+
+### `std.fs.listing.valid`
+
+```semaprax
+fn listing_valid(listing: borrow Slice<u8>) -> bool
 ```
 
 ## `std.http`
@@ -2773,6 +3012,19 @@ fn argv_push(input: own Reader, argv: own Argv) -> Argv
     requires match borrow argv { Argv { data, count, length } => count < 16usize && length >= 4usize && length <= byte_len(bytes_as_slice(data)) && byte_len(bytes_as_slice(data)) - length >= 4usize + reader_remaining(input), }
 ```
 
+### `std.process.argument-is-admissible`
+
+```semaprax
+fn argument_is_admissible(argument: borrow Slice<u8>, is_program: bool) -> bool
+```
+
+### `std.process.argv-view-count`
+
+```semaprax
+fn argv_view_count(view: borrow Slice<u8>) -> usize
+    ensures result <= 16usize
+```
+
 ### `std.process.run`
 
 ```semaprax
@@ -2856,6 +3108,25 @@ fn termination_kind(output: borrow Output) -> usize
 fn termination_code(output: borrow Output) -> usize
     requires valid(output)
     requires termination_kind(output) <= 1usize
+```
+
+### `std.process.settlement-is-exit`
+
+```semaprax
+fn settlement_is_exit(kind: usize) -> bool
+```
+
+### `std.process.settlement-is-signal`
+
+```semaprax
+fn settlement_is_signal(kind: usize) -> bool
+```
+
+### `std.process.settlement-exit-code`
+
+```semaprax
+fn settlement_exit_code(kind: usize, code: usize) -> usize
+    requires settlement_is_exit(kind)
 ```
 
 ### `std.process.stdout-len`

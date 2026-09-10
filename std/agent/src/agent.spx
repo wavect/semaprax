@@ -69,3 +69,66 @@ fn outcome_status(outcome: borrow Outcome) -> i64
 {
     outcome.status
 }
+
+@id("std.agent.stage-after-initialize")
+fn stage_after_initialize(next: i64) -> bool
+    ensures result == (next == 1)
+{
+    next == 1
+}
+
+@id("std.agent.stage-after-observe")
+fn stage_after_observe(next: i64) -> bool
+    ensures result == (next == 2)
+{
+    next == 2
+}
+
+@id("std.agent.stage-after-authorize")
+fn stage_after_authorize(next: i64) -> bool
+    ensures result == (next == 3)
+{
+    next == 3
+}
+
+@id("std.agent.stage-after-reduce")
+fn stage_after_reduce(next: i64) -> bool
+    ensures result == (next == 1 || next == 4 || next == 5 || next == 6)
+{
+    next == 1 || next == 4 || next == 5 || next == 6
+}
+
+@id("std.agent.stage-transition")
+fn stage_transition(current: i64, next: i64) -> bool
+{
+    if current == 0 { stage_after_initialize(next) } else { if current == 1 { stage_after_observe(next) } else { if current == 2 { stage_after_authorize(next) } else { if current == 3 { stage_after_reduce(next) } else { false } } } }
+}
+
+@id("std.agent.stage-is-terminal")
+fn stage_is_terminal(stage: i64) -> bool
+    ensures result == (stage != 0 && stage != 1 && stage != 2 && stage != 3)
+{
+    stage != 0 && stage != 1 && stage != 2 && stage != 3
+}
+
+@id("std.agent.retry-admitted")
+fn retry_admitted(attempt: i64, max_attempts: i64) -> bool
+    ensures result == (attempt >= 0 && attempt < max_attempts)
+{
+    attempt >= 0 && attempt < max_attempts
+}
+
+@id("std.agent.retry-delay")
+fn retry_delay(attempt: i64, ceiling: i64) -> i64
+    requires attempt >= 0 && ceiling >= 1 && ceiling <= 1073741824
+    ensures result >= 1 && result <= ceiling
+{
+    let mut remaining = attempt;
+    let mut delay = 1;
+    while remaining > 0 && delay < ceiling {
+        delay = if delay * 2 > ceiling { ceiling } else { delay * 2 };
+        remaining = remaining - 1;
+        remaining > 0 && delay < ceiling
+    }
+    delay
+}

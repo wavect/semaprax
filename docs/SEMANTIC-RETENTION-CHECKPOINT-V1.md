@@ -1,8 +1,9 @@
 # Semantic retention checkpoint v1
 
-Status: additive authority-neutral lifecycle planner authored; compile-only
-validation performed. Filesystem cleanup and integrated recovery evidence remain
-open, so the Graph-Operational Programme remains Partial.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
+The planner remains authority-neutral. General subject cleanup and the complete
+Graph-Operational Programme remain Partial.
 
 Audience: embedding hosts, persistent workspace integrators and compiler
 contributors.
@@ -146,13 +147,15 @@ make any survivor fresh, current, approved or publishable.
 | `SPX-G422` | Immutable identity, accounting, canonical bytes or plan/checkpoint binding disagrees. |
 | `SPX-G423` | Expected predecessor, sequence or companion plan is stale. |
 
-Authored unit regressions cover input-order determinism and eviction order,
+Unit regressions cover input-order determinism and eviction order,
 protected-capacity failure, stale predecessor and rollback selectors, tampered
-checkpoint/plan rejection, and the explicit no-authority API result. They were
-not executed. The library target compiled locked and offline after authoring;
-tests and long quality gates were intentionally not run. Required follow-up
-evidence includes store-specific idempotent cleanup, interruption at every
-durable/effect boundary, image/candidate/draft replay after survival, absence
-after cleanup, parallel-coordinator serialization, measured checkpoint/recovery
-cost and hosted execution. Cross-platform filesystem support remains owned by
-the underlying stores.
+checkpoint/plan rejection, and the explicit no-authority API result. The
+implemented regression corpus is HOSTED GREEN for v0.4.0.
+
+[Registry recovery](SEMANTIC-RETENTION-REGISTRY-V1.md),
+[receipt-driven host coordination](SEMANTIC-RETENTION-HOST-LIFECYCLE-V1.md) and
+the [metadata CLI](SEMANTIC-RETENTION-METADATA-CLI-V1.md) are implemented
+compositions with their own contracts, not missing first implementations.
+General store-specific subject cleanup, stronger physical interruption and
+parallel-host guarantees, and measured checkpoint/recovery cost remain broader
+work. Cross-platform filesystem support remains owned by the underlying stores.

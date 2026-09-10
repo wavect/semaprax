@@ -106,15 +106,21 @@ Full walkthrough: [quickstart](docs/QUICKSTART.md).
 # bounded semantic view
 semaprax graph examples/meaning.spx
 semaprax context examples/meaning.spx app.main --depth 1 --max-bytes 65536 --max-nodes 256
+```
 
-# build a browser package from a library calculator
+Build a browser package from the library calculator (pinned walkthrough — prints `scalar-exports-v1-ok`):
+
+```sh
 semaprax build examples/calculator.spx --target web \
   --export calculator.add --export calculator.subtract \
   --export calculator.multiply --export calculator.divide \
   --export calculator.is-negative --export calculator.not \
   -o target/calculator-web
-node scripts/verify-wasm-scalar-exports.mjs target/calculator-web  # → scalar-exports-v1-ok
 
+node scripts/verify-wasm-scalar-exports.mjs target/calculator-web
+```
+
+```sh
 # multi-file project (check / test / build)
 semaprax check examples/calculator-project/semaprax.toml
 semaprax test examples/calculator-project/semaprax.toml

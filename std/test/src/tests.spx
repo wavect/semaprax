@@ -1,9 +1,14 @@
 module std.test.tests;
+use function @id("std.test.bit_for") from std.test as bit_for;
+use function @id("std.test.bit_is_set") from std.test as bit_is_set;
 use function @id("std.test.equal_bool") from std.test as equal_bool;
 use function @id("std.test.equal_i64") from std.test as equal_i64;
 use function @id("std.test.failure_bit_unless") from std.test as failure_bit_unless;
 use function @id("std.test.failure_if") from std.test as failure_if;
+use function @id("std.test.failure_count") from std.test as failure_count;
 use function @id("std.test.failure_unless") from std.test as failure_unless;
+use function @id("std.test.first_failure") from std.test as first_failure;
+use function @id("std.test.record_failure") from std.test as record_failure;
 
 @id("std.test.tests.predicates")
 fn predicates() -> bool
@@ -17,8 +22,22 @@ fn statuses() -> bool
     failure_unless(true) == 0 && failure_unless(false) == 1 && failure_if(false) == 0 && failure_if(true) == 1 && failure_bit_unless(true, 8) == 0 && failure_bit_unless(false, 8) == 8
 }
 
+@id("std.test.tests.masks")
+fn masks() -> bool
+{
+    let bits = bit_for(0) == 1 && bit_for(1) == 2 && bit_for(10) == 1024;
+    let empty = first_failure(0) == -1 && failure_count(0) == 0;
+    let one = record_failure(0, 0, false);
+    let two = record_failure(one, 3, false);
+    let passed = record_failure(two, 5, true);
+    let accumulated = two == 9 && passed == 9;
+    let membership = bit_is_set(passed, 0) && bit_is_set(passed, 3) && !bit_is_set(passed, 5);
+    let reported = first_failure(passed) == 0 && failure_count(passed) == 2 && first_failure(bit_for(7)) == 7;
+    bits && empty && accumulated && membership && reported
+}
+
 @id("std.test.tests.main")
 fn main() -> i64
 {
-    failure_bit_unless(predicates(), 1) + failure_bit_unless(statuses(), 2)
+    record_failure(record_failure(record_failure(0, 0, predicates()), 1, statuses()), 2, masks())
 }

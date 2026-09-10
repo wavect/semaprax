@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a failure-mask discipline to `std.test`, so a nonzero test result names
+  the failing check instead of merely being nonzero: `bit_for` is the bit an
+  indexed case owns, `bit_is_set` reports membership, `record_failure`
+  accumulates one case's verdict, and `first_failure` and `failure_count`
+  report the lowest failing index and the number of failures. Indexes run 0 to
+  62, `record_failure` refuses a bit another case already claimed, and the
+  accumulated mask is monotonic, so two cases cannot silently share a bit and
+  hide one another. The package's own conformance and examples modules now use
+  the discipline they document.
+
 - Add quote-aware field cursors to `std.data.csv`: `field_end` stops at the
   first comma outside quotes, `field_start` opens the next field,
   `field_is_quoted` reports the quoted form, and `content_start` and

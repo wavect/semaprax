@@ -1,9 +1,22 @@
 module std.test.examples;
 use function @id("std.test.equal_i64") from std.test as equal_i64;
 use function @id("std.test.failure_bit_unless") from std.test as failure_bit_unless;
+use function @id("std.test.first_failure") from std.test as first_failure;
+use function @id("std.test.record_failure") from std.test as record_failure;
+
+// Three checks, each owning one bit: the accumulated mask names the failing
+// check rather than counting failures, and `first_failure` reports its index.
+@id("std.test.examples.suite")
+fn suite() -> i64
+{
+    let first = record_failure(0, 0, equal_i64(2 + 2, 4));
+    let second = record_failure(first, 1, equal_i64(7 % 3, 1));
+    let third = record_failure(second, 2, equal_i64(-8 / 2, -4));
+    if first_failure(third) == -1 { third } else { third }
+}
 
 @id("std.test.examples.main")
 fn main() -> i64
 {
-    failure_bit_unless(equal_i64(2 + 2, 4), 1)
+    failure_bit_unless(equal_i64(2 + 2, 4), 1) + suite()
 }

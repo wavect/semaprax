@@ -35,3 +35,74 @@ fn failure_bit_unless(condition: bool, failure_bit: i64) -> i64
 {
     if condition { 0 } else { failure_bit }
 }
+
+// Failure masks. A case reports its own bit, so a nonzero test result names
+// exactly which checks failed instead of counting them.
+@id("std.test.bit_for")
+fn bit_for(index: i64) -> i64
+    requires index >= 0 && index <= 62
+    ensures result > 0
+{
+    let mut value = 1;
+    let mut step = 0;
+    let mut doubling = step < index;
+    while doubling {
+        value = value * 2;
+        step = step + 1;
+        doubling = step < index;
+        doubling
+    }
+    value
+}
+
+@id("std.test.bit_is_set")
+fn bit_is_set(mask: i64, index: i64) -> bool
+    requires mask >= 0 && index >= 0 && index <= 62
+{
+    mask / bit_for(index) % 2 == 1
+}
+
+// Accumulates one case's verdict. The bit must be unclaimed, so two cases
+// cannot silently share a bit and hide one another.
+@id("std.test.record_failure")
+fn record_failure(mask: i64, index: i64, passed: bool) -> i64
+    requires mask >= 0 && index >= 0 && index <= 62 && !bit_is_set(mask, index)
+    ensures result >= mask
+{
+    if passed { mask } else { mask + bit_for(index) }
+}
+
+@id("std.test.first_failure")
+fn first_failure(mask: i64) -> i64
+    requires mask >= 0
+    ensures result >= -1 && result <= 62
+{
+    let mut index = 0;
+    let mut found = -1;
+    let mut scanning = index <= 62;
+    while scanning {
+        let set = bit_is_set(mask, index);
+        found = if set && found < 0 { index } else { found };
+        index = index + 1;
+        scanning = found < 0 && index <= 62;
+        scanning
+    }
+    found
+}
+
+@id("std.test.failure_count")
+fn failure_count(mask: i64) -> i64
+    requires mask >= 0
+    ensures result >= 0 && result <= 63
+{
+    let mut remaining = mask;
+    let mut count = 0;
+    let mut scanning = remaining > 0;
+    while scanning {
+        count = count + remaining % 2;
+        remaining = remaining / 2;
+        scanning = remaining > 0;
+        scanning
+    }
+    count
+}

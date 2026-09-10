@@ -2813,6 +2813,51 @@ fn failure_bit_unless(condition: bool, failure_bit: i64) -> i64
     ensures result == 0 || result == failure_bit
 ```
 
+### `std.test.bit_for`
+
+Failure masks. A case reports its own bit, so a nonzero test result names
+exactly which checks failed instead of counting them.
+
+```semaprax
+fn bit_for(index: i64) -> i64
+    requires index >= 0 && index <= 62
+    ensures result > 0
+```
+
+### `std.test.bit_is_set`
+
+```semaprax
+fn bit_is_set(mask: i64, index: i64) -> bool
+    requires mask >= 0 && index >= 0 && index <= 62
+```
+
+### `std.test.record_failure`
+
+Accumulates one case's verdict. The bit must be unclaimed, so two cases
+cannot silently share a bit and hide one another.
+
+```semaprax
+fn record_failure(mask: i64, index: i64, passed: bool) -> i64
+    requires mask >= 0 && index >= 0 && index <= 62 && !bit_is_set(mask, index)
+    ensures result >= mask
+```
+
+### `std.test.first_failure`
+
+```semaprax
+fn first_failure(mask: i64) -> i64
+    requires mask >= 0
+    ensures result >= -1 && result <= 62
+```
+
+### `std.test.failure_count`
+
+```semaprax
+fn failure_count(mask: i64) -> i64
+    requires mask >= 0
+    ensures result >= 0 && result <= 63
+```
+
 ## `std.test.bytes`
 
 Package `std/test-bytes`, tier `test`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.test.bytes = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

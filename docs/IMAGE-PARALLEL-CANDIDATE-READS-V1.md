@@ -1,6 +1,7 @@
 # Parallel retained semantic reads v1
 
-Status: implementation and regression evidence authored, unrun.
+Status: bounded implementation; **HOSTED GREEN** for v0.4.0.
+See the [release baseline](RELEASE-0.4.0-STATUS.md) for evidence scope.
 
 Audience: embedding hosts, agent builders and compiler contributors.
 
@@ -128,10 +129,11 @@ computations can run together. This contract makes no total heap, RSS, stack,
 latency, CPU, model-token or throughput guarantee. It introduces no cancellation,
 persistent worker pool, automatic scheduling, durable cursor or session recovery.
 
-`tests/image_protocol/parallel_candidate_reads_v1.rs` authors sequential-byte parity,
+`tests/image_protocol/parallel_candidate_reads_v1.rs` covers sequential-byte parity,
 historical and pending selection, immutable parent retention, closed method
 grants, malformed/stale selection and source-drift cases. The original batch
 evidence continues to own input ordering, worker bounds, join and panic behavior.
-Tests, compiler checks and long local quality gates were not run. Executed
-concurrency/isolation evidence and representative multi-agent measurements
-remain required; no completion-matrix row is promoted.
+The implemented release regressions, including the admitted concurrency and
+isolation checks, are HOSTED GREEN for v0.4.0. Representative multi-agent
+measurements and broader scheduling remain separate; no mature-product
+completion-matrix row is promoted by this evidence classification.

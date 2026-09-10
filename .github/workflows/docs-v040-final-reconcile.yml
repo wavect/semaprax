@@ -88,6 +88,26 @@ jobs:
               path = root / name
               path.parent.mkdir(parents=True, exist_ok=True)
               path.write_text(text, encoding='utf-8')
+          # mdBook SUMMARY entries are local chapter sources, unlike ordinary body links.
+          post_fixes = {
+              'docs/SUMMARY.md': [
+                  ('[Changelog](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md)', '[Changelog](../CHANGELOG.md)'),
+                  ('[Examples index](https://github.com/wavect/semaprax/blob/main/examples/README.md)', '[Examples index](../examples/README.md)'),
+              ],
+              'docs/audit/verify_v040.py': [
+                  ("    summary = (docs / 'SUMMARY.md').read_text(encoding='utf-8')\n", "    summary = (docs / 'SUMMARY.md').read_text(encoding='utf-8')\n    for target in targets(summary):\n        if target.startswith(('https://', 'http://')):\n            errors.append(f'docs/SUMMARY.md: mdBook chapter must use a local path: {target}')\n"),
+              ],
+              'docs/DOCUMENTATION-AUDIT-0.4.0.md': [
+                  ('Book-facing links to root-level\nMarkdown were made explicit repository links rather than nonexistent book\nchapters. The source-verified tour and installed guidance retain their exact\ncommitted text and examples.', 'Body links to root-level Markdown were made explicit repository links rather\nthan nonexistent book chapters; the mdBook catalog retains local source paths\nfor its included chapters. The source-verified tour and installed guidance\nretain their exact committed text and examples.'),
+              ],
+          }
+          for name, pairs in post_fixes.items():
+              path = root / name
+              text = path.read_text(encoding='utf-8')
+              for old, new in pairs:
+                  assert text.count(old) == 1, name
+                  text = text.replace(old, new)
+              path.write_text(text, encoding='utf-8')
           spec = importlib.util.spec_from_file_location('audit_check', root / 'docs/audit/verify_v040.py')
           checker = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(checker)
@@ -116,7 +136,7 @@ jobs:
           changed = git('diff', '--name-only', 'v0.4.0', '--').decode().splitlines()
           assert all(p.startswith('docs/') or p in {'README.md', workflow} for p in changed), changed
           (out / 'inventory-counts.json').write_text(json.dumps(counts, indent=2) + '\n')
-          (out / 'recipe-manifest.json').write_text(json.dumps({'baseline': baseline, 'paths': sorted(expected), 'result_sha256': digest.hexdigest()}, indent=2) + '\n')
+          (out / 'recipe-manifest.json').write_text(json.dumps({'baseline': baseline, 'paths': sorted(expected), 'result_sha256': digest.hexdigest(), 'post_reconciliation_fixes': sorted(post_fixes)}, indent=2) + '\n')
           print(json.dumps(counts, indent=2))
       - name: Run complete documentation consistency and preservation checks
         shell: bash

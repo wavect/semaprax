@@ -8,6 +8,17 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add span cursors to `std.bytes`: `is_space`, `trim_start`, `trim_end` and
+  `is_blank` for ASCII whitespace, and `field_end`, `field_start` and
+  `field_count` for delimiter-separated fields. Field walking preserves empty
+  fields, so `a,,b` is three fields and a trailing delimiter opens one final
+  empty field, and every operation is a borrowed-view offset computation with
+  no allocation and no copy. The offsets compose directly with the
+  `std.io.lines` line content, so a bounded caller can walk a delimited record
+  and trim each field without a buffer. Whitespace is exactly space, tab,
+  carriage return and line feed; no Unicode whitespace class, quoting or
+  escaping policy is implied.
+
 - Add field padding to `std.format` under the existing
   [Format Writer v1](docs/FORMAT-WRITER-V1.md) contract: `pad_len` is the field
   width actually written (never narrower than the content), `append_fill`

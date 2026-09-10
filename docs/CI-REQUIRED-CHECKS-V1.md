@@ -103,7 +103,7 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 
 | Job | Published context names | Count |
 | --- | --- | --- |
-| `std-library-depth` | `STD-08 std.io.lines and std.path.normalize` | 1 |
+| `std-library-depth` | `STD-08 bundled library depth` | 1 |
 | `supply-chain` | `Dependency policy` | 1 |
 | `component-runtime-v3` | `Private Wasmtime Component result runtime` | 1 |
 | `wasm-scalar-exports-browser-v1` | `Public Wasm Scalar Exports v1 Chromium` | 1 |

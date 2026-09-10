@@ -156,3 +156,95 @@ fn read_u32_be(view: borrow Slice<u8>, offset: usize) -> i64
 {
     read_u16_be(view, offset) * 65536 + read_u16_be(view, offset + 2usize)
 }
+
+// ASCII whitespace: space, horizontal tab, carriage return, line feed.  No
+// Unicode class is implied.
+@id("std.bytes.is_space")
+fn is_space(byte: u8) -> bool
+{
+    byte == 32u8 || byte == 9u8 || byte == 13u8 || byte == 10u8
+}
+
+@id("std.bytes.trim_start")
+fn trim_start(view: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(view)
+{
+    let length = byte_len(view);
+    let mut index = 0usize;
+    let mut scanning = index < length;
+    while scanning {
+        let blank = match byte_get(view, index) { Option::Some { value } => is_space(value), Option::None {} => false, };
+        index = if blank { index + 1usize } else { index };
+        scanning = blank && index < length;
+        scanning
+    }
+    index
+}
+
+@id("std.bytes.trim_end")
+fn trim_end(view: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(view)
+{
+    let mut end = byte_len(view);
+    let mut scanning = end > 0usize;
+    while scanning {
+        let blank = match byte_get(view, end - 1usize) { Option::Some { value } => is_space(value), Option::None {} => false, };
+        end = if blank { end - 1usize } else { end };
+        scanning = blank && end > 0usize;
+        scanning
+    }
+    end
+}
+
+@id("std.bytes.is_blank")
+fn is_blank(view: borrow Slice<u8>) -> bool
+{
+    trim_start(view) == byte_len(view)
+}
+
+// Delimited fields keep empty fields: `a,,b` is three fields, and a trailing
+// delimiter opens one final empty field.
+@id("std.bytes.field_end")
+fn field_end(view: borrow Slice<u8>, start: usize, delimiter: u8) -> usize
+    requires start <= byte_len(view)
+    ensures result >= start && result <= byte_len(view)
+{
+    let length = byte_len(view);
+    let mut index = start;
+    let mut scanning = index < length;
+    while scanning {
+        let found = match byte_get(view, index) { Option::Some { value } => value == delimiter, Option::None {} => true, };
+        index = if found { index } else { index + 1usize };
+        scanning = !found && index < length;
+        scanning
+    }
+    index
+}
+
+@id("std.bytes.field_start")
+fn field_start(view: borrow Slice<u8>, start: usize, delimiter: u8) -> usize
+    requires start <= byte_len(view)
+    ensures result >= start && result <= byte_len(view)
+{
+    let length = byte_len(view);
+    let end = field_end(view, start, delimiter);
+    if end < length { end + 1usize } else { length }
+}
+
+@id("std.bytes.field_count")
+fn field_count(view: borrow Slice<u8>, delimiter: u8) -> usize
+    ensures result >= 1usize
+{
+    let length = byte_len(view);
+    let mut index = 0usize;
+    let mut count = 1usize;
+    let mut scanning = index < length;
+    while scanning {
+        let found = match byte_get(view, index) { Option::Some { value } => value == delimiter, Option::None {} => false, };
+        count = if found { count + 1usize } else { count };
+        index = index + 1usize;
+        scanning = index < length;
+        scanning
+    }
+    count
+}

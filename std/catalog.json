@@ -407,6 +407,103 @@
           "kind": "function",
           "name": "read_u32_be",
           "requires": 1
+        },
+        {
+          "description": [
+            "ASCII whitespace: space, horizontal tab, carriage return, line feed.  No",
+            "Unicode class is implied."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_space(byte: u8) -> bool"
+          ],
+          "id": "std.bytes.is_space",
+          "kind": "function",
+          "name": "is_space",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn trim_start(view: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(view)"
+          ],
+          "id": "std.bytes.trim_start",
+          "kind": "function",
+          "name": "trim_start",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn trim_end(view: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(view)"
+          ],
+          "id": "std.bytes.trim_end",
+          "kind": "function",
+          "name": "trim_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_blank(view: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.bytes.is_blank",
+          "kind": "function",
+          "name": "is_blank",
+          "requires": 0
+        },
+        {
+          "description": [
+            "Delimited fields keep empty fields: `a,,b` is three fields, and a trailing",
+            "delimiter opens one final empty field."
+          ],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn field_end(view: borrow Slice<u8>, start: usize, delimiter: u8) -> usize",
+            "    requires start <= byte_len(view)",
+            "    ensures result >= start && result <= byte_len(view)"
+          ],
+          "id": "std.bytes.field_end",
+          "kind": "function",
+          "name": "field_end",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn field_start(view: borrow Slice<u8>, start: usize, delimiter: u8) -> usize",
+            "    requires start <= byte_len(view)",
+            "    ensures result >= start && result <= byte_len(view)"
+          ],
+          "id": "std.bytes.field_start",
+          "kind": "function",
+          "name": "field_start",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn field_count(view: borrow Slice<u8>, delimiter: u8) -> usize",
+            "    ensures result >= 1usize"
+          ],
+          "id": "std.bytes.field_count",
+          "kind": "function",
+          "name": "field_count",
+          "requires": 0
         }
       ],
       "dependency": "std.bytes = \"^0.1.0\"",

@@ -1,8 +1,29 @@
 module std.bytes.examples;
 use function @id("std.bytes.count") from std.bytes as count;
+use function @id("std.bytes.field_count") from std.bytes as field_count;
+use function @id("std.bytes.field_end") from std.bytes as field_end;
+use function @id("std.bytes.field_start") from std.bytes as field_start;
+use function @id("std.bytes.trim_end") from std.bytes as trim_end;
+use function @id("std.bytes.trim_start") from std.bytes as trim_start;
 use function @id("std.bytes.ends_with") from std.bytes as ends_with;
 use function @id("std.bytes.is_ascii") from std.bytes as is_ascii;
 use function @id("std.bytes.read_u16_le") from std.bytes as read_u16_le;
+
+// One comma-separated record walked field by field, with the padding around
+// the second field trimmed.  Nothing is copied and no buffer is allocated.
+@id("std.bytes.examples.record")
+fn record() -> i64
+{
+    let line = [97u8, 44u8, 32u8, 98u8, 32u8, 44u8, 99u8];
+    let view = array_as_slice(line);
+    let first = field_end(view, 0usize, 44u8);
+    let second = field_start(view, 0usize, 44u8);
+    let second_end = field_end(view, second, 44u8);
+    let inner = byte_range(view, second, second_end);
+    let padded = trim_start(inner) == 1usize && trim_end(inner) == 2usize;
+    let third = field_start(view, second, 44u8);
+    if field_count(view, 44u8) == 3usize && first == 1usize && second == 2usize && third == 6usize && padded { 0 } else { 1 }
+}
 
 @id("std.bytes.examples.main")
 fn main() -> i64
@@ -10,5 +31,5 @@ fn main() -> i64
     let frame = [104u8, 101u8, 108u8, 108u8, 111u8, 1u8, 2u8];
     let view = array_as_slice(frame);
     let suffix = [1u8, 2u8];
-    if is_ascii(view) && count(view, 108u8) == 2usize && read_u16_le(view, 5usize) == 513 && ends_with(view, array_as_slice(suffix)) { 0 } else { 1 }
+    if is_ascii(view) && count(view, 108u8) == 2usize && read_u16_le(view, 5usize) == 513 && ends_with(view, array_as_slice(suffix)) { record() } else { 1 }
 }

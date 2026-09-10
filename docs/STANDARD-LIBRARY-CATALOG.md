@@ -228,6 +228,61 @@ fn read_u32_be(view: borrow Slice<u8>, offset: usize) -> i64
     ensures result >= 0 && result <= 4294967295
 ```
 
+### `std.bytes.is_space`
+
+ASCII whitespace: space, horizontal tab, carriage return, line feed.  No
+Unicode class is implied.
+
+```semaprax
+fn is_space(byte: u8) -> bool
+```
+
+### `std.bytes.trim_start`
+
+```semaprax
+fn trim_start(view: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(view)
+```
+
+### `std.bytes.trim_end`
+
+```semaprax
+fn trim_end(view: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(view)
+```
+
+### `std.bytes.is_blank`
+
+```semaprax
+fn is_blank(view: borrow Slice<u8>) -> bool
+```
+
+### `std.bytes.field_end`
+
+Delimited fields keep empty fields: `a,,b` is three fields, and a trailing
+delimiter opens one final empty field.
+
+```semaprax
+fn field_end(view: borrow Slice<u8>, start: usize, delimiter: u8) -> usize
+    requires start <= byte_len(view)
+    ensures result >= start && result <= byte_len(view)
+```
+
+### `std.bytes.field_start`
+
+```semaprax
+fn field_start(view: borrow Slice<u8>, start: usize, delimiter: u8) -> usize
+    requires start <= byte_len(view)
+    ensures result >= start && result <= byte_len(view)
+```
+
+### `std.bytes.field_count`
+
+```semaprax
+fn field_count(view: borrow Slice<u8>, delimiter: u8) -> usize
+    ensures result >= 1usize
+```
+
 ## `std.collections`
 
 Package `std/collections`, tier `alloc`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.collections = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

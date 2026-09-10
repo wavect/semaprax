@@ -221,7 +221,7 @@ jobs:
           cargo test --locked -p semaprax --test workspace canonical_revision::generic_instances::generic_result_program_root_replays_checked_variant_closures -- --exact
 
   std-library-depth:
-    name: STD-08 std.io.lines and std.path.normalize
+    name: STD-08 bundled library depth
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -263,6 +263,7 @@ jobs:
           cargo test --locked -p semaprax --test project standard_library::path_normalize::path_normalization_executes_on_all_three_backends -- --exact --nocapture
           cargo test --locked -p semaprax --test project standard_library::typed_paths -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::formatting -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::byte_spans -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::json_cursors -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::logging -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::catalog -- --nocapture

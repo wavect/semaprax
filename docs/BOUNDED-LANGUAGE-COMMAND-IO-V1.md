@@ -2,9 +2,9 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: locally evidenced implementation tranche. This document freezes the
-reviewed contract; exact-head hosted promotion, registry publication, and
-release completion remain pending.
+Status: implemented bounded profile; **HOSTED GREEN** under the
+[v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md). This document freezes the
+reviewed contract; registry/public-support decisions remain separate.
 
 ## Objective
 
@@ -166,9 +166,9 @@ build and independently replay the carrier, but it does not claim a weaker
 path-based publication primitive as equivalent to the Unix handle-relative
 no-clobber route.
 
-## Local evidence
+## Evidence
 
-The focused local gates are:
+The focused selectors are:
 
 ```sh
 cargo test --locked -p semaprax --test useful_data bounded_language_command_io::
@@ -184,8 +184,10 @@ input and dual-output bounds, one-read/one-write path restrictions, exact
 CleanupPlan builder/replay facts, Graph v19 projection, interpreter and native
 C11 O0/O2 settlement, Core-Wasm/Node command execution, Project v6 canonical
 manifest and carrier replay, ordinary Project-CLI native command publication,
-and preservation of earlier schema/package bytes. These are local artifact and
-execution facts only; they do not promote the affected completion rows.
+and preservation of earlier schema/package bytes. The implemented release
+corpus is **HOSTED GREEN** for v0.4.0. Historical local runs retain their own
+subjects and do not independently establish registry publication or broader
+platform support.
 
 ## Nonclaims
 
@@ -194,4 +196,4 @@ networking, child processes, terminals, interactive or streaming I/O,
 multiple reads or writes, mutable input views, callbacks, async, threads,
 WASI, Component Model I/O, arbitrary host imports, cross-descriptor atomicity,
 physical write durability, dependency resolution, registry publication,
-signing, provenance, or release promotion.
+signing, provenance, or production support.

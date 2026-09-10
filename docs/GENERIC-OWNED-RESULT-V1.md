@@ -6,11 +6,11 @@ Admission covers owned-Bytes success with all eight Copy error substitutions
 and Bytes errors, and all eight Copy success substitutions with owned-Bytes
 errors. Public generic ABI and support remain separately gated.
 
+Audience: compiler contributors and language reviewers.
+
 Historical local source/HIR, graph, workspace replay, interpreter, native O0/O2
 and Core-Wasm witnesses remain attached to their original execution; they are
 not a new test run or the current evidence ceiling.
-
-Audience: compiler contributors and language reviewers.
 
 ## Semantic scope
 

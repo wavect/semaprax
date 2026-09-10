@@ -4,13 +4,13 @@ Status: implemented private profile; **HOSTED GREEN** under the
 [accepted v0.4.0 release baseline](RELEASE-0.4.0-STATUS.md).
 Public generic ABI and support promotion remain separately gated.
 
+Audience: compiler contributors and reviewers.
+
 Historical local witness: fifteen language checks, six direct inference/precheck
 checks, five graph mapping checks, three private ProgramRoot replays and three
 owned runtime corpora passed. Interpreter, native O0/O2 and Core Wasm agreed on
 success, failure cleanup and evaluation-once probes. These counts describe that
 local execution, not a new test run or the current evidence ceiling.
-
-Audience: compiler contributors and reviewers.
 
 This extends [v2](GENERIC-ARGUMENT-INFERENCE-V2.md) with nested omitted-call
 result evidence and inference inside admitted generic functions. It preserves

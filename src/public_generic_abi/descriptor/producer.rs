@@ -1,4 +1,4 @@
-//! Derive a [`DescriptorV1`](super::DescriptorV1) from a real checked
+//! Derive a [`DescriptorV1`] from a real checked
 //! `ResolvedProgram`, instead of the hand-built fixtures the codec's own
 //! tests use.
 //!

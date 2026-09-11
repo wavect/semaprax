@@ -39,16 +39,16 @@
 //!
 //! # Modules
 //!
-//! - `binding`: [`StageBinding`](binding::StageBinding) — the exact
+//! - `binding`: [`StageBinding`] — the exact
 //!   nominal-type/schema-revision/(optional exact case) admission a checked
 //!   stage or effect operation slot requires, and its `admit` refusal.
 //! - `projection`: recursive `DecodedInteractionValue` → `RetainedValue`
 //!   projection.
-//! - `registry`: [`TypedCarrierRegistry`](registry::TypedCarrierRegistry)
-//!   — an ordered, selector-addressed rich effect operation registry, and
-//!   the orchestration that validates argument/result shapes and exact
-//!   deployed-operation identity before/after a handler call.
-//! - `ownership`: [`OwnershipLedger`](ownership::OwnershipLedger) and the
+//! - `registry`: [`TypedCarrierRegistry`] — an ordered, selector-addressed
+//!   rich effect operation registry, and the orchestration that validates
+//!   argument/result shapes and exact deployed-operation identity
+//!   before/after a handler call.
+//! - `ownership`: [`OwnershipLedger`] and the
 //!   staged retained-call orchestration that settles it exactly once on
 //!   every path, including every failure edge.
 //! - `checkpoint`: an independent, versioned rich-value checkpoint codec,

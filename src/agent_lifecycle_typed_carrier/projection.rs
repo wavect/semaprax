@@ -2,8 +2,7 @@
 //! [`DecodedInteractionValue`] into the real checked interpreter's
 //! [`RetainedValue`] vocabulary.
 //!
-//! This walks the decoded value and its derivation
-//! [`TypeGraph`](crate::agent_interaction_schema::shape::TypeGraph) in
+//! This walks the decoded value and its derivation [`TypeGraph`] in
 //! lockstep (the decoded value alone does not retain a nested field's
 //! nominal type identity — only the derivation graph does — so both are
 //! required to build a `RetainedRecord`/`RetainedVariant` correctly keyed

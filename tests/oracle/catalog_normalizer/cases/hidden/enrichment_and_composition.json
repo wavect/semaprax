@@ -1,0 +1,29 @@
+{
+  "schema": "semaprax.catalog-normalizer-corpus.v1",
+  "cases": [
+    {
+      "name": "enrichment-timeout-rejects-batch",
+      "enrich": true,
+      "expected_output": "{\"status\":\"error\",\"category\":\"provider_timeout\",\"record_index\":0,\"byte_offset\":7}\n",
+      "input": "{\"id\": \"slow-vendor\", \"label\": \"l\", \"quantity\": 1}\n"
+    },
+    {
+      "name": "enrichment-malformed-rejects-batch",
+      "enrich": true,
+      "expected_output": "{\"status\":\"error\",\"category\":\"provider_malformed\",\"record_index\":0,\"byte_offset\":7}\n",
+      "input": "{\"id\": \"garbled-vendor\", \"label\": \"l\", \"quantity\": 1}\n"
+    },
+    {
+      "name": "enrichment-found-with-multiple-records-mixed-outcomes",
+      "enrich": true,
+      "expected_output": "{\"status\":\"ok\",\"count\":3,\"total_quantity\":6,\"records\":[{\"id\":\"widget-1\",\"label\":\"l\",\"quantity\":1,\"category\":7},{\"id\":\"known-missing\",\"label\":\"l\",\"quantity\":2,\"category\":null},{\"id\":\"widget-zero\",\"label\":\"l\",\"quantity\":3,\"category\":0}]}\n",
+      "input": "{\"id\": \"widget-1\", \"label\": \"l\", \"quantity\": 1}\n{\"id\": \"known-missing\", \"label\": \"l\", \"quantity\": 2}\n{\"id\": \"widget-zero\", \"label\": \"l\", \"quantity\": 3}\n"
+    },
+    {
+      "name": "duplicate-id-detected-after-valid-prefix",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"duplicate_id\",\"record_index\":3,\"byte_offset\":7}\n",
+      "input": "{\"id\": \"a1\", \"label\": \"one\", \"quantity\": 1}\n{\"id\": \"a2\", \"label\": \"two\", \"quantity\": 2}\n{\"id\": \"a3\", \"label\": \"three\", \"quantity\": 3}\n{\"id\": \"a1\", \"label\": \"again\", \"quantity\": 4}\n"
+    }
+  ]
+}

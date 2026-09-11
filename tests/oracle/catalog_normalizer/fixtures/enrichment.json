@@ -1,0 +1,14 @@
+{
+  "schema": "semaprax.catalog-normalizer.enrichment-fixture.v1",
+  "comment": "Frozen deterministic provider table for the optional enrichment lookup (CNORM-060..CNORM-066). Keys are exact decoded `id` byte strings, encoded here as UTF-8. An id absent from this table is 'missing', which is the default outcome and is not an error. This table has no relationship to any real catalog or service; it exists only to give the oracle and the implementer a shared, frozen answer key.",
+  "ids": {
+    "widget-1": {"kind": "found", "category_code": 7},
+    "widget-2": {"kind": "found", "category_code": 42},
+    "widget-zero": {"kind": "found", "category_code": 0},
+    "widget-max": {"kind": "found", "category_code": 9999},
+    "known-missing": {"kind": "missing"},
+    "blocked-vendor": {"kind": "denied"},
+    "slow-vendor": {"kind": "timeout"},
+    "garbled-vendor": {"kind": "malformed"}
+  }
+}

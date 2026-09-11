@@ -1,0 +1,65 @@
+{
+  "schema": "semaprax.catalog-normalizer-corpus.v1",
+  "cases": [
+    {
+      "name": "basic-single-record",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":5,\"records\":[{\"id\":\"a1\",\"label\":\"hello\",\"quantity\":5}]}\n",
+      "input": "{\"id\": \"a1\", \"label\": \"hello\", \"quantity\": 5}\n"
+    },
+    {
+      "name": "empty-input",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":0,\"total_quantity\":0,\"records\":[]}\n",
+      "input": ""
+    },
+    {
+      "name": "trailing-newline-only-is-empty-batch",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":0,\"total_quantity\":0,\"records\":[]}\n",
+      "input": "\n"
+    },
+    {
+      "name": "two-records-preserve-order",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":2,\"total_quantity\":3,\"records\":[{\"id\":\"a1\",\"label\":\"first\",\"quantity\":1},{\"id\":\"a2\",\"label\":\"second\",\"quantity\":2}]}\n",
+      "input": "{\"id\": \"a1\", \"label\": \"first\", \"quantity\": 1}\n{\"id\": \"a2\", \"label\": \"second\", \"quantity\": 2}\n"
+    },
+    {
+      "name": "label-trim-boundary-whitespace",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"a1\",\"label\":\"hello world\",\"quantity\":1}]}\n",
+      "input": "{\"id\": \"a1\", \"label\": \" \\t hello world \\t \", \"quantity\": 1}\n"
+    },
+    {
+      "name": "label-internal-whitespace-preserved",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"a1\",\"label\":\"hello    world\",\"quantity\":1}]}\n",
+      "input": "{\"id\": \"a1\", \"label\": \"hello    world\", \"quantity\": 1}\n"
+    },
+    {
+      "name": "label-multibyte-unicode-no-normalization",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"a1\",\"label\":\"Café STRASSE ÜBER\",\"quantity\":1}]}\n",
+      "input": "{\"id\": \"a1\", \"label\": \"  Café STRASSE ÜBER  \", \"quantity\": 1}\n"
+    },
+    {
+      "name": "label-astral-plane-surrogate-pair-escape",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"a1\",\"label\":\"grin 😀 grin\",\"quantity\":1}]}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"grin \\ud83d\\ude00 grin\",\"quantity\":1}\n"
+    },
+    {
+      "name": "quantity-zero-accepted",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":0,\"records\":[{\"id\":\"a1\",\"label\":\"hi\",\"quantity\":0}]}\n",
+      "input": "{\"id\": \"a1\", \"label\": \"hi\", \"quantity\": 0}\n"
+    },
+    {
+      "name": "quantity-max-i64-accepted",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":9223372036854775807,\"records\":[{\"id\":\"a1\",\"label\":\"hi\",\"quantity\":9223372036854775807}]}\n",
+      "input": "{\"id\": \"a1\", \"label\": \"hi\", \"quantity\": 9223372036854775807}\n"
+    }
+  ]
+}

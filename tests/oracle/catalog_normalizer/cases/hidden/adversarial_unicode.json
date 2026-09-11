@@ -1,0 +1,41 @@
+{
+  "schema": "semaprax.catalog-normalizer-corpus.v1",
+  "cases": [
+    {
+      "name": "lone-high-surrogate-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"malformed_json\",\"record_index\":0,\"byte_offset\":21}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"x\\ud800y\",\"quantity\":1}\n"
+    },
+    {
+      "name": "lone-low-surrogate-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"malformed_json\",\"record_index\":0,\"byte_offset\":21}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"x\\udc00y\",\"quantity\":1}\n"
+    },
+    {
+      "name": "control-byte-raw-in-string-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"malformed_json\",\"record_index\":0,\"byte_offset\":21}\n",
+      "input_hex": "7b226964223a226131222c226c6162656c223a22780179222c227175616e74697479223a317d0a"
+    },
+    {
+      "name": "empty-id-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"schema\",\"record_index\":0,\"byte_offset\":7}\n",
+      "input": "{\"id\": \"\", \"label\": \"l\", \"quantity\": 1}\n"
+    },
+    {
+      "name": "id-and-label-both-unicode-with-internal-tab-preserved",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"éé\",\"label\":\"a\\tb  c\",\"quantity\":1}]}\n",
+      "input": "{\"id\":\"\\u00e9\\u00e9\",\"label\":\"a\\tb  c\",\"quantity\":1}\n"
+    },
+    {
+      "name": "label-many-multibyte-chars-exceeds-byte-ceiling",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"oversized_input\",\"record_index\":0,\"byte_offset\":22}\n",
+      "input": "{\"id\": \"a1\", \"label\": \"€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€\", \"quantity\": 1}\n"
+    }
+  ]
+}

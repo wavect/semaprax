@@ -1,0 +1,107 @@
+{
+  "schema": "semaprax.catalog-normalizer-corpus.v1",
+  "cases": [
+    {
+      "name": "duplicate-id-exact-match-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"duplicate_id\",\"record_index\":1,\"byte_offset\":7}\n",
+      "input": "{\"id\": \"dup\", \"label\": \"one\", \"quantity\": 1}\n{\"id\": \"dup\", \"label\": \"two\", \"quantity\": 2}\n"
+    },
+    {
+      "name": "duplicate-id-escape-spelling-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"duplicate_id\",\"record_index\":1,\"byte_offset\":6}\n",
+      "input": "{\"id\":\"dup\",\"label\":\"one\",\"quantity\":1}\n{\"id\":\"d\\u0075p\",\"label\":\"two\",\"quantity\":2}\n"
+    },
+    {
+      "name": "duplicate-required-key-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"schema\",\"record_index\":0,\"byte_offset\":11}\n",
+      "input": "{\"id\":\"a1\",\"id\":\"a2\",\"label\":\"x\",\"quantity\":1}\n"
+    },
+    {
+      "name": "unknown-key-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"schema\",\"record_index\":0,\"byte_offset\":36}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"x\",\"quantity\":1,\"extra\":true}\n"
+    },
+    {
+      "name": "missing-key-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"schema\",\"record_index\":0,\"byte_offset\":0}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"x\"}\n"
+    },
+    {
+      "name": "wrong-type-id-number-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"schema\",\"record_index\":0,\"byte_offset\":6}\n",
+      "input": "{\"id\":1,\"label\":\"x\",\"quantity\":1}\n"
+    },
+    {
+      "name": "wrong-type-label-object-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"schema\",\"record_index\":0,\"byte_offset\":19}\n",
+      "input": "{\"id\":\"a1\",\"label\":{\"nested\":true},\"quantity\":1}\n"
+    },
+    {
+      "name": "wrong-type-quantity-string-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"schema\",\"record_index\":0,\"byte_offset\":34}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"x\",\"quantity\":\"1\"}\n"
+    },
+    {
+      "name": "quantity-fraction-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"schema\",\"record_index\":0,\"byte_offset\":34}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"x\",\"quantity\":1.5}\n"
+    },
+    {
+      "name": "quantity-negative-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"schema\",\"record_index\":0,\"byte_offset\":34}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"x\",\"quantity\":-1}\n"
+    },
+    {
+      "name": "quantity-out-of-i64-range-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"schema\",\"record_index\":0,\"byte_offset\":34}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"x\",\"quantity\":99999999999999999999}\n"
+    },
+    {
+      "name": "invalid-utf8-rejected",
+      "enrich": false,
+      "input_hex": "7b226964223a226131222c226c6162656c223a2278ff79222c227175616e74697479223a317d0a",
+      "expected_output": "{\"status\":\"error\",\"category\":\"invalid_utf8\",\"record_index\":0,\"byte_offset\":21}\n"
+    },
+    {
+      "name": "malformed-json-unterminated-string-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"malformed_json\",\"record_index\":0,\"byte_offset\":32}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"never closes\n"
+    },
+    {
+      "name": "malformed-json-trailing-comma-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"malformed_json\",\"record_index\":0,\"byte_offset\":36}\n",
+      "input": "{\"id\":\"a1\",\"label\":\"x\",\"quantity\":1,}\n"
+    },
+    {
+      "name": "malformed-json-blank-line-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"malformed_json\",\"record_index\":1,\"byte_offset\":0}\n",
+      "input": "{\"id\": \"a1\", \"label\": \"x\", \"quantity\": 1}\n\n"
+    },
+    {
+      "name": "overflow-total-rejected",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"overflow\",\"record_index\":1,\"byte_offset\":7}\n",
+      "input": "{\"id\": \"a1\", \"label\": \"x\", \"quantity\": 9223372036854775807}\n{\"id\": \"a2\", \"label\": \"y\", \"quantity\": 1}\n"
+    },
+    {
+      "name": "first-error-wins-among-multiple-bad-records",
+      "enrich": false,
+      "expected_output": "{\"status\":\"error\",\"category\":\"duplicate_id\",\"record_index\":1,\"byte_offset\":7}\n",
+      "input": "{\"id\": \"dup\", \"label\": \"x\", \"quantity\": 1}\n{\"id\": \"dup\", \"label\": \"y\", \"quantity\": 2}\n{\"id\":\"a3\",\"label\":\"z\",\"quantity\":-9}\n"
+    }
+  ]
+}

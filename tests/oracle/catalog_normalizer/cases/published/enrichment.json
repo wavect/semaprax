@@ -1,0 +1,35 @@
+{
+  "schema": "semaprax.catalog-normalizer-corpus.v1",
+  "cases": [
+    {
+      "name": "enrichment-found",
+      "enrich": true,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"widget-1\",\"label\":\"l\",\"quantity\":1,\"category\":7}]}\n",
+      "input": "{\"id\": \"widget-1\", \"label\": \"l\", \"quantity\": 1}\n"
+    },
+    {
+      "name": "enrichment-explicit-missing",
+      "enrich": true,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"known-missing\",\"label\":\"l\",\"quantity\":1,\"category\":null}]}\n",
+      "input": "{\"id\": \"known-missing\", \"label\": \"l\", \"quantity\": 1}\n"
+    },
+    {
+      "name": "enrichment-absent-from-table-is-missing",
+      "enrich": true,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"not-in-table\",\"label\":\"l\",\"quantity\":1,\"category\":null}]}\n",
+      "input": "{\"id\": \"not-in-table\", \"label\": \"l\", \"quantity\": 1}\n"
+    },
+    {
+      "name": "enrichment-denied-rejects-batch",
+      "enrich": true,
+      "expected_output": "{\"status\":\"error\",\"category\":\"provider_denied\",\"record_index\":0,\"byte_offset\":7}\n",
+      "input": "{\"id\": \"blocked-vendor\", \"label\": \"l\", \"quantity\": 1}\n"
+    },
+    {
+      "name": "enrichment-disabled-by-default-ignores-fixture",
+      "enrich": false,
+      "expected_output": "{\"status\":\"ok\",\"count\":1,\"total_quantity\":1,\"records\":[{\"id\":\"blocked-vendor\",\"label\":\"l\",\"quantity\":1}]}\n",
+      "input": "{\"id\": \"blocked-vendor\", \"label\": \"l\", \"quantity\": 1}\n"
+    }
+  ]
+}

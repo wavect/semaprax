@@ -6,6 +6,8 @@
 *.o
 *.out
 .DS_Store
+__pycache__/
+*.pyc
 platform-tests/wasm-scalar-browser-v1/node_modules/
 platform-tests/wasm-scalar-browser-v1/playwright-report/
 platform-tests/wasm-scalar-browser-v1/test-results/

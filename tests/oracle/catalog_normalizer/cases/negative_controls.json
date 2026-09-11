@@ -1,0 +1,48 @@
+{
+  "schema": "semaprax.catalog-normalizer-negative-controls.v1",
+  "comment": "Required evidence per GitHub issue #117: 'Add oracle self-tests that reject plausible wrong implementations' and 'A deliberately wrong sample candidate cannot pass by matching only the visible example.' Each control names one of oracle.py's BUGGY_MODES and one existing known-answer case (its 'exposing case') on which that bug's output provably differs from the correct oracle output. oracle.py --self-test runs every control and fails if a buggy output ever matches the correct output, which would mean the control failed to expose its bug.",
+  "controls": [
+    {
+      "buggy": "accept-duplicate-keys",
+      "zone": "published",
+      "manifest": "errors.json",
+      "case": "duplicate-required-key-rejected",
+      "issue-117-anti-pattern": "silently accepting duplicate keys"
+    },
+    {
+      "buggy": "count-chars-as-bytes",
+      "zone": "hidden",
+      "manifest": "adversarial_unicode.json",
+      "case": "label-many-multibyte-chars-exceeds-byte-ceiling",
+      "issue-117-anti-pattern": "counting Unicode characters as bytes"
+    },
+    {
+      "buggy": "publish-prefix-after-error",
+      "zone": "hidden",
+      "manifest": "enrichment_and_composition.json",
+      "case": "duplicate-id-detected-after-valid-prefix",
+      "issue-117-anti-pattern": "publishing a valid prefix after a later error"
+    },
+    {
+      "buggy": "unchecked-total",
+      "zone": "published",
+      "manifest": "errors.json",
+      "case": "overflow-total-rejected",
+      "issue-117-anti-pattern": "unchecked totals"
+    },
+    {
+      "buggy": "retry-nonretryable-provider-error",
+      "zone": "published",
+      "manifest": "enrichment.json",
+      "case": "enrichment-denied-rejects-batch",
+      "issue-117-anti-pattern": "retrying a non-retryable provider error"
+    },
+    {
+      "buggy": "hardcode-example",
+      "zone": "hidden",
+      "manifest": "boundaries.json",
+      "case": "records-count-257-boundary-oversized-rejected",
+      "issue-117-anti-pattern": "a candidate that hard-codes the visible published example and cannot pass a hidden input variant"
+    }
+  ]
+}

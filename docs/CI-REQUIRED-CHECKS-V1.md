@@ -103,6 +103,7 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 
 | Job | Published context names | Count |
 | --- | --- | --- |
+| `public-generic-ownership-milestone` | `Public generic ownership milestone (ubuntu-latest \| macos-latest \| windows-latest)` | 3 |
 | `std-library-depth` | `STD-08 bundled library depth` | 1 |
 | `supply-chain` | `Dependency policy` | 1 |
 | `component-runtime-v3` | `Private Wasmtime Component result runtime` | 1 |
@@ -124,9 +125,9 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | `release-gate` | **`Release gate`** | 1 |
 
 The authored workflow additionally includes the three AGENT-06 client contexts
-and the GEN-05B closure context. With `verify-build`, it declares 48 blocking
-contexts plus the aggregate; the new build and library-depth contexts await
-hosted execution.
+and the GEN-05B closure context. With `verify-build`, it declares 51 blocking
+contexts plus the aggregate; the new build, library-depth, and public generic
+ownership milestone contexts await hosted execution.
 `release-artifacts`
 (`Release artifact (<target>)`) and `publish-release` (`Publish tag release`)
 run only on `refs/tags/v*` and are not candidates for a branch rule. The `Docs`
@@ -134,7 +135,7 @@ workflow adds `Build book` and, on `main` pushes only, `Deploy to GitHub Pages`.
 
 ## The aggregate gate
 
-`.github/workflows/ci.yml` shards across twenty blocking jobs whose names and
+`.github/workflows/ci.yml` shards across twenty-one blocking jobs whose names and
 matrix legs change often. Pinning twenty-plus expanded context names into a ruleset
 would make every sharding change a repository-administration change. The
 proposal requires exactly one context instead: **`Release gate`**, the job that

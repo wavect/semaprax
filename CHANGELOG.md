@@ -8,6 +8,19 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Wire the public generic ownership milestone corpus into CI as the
+  `public-generic-ownership-milestone` job on `ubuntu-latest`,
+  `macos-latest` and `windows-latest`, and declare it a release blocker so
+  it cannot be satisfied vacuously. It runs the grammar, template-identity,
+  compatibility and metadata-consumer projections, the separation gate, the
+  frozen Project v9/v11 descriptor refusals of a selected generic result,
+  and the four-language consumer gate, and it resolves and prints the
+  consumer toolchains each host actually has - a language whose toolchain is
+  absent is skipped, which is a narrower run rather than a pass.
+  Milestone gate PG-8 stays open: the harness exists, the hosted evidence
+  does not, and the gate moves only when the owning document records a run
+  and job for an exact implementation commit.
+
 - Add Public Generic Metadata Consumers v1: a Rust, TypeScript/Wasm, C11
   and C++ consumer generated from a candidate public generic surface, plus
   the length-framed canonical metadata format they read. Before a foreign

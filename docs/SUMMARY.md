@@ -405,6 +405,7 @@ Audience: all documentation readers.
 - [Agent context economics](AGENT-ECONOMICS-V1.md)
 - [Agent task economics v1](AGENT-TASK-ECONOMICS-V1.md)
 - [Agent task comparison v1](AGENT-TASK-COMPARISON-V1.md)
+- [Agent task comparison runner v1](AGENT-TASK-COMPARISON-RUNNER-V1.md)
 - [Economic Agent](ECONOMIC-AGENT-V1.md)
 - [Deterministic ARC zone model](ARC-ZONES-V1.md)
 - [Deterministic scoped task model](SCOPED-TASKS-V1.md)

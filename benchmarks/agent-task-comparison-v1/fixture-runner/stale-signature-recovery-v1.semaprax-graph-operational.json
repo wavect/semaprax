@@ -1,0 +1,91 @@
+{
+  "actions": [
+    {
+      "input_tokens": 560,
+      "kind": "model_usage",
+      "output_tokens": 120
+    },
+    {
+      "bytes": 960,
+      "kind": "context_presentation"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 64,
+      "response_bytes": 300,
+      "tool": "graph_context"
+    },
+    {
+      "kind": "identifying_inspection"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 220,
+      "response_bytes": 24,
+      "stale": true,
+      "tool": "graph_candidate_edit"
+    },
+    {
+      "kind": "failed_attempt"
+    },
+    {
+      "kind": "stale_failure"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 64,
+      "response_bytes": 320,
+      "tool": "graph_context"
+    },
+    {
+      "kind": "stale_recovery_action"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 230,
+      "response_bytes": 40,
+      "tool": "graph_candidate_edit",
+      "write": {
+        "content": "module benchmark.core;\n\n@id(\"benchmark.add\")\nfn add(right: i64, left: i64, bias: i64) -> i64\n    requires right >= 0\n    ensures result == left + right + bias\n{\n    left + right + bias\n}\n\n@id(\"benchmark.local-add\")\nfn local_add() -> i64\n{\n    add(8 / 2, 6 / 2, 0)\n}\n\n@id(\"benchmark.subtract\")\nfn subtract(left: i64, right: i64) -> i64\n{\n    left + -right\n}\n",
+        "path": "src/core.spx"
+      }
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 180,
+      "response_bytes": 40,
+      "tool": "graph_candidate_edit",
+      "write": {
+        "content": "module benchmark.app;\nuse function @id(\"benchmark.add\") from benchmark.core as add;\n\n@id(\"benchmark.app.main\")\nfn main() -> i64\n{\n    add(23, 19, 0)\n}\n",
+        "path": "src/app.spx"
+      }
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 170,
+      "response_bytes": 40,
+      "tool": "graph_candidate_edit",
+      "write": {
+        "content": "module benchmark.tests;\nuse function @id(\"benchmark.add\") from benchmark.core as add;\n\n@id(\"benchmark.tests.main\")\nfn main() -> i64\n{\n    if add(23, 19, 0) == 42 { 0 } else { 1 }\n}\n",
+        "path": "src/tests.spx"
+      }
+    },
+    {
+      "kind": "validation_interval",
+      "ms": 260
+    },
+    {
+      "kind": "review_interval",
+      "ms": 340
+    }
+  ],
+  "harness": "agent-task-comparison-runner-v1-fixture",
+  "host": "fixture-offline",
+  "lane": "semaprax-graph-operational",
+  "model": "fixture-stub-v1",
+  "model_configuration": "deterministic-scripted-replay-v1",
+  "schema": "semaprax.agent-task-comparison-fixture-runner.v1",
+  "task": "stale-signature-recovery-v1",
+  "tokenizer": "fixture-tokenizer-v1",
+  "toolchain": "n/a-fixture"
+}

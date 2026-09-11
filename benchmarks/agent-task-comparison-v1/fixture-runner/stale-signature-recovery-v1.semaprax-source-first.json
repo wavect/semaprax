@@ -1,0 +1,115 @@
+{
+  "actions": [
+    {
+      "input_tokens": 700,
+      "kind": "model_usage",
+      "output_tokens": 150
+    },
+    {
+      "bytes": 1780,
+      "kind": "context_presentation"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 40,
+      "response_bytes": 328,
+      "tool": "read_file"
+    },
+    {
+      "kind": "identifying_inspection"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 356,
+      "response_bytes": 20,
+      "stale": true,
+      "tool": "write_file"
+    },
+    {
+      "kind": "failed_attempt"
+    },
+    {
+      "kind": "stale_failure"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 40,
+      "response_bytes": 368,
+      "tool": "read_file"
+    },
+    {
+      "kind": "stale_recovery_action"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 357,
+      "response_bytes": 20,
+      "tool": "write_file",
+      "write": {
+        "content": "module benchmark.core;\n\n@id(\"benchmark.add\")\nfn add(right: i64, left: i64, bias: i64) -> i64\n    requires right >= 0\n    ensures result == left + right + bias\n{\n    left + right + bias\n}\n\n@id(\"benchmark.local-add\")\nfn local_add() -> i64\n{\n    add(8 / 2, 6 / 2, 0)\n}\n\n@id(\"benchmark.subtract\")\nfn subtract(left: i64, right: i64) -> i64\n{\n    left + -right\n}\n",
+        "path": "src/core.spx"
+      }
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 30,
+      "response_bytes": 140,
+      "tool": "compiler_check"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 40,
+      "response_bytes": 148,
+      "tool": "read_file"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 151,
+      "response_bytes": 20,
+      "tool": "write_file",
+      "write": {
+        "content": "module benchmark.app;\nuse function @id(\"benchmark.add\") from benchmark.core as add;\n\n@id(\"benchmark.app.main\")\nfn main() -> i64\n{\n    add(23, 19, 0)\n}\n",
+        "path": "src/app.spx"
+      }
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 40,
+      "response_bytes": 178,
+      "tool": "read_file"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 181,
+      "response_bytes": 20,
+      "tool": "write_file",
+      "write": {
+        "content": "module benchmark.tests;\nuse function @id(\"benchmark.add\") from benchmark.core as add;\n\n@id(\"benchmark.tests.main\")\nfn main() -> i64\n{\n    if add(23, 19, 0) == 42 { 0 } else { 1 }\n}\n",
+        "path": "src/tests.spx"
+      }
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 30,
+      "response_bytes": 60,
+      "tool": "compiler_check"
+    },
+    {
+      "kind": "validation_interval",
+      "ms": 300
+    },
+    {
+      "kind": "review_interval",
+      "ms": 380
+    }
+  ],
+  "harness": "agent-task-comparison-runner-v1-fixture",
+  "host": "fixture-offline",
+  "lane": "semaprax-source-first",
+  "model": "fixture-stub-v1",
+  "model_configuration": "deterministic-scripted-replay-v1",
+  "schema": "semaprax.agent-task-comparison-fixture-runner.v1",
+  "task": "stale-signature-recovery-v1",
+  "tokenizer": "fixture-tokenizer-v1",
+  "toolchain": "n/a-fixture"
+}

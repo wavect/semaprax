@@ -44,7 +44,7 @@ webpki-roots = "=1.0.3"
 wasmparser = { version = "=0.258.0", default-features = false, features = ["component-model", "features", "validate"] }
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 socket2 = "=0.6.5"
 
 [[bench]]

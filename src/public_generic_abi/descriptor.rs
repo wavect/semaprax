@@ -8,7 +8,10 @@
 //! is the separate module that derives a `DescriptorV1` from a real checked
 //! `ResolvedProgram` for an admitted export — see its own documentation for
 //! what "admitted" means at this stage and what remains deferred to issue
-//! #150's own classifier.
+//! #150's own classifier. [`verify`] is the independent verifier (issue
+//! #152) that accepts untrusted descriptor bytes plus a caller-supplied
+//! trusted subject and requires exact canonical bytes to match a value it
+//! reconstructs itself, never trusting the producer's output alone.
 
 use crate::diagnostic::Diagnostic;
 use crate::public_generic_abi::boundary_profile::{
@@ -262,6 +265,7 @@ pub fn replay(candidate: &[u8], trusted: &DescriptorV1) -> Result<DescriptorV1, 
 }
 
 pub mod producer;
+pub mod verify;
 
 #[cfg(test)]
 mod tests;

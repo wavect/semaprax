@@ -276,6 +276,128 @@ duplicated); a cleanup or settlement disagreement is refused with
 `public_generic_settlement`'s own `SPX-PG501`/`SPX-PG502` (reused, not
 duplicated).
 
+## Verification and trusted replay (the independent verifier)
+
+`src/public_generic_abi/descriptor/verify.rs` exposes
+`verify_public_generic_descriptor(program, source_revision, expected_export_id,
+expected_program_root_digest, candidate_bytes, options) ->
+Result<VerifiedPublicGenericDescriptor, Diagnostic>` (issue #152). This closes
+the descriptor trust boundary: **a submitted descriptor can name what must be
+checked, but it can never supply the trusted facts used to validate itself.**
+`program`, `source_revision`, `expected_export_id`, and
+`expected_program_root_digest` are all supplied by the caller out of band;
+none of the four is ever read back from `candidate_bytes` and treated as
+authoritative.
+
+This is not [the producer](#derivation-from-checked-facts-the-producer) run
+backwards. Calling `generate_public_generic_descriptor` a second time and
+byte-diffing its output against the candidate would only prove the producer
+is deterministic against itself — already covered by its own 17 tests — and
+would silently reproduce any bug in the producer's own final assembly step,
+since both the "trusted" comparison value and the candidate check would then
+come from identical code. Instead, the verifier independently reconstructs
+the wire value from the same lower-level, already-tested primitives the
+producer is built from (`CandidateSurface::derive`, and this module's own
+re-derivation of the `program_root_digest`/`source_projection_digest`
+algorithms this document already specifies, matching the specification
+rather than importing the producer's private helpers) and assembles its own
+`DescriptorV1` with the codec's own public `DescriptorV1::new`. The real
+generator is still invoked once, on the same trusted facts, both because the
+v1 shape-admission predicate is legitimately producer-owned logic that must
+not be duplicated, and because the specification requires it be invoked; its
+output is cross-checked against the independent reconstruction (a
+disagreement is a producer-side defect signal, refused as `SPX-PG713`, never
+an attacker signal) rather than trusted as the sole basis of acceptance.
+
+### Verification phases
+
+1. **Bound before parsing.** `candidate_bytes.len()` is checked against
+   `options.max_descriptor_bytes` (clamped down to, never widened past,
+   `MAX_DESCRIPTOR_WIRE_BYTES`) before any byte is interpreted.
+2. **Strict structural parse.** `descriptor::decode` — the frozen codec's own
+   parse — rejects malformed framing, an unknown schema literal, an oversized
+   field, and trailing bytes. Reused, not reimplemented.
+3. **Caller-independent trusted subject selection**, cheapest checks first:
+   the candidate's own claimed export identity must equal
+   `expected_export_id`; the caller's own `expected_program_root_digest` must
+   equal the independently recomputed root of the `program` it supplied
+   (catches a caller that passed a programme disagreeing with its own stated
+   expectation); the candidate's embedded programme-root digest must equal
+   that same recomputed root (the cross-pair defense) — checked once the
+   trusted reconstruction below has run, since reading it requires this
+   module's descendant-module access to `DescriptorV1`'s private field rather
+   than a new public accessor that would widen the frozen codec's surface.
+4. **Trusted reconstruction.** The real generator runs on
+   `program`/`source_revision`/`expected_export_id` only; this module
+   separately, independently reconstructs the same wire value and requires
+   the two to agree.
+5. **Exact canonical bytes.** `descriptor::replay` requires the candidate's
+   identity preimage to equal the independently reconstructed value's,
+   byte-for-byte — not merely digest-equal, and not only the top-level
+   `identity_digest()`.
+
+On success this returns a `VerifiedPublicGenericDescriptor`: a type with only
+private fields and no public constructor other than
+`verify_public_generic_descriptor` itself, and deliberately no
+`From<ParsedPublicGenericDescriptor> for VerifiedPublicGenericDescriptor>`
+anywhere in the module — naming an export in untrusted bytes is never
+authority to adopt it. `ParsedPublicGenericDescriptor` (from the companion
+`parse_public_generic_descriptor_selectors`) is the structurally distinct,
+deliberately narrower type for the optional two-phase "look up a trusted
+subject by descriptor" workflow: it exposes only the schema literal and the
+*claimed* export id, never instance facts, digests, or a settlement plan.
+
+### New diagnostics
+
+| Code | Meaning |
+| --- | --- |
+| `SPX-PG710` | the candidate's claimed export identity does not match the caller's independently supplied expected export |
+| `SPX-PG711` | the caller's own expected programme-root digest does not match the independently recomputed root of the programme it supplied |
+| `SPX-PG712` | the candidate's embedded programme-root digest does not match the trusted programme's independently recomputed root (cross-paired descriptor) |
+| `SPX-PG713` | the real generator's output disagrees with this module's independent reconstruction of the same trusted facts (a producer-side defect signal) |
+
+Every other refusal reuses an existing diagnostic exactly: `SPX-PG701`/`702`
+from `decode`, `SPX-PG703`/`704` from `replay`, `SPX-PG705`-`709` from the
+producer's own shape predicate, and `SPX-PG201` from
+`CandidateSurface::derive` for an unknown, ambiguous, or generic-template
+selection.
+
+### Deterministic refusal precedence
+
+Fixed, and pinned by the module's phase-specific tests: byte bound, then
+strict structural parse, then the caller-independent export/root checks
+(cheapest first), then trusted reconstruction and its shape-admission
+refusals, then the generator-agreement cross-check, then the cross-paired
+programme-root check, then the final exact-byte replay comparison. A case
+that would pass an earlier phase is never used alone to exercise a later one.
+
+### Recovery and currentness
+
+This layer has no retained-store access of its own: `program` and
+`source_revision` are supplied by the caller exactly as
+[the producer](#derivation-from-checked-facts-the-producer) already requires,
+and this module cannot itself distinguish "the caller's current head" from
+"a deliberately selected historical revision" without one. `VerificationOptions::historical_mode`
+is a caller-declared intent flag, recorded on the returned
+`VerifiedPublicGenericDescriptor` for downstream audit; it does not relax any
+check. Currentness policy — whether a given `program`/`source_revision` pair
+is the caller's current head — is entirely the caller's own retained-store
+responsibility, matching "preserve current architecture" for this round: no
+`ProgramRoot`, Project candidate, or workspace-session type is threaded
+through this layer yet.
+
+### Nonclaims specific to verification
+
+The verifier decides nothing about which exports are admitted under a
+general classifier (still [Public Generic Boundary Profile
+v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s unimplemented job); it reuses
+the producer's own local shape substitute exactly as the producer does. It
+performs no build, filesystem write, registry access, network call, or code
+execution, and a `VerifiedPublicGenericDescriptor` is not a public ABI and
+must not be cited as a support or publication claim. It does not implement
+provider execution or a language-specific consumer — that is later issues'
+work.
+
 ## Nonclaims
 
 This descriptor exposes no internal HIR layout, no C struct, no Rust

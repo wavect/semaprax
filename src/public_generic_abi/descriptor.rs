@@ -2,12 +2,13 @@
 //! v1](../../docs/PUBLIC-GENERIC-DESCRIPTOR-V1.md): encode, decode, and
 //! independent byte-exact replay of one descriptor value.
 //!
-//! `DescriptorV1` values here are hand-constructed in tests, never derived
-//! from real checked HIR — that derivation is the next tranche's classifier
-//! (issue #150's implementation half), out of scope this round. What this
-//! module proves is that the wire format is deterministic, that a display
-//! rename cannot move identity, and that malformed or cross-paired bytes fail
-//! closed rather than being repaired or partially accepted.
+//! `DescriptorV1` values constructed directly by this module's own tests are
+//! hand-built fixtures, exercised for wire-format determinism, display-rename
+//! identity stability, and fail-closed hostile-input handling. [`producer`]
+//! is the separate module that derives a `DescriptorV1` from a real checked
+//! `ResolvedProgram` for an admitted export — see its own documentation for
+//! what "admitted" means at this stage and what remains deferred to issue
+//! #150's own classifier.
 
 use crate::diagnostic::Diagnostic;
 use crate::public_generic_abi::boundary_profile::{
@@ -259,6 +260,8 @@ pub fn replay(candidate: &[u8], trusted: &DescriptorV1) -> Result<DescriptorV1, 
     }
     Ok(decoded)
 }
+
+pub mod producer;
 
 #[cfg(test)]
 mod tests;

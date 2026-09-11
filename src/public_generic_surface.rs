@@ -29,7 +29,7 @@ use sha2::{Digest as _, Sha256};
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::{OwnershipMode, ResolvedProgram, ResolvedType};
-use crate::public_generic_type::{self as grammar, InstanceFacts, TypeInventory};
+use crate::public_generic_type::{self as grammar, GrammarTerm, InstanceFacts, TypeInventory};
 
 /// One deterministic description of the selected candidate exports.
 pub const CANDIDATE_SURFACE_SCHEMA: &str = "semaprax.public-generic-candidate-surface.v1";
@@ -509,9 +509,17 @@ pub enum Reason {
     ParameterTypeChanged,
     /// The result type changed.
     ResultTypeChanged,
-    /// A reachable instance's template identity or declared arity changed.
+    /// At some signature position, the same declaration slot names a
+    /// different template identity or a different declared arity. Bound to
+    /// the exact position: an entry parameter or result, or a nested type
+    /// argument slot inside one, never the whole instance closure.
     InstanceTemplateChanged,
-    /// A reachable instance's ordered arguments changed.
+    /// At some signature position, one ordered type argument was permuted,
+    /// substituted, or otherwise replaced while the enclosing template
+    /// identity stayed the same. The subject names the exact argument slot
+    /// (`<position>/arg<index>`, nested when the argument is itself an
+    /// instance), so a permutation of two arguments yields two findings and a
+    /// single substitution yields exactly one.
     InstanceArgumentsChanged,
     /// A reachable instance's substituted field inventory changed.
     InstanceFieldsChanged,
@@ -744,10 +752,13 @@ fn compare_entry(
         }
         if left.value.kind != right.value.kind || left.value.term != right.value.term {
             findings.push(Finding {
-                subject,
+                subject: subject.clone(),
                 reason: Reason::ParameterTypeChanged,
                 detail: Some(format!("{} -> {}", left.value.term, right.value.term)),
             });
+        }
+        if left.value.kind == "data" && right.value.kind == "data" {
+            compare_data_positions(&subject, &left.value.term, &right.value.term, findings);
         }
     }
     if before.result.kind != after.result.kind || before.result.term != after.result.term {
@@ -757,6 +768,119 @@ fn compare_entry(
             detail: Some(format!("{} -> {}", before.result.term, after.result.term)),
         });
     }
+    if before.result.kind == "data" && after.result.kind == "data" {
+        let subject = format!("{export}#result");
+        compare_data_positions(&subject, &before.result.term, &after.result.term, findings);
+    }
+}
+
+/// Walk two canonical data terms at the same signature position and report
+/// the exact nested type-argument slot each structural difference lives at,
+/// rather than only the coarse fact that the position's term changed (already
+/// reported by [`Reason::ParameterTypeChanged`] / [`Reason::ResultTypeChanged`]
+/// at the caller). Terms that parse identically produce no finding here.
+///
+/// Only proceeds when both terms are generic instances: a plain scalar or
+/// `Bytes` position that changed has no argument shape to descend into, and
+/// the caller's own coarse finding already names the exact before/after term.
+///
+/// Both terms are this module's own canonical grammar output, so parsing
+/// either back is expected to succeed; a parse failure fails closed by simply
+/// adding no finer detail, and the caller's own coarse finding still stands.
+fn compare_data_positions(
+    path: &str,
+    before_term: &str,
+    after_term: &str,
+    findings: &mut Vec<Finding>,
+) {
+    if before_term == after_term {
+        return;
+    }
+    let (Ok(before), Ok(after)) = (
+        grammar::parse_term(before_term),
+        grammar::parse_term(after_term),
+    ) else {
+        return;
+    };
+    if !matches!(before, GrammarTerm::Instance { .. })
+        || !matches!(after, GrammarTerm::Instance { .. })
+    {
+        return;
+    }
+    walk_terms(path, &before, &after, findings);
+}
+
+/// Recursive structural diff of two parsed grammar terms at one path.
+///
+/// Two instances of the same declaration are walked argument by argument, so
+/// a permutation of two arguments yields one finding per swapped slot, a
+/// single substitution yields exactly one finding, and a nested instance
+/// argument recurses instead of being reported as one opaque blob. Two
+/// instances of different declarations, or the same declaration at a
+/// different declared arity, are reported once at this path rather than
+/// walked further: there is no shared argument shape to align.
+fn walk_terms(path: &str, before: &GrammarTerm, after: &GrammarTerm, findings: &mut Vec<Finding>) {
+    if before == after {
+        return;
+    }
+    if let (
+        GrammarTerm::Instance {
+            declaration: before_declaration,
+            arguments: before_arguments,
+        },
+        GrammarTerm::Instance {
+            declaration: after_declaration,
+            arguments: after_arguments,
+        },
+    ) = (before, after)
+    {
+        if before_declaration == after_declaration
+            && before_arguments.len() == after_arguments.len()
+        {
+            for (index, (left, right)) in before_arguments.iter().zip(after_arguments).enumerate() {
+                if left == right {
+                    continue;
+                }
+                let child = format!("{path}/arg{index}");
+                let same_declaration = matches!(
+                    (left, right),
+                    (
+                        GrammarTerm::Instance { declaration: l, .. },
+                        GrammarTerm::Instance { declaration: r, .. },
+                    ) if l == r
+                );
+                if same_declaration {
+                    walk_terms(&child, left, right, findings);
+                } else {
+                    findings.push(Finding {
+                        subject: child,
+                        reason: Reason::InstanceArgumentsChanged,
+                        detail: Some(format!(
+                            "parameter {before_declaration}#{index}: {} -> {}",
+                            left.render(),
+                            right.render()
+                        )),
+                    });
+                }
+            }
+            return;
+        }
+        findings.push(Finding {
+            subject: path.to_owned(),
+            reason: Reason::InstanceTemplateChanged,
+            detail: Some(format!(
+                "{before_declaration}<arity {}> -> {after_declaration}<arity {}>",
+                before_arguments.len(),
+                after_arguments.len()
+            )),
+        });
+        return;
+    }
+    findings.push(Finding {
+        subject: path.to_owned(),
+        reason: Reason::InstanceArgumentsChanged,
+        detail: Some(format!("{} -> {}", before.render(), after.render())),
+    });
 }
 
 fn compare_instance(
@@ -765,36 +889,18 @@ fn compare_instance(
     after: &InstanceFacts,
     findings: &mut Vec<Finding>,
 ) {
-    if before.template.digest != after.template.digest {
-        findings.push(Finding {
-            subject: term.to_owned(),
-            reason: Reason::InstanceTemplateChanged,
-            detail: Some(format!(
-                "arity {} -> {}",
-                before.template.arity, after.template.arity
-            )),
-        });
-    }
-    let arguments = |facts: &InstanceFacts| {
-        facts
-            .arguments
-            .iter()
-            .map(|argument| {
-                (
-                    argument.index,
-                    argument.parameter_index,
-                    argument.digest.clone(),
-                )
-            })
-            .collect::<Vec<_>>()
-    };
-    if arguments(before) != arguments(after) {
-        findings.push(Finding {
-            subject: term.to_owned(),
-            reason: Reason::InstanceArgumentsChanged,
-            detail: None,
-        });
-    }
+    // No template-identity or ordered-argument check runs here: `term` is the
+    // map key both `before` and `after` were looked up by, and a canonical
+    // term is exactly `declaration<argument, ...>` rendered recursively (see
+    // `public_generic_type::GrammarTerm::write`). Two facts sharing one term
+    // key are therefore already proven to share one declaration identity, one
+    // declared arity, and byte-identical ordered argument terms - nothing
+    // about the template or arguments *can* differ here. That comparison
+    // instead happens where a term mismatch is genuinely possible: at the
+    // entry parameter/result position and its nested argument slots, in
+    // `compare_data_positions` / `walk_terms` below, which is where
+    // `Reason::InstanceTemplateChanged` and `Reason::InstanceArgumentsChanged`
+    // are actually produced.
     let fields = |facts: &InstanceFacts| {
         facts
             .fields

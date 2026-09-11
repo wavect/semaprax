@@ -61,8 +61,8 @@ finding carries one closed reason bound to the subject it was found on.
 | `parameter_ownership_changed` | breaking | `<export>#<index>` |
 | `parameter_type_changed` | breaking | `<export>#<index>` |
 | `result_type_changed` | breaking | the export identity |
-| `instance_template_changed` | breaking | the instance term |
-| `instance_arguments_changed` | breaking | the instance term |
+| `instance_template_changed` | breaking | `<export>#<index or result>[/arg<n>...]` |
+| `instance_arguments_changed` | breaking | `<export>#<index or result>[/arg<n>...]` |
 | `instance_fields_changed` | breaking | the instance term |
 | `instance_owned_leaves_changed` | breaking | the instance term |
 | `reachable_instance_added` | compatible | the instance term |
@@ -79,10 +79,34 @@ them. A parameter's value identity is excluded for the same reason the
 repository excludes it elsewhere: expression identities may be revision-scoped,
 and a revision-scoped fact must not move a compatibility verdict.
 
-**Ordered arguments are ordered.** A permuted type-argument vector is a
-different instance, so the parameter term changes and the reachable closure
-swaps one instance for another. Omission is not a permutation but an
-`arity_mismatch` grammar rejection.
+**Ordered arguments are ordered, and the exact position is named.** A permuted
+or substituted type-argument vector is a different instance, so the parameter
+or result term changes and the reachable closure swaps one instance for
+another (`reachable_instance_added`/`reachable_instance_removed`) — that pair
+alone would only prove *that* the instance moved, not *where*. A second,
+position-level walk parses both terms of the same signature position and
+recurses through their ordered arguments: two instances of the same template
+identity yield one `instance_arguments_changed` finding per differing argument
+slot (subject `<export>#<index>/arg<n>`, nested one level deeper per nested
+instance argument), so permuting two arguments yields exactly two findings and
+substituting one yields exactly one — the untouched slot stays silent, and
+the finding's own detail names the exact template identity and argument
+index. Two instances of different template identities, or the same template
+at a different declared arity, yield `instance_template_changed` at that exact
+position instead of being walked further, since there is no shared argument
+shape left to align. Omission is not a permutation but an `arity_mismatch`
+grammar rejection.
+
+This position-level check is why `instance_template_changed` and
+`instance_arguments_changed` are never found bound to a reachable instance's
+own term the way `instance_fields_changed` is: two `InstanceFacts` reachable
+under the same canonical term key are, by construction, already proven to
+share one template identity and byte-identical ordered argument terms — a
+canonical term *is* `declaration<argument, ...>` rendered recursively, so two
+facts sharing that key cannot disagree on either. The two reasons are instead
+produced where a term mismatch is genuinely possible: at the entry parameter
+or result position whose rendered term changed, and at the nested argument
+slots inside it.
 
 **A reachable field change is breaking, even where source compatibility is
 not.** A foreign consumer reads the whole substituted field tree and the
@@ -128,6 +152,14 @@ Hosted evidence: the milestone corpus passed on `ubuntu-latest`, `macos-latest`,
 and `windows-latest` for implementation commit `2ef043ba1b989f49b256e456f71fb6e89068bf33` in
 [run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245). That is evidence for the corpus this document owns, not for the
 milestone's remaining gates.
+
+The position-level argument/template walk described above (exact
+`<export>#<index>/arg<n>` subjects for `instance_template_changed` and
+`instance_arguments_changed`, and the proof that neither reason is reachable
+bound to a reachable instance's own term) is local evidence only, from the
+focused `public_generic_surface` and `public_generic_ownership_milestone`
+suites on this implementer's host; it has not yet run in a hosted CI job for
+its own commit.
 
 ## Nonclaims
 

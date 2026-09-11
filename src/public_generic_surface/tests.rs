@@ -212,6 +212,128 @@ fn make(input: borrow Slice<u8>) -> Pair<bool, Leaf> {
 fn main() -> i64 { 0 }
 "#;
 
+/// The same first argument (`Leaf`); the second concrete argument replaced by
+/// another admitted type (`i32` instead of `bool`) rather than permuted.
+const SUBSTITUTED: &str = r#"
+module test.public_generic_surface;
+
+@id("surface.leaf")
+record Leaf {
+    @id("surface.leaf.head")
+    head: Bytes,
+}
+
+@id("surface.pair")
+record Pair<T, U> {
+    @id("surface.pair.left")
+    left: T,
+    @id("surface.pair.right")
+    right: U,
+}
+
+@id("surface.take")
+fn take(value: own Pair<Leaf, i32>) -> i64 {
+    match own value {
+        Pair { left: Leaf { head: payload }, right: tag } =>
+            if tag > 0i32 && byte_len(bytes_as_slice(payload)) > 0usize { 1 } else { 0 },
+    }
+}
+
+@id("surface.make")
+fn make(input: borrow Slice<u8>) -> Pair<Leaf, i32> {
+    Pair<Leaf, i32> {
+        left: Leaf { head: bytes_copy(input) },
+        right: 1i32,
+    }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+/// The same template identity (`surface.pair`), declared with one more type
+/// parameter and used with one more concrete argument.
+const ARITY_CHANGED: &str = r#"
+module test.public_generic_surface;
+
+@id("surface.leaf")
+record Leaf {
+    @id("surface.leaf.head")
+    head: Bytes,
+}
+
+@id("surface.pair")
+record Pair<T, U, V> {
+    @id("surface.pair.left")
+    left: T,
+    @id("surface.pair.right")
+    right: U,
+    @id("surface.pair.extra")
+    extra: V,
+}
+
+@id("surface.take")
+fn take(value: own Pair<Leaf, bool, i64>) -> i64 {
+    match own value {
+        Pair { left: Leaf { head: payload }, right: present, extra: tag } =>
+            if present && tag > 0 && byte_len(bytes_as_slice(payload)) > 0usize { 1 } else { 0 },
+    }
+}
+
+@id("surface.make")
+fn make(input: borrow Slice<u8>) -> Pair<Leaf, bool, i64> {
+    Pair<Leaf, bool, i64> {
+        left: Leaf { head: bytes_copy(input) },
+        right: byte_len(input) > 0usize,
+        extra: 1,
+    }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+/// The same two field identities as `COPY_FIELD`'s `Leaf`, declared in the
+/// other order.
+const REORDERED_FIELDS: &str = r#"
+module test.public_generic_surface;
+
+@id("surface.leaf")
+record Leaf {
+    @id("surface.leaf.tag")
+    tag: i64,
+    @id("surface.leaf.head")
+    head: Bytes,
+}
+
+@id("surface.pair")
+record Pair<T, U> {
+    @id("surface.pair.left")
+    left: T,
+    @id("surface.pair.right")
+    right: U,
+}
+
+@id("surface.take")
+fn take(value: own Pair<Leaf, bool>) -> i64 {
+    match own value {
+        Pair { left: Leaf { tag: tag, head: payload }, right: present } =>
+            if present && tag > 0 && byte_len(bytes_as_slice(payload)) > 0usize { 1 } else { 0 },
+    }
+}
+
+@id("surface.make")
+fn make(input: borrow Slice<u8>) -> Pair<Leaf, bool> {
+    Pair<Leaf, bool> {
+        left: Leaf { tag: 7, head: bytes_copy(input) },
+        right: byte_len(input) > 0usize,
+    }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
 /// The same parameter type, borrowed instead of owned.
 const BORROWED: &str = r#"
 module test.public_generic_surface;
@@ -489,7 +611,11 @@ fn losing_the_last_reference_reports_reachability_without_double_counting() {
 }
 
 /// A permuted argument vector is a different instance: the parameter term
-/// changes and the reachable closure swaps one instance for another.
+/// changes and the reachable closure swaps one instance for another. Because
+/// *both* argument positions moved, the exact-position walk reports two
+/// distinct `instance_arguments_changed` findings, one per swapped slot - not
+/// one opaque "the instance changed" blob, and no nominal/display fallback:
+/// the subjects name the exact parameter and argument index.
 #[test]
 fn permuting_type_arguments_is_breaking() {
     let before = surface(BASE, &["surface.take"]);
@@ -499,14 +625,157 @@ fn permuting_type_arguments_is_breaking() {
     assert_eq!(
         reasons(&report),
         vec![
+            "instance_arguments_changed",
+            "parameter_type_changed",
+            "reachable_instance_added",
+            "reachable_instance_removed",
+        ]
+    );
+    let mut arg_subjects = subjects(&report, Reason::InstanceArgumentsChanged);
+    arg_subjects.sort_unstable();
+    assert_eq!(
+        arg_subjects,
+        vec!["surface.take#0/arg0", "surface.take#0/arg1"],
+        "both swapped positions are named, each exactly once"
+    );
+    let details = report
+        .findings()
+        .iter()
+        .filter(|finding| finding.reason == Reason::InstanceArgumentsChanged)
+        .map(|finding| finding.detail.as_deref().unwrap_or_default())
+        .collect::<Vec<_>>();
+    assert!(
+        details
+            .iter()
+            .any(|detail| detail.contains("surface.pair#0") && detail.contains(LEAF_TERM)),
+        "the changed-argument detail names the exact parameter owner and index: {details:?}"
+    );
+    assert!(
+        details
+            .iter()
+            .any(|detail| detail.contains("surface.pair#1") && detail.contains("bool")),
+        "the other swapped slot is named too: {details:?}"
+    );
+    assert_eq!(
+        after.entries()["surface.take"].parameters[0].value.term,
+        "@12:surface.pair<bool,@12:surface.leaf<>>"
+    );
+}
+
+/// A single concrete argument replaced by another admitted type, with every
+/// other argument held constant, is breaking and names exactly the one
+/// parameter owner/index that changed - never the whole instance, and never
+/// the untouched position.
+#[test]
+fn substituting_one_type_argument_is_breaking_with_an_exact_position_reason() {
+    let before = surface(BASE, &["surface.take"]);
+    let after = surface(SUBSTITUTED, &["surface.take"]);
+    let report = compare(&before, &after);
+    assert_eq!(report.verdict(), Verdict::Breaking);
+    assert_eq!(
+        reasons(&report),
+        vec![
+            "instance_arguments_changed",
             "parameter_type_changed",
             "reachable_instance_added",
             "reachable_instance_removed",
         ]
     );
     assert_eq!(
-        after.entries()["surface.take"].parameters[0].value.term,
-        "@12:surface.pair<bool,@12:surface.leaf<>>"
+        subjects(&report, Reason::InstanceArgumentsChanged),
+        vec!["surface.take#0/arg1"],
+        "only the substituted position is named; the untouched Leaf argument is silent"
+    );
+    let detail = report
+        .findings()
+        .iter()
+        .find(|finding| finding.reason == Reason::InstanceArgumentsChanged)
+        .and_then(|finding| finding.detail.as_deref())
+        .unwrap();
+    assert!(
+        detail.contains("surface.pair#1") && detail.contains("bool") && detail.contains("i32"),
+        "detail names the exact parameter owner/index and both concrete arguments: {detail}"
+    );
+}
+
+/// The same template identity at a different declared arity is a template
+/// change, not a description of the concrete field layout that happens to
+/// look similar: no inference that visually equal concrete field layouts are
+/// compatible.
+#[test]
+fn changing_a_templates_declared_arity_is_breaking_with_an_exact_template_reason() {
+    let before = surface(BASE, &["surface.take"]);
+    let after = surface(ARITY_CHANGED, &["surface.take"]);
+    let report = compare(&before, &after);
+    assert_eq!(report.verdict(), Verdict::Breaking);
+    assert!(
+        reasons(&report).contains(&"instance_template_changed"),
+        "reasons: {:?}",
+        reasons(&report)
+    );
+    assert_eq!(
+        subjects(&report, Reason::InstanceTemplateChanged),
+        vec!["surface.take#0"]
+    );
+    let detail = report
+        .findings()
+        .iter()
+        .find(|finding| finding.reason == Reason::InstanceTemplateChanged)
+        .and_then(|finding| finding.detail.as_deref())
+        .unwrap();
+    assert!(
+        detail.contains("arity 2") && detail.contains("arity 3"),
+        "detail names the exact arity change: {detail}"
+    );
+}
+
+/// Removing a field is exactly the reverse of adding one, and is detected the
+/// same way: stable field identity/position evidence, not nominal layout
+/// coincidence.
+#[test]
+fn removing_a_field_is_breaking() {
+    let before = surface(COPY_FIELD, &["surface.take"]);
+    let after = surface(BASE, &["surface.take"]);
+    let report = compare(&before, &after);
+    assert_eq!(report.verdict(), Verdict::Breaking);
+    assert_eq!(reasons(&report), vec!["instance_fields_changed"]);
+    assert_eq!(
+        subjects(&report, Reason::InstanceFieldsChanged),
+        vec![LEAF_TERM]
+    );
+}
+
+/// Reordering two fields keeps every stable identity but moves their
+/// declaration position, which a foreign consumer reading positional layout
+/// would see: nominal layout coincidence (same field set, same names) is
+/// irrelevant, the position moved.
+#[test]
+fn reordering_fields_is_breaking() {
+    let before = surface(COPY_FIELD, &["surface.take"]);
+    let after = surface(REORDERED_FIELDS, &["surface.take"]);
+    let report = compare(&before, &after);
+    assert_eq!(report.verdict(), Verdict::Breaking);
+    assert_eq!(reasons(&report), vec!["instance_fields_changed"]);
+    assert_eq!(
+        subjects(&report, Reason::InstanceFieldsChanged),
+        vec![LEAF_TERM]
+    );
+    assert_eq!(
+        before.instances()[LEAF_TERM]
+            .fields
+            .iter()
+            .map(|field| field.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["surface.leaf.head", "surface.leaf.tag"]
+    );
+    assert_eq!(
+        after.instances()[LEAF_TERM]
+            .fields
+            .iter()
+            .map(|field| field.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["surface.leaf.tag", "surface.leaf.head"],
+        "same two identities, reordered position"
     );
 }
 

@@ -166,6 +166,7 @@ Audience: all documentation readers.
 - [Persistent Semantic Workspace Service Transport v1](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md)
 - [Persistent Semantic Workspace Service MCP v1](PERSISTENT-SEMANTIC-SERVICE-MCP-V1.md)
 - [Universal Semantic Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md)
+- [Semantic Service Surface Consolidation Audit v1](SEMANTIC-SERVICE-SURFACE-CONSOLIDATION-AUDIT-V1.md)
 - [Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md)
 - [Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md)
 - [Installed Fix Plan v1](INSTALLED-FIX-PLAN-V1.md)

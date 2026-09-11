@@ -22,6 +22,8 @@
 mod agent_definitions_association;
 #[path = "workspace/canonical_revision.rs"]
 mod canonical_revision;
+#[path = "workspace/cli_mcp_query_cross_transport_v1.rs"]
+mod cli_mcp_query_cross_transport_v1;
 #[path = "workspace/contracts_and_tests_facts.rs"]
 mod contracts_and_tests_facts;
 #[path = "workspace/exact_program_context.rs"]

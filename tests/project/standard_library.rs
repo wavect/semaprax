@@ -26,6 +26,8 @@ mod process;
 mod temporary;
 #[path = "standard_library/testing.rs"]
 mod testing;
+#[path = "standard_library/text.rs"]
+mod text;
 use temporary::temporary;
 
 #[derive(Clone, Debug)]

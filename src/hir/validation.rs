@@ -3037,7 +3037,7 @@ impl<'a> HirValidator<'a> {
                                 ));
                             }
                             let (params, return_type) = if let Some(signature) =
-                                box_intrinsic::signature(callee, type_arguments, instance, args)?
+                                self.intrinsic_signature(callee, type_arguments, instance, args)?
                             {
                                 signature
                             } else if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
@@ -6091,7 +6091,7 @@ impl<'a> HirValidator<'a> {
                     .then(|| crate::host_io_ops::by_id(callee.as_str()))
                     .flatten();
                 let (params, return_type, target_effects) = if let Some((params, return_type)) =
-                    box_intrinsic::signature(callee, type_arguments, instance, args)?
+                    self.intrinsic_signature(callee, type_arguments, instance, args)?
                 {
                     (params, return_type, Vec::new())
                 } else if let Some(op) = string_intrinsic {
@@ -8344,7 +8344,7 @@ impl<'a> HirValidator<'a> {
                     if param.ty == ResolvedType::Bytes {
                         matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow) && exact_place
                     } else if resolved_type_contains_owned_bytes(self.program, &param.ty) {
-                        (crate::cleanup::is_owned_bounded_vec_type(&param.ty)
+                        (vec_intrinsic::is_owned_vec_carrier(self.program, &param.ty)
                             || super::type_reachability::is_admitted_nested_owned_byte_record(
                                 &self.program.declarations,
                                 &param.ty,

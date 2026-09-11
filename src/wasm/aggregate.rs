@@ -10,6 +10,7 @@ mod closure;
 mod collect_block;
 mod expressions;
 mod function_value;
+mod target_gates;
 #[cfg(test)]
 use function_value::hex_identity;
 pub(in crate::wasm) use function_value::{
@@ -1544,13 +1545,7 @@ fn emit_byte_exports_profile(
     let environment_io =
         command_io.is_some_and(super::command_io::CommandPlan::is_environment_command);
     let process_io = command_io.is_some_and(super::command_io::CommandPlan::is_process_command);
-    if program
-        .types
-        .iter()
-        .any(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Resource { .. }))
-    {
-        return Err(resource_gate());
-    }
+    target_gates::reject_unsupported_profiles(program)?;
     let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
     let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Wasm32)?;
     for record_layout in record_layouts.layouts() {
@@ -2277,13 +2272,7 @@ fn emit_profile_with_scalar_exports(
     let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
     let uses_owned_iterator = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
     let uses_box = super::program_uses_box(program);
-    if program
-        .types
-        .iter()
-        .any(|item| matches!(item.kind, ResolvedTypeDeclarationKind::Resource { .. }))
-    {
-        return Err(resource_gate());
-    }
+    target_gates::reject_unsupported_profiles(program)?;
     let variant_layouts = VariantLayoutCache::build(program, VariantTarget::Wasm32)?;
     let record_layouts = AggregateLayoutCache::build(program, AggregateTarget::Wasm32)?;
     for record_layout in record_layouts.layouts() {

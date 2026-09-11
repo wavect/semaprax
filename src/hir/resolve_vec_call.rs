@@ -105,6 +105,11 @@ pub(super) fn schedule<'expr>(
     if !crate::vec_ops::resolved_operation_element_is_admitted(op, &element)
         && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
         && !super::generic_collection::source_parameter(resolver.program, function, &element)
+        && !super::owned_record_collection::admits_vec_operation_element(
+            &resolver.declarations,
+            op,
+            &element,
+        )
     {
         return Err(resolver.error(
             "SPX-H006",
@@ -200,6 +205,11 @@ pub(super) fn resolve_reference(
     if !crate::vec_ops::resolved_operation_element_is_admitted(op, &element)
         && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
         && !super::generic_collection::source_parameter(resolver.program, function, &element)
+        && !super::owned_record_collection::admits_vec_operation_element(
+            &resolver.declarations,
+            op,
+            &element,
+        )
     {
         return Err(resolver.error(
             "SPX-H006",

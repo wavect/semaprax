@@ -87,7 +87,8 @@ impl HirValidator<'_> {
                             &self.program.declarations,
                             ty,
                         );
-                    let admitted_owned_generic = box_intrinsic::is_type(declaration, arguments);
+                    let admitted_owned_generic =
+                        box_intrinsic::is_type(&self.program.declarations, declaration, arguments);
                     if !arguments.is_empty()
                         && (!matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
                             || (!admitted_owned_byte_prelude_instance(declaration, arguments)

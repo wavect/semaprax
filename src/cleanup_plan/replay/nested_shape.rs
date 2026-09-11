@@ -91,7 +91,12 @@ fn derive(
                     });
                     continue;
                 }
-                if crate::cleanup::is_owned_bounded_vec_type(&ty) {
+                if crate::cleanup::is_owned_bounded_vec_type(&ty)
+                    || crate::hir::owned_record_collection::is_owned_record_vec_type(
+                        &program.declarations,
+                        &ty,
+                    )
+                {
                     charge_leaf(function, budget)?;
                     shapes.push(FieldLivenessShape::Leaf {
                         flag: next_flag_id(function, next_flag)?,

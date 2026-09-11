@@ -302,6 +302,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     op,
                                     ty,
                                 )
+                                && !crate::source_verify::declared_type::owned_record_collection::
+                                    admits_vec_operation_element(self.types, op, ty)
                         })
                     {
                         self.diagnostics.push(error(
@@ -339,7 +341,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                     VerifierCallTarget::Ordinary(element.map(|element| {
                         VerifierFunctionSignature::Specialized {
-                            params: crate::vec_ops::ast_params(op, element),
+                            params: crate::vec_ops::ast_params_with_owned_element(
+                                op,
+                                element,
+                                *element == crate::ast::Type::Bytes
+                                    || crate::source_verify::declared_type::
+                                        owned_record_collection::
+                                        is_admitted_owned_record_collection_element(
+                                            self.types, element,
+                                        ),
+                            ),
                             return_type: op.ast_return_type(element),
                             implicit_unique_ownership: false,
                         }

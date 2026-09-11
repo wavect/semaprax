@@ -424,7 +424,12 @@ impl<'a> TypeTable<'a> {
                         }
                         if name == "Vec"
                             && arguments.len() == 1
-                            && crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
+                            && (crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
+                                || super::declared_type::owned_record_collection::
+                                    is_admitted_owned_record_collection_element(
+                                        self,
+                                        &arguments[0],
+                                    ))
                         {
                             return true;
                         }

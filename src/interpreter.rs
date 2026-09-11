@@ -815,7 +815,7 @@ pub fn evaluate_resolved_owned_data(
     input: &[u8],
     max_steps: usize,
 ) -> Result<OwnedDataEvaluation, Vec<Diagnostic>> {
-    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    hir::owned_record_collection::validate_for_interpreter(program)?;
     if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
         return Err(vec![option_error(format!(
             "owned-data evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
@@ -954,7 +954,7 @@ pub(crate) fn evaluate_resolved_public_api(
     arguments: &[PublicApiArgument<'_>],
     max_steps: usize,
 ) -> Result<PublicApiEvaluation, Vec<Diagnostic>> {
-    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    hir::owned_record_collection::validate_for_interpreter(program)?;
     if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
         return Err(vec![option_error(format!(
             "public API evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
@@ -1172,7 +1172,7 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
     arguments: &[PublicApiArgument<'_>],
     max_steps: usize,
 ) -> Result<FlatOwnedRecordEvaluation, Vec<Diagnostic>> {
-    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    hir::owned_record_collection::validate_for_interpreter(program)?;
     if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
         return Err(vec![option_error(format!(
             "flat owned-record evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
@@ -1380,7 +1380,7 @@ pub(crate) fn evaluate_resolved_owned_utf8_api(
     arguments: &[PublicApiArgument<'_>],
     max_steps: usize,
 ) -> Result<OwnedUtf8ApiEvaluation, Vec<Diagnostic>> {
-    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    hir::owned_record_collection::validate_for_interpreter(program)?;
     if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
         return Err(vec![option_error(format!(
             "owned UTF-8 API evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
@@ -1985,7 +1985,7 @@ fn interpret_on_current_thread(
     }
     let parsed_arguments = bind_arguments(function, arguments)?;
 
-    let resolved = hir::resolve(&program)?;
+    let resolved = hir::owned_record_collection::resolve_for_interpreter(&program)?;
     let entry = resolved
         .functions
         .iter()
@@ -2857,7 +2857,7 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
     entry_id: &str,
     max_steps: usize,
 ) -> Result<(ResolvedEvaluation, Vec<u8>), Vec<Diagnostic>> {
-    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    hir::owned_record_collection::validate_for_interpreter(program)?;
     if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
         return Err(vec![option_error(format!(
             "hosted evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
@@ -2956,7 +2956,7 @@ pub(crate) fn evaluate_resolved_language_command(
     stdin: &[u8],
     max_steps: usize,
 ) -> Result<(CommandEvaluation, Vec<u8>, Vec<u8>), Vec<Diagnostic>> {
-    hir::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    hir::owned_record_collection::validate_for_interpreter(program)?;
     if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
         return Err(vec![option_error(format!(
             "hosted command max_steps must be between 1 and {MAX_STEPS_LIMIT}"

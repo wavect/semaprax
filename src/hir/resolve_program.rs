@@ -1031,7 +1031,11 @@ impl Resolver<'_> {
                         };
                         let admitted_vec = declaration.as_str() == crate::prelude::VEC_ID
                             && matches!(resolved.as_slice(), [argument]
-                                if crate::vec_ops::resolved_vec_element_is_admitted(argument));
+                            if crate::vec_ops::resolved_vec_element_is_admitted(argument)
+                                || crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                                    &self.declarations,
+                                    argument,
+                                ));
                         let admitted_box = declaration.as_str() == crate::prelude::BOX_ID
                             && matches!(resolved.as_slice(), [argument]
                                 if crate::box_ops::resolved_box_element_is_admitted(argument));
@@ -1158,12 +1162,15 @@ impl Resolver<'_> {
             .is_some()
             && declaration.as_str() == crate::prelude::BOX_ID
             && matches!(resolved.as_slice(),[argument] if crate::box_ops::resolved_element_is_admitted(argument));
+        let owned_record_vec =
+            super::owned_record_collection::is_owned_record_vec_type(&self.declarations, &instance);
         if self
             .declarations
             .type_parameters(&declaration)
             .is_none_or(|parameters| parameters.len() != resolved.len())
             || (!crate::iterator_ops::is_iter(&instance)
                 && !crate::iterator_ops::is_step(&instance)
+                && !owned_record_vec
                 && !transparent_vec
                 && !specialized_vec_wrapper
                 && !transparent_box

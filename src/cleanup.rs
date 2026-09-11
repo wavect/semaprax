@@ -511,7 +511,12 @@ pub(crate) fn type_needs_resource_cleanup(
                 }
                 if declaration.as_str() == crate::prelude::VEC_ID
                     && arguments.len() == 1
-                    && crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
+                    && (crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
+                        || crate::hir::owned_record_collection::
+                            is_admitted_owned_record_collection_element(
+                                &program.declarations,
+                                &arguments[0],
+                            ))
                 {
                     return Ok(true);
                 }
@@ -858,7 +863,13 @@ impl InventoryBuilder<'_> {
                         shapes.push(FieldLivenessShape::Leaf { flag, lifecycle });
                         continue;
                     }
-                    if is_owned_bounded_vec_type(ty) || crate::iterator_ops::is_iter(ty) {
+                    if is_owned_bounded_vec_type(ty)
+                        || crate::hir::owned_record_collection::is_owned_record_vec_type(
+                            &self.program.declarations,
+                            ty,
+                        )
+                        || crate::iterator_ops::is_iter(ty)
+                    {
                         let flag_index = u32::try_from(self.flags.len())
                             .map_err(|_| cleanup_error("too many cleanup liveness flags"))?;
                         let flag = LivenessFlagId(flag_index);

@@ -22,14 +22,20 @@
 //! admission from `DeclarationIndex` facts alone rather than trusting a
 //! cached flag, so hostile/forged HIR cannot forge admission.
 //!
-//! No call site outside this module's own tests exists yet: operation wiring
-//! (`Vec`/`Box` intrinsic recognition, cleanup-plan and loan-plan call sites)
-//! is deferred, see the spec doc above. The classifier is kept `pub(crate)`
-//! and real (not test-only) so the follow-up tranche has one audited home for
-//! this rule instead of reimplementing it inline at each call site.
-#![cfg_attr(not(test), allow(dead_code))]
+//! This module is also the one audited home for the profile's bounded `Vec`
+//! operation surface (`vec_with_capacity`, `vec_push`, `vec_len`,
+//! `vec_capacity`, `vec_clear`), for the carrier predicate the front end and
+//! cleanup consult, and for the refusal every ordinary execution target
+//! raises: source and HIR admit the profile so its ownership, borrow and
+//! cleanup meaning is checked, and no backend executes it until SPX-AI-020
+//! (issue #119) delivers its conformance. `Box` of this element is not
+//! admitted.
 
 use super::*;
+
+#[cfg(test)]
+#[path = "owned_record_collection/operation_tests.rs"]
+mod operation_tests;
 
 /// `true` when `ty` names the one admitted internal owned-record collection
 /// element shape.
@@ -84,6 +90,101 @@ fn admits_field_shape(fields: &[ResolvedFieldDeclaration]) -> bool {
         }
     }
     bytes_fields == 2 && copy_fields == 1
+}
+
+/// The `Vec<T>` operations this profile admits over the owned-record element.
+///
+/// `get` is excluded for the same reason `vec_get<Bytes>` already is: it would
+/// be an ambiguous copy-returning read of an owned value. `set` and
+/// `reserve_exact` are excluded because they are not part of the bounded
+/// surface `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md` enumerates; widening
+/// to them requires separately enumerated admission and tests. Every excluded
+/// operation is refused with the same stable `SPX-H006` diagnostic an
+/// inadmissible element type already produces, never a backend accident.
+pub(crate) fn admits_vec_operation(op: crate::vec_ops::VecOp) -> bool {
+    matches!(
+        op,
+        crate::vec_ops::VecOp::WithCapacity
+            | crate::vec_ops::VecOp::Push
+            | crate::vec_ops::VecOp::Len
+            | crate::vec_ops::VecOp::Capacity
+            | crate::vec_ops::VecOp::Clear
+    )
+}
+
+/// `true` when `op` may be resolved over `element` under this profile.
+pub(crate) fn admits_vec_operation_element(
+    declarations: &DeclarationIndex,
+    op: crate::vec_ops::VecOp,
+    element: &ResolvedType,
+) -> bool {
+    admits_vec_operation(op) && is_admitted_owned_record_collection_element(declarations, element)
+}
+
+/// `true` when `ty` is the compiler-owned `Vec<T>` carrier instantiated at the
+/// one admitted owned-record element.
+///
+/// This is deliberately *not* folded into
+/// `crate::cleanup::is_owned_bounded_vec_type`. That predicate answers "is this
+/// the backend-executable owned bounded Vec profile", and roughly forty native
+/// and Wasm layout, ABI and cleanup-replay call sites consult it to map the
+/// carrier onto a concrete machine representation. This profile has no such
+/// representation yet (SPX-AI-020), so it is kept as a separate question and
+/// every ordinary execution target refuses a program that uses it, rather than
+/// emitting a broken carrier.
+pub(crate) fn is_owned_record_vec_type(declarations: &DeclarationIndex, ty: &ResolvedType) -> bool {
+    matches!(
+        ty,
+        ResolvedType::Nominal { declaration, arguments }
+            if declaration.as_str() == crate::prelude::VEC_ID
+                && matches!(
+                    arguments.as_slice(),
+                    [element] if is_admitted_owned_record_collection_element(declarations, element)
+                )
+    )
+}
+
+/// `true` when any checked body, signature, or compiler-owned `Vec<T>` call in
+/// `program` names this profile.
+///
+/// A value of the carrier type can only be produced by a compiler-owned `Vec`
+/// call instantiated at the record element, or received through a signature, so
+/// scanning parameters, return types, and resolved call type arguments is a
+/// complete answer for the admitted surface. Ordinary execution targets call
+/// this before emitting anything.
+pub(crate) fn program_uses_profile(program: &ResolvedProgram) -> bool {
+    let declarations = &program.declarations;
+    let names_profile = |ty: &ResolvedType| is_owned_record_vec_type(declarations, ty);
+    let function_uses = |function: &ResolvedFunction| {
+        function.params.iter().any(|param| names_profile(&param.ty))
+            || names_profile(&function.return_type)
+            || std::iter::once(&function.body)
+                .chain(function.requires.iter())
+                .chain(function.ensures.iter())
+                .any(|root| {
+                    let mut found = false;
+                    super::visit_resolved_calls(root, &mut |callee, instance, arguments| {
+                        found |= instance.is_none()
+                            && crate::vec_ops::by_id(callee.as_str()).is_some()
+                            && matches!(arguments, [element]
+                            if is_admitted_owned_record_collection_element(
+                                declarations,
+                                element,
+                            ));
+                    });
+                    found
+                })
+    };
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(function_uses)
 }
 
 #[cfg(test)]
@@ -413,4 +514,72 @@ mod tests {
             &ResolvedType::I64
         ));
     }
+}
+
+/// Stable refusal code each ordinary execution target uses for this profile.
+///
+/// The codes stay in their own target's family so an agent reading one knows
+/// which backend refused and which issue owns the conformance work.
+pub(crate) const NATIVE_TARGET_CODE: &str = "SPX-B115";
+pub(crate) const WASM_TARGET_CODE: &str = "SPX-W125";
+pub(crate) const INTERPRETER_TARGET_CODE: &str = "SPX-F107";
+
+/// Refuse, with one stable diagnostic, a program that names this profile on an
+/// ordinary execution target.
+///
+/// Source and HIR admit the profile so its ownership, borrow and cleanup
+/// meaning is checked; no backend implements its carrier yet. This gate keeps
+/// "no backend executes the new shape" a compile-time diagnostic instead of a
+/// broken carrier or a backend accident, per the SPX-AI-019 implementation
+/// contract; SPX-AI-020 (issue #119) owns lifting it.
+pub(crate) fn reject_for_target(
+    program: &ResolvedProgram,
+    code: &'static str,
+    target: &str,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    if program_uses_profile(program) {
+        return Err(crate::diagnostic::Diagnostic::io(
+            code,
+            format!(
+                "the internal owned-record collection profile has no {target} execution profile; \
+                 its backend conformance is owned by SPX-AI-020"
+            ),
+        ));
+    }
+    Ok(())
+}
+
+/// `hir::validate`, then this profile's native refusal.
+///
+/// The native lane's single emission choke point calls this instead of
+/// `hir::validate` so front-end admission and target refusal cannot drift.
+pub(crate) fn validate_for_native(
+    program: &ResolvedProgram,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    super::validate(program)?;
+    reject_for_target(program, NATIVE_TARGET_CODE, "native C11")
+}
+
+/// `hir::validate`, then this profile's interpreter refusal, in the shape the
+/// interpreter's own entry points already use.
+pub(crate) fn validate_for_interpreter(
+    program: &ResolvedProgram,
+) -> Result<(), Vec<crate::diagnostic::Diagnostic>> {
+    super::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    reject_for_target(program, INTERPRETER_TARGET_CODE, "interpreter")
+        .map_err(|diagnostic| vec![diagnostic])
+}
+
+/// `hir::resolve`, then this profile's interpreter refusal.
+///
+/// The source-driven interpreter entry point resolves its own program rather
+/// than receiving resolved HIR, so it needs the refusal attached to
+/// resolution instead of to validation.
+pub(crate) fn resolve_for_interpreter(
+    program: &crate::ast::Program,
+) -> Result<ResolvedProgram, Vec<crate::diagnostic::Diagnostic>> {
+    let resolved = super::resolve(program)?;
+    reject_for_target(&resolved, INTERPRETER_TARGET_CODE, "interpreter")
+        .map_err(|diagnostic| vec![diagnostic])?;
+    Ok(resolved)
 }

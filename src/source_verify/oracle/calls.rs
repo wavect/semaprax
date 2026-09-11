@@ -129,6 +129,8 @@ pub(super) fn oracle_call(
             || element.is_none_or(|ty| {
                 !crate::vec_ops::ast_operation_element_is_admitted(op, ty)
                     && !crate::vec_ops::source_parameter_is_admitted(program, current, op, ty)
+                    && !crate::source_verify::declared_type::owned_record_collection::
+                        admits_vec_operation_element(types, op, ty)
             })
         {
             diagnostics.push(error(
@@ -165,7 +167,15 @@ pub(super) fn oracle_call(
             ));
         }
         let params = element
-            .map(|element| crate::vec_ops::ast_params(op, element))
+            .map(|element| {
+                crate::vec_ops::ast_params_with_owned_element(
+                    op,
+                    element,
+                    *element == crate::ast::Type::Bytes
+                        || crate::source_verify::declared_type::owned_record_collection::
+                            is_admitted_owned_record_collection_element(types, element),
+                )
+            })
             .unwrap_or_default();
         for (index, arg) in args.iter().enumerate() {
             let actual = check_expr(

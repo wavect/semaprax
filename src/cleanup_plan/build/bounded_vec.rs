@@ -15,7 +15,12 @@ impl PlanBuilder<'_> {
         storage: &StorageId,
         projections: &[DeclarationId],
     ) -> Result<Option<FieldLivenessShape>, Diagnostic> {
-        if !crate::cleanup::is_owned_bounded_vec_type(ty) {
+        if !crate::cleanup::is_owned_bounded_vec_type(ty)
+            && !crate::hir::owned_record_collection::is_owned_record_vec_type(
+                &self.program.declarations,
+                ty,
+            )
+        {
             return Ok(None);
         }
         let flag = LivenessFlagId(self.next_flag);
@@ -38,7 +43,30 @@ impl PlanBuilder<'_> {
     }
 }
 
-pub(super) fn resolved_params(
+impl PlanBuilder<'_> {
+    /// The compiler-owned parameter list one already-resolved bounded `Vec`
+    /// call must have, re-derived from the plan builder's own program facts.
+    pub(super) fn bounded_vec_params(
+        &self,
+        op: crate::vec_ops::VecOp,
+        has_instance: bool,
+        argument_count: usize,
+        type_arguments: &[ResolvedType],
+        expression: &ExpressionId,
+    ) -> Result<Vec<ResolvedParam>, Diagnostic> {
+        resolved_params(
+            &self.program.declarations,
+            op,
+            has_instance,
+            argument_count,
+            type_arguments,
+            expression,
+        )
+    }
+}
+
+fn resolved_params(
+    declarations: &crate::hir::DeclarationIndex,
     op: crate::vec_ops::VecOp,
     has_instance: bool,
     argument_count: usize,
@@ -48,7 +76,12 @@ pub(super) fn resolved_params(
     if has_instance
         || argument_count != op.arity()
         || type_arguments.len() != 1
-        || !crate::vec_ops::resolved_operation_element_is_admitted(op, &type_arguments[0])
+        || !(crate::vec_ops::resolved_operation_element_is_admitted(op, &type_arguments[0])
+            || crate::hir::owned_record_collection::admits_vec_operation_element(
+                declarations,
+                op,
+                &type_arguments[0],
+            ))
     {
         return Err(plan_error(format!(
             "cleanup bounded Vec call `{expression}` has inconsistent shape"

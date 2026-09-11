@@ -62,7 +62,7 @@ pub(super) fn emit_hir_c_with_labels(
     output_profile: NativeOutputProfile,
     selected_command: Option<&DeclarationId>,
 ) -> Result<String, Diagnostic> {
-    hir::validate(program)?;
+    hir::owned_record_collection::validate_for_native(program)?;
     if program.types.iter().any(|declaration| {
         matches!(
             declaration.kind,

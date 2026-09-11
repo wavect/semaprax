@@ -6,10 +6,10 @@
 //! `Bytes` fields and exactly one direct admitted Copy-scalar field, and no
 //! other fields. See `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md`.
 //!
-//! No call site outside this module's own tests exists yet; see that spec
-//! for what remains before source can actually declare a `Vec`/`Box` of this
-//! element.
-#![cfg_attr(not(test), allow(dead_code))]
+//! The source verifier consults this classifier when it authenticates a
+//! compiler-owned `Vec` call and when it decides whether the carrier needs
+//! drop; `Box` of this element is not admitted, see that spec for what
+//! remains.
 
 use super::*;
 
@@ -54,6 +54,22 @@ fn admits_field_shape(fields: &[FieldDeclaration]) -> bool {
         }
     }
     bytes_fields == 2 && copy_fields == 1
+}
+
+/// `true` when `op` may be authored over `element` under this profile.
+///
+/// The admitted operation set is `with_capacity`, `push`, `len`, `capacity`
+/// and `clear`, exactly as the resolved companion
+/// `hir::owned_record_collection::admits_vec_operation` states. `get`, `set`
+/// and `reserve_exact` stay refused with the existing stable `SPX-T281`
+/// diagnostic.
+pub(in crate::source_verify) fn admits_vec_operation_element(
+    types: &TypeTable<'_>,
+    op: crate::vec_ops::VecOp,
+    element: &Type,
+) -> bool {
+    crate::hir::owned_record_collection::admits_vec_operation(op)
+        && is_admitted_owned_record_collection_element(types, element)
 }
 
 #[cfg(test)]

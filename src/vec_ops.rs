@@ -126,12 +126,22 @@ impl VecOp {
             _ => OwnershipMode::Value,
         }
     }
+    /// The element slot's ownership mode.
+    ///
+    /// An owned element transfers into the collection at the call's commit
+    /// boundary instead of being copied. `Bytes` does, and so does the one
+    /// admitted owned-record collection element (SPX-AI-019), which is the
+    /// only `ResolvedType::Nominal` any admission path lets reach here:
+    /// Copy scalars are primitive variants and a generic collection's element
+    /// is a `ResolvedType::TypeParameter`, so neither is matched. An element
+    /// outside every admitted profile is refused with a stable diagnostic in
+    /// source and HIR before this function is consulted.
     pub(crate) const fn param_ownership_for(
         self,
         index: usize,
         element: &ResolvedType,
     ) -> OwnershipMode {
-        if matches!(element, ResolvedType::Bytes)
+        if matches!(element, ResolvedType::Bytes | ResolvedType::Nominal { .. })
             && matches!((self, index), (Self::Push, 1) | (Self::Set, 2))
         {
             OwnershipMode::Own
@@ -259,6 +269,21 @@ pub(crate) fn resolved_vec(element: ResolvedType) -> ResolvedType {
     }
 }
 pub(crate) fn ast_params(op: VecOp, element: &Type) -> Vec<Param> {
+    ast_params_with_owned_element(op, element, *element == Type::Bytes)
+}
+
+/// `ast_params`, with the element slot's transfer mode supplied by the caller.
+///
+/// The source verifier cannot decide from the spelling alone whether a
+/// `Type::Named` element is the admitted owned-record collection element or a
+/// generic wrapper's type parameter — both are `Named` with no arguments — so
+/// the classifier's answer is threaded in rather than guessed here. Passing
+/// `false` reproduces the pre-SPX-AI-019 Copy-element signature exactly.
+pub(crate) fn ast_params_with_owned_element(
+    op: VecOp,
+    element: &Type,
+    owned_element: bool,
+) -> Vec<Param> {
     let types = match op {
         VecOp::WithCapacity => vec![Type::Usize],
         VecOp::Push => vec![ast_vec(element.clone()), element.clone()],
@@ -273,7 +298,7 @@ pub(crate) fn ast_params(op: VecOp, element: &Type) -> Vec<Param> {
         .enumerate()
         .map(|(index, ty)| Param {
             name: format!("arg{index}"),
-            mode: match if *element == Type::Bytes
+            mode: match if owned_element
                 && matches!((op, index), (VecOp::Push, 1) | (VecOp::Set, 2))
             {
                 OwnershipMode::Own

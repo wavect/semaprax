@@ -459,7 +459,7 @@ impl DeclarationIndex {
                         return None;
                     };
                     let item = self.declaration(&declaration)?;
-                    if let Some(facts) = owned_builtin_facts(&declaration, &arguments) {
+                    if let Some(facts) = owned_builtin_facts(self, &declaration, &arguments) {
                         memo.insert(identity, facts.clone());
                         results.push(facts);
                         continue;

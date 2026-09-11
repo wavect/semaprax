@@ -56,10 +56,26 @@ pub(super) fn reject_reserved_template(
     Ok(())
 }
 
-pub(super) fn is_type(declaration: &DeclarationId, arguments: &[ResolvedType]) -> bool {
+pub(super) fn is_type(
+    declarations: &DeclarationIndex,
+    declaration: &DeclarationId,
+    arguments: &[ResolvedType],
+) -> bool {
     declaration.as_str() == crate::prelude::VEC_ID
         && arguments.len() == 1
-        && crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
+        && (crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
+            || crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+                declarations,
+                &arguments[0],
+            ))
+}
+
+/// `true` when `ty` is a compiler-owned bounded `Vec` carrier, including the
+/// SPX-AI-019 owned-record element the front end admits but no backend
+/// executes.
+pub(super) fn is_owned_vec_carrier(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
+    crate::cleanup::is_owned_bounded_vec_type(ty)
+        || crate::hir::owned_record_collection::is_owned_record_vec_type(&program.declarations, ty)
 }
 
 pub(super) fn is_call(callee: &DeclarationId, instance: &Option<FunctionInstanceId>) -> bool {
@@ -67,6 +83,7 @@ pub(super) fn is_call(callee: &DeclarationId, instance: &Option<FunctionInstance
 }
 
 pub(super) fn signature(
+    declarations: &DeclarationIndex,
     callee: &DeclarationId,
     type_arguments: &[ResolvedType],
     instance: &Option<FunctionInstanceId>,
@@ -77,7 +94,12 @@ pub(super) fn signature(
     };
     if instance.is_some()
         || type_arguments.len() != 1
-        || !crate::vec_ops::resolved_operation_element_is_admitted(op, &type_arguments[0])
+        || !(crate::vec_ops::resolved_operation_element_is_admitted(op, &type_arguments[0])
+            || crate::hir::owned_record_collection::admits_vec_operation_element(
+                declarations,
+                op,
+                &type_arguments[0],
+            ))
         || args.len() != op.arity()
     {
         return Err(hir_error("invalid vector operation call shape"));

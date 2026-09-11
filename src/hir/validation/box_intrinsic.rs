@@ -68,23 +68,48 @@ pub(super) fn is_intrinsic_id(callee: &DeclarationId) -> bool {
         || crate::vec_ops::by_id(callee.as_str()).is_some()
         || crate::box_ops::by_id(callee.as_str()).is_some()
 }
-pub(super) fn is_type(declaration: &DeclarationId, arguments: &[ResolvedType]) -> bool {
+pub(super) fn is_type(
+    declarations: &DeclarationIndex,
+    declaration: &DeclarationId,
+    arguments: &[ResolvedType],
+) -> bool {
     (matches!(
         declaration.as_str(),
         crate::iterator_ops::ITER_ID | crate::iterator_ops::STEP_ID
     ) && matches!(arguments,[element] if crate::iterator_ops::resolved_element_is_admitted(element)))
-        || super::vec_intrinsic::is_type(declaration, arguments)
+        || super::vec_intrinsic::is_type(declarations, declaration, arguments)
         || (declaration.as_str() == crate::prelude::BOX_ID
             && matches!(arguments, [element] if crate::box_ops::resolved_box_element_is_admitted(element)))
 }
+impl super::HirValidator<'_> {
+    /// The compiler-owned intrinsic signature for one already-resolved call,
+    /// re-derived from this validator's own program facts.
+    pub(super) fn intrinsic_signature(
+        &self,
+        callee: &DeclarationId,
+        type_arguments: &[ResolvedType],
+        instance: &Option<FunctionInstanceId>,
+        args: &[ResolvedExpr],
+    ) -> Result<Option<(Vec<ResolvedParam>, ResolvedType)>, Diagnostic> {
+        signature(
+            &self.program.declarations,
+            callee,
+            type_arguments,
+            instance,
+            args,
+        )
+    }
+}
+
 pub(super) fn signature(
+    declarations: &DeclarationIndex,
     callee: &DeclarationId,
     type_arguments: &[ResolvedType],
     instance: &Option<FunctionInstanceId>,
     args: &[ResolvedExpr],
 ) -> Result<Option<(Vec<ResolvedParam>, ResolvedType)>, Diagnostic> {
     if let Some(signature) =
-        super::vec_intrinsic::signature(callee, type_arguments, instance, args)?
+        super::vec_intrinsic::signature(declarations, callee, type_arguments, instance, args)?
     {
         return Ok(Some(signature));
     }

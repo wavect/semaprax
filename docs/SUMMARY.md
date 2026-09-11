@@ -312,6 +312,7 @@ Audience: all documentation readers.
 - [Agent transport v1](AGENT-TRANSPORT-V1.md)
 - [Live Invocation Contract v1](LIVE-INVOCATION-CONTRACT-V1.md)
 - [Agent interaction schema v1](AGENT-INTERACTION-SCHEMA-V1.md)
+- [Agent lifecycle typed carrier v1](AGENT-LIFECYCLE-TYPED-CARRIER-V1.md)
 - [Semantic Discovery v1](SEMANTIC-DISCOVERY-V1.md)
 - [Image agent protocol v1](IMAGE-AGENT-PROTOCOL-V1.md)
 - [Image candidate protocol v2](IMAGE-CANDIDATE-PROTOCOL-V2.md)

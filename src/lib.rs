@@ -16,6 +16,7 @@ pub mod agent_economics;
 pub mod agent_harness;
 pub mod agent_interaction_schema;
 pub mod agent_lifecycle;
+pub mod agent_lifecycle_typed_carrier;
 pub mod agent_observation;
 pub mod agent_proposal;
 pub mod agent_runtime;

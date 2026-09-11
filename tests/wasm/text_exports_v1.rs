@@ -213,8 +213,17 @@ assert.equal(targetEntries, 6);
     );
 }
 
+/// GitHub issue #217: `text_exports::prepare` validates the closure reachable
+/// from the declared exports at full strictness (catching, among other
+/// things, recursion within that closure), and separately validates the rest
+/// of the linked program's monomorphic functions against only the subset of
+/// shape rules whose violation would change the whole module's emitted form
+/// (owned strings, imports, closures) — because the shared core emitter
+/// materializes that whole inventory and some of its routing decisions scan
+/// it unconditionally. A private, unreachable function's own loop is not one
+/// of those module-shape-affecting properties, so it is now admitted.
 #[test]
-fn profile_rejects_unreachable_owned_string_and_loop_inventory() {
+fn profile_rejects_unreachable_owned_string_and_reachable_recursion_but_admits_unreachable_loop() {
     let owned = parse(
         r#"module text.hostile;
 @id("text.len") fn text_byte_len(value: borrow str) -> i64 { str_len_bytes(value) }
@@ -246,6 +255,10 @@ fn profile_rejects_unreachable_owned_string_and_loop_inventory() {
         assert!(error.message.contains("recursive call cycle"));
     }
 
+    // `text.unused` loops, but nothing in `[exports]` (`text.len` alone)
+    // reaches it, and the shared scalar-core Wasm emitter already lowers a
+    // plain scalar `while` loop correctly ("Bounded While-Loops v1" in
+    // `src/wasm.rs::emit_expr`). Admission now succeeds.
     let looped = parse(
         r#"module text.looped;
 @id("text.len") fn text_byte_len(value: borrow str) -> i64 { str_len_bytes(value) }
@@ -259,9 +272,78 @@ fn profile_rejects_unreachable_owned_string_and_loop_inventory() {
         Path::new("text-loop-hostile.spx"),
     )
     .unwrap();
-    let error = wasm::emit_module_with_text_exports(&looped, &["text.len".to_owned()]).unwrap_err();
+    let looped_bytes =
+        wasm::emit_module_with_text_exports(&looped, &["text.len".to_owned()]).unwrap();
+    // The unreachable `text.unused` function (with its `while` loop) is still
+    // part of the shared core emitter's compiled inventory, exported or not.
+    // Validating the whole module's bytecode proves that loop was actually
+    // lowered to well-formed Wasm, not merely that admission stopped
+    // rejecting it at the Rust API boundary.
+    Validator::new().validate_all(&looped_bytes).unwrap();
+
+    // The same loop, reachable from the export this time, is still rejected:
+    // this profile's own wrappers can call into it, and the ban is on the
+    // shape itself, not merely on whether it happens to be unreachable.
+    let reachable_loop = parse(
+        r#"module text.looped_reachable;
+@id("text.len") fn text_byte_len(value: borrow str) -> i64 {
+    let mut n = str_len_bytes(value);
+    while n > 0 { n = n - 1; 0 }
+    n
+}
+@id("main") fn main() -> i64 { 0 }
+"#,
+        Path::new("text-loop-reachable-hostile.spx"),
+    )
+    .unwrap();
+    let error =
+        wasm::emit_module_with_text_exports(&reachable_loop, &["text.len".to_owned()]).unwrap_err();
     assert_eq!(error.code, "SPX-W119");
     assert!(error.message.contains("reaches a loop"));
+}
+
+// GitHub issue #217's `match`/`Option` half — an unreachable
+// `match byte_get(...) { Option::Some { .. } => .., Option::None {} => .. }`
+// helper no longer tripping `text_exports.rs`'s own closure-scoped
+// `SPX-W119` check, while still failing overall (via a second, independent
+// whole-program `VariantLayoutCache` scan in
+// `src/wasm.rs::emit_resolved_module_internal`, outside this file's
+// ownership) — is pinned at the full `Project` level instead, in
+// `tests/project/standard_library/text.rs::
+// text_export_profile_still_rejects_an_unreachable_byte_inspection_match`.
+// `byte_get`'s compiler-owned callee (`core.bytes.get`) is only synthesized
+// into `ResolvedProgram::functions` by full workspace linking; the bare
+// `parse` + `hir::resolve` path this file otherwise uses for the text-export
+// profile does not link a workspace, so it cannot exercise that scenario
+// faithfully.
+
+/// The same `match` on `Option`, reached directly from the declared export,
+/// stays rejected by `text_exports.rs`'s own check with the original, stable
+/// `SPX-W119` diagnostic: `src/wasm.rs::emit_expr` has no lowering for a
+/// variant-scrutinee match (only `Copy`-scalar scrutinees reach `Refutable
+/// Match v1`), so admitting this shape would risk silently miscompiling it,
+/// not merely relax an over-strict diagnostic.
+#[test]
+fn profile_rejects_a_reachable_byte_inspection_match() {
+    let program = parse(
+        r#"module text.reachable_match;
+@id("text.first_byte_is_space") fn first_byte_is_space(value: borrow str) -> bool {
+    let bytes = str_as_bytes(value);
+    match byte_get(bytes, 0usize) { Option::Some { value: byte } => byte == 32u8, Option::None {} => false, }
+}
+@id("main") fn main() -> i64 { 0 }
+"#,
+        Path::new("text-match-reachable-hostile.spx"),
+    )
+    .unwrap();
+    let error =
+        wasm::emit_module_with_text_exports(&program, &["text.first_byte_is_space".to_owned()])
+            .unwrap_err();
+    assert_eq!(error.code, "SPX-W119");
+    assert_eq!(
+        error.message,
+        "Public Borrowed Text Export Profile v1 function `text.first_byte_is_space` reaches an aggregate or variant expression"
+    );
 }
 
 fn base64(bytes: &[u8]) -> String {

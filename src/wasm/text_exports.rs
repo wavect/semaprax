@@ -266,31 +266,92 @@ pub(super) fn prepare(
         });
     }
 
+    // Full validation, and cycle detection, are scoped to exactly the
+    // closure reachable from the declared exports, computed transitively
+    // through `validate_function`'s own callee discovery. That closure is
+    // the only part of the linked program this profile's raw wrappers ever
+    // invoke, so it is the only part that must satisfy every shape rule the
+    // profile enforces, including the loop ban and the aggregate/variant
+    // ban: those two rules describe what a wrapper's *call* can reach, not
+    // what may exist, unreachable, elsewhere in the linked program.
+    let mut call_graph = BTreeMap::<DeclarationId, Vec<DeclarationId>>::new();
     while let Some(id) = frontier.pop() {
-        if !closure.insert(id.clone()) {
+        if closure.contains(&id) {
             continue;
         }
+        closure.insert(id.clone());
         let function = functions
             .get(id.as_str())
             .copied()
             .ok_or_else(|| admission(format!("text-profile closure target `{id}` is absent")))?;
         require_explicit(program, function)?;
-        validate_function(function, &functions, &mut frontier)?;
-    }
-    // The shared core emitter materializes every monomorphic function, not
-    // merely the selected closure. Validate that exact compiled inventory as
-    // well so an unreachable owned-string helper cannot silently reintroduce
-    // host string imports or an unbounded loop into the text-profile module.
-    let mut call_graph = BTreeMap::new();
-    for function in &program.functions {
         let mut callees = Vec::new();
-        validate_function(function, &functions, &mut callees)?;
+        validate_function(function, &functions, &mut callees, Strictness::Full)?;
+        for callee in &callees {
+            if !closure.contains(callee) {
+                frontier.push(callee.clone());
+            }
+        }
         callees.sort();
         callees.dedup();
-        call_graph.insert(function.id.clone(), callees);
+        call_graph.insert(id, callees);
     }
     reject_call_cycles(&call_graph)?;
+
+    // The shared core emitter still materializes every monomorphic function
+    // the linked program monomorphizes, not merely this closure, and several
+    // of its module-wide routing decisions (whether owned-string host
+    // imports are declared, whether aggregate/variant/byte-data/Vec/Box
+    // lowering claims the whole module) are made by scanning that entire
+    // inventory, independent of what this profile's own wrappers reach. A
+    // private, unreachable helper elsewhere in the linked program can still
+    // smuggle an owned-string host import, a native/host call, or a closure
+    // into this otherwise-closed-raw-ABI module even though this profile's
+    // wrappers never call it.
+    //
+    // A loop, an aggregate/variant expression, or portable byte data in such
+    // an unreachable function carries no equivalent risk: the shared
+    // emitter's own module-wide scans do not key on the first, and a
+    // genuinely aggregate/variant- or byte-data-carrying linked program is
+    // independently and unconditionally rejected before this profile's
+    // wrappers are ever reached (`emit_resolved_module_internal`'s
+    // aggregate/variant/byte-data routing gate over the whole program, via
+    // `VariantLayoutCache` and `program_uses_byte_data`, in `src/wasm.rs`).
+    // So the whole-program pass below applies only the subset of
+    // `validate_function`'s checks that guard the module's shared, global
+    // shape, and leaves the loop, aggregate/variant, and portable-byte-data
+    // bans to the closure-scoped pass above. This is the narrowing GitHub
+    // issue #217 asks for: a private, unreachable helper using a loop or a
+    // `match` no longer breaks admission for every consumer that merely
+    // depends on the package containing it.
+    for function in &program.functions {
+        if closure.contains(&function.id) {
+            continue;
+        }
+        validate_function(
+            function,
+            &functions,
+            &mut Vec::new(),
+            Strictness::ModuleShape,
+        )?;
+    }
     Ok(plans)
+}
+
+/// How much of `validate_function`'s shape ban applies.
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum Strictness {
+    /// Applied to the closure reachable from the declared exports: every
+    /// shape this profile forbids is rejected, because this is exactly the
+    /// code the profile's raw wrappers can call into.
+    Full,
+    /// Applied to the rest of the linked program's monomorphic functions,
+    /// which this profile's wrappers never call but which the shared core
+    /// emitter still materializes. Only shapes that would otherwise change
+    /// the *whole module's* emitted form (host imports, backend routing) are
+    /// rejected here; a loop, an aggregate/variant expression, or portable
+    /// byte data in dead code is inert from this profile's perspective.
+    ModuleShape,
 }
 
 fn reject_call_cycles(
@@ -332,6 +393,7 @@ fn validate_function(
     function: &ResolvedFunction,
     functions: &BTreeMap<&str, &ResolvedFunction>,
     frontier: &mut Vec<DeclarationId>,
+    strictness: Strictness,
 ) -> Result<(), Diagnostic> {
     if !function.effects.is_empty() || !function.requires.is_empty() || !function.ensures.is_empty()
     {
@@ -376,7 +438,17 @@ fn validate_function(
                     )));
                 }
                 pending.extend(args);
-                if crate::str_ops::by_id(callee.as_str()).is_none() {
+                // `crate::byte_ops::by_id` covers `byte_get`/`byte_len`/
+                // `byte_range` alongside `str_ops`'s `str_*` builtins: both
+                // are compiler-owned operations with no backing
+                // `ResolvedFunction`, so both must be recognized here or a
+                // call to either is misreported as "unavailable" rather than
+                // being checked against this profile's actual shape rules
+                // (its result, for `byte_get`, is exactly the `Option` an
+                // aggregate/variant ban downstream is responsible for).
+                if crate::str_ops::by_id(callee.as_str()).is_none()
+                    && crate::byte_ops::by_id(callee.as_str()).is_none()
+                {
                     if !functions.contains_key(callee.as_str()) {
                         return Err(admission(format!(
                             "Public Borrowed Text Export Profile v1 function `{}` reaches an unavailable call `{callee}`",
@@ -393,11 +465,24 @@ fn validate_function(
             }
             ResolvedExprKind::Block { statements, tail } => {
                 for statement in statements {
-                    if matches!(statement, ResolvedStatement::While { .. }) {
-                        return Err(admission(format!(
-                            "Public Borrowed Text Export Profile v1 function `{}` reaches a loop",
-                            function.id
-                        )));
+                    if let ResolvedStatement::While {
+                        condition, body, ..
+                    } = statement
+                    {
+                        if strictness == Strictness::Full {
+                            return Err(admission(format!(
+                                "Public Borrowed Text Export Profile v1 function `{}` reaches a loop",
+                                function.id
+                            )));
+                        }
+                        // ModuleShape: a loop in an unreachable function is
+                        // inert from this profile's perspective (see the
+                        // `Strictness` doc comment), but its condition and
+                        // body can still reach an owned string, import, or
+                        // closure that this pass must catch.
+                        pending.push(condition);
+                        pending.push(body);
+                        continue;
                     }
                     pending.push(statement.value());
                 }
@@ -425,23 +510,82 @@ fn validate_function(
             | ResolvedExprKind::RepeatArrayU8 { .. }
             | ResolvedExprKind::BorrowPlace { .. }
             | ResolvedExprKind::ByteRange { .. } => {
-                return Err(admission(format!(
-                    "Public Borrowed Text Export Profile v1 function `{}` reaches portable byte data",
-                    function.id
-                )));
+                if strictness == Strictness::Full {
+                    return Err(admission(format!(
+                        "Public Borrowed Text Export Profile v1 function `{}` reaches portable byte data",
+                        function.id
+                    )));
+                }
+                // ModuleShape: portable byte data in an unreachable function
+                // is independently and unconditionally rejected whenever it
+                // matters, by `program_uses_byte_data`'s own whole-program
+                // scan in `emit_resolved_module_internal` (`src/wasm.rs`).
+                if let ResolvedExprKind::ByteRange {
+                    source, start, end, ..
+                } = &expression.kind
+                {
+                    pending.push(source);
+                    pending.push(start);
+                    pending.push(end);
+                }
             }
-            ResolvedExprKind::ConstructRecord { .. }
-            | ResolvedExprKind::ConstructVariant { .. }
-            | ResolvedExprKind::Match { .. }
-            | ResolvedExprKind::Try { .. }
-            | ResolvedExprKind::TryOption { .. }
-            | ResolvedExprKind::UpdateRecord { .. }
-            | ResolvedExprKind::Project { .. }
-            | ResolvedExprKind::Upcast { .. } => {
-                return Err(admission(format!(
-                    "Public Borrowed Text Export Profile v1 function `{}` reaches an aggregate or variant expression",
-                    function.id
-                )));
+            ResolvedExprKind::ConstructRecord { fields, .. }
+            | ResolvedExprKind::ConstructVariant { fields, .. }
+            | ResolvedExprKind::UpdateRecord { fields, .. } => {
+                if strictness == Strictness::Full {
+                    return Err(admission(format!(
+                        "Public Borrowed Text Export Profile v1 function `{}` reaches an aggregate or variant expression",
+                        function.id
+                    )));
+                }
+                if let ResolvedExprKind::UpdateRecord { base, .. } = &expression.kind {
+                    pending.push(base);
+                }
+                pending.extend(fields.iter().map(|field| &field.value));
+            }
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
+                if strictness == Strictness::Full {
+                    return Err(admission(format!(
+                        "Public Borrowed Text Export Profile v1 function `{}` reaches an aggregate or variant expression",
+                        function.id
+                    )));
+                }
+                pending.push(scrutinee);
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        pending.push(guard);
+                    }
+                    pending.push(&arm.value);
+                }
+            }
+            ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
+                if strictness == Strictness::Full {
+                    return Err(admission(format!(
+                        "Public Borrowed Text Export Profile v1 function `{}` reaches an aggregate or variant expression",
+                        function.id
+                    )));
+                }
+                pending.push(operand);
+            }
+            ResolvedExprKind::Project { base, .. } => {
+                if strictness == Strictness::Full {
+                    return Err(admission(format!(
+                        "Public Borrowed Text Export Profile v1 function `{}` reaches an aggregate or variant expression",
+                        function.id
+                    )));
+                }
+                pending.push(base);
+            }
+            ResolvedExprKind::Upcast { source } => {
+                if strictness == Strictness::Full {
+                    return Err(admission(format!(
+                        "Public Borrowed Text Export Profile v1 function `{}` reaches an aggregate or variant expression",
+                        function.id
+                    )));
+                }
+                pending.push(source);
             }
         }
     }

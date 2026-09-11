@@ -1,49 +1,83 @@
-//! Probe pinning the exact `SPX-W119` gap (GitHub issue #217) that blocks
-//! every byte-inspection `std.text` operation requested by GitHub issue #122
-//! (SPX-AI-023).
+//! Probes for the `SPX-W119` admission gap tracked as GitHub issue #217,
+//! which blocks every byte-inspection `std.text` operation requested by
+//! GitHub issue #122 (SPX-AI-023).
 //!
 //! `useful-text-consumer.v1` admission (`src/project/admission/legacy.rs::
 //! useful_text`) delegates to `crate::wasm::emit_resolved_module_with_text_exports`,
-//! whose `validate_function` (`src/wasm/text_exports.rs`) walks **every**
+//! which first calls `text_exports::prepare` (`src/wasm/text_exports.rs`).
+//! Before this fix, `prepare`'s `validate_function` walked **every**
 //! monomorphic function the shared core emitter materializes for the whole
-//! linked workspace program, not only the functions actually named in
-//! `[exports]` — see the closure-vs-full-inventory comment directly above
-//! its own `prepare()` loop. It rejects, module-wide:
-//! - any `Match` / `ConstructVariant` / other aggregate-or-variant expression
-//!   (`SPX-W119: ... reaches an aggregate or variant expression`), which is
-//!   exactly the shape `match byte_get(view, index) { Option::Some { .. } =>
-//!   .., Option::None {} => .. }` needs to consume one inspected byte, and
-//! - any `while` loop at all (`SPX-W119: ... reaches a loop`), independent of
-//!   whether its body touches bytes, `Option`, or any aggregate.
+//! linked workspace program, not only the closure reachable from the
+//! functions actually named in `[exports]`. That meant a private,
+//! unexported helper using a shape the profile forbids — a `match` on the
+//! `Option` that `byte_get` returns, or an unconditional `while` loop —
+//! broke admission for every consumer that merely depended on a package
+//! containing it, even though such a helper is never compiled into any call
+//! this profile's raw wrappers can reach.
 //!
-//! Both probes below build a throwaway `useful-text-consumer.v1` package the
-//! same way `package_manifest_links_borrowed_text_from_std_text` (in the
-//! parent module) builds its own scratch consumer, and put the offending
-//! shape in a *private, unexported* helper to demonstrate that the whole
-//! linked module is in scope, not merely its declared exports.
+//! `prepare` now scopes both validation and recursion-cycle detection to the
+//! closure actually reachable from `[exports]`, discovered transitively
+//! through `validate_function`'s own callee walk (see the closure loop
+//! directly above `reject_call_cycles`'s call site in `prepare`). The tests
+//! below confirm the two different outcomes that follow from that closure
+//! being sound:
 //!
-//! Because every non-trivial `std.text` scan (ASCII-whitespace trim, blank
-//! detection, delimited-field walking, or any other byte-scanning operation
-//! GitHub issue #122 asks for) needs at least one of these two shapes, and
-//! this validation runs over the *whole linked program* (so even an
-//! unreachable helper inside `std/text/src/text.spx` itself would trip it
-//! for every consumer that merely depends on the package), GitHub issue
-//! #122's implementation intentionally leaves `std/text/src/text.spx`
-//! unchanged: there is no scanning operation admitted by the current profile
-//! beyond the four already-wrapped compiler-owned `str_*` calls
-//! (`str_len_bytes`, `str_is_empty`, `str_starts_with`, `str_contains`; see
+//! - [`text_export_profile_admits_an_unreachable_scalar_while_loop`]: a
+//!   private, unexported `while` loop over plain `i64`/`bool` locals is now
+//!   admitted, because the shared scalar-core Wasm emitter (`emit_expr` in
+//!   `src/wasm.rs`, "Bounded While-Loops v1") already lowers such a loop
+//!   correctly and nothing else in the pipeline forbids it once it is no
+//!   longer reachable-irrelevant code the closure walk wrongly charged to
+//!   every consumer.
+//! - [`text_export_profile_still_rejects_an_unreachable_byte_inspection_match`]:
+//!   a private, unexported `match byte_get(...) { Option::Some { .. } => ..,
+//!   Option::None {} => .. }` helper no longer trips `text_exports.rs`'s own
+//!   `SPX-W119` check (that check is scoped to the closure now, and this
+//!   helper is not in it), but admission still fails, with a **different**
+//!   code, `SPX-W115`. That comes from a second, independent whole-program
+//!   scan in `emit_resolved_module_internal` (`src/wasm.rs`): it builds a
+//!   `VariantLayoutCache` over the *entire* linked `ResolvedProgram` — not
+//!   the profile's reachable closure — and unconditionally rejects any
+//!   public-profile module (scalar or text) that contains a concrete variant
+//!   instantiation anywhere in that program. `Option<u8>` from the
+//!   unreachable helper is exactly such an instantiation. `src/wasm.rs` is
+//!   outside `text_exports.rs`'s ownership (owned by parallel Wasm
+//!   backend-parity work on owned-record collections at the time of this
+//!   fix), so narrowing *that* scan to the reachable closure — the change
+//!   that would let an unreachable `std.text` helper coexist with an
+//!   unrelated consumer's `Option`-free export — is left as follow-up work;
+//!   this test pins the residual gap's exact, now-correct diagnostic so a
+//!   regression is caught either way.
+//! - [`text_export_profile_rejects_a_reachable_byte_inspection_match`]: a
+//!   `match` on `Option` reached directly from a declared export is, and
+//!   must remain, rejected: no Wasm lowering exists anywhere in this profile
+//!   for a variant scrutinee (`src/wasm.rs::emit_expr` only lowers
+//!   `Refutable Match v1` for `Copy`-scalar scrutinees and explicitly
+//!   returns `SPX-W110` for anything else), so admitting it here would be a
+//!   silent-miscompilation risk, not merely an over-strict diagnostic. This
+//!   keeps `text_exports.rs`'s own `SPX-W119` check — and its exact message
+//!   — stable for the one case it must still cover.
+//!
+//! Because `std.text` byte-scanning still has no admissible `match`/`Option`
+//! path for a genuinely exported function, GitHub issue #122's
+//! implementation continues to leave `std/text/src/text.spx` unchanged:
+//! there is no scanning operation admitted by the current profile beyond the
+//! four already-wrapped compiler-owned `str_*` calls (`str_len_bytes`,
+//! `str_is_empty`, `str_starts_with`, `str_contains`; see
 //! `src/str_ops.rs::by_id`) that `std.text` already exposes as `byte_len`,
-//! `is_empty`, `starts_with`, and `contains`. When GitHub issue #217 closes
-//! (either by lowering `Option`/`match` in the text-export emitter, or by
-//! narrowing its validation to genuinely exported functions), these two
-//! assertions are expected to start failing along with a `check()` call on
-//! the same fixture succeeding; that transition is exactly the signal to
-//! resume GitHub issue #122's scanning work and land a `std.text`
-//! trim/split shape instead of duplicating one from scratch.
+//! `is_empty`, `starts_with`, and `contains`.
 
 use super::{project, temporary};
 
 fn scratch_text_probe(directory: &str, helper: &str) -> std::path::PathBuf {
+    scratch_text_probe_with_export_body(directory, helper, "str_is_empty(value)")
+}
+
+fn scratch_text_probe_with_export_body(
+    directory: &str,
+    helper: &str,
+    export_body: &str,
+) -> std::path::PathBuf {
     let scratch = temporary(directory);
     std::fs::create_dir_all(scratch.join("src")).unwrap();
     std::fs::write(
@@ -56,48 +90,80 @@ fn scratch_text_probe(directory: &str, helper: &str) -> std::path::PathBuf {
         "module consumer.tests;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
     )
     .unwrap();
+    let helper_block = if helper.is_empty() {
+        String::new()
+    } else {
+        format!("{helper}\n\n")
+    };
     std::fs::write(
         scratch.join("src/text.spx"),
         format!(
-            "module consumer.text;\n\n{helper}\n\n@id(\"consumer.empty\")\nfn empty(value: borrow str) -> bool\n{{\n    str_is_empty(value)\n}}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
+            "module consumer.text;\n\n{helper_block}@id(\"consumer.empty\")\nfn empty(value: borrow str) -> bool\n{{\n    {export_body}\n}}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
         ),
     )
     .unwrap();
     scratch
 }
 
-/// A private, unexported helper that inspects one byte with the canonical
-/// `match byte_get(...)` shape is rejected module-wide, even though it is
-/// not named in `[exports]`.
-#[test]
-fn text_export_profile_rejects_byte_inspection_match_pending_spx_w119() {
-    let scratch = scratch_text_probe(
-        "text-w119-match",
-        "@id(\"consumer.first_byte_is_space\")\nfn first_byte_is_space(value: borrow str) -> bool\n{\n    let bytes = str_as_bytes(value);\n    match byte_get(bytes, 0usize) { Option::Some { value: byte } => byte == 32u8, Option::None {} => false, }\n}",
-    );
-    let diagnostics =
-        project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
-            snapshot.check()
-        })
-        .unwrap_err();
-    assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
-    assert_eq!(diagnostics[0].code, "SPX-W119", "{diagnostics:?}");
-    assert_eq!(
-        diagnostics[0].message,
-        "Public Borrowed Text Export Profile v1 function `consumer.first_byte_is_space` reaches an aggregate or variant expression"
-    );
-    let _ = std::fs::remove_dir_all(scratch);
-}
+const BYTE_INSPECTION_MATCH_HELPER: &str = "@id(\"consumer.first_byte_is_space\")\nfn first_byte_is_space(value: borrow str) -> bool\n{\n    let bytes = str_as_bytes(value);\n    match byte_get(bytes, 0usize) { Option::Some { value: byte } => byte == 32u8, Option::None {} => false, }\n}";
 
 /// A private, unexported helper that loops at all — with no byte inspection,
-/// `Option`, or aggregate anywhere in it — is rejected module-wide too: the
-/// profile's loop ban is unconditional, not specific to byte scanning.
+/// `Option`, or aggregate anywhere in it — no longer breaks admission for a
+/// consumer that merely depends on the package containing it: the closure
+/// this profile actually validates is scoped to what `[exports]` reaches,
+/// and the shared scalar-core emitter already lowers a plain scalar `while`
+/// loop correctly.
 #[test]
-fn text_export_profile_rejects_any_while_loop_pending_spx_w119() {
+fn text_export_profile_admits_an_unreachable_scalar_while_loop() {
     let scratch = scratch_text_probe(
         "text-w119-loop",
         "@id(\"consumer.count_up\")\nfn count_up(bound: i64) -> i64\n{\n    let mut index = 0;\n    let mut looping = index < bound;\n    while looping {\n        index = index + 1;\n        looping = index < bound;\n        looping\n    }\n    index\n}",
     );
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
+/// A private, unexported `match byte_get(...)` helper no longer trips
+/// `text_exports.rs`'s own closure-scoped `SPX-W119` check, but admission
+/// still fails: a second, whole-program `VariantLayoutCache` scan in
+/// `src/wasm.rs::emit_resolved_module_internal` (outside this file's
+/// ownership) rejects any public-profile module containing a concrete
+/// variant instantiation anywhere in the linked program, reachable or not.
+/// This pins that residual gap's current, correct diagnostic.
+#[test]
+fn text_export_profile_still_rejects_an_unreachable_byte_inspection_match() {
+    let scratch = scratch_text_probe("text-w119-match-unreachable", BYTE_INSPECTION_MATCH_HELPER);
+    let diagnostics =
+        project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+            snapshot.check()
+        })
+        .unwrap_err();
+    assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+    assert_eq!(diagnostics[0].code, "SPX-W115", "{diagnostics:?}");
+    assert_eq!(
+        diagnostics[0].message,
+        "Public Scalar Export Profile v1 does not admit aggregate or variant lowering"
+    );
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
+/// A `match` on the `Option` `byte_get` returns, reached directly from a
+/// declared export, must stay rejected: `src/wasm.rs::emit_expr` has no
+/// lowering for a variant-scrutinee match (it lowers `Refutable Match v1`
+/// for `Copy`-scalar scrutinees only and returns `SPX-W110` for anything
+/// else), so admitting this shape would risk a silent miscompilation, not
+/// merely an over-strict diagnostic. `text_exports.rs`'s own check catches
+/// it first and keeps the original, stable `SPX-W119` diagnostic.
+#[test]
+fn text_export_profile_rejects_a_reachable_byte_inspection_match() {
+    let scratch = scratch_text_probe_with_export_body(
+        "text-w119-match-reachable",
+        "",
+        "let bytes = str_as_bytes(value);\n    match byte_get(bytes, 0usize) { Option::Some { value: byte } => byte == 32u8, Option::None {} => false, }",
+    );
     let diagnostics =
         project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
             snapshot.check()
@@ -107,7 +173,7 @@ fn text_export_profile_rejects_any_while_loop_pending_spx_w119() {
     assert_eq!(diagnostics[0].code, "SPX-W119", "{diagnostics:?}");
     assert_eq!(
         diagnostics[0].message,
-        "Public Borrowed Text Export Profile v1 function `consumer.count_up` reaches a loop"
+        "Public Borrowed Text Export Profile v1 function `consumer.empty` reaches an aggregate or variant expression"
     );
     let _ = std::fs::remove_dir_all(scratch);
 }

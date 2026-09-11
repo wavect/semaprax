@@ -160,5 +160,7 @@ mod universal_semantic_transaction;
 mod universal_semantic_transaction_composition;
 #[path = "project_candidate/universal_semantic_transaction_v2.rs"]
 mod universal_semantic_transaction_v2;
+#[path = "project_candidate/universal_semantic_transaction_v2_workflow.rs"]
+mod universal_semantic_transaction_v2_workflow;
 #[path = "project_candidate/variant_case.rs"]
 mod variant_case;

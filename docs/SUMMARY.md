@@ -159,6 +159,7 @@ Audience: all documentation readers.
 - [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md)
 - [Universal Semantic Transaction v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md)
 - [Universal Semantic Transaction Composition v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md)
+- [Universal Semantic Transaction v2 Workflow](UNIVERSAL-SEMANTIC-TRANSACTION-V2-WORKFLOW.md)
 - [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md)
 - [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md)
 - [Persistent Semantic Workspace Service Transport v1](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md)

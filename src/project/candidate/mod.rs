@@ -347,6 +347,12 @@ pub struct ProjectCandidate {
     digest: String,
     // Derived only from this immutable candidate; never serialized or authority.
     source_review_cache: OnceLock<Result<Arc<str>, Vec<Diagnostic>>>,
+    // Set only when this candidate's last applied change was a body-expression
+    // `replace_expression`; the isolated canonical text of the new expression,
+    // independent of the rest of the file. Not part of `json`/`digest`: it is
+    // a Rust-only convenience for a source-preserving splice by a caller such
+    // as Universal Semantic Transaction v2, never serialized or authority.
+    expression_replacement_preview: Option<String>,
 }
 
 pub(super) fn target_projection_facts(
@@ -391,6 +397,7 @@ impl ProjectCandidate {
         let mut implementation_addition = None;
         let mut type_addition = None;
         let mut nominal_rename = None;
+        let mut replacement_preview = None;
         let generic_rename = generic_rename::plan(&self.revision, &programs, &change.intent)?;
         let (summary, addition) = match change.intent.get("kind").and_then(Value::as_str) {
             Some("rename_declaration")
@@ -455,10 +462,12 @@ impl ProjectCandidate {
                     extraction::apply(&self.revision, &mut programs, &change.intent)?;
                 (summary, Some(addition))
             }
-            Some("replace_expression") => (
-                expression::apply(&self.revision, &mut programs, &change.intent)?,
-                None,
-            ),
+            Some("replace_expression") => {
+                let (summary, preview) =
+                    expression::apply_with_preview(&self.revision, &mut programs, &change.intent)?;
+                replacement_preview = Some(preview);
+                (summary, None)
+            }
             Some("replace_contract_expression") => (
                 expression::apply_contract(&self.revision, &mut programs, &change.intent)?,
                 None,
@@ -653,14 +662,16 @@ impl ProjectCandidate {
             });
         }
         summaries.push(operation);
-        Self::finish(
+        let mut candidate = Self::finish(
             Arc::clone(&self.base),
             candidate,
             changes,
             summaries,
             Arc::clone(&self.base_targets),
             &targets,
-        )
+        )?;
+        candidate.expression_replacement_preview = replacement_preview;
+        Ok(candidate)
     }
 
     /// Reconstruct all intentions from the base and compare the complete source
@@ -695,6 +706,13 @@ impl ProjectCandidate {
     }
     pub fn base_revision(&self) -> &Arc<ProjectRevision> {
         &self.base
+    }
+    /// The isolated canonical text of the new expression from this
+    /// candidate's last applied `replace_expression`, if any. `None` for a
+    /// freshly opened candidate or one whose last change was a different
+    /// kind. See the field doc on `expression_replacement_preview`.
+    pub fn expression_replacement_preview(&self) -> Option<&str> {
+        self.expression_replacement_preview.as_deref()
     }
 
     /// Comparison is descriptive, not a semantic-merge or compatibility proof.
@@ -865,6 +883,7 @@ impl ProjectCandidate {
             json,
             digest,
             source_review_cache: OnceLock::new(),
+            expression_replacement_preview: None,
         })
     }
 }

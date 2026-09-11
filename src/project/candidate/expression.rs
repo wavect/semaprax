@@ -275,20 +275,27 @@ impl ProjectCandidate {
     }
 }
 
-pub(super) fn apply(
-    revision: &ProjectRevision,
-    programs: &mut [ast::Program],
-    request: &Value,
-) -> Result<intent::IntentSummary> {
-    apply_region(revision, programs, request, false)
-}
-
 pub(super) fn apply_contract(
     revision: &ProjectRevision,
     programs: &mut [ast::Program],
     request: &Value,
 ) -> Result<intent::IntentSummary> {
-    apply_region(revision, programs, request, true)
+    apply_region(revision, programs, request, true).map(|(summary, _)| summary)
+}
+
+/// Same admission as [`apply`], additionally returning the isolated canonical
+/// text of the replacement now occupying the selected body slot. The preview
+/// is derived from the mutated AST node alone, independent of the rest of the
+/// file, so a caller can splice it into an authenticated source span without
+/// reprinting anything else.
+pub(super) fn apply_with_preview(
+    revision: &ProjectRevision,
+    programs: &mut [ast::Program],
+    request: &Value,
+) -> Result<(intent::IntentSummary, String)> {
+    let (summary, preview) = apply_region(revision, programs, request, false)?;
+    let preview = preview.ok_or_else(|| invalid("replace_expression preview is unavailable"))?;
+    Ok((summary, preview))
 }
 
 fn apply_region(
@@ -296,7 +303,7 @@ fn apply_region(
     programs: &mut [ast::Program],
     request: &Value,
     contract: bool,
-) -> Result<intent::IntentSummary> {
+) -> Result<(intent::IntentSummary, Option<String>)> {
     validate_region_request(request, contract)?;
     let target = text(request, "target")?;
     let expression_id = text(request, "expression_id")?;
@@ -355,16 +362,26 @@ fn apply_region(
     } else {
         replacement
     };
-    Ok(intent::IntentSummary {
-        target_id: target.to_owned(),
-        kind: if contract {
-            "replace_contract_expression"
-        } else {
-            "replace_expression"
-        }
-        .to_owned(),
-        migrated_calls: 0,
-    })
+    // Contract predicates have no source-preserving splice route today, so
+    // the preview is only computed for body-expression replacement.
+    let preview = if contract {
+        None
+    } else {
+        Some(crate::format::expr(slot, 0))
+    };
+    Ok((
+        intent::IntentSummary {
+            target_id: target.to_owned(),
+            kind: if contract {
+                "replace_contract_expression"
+            } else {
+                "replace_expression"
+            }
+            .to_owned(),
+            migrated_calls: 0,
+        },
+        preview,
+    ))
 }
 
 /// Validate the replacement's actual type and ownership after full Project

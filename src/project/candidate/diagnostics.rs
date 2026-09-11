@@ -221,6 +221,7 @@ impl ProjectCandidateAttempt {
             json: base.json.clone(),
             digest: base.digest.clone(),
             source_review_cache: base.source_review_cache.clone(),
+            expression_replacement_preview: base.expression_replacement_preview.clone(),
         });
         let attempt = Self::rejected(retained, change, diagnostics)?;
         let (proposal, _) = attempt.repair()?;

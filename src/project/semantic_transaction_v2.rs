@@ -247,7 +247,6 @@ impl SemanticTransactionV2 {
                 "semantic transaction v2 expected workspace revision is stale",
             ));
         }
-        require_canonical_comment_free_sources(&base)?;
         require_function_target(&base, &self.operation.target)?;
 
         let initial = ProjectCandidate::open(Arc::clone(&base), base.project_revision())?;
@@ -272,6 +271,33 @@ impl SemanticTransactionV2 {
                 "ReplaceExpression expected old expression does not match the exact base",
             ));
         }
+        // Every source other than the edited one is unaffected by this
+        // transaction, so it retains the pre-existing exact canonical,
+        // comment-free requirement. See CANONICAL-COMMENTS-V1's nonclaim for
+        // workspace-level routes: only the one authenticated edited source
+        // may now carry comments, and only in their canonical position (a
+        // file `fmt --check` already accepts). Non-canonical whitespace, and
+        // comments elsewhere in the workspace, remain out of scope for this
+        // bounded route; see docs/UNIVERSAL-SEMANTIC-TRANSACTION-V2.md.
+        require_canonical_comment_free_sources_except(&base, &old.path)?;
+        let target_source = base
+            .sources()
+            .iter()
+            .find(|source| source.path() == old.path)
+            .ok_or_else(|| stale("expression source owner is unavailable"))?;
+        let (target_program, target_comments) =
+            crate::parse_with_comments(target_source.source(), std::path::Path::new(&old.path))
+                .map_err(|error| vec![error])?;
+        let target_comment_free_canonical = target_comments.items.is_empty()
+            && crate::format::canonical(&target_program) == target_source.source();
+        let target_canonical_with_comments = target_comment_free_canonical
+            || crate::format::comments::canonical_with_comments(&target_program, &target_comments)
+                == target_source.source();
+        if !target_canonical_with_comments {
+            return Err(invalid(
+                "semantic transaction v2 requires the edited source to be canonical, comments admitted in their canonical position",
+            ));
+        }
 
         let change = SemanticChange::new(
             base.project_revision(),
@@ -284,13 +310,24 @@ impl SemanticTransactionV2 {
         )?;
         let candidate = initial.apply(initial.candidate_digest(), &change)?;
         require_canonical_comment_free_sources(candidate.revision())?;
-        let replacement = require_source_preserving_expression_replacement(
-            &base,
-            candidate.revision(),
-            &candidate,
-            &self.operation,
-            &old,
-        )?;
+        let replacement = if target_comment_free_canonical {
+            require_source_preserving_expression_replacement(
+                &base,
+                candidate.revision(),
+                &candidate,
+                &self.operation,
+                &old,
+            )?
+        } else {
+            require_comment_preserving_expression_replacement(
+                &base,
+                candidate.revision(),
+                &candidate,
+                &self.operation,
+                &old,
+                &target_comments,
+            )?
+        };
         let candidate_workspace = candidate.revision().canonical_workspace_revision()?;
         let candidate_program_root = candidate_workspace.program_root()?;
         if base_workspace.manifest_digest() != candidate_workspace.manifest_digest()
@@ -393,6 +430,7 @@ impl SemanticTransactionV2 {
             MAX_SEMANTIC_TRANSACTION_V2_ARTIFACT_BYTES,
         )?;
 
+        let preserved_target_source = replacement.preserved_source.clone();
         Ok(SemanticTransactionArtifactsV2 {
             candidate,
             base_program_root,
@@ -406,6 +444,7 @@ impl SemanticTransactionV2 {
             evidence,
             base_program_root_v2: None,
             base_program_root_v3: None,
+            preserved_target_source,
         })
     }
 
@@ -534,6 +573,12 @@ pub struct SemanticTransactionArtifactsV2 {
     evidence: String,
     base_program_root_v2: Option<ProgramRootV2>,
     base_program_root_v3: Option<ProgramRootV3>,
+    // Rust-only convenience, no wire/digest presence: the edited source's
+    // exact text with the edit applied and every comment and unrelated byte
+    // preserved, when the edited source admitted comments. `None` when the
+    // edited source was already comment-free canonical, in which case
+    // `candidate().revision()` already carries the identical projection.
+    preserved_target_source: Option<String>,
 }
 
 impl SemanticTransactionArtifactsV2 {
@@ -573,6 +618,14 @@ impl SemanticTransactionArtifactsV2 {
     pub fn evidence(&self) -> &str {
         &self.evidence
     }
+    /// The edited source's exact preserved text (edit applied, every comment
+    /// and unrelated byte outside the authenticated expression span kept
+    /// verbatim), when the edited source admitted comments. `None` when the
+    /// edited source was comment-free canonical, in which case
+    /// `candidate().revision()` already carries the identical projection.
+    pub fn preserved_target_source(&self) -> Option<&str> {
+        self.preserved_target_source.as_deref()
+    }
 }
 
 struct ExpressionSelection {
@@ -588,6 +641,7 @@ struct ExpressionReplacement {
     path: String,
     new_expression_id: String,
     new_expression: String,
+    preserved_source: Option<String>,
 }
 
 fn select_expression(
@@ -725,11 +779,154 @@ fn require_source_preserving_expression_replacement(
             path: old.path.clone(),
             new_expression_id,
             new_expression,
+            preserved_source: None,
         });
     }
     Err(stale(
         "ReplaceExpression source owner disappeared from the candidate",
     ))
+}
+
+/// Same postcondition as [`require_source_preserving_expression_replacement`]
+/// — bytes outside the authenticated span are preserved exactly — for an
+/// edited source that admits comments in their canonical position rather
+/// than requiring it be comment-free. `materialize` (the shared candidate
+/// rebuild used by every intent kind) reprints every source through
+/// `format::canonical`, which has no comment representation, so the
+/// candidate's own edited-source text is always comment-free; this function
+/// never widens that. Instead it independently locates the new expression's
+/// isolated canonical text (`candidate.expression_replacement_preview`,
+/// produced from the mutated AST node alone) and splices it into the
+/// authenticated span of the *original* comment-bearing bytes, so every
+/// comment and byte outside the span, and the run of legal formatting the
+/// comments sit in, survive untouched. The splice is then independently
+/// reparsed and its comment-free canonical projection is required to equal
+/// the already fully validated candidate text byte-for-byte, so any
+/// discrepancy (a missed comment, a misidentified span, an ambiguous
+/// reselection) fails the transaction closed rather than silently choosing.
+///
+/// A comment whose span intersects the authenticated expression span is
+/// refused rather than silently dropped or relocated: the caller's edit did
+/// not say where that comment should go once its anchor is replaced.
+fn require_comment_preserving_expression_replacement(
+    before: &ProjectRevision,
+    after: &ProjectRevision,
+    candidate: &ProjectCandidate,
+    operation: &SemanticTransactionReplaceExpression,
+    old: &ExpressionSelection,
+    target_comments: &crate::lexer::Comments,
+) -> Result<ExpressionReplacement, Vec<Diagnostic>> {
+    if before.sources().len() != after.sources().len() {
+        return Err(stale("ReplaceExpression changed the source inventory"));
+    }
+    for base_source in before.sources() {
+        if base_source.path() == old.path {
+            continue;
+        }
+        let candidate_source = after
+            .sources()
+            .iter()
+            .find(|source| source.path() == base_source.path())
+            .ok_or_else(|| stale("ReplaceExpression changed the source inventory"))?;
+        if base_source.source() != candidate_source.source() {
+            return Err(stale("ReplaceExpression changed an unrelated source"));
+        }
+    }
+
+    let raw = before
+        .sources()
+        .iter()
+        .find(|source| source.path() == old.path)
+        .ok_or_else(|| stale("expression source owner is unavailable"))?
+        .source();
+    if raw.get(old.start..old.end).is_none() {
+        return Err(stale("ReplaceExpression base span is unavailable"));
+    }
+    if target_comments
+        .items
+        .iter()
+        .any(|comment| comment_overlaps_span(raw, comment.offset, old.start, old.end))
+    {
+        return Err(invalid(
+            "ReplaceExpression refuses a comment inside the authenticated expression span",
+        ));
+    }
+
+    let preview = candidate
+        .expression_replacement_preview()
+        .ok_or_else(|| invalid("ReplaceExpression candidate recorded no replacement preview"))?;
+    let mut preserved =
+        String::with_capacity(old.start + preview.len() + raw.len().saturating_sub(old.end));
+    preserved.push_str(&raw[..old.start]);
+    preserved.push_str(preview);
+    preserved.push_str(&raw[old.end..]);
+
+    let candidate_source = after
+        .sources()
+        .iter()
+        .find(|source| source.path() == old.path)
+        .ok_or_else(|| stale("ReplaceExpression source owner disappeared from the candidate"))?;
+    let path = std::path::Path::new(&old.path);
+    let (spliced_program, spliced_comments) =
+        crate::parse_with_comments(&preserved, path).map_err(|error| vec![error])?;
+    if crate::format::canonical(&spliced_program) != candidate_source.source() {
+        return Err(stale(
+            "ReplaceExpression comment-preserving source failed independent structural verification",
+        ));
+    }
+    if spliced_comments.items.len() != target_comments.items.len() {
+        return Err(stale(
+            "ReplaceExpression comment-preserving splice changed the comment inventory",
+        ));
+    }
+
+    let catalog: Value = serde_json::from_str(&candidate.expression_catalog(&operation.target)?)
+        .map_err(|_| invalid("candidate expression catalog is not valid JSON"))?;
+    if catalog["source"]["path"] != old.path {
+        return Err(stale(
+            "ReplaceExpression changed the expression source owner",
+        ));
+    }
+    let rows = catalog["expressions"]
+        .as_array()
+        .ok_or_else(|| invalid("candidate expression inventory is unavailable"))?;
+    let mut matches = rows.iter().filter(|row| {
+        row["phase"] == "body"
+            && row["replaceable"] == true
+            && usize_field(&row["source_span"], "start")
+                .ok()
+                .zip(usize_field(&row["source_span"], "end").ok())
+                .and_then(|(start, end)| candidate_source.source().get(start..end))
+                == Some(preview)
+    });
+    let row = matches
+        .next()
+        .ok_or_else(|| stale("ReplaceExpression candidate expression was not reselected"))?;
+    if matches.next().is_some() {
+        return Err(stale(
+            "ReplaceExpression candidate expression selection is ambiguous",
+        ));
+    }
+    let new_expression_id = row["expression_id"]
+        .as_str()
+        .ok_or_else(|| invalid("candidate expression identity is unavailable"))?
+        .to_owned();
+    Ok(ExpressionReplacement {
+        path: old.path.clone(),
+        new_expression_id,
+        new_expression: preview.to_owned(),
+        preserved_source: Some(preserved),
+    })
+}
+
+/// Conservative to end-of-line: `//` comments run to the end of their source
+/// line, so this never under-reports an overlap with `[start, end)`.
+fn comment_overlaps_span(source: &str, comment_offset: usize, start: usize, end: usize) -> bool {
+    let line_end = source[comment_offset..]
+        .find('\n')
+        .map(|relative| comment_offset + relative)
+        .unwrap_or(source.len());
+    comment_offset < end && line_end >= start
 }
 
 fn require_function_target(
@@ -766,6 +963,31 @@ fn require_canonical_comment_free_sources(
         if !comments.items.is_empty() || crate::format::canonical(&program) != source.source() {
             return Err(invalid(
                 "semantic transaction v2 requires comment-free canonical source",
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Same requirement as [`require_canonical_comment_free_sources`] for every
+/// source except `exempt_path`, which the caller has separately admitted
+/// under the comment-preserving splice policy. Every other source is
+/// unaffected by the transaction, so its exact canonical, comment-free
+/// requirement is unchanged.
+fn require_canonical_comment_free_sources_except(
+    revision: &ProjectRevision,
+    exempt_path: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    for source in revision.sources() {
+        if source.path() == exempt_path {
+            continue;
+        }
+        let (program, comments) =
+            crate::parse_with_comments(source.source(), Path::new(source.path()))
+                .map_err(|error| vec![error])?;
+        if !comments.items.is_empty() || crate::format::canonical(&program) != source.source() {
+            return Err(invalid(
+                "semantic transaction v2 requires comment-free canonical source outside the edited file",
             ));
         }
     }

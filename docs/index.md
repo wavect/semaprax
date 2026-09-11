@@ -1,6 +1,7 @@
 # SEMAPRAX documentation
 
-Status: living public documentation entry point for v0.4.0; **HOSTED GREEN** implementation baseline.
+Status: living public documentation entry point for v0.4.1; the **HOSTED GREEN**
+implementation baseline remains v0.4.0.
 
 Audience: language users and integrators.
 
@@ -15,7 +16,7 @@ evidence, private experiments, and repository internals live in the separate
 > The [v0.4.0 baseline](RELEASE-0.4.0-STATUS.md) records **HOSTED GREEN** for the
 > released implementation and supersedes its pre-release local-only status.
 
-The [v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0)
+The [v0.4.1 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.1)
 contains smoke-tested Linux x86-64, Apple Silicon macOS, and Windows x86-64
 archives. The implemented release code has **HOSTED GREEN** evidence; the
 release-note publication issue is not an outstanding code-evidence gate.

@@ -8,7 +8,7 @@ An experimental systems programming language with a stable semantic program
 graph designed for humans and software agents.
 
 [![CI](https://github.com/wavect/semaprax/actions/workflows/ci.yml/badge.svg)](https://github.com/wavect/semaprax/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.4.0-7c3aed.svg)](Cargo.toml)
+[![Version](https://img.shields.io/badge/version-0.4.1-7c3aed.svg)](Cargo.toml)
 [![Status](https://img.shields.io/badge/status-pre--alpha-f59e0b.svg)](#project-status)
 [![Rust](https://img.shields.io/badge/Rust-1.88%2B-000000.svg?logo=rust)](Cargo.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb.svg)](LICENSE)
@@ -82,7 +82,7 @@ semaprax check examples/meaning.spx
 semaprax run examples/meaning.spx
 ```
 
-Prefer a pre-built binary (no Rust needed)? Download the [v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0) archive for your host and put the unpacked `semaprax` on `PATH`.
+Prefer a pre-built binary (no Rust needed)? Download the [v0.4.1 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.1) archive for your host and put the unpacked `semaprax` on `PATH`.
 
 ### 4. Create your first project (30s)
 
@@ -134,7 +134,7 @@ The generated JS API uses stable IDs — a display rename does not change the ex
 ### Releases and changelog
 
 The published tag is the
-[v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0)
+[v0.4.1 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.1)
 (2026-09-10, `dfc15e2d`) with smoke-tested archives, SHA256 checksums, and
 hosted release evidence in the
 [release process](docs/RELEASE-PROCESS.md#040-hosted-release-evidence); the
@@ -256,7 +256,7 @@ and [Public Owned UTF-8 API v1](docs/PUBLIC-OWNED-UTF8-API-V1.md).
 
 ## Project status
 
-**Release:** [v0.4.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.0) · **Changelog:** [CHANGELOG.md](CHANGELOG.md) · **Maturity:** pre-alpha research · **Overall goal:**
+**Release:** [v0.4.1 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.1) · **Changelog:** [CHANGELOG.md](CHANGELOG.md) · **Maturity:** pre-alpha research · **Overall goal:**
 Partial
 
 SEMAPRAX has executable vertical slices across its language, semantic graph,

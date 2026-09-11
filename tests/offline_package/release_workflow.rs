@@ -169,19 +169,30 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
     );
     let notes = String::from_utf8(notes.stdout).expect("release notes must be UTF-8");
     let title = format!("SEMAPRAX v{version} is pre-alpha research software.");
+    // Three sampled entries of the current bucket, taken from the top, middle,
+    // and bottom of its section, plus the fixed frame. Samples are re-picked
+    // each release; the point they hold is that the renderer emits this
+    // bucket's own content, whole.
     for exact in [
         title.as_str(),
         "## Changes",
-        "Universal Semantic Transaction v2",
-        "Owned Bounded Box v1",
-        "Owned Bounded Vec For Traversal v1",
-        "Added `std.data.json.dec`",
+        "Public Generic Type Grammar v1",
+        "Add the bundled `std.env.policy` package",
+        "Extended Exact Program Context v2",
         "These unsigned archives are not notarized",
         "SHA-256 checksums are integrity facts, not signatures.",
     ] {
         assert!(notes.contains(exact), "release notes lost: {exact}");
     }
-    assert!(!notes.contains("## 0.3.5"));
+    // Every other bucket stays out, including the one immediately before this
+    // release: a renderer that walked past its section would pick that up
+    // first.
+    for other in ["## 0.4.0", "## 0.3.5", "## Unreleased"] {
+        assert!(
+            !notes.contains(other),
+            "release notes leaked another bucket: {other}"
+        );
+    }
 }
 
 #[test]

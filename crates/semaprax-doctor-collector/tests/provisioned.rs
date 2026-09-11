@@ -59,7 +59,7 @@ fn healthy(observation: Observation) {
         };
         format!(concat!(
             "{{\"schema\":\"semaprax.doctor.v1\",\"target\":\"native\",\"checks\":[",
-            "{{\"id\":\"semaprax\",\"required\":true,\"status\":\"ok\",\"detail\":\"0.4.0\"}},",
+            "{{\"id\":\"semaprax\",\"required\":true,\"status\":\"ok\",\"detail\":\"0.4.1\"}},",
             "{{\"id\":\"os\",\"required\":true,\"status\":\"ok\",\"detail\":\"linux\"}},",
             "{{\"id\":\"arch\",\"required\":true,\"status\":\"ok\",\"detail\":\"{}\"}},",
             "{{\"id\":\"release\",\"required\":true,\"status\":\"ok\",\"detail\":\"{}\"}},",

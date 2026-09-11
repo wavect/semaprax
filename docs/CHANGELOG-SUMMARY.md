@@ -8,6 +8,35 @@ For complete chronological detail, including historical context and archived art
 - [CHANGELOG.md](https://github.com/wavect/semaprax/blob/main/CHANGELOG.md)
 - [docs/CHANGELOG-ARCHIVE.md](CHANGELOG-ARCHIVE.md).
 
+## 0.4.1 highlights
+
+- Public generic ownership is now a separate milestone rather than a side
+  effect of the internal generic closure. It owns nine prerequisite gates, the
+  separation invariants between them, and a standing decision that the surface
+  is unsupported and unpublished — plus an executable separation gate that
+  reddens if an internal admission ever starts producing a public generic
+  signature.
+- Four of those gates landed with local evidence: a versioned target-neutral
+  type grammar with length-framed injective identities, explicit template and
+  ordered argument identities that a display rename cannot move, semantic
+  compatibility rules stricter than source compatibility wherever a foreign
+  consumer sees more than a caller, and a candidate-bound delta over immutable
+  Project candidates with byte-exact independent replay.
+- Four generated metadata consumers — Rust, TypeScript/Wasm, C11 and C++ — are
+  compiled warning-free and executed against nine hostile documents, and all
+  of them must refuse each one with the same closed reason. The milestone
+  corpus also runs on Linux, macOS and Windows as a declared release blocker.
+- The bundled standard library gained effect-free policy and cursor packages
+  across `std.fs`, `std.env.policy`, `std.process`, `std.agent`, `std.bytes`,
+  `std.format`, `std.log`, `std.test`, `std.data.csv`, `std.data.toml`,
+  `std.data.json.dec`, `std.encoding.base64`, `std.num.overflow`,
+  `std.path.normalize` and `std.io.lines`, none of which claims a capability it
+  does not exercise.
+- Private owned iterator payloads, generic iterator operations, consuming
+  `for own` traversal, function values and closures deepened, and durable Agent
+  migration and iterative runtimes stayed bound to exact immutable semantic
+  roots.
+
 ## 0.4.0 highlights
 
 - Generic owned records and variants now cover bounded nested relay, internal
@@ -39,8 +68,11 @@ For complete chronological detail, including historical context and archived art
 
 ## Latest published milestone
 
-- `v0.4.0` is the current prerelease tag used by installation and distribution docs.
-- `v0.3.5` remains the immediately preceding prerelease.
+- `v0.4.1` is the current prerelease tag used by installation and distribution docs.
+- `v0.4.0` remains the immediately preceding prerelease, and its
+  [release baseline](RELEASE-0.4.0-STATUS.md) remains the accepted hosted-green
+  evidence record.
+- `v0.3.5` remains the prerelease before that.
 - `v0.2.0` remains an archived historical tagged release milestone referenced by legacy completion and release-history records.
 
 This file is intentionally compact: it highlights what changed most recently, not a complete project ledger.

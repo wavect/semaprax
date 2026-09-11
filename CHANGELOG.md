@@ -8,6 +8,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+## 0.4.1 — 2026-09-11
+
 - Add Public Generic Candidate Delta v1, milestone gate PG-4: a
   candidate-bound delta that describes the selected exports of an immutable
   Project candidate's base and final revisions over the public generic

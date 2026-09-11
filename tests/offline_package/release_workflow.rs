@@ -212,6 +212,98 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
     }
 }
 
+/// #167 required outcome: "Oversized release notes are detected before
+/// publication and produce the documented bounded summary." A prior fix
+/// (the v0.4.0 hotfix in the history of this file) only special-cased the
+/// literal version string `"0.4.0"`, so this exact requirement passed by
+/// accident for one past tag and would have silently regressed -- an
+/// oversized section under any OTHER version rendered whole, over the
+/// GitHub 125,000-byte limit, with no truncation and no test able to catch
+/// it. This drives the renderer over a synthetic changelog via
+/// `--changelog` so the behaviour is pinned independently of which real
+/// version happens to be tagged next, and independently of `CHANGELOG.md`'s
+/// current contents.
+#[test]
+fn release_notes_bounds_an_oversized_section_for_any_version() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let scratch = std::env::temp_dir().join(format!(
+        "semaprax-release-notes-bound-{}",
+        std::process::id()
+    ));
+    fs::create_dir_all(&scratch).expect("scratch dir must be creatable");
+    let oversized_changelog = scratch.join("OVERSIZED-CHANGELOG.md");
+    // One line repeated past the 118,000-char bound the renderer applies,
+    // followed by a distinctive tail line that must NOT survive truncation.
+    let mut body = String::from("## 9.9.9 — 2027-01-01\n\n");
+    while body.len() < 120_000 {
+        body.push_str("- a synthetic changelog line that pads this section\n");
+    }
+    body.push_str("- TAIL LINE THAT MUST BE TRUNCATED AWAY\n");
+    body.push_str("## 9.9.8 — 2026-12-01\n\nolder notes\n");
+    fs::write(&oversized_changelog, &body).expect("synthetic changelog must be writable");
+
+    let oversized = Command::new("python3")
+        .args([
+            "scripts/release-notes.py",
+            "--version",
+            "9.9.9",
+            "--changelog",
+        ])
+        .arg(&oversized_changelog)
+        .current_dir(root)
+        .output()
+        .expect("release notes renderer must run over a synthetic changelog");
+    assert!(
+        oversized.status.success(),
+        "renderer must succeed by truncating, not fail: {}",
+        String::from_utf8_lossy(&oversized.stderr)
+    );
+    let oversized = String::from_utf8(oversized.stdout).expect("release notes must be UTF-8");
+    assert!(
+        oversized.len() < 125_000,
+        "bounded release notes must stay under GitHub's release-body limit, got {} bytes",
+        oversized.len()
+    );
+    assert!(
+        oversized.contains("truncated for GitHub's 125,000-byte release-note limit"),
+        "oversized notes must carry the documented bounded-summary notice"
+    );
+    assert!(
+        oversized.contains("see CHANGELOG.md for the complete v9.9.9 notes"),
+        "the bounded notice must name the exact truncated version"
+    );
+    assert!(
+        !oversized.contains("TAIL LINE THAT MUST BE TRUNCATED AWAY"),
+        "content past the bound must actually be cut, not merely flagged"
+    );
+
+    // Positive control: a section under the bound is rendered whole, with no
+    // truncation notice at all -- proving the two cases actually diverge.
+    let small_changelog = scratch.join("SMALL-CHANGELOG.md");
+    fs::write(
+        &small_changelog,
+        "## 9.9.9 — 2027-01-01\n\nsmall notes only\n\n## 9.9.8 — 2026-12-01\n\nolder\n",
+    )
+    .expect("small synthetic changelog must be writable");
+    let small = Command::new("python3")
+        .args([
+            "scripts/release-notes.py",
+            "--version",
+            "9.9.9",
+            "--changelog",
+        ])
+        .arg(&small_changelog)
+        .current_dir(root)
+        .output()
+        .expect("release notes renderer must run over a small synthetic changelog");
+    assert!(small.status.success());
+    let small = String::from_utf8(small.stdout).expect("release notes must be UTF-8");
+    assert!(small.contains("small notes only"));
+    assert!(!small.contains("truncated for GitHub's"));
+
+    fs::remove_dir_all(&scratch).ok();
+}
+
 #[test]
 fn both_packagers_bind_version_commit_manifest_inventory_and_smoke() {
     let unix = read("scripts/package-release.sh");

@@ -40,6 +40,12 @@ mod c;
 /// FFI rather than plain C11.
 pub mod c_calling;
 mod cxx;
+/// The generated C++17 *calling* consumer (issue #159): a real, standalone
+/// move-only RAII wrapper that WRAPS [`c_calling`]'s generated C11 client
+/// rather than reimplementing its codec, lifecycle, or pairing check --
+/// answering the calling half PG-5/PG-6 left open for the last of the four
+/// consumer languages.
+pub mod cxx_calling;
 mod rust;
 /// The generated *calling* consumer (issue #156): a real Rust crate that
 /// verifies an exact descriptor/provider pairing, transfers one owned input

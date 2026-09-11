@@ -7,6 +7,12 @@
 /// native provider `fixture` exercises, executed end to end.
 #[path = "public_generic_native_adapter_v1/c_calling_consumer.rs"]
 mod c_calling_consumer;
+/// The generated C++17 move-only *calling* consumer (issue #159): a real,
+/// standalone external C++17 program that WRAPS the generated C11 calling
+/// consumer above, built and linked directly against the same compiled
+/// native provider `fixture` exercises, executed end to end.
+#[path = "public_generic_native_adapter_v1/cxx_calling_consumer.rs"]
+mod cxx_calling_consumer;
 #[path = "public_generic_native_adapter_v1/fixture.rs"]
 mod fixture;
 /// The generated Rust *calling* consumer (issue #156): a real, standalone

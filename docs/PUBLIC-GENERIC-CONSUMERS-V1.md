@@ -12,16 +12,17 @@ The *calling* half now has a first, local-only implementation for Rust (see
 [Rust calling consumer (issue #156)](#rust-calling-consumer-issue-156)
 below), for C11 (see
 [C11 calling consumer (issue #158)](#c11-calling-consumer-issue-158) below),
-and for TypeScript/Wasm (see [TypeScript/Wasm calling consumer (issue
-#157)](#typescriptwasm-calling-consumer-issue-157) below), built on the
-versioned descriptor ([issue #152](PUBLIC-GENERIC-DESCRIPTOR-V1.md)) and the
-native and Core Wasm physical carrier adapters
+for TypeScript/Wasm (see [TypeScript/Wasm calling consumer (issue
+#157)](#typescriptwasm-calling-consumer-issue-157) below), and for C++17
+(see [C++17 calling consumer (issue
+#159)](#c17-calling-consumer-issue-159) below), built on the versioned
+descriptor ([issue #152](PUBLIC-GENERIC-DESCRIPTOR-V1.md)) and the native
+and Core Wasm physical carrier adapters
 ([issue #154](PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154),
 [issue #155](PUBLIC-GENERIC-CARRIER-V1.md#core-wasm-physical-adapter-issue-155))
 that did not exist when the metadata half closed; both gates stay open for
-the remaining language's calling consumer (C++ - issue #159) and for hosted
-evidence of the Rust, C11 and TypeScript ones. Public generic ownership
-remains unsupported and unpublished.
+hosted evidence of all four languages. Public generic ownership remains
+unsupported and unpublished.
 
 ## Why metadata consumers come first
 
@@ -176,9 +177,10 @@ surfaces, and the milestone's separation gate continues to prove it. The
 hosted run recorded above covers this corpus and nothing else: it is not a
 support decision and not a publication. Calling a public generic export over
 a versioned descriptor and carrier is a separate generator, described next
-for Rust, C11 and TypeScript/Wasm; the C++ calling consumer remains untouched
-(issue #159), which is why PG-5 and PG-6 stay open for every language but
-Rust, C11 and TypeScript despite the sections below.
+for Rust, C11, TypeScript/Wasm, and C++17; every one of these four calling
+generators is local, proof-only evidence with no hosted CI run recorded, and
+none of them admits a public generic signature either, which is why PG-5
+and PG-6 stay open despite the sections below.
 
 ## Rust calling consumer (issue #156)
 
@@ -305,8 +307,8 @@ proof.
 ## C11 calling consumer (issue #158)
 
 Audience: generated-consumer integrators and ABI reviewers evaluating the
-calling half of PG-5/PG-6 for C11, and the future C++17 consumer
-([issue #159](#nonclaims-metadata-consumers)) that wraps it.
+calling half of PG-5/PG-6 for C11, and the C++17 consumer ([C++17 calling
+consumer (issue #159)](#c17-calling-consumer-issue-159)) that wraps it.
 
 Status: local, proof-only evidence only (no hosted CI run recorded for this
 section), unsupported and unpublished. `semaprax::public_generic_consumer::c_calling`
@@ -582,3 +584,164 @@ issue #155 has not shipped one — see the load-bearing limitation above. The
 `reference_wasm_module` fixture this harness compiles is a test-only stand-in
 for that missing artifact, not a claim that #155's protocol has been
 compiled to Wasm.
+
+## C++17 calling consumer (issue #159)
+
+Audience: generated-consumer integrators and ABI reviewers evaluating the
+calling half of PG-5/PG-6 for C++17, and anyone checking that the C++
+wrapper genuinely wraps rather than reimplements the C11 client.
+
+Status: local, proof-only evidence only (no hosted CI run recorded for this
+section), unsupported and unpublished.
+`semaprax::public_generic_consumer::cxx_calling` is a thin generator on top
+of [`c_calling`](#c11-calling-consumer-issue-158): it calls
+`c_calling::generate_c_calling_consumer` for the exact same arguments and
+reuses every one of its four files byte-for-byte (a dedicated test,
+`reuses_the_c_calling_consumer_files_byte_for_byte`, proves this), adding
+exactly two new files. It never restates the carrier codec, the
+open/transform/close lifecycle, or the descriptor/binding pairing check —
+the generated C++17 header `#include`s the generated C11 header and calls
+only its declared functions.
+
+**What is generated versus a fixed template.** Every file below is produced
+by `generate_cxx_calling_consumer(descriptor_bytes, binding, input, output)`,
+a pure function from already-trusted descriptor/binding bytes and a
+`RecordShape` to source text:
+
+```text
+spx_pg_v1.h                              -- verbatim, from c_calling
+spx_pg_calling_consumer.h                -- verbatim, from c_calling
+spx_pg_calling_consumer.c                -- verbatim, from c_calling
+round_trip.c                              -- verbatim, from c_calling (unused by this consumer's own harness, kept for parity with the reused file set)
+include/semaprax_public_generic_v1.hpp   -- fixed template + descriptor-derived Input/Output fields and per-field transform plumbing
+test/round_trip.cpp                       -- fixed template + descriptor-derived sample-input/assert-reversed/per-leaf-bound code
+```
+
+The wrapper header is header-only (every function is `inline` or defined
+in-class): it declares no separate translation unit of its own, so it can
+be `#include`d from more than one C++ file, or twice in one file, without an
+One Definition Rule violation — a dedicated harness test,
+`wrapper_header_compiles_standalone_as_cxx17_and_tolerates_double_inclusion`,
+compiles it alone, twice, as C++17.
+
+**Move-only is the crux, not decoration.** `Provider` (owns one opened
+`spx_pg_calling_consumer` handle) and `Output` (owns one populated
+`spx_pg_output` value) both:
+
+- delete their copy constructor and copy assignment operator, proven by
+  `static_assert(!std::is_copy_constructible_v<T>)` /
+  `static_assert(!std::is_copy_assignable_v<T>)` inside the generated header
+  itself (not merely in this generator's own test suite) and restated again
+  in the generated `test/round_trip.cpp`;
+- are `noexcept` move-constructible and move-assignable
+  (`static_assert(std::is_nothrow_move_constructible_v<T>)` /
+  `..._assignable_v<T>`), leaving the moved-from object in a valid,
+  releasable, non-owning state (a null `spx_pg_calling_consumer*` for
+  `Provider`, a zero-valued `spx_pg_output{}` for `Output`);
+- release their sole owned resource at most once, via a private idempotent
+  `reset()` (`Provider`) or an unconditional `spx_pg_output_free(&raw_)`
+  (`Output`, itself idempotent on an already-zeroed value), called from a
+  `noexcept` destructor, from move-assignment before taking the new handle,
+  and from an explicit public `close()` a caller may call before the
+  destructor runs;
+- guard self-move-assignment explicitly (`if (this != &other)`), and keep
+  their raw member private with no public constructor accepting it.
+
+`generated_cxx_calling_consumer_executes_against_the_real_native_provider`
+in `tests/public_generic_native_adapter_v1/cxx_calling_consumer.rs` runs the
+generated `test/round_trip.cpp` against the real native provider and
+exercises: a full success round trip; moving a `Provider` and continuing to
+use the move target; moving an `Output`; move-assigning over a live
+`Output`; a moved-from `Provider` and a moved-from `Output` each destructing
+cleanly (the latter releasing nothing, since its leaves already transferred
+to the move target); self-move-assignment on both types (through a pointer
+alias, so `-Wself-move` never fires on a genuine runtime self-assignment);
+an explicit `close()` followed by the destructor; early return from a helper
+after a live `Output` was already constructed; relocating a
+`std::vector<Output>` past its capacity; an explicit independent copy of a
+view's bytes that survives the source `Output`'s later mutation (never
+sharing storage); zero-length and embedded-zero-byte leaves; the exact
+per-leaf byte bound (64 KiB) accepted and rejected one byte over; hostile
+pairing (a mutated descriptor, a mutated binding, and a well-formed
+descriptor extended to name a different document), each rejected by
+`Provider::open` before any native allocation with the exact typed
+`ErrorKind` the generated C11 status maps to; and the full ordinal `0..=13`
+failure-injection matrix.
+
+**Zero-leak evidence, and whose counters it is.** Every terminal case above
+asserts `spx_pg_consumer_test_live_allocations() == 0` (and, inside the
+matrix, `spx_pg_consumer_test_live_handles`) — the *native provider's own*
+test-only counters, reached only through the wrapped C11 consumer's own
+`spx_pg_consumer_test_live_allocations`/`_live_handles` accessors this C++
+header calls verbatim. This wrapper keeps no allocation or handle count of
+its own: it proves nothing about itself that the underlying, already-proven
+C11/native layers do not already guarantee, and the RAII correctness above
+is never inferred merely because one round trip succeeded — the compile-time
+static assertions and the explicit move/self-move/moved-from/early-return
+tests are required, independent evidence.
+
+**Error model.** `ErrorKind` restates `spx_pg_consumer_status`'s closed
+vocabulary exhaustively (`map_error_kind` is a total function over the C11
+enum, defaulting unreached values to `ExecutionFailed` rather than undefined
+behavior) and extends it with `AllocationFailure`/`NullArgument` so every
+non-OK C11 status has an exact typed home; `Error` carries both the mapped
+`ErrorKind` and the raw native status an `ExecutionFailed` restates, never a
+parsed string. `Result<T>` is this generator's own closed, exception-free
+sum type (C++17 has no `std::expected`): a `std::variant<T, Error>` wrapped
+behind `has_value()`/`value()`/`error()`, never exposing the discriminant as
+anything else. `ReleaseFailed` is declared but currently unreachable: the
+exposed C11 surface's `spx_pg_consumer_close` returns `void` and only ever
+prints a secondary `stderr` note (`SPX_PG_CCC_SECONDARY_RELEASE_NOTE`) for a
+close failure, so there is no status this wrapper could observe and map to
+it without changing the C11 surface — a change outside this generator's own
+lease. No C++ exception crosses the C11 boundary in either direction: every
+wrapper method is `noexcept`, and every call into the C11 surface is a plain
+C function call.
+
+**Input/output model.** `Input` is an ordinary aggregate of
+`std::vector<std::uint8_t>` leaves (one per descriptor field, in descriptor
+order), consumed by value so the ownership transfer is visible at the call
+site; it is not itself RAII-critical, since a `Provider` that never receives
+it (a moved-from or default-constructed `Provider`) never touches its
+vectors at all and lets them destruct normally. `Output` exposes one
+`BytesView` accessor per leaf — a small pointer/length view (no
+`std::span`, a C++20 facility) valid only while the `Output` remains live
+and unmoved; `to_owned(BytesView)` returns an explicit, independent copy
+when a caller needs the bytes to outlive the `Output`. Scope, restating
+[`c_calling`](#c11-calling-consumer-issue-158)'s own: the bound native
+provider implements only a flat, descriptor-ordered sequence of owned-bytes
+leaves (#119 still blocks nested records and Copy-scalar leaves), so
+`Input`/`Output` carry no scalar or nested-record member yet, and no maximum
+total-payload (16 MiB) case is exercised — only the per-leaf (64 KiB) bound,
+narrower but still first-over-bound evidence, and untested for this foreign
+consumer specifically per #226.
+
+**Generated name safety.** Every field name is `field_<hex-identity>` —
+the exact scheme [`c_calling`](#c11-calling-consumer-issue-158) and
+[`rust_calling`](#rust-calling-consumer-issue-156) already use, reused
+rather than reinvented — so a field name can never collide with a C++
+keyword (the fixed `field_` prefix is never itself a keyword) and is
+injective in the field's declaration-identity bytes, never its display
+text. The wrapper types themselves (`Provider`, `Output`, `Input`, `Error`,
+`ErrorKind`, `Result`) are fixed names inside an explicit, versioned
+namespace (`semaprax::public_generic::v1`), and the include guard
+(`SEMAPRAX_PUBLIC_GENERIC_CONSUMER_V1_HPP`) is a stable literal tied to that
+same contract identity, not derived from any one descriptor.
+
+**Known limitations, stated once.** Local evidence only: no hosted CI run is
+recorded for this section, and this harness assumes a Unix-like host with
+`clang`/`clang++` (or `$CLANG`/`$CLANGXX`) on `PATH` — Windows/MSVC is
+untried, matching every other native-adapter harness in this document. The
+trusted descriptor bytes are the same kind of fixture placeholder
+`fixture.rs` and the C11/Rust calling consumers use (#119 still blocks
+deriving one from a real checked generic export). The type model covers
+flat owned-`Bytes` leaves only (see above); nested records and Copy scalars
+are not yet generated (#119), and no maximum-total-payload (16 MiB) case is
+exercised for this consumer (#226). `ReleaseFailed` is declared in the
+closed `ErrorKind` vocabulary but not currently reachable, since the
+exposed C11 surface offers no status a destructor-time release failure
+could be mapped from — see the error-model paragraph above. The provisioned
+ASan/UBSan variant
+(`provisioned_cxx_calling_consumer_asan_ubsan`) is `#[ignore]`d by default
+and was not run in this round; only the plain `-O0`/`-O2` build and run is
+recorded as executed evidence here.

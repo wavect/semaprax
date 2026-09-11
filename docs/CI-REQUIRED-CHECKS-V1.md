@@ -169,6 +169,41 @@ not read as success. Release semantics are unchanged: `release-artifacts` still
 `needs: release-gate`, so a failing gate skips the tag jobs exactly as an
 unsatisfied `success()` used to.
 
+### Binding publication itself to the exact-tag gate
+
+The aggregate above answers "did every blocker pass," which matters to
+`main`'s required-status-check rule. Two further properties matter to the tag
+workflow specifically, addressing [issue
+167](https://github.com/wavect/semaprax/issues/167): that `release-artifacts`
+and `publish-release` cannot run without `release-gate` having succeeded *in
+the same run*, and that neither job can silently act on a commit other than
+the one the gate verified.
+
+- `release-artifacts`'s `if:` now spells `success()` out explicitly --
+  `if: ${{ success() && startsWith(github.ref, 'refs/tags/v') }}` -- rather
+  than relying on the fact that GitHub Actions ANDs a bare, status-function-free
+  `if:` with an implicit `success()` today. That insertion is real GitHub
+  behaviour, but it is undocumented enough that this workflow should not read
+  as depending on it silently; the explicit form says the same thing and is
+  what the contract test below pins.
+- `release-artifacts` and `publish-release` each gained a step, immediately
+  after checkout, that asserts `git rev-parse HEAD` equals `$GITHUB_SHA`. The
+  gate already proves this once, in its own job
+  (`--sha "${{ github.sha }}" --head-sha "$(git rev-parse HEAD)"`); GitHub
+  Actions keeps `github.sha` constant across every job in one run, so the two
+  downstream jobs re-deriving the same fact locally is redundant under normal
+  operation. It stops being redundant the moment either job's checkout gains a
+  `ref:` override in a later edit -- exactly the kind of drift a required
+  check must catch rather than assume away -- and it makes "the gate's commit
+  binding is dropped" a local, reviewable test failure at the job that
+  actually builds the archive or calls `gh release create`, not only inside
+  `release-gate`.
+
+Publication takes no other route: `publish-release` is the only `gh release
+create` invocation in this repository, it needs both `release-gate` and
+`release-artifacts` directly, and its `if:` already carried an explicit
+`success()`.
+
 ### Evidence
 
 | Property | Evidence |
@@ -178,6 +213,8 @@ unsatisfied `success()` used to.
 | A verdict from another commit is rejected | same test, checked-out-versus-reported commit cases |
 | A new CI job cannot silently escape the aggregate | `tests/offline_package/ci_release_gate.rs::every_job_that_is_not_a_tag_only_release_step_is_a_release_blocker` derives the job inventory from the workflow and compares it to the gate's `needs` |
 | The workflow keeps the fail-closed shape | `tests/offline_package/ci_release_gate.rs::release_gate_fails_closed_over_the_complete_blocker_set`, which now forbids `success()` in that job |
+| `release-artifacts` cannot run, or build an archive under a commit other than the one the gate verified, without `release-gate` succeeding on the exact tag commit | `tests/offline_package/release_workflow.rs::tag_artifacts_are_exact_blocking_children_of_the_release_gate` pins the explicit `success()` guard, the `needs: release-gate` edge, and the `git rev-parse HEAD` == `$GITHUB_SHA` step |
+| `publish-release` cannot call `gh release create`, or do so under a commit other than the one the gate verified, without `release-gate` and `release-artifacts` both succeeding | `tests/offline_package/release_workflow.rs::publication_waits_for_all_artifacts_and_owns_the_only_write_authority` pins both `needs` entries, the `success()` guard, and the same commit-binding step |
 
 Run them with:
 

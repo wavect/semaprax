@@ -57,8 +57,18 @@ fn tag_artifacts_are_exact_blocking_children_of_the_release_gate() {
     let workflow = read(".github/workflows/ci.yml");
     let artifacts = job(&workflow, "release-artifacts");
     for exact in [
-        "if: ${{ startsWith(github.ref, 'refs/tags/v') }}",
+        // Written out rather than relying on GitHub's undocumented implicit
+        // `success()` insertion on a bare `if:` with no status function: this
+        // job must never build or upload a tag's artifacts unless the
+        // exact-tag `release-gate` already succeeded in this same run.
+        "if: ${{ success() && startsWith(github.ref, 'refs/tags/v') }}",
         "needs: release-gate",
+        // The gate binds `github.sha` to the checked-out commit once, in its
+        // own job; this re-derives that same fact locally in the job that
+        // actually builds the artifacts, so a future checkout override (a
+        // stray `ref:`) cannot silently bind the built archive to a
+        // different commit than the gate verified.
+        "test \"$(git rev-parse HEAD)\" = \"$GITHUB_SHA\"",
         "timeout-minutes: 30",
         "fail-fast: false",
         "os: ubuntu-24.04\n            target: x86_64-unknown-linux-gnu\n            extension: tar.gz",
@@ -96,6 +106,13 @@ fn publication_waits_for_all_artifacts_and_owns_the_only_write_authority() {
         "      - release-artifacts",
         "actions: read",
         "contents: write",
+        // The job that actually acquires `contents: write` and calls `gh
+        // release create` re-derives, in its own job, the same fact
+        // `release-gate` verified about itself: the checkout is the exact
+        // commit GitHub reports for this run, not a `ref:`-overridden one.
+        // This is what makes "the gate's commit binding is dropped" a local
+        // test failure here rather than only inside `release-gate`.
+        "test \"$(git rev-parse HEAD)\" = \"$GITHUB_SHA\"",
         "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
         "pattern: release-*",
         "merge-multiple: true",

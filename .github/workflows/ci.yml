@@ -1719,7 +1719,13 @@ jobs:
 
   release-artifacts:
     name: Release artifact (${{ matrix.target }})
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    # `success()` is written explicitly rather than relied on implicitly: a
+    # bare tag-prefix condition with no status function is still ANDed with
+    # `success()` by GitHub today, but that insertion is undocumented
+    # behaviour this workflow must not depend on silently. Say what is meant:
+    # this job never runs unless `release-gate` -- the exact-tag blocking
+    # gate -- has already succeeded in this same run.
+    if: ${{ success() && startsWith(github.ref, 'refs/tags/v') }}
     needs: release-gate
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -1753,6 +1759,11 @@ jobs:
           filter: blob:none
           fetch-tags: false
           lfs: false
+      - name: Confirm this checkout is the exact tag commit the release gate accepted
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
         with:
           toolchain: 1.97.1
@@ -1801,6 +1812,11 @@ jobs:
           filter: blob:none
           fetch-tags: false
           lfs: false
+      - name: Confirm this checkout is the exact tag commit the release gate accepted
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Download every exercised target archive
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:

@@ -10,6 +10,21 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## 0.4.1 — 2026-09-11
 
+- Make the generated C and C++ public generic consumers build on Windows.
+  The hosted leg found two things a Unix-only run could not: the UCRT marks
+  the standard `fopen` deprecated in favour of its own `fopen_s`, which a
+  `-Werror` build turns into an error, and a compiled consumer needs the
+  host's executable name because Windows resolves a bare `consumer` by
+  looking for `consumer.exe`. The generated sources now opt out of that
+  deprecation, and the gate names the executable per host.
+  The C++ consumer also drops `std::span`, which it used only to carry a
+  pointer and a length together: a pointer and a size are the same
+  information, so the generated artifact no longer needs a C++20 library
+  header and builds under C++17. The compile check now fails on a warning
+  or an error in the toolchain's output rather than on any output at all,
+  because "compiles warning-free" is the claim; a linker note about
+  something else is not evidence about the generated code.
+
 - Make generated public generic consumers independent of the checkout that
   produced them. The fixed part of each consumer is an included template,
   and a Windows checkout delivers `.txt` with CRLF, so every placeholder

@@ -8,6 +8,16 @@
  * nothing. The declarations below show the substituted field tree in C; they
  * define no layout, no ownership transfer, and no ABI.
  */
+/*
+ * The Windows UCRT marks the standard `fopen` deprecated in favour of its own
+ * `fopen_s`. This file is standard C11; opting out of that deprecation is how
+ * standard code is built against that runtime, and it keeps a consumer's
+ * `-Werror` build meaningful on every host instead of only on Unix.
+ */
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

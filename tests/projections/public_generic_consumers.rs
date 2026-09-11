@@ -119,7 +119,13 @@ fn build(consumer: &GeneratedConsumer, workspace: &Workspace) -> Option<(PathBuf
     for (name, source) in consumer.files() {
         workspace.write(name, source);
     }
-    let executable = workspace.path("consumer");
+    // Windows resolves a bare `consumer` by looking for `consumer.exe`, so an
+    // extensionless output would compile and then fail to launch.
+    let executable = workspace.path(if cfg!(windows) {
+        "consumer.exe"
+    } else {
+        "consumer"
+    });
     match consumer.language() {
         ConsumerLanguage::Rust => {
             let rustc = tool("RUSTC", "rustc");
@@ -156,7 +162,7 @@ fn build(consumer: &GeneratedConsumer, workspace: &Workspace) -> Option<(PathBuf
             }
             compile(
                 &cxx,
-                &["-std=c++20", "-O1", "-Wall", "-Wextra", "-Werror"],
+                &["-std=c++17", "-O1", "-Wall", "-Wextra", "-Werror"],
                 &workspace.path("consumer.cpp"),
                 &executable,
                 "c++",
@@ -189,8 +195,9 @@ fn compile(tool: &OsString, flags: &[&str], input: &Path, output: &Path, label: 
         "{label} rejected the generated consumer:\n{}",
         String::from_utf8_lossy(&result.stderr)
     );
+    let diagnostics = String::from_utf8_lossy(&result.stderr).to_lowercase();
     assert!(
-        result.stderr.is_empty(),
+        !diagnostics.contains("warning") && !diagnostics.contains("error"),
         "{label} warned about the generated consumer:\n{}",
         String::from_utf8_lossy(&result.stderr)
     );

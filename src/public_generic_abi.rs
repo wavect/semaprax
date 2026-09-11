@@ -3,19 +3,21 @@
 //! v1](../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md) bounds every submodule
 //! reuses.
 //!
-//! This module is scope reconciliation and contract freeze made executable,
-//! not a compiler implementation: it defines no classifier over checked HIR,
-//! touches no resolver, backend, or `src/wasm` code, and admits no program
-//! source. [`descriptor`] and [`carrier`] encode, decode, and independently
-//! replay values a future classifier will eventually produce; in this round
-//! those values are hand-constructed fixtures, exercised for byte
-//! determinism and fail-closed hostile-input handling only. Public generic
-//! ownership remains unsupported and unpublished; nothing here is a public
-//! ABI, and nothing here executes a real boundary.
+//! This module started as scope reconciliation and contract freeze made
+//! executable, not a compiler implementation, and most of it still is:
+//! [`descriptor`] and [`carrier`] encode, decode, and independently replay
+//! values; [`native`] and [`wasm`] adapt them to two physical targets. It
+//! touches no resolver or backend code and admits no program source itself.
+//! [`classifier`] is the one exception: it reads checked HIR (`ResolvedProgram`)
+//! directly, as the pure Public Generic Boundary Profile v1 admission
+//! predicate issue #150 requires, and it is the trusted common input the
+//! rest of this module's producers and adapters are expected to share going
+//! forward. Public generic ownership remains unsupported and unpublished;
+//! nothing here is a public ABI, and nothing here executes a real boundary.
 //!
 //! | Document | Module |
 //! | --- | --- |
-//! | [Public Generic Boundary Profile v1](../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md) | [`boundary_profile`] (bounds only; the admission classifier is not implemented this round) |
+//! | [Public Generic Boundary Profile v1](../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md) | [`boundary_profile`] (bounds only) and [`classifier`] (the admission predicate itself, issue #150) |
 //! | [Public Generic Descriptor v1](../docs/PUBLIC-GENERIC-DESCRIPTOR-V1.md) | [`descriptor`] |
 //! | [Public Generic Carrier v1](../docs/PUBLIC-GENERIC-CARRIER-V1.md) | [`carrier`] |
 //! | [Public Generic Carrier v1 — Native C11 physical adapter](../docs/PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154) | [`native`] |
@@ -23,6 +25,7 @@
 
 pub mod boundary_profile;
 pub mod carrier;
+pub mod classifier;
 pub mod descriptor;
 pub mod native;
 pub mod wasm;

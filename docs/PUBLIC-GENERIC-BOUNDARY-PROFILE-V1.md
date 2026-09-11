@@ -2,15 +2,18 @@
 
 Audience: compiler contributors implementing the admission classifier, and reviewers of the generic boundary scope.
 
-Status: frozen specification, gate PG-... admission half of gate #150 of the
-[Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
-This document freezes the admission predicate only. It defines no classifier
-code, admits no diagnostic into the installed catalogue, and changes no
-existing public projection. The classifier that implements this predicate
-against real checked HIR is the next tranche (issue #150's implementation
-half); it does not exist yet, and until it lands, exercised, and hosted, the
-milestone's separation gate continues to prove that public generic ownership
-is unsupported and unpublished.
+Status: frozen predicate and bounds table, now implemented by a pure
+classifier over real checked HIR: `src/public_generic_abi/classifier.rs`
+(issue #150's implementation half). This document still freezes the
+admission predicate and bounds only — it changes no existing public
+projection, and admitting an export under this profile still grants no
+filesystem, process, network, publication, or descriptor/carrier authority
+on its own. See [Evidence](#evidence) for exactly what the classifier
+covers, what it does not, and the known limitations where its refusal
+signal is coarser than the vocabulary below. Until a descriptor producer,
+candidate-delta integration, or physical adapter is built and hosted on top
+of it, the milestone's separation gate continues to prove that public
+generic ownership is unsupported and unpublished.
 
 Audience: ABI, package, evidence, and generated-consumer maintainers; the
 implementer of issue #150 and every issue downstream of it.
@@ -51,7 +54,7 @@ later agent re-litigates it per pull request.
 | Depends on | [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md) (`semaprax.public-generic-settlement-plan.v1`) |
 | Feeds | [Public Generic Descriptor v1](PUBLIC-GENERIC-DESCRIPTOR-V1.md) |
 | Feeds | [Public Generic Carrier v1](PUBLIC-GENERIC-CARRIER-V1.md) |
-| Reserved diagnostic range | `SPX-PG6xx` (unallocated; no code below is defined in source yet — see [Reserved refusal vocabulary](#reserved-refusal-vocabulary)) |
+| Diagnostic range | `SPX-PG6xx`, allocated by `src/public_generic_abi/classifier.rs` — see [Refusal vocabulary](#refusal-vocabulary) |
 
 Checked against `rg -n "public-generic-boundary-profile" docs src tests`: no
 existing schema, profile, or diagnostic namespace collides with this
@@ -242,74 +245,128 @@ shapes are refused in v1 either way. The classification only changes what
 the next profile version is permitted to widen without also reopening the
 epic's non-goals.
 
-## Reserved refusal vocabulary
+## Refusal vocabulary
 
-The future classifier (issue #150's implementation half) must return one of
-the closed reasons below, never a partial admission and never prose parsing.
-No code in this table is defined in source yet — defining an unimplemented
-`SPX-PG6xx` constant in a `.rs` file would register it in the installed
-diagnostic catalogue's automatic source scan ([Installed Diagnostics
-v1](INSTALLED-DIAGNOSTICS-V1.md)) before any code path could produce it, so
-this table exists only here until the classifier lands.
+`src/public_generic_abi/classifier.rs`'s `classify` returns one of the closed
+reasons below, never a partial admission and never prose parsing — see
+[`grammar::Rejection::of`](../src/public_generic_type.rs) for the pattern it
+reuses to recover a typed reason from a composed diagnostic instead of
+parsing its message. Every code below is now genuinely defined in source, so
+[Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md)'s static source scan
+finds it.
 
-| Reserved code | Reason |
-| --- | --- |
-| `SPX-PG601` | selected export not found |
-| `SPX-PG602` | selected item is a generic function template |
-| `SPX-PG603` | wrong parameter count (not exactly one owned input) |
-| `SPX-PG604` | wrong ownership mode |
-| `SPX-PG605` | unsupported result shape (not exactly one owned result) |
-| `SPX-PG606` | unresolved type argument |
-| `SPX-PG607` | arity mismatch |
-| `SPX-PG608` | type outside the admitted grammar |
-| `SPX-PG609` | borrowed field or view present |
-| `SPX-PG610` | variant, resource, or function value present |
-| `SPX-PG611` | recursive or cyclic closure |
-| `SPX-PG612` | ambiguous or repeated stable identity |
-| `SPX-PG613` | record, field, depth, leaf, or payload bound exceeded |
-| `SPX-PG614` | cleanup inventory mismatch |
-| `SPX-PG615` | settlement-obligation mismatch |
-| `SPX-PG616` | effectful function |
-| `SPX-PG617` | incompatible retained facts |
+| Code | Reason | Independently observed by a classifier test? |
+| --- | --- | --- |
+| `SPX-PG601` | selected export not found | yes |
+| `SPX-PG602` | selected item is a generic function template | yes |
+| `SPX-PG603` | wrong parameter count (not exactly one owned input) | yes |
+| `SPX-PG604` | wrong ownership mode | yes |
+| `SPX-PG605` | unsupported result shape (not exactly one owned result) | yes |
+| `SPX-PG606` | unresolved type argument | yes |
+| `SPX-PG607` | arity mismatch | yes |
+| `SPX-PG608` | type outside the admitted grammar | yes |
+| `SPX-PG609` | borrowed field or view present | yes |
+| `SPX-PG610` | variant, resource, or function value present | yes |
+| `SPX-PG611` | recursive or cyclic closure | yes |
+| `SPX-PG612` | ambiguous or repeated stable identity | yes |
+| `SPX-PG613` | record, field, depth, leaf, or payload bound exceeded | yes (field-count bound; see [Evidence](#evidence)) |
+| `SPX-PG614` | cleanup inventory mismatch | yes |
+| `SPX-PG615` | settlement-obligation mismatch | no — reserved and rendered, but not independently reachable through this classifier; see [Evidence](#evidence) |
+| `SPX-PG616` | effectful function | yes |
+| `SPX-PG617` | incompatible retained facts | yes |
+| `SPX-PG618` | unsupported *input* shape (not exactly one owned input, a symmetric case #150's own reserved table does not name) | yes |
 
-The next free range after this table is `SPX-PG9xx`; `SPX-PG7xx` and
-`SPX-PG8xx` are allocated below to the descriptor and carrier codecs this
-same round.
+`SPX-PG618` is newly allocated by this round beyond the seventeen the table
+above originally reserved; the next free range after it is still `SPX-PG9xx`,
+and `SPX-PG7xx`/`SPX-PG8xx` remain allocated to the descriptor and carrier
+codecs.
 
-Diagnostic precedence (which reason wins when several apply) is unresolved
-here; issue #150 recommends an order (bounds and framing before schema,
-before canonical-byte validation, before subject selection, before retained
-facts, before digest/cross-pair checks, before lifecycle validation, before
-execution). This document adopts that recommended order for the future
-classifier and does not restate it, since #150 already owns it; the
-classifier's own tests must pin the exact order once it exists.
+Diagnostic precedence (which reason wins when several apply) still follows
+issue #150's recommended order (bounds and framing before schema, before
+canonical-byte validation, before subject selection, before retained facts,
+before digest/cross-pair checks, before lifecycle validation, before
+execution), adapted to what a pure admission classifier — with no bytes, no
+schema, and no lifecycle to validate — actually checks: export selection and
+ambiguity first, then export shape (parameter count, ownership, effects,
+top-level instance shape), then the closure's own structural bounds (acyclic,
+field count), then the grammar's own vocabulary and bounds, then settlement.
+This exact order is pinned by construction in `classify`'s control flow, not
+independently re-derived; see
+[`src/public_generic_abi/classifier.rs`](../src/public_generic_abi/classifier.rs).
 
-## Required test matrix for the classifier
+## Evidence
 
-Not run in this round; recorded so the implementer does not have to
-reconstruct the required coverage from three issues again. All of the
-following are required, none are optional, and none may be satisfied by the
-smallest fixture alone:
+`src/public_generic_abi/classifier.rs` and its owning
+`src/public_generic_abi/classifier/tests.rs` (29 tests, all passing locally;
+no hosted CI run is claimed by this document) are the classifier and its
+test matrix this section originally deferred. What is covered, matched
+against the matrix this section used to list as not-yet-run:
 
-**Positive:** same template, different input/result arguments; different
-input/result templates; nested concrete records at maximum admitted depth;
-zero-length `Bytes`; maximum admitted leaf count; display-only rename with
-unchanged stable identities; every admitted Copy-scalar type argument; exact
-reconstruction of the same classified subject (determinism).
+**Positive — covered:** same template with different input/result arguments
+(`admits_the_same_template_with_different_concrete_arguments`); different
+input/result templates (`admits_different_templates_for_input_and_result`);
+a nested concrete record (`admits_a_nested_owned_record_with_a_bytes_leaf_and_a_copy_scalar`);
+every admitted Copy-scalar type argument beside a `Bytes` leaf
+(`admits_every_grammar_copy_scalar_beside_a_bytes_leaf`); display-only rename
+with unchanged stable identities (`display_only_rename_does_not_move_the_digest`);
+exact reconstruction of the same classified subject
+(`classification_is_deterministic`, `reparsing_the_same_source_reconstructs_the_same_subject`);
+the field-count bound admitted at exactly its limit
+(`a_record_at_the_field_count_bound_is_admitted`).
 
-**Negative, one per reserved reason above**, plus: one missing argument; one
-duplicated argument; two arguments swapped; a never-instantiated template; a
-generic function selected as the export; a scalar-only function; a borrowed
-slice or borrowed string in any reachable position; an owned variant under a
-record; the target-width-integer case flagged as a caveat above; a cyclic
-record graph; duplicated stable declaration identity; a second owned
-parameter; no owned result; an effect declaration; every bound's exact
-first-over-limit case from the [Bounds](#bounds) table.
+**Positive — not independently covered:** nested concrete records at the
+*maximum* admitted depth (64 levels) and the *maximum* admitted leaf count
+(256) are not exercised through real compiled `.spx` source by this
+classifier's own tests, or anywhere else in this repository today (see
+[Bounds](#bounds) discussion above); one level of nesting and one owned leaf
+are covered, and the classifier inherits — but does not independently
+re-verify at scale — `grammar::describe`'s own depth and leaf budgets.
+Zero-length `Bytes` is a *value*-level fact (a runtime byte length), not a
+type-admission distinction this type-level classifier can exercise; it is
+covered at the carrier/value level elsewhere in `public_generic_abi`, not
+here.
 
-**Separation:** a regression proving admission under this profile does not
-change the Canonical ABI Report, the C header, Project v8/v9/v11, or scalar
-Wasm export behavior — this profile is additive, never a widening of an
-existing schema.
+**Negative — covered, one test per reason:** export not found, generic
+function template, wrong parameter count, wrong ownership mode (both a
+value-mode and a borrow-mode parameter), unsupported input shape,
+unsupported result shape, an effect declaration, unresolved type argument,
+arity mismatch, type outside the grammar (compiler-owned nominal), a
+borrowed field (both `str` and `Slice<u8>`), a variant field, a
+self-referential record graph (recursive closure), an ambiguous stable
+identity, a field naming an absent declaration (incompatible retained
+facts), a scalar-only owned instance (cleanup inventory mismatch), and the
+field-count bound's exact first-over-limit case.
+
+**Negative — not independently covered:** one missing argument, one
+duplicated argument, and two arguments swapped are not separately exercised
+beyond the arity-mismatch case above (an arity mismatch is exactly "wrong
+argument count," but swapped-with-the-same-count arguments are not
+distinctly tested); a never-instantiated template is not distinguished from
+a plain generic-function-template selection; the target-width-integer case
+this document's own [Bounds](#bounds) discussion flagged as unresolved is
+still unresolved, so no test exists for it; `SPX-PG615`
+(settlement-obligation mismatch) has no fixture that produces it as distinct
+from `SPX-PG614` — see the classifier module's own "Known limitations"
+documentation for exactly why (the settlement module's own diagnostic
+vocabulary does not distinguish the two).
+
+**Separation — partially covered.** One regression
+(`admission_agrees_with_the_surface_and_settlement_projections_it_composes`)
+proves this classifier's admitted facts agree exactly with the
+`CandidateSurface` and `public_generic_settlement::plan` projections it
+composes, over the same checked program. This is evidence the classifier is
+additive over those two PG-3/PG-7 projections specifically. It is **not**
+the regression this section originally asked for against the Canonical ABI
+Report, the C header, or Project v8/v9/v11: those existing public
+projections already reject every generic signature before this classifier
+is ever reached (they have no notion of a generic record instance at all),
+so there is no shared code path for this classifier to perturb — the
+separation is structural (disjoint projections over disjoint syntax), not
+independently regression-tested here. A dedicated regression exercising
+those exact existing test suites against a program this classifier admits
+remains open work for a later issue, since it requires the projections
+themselves (owned by other modules, some outside this file's lease) to run
+successfully against a signature they are not designed to see today.
 
 ## Freeze and change procedure
 
@@ -333,14 +390,17 @@ requires:
 
 ## Nonclaims
 
-This document defines no classifier code, generates no descriptor or
-carrier bytes, executes nothing, and grants no filesystem, process, network,
-or publication authority. It is not evidence that any gate has passed. It
-does not widen [Public Generic Type Grammar
+Neither this document nor `src/public_generic_abi/classifier.rs` generates a
+descriptor or carrier byte, executes anything, or grants any filesystem,
+process, network, or publication authority. Successful classification is not
+evidence that any hosted gate has passed, and it is not itself a descriptor,
+a carrier, or a public ABI. Neither widens [Public Generic Type Grammar
 v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md), [Public Generic Settlement
 Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md), or any existing public
 projection; every admission rule above is already a consequence of those
-frozen specifications, restated here as one composed predicate rather than a
-new one. Public generic ownership remains unsupported and unpublished until
+frozen specifications, and the classifier composes their existing code
+rather than re-deriving or widening it (see [Evidence](#evidence) for the
+regression proving this). Public generic ownership remains unsupported and
+unpublished until
 [PG-9](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md#standing-support-and-publication-decision)
 says otherwise.

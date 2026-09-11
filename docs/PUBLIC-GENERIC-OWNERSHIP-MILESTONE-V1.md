@@ -72,7 +72,7 @@ reads `Hosted green`.
 | PG-4 | Candidate ABI-delta evidence that selects the public generic signature, retains ordered arguments and substituted fields, and survives mutation, recovery, and independent byte-exact replay | Extension of [Candidate ABI Delta v1](PROJECT-CANDIDATE-ABI-DELTA-V1.md) | Open |
 | PG-5 | Generated Rust, TypeScript/Wasm, C, and C++ consumers derived from the grammar, byte-deterministic, with no ambient authority | Pending its owning specification | Open |
 | PG-6 | Hostile metadata replay: forged, stale, truncated, reordered, and mutated grammar or descriptor bytes fail closed in every consumer route and in independent replay | Pending its owning specification | Open |
-| PG-7 | Owned allocation and failure settlement across the boundary: bounded allocation, exact copy-out, sticky failure selection, canonical cleanup order, and equal checked behavior on interpreter, native C11, and Core Wasm | Pending its owning specification | Open |
+| PG-7 | Owned allocation and failure settlement across the boundary: bounded allocation, exact copy-out, sticky failure selection, canonical cleanup order, and equal checked behavior on interpreter, native C11, and Core Wasm | [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md) | Open |
 | PG-8 | Cross-platform hosted evidence for the complete milestone corpus on Linux, macOS, and Windows, recorded for an exact implementation commit | The `public-generic-ownership-milestone` job in [CI required checks v1](CI-REQUIRED-CHECKS-V1.md) | Open |
 | PG-9 | An explicit support and publication decision naming the exact version, target, and consumer scope, with its prerequisite profile decisions | This milestone | Open |
 
@@ -99,6 +99,19 @@ than by advancing the row.
   versioned descriptor and carrier that do not exist, and hostile replay of
   descriptor bytes cannot be evidenced before there are descriptor bytes. Both
   gates therefore stay `Open`.
+- **PG-7 — obligations specified and bound, execution open.**
+  [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md)
+  derives, for one owned instance parameter, which owned leaves a boundary is
+  accountable for, in which order, how each is discharged, and what is released
+  when a transfer fails part way — and binds all of it to the compiler's own
+  cleanup facts: the inventory's structural leaf order, its per-leaf liveness
+  flags and drop lifecycles, and the plan's whole-parameter transfer unit. Any
+  disagreement is a refusal, so a future boundary cannot quietly diverge from
+  the ownership the compiler verified. It executes nothing. PG-7 asks for
+  bounded allocation, exact copy-out, sticky failure selection, and canonical
+  cleanup order *exercised* across a real boundary on the interpreter, native
+  C11, and Core Wasm, and there is no boundary to exercise; the gate stays
+  `Open`.
 - **PG-8 — harness wired, hosted evidence pending.** The
   `public-generic-ownership-milestone` job runs the whole milestone corpus on
   `ubuntu-latest`, `macos-latest`, and `windows-latest`, and it is a declared

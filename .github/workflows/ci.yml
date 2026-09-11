@@ -272,6 +272,7 @@ jobs:
           cargo test --locked -p semaprax --lib public_generic_type
           cargo test --locked -p semaprax --lib public_generic_surface
           cargo test --locked -p semaprax --lib public_generic_consumer
+          cargo test --locked -p semaprax --lib public_generic_settlement
       - name: Separation from internal generic semantics
         shell: bash
         run: |

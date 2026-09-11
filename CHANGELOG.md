@@ -8,6 +8,23 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add Public Generic Settlement Obligations v1: for one owned admitted
+  instance parameter, which owned leaves a boundary is accountable for, in
+  which order, how each is discharged, and what is released when a transfer
+  fails part way - each fact bound to the compiler's own cleanup facts
+  rather than derived beside them. The grammar's owned-leaf paths must equal
+  the inventory's structural leaf order; each obligation is paired with its
+  liveness flag in flag order and carries that flag's checked drop
+  lifecycle, because an obligation whose flag does not match it has no
+  stated way to be discharged; and the transfer unit is the cleanup plan's
+  single whole live owned place, since reading leaves out of the plan would
+  invent a per-leaf transfer the compiler never performs. Release order is
+  the exact reverse of the canonical order, and every disagreement is a
+  refusal (`SPX-PG501`, `SPX-PG502`) rather than a sort or a repair.
+  This is the specification half of milestone gate PG-7, which stays open:
+  nothing here allocates, transfers, releases or observes a runtime, and
+  there is no public generic boundary to exercise on any engine.
+
 - Wire the public generic ownership milestone corpus into CI as the
   `public-generic-ownership-milestone` job on `ubuntu-latest`,
   `macos-latest` and `windows-latest`, and declare it a release blocker so

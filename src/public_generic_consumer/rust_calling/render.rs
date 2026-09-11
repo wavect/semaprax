@@ -400,7 +400,7 @@ fn sample_input_fn(input: &RecordShape) -> String {
     for (index, field) in input.fields.iter().enumerate() {
         let _ = writeln!(
             out,
-            "        {}: format!(\"sample-{index}\").into_bytes(),",
+            "        {}: b\"sample-{index}\".to_vec(),",
             field.field_name()
         );
     }

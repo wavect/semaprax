@@ -32,11 +32,12 @@ mod ffi {
     //! complete, honest restatement of the header rather than a partial one.
     #![allow(dead_code)]
 
-    #[repr(C)]
+    // No `#[repr(C)]`: a zero-variant enum has no representation to fix
+    // (rustc rejects `#[repr(C)]` on one outright), and none is needed --
+    // this crate only ever forms and passes pointers to these types, never a
+    // value, so their layout is never observed.
     pub(crate) enum RawProvider {}
-    #[repr(C)]
     pub(crate) enum RawValue {}
-    #[repr(C)]
     pub(crate) enum RawResult {}
 
     pub(crate) type Status = i32;
@@ -104,7 +105,10 @@ mod ffi {
 /// believe they alone must close it, double-releasing the native side. Not
 /// `Send`/`Sync` either -- neither derive is present, and a raw-pointer field
 /// makes both auto-traits absent by default, matching the adapter's own
-/// "single translation unit, single-threaded: no concurrency claim."
+/// "single translation unit, single-threaded: no concurrency claim." Derives
+/// `Debug` only (printing a raw pointer's address is safe and unrelated to
+/// ownership duplication); never `Copy` or `Clone`.
+#[derive(Debug)]
 pub struct Provider {
     handle: *mut ffi::RawProvider,
 }

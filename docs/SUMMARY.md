@@ -63,6 +63,7 @@ Audience: all documentation readers.
 - [Linux production offline doctor provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md)
 - [Provisioned Linux doctor lifecycle gate](DOCTOR-PROVISIONED-LINUX-GATE-V1.md)
 - [Signed doctor generation install and activation](DOCTOR-SIGNED-INSTALL-V1.md)
+- [Doctor active-generation-to-provisioner handoff](DOCTOR-GENERATION-ACTIVATION-HANDOFF-V1.md)
 - [Native compiler scratch](NATIVE-SCRATCH-V1.md)
 
 ## Language contract

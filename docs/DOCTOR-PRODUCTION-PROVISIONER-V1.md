@@ -206,9 +206,18 @@ namespace, cgroup, sealing, or kernel prerequisites fail rather than skip.
 required executable gate: the host preconditions it asserts before touching
 namespace or cgroup state, the exact serial selection of the twenty-six ignored
 lifecycle fixtures, the evidence it binds, and its refusal to treat absent
-provisioning as anything but a failure. That gate has never been executed. No
-provisioned host exists, so it produces no runtime confinement evidence, and
-authoring it promotes nothing here.
+provisioning as anything but a failure. **The gate has since executed nine
+times against a GitHub-hosted `ubuntu-24.04` runner** (see
+[Provisioned Linux gate v1 § Executions](DOCTOR-PROVISIONED-LINUX-GATE-V1.md#executions)
+for the exact run IDs; most recently
+[run 34047743589](https://github.com/wavect/semaprax/actions/runs/34047743589),
+2026-09-06, independently reconfirmed `failed` on 2026-09-11). Every run
+reports zero precondition failures, correct kernel-feature/cgroup/image
+evidence, and clean settlement, then fails on one defect: the confined worker
+never reaches the executed tool's own code, reproduced identically by a
+hand-assembled sentinel image and a real Clang distribution alike. This
+proves the gate executes and finds a real remaining defect; it does not
+promote WP-05, and no run has yet passed.
 
 The local packaging helper accepts only explicit absolute release, tar and gzip
 tools plus artifact paths, builds a fresh no-clobber directory, verifies it,

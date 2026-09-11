@@ -13,6 +13,15 @@
 //! `mod` in a test crate root resolves against `tests/`, so each module names
 //! its file explicitly.
 
+// Support modules used by a module of this harness are declared once here.
+// Loading the same file as a module twice in one crate compiles it twice and
+// yields two unrelated sets of types; modules refer to these as
+// `crate::<name>`. Only part of a shared fixture is used from this harness, so
+// its unused items are not dead code in the repository.
+#[allow(dead_code)]
+#[path = "support/concrete_generic_record_product.rs"]
+mod concrete_generic_record_product;
+
 #[path = "project_candidate/abi_delta.rs"]
 mod abi_delta;
 #[path = "project_candidate/aggregate_expressions.rs"]
@@ -119,6 +128,8 @@ mod ownership_delta;
 mod package_consumer_replay;
 #[path = "project_candidate/package_dependency_rebase.rs"]
 mod package_dependency_rebase;
+#[path = "project_candidate/public_generic_delta.rs"]
+mod public_generic_delta;
 #[path = "project_candidate/rebase.rs"]
 mod rebase;
 #[path = "project_candidate/record_field.rs"]

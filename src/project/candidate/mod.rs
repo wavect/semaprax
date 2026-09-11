@@ -52,6 +52,7 @@ mod merge_preview;
 mod movement;
 mod ownership_delta;
 mod package_consumer_replay;
+mod public_generic_delta;
 mod publication;
 mod rebase;
 mod record_field;
@@ -223,6 +224,11 @@ pub use git_publication::{
     CandidateGitObject, CandidateGitObjectKind, CandidateGitProcessAuthority,
     CandidateGitRefUpdate, CandidateGitRepository, CandidateGitTarget, GitObjectFormat,
     PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA,
+};
+pub use public_generic_delta::{
+    MAX_PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_BYTES,
+    PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_VERIFICATION_SCHEMA,
 };
 pub use publication::{
     apply_candidate_publication, prepare_candidate_publication, ProjectCandidatePublication,

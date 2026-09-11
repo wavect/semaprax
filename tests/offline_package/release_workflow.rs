@@ -321,6 +321,22 @@ fn unix_packager_rejects_tag_and_commit_drift_before_output() {
 #[test]
 fn release_reconcile_agrees_with_the_real_published_v0_4_1_evidence() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    // CI checks out with `fetch-depth: 1` and `fetch-tags: false`, so a
+    // shallow job has no local `v0.4.1` tag and the reconcile reports
+    // `no-candidate` even though the repository does have a published
+    // release. Ensure the tag is present before reconciling; this is a
+    // read-only `git fetch` and does not mutate any repository file.
+    let tag_check = Command::new("git")
+        .args(["rev-list", "-n1", "v0.4.1"])
+        .current_dir(root)
+        .output()
+        .expect("git rev-list must run");
+    if !tag_check.status.success() {
+        let _ = Command::new("git")
+            .args(["fetch", "--tags", "--prune", "--prune-tags"])
+            .current_dir(root)
+            .output();
+    }
     let output = Command::new("python3")
         .args(["scripts/release-reconcile.py", "--version", "0.4.1"])
         .current_dir(root)

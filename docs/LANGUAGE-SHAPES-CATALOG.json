@@ -505,6 +505,114 @@
       "signature": "@id(\"app.main\")\nfn main() -> i64\n"
     },
     {
+      "id": "app.http_router.byte_is",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.byte_is\")\nfn byte_is(view: borrow Slice<u8>, index: usize, expected: u8) -> bool\n"
+    },
+    {
+      "id": "app.http_router.lower",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.lower\")\nfn lower(byte: u8) -> u8\n"
+    },
+    {
+      "id": "app.http_router.find_from",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.find_from\")\nfn find_from(view: borrow Slice<u8>, start: usize, target: u8, limit: usize) -> usize\n    ensures result <= limit\n"
+    },
+    {
+      "id": "app.http_router.method_is_get",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.method_is_get\")\nfn method_is_get(view: borrow Slice<u8>) -> bool\n"
+    },
+    {
+      "id": "app.http_router.path_is_health",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.path_is_health\")\nfn path_is_health(view: borrow Slice<u8>, start: usize, end: usize) -> bool\n"
+    },
+    {
+      "id": "app.http_router.path_is_echo",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.path_is_echo\")\nfn path_is_echo(view: borrow Slice<u8>, start: usize, end: usize) -> bool\n"
+    },
+    {
+      "id": "app.http_router.header_name_is_content_length",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.header_name_is_content_length\")\nfn header_name_is_content_length(view: borrow Slice<u8>, index: usize, end: usize) -> bool\n"
+    },
+    {
+      "id": "app.http_router.skip_blanks",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.skip_blanks\")\nfn skip_blanks(view: borrow Slice<u8>, cursor: usize) -> usize\n    ensures result >= cursor\n"
+    },
+    {
+      "id": "app.http_router.digit_value",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.digit_value\")\nfn digit_value(byte: u8) -> i64\n    ensures result >= -1 && result <= 9\n"
+    },
+    {
+      "id": "app.http_router.decimal_at",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.decimal_at\")\nfn decimal_at(view: borrow Slice<u8>, start: usize) -> i64\n    ensures result >= -1\n"
+    },
+    {
+      "id": "app.http_router.content_length_of",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.content_length_of\")\nfn content_length_of(view: borrow Slice<u8>, header_start: usize, header_end: usize) -> i64\n    ensures result >= -1\n"
+    },
+    {
+      "id": "app.http_router.route_for",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.route_for\")\nfn route_for(view: borrow Slice<u8>) -> i64\n    ensures result >= 0 && result <= 4\n"
+    },
+    {
+      "id": "app.http_router.request_content_length",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.request_content_length\")\nfn request_content_length(view: borrow Slice<u8>) -> i64\n    ensures result >= -1\n"
+    },
+    {
+      "id": "app.http_router.status_for",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.status_for\")\nfn status_for(route: i64) -> i64\n    requires route >= 0 && route <= 4\n    ensures result >= 100 && result <= 599\n"
+    },
+    {
+      "id": "app.http_router.body_len_for",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.body_len_for\")\nfn body_len_for(route: i64) -> usize\n    requires route >= 0 && route <= 4\n"
+    },
+    {
+      "id": "app.http_router.route_status",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.route_status\")\nfn route_status(view: borrow Slice<u8>) -> i64\n"
+    },
+    {
+      "id": "app.http_router.route_body_len",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.route_body_len\")\nfn route_body_len(view: borrow Slice<u8>) -> usize\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
       "id": "example.main",
       "kind": "function",
       "path": "examples/inheritance.spx",

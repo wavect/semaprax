@@ -4,7 +4,7 @@
 //!
 //! Two things are exercised here, both entirely offline:
 //!
-//! - [`fixture_transport`]: [`examples/http_app_routing.spx`](../examples/http_app_routing.spx)'s
+//! - [`fixture_transport`][]: [`examples/http_app_routing.spx`](../examples/http_app_routing.spx)'s
 //!   route dispatcher, called directly through the library interpreter with
 //!   literal HTTP/1.1 request byte arrays standing in for a deterministic
 //!   transport. No socket, port, or process I/O is used anywhere in this

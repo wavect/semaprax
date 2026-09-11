@@ -796,6 +796,152 @@ fn half(value: f32) -> f32
 fn main() -> i64
 ```
 
+### `app.http_router.byte_is` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.byte_is")
+fn byte_is(view: borrow Slice<u8>, index: usize, expected: u8) -> bool
+```
+
+### `app.http_router.lower` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.lower")
+fn lower(byte: u8) -> u8
+```
+
+### `app.http_router.find_from` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.find_from")
+fn find_from(view: borrow Slice<u8>, start: usize, target: u8, limit: usize) -> usize
+    ensures result <= limit
+```
+
+### `app.http_router.method_is_get` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.method_is_get")
+fn method_is_get(view: borrow Slice<u8>) -> bool
+```
+
+### `app.http_router.path_is_health` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.path_is_health")
+fn path_is_health(view: borrow Slice<u8>, start: usize, end: usize) -> bool
+```
+
+### `app.http_router.path_is_echo` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.path_is_echo")
+fn path_is_echo(view: borrow Slice<u8>, start: usize, end: usize) -> bool
+```
+
+### `app.http_router.header_name_is_content_length` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.header_name_is_content_length")
+fn header_name_is_content_length(view: borrow Slice<u8>, index: usize, end: usize) -> bool
+```
+
+### `app.http_router.skip_blanks` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.skip_blanks")
+fn skip_blanks(view: borrow Slice<u8>, cursor: usize) -> usize
+    ensures result >= cursor
+```
+
+### `app.http_router.digit_value` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.digit_value")
+fn digit_value(byte: u8) -> i64
+    ensures result >= -1 && result <= 9
+```
+
+### `app.http_router.decimal_at` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.decimal_at")
+fn decimal_at(view: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1
+```
+
+### `app.http_router.content_length_of` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.content_length_of")
+fn content_length_of(view: borrow Slice<u8>, header_start: usize, header_end: usize) -> i64
+    ensures result >= -1
+```
+
+### `app.http_router.route_for` (`examples/http_app_routing.spx`)
+
+Route identity is a closed `i64` domain, the same idiom `std.net`'s
+`wait_is_readable`/`wait_is_closed` states use: 0 Health, 1 Echo,
+2 NotFound, 3 MethodNotAllowed, 4 Malformed. A record or variant payload
+type-checks fine as a route/request/response shape (`semaprax check`
+verifies one in this profile's fixtures), but the bounded reference
+interpreter admits no record-field projection yet, so the profile's
+deterministic fixture lane below stays on the closed-domain idiom that
+every existing hosted profile (`semaprax.network.v1`, `std.net`) already
+uses, and that `semaprax run` (no `--native` build) executes end to end.
+
+```semaprax
+@id("app.http_router.route_for")
+fn route_for(view: borrow Slice<u8>) -> i64
+    ensures result >= 0 && result <= 4
+```
+
+### `app.http_router.request_content_length` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.request_content_length")
+fn request_content_length(view: borrow Slice<u8>) -> i64
+    ensures result >= -1
+```
+
+### `app.http_router.status_for` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.status_for")
+fn status_for(route: i64) -> i64
+    requires route >= 0 && route <= 4
+    ensures result >= 100 && result <= 599
+```
+
+### `app.http_router.body_len_for` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.body_len_for")
+fn body_len_for(route: i64) -> usize
+    requires route >= 0 && route <= 4
+```
+
+### `app.http_router.route_status` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.route_status")
+fn route_status(view: borrow Slice<u8>) -> i64
+```
+
+### `app.http_router.route_body_len` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.route_body_len")
+fn route_body_len(view: borrow Slice<u8>) -> usize
+```
+
+### `app.main` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.main")
+fn main() -> i64
+```
+
 ### `example.main` (`examples/inheritance.spx`)
 
 ```semaprax

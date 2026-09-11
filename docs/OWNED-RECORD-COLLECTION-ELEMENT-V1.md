@@ -3,25 +3,27 @@
 Audience: compiler contributors and reviewers of SPX-AI-019/020 (issues #118,
 #119).
 
-Status: **admission classifier, plus hardened-but-still-unreachable backend
-dispatch (SPX-AI-020 partial)**. Source and HIR can independently recognize
-the one admitted record shape this document defines
+Status: **front-end admitted, no backend executes it**. Source and HIR
+independently recognize the one admitted record shape this document defines
 (`src/hir/owned_record_collection.rs`,
-`src/source_verify/declared_type/owned_record_collection.rs`), with local unit
-evidence. No compiler intrinsic accepts this element type yet: `Vec<T>`/`Box<T>`
-construction, push, length, capacity, or clear over this shape are **not**
-wired to source, HIR, cleanup-plan, or any backend. A program cannot construct
-a value of this element's collection type today, and no backend executes this
-shape. SPX-AI-020 (issue #119) chose closure strategy (a) and, in its first
-session, hardened the two documented `unreachable!()` sites (plus their `Box`
-analogues) into tested, clean-diagnostic fallbacks without widening any
-admission predicate; see "SPX-AI-020 execution decision and status" below for
-the decision, the fuller blast-radius inventory that reading the actual
-backend call graph turned up, and exactly what remains before any backend can
-execute this shape. A 2026-09-11 re-audit against `origin/main` independently
-re-confirmed the panic-hardening is intact and unwidened, and closed one
-residual test-coverage gap in the classifiers; see "Issue #118
-acceptance-criteria audit" below.
+`src/source_verify/declared_type/owned_record_collection.rs`), and a bounded
+`Vec<T>` operation surface over it — `vec_with_capacity`, `vec_push`,
+`vec_len`, `vec_capacity`, `vec_clear` — is wired through the source verifier,
+the resolver, HIR validation, the loan plan, the cleanup inventory, the
+cleanup plan and its replay. `vec_get`, `vec_set` and `vec_reserve_exact`
+stay refused, as does `Box<T>` of this element. A program can therefore be
+written, checked and resolved against this profile, and its ownership, borrow
+and cleanup meaning is exercised — but **every ordinary execution target
+refuses it** with its own stable diagnostic (`SPX-B115` native C11,
+`SPX-W125` WebAssembly, `SPX-F112` interpreter) rather than emitting a
+carrier it cannot lower. SPX-AI-020 (issue #119) owns lifting that; see
+"Front-end admission tranche (2026-09-12)" below for exactly what this costs
+and what it deliberately did not do. Earlier sections record how the profile
+reached this state: the classifier tranche, the backend panic-hardening, and
+the 2026-09-11 acceptance-criteria audit. Statements there about "no call
+site exists" and "no program can construct this type" describe the state
+before the tranche recorded at the end of this document, not the current
+tree.
 
 ## Purpose and non-goals
 
@@ -101,12 +103,11 @@ Reference implementation and unit evidence:
   admit/refuse boundary before resolution, including the same dedicated
   `String`-field case.
 
-Both are `pub(crate)`/`pub(in crate::source_verify)` and intentionally
-`#[cfg_attr(not(test), allow(dead_code))]`: no call site outside their own
-tests exists yet (see "What remains" below). They exist as one audited home
-for this exact rule so the execution tranche does not reimplement it inline
-at each future call site, matching the precedent set by
-`src/host_ownership.rs` for a reference model staged ahead of its call sites.
+Both are `pub(crate)`/`pub(in crate::source_verify)`, and each is now the one
+audited home its own projection's call sites consult, rather than the rule
+being reimplemented inline at each site. They were staged ahead of those call
+sites, matching the precedent set by `src/host_ownership.rs`; the tranche
+recorded at the end of this document wired them up.
 
 ## Cleanup rule (explicit)
 
@@ -138,13 +139,18 @@ profile to a multi-field record element requires **no change** to
 `cleanup_plan::build::bounded_vec`/`bounded_box`'s own shape logic — the
 opaque single-leaf treatment already generalizes.
 
-What *does* need to change, and is **not done here**: both
-`cleanup::is_owned_bounded_vec_type` and `box_ops::is_type` gate that opaque
-recognition on `crate::vec_ops::resolved_vec_element_is_admitted`/
+What needed to change: both `cleanup::is_owned_bounded_vec_type` and
+`box_ops::is_type` gate that opaque recognition on
+`crate::vec_ops::resolved_vec_element_is_admitted`/
 `crate::box_ops::resolved_box_element_is_admitted` — the same scalar-or-Bytes
 predicate that native and Wasm backends also consult (see "Backend hazard"
 below). Widening those two predicates is exactly the unsafe step this
-document explains how to avoid.
+document explains how to avoid, and the tranche recorded at the end of this
+document did not take it: it added a separate carrier predicate consulted
+only by the front end, and refused the profile at every backend instead. The
+`Vec` carrier therefore still gets exactly one opaque `core.vec.drop` leaf,
+and the record still gets its ordinary per-field leaves; `box_ops::is_type`
+is untouched because `Box<T>` of this element is not admitted.
 
 ## Borrow rule (explicit)
 
@@ -537,19 +543,116 @@ separately enumerated admission and tests"), so widening it here would be
 scope creep against the issue's own text, not a gap closure — the narrowness
 is a design decision already made, not an oversight this session found.
 
+## Front-end admission tranche (2026-09-12)
+
+This section records the tranche that closed issue #118's AC-2, AC-3 and AC-4,
+and supersedes the "not met" rows of the 2026-09-11 audit above.
+
+**What it chose.** Strategy (a)'s reuse of the existing `vec_ops` dispatch,
+cleanup-plan shape and loan-plan rules, but only through the front end, with
+every ordinary execution target refusing the profile up front. That is issue
+#118's own implementation step 6 ("keep ordinary target execution closed for
+this new profile until SPX-AI-020 supplies all selected backend
+implementations; add an explicit stable unsupported-target diagnostic if
+intermediate source admission is reachable, rather than emitting a broken
+carrier"), and it is what makes AC-2 through AC-4 testable at all: they are
+statements about ownership, borrowing and cleanup, all of which are decided
+before lowering.
+
+**What it did not widen, and why.** `crate::cleanup::is_owned_bounded_vec_type`
+and `crate::vec_ops::resolved_vec_element_is_admitted` keep their existing
+narrow meaning. The blast-radius inventory above is accurate: roughly forty
+native and Wasm call sites consult that predicate to map the carrier onto a
+concrete machine representation, and this profile has no such representation
+yet. Widening it would have relocated the hazard into codegen's type-layout
+functions, exactly as that inventory warns. Instead the profile has its own
+carrier predicate,
+`hir::owned_record_collection::is_owned_record_vec_type`, consulted only by
+the front-end sites that decide meaning:
+`hir::resolve_vec_call`, `hir::resolve_program`'s two generic-argument rules,
+`hir::declaration_index::owned_builtin::owned_builtin_facts`,
+`hir::validation`'s intrinsic signature, callable-type and borrow-argument
+rules, `cleanup::type_needs_resource_cleanup` and the cleanup inventory,
+`cleanup_plan::build::bounded_vec` and `cleanup_plan::replay::nested_shape`,
+plus their source-side companions in `source_verify::declared_type`,
+`source_verify::type_table`, `source_verify::iterative::enter` and
+`source_verify::oracle::calls`.
+
+**The target refusal.** `hir::owned_record_collection::program_uses_profile`
+scans signatures and resolved compiler-owned `Vec` call type arguments — the
+only two ways a value of the carrier type can exist — and
+`reject_for_target` turns a hit into one stable diagnostic. It is applied at
+each backend's single emission choke point:
+`codegen::native_emit::emit_hir_c_with_labels` (via `validate_for_native`),
+`wasm::aggregate::target_gates::reject_unsupported_profiles` (both aggregate
+module profiles), and every `src/interpreter.rs` entry point (via
+`validate_for_interpreter`/`resolve_for_interpreter`). None of these files
+grew: each edit replaces an existing validation line, and `wasm/aggregate.rs`
+shrank because its duplicated resource gate moved into the new
+`target_gates` helper.
+
+**Ownership, borrow and cleanup, as observed rather than argued.** The
+"Ownership/transfer rule" and "Borrow rule" sections above predicted that no
+new mechanism would be required once an operation surface existed. That
+prediction held, and is now pinned by regressions in
+`src/hir/owned_record_collection/operation_tests.rs`:
+
+- `vec_push` stages its vector and its record left to right and transfers
+  both at one `CallCommit` boundary; the record's two owned `Bytes` leaves
+  move as a unit inside the single argument slot. Reusing a pushed record is
+  `SPX-O101` in both projections.
+- A borrowing `vec_len` of the carrier after a consuming `vec_clear` is
+  refused, and so is one *live across* a consuming `vec_push` — writing
+  `vec_len<Item>(items)` inside the second argument of
+  `vec_push<Item>(items, …)`, where left-to-right staging has already
+  transferred `items`. Both refuse before lowering, in both projections.
+- Cleanup expands the record per leaf: one `core.bytes.drop` leaf for each
+  owned field, in authored declaration order with its declared field index,
+  `NoDrop` for the Copy field, and exactly one `core.vec.drop` leaf for the
+  carrier. Every fallible owned call publishes a `SelectFailure` edge, so
+  failure selection is sticky and later cleanup cannot replace it.
+
+**Element ownership mode.** `VecOp::param_ownership_for` now treats a
+`ResolvedType::Nominal` element as owned, like `Bytes`. That is exact rather
+than approximate: Copy scalars are primitive `ResolvedType` variants and a
+generic collection's element is a `ResolvedType::TypeParameter`, so the
+admitted record is the only `Nominal` any admission path lets reach that
+function. The AST-side companion cannot make the same argument — a generic
+wrapper's type parameter and this record are both `Type::Named` with no
+arguments — so `vec_ops::ast_params_with_owned_element` takes the
+classifier's answer from its caller instead of guessing.
+
+**Known limits of this tranche.**
+
+- `Vec<Item>` is still refused in a *declared signature* by the pre-existing
+  `SPX-T223` generic-copy-type rule, so the profile is confined to function
+  bodies. `program_uses_profile` scans parameters and return types anyway, so
+  the refusal stays correct if that rule is ever widened.
+- Record construction inside a `while` body remains `SPX-T252`, so the
+  loop-carried accumulate shape is not available to this profile yet.
+- `Box<T>` of this element, and therefore a consuming extraction such as
+  `box_into_inner`, is not admitted. AC-2's "extract" half is not covered;
+  the profile has bulk `clear` only, following `OWNED-BOUNDED-VEC-V1.md`'s
+  own "Nonclaim" precedent.
+- Nothing here is executed. There is no interpreter, native or Wasm evidence
+  of this profile running, by construction.
+
 ## What remains (explicitly out of scope here)
 
-- An operation surface (`with_capacity`/`push`/`len`/`capacity`/`clear` at
-  minimum; `get`/`set`/`reserve_exact` are deliberately excluded from the
-  narrow profile the same way `vec_get<Bytes>` is already excluded today, to
-  avoid "an ambiguous copy-returning get of an owned value" per this issue's
-  own implementation guidance) — via strategy (a), per the decision above.
-- Widening `cleanup::is_owned_bounded_vec_type` /
+- Backend conformance. Widening `cleanup::is_owned_bounded_vec_type` /
   `crate::vec_ops::resolved_vec_element_is_admitted` (and the Box
-  equivalents), consistently with `owned_builtin_facts`'s TypeFacts admission
-  and all ~25-40 call sites inventoried above — only safe once every listed
-  site is updated together; the two originally documented `unreachable!()`
-  sites (now hardened, see above) are necessary but not sufficient.
+  equivalents), consistently with all ~25-40 layout, ABI and cleanup-replay
+  call sites inventoried above, plus a per-element storage and drop lowering
+  for the record payload — only safe once every listed site is updated
+  together; the two originally documented `unreachable!()` sites (now
+  hardened, see above) are necessary but not sufficient. SPX-AI-020 (issue
+  #119) owns this, and lifting the three target refusals
+  (`SPX-B115`/`SPX-W125`/`SPX-F112`) is its acceptance boundary.
+- `Box<T>` of this element, and any consuming extraction. `vec_get`,
+  `vec_set` and `vec_reserve_exact` also stay refused: `get` would be "an
+  ambiguous copy-returning get of an owned value" per this issue's own
+  implementation guidance, and the other two are outside the enumerated
+  surface.
 - Consuming extraction/traversal beyond bulk `clear`. `Vec`'s own v1/v2
   profile already ships with no `pop`/insertion/removal as a stated
   "Nonclaim" (`OWNED-BOUNDED-VEC-V1.md`); this profile follows that precedent
@@ -562,8 +665,10 @@ is a design decision already made, not an oversight this session found.
 
 ## Test discovery
 
-`cargo test --locked -p semaprax --lib owned_record_collection` selects the 19
-focused unit tests above (13 HIR-side, 6 source-side). They construct real
+`cargo test --locked -p semaprax --lib owned_record_collection` selects 31
+focused unit tests: the 19 classifier cases above (13 HIR-side, 6
+source-side) plus the 12 operation-surface regressions in
+`src/hir/owned_record_collection/operation_tests.rs`. They construct real
 `.spx` source through `crate::parse`/`crate::hir::resolve` (not hand-built
 HIR), the same pattern `type_reachability`'s own classifier tests use, so the
 positive cases are genuine parsed-and-resolved programs, not synthetic

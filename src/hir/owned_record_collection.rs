@@ -187,6 +187,74 @@ pub(crate) fn program_uses_profile(program: &ResolvedProgram) -> bool {
         .any(function_uses)
 }
 
+/// Stable refusal code each ordinary execution target uses for this profile.
+///
+/// The codes stay in their own target's family so an agent reading one knows
+/// which backend refused and which issue owns the conformance work.
+pub(crate) const NATIVE_TARGET_CODE: &str = "SPX-B115";
+pub(crate) const WASM_TARGET_CODE: &str = "SPX-W125";
+pub(crate) const INTERPRETER_TARGET_CODE: &str = "SPX-F112";
+
+/// Refuse, with one stable diagnostic, a program that names this profile on an
+/// ordinary execution target.
+///
+/// Source and HIR admit the profile so its ownership, borrow and cleanup
+/// meaning is checked; no backend implements its carrier yet. This gate keeps
+/// "no backend executes the new shape" a compile-time diagnostic instead of a
+/// broken carrier or a backend accident, per the SPX-AI-019 implementation
+/// contract; SPX-AI-020 (issue #119) owns lifting it.
+pub(crate) fn reject_for_target(
+    program: &ResolvedProgram,
+    code: &'static str,
+    target: &str,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    if program_uses_profile(program) {
+        return Err(crate::diagnostic::Diagnostic::io(
+            code,
+            format!(
+                "the internal owned-record collection profile has no {target} execution profile; \
+                 its backend conformance is owned by SPX-AI-020"
+            ),
+        ));
+    }
+    Ok(())
+}
+
+/// `hir::validate`, then this profile's native refusal.
+///
+/// The native lane's single emission choke point calls this instead of
+/// `hir::validate` so front-end admission and target refusal cannot drift.
+pub(crate) fn validate_for_native(
+    program: &ResolvedProgram,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    super::validate(program)?;
+    reject_for_target(program, NATIVE_TARGET_CODE, "native C11")
+}
+
+/// `hir::validate`, then this profile's interpreter refusal, in the shape the
+/// interpreter's own entry points already use.
+pub(crate) fn validate_for_interpreter(
+    program: &ResolvedProgram,
+) -> Result<(), Vec<crate::diagnostic::Diagnostic>> {
+    super::validate(program).map_err(|diagnostic| vec![diagnostic])?;
+    reject_for_target(program, INTERPRETER_TARGET_CODE, "interpreter")
+        .map_err(|diagnostic| vec![diagnostic])
+}
+
+/// `hir::resolve`, then this profile's interpreter refusal.
+///
+/// The source-driven interpreter entry point resolves its own program rather
+/// than receiving resolved HIR, so it needs the refusal attached to
+/// resolution instead of to validation.
+pub(crate) fn resolve_for_interpreter(
+    program: &crate::ast::Program,
+) -> Result<ResolvedProgram, Vec<crate::diagnostic::Diagnostic>> {
+    let resolved = super::resolve(program)?;
+    reject_for_target(&resolved, INTERPRETER_TARGET_CODE, "interpreter")
+        .map_err(|diagnostic| vec![diagnostic])?;
+    Ok(resolved)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -514,72 +582,4 @@ mod tests {
             &ResolvedType::I64
         ));
     }
-}
-
-/// Stable refusal code each ordinary execution target uses for this profile.
-///
-/// The codes stay in their own target's family so an agent reading one knows
-/// which backend refused and which issue owns the conformance work.
-pub(crate) const NATIVE_TARGET_CODE: &str = "SPX-B115";
-pub(crate) const WASM_TARGET_CODE: &str = "SPX-W125";
-pub(crate) const INTERPRETER_TARGET_CODE: &str = "SPX-F107";
-
-/// Refuse, with one stable diagnostic, a program that names this profile on an
-/// ordinary execution target.
-///
-/// Source and HIR admit the profile so its ownership, borrow and cleanup
-/// meaning is checked; no backend implements its carrier yet. This gate keeps
-/// "no backend executes the new shape" a compile-time diagnostic instead of a
-/// broken carrier or a backend accident, per the SPX-AI-019 implementation
-/// contract; SPX-AI-020 (issue #119) owns lifting it.
-pub(crate) fn reject_for_target(
-    program: &ResolvedProgram,
-    code: &'static str,
-    target: &str,
-) -> Result<(), crate::diagnostic::Diagnostic> {
-    if program_uses_profile(program) {
-        return Err(crate::diagnostic::Diagnostic::io(
-            code,
-            format!(
-                "the internal owned-record collection profile has no {target} execution profile; \
-                 its backend conformance is owned by SPX-AI-020"
-            ),
-        ));
-    }
-    Ok(())
-}
-
-/// `hir::validate`, then this profile's native refusal.
-///
-/// The native lane's single emission choke point calls this instead of
-/// `hir::validate` so front-end admission and target refusal cannot drift.
-pub(crate) fn validate_for_native(
-    program: &ResolvedProgram,
-) -> Result<(), crate::diagnostic::Diagnostic> {
-    super::validate(program)?;
-    reject_for_target(program, NATIVE_TARGET_CODE, "native C11")
-}
-
-/// `hir::validate`, then this profile's interpreter refusal, in the shape the
-/// interpreter's own entry points already use.
-pub(crate) fn validate_for_interpreter(
-    program: &ResolvedProgram,
-) -> Result<(), Vec<crate::diagnostic::Diagnostic>> {
-    super::validate(program).map_err(|diagnostic| vec![diagnostic])?;
-    reject_for_target(program, INTERPRETER_TARGET_CODE, "interpreter")
-        .map_err(|diagnostic| vec![diagnostic])
-}
-
-/// `hir::resolve`, then this profile's interpreter refusal.
-///
-/// The source-driven interpreter entry point resolves its own program rather
-/// than receiving resolved HIR, so it needs the refusal attached to
-/// resolution instead of to validation.
-pub(crate) fn resolve_for_interpreter(
-    program: &crate::ast::Program,
-) -> Result<ResolvedProgram, Vec<crate::diagnostic::Diagnostic>> {
-    let resolved = super::resolve(program)?;
-    reject_for_target(&resolved, INTERPRETER_TARGET_CODE, "interpreter")
-        .map_err(|diagnostic| vec![diagnostic])?;
-    Ok(resolved)
 }

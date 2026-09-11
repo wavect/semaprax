@@ -307,8 +307,7 @@ module owned_record_collection.foreign;
 @id("owned_record_collection.foreign.main") fn main()->i64 { 0 }
 "#;
     let verified = crate::check(source, "owned-record-collection-foreign.spx")
-        .err()
-        .expect("a foreign record shape must be refused");
+        .expect_err("a foreign record shape must be refused");
     assert!(verified
         .iter()
         .any(|diagnostic| diagnostic.code == "SPX-T281"));
@@ -419,7 +418,7 @@ fn ordinary_execution_targets_refuse_the_profile() {
     assert_eq!(interpreted[0].code, super::INTERPRETER_TARGET_CODE);
     assert_eq!(native.code, "SPX-B115");
     assert_eq!(wasm.code, "SPX-W125");
-    assert_eq!(interpreted[0].code, "SPX-F107");
+    assert_eq!(interpreted[0].code, "SPX-F112");
 }
 
 /// Both projections stay stable over the new surface: canonical source is a

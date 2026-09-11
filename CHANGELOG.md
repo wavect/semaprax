@@ -8,6 +8,17 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Give the MSRV shards the same time budget as the identical `verify-tests`
+  command. Both run `scripts/ci-msrv.py --shard`, but the MSRV job had 40
+  minutes against that job's 90 while compiling the same workspace on an
+  older toolchain. The `integration-1` shard was cut off mid-test on two
+  runs while finishing in about 35 minutes on others, so its result reported
+  the runner's speed rather than the shard's outcome - and a cancelled
+  blocker fails the release gate exactly like a real failure. The coverage
+  guarantees are unchanged: the contract still forbids `continue-on-error`,
+  `--no-fail-fast`, `--exclude`, `--skip` and caching, and still requires
+  the full check and every shard.
+
 ## 0.4.1 — 2026-09-11
 
 - Record cross-platform hosted evidence for the public generic ownership

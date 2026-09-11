@@ -149,7 +149,12 @@ fn msrv_matrix_preserves_checks_timeout_complete_results_and_release_dependency(
         .0;
     for required in [
         "name: Rust 1.88 minimum (${{ matrix.shard }})",
-        "timeout-minutes: 40",
+        // The same budget `verify-tests` gives the same sharded command. At 40
+        // minutes the `integration-1` shard was cut off mid-test on two runs
+        // while finishing in about 35 on others, so the number reported the
+        // runner's speed rather than the shard's result. The coverage
+        // guarantees are the `forbidden` list below, not this budget.
+        "timeout-minutes: 90",
         "fail-fast: false",
         "shard: [unit, integration-0, integration-1, integration-2]",
         "toolchain: \"1.88\"",

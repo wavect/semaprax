@@ -202,6 +202,13 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         "semaprax cxx-package <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n";
     assert_eq!(current.matches(CXX_PACKAGE_LINE).count(), 1);
     current = current.replacen(CXX_PACKAGE_LINE, "", 1);
+    // `semaprax agent skill` was added by #196 (commit 251e157f) after these
+    // witnesses were pinned. Normalize it away here, exactly as every other
+    // intentional usage addition above is, so the historical byte and digest
+    // pins below keep describing the surface they were taken from.
+    const AGENT_SKILL_LINE: &str = "semaprax agent skill [--require-schema <schema>]\n";
+    assert_eq!(current.matches(AGENT_SKILL_LINE).count(), 1);
+    current = current.replacen(AGENT_SKILL_LINE, "", 1);
     const GIT_PUBLISH_LINE: &str = "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n";
     const WORKSPACE_LINE: &str = "semaprax serve-workspace <manifest> <host-policy.json>\n";
     const PROFILE_DOCTOR_LINE: &str =

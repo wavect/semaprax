@@ -32,6 +32,7 @@ mod derive;
 mod lattice;
 mod obligation;
 mod render;
+pub mod smt_discharge;
 mod verify;
 
 pub use delta::delta;

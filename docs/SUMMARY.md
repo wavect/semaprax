@@ -366,6 +366,7 @@ Audience: all documentation readers.
 - [Project v8 C++ owned-data package](PUBLIC-CXX-OWNED-DATA-PACKAGE-V1.md)
 - [Build capability manifest](CAPABILITY-MANIFEST-V1.md)
 - [Assurance Manifest v1](ASSURANCE-MANIFEST-V1.md)
+- [Bounded SMT Discharge v1](SMT-DISCHARGE-V1.md)
 - [Owned record collection element v1](OWNED-RECORD-COLLECTION-ELEMENT-V1.md)
 - [Freestanding object profile](FREESTANDING-V1.md)
 - [OpenAPI schema generation](OPENAPI-V1.md)

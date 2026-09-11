@@ -25,11 +25,13 @@
 //! This module is also the one audited home for the profile's bounded `Vec`
 //! operation surface (`vec_with_capacity`, `vec_push`, `vec_len`,
 //! `vec_capacity`, `vec_clear`), for the carrier predicate the front end and
-//! cleanup consult, and for the refusal every ordinary execution target
-//! raises: source and HIR admit the profile so its ownership, borrow and
-//! cleanup meaning is checked, and no backend executes it until SPX-AI-020
-//! (issue #119) delivers its conformance. `Box` of this element is not
-//! admitted.
+//! cleanup consult, and for the refusal the execution targets that do not yet
+//! implement the carrier raise. The reference interpreter executes the
+//! profile with real per-element record storage (SPX-AI-020); native C11
+//! (`SPX-B115`) and Wasm (`SPX-W125`) still refuse it up front with a stable
+//! diagnostic rather than emitting a carrier they cannot lower, so the
+//! backends agree by refusal until their conformance lands. `Box` of this
+//! element is not admitted.
 
 use super::*;
 
@@ -187,13 +189,31 @@ pub(crate) fn program_uses_profile(program: &ResolvedProgram) -> bool {
         .any(function_uses)
 }
 
-/// Stable refusal code each ordinary execution target uses for this profile.
+/// The owned payload one admitted record element charges against
+/// `crate::vec_ops::MAX_OWNED_PAYLOAD_BYTES`.
+///
+/// The admitted shape owns exactly two `Bytes` leaves, so it is charged twice
+/// the single-leaf rate `Vec<Bytes>` already uses; its one Copy-scalar field
+/// is already covered by the target-neutral per-element capacity charge. The
+/// constant lives here, beside the admission rule, so every target that
+/// implements this carrier bounds it identically rather than each inventing a
+/// number. At 32 bytes per element the bound admits 4096 elements, within the
+/// shared `crate::vec_ops::MAX_CAPACITY` of 8192.
+pub(crate) const OWNED_PAYLOAD_BYTES_PER_RECORD_ELEMENT: u64 =
+    2 * crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT;
+
+/// Stable refusal code each ordinary execution target that does not yet
+/// implement this profile's carrier uses.
 ///
 /// The codes stay in their own target's family so an agent reading one knows
-/// which backend refused and which issue owns the conformance work.
+/// which backend refused and which issue owns the conformance work. The
+/// interpreter's former code (`SPX-F112`) is retired: the reference
+/// interpreter now executes the profile per element (SPX-AI-020), so it has
+/// nothing left to refuse. Native and Wasm still refuse, which is the
+/// agreement-by-refusal form of "equivalent checked behavior on every backend
+/// that claims to implement the admitted feature".
 pub(crate) const NATIVE_TARGET_CODE: &str = "SPX-B115";
 pub(crate) const WASM_TARGET_CODE: &str = "SPX-W125";
-pub(crate) const INTERPRETER_TARGET_CODE: &str = "SPX-F112";
 
 /// Refuse, with one stable diagnostic, a program that names this profile on an
 /// ordinary execution target.
@@ -229,30 +249,6 @@ pub(crate) fn validate_for_native(
 ) -> Result<(), crate::diagnostic::Diagnostic> {
     super::validate(program)?;
     reject_for_target(program, NATIVE_TARGET_CODE, "native C11")
-}
-
-/// `hir::validate`, then this profile's interpreter refusal, in the shape the
-/// interpreter's own entry points already use.
-pub(crate) fn validate_for_interpreter(
-    program: &ResolvedProgram,
-) -> Result<(), Vec<crate::diagnostic::Diagnostic>> {
-    super::validate(program).map_err(|diagnostic| vec![diagnostic])?;
-    reject_for_target(program, INTERPRETER_TARGET_CODE, "interpreter")
-        .map_err(|diagnostic| vec![diagnostic])
-}
-
-/// `hir::resolve`, then this profile's interpreter refusal.
-///
-/// The source-driven interpreter entry point resolves its own program rather
-/// than receiving resolved HIR, so it needs the refusal attached to
-/// resolution instead of to validation.
-pub(crate) fn resolve_for_interpreter(
-    program: &crate::ast::Program,
-) -> Result<ResolvedProgram, Vec<crate::diagnostic::Diagnostic>> {
-    let resolved = super::resolve(program)?;
-    reject_for_target(&resolved, INTERPRETER_TARGET_CODE, "interpreter")
-        .map_err(|diagnostic| vec![diagnostic])?;
-    Ok(resolved)
 }
 
 #[cfg(test)]

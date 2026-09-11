@@ -397,28 +397,108 @@ fn fallible_owned_calls_select_a_sticky_failure_status() {
     assert!(!build.cleanup_plan.status_sources.is_empty());
 }
 
-/// The profile is admitted by the front end and by nothing else. Each ordinary
-/// execution target refuses it with its own stable diagnostic, so "no backend
-/// executes the new shape" is a compile-time diagnostic rather than a broken
-/// carrier or a backend accident.
+/// Backend agreement, in the only honest form available while conformance is
+/// partial: the reference interpreter executes the profile, and the two
+/// targets that do not yet implement its carrier refuse it up front with their
+/// own stable diagnostic rather than emitting a broken carrier or reaching a
+/// backend accident. When native and Wasm lift, they must agree with the
+/// interpreter's value, not merely stop refusing.
 #[test]
-fn ordinary_execution_targets_refuse_the_profile() {
+fn native_and_wasm_still_refuse_the_profile_while_the_interpreter_executes_it() {
     let resolved = admitted(DECLARATION, BUILD);
     let native = crate::codegen::emit_hir_c(&resolved).expect_err("native must refuse");
     assert_eq!(native.code, super::NATIVE_TARGET_CODE);
+    assert_eq!(native.code, "SPX-B115");
     let wasm = crate::wasm::emit_resolved_module(&resolved).expect_err("Wasm must refuse");
     assert_eq!(wasm.code, super::WASM_TARGET_CODE);
-    let interpreted = crate::interpreter::evaluate_resolved_owned_data(
-        &resolved,
-        "owned_record_collection.ops.build",
-        &[],
-        16,
-    )
-    .expect_err("the interpreter must refuse");
-    assert_eq!(interpreted[0].code, super::INTERPRETER_TARGET_CODE);
-    assert_eq!(native.code, "SPX-B115");
     assert_eq!(wasm.code, "SPX-W125");
-    assert_eq!(interpreted[0].code, "SPX-F112");
+    assert_eq!(interpreted_main(EXECUTE), 41);
+}
+
+/// The same profile driven end to end through the reference interpreter's
+/// zero-argument entry: construct a two-element carrier, push one authored
+/// record into it, observe length and capacity, clear it, and push again.
+const EXECUTE: &str = r#"@id("owned_record_collection.ops.main") fn main()->i64 {
+    let items=vec_with_capacity<Item>(2usize);
+    let room=vec_capacity<Item>(items);
+    let filled=vec_push<Item>(items,Item{id:bytes_zeroed(1usize),label:bytes_zeroed(2usize),quantity:7});
+    let one=vec_len<Item>(filled);
+    let empty=vec_clear<Item>(filled);
+    let cleared=vec_len<Item>(empty);
+    let again=vec_push<Item>(empty,Item{id:bytes_zeroed(3usize),label:bytes_zeroed(4usize),quantity:9});
+    let two=vec_len<Item>(again);
+    if room==2usize && one==1usize && cleared==0usize && two==1usize
+        && vec_capacity<Item>(again)==2usize {41} else {0}
+}"#;
+
+/// Resolve one fixture whose `main` is the exercised body and evaluate it on
+/// the reference interpreter.
+fn interpreted_main(body: &str) -> i64 {
+    let source = format!("{DECLARATION}{body}\n");
+    crate::check(&source, "owned-record-collection-exec.spx")
+        .expect("the source verifier must admit the profile");
+    let parsed = crate::parse(
+        &source,
+        std::path::Path::new("owned-record-collection-exec.spx"),
+    )
+    .unwrap();
+    let resolved = crate::hir::resolve(&parsed).expect("HIR must admit the profile");
+    crate::hir::validate(&resolved).expect("resolved HIR must validate");
+    match crate::interpreter::evaluate_resolved_zero_arg_i64(
+        &resolved,
+        "owned_record_collection.ops.main",
+        1_000_000,
+    )
+    .expect("the interpreter must admit the profile")
+    .outcome
+    {
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(value) => value,
+        other => panic!("the interpreter must execute the profile, saw {other:?}"),
+    }
+}
+
+/// Interpreter execution, per element: the carrier stores one authored record
+/// per push, `len`/`capacity` observe it, `clear` forgets the elements while
+/// retaining capacity, and a later push reuses the same carrier.
+#[test]
+fn the_interpreter_executes_the_owned_record_collection_per_element() {
+    assert_eq!(interpreted_main(EXECUTE), 41);
+}
+
+/// Dynamic failure is real and sticky: pushing past capacity selects
+/// `semaprax.vec.v1` code 1, and the cleanup that follows cannot replace it
+/// with a returned value.
+#[test]
+fn pushing_past_capacity_selects_a_sticky_vec_status() {
+    let source = format!(
+        "{DECLARATION}{}\n",
+        r#"@id("owned_record_collection.ops.main") fn main()->i64 {
+    let items=vec_with_capacity<Item>(1usize);
+    let one=vec_push<Item>(items,Item{id:bytes_zeroed(1usize),label:bytes_zeroed(2usize),quantity:7});
+    let two=vec_push<Item>(one,Item{id:bytes_zeroed(3usize),label:bytes_zeroed(4usize),quantity:9});
+    if vec_capacity<Item>(two)==1usize {1} else {0}
+}"#
+    );
+    crate::check(&source, "owned-record-collection-exec.spx")
+        .expect("the source verifier must admit the profile");
+    let parsed = crate::parse(
+        &source,
+        std::path::Path::new("owned-record-collection-exec.spx"),
+    )
+    .unwrap();
+    let resolved = crate::hir::resolve(&parsed).expect("HIR must admit the profile");
+    let outcome = crate::interpreter::evaluate_resolved_zero_arg_i64(
+        &resolved,
+        "owned_record_collection.ops.main",
+        1_000_000,
+    )
+    .expect("the interpreter must admit the profile")
+    .outcome;
+    let crate::interpreter::ResolvedEvaluationOutcome::LanguageFailure(status) = outcome else {
+        panic!("a push past capacity must fail, saw {outcome:?}");
+    };
+    assert_eq!(status.domain_id(), crate::vec_ops::STATUS_DOMAIN);
+    assert_eq!(status.code(), crate::vec_ops::PUSH_FULL_CODE);
 }
 
 /// Both projections stay stable over the new surface: canonical source is a

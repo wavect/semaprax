@@ -58,6 +58,77 @@ fn scalar_value_matches_type(value: &Value, ty: &ResolvedType) -> bool {
     )
 }
 
+/// `true` when one element value is a faithful carrier for `ty` under the
+/// element profiles this interpreter stores per element.
+///
+/// Scalars and `Bytes` keep their existing exact variant check. The
+/// SPX-AI-019 owned-record element additionally re-derives its own
+/// authenticity from `DeclarationIndex` facts on every push: the runtime
+/// record must name the same authored declaration, carry exactly the declared
+/// field identities, and hold a value of the declared type in each. A forged
+/// or mis-typed record carrier therefore cannot enter the vector, and field
+/// selection never consults a display name.
+fn element_value_matches_type(
+    declarations: &crate::hir::DeclarationIndex,
+    value: &Value,
+    ty: &ResolvedType,
+) -> bool {
+    if scalar_value_matches_type(value, ty) {
+        return true;
+    }
+    let Value::Record(record) = value else {
+        return false;
+    };
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if !arguments.is_empty()
+        || record.record != *declaration
+        || !crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+            declarations,
+            ty,
+        )
+    {
+        return false;
+    }
+    let Some(fields) = declarations.record_fields(declaration) else {
+        return false;
+    };
+    fields.len() == record.fields.len()
+        && fields.iter().all(|field| {
+            record
+                .fields
+                .get(&field.id)
+                .is_some_and(|value| scalar_value_matches_type(value, &field.ty))
+        })
+}
+
+/// The owned-payload charge one element of `ty` places against
+/// `crate::vec_ops::MAX_OWNED_PAYLOAD_BYTES`, or `None` for an element that
+/// owns nothing.
+///
+/// `Bytes` keeps its existing one-leaf charge. The SPX-AI-019 owned-record
+/// element owns exactly two `Bytes` leaves, so it is charged for both; the
+/// single constant lives in `hir::owned_record_collection` so every target
+/// that later implements this carrier bounds it identically.
+fn owned_payload_bytes_per_element(
+    declarations: &crate::hir::DeclarationIndex,
+    ty: &ResolvedType,
+) -> Option<u64> {
+    if *ty == ResolvedType::Bytes {
+        return Some(crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT);
+    }
+    crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+        declarations,
+        ty,
+    )
+    .then_some(crate::hir::owned_record_collection::OWNED_PAYLOAD_BYTES_PER_RECORD_ELEMENT)
+}
+
 fn normalize_vec(code: u32) -> NormalizedStatus {
     NormalizedStatus::try_new(
         crate::vec_ops::STATUS_DOMAIN,
@@ -88,11 +159,22 @@ impl Evaluator<'_> {
         depth: usize,
     ) -> Result<Value, Flow> {
         self.charge()?;
+        let declarations = self.declarations;
         let element = type_arguments
             .first()
             .filter(|element| {
                 type_arguments.len() == 1
-                    && crate::vec_ops::resolved_operation_element_is_admitted(op, element)
+                    && (crate::vec_ops::resolved_operation_element_is_admitted(op, element)
+                        // SPX-AI-019's owned-record element keeps its own
+                        // narrow admission predicate rather than widening the
+                        // shared scalar-or-`Bytes` one the native and Wasm
+                        // layout/ABI sites consult; see
+                        // `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md`.
+                        || crate::hir::owned_record_collection::admits_vec_operation_element(
+                            declarations,
+                            op,
+                            element,
+                        ))
             })
             .ok_or(Flow::Guard("invalid compiler-owned bounded Vec type"))?
             .clone();
@@ -138,17 +220,16 @@ impl Evaluator<'_> {
                         crate::vec_ops::ALLOCATION_FAILURE_CODE,
                     )));
                 }
-                if element == ResolvedType::Bytes
-                    && u64::try_from(capacity)
+                if let Some(per_element) = owned_payload_bytes_per_element(declarations, &element) {
+                    if u64::try_from(capacity)
                         .ok()
-                        .and_then(|capacity| {
-                            capacity.checked_mul(crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT)
-                        })
+                        .and_then(|capacity| capacity.checked_mul(per_element))
                         .is_none_or(|charge| charge > crate::vec_ops::MAX_OWNED_PAYLOAD_BYTES)
-                {
-                    return Err(Flow::Failure(normalize_vec(
-                        crate::vec_ops::ALLOCATION_FAILURE_CODE,
-                    )));
+                    {
+                        return Err(Flow::Failure(normalize_vec(
+                            crate::vec_ops::ALLOCATION_FAILURE_CODE,
+                        )));
+                    }
                 }
                 let mut elements = Vec::new();
                 if elements.try_reserve_exact(capacity).is_err() {
@@ -172,7 +253,9 @@ impl Evaluator<'_> {
                         "ill-typed compiler-owned bounded Vec operation",
                     ));
                 };
-                if vector.element != element || !scalar_value_matches_type(&value, &element) {
+                if vector.element != element
+                    || !element_value_matches_type(declarations, &value, &element)
+                {
                     return Err(Flow::Guard("forged bounded Vec element type"));
                 }
                 let mut vector = Arc::try_unwrap(vector)

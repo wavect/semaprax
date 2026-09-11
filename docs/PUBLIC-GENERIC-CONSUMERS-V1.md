@@ -745,3 +745,132 @@ ASan/UBSan variant
 (`provisioned_cxx_calling_consumer_asan_ubsan`) is `#[ignore]`d by default
 and was not run in this round; only the plain `-O0`/`-O2` build and run is
 recorded as executed evidence here.
+
+## Shared hostile corpus (issue #160)
+
+Audience: reviewers checking whether "all four consumers reject the same
+malformed input" is genuinely cross-checked, or merely four independent
+hand-written approximations that happen to look similar.
+
+Status: local, proof-only evidence (no hosted CI run recorded), unsupported
+and unpublished — the same standing as every consumer section above.
+
+**Why this section exists.** Each consumer section above already generates
+and runs its own hostile-pairing tests: a mutated descriptor, a mutated
+binding, a well-formed binding naming a different descriptor, and the
+per-leaf byte bound (exact and one-over), one test per outcome, written once
+per language against that language's own per-issue fixture bytes. Before
+this section, nothing compared their actual outcomes to each other — a
+consumer that quietly started accepting what the other three reject would
+not have failed anything, because every existing test only asserts against
+its own author's expectation. `tests/support/public_generic_hostile_corpus.rs`
+is the one shared manifest (one on-disk file, `#[path]`-included, unmodified,
+into both native and Wasm harnesses) naming six cases and their one expected
+outcome; `tests/public_generic_native_adapter_v1/shared_hostile_corpus.rs`
+and `tests/public_generic_wasm_adapter_v1/shared_hostile_corpus.rs` generate
+all four consumers from the SAME canonical descriptor baseline, capture each
+one's REAL observed outcome (never assert-and-swallow), and check every one
+of them against that one manifest.
+
+**Coverage audit — what already existed per consumer before this issue** (test
+names are exact, from the generator's own `ROUND_TRIP_BODY`/equivalent
+template, exercised by the harness named in parentheses):
+
+| Case | Rust (#156) | C11 (#158) | C++17 (#159) | TypeScript/Wasm (#157) |
+| --- | --- | --- | --- | --- |
+| Mutated descriptor rejected pre-allocation | `open_rejects_a_mutated_descriptor_before_any_native_allocation` | `test_open_rejects_a_mutated_descriptor_before_any_native_allocation` | `test_open_rejects_a_mutated_descriptor_before_any_native_allocation` | `"open rejects a mutated descriptor before any Wasm allocation"` |
+| Mutated binding rejected pre-allocation | `open_rejects_a_mutated_binding_before_any_native_allocation` | `test_open_rejects_a_mutated_binding_before_any_native_allocation` | `test_open_rejects_a_mutated_binding_before_any_native_allocation` | `"open rejects a mutated provider binding before any Wasm allocation"` |
+| Valid binding names a different well-formed descriptor | `open_rejects_a_valid_binding_that_names_a_different_descriptor` | `test_open_rejects_a_valid_binding_that_names_a_different_descriptor` | `test_open_rejects_a_valid_binding_that_names_a_different_descriptor` | `"open rejects a well-formed descriptor naming a different document"` |
+| Exact per-leaf bound (64 KiB) accepted | `exactly_the_per_leaf_byte_bound_is_accepted` | `test_exactly_the_per_leaf_byte_bound_is_accepted` | `test_exactly_the_per_leaf_byte_bound_is_accepted` | `"exactly the per-leaf byte bound is accepted"` |
+| One byte over the per-leaf bound rejected | `one_byte_over_the_per_leaf_bound_is_rejected_locally` | `test_one_byte_over_the_per_leaf_bound_is_rejected_locally` | `test_one_byte_over_the_per_leaf_bound_is_rejected_locally` | `"one byte over the per-leaf bound is rejected locally before any Wasm allocation"` |
+| Full ordinal failure-injection matrix | `failure_injection_matrix_settles_every_ordinal_with_zero_live_resources` (`0..=13`) | `test_failure_injection_matrix_settles_every_ordinal_with_zero_live_resources` (`0..=13`) | `test_failure_injection_matrix_settles_every_ordinal_with_zero_live_resources` (`0..=13`) | `"the failure-injection matrix settles every ordinal with zero live resources"` (`0..=7`) |
+| Provider-artifact digest mismatch (loaded module bytes changed) | not applicable — native providers are compiled in, not loaded as a runtime artifact | not applicable, same reason | not applicable, same reason | `"open rejects a module whose bytes do not replay the trusted provider-artifact digest"` |
+| Stale/foreign/reused/post-close handle | covered by each native harness's OWN lifecycle matrix elsewhere (`probe.c`'s own C-hosted matrix; not this generator's own hostile-pairing set) | same | same | `"a stale/foreign handle is rejected rather than reused"`, `"a released input handle cannot be reused..."`, `"call after close is rejected"` |
+
+Every cell above already passed before this issue; none of it is
+duplicated by the shared corpus. What none of it did is compare outcomes
+ACROSS languages — that is this section's actual contribution.
+
+**What the shared corpus adds, and how agreement is enforced.** Six cases,
+generated from ONE canonical descriptor baseline
+(`BASELINE_DESCRIPTOR_BYTES`) fed identically to all four
+`generate_*_calling_consumer` calls: `success_baseline`,
+`descriptor_first_byte_flipped`, `binding_last_byte_flipped`,
+`descriptor_names_different_document`, `exactly_per_leaf_bound_accepted`,
+`one_byte_over_per_leaf_bound_rejected`. Each generated consumer's own
+`consumer.files()` output is left byte-for-byte untouched (the "byte for
+byte" claim above still holds); the harness instead splices one additional,
+hand-written test into the already-generated round-trip file at write time
+(Rust: appended as a new `#[test]`; C11/C++17: inserted before the fixed
+`main`, called immediately before its settlement line; TypeScript: inserted
+before the fixed pass/fail tail of the generated `run()`), built ONLY from
+that file's own already-generated helpers (`sample_input`/
+`input_with_first_field`/`assert_reversed`, the embedded
+`TRUSTED_DESCRIPTOR_BYTES`/`TRUSTED_BINDING_BYTES`, the provider's own
+test-only diagnostics) — it never re-derives a generated field name itself
+(`identifier`/`field_name` are `pub(crate)`-only inside
+`semaprax::public_generic_consumer`, unreachable from an external
+integration-test crate by construction). Every spliced test PRINTS its
+observed outcome as `SHARED_CORPUS <case_id> <STATUS>` rather than only
+asserting it locally; the harness parses all four real outputs and asserts
+every one of them equals the SAME expected status in
+`tests/support/public_generic_hostile_corpus.rs::EXPECTED` — so a consumer
+that silently starts disagreeing with the other three fails with a message
+naming the exact case and the exact wrong status observed, not a generic
+"assertion failed." This was verified directly (not merely by inspection):
+deliberately corrupting one status in the C11 driver during development
+made `shared_hostile_corpus_agrees_across_rust_c11_and_cxx17_consumers` fail
+with `binding_last_byte_flipped: c_calling_consumer reported
+DESCRIPTOR_REJECTED, expected PROVIDER_MISMATCH`, then the change was
+reverted and the test passed again.
+
+**Native vs. Wasm: one manifest, two harnesses, not one process.** The
+native (`tests/public_generic_native_adapter_v1/shared_hostile_corpus.rs`,
+covering Rust/C11/C++17) and Wasm
+(`tests/public_generic_wasm_adapter_v1/shared_hostile_corpus.rs`, covering
+TypeScript) shared-corpus tests are separate test binaries with disjoint
+toolchain preconditions (clang/cargo vs. node/tsc) and cannot compare
+outcomes inside one process. Agreement across all four is enforced
+transitively rather than in one literal assertion: both harnesses check
+their own consumers' real outcomes against the identical
+`tests/support/public_generic_hostile_corpus.rs::EXPECTED` table, so if any
+one of the four disagrees with what the shared manifest says the other
+three must produce, that harness's own test fails.
+
+**Zero-leak evidence, and whose counters it is.** Exactly the standing rule
+every section above already states: every terminal native case asserts
+`spx_pg_consumer_test_live_allocations`/`_live_handles` — the native
+provider's OWN test-only counters, reached through each consumer's own
+accessor, never a consumer's own bookkeeping. The TypeScript route's
+"provider" here is `Provider.diagnostics.liveAllocations` — this is the
+generated `wasm-provider.ts`'s own host-side bookkeeping, since (see below)
+no independent compiled provider exists yet to hold a separate counter.
+
+**Known gaps, not fixed here, not duplicated:**
+
+- **#229**: no compiled `.wasm` artifact implements the Core Wasm provider
+  ABI. The Wasm shared-corpus test runs against the SAME hand-assembled,
+  clearly test-only `reference_wasm_module` the sibling TypeScript harness
+  uses — one real endpoint export over real `WebAssembly.Memory`, never a
+  second provider implementation — so the TypeScript route in this shared
+  corpus cannot honestly be said to exercise a real provider ABI, only the
+  generated consumer's own codec/lifecycle logic against it.
+- **#119**: flat owned-`Bytes` leaves only; the shared corpus's
+  single-field `RecordShape` carries the same limitation every consumer
+  section above already states, not a new one.
+- **#226**: the MSRV claim and the 16 MiB total-payload bound remain
+  untested for every foreign consumer, this shared corpus included; only
+  the 64 KiB per-leaf bound is exercised.
+- The full ordinal failure-injection matrix is deliberately NOT included in
+  the shared corpus: native's protocol has 14 injectable ordinals
+  (`0..=13`) and Wasm's has 8 (`0..=7`) — different phase counts for
+  different carrier protocols, so "ordinal N" does not name the same
+  logical phase across native and Wasm and a literal per-ordinal
+  cross-language comparison would compare different things under the same
+  label. Each route's own existing, full, local matrix (see the audit table
+  above) is unmodified and still runs.
+- Sanitizer variants remain `#[ignore]`d in every harness this section
+  touches, for the same reason stated in every section above: no sanitizer
+  toolchain is provisioned here.
+- Evidence in this section is local only, exactly like every consumer
+  section above; no hosted CI run is claimed or implied.

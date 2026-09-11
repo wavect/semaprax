@@ -20,3 +20,9 @@ mod fixture;
 /// exercises from C, executed end to end.
 #[path = "public_generic_native_adapter_v1/rust_calling_consumer.rs"]
 mod rust_calling_consumer;
+/// Issue #160: the shared malformed-input/wrong-binding corpus, executed
+/// identically by the Rust, C11, and C++17 generated calling consumers
+/// above and cross-checked against one manifest
+/// (`tests/support/public_generic_hostile_corpus.rs`).
+#[path = "public_generic_native_adapter_v1/shared_hostile_corpus.rs"]
+mod shared_hostile_corpus;

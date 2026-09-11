@@ -69,7 +69,7 @@ reads `Hosted green`.
 | PG-1 | A new versioned target-neutral type grammar: closed vocabulary, injective canonical term, byte-exact render and parse, domain-separated digest, and fail-closed rejection of every construct outside the admitted surface | [Public Generic Type Grammar v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | Implemented, local evidence |
 | PG-2 | Explicit template identity and ordered argument identities: persistent template declaration identity, declared arity, positional parameter owner and index, and digests that distinguish permutation, omission, duplication, and substitution | [Public Generic Type Grammar v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | Implemented, local evidence |
 | PG-3 | Semantic compatibility rules: a closed classification over two grammar surfaces with explicit reasons, no compatibility inferred from a diff classification, and no version decision inferred from a classification | [Public Generic Compatibility v1](PUBLIC-GENERIC-COMPATIBILITY-V1.md) | Implemented, local evidence |
-| PG-4 | Candidate ABI-delta evidence that selects the public generic signature, retains ordered arguments and substituted fields, and survives mutation, recovery, and independent byte-exact replay | Extension of [Candidate ABI Delta v1](PROJECT-CANDIDATE-ABI-DELTA-V1.md) | Open |
+| PG-4 | Candidate ABI-delta evidence that selects the public generic signature, retains ordered arguments and substituted fields, and survives mutation, recovery, and independent byte-exact replay | [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | Implemented, local evidence |
 | PG-5 | Generated Rust, TypeScript/Wasm, C, and C++ consumers derived from the grammar, byte-deterministic, with no ambient authority | Pending its owning specification | Open |
 | PG-6 | Hostile metadata replay: forged, stale, truncated, reordered, and mutated grammar or descriptor bytes fail closed in every consumer route and in independent replay | Pending its owning specification | Open |
 | PG-7 | Owned allocation and failure settlement across the boundary: bounded allocation, exact copy-out, sticky failure selection, canonical cleanup order, and equal checked behavior on interpreter, native C11, and Core Wasm | [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md) | Open |
@@ -99,6 +99,19 @@ than by advancing the row.
   versioned descriptor and carrier that do not exist, and hostile replay of
   descriptor bytes cannot be evidenced before there are descriptor bytes. Both
   gates therefore stay `Open`.
+- **PG-4 — route implemented; today it describes nothing generic, by
+  construction.** [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md)
+  is candidate-bound and grammar-strict: an export is *described* only when the
+  grammar spells every parameter and the result, so an entry in the delta is
+  exactly a candidate public generic signature and nothing looser. Since no
+  admitted export has one, the milestone's own generic fixture comes out
+  all-excluded — and the gate asserts that its rendered bytes carry no template
+  identity, no instance term, no record identity, and not even the grammar's
+  instance sigil. The substantive evidence rides on a Project v9
+  record-returning export, where a real `add_record_field` change is classified
+  `breaking` with the finding on the record that changed, with ordered
+  arguments, substituted fields, and owned leaves retained across mutation,
+  recovery, and byte-exact independent replay.
 - **PG-7 — obligations specified and bound, execution open.**
   [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md)
   derives, for one owned instance parameter, which owned leaves a boundary is

@@ -34,7 +34,7 @@ use super::{wire, ProjectCandidate};
 use crate::diagnostic::Diagnostic;
 use crate::project::ProjectRevision;
 use crate::public_generic_surface::{self as surface, CandidateSurface, Finding, Reason, Verdict};
-use crate::public_generic_type::{self as grammar, Rejection, TypeInventory};
+use crate::public_generic_type::{self as grammar, TypeInventory};
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
@@ -67,25 +67,6 @@ pub const DELTA_REPLAY_MISMATCH: &str = "SPX-PG303";
 const NOT_A_CANDIDATE_EXPORT: &str = "not_a_candidate_export";
 /// A grammar or surface bound was reached while describing one export.
 const GRAMMAR_BOUND: &str = "grammar_bound";
-
-/// The grammar's closed rejection vocabulary, enumerated so that an extracted
-/// reason is validated against the owning artifact instead of re-spelled here.
-/// A grammar that grows a reason makes this route fail closed rather than emit
-/// an unrecognized one.
-const GRAMMAR_REJECTIONS: [Rejection; 12] = [
-    Rejection::TypeParameter,
-    Rejection::OwnedString,
-    Rejection::BorrowedStr,
-    Rejection::BorrowedByteView,
-    Rejection::Unit,
-    Rejection::InlineByteArray,
-    Rejection::FunctionType,
-    Rejection::CompilerOwnedNominal,
-    Rejection::UnadmittedNominalKind,
-    Rejection::MissingDeclaration,
-    Rejection::AmbiguousDeclaration,
-    Rejection::ArityMismatch,
-];
 
 /// Both revisions describe a surface, so the PG-3 comparison classifies them.
 const BASIS_COMPARED: &str = "public_generic_compatibility_v1_over_both_described_surfaces";
@@ -419,21 +400,9 @@ fn position_exclusion(
 /// vocabulary. An unrecognized reason fails closed instead of being emitted.
 fn exclusion_reason(diagnostic: &Diagnostic) -> Result<&'static str> {
     match diagnostic.code {
-        grammar::REJECTED_TYPE => {
-            let prefix = format!(
-                "{} does not admit this type: ",
-                grammar::PUBLIC_GENERIC_TYPE_GRAMMAR_SCHEMA
-            );
-            let reported = diagnostic
-                .message
-                .strip_prefix(prefix.as_str())
-                .ok_or_else(invalid)?;
-            GRAMMAR_REJECTIONS
-                .iter()
-                .map(|rejection| rejection.reason())
-                .find(|reason| *reason == reported)
-                .ok_or_else(invalid)
-        }
+        grammar::REJECTED_TYPE => grammar::Rejection::of(diagnostic)
+            .map(grammar::Rejection::reason)
+            .ok_or_else(invalid),
         grammar::GRAMMAR_CAPACITY | surface::SURFACE_CAPACITY => Ok(GRAMMAR_BOUND),
         surface::INVALID_SELECTION => Ok(NOT_A_CANDIDATE_EXPORT),
         _ => Err(invalid()),
@@ -574,11 +543,11 @@ mod tests {
     /// twelve are enumerated exactly once each.
     #[test]
     fn the_exclusion_reason_vocabulary_is_closed_and_matches_the_grammar() {
-        let reasons = GRAMMAR_REJECTIONS
+        let reasons = grammar::Rejection::ALL
             .iter()
             .map(|rejection| rejection.reason())
             .collect::<BTreeSet<_>>();
-        assert_eq!(reasons.len(), GRAMMAR_REJECTIONS.len());
+        assert_eq!(reasons.len(), grammar::Rejection::ALL.len());
         assert!(reasons.contains("borrowed_byte_view"));
         assert!(reasons.contains("type_parameter"));
         assert!(!reasons.contains(NOT_A_CANDIDATE_EXPORT));

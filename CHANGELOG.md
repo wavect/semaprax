@@ -8,6 +8,26 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add Public Generic Candidate Delta v1, milestone gate PG-4: a
+  candidate-bound delta that describes the selected exports of an immutable
+  Project candidate's base and final revisions over the public generic
+  grammar, classifies the pair with the PG-3 rules, and binds the candidate
+  digest, both Project and workspace revisions, both graph digests and a
+  domain-separated facts digest. Inclusion is grammar-strict, so an entry in
+  the delta is exactly a candidate public generic signature: no admitted
+  export has one today, which makes the generic fixture all-excluded with
+  the closed reason `borrowed_byte_view` - and the gate asserts its rendered
+  bytes carry no template identity, instance term, record identity, or even
+  the grammar's instance sigil. The substantive evidence rides on a Project
+  v9 record-returning export, where a real `add_record_field` change is
+  `breaking` with the finding on the record that changed and ordered
+  arguments, substituted fields and owned leaves retained across mutation,
+  recovery-capsule restoration and byte-exact independent replay
+  (`SPX-PG301`-`SPX-PG303`).
+  The grammar now also exposes `Rejection::ALL` and `Rejection::of`, so a
+  consumer recovers a typed reason from the owning artifact instead of
+  re-spelling its message, and the compatibility report exposes its digest.
+
 - Add Public Generic Settlement Obligations v1: for one owned admitted
   instance parameter, which owned leaves a boundary is accountable for, in
   which order, how each is discharged, and what is released when a transfer

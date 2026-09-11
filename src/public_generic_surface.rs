@@ -594,6 +594,11 @@ impl CompatibilityReport {
         &self.findings
     }
 
+    /// The domain-separated digest of the comparison's own facts.
+    pub fn digest(&self) -> &str {
+        &self.digest
+    }
+
     /// Canonical compact JSON plus one trailing newline.
     pub fn canonical_json(&self) -> Result<String, Diagnostic> {
         render(&self.to_json())

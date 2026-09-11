@@ -99,6 +99,41 @@ pub enum Rejection {
 }
 
 impl Rejection {
+    /// Every closed rejection, for a caller that must cover all of them.
+    pub const ALL: [Self; 12] = [
+        Self::TypeParameter,
+        Self::OwnedString,
+        Self::BorrowedStr,
+        Self::BorrowedByteView,
+        Self::Unit,
+        Self::InlineByteArray,
+        Self::FunctionType,
+        Self::CompilerOwnedNominal,
+        Self::UnadmittedNominalKind,
+        Self::MissingDeclaration,
+        Self::AmbiguousDeclaration,
+        Self::ArityMismatch,
+    ];
+
+    /// Recover the typed rejection from a diagnostic this module produced.
+    ///
+    /// `None` for every other diagnostic, including one that carries this
+    /// module's code with a message the vocabulary does not contain. A caller
+    /// that has to report a reason should fail closed on `None` rather than
+    /// invent one — which is why this lives here, beside the message it has to
+    /// agree with, instead of in each caller.
+    pub fn of(diagnostic: &Diagnostic) -> Option<Self> {
+        if diagnostic.code != REJECTED_TYPE {
+            return None;
+        }
+        let reported = diagnostic.message.strip_prefix(&format!(
+            "{PUBLIC_GENERIC_TYPE_GRAMMAR_SCHEMA} does not admit this type: "
+        ))?;
+        Self::ALL
+            .into_iter()
+            .find(|rejection| rejection.reason() == reported)
+    }
+
     /// The closed wire spelling. Stable across releases of this grammar.
     pub const fn reason(self) -> &'static str {
         match self {

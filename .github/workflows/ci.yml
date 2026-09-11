@@ -278,6 +278,7 @@ jobs:
         run: |
           set -euo pipefail
           cargo test --locked -p semaprax --test projections public_generic_ownership_milestone
+          cargo test --locked -p semaprax --test project_candidate public_generic_delta
           cargo test --locked -p semaprax --test project flat_owned_record_api::frozen_v9_descriptor_rejects_an_admitted_concrete_generic_result -- --exact
           cargo test --locked -p semaprax --test project nested_owned_record_api::frozen_v11_descriptor_rejects_an_admitted_concrete_generic_result -- --exact
       - name: Four-language metadata consumers and hostile replay

@@ -114,6 +114,7 @@ pub mod project_revision_store;
 pub mod project_transport;
 pub mod properties;
 pub mod protocol_check;
+pub mod public_generic_abi;
 pub mod public_generic_consumer;
 pub mod public_generic_settlement;
 pub mod public_generic_surface;

@@ -7,6 +7,7 @@ const RELEASE_BLOCKERS: &[&str] = &[
     "gen05b-generic-instance-closure",
     "public-generic-ownership-milestone",
     "std-library-depth",
+    "release-claim-reconcile",
     "supply-chain",
     "component-runtime-v3",
     "wasm-scalar-exports-browser-v1",

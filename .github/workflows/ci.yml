@@ -352,6 +352,32 @@ jobs:
           cargo test --locked -p semaprax --test examples -- --nocapture
           cargo test --locked -p semaprax --test documentation -- --nocapture
 
+  release-claim-reconcile:
+    name: Release claim reconciliation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Full history and tags are required, not incidental: the script
+          # resolves `git rev-list -n1 v<version>` to compare README's
+          # published-tag claim against the tag's actual commit. Under the
+          # shallow, tagless checkout the other jobs use, that lookup finds
+          # nothing and the script reports a false `inconsistent`.
+          fetch-depth: 0
+          filter: blob:none
+          fetch-tags: true
+          lfs: false
+      - name: Reconcile the documented release claim against local tag evidence
+        shell: bash
+        run: |
+          # Offline and read-only: no network call, no file or Release is
+          # mutated. Exits 0 for `no-candidate` and `tagged-unpublished`,
+          # which are legitimate mid-release-prep states, and nonzero only
+          # on real drift -- the class of defect bd777928 found by hand,
+          # where README cited v0.4.0's commit for a v0.4.1 claim.
+          python3 scripts/release-reconcile.py
+
   supply-chain:
     name: Dependency policy
     runs-on: ubuntu-latest
@@ -1679,6 +1705,7 @@ jobs:
     if: ${{ always() }}
     needs:
       - gen05b-generic-instance-closure
+      - release-claim-reconcile
       - public-generic-ownership-milestone
       - std-library-depth
       - agent-proposal-clients
@@ -1713,7 +1740,7 @@ jobs:
           SEMAPRAX_CI_NEEDS: ${{ toJSON(needs) }}
         run: |
           python3 scripts/ci-required-checks.py \
-            --min-jobs 21 \
+            --min-jobs 22 \
             --sha "${{ github.sha }}" \
             --head-sha "$(git rev-parse HEAD)"
 

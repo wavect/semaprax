@@ -440,6 +440,35 @@ pub fn term(program: &ResolvedProgram, ty: &ResolvedType) -> Result<String, Diag
     Ok(rendered)
 }
 
+/// The substituted field types of one admitted instance, in declaration order.
+///
+/// A caller walking a reachable instance closure needs the concrete children
+/// as checked types, not as rendered terms: re-parsing a term would make the
+/// closure depend on the grammar's own output instead of on the program.
+pub fn concrete_fields(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+) -> Result<Vec<ResolvedType>, Diagnostic> {
+    let index = declarations(program);
+    let mut budget = Budget::default();
+    classify_with(program, &index, ty, &mut budget, 0)?;
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return Ok(Vec::new());
+    };
+    let found = index
+        .get(declaration.as_str())
+        .copied()
+        .ok_or_else(|| Rejection::MissingDeclaration.diagnostic())?;
+    record_fields(found)?
+        .iter()
+        .map(|field| substitute(&field.ty, declaration.as_str(), arguments, &mut budget, 1))
+        .collect()
+}
+
 /// Exact owner-and-index substitution, applied before examining descendants.
 fn substitute(
     ty: &ResolvedType,

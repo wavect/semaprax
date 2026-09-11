@@ -8,6 +8,27 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add Public Generic Compatibility v1, gate PG-3 of the public generic
+  ownership milestone: candidate surfaces over the type grammar, and a
+  closed thirteen-reason classification of one ordered pair of them. The
+  rules are deliberately stricter than source compatibility, because a
+  foreign consumer reads the whole substituted field tree and owned-leaf
+  shape of what it receives: adding a Copy field to a nested reachable
+  record is breaking even though no canonical term, parameter position or
+  owned-leaf path moves, and it is reported once on the record that changed
+  rather than on every position mentioning it. Presentation is never
+  compatibility - renaming records, type parameters, fields, exports and
+  parameters yields `unchanged` with an identical surface digest - and a
+  parameter's value identity is excluded for the same reason the repository
+  excludes it elsewhere: a revision-scoped fact must not move a verdict.
+  A signature position that is not a data type gets its own closed
+  `view:` vocabulary instead of widening the grammar. Both artifacts are
+  canonical JSON with directional byte-exact replay
+  (`SPX-PG201`-`SPX-PG204`), and both record that no semantic-version,
+  support, publication or runtime conclusion follows from a verdict.
+  A candidate surface is a description, not an admission: no public generic
+  signature is admitted, and local evidence is the only evidence.
+
 - Add Public Generic Type Grammar v1, gates PG-1 and PG-2 of the public
   generic ownership milestone: a versioned, target-neutral term for the
   types a public generic surface could name, plus the explicit template and

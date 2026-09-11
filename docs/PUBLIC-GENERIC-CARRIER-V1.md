@@ -15,11 +15,13 @@ struct layout, no Wasm handle table implementation, no Rust FFI boundary —
 and executes nothing itself: there is no provider, no allocator, and no real
 target to allocate, transfer, or release against, in this LOGICAL section.
 [Native C11 physical adapter (issue #154)](#native-c11-physical-adapter-issue-154)
-below is the first PHYSICAL adapter built on top of it, with real allocation,
-release, and normalized-trace emission — locally evidenced only, against a
-fixture endpoint, per that section's own scope note. The remaining per-target
-adapters and generated consumers (issues #155-#159, #162) are still
-outstanding. Public generic ownership remains unsupported and unpublished.
+and [Core Wasm physical adapter (issue #155)](#core-wasm-physical-adapter-issue-155)
+below are the first two PHYSICAL adapters built on top of it, each with real
+allocation, release, and normalized-trace emission — locally evidenced only,
+against a fixture endpoint, per each section's own scope note. The remaining
+per-target adapters and generated consumers (issues #156-#159, #162) are
+still outstanding. Public generic ownership remains unsupported and
+unpublished.
 
 Audience: ownership, cleanup, backend, ABI, and generated-consumer
 maintainers.
@@ -484,6 +486,209 @@ under a hosted CI sanitizer gate (#163's remaining work). It is not the
 generated Rust, C, or C++ consumer (#156, #158, #159 respectively) — those
 are separate acceptance surfaces this issue does not build.
 
+## Core Wasm physical adapter (issue #155)
+
+Audience: Wasm provider/adapter implementers and reviewers of the physical
+allocation and release path.
+
+Status: local, proof-only reference implementation
+(`src/public_generic_abi/wasm/`), unsupported and unpublished. This is the
+second PHYSICAL adapter built on the LOGICAL layer above, a sibling to
+[Native C11 physical adapter (issue #154)](#native-c11-physical-adapter-issue-154):
+it decides no legality the [state machine](#the-logical-value-state-machine),
+[phase ledger](#the-call-phase-ledger), or [`CarrierCallMachine`](#the-call-machine)
+do not already fix, and it emits exactly [the normalized trace
+vocabulary](#the-normalized-trace) above, adding no second vocabulary.
+Answers issue #155.
+
+**What is different from native, and why.** Wasm linear memory is a
+growable byte array addressed by `u32` offsets, grown only in 64 KiB pages
+and never shrunk — there is no native pointer a foreign caller could forge
+into a dereferenceable address, and no process-wide heap to route every
+byte through. `src/public_generic_abi/wasm/memory.rs`'s `WasmLinearMemory`
+models exactly that arena, and its `StackAllocator` is a bounded,
+exact-last-in-first-out bump allocator over it: every carrier release is
+already required to be the exact reverse of allocation order (see [Failure
+settlement and release order](#failure-settlement-and-release-order)), so a
+strict LIFO allocator is not a simplification of the physical adapter's
+job, it is the direct physical form of that logical rule. Freed spans are
+zeroed in place for real, observable release, and reused by the next
+allocation that fits.
+
+**Rust-hosted, not C-hosted.** Unlike the native adapter (pure C, which
+restates the LOGICAL state machine and trace vocabulary independently
+because C cannot call this repository's Rust types), this Wasm adapter
+(`src/public_generic_abi/wasm/provider.rs`'s `WasmProvider`) drives
+[`carrier::machine::CarrierCallMachine`](../src/public_generic_abi/carrier/machine.rs)
+directly for every phase, commit, sticky-settlement, and release-order
+decision — the literal, not restated, LOGICAL layer. This is a stronger
+reuse guarantee than native's own C restatement can offer, with one stated
+gap: `CarrierCallMachine` exposes no "consume a successfully transferred
+input on the call's success path" transition, only the failure-shaped
+`release_input_after_transfer`. This adapter reuses that same method
+unconditionally after execution finishes, success or failure, exactly
+mirroring what native's own `spx_pg_release_leaves` helper does — input
+bytes are always physically freed once the endpoint has read them,
+regardless of outcome. This is the shared machine's own documented scope
+gap, not something this physical adapter re-decides, and it is why the two
+release ordinals (`LeafRelease`, `CarrierRelease`) fire on every call, not
+only a failing one — matching native's behavior exactly.
+
+**Deferred scope**, identical to native's own: deriving a provider from a
+real checked *generic* export requires #119's still-blocked owned-record
+ownership evidence. Until that lands, the bound endpoint is the same
+fixture (`spx_pg_wasm_endpoint_reverse_bytes_v1`, byte-reversal per owned
+leaf) operating on the same flat owned-`Bytes` shape, and the trusted
+descriptor bytes an `open` caller replays against are a hand-constructed
+fixture compared byte-for-byte, not [`descriptor::verify`](PUBLIC-GENERIC-DESCRIPTOR-V1.md)
+output, since no admitted public generic export exists yet.
+
+### Provider binding
+
+[`wasm::binding::WasmProviderBindingV1`](../src/public_generic_abi/wasm/binding.rs)
+is a new, physical-layer-only artifact layered on top of — never
+modifying — [`CarrierBindingV1`](#compatibility-and-lifecycle) above,
+mirroring [`NativeProviderBindingV1`](#provider-binding)'s own convention
+exactly (framed fields, a domain-separated digest never transmitted,
+byte-exact `replay`) for `TargetProfile::CoreWasm` instead of
+`TargetProfile::NativeC11`. It wraps a `CarrierBindingV1` naming
+`TargetProfile::CoreWasm` unchanged, and adds exactly the facts a physical
+Wasm provider needs and the logical carrier never should:
+`wasm_adapter_abi_version` (closed to `"v1"` this round),
+`provider_artifact_digest`, `exported_endpoint_export_name` (a Wasm export
+name, since Wasm has no linker-visible "symbol" the way a native shared
+object does), a `compiler_backend_version` fact, and its own closed
+`SupportPublicationState` (`unsupported-unpublished` is the only admitted
+value) — independent of native's own `SupportPublicationState` so the two
+physical adapters never share mutable state through a common type.
+
+### Diagnostics
+
+| Code | Meaning |
+| --- | --- |
+| `SPX-PG910` | malformed Wasm provider binding bytes (framing, unknown ABI version, unrecognized support/publication claim, or an embedded carrier binding not naming `TargetProfile::CoreWasm`) |
+| `SPX-PG911` | independent replay found the recomputed Wasm binding preimage does not equal the submitted one |
+| `SPX-PG912` | a physical memory access (`offset`, `length`) does not fit inside the current linear-memory arena, independent of any carrier or handle-level legality question |
+| `SPX-PG913` | the bounded allocator could not satisfy an allocation: it would exceed `MAX_BYTES_PER_LEAF`, `MAX_TOTAL_PAYLOAD_BYTES`, or growing memory failed |
+| `SPX-PG914` | a release was asked to free a span that is not exactly the most recently allocated, still-live span — the physical proof that a submitted release order violates the exact-reverse-of-allocation-order rule |
+| `SPX-PG915` | a handle is not live in this provider's registry: foreign, stale, already consumed/released, forged, or presented against a provider that never minted it |
+| `SPX-PG916` | a handle was presented where a different structural position or role was required (root vs. leaf, input value vs. result), independent of the handle's own lifecycle state |
+
+`rg -n "SPX-PG9" docs src tests` at the time this section was written found
+`SPX-PG901`-`SPX-PG905` already in use by [Native C11 physical adapter
+(issue #154)](#native-c11-physical-adapter-issue-154); this section
+allocates `SPX-PG910`-`SPX-PG916`, leaving `SPX-PG906`-`SPX-PG909` free for
+that section's own future growth. The caller-facing `WasmPgStatus` return
+codes this adapter actually returns (`Ok` = 0 through `NullOrWrongKind` =
+13) are a deliberate, non-required convergence with native's own
+`spx_pg_status_v1` integer vocabulary — see
+`src/public_generic_abi/wasm/provider.rs`'s own doc comment — chosen only
+because a caller-facing status vocabulary the two physical adapters already
+happen to agree on is one less translation issue #162's cross-engine
+comparison has to solve; the two adapters' internal `SPX-PG9xx` diagnostic
+codes remain independent, restating logical `SPX-PG7xx`/`SPX-PG8xx` codes
+identically but minting disjoint physical-only ranges.
+
+### Handle safety
+
+Every handle this adapter mints is recorded in one per-provider registry
+(`src/public_generic_abi/wasm/registry.rs`'s `HandleRegistry`) before any
+use, and every use looks the handle up there before touching linear
+memory — reusing, not reinventing, native's own "scan the registry for the
+exact value first, dereference only once a live, correctly-kinded entry is
+found" pattern, restated for Wasm's numeric-handle world. Two independent
+facts make cross-pairing deterministic rather than accidental: first, two
+providers hold two independent registries, so a handle minted by one is
+simply absent from the other's table; second, because two freshly opened
+providers can (and in the required test do) independently mint the exact
+same `(id, generation)` pair, every handle this adapter hands back also
+carries an opaque per-provider tag checked before any registry lookup runs,
+so cross-provider misuse is caught by construction rather than by
+coincidentally not colliding. A result handle's `id` range is disjoint from
+that same call's input `id` range even though both share one `generation`
+(the call is the one "carrier instance" this document describes,
+encompassing both directions) — without that split, a call's result root
+would be byte-identical to that same call's already-released input root,
+and the registry could not tell a stale input handle from the fresh result
+handle now occupying the identical key. This is a physical-layer choice the
+LOGICAL layer's `id` numbering (root `0`, leaves `1..=256`) leaves open per
+direction; native's adapter never needs an equivalent split because its
+value and result objects already have distinct pointer identities.
+
+### Allocation, release, and sticky failure
+
+Every byte this adapter ever allocates — the always-zero-length root
+marker and every leaf's payload alike — routes through
+`WasmLinearMemory`/`StackAllocator`, so `WasmProvider::live_allocations`
+and `WasmProvider::live_bytes` are exact counts, not samples, and
+`WasmProvider::live_handles` is the registry's own exact live-entry count.
+A test-only `WasmProvider::test_inject_failure` arms deterministic failure
+at any of the 14 non-terminal [normalized trace](#the-normalized-trace)
+ordinals for the next `input_prepare`/`call` sequence, rolling back every
+allocation already made — physical evidence that "failure at every logical
+injection point" leaves zero live allocations and handles. Sticky failure
+([above](#the-call-phase-ledger)) is not reimplemented: every settlement
+attempt goes through `CarrierCallMachine::settle` itself, and
+`WasmProvider::test_settlement_overwrite_attempts` counts (without
+applying) any later, different attempt — exercised directly by a
+cleanup-failure-with-no-earlier-failure case (legally becoming the terminal
+status) and a cleanup-failure-after-an-earlier-failure case (discarded,
+sticky), both driven through the two release ordinals exactly as native's
+own two release-ordinal injection sites are.
+
+### Wasm-hosted fixture and evidence
+
+Two separate, deliberately non-overlapping pieces of evidence answer "does
+this really touch Wasm," matching this section's own LOGICAL/PHYSICAL split
+at a finer grain:
+
+- **The protocol adapter** (`src/public_generic_abi/wasm/provider/tests.rs`,
+  a Rust unit-test module) exercises the full carrier protocol — the
+  success round trip with two-pass, byte-identical repeated export; the
+  exact and first-over-bound leaf-count and leaf-byte-size cases; a legal
+  pre-call abandon; handle hostility (stale generation, wrong kind both
+  directions, cross-provider even on a colliding `(id, generation)` pair,
+  double release); buffer-too-small nonconsuming export; sticky failure and
+  the cleanup-becomes-terminal case; and the full 0-13 failure-injection
+  matrix (every non-terminal `TraceLabel`, one fresh provider and call
+  each), asserting zero live allocations, zero live bytes, and zero live
+  handles after every terminal case — against `WasmProvider`, entirely in
+  Rust, no external process.
+- **The real-Wasm-host proof**
+  (`src/public_generic_abi/wasm/reverse_probe.mjs`, run by
+  `tests/public_generic_wasm_adapter_v1`) is a small, real, hand-authored
+  Node script proving the byte-reversal fixture endpoint executes for real
+  against a genuine `WebAssembly.Memory` instance — real linear memory,
+  grown in real 64 KiB pages by a real WebAssembly host (Node/V8), not a
+  Rust-hosted stand-in — with the freed span zeroed and asserted zero
+  afterward. This is deliberately narrower than the full protocol: it
+  proves the physical primitive is real under a real Wasm host, answering
+  this issue's "Direct Wasm host fixture executes the real endpoint"
+  criterion at the primitive level; it does not re-run the handle/registry/
+  sticky-settlement protocol, which has no access to `CarrierCallMachine`
+  from JavaScript and is exercised in Rust instead, per the split above.
+
+### Nonclaims (Core Wasm adapter)
+
+This adapter is local, proof-only evidence, not hosted, supported, or
+published evidence. It does not derive a provider from a real checked
+public generic export (blocked on #119); its bound endpoint and trusted
+descriptor bytes are fixtures. It does not compile or execute a full
+`.wasm` module produced by this repository's own Wasm backend or any
+external toolchain — the real-Wasm-host proof above exercises the
+byte-reversal primitive and genuine `WebAssembly.Memory` allocation
+directly, not a compiled module, and the full carrier protocol is exercised
+in Rust against `WasmProvider`, not replayed a second time in JavaScript.
+It has not been exercised under a hosted CI sanitizer or fuzzing gate. It
+is not the generated TypeScript/Wasm consumer (#157) — that is a separate
+acceptance surface this issue does not build, and #157 is a foreign-caller
+concern with its own separate trust boundary, not a re-scoping of this
+provider-side adapter. It is not a cross-engine equivalence test against
+the native adapter (#162's own remaining work): both adapters emit the same
+normalized trace vocabulary and, as a deliberate convergence, the same
+caller-facing status integers, but no test in this round runs the same
+input through both and diffs the two traces.
+
 ## Compatibility and lifecycle
 
 A `CarrierBindingV1` binds one carrier instance to:
@@ -601,11 +806,13 @@ is not evidence that any backend settles a public generic boundary this
 LOGICAL layer's own types execute against: [`CarrierCallMachine`] itself
 still does not bind to a `VerifiedPublicGenericDescriptor`, parse carrier
 bytes, or perform any physical allocation. [Native C11 physical adapter
-(issue #154)](#native-c11-physical-adapter-issue-154) below is the first
-PHYSICAL adapter to emit the normalized trace and perform real allocation
-and release, against a fixture endpoint only — see that section's own
-nonclaims for its exact, narrower scope; #155's Core Wasm adapter remains
-outstanding. It reuses no v8-v11 carrier bytes and widens none of them. The
+(issue #154)](#native-c11-physical-adapter-issue-154) and [Core Wasm
+physical adapter (issue #155)](#core-wasm-physical-adapter-issue-155) below
+are the first two PHYSICAL adapters to emit the normalized trace and
+perform real allocation and release, each against a fixture endpoint only —
+see each section's own nonclaims for its exact, narrower scope; #156-#159's
+generated consumers and #162's cross-engine comparison remain outstanding.
+It reuses no v8-v11 carrier bytes and widens none of them. The
 target-mapping
 table above is naming guidance for a future physical specification, not
 that specification itself.

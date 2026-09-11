@@ -19,11 +19,13 @@
 //! | [Public Generic Descriptor v1](../docs/PUBLIC-GENERIC-DESCRIPTOR-V1.md) | [`descriptor`] |
 //! | [Public Generic Carrier v1](../docs/PUBLIC-GENERIC-CARRIER-V1.md) | [`carrier`] |
 //! | [Public Generic Carrier v1 — Native C11 physical adapter](../docs/PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154) | [`native`] |
+//! | [Public Generic Carrier v1 — Core Wasm physical adapter](../docs/PUBLIC-GENERIC-CARRIER-V1.md#core-wasm-physical-adapter-issue-155) | [`wasm`] (this module's own `wasm` submodule — unrelated to the top-level `crate::wasm` Wasm backend) |
 
 pub mod boundary_profile;
 pub mod carrier;
 pub mod descriptor;
 pub mod native;
+pub mod wasm;
 
 /// Length-prefix one field: an 8-byte little-endian length, then the bytes.
 /// Shared framing convention with `public_generic_type` and

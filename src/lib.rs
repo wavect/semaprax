@@ -14,6 +14,7 @@ pub mod agent_definition;
 pub mod agent_deployment;
 pub mod agent_economics;
 pub mod agent_harness;
+pub mod agent_interaction_schema;
 pub mod agent_lifecycle;
 pub mod agent_observation;
 pub mod agent_proposal;

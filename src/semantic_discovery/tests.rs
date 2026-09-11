@@ -115,8 +115,13 @@ fn discovery_manifest_is_compact_and_measures_well_under_its_default_budget() {
     );
     let value: Value = serde_json::from_str(&envelope).expect("valid JSON");
     assert_eq!(value["schema"], DISCOVERY_SCHEMA);
-    assert_eq!(value["payload"]["selected_target"]["path"], path.display().to_string());
-    let operations = value["payload"]["operations"].as_array().expect("operations array");
+    assert_eq!(
+        value["payload"]["selected_target"]["path"],
+        path.display().to_string()
+    );
+    let operations = value["payload"]["operations"]
+        .as_array()
+        .expect("operations array");
     assert_eq!(operations.len(), SEMANTIC_DISCOVERY_OPERATIONS.len());
     let _ = std::fs::remove_file(&path);
 }
@@ -139,7 +144,10 @@ fn catalog_is_sorted_by_name_and_covers_every_tool_class() {
         .collect();
     let mut sorted = names.clone();
     sorted.sort_unstable();
-    assert_eq!(names, sorted, "operation catalog must be sorted by name bytes");
+    assert_eq!(
+        names, sorted,
+        "operation catalog must be sorted by name bytes"
+    );
 
     let mut classes: Vec<&str> = SEMANTIC_DISCOVERY_OPERATIONS
         .iter()
@@ -245,10 +253,17 @@ fn a_display_rename_changes_only_the_renamed_facts_and_preserves_identity() {
     assert_eq!(diff["added"].as_array().unwrap().len(), 0);
     assert_eq!(diff["removed"].as_array().unwrap().len(), 0);
     let changed = diff["changed"].as_array().unwrap();
-    assert_eq!(changed.len(), 1, "only the renamed declaration's facts change");
+    assert_eq!(
+        changed.len(),
+        1,
+        "only the renamed declaration's facts change"
+    );
     assert_eq!(changed[0]["id"], "app.helper");
     assert_eq!(changed[0]["name"], "helper_renamed");
-    assert_eq!(diff["unchanged_count"], 1, "app.main itself is unaffected by its callee's rename");
+    assert_eq!(
+        diff["unchanged_count"], 1,
+        "app.main itself is unaffected by its callee's rename"
+    );
     let _ = std::fs::remove_file(&path);
 }
 
@@ -368,7 +383,13 @@ fn sample_current_and_base() -> (String, ParsedFixture) {
     let options = forward_options(1);
     let (document, revision) = base_snapshot(V1_BASE, "app.main", &options);
     let parsed: Value = serde_json::from_str(&document).expect("valid JSON");
-    (document, ParsedFixture { revision, value: parsed })
+    (
+        document,
+        ParsedFixture {
+            revision,
+            value: parsed,
+        },
+    )
 }
 
 struct ParsedFixture {
@@ -429,7 +450,8 @@ fn a_base_for_a_different_target_forces_resynchronization() {
     let mut retargeted = fixture.value.clone();
     retargeted["root"] = json!("app.some_other_root");
     let base_document = retargeted.to_string();
-    let result = build_delta(&current, &fixture.revision, &base_document, 64 * 1024).expect("resync");
+    let result =
+        build_delta(&current, &fixture.revision, &base_document, 64 * 1024).expect("resync");
     assert_eq!(outcome_of(&result), "resync_required");
     assert_eq!(reason_of(&result), "target_mismatch");
 }
@@ -443,8 +465,8 @@ fn a_base_built_from_a_different_query_shape_forces_resynchronization() {
     let current_document = graph::agent_context_v2_json(&program, "app.main", &options_depth_1)
         .expect("resolves")
         .expect("root exists");
-    let result = build_delta(&current_document, &base_revision, &base_document, 64 * 1024)
-        .expect("resync");
+    let result =
+        build_delta(&current_document, &base_revision, &base_document, 64 * 1024).expect("resync");
     assert_eq!(outcome_of(&result), "resync_required");
     assert_eq!(reason_of(&result), "query_mismatch");
 }
@@ -455,7 +477,8 @@ fn a_truncated_base_forces_resynchronization_rather_than_an_incomplete_diff() {
     let mut truncated = fixture.value.clone();
     truncated["truncation"]["truncated"] = json!(true);
     let base_document = truncated.to_string();
-    let result = build_delta(&current, &fixture.revision, &base_document, 64 * 1024).expect("resync");
+    let result =
+        build_delta(&current, &fixture.revision, &base_document, 64 * 1024).expect("resync");
     assert_eq!(outcome_of(&result), "resync_required");
     assert_eq!(reason_of(&result), "base_truncated");
 }
@@ -478,7 +501,8 @@ fn an_oversized_delta_forces_resynchronization_instead_of_a_partial_diff() {
 fn equal_revisions_with_disagreeing_facts_is_a_hard_invariant_violation() {
     let (current, fixture) = sample_current_and_base();
     let mut forged = fixture.value.clone();
-    forged["facts"] = json!([{"id": "app.helper", "kind": "function", "name": "forged", "calls": []}]);
+    forged["facts"] =
+        json!([{"id": "app.helper", "kind": "function", "name": "forged", "calls": []}]);
     let base_document = forged.to_string();
     let outcome = build_delta(&current, &fixture.revision, &base_document, 64 * 1024);
     assert!(

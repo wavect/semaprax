@@ -93,8 +93,7 @@ pub struct DiscoveryOptions {
 
 impl DiscoveryOptions {
     pub fn new(max_bytes: usize) -> Result<Self, Diagnostic> {
-        if !(graph::MIN_AGENT_CONTEXT_BYTES..=graph::MAX_AGENT_CONTEXT_BYTES).contains(&max_bytes)
-        {
+        if !(graph::MIN_AGENT_CONTEXT_BYTES..=graph::MAX_AGENT_CONTEXT_BYTES).contains(&max_bytes) {
             return Err(option_error(format!(
                 "semantic discovery max_bytes must be between {} and {}",
                 graph::MIN_AGENT_CONTEXT_BYTES,
@@ -255,20 +254,26 @@ pub fn verify_discovery_manifest_against_source(
     envelope: &str,
     source_path: &Path,
 ) -> Result<(), Vec<Diagnostic>> {
-    let value: Value = serde_json::from_str(envelope)
-        .map_err(|error| vec![consistency_error(format!("envelope is not valid JSON: {error}"))])?;
-    let object = value
-        .as_object()
-        .ok_or_else(|| vec![consistency_error("envelope must be a JSON object".to_owned())])?;
+    let value: Value = serde_json::from_str(envelope).map_err(|error| {
+        vec![consistency_error(format!(
+            "envelope is not valid JSON: {error}"
+        ))]
+    })?;
+    let object = value.as_object().ok_or_else(|| {
+        vec![consistency_error(
+            "envelope must be a JSON object".to_owned(),
+        )]
+    })?;
     if object.get("schema").and_then(Value::as_str) != Some(DISCOVERY_SCHEMA) {
         return Err(vec![consistency_error(format!(
             "envelope schema must be {DISCOVERY_SCHEMA}"
         ))]);
     }
-    let declared_bytes = object
-        .get("bytes")
-        .and_then(Value::as_u64)
-        .ok_or_else(|| vec![consistency_error("envelope bytes must be an unsigned integer".to_owned())])?;
+    let declared_bytes = object.get("bytes").and_then(Value::as_u64).ok_or_else(|| {
+        vec![consistency_error(
+            "envelope bytes must be an unsigned integer".to_owned(),
+        )]
+    })?;
     // The digest and byte count bind the EXACT payload bytes as they appear
     // in `envelope`, not a round-tripped re-serialization: `serde_json::Value`
     // re-orders object keys, which would silently change what is hashed.
@@ -300,14 +305,21 @@ pub fn verify_discovery_manifest_against_source(
     let declared_digest = object
         .get("digest")
         .and_then(Value::as_str)
-        .ok_or_else(|| vec![consistency_error("envelope digest must be a string".to_owned())])?;
+        .ok_or_else(|| {
+            vec![consistency_error(
+                "envelope digest must be a string".to_owned(),
+            )]
+        })?;
     if declared_digest != domain_digest(DISCOVERY_PAYLOAD_DOMAIN, payload_text.as_bytes()) {
         return Err(vec![consistency_error(
             "envelope digest does not match its exact payload bytes".to_owned(),
         )]);
     }
-    let payload: Value = serde_json::from_str(payload_text)
-        .map_err(|error| vec![consistency_error(format!("payload is not valid JSON: {error}"))])?;
+    let payload: Value = serde_json::from_str(payload_text).map_err(|error| {
+        vec![consistency_error(format!(
+            "payload is not valid JSON: {error}"
+        ))]
+    })?;
     let bound_revision = payload["selected_target"]["revision"]
         .as_str()
         .ok_or_else(|| {
@@ -357,10 +369,9 @@ fn render_discovery(
             .collect::<Vec<_>>()
             .join(",");
         let extra = match entry.name {
-            "installed_query_capabilities" => bformat!(
-                ",\"digest\":{}",
-                quote_json(query_capabilities_digest)
-            ),
+            "installed_query_capabilities" => {
+                bformat!(",\"digest\":{}", quote_json(query_capabilities_digest))
+            }
             "installed_diagnostic_catalog" => bformat!(
                 ",\"digest\":{},\"code_count\":{}",
                 quote_json(diagnostic_catalog_digest),

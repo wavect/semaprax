@@ -3,27 +3,27 @@
 Audience: compiler contributors and reviewers of SPX-AI-019/020 (issues #118,
 #119).
 
-Status: **front-end admitted, no backend executes it**. Source and HIR
-independently recognize the one admitted record shape this document defines
-(`src/hir/owned_record_collection.rs`,
+Status: **the reference interpreter executes it; native C11 and Core Wasm
+still refuse it**. Source and HIR independently recognize the one admitted
+record shape this document defines (`src/hir/owned_record_collection.rs`,
 `src/source_verify/declared_type/owned_record_collection.rs`), and a bounded
 `Vec<T>` operation surface over it — `vec_with_capacity`, `vec_push`,
 `vec_len`, `vec_capacity`, `vec_clear` — is wired through the source verifier,
 the resolver, HIR validation, the loan plan, the cleanup inventory, the
 cleanup plan and its replay. `vec_get`, `vec_set` and `vec_reserve_exact`
-stay refused, as does `Box<T>` of this element. A program can therefore be
-written, checked and resolved against this profile, and its ownership, borrow
-and cleanup meaning is exercised — but **every ordinary execution target
-refuses it** with its own stable diagnostic (`SPX-B115` native C11,
-`SPX-W125` WebAssembly, `SPX-F112` interpreter) rather than emitting a
-carrier it cannot lower. SPX-AI-020 (issue #119) owns lifting that; see
-"Front-end admission tranche (2026-09-12)" below for exactly what this costs
-and what it deliberately did not do. Earlier sections record how the profile
-reached this state: the classifier tranche, the backend panic-hardening, and
-the 2026-09-11 acceptance-criteria audit. Statements there about "no call
-site exists" and "no program can construct this type" describe the state
-before the tranche recorded at the end of this document, not the current
-tree.
+stay refused, as does `Box<T>` of this element. The reference interpreter
+stores one authored record per element and executes the whole surface
+(`SPX-F112` retired); native C11 (`SPX-B115`) and WebAssembly (`SPX-W125`)
+do not implement the carrier yet and refuse the same source up front rather
+than emitting a carrier they cannot lower. See "Interpreter conformance
+tranche (2026-09-12)" at the end of this document for what that cost and for
+the measured seam the two remaining backends sit behind. Earlier sections
+record how the profile reached this state: the classifier tranche, the
+backend panic-hardening, the 2026-09-11 acceptance-criteria audit, and the
+front-end admission tranche. Statements there about "no call site exists",
+"no program can construct this type" and "nothing here is executed" describe
+the state before the tranche recorded at the end of this document, not the
+current tree.
 
 ## Purpose and non-goals
 
@@ -634,20 +634,120 @@ classifier's answer from its caller instead of guessing.
   `box_into_inner`, is not admitted. AC-2's "extract" half is not covered;
   the profile has bulk `clear` only, following `OWNED-BOUNDED-VEC-V1.md`'s
   own "Nonclaim" precedent.
-- Nothing here is executed. There is no interpreter, native or Wasm evidence
-  of this profile running, by construction.
+- Nothing in *that* tranche was executed: there was no interpreter, native or
+  Wasm evidence of the profile running, by construction. The interpreter half
+  of that limit is closed by the tranche recorded below; native and Wasm are
+  still refusals.
+
+## Interpreter conformance tranche (2026-09-12)
+
+This section records SPX-AI-020's (issue #119) first backend, and supersedes
+the "Nothing here is executed" limit of the front-end tranche above.
+
+**What lifted.** `SPX-F112` is retired and the reference interpreter executes
+the profile. It is retired by working lowering, not by deleting a refusal:
+`interpreter::owned_vec::OwnedVecValue` already stores one `Value` per
+element, so the change is that `evaluate_vec_op` admits the record element
+through this profile's own `admits_vec_operation_element` predicate, and
+`vec_push` stores one authored `Value::Record` per element. Every interpreter
+entry point is back on plain `hir::validate`/`hir::resolve`.
+
+**What deliberately did not widen.** `cleanup::is_owned_bounded_vec_type` and
+`crate::vec_ops::resolved_vec_element_is_admitted` keep their narrow meaning,
+unchanged. The interpreter reaches the profile through the separate carrier
+predicate the front-end tranche introduced, so none of the native and Wasm
+layout, ABI and cleanup-replay sites that map the shared predicate onto a
+machine representation is touched, and the hazard this document exists to
+avoid is not relocated into codegen's type-layout functions.
+
+**Element authenticity.** Push re-derives the element's admission from
+`DeclarationIndex` facts on every call rather than trusting the static type:
+the runtime record must name the same authored declaration, carry exactly the
+declared field identities, and hold a value of the declared type in each. A
+forged or mis-typed carrier is a `Flow::Guard` diagnostic. With the new
+admission disabled, the profile's execution fixtures fail with
+`GuardError("invalid compiler-owned bounded Vec type")` — a diagnostic, never
+a panic — which is both the negative control for the tranche and evidence that
+the hardening recorded above still holds.
+
+**Owned-payload bound.** One admitted record owns exactly two `Bytes` leaves,
+so it is charged twice the single-leaf rate `Vec<Bytes>` already uses, through
+one shared constant
+(`hir::owned_record_collection::OWNED_PAYLOAD_BYTES_PER_RECORD_ELEMENT`, 32
+bytes per element) so every target that later implements this carrier bounds
+it identically. Against the existing `MAX_OWNED_PAYLOAD_BYTES` of 131072 that
+admits 4096 elements, within the shared `MAX_CAPACITY` of 8192; a dynamic
+request past it selects the existing `semaprax.vec.v1` code 3 rather than
+over-committing.
+
+**Executed evidence.** `tests/owned_data/owned_record_vec_runtime.rs` drives
+committed `.spx` source through `semaprax::check` and
+`interpreter::interpret`: an accumulate-clear-reuse application fragment, the
+empty and exactly-full-capacity boundaries, push past capacity
+(`semaprax.vec.v1` code 1), the owned-payload bound (code 3), and precondition
+and postcondition failure (`semaprax.contract.v1` codes 1 and 2). Each fixture
+runs four times and must publish the same outcome, and the sticky-failure case
+is paired with a widened twin that does publish a value, so the failure is the
+push itself and not an unrelated refusal. Two further lib regressions in
+`src/hir/owned_record_collection/operation_tests.rs` exercise the same surface
+through `evaluate_resolved_zero_arg_i64`.
+
+**Backend agreement, honestly.** Native C11 (`SPX-B115`) and Core Wasm
+(`SPX-W125`) still refuse, asserted against the exact same source the
+interpreter executes, in both the lib and the integration harness. Two targets
+that implement nothing and claim nothing agree by refusal; when either lifts,
+it must reproduce the interpreter's values above, not merely stop refusing.
+
+**Why native and Wasm did not lift in the same sitting.** The seam is not the
+predicate count; it is that neither backend's carrier is element-type generic
+the way the interpreter's `Vec<Value>` already was.
+
+- Native selects exactly one of two whole-program `Vec` runtimes in
+  `codegen::native_vec::emit_runtime`: the scalar runtime, whose slot is
+  `uint64_t`, or the owned-payload runtime
+  (`codegen::native_vec::owned_payload`), whose slot is the fixed
+  `spx_bytes_v1`. The record element is neither. Its slot type is a
+  per-declaration authored struct, so it needs a third runtime variant whose
+  slot type, push, clear and drop are *generated per record declaration*, a
+  new `type_tag` beyond the existing 1..=9 and its dispatch in `spx_vec_drop`,
+  and a three-way (not two-way) whole-program runtime selection — on top of
+  widening the eight native `is_owned_bounded_vec_type` sites
+  (`native_emit/mod.rs` ×3, `native_cleanup.rs` ×2,
+  `native_emit/expression.rs` ×1, `native_vec.rs` ×2) and the element tag in
+  `native_emit/expression/vec_ops.rs`.
+- Wasm does not hold the vector in linear memory at all: the carrier is an
+  `i64` host handle (`wasm::aggregate` maps the type to `I64` with an 8/8
+  layout) and the module imports a fixed nine-function host boundary, chosen
+  between `spx_vec_*` and `spx_vec_*_v2` by the same whole-program
+  owned-payload question (`wasm::aggregate::vec_owned_payload::import_names`).
+  A record element needs a third, `_v3` import set carrying record handles,
+  implemented in every test host that links these imports, plus the fifteen
+  `is_owned_bounded_vec_type` sites in `wasm/aggregate.rs`, `wasm/vec_ops.rs`
+  and `wasm/aggregate/post_transitions.rs`.
+
+Neither is blocked; both are larger than one sitting, and landing either
+partially would create exactly the unaudited backend-accident hazard in
+codegen's type-layout functions that this document exists to prevent. The
+interpreter is now the semantic oracle both must be compared against.
 
 ## What remains (explicitly out of scope here)
 
-- Backend conformance. Widening `cleanup::is_owned_bounded_vec_type` /
-  `crate::vec_ops::resolved_vec_element_is_admitted` (and the Box
-  equivalents), consistently with all ~25-40 layout, ABI and cleanup-replay
-  call sites inventoried above, plus a per-element storage and drop lowering
-  for the record payload — only safe once every listed site is updated
+- Native C11 and Core Wasm conformance, as scoped in the tranche section
+  immediately above: a per-declaration record slot runtime and a third
+  whole-program runtime/import selection for each, plus the remaining
+  `cleanup::is_owned_bounded_vec_type` /
+  `crate::vec_ops::resolved_vec_element_is_admitted` widening (and the Box
+  equivalents) across the native and Wasm layout, ABI and cleanup-replay call
+  sites inventoried above — only safe once every listed site is updated
   together; the two originally documented `unreachable!()` sites (now
   hardened, see above) are necessary but not sufficient. SPX-AI-020 (issue
-  #119) owns this, and lifting the three target refusals
-  (`SPX-B115`/`SPX-W125`/`SPX-F112`) is its acceptance boundary.
+  #119) owns this, and lifting the remaining two target refusals
+  (`SPX-B115`/`SPX-W125`) is the rest of its acceptance boundary.
+- Physical allocation-count probes. The interpreter's byte accounting is a
+  cumulative budget, not a liveness counter, so exact "zero live allocations
+  after success and injected failure" is proved by the native and Wasm test
+  hosts when they lift, not by this tranche. The interpreter's evidence is
+  values, ordering, and sticky failure selection.
 - `Box<T>` of this element, and any consuming extraction. `vec_get`,
   `vec_set` and `vec_reserve_exact` also stay refused: `get` would be "an
   ambiguous copy-returning get of an owned value" per this issue's own
@@ -665,10 +765,12 @@ classifier's answer from its caller instead of guessing.
 
 ## Test discovery
 
-`cargo test --locked -p semaprax --lib owned_record_collection` selects 31
+`cargo test --locked -p semaprax --lib owned_record_collection` selects 33
 focused unit tests: the 19 classifier cases above (13 HIR-side, 6
-source-side) plus the 12 operation-surface regressions in
-`src/hir/owned_record_collection/operation_tests.rs`. They construct real
+source-side) plus the 14 operation-surface and interpreter-execution
+regressions in `src/hir/owned_record_collection/operation_tests.rs`.
+`cargo test --locked --test owned_data owned_record_vec_runtime` selects the
+3 committed-source runtime cases. They construct real
 `.spx` source through `crate::parse`/`crate::hir::resolve` (not hand-built
 HIR), the same pattern `type_reachability`'s own classifier tests use, so the
 positive cases are genuine parsed-and-resolved programs, not synthetic

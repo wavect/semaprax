@@ -16,7 +16,12 @@ use super::kernel::{
     run_live_invocation, LiveInvocationConfig, LiveInvocationHandlers, LiveInvocationOutcome,
     LiveKernelError,
 };
-use super::model_invoke::{ModelFailure, ModelInvocationOutcome, ModelInvokeCapability};
+use super::model_invoke::{
+    AuthorizationContext, AuthorizationGate, AuthorizationGrant, AuthorizationRefusal,
+    BudgetRefusal, InvocationBudgetHook, InvocationUsage, ModelFailure, ModelInvocationOutcome,
+    ModelInvocationRequest, ModelInvokeCapability, ProposalDecoder, ProposalOutcome,
+    ReservedBudget,
+};
 
 const SCHEMA_DIGEST: &str = "sha256:0000000000000000000000000000000000000000000000000000000000aa";
 
@@ -603,4 +608,307 @@ fn resuming_a_journal_after_continue_does_not_redispatch_the_completed_turn() {
         "the resumed prefix is carried forward unchanged"
     );
     assert!(matches!(run.outcome, LiveInvocationOutcome::Complete(_)));
+}
+
+/// Issue #177's required-evidence list names "timeout, cancellation,
+/// capacity, and provider-error" as distinct scripted-provider cases.
+/// `a_closed_model_failure_ends_the_attempt_without_decoding_or_authorizing`
+/// already covers `ProviderError`; this drives the same assertion for every
+/// other closed [`ModelFailure`] a handler can report on its own (everything
+/// except `MalformedResponse`, which `an_oversized_response_is_treated_as_malformed_before_decode`
+/// already exercises as a kernel-side rejection rather than a handler
+/// report). Each variant must end the turn without ever reaching authorize,
+/// and the journal must record the exact closed tag — never provider-shaped
+/// detail — so a reviewer can tell which case fired without re-running the
+/// handler.
+fn assert_scripted_failure_ends_the_turn_before_authorize(failure: ModelFailure) {
+    let identity = identity();
+    let cfg = config(&identity, 3);
+    let capability = ModelInvokeCapability::grant("closed failure taxonomy test");
+    let mut handler = FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Failed {
+        failure,
+        attempted_bytes: 7,
+    }]);
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_DIGEST);
+    let mut gate = FixtureAuthorizationGate::new(10);
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = FixtureObserver;
+    let mut policy = PanicPolicy;
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+    };
+    let run =
+        run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
+    assert_eq!(run.dispatched, 1);
+    assert!(matches!(run.outcome, LiveInvocationOutcome::Fail(_)));
+    assert_eq!(
+        gate.granted, 0,
+        "a {failure:?} model failure never reaches authorize"
+    );
+    let recorded_failure = run.journal.iter().find_map(|entry| match entry {
+        JournalEntry::ResponseFailed { failure, .. } => Some(failure.clone()),
+        _ => None,
+    });
+    assert_eq!(
+        recorded_failure.as_deref(),
+        Some(failure.as_str()),
+        "the journal names the exact closed tag, not provider-shaped detail"
+    );
+}
+
+#[test]
+fn a_timeout_failure_ends_the_attempt_without_decoding_or_authorizing() {
+    assert_scripted_failure_ends_the_turn_before_authorize(ModelFailure::Timeout);
+}
+
+#[test]
+fn a_refused_failure_ends_the_attempt_without_decoding_or_authorizing() {
+    assert_scripted_failure_ends_the_turn_before_authorize(ModelFailure::Refused);
+}
+
+#[test]
+fn a_handler_reported_capacity_exceeded_failure_ends_the_attempt_without_decoding_or_authorizing() {
+    // Distinct from `a_refused_budget_reservation_fails_the_turn_without_dispatching_the_handler`:
+    // that test refuses at `InvocationBudgetHook::reserve`, before the
+    // handler is ever dispatched. This drives the case where the *provider
+    // itself* reports no capacity, through `ModelHandler::invoke`, after
+    // budget reservation already succeeded.
+    assert_scripted_failure_ends_the_turn_before_authorize(ModelFailure::CapacityExceeded);
+}
+
+/// A [`super::kernel::TurnObserver`] that cancels the shared handle from
+/// inside `observe`, so the kernel's second cancellation checkpoint ("After
+/// `TurnOpened`, before committing `RequestIntent`") fires deterministically
+/// without a race or a sleep.
+struct CancelDuringObserve {
+    cancellation: AgentCancellation,
+}
+
+impl super::kernel::TurnObserver for CancelDuringObserve {
+    fn observe(&mut self, turn: u32) -> Vec<u8> {
+        self.cancellation.cancel();
+        format!("observation:{turn}").into_bytes()
+    }
+}
+
+#[test]
+fn cancellation_after_turn_opened_stops_cleanly_before_any_request_intent() {
+    let identity = identity();
+    let cfg = config(&identity, 3);
+    let cancellation = AgentCancellation::new();
+    let capability = ModelInvokeCapability::grant("cancellation checkpoint 2 test");
+    let mut handler = FixtureModelHandler::must_not_be_called();
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_DIGEST);
+    let mut gate = FixtureAuthorizationGate::new(10);
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = CancelDuringObserve {
+        cancellation: cancellation.clone(),
+    };
+    let mut policy = PanicPolicy;
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+    };
+    let run = run_live_invocation(&cfg, Vec::new(), &mut handlers, &cancellation).unwrap();
+    assert_eq!(run.outcome, LiveInvocationOutcome::Cancelled);
+    assert_eq!(run.dispatched, 0);
+    assert_eq!(handler.calls, 0);
+    assert_eq!(
+        run.journal.len(),
+        1,
+        "only TurnOpened was durable when cancellation was observed"
+    );
+    assert!(matches!(run.journal[0], JournalEntry::TurnOpened { .. }));
+}
+
+/// An [`InvocationBudgetHook`] that cancels the shared handle from inside
+/// `reserve`, so the kernel's third cancellation checkpoint ("After
+/// `RequestIntent` is committed, immediately before calling
+/// `ModelHandler::invoke`") fires deterministically. Per the contract, this
+/// checkpoint folds cancellation into the closed failure domain
+/// (`ModelFailure::Cancelled`) rather than leaving an uncertain intent
+/// behind, because the request is already durable at that point.
+struct CancelDuringReserve {
+    cancellation: AgentCancellation,
+    inner: FixtureBudgetHook,
+}
+
+impl InvocationBudgetHook for CancelDuringReserve {
+    fn reserve(
+        &mut self,
+        request: &ModelInvocationRequest,
+    ) -> Result<ReservedBudget, BudgetRefusal> {
+        self.cancellation.cancel();
+        self.inner.reserve(request)
+    }
+
+    fn record(&mut self, usage: &InvocationUsage) {
+        self.inner.record(usage);
+    }
+}
+
+#[test]
+fn cancellation_after_request_intent_is_committed_folds_into_a_recorded_cancelled_failure() {
+    let identity = identity();
+    let cfg = config(&identity, 3);
+    let cancellation = AgentCancellation::new();
+    let capability = ModelInvokeCapability::grant("cancellation checkpoint 3 test");
+    let mut handler = FixtureModelHandler::must_not_be_called();
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_DIGEST);
+    let mut gate = FixtureAuthorizationGate::new(10);
+    let mut budget = CancelDuringReserve {
+        cancellation: cancellation.clone(),
+        inner: FixtureBudgetHook::new(10),
+    };
+    let mut observer = FixtureObserver;
+    let mut policy = PanicPolicy;
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+    };
+    let run = run_live_invocation(&cfg, Vec::new(), &mut handlers, &cancellation).unwrap();
+    // The request was already durable, so the turn must still resolve to a
+    // recorded outcome rather than leaving an uncertain intent behind — this
+    // is a `Fail`, never `Cancelled`, and the handler is never called.
+    assert!(matches!(run.outcome, LiveInvocationOutcome::Fail(_)));
+    assert_eq!(run.dispatched, 0, "checkpoint 3 fires before dispatch");
+    assert_eq!(handler.calls, 0);
+    let recorded_failure = run.journal.iter().find_map(|entry| match entry {
+        JournalEntry::ResponseFailed { failure, .. } => Some(failure.clone()),
+        _ => None,
+    });
+    assert_eq!(
+        recorded_failure.as_deref(),
+        Some(ModelFailure::Cancelled.as_str())
+    );
+    let validated = journal::validate(&run.journal, identity.digest()).unwrap();
+    assert!(validated.terminal);
+}
+
+/// A [`ProposalDecoder`] that actually transforms the bytes it admits,
+/// unlike [`FixtureProposalDecoder`] (which admits the response verbatim, so
+/// decoded and raw bytes are indistinguishable in every other test here).
+/// Strips the scripted `{"turn":<n>,"answer":<..>}` envelope down to just
+/// the answer text, so a test can tell whether a downstream seam saw the
+/// *decoded* value or the *raw response*.
+struct StrippingProposalDecoder {
+    schema_digest: String,
+}
+
+impl ProposalDecoder for StrippingProposalDecoder {
+    fn schema_digest(&self) -> &str {
+        &self.schema_digest
+    }
+
+    fn decode(&mut self, turn: u32, response: &[u8]) -> ProposalOutcome {
+        let expected_prefix = format!("{{\"turn\":{turn},\"answer\":");
+        let text = std::str::from_utf8(response).expect("fixture response is always utf8");
+        let Some(rest) = text
+            .strip_prefix(&expected_prefix)
+            .and_then(|r| r.strip_suffix('}'))
+        else {
+            return ProposalOutcome::Refused("shape_mismatch".into());
+        };
+        ProposalOutcome::Admitted(rest.as_bytes().to_vec())
+    }
+}
+
+/// An [`AuthorizationGate`] that records the exact `proposal_digest` it was
+/// asked to authorize, so a test can compare it against an independently
+/// recomputed digest of known bytes.
+struct RecordingAuthorizationGate {
+    seen_proposal_digest: Option<String>,
+}
+
+impl AuthorizationGate for RecordingAuthorizationGate {
+    fn authorize(
+        &mut self,
+        context: &AuthorizationContext<'_>,
+    ) -> Result<AuthorizationGrant, AuthorizationRefusal> {
+        self.seen_proposal_digest = Some(context.proposal_digest.to_owned());
+        Ok(AuthorizationGrant::new(
+            "sha256:".to_owned() + &"7".repeat(64),
+        ))
+    }
+}
+
+#[test]
+fn authorize_and_completion_see_the_decoded_proposal_never_the_raw_response_bytes() {
+    // Issue #177's required evidence: "Decoded proposal is the only value
+    // passed to authorize; raw model output never reaches effect dispatch."
+    // Every other test's decoder happens to admit the response unchanged, so
+    // decoded and raw bytes are byte-identical there and cannot distinguish
+    // the two. This test's decoder actually transforms the bytes, then
+    // checks both destinations a raw response could otherwise leak into:
+    // the digest bound into `AuthorizationContext`, and the payload the
+    // completed invocation returns.
+    let identity = identity();
+    let cfg = config(&identity, 1);
+    let capability = ModelInvokeCapability::grant("decoded-not-raw test");
+    let raw_response = fixture_response(0, "secret-raw-answer");
+    let mut handler =
+        FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Settled(raw_response.clone())]);
+    let mut decoder = StrippingProposalDecoder {
+        schema_digest: SCHEMA_DIGEST.to_owned(),
+    };
+    let mut gate = RecordingAuthorizationGate {
+        seen_proposal_digest: None,
+    };
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = FixtureObserver;
+    let mut policy = FixturePolicy { total_turns: 1 };
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+    };
+    let run =
+        run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
+
+    let decoded_proposal = b"\"secret-raw-answer\"".to_vec();
+    assert_ne!(
+        decoded_proposal, raw_response,
+        "the test is only meaningful if decode actually changed the bytes"
+    );
+    assert_eq!(
+        run.outcome,
+        LiveInvocationOutcome::Complete(decoded_proposal.clone()),
+        "the reducer/completion payload is the decoded proposal, not the raw response"
+    );
+    let expected_digest = super::kernel::proposal_digest_for_test(&decoded_proposal);
+    assert_eq!(
+        gate.seen_proposal_digest.as_deref(),
+        Some(expected_digest.as_str()),
+        "authorize is bound to a digest of the decoded proposal"
+    );
+    let raw_response_digest = super::kernel::proposal_digest_for_test(&raw_response);
+    assert_ne!(
+        gate.seen_proposal_digest.as_deref(),
+        Some(raw_response_digest.as_str()),
+        "authorize must never be bound to a digest of the raw response"
+    );
 }

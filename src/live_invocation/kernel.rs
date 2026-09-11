@@ -431,6 +431,17 @@ fn finish(mut journal: Vec<JournalEntry>, turn: u32, transition: TurnTransition)
     }
 }
 
+/// Test-only escape hatch onto the private proposal-digest domain, so a test
+/// can independently recompute the exact digest the kernel would bind into
+/// `AuthorizationContext::proposal_digest` for given decoded bytes, and
+/// thereby prove which bytes (decoded, not raw response) actually reached
+/// that digest — without widening `PROPOSAL_DOMAIN` into non-test-visible
+/// API surface.
+#[cfg(test)]
+pub(crate) fn proposal_digest_for_test(decoded_proposal: &[u8]) -> String {
+    digest(PROPOSAL_DOMAIN, decoded_proposal)
+}
+
 fn terminal_outcome_of(journal: &[JournalEntry]) -> LiveInvocationOutcome {
     match journal.last() {
         Some(JournalEntry::TerminalOutcome { case, .. }) if case == "complete" => {

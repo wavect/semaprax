@@ -2,12 +2,15 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: first bounded, offline slice of the `semaprax-app-http.v1` profile
-tracked by issue #189. Route/status typing, refusal behaviour, and a
-deterministic fixture-transport exercise are implemented and locally green.
-Multi-file Project export, real listen/accept wiring, middleware chains, TLS,
-and hosted evidence are explicitly out of scope for this slice; see
-[Non-claims](#non-claims-and-remaining-work).
+Status: second bounded slice of the `semaprax-app-http.v1` profile tracked by
+issue #189. Route/status typing, a request-smuggling defense, a one-connection
+accept/dispatch/respond/close server lifecycle over the already-hosted-green
+Bounded Network Services v1 operations, refusal behaviour, and both
+deterministic-fixture and real-loopback exercises are implemented and locally
+green. Multi-file Project export, a persistent accept loop, graceful
+shutdown, connection-limit/deadline enforcement, TLS, middleware, JSON
+bodies, and hosted (non-loopback) evidence remain explicitly out of scope;
+see [Non-claims](#non-claims-and-remaining-work).
 
 This tranche composes the existing [Bounded Language Network
 I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md) and [Bounded Network Services
@@ -96,6 +99,30 @@ this profile is already capped (`net_recv`'s 65,536-byte `max`, or a fixture's
 literal length), and every scan inside it is capped again against an explicit
 limit rather than the buffer's incidental length.
 
+## Request-smuggling defense
+
+`app.http_router.route_for` rejects a request carrying a `Transfer-Encoding`
+header before it ever inspects the method or path:
+`app.http_router.request_has_smuggling_risk(view: borrow Slice<u8>) -> bool`
+scans the same bounded header region `request_content_length` scans and
+reports whether any header line's name matches `transfer-encoding:`
+(case-insensitive, ASCII, the same idiom as `header_name_is_content_length`).
+When it does, `route_for` returns `4` (`Malformed`, status `400`) regardless
+of method or path.
+
+This profile implements no chunked-body framing, so refusing the header
+outright — whether it appears alone or alongside `Content-Length` — is the
+closed, fail-safe answer for a profile that never parses chunked framing at
+all. Answering only the narrower both-headers-present conflict would still
+leave a bare `Transfer-Encoding: chunked` request silently falling through to
+`Content-Length`-based (mis)interpretation of a body this profile cannot
+frame; refusing the header unconditionally closes both cases named in issue
+#189's failure list at once: "HTTP request smuggling and parser disagreement
+between host and language" and "reject smuggling ambiguities such as
+conflicting `Content-Length`/transfer encoding". A future slice that
+implements chunked-body parsing replaces this blanket refusal with real
+framing, not the other way around.
+
 ## Handler shape and explicit capability
 
 A handler in this slice is an ordinary function: `route_status(view: borrow
@@ -113,6 +140,42 @@ back to `main` declaring the same effect — never by virtue of being
 "a route handler". [Refusal behaviour](#refusal-behaviour) demonstrates both
 failure directions: an effect used without `uses` and an effect declared
 without a module `permit`.
+
+## Server lifecycle
+
+`app.http_router.serve_one(bind_host: borrow Slice<u8>, port: usize,
+max_request: usize) -> bool` is this profile's first real server: one
+accept/dispatch/respond/close lifecycle composed entirely from operations
+[Bounded Network Services v1](BOUNDED-NETWORK-SERVICES-V1.md) already
+implements and already runs hosted-green — `net_listen`, `net_accept`,
+`net_recv`, `net_send`, `net_close`, `net_close_listener`. It binds, accepts
+exactly one peer, reads at most `max_request` bytes, calls `route_for` and
+one of five `send_*` helpers (one literal, fully-formed HTTP/1.1 response per
+route — `send_health`, `send_echo`, `send_not_found`,
+`send_method_not_allowed`, `send_malformed`, dispatched through `respond`'s
+ordinary scalar `match`), then releases both the connection and the
+listener. `app.http_router.serve_health_example() -> bool` is the
+zero-argument, bool-returning entry point that binds this to a fixed
+illustrative loopback port — the exact shape
+`semaprax::hosted_interpreter::execute_network_command` requires of a
+Language Network I/O v1 entry.
+
+The host that constructs the injected `NetworkProvider` — never this
+function — owns every socket, TLS, and credential decision, exactly
+[Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md#authority)
+already requires: `serve_one` only ever sees the bounded, invocation-scoped
+handles that provider hands back, and every operation it calls was already
+effect-gated before this profile existed. This module's `permit { …
+}` widens nothing; it only lets `serve_one`, `respond`, and the `send_*`
+helpers declare the five tokens (`network.listen`, `network.accept`,
+`network.read`, `network.write`, `network.connect`) those already-admitted
+operations require.
+
+This is one connection, not a server process: `serve_one` returns after its
+one peer is handled, so a caller that wants to keep serving calls it again
+with a fresh listener. There is no persistent accept loop, no graceful
+shutdown signal, no connection-limit counter, and no per-connection deadline
+here — see [Non-claims](#non-claims-and-remaining-work).
 
 ## Refusal behaviour
 
@@ -134,31 +197,63 @@ exact stable code and that the source produces at least one diagnostic — a
 route this profile cannot express fails closed with a named, stable reason,
 never a silent best-effort acceptance.
 
-## Deterministic fixture exercise
+## Deterministic fixture and real-loopback exercise
 
 [`tests/http_app_routing.rs`](../tests/http_app_routing.rs) is this profile's
-owning harness. It parses, verifies, and `hir::resolve`s
+owning harness, in three parts.
+
+`fixture_transport` parses, verifies, and `hir::resolve`s
 [examples/http_app_routing.spx](../examples/http_app_routing.spx) (also
 covered automatically by `tests/examples.rs`'s top-level example walk), then
 calls `app.http_router.route_status` and `app.http_router.route_body_len`
-directly through `semaprax::interpreter::interpret` with five literal
-HTTP/1.1 request byte arrays standing in for what a deterministic transport
-would have delivered:
+directly through `semaprax::interpreter::interpret` with literal HTTP/1.1
+request byte arrays standing in for what a deterministic transport would have
+delivered:
 
 - `GET /health HTTP/1.1 …` → `200`
 - `GET /echo HTTP/1.1 …` → `200`, body length `2`
 - `GET /missing HTTP/1.1 …` → `404`
 - `DELETE /health HTTP/1.1 …` → `405`
 - a five-byte truncated line with no terminator → `400`
+- `GET /health HTTP/1.1 …` with a `Transfer-Encoding: chunked` header and no
+  `Content-Length` → `400`
+- `GET /health HTTP/1.1 …` with both `Content-Length` and
+  `Transfer-Encoding: chunked` (the classic smuggling shape) → `400`
 
-No test opens a socket, binds a port, or performs any network access; the
-fixture bytes are literal Rust byte slices serialized as the interpreter's
-ordinary JSON argument encoding, run twice each and compared, so the harness
-also asserts the exact byte-for-byte determinism invariant this repository
-requires of every checked artifact. `examples/http_app_routing.spx`'s own
-`main` repeats the same five cases and returns `0`, so `semaprax run
-examples/http_app_routing.spx` is a second, CLI-level observation of the same
-fixture exercise.
+No test in `fixture_transport` opens a socket, binds a port, or performs any
+network access; the fixture bytes are literal Rust byte slices serialized as
+the interpreter's ordinary JSON argument encoding, run twice each and
+compared, so the harness also asserts the exact byte-for-byte determinism
+invariant this repository requires of every checked artifact.
+`examples/http_app_routing.spx`'s own `main` repeats the first five cases and
+returns `0`, so `semaprax run examples/http_app_routing.spx` is a second,
+CLI-level observation of the same fixture exercise.
+
+`hosted_server_lifecycle` runs `app.http_router.serve_health_example`
+end to end, executing the *exact* committed example source (only its
+illustrative `18080usize` port literal substituted) through
+`semaprax::hosted_interpreter::execute_network_command`:
+
+- against a real loopback `TcpNetworkProvider` bound to an OS-assigned
+  ephemeral port — the same throwaway-reservation pattern
+  `real_listener_accepts_and_settles_a_loopback_connection` already uses in
+  `src/network_provider/tcp.rs` — with a client thread in the same test
+  process sending a literal `GET /health` request and asserting the **exact**
+  committed response bytes (`HTTP/1.1 200 OK\r\nContent-Length: 0\r\n
+  Connection: close\r\n\r\n`) come back over the socket;
+- against the deterministic `FixtureNetworkProvider` replaying the identical
+  request through the identical lifecycle with no socket, port, or process
+  I/O anywhere in the test, asserting the same documented success outcome.
+
+Loopback only: nothing here reaches a host outside the test process, and no
+build-time or ambient network access is used anywhere in this repository's
+gates. The real-socket test is this profile's byte-exact evidence; the
+fixture test is this profile's deterministic, I/O-free evidence for the same
+lifecycle — see [Non-claims](#non-claims-and-remaining-work) for why they are
+not compared byte-for-byte against each other.
+
+`refusal` proves the four rows of the [Refusal behaviour](#refusal-behaviour)
+table above still fire.
 
 Focused evidence:
 
@@ -187,22 +282,39 @@ This slice does not implement, and does not claim:
   nothing yet inspects a module's declarations to build or validate a route
   table automatically, or projects routes into `semaprax graph`. This is
   issue #189's implementation-sequence step 4, sequenced for a later round.
-- **Real sockets, TLS, listen/accept wiring, or a server lifecycle.** This
-  slice's transport is a literal fixture byte array. Wiring
-  `net_listen`/`net_accept`/`net_tls_accept` (all already implemented by
-  [Bounded Network Services v1](BOUNDED-NETWORK-SERVICES-V1.md)) to this
-  routing/dispatch convention, including graceful shutdown and connection
-  deadlines, is separate work this slice does not perform or claim.
-- **Middleware, JSON bodies, query-string parsing, or header value
-  extraction beyond `Content-Length`.** Only method/path routing and a single
-  header's presence and value are implemented.
-- **Chunked transfer encoding or request-smuggling defenses.** Only
-  `Content-Length` is read; a request declaring `Transfer-Encoding` is not
-  specially recognized or rejected by this slice, so smuggling ambiguities
-  between the two are not yet a closed case here.
-- **Hosted evidence.** All evidence for this slice is local, offline, and
-  fixture-driven; it establishes no hosted, production, or public-network
-  claim.
+- **A persistent accept loop, graceful shutdown, connection limits, or
+  per-connection deadlines.** `serve_one` handles exactly one connection and
+  returns; there is no supervising loop, no shutdown signal, no
+  concurrency/connection-count bound, and no deadline wired to any operation
+  it calls (each individual operation is still bounded by [Bounded Language
+  Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md#three-different-bounds)'s
+  own per-operation deadline, but nothing in this profile yet composes those
+  into a server-level slow-client or connection-slot defense). This is a real
+  remaining gap against issue #189's Slowloris failure case, not a closed
+  one.
+- **TLS.** `serve_one` calls `net_accept`, not `net_tls_accept`; a TLS
+  variant is a small, separate extension this slice does not make.
+- **Middleware, JSON bodies, or query-string parsing.** Only method/path
+  routing, one fixed response per route, and `Content-Length`/
+  `Transfer-Encoding` header presence are implemented; there is no ordered
+  middleware composition, no typed body decoding, and no query-string
+  extraction.
+- **Chunked-body parsing.** [Request-smuggling
+  defense](#request-smuggling-defense) refuses any `Transfer-Encoding`
+  header outright rather than framing a chunked body; a request that legally
+  needs chunked transfer is refused, not served.
+- **Byte-exact fixture-provider evidence for `serve_one`.** Fixture v2 checks
+  an accepted connection's `expect_send` only at its first `recv`
+  (`FixtureConnection::check_expected_send` in
+  `src/network_provider/fixture.rs`), which in this lifecycle happens before
+  `serve_one`'s own `net_send`, so the fixture engine cannot itself assert
+  the exact response bytes the way the real-socket test does; the fixture
+  test asserts only that the same lifecycle reports the same documented
+  success outcome.
+- **Hosted (non-loopback) evidence.** All evidence for this slice is local:
+  either fixture-driven with no I/O, or a real socket between two threads of
+  the same test process on `127.0.0.1`. Neither establishes a hosted,
+  production, or public-network claim.
 
 Database access (#190), authentication (#191), background jobs (#192), and
 observability adapters (#193) are separate issues with separate acceptance

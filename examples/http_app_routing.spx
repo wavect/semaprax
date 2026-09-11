@@ -1,5 +1,11 @@
 module app.http_router;
 
+permit { network.listen, network.accept, network.read, network.write, network.connect }
+
+// `serve_one`, `respond`, and the `send_*` helpers below (past
+// `route_body_len`) need these five tokens; every other function in this
+// module is pure and declares no `uses`, exactly the posture documented for
+// a route/handler in docs/HTTP-APPLICATION-ROUTING-V1.md.
 @id("app.http_router.byte_is")
 fn byte_is(view: borrow Slice<u8>, index: usize, expected: u8) -> bool
 {
@@ -20,6 +26,23 @@ fn find_from(view: borrow Slice<u8>, start: usize, target: u8, limit: usize) -> 
     let mut found = false;
     while index < limit && !found {
         found = byte_is(view, index, target);
+        index = if found { index } else { index + 1usize };
+        index < limit && !found
+    }
+    if found { index } else { limit }
+}
+
+// The blank-line header terminator (`\r\n\r\n`), not merely the next `\r`:
+// a request with more than one header line before the one a caller is
+// scanning for needs the *whole* header block, not just its first line.
+@id("app.http_router.find_blank_line")
+fn find_blank_line(view: borrow Slice<u8>, start: usize, limit: usize) -> usize
+    ensures result <= limit
+{
+    let mut index = start;
+    let mut found = false;
+    while index < limit && !found {
+        found = byte_is(view, index, 13u8) && byte_is(view, index + 1usize, 10u8) && byte_is(view, index + 2usize, 13u8) && byte_is(view, index + 3usize, 10u8);
         index = if found { index } else { index + 1usize };
         index < limit && !found
     }
@@ -134,6 +157,53 @@ fn content_length_of(view: borrow Slice<u8>, header_start: usize, header_end: us
     if found == header_end { -1 } else { decimal_at(view, skip_blanks(view, found + 15usize)) }
 }
 
+// A request declaring `Transfer-Encoding` is refused outright: this profile
+// implements no chunked-body framing, so admitting the header — whether
+// alone or alongside `Content-Length` — would let a request/response
+// smuggling ambiguity through undetected (issue #189's "reject smuggling
+// ambiguities such as conflicting `Content-Length`/transfer encoding").
+// Refusing the header unconditionally is the closed, fail-safe answer for a
+// profile that never parses chunked framing at all, not only the narrower
+// both-headers-present conflict case.
+@id("app.http_router.header_name_is_transfer_encoding")
+fn header_name_is_transfer_encoding(view: borrow Slice<u8>, index: usize, end: usize) -> bool
+{
+    let literal = [116u8, 114u8, 97u8, 110u8, 115u8, 102u8, 101u8, 114u8, 45u8, 101u8, 110u8, 99u8, 111u8, 100u8, 105u8, 110u8, 103u8, 58u8];
+    let literal_view = array_as_slice(literal);
+    let mut offset = 0usize;
+    let mut same = index + 18usize <= end;
+    while offset < 18usize && same {
+        same = match byte_get(view, index + offset) { Option::Some { value: byte } => byte_is(literal_view, offset, lower(byte)), Option::None {} => false, };
+        offset = offset + 1usize;
+        offset < 18usize && same
+    }
+    same
+}
+
+@id("app.http_router.has_transfer_encoding")
+fn has_transfer_encoding(view: borrow Slice<u8>, header_start: usize, header_end: usize) -> bool
+{
+    let mut index = header_start;
+    let mut found = false;
+    while index < header_end && !found {
+        let at_line_start = index == header_start || byte_is(view, index - 1usize, 10u8);
+        found = at_line_start && header_name_is_transfer_encoding(view, index, header_end);
+        index = index + 1usize;
+        index < header_end && !found
+    }
+    found
+}
+
+@id("app.http_router.request_has_smuggling_risk")
+fn request_has_smuggling_risk(view: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(view);
+    let scan_limit = if length < 256usize { length } else { 256usize };
+    let line_end = find_from(view, 0usize, 13u8, scan_limit);
+    let header_end = if line_end + 4usize <= length { find_blank_line(view, line_end + 2usize, length) } else { length };
+    line_end < scan_limit && header_end + 2usize <= length && has_transfer_encoding(view, line_end + 2usize, header_end)
+}
+
 // Route identity is a closed `i64` domain, the same idiom `std.net`'s
 // `wait_is_readable`/`wait_is_closed` states use: 0 Health, 1 Echo,
 // 2 NotFound, 3 MethodNotAllowed, 4 Malformed. A record or variant payload
@@ -150,7 +220,7 @@ fn route_for(view: borrow Slice<u8>) -> i64
     let length = byte_len(view);
     let scan_limit = if length < 256usize { length } else { 256usize };
     let line_end = find_from(view, 0usize, 13u8, scan_limit);
-    if line_end == scan_limit { 4 } else { if !method_is_get(view) { 3 } else { let path_end = find_from(view, 4usize, 32u8, line_end); if path_end >= line_end { 4 } else { if path_is_health(view, 4usize, path_end) { 0 } else { if path_is_echo(view, 4usize, path_end) { 1 } else { 2 } } } } }
+    if line_end == scan_limit { 4 } else { if request_has_smuggling_risk(view) { 4 } else { if !method_is_get(view) { 3 } else { let path_end = find_from(view, 4usize, 32u8, line_end); if path_end >= line_end { 4 } else { if path_is_health(view, 4usize, path_end) { 0 } else { if path_is_echo(view, 4usize, path_end) { 1 } else { 2 } } } } } }
 }
 
 @id("app.http_router.request_content_length")
@@ -160,7 +230,7 @@ fn request_content_length(view: borrow Slice<u8>) -> i64
     let length = byte_len(view);
     let scan_limit = if length < 256usize { length } else { 256usize };
     let line_end = find_from(view, 0usize, 13u8, scan_limit);
-    let header_end = if line_end + 4usize <= length { find_from(view, line_end + 2usize, 13u8, length) } else { length };
+    let header_end = if line_end + 4usize <= length { find_blank_line(view, line_end + 2usize, length) } else { length };
     if line_end < scan_limit && header_end + 2usize <= length { content_length_of(view, line_end + 2usize, header_end) } else { -1 }
 }
 
@@ -189,6 +259,105 @@ fn route_status(view: borrow Slice<u8>) -> i64
 fn route_body_len(view: borrow Slice<u8>) -> usize
 {
     body_len_for(route_for(view))
+}
+
+// Everything above this line is pure: no `uses`. `serve_one` below is this
+// profile's first *server*: it composes the already-implemented,
+// already-hosted-green `net_listen`/`net_accept`/`net_recv`/`net_send`/
+// `net_close`/`net_close_listener` operations from Bounded Network Services
+// v1 with the route table above into one accept/dispatch/respond/close
+// lifecycle. It grants no ambient authority of its own — every operation it
+// calls is already effect-gated by the module's own `permit` above.
+@id("app.http_router.send_health")
+fn send_health(peer: usize) -> usize
+    uses { network.write }
+{
+    let response = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 50u8, 48u8, 48u8, 32u8, 79u8, 75u8, 13u8, 10u8, 67u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 76u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 48u8, 13u8, 10u8, 67u8, 111u8, 110u8, 110u8, 101u8, 99u8, 116u8, 105u8, 111u8, 110u8, 58u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 13u8, 10u8, 13u8, 10u8];
+    net_send(peer, array_as_slice(response))
+}
+
+@id("app.http_router.send_echo")
+fn send_echo(peer: usize) -> usize
+    uses { network.write }
+{
+    let response = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 50u8, 48u8, 48u8, 32u8, 79u8, 75u8, 13u8, 10u8, 67u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 76u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 50u8, 13u8, 10u8, 67u8, 111u8, 110u8, 110u8, 101u8, 99u8, 116u8, 105u8, 111u8, 110u8, 58u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 13u8, 10u8, 13u8, 10u8, 111u8, 107u8];
+    net_send(peer, array_as_slice(response))
+}
+
+@id("app.http_router.send_not_found")
+fn send_not_found(peer: usize) -> usize
+    uses { network.write }
+{
+    let response = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 52u8, 48u8, 52u8, 32u8, 78u8, 111u8, 116u8, 32u8, 70u8, 111u8, 117u8, 110u8, 100u8, 13u8, 10u8, 67u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 76u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 48u8, 13u8, 10u8, 67u8, 111u8, 110u8, 110u8, 101u8, 99u8, 116u8, 105u8, 111u8, 110u8, 58u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 13u8, 10u8, 13u8, 10u8];
+    net_send(peer, array_as_slice(response))
+}
+
+@id("app.http_router.send_method_not_allowed")
+fn send_method_not_allowed(peer: usize) -> usize
+    uses { network.write }
+{
+    let response = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 52u8, 48u8, 53u8, 32u8, 77u8, 101u8, 116u8, 104u8, 111u8, 100u8, 32u8, 78u8, 111u8, 116u8, 32u8, 65u8, 108u8, 108u8, 111u8, 119u8, 101u8, 100u8, 13u8, 10u8, 67u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 76u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 48u8, 13u8, 10u8, 67u8, 111u8, 110u8, 110u8, 101u8, 99u8, 116u8, 105u8, 111u8, 110u8, 58u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 13u8, 10u8, 13u8, 10u8];
+    net_send(peer, array_as_slice(response))
+}
+
+@id("app.http_router.send_malformed")
+fn send_malformed(peer: usize) -> usize
+    uses { network.write }
+{
+    let response = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 52u8, 48u8, 48u8, 32u8, 66u8, 97u8, 100u8, 32u8, 82u8, 101u8, 113u8, 117u8, 101u8, 115u8, 116u8, 13u8, 10u8, 67u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 76u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 48u8, 13u8, 10u8, 67u8, 111u8, 110u8, 110u8, 101u8, 99u8, 116u8, 105u8, 111u8, 110u8, 58u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 13u8, 10u8, 13u8, 10u8];
+    net_send(peer, array_as_slice(response))
+}
+
+// Every arm returns the same Copy scalar (`net_send`'s byte count), so this
+// reuses the ordinary scalar-match idiom `status_for`/`body_len_for` already
+// use above; a match arm that instead tried to build a typed `Response`
+// aggregate here would be the exact `SPX-T258` hostile case
+// `tests/http_app_routing.rs` already exercises.
+@id("app.http_router.respond")
+fn respond(peer: usize, route: i64) -> usize
+    uses { network.write }
+    requires route >= 0 && route <= 4
+{
+    match route { 0 => send_health(peer), 1 => send_echo(peer), 2 => send_not_found(peer), 3 => send_method_not_allowed(peer), _ => send_malformed(peer), }
+}
+
+// One accept/dispatch/respond/close lifecycle: bind, accept exactly one
+// peer, read at most `max_request` bytes, route and respond, then release
+// both the connection and the listener. The host that constructs the
+// injected `NetworkProvider` — not this function — owns every socket,
+// TLS, and credential decision; this function only ever sees the bounded
+// handles Bounded Language Network I/O v1 and Bounded Network Services v1
+// already define. A caller that wants to keep serving calls this function
+// again with a fresh listener; this slice does not add a persistent accept
+// loop, graceful shutdown signal, or connection-limit counter, so it is not
+// a claim of a production server lifecycle — see Non-claims.
+@id("app.http_router.serve_one")
+fn serve_one(bind_host: borrow Slice<u8>, port: usize, max_request: usize) -> bool
+    uses { network.listen, network.accept, network.read, network.write, network.connect }
+{
+    let listener = net_listen(bind_host, port);
+    let peer = net_accept(listener);
+    let request = net_recv(peer, max_request);
+    let route = route_for(bytes_as_slice(request));
+    let sent = respond(peer, route);
+    let peer_closed = net_close(peer);
+    let listener_closed = net_close_listener(listener);
+    sent > 0usize && peer_closed == 0usize && listener_closed == 0usize
+}
+
+// A zero-argument, bool-returning entry point on a fixed illustrative
+// loopback port: the exact shape `semaprax::hosted_interpreter::
+// execute_network_command` requires of a Language Network I/O v1 entry.
+// `tests/http_app_routing.rs` runs this same source with only the port
+// literal below substituted for an OS-assigned ephemeral one, against both
+// a real loopback `TcpNetworkProvider` and a deterministic
+// `FixtureNetworkProvider`, and asserts the two observations agree.
+@id("app.http_router.serve_health_example")
+fn serve_health_example() -> bool
+    uses { network.listen, network.accept, network.read, network.write, network.connect }
+{
+    let bind_host = [49u8, 50u8, 55u8, 46u8, 48u8, 46u8, 48u8, 46u8, 49u8];
+    serve_one(array_as_slice(bind_host), 18080usize, 4096usize)
 }
 
 @id("app.main")

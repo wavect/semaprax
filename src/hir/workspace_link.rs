@@ -350,18 +350,40 @@ pub(crate) fn link_useful_text_workspace(
         ));
     }
 
-    let mut declarations = DeclarationIndex::default();
-    for linked in &linked_functions {
+    // A borrowed-`str` body may convert its view with `str_as_bytes` and
+    // inspect it with `byte_get`, whose result is the compiler-owned
+    // `Option<u8>`. That match never crosses a declared signature above (the
+    // profile's admitted parameter/return surface stays exactly `i64`/`bool`
+    // by value and `borrow str`), but the internal HIR still names the
+    // canonical `core.option` declaration and needs it registered the same
+    // way the Useful Data linker registers it: rebuild the canonical prelude
+    // declaration facts before inserting retained workspace functions, so a
+    // default index does not lose the nominal type behind match validation.
+    let origins = linked_functions
+        .iter()
+        .map(|linked| (linked.function.id.clone(), linked.origin))
+        .collect::<BTreeMap<_, _>>();
+    let functions = linked_functions
+        .drain(..)
+        .map(|linked| linked.function)
+        .collect::<Vec<_>>();
+    let (mut declarations, compiler_types) = workspace_compiler_prelude()?;
+    for function in &functions {
+        let origin = origins
+            .get(&function.id)
+            .copied()
+            .ok_or_else(|| link_error("workspace text function origin is absent"))?;
         declarations.insert_top_level(
-            linked.function.name.clone(),
-            linked.function.id.clone(),
+            function.name.clone(),
+            function.id.clone(),
             DeclarationKind::Function,
-            linked.origin,
+            origin,
         );
         declarations
             .type_parameters
-            .insert(linked.function.id.clone(), Vec::new());
+            .insert(function.id.clone(), Vec::new());
     }
+    declarations.byte_slice_roots = derive_byte_slice_provenance(&functions, &declarations)?;
     if !declarations.populate_type_facts() {
         return Err(link_error(
             "workspace text linker could not construct type facts",
@@ -373,15 +395,13 @@ pub(crate) fn link_useful_text_workspace(
         agents: Vec::new(),
         entrypoint,
         declarations,
-        types: Vec::new(),
+        types: compiler_types,
         interfaces: Vec::new(),
         function_templates: Vec::new(),
-        functions: linked_functions
-            .drain(..)
-            .map(|linked| linked.function)
-            .collect(),
+        functions,
         function_instances: Vec::new(),
     };
+    analyze_byte_data_capacity(&linked)?;
     rebuild_cleanup_metadata(&mut linked)?;
     validate(&linked)?;
     Ok(linked)
@@ -1316,6 +1336,176 @@ fn main() -> i64 { 0 }
         assert_eq!(
             error[0].message,
             "workspace interface import `app.host.release` is outside the pure scalar linker profile"
+        );
+    }
+
+    // Issue #101: `useful-text-consumer.v1` admitted borrowed `str` bodies but
+    // never registered the compiler-owned `core.option` prelude declaration
+    // the linker gives `useful-data.v1`, so any `match byte_get(...)` inside a
+    // Project-linked text package failed closed with SPX-H006 even though the
+    // identical body compiled standalone and inside `useful-data.v1`. These
+    // regressions pin the internal repair in `link_useful_text_workspace`
+    // (which now shares `workspace_compiler_prelude()` with the Useful Data
+    // linker) without touching the profile's public parameter/return
+    // vocabulary validated in `workspace_graph.rs`.
+
+    fn useful_text_consumer_workspace() -> WorkspaceSource {
+        source(
+            "src/text.spx",
+            r#"
+module text.check;
+
+@id("text.check.first_byte_is_space")
+fn first_byte_is_space(value: borrow str) -> bool
+{
+    let view = str_as_bytes(value);
+    match byte_get(view, 0usize) { Option::Some { value: byte } => byte == 32u8, Option::None {} => false, }
+}
+
+@id("text.check.count_leading_spaces")
+fn count_leading_spaces(value: borrow str) -> i64
+{
+    let bytes = str_as_bytes(value);
+    let length = byte_len(bytes);
+    let mut index = 0usize;
+    let mut progress = 0;
+    let mut scanning = index < length;
+    while scanning {
+        let blank = match byte_get(bytes, index) { Option::Some { value: byte } => byte == 32u8, Option::None {} => false, };
+        index = if blank { index + 1usize } else { index };
+        progress = if blank { progress + 1 } else { progress };
+        scanning = blank && index < length;
+        scanning
+    }
+    progress
+}
+
+@id("text.check.main")
+fn main() -> i64
+{
+    let sample = " x";
+    let trimmed = "  x";
+    if first_byte_is_space(string_as_str(sample)) && count_leading_spaces(string_as_str(trimmed)) == 2 { 0 } else { 1 }
+}
+"#,
+        )
+    }
+
+    #[test]
+    fn useful_text_consumer_closure_resolves_core_option_for_byte_get_match() {
+        let linked = build_owned(vec![useful_text_consumer_workspace(), test_module()])
+            .expect("workspace graph must build")
+            .linked_scalar_program_with_roots(
+                "text.check",
+                &[],
+                crate::project::ProjectProfile::UsefulTextConsumerV1,
+                false,
+            )
+            .expect(
+                "the Useful Text Consumer linker must resolve core.option for a \
+                 match byte_get(...) body exactly as the Useful Data linker does",
+            );
+        assert!(
+            linked
+                .types
+                .iter()
+                .any(|declaration| declaration.id.as_str() == crate::prelude::OPTION_ID),
+            "the linked program must retain the canonical core.option type declaration"
+        );
+        assert_eq!(
+            linked
+                .declarations
+                .declaration(&crate::hir::DeclarationId::new(crate::prelude::OPTION_ID))
+                .map(|declaration| declaration.identity_origin),
+            Some(crate::hir::IdentityOrigin::CompilerOwned),
+            "core.option must be retained with its compiler-owned identity, not a profile-local nominal type"
+        );
+        crate::hir::validate(&linked)
+            .expect("the retained program must pass independent HIR validation");
+
+        for (value, expect_leading_space, expect_leading_count) in
+            [("", false, 0i64), (" x", true, 1), ("x y", false, 0), ("   z", true, 3)]
+        {
+            let first_byte = crate::interpreter::evaluate_resolved_public_api(
+                &linked,
+                "text.check.first_byte_is_space",
+                &[crate::interpreter::PublicApiArgument::BorrowStr(value)],
+                1_000,
+            )
+            .unwrap_or_else(|error| panic!("first_byte_is_space({value:?}) must evaluate: {error:?}"));
+            assert_eq!(
+                first_byte.outcome,
+                crate::interpreter::PublicApiEvaluationOutcome::Returned(
+                    crate::interpreter::PublicApiValue::Bool(expect_leading_space)
+                ),
+                "first_byte_is_space({value:?}) selected the wrong Option arm"
+            );
+
+            let leading_spaces = crate::interpreter::evaluate_resolved_public_api(
+                &linked,
+                "text.check.count_leading_spaces",
+                &[crate::interpreter::PublicApiArgument::BorrowStr(value)],
+                1_000,
+            )
+            .unwrap_or_else(|error| {
+                panic!("count_leading_spaces({value:?}) must evaluate: {error:?}")
+            });
+            assert_eq!(
+                leading_spaces.outcome,
+                crate::interpreter::PublicApiEvaluationOutcome::Returned(
+                    crate::interpreter::PublicApiValue::I64(expect_leading_count)
+                ),
+                "count_leading_spaces({value:?}) (while-loop byte_get match) returned the wrong count"
+            );
+        }
+    }
+
+    /// The profile's public boundary is a separate concern from the internal
+    /// `core.option` closure this module owns, and this repair must not
+    /// widen it. `link_useful_text_workspace`'s own admission check (the
+    /// `!matches!((&parameter.ty, parameter.ownership), ...)` guard a few
+    /// lines above, which this diff does not touch) still rejects a function
+    /// whose own signature names `u8`; the higher `workspace_graph.rs`
+    /// project-validation pass enforces the same boundary again with its own
+    /// `SPX-G174` diagnostic (`project function ... has a signature outside
+    /// the selected profile`), which this diff also never edits.
+    #[test]
+    fn useful_text_consumer_public_signature_boundary_is_unchanged() {
+        let source_text = source(
+            "src/text_public_u8.spx",
+            r#"
+module text.check.public_boundary;
+
+@id("text.check.public_boundary.is_space")
+fn is_space(byte: u8) -> bool
+{
+    byte == 32u8
+}
+
+@id("text.check.public_boundary.main")
+fn main() -> i64
+{
+    if is_space(32u8) { 0 } else { 1 }
+}
+"#,
+        );
+        let error = build_owned(vec![source_text, test_module()])
+            .expect("workspace graph must build")
+            .linked_scalar_program_with_roots(
+                "text.check.public_boundary",
+                &[],
+                crate::project::ProjectProfile::UsefulTextConsumerV1,
+                false,
+            )
+            .expect_err(
+                "an own-signature u8 parameter must still be rejected: this repair only \
+                 resolves core.option inside admitted bodies, it does not widen the profile's \
+                 public i64/bool/borrow-str parameter and return vocabulary",
+            );
+        assert_eq!(error[0].code, "SPX-H006");
+        assert_eq!(
+            error[0].message,
+            "workspace function `text.check.public_boundary.is_space` is outside the Useful Text Consumer linker profile"
         );
     }
 }

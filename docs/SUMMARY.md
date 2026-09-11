@@ -286,6 +286,7 @@ Audience: all documentation readers.
 - [Public Flat Owned Record C++ Adapter v1](PUBLIC-FLAT-OWNED-RECORD-CXX-ADAPTER-V1.md)
 - [Public Nested Owned-Record API v1](PUBLIC-NESTED-OWNED-RECORD-API-V1.md)
 - [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md)
+- [Public Generic Ownership Milestone v1](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md)
 - [Owned npm invocation failure state v1](OWNED-NPM-INVOCATION-V1.md)
 - [Useful Text Consumer v1](USEFUL-TEXT-CONSUMER-V1.md)
 - [Bounded stdout transcript](BOUNDED-STDOUT-TRANSCRIPT-V1.md)

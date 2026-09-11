@@ -88,6 +88,10 @@ The generic implementation includes [argument inference v3](GENERIC-ARGUMENT-INF
 [closures v2](CLOSURES-V2.md). These have hosted-green evidence for their
 admitted substitutions, HIR/graph/ProgramRoot replay and backend behavior;
 general constraints, owning captures and public generic ABI remain separate.
+Public generic ownership is a separate milestone with its own nine prerequisite
+gates and its own standing support decision, not an outcome of that internal
+work; the [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md)
+owns it and its executable separation gate.
 
 The largest remaining product gaps are general ownership and lifetime safety,
 stable public aggregate/resource/component ABIs, a supported package ecosystem,

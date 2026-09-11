@@ -323,7 +323,12 @@ public descriptor field, or new package/report/Wasm schema. Focused evidence
 for this additive path includes the successful dedicated GEN-05B/GEN-05C
 Linux job on the exact implementation commit recorded above.
 
-A sound public generic-owned revision still requires all of the following:
+A sound public generic-owned revision is a separate milestone rather than a
+later tranche of this contract. The
+[Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md)
+owns its prerequisite gates, its separation invariants, and its standing support
+and publication decision; closing more of the internal closure below advances
+none of them. It still requires all of the following:
 
 - a new versioned Project descriptor and carrier rather than reinterpretation
   of v8, v9, or v11 bytes;

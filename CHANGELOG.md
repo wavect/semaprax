@@ -8,6 +8,23 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Make public generic ownership a separate milestone instead of a side
+  effect of the internal generic closure. The new
+  [Public Generic Ownership milestone](docs/PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md)
+  owns nine prerequisite gates - a versioned target-neutral type grammar,
+  explicit template and ordered argument identities, semantic compatibility
+  rules, candidate ABI-delta evidence, generated Rust/TypeScript-Wasm/C/C++
+  consumers, hostile metadata replay, owned allocation and failure
+  settlement, cross-platform hosted evidence, and the explicit support and
+  publication decision - plus separation invariants and an executable
+  separation gate. The gate selects a generic template, a concrete
+  generic-instance result and an owned generic parameter through the
+  canonical ABI report, C header emission and the public scalar Wasm export
+  edge, and pins each closed refusal, so an internal admission that starts
+  producing a public generic surface reddens the build rather than becoming
+  a silent public claim. Public generic ownership remains unsupported and
+  unpublished; no grammar, descriptor, carrier or consumer is added here.
+
 - Add effect-free listing cursors to `std.fs`, so the canonical
   immediate-name listing `list` already returns can be walked without a
   provider or any further authority: entry counting, per-entry span offsets,

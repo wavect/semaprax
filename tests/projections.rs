@@ -39,6 +39,8 @@ mod portable_indexed_byte_data;
 mod protocol_projection;
 #[path = "projections/public_api_descriptor.rs"]
 mod public_api_descriptor;
+#[path = "projections/public_generic_ownership_milestone.rs"]
+mod public_generic_ownership_milestone;
 #[path = "projections/query_projection.rs"]
 mod query_projection;
 #[path = "projections/region_report.rs"]

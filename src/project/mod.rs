@@ -99,6 +99,11 @@ use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
 #[cfg(all(test, windows))]
 use authority::{declared_absolute_path, has_declared_alias_component};
 pub use candidate::{
+    apply_approved_owned_workflow_publication, prepare_approved_owned_workflow_publication,
+    require_owned_targets_unchanged, reselect_owned_workflow, OwnedWorkflowApproval,
+    OwnedWorkflowCandidate, MAX_OWNED_WORKFLOW_APPROVAL_BYTES, OWNED_WORKFLOW_APPROVAL_SCHEMA,
+};
+pub use candidate::{
     apply_candidate_git_publication, apply_candidate_publication, prepare_candidate_publication,
     CandidateGitAuthority, CandidateGitCommitMetadata, CandidateGitObject, CandidateGitObjectKind,
     CandidateGitProcessAuthority, CandidateGitRefUpdate, CandidateGitRepository,

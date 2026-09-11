@@ -122,6 +122,8 @@ mod owned_block_extraction;
 mod owned_declarations;
 #[path = "project_candidate/owned_movement.rs"]
 mod owned_movement;
+#[path = "project_candidate/owned_workflow_approval.rs"]
+mod owned_workflow_approval;
 #[path = "project_candidate/ownership_delta.rs"]
 mod ownership_delta;
 #[path = "project_candidate/package_consumer_replay.rs"]

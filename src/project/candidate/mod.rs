@@ -50,6 +50,7 @@ mod interface;
 mod interface_delta;
 mod merge_preview;
 mod movement;
+mod owned_workflow_approval;
 mod ownership_delta;
 mod package_consumer_replay;
 mod public_generic_delta;
@@ -162,6 +163,11 @@ pub use generated_file_provenance::{
     MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_FILES,
     PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_DECLARATION_SCHEMA,
     PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_EVIDENCE_SCHEMA,
+};
+pub use owned_workflow_approval::{
+    apply_approved_owned_workflow_publication, prepare_approved_owned_workflow_publication,
+    require_owned_targets_unchanged, reselect_owned_workflow, OwnedWorkflowApproval,
+    OwnedWorkflowCandidate, MAX_OWNED_WORKFLOW_APPROVAL_BYTES, OWNED_WORKFLOW_APPROVAL_SCHEMA,
 };
 pub use ownership_delta::{
     MAX_PROJECT_CANDIDATE_OWNERSHIP_DELTA_BYTES, PROJECT_CANDIDATE_OWNERSHIP_DELTA_SCHEMA,

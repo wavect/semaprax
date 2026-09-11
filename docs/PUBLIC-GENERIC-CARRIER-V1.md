@@ -3,17 +3,21 @@
 Audience: backend provider authors on native and Core Wasm, and reviewers of the ownership and settlement contract.
 
 Status: frozen logical specification with a reference codec and local
-evidence (`src/public_generic_abi/carrier.rs`, and its `machine` and `trace`
-submodules). This is the carrier half of gate #150-#153 of the [Public
-Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md) and
-answers issue #171 and issue #153. It defines the ownership state machine,
-the phase ledger, a `CarrierBindingV1` wire binding, the [call-machine
-orchestration](#the-call-machine) that drives both together atomically, and
-the [normalized trace vocabulary](#the-normalized-trace) — all as pure,
-locally-tested logic. It defines **no physical target mapping** — no C
-struct layout, no Wasm handle table implementation, no Rust FFI boundary —
-and executes nothing itself: there is no provider, no allocator, and no real
-target to allocate, transfer, or release against, in this LOGICAL section.
+evidence (`src/public_generic_abi/carrier.rs`, and its `frame`, `machine`,
+and `trace` submodules). This is the carrier half of gate #150-#153 of the
+[Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md)
+and answers issue #171 and issue #153. It defines the ownership state
+machine, the phase ledger, a `CarrierBindingV1` wire binding, [Canonical
+carrier bytes](#canonical-carrier-bytes) (`LogicalCarrierFrame`, the
+payload-bearing wire frame, and `CarrierFrameBinding`, which validates one
+against a real `VerifiedPublicGenericDescriptor`-derived plan), the
+[call-machine orchestration](#the-call-machine) that drives the state
+machine and phase ledger together atomically, and the [normalized trace
+vocabulary](#the-normalized-trace) — all as pure, locally-tested logic. It
+defines **no physical target mapping** — no C struct layout, no Wasm handle
+table implementation, no Rust FFI boundary — and executes nothing itself:
+there is no provider, no allocator, and no real target to allocate,
+transfer, or release against, in this LOGICAL section.
 [Native C11 physical adapter (issue #154)](#native-c11-physical-adapter-issue-154)
 and [Core Wasm physical adapter (issue #155)](#core-wasm-physical-adapter-issue-155)
 below are the first two PHYSICAL adapters built on top of it, each with real
@@ -94,6 +98,112 @@ Handle { id: u32, generation: u32 }
 
 Maximum live handles per carrier instance is **257** (256 owned leaves plus
 the one root handle), reused from [Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md#bounds).
+
+## Canonical carrier bytes
+
+[`carrier::frame::LogicalCarrierFrame`](../src/public_generic_abi/carrier/frame.rs)
+is the bounded, target-neutral wire encoding of one prepared input or staged
+result: the exact semantic binding facts plus every owned leaf's exact
+payload bytes, in canonical order. Like [`CarrierBindingV1`](#compatibility-and-lifecycle)
+below, it is a pure codec — nothing here allocates, transfers, or releases a
+real value. Canonical byte order:
+
+```text
+schema/version
+direction
+descriptor_digest
+endpoint_identity_digest
+instance_identity_digest
+leaf_inventory_digest
+leaf_count                      (8-byte little-endian, not length-framed)
+total_payload_length            (8-byte little-endian, not length-framed)
+for each leaf in canonical order:
+    leaf_path_identity          (length-framed UTF-8)
+    canonical leaf kind         (one closed tag byte)
+    payload length + payload    (one length-framed field)
+carrier_facts_digest            (length-framed; always recomputed, never trusted)
+```
+
+Every identity/path field uses the same 8-byte-little-endian-length-then-bytes
+framing [`CarrierBindingV1`](#compatibility-and-lifecycle) already uses
+(`public_generic_abi::frame`/`read_frame`); `leaf_count` and
+`total_payload_length` are raw 8-byte fields, matching the requirement that
+"all lengths have one canonical fixed or explicitly framed encoding."
+`carrier_facts_digest` is a domain-separated digest
+(`semaprax.public-generic-carrier.v1.frame\0`) over every preceding byte;
+[`parse_bounded`](../src/public_generic_abi/carrier/frame.rs) always
+independently recomputes and compares it before returning a value, so a
+bit-flipped or hand-tampered frame that otherwise decodes structurally is
+still rejected — the same "never transmitted as a trust input, always
+recomputed" discipline `CarrierBindingV1::binding_digest` already uses.
+
+**Scope: flat owned-`Bytes` leaves only.** [`LeafKind`](../src/public_generic_abi/carrier/frame.rs)
+is deliberately closed to one variant (`Bytes`) this round, matching the rest
+of this milestone's generated consumers and physical adapters: nested
+records and Copy scalars remain blocked on #119, so every leaf a frame
+carries today is a direct owned `Bytes` leaf. Widening `LeafKind` when #119
+lands is additive, not a breaking change to this framing.
+
+**Bounds** (reused from [Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md#bounds),
+enforced by `parse_bounded` before the corresponding allocation, `SPX-PG802`):
+declared `leaf_count` over 256; declared `total_payload_length` over 16 MiB;
+any one leaf's declared payload length over 64 KiB. Because
+`MAX_TOTAL_PAYLOAD_BYTES` equals exactly `MAX_OWNED_LEAVES_PER_INSTANCE *
+MAX_BYTES_PER_LEAF`, the running-total check inside the per-leaf loop is
+defense in depth: given the other two bounds already enforced, no combination
+of real leaf bytes can independently trip it — it exists so a future change
+that breaks that exact relationship fails closed immediately rather than
+silently admitting a larger total.
+
+**Hostile-input handling** (`SPX-PG801` malformed/framing, `SPX-PG802`
+capacity, `SPX-PG803` replay/self-digest mismatch — the same three codes
+[`CarrierBindingV1`](#compatibility-and-lifecycle) already uses, restated for
+a payload-bearing frame rather than allocated a fourth time): truncation at
+every byte boundary; trailing bytes; an unknown schema or direction; an
+oversized length claim; a duplicate leaf path (rejected structurally, by
+`parse_bounded` itself, independent of any trusted plan); and a declared
+`total_payload_length` that disagrees with the actual sum of leaf payload
+lengths (a noncanonical-length refusal, distinct from the capacity and
+self-digest checks).
+
+**Binding a parsed frame to a trusted context** is
+[`carrier::frame::CarrierFrameBinding`](../src/public_generic_abi/carrier/frame.rs)'s
+job, kept deliberately separate from `parse_bounded` — mirroring
+`CarrierBindingV1::decode_binding` versus `replay_binding`'s own split — so a
+frame that merely decodes is never confused with one that is semantically
+bound to the right value:
+
+- `CarrierFrameBinding::from_verified_descriptor(descriptor, direction)`
+  derives the trusted plan **directly from a real
+  [`VerifiedPublicGenericDescriptor`](PUBLIC-GENERIC-DESCRIPTOR-V1.md)** —
+  never from raw or merely parsed descriptor bytes, per this issue's own
+  "Required APIs" requirement. It reuses that descriptor's own
+  `descriptor_digest()`, `export_id()`, and per-direction
+  [`InstanceFacts`](../src/public_generic_type.rs) (`instance_digest` and the
+  canonical `owned_leaves` path list) rather than re-deriving or trusting any
+  of those facts a second time.
+- `validate_frame` checks direction, descriptor/endpoint/instance/leaf-
+  inventory digests, and the leaf-path sequence, in that order. A missing
+  leaf, an extra leaf, and a reordered leaf are all caught by the same one
+  `Vec` equality check against the canonical inventory, since each changes
+  the sequence relative to it. A frame that decodes cleanly (self-digest
+  intact) but is bound to a different descriptor, endpoint, instance, or
+  direction — a "reminted carrier digest with the wrong semantic binding" —
+  is rejected here as `SPX-PG803`, never at parse time.
+
+This closes this issue's own "Required APIs" list items
+`LogicalCarrierFrame::parse_bounded` and the `LogicalCarrierPlan`
+responsibilities (`from_verified_descriptor`, `validate_frame`). It does not
+change what [`CarrierCallMachine`](#the-call-machine) requires: that
+orchestration still drives opaque `Handle`s only and does not itself bind to
+a descriptor or parse carrier bytes — see [LOGICAL versus
+PHYSICAL](#logical-versus-physical) and the call machine's own scope note.
+Wiring `CarrierCallMachine` to a `LogicalCarrierFrame`/`CarrierFrameBinding`
+pair end to end (so a real call is driven from parsed, descriptor-bound bytes
+rather than hand-constructed `Handle` values) remains a real physical/wiring
+gap, tracked separately (#154/#155 already drive the state machine and trace
+against fixture endpoints; wiring the frame codec into that same path is
+follow-on work, not performed this round).
 
 ## The logical value state machine
 
@@ -762,11 +872,61 @@ submodule, and in the `machine` and `trace` submodules:
   and that a reordered or partial release sequence is rejected;
 - an attempt to set a second, different `Settled` outcome after the first is
   rejected with `SPX-PG806` (sticky failure);
-- a wrong-generation handle and a handle bound to a different carrier binding
-  are both rejected with `SPX-PG805`;
+- a wrong-generation handle is rejected with `SPX-PG805`
+  (`a_wrong_generation_handle_is_rejected`). Corrected in place: `Handle`
+  itself carries only `{id, generation}`, no binding reference, so
+  "generation" is the only mechanism this logical layer has for
+  distinguishing one carrier instance (and therefore one binding) from
+  another — there is no separate "handle bound to a different carrier
+  binding" check or test independent of generation at this layer. Verifying
+  that a real generation counter is actually minted per real provider
+  instance (so two instances never share one) is a physical-adapter fact,
+  proven by `native`'s and `wasm`'s own handle-registry tests, not by this
+  logical module;
 - golden byte-determinism for `CarrierBindingV1::encode`, a hostile decode
   corpus (truncation, trailing bytes, unknown target profile, oversized
   length claim), and a cross-paired `replay` failure for each bound field.
+
+The `frame` submodule covers [Canonical carrier bytes](#canonical-carrier-bytes),
+issue #153's Section B, at the wire-byte level:
+
+- golden byte-determinism for `LogicalCarrierFrame::encode` and
+  `carrier_facts_digest`;
+- a minimal (zero-leaf) frame, a zero-length `Bytes` leaf, and a leaf with
+  embedded zero bytes, all round-tripping exactly;
+- each first-over-bound case: one leaf's payload one byte over
+  `MAX_BYTES_PER_LEAF`; one leaf over `MAX_OWNED_LEAVES_PER_INSTANCE`; a
+  declared `total_payload_length` one byte over `MAX_TOTAL_PAYLOAD_BYTES`
+  (probed directly at the header level, since the per-leaf and leaf-count
+  bounds already make that total unreachable through real leaf bytes); and a
+  positive case reaching the total-payload bound exactly through
+  `MAX_OWNED_LEAVES_PER_INSTANCE` leaves at `MAX_BYTES_PER_LEAF` each;
+- a duplicate leaf path, rejected by `parse_bounded` itself as malformed;
+- a missing leaf, an extra leaf, and a reordered leaf, each rejected by
+  `CarrierFrameBinding::validate_frame` specifically on the leaf-sequence
+  check (asserted on the diagnostic message, not only its code, so a
+  regression that made an earlier field check swallow these cases would fail
+  the test);
+- a self-consistent (correctly self-digested) frame bound to the wrong
+  direction, descriptor, endpoint, or instance, each rejected by
+  `validate_frame` as `SPX-PG803` — the "reminted carrier digest with the
+  wrong semantic binding" case — while the correctly bound plan still
+  accepts the same frame;
+- a tampered frame (one payload byte flipped, stale digest kept) rejected by
+  `parse_bounded`'s own self-digest check, before any binding plan is ever
+  considered;
+- truncation at every single byte boundary of a well-formed frame, trailing
+  bytes, an unknown schema, an unknown direction, an oversized length claim,
+  and a declared total-payload length that disagrees with the actual sum of
+  leaf payload lengths (noncanonical length, distinct from the capacity and
+  self-digest checks);
+- `CarrierFrameBinding::from_verified_descriptor`, driven through the real
+  parser, resolver, descriptor producer, and independent descriptor verifier
+  (never a hand-built fixture) against a `Pair<Leaf, i64>`-in/`Leaf`-out
+  export chosen specifically so input and result facts genuinely differ:
+  each direction's binding is checked against that direction's own
+  `owned_leaves`, not the other one's, which a "reads `input_facts()`
+  regardless of the requested direction" bug would fail.
 
 The `machine` submodule additionally covers, at the whole-call orchestration
 level named by issue #153:
@@ -810,7 +970,18 @@ the pure codec, never a real interpreter, native binary, or Wasm module. It
 is not evidence that any backend settles a public generic boundary this
 LOGICAL layer's own types execute against: [`CarrierCallMachine`] itself
 still does not bind to a `VerifiedPublicGenericDescriptor`, parse carrier
-bytes, or perform any physical allocation. [Native C11 physical adapter
+bytes, or perform any physical allocation — only [`CarrierFrameBinding`](#canonical-carrier-bytes)
+does, and only at the byte-validation layer, not wired into
+`CarrierCallMachine`'s own orchestration this round. Failure injection by
+semantic ordinal (issue #153's Section H) exists as physical, real evidence
+in the native and Wasm adapters below (`spx_pg_test_inject_failure_v1`,
+`WasmProvider::test_inject_failure`, each driving or restating this exact
+LOGICAL layer), not as a separate ordinal-indexed API on this LOGICAL layer
+itself; this module's own tests exercise the identical failure shapes by
+direct, pre-commit state manipulation instead (see `machine`'s
+`failure_arriving_mid_transfer_leaves_no_handle_transferred` and its result-
+staging mirror), which is equivalent for a pure state machine with no
+allocation of its own to roll back. [Native C11 physical adapter
 (issue #154)](#native-c11-physical-adapter-issue-154) and [Core Wasm
 physical adapter (issue #155)](#core-wasm-physical-adapter-issue-155) below
 are the first two PHYSICAL adapters to emit the normalized trace and

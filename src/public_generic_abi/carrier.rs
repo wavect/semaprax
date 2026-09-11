@@ -13,6 +13,13 @@ use crate::diagnostic::Diagnostic;
 use crate::public_generic_abi::boundary_profile::MAX_LIVE_HANDLES;
 use crate::public_generic_abi::{digest, frame, read_frame};
 
+/// [Section B canonical carrier
+/// bytes](../../docs/PUBLIC-GENERIC-CARRIER-V1.md#canonical-carrier-bytes):
+/// the bounded, self-digested, leaf-payload-bearing wire frame and the plan
+/// that validates one against a trusted `VerifiedPublicGenericDescriptor`-
+/// derived binding. See [`frame::LogicalCarrierFrame`] and
+/// [`frame::CarrierFrameBinding`].
+pub mod frame;
 /// The call-level orchestration that ties the state machine below and the
 /// phase ledger together with a normalized event trace. See
 /// [`machine::CarrierCallMachine`].

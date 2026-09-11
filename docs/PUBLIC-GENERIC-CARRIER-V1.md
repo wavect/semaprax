@@ -3,17 +3,20 @@
 Audience: backend provider authors on native and Core Wasm, and reviewers of the ownership and settlement contract.
 
 Status: frozen logical specification with a reference codec and local
-evidence (`src/public_generic_abi/carrier.rs`). This is the carrier half of
-gate #150-#153 of the [Public Generic Ownership
-milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md) and answers issue #171.
-It defines the ownership state machine, the phase ledger, the trace
-vocabulary, and a `CarrierBindingV1` wire binding, with a reference codec and
-a pure state-machine implementation. It defines **no physical target
-mapping** — no C struct layout, no Wasm handle table implementation, no Rust
-FFI boundary — and executes nothing: there is no provider, no allocator, and
-no real target to allocate, transfer, or release against. That is PG-7's
-remaining work (issues #154-#159), which this round does not touch. Public
-generic ownership remains unsupported and unpublished.
+evidence (`src/public_generic_abi/carrier.rs`, and its `machine` and `trace`
+submodules). This is the carrier half of gate #150-#153 of the [Public
+Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md) and
+answers issue #171 and issue #153. It defines the ownership state machine,
+the phase ledger, a `CarrierBindingV1` wire binding, the [call-machine
+orchestration](#the-call-machine) that drives both together atomically, and
+the [normalized trace vocabulary](#the-normalized-trace) — all as pure,
+locally-tested logic. It defines **no physical target mapping** — no C
+struct layout, no Wasm handle table implementation, no Rust FFI boundary —
+and executes nothing: there is no provider, no allocator, and no real target
+to allocate, transfer, or release against, and no adapter yet emits the
+normalized trace. That is PG-7's remaining work (issues #154-#159), which
+this round does not touch. Public generic ownership remains unsupported and
+unpublished.
 
 Audience: ownership, cleanup, backend, ABI, and generated-consumer
 maintainers.
@@ -189,6 +192,103 @@ case: "transferring ownership before all validation completes can leak or
 double-free on later failure" — validation and capacity reservation happen
 in `Preparing`/`Validated`, strictly before the one `Committed` transition.
 
+## The call machine
+
+[`carrier::machine::CarrierCallMachine`](../src/public_generic_abi/carrier/machine.rs)
+is the executable orchestration that ties the state machine above and the
+phase ledger together for one whole call, gated exactly the way [the call
+phase ledger](#the-call-phase-ledger) requires:
+
+- [`CarrierCallMachine::validate`] advances `Preparing -> Validated`.
+- [`CarrierCallMachine::prepare_input`] fills every input handle (`Created ->
+  Initialized`), root then leaves.
+- [`CarrierCallMachine::commit_input_transfer`] is **the** atomic commit
+  point: it checks — without mutating anything — that every input handle is
+  `Initialized`, and only if that check passes does it advance the phase to
+  `Committed` and apply `Initialized -> Transferred` to every handle. A
+  failure discovered mid-transfer (one handle not yet `Initialized` while its
+  siblings already are, simulating an injected failure between one leaf's
+  allocation and the next) is refused before any handle is mutated: there is
+  no way to observe some handles `Transferred` and others not. Calling it
+  twice is refused the same way — the second call's readiness check sees
+  every handle already `Transferred`, which is not a legal source state for
+  `Commit`.
+- [`CarrierCallMachine::begin_execution`] / `finish_execution` bracket the
+  checked function's execution, legal only once, only after input commits.
+- [`CarrierCallMachine::begin_result`] / `prepare_result` /
+  [`commit_result`] mirror input staging and commit for the result
+  direction, only after execution finishes; the consumer-visible
+  [`CarrierCallMachine::result`] accessor returns handles still `Initialized`
+  (never `Transferred`) until `commit_result` runs, which is the executable
+  form of "the consumer sees no result leaf before whole-result commit".
+- [`CarrierCallMachine::settle`] selects the terminal [`Settlement`], sticky
+  exactly as [above](#the-call-phase-ledger): a later, different outcome
+  (including a cleanup failure arriving after an earlier semantic failure) is
+  rejected with `SPX-PG806`; when no earlier failure exists, a cleanup
+  failure may legally become the terminal status.
+- [`CarrierCallMachine::release_input_before_transfer`],
+  `release_input_after_transfer`, and `release_result_before_commit` release
+  a [`HandleSet`] in the exact reverse of its obligation order (root last),
+  matching [failure settlement and release order](#failure-settlement-and-release-order)
+  above; releasing an already-released set a second time is refused, because
+  the second handle in reverse order is no longer in a state `Release*` can
+  legally leave.
+
+This machine binds no [descriptor](PUBLIC-GENERIC-DESCRIPTOR-V1.md), parses
+no carrier bytes, and allocates nothing physical — see [LOGICAL versus
+PHYSICAL](#logical-versus-physical). Requiring a
+`VerifiedPublicGenericDescriptor` and wiring `LogicalCarrierFrame::parse_bounded`
+/ `LogicalCarrierPlan` from a real descriptor and a real physical adapter
+remains #154/#155's follow-on work; this machine is the shared LOGICAL
+orchestration both of them drive identically.
+
+## The normalized trace
+
+[`carrier::trace::Trace`](../src/public_generic_abi/carrier/trace.rs) records
+an append-only, ordinal-numbered sequence of
+[`TraceEvent`](../src/public_generic_abi/carrier/trace.rs)s as
+[`CarrierCallMachine`](../src/public_generic_abi/carrier/machine.rs) runs.
+Every event carries only deterministic identity/lifecycle fields — an
+ordinal, a [`TraceLabel`], a [`Direction`] (`Input` or `Result`), an optional
+structural leaf index, an optional state-before/state-after pair, and an
+optional [`Settlement`] — never a payload byte, a host pointer, a native
+offset, a Wasm address, a random nonce, a wall-clock time, or a process
+identifier. The vocabulary is closed and matches issue #153's recommended
+event names exactly:
+
+```text
+FrameValidated
+LeafAllocationStarted
+LeafAllocationCommitted
+LeafPayloadCopied
+InputValuePrepared
+InputTransferCommitted
+ExecutionStarted
+ExecutionFinished
+ResultLeafAllocationStarted
+ResultLeafAllocationCommitted
+ResultValuePrepared
+ResultCommit
+LeafRelease
+CarrierRelease
+TerminalStatus
+```
+
+Allocation/copy events (`LeafAllocationStarted`, `LeafAllocationCommitted`,
+`LeafPayloadCopied`, and their `Result*` counterparts) are per-handle, one
+triple per root or leaf. The two commit markers
+(`InputTransferCommitted`, `ResultCommit`) and the two preparation markers
+(`InputValuePrepared`, `ResultValuePrepared`) are whole-value events with no
+leaf index, matching the commit rule above: the call commits one marker for
+every handle together, not one marker per handle. `TerminalStatus` carries
+the selected [`Settlement`], recorded once per [`CarrierCallMachine::settle`]
+call that actually changes the sticky outcome.
+
+The same normalized trace vocabulary is the intended comparison point for a
+later cross-engine equivalence test across the interpreter, native C11, and
+Core Wasm adapters; this document and its reference implementation define the
+vocabulary and a local, in-memory recorder only; no adapter emits it yet.
+
 ## Target mappings (logical only)
 
 This document commits every target to the same states and transitions; it
@@ -255,7 +355,7 @@ Generic Descriptor v1](PUBLIC-GENERIC-DESCRIPTOR-V1.md).
 ## Required tests and evidence
 
 Local evidence only, in `src/public_generic_abi/carrier.rs` and its `tests`
-submodule:
+submodule, and in the `machine` and `trace` submodules:
 
 - every legal transition in the [state table](#the-logical-value-state-machine)
   succeeds, driven from every reachable starting state;
@@ -275,6 +375,34 @@ submodule:
   corpus (truncation, trailing bytes, unknown target profile, oversized
   length claim), and a cross-paired `replay` failure for each bound field.
 
+The `machine` submodule additionally covers, at the whole-call orchestration
+level named by issue #153:
+
+- a full success run through every [`CarrierCallMachine`] method, asserting
+  every input and result handle reaches `Transferred` and the normalized
+  trace records exactly the expected label sequence with sequential
+  ordinals;
+- **double transfer**: a second `commit_input_transfer` after a successful
+  one is rejected, and the already-committed handles are left unchanged;
+- **use after transfer**: mutating (`Fill`) an already-`Transferred` handle
+  is rejected and the handle latches to `Invalid`;
+- **copy-out after release**: consuming (`Consume`) an already-`Released`
+  handle is rejected;
+- **failure arriving mid-transfer**: with one handle `Initialized` and a
+  sibling still `Created`, `commit_input_transfer` is rejected and leaves
+  every handle exactly as it was — no partial transfer is observable — after
+  which the failure is settled and the handles release in reverse order;
+- **release exactly once**: releasing an already-released handle set a
+  second time is rejected;
+- **cleanup cannot overwrite a sticky failure status**: a settled primary
+  failure rejects a later, different cleanup outcome with `SPX-PG806`, while
+  a cleanup failure with no earlier failure may legally become the terminal
+  status;
+- result-staging mirrors: result leaves are invisible (still `Initialized`)
+  before `commit_result`, a partially staged result releases only the
+  leaves actually completed, and result staging/commit is gated on
+  execution having begun and finished exactly once.
+
 No hosted run is recorded for this document; no provider, allocator, or real
 target executes anything here. See the accompanying worktree report for the
 exact local commands run.
@@ -284,8 +412,12 @@ exact local commands run.
 This document defines no physical layout, no allocator, no memory
 representation, and no generated code. It does not execute, allocate,
 transfer, or release anything: every test above exercises the pure state
-machine and the pure codec, never a real interpreter, native binary, or Wasm
-module. It is not evidence that any backend settles a public generic
-boundary. It reuses no v8-v11 carrier bytes and widens none of them. The
-target-mapping table above is naming guidance for a future physical
-specification, not that specification itself.
+machine, the pure call-machine orchestration, the pure trace recorder, and
+the pure codec, never a real interpreter, native binary, or Wasm module. It
+is not evidence that any backend settles a public generic boundary, and no
+adapter emits the normalized trace yet — [`CarrierCallMachine`] does not
+bind to a `VerifiedPublicGenericDescriptor`, parse carrier bytes, or perform
+any physical allocation; that wiring is #154/#155's follow-on work. It
+reuses no v8-v11 carrier bytes and widens none of them. The target-mapping
+table above is naming guidance for a future physical specification, not
+that specification itself.

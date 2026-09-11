@@ -13,6 +13,13 @@ use crate::diagnostic::Diagnostic;
 use crate::public_generic_abi::boundary_profile::MAX_LIVE_HANDLES;
 use crate::public_generic_abi::{digest, frame, read_frame};
 
+/// The call-level orchestration that ties the state machine below and the
+/// phase ledger together with a normalized event trace. See
+/// [`machine::CarrierCallMachine`].
+pub mod machine;
+/// The engine-neutral normalized trace vocabulary. See [`trace::Trace`].
+pub mod trace;
+
 /// The versioned carrier schema.
 pub const CARRIER_SCHEMA: &str = "semaprax.public-generic-carrier.v1";
 

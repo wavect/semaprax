@@ -32,17 +32,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         if *element == ResolvedType::Bytes {
             return self.emit_vec_bytes_op(expr, op, args);
         }
-        let tag = match element {
-            ResolvedType::I64 => 1,
-            ResolvedType::I32 => 2,
-            ResolvedType::U8 => 3,
-            ResolvedType::Usize => 4,
-            ResolvedType::Char => 5,
-            ResolvedType::F32 => 6,
-            ResolvedType::F64 => 7,
-            ResolvedType::Bool => 8,
-            _ => unreachable!("admitted bounded Vec element is scalar"),
-        };
+        let tag = vec_element_tag(element)?;
         let mut values = Vec::with_capacity(args.len());
         for (index, argument) in args.iter().enumerate() {
             let value = self.emit_expr(argument)?;
@@ -232,12 +222,39 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 ));
                 self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
                 Ok(CValue {
-                    code: vec_bits_to_scalar(&bits, element),
+                    code: vec_bits_to_scalar(&bits, element)?,
                     ty: element.clone(),
                 })
             }
         }
     }
+}
+
+/// The compact numeric element tag the shared `spx_vec_*` C runtime uses to
+/// select its per-element storage stride. `resolved_operation_element_is_admitted`
+/// admits only a Copy scalar or `Bytes` (handled separately by
+/// `emit_vec_bytes_op`) today, so the fallback arm is unreachable through
+/// `emit_vec_op`'s own entry gate. It returns a clean diagnostic rather than
+/// panicking so that a future admission widening that reaches this dispatch
+/// ahead of matching backend support fails closed instead of aborting the
+/// compiler process. See `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md`
+/// (backend hazard).
+fn vec_element_tag(ty: &ResolvedType) -> Result<i32, Diagnostic> {
+    Ok(match ty {
+        ResolvedType::I64 => 1,
+        ResolvedType::I32 => 2,
+        ResolvedType::U8 => 3,
+        ResolvedType::Usize => 4,
+        ResolvedType::Char => 5,
+        ResolvedType::F32 => 6,
+        ResolvedType::F64 => 7,
+        ResolvedType::Bool => 8,
+        _ => {
+            return Err(backend_error(
+                "bounded Vec operation reached an element type this backend does not execute",
+            ))
+        }
+    })
 }
 
 fn vec_scalar_to_bits(value: &CValue) -> String {
@@ -248,8 +265,8 @@ fn vec_scalar_to_bits(value: &CValue) -> String {
     }
 }
 
-fn vec_bits_to_scalar(bits: &str, ty: &ResolvedType) -> String {
-    match ty {
+fn vec_bits_to_scalar(bits: &str, ty: &ResolvedType) -> Result<String, Diagnostic> {
+    Ok(match ty {
         ResolvedType::I64 => format!("((int64_t){bits})"),
         ResolvedType::I32 => format!("((int32_t){bits})"),
         ResolvedType::U8 => format!("((uint8_t){bits})"),
@@ -258,6 +275,40 @@ fn vec_bits_to_scalar(bits: &str, ty: &ResolvedType) -> String {
         ResolvedType::F32 => format!("spx_vec_bits_f32({bits})"),
         ResolvedType::F64 => format!("spx_vec_bits_f64({bits})"),
         ResolvedType::Bool => format!("((bool){bits})"),
-        _ => unreachable!("admitted bounded Vec element is scalar"),
+        // See the parallel arm in `emit_vec_op`: a clean diagnostic, not a
+        // panic, for any element outside today's admitted scalar profile.
+        _ => {
+            return Err(backend_error(
+                "bounded Vec operation reached an element type this backend does not execute",
+            ))
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// SPX-AI-020 (issue #119) backend-hazard regression: today's admitted
+    /// bounded Vec profile is a Copy scalar or `Bytes` only
+    /// (`resolved_operation_element_is_admitted`/`resolved_vec_element_is_admitted`
+    /// in `crate::vec_ops`), so `emit_vec_op`'s own entry gate refuses any
+    /// other element before it ever reaches `vec_element_tag`/
+    /// `vec_bits_to_scalar`. These tests exercise the helpers directly with
+    /// an element outside that profile (bypassing the entry gate the way a
+    /// forged/hostile HIR or a future admission widening ahead of matching
+    /// backend support could) to prove they return a clean diagnostic rather
+    /// than the `unreachable!()` this module used before SPX-AI-020: see
+    /// `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md` (backend hazard).
+    #[test]
+    fn vec_element_tag_refuses_an_unadmitted_element_without_panicking() {
+        assert!(vec_element_tag(&ResolvedType::String).is_err());
+        assert!(vec_element_tag(&ResolvedType::Bytes).is_err());
+    }
+
+    #[test]
+    fn vec_bits_to_scalar_refuses_an_unadmitted_element_without_panicking() {
+        assert!(vec_bits_to_scalar("0", &ResolvedType::String).is_err());
+        assert!(vec_bits_to_scalar("0", &ResolvedType::Bytes).is_err());
     }
 }

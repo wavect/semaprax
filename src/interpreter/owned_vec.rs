@@ -275,8 +275,15 @@ impl Evaluator<'_> {
                 if vector.element != element {
                     return Err(Flow::Guard("forged bounded Vec element type"));
                 }
+                // The `as_slice()` match above already proved the sole value
+                // is `Value::Vec`; this re-destructures the owned `Value` (an
+                // owned `Vec::into_iter().next()` cannot itself change
+                // variant). Guarded rather than `unreachable!()` per
+                // `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md` (backend
+                // hazard): a clean diagnostic, never a panic, if a future
+                // admission widening or refactor ever invalidates that proof.
                 let Value::Vec(vector) = values.into_iter().next().unwrap() else {
-                    unreachable!("validated Vec clear carrier")
+                    return Err(Flow::Guard("validated Vec clear carrier changed variant"));
                 };
                 let mut vector = Arc::try_unwrap(vector)
                     .map_err(|_| Flow::Guard("aliased owned bounded Vec carrier"))?;

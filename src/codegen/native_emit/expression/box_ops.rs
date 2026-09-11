@@ -28,17 +28,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         if *element == ResolvedType::Bytes {
             return self.emit_box_bytes_op(expr, op, args);
         }
-        let tag = match element {
-            ResolvedType::I64 => 1,
-            ResolvedType::I32 => 2,
-            ResolvedType::U8 => 3,
-            ResolvedType::Usize => 4,
-            ResolvedType::Char => 5,
-            ResolvedType::F32 => 6,
-            ResolvedType::F64 => 7,
-            ResolvedType::Bool => 8,
-            _ => unreachable!("admitted bounded Box element is scalar"),
-        };
+        let tag = box_element_tag(element)?;
         let value = self.emit_expr(&args[0])?;
         let value =
             self.stage_bytes_call_argument(&expr.id, 0, &args[0], op.param_ownership(), value)?;
@@ -78,7 +68,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     value.code
                 ));
                 Ok(CValue {
-                    code: box_bits_to_scalar(&bits, element),
+                    code: box_bits_to_scalar(&bits, element)?,
                     ty: element.clone(),
                 })
             }
@@ -103,12 +93,39 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     self.line(line);
                 }
                 Ok(CValue {
-                    code: box_bits_to_scalar(&bits, element),
+                    code: box_bits_to_scalar(&bits, element)?,
                     ty: element.clone(),
                 })
             }
         }
     }
+}
+
+/// The compact numeric element tag the shared `spx_box_*` C runtime uses to
+/// select its scalar storage stride. `resolved_operation_element_is_admitted`
+/// admits only a Copy scalar or `Bytes` (handled separately by
+/// `emit_box_bytes_op`) today, so the fallback arm is unreachable through
+/// `emit_box_op`'s own entry gate. It returns a clean diagnostic rather than
+/// panicking so that a future admission widening that reaches this dispatch
+/// ahead of matching backend support fails closed instead of aborting the
+/// compiler process. See `docs/OWNED-RECORD-COLLECTION-ELEMENT-V1.md`
+/// (backend hazard).
+fn box_element_tag(ty: &ResolvedType) -> Result<i32, Diagnostic> {
+    Ok(match ty {
+        ResolvedType::I64 => 1,
+        ResolvedType::I32 => 2,
+        ResolvedType::U8 => 3,
+        ResolvedType::Usize => 4,
+        ResolvedType::Char => 5,
+        ResolvedType::F32 => 6,
+        ResolvedType::F64 => 7,
+        ResolvedType::Bool => 8,
+        _ => {
+            return Err(backend_error(
+                "bounded Box operation reached an element type this backend does not execute",
+            ))
+        }
+    })
 }
 
 fn box_scalar_to_bits(value: &CValue) -> String {
@@ -119,8 +136,8 @@ fn box_scalar_to_bits(value: &CValue) -> String {
     }
 }
 
-fn box_bits_to_scalar(bits: &str, ty: &ResolvedType) -> String {
-    match ty {
+fn box_bits_to_scalar(bits: &str, ty: &ResolvedType) -> Result<String, Diagnostic> {
+    Ok(match ty {
         ResolvedType::I64 => format!("((int64_t){bits})"),
         ResolvedType::I32 => format!("((int32_t){bits})"),
         ResolvedType::U8 => format!("((uint8_t){bits})"),
@@ -129,6 +146,34 @@ fn box_bits_to_scalar(bits: &str, ty: &ResolvedType) -> String {
         ResolvedType::F32 => format!("spx_box_bits_f32({bits})"),
         ResolvedType::F64 => format!("spx_box_bits_f64({bits})"),
         ResolvedType::Bool => format!("((bool){bits})"),
-        _ => unreachable!("admitted bounded Box element is scalar"),
+        // See the parallel arm in `emit_box_op`: a clean diagnostic, not a
+        // panic, for any element outside today's admitted scalar profile.
+        _ => {
+            return Err(backend_error(
+                "bounded Box operation reached an element type this backend does not execute",
+            ))
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// SPX-AI-020 (issue #119) backend-hazard regression: see the parallel
+    /// test in `super::super::vec_ops`. Exercises `box_element_tag`/
+    /// `box_bits_to_scalar` directly with an element outside the admitted
+    /// Copy-scalar/`Bytes` profile to prove they return a clean diagnostic
+    /// rather than the `unreachable!()` this module used before SPX-AI-020.
+    #[test]
+    fn box_element_tag_refuses_an_unadmitted_element_without_panicking() {
+        assert!(box_element_tag(&ResolvedType::String).is_err());
+        assert!(box_element_tag(&ResolvedType::Bytes).is_err());
+    }
+
+    #[test]
+    fn box_bits_to_scalar_refuses_an_unadmitted_element_without_panicking() {
+        assert!(box_bits_to_scalar("0", &ResolvedType::String).is_err());
+        assert!(box_bits_to_scalar("0", &ResolvedType::Bytes).is_err());
     }
 }

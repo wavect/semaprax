@@ -18,7 +18,10 @@ analogues) into tested, clean-diagnostic fallbacks without widening any
 admission predicate; see "SPX-AI-020 execution decision and status" below for
 the decision, the fuller blast-radius inventory that reading the actual
 backend call graph turned up, and exactly what remains before any backend can
-execute this shape.
+execute this shape. A 2026-09-11 re-audit against `origin/main` independently
+re-confirmed the panic-hardening is intact and unwidened, and closed one
+residual test-coverage gap in the classifiers; see "Issue #118
+acceptance-criteria audit" below.
 
 ## Purpose and non-goals
 
@@ -85,16 +88,18 @@ admission by carrying a stale bit.
 Reference implementation and unit evidence:
 
 - `src/hir/owned_record_collection::is_admitted_owned_record_collection_element`
-  (resolved/HIR side, keyed on `DeclarationIndex`), with 12 unit cases:
+  (resolved/HIR side, keyed on `DeclarationIndex`), with 13 unit cases:
   admission across all eight Copy-scalar substitutions, field-order
-  independence, an extra field, a missing field, a wrong field type in either
-  slot, two Copy fields with only one `Bytes` field, a nested record field, a
-  `resource`, a `class`, a generic record instantiated to the exact field
-  shape, a `variant` sharing the same field-name convention, and non-nominal
-  types.
+  independence, an extra field, a missing field, a wrong-but-Copy-scalar
+  field type in either slot, a `String` field (neither `Bytes` nor a Copy
+  scalar, exercising the classifier's other refusal path), two Copy fields
+  with only one `Bytes` field, a nested record field, a `resource`, a
+  `class`, a generic record instantiated to the exact field shape, a
+  `variant` sharing the same field-name convention, and non-nominal types.
 - `src/source_verify/declared_type/owned_record_collection::is_admitted_owned_record_collection_element`
-  (AST side, keyed on `TypeTable`), with 5 unit cases covering the same
-  admit/refuse boundary before resolution.
+  (AST side, keyed on `TypeTable`), with 6 unit cases covering the same
+  admit/refuse boundary before resolution, including the same dedicated
+  `String`-field case.
 
 Both are `pub(crate)`/`pub(in crate::source_verify)` and intentionally
 `#[cfg_attr(not(test), allow(dead_code))]`: no call site outside their own
@@ -396,6 +401,142 @@ execution requires *all* of the HIR/TypeFacts/cleanup-plan sites above plus
 `src/interpreter/owned_vec.rs`, not the interpreter file alone, because a
 real `.spx` program must resolve before the interpreter ever sees it.
 
+## Issue #118 acceptance-criteria audit (2026-09-11 re-audit)
+
+This section records a fresh criterion-by-criterion re-check of issue #118
+against the tree at the time of this audit (starting commit `20f0c24c`, the
+tip of `origin/main`), performed independently of the summaries above rather
+than trusting them on their word. The prior sections' claims were re-verified
+by reading the cited source directly, not re-derived from the doc text.
+
+- **AC-1** ("the exact selected payload is admitted; structurally similar
+  foreign nominal types and unsupported nested/resource payloads are
+  refused"): **met**. Confirmed by reading
+  `src/hir/owned_record_collection.rs` and
+  `src/source_verify/declared_type/owned_record_collection.rs` directly: both
+  classifiers are present, `pub(crate)`/`pub(in crate::source_verify)`, and
+  structurally implement exactly the rule this document states. This session
+  added one more regression per classifier (`string_field_is_refused`) that
+  the prior 12+5 did not isolate: every existing "wrong field type" fixture
+  substituted another *admitted Copy scalar* (`bool`) for a `Bytes` field, so
+  it is refused only by the bytes/copy-count check; no fixture exercised a
+  field type that is neither `Bytes` nor a Copy scalar against a *record*
+  shape specifically — only the pre-existing nested-record-field fixture did,
+  which conflates two different reasons for refusal (see below). Landing this
+  fixture surfaced a real, previously-undocumented boundary in the HIR case:
+  a record mixing owned `Bytes` fields with a `string` field does not reach
+  `admits_field_shape`'s own `return false` branch at all — it is refused
+  earlier, during resolution itself, by the pre-existing owned-Bytes record
+  shape rule (`SPX-T268`, "must be a monomorphic acyclic record tree with
+  only `Bytes` or direct Copy scalar leaves"), the same upstream-refusal
+  pattern the pre-existing `class_declaration_is_refused` and
+  `generic_record_is_refused_even_when_instantiated_to_the_exact_field_shape`
+  fixtures already rely on via `resolve_if_admitted`. The HIR-side
+  `string_field_is_refused` fixture was written and initially failed with a
+  resolution panic before this was found and the fixture was corrected to
+  tolerate that upstream refusal the same way its two siblings do; the
+  source-side fixture (AST/`TypeTable`-only, no resolution) does reach and
+  exercise the classifier's own `return false` branch directly, so between
+  the two, both the earlier-refusal and classifier-own-refusal paths are now
+  each pinned by at least one regression. The new tests pin the doc's own
+  explicit claim ("a `String` field... is refused") with a dedicated case.
+  Test count is now 19 (13 HIR-side, 6 source-side).
+- **AC-2** ("push/extract transfer ownership once, and a moved record cannot
+  be reused"): **not met**. Re-confirmed: `crate::vec_ops::PUSH_NAME`/
+  `PUSH_ID` and the parallel Get/Set/Clear intrinsics resolve calls through
+  `src/vec_ops.rs`, `src/hir/resolve_vec_call.rs` and
+  `src/hir/validation/vec_intrinsic.rs`, all of which still gate on
+  `resolved_operation_element_is_admitted`, unchanged from before this
+  session (`rg -n resolved_vec_element_is_admitted\|resolved_operation_element_is_admitted
+  src/vec_ops.rs src/box_ops.rs` shows only the same two definitions and their
+  pre-existing call sites; no new call site was added anywhere in the tree).
+  No operation surface exists for this element shape, so there is no push or
+  extract to test transfer against.
+- **AC-3** ("a borrow live across reallocating or consuming mutation is
+  rejected before lowering"): **not met, and not independently testable yet**.
+  `src/loan_plan.rs` is confirmed unmodified and already element-type
+  generic, so the rule *would* apply automatically once an operation surface
+  existed (as the "Borrow rule (explicit)" section above already argued), but
+  with no admitted operation there is no borrow-mode call parameter of this
+  element type to construct a positive or negative fixture around. Asserting
+  this criterion today would require fabricating call sites this profile does
+  not have, which is not genuine coverage.
+- **AC-4** ("failure paths derive canonical per-leaf cleanup and retain sticky
+  status"): **not met**. `cleanup_plan::build::bounded_vec`/`bounded_box`
+  remain the single-opaque-leaf treatment described above; no per-leaf
+  cleanup for a record living inside a collection element exists because no
+  collection of this element type can be constructed. The record's own
+  *standalone* cleanup (outside any collection) already works today under
+  the pre-existing Owned Byte Record Algebra v1 contract, as this document
+  already stated; that is unrelated to and does not satisfy this
+  collection-specific criterion.
+- **AC-5** (generic substitution / source-HIR replay / old public-profile
+  rejection stability): **met, for the surface that exists**. This session
+  re-ran the classifier's own generic-substitution refusal case plus the full
+  existing `vec_ops`/`box_ops` unit suites (see verification commands and
+  counts in the coordinator's final report) with no regression; the
+  classifier's own tests already assert generic-record refusal
+  independently in both source and HIR. No source/HIR/graph replay test
+  targets this element specifically beyond the classifier unit tests, because
+  no source construct can produce a value of this type yet for replay to
+  observe.
+- **Definition-of-done, "no backend executes the new shape before its
+  conformance is delivered"**: **met, trivially and by construction, not by
+  policy**. Re-confirmed directly: `owned_builtin_facts`
+  (`src/hir/declaration_index/owned_builtin.rs`) still gates
+  `Vec`/`Box` TypeFacts admission on
+  `resolved_vec_element_is_admitted`/`resolved_box_element_is_admitted`,
+  unchanged, so `Vec<Item>`/`Box<Item>` is not a legal, sized, needs-drop type
+  anywhere a type can appear (parameter, return, field, or local binding).
+  No `.spx` program can construct, hold, or pass a collection of this
+  element, so no backend can be reached with one, independent of whether the
+  two previously-hazardous `unreachable!()` sites remain hardened.
+- **Panic-hazard finding (the central design constraint for this audit)**:
+  **re-confirmed independently, and still closed on `origin/main`**. The two
+  originally-cited sites
+  (`src/codegen/native_emit/expression/vec_ops.rs`'s inline scalar-tag match
+  and `vec_bits_to_scalar`'s fallback, and the identical pattern in
+  `src/codegen/native_emit/expression/box_ops.rs`) were re-read at this
+  session's starting commit: neither contains `unreachable!()` any longer.
+  `rg -n "unreachable!" src/codegen/native_emit/expression/vec_ops.rs
+  src/codegen/native_emit/expression/box_ops.rs src/interpreter/owned_vec.rs`
+  returns only doc-comment prose mentioning the historical `unreachable!()`,
+  not a live panic site; the functions now return
+  `Err(backend_error(...))`/`Err(Flow::Guard(...))` and are covered by four
+  dedicated unit tests
+  (`vec_element_tag_refuses_an_unadmitted_element_without_panicking` and its
+  three siblings) that call the extracted helper functions directly with an
+  unadmitted element and assert `Err`, not a panic. This closure landed on
+  `origin/main` at commit `fab82012` (`git merge-base --is-ancestor fab82012
+  origin/main` succeeds), prior to and independent of this session's work, as
+  part of issue #119 rather than #118. This session did not touch, and did
+  not need to touch, any of those files (all four are outside this session's
+  file lease: `src/codegen/native_emit/**`, `src/interpreter/**`). No
+  predicate that feeds either hardened site was widened by this session or by
+  any commit reachable from `origin/main`
+  (`resolved_vec_element_is_admitted`/`resolved_operation_element_is_admitted`
+  and the `box_ops` equivalents are byte-for-byte the same scalar-or-`Bytes`
+  check as before), so the hardening remains exercised only by its direct
+  unit tests, not by any live, reachable program path — consistent with "no
+  backend executes the new shape" above.
+
+**Conclusion of this audit:** the only criterion this session found room to
+close, within its file lease (this document plus the two classification
+modules and their own tests, excluding `src/public_generic_abi/**`,
+`src/public_generic_consumer/**`, `src/live_invocation/**`, `src/wasm/**`,
+`src/cleanup_plan/**`, native codegen and the interpreter), was strengthening
+AC-1's regression coverage with the `String`-field case. AC-2 through AC-4 and
+the operation-level part of AC-5 require the predicate-widening-in-lockstep
+work this document already scopes under "SPX-AI-020 execution decision and
+status" and "What remains" below, which touches exactly the files this
+session's lease excludes. Widening the classifier's *admitted shape itself*
+(e.g., admitting additional field counts or types) was considered and
+rejected: issue #118's own bounded-scope section fixes the admitted shape to
+the one application record deliberately ("additional payload trees require
+separately enumerated admission and tests"), so widening it here would be
+scope creep against the issue's own text, not a gap closure — the narrowness
+is a design decision already made, not an oversight this session found.
+
 ## What remains (explicitly out of scope here)
 
 - An operation surface (`with_capacity`/`push`/`len`/`capacity`/`clear` at
@@ -421,8 +562,8 @@ real `.spx` program must resolve before the interpreter ever sees it.
 
 ## Test discovery
 
-`cargo test --locked -p semaprax --lib owned_record_collection` selects the 17
-focused unit tests above (12 HIR-side, 5 source-side). They construct real
+`cargo test --locked -p semaprax --lib owned_record_collection` selects the 19
+focused unit tests above (13 HIR-side, 6 source-side). They construct real
 `.spx` source through `crate::parse`/`crate::hir::resolve` (not hand-built
 HIR), the same pattern `type_reachability`'s own classifier tests use, so the
 positive cases are genuine parsed-and-resolved programs, not synthetic

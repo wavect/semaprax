@@ -106,6 +106,35 @@ mod tests {
     }
 
     #[test]
+    fn string_field_is_refused() {
+        // Mirrors the HIR-side `string_field_is_refused` regression: `string`
+        // is neither `Bytes` nor an admitted Copy scalar, so it exercises the
+        // immediate `return false` branch of `admits_field_shape` rather than
+        // the bytes/copy-count branch the existing fixtures already cover.
+        // Pins the doc's explicit claim ("a `String` field... is refused").
+        // Unlike the HIR-side case, this classifier runs on raw parsed AST
+        // facts before resolution, so it does not need the
+        // `resolve_if_admitted` tolerance the HIR test needs for the
+        // upstream `SPX-T268` owned-Bytes-record shape rule.
+        let program = parsed(
+            r#"module owned_record_collection.source.string_field;
+@id("owned_record_collection.source.string_field.item") record Item {
+  @id("owned_record_collection.source.string_field.item.id") id: Bytes,
+  @id("owned_record_collection.source.string_field.item.label") label: string,
+  @id("owned_record_collection.source.string_field.item.quantity") quantity: i64,
+}
+@id("owned_record_collection.source.string_field.main") fn main() -> i64 { 0 }
+"#,
+        );
+        let types = TypeTable::new(&program);
+        let item = Type::Named {
+            name: "Item".to_owned(),
+            arguments: Vec::new(),
+        };
+        assert!(!is_admitted_owned_record_collection_element(&types, &item));
+    }
+
+    #[test]
     fn class_declaration_is_refused() {
         let program = parsed(
             r#"module owned_record_collection.source.class;

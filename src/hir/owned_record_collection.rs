@@ -218,6 +218,47 @@ mod tests {
     }
 
     #[test]
+    fn string_field_is_refused() {
+        // Unlike `second_copy_field_instead_of_bytes_is_refused` (whose
+        // substituted field type, `bool`, is itself an admitted Copy scalar
+        // and so is refused only by the bytes/copy *count*), `string` is
+        // neither `Bytes` nor an admitted Copy scalar. This exercises the
+        // other refusal path in `admits_field_shape`: the immediate
+        // `return false` for a field type that is neither, which the
+        // existing `bool`/nested-record fixtures do not isolate on their
+        // own. Pins the doc's explicit claim ("a `String` field... is
+        // refused") with a dedicated regression.
+        //
+        // A record mixing owned `Bytes` fields with a `string` field is
+        // already refused upstream of this classifier by the existing
+        // owned-Bytes record shape rule (`SPX-T268`: "must be a monomorphic
+        // acyclic record tree with only `Bytes` or direct Copy scalar
+        // leaves"), the same pattern `class_declaration_is_refused` and
+        // `generic_record_is_refused_even_when_instantiated_to_the_exact_field_shape`
+        // above already rely on: resolution failing here is itself valid
+        // refusal evidence.
+        let source = r#"module owned_record_collection.string_field;
+@id("owned_record_collection.string_field.item") record Item {
+  @id("owned_record_collection.string_field.item.id") id: Bytes,
+  @id("owned_record_collection.string_field.item.label") label: string,
+  @id("owned_record_collection.string_field.item.quantity") quantity: i64,
+}
+@id("owned_record_collection.string_field.main") fn main() -> i64 { 0 }
+"#;
+        let Some(program) = resolve_if_admitted(source) else {
+            return;
+        };
+        let item = ResolvedType::Nominal {
+            declaration: DeclarationId::new("owned_record_collection.string_field.item"),
+            arguments: Vec::new(),
+        };
+        assert!(!is_admitted_owned_record_collection_element(
+            &program.declarations,
+            &item
+        ));
+    }
+
+    #[test]
     fn two_copy_fields_and_one_bytes_field_is_refused() {
         let source = r#"module owned_record_collection.swapped;
 @id("owned_record_collection.swapped.item") record Item {

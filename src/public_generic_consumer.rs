@@ -48,6 +48,13 @@ mod rust;
 /// generated above, which never allocates, transfers, or calls anything.
 pub mod rust_calling;
 mod typescript;
+/// The generated TypeScript/Wasm *calling* consumer (issue #157): a real
+/// ESM package that verifies an exact descriptor/binding/module pairing,
+/// transfers one owned input record into real `WebAssembly.Memory` exactly
+/// once, calls the Core Wasm adapter's one named endpoint export (issue
+/// #155), and decodes an independently validated result. Distinct from
+/// [`typescript`], which never allocates, transfers, or calls anything.
+pub mod typescript_calling;
 
 /// The canonical metadata byte format every generated consumer reads.
 pub const CONSUMER_METADATA_SCHEMA: &str = "semaprax.public-generic-consumer-metadata.v1";

@@ -1,0 +1,16 @@
+{
+  "name": "generated-typescript-wasm-consumer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node test/round-trip.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  }
+}

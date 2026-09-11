@@ -10,15 +10,18 @@ and PG-6 of the
 [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
 The *calling* half now has a first, local-only implementation for Rust (see
 [Rust calling consumer (issue #156)](#rust-calling-consumer-issue-156)
-below) and for C11 (see
+below), for C11 (see
 [C11 calling consumer (issue #158)](#c11-calling-consumer-issue-158) below),
-built on the versioned descriptor
-([issue #152](PUBLIC-GENERIC-DESCRIPTOR-V1.md)) and native carrier
-([issue #154](PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154))
+and for TypeScript/Wasm (see [TypeScript/Wasm calling consumer (issue
+#157)](#typescriptwasm-calling-consumer-issue-157) below), built on the
+versioned descriptor ([issue #152](PUBLIC-GENERIC-DESCRIPTOR-V1.md)) and the
+native and Core Wasm physical carrier adapters
+([issue #154](PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154),
+[issue #155](PUBLIC-GENERIC-CARRIER-V1.md#core-wasm-physical-adapter-issue-155))
 that did not exist when the metadata half closed; both gates stay open for
-every other language's calling consumer (TypeScript, C++ — issues #157,
-#159) and for hosted evidence of the Rust and C11 ones. Public generic
-ownership remains unsupported and unpublished.
+the remaining language's calling consumer (C++ - issue #159) and for hosted
+evidence of the Rust, C11 and TypeScript ones. Public generic ownership
+remains unsupported and unpublished.
 
 ## Why metadata consumers come first
 
@@ -173,9 +176,9 @@ surfaces, and the milestone's separation gate continues to prove it. The
 hosted run recorded above covers this corpus and nothing else: it is not a
 support decision and not a publication. Calling a public generic export over
 a versioned descriptor and carrier is a separate generator, described next
-for Rust and C11; C++ and TypeScript calling consumers remain untouched
-(issues #157, #159), which is why PG-5 and PG-6 stay open for every language
-but Rust and C11 despite the two sections below.
+for Rust, C11 and TypeScript/Wasm; the C++ calling consumer remains untouched
+(issue #159), which is why PG-5 and PG-6 stay open for every language but
+Rust, C11 and TypeScript despite the sections below.
 
 ## Rust calling consumer (issue #156)
 
@@ -429,3 +432,153 @@ matching the Rust calling consumer's own stated limitation. The provisioned
 ASan/UBSan variant is `#[ignore]`d by default and was not run in this round;
 only the plain `-O0`/`-O2` build and run is recorded as executed evidence
 here.
+
+## TypeScript/Wasm calling consumer (issue #157)
+
+Audience: generated-consumer integrators and ABI reviewers evaluating the
+calling half of PG-5/PG-6 for TypeScript/Wasm.
+
+Status: local, proof-only evidence only (no hosted CI run recorded for this
+section), unsupported and unpublished. Extends the existing metadata
+generator (`semaprax::public_generic_consumer::typescript_calling`, a new
+sibling of `rust_calling`) rather than a parallel framework: it reuses
+`rust_calling`'s own `RecordShape`/`OwnedByteField`/`ShapeError` types and
+the metadata consumer's identifier scheme (lowercase hex of identity bytes),
+and it targets — never reimplements or modifies — the Core Wasm physical
+adapter ([issue #155](PUBLIC-GENERIC-CARRIER-V1.md#core-wasm-physical-adapter-issue-155)).
+
+**A load-bearing honest limitation, stated once here.** Unlike the Rust
+calling consumer above, which links against a genuinely *compiled* native
+provider artifact (`native/provider_body.c`, built into a real static
+library), issue #155's Core Wasm physical adapter
+(`public_generic_abi::wasm::provider::WasmProvider`) has never been compiled
+to an actual `.wasm` binary exposing an
+open/input_prepare/call/result_export/release ABI a JS host could
+`WebAssembly.instantiate` and call — it is a Rust struct exercised only
+in-process by Rust test code (`wasm/provider/tests.rs`). No
+`#[no_mangle] extern "C"` export and no compiled Wasm artifact for this
+protocol exists anywhere in this repository. The one genuinely real, named
+Wasm export issue #155 *does* define is
+`FIXTURE_ENDPOINT_EXPORT_NAME` (`"spx_pg_wasm_endpoint_reverse_bytes_v1"`),
+previously proven only by `reverse_probe.mjs`'s narrower, handle-free
+memory-primitive script (real `WebAssembly.Memory`, with the reversal itself
+done in JavaScript, not in compiled Wasm bytecode).
+
+This generator's `wasm-provider.ts` therefore keeps the allocator, handle
+registry, and call-lifecycle state **host-side, in generated TypeScript** —
+a bounded exact-LIFO bump allocator and a private, `#`-branded handle
+registry, mirroring `reverse_probe.mjs`'s own host-owned bookkeeping over
+real `WebAssembly.Memory` rather than sharing any code with
+`WasmProvider` — and calls into real, genuinely compiled Wasm bytecode only
+for that one already-named endpoint export, operating in place on real
+linear memory this wrapper allocates, writes, and later zeroes on release.
+It never touches `src/public_generic_abi/wasm/**`. This is real Wasm
+execution with owned copy-out, but it does not (and cannot yet) prove a
+full compiled-provider open/call/close ABI, because no such compiled
+artifact exists. See `src/public_generic_consumer/typescript_calling.rs`'s
+own module documentation for the identical accounting in the generator's
+own doc comments.
+
+**What is generated versus hand-written.** Every file below is produced by
+`generate_typescript_calling_consumer(descriptor_bytes, binding, input,
+output)`, a pure function from already-trusted descriptor/`WasmProviderBindingV1`
+bytes and a `RecordShape` to source text:
+
+```text
+package.json          -- fixed template; one devDependency, typescript 5.8.3 (repo-pinned)
+package-lock.json     -- fixed template; the same pinned integrity hash this repo already uses
+tsconfig.json         -- fixed template; strict mode, ES2023+DOM lib (for WebAssembly/Web Crypto types)
+src/errors.ts         -- fixed template; closed discriminated error union, sticky-failure secondary note
+src/descriptor.ts     -- embeds TRUSTED_DESCRIPTOR_BYTES/TRUSTED_BINDING_BYTES/endpoint name/artifact digest; independent byte-exact verify() and Web-Crypto module-artifact-digest verification
+src/types.ts          -- Input/Output interfaces, one readonly Uint8Array field per leaf, field order preserved
+src/carrier.ts         -- Logical Carrier v1 codec for exactly FIELD_COUNT leaves, BigInt-exact leaf-count/length handling
+src/wasm-provider.ts   -- fixed template; the host-owned allocator/registry/lifecycle wrapper and the safe Provider API
+src/index.ts           -- fixed template; re-exports Provider, Input/Output, and the error model only
+test/round-trip.mjs    -- sampleInput/assertReversed/per-leaf-bound/failure-matrix tests, generated per shape
+```
+
+The type model is scoped identically to the Rust calling consumer's own
+scope note: a flat, descriptor-ordered sequence of owned `Uint8Array`
+leaves (the boundary profile admits exactly one owned input parameter and
+one owned result in v1), so this generator emits exactly two concrete
+interfaces, `Input` and `Output`. A Copy-scalar or nested-record leaf is
+future generator work tracked by the same #119 prerequisite.
+
+**Exact integers.** `leaf_count` and every per-leaf `len` in Logical Carrier
+v1's wire framing are `u64` fields. JavaScript `number` silently rounds
+anything past `Number.MAX_SAFE_INTEGER` (2^53), so `src/carrier.ts` reads
+and compares every wire integer as `bigint` before it is ever narrowed to a
+`Number` for a length or an allocation — a hostile carrier claiming a length
+at `u64::MAX` is rejected by an exact `bigint` comparison against the
+64 KiB per-leaf bound, proven by a dedicated generated test
+(`"exact-integer carrier decoding rejects a hostile u64::MAX leaf length"`)
+and by one at exactly one byte over the bound. The concrete generic record
+shape this round admits carries no user-facing `i64`/`i32`/`u8`/`char`/`f32`
+scalar leaf yet (the same #119-deferred boundary the Rust consumer states),
+so this is the exact-integer discipline the current wire format has to
+prove; range-checking those scalar domains is future generator work once
+#119 unblocks them, not a gap invented here.
+
+**Ownership and settlement.** `Provider.open` independently replays
+submitted descriptor/binding bytes against the embedded trusted values
+(byte-exact equality), and independently recomputes a domain-separated
+SHA-256 digest of the supplied `.wasm` module bytes against the embedded
+trusted `provider_artifact_digest` (via `globalThis.crypto.subtle`, no
+`node:crypto`/`@types/node` dependency) — both *before* any Wasm memory
+allocation. This digest check is a real, content-based module-identity
+check, not merely export-name or successful-instantiation trust: a
+byte-mutated (but still export-name-identical) module is rejected. Raw
+numeric handles are never exported: `OpaqueHandle` has a private
+constructor and a private `#tag` field, so a cast through `unknown` cannot
+forge or reuse one (`instanceof` still requires a real instance of the
+class). `Provider.transform` stages input, calls, exports, and releases in
+one method with `try`/`finally` cleanup; a `Provider.diagnostics` test-only
+static surface exposes the same private steps to `test/round-trip.mjs` for
+stale/foreign-handle and failure-injection exercises, without a second,
+parallel implementation.
+
+**Execution evidence.**
+`tests/public_generic_wasm_adapter_v1/typescript_calling_consumer.rs`
+generates the package, writes it to a temporary directory outside this
+repository's own workspace, type-checks it with the repository-pinned `tsc`
+(5.8.3, the same pin `platform-tests/wasm-scalar-browser-v1/package.json`
+already uses), and runs its own `test/round-trip.mjs` under real Node
+against a real, genuinely compiled `.wasm` module
+(`tests/public_generic_wasm_adapter_v1/reference_wasm_module.rs`) that hand-
+assembles the WebAssembly binary format directly (no `wat2wasm`/`wasm-tools`
+tool or `wat` crate is available in this environment) exporting real linear
+memory and a real compiled byte-reversal function under exactly
+`FIXTURE_ENDPOINT_EXPORT_NAME`. All 14 of the generated package's own tests
+pass against that real module: a full success round trip with exact
+reversed-byte assertions and proof the result is a fresh copy (mutating the
+original input buffer after the call does not change the already-returned
+result); a mutated descriptor, a mutated binding, a well-formed descriptor
+naming a different document, and a module whose bytes do not replay the
+trusted artifact digest, each rejected before or without any Wasm
+allocation; a stale/foreign handle and a released-then-reused handle (via a
+cast through `unknown`), each rejected; call-after-close; memory growth
+across a real page boundary that does not invalidate result decoding; the
+two exact-integer hostile-length tests; the per-leaf byte bound accepted
+exactly at 64 KiB and rejected one byte over; and the full failure-injection
+ordinal `0..=7` matrix (this wrapper's own host-owned pipeline stages) —
+each asserting zero live allocations/handles afterward via
+`Provider.diagnostics`. A second test confirms the generated `package.json`
+declares no runtime dependency at all beyond the pinned `typescript`
+devDependency.
+
+**Known limitations, stated once.** Local evidence only: no hosted CI run is
+recorded for this section, and no browser/Chromium fixture is exercised —
+"at minimum exercise the current Node/Wasm route" is met; the browser route
+is deferred, not claimed. This harness is gated on `node` and a
+repository-pinned (5.8.3) `tsc` being present on `PATH` or at a known pnpm
+install location; it skips (never fails) on a host without either. The
+trusted descriptor bytes are the same kind of fixture placeholder the Rust
+section's harness uses (#119 still blocks deriving one from a real checked
+generic export). Most importantly: this proves the generated consumer's own
+real execution, exact-copy-out, exact-integer carrier decoding, and exact
+settlement against real Wasm bytecode; it does not prove a compiled
+open/input_prepare/call/result_export/release Wasm provider ABI, because
+issue #155 has not shipped one — see the load-bearing limitation above. The
+`reference_wasm_module` fixture this harness compiles is a test-only stand-in
+for that missing artifact, not a claim that #155's protocol has been
+compiled to Wasm.

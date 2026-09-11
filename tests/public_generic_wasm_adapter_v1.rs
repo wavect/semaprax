@@ -5,3 +5,7 @@
 //! than new top-level files.
 #[path = "public_generic_wasm_adapter_v1/fixture.rs"]
 mod fixture;
+#[path = "public_generic_wasm_adapter_v1/reference_wasm_module.rs"]
+mod reference_wasm_module;
+#[path = "public_generic_wasm_adapter_v1/typescript_calling_consumer.rs"]
+mod typescript_calling_consumer;

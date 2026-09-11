@@ -15,7 +15,14 @@ versioned, target-neutral term plus the explicit template and ordered argument
 identities derived from it. It is read-only: it admits no syntax, compiles
 nothing, executes nothing, creates no file, and grants no authority. Nothing is
 read back from a previously emitted artifact; every fact is re-derived from the
-checked program.
+checked declarations.
+
+A projection resolves nominals against a *type inventory* rather than against a
+whole program, so the same grammar describes a single-file module and the
+retained type facts of an immutable Project candidate without a second
+implementation. Building an inventory is also where ambiguity is detected: a
+repeated declaration identity is recorded on insert, and every later lookup of
+it fails closed rather than silently taking the first.
 
 | Layer | Identifier |
 | --- | --- |

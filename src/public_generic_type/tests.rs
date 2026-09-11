@@ -75,7 +75,7 @@ fn pair(arguments: Vec<ResolvedType>) -> ResolvedType {
 fn a_flat_instance_renders_one_exact_target_neutral_term() {
     let program = program();
     let rendered = term(
-        &program,
+        &TypeInventory::of(&program),
         &pair(vec![ResolvedType::Bytes, ResolvedType::Bool]),
     )
     .unwrap();
@@ -103,7 +103,11 @@ fn a_flat_instance_renders_one_exact_target_neutral_term() {
 #[test]
 fn a_zero_arity_record_renders_empty_ordered_arguments() {
     let program = program();
-    let facts = describe(&program, &nominal("grammar.plain", Vec::new())).unwrap();
+    let facts = describe(
+        &TypeInventory::of(&program),
+        &nominal("grammar.plain", Vec::new()),
+    )
+    .unwrap();
     assert_eq!(facts.term, "@13:grammar.plain<>");
     assert_eq!(facts.template.arity, 0);
     assert!(facts.arguments.is_empty());
@@ -116,7 +120,11 @@ fn a_zero_arity_record_renders_empty_ordered_arguments() {
 fn nested_instances_substitute_before_descending_and_order_owned_leaves() {
     let program = program();
     let inner = pair(vec![ResolvedType::Bytes, ResolvedType::Bool]);
-    let facts = describe(&program, &pair(vec![inner.clone(), ResolvedType::Bytes])).unwrap();
+    let facts = describe(
+        &TypeInventory::of(&program),
+        &pair(vec![inner.clone(), ResolvedType::Bytes]),
+    )
+    .unwrap();
     assert_eq!(
         facts.term,
         "@12:grammar.pair<@12:grammar.pair<bytes,bool>,bytes>"
@@ -150,7 +158,7 @@ fn nested_instances_substitute_before_descending_and_order_owned_leaves() {
 fn display_renames_do_not_change_any_identity() {
     let program = program();
     let instance = pair(vec![ResolvedType::Bytes, ResolvedType::Bool]);
-    let before = describe(&program, &instance).unwrap();
+    let before = describe(&TypeInventory::of(&program), &instance).unwrap();
 
     let renamed_source = SOURCE
         .replace("record Pair<T, U>", "record Couple<A, B>")
@@ -171,7 +179,7 @@ fn display_renames_do_not_change_any_identity() {
         );
     let parsed = parse(&renamed_source, Path::new("renamed.spx")).unwrap();
     let renamed = hir::resolve(&parsed).unwrap();
-    let after = describe(&renamed, &instance).unwrap();
+    let after = describe(&TypeInventory::of(&renamed), &instance).unwrap();
 
     assert_eq!(after.template.name, "Couple");
     assert_eq!(before.template.name, "Pair");
@@ -195,22 +203,22 @@ fn display_renames_do_not_change_any_identity() {
 fn argument_order_and_content_are_part_of_the_instance_identity() {
     let program = program();
     let baseline = describe(
-        &program,
+        &TypeInventory::of(&program),
         &pair(vec![ResolvedType::Bytes, ResolvedType::Bool]),
     )
     .unwrap();
     let permuted = describe(
-        &program,
+        &TypeInventory::of(&program),
         &pair(vec![ResolvedType::Bool, ResolvedType::Bytes]),
     )
     .unwrap();
     let duplicated = describe(
-        &program,
+        &TypeInventory::of(&program),
         &pair(vec![ResolvedType::Bytes, ResolvedType::Bytes]),
     )
     .unwrap();
     let substituted = describe(
-        &program,
+        &TypeInventory::of(&program),
         &pair(vec![ResolvedType::Bytes, ResolvedType::I64]),
     )
     .unwrap();
@@ -232,9 +240,12 @@ fn argument_order_and_content_are_part_of_the_instance_identity() {
         assert_eq!(facts.template.digest, baseline.template.digest);
     }
     assert_eq!(
-        describe(&program, &pair(vec![ResolvedType::Bytes]))
-            .unwrap_err()
-            .code,
+        describe(
+            &TypeInventory::of(&program),
+            &pair(vec![ResolvedType::Bytes])
+        )
+        .unwrap_err()
+        .code,
         REJECTED_TYPE
     );
 }
@@ -287,7 +298,7 @@ fn every_closed_rejection_reason_is_reachable() {
         ),
     ];
     for (rejection, ty) in cases {
-        let error = classify(&program, &ty)
+        let error = classify(&TypeInventory::of(&program), &ty)
             .expect_err(&format!("{} must reject", rejection.reason()))
             .message;
         assert!(
@@ -307,7 +318,7 @@ fn every_closed_rejection_reason_is_reachable() {
         .unwrap();
     program.types.push(duplicate);
     let error = classify(
-        &program,
+        &TypeInventory::of(&program),
         &pair(vec![ResolvedType::Bytes, ResolvedType::Bool]),
     )
     .expect_err("a repeated declaration identity must fail closed")
@@ -444,33 +455,45 @@ fn grammar_bounds_refuse_rather_than_truncate() {
 fn replay_requires_byte_equality_with_the_recomputed_term() {
     let program = program();
     let instance = pair(vec![ResolvedType::Bytes, ResolvedType::Bool]);
-    let canonical = term(&program, &instance).unwrap();
-    verify_term(&program, &instance, &canonical).unwrap();
+    let canonical = term(&TypeInventory::of(&program), &instance).unwrap();
+    verify_term(&TypeInventory::of(&program), &instance, &canonical).unwrap();
 
     // A term of a different, equally valid instance must not verify.
     let other = term(
-        &program,
+        &TypeInventory::of(&program),
         &pair(vec![ResolvedType::Bool, ResolvedType::Bytes]),
     )
     .unwrap();
     assert_eq!(
-        verify_term(&program, &instance, &other).unwrap_err().code,
-        TERM_REPLAY_MISMATCH
-    );
-    assert_eq!(
-        verify_term(&program, &instance, "@12:grammar.pair<bytes,i64>")
+        verify_term(&TypeInventory::of(&program), &instance, &other)
             .unwrap_err()
             .code,
         TERM_REPLAY_MISMATCH
     );
     assert_eq!(
-        verify_term(&program, &instance, "bytes").unwrap_err().code,
+        verify_term(
+            &TypeInventory::of(&program),
+            &instance,
+            "@12:grammar.pair<bytes,i64>"
+        )
+        .unwrap_err()
+        .code,
         TERM_REPLAY_MISMATCH
     );
     assert_eq!(
-        verify_term(&program, &instance, "@12:grammar.pair<bytes,bool")
+        verify_term(&TypeInventory::of(&program), &instance, "bytes")
             .unwrap_err()
             .code,
+        TERM_REPLAY_MISMATCH
+    );
+    assert_eq!(
+        verify_term(
+            &TypeInventory::of(&program),
+            &instance,
+            "@12:grammar.pair<bytes,bool"
+        )
+        .unwrap_err()
+        .code,
         MALFORMED_TERM
     );
 }
@@ -484,8 +507,8 @@ fn description_is_deterministic() {
         pair(vec![ResolvedType::Bytes, ResolvedType::Bool]),
         ResolvedType::Bytes,
     ]);
-    let first = describe(&program, &instance).unwrap();
-    let second = describe(&program, &instance).unwrap();
+    let first = describe(&TypeInventory::of(&program), &instance).unwrap();
+    let second = describe(&TypeInventory::of(&program), &instance).unwrap();
     assert_eq!(first, second);
     assert_eq!(first.term_digest, term_digest(&first.term));
 }
@@ -496,7 +519,7 @@ fn description_is_deterministic() {
 fn digest_domains_are_separated() {
     let program = program();
     let facts = describe(
-        &program,
+        &TypeInventory::of(&program),
         &pair(vec![ResolvedType::Bytes, ResolvedType::Bool]),
     )
     .unwrap();
@@ -519,11 +542,15 @@ fn digest_domains_are_separated() {
 fn template_identities_bind_owner_and_position() {
     let program = program();
     let pair_facts = describe(
-        &program,
+        &TypeInventory::of(&program),
         &pair(vec![ResolvedType::Bytes, ResolvedType::Bool]),
     )
     .unwrap();
-    let plain_facts = describe(&program, &nominal("grammar.plain", Vec::new())).unwrap();
+    let plain_facts = describe(
+        &TypeInventory::of(&program),
+        &nominal("grammar.plain", Vec::new()),
+    )
+    .unwrap();
     assert_ne!(pair_facts.template.digest, plain_facts.template.digest);
     assert_eq!(
         pair_facts

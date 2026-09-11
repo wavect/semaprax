@@ -31,7 +31,7 @@
 //! reason. Widening the vocabulary is a new grammar version, never a silent
 //! admission.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest as _, Sha256};
 
@@ -339,21 +339,55 @@ pub fn term_digest(term: &str) -> String {
     digest(TERM_DOMAIN, term.as_bytes())
 }
 
-fn declarations(program: &ResolvedProgram) -> BTreeMap<&str, &ResolvedTypeDeclaration> {
-    let mut index = BTreeMap::new();
-    for declaration in &program.types {
-        index.entry(declaration.id.as_str()).or_insert(declaration);
-    }
-    index
+/// The checked type declarations one projection resolves against.
+///
+/// A projection takes an inventory rather than a whole program because the
+/// same grammar has to describe a single-file module and the retained type
+/// facts of an immutable Project candidate. Building one is also where
+/// ambiguity is detected: a repeated identity is recorded on insert, so every
+/// later lookup of it fails closed instead of silently taking the first.
+#[derive(Debug, Default)]
+pub struct TypeInventory<'a> {
+    declarations: BTreeMap<&'a str, &'a ResolvedTypeDeclaration>,
+    repeated: BTreeSet<&'a str>,
 }
 
-fn duplicated(program: &ResolvedProgram, declaration: &str) -> bool {
-    program
-        .types
-        .iter()
-        .filter(|candidate| candidate.id.as_str() == declaration)
-        .count()
-        > 1
+impl<'a> TypeInventory<'a> {
+    /// An empty inventory.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Add declarations, recording any identity that appears twice.
+    pub fn extend(
+        &mut self,
+        declarations: impl IntoIterator<Item = &'a ResolvedTypeDeclaration>,
+    ) -> &mut Self {
+        for declaration in declarations {
+            let identity = declaration.id.as_str();
+            if self.declarations.insert(identity, declaration).is_some() {
+                self.repeated.insert(identity);
+            }
+        }
+        self
+    }
+
+    /// The inventory of one checked single-file program.
+    pub fn of(program: &'a ResolvedProgram) -> Self {
+        let mut inventory = Self::new();
+        inventory.extend(&program.types);
+        inventory
+    }
+
+    fn find(&self, identity: &str) -> Result<&'a ResolvedTypeDeclaration, Diagnostic> {
+        if self.repeated.contains(identity) {
+            return Err(Rejection::AmbiguousDeclaration.diagnostic());
+        }
+        self.declarations
+            .get(identity)
+            .copied()
+            .ok_or_else(|| Rejection::MissingDeclaration.diagnostic())
+    }
 }
 
 fn record_fields(
@@ -366,15 +400,16 @@ fn record_fields(
 }
 
 /// Classify one checked type into the grammar, or return its closed rejection.
-pub fn classify(program: &ResolvedProgram, ty: &ResolvedType) -> Result<GrammarTerm, Diagnostic> {
-    let index = declarations(program);
+pub fn classify(
+    inventory: &TypeInventory<'_>,
+    ty: &ResolvedType,
+) -> Result<GrammarTerm, Diagnostic> {
     let mut budget = Budget::default();
-    classify_with(program, &index, ty, &mut budget, 0)
+    classify_with(inventory, ty, &mut budget, 0)
 }
 
 fn classify_with(
-    program: &ResolvedProgram,
-    index: &BTreeMap<&str, &ResolvedTypeDeclaration>,
+    inventory: &TypeInventory<'_>,
     ty: &ResolvedType,
     budget: &mut Budget,
     depth: usize,
@@ -406,12 +441,7 @@ fn classify_with(
             if crate::prelude::is_compiler_owned_id(identity) {
                 return rejection(Rejection::CompilerOwnedNominal);
             }
-            if duplicated(program, identity) {
-                return rejection(Rejection::AmbiguousDeclaration);
-            }
-            let Some(found) = index.get(identity).copied() else {
-                return rejection(Rejection::MissingDeclaration);
-            };
+            let found = inventory.find(identity)?;
             record_fields(found)?;
             if found.type_parameters.len() != arguments.len() {
                 return rejection(Rejection::ArityMismatch);
@@ -421,7 +451,7 @@ fn classify_with(
             }
             let mut rendered = Vec::with_capacity(arguments.len());
             for argument in arguments {
-                rendered.push(classify_with(program, index, argument, budget, depth + 1)?);
+                rendered.push(classify_with(inventory, argument, budget, depth + 1)?);
             }
             Ok(GrammarTerm::Instance {
                 declaration: identity.to_owned(),
@@ -432,8 +462,8 @@ fn classify_with(
 }
 
 /// The canonical term of one checked type, bounded by [`MAX_TERM_BYTES`].
-pub fn term(program: &ResolvedProgram, ty: &ResolvedType) -> Result<String, Diagnostic> {
-    let rendered = classify(program, ty)?.render();
+pub fn term(inventory: &TypeInventory<'_>, ty: &ResolvedType) -> Result<String, Diagnostic> {
+    let rendered = classify(inventory, ty)?.render();
     if rendered.len() > MAX_TERM_BYTES {
         return Err(capacity("canonical term byte limit"));
     }
@@ -446,12 +476,11 @@ pub fn term(program: &ResolvedProgram, ty: &ResolvedType) -> Result<String, Diag
 /// as checked types, not as rendered terms: re-parsing a term would make the
 /// closure depend on the grammar's own output instead of on the program.
 pub fn concrete_fields(
-    program: &ResolvedProgram,
+    inventory: &TypeInventory<'_>,
     ty: &ResolvedType,
 ) -> Result<Vec<ResolvedType>, Diagnostic> {
-    let index = declarations(program);
     let mut budget = Budget::default();
-    classify_with(program, &index, ty, &mut budget, 0)?;
+    classify_with(inventory, ty, &mut budget, 0)?;
     let ResolvedType::Nominal {
         declaration,
         arguments,
@@ -459,10 +488,7 @@ pub fn concrete_fields(
     else {
         return Ok(Vec::new());
     };
-    let found = index
-        .get(declaration.as_str())
-        .copied()
-        .ok_or_else(|| Rejection::MissingDeclaration.diagnostic())?;
+    let found = inventory.find(declaration.as_str())?;
     record_fields(found)?
         .iter()
         .map(|field| substitute(&field.ty, declaration.as_str(), arguments, &mut budget, 1))
@@ -506,10 +532,12 @@ fn substitute(
 ///
 /// Every fact is re-derived from the checked program. Nothing is read back
 /// from a previously emitted artifact.
-pub fn describe(program: &ResolvedProgram, ty: &ResolvedType) -> Result<InstanceFacts, Diagnostic> {
-    let index = declarations(program);
+pub fn describe(
+    inventory: &TypeInventory<'_>,
+    ty: &ResolvedType,
+) -> Result<InstanceFacts, Diagnostic> {
     let mut budget = Budget::default();
-    let parsed = classify_with(program, &index, ty, &mut budget, 0)?;
+    let parsed = classify_with(inventory, ty, &mut budget, 0)?;
     let GrammarTerm::Instance { .. } = &parsed else {
         return Err(Rejection::UnadmittedNominalKind.diagnostic());
     };
@@ -524,15 +552,12 @@ pub fn describe(program: &ResolvedProgram, ty: &ResolvedType) -> Result<Instance
     if rendered.len() > MAX_TERM_BYTES {
         return Err(capacity("canonical term byte limit"));
     }
-    let found = index
-        .get(declaration.as_str())
-        .copied()
-        .ok_or_else(|| Rejection::MissingDeclaration.diagnostic())?;
+    let found = inventory.find(declaration.as_str())?;
 
     let template = template_identity(found);
     let mut argument_facts = Vec::with_capacity(arguments.len());
     for (position, argument) in arguments.iter().enumerate() {
-        let argument_term = classify_with(program, &index, argument, &mut budget, 1)?.render();
+        let argument_term = classify_with(inventory, argument, &mut budget, 1)?.render();
         argument_facts.push(ArgumentFact {
             index: position as u32,
             parameter_owner: declaration.as_str().to_owned(),
@@ -546,10 +571,17 @@ pub fn describe(program: &ResolvedProgram, ty: &ResolvedType) -> Result<Instance
     let mut owned_leaves = Vec::new();
     for field in record_fields(found)? {
         let concrete = substitute(&field.ty, declaration.as_str(), arguments, &mut budget, 1)?;
-        let field_term = classify_with(program, &index, &concrete, &mut budget, 1)?.render();
+        let field_term = classify_with(inventory, &concrete, &mut budget, 1)?.render();
         let mut path = String::new();
         write_identity(&mut path, field.id.as_str());
-        collect_owned_leaves(&index, &concrete, &path, &mut owned_leaves, &mut budget, 1)?;
+        collect_owned_leaves(
+            inventory,
+            &concrete,
+            &path,
+            &mut owned_leaves,
+            &mut budget,
+            1,
+        )?;
         fields.push(FieldFact {
             index: field.index,
             id: field.id.as_str().to_owned(),
@@ -618,7 +650,7 @@ fn template_identity(declaration: &ResolvedTypeDeclaration) -> TemplateIdentity 
 }
 
 fn collect_owned_leaves(
-    index: &BTreeMap<&str, &ResolvedTypeDeclaration>,
+    inventory: &TypeInventory<'_>,
     ty: &ResolvedType,
     path: &str,
     output: &mut Vec<String>,
@@ -636,10 +668,7 @@ fn collect_owned_leaves(
             declaration,
             arguments,
         } => {
-            let found = index
-                .get(declaration.as_str())
-                .copied()
-                .ok_or_else(|| Rejection::MissingDeclaration.diagnostic())?;
+            let found = inventory.find(declaration.as_str())?;
             for field in record_fields(found)? {
                 let concrete = substitute(
                     &field.ty,
@@ -651,7 +680,7 @@ fn collect_owned_leaves(
                 let mut child = path.to_owned();
                 child.push('/');
                 write_identity(&mut child, field.id.as_str());
-                collect_owned_leaves(index, &concrete, &child, output, budget, depth + 1)?;
+                collect_owned_leaves(inventory, &concrete, &child, output, budget, depth + 1)?;
             }
             Ok(())
         }
@@ -784,12 +813,12 @@ impl Cursor<'_> {
 /// submitted bytes to equal it exactly. Submitted bytes are never treated as
 /// source, HIR, identity, or authority.
 pub fn verify_term(
-    program: &ResolvedProgram,
+    inventory: &TypeInventory<'_>,
     ty: &ResolvedType,
     submitted: &str,
 ) -> Result<(), Diagnostic> {
     let parsed = parse_term(submitted)?;
-    let recomputed = term(program, ty)?;
+    let recomputed = term(inventory, ty)?;
     if parsed.render() != submitted || recomputed != submitted {
         return Err(Diagnostic::io(
             TERM_REPLAY_MISMATCH,

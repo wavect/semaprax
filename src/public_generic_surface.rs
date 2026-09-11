@@ -29,7 +29,7 @@ use sha2::{Digest as _, Sha256};
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::{OwnershipMode, ResolvedProgram, ResolvedType};
-use crate::public_generic_type::{self as grammar, InstanceFacts};
+use crate::public_generic_type::{self as grammar, InstanceFacts, TypeInventory};
 
 /// One deterministic description of the selected candidate exports.
 pub const CANDIDATE_SURFACE_SCHEMA: &str = "semaprax.public-generic-candidate-surface.v1";
@@ -152,6 +152,27 @@ impl CandidateSurface {
     /// type parameters, so a template selection fails closed rather than
     /// silently describing one instantiation of it.
     pub fn derive(program: &ResolvedProgram, exports: &[String]) -> Result<Self, Diagnostic> {
+        Self::derive_from(
+            &TypeInventory::of(program),
+            &program.functions,
+            &program
+                .function_templates
+                .iter()
+                .map(|template| template.id.as_str())
+                .collect::<Vec<_>>(),
+            exports,
+        )
+    }
+
+    /// Describe the selected exports of retained checked facts: the type
+    /// inventory, the monomorphic functions, and the generic template
+    /// identities that must be refused as selections.
+    pub fn derive_from(
+        inventory: &TypeInventory<'_>,
+        functions: &[crate::hir::ResolvedFunction],
+        templates: &[&str],
+        exports: &[String],
+    ) -> Result<Self, Diagnostic> {
         if exports.is_empty() {
             return Err(invalid("no export was selected"));
         }
@@ -166,17 +187,13 @@ impl CandidateSurface {
         let mut entries = BTreeMap::new();
         let mut roots = Vec::new();
         for export in exports {
-            if program
-                .function_templates
-                .iter()
-                .any(|template| template.id.as_str() == export)
-            {
+            if templates.iter().any(|template| template == export) {
                 return Err(invalid(&format!(
                     "`{export}` is a generic template, not a candidate export"
                 )));
             }
             let mut found = None;
-            for function in &program.functions {
+            for function in functions {
                 if function.id.as_str() == export && found.replace(function).is_some() {
                     return Err(invalid(&format!("`{export}` resolves to two declarations")));
                 }
@@ -191,7 +208,7 @@ impl CandidateSurface {
                     index: index as u32,
                     name: parameter.name.clone(),
                     ownership: ownership(parameter.ownership),
-                    value: value_of(program, &parameter.ty)?,
+                    value: value_of(inventory, &parameter.ty)?,
                 });
                 roots.push(parameter.ty.clone());
             }
@@ -201,14 +218,14 @@ impl CandidateSurface {
                 name: function.name.clone(),
                 effects: function.effects.clone(),
                 parameters,
-                result: value_of(program, &function.return_type)?,
+                result: value_of(inventory, &function.return_type)?,
             };
             entries.insert(export.clone(), entry);
         }
 
         let mut instances = BTreeMap::new();
         for root in roots {
-            reach(program, &root, &mut instances)?;
+            reach(inventory, &root, &mut instances)?;
         }
 
         let mut surface = Self {
@@ -397,7 +414,7 @@ fn instance_json(facts: &InstanceFacts) -> Value {
     })
 }
 
-fn value_of(program: &ResolvedProgram, ty: &ResolvedType) -> Result<SurfaceValue, Diagnostic> {
+fn value_of(inventory: &TypeInventory<'_>, ty: &ResolvedType) -> Result<SurfaceValue, Diagnostic> {
     if let Some((kind, spelling)) = borrowed_view(ty) {
         return Ok(SurfaceValue {
             kind,
@@ -406,9 +423,9 @@ fn value_of(program: &ResolvedProgram, ty: &ResolvedType) -> Result<SurfaceValue
             instance_digest: None,
         });
     }
-    let term = grammar::term(program, ty)?;
+    let term = grammar::term(inventory, ty)?;
     let instance_digest = match ty {
-        ResolvedType::Nominal { .. } => Some(grammar::describe(program, ty)?.instance_digest),
+        ResolvedType::Nominal { .. } => Some(grammar::describe(inventory, ty)?.instance_digest),
         _ => None,
     };
     Ok(SurfaceValue {
@@ -431,14 +448,14 @@ const fn borrowed_view(ty: &ResolvedType) -> Option<(&'static str, &'static str)
 /// Collect the reachable record instances of one signature position: the
 /// instance itself, its ordered arguments, and its substituted fields.
 fn reach(
-    program: &ResolvedProgram,
+    inventory: &TypeInventory<'_>,
     ty: &ResolvedType,
     output: &mut BTreeMap<String, InstanceFacts>,
 ) -> Result<(), Diagnostic> {
     let ResolvedType::Nominal { arguments, .. } = ty else {
         return Ok(());
     };
-    let facts = grammar::describe(program, ty)?;
+    let facts = grammar::describe(inventory, ty)?;
     if output.contains_key(&facts.term) {
         return Ok(());
     }
@@ -447,10 +464,10 @@ fn reach(
     }
     output.insert(facts.term.clone(), facts);
     for argument in arguments {
-        reach(program, argument, output)?;
+        reach(inventory, argument, output)?;
     }
-    for field in grammar::concrete_fields(program, ty)? {
-        reach(program, &field, output)?;
+    for field in grammar::concrete_fields(inventory, ty)? {
+        reach(inventory, &field, output)?;
     }
     Ok(())
 }

@@ -157,7 +157,10 @@ impl TypeGraph {
 
 /// Derives the closed, bounded interaction type graph rooted at
 /// `root_type_id` from one resolved, verified module.
-pub(crate) fn derive(resolved: &ResolvedProgram, root_type_id: &str) -> Result<TypeGraph, Diagnostic> {
+pub(crate) fn derive(
+    resolved: &ResolvedProgram,
+    root_type_id: &str,
+) -> Result<TypeGraph, Diagnostic> {
     let mut types: Vec<TypeDecl> = Vec::new();
     let mut visiting: Vec<String> = Vec::new();
     derive_one(resolved, root_type_id, &mut types, &mut visiting, 0)?;
@@ -214,7 +217,8 @@ fn derive_one(
             }
             TypeShape::Variant { cases: rows }
         }
-        ResolvedTypeDeclarationKind::Resource { .. } | ResolvedTypeDeclarationKind::Class { .. } => {
+        ResolvedTypeDeclarationKind::Resource { .. }
+        | ResolvedTypeDeclarationKind::Class { .. } => {
             return Err(invariant("type.kind"));
         }
     };

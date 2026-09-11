@@ -181,8 +181,8 @@ fn golden_derivation_is_deterministic_and_digests_are_independently_verifiable()
     let path = write_temp(FIXTURE, "golden");
     let first =
         compile_agent_interaction_schema(&path, "outer.type").expect("first derivation succeeds");
-    let second = compile_agent_interaction_schema(&path, "outer.type")
-        .expect("second derivation succeeds");
+    let second =
+        compile_agent_interaction_schema(&path, "outer.type").expect("second derivation succeeds");
     let bytes_schema = compile_agent_interaction_schema(&path, "bytes.type")
         .expect("bytes.type derivation succeeds");
     std::fs::remove_file(&path).ok();
@@ -296,12 +296,12 @@ fn outer_document(schema_digest: &str, inner: &str) -> String {
 fn bytes_document(schema_digest: &str, tag: u8, blob: &[u8]) -> String {
     let blob_json = format!(
         "[{}]",
-        blob.iter()
-            .map(u8::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
+        blob.iter().map(u8::to_string).collect::<Vec<_>>().join(",")
     );
-    let value = record_value(&[("bytes.tag", &format!("\"{tag}\"")), ("bytes.blob", &blob_json)]);
+    let value = record_value(&[
+        ("bytes.tag", &format!("\"{tag}\"")),
+        ("bytes.blob", &blob_json),
+    ]);
     document("bytes.type", schema_digest, &value)
 }
 
@@ -380,7 +380,9 @@ fn bytes_field_round_trips_exactly() {
     );
     assert_eq!(
         decoded.value().field("bytes.blob"),
-        Some(&FieldValue::Scalar(ScalarValue::Bytes(vec![0, 1, 255, 128])))
+        Some(&FieldValue::Scalar(ScalarValue::Bytes(vec![
+            0, 1, 255, 128
+        ])))
     );
 }
 
@@ -654,8 +656,9 @@ fn provider_json_schema_matches_the_canonical_wire_shape() {
     std::fs::remove_file(&path).ok();
 
     let provider_schema = compiled.provider_json_schema();
-    assert!(provider_schema
-        .contains("\"$schema\":\"https://json-schema.org/draft/2020-12/schema\""));
+    assert!(
+        provider_schema.contains("\"$schema\":\"https://json-schema.org/draft/2020-12/schema\"")
+    );
     assert!(provider_schema.contains("\"$ref\":\"#/$defs/outer.type\""));
     assert!(provider_schema.contains("\"$ref\":\"#/$defs/inner.type\""));
     assert!(provider_schema.contains(

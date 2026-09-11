@@ -1423,16 +1423,21 @@ fn main() -> i64
         crate::hir::validate(&linked)
             .expect("the retained program must pass independent HIR validation");
 
-        for (value, expect_leading_space, expect_leading_count) in
-            [("", false, 0i64), (" x", true, 1), ("x y", false, 0), ("   z", true, 3)]
-        {
+        for (value, expect_leading_space, expect_leading_count) in [
+            ("", false, 0i64),
+            (" x", true, 1),
+            ("x y", false, 0),
+            ("   z", true, 3),
+        ] {
             let first_byte = crate::interpreter::evaluate_resolved_public_api(
                 &linked,
                 "text.check.first_byte_is_space",
                 &[crate::interpreter::PublicApiArgument::BorrowStr(value)],
                 1_000,
             )
-            .unwrap_or_else(|error| panic!("first_byte_is_space({value:?}) must evaluate: {error:?}"));
+            .unwrap_or_else(|error| {
+                panic!("first_byte_is_space({value:?}) must evaluate: {error:?}")
+            });
             assert_eq!(
                 first_byte.outcome,
                 crate::interpreter::PublicApiEvaluationOutcome::Returned(

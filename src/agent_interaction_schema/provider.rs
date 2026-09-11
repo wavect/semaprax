@@ -96,7 +96,10 @@ fn render_type_ref_schema(ty: &FieldType) -> String {
     match ty {
         FieldType::Scalar(representation) => render_scalar_schema(*representation),
         FieldType::Nested(stable_id) => {
-            format!("{{\"$ref\":{}}}", quote_json(&format!("#/$defs/{stable_id}")))
+            format!(
+                "{{\"$ref\":{}}}",
+                quote_json(&format!("#/$defs/{stable_id}"))
+            )
         }
     }
 }

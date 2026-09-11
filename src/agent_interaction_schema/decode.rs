@@ -434,5 +434,8 @@ fn exact_keys(object: &Map<String, Value>, keys: &[&str]) -> bool {
 }
 
 fn string<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Diagnostic> {
-    object.get(key).and_then(Value::as_str).ok_or_else(malformed)
+    object
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(malformed)
 }

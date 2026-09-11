@@ -508,8 +508,7 @@ fn commented_core_source() -> String {
 #[test]
 fn commented_core_source_fixture_actually_has_comments() {
     let source = commented_core_source();
-    let (program, comments) =
-        semaprax::parse_with_comments(&source, "src/core.spx").unwrap();
+    let (program, comments) = semaprax::parse_with_comments(&source, "src/core.spx").unwrap();
     assert_eq!(comments.items.len(), 6);
     assert_ne!(semaprax::format::canonical(&program), source);
     // The fixture is exactly canonical once comments are restored: it is
@@ -559,7 +558,10 @@ fn commented_target_source_is_preserved_outside_the_edited_span() {
         "// end of file",
     ] {
         assert!(
-            artifacts.preserved_target_source().unwrap().contains(needle),
+            artifacts
+                .preserved_target_source()
+                .unwrap()
+                .contains(needle),
             "missing {needle:?}"
         );
     }
@@ -637,7 +639,10 @@ fn comment_embedded_in_the_edited_expression_span_is_refused() {
         Ok(_) => panic!("expected the embedded-comment span to be refused"),
         Err(errors) => errors,
     };
-    assert!(errors.iter().any(|error| error.code == "SPX-G525"), "{errors:?}");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G525"),
+        "{errors:?}"
+    );
     // Assert the *specific* refusal, not merely some SPX-G525: this fixture
     // is canonical-with-comments (the whole-body-block precondition holds),
     // so this must be refused by the embedded-comment guard specifically,
@@ -677,7 +682,10 @@ fn non_canonical_target_spacing_is_refused_not_silently_reformatted() {
     })
     .map(|_: Arc<ProjectRevision>| ())
     .unwrap_err();
-    assert!(errors.iter().any(|error| error.code == "SPX-G170"), "{errors:?}");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G170"),
+        "{errors:?}"
+    );
     assert_eq!(inventory(&fixture.0), disk_before);
 }
 

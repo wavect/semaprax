@@ -145,7 +145,8 @@ impl CompiledInteractionSchema {
     /// UTF-8. The returned value is data: it carries no authorization, no
     /// token, and no capability, and decoding performs no effect.
     pub fn decode(&self, source: &[u8]) -> Result<DecodedInteractionValue, Vec<Diagnostic>> {
-        decode::decode(&self.graph, &self.schema.digest, source).map_err(|diagnostic| vec![diagnostic])
+        decode::decode(&self.graph, &self.schema.digest, source)
+            .map_err(|diagnostic| vec![diagnostic])
     }
 }
 
@@ -184,7 +185,12 @@ pub fn compile_agent_interaction_schema(
         source,
     };
 
-    patch::validate_source_unchanged(&canonical_source_path, source_path, &snapshot, &source_revision)?;
+    patch::validate_source_unchanged(
+        &canonical_source_path,
+        source_path,
+        &snapshot,
+        &source_revision,
+    )?;
     Ok(CompiledInteractionSchema {
         schema,
         source_revision,

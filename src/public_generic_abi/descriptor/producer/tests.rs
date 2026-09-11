@@ -469,3 +469,67 @@ fn different_source_revision_changes_the_programme_subject_digests() {
         generate_public_generic_descriptor(&program, "revision-two", "descriptor.take").unwrap();
     assert_ne!(first.descriptor_digest(), second.descriptor_digest());
 }
+
+// ---------------------------------------------------------------------
+// Field-count bound (issue #150 follow-up): this producer now enforces
+// `MAX_FIELDS_PER_RECORD` by directly reusing the classifier's own
+// `check_field_counts`, which nothing else this producer already calls
+// (its own local shape predicate, or `CandidateSurface::derive`'s
+// total-visited-node budget) enforces per-record. Mirrors
+// `crate::public_generic_abi::classifier::tests::many_fields_source`.
+// ---------------------------------------------------------------------
+
+/// `field_count - 1` admitted `i64` Copy-scalar fields plus one direct owned
+/// `Bytes` leaf, so the fixture always has exactly one owned leaf regardless
+/// of `field_count`. `field_count` must be at least 1.
+fn many_fields_source(field_count: usize) -> String {
+    assert!(field_count >= 1);
+    let mut fields = String::new();
+    for index in 0..field_count - 1 {
+        fields.push_str(&format!(
+            "    @id(\"descriptor.big.f{index}\")\n    f{index}: i64,\n"
+        ));
+    }
+    fields.push_str("    @id(\"descriptor.big.leaf\")\n    leaf: Bytes,\n");
+    format!(
+        "\nmodule test.public_generic_descriptor_fields;\n\n\
+         @id(\"descriptor.big\")\nrecord Big {{\n{fields}}}\n\n\
+         @id(\"descriptor.big_take\")\nfn big_take(value: own Big) -> Big {{ value }}\n\n\
+         @id(\"app.main\")\nfn main() -> i64 {{ 0 }}\n"
+    )
+}
+
+/// Exact bound: `MAX_FIELDS_PER_RECORD` fields are admitted, exactly as the
+/// classifier's own equivalent test asserts for `classify` directly.
+#[test]
+fn a_record_at_the_field_count_bound_is_admitted() {
+    let source =
+        many_fields_source(crate::public_generic_abi::boundary_profile::MAX_FIELDS_PER_RECORD);
+    let generated =
+        generate_public_generic_descriptor(&resolved(&source), REVISION, "descriptor.big_take")
+            .unwrap();
+    assert_eq!(
+        generated.input_facts().fields.len(),
+        crate::public_generic_abi::boundary_profile::MAX_FIELDS_PER_RECORD
+    );
+    assert_eq!(generated.input_facts().owned_leaves.len(), 1);
+}
+
+/// First-over-bound: one field more than `MAX_FIELDS_PER_RECORD` is refused
+/// with the classifier's own `BOUND_EXCEEDED` (`SPX-PG613`), not a new
+/// `SPX-PG7xx` code, since this bound is enforced by shared, not
+/// re-derived, logic. Before this round's change this record would have
+/// been silently admitted: `CandidateSurface::derive`'s own total-node
+/// budget (4096) does not reject a single record of 257 fields.
+#[test]
+fn a_record_one_field_over_the_bound_is_refused() {
+    let source =
+        many_fields_source(crate::public_generic_abi::boundary_profile::MAX_FIELDS_PER_RECORD + 1);
+    let error =
+        generate_public_generic_descriptor(&resolved(&source), REVISION, "descriptor.big_take")
+            .unwrap_err();
+    assert_eq!(
+        error.code,
+        crate::public_generic_abi::classifier::BOUND_EXCEEDED
+    );
+}

@@ -481,7 +481,7 @@ fn translate_settlement_error(diagnostic: Diagnostic) -> Refusal {
 /// mutual recursion — is a cycle regardless of what concrete arguments
 /// would eventually be substituted, since substitution never removes a
 /// field occurrence, only renames the type parameters inside it.
-fn check_acyclic(program: &ResolvedProgram, ty: &ResolvedType) -> Result<(), Refusal> {
+pub(crate) fn check_acyclic(program: &ResolvedProgram, ty: &ResolvedType) -> Result<(), Refusal> {
     let mut active: Vec<&str> = Vec::new();
     let mut budget = 0usize;
     walk_acyclic(program, ty, &mut active, &mut budget)
@@ -524,17 +524,22 @@ fn walk_acyclic<'a>(
 }
 
 /// Enforce [`MAX_FIELDS_PER_RECORD`] on every record declaration reachable
-/// from `ty`. No other module in this repository enforces this bound today
-/// (the grammar bounds the *total* visited node count across a whole
-/// closure, never one record's own field count in isolation); the frozen
-/// specification declares the bound, so this classifier is the first to
-/// admit or refuse by it.
+/// from `ty`. No other module in this repository independently reimplements
+/// this bound (the grammar bounds the *total* visited node count across a
+/// whole closure, never one record's own field count in isolation); the
+/// frozen specification declares the bound, so this classifier is the first
+/// to admit or refuse by it, and
+/// [`crate::public_generic_abi::descriptor::producer`] reuses this exact
+/// `pub(crate)` function rather than re-deriving its own copy.
 ///
 /// Assumes [`check_acyclic`] has already run over the same root: a genuine
 /// cycle would make "already visited" ambiguous with "still expanding," so
 /// this walk must never be reachable from a value the acyclic check would
 /// have refused.
-fn check_field_counts(program: &ResolvedProgram, ty: &ResolvedType) -> Result<(), Refusal> {
+pub(crate) fn check_field_counts(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+) -> Result<(), Refusal> {
     let mut visited: BTreeSet<&str> = BTreeSet::new();
     let mut budget = 0usize;
     walk_field_counts(program, ty, &mut visited, &mut budget)

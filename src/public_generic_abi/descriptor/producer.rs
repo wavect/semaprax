@@ -5,14 +5,18 @@
 //! This closes the gap the [Public Generic Descriptor
 //! v1](../../../docs/PUBLIC-GENERIC-DESCRIPTOR-V1.md) specification names in
 //! its own nonclaims: "it is not derived from real checked HIR in this
-//! round." It is still not [Public Generic Boundary Profile
-//! v1](../../../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s classifier —
-//! issue #150's implementation half — which does not exist anywhere in this
-//! repository yet (`boundary_profile.rs` defines only the frozen bounds).
-//! Instead of waiting on that classifier, [`generate_public_generic_descriptor`]
-//! performs the same shape checks locally, reusing the existing hosted-green
-//! projections that already read checked HIR for the closely related
-//! gates rather than re-deriving them:
+//! round." This module's own v1 export-shape predicate below predates
+//! [Public Generic Boundary Profile
+//! v1](../../../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s own classifier
+//! (issue #150's implementation half, [`crate::public_generic_abi::classifier`]),
+//! which did not exist anywhere in this repository when this predicate was
+//! first written. That classifier exists now; see [Sharing the classifier's
+//! bound checks](#sharing-the-classifiers-bound-checks-issue-150-follow-up)
+//! below for exactly how much of it this module reuses today and what
+//! converging onto it fully would still require.
+//! [`generate_public_generic_descriptor`] performs the same shape checks
+//! locally, reusing the existing hosted-green projections that already read
+//! checked HIR for the closely related gates rather than re-deriving them:
 //!
 //! - [`crate::public_generic_surface::CandidateSurface`] (PG-3) selects the
 //!   export by persistent identity, refuses a generic template or an unknown
@@ -62,11 +66,46 @@
 //! Generation performs no build, filesystem write, registry access, network
 //! call, or code execution. Public generic ownership remains unsupported and
 //! unpublished; a [`GeneratedDescriptor`] is not a public ABI.
+//!
+//! ## Sharing the classifier's bound checks (issue #150 follow-up)
+//!
+//! Issue #150 has since landed [`crate::public_generic_abi::classifier`],
+//! the boundary profile's own admission classifier this module's own
+//! documentation above once said "does not exist anywhere in this
+//! repository yet." This module still performs its own local export-shape
+//! predicate rather than calling [`classifier::classify`] wholesale — the
+//! two modules' refusal vocabularies (`SPX-PG7xx` here, `SPX-PG6xx` there)
+//! and precedence order are independently documented and tested, and
+//! converging them onto one call path is a real, separately reviewable
+//! design change (it would retire this module's own `SPX-PG705`-`SPX-PG708`
+//! diagnostics and every test asserting them), not this round's job. What
+//! this round does close, because it is a strict, additive correctness gap
+//! rather than a vocabulary change: this module now calls the classifier's
+//! own `pub(crate)` [`classifier::check_field_counts`] helper on the
+//! admitted input and result types, rather than leaving
+//! [`crate::public_generic_abi::boundary_profile::MAX_FIELDS_PER_RECORD`]
+//! completely unenforced here as before — no other check in this module's
+//! own predicate or in `CandidateSurface::derive` bounds one record's own
+//! field count in isolation, only the *total* visited-node count across the
+//! whole closure. This module does **not** also call the classifier's
+//! `check_acyclic`: a genuinely self-referential record is already refused
+//! above, when `CandidateSurface::derive` runs first and its own bounded
+//! walk hits `MAX_RECORD_DEPTH` (a coarser, differently coded refusal than
+//! the classifier's own dedicated [`classifier::Refusal::RecursiveClosure`],
+//! but a refusal all the same) — calling `check_acyclic` here would be
+//! unreachable dead code, never a second layer of defense, because nothing
+//! satisfying its precondition (a value `CandidateSurface::derive` already
+//! accepted) can also be cyclic. Every subject this module previously
+//! admitted successfully still admits identically; the only newly reachable
+//! refusal is a record exceeding the per-record field-count bound
+//! ([`classifier::Refusal::BoundExceeded`], `SPX-PG613`), previously
+//! silently admitted into an unbounded descriptor.
 
 use std::collections::BTreeMap;
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::{OwnershipMode, ResolvedFunction, ResolvedProgram};
+use crate::public_generic_abi::classifier;
 use crate::public_generic_abi::{digest, frame};
 use crate::public_generic_settlement::{self as settlement, SettlementPlan};
 use crate::public_generic_surface::CandidateSurface;
@@ -318,6 +357,28 @@ pub fn generate_public_generic_descriptor(
         ));
     }
 
+    let function = find_function(program, export_id);
+
+    // Reuse, not reinvention: [`MAX_FIELDS_PER_RECORD`] is a frozen bound
+    // this module's own local shape predicate above never enforced, and
+    // `public_generic_surface::CandidateSurface::derive` above bounds only
+    // the *total* visited-node count across the whole closure (already run,
+    // successfully, to reach this point), never one record's own field
+    // count in isolation — so a record over this bound but still under the
+    // shared total-node budget reaches here undetected without this call.
+    // Reused directly from the classifier (issue #150) rather than
+    // re-derived; see the module doc's "Sharing the classifier's bound
+    // checks" section above for why this module does not also call the
+    // classifier's `check_acyclic`: a genuinely self-referential record is
+    // already refused above, by `CandidateSurface::derive`'s own bounded
+    // walk hitting `MAX_RECORD_DEPTH` before ever reaching this line, so an
+    // acyclicity check here would be unreachable dead code, not a second
+    // layer of defense.
+    classifier::check_field_counts(program, &function.params[0].ty)
+        .map_err(|refusal| refusal.diagnostic())?;
+    classifier::check_field_counts(program, &function.return_type)
+        .map_err(|refusal| refusal.diagnostic())?;
+
     let input_facts = surface
         .instances()
         .get(&input.value.term)
@@ -339,7 +400,6 @@ pub fn generate_public_generic_descriptor(
             )
         })?;
 
-    let function = find_function(program, export_id);
     let inventory = TypeInventory::of(program);
     let settlement = settlement::plan(&inventory, function, 0)?;
 

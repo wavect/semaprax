@@ -11,11 +11,16 @@ and #151. The reference codec encodes and decodes a `DescriptorV1` value and
 replays it byte-for-byte. `producer::generate_public_generic_descriptor`
 (issue #151) derives that value from a real checked `ResolvedProgram` and a
 caller-supplied source revision — see [Derivation from checked
-facts](#derivation-from-checked-facts-the-producer) below. It does **not**
-run [Public Generic Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s
-own classifier, which is issue #150's implementation half and does not exist
-anywhere in this repository yet; the producer performs the v1 export-shape
-predicate itself instead, with its own diagnostics, documented below. Public
+facts](#derivation-from-checked-facts-the-producer) below. [Public Generic
+Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s own classifier
+(`src/public_generic_abi/classifier.rs`, issue #150's implementation half)
+now exists; the producer still performs its own local v1 export-shape
+predicate rather than calling the classifier wholesale (the two modules'
+refusal vocabularies and precedence order are independently documented and
+tested, and converging them into one call path is separate, reviewable
+follow-on work), but it now reuses the classifier's own `pub(crate)`
+per-record field-count check directly rather than leaving that frozen bound
+unenforced here, closing a gap this document previously left open. Public
 generic ownership remains unsupported and unpublished.
 
 Audience: ABI, package, evidence, and generated-consumer maintainers.
@@ -229,24 +234,40 @@ persistent export identity, it:
 2. locally checks the v1 export-shape predicate — exactly one owned (`own`)
    input parameter, exactly one owned aggregate result, both fully concrete
    record instances, no declared effect — refusing with one of five new
-   diagnostics (`SPX-PG705`-`SPX-PG709` below) otherwise, since [Public
-   Generic Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s own
-   classifier (issue #150's implementation half) does not exist in this
-   repository yet;
-3. binds `program_root_digest` to a domain-separated digest over the sorted,
+   diagnostics (`SPX-PG705`-`SPX-PG709` below) otherwise; this predicate
+   predates [Public Generic Boundary Profile
+   v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s own classifier (issue #150's
+   implementation half, `src/public_generic_abi/classifier.rs`) and has not
+   been replaced by a single call into it — see [Known
+   limitations](#known-limitations-producer-vs-classifier) below;
+3. reuses the classifier's own `pub(crate) check_field_counts` helper
+   directly against the admitted input and result types, refusing a record
+   exceeding [`MAX_FIELDS_PER_RECORD`](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md#bounds)
+   ([`classifier::Refusal::BoundExceeded`], `SPX-PG613`) — a frozen bound
+   this document previously left unenforced here (step 1's
+   `CandidateSurface::derive` bounds only the *total* visited-node count
+   across the whole closure, never one record's own field count in
+   isolation), closed by sharing the classifier's own logic rather than
+   re-deriving a second copy of it. This module does not also call the
+   classifier's `check_acyclic`: a genuinely self-referential record is
+   already refused in step 1 above, when `CandidateSurface::derive`'s own
+   bounded walk hits `MAX_RECORD_DEPTH` before this step is ever reached, so
+   calling it here would be unreachable dead code, not a second layer of
+   defense;
+4. binds `program_root_digest` to a domain-separated digest over the sorted,
    deduplicated set of every persistent declaration identity in `program`
    (every checked type, function, function template, and function instance —
    never a display name, so a rename never moves it), `source_projection_digest`
    to a domain-separated digest of the caller-supplied `source_revision`, and
    `public_surface_digest` to the candidate surface's own digest, reused
    unchanged;
-4. derives `settlement::plan` (PG-7) for the owned input, which already fails
+5. derives `settlement::plan` (PG-7) for the owned input, which already fails
    closed on any disagreement with the compiler's own cleanup inventory or
    cleanup plan, and exposes a `cleanup_inventory_digest`, `cleanup_plan_digest`,
    and `settlement_obligations_digest` on the returned `GeneratedDescriptor` —
    **not** folded into the eleven-field `DescriptorV1` wire preimage above,
    which this round does not widen;
-5. renders the wire bytes, checks them against
+6. renders the wire bytes, checks them against
    [`MAX_DESCRIPTOR_WIRE_BYTES`](#bounds), and self-verifies by independently
    replaying its own freshly encoded bytes before returning.
 
@@ -272,9 +293,44 @@ classifier's reserved `SPX-PG6xx`):
 
 An unknown export, an ambiguous selection, or a selected generic template are
 refused with `public_generic_surface`'s own `SPX-PG201` (reused, not
-duplicated); a cleanup or settlement disagreement is refused with
-`public_generic_settlement`'s own `SPX-PG501`/`SPX-PG502` (reused, not
-duplicated).
+duplicated); a self-referential record closure is refused with that same
+`SPX-PG201`, or another `public_generic_surface`/`public_generic_type`
+capacity code, when `CandidateSurface::derive`'s own bounded walk hits
+`MAX_RECORD_DEPTH` (see [Known
+limitations](#known-limitations-producer-vs-classifier) below for why this
+producer does not also call the classifier's dedicated, more precise
+`RecursiveClosure`/`SPX-PG611` check); a cleanup or settlement disagreement
+is refused with `public_generic_settlement`'s own `SPX-PG501`/`SPX-PG502`
+(reused, not duplicated). An over-bound record field count — a check this
+producer now performs by directly calling the classifier's own `pub(crate)`
+`check_field_counts` helper rather than re-deriving it — is refused with the
+classifier's own `SPX-PG613` (`BoundExceeded`), never a new `SPX-PG7xx`
+code, since that check is shared code, not a descriptor-owned predicate.
+
+### Known limitations (producer vs. classifier)
+
+Issue #150's classifier now exists, but this producer does not call
+[`classify`](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md) as its single admission
+gate; it still runs its own five-diagnostic local export-shape predicate
+first (`SPX-PG705`-`SPX-PG708`), only reusing the classifier's shared
+field-count bound check directly (never its `check_acyclic`, which would be
+unreachable here — see the [derivation steps](#derivation-from-checked-facts-the-producer)
+above). Consequently the two
+modules' refusal vocabularies do not fully converge yet: an export the
+classifier would refuse as, for example,
+[`classifier::Refusal::ArityMismatch`](../src/public_generic_abi/classifier.rs)
+or [`classifier::Refusal::AmbiguousStableIdentity`] is refused by
+`public_generic_surface::CandidateSurface::derive`'s own `SPX-PG201`
+one level higher in this producer's call order instead, and a compiler-owned
+nominal or borrowed field reachable inside the closure surfaces through
+whichever of `public_generic_surface`'s or the classifier's own translated
+codes that lower-level module already returns, not a producer-specific code.
+Converging the producer onto a single call into `classify` — retiring
+`SPX-PG705`-`SPX-PG708` in favor of the classifier's `SPX-PG601`-`SPX-PG610`/
+`616`/`618` equivalents and updating every test and this document's own
+diagnostics table together — is real, separately reviewable follow-on work,
+not performed in this round because it changes an already-documented,
+already-tested diagnostic contract rather than closing a silent gap.
 
 ## Verification and trusted replay (the independent verifier)
 

@@ -2,15 +2,20 @@
 
 Audience: compiler contributors producing descriptors, and authors of independent verifiers and foreign-language consumers.
 
-Status: frozen wire-format specification with a reference codec and local
-evidence (`src/public_generic_abi/descriptor.rs`). This is the descriptor half
-of gate #150-#152 of the [Public Generic Ownership
-milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md) and answers issue #170.
-The reference codec encodes and decodes a `DescriptorV1` value and replays it
-byte-for-byte; it does **not** derive that value from real checked HIR,
-`ProgramRoot`, or a Project candidate — that derivation is explicitly out of
-scope for this round (scope reconciliation and contract freeze only, no
-compiler/backend implementation) and is the next tranche's work. Public
+Status: frozen wire-format specification with a reference codec, local
+evidence, and a real-HIR producer (`src/public_generic_abi/descriptor.rs` and
+its `producer` submodule). This is the descriptor half of gate #150-#152 of
+the [Public Generic Ownership
+milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md) and answers issues #170
+and #151. The reference codec encodes and decodes a `DescriptorV1` value and
+replays it byte-for-byte. `producer::generate_public_generic_descriptor`
+(issue #151) derives that value from a real checked `ResolvedProgram` and a
+caller-supplied source revision — see [Derivation from checked
+facts](#derivation-from-checked-facts-the-producer) below. It does **not**
+run [Public Generic Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s
+own classifier, which is issue #150's implementation half and does not exist
+anywhere in this repository yet; the producer performs the v1 export-shape
+predicate itself instead, with its own diagnostics, documented below. Public
 generic ownership remains unsupported and unpublished.
 
 Audience: ABI, package, evidence, and generated-consumer maintainers.
@@ -209,15 +214,81 @@ cross-paired trusted value for every one of the seven bound fields. No hosted
 run is recorded for this document; see the accompanying worktree report for
 the exact local commands run.
 
+## Derivation from checked facts (the producer)
+
+`src/public_generic_abi/descriptor/producer.rs` exposes
+`generate_public_generic_descriptor(program: &ResolvedProgram, source_revision: &str, export_id: &str) -> Result<GeneratedDescriptor, Diagnostic>`
+(issue #151). Given a real checked `ResolvedProgram` (compiled through
+`crate::parse` and `crate::hir::resolve`, never a hand-built fixture) and a
+persistent export identity, it:
+
+1. selects the export with `public_generic_surface::CandidateSurface::derive`
+   (PG-3), which already refuses an unknown or ambiguous selection and a
+   generic function template, and computes the complete substituted record
+   closure reachable from the signature;
+2. locally checks the v1 export-shape predicate — exactly one owned (`own`)
+   input parameter, exactly one owned aggregate result, both fully concrete
+   record instances, no declared effect — refusing with one of five new
+   diagnostics (`SPX-PG705`-`SPX-PG709` below) otherwise, since [Public
+   Generic Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s own
+   classifier (issue #150's implementation half) does not exist in this
+   repository yet;
+3. binds `program_root_digest` to a domain-separated digest over the sorted,
+   deduplicated set of every persistent declaration identity in `program`
+   (every checked type, function, function template, and function instance —
+   never a display name, so a rename never moves it), `source_projection_digest`
+   to a domain-separated digest of the caller-supplied `source_revision`, and
+   `public_surface_digest` to the candidate surface's own digest, reused
+   unchanged;
+4. derives `settlement::plan` (PG-7) for the owned input, which already fails
+   closed on any disagreement with the compiler's own cleanup inventory or
+   cleanup plan, and exposes a `cleanup_inventory_digest`, `cleanup_plan_digest`,
+   and `settlement_obligations_digest` on the returned `GeneratedDescriptor` —
+   **not** folded into the eleven-field `DescriptorV1` wire preimage above,
+   which this round does not widen;
+5. renders the wire bytes, checks them against
+   [`MAX_DESCRIPTOR_WIRE_BYTES`](#bounds), and self-verifies by independently
+   replaying its own freshly encoded bytes before returning.
+
+`program_root_digest`'s declaration-identity inventory is a deliberately
+minimal real binding: it is rename-invariant and re-derived from checked
+facts, but two programs sharing an identical declaration-identity set with
+different field types or bodies are not distinguished by it alone. A future
+round can widen it to a full structural digest using the same `TypeInventory`
+the producer already builds; this round's determinism, rename-invariance, and
+cross-pair replay requirements are met by the input/result instance digests
+and the settlement digests already bound.
+
+New diagnostics, in the descriptor's own `SPX-PG7xx` range (never the
+classifier's reserved `SPX-PG6xx`):
+
+| Code | Meaning |
+| --- | --- |
+| `SPX-PG705` | the selected export does not have exactly one owned aggregate input parameter |
+| `SPX-PG706` | the export's one parameter is not owned (`own`) |
+| `SPX-PG707` | the input or result position is not a fully concrete authored record instance |
+| `SPX-PG708` | the export declares one or more effects |
+| `SPX-PG709` | the rendered descriptor exceeds [`MAX_DESCRIPTOR_WIRE_BYTES`](#bounds) |
+
+An unknown export, an ambiguous selection, or a selected generic template are
+refused with `public_generic_surface`'s own `SPX-PG201` (reused, not
+duplicated); a cleanup or settlement disagreement is refused with
+`public_generic_settlement`'s own `SPX-PG501`/`SPX-PG502` (reused, not
+duplicated).
+
 ## Nonclaims
 
 This descriptor exposes no internal HIR layout, no C struct, no Rust
 monomorphization detail, and no Wasm memory offset. It reuses no Project
 v9/v11 descriptor bytes and widens none of them. It grants no execution,
-build, filesystem, registry, or publication authority. It is not derived from
-real checked HIR in this round; the `DescriptorV1` values in its tests are
-hand-constructed fixtures, not compiler output, and must not be cited as
-evidence that a real export has been classified or described. It does not
-itself decide which exports are admitted — that is [Public Generic Boundary
-Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s job, whose classifier
-does not exist yet either.
+build, filesystem, registry, or publication authority. The reference codec's
+own `tests` submodule still uses hand-constructed `DescriptorV1` fixtures for
+wire-format determinism and hostile-input evidence; the producer's own tests
+derive every value from a real compiled program instead, but a
+`GeneratedDescriptor` still names no shipped ABI and must not be cited as a
+support or publication claim. Neither the codec nor the producer decides
+which exports are admitted under a general classifier — that is [Public
+Generic Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s job,
+whose own classifier (issue #150's implementation half) does not exist yet;
+the producer's export-shape checks are a local, descriptor-scoped
+substitute, not that classifier, and should be revisited once it lands.

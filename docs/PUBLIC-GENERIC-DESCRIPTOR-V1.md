@@ -442,6 +442,27 @@ responsibility, matching "preserve current architecture" for this round: no
 `ProgramRoot`, Project candidate, or workspace-session type is threaded
 through this layer yet.
 
+### Evidence for source drift
+
+`program_root_digest`'s declaration-identity inventory is, by the producer
+documentation's own admission, a minimal binding: two programs sharing an
+identical set of top-level declaration identities but different field
+content are not distinguished by it alone. This module's own test
+`a_nested_field_type_change_with_an_unchanged_declaration_set_still_fails_closed`
+(`src/public_generic_abi/descriptor/verify/tests.rs`) is the negative
+evidence that this gap does not let a stale descriptor verify: it compiles
+one programme, generates a descriptor for it, then compiles a second
+programme whose declaration-identity set is byte-for-byte identical (same
+`program_root_digest`) but whose exported record gained one additional
+field, and asserts that verifying the first (stale) descriptor's wire bytes
+against the second (drifted) programme is rejected with
+`DESCRIPTOR_REPLAY_MISMATCH` — because the drift is still visible through
+`public_surface_digest`, which folds in every reachable record instance's
+own instance digest, not only the top-level input/result bindings alone.
+The same test also asserts a freshly generated descriptor for the drifted
+programme verifies normally, so this is drift detection, not a spurious
+rejection of a current descriptor.
+
 ### Nonclaims specific to verification
 
 The verifier decides nothing about which exports are admitted under a
@@ -464,9 +485,14 @@ own `tests` submodule still uses hand-constructed `DescriptorV1` fixtures for
 wire-format determinism and hostile-input evidence; the producer's own tests
 derive every value from a real compiled program instead, but a
 `GeneratedDescriptor` still names no shipped ABI and must not be cited as a
-support or publication claim. Neither the codec nor the producer decides
-which exports are admitted under a general classifier — that is [Public
-Generic Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s job,
-whose own classifier (issue #150's implementation half) does not exist yet;
-the producer's export-shape checks are a local, descriptor-scoped
-substitute, not that classifier, and should be revisited once it lands.
+support or publication claim. Neither the codec nor the producer treats the
+producer's own local export-shape predicate as the general admission
+classifier — that remains [Public Generic Boundary Profile
+v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s job. Issue #150's classifier
+(`src/public_generic_abi/classifier.rs`) has since landed and is no longer
+hypothetical, but the producer still runs its own five-diagnostic predicate
+first rather than calling `classify` as a single admission gate; see [Known
+limitations](#known-limitations-producer-vs-classifier) above for exactly
+how much of the classifier this producer reuses today (its shared
+`check_field_counts` bound, directly, and nothing else) and what full
+convergence would still require.

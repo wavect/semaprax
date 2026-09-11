@@ -484,7 +484,12 @@ generic export (blocked on #119); its bound endpoint and trusted descriptor
 bytes are fixtures. It has not been exercised on Linux or Windows/MSVC, or
 under a hosted CI sanitizer gate (#163's remaining work). It is not the
 generated Rust, C, or C++ consumer (#156, #158, #159 respectively) — those
-are separate acceptance surfaces this issue does not build.
+are separate acceptance surfaces this issue does not build. Issue #156's
+generated Rust *calling* consumer links against this exact adapter (the same
+`render_reference_provider` output, compiled once and reused, never a second
+implementation) without modifying it; see [Rust calling consumer (issue
+#156)](PUBLIC-GENERIC-CONSUMERS-V1.md#rust-calling-consumer-issue-156) for
+that consumer's own scope, safety argument, and execution evidence.
 
 ## Core Wasm physical adapter (issue #155)
 

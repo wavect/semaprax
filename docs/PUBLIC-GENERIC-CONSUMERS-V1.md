@@ -1,15 +1,22 @@
 # Public Generic Metadata Consumers v1
 
-Status: implemented bounded generator, hosted green on Linux, macOS, and
-Windows with all four consumer toolchains exercised on each. This closes the
-*grammar* half of gates PG-5 and PG-6 of the
-[Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md);
-both gates stay open for their descriptor half, because no public generic
-descriptor, carrier, or calling convention exists. Public generic ownership
-remains unsupported and unpublished.
-
 Audience: generated-consumer integrators, ABI reviewers, and promotion
 reviewers.
+
+Status: the four metadata consumers below are an implemented bounded
+generator, hosted green on Linux, macOS, and Windows with all four consumer
+toolchains exercised on each. This closes the *grammar* half of gates PG-5
+and PG-6 of the
+[Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
+The *calling* half now has a first, local-only implementation for Rust (see
+[Rust calling consumer (issue #156)](#rust-calling-consumer-issue-156)
+below), built on the versioned descriptor
+([issue #152](PUBLIC-GENERIC-DESCRIPTOR-V1.md)) and native carrier
+([issue #154](PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154))
+that did not exist when the metadata half closed; both gates stay open for
+every other language's calling consumer (C, C++, TypeScript — issues
+#157-#159) and for hosted evidence of the Rust one. Public generic ownership
+remains unsupported and unpublished.
 
 ## Why metadata consumers come first
 
@@ -154,14 +161,138 @@ and `windows-latest` for implementation commit `2ef043ba1b989f49b256e456f71fb6e8
 [run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245). That is evidence for the corpus this document owns, not for the
 milestone's remaining gates.
 
-## Nonclaims
+## Nonclaims (metadata consumers)
 
-This defines no calling convention, descriptor, carrier, package, layout,
-allocation, or ownership transfer, and no value crosses any boundary. It does
-not admit a public generic signature: the public projections still reject
-generic surfaces, and the milestone's separation gate continues to prove it.
-The hosted run recorded above covers this corpus and nothing else: it is not a
-support decision and not a publication. The remaining half of PG-5 and PG-6 —
-consumers that call a public generic export over a versioned descriptor and
-carrier, and hostile replay of those descriptor bytes — is untouched by this
-work, which is why both gates stay open despite that run.
+The four metadata consumers described above define no calling convention,
+descriptor, carrier, package, layout, allocation, or ownership transfer, and
+no value crosses any boundary through them. Generation does not admit a
+public generic signature: the public projections still reject generic
+surfaces, and the milestone's separation gate continues to prove it. The
+hosted run recorded above covers this corpus and nothing else: it is not a
+support decision and not a publication. Calling a public generic export over
+a versioned descriptor and carrier is a separate generator, described next
+for Rust; C, C++, and TypeScript calling consumers remain untouched
+(issues #157-#159), which is why PG-5 and PG-6 stay open for every language
+but Rust despite the section below.
+
+## Rust calling consumer (issue #156)
+
+Audience: generated-consumer integrators and ABI reviewers evaluating the
+calling half of PG-5/PG-6 for Rust.
+
+Status: local, proof-only evidence only (no hosted CI run recorded for this
+section), unsupported and unpublished. Extends the existing generator
+(`semaprax::public_generic_consumer::rust_calling`) rather than a parallel
+framework: it reuses the metadata consumer's own identifier scheme
+(lowercase hex of identity bytes, never display text) and its
+`.txt`-template/LF-normalization convention, and it links against — never
+reimplements or modifies — the native C11 physical adapter
+([issue #154](PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154)).
+
+**What is generated versus hand-written.** Every file below is produced by
+`generate_rust_calling_consumer(descriptor_bytes, binding, input, output)`,
+a pure function from already-trusted descriptor/binding bytes and a
+`RecordShape` to source text — no file is hand-copied into a fixture. Two
+honest qualifications:
+
+- `src/provider.rs`'s FFI declarations (the `extern "C"` block, status
+  constants, and the safe `Provider`/`ResultGuard` wrapper logic) are a
+  **fixed template** baked into the generator, not derived per-descriptor —
+  they restate `spx_pg_v1.h` (a frozen, versioned ABI), so nothing about a
+  specific descriptor changes them. This mirrors
+  `native/template.rs`'s own `HEADER_V1`/`BODY_V1` being fixed text pasted
+  around descriptor-dependent byte constants.
+- The concrete type model is scoped to what the bound native provider
+  actually implements today: a flat, descriptor-ordered sequence of owned
+  `Bytes` leaves (see
+  [Native C11 physical adapter](PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154)'s
+  own "existing owned-Bytes shapes" scope note). A Copy-scalar or
+  nested-record leaf is future generator work tracked by the same #119
+  prerequisite that scope note names, not a limitation invented here.
+  [Public Generic Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)
+  admits exactly one owned input parameter and one owned result in v1, so
+  the generator emits exactly two concrete structs, `Input` and `Output`.
+
+Generated layout (deterministic, LF-only, every file ends with a trailing
+newline):
+
+```text
+Cargo.toml         -- fixed template; zero dependencies; [lints.rust] unsafe_code = "deny"
+build.rs           -- fixed template; links SPX_PG_PROVIDER_LIB_DIR/_NAME, compiles nothing itself
+src/lib.rs          -- fixed template; #![deny(unsafe_code)]; re-exports the safe API
+src/error.rs        -- fixed template; closed Error enum, sticky-failure secondary-release note
+src/descriptor.rs   -- embeds TRUSTED_DESCRIPTOR_BYTES/TRUSTED_BINDING_BYTES; independent byte-exact verify()
+src/types.rs        -- Input/Output structs, one Vec<u8> field per leaf, field order preserved
+src/carrier.rs       -- encode/decode for exactly FIELD_COUNT leaves, independently validated
+src/provider.rs      -- the FFI shim (unsafe confined here) and the safe Provider/diagnostics API
+tests/round_trip.rs -- sample_input/assert_reversed/per-leaf-bound tests, generated per shape
+```
+
+`Cargo.lock` is not hand-rendered by the generator: the crate has zero
+dependencies, so `cargo generate-lockfile` against the generated `Cargo.toml`
+is itself deterministic, and the execution harness below runs it once and
+then always builds `--locked`.
+
+**Safety.** All `unsafe` is confined to `src/provider.rs`'s private `ffi`
+submodule; every other generated file is denied `unsafe_code` twice over
+(`lib.rs`'s own `#![deny(unsafe_code)]` and the package-wide
+`[lints.rust] unsafe_code = "deny"`, which also covers `tests/round_trip.rs`).
+Every `unsafe` block carries a `// SAFETY` comment stating pointer
+provenance, length validity, the native contract relied upon, ownership
+before/after the call, the null/output-init expectation, why the handle is
+live, and who releases on failure. A generator test
+(`unsafe_is_confined_to_the_provider_module`) mechanically rejects an
+`unsafe` keyword appearing anywhere else, and a second test
+(`every_unsafe_block_in_the_provider_module_is_preceded_by_a_safety_comment`)
+requires every block to carry one. `Input`/`Output`/`Provider` derive neither
+`Copy` nor `Clone` (`owned_types_never_derive_copy_or_clone`); `Provider`
+derives only `Debug`.
+
+**Ownership and settlement.** `Provider::open` independently replays
+submitted descriptor/binding bytes against the embedded trusted values
+(byte-exact equality) *before* calling the native adapter at all — a
+consumer that only trusted the native side's own answer would defeat the
+point of an independently verified descriptor
+([issue #152](PUBLIC-GENERIC-DESCRIPTOR-V1.md)). `Provider::transform`
+consumes `Input` by value (Rust's own move semantics make reuse through the
+safe API impossible), transfers it exactly once, and releases the native
+result handle in every case — success or an early `?` out of decode — via a
+`Drop`-based guard. A release/close failure observed only during `Drop` is
+printed as secondary evidence and never overwrites the primary `Err` already
+selected: sticky failure, restated for this consumer.
+
+**Execution evidence.** `tests/public_generic_native_adapter_v1/rust_calling_consumer.rs`
+generates the crate, compiles the *same* rendered reference provider
+`fixture.rs` exercises (issue #154's provider, never a second
+implementation) into a static library, writes the generated crate to a
+temporary directory outside this repository's own workspace, runs
+`cargo generate-lockfile`, `cargo clippy --locked --all-targets -- -D
+warnings`, and `cargo test --locked -- --test-threads=1` (single-threaded:
+the linked provider's own allocator, handle registry, and failure-injection
+state are process-global — `spx_pg_v1.h` states "no concurrency claim is
+made anywhere in this file"). The generated crate's own seven tests all pass
+against the real provider: a full success round trip with exact
+reversed-byte assertions, a mutated descriptor, a mutated binding, and a
+well-formed descriptor extended to name a different (still well-formed)
+document, each rejected by `Provider::open` before any native allocation; the
+per-leaf byte bound accepted exactly at 64 KiB and rejected one byte over;
+and the full ordinal `0..=13` failure-injection matrix — the same matrix
+`probe.c` drives from C — each asserting zero live native
+allocations/handles afterward via the provider's own test-only counters. A
+second test confirms the generated `Cargo.toml` declares no dependency at
+all, so the crate never depends on this workspace's own `semaprax` crate.
+
+**Known limitations, stated once.** Local evidence only: no hosted CI run is
+recorded for this section, and this harness assumes a Unix-like host with
+`clang`, `ar`, and `cargo` on `PATH` — Windows/MSVC is untried. The trusted
+descriptor bytes are the same fixture placeholder `fixture.rs` uses (#119
+still blocks deriving one from a real checked generic export). The generated
+`rust-version = "1.88"` field states the minimum-toolchain claim; the
+execution harness builds and runs the generated crate with whatever
+`rustc`/`cargo` the host provides (1.98 locally), not a provisioned 1.88
+toolchain, so it proves the crate is real, external, and executes against
+the real provider, not that 1.88 itself builds it. The type model covers
+flat owned-`Bytes` leaves only (see above); nested records and Copy scalars
+are not yet generated. No maximum-total-payload (16 MiB) case is exercised,
+only the per-leaf (64 KiB) bound — a narrower but still first-over-bound
+proof.

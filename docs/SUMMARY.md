@@ -302,6 +302,7 @@ Audience: all documentation readers.
 - [Bounded Network Services](BOUNDED-NETWORK-SERVICES-V1.md)
 - [HTTPS Client Runtime](HTTPS-CLIENT-RUNTIME-V1.md)
 - [HTTPS Client I/O](HTTPS-CLIENT-IO-V1.md)
+- [HTTP Application Routing](HTTP-APPLICATION-ROUTING-V1.md)
 - [Wasm scalar exports](WASM-SCALAR-EXPORTS-V1.md)
 - [Public Scalar WIT Interface v1](PUBLIC-SCALAR-WIT-INTERFACE-V1.md)
 - [Wasm owned ABI](WASM-OWNED-ABI-V1.md)

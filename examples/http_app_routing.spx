@@ -1,0 +1,210 @@
+module app.http_router;
+
+@id("app.http_router.byte_is")
+fn byte_is(view: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(view, index) { Option::Some { value: byte } => byte == expected, Option::None {} => false, }
+}
+
+@id("app.http_router.lower")
+fn lower(byte: u8) -> u8
+{
+    if byte >= 65u8 && byte <= 90u8 { byte + 32u8 } else { byte }
+}
+
+@id("app.http_router.find_from")
+fn find_from(view: borrow Slice<u8>, start: usize, target: u8, limit: usize) -> usize
+    ensures result <= limit
+{
+    let mut index = start;
+    let mut found = false;
+    while index < limit && !found {
+        found = byte_is(view, index, target);
+        index = if found { index } else { index + 1usize };
+        index < limit && !found
+    }
+    if found { index } else { limit }
+}
+
+@id("app.http_router.method_is_get")
+fn method_is_get(view: borrow Slice<u8>) -> bool
+{
+    byte_is(view, 0usize, 71u8) && byte_is(view, 1usize, 69u8) && byte_is(view, 2usize, 84u8) && byte_is(view, 3usize, 32u8)
+}
+
+@id("app.http_router.path_is_health")
+fn path_is_health(view: borrow Slice<u8>, start: usize, end: usize) -> bool
+{
+    let literal = [47u8, 104u8, 101u8, 97u8, 108u8, 116u8, 104u8];
+    let literal_view = array_as_slice(literal);
+    let mut index = 0usize;
+    let mut same = end - start == 7usize;
+    while index < 7usize && same {
+        same = match byte_get(view, start + index) { Option::Some { value: byte } => byte_is(literal_view, index, byte), Option::None {} => false, };
+        index = index + 1usize;
+        index < 7usize && same
+    }
+    same
+}
+
+@id("app.http_router.path_is_echo")
+fn path_is_echo(view: borrow Slice<u8>, start: usize, end: usize) -> bool
+{
+    let literal = [47u8, 101u8, 99u8, 104u8, 111u8];
+    let literal_view = array_as_slice(literal);
+    let mut index = 0usize;
+    let mut same = end - start == 5usize;
+    while index < 5usize && same {
+        same = match byte_get(view, start + index) { Option::Some { value: byte } => byte_is(literal_view, index, byte), Option::None {} => false, };
+        index = index + 1usize;
+        index < 5usize && same
+    }
+    same
+}
+
+@id("app.http_router.header_name_is_content_length")
+fn header_name_is_content_length(view: borrow Slice<u8>, index: usize, end: usize) -> bool
+{
+    let literal = [99u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 108u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8];
+    let literal_view = array_as_slice(literal);
+    let mut offset = 0usize;
+    let mut same = index + 15usize <= end;
+    while offset < 15usize && same {
+        same = match byte_get(view, index + offset) { Option::Some { value: byte } => byte_is(literal_view, offset, lower(byte)), Option::None {} => false, };
+        offset = offset + 1usize;
+        offset < 15usize && same
+    }
+    same
+}
+
+@id("app.http_router.skip_blanks")
+fn skip_blanks(view: borrow Slice<u8>, cursor: usize) -> usize
+    ensures result >= cursor
+{
+    let mut next = cursor;
+    let mut skipping = true;
+    while skipping {
+        skipping = byte_is(view, next, 32u8) || byte_is(view, next, 9u8);
+        next = if skipping { next + 1usize } else { next };
+        skipping
+    }
+    next
+}
+
+@id("app.http_router.digit_value")
+fn digit_value(byte: u8) -> i64
+    ensures result >= -1 && result <= 9
+{
+    match byte { 48u8 => 0, 49u8 => 1, 50u8 => 2, 51u8 => 3, 52u8 => 4, 53u8 => 5, 54u8 => 6, 55u8 => 7, 56u8 => 8, 57u8 => 9, _ => -1, }
+}
+
+@id("app.http_router.decimal_at")
+fn decimal_at(view: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1
+{
+    let mut cursor = start;
+    let mut value = 0;
+    let mut digits = 0;
+    let mut reading = true;
+    while reading {
+        let digit = match byte_get(view, cursor) { Option::Some { value: byte } => digit_value(byte), Option::None {} => -1, };
+        reading = digit >= 0 && digits < 15;
+        value = if reading { value * 10 + digit } else { value };
+        digits = if reading { digits + 1 } else { digits };
+        cursor = if reading { cursor + 1usize } else { cursor };
+        reading
+    }
+    if digits >= 1 { value } else { -1 }
+}
+
+@id("app.http_router.content_length_of")
+fn content_length_of(view: borrow Slice<u8>, header_start: usize, header_end: usize) -> i64
+    ensures result >= -1
+{
+    let mut index = header_start;
+    let mut found = header_end;
+    let mut searching = true;
+    while index < header_end && searching {
+        let at_line_start = index == header_start || byte_is(view, index - 1usize, 10u8);
+        searching = !(at_line_start && header_name_is_content_length(view, index, header_end));
+        found = if searching { found } else { index };
+        index = index + 1usize;
+        index < header_end && searching
+    }
+    if found == header_end { -1 } else { decimal_at(view, skip_blanks(view, found + 15usize)) }
+}
+
+// Route identity is a closed `i64` domain, the same idiom `std.net`'s
+// `wait_is_readable`/`wait_is_closed` states use: 0 Health, 1 Echo,
+// 2 NotFound, 3 MethodNotAllowed, 4 Malformed. A record or variant payload
+// type-checks fine as a route/request/response shape (`semaprax check`
+// verifies one in this profile's fixtures), but the bounded reference
+// interpreter admits no record-field projection yet, so the profile's
+// deterministic fixture lane below stays on the closed-domain idiom that
+// every existing hosted profile (`semaprax.network.v1`, `std.net`) already
+// uses, and that `semaprax run` (no `--native` build) executes end to end.
+@id("app.http_router.route_for")
+fn route_for(view: borrow Slice<u8>) -> i64
+    ensures result >= 0 && result <= 4
+{
+    let length = byte_len(view);
+    let scan_limit = if length < 256usize { length } else { 256usize };
+    let line_end = find_from(view, 0usize, 13u8, scan_limit);
+    if line_end == scan_limit { 4 } else { if !method_is_get(view) { 3 } else { let path_end = find_from(view, 4usize, 32u8, line_end); if path_end >= line_end { 4 } else { if path_is_health(view, 4usize, path_end) { 0 } else { if path_is_echo(view, 4usize, path_end) { 1 } else { 2 } } } } }
+}
+
+@id("app.http_router.request_content_length")
+fn request_content_length(view: borrow Slice<u8>) -> i64
+    ensures result >= -1
+{
+    let length = byte_len(view);
+    let scan_limit = if length < 256usize { length } else { 256usize };
+    let line_end = find_from(view, 0usize, 13u8, scan_limit);
+    let header_end = if line_end + 4usize <= length { find_from(view, line_end + 2usize, 13u8, length) } else { length };
+    if line_end < scan_limit && header_end + 2usize <= length { content_length_of(view, line_end + 2usize, header_end) } else { -1 }
+}
+
+@id("app.http_router.status_for")
+fn status_for(route: i64) -> i64
+    requires route >= 0 && route <= 4
+    ensures result >= 100 && result <= 599
+{
+    match route { 0 => 200, 1 => 200, 2 => 404, 3 => 405, _ => 400, }
+}
+
+@id("app.http_router.body_len_for")
+fn body_len_for(route: i64) -> usize
+    requires route >= 0 && route <= 4
+{
+    match route { 1 => 2usize, _ => 0usize, }
+}
+
+@id("app.http_router.route_status")
+fn route_status(view: borrow Slice<u8>) -> i64
+{
+    status_for(route_for(view))
+}
+
+@id("app.http_router.route_body_len")
+fn route_body_len(view: borrow Slice<u8>) -> usize
+{
+    body_len_for(route_for(view))
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let health_request = [71u8, 69u8, 84u8, 32u8, 47u8, 104u8, 101u8, 97u8, 108u8, 116u8, 104u8, 32u8, 72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 13u8, 10u8, 72u8, 111u8, 115u8, 116u8, 58u8, 32u8, 101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 111u8, 114u8, 103u8, 13u8, 10u8, 67u8, 111u8, 110u8, 110u8, 101u8, 99u8, 116u8, 105u8, 111u8, 110u8, 58u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 13u8, 10u8, 13u8, 10u8];
+    let echo_request = [71u8, 69u8, 84u8, 32u8, 47u8, 101u8, 99u8, 104u8, 111u8, 32u8, 72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 13u8, 10u8, 72u8, 111u8, 115u8, 116u8, 58u8, 32u8, 101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 111u8, 114u8, 103u8, 13u8, 10u8, 67u8, 111u8, 110u8, 110u8, 101u8, 99u8, 116u8, 105u8, 111u8, 110u8, 58u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 13u8, 10u8, 13u8, 10u8];
+    let missing_request = [71u8, 69u8, 84u8, 32u8, 47u8, 109u8, 105u8, 115u8, 115u8, 105u8, 110u8, 103u8, 32u8, 72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 13u8, 10u8, 72u8, 111u8, 115u8, 116u8, 58u8, 32u8, 101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 111u8, 114u8, 103u8, 13u8, 10u8, 67u8, 111u8, 110u8, 110u8, 101u8, 99u8, 116u8, 105u8, 111u8, 110u8, 58u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 13u8, 10u8, 13u8, 10u8];
+    let delete_request = [68u8, 69u8, 76u8, 69u8, 84u8, 69u8, 32u8, 47u8, 104u8, 101u8, 97u8, 108u8, 116u8, 104u8, 32u8, 72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 13u8, 10u8, 72u8, 111u8, 115u8, 116u8, 58u8, 32u8, 101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 111u8, 114u8, 103u8, 13u8, 10u8, 67u8, 111u8, 110u8, 110u8, 101u8, 99u8, 116u8, 105u8, 111u8, 110u8, 58u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 13u8, 10u8, 13u8, 10u8];
+    let malformed_request = [71u8, 69u8, 84u8, 32u8, 47u8];
+    let health = route_status(array_as_slice(health_request));
+    let echo = route_status(array_as_slice(echo_request));
+    let echo_body_len = route_body_len(array_as_slice(echo_request));
+    let missing = route_status(array_as_slice(missing_request));
+    let disallowed = route_status(array_as_slice(delete_request));
+    let malformed = route_status(array_as_slice(malformed_request));
+    let content_length_ok = request_content_length(array_as_slice(health_request)) == -1;
+    if health == 200 && echo == 200 && echo_body_len == 2usize && missing == 404 && disallowed == 405 && malformed == 400 && content_length_ok { 0 } else { 1 }
+}

@@ -919,6 +919,59 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_request_intent_is_rejected() {
+        // Two `RequestIntent`s in a row for the same turn, with no
+        // intervening response, is a duplicate durable-commit attempt —
+        // distinct from omission (a required entry missing) and reorder (two
+        // adjacent entries transposed), and explicitly named in issue #108's
+        // required failure cases ("duplicate/out-of-order transitions...are
+        // rejected").
+        let entries = vec![opened(0), intent(0), intent(0)];
+        assert_eq!(
+            validate(&entries, INVOCATION).unwrap_err(),
+            JournalError::UnexpectedEntry {
+                seq: 2,
+                kind: "request_intent"
+            }
+        );
+    }
+
+    #[test]
+    fn duplicate_turn_opened_is_rejected() {
+        let entries = vec![opened(0), opened(0)];
+        assert_eq!(
+            validate(&entries, INVOCATION).unwrap_err(),
+            JournalError::UnexpectedEntry {
+                seq: 1,
+                kind: "turn_opened"
+            }
+        );
+    }
+
+    #[test]
+    fn duplicate_transition_after_continue_is_rejected() {
+        // A second `Transition` for turn 0 immediately after the first
+        // `continue` is not a new turn's `TurnOpened`, so it is rejected as
+        // out of phase rather than silently accepted as a repeat decision.
+        let mut entries = vec![
+            opened(0),
+            intent(0),
+            recorded(0),
+            admitted(0),
+            consumed(0),
+            transition(0, "continue"),
+        ];
+        entries.push(transition(0, "continue"));
+        assert_eq!(
+            validate(&entries, INVOCATION).unwrap_err(),
+            JournalError::UnexpectedEntry {
+                seq: 6,
+                kind: "transition"
+            }
+        );
+    }
+
+    #[test]
     fn non_sequential_turn_is_rejected() {
         let entries = vec![
             opened(0),

@@ -11,7 +11,7 @@ use super::fixture::{
     FixtureModelHandler, FixtureObserver, FixturePolicy, FixtureProposalDecoder,
 };
 use super::identity::{LiveInvocationId, LiveInvocationSeed};
-use super::journal;
+use super::journal::{self, JournalEntry};
 use super::kernel::{
     run_live_invocation, LiveInvocationConfig, LiveInvocationHandlers, LiveInvocationOutcome,
     LiveKernelError,
@@ -385,16 +385,222 @@ fn an_oversized_response_is_treated_as_malformed_before_decode() {
 
 #[test]
 fn identity_binds_program_root_deployment_and_task_so_a_changed_input_changes_the_chain() {
-    let base = identity();
-    let mut different_task = LiveInvocationSeed {
+    // Each assertion below flips exactly one seed field and restores it
+    // before moving to the next, so this proves each of program_root,
+    // deployment_policy and task individually participates in identity
+    // (issue #108's "an event from a different task, deployment or
+    // ProgramRoot cannot attach to the live chain" — enforced at the
+    // journal level by `cross_invocation_turn_opened_is_rejected`, and
+    // here at the identity-derivation level that makes that rejection
+    // possible in the first place).
+    let base_seed = LiveInvocationSeed {
         program_root: "sha256:".to_owned() + &"1".repeat(64),
         deployment_policy: "sha256:".to_owned() + &"2".repeat(64),
-        task: b"a different task".to_vec(),
+        task: b"fixture task".to_vec(),
         budget: 1000,
         interaction_schema_digest: SCHEMA_DIGEST.to_owned(),
         approved_providers: vec!["fixture-provider".into()],
     };
+    let base = LiveInvocationId::derive(&base_seed);
+
+    let mut different_task = base_seed.clone();
+    different_task.task = b"a different task".to_vec();
     assert_ne!(base, LiveInvocationId::derive(&different_task));
-    different_task.task = b"fixture task".to_vec();
-    assert_eq!(base, LiveInvocationId::derive(&different_task));
+
+    let mut different_program_root = base_seed.clone();
+    different_program_root.program_root = "sha256:".to_owned() + &"9".repeat(64);
+    assert_ne!(
+        base,
+        LiveInvocationId::derive(&different_program_root),
+        "a different ProgramRoot must not attach to the same live chain"
+    );
+
+    let mut different_deployment = base_seed.clone();
+    different_deployment.deployment_policy = "sha256:".to_owned() + &"8".repeat(64);
+    assert_ne!(
+        base,
+        LiveInvocationId::derive(&different_deployment),
+        "a different deployment/model policy must not attach to the same live chain"
+    );
+
+    assert_eq!(base, LiveInvocationId::derive(&base_seed));
+}
+
+#[test]
+fn an_uncertain_intent_journal_is_refused_before_any_redispatch() {
+    // A journal ending right after `RequestIntent`, with no recorded
+    // response, is delivery-uncertain: the kernel must refuse to proceed —
+    // including refusing to redispatch the same request — before any
+    // further stage, store write, or host call (issue #108's explicit
+    // requirement). `journal::tests::a_journal_ending_in_intent_is_uncertain_not_terminal`
+    // proves the journal-level flag; this proves the kernel entry point
+    // itself honours it rather than guessing a response.
+    let identity = identity();
+    let cfg = config(&identity, 3);
+    let uncertain = vec![
+        JournalEntry::TurnOpened {
+            turn: 0,
+            invocation: identity.digest().to_owned(),
+            observation_digest: "sha256:".to_owned() + &"1".repeat(64),
+        },
+        JournalEntry::RequestIntent {
+            turn: 0,
+            request_digest: "sha256:".to_owned() + &"2".repeat(64),
+            reserved_budget: 10,
+        },
+    ];
+    let capability = ModelInvokeCapability::grant("uncertain intent test");
+    let mut handler = FixtureModelHandler::must_not_be_called();
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_DIGEST);
+    let mut gate = FixtureAuthorizationGate::new(10);
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = PanicObserver;
+    let mut policy = PanicPolicy;
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+    };
+    let result = run_live_invocation(&cfg, uncertain, &mut handlers, &AgentCancellation::new());
+    assert_eq!(result.err(), Some(LiveKernelError::UncertainIntent));
+    assert_eq!(
+        handler.calls, 0,
+        "an uncertain intent is never redispatched"
+    );
+}
+
+#[test]
+fn an_unresolved_mid_turn_prefix_is_refused_rather_than_guessed() {
+    // A journal stuck mid-turn (here: after `ProposalAdmitted`, before its
+    // `AuthorizationConsumed`) is neither terminal nor resumable in this
+    // bounded kernel; per the contract it must return `UnresolvedPrefix`
+    // rather than guess the missing entries.
+    let identity = identity();
+    let cfg = config(&identity, 3);
+    let mid_turn = vec![
+        JournalEntry::TurnOpened {
+            turn: 0,
+            invocation: identity.digest().to_owned(),
+            observation_digest: "sha256:".to_owned() + &"1".repeat(64),
+        },
+        JournalEntry::RequestIntent {
+            turn: 0,
+            request_digest: "sha256:".to_owned() + &"2".repeat(64),
+            reserved_budget: 10,
+        },
+        JournalEntry::ResponseRecorded {
+            turn: 0,
+            response_digest: "sha256:".to_owned() + &"3".repeat(64),
+            response: fixture_response(0, "already-settled"),
+        },
+        JournalEntry::ProposalAdmitted {
+            turn: 0,
+            proposal_digest: "sha256:".to_owned() + &"4".repeat(64),
+        },
+    ];
+    let capability = ModelInvokeCapability::grant("unresolved prefix test");
+    let mut handler = FixtureModelHandler::must_not_be_called();
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_DIGEST);
+    let mut gate = FixtureAuthorizationGate::new(10);
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = PanicObserver;
+    let mut policy = PanicPolicy;
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+    };
+    let result = run_live_invocation(&cfg, mid_turn, &mut handlers, &AgentCancellation::new());
+    assert_eq!(result.err(), Some(LiveKernelError::UnresolvedPrefix));
+    assert_eq!(handler.calls, 0);
+}
+
+#[test]
+fn resuming_a_journal_after_continue_does_not_redispatch_the_completed_turn() {
+    // A journal ending cleanly right after a `continue` Transition is
+    // resumable: the next turn may open without redispatching anything
+    // already recorded. This feeds `run_live_invocation` a hand-built
+    // completed-turn-0 prefix and proves only turn 1 is dispatched, and
+    // the resumed prefix is carried forward byte-for-byte.
+    let identity = identity();
+    let cfg = config(&identity, 2);
+    let prior_turn = vec![
+        JournalEntry::TurnOpened {
+            turn: 0,
+            invocation: identity.digest().to_owned(),
+            observation_digest: "sha256:".to_owned() + &"1".repeat(64),
+        },
+        JournalEntry::RequestIntent {
+            turn: 0,
+            request_digest: "sha256:".to_owned() + &"2".repeat(64),
+            reserved_budget: 10,
+        },
+        JournalEntry::ResponseRecorded {
+            turn: 0,
+            response_digest: "sha256:".to_owned() + &"3".repeat(64),
+            response: fixture_response(0, "already-settled"),
+        },
+        JournalEntry::ProposalAdmitted {
+            turn: 0,
+            proposal_digest: "sha256:".to_owned() + &"4".repeat(64),
+        },
+        JournalEntry::AuthorizationConsumed {
+            turn: 0,
+            grant_digest: "sha256:".to_owned() + &"5".repeat(64),
+        },
+        JournalEntry::Transition {
+            turn: 0,
+            case: "continue".to_owned(),
+            carrier_digest: "sha256:".to_owned() + &"6".repeat(64),
+        },
+    ];
+
+    let capability = ModelInvokeCapability::grant("resume test");
+    let mut handler = FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Settled(
+        fixture_response(1, "b"),
+    )]);
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_DIGEST);
+    let mut gate = FixtureAuthorizationGate::new(10);
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = FixtureObserver;
+    let mut policy = FixturePolicy { total_turns: 2 };
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+    };
+    let run = run_live_invocation(
+        &cfg,
+        prior_turn.clone(),
+        &mut handlers,
+        &AgentCancellation::new(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        run.dispatched, 1,
+        "only the new turn is dispatched; turn 0 is not redispatched"
+    );
+    assert_eq!(handler.calls, 1);
+    assert_eq!(
+        &run.journal[..prior_turn.len()],
+        &prior_turn[..],
+        "the resumed prefix is carried forward unchanged"
+    );
+    assert!(matches!(run.outcome, LiveInvocationOutcome::Complete(_)));
 }

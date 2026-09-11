@@ -10,6 +10,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## 0.4.1 — 2026-09-11
 
+- Guard the Windows checkout of the public generic ownership milestone job.
+  Its first hosted run failed on `windows-latest` before any gate executed:
+  the checkout itself cannot write this repository's retained evidence paths
+  without `core.longpaths`, which every other Windows job already sets. The
+  cross-platform leg was therefore reporting a checkout limit, not a
+  milestone result.
+
 - Add Public Generic Candidate Delta v1, milestone gate PG-4: a
   candidate-bound delta that describes the selected exports of an immutable
   Project candidate's base and final revisions over the public generic

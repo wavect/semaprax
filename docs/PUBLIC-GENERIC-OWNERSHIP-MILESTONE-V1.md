@@ -1,10 +1,12 @@
 # Public Generic Ownership Milestone v1
 
-Status: open milestone, separately gated. No public generic ownership surface is
-admitted, generated, published, or supported at this commit. This document owns
-the milestone's identity, its nine prerequisite gates, the separation
-invariants that keep it independent of internal generic work, and the standing
-support and publication decision. It is a charter, not evidence.
+Status: open milestone, separately gated. Four of its nine prerequisite gates
+are implemented with local evidence; five remain open, and no hosted run is
+recorded for any of them. No public generic ownership surface is admitted,
+generated, published, or supported at this commit. This document owns the
+milestone's identity, its gates, the separation invariants that keep it
+independent of internal generic work, and the standing support and publication
+decision. It is a charter, not evidence.
 
 Audience: language, ABI, package, evidence, and promotion reviewers.
 
@@ -171,6 +173,29 @@ current public projections, not a list of intended future spellings.
 
 An exclusion is a closed report reason, never a partial admission. A rejection
 is a diagnostic, never a backend accident.
+
+## Where the milestone stands
+
+Four gates have landed as owned artifacts with their own executable gates, all
+on local evidence. Five are open, and two of those are open with real work
+already behind them, recorded above rather than by advancing a row.
+
+| Gate | Artifact | What remains |
+| --- | --- | --- |
+| PG-1, PG-2 | [type grammar](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | nothing but hosted evidence |
+| PG-3 | [compatibility rules](PUBLIC-GENERIC-COMPATIBILITY-V1.md) | nothing but hosted evidence |
+| PG-4 | [candidate delta](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | nothing but hosted evidence; today it describes no generic signature because none is admitted |
+| PG-5, PG-6 | [metadata consumers](PUBLIC-GENERIC-CONSUMERS-V1.md) | consumers that *call* an export, over a versioned descriptor and carrier, and hostile replay of those descriptor bytes |
+| PG-7 | [settlement obligations](PUBLIC-GENERIC-SETTLEMENT-V1.md) | a real boundary that allocates, copies out, and settles failure on interpreter, native C11, and Core Wasm |
+| PG-8 | the `public-generic-ownership-milestone` CI job | a recorded hosted run and job for an exact implementation commit |
+| PG-9 | this document | the decision itself, once the eight above are hosted green |
+
+The shape of what is left is one thing, said three ways: there is no versioned
+public generic descriptor and carrier. PG-5's calling consumers, PG-6's
+descriptor replay, and PG-7's settlement all wait on it, and none of them can
+be evidenced by anything else. Designing it is the next tranche of this
+milestone, and it is a new versioned artifact — never a reinterpretation of
+Project v8, v9, or v11 bytes.
 
 ## Standing support and publication decision
 

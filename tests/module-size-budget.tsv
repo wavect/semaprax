@@ -19,6 +19,7 @@ src/graph.rs	5596
 src/hir/resolve_expr.rs	3107
 src/hir/resolve_expr_reference.rs	1842
 src/hir/validation.rs	8840
+src/hir/workspace_link.rs	1516
 src/interpreter.rs	6759
 src/native_settlement.rs	2055
 src/native_settlement/tests.rs	1667

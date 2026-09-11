@@ -1,16 +1,22 @@
 use std::path::{Path, PathBuf};
 
-use crate::agent_interaction_schema::{compile_agent_interaction_schema, CompiledInteractionSchema};
+use crate::agent_interaction_schema::{
+    compile_agent_interaction_schema, CompiledInteractionSchema,
+};
 use crate::agent_runtime::AgentCancellation;
 use crate::diagnostic::quote_json;
 use crate::hir::{self, ResolvedProgram};
-use crate::interpreter::retained_call::{prepare_retained_call, RetainedCallOutcome, RetainedValue};
+use crate::interpreter::retained_call::{
+    prepare_retained_call, RetainedCallOutcome, RetainedValue,
+};
 
 use super::binding::{LifecycleStageRole, StageBinding};
 use super::checkpoint;
 use super::ownership::{stage_and_evaluate, OwnershipLedger};
 use super::projection::{to_retained, InteractionTypeGraph};
-use super::registry::{call_typed_operation, TypedCarrierHandler, TypedCarrierOperation, TypedCarrierRegistry};
+use super::registry::{
+    call_typed_operation, TypedCarrierHandler, TypedCarrierOperation, TypedCarrierRegistry,
+};
 
 const MAX_STEPS: usize = 10_000;
 
@@ -179,7 +185,8 @@ fn graph(program: &ResolvedProgram, root_type_id: &str) -> InteractionTypeGraph 
 }
 
 fn compiled_schema(path: &Path, root_type_id: &str) -> CompiledInteractionSchema {
-    compile_agent_interaction_schema(path, root_type_id).expect("fixture compiles an interaction schema")
+    compile_agent_interaction_schema(path, root_type_id)
+        .expect("fixture compiles an interaction schema")
 }
 
 /// Builds one canonical `outer.type` interaction value document by hand,
@@ -281,7 +288,15 @@ impl Drop for OuterFixture {
 fn admits_a_valid_value_executes_it_through_the_real_interpreter_and_settles_ownership() {
     let fixture = outer_fixture(OUTER_FIXTURE, "combined");
     let prepared = prepare_retained_call(&fixture.program, "outer.combined").expect("prepares");
-    let (document, _) = outer_document(fixture.schema.schema().digest(), true, 7, 3, 10, 5, &[1, 2, 3]);
+    let (document, _) = outer_document(
+        fixture.schema.schema().digest(),
+        true,
+        7,
+        3,
+        10,
+        5,
+        &[1, 2, 3],
+    );
     let decoded = fixture.schema.decode(document.as_bytes()).expect("decodes");
 
     let ledger = OwnershipLedger::new();
@@ -412,7 +427,9 @@ fn wrong_nominal_type_is_refused_before_admission() {
 
     let binding = StageBinding::new(LifecycleStageRole::Observe, &outer_schema);
     let mismatched = inner_document(inner_schema.schema().digest(), 1, &[1]);
-    let decoded = inner_schema.decode(mismatched.as_bytes()).expect("decodes under its own schema");
+    let decoded = inner_schema
+        .decode(mismatched.as_bytes())
+        .expect("decodes under its own schema");
 
     let error = binding.admit(decoded).unwrap_err();
     assert_eq!(error.code, "SPX-Z210");
@@ -432,7 +449,11 @@ fn wrong_variant_is_refused_before_unauthorized_dispatch() {
     assert_eq!(error.code, "SPX-Z210");
 
     // The matching case is admitted.
-    let matching = choice_document(schema.schema().digest(), "choice.a", "{\"choice.a.n\":\"5\"}");
+    let matching = choice_document(
+        schema.schema().digest(),
+        "choice.a",
+        "{\"choice.a.n\":\"5\"}",
+    );
     let decoded = schema.decode(matching.as_bytes()).expect("decodes");
     assert!(binding.admit(decoded).is_ok());
 }
@@ -452,16 +473,25 @@ fn stale_structural_schema_is_refused_but_display_rename_is_not() {
     std::fs::remove_file(&structural_path).ok();
 
     // A display-only rename leaves the schema revision unchanged...
-    assert_eq!(base_schema.schema().digest(), renamed_schema.schema().digest());
+    assert_eq!(
+        base_schema.schema().digest(),
+        renamed_schema.schema().digest()
+    );
     // ...but a genuine structural change (an added field) does not.
-    assert_ne!(base_schema.schema().digest(), structural_schema.schema().digest());
+    assert_ne!(
+        base_schema.schema().digest(),
+        structural_schema.schema().digest()
+    );
 
     let binding = StageBinding::new(LifecycleStageRole::Initialize, &base_schema);
 
     // A value decoded under the renamed (structurally identical) schema is
     // still admitted: field identity persisted through the display rename.
-    let (renamed_document, _) = outer_document(renamed_schema.schema().digest(), true, 2, 4, 6, 8, &[]);
-    let decoded_renamed = renamed_schema.decode(renamed_document.as_bytes()).expect("decodes");
+    let (renamed_document, _) =
+        outer_document(renamed_schema.schema().digest(), true, 2, 4, 6, 8, &[]);
+    let decoded_renamed = renamed_schema
+        .decode(renamed_document.as_bytes())
+        .expect("decodes");
     assert!(binding.admit(decoded_renamed).is_ok());
 
     // A value decoded under the structurally different schema is refused:
@@ -643,8 +673,12 @@ fn a_well_formed_result_is_admitted_after_the_handler_call() {
     let cancellation = AgentCancellation::new();
     let (argument_document, _) =
         outer_document(fixture.schema.schema().digest(), true, 1, 1, 1, 1, &[1, 2]);
-    let decoded_argument = fixture.schema.decode(argument_document.as_bytes()).expect("decodes");
-    let (result_document, _) = outer_document(fixture.schema.schema().digest(), false, 9, 9, 9, 9, &[]);
+    let decoded_argument = fixture
+        .schema
+        .decode(argument_document.as_bytes())
+        .expect("decodes");
+    let (result_document, _) =
+        outer_document(fixture.schema.schema().digest(), false, 9, 9, 9, 9, &[]);
     let mut handler = EchoHandler {
         response: result_document.clone().into_bytes(),
     };
@@ -676,7 +710,8 @@ fn checkpoint_encoding_is_deterministic_and_independently_reconstructible() {
     let schema = compiled_schema(&path, "outer.type");
     std::fs::remove_file(&path).ok();
 
-    let (document, value_json) = outer_document(schema.schema().digest(), true, 7, 3, 10, 5, &[1, 2, 3]);
+    let (document, value_json) =
+        outer_document(schema.schema().digest(), true, 7, 3, 10, 5, &[1, 2, 3]);
     let decoded_first = schema.decode(document.as_bytes()).expect("decodes");
     let decoded_second = schema.decode(document.as_bytes()).expect("decodes again");
 
@@ -721,7 +756,8 @@ fn checkpoint_rejects_an_unknown_type_version() {
     let encoded = checkpoint::encode(&decoded).expect("encodes");
     let mutated = encoded.replacen("\"type_version\":1,", "\"type_version\":2,", 1);
 
-    let error = checkpoint::decode(&schema, schema.schema().digest(), mutated.as_bytes()).unwrap_err();
+    let error =
+        checkpoint::decode(&schema, schema.schema().digest(), mutated.as_bytes()).unwrap_err();
     assert_eq!(error.code, "SPX-Z212");
 }
 
@@ -735,8 +771,12 @@ fn checkpoint_rejects_a_stale_schema_binding() {
     let decoded = schema.decode(document.as_bytes()).expect("decodes");
     let encoded = checkpoint::encode(&decoded).expect("encodes");
 
-    let error = checkpoint::decode(&schema, "sha256:0000000000000000000000000000000000000000000000000000000000000000", encoded.as_bytes())
-        .unwrap_err();
+    let error = checkpoint::decode(
+        &schema,
+        "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        encoded.as_bytes(),
+    )
+    .unwrap_err();
     assert_eq!(error.code, "SPX-Z212");
 }
 
@@ -763,7 +803,8 @@ fn checkpoint_rejects_a_malformed_value_payload() {
     // Corrupt the value payload while keeping the envelope well formed.
     let mutated = encoded.replacen("\"outer.flag\":true", "\"outer.flag\":\"not-a-bool\"", 1);
 
-    let error = checkpoint::decode(&schema, schema.schema().digest(), mutated.as_bytes()).unwrap_err();
+    let error =
+        checkpoint::decode(&schema, schema.schema().digest(), mutated.as_bytes()).unwrap_err();
     assert_eq!(error.code, "SPX-Z212");
 }
 

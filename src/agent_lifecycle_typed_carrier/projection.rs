@@ -17,11 +17,15 @@
 //! type/ownership identity.
 
 use crate::agent_interaction_schema::decode::{DecodedField, FieldValue, ScalarValue, TypedValue};
-use crate::agent_interaction_schema::shape::{self, FieldType, Representation, TypeGraph, TypeShape};
+use crate::agent_interaction_schema::shape::{
+    self, FieldType, Representation, TypeGraph, TypeShape,
+};
 use crate::agent_interaction_schema::DecodedInteractionValue;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{DeclarationId, ResolvedProgram};
-use crate::interpreter::retained_call::{RetainedField, RetainedRecord, RetainedValue, RetainedVariant};
+use crate::interpreter::retained_call::{
+    RetainedField, RetainedRecord, RetainedValue, RetainedVariant,
+};
 
 use super::refusal;
 
@@ -62,7 +66,11 @@ pub fn to_retained(
     project_typed(&graph.0, value.root_type_id(), value.value())
 }
 
-fn project_typed(graph: &TypeGraph, type_id: &str, value: &TypedValue) -> Result<RetainedValue, Diagnostic> {
+fn project_typed(
+    graph: &TypeGraph,
+    type_id: &str,
+    value: &TypedValue,
+) -> Result<RetainedValue, Diagnostic> {
     let decl = graph
         .get(type_id)
         .ok_or_else(|| refusal("SPX-Z210", "projection.unknown_type"))?;
@@ -117,7 +125,10 @@ fn project_fields(
         .collect()
 }
 
-fn project_scalar(representation: Representation, scalar: &ScalarValue) -> Result<RetainedValue, Diagnostic> {
+fn project_scalar(
+    representation: Representation,
+    scalar: &ScalarValue,
+) -> Result<RetainedValue, Diagnostic> {
     match (representation, scalar) {
         (Representation::Bool, ScalarValue::Bool(value)) => Ok(RetainedValue::Bool(*value)),
         (Representation::I32, ScalarValue::Signed(value)) => i32::try_from(*value)
@@ -128,7 +139,9 @@ fn project_scalar(representation: Representation, scalar: &ScalarValue) -> Resul
             .map(RetainedValue::U8)
             .map_err(|_| refusal("SPX-Z210", "projection.integer_range")),
         (Representation::U64, ScalarValue::Unsigned(value)) => Ok(RetainedValue::Usize(*value)),
-        (Representation::Bytes, ScalarValue::Bytes(value)) => Ok(RetainedValue::Bytes(value.clone())),
+        (Representation::Bytes, ScalarValue::Bytes(value)) => {
+            Ok(RetainedValue::Bytes(value.clone()))
+        }
         (Representation::Text, ScalarValue::Text(_)) => {
             Err(refusal("SPX-Z210", "projection.string_unsupported"))
         }

@@ -30,7 +30,9 @@
 //! - A malformed envelope or a value payload that does not itself decode.
 
 use crate::agent_interaction_schema::decode::render_typed_value;
-use crate::agent_interaction_schema::{CompiledInteractionSchema, DecodedInteractionValue, DOCUMENT_SCHEMA};
+use crate::agent_interaction_schema::{
+    CompiledInteractionSchema, DecodedInteractionValue, DOCUMENT_SCHEMA,
+};
 use crate::diagnostic::{quote_json, Diagnostic};
 
 use super::refusal;
@@ -76,7 +78,10 @@ pub fn decode(
     }
     let text = std::str::from_utf8(bytes).map_err(|_| refusal("SPX-Z212", "checkpoint.utf8"))?;
 
-    let schema_prefix = format!("{{\"schema\":{},\"type_version\":", quote_json(CHECKPOINT_SCHEMA));
+    let schema_prefix = format!(
+        "{{\"schema\":{},\"type_version\":",
+        quote_json(CHECKPOINT_SCHEMA)
+    );
     let after_schema = text
         .strip_prefix(&schema_prefix)
         .ok_or_else(|| refusal("SPX-Z212", "checkpoint.schema"))?;
@@ -95,7 +100,8 @@ pub fn decode(
         .strip_prefix(&identity_prefix)
         .ok_or_else(|| refusal("SPX-Z212", "checkpoint.stale_schema_binding"))?;
 
-    let value_len = object_span(after_identity).ok_or_else(|| refusal("SPX-Z212", "checkpoint.malformed"))?;
+    let value_len =
+        object_span(after_identity).ok_or_else(|| refusal("SPX-Z212", "checkpoint.malformed"))?;
     let (value_json, rest) = after_identity.split_at(value_len);
     if rest != "}\n" {
         return Err(refusal("SPX-Z212", "checkpoint.malformed"));

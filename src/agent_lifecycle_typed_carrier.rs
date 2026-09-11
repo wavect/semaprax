@@ -74,7 +74,9 @@ mod tests;
 pub use binding::{LifecycleStageRole, StageBinding};
 pub use ownership::{stage_and_evaluate, OwnedToken, OwnershipLedger};
 pub use projection::{to_retained, InteractionTypeGraph};
-pub use registry::{call_typed_operation, TypedCarrierHandler, TypedCarrierOperation, TypedCarrierRegistry};
+pub use registry::{
+    call_typed_operation, TypedCarrierHandler, TypedCarrierOperation, TypedCarrierRegistry,
+};
 
 /// One stable, closed refusal: a value that cannot be carried while
 /// preserving its type/ownership identity is refused with this diagnostic,
@@ -83,8 +85,5 @@ pub use registry::{call_typed_operation, TypedCarrierHandler, TypedCarrierOperat
 /// `agent_interaction_schema` already uses for its own derivation/decode
 /// admission failures.
 pub(crate) fn refusal(code: &'static str, field: &str) -> Diagnostic {
-    Diagnostic::io(
-        code,
-        format!("AgentLifecycleTypedCarrier refused: {field}"),
-    )
+    Diagnostic::io(code, format!("AgentLifecycleTypedCarrier refused: {field}"))
 }

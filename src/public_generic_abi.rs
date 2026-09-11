@@ -18,10 +18,12 @@
 //! | [Public Generic Boundary Profile v1](../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md) | [`boundary_profile`] (bounds only; the admission classifier is not implemented this round) |
 //! | [Public Generic Descriptor v1](../docs/PUBLIC-GENERIC-DESCRIPTOR-V1.md) | [`descriptor`] |
 //! | [Public Generic Carrier v1](../docs/PUBLIC-GENERIC-CARRIER-V1.md) | [`carrier`] |
+//! | [Public Generic Carrier v1 — Native C11 physical adapter](../docs/PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154) | [`native`] |
 
 pub mod boundary_profile;
 pub mod carrier;
 pub mod descriptor;
+pub mod native;
 
 /// Length-prefix one field: an 8-byte little-endian length, then the bytes.
 /// Shared framing convention with `public_generic_type` and

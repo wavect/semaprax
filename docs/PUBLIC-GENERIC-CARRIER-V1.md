@@ -12,11 +12,14 @@ orchestration](#the-call-machine) that drives both together atomically, and
 the [normalized trace vocabulary](#the-normalized-trace) — all as pure,
 locally-tested logic. It defines **no physical target mapping** — no C
 struct layout, no Wasm handle table implementation, no Rust FFI boundary —
-and executes nothing: there is no provider, no allocator, and no real target
-to allocate, transfer, or release against, and no adapter yet emits the
-normalized trace. That is PG-7's remaining work (issues #154-#159), which
-this round does not touch. Public generic ownership remains unsupported and
-unpublished.
+and executes nothing itself: there is no provider, no allocator, and no real
+target to allocate, transfer, or release against, in this LOGICAL section.
+[Native C11 physical adapter (issue #154)](#native-c11-physical-adapter-issue-154)
+below is the first PHYSICAL adapter built on top of it, with real allocation,
+release, and normalized-trace emission — locally evidenced only, against a
+fixture endpoint, per that section's own scope note. The remaining per-target
+adapters and generated consumers (issues #155-#159, #162) are still
+outstanding. Public generic ownership remains unsupported and unpublished.
 
 Audience: ownership, cleanup, backend, ABI, and generated-consumer
 maintainers.
@@ -304,6 +307,183 @@ layout:
 | Rust | an owning newtype around the same logical handle, `Drop`-checked |
 | Core Wasm | a canonical numeric handle, or a component-model resource where the runtime provides one; integer-handle reuse across generations is exactly why `generation` is part of the handle, not an afterthought |
 
+## Native C11 physical adapter (issue #154)
+
+Audience: native provider/adapter implementers and reviewers of the physical
+allocation and release path.
+
+Status: local, proof-only reference implementation
+(`src/public_generic_abi/native/`), unsupported and unpublished. This is the
+first PHYSICAL adapter built on the LOGICAL layer above: it decides no
+legality the [state machine](#the-logical-value-state-machine), [phase
+ledger](#the-call-phase-ledger), or [`CarrierCallMachine`](#the-call-machine)
+do not already fix, and it emits exactly [the normalized trace
+vocabulary](#the-normalized-trace) above, adding no second vocabulary.
+Answers issue #154.
+
+**Deferred scope.** Deriving a provider from a real checked *generic* export
+requires #119's still-blocked owned-record ownership evidence. Until that
+lands, the bound endpoint is a fixture (`spx_pg_endpoint_reverse_bytes_v1`,
+byte-reversal per owned leaf) operating on the existing owned-Bytes shapes —
+a flat sequence of independent owned `Bytes` leaves, matching this issue's
+brief. `NativeProviderBindingV1`'s trusted descriptor bytes are likewise a
+hand-constructed fixture rather than bytes produced by
+[`descriptor::verify`](PUBLIC-GENERIC-DESCRIPTOR-V1.md) against an admitted
+public generic export, since no such export exists yet. The replay behavior
+under test — byte-exact rejection of a wrong, tampered, or cross-paired
+descriptor/binding — is identical regardless of which trusted bytes a real
+provider is generated from; only the *source* of those bytes is deferred.
+Cross-platform hosted execution (Linux, macOS, Windows/MSVC) is not claimed;
+local evidence exists only for the host this round ran on (see the
+accompanying worktree report). Sanitizer coverage is local
+(`-fsanitize=address,undefined` under Clang) and not yet a hosted CI gate;
+that is issue #163's own recording step, per [Platform
+requirements](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
+
+### Provider binding
+
+[`native::binding::NativeProviderBindingV1`](../src/public_generic_abi/native/binding.rs)
+is a new, physical-layer-only artifact layered on top of — never modifying —
+[`CarrierBindingV1`](#compatibility-and-lifecycle) above. It wraps a
+`CarrierBindingV1` naming `TargetProfile::NativeC11` unchanged, and adds
+exactly the facts a physical native provider needs and the logical carrier
+never should: `native_adapter_abi_version` (closed to `"v1"` this round),
+`provider_artifact_digest`, `exported_endpoint_symbol`, a
+`compiler_backend_version` fact, and a closed `SupportPublicationState`
+(`unsupported-unpublished` is the only admitted value; decoding any other
+claim is rejected, so a generated binding can never claim otherwise). Its
+wire format, digest domain, decode/replay split, and hostile-input handling
+follow `CarrierBindingV1`'s own convention exactly (framed fields, a
+domain-separated digest never transmitted, and `replay` requiring byte-exact
+preimage equality).
+
+### Diagnostics
+
+| Code | Meaning |
+| --- | --- |
+| `SPX-PG901` | malformed native provider binding bytes (framing, unknown ABI version, unrecognized support/publication claim, or an embedded carrier binding not naming `TargetProfile::NativeC11`) |
+| `SPX-PG902` | independent replay found the recomputed native binding preimage does not equal the submitted one |
+
+`SPX-PG9xx` was free at freeze time (`rg -n "SPX-PG9" docs src tests` found no
+prior use); this document allocates exactly `SPX-PG901`-`SPX-PG902`.
+
+### The native ABI surface
+
+[`src/public_generic_abi/native/spx_pg_v1.h`](../src/public_generic_abi/native/spx_pg_v1.h)
+is the versioned C11 header: `spx_pg_provider_open_v1`,
+`spx_pg_input_prepare_v1`, `spx_pg_call_v1`, `spx_pg_result_export_v1`,
+`spx_pg_value_release_v1`, `spx_pg_result_release_v1`, and
+`spx_pg_provider_close_v1`, plus a closed `spx_pg_status_v1` (`int32_t`)
+vocabulary. `spx_pg_provider_v1`, `spx_pg_value_v1`, and `spx_pg_result_v1`
+are forward-declared only — incomplete in the header, defined only in
+[`provider_body.c`](../src/public_generic_abi/native/provider_body.c) — so no
+internal aggregate layout is public and no foreign caller can copy an owning
+wrapper. Every byte slice is `(pointer, length)`; every status maps to
+exactly one closed constant:
+
+| `spx_pg_status_v1` | Restates | Meaning |
+| --- | --- | --- |
+| `SPX_PG_STATUS_OK` (0) | — | success |
+| `SPX_PG_STATUS_MALFORMED_DESCRIPTOR` (1) | `SPX-PG701` | malformed descriptor bytes |
+| `SPX_PG_STATUS_DESCRIPTOR_REPLAY_MISMATCH` (2) | `SPX-PG703` | descriptor bytes do not replay against the trusted value |
+| `SPX_PG_STATUS_MALFORMED_BINDING` (3) | `SPX-PG901` | malformed native provider binding bytes |
+| `SPX_PG_STATUS_BINDING_REPLAY_MISMATCH` (4) | `SPX-PG902` | binding bytes do not replay, or name a different descriptor/target/provider artifact/endpoint |
+| `SPX_PG_STATUS_MALFORMED_CARRIER` (5) | `SPX-PG801` | malformed input/result carrier bytes |
+| `SPX_PG_STATUS_CARRIER_CAPACITY` (6) | `SPX-PG802` | a carrier bound was reached (leaf count or byte total) |
+| `SPX_PG_STATUS_ILLEGAL_TRANSITION` (7) | `SPX-PG804` | an illegal handle-lifecycle operation |
+| `SPX_PG_STATUS_HANDLE_INVALID` (8) | `SPX-PG805` | the handle is not live in this provider's registry: foreign, stale, already consumed/released, or forged |
+| `SPX_PG_STATUS_STICKY_SETTLEMENT_VIOLATION` (9) | `SPX-PG806` | reserved; the adapter itself never issues a second, different outcome |
+| `SPX_PG_STATUS_ALLOCATION_FAILURE` (10) | new, physical-only | the bounded allocator could not satisfy a leaf allocation |
+| `SPX_PG_STATUS_CONTRACT_FAILURE` (11) | new, physical-only | the checked endpoint itself refused, failed, or a cleanup failure became terminal |
+| `SPX_PG_STATUS_BUFFER_TOO_SMALL` (12) | protocol, not a failure | `out_capacity` was smaller than `*out_required`; nothing was written or consumed |
+| `SPX_PG_STATUS_NULL_OR_WRONG_KIND` (13) | new, physical-only | a required pointer was null, or a handle argument was the wrong kind, independent of lifecycle state |
+
+The two ALLOCATION_FAILURE/CONTRACT_FAILURE codes are new because they name
+facts the LOGICAL layer above has no vocabulary for (a real allocator running
+out of bounded capacity; a real endpoint's own refusal) — they never
+duplicate an existing SPX-PG reason.
+
+### Handle safety
+
+Every opaque handle is a pointer minted by this adapter and tracked in one
+process-wide registry entry `{pointer, kind, owner, generation}` (native
+C11's physical spelling of the logical `Handle{id, generation}`: pointer
+identity is `id`, a per-provider monotonic counter is `generation`). Handle
+validation always scans the registry for the exact pointer **value** first
+and dereferences the pointee only once a live, correctly-kinded entry is
+found — the repository's existing FFI-handle safety pattern, reused rather
+than reinvented, so a forged or foreign pointer is rejected without ever
+being dereferenced. A released or transferred entry is zeroed immediately, so
+a later allocation reusing the same address is never mistaken for the old
+handle. This is why `spx_pg_result_export_v1`/`spx_pg_value_release_v1`/
+`spx_pg_result_release_v1` need no separate provider argument even though the
+registry backs every provider: cross-provider misuse is caught because a
+handle minted by one provider is tagged with that provider as `owner` and
+`spx_pg_call_v1`/`spx_pg_provider_close_v1` check it explicitly.
+
+### Allocation, release, and sticky failure
+
+[`provider_body.c`](../src/public_generic_abi/native/provider_body.c) routes
+every heap byte — provider/value/result structs, leaf pointer/length arrays,
+and leaf payload bytes alike — through one bounded allocator
+(`spx_pg_alloc`/`spx_pg_dealloc`), so
+`spx_pg_test_live_allocations_v1`/`spx_pg_test_live_handles_v1` are exact
+counts, not samples; the fixture harness additionally intercepts raw
+`malloc`/`free` independently (mirroring the repository's existing
+allocation-observation fixtures) as a second, external proof. A test-only
+`spx_pg_test_inject_failure_v1(ordinal)` arms deterministic failure at any of
+the 15 [normalized trace](#the-normalized-trace) ordinals for the next
+call, rolling back every allocation already made — physical evidence that
+"failure at every logical injection point" leaves zero live allocations and
+handles. Sticky failure ([above](#the-call-phase-ledger)) is restated, not
+reimplemented: a private `spx_pg_settle` keeps the first selected outcome and
+counts (via `spx_pg_test_settlement_overwrite_attempts_v1`) any later,
+different attempt without applying it — exercised directly by
+`spx_pg_test_force_settlement_conflict_v1`, and naturally by the two release
+ordinals (`SPX_PG_TRACE_LEAF_RELEASE`, `SPX_PG_TRACE_CARRIER_RELEASE`), where
+injection never skips the physical free but settles a cleanup failure as a
+side effect — legally becoming the terminal status when nothing failed
+earlier, and safely discarded when something already did. A cleanup failure
+discovered after every other step of a call already succeeded (during the
+non-result input release the success path performs before result
+publication) is caught before `*out_result` is ever set: `spx_pg_call_v1`
+settles first and only publishes the result handle if the STICKY outcome is
+actually `SPX_PG_STATUS_OK`, so a failed call never hands back a live result.
+
+### C-hosted fixture and evidence
+
+`tests/public_generic_native_adapter_v1` (harness; `fixture.rs` drives it,
+`probe.c` is the C-hosted test body) renders the reference provider via
+[`native::template::render_reference_provider`](../src/public_generic_abi/native/template.rs)
+and compiles it together with `probe.c` as one pure-C translation unit —
+reusing the repository's existing native-fixture pattern
+(`tests/support/native_fixture_stdio.c`, a local allocation-counting shim
+matching `tests/native_owned_utf8_settlement_v1/allocations.c`'s
+`#define malloc/free` convention) rather than building a second FFI stack.
+It covers: provider-open replay (correct, wrong descriptor, wrong binding,
+null out-provider); a full success round trip with a two-pass, byte-identical
+repeated export; the exact and first-over-bound leaf-count and leaf-byte-size
+cases; malformed/truncated carrier bytes; handle hostility (null, foreign,
+cross-provider, transferred-and-reused, wrong-kind, double release, close
+with a live handle); sticky failure and the cleanup-becomes-terminal case;
+the exact trace-label sequence on success; and the full 0-13 failure-injection
+matrix, asserting zero live allocations and handles after every terminal
+case. `header_compiles_standalone_as_c11` compiles `spx_pg_v1.h` alone.
+`native_public_generic_adapter_settles_at_o0_and_o2` runs unconditionally;
+`provisioned_native_public_generic_adapter_asan_ubsan` is `#[ignore]`d,
+requiring `SEMAPRAX_STRING_SANITIZER_CLANG`, matching the repository's
+existing sanitizer-gating convention.
+
+### Nonclaims (native adapter)
+
+This adapter is local, proof-only evidence, not hosted, supported, or
+published evidence. It does not derive a provider from a real checked public
+generic export (blocked on #119); its bound endpoint and trusted descriptor
+bytes are fixtures. It has not been exercised on Linux or Windows/MSVC, or
+under a hosted CI sanitizer gate (#163's remaining work). It is not the
+generated Rust, C, or C++ consumer (#156, #158, #159 respectively) — those
+are separate acceptance surfaces this issue does not build.
+
 ## Compatibility and lifecycle
 
 A `CarrierBindingV1` binds one carrier instance to:
@@ -350,7 +530,10 @@ Reused from [Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md#bounds):
 
 `SPX-PG8xx` is the range this document allocates; `SPX-PG6xx` stays reserved
 for the boundary-profile classifier and `SPX-PG7xx` belongs to [Public
-Generic Descriptor v1](PUBLIC-GENERIC-DESCRIPTOR-V1.md).
+Generic Descriptor v1](PUBLIC-GENERIC-DESCRIPTOR-V1.md). `SPX-PG9xx` belongs
+to [this document's own native C11 physical adapter
+section](#native-c11-physical-adapter-issue-154), which restates these codes
+rather than reinterpreting them.
 
 ## Required tests and evidence
 
@@ -414,10 +597,15 @@ representation, and no generated code. It does not execute, allocate,
 transfer, or release anything: every test above exercises the pure state
 machine, the pure call-machine orchestration, the pure trace recorder, and
 the pure codec, never a real interpreter, native binary, or Wasm module. It
-is not evidence that any backend settles a public generic boundary, and no
-adapter emits the normalized trace yet — [`CarrierCallMachine`] does not
-bind to a `VerifiedPublicGenericDescriptor`, parse carrier bytes, or perform
-any physical allocation; that wiring is #154/#155's follow-on work. It
-reuses no v8-v11 carrier bytes and widens none of them. The target-mapping
+is not evidence that any backend settles a public generic boundary this
+LOGICAL layer's own types execute against: [`CarrierCallMachine`] itself
+still does not bind to a `VerifiedPublicGenericDescriptor`, parse carrier
+bytes, or perform any physical allocation. [Native C11 physical adapter
+(issue #154)](#native-c11-physical-adapter-issue-154) below is the first
+PHYSICAL adapter to emit the normalized trace and perform real allocation
+and release, against a fixture endpoint only — see that section's own
+nonclaims for its exact, narrower scope; #155's Core Wasm adapter remains
+outstanding. It reuses no v8-v11 carrier bytes and widens none of them. The
+target-mapping
 table above is naming guidance for a future physical specification, not
 that specification itself.

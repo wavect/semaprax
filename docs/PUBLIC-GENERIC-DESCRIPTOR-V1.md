@@ -1,5 +1,7 @@
 # Public Generic Descriptor v1
 
+Audience: compiler contributors producing descriptors, and authors of independent verifiers and foreign-language consumers.
+
 Status: frozen wire-format specification with a reference codec and local
 evidence (`src/public_generic_abi/descriptor.rs`). This is the descriptor half
 of gate #150-#152 of the [Public Generic Ownership

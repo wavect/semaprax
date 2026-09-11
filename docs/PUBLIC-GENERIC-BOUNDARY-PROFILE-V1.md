@@ -1,5 +1,7 @@
 # Public Generic Boundary Profile v1
 
+Audience: compiler contributors implementing the admission classifier, and reviewers of the generic boundary scope.
+
 Status: frozen specification, gate PG-... admission half of gate #150 of the
 [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
 This document freezes the admission predicate only. It defines no classifier

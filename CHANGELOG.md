@@ -8,6 +8,73 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Freeze the Public Generic Boundary Profile, Descriptor and Carrier v1, and
+  add a reference codec for the descriptor and carrier wire formats. The same
+  callable generic boundary had been described three times by three
+  overlapping issue packs, with a real scope conflict between a minimal
+  one-owned-`Bytes` slice and a contract admitting nested finite records. One
+  admission profile now settles it with an explicit in, deferred and excluded
+  table, so downstream implementation work has a single contract to build
+  against rather than three. Two classifications - owned generic variants and
+  public generic templates - are recorded as contested and awaiting review
+  rather than silently decided.
+
+- Specify and implement the Live Invocation Contract v1: invocation identity
+  that survives retry, resume and recovery, a causal journal with
+  table-driven validation, and a provider-independent `model.invoke` effect
+  with an explicit capability requirement, a closed failure domain and
+  cancellation checkpoints. Replay makes zero dispatches, and an unrecorded
+  result can never be reconstructed by hashing because the journal carries
+  response bytes rather than only a digest. Fixture transport only: no
+  provider binding, no deployment wiring and no live model call.
+
+- Introduce Assurance Manifest v1, a deterministic per-obligation manifest
+  bound to exact source bytes that fails closed on drift. Obligation identity
+  keys to a declaration's persistent stable id rather than a byte offset, so
+  it survives a pure formatting change, and the assurance lattice is a
+  genuine partial order rather than a single ranking - compiler-proved,
+  SMT-proved and model-checked are deliberately incomparable. External
+  records let later formal-method backends contribute without this module
+  changing, so a simple candidate summary never waits on formal proof.
+
+- Freeze the catalog-normalizer acceptance application and an independent
+  oracle: 25 requirement ids, 51 known-answer cases split into published and
+  hidden, and six runnable negative controls that each provably diverge from
+  the correct output. The hidden-case boundary is a review policy rather than
+  cryptographic isolation, and the specification says so plainly instead of
+  implying a guarantee the repository cannot enforce.
+
+- Preserve comments and unrelated bytes in the v2 `ReplaceExpression` route.
+  The transaction previously rejected any workspace containing a comment
+  before it even selected an expression, because the shared candidate rebuild
+  always reprinted through the comment-oblivious canonical formatter. The
+  edited file may now carry comments, preserved by a span-scoped splice that
+  is independently reparsed and required to match byte for byte; a comment
+  overlapping the edited span is refused rather than silently relocated.
+  Every other source keeps the exact comment-free requirement.
+
+- Resolve `core.option` in the `useful-text-consumer.v1` linker, which never
+  seeded the compiler prelude its Useful Data sibling relies on, so any
+  `match byte_get(...)` in a Project-linked text package failed validation.
+  The profile's public signature restrictions are unchanged and pinned by a
+  test.
+
+- Bind release publication to the exact-tag gate explicitly, and add a
+  reconciliation check for release claims. This caught a live defect: the
+  README claimed v0.4.1 was the published tag while citing v0.4.0's date,
+  commit and anchor.
+
+- Connect an external coding-agent runner to the existing comparison ledger,
+  reusing its plan, trial, ledger, observation and audit schemas unmodified.
+  A candidate cannot escape its sandbox, write the finalized ledger, or claim
+  its own acceptance: a backend that reports every criterion passed while
+  leaving the work undone is still scored as failed. Offline fixture backend
+  only; the paid paired pilot needs an approved model budget.
+
+- Correct a stale claim in the doctor provisioner specification, which stated
+  the provisioned gate had never executed when nine real runs exist, the most
+  recent of which failed.
+
 - Give the MSRV shards the same time budget as the identical `verify-tests`
   command. Both run `scripts/ci-msrv.py --shard`, but the MSRV job had 40
   minutes against that job's 90 while compiling the same workspace on an

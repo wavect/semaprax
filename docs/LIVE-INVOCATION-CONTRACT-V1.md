@@ -67,7 +67,7 @@ resuming a suspended invocation, and recovering after a crash all re-derive
 the identity from the *same* pre-dispatch bytes the original attempt used, so
 a resumed causal journal is recognised as continuing the same chain rather
 than starting a new one (every `TurnOpened` entry names this identity, and
-[`validate`](src/live_invocation/journal.rs) rejects any entry naming a
+[`validate`](../src/live_invocation/journal.rs) rejects any entry naming a
 different one — see "Cross-invocation pairing" below).
 
 Identity carries **no authority**. It names a causal journal chain; it does

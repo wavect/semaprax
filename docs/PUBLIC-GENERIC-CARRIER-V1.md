@@ -1,5 +1,7 @@
 # Public Generic Carrier v1
 
+Audience: backend provider authors on native and Core Wasm, and reviewers of the ownership and settlement contract.
+
 Status: frozen logical specification with a reference codec and local
 evidence (`src/public_generic_abi/carrier.rs`). This is the carrier half of
 gate #150-#153 of the [Public Generic Ownership

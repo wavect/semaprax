@@ -634,6 +634,7 @@ pub(crate) mod generic_collection;
 mod generic_inference;
 pub(crate) mod generic_result;
 pub(crate) mod iterator_loop;
+pub(crate) mod owned_record_collection;
 
 pub(crate) mod generic_mapping;
 

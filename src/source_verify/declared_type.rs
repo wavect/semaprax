@@ -1260,6 +1260,8 @@ pub(super) mod generic_result;
 
 pub(super) mod generic_variant;
 
+pub(super) mod owned_record_collection;
+
 /// Ordinary resource-free record algebra may return a Copy value or transfer
 /// an existing Bytes/record owner; borrowed values never escape a match arm.
 pub(super) fn ordinary_record_match_result(

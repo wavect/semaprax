@@ -10,13 +10,15 @@ and PG-6 of the
 [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
 The *calling* half now has a first, local-only implementation for Rust (see
 [Rust calling consumer (issue #156)](#rust-calling-consumer-issue-156)
-below), built on the versioned descriptor
+below) and for C11 (see
+[C11 calling consumer (issue #158)](#c11-calling-consumer-issue-158) below),
+built on the versioned descriptor
 ([issue #152](PUBLIC-GENERIC-DESCRIPTOR-V1.md)) and native carrier
 ([issue #154](PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154))
 that did not exist when the metadata half closed; both gates stay open for
-every other language's calling consumer (C, C++, TypeScript — issues
-#157-#159) and for hosted evidence of the Rust one. Public generic ownership
-remains unsupported and unpublished.
+every other language's calling consumer (TypeScript, C++ — issues #157,
+#159) and for hosted evidence of the Rust and C11 ones. Public generic
+ownership remains unsupported and unpublished.
 
 ## Why metadata consumers come first
 
@@ -171,9 +173,9 @@ surfaces, and the milestone's separation gate continues to prove it. The
 hosted run recorded above covers this corpus and nothing else: it is not a
 support decision and not a publication. Calling a public generic export over
 a versioned descriptor and carrier is a separate generator, described next
-for Rust; C, C++, and TypeScript calling consumers remain untouched
-(issues #157-#159), which is why PG-5 and PG-6 stay open for every language
-but Rust despite the section below.
+for Rust and C11; C++ and TypeScript calling consumers remain untouched
+(issues #157, #159), which is why PG-5 and PG-6 stay open for every language
+but Rust and C11 despite the two sections below.
 
 ## Rust calling consumer (issue #156)
 
@@ -296,3 +298,134 @@ flat owned-`Bytes` leaves only (see above); nested records and Copy scalars
 are not yet generated. No maximum-total-payload (16 MiB) case is exercised,
 only the per-leaf (64 KiB) bound — a narrower but still first-over-bound
 proof.
+
+## C11 calling consumer (issue #158)
+
+Audience: generated-consumer integrators and ABI reviewers evaluating the
+calling half of PG-5/PG-6 for C11, and the future C++17 consumer
+([issue #159](#nonclaims-metadata-consumers)) that wraps it.
+
+Status: local, proof-only evidence only (no hosted CI run recorded for this
+section), unsupported and unpublished. `semaprax::public_generic_consumer::c_calling`
+is a separate generator from [`rust_calling`](#rust-calling-consumer-issue-156)
+— it links against the native ABI's own real C symbols directly, never
+through a Rust FFI restatement of them — but shares that generator's shape
+types, field-naming scheme (lowercase hex of identity bytes), leaf-count
+validation, and byte-array-literal convention, and links against — never
+reimplements or modifies — the same native C11 physical adapter
+([issue #154](PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154)).
+
+**What is generated versus a fixed template.** Every file below is produced
+by `generate_c_calling_consumer(descriptor_bytes, binding, input, output)`, a
+pure function from already-trusted descriptor/binding bytes and a
+`RecordShape` to source text. Two honest qualifications, restating
+[`rust_calling`]'s own:
+
+- `spx_pg_calling_consumer.c`'s little-endian carrier codec, status-mapping
+  functions, and the `spx_pg_consumer_open`/`_transform`/`_close` lifecycle
+  logic are a **fixed template** baked into the generator, not derived
+  per-descriptor — they restate `spx_pg_v1.h` (a frozen, versioned ABI), so
+  nothing about a specific descriptor changes them.
+- The concrete type model is scoped to exactly what the bound native
+  provider implements today: a flat, descriptor-ordered sequence of owned
+  `Bytes` leaves (see
+  [Native C11 physical adapter](PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154)'s
+  own scope note). [Public Generic Boundary Profile
+  v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md) admits exactly one owned input
+  parameter and one owned result in v1, so the generator emits exactly two
+  concrete structs, `spx_pg_input` and `spx_pg_output`.
+
+Generated layout (deterministic, LF-only, every file ends with a trailing
+newline):
+
+```text
+spx_pg_v1.h                -- verbatim copy of the frozen native ABI header (native/template.rs::HEADER_V1)
+spx_pg_calling_consumer.h  -- fixed template; the clean public surface; names no native ABI type
+spx_pg_calling_consumer.c  -- fixed template + embedded trusted bytes/FIELD_COUNT/per-field statements
+round_trip.c                -- fixed template + per-shape sample-input/assert-reversed/bound-target code
+```
+
+**Clean surface for #159.** `spx_pg_calling_consumer.h` depends on nothing
+but `<stddef.h>`/`<stdint.h>` and never mentions a native ABI handle type
+(`spx_pg_provider_v1` and friends stay entirely inside
+`spx_pg_calling_consumer.c`, behind the opaque `spx_pg_calling_consumer`
+handle) — a generator test
+(`consumer_header_names_no_native_abi_type_and_only_two_includes`)
+mechanically enforces both, and an execution-harness test
+(`consumer_header_compiles_standalone_as_c11`) compiles the header alone as
+C11. Issue #159's C++17 consumer is expected to `extern "C"`-include this
+exact header and link against the compiled `spx_pg_calling_consumer.c`
+rather than invent a second ABI.
+
+**Ownership and settlement.** `spx_pg_consumer_open` independently replays
+submitted descriptor/binding bytes against the embedded trusted values
+(byte-exact equality) *before* calling the native adapter at all — the same
+independent-verification requirement [`rust_calling`] documents (issue
+#152). `spx_pg_consumer_transform` consumes `*input` by value: every leaf's
+bytes are copied into an independent carrier buffer before any native
+transfer ("input bytes are copied before native ownership transfer"), and
+every leaf of `*input` is freed and zeroed before the call returns, success
+or failure alike, so the caller cannot reuse or double-free it. `*out_output`
+is zeroed before anything else happens and is populated only on
+`SPX_PG_CONSUMER_OK`; every field stays exactly `{NULL,0}` on any
+failure — "output parameters have deterministic failure values." The native
+result handle this call opens internally is always released, by this call,
+before it returns, whichever way it returns — "result remains opaque/owning
+and is released explicitly," entirely inside the consumer, never exposed to
+its caller. A release/close failure observed only as secondary cleanup is
+printed to `stderr` and never changes the already-selected primary outcome:
+sticky failure, restated for this consumer.
+
+**Failure injection across one opaque call.** The native ABI arms
+one-shot failure injection for the *next* native call only, and its trace
+ordinals 0–4 fire inside `spx_pg_input_prepare_v1` while ordinals 5–13 fire
+inside `spx_pg_call_v1` — two separate native calls
+`spx_pg_consumer_transform` makes internally. `spx_pg_consumer_test_inject_failure`
+therefore records the pending ordinal, and `spx_pg_consumer_transform`
+re-arms it before the second native call exactly when the first one did not
+already consume it (`status == SPX_PG_STATUS_OK`), restating
+`tests/public_generic_native_adapter_v1/probe.c`'s own C-hosted pattern for
+the same provider, hidden behind the single opaque `spx_pg_consumer_transform`
+call an external caller actually sees.
+
+**Execution evidence.** `tests/public_generic_native_adapter_v1/c_calling_consumer.rs`
+generates the consumer, compiles the *same* rendered reference provider
+`fixture.rs` exercises (issue #154's provider, never a second implementation)
+into an object file, writes the generated files to a temporary directory
+outside this repository's own workspace, and builds
+`spx_pg_calling_consumer.c` + `round_trip.c` + the provider object into one
+executable at both `-O0` and `-O2` with `-std=c11 -Wall -Wextra -Werror`,
+asserting a warning-free build each time (unlike the Rust harness's separate
+`cargo clippy` step, C's own `-Wall -Wextra -Werror` is the whole lint gate).
+Each built executable is run and must print exactly
+`c-calling-consumer-settled` with empty `stderr`. The generated
+`round_trip.c` exercises: a full success round trip with exact
+reversed-byte assertions using the native provider's own live-allocation
+counter; a mutated descriptor, a mutated binding, and a well-formed
+descriptor extended to name a different (still well-formed) document, each
+rejected by `spx_pg_consumer_open` before any native allocation; the
+per-leaf byte bound accepted exactly at 64 KiB and rejected one byte over;
+and the full ordinal `0..=13` failure-injection matrix — the same matrix
+`probe.c` drives from C for the provider itself — each asserting zero live
+native allocations/handles afterward via the provider's own test-only
+counters (`spx_pg_test_live_allocations_v1`/`spx_pg_test_live_handles_v1`,
+reached only through this consumer's own `spx_pg_consumer_test_live_allocations`/
+`_live_handles` wrappers) and a deterministically all-zeroed output. A
+separate `#[ignore]`d test (`provisioned_c_calling_consumer_asan_ubsan`,
+matching `fixture.rs`'s own convention) runs the same matrix under
+`-fsanitize=address,undefined` when `SEMAPRAX_STRING_SANITIZER_CLANG` is
+provisioned.
+
+**Known limitations, stated once.** Local evidence only: no hosted CI run is
+recorded for this section, and this harness assumes a Unix-like host with
+`clang` (or `$CLANG`) and `ar` on `PATH` — Windows/MSVC is untried. The
+trusted descriptor bytes are the same kind of fixture placeholder
+`fixture.rs` and the Rust calling consumer use (#119 still blocks deriving
+one from a real checked generic export). The type model covers flat
+owned-`Bytes` leaves only (see above); nested records and Copy scalars are
+not yet generated. No maximum-total-payload (16 MiB) case is exercised, only
+the per-leaf (64 KiB) bound — a narrower but still first-over-bound proof,
+matching the Rust calling consumer's own stated limitation. The provisioned
+ASan/UBSan variant is `#[ignore]`d by default and was not run in this round;
+only the plain `-O0`/`-O2` build and run is recorded as executed evidence
+here.

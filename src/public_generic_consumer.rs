@@ -31,6 +31,14 @@ use crate::public_generic_surface::CandidateSurface;
 use crate::public_generic_type as grammar;
 
 mod c;
+/// The generated C11 *calling* consumer (issue #158): a real, standalone C11
+/// program that verifies an exact descriptor/provider pairing, transfers one
+/// owned input record across the native adapter (issue #154) exactly once,
+/// calls, and decodes an independently validated result -- the C calling
+/// half PG-5/PG-6 left open. Distinct from every consumer generated above
+/// (metadata only) and from [`rust_calling`], which does the same over Rust
+/// FFI rather than plain C11.
+pub mod c_calling;
 mod cxx;
 mod rust;
 /// The generated *calling* consumer (issue #156): a real Rust crate that

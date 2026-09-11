@@ -2,6 +2,11 @@
 //! is a module here, per docs/ARCHITECTURE.md#integration-test-harnesses;
 //! future native-adapter fixtures (issues #155-#159, #162) add modules
 //! rather than new top-level files.
+/// The generated C11 *calling* consumer (issue #158): a real, standalone
+/// external C11 program built and linked directly against the same compiled
+/// native provider `fixture` exercises, executed end to end.
+#[path = "public_generic_native_adapter_v1/c_calling_consumer.rs"]
+mod c_calling_consumer;
 #[path = "public_generic_native_adapter_v1/fixture.rs"]
 mod fixture;
 /// The generated Rust *calling* consumer (issue #156): a real, standalone

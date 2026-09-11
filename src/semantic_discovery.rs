@@ -53,7 +53,17 @@ pub const DISCOVERY_SCHEMA: &str = "semaprax.semantic-discovery.v1";
 /// Schema identity of one revision-bound context delta document.
 pub const CONTEXT_DELTA_SCHEMA: &str = "semaprax.semantic-discovery.context-delta.v1";
 
-const DEFAULT_DISCOVERY_MAX_BYTES: usize = 8 * 1024;
+// `with_limit`'s nested `bformat!` layers (each entry, the joined operations
+// array, the payload, then the envelope) each re-measure already-charged
+// text against the SAME budget, so the amount actually reserved is several
+// times the final rendered length, not the length itself. 8 KiB left under
+// 200 bytes of headroom for the pre-#196 nine-entry catalog; #196's tenth
+// (`agent_skill`) entry alone exceeded it. 12 KiB keeps real output at a few
+// kilobytes (see `tests::discovery_manifest_is_compact_and_measures_well_
+// under_its_default_budget`'s `< 4096`-byte assertion on actual bytes, which
+// this constant does not change) while leaving room for the further
+// `SEMANTIC-DISCOVERY` package entries (#197, #200) this catalog invites.
+const DEFAULT_DISCOVERY_MAX_BYTES: usize = 12 * 1024;
 const DISCOVERY_PAYLOAD_DOMAIN: &[u8] = b"semaprax.semantic-discovery.payload.digest.v1\0";
 
 fn option_error(message: String) -> Diagnostic {
@@ -145,6 +155,12 @@ const SEMANTIC_DISCOVERY_OPERATIONS: &[OperationEntry] = &[
         surface: "library",
         tool_class: "read_only_schema",
         payload_schemas: &[crate::agent_interaction_schema::SCHEMA_V1],
+    },
+    OperationEntry {
+        name: "agent_skill",
+        surface: "cli",
+        tool_class: "read_only_report",
+        payload_schemas: &[crate::agent_skill_bundle::AGENT_SKILL_SCHEMA],
     },
     OperationEntry {
         name: "assurance_manifest",
@@ -352,9 +368,12 @@ fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {
     )
 }
 
-fn render_discovery(
-    path_text: &str,
-    revision: &str,
+/// Render the closed `SEMANTIC_DISCOVERY_OPERATIONS` catalog as one JSON
+/// array, annotating the two live-digest entries exactly as
+/// [`render_discovery`] does. Shared with `agent_skill_bundle`, which
+/// composes this same catalog into its own toolchain-wide bundle rather than
+/// restating it: see `docs/SEMANTIC-DISCOVERY-V1.md#composing-this-module`.
+pub(crate) fn render_operations_catalog(
     query_capabilities_schema: &str,
     query_capabilities_digest: &str,
     diagnostic_catalog_digest: &str,
@@ -394,6 +413,23 @@ fn render_discovery(
             extra,
         ));
     }
+    format!("[{}]", operations.join(","))
+}
+
+fn render_discovery(
+    path_text: &str,
+    revision: &str,
+    query_capabilities_schema: &str,
+    query_capabilities_digest: &str,
+    diagnostic_catalog_digest: &str,
+    diagnostic_catalog_code_count: usize,
+) -> String {
+    let operations = render_operations_catalog(
+        query_capabilities_schema,
+        query_capabilities_digest,
+        diagnostic_catalog_digest,
+        diagnostic_catalog_code_count,
+    );
     let tool_classes = [
         "read_only_delta",
         "read_only_help",
@@ -412,12 +448,12 @@ fn render_discovery(
         .join(",");
     let payload = bformat!(
         "{{\"schema\":\"{}\",\"selected_target\":{{\"path\":{},\"revision\":{}}},\
-\"tool_classes\":[{}],\"operations\":[{}],\"known_limitations\":[{}]}}",
+\"tool_classes\":[{}],\"operations\":{},\"known_limitations\":[{}]}}",
         DISCOVERY_SCHEMA,
         quote_json(path_text),
         quote_json(revision),
         tool_classes,
-        operations.join(","),
+        operations,
         limitations,
     );
     bformat!(

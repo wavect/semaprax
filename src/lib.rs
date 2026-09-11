@@ -21,6 +21,7 @@ pub mod agent_observation;
 pub mod agent_proposal;
 pub mod agent_runtime;
 pub mod agent_runtime_v2;
+pub mod agent_skill_bundle;
 pub mod agent_transcript;
 pub mod agent_transport;
 pub(crate) mod aggregate_layout;

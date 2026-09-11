@@ -1,22 +1,27 @@
-//! `semaprax agent inspect|run|replay`: the admitted agent lifecycle verbs.
+//! `semaprax agent inspect|run|replay|skill`: the admitted agent lifecycle
+//! verbs plus the version-matched Agent Skill bundle.
 //!
 //! `inspect` compiles a canonical AgentDefinition v1 and prints its
 //! deterministic AgentGraph v1, or the Agent Runtime Profile v1 projection with
 //! `--profile`. `run` executes one task through the definition's derived
 //! profile against a caller-supplied transcript of provider responses and tool
 //! results, and `replay` re-runs that transcript and requires the recomputed
-//! evidence to equal a supplied capsule byte for byte. Every verb is a pure
-//! function of its input documents: no provider, tool, filesystem, process,
-//! network, approval, or publication authority is granted, and `resume` and
+//! evidence to equal a supplied capsule byte for byte. `skill` prints the
+//! `semaprax.agent-skill.v1` bundle (`docs/AGENT-SKILL-BUNDLE-V1.md`): the
+//! installed compiler's version-matched capability inventory and small public
+//! semantic workflow. Every verb is a pure function of its input documents
+//! (`skill` takes none): no provider, tool, filesystem, process, network,
+//! approval, or publication authority is granted, and `resume` and
 //! `reconcile` stay unadmitted because the runtime claims no durable memory.
 
 use std::path::{Path, PathBuf};
 
 use semaprax::agent_definition;
+use semaprax::agent_skill_bundle;
 use semaprax::agent_transcript;
 use semaprax::diagnostic::Diagnostic;
 
-const USAGE: &str = "agent accepts exactly `inspect <definition.json> [--profile]`, `run <definition.json> <task.json> <transcript.json> [--evidence|--trace]`, or `replay <definition.json> <task.json> <transcript.json> <evidence.json>`; `resume` and `reconcile` are not admitted";
+const USAGE: &str = "agent accepts exactly `inspect <definition.json> [--profile]`, `run <definition.json> <task.json> <transcript.json> [--evidence|--trace]`, `replay <definition.json> <task.json> <transcript.json> <evidence.json>`, or `skill [--require-schema <schema>]`; `resume` and `reconcile` are not admitted";
 
 pub(crate) enum RunOutput {
     Receipt,
@@ -40,6 +45,9 @@ pub(crate) enum AgentCommand {
         task: PathBuf,
         transcript: PathBuf,
         evidence: PathBuf,
+    },
+    Skill {
+        require_schema: Option<String>,
     },
 }
 
@@ -114,6 +122,17 @@ pub(crate) fn parse(args: &[String]) -> Result<AgentCommand, u8> {
             }),
             _ => Err(usage()),
         },
+        "skill" => match rest {
+            [] => Ok(AgentCommand::Skill {
+                require_schema: None,
+            }),
+            [flag, schema] if flag == "--require-schema" && !schema.is_empty() => {
+                Ok(AgentCommand::Skill {
+                    require_schema: Some(schema.clone()),
+                })
+            }
+            _ => Err(usage()),
+        },
         other => {
             eprintln!("unknown agent subcommand `{other}`; {USAGE}");
             Err(2)
@@ -168,6 +187,13 @@ pub(crate) fn run(command: &AgentCommand) -> Result<String, Vec<Diagnostic>> {
             &read(transcript)?,
             &read(evidence)?,
         ),
+        AgentCommand::Skill { require_schema } => {
+            if let Some(requested) = require_schema {
+                agent_skill_bundle::negotiate_agent_skill_schema(requested)
+                    .map_err(|error| vec![error])?;
+            }
+            agent_skill_bundle::generate_agent_skill_bundle()
+        }
     }
 }
 
@@ -231,6 +257,19 @@ mod tests {
             .unwrap(),
             AgentCommand::Replay { .. }
         ));
+        let AgentCommand::Skill { require_schema } = parse(&strings(&["skill"])).unwrap() else {
+            panic!("skill")
+        };
+        assert_eq!(require_schema, None);
+        let AgentCommand::Skill { require_schema } = parse(&strings(&[
+            "skill",
+            "--require-schema",
+            "semaprax.agent-skill.v1",
+        ]))
+        .unwrap() else {
+            panic!("skill")
+        };
+        assert_eq!(require_schema, Some("semaprax.agent-skill.v1".to_owned()));
         for malformed in [
             &[][..],
             &["inspect"][..],
@@ -239,6 +278,10 @@ mod tests {
             &["inspect", "--unknown", "agent.json"][..],
             &["inspect", "agent.json", "extra"][..],
             &["inspect", "agent.json", "--profile", "--profile"][..],
+            &["skill", "extra"][..],
+            &["skill", "--require-schema"][..],
+            &["skill", "--require-schema", ""][..],
+            &["skill", "--bogus", "semaprax.agent-skill.v1"][..],
             &["run", "a.json", "t.json"][..],
             &["run", "a.json", "t.json", "x.json", "y.json"][..],
             &["run", "a.json", "t.json", "x.json", "--evidence", "--trace"][..],
@@ -247,6 +290,41 @@ mod tests {
             &["replay", "a.json", "t.json", "x.json", "--evidence"][..],
         ] {
             assert!(parse(&strings(malformed)).is_err(), "{malformed:?}");
+        }
+    }
+
+    #[test]
+    fn skill_run_prints_the_agent_skill_bundle_and_negotiates_its_schema() {
+        let AgentCommand::Skill { require_schema } = parse(&strings(&["skill"])).unwrap() else {
+            panic!("skill")
+        };
+        let command = AgentCommand::Skill { require_schema };
+        let output = run(&command).unwrap();
+        assert!(output.contains("\"schema\":\"semaprax.agent-skill.v1\""));
+
+        let mismatched = AgentCommand::Skill {
+            require_schema: Some("semaprax.agent-skill.v2".to_owned()),
+        };
+        assert!(run(&mismatched).is_err());
+    }
+
+    /// The drift gate for `agent_skill_bundle::PUBLIC_WORKFLOW`: every
+    /// `cli_command` it names must be a real, currently catalogued top-level
+    /// command. `cli::help::COMMANDS` (single-sourced there) is the only
+    /// place this compiler's admitted command set can be read from; this
+    /// test is why a command rename or removal that forgets to update the
+    /// bundle's public-workflow table fails closed instead of shipping a
+    /// stale mapping.
+    #[test]
+    fn public_workflow_commands_are_all_catalogued() {
+        let catalogued = super::super::help::canonical_command_names();
+        for entry in agent_skill_bundle::PUBLIC_WORKFLOW {
+            assert!(
+                catalogued.contains(entry.cli_command),
+                "public workflow verb `{}` names `{}`, which is not a catalogued top-level command",
+                entry.verb,
+                entry.cli_command
+            );
         }
     }
 }

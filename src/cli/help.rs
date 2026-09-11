@@ -146,7 +146,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Graph, canonical: "graph", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax graph <file>"] },
     CommandSpec { id: CommandId::Doc, canonical: "doc", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doc <file> [--json]"] },
     CommandSpec { id: CommandId::Verify, canonical: "verify", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax verify <file> <patch.spatch> <evidence.json>", "semaprax verify <root> <patch.wspatch>|<proposal.json> <evidence.json>", "semaprax verify <definition.json> <profile.json> <graph.json>", "semaprax verify <manifest> <image.json>"] },
-    CommandSpec { id: CommandId::Agent, canonical: "agent", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax agent inspect <definition.json> [--profile]", "semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]", "semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>"] },
+    CommandSpec { id: CommandId::Agent, canonical: "agent", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax agent inspect <definition.json> [--profile]", "semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]", "semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>", "semaprax agent skill [--require-schema <schema>]"] },
     CommandSpec { id: CommandId::Skills, canonical: "skills", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax skills get <agent|language|graph|stdlib|packages|effects>"] },
     CommandSpec { id: CommandId::Explain, canonical: "explain", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax explain <SPX-CODE> [--json]"] },
     CommandSpec { id: CommandId::Fix, canonical: "fix", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax fix --plan", "semaprax fix <file> assign-function-id <automatic-function-id> --plan"] },
@@ -936,6 +936,16 @@ pub(crate) fn scoped(name: &str, private: bool) -> Option<String> {
     }
     Some(out)
 }
+/// Every canonical top-level command name this compiler admits, public or
+/// private. Exposed so a sibling module's own closed vocabulary (for example
+/// `agent_skill_bundle::PUBLIC_WORKFLOW`'s `cli_command` field) can be
+/// cross-checked against the real, single-sourced CLI catalog instead of
+/// duplicating it; see `cli::agent::tests::public_workflow_commands_are_all_
+/// catalogued`.
+pub(crate) fn canonical_command_names() -> std::collections::BTreeSet<&'static str> {
+    COMMANDS.iter().map(|spec| spec.canonical).collect()
+}
+
 pub(crate) fn usage_recovery_hint(args: &[String], private: bool) -> Option<String> {
     let command = args.first()?;
     if command == "help"

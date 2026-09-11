@@ -57,7 +57,7 @@ The envelope is `semaprax.semantic-discovery.v1`:
     "operations": [
       {"name": "agent_context", "surface": "cli", "tool_class": "read_only_query", "payload_schemas": ["semaprax.agent-context.v1", "semaprax.agent-context.v2"]},
       {"name": "installed_query_capabilities", "surface": "cli", "tool_class": "read_only_help", "payload_schemas": ["semaprax.installed-query-capabilities.v1"], "digest": "sha256:..."},
-      "... nine entries total, sorted by name ..."
+      "... ten entries total, sorted by name ..."
     ],
     "known_limitations": ["..."]
   }
@@ -65,11 +65,18 @@ The envelope is `semaprax.semantic-discovery.v1`:
 ```
 
 **Measured compactness.** On the smallest fixture module the crate's own
-regression suite uses, the whole envelope is **2,426 bytes** — a few
-kilobytes, not a full graph dump (`AGENTS.md` notes the full `graph` output
-runs roughly forty times source size). `docs/AGENT-TASK-ECONOMICS-V1.md`
-governs any further productivity/token-cost claim beyond this measured byte
-count; this document only claims what it measured.
+regression suite uses, the whole envelope is a little over **2.5 KB**
+(`tests::discovery_manifest_is_compact_and_measures_well_under_its_default_
+budget` pins this under 4,096 bytes) for the current ten-entry catalog — a
+few kilobytes, not a full graph dump (`AGENTS.md` notes the full `graph`
+output runs roughly forty times source size). `DEFAULT_DISCOVERY_MAX_BYTES`
+(12 KiB) is a bounded-output ceiling on the internal accounting `with_limit`
+performs while rendering, not the measured output size itself: nested
+`bformat!` layers each re-measure already-rendered text against that same
+ceiling, so it must stay well above the actual byte count to leave headroom
+for further catalog entries. `docs/AGENT-TASK-ECONOMICS-V1.md` governs any
+further productivity/token-cost claim beyond this measured byte count; this
+document only claims what it measured.
 
 `tool_classes` is a closed, sorted set (`read_only_delta`, `read_only_help`,
 `read_only_query`, `read_only_report`, `read_only_schema`); every listed
@@ -165,11 +172,14 @@ This module is the shared foundation of the `SEMANTIC-DISCOVERY` package
 (issues #125, #196, #197, #200). It exposes:
 
 - **An operation inventory** (`SEMANTIC_DISCOVERY_OPERATIONS`, rendered
-  through `generate_discovery_manifest`) that a consumer extends by adding a
-  catalog entry, not by building a parallel list. #196 (the version-matched
-  Agent Skill bundle) had not landed an operation inventory of its own as of
-  this writing; a future skill-bundle entry belongs in this same catalog
-  rather than as a second one.
+  through `generate_discovery_manifest` and, toolchain-wide, through
+  `semantic_discovery::render_operations_catalog`) that a consumer extends by
+  adding a catalog entry, not by building a parallel list. #196 (the
+  version-matched Agent Skill bundle, [`AGENT-SKILL-BUNDLE-V1.md`
+  ](AGENT-SKILL-BUNDLE-V1.md)) is the first such consumer: its `agent_skill`
+  entry points at `agent_skill_bundle::AGENT_SKILL_SCHEMA`, and its generator
+  calls `render_operations_catalog` directly to embed this same read-only
+  catalog rather than restating it.
 - **A service kernel** (`compute_context_delta`, `ContextDeltaRequest`,
   `parse_context_document`'s validation rules) over the existing
   `semaprax.agent-context.v2` schema, reusable by any transport (CLI, MCP,

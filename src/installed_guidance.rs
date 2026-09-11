@@ -307,7 +307,11 @@ fn transaction_operations() -> Value {
     ])
 }
 
-fn compiler() -> Result<Value> {
+/// Shared toolchain identity: package name, `CARGO_PKG_VERSION`, and the
+/// build commit when `SEMAPRAX_BUILD_COMMIT` is set and well-formed. Exposed
+/// crate-wide so a second version-matched envelope (`agent_skill_bundle`)
+/// composes the same identity rather than re-deriving it.
+pub(crate) fn compiler() -> Result<Value> {
     Ok(json!({
         "binary_identity_claimed": false,
         "build_commit": validated_commit(option_env!("SEMAPRAX_BUILD_COMMIT"))?,

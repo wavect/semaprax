@@ -11,6 +11,8 @@
 //! `mod` in a test crate root resolves against `tests/`, so each module names
 //! its file explicitly.
 
+#[path = "projections/assurance_manifest.rs"]
+mod assurance_manifest;
 #[path = "projections/capability_manifest.rs"]
 mod capability_manifest;
 #[path = "projections/cxx_package.rs"]

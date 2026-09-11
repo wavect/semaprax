@@ -23,6 +23,7 @@ pub mod agent_transcript;
 pub mod agent_transport;
 pub(crate) mod aggregate_layout;
 pub mod arc_zones;
+pub mod assurance_manifest;
 pub mod ast;
 pub(crate) mod bounded_output;
 pub(crate) mod box_ops;

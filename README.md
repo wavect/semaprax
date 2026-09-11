@@ -135,9 +135,9 @@ The generated JS API uses stable IDs — a display rename does not change the ex
 
 The published tag is the
 [v0.4.1 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.1)
-(2026-09-10, `dfc15e2d`) with smoke-tested archives, SHA256 checksums, and
+(2026-09-11, `2ef043ba`) with smoke-tested archives, SHA256 checksums, and
 hosted release evidence in the
-[release process](docs/RELEASE-PROCESS.md#040-hosted-release-evidence); the
+[release process](docs/RELEASE-PROCESS.md#041-hosted-release-evidence); the
 prior `v0.2.0` remains archived at
 [its release record](docs/RELEASE-PROCESS.md#v020-hosted-release-evidence).
 The

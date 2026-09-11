@@ -332,6 +332,46 @@ This is exact release-build and smoke evidence; it does not mean every opt-in
 or ignored archive-consumer test ran, establish cross-host byte reproducibility,
 or broaden any feature contract beyond its owning specification.
 
+## 0.4.1 hosted release evidence
+
+The annotated `v0.4.1` tag resolves to exact commit
+`2ef043ba1b989f49b256e456f71fb6e89068bf33`. Its tag-triggered
+[workflow run 34598481769](https://github.com/wavect/semaprax/actions/runs/34598481769)
+completed successfully on 2026-09-11 with all 56 jobs green, including the
+blocking
+[release gate](https://github.com/wavect/semaprax/actions/runs/34598481769/job/103298374190),
+the three
+[release-artifact](https://github.com/wavect/semaprax/actions/runs/34598481769/job/103298449838)
+builds, and the final
+[publication job](https://github.com/wavect/semaprax/actions/runs/34598481769/job/103305047520).
+
+The [SEMAPRAX v0.4.1 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.4.1)
+was published at `2026-09-11T14:46:53Z` with the three archives below.
+
+The published prerelease contains exactly these release assets (digests as
+reported by the GitHub release API and matching the `SHA256SUMS` generated
+during publication):
+
+| Asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `semaprax-v0.4.1-x86_64-unknown-linux-gnu.tar.gz` | 17,959,385 | `02add301067c553d582a783a10a11193e83b504f90238777bf1b4de53d47d09d` |
+| `semaprax-v0.4.1-aarch64-apple-darwin.tar.gz` | 15,832,200 | `35a818b826c0094541e1deb8a96953e561563ac454270ef5c3d3489a6f9fcbf5` |
+| `semaprax-v0.4.1-x86_64-pc-windows-msvc.zip` | 18,590,222 | `d170a4948958e821d139334a7e29f5dd3a5626be9081cccb8427b92850757126` |
+
+Each archive job built on its advertised host, unpacked its own output, and ran
+the packaged CLI version, JSON version, `check`, and `run` smoke before upload.
+This is exact release-build and smoke evidence; it does not mean every opt-in
+or ignored archive-consumer test ran, establish cross-host byte reproducibility,
+or broaden any feature contract beyond its owning specification.
+
+`scripts/release-reconcile.py --version 0.4.1` reports `state=published-documented`
+with no problems against this section, README's claim, and CHANGELOG.md's
+`## 0.4.1 — 2026-09-11` heading -- see [Release state and
+reconciliation](#release-state-and-reconciliation). Before this section and the
+corresponding README citation were corrected, that same command reported the
+exact class of drift #167 records: a "published" claim citing v0.4.0's date and
+commit and no evidence section for v0.4.1 at all.
+
 ## Publication boundary
 
 Artifact matrix jobs retain read-only repository authority. The final
@@ -343,6 +383,79 @@ with `scripts/release-notes.py`: it selects only the tagged version's dated
 `CHANGELOG.md` section, stopping at the next release heading, and surrounds it
 with the release nonclaims. A missing, duplicate, or empty section fails the
 publication instead of silently creating incomplete notes.
+
+## Release state and reconciliation
+
+`scripts/release-reconcile.py` is a read-only check, not a release step. It
+never creates a tag, calls the GitHub API with write authority, or edits a
+file; it only reads the checkout (and, with `--live`, the public GitHub API)
+and reports. Run it after any edit that touches a version, a tag, or a
+"published" claim, and always before tagging:
+
+```sh
+python3 scripts/release-reconcile.py --version 0.4.1
+```
+
+### Locally observable candidate states
+
+The tool reports exactly one of four states, derived only from files already
+in the checkout and the local Git tag list:
+
+| State | Meaning |
+| --- | --- |
+| `no-candidate` | No local `vX.Y.Z` tag exists for the version. |
+| `tagged-unpublished` | The tag exists, but `docs/RELEASE-PROCESS.md` has no `## X.Y.Z hosted release evidence` section for it yet. This is exactly the shape a release that failed anywhere between tagging and the documentation step leaves behind -- CI still ran and may have published a GitHub Release, but nothing in this repository has recorded that as accepted evidence. |
+| `published-documented` | The tag exists, an evidence section exists, and the section's recorded commit agrees with the local tag's commit. |
+| `inconsistent` | A problem was found: an evidence commit disagreeing with the local tag, or README claiming a version is published while its state is not `published-documented`. Exit code is nonzero. |
+
+These four states intentionally stop short of the finer distinction the
+Implementation-sequence text in issue
+[#167](https://github.com/wavect/semaprax/issues/167) describes
+(`candidate-created`, `gate-running`, `gate-accepted`, `artifacts-built`).
+Telling those apart requires the live Actions run's per-job status, which
+static repository state cannot show; reporting them from local files alone
+would be an unearned claim. Read the tag's workflow run directly
+(`gh run list --branch vX.Y.Z`) for that distinction, or extend `--live` if a
+durable local record of it becomes necessary.
+
+### The failure and recovery path
+
+**A release that fails between tagging and the documentation step is safe by
+construction, not by this tool's vigilance.** README and `docs/RELEASE-PROCESS.md`
+are edited by hand as the last step of [the pre-tag release
+checklist](#pre-tag-release-checklist) and its post-tag counterpart below;
+until that edit lands, nothing in the repository claims the new version is
+published, so a stalled or failed tag run leaves the checkout in
+`tagged-unpublished` (or `no-candidate`, if the tag push itself never
+succeeded) with zero problems reported. That is the "explicit candidate
+state, no misleading claim" property: it is the *absence* of a doc edit, kept
+that way by never writing the evidence section until the Release is real.
+
+Recovery:
+
+1. Confirm what actually happened: `gh run list --branch vX.Y.Z` for the
+   workflow conclusion, then `gh api repos/wavect/semaprax/releases/tags/vX.Y.Z`
+   (404 means no Release was created; a non-404 body means one was, and its
+   `assets` array is the ground truth for the next step).
+2. If no Release exists, fix the underlying failure, and either push a new
+   tag once the fix is verified (never move or recreate the failed tag; see
+   [Tag admission](#tag-admission)) or, if the tag itself is unrecoverable,
+   record that abandonment in `CHANGELOG.md` under the version's own
+   heading rather than silently reusing the number.
+3. If a Release exists but publication otherwise looked incomplete, run
+   `scripts/release-reconcile.py --version X.Y.Z --live` to fetch its real
+   `tag_name`/`published_at`/asset list read-only, and
+   `scripts/release-reconcile.py --version X.Y.Z --archives-dir <dir>` with
+   the real assets downloaded into `<dir>` (`gh release download vX.Y.Z`) to
+   cross-check every archive's own `release-manifest.json` against the tag's
+   commit and version before trusting it. Only once both report no problems,
+   add the `## X.Y.Z hosted release evidence` section and correct README's
+   citation together, in the same commit.
+4. Never write the evidence section, and never change README's "published
+   tag" citation, from anything other than a real, already-published Release
+   confirmed by step 1 or step 3. A candidate state is not itself
+   publication-worthy evidence, and this repeats the rule already stated for
+   evidence capsules generally: they carry no authority of their own.
 
 ## Nonclaims
 

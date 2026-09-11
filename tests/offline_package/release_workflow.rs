@@ -313,3 +313,304 @@ fn unix_packager_rejects_tag_and_commit_drift_before_output() {
         assert!(!output.exists(), "rejected input created release output");
     }
 }
+
+/// `scripts/release-reconcile.py` (#167): a README "published" claim must be
+/// backed by a `docs/RELEASE-PROCESS.md` evidence section, a matching
+/// CHANGELOG.md heading, and an exactly-cited commit/date/anchor -- and the
+/// tool never mutates a file or the network by default.
+#[test]
+fn release_reconcile_agrees_with_the_real_published_v0_4_1_evidence() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let output = Command::new("python3")
+        .args(["scripts/release-reconcile.py", "--version", "0.4.1"])
+        .current_dir(root)
+        .output()
+        .expect("release reconcile must run");
+    assert!(
+        output.status.success(),
+        "reconcile reported problems against the real repository: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(
+        stdout.trim(),
+        "release reconcile: v0.4.1 state=published-documented"
+    );
+}
+
+const RECONCILE_PURE_CHECKS: &str = r#"
+import runpy
+
+module = runpy.run_path('scripts/release-reconcile.py')
+reconcile_doc_claim = module['reconcile_doc_claim']
+candidate_state = module['candidate_state']
+verify_local_release_directory = module['verify_local_release_directory']
+live_release_agrees = module['live_release_agrees']
+
+def readme(date, commit, anchor, version='9.9.9'):
+    return (
+        'The published tag is the\n'
+        f'[v{version} prerelease](https://github.com/wavect/semaprax/releases/tag/v{version})\n'
+        f'({date}, `{commit}`) with smoke-tested archives, SHA256 checksums, and\n'
+        'hosted release evidence in the\n'
+        f'[release process](docs/RELEASE-PROCESS.md#{anchor}).\n'
+    )
+
+CHANGELOG_OK = '## 9.9.9 — 2027-01-01\n\nnotes\n\n## 9.9.8 — 2026-12-01\n\nolder notes\n'
+COMMIT = 'a' * 40
+EVIDENCE_OK = (
+    '## 9.9.9 hosted release evidence\n\n'
+    f'The annotated `v9.9.9` tag resolves to exact commit\n`{COMMIT}`.\n'
+)
+
+# --- reconcile_doc_claim: healthy citation has zero problems -----------------
+problems = reconcile_doc_claim(
+    readme('2027-01-01', COMMIT[:8], '999-hosted-release-evidence'),
+    CHANGELOG_OK,
+    EVIDENCE_OK,
+)
+assert problems == [], problems
+
+# --- the exact real #167 shape: claim with no recorded evidence section -----
+problems = reconcile_doc_claim(
+    readme('2026-09-10', 'dfc15e2d', '040-hosted-release-evidence'),
+    CHANGELOG_OK,
+    '## 9.9.8 hosted release evidence\n\nexact commit\n`' + ('b' * 40) + '`.\n',
+)
+assert any("no '## 9.9.9 hosted release evidence' section" in p for p in problems), problems
+
+# --- evidence section exists, but README cites the wrong commit prefix ------
+problems = reconcile_doc_claim(
+    readme('2027-01-01', 'deadbeef', '999-hosted-release-evidence'),
+    CHANGELOG_OK,
+    EVIDENCE_OK,
+)
+assert any('evidence section records' in p for p in problems), problems
+
+# --- evidence section exists, but README cites the wrong date ---------------
+problems = reconcile_doc_claim(
+    readme('2027-06-06', COMMIT[:8], '999-hosted-release-evidence'),
+    CHANGELOG_OK,
+    EVIDENCE_OK,
+)
+assert any('CHANGELOG.md dates it' in p for p in problems), problems
+
+# --- evidence section exists, but README's evidence link is stale -----------
+problems = reconcile_doc_claim(
+    readme('2027-01-01', COMMIT[:8], '040-hosted-release-evidence'),
+    CHANGELOG_OK,
+    EVIDENCE_OK,
+)
+assert any('points at #040-hosted-release-evidence' in p for p in problems), problems
+
+# --- candidate_state: no tag at all ------------------------------------------
+state, problems = candidate_state('9.9.9', None, None, None)
+assert (state, problems) == ('no-candidate', [])
+
+# --- candidate_state: tagged but no evidence, and README makes no claim --
+# This is the healthy shape a release that failed after tagging but before
+# the documentation step leaves behind: an explicit non-published state and
+# NO misleading claim, because nothing claims it.
+state, problems = candidate_state('9.9.9', COMMIT, None, None)
+assert (state, problems) == ('tagged-unpublished', [])
+
+# --- candidate_state: same tagged-but-undocumented shape, but README DOES
+# claim it is published -- the exact misleading-claim case criterion 3 must
+# catch. This is the negative control: only the claim changed, and it alone
+# must flip the verdict.
+state, problems = candidate_state('9.9.9', COMMIT, None, '9.9.9')
+assert state == 'inconsistent', (state, problems)
+assert any('not' in p and "'published-documented'" in p for p in problems), problems
+
+# --- candidate_state: fully consistent published claim ----------------------
+state, problems = candidate_state(
+    '9.9.9', COMMIT, {'commit': COMMIT, 'anchor': 'x'}, '9.9.9'
+)
+assert (state, problems) == ('published-documented', [])
+
+# --- candidate_state: evidence commit disagrees with the local tag ----------
+state, problems = candidate_state(
+    '9.9.9', COMMIT, {'commit': 'b' * 40, 'anchor': 'x'}, None
+)
+assert state == 'inconsistent'
+assert any('disagrees with local tag commit' in p for p in problems), problems
+
+# --- live_release_agrees: pure function, no network ---------------------
+assert live_release_agrees('9.9.9', COMMIT, {
+    'draft': False, 'published_at': '2027-01-01T00:00:00Z', 'tag_name': 'v9.9.9',
+}) == []
+assert any('draft' in p for p in live_release_agrees('9.9.9', COMMIT, {
+    'draft': True, 'published_at': '2027-01-01T00:00:00Z', 'tag_name': 'v9.9.9',
+}))
+assert any('published_at' in p for p in live_release_agrees('9.9.9', COMMIT, {
+    'draft': False, 'published_at': None, 'tag_name': 'v9.9.9',
+}))
+assert any('tag_name' in p for p in live_release_agrees('9.9.9', COMMIT, {
+    'draft': False, 'published_at': '2027-01-01T00:00:00Z', 'tag_name': 'v9.9.8',
+}))
+
+# --- reconcile_changelog_summary: catches a stale "current tag" claim -------
+reconcile_changelog_summary = module['reconcile_changelog_summary']
+SUMMARY_OK = '## Latest published milestone\n\n- `v9.9.9` is the current prerelease tag used by installation and distribution docs.\n'
+assert reconcile_changelog_summary(SUMMARY_OK, '9.9.9') == []
+problems = reconcile_changelog_summary(SUMMARY_OK, '9.9.10')
+assert any('claims v9.9.9' in p and 'is 9.9.10' in p for p in problems), problems
+# A file that makes no such claim at all is not itself a problem.
+assert reconcile_changelog_summary('no claim here\n', '9.9.9') == []
+
+print('reconcile pure checks ok')
+"#;
+
+#[test]
+fn release_reconcile_doc_claim_and_candidate_state_pure_checks() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let output = Command::new("python3")
+        .args(["-B", "-c", RECONCILE_PURE_CHECKS])
+        .current_dir(root)
+        .output()
+        .expect("python3 must run the reconcile pure checks");
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "reconcile pure checks ok"
+    );
+}
+
+/// The three disagreement classes over a local directory of built/downloaded
+/// release archives, exercised against real `.tar.gz`/`.zip` archives built
+/// in-process (the same manifest shape `scripts/package-release.sh` writes),
+/// plus the positive (fully agreeing) case.
+const RECONCILE_ARCHIVE_DIRECTORY_CHECKS: &str = r#"
+import json
+import runpy
+import tarfile
+import tempfile
+import zipfile
+from pathlib import Path
+
+module = runpy.run_path('scripts/release-reconcile.py')
+verify_local_release_directory = module['verify_local_release_directory']
+
+VERSION = '9.9.9'
+COMMIT = 'c' * 40
+
+def manifest_bytes(version, commit, target):
+    return json.dumps({
+        'schema': 'semaprax.release-artifact.v1',
+        'version': version,
+        'commit': commit,
+        'target': target,
+        'maturity': 'pre-alpha',
+        'binaries': ['semaprax', 'semapraxd'],
+        'nonclaims': [],
+    }).encode('utf-8')
+
+def write_tar_gz(directory, name, target, version, commit):
+    package = f'semaprax-v{VERSION}-{target}'
+    path = directory / name
+    with tarfile.open(path, 'w:gz') as archive:
+        data = manifest_bytes(version, commit, target)
+        info = tarfile.TarInfo(name=f'{package}/release-manifest.json')
+        info.size = len(data)
+        archive.addfile(info, __import__('io').BytesIO(data))
+
+def write_zip(directory, name, target, version, commit):
+    package = f'semaprax-v{VERSION}-{target}'
+    path = directory / name
+    with zipfile.ZipFile(path, 'w') as archive:
+        archive.writestr(f'{package}/release-manifest.json', manifest_bytes(version, commit, target))
+
+LINUX = f'semaprax-v{VERSION}-x86_64-unknown-linux-gnu.tar.gz'
+MACOS = f'semaprax-v{VERSION}-aarch64-apple-darwin.tar.gz'
+WINDOWS = f'semaprax-v{VERSION}-x86_64-pc-windows-msvc.zip'
+
+# --- positive: all three agree -----------------------------------------------
+with tempfile.TemporaryDirectory() as scratch:
+    scratch = Path(scratch)
+    write_tar_gz(scratch, LINUX, 'x86_64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, MACOS, 'aarch64-apple-darwin', VERSION, COMMIT)
+    write_zip(scratch, WINDOWS, 'x86_64-pc-windows-msvc', VERSION, COMMIT)
+    assert verify_local_release_directory(scratch, VERSION, COMMIT) == []
+
+# --- missing artifact ---------------------------------------------------------
+with tempfile.TemporaryDirectory() as scratch:
+    scratch = Path(scratch)
+    write_tar_gz(scratch, LINUX, 'x86_64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, MACOS, 'aarch64-apple-darwin', VERSION, COMMIT)
+    problems = verify_local_release_directory(scratch, VERSION, COMMIT)
+    assert problems == [f'missing artifact: {WINDOWS}'], problems
+
+# --- wrong version embedded in one archive's manifest ------------------------
+with tempfile.TemporaryDirectory() as scratch:
+    scratch = Path(scratch)
+    write_tar_gz(scratch, LINUX, 'x86_64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, MACOS, 'aarch64-apple-darwin', '1.1.1', COMMIT)
+    write_zip(scratch, WINDOWS, 'x86_64-pc-windows-msvc', VERSION, COMMIT)
+    problems = verify_local_release_directory(scratch, VERSION, COMMIT)
+    assert any('wrong version' in p and MACOS in p for p in problems), problems
+    assert not any('wrong commit' in p for p in problems), problems
+
+# --- wrong commit embedded in one archive's manifest --------------------------
+with tempfile.TemporaryDirectory() as scratch:
+    scratch = Path(scratch)
+    write_tar_gz(scratch, LINUX, 'x86_64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, MACOS, 'aarch64-apple-darwin', VERSION, COMMIT)
+    write_zip(scratch, WINDOWS, 'x86_64-pc-windows-msvc', VERSION, 'd' * 40)
+    problems = verify_local_release_directory(scratch, VERSION, COMMIT)
+    assert any('wrong commit' in p and WINDOWS in p for p in problems), problems
+    assert not any('wrong version' in p for p in problems), problems
+
+# --- SHA256SUMS digest disagreement -------------------------------------------
+with tempfile.TemporaryDirectory() as scratch:
+    scratch = Path(scratch)
+    write_tar_gz(scratch, LINUX, 'x86_64-unknown-linux-gnu', VERSION, COMMIT)
+    write_tar_gz(scratch, MACOS, 'aarch64-apple-darwin', VERSION, COMMIT)
+    write_zip(scratch, WINDOWS, 'x86_64-pc-windows-msvc', VERSION, COMMIT)
+    (scratch / 'SHA256SUMS').write_text(f'{"0" * 64}  {LINUX}\n', encoding='utf-8')
+    problems = verify_local_release_directory(scratch, VERSION, COMMIT)
+    assert any('digest mismatch' in p and LINUX in p for p in problems), problems
+
+print('reconcile archive directory checks ok')
+"#;
+
+#[test]
+fn release_reconcile_local_archive_directory_disagreement_classes() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let output = Command::new("python3")
+        .args(["-B", "-c", RECONCILE_ARCHIVE_DIRECTORY_CHECKS])
+        .current_dir(root)
+        .output()
+        .expect("python3 must run the reconcile archive-directory checks");
+    assert!(
+        output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "reconcile archive directory checks ok"
+    );
+}
+
+#[test]
+fn release_process_documents_state_and_reconciliation() {
+    let docs = read("docs/RELEASE-PROCESS.md");
+    for exact in [
+        "## Release state and reconciliation",
+        "python3 scripts/release-reconcile.py --version 0.4.1",
+        "`no-candidate`",
+        "`tagged-unpublished`",
+        "`published-documented`",
+        "`inconsistent`",
+        "### The failure and recovery path",
+        "Never move or recreate a published release tag",
+    ] {
+        assert!(docs.contains(exact), "release process lost: {exact}");
+    }
+}

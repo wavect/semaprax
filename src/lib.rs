@@ -78,6 +78,7 @@ pub mod installed_guidance;
 pub mod interpreter;
 pub(crate) mod iterator_ops;
 pub mod lexer;
+pub mod live_invocation;
 pub mod loan_plan;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]

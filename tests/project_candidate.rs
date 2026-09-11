@@ -40,6 +40,8 @@ mod archive;
 mod artifact_delta;
 #[path = "project_candidate/builtin_calls.rs"]
 mod builtin_calls;
+#[path = "project_candidate/candidate_assurance.rs"]
+mod candidate_assurance;
 #[path = "project_candidate/candidates.rs"]
 mod candidates;
 #[path = "project_candidate/contract_delta.rs"]

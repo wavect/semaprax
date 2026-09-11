@@ -21,6 +21,7 @@ mod analysis_evidence;
 mod analysis_runtime_evidence;
 mod archive;
 mod artifact_delta;
+mod candidate_assurance;
 mod catalog;
 mod cleanup_dependencies;
 mod contract_delta;
@@ -107,6 +108,12 @@ pub use archive::{
 pub use artifact_delta::{
     MAX_PROJECT_CANDIDATE_ARTIFACT_DELTA_BYTES, PROJECT_CANDIDATE_ARTIFACT_DELTA_SCHEMA,
     PROJECT_CANDIDATE_ARTIFACT_DELTA_VERIFICATION_SCHEMA,
+};
+pub use candidate_assurance::{
+    CandidateAssuranceInput, MAX_CANDIDATE_ACCEPTANCE_IDENTITY_BYTES,
+    MAX_CANDIDATE_ASSURANCE_INPUTS, MAX_PROJECT_CANDIDATE_ACCEPTANCE_BYTES,
+    MAX_PROJECT_CANDIDATE_ASSURANCE_SUMMARY_BYTES, PROJECT_CANDIDATE_ACCEPTANCE_SCHEMA,
+    PROJECT_CANDIDATE_ASSURANCE_SUMMARY_SCHEMA,
 };
 pub use cleanup_dependencies::{
     MAX_PROJECT_CANDIDATE_CLEANUP_DEPENDENCIES_BYTES,

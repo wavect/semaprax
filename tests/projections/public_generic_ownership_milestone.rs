@@ -259,26 +259,49 @@ fn wasm_scalar_exports_reject_every_generic_selection() {
         .expect("the same scalar export is admitted from a generic-free module");
 }
 
-/// The charter is part of the gate. Nine prerequisite gates must be named, the
-/// standing decision must still be unsupported and unpublished, and no row may
-/// claim a passing state while this module is the milestone's only evidence.
+/// The charter is part of the gate. Nine prerequisite gates must be named,
+/// every state must come from the charter's own closed vocabulary, no gate may
+/// claim hosted evidence before the cross-platform gate that produces it, the
+/// decision gate must stay undecided, and the standing decision must still read
+/// unsupported and unpublished.
 #[test]
 fn the_milestone_charter_still_records_an_undecided_unsupported_surface() {
+    const STATES: [&str; 3] = ["Open", "Implemented, local evidence", "Hosted green"];
     let text = std::fs::read_to_string(source_root().join(MILESTONE)).unwrap();
+    let mut rows = Vec::new();
     for index in 1..=9u32 {
+        let marker = format!("| PG-{index} |");
+        let row = text
+            .lines()
+            .find(|line| line.starts_with(&marker))
+            .unwrap_or_else(|| panic!("the charter must state gate PG-{index}"));
+        let state = row
+            .rsplit('|')
+            .nth(1)
+            .expect("every gate row carries a state column")
+            .trim()
+            .to_owned();
         assert!(
-            text.contains(&format!("| PG-{index} |")),
-            "the charter must state gate PG-{index}"
+            STATES.contains(&state.as_str()),
+            "PG-{index} uses the state {state:?}, which is outside the charter's vocabulary"
         );
+        rows.push((index, state));
     }
+    let hosted = rows
+        .iter()
+        .filter(|(_, state)| state == "Hosted green")
+        .map(|(index, _)| *index)
+        .collect::<Vec<_>>();
+    assert!(
+        hosted.is_empty() || hosted.contains(&8),
+        "gates {hosted:?} claim hosted evidence while the cross-platform gate PG-8 does not"
+    );
+    assert_eq!(
+        rows[8].1, "Open",
+        "the support and publication decision PG-9 must stay undecided"
+    );
     assert!(
         text.contains("**public generic ownership is not supported and not\npublished.**"),
         "the charter must keep its standing support and publication decision"
-    );
-    assert_eq!(
-        text.matches("| Open |").count(),
-        9,
-        "every prerequisite gate is Open until its owning artifact records \
-         passing evidence for an exact implementation commit"
     );
 }

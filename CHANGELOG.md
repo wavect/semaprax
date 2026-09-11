@@ -8,6 +8,25 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add Public Generic Type Grammar v1, gates PG-1 and PG-2 of the public
+  generic ownership milestone: a versioned, target-neutral term for the
+  types a public generic surface could name, plus the explicit template and
+  ordered argument identities derived from it. Identities are
+  length-prefixed in bytes, so an identity holding the grammar's own
+  punctuation still round trips and two distinct types can never render
+  alike; digests are computed over persistent identities, declared arity and
+  ordered parameter positions, so a record, parameter or field display
+  rename changes nothing while argument permutation, duplication or
+  substitution changes the instance identity and omission is an
+  `arity_mismatch` refusal. The vocabulary is closed to the eight Copy
+  scalars, direct `Bytes` and fully concrete authored records; the other
+  twelve reasons reject, bounds refuse instead of truncating, and replay is
+  byte-exact against an independent recomputation. It is deliberately not
+  the compiler's internal, unversioned `identity_key` spelling.
+  Local evidence only: no hosted run, no descriptor, carrier, package or
+  consumer selects the grammar, and public generic ownership remains
+  unsupported and unpublished.
+
 - Make public generic ownership a separate milestone instead of a side
   effect of the internal generic closure. The new
   [Public Generic Ownership milestone](docs/PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md)

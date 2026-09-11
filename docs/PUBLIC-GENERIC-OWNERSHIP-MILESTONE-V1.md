@@ -51,14 +51,24 @@ Project v8, v9, or v11 bytes.
 ## Prerequisite gates
 
 Each gate is independent, has one owning artifact, and is advanced only by that
-artifact's executable evidence. A gate is `Open` until its owner records a
-passing gate for an exact implementation commit.
+artifact's executable evidence. The state column uses exactly three values:
+
+- `Open` — nothing is implemented for it.
+- `Implemented, local evidence` — the code and its executable gate exist and
+  pass locally. No hosted run is recorded, so this is not hosted evidence and
+  not a support claim.
+- `Hosted green` — a hosted run and job are recorded in the owning artifact for
+  an exact implementation commit.
+
+PG-8 is what converts local evidence into hosted evidence; no other gate may
+record `Hosted green` before it does. PG-9 may only move once every other gate
+reads `Hosted green`.
 
 | Gate | Requirement | Owning artifact | State |
 | --- | --- | --- | --- |
-| PG-1 | A new versioned target-neutral type grammar: closed vocabulary, injective canonical term, byte-exact render and parse, domain-separated digest, and fail-closed rejection of every construct outside the admitted surface | Pending its owning specification | Open |
-| PG-2 | Explicit template identity and ordered argument identities: persistent template declaration identity, declared arity, positional parameter owner and index, and digests that distinguish permutation, omission, duplication, and substitution | Pending its owning specification | Open |
-| PG-3 | Semantic compatibility rules: a closed classification over two grammar surfaces with explicit reasons, no compatibility inferred from a diff classification, and no version decision inferred from a classification | This milestone, pending its owning specification | Open |
+| PG-1 | A new versioned target-neutral type grammar: closed vocabulary, injective canonical term, byte-exact render and parse, domain-separated digest, and fail-closed rejection of every construct outside the admitted surface | [Public Generic Type Grammar v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | Implemented, local evidence |
+| PG-2 | Explicit template identity and ordered argument identities: persistent template declaration identity, declared arity, positional parameter owner and index, and digests that distinguish permutation, omission, duplication, and substitution | [Public Generic Type Grammar v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | Implemented, local evidence |
+| PG-3 | Semantic compatibility rules: a closed classification over two grammar surfaces with explicit reasons, no compatibility inferred from a diff classification, and no version decision inferred from a classification | Pending its owning specification | Open |
 | PG-4 | Candidate ABI-delta evidence that selects the public generic signature, retains ordered arguments and substituted fields, and survives mutation, recovery, and independent byte-exact replay | Extension of [Candidate ABI Delta v1](PROJECT-CANDIDATE-ABI-DELTA-V1.md) | Open |
 | PG-5 | Generated Rust, TypeScript/Wasm, C, and C++ consumers derived from the grammar, byte-deterministic, with no ambient authority | Pending its owning specification | Open |
 | PG-6 | Hostile metadata replay: forged, stale, truncated, reordered, and mutated grammar or descriptor bytes fail closed in every consumer route and in independent replay | Pending its owning specification | Open |

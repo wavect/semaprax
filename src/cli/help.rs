@@ -942,7 +942,10 @@ pub(crate) fn scoped(name: &str, private: bool) -> Option<String> {
 /// cross-checked against the real, single-sourced CLI catalog instead of
 /// duplicating it; see `cli::agent::tests::public_workflow_commands_are_all_
 /// catalogued`.
-#[allow(dead_code, reason = "used only in `#[cfg(test)]` cross-check; bin build sees no call site")]
+#[allow(
+    dead_code,
+    reason = "used only in `#[cfg(test)]` cross-check; bin build sees no call site"
+)]
 pub(crate) fn canonical_command_names() -> std::collections::BTreeSet<&'static str> {
     COMMANDS.iter().map(|spec| spec.canonical).collect()
 }

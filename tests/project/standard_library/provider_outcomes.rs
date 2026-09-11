@@ -262,3 +262,77 @@ fn main() -> i64
         "0",
     );
 }
+
+/// Issue #123's required-tests list, first row: "Chunking does not change
+/// successful values or zero-based error positions." Neither `std.io`'s
+/// `Writer` nor `std.data.json.dec`'s scanner has a streaming mode; a
+/// provider that hands back a bounded read in more than one call is
+/// composed by writing each arrival into the same pre-sized `Writer` at its
+/// current position, exactly as `reader_line_into`/`decode_into` already
+/// require their output buffer to be sized (`docs/BOUNDED-JSON-SCANNER-V1.md`).
+/// This proves two things about that composition with no new adapter: a
+/// buffer read only up to the first chunk (the rest still zero-filled
+/// placeholder capacity) decodes as a deterministic failure rather than a
+/// corrupted or silently short "success" — the placeholder bytes are outside
+/// the JSON string-body range `[32, 255]` — and once every chunk has
+/// arrived, the decoded value is byte-identical to writing the same content
+/// in one pass, regardless of where the chunk boundary fell.
+#[test]
+fn chunking_does_not_change_the_decoded_value_once_every_chunk_has_arrived() {
+    returns(
+        r#"
+@id("app.main")
+fn main() -> i64
+{
+    let token_bytes = [34u8, 97u8, 98u8, 34u8];
+    let one_shot = writer_write_u8(writer_write_u8(writer_write_u8(writer_write_u8(writer_from_bytes(bytes_zeroed(4usize)), 34u8), 97u8), 98u8), 34u8);
+    let one_shot_bytes = writer_finish(one_shot);
+    let one_shot_value = decoded_len(bytes_as_slice(one_shot_bytes), 0usize);
+    let first_chunk = writer_write_u8(writer_write_u8(writer_from_bytes(bytes_zeroed(4usize)), 34u8), 97u8);
+    let still_incomplete = match borrow first_chunk { Writer { data, position: _ } => is_failure(bytes_as_slice(data), decoded_len(bytes_as_slice(data), 0usize)), };
+    let assembled = writer_write_u8(writer_write_u8(first_chunk, 98u8), 34u8);
+    let assembled_bytes = writer_finish(assembled);
+    let two_chunk_value = decoded_len(bytes_as_slice(assembled_bytes), 0usize);
+    let split_elsewhere_first = writer_write_u8(writer_write_u8(writer_write_u8(writer_from_bytes(bytes_zeroed(4usize)), 34u8), 97u8), 98u8);
+    let split_elsewhere = writer_write_u8(split_elsewhere_first, 34u8);
+    let split_elsewhere_bytes = writer_finish(split_elsewhere);
+    let split_elsewhere_value = decoded_len(bytes_as_slice(split_elsewhere_bytes), 0usize);
+    let known_content = byte_len(array_as_slice(token_bytes)) == 4usize;
+    if known_content && still_incomplete && two_chunk_value == one_shot_value && split_elsewhere_value == one_shot_value { 0 } else { 1 }
+}
+"#,
+        "0",
+    );
+}
+
+/// Issue #123's required-tests list, first row, error-position half: a
+/// malformed token's reported position (`std.data.json.dec.failure`'s
+/// `byte_len(input) + 1 + offset`, which is absolute and zero-based within
+/// the assembled buffer, not relative to any one provider call) does not
+/// move depending on how many separate writes assembled the buffer before
+/// the fault, only on where the fault byte actually sits.
+#[test]
+fn chunking_does_not_change_the_zero_based_error_position() {
+    returns(
+        r#"
+@id("app.main")
+fn main() -> i64
+{
+    let one_shot = writer_write_u8(writer_write_u8(writer_write_u8(writer_write_u8(writer_write_u8(writer_write_u8(writer_from_bytes(bytes_zeroed(6usize)), 34u8), 97u8), 92u8), 122u8), 98u8), 34u8);
+    let one_shot_bytes = writer_finish(one_shot);
+    let one_shot_fault = decoded_len(bytes_as_slice(one_shot_bytes), 0usize);
+    let one_shot_is_failure = is_failure(bytes_as_slice(one_shot_bytes), one_shot_fault);
+    let split_before_fault = writer_write_u8(writer_write_u8(writer_from_bytes(bytes_zeroed(6usize)), 34u8), 97u8);
+    let split_before_rest = writer_write_u8(writer_write_u8(writer_write_u8(writer_write_u8(split_before_fault, 92u8), 122u8), 98u8), 34u8);
+    let split_before_bytes = writer_finish(split_before_rest);
+    let split_before_fault_value = decoded_len(bytes_as_slice(split_before_bytes), 0usize);
+    let split_after_fault = writer_write_u8(writer_write_u8(writer_write_u8(writer_write_u8(writer_from_bytes(bytes_zeroed(6usize)), 34u8), 97u8), 92u8), 122u8);
+    let split_after_rest = writer_write_u8(writer_write_u8(split_after_fault, 98u8), 34u8);
+    let split_after_bytes = writer_finish(split_after_rest);
+    let split_after_fault_value = decoded_len(bytes_as_slice(split_after_bytes), 0usize);
+    if one_shot_is_failure && split_before_fault_value == one_shot_fault && split_after_fault_value == one_shot_fault { 0 } else { 1 }
+}
+"#,
+        "0",
+    );
+}

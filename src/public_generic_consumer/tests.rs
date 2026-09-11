@@ -246,6 +246,21 @@ fn generation_is_deterministic_and_identity_derived() {
         );
         for (name, source) in first.files() {
             assert!(!source.is_empty(), "{name} is empty");
+            // Two host-independence checks, in the generator rather than in
+            // whatever reads its output later. A CRLF checkout of a template
+            // makes every placeholder whose match includes its newline stop
+            // substituting; without these the first symptom is a downstream
+            // expectation failing on one platform only.
+            assert!(
+                !source.contains('\r'),
+                "{name} carries a carriage return, so its bytes depend on the host"
+            );
+            for placeholder in ["__DECLARATIONS__", "__EXPECTED__", "__EXPECTED_LEN__"] {
+                assert!(
+                    !source.contains(placeholder),
+                    "{name} kept the literal placeholder {placeholder}"
+                );
+            }
             for display_name in ["Pair", "Leaf", "take", "make", "left", "right", "head"] {
                 assert!(
                     !source.contains(&format!("SpxPg{display_name}"))
@@ -302,6 +317,28 @@ fn generated_consumers_embed_accepted_metadata() {
             embedded.1.matches("0x").count() >= generated.metadata().len(),
             "every metadata byte must be embedded"
         );
+    }
+}
+
+/// A template delivered with CRLF — which a checkout may do — produces the
+/// same bytes as one delivered with LF. The generated consumer is an artifact
+/// that gets committed and diffed, so its bytes may not depend on the host
+/// that generated it.
+#[test]
+fn template_normalization_makes_generation_host_independent() {
+    assert_eq!(template("a\r\nb\r\n"), "a\nb\n");
+    assert_eq!(template("a\nb\n"), "a\nb\n");
+    assert_eq!(template(""), "");
+    let surface = surface();
+    for language in ConsumerLanguage::ALL {
+        for (_, source) in generate(&surface, language).unwrap().files() {
+            assert_eq!(
+                template(source),
+                *source,
+                "{} emitted host-dependent line endings",
+                language.text()
+            );
+        }
     }
 }
 

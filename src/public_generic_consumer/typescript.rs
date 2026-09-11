@@ -1,11 +1,11 @@
 //! The TypeScript/Wasm consumer emitter: the ES module a Wasm host would load
 //! beside the ambient declarations a TypeScript author compiles against.
 
-use super::{byte_literal, Declaration};
+use super::{byte_literal, template, Declaration};
 
 pub(super) fn emit(metadata: &str, declarations: &[Declaration]) -> Vec<(String, String)> {
-    let module =
-        include_str!("typescript.txt").replace("__EXPECTED__\n", &byte_literal(metadata, "  "));
+    let module = template(include_str!("typescript.txt"))
+        .replace("__EXPECTED__\n", &byte_literal(metadata, "  "));
     let mut types = String::new();
     for declaration in declarations {
         types.push_str(&format!("/** {} */\n", declaration.term));
@@ -19,7 +19,7 @@ pub(super) fn emit(metadata: &str, declarations: &[Declaration]) -> Vec<(String,
         types.push_str("}\n\n");
     }
     let declarations =
-        include_str!("typescript-declarations.txt").replace("__DECLARATIONS__\n", &types);
+        template(include_str!("typescript-declarations.txt")).replace("__DECLARATIONS__\n", &types);
     vec![
         ("consumer.mjs".to_owned(), module),
         ("consumer.d.ts".to_owned(), declarations),

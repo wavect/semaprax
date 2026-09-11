@@ -10,6 +10,19 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## 0.4.1 — 2026-09-11
 
+- Make generated public generic consumers independent of the checkout that
+  produced them. The fixed part of each consumer is an included template,
+  and a Windows checkout delivers `.txt` with CRLF, so every placeholder
+  whose match included its newline silently stopped substituting: the
+  generated files kept their literal placeholders and lost both their type
+  declarations and their embedded metadata. Templates are now normalized at
+  generation time, `.gitattributes` pins `.txt` to LF like every other
+  embedded text asset, and the generator itself asserts that no generated
+  file carries a carriage return or a surviving placeholder — so this class
+  fails where it happens rather than as a downstream expectation on one
+  platform. A generator that only worked because of a checkout setting was
+  not the deterministic generator the milestone claims.
+
 - Guard the Windows checkout of the public generic ownership milestone job.
   Its first hosted run failed on `windows-latest` before any gate executed:
   the checkout itself cannot write this repository's retained evidence paths

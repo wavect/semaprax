@@ -1,6 +1,6 @@
 //! The C11 consumer emitter.
 
-use super::{byte_literal, Declaration};
+use super::{byte_literal, template, Declaration};
 
 pub(super) fn emit(metadata: &str, declarations: &[Declaration]) -> Vec<(String, String)> {
     let mut types = String::new();
@@ -12,7 +12,7 @@ pub(super) fn emit(metadata: &str, declarations: &[Declaration]) -> Vec<(String,
         }
         types.push_str("};\n\n");
     }
-    let source = include_str!("c.txt")
+    let source = template(include_str!("c.txt"))
         .replace("__DECLARATIONS__\n", &types)
         .replace("__EXPECTED__\n", &byte_literal(metadata, "    "));
     vec![("consumer.c".to_owned(), source)]

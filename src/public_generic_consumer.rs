@@ -546,6 +546,17 @@ fn push_declaration(
     });
 }
 
+/// One generated file's fixed template.
+///
+/// The line endings are normalized because a checkout may deliver these with
+/// CRLF — `.gitattributes` pins `.txt` to LF, but a generator that only works
+/// because of a checkout setting is not a deterministic generator. Without
+/// this, every placeholder whose match includes its newline silently fails to
+/// substitute and the generated file keeps the literal placeholder.
+fn template(text: &str) -> String {
+    text.replace("\r\n", "\n")
+}
+
 /// One numeric byte literal per generated language: twelve bytes a line,
 /// indented, so a diff of two generated consumers is readable.
 fn byte_literal(metadata: &str, indent: &str) -> String {

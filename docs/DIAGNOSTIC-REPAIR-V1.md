@@ -335,7 +335,7 @@ The frozen raw SHA-256 known answers are:
 | Canonical instantiation-preview JSON | `ae779749b252e5d9661172dfebcd3317211b97310eed57a0a6b7a692be1053e4` |
 | Independently authored candidate Graph v10 JSON | `d255c0e88ff497436ca0737ffd139cf47c2c142cf1b4f2da071514c0515ad2b3` |
 
-Local evidence is green: Diagnostic Repair Phase A integration is 13/13; the
+Local evidence is green: Diagnostic Repair Phase A integration is 14/14; the
 Semantic Patch v3 Phase B semantic integration corpus is 7/7; v3 A0 hook units
 are 4/4; aggregate v3 integration-plus-hook evidence is 9/9; and the library
 suite is 404/404. The full local suite and preservation gates are green, and
@@ -360,7 +360,13 @@ growth, canonical grammar and selector confusion, stale/failure no-write
 behavior, exact generated/handwritten Graph and candidate revision
 equality, strict Native C11 O0/O2 and Node/Wasm behavior when those tools are
 available, CLI rejection, A0 artifact cleanup, Impact-v3 rejection, and Patch
-v1/v2 plus Impact byte-preservation coverage.
+v1/v2 plus Impact byte-preservation coverage. A dedicated case re-runs full HIR
+diagnostics on the actual repair-produced candidate and confirms `SPX-S103` is
+present exactly once before the repair and absent afterward, and that the
+candidate independently resolves and passes `hir::validate`, so "removes the
+target diagnostic and passes full candidate validation" is evidenced directly
+rather than only implied by candidate/Graph equality with a handwritten
+fixture.
 
 The exact `dae957a` full matrix is hosted green in [run 31418476217 attempt
 1](https://github.com/wavect/semaprax/actions/runs/31418476217/attempts/1),

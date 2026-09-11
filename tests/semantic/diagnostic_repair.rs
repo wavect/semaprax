@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use semaprax::{codegen, format, graph, parse, repair, wasm};
+use semaprax::{codegen, format, graph, hir, parse, repair, wasm};
 use sha2::{Digest, Sha256};
 
 static NEXT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
@@ -614,6 +614,51 @@ fn independent_candidate_graph_and_backends_preserve_behavior() {
         assert!(executions[0].status.success());
         assert_eq!(String::from_utf8_lossy(&executions[0].stdout).trim(), "2");
     }
+}
+
+#[test]
+fn automatic_repair_removes_the_target_diagnostic_and_candidate_validates() {
+    // Issue #199 names this exactly: "Every automatic repair removes the
+    // target diagnostic and passes full candidate validation." The other
+    // cases in this module prove byte/graph/backend equivalence with an
+    // independently authored fixture; this one proves the narrower, more
+    // literal claim directly against re-run diagnostics: SPX-S103 is present
+    // on the untouched source and absent on the actual repair-produced
+    // candidate, and that candidate still resolves and validates end to end.
+    let fixture = Fixture::new("diagnostic-removal", SOURCE);
+    let base = parse(SOURCE, &fixture.source).unwrap();
+    let base_diagnostics = hir::analyze(&base).diagnostics;
+    let before: Vec<_> = base_diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.code == "SPX-S103")
+        .collect();
+    assert_eq!(before.len(), 1, "{base_diagnostics:?}");
+    assert!(before[0].message.contains("helper"));
+    assert_eq!(before[0].span, {
+        let target = base
+            .functions
+            .iter()
+            .find(|function| function.stable_id == TARGET)
+            .unwrap();
+        Some(target.name_span)
+    });
+
+    let inserted_source =
+        SOURCE.replacen("fn helper", "@id(\"repair.phase_a.helper\")\nfn helper", 1);
+    let instantiated_candidate = parse(&inserted_source, &fixture.source).unwrap();
+    let candidate_analysis = hir::analyze(&instantiated_candidate);
+    assert!(
+        candidate_analysis
+            .diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.code != "SPX-S103"),
+        "candidate still carries SPX-S103: {:?}",
+        candidate_analysis.diagnostics
+    );
+    let candidate_resolved = candidate_analysis
+        .resolved
+        .expect("repaired candidate resolves");
+    hir::validate(&candidate_resolved).expect("repaired candidate passes full HIR validation");
 }
 
 #[test]

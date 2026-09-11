@@ -33,6 +33,12 @@ use crate::public_generic_type as grammar;
 mod c;
 mod cxx;
 mod rust;
+/// The generated *calling* consumer (issue #156): a real Rust crate that
+/// verifies an exact descriptor/provider pairing, transfers one owned input
+/// record across the native adapter (issue #154) exactly once, calls, and
+/// decodes an independently validated result. Distinct from every consumer
+/// generated above, which never allocates, transfers, or calls anything.
+pub mod rust_calling;
 mod typescript;
 
 /// The canonical metadata byte format every generated consumer reads.
@@ -579,7 +585,10 @@ fn byte_literal(metadata: &str, indent: &str) -> String {
 /// Host identifiers are derived from bytes, not from display names: the
 /// lowercase hex of the exact term or identity. Injective, stable under a
 /// rename, and valid in all four languages.
-fn identifier(value: &str) -> String {
+///
+/// `pub(crate)` so [`rust_calling`] reuses this exact scheme for the calling
+/// consumer's field names, instead of restating an independent one.
+pub(crate) fn identifier(value: &str) -> String {
     let mut output = String::with_capacity(value.len() * 2);
     for byte in value.bytes() {
         let _ = write!(output, "{byte:02x}");

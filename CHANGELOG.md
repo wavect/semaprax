@@ -8,6 +8,25 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add Public Generic Metadata Consumers v1: a Rust, TypeScript/Wasm, C11
+  and C++ consumer generated from a candidate public generic surface, plus
+  the length-framed canonical metadata format they read. Before a foreign
+  toolchain can call a public generic export, several of them have to agree
+  on what its types are and refuse everything else - and that is
+  falsifiable without a calling convention. All four consumers are compiled
+  warning-free and run for real against nine hostile documents, and each
+  must report the same closed refusal (`malformed`, `term`, `mismatch`) as
+  the others and as the Rust reference reader; the gate fails when no
+  toolchain was available rather than passing silently. Identifiers come
+  from term bytes rather than display names, nested instances are declared
+  before their holders so C and C++ never see an incomplete type, and
+  regeneration is byte-identical.
+  This closes the grammar half of milestone gates PG-5 and PG-6; both stay
+  open for their descriptor half, because no public generic descriptor,
+  carrier or calling convention exists. No generated consumer receives a
+  SEMAPRAX value, allocates one, frees one, or links against anything, and
+  every generated file says so in its own banner.
+
 - Add Public Generic Compatibility v1, gate PG-3 of the public generic
   ownership milestone: candidate surfaces over the type grammar, and a
   closed thirteen-reason classification of one ordered pair of them. The

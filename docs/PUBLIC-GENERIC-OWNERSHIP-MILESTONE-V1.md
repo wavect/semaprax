@@ -80,6 +80,26 @@ PG-1 through PG-8 are prerequisites of PG-9, not substitutes for it. A complete
 set of green prerequisite gates authorizes the decision to be *made*; it does
 not make it.
 
+### Gate scope notes
+
+A gate moves only when the whole of it is done. Where part of a gate has landed
+with its own artifact and its own executable gate, it is recorded here rather
+than by advancing the row.
+
+- **PG-5 and PG-6 — grammar half landed, descriptor half open.**
+  [Public Generic Metadata Consumers v1](PUBLIC-GENERIC-CONSUMERS-V1.md)
+  generates a Rust, TypeScript/Wasm, C, and C++ consumer of the canonical
+  metadata of a candidate surface. All four are compiled warning-free and run
+  for real, and all four must refuse nine hostile documents — forged term
+  length, reordered records, stale surface, truncation, and the rest — with the
+  same closed reason as each other and as the Rust reference reader. That
+  settles that the type grammar is implementable as a shared contract and that
+  hostile *grammar* metadata fails closed in every consumer route. It settles
+  nothing about calling a public generic export: those consumers need a
+  versioned descriptor and carrier that do not exist, and hostile replay of
+  descriptor bytes cannot be evidenced before there are descriptor bytes. Both
+  gates therefore stay `Open`.
+
 ## Separation invariants
 
 These hold for every change to internal generic semantics, including changes

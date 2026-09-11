@@ -10,6 +10,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## 0.4.1 — 2026-09-11
 
+- Record cross-platform hosted evidence for the public generic ownership
+  milestone. The `public-generic-ownership-milestone` job is green on
+  `ubuntu-latest`, `macos-latest` and `windows-latest` for implementation
+  commit `2ef043ba1b989f49b256e456f71fb6e89068bf33` in [run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245), with each leg's log showing all four consumer
+  toolchains exercised rather than skipped. Gate PG-8 and the four gates
+  whose corpus that job runs - the type grammar, template and ordered
+  argument identities, the compatibility rules and the candidate delta -
+  move to `Hosted green`. PG-5, PG-6 and PG-7 stay open because the corpus
+  contains none of what they ask for, and PG-9, the support and publication
+  decision, stays open: public generic ownership remains unsupported and
+  unpublished.
+
 - Fix a temporary-path collision between two copies of the same owned-data
   native test helper. `owned_vec_bytes_runtime/native.rs` is
   `#[path]`-included by two modules of one test binary, so it is compiled

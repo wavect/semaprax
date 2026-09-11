@@ -1,12 +1,11 @@
 # Public Generic Candidate Delta v1
 
-Status: implemented bounded candidate route with **local evidence only; no
-hosted run is recorded** for it. It advances gate PG-4 of the
-[Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md)
-no further than `Implemented, local evidence`. A delta is a description of two
-candidate surfaces: no public generic signature is admitted by describing one,
-no public projection is widened, and **public generic ownership remains
-unsupported and unpublished**.
+Status: implemented bounded candidate route, hosted green on Linux, macOS, and
+Windows; gate PG-4 of the
+[Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
+A delta is a description of two candidate surfaces: no public generic signature
+is admitted by describing one, no public projection is widened, and **public
+generic ownership remains unsupported and unpublished**.
 
 Audience: ABI, package, evidence, and promotion reviewers, and agents reviewing
 immutable Project candidates.
@@ -170,6 +169,13 @@ reordered keys, a tampered status field, the report of a different candidate of
 the same base, an oversized submission, and a candidate restored from its
 recovery capsule recomputing byte-identical bytes.
 
+## Hosted evidence
+
+Hosted evidence: the milestone corpus passed on `ubuntu-latest`, `macos-latest`,
+and `windows-latest` for implementation commit `2ef043ba1b989f49b256e456f71fb6e89068bf33` in
+[run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245). That is evidence for the corpus this document owns, not for the
+milestone's remaining gates.
+
 ## Nonclaims
 
 - Not a public generic signature admission. Describing a candidate export does
@@ -185,9 +191,9 @@ recovery capsule recomputing byte-identical bytes.
   failure.
 - Not a descriptor, carrier, package, calling convention, layout, or memory
   representation.
-- Not hosted evidence for any milestone gate. This artifact records local
-  evidence for PG-4 only; PG-8 is what converts local evidence into hosted
-  evidence, and a green PG gate is never evidence for another.
+- Not evidence for any milestone gate but PG-4. The hosted run recorded above
+  covers the corpus this route owns; a green PG gate is never evidence for
+  another.
 - No source, filesystem, process, network, execution, signing, publication, or
   deployment authority.
 

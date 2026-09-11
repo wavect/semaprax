@@ -1,10 +1,11 @@
 # Public Generic Type Grammar v1
 
-Status: implemented bounded projection with local evidence; gates PG-1 and PG-2
-of the [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
-No hosted run is recorded for it, it is not selected by any public descriptor,
-carrier, package, or consumer, and public generic ownership remains unsupported
-and unpublished. A term of this grammar is not a public ABI.
+Status: implemented bounded projection, hosted green on Linux, macOS, and
+Windows; gates PG-1 and PG-2 of the
+[Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
+It is not selected by any public descriptor, carrier, package, or consumer, and
+public generic ownership remains unsupported and unpublished. A term of this
+grammar is not a public ABI.
 
 Audience: ABI, package, evidence, and generated-consumer maintainers.
 
@@ -137,6 +138,13 @@ to be their own canonical rendering, independently recomputes the term from the
 checked program, and requires byte equality. Submitted bytes are never treated
 as source, HIR, identity, or authority.
 
+## Hosted evidence
+
+Hosted evidence: the milestone corpus passed on `ubuntu-latest`, `macos-latest`,
+and `windows-latest` for implementation commit `2ef043ba1b989f49b256e456f71fb6e89068bf33` in
+[run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245). That is evidence for the corpus this document owns, not for the
+milestone's remaining gates.
+
 ## Nonclaims
 
 This grammar defines no descriptor, carrier, package, calling convention,
@@ -144,5 +152,6 @@ layout, or memory representation; it makes no compatibility decision, emits no
 consumer, allocates nothing, settles no failure, and observes no runtime. It
 does not widen any language admission profile: a type this grammar can spell is
 not thereby admitted in a public signature, and the milestone's separation gate
-continues to pin that the public projections reject generic surfaces. It is not
-hosted evidence, not a support decision, and not a publication.
+continues to pin that the public projections reject generic surfaces. The
+hosted run recorded above covers this corpus and nothing else: it is not a
+support decision and not a publication.

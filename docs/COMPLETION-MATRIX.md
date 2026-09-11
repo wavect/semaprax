@@ -91,12 +91,15 @@ general constraints, owning captures and public generic ABI remain separate.
 Public generic ownership is a separate milestone with its own nine prerequisite
 gates and its own standing support decision, not an outcome of that internal
 work; the [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md)
-owns it and its executable separation gate. Four of those gates are implemented
-with local evidence - the target-neutral type grammar with template and ordered
-argument identities, the semantic compatibility rules, the candidate delta, and
-the four-language metadata consumers that close the grammar half of two more -
-and no public generic signature, descriptor, carrier, calling convention, or
-support claim follows from any of them.
+owns it and its executable separation gate. Five of those gates are hosted green
+on Linux, macOS and Windows for one exact implementation commit - the
+target-neutral type grammar with template and ordered argument identities, the
+semantic compatibility rules, the candidate delta, and the cross-platform
+milestone job itself, alongside four-language metadata consumers that close the
+grammar half of two more. No public generic signature, descriptor, carrier,
+calling convention, or support claim follows from any of them, and the four open
+gates all wait on one artifact that does not exist: a versioned public generic
+descriptor and carrier.
 
 The largest remaining product gaps are general ownership and lifetime safety,
 stable public aggregate/resource/component ABIs, a supported package ecosystem,

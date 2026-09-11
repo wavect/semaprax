@@ -1,8 +1,8 @@
 # Public Generic Ownership Milestone v1
 
-Status: open milestone, separately gated. Four of its nine prerequisite gates
-are implemented with local evidence; five remain open, and no hosted run is
-recorded for any of them. No public generic ownership surface is admitted,
+Status: open milestone, separately gated. Five of its nine prerequisite gates
+are hosted green on Linux, macOS, and Windows for one exact implementation
+commit; four remain open. No public generic ownership surface is admitted,
 generated, published, or supported at this commit. This document owns the
 milestone's identity, its gates, the separation invariants that keep it
 independent of internal generic work, and the standing support and publication
@@ -68,14 +68,14 @@ reads `Hosted green`.
 
 | Gate | Requirement | Owning artifact | State |
 | --- | --- | --- | --- |
-| PG-1 | A new versioned target-neutral type grammar: closed vocabulary, injective canonical term, byte-exact render and parse, domain-separated digest, and fail-closed rejection of every construct outside the admitted surface | [Public Generic Type Grammar v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | Implemented, local evidence |
-| PG-2 | Explicit template identity and ordered argument identities: persistent template declaration identity, declared arity, positional parameter owner and index, and digests that distinguish permutation, omission, duplication, and substitution | [Public Generic Type Grammar v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | Implemented, local evidence |
-| PG-3 | Semantic compatibility rules: a closed classification over two grammar surfaces with explicit reasons, no compatibility inferred from a diff classification, and no version decision inferred from a classification | [Public Generic Compatibility v1](PUBLIC-GENERIC-COMPATIBILITY-V1.md) | Implemented, local evidence |
-| PG-4 | Candidate ABI-delta evidence that selects the public generic signature, retains ordered arguments and substituted fields, and survives mutation, recovery, and independent byte-exact replay | [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | Implemented, local evidence |
+| PG-1 | A new versioned target-neutral type grammar: closed vocabulary, injective canonical term, byte-exact render and parse, domain-separated digest, and fail-closed rejection of every construct outside the admitted surface | [Public Generic Type Grammar v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | Hosted green |
+| PG-2 | Explicit template identity and ordered argument identities: persistent template declaration identity, declared arity, positional parameter owner and index, and digests that distinguish permutation, omission, duplication, and substitution | [Public Generic Type Grammar v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | Hosted green |
+| PG-3 | Semantic compatibility rules: a closed classification over two grammar surfaces with explicit reasons, no compatibility inferred from a diff classification, and no version decision inferred from a classification | [Public Generic Compatibility v1](PUBLIC-GENERIC-COMPATIBILITY-V1.md) | Hosted green |
+| PG-4 | Candidate ABI-delta evidence that selects the public generic signature, retains ordered arguments and substituted fields, and survives mutation, recovery, and independent byte-exact replay | [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | Hosted green |
 | PG-5 | Generated Rust, TypeScript/Wasm, C, and C++ consumers derived from the grammar, byte-deterministic, with no ambient authority | Pending its owning specification | Open |
 | PG-6 | Hostile metadata replay: forged, stale, truncated, reordered, and mutated grammar or descriptor bytes fail closed in every consumer route and in independent replay | Pending its owning specification | Open |
 | PG-7 | Owned allocation and failure settlement across the boundary: bounded allocation, exact copy-out, sticky failure selection, canonical cleanup order, and equal checked behavior on interpreter, native C11, and Core Wasm | [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md) | Open |
-| PG-8 | Cross-platform hosted evidence for the complete milestone corpus on Linux, macOS, and Windows, recorded for an exact implementation commit | The `public-generic-ownership-milestone` job in [CI required checks v1](CI-REQUIRED-CHECKS-V1.md) | Open |
+| PG-8 | Cross-platform hosted evidence for the complete milestone corpus on Linux, macOS, and Windows, recorded for an exact implementation commit | The `public-generic-ownership-milestone` job in [CI required checks v1](CI-REQUIRED-CHECKS-V1.md) | Hosted green |
 | PG-9 | An explicit support and publication decision naming the exact version, target, and consumer scope, with its prerequisite profile decisions | This milestone | Open |
 
 PG-1 through PG-8 are prerequisites of PG-9, not substitutes for it. A complete
@@ -127,16 +127,28 @@ than by advancing the row.
   cleanup order *exercised* across a real boundary on the interpreter, native
   C11, and Core Wasm, and there is no boundary to exercise; the gate stays
   `Open`.
-- **PG-8 — harness wired, hosted evidence pending.** The
+- **PG-8 — hosted green, and what it did and did not establish.** The
   `public-generic-ownership-milestone` job runs the whole milestone corpus on
   `ubuntu-latest`, `macos-latest`, and `windows-latest`, and it is a declared
   release blocker rather than an optional lane, so it cannot be satisfied
   vacuously. It resolves the consumer toolchains each host really has and
-  prints them, because a language whose toolchain is absent is skipped: that
-  makes a narrower run visible instead of letting it read as a pass. The gate
-  moves to `Hosted green` only when this document records the run and job
-  identifiers for an exact implementation commit — the existence of the job is
-  not the evidence, and neither is a green local run.
+  prints them, because a language whose toolchain is absent is skipped and a
+  narrower run must be visible rather than read as a pass. All three legs are
+  green for implementation commit `2ef043ba1b989f49b256e456f71fb6e89068bf33`
+  in [run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245) — jobs 103248047092 (Linux), 103248046648
+  (macOS), and 103248046983 (Windows) — and each leg's log records all four
+  consumer toolchains, `rust`, `typescript`, `c`, and `cxx`, as exercised
+  rather than skipped. This is hosted evidence for the corpus those gates
+  own. It is not evidence for PG-5's calling consumers, PG-6's descriptor
+  bytes, or PG-7's boundary settlement, none of which the corpus contains.
+
+  Getting there found three real defects that a Unix-only run could not: the
+  Windows checkout failed before any gate for want of `core.longpaths`; a CRLF
+  checkout of the generator's templates silently stopped every placeholder from
+  substituting, so generated consumers lost their declarations and embedded
+  metadata; and the Windows UCRT's deprecation of the standard `fopen` broke
+  the generated C and C++ consumers' `-Werror` build. Each was fixed at its
+  cause and each is now pinned by a gate.
 
 ## Separation invariants
 
@@ -176,18 +188,18 @@ is a diagnostic, never a backend accident.
 
 ## Where the milestone stands
 
-Four gates have landed as owned artifacts with their own executable gates, all
-on local evidence. Five are open, and two of those are open with real work
-already behind them, recorded above rather than by advancing a row.
+Five gates are hosted green on Linux, macOS, and Windows for one exact
+implementation commit. Four are open, and three of those are open with real
+work already behind them, recorded above rather than by advancing a row.
 
 | Gate | Artifact | What remains |
 | --- | --- | --- |
-| PG-1, PG-2 | [type grammar](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | nothing but hosted evidence |
-| PG-3 | [compatibility rules](PUBLIC-GENERIC-COMPATIBILITY-V1.md) | nothing but hosted evidence |
-| PG-4 | [candidate delta](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | nothing but hosted evidence; today it describes no generic signature because none is admitted |
+| PG-1, PG-2 | [type grammar](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | nothing; hosted green on three hosts |
+| PG-3 | [compatibility rules](PUBLIC-GENERIC-COMPATIBILITY-V1.md) | nothing; hosted green on three hosts |
+| PG-4 | [candidate delta](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | nothing; hosted green on three hosts. It describes no generic signature today because none is admitted |
 | PG-5, PG-6 | [metadata consumers](PUBLIC-GENERIC-CONSUMERS-V1.md) | consumers that *call* an export, over a versioned descriptor and carrier, and hostile replay of those descriptor bytes |
 | PG-7 | [settlement obligations](PUBLIC-GENERIC-SETTLEMENT-V1.md) | a real boundary that allocates, copies out, and settles failure on interpreter, native C11, and Core Wasm |
-| PG-8 | the `public-generic-ownership-milestone` CI job | a recorded hosted run and job for an exact implementation commit |
+| PG-8 | the `public-generic-ownership-milestone` CI job | nothing for the corpus it runs; a widened corpus needs its own run |
 | PG-9 | this document | the decision itself, once the eight above are hosted green |
 
 The shape of what is left is one thing, said three ways: there is no versioned

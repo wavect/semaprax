@@ -1,10 +1,11 @@
 # Public Generic Compatibility v1
 
-Status: implemented bounded projection with local evidence; gate PG-3 of the
+Status: implemented bounded projection, hosted green on Linux, macOS, and
+Windows; gate PG-3 of the
 [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
-No hosted run is recorded. A candidate surface is a description, not an
-admission: no public generic signature is admitted by describing one, and
-public generic ownership remains unsupported and unpublished.
+A candidate surface is a description, not an admission: no public generic
+signature is admitted by describing one, and public generic ownership remains
+unsupported and unpublished.
 
 Audience: ABI, package, evidence, and promotion reviewers.
 
@@ -120,6 +121,13 @@ bytes are never treated as source, HIR, identity, or authority.
 | `SPX-PG202` | a surface bound was reached |
 | `SPX-PG203` | submitted surface bytes are not the recomputed surface |
 | `SPX-PG204` | submitted comparison bytes are not the recomputed comparison |
+
+## Hosted evidence
+
+Hosted evidence: the milestone corpus passed on `ubuntu-latest`, `macos-latest`,
+and `windows-latest` for implementation commit `2ef043ba1b989f49b256e456f71fb6e89068bf33` in
+[run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245). That is evidence for the corpus this document owns, not for the
+milestone's remaining gates.
 
 ## Nonclaims
 

@@ -1,11 +1,12 @@
 # Public Generic Metadata Consumers v1
 
-Status: implemented bounded generator with local evidence. This closes the
+Status: implemented bounded generator, hosted green on Linux, macOS, and
+Windows with all four consumer toolchains exercised on each. This closes the
 *grammar* half of gates PG-5 and PG-6 of the
 [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md);
 both gates stay open for their descriptor half, because no public generic
-descriptor, carrier, or calling convention exists. No hosted run is recorded,
-and public generic ownership remains unsupported and unpublished.
+descriptor, carrier, or calling convention exists. Public generic ownership
+remains unsupported and unpublished.
 
 Audience: generated-consumer integrators, ABI reviewers, and promotion
 reviewers.
@@ -146,13 +147,21 @@ and as every other exercised language, and the gate fails if no toolchain was
 available rather than passing silently. A language whose toolchain is absent is
 skipped; that is a narrower run, not a passing one.
 
+## Hosted evidence
+
+Hosted evidence: the milestone corpus passed on `ubuntu-latest`, `macos-latest`,
+and `windows-latest` for implementation commit `2ef043ba1b989f49b256e456f71fb6e89068bf33` in
+[run 34594793245](https://github.com/wavect/semaprax/actions/runs/34594793245). That is evidence for the corpus this document owns, not for the
+milestone's remaining gates.
+
 ## Nonclaims
 
 This defines no calling convention, descriptor, carrier, package, layout,
 allocation, or ownership transfer, and no value crosses any boundary. It does
 not admit a public generic signature: the public projections still reject
 generic surfaces, and the milestone's separation gate continues to prove it.
-It is not hosted evidence, not a support decision, and not a publication. The
-remaining half of PG-5 and PG-6 — consumers that call a public generic export
-over a versioned descriptor and carrier, and hostile replay of those descriptor
-bytes — is untouched by this work.
+The hosted run recorded above covers this corpus and nothing else: it is not a
+support decision and not a publication. The remaining half of PG-5 and PG-6 —
+consumers that call a public generic export over a versioned descriptor and
+carrier, and hostile replay of those descriptor bytes — is untouched by this
+work, which is why both gates stay open despite that run.

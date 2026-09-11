@@ -89,9 +89,17 @@ static __attribute__((unused)) void *spx_test_realloc(void*p,size_t n){void*r=re
 static __attribute__((unused)) void *spx_test_refused_calloc(size_t n,size_t s){(void)n;(void)s;return NULL;}
 static __attribute__((unused)) void spx_test_free(void*p){if(p){if(!spx_test_live_allocations)abort();--spx_test_live_allocations;free(p);}}"#;
     for opt in ["-O0", "-O2"] {
+        // `module_path!` is part of the name because this file is
+        // `#[path]`-included by two modules of the same test binary, so it is
+        // compiled twice and each copy owns a *separate* `NEXT_NATIVE_CASE`
+        // starting at zero. Without it both copies name the same file in the
+        // same process: one test then compiles over another's source, executes
+        // a binary a concurrent `clang` still holds open (`ETXTBSY`), or has
+        // its `.c` deleted by the other's cleanup mid-compile.
         let base = std::env::temp_dir().join(format!(
-            "semaprax-owned-vec-bytes-native-{}-{}-{opt}",
+            "semaprax-owned-vec-bytes-native-{}-{}-{}-{opt}",
             std::process::id(),
+            module_path!().replace("::", "-"),
             NEXT_NATIVE_CASE.fetch_add(1, Ordering::Relaxed)
         ));
         let c = base.with_extension("c");

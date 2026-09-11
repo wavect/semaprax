@@ -10,6 +10,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## 0.4.1 — 2026-09-11
 
+- Fix a temporary-path collision between two copies of the same owned-data
+  native test helper. `owned_vec_bytes_runtime/native.rs` is
+  `#[path]`-included by two modules of one test binary, so it is compiled
+  twice and each copy owns a separate case counter starting at zero - while
+  both named their scratch files from the process id and that counter alone.
+  Two tests in the same process therefore shared a `.c` path and a binary
+  path, which is exactly what the hosted shard reported twice: one run could
+  not execute a binary a concurrent `clang` still held open (`ETXTBSY`), the
+  next could not read a `.c` file the other copy's cleanup had already
+  removed. The name now includes the module path, so the two copies cannot
+  collide. The generated public generic consumer gate, which also compiles
+  and then executes, retries a launch refused with `ETXTBSY` rather than
+  adding another way for a foreign fork to redden an unrelated shard.
+
 - Make the generated C and C++ public generic consumers build on Windows.
   The hosted leg found two things a Unix-only run could not: the UCRT marks
   the standard `fopen` deprecated in favour of its own `fopen_s`, which a

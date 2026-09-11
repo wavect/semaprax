@@ -205,13 +205,31 @@ fn compile(tool: &OsString, flags: &[&str], input: &Path, output: &Path, label: 
 
 /// Run a built consumer, optionally against a metadata file, and return its
 /// exact stdout line.
+///
+/// A binary compiled moments ago can refuse to launch with `ETXTBSY`: another
+/// thread in this process forks while the compiler still holds the output file
+/// open, and the child inherits that writable descriptor, so the kernel sees a
+/// writer and denies execution. Nothing about the generated consumer is wrong
+/// when that happens, and the suite runs many compile-then-execute tests at
+/// once, so the launch is retried briefly rather than allowed to redden the
+/// build. A failure that is not `ETXTBSY`, and one that persists, still fail.
 fn run(runner: &(PathBuf, Vec<OsString>), metadata: Option<&Path>) -> (String, Option<i32>) {
-    let mut command = Command::new(&runner.0);
-    command.args(&runner.1);
-    if let Some(path) = metadata {
-        command.arg(path);
-    }
-    let output = command.output().expect("run the generated consumer");
+    let mut attempt = 0;
+    let output = loop {
+        let mut command = Command::new(&runner.0);
+        command.args(&runner.1);
+        if let Some(path) = metadata {
+            command.arg(path);
+        }
+        match command.output() {
+            Ok(output) => break output,
+            Err(error) if error.raw_os_error() == Some(26) && attempt < 20 => {
+                attempt += 1;
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(error) => panic!("run the generated consumer: {error}"),
+        }
+    };
     assert!(
         output.stderr.is_empty(),
         "the consumer wrote to stderr: {}",

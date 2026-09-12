@@ -34,10 +34,7 @@ pub(super) fn retention_metadata_plan(command: &str, args: &[String]) -> Result<
     Ok(())
 }
 
-pub(super) fn retention_metadata_persist_or_load(
-    command: &str,
-    args: &[String],
-) -> Result<(), u8> {
+pub(super) fn retention_metadata_persist_or_load(command: &str, args: &[String]) -> Result<(), u8> {
     let arity = if command == "retention-metadata-persist" {
         7
     } else {

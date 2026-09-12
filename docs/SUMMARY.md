@@ -162,6 +162,7 @@ Audience: all documentation readers.
 - [Universal Semantic Transaction v2 Workflow](UNIVERSAL-SEMANTIC-TRANSACTION-V2-WORKFLOW.md)
 - [Owned Workflow Approval v1](OWNED-WORKFLOW-APPROVAL-V1.md)
 - [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md)
+- [Architecture Claims v1](ARCHITECTURE-CLAIMS-V1.md)
 - [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md)
 - [Persistent Semantic Workspace Service Transport v1](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md)
 - [Persistent Semantic Workspace Service MCP v1](PERSISTENT-SEMANTIC-SERVICE-MCP-V1.md)

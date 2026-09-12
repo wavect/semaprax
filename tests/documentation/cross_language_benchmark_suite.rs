@@ -160,12 +160,15 @@ fn deterministic_mock_adapters_produce_known_ok_failed_and_blocked_artifacts() {
     );
 
     let mut adapters = mock_adapters_document(&["mockok", "mockfail"]);
-    adapters["adapters"].as_array_mut().unwrap().push(serde_json::json!({
-        "id": "mockblocked",
-        "language": "MockBlocked",
-        "implemented": false,
-        "blocked_reason": "deliberately unwired for this self-test"
-    }));
+    adapters["adapters"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({
+            "id": "mockblocked",
+            "language": "MockBlocked",
+            "implemented": false,
+            "blocked_reason": "deliberately unwired for this self-test"
+        }));
     let tasks = mock_tasks_document("mock-task", &["mockok", "mockfail"]);
 
     let adapters_path = directory.join("adapters.json");
@@ -196,7 +199,10 @@ fn deterministic_mock_adapters_produce_known_ok_failed_and_blocked_artifacts() {
     let ok = result_for(&document, "mock-task::mockok");
     assert_eq!(ok["status"], "ok");
     assert_eq!(ok["leak_check"], "ok");
-    assert!(ok["provenance"]["digest"].as_str().unwrap().starts_with("sha256:"));
+    assert!(ok["provenance"]["digest"]
+        .as_str()
+        .unwrap()
+        .starts_with("sha256:"));
 
     let failed = result_for(&document, "mock-task::mockfail");
     assert_eq!(failed["status"], "failed");
@@ -256,10 +262,17 @@ fn a_failing_pair_can_never_be_scored_as_an_improvement() {
         .output()
         .unwrap();
     assert!(baseline_run.status.success());
-    assert_eq!(result_for(&document(&baseline_output), "mock-task::mockok")["status"], "ok");
+    assert_eq!(
+        result_for(&document(&baseline_output), "mock-task::mockok")["status"],
+        "ok"
+    );
 
     // Now the same pair regresses: its hidden phase starts failing.
-    std::fs::write(task_dir.join("hidden/mockok/prog.py"), "import sys\nsys.exit(1)\n").unwrap();
+    std::fs::write(
+        task_dir.join("hidden/mockok/prog.py"),
+        "import sys\nsys.exit(1)\n",
+    )
+    .unwrap();
     let local_output = directory.join("local.json");
     let local_run = runner()
         .arg("--root")
@@ -280,7 +293,10 @@ fn a_failing_pair_can_never_be_scored_as_an_improvement() {
         .lines()
         .find(|line| line.trim_start().starts_with("mock-task::mockok:"))
         .unwrap_or_else(|| panic!("no comparison line for mock-task::mockok:\n{stdout}"));
-    assert!(line.contains("incomparable"), "a regression to failure must not be scored as one: {line}");
+    assert!(
+        line.contains("incomparable"),
+        "a regression to failure must not be scored as one: {line}"
+    );
     assert!(
         !line.contains("regression") && !line.contains("improvement"),
         "a failing pair carries no verdict beyond incomparable: {line}"
@@ -301,9 +317,8 @@ fn a_mismatched_expected_digest_fails_closed_without_running_anything() {
     );
     let adapters = mock_adapters_document(&["mockok"]);
     let mut tasks = mock_tasks_document("mock-task", &["mockok"]);
-    tasks["tasks"][0]["languages"]["mockok"]["expected_digest"] = Value::from(
-        "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-    );
+    tasks["tasks"][0]["languages"]["mockok"]["expected_digest"] =
+        Value::from("sha256:0000000000000000000000000000000000000000000000000000000000000000");
     let adapters_path = directory.join("adapters.json");
     let tasks_path = directory.join("tasks.json");
     write_json(&adapters_path, &adapters);
@@ -353,7 +368,11 @@ fn a_hidden_only_file_is_absent_from_the_public_build_tree() {
         "import os, sys\nsys.exit(0 if os.path.exists('secret.txt') else 7)\n",
     )
     .unwrap();
-    std::fs::write(hidden.join("secret.txt"), "only the hidden phase may see this\n").unwrap();
+    std::fs::write(
+        hidden.join("secret.txt"),
+        "only the hidden phase may see this\n",
+    )
+    .unwrap();
 
     let adapters = mock_adapters_document(&["mockreader"]);
     let tasks = mock_tasks_document("mock-task", &["mockreader"]);
@@ -465,8 +484,16 @@ fn every_committed_task_language_directory_exists_and_hidden_adds_something() {
         for (language, paths) in languages {
             let public = root().join(paths["public"].as_str().unwrap());
             let hidden = root().join(paths["hidden"].as_str().unwrap());
-            assert!(public.is_dir(), "{}::{language} names a missing public dir", task["id"]);
-            assert!(hidden.is_dir(), "{}::{language} names a missing hidden dir", task["id"]);
+            assert!(
+                public.is_dir(),
+                "{}::{language} names a missing public dir",
+                task["id"]
+            );
+            assert!(
+                hidden.is_dir(),
+                "{}::{language} names a missing hidden dir",
+                task["id"]
+            );
 
             let public_files = collect_relative_files(&public);
             let hidden_files = collect_relative_files(&hidden);
@@ -507,7 +534,12 @@ fn collect_relative_files(directory: &Path) -> std::collections::BTreeSet<String
             if path.is_dir() {
                 walk(base, &path, files);
             } else {
-                files.insert(path.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/"));
+                files.insert(
+                    path.strip_prefix(base)
+                        .unwrap()
+                        .to_string_lossy()
+                        .replace('\\', "/"),
+                );
             }
         }
     }
@@ -520,8 +552,7 @@ fn declared_adapters_pin_exact_tool_invocations_with_no_mutable_selectors() {
     // Issue #211 rules out "using mutable `latest` dependencies or model
     // aliases" as a matter of scope, not merely of taste. This pins that as
     // a regression guard over the committed adapter roster.
-    let source =
-        std::fs::read_to_string(root().join(SUITE).join("adapters.json")).unwrap();
+    let source = std::fs::read_to_string(root().join(SUITE).join("adapters.json")).unwrap();
     for forbidden in ["latest", "@main", "@master", "HEAD"] {
         assert!(
             !source.contains(forbidden),
@@ -585,9 +616,15 @@ fn the_result_schema_carries_no_timing_field() {
 
     let raw = std::fs::read_to_string(&output).unwrap();
     for forbidden in ["wall_ms", "duration_ms", "elapsed_ms", "\"timing_ms\""] {
-        assert!(!raw.contains(forbidden), "result document must carry no {forbidden} field: {raw}");
+        assert!(
+            !raw.contains(forbidden),
+            "result document must carry no {forbidden} field: {raw}"
+        );
     }
     let document = document(&output);
     assert_eq!(document["timing"]["collected"], false);
-    assert!(document["timing"]["reason"].as_str().unwrap().contains("contention"));
+    assert!(document["timing"]["reason"]
+        .as_str()
+        .unwrap()
+        .contains("contention"));
 }

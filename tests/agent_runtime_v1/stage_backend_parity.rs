@@ -341,8 +341,7 @@ fn run_native(generated: &str, root: &Path, optimization: &str) -> String {
 }
 
 fn api_subject() -> project::PublicApiSubject<'static> {
-    const FACT: &str =
-        "sha256:1111111111111111111111111111111111111111111111111111111111111111";
+    const FACT: &str = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
     project::PublicApiSubject {
         project_schema: project::PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
         project_revision: FACT,
@@ -368,14 +367,13 @@ fn api_subject() -> project::PublicApiSubject<'static> {
 fn scalar_export_profile_refuses_any_module_with_agent_stage_shaped_records() {
     let program = parse(SOURCE, Path::new("stage-backend-parity.spx")).unwrap();
     let package = temporary_root();
-    let error = wasm::build_web_with_scalar_exports(
-        &program,
-        &package,
-        &[CASES[0].to_owned()],
-    )
-    .unwrap_err();
+    let error = wasm::build_web_with_scalar_exports(&program, &package, &[CASES[0].to_owned()])
+        .unwrap_err();
     assert_eq!(error.code, "SPX-W115");
-    assert!(!package.exists(), "a refused build must not publish a package");
+    assert!(
+        !package.exists(),
+        "a refused build must not publish a package"
+    );
 }
 
 /// Core Wasm, via the Public Owned Data API v1 project profile

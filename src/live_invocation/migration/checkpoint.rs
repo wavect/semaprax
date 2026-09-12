@@ -2,9 +2,10 @@
 //!
 //! The generic journal sink deliberately knows nothing about migration. This
 //! module keeps a migration handoff, carried state, and the destination's
-//! causal journal in one atomic [`CheckpointStore`] document so a successful
-//! recovery is a capability to run the destination and every destination
-//! dispatch remains preceded by a durable combined checkpoint.
+//! causal journal in one atomic [`CheckpointStore`] document. Recovery
+//! validates deterministic bytes but grants no authority; a caller that uses
+//! the migration dispatch adapter gets a durable combined checkpoint before
+//! every destination dispatch.
 
 use serde_json::Value;
 
@@ -15,7 +16,7 @@ use super::super::identity::{digest, hex, unhex, LiveInvocationId};
 use super::super::journal::{self, JournalEntry};
 use super::super::kernel::{
     run_live_invocation, LiveInvocationConfig, LiveInvocationHandlers, LiveKernelError,
-    LiveKernelRun,
+    LiveKernelRun, TurnEffect,
 };
 use super::super::persistence::JournalSink;
 use super::{
@@ -27,9 +28,15 @@ use super::{
 pub const PERSISTED_MIGRATION_HANDOFF_SCHEMA: &str =
     "semaprax.live-invocation.persisted-migration-handoff.v1";
 
-/// A recovered or newly persisted handoff. It is the only input accepted by
-/// [`run_migrated_destination`], which prevents the migration route from
-/// dispatching before the bound handoff and state are durable.
+/// Upper bound checked before JSON parsing. It matches the existing durable
+/// operation checkpoint cap and still leaves room for the hex encoding of a
+/// maximum-sized migrated state plus its bounded journal envelope.
+pub const MAX_MIGRATION_CHECKPOINT_BYTES: usize = 2_097_152;
+
+/// A recovered or newly persisted handoff control record. It is the input
+/// accepted by [`run_migrated_destination`], which makes that adapter persist
+/// the bound handoff and state before destination dispatch. The record is not
+/// authority: its bytes are caller-supplied and it is intentionally cloneable.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RecoveredMigrationHandoff {
     handoff: LiveMigrationHandoff,
@@ -62,8 +69,11 @@ impl RecoveredMigrationHandoff {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MigrationCheckpointError {
     Store(CheckpointStoreError),
+    Capacity,
     Malformed,
     SchemaMismatch,
+    Generation,
+    NonCanonical,
     DestinationMismatch,
     HandoffMismatch,
     StateMismatch,
@@ -103,9 +113,18 @@ fn encode(record: &RecoveredMigrationHandoff) -> String {
     )
 }
 
+fn valid_generation(generation: u64) -> bool {
+    generation != 0 && generation != u64::MAX
+}
+
+fn state_matches_handoff(record: &RecoveredMigrationHandoff) -> bool {
+    record.migrated_state.len() <= MAX_MIGRATED_STATE_BYTES
+        && record.handoff.migrated_state_digest() == digest(HANDOFF_DOMAIN, &record.migrated_state)
+}
+
 /// Makes a just-created migration handoff durable at generation one. The
 /// store either receives this entire record or retains its prior generation;
-/// without this success there is no capability to start the destination.
+/// without this success the migration adapter has no durable control record.
 pub fn persist_migration_handoff(
     store: &mut dyn CheckpointStore,
     migration: MigratedLiveInvocation,
@@ -116,8 +135,15 @@ pub fn persist_migration_handoff(
         destination_journal: Vec::new(),
         generation: 1,
     };
+    if !state_matches_handoff(&record) {
+        return Err(MigrationCheckpointError::StateMismatch);
+    }
+    let document = encode(&record);
+    if document.len() > MAX_MIGRATION_CHECKPOINT_BYTES {
+        return Err(MigrationCheckpointError::Capacity);
+    }
     store
-        .commit(record.generation, &encode(&record))
+        .commit(record.generation, &document)
         .map_err(MigrationCheckpointError::Store)?;
     Ok(record)
 }
@@ -128,6 +154,12 @@ pub fn recover_migration_handoff(
     document: &str,
     destination: &LiveInvocationId,
 ) -> Result<RecoveredMigrationHandoff, MigrationCheckpointError> {
+    if document.len() > MAX_MIGRATION_CHECKPOINT_BYTES {
+        return Err(MigrationCheckpointError::Capacity);
+    }
+    if !document.ends_with('\n') {
+        return Err(MigrationCheckpointError::NonCanonical);
+    }
     let value: Value =
         serde_json::from_str(document).map_err(|_| MigrationCheckpointError::Malformed)?;
     let object = value
@@ -161,6 +193,12 @@ pub fn recover_migration_handoff(
     if object["handoff_digest"].as_str() != Some(handoff.digest().as_str()) {
         return Err(MigrationCheckpointError::HandoffMismatch);
     }
+    let generation = object["generation"]
+        .as_u64()
+        .ok_or(MigrationCheckpointError::Malformed)?;
+    if !valid_generation(generation) {
+        return Err(MigrationCheckpointError::Generation);
+    }
     let migrated_state = unhex(
         object["migrated_state"]
             .as_str()
@@ -177,14 +215,16 @@ pub fn recover_migration_handoff(
     if object["chain"].as_str() != Some(journal::chain(&entries).as_str()) {
         return Err(MigrationCheckpointError::ChainMismatch);
     }
-    Ok(RecoveredMigrationHandoff {
+    let record = RecoveredMigrationHandoff {
         handoff,
         migrated_state,
         destination_journal: entries,
-        generation: object["generation"]
-            .as_u64()
-            .ok_or(MigrationCheckpointError::Malformed)?,
-    })
+        generation,
+    };
+    if encode(&record) != document {
+        return Err(MigrationCheckpointError::NonCanonical);
+    }
+    Ok(record)
 }
 
 struct MigrationCheckpointSink<'a> {
@@ -194,21 +234,27 @@ struct MigrationCheckpointSink<'a> {
 
 impl JournalSink for MigrationCheckpointSink<'_> {
     fn persist(&mut self, entries: &[JournalEntry]) -> Result<(), CheckpointStoreError> {
-        let next = self.record.generation.saturating_add(1);
+        let Some(next) = self.record.generation.checked_add(1) else {
+            return Err(CheckpointStoreError);
+        };
         let candidate = RecoveredMigrationHandoff {
             handoff: self.record.handoff.clone(),
             migrated_state: self.record.migrated_state.clone(),
             destination_journal: entries.to_vec(),
             generation: next,
         };
-        self.store.commit(next, &encode(&candidate))?;
+        let document = encode(&candidate);
+        if document.len() > MAX_MIGRATION_CHECKPOINT_BYTES {
+            return Err(CheckpointStoreError);
+        }
+        self.store.commit(next, &document)?;
         *self.record = candidate;
         Ok(())
     }
 }
 
 /// Runs a migrated destination through the only local migration dispatch
-/// route. It requires a prior persisted/recovered handoff, binds the supplied
+/// route. It requires a prior persisted/recovered control record, binds the supplied
 /// destination identity and schema to it, and installs a combined checkpoint
 /// sink before `run_live_invocation` can reach a model or effect dispatch.
 /// Ordinary fresh live invocations remain free to use the generic kernel.
@@ -242,27 +288,34 @@ pub fn run_migrated_destination(
         effect,
         sink: _,
     } = handlers;
-    let mut sink = MigrationCheckpointSink { store, record };
-    let mut routed_handlers = LiveInvocationHandlers {
-        capability,
-        handler: &mut **handler,
-        decoder: &mut **decoder,
-        gate: &mut **gate,
-        budget: &mut **budget,
-        observer: &mut **observer,
-        policy: &mut **policy,
-        effect: effect.as_deref_mut(),
-        sink: Some(&mut sink),
+    let destination_journal = record.destination_journal.clone();
+    let result = {
+        let mut sink = MigrationCheckpointSink { store, record };
+        let effect = match &mut *effect {
+            Some(effect) => Some(&mut **effect as &mut dyn TurnEffect),
+            None => None,
+        };
+        let mut routed_handlers = LiveInvocationHandlers {
+            capability,
+            handler: &mut **handler,
+            decoder: &mut **decoder,
+            gate: &mut **gate,
+            budget: &mut **budget,
+            observer: &mut **observer,
+            policy: &mut **policy,
+            effect,
+            sink: Some(&mut sink),
+        };
+        run_live_invocation(
+            config,
+            destination_journal,
+            &mut routed_handlers,
+            cancellation,
+        )
+        .map_err(MigrationDestinationError::Kernel)
     };
-    let result = run_live_invocation(
-        config,
-        sink.record.destination_journal.clone(),
-        &mut routed_handlers,
-        cancellation,
-    )
-    .map_err(MigrationDestinationError::Kernel);
     result.map(|run| MigrationDestinationRun {
-        generation: sink.record.generation,
+        generation: record.generation,
         run,
     })
 }

@@ -215,14 +215,25 @@ canonical handoff, its digest, the exact migrated-state hex bytes and their
 digest, plus the destination journal and its chain digest.
 
 `recover_migration_handoff` requires the exact destination identity and
-recomputes every handoff, state, and journal link before returning the
-opaque `RecoveredMigrationHandoff` capability. It refuses a different or
-future schema, a substituted destination, a reminted handoff, modified state
-bytes, or a changed journal. The capability can only be created by successful
-persistence or recovery; its state has no public constructor.
+recomputes every handoff, state, and journal link before returning a
+validated `RecoveredMigrationHandoff` control record. It refuses a different
+or future schema, a substituted destination, a reminted handoff, modified
+state bytes, or a changed journal. Zero and exhausted (`u64::MAX`) generations
+are refused, and documents larger than 2,097,152 bytes are rejected before
+JSON parsing. Exact canonical re-rendering, including the terminal LF, is
+required, so duplicate keys and alternate encodings are not adopted.
+
+This record is evidence, not authority. Its hashes prove self-consistency but
+not who produced it; `RecoveredMigrationHandoff` is cloneable and recovery
+accepts caller-supplied bytes. Replay resistance and rollback detection depend
+on a separately trusted store that reads the latest record and enforces
+monotonic generations. `CheckpointStore` supplies atomic replace-or-retain
+writes, but does not by itself supply a read API or promise to reject an older
+caller-supplied generation. Journal validation and authorization remain
+independent checks.
 
 `run_migrated_destination` is the migration-specific dispatch route. It
-accepts that capability, checks the destination identity and schema again,
+accepts that validated record, checks the destination identity and schema again,
 and installs a combined checkpoint sink before it calls the generic kernel.
 Every journal write replaces the same document at the next generation while
 preserving the handoff and migrated bytes. Therefore the first destination
@@ -230,13 +241,15 @@ preserving the handoff and migrated bytes. Therefore the first destination
 and a recovered terminal destination journal replays with zero new dispatches.
 The generic kernel remains an intentionally separate route for fresh,
 non-migrated live invocations; it cannot be cited as satisfying this migration
-checkpoint requirement.
+checkpoint requirement. This adapter does not make a caller who bypasses it
+safe, and does not grant the recovered record any authority.
 
 `migration::tests::a_migration_handoff_checkpoint_recovers_only_when_every_bound_byte_replays`
 proves the round trip and rejects state, handoff, and schema tampering.
-`migration::tests::only_a_persisted_or_recovered_handoff_can_drive_destination_dispatch_and_replay`
-proves the real adapter sequence: persist, dispatch through the combined
-sink, recover, then replay the terminal destination with zero handler calls.
+`migration::tests::a_persisted_or_recovered_handoff_drives_destination_dispatch_and_replay`
+proves the real adapter sequence: persist, fail a checkpoint before dispatch,
+dispatch through the combined sink, recover, then replay the terminal
+destination with zero handler calls.
 
 ## Non-goals and known limitations (this round)
 
@@ -266,14 +279,22 @@ sink, recover, then replay the terminal destination with zero handler calls.
   because no source-native Agent conversation drives this kernel yet. See
   "What issue #115 asks for, and why it cannot live inside the kernel"
   above for why that gap is inherent to the file lease, not an oversight.
-- **Accumulating a whole chain's committed budget is the caller's job.**
+- **Accumulating a whole chain's committed budget is the caller's job.****
   `LiveMigrationHandoff::previous_committed_budget` reports exactly the
   immediately preceding generation's total (A's carried total when
   migrating A→B; B's own total when migrating B→C). A caller assembling
   one running total across a longer chain sums every hop's own value, the
   same way `migration::tests::an_a_to_b_to_c_chain_preserves_call_counts_and_never_refunds_committed_budget`
   does; this module does not itself track a chain-wide running total,
-  since it has no persistent state across separate calls to migrate.
+  since it has no persistent state across separate calls to migrate. The
+  migration adapter reborrows the caller's budget hook unchanged; it does not
+  reconstruct or authenticate a chain-wide cumulative ledger. A destination
+  caller must seed that hook/ledger with predecessor totals before dispatch.
+- **This does not close issue #115.** The local checkpoint reference now
+  makes its own durable handoff sequence recoverable, but a real
+  compiler-checked HIR migration and trusted cumulative chain accounting are
+  still downstream work. #177's source/HIR live-conversation integration is
+  deliberately outside this module.
 - **The #228 boundary is unchanged by this module.** `migrate_live_invocation`
   performs no fallible host I/O of its own (no journal-sink write, no model
   or effect dispatch); it is a pure function over in-memory inputs. The

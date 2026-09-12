@@ -1003,6 +1003,7 @@ fn an_a_to_b_to_c_chain_preserves_call_counts_and_never_refunds_committed_budget
 struct MigrationRecordingStore {
     documents: Vec<String>,
     calls: usize,
+    fail_from_call: Option<usize>,
 }
 
 impl MigrationRecordingStore {
@@ -1018,6 +1019,9 @@ impl crate::agent_lifecycle::CheckpointStore for MigrationRecordingStore {
         document: &str,
     ) -> Result<(), crate::agent_lifecycle::CheckpointStoreError> {
         self.calls += 1;
+        if self.fail_from_call == Some(self.calls) {
+            return Err(crate::agent_lifecycle::CheckpointStoreError);
+        }
         self.documents.push(document.to_owned());
         Ok(())
     }
@@ -1066,25 +1070,45 @@ fn a_migration_handoff_checkpoint_recovers_only_when_every_bound_byte_replays() 
     let mut document: serde_json::Value = serde_json::from_str(store.last()).unwrap();
     document["migrated_state"] = serde_json::Value::String("00".to_owned());
     assert_eq!(
-        recover_migration_handoff(&document.to_string(), &destination),
+        recover_migration_handoff(&(document.to_string() + "\n"), &destination),
         Err(MigrationCheckpointError::StateMismatch)
     );
     let mut document: serde_json::Value = serde_json::from_str(store.last()).unwrap();
     document["handoff"]["migration_function"] = serde_json::Value::String("tampered".to_owned());
     assert_eq!(
-        recover_migration_handoff(&document.to_string(), &destination),
+        recover_migration_handoff(&(document.to_string() + "\n"), &destination),
         Err(MigrationCheckpointError::HandoffMismatch)
     );
     let mut document: serde_json::Value = serde_json::from_str(store.last()).unwrap();
     document["schema"] = serde_json::Value::String("future.v2".to_owned());
     assert_eq!(
-        recover_migration_handoff(&document.to_string(), &destination),
+        recover_migration_handoff(&(document.to_string() + "\n"), &destination),
         Err(MigrationCheckpointError::SchemaMismatch)
+    );
+    assert_eq!(
+        recover_migration_handoff(
+            &"x".repeat(super::checkpoint::MAX_MIGRATION_CHECKPOINT_BYTES + 1),
+            &destination,
+        ),
+        Err(MigrationCheckpointError::Capacity)
+    );
+    for generation in [0, u64::MAX] {
+        let mut document: serde_json::Value = serde_json::from_str(store.last()).unwrap();
+        document["generation"] = serde_json::json!(generation);
+        assert_eq!(
+            recover_migration_handoff(&(document.to_string() + "\n"), &destination),
+            Err(MigrationCheckpointError::Generation)
+        );
+    }
+    let duplicate = store.last().replacen("{", "{\"schema\":\"duplicate\",", 1);
+    assert_eq!(
+        recover_migration_handoff(&duplicate, &destination),
+        Err(MigrationCheckpointError::NonCanonical)
     );
 }
 
 #[test]
-fn only_a_persisted_or_recovered_handoff_can_drive_destination_dispatch_and_replay() {
+fn a_persisted_or_recovered_handoff_drives_destination_dispatch_and_replay() {
     let (migrated, _, destination) = checkpoint_migration();
     let mut store = MigrationRecordingStore::default();
     let mut recovered = persist_migration_handoff(&mut store, migrated).unwrap();
@@ -1109,6 +1133,21 @@ fn only_a_persisted_or_recovered_handoff_can_drive_destination_dispatch_and_repl
         effect: None,
         sink: None,
     };
+    store.fail_from_call = Some(store.calls + 1);
+    assert!(matches!(
+        run_migrated_destination(
+            &mut recovered,
+            &mut store,
+            &cfg,
+            &mut handlers,
+            &AgentCancellation::new(),
+        ),
+        Err(MigrationDestinationError::Kernel(
+            super::super::kernel::LiveKernelError::PersistenceFailed { dispatched: 0 }
+        ))
+    ));
+    assert_eq!(handler.calls, 0, "a failed checkpoint precedes dispatch");
+    store.fail_from_call = None;
     let first = run_migrated_destination(
         &mut recovered,
         &mut store,

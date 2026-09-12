@@ -316,7 +316,7 @@ impl LiveMigrationHandoff {
             quote_json(&self.migrated_state_digest),
             quote_json(&self.previous_schema_digest),
             quote_json(&self.destination_schema_digest),
-        );
+        )
     }
 
     pub(super) fn decode(value: &Value) -> Option<Self> {

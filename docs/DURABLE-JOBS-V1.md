@@ -301,6 +301,25 @@ socket, spawns no thread, and grants no authority; it is local evidence that
 the decision procedures above compose into something a real job runner could
 implement, nothing more.
 
+**Completion durability.** Until this tranche, `complete` mutated only the
+in-memory job record: the ledger's `state` column, once written by
+`enqueue` as a placeholder, was never rewritten by anything, so nothing
+distinguished "the handler ran and the outcome is durably recorded" from
+"the handler ran and the worker crashed before that record committed" — one
+of the two concurrent/crash cases this issue's write-up names as usually
+faked. `DatabaseFixture::update_column` (an additive primitive alongside its
+existing `insert`/`select_eq`) and `JobStore::complete_durable` close that
+gap: the outcome's resulting state commits into the ledger row *before* the
+in-memory record advances, and if that commit cannot be confirmed (a
+stuck-open prior transaction stands in for the crash in
+`complete_durable_forces_uncertain_rather_than_the_handlers_outcome_when_the_ledger_commit_is_never_confirmed`),
+the job rests at `Uncertain` rather than presenting the handler's reported
+outcome as if it had been durably recorded. `complete` itself is unchanged
+and still exists for callers that do not need the ledger write; `job_evidence`
+does not yet log a `complete_durable` attempt as a distinct entry kind,
+which a follow-on tranche should add if a real adapter needs to replay this
+distinction.
+
 ## Job evidence: `src/job_evidence.rs`
 
 The one acceptance criterion the first tranche of this issue recorded as

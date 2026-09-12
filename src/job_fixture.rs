@@ -262,6 +262,19 @@ pub struct Schedule {
     pub max_catch_up: u64,
 }
 
+/// Bundles [`JobStore::complete_durable`]'s per-attempt inputs, the same
+/// bundling [`Schedule`] already uses for `enqueue`'s optional schedule
+/// parameters, so this call's parameter count stays small independent of
+/// how many bounded inputs a completion needs.
+#[derive(Clone, Copy, Debug)]
+pub struct CompletionAttempt {
+    pub lease_generation: u64,
+    pub now_tick: u64,
+    pub outcome: OutcomeKind,
+    pub base_backoff_ticks: u64,
+    pub max_backoff_ticks: u64,
+}
+
 /// The in-memory job store. `ledger` rows back every enqueue with a real
 /// `DatabaseFixture` transaction; lease bookkeeping (ephemeral, not part of
 /// the durable ledger row) lives in `jobs`.
@@ -516,6 +529,99 @@ impl JobStore {
             job.state = JobState::Scheduled;
         }
         Ok(job.state)
+    }
+
+    /// Durably completes a job: unlike [`Self::complete`], which only ever
+    /// mutates the in-memory record, this commits the outcome's resulting
+    /// state into the same ledger row `enqueue` created *before* applying
+    /// it in memory. `complete` alone cannot distinguish "the handler
+    /// succeeded and that fact is durably recorded" from "the handler
+    /// succeeded, then the worker crashed before its completion write was
+    /// confirmed" — the exact gap issue #192 names: "a job that completed
+    /// but whose completion record was not durably written before a
+    /// crash." If the ledger transaction cannot be confirmed `Committed`
+    /// (a stuck-open prior transaction, a shape mismatch, or the row
+    /// having vanished), this method does not apply `outcome`'s natural
+    /// resulting state at all: it forces the job to the same honest,
+    /// non-terminal `Uncertain` resting state
+    /// [`Self::record_connection_uncertain`] uses for a dropped network
+    /// connection, because the two situations are the same shape — an
+    /// externally observed signal that a completion's effect cannot be
+    /// confirmed — and this fixture refuses to guess `Succeeded` (or any
+    /// other resulting state) either way.
+    pub fn complete_durable(
+        &mut self,
+        ledger: &mut DatabaseFixture,
+        id: u64,
+        attempt: CompletionAttempt,
+    ) -> Result<JobState, JobFixtureError> {
+        let CompletionAttempt {
+            lease_generation,
+            now_tick,
+            outcome,
+            base_backoff_ticks,
+            max_backoff_ticks,
+        } = attempt;
+        let (attempt, max_attempts) = {
+            let job = self.jobs.get(&id).ok_or(JobFixtureError::UnknownJob)?;
+            if job.state != JobState::Running {
+                return Err(JobFixtureError::LeaseNotCurrent);
+            }
+            Self::current_lease(job, lease_generation, now_tick)?;
+            (job.attempt, job.max_attempts)
+        };
+        let attempt_after = if outcome == OutcomeKind::Success {
+            attempt
+        } else {
+            attempt.saturating_add(1)
+        };
+        let projected = JobState::from_code(retry_next_state_after_outcome(
+            outcome.code(),
+            attempt_after,
+            max_attempts,
+        ));
+        // `complete` folds a fresh `RetryableFailure` back to `Scheduled`
+        // once backoff is computed; the ledger records that same final
+        // resting state, not the transient code, so a reader of the ledger
+        // alone sees exactly what `complete` would have produced.
+        let ledger_state = if projected == JobState::RetryableFailure {
+            JobState::Scheduled
+        } else {
+            projected
+        };
+
+        let commit_confirmed = (|| -> Result<(), ()> {
+            ledger.begin().map_err(|_| ())?;
+            let rows_updated = ledger
+                .update_column(
+                    JOBS_TABLE,
+                    0,
+                    &Value::Usize(id as usize),
+                    2,
+                    Value::Usize(ledger_state.code()),
+                )
+                .map_err(|_| ())?;
+            if rows_updated != 1 {
+                let _ = ledger.rollback();
+                return Err(());
+            }
+            ledger.commit().map_err(|_| ())
+        })()
+        .is_ok();
+
+        if commit_confirmed {
+            self.complete(
+                id,
+                lease_generation,
+                now_tick,
+                outcome,
+                base_backoff_ticks,
+                max_backoff_ticks,
+            )
+        } else {
+            self.record_connection_uncertain(id)?;
+            Ok(JobState::Uncertain)
+        }
     }
 
     /// The one transition driven by an external signal rather than a
@@ -1027,5 +1133,119 @@ mod tests {
             rolled_back.revision_check(rolled_back_id),
             Err(JobFixtureError::RevisionRefused)
         );
+    }
+
+    #[test]
+    fn complete_durable_commits_the_resulting_state_into_the_ledger_before_advancing_in_memory() {
+        let mut ledger = DatabaseFixture::new();
+        JobStore::install_ledger_schema(&mut ledger);
+        let mut store = JobStore::new(1);
+        let EnqueueOutcome::Created(id) = store
+            .enqueue(&mut ledger, b"key-o".to_vec(), descriptor(), None, 3, false)
+            .unwrap()
+        else {
+            panic!("expected a fresh job");
+        };
+        let (_, lease_generation, _) = store.claim(id, 1, 0, 10).unwrap();
+        store.begin_execution(id, lease_generation, 1).unwrap();
+        // Before the completion, the ledger row still carries the
+        // placeholder state `enqueue` wrote (Pending, code 0) -- nothing
+        // has ever updated it until now.
+        assert_eq!(
+            ledger.select_eq(JOBS_TABLE, 0, &Value::Usize(id as usize), 1),
+            Ok(vec![vec![
+                Value::Usize(id as usize),
+                Value::Bytes(b"key-o".to_vec()),
+                Value::Usize(JobState::Pending.code()),
+            ]])
+        );
+        let state = store
+            .complete_durable(
+                &mut ledger,
+                id,
+                CompletionAttempt {
+                    lease_generation,
+                    now_tick: 2,
+                    outcome: OutcomeKind::Success,
+                    base_backoff_ticks: 1,
+                    max_backoff_ticks: 100,
+                },
+            )
+            .unwrap();
+        assert_eq!(state, JobState::Succeeded);
+        assert_eq!(store.state_of(id), Some(JobState::Succeeded));
+        assert_eq!(
+            ledger.transaction_state(),
+            crate::database_fixture::TransactionState::Committed
+        );
+        assert_eq!(
+            ledger.select_eq(JOBS_TABLE, 0, &Value::Usize(id as usize), 1),
+            Ok(vec![vec![
+                Value::Usize(id as usize),
+                Value::Bytes(b"key-o".to_vec()),
+                Value::Usize(JobState::Succeeded.code()),
+            ]])
+        );
+    }
+
+    /// This is the second concurrency case issue #192's write-up calls out
+    /// as usually faked: "a job that completed but whose completion record
+    /// was not durably written before a crash." A stuck-open transaction
+    /// left by an earlier, unrelated failure stands in for the crash: the
+    /// job's own handler outcome is `Success`, yet `complete_durable`
+    /// cannot confirm its ledger write ever committed, so the job must
+    /// rest at `Uncertain`, never `Succeeded` -- exactly what a naive
+    /// "record whatever the handler reported" implementation would get
+    /// wrong.
+    #[test]
+    fn complete_durable_forces_uncertain_rather_than_the_handlers_outcome_when_the_ledger_commit_is_never_confirmed(
+    ) {
+        let mut ledger = DatabaseFixture::new();
+        JobStore::install_ledger_schema(&mut ledger);
+        let mut store = JobStore::new(1);
+        let EnqueueOutcome::Created(id) = store
+            .enqueue(&mut ledger, b"key-p".to_vec(), descriptor(), None, 3, false)
+            .unwrap()
+        else {
+            panic!("expected a fresh job");
+        };
+        let (_, lease_generation, _) = store.claim(id, 1, 0, 10).unwrap();
+        store.begin_execution(id, lease_generation, 1).unwrap();
+
+        // A transaction from an earlier, unresolved failure is still open
+        // on this connection when the completion attempt runs.
+        ledger.begin().unwrap();
+
+        let state = store
+            .complete_durable(
+                &mut ledger,
+                id,
+                CompletionAttempt {
+                    lease_generation,
+                    now_tick: 2,
+                    outcome: OutcomeKind::Success,
+                    base_backoff_ticks: 1,
+                    max_backoff_ticks: 100,
+                },
+            )
+            .unwrap();
+
+        assert_eq!(state, JobState::Uncertain);
+        assert_eq!(store.state_of(id), Some(JobState::Uncertain));
+        assert!(!state.is_terminal());
+        // The ledger's own row was never rewritten: it still shows the
+        // pre-completion placeholder, matching the in-memory refusal to
+        // guess `Succeeded`.
+        assert_eq!(
+            ledger.select_eq(JOBS_TABLE, 0, &Value::Usize(id as usize), 1),
+            Ok(vec![vec![
+                Value::Usize(id as usize),
+                Value::Bytes(b"key-p".to_vec()),
+                Value::Usize(JobState::Pending.code()),
+            ]])
+        );
+        // A later, correctly reconciled confirmation still lands cleanly.
+        let reconciled = store.reconcile_uncertain(id, 0).unwrap();
+        assert_eq!(reconciled, JobState::Succeeded);
     }
 }

@@ -22,6 +22,10 @@ The first implementation is native 64-bit little-endian Linux x86-64 and
 AArch64. Other hosts reject before interpreting capsule contents or changing
 namespace/cgroup state. macOS and Windows need separate native confinement and
 settlement contracts. Linux evidence never promotes those hosts.
+[DOCTOR-PRODUCTION-PROVISIONER-MACOS-V1](DOCTOR-PRODUCTION-PROVISIONER-MACOS-V1.md)
+defines and locally evidences a macOS Seatbelt-based confinement and
+settlement primitive; it is a standalone contract, not an extension of this
+one.
 
 The provisioner is a private distribution component, not an embedding API. It
 never discovers a profile, executable, loader, configuration file, trust key,

@@ -3,6 +3,8 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+#[cfg(target_os = "macos")]
+mod darwin_confinement;
 mod offline_bundle;
 mod offline_collector;
 mod offline_input;

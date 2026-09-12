@@ -1,0 +1,16 @@
+[package]
+name = "semaprax-embedding-api-consumer"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.88"
+publish = false
+
+[workspace]
+
+[dependencies]
+# Local path dependency intentionally keeps this prepublication example tied
+# to the checkout. It is not evidence for a published or registry package.
+semaprax = { path = "../.." }
+
+[lints.rust]
+unsafe_code = "forbid"

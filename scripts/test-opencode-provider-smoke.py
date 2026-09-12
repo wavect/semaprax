@@ -28,6 +28,7 @@ class OpenCodeSmokeTests(unittest.TestCase):
         return (
             (FIXTURES / "events.jsonl").read_bytes(),
             json.loads((FIXTURES / "session.json").read_bytes()),
+            (FIXTURES / "prompt.txt").read_text(encoding="utf-8"),
         )
 
     def test_policy_denies_every_tool_for_the_dedicated_agent(self):
@@ -44,8 +45,8 @@ class OpenCodeSmokeTests(unittest.TestCase):
         self.assertNotIn("--auto", line)
 
     def test_archived_session_binds_observed_completion_usage_and_model(self):
-        raw, session = self.archived_fixture()
-        result = smoke.validate_archived_session(raw, json.dumps(session).encode("utf-8"), self.model)
+        raw, session, prompt = self.archived_fixture()
+        result = smoke.validate_archived_session(raw, json.dumps(session).encode("utf-8"), self.model, prompt)
         self.assertEqual(result["completion"], "stopped_text_completion")
         self.assertEqual(result["usage"], {
             "total": 4651, "input": 4437, "output": 18, "reasoning": 196,
@@ -59,27 +60,85 @@ class OpenCodeSmokeTests(unittest.TestCase):
         with self.assertRaises(smoke.SmokeFailure):
             smoke.validate_archived_session(
                 b'{"type":"text","model":"opencode/muse-spark-1.3-contributor-free"}\n',
-                b'{"info":{},"messages":[]}', self.model,
+                b'{"info":{},"messages":[]}', self.model, "frozen\n",
             )
 
     def test_archive_rejects_model_message_and_usage_mismatches(self):
-        raw, session = self.archived_fixture()
+        raw, session, prompt = self.archived_fixture()
         model_mismatch = json.loads(json.dumps(session))
         model_mismatch["info"]["model"]["id"] = "different-model"
         with self.assertRaises(smoke.SmokeFailure):
-            smoke.validate_archived_session(raw, json.dumps(model_mismatch).encode("utf-8"), self.model)
+            smoke.validate_archived_session(raw, json.dumps(model_mismatch).encode("utf-8"), self.model, prompt)
         message_mismatch = json.loads(json.dumps(session))
         message_mismatch["messages"][0]["info"]["id"] = "msg_other"
         with self.assertRaises(smoke.SmokeFailure):
-            smoke.validate_archived_session(raw, json.dumps(message_mismatch).encode("utf-8"), self.model)
+            smoke.validate_archived_session(raw, json.dumps(message_mismatch).encode("utf-8"), self.model, prompt)
         usage_mismatch = raw.replace(b'"output":18', b'"output":19')
         with self.assertRaises(smoke.SmokeFailure):
-            smoke.validate_archived_session(usage_mismatch, json.dumps(session).encode("utf-8"), self.model)
+            smoke.validate_archived_session(usage_mismatch, json.dumps(session).encode("utf-8"), self.model, prompt)
 
     def test_archive_does_not_call_a_start_only_stream_a_completion(self):
-        raw, session = self.archived_fixture()
-        with self.assertRaisesRegex(smoke.SmokeFailure, "stopped text completion"):
-            smoke.validate_archived_session(raw.splitlines()[0] + b"\n", json.dumps(session).encode("utf-8"), self.model)
+        raw, session, prompt = self.archived_fixture()
+        with self.assertRaisesRegex(smoke.SmokeFailure, "three-event profile"):
+            smoke.validate_archived_session(raw.splitlines()[0] + b"\n", json.dumps(session).encode("utf-8"), self.model, prompt)
+
+    def test_archive_rejects_counter_cost_prompt_and_export_part_gaps(self):
+        raw, session, prompt = self.archived_fixture()
+        bool_counter = json.loads(json.dumps(session))
+        bool_counter["messages"][1]["info"]["tokens"]["input"] = True
+        bool_counter["messages"][1]["parts"][3]["tokens"]["input"] = True
+        bool_raw = raw.replace(b'"input":4437', b'"input":true')
+        with self.assertRaisesRegex(smoke.SmokeFailure, "input tokens"):
+            smoke.validate_archived_session(bool_raw, json.dumps(bool_counter).encode("utf-8"), self.model, prompt)
+        missing_cost = json.loads(json.dumps(session))
+        del missing_cost["messages"][1]["info"]["cost"]
+        del missing_cost["messages"][1]["parts"][3]["cost"]
+        missing_cost_raw = raw.replace(b',"cost":0', b'')
+        with self.assertRaisesRegex(smoke.SmokeFailure, "cost"):
+            smoke.validate_archived_session(missing_cost_raw, json.dumps(missing_cost).encode("utf-8"), self.model, prompt)
+        negative_cost = json.loads(json.dumps(session))
+        negative_cost["messages"][1]["info"]["cost"] = -1
+        negative_cost["messages"][1]["parts"][3]["cost"] = -1
+        with self.assertRaisesRegex(smoke.SmokeFailure, "cost"):
+            smoke.validate_archived_session(raw.replace(b'"cost":0', b'"cost":-1'), json.dumps(negative_cost).encode("utf-8"), self.model, prompt)
+        nonfinite_cost = json.loads(json.dumps(session))
+        nonfinite_cost["messages"][1]["info"]["cost"] = float("nan")
+        nonfinite_cost["messages"][1]["parts"][3]["cost"] = float("nan")
+        with self.assertRaisesRegex(smoke.SmokeFailure, "cost"):
+            smoke.validate_archived_session(raw.replace(b'"cost":0', b'"cost":NaN'), json.dumps(nonfinite_cost).encode("utf-8"), self.model, prompt)
+        prompt_mismatch = json.loads(json.dumps(session))
+        prompt_mismatch["messages"][0]["parts"][0]["text"] = json.dumps("other\n")
+        with self.assertRaisesRegex(smoke.SmokeFailure, "frozen prompt"):
+            smoke.validate_archived_session(raw, json.dumps(prompt_mismatch).encode("utf-8"), self.model, prompt)
+        missing_event = b"\n".join([raw.splitlines()[0], raw.splitlines()[2]]) + b"\n"
+        with self.assertRaisesRegex(smoke.SmokeFailure, "three-event profile"):
+            smoke.validate_archived_session(missing_event, json.dumps(session).encode("utf-8"), self.model, prompt)
+        reordered = b"\n".join([raw.splitlines()[1], raw.splitlines()[0], raw.splitlines()[2]]) + b"\n"
+        with self.assertRaisesRegex(smoke.SmokeFailure, "three-event profile"):
+            smoke.validate_archived_session(reordered, json.dumps(session).encode("utf-8"), self.model, prompt)
+        extra_part = json.loads(json.dumps(session))
+        extra_part["messages"][1]["parts"].append({"id": "prt_extra", "messageID": "msg_fixture", "sessionID": "ses_fixture", "snapshot": "fixture", "type": "step-start"})
+        with self.assertRaisesRegex(smoke.SmokeFailure, "four-part profile"):
+            smoke.validate_archived_session(raw, json.dumps(extra_part).encode("utf-8"), self.model, prompt)
+
+    def test_archive_rejects_reasoning_content_shape_identity_and_time_changes(self):
+        raw, session, prompt = self.archived_fixture()
+        nonempty = json.loads(json.dumps(session))
+        nonempty["messages"][1]["parts"][1]["text"] = "must not be accepted"
+        with self.assertRaisesRegex(smoke.SmokeFailure, "must be empty"):
+            smoke.validate_archived_session(raw, json.dumps(nonempty).encode("utf-8"), self.model, prompt)
+        unknown = json.loads(json.dumps(session))
+        unknown["messages"][1]["parts"][1]["type"] = "tool"
+        with self.assertRaisesRegex(smoke.SmokeFailure, "must be empty"):
+            smoke.validate_archived_session(raw, json.dumps(unknown).encode("utf-8"), self.model, prompt)
+        wrong_message = json.loads(json.dumps(session))
+        wrong_message["messages"][1]["parts"][1]["messageID"] = "other"
+        with self.assertRaisesRegex(smoke.SmokeFailure, "assistant message"):
+            smoke.validate_archived_session(raw, json.dumps(wrong_message).encode("utf-8"), self.model, prompt)
+        late_marker = json.loads(json.dumps(session))
+        late_marker["messages"][1]["parts"][1]["time"]["end"] = 1789250319428
+        with self.assertRaisesRegex(smoke.SmokeFailure, "observed position"):
+            smoke.validate_archived_session(raw, json.dumps(late_marker).encode("utf-8"), self.model, prompt)
 
     def test_capture_stdout_records_a_successful_local_json_stream(self):
         with tempfile.TemporaryDirectory() as directory:

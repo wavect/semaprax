@@ -1,0 +1,1 @@
+Reply with exactly SEMAPRAX_SMOKE_OK. Do not use tools, read files, or perform any other action.

@@ -500,3 +500,10 @@ pub fn replay_binding(
 
 #[cfg(test)]
 mod tests;
+
+/// The shared cross-engine settlement corpus (issue #162): one case table,
+/// the interpreter and Core Wasm physical adapters each run against every
+/// case, and one checker that diffs both against an independently pinned
+/// expectation and against each other. See the module's own doc comment.
+#[cfg(test)]
+mod settlement_corpus;

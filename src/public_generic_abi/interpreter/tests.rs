@@ -128,7 +128,7 @@ fn embedded_zero_bytes_are_preserved_exactly() {
     let mut provider = open_provider();
     let payload = vec![0u8, 1, 0, 2, 0, 3, 0];
     let value = provider
-        .input_prepare(&[payload.clone()])
+        .input_prepare(std::slice::from_ref(&payload))
         .expect("a payload with embedded zero bytes must be admitted");
     let result = provider.call(value).expect("the fixture call must succeed");
     let exported = provider.result_export(result, 4096).unwrap();
@@ -221,7 +221,11 @@ fn every_non_terminal_trace_label_injection_zeroes_every_resource() {
             0,
             "{label:?} must leave zero live handles"
         );
-        assert_eq!(provider.live_bytes(), 0, "{label:?} must leave zero live bytes");
+        assert_eq!(
+            provider.live_bytes(),
+            0,
+            "{label:?} must leave zero live bytes"
+        );
     }
 }
 
@@ -230,7 +234,9 @@ fn cleanup_cannot_overwrite_an_earlier_sticky_failure() {
     let mut provider = open_provider();
     provider.test_inject_failure(TraceLabel::ExecutionStarted);
     let value = provider.input_prepare(&[b"x".to_vec()]).unwrap();
-    let error = provider.call(value).expect_err("execution-start injection must fail the call");
+    let error = provider
+        .call(value)
+        .expect_err("execution-start injection must fail the call");
     assert_eq!(error, InterpreterPgStatus::ContractFailure);
     // The primary failure is already sticky; the two release-ordinal
     // injections that fire during this same call's cleanup never got a
@@ -255,16 +261,25 @@ fn repeated_invocation_leaks_no_state_between_independent_calls() {
     let mut provider = open_provider();
     for iteration in 0..5u8 {
         let payload = vec![iteration; 3];
-        let value = provider.input_prepare(&[payload.clone()]).unwrap();
+        let value = provider
+            .input_prepare(std::slice::from_ref(&payload))
+            .unwrap();
         let result = provider.call(value).unwrap();
         let exported = provider.result_export(result, 4096).unwrap();
         let mut expected = Vec::new();
         let mut reversed = payload;
         reversed.reverse();
         crate::public_generic_abi::frame(&mut expected, &reversed);
-        assert_eq!(exported, expected, "iteration {iteration} must reproduce exactly");
+        assert_eq!(
+            exported, expected,
+            "iteration {iteration} must reproduce exactly"
+        );
         provider.result_release(result);
-        assert_eq!(provider.live_handles(), 0, "iteration {iteration} must leave zero live handles");
+        assert_eq!(
+            provider.live_handles(),
+            0,
+            "iteration {iteration} must leave zero live handles"
+        );
         assert_eq!(provider.live_allocations(), 0);
     }
     assert_eq!(provider.close(), InterpreterPgStatus::Ok);

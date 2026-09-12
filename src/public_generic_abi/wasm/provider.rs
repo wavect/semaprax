@@ -215,6 +215,12 @@ pub struct WasmProvider {
     next_generation: u32,
     injected: Option<TraceLabel>,
     settlement_overwrite_attempts: u32,
+    /// Test-only: a snapshot of the most recently settled call's normalized
+    /// trace, taken at the same moment `settle` runs (every terminal path,
+    /// success or failure). See `carrier::settlement_corpus` (issue #162),
+    /// which is the reason this exists: cross-engine comparison needs the
+    /// trace `CarrierCallMachine` already records, not a second one.
+    last_trace: Vec<crate::public_generic_abi::carrier::trace::TraceEvent>,
 }
 
 impl WasmProvider {
@@ -244,7 +250,14 @@ impl WasmProvider {
             next_generation: 1,
             injected: None,
             settlement_overwrite_attempts: 0,
+            last_trace: Vec::new(),
         })
+    }
+
+    /// Test-only: the normalized trace of the most recently settled call,
+    /// captured at settlement time regardless of success or failure.
+    pub fn test_last_trace(&self) -> &[crate::public_generic_abi::carrier::trace::TraceEvent] {
+        &self.last_trace
     }
 
     /// Live handle count: the exact-settlement counter a caller checks
@@ -297,6 +310,7 @@ impl WasmProvider {
         if machine.settle(outcome).is_err() {
             self.settlement_overwrite_attempts += 1;
         }
+        self.last_trace = machine.trace().events().to_vec();
     }
 
     fn fixture_endpoint(leaf: &[u8]) -> Vec<u8> {

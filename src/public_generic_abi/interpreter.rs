@@ -208,9 +208,7 @@ impl Heap {
     /// the interpreter-heap analog of Wasm's `StackAllocator::alloc`.
     fn alloc(&mut self, len: u32) -> Result<u32, Diagnostic> {
         if len as usize > MAX_BYTES_PER_LEAF {
-            return Err(capacity_error(
-                "leaf allocation exceeds MAX_BYTES_PER_LEAF",
-            ));
+            return Err(capacity_error("leaf allocation exceeds MAX_BYTES_PER_LEAF"));
         }
         let next_live = self
             .live_bytes
@@ -262,7 +260,9 @@ impl Heap {
             .remove(&slot)
             .ok_or_else(|| internal_error("free of an unallocated interpreter heap slot"))?;
         if bytes.len() as u32 != expected_len {
-            return Err(internal_error("free length does not match the allocated length"));
+            return Err(internal_error(
+                "free length does not match the allocated length",
+            ));
         }
         self.live_bytes -= expected_len;
         Ok(())
@@ -299,6 +299,12 @@ pub struct InterpreterProvider {
     next_generation: u32,
     injected: Option<TraceLabel>,
     settlement_overwrite_attempts: u32,
+    /// Test-only: a snapshot of the most recently settled call's normalized
+    /// trace, taken at the same moment `settle` runs. See
+    /// `carrier::settlement_corpus` (issue #162): cross-engine comparison
+    /// needs the trace `CarrierCallMachine` already records, not a second
+    /// one, and mirrors `WasmProvider::test_last_trace` exactly.
+    last_trace: Vec<crate::public_generic_abi::carrier::trace::TraceEvent>,
 }
 
 impl InterpreterProvider {
@@ -329,7 +335,14 @@ impl InterpreterProvider {
             next_generation: 1,
             injected: None,
             settlement_overwrite_attempts: 0,
+            last_trace: Vec::new(),
         })
+    }
+
+    /// Test-only: the normalized trace of the most recently settled call,
+    /// captured at settlement time regardless of success or failure.
+    pub fn test_last_trace(&self) -> &[crate::public_generic_abi::carrier::trace::TraceEvent] {
+        &self.last_trace
     }
 
     pub fn live_handles(&self) -> usize {
@@ -372,6 +385,7 @@ impl InterpreterProvider {
         if machine.settle(outcome).is_err() {
             self.settlement_overwrite_attempts += 1;
         }
+        self.last_trace = machine.trace().events().to_vec();
     }
 
     fn fixture_endpoint(leaf: &[u8]) -> Vec<u8> {
@@ -382,7 +396,8 @@ impl InterpreterProvider {
         for span in state.input_leaves.iter().rev() {
             self.heap.free(span.slot, span.len)?;
         }
-        self.heap.free(state.input_root.slot, state.input_root.len)?;
+        self.heap
+            .free(state.input_root.slot, state.input_root.len)?;
         Ok(())
     }
 
@@ -402,11 +417,15 @@ impl InterpreterProvider {
     /// mirrors [`super::wasm::provider::WasmProvider::input_prepare`]
     /// exactly, ordinal for ordinal, so the same injected `TraceLabel`
     /// produces the same observable outcome on both adapters.
-    pub fn input_prepare(&mut self, leaves: &[Vec<u8>]) -> Result<InterpreterHandle, InterpreterPgStatus> {
+    pub fn input_prepare(
+        &mut self,
+        leaves: &[Vec<u8>],
+    ) -> Result<InterpreterHandle, InterpreterPgStatus> {
         if leaves.len() > MAX_OWNED_LEAVES_PER_INSTANCE {
             return Err(InterpreterPgStatus::CarrierCapacity);
         }
-        check_handle_capacity(leaves.len() + 1).map_err(|_| InterpreterPgStatus::CarrierCapacity)?;
+        check_handle_capacity(leaves.len() + 1)
+            .map_err(|_| InterpreterPgStatus::CarrierCapacity)?;
         for leaf in leaves {
             if leaf.len() > MAX_BYTES_PER_LEAF {
                 return Err(InterpreterPgStatus::CarrierCapacity);
@@ -539,7 +558,11 @@ impl InterpreterProvider {
         })
     }
 
-    fn call_id_for(&self, value: InterpreterHandle, role: HandleRole) -> Result<u32, InterpreterPgStatus> {
+    fn call_id_for(
+        &self,
+        value: InterpreterHandle,
+        role: HandleRole,
+    ) -> Result<u32, InterpreterPgStatus> {
         if value.tag != self.tag {
             return Err(InterpreterPgStatus::HandleInvalid);
         }
@@ -554,7 +577,10 @@ impl InterpreterProvider {
     /// failure — matching native's and Wasm's own shared-machine gap
     /// exactly), stage and commit the result, and settle. Control flow
     /// mirrors [`super::wasm::provider::WasmProvider::call`] exactly.
-    pub fn call(&mut self, value: InterpreterHandle) -> Result<InterpreterHandle, InterpreterPgStatus> {
+    pub fn call(
+        &mut self,
+        value: InterpreterHandle,
+    ) -> Result<InterpreterHandle, InterpreterPgStatus> {
         let call_id = self.call_id_for(value, HandleRole::InputRoot)?;
         let mut state = self
             .calls

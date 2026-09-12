@@ -356,6 +356,50 @@ fn production_provisioner_source_layout_tripwires_are_present() {
         .unwrap_or_else(|error| panic!("{error}"));
 }
 
+/// `scripts/doctor-provisioned-linux-gate.py --self-test` needs no Linux host
+/// or provisioning: it drives the gate's pure decision logic with synthetic
+/// inputs and walks the checked-in source tree for `#[ignore]`d lifecycle
+/// tests the gate's fixed selection has drifted from (see
+/// `docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md`'s "Test selection" section).
+/// Nothing before this test ran it anywhere except two workflows that are
+/// never selected on an ordinary push or pull request
+/// (`.github/workflows/doctor-provisioned-linux.yml` is `workflow_dispatch`
+/// only, and `.github/workflows/doctor-hosted-runner-probe.yml` triggers only
+/// on a since-superseded investigation branch): a genuine drift between the
+/// gate's selection and the tree could go unnoticed for as long as nobody
+/// happens to dispatch either workflow by hand. Running it here, in an
+/// ordinary workspace test target, makes every push and pull request prove it
+/// instead.
+#[test]
+fn provisioned_linux_gate_self_test_passes_and_stays_nonvacuous() {
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let output = std::process::Command::new("python3")
+        .args(["scripts/doctor-provisioned-linux-gate.py", "--self-test"])
+        .current_dir(repository)
+        .output()
+        .unwrap_or_else(|error| panic!("spawn doctor-provisioned-linux-gate.py: {error}"));
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    assert!(output.status.success(), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    let summary = stdout
+        .lines()
+        .find(|line| line.starts_with("self-test: "))
+        .unwrap_or_else(|| panic!("no self-test summary line in:\n{stdout}"));
+    let (passed, total) = summary
+        .trim_start_matches("self-test: ")
+        .split_once('/')
+        .and_then(|(passed, rest)| {
+            let total = rest.split_whitespace().next()?;
+            Some((passed.parse::<u32>().ok()?, total.parse::<u32>().ok()?))
+        })
+        .unwrap_or_else(|| panic!("unparseable self-test summary: {summary}"));
+    assert!(total > 0, "self-test ran zero checks: {summary}");
+    assert_eq!(
+        passed, total,
+        "self-test did not pass every check: {summary}"
+    );
+}
+
 #[test]
 fn source_layout_tripwire_rejects_representative_widening_and_role_swap() {
     let repository = Path::new(env!("CARGO_MANIFEST_DIR"));

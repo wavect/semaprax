@@ -1369,6 +1369,29 @@ def self_test(root=None):
             )
         finally:
             SUITES[0]["tests"] = original
+        # A brand-new *file* of ignored tests is not a narrowed selection --
+        # `SOURCE_OF_TRUTH` simply never names it -- so it needs its own
+        # synthetic check. Untrack one real, currently-tracked file (rather
+        # than writing a temporary one) to stand in for it.
+        untracked_id = "platform-sys-lib"
+        original_sources = SOURCE_OF_TRUTH[untracked_id]
+        SOURCE_OF_TRUTH[untracked_id] = original_sources[:-1]
+        try:
+            check(
+                "a brand-new file of ignored tests is detected as drift",
+                any(
+                    "is not in SOURCE_OF_TRUTH or EXCLUDED_IGNORED_FILES"
+                    in reason
+                    for reason in selection_drift(root)
+                ),
+            )
+        finally:
+            SOURCE_OF_TRUTH[untracked_id] = original_sources
+        check(
+            "the untracked-file walk is clean against the real tree",
+            untracked_ignored_files(root) == [],
+            repr(untracked_ignored_files(root)),
+        )
     for suite in SUITES:
         argv = suite_command(suite)
         check(
@@ -1495,6 +1518,75 @@ SOURCE_OF_TRUTH = {
     ),
 }
 
+# `SOURCE_OF_TRUTH` compares the selection against a fixed, checked-in list of
+# files: a real residual gap, recorded in
+# docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md, because a brand-new *file*
+# introducing an `#[ignore]`d lifecycle case would not appear in that list and
+# so would never be compared at all. These are the directories `--self-test`
+# additionally walks to catch exactly that: any file anywhere under them that
+# contains an `#[ignore]`d test and is not already named in `SOURCE_OF_TRUTH`.
+UNTRACKED_IGNORED_ROOTS = {
+    "collector-provisioned": (COLLECTOR_ROOT,),
+    "platform-sys-lib": (f"{PLATFORM_ROOT}/doctor",),
+}
+
+# Real `#[ignore]`d functions that are not lifecycle-gate cases: private
+# subprocess helpers selected by their own parent test in the owning harness,
+# not by this gate. Documented in DOCTOR-PROVISIONED-LINUX-GATE-V1.md's "Test
+# selection" section. Anything else the walk finds must be in `SOURCE_OF_TRUTH`.
+EXCLUDED_IGNORED_FILES = frozenset(
+    {
+        f"{PLATFORM_ROOT}/doctor/offline_input/create/tests.rs",
+        f"{PLATFORM_ROOT}/doctor/offline_input/create/executable_tests/native/faults.rs",
+    }
+)
+
+
+def _files_with_ignored_tests(root, relative_directory):
+    """Every `.rs` file under `relative_directory` with an `#[ignore]`d fn."""
+    found = []
+    absolute_directory = os.path.join(root, relative_directory)
+    for directory, _subdirectories, filenames in os.walk(absolute_directory):
+        for filename in filenames:
+            if not filename.endswith(".rs"):
+                continue
+            path = os.path.join(directory, filename)
+            relative = os.path.relpath(path, root).replace(os.sep, "/")
+            try:
+                with open(path, encoding="utf-8") as handle:
+                    text = handle.read()
+            except OSError as error:
+                raise ValueError(f"cannot read {relative}: {error}") from error
+            if _IGNORED_FN.search(text):
+                found.append(relative)
+    return sorted(found)
+
+
+def untracked_ignored_files(root):
+    """Every file with an `#[ignore]`d test outside the checked-in inventory.
+
+    Complements `selection_drift`'s per-file comparison: that comparison only
+    ever looks at the files `SOURCE_OF_TRUTH` already names, so it cannot see
+    a brand-new file. This walks each suite's owning directory instead and
+    names any file the walk finds that neither `SOURCE_OF_TRUTH` nor
+    `EXCLUDED_IGNORED_FILES` accounts for. It does not guess the new file's
+    module path or suite membership; a human decides that.
+    """
+    tracked = {relative for sources in SOURCE_OF_TRUTH.values() for relative, _ in sources}
+    tracked |= EXCLUDED_IGNORED_FILES
+    reasons = []
+    for suite_id, directories in UNTRACKED_IGNORED_ROOTS.items():
+        for relative_directory in directories:
+            for relative in _files_with_ignored_tests(root, relative_directory):
+                if relative not in tracked:
+                    reasons.append(
+                        f"{suite_id}: {relative} has an `#[ignore]`d test and "
+                        "is not in SOURCE_OF_TRUTH or EXCLUDED_IGNORED_FILES; "
+                        "a new file must be added before its lifecycle cases "
+                        "can be verified selected"
+                    )
+    return reasons
+
 
 def selection_drift(root):
     """Every way the selection has drifted from the ignored inventory."""
@@ -1523,6 +1615,7 @@ def selection_drift(root):
                 f"{suite['id']}: selected test {name} is not an ignored test "
                 "in the owning harness"
             )
+    reasons.extend(untracked_ignored_files(root))
     return reasons
 
 

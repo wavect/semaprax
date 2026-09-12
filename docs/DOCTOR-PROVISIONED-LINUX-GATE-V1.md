@@ -296,10 +296,17 @@ private subprocess helpers selected by their own parent tests, not gates. So
 are the Windows revision-store and `owned_npm` symlink fixtures, which belong
 to separately tracked hosts.
 
-Residual gap: `selection_drift` compares against a checked-in list of owning
-files. A brand-new *file* of ignored lifecycle tests, added without extending
-that list, would not be noticed. The list is small and sits beside the
-selection it guards, but it is a list, not a directory walk.
+`selection_drift` also walks each suite's owning directory
+(`crates/semaprax-native-rust-interop-platform-sys/src/doctor` and
+`crates/semaprax-doctor-collector/tests`) for any `.rs` file containing an
+`#[ignore]`d test that is not already named in the checked-in list above or in
+`EXCLUDED_IGNORED_FILES`. This closes what was previously a residual gap: the
+per-file comparison alone only ever looks at files the list already names, so
+a brand-new *file* of ignored lifecycle tests would not have been noticed.
+`--self-test` proves this walk is clean against the real tree and separately
+proves it detects a file the list stops naming. The walk still does not guess
+a new file's module path or suite membership — a human adds it to the list
+above once it exists, exactly as before.
 
 ## Evidence
 

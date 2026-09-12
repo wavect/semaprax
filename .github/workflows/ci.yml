@@ -376,6 +376,7 @@ jobs:
             standard_library::db_jobs_backend_audit::db_and_jobs_execute_on_all_three_backends \
             standard_library::auth_backend_audit::auth_executes_on_all_three_backends \
             standard_library::log_redact_backend_audit::log_redact_executes_on_all_three_backends \
+            standard_library::metrics_backend_audit::metrics_executes_on_all_three_backends \
             standard_library::committed_catalogs_match_the_sources \
             standard_library::every_public_declaration_has_a_std_identity_contracts_examples_and_conformance
           cargo test --locked -p semaprax --test examples -- --nocapture

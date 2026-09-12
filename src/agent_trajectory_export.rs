@@ -760,13 +760,21 @@ mod tests {
 
     // ---- Secret/credential/private-data eligibility flags ----
 
+    /// One disqualifying eligibility flag: its name, and the mutation that
+    /// sets it. Named so each flag is refused on its own rather than in a
+    /// bundle -- a single test setting all five at once would pass even if
+    /// four of them were never checked.
+    type DisqualifyingFlag = (&'static str, fn(&mut EligibilityDeclaration));
+
     #[test]
     fn export_refuses_each_disqualifying_eligibility_flag_individually() {
         let candidate = base_candidate();
 
-        let flags: [(&str, fn(&mut EligibilityDeclaration)); 5] = [
+        let flags: [DisqualifyingFlag; 5] = [
             ("provider_secret", |e| e.carries_provider_secret = true),
-            ("runtime_credential", |e| e.carries_runtime_credential = true),
+            ("runtime_credential", |e| {
+                e.carries_runtime_credential = true
+            }),
             ("private_filesystem_path", |e| {
                 e.carries_private_filesystem_path = true
             }),
@@ -912,12 +920,8 @@ mod tests {
         // closed-vocabulary string, never a template over candidate bytes.
         let mut held_out_with_secret = candidate;
         held_out_with_secret.split = TaskSplit::HeldOut;
-        held_out_with_secret.context_bytes = format!(
-            "{}{}",
-            String::from_utf8_lossy(CONTEXT_MARKER),
-            PATH_MARKER
-        )
-        .into_bytes();
+        held_out_with_secret.context_bytes =
+            format!("{}{}", String::from_utf8_lossy(CONTEXT_MARKER), PATH_MARKER).into_bytes();
         let refusal =
             export_trajectory(&held_out_with_secret, &eligible(), &HeldOutDenylist::new())
                 .unwrap_err();
@@ -943,7 +947,10 @@ mod tests {
         let sanitized =
             export_trajectory(&candidate, &eligible(), &HeldOutDenylist::new()).unwrap();
 
-        assert_ne!(sanitized.digest(), sanitized.provenance_original_evidence_digest);
+        assert_ne!(
+            sanitized.digest(),
+            sanitized.provenance_original_evidence_digest
+        );
         assert_ne!(sanitized.digest(), sanitized.context_digest);
         assert_ne!(sanitized.digest(), sanitized.action_digest);
         assert_ne!(sanitized.digest(), sanitized.canonical_validation_digest);

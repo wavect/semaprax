@@ -12,9 +12,7 @@
 
 use super::*;
 
-const NINE_PARAM_NAMES: [&str; 9] = [
-    "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8",
-];
+const NINE_PARAM_NAMES: [&str; 9] = ["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"];
 
 fn admitted_baseline() -> KernelCandidate {
     KernelCandidate {

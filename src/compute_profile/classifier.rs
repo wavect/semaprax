@@ -124,7 +124,10 @@ pub enum AddressSpace {
 pub enum KernelType {
     Scalar(ScalarType),
     /// A fixed-width vector, 2, 3, or 4 lanes of one admitted scalar.
-    Vector { elem: ScalarType, lanes: u8 },
+    Vector {
+        elem: ScalarType,
+        lanes: u8,
+    },
     /// A fixed-length buffer of one admitted scalar in one address space.
     Buffer {
         elem: ScalarType,
@@ -485,13 +488,17 @@ pub fn classify(candidate: &KernelCandidate) -> Result<AdmittedKernel, Refusal> 
     }
 
     for param in &candidate.params {
-        if !matches!(param.mode, ParamMode::ReadOnlyView | ParamMode::ReadWriteView) {
+        if !matches!(
+            param.mode,
+            ParamMode::ReadOnlyView | ParamMode::ReadWriteView
+        ) {
             return Err(Refusal::OwnershipModeNotAdmitted { param: param.name });
         }
     }
 
     let grid = &candidate.grid;
-    let dims_in_bounds = |dims: [u32; 3]| dims.iter().all(|&d| d >= 1 && d <= MAX_WORKGROUP_DIM);
+    let dims_in_bounds =
+        |dims: [u32; 3]| dims.iter().all(|&d| (1..=MAX_WORKGROUP_DIM).contains(&d));
     let workgroup_invocations: u64 = grid.workgroup_size.iter().map(|&d| d as u64).product();
     if !dims_in_bounds(grid.workgroup_size)
         || grid.grid_size.iter().any(|&d| d == 0 || d > MAX_GRID_DIM)

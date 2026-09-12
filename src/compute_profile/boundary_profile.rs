@@ -50,11 +50,19 @@ mod tests {
 
     #[test]
     fn workgroup_invocation_bound_is_not_looser_than_the_per_dimension_bound() {
-        assert!(MAX_WORKGROUP_INVOCATIONS <= MAX_WORKGROUP_DIM * MAX_WORKGROUP_DIM);
+        // A `const` block, so a bound that drifts fails the build rather than
+        // one test run -- these are compile-time constants, and a runtime
+        // assertion over them can only fail somewhere a reader is not looking.
+        const {
+            assert!(MAX_WORKGROUP_INVOCATIONS <= MAX_WORKGROUP_DIM * MAX_WORKGROUP_DIM);
+        }
     }
 
     #[test]
     fn schema_identifier_is_the_frozen_v1_string() {
-        assert_eq!(COMPUTE_KERNEL_PROFILE_SCHEMA, "semaprax.compute-kernel-profile.v1");
+        assert_eq!(
+            COMPUTE_KERNEL_PROFILE_SCHEMA,
+            "semaprax.compute-kernel-profile.v1"
+        );
     }
 }

@@ -212,3 +212,22 @@ performs a host effect, opens a socket, or grants a capability.
   claim for any target profile it lists; `TARGET_PROFILES` states which
   backends a safe program has equivalent checked behavior on, not which
   hosted environment currently runs it.
+
+## Follow-ups from issue #196
+
+Issue #225 tracks two steps this issue's original worker left for later,
+because the project scaffold generator under `src/project/**` was outside
+that worker's file lease:
+
+- **A worked walkthrough of the public workflow** is now
+  [Limited-agent tutorial](LIMITED-AGENT-TUTORIAL.md): a locally executed
+  `inspect` → `review` → `test` walkthrough, plus a documented (not executed
+  inline) `publish` step, for an agent limited to `read_only`,
+  `test_execute`, and `publication` authority.
+- **Deriving a scaffolded project's `AGENTS.md` from this bundle** (rather
+  than the hand-authored constant `src/project/scaffold.rs` ships today)
+  remains open. It requires changing the scaffold generator itself — outside
+  `docs/`, `README.md`, `AGENTS.md`, and the tutorial/grammar files this
+  follow-up's own worker leased — plus updating every scaffold digest and
+  replay test the change would affect, so it is left to a dedicated
+  implementation lane rather than attempted here.

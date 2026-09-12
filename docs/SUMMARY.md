@@ -332,6 +332,7 @@ Audience: all documentation readers.
 - [Semantic Embedding v1](SEMANTIC-EMBEDDING-V1.md)
 - [Embedding API v1](EMBEDDING-API-V1.md)
 - [Agent Skill Bundle v1](AGENT-SKILL-BUNDLE-V1.md)
+- [Limited-agent tutorial](LIMITED-AGENT-TUTORIAL.md)
 - [Image agent protocol v1](IMAGE-AGENT-PROTOCOL-V1.md)
 - [Image candidate protocol v2](IMAGE-CANDIDATE-PROTOCOL-V2.md)
 - [Candidate constructor schemas v1](CANDIDATE-CONSTRUCTOR-SCHEMAS-V1.md)

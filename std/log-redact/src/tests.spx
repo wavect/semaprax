@@ -1,0 +1,94 @@
+module std.log.redact.tests;
+use function @id("std.log.redact.event_is_safe") from std.log.redact as event_is_safe;
+use function @id("std.log.redact.bytes_match_marker") from std.log.redact as bytes_match_marker;
+use function @id("std.log.redact.marker_byte") from std.log.redact as marker_byte;
+use function @id("std.log.redact.marker_len") from std.log.redact as marker_len;
+use function @id("std.log.redact.field_count_within_budget") from std.log.redact as field_count_within_budget;
+
+// Copies `std.auth.tests.audit_event_safety`'s exact shape: a clean-event
+// positive, then each of the six secret-bearing fields asserted unsafe
+// INDIVIDUALLY (never combined), so a regression that stops checking any one
+// flag fails this test rather than hiding behind the other five.
+@id("std.log.redact.tests.event_safety")
+fn event_safety() -> bool
+{
+    let clean_event_is_safe = event_is_safe(false, false, false, false, false, false);
+    let raw_password_is_unsafe = !event_is_safe(true, false, false, false, false, false);
+    let api_key_is_unsafe = !event_is_safe(false, true, false, false, false, false);
+    let bearer_token_is_unsafe = !event_is_safe(false, false, true, false, false, false);
+    let session_token_is_unsafe = !event_is_safe(false, false, false, true, false, false);
+    let webhook_signing_secret_is_unsafe = !event_is_safe(false, false, false, false, true, false);
+    let smtp_credential_is_unsafe = !event_is_safe(false, false, false, false, false, true);
+    clean_event_is_safe && raw_password_is_unsafe && api_key_is_unsafe && bearer_token_is_unsafe && session_token_is_unsafe && webhook_signing_secret_is_unsafe && smtp_credential_is_unsafe
+}
+
+// Two secret-bearing flags at once are still refused - the closed check is
+// not merely "at most one flag", it is "none of the six".
+@id("std.log.redact.tests.multiple_secrets_still_unsafe")
+fn multiple_secrets_still_unsafe() -> bool
+{
+    !event_is_safe(true, false, false, false, false, true) && !event_is_safe(false, true, true, true, true, true)
+}
+
+// The marker a real writer would emit for a refused field self-matches
+// byte-for-byte, built the same way a writer's own `bytes_set` loop would
+// build it (never via this package returning owned bytes - see `redact.spx`
+// module comment for why).
+@id("std.log.redact.tests.marker_self_consistency")
+fn marker_self_consistency() -> bool
+{
+    let mut marker = bytes_zeroed(10usize);
+    let mut index = 0usize;
+    while index < 10usize {
+        marker = bytes_set(marker, index, marker_byte(index));
+        index = index + 1usize;
+        index < 10usize
+    }
+    bytes_match_marker(bytes_as_slice(marker)) && byte_len(bytes_as_slice(marker)) == marker_len()
+}
+
+// The negative control the marker check exists for: a secret's own bytes
+// (wrong length, and separately the right length but wrong content) must
+// never be mistaken for the redacted marker. If this ever passed, a writer
+// bug that emitted the raw secret instead of the marker would go undetected.
+@id("std.log.redact.tests.secret_shaped_content_never_matches_marker")
+fn secret_shaped_content_never_matches_marker() -> bool
+{
+    let shorter_secret = [104u8, 117u8, 110u8, 116u8, 101u8, 114u8, 50u8];
+    let same_length_secret = [104u8, 117u8, 110u8, 116u8, 101u8, 114u8, 50u8, 33u8, 33u8, 33u8];
+    let empty = [0u8; 0];
+    !bytes_match_marker(array_as_slice(shorter_secret)) && !bytes_match_marker(array_as_slice(same_length_secret)) && !bytes_match_marker(array_as_slice(empty))
+}
+
+// A single flipped byte at the very end of an otherwise-exact marker still
+// fails the check, proving the comparison loop runs to the last byte rather
+// than short-circuiting on a shared prefix (mirrors
+// `std.auth.tests.constant_time_equality`'s `differs_last` case).
+@id("std.log.redact.tests.one_flipped_trailing_byte_never_matches_marker")
+fn one_flipped_trailing_byte_never_matches_marker() -> bool
+{
+    let almost = [91u8, 82u8, 69u8, 68u8, 65u8, 67u8, 84u8, 69u8, 68u8, 33u8];
+    !bytes_match_marker(array_as_slice(almost))
+}
+
+@id("std.log.redact.tests.budget_boundary")
+fn budget_boundary() -> bool
+{
+    let zero_is_within_budget = field_count_within_budget(0usize);
+    let exactly_at_budget = field_count_within_budget(32usize);
+    let one_past_budget_is_refused = !field_count_within_budget(33usize);
+    zero_is_within_budget && exactly_at_budget && one_past_budget_is_refused
+}
+
+@id("std.log.redact.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if event_safety() { 0 } else { 1 };
+    failed = failed + if multiple_secrets_still_unsafe() { 0 } else { 2 };
+    failed = failed + if marker_self_consistency() { 0 } else { 4 };
+    failed = failed + if secret_shaped_content_never_matches_marker() { 0 } else { 8 };
+    failed = failed + if one_flipped_trailing_byte_never_matches_marker() { 0 } else { 16 };
+    failed = failed + if budget_boundary() { 0 } else { 32 };
+    failed
+}

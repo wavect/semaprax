@@ -1,0 +1,104 @@
+module std.log.redact;
+
+// Issue #193's redaction-policy slice: the pure, effect-free decision layer
+// a structured-logging, metrics, tracing, webhook, or email adapter consults
+// before a field it is about to serialize, export, or attach leaves the
+// process. It performs no I/O, declares no `permit`, and calls no
+// `uses`-gated operation, exactly the idiom `std.auth`'s audit-event-safety
+// layer already established for this repository (see `std/auth/src/auth.spx`
+// and its `audit_event_is_safe`/`audit_event_is_complete` pair).
+//
+// `std.log` (the existing package) already renders a caller-assembled
+// `name`/`message` event to JSON with exact capacity preflight; it carries no
+// per-field redaction policy. This package supplies that policy as data a
+// caller of `std.log`, a future metrics/trace exporter, or a future
+// webhook/email adapter can consult BEFORE calling into its own writer, so a
+// secret-bearing field is refused or replaced with a fixed, visible marker
+// rather than serialized. It does not itself write JSON, sign a webhook, or
+// send an email: those adapters remain future work (see the tracking issue).
+//
+// Two things this package does NOT claim: it does not scan a field's runtime
+// *content* for secret-shaped values (entropy, key-pattern, or otherwise) -
+// classification is the caller's declared boolean, exactly like
+// `std.auth.audit.event_is_safe` takes already-decided flags rather than
+// scanning bytes; and it does not allocate, own, or forward the field's raw
+// bytes anywhere - every function here is scalar-in/scalar-out or
+// `borrow Slice<u8>`-in/scalar-out, so a secret's bytes are never accepted,
+// retained, or returned by this package at all.
+// ---------------------------------------------------------------------
+// The redacted marker
+// ---------------------------------------------------------------------
+// A fixed, deterministic ASCII marker: `[REDACTED]`. Every function that
+// renders a refused field writes exactly these ten bytes, at every level and
+// across every adapter, so a downstream reader (a human, a log shipper, or a
+// hostile-input regression) can recognize a redaction on sight instead of
+// guessing from an adapter-specific placeholder.
+@id("std.log.redact.marker_len")
+fn marker_len() -> usize
+{
+    10usize
+}
+
+@id("std.log.redact.marker_byte")
+fn marker_byte(index: usize) -> u8
+    requires index < marker_len()
+{
+    let ascii = [91u8, 82u8, 69u8, 68u8, 65u8, 67u8, 84u8, 69u8, 68u8, 93u8];
+    match byte_get(array_as_slice(ascii), index) { Option::Some { value } => value, Option::None {} => 0u8, }
+}
+
+// The byte-exact check any adapter's own writer output can be verified
+// against: true only when `candidate` is exactly the ten marker bytes in
+// order, false for anything else (including a candidate that merely starts
+// with them, or a field's own raw content that happens to share a prefix).
+@id("std.log.redact.bytes_match_marker")
+fn bytes_match_marker(candidate: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(candidate);
+    let mut index = 0usize;
+    let mut matches = length == marker_len();
+    while index < length && matches {
+        matches = match byte_get(candidate, index) { Option::Some { value } => value == marker_byte(index), Option::None {} => false, };
+        index = index + 1usize;
+        index < length && matches
+    }
+    matches
+}
+
+// ---------------------------------------------------------------------
+// Field/event safety
+// ---------------------------------------------------------------------
+// The closed refusal: an observation (a log event, a metric's labels, a
+// trace span's attributes, a webhook payload, or an email body/header) is
+// unsafe if it carries ANY of these six secret-bearing fields, regardless of
+// what else it carries. This mirrors `std.auth.audit.event_is_safe` exactly
+// (same shape: named boolean flags, one per secret-bearing field, closed
+// over an explicit exhaustive list) but generalized past authentication
+// events to the six adapter families this issue names: a raw password and an
+// API key are structured-logging/metrics leaks, a bearer token and a session
+// token are logging/tracing leaks, a webhook signing secret is the webhook
+// adapter's own credential, and an SMTP/API credential is the email
+// adapter's. Adding a new secret-bearing field to a real observation type
+// means adding its flag here too - the check is exhaustive over this fixed
+// list, not over whatever fields a caller happens to think of.
+@id("std.log.redact.event_is_safe")
+fn event_is_safe(carries_password: bool, carries_api_key: bool, carries_bearer_token: bool, carries_session_token: bool, carries_webhook_signing_secret: bool, carries_smtp_credential: bool) -> bool
+{
+    !(carries_password || carries_api_key || carries_bearer_token || carries_session_token || carries_webhook_signing_secret || carries_smtp_credential)
+}
+
+// ---------------------------------------------------------------------
+// Cardinality budget
+// ---------------------------------------------------------------------
+// One deployment-independent bound on the number of fields/labels a single
+// observation may carry, the direct defense against the named failure
+// "metric label cardinality can cause memory/cost denial of service" and its
+// structured-logging analogue (an attacker-controlled field set with
+// unbounded arity). 32 mirrors this package's own `web_exports` ceiling and
+// is deliberately small: a real exporter profile is free to raise it, but
+// never to leave it unstated.
+@id("std.log.redact.field_count_within_budget")
+fn field_count_within_budget(count: usize) -> bool
+{
+    count <= 32usize
+}

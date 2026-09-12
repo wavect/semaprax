@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-log-redact"
+version = "0.1.0"
+profile = "useful-data.v2"
+
+[modules]
+entry = "std.log.redact.examples"
+sources = ["src/examples.spx", "src/redact.spx", "src/tests.spx"]
+tests = ["std.log.redact.tests"]
+
+[exports]
+web = []

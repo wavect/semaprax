@@ -1,0 +1,42 @@
+module std.log.redact.examples;
+use function @id("std.log.redact.event_is_safe") from std.log.redact as event_is_safe;
+use function @id("std.log.redact.field_count_within_budget") from std.log.redact as field_count_within_budget;
+use function @id("std.log.redact.bytes_match_marker") from std.log.redact as bytes_match_marker;
+use function @id("std.log.redact.marker_byte") from std.log.redact as marker_byte;
+use function @id("std.log.redact.marker_len") from std.log.redact as marker_len;
+
+// A synthetic walk across three of the six adapter families this issue
+// names: a structured-log event, a webhook delivery attempt, and an outbound
+// email. None of this performs I/O; it demonstrates only that the shared
+// redaction-policy layer classifies each observation consistently before any
+// future adapter would serialize, sign, or send it.
+@id("std.log.redact.examples.main")
+fn main() -> i64
+{
+    // A structured-log event for a successful request: no secret-bearing
+    // field, five ordinary labels (well inside the cardinality budget).
+    let request_log_is_safe = event_is_safe(false, false, false, false, false, false);
+    let request_log_field_count_ok = field_count_within_budget(5usize);
+    // A webhook delivery attempt accidentally carries its own signing secret
+    // as a payload field - the exact "webhook signing secret" flag this
+    // package closes over.
+    let webhook_payload_is_safe = event_is_safe(false, false, false, false, true, false);
+    // An email adapter's outbound-failure log accidentally carries the SMTP
+    // credential used to send it - the "smtp credential" flag.
+    let email_failure_log_is_safe = event_is_safe(false, false, false, false, false, true);
+    // A trace span attribute carries a bearer token forwarded from the
+    // inbound request - the "bearer token" flag, distinct from both above.
+    let trace_span_is_safe = event_is_safe(false, false, true, false, false, false);
+    // A real adapter's writer would render each unsafe field as exactly the
+    // fixed marker; this reconstructs that marker byte by byte (the shape a
+    // writer's own bytes_set loop would take) and checks it self-matches.
+    let mut marker = bytes_zeroed(10usize);
+    let mut index = 0usize;
+    while index < 10usize {
+        marker = bytes_set(marker, index, marker_byte(index));
+        index = index + 1usize;
+        index < 10usize
+    }
+    let marker_renders_as_itself = bytes_match_marker(bytes_as_slice(marker));
+    if request_log_is_safe && request_log_field_count_ok && !webhook_payload_is_safe && !email_failure_log_is_safe && !trace_span_is_safe && marker_renders_as_itself && byte_len(bytes_as_slice(marker)) == marker_len() { 0 } else { 1 }
+}

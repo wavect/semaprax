@@ -766,7 +766,7 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
             ] {
                 let cursor_case = json_cursors::is_cursor_case(&manifest);
                 // Each fixture must balance its declared live Bytes bound.
-                let arena = role == "tests" && (cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest)));
+                let arena = role == "tests" && (cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize" | "std.log.redact") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest)));
                 if role == "tests" {
                     for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
                         let present = module_bytes.windows(name.len()).any(|w| w == name.as_bytes());
@@ -1552,3 +1552,6 @@ mod collections_mem_text_backend_audit;
 
 #[path = "standard_library/auth_backend_audit.rs"]
 mod auth_backend_audit;
+
+#[path = "standard_library/log_redact_backend_audit.rs"]
+mod log_redact_backend_audit;

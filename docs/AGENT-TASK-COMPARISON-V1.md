@@ -64,6 +64,30 @@ python3 scripts/agent-task-comparison.py plan \
 The plan is a protocol artifact, not execution evidence. Its claims remain
 `not_observed` and `not_claimed`.
 
+### OpenCode host availability smoke
+
+`scripts/opencode-provider-smoke.py` is a host-owned availability adapter for
+one frozen prompt and one exact OpenCode model identifier. It is deliberately
+outside the trial runner: it creates no candidate, ledger, observation or
+acceptance result, and does not change the runner's `HUMAN_BLOCKED` live-pilot
+gate. The initial non-editing smoke writes an agent-specific
+`permission: {"*":"deny"}` policy only into a dedicated **empty** sandbox,
+then uses OpenCode's documented `run --pure --agent semaprax-smoke --model
+provider/model --format json --dir sandbox` shape. This is a tool policy, not
+an operating-system sandbox claim.
+
+The adapter uses OpenCode's host-managed authentication store; it accepts no
+credential value, environment-variable name, endpoint or automatic fallback.
+It caps the frozen prompt at 65,536 bytes, then captures raw newline-delimited
+JSON events under a timeout and output cap. It fails closed unless an event
+identifies the exact requested model, but that field is OpenCode/provider
+self-report rather than cryptographic attestation. The availability check does
+not infer a usable text completion from undocumented event fields; review the
+archived raw events before making any completion claim. Provider billing/token
+usage remains unknown until a provider-supplied usage event is separately
+archived; it is never estimated from prompt or response bytes. A successful
+availability smoke is not a pilot observation or support claim.
+
 Generate the canonical complete available execution matrix with:
 
 ```sh

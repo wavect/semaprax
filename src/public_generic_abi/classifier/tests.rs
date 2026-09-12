@@ -1042,7 +1042,10 @@ fn a_projected_transfer_unit_is_a_settlement_obligation_mismatch() {
     assert_eq!(error, Refusal::SettlementObligationMismatch);
     assert_eq!(error.code(), SETTLEMENT_OBLIGATION_MISMATCH);
     assert_ne!(error.code(), CLEANUP_INVENTORY_MISMATCH);
-    assert!(!error.diagnostic().message.contains(CLEANUP_INVENTORY_MISMATCH));
+    assert!(!error
+        .diagnostic()
+        .message
+        .contains(CLEANUP_INVENTORY_MISMATCH));
 }
 
 // ---------------------------------------------------------------------

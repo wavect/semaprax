@@ -270,13 +270,19 @@ jobs:
           # available.
           echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
           echo "NODE=$(command -v node)" >> "$GITHUB_ENV"
-          if command -v clang >/dev/null 2>&1; then
-            echo "CC=$(command -v clang)" >> "$GITHUB_ENV"
-          fi
-          if command -v clang++ >/dev/null 2>&1; then
-            echo "CXX=$(command -v clang++)" >> "$GITHUB_ENV"
-          fi
-          clang --version || echo "no C toolchain on $RUNNER_OS"
+          # Hard-fail rather than report absence and continue. The callable
+          # boundary step below executes generated C11 and C++17 consumers
+          # against a compiled provider; without a toolchain those rows would
+          # not run, and a step that reports "no C toolchain" and proceeds
+          # scores that absence as a pass. A missing required toolchain is a
+          # failure, not a skip.
+          command -v clang >/dev/null 2>&1 || {
+            echo "clang is required by this job on $RUNNER_OS" >&2; exit 1; }
+          command -v clang++ >/dev/null 2>&1 || {
+            echo "clang++ is required by this job on $RUNNER_OS" >&2; exit 1; }
+          echo "CC=$(command -v clang)" >> "$GITHUB_ENV"
+          echo "CXX=$(command -v clang++)" >> "$GITHUB_ENV"
+          clang --version
           node --version
       - name: Fetch locked workspace dependencies
         run: cargo fetch --locked

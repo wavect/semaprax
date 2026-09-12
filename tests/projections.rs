@@ -41,6 +41,8 @@ mod portable_indexed_byte_data;
 mod protocol_projection;
 #[path = "projections/public_api_descriptor.rs"]
 mod public_api_descriptor;
+#[path = "projections/public_generic_callable_boundary_ci_wiring.rs"]
+mod public_generic_callable_boundary_ci_wiring;
 #[path = "projections/public_generic_consumers.rs"]
 mod public_generic_consumers;
 #[path = "projections/public_generic_descriptor_carrier_hostile_replay.rs"]

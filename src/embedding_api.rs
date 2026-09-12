@@ -682,7 +682,10 @@ mod tests {
         let source = "module app.warned;\n\nfn main() -> i64\n{\n    42\n}\n";
         let checked = check_source("warned.spx", source);
         assert!(
-            checked.diagnostics.iter().any(|item| item.code == "SPX-S103"),
+            checked
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "SPX-S103"),
             "check_source's own contract regressed; this test assumes it still keeps SPX-S103, \
              got {:?}",
             checked.diagnostics

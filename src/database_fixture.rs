@@ -435,8 +435,11 @@ mod tests {
             vec![Value::Usize(1), Value::Bytes(b"alice".to_vec())],
         )
         .unwrap();
-        db.insert("users", vec![Value::Usize(2), Value::Bytes(b"bob".to_vec())])
-            .unwrap();
+        db.insert(
+            "users",
+            vec![Value::Usize(2), Value::Bytes(b"bob".to_vec())],
+        )
+        .unwrap();
         let updated = db
             .update_column(
                 "users",
@@ -464,7 +467,13 @@ mod tests {
         );
         // No matching key updates zero rows without error.
         assert_eq!(
-            db.update_column("users", 0, &Value::Usize(404), 1, Value::Bytes(b"x".to_vec())),
+            db.update_column(
+                "users",
+                0,
+                &Value::Usize(404),
+                1,
+                Value::Bytes(b"x".to_vec())
+            ),
             Ok(0)
         );
     }
@@ -481,8 +490,14 @@ mod tests {
 
         // A rolled-back update reverts to the pre-transaction snapshot.
         db.begin().unwrap();
-        db.update_column("users", 0, &Value::Usize(1), 1, Value::Bytes(b"bob".to_vec()))
-            .unwrap();
+        db.update_column(
+            "users",
+            0,
+            &Value::Usize(1),
+            1,
+            Value::Bytes(b"bob".to_vec()),
+        )
+        .unwrap();
         db.rollback().unwrap();
         assert_eq!(
             db.select_eq("users", 0, &Value::Usize(1), 1).unwrap(),

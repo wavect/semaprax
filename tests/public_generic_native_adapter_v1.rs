@@ -20,6 +20,13 @@ mod fixture;
 /// exercises from C, executed end to end.
 #[path = "public_generic_native_adapter_v1/rust_calling_consumer.rs"]
 mod rust_calling_consumer;
+/// Issue #162: closes `carrier::settlement_corpus`'s own documented native
+/// exclusion by running the identical base-shape and failure-injection
+/// corpus against `InterpreterProvider`/`WasmProvider` in-process and
+/// native C11 compiled-and-executed at `-O0`/`-O2`, comparing all four
+/// against one independently pinned expectation and against each other.
+#[path = "public_generic_native_adapter_v1/settlement_corpus.rs"]
+mod settlement_corpus;
 /// Issue #160: the shared malformed-input/wrong-binding corpus, executed
 /// identically by the Rust, C11, and C++17 generated calling consumers
 /// above and cross-checked against one manifest

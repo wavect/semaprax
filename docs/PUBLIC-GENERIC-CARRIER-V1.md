@@ -989,16 +989,60 @@ established for the post-call path.
 This adapter and corpus are local, proof-only evidence, not hosted,
 supported, or published evidence. The adapter does not derive a provider
 from a real checked public generic export (blocked on #119); its bound
-endpoint and trusted descriptor bytes are fixtures. The corpus compares
-only `InterpreterProvider` and `WasmProvider`: native C11 has no
-in-process Rust adapter analogous to either (only a C-source renderer,
-`native::template::render_reference_provider`), so it is not a party to
-this corpus, and real compiled-and-executed native (at `-O0`/`-O2`) equality
-against this same case shape, plus generated Rust/TypeScript/C/C++ consumer
-execution, and independent evidence-replay tooling, remain
+endpoint and trusted descriptor bytes are fixtures. `carrier::settlement_corpus`
+itself still compares only `InterpreterProvider` and `WasmProvider` in-process:
+native C11 has no in-process Rust adapter analogous to either (only a
+C-source renderer, `native::template::render_reference_provider`), so it
+cannot be a party to a single in-process test function.
+
+`tests/public_generic_native_adapter_v1/settlement_corpus.rs` (issue #162)
+closes that gap the other way the physical boundary allows: it runs the
+identical 21-case corpus (the 7 base shapes plus the full 14-ordinal
+failure-injection matrix) against `InterpreterProvider`/`WasmProvider`
+in-process AND against native C11 compiled and executed out-of-process at
+both `-O0` and `-O2`, comparing all four engines per case against one
+independently pinned expectation. Running that comparison against the FULL
+corpus — not only the single case that first motivated it — found five
+genuine, confirmed divergences between native and the Rust-based adapters,
+none papered over: (1) interpreter/Wasm's flat-`Bytes` root handle gets its
+own zero-byte physical allocation and a matching trace event pair/triple
+that native's rootless flat-leaf loop never repeats; (2) native releases
+input before recording `ExecutionFinished`, interpreter/Wasm after; (3)
+native's `spx_pg_settle` always records a `TerminalStatus` event, even for
+the earliest bound rejections that interpreter/Wasm reject before
+constructing a `CarrierCallMachine` at all (empty trace on that side); (4)
+at least one failure-injection ordinal (`InputValuePrepared`) fires before
+the target event is recorded on interpreter/Wasm but after it on native, so
+the event is present on one side's trace and absent on the other's; (5)
+native continues past a cleanup failure during input release toward its
+own final settle attempt, incurring one settlement-overwrite count that
+interpreter/Wasm's early return (once `machine.settlement()` is already
+`Some`) never does — the STICKY STATUS itself is unaffected on both sides,
+only the diagnostic overwrite counter differs. All five are cited by exact
+file and function in that test module's own header doc, are adapter
+implementation choices in files this issue does not own, and are filed as a
+follow-up rather than fixed here. Given this, the four-engine comparison
+does not claim full trace-shape/overwrite-count equality across the
+native/Rust-adapter boundary; it compares the full trace and full
+overwrite count exactly only within each family (interpreter vs. Wasm;
+native-`O0` vs. native-`O2` — the latter is real "native optimization
+equivalence" evidence for trace shape and settlement accounting, not only
+for status and result bytes), and compares accept/reject, normalized
+status, live resource counts, and (leading-count-normalized, see below)
+result bytes across all four.
+
+`spx_pg_result_export_v1` (native) also prepends an 8-byte little-endian
+leaf count ahead of the per-leaf frames that
+`InterpreterProvider`/`WasmProvider::result_export` do not — a sixth,
+pre-existing wire-format divergence in the native reference provider,
+likewise outside this issue's lease, normalized (verified, then stripped)
+rather than silently accepted by the cross-engine result-bytes comparison.
+
+Generated Rust/TypeScript/C/C++ consumer execution against this corpus's
+shape and independent evidence-replay tooling remain
 `tests/public_generic_native_adapter_v1/**`'s and
-`tests/public_generic_wasm_adapter_v1/**`'s own leased, outstanding work.
-Peak allocation/handle counters are not tracked by either adapter (only
+`tests/public_generic_wasm_adapter_v1/**`'s own outstanding work.
+Peak allocation/handle counters are not tracked by either in-process adapter (only
 live/current counts are); the corpus compares final (post-terminal) counts
 only. Nested multi-level owned records are not exercised (#119's
 flat-owned-`Bytes`-leaves limitation applies to both adapters equally); the
@@ -1193,12 +1237,17 @@ physical adapter (issue #155)](#core-wasm-physical-adapter-issue-155), and
 three PHYSICAL adapters to emit the normalized trace and perform real
 allocation and release, each against a fixture endpoint only — see each
 section's own nonclaims for its exact, narrower scope. The interpreter and
-Core Wasm adapters are now cross-engine compared directly by
+Core Wasm adapters are cross-engine compared directly, in-process, by
 `carrier::settlement_corpus` (issue #162); native C11 has no in-process
 Rust adapter to include in that same corpus (only a C-source renderer), so
-#156-#159's generated consumers, real compiled-and-executed native
-`-O0`/`-O2` equality, and independent evidence-replay tooling remain
-outstanding.
+`tests/public_generic_native_adapter_v1/settlement_corpus.rs` instead
+compiles and executes it out-of-process at `-O0`/`-O2` against the
+identical corpus, comparing all four engines — see [Nonclaims (reference
+interpreter adapter and cross-engine
+corpus)](#nonclaims-reference-interpreter-adapter-and-cross-engine-corpus)
+for the five genuine divergences that comparison found. #156-#159's
+generated consumers executing against this same corpus shape and
+independent evidence-replay tooling remain outstanding.
 It reuses no v8-v11 carrier bytes and widens none of them. The
 target-mapping
 table above is naming guidance for a future physical specification, not

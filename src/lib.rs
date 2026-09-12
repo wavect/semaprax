@@ -133,6 +133,7 @@ pub mod quality_route;
 pub mod query;
 pub mod region_report;
 pub mod repair;
+pub mod requirement_traceability;
 pub mod review;
 pub mod runtime_status;
 pub mod scoped_tasks;

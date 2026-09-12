@@ -875,8 +875,10 @@ hand-constructed fixture compared byte-for-byte, not
 on its own: a success round trip with two-pass, byte-identical repeated
 export; zero-length and embedded-zero-byte leaves; the exact and
 first-over-bound leaf-count and leaf-byte-size cases; a legal abandon
-(`value_release` before `call`, zeroing every live resource); a stale handle
-from a prior provider generation; the full 0-13 failure-injection matrix
+(`value_release` before `call`, zeroing every live resource); a
+release-without-export and a double release of a result handle, both
+rejected; a stale handle from a prior provider generation; the full 0-13
+failure-injection matrix
 (every non-terminal `TraceLabel`, one fresh provider and call each),
 asserting zero live allocations, zero live bytes, and zero live handles
 after every terminal case; repeated invocation with no state leak between

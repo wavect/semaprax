@@ -185,6 +185,25 @@ fn value_release_before_call_is_a_legal_abandon() {
 }
 
 #[test]
+fn double_release_of_a_result_handle_is_rejected() {
+    // Mirrors `WasmProvider`'s own
+    // `double_release_of_a_result_handle_is_rejected`: releasing a result
+    // handle a second time (or releasing one that was never exported first)
+    // must fail closed rather than double-freeing physical storage. This
+    // adapter's own suite only ever released a result handle after a
+    // successful export, so a release-without-export was never exercised
+    // here on its own either.
+    let mut provider = open_provider();
+    let value = provider.input_prepare(&[b"x".to_vec()]).unwrap();
+    let result = provider.call(value).unwrap();
+    assert_eq!(provider.result_release(result), InterpreterPgStatus::Ok);
+    assert_eq!(
+        provider.result_release(result),
+        InterpreterPgStatus::HandleInvalid
+    );
+}
+
+#[test]
 fn a_stale_handle_from_a_prior_provider_generation_is_rejected() {
     let mut first = open_provider();
     let value = first.input_prepare(&[b"x".to_vec()]).unwrap();

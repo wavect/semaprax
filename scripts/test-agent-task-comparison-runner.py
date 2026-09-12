@@ -168,6 +168,15 @@ class OwnedOracleTests(unittest.TestCase):
             rows, _ = runner.check_owned_signature_migration(candidate, binding, before, after, "unused")
         self.assertEqual({row["id"]: row["outcome"] for row in rows}["meaning"], "failed")
 
+    def test_owned_oracle_rejects_missing_cleanup_projection(self):
+        binding, candidate, before, after = self._candidate()
+        evidence = self._compiler_evidence()
+        evidence["candidate"]["cleanup_projection"] = {"returncode": 1, "stdout": "", "stderr": ""}
+        evidence["baseline"]["cleanup_projection"] = {"returncode": 1, "stdout": "", "stderr": ""}
+        with mock.patch.object(runner, "_owned_compiler_evidence", return_value=evidence):
+            rows, _ = runner.check_owned_signature_migration(candidate, binding, before, after, "unused")
+        self.assertEqual({row["id"]: row["outcome"] for row in rows}["review"], "failed")
+
     def test_owned_oracle_rejects_non_core_authority_mutation(self):
         binding, candidate, before, after = self._candidate()
         app = candidate / "src/app.spx"

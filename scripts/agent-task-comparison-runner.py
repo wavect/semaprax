@@ -415,6 +415,40 @@ def _bounded_command(argv, cwd, limit=131072, timeout=20):
     return {"returncode": child.returncode, "stdout": stdout, "stderr": stderr, "error": failure}
 
 
+def _cleanup_projection(executable, subject_dir):
+    """Ask graph for the exact core bytes plus only a synthetic entrypoint."""
+    core = subject_dir / "src" / "core.spx"
+    prefix = core.read_bytes()
+    with tempfile.NamedTemporaryFile(mode="wb", suffix=".spx", prefix=".owned-cleanup-", dir=subject_dir, delete=False) as handle:
+        projection = Path(handle.name)
+        handle.write(prefix)
+        handle.write(b'\n@id("benchmark.owned.oracle_main")\nfn main() -> i64\n{\n    0\n}\n')
+    try:
+        completed = _bounded_command([str(executable), "graph", projection.name], subject_dir)
+    finally:
+        projection.unlink(missing_ok=True)
+    stdout = completed.pop("stdout", b"")
+    stderr = completed.pop("stderr", b"")
+    return {**completed, "core_sha256": digest(prefix), "stdout": stdout.decode("utf-8", "replace"),
+        "stderr": stderr.decode("utf-8", "replace"), "stdout_sha256": digest(stdout), "stderr_sha256": digest(stderr)}
+
+
+def _cleanup_nodes(record):
+    try:
+        graph = json.loads(record["stdout"])
+    except (KeyError, TypeError, json.JSONDecodeError):
+        return None
+    if graph.get("schema") != "semaprax.graph.v17":
+        return None
+    selected = {node.get("id"): node for node in graph.get("nodes", [])
+                if node.get("id") in {"benchmark.owned.select", "benchmark.owned.call"}}
+    if set(selected) != {"benchmark.owned.select", "benchmark.owned.call"}:
+        return None
+    if any(not isinstance(node.get("cleanup"), dict) or node["cleanup"].get("kind") != "cleanup_plan" for node in selected.values()):
+        return None
+    return {identifier: selected[identifier]["cleanup"] for identifier in sorted(selected)}
+
+
 def _owned_compiler_evidence(candidate_dir, compiler_path, baseline_dir):
     """Collect raw, bounded compiler evidence; fixture events cannot satisfy it."""
     if compiler_path is None:
@@ -432,6 +466,7 @@ def _owned_compiler_evidence(candidate_dir, compiler_path, baseline_dir):
             stderr = completed.pop("stderr", b"")
             result[subject][name] = {**completed, "stdout": stdout.decode("utf-8", "replace"),
                 "stderr": stderr.decode("utf-8", "replace"), "stdout_sha256": digest(stdout), "stderr_sha256": digest(stderr)}
+        result[subject]["cleanup_projection"] = _cleanup_projection(executable, directory)
     result["binary_sha256_after"] = digest(executable.read_bytes())
     result["available"] = result["binary_sha256_before"] == result["binary_sha256_after"]
     return result
@@ -488,9 +523,12 @@ def _owned_review_package(task_binding, candidate_dir, before, after, evidence):
         "compiler": evidence,
         "semantic_delta": "compiler check/test/run/graph outputs are retained verbatim above",
         "ownership_delta": "requested source API is bound below; compiler check admitted the resulting ownership program",
-        "cleanup_delta": "unavailable: the project graph export does not include cleanup-plan vectors",
+        "cleanup_delta": {
+            "baseline": _cleanup_nodes(evidence.get("baseline", {}).get("cleanup_projection", {})),
+            "candidate": _cleanup_nodes(evidence.get("candidate", {}).get("cleanup_projection", {})),
+        },
         "blind_spots": [
-            "ownership and cleanup plans are accepted by this compiler result but are not independently replayed",
+            "cleanup plans are exported from a synthetic-entry projection of the exact core bytes; the projection itself is not the project entry closure",
             "runtime observation is limited to the selected local interpreter result",
             "no deployment, generated-file, external-API, or external-consumer target was supplied",
             "this package is reviewable material; it records no blinded human-review interval",
@@ -538,7 +576,9 @@ def check_owned_signature_migration(candidate_dir, task_binding, before, after, 
         and candidate_post == after and set(after) == set(expected_before)
         and all(before[path] == after[path] for path in expected_before if path != "src/core.spx"))
     package = _owned_review_package(task_binding, candidate_dir, before, after, evidence)
-    review_ok = False  # cleanup-plan deltas are not available from the selected compiler export.
+    cleanup_ok = all(_cleanup_nodes(evidence.get(subject, {}).get("cleanup_projection", {})) is not None
+        and evidence[subject]["cleanup_projection"].get("returncode") == 0 for subject in ("baseline", "candidate"))
+    review_ok = authority_ok and semantic_ok and cleanup_ok and package["changed_paths"] == ["src/core.spx"]
     return [
         {"id": "signature", "outcome": "passed" if signature_ok else "failed"},
         {"id": "identity", "outcome": "passed" if identity_ok else "failed"},

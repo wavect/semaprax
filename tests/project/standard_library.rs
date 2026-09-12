@@ -1513,3 +1513,6 @@ mod provider_outcomes;
 
 #[path = "standard_library/core_num_backend_audit.rs"]
 mod core_num_backend_audit;
+
+#[path = "standard_library/data_encoding_backend_audit.rs"]
+mod data_encoding_backend_audit;

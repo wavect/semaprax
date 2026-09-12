@@ -1,0 +1,22 @@
+module std.jobs.examples;
+use function @id("std.jobs.claim.is_legal") from std.jobs as claim_is_legal;
+use function @id("std.jobs.idempotency.enqueue_outcome") from std.jobs as idempotency_enqueue_outcome;
+use function @id("std.jobs.lease.is_current") from std.jobs as lease_is_current;
+use function @id("std.jobs.retry.next_state_after_outcome") from std.jobs as retry_next_state_after_outcome;
+use function @id("std.jobs.schedule.is_due") from std.jobs as schedule_is_due;
+use function @id("std.jobs.uncertain.reconcile") from std.jobs as uncertain_reconcile;
+
+@id("std.jobs.examples.main")
+fn main() -> i64
+{
+    let key = [7u8, 1u8, 4u8];
+    let same_key = [7u8, 1u8, 4u8];
+    let pending = 0usize;
+    let due = schedule_is_due(100usize, 100usize);
+    let claimed = claim_is_legal(pending, due);
+    let leased = lease_is_current(1usize, 1usize, 5usize, 30usize);
+    let after_success = retry_next_state_after_outcome(0usize, 0u8, 3u8);
+    let after_uncertain_reconciled = uncertain_reconcile(2usize, true, 1u8, 3u8);
+    let enqueue_again = idempotency_enqueue_outcome(true, array_as_slice(key), array_as_slice(same_key));
+    if claimed && leased && after_success == 4usize && after_uncertain_reconciled == 5usize && enqueue_again == 1usize { 0 } else { 1 }
+}

@@ -1,0 +1,218 @@
+module std.jobs.tests;
+use function @id("std.jobs.attempt.is_within_ceiling") from std.jobs as attempt_is_within_ceiling;
+use function @id("std.jobs.begin_execution.is_legal") from std.jobs as begin_execution_is_legal;
+use function @id("std.jobs.budget.reserve_is_legal") from std.jobs as budget_reserve_is_legal;
+use function @id("std.jobs.cancel.is_legal") from std.jobs as cancel_is_legal;
+use function @id("std.jobs.cancel.next_state") from std.jobs as cancel_next_state;
+use function @id("std.jobs.claim.is_legal") from std.jobs as claim_is_legal;
+use function @id("std.jobs.completion.is_legal") from std.jobs as completion_is_legal;
+use function @id("std.jobs.compensation.is_required") from std.jobs as compensation_is_required;
+use function @id("std.jobs.heartbeat.is_legal") from std.jobs as heartbeat_is_legal;
+use function @id("std.jobs.idempotency.enqueue_outcome") from std.jobs as idempotency_enqueue_outcome;
+use function @id("std.jobs.lease.is_current") from std.jobs as lease_is_current;
+use function @id("std.jobs.lease.is_expired") from std.jobs as lease_is_expired;
+use function @id("std.jobs.outcome.kind_is_valid") from std.jobs as outcome_kind_is_valid;
+use function @id("std.jobs.payload.schema_is_compatible") from std.jobs as payload_schema_is_compatible;
+use function @id("std.jobs.retry.backoff_ticks") from std.jobs as retry_backoff_ticks;
+use function @id("std.jobs.retry.next_state_after_outcome") from std.jobs as retry_next_state_after_outcome;
+use function @id("std.jobs.retry.should_dead_letter") from std.jobs as retry_should_dead_letter;
+use function @id("std.jobs.revision.is_known") from std.jobs as revision_is_known;
+use function @id("std.jobs.revision.requires_refusal") from std.jobs as revision_requires_refusal;
+use function @id("std.jobs.schedule.catch_up_next_run") from std.jobs as schedule_catch_up_next_run;
+use function @id("std.jobs.schedule.is_due") from std.jobs as schedule_is_due;
+use function @id("std.jobs.schedule.missed_windows") from std.jobs as schedule_missed_windows;
+use function @id("std.jobs.schedule.recurrence_is_exhausted") from std.jobs as recurrence_is_exhausted;
+use function @id("std.jobs.state.awaits_worker") from std.jobs as state_awaits_worker;
+use function @id("std.jobs.state.holds_lease") from std.jobs as state_holds_lease;
+use function @id("std.jobs.state.is_terminal") from std.jobs as state_is_terminal;
+use function @id("std.jobs.state.is_valid") from std.jobs as state_is_valid;
+use function @id("std.jobs.uncertain.reconcile") from std.jobs as uncertain_reconcile;
+use function @id("std.jobs.uncertain.retry_is_permitted") from std.jobs as uncertain_retry_is_permitted;
+
+// This conformance module is split into many small checks (each a handful of
+// lazy `&&` operands) composed through two thin summary layers rather than
+// one dense chain: `docs/STANDARD-LIBRARY-V1.md`'s cleanup-plan replay budget
+// doubles per lazy `&&`/`||` operand and per `if` branch, so a single long
+// chain of the size a state-machine profile this size needs would exceed the
+// per-function terminal-path bound. Composition through plain function calls
+// does not re-multiply a callee's own already-bounded path count into the
+// caller, so this shape stays cheap at every level.
+@id("std.jobs.tests.states_validity")
+fn states_validity() -> bool
+{
+    state_is_valid(0usize) && state_is_valid(9usize) && !state_is_valid(10usize)
+}
+
+@id("std.jobs.tests.states_terminal")
+fn states_terminal() -> bool
+{
+    state_is_terminal(4usize) && state_is_terminal(6usize) && state_is_terminal(7usize) && state_is_terminal(9usize) && !state_is_terminal(0usize) && !state_is_terminal(2usize) && !state_is_terminal(8usize)
+}
+
+@id("std.jobs.tests.states_lease_and_worker")
+fn states_lease_and_worker() -> bool
+{
+    state_holds_lease(2usize) && state_holds_lease(3usize) && !state_holds_lease(0usize) && state_awaits_worker(0usize) && state_awaits_worker(1usize) && !state_awaits_worker(2usize)
+}
+
+@id("std.jobs.tests.lease_current_and_expired")
+fn lease_current_and_expired() -> bool
+{
+    lease_is_current(3usize, 3usize, 10usize, 20usize) && !lease_is_current(3usize, 4usize, 10usize, 20usize) && !lease_is_current(3usize, 3usize, 20usize, 20usize) && lease_is_expired(20usize, 20usize) && lease_is_expired(21usize, 20usize) && !lease_is_expired(19usize, 20usize)
+}
+
+@id("std.jobs.tests.claim_legality")
+fn claim_legality() -> bool
+{
+    claim_is_legal(0usize, false) && !claim_is_legal(1usize, false) && claim_is_legal(1usize, true) && !claim_is_legal(2usize, true)
+}
+
+@id("std.jobs.tests.begin_execution_legality")
+fn begin_execution_legality() -> bool
+{
+    begin_execution_is_legal(2usize, 5usize, 5usize, 1usize, 10usize) && !begin_execution_is_legal(3usize, 5usize, 5usize, 1usize, 10usize) && !begin_execution_is_legal(2usize, 5usize, 6usize, 1usize, 10usize)
+}
+
+@id("std.jobs.tests.heartbeat_legality")
+fn heartbeat_legality() -> bool
+{
+    heartbeat_is_legal(2usize, 5usize, 5usize, 1usize, 10usize) && heartbeat_is_legal(3usize, 5usize, 5usize, 1usize, 10usize) && !heartbeat_is_legal(2usize, 5usize, 5usize, 10usize, 10usize)
+}
+
+@id("std.jobs.tests.completion_legality")
+fn completion_legality() -> bool
+{
+    completion_is_legal(3usize, 5usize, 5usize, 1usize, 10usize) && !completion_is_legal(2usize, 5usize, 5usize, 1usize, 10usize) && !completion_is_legal(3usize, 5usize, 6usize, 1usize, 10usize) && !completion_is_legal(3usize, 5usize, 5usize, 12usize, 10usize)
+}
+
+@id("std.jobs.tests.outcome_kind_and_ceiling")
+fn outcome_kind_and_ceiling() -> bool
+{
+    outcome_kind_is_valid(0usize) && outcome_kind_is_valid(3usize) && !outcome_kind_is_valid(4usize) && attempt_is_within_ceiling(0u8, 3u8) && attempt_is_within_ceiling(3u8, 3u8) && !attempt_is_within_ceiling(4u8, 3u8) && !retry_should_dead_letter(2u8, 3u8) && retry_should_dead_letter(3u8, 3u8)
+}
+
+@id("std.jobs.tests.retry_next_state")
+fn retry_next_state() -> bool
+{
+    retry_next_state_after_outcome(0usize, 0u8, 3u8) == 4usize && retry_next_state_after_outcome(2usize, 0u8, 3u8) == 6usize && retry_next_state_after_outcome(3usize, 0u8, 3u8) == 8usize && retry_next_state_after_outcome(1usize, 1u8, 3u8) == 5usize && retry_next_state_after_outcome(1usize, 3u8, 3u8) == 9usize && retry_next_state_after_outcome(9usize, 0u8, 3u8) == 6usize
+}
+
+@id("std.jobs.tests.retry_backoff")
+fn retry_backoff() -> bool
+{
+    retry_backoff_ticks(0u8, 5usize, 1000usize) == 5usize && retry_backoff_ticks(1u8, 5usize, 1000usize) == 10usize && retry_backoff_ticks(2u8, 5usize, 1000usize) == 20usize && retry_backoff_ticks(10u8, 5usize, 100usize) == 100usize && retry_backoff_ticks(3u8, 5000usize, 1000usize) == 1000usize
+}
+
+@id("std.jobs.tests.idempotency_enqueue")
+fn idempotency_enqueue() -> bool
+{
+    let a = [1u8, 4u8, 3u8];
+    let same = [1u8, 4u8, 3u8];
+    let different = [1u8, 4u8, 2u8];
+    idempotency_enqueue_outcome(false, array_as_slice(a), array_as_slice(different)) == 0usize && idempotency_enqueue_outcome(true, array_as_slice(a), array_as_slice(same)) == 1usize && idempotency_enqueue_outcome(true, array_as_slice(a), array_as_slice(different)) == 2usize
+}
+
+@id("std.jobs.tests.revision_checks")
+fn revision_checks() -> bool
+{
+    revision_is_known(1u8, 5u8) && revision_is_known(5u8, 5u8) && !revision_is_known(0u8, 5u8) && !revision_is_known(6u8, 5u8) && revision_requires_refusal(6u8, 5u8) && !revision_requires_refusal(5u8, 5u8)
+}
+
+@id("std.jobs.tests.payload_schema")
+fn payload_schema() -> bool
+{
+    let expected = [3u8, 4u8, 1u8];
+    let same = [3u8, 4u8, 1u8];
+    let different = [3u8, 4u8, 2u8];
+    payload_schema_is_compatible(array_as_slice(expected), array_as_slice(same)) && !payload_schema_is_compatible(array_as_slice(expected), array_as_slice(different))
+}
+
+@id("std.jobs.tests.schedule_due_and_missed")
+fn schedule_due_and_missed() -> bool
+{
+    schedule_is_due(100usize, 100usize) && schedule_is_due(101usize, 100usize) && !schedule_is_due(99usize, 100usize) && schedule_missed_windows(100usize, 100usize, 10usize) == 0usize && schedule_missed_windows(135usize, 100usize, 10usize) == 3usize
+}
+
+@id("std.jobs.tests.schedule_catch_up_and_recurrence")
+fn schedule_catch_up_and_recurrence() -> bool
+{
+    schedule_catch_up_next_run(135usize, 100usize, 10usize, 100usize) == 140usize && schedule_catch_up_next_run(999usize, 100usize, 10usize, 2usize) == 130usize && recurrence_is_exhausted(5usize, 5usize) && !recurrence_is_exhausted(4usize, 5usize)
+}
+
+@id("std.jobs.tests.cancel_legality")
+fn cancel_legality() -> bool
+{
+    cancel_is_legal(0usize) && cancel_is_legal(1usize) && cancel_is_legal(2usize) && cancel_is_legal(5usize) && !cancel_is_legal(3usize) && !cancel_is_legal(4usize)
+}
+
+@id("std.jobs.tests.cancel_transitions")
+fn cancel_transitions() -> bool
+{
+    cancel_next_state(0usize) == 7usize && cancel_next_state(3usize) == 3usize && cancel_next_state(20usize) == 6usize
+}
+
+@id("std.jobs.tests.compensation")
+fn compensation() -> bool
+{
+    compensation_is_required(true, 7usize) && compensation_is_required(true, 6usize) && !compensation_is_required(false, 7usize) && !compensation_is_required(true, 4usize)
+}
+
+@id("std.jobs.tests.uncertain_retry_permitted")
+fn uncertain_retry_permitted() -> bool
+{
+    uncertain_retry_is_permitted(true, 0u8, 3u8) && !uncertain_retry_is_permitted(false, 0u8, 3u8) && !uncertain_retry_is_permitted(true, 3u8, 3u8)
+}
+
+@id("std.jobs.tests.uncertain_reconcile_checks")
+fn uncertain_reconcile_checks() -> bool
+{
+    uncertain_reconcile(0usize, false, 0u8, 3u8) == 4usize && uncertain_reconcile(1usize, false, 0u8, 3u8) == 6usize && uncertain_reconcile(2usize, true, 0u8, 3u8) == 5usize && uncertain_reconcile(2usize, false, 0u8, 3u8) == 8usize && uncertain_reconcile(2usize, true, 3u8, 3u8) == 8usize
+}
+
+@id("std.jobs.tests.budget")
+fn budget() -> bool
+{
+    budget_reserve_is_legal(0usize, 10usize, 10usize) && budget_reserve_is_legal(5usize, 5usize, 10usize) && !budget_reserve_is_legal(5usize, 6usize, 10usize) && !budget_reserve_is_legal(11usize, 0usize, 10usize)
+}
+
+@id("std.jobs.tests.summary_states_and_lifecycle")
+fn summary_states_and_lifecycle() -> bool
+{
+    states_validity() && states_terminal() && states_lease_and_worker() && lease_current_and_expired() && claim_legality()
+}
+
+@id("std.jobs.tests.summary_leased_execution")
+fn summary_leased_execution() -> bool
+{
+    begin_execution_legality() && heartbeat_legality() && completion_legality() && outcome_kind_and_ceiling() && retry_next_state()
+}
+
+@id("std.jobs.tests.summary_retry_and_descriptors")
+fn summary_retry_and_descriptors() -> bool
+{
+    retry_backoff() && idempotency_enqueue() && revision_checks() && payload_schema() && schedule_due_and_missed()
+}
+
+@id("std.jobs.tests.summary_schedule_and_cancel")
+fn summary_schedule_and_cancel() -> bool
+{
+    schedule_catch_up_and_recurrence() && cancel_legality() && cancel_transitions() && compensation()
+}
+
+@id("std.jobs.tests.summary_uncertain_and_budget")
+fn summary_uncertain_and_budget() -> bool
+{
+    uncertain_retry_permitted() && uncertain_reconcile_checks() && budget()
+}
+
+@id("std.jobs.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if summary_states_and_lifecycle() { 0 } else { 1 };
+    failed = failed + if summary_leased_execution() { 0 } else { 2 };
+    failed = failed + if summary_retry_and_descriptors() { 0 } else { 4 };
+    failed = failed + if summary_schedule_and_cancel() { 0 } else { 8 };
+    failed = failed + if summary_uncertain_and_budget() { 0 } else { 16 };
+    failed
+}

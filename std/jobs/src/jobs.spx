@@ -1,0 +1,226 @@
+module std.jobs;
+use function @id("std.bytes.equals") from std.bytes as bytes_equal;
+
+@id("std.jobs.state.is_valid")
+fn state_is_valid(state: usize) -> bool
+{
+    state <= 9usize
+}
+
+@id("std.jobs.state.is_terminal")
+fn state_is_terminal(state: usize) -> bool
+{
+    state == 4usize || state == 6usize || state == 7usize || state == 9usize
+}
+
+@id("std.jobs.state.holds_lease")
+fn state_holds_lease(state: usize) -> bool
+{
+    state == 2usize || state == 3usize
+}
+
+@id("std.jobs.state.awaits_worker")
+fn state_awaits_worker(state: usize) -> bool
+{
+    state == 0usize || state == 1usize
+}
+
+@id("std.jobs.lease.is_current")
+fn lease_is_current(lease_generation: usize, job_generation: usize, now_tick: usize, deadline_tick: usize) -> bool
+{
+    lease_generation == job_generation && now_tick < deadline_tick
+}
+
+@id("std.jobs.lease.is_expired")
+fn lease_is_expired(now_tick: usize, deadline_tick: usize) -> bool
+{
+    now_tick >= deadline_tick
+}
+
+@id("std.jobs.claim.is_legal")
+fn claim_is_legal(state: usize, is_due: bool) -> bool
+{
+    state == 0usize || state == 1usize && is_due
+}
+
+@id("std.jobs.begin_execution.is_legal")
+fn begin_execution_is_legal(state: usize, lease_generation: usize, job_generation: usize, now_tick: usize, deadline_tick: usize) -> bool
+{
+    state == 2usize && lease_is_current(lease_generation, job_generation, now_tick, deadline_tick)
+}
+
+@id("std.jobs.heartbeat.is_legal")
+fn heartbeat_is_legal(state: usize, lease_generation: usize, job_generation: usize, now_tick: usize, deadline_tick: usize) -> bool
+{
+    state_holds_lease(state) && lease_is_current(lease_generation, job_generation, now_tick, deadline_tick)
+}
+
+@id("std.jobs.completion.is_legal")
+fn completion_is_legal(state: usize, lease_generation: usize, job_generation: usize, now_tick: usize, deadline_tick: usize) -> bool
+{
+    state == 3usize && lease_is_current(lease_generation, job_generation, now_tick, deadline_tick)
+}
+
+@id("std.jobs.outcome.kind_is_valid")
+fn outcome_kind_is_valid(kind: usize) -> bool
+{
+    kind <= 3usize
+}
+
+@id("std.jobs.attempt.is_within_ceiling")
+fn attempt_is_within_ceiling(attempt: u8, max_attempts: u8) -> bool
+{
+    attempt <= max_attempts
+}
+
+@id("std.jobs.retry.should_dead_letter")
+fn retry_should_dead_letter(attempt: u8, max_attempts: u8) -> bool
+{
+    attempt >= max_attempts
+}
+
+// `kind` is one of: 0 success, 1 retryable failure, 2 permanent failure, 3
+// uncertain (a post-publication I/O failure whose outcome the caller cannot
+// observe; see docs/DURABLE-JOBS-V1.md's "delivery uncertainty" section for
+// exactly how far this decision procedure goes and where it stops).
+@id("std.jobs.retry.next_state_after_outcome")
+fn retry_next_state_after_outcome(kind: usize, attempt: u8, max_attempts: u8) -> usize
+    ensures result <= 9usize
+{
+    if !outcome_kind_is_valid(kind) { 6usize } else { if kind == 0usize { 4usize } else { if kind == 2usize { 6usize } else { if kind == 3usize { 8usize } else { if retry_should_dead_letter(attempt, max_attempts) { 9usize } else { 5usize } } } } }
+}
+
+// Bounded exponential backoff: doubles `base_ticks` once per attempt already
+// made, capped at `max_ticks` so a runaway attempt counter can never produce
+// an unbounded wait — "Unbounded retries or schedules" is explicitly out of
+// scope for this profile.
+@id("std.jobs.retry.backoff_ticks")
+fn retry_backoff_ticks(attempt: u8, base_ticks: usize, max_ticks: usize) -> usize
+    ensures result <= max_ticks
+{
+    let mut ticks = if base_ticks > max_ticks { max_ticks } else { base_ticks };
+    let mut remaining = attempt;
+    while remaining > 0u8 && ticks < max_ticks {
+        ticks = if ticks > max_ticks - ticks { max_ticks } else { ticks + ticks };
+        remaining = remaining - 1u8;
+        remaining > 0u8 && ticks < max_ticks
+    }
+    ticks
+}
+
+// 0 = fresh (no existing job for this idempotency key; enqueue creates one),
+// 1 = duplicate (the key already names a job whose stored payload descriptor
+// matches the candidate; enqueue returns the existing job rather than
+// creating a second one), 2 = conflict (the key already names a job whose
+// descriptor differs; enqueue is a closed refusal, never a silent merge).
+@id("std.jobs.idempotency.enqueue_outcome")
+fn idempotency_enqueue_outcome(key_exists: bool, existing_descriptor: borrow Slice<u8>, candidate_descriptor: borrow Slice<u8>) -> usize
+    ensures result <= 2usize
+{
+    if !key_exists { 0usize } else { if bytes_equal(existing_descriptor, candidate_descriptor) { 1usize } else { 2usize } }
+}
+
+// A job is bound to the handler/schema revision that was current at enqueue
+// time. `current_revision` only ever grows (like `std.db.migration`'s
+// gapless ledger), so a bound revision is known exactly when it lies in
+// `1..=current_revision`; anything else (including `0`, never assigned) is
+// refused rather than guessed at.
+@id("std.jobs.revision.is_known")
+fn revision_is_known(job_bound_revision: u8, current_revision: u8) -> bool
+{
+    job_bound_revision >= 1u8 && job_bound_revision <= current_revision
+}
+
+@id("std.jobs.revision.requires_refusal")
+fn revision_requires_refusal(job_bound_revision: u8, current_revision: u8) -> bool
+{
+    !revision_is_known(job_bound_revision, current_revision)
+}
+
+@id("std.jobs.payload.schema_is_compatible")
+fn payload_schema_is_compatible(expected_descriptor: borrow Slice<u8>, actual_descriptor: borrow Slice<u8>) -> bool
+{
+    bytes_equal(expected_descriptor, actual_descriptor)
+}
+
+@id("std.jobs.schedule.is_due")
+fn schedule_is_due(now_tick: usize, next_run_tick: usize) -> bool
+{
+    now_tick >= next_run_tick
+}
+
+@id("std.jobs.schedule.missed_windows")
+fn schedule_missed_windows(now_tick: usize, next_run_tick: usize, interval_tick: usize) -> usize
+    requires interval_tick > 0usize
+{
+    if now_tick <= next_run_tick { 0usize } else { (now_tick - next_run_tick) / interval_tick }
+}
+
+// The catch-up policy this profile implements is "skip missed": a recurring
+// job that was due several windows ago fires once for the most recent due
+// window, not once per missed window, and `max_catch_up` bounds how far a
+// long-dead clock can jump the next run in one step.
+@id("std.jobs.schedule.catch_up_next_run")
+fn schedule_catch_up_next_run(now_tick: usize, next_run_tick: usize, interval_tick: usize, max_catch_up: usize) -> usize
+    requires interval_tick > 0usize
+{
+    let missed = schedule_missed_windows(now_tick, next_run_tick, interval_tick);
+    let bounded_missed = if missed > max_catch_up { max_catch_up } else { missed };
+    next_run_tick + interval_tick * (bounded_missed + 1usize)
+}
+
+@id("std.jobs.schedule.recurrence_is_exhausted")
+fn recurrence_is_exhausted(occurrences_run: usize, max_occurrences: usize) -> bool
+{
+    occurrences_run >= max_occurrences
+}
+
+@id("std.jobs.cancel.is_legal")
+fn cancel_is_legal(state: usize) -> bool
+{
+    state == 0usize || state == 1usize || state == 2usize || state == 5usize
+}
+
+@id("std.jobs.cancel.next_state")
+fn cancel_next_state(state: usize) -> usize
+    ensures result <= 9usize
+{
+    if cancel_is_legal(state) { 7usize } else { if state_is_valid(state) { state } else { 6usize } }
+}
+
+// A cancellation reaching a job that already started running (observed by
+// `ever_ran`) may have left a partial external effect behind; a permanent
+// failure that already started running is in the same position. Neither
+// case can be reasoned about further at this pure layer: `true` means "a
+// compensation hook must run", never that this profile ran one.
+@id("std.jobs.compensation.is_required")
+fn compensation_is_required(ever_ran: bool, final_state: usize) -> bool
+{
+    ever_ran && (final_state == 6usize || final_state == 7usize)
+}
+
+@id("std.jobs.uncertain.retry_is_permitted")
+fn uncertain_retry_is_permitted(is_idempotent_handler: bool, attempt: u8, max_attempts: u8) -> bool
+{
+    is_idempotent_handler && !retry_should_dead_letter(attempt, max_attempts)
+}
+
+// `decision` is the explicit, human- or operator-supplied reconciliation of
+// an `UNCERTAIN` outcome: 0 confirmed succeeded, 1 confirmed failed, 2 retry.
+// A retry decision only proceeds automatically when the handler is declared
+// idempotent and the attempt ceiling is not yet reached; otherwise the job
+// stays `UNCERTAIN` rather than being silently retried or silently
+// dead-lettered — "no automatic retry of an uncertain non-idempotent
+// operation" is this function's central refusal.
+@id("std.jobs.uncertain.reconcile")
+fn uncertain_reconcile(decision: usize, is_idempotent_handler: bool, attempt: u8, max_attempts: u8) -> usize
+    ensures result <= 9usize
+{
+    if decision == 0usize { 4usize } else { if decision == 1usize { 6usize } else { if decision == 2usize && uncertain_retry_is_permitted(is_idempotent_handler, attempt, max_attempts) { 5usize } else { 8usize } } }
+}
+
+@id("std.jobs.budget.reserve_is_legal")
+fn budget_reserve_is_legal(reserved_cost: usize, this_attempt_cost: usize, max_cost: usize) -> bool
+{
+    reserved_cost <= max_cost && this_attempt_cost <= max_cost - reserved_cost
+}

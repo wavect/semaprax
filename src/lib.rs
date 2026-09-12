@@ -177,6 +177,7 @@ mod graph_cleanup;
 mod graph_loan;
 pub(crate) mod host_io_ops;
 mod host_ownership;
+pub mod job_fixture;
 pub(crate) mod network_io_ops;
 pub mod network_provider;
 mod prelude;

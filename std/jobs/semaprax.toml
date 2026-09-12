@@ -1,0 +1,17 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-jobs"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.jobs.examples"
+sources = ["src/examples.spx", "src/jobs.spx", "src/tests.spx"]
+tests = ["std.jobs.tests"]
+
+[exports]
+web = ["std.jobs.payload.schema_is_compatible"]
+
+[dependencies]
+std.bytes = "=0.1.0"

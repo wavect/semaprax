@@ -4,12 +4,16 @@
 //! corpus, and that a deliberately wrong candidate output is REJECTED by the
 //! acceptance comparison rather than silently accepted.
 //!
-//! This module owns no catalog-normalizer application logic of its own.
-//! `catalog-normalizer` is not implemented in Semaprax here; that is a
-//! separate, later issue (SPX-AI-025, GitHub issue #124). This module exists
-//! only to prove the frozen oracle under `tests/oracle/catalog_normalizer/`
-//! is real, executable, and discriminating, per the worker contract's
-//! negative-control requirement.
+//! This module owns no catalog-normalizer application logic of its own; the
+//! CNORM-010/011/012 slice it cross-checks below lives entirely under
+//! `examples/catalog-normalizer-project/` (SPX-AI-025, GitHub issue #124).
+//! This module's job is to prove the frozen oracle under
+//! `tests/oracle/catalog_normalizer/` is real, executable, and
+//! discriminating, per the worker contract's negative-control requirement,
+//! and -- in the tests below `mod semaprax_candidate` -- that the small
+//! implemented slice of the Semaprax candidate actually agrees with a live
+//! run of that same independent oracle rather than only with frozen
+//! fixture bytes copied into the candidate's own test literals.
 //! `docs/CATALOG-NORMALIZER-ORACLE-V1.md` is the normative specification the
 //! oracle implements; that document and `tests/oracle/catalog_normalizer/`
 //! are frozen and outside this repository's implementation-agent write
@@ -212,4 +216,190 @@ fn hardcoding_the_published_example_fails_a_hidden_case() {
         "a candidate that always returns the visible published example's output \
          must be rejected on this hidden input"
     );
+}
+
+/// Cross-checks the Semaprax candidate's actual implemented slice
+/// (`examples/catalog-normalizer-project`, CNORM-010/011/012 -- decode
+/// validity, the 256-byte label length bound, and ASCII boundary trim)
+/// against a LIVE run of the independent oracle, rather than only against
+/// frozen fixture bytes copied into the candidate's own `.spx` test
+/// literals. The five raw JSON string tokens and their expected
+/// decoded/trimmed bytes below are the exact literals from
+/// `examples/catalog-normalizer-project/src/tests.spx` (kept in sync by
+/// name in each case's doc comment). What is new here is wrapping each
+/// token in a complete, schema-valid oracle record and running it through
+/// `oracle.py` itself, so the "expected" bytes are proven to be what the
+/// independent oracle computes today -- not merely what a frozen JSON file
+/// says, and not a prior session's one-off manual cross-check that was
+/// never committed as a regression.
+mod semaprax_candidate {
+    use super::run_oracle;
+    use std::path::Path;
+    use std::process::Command;
+
+    /// Wraps one label token (a complete, possibly deliberately malformed,
+    /// JSON string literal including its own quotes) in a minimal
+    /// schema-valid oracle record. `label_last` places `"label"` as the
+    /// final member so a deliberately unterminated token consumes the rest
+    /// of the line and nothing beyond it can be mistaken for another key's
+    /// closing quote.
+    fn record_body(label_token: &[u8], label_last: bool) -> Vec<u8> {
+        let mut body = Vec::new();
+        body.extend_from_slice(b"{\"id\":\"r\"");
+        if !label_last {
+            body.extend_from_slice(b",\"label\":");
+            body.extend_from_slice(label_token);
+        }
+        body.extend_from_slice(b",\"quantity\":1");
+        if label_last {
+            body.extend_from_slice(b",\"label\":");
+            body.extend_from_slice(label_token);
+        }
+        body.extend_from_slice(b"}\n");
+        body
+    }
+
+    /// Runs one label token through the independent oracle inside a full
+    /// record and returns the oracle's own decoded `label` field bytes from
+    /// its success envelope.
+    fn oracle_label(label_token: &[u8]) -> Vec<u8> {
+        let body = record_body(label_token, false);
+        let stdout = run_oracle(&body, None, false);
+        let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap_or_else(|error| {
+            panic!(
+                "parse oracle stdout as JSON: {error}\nstdout: {}",
+                String::from_utf8_lossy(&stdout)
+            )
+        });
+        assert_eq!(
+            value["status"],
+            "ok",
+            "expected the oracle to accept this record; stdout: {}",
+            String::from_utf8_lossy(&stdout)
+        );
+        value["records"][0]["label"]
+            .as_str()
+            .unwrap_or_else(|| {
+                panic!(
+                    "records[0].label must be a string; stdout: {}",
+                    String::from_utf8_lossy(&stdout)
+                )
+            })
+            .as_bytes()
+            .to_vec()
+    }
+
+    /// Proves the given raw JSON string token, wrapped as a record whose
+    /// label is deliberately unterminated, is rejected by the independent
+    /// oracle with the same `malformed_json` category the frozen spec
+    /// assigns to CNORM-010 decode failures.
+    fn assert_oracle_rejects_as_malformed(label_token: &[u8]) {
+        let body = record_body(label_token, true);
+        let stdout = run_oracle(&body, None, false);
+        let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap_or_else(|error| {
+            panic!(
+                "parse oracle stdout as JSON: {error}\nstdout: {}",
+                String::from_utf8_lossy(&stdout)
+            )
+        });
+        assert_eq!(
+            value["status"],
+            "error",
+            "stdout: {}",
+            String::from_utf8_lossy(&stdout)
+        );
+        assert_eq!(
+            value["category"],
+            "malformed_json",
+            "stdout: {}",
+            String::from_utf8_lossy(&stdout)
+        );
+    }
+
+    /// "basic-single-record" from `tests.spx`: `"hello"` -> unchanged (no
+    /// boundary whitespace to trim).
+    #[test]
+    fn basic_label_matches_the_live_oracle() {
+        let token = [34u8, 104, 101, 108, 108, 111, 34];
+        let expected = [104u8, 101, 108, 108, 111];
+        assert_eq!(oracle_label(&token), expected);
+    }
+
+    /// "label-trim-boundary-whitespace" from `tests.spx`: a `\t` escape
+    /// trims exactly like a raw space on both boundaries, interior
+    /// whitespace untouched.
+    #[test]
+    fn trim_boundary_whitespace_matches_the_live_oracle() {
+        let token = [
+            34u8, 32, 92, 116, 32, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 32, 92,
+            116, 32, 34,
+        ];
+        let expected = [104u8, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100];
+        assert_eq!(oracle_label(&token), expected);
+    }
+
+    /// "label-internal-whitespace-preserved" from `tests.spx`: interior
+    /// whitespace is never touched.
+    #[test]
+    fn internal_whitespace_preserved_matches_the_live_oracle() {
+        let token = [
+            34u8, 104, 101, 108, 108, 111, 32, 32, 32, 32, 119, 111, 114, 108, 100, 34,
+        ];
+        let expected = [
+            104u8, 101, 108, 108, 111, 32, 32, 32, 32, 119, 111, 114, 108, 100,
+        ];
+        assert_eq!(oracle_label(&token), expected);
+    }
+
+    /// "label-multibyte-unicode-no-normalization" from `tests.spx`: raw
+    /// multi-byte UTF-8 passes through unchanged, no case folding or
+    /// Unicode normalization.
+    #[test]
+    fn multibyte_unicode_no_normalization_matches_the_live_oracle() {
+        let token = [
+            34u8, 32, 32, 67, 97, 102, 195, 169, 32, 83, 84, 82, 65, 83, 83, 69, 32, 195, 156, 66,
+            69, 82, 32, 32, 34,
+        ];
+        let expected = [
+            67u8, 97, 102, 195, 169, 32, 83, 84, 82, 65, 83, 83, 69, 32, 195, 156, 66, 69, 82,
+        ];
+        assert_eq!(oracle_label(&token), expected);
+    }
+
+    /// "test-unterminated-string-rejected" from `tests.spx`: an unterminated
+    /// string is a decode failure both in the Semaprax candidate's own
+    /// `token_valid` and in a full record run through the independent
+    /// oracle.
+    #[test]
+    fn unterminated_string_is_rejected_by_the_live_oracle_too() {
+        let token = [34u8, 110, 101, 118, 101, 114, 32, 99, 108, 111, 115, 101, 115];
+        assert_oracle_rejects_as_malformed(&token);
+    }
+
+    /// Runs the actual compiled Semaprax candidate's own test suite
+    /// (`examples/catalog-normalizer-project`, `semaprax test`) so the five
+    /// cases above are checked against real interpreter execution of the
+    /// candidate, not only against source-level verification. This is the
+    /// evidence that the CNORM-010/011/012 slice does not merely parse and
+    /// verify but actually runs and returns zero failures.
+    #[test]
+    fn the_semaprax_candidate_project_test_suite_passes() {
+        let root =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/catalog-normalizer-project");
+        let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .args(["test", "semaprax.toml"])
+            .current_dir(&root)
+            .output()
+            .expect("run semaprax test on examples/catalog-normalizer-project");
+        let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+        let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+        assert!(
+            output.status.success(),
+            "semaprax test failed on examples/catalog-normalizer-project:\nstdout: {stdout}\nstderr: {stderr}"
+        );
+        assert!(
+            stdout.contains("project tests passed"),
+            "unexpected stdout: {stdout}"
+        );
+    }
 }

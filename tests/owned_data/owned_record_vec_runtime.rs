@@ -3,16 +3,22 @@
 //!
 //! The element is the catalog-normalizer payload shape — two owned `Bytes`
 //! leaves and one Copy scalar — inside the compiler-owned `Vec` carrier. The
-//! reference interpreter executes it per element; native C11 (`SPX-B115`) and
-//! Core Wasm (`SPX-W125`) do not implement the carrier yet and refuse the same
-//! source up front with their own stable diagnostic. Backend agreement here is
-//! therefore agreement-by-refusal for the two targets that claim nothing, and
-//! real executed values for the one that does.
+//! reference interpreter and the native C11 backend both execute it per
+//! element and must publish the same value or select the same status; Core
+//! Wasm (`SPX-W125`) does not implement the carrier yet and refuses the same
+//! source up front with its own stable diagnostic. Backend agreement here is
+//! therefore real executed values for the two targets that claim the feature,
+//! and agreement-by-refusal for the one that claims nothing.
 //!
 //! Every case below is a real `.spx` program driven through `semaprax::check`
-//! and `interpreter::interpret`, not a hand-built plan.
+//! and `interpreter::interpret`, and — for the native lane — through
+//! `codegen::emit_c`, `clang -O0`/`-O2` and an executed binary, not a
+//! hand-built plan.
 
-use semaprax::{codegen, hir, interpreter, wasm};
+use semaprax::{hir, interpreter, wasm};
+
+#[path = "owned_record_vec_runtime/native.rs"]
+mod native;
 
 /// The admitted element declaration, shared by every fixture.
 const DECLARATION: &str = r#"module app.catalog;
@@ -179,26 +185,68 @@ fn a_selected_vec_failure_survives_the_cleanup_that_follows_it() {
     assert_eq!(interpret_once("sticky-widened", &widened), Ok(29));
 }
 
-/// Backend agreement while conformance is partial. Native C11 and Core Wasm do
-/// not implement this carrier, so they refuse the exact same source the
-/// interpreter executes, each with its own stable diagnostic, rather than
-/// emitting a carrier they cannot lower. When either lifts, it must agree with
-/// the interpreter's values above, not merely stop refusing.
+/// Backend agreement while conformance is partial. Core Wasm does not
+/// implement this carrier, so it refuses the exact same source the interpreter
+/// and the native lane execute, with its own stable diagnostic, rather than
+/// emitting a carrier it cannot lower. When it lifts, it must agree with the
+/// interpreter's values above, not merely stop refusing.
 #[test]
-fn native_and_wasm_refuse_the_same_source_the_interpreter_executes() {
+fn wasm_still_refuses_the_same_source_the_interpreter_and_native_execute() {
     for (name, body) in [
         ("accumulate", ACCUMULATE),
         ("empty", EMPTY),
         ("singleton", SINGLETON_AT_CAPACITY),
     ] {
         let program = resolved(&source(body));
-        let native = codegen::emit_hir_c(&program)
-            .err()
-            .unwrap_or_else(|| panic!("native must refuse `{name}`"));
-        assert_eq!(native.code, "SPX-B115", "fixture `{name}`");
         let emitted = wasm::emit_resolved_module(&program)
             .err()
             .unwrap_or_else(|| panic!("Wasm must refuse `{name}`"));
         assert_eq!(emitted.code, "SPX-W125", "fixture `{name}`");
     }
+}
+
+/// The native C11 lane executes the whole corpus, at `-O0` and `-O2`, and must
+/// publish exactly what the reference interpreter publishes above. Each case
+/// additionally proves zero live heap allocations and zero live carrier
+/// authority entries after four consecutive invocations, on success and after
+/// injected failure alike.
+#[test]
+fn native_c11_executes_the_owned_record_collection_corpus() {
+    let cases: [(&str, Result<i64, (&str, u32)>); 7] = [
+        (ACCUMULATE, Ok(29)),
+        (EMPTY, Ok(29)),
+        (SINGLETON_AT_CAPACITY, Ok(29)),
+        (PUSH_AT_FULL_CAPACITY, Err(("semaprax.vec.v1", 1))),
+        (OVERSIZED_OWNED_PAYLOAD, Err(("semaprax.vec.v1", 3))),
+        (
+            &ACCUMULATE.replace("fn main()->i64 {", "fn main()->i64 requires false {"),
+            Err(("semaprax.contract.v1", 1)),
+        ),
+        (
+            &ACCUMULATE.replace("fn main()->i64 {", "fn main()->i64 ensures false {"),
+            Err(("semaprax.contract.v1", 2)),
+        ),
+    ];
+    for (body, expected) in cases {
+        let program = source(body);
+        match expected {
+            Ok(value) => native::run_native(&program, "", 0, value, "none"),
+            Err((domain, code)) => native::run_native(&program, domain, code, 0, "none"),
+        }
+    }
+}
+
+/// Allocation failure injected at the one site this profile allocates a
+/// carrier: the element array. It selects the profile's own allocation
+/// status, publishes no value, and leaves nothing live.
+///
+/// A refused owned-`Bytes` leaf allocation is deliberately not a case here:
+/// `byte_ops` keeps physical allocation failure invariant fail-stop rather
+/// than a selected status, so injecting it would assert an abort, not a
+/// settlement. The staged-element settlement it would probe is covered by
+/// `PUSH_AT_FULL_CAPACITY` above, whose refused push has a fully constructed
+/// two-leaf element live at the moment of failure.
+#[test]
+fn native_c11_settles_injected_carrier_allocation_failure() {
+    native::run_native(&source(ACCUMULATE), "semaprax.vec.v1", 3, 0, "carrier");
 }

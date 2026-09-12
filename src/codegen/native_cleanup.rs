@@ -229,7 +229,7 @@ pub(crate) fn classify<'a>(
             &bytes_lifecycle
         } else if crate::iterator_ops::is_iter(&slot.ty) {
             &iter_lifecycle
-        } else if crate::cleanup::is_owned_bounded_vec_type(&slot.ty) {
+        } else if crate::codegen::native_emit::is_native_owned_vec_type(program, &slot.ty) {
             &vec_lifecycle
         } else if crate::cleanup::is_owned_bounded_box_type(&slot.ty) {
             &box_lifecycle
@@ -267,7 +267,7 @@ pub(crate) fn classify<'a>(
                     "compiler-owned Bytes slot has a noncanonical lifecycle",
                 ));
             }
-        } else if crate::cleanup::is_owned_bounded_vec_type(&slot.ty) {
+        } else if crate::codegen::native_emit::is_native_owned_vec_type(program, &slot.ty) {
             if lifecycle.as_str() != crate::cleanup::VEC_DROP_LIFECYCLE_ID {
                 return Err(unsupported(
                     function,

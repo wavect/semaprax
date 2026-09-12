@@ -26,12 +26,12 @@
 //! operation surface (`vec_with_capacity`, `vec_push`, `vec_len`,
 //! `vec_capacity`, `vec_clear`), for the carrier predicate the front end and
 //! cleanup consult, and for the refusal the execution targets that do not yet
-//! implement the carrier raise. The reference interpreter executes the
-//! profile with real per-element record storage (SPX-AI-020); native C11
-//! (`SPX-B115`) and Wasm (`SPX-W125`) still refuse it up front with a stable
-//! diagnostic rather than emitting a carrier they cannot lower, so the
-//! backends agree by refusal until their conformance lands. `Box` of this
-//! element is not admitted.
+//! implement the carrier raise. The reference interpreter and the native C11
+//! backend both execute the profile with real per-element record storage
+//! (SPX-AI-020); Wasm (`SPX-W125`) still refuses it up front with a stable
+//! diagnostic rather than emitting a carrier it cannot lower, so the backends
+//! agree by refusal there until its conformance lands. `Box` of this element
+//! is not admitted.
 
 use super::*;
 
@@ -94,6 +94,43 @@ fn admits_field_shape(fields: &[ResolvedFieldDeclaration]) -> bool {
     bytes_fields == 2 && copy_fields == 1
 }
 
+/// The admitted element's field identities, re-derived from declaration facts.
+///
+/// The admission rule is a field-type *multiset*, so declaration order is the
+/// only canonical order a target can use to place the two owned `Bytes` leaves
+/// beside each other. This accessor returns them in that order together with
+/// the one Copy-scalar field, so the native lane places an element the same
+/// way on every build rather than inventing a second ordering rule.
+pub(crate) struct OwnedRecordElementFields<'a> {
+    /// The two owned `Bytes` fields, in declaration order.
+    pub(crate) owned: [&'a ResolvedFieldDeclaration; 2],
+    /// The one admitted Copy-scalar field.
+    pub(crate) scalar: &'a ResolvedFieldDeclaration,
+}
+
+/// `Some` exactly when `ty` is the one admitted owned-record collection
+/// element; the admission rule is re-derived here rather than assumed.
+pub(crate) fn owned_record_element_fields<'a>(
+    declarations: &'a DeclarationIndex,
+    ty: &ResolvedType,
+) -> Option<OwnedRecordElementFields<'a>> {
+    if !is_admitted_owned_record_collection_element(declarations, ty) {
+        return None;
+    }
+    let ResolvedType::Nominal { declaration, .. } = ty else {
+        return None;
+    };
+    let fields = declarations.record_fields(declaration)?;
+    let mut owned = fields
+        .iter()
+        .filter(|field| field.ty == ResolvedType::Bytes);
+    let owned = [owned.next()?, owned.next()?];
+    let scalar = fields
+        .iter()
+        .find(|field| field.ty != ResolvedType::Bytes)?;
+    Some(OwnedRecordElementFields { owned, scalar })
+}
+
 /// The `Vec<T>` operations this profile admits over the owned-record element.
 ///
 /// `get` is excluded for the same reason `vec_get<Bytes>` already is: it would
@@ -127,12 +164,14 @@ pub(crate) fn admits_vec_operation_element(
 /// one admitted owned-record element.
 ///
 /// This is deliberately *not* folded into
-/// `crate::cleanup::is_owned_bounded_vec_type`. That predicate answers "is this
-/// the backend-executable owned bounded Vec profile", and roughly forty native
-/// and Wasm layout, ABI and cleanup-replay call sites consult it to map the
-/// carrier onto a concrete machine representation. This profile has no such
-/// representation yet (SPX-AI-020), so it is kept as a separate question and
-/// every ordinary execution target refuses a program that uses it, rather than
+/// `crate::cleanup::is_owned_bounded_vec_type`. That predicate answers the
+/// question from the resolved type alone, and roughly forty native and Wasm
+/// layout, ABI and cleanup-replay call sites consult it to map the carrier
+/// onto a concrete machine representation. This profile's element admission
+/// needs `DeclarationIndex` facts, and the Wasm lane still has no
+/// representation for it, so it stays a separate question: the native lane
+/// asks `codegen::native_emit::is_native_owned_vec_type` (which is the union
+/// of both), and Wasm refuses a program that uses this one rather than
 /// emitting a broken carrier.
 pub(crate) fn is_owned_record_vec_type(declarations: &DeclarationIndex, ty: &ResolvedType) -> bool {
     matches!(
@@ -205,14 +244,14 @@ pub(crate) const OWNED_PAYLOAD_BYTES_PER_RECORD_ELEMENT: u64 =
 /// Stable refusal code each ordinary execution target that does not yet
 /// implement this profile's carrier uses.
 ///
-/// The codes stay in their own target's family so an agent reading one knows
+/// The code stays in its own target's family so an agent reading it knows
 /// which backend refused and which issue owns the conformance work. The
-/// interpreter's former code (`SPX-F112`) is retired: the reference
-/// interpreter now executes the profile per element (SPX-AI-020), so it has
-/// nothing left to refuse. Native and Wasm still refuse, which is the
-/// agreement-by-refusal form of "equivalent checked behavior on every backend
-/// that claims to implement the admitted feature".
-pub(crate) const NATIVE_TARGET_CODE: &str = "SPX-B115";
+/// interpreter's former code (`SPX-F112`) and the native lane's former code
+/// (`SPX-B115`) are both retired: the reference interpreter and native C11
+/// now execute the profile per element (SPX-AI-020), so neither has anything
+/// left to refuse. Wasm still refuses, which is the agreement-by-refusal form
+/// of "equivalent checked behavior on every backend that claims to implement
+/// the admitted feature".
 pub(crate) const WASM_TARGET_CODE: &str = "SPX-W125";
 
 /// Refuse, with one stable diagnostic, a program that names this profile on an
@@ -238,17 +277,6 @@ pub(crate) fn reject_for_target(
         ));
     }
     Ok(())
-}
-
-/// `hir::validate`, then this profile's native refusal.
-///
-/// The native lane's single emission choke point calls this instead of
-/// `hir::validate` so front-end admission and target refusal cannot drift.
-pub(crate) fn validate_for_native(
-    program: &ResolvedProgram,
-) -> Result<(), crate::diagnostic::Diagnostic> {
-    super::validate(program)?;
-    reject_for_target(program, NATIVE_TARGET_CODE, "native C11")
 }
 
 #[cfg(test)]

@@ -986,7 +986,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     self.line(&format!("char *{alias} = {};", argument.code));
                     string_arguments.push(argument.code);
                     alias
-                } else if is_direct_plan_owned(expected) {
+                } else if is_direct_plan_owned(self.program, expected) {
                     match target.param_ownerships[index] {
                         hir::OwnershipMode::Own => {
                             let plan = self.bytes_plan.ok_or_else(|| {
@@ -1092,7 +1092,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
         }
         self.require_type(&expr.ty, &target.return_type, "call result")?;
-        let temporary = if is_direct_plan_owned(&target.return_type) {
+        let temporary = if is_direct_plan_owned(self.program, &target.return_type) {
             self.bytes_plan
                 .ok_or_else(|| backend_error("owned Bytes call result has no cleanup plan"))?
                 .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
@@ -1117,7 +1117,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         ));
         if let Some(plan) = self.bytes_plan {
             for (index, expected) in target.params.iter().enumerate() {
-                if is_direct_plan_owned(expected)
+                if is_direct_plan_owned(self.program, expected)
                     && target.param_ownerships[index] == hir::OwnershipMode::Own
                 {
                     let (_, flag, _) = plan.call_argument(
@@ -1153,7 +1153,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
         }
         let result = CValue {
-            code: if is_direct_plan_owned(&target.return_type) {
+            code: if is_direct_plan_owned(self.program, &target.return_type) {
                 self.bytes_plan
                     .and_then(|plan| plan.result_at(&expr.id))
                     .ok_or_else(|| backend_error("owned call has no canonical result transfer"))?
@@ -1177,7 +1177,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             let value_id = value.id.clone();
                             let value = self.emit_expr(value)?;
                             self.require_type(&value.ty, &binding.ty, "local binding")?;
-                            let local = if is_direct_plan_owned(&binding.ty) {
+                            let local = if is_direct_plan_owned(self.program, &binding.ty) {
                                 let plan = self.bytes_plan.ok_or_else(|| {
                                     backend_error(
                                         "owned Bytes binding has no canonical cleanup plan",
@@ -1315,7 +1315,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     // transfer that publishes the next
                                     // generation, for `vec_push` and for the
                                     // loop-carried `bytes_set` fill alike.
-                                    if crate::cleanup::is_owned_bounded_vec_type(&binding.ty)
+                                    if super::is_native_owned_vec_type(self.program, &binding.ty)
                                         || matches!(binding.ty, ResolvedType::Bytes)
                                     {
                                         let plan = self.bytes_plan.ok_or_else(|| {
@@ -1429,7 +1429,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 for name in introduced_strings {
                     self.string_drop(&name);
                 }
-                if is_direct_plan_owned(&tail.ty) {
+                if is_direct_plan_owned(self.program, &tail.ty) {
                     let plan = self.bytes_plan.ok_or_else(|| {
                         backend_error("owned Bytes block has no canonical cleanup plan")
                     })?;
@@ -1454,7 +1454,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             if let ResolvedStatement::Let { binding, .. } = statement {
                                 let storage =
                                     crate::cleanup_plan::StorageId::Value(binding.id.clone());
-                                if is_direct_plan_owned(&binding.ty)
+                                if is_direct_plan_owned(self.program, &binding.ty)
                                     || plan.has_projected_leaves(&storage)
                                 {
                                     anchors.push(storage);
@@ -1469,7 +1469,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             if let Some(value) = value {
                                 let storage =
                                     crate::cleanup_plan::StorageId::Temporary(value.id.clone());
-                                if is_direct_plan_owned(&value.ty)
+                                if is_direct_plan_owned(self.program, &value.ty)
                                     || plan.has_projected_leaves(&storage)
                                 {
                                     anchors.push(storage);
@@ -1515,7 +1515,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let mut value = self.emit_expr(current)?;
         while let Some(block) = blocks.pop() {
             self.require_type(&value.ty, &block.ty, "block result")?;
-            if is_direct_plan_owned(&value.ty) {
+            if is_direct_plan_owned(self.program, &value.ty) {
                 let plan = self.bytes_plan.ok_or_else(|| {
                     backend_error("owned Bytes block has no canonical cleanup plan")
                 })?;
@@ -2081,7 +2081,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         let anchors = match &arm.pattern {
                             hir::ResolvedMatchPattern::Variant { fields, .. } => fields
                                 .iter()
-                                .filter(|field| is_direct_plan_owned(&field.binding.ty))
+                                .filter(|field| {
+                                    is_direct_plan_owned(self.program, &field.binding.ty)
+                                })
                                 .map(|field| {
                                     crate::cleanup_plan::StorageId::Value(field.binding.id.clone())
                                 })

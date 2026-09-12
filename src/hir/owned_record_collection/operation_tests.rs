@@ -398,17 +398,22 @@ fn fallible_owned_calls_select_a_sticky_failure_status() {
 }
 
 /// Backend agreement, in the only honest form available while conformance is
-/// partial: the reference interpreter executes the profile, and the two
-/// targets that do not yet implement its carrier refuse it up front with their
-/// own stable diagnostic rather than emitting a broken carrier or reaching a
-/// backend accident. When native and Wasm lift, they must agree with the
-/// interpreter's value, not merely stop refusing.
+/// partial: the reference interpreter and the native C11 backend both execute
+/// the profile, and the one target that does not yet implement its carrier
+/// refuses it up front with its own stable diagnostic rather than emitting a
+/// broken carrier or reaching a backend accident. When Wasm lifts, it must
+/// agree with the interpreter's value, not merely stop refusing.
+///
+/// The native lane's emission here is the compile-time half of that
+/// agreement; `tests/owned_data/owned_record_vec_runtime.rs` compiles and
+/// runs the emitted C at `-O0` and `-O2` and checks the executed values,
+/// selected statuses and physical settlement against this same interpreter.
 #[test]
-fn native_and_wasm_still_refuse_the_profile_while_the_interpreter_executes_it() {
+fn wasm_still_refuses_the_profile_while_the_interpreter_and_native_execute_it() {
     let resolved = admitted(DECLARATION, BUILD);
-    let native = crate::codegen::emit_hir_c(&resolved).expect_err("native must refuse");
-    assert_eq!(native.code, super::NATIVE_TARGET_CODE);
-    assert_eq!(native.code, "SPX-B115");
+    let native = crate::codegen::emit_hir_c(&resolved).expect("native must emit");
+    assert!(native.contains("spx_vec_record_with_capacity"));
+    assert!(native.contains("spx_vec_record_push"));
     let wasm = crate::wasm::emit_resolved_module(&resolved).expect_err("Wasm must refuse");
     assert_eq!(wasm.code, super::WASM_TARGET_CODE);
     assert_eq!(wasm.code, "SPX-W125");

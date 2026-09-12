@@ -34,7 +34,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         ownership: hir::OwnershipMode,
         mut value: CValue,
     ) -> Result<CValue, Diagnostic> {
-        if !super::is_direct_plan_owned(&value.ty) {
+        if !super::is_direct_plan_owned(self.program, &value.ty) {
             return Ok(value);
         }
         if ownership == hir::OwnershipMode::Borrow {

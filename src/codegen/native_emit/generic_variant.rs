@@ -17,7 +17,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ));
             self.indent += 1;
             for field in &case.fields {
-                if !is_direct_plan_owned(&field.ty) && field.size != 0 {
+                if !is_direct_plan_owned(self.program, &field.ty) && field.size != 0 {
                     let member = format!(
                         "spx_payload.{}.{}",
                         c_case_symbol(&case.case),

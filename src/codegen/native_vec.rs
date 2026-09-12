@@ -6,7 +6,9 @@ pub(super) fn emit_runtime(
     output: &mut impl super::COutput,
     program: &crate::hir::ResolvedProgram,
 ) {
-    if crate::vec_ops::resolved_program_uses_owned_payload(program) {
+    if crate::vec_ops::resolved_program_uses_owned_payload(program)
+        || crate::hir::owned_record_collection::program_uses_profile(program)
+    {
         owned_payload::emit_runtime(output);
         return;
     }
@@ -28,11 +30,10 @@ pub(super) fn program_uses_vec(program: &crate::hir::ResolvedProgram) -> bool {
                 .map(|instance| &instance.function),
         )
         .any(|function| {
-            crate::cleanup::is_owned_bounded_vec_type(&function.return_type)
-                || function
-                    .params
-                    .iter()
-                    .any(|param| crate::cleanup::is_owned_bounded_vec_type(&param.ty))
+            crate::codegen::native_emit::is_native_owned_vec_type(program, &function.return_type)
+                || function.params.iter().any(|param| {
+                    crate::codegen::native_emit::is_native_owned_vec_type(program, &param.ty)
+                })
                 || std::iter::once(&function.body)
                     .chain(function.requires.iter())
                     .chain(function.ensures.iter())

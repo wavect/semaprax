@@ -62,7 +62,7 @@ pub(super) fn emit_hir_c_with_labels(
     output_profile: NativeOutputProfile,
     selected_command: Option<&DeclarationId>,
 ) -> Result<String, Diagnostic> {
-    hir::owned_record_collection::validate_for_native(program)?;
+    hir::validate(program)?;
     if program.types.iter().any(|declaration| {
         matches!(
             declaration.kind,
@@ -467,6 +467,13 @@ fn emit_native_prelude_inner(
 
 fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
     if crate::iterator_ops::resolved_program_uses_owned_iterator(program) {
+        return true;
+    }
+    // The owned-record collection element owns two `Bytes` leaves, so its
+    // carrier runtime needs the byte-data runtime even in a program that never
+    // names `Bytes` itself — a carrier allocated and dropped without ever
+    // being filled still compiles the element drop path.
+    if crate::hir::owned_record_collection::program_uses_profile(program) {
         return true;
     }
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
@@ -922,7 +929,7 @@ fn c_value_type(
         function_value::c_type(program, ty)
     } else if let Some(iterator) = native_iter::c_type(ty) {
         Ok(iterator.to_owned())
-    } else if crate::cleanup::is_owned_bounded_vec_type(ty) {
+    } else if is_native_owned_vec_type(program, ty) {
         Ok("spx_vec_v1".to_owned())
     } else if crate::cleanup::is_owned_bounded_box_type(ty) {
         Ok("spx_box_v1".to_owned())
@@ -942,9 +949,25 @@ fn c_value_type(
     }
 }
 
-fn is_direct_plan_owned(ty: &ResolvedType) -> bool {
+/// The compiler-owned bounded `Vec<T>` carriers the native lane lowers.
+///
+/// `crate::cleanup::is_owned_bounded_vec_type` answers the target-neutral
+/// question from the type alone. The owned-record element profile additionally
+/// needs `DeclarationIndex` facts to re-derive its element admission, so it
+/// stays a separate question and every native site that maps a carrier onto a
+/// machine representation asks this one instead. Widening the shared predicate
+/// would silently change the Wasm lane, which still refuses this profile.
+pub(in crate::codegen) fn is_native_owned_vec_type(
+    program: &ResolvedProgram,
+    ty: &ResolvedType,
+) -> bool {
+    crate::cleanup::is_owned_bounded_vec_type(ty)
+        || crate::hir::owned_record_collection::is_owned_record_vec_type(&program.declarations, ty)
+}
+
+fn is_direct_plan_owned(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
     matches!(ty, ResolvedType::Bytes)
-        || crate::cleanup::is_owned_bounded_vec_type(ty)
+        || is_native_owned_vec_type(program, ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
         || crate::iterator_ops::is_iter(ty)
 }
@@ -968,7 +991,7 @@ fn record_declaration_id<'a>(
         return Ok(None);
     };
     if crate::iterator_ops::is_iter(ty)
-        || crate::cleanup::is_owned_bounded_vec_type(ty)
+        || is_native_owned_vec_type(program, ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
     {
         return Ok(None);
@@ -1070,7 +1093,7 @@ pub(super) fn emit_function_prototypes(
         .expect("writing to a string cannot fail");
         for param in &function.params {
             let ty = c_value_type(program, resource_abi, &param.ty)?;
-            if is_direct_plan_owned(&param.ty)
+            if is_direct_plan_owned(program, &param.ty)
                 && param.ownership == crate::hir::OwnershipMode::Borrow
             {
                 write!(output, ", const {ty} *").expect("writing to a string cannot fail");
@@ -1684,7 +1707,9 @@ fn emit_function(
     .expect("writing to a string cannot fail");
     for (index, param) in function.params.iter().enumerate() {
         let ty = c_value_type(program, resource_abi, &param.ty)?;
-        if is_direct_plan_owned(&param.ty) && param.ownership == crate::hir::OwnershipMode::Borrow {
+        if is_direct_plan_owned(program, &param.ty)
+            && param.ownership == crate::hir::OwnershipMode::Borrow
+        {
             write!(output, ", const {ty} *spx_param_{index}")
                 .expect("writing to a string cannot fail");
         } else if is_aggregate_type(program, &param.ty)? {
@@ -1731,7 +1756,7 @@ fn emit_function(
             emission.output_profile == NativeOutputProfile::OwnedDataProvider,
         ));
         for (index, parameter) in function.params.iter().enumerate() {
-            if is_direct_plan_owned(&parameter.ty)
+            if is_direct_plan_owned(program, &parameter.ty)
                 && parameter.ownership == crate::hir::OwnershipMode::Own
             {
                 output.push_str(&plan.initialize_parameter(
@@ -1761,7 +1786,7 @@ fn emit_function(
     let mut variables = HashMap::new();
     let mut borrowed_aggregate_bytes = HashMap::new();
     for (index, param) in function.params.iter().enumerate() {
-        let name = if is_direct_plan_owned(&param.ty) {
+        let name = if is_direct_plan_owned(program, &param.ty) {
             match param.ownership {
                 crate::hir::OwnershipMode::Own => bytes_plan
                     .as_ref()
@@ -1776,7 +1801,7 @@ fn emit_function(
                 }
             }
         } else if is_aggregate_type(program, &param.ty)?
-            || (is_direct_plan_owned(&param.ty)
+            || (is_direct_plan_owned(program, &param.ty)
                 && param.ownership == crate::hir::OwnershipMode::Borrow)
         {
             format!("(*spx_param_{index})")
@@ -1906,7 +1931,7 @@ fn emit_function(
     ));
     // An owned-Bytes result moves field by field, and a contract-failure lane
     // leaves even that unreached, so the slot can go unnamed in valid C.
-    if is_direct_plan_owned(&function.return_type)
+    if is_direct_plan_owned(program, &function.return_type)
         || emitter.record_contains_owned_bytes(&function.return_type)?
     {
         emitter.line("(void)spx_result;");
@@ -1934,9 +1959,11 @@ fn emit_function(
     emitter.require_type(&body.ty, &function.return_type, "function body")?;
     if matches!(body.ty, ResolvedType::String) && emitter.owned_strings.is_some() {
         emitter.string_move("spx_result", &body.code);
-    } else if !is_direct_plan_owned(&body.ty) && emitter.record_contains_owned_bytes(&body.ty)? {
+    } else if !is_direct_plan_owned(program, &body.ty)
+        && emitter.record_contains_owned_bytes(&body.ty)?
+    {
         emitter.move_owned_record_fields("spx_result", &body.code, &body.ty)?;
-    } else if !is_direct_plan_owned(&body.ty) {
+    } else if !is_direct_plan_owned(program, &body.ty) {
         emitter.line(&format!("spx_result = {};", body.code));
     }
     if has_try {
@@ -1966,7 +1993,7 @@ fn emit_function(
     emitter.variables.insert(
         function.result_id.clone(),
         CBinding {
-            name: if is_direct_plan_owned(&function.return_type) {
+            name: if is_direct_plan_owned(program, &function.return_type) {
                 bytes_plan
                     .as_ref()
                     .ok_or_else(|| backend_error("owned Bytes result has no cleanup plan"))?
@@ -2036,7 +2063,7 @@ fn emit_function(
         output.push_str("    if (spx_status == SPX_STATUS_SUCCESS && !spx_result_staged) spx_runtime_invariant_failure(\"unstaged function result\");\n");
     }
     output.push_str("    if (spx_status != SPX_STATUS_SUCCESS) return spx_status;\n");
-    if is_direct_plan_owned(&function.return_type) {
+    if is_direct_plan_owned(program, &function.return_type) {
         let (value, flag) = bytes_plan
             .as_ref()
             .ok_or_else(|| backend_error("owned Bytes result has no cleanup plan"))?

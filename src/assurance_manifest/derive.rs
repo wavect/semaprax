@@ -144,8 +144,12 @@ fn generated_interface_obligation(interface: &InterfaceDeclaration) -> Option<Ob
         ..method
     };
     Some(
-        Obligation::new(ObligationKind::GeneratedInterface, &interface.stable_id, &locator)
-            .with_method(method),
+        Obligation::new(
+            ObligationKind::GeneratedInterface,
+            &interface.stable_id,
+            &locator,
+        )
+        .with_method(method),
     )
 }
 
@@ -772,10 +776,7 @@ fn nullary() -> i64 { 0 }
             interfaces[0].methods[0].class,
             AssuranceClass::CompilerProved
         );
-        assert_eq!(
-            interfaces[0].methods[0].tool,
-            INTERFACE_IMPORT_CHECKER_TOOL
-        );
+        assert_eq!(interfaces[0].methods[0].tool, INTERFACE_IMPORT_CHECKER_TOOL);
     }
 
     /// Negative control: an interface declared with no imports generates no

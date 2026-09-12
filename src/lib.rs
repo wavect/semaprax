@@ -69,6 +69,7 @@ pub mod digest_hex;
 pub mod doc;
 pub mod doctor;
 pub mod economic_agent;
+pub mod embedding_api;
 pub(crate) mod environment_ops;
 pub mod environment_snapshot;
 pub mod execution_revision;

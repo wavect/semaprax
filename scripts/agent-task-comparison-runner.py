@@ -416,24 +416,19 @@ def _bounded_command(argv, cwd, limit=131072, timeout=20):
 
 
 def _cleanup_projection(executable, subject_dir):
-    """Ask graph for the exact core bytes plus only a synthetic entrypoint."""
-    core = subject_dir / "src" / "core.spx"
-    prefix = core.read_bytes()
-    with tempfile.NamedTemporaryFile(mode="wb", suffix=".spx", prefix=".owned-cleanup-", dir=subject_dir, delete=False) as handle:
-        projection = Path(handle.name)
-        handle.write(prefix)
-        handle.write(b'\n@id("benchmark.owned.oracle_main")\nfn main() -> i64\n{\n    0\n}\n')
-    try:
-        completed = _bounded_command([str(executable), "graph", projection.name], subject_dir)
-    finally:
-        projection.unlink(missing_ok=True)
+    """Graph exact core bytes in a separate scratch directory, never the fixture."""
+    prefix = (subject_dir / "src" / "core.spx").read_bytes()
+    with tempfile.TemporaryDirectory(prefix="spx-owned-cleanup-") as scratch:
+        projection = Path(scratch) / "projection.spx"
+        projection.write_bytes(prefix + b'\n@id("benchmark.owned.oracle_main")\nfn main() -> i64\n{\n    0\n}\n')
+        completed = _bounded_command([str(executable), "graph", str(projection)], Path(scratch))
     stdout = completed.pop("stdout", b"")
     stderr = completed.pop("stderr", b"")
     return {**completed, "core_sha256": digest(prefix), "stdout": stdout.decode("utf-8", "replace"),
         "stderr": stderr.decode("utf-8", "replace"), "stdout_sha256": digest(stdout), "stderr_sha256": digest(stderr)}
 
 
-def _cleanup_nodes(record):
+def _projection_nodes(record):
     try:
         graph = json.loads(record["stdout"])
     except (KeyError, TypeError, json.JSONDecodeError):
@@ -442,11 +437,40 @@ def _cleanup_nodes(record):
         return None
     selected = {node.get("id"): node for node in graph.get("nodes", [])
                 if node.get("id") in {"benchmark.owned.select", "benchmark.owned.call"}}
-    if set(selected) != {"benchmark.owned.select", "benchmark.owned.call"}:
-        return None
-    if any(not isinstance(node.get("cleanup"), dict) or node["cleanup"].get("kind") != "cleanup_plan" for node in selected.values()):
+    return selected if set(selected) == {"benchmark.owned.select", "benchmark.owned.call"} else None
+
+
+def _cleanup_nodes(record):
+    selected = _projection_nodes(record)
+    if selected is None or any(not isinstance(node.get("cleanup"), dict) or node["cleanup"].get("kind") != "cleanup_plan" for node in selected.values()):
         return None
     return {identifier: selected[identifier]["cleanup"] for identifier in sorted(selected)}
+
+
+def _projection_facts(record):
+    selected = _projection_nodes(record)
+    if selected is None:
+        return None
+    select, call = selected["benchmark.owned.select"], selected["benchmark.owned.call"]
+    params = [(param.get("name"), param.get("type_id"), param.get("ownership_mode")) for param in select.get("params", [])]
+    body = call.get("body", {})
+    statements = body.get("statements", [])
+    if len(statements) < 2:
+        return None
+    left, right = statements[0], statements[1]
+    tail = body.get("tail", {})
+    args = tail.get("args", [])
+    facts = {
+        "select_params": params,
+        "select_identity": select.get("identity_origin"),
+        "call_identity": call.get("identity_origin"),
+        "staged_bindings": [(item.get("binding", {}).get("name"), item.get("binding", {}).get("ownership_mode"), item.get("value", {}).get("callee")) for item in (left, right)],
+        "call_target": tail.get("callee"),
+        "call_arg_roots": [item.get("place", {}).get("root") for item in args],
+        "left_id": left.get("binding", {}).get("id"),
+        "right_id": right.get("binding", {}).get("id"),
+    }
+    return facts
 
 
 def _owned_compiler_evidence(candidate_dir, compiler_path, baseline_dir):
@@ -550,23 +574,25 @@ def check_owned_signature_migration(candidate_dir, task_binding, before, after, 
     original_after = snapshot_candidate(baseline_dir)
     graph = _owned_graph(evidence)
     semantic_ok = bool(evidence.get("available")) and all(
-        evidence["candidate"].get(name, {}).get("returncode") == 0
-        for name in ("check", "test", "run", "graph")
+        evidence.get(subject, {}).get(name, {}).get("returncode") == 0
+        and evidence.get(subject, {}).get(name, {}).get("error") is None
+        for subject in ("candidate", "baseline") for name in ("check", "test", "run", "graph")
     )
     declarations = graph.get("declarations", []) if graph else []
     edges = graph.get("edges", []) if graph else []
     select = [row for row in declarations if row.get("id") == "benchmark.owned.select"]
-    identity_ok = semantic_ok and len(select) == 1 and select[0].get("identity_origin") == "explicit"
-    core = _read(candidate_dir, "src/core.spx")
-    selected = _declaration_source(core, "benchmark.owned.select")
-    caller = _declaration_source(core, "benchmark.owned.call")
-    callers_ok = semantic_ok and {
+    candidate_projection = _projection_facts(evidence.get("candidate", {}).get("cleanup_projection", {}))
+    expected_params = [("view", "slice-u8", "borrow"), ("right", "bytes", "own"), ("flag", "usize", "value"), ("left", "bytes", "own")]
+    identity_ok = semantic_ok and len(select) == 1 and select[0].get("identity_origin") == "explicit" and candidate_projection is not None and candidate_projection["select_identity"] == "explicit"
+    callers_ok = semantic_ok and candidate_projection is not None and {
         (row.get("caller"), row.get("target")) for row in edges if row.get("kind") == "call"
     } >= {
         ("benchmark.owned.main", "benchmark.owned.evaluate"),
         ("benchmark.owned.test", "benchmark.owned.evaluate"),
-    } and caller is not None and caller.index("let left = bytes_copy(input);") < caller.index("let right = bytes_copy(input);") < caller.index("select(input, right, 0usize, left)")
-    signature_ok = semantic_ok and selected is not None and _signature(selected) == "fn select(view: borrow Slice<u8>, right: own Bytes, flag: usize, left: own Bytes) -> Bytes"
+    } and candidate_projection["staged_bindings"] == [("left", "own", "core.bytes.copy"), ("right", "own", "core.bytes.copy")] and candidate_projection["call_target"] == "benchmark.owned.select" and candidate_projection["call_arg_roots"] == [
+        candidate_projection["call_arg_roots"][0], candidate_projection["right_id"], candidate_projection["call_arg_roots"][2], candidate_projection["left_id"]
+    ]
+    signature_ok = semantic_ok and candidate_projection is not None and candidate_projection["select_params"] == expected_params
     # Admission is compiler-derived. The source spelling is only used to bind the requested ordered API.
     ownership_ok = semantic_ok and signature_ok
     baseline_run = evidence.get("baseline", {}).get("run", {})

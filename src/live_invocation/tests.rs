@@ -1304,8 +1304,14 @@ fn determinism_argument_is_structural_not_just_repeated_runs() {
         ("live_invocation/journal.rs", include_str!("journal.rs")),
         ("live_invocation/kernel.rs", include_str!("kernel.rs")),
         ("live_invocation/migration.rs", include_str!("migration.rs")),
-        ("live_invocation/model_invoke.rs", include_str!("model_invoke.rs")),
-        ("live_invocation/persistence.rs", include_str!("persistence.rs")),
+        (
+            "live_invocation/model_invoke.rs",
+            include_str!("model_invoke.rs"),
+        ),
+        (
+            "live_invocation/persistence.rs",
+            include_str!("persistence.rs"),
+        ),
     ];
     for forbidden in [
         "HashMap<",

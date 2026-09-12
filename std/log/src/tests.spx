@@ -2,6 +2,7 @@ module std.log.tests;
 use type @id("std.log.event") from std.log as Event;
 use type @id("std.io.writer") from std.io as Writer;
 use function @id("std.log.append-event") from std.log as append_event;
+use function @id("std.log.append-event-guarded") from std.log as append_event_guarded;
 use function @id("std.log.append-event-if") from std.log as append_event_if;
 use function @id("std.log.discard-event") from std.log as discard_event;
 use function @id("std.log.event-admitted") from std.log as event_admitted;

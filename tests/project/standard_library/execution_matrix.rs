@@ -64,6 +64,7 @@ fn declared_owners() -> Vec<(&'static str, Owner)> {
         ("std.log", Test("logging::log_writer_executes_on_all_three_backends")),
         ("std.log.redact", Test("log_redact_backend_audit::log_redact_executes_on_all_three_backends")),
         ("std.mem", Test("collections_mem_text_backend_audit::collections_mem_text_execute_on_all_three_backends")),
+        ("std.metrics", Test("metrics_backend_audit::metrics_executes_on_all_three_backends")),
         ("std.net", Test("async_net_backend_audit::async_http_net_execute_on_all_three_backends")),
         ("std.num", Test("core_num_backend_audit::core_num_random_time_test_execute_on_all_three_backends")),
         ("std.num.overflow", Test("core_num_backend_audit::core_num_random_time_test_execute_on_all_three_backends")),

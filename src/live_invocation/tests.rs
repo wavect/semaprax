@@ -1284,3 +1284,46 @@ fn authorize_and_completion_see_the_decoded_proposal_never_the_raw_response_byte
         "authorize must never be bound to a digest of the raw response"
     );
 }
+
+// --- Structural determinism argument ----------------------------------------
+
+#[test]
+fn determinism_argument_is_structural_not_just_repeated_runs() {
+    // Same argument as `package_registry`'s test of the same name, applied
+    // to every production file this module owns: no hash-iterated map/set
+    // (whose iteration order is not a pure function of content), no wall
+    // clock, and no environment or filesystem read anywhere on the
+    // identity/journal/kernel/persistence/migration path. Matched as real
+    // Rust syntax (`<`/`::`/`(`), not the bare word, so this does not trip
+    // over a module docstring's own prose describing this property.
+    let files: &[(&str, &str)] = &[
+        ("live_invocation.rs", include_str!("../live_invocation.rs")),
+        ("live_invocation/budget.rs", include_str!("budget.rs")),
+        ("live_invocation/fixture.rs", include_str!("fixture.rs")),
+        ("live_invocation/identity.rs", include_str!("identity.rs")),
+        ("live_invocation/journal.rs", include_str!("journal.rs")),
+        ("live_invocation/kernel.rs", include_str!("kernel.rs")),
+        ("live_invocation/migration.rs", include_str!("migration.rs")),
+        ("live_invocation/model_invoke.rs", include_str!("model_invoke.rs")),
+        ("live_invocation/persistence.rs", include_str!("persistence.rs")),
+    ];
+    for forbidden in [
+        "HashMap<",
+        "HashMap::",
+        "HashSet<",
+        "HashSet::",
+        "SystemTime::now",
+        "Instant::now",
+        "std::env::",
+        "std::fs::",
+        "read_dir(",
+    ] {
+        for (name, source) in files {
+            assert!(
+                !source.contains(forbidden),
+                "{name} must not contain `{forbidden}`, which would make the identity, \
+                 journal or digest bytes depend on something other than recorded content"
+            );
+        }
+    }
+}

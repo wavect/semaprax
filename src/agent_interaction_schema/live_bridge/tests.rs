@@ -206,7 +206,10 @@ fn the_real_grammar_completes_a_live_invocation_through_the_shared_kernel() {
         .expect("a fresh, in-budget, single-turn invocation must run");
 
     assert_eq!(run.dispatched, 1);
-    assert_eq!(run.outcome, LiveInvocationOutcome::Complete(doc.into_bytes()));
+    assert_eq!(
+        run.outcome,
+        LiveInvocationOutcome::Complete(doc.into_bytes())
+    );
     assert_eq!(gate.granted, 1);
 }
 

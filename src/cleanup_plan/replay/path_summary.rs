@@ -104,13 +104,30 @@ pub(super) fn validate_replay_size_budget(function: &ResolvedFunction) -> Result
     if cfg.terminal_paths > MAX_REPLAY_PATHS {
         return Err(replay_error(
             function,
-            "cleanup replay path bound exceeds the global path budget",
+            format!(
+                "cleanup replay found {} terminal control-flow paths, exceeding the {} path \
+                 budget: path count multiplies combinatorially (2^N) when N branch outcomes are \
+                 combined independently within one function, not additively with branch count, \
+                 so splitting into smaller functions only helps if it removes that combination \
+                 -- restructure the branches to be mutually exclusive (a single dispatch chain, \
+                 at most one branch executed per call) or combine their results across separate \
+                 calls instead",
+                cfg.terminal_paths, MAX_REPLAY_PATHS
+            ),
         ));
     }
     if semantic_paths > MAX_REPLAY_PATHS {
         return Err(replay_error(
             function,
-            "cleanup replay semantic path bound exceeds the global path budget",
+            format!(
+                "cleanup replay found {semantic_paths} semantic terminal paths, exceeding the \
+                 {MAX_REPLAY_PATHS} path budget: path count multiplies combinatorially (2^N) \
+                 when N branch outcomes are combined independently within one function, not \
+                 additively with branch count, so splitting into smaller functions only helps \
+                 if it removes that combination -- restructure the branches to be mutually \
+                 exclusive (a single dispatch chain, at most one branch executed per call) or \
+                 combine their results across separate calls instead"
+            ),
         ));
     }
     let expression_units = expression_facts(function)?.len();

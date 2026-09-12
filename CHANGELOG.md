@@ -8,6 +8,29 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Rewrite the `SPX-H006` cleanup-replay path-budget diagnostic's message to
+  name the actual cost driver instead of only the budget it exceeded. The
+  previous wording ("cleanup replay path bound exceeds the global path
+  budget") told an author nothing about *why*: the real driver is
+  combinatorial multiplication of independently-combined branch outcomes
+  within one function (2^N terminal paths for N such branches), not raw
+  branch count, so the natural fix an author reaches for on reading the old
+  message - splitting into helper functions - does not help unless it breaks
+  the combination. The new message states the measured path count and budget,
+  names the combinatorial driver, and names an actionable remedy (make the
+  branches mutually exclusive, or combine their results across separate
+  calls). The diagnostic code is unchanged; per issue #241, neither
+  `SPX-G171`'s workspace-graph byte budget nor `SPX-H006`'s path budget was
+  raised, because no session has evidence that a higher value keeps the
+  workspace graph or the semantic cache finite - both remain documented,
+  regression-pinned limits in the completion matrix rather than raised
+  ceilings. A boundary fixture pinning the exact measured terminal-path count
+  at the crossover (98,300 paths for 15 independent branch terms, not the
+  naive `2^15 = 32,768` estimate the previous fixture comment assumed without
+  checking) replaces the earlier code-only assertion, plus a dedicated
+  regression that fails if the message regresses to the old cause-free
+  wording.
+
 - Freeze the Public Generic Boundary Profile, Descriptor and Carrier v1, and
   add a reference codec for the descriptor and carrier wire formats. The same
   callable generic boundary had been described three times by three

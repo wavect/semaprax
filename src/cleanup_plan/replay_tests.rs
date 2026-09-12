@@ -948,7 +948,7 @@ fn replay_preflight_rejects_every_invalid_cfg_target_and_cycles_without_panickin
     assert_eq!(diagnostic.code, "SPX-H006");
     assert_eq!(
             diagnostic.message,
-            "cleanup plan for function `flow.bool` failed independent replay: cleanup replay path bound exceeds the global path budget"
+            "cleanup plan for function `flow.bool` failed independent replay: cleanup replay found 65537 terminal control-flow paths, exceeding the 65536 path budget: path count multiplies combinatorially (2^N) when N branch outcomes are combined independently within one function, not additively with branch count, so splitting into smaller functions only helps if it removes that combination -- restructure the branches to be mutually exclusive (a single dispatch chain, at most one branch executed per call) or combine their results across separate calls instead"
         );
 }
 

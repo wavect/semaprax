@@ -374,16 +374,22 @@ fixture now have one.
     under `65_536`. Regression:
     `tests/cleanup_backends/kernel_boundary.rs::a_ten_branch_nested_classifier_replays_within_budget`.
   - A function summing `count` **independent** Copy-scalar
-    `(if v < i { 1 } else { 0 })` terms with `+` produces `2^count` terminal
-    paths (every term's branch choice is independent of every other term's),
-    and this **does** exhaust the budget, at a small, exact, reproduced
-    crossover: **`count = 14` (16,384 paths) replays within budget;
-    `count = 15` (32,768 paths) fails with exactly**
-    `` cleanup plan for function `app.main` failed independent replay: cleanup replay path bound exceeds the global path budget `` (`SPX-H006`).
+    `(if v < i { 1 } else { 0 })` terms with `+` produces one CFG path per
+    combination of branch choices, so the terminal path count grows
+    combinatorially (exponentially) in `count`, not additively — a useful
+    lower-bound estimate is `2^count`, though the exact count `hir::validate`
+    enumerates runs higher than that naive estimate because the cleanup CFG
+    carries extra per-term bookkeeping paths beyond the two value branches.
+    The exact, reproduced crossover: **`count = 14` replays within budget;
+    `count = 15` fails with exactly** (this session measured and pinned the
+    literal count, 98,300, rather than repeating the theoretical `2^15 =
+    32,768` estimate, since the two do not match)
+    `` cleanup plan for function `app.main` failed independent replay: cleanup replay found 98300 terminal control-flow paths, exceeding the 65536 path budget: path count multiplies combinatorially (2^N) when N branch outcomes are combined independently within one function, not additively with branch count, so splitting into smaller functions only helps if it removes that combination -- restructure the branches to be mutually exclusive (a single dispatch chain, at most one branch executed per call) or combine their results across separate calls instead `` (`SPX-H006`; a later session rewrote this message to name the combinatorial driver and an actionable remedy directly, since the previous wording -- "cleanup replay path bound exceeds the global path budget" -- named only the budget, not the cause, and the natural fix an author reaches for reading it (splitting into helper functions) does not help unless it breaks the combination).
     Regressions:
-    `tests/cleanup_backends/kernel_boundary.rs::fourteen_independent_scalar_comparisons_replay_within_budget`
-    and
-    `...::fifteen_independent_scalar_comparisons_exceed_the_cleanup_replay_path_budget`.
+    `tests/cleanup_backends/kernel_boundary.rs::fourteen_independent_scalar_comparisons_replay_within_budget`,
+    `...::fifteen_independent_scalar_comparisons_exceed_the_cleanup_replay_path_budget`,
+    and (pinning the diagnostic's content, not only its code)
+    `...::fifteen_independent_scalar_comparisons_diagnostic_names_the_combinatorial_driver_and_remedy`.
   - **Implication:** the real cost driver is *combinatorial path
     multiplication from mutually-independent branch results combined in the
     same function*, not branch count in isolation. A ten-branch classifier
@@ -516,9 +522,20 @@ papering over:
    two named ceilings).
 3. **Decide, per ceiling, whether to raise the budget, make it incremental,
    or document it as a permanent limit** in the completion matrix and
-   roadmap — explicitly out of this document's scope (both files are
-   coordinator-owned in this session's assignment) but squarely #241's own
-   "what this issue should produce" list.
+   roadmap. A later session (issue #241) made this decision for both named
+   ceilings with the evidence available: neither budget is raised, because no
+   session has produced evidence that a higher `MAX_BUILDER_BYTES` or
+   `MAX_REPLAY_PATHS` keeps the workspace graph and the semantic cache finite
+   at the new value. Instead, both are documented honestly in the [completion
+   matrix](COMPLETION-MATRIX.md#compiler-and-output-targets) with their exact
+   constants, and the `SPX-H006` diagnostic was rewritten (message only, code
+   unchanged) to name the actual cost driver — combinatorial multiplication of
+   independently-combined branch outcomes, not raw branch count — and an
+   actionable remedy, since making the diagnostic honest about the cause is
+   itself a deliverable when raising the bound is not yet justified. Raising
+   either bound, if ever justified, still needs the cross-backend
+   near-boundary execution evidence this document's non-claims section notes
+   is missing.
 4. **Pick a proof engine** for the eventual mechanized version of the Kernel-0
    proof above (Lean 4, Coq, or Isabelle/HOL are the standard candidates for
    a small ML-like calculus's progress/preservation proof) and wire a CI gate

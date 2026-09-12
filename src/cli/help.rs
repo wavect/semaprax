@@ -993,6 +993,8 @@ mod tests {
         "change",
         "package",
         "add",
+        "assurance-policy",
+        "assurance-diff",
         "fetch",
         "project-image",
         "project-image-store",

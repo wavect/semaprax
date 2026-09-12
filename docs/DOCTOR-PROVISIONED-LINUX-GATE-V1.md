@@ -1,13 +1,11 @@
 # Provisioned Linux offline doctor lifecycle gate v1
 
-Status: **executed, and failed**, three times, most recently 2026-09-06
-against `0f7f7639`
-([run 34043466045](https://github.com/wavect/semaprax/actions/runs/34043466045)),
-selected failure `test harness exited 101`. Preconditions and settlement pass
-every time. One defect explains every failing fixture: **every tool check
-reports that the confined child terminated unsuccessfully**, for a
-hand-assembled fixture image and a real clang alike. See
-[Executions](#executions).
+Status: **executed, and failed**, four times, most recently 2026-09-06 against
+`c53386a9` ([run 34047743589](https://github.com/wavect/semaprax/actions/runs/34047743589)).
+Preconditions and settlement pass every time. The fourth run reached a suite
+the first three never did: a zero-syscall "spin" fixture that can only run
+forever also failed, so **the confined child never reaches the tool's own
+code** — the rejection is at or before `execve`. See [Executions](#executions).
 
 Audience: release engineers and security reviewers who can supply one
 disposable, trusted Linux x86-64 host, or dispatch this gate against a
@@ -21,15 +19,23 @@ row.
 
 ## Executions
 
-Three runs, all `failed`, all on a GitHub-hosted `ubuntu-24.04` runner:
+Four runs, all `failed`, all on a GitHub-hosted `ubuntu-24.04` runner:
 [34040867346](https://github.com/wavect/semaprax/actions/runs/34040867346) at
 `758388e2` (evidence bundle
 `c5be8289f0c22d40895c7065669266e93dc0720601f24cd436db9b2f0ee17de8`),
 [34041757908](https://github.com/wavect/semaprax/actions/runs/34041757908) at
-`7b5dfd65`, and
+`7b5dfd65`,
 [34043466045](https://github.com/wavect/semaprax/actions/runs/34043466045) at
-`0f7f7639`. Each selected `test harness exited 101`; the collector suite ran
-3 passed, 10 failed every time.
+`0f7f7639`, and
+[34047743589](https://github.com/wavect/semaprax/actions/runs/34047743589) at
+`c53386a9`. Each selected `test harness exited 101`; the collector suite ran
+3 passed, 10 failed every time. Two earlier dispatches in this range,
+[34038624936](https://github.com/wavect/semaprax/actions/runs/34038624936) and
+[34039884083](https://github.com/wavect/semaprax/actions/runs/34039884083), are
+excluded from this count on purpose: both failed in workflow packaging steps
+("Assemble the real distribution carrier" and "Package and independently
+unpack the signed release", respectively) before the gate script ever started,
+so neither carries any gate evidence.
 
 **What the runs establish.** Zero precondition failures: all twelve required
 kernel features observed present on `6.17.0-1022-azure x86_64`; the delegated
@@ -37,58 +43,78 @@ scope reported `delegated: true, populated: 0, procs: []`; the signed release
 was unpacked outside the checkout at the checked-out commit under the
 `test-only` anchor with `production_signing_material_present: false`; the
 checkout was clean; every image was static ELF with `interpreter: None`.
-Settlement passed — the final cgroup still existed, `populated 0`, with no
-surviving members, so nothing leaked despite the failure.
+Settlement passed every time — the final cgroup still existed, `populated 0`,
+with no surviving members, so nothing leaked despite the failure.
 
-The third run adds more, because `Observation::describe` now carries the
+The third run added more, because `Observation::describe` started carrying the
 collector's own output into the status assertion instead of discarding it. The
 confined worker **materializes into tmpfs, pivots, applies seccomp, reaches
 `execve`, and emits a well-formed canonical report** — correct schema and
 target, five of six checks `ok`, and an empty `stderr` — which the collector
 delivers to the fixture. Exit 1 is the correct response to the sixth check.
 
-**The one defect.** Every tool check reports `offline tool terminated
+Through the third run, every tool check reported `offline tool terminated
 unsuccessfully`: `clang` in every failing fixture, and `node` and `rust` as
 well wherever all three roles are exercised. Nine fixtures run the
 `collector-fixture` profile's sentinel image and one runs
-`real-distributions`; both fail identically, so this is not a defect in any
-one image.
-
-The detail renders `DoctorProbeError::Exit`, which is *any* nonzero child
-status, so the run does not say which of two causes it is: the tool itself
-exited nonzero — for the fixture image, exit 7, taken iff
-`write(1, payload, len) != len` — or the worker's own child setup rejected
-something and never reached the tool, since `fail_stop` is `_exit(126)` and
+`real-distributions`; both failed identically. The detail renders
+`DoctorProbeError::Exit`, which is *any* nonzero child status, so through the
+third run alone the evidence could not say which of two causes it was: the
+tool itself exiting nonzero (exit 7 for the fixture image, taken iff
+`write(1, payload, len) != len`), or the worker's own child setup rejecting
+something and never reaching the tool (`fail_stop` is `_exit(126)`, and
 `child.rs::enter` reaches it on a failed `dup2`, `materialize`, `chroot`,
-`close_range`, `guard.install`, or `execve`, among others. The report carries
+`close_range`, `guard.install`, or `execve`, among others). The report carries
 no exit code, which is correct for a report and is why it cannot distinguish
 them.
 
-The second is the better explanation: the fixture image is a hand-assembled
-ELF whose whole program is one `write` and one `exit_group`, and the other is
-a full clang, so two programs with almost nothing in common failing
-identically points at a shared cause *before* `execve` rather than at each
-image. The decisive datum is the child's exit status — 126 for `fail_stop`,
-7 for the fixture's short write, anything else for the real tool — and the
-`platform-sys-lib` suite is where it is observable.
+**The fourth run resolves that.** Through the third run, the collector suite's
+fixtures assert on a report's exit code and so stop before the underlying
+reply-frame bytes are compared, and the only suite whose fixtures assert on
+those bytes directly — `platform-sys-lib` — had never run, because `execute()`
+broke after the first failing suite. `c53386a9` changed that: every admitted
+suite now runs (failure selection stays sticky regardless, since
+`Settlement.selected` is the first recorded reason and nothing reorders the
+list), and the fourth run is the first time `platform-sys-lib` executed at
+all. Verified directly from
+[the run's own log](https://github.com/wavect/semaprax/actions/runs/34047743589):
+**6 passed, 7 failed of its 13 fixtures**, alongside the same 3 passed / 10
+failed collector result.
+
+The decisive failure among those seven is
+`doctor::offline_worker::tests::lifecycle::post_exec_capabilities_and_supervisor_death_are_observed_externally`.
+Its fixture image (`fixture::machine_code` with `spin = true`) is a bare
+`jmp self` — two bytes, `0xeb 0xfe` — which issues no syscall of any kind and
+cannot exit, write, or fail a comparison on its own; the test drives it to
+prove supervisor-death observation while the child spins forever. It failed
+anyway. A process incapable of exiting by its own code that nonetheless
+produces a failing (non-`ok`) observation did not run its own code at all —
+so, at least for this fixture, **the rejection is inside `child.rs::enter`, at
+or before `execve`**, which eliminates the two post-`execve` explanations this
+document previously left open (a denied syscall — the spin image makes none —
+and a short write — it has no `write`). The fixture image and a full clang
+have almost nothing in common and fail identically, which is better explained
+by one shared cause before `execve` than by independent post-`execve` failures
+in each.
 
 **What is still not established.** The confinement boundary's *properties*.
-Its mechanics execute, but every fixture that would demonstrate a property —
-including the negative ones, such as rejecting image defects, digest drift, a
-missing loader, or a non-child pidfd — fails on this defect before reaching
-its own assertion. The carrier ceiling recorded below was a real defect, fixed
-in `7b5dfd65`; it was never why a fixture failed.
+Mechanics execute (materialize, pivot, seccomp, `execve` is reached by the
+report-emitting path, settlement), but every fixture that would demonstrate a
+property — including the negative ones, such as rejecting image defects,
+digest drift, a missing loader, or a non-child pidfd — fails on this defect
+before reaching its own assertion. The carrier ceiling recorded below was a
+real defect, fixed in `7b5dfd65`; it was never why a fixture failed.
 
-The platform-sys suite did not run in any of the three: `execute()` broke
-after the first failing suite. It no longer does. Every admitted suite now
-runs, and failure selection stays sticky for the reason it always did —
-`Settlement.selected` is the first recorded reason and nothing reorders the
-list, so a later suite's failures are appended exactly as the cleanup and
-settlement findings are, and the verdict is identical either way. That matters
-because the two suites fail differently: the collector fixtures assert on a
-report's exit code and so stop before the report bytes are compared, while the
-platform-sys fixtures assert on reply-frame contents and can separate
-`fail_stop`'s 126 from the fixture image's 7 from a real tool's status.
+*Which* rejection inside `child.rs::enter` fires first is also still
+unestablished. `ProbeError::Exit` collapses every nonzero child status into
+one wire value (`offline_worker/wire.rs`), and `Operations::reap_owned` — the
+trait seam it crosses — discards the numeric status before any point a fixture
+can observe. Naming the exact step therefore needs one of: a fixture-only
+capture behind `#[cfg(test)]`, a signature change to `Operations::reap_owned`
+(touching its Linux implementation and every mock), or a versioned reply-frame
+change (a protocol surface this gate exists to protect) — or, more cheaply,
+bisecting `child.rs::enter`'s enumerated rejections directly on a provisioned
+host, which needs no code change. No run has done any of these yet.
 
 ## What is true today
 

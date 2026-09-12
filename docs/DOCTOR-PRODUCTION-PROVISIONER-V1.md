@@ -206,15 +206,21 @@ namespace, cgroup, sealing, or kernel prerequisites fail rather than skip.
 required executable gate: the host preconditions it asserts before touching
 namespace or cgroup state, the exact serial selection of the twenty-six ignored
 lifecycle fixtures, the evidence it binds, and its refusal to treat absent
-provisioning as anything but a failure. **The gate has since executed nine
-times against a GitHub-hosted `ubuntu-24.04` runner** (see
+provisioning as anything but a failure. **The workflow has been dispatched
+nine times; the gate script itself actually started and produced a verdict in
+four of those** (see
 [Provisioned Linux gate v1 § Executions](DOCTOR-PROVISIONED-LINUX-GATE-V1.md#executions)
-for the exact run IDs; most recently
+for the exact run IDs and which is which; most recently
 [run 34047743589](https://github.com/wavect/semaprax/actions/runs/34047743589),
-2026-09-06, independently reconfirmed `failed` on 2026-09-11). Every run
-reports zero precondition failures, correct kernel-feature/cgroup/image
-evidence, and clean settlement, then fails on one defect: the confined worker
-never reaches the executed tool's own code, reproduced identically by a
+2026-09-06, independently reconfirmed `failed` on 2026-09-11). The other five
+dispatches never reached the gate script at all — two were cancelled outright
+and three failed in earlier CI setup steps (building or packaging the
+release) — so they carry no gate verdict and are not part of the four. Each of
+the four that ran reports zero precondition failures, correct
+kernel-feature/cgroup/image evidence, and clean settlement, then fails.
+The most recent of the four is also the first to exercise every admitted
+suite, and it establishes the sharper diagnosis: the confined worker never
+reaches the executed tool's own code, reproduced identically by a
 hand-assembled sentinel image and a real Clang distribution alike. This
 proves the gate executes and finds a real remaining defect; it does not
 promote WP-05, and no run has yet passed.

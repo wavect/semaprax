@@ -25,7 +25,9 @@ settlement contracts. Linux evidence never promotes those hosts.
 [DOCTOR-PRODUCTION-PROVISIONER-MACOS-V1](DOCTOR-PRODUCTION-PROVISIONER-MACOS-V1.md)
 defines and locally evidences a macOS Seatbelt-based confinement and
 settlement primitive; it is a standalone contract, not an extension of this
-one.
+one. [DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1](DOCTOR-PRODUCTION-PROVISIONER-WINDOWS-V1.md)
+records the equivalent Windows design without implementation, since no
+Windows execution was available to author it.
 
 The provisioner is a private distribution component, not an embedding API. It
 never discovers a profile, executable, loader, configuration file, trust key,

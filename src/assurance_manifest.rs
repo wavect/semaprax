@@ -30,6 +30,7 @@
 mod delta;
 mod derive;
 mod lattice;
+pub mod model_checking;
 mod obligation;
 pub mod proof_certificate;
 mod render;

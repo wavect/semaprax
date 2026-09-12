@@ -13,7 +13,7 @@ produce real numbers.
 | Path | Role |
 | --- | --- |
 | `run.py` | The harness: resolves tasks/adapters, builds and tests each task/language pair, records provenance, scores comparisons |
-| `tasks.json` | Task inventory (schema `benchmark.cross_language.tasks.v1`) |
+| `tasks.json` | Task inventory (schema `benchmark.cross_language.tasks.v1`). Each task declares a `split` — `development` (the frozen original pilot) or `held_out` (issue #106's contamination-protected extension; see that task's `EQUIVALENCE.md`) |
 | `adapters.json` | Per-language adapter inventory (schema `benchmark.cross_language.adapters.v1`): official toolchain invocation, version probe, success signal |
 | `tasks/<task-id>/EQUIVALENCE.md` | That task's fairness contract: inputs, outputs, measured boundary, allowed optimizations |
 | `tasks/<task-id>/public/<language>/` | The source tree a solver (human or Agent) would author against |
@@ -61,10 +61,14 @@ official toolchain is available in a pinned, network-free form (see
   runtime. The result schema (`benchmark.cross_language.v1`) has no field to
   receive one by accident — see `docs/METHODOLOGY.md`. Issues #85, #130, and
   #131 own adding a timing metric once an exclusive quiet host is available.
-- The one pilot task (`sequence-digest-v1`) is real, small, and deliberately
-  narrow (see its `EQUIVALENCE.md`). It is evidence that the harness works
-  end to end for three real languages, not a claim that SEMAPRAX outperforms
-  or underperforms Rust or TypeScript at anything.
+- The original pilot task (`sequence-digest-v1`, `split: development`) is
+  real, small, and deliberately narrow (see its `EQUIVALENCE.md`). It is
+  evidence that the harness works end to end for three real languages, not a
+  claim that SEMAPRAX outperforms or underperforms Rust or TypeScript at
+  anything. It stays frozen; issue #106's held-out extension
+  (`bounded-counter-repair-v1`, `split: held_out`) is added alongside it, not
+  in place of it — see `tasks/bounded-counter-repair-v1/EQUIVALENCE.md`'s
+  "Held-out discipline" section for what that split declaration commits to.
 - This is local, single-host evidence for whichever toolchain versions
   happen to be installed on the run host, recorded, not pinned by a lockfile
   or a container image. Containerized/pinned environments are in issue

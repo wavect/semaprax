@@ -1,17 +1,21 @@
-//! The cross-language Agent benchmark laboratory (issue #211).
+//! The cross-language Agent benchmark laboratory (issue #211), including its
+//! held-out extension (issue #106) and reserved-lane guards (issue #107).
 //!
 //! `benchmarks/cross-language-v1/` owns `run.py`, `tasks.json`,
-//! `adapters.json`, and per-task `public/`/`hidden/` source trees. This
-//! module pins the harness's own behavior with deterministic, synthetic
-//! adapters (never a real language toolchain, so these cases run anywhere
-//! `python3` runs) and separately pins the committed pilot task's inventory
-//! shape. It does not exercise a real language toolchain end to end, and it
-//! never measures or asserts a wall-clock time: `benchmark.cross_language.v1`
-//! has no timing field to assert about, by design (see
-//! `benchmarks/cross-language-v1/docs/METHODOLOGY.md`).
+//! `adapters.json`, and per-task `public/`/`hidden/` source trees. Most
+//! cases here pin the harness's own behavior with deterministic, synthetic
+//! adapters (never a real language toolchain, so they run anywhere
+//! `python3` runs). A few cases in the "held-out corpus" section do exercise
+//! real `rustc`/`tsc`/`node` toolchains end to end against the committed
+//! `bounded-counter-repair-v1` task and a self-authored naive-repair
+//! fixture, to prove its hidden overlay stays hidden and its hidden vectors
+//! actually catch the repair bug under a genuine toolchain, not only a
+//! mock. This module never measures or asserts a wall-clock time:
+//! `benchmark.cross_language.v1` has no timing field to assert about, by
+//! design (see `benchmarks/cross-language-v1/docs/METHODOLOGY.md`).
 //!
-//! `python3` is assumed present, exactly as
-//! `tests/documentation/performance_benchmark_suite.rs` assumes it.
+//! `python3`, `rustc`, `tsc`, and `node` are assumed present, exactly as
+//! `tests/documentation/performance_benchmark_suite.rs` assumes `python3`.
 
 use serde_json::Value;
 use std::path::{Path, PathBuf};
@@ -404,6 +408,218 @@ fn a_hidden_only_file_is_absent_from_the_public_build_tree() {
 }
 
 // ---------------------------------------------------------------------------
+// The held-out corpus (issue #106): `bounded-counter-repair-v1` is the first
+// task in this suite with `"split": "held_out"`, added beyond
+// `sequence-digest-v1`'s greenfield/development pilot. These cases prove,
+// with real official toolchains (not mock adapters), that its hidden overlay
+// stays hidden and that its hidden vectors actually catch the repair bug the
+// task is built around -- not merely that a directory named `hidden/` exists.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn every_committed_task_declares_a_split_and_the_held_out_task_is_not_development() {
+    // Regression guard for the split axis added alongside
+    // `bounded-counter-repair-v1`: every task must name its split
+    // explicitly, and the specific held-out task this corpus adds must
+    // never silently drift back to "development" in a future edit.
+    let inventory: Value = serde_json::from_str(
+        &std::fs::read_to_string(root().join(SUITE).join("tasks.json")).unwrap(),
+    )
+    .unwrap();
+    let tasks = inventory["tasks"].as_array().unwrap();
+    for task in tasks {
+        let split = task["split"]
+            .as_str()
+            .unwrap_or_else(|| panic!("{} declares no split", task["id"]));
+        assert!(
+            ["development", "validation", "held_out"].contains(&split),
+            "{}: unknown split {split:?}",
+            task["id"]
+        );
+    }
+    let repair = tasks
+        .iter()
+        .find(|task| task["id"] == "bounded-counter-repair-v1")
+        .expect("bounded-counter-repair-v1 must be in the committed inventory");
+    assert_eq!(repair["split"], "held_out");
+    assert_eq!(repair["category"], "repair");
+    let pilot = tasks
+        .iter()
+        .find(|task| task["id"] == "sequence-digest-v1")
+        .unwrap();
+    assert_eq!(
+        pilot["split"], "development",
+        "the original pilot task must stay frozen in its own split, not silently reclassified"
+    );
+}
+
+#[test]
+fn bounded_counter_repair_v1_passes_under_real_rust_and_typescript_toolchains_with_leak_check_ok() {
+    // Uses the committed suite's real root, tasks, and adapters (no mocks):
+    // this proves the actual committed held-out task builds and passes its
+    // hidden phase under each language's own official toolchain, and that
+    // the leak check finds nothing, exactly as the pilot task's own
+    // self-tests already prove for `sequence-digest-v1`. Restricted to
+    // `rust`/`typescript` here for the same reason every other case in this
+    // file is: exercising the real `semaprax` adapter needs a built
+    // compiler binary, which this harness's own self-tests do not build
+    // (see `python_entry_point_resolves_the_committed_suite_from_any_working_directory`,
+    // which only checks the `semaprax` adapter's declared inventory, never
+    // invokes it). The `semaprax::bounded-counter-repair-v1` pair was
+    // verified manually against a built binary while authoring this task
+    // (see the issue handoff), and is exercised the same way
+    // `sequence-digest-v1::semaprax` is whenever `--semaprax <bin>` is
+    // supplied on the command line.
+    let output = scratch("repair-real").join("result.json");
+    let result = runner()
+        .arg("--only")
+        .arg("bounded-counter-repair-v1")
+        .arg("--language")
+        .arg("rust")
+        .arg("--language")
+        .arg("typescript")
+        .arg("--output")
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let document = document(&output);
+    for language in ["rust", "typescript"] {
+        let record = result_for(&document, &format!("bounded-counter-repair-v1::{language}"));
+        assert_eq!(record["status"], "ok", "{record}");
+        assert_eq!(record["leak_check"], "ok", "{record}");
+        assert_eq!(record["public"]["passed"], true, "{record}");
+        assert_eq!(record["hidden"]["passed"], true, "{record}");
+    }
+}
+
+#[test]
+fn a_naive_end_of_sequence_clamp_repair_passes_public_but_fails_the_held_out_hidden_vectors() {
+    // The strongest available proof that this held-out task's hidden
+    // vectors do their job: a classic, plausible *wrong* repair (clamp the
+    // final summed delta once, instead of clamping the running counter
+    // after every step) passes every public vector -- they were chosen so
+    // both strategies agree -- and is only caught by the two hidden
+    // vectors that push the counter out of bounds and then move it back.
+    // Built from real `rustc`, independent of the committed task's own
+    // fixture files, so this is not merely re-asserting the same file.
+    let directory = scratch("naive-repair");
+    let task_dir = directory.join("task");
+    let public = task_dir.join("public/rust");
+    let hidden = task_dir.join("hidden/rust");
+    std::fs::create_dir_all(&public).unwrap();
+    std::fs::create_dir_all(&hidden).unwrap();
+
+    let naive_impl = "\
+fn clamp(value: i64) -> i64 {
+    if value > 100 {
+        100
+    } else if value < 0 {
+        0
+    } else {
+        value
+    }
+}
+
+// The bug this test proves the hidden vectors catch: clamp only the FINAL
+// summed delta, instead of clamping the running counter after every
+// individual step.
+fn apply5(c0: i64, d1: i64, d2: i64, d3: i64, d4: i64, d5: i64) -> i64 {
+    clamp(c0 + d1 + d2 + d3 + d4 + d5)
+}
+
+fn main() {}
+";
+    let public_tests = "\
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn never_leaves_bounds_upward() {
+        assert_eq!(apply5(0, 10, 10, 10, 10, 10), 50);
+        assert_eq!(apply5(95, 10, 0, 0, 0, 0), 100);
+    }
+
+    #[test]
+    fn never_leaves_bounds_downward_or_mixed() {
+        assert_eq!(apply5(50, 10, -5, 10, -5, 10), 70);
+        assert_eq!(apply5(5, -10, 0, 0, 0, 0), 0);
+    }
+}
+";
+    let hidden_tests = "\
+#[cfg(test)]
+mod hidden_tests {
+    use super::*;
+
+    #[test]
+    fn saturates_upward_then_recovers_downward() {
+        assert_eq!(apply5(90, 50, -30, 0, 0, 0), 70);
+    }
+
+    #[test]
+    fn floors_downward_then_recovers_upward() {
+        assert_eq!(apply5(5, -20, 50, 0, 0, 0), 50);
+    }
+}
+";
+    std::fs::write(public.join("main.rs"), format!("{naive_impl}{public_tests}")).unwrap();
+    std::fs::write(
+        hidden.join("main.rs"),
+        format!("{naive_impl}{public_tests}{hidden_tests}"),
+    )
+    .unwrap();
+
+    let tasks = serde_json::json!({
+        "schema": "benchmark.cross_language.tasks.v1",
+        "tasks": [{
+            "id": "naive-repair",
+            "category": "repair",
+            "split": "held_out",
+            "summary": "naive end-of-sequence clamp, for the harness's own self-test",
+            "languages": {"rust": {"public": "task/public/rust", "hidden": "task/hidden/rust"}}
+        }]
+    });
+    let tasks_path = directory.join("tasks.json");
+    write_json(&tasks_path, &tasks);
+
+    // Deliberately uses the committed suite's real `adapters.json` (bare
+    // `rustc --test`, not a mock), so this is a genuine toolchain run.
+    let output = directory.join("result.json");
+    let result = runner()
+        .arg("--root")
+        .arg(&directory)
+        .arg("--tasks")
+        .arg(&tasks_path)
+        .arg("--only")
+        .arg("naive-repair")
+        .arg("--language")
+        .arg("rust")
+        .arg("--output")
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert_eq!(result.status.code(), Some(1));
+    let document = document(&output);
+    let record = result_for(&document, "naive-repair::rust");
+    assert_eq!(
+        record["public"]["passed"], true,
+        "the naive end-of-sequence clamp must still pass every visible public vector: {record}"
+    );
+    assert_eq!(record["status"], "failed");
+    assert_eq!(
+        record["hidden"]["passed"], false,
+        "the held-out hidden vectors must catch the naive end-of-sequence clamp: {record}"
+    );
+    assert_eq!(record["leak_check"], "ok");
+}
+
+// ---------------------------------------------------------------------------
 // The committed inventory and harness startup.
 // ---------------------------------------------------------------------------
 
@@ -575,6 +791,61 @@ fn declared_adapters_pin_exact_tool_invocations_with_no_mutable_selectors() {
             );
         }
     }
+}
+
+#[test]
+fn the_zero_adapter_stays_reserved_and_consistent_with_its_pinned_revision() {
+    // Issue #107: "never silently enable the reserved v1 lane by deleting
+    // its guard." This pins two things that must move together: the Zero
+    // adapter must stay `implemented: false` (no toolchain is actually wired
+    // in this sandbox -- no network access at build time, and no `zero`
+    // binary on this host), and its `blocked_reason` must keep naming the
+    // exact revision `benchmarks/agent-task-comparison-v1/manifest.json`
+    // already reserves, so the two suites cannot silently drift into
+    // describing two different "the Zero lane" claims.
+    let adapters: Value = serde_json::from_str(
+        &std::fs::read_to_string(root().join(SUITE).join("adapters.json")).unwrap(),
+    )
+    .unwrap();
+    let zero = adapters["adapters"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|adapter| adapter["id"] == "zero")
+        .expect("adapters.json must declare a zero adapter");
+    assert_eq!(
+        zero["implemented"], false,
+        "the reserved Zero lane must not be silently enabled without a reviewed successor"
+    );
+    let reason = zero["blocked_reason"].as_str().unwrap();
+
+    let manifest: Value = serde_json::from_str(
+        &std::fs::read_to_string(
+            root().join("benchmarks/agent-task-comparison-v1/manifest.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let pinned_subject = manifest["lanes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find_map(|lane| {
+            lane["subject"]
+                .as_str()
+                .filter(|subject| subject.starts_with("vercel-labs/zerolang@"))
+        })
+        .expect("agent-task-comparison-v1/manifest.json must still pin a vercel-labs/zerolang revision");
+    assert!(
+        reason.contains(pinned_subject),
+        "cross-language-v1's zero blocked_reason must name the same pinned revision \
+         agent-task-comparison-v1/manifest.json reserves ({pinned_subject}): {reason}"
+    );
+    assert!(
+        reason.contains("network"),
+        "the reason must state the concrete sandbox obstacle (build-time network access), \
+         not merely restate 'not implemented': {reason}"
+    );
 }
 
 #[test]

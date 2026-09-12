@@ -1,0 +1,51 @@
+module bench.repair;
+
+@id("bench.repair.clamp")
+fn clamp(value: i64) -> i64
+{
+    if value > 100 { 100 } else { if value < 0 { 0 } else { value } }
+}
+
+@id("bench.repair.step")
+fn step(counter: i64, delta: i64) -> i64
+{
+    clamp(counter + delta)
+}
+
+@id("bench.repair.apply5")
+fn apply5(c0: i64, d1: i64, d2: i64, d3: i64, d4: i64, d5: i64) -> i64
+{
+    step(step(step(step(step(c0, d1), d2), d3), d4), d5)
+}
+
+@id("bench.repair.eq")
+fn eq(left: i64, right: i64) -> i64
+{
+    if left == right { 1 } else { 0 }
+}
+
+// Public tests: five fixed sequences of five deltas applied, in order, to a
+// starting counter that must never leave [0, 100] ("bounded" as in a
+// saturating resource counter, not a ring buffer). None of these four public
+// vectors ever needs the counter to leave bounds and then move back the
+// other way, so a naive repair -- clamping only the final running sum,
+// `clamp(c0 + d1 + d2 + d3 + d4 + d5)`, instead of clamping after every
+// individual step -- happens to agree with the correct stepwise
+// implementation on all four. See EQUIVALENCE.md and the hidden overlay for
+// the two sequences that only a correctly-stepwise implementation passes.
+//
+// Assertions are summed arithmetically (`eq(...)` calls added together)
+// rather than chained with `&&`, matching sequence-digest-v1's own fixture:
+// stacking `&&` built one comparison path per short-circuit branch there and
+// hit SPX-H006's per-function cleanup replay path budget well before ten
+// `if`/`else` statements would.
+@id("app.main")
+fn main() -> i64
+{
+    let checks =
+        eq(apply5(0, 10, 10, 10, 10, 10), 50) +
+        eq(apply5(50, 10, -5, 10, -5, 10), 70) +
+        eq(apply5(95, 10, 0, 0, 0, 0), 100) +
+        eq(apply5(5, -10, 0, 0, 0, 0), 0);
+    if checks == 4 { 0 } else { 1 }
+}

@@ -37,7 +37,7 @@
       "id": "zero",
       "language": "Zero",
       "implemented": false,
-      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Zero toolchain and version before this adapter can run."
+      "blocked_reason": "an official revision is already pinned elsewhere in this repository (benchmarks/agent-task-comparison-v1/manifest.json: vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7), but fetching or installing it here needs build-time network access (a git clone of that revision), which this sandbox forbids; issue #106/#107's review step ('the reserved historical Zero revision is not automatically the appropriate current comparison subject') has also not been completed. HUMAN_BLOCKED: review whether that pinned revision is still the right comparison subject, then provision it as a network-free local checkout or toolchain image before this adapter can run."
     },
     {
       "id": "ntnt",

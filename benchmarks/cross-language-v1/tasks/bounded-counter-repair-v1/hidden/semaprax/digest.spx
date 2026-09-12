@@ -1,0 +1,57 @@
+module bench.repair;
+
+@id("bench.repair.clamp")
+fn clamp(value: i64) -> i64
+{
+    if value > 100 { 100 } else { if value < 0 { 0 } else { value } }
+}
+
+@id("bench.repair.step")
+fn step(counter: i64, delta: i64) -> i64
+{
+    clamp(counter + delta)
+}
+
+@id("bench.repair.apply5")
+fn apply5(c0: i64, d1: i64, d2: i64, d3: i64, d4: i64, d5: i64) -> i64
+{
+    step(step(step(step(step(c0, d1), d2), d3), d4), d5)
+}
+
+@id("bench.repair.eq")
+fn eq(left: i64, right: i64) -> i64
+{
+    if left == right { 1 } else { 0 }
+}
+
+// This file is the harness's hidden overlay: it replaces the public
+// `digest.spx` verbatim (same relative path) so it is never present in the
+// tree a solver authors against, and extends `app.main` with the two
+// sequences that expose the classic off-by-one repair bug this task is
+// about: clamping only the final summed delta instead of clamping the
+// running counter after every individual step. Both hidden sequences push
+// the counter out of bounds and then move it back the other way, so the two
+// strategies diverge:
+//
+//   c0=90, deltas=(50,-30,0,0,0): stepwise clamps 90+50 to 100, then 100-30
+//   to 70; final 70. A single end clamp instead sums 90+50-30=110 and clamps
+//   once to 100 -- the wrong answer.
+//
+//   c0=5, deltas=(-20,50,0,0,0): stepwise clamps 5-20 to 0, then 0+50 to 50;
+//   final 50. A single end clamp sums 5-20+50=35 and never needs to clamp at
+//   all -- also the wrong answer, in the other direction.
+//
+// Assertions stay arithmetic (summed `eq(...)` calls, one guarding `if`) for
+// the same reason the public file does.
+@id("app.main")
+fn main() -> i64
+{
+    let checks =
+        eq(apply5(0, 10, 10, 10, 10, 10), 50) +
+        eq(apply5(50, 10, -5, 10, -5, 10), 70) +
+        eq(apply5(95, 10, 0, 0, 0, 0), 100) +
+        eq(apply5(5, -10, 0, 0, 0, 0), 0) +
+        eq(apply5(90, 50, -30, 0, 0, 0), 70) +
+        eq(apply5(5, -20, 50, 0, 0, 0), 50);
+    if checks == 6 { 0 } else { 1 }
+}

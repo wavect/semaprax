@@ -42,13 +42,26 @@ full contract in
   reported, a pair whose baseline or local status is not `ok` is reported
   `incomparable` rather than silently scored, exactly as
   `benchmarks/performance-v1` already does for wall-clock scenarios.
-- **One real pilot task, three real languages.** `sequence-digest-v1` is
-  wired and passing end to end for SEMAPRAX, Rust, and bare-`rustc`
-  TypeScript-via-`tsc`+`node` — not mocked. The other six languages on the
-  issue's roster are declared in `adapters.json` with an honest
-  `blocked_reason` (no located official toolchain, or a toolchain that
-  needs a network install this sandbox forbids) and are reported `blocked`,
-  never scored as a pass or a fail.
+- **One real pilot task, three real languages, plus a held-out extension
+  (issue #106).** `sequence-digest-v1` (`split: development`) is wired and
+  passing end to end for SEMAPRAX, Rust, and bare-`rustc`
+  TypeScript-via-`tsc`+`node` — not mocked; it stays frozen. Alongside it,
+  `bounded-counter-repair-v1` (`split: held_out`, `category: repair`) adds a
+  realistic off-by-one repair task beyond signature migration/greenfield
+  work — a saturating counter whose classic "clamp only the final summed
+  delta" bug is invisible to its public tests and caught only by its hidden
+  overlay — also wired and passing end to end for all three languages. Every
+  task now declares an explicit `split`; `tasks/<task-id>/EQUIVALENCE.md`'s
+  "Held-out discipline" section states what that declaration commits a
+  held-out task to. The other six languages on the issue's roster are
+  declared in `adapters.json` with an honest `blocked_reason` (no located
+  official toolchain, or a toolchain that needs a network install this
+  sandbox forbids) and are reported `blocked`, never scored as a pass or a
+  fail; the reserved Zero lane's reason now names the exact pinned revision
+  `benchmarks/agent-task-comparison-v1/manifest.json` already reserves
+  (`vercel-labs/zerolang@eb2ed6c2...`), rather than restating "not located"
+  for a toolchain this repository has, in fact, already identified and
+  pinned but cannot fetch without build-time network access.
 - **Deterministic harness self-tests.** `tests/documentation/cross_language_benchmark_suite.rs`
   exercises the harness against synthetic mock adapters with known
   pass/fail artifacts, independent of any real language toolchain, alongside

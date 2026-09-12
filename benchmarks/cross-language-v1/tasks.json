@@ -4,6 +4,7 @@
     {
       "id": "sequence-digest-v1",
       "category": "greenfield",
+      "split": "development",
       "summary": "Four independent scalar digests (sum, count of even inputs, count of negative inputs, maximum) over five fixed signed 64-bit inputs.",
       "equivalence": "tasks/sequence-digest-v1/EQUIVALENCE.md",
       "languages": {
@@ -18,6 +19,27 @@
         "typescript": {
           "public": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/typescript",
           "hidden": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/typescript"
+        }
+      }
+    },
+    {
+      "id": "bounded-counter-repair-v1",
+      "category": "repair",
+      "split": "held_out",
+      "summary": "A saturating counter bounded to [0, 100] that applies five signed 64-bit deltas in sequence; catches the off-by-one repair bug of clamping only the final summed delta instead of clamping the running counter after every step.",
+      "equivalence": "tasks/bounded-counter-repair-v1/EQUIVALENCE.md",
+      "languages": {
+        "semaprax": {
+          "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/semaprax"
+        },
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/typescript"
         }
       }
     }

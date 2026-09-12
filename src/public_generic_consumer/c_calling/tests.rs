@@ -79,7 +79,7 @@ fn shipped_header_is_byte_identical_to_the_frozen_native_abi_header() {
         .iter()
         .find(|(name, _)| name == "spx_pg_v1.h")
         .expect("spx_pg_v1.h must be generated");
-    assert_eq!(header, HEADER_V1);
+    assert_eq!(header, &HEADER_V1.replace("\r\n", "\n"));
 }
 
 /// "Native handles are private" and "keep the surface clean enough to

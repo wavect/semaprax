@@ -31,6 +31,7 @@ mod delta;
 mod derive;
 mod lattice;
 mod obligation;
+pub mod proof_certificate;
 mod render;
 pub mod smt_discharge;
 mod verify;

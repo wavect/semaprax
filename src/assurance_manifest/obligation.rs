@@ -16,7 +16,9 @@ pub enum ObligationKind {
     /// Reserved: needs the resolved-HIR `result_ownership` helper, not
     /// derived automatically by this tranche. See "Obligation derivation".
     OwnershipResult,
-    /// Reserved: not derived automatically by this tranche.
+    /// One per distinct effect name a function declares in `uses { ... }`;
+    /// derived automatically from `source_verify`'s effect-authority checks
+    /// (`SPX-E101`/`SPX-E102`/`SPX-E103`). See `derive::effect_obligations`.
     Effect,
     /// One per variant `match` expression; derived automatically from
     /// `source_verify`'s `SPX-M101` case-coverage check. See
@@ -26,7 +28,10 @@ pub enum ObligationKind {
     ResourceCleanup,
     /// Reserved: not derived automatically by this tranche.
     ArchitectureLaw,
-    /// Reserved: not derived automatically by this tranche.
+    /// One per `interface` declaration with at least one import; derived
+    /// automatically from `source_verify`'s interface/import well-formedness
+    /// checks (`SPX-B107`, `SPX-I403`, `SPX-I404`, `SPX-T268`). See
+    /// `derive::generated_interface_obligation`.
     GeneratedInterface,
 }
 
@@ -185,10 +190,9 @@ pub struct AssumptionRecord {
 /// manifest without requiring any formal-method backend to exist. This is
 /// how `open`, `assumed`, `test_evidenced`, `attempt_inconclusive`,
 /// `smt_proved`, `model_checked`, and `theorem_proved` records reach a
-/// manifest today, and how a future producer for `effect`,
-/// `exhaustiveness`, `resource_cleanup`, `architecture_law`, or
-/// `generated_interface` obligations can plug in before this crate grows
-/// its own derivation for them.
+/// manifest today, and how a future producer for `ownership_result`,
+/// `resource_cleanup`, or `architecture_law` obligations can plug in before
+/// this crate grows its own derivation for them.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ExternalRecords {
     pub obligations: Vec<Obligation>,

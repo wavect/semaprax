@@ -88,11 +88,11 @@ alias two different identities. `kind` is one of the closed tokens below.
 | `postcondition` | `ensure:<index>` | Same rule, over `ensures`. |
 | `ownership_parameter` | `param:<index>` | Stable across formatting/rename. Changes if the parameter list or a parameter's ownership mode changes. |
 | `ownership_result` | `result` | Reserved for a later producer; not derived automatically in this tranche (see "Obligation derivation"). |
-| `effect` | `effect:<name>` | Reserved for a later producer; not derived automatically in this tranche (see "Obligation derivation"). |
+| `effect` | `effect:<name>` | Stable across formatting/rename. `<name>` is a declared effect token, deduplicated within one function's `uses { ... }` set; changes if the set of distinct declared effect names changes — a semantic change. Derived automatically today; see "Obligation derivation". |
 | `exhaustiveness` | `match:<index>` | Stable across formatting/rename. `<index>` is the 0-based position of a variant `match` expression in a pre-order, left-to-right walk of the owning function's `requires` clauses, then its body, then its `ensures` clauses (`derive::walk_expr`); changes if a match is added, removed, or reordered ahead of it — a semantic change, exactly like `require:<index>`. Derived automatically today; see "Obligation derivation". |
 | `resource_cleanup` | `cleanup:<path>` | Reserved; not derived automatically in this tranche. |
 | `architecture_law` | `law:<name>` | Reserved; not derived automatically in this tranche. |
-| `generated_interface` | `interface:<name>` | Reserved; not derived automatically in this tranche. |
+| `generated_interface` | `interface:<name>` | Stable across formatting/rename. `<name>` is the declaring `interface`'s own name; changes if the interface is renamed — a semantic change, exactly like a `stable_id`-scoped rename elsewhere in this table. Derived automatically today, one obligation per interface that declares at least one import; see "Obligation derivation". |
 
 `kind` is a closed enum in `ObligationKind`; an unrecognized token is a
 replay failure (`SPX-Z103`), not a silently-accepted extension. This mirrors
@@ -140,23 +140,58 @@ state precisely which guarantee that fact carries:
   exhaustiveness-checked by `SPX-M101` the same way, so none of those
   derive an obligation here — deriving one for every `match` regardless of
   pattern kind would overstate what was actually proved.
+- **`effect`.** One obligation per distinct effect name a function declares
+  in its `uses { ... }` set (`derive::effect_obligations`; a name repeated
+  in one function's own set, legal source, still derives exactly one
+  obligation — see the negative-control tests). `source_verify` rejects,
+  at the same AST-level pass `ownership_parameter` and `exhaustiveness`
+  rely on: a declared effect the enclosing module does not `permit`
+  (`SPX-E101`); a reachable call — to a host operation, a command-I/O
+  operation, or another local function — that requires an effect this
+  function does not declare (`SPX-E102`); and an owned parameter or result
+  whose automatic finalization requires an effect this function does not
+  declare (`SPX-E103`). Because `generate` only reaches obligation
+  derivation after `verify::verify` returned no error diagnostic, every
+  declared effect it derives an obligation for already survived all three
+  checks; its method record has class `compiler_proved`. A function that
+  declares no effects derives nothing here — there is no declared fact to
+  attach a record to, exactly like a function with no `requires` clause.
+- **`generated_interface`.** One obligation per `interface` declaration that
+  has at least one import (`derive::generated_interface_obligation`). An
+  `interface` with no imports generates no host binding at all, so nothing
+  about a "generated interface" was checked; deriving one anyway would
+  overstate what was proved. For an interface that does have an import,
+  `source_verify::check_native_rust_imports` rejects, at the same AST-level
+  pass the other automatic derivations rely on: an inadmissible parameter
+  type crossing the import boundary (`SPX-T268`); an inadmissible
+  parameter/result shape, symbol collision, or invalid status domain on the
+  Native Rust Interop lane (`SPX-B107`); and, on the component lane, an
+  inadmissible resource-consuming shape, an invalid failure domain, or a
+  declared effect that is duplicated or falls outside the interface's own
+  `permits` set (`SPX-I403`/`SPX-I404`). Because `generate` only reaches
+  obligation derivation after `verify::verify` returned no error
+  diagnostic, every such interface's imports already survived all of those
+  checks; its method record has class `compiler_proved`.
 
 Nothing else is derived automatically in this tranche. `ownership_result`
 needs the resolved-HIR `result_ownership` helper (private, and defined over
-`ResolvedProgram`, not the `ast::Program` this producer stays at); declared
-function effects, resource cleanup order, architecture laws, and
-generated-interface obligations are real, existing, checked facts in this
-repository, but mapping each one to a specific assurance class needs its own
-audit of exactly what the checker proves before this manifest can state it
-without overstating it — the explicit failure case this issue calls out
-first. `ObligationKind` already reserves their tokens (closed vocabulary,
-not an open string) so a later change can add their derivation without a
-schema version bump; until then they simply do not appear unless a caller
-supplies them through `options.external_records`, which is also how `open`,
-`assumed`, `test_evidenced`, `attempt_inconclusive`, `smt_proved`,
-`model_checked`, and `theorem_proved` records reach the manifest today. A
-simple candidate assurance summary — this tranche's automatic derivation —
-never waits on any of those backends existing.
+`ResolvedProgram`, not the `ast::Program` this producer stays at); resource
+cleanup order (`cleanup_plan::build`, over `ResolvedProgram`/
+`ResolvedFunction`) needs the same resolved-HIR dependency this producer
+does not have. `architecture_law` names no existing, single checked fact at
+all yet — unlike the other reserved kinds, this repository has no producer
+to audit for it. Mapping each of these three to a specific assurance class
+needs its own audit (or, for `architecture_law`, its own design) of exactly
+what a checker proves before this manifest can state it without overstating
+it — the explicit failure case this issue calls out first. `ObligationKind`
+already reserves their tokens (closed vocabulary, not an open string) so a
+later change can add their derivation without a schema version bump; until
+then they simply do not appear unless a caller supplies them through
+`options.external_records`, which is also how `open`, `assumed`,
+`test_evidenced`, `attempt_inconclusive`, `smt_proved`, `model_checked`, and
+`theorem_proved` records reach the manifest today. A simple candidate
+assurance summary — this tranche's automatic derivation — never waits on
+any of those backends existing.
 
 ## The assurance lattice
 
@@ -426,7 +461,7 @@ not_human_approval_or_policy
 not_signature_or_publication_authority
 not_safe_compatible_or_target_conformant
 no_repository_or_multi_file_analysis
-no_effect_resource_or_architecture_law_derivation_yet
+no_ownership_result_resource_cleanup_or_architecture_law_derivation_yet
 read_only_no_source_changes
 ```
 
@@ -436,12 +471,11 @@ to accept evidence from without ever requiring them to exist. It is not test
 execution, target execution, human approval, a signature, or publication
 authority; it grants none of those and none of the ambient filesystem,
 process, network, or signing authority AGENTS.md prohibits by default. It
-does not yet derive `ownership_result`, `effect`, `resource_cleanup`,
-`architecture_law`, or `generated_interface` obligations automatically (see
-"Obligation derivation"); their tokens exist in the closed vocabulary so a
-later change can add that derivation without a schema version bump, and a
-caller can already supply such a record today through
-`options.external_records`.
+does not yet derive `ownership_result`, `resource_cleanup`, or
+`architecture_law` obligations automatically (see "Obligation derivation");
+their tokens exist in the closed vocabulary so a later change can add that
+derivation without a schema version bump, and a caller can already supply
+such a record today through `options.external_records`.
 
 ## Known limitations
 
@@ -489,10 +523,11 @@ caller can already supply such a record today through
   IDs, because today's IDs never depend on one.
 - **Automatic derivation is deliberately narrow.** See "Obligation
   derivation": only `precondition`, `postcondition`, `ownership_parameter`,
-  and `exhaustiveness` are derived from source today. `ownership_result`,
-  `effect`, `resource_cleanup`, `architecture_law`, and
-  `generated_interface` remain undone; each needs its own audit of exactly
-  what its checker proves (`ownership_result` additionally needs a
-  resolved-HIR dependency this producer does not otherwise have) before
-  this manifest can state a class for it without overstating it. This is a
-  deliberate, incremental boundary, not an oversight.
+  `exhaustiveness`, `effect`, and `generated_interface` are derived from
+  source today. `ownership_result`, `resource_cleanup`, and
+  `architecture_law` remain undone: `ownership_result` and
+  `resource_cleanup` each need a resolved-HIR dependency (`result_ownership`,
+  `cleanup_plan::build`) this producer does not otherwise have, staying at
+  `ast::Program`; `architecture_law` has no existing single checked fact in
+  this repository yet to audit at all. This is a deliberate, incremental
+  boundary, not an oversight.

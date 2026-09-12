@@ -20,10 +20,17 @@
 //! only the trusted descriptor/binding byte constants a real
 //! `VerifiedPublicGenericDescriptor` and `NativeProviderBindingV1` supply.
 //! Everything else in the emitted provider is a fixed, reviewed template:
-//! deriving a provider from a real checked *generic* export requires #119's
-//! still-blocked owned-record ownership evidence, so this round's bound
-//! endpoint is a fixture (byte-reversal) operating on the existing owned-
-//! Bytes shapes, exactly as this issue's brief scopes it. See
+//! deriving a provider from a real checked *generic* export additionally
+//! requires wiring an admitted descriptor into a codegen-emitted native
+//! function body, which remains unimplemented and is out of this adapter's
+//! own scope. #119 itself is no longer blocked for the native-C11 lane
+//! (closed in `dff6873a`, which proved exactly the owned-record
+//! allocate/transfer/drop evidence a real endpoint would need); it never
+//! covered generating a native function body from an admitted *public
+//! generic export*, which is the separate, still-missing piece. So this
+//! round's bound endpoint remains a fixture (byte-reversal) operating on
+//! the existing owned-Bytes shapes, exactly as this issue's brief scopes
+//! it. See
 //! [Public Generic Carrier v1](../../docs/PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154)
 //! for the full status-code table, wire format, and deferred-scope note.
 

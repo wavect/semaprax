@@ -152,3 +152,115 @@ fn body_bounds_match_the_boundary_profile_constants_verbatim() {
         MAX_TOTAL_PAYLOAD_BYTES / (1024 * 1024)
     )));
 }
+
+/// Real, compiled-and-executed regression for a defect found during issue
+/// #134's audit: `spx_pg_result_release_v1` released its leaves with a
+/// second, untraced per-leaf loop instead of routing through
+/// `spx_pg_release_leaves` (the same helper `spx_pg_value_release_v1` already
+/// used), so releasing a *result* handle recorded none of the normalized
+/// trace's `LEAF_RELEASE`/`CARRIER_RELEASE` events while releasing a *value*
+/// handle recorded both. This compiles the real rendered provider, drives one
+/// full success round trip through the real C ABI, and asserts the exact two
+/// trace events `spx_pg_result_release_v1` must append.
+#[test]
+fn result_release_records_the_same_normalized_trace_events_as_value_release() {
+    let descriptor_bytes = b"template-tests-result-release-trace-fixture".to_vec();
+    let provider_source = render_reference_provider(&descriptor_bytes, &sample_binding());
+
+    // One owned leaf, byte 0x41: [u64 leaf_count=1][u64 leaf_len=1][0x41].
+    const MAIN_FRAGMENT: &str = r#"
+#include <stdio.h>
+
+static const uint8_t CARRIER_BYTES[] = {
+    0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x41
+};
+
+int main(void) {
+    spx_pg_provider_v1 *provider = NULL;
+    if (spx_pg_provider_open_v1(SPX_PG_TRUSTED_DESCRIPTOR_BYTES, SPX_PG_TRUSTED_DESCRIPTOR_LEN,
+                                 SPX_PG_TRUSTED_BINDING_BYTES, SPX_PG_TRUSTED_BINDING_LEN,
+                                 &provider) != SPX_PG_STATUS_OK || provider == NULL) {
+        return 1;
+    }
+    spx_pg_value_v1 *input = NULL;
+    if (spx_pg_input_prepare_v1(provider, CARRIER_BYTES, sizeof(CARRIER_BYTES), &input) !=
+            SPX_PG_STATUS_OK || input == NULL) {
+        return 2;
+    }
+    spx_pg_result_v1 *result = NULL;
+    if (spx_pg_call_v1(provider, input, &result) != SPX_PG_STATUS_OK || result == NULL) {
+        return 3;
+    }
+    size_t before = spx_pg_test_trace_len_v1();
+    if (spx_pg_result_release_v1(&result) != SPX_PG_STATUS_OK || result != NULL) {
+        return 4;
+    }
+    size_t after = spx_pg_test_trace_len_v1();
+    if (after != before + 2) {
+        return 5;
+    }
+    if (spx_pg_test_trace_label_v1(after - 2) != SPX_PG_TRACE_LEAF_RELEASE) {
+        return 6;
+    }
+    if (spx_pg_test_trace_label_v1(after - 1) != SPX_PG_TRACE_CARRIER_RELEASE) {
+        return 7;
+    }
+    if (spx_pg_provider_close_v1(&provider) != SPX_PG_STATUS_OK) {
+        return 8;
+    }
+    if (spx_pg_test_live_allocations_v1() != 0) {
+        return 9;
+    }
+    printf("result-release-records-the-normalized-trace\n");
+    return 0;
+}
+"#;
+
+    let source = format!("{provider_source}\n{MAIN_FRAGMENT}");
+
+    let compiler = std::env::var_os("CLANG").map_or_else(
+        || std::path::PathBuf::from("clang"),
+        std::path::PathBuf::from,
+    );
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-pg-native-result-release-trace-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let root = root.canonicalize().unwrap();
+    let source_path = root.join("probe.c");
+    std::fs::write(&source_path, &source).unwrap();
+    let executable = root.join(format!("probe{}", std::env::consts::EXE_SUFFIX));
+    let built = std::process::Command::new(&compiler)
+        .current_dir(&root)
+        .args(["-std=c11", "-O0", "-Wall", "-Wextra", "-Werror"])
+        .arg(&source_path)
+        .arg("-o")
+        .arg(&executable)
+        .output()
+        .unwrap();
+    assert!(
+        built.status.success(),
+        "{}: {}",
+        root.display(),
+        String::from_utf8_lossy(&built.stderr)
+    );
+    let ran = std::process::Command::new(&executable)
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(
+        ran.status.success(),
+        "{}: stdout={} stderr={}",
+        root.display(),
+        String::from_utf8_lossy(&ran.stdout),
+        String::from_utf8_lossy(&ran.stderr)
+    );
+    assert_eq!(ran.stdout, b"result-release-records-the-normalized-trace\n");
+}

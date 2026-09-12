@@ -434,7 +434,14 @@ vocabulary](#the-normalized-trace) above, adding no second vocabulary.
 Answers issue #154.
 
 **Deferred scope.** Deriving a provider from a real checked *generic* export
-requires #119's still-blocked owned-record ownership evidence. Until that
+additionally requires wiring an admitted descriptor into a codegen-emitted
+native function body, which remains unimplemented. #119 itself is no longer
+blocked for the native-C11 lane: it closed with real per-element owned-record
+allocate/transfer/drop evidence for native C11 (`dff6873a`). That evidence is
+a different, adjacent capability — an *internal* `Vec<Record>` collection
+profile — from generating a native function body for an admitted *public
+generic export*'s descriptor, which #119 never covered and which stays
+unimplemented and out of this adapter's own file lease (codegen). Until that
 lands, the bound endpoint is a fixture (`spx_pg_endpoint_reverse_bytes_v1`,
 byte-reversal per owned leaf) operating on the existing owned-Bytes shapes —
 a flat sequence of independent owned `Bytes` leaves, matching this issue's
@@ -590,8 +597,12 @@ existing sanitizer-gating convention.
 
 This adapter is local, proof-only evidence, not hosted, supported, or
 published evidence. It does not derive a provider from a real checked public
-generic export (blocked on #119); its bound endpoint and trusted descriptor
-bytes are fixtures. It has not been exercised on Linux or Windows/MSVC, or
+generic export — that needs codegen wiring from an admitted descriptor to a
+native function body, which remains unimplemented (see the "Deferred scope"
+note above for the precise, current blocker and why #119's own closure for
+native C11 does not by itself remove it); its bound endpoint and trusted
+descriptor bytes are fixtures. It has not been exercised on Linux or
+Windows/MSVC, or
 under a hosted CI sanitizer gate (#163's remaining work). It is not the
 generated Rust, C, or C++ consumer (#156, #158, #159 respectively) — those
 are separate acceptance surfaces this issue does not build. Issue #156's

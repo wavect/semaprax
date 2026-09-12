@@ -16,11 +16,16 @@
  * in this file.
  *
  * The bound endpoint is a fixture: it reverses each owned leaf's bytes.
- * Deriving a real checked-program endpoint from validated generic HIR is
- * #119's remaining prerequisite (owned-record ownership evidence); until
- * that lands, this adapter operates on the existing owned-Bytes shapes only
- * (a flat sequence of independent owned leaves), matching the "existing
- * owned-Bytes shapes" scope this issue's brief calls out.
+ * Deriving a real checked-program endpoint from validated generic HIR still
+ * needs a codegen-emitted native function body wired to an admitted public
+ * generic export's descriptor; that wiring is unimplemented and out of this
+ * adapter's own scope. #119 closed for the native-C11 lane (`dff6873a`),
+ * proving owned-record allocate/transfer/drop evidence, but it never covered
+ * generating a native function body from a public generic export — a
+ * separate, still-missing piece. Until that lands, this adapter operates on
+ * the existing owned-Bytes shapes only (a flat sequence of independent owned
+ * leaves), matching the "existing owned-Bytes shapes" scope this issue's
+ * brief calls out.
  */
 
 #include <stdint.h>
@@ -382,8 +387,9 @@ static spx_pg_status_v1 spx_pg_fill_leaves(const uint8_t *bytes, size_t offset, 
 }
 
 /* --- The bound checked endpoint (fixture): reverse every leaf's bytes.
- * Stands in for a real checked generic export until #119 unblocks deriving
- * one from validated HIR; see this file's header comment. */
+ * Stands in for a real checked generic export until codegen wiring from an
+ * admitted descriptor to a native function body is implemented; see this
+ * file's header comment for the precise, current blocker. */
 static spx_pg_status_v1 spx_pg_endpoint_reverse_bytes_v1(uint32_t leaf_count,
                                                           uint8_t *const *input_leaf_bytes,
                                                           const size_t *input_leaf_lens,
@@ -866,9 +872,13 @@ spx_pg_status_v1 spx_pg_result_release_v1(spx_pg_result_v1 **result) {
     }
     spx_pg_result_v1 *owned = *result;
     spx_pg_registry_remove(slot);
-    for (uint32_t index = 0; index < owned->leaf_count; ++index) {
-        spx_pg_dealloc(owned->leaf_bytes[index], owned->leaf_lens[index]);
-    }
+    /* Route through the same traced/injectable helper `spx_pg_value_release_v1`
+     * uses, rather than a second, untraced per-leaf loop: releasing a
+     * result's leaves is the identical logical operation to releasing a
+     * value's, and the normalized trace is documented as recording every
+     * such release, not only the ones reachable from `spx_pg_call_v1`'s own
+     * internal input release. */
+    spx_pg_release_leaves(owned->leaf_bytes, owned->leaf_lens, owned->leaf_count);
     if (owned->leaf_bytes != NULL) {
         spx_pg_dealloc(owned->leaf_bytes, sizeof(uint8_t *) * owned->leaf_count);
     }

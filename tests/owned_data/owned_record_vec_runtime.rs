@@ -15,7 +15,7 @@
 //! `codegen::emit_c`, `clang -O0`/`-O2` and an executed binary, not a
 //! hand-built plan.
 
-use semaprax::{hir, interpreter, wasm};
+use semaprax::{codegen, hir, interpreter, wasm};
 
 #[path = "owned_record_vec_runtime/native.rs"]
 mod native;
@@ -232,6 +232,45 @@ fn native_c11_executes_the_owned_record_collection_corpus() {
         match expected {
             Ok(value) => native::run_native(&program, "", 0, value, "none"),
             Err((domain, code)) => native::run_native(&program, domain, code, 0, "none"),
+        }
+    }
+}
+
+/// Negative control for the governing invariant: ownership errors are
+/// compile-time diagnostics, never backend accidents. An element one field
+/// away from the admitted shape reaches neither the record lowering nor the
+/// scalar lowering; the front end refuses it with a stable diagnostic, and
+/// the native emitter is never asked to place a carrier it has no layout for.
+#[test]
+fn an_element_outside_the_admitted_shape_is_refused_with_a_stable_diagnostic() {
+    let near_miss = r#"module app.catalog;
+@id("app.catalog.line") record Line {
+ @id("app.catalog.line.id") id: Bytes,
+ @id("app.catalog.line.label") label: Bytes,
+ @id("app.catalog.line.note") note: Bytes,
+}
+@id("app.main") fn main()->i64 {
+ let lines=vec_with_capacity<Line>(1usize);
+ if vec_capacity<Line>(lines)==1usize {29}else{0}
+}
+"#;
+    let path = fixture_path("near-miss");
+    let diagnostics = semaprax::check(near_miss, &path).expect_err("the near miss must be refused");
+    assert!(
+        diagnostics.iter().all(|diagnostic| {
+            !diagnostic.code.is_empty() && diagnostic.code.starts_with("SPX-")
+        }),
+        "every refusal must carry a stable code: {diagnostics:?}"
+    );
+    let parsed = semaprax::parse(near_miss, std::path::Path::new("owned-record-vec.spx")).unwrap();
+    match hir::resolve(&parsed) {
+        Err(diagnostics) => assert!(diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.code.starts_with("SPX-"))),
+        Ok(program) => {
+            let native = codegen::emit_hir_c(&program)
+                .expect_err("native must refuse an inadmissible element");
+            assert!(native.code.starts_with("SPX-"), "{native:?}");
         }
     }
 }

@@ -2081,9 +2081,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         let anchors = match &arm.pattern {
                             hir::ResolvedMatchPattern::Variant { fields, .. } => fields
                                 .iter()
-                                .filter(|field| {
-                                    is_direct_plan_owned(self.program, &field.binding.ty)
-                                })
+                                .filter(|own| is_direct_plan_owned(self.program, &own.binding.ty))
                                 .map(|field| {
                                     crate::cleanup_plan::StorageId::Value(field.binding.id.clone())
                                 })

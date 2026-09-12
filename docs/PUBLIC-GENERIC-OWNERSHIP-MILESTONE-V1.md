@@ -80,7 +80,7 @@ reads `Hosted green`.
 | PG-4 | Candidate ABI-delta evidence that selects the public generic signature, retains ordered arguments and substituted fields, and survives mutation, recovery, and independent byte-exact replay | [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | Hosted green |
 | PG-5 | Generated Rust, TypeScript/Wasm, C, and C++ consumers derived from the grammar, byte-deterministic, with no ambient authority | [Public Generic Consumers v1](PUBLIC-GENERIC-CONSUMERS-V1.md), [Public Generic Carrier v1](PUBLIC-GENERIC-CARRIER-V1.md) | Implemented, local evidence |
 | PG-6 | Hostile metadata replay: forged, stale, truncated, reordered, and mutated grammar or descriptor bytes fail closed in every consumer route and in independent replay | [Public Generic Descriptor v1](PUBLIC-GENERIC-DESCRIPTOR-V1.md), [Public Generic Carrier v1](PUBLIC-GENERIC-CARRIER-V1.md) | Implemented, local evidence |
-| PG-7 | Owned allocation and failure settlement across the boundary: bounded allocation, exact copy-out, sticky failure selection, canonical cleanup order, and equal checked behavior on interpreter, native C11, and Core Wasm | [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md), [Public Generic Carrier v1](PUBLIC-GENERIC-CARRIER-V1.md) | Implemented, local evidence |
+| PG-7 | Owned allocation and failure settlement across the boundary: bounded allocation, exact copy-out, sticky failure selection, canonical cleanup order, and equal checked behavior on interpreter, native C11, and Core Wasm | [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md), [Public Generic Carrier v1](PUBLIC-GENERIC-CARRIER-V1.md); also documented in [Public Generic Consumers v1](PUBLIC-GENERIC-CONSUMERS-V1.md#cross-engine-settlement-corpus-issue-162) | Implemented, local evidence |
 | PG-8 | Cross-platform hosted evidence for the complete milestone corpus on Linux, macOS, and Windows, recorded for an exact implementation commit | The `public-generic-ownership-milestone` job in [CI required checks v1](CI-REQUIRED-CHECKS-V1.md) | Hosted green |
 | PG-9 | An explicit support and publication decision naming the exact version, target, and consumer scope, with its prerequisite profile decisions | This milestone | Open |
 
@@ -111,7 +111,15 @@ than by advancing the row.
   invokes a real native or Wasm provider adapter and is compiled and executed
   locally (native: real `clang -O0`/`-O2` builds linked against
   `native::template::render_reference_provider`'s C output; Wasm: a real
-  `WebAssembly.Instance` call). A shared hostile corpus (#160) is checked
+  `WebAssembly.Instance` call). Re-run directly for this update: `cargo test
+  --locked --test public_generic_native_adapter_v1` (16 passed, 3 ignored —
+  the ignored cases are `#[ignore]`d sanitizer variants requiring a
+  provisioned toolchain, not failures), `cargo test --locked --test
+  public_generic_wasm_adapter_v1` (15 passed, 0 failed), and
+  `sh tests/public_generic_native_adapter_v1/run_all_four_callers.sh` (issue
+  #172's aggregate entry point; exit 0, printing one `AGGREGATE ... PASS`
+  line per caller and the same honesty line reproduced above). A shared
+  hostile corpus (#160) is checked
   identically across the Rust reference decoder, the native manifest, and all
   four consumers. None of this has a hosted CI run: every run on `main` since
   implementation commit `2ef043ba…` has been cancelled (`cancel-in-progress`
@@ -195,6 +203,8 @@ than by advancing the row.
   physical free was performed without its matching logical trace event
   (Wasm input path, native result path; fixed and each pinned by a
   concrete-trace-contents regression test, not a bare success assertion).
+  Re-run directly for this update: `cargo test --locked -p semaprax --lib
+  public_generic_abi::carrier::settlement_corpus` — 9 passed, 0 failed.
 
   This is not yet the full PG-7 the milestone asks for:
   - **native C11 is not a party to the cross-engine corpus.** It has no
@@ -246,6 +256,17 @@ than by advancing the row.
   the generated C and C++ consumers' `-Werror` build. Each was fixed at its
   cause and each is now pinned by a gate.
 
+  This hosted run predates, and the job as it stands today still does not
+  run, any of PG-5/PG-6's calling-consumer work (issues #156–#160, #172,
+  #173) or PG-7's cross-engine settlement corpus (issue #162): confirmed by
+  reading `.github/workflows/ci.yml` directly, the job's "Four-language
+  metadata consumers and hostile replay" step is unchanged and still invokes
+  only `cargo test --locked -p semaprax --test projections
+  public_generic_consumers`. Extending this required job to cover the new
+  work is the next step this milestone still owes; it is out of this update's
+  file lease (`.github/workflows/**`), so the exact delta is recorded in
+  `HANDOFF.md` instead.
+
 ## Separation invariants
 
 These hold for every change to internal generic semantics, including changes
@@ -295,7 +316,7 @@ those three are ready to claim. PG-9 is undecided.
 | PG-3 | [compatibility rules](PUBLIC-GENERIC-COMPATIBILITY-V1.md) | nothing; hosted green on three hosts |
 | PG-4 | [candidate delta](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | nothing; hosted green on three hosts. It describes a genuine public-generic signature only when one is named explicitly via `public_generic_delta_with_boundary_subjects` (#139, #161); no manifest-profile route admits one on its own |
 | PG-5, PG-6 | [consumers](PUBLIC-GENERIC-CONSUMERS-V1.md), [descriptor](PUBLIC-GENERIC-DESCRIPTOR-V1.md), [carrier](PUBLIC-GENERIC-CARRIER-V1.md) | a hosted run; codegen wiring from a verified descriptor to a real callable function body on any backend (every provider still binds a fixture endpoint); a compiled `.wasm` implementing the full provider ABI (#229); #173's remaining descriptor-level hostile cases exercised through all four calling consumers, plus MSRV and the 16 MiB bound for foreign consumers (#226) |
-| PG-7 | [settlement obligations](PUBLIC-GENERIC-SETTLEMENT-V1.md), [carrier](PUBLIC-GENERIC-CARRIER-V1.md) | a hosted run; native C11 joining the cross-engine settlement corpus (#162); peak allocation/handle counters; the same fixture-endpoint and nested-record limitations as PG-5/PG-6 above |
+| PG-7 | [settlement obligations](PUBLIC-GENERIC-SETTLEMENT-V1.md), [carrier](PUBLIC-GENERIC-CARRIER-V1.md); [cross-engine corpus](PUBLIC-GENERIC-CONSUMERS-V1.md#cross-engine-settlement-corpus-issue-162) | a hosted run; native C11 joining the cross-engine settlement corpus (#162); peak allocation/handle counters; the same fixture-endpoint and nested-record limitations as PG-5/PG-6 above |
 | PG-8 | the `public-generic-ownership-milestone` CI job | a fresh run at the exact commit where PG-5/PG-6/PG-7 land, once `main`'s CI stops being cancelled before completion; the recorded green run predates all of PG-5/PG-6/PG-7's code |
 | PG-9 | this document | the decision itself, once the eight above are hosted green |
 

@@ -970,3 +970,70 @@ sh tests/public_generic_native_adapter_v1/run_all_four_callers.sh
 Exit code 0 means the three native callers passed and, when `node`/`tsc`
 were available, the TypeScript/Wasm caller also passed against its stand-in
 module — never that a real compiled Wasm provider ABI was exercised.
+
+## Cross-engine settlement corpus (issue #162)
+
+Audience: PG-7 reviewers checking whether "equal checked behavior on
+interpreter, native C11, and Core Wasm" is one comparison or three unrelated
+claims that happen to agree.
+
+Status: local, in-process, proof-only evidence — a narrower standing than
+every section above, and stated precisely rather than rounded up. This is
+**not** a fifth generated calling consumer: it does not compile a foreign
+language, does not link a real native provider binary, and does not
+instantiate a compiled `.wasm` module. It compares two in-process Rust
+adapters directly.
+
+`src/public_generic_abi/carrier/settlement_corpus.rs`
+(`semaprax.public-generic-settlement-corpus.v1`) is one shared case table —
+success, empty/zero-length leaves, two-leaf structural order, owned-value
+abandonment, sticky failure after an earlier failure, and repeated
+invocation/provider recreation — run against both
+`public_generic_abi::interpreter::InterpreterProvider` and
+`public_generic_abi::wasm::provider::WasmProvider`
+([issue #155](PUBLIC-GENERIC-CARRIER-V1.md#core-wasm-physical-adapter-issue-155)),
+comparing each engine's observed status, its released
+[`TraceEvent`](../src/public_generic_abi/carrier/trace.rs) sequence, and its
+final live-allocation/handle count against one independently pinned
+expectation and against each other. `should_panic` negative controls
+(a truncated trace, a wrong status, a perturbed result, a nonzero final
+live-allocation count) prove the comparison itself can fail rather than
+vacuously agreeing.
+
+**What this does not cover, stated once.** Native C11 is explicitly out of
+scope for this corpus: `crate::public_generic_abi::native` only renders a
+compilable C translation unit, and has no in-process Rust adapter analogous
+to `InterpreterProvider`/`WasmProvider` to run this same case table against
+without inventing a fourth artifact outside this file's own lease. Real
+compiled-and-executed native settlement (allocation, the full `0..=13`
+failure-injection matrix, zero-live-allocation assertions) is proven
+separately by `tests/public_generic_native_adapter_v1/**` (`probe.c`,
+`fixture.rs`, and the three native calling consumers above) — but not through
+this corpus's own cross-engine comparison mechanism, so "equal checked
+behavior on interpreter, native C11, and Core Wasm" is evidenced today as two
+engines directly compared plus a third proven independently, not as one
+three-way comparison. `WasmProvider` itself is the same in-process Rust
+adapter the TypeScript/Wasm calling consumer above does **not** use — that
+consumer targets real compiled Wasm bytecode via a hand-assembled stand-in
+module (issue #229), while this corpus never leaves the Rust process — so the
+two "Wasm" claims in this document are evidence of different things and
+should not be conflated. Peak allocation/handle counts are not compared,
+only final (post-terminal) counts, since neither adapter tracks a peak.
+
+**Execution evidence.** Verified directly for this update:
+`cargo test --locked -p semaprax --lib
+public_generic_abi::carrier::settlement_corpus` — 9 passed, 0 failed (5
+cross-engine cases plus 4 `should_panic` negative controls on the checker
+itself).
+
+**Not run in hosted CI.** No required or optional hosted job invokes this
+module today (verified by reading `.github/workflows/ci.yml` directly): the
+`public-generic-ownership-milestone` job's steps stop at the grammar-only
+`projections public_generic_consumers` gate documented above. Wiring this
+lib test into that job is outside this update's file lease
+(`.github/workflows/**`); the exact step is recorded in `HANDOFF.md`.
+
+This section documents execution evidence only. The obligations this corpus
+executes against are derived and specified in
+[Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md),
+which remains that document's own lease.

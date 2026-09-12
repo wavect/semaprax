@@ -380,7 +380,10 @@ fn provisioned_linux_gate_self_test_passes_and_stays_nonvacuous() {
         .unwrap_or_else(|error| panic!("spawn doctor-provisioned-linux-gate.py: {error}"));
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-    assert!(output.status.success(), "stdout:\n{stdout}\nstderr:\n{stderr}");
+    assert!(
+        output.status.success(),
+        "stdout:\n{stdout}\nstderr:\n{stderr}"
+    );
     let summary = stdout
         .lines()
         .find(|line| line.starts_with("self-test: "))

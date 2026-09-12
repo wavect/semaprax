@@ -14,6 +14,10 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf()
 }
 
+#[path = "standard_library/backend_value_equivalence.rs"]
+mod backend_value_equivalence;
+#[path = "standard_library/cross_backend_capture.rs"]
+mod cross_backend_capture;
 #[path = "standard_library/environment.rs"]
 mod environment;
 #[path = "standard_library/formatting.rs"]
@@ -493,6 +497,8 @@ fn run_returns_zero(path: &Path) {
     );
 }
 
+use cross_backend_capture::{interpreter_i64, run_and_capture_i64};
+
 fn run_text_package_wasm_conformance(
     snapshot: &mut project::ProjectSnapshot,
     scratch: &Path,
@@ -687,17 +693,26 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             snapshot.check()?;
             let options = project::ProjectExecutionOptions::default();
             let entry = snapshot.execute_entry(&options)?;
-            assert_eq!(
+            let interpreter_examples_value = interpreter_i64(
                 entry.outcome(),
-                &project::ProjectExecutionOutcome::Returned(0),
-                "{}: examples failed on the interpreter",
+                &format!("{}: examples failed on the interpreter", package.directory),
+            );
+            assert_eq!(
+                interpreter_examples_value, 0,
+                "{}: examples did not report success on the interpreter",
                 package.directory
             );
             let tests = snapshot.execute_test(&options)?;
-            assert_eq!(
+            let interpreter_tests_value = interpreter_i64(
                 tests.outcome(),
-                &project::ProjectExecutionOutcome::Returned(0),
-                "{}: conformance failed on the interpreter",
+                &format!(
+                    "{}: conformance failed on the interpreter",
+                    package.directory
+                ),
+            );
+            assert_eq!(
+                interpreter_tests_value, 0,
+                "{}: conformance did not report success on the interpreter",
                 package.directory
             );
             if package.module == "std.collections" {
@@ -708,6 +723,18 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
                 ("examples", snapshot.entry_program()),
                 ("tests", snapshot.test_program()),
             ] {
+                // Issue #102: compare the native backend's *actual* computed
+                // value against the interpreter's, rather than each backend
+                // independently asserting it returned the sentinel `0`.
+                // Three backends each self-reporting success proves nothing
+                // about equivalence between them; a real cross-backend
+                // comparison must read one backend's computed value and
+                // check it against another's.
+                let expected = if role == "examples" {
+                    interpreter_examples_value
+                } else {
+                    interpreter_tests_value
+                };
                 let c = codegen::emit_hir_c(program).map_err(|error| vec![error])?;
                 for optimization in ["-O0", "-O2"] {
                     let binary = scratch.join(format!(
@@ -716,7 +743,14 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
                         optimization.to_lowercase()
                     ));
                     compile_c(&c, &binary, optimization);
-                    run_returns_zero(&binary);
+                    let native_value = run_and_capture_i64(&binary);
+                    assert_eq!(
+                        native_value, expected,
+                        "{}: native {role} ({optimization}) returned {native_value}, the \
+                         interpreter returned {expected} for the same closure — backends \
+                         disagree",
+                        package.directory
+                    );
                 }
             }
             if package.module == "std.text" {
@@ -735,7 +769,11 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             // allocation count; the examples closure runs against the same
             // generous default every untuned package's tests already use,
             // since its allocation profile is not independently tuned here.
-            fn wasm_conformance_js(wasm_filename: &str, live_entry_bound: usize) -> String {
+            fn wasm_conformance_js(
+                wasm_filename: &str,
+                live_entry_bound: usize,
+                expected_value: i64,
+            ) -> String {
                 format!(
                     r#"import assert from "node:assert/strict";
 import {{ readFile }} from "node:fs/promises";
@@ -751,9 +789,13 @@ const imports = {{env:{{spx_add:checked((a,b)=>a+b),spx_sub:checked((a,b)=>a-b),
 spx_bytes_copy:c=>allocate(read(decode(c))),spx_bytes_get:(c,i)=>{{ const b = read(decode(c)), u = BigInt.asUintN(64, i); return u >= BigInt(b.length) ? -1 : b[Number(u)]; }},spx_bytes_drop:c=>{{ const d = decode(c); read(d); entries.delete(d.token); }},spx_bytes_as_slice:c=>{{ const d = decode(c); read(d); return BigInt.asIntN(64, d.word); }},spx_bytes_zeroed:count=>{{ if (typeof count !== "bigint" || count < 0n || count > 65536n) throw new Error("owned byte buffer capacity invariant"); return allocate(new Uint8Array(Number(count))); }},spx_bytes_set:(c,i,v)=>{{ const d = decode(c), b = read(d); if (typeof i !== "bigint" || i < 0n || i >= BigInt(b.length) || !Number.isInteger(v) || v < 0 || v > 255) throw new Error("owned byte buffer element invariant"); b[Number(i)] = v; return BigInt.asIntN(64, d.word); }},spx_box_new:(tag,bits)=>{{ if (boxes.size >= 4096) return 0n; const token=nextBox++; boxes.set(boxKey(token),{{tag,bits}}); return token; }},spx_box_get:(value,tag)=>readBox(value,tag).bits,spx_box_into_inner:(value,tag)=>{{ const entry=readBox(value,tag); boxes.delete(boxKey(value)); return entry.bits; }},spx_box_drop:value=>{{ if (!boxes.delete(boxKey(value))) throw new Error("double Box drop"); }}}}}};
 linked = await WebAssembly.instantiate(bytes, imports);
 // Re-entry observes an owned buffer that outlived one call as a live entry.
-for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_main(), 0n); assert.equal(entries.size, 0); assert.equal(boxes.size, 0); }}
+// Issue #102: assert against the *other backends'* actual computed value
+// (`expected_value`, the interpreter's real `Returned(n)`), not a hardcoded
+// `0n` literal every backend could vacuously agree on independent of what
+// it actually computed.
+for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_main(), {}n); assert.equal(entries.size, 0); assert.equal(boxes.size, 0); }}
 "#,
-                    wasm_filename, live_entry_bound
+                    wasm_filename, live_entry_bound, expected_value
                 )
             }
             for (role, module_bytes) in [
@@ -778,6 +820,14 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
                     }
                 }
                 let live_entry_bound = if role == "examples" { 4096 } else if package.module == "std.log" { logging::live_byte_bound(&manifest) } else if package.module == "std.io.lines" { io_lines::live_byte_bound(&manifest) } else if package.module == "std.path.normalize" { path_normalize::live_byte_bound(&manifest) } else if cursor_case || package.module == "std.format" { 2 } else if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
+                // Issue #102: the value Core Wasm must reproduce is the
+                // interpreter's actual computed value for this same role,
+                // not an independent `0` sentinel.
+                let expected_value = if role == "examples" {
+                    interpreter_examples_value
+                } else {
+                    interpreter_tests_value
+                };
                 let wasm_path = scratch.join(format!("{}-{role}.wasm", package.directory));
                 std::fs::write(&wasm_path, module_bytes).unwrap();
                 let script = scratch.join(format!("{}-{role}.mjs", package.directory));
@@ -786,6 +836,7 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
                     wasm_conformance_js(
                         &wasm_path.file_name().unwrap().to_string_lossy(),
                         live_entry_bound,
+                        expected_value,
                     ),
                 )
                 .unwrap();

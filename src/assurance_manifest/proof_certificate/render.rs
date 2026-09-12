@@ -27,13 +27,23 @@ pub const SCHEMA: &str = "semaprax.smt-proof-certificate.v1";
 const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.smt-proof-certificate.source.v1\0";
 const PAYLOAD_DIGEST_DOMAIN: &[u8] = b"semaprax.smt-proof-certificate.payload.v1\0";
 const SCRIPT_DIGEST_DOMAIN: &[u8] = b"semaprax.smt-proof-certificate.script.v1\0";
+const ARTIFACT_DIGEST_DOMAIN: &[u8] = b"semaprax.smt-proof-certificate.artifact.v1\0";
+
+/// The one compiled-artifact target this certificate binds to. Deliberately
+/// singular ("Artifact binding for one target", issue #186): the Wasm core
+/// module is a real, structurally validated compiled binary produced
+/// entirely in-process (no external toolchain, no ambient authority), unlike
+/// the native backend's C11 emission which is source text still requiring an
+/// external, unpinned C toolchain this crate does not invoke.
+pub(super) const ARTIFACT_TARGET_WASM_CORE_MODULE_V1: &str = "wasm-core-module-v1";
 
 /// Every field a reader needs to be told, up front, that this certificate
 /// does *not* claim — mirrors the Assurance Manifest's own `nonclaims`
 /// convention (`super::super::render::NONCLAIMS_JSON`) but scoped to what a
 /// standalone proof certificate can and cannot mean.
 const NONCLAIMS_JSON: &str = "\"no_assurance_manifest_merge\",\
-\"no_compiled_artifact_or_target_binding\",\
+\"artifact_binding_covers_only_the_wasm_core_module_target_no_native_artifact_bound\",\
+\"artifact_binding_does_not_by_itself_prove_the_backend_lowering_preserves_the_source_theorem\",\
 \"no_project_test_discovery_or_execution\",\
 \"no_target_execution\",\
 \"no_native_or_wasm_runtime_execution\",\
@@ -64,6 +74,17 @@ pub(super) fn payload_digest(payload_bytes: &[u8]) -> String {
 
 pub(super) fn script_digest(script: &str) -> String {
     domain_digest(SCRIPT_DIGEST_DOMAIN, script.as_bytes())
+}
+
+/// Domain-separated digest of the exact compiled artifact bytes this
+/// certificate binds to (currently always a Wasm core module). Not the raw
+/// bytes themselves: like `source.sha256`, the artifact is bound by digest
+/// and independently rebindable either by recompiling from the exact bound
+/// source ([`super::verify::verify_certificate_against_source`]) or by
+/// hashing an actual artifact a caller already has in hand
+/// ([`super::verify::verify_certificate_against_artifact`]).
+pub(super) fn artifact_digest(bytes: &[u8]) -> String {
+    domain_digest(ARTIFACT_DIGEST_DOMAIN, bytes)
 }
 
 /// The certificate's core claim: a genuine `unsat` proof, or a `sat` model
@@ -100,6 +121,13 @@ pub(super) struct RenderInput<'a> {
     pub max_output_bytes: usize,
     pub solver_identity: &'a str,
     pub solver_version: &'a str,
+    /// Domain-separated digest of the exact compiled Wasm core module bytes
+    /// the current source/revision produces for the whole enclosing module
+    /// (not merely `declaration_id`). Always
+    /// [`ARTIFACT_TARGET_WASM_CORE_MODULE_V1`]: see that constant's doc for
+    /// why only this one target is bound.
+    pub artifact_sha256: &'a str,
+    pub artifact_bytes: usize,
     pub script: &'a str,
     pub body: &'a CertificateBody,
 }
@@ -173,6 +201,12 @@ pub(super) fn render(input: &RenderInput<'_>) -> String {
         input.timeout_ms,
         input.max_output_bytes,
     );
+    let artifact_json = bformat!(
+        "{{\"target\":{},\"bytes\":{},\"sha256\":{}}}",
+        quote_json(ARTIFACT_TARGET_WASM_CORE_MODULE_V1),
+        input.artifact_bytes,
+        quote_json(input.artifact_sha256),
+    );
     let (verdict_token, counterexample_json) = match input.body {
         CertificateBody::Proved => ("proved", "null".to_owned()),
         CertificateBody::Refuted { model, outcome } => {
@@ -182,8 +216,9 @@ pub(super) fn render(input: &RenderInput<'_>) -> String {
 
     let payload = bformat!(
         "{{\"schema\":\"{}\",\"source\":{},\"declaration_id\":{},\"obligation_id\":{},\
-\"ensures_index\":{},\"compiler_version\":{},\"bounds\":{},\"solver\":{},\"limits\":{},\
-\"script\":{},\"script_sha256\":{},\"verdict\":{},\"counterexample\":{},\"nonclaims\":[{}]}}",
+\"ensures_index\":{},\"compiler_version\":{},\"bounds\":{},\"artifact\":{},\"solver\":{},\
+\"limits\":{},\"script\":{},\"script_sha256\":{},\"verdict\":{},\"counterexample\":{},\
+\"nonclaims\":[{}]}}",
         SCHEMA,
         source_json,
         quote_json(input.declaration_id),
@@ -191,6 +226,7 @@ pub(super) fn render(input: &RenderInput<'_>) -> String {
         input.ensures_index,
         quote_json(input.compiler_version),
         quote_json(BOUNDS_V1),
+        artifact_json,
         solver_json,
         limits_json,
         quote_json(input.script),

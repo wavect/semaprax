@@ -73,10 +73,25 @@
 //!   nonclaim, and `ExternalRecords`'s `SPX-Z101` collision with an
 //!   already-derived obligation) this module deliberately routes around
 //!   rather than papers over, by never attempting that merge at all.
-//! - No compiled backend artifact (native/Wasm) is bound; this certificate's
-//!   only "artifact" is the SMT-LIB2 script text itself. Binding a proof to
-//!   a generated backend artifact's digest is future work (issue #186's
-//!   "Artifact binding for one target").
+//! - Exactly one compiled backend artifact target is bound: the Wasm core
+//!   module the exact certified source/revision compiles to for its whole
+//!   enclosing module (issue #186's "Artifact binding for one target"),
+//!   recorded as `payload.artifact` (`target`, `bytes`, `sha256`). It is
+//!   bound by domain-separated digest, the same way `source.sha256` binds
+//!   source — not embedded verbatim, since (unlike the SMT-LIB2 script) it
+//!   is a deterministic function of the exact same source bytes already
+//!   bound, so embedding it would duplicate rather than add independent
+//!   information. [`verify_certificate_against_source`] recompiles it from
+//!   the bound source through this exact compiler and requires byte
+//!   equality; [`verify_certificate_against_artifact`] instead checks a
+//!   caller-supplied artifact's bytes against the recorded digest without
+//!   touching source or this compiler at all. Neither step proves the
+//!   backend lowering itself preserves the source theorem — see the
+//!   `nonclaims` entries scoped to artifact binding.
+//! - No native artifact is bound. Native codegen emits C11 *source text*
+//!   that still needs an external, unpinned C toolchain this crate does not
+//!   invoke (no ambient authority), so it cannot be a compiled binary
+//!   artifact the way the Wasm core module already is.
 //! - `verify_certificate_against_source`'s script re-derivation depends on
 //!   this exact compiler's deterministic translator; a genuinely
 //!   third-party-only check of a `proved` verdict still requires handing the
@@ -91,12 +106,14 @@ mod tests;
 
 pub use render::SCHEMA;
 pub use verify::{
-    verify_certificate, verify_certificate_against_source, verify_certificate_with_solver,
+    verify_certificate, verify_certificate_against_artifact, verify_certificate_against_source,
+    verify_certificate_with_solver,
 };
 
 use std::path::Path;
 
 use crate::diagnostic::Diagnostic;
+use crate::hir::ResolvedProgram;
 use crate::{graph, patch};
 
 use super::smt_discharge::{
@@ -109,6 +126,26 @@ use render::CertificateBody;
 
 fn no_certificate(message: String) -> Diagnostic {
     Diagnostic::io("SPX-Z105", message)
+}
+
+/// Compile `resolved` to its Wasm core module bytes and structurally
+/// validate the result, exactly like [`crate::target_evidence`]'s own
+/// `emit_validated_wasm` — this module deliberately does not reuse that
+/// function itself (it is private to that module and tied to its
+/// before/candidate pair), but applies the identical validation step so a
+/// bound artifact is never one this compiler itself would reject.
+///
+/// Returns a plain `String` detail rather than a [`Diagnostic`] so both call
+/// sites (a fresh export, and a source-bound replay) can wrap it in whichever
+/// diagnostic code fits their own context.
+fn compile_wasm_core_module(resolved: &ResolvedProgram) -> Result<Vec<u8>, String> {
+    let bytes = crate::wasm::emit_resolved_module(resolved).map_err(|error| error.message)?;
+    wasmparser::Validator::new_with_features(wasmparser::WasmFeatures::all())
+        .validate_all(&bytes)
+        .map_err(|error| {
+            format!("compiler-emitted Wasm core module failed structural validation: {error}")
+        })?;
+    Ok(bytes)
 }
 
 fn describe_non_result_verdict(verdict: &Verdict) -> String {
@@ -233,6 +270,15 @@ pub fn export_postcondition_certificate(
         other => return Err(vec![no_certificate(describe_non_result_verdict(&other))]),
     };
 
+    let resolved = crate::hir::resolve(&program)?;
+    let artifact_bytes = compile_wasm_core_module(&resolved).map_err(|detail| {
+        vec![no_certificate(format!(
+            "declaration `{declaration_id}`'s enclosing module does not compile to the bound \
+             Wasm core module artifact target: {detail}"
+        ))]
+    })?;
+    let artifact_sha256 = render::artifact_digest(&artifact_bytes);
+
     let obligation_id = postcondition_obligation_id(declaration_id, ensures_index);
     let source_sha256 = render::source_digest(snapshot.source());
     let path_text = source_path.display().to_string();
@@ -249,6 +295,8 @@ pub fn export_postcondition_certificate(
         max_output_bytes: limits.max_output_bytes,
         solver_identity: provisioning.identity,
         solver_version: &solver_ver,
+        artifact_sha256: &artifact_sha256,
+        artifact_bytes: artifact_bytes.len(),
         script: &script,
         body: &body,
     };

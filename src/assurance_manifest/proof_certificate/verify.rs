@@ -21,7 +21,10 @@ use super::super::smt_discharge::{
     self, render_postcondition_script, replay_function, run, translate_function, Model, ModelValue,
     Provisioning, ReplayOutcome, RunLimits, Verdict,
 };
-use super::render::{payload_digest, script_digest, source_digest, SCHEMA};
+use super::render::{
+    artifact_digest, payload_digest, script_digest, source_digest, ARTIFACT_TARGET_WASM_CORE_MODULE_V1,
+    SCHEMA,
+};
 
 fn consistency_error(message: String) -> Diagnostic {
     Diagnostic::io("SPX-Z106", message)
@@ -80,7 +83,8 @@ fn check_exact_keys(
     Ok(())
 }
 
-const PAYLOAD_KEYS: [&str; 14] = [
+const PAYLOAD_KEYS: [&str; 15] = [
+    "artifact",
     "bounds",
     "compiler_version",
     "counterexample",
@@ -113,6 +117,8 @@ pub(super) struct CheckedCertificate {
     pub revision: String,
     pub source_sha256: String,
     pub script: String,
+    pub artifact_bytes: u64,
+    pub artifact_sha256: String,
     pub body: CheckedBody,
 }
 
@@ -237,6 +243,35 @@ fn check_counterexample(
             "verdict `{other}` is outside the closed vocabulary"
         ))),
     }
+}
+
+/// Returns `(bytes, sha256)`. `target` is validated against the single
+/// closed-vocabulary value this module currently binds but is not otherwise
+/// propagated: nothing downstream branches on it while only one target
+/// exists.
+fn check_artifact(value: &Value) -> Result<(u64, String), Diagnostic> {
+    check_exact_keys(
+        object_keys(value, "payload.artifact")?,
+        &["bytes", "sha256", "target"],
+        "payload.artifact",
+    )?;
+    let target = require_string(&value["target"], "artifact.target")?;
+    if target != ARTIFACT_TARGET_WASM_CORE_MODULE_V1 {
+        return Err(consistency_error(format!(
+            "artifact.target `{target}` is outside the closed vocabulary (only \
+             `{ARTIFACT_TARGET_WASM_CORE_MODULE_V1}` is a bound target)"
+        )));
+    }
+    let bytes = value["bytes"]
+        .as_u64()
+        .ok_or_else(|| consistency_error("artifact.bytes must be an unsigned integer".to_owned()))?;
+    let sha256 = require_string(&value["sha256"], "artifact.sha256")?.to_owned();
+    if !is_sha256_wire_form(&sha256) {
+        return Err(consistency_error(
+            "artifact.sha256 must be `sha256:<64 lowercase hex>`".to_owned(),
+        ));
+    }
+    Ok((bytes, sha256))
 }
 
 /// Independently verify one certificate produced by
@@ -370,6 +405,8 @@ fn check_certificate(certificate: &str) -> Result<CheckedCertificate, Diagnostic
         ));
     }
 
+    let (artifact_bytes, artifact_sha256) = check_artifact(&payload_value["artifact"])?;
+
     check_exact_keys(
         object_keys(&payload_value["solver"], "payload.solver")?,
         &["identity", "version"],
@@ -415,6 +452,8 @@ fn check_certificate(certificate: &str) -> Result<CheckedCertificate, Diagnostic
         revision,
         source_sha256,
         script,
+        artifact_bytes,
+        artifact_sha256,
         body,
     })
 }
@@ -524,6 +563,32 @@ pub fn verify_certificate_against_source(
         ));
     }
 
+    let resolved = crate::hir::resolve(&program).map_err(|diagnostics| {
+        drift_error(format!(
+            "current source no longer resolves ({} diagnostic(s)); the certificate cannot be \
+             replayed",
+            diagnostics.len()
+        ))
+    })?;
+    let artifact_bytes = super::compile_wasm_core_module(&resolved).map_err(|detail| {
+        drift_error(format!(
+            "the certificate's declaration no longer compiles to the bound Wasm core module \
+             artifact target: {detail}"
+        ))
+    })?;
+    let recomputed_artifact_sha256 = artifact_digest(&artifact_bytes);
+    if recomputed_artifact_sha256 != checked.artifact_sha256
+        || artifact_bytes.len() as u64 != checked.artifact_bytes
+    {
+        return Err(drift_error(
+            "the certificate's bound Wasm core module artifact no longer matches the exact \
+             bytes the current source deterministically compiles to; the compiled artifact \
+             drifted after the certificate was generated, or its `artifact` field was tampered \
+             with"
+                .to_owned(),
+        ));
+    }
+
     match checked.body {
         CheckedBody::Proved => Ok(()),
         CheckedBody::Refuted { model, outcome } => {
@@ -571,4 +636,36 @@ pub fn verify_certificate_with_solver(
     } else {
         Ok(())
     }
+}
+
+/// Bind one certificate to an actual compiled artifact a caller already has
+/// in hand — for example, the exact `.wasm` file a build pipeline produced —
+/// by confirming its bytes hash to the certificate's recorded
+/// `artifact.sha256`/`artifact.bytes`. Filesystem-free and compiler-free:
+/// this reads no source and spawns no process, so it works even when the
+/// caller does not have (or does not trust) this compiler, as long as they
+/// can hash the artifact the same domain-separated way this schema defines
+/// (see `docs/SMT-PROOF-CERTIFICATE-V1.md`).
+///
+/// This is a different, weaker-dependency check than
+/// [`verify_certificate_against_source`]'s artifact recomputation: that
+/// function *derives* the artifact from source through this exact compiler
+/// and requires byte equality; this function only confirms that *some*
+/// artifact bytes a caller is holding are the ones this certificate claims
+/// to bind, without saying anything about where those bytes came from.
+pub fn verify_certificate_against_artifact(
+    certificate: &str,
+    artifact_bytes: &[u8],
+) -> Result<(), Diagnostic> {
+    let checked = check_certificate(certificate)?;
+    let recomputed = artifact_digest(artifact_bytes);
+    if recomputed != checked.artifact_sha256 || artifact_bytes.len() as u64 != checked.artifact_bytes
+    {
+        return Err(consistency_error(
+            "the supplied artifact bytes do not match this certificate's recorded \
+             `artifact.sha256`/`artifact.bytes`"
+                .to_owned(),
+        ));
+    }
+    Ok(())
 }

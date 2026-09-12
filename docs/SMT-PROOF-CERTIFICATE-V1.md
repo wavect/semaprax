@@ -122,6 +122,11 @@ matters most: a third party does not need to trust this exporter.
     "ensures_index": 0,
     "compiler_version": "0.4.1",
     "bounds": "semaprax-smt-discharge-bounded-subset-v1: ...",
+    "artifact": {
+      "target": "wasm-core-module-v1",
+      "bytes": 512,
+      "sha256": "sha256:..."
+    },
     "solver": { "identity": "z3", "version": "4.12.5" },
     "limits": { "timeout_ms": 5000, "max_output_bytes": 65536 },
     "script": "(set-option :timeout 5000)\n(set-logic QF_LIA)\n...",
@@ -162,9 +167,57 @@ order; each entry's `sort` is `"int"` or `"bool"` and `value` is that
 sort's plain decimal/`true`/`false` text — not an SMT-LIB2 term — since
 this is a certificate field, not solver input.
 
+## Artifact binding (issue #186 "Artifact binding for one target")
+
+`artifact` binds the certificate to exactly one compiled backend target: the
+Wasm core module the exact bound source/revision compiles to for its whole
+enclosing module (not merely `declaration_id`), via
+[`crate::wasm::emit_resolved_module`](../src/wasm.rs) over the same
+[`crate::hir::resolve`](../src/hir.rs)d program the rest of the certificate
+is bound to, followed by the same structural `wasmparser` validation
+[Semantic Target Evidence v1](SEMANTIC-TARGET-EVIDENCE-V1.md)'s own Wasm
+emission already applies — a bound artifact is never one this compiler
+itself would reject as malformed.
+
+`target` is a closed vocabulary currently holding exactly one value,
+`"wasm-core-module-v1"`; anything else is rejected
+(`verify_certificate_rejects_an_artifact_target_outside_the_closed_vocabulary`).
+No native artifact is bound: native codegen emits C11 *source text* that
+still needs an external, unpinned C toolchain this crate does not invoke (no
+ambient authority per `AGENTS.md`'s capability invariant), so it is not a
+compiled binary artifact the way the Wasm core module already is.
+
+Unlike `script` (embedded verbatim so a third party can hand it to a
+different solver), the artifact is bound **by digest only** —
+`artifact.sha256`, domain-separated the same way `source.sha256` is — not
+embedded as bytes. This mirrors how `source` itself is bound: the artifact
+is a deterministic function of the exact source bytes already bound by
+digest, so embedding it (up to 16 MiB, base64) would duplicate rather than
+add independent information. Two independent ways to check it:
+
+- `verify_certificate_against_source` recompiles the artifact from the
+  bound source through this exact compiler (the same `hir::resolve` +
+  `wasm::emit_resolved_module` + structural validation pipeline) and
+  requires byte-for-byte digest equality with `artifact.sha256`/
+  `artifact.bytes` — the artifact-binding analogue of the script
+  recomputation check, run immediately after it succeeds.
+- `verify_certificate_against_artifact(certificate, artifact_bytes)` checks
+  a caller-supplied artifact directly against the recorded digest/length.
+  Filesystem-free and compiler-free: it works even when the caller does not
+  have, or does not trust, this compiler — for example, checking the exact
+  `.wasm` file a build pipeline already produced — but (unlike source
+  recomputation) it says nothing about where those bytes came from.
+
+Binding an artifact does not by itself prove the backend lowering preserves
+the source theorem (one of the issue's own named failure cases: "Artifact
+binding alone does not prove the lowering preserves the source theorem") —
+the `nonclaims` array says so explicitly, and this module makes no claim
+beyond "this exact source deterministically compiles to these exact
+artifact bytes".
+
 ## Digest domains
 
-Three independently domain-separated SHA-256 digests, each computed as
+Four independently domain-separated SHA-256 digests, each computed as
 `sha256(domain \0 || len(bytes) as u64 LE || bytes)` exactly like the
 Assurance Manifest's own digests, but with this schema's own domain
 strings so the two documents' digests are never confusable:
@@ -178,6 +231,8 @@ strings so the two documents' digests are never confusable:
   different byte sequence than the one actually digested).
 - `semaprax.smt-proof-certificate.script.v1\0` binds `script_sha256` to the
   exact embedded `script` bytes.
+- `semaprax.smt-proof-certificate.artifact.v1\0` binds `artifact.sha256` to
+  the exact compiled Wasm core module bytes (see "Artifact binding" above).
 
 ## Determinism
 
@@ -207,22 +262,29 @@ certificates.
 - the certificate's `compiler_version` does not match the currently running
   compiler's `env!("CARGO_PKG_VERSION")` — one of the issue's named failure
   modes, "toolchain version drift can change accepted proofs"
-  (`verify_certificate_against_source_rejects_a_compiler_version_mismatch`).
+  (`verify_certificate_against_source_rejects_a_compiler_version_mismatch`);
+- the recompiled Wasm core module's digest/length no longer matches
+  `artifact.sha256`/`artifact.bytes` — the artifact-binding analogue of the
+  script check, and the only way a tampered or stale `artifact` field is
+  caught, since a certificate carrying one is otherwise perfectly
+  self-consistent by its own internal digests
+  (`verify_certificate_against_source_rejects_a_tampered_artifact_digest_even_with_a_genuine_script`).
 
 It fails closed for a different reason (`SPX-Z106`, consistency) when the
-recomputed script does not byte-match the embedded one, or a `refuted`
-certificate's recorded counterexample does not independently replay —
-see the bug-class section above.
+recomputed script does not byte-match the embedded one, a `refuted`
+certificate's recorded counterexample does not independently replay, or
+`artifact.target` names a target outside the closed vocabulary — see the
+bug-class section above.
 
 ## Scope and honest limitations
 
 - Only postcondition (`ensures`) discharge is certified; precondition
   consistency (`unsat` meaning "contradictory `requires`", not a proof of
   any obligation) is out of this tranche's scope.
-- No compiled backend artifact (native/Wasm) is bound; this certificate's
-  only "artifact" is the SMT-LIB2 script text itself. Binding a proof to a
-  generated backend artifact's digest is future work (issue #186's
-  "Artifact binding for one target").
+- Exactly one compiled backend target is bound (`artifact`, the Wasm core
+  module — see "Artifact binding" above); no native artifact is bound, and
+  binding does not by itself prove the backend lowering preserves the
+  source theorem.
 - A `proved` verdict's `unsat` claim is not, and cannot be, confirmed by
   `verify_certificate_against_source` alone — that requires a real solver.
   `verify_certificate_with_solver` provides this, strictly opt-in, but a

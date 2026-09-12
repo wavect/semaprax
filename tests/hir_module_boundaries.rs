@@ -10,6 +10,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/generic_result.rs"),
         include_str!("../src/hir/generic_mapping.rs"),
         include_str!("../src/hir/validation/box_intrinsic.rs"),
+        include_str!("../src/hir/validation/branch_merge.rs"),
         include_str!("../src/hir/validation/borrowed_str.rs"),
         include_str!("../src/hir/validation/generic_template.rs"),
         include_str!("../src/hir/validation/generic_variant.rs"),

@@ -1,0 +1,67 @@
+module example.lazy_iterator_adapters;
+
+@id("lazy.first-if-step")
+fn first_if_step<T>(step: own IterStep<T>, keep: fn(T) -> bool) -> bool
+{
+    match own step {
+        IterStep::Done{} => false,
+        IterStep::Yield{item, rest} => keep(item),
+    }
+}
+
+@id("lazy.first-if")
+fn first_if<T>(input: own Iter<T>, keep: fn(T) -> bool) -> bool
+{
+    first_if_step<T>(iter_next<T>(input), keep)
+}
+
+@id("lazy.map-filter")
+fn map_filter<T, U>(input: own Iter<T>, capacity: usize, transform: fn(T) -> U, keep: fn(U) -> bool) -> Vec<U>
+{
+    let mut output = vec_with_capacity<U>(capacity);
+    for own item in input {
+        let mapped = transform(item);
+        if keep(mapped) { output = vec_push<U>(output, mapped); 0 } else { 0 }
+    }
+    output
+}
+
+@id("lazy.filter-fold")
+fn filter_fold<T, A>(input: own Iter<T>, keep: fn(T) -> bool, initial: A, combine: fn(A, T) -> A) -> A
+{
+    let mut accumulator = initial;
+    for own item in input {
+        if keep(item) { accumulator = combine(accumulator, item); 0 } else { 0 }
+    }
+    accumulator
+}
+
+@id("lazy.map-fold")
+fn map_fold<T, U>(input: own Iter<T>, transform: fn(T) -> U, initial: U, combine: fn(U, U) -> U) -> U
+{
+    let mut accumulator = initial;
+    for own item in input {
+        accumulator = combine(accumulator, transform(item));
+        0
+    }
+    accumulator
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let input = vec_push<i64>(vec_push<i64>(vec_push<i64>(vec_with_capacity<i64>(3usize), -1), 2), 3);
+    let positive = fn(value: i64) -> bool { value > 0 };
+    let first_is_negative = first_if<i64>(vec_into_iter<i64>(input), positive) == false;
+    let doubled = fn(value: i64) -> i64 { value * 2 };
+    let keep_large = fn(value: i64) -> bool { value > 2 };
+    let source2 = vec_push<i64>(vec_push<i64>(vec_push<i64>(vec_with_capacity<i64>(3usize), -1), 2), 3);
+    let fused = map_filter<i64, i64>(vec_into_iter<i64>(source2), 3usize, doubled, keep_large);
+    let fused_ok = vec_len<i64>(fused) == 2usize && vec_get<i64>(fused, 0usize) == 4 && vec_get<i64>(fused, 1usize) == 6;
+    let sum_fn = fn(accumulator: i64, value: i64) -> i64 { accumulator + value };
+    let source3 = vec_push<i64>(vec_push<i64>(vec_push<i64>(vec_with_capacity<i64>(3usize), -1), 2), 3);
+    let sum_of_positive = filter_fold<i64, i64>(vec_into_iter<i64>(source3), positive, 0, sum_fn);
+    let source4 = vec_push<i64>(vec_push<i64>(vec_push<i64>(vec_with_capacity<i64>(3usize), -1), 2), 3);
+    let sum_of_doubled = map_fold<i64, i64>(vec_into_iter<i64>(source4), doubled, 0, sum_fn);
+    if first_is_negative && fused_ok && sum_of_positive == 5 && sum_of_doubled == 8 { 1 } else { 0 }
+}

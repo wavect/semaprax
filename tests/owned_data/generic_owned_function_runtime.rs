@@ -982,5 +982,8 @@ mod iterator_loops;
 #[path = "generic_owned_function_runtime/iterator_operations.rs"]
 mod iterator_operations;
 
+#[path = "generic_owned_function_runtime/lazy_iterator_adapters.rs"]
+mod lazy_iterator_adapters;
+
 #[path = "generic_owned_function_runtime/record_match_phases.rs"]
 mod record_match_phases;

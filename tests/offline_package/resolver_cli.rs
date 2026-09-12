@@ -209,6 +209,17 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     const AGENT_SKILL_LINE: &str = "semaprax agent skill [--require-schema <schema>]\n";
     assert_eq!(current.matches(AGENT_SKILL_LINE).count(), 1);
     current = current.replacen(AGENT_SKILL_LINE, "", 1);
+    // `semaprax assurance-policy`/`assurance-diff` were added by #187 after
+    // these witnesses were pinned. Normalize them away here, exactly as
+    // every other intentional usage addition above is, so the historical
+    // byte and digest pins below keep describing the surface they were
+    // taken from.
+    const ASSURANCE_POLICY_LINE: &str = "semaprax assurance-policy <file> --profile <require-static|allow-runtime-guard|allow-test-evidence|report-only> [--max-bytes N] [--max-obligations N]\n";
+    assert_eq!(current.matches(ASSURANCE_POLICY_LINE).count(), 1);
+    current = current.replacen(ASSURANCE_POLICY_LINE, "", 1);
+    const ASSURANCE_DIFF_LINE: &str = "semaprax assurance-diff <base-file> <candidate-file> --profile <require-static|allow-runtime-guard|allow-test-evidence|report-only> [--as-of YYYY-MM-DD] [--max-bytes N] [--max-obligations N]\n";
+    assert_eq!(current.matches(ASSURANCE_DIFF_LINE).count(), 1);
+    current = current.replacen(ASSURANCE_DIFF_LINE, "", 1);
     const GIT_PUBLISH_LINE: &str = "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n";
     const WORKSPACE_LINE: &str = "semaprax serve-workspace <manifest> <host-policy.json>\n";
     const PROFILE_DOCTOR_LINE: &str =

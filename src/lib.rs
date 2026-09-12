@@ -33,6 +33,7 @@ pub(crate) mod aggregate_layout;
 pub mod arc_zones;
 pub mod architecture_claims;
 pub mod assurance_manifest;
+pub mod assurance_policy;
 pub mod ast;
 pub(crate) mod bounded_output;
 pub(crate) mod box_ops;

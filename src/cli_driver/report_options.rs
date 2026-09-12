@@ -1,4 +1,5 @@
 use super::*;
+use semaprax::{assurance_manifest, assurance_policy};
 
 pub(super) fn workspace_analysis_target_kind(
     command: &str,
@@ -601,6 +602,123 @@ pub(super) fn region_report_options(
         eprintln!("{error}");
         2
     })
+}
+
+fn assurance_policy_profile(
+    option: &str,
+    value: &str,
+) -> Result<assurance_policy::PolicyProfile, u8> {
+    assurance_policy::PolicyProfile::from_token(value).ok_or_else(|| {
+        eprintln!(
+            "{option} must be one of `require-static`, `allow-runtime-guard`, \
+             `allow-test-evidence`, `report-only`"
+        );
+        2
+    })
+}
+
+pub(super) fn assurance_policy_options(
+    args: &[String],
+) -> Result<
+    (
+        assurance_manifest::AssuranceManifestOptions,
+        assurance_policy::PolicyProfile,
+    ),
+    u8,
+> {
+    let defaults = assurance_manifest::AssuranceManifestOptions::default();
+    let mut max_bytes = defaults.max_bytes;
+    let mut max_obligations = defaults.max_obligations;
+    let mut profile = None;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--profile" | "--max-bytes" | "--max-obligations") {
+            eprintln!("unknown assurance-policy option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate assurance-policy option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("assurance-policy option `{option}` requires a value");
+            2
+        })?;
+        match option {
+            "--profile" => profile = Some(assurance_policy_profile(option, value)?),
+            "--max-bytes" => max_bytes = property_number(option, value)?,
+            "--max-obligations" => max_obligations = property_number(option, value)?,
+            _ => unreachable!(),
+        }
+        index += 2;
+    }
+    let profile = profile.ok_or_else(|| {
+        eprintln!("assurance-policy requires `--profile <name>`");
+        2
+    })?;
+    let options = assurance_manifest::AssuranceManifestOptions::new(max_bytes, max_obligations)
+        .map_err(|error| {
+            eprintln!("{error}");
+            2
+        })?;
+    Ok((options, profile))
+}
+
+pub(super) fn assurance_diff_options(
+    args: &[String],
+) -> Result<
+    (
+        assurance_manifest::AssuranceManifestOptions,
+        assurance_policy::PolicyProfile,
+        Option<String>,
+    ),
+    u8,
+> {
+    let defaults = assurance_manifest::AssuranceManifestOptions::default();
+    let mut max_bytes = defaults.max_bytes;
+    let mut max_obligations = defaults.max_obligations;
+    let mut profile = None;
+    let mut as_of = None;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 3usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(
+            option,
+            "--profile" | "--max-bytes" | "--max-obligations" | "--as-of"
+        ) {
+            eprintln!("unknown assurance-diff option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate assurance-diff option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("assurance-diff option `{option}` requires a value");
+            2
+        })?;
+        match option {
+            "--profile" => profile = Some(assurance_policy_profile(option, value)?),
+            "--max-bytes" => max_bytes = property_number(option, value)?,
+            "--max-obligations" => max_obligations = property_number(option, value)?,
+            "--as-of" => as_of = Some(value.clone()),
+            _ => unreachable!(),
+        }
+        index += 2;
+    }
+    let profile = profile.ok_or_else(|| {
+        eprintln!("assurance-diff requires `--profile <name>`");
+        2
+    })?;
+    let options = assurance_manifest::AssuranceManifestOptions::new(max_bytes, max_obligations)
+        .map_err(|error| {
+            eprintln!("{error}");
+            2
+        })?;
+    Ok((options, profile, as_of))
 }
 
 pub(super) fn simd_report_options(args: &[String]) -> Result<simd_report::SimdReportOptions, u8> {

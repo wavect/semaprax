@@ -1249,6 +1249,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
+        CommandId::AssurancePolicy | CommandId::AssuranceDiff => run_assurance(command_id, &args),
         CommandId::SimdReport => {
             let path = required_path(&args, 1)?;
             let options = simd_report_options(&args)?;

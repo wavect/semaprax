@@ -376,6 +376,7 @@ Audience: all documentation readers.
 - [Project v8 C++ owned-data package](PUBLIC-CXX-OWNED-DATA-PACKAGE-V1.md)
 - [Build capability manifest](CAPABILITY-MANIFEST-V1.md)
 - [Assurance Manifest v1](ASSURANCE-MANIFEST-V1.md)
+- [Assurance Policy v1](ASSURANCE-POLICY-V1.md)
 - [Bounded SMT Discharge v1](SMT-DISCHARGE-V1.md)
 - [SMT Proof Certificate v1](SMT-PROOF-CERTIFICATE-V1.md)
 - [Bounded Model Checking v1](BOUNDED-MODEL-CHECKING-V1.md)

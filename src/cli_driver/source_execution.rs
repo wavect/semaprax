@@ -493,3 +493,42 @@ pub(super) fn report_all(errors: &[Diagnostic], json: bool) {
         }
     }
 }
+
+/// `assurance-policy`/`assurance-diff`: both generate one or two Assurance
+/// Manifest v1 envelopes (#183, standalone, `main`-requiring, exactly like
+/// `capability-manifest`/`region-report`) from real source files, then
+/// evaluate the named Assurance Policy v1 profile and print the resulting
+/// JSON. Sharing one function keeps the dispatch table's two `CommandId`
+/// variants on a single match arm.
+pub(super) fn run_assurance(
+    command_id: super::cli::help::CommandId,
+    args: &[String],
+) -> Result<(), u8> {
+    use semaprax::{assurance_manifest, assurance_policy};
+    if command_id == super::cli::help::CommandId::AssuranceDiff {
+        let base_path = required_path(args, 1)?;
+        let candidate_path = required_path(args, 2)?;
+        let (options, profile, as_of) = assurance_diff_options(args)?;
+        let base_envelope = assurance_manifest::generate(&base_path, &options)
+            .map_err(|errors| report(&errors, false))?;
+        let candidate_envelope = assurance_manifest::generate(&candidate_path, &options)
+            .map_err(|errors| report(&errors, false))?;
+        let policy_report = assurance_policy::evaluate_delta(
+            &base_envelope,
+            &candidate_envelope,
+            as_of.as_deref(),
+            profile,
+        )
+        .map_err(|error| report(&[error], false))?;
+        print!("{policy_report}");
+        return Ok(());
+    }
+    let path = required_path(args, 1)?;
+    let (options, profile) = assurance_policy_options(args)?;
+    let envelope =
+        assurance_manifest::generate(&path, &options).map_err(|errors| report(&errors, false))?;
+    let policy_report =
+        assurance_policy::evaluate(&envelope, profile).map_err(|error| report(&[error], false))?;
+    print!("{policy_report}");
+    Ok(())
+}

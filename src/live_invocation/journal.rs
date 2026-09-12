@@ -28,17 +28,25 @@
 //! One turn's entries must appear in exactly this order: `TurnOpened`,
 //! `RequestIntent`, then `ResponseRecorded` or `ResponseFailed`. Only after
 //! `ResponseRecorded` may `ProposalAdmitted` or `ProposalRefused` follow.
-//! Only after `ProposalAdmitted` may `AuthorizationConsumed` follow. After
-//! that, zero or more `EffectIntent`/`EffectObserved` pairs (matched by
-//! operation identity) may occur, followed by exactly one `Transition`. A
-//! `Transition { case: "continue", .. }` must be followed by the next
-//! `TurnOpened` (turn number advancing by exactly one, same invocation); any
-//! other case must be followed by exactly one matching `TerminalOutcome`,
-//! after which the journal must end. Any other entry sequence — omission,
-//! reorder, a turn number that repeats or skips, a `TurnOpened` naming a
-//! different invocation, an `EffectObserved` naming a different operation
-//! than its `EffectIntent`, or any entry after `TerminalOutcome` — is
-//! rejected by [`validate`] before it is trusted for replay.
+//! Only after `ProposalAdmitted` may `AuthorizationConsumed` or
+//! `AuthorizationRefused` follow. After `AuthorizationConsumed`, zero or more
+//! `EffectIntent`/`EffectObserved` or `EffectIntent`/`EffectFailed` pairs
+//! (matched by operation identity) may occur, followed by exactly one
+//! `Transition`. A `Transition { case: "continue", .. }` must be followed by
+//! the next `TurnOpened` (turn number advancing by exactly one, same
+//! invocation); any other case must be followed by exactly one matching
+//! `TerminalOutcome`, after which the journal must end. `ResponseFailed`,
+//! `ProposalRefused`, `AuthorizationRefused` and `EffectFailed` are each
+//! terminal for their own turn's remaining phases the same way: none of them
+//! is ever a [`super::model_invoke::ModelFailure`] (a *provider*-reported
+//! outcome) except `ResponseFailed`, which is the one entry that legitimately
+//! carries one — an authorization or effect refusal is never mistaken for a
+//! model failure because it has its own entry kind. Any other entry sequence
+//! — omission, reorder, a turn number that repeats or skips, a `TurnOpened`
+//! naming a different invocation, an `EffectObserved`/`EffectFailed` naming a
+//! different operation than its `EffectIntent`, or any entry after
+//! `TerminalOutcome` — is rejected by [`validate`] before it is trusted for
+//! replay.
 
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
@@ -98,6 +106,15 @@ pub enum JournalEntry {
     /// The one opaque grant this turn consumed, bound to this turn's exact
     /// observation and proposal. Never reusable across turns.
     AuthorizationConsumed { turn: u32, grant_digest: String },
+    /// Authorization did not consume a grant: either the gate itself refused
+    /// (`reason` is its own closed refusal text), or cancellation was
+    /// observed after `ProposalAdmitted` was already durable and before the
+    /// gate was ever called (`reason == "cancelled"`). Distinct from
+    /// `ModelFailure` — an authorization outcome is never a provider
+    /// failure — and terminal for this turn's decode/authorize phase the
+    /// same way `ProposalRefused`/`ResponseFailed` are: only a `Transition`
+    /// may follow.
+    AuthorizationRefused { turn: u32, reason: String },
     /// One further external operation (typically a deployed tool, not
     /// `model.invoke`) is about to cross its own boundary within this turn.
     EffectIntent {
@@ -110,6 +127,18 @@ pub enum JournalEntry {
         turn: u32,
         operation: String,
         observation_digest: String,
+    },
+    /// The effect named by the matching `EffectIntent` did not settle to an
+    /// observation: either the handler itself reported failure (`reason` is
+    /// its own bounded, non-provider-shaped text), or cancellation was
+    /// observed after `EffectIntent` was already durable and before the
+    /// effect was ever called (`reason == "cancelled"`). Matched by
+    /// `operation` identity exactly like `EffectObserved`. Terminal for this
+    /// turn: only a `Transition` may follow.
+    EffectFailed {
+        turn: u32,
+        operation: String,
+        reason: String,
     },
     /// The deterministic transition this turn produced. `case` is one of
     /// `continue`, `complete`, `suspend`, `fail`.
@@ -137,8 +166,10 @@ impl JournalEntry {
             Self::ProposalAdmitted { .. } => "proposal_admitted",
             Self::ProposalRefused { .. } => "proposal_refused",
             Self::AuthorizationConsumed { .. } => "authorization_consumed",
+            Self::AuthorizationRefused { .. } => "authorization_refused",
             Self::EffectIntent { .. } => "effect_intent",
             Self::EffectObserved { .. } => "effect_observed",
+            Self::EffectFailed { .. } => "effect_failed",
             Self::Transition { .. } => "transition",
             Self::TerminalOutcome { .. } => "terminal_outcome",
         }
@@ -153,8 +184,10 @@ impl JournalEntry {
             | Self::ProposalAdmitted { turn, .. }
             | Self::ProposalRefused { turn, .. }
             | Self::AuthorizationConsumed { turn, .. }
+            | Self::AuthorizationRefused { turn, .. }
             | Self::EffectIntent { turn, .. }
             | Self::EffectObserved { turn, .. }
+            | Self::EffectFailed { turn, .. }
             | Self::Transition { turn, .. }
             | Self::TerminalOutcome { turn, .. } => *turn,
         }
@@ -216,6 +249,9 @@ impl JournalEntry {
             Self::AuthorizationConsumed { grant_digest, .. } => {
                 format!(",\"grant_digest\":{}", quote_json(grant_digest))
             }
+            Self::AuthorizationRefused { reason, .. } => {
+                format!(",\"reason\":{}", quote_json(reason))
+            }
             Self::EffectIntent {
                 operation,
                 request_digest,
@@ -233,6 +269,13 @@ impl JournalEntry {
                 ",\"operation\":{},\"observation_digest\":{}",
                 quote_json(operation),
                 quote_json(observation_digest)
+            ),
+            Self::EffectFailed {
+                operation, reason, ..
+            } => format!(
+                ",\"operation\":{},\"reason\":{}",
+                quote_json(operation),
+                quote_json(reason)
             ),
             Self::Transition {
                 case,
@@ -417,6 +460,13 @@ pub fn decode(value: &Value) -> Result<Vec<JournalEntry>, DecodeError> {
                         .to_owned(),
                 }
             }
+            "authorization_refused" => {
+                closed(entry, &["seq", "kind", "turn", "reason"]).ok_or(DecodeError)?;
+                JournalEntry::AuthorizationRefused {
+                    turn,
+                    reason: text(entry, "reason").ok_or(DecodeError)?.to_owned(),
+                }
+            }
             "effect_intent" => {
                 closed(
                     entry,
@@ -443,6 +493,15 @@ pub fn decode(value: &Value) -> Result<Vec<JournalEntry>, DecodeError> {
                     observation_digest: digest_field(entry, "observation_digest")
                         .ok_or(DecodeError)?
                         .to_owned(),
+                }
+            }
+            "effect_failed" => {
+                closed(entry, &["seq", "kind", "turn", "operation", "reason"])
+                    .ok_or(DecodeError)?;
+                JournalEntry::EffectFailed {
+                    turn,
+                    operation: text(entry, "operation").ok_or(DecodeError)?.to_owned(),
+                    reason: text(entry, "reason").ok_or(DecodeError)?.to_owned(),
                 }
             }
             "transition" | "terminal_outcome" => {
@@ -648,6 +707,19 @@ pub fn validate<'a>(
                 }
                 phase = Phase::NeedEffectOrTransition;
             }
+            JournalEntry::AuthorizationRefused { .. } => {
+                // Mirrors `ProposalRefused`/`ResponseFailed`: authorization
+                // did not consume a grant (gate refusal or a cancellation
+                // observed after `ProposalAdmitted` was already durable), so
+                // this turn's only remaining entry is its `Transition`.
+                if phase != Phase::NeedAuthorizationConsumed || turn != expected_turn {
+                    return Err(JournalError::UnexpectedEntry {
+                        seq,
+                        kind: entry.kind(),
+                    });
+                }
+                phase = Phase::NeedEffectOrTransition;
+            }
             JournalEntry::EffectIntent { operation, .. } => {
                 if phase != Phase::NeedEffectOrTransition || turn != expected_turn {
                     return Err(JournalError::UnexpectedEntry {
@@ -659,6 +731,19 @@ pub fn validate<'a>(
                 phase = Phase::NeedEffectObserved;
             }
             JournalEntry::EffectObserved { operation, .. } => {
+                if phase != Phase::NeedEffectObserved || turn != expected_turn {
+                    return Err(JournalError::UnexpectedEntry {
+                        seq,
+                        kind: entry.kind(),
+                    });
+                }
+                if pending_effect_operation.as_deref() != Some(operation.as_str()) {
+                    return Err(JournalError::EffectOperationMismatch { seq });
+                }
+                pending_effect_operation = None;
+                phase = Phase::NeedEffectOrTransition;
+            }
+            JournalEntry::EffectFailed { operation, .. } => {
                 if phase != Phase::NeedEffectObserved || turn != expected_turn {
                     return Err(JournalError::UnexpectedEntry {
                         seq,
@@ -1005,6 +1090,108 @@ mod tests {
                 turn: 0,
                 operation: "tool.b".into(),
                 observation_digest: "sha256:".to_owned() + &"2".repeat(64),
+            },
+        ];
+        assert_eq!(
+            validate(&entries, INVOCATION).unwrap_err(),
+            JournalError::EffectOperationMismatch { seq: 6 }
+        );
+    }
+
+    #[test]
+    fn authorization_refused_is_a_valid_terminal_replayable_shape() {
+        // Before this entry existed, a hand-built journal that skipped
+        // straight from `ProposalAdmitted` to `Transition` (the shape the
+        // kernel used to produce on an authorization refusal) was REJECTED
+        // by this same `validate` — meaning that outcome could never be
+        // replayed. `AuthorizationRefused` closes that gap: the turn's
+        // decode/authorize phase resolves to a recorded, closed reason
+        // instead of silently skipping the phase machine.
+        let entries = vec![
+            opened(0),
+            intent(0),
+            recorded(0),
+            admitted(0),
+            JournalEntry::AuthorizationRefused {
+                turn: 0,
+                reason: "grant_ceiling".into(),
+            },
+            transition(0, "fail"),
+            terminal(0, "fail"),
+        ];
+        let validated = validate(&entries, INVOCATION).unwrap();
+        assert!(validated.terminal);
+        let rendered = render(&entries);
+        let value: Value = serde_json::from_str(&rendered).unwrap();
+        assert_eq!(decode(&value).unwrap(), entries);
+    }
+
+    #[test]
+    fn skipping_straight_from_proposal_admitted_to_transition_is_still_rejected() {
+        // The new `AuthorizationRefused` entry closes a gap; it must not
+        // also loosen the rule that some entry is required at that phase.
+        let entries = vec![
+            opened(0),
+            intent(0),
+            recorded(0),
+            admitted(0),
+            transition(0, "fail"),
+            terminal(0, "fail"),
+        ];
+        assert_eq!(
+            validate(&entries, INVOCATION).unwrap_err(),
+            JournalError::UnexpectedEntry {
+                seq: 4,
+                kind: "transition"
+            }
+        );
+    }
+
+    #[test]
+    fn effect_failed_is_a_valid_terminal_replayable_shape() {
+        let entries = vec![
+            opened(0),
+            intent(0),
+            recorded(0),
+            admitted(0),
+            consumed(0),
+            JournalEntry::EffectIntent {
+                turn: 0,
+                operation: "live-invocation.turn-effect".into(),
+                request_digest: "sha256:".to_owned() + &"1".repeat(64),
+            },
+            JournalEntry::EffectFailed {
+                turn: 0,
+                operation: "live-invocation.turn-effect".into(),
+                reason: "cancelled".into(),
+            },
+            transition(0, "fail"),
+            terminal(0, "fail"),
+        ];
+        let validated = validate(&entries, INVOCATION).unwrap();
+        assert!(validated.terminal);
+        let rendered = render(&entries);
+        let value: Value = serde_json::from_str(&rendered).unwrap();
+        assert_eq!(decode(&value).unwrap(), entries);
+    }
+
+    #[test]
+    fn effect_failed_naming_a_different_operation_than_its_intent_is_rejected() {
+        let entries = vec![
+            opened(0),
+            intent(0),
+            recorded(0),
+            admitted(0),
+            consumed(0),
+            JournalEntry::EffectIntent {
+                turn: 0,
+                operation: "tool.a".into(),
+                request_digest: "sha256:".to_owned() + &"1".repeat(64),
+            },
+            JournalEntry::EffectFailed {
+                turn: 0,
+                operation: "tool.b".into(),
+                reason: "cancelled".into(),
             },
         ];
         assert_eq!(

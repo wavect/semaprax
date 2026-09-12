@@ -31,6 +31,7 @@
 //! constructed by a caller before [`kernel::run_live_invocation`] can be
 //! called at all.
 
+pub mod budget;
 pub mod fixture;
 pub mod identity;
 pub mod journal;
@@ -41,6 +42,7 @@ pub mod persistence;
 #[cfg(test)]
 mod tests;
 
+pub use budget::{CumulativeBudgetLedger, InvocationClock};
 pub use identity::{LiveInvocationId, LiveInvocationSeed};
 pub use journal::{
     receipt_projection, DecodeError, JournalEntry, JournalError, ReceiptProjection,

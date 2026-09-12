@@ -11,6 +11,7 @@
 
 use std::collections::VecDeque;
 
+use super::budget::InvocationClock;
 use super::kernel::{TurnEffect, TurnObserver, TurnPolicy, TurnTransition};
 use super::model_invoke::{
     AuthorizationContext, AuthorizationGate, AuthorizationGrant, AuthorizationRefusal,
@@ -229,5 +230,32 @@ impl TurnEffect for FixtureEffect {
     fn call(&mut self, _turn: u32, grant_digest: &str) -> Result<Vec<u8>, String> {
         self.calls += 1;
         Ok(grant_digest.as_bytes().to_vec())
+    }
+}
+
+/// A deterministic, test-controlled [`InvocationClock`]: `now_millis` never
+/// reads a real wall clock, only whatever this fixture was last told, so a
+/// test can advance time by an exact amount and assert a deadline crosses at
+/// that precise instant rather than racing a real clock.
+pub struct StepClock {
+    millis: i64,
+}
+
+impl StepClock {
+    #[must_use]
+    pub fn new(start_millis: i64) -> Self {
+        Self {
+            millis: start_millis,
+        }
+    }
+
+    pub fn advance(&mut self, delta_millis: i64) {
+        self.millis = self.millis.saturating_add(delta_millis);
+    }
+}
+
+impl InvocationClock for StepClock {
+    fn now_millis(&self) -> i64 {
+        self.millis
     }
 }

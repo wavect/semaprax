@@ -94,10 +94,21 @@ turn's entries appear in exactly this shape:
 | `RequestIntent` | The `model.invoke` request is durable *before* dispatch. | request digest, reserved budget |
 | `ResponseRecorded` **or** `ResponseFailed` | After the physical call settles. | response digest + bytes, **or** closed failure tag + attempted bytes |
 | `ProposalAdmitted` **or** `ProposalRefused` | After compiler-derived decode, only following `ResponseRecorded`. | decoded proposal digest, **or** refusal reason |
-| `AuthorizationConsumed` | The one opaque grant this turn consumed, only following `ProposalAdmitted`. | grant digest |
-| `EffectIntent` / `EffectObserved` | Zero or more further tool-shaped effects within the turn, matched by operation identity. | operation id, request/observation digest |
+| `AuthorizationConsumed` **or** `AuthorizationRefused` | The one opaque grant this turn consumed, only following `ProposalAdmitted` — **or** authorization never consumed one (gate refusal, or cancellation observed after `ProposalAdmitted`; issue #113). | grant digest, **or** closed refusal reason |
+| `EffectIntent` / `EffectObserved` **or** `EffectIntent` / `EffectFailed` | Zero or more further tool-shaped effects within the turn, matched by operation identity — the effect either settles or fails/is cancelled before it is ever called (issue #113). | operation id, request/observation digest, **or** operation id + closed failure reason |
 | `Transition` | The deterministic reduction's selection: `continue`/`complete`/`suspend`/`fail`. | case, carrier digest |
 | `TerminalOutcome` | Only after a non-`continue` `Transition`. Nothing may follow. | case, carrier digest |
+
+`AuthorizationRefused` and `EffectFailed` (issue #113) close a gap the
+original #108/#177 vocabulary left: before they existed, an authorization
+refusal or an effect failure/cancellation produced a journal that skipped
+straight from `ProposalAdmitted`/`EffectIntent` to `Transition` — a shape
+`journal::validate` itself rejected, so that outcome could never actually be
+replayed through `kernel::run_live_invocation` a second time. Both new
+entries are, like `ResponseFailed`, terminal for their own turn's remaining
+phases; neither is ever a [`ModelFailure`](#closed-failure-taxonomy) — an
+authorization or effect outcome is never mistaken for a model/provider
+failure because it has its own entry kind and its own reason text.
 
 This is exactly the state list #108 asked for: *observation prepared,
 request intent durable, response recorded, proposal admitted/refused,
@@ -277,9 +288,10 @@ so an enormous or truncated payload cannot drive unbounded downstream work.
 
 ### Cancellation point
 
-The kernel checks `AgentCancellation::is_cancelled()` at three points per
-turn, mirroring [Agent Iterative Lifecycle v2](AGENT-ITERATIVE-LIFECYCLE-V2.md)'s
-"checked at each deterministic stage and before dispatch":
+The kernel checks `AgentCancellation::is_cancelled()` at five points per
+turn (issue #113 added the fourth and fifth), mirroring [Agent Iterative
+Lifecycle v2](AGENT-ITERATIVE-LIFECYCLE-V2.md)'s "checked at each
+deterministic stage and before dispatch":
 
 1. **Before opening a turn.** If cancelled here, the kernel stops cleanly
    with no entries written for that turn; the journal is left non-terminal
@@ -292,6 +304,25 @@ turn, mirroring [Agent Iterative Lifecycle v2](AGENT-ITERATIVE-LIFECYCLE-V2.md)'
    failure domain as `ModelFailure::Cancelled` — the request was already
    durable, so the turn must still resolve to a recorded outcome
    (`ResponseFailed`) rather than leaving an uncertain intent behind.
+4. **After `ProposalAdmitted` is committed, immediately before calling
+   `AuthorizationGate::authorize`.** Authorization is never a model call, so
+   this is recorded as `AuthorizationRefused { reason: "cancelled" }`, never
+   `ModelFailure::Cancelled` — the two must not collapse into one tag.
+5. **After `EffectIntent` is committed, immediately before calling
+   `TurnEffect::call`.** Same reasoning: recorded as
+   `EffectFailed { reason: "cancelled" }`. This is also the checkpoint that
+   makes "cancellation in flight blocks subsequent effects and result
+   publication" (issue #113's required case) true: the effect is never
+   called, and the turn resolves to `Fail`, never `Complete`/`Suspend` — a
+   result a cancelled turn produced is never published.
+
+Every checkpoint after the first two follows the same rule 3 already
+established: once some entry is already durable for this turn, cancellation
+cannot leave the journal stuck mid-turn — it must still resolve to a
+recorded, replayable outcome. `tests::cancellation_after_proposal_admitted_stops_before_authorize_is_ever_called`
+and `tests::cancellation_after_authorization_consumed_stops_before_the_effect_is_ever_called`
+are checkpoints 4 and 5's dedicated tests, each proving the downstream seam
+(`AuthorizationGate`/`TurnEffect`) is never actually called.
 
 An acknowledged cancellation never proves a real provider stopped billing or
 processing — that is a declared nonclaim, matching Direct Runtime v2's
@@ -307,9 +338,86 @@ trait InvocationBudgetHook {
 ```
 
 The kernel reserves before every dispatch and records usage after every
-settlement, but implements **no cumulative policy** of its own — the
-shipped `FixtureBudgetHook` is a trivial per-invocation counter. Issues
-#113/#179 attach real cumulative budget accounting behind this one hook.
+settlement; the hook itself decides policy. The shipped `FixtureBudgetHook`
+remains a trivial per-invocation counter, useful only for tests that don't
+care about cumulative enforcement. `budget::CumulativeBudgetLedger` (issue
+#113) is the first real policy behind this hook: one monetary ceiling and,
+optionally, one absolute deadline (via an injected `InvocationClock`),
+enforced identically at every attempt and nonrefundable once committed. See
+[Live Invocation Budget and Deadline Accounting v1](#budget-and-deadline-accounting-issue-113)
+below for the full design; issue #179 may extend this further (e.g. real
+provider pricing), but does not need to invent a second hook to do it.
+
+### Budget and deadline accounting (issue #113)
+
+**Where the nonrefundable decrement happens, relative to dispatch.**
+`CumulativeBudgetLedger::reserve` both decides whether an attempt fits the
+remaining ceiling and, if it does, commits that amount against the ceiling
+in the same call, before returning — strictly before the kernel's own
+dispatch to `ModelHandler::invoke` (the kernel journals and persists
+`RequestIntent.reserved_budget` immediately after this call and before that
+dispatch; see `kernel.rs`). By the time a call could possibly have reached a
+provider, its cost is already charged and already durable.
+
+**Why a retry cannot double-spend.** `CumulativeBudgetLedger` is never the
+durable source of truth for `committed` — `CumulativeBudgetLedger::resume`
+reconstructs it by folding over an already-persisted journal prefix and
+summing every `RequestIntent.reserved_budget` seen so far, the exact value
+`reserve` already committed and the kernel already made durable before
+dispatch. Replaying that fold after a real or simulated crash always yields
+the same total, so a reservation is nonrefundable by construction — there is
+no separate in-memory counter to lose. The fault-injection test proving this
+directly: `budget::tests::resuming_after_a_simulated_crash_never_refunds_the_already_committed_reservation`
+builds a journal ending in an uncertain `RequestIntent` (no recorded
+response — the exact shape a crash between reservation and settlement
+leaves behind) and shows a fresh ledger resuming from it still refuses a
+retry that would exceed what actually remains.
+
+**`record` never refunds.** A settlement using fewer bytes than reserved, or
+a failed attempt using none at all, never credits the difference back onto
+`remaining` — matching issue #113's own scope note that "monetary limits are
+conservative reservations...not a promise of exact live billing." This is
+also why a timeout with unknown billing never appears as zero usage: the
+reservation it already consumed stays consumed regardless of what `record`
+is later told.
+
+**Budget-exhausted, deadline-exceeded and cancelled never collapse into one
+tag.** `reserve`'s refusal is always one of the closed reasons
+`budget::BUDGET_EXHAUSTED`, `budget::DEADLINE_EXCEEDED` or
+`budget::NEGATIVE_REQUEST` — never `ModelFailure`. Previously the kernel
+hardcoded `ModelFailure::CapacityExceeded` for *any* budget-hook refusal,
+misrecording a self-imposed refusal as if the provider itself had reported
+no capacity; the kernel now writes the hook's own reason text into
+`ResponseFailed.failure` instead (`kernel.rs`,
+`tests::a_cumulative_budget_ledger_stops_the_run_once_its_ceiling_is_exhausted_not_the_turn_counter`
+asserts the recorded tag is never `ModelFailure::CapacityExceeded`).
+Cancellation is a third, independently-checked thing (see "Cancellation
+point" above) recorded through its own journal entries, never through this
+hook at all.
+
+**The deadline is an absolute instant, not a duration.**
+`CumulativeBudgetLedger::with_deadline` takes an absolute `deadline_millis`
+in the bound `InvocationClock`'s own units, not "N milliseconds from now." A
+caller resuming a suspended or recovered invocation re-supplies the same
+absolute value it used originally (typically `invocation_started_at +
+max_duration`, computed once at bind time, the same way
+`program_root`/`task`/`deployment_binding` are already re-supplied
+identically on every call into `kernel::run_live_invocation`) — there is
+structurally no "from now" constructor, so a resumed call cannot reset the
+deadline merely by supplying a fresh duration.
+`budget::tests::resume_preserves_an_absolute_deadline_across_the_same_simulated_crash`
+exercises this directly.
+
+**Not a live price lookup.** `effective_budget`/`ceiling` stay opaque
+caller-defined units (`ModelInvocationRequest::effective_budget`'s existing
+documentation: "the deployment defines what one unit costs"). This module
+does no currency conversion and no provider pricing lookup; live price
+lookup, if ever added, stays outside the compiler per issue #113's own scope
+note.
+
+**Reference:** `src/live_invocation/budget.rs` (`CumulativeBudgetLedger`,
+`InvocationClock`) and its `tests` submodule; `fixture::StepClock` is the
+one deterministic clock implementation this crate ships.
 
 ## What downstream issues implement against
 
@@ -318,7 +426,7 @@ shipped `FixtureBudgetHook` is a trivial per-invocation counter. Issues
 | `ModelHandler` | A real provider transport (#180/#181 own multiple providers; #112 owns the first live one) |
 | `ProposalDecoder` | The real compiler-derived proposal grammar (#109 owns the rich schema) |
 | `AuthorizationGate` | `agent_lifecycle::authorization`'s real mint site |
-| `InvocationBudgetHook` | Cumulative budget policy (#113/#179) |
+| `InvocationBudgetHook` | Cumulative budget/deadline policy: `budget::CumulativeBudgetLedger` (#113); further extension (e.g. real provider pricing) is #179's scope |
 | `TurnObserver` / `TurnPolicy` | The compiled Agent's `observe`/`reduce` stages (source/HIR wiring, #109–#116) |
 | `TurnEffect` | A deployed tool call via `agent_lifecycle::iterative::effects::TypedEffectHandler` |
 | `journal::receipt_projection` | The richer receipt document (#180) |
@@ -355,7 +463,7 @@ and is called out as such rather than claimed.
 | # | Criterion | Status | Evidence / gap |
 |---|---|---|---|
 | 1 | A source-native Agent can perform a live provider-neutral propose step through Direct Runtime v2. | **Not met** | No parser/HIR/source syntax exists for `model.invoke` (declared non-goal, below), and this module does not touch `agent_lifecycle` or `agent_runtime_v2`. The trait boundary a compiled `propose` role would call through exists (`model_invoke::ModelHandler`, `kernel::run_live_invocation`); wiring a source Agent's `propose` role to dispatch through it is #109–#116's scope. |
-| 2 | Model invocation is declared, capability-gated, bounded, cancellable, and evidence-bearing. | **Met at the trait-boundary level; not met at the source-declaration level** | Capability-gated: `ModelInvokeCapability` has no `Default` and no ambient constructor (`model_invoke.rs`). Bounded: `InvocationBudgetHook::reserve`/`record` plus `max_response_bytes`/`max_turns` (`kernel::run_live_invocation`). Cancellable: three checkpoints, each with a dedicated test — `tests::cancellation_before_any_turn_opens_stops_cleanly_with_an_empty_journal` (checkpoint 1), `tests::cancellation_after_turn_opened_stops_cleanly_before_any_request_intent` (checkpoint 2), `tests::cancellation_after_request_intent_is_committed_folds_into_a_recorded_cancelled_failure` (checkpoint 3). Evidence-bearing: the causal journal and `journal::receipt_projection`. "Declared" only holds as a Rust trait boundary — there is no `.spx` source syntax to declare a `propose` role against this effect (see criterion 1 and the non-goals below). |
+| 2 | Model invocation is declared, capability-gated, bounded, cancellable, and evidence-bearing. | **Met at the trait-boundary level; not met at the source-declaration level** | Capability-gated: `ModelInvokeCapability` has no `Default` and no ambient constructor (`model_invoke.rs`). Bounded: `InvocationBudgetHook::reserve`/`record` plus `max_response_bytes`/`max_turns` (`kernel::run_live_invocation`). Cancellable: three checkpoints as of this audit's #177 baseline, each with a dedicated test — `tests::cancellation_before_any_turn_opens_stops_cleanly_with_an_empty_journal` (checkpoint 1), `tests::cancellation_after_turn_opened_stops_cleanly_before_any_request_intent` (checkpoint 2), `tests::cancellation_after_request_intent_is_committed_folds_into_a_recorded_cancelled_failure` (checkpoint 3) — issue #113 later added checkpoints 4 and 5 (before authorize, before the effect dispatch); see "Cancellation point" above for the current five. Evidence-bearing: the causal journal and `journal::receipt_projection`. "Declared" only holds as a Rust trait boundary — there is no `.spx` source syntax to declare a `propose` role against this effect (see criterion 1 and the non-goals below). |
 | 3 | No provider name or credential becomes part of core language semantics. | **Met** | `ModelInvocationRequest` structurally has no credential, path, environment, or unchecked dynamic-map field (`model_invoke.rs` doc comment and field list). `ModelFailure` is a closed six-variant enum with no provider-shaped variant. The only implementations this crate ships are `fixture::*`, so no provider name appears anywhere in this module's non-test code. |
 | 4 | Model output cannot mint or bypass authorization. | **Met** | `kernel::run_live_invocation` passes only the *decoded* proposal (`ProposalOutcome::Admitted` bytes) to `AuthorizationGate::authorize` and to `TurnPolicy::reduce`; raw response bytes never reach either. Negative case: `tests::a_malformed_response_is_refused_before_authorize`, `tests::a_closed_model_failure_ends_the_attempt_without_decoding_or_authorizing`, `tests::an_oversized_response_is_treated_as_malformed_before_decode` (each asserts `gate.granted == 0`). Positive case, closing what was previously an evidence gap because every other test's fixture decoder admits its input unchanged: `tests::authorize_and_completion_see_the_decoded_proposal_never_the_raw_response_bytes` uses a decoder that actually transforms the bytes and proves both the authorization digest and the completion payload reflect the decoded value, never the raw response. `AuthorizationGrant` is itself opaque (carries a digest only, `model_invoke.rs`), so a journal reader cannot forge one even having read every recorded byte. The real mint (`agent_lifecycle::authorization::run_authorize_stage`) is not wired — `fixture::FixtureAuthorizationGate` always grants within a ceiling — but that does not weaken this criterion: the boundary structurally prevents raw model output from ever being the value authorized, independent of which `AuthorizationGate` is bound. |
 | 5 | The new route has a versioned contract and hosted evidence before support claims. | **Partially met** | Versioned contract: this document, status **LOCAL**. Hosted evidence: **not met** — every one of the 39 `live_invocation` lib tests runs against `fixture::FixtureModelHandler`'s scripted queue; none has run in a hosted environment against a real provider, and none is claimed to. This is the same declared nonclaim as "No live network call, no real provider credential, no model spend" below, restated against this specific criterion so it cannot be read as satisfied by a passing local `cargo test`. |
@@ -433,10 +541,16 @@ Required-evidence checklist, same audit:
   pending) returns `LiveKernelError::UnresolvedPrefix` rather than being
   automatically reconciled. Automatic reconciliation of that state is
   unimplemented and is not claimed here.
-- **No cumulative budget policy, no receipt document, no streaming
-  transport, no multi-provider selection.** These are the explicit hooks
-  named above; implementing the policy behind each is the named downstream
-  issue's scope, not this one's.
+- **No receipt document, no streaming transport, no multi-provider
+  selection.** These are the explicit hooks named above; implementing the
+  policy behind each is the named downstream issue's scope, not this one's.
+  (Cumulative budget/deadline policy — the fourth item this list used to
+  name — landed as `budget::CumulativeBudgetLedger`, issue #113; see
+  "Budget and deadline accounting" above. It operates entirely against the
+  fixture provider, opaque caller-defined budget units, and an injected,
+  test-controlled `InvocationClock` — no live model call, no real provider
+  pricing, no real wall-clock wiring into a compiled Agent's deployment.
+  Issue #179 may still extend this, e.g. with real provider pricing.)
 - **Persistence across a process boundary is a separate document.** This
   contract's kernel and journal are exercised purely in memory here.
   [Live Invocation Persistence v1](LIVE-INVOCATION-PERSISTENCE-V1.md) (issue
@@ -447,9 +561,9 @@ Required-evidence checklist, same audit:
 ## Executable reference
 
 `src/live_invocation/` (`identity.rs`, `journal.rs`, `model_invoke.rs`,
-`kernel.rs`, `persistence.rs`, `fixture.rs`, `tests.rs`) is the complete reference
-implementation this document describes, exercised end to end through the
-fixture provider with no network access. Focused gate:
+`kernel.rs`, `persistence.rs`, `budget.rs`, `fixture.rs`, `tests.rs`) is the
+complete reference implementation this document describes, exercised end to
+end through the fixture provider with no network access. Focused gate:
 
 ```sh
 cargo test --locked -p semaprax --lib live_invocation

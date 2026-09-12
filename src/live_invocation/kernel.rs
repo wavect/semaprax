@@ -257,16 +257,23 @@ pub fn run_live_invocation(
         let reserved = handlers.budget.reserve(&request);
         let reserved_budget = match reserved {
             Ok(reserved) => reserved.amount,
-            Err(_refusal) => {
+            Err(refusal) => {
                 journal.push(JournalEntry::RequestIntent {
                     turn,
                     request_digest: request.digest(),
                     reserved_budget: 0,
                 });
                 persist(&mut handlers.sink, &journal, dispatched)?;
+                // `refusal.0` is the hook's own closed reason (e.g.
+                // "budget_exhausted", "deadline_exceeded") — never
+                // `ModelFailure`. The provider was never contacted, so this
+                // must never be recorded as if it had reported
+                // `CapacityExceeded`: budget exhaustion, a deadline, and a
+                // provider-reported failure are three different things and
+                // the journal must not collapse them into one tag.
                 journal.push(JournalEntry::ResponseFailed {
                     turn,
-                    failure: ModelFailure::CapacityExceeded.as_str().to_owned(),
+                    failure: refusal.0.clone(),
                     attempted_bytes: 0,
                 });
                 persist(&mut handlers.sink, &journal, dispatched)?;
@@ -381,6 +388,28 @@ pub fn run_live_invocation(
         };
         let proposal_digest = digest(PROPOSAL_DOMAIN, &proposal);
 
+        // Fourth cancellation checkpoint: `ProposalAdmitted` is already
+        // durable, so — exactly like checkpoint 3 before the model
+        // dispatch — this turn must still resolve to a recorded outcome
+        // rather than leaving the journal stuck mid-turn. Authorization is
+        // never a model call, so this is `AuthorizationRefused`, never
+        // `ModelFailure::Cancelled`.
+        if cancellation.is_cancelled() {
+            journal.push(JournalEntry::AuthorizationRefused {
+                turn,
+                reason: "cancelled".to_owned(),
+            });
+            persist(&mut handlers.sink, &journal, dispatched)?;
+            let mut run = finish(
+                journal,
+                turn,
+                TurnTransition::Fail(b"authorization_refused".to_vec()),
+            );
+            run.dispatched = dispatched;
+            persist(&mut handlers.sink, &run.journal, dispatched)?;
+            return Ok(run);
+        }
+
         let grant = match handlers.gate.authorize(&AuthorizationContext {
             turn,
             observation_digest: &observation_digest,
@@ -394,7 +423,12 @@ pub fn run_live_invocation(
                 persist(&mut handlers.sink, &journal, dispatched)?;
                 grant
             }
-            Err(_refusal) => {
+            Err(refusal) => {
+                journal.push(JournalEntry::AuthorizationRefused {
+                    turn,
+                    reason: refusal.0,
+                });
+                persist(&mut handlers.sink, &journal, dispatched)?;
                 let mut run = finish(
                     journal,
                     turn,
@@ -417,6 +451,32 @@ pub fn run_live_invocation(
             // Durable *before* dispatching the effect, for the same reason
             // as the model request intent above.
             persist(&mut handlers.sink, &journal, dispatched)?;
+
+            // Fifth cancellation checkpoint: `EffectIntent` is already
+            // durable, so a cancellation observed here must still resolve to
+            // a recorded outcome — never leave the journal stuck waiting for
+            // an `EffectObserved` that will never come — and the effect is
+            // never actually called. This is `EffectFailed`, never
+            // `ModelFailure`: an effect is not a model call, and this
+            // outcome blocks both the effect and any later result
+            // publication for this turn.
+            if cancellation.is_cancelled() {
+                journal.push(JournalEntry::EffectFailed {
+                    turn,
+                    operation,
+                    reason: "cancelled".to_owned(),
+                });
+                persist(&mut handlers.sink, &journal, dispatched)?;
+                let mut run = finish(
+                    journal,
+                    turn,
+                    TurnTransition::Fail(b"effect_failed".to_vec()),
+                );
+                run.dispatched = dispatched;
+                persist(&mut handlers.sink, &run.journal, dispatched)?;
+                return Ok(run);
+            }
+
             match effect.call(turn, grant.digest()) {
                 Ok(observed) => {
                     let observation_digest = digest(EFFECT_OBSERVATION_DOMAIN, &observed);
@@ -427,7 +487,13 @@ pub fn run_live_invocation(
                     });
                     persist(&mut handlers.sink, &journal, dispatched)?;
                 }
-                Err(_) => {
+                Err(reason) => {
+                    journal.push(JournalEntry::EffectFailed {
+                        turn,
+                        operation,
+                        reason,
+                    });
+                    persist(&mut handlers.sink, &journal, dispatched)?;
                     let mut run = finish(
                         journal,
                         turn,

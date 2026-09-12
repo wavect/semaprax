@@ -4,17 +4,21 @@
 //! work. No test in this module makes a network call, opens a file, or
 //! spends real model budget — every response is scripted.
 
+use std::cell::Cell;
+use std::rc::Rc;
+
 use crate::agent_runtime::AgentCancellation;
 
+use super::budget::{CumulativeBudgetLedger, BUDGET_EXHAUSTED, DEADLINE_EXCEEDED};
 use super::fixture::{
     fixture_response, FixtureAuthorizationGate, FixtureBudgetHook, FixtureEffect,
-    FixtureModelHandler, FixtureObserver, FixturePolicy, FixtureProposalDecoder,
+    FixtureModelHandler, FixtureObserver, FixturePolicy, FixtureProposalDecoder, StepClock,
 };
 use super::identity::{LiveInvocationId, LiveInvocationSeed};
 use super::journal::{self, JournalEntry};
 use super::kernel::{
     run_live_invocation, LiveInvocationConfig, LiveInvocationHandlers, LiveInvocationOutcome,
-    LiveKernelError,
+    LiveKernelError, TurnEffect, TurnObserver, TurnTransition,
 };
 use super::model_invoke::{
     AuthorizationContext, AuthorizationGate, AuthorizationGrant, AuthorizationRefusal,
@@ -365,6 +369,69 @@ fn an_authorization_refusal_fails_the_turn_after_a_successful_decode() {
     let run =
         run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
     assert!(matches!(run.outcome, LiveInvocationOutcome::Fail(_)));
+    // Before `JournalEntry::AuthorizationRefused` existed, this exact
+    // journal shape (`ProposalAdmitted` immediately followed by
+    // `Transition`, with no entry recording why authorization never
+    // consumed a grant) was rejected by `journal::validate` — meaning an
+    // authorization refusal could never actually be replayed. This is the
+    // regression check that it now can be.
+    let recorded_reason = run.journal.iter().find_map(|entry| match entry {
+        JournalEntry::AuthorizationRefused { reason, .. } => Some(reason.clone()),
+        _ => None,
+    });
+    assert_eq!(recorded_reason.as_deref(), Some("grant_ceiling"));
+    let validated = journal::validate(&run.journal, identity.digest())
+        .expect("an authorization refusal must still produce a causally-valid, replayable journal");
+    assert!(validated.terminal);
+}
+
+#[test]
+fn an_effect_failure_ends_the_turn_and_still_produces_a_replayable_journal() {
+    // Symmetric to the authorization-refusal regression above: before
+    // `JournalEntry::EffectFailed` existed, `EffectIntent` immediately
+    // followed by `Transition` (no entry recording why the effect never
+    // observed) was also rejected by `journal::validate`.
+    struct AlwaysFailsEffect;
+    impl TurnEffect for AlwaysFailsEffect {
+        fn call(&mut self, _turn: u32, _grant_digest: &str) -> Result<Vec<u8>, String> {
+            Err("tool_unavailable".to_owned())
+        }
+    }
+
+    let identity = identity();
+    let cfg = config(&identity, 3);
+    let capability = ModelInvokeCapability::grant("effect failure test");
+    let mut handler = FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Settled(
+        fixture_response(0, "a"),
+    )]);
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_DIGEST);
+    let mut gate = FixtureAuthorizationGate::new(10);
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = FixtureObserver;
+    let mut policy = PanicPolicy;
+    let mut effect = AlwaysFailsEffect;
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: Some(&mut effect),
+        sink: None,
+    };
+    let run =
+        run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
+    assert!(matches!(run.outcome, LiveInvocationOutcome::Fail(_)));
+    let recorded_reason = run.journal.iter().find_map(|entry| match entry {
+        JournalEntry::EffectFailed { reason, .. } => Some(reason.clone()),
+        _ => None,
+    });
+    assert_eq!(recorded_reason.as_deref(), Some("tool_unavailable"));
+    let validated = journal::validate(&run.journal, identity.digest())
+        .expect("an effect failure must still produce a causally-valid, replayable journal");
+    assert!(validated.terminal);
 }
 
 #[test]
@@ -818,6 +885,294 @@ fn cancellation_after_request_intent_is_committed_folds_into_a_recorded_cancelle
     );
     let validated = journal::validate(&run.journal, identity.digest()).unwrap();
     assert!(validated.terminal);
+}
+
+/// A [`ProposalDecoder`] that cancels the shared handle from inside
+/// `decode`, so the kernel's fourth cancellation checkpoint ("after
+/// `ProposalAdmitted` is durable, before `AuthorizationGate::authorize` is
+/// ever called") fires deterministically.
+struct CancelDuringDecode {
+    cancellation: AgentCancellation,
+    schema_digest: String,
+}
+
+impl ProposalDecoder for CancelDuringDecode {
+    fn schema_digest(&self) -> &str {
+        &self.schema_digest
+    }
+
+    fn decode(&mut self, _turn: u32, response: &[u8]) -> ProposalOutcome {
+        self.cancellation.cancel();
+        ProposalOutcome::Admitted(response.to_vec())
+    }
+}
+
+/// An [`AuthorizationGate`] that panics if it is ever called — used to prove
+/// checkpoint 4 stops the kernel before `authorize` is dispatched at all.
+struct PanicGate;
+impl AuthorizationGate for PanicGate {
+    fn authorize(
+        &mut self,
+        _context: &AuthorizationContext<'_>,
+    ) -> Result<AuthorizationGrant, AuthorizationRefusal> {
+        panic!("authorize must not be called after cancellation checkpoint 4 fires");
+    }
+}
+
+#[test]
+fn cancellation_after_proposal_admitted_stops_before_authorize_is_ever_called() {
+    let identity = identity();
+    let cfg = config(&identity, 3);
+    let cancellation = AgentCancellation::new();
+    let capability = ModelInvokeCapability::grant("cancellation checkpoint 4 test");
+    let mut handler = FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Settled(
+        fixture_response(0, "a"),
+    )]);
+    let mut decoder = CancelDuringDecode {
+        cancellation: cancellation.clone(),
+        schema_digest: SCHEMA_DIGEST.to_owned(),
+    };
+    let mut gate = PanicGate;
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = FixtureObserver;
+    let mut policy = PanicPolicy;
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+        sink: None,
+    };
+    let run = run_live_invocation(&cfg, Vec::new(), &mut handlers, &cancellation).unwrap();
+    assert!(matches!(run.outcome, LiveInvocationOutcome::Fail(_)));
+    assert_eq!(
+        run.dispatched, 1,
+        "the model call itself already happened before this checkpoint"
+    );
+    let recorded_reason = run.journal.iter().find_map(|entry| match entry {
+        JournalEntry::AuthorizationRefused { reason, .. } => Some(reason.clone()),
+        _ => None,
+    });
+    assert_eq!(recorded_reason.as_deref(), Some("cancelled"));
+    let validated = journal::validate(&run.journal, identity.digest()).unwrap();
+    assert!(validated.terminal);
+}
+
+/// An [`AuthorizationGate`] that cancels the shared handle from inside
+/// `authorize` (after still granting normally), so the kernel's fifth
+/// cancellation checkpoint ("after `EffectIntent` is durable, before
+/// `TurnEffect::call` is ever called") fires deterministically.
+struct CancelDuringAuthorize {
+    cancellation: AgentCancellation,
+    inner: FixtureAuthorizationGate,
+}
+
+impl AuthorizationGate for CancelDuringAuthorize {
+    fn authorize(
+        &mut self,
+        context: &AuthorizationContext<'_>,
+    ) -> Result<AuthorizationGrant, AuthorizationRefusal> {
+        self.cancellation.cancel();
+        self.inner.authorize(context)
+    }
+}
+
+/// A [`TurnEffect`] that panics if it is ever called — used to prove
+/// checkpoint 5 stops the kernel before the effect is dispatched at all.
+struct PanicEffect;
+impl TurnEffect for PanicEffect {
+    fn call(&mut self, _turn: u32, _grant_digest: &str) -> Result<Vec<u8>, String> {
+        panic!("effect must not be called after cancellation checkpoint 5 fires");
+    }
+}
+
+#[test]
+fn cancellation_after_authorization_consumed_stops_before_the_effect_is_ever_called() {
+    let identity = identity();
+    let cfg = config(&identity, 3);
+    let cancellation = AgentCancellation::new();
+    let capability = ModelInvokeCapability::grant("cancellation checkpoint 5 test");
+    let mut handler = FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Settled(
+        fixture_response(0, "a"),
+    )]);
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_DIGEST);
+    let mut gate = CancelDuringAuthorize {
+        cancellation: cancellation.clone(),
+        inner: FixtureAuthorizationGate::new(10),
+    };
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = FixtureObserver;
+    let mut policy = PanicPolicy;
+    let mut effect = PanicEffect;
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: Some(&mut effect),
+        sink: None,
+    };
+    let run = run_live_invocation(&cfg, Vec::new(), &mut handlers, &cancellation).unwrap();
+    assert!(matches!(run.outcome, LiveInvocationOutcome::Fail(_)));
+    let recorded_reason = run.journal.iter().find_map(|entry| match entry {
+        JournalEntry::EffectFailed { reason, .. } => Some(reason.clone()),
+        _ => None,
+    });
+    assert_eq!(recorded_reason.as_deref(), Some("cancelled"));
+    // Cancellation "blocks subsequent effects and result publication"
+    // (issue #113's required case): the outcome is `Fail`, never
+    // `Complete`/`Suspend`, so nothing this turn produced is ever published.
+    assert!(!matches!(
+        run.outcome,
+        LiveInvocationOutcome::Complete(_) | LiveInvocationOutcome::Suspend(_)
+    ));
+    let validated = journal::validate(&run.journal, identity.digest()).unwrap();
+    assert!(validated.terminal);
+}
+
+#[test]
+fn a_cumulative_budget_ledger_stops_the_run_once_its_ceiling_is_exhausted_not_the_turn_counter() {
+    // "Invalid proposals consume attempts and retained input/output work;
+    // they cannot loop for free" (issue #113's required case), driven here
+    // by a policy that always continues: `max_turns` is set far above what
+    // the budget ceiling actually allows, so if the run stopped anywhere it
+    // is the cumulative ledger stopping it, not the turn counter.
+    struct AlwaysContinuePolicy;
+    impl super::kernel::TurnPolicy for AlwaysContinuePolicy {
+        fn reduce(&mut self, _turn: u32, _proposal: &[u8]) -> TurnTransition {
+            TurnTransition::Continue
+        }
+    }
+
+    let identity = identity();
+    let cfg = config(&identity, 100);
+    let capability = ModelInvokeCapability::grant("cumulative ledger test");
+    // Scripted for exactly two calls: a third dispatch would panic, proving
+    // the ledger — not exhaustion of the script — is what stops turn 2.
+    let mut handler = FixtureModelHandler::scripted(vec![
+        ModelInvocationOutcome::Settled(fixture_response(0, "a")),
+        ModelInvocationOutcome::Settled(fixture_response(1, "b")),
+    ]);
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_DIGEST);
+    let mut gate = FixtureAuthorizationGate::new(100);
+    let mut clock = StepClock::new(0);
+    let mut budget = CumulativeBudgetLedger::new(20, &mut clock); // exactly two 10-unit turns
+    let mut observer = FixtureObserver;
+    let mut policy = AlwaysContinuePolicy;
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+        sink: None,
+    };
+    let run =
+        run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
+    assert_eq!(
+        run.dispatched, 2,
+        "only the two turns the ceiling actually covers are ever dispatched"
+    );
+    assert!(
+        matches!(run.outcome, LiveInvocationOutcome::Fail(_)),
+        "the ceiling stops the run, not max_turns (100)"
+    );
+    let recorded_failure = run.journal.iter().rev().find_map(|entry| match entry {
+        JournalEntry::ResponseFailed { failure, .. } => Some(failure.clone()),
+        _ => None,
+    });
+    assert_eq!(
+        recorded_failure.as_deref(),
+        Some(BUDGET_EXHAUSTED),
+        "a self-imposed budget refusal must never be recorded as a provider failure"
+    );
+    assert_ne!(
+        recorded_failure.as_deref(),
+        Some(ModelFailure::CapacityExceeded.as_str())
+    );
+}
+
+#[test]
+fn a_cumulative_budget_ledger_enforces_an_absolute_deadline_distinctly_from_budget_and_cancellation(
+) {
+    struct SharedClock(Rc<Cell<i64>>);
+    impl super::budget::InvocationClock for SharedClock {
+        fn now_millis(&self) -> i64 {
+            self.0.get()
+        }
+    }
+    /// Advances the shared clock past the bound deadline right before turn
+    /// 1's reservation, so this is deterministic rather than racing a real
+    /// wall clock.
+    struct AdvancingObserver {
+        clock: Rc<Cell<i64>>,
+    }
+    impl TurnObserver for AdvancingObserver {
+        fn observe(&mut self, turn: u32) -> Vec<u8> {
+            if turn == 1 {
+                self.clock.set(self.clock.get() + 1_000);
+            }
+            format!("observation:{turn}").into_bytes()
+        }
+    }
+    struct AlwaysContinuePolicy;
+    impl super::kernel::TurnPolicy for AlwaysContinuePolicy {
+        fn reduce(&mut self, _turn: u32, _proposal: &[u8]) -> TurnTransition {
+            TurnTransition::Continue
+        }
+    }
+
+    let identity = identity();
+    let cfg = config(&identity, 100);
+    let capability = ModelInvokeCapability::grant("deadline test");
+    let mut handler = FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Settled(
+        fixture_response(0, "a"),
+    )]);
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_DIGEST);
+    let mut gate = FixtureAuthorizationGate::new(100);
+    let time = Rc::new(Cell::new(0i64));
+    let mut clock = SharedClock(Rc::clone(&time));
+    // A budget ceiling generous enough that only the deadline can be what
+    // stops turn 1 — proving budget-exhausted and deadline-exceeded are
+    // never confused for each other.
+    let mut budget = CumulativeBudgetLedger::with_deadline(10_000, 500, &mut clock);
+    let mut observer = AdvancingObserver {
+        clock: Rc::clone(&time),
+    };
+    let mut policy = AlwaysContinuePolicy;
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+        sink: None,
+    };
+    let run =
+        run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
+    assert_eq!(
+        run.dispatched, 1,
+        "turn 0 dispatches before the deadline; turn 1's reservation is refused first"
+    );
+    assert!(matches!(run.outcome, LiveInvocationOutcome::Fail(_)));
+    let recorded_failure = run.journal.iter().rev().find_map(|entry| match entry {
+        JournalEntry::ResponseFailed { failure, .. } => Some(failure.clone()),
+        _ => None,
+    });
+    assert_eq!(recorded_failure.as_deref(), Some(DEADLINE_EXCEEDED));
 }
 
 /// A [`ProposalDecoder`] that actually transforms the bytes it admits,

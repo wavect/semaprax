@@ -165,6 +165,28 @@ impl CompiledIterativeLifecycle {
         )
         .map_err(driver::DriverFailure::into_diagnostics)
     }
+
+    /// The live route: shares the frozen route's initialize/observe/authorize/
+    /// effect/reduce kernel, but asks `source` for each turn's proposal only
+    /// after that turn's checked observation exists, instead of indexing a
+    /// predeclared slice. See [`driver::ProposalSource`].
+    pub(crate) fn run_live(
+        &self,
+        task: &LifecycleTask,
+        source: &mut dyn driver::ProposalSource,
+        read: &mut dyn AgentReadOperation,
+        budget: IterativeBudget,
+        cancellation: &AgentCancellation,
+    ) -> Result<IterativeRun, Vec<Diagnostic>> {
+        self.run_with_driver_live(
+            task,
+            source,
+            &mut driver::ReadDriver { read },
+            budget,
+            cancellation,
+        )
+        .map_err(driver::DriverFailure::into_diagnostics)
+    }
 }
 
 /// Compile the additive Step-returning reducer profile. Definition v1 bytes stay frozen.
@@ -323,6 +345,25 @@ pub fn compile_source_agent_lifecycle_v2(
         return Err(vec![bad("source_agent.definition")]);
     }
     Ok(lifecycle)
+}
+
+/// The invocation identity of a live-route run. Live proposals are not known
+/// at bind time, so this binds task, budget and the exact proposal grammar
+/// the source will be asked to satisfy, rather than a predeclared sequence.
+pub(crate) fn live_invocation_digest(
+    task: &LifecycleTask,
+    budget: IterativeBudget,
+    proposal_schema_digest: &str,
+) -> String {
+    digest(
+        b"semaprax.agent-iterative-live-invocation.v1\0",
+        format!(
+            "{}\0{}",
+            invocation_digest(task, &[], budget),
+            proposal_schema_digest
+        )
+        .as_bytes(),
+    )
 }
 
 fn invocation_digest(

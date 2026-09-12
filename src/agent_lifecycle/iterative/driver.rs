@@ -89,6 +89,51 @@ impl IterativeDriver for ReadDriver<'_> {
     }
 }
 
+/// Everything the live route has actually checked before it asks for the
+/// current turn's proposal: the exact observation and state this turn holds,
+/// the real previous effect result (not the initial task context replayed on
+/// every turn), and the identities/limits the source must stay inside.
+///
+/// The driver builds this and chooses when to build it; nothing in it is
+/// derived from a prior model response, so a source cannot manufacture an
+/// extra request by anything it returns.
+pub(crate) struct ProposalRequest<'a> {
+    pub(crate) turn: usize,
+    pub(crate) attempt: usize,
+    pub(crate) source_revision: &'a str,
+    pub(crate) proposal_schema_digest: &'a str,
+    pub(crate) task: &'a LifecycleTask,
+    pub(crate) state: &'a RetainedValue,
+    pub(crate) observation: &'a RetainedValue,
+    /// The bytes the injected read operation returned last turn, `None` on
+    /// the first turn. This is the actual prior effect result, never a
+    /// precomputed or replayed value.
+    pub(crate) previous_effect: Option<&'a [u8]>,
+    /// Set when this is a retry after `attempt - 1` produced a proposal this
+    /// grammar refused to decode; `None` on a turn's first attempt.
+    pub(crate) previous_rejection: Option<&'a str>,
+    pub(crate) remaining_iterations: usize,
+}
+
+/// A live, feedback-driven proposal source. The frozen route reads a
+/// predeclared `&[String]` slice by turn index; this trait is the live
+/// route's equivalent, called by the driver only after the current turn's
+/// checked observation exists.
+///
+/// An `Err` ends the run's decode/retry loop immediately with those
+/// diagnostics; it does not retry. A source that wants a bounded retry
+/// returns `Ok` with proposal text the schema will reject, and reads the
+/// rejection back on `request.previous_rejection` next attempt.
+pub(crate) trait ProposalSource {
+    fn propose(&mut self, request: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>>;
+}
+
+/// Attempts per turn a malformed proposal may consume before the run ends as
+/// [`IterativeStatus::ModelFailed`]. Bounded so a source that never produces
+/// a decodable proposal cannot spin the loop unboundedly; each attempt is
+/// counted and produces no effect call.
+const MAX_PROPOSAL_ATTEMPTS: usize = 4;
+
 impl CompiledIterativeLifecycle {
     pub(crate) fn run_with_driver(
         &self,
@@ -321,6 +366,233 @@ impl CompiledIterativeLifecycle {
     }
 }
 
+impl CompiledIterativeLifecycle {
+    /// The live route. Shares initialize/observe/authorize/effect/reduce with
+    /// [`Self::run_with_driver_initial`] exactly; the only difference is where
+    /// each turn's proposal text comes from: a call to `source.propose`,
+    /// carrying the real previous effect result, instead of indexing a
+    /// predeclared slice by turn.
+    ///
+    /// A decode failure does not end the turn immediately: the source gets a
+    /// bounded number of attempts (see [`MAX_PROPOSAL_ATTEMPTS`]), each one
+    /// counted and producing no effect call, before the run ends as
+    /// `ModelFailed`. Every other terminal condition — refusal, budget
+    /// exhaustion, cancellation, and the reducer's own Complete/Suspend/Fail
+    /// selection — is exactly the frozen route's, because this reuses the
+    /// same authorize/effect/reduce calls on the same driver.
+    pub(crate) fn run_with_driver_live(
+        &self,
+        task: &LifecycleTask,
+        source: &mut dyn ProposalSource,
+        driver: &mut dyn IterativeDriver,
+        budget: IterativeBudget,
+        cancellation: &AgentCancellation,
+    ) -> Result<IterativeRun, DriverFailure> {
+        if budget.max_iterations > 4096 || budget.max_stages > 12289 {
+            return Err(vec![bad("budget.capacity")].into());
+        }
+        let inner = &self.inner;
+        let mut run = IterativeRun {
+            status: IterativeStatus::BudgetExhausted,
+            iterations: 0,
+            stages: Vec::new(),
+            effects: 0,
+            value: None,
+            authorization_bindings: Vec::new(),
+            invocation_digest: super::live_invocation_digest(
+                task,
+                budget,
+                inner.proposal.schema().digest(),
+            ),
+            evidence: String::new(),
+            digest: String::new(),
+        };
+        let mut last_effect: Option<Vec<u8>> = None;
+        macro_rules! stop {
+            ($status:expr, $value:expr) => {
+                return Ok(run.finish($status, $value, self.digest()))
+            };
+        }
+        macro_rules! boundary {
+            () => {
+                if cancellation.is_cancelled() {
+                    stop!(IterativeStatus::Cancelled, None);
+                }
+                if run.stages.len() >= budget.max_stages {
+                    stop!(IterativeStatus::BudgetExhausted, None);
+                }
+            };
+        }
+        macro_rules! evaluate {
+            ($stage:expr, $arguments:expr) => {{
+                boundary!();
+                driver.before_stage($stage.role(), run.iterations, budget.max_steps_per_stage)?;
+                let evaluation = inner.evaluate($stage, $arguments, budget.max_steps_per_stage)?;
+                run.stages.push(StageRecord::of($stage, &evaluation));
+                match evaluation.outcome {
+                    RetainedCallOutcome::Returned(value) => value,
+                    RetainedCallOutcome::FuelExhausted | RetainedCallOutcome::CallDepthExceeded => {
+                        stop!(IterativeStatus::BudgetExhausted, None);
+                    }
+                    _ => {
+                        stop!(IterativeStatus::Rejected, None);
+                    }
+                }
+            }};
+        }
+        if budget.max_iterations == 0 {
+            stop!(IterativeStatus::BudgetExhausted, None);
+        }
+        let mut state = evaluate!(
+            &inner.binding.initialize,
+            &[payload(
+                &inner.binding.task,
+                task.objective.clone(),
+                task.budget
+            )]
+        );
+        if !inner.carries(&state, "state") {
+            return Err(vec![bad("initialize.identity")].into());
+        }
+        loop {
+            if run.iterations >= budget.max_iterations {
+                stop!(IterativeStatus::BudgetExhausted, None);
+            }
+            let observation = evaluate!(&inner.binding.observe, std::slice::from_ref(&state));
+            if !inner.carries(&observation, "observation") {
+                return Err(vec![bad("observe.identity")].into());
+            }
+            let mut attempt = 0usize;
+            let mut rejection: Option<String> = None;
+            let decoded = loop {
+                boundary!();
+                let request = ProposalRequest {
+                    turn: run.iterations,
+                    attempt,
+                    source_revision: &inner.source_revision,
+                    proposal_schema_digest: inner.proposal.schema().digest(),
+                    task,
+                    state: &state,
+                    observation: &observation,
+                    previous_effect: last_effect.as_deref(),
+                    previous_rejection: rejection.as_deref(),
+                    remaining_iterations: budget.max_iterations - run.iterations,
+                };
+                let proposal_text = source.propose(request)?;
+                match inner.proposal.decode(&proposal_text) {
+                    Ok(decoded) => break decoded,
+                    Err(_) => {
+                        attempt += 1;
+                        if attempt >= MAX_PROPOSAL_ATTEMPTS {
+                            stop!(IterativeStatus::ModelFailed, None);
+                        }
+                        rejection = Some(format!("proposal.decode.attempt.{attempt}"));
+                    }
+                }
+            };
+            let Some(projected) = inner.project(&decoded) else {
+                stop!(IterativeStatus::ModelFailed, None);
+            };
+            boundary!();
+            let policy = digest(
+                b"semaprax.agent-iteration-policy.v2\0",
+                format!("{}\0{}", self.digest(), run.iterations).as_bytes(),
+            );
+            let mut args = vec![state.clone()];
+            args.extend(projected.iter().cloned());
+            driver.before_stage("authorize", run.iterations, budget.max_steps_per_stage)?;
+            let (decision, record) = authorization::run_authorize_stage(
+                &inner.program,
+                &inner.binding.authorize,
+                &args,
+                budget.max_steps_per_stage,
+                &policy,
+                &state,
+                decoded.canonical_json(),
+            )?;
+            run.stages.push(record);
+            let authorized = match decision {
+                authorization::AuthorizationOutcome::Granted(value) => value,
+                authorization::AuthorizationOutcome::Refused(_) => {
+                    stop!(IterativeStatus::Rejected, None);
+                }
+                authorization::AuthorizationOutcome::Undecided("fuel" | "depth") => {
+                    stop!(IterativeStatus::BudgetExhausted, None);
+                }
+                _ => {
+                    stop!(IterativeStatus::Rejected, None);
+                }
+            };
+            if cancellation.is_cancelled() {
+                stop!(IterativeStatus::Cancelled, None);
+            }
+            // Reserve reducer capacity before dispatch: no known-doomed effect.
+            if run.stages.len() >= budget.max_stages {
+                stop!(IterativeStatus::BudgetExhausted, None);
+            }
+            let request = authorized.consume();
+            let expected = authorization::binding(
+                &policy,
+                &state,
+                decoded.canonical_json(),
+                inner.binding.authorize.grant_case(),
+                request.seal(),
+            );
+            if expected != request.binding() {
+                return Err(vec![bad("authorization.binding")].into());
+            }
+            driver.before_effect(EffectContext {
+                turn: run.iterations,
+                policy: &policy,
+                state: &state,
+                proposal_canonical: decoded.canonical_json(),
+                authorization: &request,
+            })?;
+            run.authorization_bindings
+                .push(request.binding().to_owned());
+            run.effects += 1;
+            let Some(bytes) = driver.read(&request)? else {
+                stop!(IterativeStatus::EffectFailed, None);
+            };
+            if bytes.len() > MAX_READ_BYTES {
+                stop!(IterativeStatus::EffectFailed, None);
+            }
+            last_effect = Some(bytes.clone());
+            let mut args = vec![state];
+            args.extend(projected);
+            args.push(payload(&inner.binding.outcome, bytes, 0));
+            let value = evaluate!(&inner.binding.reduce, &args);
+            run.iterations += 1;
+            let (transition, value) = self.step.decode(value)?;
+            if let Err(diagnostics) =
+                driver.after_transition(run.iterations - 1, transition, &value)
+            {
+                let selected = match transition {
+                    "Complete" => Some(IterativeStatus::Complete),
+                    "Suspend" => Some(IterativeStatus::Suspend),
+                    "Fail" => Some(IterativeStatus::Fail),
+                    _ => None,
+                };
+                return Err(if let Some(status) = selected {
+                    DriverFailure::Persistence {
+                        terminal: Box::new(run.finish(status, Some(value), self.digest())),
+                        diagnostics,
+                    }
+                } else {
+                    diagnostics.into()
+                });
+            }
+            match transition {
+                "Continue" => state = value,
+                "Complete" => stop!(IterativeStatus::Complete, Some(value)),
+                "Suspend" => stop!(IterativeStatus::Suspend, Some(value)),
+                "Fail" => stop!(IterativeStatus::Fail, Some(value)),
+                _ => return Err(vec![bad("step.transition")].into()),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -475,5 +747,321 @@ mod tests {
             _ => panic!("selected terminal must survive persistence failure"),
         }
         assert_eq!(terminal_failure.calls, 3);
+    }
+
+    // --- Live, feedback-driven proposal source (SPX-AI-012) ---
+
+    /// Always proposes the same granted document, ignoring any feedback;
+    /// used only where a test needs a route to reach a terminal state and
+    /// does not itself assert on feedback dependence.
+    struct AlwaysGrant<'a> {
+        compiled: &'a CompiledAgentLifecycle,
+    }
+    impl ProposalSource for AlwaysGrant<'_> {
+        fn propose(&mut self, _: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>> {
+            Ok(crate::agent_lifecycle::tests::proposal(self.compiled, "1", "1"))
+        }
+    }
+
+    /// Replays one fixed sequence of proposal documents by turn index, the
+    /// same way the frozen `&[String]` route indexes its slice. Used to prove
+    /// the two routes share one kernel: fed the same effective sequence, they
+    /// must produce byte-identical evidence.
+    struct Replay<'a> {
+        proposals: &'a [String],
+    }
+    impl ProposalSource for Replay<'_> {
+        fn propose(&mut self, request: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>> {
+            self.proposals
+                .get(request.turn)
+                .cloned()
+                .ok_or_else(|| vec![bad("fixture.replay_exhausted")])
+        }
+    }
+
+    /// Proves the live route is feedback-driven, not merely iteration-driven.
+    /// Turn 0 has no prior effect and always proposes the same document.
+    /// Every later turn REJECTS a request that lacks a prior effect result
+    /// (the issue's required negative check on missing observation), and
+    /// only proposes the budget that gets granted when the prior effect
+    /// returned the expected marker; otherwise it proposes a budget that the
+    /// checked authorize stage refuses. A driver that ignored feedback (never
+    /// threaded the real read result through) would either hit the missing-
+    /// observation rejection or grant/refuse identically regardless of what
+    /// the effect actually returned, so the two runs below could not diverge.
+    struct Feedback<'a> {
+        compiled: &'a CompiledAgentLifecycle,
+        unlock: &'static [u8],
+    }
+    impl ProposalSource for Feedback<'_> {
+        fn propose(&mut self, request: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>> {
+            assert!(!request.source_revision.is_empty());
+            assert!(request.proposal_schema_digest.starts_with("sha256:"));
+            assert_eq!(request.task.budget, 10);
+            assert!(matches!(request.state, RetainedValue::Record(_)));
+            assert!(matches!(request.observation, RetainedValue::Record(_)));
+            assert_eq!(request.attempt, 0);
+            assert_eq!(
+                request.remaining_iterations,
+                IterativeBudget::default().max_iterations - request.turn
+            );
+            if request.turn == 0 {
+                assert!(request.previous_effect.is_none());
+                return Ok(crate::agent_lifecycle::tests::proposal(
+                    self.compiled,
+                    "5",
+                    "1",
+                ));
+            }
+            let Some(previous) = request.previous_effect else {
+                return Err(vec![bad("fixture.missing_prior_effect")]);
+            };
+            let budget = if previous == self.unlock { "5" } else { "999" };
+            Ok(crate::agent_lifecycle::tests::proposal(
+                self.compiled,
+                budget,
+                "1",
+            ))
+        }
+    }
+
+    /// Proposes malformed text `fail_attempts` times, then a granted document.
+    struct MalformedThenValid<'a> {
+        compiled: &'a CompiledAgentLifecycle,
+        fail_attempts: usize,
+        calls: usize,
+    }
+    impl ProposalSource for MalformedThenValid<'_> {
+        fn propose(&mut self, request: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>> {
+            self.calls += 1;
+            assert_eq!(
+                request.previous_rejection.is_some(),
+                request.attempt > 0,
+                "a rejection reason must appear starting the attempt after it, and not before"
+            );
+            if request.attempt < self.fail_attempts {
+                return Ok("not a proposal document\n".to_owned());
+            }
+            Ok(crate::agent_lifecycle::tests::proposal(
+                self.compiled,
+                "1",
+                "1",
+            ))
+        }
+    }
+
+    fn live_task() -> LifecycleTask {
+        LifecycleTask {
+            objective: b"task".to_vec(),
+            budget: 10,
+        }
+    }
+
+    #[test]
+    fn live_second_proposal_depends_on_the_actual_first_effect_result() {
+        let compiled = compile_agent_lifecycle_v2(
+            &super::super::tests::source(
+                "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }",
+            ),
+            "driver-live.spx",
+            &crate::agent_lifecycle::tests::DEFINITION
+                .replace("RUNTIME", crate::agent_lifecycle::tests::RUNTIME_V1),
+            "fixture.agent.type.step",
+        )
+        .unwrap();
+        let task = live_task();
+        let budget = IterativeBudget::default();
+        let cancellation = AgentCancellation::new();
+
+        // The first effect reveals the unlock marker: authorize keeps
+        // granting and the run reaches Complete after three turns.
+        let mut unlocked = FixtureRead::new(b"unlock".to_vec());
+        let mut source = Feedback {
+            compiled: &compiled.inner,
+            unlock: b"unlock",
+        };
+        let unlocked_run = compiled
+            .run_live(&task, &mut source, &mut unlocked, budget, &cancellation)
+            .unwrap();
+        assert_eq!(unlocked_run.status(), IterativeStatus::Complete);
+        assert_eq!(unlocked.calls(), 3);
+
+        // The same source, told the first effect returned something else,
+        // proposes a budget the checked authorize stage refuses: the run
+        // stops Rejected after exactly one effect, and never repeats the
+        // refused request no matter how many turns remain.
+        let mut locked = FixtureRead::new(b"locked".to_vec());
+        let mut source = Feedback {
+            compiled: &compiled.inner,
+            unlock: b"unlock",
+        };
+        let locked_run = compiled
+            .run_live(&task, &mut source, &mut locked, budget, &cancellation)
+            .unwrap();
+        assert_eq!(locked_run.status(), IterativeStatus::Rejected);
+        assert_eq!(locked.calls(), 1);
+        assert_ne!(unlocked_run.evidence(), locked_run.evidence());
+    }
+
+    #[test]
+    fn live_malformed_proposal_retries_bounded_with_zero_effects_until_valid() {
+        let compiled = compile_agent_lifecycle_v2(
+            &super::super::tests::source("Step::Fail { code: 7 }"),
+            "driver-live.spx",
+            &crate::agent_lifecycle::tests::DEFINITION
+                .replace("RUNTIME", crate::agent_lifecycle::tests::RUNTIME_V1),
+            "fixture.agent.type.step",
+        )
+        .unwrap();
+        let task = live_task();
+        let one_turn = IterativeBudget {
+            max_iterations: 1,
+            ..IterativeBudget::default()
+        };
+        let cancellation = AgentCancellation::new();
+
+        // One malformed attempt, then a valid retry: the retry is not free
+        // (it is counted) but it costs no effect call by itself.
+        let mut read = FixtureRead::new(Vec::new());
+        let mut source = MalformedThenValid {
+            compiled: &compiled.inner,
+            fail_attempts: 1,
+            calls: 0,
+        };
+        let run = compiled
+            .run_live(&task, &mut source, &mut read, one_turn, &cancellation)
+            .unwrap();
+        assert_eq!(run.status(), IterativeStatus::BudgetExhausted);
+        assert_eq!(read.calls(), 1);
+        assert_eq!(source.calls, 2);
+
+        // A source that never produces a decodable proposal exhausts the
+        // bounded attempt count and ends the run with zero effects, rather
+        // than looping unboundedly.
+        let mut read = FixtureRead::new(Vec::new());
+        let mut source = MalformedThenValid {
+            compiled: &compiled.inner,
+            fail_attempts: usize::MAX,
+            calls: 0,
+        };
+        let run = compiled
+            .run_live(&task, &mut source, &mut read, one_turn, &cancellation)
+            .unwrap();
+        assert_eq!(run.status(), IterativeStatus::ModelFailed);
+        assert_eq!(read.calls(), 0);
+        assert_eq!(source.calls, MAX_PROPOSAL_ATTEMPTS);
+    }
+
+    #[test]
+    fn live_route_reaches_every_reducer_selected_terminal_and_is_budget_exhaustion_evidence_bearing()
+    {
+        for (expression, expected) in [
+            (
+                "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }",
+                IterativeStatus::Complete,
+            ),
+            (
+                "Step::Suspend { objective: state.objective, budget: state.budget, epoch: state.epoch }",
+                IterativeStatus::Suspend,
+            ),
+            ("Step::Fail { code: 37 }", IterativeStatus::Fail),
+        ] {
+            let compiled = compile_agent_lifecycle_v2(
+                &super::super::tests::source(expression),
+                "driver-live.spx",
+                &crate::agent_lifecycle::tests::DEFINITION
+                    .replace("RUNTIME", crate::agent_lifecycle::tests::RUNTIME_V1),
+                "fixture.agent.type.step",
+            )
+            .unwrap();
+            let mut read = FixtureRead::new(Vec::new());
+            let mut source = AlwaysGrant {
+                compiled: &compiled.inner,
+            };
+            let run = compiled
+                .run_live(
+                    &live_task(),
+                    &mut source,
+                    &mut read,
+                    IterativeBudget::default(),
+                    &AgentCancellation::new(),
+                )
+                .unwrap();
+            assert_eq!(run.status(), expected);
+            assert_eq!(read.calls(), 3);
+        }
+
+        // Every remaining turn stops requesting once a terminal is reached:
+        // a source that panics on a fourth turn never gets called, because a
+        // budget too small to reach Fail ends the run first.
+        let compiled = compile_agent_lifecycle_v2(
+            &super::super::tests::source("Step::Fail { code: 1 }"),
+            "driver-live.spx",
+            &crate::agent_lifecycle::tests::DEFINITION
+                .replace("RUNTIME", crate::agent_lifecycle::tests::RUNTIME_V1),
+            "fixture.agent.type.step",
+        )
+        .unwrap();
+        let mut read = FixtureRead::new(Vec::new());
+        let mut source = AlwaysGrant {
+            compiled: &compiled.inner,
+        };
+        let run = compiled
+            .run_live(
+                &live_task(),
+                &mut source,
+                &mut read,
+                IterativeBudget {
+                    max_iterations: 1,
+                    ..IterativeBudget::default()
+                },
+                &AgentCancellation::new(),
+            )
+            .unwrap();
+        assert_eq!(run.status(), IterativeStatus::BudgetExhausted);
+        assert!(run.evidence().starts_with('{'));
+        assert!(run.evidence_digest().starts_with("sha256:"));
+    }
+
+    #[test]
+    fn live_route_and_frozen_route_share_one_kernel_on_an_identical_sequence() {
+        let compiled = compile_agent_lifecycle_v2(
+            &super::super::tests::source(
+                "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }",
+            ),
+            "driver-live.spx",
+            &crate::agent_lifecycle::tests::DEFINITION
+                .replace("RUNTIME", crate::agent_lifecycle::tests::RUNTIME_V1),
+            "fixture.agent.type.step",
+        )
+        .unwrap();
+        let task = live_task();
+        let budget = IterativeBudget::default();
+        let cancellation = AgentCancellation::new();
+        let proposals =
+            vec![crate::agent_lifecycle::tests::proposal(&compiled.inner, "1", "1"); 4];
+
+        let mut frozen_read = FixtureRead::new(b"read".to_vec());
+        let frozen = compiled
+            .run(&task, &proposals, &mut frozen_read, budget, &cancellation)
+            .unwrap();
+
+        let mut live_read = FixtureRead::new(b"read".to_vec());
+        let mut replay = Replay {
+            proposals: &proposals,
+        };
+        let live = compiled
+            .run_live(&task, &mut replay, &mut live_read, budget, &cancellation)
+            .unwrap();
+
+        assert_eq!(frozen.status(), IterativeStatus::Complete);
+        assert_eq!(live.status(), frozen.status());
+        assert_eq!(live.iterations(), frozen.iterations());
+        assert_eq!(live.effects(), frozen.effects());
+        assert_eq!(live.authorization_bindings(), frozen.authorization_bindings());
+        // The invocation digest is intentionally route-specific (a live run
+        // never had a predeclared sequence to bind), so only the part of the
+        // evidence that reports the shared kernel's behavior is compared.
+        assert_ne!(live.invocation_digest(), frozen.invocation_digest());
     }
 }

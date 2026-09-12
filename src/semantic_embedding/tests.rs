@@ -71,9 +71,11 @@ fn a_settled_vector_of_the_wrong_length_is_reported_malformed_not_passed_through
 
 #[test]
 fn a_non_finite_component_is_reported_malformed_not_passed_through() {
-    let mut provider = ScriptedEmbeddingProvider::scripted(vec![EmbeddingOutcome::Settled(
-        vec![1.0, f32::NAN, 2.0],
-    )]);
+    let mut provider = ScriptedEmbeddingProvider::scripted(vec![EmbeddingOutcome::Settled(vec![
+        1.0,
+        f32::NAN,
+        2.0,
+    ])]);
     let capability = EmbeddingCapability::grant("test");
     let outcome = embed(&mut provider, &capability, &request(), NOT_CANCELLED);
     assert_eq!(
@@ -87,9 +89,11 @@ fn a_non_finite_component_is_reported_malformed_not_passed_through() {
 
 #[test]
 fn an_infinite_component_is_reported_malformed_not_passed_through() {
-    let mut provider = ScriptedEmbeddingProvider::scripted(vec![EmbeddingOutcome::Settled(
-        vec![1.0, f32::INFINITY, 2.0],
-    )]);
+    let mut provider = ScriptedEmbeddingProvider::scripted(vec![EmbeddingOutcome::Settled(vec![
+        1.0,
+        f32::INFINITY,
+        2.0,
+    ])]);
     let capability = EmbeddingCapability::grant("test");
     let outcome = embed(&mut provider, &capability, &request(), NOT_CANCELLED);
     assert_eq!(

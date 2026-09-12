@@ -3,6 +3,7 @@
   "packages": [
     {"directory": "agent", "module": "std.agent", "tier": "agent", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "async", "module": "std.async", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "auth", "module": "std.auth", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "bytes", "module": "std.bytes", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "collections", "module": "std.collections", "tier": "alloc", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "core", "module": "std.core", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

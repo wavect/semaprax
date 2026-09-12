@@ -13,7 +13,7 @@ src/cleanup_plan/replay.rs	8079
 src/cleanup_plan/replay_tests.rs	1835
 src/codegen/native_callable_provider_v3.rs	1678
 src/codegen/native_emit/expression.rs	2694
-src/codegen/native_emit/mod.rs	2466
+src/codegen/native_emit/mod.rs	2469
 src/economic_agent/tests.rs	1914
 src/graph.rs	5596
 src/hir/resolve_expr.rs	3107
@@ -38,7 +38,7 @@ src/semantic_workspace_structural_change/tests.rs	2677
 src/simd_report.rs	1529
 src/source_verify/capacity.rs	1667
 src/wasm.rs	5316
-src/wasm/aggregate.rs	8732
+src/wasm/aggregate.rs	8761
 src/workspace.rs	5923
 src/workspace_analysis.rs	4196
 src/workspace_graph.rs	6219

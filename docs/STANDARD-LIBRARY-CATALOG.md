@@ -187,6 +187,364 @@ fn remaining_ms(elapsed_ms: usize, budget_ms: usize) -> usize
 fn stream_ended(chunk: borrow Slice<u8>) -> bool
 ```
 
+## `std.auth`
+
+Package `std/auth`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.auth = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.auth.security.ct_bytes_equal`
+
+This module is the pure, effect-free decision-procedure layer for issue
+#191's authentication/session profile: session lifecycle legality, CSRF
+and cookie policy, constant-time secret comparison, closed-algorithm token
+verification, password-hash *policy* bounds, and audit-event safety.
+
+It performs no I/O, declares no `permit`, and calls no `uses`-gated
+operation. Every function is a pure predicate or pure state transition over
+caller-supplied scalars and borrowed byte slices, exactly the idiom
+`std.db` and `std.jobs` use for their own pure decision layers. A "secret"
+in this package is never anything more than a `borrow Slice<u8>` the
+caller already held and passed explicitly: nothing here reads an
+environment variable, a file, or a keyring, and nothing here retains a
+byte it was not handed for the duration of one call. See
+`docs/AUTHENTICATION-SESSIONS-V1.md` for the threat model, the exact
+non-claims (most importantly: this package does not and cannot compute a
+real password hash or a real signature — both need a capability this
+bounded interpreter does not expose without a new dependency or a new host
+operation, neither of which this change is permitted to add).
+---------------------------------------------------------------------
+Constant-time comparison
+---------------------------------------------------------------------
+Compares every byte of both views without ever branching the *iteration
+count* on where (or whether) a difference occurs. The loop condition is
+`index < limit` alone — it never reads `mismatches` — so this function
+always performs exactly `limit` byte reads and exactly `limit` comparisons
+regardless of input content, unlike `std.bytes.equals`, whose `while index
+< length && same` stops at the first differing byte and therefore leaks a
+timing signal proportional to the shared prefix length. Any comparison of
+a session id, a bearer token, a CSRF token, or a signature/MAC MUST use
+this function, never `std.bytes.equals`.
+
+```semaprax
+fn ct_bytes_equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+```
+
+### `std.auth.session.state_is_valid`
+
+---------------------------------------------------------------------
+Session lifecycle
+---------------------------------------------------------------------
+
+States (a `usize` tag, exactly the `std.jobs` idiom): 0 active, 1
+rotated_out, 2 revoked, 3 idle_expired, 4 absolute_expired, 5 logged_out.
+Only `active` is nonterminal. Every terminal state is sticky: none of the
+transition functions below ever move a terminal state back to `active`,
+which is the concrete defense against session fixation (an attacker who
+captured a session id before it rotated, expired, or was revoked can never
+resurrect it by presenting it again) and against replaying a stale
+decision (mirrors AGENTS.md's "failure selection is sticky").
+
+```semaprax
+fn session_state_is_valid(state: usize) -> bool
+```
+
+### `std.auth.session.state_is_terminal`
+
+```semaprax
+fn session_state_is_terminal(state: usize) -> bool
+```
+
+### `std.auth.session.idle_expired`
+
+```semaprax
+fn session_idle_expired(now_tick: usize, idle_deadline_tick: usize) -> bool
+```
+
+### `std.auth.session.absolute_expired`
+
+```semaprax
+fn session_absolute_expired(now_tick: usize, absolute_deadline_tick: usize) -> bool
+```
+
+### `std.auth.session.is_usable`
+
+The single question authentication middleware asks per request. Note what
+this does NOT answer: whether the caller may perform any particular
+action. That is a separate, independently supplied authorization decision
+— see the module comment above and `docs/AUTHENTICATION-SESSIONS-V1.md`'s
+"Authentication is not authorization" section. No function in this module
+takes a session state and returns a capability, a role, or a permission.
+
+```semaprax
+fn session_is_usable(state: usize, now_tick: usize, idle_deadline_tick: usize, absolute_deadline_tick: usize) -> bool
+```
+
+### `std.auth.session.next_state_on_access`
+
+```semaprax
+fn session_next_state_on_access(state: usize, now_tick: usize, idle_deadline_tick: usize, absolute_deadline_tick: usize) -> usize
+    ensures result <= 5usize
+```
+
+### `std.auth.session.rotate_is_legal`
+
+```semaprax
+fn session_rotate_is_legal(state: usize) -> bool
+```
+
+### `std.auth.session.next_state_on_rotate`
+
+Rotation issues a brand-new session id bound to the same subject and
+retires this one to `rotated_out` rather than deleting it outright, so a
+later presentation of the retired id is observable (see the next
+function) instead of silently failing closed with no signal at all.
+
+```semaprax
+fn session_next_state_on_rotate(state: usize) -> usize
+    ensures result <= 5usize
+```
+
+### `std.auth.session.rotated_id_reuse_is_attack_signal`
+
+A caller presenting a `rotated_out` id is a fixation/theft signal: the id
+was valid once and is now being replayed after the legitimate holder
+(or an attacker who raced it) rotated past it. The documented response is
+to revoke the whole session family the rotation produced, not merely to
+refuse this one request; this predicate only names the signal, since
+"family" tracking is caller/storage state this pure layer does not hold.
+
+```semaprax
+fn session_rotated_id_reuse_is_attack_signal(state: usize) -> bool
+```
+
+### `std.auth.session.revoke_is_legal`
+
+```semaprax
+fn session_revoke_is_legal(state: usize) -> bool
+```
+
+### `std.auth.session.next_state_on_revoke`
+
+```semaprax
+fn session_next_state_on_revoke(state: usize) -> usize
+    ensures result <= 5usize
+```
+
+### `std.auth.session.next_state_on_logout`
+
+```semaprax
+fn session_next_state_on_logout(state: usize) -> usize
+    ensures result <= 5usize
+```
+
+### `std.auth.session.concurrent_limit_exceeded`
+
+Concurrent-session policy: an explicit deployment choice
+(`evict_oldest_on_limit`), never a silent default. 0 = admit, 1 = evict
+the oldest active session and admit, 2 = refuse the new session.
+
+```semaprax
+fn session_concurrent_limit_exceeded(active_count: usize, max_concurrent: usize) -> bool
+```
+
+### `std.auth.session.concurrent_admission_decision`
+
+```semaprax
+fn session_concurrent_admission_decision(active_count: usize, max_concurrent: usize, evict_oldest_on_limit: bool) -> usize
+    ensures result <= 2usize
+```
+
+### `std.auth.csrf.token_matches`
+
+---------------------------------------------------------------------
+CSRF and cookie policy
+---------------------------------------------------------------------
+Double-submit comparison MUST be constant-time: a CSRF token is exactly
+the kind of secret-shaped value `ct_bytes_equal`'s doc comment names.
+
+```semaprax
+fn csrf_token_matches(presented: borrow Slice<u8>, expected: borrow Slice<u8>) -> bool
+```
+
+### `std.auth.csrf.required_for_method`
+
+```semaprax
+fn csrf_required_for_method(is_state_changing_method: bool) -> bool
+```
+
+### `std.auth.cookie.same_site_is_recognized`
+
+SameSite: 0 = None, 1 = Lax, 2 = Strict. `None` is never accepted as safe.
+
+```semaprax
+fn cookie_same_site_is_recognized(same_site_mode: usize) -> bool
+```
+
+### `std.auth.cookie.attributes_are_safe`
+
+```semaprax
+fn cookie_attributes_are_safe(http_only: bool, secure: bool, same_site_mode: usize) -> bool
+```
+
+### `std.auth.token.algorithm_is_allowed`
+
+---------------------------------------------------------------------
+Token verification
+---------------------------------------------------------------------
+
+`alg_id`: 0 is the reserved "none"/unsigned marker and is never allowed;
+1 and 2 name the two symmetric/asymmetric algorithm families this policy
+admits (bound to real algorithm identities by the deployment, not by this
+package — see the non-claims section of the owning spec). Any other value
+is an algorithm-confusion attempt and is refused exactly like "none".
+
+```semaprax
+fn token_algorithm_is_allowed(alg_id: u8) -> bool
+```
+
+### `std.auth.token.key_id_is_allowed`
+
+Key ids are public identifiers, not secrets (the key *material* is the
+secret, and never appears in this package), so an ordinary
+short-circuiting scan carries no timing-attack surface here.
+
+```semaprax
+fn token_key_id_is_allowed(key_id: u8, allowed_key_ids: borrow Slice<u8>) -> bool
+```
+
+### `std.auth.token.key_is_current_or_in_grace`
+
+A key rotation keeps the previous key valid only until an explicit,
+bounded grace deadline; after that the previous key is refused exactly
+like any unknown key, so a rotated-out key cannot verify tokens forever.
+
+```semaprax
+fn token_key_is_current_or_in_grace(key_id: u8, active_key_id: u8, previous_key_id: u8, now_tick: usize, previous_key_grace_until_tick: usize) -> bool
+```
+
+### `std.auth.token.leeway_is_bounded`
+
+Clock-skew leeway is bounded so no deployment configuration can turn it
+into an unbounded acceptance window (the failure case AGENTS.md and this
+issue both name explicitly).
+
+```semaprax
+fn token_leeway_is_bounded(leeway_ticks: usize) -> bool
+```
+
+### `std.auth.token.time_is_valid`
+
+```semaprax
+fn token_time_is_valid(now_tick: usize, not_before_tick: usize, expires_at_tick: usize, leeway_ticks: usize) -> bool
+    requires token_leeway_is_bounded(leeway_ticks)
+```
+
+### `std.auth.token.replay_is_fresh`
+
+```semaprax
+fn token_replay_is_fresh(seen_before: bool) -> bool
+```
+
+### `std.auth.token.issuer_matches`
+
+Issuer and audience are compared with the same constant-time primitive as
+any other credential-shaped byte string: it costs nothing extra at these
+sizes and removes one more thing a reviewer has to re-verify per caller.
+
+```semaprax
+fn token_issuer_matches(issuer: borrow Slice<u8>, expected_issuer: borrow Slice<u8>) -> bool
+```
+
+### `std.auth.token.audience_matches`
+
+```semaprax
+fn token_audience_matches(audience: borrow Slice<u8>, expected_audience: borrow Slice<u8>) -> bool
+```
+
+### `std.auth.token.claims_are_valid`
+
+The closed policy check: every named attack class this profile's token
+verification defends against (downgrade to "none", algorithm confusion,
+unknown or stale key, issuer/audience substitution, expired or
+not-yet-valid token, unbounded skew, replay) collapses to one boolean a
+caller can gate a route on. `has_valid_signature` MUST come from a real
+signature/MAC verification the deployment performs with its own key
+material; this pure package cannot compute one (see the module comment
+and the owning spec's non-claims) and takes it only as an opaque,
+already-decided `bool`.
+
+```semaprax
+fn token_claims_are_valid(issuer: borrow Slice<u8>, expected_issuer: borrow Slice<u8>, audience: borrow Slice<u8>, expected_audience: borrow Slice<u8>, alg_id: u8, key_id: u8, active_key_id: u8, previous_key_id: u8, now_tick: usize, not_before_tick: usize, expires_at_tick: usize, leeway_ticks: usize, previous_key_grace_until_tick: usize, seen_before: bool) -> bool
+    requires token_leeway_is_bounded(leeway_ticks)
+```
+
+### `std.auth.token.verification_admits`
+
+```semaprax
+fn token_verification_admits(has_valid_signature: bool, issuer: borrow Slice<u8>, expected_issuer: borrow Slice<u8>, audience: borrow Slice<u8>, expected_audience: borrow Slice<u8>, alg_id: u8, key_id: u8, active_key_id: u8, previous_key_id: u8, now_tick: usize, not_before_tick: usize, expires_at_tick: usize, leeway_ticks: usize, previous_key_grace_until_tick: usize, seen_before: bool) -> bool
+    requires token_leeway_is_bounded(leeway_ticks)
+```
+
+### `std.auth.password.memory_cost_within_bounds`
+
+---------------------------------------------------------------------
+Password-hash policy bounds (NOT a hash function — see the spec's
+non-claims section for exactly why this package stops here)
+---------------------------------------------------------------------
+
+```semaprax
+fn password_memory_cost_within_bounds(memory_cost_kib: usize) -> bool
+```
+
+### `std.auth.password.time_cost_within_bounds`
+
+```semaprax
+fn password_time_cost_within_bounds(time_cost: usize) -> bool
+```
+
+### `std.auth.password.parallelism_within_bounds`
+
+```semaprax
+fn password_parallelism_within_bounds(parallelism: usize) -> bool
+```
+
+### `std.auth.password.policy_within_bounds`
+
+Bounding both ends of every parameter is the direct defense against the
+named failure "password-hash parameters can cause denial of service": a
+deployment cannot configure a cost so low it is not memory-hard, nor so
+high that hashing one password exhausts a request worker.
+
+```semaprax
+fn password_policy_within_bounds(memory_cost_kib: usize, time_cost: usize, parallelism: usize) -> bool
+```
+
+### `std.auth.password.needs_rehash`
+
+```semaprax
+fn password_needs_rehash(stored_policy_version: usize, current_policy_version: usize) -> bool
+```
+
+### `std.auth.audit.event_is_safe`
+
+---------------------------------------------------------------------
+Audit-event safety
+---------------------------------------------------------------------
+The closed refusal: an audit event is unsafe if it carries ANY of the
+named secret-bearing fields, regardless of what else it carries. Adding a
+new secret-bearing field to a real event type means adding its flag here
+too — the check is exhaustive over this fixed list, not over whatever
+fields a caller happens to think of.
+
+```semaprax
+fn audit_event_is_safe(carries_raw_password: bool, carries_password_hash: bool, carries_session_token: bool, carries_bearer_token: bool, carries_csrf_token: bool, carries_authorization_header: bool) -> bool
+```
+
+### `std.auth.audit.event_is_complete`
+
+```semaprax
+fn audit_event_is_complete(has_event_kind: bool, has_outcome: bool, has_timestamp: bool) -> bool
+```
+
 ## `std.bytes`
 
 Package `std/bytes`, tier `core`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.bytes = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

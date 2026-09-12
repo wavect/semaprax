@@ -69,7 +69,8 @@ fn fixture(prompt: &str, answer: &str) -> (Vec<u8>, Vec<u8>) {
         "../../../../scripts/fixtures/opencode-provider-smoke-v1/session.json"
     ))
     .unwrap();
-    export["messages"][0]["parts"][0]["text"] = serde_json::json!(prompt);
+    export["messages"][0]["parts"][0]["text"] =
+        serde_json::json!(super::receipt::cli_prompt(prompt));
     export["messages"][1]["parts"][2]["text"] = serde_json::json!(answer);
     let parts = export["messages"][1]["parts"].as_array().unwrap();
     let events = [
@@ -137,6 +138,24 @@ fn response_exactly_at_cap_settles_and_one_over_fails() {
     assert_eq!(
         exact.invoke(&ModelInvokeCapability::grant("bounds"), &req),
         ModelInvocationOutcome::Settled(answer.clone().into_bytes())
+    );
+    assert_eq!(
+        exact.last_receipt,
+        Some(OpenCodeReceipt {
+            session_id: "ses_fixture".into(),
+            message_id: "msg_fixture".into(),
+            model: OPENCODE_MODEL,
+            usage_total: Some(4651),
+            usage: Some(OpenCodeUsage {
+                total: Some(4651),
+                input: Some(4437),
+                output: Some(18),
+                reasoning: Some(196),
+                cache_read: Some(0),
+                cache_write: Some(0),
+            }),
+            reported_cost: Some(serde_json::Number::from(0)),
+        })
     );
 
     let over = format!("{answer}x");
@@ -239,6 +258,76 @@ fn timeout_and_capacity_are_closed_failures() {
     }
 }
 
+fn provider_error_event(status: u64, sentinel: &str) -> Vec<u8> {
+    serde_json::json!({
+        "type": "error",
+        "error": {
+            "name": "APIError",
+            "data": {"message": sentinel, "statusCode": status, "isRetryable": true}
+        }
+    })
+    .to_string()
+    .into_bytes()
+}
+
+#[test]
+fn provider_error_events_are_closed_and_classified_without_leaking_text() {
+    for (status, expected) in [
+        (429, provider_error::OpenCodeProviderFailure::RateLimited),
+        (500, provider_error::OpenCodeProviderFailure::Server),
+    ] {
+        let sentinel = format!("provider-secret-{status}");
+        let mut handler = OpenCodeModelHandler::new(
+            config("sha256:grammar"),
+            Runner {
+                events: provider_error_event(status, &sentinel),
+                export: Vec::new(),
+                failure: None,
+                calls: 0,
+            },
+        );
+        let outcome = handler.invoke(&ModelInvokeCapability::grant("bounds"), &request(4096));
+        assert!(matches!(
+            outcome,
+            ModelInvocationOutcome::Failed {
+                failure: ModelFailure::ProviderError,
+                ..
+            }
+        ));
+        assert_eq!(handler.last_provider_failure, Some(expected));
+        assert!(handler.last_receipt.is_none());
+        assert!(!format!("{outcome:?}").contains(&sentinel));
+    }
+}
+
+#[test]
+fn authentic_receipt_preserves_cost_and_rejects_bad_usage_input() {
+    let (events, export) = fixture("prompt", "answer");
+    let valid: serde_json::Value = serde_json::from_slice(&export).unwrap();
+    let validate = |value: &serde_json::Value| {
+        validate_export(
+            &serde_json::to_vec(value).unwrap(),
+            &events,
+            "ses_fixture",
+            "msg_fixture",
+            &super::receipt::cli_prompt("prompt"),
+            "answer",
+        )
+    };
+    assert_eq!(
+        validate(&valid).unwrap().reported_cost,
+        Some(serde_json::Number::from(0))
+    );
+    for bad in [serde_json::json!("wrong"), serde_json::json!(-1)] {
+        let mut wrong = valid.clone();
+        wrong["messages"][1]["info"]["cost"] = bad;
+        assert_eq!(validate(&wrong), Err(ModelFailure::MalformedResponse));
+    }
+    let mut wrong = valid;
+    wrong["messages"][1]["info"]["tokens"]["input"] = serde_json::json!("wrong");
+    assert_eq!(validate(&wrong), Err(ModelFailure::MalformedResponse));
+}
+
 #[test]
 fn policy_refusal_does_not_return_policy_contents() {
     static NEXT: AtomicUsize = AtomicUsize::new(0);
@@ -250,7 +339,6 @@ fn policy_refusal_does_not_return_policy_contents() {
     let _ = std::fs::remove_dir_all(&sandbox);
     std::fs::create_dir(&sandbox).unwrap();
     let sentinel = "SECRET_POLICY_SENTINEL";
-    std::fs::write(sandbox.join("opencode.json"), sentinel).unwrap();
     let cfg = OpenCodeHostConfig::new(
         PathBuf::from("/bin/true"),
         sandbox.clone(),
@@ -262,8 +350,57 @@ fn policy_refusal_does_not_return_policy_contents() {
         },
     )
     .unwrap();
+    std::fs::write(sandbox.join("opencode.json"), sentinel).unwrap();
     let result = OpenCodeRunner::run(&mut ProcessOpenCodeRunner, &cfg, "prompt");
     assert_eq!(result, Err(OpenCodeRunnerFailure::Refused));
     assert!(!format!("{result:?}").contains(sentinel));
     std::fs::remove_dir_all(sandbox).unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn unix_nonzero_provider_event_returns_provider_status() {
+    use std::os::unix::fs::PermissionsExt;
+
+    static NEXT: AtomicUsize = AtomicUsize::new(0);
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-opencode-status-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    let sandbox = root.join("sandbox");
+    let executable = root.join("stub.sh");
+    std::fs::create_dir_all(&sandbox).unwrap();
+    let event = String::from_utf8(provider_error_event(500, "stub-secret")).unwrap();
+    std::fs::write(
+        &executable,
+        format!(
+            "#!/bin/sh\nprintf '%s\\n' '{}'\nexit 1\n",
+            "%s",
+            event.replace('\'', "'\\''")
+        ),
+    )
+    .unwrap();
+    let mut permissions = std::fs::metadata(&executable).unwrap().permissions();
+    permissions.set_mode(0o700);
+    std::fs::set_permissions(&executable, permissions).unwrap();
+    let cfg = OpenCodeHostConfig::new(
+        executable,
+        sandbox.clone(),
+        Duration::from_secs(1),
+        OpenCodeGrammar {
+            digest: "sha256:grammar".into(),
+            canonical_schema: "{}".into(),
+            provider_schema: "{}".into(),
+        },
+    )
+    .unwrap();
+    let result = OpenCodeRunner::run(&mut ProcessOpenCodeRunner, &cfg, "prompt");
+    assert_eq!(
+        result,
+        Err(OpenCodeRunnerFailure::ProviderStatus(
+            provider_error::OpenCodeProviderFailure::Server
+        ))
+    );
+    std::fs::remove_dir_all(root).unwrap();
 }

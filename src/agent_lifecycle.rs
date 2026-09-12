@@ -519,6 +519,14 @@ fn payload(shape: &PayloadShape, bytes: Vec<u8>, scalar: i64) -> RetainedValue {
 /// Identities only: every record, variant, case and field is named by its
 /// persistent declaration identity, so a display rename does not change a
 /// binding while an actual identity or value change does.
+/// Renders one retained carrier in the lifecycle's existing canonical wire
+/// encoding. This is read-only context material for explicit host proposal
+/// adapters; it grants no authority and changes no stage or decoder behavior.
+#[must_use]
+pub fn canonical_retained_value_json(value: &RetainedValue) -> String {
+    encode_value(value)
+}
+
 pub(crate) fn encode_value(value: &RetainedValue) -> String {
     match value {
         RetainedValue::Bool(value) => (*value).to_string(),

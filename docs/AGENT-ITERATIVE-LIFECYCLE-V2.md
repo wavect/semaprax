@@ -60,3 +60,12 @@ the current release's evidence ceiling.
 The canonical v2 document explicitly records initialize-once, the iteration
 order, Continue targeting observe, terminal cases, and exact Step case/field
 mappings. It does not embed the v1 lifecycle wire or acyclic-only nonclaims.
+
+## Canonical retained context for explicit hosts
+
+`agent_lifecycle::canonical_retained_value_json` exposes the lifecycle's
+existing canonical retained-value encoding as read-only host context. It does
+not grant a capability, decode a proposal, modify a stage binding, or change
+any lifecycle wire. An explicit host may carry those bytes into a provider
+request only after it has separately acquired the host capability; the source
+feedback driver remains the proposal decoder and bounded retry owner.

@@ -128,14 +128,20 @@ pub fn replay_receipt(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::live_invocation::fixture::{fixture_response, FixtureModelHandler, FixtureProposalDecoder};
+    use crate::live_invocation::fixture::{
+        fixture_response, FixtureModelHandler, FixtureProposalDecoder,
+    };
     use crate::live_invocation::model_invoke::{
         ModelHandler, ModelInvocationOutcome, ModelInvokeCapability,
     };
     use crate::model_call_receipt::receipt::tests::sample_receipt;
     use crate::model_call_receipt::receipt::ReceiptStage;
 
-    fn extras_for(task: &[u8], observation: &[u8], response: Option<Vec<u8>>) -> ReceiptPrivateExtras {
+    fn extras_for(
+        task: &[u8],
+        observation: &[u8],
+        response: Option<Vec<u8>>,
+    ) -> ReceiptPrivateExtras {
         ReceiptPrivateExtras {
             task: task.to_vec(),
             observation: observation.to_vec(),
@@ -151,11 +157,15 @@ mod tests {
     /// decoder (a genuine dispatch, exactly once), and hands back the
     /// receipt plus the handler used, so the replay test below can prove
     /// replay adds no further dispatches to that same handler's counter.
-    fn dispatch_once_and_build_receipt() -> (super::ModelCallReceipt, FixtureModelHandler, FixtureProposalDecoder, ReceiptPrivateExtras) {
+    fn dispatch_once_and_build_receipt() -> (
+        super::ModelCallReceipt,
+        FixtureModelHandler,
+        FixtureProposalDecoder,
+        ReceiptPrivateExtras,
+    ) {
         let response = fixture_response(0, "42");
-        let mut handler = FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Settled(
-            response.clone(),
-        )]);
+        let mut handler =
+            FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Settled(response.clone())]);
         let capability = ModelInvokeCapability::grant("replay fixture test");
         let request = crate::live_invocation::model_invoke::ModelInvocationRequest {
             turn: 0,
@@ -167,7 +177,10 @@ mod tests {
             effective_budget: 100,
         };
         let outcome = handler.invoke(&capability, &request);
-        assert_eq!(handler.calls, 1, "the real dispatch must count exactly once");
+        assert_eq!(
+            handler.calls, 1,
+            "the real dispatch must count exactly once"
+        );
         let ModelInvocationOutcome::Settled(response_bytes) = outcome else {
             panic!("scripted outcome must settle");
         };
@@ -195,20 +208,29 @@ mod tests {
     #[test]
     fn replay_accepts_an_honest_receipt_and_reproduces_the_same_decode() {
         let (receipt, _handler, mut decoder, extras) = dispatch_once_and_build_receipt();
-        assert_eq!(replay_receipt(&receipt, &extras, Some(&mut decoder)), Ok(()));
+        assert_eq!(
+            replay_receipt(&receipt, &extras, Some(&mut decoder)),
+            Ok(())
+        );
     }
 
     #[test]
     fn replay_makes_zero_additional_dispatches_against_the_shared_handler() {
         let (receipt, handler, mut decoder, extras) = dispatch_once_and_build_receipt();
-        assert_eq!(handler.calls, 1, "exactly one real dispatch happened before replay");
+        assert_eq!(
+            handler.calls, 1,
+            "exactly one real dispatch happened before replay"
+        );
 
         // Replay does not even accept a handler, so there is no way to pass
         // `handler` into `replay_receipt` at all; the strongest available
         // proof is that the shared counter is unchanged after replay runs,
         // and that replaying the same receipt many times never moves it.
         for _ in 0..5 {
-            assert_eq!(replay_receipt(&receipt, &extras, Some(&mut decoder)), Ok(()));
+            assert_eq!(
+                replay_receipt(&receipt, &extras, Some(&mut decoder)),
+                Ok(())
+            );
         }
         assert_eq!(
             handler.calls, 1,

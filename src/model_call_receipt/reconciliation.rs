@@ -44,10 +44,16 @@ pub enum ReconciliationOutcome {
     Reconciled,
     /// The provider reported more usage units than this receipt's local
     /// accounting recorded.
-    ProviderOverReported { local_units: u64, provider_units: u64 },
+    ProviderOverReported {
+        local_units: u64,
+        provider_units: u64,
+    },
     /// The provider reported fewer usage units than this receipt's local
     /// accounting recorded.
-    ProviderUnderReported { local_units: u64, provider_units: u64 },
+    ProviderUnderReported {
+        local_units: u64,
+        provider_units: u64,
+    },
     /// This exact `provider_call_id` was already reconciled once before —
     /// the same invoice line submitted twice (or a genuine double-bill).
     DuplicateInvoiceRow { provider_call_id: String },
@@ -106,7 +112,10 @@ impl BillingReconciler {
                 provider_call_id: row.provider_call_id.clone(),
             };
         }
-        if !self.seen_provider_call_ids.insert(row.provider_call_id.clone()) {
+        if !self
+            .seen_provider_call_ids
+            .insert(row.provider_call_id.clone())
+        {
             return ReconciliationOutcome::DuplicateInvoiceRow {
                 provider_call_id: row.provider_call_id.clone(),
             };
@@ -151,7 +160,12 @@ mod tests {
         receipt
     }
 
-    fn row(provider_call_id: &str, account_id: &str, tokens_in: u64, tokens_out: u64) -> ProviderInvoiceRow {
+    fn row(
+        provider_call_id: &str,
+        account_id: &str,
+        tokens_in: u64,
+        tokens_out: u64,
+    ) -> ProviderInvoiceRow {
         ProviderInvoiceRow {
             provider_call_id: provider_call_id.into(),
             account_id: account_id.into(),
@@ -217,7 +231,8 @@ mod tests {
     fn a_row_naming_a_different_call_is_unknown() {
         let receipt = settled_receipt();
         let mut reconciler = BillingReconciler::new("acct-1");
-        let outcome = reconciler.reconcile(&receipt, Some(&row("some-other-call", "acct-1", 30, 0)));
+        let outcome =
+            reconciler.reconcile(&receipt, Some(&row("some-other-call", "acct-1", 30, 0)));
         assert_eq!(
             outcome,
             ReconciliationOutcome::UnknownCall {
@@ -230,7 +245,10 @@ mod tests {
     fn a_row_for_the_wrong_account_is_rejected() {
         let receipt = settled_receipt();
         let mut reconciler = BillingReconciler::new("acct-1");
-        let outcome = reconciler.reconcile(&receipt, Some(&row("call-ref-1", "acct-9-not-ours", 18, 12)));
+        let outcome = reconciler.reconcile(
+            &receipt,
+            Some(&row("call-ref-1", "acct-9-not-ours", 18, 12)),
+        );
         assert_eq!(
             outcome,
             ReconciliationOutcome::WrongAccount {

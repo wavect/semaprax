@@ -195,11 +195,15 @@ pub fn redact(
         };
 
     let task_preview = reveal_or_commit_bytes(policy.reveal_task, "task", &extras.task);
-    let observation_preview =
-        reveal_or_commit_bytes(policy.reveal_observation, "observation", &extras.observation);
-    let response_preview = extras.response.as_ref().and_then(|response| {
-        reveal_or_commit_bytes(policy.reveal_response, "response", response)
-    });
+    let observation_preview = reveal_or_commit_bytes(
+        policy.reveal_observation,
+        "observation",
+        &extras.observation,
+    );
+    let response_preview = extras
+        .response
+        .as_ref()
+        .and_then(|response| reveal_or_commit_bytes(policy.reveal_response, "response", response));
 
     let mut reveal_or_commit_text =
         |reveal: bool, name: &'static str, value: &Option<String>| -> Option<String> {
@@ -316,7 +320,9 @@ pub fn verify_audit_view(
                 .unwrap_or_default()
                 .into_bytes(),
             other => {
-                return Err(AuditViewError::CommitmentMismatch { field: leak_name(other) })
+                return Err(AuditViewError::CommitmentMismatch {
+                    field: leak_name(other),
+                })
             }
         };
         if field_commitment(redacted.name, &real_bytes) != redacted.commitment_digest {
@@ -332,7 +338,9 @@ pub fn verify_audit_view(
     }
     if let Some(observation_preview) = &view.observation_preview {
         if observation_preview != &extras.observation {
-            return Err(AuditViewError::RevealedFieldTampered { field: "observation" });
+            return Err(AuditViewError::RevealedFieldTampered {
+                field: "observation",
+            });
         }
     }
     if let Some(response_preview) = &view.response_preview {
@@ -401,30 +409,48 @@ mod tests {
         let revealed_policy = RedactionPolicy::fully_revealed();
 
         let cases: Vec<(&str, ReceiptPrivateExtras)> = vec![
-            ("task", ReceiptPrivateExtras {
-                task: TASK_MARKER.to_vec(),
-                ..clean_extras()
-            }),
-            ("observation", ReceiptPrivateExtras {
-                observation: OBSERVATION_MARKER.to_vec(),
-                ..clean_extras()
-            }),
-            ("response", ReceiptPrivateExtras {
-                response: Some(RESPONSE_MARKER.to_vec()),
-                ..clean_extras()
-            }),
-            ("adapter_diagnostic_hint", ReceiptPrivateExtras {
-                adapter_diagnostic_hint: Some(ADAPTER_HINT_MARKER.to_owned()),
-                ..clean_extras()
-            }),
-            ("provider_error_detail", ReceiptPrivateExtras {
-                provider_error_detail: Some(PROVIDER_ERROR_MARKER.to_owned()),
-                ..clean_extras()
-            }),
-            ("authorization_header_echo", ReceiptPrivateExtras {
-                authorization_header_echo: Some(AUTH_HEADER_MARKER.to_owned()),
-                ..clean_extras()
-            }),
+            (
+                "task",
+                ReceiptPrivateExtras {
+                    task: TASK_MARKER.to_vec(),
+                    ..clean_extras()
+                },
+            ),
+            (
+                "observation",
+                ReceiptPrivateExtras {
+                    observation: OBSERVATION_MARKER.to_vec(),
+                    ..clean_extras()
+                },
+            ),
+            (
+                "response",
+                ReceiptPrivateExtras {
+                    response: Some(RESPONSE_MARKER.to_vec()),
+                    ..clean_extras()
+                },
+            ),
+            (
+                "adapter_diagnostic_hint",
+                ReceiptPrivateExtras {
+                    adapter_diagnostic_hint: Some(ADAPTER_HINT_MARKER.to_owned()),
+                    ..clean_extras()
+                },
+            ),
+            (
+                "provider_error_detail",
+                ReceiptPrivateExtras {
+                    provider_error_detail: Some(PROVIDER_ERROR_MARKER.to_owned()),
+                    ..clean_extras()
+                },
+            ),
+            (
+                "authorization_header_echo",
+                ReceiptPrivateExtras {
+                    authorization_header_echo: Some(AUTH_HEADER_MARKER.to_owned()),
+                    ..clean_extras()
+                },
+            ),
         ];
         let markers: [&str; 6] = [
             std::str::from_utf8(TASK_MARKER).unwrap(),
@@ -478,7 +504,10 @@ mod tests {
             // And the commitment naming that field must still be present
             // and verifiable — redaction is not the same as silent deletion.
             assert!(
-                redacted_view.redacted_fields.iter().any(|f| f.name == *field),
+                redacted_view
+                    .redacted_fields
+                    .iter()
+                    .any(|f| f.name == *field),
                 "field {field}: redacted view must record a commitment for it"
             );
             assert_eq!(
@@ -545,11 +574,14 @@ mod tests {
             PayloadPrivacyClaim::DigestOnlyLowEntropyCaveat
         );
         assert!(
-            view.render_for_review().contains("digest_only_low_entropy_caveat"),
+            view.render_for_review()
+                .contains("digest_only_low_entropy_caveat"),
             "a short undisclosed payload must render an explicit low-entropy caveat"
         );
         assert!(
-            !view.render_for_review().contains("task_privacy_claim=withheld"),
+            !view
+                .render_for_review()
+                .contains("task_privacy_claim=withheld"),
             "a short undisclosed payload must never be described as safely withheld"
         );
 
@@ -558,16 +590,25 @@ mod tests {
             private_payload_reference_material: Some("vault-ref-1".to_owned()),
             ..clean_extras()
         };
-        let referenced_view =
-            redact(&receipt, &with_reference, &RedactionPolicy::fully_redacted());
-        assert_eq!(referenced_view.task_privacy_claim, PayloadPrivacyClaim::Withheld);
+        let referenced_view = redact(
+            &receipt,
+            &with_reference,
+            &RedactionPolicy::fully_redacted(),
+        );
+        assert_eq!(
+            referenced_view.task_privacy_claim,
+            PayloadPrivacyClaim::Withheld
+        );
 
         let long_extras = ReceiptPrivateExtras {
             task: vec![b'x'; 4096],
             ..clean_extras()
         };
         let long_view = redact(&receipt, &long_extras, &RedactionPolicy::fully_redacted());
-        assert_eq!(long_view.task_privacy_claim, PayloadPrivacyClaim::DigestOnly);
+        assert_eq!(
+            long_view.task_privacy_claim,
+            PayloadPrivacyClaim::DigestOnly
+        );
     }
 
     // Keep the digest-commitment helpers exercised directly too, since the

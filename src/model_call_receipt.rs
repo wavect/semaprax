@@ -50,19 +50,19 @@
 //! against the traits this module and `live_invocation` already fix.
 
 pub mod audit_view;
-pub mod reconciliation;
 pub mod receipt;
+pub mod reconciliation;
 pub mod replay;
 
 pub use audit_view::{
-    redact, verify_audit_view, AuditViewError, ModelCallAuditView, RedactedField,
-    RedactionPolicy, ReceiptPrivateExtras, AUDIT_VIEW_SCHEMA,
+    redact, verify_audit_view, AuditViewError, ModelCallAuditView, ReceiptPrivateExtras,
+    RedactedField, RedactionPolicy, AUDIT_VIEW_SCHEMA,
 };
-pub use reconciliation::{BillingReconciler, ProviderInvoiceRow, ReconciliationOutcome};
 pub use receipt::{
     commit_observation_bytes, commit_proposal_bytes, commit_response_bytes, commit_task_bytes,
     verify_root_binding, BindingError, ModelCallReceipt, PayloadPrivacyClaim,
     ProviderReportedUsage, ReceiptRootBinding, ReceiptStage, RootBindingContext,
     LOW_ENTROPY_BYTE_THRESHOLD, RECEIPT_SCHEMA,
 };
+pub use reconciliation::{BillingReconciler, ProviderInvoiceRow, ReconciliationOutcome};
 pub use replay::{replay_receipt, ReplayError};

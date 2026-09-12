@@ -492,8 +492,12 @@ pub(crate) mod tests {
         // 13), the smallest possible tamper a storage-level bit flip or a
         // tampered replay input could produce while staying valid UTF-8.
         assert!(rendered.contains("\"request_bytes_len\":12,"));
-        let mutated = rendered.replacen("\"request_bytes_len\":12,", "\"request_bytes_len\":13,", 1);
-        assert_ne!(rendered, mutated, "the replacement must actually change one byte");
+        let mutated =
+            rendered.replacen("\"request_bytes_len\":12,", "\"request_bytes_len\":13,", 1);
+        assert_ne!(
+            rendered, mutated,
+            "the replacement must actually change one byte"
+        );
         assert_eq!(
             rendered.len(),
             mutated.len(),

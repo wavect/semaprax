@@ -13,7 +13,8 @@ use super::super::budget::{CumulativeBudgetLedger, BUDGET_EXHAUSTED};
 use super::super::fixture::{
     fixture_response, FixtureAuthorizationGate, FixtureBudgetHook, FixtureModelHandler,
     FixtureNondeterministicStateMigration, FixtureObserver, FixtureProposalDecoder,
-    FixtureRefusingStateMigration, FixtureStateMigration, StepClock,
+    FixtureRefusingStateMigration, FixtureSchemaBoundStateMigration, FixtureStateMigration,
+    StepClock,
 };
 use super::super::identity::{LiveInvocationId, LiveInvocationSeed};
 use super::super::journal::{self, JournalEntry};
@@ -482,6 +483,83 @@ fn a_refusing_migration_function_surfaces_its_own_reason() {
         error,
         LiveMigrationError::MigrationRefused("fixture_refuses_all_migrations".into())
     );
+}
+
+#[test]
+fn a_migration_bound_to_the_declared_schema_pair_migrates_cleanly_and_records_it() {
+    let previous_seed = seed(&("sha256:".to_owned() + &"1".repeat(64)), SCHEMA_A);
+    let previous_identity = LiveInvocationId::derive(&previous_seed);
+    let journal = run_to_suspend(&previous_identity, SCHEMA_A, 1);
+
+    let destination_seed = seed(&("sha256:".to_owned() + &"9".repeat(64)), SCHEMA_B);
+    let destination_identity = LiveInvocationId::derive(&destination_seed);
+
+    let mut migration = FixtureSchemaBoundStateMigration::bound_to(
+        vec![(SCHEMA_A.to_owned(), SCHEMA_B.to_owned())],
+        b"-x".to_vec(),
+    );
+    let result = migrate_live_invocation(
+        &LiveMigrationSource {
+            identity: &previous_identity,
+            seed: &previous_seed,
+            journal: &journal,
+            state: b"state",
+        },
+        &LiveMigrationDestination {
+            identity: &destination_identity,
+            seed: &destination_seed,
+        },
+        "fn",
+        &mut migration,
+    )
+    .expect("the exact declared schema pair migrates");
+
+    // Called exactly twice (the checked-pure double-evaluation discipline
+    // still applies once the schema pair is bound), and the handoff records
+    // exactly which schemas this migration crossed.
+    assert_eq!(migration.calls, 2);
+    assert_eq!(result.handoff.previous_schema_digest(), SCHEMA_A);
+    assert_eq!(result.handoff.destination_schema_digest(), SCHEMA_B);
+}
+
+#[test]
+fn an_unknown_or_future_destination_schema_revision_is_refused_before_the_migration_function_is_ever_called(
+) {
+    let previous_seed = seed(&("sha256:".to_owned() + &"1".repeat(64)), SCHEMA_A);
+    let previous_identity = LiveInvocationId::derive(&previous_seed);
+    let journal = run_to_suspend(&previous_identity, SCHEMA_A, 1);
+
+    // The destination names SCHEMA_C, but this migration function is only
+    // checked against (SCHEMA_A, SCHEMA_B) — an unknown/future revision for
+    // it, exactly like a schema the compiled migration was never checked
+    // against.
+    let destination_seed = seed(&("sha256:".to_owned() + &"9".repeat(64)), SCHEMA_C);
+    let destination_identity = LiveInvocationId::derive(&destination_seed);
+
+    let mut migration = FixtureSchemaBoundStateMigration::bound_to(
+        vec![(SCHEMA_A.to_owned(), SCHEMA_B.to_owned())],
+        b"-x".to_vec(),
+    );
+    let error = migrate_live_invocation(
+        &LiveMigrationSource {
+            identity: &previous_identity,
+            seed: &previous_seed,
+            journal: &journal,
+            state: b"state",
+        },
+        &LiveMigrationDestination {
+            identity: &destination_identity,
+            seed: &destination_seed,
+        },
+        "fn",
+        &mut migration,
+    )
+    .unwrap_err();
+
+    assert_eq!(error, LiveMigrationError::UnknownSchemaRevision);
+    // Fail closed: the migration function is never invoked for an unbound
+    // schema pair, not even once.
+    assert_eq!(migration.calls, 0);
 }
 
 #[test]

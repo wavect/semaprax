@@ -113,6 +113,38 @@ same declared boundary this lane already draws around
   migrated field, B migrates into C, and the totals from both hops sum
   without loss.
 
+## Rich schema: an unknown or future revision is refused, not adopted
+
+The base implementation above binds identity, program root and journal
+state, but says nothing about the *shape* of the state bytes it carries
+forward — a migration function could be handed any previous/destination
+schema pair with no check that it was ever compiled or checked against that
+exact pair. `LiveStateMigration::known_schema_transitions` closes that gap:
+a real migration function declares exactly which
+`(previous_schema, destination_schema)` digest pairs it is checked to
+interpret (mirroring `execution_revision::typed_migration`'s own "the
+destination must retain the old state schema and provide a second bounded
+flat state schema" binding). When it declares a set,
+`migrate_live_invocation` refuses (`LiveMigrationError::
+UnknownSchemaRevision`) any previous/destination `interaction_schema_digest`
+pair outside it, **before** `LiveStateMigration::migrate` is ever called —
+so an unknown or future schema revision is refused rather than silently
+reinterpreted as the destination's schema.
+`fixture::FixtureSchemaBoundStateMigration` is the fixture that declares a
+restricted set; `migration::tests::
+an_unknown_or_future_destination_schema_revision_is_refused_before_the_migration_function_is_ever_called`
+proves the refusal happens with `calls == 0` (never invoked), and
+`migration::tests::a_migration_bound_to_the_declared_schema_pair_migrates_cleanly_and_records_it`
+proves the matching known pair still migrates and is recorded on the
+handoff (`LiveMigrationHandoff::previous_schema_digest`/
+`destination_schema_digest`). This is what makes "schema interpretation
+remains revision-specific" true at this layer: a migration bound to
+`(SCHEMA_A, SCHEMA_B)` never silently reinterprets state under `SCHEMA_C`,
+no matter how similar the bytes look. `FixtureStateMigration` and its
+siblings keep the prior permissive default (`known_schema_transitions`
+returning `None`) unchanged, so every pre-existing test in this module is
+unaffected by this addition.
+
 ## Refusal ordering, and what "before any host dispatch" means here
 
 Every [`LiveMigrationError`](../src/live_invocation/migration.rs) variant is
@@ -143,7 +175,10 @@ called:
 7. `NotSuspended` — the previous journal is terminal, but its case is
    `complete` or `fail`, not `suspend`. A completed or failed invocation
    has nothing left to migrate into a new generation.
-8. `MigrationRefused`/`NonDeterministicMigration` — the bound
+8. `UnknownSchemaRevision` — the bound `LiveStateMigration` declared a
+   restricted set of known schema pairs, and the exact previous/destination
+   pair is not one of them.
+9. `MigrationRefused`/`NonDeterministicMigration` — the bound
    `LiveStateMigration` itself refused, or disagreed with itself across its
    two calls.
 
@@ -187,6 +222,19 @@ detectable rather than silently accepted as the same one.
 - **No live network call, no real provider credential, no model spend.**
   Every test in `src/live_invocation/migration/tests.rs` runs entirely
   against fixtures.
+- **"Live" here names this kernel's causal-journal contract, not a running
+  compiled conversation.** [Live Invocation Contract
+  v1](LIVE-INVOCATION-CONTRACT-V1.md#non-goals-and-known-limitations-this-round)
+  records that no parser or HIR syntax for `model.invoke` exists yet, and
+  `kernel::run_live_invocation` is called for real only from this crate's
+  own tests (`src/agent_interaction_schema/live_bridge/tests.rs`) — nothing
+  outside `src/live_invocation/**` and its own test tree calls it. This
+  migration module is honestly a persistence/migration layer that is fully
+  exercised and correct against that kernel today; it is not evidence that
+  a source-native Agent conversation can be moved between ProgramRoots yet,
+  because no source-native Agent conversation drives this kernel yet. See
+  "What issue #115 asks for, and why it cannot live inside the kernel"
+  above for why that gap is inherent to the file lease, not an oversight.
 - **Accumulating a whole chain's committed budget is the caller's job.**
   `LiveMigrationHandoff::previous_committed_budget` reports exactly the
   immediately preceding generation's total (A's carried total when
@@ -208,6 +256,7 @@ detectable rather than silently accepted as the same one.
 cargo test --locked -p semaprax --lib live_invocation
 ```
 
-89 tests (the 73 tests Live Invocation Contract v1 and Live Invocation
-Persistence v1 already established, unchanged, plus 16 new in
-`migration::tests`), all fixture-backed, no network access, no model spend.
+91 tests (the 73 tests Live Invocation Contract v1 and Live Invocation
+Persistence v1 already established, unchanged, plus 18 in
+`migration::tests` — the original 16 plus the two rich-schema cases added
+by this revision), all fixture-backed, no network access, no model spend.

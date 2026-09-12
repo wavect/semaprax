@@ -332,3 +332,46 @@ impl LiveStateMigration for FixtureRefusingStateMigration {
         Err("fixture_refuses_all_migrations".into())
     }
 }
+
+/// A deterministic checked "pure" state migration that, unlike
+/// [`FixtureStateMigration`], declares exactly which
+/// `(previous_schema, destination_schema)` pairs it is checked to
+/// interpret ([`LiveStateMigration::known_schema_transitions`]) — the
+/// rich-schema shape a real compiler-checked migration function actually
+/// has (bound against one specific old schema and one specific new
+/// schema, never "any bytes to any bytes"). Migrating against a pair
+/// outside its declared set must be refused by
+/// `migration::migrate_live_invocation` before `migrate` is ever called;
+/// `calls` staying at zero after such a refusal is what proves that.
+pub struct FixtureSchemaBoundStateMigration {
+    pub suffix: Vec<u8>,
+    pub known: Vec<(String, String)>,
+    pub calls: usize,
+}
+
+impl FixtureSchemaBoundStateMigration {
+    #[must_use]
+    pub fn bound_to(
+        known: Vec<(String, String)>,
+        suffix: impl Into<Vec<u8>>,
+    ) -> Self {
+        Self {
+            suffix: suffix.into(),
+            known,
+            calls: 0,
+        }
+    }
+}
+
+impl LiveStateMigration for FixtureSchemaBoundStateMigration {
+    fn migrate(&mut self, previous_state: &[u8]) -> Result<Vec<u8>, String> {
+        self.calls += 1;
+        let mut migrated = previous_state.to_vec();
+        migrated.extend_from_slice(&self.suffix);
+        Ok(migrated)
+    }
+
+    fn known_schema_transitions(&self) -> Option<&[(String, String)]> {
+        Some(&self.known)
+    }
+}

@@ -63,6 +63,20 @@
 //! called (`LiveMigrationError::NotTerminal`/`NotSuspended`) — in-flight or
 //! uncertain work must first reach the reviewed suspend/reconciliation
 //! state, exactly as issue #115 scopes it.
+//!
+//! # Rich schema: an unknown or future revision is refused, not adopted
+//!
+//! [`LiveStateMigration::known_schema_transitions`] lets a real migration
+//! function declare exactly which `(previous_schema, destination_schema)`
+//! pairs it is compiler-checked to interpret. When it declares a set,
+//! [`migrate_live_invocation`] refuses (`LiveMigrationError::
+//! UnknownSchemaRevision`) any previous/destination
+//! `interaction_schema_digest` pair outside it, before `migrate` is ever
+//! called — the same fail-closed rule this module already applies to a
+//! stale destination or a non-suspended predecessor. This is what makes
+//! "schema interpretation remains revision-specific" true here: a migration
+//! bound to `(SCHEMA_A, SCHEMA_B)` never silently reinterprets state under
+//! `SCHEMA_C`, no matter how similar the bytes look.
 
 use crate::diagnostic::quote_json;
 
@@ -106,6 +120,23 @@ pub const MAX_MIGRATED_STATE_BYTES: usize = 262_144;
 /// `ModelHandler`/`ProposalDecoder`/`AuthorizationGate`.
 pub trait LiveStateMigration {
     fn migrate(&mut self, previous_state: &[u8]) -> Result<Vec<u8>, String>;
+
+    /// The exact `(previous_schema_digest, destination_schema_digest)` pairs
+    /// this migration function is checked to interpret — the rich-schema
+    /// extension issue #115 asks for: a real compiler-checked migration
+    /// function is bound against one specific source schema and one
+    /// specific destination schema (the same "old/new nominal state schema"
+    /// binding `execution_revision::typed_migration` already requires), not
+    /// against arbitrary bytes. Returning `None` (the default) declares no
+    /// restriction and is used only by fixtures that do not exercise this
+    /// check; a real deployment always returns `Some` naming the schema
+    /// pairs its compiled migration function actually covers, so
+    /// [`migrate_live_invocation`] can refuse an unknown or future schema
+    /// revision *before* ever calling [`LiveStateMigration::migrate`] rather
+    /// than silently reinterpreting state it was never checked against.
+    fn known_schema_transitions(&self) -> Option<&[(String, String)]> {
+        None
+    }
 }
 
 /// A refusal [`migrate_live_invocation`] produces before ever touching a
@@ -152,6 +183,16 @@ pub enum LiveMigrationError {
     /// calls with the exact same input — an impure or effectful migration,
     /// rejected rather than trusted.
     NonDeterministicMigration,
+    /// The bound [`LiveStateMigration`] declared a restricted set of known
+    /// `(previous_schema, destination_schema)` transitions
+    /// ([`LiveStateMigration::known_schema_transitions`]), and the exact
+    /// pair named by `previous.seed.interaction_schema_digest` and
+    /// `destination.seed.interaction_schema_digest` is not one of them — an
+    /// unknown or future schema revision this migration function was never
+    /// checked to interpret. Refused before [`LiveStateMigration::migrate`]
+    /// is ever called, the same fail-closed rule every other refusal here
+    /// follows.
+    UnknownSchemaRevision,
 }
 
 /// The durable, replayable record of one live-invocation migration: every
@@ -174,6 +215,8 @@ pub struct LiveMigrationHandoff {
     destination_identity: String,
     migration_function: String,
     migrated_state_digest: String,
+    previous_schema_digest: String,
+    destination_schema_digest: String,
 }
 
 impl LiveMigrationHandoff {
@@ -221,16 +264,31 @@ impl LiveMigrationHandoff {
     pub fn migrated_state_digest(&self) -> &str {
         &self.migrated_state_digest
     }
+    /// The predecessor's interaction schema digest at the moment of
+    /// migration. Historical model responses recorded under this schema in
+    /// the predecessor's journal are never reinterpreted against the
+    /// destination schema — this field records exactly which schema they
+    /// stay bound to.
+    #[must_use]
+    pub fn previous_schema_digest(&self) -> &str {
+        &self.previous_schema_digest
+    }
+    /// The destination's interaction schema digest — the only schema a
+    /// fresh request against the migrated invocation is checked against.
+    #[must_use]
+    pub fn destination_schema_digest(&self) -> &str {
+        &self.destination_schema_digest
+    }
 
     /// The canonical digest of this exact handoff. Two handoffs produced
     /// from byte-identical inputs are digest-identical; any differing
-    /// field (including which migration function was named) changes it —
-    /// the same "reminted handoff" a stale destination binding must be
-    /// detectable against.
+    /// field (including which migration function was named, or which
+    /// schema pair it was bound against) changes it — the same "reminted
+    /// handoff" a stale destination binding must be detectable against.
     #[must_use]
     pub fn digest(&self) -> String {
         let body = format!(
-            "{{\"schema\":{},\"previous_identity\":{},\"previous_journal_chain\":{},\"previous_committed_budget\":{},\"previous_turns\":{},\"previous_model_calls\":{},\"previous_model_failures\":{},\"previous_effect_calls\":{},\"destination_identity\":{},\"migration_function\":{},\"migrated_state_digest\":{}}}",
+            "{{\"schema\":{},\"previous_identity\":{},\"previous_journal_chain\":{},\"previous_committed_budget\":{},\"previous_turns\":{},\"previous_model_calls\":{},\"previous_model_failures\":{},\"previous_effect_calls\":{},\"destination_identity\":{},\"migration_function\":{},\"migrated_state_digest\":{},\"previous_schema_digest\":{},\"destination_schema_digest\":{}}}",
             quote_json(HANDOFF_SCHEMA),
             quote_json(&self.previous_identity),
             quote_json(&self.previous_journal_chain),
@@ -242,6 +300,8 @@ impl LiveMigrationHandoff {
             quote_json(&self.destination_identity),
             quote_json(&self.migration_function),
             quote_json(&self.migrated_state_digest),
+            quote_json(&self.previous_schema_digest),
+            quote_json(&self.destination_schema_digest),
         );
         digest(HANDOFF_DOMAIN, body.as_bytes())
     }
@@ -321,6 +381,24 @@ pub fn migrate_live_invocation(
         return Err(LiveMigrationError::NotSuspended);
     }
 
+    // Rich-schema check: if the bound migration function declared a
+    // restricted set of schema pairs it is checked to interpret, the exact
+    // previous/destination schema pair named by each seed's
+    // `interaction_schema_digest` must be one of them. An unknown or future
+    // schema revision is refused here, before `migrate` is ever called —
+    // failing closed rather than silently reinterpreting state the
+    // migration function was never checked against.
+    if let Some(known) = migration.known_schema_transitions() {
+        let previous_schema = previous.seed.interaction_schema_digest.as_str();
+        let destination_schema = destination.seed.interaction_schema_digest.as_str();
+        let bound = known
+            .iter()
+            .any(|(p, d)| p == previous_schema && d == destination_schema);
+        if !bound {
+            return Err(LiveMigrationError::UnknownSchemaRevision);
+        }
+    }
+
     // Checked-pure invocation: call twice on the identical input and refuse
     // to proceed if the bound migration disagrees with itself — mirroring
     // `execution_revision::typed_migration::evaluate_migration`'s own
@@ -350,6 +428,8 @@ pub fn migrate_live_invocation(
         destination_identity: destination.identity.digest().to_owned(),
         migration_function: migration_function.to_owned(),
         migrated_state_digest: digest(HANDOFF_DOMAIN, &first),
+        previous_schema_digest: previous.seed.interaction_schema_digest.clone(),
+        destination_schema_digest: destination.seed.interaction_schema_digest.clone(),
     };
     Ok(MigratedLiveInvocation {
         handoff,

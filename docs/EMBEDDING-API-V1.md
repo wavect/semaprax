@@ -43,7 +43,7 @@ Issue #203's "In scope" list, mapped to real code, as of this tranche:
 | Compiler/session creation | Not exposed as a small stable API. `src/project/semantic_service.rs`'s `SemanticWorkspaceService::open` exists but requires an already-built `Arc<ProjectRevision>` — a Project-level session, not a single-unit embedding entry point, and not documented as issue #203's answer. | Still not attempted here. [`embedding_api::check_source`](../src/embedding_api.rs) is deliberately stateless (no handle, no `open`/`close`) — see "What this tranche does not do" below. |
 | Source/Project load and authenticated refresh | `SemanticWorkspaceService`/`ProjectSnapshot` do this for a full Project (multi-file, manifest-driven). No single-compilation-unit, dependency-free load entry point existed as a named public embedding surface. | [`check_source(unit_name, source)`](../src/embedding_api.rs) loads exactly one caller-supplied unit from explicit bytes; no manifest, no multi-file Project. |
 | Check | `crate::check` (crate root) and the CLI `check` command both exist, but neither is documented as a stable embedding surface, and `crate::check` silently discards non-error diagnostics on a successful check. | `check_source` is that documented surface for one unit, and deliberately keeps every diagnostic (warnings included) on success — see "Diagnostics are never discarded on success" below. |
-| Format, graph/query/context | `format::canonical`, `graph::to_json`, `graph::context_json` already exist as public functions, unchanged by this tranche. | Not extended here; a real gap remains: none of these are re-exposed through a versioned embedding facade with the same panic-normalization and revision-hash guarantees `check_source` now has. Named under "What remains," not claimed done. |
+| Format, graph/query/context | `format::canonical`, `graph::to_json`, `graph::context_json` already exist as public functions, unchanged by this tranche. | [`format_source(unit_name, source)`](../src/embedding_api.rs) now re-exposes canonical formatting with the same panic-normalization and no-ambient-authority guarantees `check_source` has — see "The `FormatOutcome` contract" below. `graph::to_json` and `graph::context_json` remain unwrapped; still named under "What remains," not claimed done. |
 | Candidate validate/replay | `src/project/candidate/**` implements this for the Project workspace transaction path (out of this tranche's lease: `src/live_invocation/**`, `src/agent_runtime_v2/**` are explicitly off-limits). | Not attempted; out of lease. |
 | Deterministic interpreter execution for admitted profiles | `interpreter`/`hosted_interpreter` exist; no capability-gated embedding entry point wraps them. | Not attempted here. A future execution slice needs its own explicit capability type (see "What this tranche does not do"). |
 | Explicit provider/capability injection | Done, for the vector-embedding effect only, by `semantic_embedding::EmbeddingCapability`/`EmbeddingProvider` (see above). | `check_source` needs no capability because checking is pure and effect-free; this bullet is satisfied for *this* operation by construction (nothing to inject authority into), not by adding an unnecessary capability type. |
@@ -114,21 +114,52 @@ diagnostic code) apart from "the compiler itself broke while checking your
 source" (`SPX-EMB001`) — two refusal paths that a less careful test could
 conflate.
 
+## The `FormatOutcome` contract
+
+[`FormatOutcome`](../src/embedding_api.rs) is `format_source`'s only return
+value, deliberately shaped like `CheckOutcome`: `unit_name` (echoed, never
+read from disk), `ok: bool`, `diagnostics: Vec<Diagnostic>`, and
+`canonical_source: Option<String>` (present exactly when `ok` is `true`).
+Unlike `check_source`, a successful format does not require semantic (HIR)
+validity — only a successful parse — because `crate::format::canonical`
+renders the parsed AST directly and never calls `crate::hir::analyze`.
+`a_declaration_missing_id_still_formats_ok` locks this in: a program missing
+`@id` (a `check_source` warning) still formats with no diagnostics at all.
+`format_source` shares `check_source`'s exact no-ambient-authority
+guarantee (`format_unit_name_is_never_read_from_disk`) and panic
+normalization (`embedding_format_boundary_normalizes_a_panic_into_a_
+diagnostic_never_propagating_the_unwind`, proven the same way — a
+private test-only `SourceFormatter` double that panics on purpose, since a
+real formatter defect cannot be manufactured honestly). A malformed unit
+fails with the same specific parser diagnostic `check_source` would produce
+(`malformed_source_fails_format_with_the_specific_parser_diagnostic`), never
+conflated with `PANIC_NORMALIZED_DIAGNOSTIC_CODE`.
+`valid_source_formats_to_its_own_canonical_projection` additionally proves
+idempotency: reformatting an already-canonical unit reproduces
+byte-identical output.
+
+`graph::to_json` and `graph::context_json` are not wrapped by this tranche
+either; that remains real, named, remaining work (see "What this tranche
+deliberately does not do" below).
+
 ## Compatibility policy
 
-`EMBEDDING_API_VERSION` (currently `1.0.0`) names this Rust surface's own
-version, independent of any checked SEMAPRAX program's semantics.
-`EmbeddingApiVersion::is_compatible_with(requested_major)` returns `true`
-only when `requested_major` equals this build's `major`; a differing major
-version is refused rather than silently assumed compatible.
-`version_negotiation_accepts_matching_major_and_refuses_a_different_one`
-tests both a match (`1`) and two refusals (`0` and `2`). Within one major
-version, `check_source`'s accepted inputs (`unit_name: &str`, `source: &str`)
-and `CheckOutcome`'s fields are additive-only: a future `1.x` may add a field
-to `CheckOutcome` but will not remove or repurpose `unit_name`, `ok`,
-`diagnostics`, or `revision`, and will not change `check_source`'s signature.
-A breaking change to any of those requires bumping `major` and updating
-`EMBEDDING_API_VERSION` in the same change.
+`EMBEDDING_API_VERSION` (currently `1.1.0`; `1.0.0` before `format_source`
+was added) names this Rust surface's own version, independent of any checked
+SEMAPRAX program's semantics. `EmbeddingApiVersion::is_compatible_with(
+requested_major)` returns `true` only when `requested_major` equals this
+build's `major`; a differing major version is refused rather than silently
+assumed compatible. `version_negotiation_accepts_matching_major_and_refuses_
+a_different_one` tests both a match (`1`) and two refusals (`0` and `2`).
+Within one major version, `check_source`'s and `format_source`'s accepted
+inputs (`unit_name: &str`, `source: &str`) and `CheckOutcome`'s/
+`FormatOutcome`'s fields are additive-only: a future `1.x` may add a field
+to either outcome type or a new function alongside them, but will not
+remove or repurpose an existing field, and will not change either
+function's signature. A breaking change to any of those requires bumping
+`major` and updating `EMBEDDING_API_VERSION` in the same change. Adding
+`format_source` itself is exactly this kind of additive `1.x` change: it
+bumped `minor` from `0` to `1` and touched no existing type or function.
 
 ## What this tranche deliberately does not do
 
@@ -164,10 +195,16 @@ convention:
 - **No candidate validate/replay.** Out of this tranche's file lease
   (`src/live_invocation/**`, `src/agent_runtime_v2/**` are explicitly
   off-limits) and out of scope for a check-only slice.
-- **No re-exposure of `format`/`graph::to_json`/`graph::context_json`
-  through this facade.** They remain available at their existing paths,
-  unchanged; wrapping them with the same panic-normalization and version
-  contract `check_source` has is real remaining work, not claimed here.
+- **No re-exposure of `graph::to_json`/`graph::context_json` through this
+  facade.** `format::canonical` is now wrapped by `format_source` (this
+  tranche); the two graph functions remain available only at their existing
+  paths, unchanged. `graph::to_json` and `graph::context_json` need HIR
+  resolution (`graph::context_json` additionally takes a symbol, depth, and
+  — via `AgentContextOptions` — filters, a byte budget, and a node budget),
+  so wrapping them with the same panic-normalization and version contract
+  is a larger, separate surface decision (what subset of those options this
+  facade exposes) than `format_source`'s single-function, no-argument
+  addition was; it is real remaining work, not claimed here.
 
 ## Evidence
 
@@ -178,6 +215,12 @@ revision; a program missing `@id` still checks `ok` while keeping its
 `SPX-P101`; a `unit_name` naming a nonexistent path still succeeds because
 only `source` is read; a deliberately panicking test double is normalized to
 `SPX-EMB001` rather than unwinding; and version negotiation accepts a
-matching major version while refusing two different ones. No test in this
-module spawns a process, opens a network socket, or reads a real file from
-disk. See the top-level report for this tranche's exact command and count.
+matching major version while refusing two different ones — plus, for
+`format_source`: a valid program formats to its own canonical projection and
+reformatting that output is idempotent; a program missing `@id` still
+formats `ok` (formatting needs no HIR validity); a module with no function
+fails formatting with the same `SPX-P101`; a `unit_name` naming a
+nonexistent path still succeeds; and a deliberately panicking test double is
+normalized to `SPX-EMB001` rather than unwinding. No test in this module
+spawns a process, opens a network socket, or reads a real file from disk.
+See the top-level report for this tranche's exact command and count.

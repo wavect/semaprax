@@ -78,7 +78,7 @@ pub const PANIC_NORMALIZED_DIAGNOSTIC_CODE: &str = "SPX-EMB001";
 /// `docs/EMBEDDING-API-V1.md`.
 pub const EMBEDDING_API_VERSION: EmbeddingApiVersion = EmbeddingApiVersion {
     major: 1,
-    minor: 0,
+    minor: 1,
     patch: 0,
 };
 
@@ -220,6 +220,102 @@ pub fn check_source(unit_name: &str, source: &str) -> CheckOutcome {
     check_with(&StandardChecker, unit_name, source)
 }
 
+/// The closed outcome of canonically formatting one caller-supplied
+/// compilation unit. Mirrors [`CheckOutcome`]'s shape deliberately: a
+/// `unit_name` echo, an `ok` flag, and the full diagnostic set on failure —
+/// never an internal [`crate::ast::Program`].
+#[derive(Debug, Clone)]
+pub struct FormatOutcome {
+    /// Echoes the `unit_name` the caller passed in; never read from disk.
+    pub unit_name: String,
+    /// `true` exactly when `source` parsed successfully. Formatting itself
+    /// never fails once parsing succeeds: [`crate::format::canonical`]
+    /// operates on the parsed [`crate::ast::Program`] and does not require
+    /// semantic (HIR) validity.
+    pub ok: bool,
+    /// The parser's diagnostic on failure; always empty when `ok` is `true`.
+    pub diagnostics: Vec<Diagnostic>,
+    /// The canonical source projection, present only when `ok` is `true`.
+    pub canonical_source: Option<String>,
+}
+
+/// Internal seam behind [`format_source`], not part of the public API.
+/// Exists only so the panic-normalization boundary in [`format_with`] can be
+/// exercised by a test double that panics on purpose, mirroring
+/// [`SourceChecker`]'s identical role for [`check_with`].
+trait SourceFormatter {
+    fn format(&self, unit_name: &str, source: &str) -> Result<String, Diagnostic>;
+}
+
+/// The only [`SourceFormatter`] this crate ships for real use: parse
+/// caller-supplied bytes, then render the canonical projection.
+struct StandardFormatter;
+
+impl SourceFormatter for StandardFormatter {
+    fn format(&self, unit_name: &str, source: &str) -> Result<String, Diagnostic> {
+        // `crate::parse` reads only `source`; `unit_name` labels diagnostics
+        // and is never opened as a path, exactly as in `StandardChecker`.
+        let program = crate::parse(source, unit_name)?;
+        Ok(crate::format::canonical(&program))
+    }
+}
+
+fn format_with(formatter: &dyn SourceFormatter, unit_name: &str, source: &str) -> FormatOutcome {
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        formatter.format(unit_name, source)
+    }));
+    match outcome {
+        Ok(Ok(canonical_source)) => FormatOutcome {
+            unit_name: unit_name.to_owned(),
+            ok: true,
+            diagnostics: Vec::new(),
+            canonical_source: Some(canonical_source),
+        },
+        Ok(Err(parse_failure)) => FormatOutcome {
+            unit_name: unit_name.to_owned(),
+            ok: false,
+            diagnostics: vec![parse_failure],
+            canonical_source: None,
+        },
+        Err(_panic_payload) => FormatOutcome {
+            unit_name: unit_name.to_owned(),
+            ok: false,
+            diagnostics: vec![Diagnostic {
+                code: PANIC_NORMALIZED_DIAGNOSTIC_CODE,
+                severity: Severity::Error,
+                message: format!(
+                    "the embedding format boundary caught a panic while formatting {unit_name:?} \
+                     and normalized it to this diagnostic instead of letting the unwind cross \
+                     the embedding API boundary"
+                ),
+                path: Some(unit_name.to_owned()),
+                span: None,
+                help: Some(
+                    "this names an embedding-boundary defect, not a property of the checked \
+                     source; report it against the compiler"
+                        .to_owned(),
+                ),
+            }],
+            canonical_source: None,
+        },
+    }
+}
+
+/// Canonically format one caller-supplied SEMAPRAX compilation unit.
+///
+/// `source` is the exact bytes to format; `unit_name` only labels
+/// diagnostics and never names a path this function reads. No capability is
+/// required: this is a pure, read-only function of its two arguments, and it
+/// panics never (a panic inside the formatter is caught and normalized into
+/// [`PANIC_NORMALIZED_DIAGNOSTIC_CODE`] instead of unwinding out of this
+/// call). Unlike [`check_source`], a successful format does not require the
+/// source to be semantically valid — only syntactically parseable — because
+/// [`crate::format::canonical`] renders the parsed AST directly and performs
+/// no HIR resolution.
+pub fn format_source(unit_name: &str, source: &str) -> FormatOutcome {
+    format_with(&StandardFormatter, unit_name, source)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -322,5 +418,81 @@ mod tests {
         assert!(EMBEDDING_API_VERSION.is_compatible_with(1));
         assert!(!EMBEDDING_API_VERSION.is_compatible_with(2));
         assert!(!EMBEDDING_API_VERSION.is_compatible_with(0));
+    }
+
+    #[test]
+    fn valid_source_formats_to_its_own_canonical_projection() {
+        let outcome = format_source("hello.spx", HELLO);
+        assert!(outcome.ok, "expected ok, got {:?}", outcome.diagnostics);
+        assert!(outcome.diagnostics.is_empty());
+        let canonical_source = outcome
+            .canonical_source
+            .expect("ok outcome must carry canonical_source");
+        assert_eq!(outcome.unit_name, "hello.spx");
+        // Formatting is idempotent: reformatting an already-canonical unit
+        // must reproduce byte-identical output.
+        let reformatted = format_source("hello.spx", &canonical_source);
+        assert!(reformatted.ok);
+        assert_eq!(reformatted.canonical_source, Some(canonical_source));
+    }
+
+    #[test]
+    fn a_declaration_missing_id_still_formats_ok() {
+        // Formatting does not require semantic (HIR) validity, unlike
+        // `check_source`: a syntactically valid program missing `@id`
+        // (which only `check_source` would warn about) still formats.
+        let source = "module app.warned;\n\nfn main() -> i64\n{\n    42\n}\n";
+        let outcome = format_source("warned.spx", source);
+        assert!(outcome.ok, "expected ok, got {:?}", outcome.diagnostics);
+        assert!(outcome.diagnostics.is_empty());
+        assert!(outcome.canonical_source.is_some());
+    }
+
+    #[test]
+    fn malformed_source_fails_format_with_the_specific_parser_diagnostic() {
+        let outcome = format_source("empty.spx", "module app.empty;\n");
+        assert!(!outcome.ok);
+        assert_eq!(outcome.diagnostics.len(), 1);
+        assert_eq!(outcome.diagnostics[0].code, "SPX-P101");
+        assert!(outcome.diagnostics[0].severity.is_error());
+        assert!(outcome.canonical_source.is_none());
+        assert_ne!(
+            outcome.diagnostics[0].code,
+            PANIC_NORMALIZED_DIAGNOSTIC_CODE
+        );
+    }
+
+    #[test]
+    fn format_unit_name_is_never_read_from_disk() {
+        let outcome = format_source("/definitely/does/not/exist/on/this/machine/unit.spx", HELLO);
+        assert!(
+            outcome.ok,
+            "formatting must depend only on `source`, not on whether `unit_name` \
+             names a real file; got {:?}",
+            outcome.diagnostics
+        );
+    }
+
+    struct PanickingFormatter;
+
+    impl SourceFormatter for PanickingFormatter {
+        fn format(&self, _unit_name: &str, _source: &str) -> Result<String, Diagnostic> {
+            panic!("deliberate test panic: proving it never crosses the embedding boundary");
+        }
+    }
+
+    #[test]
+    fn embedding_format_boundary_normalizes_a_panic_into_a_diagnostic_never_propagating_the_unwind(
+    ) {
+        let outcome = format_with(&PanickingFormatter, "panicking.spx", "irrelevant");
+        assert!(!outcome.ok);
+        assert_eq!(outcome.diagnostics.len(), 1);
+        assert_eq!(
+            outcome.diagnostics[0].code,
+            PANIC_NORMALIZED_DIAGNOSTIC_CODE
+        );
+        assert!(outcome.diagnostics[0].severity.is_error());
+        assert!(outcome.canonical_source.is_none());
+        assert!(!outcome.diagnostics[0].message.contains("SPX-P101"));
     }
 }

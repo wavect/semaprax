@@ -878,6 +878,43 @@ fn verify_certificate_against_artifact_rejects_different_bytes() {
     assert_eq!(error.code, "SPX-Z106");
 }
 
+/// The cross-artifact case `..._rejects_different_bytes` above only proves
+/// with a single flipped byte, not with a genuinely distinct program's
+/// independently compiled artifact. Build a certificate bound to program
+/// A's Wasm core module, then present program B's — a different function
+/// body and `requires` literal, compiled through the exact same pipeline —
+/// and confirm the certificate for A is refused against B's bytes, not just
+/// against a corrupted copy of A's own. This is the direct evidence for
+/// "bind certificates to artifact bytes": a certificate that proves
+/// something about artifact A must not be replayable against artifact B.
+#[test]
+fn verify_certificate_against_artifact_rejects_a_different_programs_artifact() {
+    let source_a = with_executable_main(&true_postcondition_source());
+    let path_a = Path::new("in-memory-fixture-a.spx");
+    let certificate = proved_certificate(path_a, &source_a, "app.t.f");
+    let program_a = crate::parse(&source_a, path_a).unwrap();
+    let resolved_a = crate::hir::resolve(&program_a).unwrap();
+    let artifact_bytes_a = crate::wasm::emit_resolved_module(&resolved_a).unwrap();
+
+    let source_b = with_executable_main(&extremum_overflow_source());
+    let path_b = Path::new("in-memory-fixture-b.spx");
+    let program_b = crate::parse(&source_b, path_b).unwrap();
+    let resolved_b = crate::hir::resolve(&program_b).unwrap();
+    let artifact_bytes_b = crate::wasm::emit_resolved_module(&resolved_b).unwrap();
+
+    // Confirm these really are two different artifacts, or the rejection
+    // below would be vacuous.
+    assert_ne!(artifact_bytes_a, artifact_bytes_b);
+
+    // Sanity: the certificate does bind to its own program's artifact.
+    verify_certificate_against_artifact(&certificate, &artifact_bytes_a)
+        .expect("a certificate must still bind to its own program's genuine artifact");
+
+    let error = verify_certificate_against_artifact(&certificate, &artifact_bytes_b)
+        .expect_err("a certificate bound to program A's artifact must refuse program B's");
+    assert_eq!(error.code, "SPX-Z106");
+}
+
 // ---------------------------------------------------------------------
 // `export_postcondition_certificate` without a real solver
 // ---------------------------------------------------------------------

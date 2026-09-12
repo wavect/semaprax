@@ -706,6 +706,29 @@ fn release_reconcile_local_archive_directory_disagreement_classes() {
     );
 }
 
+/// #167: the canonical release manifest and the disposable dry-run harness
+/// must be documented, including the exact recommended workflow wiring this
+/// worker did not make (`.github/workflows/**` is out of scope for this
+/// change) and the reaffirmed deferral of the finer state machine.
+#[test]
+fn release_process_documents_the_manifest_and_dry_run_harness() {
+    let docs = read("docs/RELEASE-PROCESS.md");
+    for exact in [
+        "## Canonical release manifest",
+        "semaprax.release-manifest.v1",
+        "python3 scripts/release-manifest.py \\",
+        "--archives-dir dist --output dist/release-manifest.json",
+        "--check PATH",
+        "Recommended workflow wiring (not made by this change",
+        "## Disposable dry-run harness and simulated recovery",
+        "scripts/release-publish-simulate.py",
+        "not a GitHub client",
+        "This deferral was revisited alongside the canonical manifest and dry-run work",
+    ] {
+        assert!(docs.contains(exact), "release process lost: {exact}");
+    }
+}
+
 #[test]
 fn release_process_documents_state_and_reconciliation() {
     let docs = read("docs/RELEASE-PROCESS.md");

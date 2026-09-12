@@ -384,6 +384,97 @@ with `scripts/release-notes.py`: it selects only the tagged version's dated
 with the release nonclaims. A missing, duplicate, or empty section fails the
 publication instead of silently creating incomplete notes.
 
+## Canonical release manifest
+
+`scripts/release-manifest.py` builds the aggregate, cross-archive release
+manifest issue [#167](https://github.com/wavect/semaprax/issues/167) asks for:
+version, tag, commit, the **required-check inventory** (the exact
+`release-gate` `needs:` list, read from `.github/workflows/ci.yml` rather than
+restated), the **artifact inventory** (each admitted target's archive name,
+platform, byte size, and `sha256:`-prefixed digest, computed from the archive's
+real bytes), the **prerelease flag**, and a **changelog-section digest** (a
+digest of the exact dated `CHANGELOG.md` section, so a later silent edit to
+that section is detectable). Its schema is `semaprax.release-manifest.v1`,
+distinct from the narrower per-archive `semaprax.release-artifact.v1` manifest
+`scripts/package-release.sh`/`.ps1` embed inside each single archive: that
+document is written before any sibling archive or its digest exists, so it can
+only assert what one packaging run knows about itself. This one is built once,
+after every target archive exists, from the sibling archives' actual bytes:
+
+```sh
+python3 scripts/release-manifest.py \
+  --version 0.4.1 --tag v0.4.1 --commit <exact-40-hex-commit> \
+  --archives-dir dist --output dist/release-manifest.json
+```
+
+It fails closed: a missing admitted-target archive, a tag/version/commit that
+disagree, an archive digest that disagrees with a sibling `SHA256SUMS`, or a
+missing/duplicate/empty changelog section all reject before anything is
+written. `--check PATH` instead recomputes the manifest and diffs it
+field-by-field against an existing one at `PATH`, naming every disagreement
+(including exactly which artifact or field) rather than only reporting a
+single pass/fail bit -- useful both as a local sanity check before tagging and
+as the mechanism a recovery path can use to confirm a manifest written by an
+earlier, possibly-interrupted attempt still agrees with what is actually on
+disk.
+
+Building or checking a manifest here is generated evidence, not a publication
+decision: it creates no GitHub Release, calls no network API, and grants no
+authority. `tests/offline_package/release_manifest.rs` covers the parser
+(including a synthetic-workflow case pinned independently of `ci.yml`'s
+current contents), the digest/diff semantics, and an end-to-end CLI run over
+real synthetic archives; it also cross-checks that the required-check
+inventory this script derives from the live workflow agrees, as a set, with
+the exact inventory `tests/offline_package/ci_release_gate.rs` pins.
+
+**Recommended workflow wiring (not made by this change -- `.github/workflows/**`
+is out of scope here):** `publish-release` should run
+`scripts/release-manifest.py` immediately after it writes `dist/SHA256SUMS` and
+before `gh release create`, uploading `dist/release-manifest.json` as an
+additional release asset alongside the three archives. That is the concrete
+mechanism that would let a later `--check` (or a hosted consumer) verify a
+published release's own manifest against its own artifacts, rather than only
+against a manifest built locally after the fact.
+
+## Disposable dry-run harness and simulated recovery
+
+`scripts/release-publish-simulate.py` is an explicit, offline simulation of
+`gh release create`/`gh release view` used only by
+`tests/offline_package/release_dry_run.rs`. It is not a GitHub client: it
+makes no network call, ever, and a record it writes to its JSON "store" file
+is a fixture, never release-promotion evidence. It exists so the create ->
+(possible crash before create) -> retry -> published state machine the real
+`publish-release` job implements can be exercised mechanically, in a
+disposable scratch directory, without hosted CI or GitHub credentials.
+
+`release_dry_run.rs` builds synthetic archives and a real
+`release-manifest.py` manifest in a disposable directory, renders real release
+notes with `release-notes.py`, and then exercises:
+
+- **The complete flow**: manifest -> notes -> simulated publish -> exactly one
+  simulated release with exactly three assets, and a retried `create` (an
+  operator re-running an already-succeeded job) is refused as a duplicate
+  rather than appending a second copy.
+- **A simulated mid-publish failure and its recovery**: archives and the
+  manifest exist, but the process is interrupted before any simulated Release
+  is ever created -- the exact gap between `release-artifacts` succeeding and
+  `publish-release` completing. Recovery (a second attempt, as if the
+  underlying failure were fixed and the job re-run) produces exactly one clean
+  release with no duplicate assets and no residue from the interrupted
+  attempt; a second recovery attempt is refused the same way an
+  already-successful publish is. This is the mechanism `bd777928`'s commit
+  message noted was missing: "The failure and recovery path" below remains a
+  documented manual procedure for a human operator, and this harness is what
+  now exercises its shape mechanically rather than only in prose.
+- **A tampered asset**: an archive whose bytes disagree with the manifest's
+  own recorded digest/size at publish time is refused, and no store record is
+  written for the refused attempt.
+
+This harness does not re-execute the 22 hosted release-blocker CI jobs
+themselves (`release-gate`'s `needs:` list, above); that remains hosted
+evidence recorded in this file's dated `## X.Y.Z hosted release evidence`
+sections, not something a disposable local harness can honestly stand in for.
+
 ## Release state and reconciliation
 
 `scripts/release-reconcile.py` is a read-only check, not a release step. It
@@ -417,6 +508,14 @@ static repository state cannot show; reporting them from local files alone
 would be an unearned claim. Read the tag's workflow run directly
 (`gh run list --branch vX.Y.Z`) for that distinction, or extend `--live` if a
 durable local record of it becomes necessary.
+
+This deferral was revisited alongside the canonical manifest and dry-run work
+above and reaffirmed: the manifest and the simulated publish/recovery harness
+both give a *disposable* stand-in for `gate-running`/`artifacts-built`, never
+a durable record of the *live* run's state, which still needs `--live` or
+`gh run list` against the exact tag. Building the finer state machine over
+local files alone would still be an unearned claim; it remains correctly out
+of scope for this tool.
 
 ### The failure and recovery path
 

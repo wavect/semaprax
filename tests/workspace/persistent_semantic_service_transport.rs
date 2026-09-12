@@ -294,8 +294,8 @@ fn one_session_retains_one_generation_and_delegates_exact_query_and_transaction_
         "transaction_validation"
     );
 
-    let candidate = ProjectCandidate::open(Arc::clone(&revision), revision.project_revision())
-        .unwrap();
+    let candidate =
+        ProjectCandidate::open(Arc::clone(&revision), revision.project_revision()).unwrap();
     let catalog: Value =
         serde_json::from_str(&candidate.expression_catalog("calculator.add").unwrap()).unwrap();
     let source_path = catalog["source"]["path"].as_str().unwrap();

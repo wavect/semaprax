@@ -97,22 +97,22 @@ impl IterativeDriver for ReadDriver<'_> {
 /// The driver builds this and chooses when to build it; nothing in it is
 /// derived from a prior model response, so a source cannot manufacture an
 /// extra request by anything it returns.
-pub(crate) struct ProposalRequest<'a> {
-    pub(crate) turn: usize,
-    pub(crate) attempt: usize,
-    pub(crate) source_revision: &'a str,
-    pub(crate) proposal_schema_digest: &'a str,
-    pub(crate) task: &'a LifecycleTask,
-    pub(crate) state: &'a RetainedValue,
-    pub(crate) observation: &'a RetainedValue,
+pub struct ProposalRequest<'a> {
+    pub turn: usize,
+    pub attempt: usize,
+    pub source_revision: &'a str,
+    pub proposal_schema_digest: &'a str,
+    pub task: &'a LifecycleTask,
+    pub state: &'a RetainedValue,
+    pub observation: &'a RetainedValue,
     /// The bytes the injected read operation returned last turn, `None` on
     /// the first turn. This is the actual prior effect result, never a
     /// precomputed or replayed value.
-    pub(crate) previous_effect: Option<&'a [u8]>,
+    pub previous_effect: Option<&'a [u8]>,
     /// Set when this is a retry after `attempt - 1` produced a proposal this
     /// grammar refused to decode; `None` on a turn's first attempt.
-    pub(crate) previous_rejection: Option<&'a str>,
-    pub(crate) remaining_iterations: usize,
+    pub previous_rejection: Option<&'a str>,
+    pub remaining_iterations: usize,
 }
 
 /// A live, feedback-driven proposal source. The frozen route reads a
@@ -124,7 +124,7 @@ pub(crate) struct ProposalRequest<'a> {
 /// diagnostics; it does not retry. A source that wants a bounded retry
 /// returns `Ok` with proposal text the schema will reject, and reads the
 /// rejection back on `request.previous_rejection` next attempt.
-pub(crate) trait ProposalSource {
+pub trait ProposalSource {
     fn propose(&mut self, request: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>>;
 }
 
@@ -132,7 +132,7 @@ pub(crate) trait ProposalSource {
 /// [`IterativeStatus::ModelFailed`]. Bounded so a source that never produces
 /// a decodable proposal cannot spin the loop unboundedly; each attempt is
 /// counted and produces no effect call.
-const MAX_PROPOSAL_ATTEMPTS: usize = 4;
+pub const MAX_PROPOSAL_ATTEMPTS: usize = 4;
 
 impl CompiledIterativeLifecycle {
     pub(crate) fn run_with_driver(
@@ -759,7 +759,11 @@ mod tests {
     }
     impl ProposalSource for AlwaysGrant<'_> {
         fn propose(&mut self, _: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>> {
-            Ok(crate::agent_lifecycle::tests::proposal(self.compiled, "1", "1"))
+            Ok(crate::agent_lifecycle::tests::proposal(
+                self.compiled,
+                "1",
+                "1",
+            ))
         }
     }
 
@@ -953,8 +957,8 @@ mod tests {
     }
 
     #[test]
-    fn live_route_reaches_every_reducer_selected_terminal_and_is_budget_exhaustion_evidence_bearing()
-    {
+    fn live_route_reaches_every_reducer_selected_terminal_and_is_budget_exhaustion_evidence_bearing(
+    ) {
         for (expression, expected) in [
             (
                 "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }",
@@ -1038,8 +1042,7 @@ mod tests {
         let task = live_task();
         let budget = IterativeBudget::default();
         let cancellation = AgentCancellation::new();
-        let proposals =
-            vec![crate::agent_lifecycle::tests::proposal(&compiled.inner, "1", "1"); 4];
+        let proposals = vec![crate::agent_lifecycle::tests::proposal(&compiled.inner, "1", "1"); 4];
 
         let mut frozen_read = FixtureRead::new(b"read".to_vec());
         let frozen = compiled
@@ -1058,7 +1061,10 @@ mod tests {
         assert_eq!(live.status(), frozen.status());
         assert_eq!(live.iterations(), frozen.iterations());
         assert_eq!(live.effects(), frozen.effects());
-        assert_eq!(live.authorization_bindings(), frozen.authorization_bindings());
+        assert_eq!(
+            live.authorization_bindings(),
+            frozen.authorization_bindings()
+        );
         // The invocation digest is intentionally route-specific (a live run
         // never had a predeclared sequence to bind), so only the part of the
         // evidence that reports the shared kernel's behavior is compared.

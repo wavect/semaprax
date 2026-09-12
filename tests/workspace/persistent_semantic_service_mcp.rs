@@ -204,9 +204,11 @@ fn lifecycle_catalogue_and_tools_share_the_retained_authority_free_generation() 
         1
     );
 
-    let candidate =
-        ProjectCandidate::open(std::sync::Arc::clone(&revision), revision.project_revision())
-            .unwrap();
+    let candidate = ProjectCandidate::open(
+        std::sync::Arc::clone(&revision),
+        revision.project_revision(),
+    )
+    .unwrap();
     let catalog: Value =
         serde_json::from_str(&candidate.expression_catalog("calculator.add").unwrap()).unwrap();
     let source_path = catalog["source"]["path"].as_str().unwrap();

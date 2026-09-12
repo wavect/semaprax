@@ -331,8 +331,8 @@ fn parse_workflow(args: &[String]) -> Result<ChangeWorkflow, u8> {
         }
         let target = required(args, index + 1, workflow_usage)?;
         let expression_id = required(args, index + 2, workflow_usage)?;
-        let replacement =
-            serde_json::from_str(&required(args, index + 3, workflow_usage)?).map_err(|_| {
+        let replacement = serde_json::from_str(&required(args, index + 3, workflow_usage)?)
+            .map_err(|_| {
                 eprintln!("change workflow replace-expression replacement must be valid JSON");
                 2
             })?;

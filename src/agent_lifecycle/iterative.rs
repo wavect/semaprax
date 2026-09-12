@@ -1,6 +1,6 @@
 //! Additive bounded iterative lifecycle, reusing checked retained stage calls.
 use super::*;
-pub(crate) mod driver;
+pub mod driver;
 #[allow(
     clippy::items_after_test_module,
     reason = "the effects module keeps its private test fixtures adjacent to the code they exercise"
@@ -170,7 +170,7 @@ impl CompiledIterativeLifecycle {
     /// effect/reduce kernel, but asks `source` for each turn's proposal only
     /// after that turn's checked observation exists, instead of indexing a
     /// predeclared slice. See [`driver::ProposalSource`].
-    pub(crate) fn run_live(
+    pub fn run_live(
         &self,
         task: &LifecycleTask,
         source: &mut dyn driver::ProposalSource,
@@ -350,7 +350,7 @@ pub fn compile_source_agent_lifecycle_v2(
 /// The invocation identity of a live-route run. Live proposals are not known
 /// at bind time, so this binds task, budget and the exact proposal grammar
 /// the source will be asked to satisfy, rather than a predeclared sequence.
-pub(crate) fn live_invocation_digest(
+pub fn live_invocation_digest(
     task: &LifecycleTask,
     budget: IterativeBudget,
     proposal_schema_digest: &str,

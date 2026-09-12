@@ -983,8 +983,10 @@ impl SemanticWorkspaceService {
             .iter()
             .map(|bytes| SemanticTransactionV2::parse(bytes))
             .collect::<Result<Vec<_>>>()?;
-        let workflow =
-            SemanticTransactionV2Workflow::derive(Arc::clone(&self.active.revision), &transactions)?;
+        let workflow = SemanticTransactionV2Workflow::derive(
+            Arc::clone(&self.active.revision),
+            &transactions,
+        )?;
         let history_entry = history.transaction_entry(
             self.active.revision.project_revision(),
             self.active.workspace_revision(),

@@ -393,7 +393,9 @@ fn take_step_array(params: &mut Map<String, Value>) -> Result<Vec<Vec<u8>>> {
         .into_iter()
         .map(|value| match value {
             Value::String(step) if !step.as_bytes().contains(&0) => Ok(step.into_bytes()),
-            _ => Err(invalid("each workflow step must be a string without NUL bytes")),
+            _ => Err(invalid(
+                "each workflow step must be a string without NUL bytes",
+            )),
         })
         .collect()
 }

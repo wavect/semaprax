@@ -51,7 +51,12 @@ fn run_probe(leaves: &[&[u8]]) -> serde_json::Value {
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));
     fs::create_dir(&root).unwrap();
-    let root = root.canonicalize().unwrap();
+    // Do not canonicalize on Windows: `canonicalize()` returns a `\\?\`
+    // verbatim path that `node` (and some `fs` APIs) cannot handle, causing
+    // `InvalidFilename: The filename or extension is too long` (206) on
+    // `windows-latest` for `real_webassembly_memory_grows_across_a_page_boundary`
+    // (103534761111, 34686666474). The temp dir is already absolute and
+    // unique, so no canonicalization is needed for isolation.
     eprintln!("retained Core Wasm adapter evidence: {}", root.display());
 
     let script = root.join("reverse_probe.mjs");

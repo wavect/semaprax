@@ -397,6 +397,10 @@ jobs:
           cargo test --locked -p semaprax --test project standard_library::execution_matrix -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::filesystem_v2 -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::provider_outcomes -- --nocapture
+          # Issue #102: proves the interpreter/native/Wasm comparison
+          # `run_examples_and_conformance` now performs is discriminating,
+          # not just three independent `== 0` checks.
+          cargo test --locked -p semaprax --test project standard_library::backend_value_equivalence -- --nocapture
           # Every std package's own interpreter + native-C11 (-O0/-O2) + Core-Wasm
           # conformance test. Added for issue #102, which found that the three
           # top-level sweep tests STANDARD-LIBRARY-V1.md rests its per-backend

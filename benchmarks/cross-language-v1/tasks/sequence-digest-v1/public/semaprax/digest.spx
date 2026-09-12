@@ -1,0 +1,79 @@
+module bench.digest;
+
+@id("bench.digest.is_even")
+fn is_even(value: i64) -> i64
+{
+    if value % 2 == 0 { 1 } else { 0 }
+}
+
+@id("bench.digest.is_negative")
+fn is_negative(value: i64) -> i64
+{
+    if value < 0 { 1 } else { 0 }
+}
+
+@id("bench.digest.max2")
+fn max2(left: i64, right: i64) -> i64
+{
+    if left > right { left } else { right }
+}
+
+@id("bench.digest.eq")
+fn eq(left: i64, right: i64) -> i64
+{
+    if left == right { 1 } else { 0 }
+}
+
+@id("bench.digest.sum")
+fn sum(a: i64, b: i64, c: i64, d: i64, e: i64) -> i64
+{
+    a + b + c + d + e
+}
+
+@id("bench.digest.count_even")
+fn count_even(a: i64, b: i64, c: i64, d: i64, e: i64) -> i64
+{
+    is_even(a) + is_even(b) + is_even(c) + is_even(d) + is_even(e)
+}
+
+@id("bench.digest.count_negative")
+fn count_negative(a: i64, b: i64, c: i64, d: i64, e: i64) -> i64
+{
+    is_negative(a) + is_negative(b) + is_negative(c) + is_negative(d) + is_negative(e)
+}
+
+@id("bench.digest.max")
+fn max(a: i64, b: i64, c: i64, d: i64, e: i64) -> i64
+{
+    max2(max2(max2(a, b), max2(c, d)), e)
+}
+
+// Public tests: known input/output vectors. `run` executes the `app.main`
+// entry; a passing public test suite returns 0, a failing one returns 1.
+//
+// Assertions are summed arithmetically (`eq(...)` calls added together)
+// rather than chained with `&&`. A single `if` guards the whole function;
+// stacking `&&` in an earlier draft of this fixture built one comparison
+// path per short-circuit branch and hit SPX-H006's per-function cleanup
+// replay path budget well before ten `if`/`else` statements would.
+//
+// The digest is four independent scalar functions rather than one
+// record-returning function: an earlier draft returned a `Digest` record from
+// one function and bound it with `let`, which `semaprax check` admits but
+// `semaprax run`'s interpreter refuses with SPX-F102 `unsupported_callee`.
+// Scalar-only signatures keep the fixture inside both the verifier's and the
+// direct interpreter's admitted feature set.
+@id("app.main")
+fn main() -> i64
+{
+    let checks =
+        eq(sum(1, 2, 3, 4, 5), 15) +
+        eq(count_even(1, 2, 3, 4, 5), 2) +
+        eq(count_negative(1, 2, 3, 4, 5), 0) +
+        eq(max(1, 2, 3, 4, 5), 5) +
+        eq(sum(-1, -2, -3, -4, -5), -15) +
+        eq(count_even(-1, -2, -3, -4, -5), 2) +
+        eq(count_negative(-1, -2, -3, -4, -5), 5) +
+        eq(max(-1, -2, -3, -4, -5), -1);
+    if checks == 8 { 0 } else { 1 }
+}

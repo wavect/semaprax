@@ -12,6 +12,7 @@ directory, at repository root) holds the Rust `cargo bench` harness;
 | [`benchmarks/performance-v1/`](./performance-v1/) | Performance macrobenchmarks | `benchmarks/performance-v1/run.py` | CLI wall time for every `examples/` entry (`check`/`graph`/`run`/`context`/`test`/`build`) |
 | [`benchmarks/agent-context-v1/`](./agent-context-v1/) | Semantic benchmark | `semaprax context` | Bounded context recall (corpus + maintenance fixture) |
 | [`benchmarks/agent-task-comparison-v1/`](./agent-task-comparison-v1/) | Agent productivity benchmark | `scripts/agent-task-comparison.py` | Paired `graph-operational` vs `source-first` trials |
+| [`benchmarks/cross-language-v1/`](./cross-language-v1/) | Cross-language Agent benchmark laboratory | `benchmarks/cross-language-v1/run.py` | Equivalence-specified tasks scored per language (SEMAPRAX, Rust, TypeScript wired; six more declared and blocked), pass/fail regression only — no timing (see [`docs/CROSS-LANGUAGE-BENCHMARK-V1.md`](../docs/CROSS-LANGUAGE-BENCHMARK-V1.md)) |
 
 ## Quick start
 
@@ -50,6 +51,11 @@ scripts to `benchmarks/performance-v1/`.
   regenerate the baseline (`python3 benchmarks/performance-v1/run.py --output benchmarks/performance-v1/results/baseline.json`).
 - For semantic tasks: see `benchmarks/agent-task-comparison-v1/README` (if present) or
   `docs/AGENT-TASK-COMPARISON-V1.md`.
+- For a cross-language task: add a `tasks/<id>/EQUIVALENCE.md`,
+  `public/<language>/` and `hidden/<language>/` trees, and an entry in
+  `benchmarks/cross-language-v1/tasks.json`; wiring a new language needs an
+  entry in `adapters.json` with a real, pinned, officially documented
+  toolchain invocation. See `benchmarks/cross-language-v1/docs/METHODOLOGY.md`.
 
 ## Non-claims
 

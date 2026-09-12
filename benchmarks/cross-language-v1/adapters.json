@@ -1,0 +1,73 @@
+{
+  "schema": "benchmark.cross_language.adapters.v1",
+  "adapters": [
+    {
+      "id": "semaprax",
+      "language": "SEMAPRAX",
+      "implemented": true,
+      "official_workflow": "semaprax run <entry.spx>: prints the app.main i64 result. 0 means every assertion in the digested test vectors passed.",
+      "version_command": ["{semaprax}", "version"],
+      "entry_file": "digest.spx",
+      "run_command": ["{semaprax}", "run", "digest.spx"],
+      "success": {"kind": "stdout_equals", "value": "0"}
+    },
+    {
+      "id": "rust",
+      "language": "Rust",
+      "implemented": true,
+      "official_workflow": "bare rustc --test (no Cargo: the task has no dependencies, so Cargo's build graph and lockfile add nothing this snapshot needs, and staying off Cargo keeps task fixtures out of this repository's own workspace)",
+      "version_command": ["rustc", "--version"],
+      "entry_file": "main.rs",
+      "build_command": ["rustc", "--edition", "2021", "--test", "main.rs", "-o", "test_bin"],
+      "run_command": ["./test_bin"],
+      "success": {"kind": "exit_code_zero"}
+    },
+    {
+      "id": "typescript",
+      "language": "TypeScript",
+      "implemented": true,
+      "official_workflow": "tsc --strict, then node on the emitted JS. No package.json and no npm install: the task has no dependencies and this sandbox forbids build-time network access.",
+      "version_command": ["tsc", "--version"],
+      "entry_file": "index.ts",
+      "build_command": ["tsc", "--strict", "--target", "ES2020", "--module", "commonjs", "index.ts"],
+      "run_command": ["node", "index.js"],
+      "success": {"kind": "exit_code_zero"}
+    },
+    {
+      "id": "zero",
+      "language": "Zero",
+      "implemented": false,
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Zero toolchain and version before this adapter can run."
+    },
+    {
+      "id": "ntnt",
+      "language": "NTNT",
+      "implemented": false,
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official NTNT toolchain and version before this adapter can run."
+    },
+    {
+      "id": "aver",
+      "language": "Aver",
+      "implemented": false,
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Aver toolchain and version before this adapter can run."
+    },
+    {
+      "id": "vera",
+      "language": "Vera",
+      "implemented": false,
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Vera toolchain and version before this adapter can run."
+    },
+    {
+      "id": "hale",
+      "language": "Hale",
+      "implemented": false,
+      "blocked_reason": "no publicly documented official toolchain was located for this benchmark snapshot. HUMAN_BLOCKED: identify and pin the official Hale toolchain and version before this adapter can run."
+    },
+    {
+      "id": "moonbit",
+      "language": "MoonBit",
+      "implemented": false,
+      "blocked_reason": "the official MoonBit toolchain installs through a network-fetched installer script; this sandbox forbids build-time network access, so the adapter is declared but not wired. HUMAN_BLOCKED: pre-provision a pinned, network-free MoonBit toolchain image before this adapter can run."
+    }
+  ]
+}

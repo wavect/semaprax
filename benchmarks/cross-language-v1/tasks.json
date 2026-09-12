@@ -1,0 +1,25 @@
+{
+  "schema": "benchmark.cross_language.tasks.v1",
+  "tasks": [
+    {
+      "id": "sequence-digest-v1",
+      "category": "greenfield",
+      "summary": "Four independent scalar digests (sum, count of even inputs, count of negative inputs, maximum) over five fixed signed 64-bit inputs.",
+      "equivalence": "tasks/sequence-digest-v1/EQUIVALENCE.md",
+      "languages": {
+        "semaprax": {
+          "public": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/semaprax",
+          "hidden": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/semaprax"
+        },
+        "rust": {
+          "public": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/rust",
+          "hidden": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/rust"
+        },
+        "typescript": {
+          "public": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/public/typescript",
+          "hidden": "benchmarks/cross-language-v1/tasks/sequence-digest-v1/hidden/typescript"
+        }
+      }
+    }
+  ]
+}

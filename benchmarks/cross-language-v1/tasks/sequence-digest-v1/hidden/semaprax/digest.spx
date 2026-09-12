@@ -1,0 +1,82 @@
+module bench.digest;
+
+@id("bench.digest.is_even")
+fn is_even(value: i64) -> i64
+{
+    if value % 2 == 0 { 1 } else { 0 }
+}
+
+@id("bench.digest.is_negative")
+fn is_negative(value: i64) -> i64
+{
+    if value < 0 { 1 } else { 0 }
+}
+
+@id("bench.digest.max2")
+fn max2(left: i64, right: i64) -> i64
+{
+    if left > right { left } else { right }
+}
+
+@id("bench.digest.eq")
+fn eq(left: i64, right: i64) -> i64
+{
+    if left == right { 1 } else { 0 }
+}
+
+@id("bench.digest.sum")
+fn sum(a: i64, b: i64, c: i64, d: i64, e: i64) -> i64
+{
+    a + b + c + d + e
+}
+
+@id("bench.digest.count_even")
+fn count_even(a: i64, b: i64, c: i64, d: i64, e: i64) -> i64
+{
+    is_even(a) + is_even(b) + is_even(c) + is_even(d) + is_even(e)
+}
+
+@id("bench.digest.count_negative")
+fn count_negative(a: i64, b: i64, c: i64, d: i64, e: i64) -> i64
+{
+    is_negative(a) + is_negative(b) + is_negative(c) + is_negative(d) + is_negative(e)
+}
+
+@id("bench.digest.max")
+fn max(a: i64, b: i64, c: i64, d: i64, e: i64) -> i64
+{
+    max2(max2(max2(a, b), max2(c, d)), e)
+}
+
+// This file is the harness's hidden overlay: it replaces the public
+// `digest.spx` verbatim (same relative path) so it is never present in the
+// tree a solver authors against, and extends `app.main` with edge cases a
+// public vector would give away: the all-zero identity case and one case
+// where the running maximum must survive a later, larger positive value.
+//
+// Assertions stay arithmetic (summed `eq(...)` calls, one guarding `if`) for
+// the same reason the public file does: this function checks twice as many
+// facts as the public one, and a `&&`-chain over all of them reliably hits
+// SPX-H006's per-function cleanup replay path budget on this host.
+@id("app.main")
+fn main() -> i64
+{
+    let checks =
+        eq(sum(1, 2, 3, 4, 5), 15) +
+        eq(count_even(1, 2, 3, 4, 5), 2) +
+        eq(count_negative(1, 2, 3, 4, 5), 0) +
+        eq(max(1, 2, 3, 4, 5), 5) +
+        eq(sum(-1, -2, -3, -4, -5), -15) +
+        eq(count_even(-1, -2, -3, -4, -5), 2) +
+        eq(count_negative(-1, -2, -3, -4, -5), 5) +
+        eq(max(-1, -2, -3, -4, -5), -1) +
+        eq(sum(0, 0, 0, 0, 0), 0) +
+        eq(count_even(0, 0, 0, 0, 0), 5) +
+        eq(count_negative(0, 0, 0, 0, 0), 0) +
+        eq(max(0, 0, 0, 0, 0), 0) +
+        eq(sum(-100, 7, 7, 7, 100), 21) +
+        eq(count_even(-100, 7, 7, 7, 100), 2) +
+        eq(count_negative(-100, 7, 7, 7, 100), 1) +
+        eq(max(-100, 7, 7, 7, 100), 100);
+    if checks == 16 { 0 } else { 1 }
+}

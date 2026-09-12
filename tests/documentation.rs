@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 mod benchmark_fixtures;
 #[path = "documentation/performance_benchmark_suite.rs"]
 mod performance_benchmark_suite;
+#[path = "documentation/cross_language_benchmark_suite.rs"]
+mod cross_language_benchmark_suite;
 
 #[test]
 fn local_markdown_links_resolve() {

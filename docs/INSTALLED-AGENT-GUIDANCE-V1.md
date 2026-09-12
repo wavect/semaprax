@@ -11,7 +11,7 @@ Installed Agent Guidance v1 packages a closed set of descriptive resources
 inside the `semaprax` binary. It lets an agent obtain compiler-version-matched
 language, graph, standard-library, package, effect, and workflow guidance
 without locating a checkout or consulting a network service. It also exposes
-the exact seven operations installed by Universal Semantic Query v1 and the
+the exact eight operations installed by Universal Semantic Query v1 and the
 closed four-operation Universal Semantic Transaction v1 algebra.
 
 These documents are data. They are not compiler input, executable
@@ -148,6 +148,7 @@ impact
 available_operations
 ownership_at_expression
 declaration_consumers
+next_constructs
 ```
 
 Each row names the owning result payload schema. The document also carries the

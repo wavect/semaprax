@@ -17,8 +17,9 @@ use crate::project::{
     PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMAGE_SCHEMA,
     PROJECT_SEMANTIC_IMAGE_SYMBOL_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
     SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA, SEMANTIC_QUERY_DECLARATIONS_SCHEMA,
-    SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA, SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA,
-    SEMANTIC_QUERY_RESULT_SCHEMA, SEMANTIC_QUERY_SCHEMA, SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA,
+    SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA, SEMANTIC_QUERY_NEXT_CONSTRUCTS_SCHEMA,
+    SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA, SEMANTIC_QUERY_RESULT_SCHEMA,
+    SEMANTIC_QUERY_SCHEMA, SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA,
     SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_RESULT_SCHEMA,
     SEMANTIC_TRANSACTION_SCHEMA, SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_SCHEMA,
 };
@@ -161,11 +162,13 @@ pub fn installed_skill(skill: InstalledSkill) -> Result<InstalledGuidance> {
                     SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
                     SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA,
                     SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA,
+                    SEMANTIC_QUERY_NEXT_CONSTRUCTS_SCHEMA,
                 ],
                 "read_operations": [
                     "graph", "symbol", "context", "impact", "declarations",
                     "available_operations", "ownership_at_expression",
-                    "declaration_consumers", "retained_index_query", "service_history_query",
+                    "declaration_consumers", "next_constructs", "retained_index_query",
+                    "service_history_query",
                 ],
                 "service_query_schemas": [
                     SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA,
@@ -277,6 +280,7 @@ pub fn installed_query_capabilities() -> Result<InstalledGuidance> {
                 {"name":"available_operations", "payload_schema":SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA},
                 {"name":"ownership_at_expression", "payload_schema":SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA},
                 {"name":"declaration_consumers", "payload_schema":SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA},
+                {"name":"next_constructs", "payload_schema":SEMANTIC_QUERY_NEXT_CONSTRUCTS_SCHEMA},
             ],
             "request_schema": SEMANTIC_QUERY_SCHEMA,
             "result_schema": SEMANTIC_QUERY_RESULT_SCHEMA,
@@ -523,7 +527,8 @@ mod tests {
                 "impact",
                 "available_operations",
                 "ownership_at_expression",
-                "declaration_consumers"
+                "declaration_consumers",
+                "next_constructs"
             ]
         );
         assert_eq!(

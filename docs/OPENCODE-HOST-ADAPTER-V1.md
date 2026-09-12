@@ -17,8 +17,14 @@ never carry credentials.
 ## Authority and route
 
 A deployment supplies both an `OpenCodeHostConfig` (absolute executable,
-empty absolute workspace, positive deadline) and the existing per-call
-`ModelInvokeCapability`. Neither source data nor a response can construct
+empty non-symlink absolute workspace, positive deadline, and an
+`OpenCodeGrammar` derived from the exact `CompiledInteractionSchema`) and the
+existing per-call `ModelInvokeCapability`. `OpenCodeGrammar` carries the
+canonical interaction schema and its existing provider JSON Schema projection;
+the handler rejects a request whose grammar digest differs, then passes those
+compiler-derived guidance bytes to the configured process. It does not decode
+or admit the response. The existing `SourceInteractionProposalDecoder` still
+decodes the raw response after this handler returns it. Neither source data nor a response can construct
 those values. The production `ProcessOpenCodeRunner` uses no shell or inherited
 stdin and invokes exactly:
 
@@ -30,8 +36,9 @@ opencode run --pure --agent semaprax-live \
 It writes an `opencode.json` agent policy with `"*":"deny"` before the call.
 `--dir` and that policy limit OpenCode's own tools only; they are not an
 operating-system sandbox. The process output and session export each have a
-1 MiB ceiling. The runner polls its deadline, kills and reaps its direct child
-on expiry, and captures no stderr. A child process tree is not claimed to be
+1 MiB ceiling. The runner polls both an explicit host cancellation handle and
+its deadline, kills and joins/reaps its direct child and reader on cancellation,
+overflow, deadline, and process errors, and captures no stderr. A child process tree is not claimed to be
 killed by this v1 contract.
 
 ## Settling and replay evidence
@@ -39,8 +46,8 @@ killed by this v1 contract.
 The runner requires exactly ordered `step_start`, `text`, and `step_finish`
 NDJSON events with one session/message pair and a `stop` finish. It then runs
 `opencode export SESSION` and requires the fixed provider/model self-report,
-the matching user prompt, and matching assistant text before returning the
-raw text bytes. The receipt records only the self-reported session and optional
+the matching user and assistant `sessionID`, matching user prompt, and matching
+assistant text before returning the raw text bytes. The receipt records only the self-reported session and optional
 token total; it proves neither identity, billing, provider authorization, nor
 exclusive execution.
 
@@ -57,8 +64,9 @@ prove that the provider stopped work or billing.
 
 ## Regression obligations
 
-Offline tests cover ordered-event/export binding, receipt usage preservation,
-and the rule that malformed post-start output is not cancellation. A local
+Offline tests cover ordered-event/export binding including hostile session
+substitution, receipt usage preservation, cancellation and overflow reaping of
+local stubs, and the rule that malformed post-start output is not cancellation. A local
 stub executable is the required integration seam for process command,
 deadline, bounded-output, and export coverage; it must never call a provider.
 The existing `agent_interaction_schema::live_bridge` kernel test remains the

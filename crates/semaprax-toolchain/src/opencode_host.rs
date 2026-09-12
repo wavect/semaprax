@@ -9,7 +9,8 @@
 use std::io::Read;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::sync::mpsc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
 use semaprax::live_invocation::{
@@ -24,32 +25,105 @@ const OPENCODE_AGENT: &str = "semaprax-live";
 const MAX_PROMPT_BYTES: usize = 65_536;
 const MAX_EVENTS_BYTES: usize = 1_048_576;
 const MAX_EXPORT_BYTES: usize = 1_048_576;
+const MAX_GRAMMAR_BYTES: usize = 65_536;
 
 /// Host-owned process settings. Constructing this value is distinct from
 /// granting the per-call `ModelInvokeCapability`; both are required to invoke.
+/// A host-held cancellation hook for the production runner.
+#[derive(Clone, Debug, Default)]
+pub struct OpenCodeCancellation(Arc<AtomicBool>);
+
+impl OpenCodeCancellation {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn cancel(&self) {
+        self.0.store(true, Ordering::Release);
+    }
+    fn is_cancelled(&self) -> bool {
+        self.0.load(Ordering::Acquire)
+    }
+}
+
+/// Compiler-derived response guidance, supplied alongside the same compiled
+/// schema that the live driver later gives to `SourceInteractionProposalDecoder`.
+#[derive(Clone, Debug)]
+pub struct OpenCodeGrammar {
+    digest: String,
+    canonical_schema: String,
+    provider_schema: String,
+}
+
+impl OpenCodeGrammar {
+    pub fn from_compiled(
+        schema: &semaprax::agent_interaction_schema::CompiledInteractionSchema,
+    ) -> Result<Self, String> {
+        let canonical_schema = schema.schema().canonical_json().to_owned();
+        let provider_schema = schema.provider_json_schema();
+        if canonical_schema.len().saturating_add(provider_schema.len()) > MAX_GRAMMAR_BYTES {
+            return Err("OpenCode grammar guidance exceeds its host byte budget".into());
+        }
+        Ok(Self {
+            digest: schema.schema().digest().to_owned(),
+            canonical_schema,
+            provider_schema,
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct OpenCodeHostConfig {
     executable: PathBuf,
     sandbox: PathBuf,
     deadline: Duration,
+    cancellation: OpenCodeCancellation,
+    grammar: OpenCodeGrammar,
 }
 
 impl OpenCodeHostConfig {
-    /// Accepts only an absolute executable and an existing, empty, absolute
-    /// workspace. The runner writes the fixed deny-all agent policy itself.
-    pub fn new(executable: PathBuf, sandbox: PathBuf, deadline: Duration) -> Result<Self, String> {
+    /// Accepts only an absolute executable and an existing, empty, non-symlink
+    /// workspace. The canonical workspace identity is retained after validation.
+    pub fn new(
+        executable: PathBuf,
+        sandbox: PathBuf,
+        deadline: Duration,
+        grammar: OpenCodeGrammar,
+    ) -> Result<Self, String> {
         if !executable.is_absolute() || !sandbox.is_absolute() || deadline.is_zero() {
             return Err("OpenCode host requires absolute paths and a positive deadline".into());
         }
-        let mut entries = sandbox.read_dir().map_err(|error| error.to_string())?;
-        if entries.next().is_some() {
+        if sandbox
+            .symlink_metadata()
+            .map_err(|error| error.to_string())?
+            .file_type()
+            .is_symlink()
+        {
+            return Err("OpenCode host sandbox must not be a symlink".into());
+        }
+        let sandbox = sandbox.canonicalize().map_err(|error| error.to_string())?;
+        if !sandbox.is_dir()
+            || sandbox
+                .read_dir()
+                .map_err(|error| error.to_string())?
+                .next()
+                .is_some()
+        {
             return Err("OpenCode host sandbox must be an existing empty directory".into());
         }
         Ok(Self {
             executable,
             sandbox,
             deadline,
+            cancellation: OpenCodeCancellation::new(),
+            grammar,
         })
+    }
+
+    /// Lets the owning deployment cancel an in-flight direct child.
+    #[must_use]
+    pub fn cancellation(&self) -> OpenCodeCancellation {
+        self.cancellation.clone()
     }
 }
 
@@ -61,6 +135,7 @@ pub enum OpenCodeRunnerFailure {
     Capacity,
     Provider,
     Malformed,
+    Cancelled,
 }
 
 /// Injectable process seam. Production binds `ProcessOpenCodeRunner`; tests
@@ -78,8 +153,8 @@ pub trait OpenCodeRunner {
     ) -> Result<Vec<u8>, OpenCodeRunnerFailure>;
     /// Only an observed caller cancellation may map an in-flight failure to
     /// `Cancelled`; transport uncertainty is otherwise `ProviderError`.
-    fn cancelled(&self) -> bool {
-        false
+    fn cancelled(&self, config: &OpenCodeHostConfig) -> bool {
+        config.cancellation.is_cancelled()
     }
 }
 
@@ -88,6 +163,12 @@ pub trait OpenCodeRunner {
 pub struct ProcessOpenCodeRunner;
 
 impl ProcessOpenCodeRunner {
+    fn terminate(child: &mut std::process::Child, reader: std::thread::JoinHandle<()>) {
+        let _ = child.kill();
+        let _ = child.wait();
+        let _ = reader.join();
+    }
+
     fn capture(
         config: &OpenCodeHostConfig,
         args: &[String],
@@ -103,18 +184,18 @@ impl ProcessOpenCodeRunner {
             .map_err(|_| OpenCodeRunnerFailure::Refused)?;
         let mut stdout = child.stdout.take().ok_or(OpenCodeRunnerFailure::Provider)?;
         let (sender, receiver) = mpsc::sync_channel(1);
-        std::thread::spawn(move || {
+        let reader = std::thread::spawn(move || {
             let mut output = Vec::new();
             let mut chunk = [0u8; 8192];
             loop {
                 match stdout.read(&mut chunk) {
                     Ok(0) => break,
-                    Ok(count) => {
-                        if output.len().saturating_add(count) > limit {
-                            let _ = sender.send(Err(OpenCodeRunnerFailure::Malformed));
-                            return;
-                        }
-                        output.extend_from_slice(&chunk[..count]);
+                    Ok(count) if output.len().saturating_add(count) <= limit => {
+                        output.extend_from_slice(&chunk[..count])
+                    }
+                    Ok(_) => {
+                        let _ = sender.send(Err(OpenCodeRunnerFailure::Malformed));
+                        return;
                     }
                     Err(_) => {
                         let _ = sender.send(Err(OpenCodeRunnerFailure::Provider));
@@ -124,27 +205,64 @@ impl ProcessOpenCodeRunner {
             }
             let _ = sender.send(Ok(output));
         });
-        let deadline = Instant::now() + config.deadline;
+        let deadline = Instant::now()
+            .checked_add(config.deadline)
+            .ok_or(OpenCodeRunnerFailure::Refused)?;
+        let mut output = None;
         loop {
+            if config.cancellation.is_cancelled() {
+                Self::terminate(&mut child, reader);
+                return Err(OpenCodeRunnerFailure::Cancelled);
+            }
             if Instant::now() >= deadline {
-                let _ = child.kill();
-                let _ = child.wait(); // reap the direct child before returning
+                Self::terminate(&mut child, reader);
                 return Err(OpenCodeRunnerFailure::Timeout);
             }
-            if let Some(status) = child
-                .try_wait()
-                .map_err(|_| OpenCodeRunnerFailure::Provider)?
-            {
-                let output = receiver
-                    .recv_timeout(Duration::from_millis(50))
-                    .map_err(|_| OpenCodeRunnerFailure::Provider)??;
-                return if status.success() {
-                    Ok(output)
-                } else {
-                    Err(OpenCodeRunnerFailure::Provider)
-                };
+            if output.is_none() {
+                match receiver.try_recv() {
+                    Ok(Ok(bytes)) => output = Some(bytes),
+                    Ok(Err(error)) => {
+                        Self::terminate(&mut child, reader);
+                        return Err(error);
+                    }
+                    Err(mpsc::TryRecvError::Disconnected) => {
+                        Self::terminate(&mut child, reader);
+                        return Err(OpenCodeRunnerFailure::Provider);
+                    }
+                    Err(mpsc::TryRecvError::Empty) => {}
+                }
             }
-            std::thread::sleep(Duration::from_millis(5));
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    let bytes = match output {
+                        Some(bytes) => bytes,
+                        None => match receiver
+                            .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+                        {
+                            Ok(Ok(bytes)) => bytes,
+                            Ok(Err(error)) => {
+                                let _ = reader.join();
+                                return Err(error);
+                            }
+                            Err(_) => {
+                                let _ = reader.join();
+                                return Err(OpenCodeRunnerFailure::Provider);
+                            }
+                        },
+                    };
+                    let _ = reader.join();
+                    return if status.success() {
+                        Ok(bytes)
+                    } else {
+                        Err(OpenCodeRunnerFailure::Provider)
+                    };
+                }
+                Ok(None) => std::thread::sleep(Duration::from_millis(5)),
+                Err(_) => {
+                    Self::terminate(&mut child, reader);
+                    return Err(OpenCodeRunnerFailure::Provider);
+                }
+            }
         }
     }
 }
@@ -158,8 +276,15 @@ impl OpenCodeRunner for ProcessOpenCodeRunner {
         let policy = format!(
             "{{\"$schema\":\"https://opencode.ai/config.json\",\"agent\":{{\"{OPENCODE_AGENT}\":{{\"permission\":{{\"*\":\"deny\"}}}}}}}}\n"
         );
-        std::fs::write(config.sandbox.join("opencode.json"), policy)
-            .map_err(|_| OpenCodeRunnerFailure::Refused)?;
+        let policy_path = config.sandbox.join("opencode.json");
+        match std::fs::read(&policy_path) {
+            Ok(existing) if existing == policy.as_bytes() => {}
+            Ok(_) => return Err(OpenCodeRunnerFailure::Refused),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                std::fs::write(&policy_path, policy).map_err(|_| OpenCodeRunnerFailure::Refused)?;
+            }
+            Err(_) => return Err(OpenCodeRunnerFailure::Refused),
+        }
         let args = vec![
             "run".into(),
             "--pure".into(),
@@ -210,11 +335,17 @@ impl<R> OpenCodeModelHandler<R> {
     }
 }
 
-fn wire_prompt(request: &ModelInvocationRequest) -> Result<String, ModelFailure> {
+fn wire_prompt(
+    request: &ModelInvocationRequest,
+    grammar: &OpenCodeGrammar,
+) -> Result<String, ModelFailure> {
+    if request.proposal_grammar_digest != grammar.digest {
+        return Err(ModelFailure::Refused);
+    }
     let prompt = format!(
-        "SEMAPRAX live proposal v1\ntask={}\nobservation={}\ngrammar={}\ndeployment={}\nturn={}\nReturn only one proposal document.\n",
-        hex(&request.task), hex(&request.observation), request.proposal_grammar_digest,
-        request.deployment_binding, request.turn,
+        "SEMAPRAX live proposal v1\ntask={}\nobservation={}\ngrammar_digest={}\ndeployment={}\nturn={}\ncanonical_interaction_schema={}\nprovider_value_json_schema={}\nReturn one canonical semaprax.agent-interaction-value.v1 document bound to grammar_digest.\n",
+        hex(&request.task), hex(&request.observation), grammar.digest, request.deployment_binding,
+        request.turn, grammar.canonical_schema, grammar.provider_schema,
     );
     (prompt.len() <= MAX_PROMPT_BYTES)
         .then_some(prompt)
@@ -300,7 +431,9 @@ fn validate_export(
         .find(|row| row["info"]["id"].as_str() == Some(parent))
         .ok_or(ModelFailure::MalformedResponse)?;
     if assistant["info"]["role"].as_str() != Some("assistant")
+        || assistant["info"]["sessionID"].as_str() != Some(session)
         || user["info"]["role"].as_str() != Some("user")
+        || user["info"]["sessionID"].as_str() != Some(session)
         || user["parts"]
             .as_array()
             .and_then(|parts| parts.first())
@@ -334,6 +467,7 @@ fn failure(
             OpenCodeRunnerFailure::Capacity => ModelFailure::CapacityExceeded,
             OpenCodeRunnerFailure::Provider => ModelFailure::ProviderError,
             OpenCodeRunnerFailure::Malformed => ModelFailure::MalformedResponse,
+            OpenCodeRunnerFailure::Cancelled => ModelFailure::Cancelled,
         }
     };
     ModelInvocationOutcome::Failed {
@@ -348,7 +482,7 @@ impl<R: OpenCodeRunner> ModelHandler for OpenCodeModelHandler<R> {
         _capability: &ModelInvokeCapability,
         request: &ModelInvocationRequest,
     ) -> ModelInvocationOutcome {
-        let prompt = match wire_prompt(request) {
+        let prompt = match wire_prompt(request, &self.config.grammar) {
             Ok(prompt) => prompt,
             Err(failure) => {
                 return ModelInvocationOutcome::Failed {
@@ -357,7 +491,7 @@ impl<R: OpenCodeRunner> ModelHandler for OpenCodeModelHandler<R> {
                 }
             }
         };
-        if self.runner.cancelled() {
+        if self.runner.cancelled(&self.config) {
             return ModelInvocationOutcome::Failed {
                 failure: ModelFailure::Cancelled,
                 attempted_bytes: 0,
@@ -365,7 +499,7 @@ impl<R: OpenCodeRunner> ModelHandler for OpenCodeModelHandler<R> {
         }
         let events = match self.runner.run(&self.config, &prompt) {
             Ok(events) => events,
-            Err(error) => return failure(error, 0, self.runner.cancelled()),
+            Err(error) => return failure(error, 0, self.runner.cancelled(&self.config)),
         };
         let attempted_bytes = events.len().min(request.max_response_bytes);
         let (session, message, answer) = match event_text(&events) {
@@ -379,7 +513,9 @@ impl<R: OpenCodeRunner> ModelHandler for OpenCodeModelHandler<R> {
         };
         let export = match self.runner.export(&self.config, &session) {
             Ok(export) => export,
-            Err(error) => return failure(error, attempted_bytes, self.runner.cancelled()),
+            Err(error) => {
+                return failure(error, attempted_bytes, self.runner.cancelled(&self.config))
+            }
         };
         match validate_export(&export, &session, &message, &prompt, &answer) {
             Ok(receipt) if answer.len() <= request.max_response_bytes => {

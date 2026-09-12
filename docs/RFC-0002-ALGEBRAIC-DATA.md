@@ -632,7 +632,15 @@ full RFC completion still requires the broader gates stated here.
 3. **Copy variants:** unit/direct-scalar payloads, exhaustive matching,
    case identities, deterministic Native64/Wasm32 layout and admitted
    native/Core-Wasm execution are implemented. Older cleanup v2 and graph
-   contracts retain their original meaning.
+   contracts retain their original meaning. Copy Aggregate Variant Payload v1
+   additively admits a direct, monomorphic, drop-free nested `record` case
+   field alongside the admitted Copy scalar: the referenced record's own
+   fields must recursively need no drop at all (no `Bytes`, `string`,
+   resource, or generic anywhere in its closure), so the containing variant
+   stays a plain Copy tagged union with no cleanup-plan leaf. It never admits
+   a `class` (Class Inheritance v1 already closes `string`-bearing members)
+   or a generic argument. `string` and an owned/`class`/generic nested
+   payload remain outside Copy Variants v1.
 4. **Generic owned variants:** the admitted direct Bytes/Copy payloads,
    exact owned cases and [private generic authored-variant functions](GENERIC-AUTHORED-VARIANTS-V1.md)
    support checked construction, owning/borrowing matches, reconstruction,

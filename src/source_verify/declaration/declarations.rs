@@ -499,10 +499,13 @@ pub(super) fn check_declared_fields<'p>(
                                 && !parameters.is_empty()
                                 && types.declaration(name).is_none()
                     );
+                    let is_copy_aggregate = parameters.is_empty()
+                        && types.is_admitted_copy_aggregate_variant_field(&field.ty);
                     if !owned_byte_variant
                         && !owned_byte_record_copy_field_is_admitted(&field.ty)
                         && !is_parameter
                         && !is_unknown_parameter
+                        && !is_copy_aggregate
                     {
                         diagnostics.push(error(
                             program,

@@ -416,6 +416,42 @@ pub(crate) fn is_admitted_concrete_owned_byte_variant(
             && cases.len() == 2)
 }
 
+/// Copy Aggregate Variant Payload v1: the HIR twin of the source-level
+/// `TypeTable::is_admitted_copy_aggregate_variant_field` check. A variant
+/// case field may name a direct, monomorphic `record` declaration whose
+/// resolved `TypeFacts` prove it Copy, sized, resource-free and in need of no
+/// drop at all -- so the containing variant stays a plain Copy tagged union
+/// with no cleanup-plan leaf. This never admits a `class`, a generic
+/// instance, or any record that reaches an owned `Bytes`/`string` leaf.
+pub(crate) fn is_admitted_copy_aggregate_variant_field(
+    declarations: &DeclarationIndex,
+    ty: &ResolvedType,
+) -> bool {
+    if nested_record_copy_scalar_is_admitted(ty) {
+        return true;
+    }
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if !arguments.is_empty() {
+        return false;
+    }
+    if declarations
+        .declaration(declaration)
+        .map(|item| item.kind)
+        != Some(DeclarationKind::Record)
+    {
+        return false;
+    }
+    declarations.type_facts(ty).is_some_and(|facts| {
+        facts.copy && facts.sized && !facts.contains_resource && !facts.needs_drop
+    })
+}
+
 /// Re-derive the nested record profile only from the declaration index. This
 /// deliberately does not reuse source admission or cached `TypeFacts`.
 fn classify_nested_owned_byte_record(

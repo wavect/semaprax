@@ -59,11 +59,14 @@ which rule failed — never silently approximated as opaque JSON.
 in this module's derivation and decoder, so a case may in principle carry
 `string`, `Bytes`, or a nested type reference. Today's `source_verify`
 independently enforces a narrower "Copy Variants v1" rule (`SPX-T215`):
-a case field may currently only be a direct Copy scalar. That is a base
-compiler restriction this module does not relax or work around — it means
-a case's field is *practically* limited to a direct scalar until a future
-language revision admits more, without this module needing to change when
-that happens.
+a case field must be a direct Copy scalar or, as of the additive Copy
+Aggregate Variant Payload v1, a direct, monomorphic, drop-free nested
+`record` (its own fields must recursively need no drop at all, so it can
+never itself reach an owned `Bytes` or `string`). That is a base compiler
+restriction this module does not relax or work around — it means a case's
+field is *practically* limited to a direct scalar or a Copy-only nested
+record until a future language revision admits `string` or an owned nested
+payload, without this module needing to change when that happens.
 
 **Non-goals**, matching the issue's bounded scope: resources, arbitrary
 recursion, raw pointers, borrowed values escaping the call, callbacks, and
@@ -286,17 +289,20 @@ projection they would each start from, not every named-provider variant.
   structural property that keeps any conformant future client from
   rounding a large integer, independent of whether a bundle is generated
   and compiled in this repository.
-- **Variant case payloads are flat scalars only, in this language, today.**
-  `source_verify`'s existing "Copy Variants v1" rule (`SPX-T215`) admits
-  only a direct Copy scalar (`bool`/`i32`/`i64`/`u8`/`usize`/`f32`/`f64`/
-  `char`) — never `string`, never a nested record — as a variant case
-  field, independent of this module. This module's derivation and decoder
-  both still implement the general nested-field rule for variant cases (a
-  case's `FieldRow`s go through exactly the same `classify`/`decode_type`
-  path a record's fields do), so a future language revision admitting
-  richer variant payloads needs no change here — but no compiling `.spx`
-  fixture in this tranche exercises a *nested* variant-case field, only a
-  nested *record* field, for this reason.
+- **Variant case payloads admit a Copy-only nested record, never `string`,
+  in this language, today.** `source_verify`'s "Copy Variants v1" rule
+  (`SPX-T215`) admits a direct Copy scalar (`bool`/`i32`/`i64`/`u8`/`usize`/
+  `f32`/`f64`/`char`), an in-scope variant type parameter, or — as of the
+  additive Copy Aggregate Variant Payload v1 — a direct, monomorphic,
+  drop-free nested `record`; it still never admits `string` or a `record`
+  that itself reaches an owned `Bytes`/`string`, independent of this module.
+  This module's derivation and decoder both still implement the general
+  nested-field rule for variant cases (a case's `FieldRow`s go through
+  exactly the same `classify`/`decode_type` path a record's fields do), so
+  a future language revision admitting `string` or an owned nested payload
+  needs no change here — and a compiling `.spx` fixture can now exercise a
+  Copy-only nested variant-case field; `string` and an owned nested payload
+  remain unreachable.
 - **The `type.field.generic_argument` and `type.recursive` guards are
   defense in depth, not exercised by a compiling fixture.** The base
   compiler already forecloses every nested generic-instantiated record

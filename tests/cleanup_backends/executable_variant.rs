@@ -533,3 +533,156 @@ console.log("variant-equivalence-v1-ok");
         "variant-equivalence-v1-ok"
     );
 }
+
+/// Copy Aggregate Variant Payload v1: a direct, monomorphic, drop-free
+/// nested `record` field, admitted alongside the pre-existing Copy scalar
+/// (`SPX-T215`'s prior admitted shape). `Inner` carries only Copy-scalar
+/// fields, so `Payload` stays a plain Copy tagged union: no `own`/`borrow`
+/// match mode, no cleanup-plan leaf.
+const COPY_AGGREGATE_SOURCE: &str = r#"
+module test.variant_copy_aggregate_backends;
+@id("agg.inner")
+record Inner {
+    @id("agg.inner.x") x: i64,
+    @id("agg.inner.flag") flag: bool,
+}
+@id("agg.payload")
+variant Payload {
+    @id("agg.payload.wrapped")
+    Wrapped {
+        @id("agg.payload.wrapped.value") value: Inner,
+    },
+    @id("agg.payload.plain")
+    Plain {
+        @id("agg.payload.plain.value") value: i64,
+    },
+}
+@id("agg.read")
+fn read(payload: Payload) -> i64 {
+    match payload {
+        Payload::Wrapped { value } => if value.flag { value.x } else { 0 },
+        Payload::Plain { value } => value,
+    }
+}
+@id("app.main")
+fn main() -> i64 {
+    read(Payload::Wrapped { value: Inner { x: 7, flag: true } }) + read(Payload::Plain { value: 35 })
+}
+"#;
+
+#[test]
+fn native_copy_aggregate_variant_payload_executes_at_o0_o2() {
+    if !command_available("clang") {
+        return;
+    }
+    let program = parse(
+        COPY_AGGREGATE_SOURCE,
+        Path::new("variant-copy-aggregate-native.spx"),
+    )
+    .unwrap();
+    let generated = codegen::emit_c(&program).unwrap();
+    assert_eq!(generated, codegen::emit_c(&program).unwrap());
+
+    let main_symbol = format!("spx_decl_{}", hex_identity("app.main"));
+    let probe = format!(
+        r#"
+int main(void) {{
+    struct spx_status_entry entries[UINT32_C(32)];
+    struct spx_context context = {{0}};
+    if (!spx_context_init(&context, UINT64_C(64), entries, UINT32_C(32), NULL, NULL, NULL)) return 10;
+    int64_t result = 0;
+    if ({main_symbol}(&context, &result) != SPX_STATUS_SUCCESS) return 11;
+    return (int)result;
+}}
+"#,
+    );
+    for optimization in ["-O0", "-O2"] {
+        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+        let stem = format!("semaprax-variant-copy-aggregate-{}-{id}", std::process::id());
+        let source = std::env::temp_dir().join(format!("{stem}.c"));
+        let executable =
+            std::env::temp_dir().join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));
+        std::fs::write(&source, format!("{generated}\n{probe}")).unwrap();
+        let compiled = Command::new("clang")
+            .args([
+                "-std=c11",
+                optimization,
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-DSPX_NO_ENTRY_WRAPPER",
+            ])
+            .arg(&source)
+            .arg("-o")
+            .arg(&executable)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "variant copy-aggregate C failed at {optimization}: {}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let executed = Command::new(&executable).output().unwrap();
+        let _ = std::fs::remove_file(&source);
+        let _ = std::fs::remove_file(&executable);
+        assert_eq!(
+            executed.status.code(),
+            Some(42),
+            "variant copy-aggregate program exited unexpectedly at {optimization}: {}",
+            String::from_utf8_lossy(&executed.stderr)
+        );
+    }
+}
+
+#[test]
+fn wasm_copy_aggregate_variant_payload_matches_native_result_in_node() {
+    if !command_available("node") {
+        return;
+    }
+    let program = parse(
+        COPY_AGGREGATE_SOURCE,
+        Path::new("variant-copy-aggregate-wasm.spx"),
+    )
+    .unwrap();
+    let bytes = wasm::emit_module(&program).unwrap();
+    assert_eq!(bytes, wasm::emit_module(&program).unwrap());
+    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+    let stem = format!(
+        "semaprax-variant-copy-aggregate-wasm-{}-{id}",
+        std::process::id()
+    );
+    let wasm_path = std::env::temp_dir().join(format!("{stem}.wasm"));
+    let script_path = std::env::temp_dir().join(format!("{stem}.mjs"));
+    std::fs::write(&wasm_path, bytes).unwrap();
+    std::fs::write(
+        &script_path,
+        r#"import { readFile } from "node:fs/promises";
+const fail = (name) => () => { throw new Error(`unexpected host import ${name}`); };
+const bytes = await readFile(process.argv[2]);
+const { instance } = await WebAssembly.instantiate(bytes, { env: {
+  spx_add: fail("spx_add"), spx_sub: fail("spx_sub"), spx_mul: fail("spx_mul"),
+  spx_div: fail("spx_div"), spx_rem: fail("spx_rem"), spx_neg: fail("spx_neg"),
+  spx_contract_fail: fail("spx_contract_fail"),
+} });
+if (instance.exports.semaprax_main() !== 42n) throw new Error("copy-aggregate variant backend result mismatch");
+console.log("variant-copy-aggregate-v1-ok");
+"#,
+    )
+    .unwrap();
+    let output = Command::new("node")
+        .arg(&script_path)
+        .arg(&wasm_path)
+        .output()
+        .unwrap();
+    let _ = std::fs::remove_file(&script_path);
+    let _ = std::fs::remove_file(&wasm_path);
+    assert!(
+        output.status.success(),
+        "Node copy-aggregate variant failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "variant-copy-aggregate-v1-ok"
+    );
+}

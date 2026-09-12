@@ -3,8 +3,12 @@
 //! Tags are declaration-order `u32` ordinals. Every variant reserves an
 //! aligned maximum-payload region, including one inert byte for unit-only
 //! payloads. Backends validate an independently reconstructed layout before
-//! consuming it. Layout support for an owned leaf records ownership explicitly;
-//! it does not widen any executable Copy-variant profile.
+//! consuming it. Layout support for an owned leaf records ownership explicitly.
+//! Copy Aggregate Variant Payload v1 additionally widens the Copy-variant
+//! profile to a direct, monomorphic, drop-free nested `record` field, laid
+//! out by delegating to the same canonical `AggregateLayout` every plain
+//! record field already uses; it stays `VariantFieldValueKind::Copy` since
+//! the nested record can never itself carry an owned leaf.
 
 use std::collections::{BTreeMap, BTreeSet};
 #[cfg(test)]
@@ -12,7 +16,7 @@ use std::fmt::Write as _;
 
 use sha2::{Digest, Sha256};
 
-use crate::aggregate_layout::{owned_bytes_size_align, scalar_size_align, AggregateTarget};
+use crate::aggregate_layout::{owned_bytes_size_align, scalar_size_align, AggregateLayout, AggregateTarget};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     substitute_type, DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedProgram, ResolvedType,
@@ -159,7 +163,7 @@ impl VariantLayout {
                     case.id
                 )));
             }
-            let layout = layout_case(target, variant, arguments, case, tag)?;
+            let layout = layout_case(program, target, variant, arguments, case, tag)?;
             payload_size = payload_size.max(layout.size);
             payload_align = payload_align.max(layout.align);
             layouts.push(layout);
@@ -299,6 +303,7 @@ impl VariantLayoutCache {
 }
 
 fn layout_case(
+    program: &ResolvedProgram,
     target: VariantTarget,
     variant: &DeclarationId,
     arguments: &[ResolvedType],
@@ -346,6 +351,24 @@ fn layout_case(
             // IterStep reserves one canonical eight-byte item-bits slot for
             // every admitted scalar, independent of the scalar's load width.
             (8, 8, VariantFieldValueKind::Copy)
+        } else if matches!(concrete_ty, ResolvedType::Nominal { ref arguments, .. } if arguments.is_empty())
+            && crate::hir::is_admitted_copy_aggregate_variant_field(
+                &program.declarations,
+                &concrete_ty,
+            )
+        {
+            // Copy Aggregate Variant Payload v1: a direct, monomorphic,
+            // drop-free nested record reuses the exact canonical aggregate
+            // layout every plain record field already uses. It stays a Copy
+            // leaf because the admission predicate above already proved the
+            // whole nested closure carries no owned `Bytes`/`string`.
+            let nested = AggregateLayout::for_type(program, target, &concrete_ty).map_err(|_| {
+                layout_error(format!(
+                    "variant `{variant}` case `{}` field `{}` has an invalid nested Copy aggregate layout",
+                    case.id, field.id
+                ))
+            })?;
+            (nested.size, nested.align, VariantFieldValueKind::Copy)
         } else {
             let (size, align) = scalar_size_align(target, &concrete_ty).map_err(|_| {
                 layout_error(format!(

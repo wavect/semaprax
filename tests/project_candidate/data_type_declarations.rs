@@ -478,7 +478,27 @@ fn wire_data_types_follow_the_extended_copy_variant_and_nested_generic_source_pr
             Some("data.added.some"),
         );
     }
-    for ty in [json!("string"), nominal("data.existing", &[])] {
+    // `data.existing` is a drop-free monomorphic record (one Copy-scalar
+    // field), so Copy Aggregate Variant Payload v1 admits it exactly like the
+    // extended Copy scalars above; `data.existing-choice` is a variant, not a
+    // record, so it stays outside that widened admission and keeps its prior
+    // `SPX-T215` rejection.
+    let (candidate, _) = apply(
+        &base,
+        addition(variant(vec![field(
+            "data.added.some.value",
+            "value",
+            nominal("data.existing", &[]),
+        )])),
+    )
+    .expect("drop-free nested record variant field must be admitted");
+    fact(
+        &candidate,
+        "data.added.some.value",
+        "case_field",
+        Some("data.added.some"),
+    );
+    for ty in [json!("string"), nominal("data.existing-choice", &[])] {
         code(
             apply(
                 &base,

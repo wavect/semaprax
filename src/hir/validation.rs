@@ -923,6 +923,11 @@ impl<'a> HirValidator<'a> {
                                 &field.ty,
                             ) || matches!(field.ty, ResolvedType::TypeParameter { .. })
                                 || (owned_byte_variant && field.ty == ResolvedType::Bytes)
+                                || (declaration.type_parameters.is_empty()
+                                    && super::type_reachability::is_admitted_copy_aggregate_variant_field(
+                                        &self.program.declarations,
+                                        &field.ty,
+                                    ))
                                 || crate::iterator_ops::is_step_rest_field(
                                     &declaration.id,
                                     &case.id,
@@ -960,6 +965,11 @@ impl<'a> HirValidator<'a> {
                             || super::type_reachability::nested_record_copy_scalar_is_admitted(
                                 &field.ty,
                             )
+                            || (declaration.type_parameters.is_empty()
+                                && super::type_reachability::is_admitted_copy_aggregate_variant_field(
+                                    &self.program.declarations,
+                                    &field.ty,
+                                ))
                         {
                             continue;
                         }

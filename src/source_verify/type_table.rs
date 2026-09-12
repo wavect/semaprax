@@ -704,6 +704,32 @@ impl<'a> TypeTable<'a> {
                 && cases.len() == 2)
     }
 
+    /// Copy Aggregate Variant Payload v1: a variant case field may name a
+    /// direct, monomorphic (no type arguments) `record` declaration whose own
+    /// fields are, recursively, admitted Copy scalars or further such
+    /// records. The referenced record must need no drop at all (no `Bytes`,
+    /// `string`, resource, or generic anywhere in its closure), so the
+    /// variant carrying it remains a plain Copy tagged union with no
+    /// cleanup-plan leaf; this is deliberately narrower than a general nested
+    /// aggregate payload and never admits a `class` (Class Inheritance v1
+    /// already closes `string`-bearing members, and upcast slicing has no
+    /// meaning inside a Copy tagged union).
+    pub(super) fn is_admitted_copy_aggregate_variant_field(&self, ty: &Type) -> bool {
+        if owned_byte_record_copy_field_is_admitted(ty) {
+            return true;
+        }
+        let Type::Named { name, arguments } = ty else {
+            return false;
+        };
+        if !arguments.is_empty() {
+            return false;
+        }
+        let Some(declaration) = self.declaration(name) else {
+            return false;
+        };
+        matches!(declaration.kind, TypeDeclarationKind::Record { .. }) && !self.needs_drop(ty)
+    }
+
     pub(super) fn is_opaque_resource(&self, ty: &Type) -> bool {
         let Type::Named { name, .. } = ty else {
             return false;

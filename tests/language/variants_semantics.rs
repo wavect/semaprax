@@ -95,10 +95,15 @@ fn main() -> i64 {
 
 #[test]
 fn empty_variants_and_non_scalar_payloads_are_rejected() {
+    // `Record` here carries an owned `string`, so it is outside Copy
+    // Aggregate Variant Payload v1 (`is_admitted_copy_aggregate_variant_field`
+    // requires the referenced record need no drop at all); it stays a
+    // negative control distinct from `copy_aggregate_variant_payload_...`
+    // below, which admits the all-Copy-scalar shape this test used to reject.
     let source = r#"
 module test.variant_shape_errors;
 @id("test.record")
-record Record { @id("test.record.value") value: i64, }
+record Record { @id("test.record.value") value: string, }
 @id("test.empty")
 variant Empty {}
 @id("test.invalid")
@@ -111,6 +116,150 @@ variant Invalid {
 fn main() -> i64 { 0 }
 "#;
     assert_eq!(codes(source), ["SPX-T215", "SPX-T215"]);
+}
+
+#[test]
+fn string_variant_payload_is_rejected_distinctly_from_the_empty_variant_code() {
+    // Names the exact SPX-T215 boundary this issue widens for `record`
+    // fields but deliberately leaves closed for `string`: a `string` case
+    // field has no cleanup-plan leaf of its own (Copy Aggregate Variant
+    // Payload v1 only ever admits a drop-free nested `record`), and the
+    // separate Owned Byte Variant Algebra v1 admits only a direct `Bytes`
+    // leaf, never `string`.
+    let source = r#"
+module test.variant_string_payload;
+@id("test.payload")
+variant Payload {
+    @id("test.payload.text")
+    Text {
+        @id("test.payload.text.value") value: string,
+    },
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let codes = codes(source);
+    assert_eq!(codes, ["SPX-T215"]);
+    let program = parse(source, Path::new("variant-string-payload.spx")).unwrap();
+    let message = verify::verify(&program)
+        .into_iter()
+        .find(|diagnostic| diagnostic.code == "SPX-T215")
+        .unwrap()
+        .message;
+    assert!(
+        !message.contains("SPX-T268"),
+        "string rejection must not be confused with the nested-owned-Bytes guard: {message}"
+    );
+}
+
+#[test]
+fn copy_aggregate_variant_payload_is_admitted_and_round_trips_canonically() {
+    // Copy Aggregate Variant Payload v1: a direct, monomorphic, drop-free
+    // nested `record` widens Copy Variants v1 (`SPX-T215`) alongside the
+    // pre-existing admitted Copy scalar and in-scope type parameter. The
+    // record has only Copy-scalar fields, so the variant stays Copy end to
+    // end: no cleanup-plan leaf, no `own`/`borrow` match mode.
+    let source = r#"
+module test.variant_copy_aggregate;
+@id("test.inner")
+record Inner {
+    @id("test.inner.x") x: i64,
+    @id("test.inner.flag") flag: bool,
+}
+@id("test.payload")
+variant Payload {
+    @id("test.payload.wrapped")
+    Wrapped {
+        @id("test.payload.wrapped.value") value: Inner,
+    },
+    @id("test.payload.plain")
+    Plain {
+        @id("test.payload.plain.value") value: i64,
+    },
+}
+@id("app.main")
+fn main() -> i64 {
+    match Payload::Wrapped { value: Inner { x: 7, flag: true } } {
+        Payload::Wrapped { value } => if value.flag { value.x } else { 0 },
+        Payload::Plain { value } => value,
+    }
+}
+"#;
+    assert!(codes(source).is_empty());
+    let program = parse(source, Path::new("variant-copy-aggregate.spx")).unwrap();
+    let canonical = format::canonical(&program);
+    let reparsed = parse(&canonical, Path::new("variant-copy-aggregate-canonical.spx")).unwrap();
+    assert!(verify::verify(&reparsed).is_empty());
+    assert_eq!(canonical, format::canonical(&reparsed));
+    assert_eq!(graph::revision(&program), graph::revision(&reparsed));
+    assert!(canonical.contains("value: Inner,"));
+}
+
+#[test]
+fn copy_aggregate_variant_payload_rejects_a_nested_owned_leaf() {
+    // A nested record that itself reaches an owned `Bytes` field stays
+    // outside Copy Aggregate Variant Payload v1 (it needs drop), so the
+    // pre-existing nested-owned-Bytes guard (`SPX-T268`) and `SPX-T215` both
+    // still fire, distinguishing "drop-free nested record" from "any nested
+    // record".
+    let source = r#"
+module test.variant_copy_aggregate_owned_leaf;
+@id("test.inner")
+record Inner {
+    @id("test.inner.data") data: Bytes,
+}
+@id("test.payload")
+variant Payload {
+    @id("test.payload.wrapped")
+    Wrapped {
+        @id("test.payload.wrapped.value") value: Inner,
+    },
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let program = parse(source, Path::new("variant-copy-aggregate-owned-leaf.spx")).unwrap();
+    let codes = verify::verify(&program)
+        .into_iter()
+        .filter(|diagnostic| diagnostic.severity.is_error())
+        .map(|diagnostic| diagnostic.code)
+        .collect::<Vec<_>>();
+    assert!(codes.contains(&"SPX-T215"), "{codes:?}");
+    assert!(codes.contains(&"SPX-T268"), "{codes:?}");
+}
+
+#[test]
+fn copy_aggregate_variant_payload_rejects_a_class_and_a_generic_instance() {
+    // Class Inheritance v1 upcast slicing has no meaning inside a Copy tagged
+    // union, and a generic-argument instance is outside the monomorphic
+    // profile this widening deliberately keeps narrow.
+    let class_source = r#"
+module test.variant_copy_aggregate_class;
+@id("test.inner")
+class Inner { @id("test.inner.x") x: i64, }
+@id("test.payload")
+variant Payload {
+    @id("test.payload.wrapped")
+    Wrapped { @id("test.payload.wrapped.value") value: Inner, },
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    assert_eq!(codes(class_source), ["SPX-T215"]);
+
+    let generic_source = r#"
+module test.variant_copy_aggregate_generic;
+@id("test.inner")
+record Inner<T> { @id("test.inner.x") x: T, }
+@id("test.payload")
+variant Payload {
+    @id("test.payload.wrapped")
+    Wrapped { @id("test.payload.wrapped.value") value: Inner<i64>, },
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    assert_eq!(codes(generic_source), ["SPX-T215"]);
 }
 
 #[test]

@@ -102,7 +102,9 @@ as a follow-on once this shape is proven on one operation.
 One operation: a new `core.host.file-write-atomic-checked` host command,
 authored as `file_write_atomic_checked`, under a new `FilesystemV3` profile
 additive to `FilesystemV2` (`src/command_io_ops.rs`'s
-`CommandOperationProfile` enum, `:44-64`). Same signature shape as
+`CommandOperationProfile` enum, `:49-65` as of this revision — cite the
+current definition, not this line number, since it shifts with unrelated
+edits). Same signature shape as
 `file_write_atomic` — `(borrow Slice<u8> path, usize path_length, borrow
 Slice<u8> data, usize data_length) -> usize` — but its returned `usize` is a
 closed three-code outcome instead of a byte count, and (unlike
@@ -220,21 +222,39 @@ shared fail-stop mechanism:
   (e.g. `src/wasm/aggregate/host_command.rs:186-196`) that branch to the
   function's existing fail-stop exit depth
   (`self.control_depth + self.status_exit_extra_depth`,
-  `src/wasm/aggregate/host_command.rs:337`). The new operation needs its own
-  emission arm that skips that branch for its domain codes and instead
-  writes the mapped `0`/`1`/`2` value to the result local, matching the
-  native side's "no goto" rule bit for bit — this is exactly where the first
-  non-negotiable invariant ("equivalent checked behavior on every backend
-  that claims the admitted feature") is load-bearing: if native returns a
-  value and Wasm still traps for the same provider condition, the profile is
-  not admitted on Wasm and must not be marked as such.
+  `src/wasm/aggregate/host_command.rs:335-338` as of this revision — the
+  `br` opcode itself is emitted one line earlier, at `:334`). The new
+  operation needs its own emission arm that skips that branch for its domain
+  codes and instead writes the mapped `0`/`1`/`2` value to the result local,
+  matching the native side's "no goto" rule bit for bit — this is exactly
+  where the first non-negotiable invariant ("equivalent checked behavior on
+  every backend that claims the admitted feature") is load-bearing: if
+  native returns a value and Wasm still traps for the same provider
+  condition, the profile is not admitted on Wasm and must not be marked as
+  such.
 - **Interpreter** (a third execution surface the repository treats as a
-  reference lane, per `src/interpreter/`): needs the same three-way mapping
-  in whichever host-command interpreter path currently short-circuits the
-  whole evaluation on a nonzero provider result; this document does not cite
-  an exact line because the interpreter dispatch point was not read in
-  enough depth here to pin one, and an implementer must locate and cite it
-  before lowering, not assume the native/Wasm sketch above transfers as-is.
+  reference lane, per `src/interpreter/`): confirmed dispatch point —
+  `src/interpreter.rs`'s `Evaluator::evaluate` matches
+  `ResolvedExprKind::HostCommandCall(call)` and routes any filesystem
+  operation (`fs if crate::filesystem_ops::is_filesystem(fs)`) to
+  `Evaluator::evaluate_filesystem_operation`
+  (`src/interpreter/filesystem.rs:59`). That function's `FileWriteAtomic`
+  arm (`src/interpreter/filesystem.rs:138-146`) calls
+  `state.provider.write_atomic(path, data)` and propagates any
+  `Err(FileFailure)` with ordinary Rust `?`/`map_err(failure)` — there is no
+  single `goto`-style label analogous to native's `spx_epilogue`; the
+  short-circuit is the recursive evaluator's `Result<Value, Flow>` unwind
+  through every enclosing `self.evaluate(...)` call, terminating at the
+  top-level command entry point that converts a propagated
+  `Err(Flow::Failure(status))` into the invocation's outcome (for example
+  `src/interpreter.rs:3073-3091` for the legacy hosted-command entry, or
+  `:894-924` for the owned-data entry). A lowering must add its three-way
+  mapping inside `evaluate_filesystem_operation`'s new arm for
+  `file_write_atomic_checked`, returning `Ok(Value)` for all three outcome
+  codes instead of using `failure(...)`/`?` for the `UNCERTAIN` case, so the
+  interpreter's `Result`-based unwind is bypassed for this operation's own
+  domain exactly as the native/Wasm sketches above bypass their fail-stop
+  paths.
 
 None of the three lowerings above exist yet. This document fixes their target
 shape; it does not attempt to write them, per this document's own Status line

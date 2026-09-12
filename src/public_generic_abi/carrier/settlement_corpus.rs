@@ -619,7 +619,7 @@ fn structural_leaf_order_is_left_to_right_staged_and_exact_reverse_released() {
         case_id: "structural_order_pin".to_owned(),
         input_leaves: vec![b"AA".to_vec(), b"BBB".to_vec()],
         failure_injection_id: None,
-            compound_cleanup_injection: None,
+        compound_cleanup_injection: None,
         expected_accepted: true,
         expected_status: InterpreterPgStatus::Ok as i32,
     };
@@ -732,7 +732,9 @@ fn sticky_failure_selection_matches_across_engines_when_cleanup_also_fails_after
 /// this test targets — still passes, isolating the failure to the
 /// explicit `== 1` checks below.
 #[test]
-#[should_panic(expected = "the compounding cleanup injection must be rejected and counted exactly once")]
+#[should_panic(
+    expected = "the compounding cleanup injection must be rejected and counted exactly once"
+)]
 fn sticky_failure_selection_rejects_a_missing_compounding_overwrite_count() {
     let case = corpus()
         .into_iter()

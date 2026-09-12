@@ -548,17 +548,12 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             .each_ref()
             .map(|artifact| document_sha(&artifact.json)),
         [
-            // Re-pinned after type-fact cycle detection began retaining exact
-            // concrete nominal identities; only `used_builder_bytes` moved.
-            // Issue #83 re-pin: this whole-document KAT embeds `used_builder_bytes`,
-            // which moved when the identity copy factor was re-derived from 64 to 16.
-            // Only that budget field changed; every other field of the rendered
-            // document is byte for byte identical, checked by rendering the same
-            // document under both factors and diffing it field by field.
-            "sha256:5c679b5435c3463819dd14ef03f41b8c7ed3e2c71a22e11eacc388ad2e1dfd09",
-            "sha256:14643ac68fcd48efd4f5140a734f79781049edf081d8dc04c11b4547d00a6dc0",
-            "sha256:822ebe39cf4b127bf055b891e5bdeb1788fc110a6693738594dae2874294b651",
-            "sha256:09796ff34909f402de02cd8cf816f96f0056b1ea6a927bda3cc1e885da2ec6cb"
+            // Issue #248: corrected workspace max_builder_bytes and dependent
+            // digests. Reconstructing only those fields reproduces all prior KATs.
+            "sha256:95f5907e20d43a1edf6b560b257d2bbf6730b9ca80cb9a518949abd157e35c46",
+            "sha256:e804a4449365f25b5ca89ef7aee80cb3138a87c8ebd8fb0c4b42b8bb8000719d",
+            "sha256:056a3901e1f0424bc1334ddbebd64b90b9d518acad045c19f85648356ded82ae",
+            "sha256:9c79f1dcd1ad6f02cc967da4f88c32db36f32cd33df31e77350c5a36efa5b397"
         ]
     );
     for artifact in &contexts {
@@ -619,10 +614,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             .each_ref()
             .map(|artifact| document_sha(&artifact.json)),
         [
-            // Re-pinned after type-fact cycle detection began retaining exact
-            // concrete nominal identities; only `used_builder_bytes` moved.
-            "sha256:6a6b69b3d556329ff37f64d1df2c62ed83f46785c1f71137ed1ee22a3fa529f9",
-            "sha256:dfd3ffa38bffaa7b7c6a29d7a05d6c08387e9a7d045d1ad90491fb4bf64b611b",
+            // Issue #248: only workspace max_builder_bytes and its dependent
+            // digests changed; reconstructing them reproduces the prior KATs.
+            "sha256:b567e08854b592697dcde50ecbd43953cea46694805a1b4fecc38096cd9819c1",
+            "sha256:b595f0d93e3108f04b7d1eb2731a3048db64415ca69282635ca40abc9f165793",
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -761,9 +756,9 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
     let review = analysis.render_review(declaration_target.clone()).unwrap();
     assert_eq!(
         document_sha(&review.json),
-        // Re-pinned after type-fact cycle detection began retaining exact
-        // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:ba839e37859038cf75ba9af0d56b86cdfe5139267b977c73a5ce0c74766950e6"
+        // Issue #248: only workspace max_builder_bytes and its dependent
+        // digests changed; reconstructing them reproduces the prior KATs.
+        "sha256:7b2e5047397e6167c6e2622c725d771b8047b83bab82046c4ed262ef11f32769"
     );
     let direct_context = analysis
         .render_context(

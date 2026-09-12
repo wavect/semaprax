@@ -8,6 +8,19 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Correct the Workspace Semantic Graph and Context/Impact/Review workspace
+  limit projections to report the enforced 18 MiB builder ceiling from one
+  renderer (#248). The 16 MiB analysis/cache ceilings remain separate. Re-pin
+  exact artifact hashes after verifying that restoring only the old limit
+  and dependent digests reproduces every previous known answer.
+- Repair standard-library conformance registration for guarded logging and
+  `std.metrics`, and synchronize the generated auth/TOML catalogs (#102).
+- Exercise frozen execution evidence around a live fixture invocation and
+  clarify that terminal journal replay preserves its case and carrier digest,
+  not the original carrier payload (#108).
+- Add a standalone Rust consumer for the public check/format/graph embedding
+  facade, with its own offline lockfile and explicit checkout-only scope (#203).
+
 - Rewrite the `SPX-H006` cleanup-replay path-budget diagnostic's message to
   name the actual cost driver instead of only the budget it exceeded. The
   previous wording ("cleanup replay path bound exceeds the global path

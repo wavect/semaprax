@@ -248,7 +248,7 @@ convention:
 
 ## Evidence
 
-Local, offline unit tests only (`cargo test --locked -p semaprax --lib
+Local, offline unit tests (`cargo test --locked -p semaprax --lib
 embedding_api::tests`): a valid program checks with no diagnostics and a
 revision; a program missing `@id` still checks `ok` while keeping its
 `SPX-S103` warning; a module with no function fails specifically with
@@ -275,3 +275,14 @@ process, opens a network socket, or reads a real file from disk.
 `cargo test --locked -p semaprax --lib embedding_api::tests` →
 **16 passed, 0 failed** (11 pre-existing + 5 new for `graph_source`). See
 the top-level report for this tranche's exact command and count.
+
+### Standalone host consumer
+
+[The standalone Rust consumer](../examples/embedding-api/README.md) imports
+only `semaprax::embedding_api` and exercises successful checking, exact
+canonical formatting and idempotence, graph identity, malformed-source
+diagnostics, retained warnings, and API-major rejection. Run it with
+`cargo run --locked --offline --manifest-path examples/embedding-api/Cargo.toml`.
+It has its own Cargo workspace and lockfile. Its dependency is a local path
+to the compiler checkout; this is local consumer evidence, not validation
+of an installed or published registry package.

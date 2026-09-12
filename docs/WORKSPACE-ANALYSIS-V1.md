@@ -303,13 +303,13 @@ are present. The frozen whole-document raw SHA-256 KATs are:
 
 | Artifact | SHA-256 wire value |
 | --- | --- |
-| Context forward | `sha256:35f39e8220a9fcd2e952e361ed70c8e47c290eda55422d7b772348c97d97668a` |
-| Context reverse | `sha256:c93bfff8347892750ad1f0a3e87ed5dff32ede26f3793acfb904d703996becc2` |
-| Context both | `sha256:8d9a68b005d8f6e147c954e32d8437cc2e7a86c771cded64f2a2e2db58d3d1f7` |
-| Context capability reverse | `sha256:991a5a4f3e4339bd801918d50f15ffd40acb7d683162bd69d291b47b5808702c` |
-| Impact declaration | `sha256:70259a820e24e9110874b645ec96d3c1350dcd0441d58c3562298937bc871af5` |
-| Impact capability | `sha256:20c4f1d72f10d75852580da4ad5a1e43e9c69677e26d88c9c8212bf57531727e` |
-| Review | `sha256:ff8dd7f60be9c8fc0ff06a9216c864e502ec5cca6d577ee460f338b6e6a12cf9` |
+| Context forward | `sha256:95f5907e20d43a1edf6b560b257d2bbf6730b9ca80cb9a518949abd157e35c46` |
+| Context reverse | `sha256:e804a4449365f25b5ca89ef7aee80cb3138a87c8ebd8fb0c4b42b8bb8000719d` |
+| Context both | `sha256:056a3901e1f0424bc1334ddbebd64b90b9d518acad045c19f85648356ded82ae` |
+| Context capability reverse | `sha256:9c79f1dcd1ad6f02cc967da4f88c32db36f32cd33df31e77350c5a36efa5b397` |
+| Impact declaration | `sha256:b567e08854b592697dcde50ecbd43953cea46694805a1b4fecc38096cd9819c1` |
+| Impact capability | `sha256:b595f0d93e3108f04b7d1eb2731a3048db64415ca69282635ca40abc9f165793` |
+| Review | `sha256:7b2e5047397e6167c6e2622c725d771b8047b83bab82046c4ed262ef11f32769` |
 
 Exact-head release evidence is HOSTED GREEN for v0.4.0; this document makes no status
 promotion.

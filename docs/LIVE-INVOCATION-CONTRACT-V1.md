@@ -580,3 +580,21 @@ network access. Focused gate:
 ```sh
 cargo test --locked -p semaprax --lib live_invocation
 ```
+
+## Reference-contract acceptance for #108
+
+The bounded design and reference state machine received independent code
+review and local fixture validation on 2026-09-12. The `live_invocation::`
+library selector executed 95 tests, including identity binding, cross-chain
+and ordering rejection, uncertain-intent refusal, zero-dispatch replay,
+budget/cancellation boundaries, and separation of raw and decoded bytes.
+
+`execution_revision::frozen_execution_revision_evidence_is_byte_identical_after_a_live_fixture_run`
+also passed: the real retained-source runtime executes before and after one
+live fixture, and its canonical ExecutionRevision, EvidenceRoot, and lifecycle
+evidence digest remain byte-identical. The production execution-revision
+implementation is unchanged from issue #108's `ae25c6a4` baseline.
+
+This accepts #108's design/reference deliverable. It does not accept #177's
+source/HIR/Direct Runtime integration, a real provider run, hosted execution,
+or public support; those remain the downstream issues' deliverables.

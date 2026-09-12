@@ -4,11 +4,10 @@
 //! the embedding API is published. It intentionally does not access compiler
 //! internals, the CLI, or the filesystem.
 
-use semaprax::embedding_api::{
-    check_source, format_source, graph_source, EMBEDDING_API_VERSION,
-};
+use semaprax::embedding_api::{check_source, format_source, graph_source, EMBEDDING_API_VERSION};
 
-const SOURCE: &str = "module host.demo;\n\n@id(\"host.demo.main\")\nfn main() -> i64\n{\n    42\n}\n";
+const SOURCE: &str =
+    "module host.demo;\n\n@id(\"host.demo.main\")\nfn main() -> i64\n{\n    42\n}\n";
 
 fn main() {
     assert!(EMBEDDING_API_VERSION.is_compatible_with(1));
@@ -16,20 +15,39 @@ fn main() {
     assert!(!EMBEDDING_API_VERSION.is_compatible_with(2));
 
     let checked = check_source("host-demo.spx", SOURCE);
-    assert!(checked.ok, "valid source was rejected: {:?}", checked.diagnostics);
+    assert!(
+        checked.ok,
+        "valid source was rejected: {:?}",
+        checked.diagnostics
+    );
     assert!(checked.diagnostics.is_empty());
     assert!(checked.revision.is_some());
     assert_eq!(checked.unit_name, "host-demo.spx");
 
     let formatted = format_source("host-demo.spx", SOURCE);
-    assert!(formatted.ok, "valid source did not format: {:?}", formatted.diagnostics);
+    assert!(
+        formatted.ok,
+        "valid source did not format: {:?}",
+        formatted.diagnostics
+    );
     let canonical = formatted
         .canonical_source
         .expect("successful formatting must return canonical source");
-    assert_eq!(format_source("host-demo.spx", &canonical).canonical_source, Some(canonical));
+    assert_eq!(
+        canonical, SOURCE,
+        "formatting returns the exact canonical source"
+    );
+    assert_eq!(
+        format_source("host-demo.spx", &canonical).canonical_source,
+        Some(canonical)
+    );
 
     let graphed = graph_source("host-demo.spx", SOURCE);
-    assert!(graphed.ok, "valid source did not graph: {:?}", graphed.diagnostics);
+    assert!(
+        graphed.ok,
+        "valid source did not graph: {:?}",
+        graphed.diagnostics
+    );
     let graph = graphed
         .graph_json
         .expect("successful graph rendering must return graph JSON");
@@ -44,5 +62,8 @@ fn main() {
         "module host.demo;\n\nfn main() -> i64\n{\n    42\n}\n",
     );
     assert!(warned.ok);
-    assert!(warned.diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-S103"));
+    assert!(warned
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.code == "SPX-S103"));
 }

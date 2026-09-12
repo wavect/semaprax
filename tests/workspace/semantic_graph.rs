@@ -516,9 +516,9 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     );
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
-        // Re-pinned after type-fact cycle detection began retaining exact
-        // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:b4d4eebf15ef248452bbf9900e25080709bb780e3eb33373932ad9e82d203615"
+        // Issue #248: only workspace max_builder_bytes and its dependent
+        // digests changed; reconstructing them reproduces the prior KATs.
+        "sha256:4ba9d9c3bc349ac807c549c0e445d6b9ce47467d396e50ccf9cb5584f56bae0b"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -932,14 +932,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:69d6966635ebb3310247beb304eca57f08b562085d09b0c7a9480374db0a8844",
-            "sha256:d4520e55955eff8dd64dd0f8bc296e12e1a2cec96e25a94b3a01c1f5abd08217",
-            "sha256:91ee1c1e9af6fd881f4bf7f9caeb1b982c102b237a2795621e0faf1c0f51b182",
-            "sha256:ecc168f8a8c0c01b677921d7c6adddc70585260e3d494e2a48077cdc70b25aac",
-            "sha256:de76455f2eaad87fafa95923ec922c558491ee078d11c70e6ba0c7af072aa243",
-            "sha256:16e53e504b4b270bdaf9afef61c2d8a6b1c85334bdf7cffdb1510a79e1ca5138",
-            "sha256:d74d48124ae7e0842d1a187b0111d9b4f6c6129b1115de2b1dc9b88231fdbc7d",
-            "sha256:999bb04710befd1ae8418b0361b603a052270140bc9c3193724621b791cb8f9c",
+            "sha256:1a75821424cdcc5ffc3dfd4934a8d059bc0e5aed4612cf682d25bf5590aa5332",
+            "sha256:0c1127c64b526f129bde15c744952f50e9ccb92b9408b6599ad0e8226a4ecf0a",
+            "sha256:33d67f6cd39b901e9c88e0bad205ecfce289768e439dd767e44e94744d9486f1",
+            "sha256:2914c518234efac2efb7572b6db73d95a5955ebedbc75bf9342425c0b88e42b4",
+            "sha256:452dd1c614f23d63ba6bf60a0bc8fe8fa64461129b036a36886b60d35f304dd8",
+            "sha256:1d6f697c7d94214a231c6d4c2ab1fd87b1dcb2cdc7b1ea66d4de9ae64ab0fc70",
+            "sha256:82aeb61e7b6274a1511e6f7d31c22fa1cc1d789c1044ec2805611eb9d00a8b60",
+            "sha256:652a3d88e4e0ca1e06924e4ba4562abe9e9b08b1ae5b372197b9e20e003683af",
         ]
     );
 

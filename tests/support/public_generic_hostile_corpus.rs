@@ -34,6 +34,46 @@
 //! comparison would be comparing different things under the same name. Each
 //! route's own full local matrix remains covered by its existing generated
 //! test, unmodified.
+//!
+//! Issue #173 added `binding_wrong_target_profile` and
+//! `binding_valid_for_different_artifact`: both submit a FULLY well-formed
+//! alternate `NativeProviderBindingV1`/`WasmProviderBindingV1` (never a
+//! corrupted byte string) that a real decoder would happily accept as *some*
+//! legitimate binding, just not this one's. This is deliberately a different
+//! failure mode than `binding_last_byte_flipped`'s arbitrary bit flip: it
+//! proves the open-time check requires exact agreement with this route's OWN
+//! trusted binding -- not merely well-formedness, not a plausible embedded
+//! digest, and not the right shape for a DIFFERENT deployment or a
+//! DIFFERENT target runtime. Issue #173 also asked, at the wider descriptor
+//! level, for hostility across "extra fields, reordering, duplicates,
+//! unknown version, wrong schema" and "stale ... type grammar, surface,
+//! target, artifact ... associations". Those are deliberately NOT added
+//! here: at the layer this file's four consumers actually exercise, the
+//! descriptor and binding are opaque authenticated byte strings compared for
+//! exact equality (see `spx_pg_provider_open_v1` in
+//! `src/public_generic_abi/native/provider_body.c` and
+//! `verifyDescriptorAndBinding` in
+//! `src/public_generic_consumer/typescript_calling/render.rs`), not the
+//! structured, framed-field `DescriptorV1` wire format
+//! (`src/public_generic_abi/descriptor.rs`) that already has its own
+//! independent hostile coverage for truncation, trailing/extra bytes,
+//! reordering, an oversized length claim, an unknown schema literal, a
+//! stale `boundary_profile`/`type_grammar_schema` version, and cross-paired
+//! staleness on every one of `export_id`/`program_root_digest`/
+//! `source_projection_digest`/`public_surface_digest`/`input.term`/
+//! `input.instance_digest`/`result.term`/`result.instance_digest`
+//! (`src/public_generic_abi/descriptor/tests.rs`). That structured schema is
+//! not yet threaded through the generated calling consumers or the
+//! native/Wasm provider ABI this file drives -- the calling-consumer layer
+//! only ever sees the encoded blob, never its fields -- so "reorder a
+//! field"/"duplicate a field"/"unknown version" collapse to exactly the same
+//! observable outcome this file already proves (any byte difference is
+//! rejected) rather than being independently meaningful new cases at THIS
+//! layer. Widening that requires the flat owned-Bytes calling-consumer type
+//! model (issue #119) to carry real descriptor structure first; until then,
+//! duplicating the reference codec's own field-level cases here would
+//! silently claim more cross-consumer coverage than the bytes actually let
+//! any of the four generated consumers observe.
 
 /// The one descriptor baseline every one of the four generated consumers is
 /// generated from in the shared-corpus harnesses. Provider-family-agnostic
@@ -70,6 +110,27 @@ pub const EXPECTED: &[(&str, &str)] = &[
     ("descriptor_names_different_document", "DESCRIPTOR_REJECTED"),
     ("exactly_per_leaf_bound_accepted", "ACCEPTED"),
     ("one_byte_over_per_leaf_bound_rejected", "CAPACITY_EXCEEDED"),
+    // Issue #173: a fully well-formed alternate `NativeProviderBindingV1` /
+    // `WasmProviderBindingV1` (not a corrupted byte string) whose wrapped
+    // `CarrierBindingV1` names the OTHER route's `TargetProfile` --
+    // `TargetProfile::CoreWasm` submitted to the native route,
+    // `TargetProfile::NativeC11` submitted to the Wasm route -- exercising
+    // "cross-runtime replay" (issue #173's own term) end to end through the
+    // real compiled provider / real generated wasm-provider.ts, not merely
+    // through the reference `CarrierBindingV1`/binding codec's own unit
+    // tests (which already covered this at the single-route, non-generated
+    // level; see this file's module doc for that distinction).
+    ("binding_wrong_target_profile", "PROVIDER_MISMATCH"),
+    // A fully well-formed alternate binding naming the CORRECT target
+    // profile but a different `provider_artifact_digest` and
+    // `exported_endpoint_symbol`/`exported_endpoint_export_name` -- i.e. a
+    // legitimate-shaped credential for a DIFFERENT deployed provider
+    // artifact, not an arbitrary corrupted byte string. Proves the open-time
+    // check requires exact agreement with THIS route's own trusted binding
+    // rather than merely well-formedness or a plausible embedded digest
+    // ("cross-artifact replay" / "independent recomputation rather than
+    // trusting embedded digest fields", issue #173).
+    ("binding_valid_for_different_artifact", "PROVIDER_MISMATCH"),
 ];
 
 /// Parse every `SHARED_CORPUS <case_id> <STATUS>` line a spliced driver

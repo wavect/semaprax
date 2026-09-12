@@ -37,6 +37,7 @@
 //! valid binding rather than literally shared bytes.
 
 use std::env;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -83,6 +84,60 @@ fn fixture_binding(wasm_bytes: &[u8]) -> WasmProviderBindingV1 {
         FIXTURE_ENDPOINT_EXPORT_NAME,
         "semaprax-0.4.1",
     )
+}
+
+/// Issue #173's `binding_wrong_target_profile` case: a fully well-formed
+/// [`WasmProviderBindingV1`] whose wrapped [`CarrierBindingV1`] names
+/// `TargetProfile::NativeC11` instead of the real `CoreWasm` this route
+/// actually is -- everything else matches [`fixture_binding`] exactly, so
+/// only the target-profile confusion is under test. Mirrors the native
+/// harness's own `cross_target_binding` (see its doc comment for why real
+/// dual-toolchain interop is not attempted here).
+fn cross_target_binding(wasm_bytes: &[u8]) -> WasmProviderBindingV1 {
+    WasmProviderBindingV1::new(
+        CarrierBindingV1::new(
+            "sha256:6262626262626262626262626262626262626262626262626262626262626262",
+            TargetProfile::NativeC11,
+            "runtime:core-wasm-fixture-issue-160-shared-corpus",
+        ),
+        module_artifact_digest(wasm_bytes),
+        FIXTURE_ENDPOINT_EXPORT_NAME,
+        "semaprax-0.4.1",
+    )
+}
+
+/// Issue #173's `binding_valid_for_different_artifact` case: a fully
+/// well-formed [`WasmProviderBindingV1`] -- same descriptor identity digest,
+/// same `TargetProfile::CoreWasm`, same runtime identity -- but a DIFFERENT
+/// `provider_artifact_digest` and `exported_endpoint_export_name`, as if
+/// minted for a genuinely different deployed Wasm module rather than
+/// corrupted.
+fn cross_artifact_binding() -> WasmProviderBindingV1 {
+    WasmProviderBindingV1::new(
+        CarrierBindingV1::new(
+            "sha256:6262626262626262626262626262626262626262626262626262626262626262",
+            TargetProfile::CoreWasm,
+            "runtime:core-wasm-fixture-issue-160-shared-corpus",
+        ),
+        "sha256:8888888888888888888888888888888888888888888888888888888888888888".to_owned(),
+        format!("{FIXTURE_ENDPOINT_EXPORT_NAME}_different_artifact"),
+        "semaprax-0.4.1",
+    )
+}
+
+/// Render `bytes` as a JavaScript numeric-literal array, e.g. `[1,2,3]`, for
+/// splicing a fixed byte value into generated TypeScript test source
+/// (`new Uint8Array(<literal>)`).
+fn js_byte_array_literal(bytes: &[u8]) -> String {
+    let mut out = String::from("[");
+    for (index, byte) in bytes.iter().enumerate() {
+        if index != 0 {
+            out.push(',');
+        }
+        write!(out, "{byte}").unwrap();
+    }
+    out.push(']');
+    out
 }
 
 fn shapes() -> (RecordShape, RecordShape) {
@@ -280,6 +335,42 @@ const TS_APPENDIX: &str = r#"
     console.log(`SHARED_CORPUS one_byte_over_per_leaf_bound_rejected ${status}`);
   });
 
+  await test("shared corpus: binding_wrong_target_profile", async () => {
+    // A fully well-formed alternate binding naming the OTHER route's target
+    // profile, not a corrupted byte string.
+    const crossTargetBinding = new Uint8Array(__CROSS_TARGET_BINDING_BYTES__);
+    let status = "OTHER";
+    try {
+      const provider = await Provider.open(wasmBytes, { bindingBytes: crossTargetBinding });
+      provider.close();
+      status = "ACCEPTED";
+    } catch (error) {
+      if (error instanceof SemapraxPublicGenericException) {
+        if (error.detail.kind === "descriptor-rejected") status = "DESCRIPTOR_REJECTED";
+        else if (error.detail.kind === "provider-mismatch") status = "PROVIDER_MISMATCH";
+      }
+    }
+    console.log(`SHARED_CORPUS binding_wrong_target_profile ${status}`);
+  });
+
+  await test("shared corpus: binding_valid_for_different_artifact", async () => {
+    // A fully well-formed alternate binding naming a different provider
+    // artifact digest and export name, not a corrupted byte string.
+    const crossArtifactBinding = new Uint8Array(__CROSS_ARTIFACT_BINDING_BYTES__);
+    let status = "OTHER";
+    try {
+      const provider = await Provider.open(wasmBytes, { bindingBytes: crossArtifactBinding });
+      provider.close();
+      status = "ACCEPTED";
+    } catch (error) {
+      if (error instanceof SemapraxPublicGenericException) {
+        if (error.detail.kind === "descriptor-rejected") status = "DESCRIPTOR_REJECTED";
+        else if (error.detail.kind === "provider-mismatch") status = "PROVIDER_MISMATCH";
+      }
+    }
+    console.log(`SHARED_CORPUS binding_valid_for_different_artifact ${status}`);
+  });
+
 "#;
 
 #[test]
@@ -320,13 +411,29 @@ fn shared_hostile_corpus_agrees_with_the_native_manifest() {
     let package_root = workspace.path("generated-typescript-consumer");
     write_generated_package(&package_root, consumer.files());
 
+    // Issue #173: the byte literals for `binding_wrong_target_profile` and
+    // `binding_valid_for_different_artifact` are computed once here (this
+    // harness CAN depend on `semaprax`) and spliced into the generated
+    // TypeScript test source as a fixed literal.
+    let cross_target_binding_bytes = cross_target_binding(&wasm_bytes).encode();
+    let cross_artifact_binding_bytes = cross_artifact_binding().encode();
+    let ts_appendix = TS_APPENDIX
+        .replace(
+            "__CROSS_TARGET_BINDING_BYTES__",
+            &js_byte_array_literal(&cross_target_binding_bytes),
+        )
+        .replace(
+            "__CROSS_ARTIFACT_BINDING_BYTES__",
+            &js_byte_array_literal(&cross_artifact_binding_bytes),
+        );
+
     let round_trip_path = package_root.join("test/round-trip.mjs");
     let mut contents = fs::read_to_string(&round_trip_path).unwrap();
     let anchor = "  if (failed > 0) {";
     let position = contents.find(anchor).unwrap_or_else(|| {
         panic!("splice anchor {anchor:?} not found in generated round-trip.mjs")
     });
-    contents.insert_str(position, TS_APPENDIX);
+    contents.insert_str(position, &ts_appendix);
     fs::write(&round_trip_path, &contents).unwrap();
 
     let wasm_path = workspace.path("reference.wasm");

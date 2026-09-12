@@ -791,13 +791,15 @@ Every cell above already passed before this issue; none of it is
 duplicated by the shared corpus. What none of it did is compare outcomes
 ACROSS languages — that is this section's actual contribution.
 
-**What the shared corpus adds, and how agreement is enforced.** Six cases,
+**What the shared corpus adds, and how agreement is enforced.** Six cases
+originally (issue #160), now eight (issue #173 added two more — see below),
 generated from ONE canonical descriptor baseline
 (`BASELINE_DESCRIPTOR_BYTES`) fed identically to all four
 `generate_*_calling_consumer` calls: `success_baseline`,
 `descriptor_first_byte_flipped`, `binding_last_byte_flipped`,
 `descriptor_names_different_document`, `exactly_per_leaf_bound_accepted`,
-`one_byte_over_per_leaf_bound_rejected`. Each generated consumer's own
+`one_byte_over_per_leaf_bound_rejected`, `binding_wrong_target_profile`,
+`binding_valid_for_different_artifact`. Each generated consumer's own
 `consumer.files()` output is left byte-for-byte untouched (the "byte for
 byte" claim above still holds); the harness instead splices one additional,
 hand-written test into the already-generated round-trip file at write time
@@ -874,6 +876,57 @@ no independent compiled provider exists yet to hold a separate counter.
   toolchain is provisioned here.
 - Evidence in this section is local only, exactly like every consumer
   section above; no hosted CI run is claimed or implied.
+
+### Cross-runtime and cross-artifact additions (issue #173)
+
+Issue #173 asked, across the same four consumers, for hostility against
+stale target/artifact associations and "independent recomputation rather
+than trusting embedded digest fields." Two cases were added to
+`tests/support/public_generic_hostile_corpus.rs::EXPECTED` (now eight, not
+six) and to both harnesses: `binding_wrong_target_profile` and
+`binding_valid_for_different_artifact`. Both submit a FULLY well-formed
+alternate `NativeProviderBindingV1`/`WasmProviderBindingV1` — never a
+corrupted byte string, but a value a real decoder would happily accept as
+*some* legitimate binding, just not this one's — so they exercise a
+different failure mode than `binding_last_byte_flipped`'s arbitrary bit
+flip: `binding_wrong_target_profile` names the OTHER route's
+`TargetProfile` (`CoreWasm` submitted to the native route, `NativeC11`
+submitted to the Wasm route); `binding_valid_for_different_artifact` names
+the correct target profile but a different `provider_artifact_digest` and
+endpoint symbol/export name, as if minted for a different deployed provider.
+Both expect `PROVIDER_MISMATCH` and were verified, like the #160 cases
+before them, with a real negative control: deliberately mis-declaring
+either expected status in `EXPECTED` failed both the native and the
+TypeScript harness with the exact case and the exact (correct) status
+observed, then was reverted.
+
+**What #173's wider descriptor categories were NOT added, and why.** #173
+also asked for hostility across "extra fields, reordering, duplicates,
+unknown version, wrong schema" at the descriptor level, and staleness of
+"Project, ProgramRoot, source, export, type grammar, surface, ... artifact"
+associations. Those are already covered, but only at the single-route
+reference-codec level, never through these four generated consumers:
+`src/public_generic_abi/descriptor.rs`'s `DescriptorV1` is a structured,
+framed-field wire format with its own independent hostile tests
+(`src/public_generic_abi/descriptor/tests.rs`) for truncation, trailing
+bytes, reordering, an oversized length claim, an unknown schema literal, a
+stale `boundary_profile`/`type_grammar_schema` version, and cross-paired
+staleness on every one of `export_id`/`program_root_digest`/
+`source_projection_digest`/`public_surface_digest`/`input.term`/
+`input.instance_digest`/`result.term`/`result.instance_digest`. But the
+descriptor and binding bytes these four generated consumers and the
+native/Wasm provider ABI actually exchange are opaque, exact-equality-
+compared byte strings (see `spx_pg_provider_open_v1` in
+`src/public_generic_abi/native/provider_body.c` and
+`verifyDescriptorAndBinding` in
+`src/public_generic_consumer/typescript_calling/render.rs`) — `DescriptorV1`'s
+structured fields are not yet threaded through this layer. At the
+calling-consumer layer, "reorder a field"/"duplicate a field"/"unknown
+version" therefore collapse to exactly the same observable outcome the
+existing byte-mutation cases already prove (any byte difference is
+rejected), rather than being independently meaningful new cases here.
+Widening that requires the flat owned-`Bytes` calling-consumer type model
+(issue #119) to carry real descriptor structure first.
 
 ## Aggregate execution entry point (issue #172)
 

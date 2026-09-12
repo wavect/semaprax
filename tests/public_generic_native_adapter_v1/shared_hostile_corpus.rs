@@ -37,6 +37,7 @@
 //! consumer's own accessor), never a consumer's own bookkeeping.
 
 use std::env;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -79,6 +80,86 @@ fn shapes() -> (RecordShape, RecordShape) {
     )]);
     let output = input.clone();
     (input, output)
+}
+
+/// Issue #173's `binding_wrong_target_profile` case: a fully well-formed
+/// [`NativeProviderBindingV1`] whose wrapped [`CarrierBindingV1`] names
+/// `TargetProfile::CoreWasm` instead of the real `NativeC11` this route
+/// actually is -- everything else matches [`fixture_binding`] exactly, so
+/// only the target-profile confusion is under test. Real cross-runtime
+/// interop (compiling a second Wasm module and literally sharing a binding
+/// value across the two adapter crates in one process) is not attempted --
+/// the native and Wasm calling-consumer routes are deliberately separate
+/// test binaries with disjoint toolchain preconditions, exactly like the
+/// per-ordinal failure matrices this corpus already declines to compare
+/// literally across engines (see this file's own doc comment) -- so this
+/// constructs a value a Wasm-side generator's own inputs *could* have
+/// produced and proves the real native provider still rejects it, rather
+/// than silently accepting a binding meant for a different runtime.
+fn cross_target_binding() -> NativeProviderBindingV1 {
+    NativeProviderBindingV1::new(
+        CarrierBindingV1::new(
+            "sha256:6060606060606060606060606060606060606060606060606060606060606060",
+            TargetProfile::CoreWasm,
+            "runtime:native-c11-fixture-issue-160-shared-corpus",
+        ),
+        "sha256:6161616161616161616161616161616161616161616161616161616161616161",
+        "spx_pg_endpoint_reverse_bytes_v1",
+        "semaprax-0.4.1",
+    )
+}
+
+/// Issue #173's `binding_valid_for_different_artifact` case: a fully
+/// well-formed [`NativeProviderBindingV1`] -- same descriptor identity
+/// digest, same `TargetProfile::NativeC11`, same runtime identity -- but a
+/// DIFFERENT `provider_artifact_digest` and `exported_endpoint_symbol`, as
+/// if minted for a genuinely different deployed provider rather than
+/// corrupted. Proves the compiled provider's open-time check requires exact
+/// agreement with ITS OWN trusted binding rather than accepting any
+/// well-formed binding that merely names the right target profile.
+fn cross_artifact_binding() -> NativeProviderBindingV1 {
+    NativeProviderBindingV1::new(
+        CarrierBindingV1::new(
+            "sha256:6060606060606060606060606060606060606060606060606060606060606060",
+            TargetProfile::NativeC11,
+            "runtime:native-c11-fixture-issue-160-shared-corpus",
+        ),
+        "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "spx_pg_endpoint_reverse_bytes_v1_different_artifact",
+        "semaprax-0.4.1",
+    )
+}
+
+/// Render `bytes` as a Rust `&[u8]` slice literal, e.g. `&[0x01u8,0x02]`,
+/// for splicing a fixed byte value into generated Rust test source that
+/// cannot depend on the `semaprax` crate to construct it itself.
+fn rust_byte_slice_literal(bytes: &[u8]) -> String {
+    let mut out = String::from("&[");
+    for (index, byte) in bytes.iter().enumerate() {
+        if index != 0 {
+            out.push(',');
+        }
+        write!(out, "0x{byte:02x}u8").unwrap();
+    }
+    out.push(']');
+    out
+}
+
+/// Render `bytes` as a braced C/C++ initializer list, e.g. `{0x01,0x02}`,
+/// for splicing a fixed byte value into generated C/C++ test source.
+fn c_byte_array_literal(bytes: &[u8]) -> String {
+    if bytes.is_empty() {
+        return "{0}".to_owned();
+    }
+    let mut out = String::from("{");
+    for (index, byte) in bytes.iter().enumerate() {
+        if index != 0 {
+            out.push(',');
+        }
+        write!(out, "0x{byte:02x}").unwrap();
+    }
+    out.push('}');
+    out
 }
 
 struct Workspace(PathBuf);
@@ -145,7 +226,15 @@ fn compile_provider_object(
 
 /// Appended verbatim to the end of the generated `tests/round_trip.rs`: a
 /// standalone `#[test]` using only that file's own already-in-scope helpers
-/// and imports.
+/// and imports. The outer harness runs this test by a literal substring
+/// filter on its exact name (`cargo test ... shared_hostile_corpus_prints_
+/// its_observed_outcomes`), so issue #173's two cross-runtime/cross-artifact
+/// cases are added as extra blocks INSIDE this same function rather than as
+/// a second `#[test]` fn, whose name a substring filter would not match.
+/// `__CROSS_TARGET_BINDING_BYTES__`/`__CROSS_ARTIFACT_BINDING_BYTES__` are
+/// substituted with a literal `&[u8]` slice at test-build time (see
+/// `rust_byte_slice_literal`) since the generated crate cannot depend on
+/// `semaprax` to construct a [`NativeProviderBindingV1`] itself.
 const RUST_APPENDIX: &str = r#"
 #[test]
 fn shared_hostile_corpus_prints_its_observed_outcomes() {
@@ -279,6 +368,51 @@ fn shared_hostile_corpus_prints_its_observed_outcomes() {
         );
         println!("SHARED_CORPUS one_byte_over_per_leaf_bound_rejected {status}");
     }
+
+    // binding_wrong_target_profile: a fully well-formed alternate binding
+    // naming the OTHER route's target profile, not a corrupted byte string.
+    {
+        const CROSS_TARGET_BINDING: &[u8] = __CROSS_TARGET_BINDING_BYTES__;
+        let allocations_before = diagnostics::live_allocations();
+        let status = match Provider::open(TRUSTED_DESCRIPTOR_BYTES, CROSS_TARGET_BINDING) {
+            Ok(provider) => {
+                drop(provider);
+                "ACCEPTED"
+            }
+            Err(Error::DescriptorRejected(_)) => "DESCRIPTOR_REJECTED",
+            Err(Error::ProviderMismatch(_)) => "PROVIDER_MISMATCH",
+            Err(_) => "OTHER",
+        };
+        assert_eq!(
+            diagnostics::live_allocations(),
+            allocations_before,
+            "binding_wrong_target_profile: a native allocation happened before rejection"
+        );
+        println!("SHARED_CORPUS binding_wrong_target_profile {status}");
+    }
+
+    // binding_valid_for_different_artifact: a fully well-formed alternate
+    // binding naming a different provider artifact digest and endpoint
+    // symbol, not a corrupted byte string.
+    {
+        const CROSS_ARTIFACT_BINDING: &[u8] = __CROSS_ARTIFACT_BINDING_BYTES__;
+        let allocations_before = diagnostics::live_allocations();
+        let status = match Provider::open(TRUSTED_DESCRIPTOR_BYTES, CROSS_ARTIFACT_BINDING) {
+            Ok(provider) => {
+                drop(provider);
+                "ACCEPTED"
+            }
+            Err(Error::DescriptorRejected(_)) => "DESCRIPTOR_REJECTED",
+            Err(Error::ProviderMismatch(_)) => "PROVIDER_MISMATCH",
+            Err(_) => "OTHER",
+        };
+        assert_eq!(
+            diagnostics::live_allocations(),
+            allocations_before,
+            "binding_valid_for_different_artifact: a native allocation happened before rejection"
+        );
+        println!("SHARED_CORPUS binding_valid_for_different_artifact {status}");
+    }
 }
 "#;
 
@@ -395,6 +529,54 @@ const C_APPENDIX_FN: &str = r#"static void test_shared_hostile_corpus(void) {
         }
         free(different);
         printf("SHARED_CORPUS descriptor_names_different_document %s\n", status);
+    }
+
+    /* binding_wrong_target_profile: a fully well-formed alternate binding
+     * naming the OTHER route's target profile, not a corrupted byte string.
+     */
+    {
+        static const uint8_t cross_target_binding[] = __CROSS_TARGET_BINDING_BYTES__;
+        size_t len = sizeof(cross_target_binding);
+        size_t allocations_before = spx_pg_consumer_test_live_allocations();
+        spx_pg_calling_consumer *consumer = NULL;
+        spx_pg_consumer_status open_status = spx_pg_consumer_open(
+            spx_pg_trusted_descriptor_bytes, spx_pg_trusted_descriptor_len, cross_target_binding,
+            len, &consumer);
+        const char *status = "OTHER";
+        if (open_status == SPX_PG_CONSUMER_OK) {
+            spx_pg_consumer_close(&consumer);
+            status = "ACCEPTED";
+        } else if (open_status == SPX_PG_CONSUMER_DESCRIPTOR_REJECTED) {
+            status = "DESCRIPTOR_REJECTED";
+        } else if (open_status == SPX_PG_CONSUMER_PROVIDER_MISMATCH) {
+            status = "PROVIDER_MISMATCH";
+        }
+        REQUIRE(spx_pg_consumer_test_live_allocations() == allocations_before);
+        printf("SHARED_CORPUS binding_wrong_target_profile %s\n", status);
+    }
+
+    /* binding_valid_for_different_artifact: a fully well-formed alternate
+     * binding naming a different provider artifact digest and endpoint
+     * symbol, not a corrupted byte string. */
+    {
+        static const uint8_t cross_artifact_binding[] = __CROSS_ARTIFACT_BINDING_BYTES__;
+        size_t len = sizeof(cross_artifact_binding);
+        size_t allocations_before = spx_pg_consumer_test_live_allocations();
+        spx_pg_calling_consumer *consumer = NULL;
+        spx_pg_consumer_status open_status = spx_pg_consumer_open(
+            spx_pg_trusted_descriptor_bytes, spx_pg_trusted_descriptor_len, cross_artifact_binding,
+            len, &consumer);
+        const char *status = "OTHER";
+        if (open_status == SPX_PG_CONSUMER_OK) {
+            spx_pg_consumer_close(&consumer);
+            status = "ACCEPTED";
+        } else if (open_status == SPX_PG_CONSUMER_DESCRIPTOR_REJECTED) {
+            status = "DESCRIPTOR_REJECTED";
+        } else if (open_status == SPX_PG_CONSUMER_PROVIDER_MISMATCH) {
+            status = "PROVIDER_MISMATCH";
+        }
+        REQUIRE(spx_pg_consumer_test_live_allocations() == allocations_before);
+        printf("SHARED_CORPUS binding_valid_for_different_artifact %s\n", status);
     }
 
     /* exactly_per_leaf_bound_accepted */
@@ -558,6 +740,52 @@ const CXX_APPENDIX_FN: &str = r#"static void test_shared_hostile_corpus() {
         std::printf("SHARED_CORPUS descriptor_names_different_document %s\n", status);
     }
 
+    /* binding_wrong_target_profile: a fully well-formed alternate binding
+     * naming the OTHER route's target profile, not a corrupted byte string.
+     */
+    {
+        std::vector<std::uint8_t> cross_target_binding __CROSS_TARGET_BINDING_BYTES__;
+        std::size_t allocations_before = ::spx_pg_consumer_test_live_allocations();
+        auto opened = Provider::open(::spx_pg_trusted_descriptor_bytes,
+                                      ::spx_pg_trusted_descriptor_len, cross_target_binding.data(),
+                                      cross_target_binding.size());
+        const char *status = "OTHER";
+        if (opened.has_value()) {
+            Provider provider = std::move(opened).value();
+            provider.close();
+            status = "ACCEPTED";
+        } else if (opened.error().kind() == ErrorKind::DescriptorRejected) {
+            status = "DESCRIPTOR_REJECTED";
+        } else if (opened.error().kind() == ErrorKind::ProviderMismatch) {
+            status = "PROVIDER_MISMATCH";
+        }
+        REQUIRE(::spx_pg_consumer_test_live_allocations() == allocations_before);
+        std::printf("SHARED_CORPUS binding_wrong_target_profile %s\n", status);
+    }
+
+    /* binding_valid_for_different_artifact: a fully well-formed alternate
+     * binding naming a different provider artifact digest and endpoint
+     * symbol, not a corrupted byte string. */
+    {
+        std::vector<std::uint8_t> cross_artifact_binding __CROSS_ARTIFACT_BINDING_BYTES__;
+        std::size_t allocations_before = ::spx_pg_consumer_test_live_allocations();
+        auto opened =
+            Provider::open(::spx_pg_trusted_descriptor_bytes, ::spx_pg_trusted_descriptor_len,
+                            cross_artifact_binding.data(), cross_artifact_binding.size());
+        const char *status = "OTHER";
+        if (opened.has_value()) {
+            Provider provider = std::move(opened).value();
+            provider.close();
+            status = "ACCEPTED";
+        } else if (opened.error().kind() == ErrorKind::DescriptorRejected) {
+            status = "DESCRIPTOR_REJECTED";
+        } else if (opened.error().kind() == ErrorKind::ProviderMismatch) {
+            status = "PROVIDER_MISMATCH";
+        }
+        REQUIRE(::spx_pg_consumer_test_live_allocations() == allocations_before);
+        std::printf("SHARED_CORPUS binding_valid_for_different_artifact %s\n", status);
+    }
+
     /* exactly_per_leaf_bound_accepted */
     {
         auto opened = Provider::open();
@@ -643,6 +871,41 @@ fn shared_hostile_corpus_agrees_across_rust_c11_and_cxx17_consumers() {
     let (input, output) = shapes();
     let binding = fixture_binding();
 
+    // Issue #173: the byte literals for `binding_wrong_target_profile` and
+    // `binding_valid_for_different_artifact` are computed once here (this
+    // harness CAN depend on `semaprax`) and spliced into each generated
+    // language's own test source as a fixed literal, exactly like the
+    // trusted descriptor/binding constants the generators themselves embed.
+    let cross_target_binding_bytes = cross_target_binding().encode();
+    let cross_artifact_binding_bytes = cross_artifact_binding().encode();
+    let rust_appendix = RUST_APPENDIX
+        .replace(
+            "__CROSS_TARGET_BINDING_BYTES__",
+            &rust_byte_slice_literal(&cross_target_binding_bytes),
+        )
+        .replace(
+            "__CROSS_ARTIFACT_BINDING_BYTES__",
+            &rust_byte_slice_literal(&cross_artifact_binding_bytes),
+        );
+    let c_appendix_fn = C_APPENDIX_FN
+        .replace(
+            "__CROSS_TARGET_BINDING_BYTES__",
+            &c_byte_array_literal(&cross_target_binding_bytes),
+        )
+        .replace(
+            "__CROSS_ARTIFACT_BINDING_BYTES__",
+            &c_byte_array_literal(&cross_artifact_binding_bytes),
+        );
+    let cxx_appendix_fn = CXX_APPENDIX_FN
+        .replace(
+            "__CROSS_TARGET_BINDING_BYTES__",
+            &c_byte_array_literal(&cross_target_binding_bytes),
+        )
+        .replace(
+            "__CROSS_ARTIFACT_BINDING_BYTES__",
+            &c_byte_array_literal(&cross_artifact_binding_bytes),
+        );
+
     let workspace = Workspace::new("shared-corpus");
     eprintln!("shared hostile corpus workspace: {}", workspace.0.display());
     let provider_object =
@@ -660,7 +923,7 @@ fn shared_hostile_corpus_agrees_across_rust_c11_and_cxx17_consumers() {
         }
         let mut contents = contents.clone();
         if relative == "tests/round_trip.rs" {
-            contents.push_str(RUST_APPENDIX);
+            contents.push_str(&rust_appendix);
         }
         fs::write(&path, &contents).unwrap();
     }
@@ -733,7 +996,7 @@ fn shared_hostile_corpus_agrees_across_rust_c11_and_cxx17_consumers() {
     // register a call to it immediately before the final settlement `puts`.
     let c_round_trip_path = c_root.join("round_trip.c");
     let mut c_contents = fs::read_to_string(&c_round_trip_path).unwrap();
-    splice_main_call(&mut c_contents, "int main(void) {", C_APPENDIX_FN);
+    splice_main_call(&mut c_contents, "int main(void) {", &c_appendix_fn);
     splice_main_call(
         &mut c_contents,
         "(void)puts(\"c-calling-consumer-settled\");",
@@ -783,7 +1046,7 @@ fn shared_hostile_corpus_agrees_across_rust_c11_and_cxx17_consumers() {
     write_generated_files(&cxx_root, cxx_consumer.files(), None);
     let cxx_round_trip_path = cxx_root.join("test/round_trip.cpp");
     let mut cxx_contents = fs::read_to_string(&cxx_round_trip_path).unwrap();
-    splice_main_call(&mut cxx_contents, "int main() {", CXX_APPENDIX_FN);
+    splice_main_call(&mut cxx_contents, "int main() {", &cxx_appendix_fn);
     splice_main_call(
         &mut cxx_contents,
         "std::puts(\"cxx-calling-consumer-settled\");",

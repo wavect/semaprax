@@ -231,7 +231,9 @@ pub fn verify_snapshot(
     entries: &[PublishedEntry],
 ) -> Result<VerifiedSnapshot, Diagnostic> {
     if evidence.len() > MAX_OUTPUT_BYTES {
-        return Err(limit_error("registry snapshot evidence exceeds output bound"));
+        return Err(limit_error(
+            "registry snapshot evidence exceeds output bound",
+        ));
     }
     let (result, overflowed) = bounded_output::with_limit(MAX_RENDER_BYTES, || {
         let rebuilt = build(entries)?;
@@ -322,9 +324,7 @@ fn build(entries: &[PublishedEntry]) -> Result<BuiltSnapshot, Diagnostic> {
             .len()
             .checked_add(total_bytes)
             .filter(|total| *total <= MAX_TOTAL_BYTES)
-            .ok_or_else(|| {
-                capacity_error("registry snapshot total subject bytes exceed bound")
-            })?;
+            .ok_or_else(|| capacity_error("registry snapshot total subject bytes exceed bound"))?;
         let key = (entry.package.clone(), version);
         if let Some(existing) = ordered.get(&key) {
             return Err(if existing.content_digest == entry.content_digest {
@@ -344,7 +344,9 @@ fn build(entries: &[PublishedEntry]) -> Result<BuiltSnapshot, Diagnostic> {
     let payload = render_payload(&ordered);
     let envelope = render_wrapper(&payload);
     if envelope.len() > MAX_OUTPUT_BYTES {
-        return Err(limit_error("registry snapshot evidence exceeds output bound"));
+        return Err(limit_error(
+            "registry snapshot evidence exceeds output bound",
+        ));
     }
     let digest = envelope_digest(&payload);
     Ok(BuiltSnapshot {
@@ -364,9 +366,21 @@ fn validate_and_bind(entry: &PublishedEntry, work: &mut usize) -> Result<Version
         validate_digest_shape(provenance, "provenance_digest")?;
     }
     validate_bounded_text(&entry.license, MAX_TEXT_BYTES, "license")?;
-    validate_bounded_text(&entry.signature.algorithm, MAX_TEXT_BYTES, "signature.algorithm")?;
-    validate_bounded_text(&entry.signature.identity, MAX_TEXT_BYTES, "signature.identity")?;
-    validate_bounded_text(&entry.signature.signature, MAX_TEXT_BYTES, "signature.signature")?;
+    validate_bounded_text(
+        &entry.signature.algorithm,
+        MAX_TEXT_BYTES,
+        "signature.algorithm",
+    )?;
+    validate_bounded_text(
+        &entry.signature.identity,
+        MAX_TEXT_BYTES,
+        "signature.identity",
+    )?;
+    validate_bounded_text(
+        &entry.signature.signature,
+        MAX_TEXT_BYTES,
+        "signature.signature",
+    )?;
     if let PublicationStatus::Yanked { reason } = &entry.status {
         validate_bounded_text(reason, MAX_REASON_BYTES, "status.reason")?;
     }
@@ -395,10 +409,9 @@ fn validate_identity(value: &str) -> Result<(), Diagnostic> {
             "package identity length is outside the admitted bound".to_owned(),
         ));
     }
-    if !value
-        .bytes()
-        .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'.' | b'_' | b'-'))
-    {
+    if !value.bytes().all(|byte| {
+        byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'.' | b'_' | b'-')
+    }) {
         return Err(shape_error(
             "package identity contains a byte outside [a-z0-9._-]".to_owned(),
         ));
@@ -422,7 +435,10 @@ fn reject_reserved_namespace(package: &str) -> Result<(), Diagnostic> {
     // happens to bundle today (`is_bundled` guards the currently-bundled
     // names too, so a future bundled addition is covered even before this
     // prefix rule alone would have to be trusted).
-    if package == "std" || package.starts_with("std.") || crate::project::standard_dependencies::is_bundled(package) {
+    if package == "std"
+        || package.starts_with("std.")
+        || crate::project::standard_dependencies::is_bundled(package)
+    {
         return Err(reserved_namespace_error(format!(
             "`{package}` is in the `std.*` namespace reserved for the compiler-bundled closed registry (crate::project::standard_dependencies); publish under a different top-level segment"
         )));
@@ -459,7 +475,9 @@ fn validate_digest_shape(value: &str, label: &str) -> Result<(), Diagnostic> {
 }
 
 fn validate_bounded_text(value: &str, max: usize, label: &str) -> Result<(), Diagnostic> {
-    if value.is_empty() || value.len() > max || value.bytes().any(|byte| byte < 0x20 && byte != b'\t')
+    if value.is_empty()
+        || value.len() > max
+        || value.bytes().any(|byte| byte < 0x20 && byte != b'\t')
     {
         return Err(shape_error(format!(
             "{label} is empty, exceeds the admitted length, or contains a control byte"

@@ -20,6 +20,8 @@
 
 #[path = "workspace/agent_definitions_association.rs"]
 mod agent_definitions_association;
+#[path = "workspace/architecture_claims.rs"]
+mod architecture_claims;
 #[path = "workspace/canonical_revision.rs"]
 mod canonical_revision;
 #[path = "workspace/cli_mcp_query_cross_transport_v1.rs"]

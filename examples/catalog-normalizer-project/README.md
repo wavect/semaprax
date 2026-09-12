@@ -154,3 +154,43 @@ commands are not preserved, since the scratch project was never
 committed; the exact sequence of `semaprax check <dir> --json` probes
 against incrementally larger `[modules] sources` lists, with and without
 each mitigation above, is reproducible from this description alone).
+
+## Addendum: a third session re-measured the `SPX-G171` margin precisely
+
+Before re-attempting CNORM-013 (duplicate-id rejection), this session first
+confirmed nothing in the compiler had moved: as of branch
+`agent/issue-124-catalog-normalizer` (starting commit `77e6b15c`), `git log
+e513a504..77e6b15c -- src/workspace_graph/expected_projection/cost.rs
+src/cleanup_plan/build.rs src/cleanup_plan/replay.rs` is empty, across the 271
+commits landed on `main` since the addendum above. The `18874368`-byte
+`SPX-G171` `builder_bytes` pre-bound is unchanged.
+
+This session's own idea, not yet tried by the prior two: use
+`std.data.json.doc`'s already-shipped member-lookup and dedup primitives
+(`next_key`, `key_before`, `std.data.json.dec.decoded_eq`/`decoded_token_eq`)
+directly from a project that depends on both packages, instead of hand-porting
+scanner logic into the project's own namespace. This needs far less first-party
+source than a hand-port, so it seemed like real remaining headroom. It is not,
+and the margin is narrower than the prior addendum's own probe suggested. A
+disposable scratch project (outside this directory, deleted after
+measurement, never committed — same policy as the prior addendum) depending on
+`std.data.json.dec = "=0.1.0"` and `std.data.json.doc = "=0.1.0"`, `semaprax
+check`ed after each edit:
+
+| project surface (cumulative) | `semaprax check` result |
+|---|---|
+| import `is_document` + `decoded_len`, one function using both | `verified` |
+| same, plus importing `is_failure` (one more import, a 1-line body, no further calls) | `SPX-G171` |
+| plus `decoded_eq`/`decoded_token_eq` and a real `find_id_value`/`records_duplicate_id` pair built from `next_key`/`skip_space`/`string_end` (the actual CNORM-013 primitive) | `SPX-G171` |
+
+So the two-package combination's own admitted surface is not "a moderate
+amount of first-party code" as the prior addendum characterized it from a
+different probe (`is_document` + `decoded_size`) -- it is razor-thin: one
+additional trivial import with an empty transitive closure is enough to cross
+`18874368` bytes with *zero* new first-party logic. There is no exploitable gap
+between "uses the packages minimally" and "uses the packages for the actual
+next requirement" for this session to build CNORM-013 in. This reconfirms,
+with a tighter and more precisely bisected measurement, the prior addendum's
+conclusion rather than finding a way around it: the blocker remains
+`SPX-G171`/`SPX-H006` as filed in #241, unchanged, and still needs a
+compiler-side decision, not an implementation strategy.

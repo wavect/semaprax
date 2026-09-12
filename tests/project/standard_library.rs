@@ -1506,5 +1506,7 @@ mod filesystem_v2;
 #[path = "standard_library/json_cursors.rs"]
 mod json_cursors;
 
+#[path = "standard_library/db_jobs_backend_audit.rs"]
+mod db_jobs_backend_audit;
 #[path = "standard_library/provider_outcomes.rs"]
 mod provider_outcomes;

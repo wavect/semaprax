@@ -35,6 +35,13 @@ use function @id("std.auth.password.policy_within_bounds") from std.auth as pass
 use function @id("std.auth.password.needs_rehash") from std.auth as password_needs_rehash;
 use function @id("std.auth.audit.event_is_safe") from std.auth as audit_event_is_safe;
 use function @id("std.auth.audit.event_is_complete") from std.auth as audit_event_is_complete;
+use function @id("std.auth.oauth.state_matches") from std.auth as oauth_state_matches;
+use function @id("std.auth.oauth.redirect_uri_matches") from std.auth as oauth_redirect_uri_matches;
+use function @id("std.auth.oauth.authorization_code_is_fresh") from std.auth as oauth_authorization_code_is_fresh;
+use function @id("std.auth.oauth.pkce_method_is_allowed") from std.auth as oauth_pkce_method_is_allowed;
+use function @id("std.auth.oauth.pkce_challenge_is_valid") from std.auth as oauth_pkce_challenge_is_valid;
+use function @id("std.auth.oauth.authorization_request_is_valid") from std.auth as oauth_authorization_request_is_valid;
+use function @id("std.auth.oauth.callback_is_valid") from std.auth as oauth_callback_is_valid;
 
 // `ct_bytes_equal` must return the functionally correct answer regardless of
 // WHERE the first differing byte falls (first, middle, last) or whether the
@@ -213,6 +220,57 @@ fn audit_event_safety() -> bool
     clean_event_is_safe && raw_password_is_unsafe && password_hash_is_unsafe && session_token_is_unsafe && bearer_token_is_unsafe && csrf_token_is_unsafe && authorization_header_is_unsafe && every_field_present_is_complete && missing_outcome_is_incomplete
 }
 
+@id("std.auth.tests.oauth_state_and_redirect_policy")
+fn oauth_state_and_redirect_policy() -> bool
+{
+    let state = [11u8, 22u8, 33u8];
+    let other_state = [11u8, 22u8, 34u8];
+    let redirect = [104u8, 116u8, 116u8, 112u8];
+    let other_redirect = [104u8, 116u8, 116u8, 113u8];
+    let state_ok = oauth_state_matches(array_as_slice(state), array_as_slice(state));
+    let state_substitution_rejected = !oauth_state_matches(array_as_slice(state), array_as_slice(other_state));
+    let redirect_ok = oauth_redirect_uri_matches(array_as_slice(redirect), array_as_slice(redirect));
+    let redirect_substitution_rejected = !oauth_redirect_uri_matches(array_as_slice(redirect), array_as_slice(other_redirect));
+    let fresh_code_admitted = oauth_authorization_code_is_fresh(false);
+    let replayed_code_rejected = !oauth_authorization_code_is_fresh(true);
+    state_ok && state_substitution_rejected && redirect_ok && redirect_substitution_rejected && fresh_code_admitted && replayed_code_rejected
+}
+
+@id("std.auth.tests.oauth_pkce_policy")
+fn oauth_pkce_policy() -> bool
+{
+    let no_pkce_rejected = !oauth_pkce_method_is_allowed(0u8);
+    let allowed_methods = oauth_pkce_method_is_allowed(1u8) && oauth_pkce_method_is_allowed(2u8);
+    let unknown_method_rejected = !oauth_pkce_method_is_allowed(3u8);
+    let verifier = [1u8, 2u8, 3u8, 4u8, 5u8];
+    let matching_challenge = [1u8, 2u8, 3u8, 4u8, 5u8];
+    let wrong_challenge = [1u8, 2u8, 3u8, 4u8, 6u8];
+    let plain_accepts_matching_verifier = oauth_pkce_challenge_is_valid(1u8, array_as_slice(verifier), array_as_slice(matching_challenge), false);
+    let plain_rejects_wrong_verifier = !oauth_pkce_challenge_is_valid(1u8, array_as_slice(verifier), array_as_slice(wrong_challenge), false);
+    let s256_needs_real_hash = !oauth_pkce_challenge_is_valid(2u8, array_as_slice(verifier), array_as_slice(matching_challenge), false);
+    let s256_accepts_when_hash_confirmed = oauth_pkce_challenge_is_valid(2u8, array_as_slice(verifier), array_as_slice(wrong_challenge), true);
+    let unknown_method_never_valid = !oauth_pkce_challenge_is_valid(3u8, array_as_slice(verifier), array_as_slice(matching_challenge), true);
+    no_pkce_rejected && allowed_methods && unknown_method_rejected && plain_accepts_matching_verifier && plain_rejects_wrong_verifier && s256_needs_real_hash && s256_accepts_when_hash_confirmed && unknown_method_never_valid
+}
+
+@id("std.auth.tests.oauth_request_and_callback_composition")
+fn oauth_request_and_callback_composition() -> bool
+{
+    let state = [11u8, 22u8, 33u8];
+    let other_state = [11u8, 22u8, 34u8];
+    let redirect = [104u8, 116u8, 116u8, 112u8];
+    let other_redirect = [104u8, 116u8, 116u8, 113u8];
+    let verifier = [1u8, 2u8, 3u8, 4u8, 5u8];
+    let request_valid = oauth_authorization_request_is_valid(array_as_slice(state), array_as_slice(state), array_as_slice(redirect), array_as_slice(redirect), 1u8);
+    let request_rejects_disallowed_pkce_method = !oauth_authorization_request_is_valid(array_as_slice(state), array_as_slice(state), array_as_slice(redirect), array_as_slice(redirect), 0u8);
+    let full_callback_valid = oauth_callback_is_valid(array_as_slice(state), array_as_slice(state), array_as_slice(redirect), array_as_slice(redirect), 1u8, array_as_slice(verifier), array_as_slice(verifier), false, false);
+    let callback_rejects_state_substitution = !oauth_callback_is_valid(array_as_slice(other_state), array_as_slice(state), array_as_slice(redirect), array_as_slice(redirect), 1u8, array_as_slice(verifier), array_as_slice(verifier), false, false);
+    let callback_rejects_redirect_substitution = !oauth_callback_is_valid(array_as_slice(state), array_as_slice(state), array_as_slice(other_redirect), array_as_slice(redirect), 1u8, array_as_slice(verifier), array_as_slice(verifier), false, false);
+    let callback_rejects_invalid_pkce = !oauth_callback_is_valid(array_as_slice(state), array_as_slice(state), array_as_slice(redirect), array_as_slice(redirect), 2u8, array_as_slice(verifier), array_as_slice(verifier), false, false);
+    let callback_rejects_replayed_code = !oauth_callback_is_valid(array_as_slice(state), array_as_slice(state), array_as_slice(redirect), array_as_slice(redirect), 1u8, array_as_slice(verifier), array_as_slice(verifier), false, true);
+    request_valid && request_rejects_disallowed_pkce_method && full_callback_valid && callback_rejects_state_substitution && callback_rejects_redirect_substitution && callback_rejects_invalid_pkce && callback_rejects_replayed_code
+}
+
 @id("std.auth.tests.summary_secrets_and_sessions")
 fn summary_secrets_and_sessions() -> bool
 {
@@ -237,6 +295,12 @@ fn summary_claims_password_and_audit() -> bool
     token_claims_and_verification() && password_policy_bounds() && audit_event_safety()
 }
 
+@id("std.auth.tests.summary_oauth_policy")
+fn summary_oauth_policy() -> bool
+{
+    oauth_state_and_redirect_policy() && oauth_pkce_policy() && oauth_request_and_callback_composition()
+}
+
 @id("std.auth.tests.main")
 fn main() -> i64
 {
@@ -245,5 +309,6 @@ fn main() -> i64
     failed = failed + if summary_session_transitions() { 0 } else { 2 };
     failed = failed + if summary_csrf_cookie_and_algorithm_policy() { 0 } else { 4 };
     failed = failed + if summary_claims_password_and_audit() { 0 } else { 8 };
+    failed = failed + if summary_oauth_policy() { 0 } else { 16 };
     failed
 }

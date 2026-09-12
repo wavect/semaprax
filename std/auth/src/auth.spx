@@ -3,7 +3,9 @@ module std.auth;
 // This module is the pure, effect-free decision-procedure layer for issue
 // #191's authentication/session profile: session lifecycle legality, CSRF
 // and cookie policy, constant-time secret comparison, closed-algorithm token
-// verification, password-hash *policy* bounds, and audit-event safety.
+// verification, password-hash *policy* bounds, audit-event safety, and an
+// OAuth/OIDC authorization-code callback policy (state binding, redirect-uri
+// matching, PKCE challenge validity, and single-use code freshness).
 //
 // It performs no I/O, declares no `permit`, and calls no `uses`-gated
 // operation. Every function is a pure predicate or pure state transition over
@@ -355,4 +357,86 @@ fn audit_event_is_safe(carries_raw_password: bool, carries_password_hash: bool, 
 fn audit_event_is_complete(has_event_kind: bool, has_outcome: bool, has_timestamp: bool) -> bool
 {
     has_event_kind && has_outcome && has_timestamp
+}
+
+// ---------------------------------------------------------------------
+// OAuth/OIDC authorization-code callback policy (the issue's "OAuth/OIDC
+// adapter interface as a later part of the same profile if scope permits")
+// ---------------------------------------------------------------------
+// Same posture as token verification: this package decides over
+// caller-supplied signals only. It never opens a redirect, never calls a
+// token endpoint, and — exactly like `token_verification_admits`'s
+// `has_valid_signature` — never computes the SHA-256 hash PKCE's `S256`
+// method needs. `oauth_pkce_challenge_is_valid`'s `has_valid_s256_hash`
+// parameter is that same opaque, already-decided `bool`, for the same reason:
+// this pure, effect-free layer has no cryptographic primitive to compute one.
+//
+// `state` binds an authorization request to its callback (the OAuth CSRF
+// defense) and `redirect_uri` is compared against the single value the
+// deployment registered for this client — both public, request-shaped
+// values, but compared with `ct_bytes_equal` anyway, exactly like
+// `token_issuer_matches`/`token_audience_matches`: it costs nothing extra at
+// these sizes and removes one more comparison a reviewer has to re-verify.
+@id("std.auth.oauth.state_matches")
+fn oauth_state_matches(presented: borrow Slice<u8>, expected: borrow Slice<u8>) -> bool
+{
+    ct_bytes_equal(presented, expected)
+}
+
+@id("std.auth.oauth.redirect_uri_matches")
+fn oauth_redirect_uri_matches(presented: borrow Slice<u8>, expected: borrow Slice<u8>) -> bool
+{
+    ct_bytes_equal(presented, expected)
+}
+
+// An authorization code is single-use by construction: this is the same
+// "replay is fresh" question `token_replay_is_fresh` answers, under the
+// domain-specific name a caller composing an OAuth callback reads directly.
+@id("std.auth.oauth.authorization_code_is_fresh")
+fn oauth_authorization_code_is_fresh(seen_before: bool) -> bool
+{
+    token_replay_is_fresh(seen_before)
+}
+
+// `method_id`: 0 is the reserved "no PKCE" marker and is never allowed — this
+// policy requires PKCE on every authorization-code exchange; 1 names `plain`
+// and 2 names `S256`. Any other value is refused identically to "none", the
+// same closed-allow-list idiom `token_algorithm_is_allowed` uses.
+@id("std.auth.oauth.pkce_method_is_allowed")
+fn oauth_pkce_method_is_allowed(method_id: u8) -> bool
+{
+    method_id == 1u8 || method_id == 2u8
+}
+
+// `plain` compares the verifier directly against the challenge with the
+// constant-time primitive (the verifier is secret-shaped up to the moment of
+// exchange). `S256` cannot be computed here; `has_valid_s256_hash` is the
+// deployment's own SHA-256 comparison result, taken as opaque input. Any
+// method outside the closed allow-list above is refused, never treated as
+// one of the two known methods by default.
+@id("std.auth.oauth.pkce_challenge_is_valid")
+fn oauth_pkce_challenge_is_valid(method_id: u8, code_verifier: borrow Slice<u8>, code_challenge: borrow Slice<u8>, has_valid_s256_hash: bool) -> bool
+{
+    if method_id == 1u8 { ct_bytes_equal(code_verifier, code_challenge) } else { if method_id == 2u8 { has_valid_s256_hash } else { false } }
+}
+
+// The authorization-request-side check a caller performs before redirecting
+// the user agent to the identity provider: the PKCE method it is about to
+// commit to is one this policy allows. State and redirect-uri values here are
+// the ones this deployment is about to mint, checked against themselves only
+// to keep one call shape with the callback-side check below.
+@id("std.auth.oauth.authorization_request_is_valid")
+fn oauth_authorization_request_is_valid(state: borrow Slice<u8>, expected_state: borrow Slice<u8>, redirect_uri: borrow Slice<u8>, expected_redirect_uri: borrow Slice<u8>, pkce_method_id: u8) -> bool
+{
+    oauth_state_matches(state, expected_state) && oauth_redirect_uri_matches(redirect_uri, expected_redirect_uri) && oauth_pkce_method_is_allowed(pkce_method_id)
+}
+
+// The closed policy check for an authorization-code callback: state
+// (CSRF binding), redirect URI, PKCE challenge, and single-use freshness all
+// collapse to one boolean a caller can gate a token exchange on — the same
+// composition idiom `token_claims_are_valid` uses for its own attack classes.
+@id("std.auth.oauth.callback_is_valid")
+fn oauth_callback_is_valid(state: borrow Slice<u8>, expected_state: borrow Slice<u8>, redirect_uri: borrow Slice<u8>, expected_redirect_uri: borrow Slice<u8>, pkce_method_id: u8, code_verifier: borrow Slice<u8>, code_challenge: borrow Slice<u8>, has_valid_s256_hash: bool, code_seen_before: bool) -> bool
+{
+    oauth_state_matches(state, expected_state) && oauth_redirect_uri_matches(redirect_uri, expected_redirect_uri) && oauth_pkce_challenge_is_valid(pkce_method_id, code_verifier, code_challenge, has_valid_s256_hash) && oauth_authorization_code_is_fresh(code_seen_before)
 }

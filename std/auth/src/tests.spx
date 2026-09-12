@@ -1,0 +1,249 @@
+module std.auth.tests;
+use function @id("std.auth.security.ct_bytes_equal") from std.auth as ct_bytes_equal;
+use function @id("std.auth.session.state_is_valid") from std.auth as session_state_is_valid;
+use function @id("std.auth.session.state_is_terminal") from std.auth as session_state_is_terminal;
+use function @id("std.auth.session.idle_expired") from std.auth as session_idle_expired;
+use function @id("std.auth.session.absolute_expired") from std.auth as session_absolute_expired;
+use function @id("std.auth.session.is_usable") from std.auth as session_is_usable;
+use function @id("std.auth.session.next_state_on_access") from std.auth as session_next_state_on_access;
+use function @id("std.auth.session.rotate_is_legal") from std.auth as session_rotate_is_legal;
+use function @id("std.auth.session.next_state_on_rotate") from std.auth as session_next_state_on_rotate;
+use function @id("std.auth.session.rotated_id_reuse_is_attack_signal") from std.auth as session_rotated_id_reuse_is_attack_signal;
+use function @id("std.auth.session.revoke_is_legal") from std.auth as session_revoke_is_legal;
+use function @id("std.auth.session.next_state_on_revoke") from std.auth as session_next_state_on_revoke;
+use function @id("std.auth.session.next_state_on_logout") from std.auth as session_next_state_on_logout;
+use function @id("std.auth.session.concurrent_limit_exceeded") from std.auth as session_concurrent_limit_exceeded;
+use function @id("std.auth.session.concurrent_admission_decision") from std.auth as session_concurrent_admission_decision;
+use function @id("std.auth.csrf.token_matches") from std.auth as csrf_token_matches;
+use function @id("std.auth.csrf.required_for_method") from std.auth as csrf_required_for_method;
+use function @id("std.auth.cookie.same_site_is_recognized") from std.auth as cookie_same_site_is_recognized;
+use function @id("std.auth.cookie.attributes_are_safe") from std.auth as cookie_attributes_are_safe;
+use function @id("std.auth.token.algorithm_is_allowed") from std.auth as token_algorithm_is_allowed;
+use function @id("std.auth.token.key_id_is_allowed") from std.auth as token_key_id_is_allowed;
+use function @id("std.auth.token.key_is_current_or_in_grace") from std.auth as token_key_is_current_or_in_grace;
+use function @id("std.auth.token.leeway_is_bounded") from std.auth as token_leeway_is_bounded;
+use function @id("std.auth.token.time_is_valid") from std.auth as token_time_is_valid;
+use function @id("std.auth.token.replay_is_fresh") from std.auth as token_replay_is_fresh;
+use function @id("std.auth.token.issuer_matches") from std.auth as token_issuer_matches;
+use function @id("std.auth.token.audience_matches") from std.auth as token_audience_matches;
+use function @id("std.auth.token.claims_are_valid") from std.auth as token_claims_are_valid;
+use function @id("std.auth.token.verification_admits") from std.auth as token_verification_admits;
+use function @id("std.auth.password.memory_cost_within_bounds") from std.auth as password_memory_cost_within_bounds;
+use function @id("std.auth.password.time_cost_within_bounds") from std.auth as password_time_cost_within_bounds;
+use function @id("std.auth.password.parallelism_within_bounds") from std.auth as password_parallelism_within_bounds;
+use function @id("std.auth.password.policy_within_bounds") from std.auth as password_policy_within_bounds;
+use function @id("std.auth.password.needs_rehash") from std.auth as password_needs_rehash;
+use function @id("std.auth.audit.event_is_safe") from std.auth as audit_event_is_safe;
+use function @id("std.auth.audit.event_is_complete") from std.auth as audit_event_is_complete;
+
+// `ct_bytes_equal` must return the functionally correct answer regardless of
+// WHERE the first differing byte falls (first, middle, last) or whether the
+// lengths differ, since its whole point is that the loop never branches its
+// iteration count on that position. This proves functional correctness at
+// every position; see `auth.spx`'s doc comment for the structural argument
+// (the loop condition never reads the accumulator) that gives the constant-
+// time property itself — this test suite runs inside a pure interpreter with
+// no wall-clock access and does not, and cannot, measure timing directly.
+@id("std.auth.tests.constant_time_equality")
+fn constant_time_equality() -> bool
+{
+    let a = [1u8, 2u8, 3u8, 4u8, 5u8];
+    let equal = [1u8, 2u8, 3u8, 4u8, 5u8];
+    let differs_first = [9u8, 2u8, 3u8, 4u8, 5u8];
+    let differs_middle = [1u8, 2u8, 9u8, 4u8, 5u8];
+    let differs_last = [1u8, 2u8, 3u8, 4u8, 9u8];
+    let shorter = [1u8, 2u8, 3u8, 4u8];
+    let empty = [0u8; 0];
+    ct_bytes_equal(array_as_slice(a), array_as_slice(equal)) && !ct_bytes_equal(array_as_slice(a), array_as_slice(differs_first)) && !ct_bytes_equal(array_as_slice(a), array_as_slice(differs_middle)) && !ct_bytes_equal(array_as_slice(a), array_as_slice(differs_last)) && !ct_bytes_equal(array_as_slice(a), array_as_slice(shorter)) && !ct_bytes_equal(array_as_slice(empty), array_as_slice(a)) && ct_bytes_equal(array_as_slice(empty), array_as_slice(empty))
+}
+
+@id("std.auth.tests.session_state_validity")
+fn session_state_validity() -> bool
+{
+    session_state_is_valid(0usize) && session_state_is_valid(5usize) && !session_state_is_valid(6usize) && !session_state_is_terminal(0usize) && session_state_is_terminal(1usize) && session_state_is_terminal(5usize)
+}
+
+@id("std.auth.tests.session_expiry_boundaries")
+fn session_expiry_boundaries() -> bool
+{
+    !session_idle_expired(1899usize, 1900usize) && session_idle_expired(1900usize, 1900usize) && session_idle_expired(1901usize, 1900usize) && !session_absolute_expired(4999usize, 5000usize) && session_absolute_expired(5000usize, 5000usize)
+}
+
+@id("std.auth.tests.session_usability")
+fn session_usability() -> bool
+{
+    session_is_usable(0usize, 1000usize, 1900usize, 5000usize) && !session_is_usable(0usize, 1900usize, 1900usize, 5000usize) && !session_is_usable(0usize, 5000usize, 1900usize, 5000usize) && !session_is_usable(2usize, 1000usize, 1900usize, 5000usize)
+}
+
+@id("std.auth.tests.session_access_transitions")
+fn session_access_transitions() -> bool
+{
+    let neither_expired = session_next_state_on_access(0usize, 1000usize, 1900usize, 5000usize) == 0usize;
+    let idle_only = session_next_state_on_access(0usize, 1900usize, 1900usize, 5000usize) == 3usize;
+    let both_expired_picks_absolute = session_next_state_on_access(0usize, 5000usize, 1900usize, 5000usize) == 4usize;
+    let terminal_is_sticky = session_next_state_on_access(2usize, 0usize, 1900usize, 5000usize) == 2usize;
+    let malformed_state_falls_to_revoked = session_next_state_on_access(9usize, 0usize, 1900usize, 5000usize) == 2usize;
+    neither_expired && idle_only && both_expired_picks_absolute && terminal_is_sticky && malformed_state_falls_to_revoked
+}
+
+@id("std.auth.tests.session_rotation_and_fixation_signal")
+fn session_rotation_and_fixation_signal() -> bool
+{
+    let rotate_active = session_rotate_is_legal(0usize) && session_next_state_on_rotate(0usize) == 1usize;
+    let cannot_rotate_twice = !session_rotate_is_legal(1usize) && session_next_state_on_rotate(1usize) == 1usize;
+    let malformed_rotate_falls_to_revoked = session_next_state_on_rotate(9usize) == 2usize;
+    let reuse_signal_only_on_rotated_out = session_rotated_id_reuse_is_attack_signal(1usize) && !session_rotated_id_reuse_is_attack_signal(0usize) && !session_rotated_id_reuse_is_attack_signal(2usize);
+    rotate_active && cannot_rotate_twice && malformed_rotate_falls_to_revoked && reuse_signal_only_on_rotated_out
+}
+
+@id("std.auth.tests.session_revocation_and_logout")
+fn session_revocation_and_logout() -> bool
+{
+    let revoke_active = session_revoke_is_legal(0usize) && session_next_state_on_revoke(0usize) == 2usize;
+    let revoke_rotated_out = session_revoke_is_legal(1usize) && session_next_state_on_revoke(1usize) == 2usize;
+    let revoke_already_revoked_stays_revoked = !session_revoke_is_legal(2usize) && session_next_state_on_revoke(2usize) == 2usize;
+    let revoke_leaves_other_terminal_state_alone = !session_revoke_is_legal(3usize) && session_next_state_on_revoke(3usize) == 3usize;
+    let malformed_revoke_falls_to_revoked = session_next_state_on_revoke(9usize) == 2usize;
+    let logout_active = session_next_state_on_logout(0usize) == 5usize;
+    let logout_leaves_other_terminal_state_alone = session_next_state_on_logout(1usize) == 1usize;
+    let malformed_logout_falls_to_revoked = session_next_state_on_logout(9usize) == 2usize;
+    revoke_active && revoke_rotated_out && revoke_already_revoked_stays_revoked && revoke_leaves_other_terminal_state_alone && malformed_revoke_falls_to_revoked && logout_active && logout_leaves_other_terminal_state_alone && malformed_logout_falls_to_revoked
+}
+
+@id("std.auth.tests.session_concurrent_policy")
+fn session_concurrent_policy() -> bool
+{
+    let under_limit = !session_concurrent_limit_exceeded(3usize, 5usize) && session_concurrent_admission_decision(3usize, 5usize, false) == 0usize;
+    let at_limit_refuses = session_concurrent_limit_exceeded(5usize, 5usize) && session_concurrent_admission_decision(5usize, 5usize, false) == 2usize;
+    let at_limit_evicts_when_configured = session_concurrent_admission_decision(5usize, 5usize, true) == 1usize;
+    let over_limit_refuses = session_concurrent_admission_decision(6usize, 5usize, false) == 2usize;
+    under_limit && at_limit_refuses && at_limit_evicts_when_configured && over_limit_refuses
+}
+
+@id("std.auth.tests.csrf_and_cookie_policy")
+fn csrf_and_cookie_policy() -> bool
+{
+    let token = [10u8, 20u8, 30u8];
+    let same = [10u8, 20u8, 30u8];
+    let different = [10u8, 20u8, 31u8];
+    let csrf_matches = csrf_token_matches(array_as_slice(token), array_as_slice(same));
+    let csrf_rejects_mismatch = !csrf_token_matches(array_as_slice(token), array_as_slice(different));
+    let csrf_required_only_for_state_changing = csrf_required_for_method(true) && !csrf_required_for_method(false);
+    let strict_is_safe = cookie_attributes_are_safe(true, true, 2usize);
+    let lax_is_safe = cookie_attributes_are_safe(true, true, 1usize);
+    let none_is_never_safe = !cookie_attributes_are_safe(true, true, 0usize);
+    let missing_http_only_is_unsafe = !cookie_attributes_are_safe(false, true, 2usize);
+    let missing_secure_is_unsafe = !cookie_attributes_are_safe(true, false, 2usize);
+    let unrecognized_mode_is_unsafe = !cookie_same_site_is_recognized(3usize) && !cookie_attributes_are_safe(true, true, 3usize);
+    csrf_matches && csrf_rejects_mismatch && csrf_required_only_for_state_changing && strict_is_safe && lax_is_safe && none_is_never_safe && missing_http_only_is_unsafe && missing_secure_is_unsafe && unrecognized_mode_is_unsafe
+}
+
+@id("std.auth.tests.token_algorithm_and_key_policy")
+fn token_algorithm_and_key_policy() -> bool
+{
+    let none_algorithm_rejected = !token_algorithm_is_allowed(0u8);
+    let allowed_algorithms = token_algorithm_is_allowed(1u8) && token_algorithm_is_allowed(2u8);
+    let unknown_algorithm_rejected = !token_algorithm_is_allowed(3u8);
+    let allowed_keys = [5u8, 7u8, 9u8];
+    let key_in_allow_list = token_key_id_is_allowed(7u8, array_as_slice(allowed_keys));
+    let key_outside_allow_list_rejected = !token_key_id_is_allowed(6u8, array_as_slice(allowed_keys));
+    let current_key_admitted = token_key_is_current_or_in_grace(7u8, 7u8, 6u8, 10usize, 50usize);
+    let previous_key_admitted_inside_grace = token_key_is_current_or_in_grace(6u8, 7u8, 6u8, 10usize, 50usize);
+    let previous_key_rejected_after_grace = !token_key_is_current_or_in_grace(6u8, 7u8, 6u8, 60usize, 50usize);
+    let unrelated_key_always_rejected = !token_key_is_current_or_in_grace(5u8, 7u8, 6u8, 10usize, 50usize);
+    none_algorithm_rejected && allowed_algorithms && unknown_algorithm_rejected && key_in_allow_list && key_outside_allow_list_rejected && current_key_admitted && previous_key_admitted_inside_grace && previous_key_rejected_after_grace && unrelated_key_always_rejected
+}
+
+@id("std.auth.tests.token_time_and_replay_policy")
+fn token_time_and_replay_policy() -> bool
+{
+    let leeway_bounded = token_leeway_is_bounded(300usize) && !token_leeway_is_bounded(301usize);
+    let within_window = token_time_is_valid(100usize, 90usize, 200usize, 10usize);
+    let not_yet_valid_rejected = !token_time_is_valid(100usize, 150usize, 200usize, 10usize);
+    let expired_rejected = !token_time_is_valid(100usize, 50usize, 50usize, 10usize);
+    let fresh_replay_admitted = token_replay_is_fresh(false);
+    let seen_replay_rejected = !token_replay_is_fresh(true);
+    leeway_bounded && within_window && not_yet_valid_rejected && expired_rejected && fresh_replay_admitted && seen_replay_rejected
+}
+
+@id("std.auth.tests.token_claims_and_verification")
+fn token_claims_and_verification() -> bool
+{
+    let issuer = [97u8, 112u8, 112u8];
+    let other_issuer = [98u8, 97u8, 100u8];
+    let audience = [97u8, 112u8, 105u8];
+    let issuer_ok = token_issuer_matches(array_as_slice(issuer), array_as_slice(issuer));
+    let issuer_mismatch_rejected = !token_issuer_matches(array_as_slice(issuer), array_as_slice(other_issuer));
+    let audience_ok = token_audience_matches(array_as_slice(audience), array_as_slice(audience));
+    let full_claims_valid = token_claims_are_valid(array_as_slice(issuer), array_as_slice(issuer), array_as_slice(audience), array_as_slice(audience), 1u8, 7u8, 7u8, 6u8, 100usize, 0usize, 500usize, 30usize, 50usize, false);
+    let issuer_substitution_rejected = !token_claims_are_valid(array_as_slice(other_issuer), array_as_slice(issuer), array_as_slice(audience), array_as_slice(audience), 1u8, 7u8, 7u8, 6u8, 100usize, 0usize, 500usize, 30usize, 50usize, false);
+    let verification_needs_real_signature = !token_verification_admits(false, array_as_slice(issuer), array_as_slice(issuer), array_as_slice(audience), array_as_slice(audience), 1u8, 7u8, 7u8, 6u8, 100usize, 0usize, 500usize, 30usize, 50usize, false);
+    let verification_admits_when_signed_and_valid = token_verification_admits(true, array_as_slice(issuer), array_as_slice(issuer), array_as_slice(audience), array_as_slice(audience), 1u8, 7u8, 7u8, 6u8, 100usize, 0usize, 500usize, 30usize, 50usize, false);
+    issuer_ok && issuer_mismatch_rejected && audience_ok && full_claims_valid && issuer_substitution_rejected && verification_needs_real_signature && verification_admits_when_signed_and_valid
+}
+
+@id("std.auth.tests.password_policy_bounds")
+fn password_policy_bounds() -> bool
+{
+    let memory_floor = password_memory_cost_within_bounds(19456usize) && !password_memory_cost_within_bounds(19455usize);
+    let memory_ceiling = password_memory_cost_within_bounds(1048576usize) && !password_memory_cost_within_bounds(1048577usize);
+    let time_floor = password_time_cost_within_bounds(2usize) && !password_time_cost_within_bounds(1usize);
+    let time_ceiling = password_time_cost_within_bounds(10usize) && !password_time_cost_within_bounds(11usize);
+    let parallelism_floor = password_parallelism_within_bounds(1usize) && !password_parallelism_within_bounds(0usize);
+    let parallelism_ceiling = password_parallelism_within_bounds(8usize) && !password_parallelism_within_bounds(9usize);
+    let full_policy_ok = password_policy_within_bounds(65536usize, 3usize, 4usize);
+    let one_field_out_of_bounds_rejects_whole_policy = !password_policy_within_bounds(65536usize, 1usize, 4usize);
+    let stale_policy_needs_rehash = password_needs_rehash(1usize, 2usize);
+    let current_policy_needs_no_rehash = !password_needs_rehash(2usize, 2usize);
+    memory_floor && memory_ceiling && time_floor && time_ceiling && parallelism_floor && parallelism_ceiling && full_policy_ok && one_field_out_of_bounds_rejects_whole_policy && stale_policy_needs_rehash && current_policy_needs_no_rehash
+}
+
+@id("std.auth.tests.audit_event_safety")
+fn audit_event_safety() -> bool
+{
+    let clean_event_is_safe = audit_event_is_safe(false, false, false, false, false, false);
+    let raw_password_is_unsafe = !audit_event_is_safe(true, false, false, false, false, false);
+    let password_hash_is_unsafe = !audit_event_is_safe(false, true, false, false, false, false);
+    let session_token_is_unsafe = !audit_event_is_safe(false, false, true, false, false, false);
+    let bearer_token_is_unsafe = !audit_event_is_safe(false, false, false, true, false, false);
+    let csrf_token_is_unsafe = !audit_event_is_safe(false, false, false, false, true, false);
+    let authorization_header_is_unsafe = !audit_event_is_safe(false, false, false, false, false, true);
+    let every_field_present_is_complete = audit_event_is_complete(true, true, true);
+    let missing_outcome_is_incomplete = !audit_event_is_complete(true, false, true);
+    clean_event_is_safe && raw_password_is_unsafe && password_hash_is_unsafe && session_token_is_unsafe && bearer_token_is_unsafe && csrf_token_is_unsafe && authorization_header_is_unsafe && every_field_present_is_complete && missing_outcome_is_incomplete
+}
+
+@id("std.auth.tests.summary_secrets_and_sessions")
+fn summary_secrets_and_sessions() -> bool
+{
+    constant_time_equality() && session_state_validity() && session_expiry_boundaries() && session_usability()
+}
+
+@id("std.auth.tests.summary_session_transitions")
+fn summary_session_transitions() -> bool
+{
+    session_access_transitions() && session_rotation_and_fixation_signal() && session_revocation_and_logout() && session_concurrent_policy()
+}
+
+@id("std.auth.tests.summary_csrf_cookie_and_algorithm_policy")
+fn summary_csrf_cookie_and_algorithm_policy() -> bool
+{
+    csrf_and_cookie_policy() && token_algorithm_and_key_policy() && token_time_and_replay_policy()
+}
+
+@id("std.auth.tests.summary_claims_password_and_audit")
+fn summary_claims_password_and_audit() -> bool
+{
+    token_claims_and_verification() && password_policy_bounds() && audit_event_safety()
+}
+
+@id("std.auth.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if summary_secrets_and_sessions() { 0 } else { 1 };
+    failed = failed + if summary_session_transitions() { 0 } else { 2 };
+    failed = failed + if summary_csrf_cookie_and_algorithm_policy() { 0 } else { 4 };
+    failed = failed + if summary_claims_password_and_audit() { 0 } else { 8 };
+    failed
+}

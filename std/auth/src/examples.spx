@@ -1,0 +1,53 @@
+module std.auth.examples;
+use function @id("std.auth.password.policy_within_bounds") from std.auth as password_policy_within_bounds;
+use function @id("std.auth.session.is_usable") from std.auth as session_is_usable;
+use function @id("std.auth.session.next_state_on_access") from std.auth as session_next_state_on_access;
+use function @id("std.auth.session.next_state_on_logout") from std.auth as session_next_state_on_logout;
+use function @id("std.auth.csrf.token_matches") from std.auth as csrf_token_matches;
+use function @id("std.auth.cookie.attributes_are_safe") from std.auth as cookie_attributes_are_safe;
+use function @id("std.auth.token.verification_admits") from std.auth as token_verification_admits;
+
+// A synthetic signup -> login -> protected-route -> logout walk composed
+// entirely from the pure decision procedures in `std.auth`. This is NOT a
+// real HTTP application: it carries no request parsing, no `std.http`
+// integration, and no real password hash or signature (both explained in
+// `docs/AUTHENTICATION-SESSIONS-V1.md`'s non-claims). It demonstrates only
+// that the decision procedures themselves compose into a coherent session
+// lifecycle end to end.
+@id("std.auth.examples.main")
+fn main() -> i64
+{
+    // Signup: the deployment's password-hash policy is checked against safe
+    // bounds before any password would be hashed by a real host capability
+    // this package does not provide.
+    let signup_policy_ok = password_policy_within_bounds(65536usize, 3usize, 4usize);
+    // Login: a fresh session is `active` (state 0) with explicit idle and
+    // absolute deadlines the deployment chose.
+    let active = 0usize;
+    let login_tick = 1000usize;
+    let idle_deadline = 1900usize;
+    let absolute_deadline = 5000usize;
+    let usable_at_login = session_is_usable(active, login_tick, idle_deadline, absolute_deadline);
+    // A same-origin form submission carries the CSRF cookie and header
+    // values through a constant-time comparison, and the session cookie
+    // itself is HttpOnly, Secure, and SameSite=Strict.
+    let csrf_cookie = [1u8, 2u8, 3u8, 4u8];
+    let csrf_header = [1u8, 2u8, 3u8, 4u8];
+    let csrf_ok = csrf_token_matches(array_as_slice(csrf_cookie), array_as_slice(csrf_header));
+    let cookie_ok = cookie_attributes_are_safe(true, true, 2usize);
+    // A protected route is accessed later, still inside both deadlines.
+    let route_tick = 1200usize;
+    let state_at_route = session_next_state_on_access(active, route_tick, idle_deadline, absolute_deadline);
+    // A bearer token accompanies an API call at the same tick: current
+    // algorithm, current key, inside its validity window, never seen
+    // before. `has_valid_signature = true` stands in for a real signature
+    // check a deployment's own key material would perform.
+    let issuer = [97u8, 112u8, 112u8];
+    let audience = [97u8, 112u8, 105u8];
+    let token_ok = token_verification_admits(true, array_as_slice(issuer), array_as_slice(issuer), array_as_slice(audience), array_as_slice(audience), 1u8, 7u8, 7u8, 6u8, route_tick, 0usize, 5000usize, 30usize, 50usize, false);
+    // Logout retires the session; a later access never resurrects it.
+    let logged_out = session_next_state_on_logout(state_at_route);
+    let after_logout_tick = route_tick + 1usize;
+    let state_after_logout_access = session_next_state_on_access(logged_out, after_logout_tick, idle_deadline, absolute_deadline);
+    if signup_policy_ok && usable_at_login && csrf_ok && cookie_ok && state_at_route == active && token_ok && logged_out == 5usize && state_after_logout_access == 5usize { 0 } else { 1 }
+}

@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-auth"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.auth.examples"
+sources = ["src/auth.spx", "src/examples.spx", "src/tests.spx"]
+tests = ["std.auth.tests"]
+
+[exports]
+web = ["std.auth.csrf.token_matches", "std.auth.security.ct_bytes_equal"]

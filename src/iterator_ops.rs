@@ -1,6 +1,8 @@
 //! Exact consuming scalar iterator protocol. Runtime adapters receive no ambient authority.
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{DeclarationId, OwnershipMode, ResolvedParam, ResolvedType, ValueId};
+#[cfg(test)]
+mod lazy_adapter_tests;
 mod owned;
 #[cfg(test)]
 mod owned_tests;

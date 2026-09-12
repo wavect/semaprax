@@ -2328,6 +2328,232 @@ fn reader_next_line(reader: own Reader) -> Reader
     requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
 ```
 
+## `std.jobs`
+
+Package `std/jobs`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.jobs = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.jobs.state.is_valid`
+
+```semaprax
+fn state_is_valid(state: usize) -> bool
+```
+
+### `std.jobs.state.is_terminal`
+
+```semaprax
+fn state_is_terminal(state: usize) -> bool
+```
+
+### `std.jobs.state.holds_lease`
+
+```semaprax
+fn state_holds_lease(state: usize) -> bool
+```
+
+### `std.jobs.state.awaits_worker`
+
+```semaprax
+fn state_awaits_worker(state: usize) -> bool
+```
+
+### `std.jobs.lease.is_current`
+
+```semaprax
+fn lease_is_current(lease_generation: usize, job_generation: usize, now_tick: usize, deadline_tick: usize) -> bool
+```
+
+### `std.jobs.lease.is_expired`
+
+```semaprax
+fn lease_is_expired(now_tick: usize, deadline_tick: usize) -> bool
+```
+
+### `std.jobs.claim.is_legal`
+
+```semaprax
+fn claim_is_legal(state: usize, is_due: bool) -> bool
+```
+
+### `std.jobs.begin_execution.is_legal`
+
+```semaprax
+fn begin_execution_is_legal(state: usize, lease_generation: usize, job_generation: usize, now_tick: usize, deadline_tick: usize) -> bool
+```
+
+### `std.jobs.heartbeat.is_legal`
+
+```semaprax
+fn heartbeat_is_legal(state: usize, lease_generation: usize, job_generation: usize, now_tick: usize, deadline_tick: usize) -> bool
+```
+
+### `std.jobs.completion.is_legal`
+
+```semaprax
+fn completion_is_legal(state: usize, lease_generation: usize, job_generation: usize, now_tick: usize, deadline_tick: usize) -> bool
+```
+
+### `std.jobs.outcome.kind_is_valid`
+
+```semaprax
+fn outcome_kind_is_valid(kind: usize) -> bool
+```
+
+### `std.jobs.attempt.is_within_ceiling`
+
+```semaprax
+fn attempt_is_within_ceiling(attempt: u8, max_attempts: u8) -> bool
+```
+
+### `std.jobs.retry.should_dead_letter`
+
+```semaprax
+fn retry_should_dead_letter(attempt: u8, max_attempts: u8) -> bool
+```
+
+### `std.jobs.retry.next_state_after_outcome`
+
+`kind` is one of: 0 success, 1 retryable failure, 2 permanent failure, 3
+uncertain (a post-publication I/O failure whose outcome the caller cannot
+observe; see docs/DURABLE-JOBS-V1.md's "delivery uncertainty" section for
+exactly how far this decision procedure goes and where it stops).
+
+```semaprax
+fn retry_next_state_after_outcome(kind: usize, attempt: u8, max_attempts: u8) -> usize
+    ensures result <= 9usize
+```
+
+### `std.jobs.retry.backoff_ticks`
+
+Bounded exponential backoff: doubles `base_ticks` once per attempt already
+made, capped at `max_ticks` so a runaway attempt counter can never produce
+an unbounded wait — "Unbounded retries or schedules" is explicitly out of
+scope for this profile.
+
+```semaprax
+fn retry_backoff_ticks(attempt: u8, base_ticks: usize, max_ticks: usize) -> usize
+    ensures result <= max_ticks
+```
+
+### `std.jobs.idempotency.enqueue_outcome`
+
+0 = fresh (no existing job for this idempotency key; enqueue creates one),
+1 = duplicate (the key already names a job whose stored payload descriptor
+matches the candidate; enqueue returns the existing job rather than
+creating a second one), 2 = conflict (the key already names a job whose
+descriptor differs; enqueue is a closed refusal, never a silent merge).
+
+```semaprax
+fn idempotency_enqueue_outcome(key_exists: bool, existing_descriptor: borrow Slice<u8>, candidate_descriptor: borrow Slice<u8>) -> usize
+    ensures result <= 2usize
+```
+
+### `std.jobs.revision.is_known`
+
+A job is bound to the handler/schema revision that was current at enqueue
+time. `current_revision` only ever grows (like `std.db.migration`'s
+gapless ledger), so a bound revision is known exactly when it lies in
+`1..=current_revision`; anything else (including `0`, never assigned) is
+refused rather than guessed at.
+
+```semaprax
+fn revision_is_known(job_bound_revision: u8, current_revision: u8) -> bool
+```
+
+### `std.jobs.revision.requires_refusal`
+
+```semaprax
+fn revision_requires_refusal(job_bound_revision: u8, current_revision: u8) -> bool
+```
+
+### `std.jobs.payload.schema_is_compatible`
+
+```semaprax
+fn payload_schema_is_compatible(expected_descriptor: borrow Slice<u8>, actual_descriptor: borrow Slice<u8>) -> bool
+```
+
+### `std.jobs.schedule.is_due`
+
+```semaprax
+fn schedule_is_due(now_tick: usize, next_run_tick: usize) -> bool
+```
+
+### `std.jobs.schedule.missed_windows`
+
+```semaprax
+fn schedule_missed_windows(now_tick: usize, next_run_tick: usize, interval_tick: usize) -> usize
+    requires interval_tick > 0usize
+```
+
+### `std.jobs.schedule.catch_up_next_run`
+
+The catch-up policy this profile implements is "skip missed": a recurring
+job that was due several windows ago fires once for the most recent due
+window, not once per missed window, and `max_catch_up` bounds how far a
+long-dead clock can jump the next run in one step.
+
+```semaprax
+fn schedule_catch_up_next_run(now_tick: usize, next_run_tick: usize, interval_tick: usize, max_catch_up: usize) -> usize
+    requires interval_tick > 0usize
+```
+
+### `std.jobs.schedule.recurrence_is_exhausted`
+
+```semaprax
+fn recurrence_is_exhausted(occurrences_run: usize, max_occurrences: usize) -> bool
+```
+
+### `std.jobs.cancel.is_legal`
+
+```semaprax
+fn cancel_is_legal(state: usize) -> bool
+```
+
+### `std.jobs.cancel.next_state`
+
+```semaprax
+fn cancel_next_state(state: usize) -> usize
+    ensures result <= 9usize
+```
+
+### `std.jobs.compensation.is_required`
+
+A cancellation reaching a job that already started running (observed by
+`ever_ran`) may have left a partial external effect behind; a permanent
+failure that already started running is in the same position. Neither
+case can be reasoned about further at this pure layer: `true` means "a
+compensation hook must run", never that this profile ran one.
+
+```semaprax
+fn compensation_is_required(ever_ran: bool, final_state: usize) -> bool
+```
+
+### `std.jobs.uncertain.retry_is_permitted`
+
+```semaprax
+fn uncertain_retry_is_permitted(is_idempotent_handler: bool, attempt: u8, max_attempts: u8) -> bool
+```
+
+### `std.jobs.uncertain.reconcile`
+
+`decision` is the explicit, human- or operator-supplied reconciliation of
+an `UNCERTAIN` outcome: 0 confirmed succeeded, 1 confirmed failed, 2 retry.
+A retry decision only proceeds automatically when the handler is declared
+idempotent and the attempt ceiling is not yet reached; otherwise the job
+stays `UNCERTAIN` rather than being silently retried or silently
+dead-lettered — "no automatic retry of an uncertain non-idempotent
+operation" is this function's central refusal.
+
+```semaprax
+fn uncertain_reconcile(decision: usize, is_idempotent_handler: bool, attempt: u8, max_attempts: u8) -> usize
+    ensures result <= 9usize
+```
+
+### `std.jobs.budget.reserve_is_legal`
+
+```semaprax
+fn budget_reserve_is_legal(reserved_cost: usize, this_attempt_cost: usize, max_cost: usize) -> bool
+```
+
 ## `std.log`
 
 Package `std/log`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.log = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

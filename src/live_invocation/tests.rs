@@ -73,6 +73,7 @@ fn a_three_turn_fixture_invocation_completes_with_one_dispatch_per_turn_and_one_
         observer: &mut observer,
         policy: &mut policy,
         effect: Some(&mut effect),
+        sink: None,
     };
     let run =
         run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
@@ -120,6 +121,7 @@ fn replaying_a_terminal_journal_makes_zero_dispatches_and_reproduces_the_outcome
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let completed =
         run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
@@ -145,6 +147,7 @@ fn replaying_a_terminal_journal_makes_zero_dispatches_and_reproduces_the_outcome
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let replayed = run_live_invocation(
         &cfg,
@@ -202,6 +205,7 @@ fn cancellation_before_any_turn_opens_stops_cleanly_with_an_empty_journal() {
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let cancellation = AgentCancellation::new();
     cancellation.cancel();
@@ -231,6 +235,7 @@ fn schema_drift_between_decoder_and_invocation_is_refused_before_any_dispatch() 
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let result = run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new());
     assert_eq!(result.err(), Some(LiveKernelError::SchemaDrift));
@@ -257,6 +262,7 @@ fn a_refused_budget_reservation_fails_the_turn_without_dispatching_the_handler()
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let run =
         run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
@@ -293,6 +299,7 @@ fn a_closed_model_failure_ends_the_attempt_without_decoding_or_authorizing() {
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let run =
         run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
@@ -323,6 +330,7 @@ fn a_malformed_response_is_refused_before_authorize() {
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let run =
         run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
@@ -352,6 +360,7 @@ fn an_authorization_refusal_fails_the_turn_after_a_successful_decode() {
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let run =
         run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
@@ -381,6 +390,7 @@ fn an_oversized_response_is_treated_as_malformed_before_decode() {
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let run =
         run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
@@ -470,6 +480,7 @@ fn an_uncertain_intent_journal_is_refused_before_any_redispatch() {
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let result = run_live_invocation(&cfg, uncertain, &mut handlers, &AgentCancellation::new());
     assert_eq!(result.err(), Some(LiveKernelError::UncertainIntent));
@@ -524,6 +535,7 @@ fn an_unresolved_mid_turn_prefix_is_refused_rather_than_guessed() {
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let result = run_live_invocation(&cfg, mid_turn, &mut handlers, &AgentCancellation::new());
     assert_eq!(result.err(), Some(LiveKernelError::UnresolvedPrefix));
@@ -588,6 +600,7 @@ fn resuming_a_journal_after_continue_does_not_redispatch_the_completed_turn() {
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let run = run_live_invocation(
         &cfg,
@@ -643,6 +656,7 @@ fn assert_scripted_failure_ends_the_turn_before_authorize(failure: ModelFailure)
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let run =
         run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();
@@ -721,6 +735,7 @@ fn cancellation_after_turn_opened_stops_cleanly_before_any_request_intent() {
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let run = run_live_invocation(&cfg, Vec::new(), &mut handlers, &cancellation).unwrap();
     assert_eq!(run.outcome, LiveInvocationOutcome::Cancelled);
@@ -784,6 +799,7 @@ fn cancellation_after_request_intent_is_committed_folds_into_a_recorded_cancelle
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let run = run_live_invocation(&cfg, Vec::new(), &mut handlers, &cancellation).unwrap();
     // The request was already durable, so the turn must still resolve to a
@@ -885,6 +901,7 @@ fn authorize_and_completion_see_the_decoded_proposal_never_the_raw_response_byte
         observer: &mut observer,
         policy: &mut policy,
         effect: None,
+        sink: None,
     };
     let run =
         run_live_invocation(&cfg, Vec::new(), &mut handlers, &AgentCancellation::new()).unwrap();

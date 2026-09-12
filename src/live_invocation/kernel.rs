@@ -21,6 +21,7 @@ use super::model_invoke::{
     ModelHandler, ModelInvocationOutcome, ModelInvocationRequest, ModelInvokeCapability,
     ProposalDecoder, ProposalOutcome,
 };
+use super::persistence::JournalSink;
 
 const TRANSITION_DOMAIN: &[u8] = b"semaprax.live-invocation.transition-carrier.v1\0";
 const OBSERVATION_DOMAIN: &[u8] = b"semaprax.live-invocation.observation.v1\0";
@@ -98,6 +99,21 @@ pub enum LiveKernelError {
     /// The decoder's bound schema digest does not match this invocation's
     /// interaction schema. Refused before any dispatch.
     SchemaDrift,
+    /// The bound [`JournalSink`] failed to make an appended entry durable.
+    /// `dispatched` is this call's confirmed `ModelHandler::invoke` count
+    /// *at the moment of the failed write* — proof the kernel never
+    /// dispatches, decodes, authorizes or effects past a write it could not
+    /// confirm. A failure on the write that runs *before* a dispatch (the
+    /// request intent, an effect intent) is an ordinary, safe refusal:
+    /// nothing external happened this turn. A failure on the write that
+    /// runs *after* one (the response, the effect observation) means the
+    /// call already happened and its outcome failed to become durable —
+    /// this kernel treats that exactly like a real crash at the same point,
+    /// which is the honest answer: from a fresh process's perspective the
+    /// two are indistinguishable, and inventing a third state here would be
+    /// exactly the sentinel `docs/DURABLE-JOBS-V1.md`'s "#228 boundary"
+    /// section already refuses to invent for the same shape of problem.
+    PersistenceFailed { dispatched: usize },
 }
 
 /// One kernel run's result.
@@ -147,6 +163,30 @@ pub struct LiveInvocationHandlers<'a> {
     pub observer: &'a mut dyn TurnObserver,
     pub policy: &'a mut dyn TurnPolicy,
     pub effect: Option<&'a mut dyn TurnEffect>,
+    /// Persists the journal across a process boundary. `None` (the default
+    /// for every existing caller) makes this kernel behave exactly as it
+    /// did before persistence existed: purely in-memory, no store write.
+    /// See `super::persistence` for what a bound sink adds and why it is
+    /// called where it is.
+    pub sink: Option<&'a mut dyn JournalSink>,
+}
+
+/// Offers `journal` to the bound sink, if any. Called immediately after
+/// every append, in the same order the entries are produced — including
+/// once before every dispatch (`ModelHandler::invoke`, `TurnEffect::call`)
+/// and once after every settlement — so a bound sink's store always holds
+/// either the exact prefix a fresh process would see after a crash at this
+/// point, or nothing changes at all (`sink: None`).
+fn persist(
+    sink: &mut Option<&mut dyn JournalSink>,
+    journal: &[JournalEntry],
+    dispatched: usize,
+) -> Result<(), LiveKernelError> {
+    if let Some(sink) = sink.as_mut() {
+        sink.persist(journal)
+            .map_err(|_| LiveKernelError::PersistenceFailed { dispatched })?;
+    }
+    Ok(())
 }
 
 pub fn run_live_invocation(
@@ -196,6 +236,7 @@ pub fn run_live_invocation(
             invocation: config.identity.digest().to_owned(),
             observation_digest: observation_digest.clone(),
         });
+        persist(&mut handlers.sink, &journal, dispatched)?;
 
         if cancellation.is_cancelled() {
             return Ok(LiveKernelRun {
@@ -222,17 +263,20 @@ pub fn run_live_invocation(
                     request_digest: request.digest(),
                     reserved_budget: 0,
                 });
+                persist(&mut handlers.sink, &journal, dispatched)?;
                 journal.push(JournalEntry::ResponseFailed {
                     turn,
                     failure: ModelFailure::CapacityExceeded.as_str().to_owned(),
                     attempted_bytes: 0,
                 });
+                persist(&mut handlers.sink, &journal, dispatched)?;
                 let mut run = finish(
                     journal,
                     turn,
                     TurnTransition::Fail(b"budget_refused".to_vec()),
                 );
                 run.dispatched = dispatched;
+                persist(&mut handlers.sink, &run.journal, dispatched)?;
                 return Ok(run);
             }
         };
@@ -243,6 +287,9 @@ pub fn run_live_invocation(
             request_digest,
             reserved_budget,
         });
+        // Durable *before* dispatch: a crash or store failure here means
+        // the model handler is never called this turn.
+        persist(&mut handlers.sink, &journal, dispatched)?;
 
         let mut outcome = if cancellation.is_cancelled() {
             ModelInvocationOutcome::Failed {
@@ -270,6 +317,11 @@ pub fn run_live_invocation(
                     response_digest,
                     response: response.clone(),
                 });
+                // Durable *before* decode: the dispatch already happened
+                // and cannot be undone, so its observed response must
+                // become durable before this kernel does anything else
+                // with it.
+                persist(&mut handlers.sink, &journal, dispatched)?;
                 handlers.budget.record(&InvocationUsage {
                     turn,
                     request_bytes: request.observation.len(),
@@ -287,6 +339,7 @@ pub fn run_live_invocation(
                     failure: failure.as_str().to_owned(),
                     attempted_bytes,
                 });
+                persist(&mut handlers.sink, &journal, dispatched)?;
                 handlers.budget.record(&InvocationUsage {
                     turn,
                     request_bytes: request.observation.len(),
@@ -299,6 +352,7 @@ pub fn run_live_invocation(
                     TurnTransition::Fail(b"model_call_failed".to_vec()),
                 );
                 run.dispatched = dispatched;
+                persist(&mut handlers.sink, &run.journal, dispatched)?;
                 return Ok(run);
             }
         };
@@ -310,6 +364,7 @@ pub fn run_live_invocation(
                     turn,
                     proposal_digest,
                 });
+                persist(&mut handlers.sink, &journal, dispatched)?;
                 bytes
             }
             ProposalOutcome::Refused(reason) => {
@@ -320,6 +375,7 @@ pub fn run_live_invocation(
                     TurnTransition::Fail(b"proposal_refused".to_vec()),
                 );
                 run.dispatched = dispatched;
+                persist(&mut handlers.sink, &run.journal, dispatched)?;
                 return Ok(run);
             }
         };
@@ -335,6 +391,7 @@ pub fn run_live_invocation(
                     turn,
                     grant_digest: grant.digest().to_owned(),
                 });
+                persist(&mut handlers.sink, &journal, dispatched)?;
                 grant
             }
             Err(_refusal) => {
@@ -344,6 +401,7 @@ pub fn run_live_invocation(
                     TurnTransition::Fail(b"authorization_refused".to_vec()),
                 );
                 run.dispatched = dispatched;
+                persist(&mut handlers.sink, &run.journal, dispatched)?;
                 return Ok(run);
             }
         };
@@ -356,6 +414,9 @@ pub fn run_live_invocation(
                 operation: operation.clone(),
                 request_digest,
             });
+            // Durable *before* dispatching the effect, for the same reason
+            // as the model request intent above.
+            persist(&mut handlers.sink, &journal, dispatched)?;
             match effect.call(turn, grant.digest()) {
                 Ok(observed) => {
                     let observation_digest = digest(EFFECT_OBSERVATION_DOMAIN, &observed);
@@ -364,6 +425,7 @@ pub fn run_live_invocation(
                         operation,
                         observation_digest,
                     });
+                    persist(&mut handlers.sink, &journal, dispatched)?;
                 }
                 Err(_) => {
                     let mut run = finish(
@@ -372,6 +434,7 @@ pub fn run_live_invocation(
                         TurnTransition::Fail(b"effect_failed".to_vec()),
                     );
                     run.dispatched = dispatched;
+                    persist(&mut handlers.sink, &run.journal, dispatched)?;
                     return Ok(run);
                 }
             }
@@ -390,11 +453,17 @@ pub fn run_live_invocation(
                     case: "continue".to_owned(),
                     carrier_digest: carrier_digest(b""),
                 });
+                // Durable at the turn boundary: a resumed run must not
+                // redispatch this turn, so the fact it cleanly continued
+                // must survive a crash exactly as reliably as the
+                // in-memory contract already guarantees within one call.
+                persist(&mut handlers.sink, &journal, dispatched)?;
                 turn = turn.saturating_add(1);
             }
             terminal => {
                 let mut run = finish(journal, turn, terminal);
                 run.dispatched = dispatched;
+                persist(&mut handlers.sink, &run.journal, dispatched)?;
                 return Ok(run);
             }
         }

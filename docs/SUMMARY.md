@@ -320,6 +320,7 @@ Audience: all documentation readers.
 - [Agent context v2](AGENT-CONTEXT-V2.md)
 - [Agent transport v1](AGENT-TRANSPORT-V1.md)
 - [Live Invocation Contract v1](LIVE-INVOCATION-CONTRACT-V1.md)
+- [Live Invocation Persistence v1](LIVE-INVOCATION-PERSISTENCE-V1.md)
 - [Agent interaction schema v1](AGENT-INTERACTION-SCHEMA-V1.md)
 - [Agent lifecycle typed carrier v1](AGENT-LIFECYCLE-TYPED-CARRIER-V1.md)
 - [Semantic Discovery v1](SEMANTIC-DISCOVERY-V1.md)

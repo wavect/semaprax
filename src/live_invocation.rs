@@ -6,9 +6,10 @@
 //! live invocation is named and why that identity is stable across retry,
 //! resume and recovery ([`identity`]); the causal journal's record format
 //! and ordering rules ([`journal`]); the trust model and determinism/replay
-//! rules ([`kernel`]); and the `model.invoke` effect's typed request,
+//! rules ([`kernel`]); the `model.invoke` effect's typed request,
 //! capability requirement, failure taxonomy and cancellation point
-//! ([`model_invoke`]).
+//! ([`model_invoke`]); and persisting/recovering that same journal across a
+//! process boundary through a caller-owned store ([`persistence`]).
 //!
 //! # What this module is, on purpose
 //!
@@ -35,6 +36,7 @@ pub mod identity;
 pub mod journal;
 pub mod kernel;
 pub mod model_invoke;
+pub mod persistence;
 
 #[cfg(test)]
 mod tests;
@@ -53,4 +55,8 @@ pub use model_invoke::{
     BudgetRefusal, InvocationBudgetHook, InvocationUsage, ModelFailure, ModelHandler,
     ModelInvocationOutcome, ModelInvocationRequest, ModelInvokeCapability, ProposalDecoder,
     ProposalOutcome, ReservedBudget,
+};
+pub use persistence::{
+    encode_envelope, recover_journal, CheckpointJournalSink, JournalSink, RecoveredJournal,
+    RecoveryError, PERSISTED_JOURNAL_SCHEMA,
 };

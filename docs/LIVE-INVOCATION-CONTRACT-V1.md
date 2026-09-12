@@ -437,11 +437,17 @@ Required-evidence checklist, same audit:
   transport, no multi-provider selection.** These are the explicit hooks
   named above; implementing the policy behind each is the named downstream
   issue's scope, not this one's.
+- **Persistence across a process boundary is a separate document.** This
+  contract's kernel and journal are exercised purely in memory here.
+  [Live Invocation Persistence v1](LIVE-INVOCATION-PERSISTENCE-V1.md) (issue
+  #114) adds the write-side seam (`LiveInvocationHandlers::sink`), the
+  caller-owned store adapter, and the recovery envelope/checks a process
+  restart needs, reusing this document's kernel and journal unchanged.
 
 ## Executable reference
 
 `src/live_invocation/` (`identity.rs`, `journal.rs`, `model_invoke.rs`,
-`kernel.rs`, `fixture.rs`, `tests.rs`) is the complete reference
+`kernel.rs`, `persistence.rs`, `fixture.rs`, `tests.rs`) is the complete reference
 implementation this document describes, exercised end to end through the
 fixture provider with no network access. Focused gate:
 

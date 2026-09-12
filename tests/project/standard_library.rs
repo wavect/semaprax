@@ -24,6 +24,8 @@ mod environment;
 mod formatting;
 #[path = "standard_library/logging.rs"]
 mod logging;
+#[path = "standard_library/package_registry.rs"]
+mod package_registry;
 #[path = "standard_library/process.rs"]
 mod process;
 #[path = "standard_library/temporary.rs"]
@@ -32,8 +34,6 @@ mod temporary;
 mod testing;
 #[path = "standard_library/text.rs"]
 mod text;
-#[path = "standard_library/package_registry.rs"]
-mod package_registry;
 use package_registry::{packages, PackageMetadata};
 use temporary::temporary;
 

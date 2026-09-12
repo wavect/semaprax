@@ -188,7 +188,10 @@ mod tests {
         let effective = intersect(source, deployment, invocation)
             .expect("all three sources are individually valid")
             .limits();
-        assert_eq!(effective.max_calls, 5, "the deployment's tighter bound wins");
+        assert_eq!(
+            effective.max_calls, 5,
+            "the deployment's tighter bound wins"
+        );
         assert_eq!(
             effective.max_retries, 2,
             "a dimension only one source restricts still narrows the result"

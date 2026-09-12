@@ -233,7 +233,9 @@ impl<'a> ModelPolicyLedger<'a> {
             ledger.cost_committed_micros = ledger
                 .cost_committed_micros
                 .saturating_add(reservation.reserved_cost_micros);
-            ledger.next_ordinal = ledger.next_ordinal.max(reservation.ordinal.saturating_add(1));
+            ledger.next_ordinal = ledger
+                .next_ordinal
+                .max(reservation.ordinal.saturating_add(1));
         }
         ledger
     }
@@ -450,8 +452,12 @@ mod tests {
     fn limits_with(mutate: impl FnOnce(&mut ModelBudgetLimits)) -> EffectiveModelBudget {
         let mut limits = ModelBudgetLimits::unbounded();
         mutate(&mut limits);
-        intersect(limits, ModelBudgetLimits::unbounded(), ModelBudgetLimits::unbounded())
-            .expect("test-constructed limits are always individually valid")
+        intersect(
+            limits,
+            ModelBudgetLimits::unbounded(),
+            ModelBudgetLimits::unbounded(),
+        )
+        .expect("test-constructed limits are always individually valid")
     }
 
     fn no_failover_policy() -> ProviderPolicy {
@@ -580,7 +586,11 @@ mod tests {
             .reserve_attempt(&cancellation, &fresh(1, 1, 1))
             .unwrap_err();
         assert_eq!(refusal, AttemptRefusal::CallsExhausted { max_calls: 1 });
-        assert_eq!(ledger.calls_committed(), 1, "the refused attempt commits nothing");
+        assert_eq!(
+            ledger.calls_committed(),
+            1,
+            "the refused attempt commits nothing"
+        );
     }
 
     // --- max_retries: zero/exact/over, and retry-permission gating. ---
@@ -700,7 +710,11 @@ mod tests {
         );
         assert_eq!(second.kind, AttemptKind::Failover);
         assert_eq!(ledger.providers_committed(), 1);
-        assert_eq!(ledger.calls_committed(), 2, "failover still counts as a call");
+        assert_eq!(
+            ledger.calls_committed(),
+            2,
+            "failover still counts as a call"
+        );
     }
 
     #[test]
@@ -929,7 +943,10 @@ mod tests {
         let refusal = ledger
             .reserve_attempt(&cancellation, &fresh(0, 0, -1))
             .unwrap_err();
-        assert!(matches!(refusal, AttemptRefusal::CostExhausted { requested: -1, .. }));
+        assert!(matches!(
+            refusal,
+            AttemptRefusal::CostExhausted { requested: -1, .. }
+        ));
         assert_eq!(ledger.cost_committed_micros(), 0);
     }
 
@@ -1029,12 +1046,8 @@ mod tests {
     {
         let clock = StepClock::new(0);
         let cancellation = AgentCancellation::new();
-        let mut original = ModelPolicyLedger::new(
-            unrestricted_limits(),
-            no_failover_policy(),
-            None,
-            &clock,
-        );
+        let mut original =
+            ModelPolicyLedger::new(unrestricted_limits(), no_failover_policy(), None, &clock);
         let first = original
             .reserve_attempt(&cancellation, &fresh(5, 5, 5))
             .unwrap();

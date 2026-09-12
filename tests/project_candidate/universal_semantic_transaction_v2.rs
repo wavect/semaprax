@@ -719,6 +719,294 @@ fn a_comment_in_an_unrelated_source_is_still_refused() {
     assert_eq!(inventory(&fixture.0), disk_before);
 }
 
+/// A standalone `owned-data-api.v1` project (distinct from the
+/// `calculator-project` example every other test in this file reuses)
+/// because `calculator-project`'s schema-v1 manifest has no `profile` field
+/// and so falls back to the Public Scalar Export Profile v1, which rejects
+/// *any* `string`-typed declaration anywhere in the program the moment one
+/// scalar function is `web_exports`-listed (`src/wasm/scalar_exports.rs`'s
+/// `validate_program_profile` walks every function, not only exported
+/// ones). `owned-data-api.v1` (as `tests/project_candidate/string_builtin_calls.rs`
+/// already relies on) admits `string` on a function that is not itself
+/// scalar-exported, which is what the `//`-bearing string literal below
+/// needs.
+struct HazardFixture(PathBuf);
+
+impl HazardFixture {
+    /// A `hazard.core` source built for #213: multi-byte UTF-8 (a 4-byte
+    /// codepoint and a combining-character grapheme cluster), a lone
+    /// embedded `\r` that is not part of a CRLF line terminator, and a
+    /// string literal containing `//`, placed before, around, and after the
+    /// span this test edits (`add`'s `subtotal + bonus`). A genuine CRLF
+    /// *line terminator* is not reachable here: `canonical_with_comments`
+    /// always writes `\n` (`format::comments::write_comments` uses
+    /// `writeln!`), so a source whose real line endings are `\r\n` can
+    /// never equal its own canonical-with-comments projection, and
+    /// workspace admission's `SPX-G170` "is not canonical" check
+    /// (`src/workspace_graph.rs`) refuses it before this route's own
+    /// comment-preserving splice ever runs — proven separately below in
+    /// [`crlf_as_a_line_terminator_is_refused_before_the_splice_ever_runs`].
+    /// A lone `\r` that is *not* the line terminator (i.e. not immediately
+    /// followed by the `\n` that ends the comment) is not subject to that
+    /// trim and is exercised here instead.
+    fn core_source() -> String {
+        concat!(
+            // Before the edited span: a 4-byte codepoint (an emoji) in the
+            // top-of-file comment.
+            "// Top-of-file license note \u{1F600} (four-byte UTF-8 codepoint).\n",
+            "module hazard.core;\n",
+            "\n",
+            // Before the edited span, and containing a combining-character
+            // grapheme cluster: plain `e` (U+0065) followed by a combining
+            // acute accent (U+0301), which is not itself ASCII.
+            "// hazard.add sums two operands: caf\u{65}\u{301} note.\n",
+            "@id(\"hazard.add\")\n",
+            "fn add(left: i64, right: i64) -> i64\n",
+            "{\n",
+            // Inside add's body but outside the edited span (before the
+            // edited statement): a comment with a lone embedded `\r` that
+            // is not a line terminator (more comment text follows it on
+            // the same captured line, before the real `\n`).
+            "    // subtotal\ris the plain sum before the bonus is folded in.\n",
+            "    let subtotal = left + right;\n",
+            "    let bonus = 1;\n",
+            "    subtotal + bonus - 1\n",
+            "}\n",
+            // After the edited span: another 4-byte codepoint.
+            "// trails add \u{1F600}\n",
+            "\n",
+            // Adjacent to (but never inside) the edited function: a string
+            // literal containing `//`, so the comment-preserving reparse
+            // must not mistake the `//` inside the string for the start of
+            // a real comment. Kept out of `add` itself because
+            // `owned-data-api.v1`'s single scalar-exported function
+            // (`hazard.add`) must stay scalar; `label` is not web_exports
+            // -listed, so it may use `string` freely.
+            "@id(\"hazard.label\")\n",
+            "fn label() -> string\n",
+            "{\n",
+            "    \"see http://example.com // not a comment\"\n",
+            "}\n",
+            // End of file: a combining-character grapheme cluster again.
+            "// end of file caf\u{65}\u{301}\n",
+        )
+        .to_owned()
+    }
+
+    fn with_core_source(core_source: &str) -> Self {
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-universal-semantic-transaction-v2-hazard-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        std::fs::write(
+            root.join("semaprax.toml"),
+            r#"schema = "semaprax.project.v8"
+name = "hazard"
+version = "1.0.0"
+profile = "owned-data-api.v1"
+entry = "hazard.app"
+sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
+web_exports = ["hazard.add"]
+tests = ["hazard.tests"]
+"#,
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("src/app.spx"),
+            concat!(
+                "module hazard.app;\n",
+                "use function @id(\"hazard.add\") from hazard.core as add;\n",
+                "\n",
+                "@id(\"hazard.main\")\n",
+                "fn main() -> i64\n",
+                "{\n",
+                "    add(1, 2)\n",
+                "}\n",
+            ),
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("src/tests.spx"),
+            concat!(
+                "module hazard.tests;\n",
+                "use function @id(\"hazard.add\") from hazard.core as add;\n",
+                "\n",
+                "@id(\"hazard.test\")\n",
+                "fn main() -> i64\n",
+                "{\n",
+                "    if add(1, 2) == 4 { 0 } else { 1 }\n",
+                "}\n",
+            ),
+        )
+        .unwrap();
+        std::fs::write(root.join("src/core.spx"), core_source).unwrap();
+        Self(root.canonicalize().unwrap())
+    }
+
+    fn revision(&self) -> Arc<ProjectRevision> {
+        with_authenticated_project(&self.0.join("semaprax.toml"), |snapshot| {
+            Ok(snapshot.retain_revision())
+        })
+        .unwrap()
+    }
+}
+
+impl Drop for HazardFixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// Guard mirroring [`commented_core_source_fixture_actually_has_comments`]:
+/// confirms the fixture really carries every hazard #213 asks for (a 4-byte
+/// codepoint, a combining grapheme cluster, a lone non-terminator `\r`, and
+/// a string literal with `//`) rather than one being silently absent, and
+/// that the fixture is exactly canonical-with-comments so it can actually be
+/// admitted as a `ProjectRevision`.
+#[test]
+fn unicode_and_control_core_source_fixture_actually_has_every_hazard() {
+    let source = HazardFixture::core_source();
+    assert!(source.contains('\u{1F600}'), "missing four-byte codepoint");
+    assert!(
+        source.contains("e\u{301}"),
+        "missing combining grapheme cluster"
+    );
+    assert!(
+        source.contains("subtotal\ris the plain sum"),
+        "missing lone embedded CR"
+    );
+    assert!(
+        !source.contains("subtotal\r\n"),
+        "the embedded CR must not be a line terminator"
+    );
+    assert!(
+        source.contains("http://example.com // not a comment"),
+        "missing the string literal containing //"
+    );
+    let (program, comments) =
+        semaprax::parse_with_comments(&source, "src/core.spx").unwrap();
+    assert_eq!(
+        semaprax::format::comments::canonical_with_comments(&program, &comments),
+        source,
+        "fixture must be exactly canonical-with-comments to be admitted at all"
+    );
+    // Confirms this fixture actually reaches a `ProjectRevision`: the whole
+    // point of the dedicated `owned-data-api.v1` project is that the string
+    // literal above does not get refused the way it would under
+    // `calculator-project`'s default profile.
+    let fixture = HazardFixture::with_core_source(&source);
+    let _: Arc<ProjectRevision> = fixture.revision();
+}
+
+#[test]
+fn crlf_as_a_line_terminator_is_refused_before_the_splice_ever_runs() {
+    // Documents the negative space named in the fixture doc comment above
+    // with real evidence rather than reasoning: a source whose line
+    // terminators are genuinely `\r\n` is rejected by workspace admission's
+    // pre-existing `SPX-G170` canonical check, not by this route's own
+    // comment-preserving splice, because `canonical_with_comments` always
+    // emits `\n`.
+    let crlf_source = examples_core_source().replace('\n', "\r\n");
+    let fixture = Fixture::with_core_source(&crlf_source);
+    let errors = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .map(|_: Arc<ProjectRevision>| ())
+    .unwrap_err();
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G170"),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn unicode_lone_cr_and_string_literal_slashes_are_preserved_outside_the_edited_span() {
+    let core_source = HazardFixture::core_source();
+    let fixture = HazardFixture::with_core_source(&core_source);
+    let disk_before = inventory(&fixture.0);
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let (expression_id, old) = selection(&revision, "hazard.add", "subtotal + bonus");
+    let transaction = SemanticTransactionV2::replace_expression(
+        workspace.workspace_revision(),
+        SemanticTransactionReplaceExpression::new(
+            "hazard.add",
+            &expression_id,
+            &old,
+            replacement(),
+        ),
+    )
+    .unwrap();
+
+    let artifacts = transaction.validate(Arc::clone(&revision)).unwrap();
+
+    // The only bytes that may differ from the original source are exactly
+    // the authenticated "subtotal + bonus" span: every multi-byte
+    // character, the lone embedded CR, and the string literal's `//`
+    // survive verbatim, at the exact same byte offsets, everywhere else.
+    let expected_preserved = core_source.replacen("subtotal + bonus", "subtotal + 2", 1);
+    assert_eq!(
+        artifacts.preserved_target_source(),
+        Some(expected_preserved.as_str())
+    );
+    let preserved = artifacts.preserved_target_source().unwrap();
+    for needle in [
+        "\u{1F600}",
+        "e\u{301}",
+        "subtotal\ris the plain sum",
+        "http://example.com // not a comment",
+    ] {
+        assert!(preserved.contains(needle), "missing {needle:?}");
+    }
+    // The 4-byte codepoint both before and after the edited span, and it is
+    // not merely present but present exactly twice (once per occurrence),
+    // proving neither copy was dropped, duplicated, or corrupted into an
+    // invalid UTF-8 sequence by the byte-offset splice.
+    assert_eq!(preserved.matches('\u{1F600}').count(), 2);
+    assert!(preserved.is_char_boundary(0));
+    // Every byte of `preserved` decodes as valid UTF-8 by construction
+    // (`preserved` is a `&str`), so the real assertion is that no adjacent
+    // byte was lost or merged: the total length changed by exactly the
+    // difference between the old and new expression text.
+    assert_eq!(
+        preserved.len() as isize - core_source.len() as isize,
+        "subtotal + 2".len() as isize - "subtotal + bonus".len() as isize
+    );
+
+    // Independent reparse and byte comparison, beyond the transaction's own
+    // internal check: stripping comments from the preserved text and
+    // canonicalizing it reproduces the already fully validated candidate
+    // text exactly, and no comment was lost or duplicated.
+    let (reparsed, reparsed_comments) =
+        semaprax::parse_with_comments(preserved, "src/core.spx").unwrap();
+    let candidate_target = artifacts
+        .candidate()
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/core.spx")
+        .unwrap()
+        .source();
+    assert_eq!(semaprax::format::canonical(&reparsed), candidate_target);
+    assert_eq!(reparsed_comments.items.len(), 5);
+
+    // Every source other than the edited one, and the edited source's own
+    // disk bytes, are untouched: validation never writes.
+    assert_eq!(inventory(&fixture.0), disk_before);
+
+    // Re-validating the same transaction against the same base is exactly
+    // reproducible.
+    let repeated = transaction.validate(Arc::clone(&revision)).unwrap();
+    assert_eq!(artifacts.evidence(), repeated.evidence());
+    assert_eq!(artifacts.result(), repeated.result());
+    assert_eq!(
+        artifacts.preserved_target_source(),
+        repeated.preserved_target_source()
+    );
+}
+
 fn examples_core_source() -> String {
     std::fs::read_to_string(
         Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project/src/core.spx"),

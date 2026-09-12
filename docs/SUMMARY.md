@@ -76,6 +76,7 @@ Audience: all documentation readers.
 - [RFC 0001: SEMAPRAX programming system](RFC-0001.md)
 - [RFC 0002: Algebraic data](RFC-0002-ALGEBRAIC-DATA.md)
 - [RFC 0003: Cleanup and resource ABI](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md)
+- [Semantic Kernel v1](SEMANTIC-KERNEL-V1.md)
 - [Standard Library v1](STANDARD-LIBRARY-V1.md)
 - [Format Writer v1](FORMAT-WRITER-V1.md)
 - [Log Writer v1](LOG-WRITER-V1.md)

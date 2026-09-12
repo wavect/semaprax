@@ -50,6 +50,8 @@ mod executable_variant;
 mod executor;
 #[path = "cleanup_backends/inventory.rs"]
 mod inventory;
+#[path = "cleanup_backends/kernel_boundary.rs"]
+mod kernel_boundary;
 #[path = "cleanup_backends/plan.rs"]
 mod plan;
 #[path = "cleanup_backends/scoped_tasks_model.rs"]

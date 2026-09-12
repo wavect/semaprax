@@ -54,6 +54,7 @@ use crate::interpreter::retained_call::{
 pub mod authorization;
 pub mod durable;
 pub mod iterative;
+pub mod rich_stage;
 mod source;
 mod stages;
 
@@ -65,6 +66,9 @@ pub use durable::{
     bind_durable_agent, AgentCheckpoint, CheckpointBinding, CheckpointStore, CheckpointStoreError,
     CrashPoint, DurableAgent, DurableBudget, DurableRun, DurableStatus, ProgramCounter,
     Reconciliation, Retention, CHECKPOINT_SCHEMA, DURABLE_EVIDENCE_SCHEMA,
+};
+pub use rich_stage::{
+    bind_rich_proposal_stages, run_rich_turn, RichProposalStages, RichTurnOutcome,
 };
 pub use source::{compile_source_agent_lifecycle, verify_source_agent_lifecycle_bundle};
 

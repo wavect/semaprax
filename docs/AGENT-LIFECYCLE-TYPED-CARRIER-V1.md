@@ -172,28 +172,66 @@ or truncated:
 | `SPX-Z212` | A rich value checkpoint refusal, or a rich effect operation's malformed/wrongly-typed result. |
 | `SPX-Z213` | Cancellation observed before dispatch. |
 
+## Wiring into `agent_lifecycle` (landed)
+
+[`agent_lifecycle::rich_stage`](../src/agent_lifecycle/rich_stage.rs) is the
+thin adapter this document originally deferred: it validates a new
+`authorize(state, proposal) -> Decision` / `reduce(state, proposal, outcome)
+-> Transition` signature convention directly against persistent HIR facts,
+derives a real `CompiledInteractionSchema` for the Proposal role, and
+sequences decode (`CompiledInteractionSchema::decode`) -> admit
+(`binding::StageBinding::admit`) -> project (`projection::to_retained`) ->
+dispatch (`interpreter::retained_call::evaluate_retained_call`) for one
+turn (`run_rich_turn`). It is additive: `stages::bind`'s scalar-exploded
+convention, `iterative`'s whole multi-turn driver loop, and every lifecycle
+already compiled through them are unchanged, and this module edits neither
+`agent_lifecycle_typed_carrier` nor `agent_interaction_schema` — it only
+calls their existing public API. Focused gate:
+
+```sh
+cargo test --locked -p semaprax --lib agent_lifecycle::rich_stage
+```
+
+**A concrete, confirmed boundary found while wiring this**: a genuinely
+*nested* Proposal (a record field whose type is itself a further record)
+does not clear the retained-call seam as a Value-mode parameter today.
+`interpreter::retained_call`'s `resolved_data_parameter_is_admitted` admits
+a non-flat nominal parameter at `OwnershipMode::Value` only when its
+declaration is `DeclarationKind::Class`, but
+`agent_interaction_schema::shape::derive` refuses a `class` root outright
+(`type.kind`) as one of its own stated exclusions — so a type that is both a
+valid Agent Interaction Schema v1 root and an admitted retained-call Value
+parameter must, today, be a flat record. `rich_stage`'s own fixture is a
+genuine multi-field flat Proposal crossing as one nominal argument (not
+exploded into per-field scalar parameters); it is not a nested one.
+Resolving this needs a change in `interpreter::retained_call` or
+`agent_interaction_schema::shape`, both outside `agent_lifecycle`'s file
+lease.
+
 ## Known limitations (this round)
 
-- **No wiring into `agent_lifecycle::stages`, `agent_lifecycle::iterative`,
-  `execution_revision::typed`, or `agent_runtime_v2::checkpoint::value`.**
-  Those files are outside this worker's file lease (other issues own them).
-  This module's `binding::LifecycleStageRole`, `ownership::stage_and_evaluate`,
-  and `registry::call_typed_operation` are designed to make that wiring a
-  thin adapter over a real `CompiledInteractionSchema` and the real
-  `prepare_retained_call`/`evaluate_retained_call` seam, not a redesign, but
-  the adapter itself is not written here — matching the same "design
-  checkpoint, wiring is downstream" split the [Live Invocation Contract v1](LIVE-INVOCATION-CONTRACT-V1.md)
-  already documents for `model.invoke`.
+- **`agent_lifecycle::rich_stage` does not yet drive
+  `agent_lifecycle::iterative::CompiledIterativeLifecycle`'s existing
+  multi-turn loop, and validates a fixed two-case Decision/Transition shape
+  rather than the four-case `Continue/Complete/Suspend/Fail` Step grammar.**
+  `run_rich_turn` runs one turn, standalone. See `rich_stage`'s own
+  module documentation for the exact admitted shapes and the
+  single-scalar-field State restriction.
+- **Still no wiring into `execution_revision::typed` or
+  `agent_runtime_v2::checkpoint::value`.** Those files remain outside every
+  worker's file lease so far (other issues own them). This module's
+  `checkpoint` codec is designed to make that wiring a thin adapter, not a
+  redesign, but the adapter itself is not written here.
 - **No wiring into `src/live_invocation/`'s `ProposalDecoder`/`TurnEffect`.**
   Those traits are outside this worker's file lease too; a real integration
   would bind them to `CompiledInteractionSchema::decode` and to
   `registry::call_typed_operation` respectively.
 - **Variant case payloads remain flat scalars only, in this language,
   today**, independent of this module — `source_verify`'s "Copy Variants
-  v1" rule (`SPX-T215`) admits only a direct Copy scalar as a variant case
-  field, so a nested record inside a case is not yet constructible in
-  checked source, matching Agent Interaction Schema v1's own declared
-  limitation.
+  v1" rule (`SPX-T215`) admits only a direct Copy scalar (or `Bytes`) as a
+  variant case field, so a nested record inside a case is not yet
+  constructible in checked source, matching Agent Interaction Schema v1's
+  own declared limitation.
 - **No configurable bounds.** `MAX_CHECKPOINT_BYTES` is a fixed constant.
 
 ## Executable reference

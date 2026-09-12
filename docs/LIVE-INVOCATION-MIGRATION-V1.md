@@ -204,16 +204,47 @@ proves the converse: any differing bound input (here, which migration
 function was named) changes the digest, so a reminted handoff is
 detectable rather than silently accepted as the same one.
 
+## Durable destination handoff checkpoint
+
+A successful pure migration is not itself permission to dispatch the
+destination. `persist_migration_handoff` first writes one complete
+`semaprax.live-invocation.persisted-migration-handoff.v1` document through
+the existing caller-owned `agent_lifecycle::CheckpointStore` contract. The
+versioned document binds the destination identity and generation to the
+canonical handoff, its digest, the exact migrated-state hex bytes and their
+digest, plus the destination journal and its chain digest.
+
+`recover_migration_handoff` requires the exact destination identity and
+recomputes every handoff, state, and journal link before returning the
+opaque `RecoveredMigrationHandoff` capability. It refuses a different or
+future schema, a substituted destination, a reminted handoff, modified state
+bytes, or a changed journal. The capability can only be created by successful
+persistence or recovery; its state has no public constructor.
+
+`run_migrated_destination` is the migration-specific dispatch route. It
+accepts that capability, checks the destination identity and schema again,
+and installs a combined checkpoint sink before it calls the generic kernel.
+Every journal write replaces the same document at the next generation while
+preserving the handoff and migrated bytes. Therefore the first destination
+`RequestIntent` is durable together with its handoff before model dispatch,
+and a recovered terminal destination journal replays with zero new dispatches.
+The generic kernel remains an intentionally separate route for fresh,
+non-migrated live invocations; it cannot be cited as satisfying this migration
+checkpoint requirement.
+
+`migration::tests::a_migration_handoff_checkpoint_recovers_only_when_every_bound_byte_replays`
+proves the round trip and rejects state, handoff, and schema tampering.
+`migration::tests::only_a_persisted_or_recovered_handoff_can_drive_destination_dispatch_and_replay`
+proves the real adapter sequence: persist, dispatch through the combined
+sink, recover, then replay the terminal destination with zero handler calls.
+
 ## Non-goals and known limitations (this round)
 
 - **No distributed multi-writer transaction, no automatic cross-store
-  reconciliation.** Like `execution_revision::typed_migration`, this is a
-  pure function over caller-supplied, already-validated inputs. A caller
-  who wants a persisted handoff (so a crash between computing it and
-  acting on it is itself recoverable) layers `persistence::JournalSink`
-  underneath the destination's own fresh journal, unchanged from [Live
-  Invocation Persistence v1](LIVE-INVOCATION-PERSISTENCE-V1.md); this
-  module adds no second store contract of its own.
+  reconciliation.** The combined checkpoint uses the existing atomic
+  replace-or-retain `CheckpointStore` operation for one caller-selected
+  destination record. It does not coordinate independent stores or mutate
+  the predecessor journal.
 - **No real compiler-checked migration function.** `fixture::FixtureStateMigration`
   and its siblings are deterministic fixtures for exercising the checked-pure
   double-evaluation boundary; binding a real one against retained HIR is
@@ -256,7 +287,7 @@ detectable rather than silently accepted as the same one.
 cargo test --locked -p semaprax --lib live_invocation
 ```
 
-91 tests (the 73 tests Live Invocation Contract v1 and Live Invocation
-Persistence v1 already established, unchanged, plus 18 in
-`migration::tests` — the original 16 plus the two rich-schema cases added
-by this revision), all fixture-backed, no network access, no model spend.
+93 tests (the 73 tests Live Invocation Contract v1 and Live Invocation
+Persistence v1 already established, unchanged, plus 20 in
+`migration::tests` — the original 16, two rich-schema cases, and two durable
+handoff-checkpoint regressions), all fixture-backed, no network access, no model spend.

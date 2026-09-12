@@ -998,3 +998,155 @@ fn an_a_to_b_to_c_chain_preserves_call_counts_and_never_refunds_committed_budget
     assert_eq!(c_ledger.committed(), 50);
     assert_eq!(c_ledger.remaining(), 950);
 }
+
+#[derive(Default)]
+struct MigrationRecordingStore {
+    documents: Vec<String>,
+    calls: usize,
+}
+
+impl MigrationRecordingStore {
+    fn last(&self) -> &str {
+        self.documents.last().expect("a checkpoint was committed")
+    }
+}
+
+impl crate::agent_lifecycle::CheckpointStore for MigrationRecordingStore {
+    fn commit(
+        &mut self,
+        _generation: u64,
+        document: &str,
+    ) -> Result<(), crate::agent_lifecycle::CheckpointStoreError> {
+        self.calls += 1;
+        self.documents.push(document.to_owned());
+        Ok(())
+    }
+}
+
+fn checkpoint_migration() -> (MigratedLiveInvocation, LiveInvocationSeed, LiveInvocationId) {
+    let previous_seed = seed(&("sha256:".to_owned() + &"1".repeat(64)), SCHEMA_A);
+    let previous_identity = LiveInvocationId::derive(&previous_seed);
+    let journal = run_to_suspend(&previous_identity, SCHEMA_A, 0);
+    let destination_seed = seed(&("sha256:".to_owned() + &"9".repeat(64)), SCHEMA_B);
+    let destination_identity = LiveInvocationId::derive(&destination_seed);
+    let mut migration = FixtureStateMigration::appending(b"-migrated".to_vec());
+    let migrated = migrate_live_invocation(
+        &LiveMigrationSource {
+            identity: &previous_identity,
+            seed: &previous_seed,
+            journal: &journal,
+            state: b"previous-state",
+        },
+        &LiveMigrationDestination {
+            identity: &destination_identity,
+            seed: &destination_seed,
+        },
+        "fixture.checkpoint.v1",
+        &mut migration,
+    )
+    .unwrap();
+    (migrated, destination_seed, destination_identity)
+}
+
+#[test]
+fn a_migration_handoff_checkpoint_recovers_only_when_every_bound_byte_replays() {
+    let (migrated, _, destination) = checkpoint_migration();
+    let mut store = MigrationRecordingStore::default();
+    let persisted = persist_migration_handoff(&mut store, migrated).unwrap();
+    assert_eq!(persisted.generation(), 1);
+    let recovered = recover_migration_handoff(store.last(), &destination).unwrap();
+    assert_eq!(recovered, persisted);
+    let wrong_destination =
+        LiveInvocationId::derive(&seed(&("sha256:".to_owned() + &"8".repeat(64)), SCHEMA_B));
+    assert_eq!(
+        recover_migration_handoff(store.last(), &wrong_destination),
+        Err(MigrationCheckpointError::DestinationMismatch)
+    );
+
+    let mut document: serde_json::Value = serde_json::from_str(store.last()).unwrap();
+    document["migrated_state"] = serde_json::Value::String("00".to_owned());
+    assert_eq!(
+        recover_migration_handoff(&document.to_string(), &destination),
+        Err(MigrationCheckpointError::StateMismatch)
+    );
+    let mut document: serde_json::Value = serde_json::from_str(store.last()).unwrap();
+    document["handoff"]["migration_function"] = serde_json::Value::String("tampered".to_owned());
+    assert_eq!(
+        recover_migration_handoff(&document.to_string(), &destination),
+        Err(MigrationCheckpointError::HandoffMismatch)
+    );
+    let mut document: serde_json::Value = serde_json::from_str(store.last()).unwrap();
+    document["schema"] = serde_json::Value::String("future.v2".to_owned());
+    assert_eq!(
+        recover_migration_handoff(&document.to_string(), &destination),
+        Err(MigrationCheckpointError::SchemaMismatch)
+    );
+}
+
+#[test]
+fn only_a_persisted_or_recovered_handoff_can_drive_destination_dispatch_and_replay() {
+    let (migrated, _, destination) = checkpoint_migration();
+    let mut store = MigrationRecordingStore::default();
+    let mut recovered = persist_migration_handoff(&mut store, migrated).unwrap();
+    let cfg = config(&destination, SCHEMA_B, 1);
+    let capability = ModelInvokeCapability::grant("migrated destination");
+    let mut handler = FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Settled(
+        fixture_response(0, "destination"),
+    )]);
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_B);
+    let mut gate = FixtureAuthorizationGate::new(1);
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = FixtureObserver;
+    let mut policy = super::super::fixture::FixturePolicy { total_turns: 1 };
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut budget,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: None,
+        sink: None,
+    };
+    let first = run_migrated_destination(
+        &mut recovered,
+        &mut store,
+        &cfg,
+        &mut handlers,
+        &AgentCancellation::new(),
+    )
+    .unwrap();
+    assert_eq!(first.run.dispatched, 1);
+    assert!(first.generation > 1, "destination journal was checkpointed");
+    assert_eq!(handler.calls, 1);
+
+    let mut replay = recover_migration_handoff(store.last(), &destination).unwrap();
+    let mut never_handler = FixtureModelHandler::scripted(Vec::new());
+    let mut replay_decoder = FixtureProposalDecoder::new(SCHEMA_B);
+    let mut replay_gate = FixtureAuthorizationGate::new(0);
+    let mut replay_budget = FixtureBudgetHook::new(10);
+    let mut replay_observer = FixtureObserver;
+    let mut replay_policy = super::super::fixture::FixturePolicy { total_turns: 1 };
+    let mut replay_handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut never_handler,
+        decoder: &mut replay_decoder,
+        gate: &mut replay_gate,
+        budget: &mut replay_budget,
+        observer: &mut replay_observer,
+        policy: &mut replay_policy,
+        effect: None,
+        sink: None,
+    };
+    let replayed = run_migrated_destination(
+        &mut replay,
+        &mut store,
+        &cfg,
+        &mut replay_handlers,
+        &AgentCancellation::new(),
+    )
+    .unwrap();
+    assert_eq!(replayed.run.dispatched, 0);
+    assert_eq!(never_handler.calls, 0);
+}

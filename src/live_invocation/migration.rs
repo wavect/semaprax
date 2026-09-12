@@ -78,11 +78,21 @@
 //! bound to `(SCHEMA_A, SCHEMA_B)` never silently reinterprets state under
 //! `SCHEMA_C`, no matter how similar the bytes look.
 
+use serde_json::Value;
+
 use crate::diagnostic::quote_json;
 
 use super::budget::committed_from_journal;
 use super::identity::{digest, LiveInvocationId, LiveInvocationSeed};
 use super::journal::{self, JournalEntry};
+
+pub mod checkpoint;
+
+pub use checkpoint::{
+    persist_migration_handoff, recover_migration_handoff, run_migrated_destination,
+    MigrationCheckpointError, MigrationDestinationError, MigrationDestinationRun,
+    RecoveredMigrationHandoff, PERSISTED_MIGRATION_HANDOFF_SCHEMA,
+};
 
 #[cfg(test)]
 mod tests;
@@ -287,7 +297,11 @@ impl LiveMigrationHandoff {
     /// handoff" a stale destination binding must be detectable against.
     #[must_use]
     pub fn digest(&self) -> String {
-        let body = format!(
+        digest(HANDOFF_DOMAIN, self.canonical().as_bytes())
+    }
+
+    pub(super) fn canonical(&self) -> String {
+        format!(
             "{{\"schema\":{},\"previous_identity\":{},\"previous_journal_chain\":{},\"previous_committed_budget\":{},\"previous_turns\":{},\"previous_model_calls\":{},\"previous_model_failures\":{},\"previous_effect_calls\":{},\"destination_identity\":{},\"migration_function\":{},\"migrated_state_digest\":{},\"previous_schema_digest\":{},\"destination_schema_digest\":{}}}",
             quote_json(HANDOFF_SCHEMA),
             quote_json(&self.previous_identity),
@@ -303,7 +317,47 @@ impl LiveMigrationHandoff {
             quote_json(&self.previous_schema_digest),
             quote_json(&self.destination_schema_digest),
         );
-        digest(HANDOFF_DOMAIN, body.as_bytes())
+    }
+
+    pub(super) fn decode(value: &Value) -> Option<Self> {
+        let object = value.as_object()?;
+        const KEYS: [&str; 13] = [
+            "schema",
+            "previous_identity",
+            "previous_journal_chain",
+            "previous_committed_budget",
+            "previous_turns",
+            "previous_model_calls",
+            "previous_model_failures",
+            "previous_effect_calls",
+            "destination_identity",
+            "migration_function",
+            "migrated_state_digest",
+            "previous_schema_digest",
+            "destination_schema_digest",
+        ];
+        if object.len() != KEYS.len()
+            || !KEYS.iter().all(|key| object.contains_key(*key))
+            || object["schema"].as_str() != Some(HANDOFF_SCHEMA)
+        {
+            return None;
+        }
+        Some(Self {
+            previous_identity: object["previous_identity"].as_str()?.to_owned(),
+            previous_journal_chain: object["previous_journal_chain"].as_str()?.to_owned(),
+            previous_committed_budget: object["previous_committed_budget"].as_i64()?,
+            previous_turns: usize::try_from(object["previous_turns"].as_u64()?).ok()?,
+            previous_model_calls: usize::try_from(object["previous_model_calls"].as_u64()?).ok()?,
+            previous_model_failures: usize::try_from(object["previous_model_failures"].as_u64()?)
+                .ok()?,
+            previous_effect_calls: usize::try_from(object["previous_effect_calls"].as_u64()?)
+                .ok()?,
+            destination_identity: object["destination_identity"].as_str()?.to_owned(),
+            migration_function: object["migration_function"].as_str()?.to_owned(),
+            migrated_state_digest: object["migrated_state_digest"].as_str()?.to_owned(),
+            previous_schema_digest: object["previous_schema_digest"].as_str()?.to_owned(),
+            destination_schema_digest: object["destination_schema_digest"].as_str()?.to_owned(),
+        })
     }
 }
 

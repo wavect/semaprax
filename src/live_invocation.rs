@@ -60,9 +60,12 @@ pub use kernel::{
     LiveKernelError, LiveKernelRun, TurnEffect, TurnObserver, TurnPolicy, TurnTransition,
 };
 pub use migration::{
-    migrate_live_invocation, verify_destination_binding, LiveMigrationDestination,
+    migrate_live_invocation, persist_migration_handoff, recover_migration_handoff,
+    run_migrated_destination, verify_destination_binding, LiveMigrationDestination,
     LiveMigrationError, LiveMigrationHandoff, LiveMigrationSource, LiveStateMigration,
-    MigratedLiveInvocation, MAX_MIGRATED_STATE_BYTES,
+    MigratedLiveInvocation, MigrationCheckpointError, MigrationDestinationError,
+    MigrationDestinationRun, RecoveredMigrationHandoff, MAX_MIGRATED_STATE_BYTES,
+    PERSISTED_MIGRATION_HANDOFF_SCHEMA,
 };
 pub use model_invoke::{
     AuthorizationContext, AuthorizationGate, AuthorizationGrant, AuthorizationRefusal,

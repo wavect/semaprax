@@ -35,6 +35,7 @@ pub mod architecture_claims;
 pub mod assurance_manifest;
 pub mod assurance_policy;
 pub mod ast;
+pub mod audit_capsule;
 pub(crate) mod bounded_output;
 pub(crate) mod box_ops;
 pub(crate) mod byte_data_capacity;

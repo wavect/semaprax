@@ -252,6 +252,69 @@ fn a_relabelled_liveness_flag_is_refused() {
     );
 }
 
+/// A projected (not whole) live owned parameter is a *transfer-unit*
+/// disagreement, distinct from every other case in this file, which are all
+/// cleanup-*inventory* disagreements (leaf paths, counts, and liveness
+/// flags). Removing the projection would leave this obligation-derivation
+/// path unable to fail on a plan that names the parameter piecewise; if the
+/// `whole.projections.is_empty()` check in `plan` were deleted, this
+/// mutation would be silently accepted instead of refused, so this asserts
+/// the check itself rather than only its error code.
+#[test]
+fn a_projected_transfer_unit_is_a_transfer_unit_disagreement() {
+    let program = program();
+    let inventory = TypeInventory::of(&program);
+    let mut mutated = function(&program, "settle.take").clone();
+    let live = &mut mutated.cleanup_plan.entry_state.live_owned_parameters;
+    assert_eq!(live.len(), 1, "the fixture owns exactly one parameter");
+    live[0]
+        .projections
+        .push(crate::hir::DeclarationId::new("settle.pair.left"));
+
+    let error =
+        plan(&inventory, &mutated, 0).expect_err("a projected transfer unit must be refused");
+    assert_eq!(error.code, TRANSFER_UNIT_DISAGREEMENT);
+    assert_ne!(
+        error.code, SETTLEMENT_DISAGREEMENT,
+        "a transfer-unit disagreement must not collapse into the inventory code"
+    );
+    assert!(
+        error
+            .message
+            .ends_with("the cleanup plan's live owned parameter is projected rather than whole"),
+        "got {}",
+        error.message
+    );
+}
+
+/// A cleanup plan that names the owned parameter zero times (rather than
+/// exactly once) is the sibling transfer-unit disagreement: same code, a
+/// different way to fail the same `let [whole] = live.as_slice() else`
+/// pattern match. If that match were replaced by anything that tolerated an
+/// empty slice, this mutation would stop being refused.
+#[test]
+fn a_transfer_unit_named_zero_times_is_a_transfer_unit_disagreement() {
+    let program = program();
+    let inventory = TypeInventory::of(&program);
+    let mut mutated = function(&program, "settle.take").clone();
+    mutated
+        .cleanup_plan
+        .entry_state
+        .live_owned_parameters
+        .clear();
+
+    let error =
+        plan(&inventory, &mutated, 0).expect_err("an absent transfer unit must be refused");
+    assert_eq!(error.code, TRANSFER_UNIT_DISAGREEMENT);
+    assert!(
+        error
+            .message
+            .ends_with("the cleanup plan does not name the owned parameter exactly once"),
+        "got {}",
+        error.message
+    );
+}
+
 /// A storage slot whose type is not the parameter's type is a refusal too: the
 /// plan is bound to one exact instance, not to whatever the slot holds.
 #[test]

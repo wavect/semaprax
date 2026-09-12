@@ -28,6 +28,18 @@
 //! sorted or repaired: a disagreement is a refusal, because a target-neutral
 //! projection that quietly differed from the checked cleanup facts would be
 //! worse than no projection at all.
+//!
+//! The two kinds of disagreement carry distinct codes on purpose, so a
+//! caller never has to parse this module's message prose to tell them apart:
+//! [`SETTLEMENT_DISAGREEMENT`] for the cleanup **inventory** (the grammar's
+//! owned-leaf paths against the inventory's leaf tree and liveness flags),
+//! and [`TRANSFER_UNIT_DISAGREEMENT`] for the cleanup **plan**'s entry state
+//! (the parameter is not named as exactly one whole live owned place). This
+//! is exactly the inventory/plan distinction the module's own opening
+//! paragraphs draw, carried through to the diagnostic vocabulary; see
+//! `src/public_generic_abi/classifier.rs`, which maps the two to its own
+//! distinct `Refusal::CleanupInventoryMismatch` and
+//! `Refusal::SettlementObligationMismatch` respectively.
 
 use std::fmt::Write as _;
 
@@ -47,8 +59,21 @@ const PLAN_DOMAIN: &[u8] = b"semaprax.public-generic-settlement-plan.v1\0";
 
 /// The selected parameter is not an owned admitted instance.
 pub const UNSUPPORTED_PARAMETER: &str = "SPX-PG501";
-/// The derived obligations disagree with the compiler's cleanup facts.
+/// The derived owned-leaf order disagrees with the compiler's own cleanup
+/// **inventory**: the structural leaf tree and its per-leaf liveness flags.
+/// See [`TRANSFER_UNIT_DISAGREEMENT`] for the sibling code covering the
+/// cleanup **plan**'s transfer unit instead.
 pub const SETTLEMENT_DISAGREEMENT: &str = "SPX-PG502";
+/// The derived transfer unit disagrees with the compiler's own cleanup
+/// **plan** entry state: the parameter is not named as exactly one live
+/// owned place, or it is named projected rather than whole. Distinct from
+/// [`SETTLEMENT_DISAGREEMENT`], which covers the cleanup *inventory* (leaf
+/// paths and liveness flags) rather than the *plan*'s transfer unit —
+/// `src/public_generic_abi/classifier.rs` maps this code to its own
+/// `Refusal::SettlementObligationMismatch`, distinct from
+/// `Refusal::CleanupInventoryMismatch`, which is exactly what
+/// [`SETTLEMENT_DISAGREEMENT`] maps to.
+pub const TRANSFER_UNIT_DISAGREEMENT: &str = "SPX-PG503";
 
 fn unsupported(subject: &str) -> Diagnostic {
     Diagnostic::io(
@@ -61,6 +86,16 @@ fn disagreement(subject: &str) -> Diagnostic {
     Diagnostic::io(
         SETTLEMENT_DISAGREEMENT,
         format!("{SETTLEMENT_PLAN_SCHEMA} disagrees with the checked cleanup facts: {subject}"),
+    )
+}
+
+/// Like [`disagreement`], but for a disagreement in the cleanup **plan**'s
+/// transfer unit rather than the cleanup **inventory**'s leaf structure. See
+/// [`TRANSFER_UNIT_DISAGREEMENT`].
+fn transfer_unit_disagreement(subject: &str) -> Diagnostic {
+    Diagnostic::io(
+        TRANSFER_UNIT_DISAGREEMENT,
+        format!("{SETTLEMENT_PLAN_SCHEMA} disagrees with the checked cleanup plan: {subject}"),
     )
 }
 
@@ -242,12 +277,12 @@ pub fn plan(
         .filter(|place| place.storage == expected_storage)
         .collect::<Vec<_>>();
     let [whole] = live.as_slice() else {
-        return Err(disagreement(
+        return Err(transfer_unit_disagreement(
             "the cleanup plan does not name the owned parameter exactly once",
         ));
     };
     if !whole.projections.is_empty() {
-        return Err(disagreement(
+        return Err(transfer_unit_disagreement(
             "the cleanup plan's live owned parameter is projected rather than whole",
         ));
     }

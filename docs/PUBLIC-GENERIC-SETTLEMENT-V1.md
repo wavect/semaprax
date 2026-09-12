@@ -53,11 +53,17 @@ instead would be inventing a per-leaf transfer the compiler does not perform,
 so the plan requires the whole place and reports the parameter's own value
 identity as the unit.
 
-Every disagreement — a missing storage slot, a retyped slot, a differing leaf
-count, a leaf path that differs from the grammar's, a relabelled flag, a
-missing or projected live owned place — is `SPX-PG502`. Nothing is sorted,
-padded, or repaired: an order that silently differed from the checked cleanup
-order would be worse than no order at all.
+A disagreement in the cleanup **inventory** — a missing storage slot, a
+retyped slot, a differing leaf count, a leaf path that differs from the
+grammar's, or a relabelled flag — is `SPX-PG502`. A disagreement in the
+cleanup **plan**'s transfer unit specifically — a missing or projected live
+owned place — is the distinct `SPX-PG503` (issue #231: split from `SPX-PG502`
+so `src/public_generic_abi/classifier.rs`'s own `Refusal::CleanupInventoryMismatch`
+and `Refusal::SettlementObligationMismatch` can each be driven by a fixture
+that is honestly independent of the other, rather than both collapsing onto
+one settlement code). Nothing is sorted, padded, or repaired either way: an
+order that silently differed from the checked cleanup order would be worse
+than no order at all.
 
 ## Failure settlement
 

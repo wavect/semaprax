@@ -277,6 +277,30 @@ fn set_parameter_type(program: &mut ResolvedProgram, export_id: &str, ty: Resolv
     program.functions[index].params[0].ty = ty;
 }
 
+/// Project `export_id`'s one live owned parameter in the checked cleanup
+/// plan's entry state, on a clone of an already fully checked program: the
+/// plan's own `Vec<CleanupPlace>` gains one fabricated projection where a
+/// real front end always leaves it empty (the entry state names an owned
+/// parameter whole, never partially, until something along that parameter
+/// is itself transferred elsewhere). This could never come from a real
+/// checked program any more than [`set_leaf_head_type`]'s mutations could;
+/// it exists to prove `public_generic_settlement::plan`'s transfer-unit
+/// check is independently reachable through this classifier, distinct from
+/// every cleanup-*inventory* mismatch above it.
+fn set_transfer_unit_projected(program: &mut ResolvedProgram, export_id: &str, field_id: &str) {
+    let index = program
+        .functions
+        .iter()
+        .position(|function| function.id.as_str() == export_id)
+        .unwrap_or_else(|| panic!("BASE declares {export_id}"));
+    let live = &mut program.functions[index]
+        .cleanup_plan
+        .entry_state
+        .live_owned_parameters;
+    assert_eq!(live.len(), 1, "{export_id} owns exactly one parameter");
+    live[0].projections.push(DeclarationId::new(field_id));
+}
+
 // ---------------------------------------------------------------------
 // Positive cases
 // ---------------------------------------------------------------------
@@ -994,19 +1018,31 @@ fn a_field_naming_a_declaration_absent_from_the_program_is_incompatible_retained
     assert_eq!(error.code(), INCOMPATIBLE_RETAINED_FACTS);
 }
 
-/// `SettlementObligationMismatch` is a real, allocated diagnostic in the
-/// closed vocabulary, but no fixture in this module produces it as a
-/// condition distinct from `CleanupInventoryMismatch` — see this module's
-/// own "Known limitations" documentation for exactly why. This test pins
-/// only that the reason and its code exist and render, so the vocabulary
-/// stays exercised even though the reason itself is currently unreachable
-/// through this classifier's own logic.
+/// `SettlementObligationMismatch` is now independently reachable through
+/// this classifier, distinct from `CleanupInventoryMismatch`: issue #231
+/// added `public_generic_settlement::TRANSFER_UNIT_DISAGREEMENT` as a
+/// separate code from `SETTLEMENT_DISAGREEMENT` for exactly this condition
+/// (the cleanup *plan*'s transfer unit, not the cleanup *inventory*'s leaf
+/// structure). [`set_transfer_unit_projected`] mutates `BASE`'s already
+/// checked `classifier.take` so its cleanup plan's one live owned parameter
+/// is projected rather than whole — the same real "no leaf" mutation used by
+/// [`an_own_parameter_with_no_owned_leaf_anywhere_is_a_cleanup_inventory_mismatch`]
+/// would never produce this reason, since that one leaves the transfer unit
+/// alone and only removes the owned leaf itself. If
+/// `translate_settlement_error`'s new `TRANSFER_UNIT_DISAGREEMENT` arm were
+/// deleted (falling through to the wildcard `IncompatibleRetainedFacts`, or
+/// merged back into the `CleanupInventoryMismatch` arm above it), this test
+/// would fail on both the exact-variant and the code assertions below.
 #[test]
-fn settlement_obligation_mismatch_reason_and_code_are_defined() {
-    let refusal = Refusal::SettlementObligationMismatch;
-    assert_eq!(refusal.code(), SETTLEMENT_OBLIGATION_MISMATCH);
-    assert_eq!(refusal.reason(), "settlement_obligation_mismatch");
-    assert_eq!(refusal.diagnostic().code, SETTLEMENT_OBLIGATION_MISMATCH);
+fn a_projected_transfer_unit_is_a_settlement_obligation_mismatch() {
+    let mut program = resolved(BASE);
+    set_transfer_unit_projected(&mut program, "classifier.take", "classifier.pair.left");
+
+    let error = classify(&program, "classifier.take").unwrap_err();
+    assert_eq!(error, Refusal::SettlementObligationMismatch);
+    assert_eq!(error.code(), SETTLEMENT_OBLIGATION_MISMATCH);
+    assert_ne!(error.code(), CLEANUP_INVENTORY_MISMATCH);
+    assert!(!error.diagnostic().message.contains(CLEANUP_INVENTORY_MISMATCH));
 }
 
 // ---------------------------------------------------------------------

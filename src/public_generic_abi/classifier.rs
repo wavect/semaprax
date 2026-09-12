@@ -29,7 +29,15 @@
 //! - [`crate::public_generic_settlement::plan`] (PG-7) derives the owned
 //!   parameter's settlement obligations and already fails closed when the
 //!   grammar's owned-leaf paths disagree with the compiler's own cleanup
-//!   inventory or cleanup plan.
+//!   inventory or cleanup plan, under two distinct codes this module
+//!   recovers rather than collapses:
+//!   [`crate::public_generic_settlement::SETTLEMENT_DISAGREEMENT`] (and
+//!   [`crate::public_generic_settlement::UNSUPPORTED_PARAMETER`]) for the
+//!   cleanup **inventory** (leaf paths and liveness flags), mapped to
+//!   [`Refusal::CleanupInventoryMismatch`]; and
+//!   [`crate::public_generic_settlement::TRANSFER_UNIT_DISAGREEMENT`] for
+//!   the cleanup **plan**'s transfer unit, mapped to the distinct
+//!   [`Refusal::SettlementObligationMismatch`].
 //!
 //! What this module adds, that none of the above provide on their own:
 //!
@@ -64,22 +72,6 @@
 //!
 //! # Known limitations
 //!
-//! - **Cleanup-inventory vs. settlement-obligation mismatch.**
-//!   [`crate::public_generic_settlement`] reports every internal
-//!   disagreement between the grammar's owned-leaf paths and the compiler's
-//!   cleanup facts under one code
-//!   ([`crate::public_generic_settlement::SETTLEMENT_DISAGREEMENT`]). This
-//!   module maps that single code to
-//!   [`Refusal::CleanupInventoryMismatch`] uniformly; it cannot honestly
-//!   report [`Refusal::SettlementObligationMismatch`] as a *distinct*,
-//!   independently observed condition without parsing the settlement
-//!   module's message text, which the owning issue explicitly forbids.
-//!   [`Refusal::SettlementObligationMismatch`] exists in the closed
-//!   vocabulary and carries its own diagnostic code, but no fixture in this
-//!   module's own tests can produce it as distinct from
-//!   [`Refusal::CleanupInventoryMismatch`] today; only a change to
-//!   `public_generic_settlement` (outside this file's lease) could split
-//!   the two apart.
 //! - **A record that owns no leaf at all.** A record built only from
 //!   admitted Copy-scalar fields (no `Bytes` field anywhere in its closure)
 //!   is a valid grammar instance, but
@@ -98,6 +90,24 @@
 //!   specification's own IN/DEFERRED/EXCLUDED table does not explicitly
 //!   exclude it; this is an existing constraint inherited from the resolver
 //!   and PG-7, not a boundary this classifier chose.
+//!
+//!   **Decision (issue #231): ratified as intended, not a defect.**
+//!   `SPX-O002` is not "stricter than intended" — a value with no owned leaf
+//!   anywhere in its closure is Copy-only, so declaring it `own` asks the
+//!   compiler to transfer and settle something that is never released; the
+//!   resolver refusing that before this classifier ever runs is exactly
+//!   "ownership errors are compile-time diagnostics, never backend
+//!   accidents" (this repository's own invariant), applied one layer
+//!   upstream of where a boundary profile would otherwise have to restate
+//!   it. The settlement refusal this classifier maps to
+//!   [`Refusal::CleanupInventoryMismatch`] is consequently unreachable from
+//!   real front-end source, but it is kept rather than deleted as dead code:
+//!   it is this module's own fail-closed backstop should a future front-end
+//!   change ever narrow `SPX-O002`, or should synthetic/adversarial HIR
+//!   (exactly the technique this module's own tests already use) reach
+//!   `classify` directly. Removing it would trade a working safety net for
+//!   no observable benefit, since nothing admits a scalar-only owned
+//!   instance either way.
 //! - **A compiler-owned nominal's refusal reason depends on where it is
 //!   reached.** [`grammar::classify_with`] checks `is_compiler_owned_id`
 //!   before it ever looks a declaration up, so a compiler-owned nominal
@@ -115,6 +125,20 @@
 //!   the export either way; only the reported reason differs by position,
 //!   and this module cannot correct that without changing `grammar` itself
 //!   (outside this file's lease).
+//!
+//!   **Decision (issue #231): ratified as intended for v1, not fixed in
+//!   this round.** The export is refused either way — no signature this
+//!   imprecision affects is ever wrongly admitted — so the defect is
+//!   strictly cosmetic: a less-precise but still real, allocated, closed
+//!   reason. A correct fix widens
+//!   [`crate::public_generic_type`]'s (PG-1/PG-2) `describe` owned-leaf walk
+//!   to repeat the `is_compiler_owned_id` check at every nesting level, not
+//!   only at an instance's own top level and arguments; that module is
+//!   hosted-green and depended on well beyond this classifier, so changing
+//!   its walk needs its own dedicated fixture and regression pass under its
+//!   own lease and its own test matrix, not a change folded into this
+//!   file's. Recorded here as intended behavior to preserve until that
+//!   dedicated change lands, rather than silently left as an undecided gap.
 //! - **Width vs. depth on a self-referential template.** A record directly
 //!   or mutually self-referential in its own template declaration (for
 //!   example `record Node<T> { child: Node<T> }`) is caught by this
@@ -182,13 +206,17 @@ pub const RECURSIVE_CLOSURE: &str = "SPX-PG611";
 pub const AMBIGUOUS_STABLE_IDENTITY: &str = "SPX-PG612";
 /// A record, field, depth, leaf, or payload bound was exceeded.
 pub const BOUND_EXCEEDED: &str = "SPX-PG613";
-/// The derived obligations disagree with the compiler's own cleanup
-/// inventory or cleanup plan (including "the instance owns no leaf, so
-/// nothing settles" — see the module's Known limitations).
+/// The derived owned-leaf order disagrees with the compiler's own cleanup
+/// **inventory** — leaf paths and liveness flags — including "the instance
+/// owns no leaf, so nothing settles" (see the module's Known limitations).
+/// See [`SETTLEMENT_OBLIGATION_MISMATCH`] for the sibling reason covering a
+/// disagreement in the cleanup **plan**'s transfer unit instead.
 pub const CLEANUP_INVENTORY_MISMATCH: &str = "SPX-PG614";
-/// Reserved for a settlement-obligation disagreement independently
-/// distinguished from [`CLEANUP_INVENTORY_MISMATCH`]. No fixture in this
-/// module produces it; see the module's Known limitations.
+/// The derived transfer unit disagrees with the compiler's own cleanup
+/// *plan* entry state — distinct from [`CLEANUP_INVENTORY_MISMATCH`], which
+/// covers the cleanup *inventory* (leaf paths and liveness flags) instead.
+/// See [`crate::public_generic_settlement::TRANSFER_UNIT_DISAGREEMENT`],
+/// the settlement-module code this classifier maps to this reason.
 pub const SETTLEMENT_OBLIGATION_MISMATCH: &str = "SPX-PG615";
 /// The export declares one or more effects; v1 requires synchronous,
 /// effect-free functions.
@@ -462,14 +490,24 @@ fn translate_grammar_error(diagnostic: Diagnostic) -> Refusal {
 }
 
 /// Map one [`settlement`] diagnostic onto this module's closed vocabulary.
-/// See the module's Known limitations: the settlement module does not
-/// itself distinguish "no owned leaf" from a structural disagreement, so
-/// both collapse to [`Refusal::CleanupInventoryMismatch`] here.
+/// [`settlement::UNSUPPORTED_PARAMETER`] (including "no owned leaf") and
+/// [`settlement::SETTLEMENT_DISAGREEMENT`] both describe the cleanup
+/// **inventory** — the grammar's owned-leaf paths against the compiler's own
+/// leaf tree and liveness flags — and collapse to
+/// [`Refusal::CleanupInventoryMismatch`] here.
+/// [`settlement::TRANSFER_UNIT_DISAGREEMENT`] is a structurally different
+/// condition: the cleanup **plan**'s entry state disagreeing about the
+/// transfer unit itself (not named as exactly one whole live owned place),
+/// so it maps to the distinct [`Refusal::SettlementObligationMismatch`]
+/// instead. See the module's Known limitations for the one case
+/// (`SPX-O002` foreclosing a scalar-only owned instance) that still folds
+/// into [`Refusal::CleanupInventoryMismatch`] via `UNSUPPORTED_PARAMETER`.
 fn translate_settlement_error(diagnostic: Diagnostic) -> Refusal {
     match diagnostic.code {
         settlement::UNSUPPORTED_PARAMETER | settlement::SETTLEMENT_DISAGREEMENT => {
             Refusal::CleanupInventoryMismatch
         }
+        settlement::TRANSFER_UNIT_DISAGREEMENT => Refusal::SettlementObligationMismatch,
         _ => Refusal::IncompatibleRetainedFacts,
     }
 }

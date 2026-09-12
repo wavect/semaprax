@@ -271,7 +271,7 @@ finds it.
 | `SPX-PG612` | ambiguous or repeated stable identity | yes |
 | `SPX-PG613` | record, field, depth, leaf, or payload bound exceeded | yes (field-count bound; see [Evidence](#evidence)) |
 | `SPX-PG614` | cleanup inventory mismatch | yes |
-| `SPX-PG615` | settlement-obligation mismatch | no — reserved and rendered, but not independently reachable through this classifier; see [Evidence](#evidence) |
+| `SPX-PG615` | settlement-obligation mismatch | yes — see [Evidence](#evidence) |
 | `SPX-PG616` | effectful function | yes |
 | `SPX-PG617` | incompatible retained facts | yes |
 | `SPX-PG618` | unsupported *input* shape (not exactly one owned input, a symmetric case #150's own reserved table does not name) | yes |
@@ -297,7 +297,7 @@ independently re-derived; see
 ## Evidence
 
 `src/public_generic_abi/classifier.rs` and its owning
-`src/public_generic_abi/classifier/tests.rs` (35 tests, all passing locally;
+`src/public_generic_abi/classifier/tests.rs` (37 tests, all passing locally;
 no hosted CI run is claimed by this document) are the classifier and its
 test matrix this section originally deferred. What is covered, matched
 against the matrix this section used to list as not-yet-run:
@@ -366,14 +366,30 @@ source — the same category of limitation this document's classifier module
 already records for `SPX-O002` foreclosing a scalar-only owned instance (see
 the module's own "Known limitations" documentation).
 
+**Negative — now covered (issue #231):** `SPX-PG615` (settlement-obligation
+mismatch), previously indistinguishable from `SPX-PG614` (cleanup-inventory
+mismatch), now has its own distinct fixture
+(`a_projected_transfer_unit_is_a_settlement_obligation_mismatch`).
+`public_generic_settlement` gained the finer diagnostic vocabulary this
+section previously said was missing: `TRANSFER_UNIT_DISAGREEMENT`
+(`SPX-PG503`) for a disagreement in the cleanup **plan**'s transfer unit,
+distinct from the pre-existing `SETTLEMENT_DISAGREEMENT` (`SPX-PG502`) for
+the cleanup **inventory**'s leaf structure — see
+`src/public_generic_settlement.rs`'s module documentation and
+`src/public_generic_abi/classifier.rs`'s `translate_settlement_error`.
+
 **Negative — not independently covered:** a never-instantiated template is
 not distinguished from a plain generic-function-template selection; the
 target-width-integer case this document's own [Bounds](#bounds) discussion
-flagged as unresolved is still unresolved, so no test exists for it;
-`SPX-PG615` (settlement-obligation mismatch) has no fixture that produces it
-as distinct from `SPX-PG614` — see the classifier module's own "Known
-limitations" documentation for exactly why (the settlement module's own
-diagnostic vocabulary does not distinguish the two).
+flagged as unresolved is still unresolved, so no test exists for it.
+
+**Recorded decisions (issue #231):** the two compiler behaviours flagged in
+issue #231 as "worth their own decision" — `SPX-O002` foreclosing a
+scalar-only owned instance, and a nested compiler-owned nominal surfacing as
+`VariantResourceOrFunctionValue` instead of `TypeOutsideGrammar` — are both
+ratified as intended rather than fixed in this round; see the classifier
+module's own "Known limitations" documentation for the reasoning behind
+each.
 
 **Separation — partially covered.** One regression
 (`admission_agrees_with_the_surface_and_settlement_projections_it_composes`)

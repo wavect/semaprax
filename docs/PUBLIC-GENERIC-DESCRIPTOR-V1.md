@@ -300,8 +300,10 @@ capacity code, when `CandidateSurface::derive`'s own bounded walk hits
 limitations](#known-limitations-producer-vs-classifier) below for why this
 producer does not also call the classifier's dedicated, more precise
 `RecursiveClosure`/`SPX-PG611` check); a cleanup or settlement disagreement
-is refused with `public_generic_settlement`'s own `SPX-PG501`/`SPX-PG502`
-(reused, not duplicated). An over-bound record field count — a check this
+is refused with `public_generic_settlement`'s own `SPX-PG501`/`SPX-PG502`/
+`SPX-PG503` (reused, not duplicated; `SPX-PG503` added by issue #231 for the
+cleanup plan's transfer unit specifically, distinct from `SPX-PG502`'s
+cleanup-inventory disagreements). An over-bound record field count — a check this
 producer now performs by directly calling the classifier's own `pub(crate)`
 `check_field_counts` helper rather than re-deriving it — is refused with the
 classifier's own `SPX-PG613` (`BoundExceeded`), never a new `SPX-PG7xx`

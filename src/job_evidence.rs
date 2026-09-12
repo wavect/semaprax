@@ -577,4 +577,24 @@ mod tests {
         );
         assert_eq!(log.replay(), Ok(8));
     }
+
+    #[test]
+    fn a_scheduled_job_claimed_before_it_is_due_is_rejected() {
+        // Mirrors `std.jobs.tests.claim_legality`'s
+        // `!claim_is_legal(1usize, false)` at the decision-procedure layer,
+        // but exercised here through `JobEvidenceLog::replay` itself: a
+        // runner (or an attacker forging a log) asserts the job is
+        // `SCHEDULED` (state code 1, from `Enqueued { scheduled: true }`)
+        // and then claims it with `is_due: false`. `claim_is_legal` admits a
+        // `SCHEDULED` job only when `is_due` is true, so this must never
+        // replay as a legal transition regardless of what state the entry
+        // claims to land in afterward.
+        let mut log = JobEvidenceLog::new();
+        log.append(JobEvidenceEntry::Enqueued { scheduled: true }, 1);
+        log.append(JobEvidenceEntry::Claimed { is_due: false }, 2);
+        assert_eq!(
+            log.replay(),
+            Err(JobEvidenceError::IllegalTransition { entry_index: 1 })
+        );
+    }
 }

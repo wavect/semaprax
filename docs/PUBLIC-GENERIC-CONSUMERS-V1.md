@@ -874,3 +874,46 @@ no independent compiled provider exists yet to hold a separate counter.
   toolchain is provisioned here.
 - Evidence in this section is local only, exactly like every consumer
   section above; no hosted CI run is claimed or implied.
+
+## Aggregate execution entry point (issue #172)
+
+Audience: anyone who wants "all four generated calling consumers execute"
+to be a single command they can run, rather than a claim reconstructed by
+reading four separate test files.
+
+Status: local, proof-only evidence, same standing as every section above —
+this script runs the same four `cargo test`-selected tests the sections
+above already describe; it adds no new generator, no new provider, and no
+new claim.
+
+`tests/public_generic_native_adapter_v1/run_all_four_callers.sh` runs, as
+four `cargo test` invocations against the checked-out tree: the Rust
+(#156), C11 (#158), and C++17 (#159) headline execution tests in one
+`cargo test --test public_generic_native_adapter_v1` invocation, then the
+TypeScript/Wasm (#157) headline execution test in a separate
+`cargo test --test public_generic_wasm_adapter_v1` invocation (a distinct
+test binary with a distinct toolchain precondition — `node`/`tsc` versus
+`clang`/`clang++`/`cargo` — exactly like every other harness pairing in
+this document). It prints one `AGGREGATE <test> PASS|FAIL|SKIPPED` line per
+caller and one summary. Missing `node`/a repository-pinned (5.8.3) `tsc` is
+reported as an explicit `SKIPPED` line, never folded into a false pass or
+fail, matching the underlying test's own skip behavior; `clang`, `clang++`,
+and `cargo` are assumed present unconditionally, matching every native
+harness above.
+
+**The aggregate never claims parity across the four.** Its own printed PASS
+line for the TypeScript/Wasm caller states, verbatim, that it ran "against a
+TEST-ONLY Wasm stand-in module, NOT a real compiled provider ABI — see
+issue #229," and its final summary states plainly that three of the four
+callers execute against a genuinely compiled provider artifact today (Rust,
+C11, C++17) while the fourth executes only against
+`tests/public_generic_wasm_adapter_v1/reference_wasm_module.rs`'s
+hand-assembled stand-in, pending #229. Run it with:
+
+```sh
+sh tests/public_generic_native_adapter_v1/run_all_four_callers.sh
+```
+
+Exit code 0 means the three native callers passed and, when `node`/`tsc`
+were available, the TypeScript/Wasm caller also passed against its stand-in
+module — never that a real compiled Wasm provider ABI was exercised.

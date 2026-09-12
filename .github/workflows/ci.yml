@@ -349,6 +349,22 @@ jobs:
           cargo test --locked -p semaprax --test project standard_library::json_cursors -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::logging -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::catalog -- --nocapture
+          # Every std package's own interpreter + native-C11 (-O0/-O2) + Core-Wasm
+          # conformance test. Added for issue #102, which found that the three
+          # top-level sweep tests STANDARD-LIBRARY-V1.md rests its per-backend
+          # claim on were selected by no CI filter at all, so the documented
+          # proof had never run here. The full sweep needs well over 10GB and
+          # cannot run on a standard runner; these per-package tests reuse the
+          # same run_examples_and_conformance machinery and together cover all
+          # 40 modules in std/packages.json for about 70 seconds.
+          cargo test --locked -p semaprax --test project -- --exact --nocapture \
+            standard_library::core_num_backend_audit::core_num_random_time_test_execute_on_all_three_backends \
+            standard_library::data_encoding_backend_audit::data_encoding_url_path_execute_on_all_three_backends \
+            standard_library::async_net_backend_audit::async_http_net_execute_on_all_three_backends \
+            standard_library::collections_mem_text_backend_audit::collections_mem_text_execute_on_all_three_backends \
+            standard_library::db_jobs_backend_audit::db_and_jobs_execute_on_all_three_backends \
+            standard_library::committed_catalogs_match_the_sources \
+            standard_library::every_public_declaration_has_a_std_identity_contracts_examples_and_conformance
           cargo test --locked -p semaprax --test examples -- --nocapture
           cargo test --locked -p semaprax --test documentation -- --nocapture
 

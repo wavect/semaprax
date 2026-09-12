@@ -78,7 +78,7 @@ pub const PANIC_NORMALIZED_DIAGNOSTIC_CODE: &str = "SPX-EMB001";
 /// `docs/EMBEDDING-API-V1.md`.
 pub const EMBEDDING_API_VERSION: EmbeddingApiVersion = EmbeddingApiVersion {
     major: 1,
-    minor: 1,
+    minor: 2,
     patch: 0,
 };
 
@@ -316,6 +316,116 @@ pub fn format_source(unit_name: &str, source: &str) -> FormatOutcome {
     format_with(&StandardFormatter, unit_name, source)
 }
 
+/// The closed outcome of rendering one caller-supplied compilation unit's
+/// canonical semantic graph — the same JSON [`crate::graph::to_json`]
+/// already produces for its other callers, unchanged. Mirrors
+/// [`CheckOutcome`]/[`FormatOutcome`]'s shape: a `unit_name` echo, an `ok`
+/// flag, and a diagnostic set — with one deliberate difference from
+/// `check_source`'s contract, documented on [`GraphOutcome::diagnostics`].
+#[derive(Debug, Clone)]
+pub struct GraphOutcome {
+    /// Echoes the `unit_name` the caller passed in; never read from disk.
+    pub unit_name: String,
+    /// `true` exactly when `source` parsed and resolved successfully.
+    pub ok: bool,
+    /// The failing diagnostic(s) when `ok` is `false`; always empty when
+    /// `ok` is `true`. Unlike [`CheckOutcome::diagnostics`], a successful
+    /// render never carries a warning: `graph_source` forwards to the
+    /// already-public [`crate::graph::to_json`], which resolves through
+    /// [`crate::hir::resolve`] — and `resolve` returns only `Ok(resolved)`
+    /// on success, dropping the diagnostics it collected along the way (see
+    /// its own implementation: `resolved.ok_or(diagnostics)`). This module
+    /// does not reimplement resolution to recover them, so a host that also
+    /// wants warnings on a program whose graph rendered successfully must
+    /// call [`check_source`] for the same `source` as well —
+    /// `a_declaration_missing_id_still_graphs_ok_but_the_warning_is_not_
+    /// carried_forward` below locks this difference in on purpose, so a
+    /// future change here does not silently start (or stop) carrying it.
+    pub diagnostics: Vec<Diagnostic>,
+    /// The canonical semantic graph JSON, present only when `ok` is `true`.
+    pub graph_json: Option<String>,
+}
+
+/// Internal seam behind [`graph_source`], not part of the public API.
+/// Mirrors [`SourceChecker`]/[`SourceFormatter`]'s identical role: lets the
+/// panic-normalization boundary in [`graph_with`] be exercised by a test
+/// double that panics on purpose.
+trait SourceGrapher {
+    fn graph(&self, unit_name: &str, source: &str) -> Result<String, Vec<Diagnostic>>;
+}
+
+/// The only [`SourceGrapher`] this crate ships for real use: parse
+/// caller-supplied bytes, then render the canonical semantic graph exactly
+/// as [`crate::graph::to_json`] already does for its other callers.
+struct StandardGrapher;
+
+impl SourceGrapher for StandardGrapher {
+    fn graph(&self, unit_name: &str, source: &str) -> Result<String, Vec<Diagnostic>> {
+        // `crate::parse` reads only `source`; `unit_name` labels diagnostics
+        // and is never opened as a path, exactly as in `StandardChecker`.
+        let program = crate::parse(source, unit_name).map_err(|diagnostic| vec![diagnostic])?;
+        crate::graph::to_json(&program)
+    }
+}
+
+fn graph_with(grapher: &dyn SourceGrapher, unit_name: &str, source: &str) -> GraphOutcome {
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        grapher.graph(unit_name, source)
+    }));
+    match outcome {
+        Ok(Ok(graph_json)) => GraphOutcome {
+            unit_name: unit_name.to_owned(),
+            ok: true,
+            diagnostics: Vec::new(),
+            graph_json: Some(graph_json),
+        },
+        Ok(Err(diagnostics)) => GraphOutcome {
+            unit_name: unit_name.to_owned(),
+            ok: false,
+            diagnostics,
+            graph_json: None,
+        },
+        Err(_panic_payload) => GraphOutcome {
+            unit_name: unit_name.to_owned(),
+            ok: false,
+            diagnostics: vec![Diagnostic {
+                code: PANIC_NORMALIZED_DIAGNOSTIC_CODE,
+                severity: Severity::Error,
+                message: format!(
+                    "the embedding graph boundary caught a panic while rendering the semantic \
+                     graph for {unit_name:?} and normalized it to this diagnostic instead of \
+                     letting the unwind cross the embedding API boundary"
+                ),
+                path: Some(unit_name.to_owned()),
+                span: None,
+                help: Some(
+                    "this names an embedding-boundary defect, not a property of the checked \
+                     source; report it against the compiler"
+                        .to_owned(),
+                ),
+            }],
+            graph_json: None,
+        },
+    }
+}
+
+/// Render one caller-supplied SEMAPRAX compilation unit's canonical
+/// semantic graph — the same JSON [`crate::graph::to_json`] already
+/// produces for its other callers.
+///
+/// `source` is the exact bytes to check and render; `unit_name` only labels
+/// diagnostics and never names a path this function reads. No capability is
+/// required: rendering the graph is a pure, read-only function of its two
+/// arguments, and it panics never (a panic inside parsing or resolution is
+/// caught and normalized into [`PANIC_NORMALIZED_DIAGNOSTIC_CODE`] instead of
+/// unwinding out of this call). Unlike [`check_source`], a successful
+/// render's `diagnostics` is always empty — see [`GraphOutcome::diagnostics`]
+/// for why — so a host that also wants warnings should call [`check_source`]
+/// on the same `source`.
+pub fn graph_source(unit_name: &str, source: &str) -> GraphOutcome {
+    graph_with(&StandardGrapher, unit_name, source)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -494,5 +604,98 @@ mod tests {
         assert!(outcome.diagnostics[0].severity.is_error());
         assert!(outcome.canonical_source.is_none());
         assert!(!outcome.diagnostics[0].message.contains("SPX-P101"));
+    }
+
+    #[test]
+    fn valid_source_graph_matches_graph_to_json_exactly() {
+        let outcome = graph_source("hello.spx", HELLO);
+        assert!(outcome.ok, "expected ok, got {:?}", outcome.diagnostics);
+        assert!(outcome.diagnostics.is_empty());
+        assert_eq!(outcome.unit_name, "hello.spx");
+        let graph_json = outcome
+            .graph_json
+            .expect("ok outcome must carry graph_json");
+        // Cross-check against `crate::graph::to_json` directly: this facade
+        // is a thin forwarding wrapper, not a reimplementation, so its
+        // output must be byte-identical to calling the wrapped function
+        // directly on the same parsed program. A stub or a divergent
+        // reimplementation would fail this exact equality.
+        let program = crate::parse(HELLO, "hello.spx").expect("HELLO must parse");
+        let expected = crate::graph::to_json(&program).expect("HELLO must resolve");
+        assert_eq!(graph_json, expected);
+    }
+
+    #[test]
+    fn malformed_source_fails_graph_with_the_specific_parser_diagnostic() {
+        let outcome = graph_source("empty.spx", "module app.empty;\n");
+        assert!(!outcome.ok);
+        assert_eq!(outcome.diagnostics.len(), 1);
+        assert_eq!(outcome.diagnostics[0].code, "SPX-P101");
+        assert!(outcome.diagnostics[0].severity.is_error());
+        assert!(outcome.graph_json.is_none());
+        assert_ne!(
+            outcome.diagnostics[0].code,
+            PANIC_NORMALIZED_DIAGNOSTIC_CODE
+        );
+    }
+
+    #[test]
+    fn graph_unit_name_is_never_read_from_disk() {
+        let outcome = graph_source("/definitely/does/not/exist/on/this/machine/unit.spx", HELLO);
+        assert!(
+            outcome.ok,
+            "graph rendering must depend only on `source`, not on whether `unit_name` \
+             names a real file; got {:?}",
+            outcome.diagnostics
+        );
+    }
+
+    struct PanickingGrapher;
+
+    impl SourceGrapher for PanickingGrapher {
+        fn graph(&self, _unit_name: &str, _source: &str) -> Result<String, Vec<Diagnostic>> {
+            panic!("deliberate test panic: proving it never crosses the embedding boundary");
+        }
+    }
+
+    #[test]
+    fn embedding_graph_boundary_normalizes_a_panic_into_a_diagnostic_never_propagating_the_unwind()
+    {
+        let outcome = graph_with(&PanickingGrapher, "panicking.spx", "irrelevant");
+        assert!(!outcome.ok);
+        assert_eq!(outcome.diagnostics.len(), 1);
+        assert_eq!(
+            outcome.diagnostics[0].code,
+            PANIC_NORMALIZED_DIAGNOSTIC_CODE
+        );
+        assert!(outcome.diagnostics[0].severity.is_error());
+        assert!(outcome.graph_json.is_none());
+        assert!(!outcome.diagnostics[0].message.contains("SPX-P101"));
+    }
+
+    #[test]
+    fn a_declaration_missing_id_still_graphs_ok_but_the_warning_is_not_carried_forward() {
+        // Establishes the contrast `GraphOutcome::diagnostics` documents:
+        // `check_source` keeps a successful check's warnings (its own test
+        // above proves this), but `graph_source` forwards through
+        // `hir::resolve`, which discards them on success.
+        let source = "module app.warned;\n\nfn main() -> i64\n{\n    42\n}\n";
+        let checked = check_source("warned.spx", source);
+        assert!(
+            checked.diagnostics.iter().any(|item| item.code == "SPX-S103"),
+            "check_source's own contract regressed; this test assumes it still keeps SPX-S103, \
+             got {:?}",
+            checked.diagnostics
+        );
+        let graphed = graph_source("warned.spx", source);
+        assert!(graphed.ok, "expected ok, got {:?}", graphed.diagnostics);
+        assert!(
+            graphed.diagnostics.is_empty(),
+            "documented limitation regressed: graph_source now carries a successful-render \
+             diagnostic it previously discarded; if intentional, update \
+             GraphOutcome::diagnostics' doc comment to match, got {:?}",
+            graphed.diagnostics
+        );
+        assert!(graphed.graph_json.is_some());
     }
 }

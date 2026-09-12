@@ -408,7 +408,18 @@ def _bounded_command(argv, cwd, limit=131072, timeout=20):
                 os.killpg(child.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
-        child.wait()
+        if failure:
+            child.wait()
+        else:
+            try:
+                child.wait(timeout=max(0, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                failure = "timeout"
+                try:
+                    os.killpg(child.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                child.wait()
     stdout, stderr = bytes(streams[child.stdout]), bytes(streams[child.stderr])
     child.stdout.close()
     child.stderr.close()
@@ -455,18 +466,22 @@ def _projection_facts(record):
     params = [(param.get("name"), param.get("type_id"), param.get("ownership_mode")) for param in select.get("params", [])]
     body = call.get("body", {})
     statements = body.get("statements", [])
-    if len(statements) < 2:
+    if len(statements) != 2:
         return None
-    left, right = statements[0], statements[1]
+    left, right = statements
     tail = body.get("tail", {})
     args = tail.get("args", [])
+    if len(args) != 4:
+        return None
+    input_id = call.get("params", [{}])[0].get("id") if len(call.get("params", [])) == 1 else None
     facts = {
         "select_params": params,
         "select_identity": select.get("identity_origin"),
         "call_identity": call.get("identity_origin"),
-        "staged_bindings": [(item.get("binding", {}).get("name"), item.get("binding", {}).get("ownership_mode"), item.get("value", {}).get("callee")) for item in (left, right)],
+        "input_id": input_id,
+        "staged_bindings": [(item.get("binding", {}).get("name"), item.get("binding", {}).get("ownership_mode"), item.get("value", {}).get("callee"), item.get("value", {}).get("args", [{}])[0].get("place", {}).get("root") if len(item.get("value", {}).get("args", [])) == 1 else None) for item in (left, right)],
         "call_target": tail.get("callee"),
-        "call_arg_roots": [item.get("place", {}).get("root") for item in args],
+        "call_args": args,
         "left_id": left.get("binding", {}).get("id"),
         "right_id": right.get("binding", {}).get("id"),
     }
@@ -589,9 +604,12 @@ def check_owned_signature_migration(candidate_dir, task_binding, before, after, 
     } >= {
         ("benchmark.owned.main", "benchmark.owned.evaluate"),
         ("benchmark.owned.test", "benchmark.owned.evaluate"),
-    } and candidate_projection["staged_bindings"] == [("left", "own", "core.bytes.copy"), ("right", "own", "core.bytes.copy")] and candidate_projection["call_target"] == "benchmark.owned.select" and candidate_projection["call_arg_roots"] == [
-        candidate_projection["call_arg_roots"][0], candidate_projection["right_id"], candidate_projection["call_arg_roots"][2], candidate_projection["left_id"]
-    ]
+    } and candidate_projection["staged_bindings"] == [
+        ("left", "own", "core.bytes.copy", candidate_projection["input_id"]),
+        ("right", "own", "core.bytes.copy", candidate_projection["input_id"]),
+    ] and candidate_projection["call_target"] == "benchmark.owned.select" and [
+        arg.get("place", {}).get("root") for arg in candidate_projection["call_args"]
+    ] == [candidate_projection["input_id"], candidate_projection["right_id"], None, candidate_projection["left_id"]] and candidate_projection["call_args"][2].get("kind") == "usize" and candidate_projection["call_args"][2].get("value") == "0"
     signature_ok = semantic_ok and candidate_projection is not None and candidate_projection["select_params"] == expected_params
     # Admission is compiler-derived. The source spelling is only used to bind the requested ordered API.
     ownership_ok = semantic_ok and signature_ok
@@ -603,7 +621,8 @@ def check_owned_signature_migration(candidate_dir, task_binding, before, after, 
         and all(before[path] == after[path] for path in expected_before if path != "src/core.spx"))
     package = _owned_review_package(task_binding, candidate_dir, before, after, evidence)
     cleanup_ok = all(_cleanup_nodes(evidence.get(subject, {}).get("cleanup_projection", {})) is not None
-        and evidence[subject]["cleanup_projection"].get("returncode") == 0 for subject in ("baseline", "candidate"))
+        and evidence[subject]["cleanup_projection"].get("returncode") == 0
+        and evidence[subject]["cleanup_projection"].get("error") is None for subject in ("baseline", "candidate"))
     review_ok = authority_ok and semantic_ok and cleanup_ok and package["changed_paths"] == ["src/core.spx"]
     return [
         {"id": "signature", "outcome": "passed" if signature_ok else "failed"},

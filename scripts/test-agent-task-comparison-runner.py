@@ -219,6 +219,8 @@ class BoundedCompilerEvidenceTests(unittest.TestCase):
         self.assertIn("output exceeds", loud["error"])
         slow = runner._bounded_command([sys.executable, "-c", "import time; time.sleep(1)"], ROOT, timeout=0.01)
         self.assertEqual(slow["error"], "timeout")
+        closed = runner._bounded_command([sys.executable, "-c", "import os,time; os.close(1); os.close(2); time.sleep(1)"], ROOT, timeout=0.01)
+        self.assertEqual(closed["error"], "timeout")
 
 
 class ProtectionTests(ScratchEvidenceMixin, unittest.TestCase):

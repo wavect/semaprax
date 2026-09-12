@@ -12,6 +12,7 @@
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
+use crate::agent_skill_bundle::generate_agent_skill_bundle;
 use crate::diagnostic::{quote_json, Diagnostic};
 
 use super::{validate_owned_project_test, ProjectExecutionOptions, PROJECT_SCHEMA};
@@ -152,6 +153,59 @@ impl ScaffoldLayout {
 const README: &str = "# {{name}}\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build . --target web -o web\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
 const AGENTS: &str = "# Agent guide for {{name}}\n\nThis is a SEMAPRAX project. `semaprax.toml` lists its modules; the compiler\nis the authority on what the language admits. Read `semaprax help language`\nbefore writing source.\n\n## Commands\n\n- `semaprax check .` parses, resolves, type-checks, and verifies every module.\n- `semaprax test .` runs `{{module}}.tests`; `semaprax run .` runs the entry and prints its `i64`.\n- `semaprax fmt <file>` rewrites one file in canonical form.\n- `semaprax build . --target web -o dist/web` emits a browser package.\n- `semaprax help <command>` prints one command's exact grammar.\n\n## Rules that differ from other languages\n\n- Every file starts with `module dotted.name;`, and every declaration carries\n  `@id(\"...\")`. The id is the stable identity: rename freely, never change an id.\n- A function body is statements followed by exactly one tail expression. There\n  is no `return`, `for`, `else if`, tuple, or unit value.\n- `if` always has `else`; a `while` body ends with the bool that decides\n  whether to loop again.\n- Contracts are `requires` and `ensures` lines; effects are `permit` at module\n  level plus `uses` on every function that performs or calls into one.\n- Check the whole project, not one file: modules import each other, so a\n  single file reports `SPX-G172` or `SPX-T105`.\n- A new module must be listed in `sources` in `semaprax.toml`, and a test\n  module in `tests`.\n- Tests live in the `tests` module: `fn main() -> i64` returns 0 on success, and\n  every `fn test_<name>() -> i64` with an `@id` runs as a named case that\n  `semaprax test .` reports on failure.\n- Diagnostics carry stable `SPX-` codes and, where the compiler knows the fix,\n  a `help:` line. `semaprax check . --json` prints one diagnostic per line.\n";
 const PROJECT_BOUNDARY_GUIDE: &str = "\n## Project v1 function boundaries\n\nFunction parameters and results are Copy scalars. Records, classes, variants,\n`Option`, and `Result` may stay inside scalar-signature functions but cannot\ncross their boundaries; `SPX-G174` points at a declaration that must change.\n";
+const AGENT_SKILL_WORKFLOW_HEADER: &str = "\n## Installed Agent Skill workflow\n\nThe installed compiler also publishes `semaprax.agent-skill.v1` (`semaprax\nagent skill`), a small, authority-labeled public workflow over the commands\nabove. The list below is generated from that installed bundle, so it always\nmatches this compiler; each entry names its authority class and the exact\nCLI command it wraps:\n\n";
+
+/// Render the `## Installed Agent Skill workflow` section of `AGENTS.md` from
+/// the real, installed `semaprax.agent-skill.v1` bundle
+/// ([`generate_agent_skill_bundle`]) rather than restating its verbs by hand:
+/// a verb added to, renamed in, or removed from
+/// [`crate::agent_skill_bundle::PUBLIC_WORKFLOW`] changes this section on the
+/// next scaffold derivation, with no second place to keep in sync.
+///
+/// Pure and deterministic: the bundle itself takes no path argument and
+/// performs no I/O, and this function iterates its `public_workflow` array in
+/// the bundle's own (sorted-by-verb) order, never a hash-keyed collection.
+fn agent_skill_workflow_guide() -> Result<String, Vec<Diagnostic>> {
+    let bundle = generate_agent_skill_bundle().map_err(|diagnostics| {
+        scaffold_error(format!(
+            "installed Agent Skill bundle failed to generate: {}",
+            diagnostics
+                .first()
+                .map_or("unknown diagnostic", |diagnostic| diagnostic.message.as_str())
+        ))
+    })?;
+    let value: Value = serde_json::from_str(&bundle)
+        .map_err(|_| scaffold_error("installed Agent Skill bundle is not valid JSON"))?;
+    let workflow = value
+        .get("payload")
+        .and_then(|payload| payload.get("public_workflow"))
+        .and_then(Value::as_array)
+        .ok_or_else(|| {
+            scaffold_error("installed Agent Skill bundle is missing its public workflow")
+        })?;
+    let mut guide = AGENT_SKILL_WORKFLOW_HEADER.to_owned();
+    for verb in workflow {
+        let name = verb.get("verb").and_then(Value::as_str).ok_or_else(|| {
+            scaffold_error("installed Agent Skill bundle workflow entry is missing its verb")
+        })?;
+        let authority_class = verb
+            .get("authority_class")
+            .and_then(Value::as_str)
+            .ok_or_else(|| {
+                scaffold_error(
+                    "installed Agent Skill bundle workflow entry is missing its authority class",
+                )
+            })?;
+        let usage = verb
+            .get("cli_usage")
+            .and_then(Value::as_str)
+            .ok_or_else(|| {
+                scaffold_error("installed Agent Skill bundle workflow entry is missing its usage")
+            })?;
+        guide.push_str(&format!("- `{name}` ({authority_class}): `{usage}`\n"));
+    }
+    Ok(guide)
+}
 const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.add\"]\ntests = [\"{{module}}.tests\"]\n";
 const MANIFEST_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{name}}.add\"]\n";
 const APP: &str = "module {{module}}.app;\n\n@id(\"{{name}}.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
@@ -318,6 +372,7 @@ pub fn derive_project_scaffold_v1_with_layout(
     };
     let inventory = project_scaffold_inventory_with_layout(template, layout);
     debug_assert_eq!(sources.len(), inventory.len());
+    let agent_skill_workflow_guide = agent_skill_workflow_guide()?;
     let files = sources
         .iter()
         .zip(inventory)
@@ -328,6 +383,9 @@ pub fn derive_project_scaffold_v1_with_layout(
             }
             if *path == "AGENTS.md" && is_service {
                 combined.push_str(SERVICE_DEPENDENCY_GUIDE);
+            }
+            if *path == "AGENTS.md" {
+                combined.push_str(&agent_skill_workflow_guide);
             }
             let rendered = combined
                 .replace("{{name}}", project_name)

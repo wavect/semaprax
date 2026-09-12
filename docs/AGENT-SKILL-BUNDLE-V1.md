@@ -215,19 +215,23 @@ performs a host effect, opens a socket, or grants a capability.
 
 ## Follow-ups from issue #196
 
-Issue #225 tracks two steps this issue's original worker left for later,
+Issue #225 tracked two steps this issue's original worker left for later,
 because the project scaffold generator under `src/project/**` was outside
-that worker's file lease:
+that worker's file lease. Both are now landed:
 
-- **A worked walkthrough of the public workflow** is now
+- **A worked walkthrough of the public workflow** is
   [Limited-agent tutorial](LIMITED-AGENT-TUTORIAL.md): a locally executed
   `inspect` → `review` → `test` walkthrough, plus a documented (not executed
   inline) `publish` step, for an agent limited to `read_only`,
   `test_execute`, and `publication` authority.
-- **Deriving a scaffolded project's `AGENTS.md` from this bundle** (rather
-  than the hand-authored constant `src/project/scaffold.rs` ships today)
-  remains open. It requires changing the scaffold generator itself — outside
-  `docs/`, `README.md`, `AGENTS.md`, and the tutorial/grammar files this
-  follow-up's own worker leased — plus updating every scaffold digest and
-  replay test the change would affect, so it is left to a dedicated
-  implementation lane rather than attempted here.
+- **Deriving a scaffolded project's `AGENTS.md` from this bundle.**
+  `src/project/scaffold.rs`'s `agent_skill_workflow_guide` calls
+  [`generate_agent_skill_bundle`] itself, parses its `payload.public_workflow`
+  array, and renders one `## Installed Agent Skill workflow` line per verb
+  (name, authority class, exact CLI usage) into every template's `AGENTS.md`.
+  A verb added to, renamed in, or removed from
+  [`PUBLIC_WORKFLOW`](../src/agent_skill_bundle.rs) changes that section on
+  the next scaffold derivation with no second place to keep in sync; the
+  section's presence and its exact per-verb content are pinned by
+  `tests/project/scaffold.rs`, alongside every scaffold digest and replay
+  assertion the change touched.

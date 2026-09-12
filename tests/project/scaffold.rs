@@ -7,10 +7,10 @@ use sha2::{Digest, Sha256};
 const NAME: &str = "demo-project";
 const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v2\0";
 const ARTIFACT_DIGEST: &str =
-    "sha256:155782bcaeee60e04e8753348a46b73f3dd30a56345dbd5718463cef0e83a9ad";
+    "sha256:130ed9fd1e53feada60173758e07042d2396367ced8a2d7776724db54d00ebf2";
 const FILE_DIGESTS: [&str; 5] = [
     "sha256:abf54a4e33e0f6fa1a6be76dc0d324b713de081bc2529b7cc2b2598477e643ec",
-    "sha256:d5beefa57bd9d7e82b9de23d72aeb09508146026a0361729595b69be3cb9cc0f",
+    "sha256:5b6b963d6029c8e491a72ea097474dd97363a0837e99aaae04948d2f563d6147",
     "sha256:158830289b7204499bd5ab0854ecf57caaa3e2654e6de36aab387ba94f869db3",
     "sha256:f5508160f8d4bd6a406b9a9a51e7765146a79185f6e042cb7b9b8def7765e975",
     "sha256:e570c4d28171cd826038c3f881a51d87693ef1071e14a3c6323d0c69815d8a00",
@@ -26,7 +26,7 @@ const PATHS: [&str; 5] = [
 fn expected_files() -> [Vec<u8>; 5] {
     [
         b"# demo-project\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build . --target web -o web\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n".to_vec(),
-        b"# Agent guide for demo-project\n\nThis is a SEMAPRAX project. `semaprax.toml` lists its modules; the compiler\nis the authority on what the language admits. Read `semaprax help language`\nbefore writing source.\n\n## Commands\n\n- `semaprax check .` parses, resolves, type-checks, and verifies every module.\n- `semaprax test .` runs `demo_project.tests`; `semaprax run .` runs the entry and prints its `i64`.\n- `semaprax fmt <file>` rewrites one file in canonical form.\n- `semaprax build . --target web -o dist/web` emits a browser package.\n- `semaprax help <command>` prints one command's exact grammar.\n\n## Rules that differ from other languages\n\n- Every file starts with `module dotted.name;`, and every declaration carries\n  `@id(\"...\")`. The id is the stable identity: rename freely, never change an id.\n- A function body is statements followed by exactly one tail expression. There\n  is no `return`, `for`, `else if`, tuple, or unit value.\n- `if` always has `else`; a `while` body ends with the bool that decides\n  whether to loop again.\n- Contracts are `requires` and `ensures` lines; effects are `permit` at module\n  level plus `uses` on every function that performs or calls into one.\n- Check the whole project, not one file: modules import each other, so a\n  single file reports `SPX-G172` or `SPX-T105`.\n- A new module must be listed in `sources` in `semaprax.toml`, and a test\n  module in `tests`.\n- Tests live in the `tests` module: `fn main() -> i64` returns 0 on success, and\n  every `fn test_<name>() -> i64` with an `@id` runs as a named case that\n  `semaprax test .` reports on failure.\n- Diagnostics carry stable `SPX-` codes and, where the compiler knows the fix,\n  a `help:` line. `semaprax check . --json` prints one diagnostic per line.\n".to_vec(),
+        b"# Agent guide for demo-project\n\nThis is a SEMAPRAX project. `semaprax.toml` lists its modules; the compiler\nis the authority on what the language admits. Read `semaprax help language`\nbefore writing source.\n\n## Commands\n\n- `semaprax check .` parses, resolves, type-checks, and verifies every module.\n- `semaprax test .` runs `demo_project.tests`; `semaprax run .` runs the entry and prints its `i64`.\n- `semaprax fmt <file>` rewrites one file in canonical form.\n- `semaprax build . --target web -o dist/web` emits a browser package.\n- `semaprax help <command>` prints one command's exact grammar.\n\n## Rules that differ from other languages\n\n- Every file starts with `module dotted.name;`, and every declaration carries\n  `@id(\"...\")`. The id is the stable identity: rename freely, never change an id.\n- A function body is statements followed by exactly one tail expression. There\n  is no `return`, `for`, `else if`, tuple, or unit value.\n- `if` always has `else`; a `while` body ends with the bool that decides\n  whether to loop again.\n- Contracts are `requires` and `ensures` lines; effects are `permit` at module\n  level plus `uses` on every function that performs or calls into one.\n- Check the whole project, not one file: modules import each other, so a\n  single file reports `SPX-G172` or `SPX-T105`.\n- A new module must be listed in `sources` in `semaprax.toml`, and a test\n  module in `tests`.\n- Tests live in the `tests` module: `fn main() -> i64` returns 0 on success, and\n  every `fn test_<name>() -> i64` with an `@id` runs as a named case that\n  `semaprax test .` reports on failure.\n- Diagnostics carry stable `SPX-` codes and, where the compiler knows the fix,\n  a `help:` line. `semaprax check . --json` prints one diagnostic per line.\n\n## Installed Agent Skill workflow\n\nThe installed compiler also publishes `semaprax.agent-skill.v1` (`semaprax\nagent skill`), a small, authority-labeled public workflow over the commands\nabove. The list below is generated from that installed bundle, so it always\nmatches this compiler; each entry names its authority class and the exact\nCLI command it wraps:\n\n- `apply` (source_write): `semaprax apply-semantic-workspace-change-evidence <root> <proposal.json> <evidence.json>`\n- `context` (read_only): `semaprax context <file|project> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters ...]`\n- `impact` (read_only): `semaprax impact <file> <patch.spatch> [--depth N] [--max-bytes N] [--max-nodes N]`\n- `inspect` (read_only): `semaprax graph <file>`\n- `propose` (candidate_only): `semaprax change preview <project> <operation> ... [--evidence|--structural-diff]`\n- `publish` (publication): `semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>`\n- `rebase` (candidate_only): `semaprax change rebase <base-project> <operation> ... --onto <onto-project> [--revision digest] [--onto-revision digest]`\n- `repair` (source_write): `semaprax repair <file> <repair-id> --persistent-id <persistent-id>`\n- `review` (read_only): `semaprax review <file> <patch.spatch>`\n- `test` (test_execute): `semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]`\n".to_vec(),
         b"schema = \"semaprax.project.v1\"\nname = \"demo-project\"\nentry = \"demo_project.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"demo-project.add\"]\ntests = [\"demo_project.tests\"]\n".to_vec(),
         b"module demo_project.app;\n\n@id(\"demo-project.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"demo-project.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n".to_vec(),
         b"module demo_project.tests;\n\n@id(\"demo-project.tests.main\")\nfn main() -> i64\n{\n    if 19 + 23 == 42 { 0 } else { 1 }\n}\n".to_vec(),
@@ -72,7 +72,7 @@ fn derivation_is_literal_ordered_deterministic_and_self_replaying() {
     assert_eq!(derived.project_name(), NAME);
     assert_digest(derived.digest());
     assert_eq!(derived.digest(), ARTIFACT_DIGEST);
-    assert_eq!(derived.canonical_bytes().len(), 3709);
+    assert_eq!(derived.canonical_bytes().len(), 5226);
 
     let expected = expected_files();
     assert_eq!(derived.files().len(), PATHS.len());
@@ -103,6 +103,68 @@ fn derivation_is_literal_ordered_deterministic_and_self_replaying() {
         assert_eq!(left.path(), right.path());
         assert_eq!(left.bytes(), right.bytes());
         assert_eq!(left.sha256(), right.sha256());
+    }
+}
+
+/// `AGENTS.md`'s `## Installed Agent Skill workflow` section is generated
+/// from the real, installed `semaprax.agent-skill.v1` bundle's
+/// `PUBLIC_WORKFLOW` table, not hand-copied: every verb the installed bundle
+/// currently publishes appears with its exact authority class and CLI usage
+/// (the positive case), the bullet count matches the table exactly so a
+/// stale or duplicated line cannot hide (the completeness case), and a verb
+/// name the installed bundle does not publish never appears as a workflow
+/// bullet (the negative case the generator's own vacuous-test trap is
+/// deleting: it would still be easy to pass a test that only checks the
+/// section header exists).
+#[test]
+fn agents_md_lists_every_installed_public_workflow_verb_and_nothing_else() {
+    use semaprax::agent_skill_bundle::PUBLIC_WORKFLOW;
+
+    let derived = derive_project_scaffold_v1(NAME, "calculator").unwrap();
+    let agents = derived.files()[1].utf8();
+    let workflow_section = agents
+        .split("## Installed Agent Skill workflow\n")
+        .nth(1)
+        .expect("AGENTS.md must carry the installed Agent Skill workflow section");
+
+    // Positive case: every verb the installed bundle currently publishes is
+    // listed, paired with its exact authority class and CLI usage.
+    for verb in PUBLIC_WORKFLOW {
+        let line = format!(
+            "- `{}` ({}): `{}`\n",
+            verb.verb, verb.authority_class, verb.cli_usage
+        );
+        assert!(
+            workflow_section.contains(&line),
+            "installed verb `{}` is missing from AGENTS.md: expected line {line:?}",
+            verb.verb
+        );
+    }
+
+    // Completeness case: exactly one bullet per installed verb, no more. This
+    // is what catches a verb quietly removed from `PUBLIC_WORKFLOW` while a
+    // stale line kept riding along in a hand-maintained copy.
+    let bullet_lines = workflow_section
+        .lines()
+        .filter(|line| line.starts_with("- `"))
+        .count();
+    assert_eq!(bullet_lines, PUBLIC_WORKFLOW.len());
+
+    // Negative case: a verb name absent from the installed bundle never
+    // appears as a workflow bullet, even though it reads like a plausible
+    // sibling of the real ones.
+    for absent_verb in ["merge", "deploy", "compile", "format"] {
+        assert!(
+            !PUBLIC_WORKFLOW
+                .iter()
+                .any(|verb| verb.verb == absent_verb),
+            "test fixture bug: `{absent_verb}` must not itself be an installed verb"
+        );
+        let bullet = format!("- `{absent_verb}` (");
+        assert!(
+            !workflow_section.contains(&bullet),
+            "`{absent_verb}` is not part of the installed public workflow and must not appear"
+        );
     }
 }
 

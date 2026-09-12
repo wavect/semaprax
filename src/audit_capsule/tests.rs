@@ -156,7 +156,11 @@ fn a_duplicate_object_id_is_rejected() {
     );
     let error = parse_capsule(duplicated.as_bytes()).unwrap_err();
     assert_eq!(error.code, "SPX-Z901");
-    assert!(error.message.contains("duplicate object id"), "{}", error.message);
+    assert!(
+        error.message.contains("duplicate object id"),
+        "{}",
+        error.message
+    );
 }
 
 // ---------------------------------------------------------------------
@@ -245,7 +249,11 @@ fn an_association_naming_an_unknown_object_id_is_rejected_as_dangling() {
     let capsule = parse_capsule(dangling.as_bytes()).expect("manifest stays otherwise well-formed");
     let error = check_associations(&capsule).unwrap_err();
     assert_eq!(error.code, "SPX-Z903");
-    assert!(error.message.contains("unknown object id"), "{}", error.message);
+    assert!(
+        error.message.contains("unknown object id"),
+        "{}",
+        error.message
+    );
 }
 
 #[test]
@@ -348,7 +356,11 @@ fn supplying_retained_bytes_for_a_redacted_object_is_rejected_as_a_leak() {
     );
     let error = check_object_bytes(&capsule, &object_bytes).unwrap_err();
     assert_eq!(error.code, "SPX-Z904");
-    assert!(error.message.contains("retained bytes were supplied"), "{}", error.message);
+    assert!(
+        error.message.contains("retained bytes were supplied"),
+        "{}",
+        error.message
+    );
 }
 
 // ---------------------------------------------------------------------
@@ -432,7 +444,11 @@ fn a_redacted_object_missing_its_reason_is_rejected_at_parse_time() {
 
 fn signed_manifest(signatures_json: &str) -> String {
     let (manifest, _) = change_fixture("r1");
-    manifest.replacen("\"signatures\": []", &format!("\"signatures\": {signatures_json}"), 1)
+    manifest.replacen(
+        "\"signatures\": []",
+        &format!("\"signatures\": {signatures_json}"),
+        1,
+    )
 }
 
 #[test]
@@ -469,7 +485,11 @@ fn two_signatures_claiming_the_same_role_are_rejected_at_parse_time() {
     );
     let error = parse_capsule(manifest.as_bytes()).unwrap_err();
     assert_eq!(error.code, "SPX-Z901");
-    assert!(error.message.contains("more than one signature"), "{}", error.message);
+    assert!(
+        error.message.contains("more than one signature"),
+        "{}",
+        error.message
+    );
 }
 
 #[test]
@@ -485,7 +505,11 @@ fn a_missing_required_signature_role_is_rejected() {
     };
     let error = check_signature_policy(&capsule, &ctx).unwrap_err();
     assert_eq!(error.code, "SPX-Z905");
-    assert!(error.message.contains("no signature carries"), "{}", error.message);
+    assert!(
+        error.message.contains("no signature carries"),
+        "{}",
+        error.message
+    );
 }
 
 #[test]
@@ -529,7 +553,11 @@ fn an_unrecognized_signature_role_is_rejected_at_parse_time() {
     );
     let error = parse_capsule(manifest.as_bytes()).unwrap_err();
     assert_eq!(error.code, "SPX-Z902");
-    assert!(error.message.contains("closed role vocabulary"), "{}", error.message);
+    assert!(
+        error.message.contains("closed role vocabulary"),
+        "{}",
+        error.message
+    );
 }
 
 // ---------------------------------------------------------------------
@@ -636,7 +664,8 @@ fn tampering_any_field_other_than_transparency_still_changes_the_leaf_digest() {
     let (manifest, _object_bytes) = change_fixture("r1");
     let original = transparency_leaf_digest(manifest.as_bytes()).expect("well-formed JSON");
     let tampered_revision = manifest.replacen("\"revision\": \"r1\"", "\"revision\": \"r9\"", 1);
-    let tampered = transparency_leaf_digest(tampered_revision.as_bytes()).expect("well-formed JSON");
+    let tampered =
+        transparency_leaf_digest(tampered_revision.as_bytes()).expect("well-formed JSON");
     assert_ne!(
         original, tampered,
         "the leaf digest must still cover subject/objects/associations/signatures"

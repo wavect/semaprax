@@ -318,6 +318,7 @@ Audience: all documentation readers.
 - [Authentication and Sessions v1](AUTHENTICATION-SESSIONS-V1.md)
 - [Wasm scalar exports](WASM-SCALAR-EXPORTS-V1.md)
 - [Public Scalar WIT Interface v1](PUBLIC-SCALAR-WIT-INTERFACE-V1.md)
+- [Public Generic WIT Type Projection v1](PUBLIC-GENERIC-WIT-TYPE-PROJECTION-V1.md)
 - [Wasm owned ABI](WASM-OWNED-ABI-V1.md)
 
 ## Agent query and change protocols
@@ -328,6 +329,7 @@ Audience: all documentation readers.
 - [Live Invocation Contract v1](LIVE-INVOCATION-CONTRACT-V1.md)
 - [Live Invocation Persistence v1](LIVE-INVOCATION-PERSISTENCE-V1.md)
 - [Live Invocation Migration v1](LIVE-INVOCATION-MIGRATION-V1.md)
+- [Audit Capsule v1](AUDIT-CAPSULE-V1.md)
 - [Model Budget Policy v1](MODEL-BUDGET-POLICY-V1.md)
 - [Model Call Receipt v1](MODEL-CALL-RECEIPT-V1.md)
 - [Provider Adapter SDK v1](PROVIDER-ADAPTER-SDK-V1.md)

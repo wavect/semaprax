@@ -298,12 +298,13 @@ fn sorted_json(value: &Value) -> Value {
 fn transparency_leaf_digest_bytes(manifest_bytes: &[u8]) -> Result<Vec<u8>, Diagnostic> {
     let mut value = parse_json(manifest_bytes, "audit capsule")?;
     let Some(map) = value.as_object_mut() else {
-        return Err(shape_error("audit capsule must be a JSON object".to_owned()));
+        return Err(shape_error(
+            "audit capsule must be a JSON object".to_owned(),
+        ));
     };
     map.insert("transparency".to_owned(), Value::Null);
-    let mut text = serde_json::to_string(&sorted_json(&value)).map_err(|_| {
-        shape_error("audit capsule cannot be canonically re-serialized".to_owned())
-    })?;
+    let mut text = serde_json::to_string(&sorted_json(&value))
+        .map_err(|_| shape_error("audit capsule cannot be canonically re-serialized".to_owned()))?;
     text.push('\n');
     Ok(text.into_bytes())
 }
@@ -583,8 +584,7 @@ fn parse_signature(value: &Value) -> Result<SignatureEntry, Diagnostic> {
         )));
     }
     let algorithm = algorithm.to_owned();
-    let signature =
-        require_nonempty_string(&value["signature"], "signature.signature")?.to_owned();
+    let signature = require_nonempty_string(&value["signature"], "signature.signature")?.to_owned();
     let not_valid_after_unix_seconds = require_u64(
         &value["not_valid_after_unix_seconds"],
         "signature.not_valid_after_unix_seconds",
@@ -677,7 +677,9 @@ pub fn parse_capsule(bytes: &[u8]) -> Result<ParsedCapsule, Diagnostic> {
         "audit capsule",
     )?;
     if require_string(&value["schema"], "schema")? != CAPSULE_SCHEMA {
-        return Err(shape_error(format!("capsule schema must be {CAPSULE_SCHEMA}")));
+        return Err(shape_error(format!(
+            "capsule schema must be {CAPSULE_SCHEMA}"
+        )));
     }
     let profile_wire = require_string(&value["profile"], "profile")?;
     let profile = Profile::from_wire(profile_wire).ok_or_else(|| {

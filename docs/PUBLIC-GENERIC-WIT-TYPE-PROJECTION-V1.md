@@ -1,18 +1,14 @@
 # Public Generic WIT Type Projection v1
 
 Status: implemented bounded projection; local evidence only, no hosted CI run
-recorded. This is a documentation-tracked slice of issue #176 ("Add a WIT and
-WebAssembly Component Model projection for supported generic resources"),
-which is itself gated behind PG-9 of the
+recorded. A documentation-tracked slice of issue #176, itself gated behind
+PG-9 of the
 [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
 **Public generic ownership is not supported or published, and this document
 does not change that.** No public generic export exists, no compiled `.wasm`
-artifact implements the provider ABI (open issue #229), and no engine has ever
-executed a component built from this projection. What exists is a
-deterministic, refusal-total *type* projection from an already-checked
-[Public Generic Boundary Profile v1](PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)
-admission to WIT `record`/`resource` text — nothing that calls it, nothing
-that lowers it to component bytes, and nothing that publishes it.
+implements the provider ABI (open issue #229), and no engine has executed a
+component built from this projection. What exists is a deterministic,
+refusal-total *type* projection to WIT text — nothing that calls it.
 
 Audience: ABI, WIT/Component, package, and evidence reviewers.
 

@@ -131,7 +131,9 @@ fn build_package(label: &str) -> std::path::PathBuf {
 
 fn run_probe(root: &Path, inputs: &[i64]) -> Vec<serde_json::Value> {
     let mut command = Command::new("node");
-    command.arg("compiled_reference_endpoint.mjs").arg(EXPORT_ID);
+    command
+        .arg("compiled_reference_endpoint.mjs")
+        .arg(EXPORT_ID);
     for input in inputs {
         command.arg(input.to_string());
     }
@@ -163,7 +165,10 @@ fn genuinely_compiled_wasm_export_reverses_four_packed_bytes() {
     );
     // Negative control: the untouched input is not its own reversal (rules
     // out an identity/no-op bug masquerading as success).
-    assert_ne!(outputs[0]["value"], serde_json::Value::String(input.to_string()));
+    assert_ne!(
+        outputs[0]["value"],
+        serde_json::Value::String(input.to_string())
+    );
 }
 
 #[test]
@@ -197,7 +202,10 @@ fn zero_and_all_bytes_set_round_trip_through_the_compiled_export() {
     let zero = 0i64;
     let all_ff = pack(255, 255, 255, 255);
     let outputs = run_probe(&root, &[zero, all_ff]);
-    assert_eq!(outputs[0]["value"], serde_json::Value::String("0".to_owned()));
+    assert_eq!(
+        outputs[0]["value"],
+        serde_json::Value::String("0".to_owned())
+    );
     assert_eq!(
         outputs[1]["value"],
         serde_json::Value::String(all_ff.to_string())

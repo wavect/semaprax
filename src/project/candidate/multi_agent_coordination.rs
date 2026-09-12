@@ -524,9 +524,7 @@ impl ProjectCandidate {
         let mut reverse_cache: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
         for entry in &accepted {
             for id in entry.target_ids.iter().copied() {
-                if let std::collections::btree_map::Entry::Vacant(slot) =
-                    reverse_cache.entry(id)
-                {
+                if let std::collections::btree_map::Entry::Vacant(slot) = reverse_cache.entry(id) {
                     slot.insert(reverse_dependents(self, id)?);
                 }
             }
@@ -1249,8 +1247,10 @@ tests = ["coordination.tests"]
             ])
         );
         let witnesses = conflicts[0]["dependency_witnesses"].as_array().unwrap();
-        assert!(witnesses.iter().any(|w| w
-            == &json!({"upstream": "coordination.divide", "downstream": "coordination.main"})));
+        assert!(witnesses
+            .iter()
+            .any(|w| w
+                == &json!({"upstream": "coordination.divide", "downstream": "coordination.main"})));
         // Neither conflicting proposal is silently chosen into the
         // compatible order.
         assert_eq!(evaluation["compatible_order"], json!([]));

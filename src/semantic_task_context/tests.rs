@@ -217,8 +217,7 @@ fn multi_seed_budget_is_enforced_at_its_exact_boundary_under_lexical_tokenizer()
     ])
     .unwrap();
 
-    let unconstrained =
-        compile(&program, &goal, &options, generous_budget("lexical-v1")).unwrap();
+    let unconstrained = compile(&program, &goal, &options, generous_budget("lexical-v1")).unwrap();
     let unconstrained: Value = serde_json::from_str(&unconstrained).unwrap();
     let tokens_a = tokens_of(&unconstrained, "app.goal_a_root");
     let tokens_b = tokens_of(&unconstrained, "app.goal_b_root");

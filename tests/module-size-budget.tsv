@@ -48,4 +48,4 @@ src/workspace_graph/operation_sidecar.rs	1917
 src/workspace_graph/tests.rs	2320
 src/workspace_patch_evidence.rs	1575
 tests/interpreter_v1.rs	1533
-tests/project/standard_library.rs	1527
+tests/project/standard_library.rs	1552

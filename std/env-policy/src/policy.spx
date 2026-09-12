@@ -132,18 +132,26 @@ fn value_range_is_valid(view: borrow Slice<u8>, start: usize, end: usize) -> boo
     valid
 }
 
+// Issue #100 found this composition (a single `byte_range` sub-slice
+// consumed by a looping callee) reporting a corrupt slice carrier on the
+// Core Wasm lane; that turned out to be a hand-rolled harness decoder that
+// predated `byte_range`'s range-descriptor tag (issue #100, comment
+// 5626417135), not a backend defect, so this reuses `byte_range` again per
+// issue #218 rather than the index-walking `name_range_is_valid`/
+// `value_range_is_valid` workaround (kept above as their own gated
+// functions, unchanged).
 @id("std.env.policy.name-span-is-valid")
 fn name_span_is_valid(view: borrow Slice<u8>, end: usize) -> bool
     requires end <= byte_len(view)
 {
-    name_range_is_valid(view, end)
+    name_is_valid(byte_range(view, 0usize, end))
 }
 
 @id("std.env.policy.value-span-is-valid")
 fn value_span_is_valid(view: borrow Slice<u8>, start: usize, end: usize) -> bool
     requires start <= end && end <= byte_len(view)
 {
-    value_range_is_valid(view, start, end)
+    value_is_valid(byte_range(view, start, end))
 }
 
 @id("std.env.policy.assignment-is-valid")

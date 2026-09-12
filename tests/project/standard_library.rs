@@ -725,24 +725,17 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
                 run_text_package_wasm_conformance(snapshot, &scratch)?;
                 return Ok(());
             }
-            let wasm = snapshot.test_wasm_module()?;
-            let cursor_case = json_cursors::is_cursor_case(&manifest);
-            // Each fixture must balance its declared live Bytes bound.
-            let arena = cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest));
-            for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
-                let present = wasm.windows(name.len()).any(|w| w == name.as_bytes());
-                // Individual typed-Path observation cases allocate via copy
-                // without importing the buffer-writing operations.
-                if package.module != "std.path.value" && !cursor_case {
-                    assert_eq!(present, arena, "{}: `{name}` import", package.directory);
-                }
-            }
-            let live_entry_bound = if package.module == "std.log" { logging::live_byte_bound(&manifest) } else if package.module == "std.io.lines" { io_lines::live_byte_bound(&manifest) } else if package.module == "std.path.normalize" { path_normalize::live_byte_bound(&manifest) } else if cursor_case || package.module == "std.format" { 2 } else if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
-            let wasm_path = scratch.join(format!("{}-tests.wasm", package.directory));
-            std::fs::write(&wasm_path, wasm).unwrap();
-            let script = scratch.join(format!("{}-tests.mjs", package.directory));
-            std::fs::write(
-                &script,
+            // Issue #102: a package's Wasm claim must cover BOTH its
+            // examples (entry) and conformance (tests) closures, not only
+            // conformance. The reported gap was `byte_range` used solely in
+            // `std/bytes`'s examples module while this loop only ever built
+            // the tests module for Wasm, so that use never ran on Core Wasm
+            // despite the package's Wasm claim. The tuned narrow live-Bytes
+            // bounds below were derived from the conformance closure's own
+            // allocation count; the examples closure runs against the same
+            // generous default every untuned package's tests already use,
+            // since its allocation profile is not independently tuned here.
+            fn wasm_conformance_js(wasm_filename: &str, live_entry_bound: usize) -> String {
                 format!(
                     r#"import assert from "node:assert/strict";
 import {{ readFile }} from "node:fs/promises";
@@ -760,22 +753,54 @@ linked = await WebAssembly.instantiate(bytes, imports);
 // Re-entry observes an owned buffer that outlived one call as a live entry.
 for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_main(), 0n); assert.equal(entries.size, 0); assert.equal(boxes.size, 0); }}
 "#,
-                    wasm_path.file_name().unwrap().to_string_lossy(),
-                    live_entry_bound
+                    wasm_filename, live_entry_bound
+                )
+            }
+            for (role, module_bytes) in [
+                ("tests", snapshot.test_wasm_module()?),
+                (
+                    "examples",
+                    wasm::emit_resolved_module(snapshot.entry_program())
+                        .map_err(|error| vec![error])?,
                 ),
-            )
-            .unwrap();
-            let node = Command::new("node")
-                .arg(script.file_name().unwrap())
-                .current_dir(&scratch)
-                .output()
+            ] {
+                let cursor_case = json_cursors::is_cursor_case(&manifest);
+                // Each fixture must balance its declared live Bytes bound.
+                let arena = role == "tests" && (cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.io.lines" | "std.path.value" | "std.path.normalize") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest)) || (package.module == "std.log" && logging::uses_byte_writes(&manifest)));
+                if role == "tests" {
+                    for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
+                        let present = module_bytes.windows(name.len()).any(|w| w == name.as_bytes());
+                        // Individual typed-Path observation cases allocate via copy
+                        // without importing the buffer-writing operations.
+                        if package.module != "std.path.value" && !cursor_case {
+                            assert_eq!(present, arena, "{}: `{name}` import", package.directory);
+                        }
+                    }
+                }
+                let live_entry_bound = if role == "examples" { 4096 } else if package.module == "std.log" { logging::live_byte_bound(&manifest) } else if package.module == "std.io.lines" { io_lines::live_byte_bound(&manifest) } else if package.module == "std.path.normalize" { path_normalize::live_byte_bound(&manifest) } else if cursor_case || package.module == "std.format" { 2 } else if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
+                let wasm_path = scratch.join(format!("{}-{role}.wasm", package.directory));
+                std::fs::write(&wasm_path, module_bytes).unwrap();
+                let script = scratch.join(format!("{}-{role}.mjs", package.directory));
+                std::fs::write(
+                    &script,
+                    wasm_conformance_js(
+                        &wasm_path.file_name().unwrap().to_string_lossy(),
+                        live_entry_bound,
+                    ),
+                )
                 .unwrap();
-            assert!(
-                node.status.success(),
-                "{}: Node conformance closure failed: {}",
-                package.directory,
-                String::from_utf8_lossy(&node.stderr)
-            );
+                let node = Command::new("node")
+                    .arg(script.file_name().unwrap())
+                    .current_dir(&scratch)
+                    .output()
+                    .unwrap();
+                assert!(
+                    node.status.success(),
+                    "{}: Node {role} conformance closure failed: {}",
+                    package.directory,
+                    String::from_utf8_lossy(&node.stderr)
+                );
+            }
             Ok(())
         })
         .unwrap();

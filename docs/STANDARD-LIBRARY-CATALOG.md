@@ -1692,8 +1692,12 @@ Offset just past a bare key starting at `start`, reusing `is_bare_key` on
 the growing candidate to admit exactly the same character set, or a
 failure encoding when no bare-key byte is admitted at `start`.
 Walks bytes directly rather than testing a growing `byte_range` sub-slice:
-that shape is admitted by the checker but emits a corrupt slice carrier on
-the Core Wasm lane (issue #100), and this was its only user in the library.
+`byte_range` is not one of the two shapes a `while` loop may call
+(`hir::validation::owned_buffer::require_admitted_while_operation` admits
+only `byte_len`/`byte_get` reads and a loop-carried `bytes_set` fill), so
+it is rejected with `SPX-H006` regardless of the corrected Wasm decoder
+(issue #100, comment 5626417135) - confirmed while attempting the issue
+#218 restoration in this while-loop scanner; this was its only user.
 
 ```semaprax
 fn bare_key_end(record: borrow Slice<u8>, start: usize) -> usize
@@ -2129,6 +2133,15 @@ fn value_range_is_valid(view: borrow Slice<u8>, start: usize, end: usize) -> boo
 ```
 
 ### `std.env.policy.name-span-is-valid`
+
+Issue #100 found this composition (a single `byte_range` sub-slice
+consumed by a looping callee) reporting a corrupt slice carrier on the
+Core Wasm lane; that turned out to be a hand-rolled harness decoder that
+predated `byte_range`'s range-descriptor tag (issue #100, comment
+5626417135), not a backend defect, so this reuses `byte_range` again per
+issue #218 rather than the index-walking `name_range_is_valid`/
+`value_range_is_valid` workaround (kept above as their own gated
+functions, unchanged).
 
 ```semaprax
 fn name_span_is_valid(view: borrow Slice<u8>, end: usize) -> bool

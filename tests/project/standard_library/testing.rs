@@ -123,10 +123,22 @@ fn run_source_package_case(package: &str, module: &str, library: &str, selected:
                     run_returns_zero(&binary);
                 }
             }
-            let wasm_path = directory.join("tests.wasm");
-            std::fs::write(&wasm_path, snapshot.test_wasm_module()?).unwrap();
-            let script = directory.join("tests.mjs");
-            std::fs::write(&script, format!("{}\n{}", include_str!("../../useful_data/environment_provider_fixture.mjs"), r#"
+            // Issue #102: exercise both the conformance (tests) and the
+            // examples (entry) closure on Core Wasm, not tests alone -
+            // matching the fix in the sibling `run_examples_and_conformance`
+            // generic path in `standard_library.rs`.
+            for (role, module_bytes) in [
+                ("tests", snapshot.test_wasm_module()?),
+                (
+                    "examples",
+                    wasm::emit_resolved_module(snapshot.entry_program())
+                        .map_err(|d| vec![d])?,
+                ),
+            ] {
+                let wasm_path = directory.join(format!("{role}.wasm"));
+                std::fs::write(&wasm_path, module_bytes).unwrap();
+                let script = directory.join(format!("{role}.mjs"));
+                std::fs::write(&script, format!("{}\n{}", include_str!("../../useful_data/environment_provider_fixture.mjs"), r#"
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const module = new WebAssembly.Module(readFileSync(process.argv[2]));
@@ -135,8 +147,9 @@ const instance = new WebAssembly.Instance(module, provider.imports);
 provider.attach(instance);
 for(let run=0;run<4;run++) { assert.equal(instance.exports.semaprax_main(), 0n); provider.settled(); }
 "#)).unwrap();
-            let output = Command::new("node").arg(&script).arg(&wasm_path).output().unwrap();
-            assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+                let output = Command::new("node").arg(&script).arg(&wasm_path).output().unwrap();
+                assert!(output.status.success(), "{role}: {}", String::from_utf8_lossy(&output.stderr));
+            }
             Ok(())
         }).unwrap();
     }

@@ -172,9 +172,18 @@ fn existing_core_matrix_and_global_authority_remain_bounded() {
     let verify = job(&workflow, "verify");
 
     assert!(workflow.contains("permissions:\n  contents: read\n"));
-    assert!(workflow.contains(
-        "concurrency:\n  group: ci-${{ github.workflow }}-${{ github.ref }}\n  cancel-in-progress: true\n"
-    ));
+    assert!(
+        workflow.contains("concurrency:\n  group: ci-${{ github.workflow }}-${{ github.ref }}\n")
+    );
+    // Pinned exactly, because the weaker `cancel-in-progress: true` cancelled 98
+    // of 100 consecutive `main` runs and left the required gates with no verdict
+    // of either colour. A push to `main` must always be allowed to finish;
+    // anything else may still be superseded by its own tip.
+    assert!(
+        workflow.contains("  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}\n"),
+        "`main` runs must never be cancelled by a later push"
+    );
+    assert!(!workflow.contains("  cancel-in-progress: true\n"));
     assert!(verify.contains("fail-fast: false"));
     assert!(verify.contains("os: [ubuntu-latest, macos-latest, windows-latest]"));
     assert!(!workflow.contains("continue-on-error: true"));

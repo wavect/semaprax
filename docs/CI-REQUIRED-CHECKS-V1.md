@@ -334,9 +334,9 @@ ready to adopt the branch-first routine can apply `deletion` and
 `non_fast_forward` alone: they impose no check requirement, block no push that
 CI would have blocked, and still close the force-push and deletion holes that
 `main.protected=false` leaves open today. Add `required_status_checks` in a
-second edit once the branch-first routine is in use and, if the maintainers want
-`main` runs to complete, once `concurrency.cancel-in-progress` no longer cancels
-`main` (see [Prerequisite](#prerequisite)).
+second edit once the branch-first routine is in use. The other half of that
+prerequisite is already satisfied: `concurrency.cancel-in-progress` no longer
+cancels `main` (see [Prerequisite](#prerequisite)).
 
 ### Prerequisite
 
@@ -357,14 +357,14 @@ once it exists, and a human skimming `main` for the project's actual health --
 and it means post-push evidence for a released or claimed commit has to be
 re-run by hand.
 
-**Recommended fix: scope `cancel-in-progress` to non-default refs, not a merge
-queue.** Maintainers who want `main` runs to finish should change
-`.github/workflows/ci.yml`'s `concurrency` block to
-`cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}` (or an equivalent
-`group`/`cancel-in-progress` pair that only ever cancels non-`main` refs). This
-is a `.github/workflows/ci.yml` edit and is out of this document's authority to
-make; it is recorded here as the exact change, for a maintainer or the
-integrating coordinator to apply. A GitHub merge queue is **not** recommended
+**Applied fix: scope `cancel-in-progress` to non-default refs, not a merge
+queue.** `.github/workflows/ci.yml`'s `concurrency` block now reads
+`cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}`, so a branch or
+pull request is still superseded by its own tip while a push to `main` always
+runs to completion. The streak recorded above is what the old setting produced;
+a completed `main` verdict after this change is the evidence that it worked, and
+until such a run exists this paragraph claims only that the setting changed.
+A GitHub merge queue is **not** recommended
 as a substitute: it requires branch protection with pull requests enabled and
 serializes merges one at a time through the queue, which conflicts with the
 operating model this proposal explicitly preserves --
@@ -375,11 +375,11 @@ model exists, or, if agents kept fast-forwarding around it, leave the same
 `concurrency`-driven cancellation in place for the direct pushes that still
 happen. The ref-scoped `cancel-in-progress` change achieves the same end
 (`main` gets a completed verdict) without changing who may push or how, and
-that is why it is the recommendation. It changes CI compute cost materially
-(no push to `main` cancels a prior one, so overlapping `main` runs queue up
-back-to-back rather than being killed) and is left to the maintainers; it is
-not required for the required-status-check rule itself to function, and it is
-not changed by this proposal.
+that is why it was chosen. It does change CI compute cost materially: no push
+to `main` cancels a prior one, so overlapping `main` runs now queue up
+back-to-back rather than being killed. It is not required for the
+required-status-check rule itself to function, and that rule is still not
+changed by this proposal.
 
 ## Bypass and emergency recovery
 

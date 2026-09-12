@@ -9,7 +9,12 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseding a run is right for a branch or pull request, where only the tip
+  # matters. It is wrong for `main`: this repository takes direct pushes from
+  # many worktrees, and a fast cadence cancelled 98 of 100 consecutive `main`
+  # runs, leaving the required gates with no verdict of either colour for about
+  # twenty hours. Every push to `main` must be allowed to finish.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   CARGO_TERM_COLOR: always

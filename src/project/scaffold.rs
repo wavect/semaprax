@@ -171,7 +171,9 @@ fn agent_skill_workflow_guide() -> Result<String, Vec<Diagnostic>> {
             "installed Agent Skill bundle failed to generate: {}",
             diagnostics
                 .first()
-                .map_or("unknown diagnostic", |diagnostic| diagnostic.message.as_str())
+                .map_or("unknown diagnostic", |diagnostic| diagnostic
+                    .message
+                    .as_str())
         ))
     })?;
     let value: Value = serde_json::from_str(&bundle)

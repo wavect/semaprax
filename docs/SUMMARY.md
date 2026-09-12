@@ -325,6 +325,7 @@ Audience: all documentation readers.
 - [Agent interaction schema v1](AGENT-INTERACTION-SCHEMA-V1.md)
 - [Agent lifecycle typed carrier v1](AGENT-LIFECYCLE-TYPED-CARRIER-V1.md)
 - [Semantic Discovery v1](SEMANTIC-DISCOVERY-V1.md)
+- [Semantic Embedding v1](SEMANTIC-EMBEDDING-V1.md)
 - [Agent Skill Bundle v1](AGENT-SKILL-BUNDLE-V1.md)
 - [Image agent protocol v1](IMAGE-AGENT-PROTOCOL-V1.md)
 - [Image candidate protocol v2](IMAGE-CANDIDATE-PROTOCOL-V2.md)

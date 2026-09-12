@@ -216,9 +216,7 @@ impl ArchitectureClaimSet {
         let mut seen = BTreeSet::new();
         for claim in &claims {
             if !seen.insert(claim.id.clone()) {
-                return Err(invalid(
-                    "architecture claim set has a duplicate claim id",
-                ));
+                return Err(invalid("architecture claim set has a duplicate claim id"));
             }
         }
         Ok(Self { claims })
@@ -240,7 +238,8 @@ impl ArchitectureClaimSet {
         for claim in &self.claims {
             claim_values.push(claim.evaluate(&graph, max_walk)?);
         }
-        claim_values.sort_by(|left, right| left["claim_id"].as_str().cmp(&right["claim_id"].as_str()));
+        claim_values
+            .sort_by(|left, right| left["claim_id"].as_str().cmp(&right["claim_id"].as_str()));
         render_result(revision, claim_values, max_walk)
     }
 }
@@ -464,9 +463,7 @@ fn walk_for_edges(root: &ResolvedExpr, walked: &mut usize, node: &mut NodeFacts)
                 pending.push(callable);
                 pending.extend(args.iter());
             }
-            ResolvedExprKind::Closure {
-                captures, body, ..
-            } => {
+            ResolvedExprKind::Closure { captures, body, .. } => {
                 pending.push(body);
                 pending.extend(captures.iter().map(|capture| &capture.value));
             }
@@ -556,11 +553,11 @@ fn validate_claim_id(value: &str) -> Result<()> {
 }
 
 fn validate_target(value: &str) -> Result<()> {
-    if value.is_empty()
-        || value.len() > MAX_ARCHITECTURE_CLAIM_TARGET_BYTES
-        || value.contains('\0')
+    if value.is_empty() || value.len() > MAX_ARCHITECTURE_CLAIM_TARGET_BYTES || value.contains('\0')
     {
-        return Err(invalid("architecture claim declaration reference is invalid"));
+        return Err(invalid(
+            "architecture claim declaration reference is invalid",
+        ));
     }
     Ok(())
 }
@@ -732,11 +729,8 @@ mod tests {
 
     #[test]
     fn claim_set_rejects_duplicate_claim_ids() {
-        let error = ArchitectureClaimSet::new(vec![
-            claim("dup", "a", "b"),
-            claim("dup", "c", "d"),
-        ])
-        .unwrap_err();
+        let error = ArchitectureClaimSet::new(vec![claim("dup", "a", "b"), claim("dup", "c", "d")])
+            .unwrap_err();
         assert_eq!(error[0].code, "SPX-AC601");
     }
 

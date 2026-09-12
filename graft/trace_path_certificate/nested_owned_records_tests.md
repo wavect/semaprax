@@ -1,3 +1,0 @@
-# trace_path_certificate/nested_owned_records_tests.rs
-
-- trace_path_v1_rejects_every_cleanup_schema_with_conditional_or_nested_ownership · function · L4-L25 — fn trace_path_v1_rejects_every_cleanup_schema_with_conditional_or_nested_ownership()

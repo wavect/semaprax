@@ -29,3 +29,7 @@ platform-tests/wasm-scalar-browser-v1/test-results/
 
 # Optional caller-persisted complete candidate recovery capsules.
 **/.semaprax-candidates/
+
+# graft's local context graph — regenerable, per-developer (run `graft build`).
+# Upstream guidance: it is a local cache like node_modules; the wiring is what ships.
+graft/

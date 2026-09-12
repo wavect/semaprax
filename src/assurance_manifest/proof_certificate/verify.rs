@@ -22,8 +22,8 @@ use super::super::smt_discharge::{
     Provisioning, ReplayOutcome, RunLimits, Verdict,
 };
 use super::render::{
-    artifact_digest, payload_digest, script_digest, source_digest, ARTIFACT_TARGET_WASM_CORE_MODULE_V1,
-    SCHEMA,
+    artifact_digest, payload_digest, script_digest, source_digest,
+    ARTIFACT_TARGET_WASM_CORE_MODULE_V1, SCHEMA,
 };
 
 fn consistency_error(message: String) -> Diagnostic {
@@ -262,9 +262,9 @@ fn check_artifact(value: &Value) -> Result<(u64, String), Diagnostic> {
              `{ARTIFACT_TARGET_WASM_CORE_MODULE_V1}` is a bound target)"
         )));
     }
-    let bytes = value["bytes"]
-        .as_u64()
-        .ok_or_else(|| consistency_error("artifact.bytes must be an unsigned integer".to_owned()))?;
+    let bytes = value["bytes"].as_u64().ok_or_else(|| {
+        consistency_error("artifact.bytes must be an unsigned integer".to_owned())
+    })?;
     let sha256 = require_string(&value["sha256"], "artifact.sha256")?.to_owned();
     if !is_sha256_wire_form(&sha256) {
         return Err(consistency_error(
@@ -659,7 +659,8 @@ pub fn verify_certificate_against_artifact(
 ) -> Result<(), Diagnostic> {
     let checked = check_certificate(certificate)?;
     let recomputed = artifact_digest(artifact_bytes);
-    if recomputed != checked.artifact_sha256 || artifact_bytes.len() as u64 != checked.artifact_bytes
+    if recomputed != checked.artifact_sha256
+        || artifact_bytes.len() as u64 != checked.artifact_bytes
     {
         return Err(consistency_error(
             "the supplied artifact bytes do not match this certificate's recorded \

@@ -740,8 +740,8 @@ fn verify_certificate_against_source_rejects_a_counterexample_that_does_not_repl
 /// catches it. Without this test, a tampered or stale artifact digest would
 /// pass every check this module runs by default.
 #[test]
-fn verify_certificate_against_source_rejects_a_tampered_artifact_digest_even_with_a_genuine_script(
-) {
+fn verify_certificate_against_source_rejects_a_tampered_artifact_digest_even_with_a_genuine_script()
+{
     let source = true_postcondition_source();
     let path = write_temp(&source, "tampered-artifact");
     let source_text = std::fs::read_to_string(&path).unwrap();

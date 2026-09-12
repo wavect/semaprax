@@ -158,6 +158,7 @@ pub mod semantic_trace;
 pub mod simd_report;
 pub mod static_protocol;
 pub(crate) mod str_ops;
+pub mod streaming_proposal_decode;
 pub(crate) mod string_ops;
 pub mod structured_tasks;
 pub mod target_evidence;

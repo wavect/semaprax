@@ -53,6 +53,49 @@ python3 scripts/agent-task-comparison-runner.py run \
   --evidence-dir benchmarks/agent-task-comparison-v1/evidence/<run-id>
 ```
 
+## Owned-signature compiler-evidence probe
+
+`owned-signature-migration-v1` has an additional independent oracle. It only
+accepts its semantic, ownership, runtime, and review rows when the caller
+supplies an explicit compiled `semaprax` binary with `--compiler`. The runner
+records that binary's SHA-256 before and after bounded `check`, `test`, `run`,
+and project `graph` commands for both the immutable baseline and the isolated
+candidate. A timeout, spawn failure, output-cap failure, nonzero status, or
+binary drift fails the relevant row.
+
+Run both available fixture arms into a unique local log directory with this
+one-shot command. Set `binary` to the exact already-built compiler image being
+audited; this command does not build the compiler or contact a model/provider.
+
+```sh
+binary=/absolute/path/to/target/private/debug/semaprax
+run_id=".agent-logs/owned-signature-probe-$(uuidgen)"
+for lane in semaprax-graph-operational semaprax-source-first; do
+  python3 scripts/agent-task-comparison-runner.py run \
+    --task owned-signature-migration-v1 \
+    --lane "$lane" \
+    --trial 1 \
+    --runner fixture \
+    --fixture-script "benchmarks/agent-task-comparison-v1/fixture-runner/owned-signature-migration-v1.$lane.json" \
+    --evidence-dir "$run_id/$lane" \
+    --compiler "$binary"
+done
+```
+
+For cleanup evidence, the runner copies the exact `src/core.spx` bytes into a
+separate operating-system scratch directory and appends only a synthetic entry
+function there. It asks `graph` for that projection and records the exported
+cleanup plans for `benchmark.owned.select` and `benchmark.owned.call`, bound
+to the original core-byte digest. It never writes the immutable baseline or
+candidate while collecting evidence. The projection proves those core
+functions' compiler plan shape; it is not a claim that the projection is the
+project entry closure. The separately captured project graph and baseline /
+candidate command results supply the project-level evidence.
+
+This is an offline fixture-harness result. It is not a live coding-agent pilot,
+a blinded human-review timing result, a provider/model observation, or a
+comparative-performance claim.
+
 A **backend** is anything that can turn a task/lane/trial selection into an
 ordered action stream (model usage, context presentation, tool calls, failed
 attempts, stale detection/recovery, validation/review intervals, human

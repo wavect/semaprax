@@ -8,6 +8,9 @@ use semaprax::project::ProjectSnapshot;
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 mod settled_report;
 
+/// Private, explicit OpenCode host adapter; compiler admission remains in `semaprax`.
+pub mod opencode_host;
+
 /// Run ordinary doctor policy without discovering or spawning a worker.
 pub fn run_doctor(arguments: &[String]) -> Result<(String, u8), String> {
     semaprax::doctor::run(arguments)

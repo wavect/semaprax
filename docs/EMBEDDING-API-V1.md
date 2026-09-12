@@ -43,7 +43,7 @@ Issue #203's "In scope" list, mapped to real code, as of this tranche:
 | Compiler/session creation | Not exposed as a small stable API. `src/project/semantic_service.rs`'s `SemanticWorkspaceService::open` exists but requires an already-built `Arc<ProjectRevision>` — a Project-level session, not a single-unit embedding entry point, and not documented as issue #203's answer. | Still not attempted here. [`embedding_api::check_source`](../src/embedding_api.rs) is deliberately stateless (no handle, no `open`/`close`) — see "What this tranche does not do" below. |
 | Source/Project load and authenticated refresh | `SemanticWorkspaceService`/`ProjectSnapshot` do this for a full Project (multi-file, manifest-driven). No single-compilation-unit, dependency-free load entry point existed as a named public embedding surface. | [`check_source(unit_name, source)`](../src/embedding_api.rs) loads exactly one caller-supplied unit from explicit bytes; no manifest, no multi-file Project. |
 | Check | `crate::check` (crate root) and the CLI `check` command both exist, but neither is documented as a stable embedding surface, and `crate::check` silently discards non-error diagnostics on a successful check. | `check_source` is that documented surface for one unit, and deliberately keeps every diagnostic (warnings included) on success — see "Diagnostics are never discarded on success" below. |
-| Format, graph/query/context | `format::canonical`, `graph::to_json`, `graph::context_json` already exist as public functions, unchanged by this tranche. | [`format_source(unit_name, source)`](../src/embedding_api.rs) now re-exposes canonical formatting with the same panic-normalization and no-ambient-authority guarantees `check_source` has — see "The `FormatOutcome` contract" below. `graph::to_json` and `graph::context_json` remain unwrapped; still named under "What remains," not claimed done. |
+| Format, graph/query/context | `format::canonical`, `graph::to_json`, `graph::context_json` already exist as public functions, unchanged by this tranche. | [`format_source(unit_name, source)`](../src/embedding_api.rs) re-exposes canonical formatting; [`graph_source(unit_name, source)`](../src/embedding_api.rs) (this tranche) re-exposes `graph::to_json` with the same panic-normalization and no-ambient-authority guarantees — see "The `GraphOutcome` contract" below. `graph::context_json` (the bounded call-dependency query, with a `symbol`/`depth`/`AgentContextOptions` surface) remains unwrapped; still named under "What remains," not claimed done. |
 | Candidate validate/replay | `src/project/candidate/**` implements this for the Project workspace transaction path (out of this tranche's lease: `src/live_invocation/**`, `src/agent_runtime_v2/**` are explicitly off-limits). | Not attempted; out of lease. |
 | Deterministic interpreter execution for admitted profiles | `interpreter`/`hosted_interpreter` exist; no capability-gated embedding entry point wraps them. | Not attempted here. A future execution slice needs its own explicit capability type (see "What this tranche does not do"). |
 | Explicit provider/capability injection | Done, for the vector-embedding effect only, by `semantic_embedding::EmbeddingCapability`/`EmbeddingProvider` (see above). | `check_source` needs no capability because checking is pure and effect-free; this bullet is satisfied for *this* operation by construction (nothing to inject authority into), not by adding an unnecessary capability type. |
@@ -138,28 +138,66 @@ conflated with `PANIC_NORMALIZED_DIAGNOSTIC_CODE`.
 idempotency: reformatting an already-canonical unit reproduces
 byte-identical output.
 
-`graph::to_json` and `graph::context_json` are not wrapped by this tranche
-either; that remains real, named, remaining work (see "What this tranche
-deliberately does not do" below).
+`graph::context_json` is not wrapped by this tranche; that remains real,
+named, remaining work (see "What this tranche deliberately does not do"
+below).
+
+## The `GraphOutcome` contract
+
+[`GraphOutcome`](../src/embedding_api.rs) is `graph_source`'s only return
+value, shaped like `CheckOutcome`/`FormatOutcome`: `unit_name` (echoed,
+never read from disk), `ok: bool`, `diagnostics: Vec<Diagnostic>`, and
+`graph_json: Option<String>` (present exactly when `ok` is `true`).
+`graph_source` is a thin forwarding wrapper over the already-public
+`crate::graph::to_json`, not a reimplementation:
+`valid_source_graph_matches_graph_to_json_exactly` asserts its output is
+byte-identical to calling `graph::to_json` directly on the same parsed
+program, so a stub or a divergent reimplementation would fail that
+assertion. It shares `check_source`'s no-ambient-authority guarantee
+(`graph_unit_name_is_never_read_from_disk`) and panic normalization
+(`embedding_graph_boundary_normalizes_a_panic_into_a_diagnostic_never_
+propagating_the_unwind`, proven the same way — a private test-only
+`SourceGrapher` double that panics on purpose). A malformed unit fails with
+the same specific parser diagnostic `check_source`/`format_source` would
+produce (`malformed_source_fails_graph_with_the_specific_parser_
+diagnostic`), never conflated with `PANIC_NORMALIZED_DIAGNOSTIC_CODE`.
+
+**One deliberate, tested difference from `check_source`:** a successful
+`graph_source` call's `diagnostics` is always empty, even when the checked
+program has a real warning (e.g. a missing `@id`). `graph::to_json` resolves
+through `hir::resolve`, whose own success path
+(`resolved.ok_or(diagnostics)`) drops the diagnostics it collected along the
+way; `graph_source` forwards to that function rather than reimplementing
+resolution to recover them.
+`a_declaration_missing_id_still_graphs_ok_but_the_warning_is_not_carried_
+forward` locks this in on both sides at once: it asserts `check_source`
+*does* keep the `SPX-S103` warning on the same source, then asserts
+`graph_source` does not — so the two facts stay pinned together, and a
+future change to either function's discard behavior fails a test that names
+exactly which contract broke. A host that wants both the rendered graph and
+every warning must call `check_source` and `graph_source` separately on the
+same `source`.
 
 ## Compatibility policy
 
-`EMBEDDING_API_VERSION` (currently `1.1.0`; `1.0.0` before `format_source`
-was added) names this Rust surface's own version, independent of any checked
-SEMAPRAX program's semantics. `EmbeddingApiVersion::is_compatible_with(
-requested_major)` returns `true` only when `requested_major` equals this
-build's `major`; a differing major version is refused rather than silently
-assumed compatible. `version_negotiation_accepts_matching_major_and_refuses_
-a_different_one` tests both a match (`1`) and two refusals (`0` and `2`).
-Within one major version, `check_source`'s and `format_source`'s accepted
-inputs (`unit_name: &str`, `source: &str`) and `CheckOutcome`'s/
-`FormatOutcome`'s fields are additive-only: a future `1.x` may add a field
-to either outcome type or a new function alongside them, but will not
-remove or repurpose an existing field, and will not change either
-function's signature. A breaking change to any of those requires bumping
-`major` and updating `EMBEDDING_API_VERSION` in the same change. Adding
-`format_source` itself is exactly this kind of additive `1.x` change: it
-bumped `minor` from `0` to `1` and touched no existing type or function.
+`EMBEDDING_API_VERSION` (currently `1.2.0`; `1.1.0` after `format_source`
+was added, `1.0.0` before it) names this Rust surface's own version,
+independent of any checked SEMAPRAX program's semantics.
+`EmbeddingApiVersion::is_compatible_with(requested_major)` returns `true`
+only when `requested_major` equals this build's `major`; a differing major
+version is refused rather than silently assumed compatible.
+`version_negotiation_accepts_matching_major_and_refuses_a_different_one`
+tests both a match (`1`) and two refusals (`0` and `2`). Within one major
+version, `check_source`'s, `format_source`'s, and `graph_source`'s accepted
+inputs (`unit_name: &str`, `source: &str`) and their outcome types' fields
+are additive-only: a future `1.x` may add a field to an outcome type or a
+new function alongside them, but will not remove or repurpose an existing
+field, and will not change any existing function's signature. A breaking
+change to any of those requires bumping `major` and updating
+`EMBEDDING_API_VERSION` in the same change. Adding `graph_source` itself is
+exactly this kind of additive `1.x` change: a wholly new function and a new
+outcome type, touching no existing type or function's shape. It bumped
+`minor` from `1` to `2`, mirroring `format_source`'s own precedent.
 
 ## What this tranche deliberately does not do
 
@@ -195,16 +233,18 @@ convention:
 - **No candidate validate/replay.** Out of this tranche's file lease
   (`src/live_invocation/**`, `src/agent_runtime_v2/**` are explicitly
   off-limits) and out of scope for a check-only slice.
-- **No re-exposure of `graph::to_json`/`graph::context_json` through this
-  facade.** `format::canonical` is now wrapped by `format_source` (this
-  tranche); the two graph functions remain available only at their existing
-  paths, unchanged. `graph::to_json` and `graph::context_json` need HIR
-  resolution (`graph::context_json` additionally takes a symbol, depth, and
-  — via `AgentContextOptions` — filters, a byte budget, and a node budget),
-  so wrapping them with the same panic-normalization and version contract
-  is a larger, separate surface decision (what subset of those options this
-  facade exposes) than `format_source`'s single-function, no-argument
-  addition was; it is real remaining work, not claimed here.
+- **No re-exposure of `graph::context_json` through this facade.**
+  `format::canonical` is wrapped by `format_source`, and `graph::to_json` is
+  now wrapped by `graph_source` (this tranche). `graph::context_json`
+  remains available only at its existing path, unchanged: unlike
+  `graph::to_json` (`program: &Program`, no other arguments), it takes a
+  `symbol`, a `depth`, and — via `AgentContextOptions` (the CLI's actual
+  entry points are `graph::agent_context_json`/`agent_context_v2_json`, not
+  the plainer two-argument form) — filters, a byte budget, and a node
+  budget. Choosing which subset of that options surface an embedding facade
+  exposes is a design decision, not a mechanical extension of
+  `check_source`/`format_source`/`graph_source`'s no-argument shape, and is
+  not made here. It is real remaining work, not claimed done.
 
 ## Evidence
 
@@ -221,6 +261,17 @@ reformatting that output is idempotent; a program missing `@id` still
 formats `ok` (formatting needs no HIR validity); a module with no function
 fails formatting with the same `SPX-P101`; a `unit_name` naming a
 nonexistent path still succeeds; and a deliberately panicking test double is
-normalized to `SPX-EMB001` rather than unwinding. No test in this module
-spawns a process, opens a network socket, or reads a real file from disk.
-See the top-level report for this tranche's exact command and count.
+normalized to `SPX-EMB001` rather than unwinding — plus, for `graph_source`
+(this tranche): a valid program's graph is byte-identical to calling
+`graph::to_json` directly on the same parsed program; a module with no
+function fails with the same `SPX-P101`; a `unit_name` naming a nonexistent
+path still succeeds; a deliberately panicking test double is normalized to
+`SPX-EMB001` rather than unwinding; and a program missing `@id` still
+renders `ok` with an empty `diagnostics` (proven alongside `check_source`
+keeping that same warning on the same source, pinning the documented
+contrast between the two functions). No test in this module spawns a
+process, opens a network socket, or reads a real file from disk.
+
+`cargo test --locked -p semaprax --lib embedding_api::tests` →
+**16 passed, 0 failed** (11 pre-existing + 5 new for `graph_source`). See
+the top-level report for this tranche's exact command and count.

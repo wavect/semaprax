@@ -367,7 +367,11 @@ fn value_json(value: &SurfaceValue) -> Value {
     })
 }
 
-fn instance_json(facts: &InstanceFacts) -> Value {
+/// Render one instance's complete grammar facts as canonical JSON. Shared
+/// with [`crate::project::candidate`]'s boundary-profile binding so a
+/// classifier-admitted subject's input/result instances render identically
+/// to a plain candidate surface's own reachable instances.
+pub(crate) fn instance_json(facts: &InstanceFacts) -> Value {
     json!({
         "term": facts.term,
         "term_digest": facts.term_digest,

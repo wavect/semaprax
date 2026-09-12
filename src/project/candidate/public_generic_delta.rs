@@ -23,7 +23,32 @@
 //! an exclusion carrying the grammar's own closed reason, and an all-excluded
 //! delta is a complete, valid report. Turning it into an error would make the
 //! route unusable exactly where it has to be usable, and would hide the fact
-//! that no public generic surface exists yet.
+//! that no *manifest-selected* public generic surface exists yet.
+//!
+//! *Boundary-profile subjects are a second, explicit selection.* No Project
+//! manifest profile admits a genuinely generic `web_exports` entry: every
+//! profile's own admission eagerly lowers each declared export, and every
+//! lowering route refuses a type with instantiated arguments (see
+//! `NestedOwnedRecordApiV1`'s "result must be monomorphic" check and its
+//! siblings). A real [Public Generic Boundary Profile
+//! v1](../../../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)-admitted export
+//! can still exist in the exact same checked programme, reachable from the
+//! entry closure without ever being a declared `web_export` - exactly the
+//! shape [`crate::public_generic_abi::classifier`] was built to classify.
+//! [`ProjectCandidate::public_generic_delta_with_boundary_subjects`] accepts
+//! an explicit, caller-named set of such persistent identities, in addition
+//! to the manifest's own `web_exports`/`command` basis: each named subject is
+//! (a) added to the described surface used by the PG-3 comparison above, so a
+//! real template, ordered arguments, and substituted owned fields appear in
+//! `facts.comparison` exactly as they would for any other described export,
+//! and (b) independently classified under the Boundary Profile and, when
+//! admitted, described by a real [`descriptor_producer::generate_public_generic_descriptor`]
+//! call bound into the new `facts.boundary_profile` section. Naming a subject
+//! here still admits nothing: it is read entirely from the same immutable
+//! checked revision, grants no Project profile or `web_exports` membership,
+//! and the manifest's own admission is completely unaffected by it.
+//! [`ProjectCandidate::public_generic_delta`] is the zero-subject case of the
+//! same route, preserved byte-for-byte for every existing caller.
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -33,6 +58,9 @@ use serde_json::{json, Value};
 use super::{wire, ProjectCandidate};
 use crate::diagnostic::Diagnostic;
 use crate::project::ProjectRevision;
+use crate::public_generic_abi::classifier;
+use crate::public_generic_abi::descriptor::producer as descriptor_producer;
+use crate::public_generic_abi::descriptor::DESCRIPTOR_SCHEMA;
 use crate::public_generic_surface::{self as surface, CandidateSurface, Finding, Reason, Verdict};
 use crate::public_generic_type::{self as grammar, TypeInventory};
 
@@ -51,6 +79,10 @@ pub const MAX_PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_BYTES: usize = 4 * 1024 * 1
 const MAX_FACT_BYTES: usize = 8 * 1024 * 1024;
 const MAX_FACTS: usize = 4_096;
 const MAX_VISITS: usize = 65_536;
+/// Caller-named boundary-profile subjects per call. Small and explicit: this
+/// is never an automatic scan of every declaration in the programme, only
+/// the exact identities the caller names.
+const MAX_BOUNDARY_SUBJECTS: usize = 16;
 
 const FACT_DOMAIN: &[u8] = b"semaprax.candidate-public-generic-delta.facts.v1\0";
 const REPORT_DOMAIN: &[u8] = b"semaprax.candidate-public-generic-delta.report.v1\0";
@@ -110,6 +142,9 @@ struct Side {
     described: Vec<String>,
     exclusions: Vec<Value>,
     surface: Option<CandidateSurface>,
+    /// One row per requested boundary-profile subject, in the same
+    /// normalized (sorted, deduplicated) order for every side.
+    boundary: Vec<Value>,
 }
 
 impl ProjectCandidate {
@@ -126,10 +161,34 @@ impl ProjectCandidate {
     /// signature, and no version, support, or publication decision follows
     /// from it.
     pub fn public_generic_delta(&self, expected_candidate: &str) -> Result<String> {
+        self.public_generic_delta_with_boundary_subjects(expected_candidate, &[])
+    }
+
+    /// The same candidate-bound public generic surface delta as
+    /// [`Self::public_generic_delta`], additionally selecting `boundary_subjects`
+    /// (persistent function identities named explicitly by the caller, never
+    /// discovered by scanning the programme) into the described surface used
+    /// by the PG-3 comparison, and independently classifying each one under
+    /// [Public Generic Boundary Profile
+    /// v1](../../../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md).
+    ///
+    /// A subject need not be a manifest `web_export`: it is read from the
+    /// exact immutable revision's entry closure, exactly like any other
+    /// checked declaration. Naming it here changes nothing about what the
+    /// Project manifest admits; see the module documentation for why no
+    /// existing profile can carry a genuinely generic `web_export` today.
+    /// An empty `boundary_subjects` renders byte-identical to
+    /// [`Self::public_generic_delta`].
+    pub fn public_generic_delta_with_boundary_subjects(
+        &self,
+        expected_candidate: &str,
+        boundary_subjects: &[String],
+    ) -> Result<String> {
         self.require_candidate(expected_candidate)?;
+        let boundary_subjects = normalized_boundary_subjects(boundary_subjects)?;
         let mut budget = Budget::default();
-        let before = side(&self.base, &mut budget)?;
-        let after = side(&self.revision, &mut budget)?;
+        let before = side(&self.base, &boundary_subjects, &mut budget)?;
+        let after = side(&self.revision, &boundary_subjects, &mut budget)?;
 
         let (basis, verdict, findings, comparison) = classify(&before, &after, &mut budget)?;
         let facts = json!({
@@ -147,6 +206,13 @@ impl ProjectCandidate {
                 "base_surface_digest": digest_of(&before),
                 "candidate_surface_digest": digest_of(&after),
                 "public_generic_compatibility_v1": comparison,
+            },
+            "boundary_profile": {
+                "schema": classifier::BOUNDARY_PROFILE_SCHEMA,
+                "descriptor_schema": DESCRIPTOR_SCHEMA,
+                "requested": boundary_subjects,
+                "base": before.boundary,
+                "candidate": after.boundary,
             },
         });
         budget.fact(&facts)?;
@@ -219,6 +285,22 @@ impl ProjectCandidate {
         expected_candidate: &str,
         bytes: &[u8],
     ) -> Result<String> {
+        self.verify_public_generic_delta_with_boundary_subjects(expected_candidate, bytes, &[])
+    }
+
+    /// The same independent byte-exact replay as [`Self::verify_public_generic_delta`],
+    /// against a report rendered by
+    /// [`Self::public_generic_delta_with_boundary_subjects`] with this exact
+    /// `boundary_subjects`. The replayed candidate is rebuilt from the
+    /// retained base and typed change history, exactly as the zero-subject
+    /// route is; submitted `bytes` still carry no authority and are never
+    /// read as source, HIR, a surface, or a verdict.
+    pub fn verify_public_generic_delta_with_boundary_subjects(
+        &self,
+        expected_candidate: &str,
+        bytes: &[u8],
+        boundary_subjects: &[String],
+    ) -> Result<String> {
         self.require_candidate(expected_candidate)?;
         if bytes.len() > MAX_PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_BYTES {
             return Err(capacity());
@@ -229,7 +311,11 @@ impl ProjectCandidate {
             &self.changes,
             self.to_json().as_bytes(),
         )?;
-        if replay.public_generic_delta(expected_candidate)?.as_bytes() != bytes {
+        if replay
+            .public_generic_delta_with_boundary_subjects(expected_candidate, boundary_subjects)?
+            .as_bytes()
+            != bytes
+        {
             return Err(verification());
         }
         wire::render(
@@ -292,7 +378,11 @@ fn instances_of(side: &Side) -> usize {
 /// inventory records a repeated declaration identity on insert, so an
 /// ambiguous nominal is an `ambiguous_declaration` exclusion rather than a
 /// silent first match.
-fn side(revision: &ProjectRevision, budget: &mut Budget) -> Result<Side> {
+fn side(
+    revision: &ProjectRevision,
+    boundary_subjects: &[String],
+    budget: &mut Budget,
+) -> Result<Side> {
     let modules = revision.semantic.image_modules();
     let mut inventory = TypeInventory::new();
     for module in modules {
@@ -322,6 +412,9 @@ fn side(revision: &ProjectRevision, budget: &mut Budget) -> Result<Side> {
     if let Some(command) = revision.manifest().command() {
         selected.insert(command.to_owned());
     }
+    for subject in boundary_subjects {
+        selected.insert(subject.clone());
+    }
     let selected = selected.into_iter().collect::<Vec<_>>();
     if selected.len() > surface::MAX_SELECTED_EXPORTS {
         return Err(capacity());
@@ -349,12 +442,94 @@ fn side(revision: &ProjectRevision, budget: &mut Budget) -> Result<Side> {
                 .map_err(surface_failure)?,
         )
     };
+    let boundary = boundary_admission(revision, boundary_subjects, budget)?;
     Ok(Side {
         selected,
         described,
         exclusions,
         surface,
+        boundary,
     })
+}
+
+/// Independently classify every requested boundary-profile subject against
+/// this exact revision's entry closure under [Public Generic Boundary
+/// Profile v1](../../../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md), and
+/// generate a real descriptor for each admitted one.
+///
+/// This is a second, explicit classification independent of the plain
+/// grammar description above: a subject can be `described` above (the
+/// grammar can spell its signature) without being boundary-profile admitted
+/// (for example, two owned parameters instead of exactly one), and the
+/// reverse can never happen because the profile's admitted shape is a
+/// concrete record instance in every position, which the grammar always
+/// spells. Refusal is recorded as a closed reason, never a route failure -
+/// the same design this module's plain exclusions already use.
+fn boundary_admission(
+    revision: &ProjectRevision,
+    boundary_subjects: &[String],
+    budget: &mut Budget,
+) -> Result<Vec<Value>> {
+    let program = revision.entry_program();
+    let mut rows = Vec::with_capacity(boundary_subjects.len());
+    for subject in boundary_subjects {
+        budget.visit()?;
+        let row = match classifier::classify(program, subject) {
+            Ok(admitted) => {
+                let generated = descriptor_producer::generate_public_generic_descriptor(
+                    program,
+                    revision.workspace_revision(),
+                    subject,
+                )
+                .map_err(|_| invalid())?;
+                json!({
+                    "subject": subject,
+                    "admitted": true,
+                    "reason": Value::Null,
+                    "export_name": admitted.export_name(),
+                    "subject_digest": admitted.digest(),
+                    "descriptor_digest": generated.descriptor_digest(),
+                    "cleanup_inventory_digest": generated.cleanup_inventory_digest(),
+                    "cleanup_plan_digest": generated.cleanup_plan_digest(),
+                    "settlement_obligations_digest": generated.settlement_obligations_digest(),
+                    "input": surface::instance_json(admitted.input()),
+                    "result": surface::instance_json(admitted.result()),
+                })
+            }
+            Err(refusal) => json!({
+                "subject": subject,
+                "admitted": false,
+                "reason": refusal.reason(),
+                "export_name": Value::Null,
+                "subject_digest": Value::Null,
+                "descriptor_digest": Value::Null,
+                "cleanup_inventory_digest": Value::Null,
+                "cleanup_plan_digest": Value::Null,
+                "settlement_obligations_digest": Value::Null,
+                "input": Value::Null,
+                "result": Value::Null,
+            }),
+        };
+        budget.fact(&row)?;
+        rows.push(row);
+    }
+    Ok(rows)
+}
+
+/// Sort, deduplicate, and bound-check the caller-named boundary subjects.
+/// The same normalized set is used for base and candidate, so the two
+/// `boundary_profile` rows are always in the same order and directly
+/// comparable position by position.
+fn normalized_boundary_subjects(subjects: &[String]) -> Result<Vec<String>> {
+    if subjects.len() > MAX_BOUNDARY_SUBJECTS {
+        return Err(capacity());
+    }
+    Ok(subjects
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect())
 }
 
 /// The first position of one selected export that the grammar cannot spell, in

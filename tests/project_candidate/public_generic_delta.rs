@@ -18,6 +18,20 @@
 //! that puts a record instance into a public signature. It is where ordered
 //! arguments, substituted fields, owned leaves, and a breaking field change
 //! are actually exercised.
+//!
+//! `BoundaryFixture` is issue #139's own addition. No Project manifest
+//! profile admits a genuinely generic `web_export` (every profile's own
+//! admission lowers each declared export, and every lowering route refuses
+//! an instantiated argument), so `pgb.roundtrip` - `fn(own Pair<Leaf, i64>)
+//! -> Pair<Leaf, i64>`, exactly [Public Generic Boundary Profile
+//! v1](../../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)'s admitted shape -
+//! is reachable from the entry closure (`main` calls it) without ever being
+//! a `web_export`. `pgb.evaluate` (`fn(borrow Slice<u8>) -> i64`) is the
+//! fixture's one actual `web_export`, so the project opens under the same
+//! `owned-data-api.v1` admission `GenericFixture` already uses. Naming
+//! `pgb.roundtrip` as a boundary subject is what finally exercises real
+//! template identity, ordered arguments, and substituted owned fields on a
+//! genuinely admitted generic export, alongside a real descriptor digest.
 
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
@@ -124,6 +138,99 @@ tests = ["pgr.tests"]
         Self(root)
     }
 
+    /// A genuinely [Public Generic Boundary Profile
+    /// v1](../../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)-admitted export,
+    /// `pgb.roundtrip`, reachable from `main` but never a `web_export`. The
+    /// one declared `web_export`, `pgb.evaluate`, is unrelated scalar shape
+    /// so the project opens under the ordinary `owned-data-api.v1` admission.
+    fn boundary() -> Self {
+        let root = root("boundary");
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        Self::write(
+            &root,
+            r#"schema = "semaprax.project.v8"
+name = "public-generic-delta-boundary"
+version = "1.0.0"
+profile = "owned-data-api.v1"
+entry = "pgb.app"
+sources = ["src/app.spx", "src/tests.spx", "src/types.spx"]
+web_exports = ["pgb.evaluate"]
+tests = ["pgb.tests"]
+"#,
+            &[
+                (
+                    "src/types.spx",
+                    r#"module pgb.types;
+
+@id("pgb.leaf")
+record Leaf {
+    @id("pgb.leaf.head")
+    head: Bytes,
+}
+
+@id("pgb.pair")
+record Pair<T, U> {
+    @id("pgb.pair.left")
+    left: T,
+    @id("pgb.pair.right")
+    right: U,
+}
+
+@id("pgb.types.marker")
+fn type_marker() -> i64 { 0 }
+"#,
+                ),
+                (
+                    "src/app.spx",
+                    r#"module pgb.app;
+use type @id("pgb.pair") from pgb.types as Pair;
+use type @id("pgb.leaf") from pgb.types as Leaf;
+
+@id("pgb.build")
+fn build() -> Pair<Leaf, i64> {
+    let seed = [9u8];
+    Pair<Leaf, i64> {
+        left: Leaf { head: bytes_copy(array_as_slice(seed)) },
+        right: 5,
+    }
+}
+
+@id("pgb.roundtrip")
+fn roundtrip(value: own Pair<Leaf, i64>) -> Pair<Leaf, i64> { value }
+
+@id("pgb.consume")
+fn consume(value: own Pair<Leaf, i64>) -> i64 {
+    match own value {
+        Pair { left: Leaf { head: _head }, right: count } => count,
+    }
+}
+
+@id("pgb.evaluate")
+fn evaluate(input: borrow Slice<u8>) -> i64 {
+    if byte_len(input) > 0usize { 1 } else { 0 }
+}
+
+@id("pgb.app.main")
+fn main() -> i64 { consume(roundtrip(build())) }
+"#,
+                ),
+                (
+                    "src/tests.spx",
+                    r#"module pgb.tests;
+use function @id("pgb.evaluate") from pgb.app as evaluate;
+
+@id("pgb.tests.main")
+fn main() -> i64 {
+    let input = [1u8];
+    if evaluate(array_as_slice(input)) == 1 { 0 } else { 1 }
+}
+"#,
+                ),
+            ],
+        );
+        Self(root)
+    }
+
     fn write(root: &std::path::Path, manifest: &str, sources: &[(&str, &str)]) {
         std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
         for (path, source) in sources {
@@ -157,6 +264,16 @@ fn apply(base: &ProjectCandidate, intent: Value) -> ProjectCandidate {
 fn delta(candidate: &ProjectCandidate) -> (String, Value) {
     let bytes = candidate
         .public_generic_delta(candidate.candidate_digest())
+        .unwrap();
+    let value = serde_json::from_str(&bytes).unwrap();
+    (bytes, value)
+}
+
+/// [`semaprax::project::ProjectCandidate::public_generic_delta_with_boundary_subjects`],
+/// naming `subjects` as caller-explicit boundary-profile subjects.
+fn delta_boundary(candidate: &ProjectCandidate, subjects: &[String]) -> (String, Value) {
+    let bytes = candidate
+        .public_generic_delta_with_boundary_subjects(candidate.candidate_digest(), subjects)
         .unwrap();
     let value = serde_json::from_str(&bytes).unwrap();
     (bytes, value)
@@ -624,5 +741,355 @@ fn independent_replay_rejects_mutation_truncation_reordering_and_another_candida
             &vec![b' '; MAX_PROJECT_CANDIDATE_PUBLIC_GENERIC_DELTA_BYTES + 1],
         ),
         "SPX-PG302",
+    );
+}
+
+/// A genuinely [Public Generic Boundary Profile
+/// v1](../../docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md)-admitted export -
+/// `pgb.roundtrip`, `fn(own Pair<Leaf, i64>) -> Pair<Leaf, i64>`, reachable
+/// from `main` but never a `web_export` - drives real template identity,
+/// ordered arguments, and substituted owned fields once named as a boundary
+/// subject, and binds a real descriptor digest distinct from its surface
+/// digest.
+#[test]
+fn a_genuinely_admitted_generic_export_drives_real_template_identity_and_a_descriptor() {
+    let fixture = Fixture::boundary();
+    let candidate = fixture.candidate();
+    let subjects = vec!["pgb.roundtrip".to_owned()];
+    let (bytes, value) = delta_boundary(&candidate, &subjects);
+
+    assert_eq!(
+        value["facts"]["selection"]["base"],
+        json!(["pgb.evaluate", "pgb.roundtrip"])
+    );
+    // `pgb.evaluate`'s own top-level borrowed byte view is excluded exactly
+    // like `GenericFixture`'s export; only the named boundary subject is
+    // described here.
+    assert_eq!(
+        value["facts"]["base"]["described"],
+        json!(["pgb.roundtrip"])
+    );
+    assert_eq!(
+        value["facts"]["base"]["excluded"],
+        json!([{
+            "export": "pgb.evaluate",
+            "position": "parameter#0",
+            "reason": "borrowed_byte_view",
+        }])
+    );
+    let instances = value["facts"]["base"]["surface"]["instances"]
+        .as_object()
+        .unwrap();
+    // `Pair<Leaf, i64>` itself, plus `Leaf` as its own reachable instance.
+    assert_eq!(instances.len(), 2);
+    let pair = instances
+        .values()
+        .find(|instance| instance["template"]["declaration"] == "pgb.pair")
+        .expect("Pair<Leaf, i64> is reachable from pgb.roundtrip's signature");
+    assert_eq!(pair["template"]["arity"], 2);
+    let arguments = pair["arguments"].as_array().unwrap();
+    assert_eq!(arguments.len(), 2);
+    assert_eq!(arguments[0]["index"], 0);
+    assert_eq!(arguments[1]["index"], 1);
+    assert_eq!(arguments[1]["term"], "i64");
+    let leaf = instances
+        .values()
+        .find(|instance| instance["template"]["declaration"] == "pgb.leaf")
+        .expect("Leaf is independently reachable as its own instance");
+    assert_eq!(leaf["template"]["arity"], 0);
+    let owned_leaves = leaf["owned_leaves"].as_array().unwrap();
+    assert_eq!(
+        owned_leaves.len(),
+        1,
+        "the transitive Bytes leaf is retained"
+    );
+    assert!(owned_leaves[0].as_str().unwrap().ends_with("pgb.leaf.head"));
+
+    // Unchanged base/candidate: one real described surface, no findings.
+    let comparison = &value["facts"]["comparison"];
+    assert_eq!(comparison["verdict"], "unchanged");
+    assert!(comparison["findings"].as_array().unwrap().is_empty());
+    assert_eq!(
+        comparison["base_surface_digest"],
+        comparison["candidate_surface_digest"]
+    );
+
+    // The boundary-profile section independently classifies the exact same
+    // subject and binds a real descriptor identity, distinct from the
+    // surface digest above.
+    let boundary = &value["facts"]["boundary_profile"];
+    assert_eq!(
+        boundary["schema"],
+        "semaprax.public-generic-boundary-profile.v1"
+    );
+    assert_eq!(
+        boundary["descriptor_schema"],
+        "semaprax.public-generic-descriptor.v1"
+    );
+    assert_eq!(boundary["requested"], json!(["pgb.roundtrip"]));
+    for side in ["base", "candidate"] {
+        let row = &boundary[side][0];
+        assert_eq!(row["subject"], "pgb.roundtrip");
+        assert_eq!(row["admitted"], true, "{side}");
+        assert_eq!(row["reason"], Value::Null, "{side}");
+        assert_eq!(row["export_name"], "roundtrip", "{side}");
+        assert!(row["subject_digest"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:"));
+        assert!(row["descriptor_digest"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:"));
+        assert_ne!(
+            row["subject_digest"], row["descriptor_digest"],
+            "the classification subject digest and the wire descriptor digest are two distinct bindings"
+        );
+        for key in [
+            "cleanup_inventory_digest",
+            "cleanup_plan_digest",
+            "settlement_obligations_digest",
+        ] {
+            assert!(
+                row[key].as_str().unwrap().starts_with("sha256:"),
+                "{side}.{key}"
+            );
+        }
+    }
+    assert_eq!(
+        boundary["base"][0]["subject_digest"], boundary["candidate"][0]["subject_digest"],
+        "an unchanged candidate reclassifies to the exact same admitted subject"
+    );
+    assert_eq!(
+        boundary["base"][0]["descriptor_digest"],
+        boundary["candidate"][0]["descriptor_digest"]
+    );
+
+    candidate
+        .verify_public_generic_delta_with_boundary_subjects(
+            candidate.candidate_digest(),
+            bytes.as_bytes(),
+            &subjects,
+        )
+        .unwrap();
+}
+
+/// Naming zero boundary subjects renders byte-for-byte identical to the
+/// plain zero-argument route: every existing caller of
+/// [`semaprax::project::ProjectCandidate::public_generic_delta`] is
+/// unaffected by this route's existence.
+#[test]
+fn zero_boundary_subjects_is_byte_identical_to_the_plain_route() {
+    let fixture = Fixture::scalar();
+    let candidate = fixture.candidate();
+    let (plain, _) = delta(&candidate);
+    let (widened, _) = delta_boundary(&candidate, &[]);
+    assert_eq!(plain, widened);
+}
+
+/// A subject the grammar can spell but the Boundary Profile refuses (an
+/// owned record input with a scalar, non-record result) is `described` in
+/// the plain surface - the finding-and-argument machinery above does not
+/// require boundary admission - while the boundary-profile section reports
+/// it unadmitted with its exact closed reason and no descriptor identity.
+/// Grammar description and boundary-profile admission are two independent
+/// classifications, and neither can promote the other's verdict.
+#[test]
+fn a_grammar_describable_non_admitted_subject_is_excluded_from_the_boundary_profile_only() {
+    let fixture = Fixture::boundary();
+    let candidate = fixture.candidate();
+    let subjects = vec!["pgb.consume".to_owned()];
+    let (_, value) = delta_boundary(&candidate, &subjects);
+
+    assert!(value["facts"]["base"]["described"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|export| export == "pgb.consume"));
+
+    let boundary = &value["facts"]["boundary_profile"];
+    for side in ["base", "candidate"] {
+        let row = &boundary[side][0];
+        assert_eq!(row["subject"], "pgb.consume", "{side}");
+        assert_eq!(row["admitted"], false, "{side}");
+        assert_eq!(row["reason"], "unsupported_result_shape", "{side}");
+        assert_eq!(row["descriptor_digest"], Value::Null, "{side}");
+        assert_eq!(row["subject_digest"], Value::Null, "{side}");
+    }
+}
+
+/// A boundary subject naming no declaration at all is refused by both
+/// classifications with their own respective closed reasons - neither
+/// silently admits nor silently describes it.
+#[test]
+fn an_unknown_boundary_subject_is_refused_by_both_classifications() {
+    let fixture = Fixture::boundary();
+    let candidate = fixture.candidate();
+    let subjects = vec!["pgb.does.not.exist".to_owned()];
+    let (_, value) = delta_boundary(&candidate, &subjects);
+
+    let base = &value["facts"]["base"];
+    assert!(!base["described"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|export| export == "pgb.does.not.exist"));
+    // `pgb.evaluate`'s own top-level borrowed byte view is excluded exactly
+    // as it is in every other fixture; the unknown subject is excluded
+    // alongside it, never silently dropped from the report.
+    assert_eq!(
+        base["excluded"],
+        json!([
+            {
+                "export": "pgb.does.not.exist",
+                "position": "selection",
+                "reason": "not_a_candidate_export",
+            },
+            {
+                "export": "pgb.evaluate",
+                "position": "parameter#0",
+                "reason": "borrowed_byte_view",
+            },
+        ])
+    );
+    let row = &value["facts"]["boundary_profile"]["base"][0];
+    assert_eq!(row["admitted"], false);
+    assert_eq!(row["reason"], "export_not_found");
+}
+
+/// A field added to `Leaf` - reachable one level inside `Pair<Leaf, i64>` -
+/// is breaking, and PG-3's fix for issue #161 (recursive comparison of
+/// substituted arguments) reports the finding on the exact reachable
+/// instance that changed. The boundary-profile subject is still admitted
+/// either side: adding an unrelated Copy field never moves the export out of
+/// the profile's owned-record-in/owned-record-out shape.
+#[test]
+fn a_nested_reachable_field_addition_is_breaking_on_the_real_generic_export() {
+    let fixture = Fixture::boundary();
+    let base = fixture.candidate();
+    let subjects = vec!["pgb.roundtrip".to_owned()];
+    let candidate = apply(
+        &base,
+        json!({"kind":"add_record_field","target":"pgb.leaf","field":{"id":"pgb.leaf.tag","name":"tag","type":"bool","default":{"kind":"bool","value":false}}}),
+    );
+    let (bytes, value) = delta_boundary(&candidate, &subjects);
+
+    let comparison = &value["facts"]["comparison"];
+    assert_eq!(comparison["verdict"], "breaking");
+    let findings = comparison["findings"].as_array().unwrap();
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0]["reason"], "instance_fields_changed");
+    assert!(
+        findings[0]["subject"]
+            .as_str()
+            .unwrap()
+            .contains("pgb.leaf"),
+        "the finding lands on Leaf, the record that actually changed: {findings:?}"
+    );
+    assert_ne!(
+        comparison["base_surface_digest"],
+        comparison["candidate_surface_digest"]
+    );
+
+    // The subject is still boundary-profile admitted on both sides: an
+    // added Copy-scalar field never moves it out of the v1 shape.
+    for side in ["base", "candidate"] {
+        assert_eq!(
+            value["facts"]["boundary_profile"][side][0]["admitted"], true,
+            "{side}"
+        );
+    }
+
+    candidate
+        .verify_public_generic_delta_with_boundary_subjects(
+            candidate.candidate_digest(),
+            bytes.as_bytes(),
+            &subjects,
+        )
+        .unwrap();
+}
+
+/// Independent replay compares the whole report, so a single mutated byte
+/// inside `boundary_profile`'s own `descriptor_digest` field is exactly as
+/// load-bearing as any other byte: it is not decorative, unread evidence.
+#[test]
+fn a_mutated_descriptor_digest_fails_independent_replay() {
+    let fixture = Fixture::boundary();
+    let candidate = fixture.candidate();
+    let subjects = vec!["pgb.roundtrip".to_owned()];
+    let (bytes, _) = delta_boundary(&candidate, &subjects);
+
+    let mut tampered: Value = serde_json::from_str(&bytes).unwrap();
+    let digest = tampered["facts"]["boundary_profile"]["candidate"][0]["descriptor_digest"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(digest.starts_with("sha256:"));
+    let mut flipped = digest.into_bytes();
+    let last = flipped.len() - 1;
+    flipped[last] = if flipped[last] == b'0' { b'1' } else { b'0' };
+    tampered["facts"]["boundary_profile"]["candidate"][0]["descriptor_digest"] =
+        json!(String::from_utf8(flipped).unwrap());
+    let tampered_bytes = format!("{tampered}\n");
+    assert_ne!(tampered_bytes.as_bytes(), bytes.as_bytes());
+
+    code(
+        candidate.verify_public_generic_delta_with_boundary_subjects(
+            candidate.candidate_digest(),
+            tampered_bytes.as_bytes(),
+            &subjects,
+        ),
+        "SPX-PG303",
+    );
+}
+
+/// Recovery and stale-selector refusal hold identically once boundary
+/// subjects are threaded through: a candidate restored from its recovery
+/// capsule recomputes byte-identical bytes for the exact same subjects, and
+/// a report computed against one revision is refused - not silently
+/// re-targeted - against a candidate that has drifted from it.
+#[test]
+fn recovery_is_byte_identical_and_a_drifted_candidate_is_refused_with_boundary_subjects() {
+    let fixture = Fixture::boundary();
+    let base = fixture.candidate();
+    let subjects = vec!["pgb.roundtrip".to_owned()];
+    let candidate = apply(
+        &base,
+        json!({"kind":"add_record_field","target":"pgb.leaf","field":{"id":"pgb.leaf.tag","name":"tag","type":"bool","default":{"kind":"bool","value":false}}}),
+    );
+    let (bytes, _) = delta_boundary(&candidate, &subjects);
+
+    let restored = ProjectCandidate::restore(
+        Arc::clone(candidate.base_revision()),
+        candidate.base_revision().project_revision(),
+        candidate.recovery_capsule().unwrap().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(
+        restored
+            .public_generic_delta_with_boundary_subjects(restored.candidate_digest(), &subjects)
+            .unwrap(),
+        bytes
+    );
+    restored
+        .verify_public_generic_delta_with_boundary_subjects(
+            restored.candidate_digest(),
+            bytes.as_bytes(),
+            &subjects,
+        )
+        .unwrap();
+
+    // The pre-mutation base's own delta bytes do not satisfy the mutated
+    // candidate's independent replay: a delta computed against one revision
+    // refuses a drifted one rather than silently re-targeting.
+    let (base_bytes, _) = delta_boundary(&base, &subjects);
+    assert_ne!(base_bytes, bytes);
+    code(
+        candidate.verify_public_generic_delta_with_boundary_subjects(
+            candidate.candidate_digest(),
+            base_bytes.as_bytes(),
+            &subjects,
+        ),
+        "SPX-PG303",
     );
 }

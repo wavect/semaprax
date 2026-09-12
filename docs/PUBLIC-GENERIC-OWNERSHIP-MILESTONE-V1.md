@@ -101,16 +101,32 @@ than by advancing the row.
   versioned descriptor and carrier that do not exist, and hostile replay of
   descriptor bytes cannot be evidenced before there are descriptor bytes. Both
   gates therefore stay `Open`.
-- **PG-4 — route implemented; today it describes nothing generic, by
-  construction.** [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md)
+- **PG-4 — route implemented, and it now describes a genuine generic export
+  when one is named explicitly (issue #139).**
+  [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md)
   is candidate-bound and grammar-strict: an export is *described* only when the
   grammar spells every parameter and the result, so an entry in the delta is
-  exactly a candidate public generic signature and nothing looser. Since no
-  admitted export has one, the milestone's own generic fixture comes out
-  all-excluded — and the gate asserts that its rendered bytes carry no template
+  exactly a candidate public generic signature and nothing looser.
+
+  The manifest-profile route still describes nothing generic, and that is a
+  structural fact rather than a defect: every Project profile's admission
+  eagerly lowers each declared export, and nested-owned-record derivation
+  refuses any nominal with non-empty arguments outright, so no manifest profile
+  can carry a generic `web_export` at all. The milestone's own generic fixture
+  therefore still comes out all-excluded — and the gate asserts that its rendered bytes carry no template
   identity, no instance term, no record identity, and not even the grammar's
-  instance sigil. The substantive evidence rides on a Project v9
-  record-returning export, where a real `add_record_field` change is classified
+  instance sigil.
+
+  What changed is that the classifier and descriptor producer work directly
+  over the resolved program rather than over a manifest profile, so a function
+  reachable from the entry closure can satisfy Boundary Profile v1 without ever
+  being a `web_export`. `public_generic_delta_with_boundary_subjects` takes
+  such subjects explicitly from the caller — never auto-scanned — merges them
+  into the compared set, classifies each independently, and binds a real
+  descriptor digest into a `facts.boundary_profile` section. The zero-subject
+  call is the same route and is proven byte-identical to the original, so no
+  existing report moved. The substantive record evidence still rides on a
+  Project v9 record-returning export, where a real `add_record_field` change is classified
   `breaking` with the finding on the record that changed, with ordered
   arguments, substituted fields, and owned leaves retained across mutation,
   recovery, and byte-exact independent replay.

@@ -47,14 +47,16 @@ fn source_with_independent_comparisons(count: usize) -> String {
 /// The cleanup-replay path budget is already enforced while resolving to HIR
 /// (`hir::resolve`), not only in the later independent `hir::validate` replay,
 /// so this reports whichever stage rejects the source first.
-fn validate_source(source: &str) -> Result<(), semaprax::diagnostic::Diagnostic> {
+fn validate_source(source: &str) -> Result<(), Box<semaprax::diagnostic::Diagnostic>> {
     let program = semaprax::parse(source, "kernel-boundary.spx").expect("source must parse");
     let resolved = hir::resolve(&program).map_err(|mut diagnostics| {
-        diagnostics
-            .pop()
-            .expect("resolve error path always carries at least one diagnostic")
+        Box::new(
+            diagnostics
+                .pop()
+                .expect("resolve error path always carries at least one diagnostic"),
+        )
     })?;
-    hir::validate(&resolved)
+    hir::validate(&resolved).map_err(Box::new)
 }
 
 #[test]

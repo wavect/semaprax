@@ -65,7 +65,8 @@ fn root() -> std::path::PathBuf {
 }
 
 fn ci_workflow() -> String {
-    fs::read_to_string(root().join(".github/workflows/ci.yml")).expect("read the pinned CI workflow")
+    fs::read_to_string(root().join(".github/workflows/ci.yml"))
+        .expect("read the pinned CI workflow")
 }
 
 /// One row: the harness/module identity, the file(s) that must contain a

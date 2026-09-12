@@ -568,7 +568,11 @@ mod hidden_tests {
     }
 }
 ";
-    std::fs::write(public.join("main.rs"), format!("{naive_impl}{public_tests}")).unwrap();
+    std::fs::write(
+        public.join("main.rs"),
+        format!("{naive_impl}{public_tests}"),
+    )
+    .unwrap();
     std::fs::write(
         hidden.join("main.rs"),
         format!("{naive_impl}{public_tests}{hidden_tests}"),
@@ -820,10 +824,8 @@ fn the_zero_adapter_stays_reserved_and_consistent_with_its_pinned_revision() {
     let reason = zero["blocked_reason"].as_str().unwrap();
 
     let manifest: Value = serde_json::from_str(
-        &std::fs::read_to_string(
-            root().join("benchmarks/agent-task-comparison-v1/manifest.json"),
-        )
-        .unwrap(),
+        &std::fs::read_to_string(root().join("benchmarks/agent-task-comparison-v1/manifest.json"))
+            .unwrap(),
     )
     .unwrap();
     let pinned_subject = manifest["lanes"]
@@ -835,7 +837,9 @@ fn the_zero_adapter_stays_reserved_and_consistent_with_its_pinned_revision() {
                 .as_str()
                 .filter(|subject| subject.starts_with("vercel-labs/zerolang@"))
         })
-        .expect("agent-task-comparison-v1/manifest.json must still pin a vercel-labs/zerolang revision");
+        .expect(
+            "agent-task-comparison-v1/manifest.json must still pin a vercel-labs/zerolang revision",
+        );
     assert!(
         reason.contains(pinned_subject),
         "cross-language-v1's zero blocked_reason must name the same pinned revision \

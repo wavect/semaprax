@@ -301,6 +301,17 @@ jobs:
         run: |
           set -euo pipefail
           cargo test --locked -p semaprax --test projections public_generic_consumers -- --nocapture
+      - name: Callable-boundary corpus, generated consumers, settlement and hostile replay
+        shell: bash
+        run: |
+          # The step above runs the four-language *metadata* consumers, which
+          # never call a compiled provider. These three harnesses do, and none
+          # of them was selected by any workflow file until now -- real tests
+          # that passed locally and were proven by no hosted run.
+          set -euo pipefail
+          cargo test --locked -p semaprax --test public_generic_native_adapter_v1
+          cargo test --locked -p semaprax --test public_generic_wasm_adapter_v1
+          cargo test --locked -p semaprax --test projections public_generic_descriptor_carrier_hostile_replay
 
   std-library-depth:
     name: STD-08 bundled library depth

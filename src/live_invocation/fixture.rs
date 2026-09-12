@@ -351,10 +351,7 @@ pub struct FixtureSchemaBoundStateMigration {
 
 impl FixtureSchemaBoundStateMigration {
     #[must_use]
-    pub fn bound_to(
-        known: Vec<(String, String)>,
-        suffix: impl Into<Vec<u8>>,
-    ) -> Self {
+    pub fn bound_to(known: Vec<(String, String)>, suffix: impl Into<Vec<u8>>) -> Self {
         Self {
             suffix: suffix.into(),
             known,

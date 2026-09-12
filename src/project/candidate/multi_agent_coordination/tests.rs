@@ -72,10 +72,15 @@ tests = ["coordination.tests"]
     /// the analogous `bytes()`/`unchanged_raw_sources` idiom used
     /// elsewhere in this repository's candidate fixtures).
     fn bytes(&self) -> Vec<Vec<u8>> {
-        ["semaprax.toml", "src/app.spx", "src/lib.spx", "src/tests.spx"]
-            .iter()
-            .map(|path| std::fs::read(self.0.join(path)).unwrap())
-            .collect()
+        [
+            "semaprax.toml",
+            "src/app.spx",
+            "src/lib.spx",
+            "src/tests.spx",
+        ]
+        .iter()
+        .map(|path| std::fs::read(self.0.join(path)).unwrap())
+        .collect()
     }
 }
 
@@ -512,10 +517,9 @@ fn disjoint_but_graph_dependent_targets_are_flagged_as_a_cross_target_conflict()
         ])
     );
     let witnesses = conflicts[0]["dependency_witnesses"].as_array().unwrap();
-    assert!(witnesses
-        .iter()
-        .any(|w| w
-            == &json!({"upstream": "coordination.divide", "downstream": "coordination.main"})));
+    assert!(witnesses.iter().any(
+        |w| w == &json!({"upstream": "coordination.divide", "downstream": "coordination.main"})
+    ));
     // Neither conflicting proposal is silently chosen into the
     // compatible order.
     assert_eq!(evaluation["compatible_order"], json!([]));
@@ -807,7 +811,11 @@ requires right != 0 && left >= 0\n\
         intention: "agent-a still proposes against the pre-drift session",
     }];
     let error = drifted_candidate
-        .evaluate_agent_proposals(drifted_candidate.candidate_digest(), &session_text, &proposals)
+        .evaluate_agent_proposals(
+            drifted_candidate.candidate_digest(),
+            &session_text,
+            &proposals,
+        )
         .unwrap_err();
     assert_eq!(error[0].code, "SPX-Z503");
 

@@ -37,12 +37,14 @@ Design points required by issue #104:
 
 import argparse
 import copy
+import difflib
 import hashlib
 import importlib.util
 import json
 import os
 import shutil
 import stat
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -207,6 +209,20 @@ def apply_unified_diff_single_hunk(original_bytes, patch_bytes, target_path):
     return original_bytes.replace(old_block, new_block, 1)
 
 
+def snapshot_candidate(candidate_dir):
+    """Return a byte-identity snapshot of regular candidate files only."""
+    snapshot = {}
+    for path in sorted(candidate_dir.rglob("*")):
+        if path.is_dir():
+            continue
+        relative = path.relative_to(candidate_dir).as_posix()
+        if path.is_symlink() or not path.is_file():
+            raise RunnerFailure(f"candidate snapshot contains a non-regular file: {relative}")
+        body = path.read_bytes()
+        snapshot[relative] = {"sha256": digest(body), "bytes": len(body)}
+    return snapshot
+
+
 def run_fixture_backend(fixture_script, candidate_dir, task_id, drift_patch_bytes):
     """Replay a checked-in, scripted transcript deterministically.
 
@@ -350,13 +366,133 @@ def check_stale_signature_recovery(candidate_dir, drift_applications):
     ]
 
 
+def _owned_compiler_evidence(candidate_dir, compiler_path):
+    """Collect raw, bounded compiler evidence; fixture events cannot satisfy it."""
+    if compiler_path is None:
+        return {"available": False, "reason": "no compiler path supplied"}
+    executable = Path(compiler_path)
+    if not executable.is_file():
+        return {"available": False, "reason": "compiler path is not a regular file"}
+    commands = (("check", "check", "--json"), ("test", "test"), ("run", "run"), ("graph", "graph"))
+    result = {"available": True, "binary_sha256": digest(executable.read_bytes()), "commands": {}}
+    for name, *argv in commands:
+        completed = subprocess.run(
+            [str(executable), *argv, "semaprax.toml"], cwd=candidate_dir,
+            text=True, capture_output=True, timeout=20, check=False,
+        )
+        result["commands"][name] = {
+            "returncode": completed.returncode,
+            "stdout": completed.stdout,
+            "stderr": completed.stderr,
+            "stdout_sha256": digest(completed.stdout.encode()),
+            "stderr_sha256": digest(completed.stderr.encode()),
+        }
+    return result
+
+
+def _owned_graph(evidence):
+    try:
+        graph = json.loads(evidence["commands"]["graph"]["stdout"])
+    except (KeyError, TypeError, json.JSONDecodeError):
+        return None
+    return graph if graph.get("schema") == "semaprax.project-semantic-graph.v1" else None
+
+
+def _owned_review_package(task_binding, candidate_dir, before, after, evidence):
+    """Create reviewable source and compiler material; it does not claim a human review."""
+    changes = sorted(path for path in set(before) | set(after) if before.get(path) != after.get(path))
+    root = fixture_root_for(task_binding)
+    before_sources = {}
+    after_sources = {}
+    diff_lines = []
+    for item in task_binding["fixture"]:
+        relative = Path(item["path"]).relative_to(root).as_posix()
+        old = (ROOT / item["path"]).read_text(encoding="utf-8")
+        new = (candidate_dir / relative).read_text(encoding="utf-8")
+        before_sources[relative] = old
+        after_sources[relative] = new
+        diff_lines.extend(difflib.unified_diff(old.splitlines(True), new.splitlines(True), fromfile=f"before/{relative}", tofile=f"after/{relative}"))
+    return {
+        "schema": "semaprax.agent-task-comparison-owned-review.v1",
+        "before": before,
+        "after": after,
+        "before_sources": before_sources,
+        "after_sources": after_sources,
+        "source_diff": "".join(diff_lines),
+        "changed_paths": changes,
+        "compiler": evidence,
+        "semantic_delta": "compiler check/test/run/graph outputs are retained verbatim above",
+        "ownership_delta": "requested source API is bound below; compiler check admitted the resulting ownership program",
+        "cleanup_delta": "unavailable: the project graph export does not include cleanup-plan vectors",
+        "blind_spots": [
+            "ownership and cleanup plans are accepted by this compiler result but are not independently replayed",
+            "runtime observation is limited to the selected local interpreter result",
+            "no deployment, generated-file, external-API, or external-consumer target was supplied",
+            "this package is reviewable material; it records no blinded human-review interval",
+        ],
+    }
+
+
+def check_owned_signature_migration(candidate_dir, task_binding, before, after, compiler_path):
+    """Derive owned-task verdicts from snapshots and compiler output, never actions."""
+    expected_before = {
+        Path(item["path"]).relative_to(fixture_root_for(task_binding)).as_posix(): {
+            "sha256": item["sha256"], "bytes": item["bytes"]
+        }
+        for item in task_binding["fixture"]
+    }
+    evidence = _owned_compiler_evidence(candidate_dir, compiler_path)
+    graph = _owned_graph(evidence)
+    semantic_ok = bool(evidence.get("available")) and all(
+        evidence["commands"].get(name, {}).get("returncode") == 0
+        for name in ("check", "test", "run", "graph")
+    )
+    declarations = graph.get("declarations", []) if graph else []
+    edges = graph.get("edges", []) if graph else []
+    select = [row for row in declarations if row.get("id") == "benchmark.owned.select"]
+    identity_ok = semantic_ok and len(select) == 1 and select[0].get("identity_origin") == "explicit"
+    core = _read(candidate_dir, "src/core.spx")
+    callers_ok = semantic_ok and {
+        (row.get("caller"), row.get("target")) for row in edges if row.get("kind") == "call"
+    } >= {
+        ("benchmark.owned.main", "benchmark.owned.evaluate"),
+        ("benchmark.owned.test", "benchmark.owned.evaluate"),
+    } and all(fragment in core for fragment in (
+        "let left = bytes_copy(input);",
+        "let right = bytes_copy(input);",
+        "select(input, right, 0usize, left)",
+    ))
+    signature_ok = semantic_ok and "fn select(view: borrow Slice<u8>, right: own Bytes, flag: usize, left: own Bytes) -> Bytes" in core
+    # Admission is compiler-derived. The source spelling is only used to bind the requested ordered API.
+    ownership_ok = semantic_ok and signature_ok
+    meaning_ok = semantic_ok and graph is not None and graph.get("project") == "agent-owned-comparison"
+    authority_ok = before == expected_before and set(after) == set(expected_before) and all(
+        before[path] == after[path] for path in expected_before if path != "src/core.spx"
+    )
+    package = _owned_review_package(task_binding, candidate_dir, before, after, evidence)
+    review_ok = authority_ok and semantic_ok and package["changed_paths"] == ["src/core.spx"]
+    return [
+        {"id": "signature", "outcome": "passed" if signature_ok else "failed"},
+        {"id": "identity", "outcome": "passed" if identity_ok else "failed"},
+        {"id": "callers", "outcome": "passed" if callers_ok else "failed"},
+        {"id": "ownership", "outcome": "passed" if ownership_ok else "failed"},
+        {"id": "meaning", "outcome": "passed" if meaning_ok else "failed"},
+        {"id": "review", "outcome": "passed" if review_ok else "failed"},
+        {"id": "authority", "outcome": "passed" if authority_ok else "failed"},
+    ], package
+
+
 ACCEPTANCE_CHECKERS = {
     "signature-migration-v1": lambda candidate_dir, drift_applications: check_signature_migration(candidate_dir),
     "stale-signature-recovery-v1": check_stale_signature_recovery,
 }
 
 
-def independent_acceptance(task_id, candidate_dir, drift_applications):
+def independent_acceptance(task_id, candidate_dir, drift_applications, task_binding=None, before=None, after=None, compiler_path=None):
+    if task_id == "owned-signature-migration-v1":
+        if task_binding is None or before is None or after is None:
+            raise RunnerFailure("owned acceptance requires immutable before/after snapshots and task binding")
+        return check_owned_signature_migration(candidate_dir, task_binding, before, after, compiler_path)
     checker = ACCEPTANCE_CHECKERS.get(task_id)
     if checker is None:
         raise RunnerFailure(f"no independent acceptance checker registered for task {task_id}")
@@ -379,6 +515,7 @@ def build_ledger(
     replayed_actions,
     acceptance_rows,
     prompt_sha256,
+    review_package=None,
 ):
     outcome = "completed" if all(row["outcome"] == "passed" for row in acceptance_rows) else "failed"
     transcript_body = canonical(
@@ -386,6 +523,7 @@ def build_ledger(
             "fixture_script": fixture_script,
             "replayed_actions": replayed_actions,
             "independent_acceptance": acceptance_rows,
+            "review_package": review_package,
         }
     ) + b"\n"
     streams = {
@@ -472,6 +610,7 @@ def run(
     provider_config=None,
     dry_run=False,
     work_dir=None,
+    compiler_path=None,
 ):
     manifest, manifest_body, loaded_tasks = atc.load_manifest(manifest_path)
     plan = atc.make_plan_from_loaded(manifest_path, manifest, manifest_body, loaded_tasks, atc.head())
@@ -501,10 +640,18 @@ def run(
 
     sandbox, candidate_dir = create_sandbox(task_binding, work_dir=work_dir)
     try:
+        before_snapshot = snapshot_candidate(candidate_dir)
         events, replayed, drift_applications = run_fixture_backend(
             fixture_script, candidate_dir, task_id, drift_patch_bytes
         )
-        acceptance_rows = independent_acceptance(task_id, candidate_dir, drift_applications)
+        after_snapshot = snapshot_candidate(candidate_dir)
+        acceptance = independent_acceptance(
+            task_id, candidate_dir, drift_applications, task_binding, before_snapshot, after_snapshot, compiler_path
+        )
+        if task_id == "owned-signature-migration-v1":
+            acceptance_rows, review_package = acceptance
+        else:
+            acceptance_rows, review_package = acceptance, None
         ledger, transcript_body = build_ledger(
             plan,
             task_id,
@@ -516,6 +663,7 @@ def run(
             replayed,
             acceptance_rows,
             task_binding["prompt_sha256"],
+            review_package,
         )
     finally:
         shutil.rmtree(sandbox, ignore_errors=True)
@@ -554,6 +702,7 @@ def main():
     parser.add_argument("--provider-config")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--work-dir", help="sandbox parent directory (defaults to the OS temp directory)")
+    parser.add_argument("--compiler", help="explicit Semaprax binary for compiler-derived owned-task evidence")
     arguments = parser.parse_args()
 
     evidence_dir = ROOT / arguments.evidence_dir
@@ -573,6 +722,7 @@ def main():
         provider_config=arguments.provider_config,
         dry_run=arguments.dry_run,
         work_dir=arguments.work_dir,
+        compiler_path=arguments.compiler,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
 

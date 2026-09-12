@@ -22,6 +22,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -120,6 +121,55 @@ class DeterminismTests(ScratchEvidenceMixin, unittest.TestCase):
                 expected["tool_response_bytes"] += action["response_bytes"]
         for metric, value in expected.items():
             self.assertEqual(observation["metrics"][metric]["value"], value, metric)
+
+
+class OwnedOracleTests(unittest.TestCase):
+    def _candidate(self):
+        task_binding = task_binding_for("owned-signature-migration-v1")
+        sandbox, candidate = runner.create_sandbox(task_binding)
+        self.addCleanup(shutil.rmtree, sandbox, True)
+        before = runner.snapshot_candidate(candidate)
+        script = runner.load_fixture_script(
+            str(FIXTURE_DIR / "owned-signature-migration-v1.semaprax-graph-operational.json")
+        )
+        runner.run_fixture_backend(script, candidate, task_binding["id"], None)
+        return task_binding, candidate, before, runner.snapshot_candidate(candidate)
+
+    def _compiler_evidence(self):
+        commands = {name: {"returncode": 0, "stdout": "", "stderr": ""}
+                    for name in ("check", "test", "run", "graph")}
+        commands["graph"]["stdout"] = json.dumps({
+            "schema": "semaprax.project-semantic-graph.v1",
+            "project": "agent-owned-comparison",
+            "declarations": [{"id": "benchmark.owned.select", "identity_origin": "explicit"}],
+            "edges": [
+                {"kind": "call", "caller": "benchmark.owned.main", "target": "benchmark.owned.evaluate"},
+                {"kind": "call", "caller": "benchmark.owned.test", "target": "benchmark.owned.evaluate"},
+            ],
+        })
+        return {"available": True, "binary_sha256": "sha256:fixture", "commands": commands}
+
+    def test_owned_oracle_rejects_wrong_owner_even_with_admitted_compiler_evidence(self):
+        binding, candidate, before, after = self._candidate()
+        core = candidate / "src/core.spx"
+        core.write_text(core.read_text().replace("right: own Bytes", "right: borrow Bytes", 1))
+        after = runner.snapshot_candidate(candidate)
+        with mock.patch.object(runner, "_owned_compiler_evidence", return_value=self._compiler_evidence()):
+            rows, _ = runner.check_owned_signature_migration(candidate, binding, before, after, "unused")
+        outcomes = {row["id"]: row["outcome"] for row in rows}
+        self.assertEqual(outcomes["signature"], "failed")
+        self.assertEqual(outcomes["ownership"], "failed")
+
+    def test_owned_oracle_rejects_non_core_authority_mutation(self):
+        binding, candidate, before, after = self._candidate()
+        app = candidate / "src/app.spx"
+        app.write_text(app.read_text() + "\n")
+        after = runner.snapshot_candidate(candidate)
+        with mock.patch.object(runner, "_owned_compiler_evidence", return_value=self._compiler_evidence()):
+            rows, _ = runner.check_owned_signature_migration(candidate, binding, before, after, "unused")
+        outcomes = {row["id"]: row["outcome"] for row in rows}
+        self.assertEqual(outcomes["authority"], "failed")
+        self.assertEqual(outcomes["review"], "failed")
 
 
 class ProtectionTests(ScratchEvidenceMixin, unittest.TestCase):

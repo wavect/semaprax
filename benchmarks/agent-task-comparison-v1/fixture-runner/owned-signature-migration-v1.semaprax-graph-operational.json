@@ -1,0 +1,66 @@
+{
+  "actions": [
+    {
+      "input_tokens": 600,
+      "kind": "model_usage",
+      "output_tokens": 140
+    },
+    {
+      "bytes": 1450,
+      "kind": "context_presentation"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 72,
+      "response_bytes": 700,
+      "tool": "graph_context"
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 430,
+      "response_bytes": 40,
+      "tool": "graph_candidate_edit",
+      "write": {
+        "content": "module benchmark.owned.core;\n\n@id(\"benchmark.owned.select\")\nfn select(view: borrow Slice<u8>, right: own Bytes, flag: usize, left: own Bytes) -> Bytes\n{\n    let observed = byte_len(view);\n    if flag == observed { left } else { right }\n}\n\n@id(\"benchmark.owned.call\")\nfn call(input: borrow Slice<u8>) -> Bytes\n{\n    let left = bytes_copy(input);\n    let right = bytes_copy(input);\n    select(input, right, 0usize, left)\n}\n\n@id(\"benchmark.owned.consume\")\nfn consume(value: own Bytes) -> i64\n{\n    42\n}\n\n@id(\"benchmark.owned.evaluate\")\nfn evaluate(input: borrow Slice<u8>) -> i64\n{\n    consume(call(input))\n}\n\n@id(\"benchmark.owned.public\")\nfn public_value(value: i64) -> i64\n{\n    value\n}\n",
+        "path": "src/core.spx"
+      }
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 210,
+      "response_bytes": 40,
+      "tool": "graph_candidate_edit",
+      "write": {
+        "content": "module benchmark.owned.app;\nuse function @id(\"benchmark.owned.evaluate\") from benchmark.owned.core as evaluate;\n\n@id(\"benchmark.owned.main\")\nfn main() -> i64\n{\n    let input = [1u8];\n    evaluate(array_as_slice(input))\n}\n",
+        "path": "src/app.spx"
+      }
+    },
+    {
+      "kind": "tool_call",
+      "request_bytes": 210,
+      "response_bytes": 40,
+      "tool": "graph_candidate_edit",
+      "write": {
+        "content": "module benchmark.owned.tests;\nuse function @id(\"benchmark.owned.evaluate\") from benchmark.owned.core as evaluate;\n\n@id(\"benchmark.owned.test\")\nfn main() -> i64\n{\n    let input = [1u8];\n    if evaluate(array_as_slice(input)) == 42 { 0 } else { 1 }\n}\n",
+        "path": "src/tests.spx"
+      }
+    },
+    {
+      "kind": "validation_interval",
+      "ms": 270
+    },
+    {
+      "kind": "review_interval",
+      "ms": 350
+    }
+  ],
+  "harness": "agent-task-comparison-runner-v1-fixture",
+  "host": "fixture-offline",
+  "lane": "semaprax-graph-operational",
+  "model": "fixture-stub-v1",
+  "model_configuration": "deterministic-scripted-replay-v1",
+  "schema": "semaprax.agent-task-comparison-fixture-runner.v1",
+  "task": "owned-signature-migration-v1",
+  "tokenizer": "fixture-tokenizer-v1",
+  "toolchain": "n/a-fixture"
+}

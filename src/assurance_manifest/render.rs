@@ -34,7 +34,7 @@ const NONCLAIMS_JSON: &str = "\"no_smt_solver_invoked\",\
 \"not_signature_or_publication_authority\",\
 \"not_safe_compatible_or_target_conformant\",\
 \"no_repository_or_multi_file_analysis\",\
-\"no_effect_exhaustiveness_resource_or_architecture_law_derivation_yet\",\
+\"no_effect_resource_or_architecture_law_derivation_yet\",\
 \"read_only_no_source_changes\"";
 
 pub(super) fn domain_digest(domain: &[u8], bytes: &[u8]) -> String {

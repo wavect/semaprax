@@ -28,8 +28,10 @@ external-record input, never inferred.
 
 ## Command and public API
 
-There is no CLI subcommand in this tranche (see "Known limitations" below).
-The public library entry points are:
+`semaprax assurance-manifest <file> [--max-bytes N] [--max-obligations N]`
+prints the envelope `generate` returns, exactly like the sibling
+`capability-manifest`/`region-report` commands. The public library entry
+points are:
 
 ```rust
 pub fn generate(
@@ -87,7 +89,7 @@ alias two different identities. `kind` is one of the closed tokens below.
 | `ownership_parameter` | `param:<index>` | Stable across formatting/rename. Changes if the parameter list or a parameter's ownership mode changes. |
 | `ownership_result` | `result` | Reserved for a later producer; not derived automatically in this tranche (see "Obligation derivation"). |
 | `effect` | `effect:<name>` | Reserved for a later producer; not derived automatically in this tranche (see "Obligation derivation"). |
-| `exhaustiveness` | `match:<path>` | Reserved; not derived automatically in this tranche. |
+| `exhaustiveness` | `match:<index>` | Stable across formatting/rename. `<index>` is the 0-based position of a variant `match` expression in a pre-order, left-to-right walk of the owning function's `requires` clauses, then its body, then its `ensures` clauses (`derive::walk_expr`); changes if a match is added, removed, or reordered ahead of it — a semantic change, exactly like `require:<index>`. Derived automatically today; see "Obligation derivation". |
 | `resource_cleanup` | `cleanup:<path>` | Reserved; not derived automatically in this tranche. |
 | `architecture_law` | `law:<name>` | Reserved; not derived automatically in this tranche. |
 | `generated_interface` | `interface:<name>` | Reserved; not derived automatically in this tranche. |
@@ -122,16 +124,32 @@ state precisely which guarantee that fact carries:
   `verify::verify` returned no error diagnostic for this module, every
   parameter ownership mode it derives already survived that pass; its
   method record has class `compiler_proved`.
+- **`exhaustiveness`.** One obligation per variant `match` expression
+  reachable from an admitted function's `requires` clauses, body, and
+  `ensures` clauses (`derive::exhaustiveness_obligations`, walking child
+  expressions with `derive::walk_expr`). `source_verify`'s iterative
+  verifier rejects a variant match that does not cover every declared case
+  (directly, or via a trailing wildcard) with `SPX-M101` "non-exhaustive
+  match; missing case", at the same AST-level pass `ownership_parameter`
+  relies on — no resolved-HIR dependency is needed for this one kind,
+  unlike `ownership_result` below. Because `generate` only reaches
+  obligation derivation after `verify::verify` returned no error
+  diagnostic, every variant match it derives an obligation for already
+  survived that check; its method record has class `compiler_proved`. A
+  record match, a scalar match, or any other expression is not
+  exhaustiveness-checked by `SPX-M101` the same way, so none of those
+  derive an obligation here — deriving one for every `match` regardless of
+  pattern kind would overstate what was actually proved.
 
 Nothing else is derived automatically in this tranche. `ownership_result`
 needs the resolved-HIR `result_ownership` helper (private, and defined over
 `ResolvedProgram`, not the `ast::Program` this producer stays at); declared
-function effects, match exhaustiveness, resource cleanup order, architecture
-laws, and generated-interface obligations are real, existing, checked facts
-in this repository, but mapping each one to a specific assurance class needs
-its own audit of exactly what the checker proves before this manifest can
-state it without overstating it — the explicit failure case this issue calls
-out first. `ObligationKind` already reserves their tokens (closed vocabulary,
+function effects, resource cleanup order, architecture laws, and
+generated-interface obligations are real, existing, checked facts in this
+repository, but mapping each one to a specific assurance class needs its own
+audit of exactly what the checker proves before this manifest can state it
+without overstating it — the explicit failure case this issue calls out
+first. `ObligationKind` already reserves their tokens (closed vocabulary,
 not an open string) so a later change can add their derivation without a
 schema version bump; until then they simply do not appear unless a caller
 supplies them through `options.external_records`, which is also how `open`,
@@ -408,7 +426,7 @@ not_human_approval_or_policy
 not_signature_or_publication_authority
 not_safe_compatible_or_target_conformant
 no_repository_or_multi_file_analysis
-no_effect_exhaustiveness_resource_or_architecture_law_derivation_yet
+no_effect_resource_or_architecture_law_derivation_yet
 read_only_no_source_changes
 ```
 
@@ -418,7 +436,7 @@ to accept evidence from without ever requiring them to exist. It is not test
 execution, target execution, human approval, a signature, or publication
 authority; it grants none of those and none of the ambient filesystem,
 process, network, or signing authority AGENTS.md prohibits by default. It
-does not yet derive `effect`, `exhaustiveness`, `resource_cleanup`,
+does not yet derive `ownership_result`, `effect`, `resource_cleanup`,
 `architecture_law`, or `generated_interface` obligations automatically (see
 "Obligation derivation"); their tokens exist in the closed vocabulary so a
 later change can add that derivation without a schema version bump, and a
@@ -427,13 +445,6 @@ caller can already supply such a record today through
 
 ## Known limitations
 
-- **No CLI subcommand yet.** `generate`/`verify_envelope`/
-  `verify_envelope_against_source`/`delta`/`public_view` are library-only in
-  this tranche. Wiring `semaprax assurance-manifest <file>` into the CLI
-  driver and its help/catalog surface touches files outside this issue's
-  file lease (`src/cli_driver.rs`, `src/cli/**`, and the CLI catalog
-  presubmit gate); the exact delta is recorded in `HANDOFF.md` for whichever
-  worker owns that surface next.
 - **Single file, not managed workspace or `ProgramRoot`.** This producer
   takes one source path, exactly like `capability_manifest` and
   `region_report`. A managed-workspace or multi-target binding (source +
@@ -478,6 +489,10 @@ caller can already supply such a record today through
   IDs, because today's IDs never depend on one.
 - **Automatic derivation is deliberately narrow.** See "Obligation
   derivation": only `precondition`, `postcondition`, `ownership_parameter`,
-  and `ownership_result` are derived from source today. This is the exact,
-  named "explicitly out of scope" boundary from the owning issue
-  ("Implementing every proof backend in this issue"), not an oversight.
+  and `exhaustiveness` are derived from source today. `ownership_result`,
+  `effect`, `resource_cleanup`, `architecture_law`, and
+  `generated_interface` remain undone; each needs its own audit of exactly
+  what its checker proves (`ownership_result` additionally needs a
+  resolved-HIR dependency this producer does not otherwise have) before
+  this manifest can state a class for it without overstating it. This is a
+  deliberate, incremental boundary, not an oversight.

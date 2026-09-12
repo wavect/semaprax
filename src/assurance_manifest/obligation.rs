@@ -18,7 +18,9 @@ pub enum ObligationKind {
     OwnershipResult,
     /// Reserved: not derived automatically by this tranche.
     Effect,
-    /// Reserved: not derived automatically by this tranche.
+    /// One per variant `match` expression; derived automatically from
+    /// `source_verify`'s `SPX-M101` case-coverage check. See
+    /// `derive::exhaustiveness_obligations`.
     Exhaustiveness,
     /// Reserved: not derived automatically by this tranche.
     ResourceCleanup,

@@ -604,6 +604,43 @@ pub(super) fn region_report_options(
     })
 }
 
+pub(super) fn assurance_manifest_options(
+    args: &[String],
+) -> Result<assurance_manifest::AssuranceManifestOptions, u8> {
+    let defaults = assurance_manifest::AssuranceManifestOptions::default();
+    let mut max_bytes = defaults.max_bytes;
+    let mut max_obligations = defaults.max_obligations;
+    let mut seen = std::collections::BTreeSet::new();
+    let mut index = 2usize;
+    while index < args.len() {
+        let option = args[index].as_str();
+        if !matches!(option, "--max-bytes" | "--max-obligations") {
+            eprintln!("unknown assurance-manifest option `{option}`");
+            return Err(2);
+        }
+        if !seen.insert(option.to_owned()) {
+            eprintln!("duplicate assurance-manifest option `{option}`");
+            return Err(2);
+        }
+        let value = args.get(index + 1).ok_or_else(|| {
+            eprintln!("assurance-manifest option `{option}` requires a value");
+            2
+        })?;
+        match option {
+            "--max-bytes" => max_bytes = property_number(option, value)?,
+            "--max-obligations" => max_obligations = property_number(option, value)?,
+            _ => unreachable!(),
+        }
+        index += 2;
+    }
+    assurance_manifest::AssuranceManifestOptions::new(max_bytes, max_obligations).map_err(
+        |error| {
+            eprintln!("{error}");
+            2
+        },
+    )
+}
+
 fn assurance_policy_profile(
     option: &str,
     value: &str,

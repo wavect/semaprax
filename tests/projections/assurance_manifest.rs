@@ -4,11 +4,12 @@
 //! Pins a golden envelope digest, proves determinism, exercises hostile
 //! reordering/duplicate/forged-class/dangling-assumption/drift rejection
 //! through independent replay, and checks the delta's added/removed
-//! buckets. There is no CLI subcommand in this tranche (see "Known
-//! limitations" in the owning specification), so there are no CLI exit-code
-//! assertions here.
+//! buckets. `semaprax assurance-manifest <file>` (#214) is exercised at the
+//! end of this file by spawning the real binary, not merely by checking it
+//! is registered in the CLI catalog.
 
 use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use semaprax::assurance_manifest::{
@@ -318,4 +319,60 @@ fn public_view_redacts_free_text_and_path_but_keeps_classification() {
             assert!(method["detail"].is_null());
         }
     }
+}
+
+fn cli(args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("assurance-manifest")
+        .args(args)
+        .output()
+        .unwrap()
+}
+
+#[test]
+fn cli_subcommand_prints_the_same_envelope_the_library_generates() {
+    let path = write_temp(DECLARED_SOURCE);
+    let library_envelope =
+        assurance_manifest::generate(&path, &AssuranceManifestOptions::default()).unwrap();
+    let output = cli(&[path.to_str().unwrap()]);
+    cleanup(&path);
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stderr.is_empty());
+    let cli_stdout = String::from_utf8(output.stdout).unwrap();
+    // The CLI prints the envelope followed by the process's own trailing
+    // newline from `println!`; the library call returns the bytes exactly.
+    assert_eq!(cli_stdout, format!("{library_envelope}\n"));
+    verify_envelope(&library_envelope).expect("CLI-produced envelope must independently replay");
+}
+
+#[test]
+fn cli_subcommand_rejects_an_unknown_option() {
+    let path = write_temp(DECLARED_SOURCE);
+    let output = cli(&[path.to_str().unwrap(), "--bogus"]);
+    cleanup(&path);
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    assert_eq!(
+        String::from_utf8(output.stderr).unwrap(),
+        "unknown assurance-manifest option `--bogus`\n\
+         hint: run `semaprax assurance-manifest --help` for usage\n"
+    );
+}
+
+#[test]
+fn cli_subcommand_honors_max_obligations_and_fails_closed_over_budget() {
+    let path = write_temp(DECLARED_SOURCE);
+    // `DECLARED_SOURCE` derives 7 obligations (see
+    // `golden_envelope_digest_is_pinned`); a budget of 1 must be refused
+    // with the producer's own budget diagnostic, not silently truncated.
+    let output = cli(&[path.to_str().unwrap(), "--max-obligations", "1"]);
+    cleanup(&path);
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("SPX-Z102"), "{stderr}");
 }

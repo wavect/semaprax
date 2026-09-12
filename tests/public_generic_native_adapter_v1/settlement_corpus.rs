@@ -20,9 +20,9 @@
 //! each case in one compiled binary, and prints one canonical
 //! `CASE case_id=... accepted=... status=... live_alloc=... live_handles=...
 //! fixture_live=... fixture_peak=... overwrite=... trace=... result=...`
-//! line per case to stdout. [`run_native`] parses those lines back into
-//! [`NativeCaseOutcome`]; nothing here reinterprets or repairs the printed
-//! sequence.
+//! line per case to stdout. [`parse_native_line`] parses those lines back
+//! into [`NativeCaseOutcome`]; nothing here reinterprets or repairs the
+//! printed sequence.
 //!
 //! **Known, real wire-format divergence found while wiring this up, not
 //! papered over**: `spx_pg_result_export_v1`
@@ -145,7 +145,7 @@
 //! **Other nonclaims.** Native's normalized trace (`spx_pg_test_trace_label_v1`)
 //! records only the label ordinal per event, not a leaf index
 //! (`g_spx_pg_trace` is `uint32_t[]`, not a `(label, leaf)` pair) — unlike
-//! [`crate::public_generic_abi::carrier::trace::TraceEvent`], which carries
+//! `semaprax::public_generic_abi::carrier::trace::TraceEvent`, which carries
 //! both — so this module cannot additionally pin native's *per-leaf*
 //! canonical release order the way
 //! `structural_leaf_order_is_left_to_right_staged_and_exact_reverse_released`

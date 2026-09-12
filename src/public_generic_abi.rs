@@ -23,6 +23,7 @@
 //! | [Public Generic Carrier v1 — Native C11 physical adapter](../docs/PUBLIC-GENERIC-CARRIER-V1.md#native-c11-physical-adapter-issue-154) | [`native`] |
 //! | [Public Generic Carrier v1 — Core Wasm physical adapter](../docs/PUBLIC-GENERIC-CARRIER-V1.md#core-wasm-physical-adapter-issue-155) | [`wasm`] (this module's own `wasm` submodule — unrelated to the top-level `crate::wasm` Wasm backend) |
 //! | [Public Generic Carrier v1 — reference interpreter physical adapter](../docs/PUBLIC-GENERIC-CARRIER-V1.md#reference-interpreter-physical-adapter-issue-162) | [`interpreter`] |
+//! | [Public Generic WIT Type Projection v1](../docs/PUBLIC-GENERIC-WIT-TYPE-PROJECTION-V1.md) | [`wit_projection`] |
 
 pub mod boundary_profile;
 pub mod carrier;
@@ -31,6 +32,7 @@ pub mod descriptor;
 pub mod interpreter;
 pub mod native;
 pub mod wasm;
+pub mod wit_projection;
 
 /// Length-prefix one field: an 8-byte little-endian length, then the bytes.
 /// Shared framing convention with `public_generic_type` and

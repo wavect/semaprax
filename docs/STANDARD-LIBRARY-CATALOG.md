@@ -1391,6 +1391,123 @@ fn value_end(record: borrow Slice<u8>, delimiter: usize) -> usize
     ensures result >= value_start(record, delimiter)
 ```
 
+## `std.db`
+
+Package `std/db`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.db = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.db.descriptor.tag_is_valid`
+
+```semaprax
+fn descriptor_tag_is_valid(tag: u8) -> bool
+```
+
+### `std.db.descriptor.mismatch_class`
+
+```semaprax
+fn descriptor_mismatch_class(expected: borrow Slice<u8>, actual: borrow Slice<u8>) -> usize
+    ensures result <= 4usize
+```
+
+### `std.db.descriptor.matches`
+
+```semaprax
+fn descriptor_matches(expected: borrow Slice<u8>, actual: borrow Slice<u8>) -> bool
+```
+
+### `std.db.identifier.is_safe_byte`
+
+```semaprax
+fn identifier_is_safe_byte(byte: u8) -> bool
+```
+
+### `std.db.identifier.is_valid`
+
+```semaprax
+fn identifier_is_valid(name: borrow Slice<u8>) -> bool
+```
+
+### `std.db.transaction.can_begin`
+
+```semaprax
+fn transaction_can_begin(state: usize) -> bool
+```
+
+### `std.db.transaction.next_on_begin`
+
+```semaprax
+fn transaction_next_on_begin(state: usize) -> usize
+    ensures result <= 4usize
+```
+
+### `std.db.transaction.next_on_commit`
+
+```semaprax
+fn transaction_next_on_commit(state: usize) -> usize
+    ensures result <= 4usize
+```
+
+### `std.db.transaction.next_on_rollback`
+
+```semaprax
+fn transaction_next_on_rollback(state: usize) -> usize
+    ensures result <= 4usize
+```
+
+### `std.db.transaction.next_on_connection_lost`
+
+```semaprax
+fn transaction_next_on_connection_lost(state: usize) -> usize
+    ensures result <= 4usize
+```
+
+### `std.db.transaction.is_open`
+
+```semaprax
+fn transaction_is_open(state: usize) -> bool
+```
+
+### `std.db.transaction.is_settled`
+
+```semaprax
+fn transaction_is_settled(state: usize) -> bool
+```
+
+### `std.db.migration.is_out_of_order`
+
+```semaprax
+fn migration_is_out_of_order(last_applied: u8, candidate: u8) -> bool
+```
+
+### `std.db.migration.is_duplicate`
+
+```semaprax
+fn migration_is_duplicate(applied: borrow Slice<u8>, candidate: u8) -> bool
+```
+
+### `std.db.migration.missing_predecessor`
+
+```semaprax
+fn migration_missing_predecessor(applied_count: u8, candidate: u8) -> bool
+```
+
+### `std.db.migration.checksum_drift`
+
+```semaprax
+fn migration_checksum_drift(recorded: u8, candidate: u8) -> bool
+```
+
+### `std.db.limits.within_bounds`
+
+```semaprax
+fn limits_within_bounds(rows: usize, max_rows: usize, bytes: usize, max_bytes: usize, columns: usize, max_columns: usize, elapsed_ms: usize, max_elapsed_ms: usize) -> bool
+```
+
+### `std.db.limits.should_stop`
+
+```semaprax
+fn limits_should_stop(consumed_rows: usize, max_rows: usize) -> bool
+```
+
 ## `std.encoding`
 
 Package `std/encoding`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.encoding = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

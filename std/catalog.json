@@ -2682,6 +2682,242 @@
         {
           "description": [],
           "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn descriptor_tag_is_valid(tag: u8) -> bool"
+          ],
+          "id": "std.db.descriptor.tag_is_valid",
+          "kind": "function",
+          "name": "descriptor_tag_is_valid",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn descriptor_mismatch_class(expected: borrow Slice<u8>, actual: borrow Slice<u8>) -> usize",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.db.descriptor.mismatch_class",
+          "kind": "function",
+          "name": "descriptor_mismatch_class",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn descriptor_matches(expected: borrow Slice<u8>, actual: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.db.descriptor.matches",
+          "kind": "function",
+          "name": "descriptor_matches",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn identifier_is_safe_byte(byte: u8) -> bool"
+          ],
+          "id": "std.db.identifier.is_safe_byte",
+          "kind": "function",
+          "name": "identifier_is_safe_byte",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn identifier_is_valid(name: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.db.identifier.is_valid",
+          "kind": "function",
+          "name": "identifier_is_valid",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn transaction_can_begin(state: usize) -> bool"
+          ],
+          "id": "std.db.transaction.can_begin",
+          "kind": "function",
+          "name": "transaction_can_begin",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn transaction_next_on_begin(state: usize) -> usize",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.db.transaction.next_on_begin",
+          "kind": "function",
+          "name": "transaction_next_on_begin",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn transaction_next_on_commit(state: usize) -> usize",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.db.transaction.next_on_commit",
+          "kind": "function",
+          "name": "transaction_next_on_commit",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn transaction_next_on_rollback(state: usize) -> usize",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.db.transaction.next_on_rollback",
+          "kind": "function",
+          "name": "transaction_next_on_rollback",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn transaction_next_on_connection_lost(state: usize) -> usize",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.db.transaction.next_on_connection_lost",
+          "kind": "function",
+          "name": "transaction_next_on_connection_lost",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn transaction_is_open(state: usize) -> bool"
+          ],
+          "id": "std.db.transaction.is_open",
+          "kind": "function",
+          "name": "transaction_is_open",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn transaction_is_settled(state: usize) -> bool"
+          ],
+          "id": "std.db.transaction.is_settled",
+          "kind": "function",
+          "name": "transaction_is_settled",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn migration_is_out_of_order(last_applied: u8, candidate: u8) -> bool"
+          ],
+          "id": "std.db.migration.is_out_of_order",
+          "kind": "function",
+          "name": "migration_is_out_of_order",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn migration_is_duplicate(applied: borrow Slice<u8>, candidate: u8) -> bool"
+          ],
+          "id": "std.db.migration.is_duplicate",
+          "kind": "function",
+          "name": "migration_is_duplicate",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn migration_missing_predecessor(applied_count: u8, candidate: u8) -> bool"
+          ],
+          "id": "std.db.migration.missing_predecessor",
+          "kind": "function",
+          "name": "migration_missing_predecessor",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn migration_checksum_drift(recorded: u8, candidate: u8) -> bool"
+          ],
+          "id": "std.db.migration.checksum_drift",
+          "kind": "function",
+          "name": "migration_checksum_drift",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn limits_within_bounds(rows: usize, max_rows: usize, bytes: usize, max_bytes: usize, columns: usize, max_columns: usize, elapsed_ms: usize, max_elapsed_ms: usize) -> bool"
+          ],
+          "id": "std.db.limits.within_bounds",
+          "kind": "function",
+          "name": "limits_within_bounds",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn limits_should_stop(consumed_rows: usize, max_rows: usize) -> bool"
+          ],
+          "id": "std.db.limits.should_stop",
+          "kind": "function",
+          "name": "limits_should_stop",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.db = \"^0.1.0\"",
+      "module": "std.db",
+      "package": "std/db",
+      "required_profile": "useful-data.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
           "ensures": 1,
           "head": [
             "fn byte_value(byte: u8) -> i64",

@@ -47,11 +47,11 @@ mod native_import;
 mod nested_owned;
 #[path = "graph/prelude_binding.rs"]
 mod prelude_binding;
-
 use nested_owned::{
     graph_schema_includes_loans, graph_schema_includes_modern_composite_facts,
     graph_schema_includes_projected_provenance, rejected_evidence_schema,
 };
+pub(crate) use prelude_binding::revision_from_canonical_program;
 
 pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
 pub(crate) use nested_owned::{

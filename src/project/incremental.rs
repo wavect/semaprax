@@ -477,6 +477,16 @@ impl FrontendPass {
         self.reused_bytes += source.len();
         Some(entry.program.as_ref().clone())
     }
+    /// Borrow the exact compiler-created source AST retained by this pass.
+    /// Unlike lookup, this post-admission use does not clone or count a cache hit.
+    pub(crate) fn retained_source_program(&self, path: &str, source: &str) -> Result<&Program> {
+        self.entries
+            .get(path)
+            .filter(|entry| entry.source == source && entry.program.path == path)
+            .map(|entry| entry.program.as_ref())
+            .ok_or_else(|| invalid("frontend retained source AST does not match Project source"))
+    }
+
     pub(crate) fn parsed(&mut self, bytes: usize) {
         self.parsed += 1;
         self.parsed_bytes += bytes;

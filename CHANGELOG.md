@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Reuse exact retained source ASTs during cached Project finalization and
+  prelude-bound revision replay (#85). Remove nine hidden public parser calls
+  from unchanged calculator builds in both cache modes, preserving revision
+  hashes and admission checks; no timing improvement is claimed.
+
 - Add explicit untraced prepared Project execution with unchanged traced
   behavior, fuel, cancellation and revision replacement. Add matching cold
   and prepared benchmark products and truthful platform-specific memory

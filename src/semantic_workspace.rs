@@ -223,7 +223,7 @@ fn preflight_owned_inner_mode(
     change_builder_limit: Option<usize>,
     retain_operations: bool,
     graph_builder_limit: Option<usize>,
-    frontend: Option<&mut crate::project::incremental::FrontendPass>,
+    mut frontend: Option<&mut crate::project::incremental::FrontendPass>,
 ) -> Result<SemanticWorkspacePreflight, Vec<Diagnostic>> {
     let path_set = parse_path_set(path_set_source)?;
     if sources.len() != path_set.len() {
@@ -276,7 +276,7 @@ fn preflight_owned_inner_mode(
                 change_builder_limit,
             )?
         }
-    } else if let Some(frontend) = frontend {
+    } else if let Some(frontend) = frontend.as_deref_mut() {
         workspace_graph::build_owned_retaining_sources_with_frontend(graph_sources, frontend)?
     } else {
         workspace_graph::build_owned_retaining_sources(graph_sources)?
@@ -287,10 +287,12 @@ fn preflight_owned_inner_mode(
         let schema = schemas.remove(&source.path).ok_or_else(|| {
             invariant("semantic workspace source Graph schema is absent from the resolved build")
         })?;
+        let source_revision =
+            source_revision_with_frontend(&source.path, &source.source, frontend.as_deref())?;
         files.push(SemanticWorkspaceFileFact {
             path: source.path,
             source_graph_schema: schema.to_owned(),
-            source_revision: graph::revision_from_canonical_source(&source.source),
+            source_revision,
             source_digest: review::source_digest(source.source.as_bytes()),
             bytes: source.source.len(),
             source: source.source,
@@ -311,7 +313,7 @@ fn preflight_owned_inner_mode(
         workspace_revision,
         graph,
     };
-    validate_preflight_replay(&preflight)?;
+    validate_preflight_replay_with_frontend(&preflight, frontend.as_deref())?;
     Ok(preflight)
 }
 
@@ -762,6 +764,27 @@ pub(crate) fn semantic_workspace_revision(manifest: &str) -> String {
 fn validate_preflight_replay(
     preflight: &SemanticWorkspacePreflight,
 ) -> Result<(), Vec<Diagnostic>> {
+    validate_preflight_replay_with_frontend(preflight, None)
+}
+
+fn source_revision_with_frontend(
+    path: &str,
+    source: &str,
+    frontend: Option<&crate::project::incremental::FrontendPass>,
+) -> Result<String, Vec<Diagnostic>> {
+    match frontend {
+        Some(frontend) => Ok(graph::revision_from_canonical_program(
+            source,
+            frontend.retained_source_program(path, source)?,
+        )),
+        None => Ok(graph::revision_from_canonical_source(source)),
+    }
+}
+
+fn validate_preflight_replay_with_frontend(
+    preflight: &SemanticWorkspacePreflight,
+    frontend: Option<&crate::project::incremental::FrontendPass>,
+) -> Result<(), Vec<Diagnostic>> {
     let schemas = preflight.graph.source_graph_schemas()?;
     if schemas.len() != preflight.files.len() || preflight.path_set.len() != preflight.files.len() {
         return Err(invariant(
@@ -772,7 +795,8 @@ fn validate_preflight_replay(
         if path != &file.path
             || schemas.get(path).copied() != Some(file.source_graph_schema.as_str())
             || file.bytes != file.source.len()
-            || graph::revision_from_canonical_source(&file.source) != file.source_revision
+            || source_revision_with_frontend(&file.path, &file.source, frontend)?
+                != file.source_revision
             || review::source_digest(file.source.as_bytes()) != file.source_digest
         {
             return Err(invariant(

@@ -17,6 +17,14 @@ linking, graph, and Project-profile admission gates. This is bounded exact
 reuse, not a general incremental compiler or a proof that source edits preserve
 behavior.
 
+Project finalization reuses the exact retained source AST for source Agent
+extraction and prelude-bound source revision construction/replay. Each borrow
+checks both source bytes and path; it neither clones the AST nor adds a frontend
+cache hit. The revision hashing inputs and independent preflight fact checks
+remain unchanged. A parser-call regression covers unchanged calculator builds
+in both cache modes; this is local work-elimination evidence, not a measured
+speedup or a claim that every Project profile performs zero parser calls.
+
 ## Host API and compatibility
 
 `ProjectFrontendCache::new_with_semantic_cache()` selects checked-module reuse.

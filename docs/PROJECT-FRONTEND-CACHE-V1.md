@@ -22,6 +22,14 @@ separate [Semantic Cache v1](PROJECT-SEMANTIC-CACHE-V1.md) constructor adds
 checked-module reuse and emits its own work schema; it does not change this
 report's zero-HIR contract or make the source-backed store warm.
 
+Project finalization reuses the exact retained source AST for source Agent
+extraction and prelude-bound source revision construction/replay. Each borrow
+checks both source bytes and path; it neither clones the AST nor adds a frontend
+cache hit. The revision hashing inputs and independent preflight fact checks
+remain unchanged. A parser-call regression covers unchanged calculator builds
+in both cache modes; this is local work-elimination evidence, not a measured
+speedup or a claim that every Project profile performs zero parser calls.
+
 ## Host API
 
 ```rust

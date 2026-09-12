@@ -6,6 +6,18 @@ use sha2::{Digest, Sha256};
 
 pub(super) fn revision_from_source(source: &str) -> String {
     let (prelude_schema, prelude_contract, _) = prelude::selected_for_source(source);
+    revision_with_prelude(source, prelude_schema, &prelude_contract)
+}
+
+pub(crate) fn revision_from_canonical_program(
+    source: &str,
+    program: &crate::ast::Program,
+) -> String {
+    let (schema, contract, _) = prelude::selected_for_program(program);
+    revision_with_prelude(source, schema, &contract)
+}
+
+fn revision_with_prelude(source: &str, prelude_schema: &str, prelude_contract: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(b"semaprax.graph-revision.v2\0");
     hasher.update((source.len() as u64).to_le_bytes());

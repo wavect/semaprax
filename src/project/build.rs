@@ -38,7 +38,7 @@ pub(super) fn build_owned(
         .collect::<Vec<_>>();
     let path_set = semantic_workspace::render_path_set(&paths)?;
     let preflight = semantic_workspace::preflight_owned(&path_set, sources)?;
-    finish_build(manifest, preflight)
+    finish_build(manifest, preflight, None)
 }
 
 pub(super) fn build_owned_with_frontend(
@@ -57,19 +57,33 @@ pub(super) fn build_owned_with_frontend(
     let path_set = semantic_workspace::render_path_set(&paths)?;
     let preflight =
         semantic_workspace::preflight_owned_with_frontend(&path_set, sources, frontend)?;
-    finish_build(manifest, preflight)
+    finish_build(manifest, preflight, Some(frontend))
 }
 
 fn finish_build(
     manifest: &ProjectManifest,
     preflight: semantic_workspace::SemanticWorkspacePreflight,
+    frontend: Option<&super::incremental::FrontendPass>,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
     let (files, workspace_manifest, workspace_revision, graph) = preflight.into_snapshot_parts();
-    let programs = files
-        .iter()
-        .map(|file| crate::parse(file.source(), file.path()).map_err(|error| vec![error]))
-        .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?;
-    let program_refs = programs.iter().collect::<Vec<_>>();
+    // The frontend pass already owns exact, authenticated source ASTs. Reuse
+    // those for Agent extraction instead of reparsing outside its work counters.
+    let programs = if frontend.is_none() {
+        files
+            .iter()
+            .map(|file| crate::parse(file.source(), file.path()).map_err(|error| vec![error]))
+            .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?
+    } else {
+        Vec::new()
+    };
+    let program_refs = if let Some(frontend) = frontend {
+        files
+            .iter()
+            .map(|file| frontend.retained_source_program(file.path(), file.source()))
+            .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?
+    } else {
+        programs.iter().collect::<Vec<_>>()
+    };
     let (source_agents, agent_definitions) =
         super::compile_source_project_agents(&program_refs)?.into_parts();
     let canonical_manifest = manifest.to_canonical_toml();
@@ -195,3 +209,6 @@ fn project_revision(manifest: &str, workspace_revision: &str) -> String {
         crate::digest_hex::LowerHex(digest.finalize())
     )
 }
+
+#[cfg(test)]
+mod tests;

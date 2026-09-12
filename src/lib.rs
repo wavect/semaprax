@@ -213,7 +213,25 @@ use std::path::Path;
 use ast::Program;
 use diagnostic::Diagnostic;
 
+#[cfg(test)]
+thread_local! {
+    pub(crate) static TEST_PUBLIC_PARSE_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    pub(crate) static TEST_PUBLIC_PARSE_SITES: std::cell::RefCell<Option<Vec<String>>> = const { std::cell::RefCell::new(None) };
+}
+
+#[cfg_attr(test, track_caller)]
 pub fn parse(source: &str, path: impl AsRef<Path>) -> Result<Program, Diagnostic> {
+    #[cfg(test)]
+    TEST_PUBLIC_PARSE_CALLS.with(|calls| calls.set(calls.get() + 1));
+    #[cfg(test)]
+    {
+        let caller = std::panic::Location::caller();
+        TEST_PUBLIC_PARSE_SITES.with(|sites| {
+            if let Some(sites) = sites.borrow_mut().as_mut() {
+                sites.push(format!("{}:{}", caller.file(), caller.line()));
+            }
+        });
+    }
     parser::Parser::new(source, path.as_ref()).and_then(parser::Parser::parse)
 }
 

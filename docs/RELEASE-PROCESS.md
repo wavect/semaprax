@@ -436,6 +436,55 @@ mechanism that would let a later `--check` (or a hosted consumer) verify a
 published release's own manifest against its own artifacts, rather than only
 against a manifest built locally after the fact.
 
+## Release provenance and signing (not yet active)
+
+**Every SEMAPRAX release remains unsigned today** -- see "Nonclaims" below.
+[Issue #168](https://github.com/wavect/semaprax/issues/168) defines the
+policy and tooling a future signed pipeline will use, and
+`docs/RELEASE-SIGNING-POLICY-V1.md` is the owning versioned specification:
+the threat model, the pinned trusted-identity policy (OIDC issuer,
+repository, workflow path, per-tag subject), the `semaprax.release-provenance.v1`
+and `semaprax.release-signature-claim.v1` schemas, what independent
+verification does and does not prove, and the exact human-owned checklist
+(signing-tool selection, `id-token: write` wiring, workflow ordering) still
+needed before any of this is live.
+
+`scripts/release-provenance.py` builds the provenance document from an
+already-built `scripts/release-manifest.py` manifest -- copying its version,
+tag, commit, prerelease flag, required-check inventory, and artifact
+inventory verbatim rather than re-deriving them, plus a byte-exact digest of
+the manifest and explicit (never ambient-environment) builder/toolchain/
+host-class fields:
+
+```sh
+python3 scripts/release-provenance.py \
+  --manifest dist/release-manifest.json \
+  --workflow-identity wavect/semaprax/.github/workflows/ci.yml@refs/tags/v0.4.2 \
+  --run-id <run-id> --run-attempt <run-attempt> \
+  --rustc-version "$(rustc --version)" --host-class github-hosted-ubuntu-24.04 \
+  --output dist/release-provenance.json
+```
+
+`src/release_provenance.rs` independently verifies the *binding* between a
+manifest, a provenance document, and a claimed signature -- byte-exact
+digest agreement across all three, plus the trusted-identity policy -- but
+never verifies `signature`/`certificate` bytes cryptographically: this
+repository has no signing-verification dependency, and adding one is a
+decision this document explicitly leaves to a maintainer. Binding
+verification is not authenticity; see `docs/RELEASE-SIGNING-POLICY-V1.md`
+for exactly that distinction and its worked `cosign verify-blob` example.
+`tests/offline_package/release_provenance.rs` covers the CLI end to end
+against real synthetic archives, cross-checks the trusted-identity constants
+against both the script and the policy document, and exercises every hostile
+case issue #168 names (single-byte mutation to the manifest, an artifact, or
+the provenance document; a provenance statement for a different commit/tag;
+a missing or extra artifact; an unapproved repository/issuer identity; and a
+signature claim replayed from another version).
+
+Building or verifying either document here creates no GitHub Release, signs
+nothing, and grants no authority -- exactly like the manifest and dry-run
+tooling above.
+
 ## Disposable dry-run harness and simulated recovery
 
 `scripts/release-publish-simulate.py` is an explicit, offline simulation of

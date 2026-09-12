@@ -29,6 +29,8 @@ mod release_manifest;
 mod release_packaging_unix;
 #[path = "offline_package/release_packaging_windows.rs"]
 mod release_packaging_windows;
+#[path = "offline_package/release_provenance.rs"]
+mod release_provenance;
 #[path = "offline_package/release_workflow.rs"]
 mod release_workflow;
 #[path = "offline_package/report.rs"]

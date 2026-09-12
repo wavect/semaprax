@@ -287,6 +287,42 @@ impl DatabaseFixture {
             .ok_or(FixtureError::UnknownTable)
     }
 
+    /// Updates `set_column` to `new_value` on every row whose value at
+    /// `key_column` equals `key_value`, in place. Returns the count of rows
+    /// updated (0 if none matched). Refuses a shape mismatch rather than
+    /// widening the column's type. Mutates `self.tables` unconditionally,
+    /// exactly like [`Self::insert`]: whether the write is durable is
+    /// controlled by the caller's `begin`/`commit`/`rollback` (or an
+    /// observed [`Self::connection_lost`]) bracketing this call, not by
+    /// this method itself — this is the primitive issue #192's job
+    /// completion needs to commit a lifecycle-state change into the same
+    /// ledger row `enqueue` created, so a completion whose commit is never
+    /// confirmed cannot be told apart from one that never happened.
+    pub fn update_column(
+        &mut self,
+        table: &str,
+        key_column: usize,
+        key_value: &Value,
+        set_column: usize,
+        new_value: Value,
+    ) -> Result<usize, FixtureError> {
+        let table = self.require_table_mut(table)?;
+        let mut updated = 0usize;
+        for row in table.rows.iter_mut() {
+            if row.get(key_column) != Some(key_value) {
+                continue;
+            }
+            match row.get(set_column) {
+                Some(existing) if existing.tag() == new_value.tag() => {
+                    row[set_column] = new_value.clone();
+                    updated += 1;
+                }
+                _ => return Err(FixtureError::RowShapeMismatch),
+            }
+        }
+        Ok(updated)
+    }
+
     /// Applies migration `id` (checksum `checksum`) if it is the next
     /// gapless, strictly increasing ID and no drift is detected against an
     /// already-applied entry of the same ID. Reapplying the exact same
@@ -388,6 +424,88 @@ mod tests {
             Err(FixtureError::RowShapeMismatch)
         );
         assert_eq!(db.row_count("users").unwrap(), 0);
+    }
+
+    #[test]
+    fn update_column_rewrites_matching_rows_and_refuses_a_shape_mismatch() {
+        let mut db = DatabaseFixture::new();
+        db.create_table("users", users_table()).unwrap();
+        db.insert(
+            "users",
+            vec![Value::Usize(1), Value::Bytes(b"alice".to_vec())],
+        )
+        .unwrap();
+        db.insert("users", vec![Value::Usize(2), Value::Bytes(b"bob".to_vec())])
+            .unwrap();
+        let updated = db
+            .update_column(
+                "users",
+                0,
+                &Value::Usize(1),
+                1,
+                Value::Bytes(b"alicia".to_vec()),
+            )
+            .unwrap();
+        assert_eq!(updated, 1);
+        assert_eq!(
+            db.select_eq("users", 0, &Value::Usize(1), 1).unwrap(),
+            vec![vec![Value::Usize(1), Value::Bytes(b"alicia".to_vec())]]
+        );
+        // bob's row is untouched.
+        assert_eq!(
+            db.select_eq("users", 0, &Value::Usize(2), 1).unwrap(),
+            vec![vec![Value::Usize(2), Value::Bytes(b"bob".to_vec())]]
+        );
+        // A type-mismatched replacement is refused rather than widening the
+        // column.
+        assert_eq!(
+            db.update_column("users", 0, &Value::Usize(2), 1, Value::Usize(9)),
+            Err(FixtureError::RowShapeMismatch)
+        );
+        // No matching key updates zero rows without error.
+        assert_eq!(
+            db.update_column("users", 0, &Value::Usize(404), 1, Value::Bytes(b"x".to_vec())),
+            Ok(0)
+        );
+    }
+
+    #[test]
+    fn update_column_composes_with_rollback_and_connection_lost_via_the_transaction_snapshot() {
+        let mut db = DatabaseFixture::new();
+        db.create_table("users", users_table()).unwrap();
+        db.insert(
+            "users",
+            vec![Value::Usize(1), Value::Bytes(b"alice".to_vec())],
+        )
+        .unwrap();
+
+        // A rolled-back update reverts to the pre-transaction snapshot.
+        db.begin().unwrap();
+        db.update_column("users", 0, &Value::Usize(1), 1, Value::Bytes(b"bob".to_vec()))
+            .unwrap();
+        db.rollback().unwrap();
+        assert_eq!(
+            db.select_eq("users", 0, &Value::Usize(1), 1).unwrap(),
+            vec![vec![Value::Usize(1), Value::Bytes(b"alice".to_vec())]]
+        );
+
+        // A connection lost mid-transaction discards the in-flight update
+        // exactly like a rollback: the update never becomes durable.
+        db.begin().unwrap();
+        db.update_column(
+            "users",
+            0,
+            &Value::Usize(1),
+            1,
+            Value::Bytes(b"carol".to_vec()),
+        )
+        .unwrap();
+        db.connection_lost();
+        assert_eq!(
+            db.select_eq("users", 0, &Value::Usize(1), 1).unwrap(),
+            vec![vec![Value::Usize(1), Value::Bytes(b"alice".to_vec())]]
+        );
+        assert_eq!(db.transaction_state(), TransactionState::Failed);
     }
 
     #[test]

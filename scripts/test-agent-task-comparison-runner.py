@@ -147,7 +147,7 @@ class OwnedOracleTests(unittest.TestCase):
                 {"kind": "call", "caller": "benchmark.owned.test", "target": "benchmark.owned.evaluate"},
             ],
         })
-        return {"available": True, "binary_sha256": "sha256:fixture", "commands": commands}
+        return {"available": True, "binary_sha256_before": "sha256:fixture", "binary_sha256_after": "sha256:fixture", "candidate": commands, "baseline": commands}
 
     def test_owned_oracle_rejects_wrong_owner_even_with_admitted_compiler_evidence(self):
         binding, candidate, before, after = self._candidate()
@@ -160,6 +160,14 @@ class OwnedOracleTests(unittest.TestCase):
         self.assertEqual(outcomes["signature"], "failed")
         self.assertEqual(outcomes["ownership"], "failed")
 
+    def test_owned_oracle_rejects_runtime_regression_against_baseline(self):
+        binding, candidate, before, after = self._candidate()
+        evidence = self._compiler_evidence()
+        evidence["baseline"]["run"]["stdout"] = "41\n"
+        with mock.patch.object(runner, "_owned_compiler_evidence", return_value=evidence):
+            rows, _ = runner.check_owned_signature_migration(candidate, binding, before, after, "unused")
+        self.assertEqual({row["id"]: row["outcome"] for row in rows}["meaning"], "failed")
+
     def test_owned_oracle_rejects_non_core_authority_mutation(self):
         binding, candidate, before, after = self._candidate()
         app = candidate / "src/app.spx"
@@ -170,6 +178,21 @@ class OwnedOracleTests(unittest.TestCase):
         outcomes = {row["id"]: row["outcome"] for row in rows}
         self.assertEqual(outcomes["authority"], "failed")
         self.assertEqual(outcomes["review"], "failed")
+
+
+class BoundedCompilerEvidenceTests(unittest.TestCase):
+    def test_snapshot_rejects_symlink_directory(self):
+        root = Path(tempfile.mkdtemp(prefix="atc-symlink-"))
+        self.addCleanup(shutil.rmtree, root, True)
+        os.symlink(root, root / "loop")
+        with self.assertRaises(runner.RunnerFailure):
+            runner.snapshot_candidate(root)
+
+    def test_bounded_command_rejects_output_cap_and_timeout(self):
+        loud = runner._bounded_command([sys.executable, "-c", "print('x' * 200000)"], ROOT, limit=1024)
+        self.assertIn("output exceeds", loud["error"])
+        slow = runner._bounded_command([sys.executable, "-c", "import time; time.sleep(1)"], ROOT, timeout=0.01)
+        self.assertEqual(slow["error"], "timeout")
 
 
 class ProtectionTests(ScratchEvidenceMixin, unittest.TestCase):

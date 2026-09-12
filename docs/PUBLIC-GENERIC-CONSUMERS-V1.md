@@ -928,6 +928,34 @@ rejected), rather than being independently meaningful new cases here.
 Widening that requires the flat owned-`Bytes` calling-consumer type model
 (issue #119) to carry real descriptor structure first.
 
+**Two reference-codec gaps #173's audit found and closed directly.**
+Auditing every hostile case already listed above against the five wire
+codecs that actually exist (`descriptor.rs`, `carrier.rs`,
+`carrier/frame.rs`, `native/binding.rs`, `wasm/binding.rs`) found two
+classes named in #173's own scope with zero asserting test anywhere in the
+repository: invalid UTF-8 inside a decoded string field (every one of the
+five codecs decodes a field with `String::from_utf8`/`str::from_utf8` and
+maps a failure to that codec's own malformed-input code, but no fixture
+ever exercised the failing branch) and an unrecognized `LeafKind` wire tag
+in `carrier/frame.rs` (`LeafKind` is a closed one-variant enum this round —
+`Bytes`, tag `0` — so no public constructor can produce a second legal
+variant to substitute, but the decoder's rejection of an unrecognized tag
+byte, the real "variant tag" hostile case, was itself never exercised).
+`tests/projections/public_generic_descriptor_carrier_hostile_replay.rs`
+closes both, against the real public codec API only
+(`decode`/`parse_bounded`/`decode_binding`/`decode_native_provider_binding`/
+`decode_wasm_provider_binding`, never a private helper): six cases, one per
+codec for invalid UTF-8 plus one for the carrier frame's leaf-kind tag,
+each first asserting the unmutated fixture is ACCEPTED (the required
+positive control), then asserting the SPECIFIC refusal code and message
+substring on the mutated bytes — never merely that decoding failed. It
+deliberately does not repeat reorder/duplicate/extra-field cases (already
+the same "trailing bytes" branch under every codec's own existing test, per
+the paragraph above — a byte-identical repetition under a new name would
+prove nothing new) or cleanup-plan/release substitution (already covered by
+`carrier/tests.rs`'s release-order tests and the cross-engine settlement
+corpus, issue #162).
+
 ## Aggregate execution entry point (issue #172)
 
 Audience: anyone who wants "all four generated calling consumers execute"

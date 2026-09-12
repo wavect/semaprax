@@ -43,6 +43,8 @@ mod protocol_projection;
 mod public_api_descriptor;
 #[path = "projections/public_generic_consumers.rs"]
 mod public_generic_consumers;
+#[path = "projections/public_generic_descriptor_carrier_hostile_replay.rs"]
+mod public_generic_descriptor_carrier_hostile_replay;
 #[path = "projections/public_generic_ownership_milestone.rs"]
 mod public_generic_ownership_milestone;
 #[path = "projections/query_projection.rs"]

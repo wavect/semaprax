@@ -1010,6 +1010,105 @@ fn settlement_obligation_mismatch_reason_and_code_are_defined() {
 }
 
 // ---------------------------------------------------------------------
+// #242: finite generic nesting vs. genuine recursion
+// ---------------------------------------------------------------------
+//
+// `check_acyclic` tracked cycle membership by bare declaration identity
+// wherever it appeared in the walk — including while walking a nominal's own
+// *type arguments* — so `Pair<Pair<Leaf, i64>, i64>` (the same template
+// nested inside its own argument, a finite, non-cyclic instantiation) was
+// misreported as `Refusal::RecursiveClosure`, contradicting this module's own
+// "Known limitations" documentation (which already claimed such a case falls
+// through to `Refusal::BoundExceeded`). The fix marks a declaration active
+// only while expanding its own *fields*, not while walking the type-argument
+// tree fed into it, since only field expansion can recur into the same
+// declaration without terminating.
+
+/// Accept-side control: a real, compiled, finite nesting of `Pair` inside its
+/// own type argument is admitted, proving the false `RecursiveClosure` was
+/// removed rather than merely relabelled to a different refusal.
+#[test]
+fn a_finite_nested_instantiation_of_the_same_template_is_admitted() {
+    let source = r#"
+module test.public_generic_classifier_nested_template;
+
+@id("classifier.nt.leaf")
+record Leaf {
+    @id("classifier.nt.leaf.head")
+    head: Bytes,
+}
+
+@id("classifier.nt.pair")
+record Pair<T, U> {
+    @id("classifier.nt.pair.left")
+    left: T,
+    @id("classifier.nt.pair.right")
+    right: U,
+}
+
+@id("classifier.nt.take")
+fn take(value: own Pair<Pair<Leaf, i64>, i64>) -> Pair<Pair<Leaf, i64>, i64> { value }
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let admitted = classify(&resolved(source), "classifier.nt.take").unwrap();
+    assert_eq!(admitted.input().owned_leaves.len(), 1);
+    assert_eq!(admitted.input().term, admitted.result().term);
+}
+
+/// Mutate `classifier.pair`'s own `left` field (originally the unsubstituted
+/// type parameter `T`) into `Pair<T, U>` again, on a clone of an
+/// already-checked program: `record Pair<T, U> { left: Pair<T, U>, right: U
+/// }`. This is a genuinely self-referential *generic template* declaration —
+/// the exact shape this module's own "Known limitations" documentation names
+/// (`record Node<T> { child: Node<T> }`) — and, like
+/// [`set_leaf_head_type`], could never come from real front-end source:
+/// `declaration_index.rs` refuses a by-value recursive record layout
+/// ("record declarations contain an illegal by-value recursive layout")
+/// before this classifier ever runs.
+fn make_pair_recursive(program: &mut ResolvedProgram) {
+    let index = program
+        .types
+        .iter()
+        .position(|declaration| declaration.id.as_str() == "classifier.pair")
+        .expect("BASE declares classifier.pair");
+    let owner = program.types[index].id.clone();
+    let ResolvedTypeDeclarationKind::Record { fields } = &mut program.types[index].kind else {
+        panic!("classifier.pair is a record declaration");
+    };
+    fields[0].ty = nominal(
+        "classifier.pair",
+        vec![
+            ResolvedType::TypeParameter {
+                owner: owner.clone(),
+                index: 0,
+            },
+            ResolvedType::TypeParameter { owner, index: 1 },
+        ],
+    );
+}
+
+/// Negative control: a template declaration that genuinely refers to itself
+/// through its own field (with type-argument positions, not just a bare
+/// zero-argument self-reference like
+/// [`a_self_referential_record_field_is_a_recursive_closure`]) must still be
+/// refused as `RecursiveClosure`, with the exact code asserted and the
+/// message confirmed to name neither `BoundExceeded` nor any other reason —
+/// proving the fix narrowed the false positive rather than disabling cycle
+/// detection for generic declarations altogether.
+#[test]
+fn a_directly_self_referential_generic_template_is_still_a_recursive_closure() {
+    let mut program = resolved(BASE);
+    make_pair_recursive(&mut program);
+    let error = classify(&program, "classifier.take").unwrap_err();
+    assert_eq!(error, Refusal::RecursiveClosure);
+    assert_eq!(error.code(), RECURSIVE_CLOSURE);
+    assert_ne!(error.code(), BOUND_EXCEEDED);
+    assert!(!error.diagnostic().message.contains(BOUND_EXCEEDED));
+}
+
+// ---------------------------------------------------------------------
 // Separation
 // ---------------------------------------------------------------------
 

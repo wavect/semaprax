@@ -477,10 +477,16 @@ fn translate_settlement_error(diagnostic: Diagnostic) -> Refusal {
 /// Detect a genuine cycle in the raw declaration graph reachable from `ty`,
 /// before the grammar's depth-bounded projection is asked to describe
 /// anything. Walks *unsubstituted* field types: a declaration identity that
-/// reappears on the current path — directly self-referential or through
-/// mutual recursion — is a cycle regardless of what concrete arguments
-/// would eventually be substituted, since substitution never removes a
-/// field occurrence, only renames the type parameters inside it.
+/// reappears on the current **field-expansion** path — directly
+/// self-referential or through mutual recursion — is a cycle regardless of
+/// what concrete arguments would eventually be substituted, since
+/// substitution never removes a field occurrence, only renames the type
+/// parameters inside it. A declaration identity that instead reappears only
+/// as a *type argument* nested inside another instantiation of the same
+/// template (for example `Pair<Pair<Leaf, i64>, i64>`) is not on that path:
+/// each occurrence's own field expansion starts and finishes independently,
+/// so a finite nesting falls through to the grammar's own depth/width bound
+/// ([`Refusal::BoundExceeded`]) instead of being misreported here.
 pub(crate) fn check_acyclic(program: &ResolvedProgram, ty: &ResolvedType) -> Result<(), Refusal> {
     let mut active: Vec<&str> = Vec::new();
     let mut budget = 0usize;
@@ -505,13 +511,23 @@ fn walk_acyclic<'a>(
         return Ok(());
     };
     let id = declaration.as_str();
+    // Type arguments are a substitution tree, not a declaration-body
+    // expansion: the same template legitimately nested inside its own type
+    // argument (for example `Pair<Pair<Leaf, i64>, i64>`) is a finite,
+    // non-cyclic instantiation, since each occurrence's own field expansion
+    // (below) starts and ends before the next one begins. Only expanding a
+    // declaration's *own fields* can recur into the same declaration without
+    // terminating, so `id` must not be marked active while its arguments —
+    // as opposed to its fields — are walked, or this finite nesting would be
+    // misreported as `RecursiveClosure` instead of falling through to the
+    // grammar's own depth/width bound (`Refusal::BoundExceeded`).
+    for argument in arguments {
+        walk_acyclic(program, argument, active, budget)?;
+    }
     if active.contains(&id) {
         return Err(Refusal::RecursiveClosure);
     }
     active.push(id);
-    for argument in arguments {
-        walk_acyclic(program, argument, active, budget)?;
-    }
     if let Some(found) = program.types.iter().find(|d| d.id.as_str() == id) {
         if let ResolvedTypeDeclarationKind::Record { fields } = &found.kind {
             for field in fields {

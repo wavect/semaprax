@@ -689,3 +689,156 @@ fn a_refusal_is_sticky_across_further_pushes() {
     let second = decoder.push(b"anything else at all");
     assert_eq!(first, second);
 }
+
+// ---------------------------------------------------------------------
+// Criterion: fuzz/property tests within strict limits, retaining
+// minimized distinct failures (issue #178, "Required tests and evidence").
+//
+// This harness needs no external fuzzing crate: it is a fixed-seed,
+// bounded, fully deterministic mutation loop over `std` alone, matching
+// this codebase's determinism invariant (a randomized-looking test that is
+// not reproducible would itself be a defect here). The property under
+// test is exactly the one the corpus-based tests above assert case by
+// case: the streaming decoder (whichever chunking it is fed through) must
+// never disagree with `CompiledInteractionSchema::decode` on the identical
+// bytes. Fuzzing explores many more byte shapes than the hand-picked
+// corpus without hand-writing each one, and any disagreement it ever finds
+// is delta-debugged down to a minimal reproduction before the test fails,
+// so a future regression here is easy to read rather than a raw 500-byte
+// blob.
+// ---------------------------------------------------------------------
+
+/// One deterministic mutation of `bytes`: flips, deletes, inserts,
+/// truncates, or duplicates a short range at a pseudo-random position.
+/// `next_u64` is any deterministic byte source (a seeded xorshift64 in the
+/// test below), never real randomness or wall-clock time, so a failure
+/// this loop ever finds is exactly reproducible from the same seed.
+fn mutate(bytes: &[u8], next_u64: &mut impl FnMut() -> u64) -> Vec<u8> {
+    let mut out = bytes.to_vec();
+    if out.is_empty() {
+        out.push((next_u64() % 256) as u8);
+        return out;
+    }
+    let index = (next_u64() as usize) % out.len();
+    match next_u64() % 5 {
+        0 => out[index] = (next_u64() % 256) as u8,
+        1 => {
+            out.remove(index);
+        }
+        2 => out.insert(index, (next_u64() % 256) as u8),
+        3 => out.truncate(index),
+        _ => {
+            let len = ((next_u64() as usize) % 4) + 1;
+            let end = (index + len).min(out.len());
+            let range = out[index..end].to_vec();
+            out.splice(index..index, range);
+        }
+    }
+    out
+}
+
+/// Whether `bytes` reproduces a disagreement between the whole-document
+/// decoder and the streaming decoder, in either chunking: this predicate
+/// is the fuzz invariant that must never hold for any input this harness
+/// generates. Deliberately does not require `bytes` to be a *legal*
+/// document — only that every path agrees on whichever verdict is correct
+/// for it, exactly the same property `streaming_outcome_agrees_with_the_
+/// whole_document_decoder_for_every_case` asserts case by case above.
+fn disagrees(schema: &CompiledInteractionSchema, bytes: &[u8]) -> bool {
+    let whole = schema.decode(bytes);
+    let all_at_once = push_all_at_once(schema, bytes);
+    let one_byte = push_one_byte_at_a_time(schema, bytes);
+
+    let whole_accepted = whole.is_ok();
+    let all_accepted = matches!(all_at_once, PushOutcome::Accepted(_));
+    let byte_accepted = matches!(one_byte, PushOutcome::Accepted(_));
+    if whole_accepted != all_accepted || whole_accepted != byte_accepted {
+        return true;
+    }
+    if let (PushOutcome::Accepted(a), PushOutcome::Accepted(b)) = (&all_at_once, &one_byte) {
+        if a != b {
+            return true;
+        }
+    }
+    if let (Ok(value), PushOutcome::Accepted(streamed)) = (&whole, &all_at_once) {
+        if value != streamed {
+            return true;
+        }
+    }
+    false
+}
+
+/// Delta-debugs a failing byte sequence down to a smaller one that still
+/// reproduces [`disagrees`], by repeatedly trying to delete one byte at a
+/// time until no single deletion still reproduces the failure. Bounded by
+/// construction: each outer pass either shrinks by at least one byte or
+/// returns, so this always terminates within `bytes.len()` passes.
+fn shrink_minimal_failure(schema: &CompiledInteractionSchema, mut bytes: Vec<u8>) -> Vec<u8> {
+    loop {
+        let mut shrunk = None;
+        for i in 0..bytes.len() {
+            let mut candidate = bytes.clone();
+            candidate.remove(i);
+            if disagrees(schema, &candidate) {
+                shrunk = Some(candidate);
+                break;
+            }
+        }
+        match shrunk {
+            Some(candidate) => bytes = candidate,
+            None => return bytes,
+        }
+    }
+}
+
+/// Runs [`disagrees`] across many fixed-seed mutations of several valid
+/// and degenerate seed documents (a plain-ASCII valid document, a
+/// multi-byte-UTF-8-bearing valid document, a bare open brace, and an
+/// empty stream), well within strict iteration/byte limits. Any
+/// disagreement this loop finds is minimized before the assertion fails,
+/// so this test can never merely report "500 random bytes disagreed
+/// somewhere" without saying exactly which minimal bytes did.
+#[test]
+fn bounded_deterministic_fuzz_finds_no_streaming_whole_document_disagreement() {
+    let outer = compile_outer();
+    let seeds: Vec<Vec<u8>> = vec![
+        outer_document(&outer, "7", "true", "hello world").into_bytes(),
+        outer_document(&outer, "-42", "false", "caf\u{e9} \u{1f600} \u{4e2d}").into_bytes(),
+        b"{".to_vec(),
+        Vec::new(),
+    ];
+
+    // Fixed seed: this loop must reproduce identically on every run, never
+    // draw from real randomness or the wall clock.
+    let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
+    let mut next_u64 = move || {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        state
+    };
+
+    const ITERATIONS: usize = 400;
+    let mut failures: Vec<Vec<u8>> = Vec::new();
+
+    for i in 0..ITERATIONS {
+        let seed = &seeds[i % seeds.len()];
+        let mutated = mutate(seed, &mut next_u64);
+        if mutated.len() > MAX_STREAM_BYTES {
+            continue;
+        }
+        if disagrees(&outer, &mutated) {
+            failures.push(shrink_minimal_failure(&outer, mutated));
+        }
+    }
+
+    assert!(
+        failures.is_empty(),
+        "streaming/whole-document decoder disagreement on {} minimized case(s): {:?}",
+        failures.len(),
+        failures
+            .iter()
+            .map(|bytes| String::from_utf8_lossy(bytes).into_owned())
+            .collect::<Vec<_>>()
+    );
+}

@@ -296,10 +296,9 @@ impl CompactProjection {
             match token {
                 BodyToken::Raw(bytes) => out.extend_from_slice(bytes),
                 BodyToken::Ref(index) => {
-                    let entry = self
-                        .dictionary
-                        .get(*index as usize)
-                        .ok_or_else(|| body_ref_out_of_range_error(*index, self.dictionary.len()))?;
+                    let entry = self.dictionary.get(*index as usize).ok_or_else(|| {
+                        body_ref_out_of_range_error(*index, self.dictionary.len())
+                    })?;
                     out.extend_from_slice(entry);
                 }
             }
@@ -329,7 +328,11 @@ impl CompactProjection {
         out.push(b'\n');
         write_text_field(&mut out, b"profile", self.profile.as_bytes());
         write_text_field(&mut out, b"root", self.root.as_bytes());
-        write_text_field(&mut out, b"source_revision", self.source_revision.as_bytes());
+        write_text_field(
+            &mut out,
+            b"source_revision",
+            self.source_revision.as_bytes(),
+        );
         write_text_field(&mut out, b"source_digest", self.source_digest.as_bytes());
         out.extend_from_slice(b"dict ");
         out.extend_from_slice(self.dictionary.len().to_string().as_bytes());
@@ -604,7 +607,8 @@ pub fn encode_profile(
         }
     };
     let source_revision = graph::revision(program);
-    encode_bytes(json.as_bytes(), &profile, &root, &source_revision).map_err(|diagnostic| vec![diagnostic])
+    encode_bytes(json.as_bytes(), &profile, &root, &source_revision)
+        .map_err(|diagnostic| vec![diagnostic])
 }
 
 fn validate_dictionary_order(dictionary: &[Vec<u8>]) -> Result<(), Diagnostic> {
@@ -929,7 +933,8 @@ fn parse_body_stream(bytes: &[u8]) -> Result<Vec<BodyToken>, Diagnostic> {
             cursor += 1;
             if cursor - digits_start > 10 {
                 return Err(malformed_error(
-                    "compact semantic projection text body reference has too many digits".to_owned(),
+                    "compact semantic projection text body reference has too many digits"
+                        .to_owned(),
                 ));
             }
         }
@@ -943,10 +948,12 @@ fn parse_body_stream(bytes: &[u8]) -> Result<Vec<BodyToken>, Diagnostic> {
                 "compact semantic projection text body reference is empty".to_owned(),
             ));
         }
-        let digits =
-            std::str::from_utf8(&bytes[digits_start..cursor]).expect("ASCII digits are valid UTF-8");
+        let digits = std::str::from_utf8(&bytes[digits_start..cursor])
+            .expect("ASCII digits are valid UTF-8");
         let value: u64 = digits.parse().map_err(|_| {
-            malformed_error("compact semantic projection text body reference does not fit u32".to_owned())
+            malformed_error(
+                "compact semantic projection text body reference does not fit u32".to_owned(),
+            )
         })?;
         if value > u64::from(u32::MAX) {
             return Err(malformed_error(
@@ -996,7 +1003,10 @@ pub fn decode_text(text: &str) -> Result<CompactProjection, Diagnostic> {
         cursor.read_text_field(b"profile", MAX_HEADER_FIELD_BYTES)?,
         "profile",
     )?;
-    let root = utf8_field(cursor.read_text_field(b"root", MAX_HEADER_FIELD_BYTES)?, "root")?;
+    let root = utf8_field(
+        cursor.read_text_field(b"root", MAX_HEADER_FIELD_BYTES)?,
+        "root",
+    )?;
     let source_revision = utf8_field(
         cursor.read_text_field(b"source_revision", MAX_HEADER_FIELD_BYTES)?,
         "source_revision",
@@ -1079,7 +1089,11 @@ fn verify_binding(
         ));
     }
     if projection.root != expected_root {
-        return Err(binding_mismatch_error("root", expected_root, &projection.root));
+        return Err(binding_mismatch_error(
+            "root",
+            expected_root,
+            &projection.root,
+        ));
     }
     if projection.source_revision != expected_source_revision {
         return Err(binding_mismatch_error(

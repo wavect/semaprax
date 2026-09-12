@@ -325,6 +325,7 @@ Audience: all documentation readers.
 
 - [Agent context v1](AGENT-CONTEXT-V1.md)
 - [Agent context v2](AGENT-CONTEXT-V2.md)
+- [Compact Semantic Projection v1](COMPACT-SEMANTIC-PROJECTION-V1.md)
 - [Agent transport v1](AGENT-TRANSPORT-V1.md)
 - [Live Invocation Contract v1](LIVE-INVOCATION-CONTRACT-V1.md)
 - [Live Invocation Persistence v1](LIVE-INVOCATION-PERSISTENCE-V1.md)

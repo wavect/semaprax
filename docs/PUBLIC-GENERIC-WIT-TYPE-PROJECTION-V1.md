@@ -1,16 +1,18 @@
 # Public Generic WIT Type Projection v1
 
-Status: implemented bounded projection; local evidence only, no hosted CI run
-recorded. A documentation-tracked slice of issue #176, itself gated behind
-PG-9 of the
+Status: implemented bounded projection; local evidence only, no hosted CI
+run recorded. It projects types and nothing calls it.
+
+Audience: ABI, WIT/Component, package, and evidence reviewers.
+
+A documentation-tracked slice of issue #176, gated behind PG-9 of the
 [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md).
 **Public generic ownership is not supported or published, and this document
 does not change that.** No public generic export exists, no compiled `.wasm`
 implements the provider ABI (open issue #229), and no engine has executed a
 component built from this projection. What exists is a deterministic,
-refusal-total *type* projection to WIT text — nothing that calls it.
-
-Audience: ABI, WIT/Component, package, and evidence reviewers.
+refusal-total *type* projection from an already-checked Boundary Profile v1
+admission to WIT `record`/`resource` text.
 
 Implementation: [`src/public_generic_abi/wit_projection.rs`](../src/public_generic_abi/wit_projection.rs).
 

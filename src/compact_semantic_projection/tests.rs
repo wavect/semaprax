@@ -10,10 +10,13 @@ fn program(source: &str) -> Program {
 }
 
 fn example(name: &str) -> Program {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples").join(name);
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("examples")
+        .join(name);
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("committed example {} reads: {error}", path.display()));
-    crate::parse(&source, name).unwrap_or_else(|error| panic!("committed example {name} parses: {error:?}"))
+    crate::parse(&source, name)
+        .unwrap_or_else(|error| panic!("committed example {name} parses: {error:?}"))
 }
 
 fn forward_options(depth: usize) -> AgentContextV2Options {
@@ -42,8 +45,9 @@ fn round_trip_agent_context_v2_binary_matches_the_original_engine_output_exactly
     let symbol = "app.main";
 
     // Independently obtained: calls the plain existing engine directly.
-    let original =
-        graph::agent_context_v2_json(&program, symbol, &options).unwrap().expect("seed resolves");
+    let original = graph::agent_context_v2_json(&program, symbol, &options)
+        .unwrap()
+        .expect("seed resolves");
 
     let projection = encode_profile(
         &program,
@@ -74,7 +78,8 @@ fn round_trip_full_graph_text_matches_the_original_engine_output_exactly() {
 
     let original = graph::to_json(&program).expect("graph resolves");
 
-    let projection = encode_profile(&program, ProjectionSource::FullGraph).expect("encode succeeds");
+    let projection =
+        encode_profile(&program, ProjectionSource::FullGraph).expect("encode succeeds");
     let text = projection.to_text();
     assert_ne!(text, original);
 
@@ -91,7 +96,8 @@ fn round_trip_full_graph_text_matches_the_original_engine_output_exactly() {
 fn compact_wire_forms_are_materially_smaller_on_a_committed_example() {
     let program = example("http_app_routing.spx");
     let original = graph::to_json(&program).expect("graph resolves");
-    let projection = encode_profile(&program, ProjectionSource::FullGraph).expect("encode succeeds");
+    let projection =
+        encode_profile(&program, ProjectionSource::FullGraph).expect("encode succeeds");
 
     let binary_len = projection.to_binary().len();
     let text_len = projection.to_text().len();
@@ -128,7 +134,8 @@ fn round_trip_is_deterministic_across_repeated_encodes() {
 #[test]
 fn tampered_wire_content_fails_digest_verification() {
     let program = program(FIXTURE);
-    let projection = encode_profile(&program, ProjectionSource::FullGraph).expect("encode succeeds");
+    let projection =
+        encode_profile(&program, ProjectionSource::FullGraph).expect("encode succeeds");
     let mut wire = projection.to_binary();
 
     // Flip one byte well past the fixed-width header (inside the
@@ -139,13 +146,17 @@ fn tampered_wire_content_fails_digest_verification() {
     wire[flip_at] ^= 0xFF;
 
     let error = decode_binary(&wire).expect_err("tampered content must not round-trip");
-    assert_eq!(error.code, "SPX-Z907", "must report digest mismatch specifically: {error:?}");
+    assert_eq!(
+        error.code, "SPX-Z907",
+        "must report digest mismatch specifically: {error:?}"
+    );
 }
 
 #[test]
 fn tampered_text_body_content_fails_digest_verification() {
     let program = program(FIXTURE);
-    let projection = encode_profile(&program, ProjectionSource::FullGraph).expect("encode succeeds");
+    let projection =
+        encode_profile(&program, ProjectionSource::FullGraph).expect("encode succeeds");
     let text = projection.to_text();
 
     // Flip the very first byte of the body stream. It is not a `~`
@@ -154,16 +165,24 @@ fn tampered_text_body_content_fails_digest_verification() {
     // length/count field, delimiter, or dictionary content.
     let content_at = text.find("body\n").expect("a body section is present") + "body\n".len();
     assert_ne!(
-        text.as_bytes()[content_at], b'~',
+        text.as_bytes()[content_at],
+        b'~',
         "this test needs the first body byte to be raw, not a reference marker"
     );
 
     let mut bytes = text.into_bytes();
-    bytes[content_at] = if bytes[content_at] == b'X' { b'Y' } else { b'X' };
+    bytes[content_at] = if bytes[content_at] == b'X' {
+        b'Y'
+    } else {
+        b'X'
+    };
     let text = String::from_utf8(bytes).expect("swapping one ASCII byte stays valid UTF-8");
 
     let error = decode_text(&text).expect_err("tampered body content must not round-trip");
-    assert_eq!(error.code, "SPX-Z907", "must report digest mismatch specifically: {error:?}");
+    assert_eq!(
+        error.code, "SPX-Z907",
+        "must report digest mismatch specifically: {error:?}"
+    );
 }
 
 // --- Dictionary indices are compression bookkeeping, never identity ------
@@ -258,7 +277,10 @@ fn hostile_declared_dictionary_count_is_refused_before_allocating() {
     }
     wire.extend_from_slice(&u32::MAX.to_le_bytes()); // declared dictionary count
     let error = decode_binary(&wire).expect_err("an absurd declared count must be refused");
-    assert_eq!(error.code, "SPX-Z901", "expected a capacity refusal: {error:?}");
+    assert_eq!(
+        error.code, "SPX-Z901",
+        "expected a capacity refusal: {error:?}"
+    );
 }
 
 #[test]
@@ -339,7 +361,10 @@ fn hostile_text_unknown_format_version_is_refused() {
     let projection = small_projection();
     let text = projection.to_text();
     let replaced = text.replacen("SPXCPJv1\n", "SPXCPJv7\n", 1);
-    assert_ne!(text, replaced, "the fixture must contain the version line being replaced");
+    assert_ne!(
+        text, replaced,
+        "the fixture must contain the version line being replaced"
+    );
     let error = decode_text(&replaced).expect_err("an unknown version must be refused");
     assert_eq!(error.code, "SPX-Z904");
 }
@@ -363,7 +388,11 @@ fn hostile_unrecognized_body_tag_is_refused() {
 #[test]
 fn field_injected_root_binding_mismatch_is_refused_by_verify_but_not_by_plain_decode() {
     let projection = small_projection();
-    assert_eq!(projection.root(), "*", "this test's offset arithmetic assumes a 1-byte root");
+    assert_eq!(
+        projection.root(),
+        "*",
+        "this test's offset arithmetic assumes a 1-byte root"
+    );
     let mut wire = projection.to_binary();
 
     // Locate the root field's content byte by exact layout, not by
@@ -376,7 +405,8 @@ fn field_injected_root_binding_mismatch_is_refused_by_verify_but_not_by_plain_de
 
     // Plain decode succeeds: the envelope is structurally well-formed and
     // internally consistent (its own digest still matches its own content).
-    let decoded = decode_binary(&wire).expect("a well-formed envelope with a different root decodes");
+    let decoded =
+        decode_binary(&wire).expect("a well-formed envelope with a different root decodes");
     assert_eq!(decoded.root(), "!");
 
     // But binding verification against the caller's actual expectation
@@ -437,9 +467,14 @@ fn max_dictionary_entries_bound_is_enforced_at_its_exact_limit() {
 
     assert!(encode_bytes(&under, "p", "r", "rev").is_ok());
     assert!(encode_bytes(&at, "p", "r", "rev").is_ok());
-    let error = encode_bytes(&over, "p", "r", "rev").expect_err("one over the limit must be refused");
+    let error =
+        encode_bytes(&over, "p", "r", "rev").expect_err("one over the limit must be refused");
     assert_eq!(error.code, "SPX-Z901");
-    assert!(error.message.contains("dictionary entries"), "{}", error.message);
+    assert!(
+        error.message.contains("dictionary entries"),
+        "{}",
+        error.message
+    );
 }
 
 /// `occurrences` repetitions of the single literal `"x"`, joined by `,`
@@ -465,7 +500,11 @@ fn repeated_literal_source(occurrences: usize, leading_raw: bool) -> Vec<u8> {
 
 #[test]
 fn max_body_tokens_bound_is_enforced_at_its_exact_limit() {
-    assert_eq!(MAX_BODY_TOKENS % 2, 1, "the construction below assumes an odd bound");
+    assert_eq!(
+        MAX_BODY_TOKENS % 2,
+        1,
+        "the construction below assumes an odd bound"
+    );
     let at_occurrences = (MAX_BODY_TOKENS + 1) / 2; // 2*o - 1 == MAX_BODY_TOKENS
     let under_occurrences = at_occurrences - 1; // with leading_raw: 2*o == MAX_BODY_TOKENS - 1
     let over_occurrences = at_occurrences; // with leading_raw: 2*o == MAX_BODY_TOKENS + 1
@@ -474,11 +513,13 @@ fn max_body_tokens_bound_is_enforced_at_its_exact_limit() {
     let at = repeated_literal_source(at_occurrences, false);
     let over = repeated_literal_source(over_occurrences, true);
 
-    let under_projection = encode_bytes(&under, "p", "r", "rev").expect("one under the limit succeeds");
+    let under_projection =
+        encode_bytes(&under, "p", "r", "rev").expect("one under the limit succeeds");
     assert_eq!(under_projection.body_len(), MAX_BODY_TOKENS - 1);
     let at_projection = encode_bytes(&at, "p", "r", "rev").expect("exactly at the limit succeeds");
     assert_eq!(at_projection.body_len(), MAX_BODY_TOKENS);
-    let error = encode_bytes(&over, "p", "r", "rev").expect_err("one over the limit must be refused");
+    let error =
+        encode_bytes(&over, "p", "r", "rev").expect_err("one over the limit must be refused");
     assert_eq!(error.code, "SPX-Z901");
     assert!(error.message.contains("body tokens"), "{}", error.message);
 }
@@ -499,9 +540,14 @@ fn max_entry_bytes_bound_is_enforced_at_its_exact_limit() {
 
     assert!(encode_bytes(&under, "p", "r", "rev").is_ok());
     assert!(encode_bytes(&at, "p", "r", "rev").is_ok());
-    let error = encode_bytes(&over, "p", "r", "rev").expect_err("one over the limit must be refused");
+    let error =
+        encode_bytes(&over, "p", "r", "rev").expect_err("one over the limit must be refused");
     assert_eq!(error.code, "SPX-Z901");
-    assert!(error.message.contains("dictionary entry"), "{}", error.message);
+    assert!(
+        error.message.contains("dictionary entry"),
+        "{}",
+        error.message
+    );
 }
 
 #[test]
@@ -513,7 +559,8 @@ fn max_header_field_bytes_bound_is_enforced_at_its_exact_limit() {
 
     assert!(encode_bytes(source, "p", &under, "rev").is_ok());
     assert!(encode_bytes(source, "p", &at, "rev").is_ok());
-    let error = encode_bytes(source, "p", &over, "rev").expect_err("one over the limit must be refused");
+    let error =
+        encode_bytes(source, "p", &over, "rev").expect_err("one over the limit must be refused");
     assert_eq!(error.code, "SPX-Z901");
     assert!(error.message.contains("root"), "{}", error.message);
 }
@@ -555,9 +602,14 @@ fn max_source_bytes_bound_is_enforced_at_its_exact_limit() {
 
     assert!(encode_bytes(&under, "p", "r", "rev").is_ok());
     assert!(encode_bytes(&at, "p", "r", "rev").is_ok());
-    let error = encode_bytes(&over, "p", "r", "rev").expect_err("one over the limit must be refused");
+    let error =
+        encode_bytes(&over, "p", "r", "rev").expect_err("one over the limit must be refused");
     assert_eq!(error.code, "SPX-Z901");
-    assert!(error.message.contains("compact projection source"), "{}", error.message);
+    assert!(
+        error.message.contains("compact projection source"),
+        "{}",
+        error.message
+    );
 }
 
 #[test]
@@ -571,9 +623,18 @@ fn max_encoded_bytes_bound_is_enforced_at_its_exact_limit_ahead_of_structural_pa
     let over = vec![0u8; MAX_ENCODED_BYTES + 1];
 
     let under_error = decode_binary(&under).expect_err("garbage still fails, but not on size");
-    assert_eq!(under_error.code, "SPX-Z903", "must fail on structure, not size: {under_error:?}");
+    assert_eq!(
+        under_error.code, "SPX-Z903",
+        "must fail on structure, not size: {under_error:?}"
+    );
     let at_error = decode_binary(&at).expect_err("garbage still fails, but not on size");
-    assert_eq!(at_error.code, "SPX-Z903", "must fail on structure, not size: {at_error:?}");
+    assert_eq!(
+        at_error.code, "SPX-Z903",
+        "must fail on structure, not size: {at_error:?}"
+    );
     let over_error = decode_binary(&over).expect_err("one over the limit must be refused on size");
-    assert_eq!(over_error.code, "SPX-Z901", "must fail on the size gate itself: {over_error:?}");
+    assert_eq!(
+        over_error.code, "SPX-Z901",
+        "must fail on the size gate itself: {over_error:?}"
+    );
 }

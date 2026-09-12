@@ -34,6 +34,53 @@ a force-push or a branch deletion, with no check result consulted. This matches
 the audit observation and is a configuration fact at the timestamp above, not a
 property of the source tree. Requery before acting on it.
 
+### Requery 2026-09-12T09:07:42Z
+
+```sh
+gh api repos/wavect/semaprax/branches/main --jq '{protected, protection_url}'
+gh api 'repos/wavect/semaprax/rulesets?includes_parents=true'
+gh api repos/wavect/semaprax/branches/main/protection
+```
+
+| Query | Result |
+| --- | --- |
+| `branches/main` | `{"protected": false, ...}` |
+| `rulesets?includes_parents=true` | `[]` -- still no repository or inherited ruleset |
+| `branches/main/protection` | HTTP 404 `Branch not protected` |
+
+No drift from the 2026-09-05 baseline on protection state: `main` is still
+unprotected, seven days into this issue's audit baseline.
+
+**The cancellation streak is longer and more recent than the 2026-09-05
+figure above, and is still open.** Requerying
+`gh run list --branch main --workflow CI --limit 100 --json databaseId,status,conclusion,createdAt,updatedAt`
+at the timestamp in this heading finds, of the last 100 `CI` runs on `main`:
+98 `cancelled`, 1 `success`, 1 still `queued` (the push at the head of `main`
+at requery time). The single `success` is the run created at
+`2026-09-11T11:35:45Z` and completed at `2026-09-11T13:08:39Z`, for the commit
+titled "fix(tests): stop two copies of one native helper sharing scratch
+paths". Every one of the 89 pushes to `main` after that commit and before this
+requery -- from `2026-09-11T13:12:21Z` through `2026-09-12T09:00:26Z` -- was
+`cancelled`, plus the one `queued` run in flight at requery time that this
+streak's own pattern says is very unlikely to complete either. That is
+**19 hours 55 minutes** (13:08:39Z to 09:07:42Z) during which `main` produced
+*no hosted CI verdict of either color* -- not the roughly thirteen hours
+observed earlier in this same backlog's execution, because the push cadence
+that causes the cancellations has continued at the same rate since the
+2026-09-05 baseline was written. The mechanism is exactly the one already
+named below: `concurrency.cancel-in-progress: true` grouped by `github.ref`
+in `.github/workflows/ci.yml`, applied to `refs/heads/main` as to every other
+ref, racing against a push cadence measured in minutes.
+
+This is independent evidence for, not a change to, the design conclusion two
+paragraphs below: a required-status-check rule on `main` is unsatisfiable
+under the current push habit regardless of which check is named, because the
+ref that would carry the required result is also the ref whose in-progress
+run every subsequent push kills. See
+[Prerequisite](#prerequisite) for the concurrency-scoping change this
+implies, which is a `.github/workflows/ci.yml` edit and therefore outside
+this document's authority to make.
+
 ### Why a naive rule would fail here
 
 Two measured facts constrain the design more than the endpoints above do.
@@ -51,6 +98,9 @@ on against the current habit -- commit in a worktree, push straight to `main` --
 would reject essentially every push, because the required result would have to
 exist before the push that would produce it. The rule is only satisfiable if the
 result is earned somewhere else first, which is what the next section is about.
+(This has since gotten worse, not better: see
+[Requery 2026-09-12T09:07:42Z](#requery-2026-09-12t090742z) for a measured
+89-run, ~20-hour cancellation streak with zero completed verdicts.)
 
 **The aggregate that existed was green in the failure case.** The `release-gate`
 job aggregated all sixteen blockers under `if: ${{ success() }}`. That
@@ -105,6 +155,7 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | --- | --- | --- |
 | `public-generic-ownership-milestone` | `Public generic ownership milestone (ubuntu-latest \| macos-latest \| windows-latest)` | 3 |
 | `std-library-depth` | `STD-08 bundled library depth` | 1 |
+| `release-claim-reconcile` | `Release claim reconciliation` | 1 |
 | `supply-chain` | `Dependency policy` | 1 |
 | `component-runtime-v3` | `Private Wasmtime Component result runtime` | 1 |
 | `wasm-scalar-exports-browser-v1` | `Public Wasm Scalar Exports v1 Chromium` | 1 |
@@ -125,7 +176,7 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | `release-gate` | **`Release gate`** | 1 |
 
 The authored workflow additionally includes the three AGENT-06 client contexts
-and the GEN-05B closure context. With `verify-build`, it declares 51 blocking
+and the GEN-05B closure context. With `verify-build`, it declares 52 blocking
 contexts plus the aggregate; the new build, library-depth, and public generic
 ownership milestone contexts await hosted execution.
 `release-artifacts`
@@ -135,7 +186,7 @@ workflow adds `Build book` and, on `main` pushes only, `Deploy to GitHub Pages`.
 
 ## The aggregate gate
 
-`.github/workflows/ci.yml` shards across twenty-one blocking jobs whose names and
+`.github/workflows/ci.yml` shards across twenty-two blocking jobs whose names and
 matrix legs change often. Pinning twenty-plus expanded context names into a ruleset
 would make every sharding change a repository-administration change. The
 proposal requires exactly one context instead: **`Release gate`**, the job that
@@ -150,7 +201,7 @@ An aggregate is only worth requiring if it cannot be satisfied vacuously. The
   environment, and fails unless **every** upstream entry has
   `result == "success"` -- `failure`, `skipped`, and `cancelled` are all
   rejected by name;
-- passes `--min-jobs 20`, so an accidentally emptied or narrowed `needs:` list
+- passes `--min-jobs 22`, so an accidentally emptied or narrowed `needs:` list
   cannot pass vacuously on `{}`;
 - checks out the repository and compares `git rev-parse HEAD` against
   `${{ github.sha }}`, so a verdict cannot be attributed to another commit.
@@ -290,14 +341,45 @@ second edit once the branch-first routine is in use and, if the maintainers want
 ### Prerequisite
 
 `required_status_checks` evaluates the check result already recorded against the
-pushed commit, so a cancelled `main` run does not itself block the push. But
-while 97 of the last 100 `main` CI runs are cancelled, `main` carries no
-completed verdict of its own, and post-push evidence for a released or claimed
-commit has to be re-run by hand. Maintainers who want `main` runs to finish
-should scope the cancellation to non-default refs, for example
-`cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}`. That changes CI
-compute cost materially and is left to the maintainers; it is not required for
-the rule to function, and it is not changed by this proposal.
+pushed commit, so a cancelled `main` run does not itself block the push: under
+the branch-first routine above, the commit's passing result was recorded
+against its `agent/*` ref, whose `concurrency` group (keyed on `github.ref`) no
+other agent's push shares, so that run is never cancelled by a sibling agent
+working on a different branch. But while 98 of the last 100 `main`-ref CI runs
+are cancelled -- see [Requery 2026-09-12T09:07:42Z](#requery-2026-09-12t090742z)
+for the exact streak, 89 consecutive cancellations spanning almost 20 hours
+with zero completed verdict of either color -- `main` carries no completed
+verdict of its own once the fast-forwarded commit's push re-triggers `CI` on
+`refs/heads/main` itself. That absence does not block a merge, but it does
+block every consumer that reads "the latest completed run on `main`" -- the
+GitHub commit-status UI, `docs/CI-REQUIRED-CHECKS-V1.md`'s own audit script
+once it exists, and a human skimming `main` for the project's actual health --
+and it means post-push evidence for a released or claimed commit has to be
+re-run by hand.
+
+**Recommended fix: scope `cancel-in-progress` to non-default refs, not a merge
+queue.** Maintainers who want `main` runs to finish should change
+`.github/workflows/ci.yml`'s `concurrency` block to
+`cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}` (or an equivalent
+`group`/`cancel-in-progress` pair that only ever cancels non-`main` refs). This
+is a `.github/workflows/ci.yml` edit and is out of this document's authority to
+make; it is recorded here as the exact change, for a maintainer or the
+integrating coordinator to apply. A GitHub merge queue is **not** recommended
+as a substitute: it requires branch protection with pull requests enabled and
+serializes merges one at a time through the queue, which conflicts with the
+operating model this proposal explicitly preserves --
+[direct pushes from many parallel agent worktrees](#operating-model-this-proposal-preserves)
+with no pull request required. A queue would either throttle this backlog's
+merge throughput to one commit at a time, defeating the reason the many-worktree
+model exists, or, if agents kept fast-forwarding around it, leave the same
+`concurrency`-driven cancellation in place for the direct pushes that still
+happen. The ref-scoped `cancel-in-progress` change achieves the same end
+(`main` gets a completed verdict) without changing who may push or how, and
+that is why it is the recommendation. It changes CI compute cost materially
+(no push to `main` cancels a prior one, so overlapping `main` runs queue up
+back-to-back rather than being killed) and is left to the maintainers; it is
+not required for the required-status-check rule itself to function, and it is
+not changed by this proposal.
 
 ## Bypass and emergency recovery
 

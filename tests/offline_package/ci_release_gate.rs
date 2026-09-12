@@ -370,3 +370,85 @@ fn build_validation_runs_independently_without_losing_platform_coverage() {
         assert!(!build.contains(gate));
     }
 }
+
+/// Drift class this test exists to catch: a job joins `release-gate`'s
+/// `needs:` (and `RELEASE_BLOCKERS` above is updated to match, so the gate
+/// itself stays fail-closed) but `docs/CI-REQUIRED-CHECKS-V1.md`'s
+/// human-readable inventory table is never told about it. That happened in
+/// this repository's history for `release-claim-reconcile`: the job and this
+/// file's `RELEASE_BLOCKERS` entry landed in one commit
+/// (`ci: make the release-claim reconciliation an actual release blocker`),
+/// and the doc's table, blocking-job count, and `--min-jobs` prose were only
+/// corrected later, with no test failing in between.
+#[test]
+fn required_checks_doc_names_every_release_blocker() {
+    let doc = fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/CI-REQUIRED-CHECKS-V1.md"),
+    )
+    .expect("required-checks doc must be readable");
+
+    // `agent-proposal-clients` (the three AGENT-06 client contexts) and
+    // `gen05b-generic-instance-closure` (the GEN-05B closure context) are
+    // documented by prose alias rather than literal job id, because each
+    // expands to several published check-context names that the doc already
+    // enumerates individually in its own paragraph. Every other release
+    // blocker must appear by its literal job id somewhere in the doc.
+    let prose_aliased: &[&str] = &["agent-proposal-clients", "gen05b-generic-instance-closure"];
+
+    for blocker in RELEASE_BLOCKERS {
+        if prose_aliased.contains(blocker) {
+            continue;
+        }
+        assert!(
+            doc.contains(blocker),
+            "release blocker `{blocker}` is not named anywhere in \
+             docs/CI-REQUIRED-CHECKS-V1.md; add its published check-context \
+             row to the inventory table (or, if it expands to several \
+             contexts already described in prose, add it to `prose_aliased` \
+             in this test) whenever a new job joins `release-gate`'s `needs:`"
+        );
+    }
+}
+
+/// The doc's `--min-jobs` prose is hand-written English, not derived from
+/// `ci.yml` or `RELEASE_BLOCKERS`, so nothing forced it to move when either
+/// did. This pins it to the live workflow value instead of a hardcoded
+/// number, so it fails the moment a blocker is added or removed without the
+/// doc being updated to match -- exactly the gap that let
+/// `release-claim-reconcile` land without the doc noticing.
+#[test]
+fn required_checks_doc_min_jobs_matches_the_live_gate() {
+    let workflow = workflow();
+    let gate = job(&workflow, "release-gate");
+    let marker = "--min-jobs ";
+    let start = gate
+        .find(marker)
+        .unwrap_or_else(|| panic!("release-gate must pass `{marker}`"))
+        + marker.len();
+    let digits: String = gate[start..]
+        .chars()
+        .take_while(char::is_ascii_digit)
+        .collect();
+    let live_min_jobs: usize = digits
+        .parse()
+        .unwrap_or_else(|_| panic!("`--min-jobs` value must be numeric, got {digits:?}"));
+    assert_eq!(
+        live_min_jobs,
+        RELEASE_BLOCKERS.len(),
+        "ci.yml's `--min-jobs {live_min_jobs}` must equal \
+         RELEASE_BLOCKERS.len() ({}); keep the aggregate's floor in step with \
+         its own blocker inventory",
+        RELEASE_BLOCKERS.len()
+    );
+
+    let doc = fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/CI-REQUIRED-CHECKS-V1.md"),
+    )
+    .expect("required-checks doc must be readable");
+    let needle = format!("--min-jobs {live_min_jobs}");
+    assert!(
+        doc.contains(&needle),
+        "docs/CI-REQUIRED-CHECKS-V1.md must state the live value (`{needle}`); \
+         update its prose when the release-gate blocker count changes"
+    );
+}

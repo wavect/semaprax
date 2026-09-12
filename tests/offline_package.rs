@@ -33,6 +33,8 @@ mod release_packaging_windows;
 mod release_workflow;
 #[path = "offline_package/report.rs"]
 mod report;
+#[path = "offline_package/repository_policy_audit.rs"]
+mod repository_policy_audit;
 #[path = "offline_package/resolution_snapshot.rs"]
 mod resolution_snapshot;
 #[path = "offline_package/resolver.rs"]

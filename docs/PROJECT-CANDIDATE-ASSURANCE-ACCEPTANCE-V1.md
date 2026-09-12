@@ -221,6 +221,18 @@ visible-test-file edit leaving the production obligations byte-identical.
   the envelopes themselves (one `assurance_manifest::generate` call per
   candidate source file, against real bytes on disk) is the caller's
   responsibility.
+- **A library/provider module can never be one of those candidate source
+  paths (#230).** `assurance_manifest::generate` requires the exact file it
+  is given to stand alone as a runnable, import-free program (`fn main() ->
+  i64`, no `module_uses`; see "Known limitations" in
+  [Assurance Manifest v1](ASSURANCE-MANIFEST-V1.md)), while a project forbids
+  `main` on any source but its entry and test modules. No file satisfies
+  both, so a plain library/provider module can only ever appear under this
+  module's `sources_not_observed`, never as a source with its own envelope.
+  This is by design, not a defect this module works around: it reports the
+  gap honestly (`sources_not_observed` is non-empty and acceptance is
+  withheld while it is) rather than silently treating a library module's
+  obligations as covered.
 - **Identity is caller-asserted.** `proposer`/`reviewer` are plain strings;
   this library enforces only that they differ, never that either names an
   actual, authenticated, distinct principal. See "An independent acceptance

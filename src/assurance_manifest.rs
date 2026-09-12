@@ -363,6 +363,73 @@ mod tests {
         assert_eq!(diagnostics[0].code, "SPX-Z101");
     }
 
+    /// Issue #230: a library/provider module (no `main`) can never receive an
+    /// assurance envelope, because `generate` reuses the exact single-file
+    /// `verify::verify` pass `capability_manifest`/`region_report` also use,
+    /// and that pass requires the parsed file to be a standalone runnable
+    /// program. This is deliberate (see "Why this is a separate module from
+    /// Assurance Manifest v1" in `docs/ASSURANCE-POLICY-V1.md` and the
+    /// "Known limitations" entry this issue adds to
+    /// `docs/ASSURANCE-MANIFEST-V1.md`), not an oversight: pin the exact
+    /// rejection so a future change cannot silently start accepting (or
+    /// silently keep rejecting for a different, unintended reason) a library
+    /// source. Contrast with `generate_over_valid_source_derives_and_verifies`
+    /// above, the accepted case with `main` present.
+    #[test]
+    fn generate_rejects_a_library_module_with_no_main() {
+        let path = std::env::temp_dir().join(format!(
+            "semaprax-assurance-manifest-no-main-{}-{}.spx",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::write(
+            &path,
+            "module app.lib_probe;\n\n@id(\"app.lib_probe.helper\")\nfn helper(a: i64) -> i64 { a }\n",
+        )
+        .unwrap();
+        let result = generate(&path, &AssuranceManifestOptions::default());
+        std::fs::remove_file(&path).ok();
+        let diagnostics = result.expect_err("a library module with no `main` must be refused");
+        assert!(
+            diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-T105"),
+            "{diagnostics:?}"
+        );
+    }
+
+    /// Issue #230, the other half of the same boundary: a library module
+    /// that imports another module (exactly what makes it a *library*
+    /// module worth documenting assurance for) is refused even earlier, by
+    /// the single-file pass's blanket `SPX-G172` for any `module_uses`
+    /// (single-file `generate` never resolves cross-module imports; see
+    /// `src/source_verify/declaration.rs`). Adding `main` would not clear
+    /// this rejection, confirming the gap is structural rather than merely
+    /// the missing-`main` check.
+    #[test]
+    fn generate_rejects_a_module_with_cross_module_imports_even_with_main() {
+        let path = std::env::temp_dir().join(format!(
+            "semaprax-assurance-manifest-imports-{}-{}.spx",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::write(
+            &path,
+            "module app.lib_probe2;\n\nuse function @id(\"other.helper\") from other.module as helper;\n\n@id(\"app.lib_probe2.main\")\nfn main() -> i64 { 0 }\n",
+        )
+        .unwrap();
+        let result = generate(&path, &AssuranceManifestOptions::default());
+        std::fs::remove_file(&path).ok();
+        let diagnostics =
+            result.expect_err("a module with cross-module imports must be refused standalone");
+        assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+        assert_eq!(diagnostics[0].code, "SPX-G172");
+    }
+
     #[test]
     fn public_view_drops_free_text_and_path_but_keeps_classification() {
         let path = write_temp(

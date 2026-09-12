@@ -440,6 +440,37 @@ caller can already supply such a record today through
   `ProgramRoot` + target + compiled artifact, all in one top-level identity)
   is future work; the per-method `target`/`artifact_digest` fields exist
   today so that work can populate them without a schema break.
+- **Entry-point-scoped by design: a library/provider module cannot receive
+  its own envelope (#230).** `generate` parses and verifies exactly the file
+  it is given through the single-file `verify::verify` pass, the same pass
+  `capability_manifest`/`region_report` reuse rather than duplicate. That
+  pass does two things no library module satisfies: it rejects any file with
+  `module_uses` outright (`SPX-G172`, "source module imports require
+  Workspace Semantic Graph resolution" — a single file is never resolved
+  against other modules), and it requires the file to declare
+  `fn main() -> i64` (`SPX-T105` otherwise). A real library/provider module
+  is, definitionally, a file other modules `use` and that itself typically
+  `use`s others — exactly the shape this pass refuses. Inside a project, the
+  inverse rule holds: only the entry module (and a listed `tests` module) may
+  declare `main`; every other listed source is a provider module and
+  `SPX-G172` rejects `main` there too
+  (`src/workspace_graph.rs`'s `"workspace scalar provider module may not
+  declare main"`). No source edit satisfies both rules on the same file, so
+  no library module can ever be pointed at directly.
+  This is intended, not an oversight: `generate` derives obligations through
+  one independent, self-contained parse-and-verify pass specifically so no
+  second call site can re-derive them a different way and drift (see
+  "Why this is a separate module from Assurance Manifest v1" in
+  [Assurance Policy v1](ASSURANCE-POLICY-V1.md)). Accepting an arbitrary
+  library module would mean resolving its cross-module imports first, i.e.
+  routing `generate` through the Workspace Semantic Graph instead of a
+  standalone parse — a materially larger, project-shaped tool this tranche
+  does not build. Coverage of a library module's obligations today comes
+  from the *entry* module's own envelope covering call sites that reach it,
+  plus `ProjectCandidate::candidate_assurance_summary` (see
+  [Project Candidate Assurance Acceptance v1](PROJECT-CANDIDATE-ASSURANCE-ACCEPTANCE-V1.md))
+  reporting every source it was not pointed at explicitly in
+  `sources_not_observed`, rather than silently treating it as covered.
 - **No per-obligation `@id` attribute.** Obligation identity is derived,
   not authored; nothing in the language grows a new attribute in this
   tranche. If a future RFC adds an explicit obligation-level `@id`, it can

@@ -195,6 +195,89 @@ fn generated_cargo_package_has_no_dependency_or_repository_escape() {
     }
 }
 
+/// Issue #145 ("prepare maintained ordinary Rust/npm package support") names
+/// "package inventory excludes private crates, local paths, secrets and
+/// generated caches" as a required negative case for any package this
+/// repository eventually supports as a real consumer route. This locks that
+/// property in for the one generated Rust package that exists today, as a
+/// pure string-rendering check with no native toolchain: the generated
+/// sources are caller-independent of this machine's checkout location (no
+/// absolute path literal from this build, or from the generating process's
+/// own environment, ever appears in them) and never name a private
+/// workspace crate (this builder crate itself, the held native-publication
+/// crate, or the unpublished full-toolchain crate) as something the
+/// generated package depends on or re-exports.
+#[test]
+fn generated_cargo_package_never_embeds_a_local_checkout_path_or_a_private_crate_name() {
+    let this_checkout = env!("CARGO_MANIFEST_DIR");
+    let cwd = std::env::current_dir()
+        .ok()
+        .and_then(|path| path.to_str().map(str::to_owned));
+    let manifest = semaprax::project::ProjectManifest::parse(concat!(
+        "schema = \"semaprax.manifest.v1\"\n\n",
+        "[package]\nname = \"calculator\"\nversion = \"0.1.0\"\n\n",
+        "[modules]\nentry = \"calculator.app\"\n",
+        "sources = [\"src/app.spx\", \"src/tests.spx\"]\n",
+        "tests = [\"calculator.tests\"]\n\n",
+        "[exports]\nweb = [\"calculator.add\"]\n\n",
+        "[rust-dependencies]\n",
+        "same-file = [\"=1.0.6\"]\n",
+    ))
+    .unwrap();
+    let facts = DescriptorFacts {
+        module: "calculator".into(),
+        source_revision: "sha256:00".into(),
+        target: "x86_64-unknown-linux-gnu".into(),
+        exports: vec![Export {
+            id: "calculator.add".into(),
+            public_method: "spx_calculator_dot_add".into(),
+            inner_method: "spx_calculator_dot_add".into(),
+            parameters: Vec::new(),
+            result: Scalar::I64,
+        }],
+        imports: Vec::new(),
+    };
+    let sources = render_package_sources(
+        &facts,
+        &["calculator.effects.io".to_owned()],
+        manifest.rust_dependencies(),
+    );
+    for rendered in [&sources.cargo_toml, &sources.build_rs, &sources.lib_rs] {
+        assert!(
+            !rendered.contains(this_checkout),
+            "must not embed this checkout's own absolute path: {rendered}"
+        );
+        if let Some(cwd) = &cwd {
+            assert!(
+                !rendered.contains(cwd.as_str()),
+                "must not embed the generating process's current directory: {rendered}"
+            );
+        }
+        for separator in ["/Users/", "/home/", r"C:\Users\", r"C:\\Users\\"] {
+            assert!(
+                !rendered.contains(separator),
+                "must not embed an absolute host path ({separator}): {rendered}"
+            );
+        }
+        for private_crate in [
+            "semaprax-native-rust-interop-builder",
+            "semaprax-native-rust-owned-data-package",
+            "semaprax-native-rust-interop-platform",
+            "semaprax-toolchain",
+        ] {
+            assert!(
+                !rendered.contains(private_crate),
+                "must not name the private crate `{private_crate}`: {rendered}"
+            );
+        }
+    }
+    // The one ordinary dependency the caller actually declared is still the
+    // only one present; this is the positive control for the checks above.
+    assert!(sources
+        .cargo_toml
+        .contains("spx_rust_dependency_0 = { package = \"same-file\", version = \"=1.0.6\" }"));
+}
+
 #[test]
 fn project_rust_dependencies_are_exact_and_publicly_reexported() {
     let manifest = semaprax::project::ProjectManifest::parse(concat!(

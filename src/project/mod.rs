@@ -62,7 +62,7 @@ mod semantic_transaction_composition;
 mod semantic_transaction_v2;
 mod semantic_transaction_v2_workflow;
 mod source_hint;
-mod standard_dependencies;
+pub(crate) mod standard_dependencies;
 mod std_collections;
 mod std_mem;
 mod target_cache;

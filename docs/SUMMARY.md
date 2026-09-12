@@ -409,6 +409,7 @@ Audience: all documentation readers.
 - [Offline deterministic package resolver](OFFLINE-PACKAGE-RESOLVER-V1.md)
 - [Offline published semantic lock snapshot](OFFLINE-PUBLISHED-SEMANTIC-LOCK-SNAPSHOT-V1.md)
 - [Offline deterministic package resolver v2](OFFLINE-PACKAGE-RESOLVER-V2.md)
+- [Package registry snapshot v1](PACKAGE-REGISTRY-SNAPSHOT-V1.md)
 - [Offline pure Wasm package build](OFFLINE-PURE-WASM-PACKAGE-BUILD-V1.md)
 - [Offline multi-package source capsule](OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md)
 - [Offline linked scalar Wasm package build v2](OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md)

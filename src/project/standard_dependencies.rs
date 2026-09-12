@@ -298,7 +298,11 @@ fn package(name: &str) -> Option<&'static BundledPackage> {
     PACKAGES.iter().find(|package| package.name == name)
 }
 
-pub(super) fn is_bundled(name: &str) -> bool {
+/// Widened from `pub(super)` to `pub(crate)` for issue #195: the package
+/// registry (`crate::package_registry`) reuses this exact check to refuse
+/// publishing into the `std.*` namespace this closed bundled registry
+/// already owns, rather than duplicating an independent name list.
+pub(crate) fn is_bundled(name: &str) -> bool {
     package(name).is_some()
 }
 

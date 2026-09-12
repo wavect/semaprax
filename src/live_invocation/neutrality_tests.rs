@@ -224,12 +224,10 @@ fn chunked_handler_reports_malformed_response_when_its_own_assembly_step_refuses
     assert_eq!(receipt.model_failures, 1);
     assert_eq!(receipt.terminal_case.as_deref(), Some("fail"));
     assert!(matches!(
-        run.journal
-            .iter()
-            .find_map(|entry| match entry {
-                journal::JournalEntry::ResponseFailed { failure, .. } => Some(failure.as_str()),
-                _ => None,
-            }),
+        run.journal.iter().find_map(|entry| match entry {
+            journal::JournalEntry::ResponseFailed { failure, .. } => Some(failure.as_str()),
+            _ => None,
+        }),
         Some("malformed_response")
     ));
 }

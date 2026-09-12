@@ -394,7 +394,9 @@ mod tests {
         std::fs::remove_file(&path).ok();
         let diagnostics = result.expect_err("a library module with no `main` must be refused");
         assert!(
-            diagnostics.iter().any(|diagnostic| diagnostic.code == "SPX-T105"),
+            diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "SPX-T105"),
             "{diagnostics:?}"
         );
     }

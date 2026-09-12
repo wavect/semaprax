@@ -1,6 +1,5 @@
 module std.log.tests;
 use type @id("std.log.event") from std.log as Event;
-use type @id("std.io.writer") from std.io as Writer;
 use function @id("std.log.append-event") from std.log as append_event;
 use function @id("std.log.append-event-guarded") from std.log as append_event_guarded;
 use function @id("std.log.append-event-if") from std.log as append_event_if;
@@ -18,7 +17,6 @@ use function @id("std.log.write-level") from std.log as write_level;
 use function @id("std.io.writer.cursor") from std.io as writer_position;
 use function @id("std.io.writer.finish") from std.io as writer_finish;
 use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
-use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
 
 @id("std.log.tests.equal")
 fn equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool

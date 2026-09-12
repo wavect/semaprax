@@ -95,6 +95,18 @@ fn unique() -> bool
     is_unique(keys) && is_unique(pair) && is_unique(brace) && !is_unique(twice) && unique_end(twice, 32usize) - byte_len(twice) - 1usize == 0usize && !is_unique(inner) && unique_end(inner, 32usize) - byte_len(inner) - 1usize == 5usize && unique_end(torn, 32usize) == whole_end(torn, 32usize) && !is_unique(torn)
 }
 
+@id("std.data.json.doc.tests.depth_bound")
+fn depth_bound() -> bool
+{
+    let deep = "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[1]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
+    let over = "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[1]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
+    let deep_view = string_as_str(deep);
+    let over_view = string_as_str(over);
+    let admitted = str_as_bytes(deep_view);
+    let excess = str_as_bytes(over_view);
+    is_document(admitted) && document_end(admitted, 0usize, 32usize) == byte_len(admitted) && !is_document(excess) && document_end(excess, 0usize, 32usize) - byte_len(excess) - 1usize == 32usize && document_end(excess, 0usize, 1000000usize) - byte_len(excess) - 1usize == 32usize
+}
+
 @id("std.data.json.doc.tests.main")
 fn main() -> i64
 {
@@ -105,5 +117,6 @@ fn main() -> i64
     failed = failed + if bad() { 0 } else { 8 };
     failed = failed + if spans() { 0 } else { 16 };
     failed = failed + if unique() { 0 } else { 32 };
+    failed = failed + if depth_bound() { 0 } else { 64 };
     failed
 }

@@ -386,3 +386,40 @@ fn host_config_rejects_a_sandbox_symlink() {
     .is_err());
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(unix)]
+#[test]
+fn process_runner_kills_a_pipe_inheriting_descendant_before_joining_reader() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-opencode-pipe-holder-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir(&root).unwrap();
+    let stub = root.join("stub");
+    std::fs::write(&stub, "#!/bin/sh\n(sleep 5) &\nexit 0\n").unwrap();
+    let mut permissions = std::fs::metadata(&stub).unwrap().permissions();
+    permissions.set_mode(0o700);
+    std::fs::set_permissions(&stub, permissions).unwrap();
+    let sandbox = root.join("sandbox");
+    std::fs::create_dir(&sandbox).unwrap();
+    let config = OpenCodeHostConfig::new(
+        stub,
+        sandbox,
+        Duration::from_secs(2),
+        OpenCodeGrammar {
+            digest: "g".into(),
+            canonical_schema: "{}".into(),
+            provider_schema: "{}".into(),
+        },
+    )
+    .unwrap();
+    let started = std::time::Instant::now();
+    assert_eq!(
+        ProcessOpenCodeRunner::capture(&config, &[], 8),
+        Err(OpenCodeRunnerFailure::Provider)
+    );
+    assert!(started.elapsed() < Duration::from_secs(1));
+    std::fs::remove_dir_all(root).unwrap();
+}

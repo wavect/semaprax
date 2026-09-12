@@ -13,6 +13,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
+
 use semaprax::live_invocation::{
     ModelFailure, ModelHandler, ModelInvocationOutcome, ModelInvocationRequest,
     ModelInvokeCapability,
@@ -164,6 +167,10 @@ pub struct ProcessOpenCodeRunner;
 
 impl ProcessOpenCodeRunner {
     fn terminate(child: &mut std::process::Child, reader: std::thread::JoinHandle<()>) {
+        #[cfg(unix)]
+        if let Some(group) = rustix::process::Pid::from_raw(child.id() as i32) {
+            let _ = rustix::process::kill_process_group(group, rustix::process::Signal::Kill);
+        }
         let _ = child.kill();
         let _ = child.wait();
         let _ = reader.join();
@@ -174,12 +181,16 @@ impl ProcessOpenCodeRunner {
         args: &[String],
         limit: usize,
     ) -> Result<Vec<u8>, OpenCodeRunnerFailure> {
-        let mut child = Command::new(&config.executable)
+        let mut command = Command::new(&config.executable);
+        command
             .args(args)
             .current_dir(&config.sandbox)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null())
+            .stderr(Stdio::null());
+        #[cfg(unix)]
+        command.process_group(0);
+        let mut child = command
             .spawn()
             .map_err(|_| OpenCodeRunnerFailure::Refused)?;
         let mut stdout = child.stdout.take().ok_or(OpenCodeRunnerFailure::Provider)?;
@@ -234,23 +245,18 @@ impl ProcessOpenCodeRunner {
             }
             match child.try_wait() {
                 Ok(Some(status)) => {
+                    // A direct child may exit while a descendant still owns stdout.
+                    // Kill the dedicated process group before joining the reader, so a
+                    // pipe inheritor cannot turn this bounded call into an unbounded join.
+                    Self::terminate(&mut child, reader);
                     let bytes = match output {
                         Some(bytes) => bytes,
-                        None => match receiver
-                            .recv_timeout(deadline.saturating_duration_since(Instant::now()))
-                        {
+                        None => match receiver.try_recv() {
                             Ok(Ok(bytes)) => bytes,
-                            Ok(Err(error)) => {
-                                let _ = reader.join();
-                                return Err(error);
-                            }
-                            Err(_) => {
-                                let _ = reader.join();
-                                return Err(OpenCodeRunnerFailure::Provider);
-                            }
+                            Ok(Err(error)) => return Err(error),
+                            Err(_) => return Err(OpenCodeRunnerFailure::Provider),
                         },
                     };
-                    let _ = reader.join();
                     return if status.success() {
                         Ok(bytes)
                     } else {

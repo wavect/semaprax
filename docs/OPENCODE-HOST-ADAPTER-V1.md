@@ -37,9 +37,12 @@ It writes an `opencode.json` agent policy with `"*":"deny"` before the call.
 `--dir` and that policy limit OpenCode's own tools only; they are not an
 operating-system sandbox. The process output and session export each have a
 1 MiB ceiling. The runner polls both an explicit host cancellation handle and
-its deadline, kills and joins/reaps its direct child and reader on cancellation,
-overflow, deadline, and process errors, and captures no stderr. A child process tree is not claimed to be
-killed by this v1 contract.
+its deadline, kills and joins/reaps its child and reader on cancellation,
+overflow, deadline, and process errors, and captures no stderr. On Unix it
+starts a dedicated process group and kills that group before every reader join,
+including after direct-child exit, so a descendant retaining stdout cannot make
+the call unbounded. Other platforms bound only the direct child in this v1
+contract.
 
 ## Settling and replay evidence
 

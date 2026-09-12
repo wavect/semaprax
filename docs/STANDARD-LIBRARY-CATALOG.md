@@ -3061,6 +3061,29 @@ fn append_event_if(event: own Event, threshold: u8, output: own Writer) -> Write
     requires event_admitted(event, threshold, output) || match borrow event { Event { level, sequence: _, name: _, message: _ } => !level_enabled(level, threshold), }
 ```
 
+### `std.log.append-event-guarded`
+
+---------------------------------------------------------------------
+Redaction-guarded writing (issue #193)
+---------------------------------------------------------------------
+The caller's six secret-bearing classification flags -- exactly
+std.log.redact.event_is_safe's own parameter list -- decide whether the
+event is written at all. This writer calls event_is_safe itself rather
+than trusting a caller-computed boolean, so the redaction decision is
+made inside the writer that actually emits bytes rather than somewhere
+upstream that a caller could skip or get wrong. An unsafe event is
+refused outright (mirroring append_event_if's own admitted/discarded
+transition) rather than partly redacted: this package's Event has no
+separate labeled-field structure to redact one field of, so refusing the
+whole event is the sound choice for the fields this schema actually has.
+
+```semaprax
+fn append_event_guarded(event: own Event, carries_password: bool, carries_api_key: bool, carries_bearer_token: bool, carries_session_token: bool, carries_webhook_signing_secret: bool, carries_smtp_credential: bool, output: own Writer) -> Writer
+    requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }
+    requires match borrow event { Event { level: _, sequence: _, name, message } => is_utf8(bytes_as_slice(name)) && is_utf8(bytes_as_slice(message)), }
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && event_json_len(event) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
 ## `std.log.redact`
 
 Package `std/log-redact`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.log.redact = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
@@ -3183,6 +3206,73 @@ fn get<T>(value: borrow Box<T>) -> T
 
 ```semaprax
 fn into_inner<T>(value: own Box<T>) -> T
+```
+
+## `std.metrics`
+
+Package `std/metrics`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.metrics = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.metrics.counter-increment`
+
+Counters, gauges, and histograms are modeled as plain scalar state the
+caller threads itself: a checked update takes the previous value and
+returns the next one (or a sentinel), so no owned aggregate ever needs to
+cross a package's module boundary for this package's public surface.
+
+```semaprax
+fn counter_increment(value: i64, delta: i64) -> i64
+    requires value >= 0
+    requires delta >= 0
+    requires !add_overflows(value, delta)
+```
+
+### `std.metrics.gauge-clamped`
+
+```semaprax
+fn gauge_clamped(value: i64, minimum: i64, maximum: i64) -> i64
+    requires minimum <= maximum
+```
+
+### `std.metrics.histogram-observe-count`
+
+```semaprax
+fn histogram_observe_count(count: i64) -> i64
+    requires count >= 0
+    requires !add_overflows(count, 1)
+```
+
+### `std.metrics.histogram-observe-sum`
+
+```semaprax
+fn histogram_observe_sum(sum: i64, value: i64) -> i64
+    requires !add_overflows(sum, value)
+```
+
+### `std.metrics.cardinality-limit`
+
+---------------------------------------------------------------------
+Cardinality budget (issue #193)
+---------------------------------------------------------------------
+One deployment-independent bound on the number of distinct label-value
+combinations ("series") a single metric may register, the direct defense
+against unbounded label cardinality causing a memory/cost denial of
+service. try_admit_series is the part with teeth: once a registry already
+holds cardinality_limit() series, the next attempt returns the fixed
+refusal sentinel -1 (mirroring std.data.json.write.quoted_byte's own
+-1-for-out-of-range idiom) rather than silently growing past the bound or
+silently returning the unchanged count as if the admission had succeeded.
+
+```semaprax
+fn cardinality_limit() -> i64
+```
+
+### `std.metrics.try-admit-series`
+
+```semaprax
+fn try_admit_series(existing_count: i64) -> i64
+    requires existing_count >= 0
+    requires existing_count <= cardinality_limit()
+    ensures result == -1 || result >= 1 && result <= cardinality_limit()
 ```
 
 ## `std.net`

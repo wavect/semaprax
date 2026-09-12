@@ -2,6 +2,7 @@ module std.log.tests;
 use type @id("std.log.event") from std.log as Event;
 use type @id("std.io.writer") from std.io as Writer;
 use function @id("std.log.append-event") from std.log as append_event;
+use function @id("std.log.append-event-guarded") from std.log as append_event_guarded;
 use function @id("std.log.append-event-if") from std.log as append_event_if;
 use function @id("std.log.discard-event") from std.log as discard_event;
 use function @id("std.log.event-admitted") from std.log as event_admitted;
@@ -248,6 +249,34 @@ fn test_thresholds() -> i64
     let bytes = writer_finish(kept);
     let scale = level_enabled(5u8, 0u8) && level_enabled(3u8, 3u8) && !level_enabled(0u8, 1u8);
     if short && untouched && scale && byte_len(bytes_as_slice(bytes)) == 4usize { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-guarded-safe")
+fn test_guarded_safe() -> i64
+{
+    let name = [97u8];
+    let message = [98u8];
+    let event = Event { level: 2u8, sequence: 7usize, name: bytes_copy(array_as_slice(name)), message: bytes_copy(array_as_slice(message)) };
+    let expected = event_json_len(event);
+    let output = writer_from_bytes(bytes_zeroed(64usize));
+    let written = append_event_guarded(event, false, false, false, false, false, false, output);
+    let position = writer_position(written);
+    let bytes = writer_finish(written);
+    if position == expected && at(bytes_as_slice(bytes), 0usize, 123u8) { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-guarded-redacted")
+fn test_guarded_redacted() -> i64
+{
+    let name = [97u8];
+    let secret = [115u8, 107u8, 45u8, 115u8, 101u8, 99u8, 114u8, 101u8, 116u8];
+    let event = Event { level: 2u8, sequence: 7usize, name: bytes_copy(array_as_slice(name)), message: bytes_copy(array_as_slice(secret)) };
+    let output = writer_from_bytes(bytes_zeroed(64usize));
+    let written = append_event_guarded(event, false, true, false, false, false, false, output);
+    let position = writer_position(written);
+    let bytes = writer_finish(written);
+    let reference = bytes_zeroed(64usize);
+    if position == 0usize && byte_len(bytes_as_slice(bytes)) == 64usize && equal(bytes_as_slice(bytes), bytes_as_slice(reference)) { 0 } else { 1 }
 }
 
 @id("std.log.tests.main")

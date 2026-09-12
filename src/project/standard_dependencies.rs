@@ -159,7 +159,18 @@ const PACKAGES: &[BundledPackage] = &[
         name: "std.log",
         path: "dependencies/std.log/0.1.0/log.spx",
         source: include_str!("../../std/log/src/log.spx"),
-        dependencies: &["std.data.json.utf8", "std.data.json.write", "std.io"],
+        dependencies: &[
+            "std.data.json.utf8",
+            "std.data.json.write",
+            "std.io",
+            "std.log.redact",
+        ],
+    },
+    BundledPackage {
+        name: "std.log.redact",
+        path: "dependencies/std.log.redact/0.1.0/redact.spx",
+        source: include_str!("../../std/log-redact/src/redact.spx"),
+        dependencies: &[],
     },
     BundledPackage {
         name: "std.mem",

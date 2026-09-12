@@ -1555,3 +1555,6 @@ mod auth_backend_audit;
 
 #[path = "standard_library/log_redact_backend_audit.rs"]
 mod log_redact_backend_audit;
+
+#[path = "standard_library/metrics_backend_audit.rs"]
+mod metrics_backend_audit;

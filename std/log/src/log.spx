@@ -8,6 +8,7 @@ use function @id("std.data.json.write.count-into") from std.data.json.write as c
 use function @id("std.data.json.write.usize_len") from std.data.json.write as usize_len;
 use function @id("std.io.reader.finish") from std.io as reader_finish;
 use function @id("std.io.reader.from-bytes") from std.io as reader_from_bytes;
+use function @id("std.log.redact.event_is_safe") from std.log.redact as event_is_safe;
 
 @id("std.log.event")
 record Event {
@@ -136,4 +137,27 @@ fn append_event_if(event: own Event, threshold: u8, output: own Writer) -> Write
 {
     let enabled = match borrow event { Event { level, sequence: _, name: _, message: _ } => level_enabled(level, threshold), };
     if enabled { append_event(event, output) } else { discard_event(event, output) }
+}
+
+// ---------------------------------------------------------------------
+// Redaction-guarded writing (issue #193)
+// ---------------------------------------------------------------------
+// The caller's six secret-bearing classification flags -- exactly
+// std.log.redact.event_is_safe's own parameter list -- decide whether the
+// event is written at all. This writer calls event_is_safe itself rather
+// than trusting a caller-computed boolean, so the redaction decision is
+// made inside the writer that actually emits bytes rather than somewhere
+// upstream that a caller could skip or get wrong. An unsafe event is
+// refused outright (mirroring append_event_if's own admitted/discarded
+// transition) rather than partly redacted: this package's Event has no
+// separate labeled-field structure to redact one field of, so refusing the
+// whole event is the sound choice for the fields this schema actually has.
+@id("std.log.append-event-guarded")
+fn append_event_guarded(event: own Event, carries_password: bool, carries_api_key: bool, carries_bearer_token: bool, carries_session_token: bool, carries_webhook_signing_secret: bool, carries_smtp_credential: bool, output: own Writer) -> Writer
+    requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }
+    requires match borrow event { Event { level: _, sequence: _, name, message } => is_utf8(bytes_as_slice(name)) && is_utf8(bytes_as_slice(message)), }
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && event_json_len(event) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    let safe = event_is_safe(carries_password, carries_api_key, carries_bearer_token, carries_session_token, carries_webhook_signing_secret, carries_smtp_credential);
+    if safe { append_event(event, output) } else { discard_event(event, output) }
 }

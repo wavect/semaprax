@@ -1,0 +1,17 @@
+module std.metrics.examples;
+use function @id("std.metrics.counter-increment") from std.metrics as counter_increment;
+use function @id("std.metrics.gauge-clamped") from std.metrics as gauge_clamped;
+use function @id("std.metrics.histogram-observe-count") from std.metrics as histogram_observe_count;
+use function @id("std.metrics.histogram-observe-sum") from std.metrics as histogram_observe_sum;
+use function @id("std.metrics.try-admit-series") from std.metrics as try_admit_series;
+
+@id("std.metrics.examples.main")
+fn main() -> i64
+{
+    let requests = counter_increment(0, 1);
+    let queue_depth = gauge_clamped(9, 0, 5);
+    let observed_count = histogram_observe_count(0);
+    let observed_sum = histogram_observe_sum(0, 42);
+    let outcome = try_admit_series(0);
+    0
+}

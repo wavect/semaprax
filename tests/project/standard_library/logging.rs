@@ -172,6 +172,8 @@ fn log_conformance_manifests(scratch: &Path, manifest: &Path) -> Vec<PathBuf> {
         "test_filtered",
         "test_admitted",
         "test_thresholds",
+        "test_guarded_safe",
+        "test_guarded_redacted",
     ];
     let parsed = semaprax::parse(SOURCE, "log-cases.spx").unwrap();
     assert_eq!(semaprax::format::canonical(&parsed), SOURCE);

@@ -17,3 +17,4 @@ web = []
 std.data.json.utf8 = "=0.1.0"
 std.data.json.write = "=0.1.0"
 std.io = "=0.1.0"
+std.log.redact = "=0.1.0"

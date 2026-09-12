@@ -1,0 +1,17 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-metrics"
+version = "0.1.0"
+profile = "useful-data.v2"
+
+[modules]
+entry = "std.metrics.examples"
+sources = ["src/examples.spx", "src/metrics.spx", "src/tests.spx"]
+tests = ["std.metrics.tests"]
+
+[exports]
+web = []
+
+[dependencies]
+std.num.overflow = "=0.1.0"

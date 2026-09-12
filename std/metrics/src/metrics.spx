@@ -1,0 +1,63 @@
+module std.metrics;
+use function @id("std.num.overflow.add_overflows") from std.num.overflow as add_overflows;
+
+// Counters, gauges, and histograms are modeled as plain scalar state the
+// caller threads itself: a checked update takes the previous value and
+// returns the next one (or a sentinel), so no owned aggregate ever needs to
+// cross a package's module boundary for this package's public surface.
+@id("std.metrics.counter-increment")
+fn counter_increment(value: i64, delta: i64) -> i64
+    requires value >= 0
+    requires delta >= 0
+    requires !add_overflows(value, delta)
+{
+    value + delta
+}
+
+@id("std.metrics.gauge-clamped")
+fn gauge_clamped(value: i64, minimum: i64, maximum: i64) -> i64
+    requires minimum <= maximum
+{
+    if value < minimum { minimum } else { if value > maximum { maximum } else { value } }
+}
+
+@id("std.metrics.histogram-observe-count")
+fn histogram_observe_count(count: i64) -> i64
+    requires count >= 0
+    requires !add_overflows(count, 1)
+{
+    count + 1
+}
+
+@id("std.metrics.histogram-observe-sum")
+fn histogram_observe_sum(sum: i64, value: i64) -> i64
+    requires !add_overflows(sum, value)
+{
+    sum + value
+}
+
+// ---------------------------------------------------------------------
+// Cardinality budget (issue #193)
+// ---------------------------------------------------------------------
+// One deployment-independent bound on the number of distinct label-value
+// combinations ("series") a single metric may register, the direct defense
+// against unbounded label cardinality causing a memory/cost denial of
+// service. try_admit_series is the part with teeth: once a registry already
+// holds cardinality_limit() series, the next attempt returns the fixed
+// refusal sentinel -1 (mirroring std.data.json.write.quoted_byte's own
+// -1-for-out-of-range idiom) rather than silently growing past the bound or
+// silently returning the unchanged count as if the admission had succeeded.
+@id("std.metrics.cardinality-limit")
+fn cardinality_limit() -> i64
+{
+    128
+}
+
+@id("std.metrics.try-admit-series")
+fn try_admit_series(existing_count: i64) -> i64
+    requires existing_count >= 0
+    requires existing_count <= cardinality_limit()
+    ensures result == -1 || result >= 1 && result <= cardinality_limit()
+{
+    if existing_count < cardinality_limit() { existing_count + 1 } else { -1 }
+}

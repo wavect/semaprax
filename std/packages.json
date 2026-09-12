@@ -30,6 +30,7 @@
     {"directory": "log", "module": "std.log", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "log-redact", "module": "std.log.redact", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "mem", "module": "std.mem", "tier": "alloc", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "metrics", "module": "std.metrics", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "net", "module": "std.net", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "num", "module": "std.num", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "num-overflow", "module": "std.num.overflow", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

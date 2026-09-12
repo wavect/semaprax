@@ -1,0 +1,64 @@
+module std.metrics.tests;
+use function @id("std.metrics.cardinality-limit") from std.metrics as cardinality_limit;
+use function @id("std.metrics.counter-increment") from std.metrics as counter_increment;
+use function @id("std.metrics.gauge-clamped") from std.metrics as gauge_clamped;
+use function @id("std.metrics.histogram-observe-count") from std.metrics as histogram_observe_count;
+use function @id("std.metrics.histogram-observe-sum") from std.metrics as histogram_observe_sum;
+use function @id("std.metrics.try-admit-series") from std.metrics as try_admit_series;
+
+@id("std.metrics.tests.counter_increment_accumulates")
+fn counter_increment_accumulates() -> bool
+{
+    counter_increment(counter_increment(0, 3), 4) == 7
+}
+
+@id("std.metrics.tests.gauge_clamped_within_range")
+fn gauge_clamped_within_range() -> bool
+{
+    gauge_clamped(3, 0, 5) == 3
+}
+
+@id("std.metrics.tests.gauge_clamped_saturates_high_and_low")
+fn gauge_clamped_saturates_high_and_low() -> bool
+{
+    gauge_clamped(9, 0, 5) == 5 && gauge_clamped(-9, 0, 5) == 0
+}
+
+@id("std.metrics.tests.histogram_accumulates_count_and_sum")
+fn histogram_accumulates_count_and_sum() -> bool
+{
+    let count = histogram_observe_count(histogram_observe_count(0));
+    let sum = histogram_observe_sum(histogram_observe_sum(0, 10), 5);
+    count == 2 && sum == 15
+}
+
+// One below the limit: admission succeeds and returns the grown count,
+// landing exactly on cardinality_limit().
+@id("std.metrics.tests.admits_one_below_the_limit")
+fn admits_one_below_the_limit() -> bool
+{
+    try_admit_series(cardinality_limit() - 1) == cardinality_limit()
+}
+
+// The negative control that matters: a registry already AT the cardinality
+// limit refuses the next admission outright -- fails closed, proven by the
+// fixed -1 refusal sentinel, not by inspecting a count that silently kept
+// growing past the bound or a silently-dropped no-op "success".
+@id("std.metrics.tests.refuses_at_the_limit")
+fn refuses_at_the_limit() -> bool
+{
+    try_admit_series(cardinality_limit()) == -1
+}
+
+@id("std.metrics.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if counter_increment_accumulates() { 0 } else { 1 };
+    failed = failed + if gauge_clamped_within_range() { 0 } else { 2 };
+    failed = failed + if gauge_clamped_saturates_high_and_low() { 0 } else { 4 };
+    failed = failed + if histogram_accumulates_count_and_sum() { 0 } else { 8 };
+    failed = failed + if admits_one_below_the_limit() { 0 } else { 16 };
+    failed = failed + if refuses_at_the_limit() { 0 } else { 32 };
+    failed
+}

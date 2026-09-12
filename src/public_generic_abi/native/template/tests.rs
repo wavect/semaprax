@@ -160,8 +160,17 @@ fn body_bounds_match_the_boundary_profile_constants_verbatim() {
 /// used), so releasing a *result* handle recorded none of the normalized
 /// trace's `LEAF_RELEASE`/`CARRIER_RELEASE` events while releasing a *value*
 /// handle recorded both. This compiles the real rendered provider, drives one
-/// full success round trip through the real C ABI, and asserts the exact two
-/// trace events `spx_pg_result_release_v1` must append.
+/// full success round trip through the real C ABI, and asserts the exact
+/// trace events `spx_pg_result_release_v1` must append: one `LEAF_RELEASE`
+/// per actual owned leaf plus the flat-`Bytes` root's own `LEAF_RELEASE`
+/// (issue #240 divergence 1, landed in `e49c26c6`: `spx_pg_release_leaves`
+/// records one `LeafRelease` per handle in the set, root included, before
+/// the single `CarrierRelease` — mirroring
+/// `CarrierCallMachine::release_set`'s reversed root-then-leaves iteration
+/// in `src/public_generic_abi/carrier/machine.rs` and the carrier spec's
+/// "one triple per root or leaf" in `docs/PUBLIC-GENERIC-CARRIER-V1.md`),
+/// then the one `CARRIER_RELEASE`. For this fixture's single owned leaf that
+/// is three events, not two.
 #[test]
 fn result_release_records_the_same_normalized_trace_events_as_value_release() {
     let descriptor_bytes = b"template-tests-result-release-trace-fixture".to_vec();
@@ -198,11 +207,14 @@ int main(void) {
         return 4;
     }
     size_t after = spx_pg_test_trace_len_v1();
-    if (after != before + 2) {
+    if (after != before + 3) {
         return 5;
     }
-    if (spx_pg_test_trace_label_v1(after - 2) != SPX_PG_TRACE_LEAF_RELEASE) {
+    if (spx_pg_test_trace_label_v1(after - 3) != SPX_PG_TRACE_LEAF_RELEASE) {
         return 6;
+    }
+    if (spx_pg_test_trace_label_v1(after - 2) != SPX_PG_TRACE_LEAF_RELEASE) {
+        return 10;
     }
     if (spx_pg_test_trace_label_v1(after - 1) != SPX_PG_TRACE_CARRIER_RELEASE) {
         return 7;

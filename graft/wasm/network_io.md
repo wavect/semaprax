@@ -1,0 +1,26 @@
+# wasm/network_io.rs
+
+- IMPORT_COUNT · constant · L37-L37 — pub(super) const IMPORT_COUNT: u32 = 7;
+- IMPORT_BASE · constant · L38-L39 — pub(super) const IMPORT_BASE: u32 =
+- CONNECT_IMPORT · constant · L40-L40 — pub(super) const CONNECT_IMPORT: u32 = IMPORT_BASE;
+- SEND_IMPORT · constant · L41-L41 — pub(super) const SEND_IMPORT: u32 = IMPORT_BASE + 1;
+- RECV_IMPORT · constant · L42-L42 — pub(super) const RECV_IMPORT: u32 = IMPORT_BASE + 2;
+- STREAM_STDOUT_IMPORT · constant · L43-L43 — pub(super) const STREAM_STDOUT_IMPORT: u32 = IMPORT_BASE + 3;
+- WAIT_IMPORT · constant · L44-L44 — pub(super) const WAIT_IMPORT: u32 = IMPORT_BASE + 4;
+- CLOSE_IMPORT · constant · L45-L45 — pub(super) const CLOSE_IMPORT: u32 = IMPORT_BASE + 5;
+- SETTLE_IMPORT · constant · L46-L46 — pub(super) const SETTLE_IMPORT: u32 = IMPORT_BASE + 6;
+- STATUS_GLOBAL · constant · L49-L49 — pub(super) const STATUS_GLOBAL: u32 = 15;
+- STATUS_EXPORT · constant · L50-L50 — pub(super) const STATUS_EXPORT: &str = "__spx_network_status_v1";
+- STREAM_SCRATCH_BASE · constant · L51-L51 — pub(super) const STREAM_SCRATCH_BASE: u32 = super::host_output::TRANSCRIPT_BASE;
+- IMPORT_NAMES · constant · L52-L60 — pub(super) const IMPORT_NAMES: [&str; IMPORT_COUNT as usize] = [
+- ADMITTED_PERMITS · constant · L61-L69 — const ADMITTED_PERMITS: [&str; 7] = [
+- emit_language_network_io_v1 · function · L73-L85 — pub fn emit_language_network_io_v1(
+- emit_resolved_language_network_io_v1 · function · L88-L94 — pub(crate) fn emit_resolved_language_network_io_v1(
+- prepare · function · L96-L105 — pub(super) fn prepare(
+- check_permits · function · L110-L130 — pub(super) fn check_permits(permits: &[String]) -> Result<(), Diagnostic>
+- intern_import_types · function · L132-L144 — pub(super) fn intern_import_types(
+- emit_imports · function · L146-L150 — pub(super) fn emit_imports(imports: &mut Vec<u8>, types: &[u32; IMPORT_COUNT as usize])
+- append_export · function · L152-L156 — pub(super) fn append_export(exports: &mut Vec<u8>)
+- emit_reset · function · L158-L161 — pub(super) fn emit_reset(body: &mut Vec<u8>)
+- emit_settle · function · L166-L169 — pub(super) fn emit_settle(body: &mut Vec<u8>)
+- tests · module · L173-L173 — mod tests;

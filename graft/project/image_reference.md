@@ -1,0 +1,36 @@
+# project/image_reference.rs
+
+- IMAGE_FUNCTION_REFERENCE_SCHEMA · constant · L14-L14 — pub const IMAGE_FUNCTION_REFERENCE_SCHEMA: &str = "semaprax.image-function-reference.v1";
+- IMAGE_FUNCTION_REFERENCE_RESOLUTION_SCHEMA · constant · L15-L16 — pub const IMAGE_FUNCTION_REFERENCE_RESOLUTION_SCHEMA: &str =
+- IMAGE_FUNCTION_REFERENCE_REBIND_SCHEMA · constant · L17-L18 — pub const IMAGE_FUNCTION_REFERENCE_REBIND_SCHEMA: &str =
+- MAX_IMAGE_FUNCTION_REFERENCE_BYTES · constant · L19-L19 — pub const MAX_IMAGE_FUNCTION_REFERENCE_BYTES: usize = 16 * 1024;
+- MAX_IMAGE_FUNCTION_REFERENCE_RESOLUTION_BYTES · constant · L20-L20 — pub const MAX_IMAGE_FUNCTION_REFERENCE_RESOLUTION_BYTES: usize = 128 * 1024;
+- MAX_IMAGE_FUNCTION_REFERENCE_REBIND_BYTES · constant · L21-L21 — pub const MAX_IMAGE_FUNCTION_REFERENCE_REBIND_BYTES: usize = 256 * 1024;
+- TARGET_KIND · constant · L23-L23 — const TARGET_KIND: &str = "function";
+- MAX_TARGET_BYTES · constant · L24-L24 — const MAX_TARGET_BYTES: usize = 4096;
+- REFERENCE_DOMAIN · constant · L25-L25 — const REFERENCE_DOMAIN: &[u8] = b"semaprax.image-function-reference.payload.v1\0";
+- REFERENCE_KEYS · constant · L26-L41 — const REFERENCE_KEYS: &[&str] = &[
+- SOURCE_KEYS · constant · L42-L42 — const SOURCE_KEYS: &[&str] = &["path", "module", "source_revision", "source_digest"];
+- REFERENCE_NONCLAIMS · constant · L43-L49 — const REFERENCE_NONCLAIMS: &[&str] = &[
+- RESOLUTION_NONCLAIMS · constant · L50-L56 — const RESOLUTION_NONCLAIMS: &[&str] = &[
+- REBIND_NONCLAIMS · constant · L57-L64 — const REBIND_NONCLAIMS: &[&str] = &[
+- Result · type · L66-L66 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- export_function_reference · function · L71-L108 — pub fn export_function_reference(
+- resolve_function_reference · function · L113-L223 — pub fn resolve_function_reference(
+- rebind_function_reference · function · L230-L379 — pub fn rebind_function_reference(
+- FunctionSelection · enum · L382-L385 — enum FunctionSelection<'a>
+- FunctionIdentity · struct · L387-L389 — struct FunctionIdentity<'a>
+- workspace_configuration · function · L398-L407 — fn workspace_configuration(manifest: &str) -> Option<Value>
+- explicit_function · function · L409-L463 — fn explicit_function<'a>(
+- validate_shape · function · L465-L508 — fn validate_shape(reference: &Value) -> Result<()>
+- function_source · function · L510-L526 — fn function_source<'a>(
+- fresh_facet_handle · function · L528-L539 — fn fresh_facet_handle(summary: &Value, facet: ImageFacet) -> Result<String>
+- validate_target · function · L541-L551 — fn validate_target(target: &str) -> Result<()>
+- require_image · function · L553-L555 — fn require_image(image: &ProjectSemanticImage, expected: &str) -> Result<()>
+- string_field · function · L557-L561 — fn string_field<'a>(value: &'a Value, key: &str) -> Result<&'a str>
+- digest_field · function · L563-L569 — fn digest_field<'a>(value: &'a Value, key: &str) -> Result<&'a str>
+- valid_digest · function · L571-L577 — fn valid_digest(value: &str) -> bool
+- render_reference · function · L579-L582 — fn render_reference(value: Value) -> Result<String>
+- digest · function · L584-L593 — fn digest(domain: &[u8], bytes: &[u8]) -> String
+- invalid · function · L595-L597 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- bound · function · L599-L601 — fn bound(message: &'static str) -> Vec<Diagnostic>

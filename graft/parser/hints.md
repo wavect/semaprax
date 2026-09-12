@@ -1,0 +1,34 @@
+# parser/hints.rs
+
+- RETURN_MESSAGE · constant · L20-L20 — const RETURN_MESSAGE: &str = "`return` is not admitted; a block's value is its final expression";
+- RETURN_HELP · constant · L21-L22 — const RETURN_HELP: &str =
+- LOOP_MESSAGE · constant · L23-L23 — const LOOP_MESSAGE: &str = "only `while` loops are admitted";
+- LOOP_HELP · constant · L24-L26 — const LOOP_HELP: &str =
+- EXPRESSION_STATEMENT_HELP · constant · L27-L29 — const EXPRESSION_STATEMENT_HELP: &str = "a block is statements followed by exactly one final value \
+- WHILE_BODY_HELP · constant · L30-L31 — const WHILE_BODY_HELP: &str = "end the `while` body with a final expression; its value is \
+- BRANCH_HELP · constant · L32-L34 — const BRANCH_HELP: &str = "`if` cannot stand as a statement: add an `else` branch, end both branches \
+- FUNCTION_BODY_HELP · constant · L35-L35 — const FUNCTION_BODY_HELP: &str = "a function's value is its final expression; there is no `return`";
+- ELSE_IF_MESSAGE · constant · L36-L36 — const ELSE_IF_MESSAGE: &str = "`else if` is not admitted";
+- ELSE_IF_HELP · constant · L37-L38 — const ELSE_IF_HELP: &str =
+- MISSING_ELSE_HELP · constant · L39-L39 — const MISSING_ELSE_HELP: &str = "`if` is an expression and always has an `else` branch";
+- CALL_PATTERN_HELP · constant · L40-L41 — const CALL_PATTERN_HELP: &str =
+- TUPLE_HELP · constant · L42-L42 — const TUPLE_HELP: &str = "tuples are not admitted; declare a `record` with named fields";
+- MODULE_HELP · constant · L43-L44 — const MODULE_HELP: &str = "a file starts with `module dotted.name;`, then its `@id`-annotated \
+- RETURN_TYPE_HELP · constant · L45-L46 — const RETURN_TYPE_HELP: &str = "every function declares its result type after `->`; there is no \
+- UNIT_TYPE_HELP · constant · L47-L48 — const UNIT_TYPE_HELP: &str =
+- LET_VALUE_HELP · constant · L49-L50 — const LET_VALUE_HELP: &str =
+- CONDITION_ASSIGN_HELP · constant · L51-L52 — const CONDITION_ASSIGN_HELP: &str =
+- INDEX_HELP · constant · L53-L54 — const INDEX_HELP: &str = "there is no indexing syntax; read a byte with `byte_get(view, index)`, which \
+- module_header · function · L60-L64 — pub(super) fn module_header(&mut self) -> Result<(), Diagnostic>
+- range_for_hint · function · L71-L84 — pub(super) fn range_for_hint(&self, mut diagnostic: Diagnostic) -> Diagnostic
+- foreign_statement · function · L91-L124 — pub(super) fn foreign_statement(&self) -> Option<Diagnostic>
+- expression_statement · function · L128-L131 — pub(super) fn expression_statement(&self) -> Diagnostic
+- attach_block_help · function · L135-L146 — pub(super) fn attach_block_help(diagnostic: Diagnostic, description: &str) -> Diagnostic
+- else_if · function · L149-L154 — pub(super) fn else_if(&self) -> Option<Diagnostic>
+- missing_else · function · L157-L159 — pub(super) fn missing_else(diagnostic: Diagnostic) -> Diagnostic
+- call_pattern · function · L163-L170 — pub(super) fn call_pattern(&self, pattern: &MatchPattern) -> Option<Diagnostic>
+- foreign_declaration · function · L174-L194 — pub(super) fn foreign_declaration(&self) -> Option<Diagnostic>
+- compound_assignment · function · L197-L226 — pub(super) fn compound_assignment(&self) -> Option<Diagnostic>
+- unit_type · function · L229-L239 — pub(super) fn unit_type(&self) -> Option<Diagnostic>
+- decorate_expected · function · L242-L268 — pub(super) fn decorate_expected(
+- tuple_literal · function · L271-L276 — pub(super) fn tuple_literal(&self) -> Option<Diagnostic>

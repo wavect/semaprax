@@ -1,0 +1,41 @@
+# agent_lifecycle_typed_carrier/tests.rs
+
+- MAX_STEPS · constant · L21-L21 — const MAX_STEPS: usize = 10_000;
+- OUTER_FIXTURE · constant · L23-L70 — const OUTER_FIXTURE: &str = r#"
+- RENAMED_FIXTURE · constant · L72-L99 — const RENAMED_FIXTURE: &str = r#"
+- STRUCTURAL_FIXTURE · constant · L101-L130 — const STRUCTURAL_FIXTURE: &str = r#"
+- CHOICE_FIXTURE · constant · L132-L148 — const CHOICE_FIXTURE: &str = r#"
+- TEXT_FIXTURE · constant · L150-L161 — const TEXT_FIXTURE: &str = r#"
+- write_temp · function · L163-L174 — fn write_temp(source: &str, label: &str) -> PathBuf
+- resolved · function · L176-L181 — fn resolved(source: &str, path: &Path) -> ResolvedProgram
+- graph · function · L183-L185 — fn graph(program: &ResolvedProgram, root_type_id: &str) -> InteractionTypeGraph
+- compiled_schema · function · L187-L190 — fn compiled_schema(path: &Path, root_type_id: &str) -> CompiledInteractionSchema
+- outer_document · function · L198-L220 — fn outer_document(
+- inner_document · function · L222-L231 — fn inner_document(schema_digest: &str, x: i64, blob: &[u8]) -> String
+- choice_document · function · L233-L238 — fn choice_document(schema_digest: &str, case: &str, fields_json: &str) -> String
+- EchoHandler · struct · L240-L242 — struct EchoHandler
+- execute · function · L244-L246 — fn execute(&mut self, _operation_id: &str, _argument: &RetainedValue) -> Vec<u8>
+- PanicHandler · struct · L249-L249 — struct PanicHandler;
+- execute · function · L251-L253 — fn execute(&mut self, _operation_id: &str, _argument: &RetainedValue) -> Vec<u8>
+- OuterFixture · struct · L261-L266 — struct OuterFixture
+- outer_fixture · function · L268-L279 — fn outer_fixture(source: &str, label: &str) -> OuterFixture
+- drop · function · L282-L284 — fn drop(&mut self)
+- admits_a_valid_value_executes_it_through_the_real_interpreter_and_settles_ownership · function · L288-L322 — fn admits_a_valid_value_executes_it_through_the_real_interpreter_and_settles_ownership()
+- owned_bytes_leaf_identity_survives_the_boundary_not_just_a_scalar · function · L325-L354 — fn owned_bytes_leaf_identity_survives_the_boundary_not_just_a_scalar()
+- contract_failure_still_settles_ownership_and_does_not_replace_the_failure_status · function · L357-L388 — fn contract_failure_still_settles_ownership_and_does_not_replace_the_failure_status()
+- cancellation_refuses_before_any_owned_temporary_is_created · function · L391-L414 — fn cancellation_refuses_before_any_owned_temporary_is_created()
+- wrong_nominal_type_is_refused_before_admission · function · L422-L436 — fn wrong_nominal_type_is_refused_before_admission()
+- wrong_variant_is_refused_before_unauthorized_dispatch · function · L439-L459 — fn wrong_variant_is_refused_before_unauthorized_dispatch()
+- stale_structural_schema_is_refused_but_display_rename_is_not · function · L462-L515 — fn stale_structural_schema_is_refused_but_display_rename_is_not()
+- field_order_mutation_is_refused_upstream_before_admission_ever_runs · function · L518-L539 — fn field_order_mutation_is_refused_upstream_before_admission_ever_runs()
+- projection_refuses_a_string_leaf_explicitly_never_silently_degrades_it · function · L542-L556 — fn projection_refuses_a_string_leaf_explicitly_never_silently_degrades_it()
+- incorrect_deployed_operation_is_refused_before_the_handler_is_ever_called · function · L564-L592 — fn incorrect_deployed_operation_is_refused_before_the_handler_is_ever_called()
+- cancellation_refuses_a_typed_operation_before_dispatch_too · function · L595-L624 — fn cancellation_refuses_a_typed_operation_before_dispatch_too()
+- malformed_result_is_refused_and_the_argument_still_settles · function · L627-L661 — fn malformed_result_is_refused_and_the_argument_still_settles()
+- a_well_formed_result_is_admitted_after_the_handler_call · function · L664-L700 — fn a_well_formed_result_is_admitted_after_the_handler_call()
+- checkpoint_encoding_is_deterministic_and_independently_reconstructible · function · L708-L732 — fn checkpoint_encoding_is_deterministic_and_independently_reconstructible()
+- checkpoint_round_trip_recovers_the_same_admitted_value · function · L735-L746 — fn checkpoint_round_trip_recovers_the_same_admitted_value()
+- checkpoint_rejects_an_unknown_type_version · function · L749-L762 — fn checkpoint_rejects_an_unknown_type_version()
+- checkpoint_rejects_a_stale_schema_binding · function · L765-L781 — fn checkpoint_rejects_a_stale_schema_binding()
+- checkpoint_rejects_an_oversized_payload_before_any_parsing · function · L784-L792 — fn checkpoint_rejects_an_oversized_payload_before_any_parsing()
+- checkpoint_rejects_a_malformed_value_payload · function · L795-L809 — fn checkpoint_rejects_a_malformed_value_payload()

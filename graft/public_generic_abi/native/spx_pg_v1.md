@@ -1,0 +1,21 @@
+# public_generic_abi/native/spx_pg_v1.h
+
+- spx_pg_status_v1 · type · L20-L20 — typedef int32_t spx_pg_status_v1;
+- spx_pg_provider_v1 · type · L24-L24 — typedef struct spx_pg_provider_v1 spx_pg_provider_v1;
+- spx_pg_value_v1 · type · L25-L25 — typedef struct spx_pg_value_v1 spx_pg_value_v1;
+- spx_pg_result_v1 · type · L26-L26 — typedef struct spx_pg_result_v1 spx_pg_result_v1;
+- spx_pg_provider_open_v1 · function · L87-L91 — spx_pg_status_v1 spx_pg_provider_open_v1(const uint8_t *descriptor_bytes,
+- spx_pg_input_prepare_v1 · function · L97-L100 — spx_pg_status_v1 spx_pg_input_prepare_v1(spx_pg_provider_v1 *provider,
+- spx_pg_call_v1 · function · L108-L110 — spx_pg_status_v1 spx_pg_call_v1(spx_pg_provider_v1 *provider,
+- spx_pg_result_export_v1 · function · L118-L121 — spx_pg_status_v1 spx_pg_result_export_v1(spx_pg_result_v1 *result,
+- spx_pg_value_release_v1 · function · L128-L128 — spx_pg_status_v1 spx_pg_value_release_v1(spx_pg_value_v1 **value);
+- spx_pg_result_release_v1 · function · L129-L129 — spx_pg_status_v1 spx_pg_result_release_v1(spx_pg_result_v1 **result);
+- spx_pg_provider_close_v1 · function · L133-L133 — spx_pg_status_v1 spx_pg_provider_close_v1(spx_pg_provider_v1 **provider);
+- spx_pg_test_inject_failure_v1 · function · L179-L179 — void spx_pg_test_inject_failure_v1(uint32_t ordinal);
+- spx_pg_test_clear_failure_injection_v1 · function · L180-L180 — void spx_pg_test_clear_failure_injection_v1(void);
+- spx_pg_test_live_allocations_v1 · function · L185-L185 — size_t spx_pg_test_live_allocations_v1(void);
+- spx_pg_test_live_handles_v1 · function · L186-L186 — size_t spx_pg_test_live_handles_v1(spx_pg_provider_v1 *provider);
+- spx_pg_test_trace_len_v1 · function · L192-L192 — size_t spx_pg_test_trace_len_v1(void);
+- spx_pg_test_trace_label_v1 · function · L193-L193 — uint32_t spx_pg_test_trace_label_v1(size_t index);
+- spx_pg_test_settlement_overwrite_attempts_v1 · function · L198-L198 — size_t spx_pg_test_settlement_overwrite_attempts_v1(void);
+- spx_pg_test_force_settlement_conflict_v1 · function · L207-L207 — spx_pg_status_v1 spx_pg_test_force_settlement_conflict_v1(spx_pg_status_v1 status);

@@ -1,0 +1,35 @@
+# project/candidate/movement_types.rs
+
+- MAX_SYNTAX · constant · L15-L15 — const MAX_SYNTAX: usize = 4096;
+- MAX_VISITS · constant · L16-L16 — const MAX_VISITS: usize = 1_048_576;
+- MAX_DEPTH · constant · L17-L17 — const MAX_DEPTH: usize = 256;
+- Dependency · struct · L19-L22 — struct Dependency
+- TypeMovePlan · struct · L24-L30 — pub(super) struct TypeMovePlan
+- plan · function · L32-L188 — pub(super) fn plan(
+- validate_signature · function · L190-L197 — pub(super) fn validate_signature(
+- extended · function · L200-L202 — pub(super) fn extended(&self) -> bool
+- builtin_at · function · L204-L206 — pub(super) fn builtin_at(&self, span: Span) -> Option<intent::BuiltinOp>
+- builtin_names · function · L208-L210 — pub(super) fn builtin_names(&self) -> BTreeSet<&'static str>
+- local_names · function · L212-L214 — pub(super) fn local_names(&self) -> &BTreeSet<String>
+- dependency_count · function · L215-L217 — pub(super) fn dependency_count(&self) -> usize
+- relocate · function · L219-L300 — pub(super) fn relocate(
+- authenticate · function · L303-L342 — fn authenticate<'a>(
+- signature · function · L344-L385 — fn signature(
+- checked_type · function · L387-L429 — fn checked_type(module: &WorkspaceGraphProjectionModule, ty: &ResolvedType) -> Result<()>
+- charge · function · L431-L439 — fn charge(nodes: &mut usize, count: usize) -> Result<()>
+- rewrite · function · L441-L486 — fn rewrite(
+- direct_arguments · function · L488-L498 — fn direct_arguments(arguments: &[Type]) -> Result<()>
+- rewrite_type · function · L500-L525 — fn rewrite_type(
+- rewrite_pattern · function · L527-L563 — fn rewrite_pattern(
+- rewrite_record_fields · function · L565-L593 — fn rewrite_record_fields(
+- validate · function · L597-L627 — pub(super) fn validate(
+- locate_checked · function · L629-L649 — fn locate_checked<'a>(
+- Node · enum · L652-L663 — enum Node<'a>
+- ty · function · L666-L679 — fn ty(self) -> Option<&'a ResolvedType>
+- ownership · function · L680-L687 — fn ownership(self) -> Option<OwnershipMode>
+- check_ownership · function · L688-L699 — fn check_ownership(self) -> Result<()>
+- same_identity · function · L700-L809 — fn same_identity(self, other: Self) -> bool
+- child · function · L810-L952 — fn child(self, index: usize) -> Option<Self>
+- Nodes · struct · L955-L959 — struct Nodes<'a>
+- new · function · L961-L967 — fn new(function: &'a hir::ResolvedFunction) -> Self
+- next · function · L968-L993 — fn next(&mut self) -> Result<Option<Node<'a>>>

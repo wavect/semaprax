@@ -1,0 +1,23 @@
+# hir/record_tests.rs
+
+- record_program · function · L7-L19 — fn record_program() -> hir::ResolvedProgram
+- identity_nul_tests · module · L22-L393 — mod identity_nul_tests
+- identity_program · function · L31-L63 — fn identity_program() -> hir::ResolvedProgram
+- assert_nul_rejected · function · L65-L73 — fn assert_nul_rejected(program: &hir::ResolvedProgram, kind: &str)
+- function_index · function · L75-L81 — fn function_index(program: &hir::ResolvedProgram, name: &str) -> usize
+- tail · function · L83-L88 — fn tail(expression: &super::super::ResolvedExpr) -> &super::super::ResolvedExpr
+- tail_mut · function · L90-L102 — fn tail_mut(expression: &mut super::super::ResolvedExpr) -> &mut super::super::ResolvedExpr
+- validator_rejects_nul_in_every_persistent_hir_identity_carrier · function · L105-L159 — fn validator_rejects_nul_in_every_persistent_hir_identity_carrier()
+- validator_rejects_nul_in_derived_expression_and_value_identities · function · L162-L181 — fn validator_rejects_nul_in_derived_expression_and_value_identities()
+- validator_normalizes_nul_across_core_hir_reference_carriers · function · L184-L266 — fn validator_normalizes_nul_across_core_hir_reference_carriers()
+- validator_normalizes_nul_across_cleanup_inventory_and_plan_references · function · L269-L336 — fn validator_normalizes_nul_across_cleanup_inventory_and_plan_references()
+- native_and_wasm_reject_nul_before_backend_feature_gates · function · L339-L374 — fn native_and_wasm_reject_nul_before_backend_feature_gates()
+- valid_identity_program_keeps_its_existing_validation_result · function · L377-L392 — fn valid_identity_program_keeps_its_existing_validation_result()
+- validator_rejects_a_forged_by_value_recursive_record_index · function · L396-L414 — fn validator_rejects_a_forged_by_value_recursive_record_index()
+- validator_rejects_unit_in_an_ordinary_record_field_and_index · function · L417-L435 — fn validator_rejects_unit_in_an_ordinary_record_field_and_index()
+- validator_rejects_a_field_owned_by_the_wrong_record · function · L438-L448 — fn validator_rejects_a_field_owned_by_the_wrong_record()
+- iterative_resolver_and_validator_report_allocated_vec_capacity · function · L451-L463 — fn iterative_resolver_and_validator_report_allocated_vec_capacity()
+- type_facts_capacity_high_water_covers_layered_and_wide_hostiles · function · L466-L572 — fn type_facts_capacity_high_water_covers_layered_and_wide_hostiles()
+- layered · function · L469-L491 — fn layered(resource: bool, levels: usize) -> String
+- resolve_type_facts_peak · function · L493-L505 — fn resolve_type_facts_peak(source: &str, name: &str) -> (String, usize)
+- useful_data_workspace_linker_reconstructs_and_rejects_hostile_slice_provenance · function · L575-L668 — fn useful_data_workspace_linker_reconstructs_and_rejects_hostile_slice_provenance()

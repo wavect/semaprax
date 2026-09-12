@@ -1,0 +1,38 @@
+# project/candidate/candidate_assurance.rs
+
+- Result · type · L27-L27 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- PROJECT_CANDIDATE_ASSURANCE_SUMMARY_SCHEMA · constant · L29-L30 — pub const PROJECT_CANDIDATE_ASSURANCE_SUMMARY_SCHEMA: &str =
+- MAX_PROJECT_CANDIDATE_ASSURANCE_SUMMARY_BYTES · constant · L31-L31 — pub const MAX_PROJECT_CANDIDATE_ASSURANCE_SUMMARY_BYTES: usize = 4 * 1024 * 1024;
+- MAX_CANDIDATE_ASSURANCE_INPUTS · constant · L34-L34 — pub const MAX_CANDIDATE_ASSURANCE_INPUTS: usize = 64;
+- PROJECT_CANDIDATE_ACCEPTANCE_SCHEMA · constant · L36-L36 — pub const PROJECT_CANDIDATE_ACCEPTANCE_SCHEMA: &str = "semaprax.project-candidate-acceptance.v1";
+- MAX_PROJECT_CANDIDATE_ACCEPTANCE_BYTES · constant · L37-L37 — pub const MAX_PROJECT_CANDIDATE_ACCEPTANCE_BYTES: usize = 65_536;
+- MAX_CANDIDATE_ACCEPTANCE_IDENTITY_BYTES · constant · L40-L40 — pub const MAX_CANDIDATE_ACCEPTANCE_IDENTITY_BYTES: usize = 256;
+- KINDS_NOT_YET_DERIVED · constant · L47-L54 — const KINDS_NOT_YET_DERIVED: [ObligationKind; 6] = [
+- CandidateAssuranceInput · struct · L62-L65 — pub struct CandidateAssuranceInput<'a>
+- invalid · function · L67-L69 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L70-L72 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L73-L75 — fn stale(message: &'static str) -> Vec<Diagnostic>
+- refused · function · L76-L78 — fn refused(message: &'static str) -> Vec<Diagnostic>
+- candidate_assurance_summary · function · L92-L251 — pub fn candidate_assurance_summary(
+- grant_candidate_acceptance · function · L271-L344 — pub fn grant_candidate_acceptance(
+- validate_identity · function · L347-L354 — fn validate_identity(identity: &str) -> Result<()>
+- tests · module · L357-L735 — mod tests
+- SERIAL · constant · L367-L367 — static SERIAL: AtomicU64 = AtomicU64::new(0);
+- Fixture · struct · L369-L369 — struct Fixture(PathBuf);
+- APP_WITH_CONTRACTS · constant · L379-L383 — const APP_WITH_CONTRACTS: &str = "module assurance.app;\n\
+- new · function · L386-L418 — fn new(app: &str, tests_body: &str) -> Self
+- app_path · function · L420-L422 — fn app_path(&self) -> PathBuf
+- tests_path · function · L424-L426 — fn tests_path(&self) -> PathBuf
+- revision · function · L428-L433 — fn revision(&self) -> Arc<ProjectRevision>
+- drop · function · L437-L439 — fn drop(&mut self)
+- open · function · L442-L444 — fn open(revision: &Arc<ProjectRevision>) -> ProjectCandidate
+- manifest_for · function · L446-L448 — fn manifest_for(path: &std::path::Path) -> String
+- PLAIN_TESTS_BODY · constant · L450-L450 — const PLAIN_TESTS_BODY: &str = "@id(\"assurance.check\") fn main()->i64 {0}";
+- joins_and_binds_a_genuine_envelope_to_the_exact_candidate · function · L453-L484 — fn joins_and_binds_a_genuine_envelope_to_the_exact_candidate()
+- stale_envelope_after_tampering_with_its_declared_revision_is_rejected · function · L487-L523 — fn stale_envelope_after_tampering_with_its_declared_revision_is_rejected()
+- envelope_for_a_path_outside_the_candidate_is_rejected · function · L526-L539 — fn envelope_for_a_path_outside_the_candidate_is_rejected()
+- duplicate_input_paths_are_rejected · function · L542-L561 — fn duplicate_input_paths_are_rejected()
+- unsupported_formal_proof_claim_without_a_proof_ref_is_flagged · function · L564-L606 — fn unsupported_formal_proof_claim_without_a_proof_ref_is_flagged()
+- a_candidate_cannot_accept_itself · function · L609-L652 — fn a_candidate_cannot_accept_itself()
+- editing_the_visible_test_file_cannot_alter_the_production_obligations_or_acceptance · function · L655-L712 — fn editing_the_visible_test_file_cannot_alter_the_production_obligations_or_acceptance()
+- identity_bounds_are_enforced · function · L715-L734 — fn identity_bounds_are_enforced()

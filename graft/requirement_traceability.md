@@ -1,0 +1,37 @@
+---
+covers: []
+---
+# requirement_traceability.rs
+
+- SCHEMA · constant · L50-L50 — pub const SCHEMA: &str = "semaprax.requirement-traceability.v1";
+- MAX_REQUIREMENT_ID_BYTES · constant · L51-L51 — pub const MAX_REQUIREMENT_ID_BYTES: usize = 256;
+- MAX_REQUIREMENT_TITLE_BYTES · constant · L52-L52 — pub const MAX_REQUIREMENT_TITLE_BYTES: usize = 4096;
+- MAX_REQUIREMENT_CRITERIA · constant · L53-L53 — pub const MAX_REQUIREMENT_CRITERIA: usize = 256;
+- MAX_EVIDENCE_INPUTS · constant · L54-L54 — pub const MAX_EVIDENCE_INPUTS: usize = 256;
+- MAX_REQUIREMENT_REPORT_BYTES · constant · L55-L55 — pub const MAX_REQUIREMENT_REPORT_BYTES: usize = 1_048_576;
+- invalid · function · L57-L59 — fn invalid(message: impl Into<String>) -> Diagnostic
+- capacity · function · L61-L63 — fn capacity(message: impl Into<String>) -> Diagnostic
+- consistency · function · L65-L67 — fn consistency(message: impl Into<String>) -> Diagnostic
+- CriterionStatus · enum · L73-L94 — pub enum CriterionStatus
+- ALL · constant · L97-L104 — pub const ALL: [Self; 6] = [
+- token · function · L107-L116 — pub const fn token(self) -> &'static str
+- from_token · function · L119-L121 — pub fn from_token(token: &str) -> Option<Self>
+- RequirementSatisfaction · enum · L131-L138 — pub enum RequirementSatisfaction
+- token · function · L142-L151 — pub const fn token(self) -> &'static str
+- RequirementCriterion · struct · L159-L163 — pub struct RequirementCriterion
+- new · function · L166-L188 — pub fn new(
+- source_path · function · L191-L193 — pub fn source_path(&self) -> &str
+- obligation_id · function · L196-L198 — pub fn obligation_id(&self) -> &str
+- minimum_class · function · L201-L203 — pub fn minimum_class(&self) -> AssuranceClass
+- Requirement · struct · L211-L215 — pub struct Requirement
+- new · function · L218-L234 — pub fn new(id: impl Into<String>, title: impl Into<String>) -> Result<Self, Diagnostic>
+- with_criterion · function · L242-L260 — pub fn with_criterion(mut self, criterion: RequirementCriterion) -> Result<Self, Diagnostic>
+- id · function · L263-L265 — pub fn id(&self) -> &str
+- criteria · function · L268-L270 — pub fn criteria(&self) -> &[RequirementCriterion]
+- EvidenceInput · struct · L278-L281 — pub struct EvidenceInput<'a>
+- EvidenceOutcome · enum · L283-L287 — enum EvidenceOutcome
+- verify_one · function · L289-L312 — fn verify_one(
+- evaluate_criterion · function · L314-L410 — fn evaluate_criterion(criterion: &RequirementCriterion, outcome: &EvidenceOutcome) -> Value
+- aggregate · function · L412-L435 — fn aggregate(statuses: &[CriterionStatus]) -> RequirementSatisfaction
+- evaluate_requirement · function · L458-L544 — pub fn evaluate_requirement(
+- tests · module · L547-L547 — mod tests;

@@ -1,0 +1,22 @@
+# execution_revision/typed_migration/durable.rs
+
+- SCHEMA · constant · L8-L8 — const SCHEMA: &str = "semaprax.agent-migrated-checkpoint.v1";
+- MAX_BYTES · constant · L9-L9 — const MAX_BYTES: usize = 8 * 1024 * 1024;
+- DurableMigrationFailure · struct · L11-L15 — pub struct DurableMigrationFailure
+- diagnostics · function · L17-L19 — pub fn diagnostics(&self) -> &[Diagnostic]
+- checkpoint · function · L21-L23 — pub fn checkpoint(&self) -> &str
+- terminal · function · L24-L28 — pub fn terminal(&self) -> Option<&crate::agent_lifecycle::iterative::IterativeRun>
+- fmt · function · L31-L35 — fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+- Snapshot · struct · L38-L41 — struct Snapshot
+- canonical_json · function · L43-L48 — fn canonical_json(&self) -> String
+- decode · function · L49-L76 — fn decode(document: &str, expected: &str) -> Result<Self>
+- HandoffStore · struct · L78-L82 — struct HandoffStore<'a>
+- commit · function · L84-L95 — fn commit(
+- handoff_digest · function · L100-L102 — pub fn handoff_digest(&self) -> Result<String>
+- run_durable · function · L105-L112 — pub fn run_durable(
+- ResumedMigratedAgentRuntimeV2 · struct · L117-L120 — pub struct ResumedMigratedAgentRuntimeV2
+- migration_root · function · L122-L124 — pub(crate) fn migration_root(&self) -> &ExecutionRoot
+- run_durable · function · L125-L138 — pub fn run_durable(
+- run · function · L141-L220 — fn run(
+- resume_migrated_agent_runtime_v2 · function · L227-L363 — pub fn resume_migrated_agent_runtime_v2(
+- hash_valid · function · L364-L370 — fn hash_valid(value: &str) -> bool

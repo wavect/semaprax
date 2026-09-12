@@ -1,0 +1,24 @@
+# economic_agent/documents.rs
+
+- verify_unsigned · function · L24-L35 — pub(super) fn verify_unsigned(
+- doc_ref · function · L37-L44 — pub(super) fn doc_ref(schema: &str, doc: &Doc) -> String
+- agent_ref · function · L45-L47 — pub(super) fn agent_ref(run_id: &str, evidence: &str, digest_value: &str) -> String
+- ref_matches · function · L48-L56 — pub(super) fn ref_matches(value: &Value, schema: &str, doc: &Doc) -> bool
+- ref_identity_matches · function · L57-L70 — pub(super) fn ref_identity_matches(
+- unsigned_ref · function · L71-L78 — pub(super) fn unsigned_ref(bytes: &[u8], format: &str) -> String
+- Invoice · struct · L81-L96 — pub(super) struct Invoice
+- render_invoice · function · L97-L99 — pub(super) fn render_invoice(i: &Invoice) -> String
+- parse_invoice · function · L100-L187 — pub(super) fn parse_invoice(source: &str, intent: &Intent) -> Result<Invoice, Diagnostic>
+- parse_invoice_limited · function · L188-L207 — pub(super) fn parse_invoice_limited(
+- Plan · struct · L210-L218 — pub(super) struct Plan
+- make_plan · function · L219-L299 — pub(super) fn make_plan(
+- write_plan · function · L302-L363 — pub(super) fn write_plan<W: fmt::Write>(
+- Simulation · struct · L366-L370 — pub(super) struct Simulation
+- parse_simulation · function · L371-L467 — pub(super) fn parse_simulation(
+- parse_simulation_limited · function · L468-L477 — pub(super) fn parse_simulation_limited(
+- make_approval_request · function · L479-L509 — pub(super) fn make_approval_request(
+- write_approval_request · function · L510-L568 — pub(super) fn write_approval_request<W: fmt::Write>(
+- Approval · struct · L571-L573 — pub(super) struct Approval
+- parse_approval · function · L574-L658 — pub(super) fn parse_approval(
+- parse_approval_limited · function · L659-L675 — pub(super) fn parse_approval_limited(
+- approval_expires · function · L676-L681 — pub(super) fn approval_expires(approval: &Approval) -> u64

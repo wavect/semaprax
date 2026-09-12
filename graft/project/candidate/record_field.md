@@ -1,0 +1,42 @@
+# project/candidate/record_field.rs
+
+- Result · type · L19-L19 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- MAX_FIELDS · constant · L20-L20 — const MAX_FIELDS: usize = 64;
+- MAX_DEPTH · constant · L21-L21 — const MAX_DEPTH: usize = 256;
+- MAX_ITEMS · constant · L22-L22 — const MAX_ITEMS: usize = 1_048_576;
+- MAX_OWNING_STRING_SCALARS · constant · L23-L23 — const MAX_OWNING_STRING_SCALARS: usize = intent::MAX_STRING_LITERAL_BYTES / 4;
+- FieldAddition · struct · L25-L33 — pub(super) struct FieldAddition
+- FieldDefault · enum · L36-L40 — enum FieldDefault
+- ty · function · L43-L49 — fn ty(&self) -> Type
+- resolved_type · function · L51-L64 — fn resolved_type(&self) -> ResolvedType
+- is_owning · function · L66-L68 — fn is_owning(&self) -> bool
+- node_cost · function · L70-L78 — fn node_cost(&self) -> usize
+- expression · function · L80-L121 — fn expression(
+- BYTES_ARRAY_BINDER_PREFIX · constant · L128-L128 — const BYTES_ARRAY_BINDER_PREFIX: &str = "spx_field_bytes_";
+- MAX_BYTES_ARRAY_BINDERS · constant · L129-L129 — const MAX_BYTES_ARRAY_BINDERS: usize = 1024;
+- bytes_array_binder · function · L131-L145 — fn bytes_array_binder(revision: &ProjectRevision) -> Result<String>
+- Record · struct · L147-L151 — struct Record<'a>
+- eligible · function · L153-L172 — pub(super) fn eligible(revision: &ProjectRevision, target: &str) -> Result<bool>
+- apply · function · L174-L375 — pub(super) fn apply(
+- validate · function · L379-L406 — pub(super) fn validate(
+- validate_checked_fields · function · L408-L463 — fn validate_checked_fields(
+- type_flags · function · L465-L472 — fn type_flags(facts: &TypeFacts) -> (bool, bool, bool, bool)
+- type_inventory · function · L474-L492 — fn type_inventory(revision: &ProjectRevision) -> BTreeMap<String, Record<'_>>
+- admitted_record · function · L494-L523 — fn admitted_record(id: &str, records: &BTreeMap<String, Record<'_>>) -> Result<TypeFacts>
+- authenticate_module · function · L525-L544 — fn authenticate_module(revision: &ProjectRevision, program: &Program) -> Result<()>
+- type_bindings · function · L546-L578 — fn type_bindings(
+- owning_preflight · function · L580-L616 — fn owning_preflight(
+- pattern_mentions_target · function · L618-L659 — fn pattern_mentions_target(
+- record_field_pattern_mentions_target · function · L661-L685 — fn record_field_pattern_mentions_target(
+- migrate_pattern · function · L688-L727 — fn migrate_pattern(
+- migrate_record_pattern · function · L730-L773 — fn migrate_record_pattern(
+- exact_fields · function · L774-L787 — fn exact_fields<'a>(names: impl Iterator<Item = &'a str>, old: &BTreeSet<String>) -> Result<()>
+- pattern_budget · function · L788-L793 — fn pattern_budget(depth: usize, nodes: &mut usize) -> Result<()>
+- charge · function · L794-L796 — fn charge(nodes: &mut usize) -> Result<()>
+- charge_by · function · L797-L805 — fn charge_by(nodes: &mut usize, amount: usize) -> Result<()>
+- field_default · function · L806-L908 — fn field_default(field: &Value) -> Result<FieldDefault>
+- identifier · function · L909-L925 — fn identifier(value: &str, id: bool) -> Result<&str>
+- object · function · L926-L936 — fn object(value: &Value, fields: &[&str]) -> Result<()>
+- text · function · L937-L942 — fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str>
+- invalid · function · L943-L945 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L946-L948 — fn capacity(message: &'static str) -> Vec<Diagnostic>

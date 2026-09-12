@@ -1,0 +1,53 @@
+# project/incremental.rs
+
+- snapshot · module · L29-L29 — mod snapshot;
+- PROJECT_FRONTEND_CACHE_SCHEMA · constant · L41-L41 — pub const PROJECT_FRONTEND_CACHE_SCHEMA: &str = "semaprax.project-frontend-cache-work.v1";
+- PROJECT_FRONTEND_CACHE_COMPATIBILITY · constant · L42-L42 — pub const PROJECT_FRONTEND_CACHE_COMPATIBILITY: &str = "semaprax.project-frontend-canonical-ast.v1";
+- PROJECT_SEMANTIC_CACHE_SCHEMA · constant · L43-L43 — pub const PROJECT_SEMANTIC_CACHE_SCHEMA: &str = "semaprax.project-semantic-cache-work.v1";
+- PROJECT_SEMANTIC_CACHE_COMPATIBILITY · constant · L44-L44 — pub const PROJECT_SEMANTIC_CACHE_COMPATIBILITY: &str = "semaprax.project-checked-module-hir.v1";
+- MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES · constant · L45-L45 — pub const MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES: usize = MAX_TOTAL_SOURCE_BYTES;
+- MAX_PROJECT_FRONTEND_CACHE_AST_BUDGET · constant · L46-L46 — pub const MAX_PROJECT_FRONTEND_CACHE_AST_BUDGET: usize = 16 * 1024 * 1024;
+- MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND · constant · L47-L47 — pub const MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND: usize = 16 * 1024 * 1024;
+- MAX_PROJECT_CHECKED_FUNCTIONS · constant · L48-L48 — pub const MAX_PROJECT_CHECKED_FUNCTIONS: usize = 8192;
+- MAX_PROJECT_FRONTEND_REPORT_BYTES · constant · L49-L49 — pub const MAX_PROJECT_FRONTEND_REPORT_BYTES: usize = 65_536;
+- Result · type · L50-L50 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- ProjectFrontendSource · struct · L53-L56 — pub struct ProjectFrontendSource
+- new · function · L58-L68 — pub fn new(path: &str, source: &str) -> Result<Self>
+- path · function · L69-L71 — pub fn path(&self) -> &str
+- source · function · L72-L74 — pub fn source(&self) -> &str
+- CachedModule · struct · L77-L80 — struct CachedModule
+- CheckedModule · struct · L82-L88 — struct CheckedModule
+- ProjectFrontendCache · struct · L92-L98 — pub struct ProjectFrontendCache
+- ProjectFrontendBuild · struct · L100-L103 — pub struct ProjectFrontendBuild
+- revision · function · L105-L107 — pub fn revision(&self) -> &Arc<ProjectRevision>
+- into_revision · function · L108-L110 — pub fn into_revision(self) -> Arc<ProjectRevision>
+- to_json · function · L111-L113 — pub fn to_json(&self) -> &str
+- default · function · L117-L119 — fn default() -> Self
+- new · function · L122-L130 — pub fn new() -> Self
+- new_with_semantic_cache · function · L134-L139 — pub fn new_with_semantic_cache() -> Self
+- is_semantic_cache_enabled · function · L141-L143 — pub fn is_semantic_cache_enabled(&self) -> bool
+- restored_work · function · L147-L149 — pub fn restored_work(&self) -> Option<&str>
+- build · function · L154-L293 — pub fn build(
+- fork · function · L295-L303 — pub(crate) fn fork(&self) -> Self
+- build_authenticated_sources · function · L307-L320 — pub(super) fn build_authenticated_sources(
+- FrontendPass · struct · L325-L341 — pub(crate) struct FrontendPass
+- CoreAttemptCheckpoint · struct · L345-L350 — pub(crate) struct CoreAttemptCheckpoint
+- SelectiveResolvedModule · struct · L352-L356 — pub(crate) struct SelectiveResolvedModule
+- into_parts · function · L358-L362 — pub(crate) fn into_parts(
+- checkpoint_core_attempt · function · L365-L375 — pub(crate) fn checkpoint_core_attempt(&self) -> Option<CoreAttemptCheckpoint>
+- rollback_core_attempt · function · L377-L383 — pub(crate) fn rollback_core_attempt(&mut self, checkpoint: CoreAttemptCheckpoint)
+- checked_retention_prebound · function · L385-L392 — pub(crate) fn checked_retention_prebound(&self, bytes: usize) -> Result<()>
+- checked_module · function · L393-L413 — pub(crate) fn checked_module(
+- resolve_functions · function · L415-L442 — pub(crate) fn resolve_functions(
+- resolved_module · function · L445-L470 — pub(crate) fn resolved_module(
+- lookup · function · L471-L479 — pub(crate) fn lookup(&mut self, path: &str, source: &str) -> Option<Program>
+- parsed · function · L480-L483 — pub(crate) fn parsed(&mut self, bytes: usize)
+- canonicalized · function · L484-L486 — pub(crate) fn canonicalized(&mut self)
+- retain · function · L487-L540 — pub(crate) fn retain(
+- sources_from_revision · function · L543-L551 — pub(super) fn sources_from_revision(
+- work_value · function · L552-L555 — pub(super) fn work_value(build: &ProjectFrontendBuild) -> Result<Value>
+- context_digest · function · L556-L565 — fn context_digest(bytes: &[u8]) -> String
+- invalid · function · L566-L568 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L569-L571 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- semantic_tests · module · L574-L644 — mod semantic_tests
+- retained_checked_entry_requires_exact_stub_and_span_equality · function · L578-L643 — fn retained_checked_entry_requires_exact_stub_and_span_equality()

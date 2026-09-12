@@ -1,0 +1,34 @@
+---
+covers: []
+---
+# variant_layout.rs
+
+- VARIANT_LAYOUT_DOMAIN · constant · L22-L22 — const VARIANT_LAYOUT_DOMAIN: &[u8] = b"semaprax.variant-layout.v2\0";
+- VariantTarget · type · L24-L24 — pub(crate) type VariantTarget = AggregateTarget;
+- VariantFieldLayout · struct · L27-L36 — pub(crate) struct VariantFieldLayout
+- VariantFieldValueKind · enum · L39-L43 — pub(crate) enum VariantFieldValueKind
+- VariantCaseLayout · struct · L46-L52 — pub(crate) struct VariantCaseLayout
+- field · function · L55-L57 — pub(crate) fn field(&self, field: &DeclarationId) -> Option<&VariantFieldLayout>
+- VariantLayout · struct · L61-L72 — pub(crate) struct VariantLayout
+- for_variant · function · L76-L89 — pub(crate) fn for_variant(
+- for_type · function · L91-L199 — pub(crate) fn for_type(
+- validate · function · L201-L210 — pub(crate) fn validate(&self, program: &ResolvedProgram) -> Result<(), Diagnostic>
+- case · function · L212-L214 — pub(crate) fn case(&self, case: &DeclarationId) -> Option<&VariantCaseLayout>
+- digest · function · L217-L219 — pub(crate) const fn digest(&self) -> [u8; 32]
+- digest_hex · function · L222-L228 — fn digest_hex(&self) -> String
+- VariantLayoutCache · struct · L232-L235 — pub(crate) struct VariantLayoutCache
+- for_scalar_only · function · L241-L246 — pub(crate) fn for_scalar_only(target: VariantTarget) -> Self
+- build · function · L248-L280 — pub(crate) fn build(
+- layout · function · L282-L290 — pub(crate) fn layout(&self, instance: &ResolvedType) -> Result<&VariantLayout, Diagnostic>
+- layouts · function · L292-L294 — pub(crate) fn layouts(&self) -> impl ExactSizeIterator<Item = &VariantLayout>
+- is_empty · function · L296-L298 — pub(crate) fn is_empty(&self) -> bool
+- layout_case · function · L301-L381 — fn layout_case(
+- unique_variant · function · L383-L397 — fn unique_variant<'a>(
+- align_up · function · L399-L408 — fn align_up(value: u32, align: u32) -> Result<u32, Diagnostic>
+- digest_layout · function · L411-L454 — fn digest_layout(
+- collect_variant_type · function · L456-L480 — fn collect_variant_type(
+- collect_expr_variant_types · function · L482-L628 — fn collect_expr_variant_types(
+- Work · enum · L487-L490 — enum Work<'a>
+- digest_string · function · L630-L633 — fn digest_string(digest: &mut Sha256, value: &str)
+- layout_error · function · L635-L637 — fn layout_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L641-L641 — mod tests;

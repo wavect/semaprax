@@ -1,0 +1,30 @@
+# project/execution.rs
+
+- cases · module · L8-L8 — mod cases;
+- report · module · L9-L9 — mod report;
+- ProjectExecutionRole · enum · L35-L38 — pub enum ProjectExecutionRole
+- text · function · L41-L46 — const fn text(self) -> &'static str
+- ProjectExecutionOptions · struct · L50-L53 — pub struct ProjectExecutionOptions
+- new · function · L56-L62 — pub fn new(max_bytes: usize, max_steps: usize) -> Result<Self, Diagnostic>
+- default · function · L66-L72 — fn default() -> Self
+- ProjectExecutionOutcome · enum · L76-L81 — pub enum ProjectExecutionOutcome
+- ProjectExecution · struct · L84-L95 — pub struct ProjectExecution
+- CancellableProjectExecution · enum · L97-L104 — pub(super) enum CancellableProjectExecution
+- role · function · L107-L109 — pub const fn role(&self) -> ProjectExecutionRole
+- module · function · L111-L113 — pub fn module(&self) -> &str
+- stable_id · function · L115-L117 — pub fn stable_id(&self) -> &str
+- outcome · function · L119-L121 — pub const fn outcome(&self) -> &ProjectExecutionOutcome
+- steps_used · function · L123-L125 — pub const fn steps_used(&self) -> usize
+- max_steps · function · L127-L129 — pub const fn max_steps(&self) -> usize
+- envelope · function · L131-L133 — pub fn envelope(&self) -> &str
+- failure · function · L137-L139 — pub const fn failure(&self) -> Option<&ProjectContractFailure>
+- cases · function · L143-L145 — pub fn cases(&self) -> &[ProjectTestCase]
+- skipped_cases · function · L150-L152 — pub fn skipped_cases(&self) -> &[SkippedTestCase]
+- command_succeeded · function · L157-L165 — pub fn command_succeeded(&self) -> bool
+- execute · function · L168-L210 — pub(super) fn execute(
+- TestCases · struct · L214-L217 — struct TestCases
+- skipped · function · L219-L229 — fn skipped(
+- execute_cancellable · function · L234-L343 — pub(super) fn execute_cancellable(
+- finish · function · L345-L408 — fn finish(
+- guard_error · function · L410-L412 — fn guard_error(message: String) -> Diagnostic
+- tests · module · L416-L416 — mod tests;

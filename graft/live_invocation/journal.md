@@ -1,0 +1,54 @@
+# live_invocation/journal.rs
+
+- JOURNAL_DOMAIN · constant · L58-L58 — const JOURNAL_DOMAIN: &[u8] = b"semaprax.live-invocation.journal.v1\0";
+- MAX_JOURNAL_ENTRIES · constant · L63-L63 — pub const MAX_JOURNAL_ENTRIES: usize = 16_384;
+- JournalEntry · enum · L67-L157 — pub enum JournalEntry
+- kind · function · L160-L176 — const fn kind(&self) -> &'static str
+- turn · function · L178-L194 — fn turn(&self) -> u32
+- encode · function · L197-L296 — pub fn encode(&self, seq: usize) -> String
+- render · function · L302-L312 — pub fn render(entries: &[JournalEntry]) -> String
+- chain · function · L317-L328 — pub fn chain(entries: &[JournalEntry]) -> String
+- text · function · L330-L332 — fn text<'a>(entry: &'a Map<String, Value>, key: &str) -> Option<&'a str>
+- digest_field · function · L334-L337 — fn digest_field<'a>(entry: &'a Map<String, Value>, key: &str) -> Option<&'a str>
+- closed · function · L339-L341 — fn closed(entry: &Map<String, Value>, keys: &[&str]) -> Option<()>
+- turn_field · function · L343-L345 — fn turn_field(entry: &Map<String, Value>) -> Option<u32>
+- DecodeError · struct · L351-L351 — pub struct DecodeError;
+- decode · function · L357-L539 — pub fn decode(value: &Value) -> Result<Vec<JournalEntry>, DecodeError>
+- JournalError · enum · L544-L568 — pub enum JournalError
+- Phase · enum · L574-L595 — enum Phase
+- ValidatedJournal · struct · L599-L616 — pub struct ValidatedJournal<'a>
+- validate · function · L620-L796 — pub fn validate<'a>(
+- ReceiptProjection · struct · L808-L815 — pub struct ReceiptProjection
+- receipt_projection · function · L819-L849 — pub fn receipt_projection(validated: &ValidatedJournal<'_>) -> ReceiptProjection
+- tests · module · L852-L1259 — mod tests
+- opened · function · L855-L861 — fn opened(turn: u32) -> JournalEntry
+- intent · function · L862-L868 — fn intent(turn: u32) -> JournalEntry
+- recorded · function · L869-L875 — fn recorded(turn: u32) -> JournalEntry
+- admitted · function · L876-L881 — fn admitted(turn: u32) -> JournalEntry
+- consumed · function · L882-L887 — fn consumed(turn: u32) -> JournalEntry
+- transition · function · L888-L894 — fn transition(turn: u32, case: &str) -> JournalEntry
+- terminal · function · L895-L901 — fn terminal(turn: u32, case: &str) -> JournalEntry
+- INVOCATION · constant · L902-L905 — const INVOCATION: &str = concat!(
+- one_turn_complete · function · L907-L917 — fn one_turn_complete() -> Vec<JournalEntry>
+- a_minimal_legal_single_turn_conversation_validates · function · L920-L924 — fn a_minimal_legal_single_turn_conversation_validates()
+- canonical_encode_decode_round_trips · function · L927-L933 — fn canonical_encode_decode_round_trips()
+- chain_link_changes_on_reorder_or_truncation · function · L936-L946 — fn chain_link_changes_on_reorder_or_truncation()
+- omission_is_rejected · function · L949-L953 — fn omission_is_rejected()
+- reorder_is_rejected · function · L956-L960 — fn reorder_is_rejected()
+- cross_invocation_turn_opened_is_rejected · function · L963-L974 — fn cross_invocation_turn_opened_is_rejected()
+- schema_drift_style_refusal_still_produces_a_terminal_shaped_journal · function · L977-L991 — fn schema_drift_style_refusal_still_produces_a_terminal_shaped_journal()
+- continuation_after_terminal_outcome_is_rejected · function · L994-L1004 — fn continuation_after_terminal_outcome_is_rejected()
+- duplicate_request_intent_is_rejected · function · L1007-L1022 — fn duplicate_request_intent_is_rejected()
+- duplicate_turn_opened_is_rejected · function · L1025-L1034 — fn duplicate_turn_opened_is_rejected()
+- duplicate_transition_after_continue_is_rejected · function · L1037-L1057 — fn duplicate_transition_after_continue_is_rejected()
+- non_sequential_turn_is_rejected · function · L1060-L1074 — fn non_sequential_turn_is_rejected()
+- effect_operation_mismatch_is_rejected · function · L1077-L1099 — fn effect_operation_mismatch_is_rejected()
+- authorization_refused_is_a_valid_terminal_replayable_shape · function · L1102-L1127 — fn authorization_refused_is_a_valid_terminal_replayable_shape()
+- skipping_straight_from_proposal_admitted_to_transition_is_still_rejected · function · L1130-L1148 — fn skipping_straight_from_proposal_admitted_to_transition_is_still_rejected()
+- effect_failed_is_a_valid_terminal_replayable_shape · function · L1151-L1176 — fn effect_failed_is_a_valid_terminal_replayable_shape()
+- effect_failed_naming_a_different_operation_than_its_intent_is_rejected · function · L1179-L1201 — fn effect_failed_naming_a_different_operation_than_its_intent_is_rejected()
+- a_journal_ending_in_intent_is_uncertain_not_terminal · function · L1204-L1210 — fn a_journal_ending_in_intent_is_uncertain_not_terminal()
+- a_journal_ending_right_after_continue_is_resumable_not_uncertain · function · L1213-L1226 — fn a_journal_ending_right_after_continue_is_resumable_not_uncertain()
+- decode_rejects_an_unknown_key · function · L1229-L1236 — fn decode_rejects_an_unknown_key()
+- decode_rejects_malformed_digest_format · function · L1239-L1243 — fn decode_rejects_malformed_digest_format()
+- receipt_projection_is_a_pure_fold_over_the_journal · function · L1246-L1258 — fn receipt_projection_is_a_pure_fold_over_the_journal()

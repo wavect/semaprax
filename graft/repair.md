@@ -1,0 +1,92 @@
+---
+covers: []
+---
+# repair.rs
+
+- call_closure · module · L3-L3 — mod call_closure;
+- REPORT_SCHEMA · constant · L19-L19 — const REPORT_SCHEMA: &str = "semaprax.diagnostic-repair.v1";
+- PREVIEW_SCHEMA · constant · L20-L20 — const PREVIEW_SCHEMA: &str = "semaprax.diagnostic-repair-preview.v1";
+- PATCH_SCHEMA · constant · L21-L21 — const PATCH_SCHEMA: &str = "semaprax.semantic-patch.v3";
+- REPAIR_ID_DOMAIN · constant · L22-L22 — const REPAIR_ID_DOMAIN: &[u8] = b"semaprax.diagnostic-repair-id.v1\0";
+- SOURCE_DIGEST_DOMAIN · constant · L23-L23 — const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.diagnostic-repair.source-digest.v1\0";
+- PATCH_DIGEST_DOMAIN · constant · L24-L24 — const PATCH_DIGEST_DOMAIN: &[u8] = b"semaprax.diagnostic-repair.patch-digest.v1\0";
+- DERIVED_REBASE_DOMAIN · constant · L25-L25 — const DERIVED_REBASE_DOMAIN: &[u8] = b"semaprax.diagnostic-repair.derived-rebase.v1\0";
+- MIN_PERSISTENT_ID_BYTES · constant · L26-L26 — const MIN_PERSISTENT_ID_BYTES: usize = 1;
+- MAX_PERSISTENT_ID_BYTES · constant · L27-L27 — const MAX_PERSISTENT_ID_BYTES: usize = 255;
+- MAX_SOURCE_BYTES · constant · L28-L28 — pub(crate) const MAX_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+- MAX_FUNCTIONS · constant · L29-L29 — const MAX_FUNCTIONS: usize = 1024;
+- MAX_CALL_SITES · constant · L30-L30 — const MAX_CALL_SITES: usize = 65_536;
+- MAX_OUTPUT_BYTES · constant · L31-L31 — const MAX_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
+- RESERVED_ID_PREFIXES · constant · L32-L40 — const RESERVED_ID_PREFIXES: [&str; 7] = [
+- RESERVED_ID_VALUES · constant · L41-L41 — const RESERVED_ID_VALUES: [&str; 2] = ["bool", "i64"];
+- DiagnosticRepairQuery · struct · L44-L46 — pub struct DiagnosticRepairQuery
+- assign_function_id · function · L49-L61 — pub fn assign_function_id(
+- PersistentDeclarationId · struct · L65-L65 — pub struct PersistentDeclarationId(String);
+- new · function · L68-L85 — pub fn new(value: impl Into<String>) -> Result<Self, Diagnostic>
+- as_str · function · L87-L89 — pub fn as_str(&self) -> &str
+- query · function · L92-L94 — pub fn query(source_path: &Path, query: &DiagnosticRepairQuery) -> Result<String, Vec<Diagnostic>>
+- instantiate · function · L96-L102 — pub fn instantiate(
+- query_with_hook · function · L104-L140 — fn query_with_hook(
+- instantiate_with_hook · function · L142-L224 — fn instantiate_with_hook(
+- EligibleSource · type · L226-L234 — type EligibleSource = (
+- WorkUsage · struct · L237-L241 — struct WorkUsage
+- CallGraph · struct · L243-L246 — struct CallGraph
+- AssignmentCandidate · struct · L248-L253 — pub(crate) struct AssignmentCandidate
+- into_parts · function · L256-L263 — pub(crate) fn into_parts(self) -> (Program, String, String, IdentityRebaseEvidence)
+- IdentityRebaseCaller · struct · L267-L271 — pub(crate) struct IdentityRebaseCaller
+- id · function · L274-L276 — pub(crate) fn id(&self) -> &str
+- identity_origin · function · L278-L280 — pub(crate) fn identity_origin(&self) -> IdentityOrigin
+- site_count · function · L282-L284 — pub(crate) fn site_count(&self) -> usize
+- IdentityRebaseEvidence · struct · L288-L295 — pub(crate) struct IdentityRebaseEvidence
+- before_id · function · L298-L300 — pub(crate) fn before_id(&self) -> &str
+- after_id · function · L302-L304 — pub(crate) fn after_id(&self) -> &str
+- name · function · L306-L308 — pub(crate) fn name(&self) -> &str
+- direct_callers · function · L310-L312 — pub(crate) fn direct_callers(&self) -> &[IdentityRebaseCaller]
+- derived_id_count · function · L314-L316 — pub(crate) fn derived_id_count(&self) -> usize
+- derived_id_digest · function · L318-L320 — pub(crate) fn derived_id_digest(&self) -> &str
+- PatchAssignmentInput · struct · L323-L333 — pub(crate) struct PatchAssignmentInput<'a>
+- preflight_patch_assignment · function · L335-L389 — pub(crate) fn preflight_patch_assignment(
+- identity_rebase_evidence · function · L391-L412 — fn identity_rebase_evidence(
+- read_eligible_source · function · L414-L444 — fn read_eligible_source(source_path: &Path) -> Result<EligibleSource, Vec<Diagnostic>>
+- precheck_program · function · L446-L531 — pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
+- validate_closed_program · function · L532-L566 — fn validate_closed_program(
+- eligible_target · function · L568-L600 — fn eligible_target<'a>(
+- scalar_type · function · L602-L604 — fn scalar_type(ty: &Type) -> bool
+- scalar_expr · function · L606-L647 — fn scalar_expr(expression: &Expr) -> bool
+- CandidateProof · struct · L650-L657 — struct CandidateProof
+- RebaseEntry · struct · L660-L664 — struct RebaseEntry
+- DirectCaller · struct · L667-L670 — struct DirectCaller
+- StructuralRebase · struct · L672-L681 — struct StructuralRebase<'a>
+- validate_one_edit_rebase · function · L683-L738 — fn validate_one_edit_rebase(
+- validate_normalized_graph · function · L740-L768 — fn validate_normalized_graph(
+- compare_program · function · L771-L831 — fn compare_program(
+- compare_function · function · L833-L883 — fn compare_function(
+- compare_value_id · function · L885-L892 — fn compare_value_id(
+- compare_expression_id · function · L894-L900 — fn compare_expression_id(
+- compare_value_reference · function · L902-L915 — fn compare_value_reference(
+- compare_derived_id · function · L917-L943 — fn compare_derived_id(
+- compare_binding · function · L945-L955 — fn compare_binding(
+- compare_expr · function · L957-L1135 — fn compare_expr(
+- normalize_identity_strings · function · L1138-L1163 — fn normalize_identity_strings(
+- identity_string_field · function · L1165-L1193 — fn identity_string_field(field: Option<&str>) -> bool
+- rebase_mismatch · function · L1195-L1199 — fn rebase_mismatch() -> Vec<Diagnostic>
+- render_report · function · L1201-L1234 — fn render_report(
+- PreviewRender · struct · L1236-L1247 — struct PreviewRender<'a>
+- render_preview · function · L1249-L1304 — fn render_preview(input: PreviewRender<'_>) -> Result<String, Vec<Diagnostic>>
+- limits_json · function · L1306-L1310 — fn limits_json() -> String
+- render_with_budget · function · L1312-L1331 — fn render_with_budget(
+- bounded_output · function · L1333-L1341 — fn bounded_output(output: String) -> Result<String, Vec<Diagnostic>>
+- domain_digest · function · L1343-L1352 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- derived_rebase_digest · function · L1354-L1366 — fn derived_rebase_digest(entries: &[RebaseEntry]) -> String
+- repair_id · function · L1368-L1379 — fn repair_id(base_revision: &str, target: &str) -> String
+- hash_text · function · L1381-L1384 — fn hash_text(hasher: &mut Sha256, value: &str)
+- valid_persistent_id_syntax · function · L1386-L1397 — fn valid_persistent_id_syntax(value: &str) -> bool
+- repair_query_error · function · L1399-L1401 — fn repair_query_error(message: impl Into<String>) -> Diagnostic
+- repair_input_error · function · L1403-L1405 — fn repair_input_error(message: impl Into<String>) -> Diagnostic
+- repair_delta_error · function · L1407-L1409 — fn repair_delta_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L1412-L1479 — mod tests
+- NEXT_FIXTURE · constant · L1417-L1417 — static NEXT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+- fixture · function · L1419-L1429 — fn fixture(source: &str) -> (std::path::PathBuf, std::path::PathBuf)
+- query_rejects_same_byte_identity_replacement_at_final_check · function · L1432-L1444 — fn query_rejects_same_byte_identity_replacement_at_final_check()
+- instantiate_rejects_source_byte_drift_at_final_check · function · L1447-L1461 — fn instantiate_rejects_source_byte_drift_at_final_check()
+- instantiate_rejects_growth_beyond_the_final_read_bound · function · L1464-L1478 — fn instantiate_rejects_growth_beyond_the_final_read_bound()

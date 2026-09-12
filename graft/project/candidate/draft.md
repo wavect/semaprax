@@ -1,0 +1,50 @@
+# project/candidate/draft.rs
+
+- archive · module · L13-L13 — mod archive;
+- expression_catalog · module · L15-L15 — mod expression_catalog;
+- recovery · module · L25-L25 — mod recovery;
+- rebase · module · L34-L34 — mod rebase;
+- merge · module · L41-L41 — mod merge;
+- PROJECT_CANDIDATE_DRAFT_SCHEMA · constant · L47-L47 — pub const PROJECT_CANDIDATE_DRAFT_SCHEMA: &str = "semaprax.project-candidate-draft.v1";
+- PROJECT_CANDIDATE_DRAFT_LINEAGE_SCHEMA · constant · L48-L48 — pub const PROJECT_CANDIDATE_DRAFT_LINEAGE_SCHEMA: &str = "semaprax.project-candidate-draft.v2";
+- PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA · constant · L49-L50 — pub const PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA: &str =
+- MAX_PROJECT_CANDIDATE_HOLES · constant · L51-L51 — pub const MAX_PROJECT_CANDIDATE_HOLES: usize = 16;
+- MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE · constant · L52-L52 — pub const MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE: usize = 64;
+- MAX_REPORT_BYTES · constant · L53-L53 — const MAX_REPORT_BYTES: usize = 1024 * 1024;
+- MAX_RENDER_BYTES · constant · L54-L54 — const MAX_RENDER_BYTES: usize = 16 * 1024 * 1024;
+- ProjectCandidateDraft · struct · L59-L68 — pub struct ProjectCandidateDraft
+- FilledHoleLineage · struct · L71-L80 — struct FilledHoleLineage
+- DraftAncestry · struct · L83-L87 — struct DraftAncestry
+- json · function · L90-L101 — fn json(&self) -> Value
+- json · function · L105-L111 — fn json(&self) -> Value
+- open · function · L115-L124 — pub fn open(candidate: Arc<ProjectCandidate>) -> Result<Self, Vec<Diagnostic>>
+- with_body_hole · function · L126-L159 — pub fn with_body_hole(
+- with_expression_hole · function · L163-L222 — pub fn with_expression_hole(
+- with_contract_expression_hole · function · L226-L283 — pub fn with_contract_expression_hole(
+- pending_count · function · L285-L287 — fn pending_count(&self) -> usize
+- hole_context · function · L291-L357 — pub fn hole_context(&self, expected: &str, hole_id: &str) -> Result<String, Vec<Diagnostic>>
+- fill_hole · function · L362-L455 — pub fn fill_hole(
+- complete · function · L459-L465 — pub fn complete(&self, expected: &str) -> Result<Arc<ProjectCandidate>, Vec<Diagnostic>>
+- to_json · function · L466-L468 — pub fn to_json(&self) -> &str
+- draft_digest · function · L469-L471 — pub fn draft_digest(&self) -> &str
+- retained_report_bytes · function · L474-L478 — pub(crate) fn retained_report_bytes(&self) -> usize
+- summary · function · L479-L482 — pub fn summary(&self, expected: &str) -> Result<&str, Vec<Diagnostic>>
+- finish · function · L484-L568 — fn finish(
+- validate_lineage · function · L570-L608 — fn validate_lineage(&self) -> Result<(), Vec<Diagnostic>>
+- target · function · L609-L615 — fn target(&self, id: &str) -> Result<&str, Vec<Diagnostic>>
+- expression_fact · function · L616-L622 — fn expression_fact(
+- contract_expression_fact · function · L623-L629 — fn contract_expression_fact(
+- expression_fact_for · function · L630-L668 — fn expression_fact_for(
+- expression_context_for · function · L669-L771 — fn expression_context_for(
+- with_aggregate_context · function · L773-L841 — fn with_aggregate_context(
+- require_digest · function · L842-L850 — fn require_digest(&self, expected: &str) -> Result<(), Vec<Diagnostic>>
+- function · function · L851-L870 — fn function(
+- resolved_function · function · L871-L888 — fn resolved_function(
+- accessible_calls · function · L889-L932 — fn accessible_calls(
+- validate_id · function · L935-L949 — fn validate_id(id: &str) -> Result<(), Vec<Diagnostic>>
+- render · function · L950-L953 — fn render(value: Value) -> Result<String, Vec<Diagnostic>>
+- trusted_json · function · L954-L956 — fn trusted_json(text: &str) -> Result<Value, Vec<Diagnostic>>
+- ownership · function · L957-L964 — fn ownership(mode: OwnershipMode) -> &'static str
+- grammar · function · L965-L967 — fn grammar(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L968-L970 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L971-L973 — fn stale(message: &'static str) -> Vec<Diagnostic>

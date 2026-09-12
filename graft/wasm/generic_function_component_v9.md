@@ -1,0 +1,48 @@
+# wasm/generic_function_component_v9.rs
+
+- TEMPLATE_IDS · constant · L20-L24 — const TEMPLATE_IDS: [&str; 3] = [
+- MATERIALIZE_ID · constant · L25-L25 — const MATERIALIZE_ID: &str = "component.generic-function.materialize";
+- CANONICAL_EXPORTS · constant · L26-L33 — pub(crate) const CANONICAL_EXPORTS: [&str; 6] = [
+- CONTRACT_DOMAIN · constant · L35-L35 — const CONTRACT_DOMAIN: &str = "semaprax.contract.v1";
+- POISON_I32 · constant · L36-L36 — const POISON_I32: i32 = 0xa5a5_a5a5_u32 as i32;
+- CUSTOM_SECTION · constant · L37-L37 — const CUSTOM_SECTION: &str = "semaprax.component-generic-function-v9";
+- PLAN_DOMAIN · constant · L38-L38 — const PLAN_DOMAIN: &[u8] = b"semaprax.component-generic-function-plan.v9\0";
+- CONTRACT_REQUIRES · constant · L39-L39 — const CONTRACT_REQUIRES: i32 = status_word(1, 1);
+- CONTRACT_ENSURES · constant · L40-L40 — const CONTRACT_ENSURES: i32 = status_word(1, 2);
+- status_word · function · L42-L44 — const fn status_word(class: i32, code: i32) -> i32
+- SOURCE_V9 · constant · L46-L85 — pub(crate) const SOURCE_V9: &str = r#"module test.component_generic_function_v9;
+- Shape · enum · L88-L95 — enum Shape
+- ALL · constant · L98-L105 — const ALL: [Self; 6] = [
+- index · function · L107-L116 — const fn index(self) -> usize
+- template · function · L118-L124 — const fn template(self) -> &'static str
+- type_arguments · function · L126-L133 — fn type_arguments(self) -> Vec<ResolvedType>
+- instance · function · L135-L137 — fn instance(self) -> FunctionInstanceId
+- invert · function · L139-L141 — const fn invert(self) -> bool
+- internal · function · L143-L145 — const fn internal(self) -> i32
+- result · function · L147-L149 — const fn result(self) -> i32
+- canonical_signature · function · L151-L156 — fn canonical_signature(self) -> Signature
+- PrivateGenericFunctionCoreArtifactV9 · struct · L160-L165 — pub(crate) struct PrivateGenericFunctionCoreArtifactV9
+- emit_private_generic_function_core_v9 · function · L167-L197 — pub(crate) fn emit_private_generic_function_core_v9(
+- require_exact_source · function · L199-L210 — fn require_exact_source(program: &Program) -> Result<(), Diagnostic>
+- validate_profile · function · L212-L313 — fn validate_profile(program: &ResolvedProgram) -> Result<Vec<FunctionInstanceId>, Diagnostic>
+- validate_materialize · function · L315-L400 — fn validate_materialize(function: &crate::hir::ResolvedFunction) -> Result<(), Diagnostic>
+- validate_main · function · L402-L446 — fn validate_main(function: &crate::hir::ResolvedFunction) -> Result<(), Diagnostic>
+- is_exact_place · function · L448-L455 — fn is_exact_place(expression: &crate::hir::ResolvedExpr, value: &crate::hir::ValueId) -> bool
+- is_exact_block_int · function · L457-L464 — fn is_exact_block_int(expression: &crate::hir::ResolvedExpr, expected: i64) -> bool
+- is_exact_body · function · L466-L496 — fn is_exact_body(
+- is_exact_control_contract · function · L498-L515 — fn is_exact_control_contract(
+- is_exact_int · function · L517-L531 — fn is_exact_int(expression: &crate::hir::ResolvedExpr, expected: i64) -> bool
+- plan_digest · function · L533-L556 — fn plan_digest() -> [u8; 32]
+- compose · function · L558-L641 — fn compose(
+- active_data · function · L643-L649 — fn active_data(output: &mut Vec<u8>, offset: i32, bytes: &[u8])
+- canonical_adapter_body · function · L651-L687 — fn canonical_adapter_body(shape: Shape, selected_index: u32) -> Vec<u8>
+- trap_invalid_status · function · L689-L695 — fn trap_invalid_status(output: &mut Vec<u8>, status: u32)
+- store_i32_const · function · L697-L703 — fn store_i32_const(output: &mut Vec<u8>, address: i32, value: i32)
+- store_i32_byte_local · function · L705-L711 — fn store_i32_byte_local(output: &mut Vec<u8>, address: i32, local: u32)
+- store_tag · function · L713-L719 — fn store_tag(output: &mut Vec<u8>, address: i32, tag: i32)
+- emit_normalized_status · function · L721-L737 — fn emit_normalized_status(output: &mut Vec<u8>, status: u32)
+- emit_status_fields · function · L739-L756 — fn emit_status_fields(output: &mut Vec<u8>, status: u32, base: i32)
+- store_i32_byte_const · function · L758-L764 — fn store_i32_byte_const(output: &mut Vec<u8>, address: i32, value: i32)
+- first_error · function · L766-L771 — fn first_error(diagnostics: Vec<Diagnostic>) -> Diagnostic
+- profile_error · function · L773-L775 — fn profile_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L779-L779 — mod tests;

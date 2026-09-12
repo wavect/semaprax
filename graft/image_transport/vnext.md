@@ -1,0 +1,88 @@
+# image_transport/vnext.rs
+
+- analysis_boundary_bundle · module · L7-L7 — mod analysis_boundary_bundle;
+- analysis_coverage · module · L8-L8 — mod analysis_coverage;
+- candidate_archive_store · module · L9-L9 — mod candidate_archive_store;
+- candidate_dependency_navigation · module · L10-L10 — mod candidate_dependency_navigation;
+- candidate_function_facets · module · L11-L11 — mod candidate_function_facets;
+- candidate_impact_navigation · module · L12-L12 — mod candidate_impact_navigation;
+- cleanup_dependencies · module · L13-L13 — mod cleanup_dependencies;
+- commit · module · L14-L14 — mod commit;
+- contract_holes · module · L15-L15 — mod contract_holes;
+- dependencies · module · L16-L16 — mod dependencies;
+- deployment_contract_evidence · module · L17-L17 — mod deployment_contract_evidence;
+- discovery · module · L18-L18 — mod discovery;
+- draft_archive · module · L19-L19 — mod draft_archive;
+- draft_merge · module · L20-L20 — mod draft_merge;
+- draft_rebase · module · L21-L21 — mod draft_rebase;
+- draft_recovery · module · L22-L22 — mod draft_recovery;
+- environment_consumer_review · module · L23-L23 — mod environment_consumer_review;
+- environment_review · module · L24-L24 — mod environment_review;
+- external_api_contract_delta · module · L25-L25 — mod external_api_contract_delta;
+- external_api_contract_evidence · module · L26-L26 — mod external_api_contract_evidence;
+- function_instances · module · L27-L27 — mod function_instances;
+- function_reference · module · L28-L28 — mod function_reference;
+- generated_file_provenance · module · L29-L29 — mod generated_file_provenance;
+- hole_navigation · module · L30-L30 — mod hole_navigation;
+- hole_suggestions · module · L31-L31 — mod hole_suggestions;
+- mcp · module · L32-L32 — mod mcp;
+- mcp_catalog · module · L33-L33 — mod mcp_catalog;
+- merge_preview · module · L34-L34 — mod merge_preview;
+- package_graph · module · L35-L35 — mod package_graph;
+- projections · module · L36-L36 — mod projections;
+- read_batch · module · L37-L37 — mod read_batch;
+- read_batch_rpc · module · L38-L38 — mod read_batch_rpc;
+- recovery · module · L39-L39 — mod recovery;
+- retained_reads · module · L40-L40 — mod retained_reads;
+- retained_subjects · module · L41-L41 — mod retained_subjects;
+- retention_lifecycle · module · L42-L42 — mod retention_lifecycle;
+- review_facets · module · L43-L43 — mod review_facets;
+- source_review · module · L44-L44 — mod source_review;
+- symbol_diagnostics · module · L45-L45 — pub(super) mod symbol_diagnostics;
+- task_economics · module · L46-L46 — mod task_economics;
+- test_tasks · module · L47-L47 — mod test_tasks;
+- VNEXT_PROTOCOL_SCHEMA · constant · L53-L53 — pub const VNEXT_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v5";
+- VNEXT_RESULT_SCHEMA · constant · L54-L54 — pub const VNEXT_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v5";
+- VNEXT_APPLICATION_ERROR_DATA_SCHEMA · constant · L55-L56 — pub const VNEXT_APPLICATION_ERROR_DATA_SCHEMA: &str =
+- VNextSessionFailure · struct · L60-L62 — pub struct VNextSessionFailure
+- diagnostics · function · L64-L66 — pub fn diagnostics(&self) -> &[Diagnostic]
+- fmt · function · L69-L77 — fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
+- PublicationOutcome · enum · L82-L85 — enum PublicationOutcome
+- VNextPolicy · struct · L89-L94 — pub struct VNextPolicy
+- Action · enum · L97-L158 — pub(super) enum Action
+- REFRESH · constant · L160-L173 — const REFRESH: Method = Method
+- REFRESH_PREVIEW · constant · L174-L180 — const REFRESH_PREVIEW: Method = Method
+- VNextSession · struct · L182-L201 — pub struct VNextSession
+- open · function · L204-L206 — pub fn open(manifest: &Path, policy: VNextPolicy) -> Result<Self, Vec<Diagnostic>>
+- open_with_frontend_cache · function · L210-L215 — pub fn open_with_frontend_cache(
+- open_with_semantic_cache · function · L220-L229 — pub fn open_with_semantic_cache(
+- open_with_retained_semantic_cache · function · L233-L245 — pub fn open_with_retained_semantic_cache(
+- retained_semantic_cache · function · L249-L263 — pub fn retained_semantic_cache(&mut self) -> Result<ProjectFrontendCache, Vec<Diagnostic>>
+- open_inner · function · L265-L311 — fn open_inner(
+- with_git_commit_host · function · L314-L324 — pub fn with_git_commit_host(mut self, host: GitCommitHost) -> Result<Self, Vec<Diagnostic>>
+- with_read_batch_workers · function · L328-L342 — pub fn with_read_batch_workers(mut self, workers: usize) -> Result<Self, Vec<Diagnostic>>
+- approve_git_commit · function · L345-L364 — pub fn approve_git_commit(
+- image_revision · function · L366-L368 — pub fn image_revision(&self) -> &str
+- is_terminal · function · L369-L371 — pub fn is_terminal(&self) -> bool
+- policy · function · L372-L374 — pub fn policy(&self) -> VNextPolicy
+- initial_frontend_work · function · L379-L381 — pub fn initial_frontend_work(&self) -> Option<&Value>
+- handle_frame · function · L384-L487 — pub fn handle_frame(&mut self, frame: &[u8]) -> Option<Vec<u8>>
+- test_task_request · function · L489-L514 — fn test_task_request(
+- ordinary_request · function · L516-L728 — fn ordinary_request(
+- refresh · function · L730-L807 — fn refresh(&mut self, id: &RequestId, params: &Map<String, Value>, preview: bool) -> Vec<u8>
+- commit_request · function · L809-L845 — fn commit_request(
+- finish · function · L847-L867 — pub fn finish(&mut self) -> Result<(), Vec<Diagnostic>>
+- methods · function · L871-L873 — fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method>
+- session_methods · function · L875-L954 — fn session_methods(
+- response · function · L956-L961 — fn response(id: &RequestId, image: &ProjectSemanticImage, payload: Value) -> Vec<u8>
+- failure · function · L962-L964 — fn failure(code: &'static str, message: &'static str) -> Vec<Diagnostic>
+- error_response · function · L965-L987 — fn error_response(id: &RequestId, errors: &[Diagnostic]) -> Vec<u8>
+- serve_vnext · function · L990-L1037 — pub fn serve_vnext<R: BufRead, W: Write>(
+- finish_stream · function · L1039-L1069 — fn finish_stream(
+- stream_failure_tests · module · L1072-L1125 — mod stream_failure_tests
+- typed_final_failure_preserves_original_codes · function · L1075-L1092 — fn typed_final_failure_preserves_original_codes()
+- stream_errors_preserve_outcome_and_final_authentication · function · L1094-L1124 — fn stream_errors_preserve_outcome_and_final_authentication()
+- application_error_tests · module · L1128-L1199 — mod application_error_tests
+- application_errors_preserve_message_and_closed_diagnostic_facts · function · L1132-L1178 — fn application_errors_preserve_message_and_closed_diagnostic_facts()
+- oversized_application_data_keeps_the_existing_generic_overflow · function · L1181-L1188 — fn oversized_application_data_keeps_the_existing_generic_overflow()
+- empty_application_diagnostics_keep_the_legacy_dataless_error · function · L1191-L1198 — fn empty_application_diagnostics_keep_the_legacy_dataless_error()

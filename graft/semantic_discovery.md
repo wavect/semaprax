@@ -1,0 +1,35 @@
+---
+covers: []
+---
+# semantic_discovery.rs
+
+- bformat · function · L45-L49 — macro_rules! bformat
+- DISCOVERY_SCHEMA · constant · L52-L52 — pub const DISCOVERY_SCHEMA: &str = "semaprax.semantic-discovery.v1";
+- CONTEXT_DELTA_SCHEMA · constant · L54-L54 — pub const CONTEXT_DELTA_SCHEMA: &str = "semaprax.semantic-discovery.context-delta.v1";
+- DEFAULT_DISCOVERY_MAX_BYTES · constant · L66-L66 — const DEFAULT_DISCOVERY_MAX_BYTES: usize = 12 * 1024;
+- DISCOVERY_PAYLOAD_DOMAIN · constant · L67-L67 — const DISCOVERY_PAYLOAD_DOMAIN: &[u8] = b"semaprax.semantic-discovery.payload.digest.v1\0";
+- option_error · function · L69-L71 — fn option_error(message: String) -> Diagnostic
+- budget_error · function · L73-L78 — fn budget_error(field: &str) -> Diagnostic
+- target_not_found · function · L80-L85 — fn target_not_found(symbol: &str) -> Diagnostic
+- determinism_violation · function · L87-L92 — fn determinism_violation(message: &str) -> Diagnostic
+- consistency_error · function · L94-L96 — fn consistency_error(message: String) -> Diagnostic
+- DiscoveryOptions · struct · L100-L102 — pub struct DiscoveryOptions
+- new · function · L105-L114 — pub fn new(max_bytes: usize) -> Result<Self, Diagnostic>
+- max_bytes · function · L117-L119 — pub const fn max_bytes(&self) -> usize
+- default · function · L123-L127 — fn default() -> Self
+- OperationEntry · struct · L135-L140 — struct OperationEntry
+- SEMANTIC_DISCOVERY_OPERATIONS · constant · L146-L207 — const SEMANTIC_DISCOVERY_OPERATIONS: &[OperationEntry] = &[
+- KNOWN_LIMITATIONS · constant · L209-L215 — const KNOWN_LIMITATIONS: &[&str] = &[
+- generate_discovery_manifest · function · L224-L256 — pub fn generate_discovery_manifest(
+- verify_discovery_manifest_against_source · function · L269-L358 — pub fn verify_discovery_manifest_against_source(
+- PAYLOAD_KEY · constant · L298-L298 — const PAYLOAD_KEY: &str = "\"payload\":";
+- domain_digest · function · L360-L369 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- render_operations_catalog · function · L376-L417 — pub(crate) fn render_operations_catalog(
+- render_discovery · function · L419-L466 — fn render_discovery(
+- ParsedContext · struct · L472-L481 — struct ParsedContext
+- parse_context_document · function · L483-L514 — fn parse_context_document(text: &str) -> Option<ParsedContext>
+- ContextDeltaRequest · struct · L518-L523 — pub struct ContextDeltaRequest<'a>
+- compute_context_delta · function · L543-L564 — pub fn compute_context_delta(
+- render_resync · function · L566-L583 — fn render_resync(current_document: &str, reason: &str) -> Result<String, Vec<Diagnostic>>
+- build_delta · function · L585-L680 — fn build_delta(
+- tests · module · L683-L683 — mod tests;

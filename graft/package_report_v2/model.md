@@ -1,0 +1,24 @@
+# package_report_v2/model.rs
+
+- NONCLAIMS_JSON · constant · L21-L31 — const NONCLAIMS_JSON: &str = "[\
+- bf · function · L33-L35 — macro_rules! bf
+- TargetProof · enum · L38-L52 — pub(super) enum TargetProof
+- target_proofs · function · L54-L73 — pub(super) fn target_proofs(program: &Program, resolved: &ResolvedProgram) -> [TargetProof; 2]
+- target_projection · function · L75-L104 — pub(super) fn target_projection(
+- render_payload · function · L106-L247 — pub(super) fn render_payload(
+- render_export · function · L249-L305 — fn render_export(
+- render_contracts · function · L307-L318 — fn render_contracts(facts: &[String]) -> Vec<String>
+- render_target_fact · function · L320-L337 — pub(super) fn render_target_fact(fact: &TargetProof) -> String
+- reachable_type_closure · function · L339-L388 — fn reachable_type_closure(
+- collect_declaration_types · function · L390-L412 — fn collect_declaration_types(
+- render_type_declaration · function · L414-L501 — fn render_type_declaration(
+- render_field · function · L503-L511 — fn render_field(field: &hir::ResolvedFieldDeclaration) -> String
+- collect_expression_types · function · L513-L531 — fn collect_expression_types(expression: &ResolvedExpr, pending: &mut VecDeque<DeclarationId>)
+- collect_nominals · function · L533-L545 — fn collect_nominals(ty: &ResolvedType, pending: &mut VecDeque<DeclarationId>)
+- contract_shape · function · L547-L568 — fn contract_shape(function: &ResolvedFunction) -> (usize, usize)
+- admit_contract_shape · function · L570-L584 — pub(super) fn admit_contract_shape(
+- admit_reachable_type_count · function · L586-L593 — pub(super) fn admit_reachable_type_count(count: usize) -> Result<(), Diagnostic>
+- type_depth · function · L595-L609 — fn type_depth(ty: &ResolvedType) -> usize
+- ownership_text · function · L611-L618 — fn ownership_text(ownership: OwnershipMode) -> &'static str
+- type_json · function · L620-L667 — pub(super) fn type_json(ty: &ResolvedType) -> String
+- primitive · function · L669-L671 — fn primitive(name: &str) -> String

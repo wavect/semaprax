@@ -1,0 +1,117 @@
+---
+covers: []
+---
+# semantic_workspace_structural_change.rs
+
+- artifact · module · L22-L22 — mod artifact;
+- verification · module · L23-L23 — mod verification;
+- generate · function · L28-L33 — pub fn generate(
+- preview · function · L36-L38 — pub fn preview(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>>
+- evidence · function · L41-L43 — pub fn evidence(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>>
+- verify · function · L46-L52 — pub fn verify(
+- apply · function · L57-L63 — pub fn apply(
+- StructuralGeneratePoint · enum · L66-L69 — pub(crate) enum StructuralGeneratePoint
+- StructuralVerifyPoint · enum · L72-L76 — pub(crate) enum StructuralVerifyPoint
+- StructuralApplyPoint · enum · L79-L85 — pub(crate) enum StructuralApplyPoint
+- SemanticWorkspaceStructuralChangeCommitAuthority · struct · L87-L93 — pub(crate) struct SemanticWorkspaceStructuralChangeCommitAuthority
+- into_parts · function · L96-L112 — pub(crate) fn into_parts(
+- generate_with_hook · function · L115-L134 — pub(crate) fn generate_with_hook(
+- verify_with_hook · function · L136-L161 — pub(crate) fn verify_with_hook(
+- apply_authenticated_with_hook · function · L163-L239 — pub(crate) fn apply_authenticated_with_hook(
+- apply_hook_error · function · L241-L243 — fn apply_hook_error(label: &'static str, error: std::io::Error) -> Vec<Diagnostic>
+- SCHEMA · constant · L245-L245 — pub(crate) const SCHEMA: &str = "semaprax.workspace-semantic-structural-change.v1";
+- MAX_PROPOSAL_BYTES · constant · L246-L246 — const MAX_PROPOSAL_BYTES: usize = 32 * 1024 * 1024;
+- MAX_OPERATIONS · constant · L247-L247 — const MAX_OPERATIONS: usize = 16;
+- MAX_PATH_BYTES · constant · L248-L248 — const MAX_PATH_BYTES: usize = 240;
+- MAX_SOURCE_BYTES_PER_OPERATION · constant · L249-L249 — const MAX_SOURCE_BYTES_PER_OPERATION: usize = 1024 * 1024;
+- MAX_TOTAL_SUPPLIED_SOURCE_BYTES · constant · L250-L250 — const MAX_TOTAL_SUPPLIED_SOURCE_BYTES: usize = 4 * 1024 * 1024;
+- MAX_ENTRY_MODULE_BYTES · constant · L251-L251 — const MAX_ENTRY_MODULE_BYTES: usize = 16 * 1024 * 1024;
+- MAX_TOTAL_SOURCE_BYTES · constant · L252-L252 — const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+- MAX_CANDIDATE_MANIFEST_BYTES · constant · L253-L253 — const MAX_CANDIDATE_MANIFEST_BYTES: usize = 1024 * 1024;
+- MAX_CANDIDATE_GRAPH_BUILDER_BYTES · constant · L254-L254 — const MAX_CANDIDATE_GRAPH_BUILDER_BYTES: usize = 16 * 1024 * 1024;
+- MAX_ANALYSIS_BUILDER_BYTES · constant · L255-L255 — const MAX_ANALYSIS_BUILDER_BYTES: usize = 32 * 1024 * 1024;
+- MIN_MANAGED_FILES · constant · L256-L256 — const MIN_MANAGED_FILES: usize = 2;
+- MAX_MANAGED_FILES · constant · L257-L257 — const MAX_MANAGED_FILES: usize = semantic_workspace::MAX_MANAGED_FILES;
+- SemanticWorkspaceStructuralChangeSet · struct · L260-L265 — pub(crate) struct SemanticWorkspaceStructuralChangeSet
+- SemanticWorkspaceStructuralOperation · enum · L268-L287 — pub(crate) enum SemanticWorkspaceStructuralOperation
+- BaseSourceBinding · struct · L290-L294 — pub(crate) struct BaseSourceBinding
+- StructuralCandidateOverlay · struct · L296-L301 — pub(crate) struct StructuralCandidateOverlay
+- StructuralBaseFileFact · struct · L304-L310 — pub(crate) struct StructuralBaseFileFact
+- SemanticWorkspacePreparedStructuralChange · struct · L312-L335 — pub(crate) struct SemanticWorkspacePreparedStructuralChange
+- path · function · L338-L340 — pub(crate) fn path(&self) -> &str
+- source_graph_schema · function · L342-L344 — pub(crate) fn source_graph_schema(&self) -> &str
+- source_revision · function · L346-L348 — pub(crate) fn source_revision(&self) -> &str
+- source_digest · function · L350-L352 — pub(crate) fn source_digest(&self) -> &str
+- bytes · function · L354-L356 — pub(crate) const fn bytes(&self) -> usize
+- source · function · L361-L363 — pub(crate) fn source(&self) -> &str
+- base_workspace_revision · function · L365-L367 — pub(crate) fn base_workspace_revision(&self) -> &str
+- entry_module · function · L369-L371 — pub(crate) fn entry_module(&self) -> &str
+- operations · function · L373-L375 — pub(crate) fn operations(&self) -> &[SemanticWorkspaceStructuralOperation]
+- into_parts · function · L379-L393 — pub(crate) fn into_parts(
+- base_workspace_revision · function · L397-L399 — pub(crate) fn base_workspace_revision(&self) -> &str
+- candidate_workspace_revision · function · L401-L403 — pub(crate) fn candidate_workspace_revision(&self) -> &str
+- entry_module · function · L405-L407 — pub(crate) fn entry_module(&self) -> &str
+- proposal_source · function · L409-L411 — pub(crate) fn proposal_source(&self) -> &str
+- operations · function · L413-L415 — pub(crate) fn operations(&self) -> &[SemanticWorkspaceStructuralOperation]
+- candidate_manifest · function · L417-L419 — pub(crate) fn candidate_manifest(&self) -> &str
+- base_workspace_graph_digest · function · L421-L423 — pub(crate) fn base_workspace_graph_digest(&self) -> &str
+- candidate_workspace_graph_digest · function · L425-L427 — pub(crate) fn candidate_workspace_graph_digest(&self) -> &str
+- base_files · function · L429-L431 — pub(crate) fn base_files(&self) -> &[StructuralBaseFileFact]
+- candidate_files · function · L433-L435 — pub(crate) fn candidate_files(&self) -> &[semantic_workspace::SemanticWorkspaceFileFact]
+- base_graph · function · L437-L439 — pub(crate) fn base_graph(&self) -> &workspace_graph::WorkspaceGraphChangeView
+- candidate_graph · function · L441-L443 — pub(crate) fn candidate_graph(&self) -> &workspace_graph::WorkspaceGraphChangeView
+- roots · function · L445-L447 — pub(crate) fn roots(&self) -> &[semantic_workspace_change::SemanticWorkspaceChangeRoot]
+- delta_edges · function · L449-L451 — pub(crate) fn delta_edges(&self) -> &[semantic_workspace_change::SemanticWorkspaceChangeEdge]
+- context_nodes · function · L453-L457 — pub(crate) fn context_nodes(
+- impact · function · L459-L461 — pub(crate) fn impact(&self) -> &[semantic_workspace_change::SemanticWorkspaceChangeImpactFact]
+- impact_edges · function · L463-L467 — pub(crate) fn impact_edges(
+- used_analysis_builder_bytes · function · L469-L471 — pub(crate) const fn used_analysis_builder_bytes(&self) -> usize
+- used_total_supplied_source_bytes · function · L473-L475 — pub(crate) const fn used_total_supplied_source_bytes(&self) -> usize
+- retained_generations · function · L477-L479 — pub(crate) const fn retained_generations(&self) -> usize
+- base_manifest_bytes · function · L481-L483 — pub(crate) const fn base_manifest_bytes(&self) -> usize
+- staging_attempts · function · L485-L487 — pub(crate) const fn staging_attempts(&self) -> usize
+- into_candidate_generation_parts · function · L489-L501 — fn into_candidate_generation_parts(
+- with_authenticated_structural_authority · function · L504-L512 — fn with_authenticated_structural_authority<T>(
+- prepare_authenticated_structural_authority · function · L514-L548 — fn prepare_authenticated_structural_authority(
+- read_proposal · function · L550-L570 — fn read_proposal(path: &Path) -> Result<String, Vec<Diagnostic>>
+- proposal_io · function · L572-L577 — fn proposal_io(detail: &'static str) -> Vec<Diagnostic>
+- map_base_builder_limit · function · L579-L592 — fn map_base_builder_limit(diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic>
+- parse_proposal · function · L594-L728 — pub(crate) fn parse_proposal(
+- derive_candidate_overlay · function · L730-L882 — pub(crate) fn derive_candidate_overlay(
+- validate_move_relationships · function · L884-L906 — fn validate_move_relationships(
+- prepare_owned · function · L908-L923 — pub(crate) fn prepare_owned(
+- prepare_owned_with_analysis_limit · function · L926-L942 — pub(crate) fn prepare_owned_with_analysis_limit(
+- prepare_owned_with_limit · function · L944-L1142 — fn prepare_owned_with_limit(
+- render_proposal · function · L1144-L1152 — pub(crate) fn render_proposal(
+- render_proposal_facts · function · L1154-L1182 — pub(crate) fn render_proposal_facts(
+- render_operation · function · L1184-L1221 — fn render_operation(output: &mut CappedString, operation: &SemanticWorkspaceStructuralOperation)
+- render_base_binding · function · L1223-L1230 — fn render_base_binding(output: &mut CappedString, base: &BaseSourceBinding)
+- push_json · function · L1232-L1248 — fn push_json(output: &mut CappedString, value: &str)
+- parse_base_binding · function · L1250-L1271 — fn parse_base_binding(object: &Map<String, Value>) -> Result<BaseSourceBinding, Vec<Diagnostic>>
+- checked_path · function · L1273-L1281 — fn checked_path(value: &str) -> Result<String, Vec<Diagnostic>>
+- checked_source · function · L1283-L1291 — fn checked_source(value: &str) -> Result<String, Vec<Diagnostic>>
+- add_supplied · function · L1293-L1296 — fn add_supplied(total: &mut usize, bytes: usize) -> Result<(), Vec<Diagnostic>>
+- checked_supplied · function · L1298-L1313 — fn checked_supplied(total: usize, bytes: usize) -> Result<usize, Vec<Diagnostic>>
+- require_base · function · L1315-L1332 — fn require_base<'a>(
+- require_destination_absent · function · L1334-L1345 — fn require_destination_absent(
+- require_consumed · function · L1347-L1353 — fn require_consumed(consumed: &mut BTreeSet<String>, path: &str) -> Result<(), Vec<Diagnostic>>
+- require_produced · function · L1355-L1361 — fn require_produced(produced: &mut BTreeSet<String>, path: &str) -> Result<(), Vec<Diagnostic>>
+- insert_candidate · function · L1363-L1379 — fn insert_candidate(
+- operation_key · function · L1381-L1390 — fn operation_key(operation: &SemanticWorkspaceStructuralOperation) -> (u8, &str, &str)
+- validate_entry_module · function · L1392-L1409 — fn validate_entry_module(value: &str) -> Result<(), Vec<Diagnostic>>
+- validate_digest · function · L1411-L1423 — fn validate_digest(value: &str) -> Result<(), Vec<Diagnostic>>
+- canonical_body · function · L1425-L1435 — fn canonical_body(source: &str) -> Result<&str, Vec<Diagnostic>>
+- validate_json_depth · function · L1437-L1469 — fn validate_json_depth(source: &str) -> Result<(), Vec<Diagnostic>>
+- exact_object · function · L1471-L1478 — fn exact_object<'a>(
+- require_keys · function · L1480-L1486 — fn require_keys(object: &Map<String, Value>, keys: &[&str]) -> Result<(), Vec<Diagnostic>>
+- text · function · L1488-L1493 — fn text<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Vec<Diagnostic>>
+- array · function · L1495-L1500 — fn array<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a Vec<Value>, Vec<Diagnostic>>
+- canonical · function · L1502-L1507 — fn canonical() -> Vec<Diagnostic>
+- stale · function · L1509-L1511 — fn stale(message: &'static str) -> Vec<Diagnostic>
+- conflict · function · L1513-L1515 — fn conflict(message: &'static str) -> Vec<Diagnostic>
+- operation_conflict · function · L1517-L1519 — fn operation_conflict() -> Vec<Diagnostic>
+- limit · function · L1521-L1528 — fn limit(field: &'static str, maximum: usize) -> Vec<Diagnostic>
+- replay · function · L1530-L1535 — fn replay() -> Vec<Diagnostic>
+- map_replay_diagnostics · function · L1537-L1539 — fn map_replay_diagnostics(_label: &'static str, _diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic>
+- map_candidate_builder_limit · function · L1541-L1567 — fn map_candidate_builder_limit(
+- tests · module · L1571-L1571 — pub(super) mod tests;

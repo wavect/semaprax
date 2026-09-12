@@ -1,0 +1,46 @@
+# project/candidate/git_publication/process.rs
+
+- CandidateGitProcessAuthority · struct · L5-L9 — pub struct CandidateGitProcessAuthority
+- open · function · L11-L32 — pub fn open(
+- object_format · function · L33-L42 — pub fn object_format(&self) -> GitObjectFormat
+- repository_identity · function · L43-L45 — pub fn repository_identity(&self) -> &str
+- repository · function · L48-L59 — fn repository(&self) -> io::Result<CandidateGitRepository>
+- read_ref · function · L60-L70 — fn read_ref(&mut self, reference: &str) -> io::Result<Option<String>>
+- read_object · function · L71-L104 — fn read_object(&mut self, oid: &str, max_bytes: usize) -> io::Result<CandidateGitObject>
+- write_object · function · L105-L142 — fn write_object(
+- compare_and_swap_ref · function · L143-L175 — fn compare_and_swap_ref(
+- checked_oid · function · L178-L185 — fn checked_oid(oid: &str, format: GitObjectFormat) -> io::Result<()>
+- platform · module · L189-L189 — mod platform;
+- platform · module · L192-L222 — mod platform
+- SUPPORTED · constant · L198-L198 — pub(super) const SUPPORTED: bool = false;
+- Limits · struct · L201-L205 — pub(super) struct Limits
+- run · function · L207-L221 — pub(super) fn run(
+- unix · module · L225-L768 — mod unix
+- Lease · struct · L233-L233 — struct Lease(File);
+- drop · function · L235-L240 — fn drop(&mut self)
+- Host · struct · L243-L258 — pub(super) struct Host
+- open · function · L260-L340 — pub(super) fn open(
+- recheck · function · L341-L379 — pub(super) fn recheck(&self) -> io::Result<()>
+- read_ref · function · L380-L403 — pub(super) fn read_ref(&mut self, reference: &str) -> io::Result<Option<String>>
+- success · function · L404-L415 — pub(super) fn success(
+- run · function · L416-L458 — fn run(&mut self, args: &[&str], input: &[u8], limit: usize) -> io::Result<(i32, Vec<u8>)>
+- validate_storage · function · L462-L496 — fn validate_storage(root: &File, deadline: Instant) -> io::Result<()>
+- open_file · function · L497-L516 — fn open_file(path: &Path, directory: bool, create: bool) -> io::Result<File>
+- open_file_at · function · L517-L541 — fn open_file_at(
+- same_file_handles · function · L542-L554 — fn same_file_handles(current: &File, held: &File, directory: bool) -> io::Result<()>
+- require_absent_at · function · L555-L560 — fn require_absent_at(parent: &File, name: &std::ffi::CStr) -> io::Result<()>
+- require_absent_nested · function · L561-L571 — fn require_absent_nested(
+- same_file · function · L573-L586 — fn same_file(path: &Path, file: &File, directory: bool) -> io::Result<()>
+- read_bounded · function · L587-L603 — fn read_bounded(file: &File, limit: usize) -> io::Result<Vec<u8>>
+- validate_config · function · L604-L654 — fn validate_config(bytes: &[u8]) -> Result<GitObjectFormat>
+- tests · module · L657-L762 — mod tests
+- SERIAL · constant · L661-L661 — static SERIAL: AtomicU64 = AtomicU64::new(0);
+- Repository · struct · L663-L663 — struct Repository(PathBuf);
+- new · function · L665-L680 — fn new() -> Self
+- open · function · L682-L686 — fn open(&self) -> Result<Host>
+- assert_leased · function · L688-L693 — fn assert_leased(&self)
+- drop · function · L696-L699 — fn drop(&mut self)
+- dropping_git_host_releases_lease_with_an_inherited_descriptor_alive · function · L703-L725 — fn dropping_git_host_releases_lease_with_an_inherited_descriptor_alive()
+- unwinding_git_host_releases_lease_with_an_inherited_descriptor_alive · function · L728-L746 — fn unwinding_git_host_releases_lease_with_an_inherited_descriptor_alive()
+- expired_host_deadline_is_the_sticky_primary · function · L749-L761 — fn expired_host_deadline_is_the_sticky_primary()
+- process_tests · module · L765-L767 — mod process_tests

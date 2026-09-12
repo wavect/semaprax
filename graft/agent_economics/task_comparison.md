@@ -1,0 +1,41 @@
+# agent_economics/task_comparison.rs
+
+- AGENT_TASK_COMPARISON_OBSERVATION_SET_SCHEMA · constant · L10-L11 — pub const AGENT_TASK_COMPARISON_OBSERVATION_SET_SCHEMA: &str =
+- AGENT_TASK_COMPARISON_NORMALIZED_REPORT_SCHEMA · constant · L12-L13 — pub const AGENT_TASK_COMPARISON_NORMALIZED_REPORT_SCHEMA: &str =
+- MAX_AGENT_TASK_COMPARISON_INPUT_BYTES · constant · L14-L14 — pub const MAX_AGENT_TASK_COMPARISON_INPUT_BYTES: usize = 7 * 1024 * 1024;
+- MAX_AGENT_TASK_COMPARISON_REPORT_BYTES · constant · L15-L15 — pub const MAX_AGENT_TASK_COMPARISON_REPORT_BYTES: usize = 8 * 1024 * 1024;
+- MAX_AGENT_TASK_COMPARISON_IDENTIFIER_BYTES · constant · L16-L16 — pub const MAX_AGENT_TASK_COMPARISON_IDENTIFIER_BYTES: usize = 65_536;
+- REPORT_DOMAIN · constant · L18-L18 — const REPORT_DOMAIN: &[u8] = b"semaprax.agent-task-comparison-normalized-report.v1\0";
+- REQUIRED_LANES · constant · L19-L19 — const REQUIRED_LANES: [&str; 2] = ["semaprax-graph-operational", "semaprax-source-first"];
+- ZERO_LANE · constant · L20-L20 — const ZERO_LANE: &str = "zero-graph-native";
+- METRICS · constant · L21-L34 — const METRICS: [&str; 12] = [
+- Result · type · L36-L36 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- normalize_task_comparison_observations · function · L41-L170 — pub fn normalize_task_comparison_observations(
+- validate_row · function · L172-L272 — fn validate_row(
+- validate_existing_observation · function · L274-L411 — fn validate_existing_observation(
+- require_evidence · function · L413-L427 — fn require_evidence(value: &Value, known: &BTreeSet<String>) -> Result<()>
+- comparison · function · L429-L482 — fn comparison(left: &Value, right: Option<&Value>, right_lane: &str) -> Result<Value>
+- object · function · L484-L488 — fn object<'a>(value: &'a Value, label: &str) -> Result<&'a Map<String, Value>>
+- require_keys · function · L490-L497 — fn require_keys(object: &Map<String, Value>, keys: &[&str], label: &str) -> Result<()>
+- identifier · function · L499-L506 — fn identifier<'a>(object: &'a Map<String, Value>, field: &str) -> Result<&'a str>
+- embedded_text · function · L508-L513 — fn embedded_text<'a>(object: &'a Map<String, Value>, field: &str) -> Result<&'a str>
+- digest_field · function · L515-L529 — fn digest_field(object: &Map<String, Value>, field: &str, null: bool) -> Result<()>
+- require_digest · function · L531-L541 — fn require_digest(value: &str) -> Result<()>
+- require_commit · function · L543-L552 — fn require_commit(value: &str) -> Result<()>
+- render · function · L554-L564 — fn render(value: &Value, maximum: usize) -> Result<String>
+- sha256 · function · L566-L571 — fn sha256(bytes: &[u8]) -> String
+- domain_digest · function · L573-L579 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- invalid · function · L581-L587 — fn invalid(message: &str) -> Vec<Diagnostic>
+- capacity · function · L588-L594 — fn capacity(message: &str) -> Vec<Diagnostic>
+- binding · function · L595-L601 — fn binding(message: &str) -> Vec<Diagnostic>
+- lanes · function · L602-L608 — fn lanes(message: &str) -> Vec<Diagnostic>
+- tests · module · L611-L801 — mod tests
+- canonical · function · L614-L617 — fn canonical(mut value: Value) -> String
+- observation · function · L619-L643 — fn observation(lane: &str, outcome: &str, base: u64) -> String
+- row · function · L645-L657 — fn row(lane: &str, outcome: &str, base: u64) -> Value
+- input · function · L659-L666 — fn input(rows: Vec<Value>) -> String
+- with_toolchain · function · L668-L677 — fn with_toolchain(mut row: Value, toolchain: &str) -> Value
+- exact_existing_observations_are_descriptive_and_zero_is_not_inferred · function · L680-L698 — fn exact_existing_observations_are_descriptive_and_zero_is_not_inferred()
+- duplicate_lanes_and_different_outcomes_never_become_comparative_evidence · function · L701-L732 — fn duplicate_lanes_and_different_outcomes_never_become_comparative_evidence()
+- unavailable_zero_and_mismatched_paired_toolchains_are_rejected · function · L735-L764 — fn unavailable_zero_and_mismatched_paired_toolchains_are_rejected()
+- rust_subset_pins_text_and_unsigned_integer_boundaries · function · L767-L800 — fn rust_subset_pins_text_and_unsigned_integer_boundaries()

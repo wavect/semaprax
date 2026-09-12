@@ -1,0 +1,59 @@
+# project/program_root.rs
+
+- dependency_lock · module · L17-L17 — mod dependency_lock;
+- v2 · module · L18-L18 — mod v2;
+- v3 · module · L19-L19 — mod v3;
+- PROGRAM_ROOT_SCHEMA · constant · L31-L31 — pub const PROGRAM_ROOT_SCHEMA: &str = "semaprax.program-root.v1";
+- PROGRAM_ROOT_SEGMENT_SCHEMA · constant · L32-L32 — pub const PROGRAM_ROOT_SEGMENT_SCHEMA: &str = "semaprax.program-root.segment.v1";
+- PROGRAM_ROOT_RELATIONSHIP_SCHEMA · constant · L33-L33 — pub const PROGRAM_ROOT_RELATIONSHIP_SCHEMA: &str = "semaprax.program-root.relationship.v1";
+- PROGRAM_ROOT_COMPATIBILITY · constant · L34-L35 — pub const PROGRAM_ROOT_COMPATIBILITY: &str =
+- MAX_PROGRAM_ROOT_BYTES · constant · L36-L36 — pub const MAX_PROGRAM_ROOT_BYTES: usize = 256 * 1024;
+- MAX_PROGRAM_ROOT_SEGMENT_BYTES · constant · L37-L37 — pub const MAX_PROGRAM_ROOT_SEGMENT_BYTES: usize = 16 * 1024;
+- MAX_PROGRAM_ROOT_RELATIONSHIP_BYTES · constant · L38-L38 — pub const MAX_PROGRAM_ROOT_RELATIONSHIP_BYTES: usize = 4 * 1024;
+- ROOT_DOMAIN · constant · L40-L40 — const ROOT_DOMAIN: &[u8] = b"semaprax.program-root.digest.v1\0";
+- SEGMENT_DOMAIN · constant · L41-L41 — const SEGMENT_DOMAIN: &[u8] = b"semaprax.program-root.segment.digest.v1\0";
+- Result · type · L43-L43 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- ProgramRootSegment · struct · L47-L54 — pub struct ProgramRootSegment
+- derive · function · L57-L85 — fn derive(
+- kind · function · L87-L89 — pub const fn kind(&self) -> &'static str
+- node_schema · function · L90-L92 — pub const fn node_schema(&self) -> &'static str
+- node_digest · function · L93-L95 — pub fn node_digest(&self) -> &str
+- node_bytes · function · L96-L98 — pub const fn node_bytes(&self) -> usize
+- segment_digest · function · L99-L101 — pub fn segment_digest(&self) -> &str
+- to_json · function · L102-L104 — pub fn to_json(&self) -> &str
+- ProgramRootRelationship · struct · L109-L113 — pub struct ProgramRootRelationship
+- unbound · function · L116-L132 — fn unbound(kind: &'static str, expected_root_schema: &'static str) -> Result<Self>
+- kind · function · L134-L136 — pub const fn kind(&self) -> &'static str
+- binding · function · L137-L139 — pub const fn binding(&self) -> &'static str
+- expected_root_schema · function · L140-L142 — pub const fn expected_root_schema(&self) -> &'static str
+- digest · function · L143-L145 — pub fn digest(&self) -> Option<&str>
+- to_json · function · L146-L148 — pub fn to_json(&self) -> &str
+- ProgramRoot · struct · L153-L159 — pub struct ProgramRoot
+- derive · function · L162-L274 — pub fn derive(workspace: &SemanticWorkspaceRevision) -> Result<Self>
+- replay · function · L276-L298 — pub fn replay(
+- program_root · function · L300-L302 — pub fn program_root(&self) -> &str
+- program_root_digest · function · L303-L305 — pub fn program_root_digest(&self) -> &str
+- workspace_revision · function · L306-L308 — pub fn workspace_revision(&self) -> &str
+- segments · function · L309-L311 — pub fn segments(&self) -> &[ProgramRootSegment]
+- segment · function · L312-L314 — pub fn segment(&self, kind: &str) -> Option<&ProgramRootSegment>
+- relationships · function · L315-L317 — pub fn relationships(&self) -> &[ProgramRootRelationship]
+- to_json · function · L318-L320 — pub fn to_json(&self) -> &str
+- program_root · function · L325-L327 — pub fn program_root(&self) -> Result<ProgramRoot>
+- program_root · function · L332-L334 — pub fn program_root(&self) -> Result<ProgramRoot>
+- segment · function · L337-L344 — fn segment(
+- validate_wire_shape · function · L346-L407 — fn validate_wire_shape(value: &Value) -> Result<()>
+- validate_segments · function · L409-L468 — fn validate_segments(value: &Value) -> Result<()>
+- KINDS · constant · L410-L420 — const KINDS: [&str; 9] = [
+- validate_relationships · function · L470-L507 — fn validate_relationships(value: &Value) -> Result<()>
+- ROOTS · constant · L471-L475 — const ROOTS: [(&str, &str); 3] = [
+- parse_canonical · function · L509-L511 — fn parse_canonical(source: &str, subject: &'static str) -> Result<Value>
+- with_field · function · L513-L520 — fn with_field(value: Value, key: &str, field: Value) -> Value
+- without_field · function · L522-L530 — fn without_field(value: &Value, key: &str) -> Result<Value>
+- exact_object · function · L532-L534 — fn exact_object<'a>(value: &'a Value, subject: &'static str) -> Result<&'a Map<String, Value>>
+- exact_fields · function · L536-L541 — fn exact_fields(object: &Map<String, Value>, fields: &[&str], subject: &'static str) -> Result<()>
+- text · function · L543-L545 — fn text<'a>(object: &'a Map<String, Value>, key: &str, subject: &'static str) -> Result<&'a str>
+- validate_digest · function · L547-L557 — fn validate_digest(value: &str) -> Result<()>
+- canonical_json · function · L559-L568 — fn canonical_json(mut value: Value, maximum: usize) -> Result<String>
+- framed_digest · function · L570-L579 — fn framed_digest(domain: &[u8], bytes: &[u8]) -> String
+- invalid · function · L581-L583 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L585-L587 — fn stale(message: &'static str) -> Vec<Diagnostic>

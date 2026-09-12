@@ -1,0 +1,32 @@
+# project/image_facets.rs
+
+- IMAGE_FUNCTION_SUMMARY_SCHEMA · constant · L11-L11 — pub const IMAGE_FUNCTION_SUMMARY_SCHEMA: &str = "semaprax.image-function-summary.v1";
+- IMAGE_FACET_SCHEMA · constant · L12-L12 — pub const IMAGE_FACET_SCHEMA: &str = "semaprax.image-facet.v1";
+- instances · module · L13-L13 — mod instances;
+- relationships · module · L14-L14 — mod relationships;
+- MAX_ITEMS · constant · L17-L17 — const MAX_ITEMS: usize = 65_536;
+- MAX_INTERMEDIATE_BYTES · constant · L18-L18 — const MAX_INTERMEDIATE_BYTES: usize = 16 * 1024 * 1024;
+- MAX_REPORT_BYTES · constant · L19-L19 — const MAX_REPORT_BYTES: usize = 1024 * 1024;
+- ImageFacet · enum · L22-L32 — pub enum ImageFacet
+- ALL · constant · L34-L44 — pub const ALL: [Self; 9] = [
+- name · function · L45-L57 — pub fn name(self) -> &'static str
+- parse · function · L58-L63 — pub fn parse(name: &str) -> Result<Self, Vec<Diagnostic>>
+- ImageFacetOptions · struct · L67-L70 — pub struct ImageFacetOptions
+- new · function · L72-L83 — pub fn new(page_size: usize, max_bytes: usize) -> Result<Self, Vec<Diagnostic>>
+- page_size · function · L85-L87 — pub(crate) fn page_size(self) -> usize
+- max_bytes · function · L89-L91 — pub(crate) fn max_bytes(self) -> usize
+- default · function · L94-L99 — fn default() -> Self
+- function_summary · function · L104-L128 — pub fn function_summary(
+- expand_facet · function · L133-L207 — pub fn expand_facet(
+- facet_function · function · L209-L245 — fn facet_function(
+- facet_handle · function · L246-L251 — fn facet_handle(&self, id: &str, facet: ImageFacet) -> String
+- facet_items · function · L253-L374 — pub(super) fn facet_items(
+- append_caller · function · L378-L405 — fn append_caller(
+- plan_items · function · L407-L438 — fn plan_items(
+- trusted_json · function · L439-L442 — fn trusted_json(text: &str) -> Result<Value, Vec<Diagnostic>>
+- span · function · L443-L445 — fn span(span: crate::ast::Span) -> Value
+- ownership · function · L446-L453 — fn ownership(mode: OwnershipMode) -> &'static str
+- cursor_for · function · L454-L463 — fn cursor_for(handle: &str, offset: usize, page_size: usize) -> String
+- bound_hash · function · L464-L472 — fn bound_hash(domain: &[u8], fields: &[&str]) -> String
+- report · function · L473-L480 — fn report(value: Value, max_bytes: usize) -> Result<String, Vec<Diagnostic>>
+- error · function · L481-L483 — fn error(code: &'static str, message: &'static str) -> Vec<Diagnostic>

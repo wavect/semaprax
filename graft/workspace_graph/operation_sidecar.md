@@ -1,0 +1,24 @@
+# workspace_graph/operation_sidecar.rs
+
+- fingerprint · module · L20-L20 — mod fingerprint;
+- build_operation_sidecar · function · L22-L39 — pub(super) fn build_operation_sidecar(
+- OperationModule · struct · L41-L47 — struct OperationModule<'a>
+- project_operation_sidecar · function · L51-L68 — pub(crate) fn project_operation_sidecar(
+- build_sidecar · function · L70-L380 — fn build_sidecar(
+- push_operation_declaration · function · L386-L425 — fn push_operation_declaration(
+- push_operation_member · function · L428-L456 — fn push_operation_member(
+- collect_program_operation_occurrences · function · L459-L712 — fn collect_program_operation_occurrences(
+- collect_operation_type_occurrences · function · L715-L798 — fn collect_operation_type_occurrences(
+- collect_operation_expr_occurrences · function · L801-L1388 — fn collect_operation_expr_occurrences(
+- collect_operation_field_values · function · L1391-L1429 — fn collect_operation_field_values(
+- collect_constructor_type_arguments · function · L1432-L1470 — fn collect_constructor_type_arguments(
+- collect_operation_pattern_occurrences · function · L1473-L1613 — fn collect_operation_pattern_occurrences(
+- collect_nested_record_pattern_occurrences · function · L1616-L1701 — fn collect_nested_record_pattern_occurrences(
+- push_bound_operation_occurrence · function · L1704-L1755 — fn push_bound_operation_occurrence(
+- operation_source_place · function · L1759-L1767 — fn operation_source_place(source: &Expr, place: &hir::Place) -> bool
+- collect_operation_place_occurrences · function · L1770-L1806 — fn collect_operation_place_occurrences(
+- push_member_operation_occurrence · function · L1809-L1849 — fn push_member_operation_occurrence(
+- find_identifier_token · function · L1851-L1868 — fn find_identifier_token(
+- source_text_token · function · L1870-L1881 — fn source_text_token(tokens: &[crate::lexer::Token], span: Span) -> Result<&str, Vec<Diagnostic>>
+- module_use_alias_span · function · L1883-L1910 — fn module_use_alias_span(
+- operation_sidecar_disagreement · function · L1912-L1917 — fn operation_sidecar_disagreement() -> Vec<Diagnostic>

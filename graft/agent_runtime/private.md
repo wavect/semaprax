@@ -1,0 +1,112 @@
+# agent_runtime/private.rs
+
+- economic_tests · module · L6-L6 — mod economic_tests;
+- EvidenceBudget · struct · L9-L30 — struct EvidenceBudget
+- RunState · struct · L33-L45 — struct RunState
+- EvidenceReplay · struct · L47-L50 — pub(super) struct EvidenceReplay
+- final_message · function · L53-L55 — pub(super) fn final_message(&self) -> Option<&str>
+- run_id · function · L57-L59 — pub(super) fn run_id(&self) -> &str
+- Route · struct · L62-L69 — struct Route
+- parse_profile · function · L71-L324 — pub(super) fn parse_profile(source: &str) -> Result<Profile, Diagnostic>
+- parse_quality · function · L326-L334 — fn parse_quality(value: &str) -> Result<QualityTier, Diagnostic>
+- validated_policy_list · function · L336-L350 — fn validated_policy_list(
+- parse_effective_limits · function · L352-L529 — fn parse_effective_limits(value: &Value) -> Result<EffectiveLimits, Diagnostic>
+- parse_task · function · L531-L585 — pub(super) fn parse_task(source: &str) -> Result<Task, Diagnostic>
+- render_task · function · L587-L606 — pub(super) fn render_task(task: &Task) -> String
+- parse_action · function · L608-L643 — fn parse_action(source: String, maximum: usize) -> Result<Action, Diagnostic>
+- reserve_builder_copy · function · L645-L658 — fn reserve_builder_copy(bytes: usize, multiplier: usize) -> Result<(), Diagnostic>
+- render_action · function · L660-L665 — fn render_action(action: &Action) -> Result<String, Diagnostic>
+- canonical_json · function · L667-L698 — fn canonical_json(value: &Value) -> Result<String, Diagnostic>
+- validate_schema · function · L700-L742 — fn validate_schema(value: &Value, schema: &ClosedSchema, maximum: u64) -> Result<String, ()>
+- TestAgent · struct · L745-L745 — pub(super) struct TestAgent<H: AgentHost>(Agent<H>);
+- run · function · L749-L751 — pub(super) fn run(mut self, task: &str) -> Result<AgentRun, Vec<Diagnostic>>
+- new_agent · function · L755-L757 — pub(super) fn new_agent<H: AgentHost>(profile_source: &str, host: H) -> TestAgent<H>
+- completed_run_for_economic_test · function · L760-L869 — pub(crate) fn completed_run_for_economic_test(message: &str) -> AgentRun
+- Probe · struct · L761-L761 — struct Probe;
+- policy_epoch · function · L763-L765 — fn policy_epoch(&self) -> u64
+- elapsed_ms · function · L766-L768 — fn elapsed_ms(&self) -> u64
+- Host · struct · L770-L772 — struct Host
+- policy_epoch · function · L774-L776 — fn policy_epoch(&self) -> u64
+- elapsed_ms · function · L777-L779 — fn elapsed_ms(&self) -> u64
+- boundary_probe · function · L780-L782 — fn boundary_probe(&self) -> Box<dyn AgentBoundaryProbe>
+- tokenize · function · L783-L785 — fn tokenize(&mut self, _: &str, request: &str) -> Option<u64>
+- attempt_provider · function · L786-L799 — fn attempt_provider(
+- invoke_tool · function · L800-L802 — fn invoke_tool(&mut self, _: &str, _: &str, _: &str, _: &mut AgentToolResultSink) -> bool
+- new · function · L873-L891 — pub fn new(
+- run · function · L894-L964 — pub fn run(&mut self, task_source: &str) -> Result<AgentRun, Vec<Diagnostic>>
+- reserve_parse_bound · function · L967-L977 — fn reserve_parse_bound(source: &str) -> Result<(), Diagnostic>
+- run_bounded · function · L979-L1053 — fn run_bounded<H: AgentHost>(
+- ExternalBoundary · enum · L1056-L1059 — enum ExternalBoundary<'a>
+- CountSink · struct · L1062-L1065 — struct CountSink
+- write_str · function · L1068-L1084 — fn write_str(&mut self, value: &str) -> fmt::Result
+- preflight_external_capacity · function · L1087-L1109 — fn preflight_external_capacity(
+- minimum_terminal_trace_bytes · function · L1111-L1269 — fn minimum_terminal_trace_bytes(
+- HASH · constant · L1116-L1116 — const HASH: &str = "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+- minimum_terminal_evidence_bytes · function · L1271-L1350 — fn minimum_terminal_evidence_bytes(
+- digits_u64 · function · L1352-L1354 — fn digits_u64(value: u64) -> u64
+- preflight_current_terminal · function · L1356-L1394 — fn preflight_current_terminal(profile: &Profile, state: &mut RunState) -> Result<(), Diagnostic>
+- terminal_diagnostics · function · L1396-L1441 — fn terminal_diagnostics() -> impl Iterator<Item = (&'static str, &'static str, &'static str)>
+- terminal_diagnostics_for_test · function · L1444-L1446 — pub(super) fn terminal_diagnostics_for_test() -> Vec<(&'static str, &'static str, &'static str)>
+- preflight_terminal_for_test · function · L1449-L1467 — pub(super) fn preflight_terminal_for_test(
+- count_evidence_bytes · function · L1469-L1510 — fn count_evidence_bytes(
+- HASH · constant · L1476-L1476 — const HASH: &str = "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+- drive · function · L1512-L1638 — fn drive<H: AgentHost>(
+- provider_turn · function · L1641-L2059 — fn provider_turn<H: AgentHost>(
+- execute_tool · function · L2062-L2417 — fn execute_tool<H: AgentHost>(
+- retained_state_bytes_with · function · L2419-L2429 — fn retained_state_bytes_with(
+- finish_failed_tool_result · function · L2432-L2463 — fn finish_failed_tool_result(
+- boundary_termination · function · L2465-L2487 — fn boundary_termination<H: AgentHost>(
+- termination_for_status · function · L2489-L2501 — fn termination_for_status(status: RunStatus) -> Termination
+- route · function · L2503-L2640 — fn route<H: AgentHost>(
+- authorize_tool · function · L2642-L2668 — fn authorize_tool(profile: &Profile, tool_id: &str, arguments: &Value) -> Result<(), Diagnostic>
+- account_uncertain · function · L2670-L2699 — fn account_uncertain(
+- account_partial_provider · function · L2701-L2709 — fn account_partial_provider(
+- push_final_event · function · L2711-L2732 — fn push_final_event(
+- price · function · L2734-L2740 — fn price(tokens: u64, per_million: u64) -> Result<u64, Diagnostic>
+- checked_add · function · L2742-L2751 — fn checked_add(target: &mut u64, amount: u64, field: &str, maximum: u64) -> Result<(), Diagnostic>
+- render_provider_request · function · L2753-L2800 — fn render_provider_request(
+- provider_request_builder_bound · function · L2802-L2851 — fn provider_request_builder_bound(
+- validate_provider_request · function · L2853-L2921 — fn validate_provider_request(source: &str) -> Result<(), Diagnostic>
+- render_tool · function · L2923-L2925 — fn render_tool(tool: &Tool) -> String
+- render_tool_result · function · L2927-L2929 — fn render_tool_result(call_id: &str, tool_id: &str, result: &str) -> String
+- collect_response · function · L2931-L2948 — fn collect_response(sink: ProviderSink, limits: EffectiveLimits) -> Result<String, Diagnostic>
+- retained_state_bytes · function · L2950-L2967 — fn retained_state_bytes(
+- push_event · function · L2970-L2999 — fn push_event(
+- push_internal_event · function · L3002-L3037 — fn push_internal_event(
+- termination_from_diagnostic · function · L3039-L3053 — fn termination_from_diagnostic(diagnostic: Diagnostic) -> Termination
+- render_bundle · function · L3055-L3116 — fn render_bundle(
+- evidence_fixed_point · function · L3118-L3129 — fn evidence_fixed_point(base_length: u64) -> Result<u64, Diagnostic>
+- distinct_capability_count · function · L3131-L3142 — fn distinct_capability_count(profile: &Profile) -> usize
+- render_trace · function · L3144-L3148 — fn render_trace(profile: &Profile, state: &RunState) -> Result<String, Diagnostic>
+- write_trace · function · L3150-L3159 — fn write_trace<W: fmt::Write>(output: &mut W, profile: &Profile, state: &RunState) -> fmt::Result
+- write_trace_termination · function · L3161-L3204 — fn write_trace_termination<W: fmt::Write>(
+- render_event · function · L3206-L3210 — fn render_event(event: &TraceEvent) -> String
+- write_event · function · L3212-L3226 — fn write_event<W: fmt::Write>(output: &mut W, event: &TraceEvent) -> fmt::Result
+- write_event_parts · function · L3229-L3259 — fn write_event_parts<W: fmt::Write>(
+- write_json_string · function · L3261-L3277 — fn write_json_string<W: fmt::Write>(output: &mut W, value: &str) -> fmt::Result
+- write_optional_string · function · L3279-L3284 — fn write_optional_string<W: fmt::Write>(output: &mut W, value: Option<&str>) -> fmt::Result
+- optional_string · function · L3286-L3288 — fn optional_string(value: Option<&str>) -> String
+- render_usage_delta · function · L3289-L3293 — fn render_usage_delta(usage: UsageDelta) -> String
+- write_usage_delta · function · L3294-L3296 — fn write_usage_delta<W: fmt::Write>(output: &mut W, usage: UsageDelta) -> fmt::Result
+- render_usage · function · L3297-L3301 — fn render_usage(usage: &Usage) -> String
+- write_usage · function · L3302-L3304 — fn write_usage<W: fmt::Write>(output: &mut W, usage: &Usage) -> fmt::Result
+- render_evidence · function · L3306-L3317 — fn render_evidence(
+- write_evidence · function · L3319-L3336 — fn write_evidence<W: fmt::Write>(
+- write_evidence_status · function · L3339-L3390 — fn write_evidence_status<W: fmt::Write>(
+- render_production_limits · function · L3392-L3396 — fn render_production_limits() -> String
+- write_production_limits · function · L3397-L3399 — fn write_production_limits<W: fmt::Write>(output: &mut W) -> fmt::Result
+- render_budget · function · L3401-L3405 — fn render_budget(budget: &EvidenceBudget) -> String
+- write_budget · function · L3406-L3408 — fn write_budget<W: fmt::Write>(output: &mut W, budget: &EvidenceBudget) -> fmt::Result
+- replay_trace · function · L3410-L3551 — pub(super) fn replay_trace(source: &str) -> Result<(), Diagnostic>
+- validate_event_sequence · function · L3553-L3677 — fn validate_event_sequence(
+- valid_event_shape · function · L3679-L3732 — fn valid_event_shape(event: &Map<String, Value>, kind: &str, status: &str) -> bool
+- canonical_sha256 · function · L3734-L3740 — fn canonical_sha256(value: &str) -> bool
+- parse_usage_delta · function · L3742-L3773 — fn parse_usage_delta(value: &Value) -> Result<UsageDelta, Diagnostic>
+- add_usage_delta · function · L3775-L3790 — fn add_usage_delta(total: &mut UsageDelta, value: UsageDelta) -> Result<(), Diagnostic>
+- add · function · L3776-L3780 — macro_rules! add
+- parse_usage · function · L3792-L3833 — fn parse_usage(value: &Value) -> Result<Usage, Diagnostic>
+- validate_termination · function · L3835-L3869 — fn validate_termination(value: &Map<String, Value>) -> Result<(), Diagnostic>
+- canonical_g208_message · function · L3871-L3911 — fn canonical_g208_message(message: &str) -> bool
+- replay_evidence_inner · function · L3913-L4007 — fn replay_evidence_inner(
+- replay_trace_expected · function · L4009-L4055 — fn replay_trace_expected(
+- replay_evidence · function · L4058-L4071 — pub(super) fn replay_evidence(

@@ -1,0 +1,89 @@
+---
+covers: []
+---
+# network_io_ops.rs
+
+- NET_CONNECT_NAME · constant · L17-L17 — pub(crate) const NET_CONNECT_NAME: &str = "net_connect";
+- NET_SEND_NAME · constant · L18-L18 — pub(crate) const NET_SEND_NAME: &str = "net_send";
+- NET_RECV_NAME · constant · L19-L19 — pub(crate) const NET_RECV_NAME: &str = "net_recv";
+- NET_STREAM_STDOUT_NAME · constant · L20-L20 — pub(crate) const NET_STREAM_STDOUT_NAME: &str = "net_stream_stdout";
+- NET_WAIT_NAME · constant · L21-L21 — pub(crate) const NET_WAIT_NAME: &str = "net_wait";
+- NET_CLOSE_NAME · constant · L22-L22 — pub(crate) const NET_CLOSE_NAME: &str = "net_close";
+- NET_TLS_CONNECT_NAME · constant · L23-L23 — pub(crate) const NET_TLS_CONNECT_NAME: &str = "net_tls_connect";
+- NET_LISTEN_NAME · constant · L24-L24 — pub(crate) const NET_LISTEN_NAME: &str = "net_listen";
+- NET_ACCEPT_NAME · constant · L25-L25 — pub(crate) const NET_ACCEPT_NAME: &str = "net_accept";
+- NET_CLOSE_LISTENER_NAME · constant · L26-L26 — pub(crate) const NET_CLOSE_LISTENER_NAME: &str = "net_close_listener";
+- NET_TLS_ACCEPT_NAME · constant · L27-L27 — pub(crate) const NET_TLS_ACCEPT_NAME: &str = "net_tls_accept";
+- HTTPS_GET_NAME · constant · L28-L28 — pub(crate) const HTTPS_GET_NAME: &str = "https_get";
+- NET_CONNECT_ID · constant · L30-L30 — pub(crate) const NET_CONNECT_ID: &str = "core.host.net-connect";
+- NET_SEND_ID · constant · L31-L31 — pub(crate) const NET_SEND_ID: &str = "core.host.net-send";
+- NET_RECV_ID · constant · L32-L32 — pub(crate) const NET_RECV_ID: &str = "core.host.net-recv";
+- NET_STREAM_STDOUT_ID · constant · L33-L33 — pub(crate) const NET_STREAM_STDOUT_ID: &str = "core.host.net-stream-stdout";
+- NET_WAIT_ID · constant · L34-L34 — pub(crate) const NET_WAIT_ID: &str = "core.host.net-wait";
+- NET_CLOSE_ID · constant · L35-L35 — pub(crate) const NET_CLOSE_ID: &str = "core.host.net-close";
+- NET_TLS_CONNECT_ID · constant · L36-L36 — pub(crate) const NET_TLS_CONNECT_ID: &str = "core.host.net-tls-connect";
+- NET_LISTEN_ID · constant · L37-L37 — pub(crate) const NET_LISTEN_ID: &str = "core.host.net-listen";
+- NET_ACCEPT_ID · constant · L38-L38 — pub(crate) const NET_ACCEPT_ID: &str = "core.host.net-accept";
+- NET_CLOSE_LISTENER_ID · constant · L39-L39 — pub(crate) const NET_CLOSE_LISTENER_ID: &str = "core.host.net-close-listener";
+- NET_TLS_ACCEPT_ID · constant · L40-L40 — pub(crate) const NET_TLS_ACCEPT_ID: &str = "core.host.net-tls-accept";
+- HTTPS_GET_ID · constant · L41-L41 — pub(crate) const HTTPS_GET_ID: &str = "core.host.https-get";
+- NETWORK_CONNECT_EFFECT · constant · L43-L43 — pub(crate) const NETWORK_CONNECT_EFFECT: &str = "network.connect";
+- NETWORK_READ_EFFECT · constant · L44-L44 — pub(crate) const NETWORK_READ_EFFECT: &str = "network.read";
+- NETWORK_WRITE_EFFECT · constant · L45-L45 — pub(crate) const NETWORK_WRITE_EFFECT: &str = "network.write";
+- NETWORK_TLS_EFFECT · constant · L46-L46 — pub(crate) const NETWORK_TLS_EFFECT: &str = "network.tls";
+- NETWORK_LISTEN_EFFECT · constant · L47-L47 — pub(crate) const NETWORK_LISTEN_EFFECT: &str = "network.listen";
+- NETWORK_ACCEPT_EFFECT · constant · L48-L48 — pub(crate) const NETWORK_ACCEPT_EFFECT: &str = "network.accept";
+- NETWORK_HTTP_EFFECT · constant · L49-L49 — pub(crate) const NETWORK_HTTP_EFFECT: &str = "network.http";
+- NETWORK_EFFECTS · constant · L53-L61 — pub(crate) const NETWORK_EFFECTS: [&str; 7] = [
+- STATUS_DOMAIN · constant · L63-L63 — pub(crate) const STATUS_DOMAIN: &str = "semaprax.network.v1";
+- SERVICE_STATUS_DOMAIN · constant · L64-L64 — pub(crate) const SERVICE_STATUS_DOMAIN: &str = "semaprax.network-service.v1";
+- HTTP_STATUS_DOMAIN · constant · L65-L65 — pub(crate) const HTTP_STATUS_DOMAIN: &str = "semaprax.http.v1";
+- CONNECT_FAILED · constant · L68-L68 — pub(crate) const CONNECT_FAILED: u32 = 1;
+- INVALID_ENDPOINT · constant · L70-L70 — pub(crate) const INVALID_ENDPOINT: u32 = 2;
+- UNKNOWN_HANDLE · constant · L72-L72 — pub(crate) const UNKNOWN_HANDLE: u32 = 3;
+- CAPACITY_EXCEEDED · constant · L74-L74 — pub(crate) const CAPACITY_EXCEEDED: u32 = 4;
+- TRANSFER_FAILED · constant · L76-L76 — pub(crate) const TRANSFER_FAILED: u32 = 5;
+- AUTHORITY_DENIED · constant · L78-L78 — pub(crate) const AUTHORITY_DENIED: u32 = 6;
+- TLS_FAILED · constant · L80-L80 — pub(crate) const TLS_FAILED: u32 = 7;
+- LISTEN_FAILED · constant · L82-L82 — pub(crate) const LISTEN_FAILED: u32 = 8;
+- ACCEPT_FAILED · constant · L84-L84 — pub(crate) const ACCEPT_FAILED: u32 = 9;
+- HTTP_INVALID_URL · constant · L86-L86 — pub(crate) const HTTP_INVALID_URL: u32 = 1;
+- HTTP_INSECURE_SCHEME · constant · L87-L87 — pub(crate) const HTTP_INSECURE_SCHEME: u32 = 2;
+- HTTP_TRANSPORT_FAILED · constant · L88-L88 — pub(crate) const HTTP_TRANSPORT_FAILED: u32 = 3;
+- HTTP_RESPONSE_TOO_LARGE · constant · L89-L89 — pub(crate) const HTTP_RESPONSE_TOO_LARGE: u32 = 4;
+- HTTP_UNSUPPORTED_VERSION · constant · L90-L90 — pub(crate) const HTTP_UNSUPPORTED_VERSION: u32 = 5;
+- HTTP_AUTHORITY_DENIED · constant · L91-L91 — pub(crate) const HTTP_AUTHORITY_DENIED: u32 = 6;
+- STATUS_CODES · constant · L93-L100 — pub(crate) const STATUS_CODES: [u32; 6] = [
+- SERVICE_STATUS_CODES · constant · L102-L112 — pub(crate) const SERVICE_STATUS_CODES: [u32; 9] = [
+- HTTP_STATUS_CODES · constant · L114-L114 — pub(crate) const HTTP_STATUS_CODES: [u32; 6] = [1, 2, 3, 4, 5, 6];
+- MAX_HANDLES · constant · L117-L117 — pub(crate) const MAX_HANDLES: u64 = 8;
+- MAX_HOST_BYTES · constant · L119-L119 — pub(crate) const MAX_HOST_BYTES: u64 = 253;
+- MAX_PORT · constant · L121-L121 — pub(crate) const MAX_PORT: u64 = 65_535;
+- MAX_CHUNK_BYTES · constant · L123-L123 — pub(crate) const MAX_CHUNK_BYTES: u64 = 65_536;
+- MAX_TOTAL_BYTES · constant · L125-L125 — pub(crate) const MAX_TOTAL_BYTES: u64 = 1_048_576;
+- MAX_WAIT_MILLIS · constant · L127-L127 — pub(crate) const MAX_WAIT_MILLIS: u64 = 30_000;
+- WAIT_TIMEOUT · constant · L130-L130 — pub(crate) const WAIT_TIMEOUT: u64 = 0;
+- WAIT_READABLE · constant · L131-L131 — pub(crate) const WAIT_READABLE: u64 = 1;
+- WAIT_CLOSED · constant · L132-L132 — pub(crate) const WAIT_CLOSED: u64 = 2;
+- OPERATIONS · constant · L135-L148 — pub(crate) const OPERATIONS: [ResolvedHostCommandOperation; 12] = [
+- is_network · function · L150-L166 — pub(crate) const fn is_network(op: ResolvedHostCommandOperation) -> bool
+- is_http · function · L168-L170 — pub(crate) const fn is_http(op: ResolvedHostCommandOperation) -> bool
+- is_service · function · L172-L181 — pub(crate) const fn is_service(op: ResolvedHostCommandOperation) -> bool
+- by_name · function · L183-L199 — pub(crate) fn by_name(name: &str) -> Option<ResolvedHostCommandOperation>
+- by_id · function · L201-L217 — pub(crate) fn by_id(id: &str) -> Option<ResolvedHostCommandOperation>
+- name · function · L221-L237 — pub(crate) const fn name(op: ResolvedHostCommandOperation) -> &'static str
+- id · function · L239-L255 — pub(crate) const fn id(op: ResolvedHostCommandOperation) -> &'static str
+- effect · function · L257-L275 — pub(crate) const fn effect(op: ResolvedHostCommandOperation) -> &'static str
+- secondary_effect · function · L279-L287 — pub(crate) const fn secondary_effect(op: ResolvedHostCommandOperation) -> Option<&'static str>
+- arity · function · L289-L305 — pub(crate) const fn arity(op: ResolvedHostCommandOperation) -> usize
+- ast_return_type · function · L307-L314 — pub(crate) const fn ast_return_type(op: ResolvedHostCommandOperation) -> Type
+- return_type · function · L316-L323 — pub(crate) const fn return_type(op: ResolvedHostCommandOperation) -> ResolvedType
+- result_ownership · function · L325-L332 — pub(crate) const fn result_ownership(op: ResolvedHostCommandOperation) -> OwnershipMode
+- admitted_in_while · function · L337-L342 — pub(crate) const fn admitted_in_while(op: ResolvedHostCommandOperation) -> bool
+- is_fallible · function · L346-L348 — pub(crate) const fn is_fallible(_op: ResolvedHostCommandOperation) -> bool
+- param_types · function · L350-L384 — const fn param_types(
+- accepts_ast · function · L386-L390 — pub(crate) fn accepts_ast(op: ResolvedHostCommandOperation, index: usize, ty: &Type) -> bool
+- accepts_resolved · function · L392-L404 — pub(crate) fn accepts_resolved(
+- ast_params · function · L406-L416 — pub(crate) fn ast_params(op: ResolvedHostCommandOperation) -> Vec<Param>
+- tests · module · L419-L462 — mod tests
+- every_network_operation_has_a_closed_exact_table · function · L423-L461 — fn every_network_operation_has_a_closed_exact_table()

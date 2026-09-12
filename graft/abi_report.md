@@ -1,0 +1,72 @@
+---
+covers: []
+---
+# abi_report.rs
+
+- bformat · function · L34-L38 — macro_rules! bformat
+- SCHEMA · constant · L40-L40 — pub const SCHEMA: &str = "semaprax.abi-report.v1";
+- MAX_FUNCTIONS · constant · L43-L43 — pub const MAX_FUNCTIONS: usize = 64;
+- DEFAULT_MAX_BYTES · constant · L45-L45 — const DEFAULT_MAX_BYTES: usize = 64 * 1024;
+- PAYLOAD_DIGEST_DOMAIN · constant · L47-L47 — const PAYLOAD_DIGEST_DOMAIN: &[u8] = b"semaprax.abi-report.payload.v1\0";
+- SOURCE_DIGEST_DOMAIN · constant · L48-L48 — const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.abi-report.source.v1\0";
+- NATIVE_SIGNATURE_DIGEST_DOMAIN · constant · L49-L49 — const NATIVE_SIGNATURE_DIGEST_DOMAIN: &[u8] = b"semaprax.abi-report.native-signature.v1\0";
+- CANONICAL_SIGNATURE_DIGEST_DOMAIN · constant · L50-L50 — const CANONICAL_SIGNATURE_DIGEST_DOMAIN: &[u8] = b"semaprax.abi-report.canonical-signature.v1\0";
+- REASON_AUTOMATIC_IDENTITY · constant · L52-L52 — const REASON_AUTOMATIC_IDENTITY: &str = "automatic_identity";
+- REASON_GENERIC_FUNCTION · constant · L53-L53 — const REASON_GENERIC_FUNCTION: &str = "generic_function";
+- REASON_DECLARED_EFFECTS · constant · L54-L54 — const REASON_DECLARED_EFFECTS: &str = "declared_effects";
+- REASON_UNSUPPORTED_PARAMETER_MODE · constant · L55-L55 — const REASON_UNSUPPORTED_PARAMETER_MODE: &str = "unsupported_parameter_mode";
+- REASON_UNSUPPORTED_PARAMETER_TYPE · constant · L56-L56 — const REASON_UNSUPPORTED_PARAMETER_TYPE: &str = "unsupported_parameter_type";
+- REASON_UNSUPPORTED_RESULT_TYPE · constant · L57-L57 — const REASON_UNSUPPORTED_RESULT_TYPE: &str = "unsupported_result_type";
+- NONCLAIMS_JSON · constant · L59-L64 — const NONCLAIMS_JSON: &str = "\"report_descriptor_only\",\
+- NATIVE_TARGET · constant · L66-L66 — const NATIVE_TARGET: &str = "Native64";
+- CANONICAL_PROFILE · constant · L67-L67 — const CANONICAL_PROFILE: &str = "semaprax.wasm-scalar.v1";
+- BOOL_BOUNDARY_NORMALIZATION · constant · L68-L68 — const BOOL_BOUNDARY_NORMALIZATION: &str = "trap_unless_canonical_0_or_1";
+- COPY_BEHAVIOR · constant · L69-L69 — const COPY_BEHAVIOR: &str = "copy";
+- PARAMETER_PASSING · constant · L70-L70 — const PARAMETER_PASSING: &str = "by-value copy";
+- STATUS_CONTRACT_RETURNS · constant · L71-L71 — const STATUS_CONTRACT_RETURNS: &str = "spx_status_token";
+- STATUS_CONTRACT_CONTEXT · constant · L72-L72 — const STATUS_CONTRACT_CONTEXT: &str = "struct spx_context *spx_ctx";
+- STATUS_CONTRACT_RESULT_WRITTEN_AT · constant · L73-L73 — const STATUS_CONTRACT_RESULT_WRITTEN_AT: &str = "final success commit";
+- AbiReportOptions · struct · L76-L81 — pub struct AbiReportOptions
+- new · function · L84-L114 — pub fn new(functions: Vec<String>, max_bytes: usize) -> Result<Self, Diagnostic>
+- default · function · L118-L123 — fn default() -> Self
+- option_error · function · L126-L128 — fn option_error(message: String) -> Diagnostic
+- selection_error · function · L130-L132 — fn selection_error(message: String) -> Diagnostic
+- consistency_error · function · L134-L136 — fn consistency_error(message: String) -> Diagnostic
+- ReportedFunction · struct · L138-L149 — struct ReportedFunction
+- ScalarFacts · struct · L151-L156 — struct ScalarFacts
+- ExcludedFunction · struct · L158-L162 — struct ExcludedFunction
+- VerifiedFunction · struct · L167-L175 — pub struct VerifiedFunction
+- VerifiedAbiReport · struct · L178-L180 — pub struct VerifiedAbiReport
+- generate · function · L187-L270 — pub fn generate(source_path: &Path, options: &AbiReportOptions) -> Result<String, Vec<Diagnostic>>
+- verify_envelope · function · L278-L438 — pub fn verify_envelope(envelope: &str) -> Result<VerifiedAbiReport, Diagnostic>
+- PAYLOAD_KEY · constant · L307-L307 — const PAYLOAD_KEY: &str = "\"payload\":";
+- ResolvedFacts · struct · L440-L446 — struct ResolvedFacts
+- scalar_facts · function · L448-L479 — fn scalar_facts(
+- scalar_facts_for · function · L483-L508 — fn scalar_facts_for(ty: &ResolvedType) -> Result<ScalarFacts, Vec<Diagnostic>>
+- aggregate_layout_target · function · L510-L512 — fn aggregate_layout_target() -> aggregate_layout::AggregateTarget
+- wasm_value_type · function · L517-L528 — fn wasm_value_type(ty: &ResolvedType) -> Result<&'static str, Vec<Diagnostic>>
+- resolve_selection · function · L530-L555 — fn resolve_selection<'a>(
+- admission · function · L561-L583 — fn admission(function: &Function) -> Option<&'static str>
+- is_admitted_scalar · function · L586-L591 — fn is_admitted_scalar(ty: &Type) -> bool
+- extract_native_signature · function · L593-L614 — fn extract_native_signature(
+- c_function_symbol · function · L617-L624 — fn c_function_symbol(stable_id: &str) -> String
+- raw_wasm_export · function · L627-L636 — fn raw_wasm_export(stable_id: &str) -> String
+- HEX · constant · L628-L628 — const HEX: &[u8; 16] = b"0123456789abcdef";
+- source_digest · function · L638-L640 — fn source_digest(source: &str) -> String
+- domain_digest · function · L642-L652 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- canonical_object_text · function · L657-L674 — fn canonical_object_text(export: &str, parameters: &[&str], result: &str) -> String
+- render · function · L676-L782 — fn render(
+- tests · module · L785-L1053 — mod tests
+- COUNTER · constant · L790-L790 — static COUNTER: AtomicUsize = AtomicUsize::new(0);
+- resolved_program · function · L792-L795 — fn resolved_program(source: &str, path: &Path) -> ResolvedProgram
+- write_temp · function · L797-L805 — fn write_temp(source: &str) -> PathBuf
+- cleanup · function · L807-L809 — fn cleanup(path: &Path)
+- options_reject_out_of_bounds_values · function · L812-L830 — fn options_reject_out_of_bounds_values()
+- symbols_match_the_backend_hex_conventions · function · L833-L836 — fn symbols_match_the_backend_hex_conventions()
+- scalar_facts_come_from_the_checked_layouts · function · L839-L892 — fn scalar_facts_come_from_the_checked_layouts()
+- canonical_object_text_is_stable_and_verifier_friendly · function · L895-L908 — fn canonical_object_text_is_stable_and_verifier_friendly()
+- ORDERED · constant · L913-L931 — const ORDERED: &str = r#"module test.abiorder;
+- payload · function · L933-L936 — fn payload(envelope: &str) -> serde_json::Value
+- ids · function · L938-L945 — fn ids(entries: &serde_json::Value) -> Vec<String>
+- report_arrays_are_ordered_by_stable_id_bytes_not_request_or_source_order · function · L953-L1003 — fn report_arrays_are_ordered_by_stable_id_bytes_not_request_or_source_order()
+- hostile_identities_cannot_escape_the_derived_symbols · function · L1011-L1052 — fn hostile_identities_cannot_escape_the_derived_symbols()

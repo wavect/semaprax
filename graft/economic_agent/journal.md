@@ -1,0 +1,38 @@
+# economic_agent/journal.rs
+
+- JournalState · enum · L23-L37 — pub(super) enum JournalState
+- text · function · L40-L56 — pub(super) fn text(self) -> &'static str
+- parse · function · L57-L74 — pub(super) fn parse(value: &str) -> Option<Self>
+- Journal · struct · L78-L95 — pub(super) struct Journal
+- journal_owned_bytes · function · L96-L132 — pub(super) fn journal_owned_bytes(journal: &Journal) -> Result<usize, Diagnostic>
+- clone_journal_bounded · function · L133-L142 — pub(super) fn clone_journal_bounded(
+- optional_ref · function · L144-L146 — pub(super) fn optional_ref(schema: &str, doc: Option<&Doc>) -> String
+- optional_typed_ref · function · L147-L159 — pub(super) fn optional_typed_ref(schema: &str, value: Option<&DocRef>) -> String
+- optional_capsule · function · L160-L173 — pub(super) fn optional_capsule(schema: &str, doc: Option<&Doc>) -> String
+- optional_unsigned · function · L174-L185 — pub(super) fn optional_unsigned(value: Option<&(String, usize, &'static str)>) -> String
+- optional_signed · function · L186-L196 — pub(super) fn optional_signed(value: Option<&(String, usize)>) -> String
+- render_journal · function · L197-L203 — pub(super) fn render_journal(journal: &Journal) -> String
+- write_optional_journal_ref · function · L204-L213 — pub(super) fn write_optional_journal_ref<W: fmt::Write>(
+- write_capsule · function · L214-L231 — pub(super) fn write_capsule<W: fmt::Write>(
+- write_journal · function · L232-L294 — pub(super) fn write_journal<W: fmt::Write>(output: &mut W, journal: &Journal) -> fmt::Result
+- BroadcastReceipt · struct · L297-L302 — pub(super) struct BroadcastReceipt
+- parse_broadcast · function · L303-L318 — pub(super) fn parse_broadcast(
+- parse_broadcast_limited · function · L319-L341 — pub(super) fn parse_broadcast_limited(
+- parse_provisional_broadcast · function · L342-L357 — pub(super) fn parse_provisional_broadcast(
+- parse_broadcast_mode · function · L358-L428 — pub(super) fn parse_broadcast_mode(
+- Reconciliation · struct · L431-L437 — pub(super) struct Reconciliation
+- nullable_u64 · function · L438-L444 — pub(super) fn nullable_u64(value: &Value) -> Option<Option<u64>>
+- nullable_text · function · L445-L451 — pub(super) fn nullable_text(value: &Value) -> Option<Option<String>>
+- parse_reconciliation · function · L452-L465 — pub(super) fn parse_reconciliation(
+- parse_reconciliation_with_identifier_limit · function · L467-L548 — pub(super) fn parse_reconciliation_with_identifier_limit(
+- parse_reconciliation_limited · function · L549-L570 — pub(super) fn parse_reconciliation_limited(
+- capsule_doc · function · L572-L618 — pub(super) fn capsule_doc(
+- generic_ref_doc · function · L619-L648 — pub(super) fn generic_ref_doc(
+- unsigned_journal_ref · function · L649-L672 — pub(super) fn unsigned_journal_ref(
+- signed_journal_ref · function · L673-L690 — pub(super) fn signed_journal_ref(
+- JournalParseFailure · enum · L691-L694 — pub(super) enum JournalParseFailure
+- from · function · L697-L699 — fn from(diagnostic: Diagnostic) -> Self
+- parse_journal · function · L702-L712 — pub(super) fn parse_journal(
+- parse_journal_classified · function · L714-L972 — pub(super) fn parse_journal_classified(
+- broadcast_is_provisional · function · L974-L981 — pub(super) fn broadcast_is_provisional(document: &Doc) -> bool
+- reconciliation_topology · function · L983-L993 — pub(super) fn reconciliation_topology(journal: &Journal) -> Result<(u64, bool), Diagnostic>

@@ -1,0 +1,23 @@
+# source_verify/declared_type/tests.rs
+
+- DECLARATIONS · constant · L12-L69 — const DECLARATIONS: &str = r#"module test.declared_type;
+- parsed · function · L71-L73 — fn parsed(source: &str, path: &str) -> Program
+- named · function · L75-L80 — fn named(name: &str, arguments: Vec<Type>) -> Type
+- function · function · L82-L88 — fn function<'a>(program: &'a Program, name: &str) -> &'a Function
+- param · function · L90-L97 — fn param(name: &str, mode: ParamMode, ty: Type) -> Param
+- declared_type_codes · function · L99-L116 — fn declared_type_codes(ty: &Type, parameters: &[&str]) -> Vec<&'static str>
+- an_unknown_type_name_is_t001_outside_a_generic_and_t220_inside_one · function · L119-L139 — fn an_unknown_type_name_is_t001_outside_a_generic_and_t220_inside_one()
+- type_argument_arity_and_element_admission_have_separate_codes · function · L142-L164 — fn type_argument_arity_and_element_admission_have_separate_codes()
+- fixed_arrays_and_unadmitted_byte_carriers_are_t268_and_stop_further_reports · function · L167-L179 — fn fixed_arrays_and_unadmitted_byte_carriers_are_t268_and_stop_further_reports()
+- ownership_codes · function · L181-L196 — fn ownership_codes(function_name: &str, param: Param) -> Vec<&'static str>
+- borrowed_view_parameters_demand_borrow_with_their_own_codes · function · L199-L217 — fn borrowed_view_parameters_demand_borrow_with_their_own_codes()
+- owned_bytes_parameters_admit_own_and_monomorphic_borrow_only · function · L220-L238 — fn owned_bytes_parameters_admit_own_and_monomorphic_borrow_only()
+- drop_bearing_aggregates_need_a_mode_and_value_types_must_not_have_one · function · L241-L283 — fn drop_bearing_aggregates_need_a_mode_and_value_types_must_not_have_one()
+- record_layout_recursion_sees_cycles_through_other_declarations · function · L286-L347 — fn record_layout_recursion_sees_cycles_through_other_declarations()
+- scalar_substitutions_enumerate_every_assignment_in_a_stable_order · function · L350-L368 — fn scalar_substitutions_enumerate_every_assignment_in_a_stable_order()
+- function_type_substitution_replaces_parameters_and_rebuilds_nesting · function · L371-L414 — fn function_type_substitution_replaces_parameters_and_rebuilds_nesting()
+- generic_signature_slots_and_direct_arguments_admit_only_the_scalar_profile · function · L417-L448 — fn generic_signature_slots_and_direct_arguments_admit_only_the_scalar_profile()
+- a_generic_body_is_direct_scalar_only_without_aggregates · function · L451-L464 — fn a_generic_body_is_direct_scalar_only_without_aggregates()
+- call_reachability_terminates_on_a_cycle · function · L467-L493 — fn call_reachability_terminates_on_a_cycle()
+- ordinary_result_and_option_shapes_are_recognized_by_name_and_arity · function · L496-L511 — fn ordinary_result_and_option_shapes_are_recognized_by_name_and_arity()
+- native_rust_status_domains_are_bounded_lowercase_dotted_labels · function · L514-L531 — fn native_rust_status_domains_are_bounded_lowercase_dotted_labels()

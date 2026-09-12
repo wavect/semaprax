@@ -1,0 +1,41 @@
+---
+covers: []
+---
+# package_lock_v2.rs
+
+- graph · module · L9-L9 — mod graph;
+- model · module · L10-L10 — mod model;
+- subject · module · L11-L11 — mod subject;
+- wire · module · L12-L12 — mod wire;
+- SCHEMA · constant · L14-L14 — pub const SCHEMA: &str = "semaprax.offline-semantic-package-lock.v2";
+- SUBJECT_SCHEMA · constant · L15-L15 — pub const SUBJECT_SCHEMA: &str = "semaprax.offline-semantic-package-subject.v2";
+- MAX_PACKAGES · constant · L16-L16 — pub const MAX_PACKAGES: usize = 4;
+- MAX_SUBJECT_BYTES · constant · L17-L17 — pub const MAX_SUBJECT_BYTES: usize = 17 * 1024 * 1024;
+- MAX_TOTAL_SUBJECT_BYTES · constant · L18-L18 — pub const MAX_TOTAL_SUBJECT_BYTES: usize = 64 * 1024 * 1024;
+- MAX_DEPENDENCIES · constant · L19-L19 — pub const MAX_DEPENDENCIES: usize = 64;
+- MAX_EDGES · constant · L20-L20 — pub const MAX_EDGES: usize = 256;
+- MAX_DEPTH · constant · L21-L21 — pub const MAX_DEPTH: usize = 32;
+- MAX_CAPABILITIES · constant · L22-L22 — pub const MAX_CAPABILITIES: usize = 256;
+- MAX_WORK_UNITS · constant · L23-L23 — pub const MAX_WORK_UNITS: usize = 8 * 1024 * 1024;
+- MAX_JSON_DEPTH · constant · L24-L24 — pub const MAX_JSON_DEPTH: usize = 128;
+- MAX_OUTPUT_BYTES · constant · L25-L25 — pub const MAX_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
+- MIN_OUTPUT_BYTES · constant · L26-L26 — const MIN_OUTPUT_BYTES: usize = 4_096;
+- SUBJECT_DOMAIN · constant · L27-L27 — const SUBJECT_DOMAIN: &[u8] = b"semaprax.offline-semantic-package-subject.v2\0";
+- LOCK_DOMAIN · constant · L28-L28 — const LOCK_DOMAIN: &[u8] = b"semaprax.offline-semantic-package-lock.v2\0";
+- REPORT_DOMAIN · constant · L29-L29 — const REPORT_DOMAIN: &[u8] = b"semaprax.offline-semantic-package-report.v2\0";
+- Coordinate · struct · L32-L35 — pub struct Coordinate
+- LockOptions · struct · L38-L40 — pub struct LockOptions
+- new · function · L43-L50 — pub fn new(max_bytes: usize) -> Result<Self, Diagnostic>
+- default · function · L54-L58 — fn default() -> Self
+- VerifiedLock · struct · L62-L64 — pub struct VerifiedLock
+- ResolutionSubject · struct · L67-L74 — pub(crate) struct ResolutionSubject
+- PackageBuildSubject · struct · L77-L87 — pub(crate) struct PackageBuildSubject
+- PackageSourceSubject · struct · L90-L108 — pub(crate) struct PackageSourceSubject
+- authenticate_subject_for_resolution · function · L110-L123 — pub(crate) fn authenticate_subject_for_resolution(
+- authenticate_subject_for_package_build · function · L125-L147 — pub(crate) fn authenticate_subject_for_package_build(
+- authenticate_subject_for_package_source · function · L149-L174 — pub(crate) fn authenticate_subject_for_package_source(
+- create_subject · function · L176-L183 — pub fn create_subject(
+- generate · function · L185-L187 — pub fn generate(subjects: &[String], options: &LockOptions) -> Result<String, Vec<Diagnostic>>
+- verify · function · L189-L219 — pub fn verify(
+- validate_options · function · L221-L223 — fn validate_options(options: &LockOptions) -> Result<(), Diagnostic>
+- tests · module · L233-L233 — mod tests;

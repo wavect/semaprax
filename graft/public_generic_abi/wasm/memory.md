@@ -1,0 +1,27 @@
+# public_generic_abi/wasm/memory.rs
+
+- PAGE_BYTES · constant · L33-L33 — pub const PAGE_BYTES: u32 = 65_536;
+- MAX_PAGES · constant · L39-L39 — pub const MAX_PAGES: u32 = (MAX_TOTAL_PAYLOAD_BYTES as u32) / PAGE_BYTES;
+- MEMORY_BOUNDS · constant · L44-L44 — pub const MEMORY_BOUNDS: &str = "SPX-PG912";
+- ALLOCATION_FAILURE · constant · L48-L48 — pub const ALLOCATION_FAILURE: &str = "SPX-PG913";
+- DEALLOC_NOT_TOP_OF_STACK · constant · L54-L54 — pub const DEALLOC_NOT_TOP_OF_STACK: &str = "SPX-PG914";
+- schema_error · function · L56-L58 — fn schema_error(code: &'static str, message: impl Into<String>) -> Diagnostic
+- WasmLinearMemory · struct · L64-L66 — pub struct WasmLinearMemory
+- default · function · L69-L71 — fn default() -> Self
+- new · function · L75-L77 — pub fn new() -> Self
+- len · function · L79-L81 — pub fn len(&self) -> u32
+- is_empty · function · L83-L85 — pub fn is_empty(&self) -> bool
+- pages · function · L87-L89 — pub fn pages(&self) -> u32
+- grow_to_fit · function · L94-L107 — pub fn grow_to_fit(&mut self, required_bytes: u32) -> Result<(), Diagnostic>
+- bounded_range · function · L109-L123 — fn bounded_range(&self, offset: u32, len: u32) -> Result<std::ops::Range<usize>, Diagnostic>
+- read_at · function · L126-L129 — pub fn read_at(&self, offset: u32, len: u32) -> Result<&[u8], Diagnostic>
+- write_at · function · L132-L136 — pub fn write_at(&mut self, offset: u32, data: &[u8]) -> Result<(), Diagnostic>
+- zero_at · function · L140-L144 — fn zero_at(&mut self, offset: u32, len: u32) -> Result<(), Diagnostic>
+- StackAllocator · struct · L152-L156 — pub struct StackAllocator
+- default · function · L159-L161 — fn default() -> Self
+- new · function · L165-L171 — pub fn new() -> Self
+- live_bytes · function · L173-L175 — pub fn live_bytes(&self) -> u32
+- live_allocations · function · L177-L179 — pub fn live_allocations(&self) -> u32
+- alloc · function · L188-L211 — pub fn alloc(&mut self, memory: &mut WasmLinearMemory, len: u32) -> Result<u32, Diagnostic>
+- dealloc · function · L217-L240 — pub fn dealloc(
+- tests · module · L244-L244 — mod tests;

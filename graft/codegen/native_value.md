@@ -1,0 +1,43 @@
+# codegen/native_value.rs
+
+- NativeValueDeclaration · enum · L36-L52 — pub(crate) enum NativeValueDeclaration
+- NativeResourceInitializer · enum · L57-L60 — pub(crate) enum NativeResourceInitializer
+- NativeValueStep · enum · L65-L96 — pub(crate) enum NativeValueStep
+- NativeValueResult · enum · L100-L107 — pub(crate) enum NativeValueResult
+- NativeValuePlan · struct · L111-L119 — pub(crate) struct NativeValuePlan
+- plan · function · L127-L250 — pub(crate) fn plan(
+- belongs_to · function · L256-L262 — pub(crate) fn belongs_to(
+- result · function · L264-L266 — pub(crate) fn result(&self) -> &NativeValueResult
+- emit_declarations · function · L272-L302 — pub(crate) fn emit_declarations(plan: &NativeValuePlan) -> String
+- emit_block_prologue · function · L305-L370 — pub(crate) fn emit_block_prologue(plan: &NativeValuePlan, block: BlockId) -> String
+- BoundValue · struct · L372-L375 — struct BoundValue
+- Planner · struct · L377-L391 — struct Planner<'a>
+- seed_parameters_and_storage · function · L394-L427 — fn seed_parameters_and_storage(&mut self) -> Result<(), Diagnostic>
+- storage_initializer · function · L429-L461 — fn storage_initializer(
+- lower_contract · function · L463-L510 — fn lower_contract(
+- lower_contract_value · function · L512-L555 — fn lower_contract_value(&mut self, expression: &ResolvedExpr) -> Result<String, Diagnostic>
+- lower_body_tail · function · L557-L621 — fn lower_body_tail(&mut self, expression: &ResolvedExpr) -> Result<String, Diagnostic>
+- lower_i64_operand · function · L623-L649 — fn lower_i64_operand(&mut self, expression: &ResolvedExpr) -> Result<String, Diagnostic>
+- validate_owned_tail · function · L651-L685 — fn validate_owned_tail(
+- validate_owned_body_transfers · function · L687-L725 — fn validate_owned_body_transfers(&self, tail: &ResolvedExpr) -> Result<(), Diagnostic>
+- validate_success_exit · function · L727-L760 — fn validate_success_exit(&self) -> Result<(), Diagnostic>
+- scalar_place · function · L762-L768 — fn scalar_place(&self, root: ValueId, ty: &ResolvedType) -> Result<String, Diagnostic>
+- new_scalar · function · L770-L788 — fn new_scalar(
+- status_binding · function · L790-L803 — fn status_binding(&mut self, source: &StatusSourceId) -> Result<String, Diagnostic>
+- push · function · L805-L807 — fn push(&mut self, step: NativeValueStep)
+- follow_always_goto · function · L809-L828 — fn follow_always_goto(&self, block: BlockId) -> Result<BlockId, Diagnostic>
+- boolean_branch · function · L830-L879 — fn boolean_branch(
+- status_success_branch · function · L881-L931 — fn status_success_branch(
+- follow_success_continuation · function · L933-L961 — fn follow_success_continuation(&self, block: BlockId) -> Result<BlockId, Diagnostic>
+- validate_signature · function · L964-L1060 — fn validate_signature(
+- require_trivial_resource · function · L1062-L1087 — fn require_trivial_resource(
+- c_string · function · L1089-L1105 — fn c_string(value: &str) -> String
+- value_error · function · L1107-L1109 — fn value_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L1112-L1245 — mod tests
+- SOURCE · constant · L1121-L1142 — const SOURCE: &str = r#"module test.native_values;
+- program · function · L1144-L1147 — fn program() -> ResolvedProgram
+- planned · function · L1149-L1158 — fn planned(program: &ResolvedProgram, id: &str) -> NativeValuePlan
+- checked_plan_places_real_value_steps_in_exact_cfg_blocks · function · L1161-L1175 — fn checked_plan_places_real_value_steps_in_exact_cfg_blocks()
+- identity_uses_only_cleanup_owned_storage_and_two_transfers · function · L1178-L1190 — fn identity_uses_only_cleanup_owned_storage_and_two_transfers()
+- literal_result_and_literal_false_ensure_are_bound_deterministically · function · L1193-L1211 — fn literal_result_and_literal_false_ensure_are_bound_deterministically()
+- rejects_let_and_lazy_shapes_without_widening_the_gate · function · L1214-L1244 — fn rejects_let_and_lazy_shapes_without_widening_the_gate()

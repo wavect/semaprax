@@ -1,0 +1,29 @@
+# project/candidate/owned_workflow_approval.rs
+
+- Result · type · L65-L65 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- OWNED_WORKFLOW_APPROVAL_SCHEMA · constant · L67-L67 — pub const OWNED_WORKFLOW_APPROVAL_SCHEMA: &str = "semaprax.owned-workflow-approval.v1";
+- MAX_OWNED_WORKFLOW_APPROVAL_BYTES · constant · L68-L68 — pub const MAX_OWNED_WORKFLOW_APPROVAL_BYTES: usize = 64 * 1024;
+- APPROVAL_DOMAIN · constant · L70-L70 — const APPROVAL_DOMAIN: &[u8] = b"semaprax.owned-workflow-approval.digest.v1\0";
+- OwnedWorkflowCandidate · struct · L88-L91 — pub struct OwnedWorkflowCandidate
+- derive · function · L94-L126 — pub fn derive(
+- candidate · function · L131-L133 — pub fn candidate(&self) -> &ProjectCandidate
+- workflow · function · L136-L138 — pub fn workflow(&self) -> &SemanticTransactionV2Workflow
+- OwnedWorkflowApproval · struct · L150-L156 — pub struct OwnedWorkflowApproval
+- approve · function · L163-L195 — pub fn approve(owned: &OwnedWorkflowCandidate) -> Result<Self>
+- replay · function · L200-L240 — pub fn replay(expected_digest: &str, bytes: &[u8]) -> Result<Self>
+- workflow_digest · function · L242-L244 — pub fn workflow_digest(&self) -> &str
+- candidate_digest · function · L245-L247 — pub fn candidate_digest(&self) -> &str
+- base_workspace_revision · function · L248-L250 — pub fn base_workspace_revision(&self) -> &str
+- to_json · function · L251-L253 — pub fn to_json(&self) -> &str
+- digest · function · L254-L256 — pub fn digest(&self) -> &str
+- matches · function · L258-L261 — fn matches(&self, owned: &OwnedWorkflowCandidate) -> bool
+- require_owned_targets_unchanged · function · L274-L300 — pub fn require_owned_targets_unchanged(
+- reselect_owned_workflow · function · L328-L354 — pub fn reselect_owned_workflow(
+- prepare_approved_owned_workflow_publication · function · L364-L383 — pub fn prepare_approved_owned_workflow_publication(
+- apply_approved_owned_workflow_publication · function · L392-L413 — pub fn apply_approved_owned_workflow_publication(
+- annotate · function · L415-L423 — fn annotate(diagnostics: Vec<Diagnostic>, context: &'static str) -> Vec<Diagnostic>
+- render · function · L425-L434 — fn render(mut value: Value, limit: usize) -> Result<String>
+- digest · function · L436-L442 — fn digest(domain: &[u8], bytes: &[u8]) -> String
+- invalid · function · L444-L446 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L447-L449 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L450-L452 — fn stale(message: &'static str) -> Vec<Diagnostic>

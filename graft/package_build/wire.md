@@ -1,0 +1,60 @@
+# package_build/wire.rs
+
+- MANIFEST_DOMAIN · constant · L14-L14 — const MANIFEST_DOMAIN: &[u8] = b"semaprax.offline-effect-free-wasm-package-build.v1\0";
+- EVIDENCE_DOMAIN · constant · L15-L15 — const EVIDENCE_DOMAIN: &[u8] = b"semaprax.offline-effect-free-wasm-package-build-evidence.v1\0";
+- SOURCE_SET_DOMAIN · constant · L16-L16 — const SOURCE_SET_DOMAIN: &[u8] = b"semaprax.offline-effect-free-wasm-package-source-set.v1\0";
+- LINK_DOMAIN · constant · L17-L17 — const LINK_DOMAIN: &[u8] = b"semaprax.offline-effect-free-wasm-package-link.v1\0";
+- MAX_JSON_DEPTH · constant · L20-L20 — const MAX_JSON_DEPTH: usize = 32;
+- MAX_JSON_VALUES · constant · L24-L24 — const MAX_JSON_VALUES: usize = 4_096;
+- MAX_JSON_OBJECTS · constant · L25-L25 — const MAX_JSON_OBJECTS: usize = 512;
+- MAX_JSON_KEYS · constant · L26-L26 — const MAX_JSON_KEYS: usize = 4_096;
+- bf · function · L28-L30 — macro_rules! bf
+- source_set_digest · function · L32-L34 — pub(crate) fn source_set_digest(source: &str) -> String
+- link_digest · function · L36-L38 — pub(crate) fn link_digest(graph: &str) -> String
+- wasm_digest · function · L40-L47 — pub(crate) fn wasm_digest(wasm: &[u8]) -> String
+- wrapper_digest · function · L49-L55 — pub(crate) fn wrapper_digest(value: &str, label: &str) -> Result<String, Diagnostic>
+- render_manifest · function · L57-L98 — pub(crate) fn render_manifest(
+- render_evidence · function · L100-L166 — pub(crate) fn render_evidence(
+- manifest_digest · function · L168-L170 — pub(crate) fn manifest_digest(manifest: &str) -> String
+- validate_submitted_manifest · function · L172-L214 — pub(crate) fn validate_submitted_manifest(value: &str, maximum: usize) -> Result<(), Diagnostic>
+- validate_submitted_evidence · function · L216-L300 — pub(crate) fn validate_submitted_evidence(value: &str, maximum: usize) -> Result<(), Diagnostic>
+- ObjectOrder · struct · L302-L305 — struct ObjectOrder<'a>
+- new · function · L308-L310 — fn new(objects: &'a [Vec<String>]) -> Self
+- take · function · L312-L330 — fn take(&mut self, expected: &[&str]) -> Result<(), Diagnostic>
+- finish · function · L332-L340 — fn finish(&self) -> Result<(), Diagnostic>
+- require_object · function · L343-L357 — fn require_object(
+- require_string · function · L359-L364 — fn require_string(value: &Value) -> Result<(), Diagnostic>
+- require_exact_string · function · L366-L374 — fn require_exact_string(value: &Value, expected: &str) -> Result<(), Diagnostic>
+- require_u64 · function · L376-L381 — fn require_u64(value: &Value) -> Result<(), Diagnostic>
+- require_string_array · function · L383-L388 — fn require_string_array(value: &Value) -> Result<(), Diagnostic>
+- require_object_array · function · L390-L402 — fn require_object_array(
+- require_coordinate · function · L404-L408 — fn require_coordinate(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic>
+- require_manifest_package · function · L410-L420 — fn require_manifest_package(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic>
+- require_subject · function · L422-L445 — fn require_subject(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic>
+- require_export · function · L447-L457 — fn require_export(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic>
+- require_runtime_import · function · L459-L464 — fn require_runtime_import(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic>
+- require_limits · function · L466-L470 — fn require_limits(value: &Value, order: &mut ObjectOrder<'_>) -> Result<(), Diagnostic>
+- validate_compact_json · function · L472-L503 — fn validate_compact_json(
+- validate_compact_json_keys · function · L505-L511 — pub(crate) fn validate_compact_json_keys(
+- CanonicalJsonParser · struct · L513-L521 — struct CanonicalJsonParser<'a>
+- value · function · L524-L546 — fn value(&mut self) -> Result<(), Diagnostic>
+- object · function · L548-L589 — fn object(&mut self) -> Result<(), Diagnostic>
+- array · function · L591-L603 — fn array(&mut self) -> Result<(), Diagnostic>
+- string · function · L605-L635 — fn string(&mut self) -> Result<String, Diagnostic>
+- number · function · L637-L653 — fn number(&mut self) -> Result<(), Diagnostic>
+- literal · function · L655-L662 — fn literal(&mut self, literal: &[u8]) -> Result<(), Diagnostic>
+- enter · function · L664-L676 — fn enter(&mut self, byte: u8) -> Result<(), Diagnostic>
+- leave · function · L678-L684 — fn leave(&mut self) -> Result<(), Diagnostic>
+- expect · function · L686-L694 — fn expect(&mut self, byte: u8) -> Result<(), Diagnostic>
+- take · function · L696-L703 — fn take(&mut self, byte: u8) -> bool
+- peek · function · L705-L707 — fn peek(&self) -> Option<u8>
+- exact_payload · function · L710-L729 — fn exact_payload(value: &str) -> Result<&str, Diagnostic>
+- MARKER · constant · L711-L711 — const MARKER: &str = "\"payload\":";
+- coordinate · function · L731-L737 — fn coordinate(value: &crate::package_lock_v2::Coordinate) -> String
+- export_rows · function · L739-L760 — fn export_rows(facts: &BuildFacts) -> String
+- string_rows · function · L762-L768 — fn string_rows(values: &[&str]) -> String
+- domain_digest · function · L770-L779 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- structural_bound_tests · module · L781-L822 — mod structural_bound_tests
+- parse · function · L784-L800 — fn parse(value: &str) -> Result<(), Diagnostic>
+- structural_depth_bound_accepts_32_and_rejects_33 · function · L803-L808 — fn structural_depth_bound_accepts_32_and_rejects_33()
+- structural_value_and_object_amplification_is_bounded · function · L811-L821 — fn structural_value_and_object_amplification_is_bounded()

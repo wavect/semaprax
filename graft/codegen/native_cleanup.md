@@ -1,0 +1,45 @@
+# codegen/native_cleanup.rs
+
+- NativeCleanupLeaf · struct · L41-L45 — pub(crate) struct NativeCleanupLeaf<'a>
+- NativeCleanupSlot · struct · L49-L52 — pub(crate) struct NativeCleanupSlot<'a>
+- NativeCleanupBlock · struct · L56-L59 — pub(crate) struct NativeCleanupBlock<'a>
+- NativeCleanupExit · struct · L63-L66 — pub(crate) struct NativeCleanupExit<'a>
+- NativeCleanupIndex · struct · L74-L92 — pub(crate) struct NativeCleanupIndex<'a>
+- NativeCleanupAdmission · struct · L97-L97 — pub(super) struct NativeCleanupAdmission(Arc<()>);
+- eq · function · L100-L102 — fn eq(&self, other: &Self) -> bool
+- matches · function · L108-L110 — pub(super) fn matches(&self, other: &Self) -> bool
+- belongs_to · function · L116-L118 — pub(crate) fn belongs_to(&self, function: &ResolvedFunction) -> bool
+- admission · function · L120-L122 — pub(super) fn admission(&self) -> NativeCleanupAdmission
+- function_id · function · L124-L126 — pub(crate) fn function_id(&self) -> &DeclarationId
+- entry · function · L128-L130 — pub(crate) fn entry(&self) -> BlockId
+- slots · function · L132-L134 — pub(crate) fn slots(&self) -> &[NativeCleanupSlot<'a>]
+- leaves · function · L136-L138 — pub(crate) fn leaves(&self) -> &[NativeCleanupLeaf<'a>]
+- live_owned_parameters · function · L140-L142 — pub(crate) fn live_owned_parameters(&self) -> &[CleanupPlace]
+- status_sources · function · L144-L146 — pub(crate) fn status_sources(&self) -> &[StatusSource]
+- regions · function · L148-L150 — pub(crate) fn regions(&self) -> &[crate::cleanup_plan::CleanupRegion]
+- blocks · function · L152-L154 — pub(crate) fn blocks(&self) -> &[NativeCleanupBlock<'a>]
+- edges · function · L156-L158 — pub(crate) fn edges(&self) -> &[CleanupEdge]
+- exits · function · L160-L162 — pub(crate) fn exits(&self) -> &[NativeCleanupExit<'a>]
+- slot · function · L164-L168 — pub(crate) fn slot(&self, storage: &StorageId) -> Option<&NativeCleanupSlot<'a>>
+- leaf · function · L170-L174 — pub(crate) fn leaf(&self, flag: LivenessFlagId) -> Option<&NativeCleanupLeaf<'a>>
+- block · function · L176-L180 — pub(crate) fn block(&self, id: BlockId) -> Option<&NativeCleanupBlock<'a>>
+- edge · function · L182-L186 — pub(crate) fn edge(&self, id: EdgeId) -> Option<&'a CleanupEdge>
+- exit · function · L188-L192 — pub(crate) fn exit(&self, id: ExitTargetId) -> Option<&NativeCleanupExit<'a>>
+- classify · function · L196-L438 — pub(crate) fn classify<'a>(
+- validate_bounded_continuations · function · L440-L534 — fn validate_bounded_continuations(
+- validate_program_types · function · L536-L574 — fn validate_program_types(
+- validate_function_types · function · L576-L584 — fn validate_function_types(
+- validate_supported_type · function · L586-L657 — fn validate_supported_type(
+- direct_resource_lifecycle · function · L659-L700 — fn direct_resource_lifecycle<'a>(
+- validate_trivial_lifecycle · function · L702-L726 — fn validate_trivial_lifecycle(
+- validate_trivial_drop · function · L728-L740 — fn validate_trivial_drop(
+- validate_expression · function · L742-L989 — fn validate_expression(
+- borrow_place_shape_is_admitted · function · L991-L998 — fn borrow_place_shape_is_admitted(operation: &DeclarationId, place: &crate::hir::Place) -> bool
+- direct_owned_record_field_is_admitted · function · L1000-L1030 — fn direct_owned_record_field_is_admitted(
+- expression_contains_resource · function · L1032-L1050 — fn expression_contains_resource(
+- validate_transition · function · L1052-L1144 — fn validate_transition(
+- validate_place · function · L1146-L1165 — fn validate_place(
+- validate_control_references · function · L1167-L1205 — fn validate_control_references(
+- validate_owned_edge · function · L1207-L1227 — fn validate_owned_edge(
+- unsupported · function · L1229-L1238 — fn unsupported(function: &ResolvedFunction, detail: impl Into<String>) -> Diagnostic
+- tests · module · L1242-L1242 — mod tests;

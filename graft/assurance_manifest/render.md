@@ -1,0 +1,22 @@
+# assurance_manifest/render.rs
+
+- bformat · function · L16-L20 — macro_rules! bformat
+- SCHEMA · constant · L22-L22 — pub const SCHEMA: &str = "semaprax.assurance-manifest.v1";
+- SOURCE_DIGEST_DOMAIN · constant · L24-L24 — const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.assurance-manifest.source.v1\0";
+- PAYLOAD_DIGEST_DOMAIN · constant · L25-L25 — const PAYLOAD_DIGEST_DOMAIN: &[u8] = b"semaprax.assurance-manifest.payload.v1\0";
+- NONCLAIMS_JSON · constant · L27-L38 — const NONCLAIMS_JSON: &str = "\"no_smt_solver_invoked\",\
+- domain_digest · function · L40-L49 — pub(super) fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- source_digest · function · L51-L53 — pub(super) fn source_digest(source: &str) -> String
+- payload_digest · function · L55-L57 — pub(super) fn payload_digest(payload_bytes: &[u8]) -> String
+- RenderInput · struct · L61-L69 — pub(super) struct RenderInput<'a>
+- opt_json · function · L71-L76 — fn opt_json(value: &Option<String>) -> String
+- render_method · function · L78-L115 — fn render_method(method: &MethodRecord) -> String
+- render_obligation · function · L117-L161 — fn render_obligation(
+- render_assumption · function · L163-L179 — fn render_assumption(record: &AssumptionRecord) -> String
+- render · function · L185-L246 — pub(super) fn render(input: &RenderInput<'_>) -> String
+- tests · module · L249-L308 — mod tests
+- sample_input · function · L253-L267 — fn sample_input<'a>(
+- rendering_is_deterministic · function · L270-L278 — fn rendering_is_deterministic()
+- obligations_render_in_ascending_id_order_regardless_of_input_order · function · L281-L289 — fn obligations_render_in_ascending_id_order_regardless_of_input_order()
+- envelope_has_no_terminal_newline · function · L292-L295 — fn envelope_has_no_terminal_newline()
+- counts_reflect_the_derived_classification_not_a_raw_method_class · function · L298-L307 — fn counts_reflect_the_derived_classification_not_a_raw_method_class()

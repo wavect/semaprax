@@ -1,0 +1,15 @@
+# project/candidate/schemas/aggregate_expression_schema_tests.rs
+
+- storage_literals_and_record_defaults_have_closed_bounds · function · L4-L65 — fn storage_literals_and_record_defaults_have_closed_bounds()
+- contract_replacement_is_a_distinct_closed_typed_intention · function · L68-L87 — fn contract_replacement_is_a_distinct_closed_typed_intention()
+- record_field_defaults_close_scalar_string_and_bytes_shapes · function · L90-L135 — fn record_field_defaults_close_scalar_string_and_bytes_shapes()
+- variant_case_schema_closes_one_owned_bytes_field_and_names_string_refusal · function · L138-L161 — fn variant_case_schema_closes_one_owned_bytes_field_and_names_string_refusal()
+- computed_signature_arguments_are_a_separate_recursive_mapping_only_form · function · L164-L255 — fn computed_signature_arguments_are_a_separate_recursive_mapping_only_form()
+- lexical_binding_closes_scope_and_recursive_children_without_type_authority · function · L258-L292 — fn lexical_binding_closes_scope_and_recursive_children_without_type_authority()
+- declaration_nominal_types_preserve_copy_forms_and_add_owning_forms · function · L295-L348 — fn declaration_nominal_types_preserve_copy_forms_and_add_owning_forms()
+- type_declarations_close_members_and_preserve_function_shape · function · L351-L399 — fn type_declarations_close_members_and_preserve_function_shape()
+- aggregate_constructors_are_closed_recursive_identity_selected_shapes · function · L402-L509 — fn aggregate_constructors_are_closed_recursive_identity_selected_shapes()
+- projection_recurses_through_one_base_and_keeps_owner_selection_compiler_owned · function · L512-L537 — fn projection_recurses_through_one_base_and_keeps_owner_selection_compiler_owned()
+- exhaustive_match_schema_closes_case_payload_bindings_and_recursive_bodies · function · L540-L571 — fn exhaustive_match_schema_closes_case_payload_bindings_and_recursive_bodies()
+- record_update_schema_closes_ordered_field_subset_and_recursive_base · function · L574-L602 — fn record_update_schema_closes_ordered_field_subset_and_recursive_base()
+- diagnostic_repair_rejected_body_uses_expression_grammar_without_nested_repairs · function · L605-L632 — fn diagnostic_repair_rejected_body_uses_expression_grammar_without_nested_repairs()

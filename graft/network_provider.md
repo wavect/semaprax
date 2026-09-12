@@ -1,0 +1,43 @@
+---
+covers: []
+---
+# network_provider.rs
+
+- deadline · module · L22-L22 — pub mod deadline;
+- fixture · module · L23-L23 — mod fixture;
+- resolver · module · L24-L24 — pub mod resolver;
+- tcp · module · L25-L25 — mod tcp;
+- HttpFailure · enum · L41-L48 — pub enum HttpFailure
+- status_code · function · L52-L61 — pub const fn status_code(self) -> u32
+- NetworkFailure · enum · L67-L87 — pub enum NetworkFailure
+- status_code · function · L91-L103 — pub const fn status_code(self) -> u32
+- WaitState · enum · L108-L116 — pub enum WaitState
+- code · function · L120-L126 — pub const fn code(self) -> u64
+- ProviderConnection · struct · L134-L134 — pub struct ProviderConnection(u64);
+- new · function · L138-L140 — pub const fn new(token: u64) -> Self
+- token · function · L143-L145 — pub const fn token(self) -> u64
+- ProviderListener · struct · L150-L150 — pub struct ProviderListener(u64);
+- new · function · L153-L155 — pub const fn new(token: u64) -> Self
+- token · function · L156-L158 — pub const fn token(self) -> u64
+- NetworkProvider · interface · L175-L251 — pub trait NetworkProvider
+- https_get · function · L178-L180 — fn https_get(&mut self, _url: &str, _max: usize) -> Result<Vec<u8>, HttpFailure>
+- connect · function · L183-L183 — fn connect(&mut self, host: &str, port: u16) -> Result<ProviderConnection, NetworkFailure>;
+- connect_tls · function · L186-L192 — fn connect_tls(
+- listen · function · L195-L197 — fn listen(&mut self, _host: &str, _port: u16) -> Result<ProviderListener, NetworkFailure>
+- accept · function · L200-L205 — fn accept(
+- accept_tls · function · L208-L213 — fn accept_tls(
+- close_listener · function · L216-L218 — fn close_listener(&mut self, _listener: ProviderListener) -> Result<(), NetworkFailure>
+- send · function · L223-L227 — fn send(
+- recv · function · L231-L235 — fn recv(
+- wait · function · L239-L243 — fn wait(
+- close · function · L246-L246 — fn close(&mut self, connection: ProviderConnection) -> Result<(), NetworkFailure>;
+- settle · function · L250-L250 — fn settle(&mut self);
+- DeniedNetworkProvider · struct · L259-L259 — pub struct DeniedNetworkProvider;
+- connect · function · L262-L264 — fn connect(&mut self, _host: &str, _port: u16) -> Result<ProviderConnection, NetworkFailure>
+- send · function · L266-L268 — fn send(&mut self, _: ProviderConnection, _: &[u8]) -> Result<usize, NetworkFailure>
+- recv · function · L270-L272 — fn recv(&mut self, _: ProviderConnection, _: usize) -> Result<Vec<u8>, NetworkFailure>
+- wait · function · L274-L276 — fn wait(&mut self, _: ProviderConnection, _: u32) -> Result<WaitState, NetworkFailure>
+- close · function · L278-L280 — fn close(&mut self, _: ProviderConnection) -> Result<(), NetworkFailure>
+- settle · function · L282-L282 — fn settle(&mut self) {}
+- tests · module · L286-L310 — mod tests
+- failures_and_wait_states_map_onto_the_closed_tables · function · L290-L309 — fn failures_and_wait_states_map_onto_the_closed_tables()

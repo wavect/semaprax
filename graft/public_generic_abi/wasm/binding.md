@@ -1,0 +1,26 @@
+# public_generic_abi/wasm/binding.rs
+
+- WASM_ADAPTER_SCHEMA · constant · L19-L19 — pub const WASM_ADAPTER_SCHEMA: &str = "semaprax.public-generic-wasm-adapter.v1";
+- BINDING_DOMAIN · constant · L21-L21 — const BINDING_DOMAIN: &[u8] = b"semaprax.public-generic-wasm-adapter.v1.binding\0";
+- MALFORMED_WASM_BINDING · constant · L26-L26 — pub const MALFORMED_WASM_BINDING: &str = "SPX-PG910";
+- WASM_BINDING_REPLAY_MISMATCH · constant · L29-L29 — pub const WASM_BINDING_REPLAY_MISMATCH: &str = "SPX-PG911";
+- WASM_ADAPTER_ABI_VERSION · constant · L35-L35 — pub const WASM_ADAPTER_ABI_VERSION: &str = "v1";
+- SupportPublicationState · enum · L46-L48 — pub enum SupportPublicationState
+- text · function · L51-L55 — fn text(self) -> &'static str
+- from_text · function · L57-L62 — fn from_text(text: &str) -> Option<Self>
+- WasmProviderBindingV1 · struct · L73-L81 — pub struct WasmProviderBindingV1
+- new · function · L87-L102 — pub fn new(
+- carrier_binding · function · L104-L106 — pub fn carrier_binding(&self) -> &CarrierBindingV1
+- target_profile · function · L108-L110 — pub fn target_profile(&self) -> TargetProfile
+- provider_artifact_digest · function · L112-L114 — pub fn provider_artifact_digest(&self) -> &str
+- exported_endpoint_export_name · function · L116-L118 — pub fn exported_endpoint_export_name(&self) -> &str
+- support_publication_state · function · L120-L122 — pub fn support_publication_state(&self) -> SupportPublicationState
+- preimage · function · L124-L137 — fn preimage(&self) -> Vec<u8>
+- binding_digest · function · L141-L143 — pub fn binding_digest(&self) -> String
+- encode · function · L147-L149 — pub fn encode(&self) -> Vec<u8>
+- MAX_BINDING_FIELD_BYTES · constant · L152-L152 — const MAX_BINDING_FIELD_BYTES: usize = 64 * 1024;
+- MAX_BINDING_WIRE_BYTES · constant · L153-L153 — const MAX_BINDING_WIRE_BYTES: usize = 256 * 1024;
+- malformed · function · L155-L160 — fn malformed(subject: &str) -> Diagnostic
+- decode_wasm_provider_binding · function · L166-L222 — pub fn decode_wasm_provider_binding(bytes: &[u8]) -> Result<WasmProviderBindingV1, Diagnostic>
+- replay_wasm_provider_binding · function · L227-L239 — pub fn replay_wasm_provider_binding(
+- tests · module · L242-L242 — mod tests;

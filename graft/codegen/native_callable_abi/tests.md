@@ -1,0 +1,24 @@
+# codegen/native_callable_abi/tests.rs
+
+- SOURCE · constant · L10-L26 — const SOURCE: &str = r#"module test.native_callable;
+- ParsedDescriptor · struct · L29-L46 — struct ParsedDescriptor
+- Reader · struct · L48-L52 — struct Reader<'a>
+- field · function · L55-L57 — fn field(&mut self)
+- take · function · L59-L70 — fn take(&mut self, length: usize) -> Result<&'a [u8], String>
+- u32 · function · L72-L79 — fn u32(&mut self) -> Result<u32, String>
+- fingerprint · function · L81-L86 — fn fingerprint(&mut self) -> Result<[u8; 32], String>
+- text · function · L88-L102 — fn text(&mut self) -> Result<String, String>
+- parse_descriptor · function · L105-L303 — fn parse_descriptor(bytes: &[u8]) -> Result<ParsedDescriptor, String>
+- program · function · L305-L308 — fn program() -> ResolvedProgram
+- function · function · L310-L316 — fn function<'a>(program: &'a ResolvedProgram, id: &str) -> &'a ResolvedFunction
+- template · function · L318-L338 — fn template(program: &ResolvedProgram, id: &str) -> NativeHostContractTemplate
+- semantics · function · L340-L342 — fn semantics() -> NativeCallableSemantics
+- descriptor · function · L344-L352 — fn descriptor(id: &str) -> NativeCallableDescriptor
+- descriptor_round_trips_every_canonical_field_in_order · function · L355-L428 — fn descriptor_round_trips_every_canonical_field_in_order()
+- callable_wire_component_sizes_are_normative_known_answers · function · L431-L442 — fn callable_wire_component_sizes_are_normative_known_answers()
+- owned_result_mapping_and_capacity_are_exact · function · L445-L464 — fn owned_result_mapping_and_capacity_are_exact()
+- deterministic_known_target_encoding_is_byte_exact · function · L467-L482 — fn deterministic_known_target_encoding_is_byte_exact()
+- parser_rejects_every_truncated_prefix_and_trailing_data · function · L485-L499 — fn parser_rejects_every_truncated_prefix_and_trailing_data()
+- every_encoded_field_is_authenticated_or_structurally_checked · function · L502-L513 — fn every_encoded_field_is_authenticated_or_structurally_checked()
+- semantic_fingerprints_and_dictionary_bounds_fail_closed · function · L516-L527 — fn semantic_fingerprints_and_dictionary_bounds_fail_closed()
+- normative_size_and_count_boundaries_are_exact · function · L530-L593 — fn normative_size_and_count_boundaries_are_exact()

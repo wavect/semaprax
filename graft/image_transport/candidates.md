@@ -1,0 +1,51 @@
+# image_transport/candidates.rs
+
+- CANDIDATE_PROTOCOL_SCHEMA · constant · L12-L12 — pub const CANDIDATE_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v2";
+- CANDIDATE_RESULT_SCHEMA · constant · L13-L13 — pub const CANDIDATE_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v2";
+- TEST_PROTOCOL_SCHEMA · constant · L14-L14 — pub const TEST_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v3";
+- TEST_RESULT_SCHEMA · constant · L15-L15 — pub const TEST_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v3";
+- diagnostics · module · L16-L16 — pub(super) mod diagnostics;
+- reads · module · L17-L17 — pub(in crate::image_transport) mod reads;
+- MAX_ATTEMPTS · constant · L19-L19 — pub(super) const MAX_ATTEMPTS: usize = 16;
+- MAX_CANDIDATES · constant · L20-L20 — pub(super) const MAX_CANDIDATES: usize = 16;
+- MAX_DRAFTS · constant · L21-L21 — pub(super) const MAX_DRAFTS: usize = 16;
+- MAX_RETAINED_REPORT_BYTES · constant · L22-L22 — pub(super) const MAX_RETAINED_REPORT_BYTES: usize = 256 * 1024 * 1024;
+- CANDIDATE · constant · L24-L28 — const CANDIDATE: Parameter = Parameter
+- DRAFT · constant · L29-L33 — const DRAFT: Parameter = Parameter
+- HOLE · constant · L34-L38 — const HOLE: Parameter = Parameter
+- OFFSET · constant · L39-L43 — const OFFSET: Parameter = Parameter
+- CHUNK · constant · L44-L48 — const CHUNK: Parameter = Parameter
+- Action · enum · L51-L75 — pub(super) enum Action
+- method · function · L77-L87 — macro_rules! method
+- TEST_METHODS · constant · L89-L104 — const TEST_METHODS: &[Method] = &[
+- CANDIDATE_METHODS · constant · L106-L305 — const CANDIDATE_METHODS: &[Method] = &[
+- DraftEntry · struct · L307-L310 — pub(super) struct DraftEntry
+- Registry · struct · L313-L317 — pub(super) struct Registry
+- RetainedSubjectSnapshot · struct · L321-L326 — pub(super) struct RetainedSubjectSnapshot
+- RetainedCandidateSnapshot · struct · L328-L335 — pub(super) struct RetainedCandidateSnapshot
+- RetainedDraftSnapshot · struct · L337-L344 — pub(super) struct RetainedDraftSnapshot
+- RetainedAttemptSnapshot · struct · L346-L353 — pub(super) struct RetainedAttemptSnapshot
+- Mutation · enum · L355-L363 — pub(super) enum Mutation
+- candidate · function · L366-L373 — pub(super) fn candidate(&self, id: &str) -> Result<&Arc<ProjectCandidate>, Vec<Diagnostic>>
+- draft · function · L374-L378 — fn draft(&self, id: &str) -> Result<&DraftEntry, Vec<Diagnostic>>
+- draft_value · function · L379-L381 — pub(super) fn draft_value(&self, id: &str) -> Result<&ProjectCandidateDraft, Vec<Diagnostic>>
+- open_contract_hole · function · L383-L413 — pub(super) fn open_contract_hole(
+- retain_recovered_draft · function · L414-L425 — pub(super) fn retain_recovered_draft(
+- report_bytes · function · L426-L441 — fn report_bytes(&self) -> usize
+- retained_subject_snapshot · function · L446-L585 — pub(super) fn retained_subject_snapshot(
+- admit · function · L586-L617 — pub(super) fn admit(&self, mutation: &Mutation) -> Result<(), Vec<Diagnostic>>
+- commit · function · L618-L646 — pub(super) fn commit(&mut self, mutation: Mutation)
+- refresh_inventory · function · L648-L650 — pub(super) fn refresh_inventory(&self) -> Value
+- clear_transients · function · L652-L655 — pub(super) fn clear_transients(&mut self)
+- handle_diagnostics · function · L658-L668 — pub(super) fn handle_diagnostics(
+- handle · function · L670-L726 — pub(super) fn handle(
+- methods · function · L728-L735 — pub(super) fn methods(test_enabled: bool) -> Vec<&'static Method>
+- protocol_schema · function · L737-L743 — fn protocol_schema(test_enabled: bool) -> &'static str
+- result_schema · function · L744-L750 — fn result_schema(test_enabled: bool) -> &'static str
+- descriptor · function · L752-L770 — fn descriptor(method: &Method, test_enabled: bool) -> Value
+- profile_payload_schema · function · L772-L800 — fn profile_payload_schema(method: &Method, test_enabled: bool) -> String
+- prepare · function · L802-L862 — pub(super) fn prepare(
+- prepare_candidate · function · L864-L1023 — fn prepare_candidate(
+- retain_candidate · function · L1025-L1032 — pub(super) fn retain_candidate(
+- retain_draft · function · L1033-L1045 — fn retain_draft(
+- failure · function · L1046-L1048 — fn failure(code: &'static str, message: &'static str) -> Vec<Diagnostic>

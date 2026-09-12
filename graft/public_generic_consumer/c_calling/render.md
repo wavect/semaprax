@@ -1,0 +1,25 @@
+# public_generic_consumer/c_calling/render.rs
+
+- consumer_header · function · L24-L33 — pub(super) fn consumer_header(input: &RecordShape, output: &RecordShape) -> String
+- record_struct · function · L35-L44 — fn record_struct(name: &str, shape: &RecordShape) -> String
+- HEADER_PREAMBLE · constant · L46-L134 — const HEADER_PREAMBLE: &str = r#"/*
+- HEADER_API · constant · L136-L202 — const HEADER_API: &str = r#"/* Verify the exact descriptor/provider pairing against this consumer's own
+- consumer_source · function · L212-L247 — pub(super) fn consumer_source(
+- SOURCE_PREAMBLE · constant · L249-L268 — const SOURCE_PREAMBLE: &str = r#"/*
+- c_byte_array · function · L276-L293 — fn c_byte_array(bytes_name: &str, len_name: &str, bytes: &[u8]) -> String
+- SOURCE_CODEC_AND_LIFECYCLE · constant · L295-L390 — const SOURCE_CODEC_AND_LIFECYCLE: &str = r#"/* Logical Carrier v1's wire framing, restated independently rather than
+- encode_input_fn · function · L392-L437 — fn encode_input_fn(input: &RecordShape) -> String
+- free_input_leaves_fn · function · L439-L455 — fn free_input_leaves_fn(input: &RecordShape) -> String
+- free_output_fn · function · L457-L474 — fn free_output_fn(output: &RecordShape) -> String
+- decode_output_fn · function · L476-L542 — fn decode_output_fn(output: &RecordShape) -> String
+- SOURCE_TRANSFORM_AND_DIAGNOSTICS · constant · L544-L734 — const SOURCE_TRANSFORM_AND_DIAGNOSTICS: &str = r#"/* Process-global test-only injection state: the ordinal
+- round_trip_c · function · L747-L766 — pub(super) fn round_trip_c(input: &RecordShape, output: &RecordShape) -> String
+- ROUND_TRIP_PREAMBLE · constant · L768-L824 — const ROUND_TRIP_PREAMBLE: &str = r#"/*
+- sample_input_fn · function · L826-L840 — fn sample_input_fn(input: &RecordShape) -> String
+- free_input_fn · function · L842-L854 — fn free_input_fn(input: &RecordShape) -> String
+- input_with_first_field_fn · function · L856-L872 — fn input_with_first_field_fn(input: &RecordShape) -> String
+- assert_reversed_fn · function · L874-L887 — fn assert_reversed_fn(input: &RecordShape, output: &RecordShape) -> String
+- assert_output_is_zeroed_fn · function · L889-L903 — fn assert_output_is_zeroed_fn(output: &RecordShape) -> String
+- ROUND_TRIP_BODY · constant · L905-L1010 — const ROUND_TRIP_BODY: &str = r#"static void test_success_round_trip(void)
+- per_leaf_bound_tests_fn · function · L1012-L1058 — fn per_leaf_bound_tests_fn(output: &RecordShape) -> String
+- main_fn · function · L1060-L1074 — fn main_fn() -> String

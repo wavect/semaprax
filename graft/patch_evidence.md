@@ -1,0 +1,113 @@
+---
+covers: []
+---
+# patch_evidence.rs
+
+- EVIDENCE_SCHEMA · constant · L14-L14 — pub(crate) const EVIDENCE_SCHEMA: &str = "semaprax.semantic-patch-evidence.v1";
+- VERIFICATION_SCHEMA · constant · L15-L15 — const VERIFICATION_SCHEMA: &str = "semaprax.semantic-patch-evidence-verification.v1";
+- REVIEW_SCHEMA · constant · L16-L16 — const REVIEW_SCHEMA: &str = "semaprax.semantic-review.v1";
+- REVIEW_DIGEST_DOMAIN · constant · L17-L17 — const REVIEW_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-patch-evidence.review-digest.v1\0";
+- ARTIFACT_DIGEST_DOMAIN · constant · L18-L18 — const ARTIFACT_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-patch-evidence.artifact-digest.v1\0";
+- EVIDENCE_SCHEMA_V2 · constant · L19-L19 — const EVIDENCE_SCHEMA_V2: &str = "semaprax.semantic-patch-evidence.v2";
+- VERIFICATION_SCHEMA_V2 · constant · L20-L20 — const VERIFICATION_SCHEMA_V2: &str = "semaprax.semantic-patch-evidence-verification.v2";
+- ARTIFACT_DIGEST_DOMAIN_V2 · constant · L21-L21 — const ARTIFACT_DIGEST_DOMAIN_V2: &[u8] = b"semaprax.semantic-patch-evidence.artifact-digest.v2\0";
+- MAX_EVIDENCE_BYTES · constant · L22-L22 — const MAX_EVIDENCE_BYTES: usize = 65_536;
+- MAX_RECEIPT_BYTES · constant · L23-L23 — const MAX_RECEIPT_BYTES: usize = 65_536;
+- MAX_JSON_NESTING_DEPTH · constant · L24-L24 — const MAX_JSON_NESTING_DEPTH: usize = 8;
+- ASSESSMENT_KEYS · constant · L25-L33 — const ASSESSMENT_KEYS: [&str; 7] = [
+- ASSESSMENT_VALUES · constant · L34-L40 — const ASSESSMENT_VALUES: [&str; 5] = [
+- NONCLAIMS · constant · L41-L55 — const NONCLAIMS: [&str; 13] = [
+- NONCLAIMS_V2 · constant · L56-L72 — const NONCLAIMS_V2: [&str; 15] = [
+- EvidenceUsage · struct · L75-L86 — pub(crate) struct EvidenceUsage
+- PatchEvidenceFacts · struct · L89-L102 — pub(crate) struct PatchEvidenceFacts
+- source_graph_schema · function · L109-L111 — pub(crate) fn source_graph_schema(&self) -> &str
+- base_revision · function · L113-L115 — pub(crate) fn base_revision(&self) -> &str
+- candidate_revision · function · L117-L119 — pub(crate) fn candidate_revision(&self) -> &str
+- source_digest · function · L121-L123 — pub(crate) fn source_digest(&self) -> &str
+- patch_schema · function · L125-L127 — pub(crate) fn patch_schema(&self) -> &str
+- patch_digest · function · L129-L131 — pub(crate) fn patch_digest(&self) -> &str
+- review_digest · function · L133-L135 — pub(crate) fn review_digest(&self) -> &str
+- assessments · function · L137-L139 — pub(crate) fn assessments(&self) -> &[String; 7]
+- supporting_kind · function · L141-L143 — pub(crate) fn supporting_kind(&self) -> &str
+- supporting_schema · function · L145-L147 — pub(crate) fn supporting_schema(&self) -> &str
+- supporting_digest · function · L149-L151 — pub(crate) fn supporting_digest(&self) -> &str
+- usage · function · L153-L155 — pub(crate) fn usage(&self) -> EvidenceUsage
+- source_bytes · function · L163-L165 — pub(crate) fn source_bytes(self) -> usize
+- patch_bytes · function · L167-L169 — pub(crate) fn patch_bytes(self) -> usize
+- operations · function · L171-L173 — pub(crate) fn operations(self) -> usize
+- declarations · function · L175-L177 — pub(crate) fn declarations(self) -> usize
+- callables · function · L179-L181 — pub(crate) fn callables(self) -> usize
+- call_sites · function · L183-L185 — pub(crate) fn call_sites(self) -> usize
+- impact_depth · function · L187-L189 — pub(crate) fn impact_depth(self) -> usize
+- impact_nodes · function · L191-L193 — pub(crate) fn impact_nodes(self) -> usize
+- impact_bytes · function · L195-L197 — pub(crate) fn impact_bytes(self) -> usize
+- review_bytes · function · L199-L201 — pub(crate) fn review_bytes(self) -> usize
+- RenderedPatchEvidence · struct · L205-L208 — pub(crate) struct RenderedPatchEvidence
+- artifact · function · L215-L217 — pub(crate) fn artifact(&self) -> &str
+- digest · function · L219-L221 — pub(crate) fn digest(&self) -> &str
+- into_parts · function · L223-L225 — pub(crate) fn into_parts(self) -> (String, String)
+- CapsuleV2Facts · struct · L228-L233 — struct CapsuleV2Facts
+- generate · function · L235-L237 — pub fn generate(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>>
+- verify · function · L239-L245 — pub fn verify(
+- apply · function · L247-L253 — pub fn apply(
+- generate_v2 · function · L256-L258 — pub fn generate_v2(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>>
+- generate_v2_with_hook · function · L260-L301 — fn generate_v2_with_hook(
+- verify_v2 · function · L304-L310 — pub fn verify_v2(
+- verify_v2_with_hook · function · L312-L369 — fn verify_v2_with_hook(
+- apply_v2 · function · L372-L378 — pub fn apply_v2(
+- apply_v2_with_hook · function · L380-L440 — fn apply_v2_with_hook(
+- ReadPhase · enum · L443-L447 — enum ReadPhase
+- ApplyPhase · enum · L450-L456 — enum ApplyPhase
+- apply_with_hook · function · L458-L517 — fn apply_with_hook(
+- generate_with_hook · function · L519-L559 — fn generate_with_hook(
+- verify_with_hook · function · L561-L618 — fn verify_with_hook(
+- facts_from_review · function · L623-L669 — pub(crate) fn facts_from_review(
+- render_from_facts · function · L674-L678 — pub(crate) fn render_from_facts(
+- render_from_facts_with_limit · function · L680-L687 — pub(crate) fn render_from_facts_with_limit(
+- facts_v2_from_review · function · L689-L711 — fn facts_v2_from_review(build: &review::ReviewBuild) -> Result<CapsuleV2Facts, Vec<Diagnostic>>
+- render_capsule_v2_bounded · function · L713-L731 — fn render_capsule_v2_bounded(facts: &CapsuleV2Facts) -> Result<String, Vec<Diagnostic>>
+- render_capsule_v2 · function · L733-L751 — fn render_capsule_v2(facts: &CapsuleV2Facts, used_evidence_bytes: usize) -> String
+- render_receipt_v2_bounded · function · L753-L780 — fn render_receipt_v2_bounded(
+- render_receipt_v2 · function · L782-L805 — fn render_receipt_v2(
+- limits_v2_json · function · L807-L817 — fn limits_v2_json() -> String
+- nonclaims_v2_json · function · L819-L828 — fn nonclaims_v2_json() -> String
+- validated_assessments · function · L830-L854 — fn validated_assessments<'a>(
+- render_capsule_bounded_with_limit · function · L856-L890 — fn render_capsule_bounded_with_limit(
+- render_capsule · function · L892-L919 — fn render_capsule(facts: &PatchEvidenceFacts, used_evidence_bytes: usize) -> String
+- render_receipt_bounded · function · L921-L948 — fn render_receipt_bounded(
+- render_receipt · function · L950-L983 — fn render_receipt(
+- limits_json · function · L985-L999 — fn limits_json() -> String
+- assessments_json · function · L1001-L1016 — fn assessments_json(assessments: &[String; 7]) -> String
+- nonclaims_json · function · L1018-L1028 — fn nonclaims_json() -> String
+- parse_canonical_capsule · function · L1030-L1184 — fn parse_canonical_capsule(source: &str) -> Result<PatchEvidenceFacts, Vec<Diagnostic>>
+- parse_canonical_capsule_v2 · function · L1186-L1368 — fn parse_canonical_capsule_v2(source: &str) -> Result<CapsuleV2Facts, Vec<Diagnostic>>
+- validate_limits_v2 · function · L1370-L1425 — fn validate_limits_v2(value: &serde_json::Value) -> Result<(), Vec<Diagnostic>>
+- validate_nonclaims_v2 · function · L1427-L1444 — fn validate_nonclaims_v2(value: &serde_json::Value) -> Result<(), Vec<Diagnostic>>
+- same_v2_bindings · function · L1446-L1451 — fn same_v2_bindings(left: &CapsuleV2Facts, right: &CapsuleV2Facts) -> bool
+- validate_limits · function · L1453-L1494 — fn validate_limits(value: &serde_json::Value) -> Result<(), Vec<Diagnostic>>
+- validate_nonclaims · function · L1496-L1513 — fn validate_nonclaims(value: &serde_json::Value) -> Result<(), Vec<Diagnostic>>
+- exact_object · function · L1515-L1531 — fn exact_object<'a>(
+- text · function · L1533-L1542 — fn text(
+- require_text · function · L1544-L1555 — fn require_text(
+- digest_text · function · L1557-L1568 — fn digest_text(
+- number · function · L1570-L1582 — fn number(
+- valid_digest · function · L1584-L1590 — fn valid_digest(value: &str) -> bool
+- validate_supporting · function · L1592-L1603 — fn validate_supporting(kind: &str, schema: &str) -> Result<(), Vec<Diagnostic>>
+- same_bindings · function · L1605-L1617 — fn same_bindings(left: &PatchEvidenceFacts, right: &PatchEvidenceFacts) -> bool
+- reject_duplicate_json_keys · function · L1619-L1630 — fn reject_duplicate_json_keys(source: &str) -> Result<(), Vec<Diagnostic>>
+- validate_json_structure · function · L1632-L1677 — fn validate_json_structure(source: &str) -> Result<(), Vec<Diagnostic>>
+- scan_json_value · function · L1679-L1702 — fn scan_json_value(bytes: &[u8], position: &mut usize) -> Result<(), Vec<Diagnostic>>
+- scan_json_object · function · L1704-L1745 — fn scan_json_object(bytes: &[u8], position: &mut usize) -> Result<(), Vec<Diagnostic>>
+- scan_json_array · function · L1747-L1770 — fn scan_json_array(bytes: &[u8], position: &mut usize) -> Result<(), Vec<Diagnostic>>
+- scan_json_string · function · L1772-L1796 — fn scan_json_string(bytes: &[u8], position: &mut usize) -> Result<(), Vec<Diagnostic>>
+- skip_json_whitespace · function · L1798-L1805 — fn skip_json_whitespace(bytes: &[u8], position: &mut usize)
+- read_patch_bounded · function · L1807-L1809 — fn read_patch_bounded(path: &Path) -> Result<String, Vec<Diagnostic>>
+- read_evidence_bounded · function · L1811-L1813 — fn read_evidence_bounded(path: &Path) -> Result<String, Vec<Diagnostic>>
+- read_text_bounded · function · L1815-L1872 — fn read_text_bounded(
+- map_review_diagnostics · function · L1874-L1883 — fn map_review_diagnostics(mut diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic>
+- domain_digest · function · L1885-L1894 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- format_error · function · L1896-L1898 — fn format_error(message: impl Into<String>) -> Diagnostic
+- bound_error · function · L1900-L1902 — fn bound_error(message: impl Into<String>) -> Diagnostic
+- mismatch_error · function · L1904-L1906 — fn mismatch_error(message: impl Into<String>) -> Diagnostic
+- invariant_error · function · L1908-L1910 — fn invariant_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L1914-L1914 — mod tests;

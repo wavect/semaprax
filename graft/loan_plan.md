@@ -1,0 +1,55 @@
+---
+covers: []
+---
+# loan_plan.rs
+
+- LOAN_PLAN_SCHEMA_V1 · constant · L13-L13 — pub const LOAN_PLAN_SCHEMA_V1: &str = "semaprax.loan-plan.v1";
+- MAX_LOANS_PER_FUNCTION_V1 · constant · L14-L14 — pub const MAX_LOANS_PER_FUNCTION_V1: usize = 256;
+- MAX_LOAN_ENDPOINTS_V1 · constant · L15-L15 — pub const MAX_LOAN_ENDPOINTS_V1: usize = 4_096;
+- MAX_LOAN_EDGES_V1 · constant · L16-L16 — pub const MAX_LOAN_EDGES_V1: usize = 4_096;
+- MAX_LOAN_PLAN_WORK_V1 · constant · L17-L17 — pub const MAX_LOAN_PLAN_WORK_V1: usize = 1_000_000;
+- LoanId · struct · L20-L20 — pub struct LoanId(pub u16);
+- LoanPointPhase · enum · L23-L26 — pub enum LoanPointPhase
+- boundary_tests · module · L29-L29 — mod boundary_tests;
+- LoanProgramPoint · struct · L32-L35 — pub struct LoanProgramPoint
+- LoanCause · enum · L38-L43 — pub enum LoanCause
+- Loan · struct · L46-L58 — pub struct Loan
+- LoanEndpoint · struct · L61-L72 — pub struct LoanEndpoint
+- LoanEdge · struct · L75-L82 — pub struct LoanEdge
+- LoanPlan · struct · L85-L90 — pub struct LoanPlan
+- unresolved · function · L93-L100 — pub(crate) fn unresolved() -> Self
+- empty_v1 · function · L102-L109 — fn empty_v1() -> Self
+- build_plan · function · L112-L120 — pub fn build_plan(
+- owned_capacity_bytes · function · L125-L213 — pub(crate) fn owned_capacity_bytes(plan: &LoanPlan) -> Option<usize>
+- add · function · L126-L129 — fn add(total: &mut usize, bytes: usize) -> Option<()>
+- point_bytes · function · L130-L132 — fn point_bytes(point: &LoanProgramPoint) -> usize
+- place_bytes · function · L133-L152 — fn place_bytes(place: &Place) -> Option<usize>
+- CfgDraft · struct · L216-L224 — struct CfgDraft
+- Cfg · struct · L226-L233 — struct Cfg<'a>
+- has_own_root_candidate · function · L235-L341 — fn has_own_root_candidate(
+- ultimate_root_is_own · function · L343-L373 — fn ultimate_root_is_own(
+- node · function · L376-L381 — fn node(&self, expression: &ResolvedExpr, phase: LoanPointPhase) -> Result<u16, Diagnostic>
+- build_cfg_plan · function · L384-L390 — fn build_cfg_plan(
+- WorkCounter · struct · L393-L396 — struct WorkCounter
+- new · function · L399-L401 — fn new(limit: usize) -> Self
+- build_cfg_plan_with_work_limit · function · L409-L417 — fn build_cfg_plan_with_work_limit(
+- build_cfg_plan_counted · function · L419-L687 — fn build_cfg_plan_counted(
+- inventory_pattern_ownership · function · L689-L731 — fn inventory_pattern_ownership(
+- record_field · function · L693-L708 — fn record_field(
+- build_cfg · function · L733-L946 — fn build_cfg<'a>(
+- statement_entry · function · L948-L954 — fn statement_entry(statement: &ResolvedStatement) -> &ResolvedExpr
+- statement_exit · function · L956-L962 — fn statement_exit(statement: &ResolvedStatement) -> &ResolvedExpr
+- evaluation_children · function · L964-L1009 — fn evaluation_children(expression: &ResolvedExpr) -> Vec<&ResolvedExpr>
+- live_nodes · function · L1011-L1040 — fn live_nodes(
+- reject_cfg_overlaps · function · L1042-L1133 — fn reject_cfg_overlaps(
+- reject_overlap_at · function · L1135-L1153 — fn reject_overlap_at(
+- materialize_cfg_plan · function · L1155-L1240 — fn materialize_cfg_plan(
+- validate_program · function · L1242-L1257 — pub fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnostic>
+- resolve_parent · function · L1259-L1272 — fn resolve_parent(
+- resolve_origin · function · L1274-L1293 — fn resolve_origin(
+- expression_place · function · L1295-L1303 — fn expression_place(expression: &ResolvedExpr) -> Option<Place>
+- point · function · L1305-L1310 — fn point(expression: &ResolvedExpr, phase: LoanPointPhase) -> LoanProgramPoint
+- charge · function · L1312-L1321 — fn charge(work: &mut WorkCounter) -> Result<(), Diagnostic>
+- push_children · function · L1323-L1404 — fn push_children<'a>(expression: &'a ResolvedExpr, pending: &mut Vec<&'a ResolvedExpr>)
+- error · function · L1406-L1408 — fn error(message: impl Into<String>) -> Diagnostic
+- tests · module · L1412-L1412 — mod tests;

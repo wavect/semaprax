@@ -1,0 +1,232 @@
+---
+covers: []
+---
+# interpreter.rs
+
+- api_admission · module · L60-L60 — mod api_admission;
+- closures · module · L61-L61 — mod closures;
+- command_state · module · L62-L62 — mod command_state;
+- environment · module · L63-L63 — pub(crate) mod environment;
+- expression_children · module · L64-L64 — mod expression_children;
+- failure_detail · module · L65-L65 — mod failure_detail;
+- filesystem · module · L66-L66 — pub(crate) mod filesystem;
+- function_values · module · L67-L67 — mod function_values;
+- generic_owned · module · L68-L68 — mod generic_owned;
+- internal_strings · module · L69-L69 — pub mod internal_strings;
+- iterator · module · L70-L70 — mod iterator;
+- nested_owned · module · L71-L71 — mod nested_owned;
+- network · module · L72-L72 — pub(crate) mod network;
+- process · module · L73-L73 — pub(crate) mod process;
+- owned_box · module · L75-L75 — mod owned_box;
+- owned_buffer · module · L76-L76 — mod owned_buffer;
+- owned_try · module · L77-L77 — mod owned_try;
+- owned_vec · module · L78-L78 — mod owned_vec;
+- prepared · module · L79-L79 — mod prepared;
+- resolved_case · module · L80-L80 — mod resolved_case;
+- retained_call · module · L81-L81 — pub mod retained_call;
+- scalar_profile · module · L82-L82 — mod scalar_profile;
+- bformat · function · L118-L122 — macro_rules! bformat
+- SCHEMA · constant · L124-L124 — pub const SCHEMA: &str = "semaprax.interpret.v1";
+- DEFAULT_MAX_BYTES · constant · L126-L126 — const DEFAULT_MAX_BYTES: usize = 64 * 1024;
+- DEFAULT_MAX_STEPS · constant · L130-L130 — pub const DEFAULT_MAX_STEPS: usize = 1_000_000;
+- MAX_STEPS_LIMIT · constant · L133-L133 — pub const MAX_STEPS_LIMIT: usize = 100_000_000;
+- MAX_CALL_DEPTH · constant · L137-L137 — pub const MAX_CALL_DEPTH: usize = 256;
+- MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS · constant · L141-L141 — pub const MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS: u64 = 4_096;
+- MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES · constant · L145-L145 — pub const MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES: u64 = 65_536;
+- SOURCE_DIGEST_DOMAIN · constant · L147-L147 — const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.interpret.source.v1\0";
+- PAYLOAD_DIGEST_DOMAIN · constant · L148-L148 — const PAYLOAD_DIGEST_DOMAIN: &[u8] = b"semaprax.interpret.payload.v1\0";
+- REASON_AUTOMATIC_IDENTITY · constant · L150-L150 — const REASON_AUTOMATIC_IDENTITY: &str = "automatic_identity";
+- REASON_GENERIC_FUNCTION · constant · L151-L151 — const REASON_GENERIC_FUNCTION: &str = "generic_function";
+- REASON_DECLARED_EFFECTS · constant · L152-L152 — const REASON_DECLARED_EFFECTS: &str = "declared_effects";
+- REASON_UNSUPPORTED_PARAMETER_MODE · constant · L153-L153 — const REASON_UNSUPPORTED_PARAMETER_MODE: &str = "unsupported_parameter_mode";
+- REASON_UNSUPPORTED_PARAMETER_TYPE · constant · L154-L154 — const REASON_UNSUPPORTED_PARAMETER_TYPE: &str = "unsupported_parameter_type";
+- REASON_UNSUPPORTED_RESULT_TYPE · constant · L155-L155 — const REASON_UNSUPPORTED_RESULT_TYPE: &str = "unsupported_result_type";
+- REASON_GENERIC_CALL · constant · L156-L156 — const REASON_GENERIC_CALL: &str = "generic_call";
+- REASON_IMPORT_CALL · constant · L157-L157 — const REASON_IMPORT_CALL: &str = "import_call";
+- REASON_RECORD_CONSTRUCTION · constant · L158-L158 — const REASON_RECORD_CONSTRUCTION: &str = "record_construction";
+- REASON_VARIANT_CONSTRUCTION · constant · L159-L159 — const REASON_VARIANT_CONSTRUCTION: &str = "variant_construction";
+- REASON_RECORD_UPDATE · constant · L160-L160 — const REASON_RECORD_UPDATE: &str = "record_update";
+- REASON_RECORD_PROJECTION · constant · L161-L161 — const REASON_RECORD_PROJECTION: &str = "record_projection";
+- REASON_MATCH_EXPRESSION · constant · L162-L162 — const REASON_MATCH_EXPRESSION: &str = "match_expression";
+- REASON_TRY_EXPRESSION · constant · L163-L163 — const REASON_TRY_EXPRESSION: &str = "try_expression";
+- REASON_PLACE_PROJECTION · constant · L164-L164 — const REASON_PLACE_PROJECTION: &str = "place_projection";
+- REASON_UNSUPPORTED_CALLEE · constant · L165-L165 — const REASON_UNSUPPORTED_CALLEE: &str = "unsupported_callee";
+- REASON_UNSUPPORTED_SCALAR_OPERATION · constant · L166-L166 — const REASON_UNSUPPORTED_SCALAR_OPERATION: &str = "unsupported_scalar_operation";
+- REASON_UNSAFE_BOUNDARY · constant · L167-L167 — const REASON_UNSAFE_BOUNDARY: &str = "unsafe_boundary";
+- OUTCOME_RETURNED · constant · L169-L169 — const OUTCOME_RETURNED: &str = "returned";
+- OUTCOME_FAILED · constant · L170-L170 — const OUTCOME_FAILED: &str = "failed";
+- OUTCOME_FUEL_EXHAUSTED · constant · L171-L171 — const OUTCOME_FUEL_EXHAUSTED: &str = "fuel_exhausted";
+- OUTCOME_CALL_DEPTH_EXCEEDED · constant · L172-L172 — const OUTCOME_CALL_DEPTH_EXCEEDED: &str = "call_depth_exceeded";
+- NONCLAIMS_JSON · constant · L174-L179 — const NONCLAIMS_JSON: &str = "\"no_jit_aot_or_cranelift\",\
+- NONCLAIMS_LIST · constant · L180-L187 — const NONCLAIMS_LIST: [&str; 6] = [
+- InterpreterOptions · struct · L190-L193 — pub struct InterpreterOptions
+- new · function · L196-L213 — pub fn new(max_bytes: usize, max_steps: usize) -> Result<Self, Diagnostic>
+- default · function · L217-L222 — fn default() -> Self
+- option_error · function · L225-L227 — fn option_error(message: String) -> Diagnostic
+- selection_error · function · L229-L234 — fn selection_error(reason: &str, detail: String) -> Diagnostic
+- argument_error · function · L236-L238 — fn argument_error(message: String) -> Diagnostic
+- guard_error · function · L240-L245 — fn guard_error(detail: &str) -> Diagnostic
+- consistency_error · function · L247-L249 — fn consistency_error(message: String) -> Diagnostic
+- ArgumentValue · enum · L253-L264 — pub enum ArgumentValue
+- type_text · function · L267-L280 — fn type_text(&self) -> &'static str
+- render · function · L282-L301 — fn render(&self) -> String
+- parse_argument · function · L319-L424 — pub fn parse_argument(text: &str) -> Result<ArgumentValue, Diagnostic>
+- parse_char_argument · function · L428-L471 — fn parse_char_argument(text: &str) -> Result<ArgumentValue, Diagnostic>
+- parse_float_argument · function · L476-L528 — fn parse_float_argument(
+- Interpretation · struct · L534-L537 — pub struct Interpretation
+- ResolvedEvaluation · struct · L546-L553 — pub struct ResolvedEvaluation
+- ResolvedEvaluationOutcome · enum · L557-L564 — pub enum ResolvedEvaluationOutcome
+- OwnedDataValue · enum · L570-L574 — pub enum OwnedDataValue
+- OwnedDataEvaluationOutcome · enum · L578-L584 — pub enum OwnedDataEvaluationOutcome
+- OwnedDataCleanupEvent · enum · L590-L592 — pub enum OwnedDataCleanupEvent
+- OwnedDataEvaluation · struct · L596-L602 — pub struct OwnedDataEvaluation
+- PublicApiArgument · enum · L608-L613 — pub enum PublicApiArgument<'a>
+- PublicApiValue · enum · L618-L625 — pub enum PublicApiValue
+- PublicApiEvaluationOutcome · enum · L629-L635 — pub enum PublicApiEvaluationOutcome
+- PublicApiEvaluation · struct · L639-L645 — pub struct PublicApiEvaluation
+- OwnedUtf8ApiValue · enum · L651-L659 — pub enum OwnedUtf8ApiValue
+- OwnedUtf8ApiEvaluationOutcome · enum · L662-L672 — pub enum OwnedUtf8ApiEvaluationOutcome
+- OwnedUtf8SettlementEvent · enum · L677-L680 — pub enum OwnedUtf8SettlementEvent
+- OwnedUtf8ApiEvaluation · struct · L683-L693 — pub struct OwnedUtf8ApiEvaluation
+- FlatOwnedRecordMemberValue · enum · L699-L704 — pub enum FlatOwnedRecordMemberValue
+- FlatOwnedRecordMember · struct · L707-L710 — pub struct FlatOwnedRecordMember
+- FlatOwnedRecordValue · struct · L714-L717 — pub struct FlatOwnedRecordValue
+- FlatOwnedRecordEvaluationOutcome · enum · L720-L726 — pub enum FlatOwnedRecordEvaluationOutcome
+- FlatOwnedRecordEvaluation · struct · L729-L735 — pub struct FlatOwnedRecordEvaluation
+- CommandEvaluationOutcome · enum · L739-L745 — pub enum CommandEvaluationOutcome
+- CommandEvaluation · struct · L749-L753 — pub struct CommandEvaluation
+- evaluate_resolved_zero_arg_i64 · function · L762-L802 — pub(crate) fn evaluate_resolved_zero_arg_i64(
+- evaluate_resolved_owned_data · function · L812-L944 — pub fn evaluate_resolved_owned_data(
+- evaluate_resolved_public_api · function · L951-L1161 — pub(crate) fn evaluate_resolved_public_api(
+- evaluate_resolved_flat_owned_record_api · function · L1169-L1371 — pub(crate) fn evaluate_resolved_flat_owned_record_api(
+- evaluate_resolved_owned_utf8_api · function · L1377-L1587 — pub(crate) fn evaluate_resolved_owned_utf8_api(
+- owned_data_result_is_admitted · function · L1589-L1607 — fn owned_data_result_is_admitted(ty: &ResolvedType) -> bool
+- settle_interpreted_bytes · function · L1609-L1622 — fn settle_interpreted_bytes(
+- copy_out_flat_owned_record · function · L1624-L1722 — fn copy_out_flat_owned_record(
+- copy_out_owned_data · function · L1724-L1789 — fn copy_out_owned_data(
+- copy_out_public_api · function · L1791-L1815 — fn copy_out_public_api(
+- copy_out_owned_utf8_api · function · L1817-L1869 — fn copy_out_owned_utf8_api(
+- interpret · function · L1875-L1888 — pub fn interpret(
+- SourceProfile · enum · L1891-L1894 — enum SourceProfile
+- schema · function · L1897-L1902 — fn schema(self) -> &'static str
+- payload_domain · function · L1904-L1909 — fn payload_domain(self) -> &'static [u8]
+- interpret_with_profile · function · L1912-L1951 — fn interpret_with_profile(
+- EVALUATION_STACK_BYTES · constant · L1954-L1954 — pub const EVALUATION_STACK_BYTES: usize = 64 * 1024 * 1024;
+- interpret_on_current_thread · function · L1956-L2125 — fn interpret_on_current_thread(
+- select_function · function · L2127-L2138 — fn select_function<'a>(program: &'a Program, token: &str) -> Result<&'a Function, Vec<Diagnostic>>
+- admission · function · L2142-L2166 — fn admission(function: &Function) -> Option<&'static str>
+- is_admitted_scalar · function · L2171-L2183 — fn is_admitted_scalar(ty: &Type) -> bool
+- is_admitted_owned_byte_variant · function · L2194-L2231 — fn is_admitted_owned_byte_variant(declarations: &hir::DeclarationIndex, ty: &ResolvedType) -> bool
+- concrete_variant_case_fields · function · L2233-L2258 — fn concrete_variant_case_fields(
+- variant_constructor_is_admitted · function · L2260-L2313 — fn variant_constructor_is_admitted(
+- variant_pattern_is_admitted · function · L2315-L2397 — fn variant_pattern_is_admitted(
+- bind_arguments · function · L2399-L2439 — fn bind_arguments(
+- scan_closure · function · L2441-L2669 — fn scan_closure(
+- scan · function · L2446-L2635 — fn scan<'a>(
+- resolved_function_value_types · function · L2671-L2741 — fn resolved_function_value_types(function: &ResolvedFunction) -> BTreeMap<ValueId, ResolvedType>
+- add_pattern · function · L2672-L2706 — fn add_pattern(
+- admitted_resolved_functions · function · L2743-L2747 — fn admitted_resolved_functions(
+- admitted_resolved_functions_with_profile · function · L2749-L2788 — fn admitted_resolved_functions_with_profile(
+- resolved_signature_is_admitted · function · L2790-L2795 — fn resolved_signature_is_admitted(
+- resolved_data_signature_is_admitted · function · L2797-L2805 — fn resolved_data_signature_is_admitted(
+- resolved_data_parameter_is_admitted · function · L2807-L2842 — fn resolved_data_parameter_is_admitted(
+- resolved_data_result_is_admitted · function · L2843-L2853 — fn resolved_data_result_is_admitted(
+- evaluate_resolved_stdout_transcript · function · L2855-L2946 — pub(crate) fn evaluate_resolved_stdout_transcript(
+- evaluate_resolved_language_command · function · L2952-L3107 — pub(crate) fn evaluate_resolved_language_command(
+- reject_scan · function · L3109-L3114 — fn reject_scan(expression: &ResolvedExpr, reason: &'static str) -> Vec<Diagnostic>
+- Value · enum · L3117-L3149 — enum Value
+- is_option_u8 · function · L3151-L3158 — fn is_option_u8(ty: &ResolvedType) -> bool
+- option_u8_pattern_is_admitted · function · L3160-L3177 — fn option_u8_pattern_is_admitted(pattern: &crate::hir::ResolvedMatchPattern) -> bool
+- BorrowedStrValue · struct · L3180-L3183 — struct BorrowedStrValue
+- BorrowedSliceValue · struct · L3186-L3191 — struct BorrowedSliceValue
+- whole · function · L3194-L3202 — fn whole(invocation_root: ValueId, backing: Arc<[u8]>) -> Self
+- bytes · function · L3204-L3206 — fn bytes(&self) -> &[u8]
+- range · function · L3208-L3215 — fn range(&self, start: usize, end: usize) -> Self
+- OwnedBytesValue · struct · L3222-L3225 — struct OwnedBytesValue
+- OwnedRecordValue · struct · L3228-L3231 — struct OwnedRecordValue
+- OwnedVariantValue · struct · L3234-L3239 — struct OwnedVariantValue
+- borrowed_text · function · L3241-L3246 — fn borrowed_text(value: &Value) -> Option<&str>
+- Flow · enum · L3249-L3264 — enum Flow
+- Utf8MaterializationBudget · enum · L3267-L3273 — enum Utf8MaterializationBudget
+- fixed · function · L3276-L3281 — fn fixed() -> Self
+- usage · function · L3283-L3291 — fn usage(self) -> (u64, u64)
+- charge · function · L3293-L3315 — fn charge(&mut self, byte_len: usize) -> Result<(), Flow>
+- OutcomeJson · struct · L3318-L3321 — struct OutcomeJson
+- returned_outcome · function · L3323-L3349 — fn returned_outcome(value: &Value) -> OutcomeJson
+- failed_outcome · function · L3351-L3360 — fn failed_outcome(status_json: &str) -> OutcomeJson
+- capacity_outcome · function · L3362-L3367 — fn capacity_outcome(kind: &'static str) -> OutcomeJson
+- normalize_command_input · function · L3369-L3377 — fn normalize_command_input(code: u32) -> NormalizedStatus
+- normalize_command_output · function · L3379-L3387 — fn normalize_command_output(code: u32) -> NormalizedStatus
+- normalize_byte_range · function · L3389-L3397 — fn normalize_byte_range(code: u32) -> NormalizedStatus
+- Environment · struct · L3404-L3407 — struct Environment
+- from · function · L3410-L3417 — fn from(bindings: Vec<(ValueId, Value)>) -> Self
+- len · function · L3421-L3423 — fn len(&self) -> usize
+- push · function · L3425-L3430 — fn push(&mut self, binding: (ValueId, Value))
+- extend · function · L3432-L3436 — fn extend(&mut self, bindings: impl IntoIterator<Item = (ValueId, Value)>)
+- pop · function · L3438-L3442 — fn pop(&mut self) -> Option<(ValueId, Value)>
+- truncate · function · L3444-L3448 — fn truncate(&mut self, length: usize)
+- get · function · L3450-L3455 — fn get(&self, id: &ValueId) -> Option<&Value>
+- binding · function · L3457-L3461 — fn binding(&self, id: &ValueId) -> Option<&(ValueId, Value)>
+- get_mut · function · L3463-L3466 — fn get_mut(&mut self, id: &ValueId) -> Option<&mut Value>
+- iter · function · L3468-L3470 — fn iter(&self) -> impl DoubleEndedIterator<Item = &(ValueId, Value)>
+- iter_mut · function · L3472-L3474 — fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut (ValueId, Value)>
+- FunctionLookup · enum · L3477-L3484 — enum FunctionLookup<'a>
+- get · function · L3487-L3501 — fn get(&self, id: &str) -> Option<&'a ResolvedFunction>
+- Evaluator · struct · L3504-L3525 — struct Evaluator<'a>
+- new_prepared · function · L3530-L3560 — fn new_prepared<'a>(
+- charge · function · L3564-L3575 — fn charge(&mut self) -> Result<(), Flow>
+- begin_expression · function · L3577-L3601 — fn begin_expression(&mut self, expression: &ResolvedExpr, depth: usize) -> Result<(), Flow>
+- charge_utf8_materialization · function · L3603-L3605 — fn charge_utf8_materialization(&mut self, byte_len: usize) -> Result<(), Flow>
+- materialize_utf8_copy · function · L3607-L3610 — fn materialize_utf8_copy(&mut self, value: &str) -> Result<String, Flow>
+- store_record_field · function · L3621-L3674 — fn store_record_field(
+- lookup · function · L3676-L3682 — fn lookup(&mut self, environment: &Environment, root: &ValueId) -> Result<Option<Value>, Flow>
+- lookup_place · function · L3684-L3705 — fn lookup_place(
+- borrow_bytes_call_argument · function · L3712-L3765 — fn borrow_bytes_call_argument(
+- value_has_type · function · L3767-L3789 — fn value_has_type(&self, value: &Value, ty: &ResolvedType) -> bool
+- evaluate_entry · function · L3791-L3856 — fn evaluate_entry(
+- call_frame · function · L3858-L3879 — fn call_frame(
+- call_frame_inner · function · L3881-L3930 — fn call_frame_inner(
+- evaluate · function · L3932-L5067 — fn evaluate(
+- intern_trace_identity · function · L5069-L5077 — fn intern_trace_identity(&mut self, identity: &str) -> Arc<str>
+- set_trace_phase · function · L5079-L5083 — fn set_trace_phase(&mut self, phase: ResolvedTracePhase)
+- combine · function · L5089-L5234 — fn combine(op: BinaryOp, lhs: Value, rhs: Value) -> Option<Result<Value, NormalizedStatus>>
+- float_ordered · function · L5238-L5250 — fn float_ordered(op: BinaryOp, ordering: Option<std::cmp::Ordering>, equal: bool) -> Option<Value>
+- RenderFacts · struct · L5252-L5263 — struct RenderFacts<'a>
+- render_with_profile · function · L5265-L5295 — fn render_with_profile(facts: &RenderFacts<'_>, profile: SourceProfile) -> String
+- source_digest · function · L5297-L5299 — fn source_digest(source: &str) -> String
+- domain_digest · function · L5301-L5310 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- verify_envelope · function · L5320-L5322 — pub fn verify_envelope(envelope: &str) -> Result<(), Diagnostic>
+- verify_envelope_with_profile · function · L5324-L5658 — fn verify_envelope_with_profile(envelope: &str, profile: SourceProfile) -> Result<(), Diagnostic>
+- PAYLOAD_KEY · constant · L5354-L5354 — const PAYLOAD_KEY: &str = "\"payload\":";
+- canonical_scalar_value_matches · function · L5664-L5695 — fn canonical_scalar_value_matches(type_text: &str, value_text: &str) -> bool
+- verify_status · function · L5699-L5774 — fn verify_status(status: &serde_json::Value) -> Result<(), Diagnostic>
+- verify_envelope_against_source · function · L5778-L5795 — pub fn verify_envelope_against_source(
+- bound_source_digest · function · L5797-L5806 — fn bound_source_digest(envelope: &str) -> Result<String, Diagnostic>
+- status_case_from_code · function · L5809-L5821 — fn status_case_from_code(code: u32) -> Option<StatusCase>
+- tests · module · L5824-L6759 — mod tests
+- projected_owned_move_tombstones_only_the_exact_field_without_cloning · function · L5828-L5872 — fn projected_owned_move_tombstones_only_the_exact_field_without_cloning()
+- resolved · function · L5874-L5883 — fn resolved(source: &str) -> hir::ResolvedProgram
+- resolved_zero_arg_evaluation_returns_deterministic_i64_and_fuel_facts · function · L5886-L5896 — fn resolved_zero_arg_evaluation_returns_deterministic_i64_and_fuel_facts()
+- resolved_zero_arg_evaluation_keeps_language_and_capacity_failures_distinct · function · L5899-L5923 — fn resolved_zero_arg_evaluation_keeps_language_and_capacity_failures_distinct()
+- resolved_zero_arg_evaluation_rejects_redirection_signature_and_budget_drift · function · L5926-L5952 — fn resolved_zero_arg_evaluation_rejects_redirection_signature_and_budget_drift()
+- resolved_zero_arg_evaluation_reports_impossible_post_validation_state_as_guard · function · L5955-L5976 — fn resolved_zero_arg_evaluation_reports_impossible_post_validation_state_as_guard()
+- owned_byte_variant_runtime_rejects_hostile_case_and_field_identities · function · L5979-L6064 — fn owned_byte_variant_runtime_rejects_hostile_case_and_field_identities()
+- two_owned_generic_variant_runtime_rejects_hostile_carrier_and_case · function · L6067-L6150 — fn two_owned_generic_variant_runtime_rejects_hostile_carrier_and_case()
+- options_reject_out_of_bounds_values · function · L6153-L6164 — fn options_reject_out_of_bounds_values()
+- literal · function · L6166-L6168 — fn literal(text: &str) -> ArgumentValue
+- argument_literals_are_canonical · function · L6171-L6197 — fn argument_literals_are_canonical()
+- widened_scalar_literals_are_canonical · function · L6200-L6271 — fn widened_scalar_literals_are_canonical()
+- widened_scalar_renderings_are_canonical_and_replayable · function · L6274-L6312 — fn widened_scalar_renderings_are_canonical_and_replayable()
+- arithmetic_status_table_matches_the_compiler_v1_codes · function · L6315-L6333 — fn arithmetic_status_table_matches_the_compiler_v1_codes()
+- checked_semantics_match_the_native_helpers_exactly · function · L6336-L6401 — fn checked_semantics_match_the_native_helpers_exactly()
+- domain_digest_is_domain_separated · function · L6404-L6413 — fn domain_digest_is_domain_separated()
+- borrowed_str_clones_preserve_invocation_root_and_shared_evidence · function · L6416-L6433 — fn borrowed_str_clones_preserve_invocation_root_and_shared_evidence()
+- owned_utf8_budget_is_cumulative_atomic_and_exact_at_both_fixed_caps · function · L6436-L6468 — fn owned_utf8_budget_is_cumulative_atomic_and_exact_at_both_fixed_caps()
+- owned_utf8_intrinsics_precharge_before_result_allocation_and_legacy_is_unlimited · function · L6471-L6549 — fn owned_utf8_intrinsics_precharge_before_result_allocation_and_legacy_is_unlimited()
+- owned_utf8_primitive_replays_descriptor_parameter_and_result_facts · function · L6552-L6608 — fn owned_utf8_primitive_replays_descriptor_parameter_and_result_facts()
+- SHA · constant · L6553-L6553 — const SHA: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
+- owned_utf8_literal_place_clone_call_transfer_and_host_copy_are_exact · function · L6611-L6690 — fn owned_utf8_literal_place_clone_call_transfer_and_host_copy_are_exact()
+- owned_utf8_primitive_reports_exact_attempted_and_committed_byte_quota · function · L6693-L6758 — fn owned_utf8_primitive_reports_exact_attempted_and_committed_byte_quota()
+- SHA · constant · L6694-L6694 — const SHA: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
+- program · function · L6695-L6700 — fn program(length: usize) -> hir::ResolvedProgram
+- export · function · L6701-L6713 — fn export(program: &hir::ResolvedProgram) -> crate::project::PublicApiDescriptor

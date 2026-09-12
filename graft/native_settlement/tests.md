@@ -1,0 +1,33 @@
+# native_settlement/tests.rs
+
+- assert_not_impl · function · L3-L13 — macro_rules! assert_not_impl
+- CONTRACT · constant · L15-L15 — const CONTRACT: [u8; 32] = [0x5a; 32];
+- FrameSnapshot · struct · L18-L26 — struct FrameSnapshot
+- snapshot · function · L28-L41 — fn snapshot(frame: &NativeSettlementFrame) -> FrameSnapshot
+- certificate · function · L43-L52 — fn certificate(checkpoints: Vec<SettlementCheckpointSpec>) -> NativeSettlementCertificate
+- reverse_non_dead · function · L54-L62 — fn reverse_non_dead(states: &[SettlementResourceState]) -> Vec<u32>
+- reverse_live · function · L64-L72 — fn reverse_live(states: &[SettlementResourceState]) -> Vec<u32>
+- abort_exhaustively_finalizes_every_non_dead_resource_once · function · L75-L150 — fn abort_exhaustively_finalizes_every_non_dead_resource_once()
+- accepted_outcomes_are_exact_and_owned_publication_is_unique · function · L153-L226 — fn accepted_outcomes_are_exact_and_owned_publication_is_unique()
+- accepted_outcomes_exhaust_every_owner_liveness_combination · function · L229-L322 — fn accepted_outcomes_exhaust_every_owner_liveness_combination()
+- conflicting_terminal_decision_is_nonmutating · function · L325-L352 — fn conflicting_terminal_decision_is_nonmutating()
+- certificate_builder_rejects_every_structural_ambiguity · function · L355-L454 — fn certificate_builder_rejects_every_structural_ambiguity()
+- malformed_receipts_fail_independent_validation · function · L457-L508 — fn malformed_receipts_fail_independent_validation()
+- canonical_certificate_and_receipt_are_deterministic_and_domain_separated · function · L511-L536 — fn canonical_certificate_and_receipt_are_deterministic_and_domain_separated()
+- physical_result_zero_is_never_an_abort_reason · function · L539-L560 — fn physical_result_zero_is_never_an_abort_reason()
+- deterministic_frame_preparation_is_not_a_uniqueness_reservation · function · L563-L578 — fn deterministic_frame_preparation_is_not_a_uniqueness_reservation()
+- strict_progress_graph_rejects_bad_starts_edges_transitions_and_orphans · function · L581-L807 — fn strict_progress_graph_rejects_bad_starts_edges_transitions_and_orphans()
+- complete_phase_transaction · function · L809-L891 — fn complete_phase_transaction(
+- phase_machine_exhausts_decisions_and_preserves_receipt_kats · function · L894-L952 — fn phase_machine_exhausts_decisions_and_preserves_receipt_kats()
+- phase_machine_covers_every_certified_checkpoint_and_abort_reason · function · L955-L1050 — fn phase_machine_covers_every_certified_checkpoint_and_abort_reason()
+- unwind_is_phase_aware_and_finalizer_uncertainty_is_absorbing · function · L1053-L1127 — fn unwind_is_phase_aware_and_finalizer_uncertainty_is_absorbing()
+- conflicts_and_skips_monotonically_quarantine_without_publication · function · L1130-L1223 — fn conflicts_and_skips_monotonically_quarantine_without_publication()
+- forged_progress_and_cross_certificate_calls_quarantine_exact_transaction · function · L1226-L1299 — fn forged_progress_and_cross_certificate_calls_quarantine_exact_transaction()
+- stale_cross_binding_and_duplicate_finalizer_completion_never_retry · function · L1302-L1361 — fn stale_cross_binding_and_duplicate_finalizer_completion_never_retry()
+- unwind_at_every_finalizer_index_preserves_prefix_current_and_suffix · function · L1364-L1451 — fn unwind_at_every_finalizer_index_preserves_prefix_current_and_suffix()
+- hostile_internal_mutations_are_detected_in_every_irreversible_phase · function · L1454-L1534 — fn hostile_internal_mutations_are_detected_in_every_irreversible_phase()
+- receipt_commit_is_exact_and_quarantine_preserves_terminal_evidence · function · L1537-L1583 — fn receipt_commit_is_exact_and_quarantine_preserves_terminal_evidence()
+- phase_transactions_are_start_only_and_linear · function · L1586-L1614 — fn phase_transactions_are_start_only_and_linear()
+- frame_traits_are_deliberately_linear_and_nonformatting · function · L1617-L1621 — fn frame_traits_are_deliberately_linear_and_nonformatting()
+- certificate_bounds_accept_exact_limits_and_reject_zero_over_and_excess_work · function · L1624-L1667 — fn certificate_bounds_accept_exact_limits_and_reject_zero_over_and_excess_work()
+- specs · function · L1625-L1637 — fn specs(resources: usize, checkpoints: usize) -> Vec<SettlementCheckpointSpec>

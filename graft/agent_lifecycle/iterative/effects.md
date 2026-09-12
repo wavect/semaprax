@@ -1,0 +1,64 @@
+# agent_lifecycle/iterative/effects.rs
+
+- continuation · module · L3-L3 — pub(crate) mod continuation;
+- durable · module · L5-L5 — pub mod durable;
+- EffectScalar · enum · L12-L18 — pub enum EffectScalar
+- name · function · L20-L28 — fn name(self) -> &'static str
+- schema_name · function · L29-L35 — fn schema_name(self) -> &'static str
+- accepts · function · L36-L45 — fn accepts(self, value: &RetainedValue) -> bool
+- EffectArgument · struct · L49-L53 — pub struct EffectArgument
+- EffectResult · struct · L54-L57 — pub struct EffectResult
+- EffectOperation · struct · L58-L63 — pub struct EffectOperation
+- TypedEffectRequest · struct · L66-L70 — pub struct TypedEffectRequest<'a>
+- authorization · function · L72-L74 — pub fn authorization(&self) -> &AuthorizedRequest
+- operation_id · function · L75-L77 — pub fn operation_id(&self) -> &str
+- effect_id · function · L78-L80 — pub fn effect_id(&self) -> &str
+- arguments · function · L81-L83 — pub fn arguments(&self) -> &[(String, RetainedValue)]
+- TypedEffectHandler · interface · L86-L89 — pub trait TypedEffectHandler
+- execute · function · L87-L88 — fn execute(&mut self, request: &TypedEffectRequest<'_>)
+- EffectBudget · struct · L92-L97 — pub struct EffectBudget
+- TypedEffectRun · struct · L99-L107 — pub struct TypedEffectRun
+- lifecycle · function · L109-L111 — pub fn lifecycle(&self) -> &IterativeRun
+- dispatched · function · L112-L114 — pub fn dispatched(&self) -> usize
+- argument_bytes · function · L115-L117 — pub fn argument_bytes(&self) -> usize
+- result_bytes · function · L118-L120 — pub fn result_bytes(&self) -> usize
+- failure · function · L121-L123 — pub fn failure(&self) -> Option<&str>
+- evidence · function · L124-L126 — pub fn evidence(&self) -> &str
+- evidence_digest · function · L127-L129 — pub fn evidence_digest(&self) -> &str
+- CompiledTypedEffects · struct · L132-L139 — pub struct CompiledTypedEffects
+- error · function · L141-L143 — fn error(field: &str) -> Vec<Diagnostic>
+- compile_typed_effects · function · L147-L162 — pub fn compile_typed_effects(
+- compile_linked_typed_effects · function · L164-L177 — pub(crate) fn compile_linked_typed_effects(
+- compile_lifecycle_effects · function · L179-L344 — fn compile_lifecycle_effects(
+- encode_fields · function · L346-L355 — fn encode_fields(fields: &[(String, RetainedValue)]) -> String
+- Dispatch · struct · L357-L366 — struct Dispatch<'a>
+- invoke · function · L368-L456 — fn invoke(&mut self, authorization: &AuthorizedRequest) -> Result<Vec<u8>, &'static str>
+- read · function · L459-L467 — fn read(&mut self, authorization: &AuthorizedRequest) -> Option<Vec<u8>>
+- canonical_json · function · L471-L473 — pub fn canonical_json(&self) -> &str
+- digest · function · L474-L476 — pub fn digest(&self) -> &str
+- proposal_schema · function · L477-L479 — pub fn proposal_schema(&self) -> &CompiledAgentProposalSchema
+- run · function · L480-L527 — pub fn run(
+- scalar_bytes · function · L530-L545 — fn scalar_bytes(value: &RetainedValue) -> Option<usize>
+- tests · module · L548-L859 — pub(crate) mod tests
+- source · function · L551-L586 — pub(crate) fn source(terminal: &str) -> String
+- deployment · function · L588-L590 — pub(crate) fn deployment() -> BoundAgentDeployment
+- deployment_turns · function · L591-L623 — pub(crate) fn deployment_turns(turns: usize) -> BoundAgentDeployment
+- operation · function · L624-L638 — pub(crate) fn operation() -> EffectOperation
+- compile · function · L639-L652 — pub(crate) fn compile() -> CompiledTypedEffects
+- Handler · struct · L653-L656 — struct Handler
+- execute · function · L658-L680 — fn execute(
+- budgets · function · L682-L689 — fn budgets() -> EffectBudget
+- typed_registry_dispatches_fresh_authorized_checked_scalar_results · function · L691-L721 — fn typed_registry_dispatches_fresh_authorized_checked_scalar_results()
+- typed_result_mismatch_and_call_ceiling_stop_without_another_effect · function · L723-L753 — fn typed_result_mismatch_and_call_ceiling_stop_without_another_effect()
+- deployment_effect_and_projection_substitutions_are_rejected · function · L755-L775 — fn deployment_effect_and_projection_substitutions_are_rejected()
+- deployment_turn_ceiling_intersects_caller_iteration_budget · function · L777-L810 — fn deployment_turn_ceiling_intersects_caller_iteration_budget()
+- failed_and_oversized_host_encoding_is_measured_before_validation · function · L813-L858 — fn failed_and_oversized_host_encoding_is_measured_before_validation()
+- Oversized · struct · L827-L827 — struct Oversized;
+- execute · function · L829-L837 — fn execute(
+- measured_fields · function · L863-L959 — fn measured_fields(fields: &[(String, RetainedValue)], cap: usize) -> usize
+- Meter · struct · L864-L868 — struct Meter
+- add · function · L870-L872 — fn add(&mut self, count: usize)
+- full · function · L873-L875 — fn full(&self) -> bool
+- string · function · L876-L892 — fn string(&mut self, value: &str)
+- record_fields · function · L893-L906 — fn record_fields(&mut self, fields: &[RetainedField], depth: usize)
+- value · function · L907-L939 — fn value(&mut self, value: &RetainedValue, depth: usize)

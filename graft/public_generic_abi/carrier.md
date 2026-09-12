@@ -1,0 +1,56 @@
+# public_generic_abi/carrier.rs
+
+- frame · module · L22-L22 — pub mod frame;
+- machine · module · L26-L26 — pub mod machine;
+- trace · module · L28-L28 — pub mod trace;
+- CARRIER_SCHEMA · constant · L31-L31 — pub const CARRIER_SCHEMA: &str = "semaprax.public-generic-carrier.v1";
+- BINDING_DOMAIN · constant · L33-L33 — const BINDING_DOMAIN: &[u8] = b"semaprax.public-generic-carrier.v1.binding\0";
+- MALFORMED_CARRIER · constant · L37-L37 — pub const MALFORMED_CARRIER: &str = "SPX-PG801";
+- CARRIER_CAPACITY · constant · L40-L40 — pub const CARRIER_CAPACITY: &str = "SPX-PG802";
+- CARRIER_REPLAY_MISMATCH · constant · L43-L43 — pub const CARRIER_REPLAY_MISMATCH: &str = "SPX-PG803";
+- ILLEGAL_TRANSITION · constant · L47-L47 — pub const ILLEGAL_TRANSITION: &str = "SPX-PG804";
+- HANDLE_GENERATION_MISMATCH · constant · L50-L50 — pub const HANDLE_GENERATION_MISMATCH: &str = "SPX-PG805";
+- STICKY_SETTLEMENT_VIOLATION · constant · L53-L53 — pub const STICKY_SETTLEMENT_VIOLATION: &str = "SPX-PG806";
+- Handle · struct · L63-L66 — pub struct Handle
+- ROOT_ID · constant · L69-L69 — pub const ROOT_ID: u32 = 0;
+- root · function · L71-L76 — pub fn root(generation: u32) -> Self
+- leaf · function · L78-L83 — pub fn leaf(index: u32, generation: u32) -> Self
+- verify_generation · function · L89-L100 — pub fn verify_generation(handle: Handle, generation: u32) -> Result<(), Diagnostic>
+- check_handle_capacity · function · L103-L111 — pub fn check_handle_capacity(count: usize) -> Result<(), Diagnostic>
+- CarrierState · enum · L119-L129 — pub enum CarrierState
+- Event · enum · L133-L153 — pub enum Event
+- illegal · function · L155-L160 — fn illegal(state: CarrierState, event: Event) -> Diagnostic
+- transition · function · L165-L179 — pub fn transition(state: CarrierState, event: Event) -> Result<CarrierState, Diagnostic>
+- HandleLedger · struct · L186-L189 — pub struct HandleLedger
+- new · function · L192-L197 — pub fn new(handle: Handle) -> Self
+- handle · function · L199-L201 — pub fn handle(&self) -> Handle
+- state · function · L203-L205 — pub fn state(&self) -> CarrierState
+- apply · function · L207-L218 — pub fn apply(&mut self, event: Event) -> Result<CarrierState, Diagnostic>
+- Phase · enum · L227-L231 — pub enum Phase
+- Settlement · enum · L235-L244 — pub enum Settlement
+- CallLedger · struct · L249-L252 — pub struct CallLedger
+- default · function · L255-L257 — fn default() -> Self
+- new · function · L261-L266 — pub fn new() -> Self
+- phase · function · L268-L270 — pub fn phase(&self) -> Phase
+- settlement · function · L272-L274 — pub fn settlement(&self) -> Option<Settlement>
+- advance · function · L279-L295 — pub fn advance(&mut self, next: Phase) -> Result<(), Diagnostic>
+- settle · function · L300-L314 — pub fn settle(&mut self, outcome: Settlement) -> Result<(), Diagnostic>
+- verify_release_order · function · L325-L339 — pub fn verify_release_order(
+- TargetProfile · enum · L347-L351 — pub enum TargetProfile
+- text · function · L354-L360 — fn text(self) -> &'static str
+- from_text · function · L362-L369 — fn from_text(text: &str) -> Option<Self>
+- CarrierBindingV1 · struct · L376-L381 — pub struct CarrierBindingV1
+- new · function · L384-L395 — pub fn new(
+- descriptor_identity_digest · function · L397-L399 — pub fn descriptor_identity_digest(&self) -> &str
+- target_profile · function · L401-L403 — pub fn target_profile(&self) -> TargetProfile
+- runtime_identity · function · L405-L407 — pub fn runtime_identity(&self) -> &str
+- preimage · function · L409-L416 — fn preimage(&self) -> Vec<u8>
+- binding_digest · function · L420-L422 — pub fn binding_digest(&self) -> String
+- encode · function · L426-L428 — pub fn encode(&self) -> Vec<u8>
+- MAX_BINDING_FIELD_BYTES · constant · L431-L431 — const MAX_BINDING_FIELD_BYTES: usize = 64 * 1024;
+- MAX_BINDING_WIRE_BYTES · constant · L432-L432 — const MAX_BINDING_WIRE_BYTES: usize = 256 * 1024;
+- malformed_binding · function · L434-L439 — fn malformed_binding(subject: &str) -> Diagnostic
+- decode_binding · function · L444-L482 — pub fn decode_binding(bytes: &[u8]) -> Result<CarrierBindingV1, Diagnostic>
+- replay_binding · function · L487-L499 — pub fn replay_binding(
+- tests · module · L502-L502 — mod tests;
+- settlement_corpus · module · L509-L509 — mod settlement_corpus;

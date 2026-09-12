@@ -1,0 +1,40 @@
+# assurance_manifest/model_checking/handle_model.rs
+
+- NAME · constant · L27-L27 — pub const NAME: &str = "resource_handle_acquire_use_release";
+- VERSION · constant · L28-L28 — pub const VERSION: &str = "v1";
+- INVARIANTS · constant · L30-L33 — pub const INVARIANTS: &[&str] = &[
+- TERMINAL_PHASES · constant · L35-L35 — pub const TERMINAL_PHASES: &[&str] = &["Released", "Abandoned"];
+- DESCRIPTOR · constant · L37-L42 — pub const DESCRIPTOR: ModelDescriptor = ModelDescriptor
+- BOUNDS · constant · L44-L48 — pub const BOUNDS: Bounds = Bounds
+- Phase · enum · L51-L57 — pub enum Phase
+- State · struct · L60-L72 — pub struct State
+- initial · function · L75-L81 — const fn initial() -> Self
+- Event · enum · L85-L98 — pub enum Event
+- safety_invariant · function · L100-L113 — fn safety_invariant(state: &State) -> Result<(), String>
+- is_terminal · function · L115-L117 — fn is_terminal(phase: Phase) -> bool
+- Correct · struct · L120-L120 — pub struct Correct;
+- State · type · L123-L123 — type State = State;
+- Event · type · L124-L124 — type Event = Event;
+- initial_states · function · L126-L128 — fn initial_states(&self) -> Vec<State>
+- enabled_events · function · L130-L137 — fn enabled_events(&self, state: &State) -> Vec<Event>
+- apply · function · L139-L141 — fn apply(&self, state: &State, event: &Event) -> Option<State>
+- is_terminal · function · L143-L145 — fn is_terminal(&self, state: &State) -> bool
+- safety_invariant · function · L147-L149 — fn safety_invariant(&self, state: &State) -> Result<(), String>
+- apply_common · function · L152-L185 — fn apply_common(state: &State, event: &Event) -> Option<State>
+- Fault · enum · L190-L197 — pub enum Fault
+- Faulty · struct · L200-L200 — pub struct Faulty(pub Fault);
+- State · type · L203-L203 — type State = State;
+- Event · type · L204-L204 — type Event = Event;
+- initial_states · function · L206-L208 — fn initial_states(&self) -> Vec<State>
+- enabled_events · function · L210-L222 — fn enabled_events(&self, state: &State) -> Vec<Event>
+- apply · function · L224-L226 — fn apply(&self, state: &State, event: &Event) -> Option<State>
+- is_terminal · function · L228-L230 — fn is_terminal(&self, state: &State) -> bool
+- safety_invariant · function · L232-L234 — fn safety_invariant(&self, state: &State) -> Result<(), String>
+- tests · module · L238-L342 — mod tests
+- correct_model_is_verified_within_declared_bounds · function · L245-L248 — fn correct_model_is_verified_within_declared_bounds()
+- correct_model_explores_every_declared_phase · function · L251-L266 — fn correct_model_explores_every_declared_phase()
+- release_while_in_invocation_orphans_the_call_and_is_caught · function · L269-L290 — fn release_while_in_invocation_orphans_the_call_and_is_caught()
+- double_release_is_a_three_step_counterexample · function · L293-L308 — fn double_release_is_a_three_step_counterexample()
+- counterexample_trace_replays_independently_to_the_same_violation · function · L311-L323 — fn counterexample_trace_replays_independently_to_the_same_violation()
+- every_handle_can_reach_a_discharged_terminal_state · function · L326-L334 — fn every_handle_can_reach_a_discharged_terminal_state()
+- same_run_twice_produces_byte_identical_reports · function · L337-L341 — fn same_run_twice_produces_byte_identical_reports()

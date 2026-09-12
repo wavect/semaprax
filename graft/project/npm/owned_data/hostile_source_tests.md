@@ -1,0 +1,9 @@
+# project/npm/owned_data/hostile_source_tests.rs
+
+- bounded_renderer_fragments_pin_the_reviewed_failure_state_correction · function · L4-L29 — fn bounded_renderer_fragments_pin_the_reviewed_failure_state_correction()
+- identity_guard_is_the_only_change_to_the_previous_bounded_prelude · function · L32-L43 — fn identity_guard_is_the_only_change_to_the_previous_bounded_prelude()
+- v10_capacity_substitution_preserves_every_other_prelude_byte · function · L46-L54 — fn v10_capacity_substitution_preserves_every_other_prelude_byte()
+- unmodified_profile_renderer_fragments_keep_their_prechange_bytes · function · L57-L80 — fn unmodified_profile_renderer_fragments_keep_their_prechange_bytes()
+- v8_and_v10_input_admission_is_explicit_and_precedes_scratch_and_arena · function · L83-L107 — fn v8_and_v10_input_admission_is_explicit_and_precedes_scratch_and_arena()
+- bounded_facades_share_presence_and_identity_based_failure_selection · function · L110-L142 — fn bounded_facades_share_presence_and_identity_based_failure_selection()
+- every_owned_facade_rejects_non_scalar_strings_and_wide_i64_before_effects · function · L145-L162 — fn every_owned_facade_rejects_non_scalar_strings_and_wide_i64_before_effects()

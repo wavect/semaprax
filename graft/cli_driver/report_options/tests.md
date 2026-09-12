@@ -1,0 +1,35 @@
+# cli_driver/report_options/tests.rs
+
+- argv · function · L10-L12 — fn argv(tokens: &[&str]) -> Vec<String>
+- workspace_argv · function · L16-L20 — fn workspace_argv(tail: &[&str]) -> Vec<String>
+- impact_argv · function · L23-L27 — fn impact_argv(tail: &[&str]) -> Vec<String>
+- report_argv · function · L30-L34 — fn report_argv(tail: &[&str]) -> Vec<String>
+- workspace_target_kind_admits_exactly_two_case_sensitive_names · function · L39-L55 — fn workspace_target_kind_admits_exactly_two_case_sensitive_names()
+- workspace_context_defaults_are_both_depth_four_one_mib_and_1024_nodes · function · L60-L71 — fn workspace_context_defaults_are_both_depth_four_one_mib_and_1024_nodes()
+- workspace_context_stores_every_option_and_ignores_their_order · function · L74-L110 — fn workspace_context_stores_every_option_and_ignores_their_order()
+- workspace_context_direction_names_are_exact · function · L113-L124 — fn workspace_context_direction_names_are_exact()
+- workspace_context_rejects_duplicates_unknown_options_and_missing_values · function · L127-L150 — fn workspace_context_rejects_duplicates_unknown_options_and_missing_values()
+- workspace_analysis_bounds_reject_one_past_each_limit · function · L153-L180 — fn workspace_analysis_bounds_reject_one_past_each_limit()
+- workspace_impact_defaults_to_depth_sixteen_and_has_no_direction_option · function · L185-L196 — fn workspace_impact_defaults_to_depth_sixteen_and_has_no_direction_option()
+- workspace_impact_stores_each_numeric_option_and_rejects_duplicates · function · L199-L220 — fn workspace_impact_stores_each_numeric_option_and_rejects_duplicates()
+- impact_defaults_and_stores_every_option_regardless_of_order · function · L225-L255 — fn impact_defaults_and_stores_every_option_regardless_of_order()
+- impact_bounds_reject_one_past_each_limit_and_never_wrap · function · L258-L293 — fn impact_bounds_reject_one_past_each_limit_and_never_wrap()
+- impact_rejects_duplicates_unknown_options_and_a_trailing_valueless_flag · function · L296-L311 — fn impact_rejects_duplicates_unknown_options_and_a_trailing_valueless_flag()
+- openapi_requires_a_selection_and_keeps_repeated_functions_in_argv_order · function · L316-L333 — fn openapi_requires_a_selection_and_keeps_repeated_functions_in_argv_order()
+- openapi_duplicate_rules_differ_between_function_and_max_bytes · function · L336-L354 — fn openapi_duplicate_rules_differ_between_function_and_max_bytes()
+- openapi_rejects_empty_selections_unknown_options_and_missing_values · function · L357-L379 — fn openapi_rejects_empty_selections_unknown_options_and_missing_values()
+- openapi_function_refuses_a_following_flag_as_a_selection_name · function · L382-L404 — fn openapi_function_refuses_a_following_flag_as_a_selection_name()
+- openapi_compat_reads_its_options_from_index_three · function · L407-L443 — fn openapi_compat_reads_its_options_from_index_three()
+- properties_defaults_and_stores_all_four_options_in_any_order · function · L448-L482 — fn properties_defaults_and_stores_all_four_options_in_any_order()
+- properties_bounds_reject_zero_and_one_past_each_case_and_function_limit · function · L485-L508 — fn properties_bounds_reject_zero_and_one_past_each_case_and_function_limit()
+- properties_seed_accepts_the_whole_u64_range_and_refuses_beyond_it · function · L511-L532 — fn properties_seed_accepts_the_whole_u64_range_and_refuses_beyond_it()
+- properties_rejects_duplicates_unknown_options_and_missing_values · function · L535-L554 — fn properties_rejects_duplicates_unknown_options_and_missing_values()
+- hygienic_selects_the_whole_registry_when_no_templates_are_named · function · L559-L566 — fn hygienic_selects_the_whole_registry_when_no_templates_are_named()
+- hygienic_templates_are_canonicalized_to_registry_order · function · L569-L583 — fn hygienic_templates_are_canonicalized_to_registry_order()
+- hygienic_rejects_empty_unknown_and_repeated_template_ids · function · L586-L627 — fn hygienic_rejects_empty_unknown_and_repeated_template_ids()
+- abi_report_accumulates_comma_and_repeated_selections_and_caps_at_sixty_four · function · L632-L668 — fn abi_report_accumulates_comma_and_repeated_selections_and_caps_at_sixty_four()
+- c_header_emit_header_is_a_valueless_flag_that_does_not_consume_the_next_option · function · L671-L721 — fn c_header_emit_header_is_a_valueless_flag_that_does_not_consume_the_next_option()
+- abi_report_and_c_header_refuse_a_following_flag_as_a_selection_or_budget · function · L724-L757 — fn abi_report_and_c_header_refuse_a_following_flag_as_a_selection_or_budget()
+- closed_vocabulary_and_numeric_grammars_refuse_a_following_flag_unfiltered · function · L760-L792 — fn closed_vocabulary_and_numeric_grammars_refuse_a_following_flag_unfiltered()
+- every_single_budget_report_grammar_shares_one_closed_option_table · function · L797-L902 — fn every_single_budget_report_grammar_shares_one_closed_option_table()
+- Parse · type · L798-L798 — type Parse = fn(&[String]) -> Result<usize, u8>;

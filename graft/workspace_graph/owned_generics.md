@@ -1,0 +1,32 @@
+# workspace_graph/owned_generics.rs
+
+- reachable_scalar_types · function · L25-L44 — pub(super) fn reachable_scalar_types(
+- program_imports_vec_wrapper · function · L46-L51 — pub(super) fn program_imports_vec_wrapper(program: &Program, programs: &[Program]) -> bool
+- program_imports_box_wrapper · function · L52-L57 — pub(super) fn program_imports_box_wrapper(program: &Program, programs: &[Program]) -> bool
+- imported_box_wrapper · function · L58-L73 — fn imported_box_wrapper(
+- imported_vec_wrapper · function · L75-L90 — fn imported_vec_wrapper(
+- retain_module_instances · function · L92-L124 — pub(super) fn retain_module_instances(
+- merge_imported_vec_instances · function · L126-L145 — pub(super) fn merge_imported_vec_instances(
+- attach_imported_vec_instances · function · L147-L182 — pub(super) fn attach_imported_vec_instances(
+- OwnedGenericInventory · struct · L185-L188 — pub(super) struct OwnedGenericInventory
+- OwnedGenericClosure · struct · L192-L196 — pub(super) struct OwnedGenericClosure
+- collect · function · L202-L270 — pub(super) fn collect(
+- template · function · L272-L274 — fn template(&self, id: &hir::DeclarationId) -> Option<&hir::ResolvedFunctionTemplate>
+- retained_templates · function · L278-L295 — pub(super) fn retained_templates(
+- retained_instances · function · L302-L360 — pub(super) fn retained_instances(
+- MAX_FUNCTION_INSTANCES · constant · L307-L307 — const MAX_FUNCTION_INSTANCES: usize = 256;
+- RetainedScalarParts · struct · L363-L367 — pub(super) struct RetainedScalarParts
+- retained_scalar_generics · function · L369-L395 — pub(super) fn retained_scalar_generics(
+- select_scalar_generic_closure · function · L397-L405 — pub(super) fn select_scalar_generic_closure(
+- select_scalar_generic_roots · function · L407-L420 — pub(super) fn select_scalar_generic_roots(
+- retained_scalar_parts · function · L422-L446 — pub(super) fn retained_scalar_parts(
+- close_owned_data_closure · function · L452-L575 — pub(super) fn close_owned_data_closure(
+- visit_call_sites · function · L577-L588 — fn visit_call_sites(
+- private_signature · function · L592-L618 — pub(super) fn private_signature(
+- private_callable_signature · function · L620-L645 — fn private_callable_signature(
+- private_callable_link_ids · function · L648-L679 — pub(super) fn private_callable_link_ids(
+- linked_owned_data_api_program_with_roots · function · L684-L690 — pub(super) fn linked_owned_data_api_program_with_roots(
+- linked_agent_role_program · function · L692-L702 — pub(crate) fn linked_agent_role_program(
+- linked_owned_data_with_type_roots · function · L704-L1028 — fn linked_owned_data_with_type_roots(
+- retain_fact · function · L876-L912 — fn retain_fact(
+- into_linked_scalar_programs · function · L1031-L1040 — pub(crate) fn into_linked_scalar_programs(

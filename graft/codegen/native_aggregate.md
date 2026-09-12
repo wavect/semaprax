@@ -1,0 +1,32 @@
+# codegen/native_aggregate.rs
+
+- NEXT_ID · constant · L24-L24 — static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+- RESOURCE_SOURCE · constant · L26-L60 — pub(crate) const RESOURCE_SOURCE: &str = r#"
+- HarnessStorage · enum · L64-L93 — pub(crate) enum HarnessStorage
+- HarnessLeaf · enum · L96-L103 — pub(crate) enum HarnessLeaf
+- HarnessSlot · struct · L106-L109 — pub(crate) struct HarnessSlot
+- slot · function · L111-L113 — const fn slot(storage: HarnessStorage, leaf: HarnessLeaf) -> HarnessSlot
+- HarnessAction · enum · L116-L121 — pub(crate) enum HarnessAction
+- ResourceHarnessScenario · struct · L124-L127 — pub(crate) struct ResourceHarnessScenario
+- validate · function · L130-L144 — pub(crate) fn validate(&self) -> Result<(), String>
+- action_digest · function · L147-L157 — fn action_digest(actions: &[HarnessAction]) -> String
+- resource_harness_scenario · function · L159-L336 — pub(crate) fn resource_harness_scenario() -> ResourceHarnessScenario
+- append_cleanup · function · L338-L348 — fn append_cleanup(
+- function · function · L350-L355 — fn function<'a>(functions: &'a [ResolvedFunction], id: &str) -> &'a ResolvedFunction
+- paths · function · L357-L370 — fn paths(exit: &crate::cleanup_plan::ExitTarget) -> Vec<String>
+- exact_exit_cleanup · function · L372-L402 — fn exact_exit_cleanup(
+- ExpectedExit · enum · L404-L407 — enum ExpectedExit<'a>
+- continuing_cleanup · function · L409-L431 — fn continuing_cleanup(function: &ResolvedFunction) -> Vec<String>
+- place · function · L433-L441 — fn place(storage: StorageId, projections: &[&str]) -> CleanupPlace
+- assert_transfer · function · L443-L477 — fn assert_transfer(
+- update_parts · function · L479-L493 — fn update_parts(
+- authenticate_update_transfers · function · L495-L534 — fn authenticate_update_transfers(
+- authenticate_result_chain · function · L536-L550 — fn authenticate_result_chain(function: &ResolvedFunction)
+- authenticate_partial_call · function · L552-L593 — fn authenticate_partial_call(function: &ResolvedFunction)
+- authenticate_take_transfers · function · L595-L638 — fn authenticate_take_transfers(function: &ResolvedFunction)
+- execute_actions · function · L640-L673 — fn execute_actions(actions: &[HarnessAction]) -> Result<Vec<u32>, String>
+- wasm_address · function · L675-L682 — pub(crate) fn wasm_address(slot: HarnessSlot) -> i32
+- c_slot · function · L684-L726 — fn c_slot(slot: HarnessSlot) -> String
+- emit_c_harness · function · L728-L793 — fn emit_c_harness(scenario: &ResourceHarnessScenario) -> String
+- private_native_resource_records_execute_plan_derived_cleanup_at_o0_o2 · function · L796-L844 — fn private_native_resource_records_execute_plan_derived_cleanup_at_o0_o2()
+- hostile_private_action_mutations_are_rejected · function · L847-L882 — fn hostile_private_action_mutations_are_rejected()

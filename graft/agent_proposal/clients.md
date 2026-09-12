@@ -1,0 +1,56 @@
+# agent_proposal/clients.rs
+
+- AGENT_PROPOSAL_CLIENT_BUNDLE_SCHEMA · constant · L11-L11 — pub const AGENT_PROPOSAL_CLIENT_BUNDLE_SCHEMA: &str = "semaprax.agent-proposal-client-bundle.v1";
+- MAX_AGENT_PROPOSAL_CLIENT_SOURCE_BYTES · constant · L12-L12 — pub const MAX_AGENT_PROPOSAL_CLIENT_SOURCE_BYTES: usize = 1024 * 1024;
+- MAX_AGENT_PROPOSAL_CLIENT_BUNDLE_BYTES · constant · L13-L13 — pub const MAX_AGENT_PROPOSAL_CLIENT_BUNDLE_BYTES: usize = 4 * 1024 * 1024;
+- MAX_AGENT_PROPOSAL_CLIENT_MANIFEST_BYTES · constant · L14-L14 — pub const MAX_AGENT_PROPOSAL_CLIENT_MANIFEST_BYTES: usize = 64 * 1024;
+- BUNDLE_DOMAIN · constant · L16-L16 — const BUNDLE_DOMAIN: &[u8] = b"semaprax.agent-proposal-client-bundle.digest.v1\0";
+- SOURCE_DOMAIN · constant · L17-L17 — const SOURCE_DOMAIN: &[u8] = b"semaprax.agent-proposal-client.source.digest.v1\0";
+- ARTIFACTS · constant · L18-L23 — const ARTIFACTS: [(&str, &str); 4] = [
+- NONCLAIMS · constant · L24-L31 — const NONCLAIMS: [&str; 6] = [
+- Result · type · L33-L33 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- AgentProposalClientBundle · struct · L36-L43 — pub struct AgentProposalClientBundle
+- generate_clients · function · L46-L48 — pub fn generate_clients(&self) -> Result<AgentProposalClientBundle>
+- derive · function · L52-L114 — pub fn derive(compiled: &CompiledAgentProposalSchema) -> Result<Self>
+- replay · function · L117-L160 — pub fn replay(
+- bundle_digest · function · L162-L164 — pub fn bundle_digest(&self) -> &str
+- manifest_json · function · L165-L167 — pub fn manifest_json(&self) -> &str
+- structured_output_schema · function · L168-L170 — pub fn structured_output_schema(&self) -> &str
+- typescript_source · function · L171-L173 — pub fn typescript_source(&self) -> &str
+- python_source · function · L174-L176 — pub fn python_source(&self) -> &str
+- rust_source · function · L177-L179 — pub fn rust_source(&self) -> &str
+- verify_agent_proposal_client_bundle · function · L183-L202 — pub fn verify_agent_proposal_client_bundle(
+- structured_schema · function · L204-L229 — fn structured_schema(compiled: &CompiledAgentProposalSchema) -> String
+- fields_schema · function · L231-L242 — fn fields_schema(fields: &[FieldRow]) -> Value
+- case_schema · function · L244-L254 — fn case_schema(case: &CaseRow) -> Value
+- scalar_schema · function · L256-L267 — fn scalar_schema(representation: Representation) -> Value
+- typescript · function · L269-L282 — fn typescript(compiled: &CompiledAgentProposalSchema) -> String
+- ts_record · function · L284-L289 — fn ts_record(output: &mut String, fields: &[FieldRow])
+- ts_variant · function · L291-L312 — fn ts_variant(output: &mut String, cases: &[CaseRow])
+- ts_fields_type · function · L314-L329 — fn ts_fields_type(output: &mut String, name: &str, fields: &[FieldRow])
+- ts_fields · function · L331-L341 — fn ts_fields(output: &mut String, fields: &[FieldRow], base: &str)
+- python · function · L343-L355 — fn python(compiled: &CompiledAgentProposalSchema) -> String
+- py_record · function · L357-L364 — fn py_record(output: &mut String, fields: &[FieldRow])
+- py_variant · function · L366-L390 — fn py_variant(output: &mut String, cases: &[CaseRow])
+- py_fields_type · function · L392-L410 — fn py_fields_type(output: &mut String, name: &str, fields: &[FieldRow])
+- py_fields · function · L412-L422 — fn py_fields(output: &mut String, fields: &[FieldRow], base: &str)
+- rust · function · L424-L436 — fn rust(compiled: &CompiledAgentProposalSchema) -> String
+- rust_record · function · L438-L443 — fn rust_record(output: &mut String, fields: &[FieldRow])
+- rust_variant · function · L445-L464 — fn rust_variant(output: &mut String, cases: &[CaseRow])
+- rust_struct · function · L466-L479 — fn rust_struct(output: &mut String, name: &str, fields: &[FieldRow])
+- rust_fields · function · L481-L497 — fn rust_fields(output: &mut String, fields: &[FieldRow], base: &str)
+- rust_type · function · L499-L508 — fn rust_type(representation: Representation) -> &'static str
+- wire_call · function · L510-L524 — fn wire_call(representation: Representation, access: &str, language: &str) -> String
+- header · function · L526-L532 — fn header(language: &str, compiled: &CompiledAgentProposalSchema) -> String
+- submitted_bounds · function · L534-L553 — fn submitted_bounds(manifest: &[u8], sources: &[&[u8]]) -> Result<()>
+- validate_manifest · function · L555-L624 — fn validate_manifest(value: &Value) -> Result<()>
+- canonical · function · L626-L632 — fn canonical(mut value: Value) -> Result<String>
+- exact_object · function · L634-L638 — fn exact_object(value: &Value) -> Result<&Map<String, Value>>
+- exact_fields · function · L640-L647 — fn exact_fields(object: &Map<String, Value>, fields: &[&str]) -> Result<()>
+- with_field · function · L649-L656 — fn with_field(value: Value, key: &str, field: Value) -> Value
+- without_field · function · L658-L664 — fn without_field(value: &Value, key: &str) -> Result<Value>
+- source_digest · function · L666-L674 — fn source_digest(kind: &str, bytes: &[u8]) -> String
+- digest · function · L676-L682 — fn digest(domain: &[u8], bytes: &[u8]) -> String
+- validate_digest · function · L684-L694 — fn validate_digest(value: &str) -> Result<()>
+- invalid · function · L696-L698 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L700-L702 — fn stale(message: &'static str) -> Vec<Diagnostic>

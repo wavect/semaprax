@@ -1,0 +1,22 @@
+# project/candidate/movement.rs
+
+- types · module · L15-L15 — mod types;
+- MAX_DEPENDENCIES · constant · L17-L17 — const MAX_DEPENDENCIES: usize = 64;
+- MAX_ALIASES · constant · L18-L18 — const MAX_ALIASES: usize = 65_536;
+- Result · type · L19-L19 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- DeclarationMove · struct · L21-L27 — pub(super) struct DeclarationMove
+- Plan · struct · L29-L36 — struct Plan
+- apply · function · L38-L190 — pub(super) fn apply(
+- validate · function · L194-L231 — pub(super) fn validate(
+- Calls · type · L233-L233 — type Calls = BTreeMap<(String, &'static str, String), usize>;
+- call_inventory · function · L235-L281 — fn call_inventory(revision: &ProjectRevision) -> Result<Calls>
+- destinations · function · L285-L307 — pub(super) fn destinations(
+- plan · function · L309-L452 — fn plan(revision: &ProjectRevision, programs: &[Program], target: &str) -> Result<Plan>
+- destination_admitted · function · L454-L489 — fn destination_admitted(programs: &[Program], plan: &Plan, destination: usize) -> bool
+- namespace · function · L491-L501 — fn namespace(program: &Program) -> BTreeSet<String>
+- choose_alias · function · L503-L516 — fn choose_alias(preferred: &str, occupied: &mut BTreeSet<String>) -> Result<String>
+- locate · function · L518-L531 — fn locate(programs: &[Program], id: &str) -> Result<(usize, usize)>
+- request_shape · function · L533-L548 — fn request_shape(request: &Value) -> Result<()>
+- text · function · L550-L555 — fn text<'a>(request: &'a Value, key: &str) -> Result<&'a str>
+- invalid · function · L557-L559 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- limit · function · L560-L562 — fn limit(message: &'static str) -> Vec<Diagnostic>

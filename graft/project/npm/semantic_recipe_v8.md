@@ -1,0 +1,34 @@
+# project/npm/semantic_recipe_v8.rs
+
+- MAX_RECIPE_BYTES · constant · L19-L19 — const MAX_RECIPE_BYTES: usize = 1024 * 1024;
+- MAX_FUNCTIONS · constant · L20-L20 — const MAX_FUNCTIONS: usize = 256;
+- type_names · module · L22-L22 — mod type_names;
+- Names · struct · L24-L30 — struct Names
+- derive · function · L33-L124 — fn derive(program: &crate::hir::ResolvedProgram) -> Result<Self, Diagnostic>
+- type_name · function · L126-L131 — fn type_name(&self, id: &DeclarationId) -> Result<&str, Diagnostic>
+- case_name · function · L133-L145 — fn case_name(&self, id: &DeclarationId) -> Result<&str, Diagnostic>
+- field_name · function · L147-L159 — fn field_name(&self, id: &DeclarationId) -> Result<&str, Diagnostic>
+- render · function · L162-L245 — pub(super) fn render(program: &crate::hir::ResolvedProgram) -> Result<String, Diagnostic>
+- replay_against · function · L253-L272 — pub(super) fn replay_against(
+- replay · function · L274-L310 — pub(super) fn replay(recipe: &str) -> Result<crate::hir::ResolvedProgram, Diagnostic>
+- declaration_inventory · function · L312-L335 — fn declaration_inventory(
+- function_inventory · function · L337-L345 — fn function_inventory(program: &crate::hir::ResolvedProgram) -> Vec<String>
+- render_types · function · L347-L363 — fn render_types(
+- render_type · function · L365-L436 — fn render_type(
+- recipe_type · function · L438-L491 — fn recipe_type(
+- render_expr · function · L493-L662 — fn render_expr(
+- render_fields · function · L664-L681 — fn render_fields(
+- render_block · function · L683-L743 — fn render_block(
+- render_pattern · function · L745-L794 — fn render_pattern(
+- render_record_pattern_fields · function · L796-L822 — fn render_record_pattern_fields(
+- render_place · function · L824-L841 — fn render_place(
+- next_local · function · L843-L851 — fn next_local(values: &BTreeMap<String, String>, local_index: &mut usize) -> String
+- render_pattern_value · function · L853-L862 — fn render_pattern_value(value: crate::hir::PatternValue) -> Result<String, Diagnostic>
+- render_char · function · L864-L880 — fn render_char(value: u32) -> Result<String, Diagnostic>
+- render_float · function · L882-L896 — fn render_float(value: f64, suffix: &str) -> Result<String, Diagnostic>
+- ensure_bound · function · L898-L906 — fn ensure_bound(output: &str) -> Result<(), Diagnostic>
+- tests · module · L909-L997 — mod tests
+- unrelated_aggregate_declarations_cannot_enter_the_exact_recipe · function · L913-L935 — fn unrelated_aggregate_declarations_cannot_enter_the_exact_recipe()
+- aggregate_member_identity_drift_changes_the_canonical_recipe · function · L938-L965 — fn aggregate_member_identity_drift_changes_the_canonical_recipe()
+- replay_retains_authenticated_aggregate_display_names · function · L968-L996 — fn replay_retains_authenticated_aggregate_display_names()
+- source_literals_tests · module · L1000-L1000 — mod source_literals_tests;

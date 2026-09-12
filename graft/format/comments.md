@@ -1,0 +1,28 @@
+# format/comments.rs
+
+- Placement · struct · L40-L46 — pub struct Placement
+- Item · struct · L50-L54 — struct Item
+- Sequence · struct · L58-L62 — struct Sequence
+- new · function · L67-L78 — pub fn new(program: &Program, comments: &Comments) -> Self
+- is_empty · function · L83-L89 — pub fn is_empty(&self) -> bool
+- place · function · L91-L139 — fn place(&mut self, sequence: &Sequence, comment: &Comment)
+- leading_texts · function · L144-L146 — pub fn leading_texts(&self, start: usize) -> &[String]
+- header · function · L148-L150 — pub(super) fn header(&self, output: &mut impl std::fmt::Write)
+- leading · function · L152-L156 — pub(super) fn leading(&self, output: &mut impl std::fmt::Write, start: usize, depth: usize)
+- trailing · function · L158-L162 — pub(super) fn trailing(&self, output: &mut impl std::fmt::Write, start: usize, depth: usize)
+- closing · function · L164-L168 — pub(super) fn closing(&self, output: &mut impl std::fmt::Write, close: usize, depth: usize)
+- file_end · function · L170-L172 — pub(super) fn file_end(&self, output: &mut impl std::fmt::Write)
+- sticks_to_previous · function · L179-L181 — fn sticks_to_previous(comment: &Comment) -> bool
+- write_comments · function · L183-L190 — fn write_comments(output: &mut impl std::fmt::Write, comments: &[String], depth: usize)
+- canonical_with_comments · function · L194-L199 — pub fn canonical_with_comments(program: &Program, comments: &Comments) -> String
+- root_sequence · function · L201-L238 — fn root_sequence(program: &Program) -> Sequence
+- type_members · function · L240-L273 — fn type_members(kind: &TypeDeclarationKind) -> Vec<Item>
+- function_item · function · L275-L281 — fn function_item(span: Span, body: &Expr) -> Item
+- block_sequence · function · L283-L294 — fn block_sequence(body: &Expr) -> Option<Sequence>
+- statement_item · function · L296-L308 — fn statement_item(statement: &Statement) -> Item
+- leaf · function · L310-L316 — fn leaf(span: Span) -> Item
+- tests · module · L319-L373 — mod tests
+- formatted · function · L323-L326 — fn formatted(source: &str) -> String
+- comments_survive_and_formatting_is_idempotent · function · L329-L344 — fn comments_survive_and_formatting_is_idempotent()
+- nested_blocks_fields_and_methods_keep_their_comments · function · L347-L353 — fn nested_blocks_fields_and_methods_keep_their_comments()
+- variant_case_fields_and_resource_lifecycles_keep_every_comment · function · L356-L372 — fn variant_case_fields_and_resource_lifecycles_keep_every_comment()

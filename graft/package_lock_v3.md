@@ -1,0 +1,42 @@
+---
+covers: []
+---
+# package_lock_v3.rs
+
+- graph · module · L9-L9 — mod graph;
+- model · module · L10-L10 — mod model;
+- subject · module · L11-L11 — mod subject;
+- wire · module · L12-L12 — mod wire;
+- SCHEMA · constant · L14-L14 — pub const SCHEMA: &str = "semaprax.offline-semantic-package-lock.v3";
+- SUBJECT_SCHEMA · constant · L15-L15 — pub const SUBJECT_SCHEMA: &str = "semaprax.offline-semantic-package-subject.v3";
+- MAX_PACKAGES · constant · L16-L16 — pub const MAX_PACKAGES: usize = 4;
+- MAX_SUBJECT_BYTES · constant · L17-L17 — pub const MAX_SUBJECT_BYTES: usize = 17 * 1024 * 1024;
+- MAX_TOTAL_SUBJECT_BYTES · constant · L18-L18 — pub const MAX_TOTAL_SUBJECT_BYTES: usize = 64 * 1024 * 1024;
+- MAX_DEPENDENCIES · constant · L19-L19 — pub const MAX_DEPENDENCIES: usize = 64;
+- MAX_EDGES · constant · L20-L20 — pub const MAX_EDGES: usize = 256;
+- MAX_DEPTH · constant · L21-L21 — pub const MAX_DEPTH: usize = 32;
+- MAX_CAPABILITIES · constant · L22-L22 — pub const MAX_CAPABILITIES: usize = 256;
+- MAX_WORK_UNITS · constant · L23-L23 — pub const MAX_WORK_UNITS: usize = 8 * 1024 * 1024;
+- MAX_JSON_DEPTH · constant · L24-L24 — pub const MAX_JSON_DEPTH: usize = 128;
+- MAX_OUTPUT_BYTES · constant · L25-L25 — pub const MAX_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
+- MAX_RENDER_BYTES · constant · L26-L26 — pub const MAX_RENDER_BYTES: usize = 64 * 1024 * 1024;
+- MIN_OUTPUT_BYTES · constant · L27-L27 — const MIN_OUTPUT_BYTES: usize = 4_096;
+- SUBJECT_DOMAIN · constant · L28-L28 — const SUBJECT_DOMAIN: &[u8] = b"semaprax.offline-semantic-package-subject.v3\0";
+- LOCK_DOMAIN · constant · L29-L29 — const LOCK_DOMAIN: &[u8] = b"semaprax.offline-semantic-package-lock.v3\0";
+- REPORT_DOMAIN · constant · L30-L30 — const REPORT_DOMAIN: &[u8] = b"semaprax.offline-semantic-package-report.v2\0";
+- Coordinate · struct · L33-L36 — pub struct Coordinate
+- DependencyRequirement · struct · L39-L42 — pub struct DependencyRequirement
+- LockOptions · struct · L45-L47 — pub struct LockOptions
+- new · function · L50-L57 — pub fn new(max_bytes: usize) -> Result<Self, Diagnostic>
+- default · function · L61-L65 — fn default() -> Self
+- VerifiedLock · struct · L69-L71 — pub struct VerifiedLock
+- VerifiedDependencySubject · struct · L77-L86 — pub struct VerifiedDependencySubject
+- ResolutionSubject · struct · L89-L96 — pub(crate) struct ResolutionSubject
+- authenticate_subject_for_resolution · function · L98-L117 — pub(crate) fn authenticate_subject_for_resolution(
+- create_subject · function · L119-L134 — pub fn create_subject(
+- verify_dependency_subject · function · L139-L171 — pub fn verify_dependency_subject(bytes: &str) -> Result<VerifiedDependencySubject, Diagnostic>
+- generate · function · L173-L182 — pub fn generate(subjects: &[String], options: &LockOptions) -> Result<String, Vec<Diagnostic>>
+- verify · function · L184-L196 — pub fn verify(
+- verify_inner · function · L198-L228 — fn verify_inner(
+- validate_options · function · L230-L232 — fn validate_options(options: &LockOptions) -> Result<(), Diagnostic>
+- tests · module · L242-L242 — mod tests;

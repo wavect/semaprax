@@ -1,0 +1,22 @@
+# public_generic_consumer/cxx_calling/tests.rs
+
+- DESCRIPTOR_BYTES · constant · L4-L4 — const DESCRIPTOR_BYTES: &[u8] = b"fixture-public-generic-descriptor-bytes-issue-159";
+- binding · function · L6-L17 — fn binding() -> NativeProviderBindingV1
+- shapes · function · L19-L29 — fn shapes() -> (RecordShape, RecordShape)
+- generate · function · L31-L35 — fn generate() -> CallingConsumer
+- regeneration_is_byte_identical · function · L38-L42 — fn regeneration_is_byte_identical()
+- emits_the_expected_file_set_in_a_stable_order · function · L45-L63 — fn emits_the_expected_file_set_in_a_stable_order()
+- every_file_is_lf_only_and_ends_with_a_trailing_newline · function · L66-L74 — fn every_file_is_lf_only_and_ends_with_a_trailing_newline()
+- reuses_the_c_calling_consumer_files_byte_for_byte · function · L81-L95 — fn reuses_the_c_calling_consumer_files_byte_for_byte()
+- wrapper_header_names_no_native_abi_type_and_includes_the_c11_consumer_header · function · L101-L115 — fn wrapper_header_names_no_native_abi_type_and_includes_the_c11_consumer_header()
+- wrapper_header_contains_the_required_static_assertions · function · L121-L140 — fn wrapper_header_contains_the_required_static_assertions()
+- wrapper_header_deletes_copy_operations_for_provider_and_output · function · L144-L155 — fn wrapper_header_deletes_copy_operations_for_provider_and_output()
+- raw_handle_members_are_private · function · L161-L173 — fn raw_handle_members_are_private()
+- wrapper_header_uses_a_versioned_namespace_and_a_stable_include_guard · function · L178-L189 — fn wrapper_header_uses_a_versioned_namespace_and_a_stable_include_guard()
+- wrapper_header_never_names_stdspan · function · L194-L203 — fn wrapper_header_never_names_stdspan()
+- field_names_are_derived_from_identity_bytes_not_display_text · function · L209-L220 — fn field_names_are_derived_from_identity_bytes_not_display_text()
+- duplicate_field_identity_in_one_record_is_rejected · function · L223-L238 — fn duplicate_field_identity_in_one_record_is_rejected()
+- mismatched_leaf_counts_are_rejected · function · L241-L253 — fn mismatched_leaf_counts_are_rejected()
+- no_host_path_or_checkout_specific_text_survives_generation · function · L256-L267 — fn no_host_path_or_checkout_specific_text_survives_generation()
+- field_count_and_field_lists_scale_with_the_shape · function · L270-L287 — fn field_count_and_field_lists_scale_with_the_shape()
+- a_single_field_shape_generates_successfully · function · L293-L305 — fn a_single_field_shape_generates_successfully()

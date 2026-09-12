@@ -1,0 +1,23 @@
+# source_verify/hints.rs
+
+- PROJECT_IMPORTS_HELP · constant · L25-L27 — pub(super) const PROJECT_IMPORTS_HELP: &str = "this module imports other modules, so check it \
+- LIBRARY_MODULE_HELP · constant · L28-L31 — pub(super) const LIBRARY_MODULE_HELP: &str = "a module without `fn main() -> i64` is a library \
+- PRINT_FAMILY · constant · L34-L43 — const PRINT_FAMILY: [&str; 8] = [
+- PRINT_HELP · constant · L44-L46 — const PRINT_HELP: &str = "there is no print routine; write bytes with `stdout_write(str_as_bytes(view))` \
+- standard_library_package · function · L51-L85 — fn standard_library_package(name: &str) -> Option<&'static str>
+- FUNCTIONS · constant · L52-L52 — static FUNCTIONS: OnceLock<HashMap<String, Option<String>>> = OnceLock::new();
+- unknown_function · function · L89-L121 — pub(super) fn unknown_function(
+- nearest_function_name · function · L123-L175 — fn nearest_function_name(name: &str, functions: &HashMap<&str, &Function>) -> Option<String>
+- nearest_variant_case_name · function · L177-L201 — pub(super) fn nearest_variant_case_name(
+- edit_distance · function · L204-L220 — fn edit_distance(left: &[u8], right: &[u8]) -> usize
+- generic_call_help · function · L223-L227 — pub(super) fn generic_call_help(name: &str) -> String
+- type_arguments_help · function · L231-L243 — pub(super) fn type_arguments_help(name: &str, expected: usize) -> String
+- literal_suffix_help · function · L246-L262 — pub(super) fn literal_suffix_help(expected: &Type, left: &Expr, right: &Expr) -> Option<String>
+- view_argument_help · function · L266-L286 — pub(super) fn view_argument_help(operation: &str, actual: &Type) -> Option<String>
+- argument_view_help · function · L290-L303 — pub(super) fn argument_view_help(name: &str, expected: &Type, actual: &Type) -> Option<String>
+- variant_shorthand_help · function · L306-L322 — pub(super) fn variant_shorthand_help(name: &str) -> Option<&'static str>
+- method_receiver_help · function · L325-L378 — pub(super) fn method_receiver_help(receiver: &Type, method: &str) -> Option<String>
+- non_class_method_help · function · L381-L393 — pub(super) fn non_class_method_help(types: &TypeTable<'_>, name: &str) -> Option<String>
+- unknown_type_help · function · L396-L419 — pub(super) fn unknown_type_help(name: &str) -> Option<&'static str>
+- view_place_help · function · L422-L440 — pub(super) fn view_place_help(operation: &str, argument: &Expr) -> String
+- with_optional_help · function · L443-L448 — pub(super) fn with_optional_help(diagnostic: Diagnostic, help: Option<String>) -> Diagnostic

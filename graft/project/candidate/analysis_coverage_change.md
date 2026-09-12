@@ -1,0 +1,27 @@
+# project/candidate/analysis_coverage_change.rs
+
+- Result · type · L18-L18 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_SCHEMA · constant · L20-L21 — pub const PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_SCHEMA: &str =
+- MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_BYTES · constant · L22-L22 — pub const MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_BYTES: usize = 5 * 1024 * 1024;
+- CandidateAnalysisCoverageBoundaryInput · struct · L27-L30 — pub struct CandidateAnalysisCoverageBoundaryInput<'a>
+- CandidateAnalysisCoverageChangeInput · struct · L34-L37 — pub struct CandidateAnalysisCoverageChangeInput<'a>
+- REPORT_DOMAIN · constant · L39-L39 — const REPORT_DOMAIN: &[u8] = b"semaprax.project-candidate-analysis-coverage-change.v1\0";
+- AREA_ORDER · constant · L40-L49 — const AREA_ORDER: [&str; 8] = [
+- COMPARED_AREAS · constant · L50-L65 — const COMPARED_AREAS: [(&str, Option<&str>); 5] = [
+- analysis_coverage_change · function · L71-L176 — pub fn analysis_coverage_change(
+- regenerate · function · L179-L203 — fn regenerate(
+- parse_coverage · function · L205-L217 — fn parse_coverage(bytes: &str, schema: &str, maximum: usize) -> Result<Value>
+- validate_bindings · function · L219-L234 — fn validate_bindings(candidate: &ProjectCandidate, coverage: &Value) -> Result<()>
+- canonical_areas · function · L236-L249 — fn canonical_areas(coverage: &Value) -> Result<&[Value]>
+- unique_named · function · L251-L268 — fn unique_named<'a>(
+- unique_blind_spot · function · L270-L284 — fn unique_blind_spot<'a>(coverage: &'a Value, domain: &str) -> Result<&'a Value>
+- classify · function · L286-L297 — fn classify(base: &Value, final_area: &Value) -> Result<&'static str>
+- status_rank · function · L299-L306 — fn status_rank(status: &Value) -> Result<u8>
+- render · function · L308-L315 — fn render(value: &Value) -> Result<String>
+- sha256 · function · L317-L322 — fn sha256(bytes: &[u8]) -> String
+- domain_digest · function · L324-L330 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- invalid · function · L332-L334 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L336-L338 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- tests · module · L341-L368 — mod tests
+- area · function · L344-L347 — fn area(status: &str, basis: &str) -> Value
+- categorical_change_never_turns_same_status_drift_into_progress · function · L350-L367 — fn categorical_change_never_turns_same_status_drift_into_progress()

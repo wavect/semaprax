@@ -1,0 +1,23 @@
+# project/candidate/analysis_boundary_bundle.rs
+
+- Result · type · L18-L18 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_SCHEMA · constant · L20-L21 — pub const PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_SCHEMA: &str =
+- PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_REPORT_SCHEMA · constant · L22-L23 — pub const PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_REPORT_SCHEMA: &str =
+- MAX_PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_BYTES · constant · L26-L26 — pub const MAX_PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_BYTES: usize = 24 * 1024;
+- MAX_PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_REPORT_BYTES · constant · L27-L27 — pub const MAX_PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_REPORT_BYTES: usize = 2 * 1024 * 1024;
+- BUNDLE_DOMAIN · constant · L29-L29 — const BUNDLE_DOMAIN: &[u8] = b"semaprax.project-candidate-analysis-boundary-bundle.v1\0";
+- CHILD_KEYS · constant · L30-L34 — const CHILD_KEYS: [&str; 3] = [
+- PRESERVED_KEYS · constant · L35-L51 — const PRESERVED_KEYS: [&str; 15] = [
+- Child · struct · L53-L56 — struct Child<'a>
+- Merge · struct · L58-L64 — struct Merge<'a>
+- analysis_boundary_bundle · function · L70-L243 — pub fn analysis_boundary_bundle(
+- authenticate_bundle · function · L246-L300 — fn authenticate_bundle(
+- child · function · L302-L323 — fn child<'a>(bundle: &'a Value, key: &str) -> Result<Child<'a>>
+- parse_report · function · L325-L334 — fn parse_report(bytes: &str, schema: &str) -> Result<Value>
+- validate_base · function · L336-L362 — fn validate_base(candidate: &ProjectCandidate, coverage: &Value) -> Result<()>
+- validate_child · function · L364-L423 — fn validate_child(base: &Value, merge: &Merge<'_>) -> Result<()>
+- require_keys · function · L425-L430 — fn require_keys(object: &Map<String, Value>, keys: &[&str], message: &'static str) -> Result<()>
+- validate_digest · function · L432-L444 — fn validate_digest(value: &str) -> Result<()>
+- invalid · function · L446-L448 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L449-L451 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- binding · function · L452-L454 — fn binding(message: &'static str) -> Vec<Diagnostic>

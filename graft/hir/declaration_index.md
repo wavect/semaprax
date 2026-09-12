@@ -1,0 +1,50 @@
+# hir/declaration_index.rs
+
+- linked_owned_data · module · L5-L5 — mod linked_owned_data;
+- owned_builtin · module · L6-L6 — mod owned_builtin;
+- DeclarationIndex · struct · L14-L31 — pub struct DeclarationIndex
+- contains_declaration_id · function · L34-L36 — pub(super) fn contains_declaration_id(&self, id: &DeclarationId) -> bool
+- drain_recursive_types_for_private_contract · function · L41-L62 — fn drain_recursive_types_for_private_contract(
+- byte_slice_provenance · function · L64-L66 — pub fn byte_slice_provenance(&self, value: &ValueId) -> Option<&ByteSliceProvenance>
+- byte_slice_provenances · function · L68-L72 — pub fn byte_slice_provenances(
+- type_facts_layout_capacity · function · L74-L79 — pub(super) fn type_facts_layout_capacity(&self) -> usize
+- owned_capacity_for_private_contract · function · L82-L220 — pub(super) fn owned_capacity_for_private_contract(&self) -> usize
+- string_map_capacity · function · L83-L86 — fn string_map_capacity<V>(map: &BTreeMap<String, V>) -> usize
+- named_id_map_capacity · function · L87-L89 — fn named_id_map_capacity(map: &BTreeMap<String, DeclarationId>) -> usize
+- owner_name_map_capacity · function · L90-L100 — fn owner_name_map_capacity(
+- field_capacity · function · L101-L105 — fn field_capacity(field: &ResolvedFieldDeclaration) -> usize
+- workspace_declarations · function · L222-L224 — pub(crate) fn workspace_declarations(&self) -> Vec<Declaration>
+- declaration · function · L226-L228 — pub fn declaration(&self, id: &DeclarationId) -> Option<&Declaration>
+- type_id · function · L230-L232 — pub fn type_id(&self, name: &str) -> Option<&DeclarationId>
+- function_id · function · L234-L236 — pub fn function_id(&self, name: &str) -> Option<&DeclarationId>
+- field_id · function · L238-L241 — pub fn field_id(&self, owner: &DeclarationId, name: &str) -> Option<&DeclarationId>
+- record_fields · function · L243-L245 — pub fn record_fields(&self, owner: &DeclarationId) -> Option<&[ResolvedFieldDeclaration]>
+- class_parent · function · L248-L250 — pub fn class_parent(&self, class: &DeclarationId) -> Option<&DeclarationId>
+- class_ancestors · function · L254-L266 — pub fn class_ancestors(&self, class: &DeclarationId) -> Vec<DeclarationId>
+- class_extends · function · L269-L273 — pub fn class_extends(&self, class: &DeclarationId, ancestor: &DeclarationId) -> bool
+- case_id · function · L275-L278 — pub fn case_id(&self, owner: &DeclarationId, name: &str) -> Option<&DeclarationId>
+- variant_cases · function · L280-L285 — pub fn variant_cases(
+- case_fields · function · L287-L289 — pub fn case_fields(&self, case: &DeclarationId) -> Option<&[ResolvedFieldDeclaration]>
+- type_parameters · function · L291-L296 — pub fn type_parameters(
+- import_id · function · L298-L300 — pub fn import_id(&self, key: &str) -> Option<&DeclarationId>
+- native_rust_import_id · function · L302-L304 — pub fn native_rust_import_id(&self, name: &str) -> Option<&DeclarationId>
+- declarations · function · L306-L308 — pub fn declarations(&self) -> impl ExactSizeIterator<Item = &Declaration>
+- type_facts · function · L314-L319 — pub fn type_facts(&self, ty: &ResolvedType) -> Option<TypeFacts>
+- compute_type_facts · function · L321-L690 — fn compute_type_facts(
+- Frame · enum · L327-L335 — enum Frame
+- frame_owned_capacity · function · L338-L347 — fn frame_owned_capacity(frame: &Frame) -> usize
+- retained_capacity · function · L350-L374 — fn retained_capacity(
+- populate_type_facts · function · L692-L737 — pub(super) fn populate_type_facts(&mut self) -> bool
+- recompute_type_facts · function · L739-L741 — pub(super) fn recompute_type_facts(&self, ty: &ResolvedType) -> Option<TypeFacts>
+- from_verified · function · L743-L745 — pub(super) fn from_verified(program: &Program) -> Result<Self, Diagnostic>
+- from_verified_with_prelude · function · L747-L1107 — pub(super) fn from_verified_with_prelude(
+- materialize_class_inheritance · function · L1113-L1260 — fn materialize_class_inheritance(&mut self, program: &Program) -> Result<(), Diagnostic>
+- insert_top_level · function · L1262-L1298 — pub(super) fn insert_top_level(
+- insert_owned_declaration · function · L1300-L1318 — fn insert_owned_declaration(
+- insert_field · function · L1320-L1338 — fn insert_field(
+- insert_case · function · L1340-L1359 — fn insert_case(
+- insert_case_field · function · L1361-L1379 — fn insert_case_field(
+- resolve_source_type · function · L1381-L1442 — fn resolve_source_type(
+- Frame · enum · L1386-L1389 — enum Frame<'a>
+- dispose_declaration_index_for_private_contract · function · L1448-L1453 — pub fn dispose_declaration_index_for_private_contract(
+- drop · function · L1456-L1464 — fn drop(&mut self)

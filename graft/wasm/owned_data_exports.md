@@ -1,0 +1,33 @@
+# wasm/owned_data_exports.rs
+
+- nested_record · module · L15-L15 — mod nested_record;
+- BOUNDARY_STATUS · constant · L17-L17 — pub(super) const BOUNDARY_STATUS: i32 = 11;
+- ResultLayout · enum · L20-L38 — pub(super) enum ResultLayout
+- private_size · function · L41-L49 — fn private_size(&self) -> u32
+- public_size · function · L51-L57 — fn public_size(&self) -> u32
+- FlatRecordFieldKind · enum · L61-L66 — pub(super) enum FlatRecordFieldKind
+- FlatRecordFieldLayout · struct · L69-L73 — pub(super) struct FlatRecordFieldLayout
+- ParameterType · enum · L76-L81 — pub(super) enum ParameterType
+- OwnedDataExportPlan · struct · L84-L90 — pub(super) struct OwnedDataExportPlan
+- raw_params · function · L93-L106 — pub(super) fn raw_params(&self) -> Vec<u8>
+- emit_wrapper_body · function · L108-L423 — pub(super) fn emit_wrapper_body(
+- stack_bounds · function · L426-L440 — fn stack_bounds(
+- poison_temporary · function · L442-L457 — fn poison_temporary(body: &mut Vec<u8>, pointer: u32, size: u32)
+- prepare · function · L459-L499 — pub(super) fn prepare(
+- prepare_flat_records · function · L501-L604 — pub(super) fn prepare_flat_records(
+- prepare_nested_records · function · L606-L611 — pub(super) fn prepare_nested_records(
+- result_layout · function · L613-L692 — fn result_layout(
+- authenticate_tag · function · L694-L702 — fn authenticate_tag(body: &mut Vec<u8>, pointer: u32, tag_local: u32)
+- load_i64 · function · L704-L708 — fn load_i64(body: &mut Vec<u8>, pointer: u32, offset: u32)
+- load_i32 · function · L710-L714 — fn load_i32(body: &mut Vec<u8>, pointer: u32, offset: u32)
+- store_i64 · function · L716-L721 — fn store_i64(body: &mut Vec<u8>, pointer: u32, offset: u32, value: u32)
+- store_i32 · function · L723-L728 — fn store_i32(body: &mut Vec<u8>, pointer: u32, offset: u32, value: u32)
+- raw_symbol · function · L730-L737 — fn raw_symbol(stable_id: &str) -> String
+- boundary_return · function · L739-L744 — fn boundary_return(body: &mut Vec<u8>)
+- local_get · function · L746-L749 — fn local_get(body: &mut Vec<u8>, local: u32)
+- local_set · function · L750-L753 — fn local_set(body: &mut Vec<u8>, local: u32)
+- i32_const · function · L754-L757 — fn i32_const(body: &mut Vec<u8>, value: i32)
+- i64_const · function · L758-L761 — fn i64_const(body: &mut Vec<u8>, value: i64)
+- error · function · L762-L764 — fn error(message: impl Into<String>) -> Diagnostic
+- stack_bound_tests · module · L767-L780 — mod stack_bound_tests
+- exact_capacity_reserves_borrowed_bytes_public_carrier_and_wrapper_once · function · L771-L779 — fn exact_capacity_reserves_borrowed_bytes_public_carrier_and_wrapper_once()

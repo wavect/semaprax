@@ -1,0 +1,94 @@
+# codegen/native_callable_wire_v3.rs
+
+- VERSION · constant · L14-L14 — pub(super) const VERSION: u32 = 3;
+- HEADER_BYTES · constant · L15-L15 — pub(super) const HEADER_BYTES: u32 = 20;
+- MAX_WIRE_BYTES · constant · L16-L16 — pub(super) const MAX_WIRE_BYTES: u32 = 1024 * 1024;
+- HOST_RECEIPT_BYTES · constant · L17-L17 — pub(super) const HOST_RECEIPT_BYTES: u32 = 524;
+- PRE_EXECUTE_HOST_UNWIND_CODE · constant · L18-L18 — pub(super) const PRE_EXECUTE_HOST_UNWIND_CODE: u32 = u32::MAX - 1;
+- REQUEST_FIXED_BYTES · constant · L20-L20 — pub(super) const REQUEST_FIXED_BYTES: u32 = 104;
+- REQUEST_I64_BYTES · constant · L21-L21 — pub(super) const REQUEST_I64_BYTES: u32 = 16;
+- REQUEST_BOOL_BYTES · constant · L22-L22 — pub(super) const REQUEST_BOOL_BYTES: u32 = 12;
+- REQUEST_OWNER_BYTES · constant · L23-L23 — pub(super) const REQUEST_OWNER_BYTES: u32 = 20;
+- EXECUTE_RESPONSE_FIXED_BYTES · constant · L24-L24 — pub(super) const EXECUTE_RESPONSE_FIXED_BYTES: u32 = 156;
+- EVENT_ORDINAL_BYTES · constant · L25-L25 — pub(super) const EVENT_ORDINAL_BYTES: u32 = 4;
+- FRAME_FIXED_BYTES · constant · L26-L26 — pub(super) const FRAME_FIXED_BYTES: u32 = 388;
+- FRAME_RESOURCE_CELL_BYTES · constant · L27-L27 — pub(super) const FRAME_RESOURCE_CELL_BYTES: u32 = 12;
+- DECISION_BYTES · constant · L28-L28 — pub(super) const DECISION_BYTES: u32 = 172;
+- ACTION_EVIDENCE_BYTES · constant · L29-L29 — pub(super) const ACTION_EVIDENCE_BYTES: u32 = 196;
+- CANDIDATE_RECEIPT_FIXED_BYTES · constant · L30-L30 — pub(super) const CANDIDATE_RECEIPT_FIXED_BYTES: u32 = 372;
+- CANDIDATE_DISPOSITION_BYTES · constant · L31-L31 — pub(super) const CANDIDATE_DISPOSITION_BYTES: u32 = 12;
+- REQUEST_SCHEMA_STATEMENT · constant · L33-L33 — pub(super) const REQUEST_SCHEMA_STATEMENT: &[u8] = b"SPXNRQ03;v3;u32le;header20;total-exact;call32;invocation-u64;generation-u64;challenge32;argc;args[tag,index,payload];scalar-tag1;i64-8;bool-u32-0-or-1;owned-tag2-owner-u32-payload-u64;no-trailing";
+- EXECUTE_RESPONSE_SCHEMA_STATEMENT · constant · L34-L34 — pub(super) const EXECUTE_RESPONSE_SCHEMA_STATEMENT: &[u8] = b"SPXNEX03;v3;u32le;header20;total-declared;zero-tail-to-capacity;call32;invocation-u64;generation-u64;challenge32;request-digest32;checkpoint;outcome;detail;payload-u64;event-count;ordinals;outcomes1-scalar-2-semantic-3-owned";
+- FRAME_SCHEMA_STATEMENT · constant · L35-L35 — pub(super) const FRAME_SCHEMA_STATEMENT: &[u8] = b"SPXNFR03;v3;u32le;header20;total-exact;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;return-tag;return-code;returns1-pending-2-returned-3-preexecute-host-unwind;preexecute-host-unwind-code-4294967294;checkpoint;phase;decision32;next-action;record-count;active-finalizers;resource-count;cells[state-u32,payload-u64];action-chain32;pre-candidate-frame32";
+- DECISION_SCHEMA_STATEMENT · constant · L36-L36 — pub(super) const DECISION_SCHEMA_STATEMENT: &[u8] = b"SPXNDC03;v3;u32le;header20;total172;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;decision-tag;detail;tags1-scalar-2-semantic-3-owned-4-physical-5-malformed-6-trace-7-unwind";
+- ACTION_SCHEMA_STATEMENT · constant · L37-L37 — pub(super) const ACTION_SCHEMA_STATEMENT: &[u8] = b"SPXNAC03;v3;u32le;header20;total196;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;action-index;boundary-tag;owner;payload-u64;before-state;after-state;checkpoint;tags1-start-2-complete-3-publish";
+- CANDIDATE_RECEIPT_SCHEMA_STATEMENT · constant · L38-L38 — pub(super) const CANDIDATE_RECEIPT_SCHEMA_STATEMENT: &[u8] = b"SPXNCR03;v3;u32le;header20;total372-plus-12r;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;frame32;decision32;action32;outcome;detail;active-finalizers-zero;disposition-count;cells[disposition-u32,payload-u64]";
+- COMMITTED_RECEIPT_SCHEMA_STATEMENT · constant · L39-L39 — pub(super) const COMMITTED_RECEIPT_SCHEMA_STATEMENT: &[u8] = b"SPXHRP03;v3;u32le;header20;total524;host-only;instance32;call32;recovery32;graph32;invocation-u64;generation-u64;challenge32;request32;response32;semantic32;frame32;decision32;action32;candidate32;ledger-before32;ledger-after32;publication;detail;hmac32;separate-receipt-key;atomic-ledger-and-cache";
+- CALL_ABI_STATEMENT · constant · L41-L41 — pub(super) const CALL_ABI_STATEMENT: &[u8] = b"extern-C;getter=const-u8-ptr(void);execute=u32(const-u8-ptr,u32,u8-ptr,u32,u8-ptr,u32);settle=u32(u8-ptr,u32,const-u8-ptr,u32,u8-ptr,u32);windows-cdecl;synchronous;same-thread;no-unwind;no-longjmp;no-callbacks;no-retained-pointers;no-reentrancy";
+- REQUEST_MAGIC · constant · L43-L43 — const REQUEST_MAGIC: &[u8; 8] = b"SPXNRQ03";
+- EXECUTE_RESPONSE_MAGIC · constant · L44-L44 — const EXECUTE_RESPONSE_MAGIC: &[u8; 8] = b"SPXNEX03";
+- FRAME_MAGIC · constant · L45-L45 — const FRAME_MAGIC: &[u8; 8] = b"SPXNFR03";
+- DECISION_MAGIC · constant · L46-L46 — const DECISION_MAGIC: &[u8; 8] = b"SPXNDC03";
+- ACTION_MAGIC · constant · L47-L47 — const ACTION_MAGIC: &[u8; 8] = b"SPXNAC03";
+- CANDIDATE_MAGIC · constant · L48-L48 — const CANDIDATE_MAGIC: &[u8; 8] = b"SPXNCR03";
+- REQUEST_DIGEST_DOMAIN · constant · L50-L50 — const REQUEST_DIGEST_DOMAIN: &[u8] = b"semaprax.native-callable-request-digest.v3\0";
+- RESPONSE_STORAGE_DIGEST_DOMAIN · constant · L51-L52 — const RESPONSE_STORAGE_DIGEST_DOMAIN: &[u8] =
+- DECISION_DIGEST_DOMAIN · constant · L53-L53 — const DECISION_DIGEST_DOMAIN: &[u8] = b"semaprax.native-callable-decision-digest.v3\0";
+- ACTION_CHAIN_SEED_DOMAIN · constant · L54-L54 — const ACTION_CHAIN_SEED_DOMAIN: &[u8] = b"semaprax.native-callable-action-chain-seed.v3\0";
+- ACTION_CHAIN_STEP_DOMAIN · constant · L55-L55 — const ACTION_CHAIN_STEP_DOMAIN: &[u8] = b"semaprax.native-callable-action-chain-step.v3\0";
+- FRAME_DIGEST_DOMAIN · constant · L56-L56 — const FRAME_DIGEST_DOMAIN: &[u8] = b"semaprax.native-callable-pre-candidate-frame-digest.v3\0";
+- CANDIDATE_DIGEST_DOMAIN · constant · L57-L57 — const CANDIDATE_DIGEST_DOMAIN: &[u8] = b"semaprax.native-callable-candidate-digest.v3\0";
+- ZERO_DIGEST · constant · L59-L59 — const ZERO_DIGEST: [u8; 32] = [0; 32];
+- WireV3Error · enum · L62-L70 — pub(super) enum WireV3Error
+- ProviderBinding · struct · L73-L80 — pub(super) struct ProviderBinding
+- validate · function · L83-L94 — fn validate(self) -> Result<(), WireV3Error>
+- RequestArgument · enum · L98-L112 — pub(super) enum RequestArgument
+- ExecuteOutcome · enum · L115-L119 — pub(super) enum ExecuteOutcome
+- ResourceState · enum · L123-L129 — pub(super) enum ResourceState
+- ResourceCell · struct · L132-L135 — pub(super) struct ResourceCell
+- FramePhase · enum · L139-L146 — pub(super) enum FramePhase
+- ExecuteReturn · enum · L149-L153 — pub(super) enum ExecuteReturn
+- RecoveryFrame · struct · L156-L170 — pub(super) struct RecoveryFrame<'a>
+- SettlementDecision · enum · L173-L181 — pub(super) enum SettlementDecision
+- ActionBoundary · enum · L184-L188 — pub(super) enum ActionBoundary
+- ActionEvidence · struct · L191-L200 — pub(super) struct ActionEvidence
+- CandidateOutcome · enum · L203-L208 — pub(super) enum CandidateOutcome
+- TerminalDisposition · enum · L212-L215 — pub(super) enum TerminalDisposition
+- DispositionCell · struct · L218-L221 — pub(super) struct DispositionCell
+- CandidateReceipt · struct · L224-L235 — pub(super) struct CandidateReceipt<'a>
+- encode_request · function · L237-L274 — pub(super) fn encode_request(
+- encode_execute_response · function · L276-L335 — pub(super) fn encode_execute_response(
+- encode_decision · function · L337-L361 — pub(super) fn encode_decision(
+- encode_action_evidence · function · L363-L392 — pub(super) fn encode_action_evidence(evidence: ActionEvidence) -> Result<Vec<u8>, WireV3Error>
+- encode_frame · function · L394-L442 — pub(super) fn encode_frame(frame: &RecoveryFrame<'_>) -> Result<Vec<u8>, WireV3Error>
+- encode_candidate_receipt · function · L444-L503 — pub(super) fn encode_candidate_receipt(
+- request_digest · function · L505-L508 — pub(super) fn request_digest(bytes: &[u8]) -> Result<[u8; 32], WireV3Error>
+- response_storage_digest · function · L510-L522 — pub(super) fn response_storage_digest(
+- decision_digest · function · L524-L527 — pub(super) fn decision_digest(bytes: &[u8]) -> Result<[u8; 32], WireV3Error>
+- initial_action_chain_digest · function · L529-L539 — pub(super) fn initial_action_chain_digest(
+- extend_action_chain_digest · function · L541-L557 — pub(super) fn extend_action_chain_digest(
+- pre_candidate_frame_digest · function · L559-L565 — pub(super) fn pre_candidate_frame_digest(bytes: &[u8]) -> Result<[u8; 32], WireV3Error>
+- candidate_digest · function · L567-L570 — pub(super) fn candidate_digest(bytes: &[u8]) -> Result<[u8; 32], WireV3Error>
+- execute_response_capacity · function · L572-L578 — pub(super) fn execute_response_capacity(maximum_event_count: u32) -> Result<u32, WireV3Error>
+- frame_capacity · function · L580-L582 — pub(super) fn frame_capacity(resource_count: u32) -> Result<u32, WireV3Error>
+- candidate_receipt_capacity · function · L584-L590 — pub(super) fn candidate_receipt_capacity(resource_count: u32) -> Result<u32, WireV3Error>
+- checked_capacity · function · L592-L601 — fn checked_capacity(fixed: u32, per_item: u32, count: u32) -> Result<u32, WireV3Error>
+- validate_frame_state · function · L603-L674 — fn validate_frame_state(frame: &RecoveryFrame<'_>) -> Result<(), WireV3Error>
+- framed_sha256 · function · L676-L681 — fn framed_sha256(domain: &[u8], bytes: &[u8]) -> [u8; 32]
+- hash_field · function · L683-L686 — fn hash_field(hasher: &mut Sha256, bytes: &[u8])
+- require_digest · function · L688-L694 — fn require_digest(digest: &[u8; 32]) -> Result<(), WireV3Error>
+- is_zero · function · L696-L698 — fn is_zero(bytes: &[u8; 32]) -> bool
+- to_u32 · function · L700-L702 — fn to_u32(value: usize) -> Result<u32, WireV3Error>
+- require_exact_wire · function · L704-L715 — fn require_exact_wire(bytes: &[u8], magic: &[u8; 8]) -> Result<(), WireV3Error>
+- read_u32 · function · L717-L722 — fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, WireV3Error>
+- Writer · struct · L724-L726 — struct Writer
+- new · function · L729-L736 — fn new(magic: &[u8; 8]) -> Self
+- binding_request · function · L738-L743 — fn binding_request(&mut self, binding: ProviderBinding)
+- binding_full · function · L745-L752 — fn binding_full(&mut self, binding: ProviderBinding)
+- bytes · function · L754-L756 — fn bytes(&mut self, bytes: &[u8])
+- u32 · function · L758-L760 — fn u32(&mut self, value: u32)
+- u64 · function · L762-L764 — fn u64(&mut self, value: u64)
+- i64 · function · L766-L768 — fn i64(&mut self, value: i64)
+- finalize_total · function · L770-L777 — fn finalize_total(mut self) -> Result<Vec<u8>, WireV3Error>
+- finish_exact · function · L779-L781 — fn finish_exact(self) -> Result<Vec<u8>, WireV3Error>
+- tests · module · L786-L786 — mod tests;

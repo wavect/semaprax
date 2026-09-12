@@ -1,0 +1,31 @@
+# project/exact_program_context.rs
+
+- v2 · module · L19-L19 — mod v2;
+- EXACT_PROGRAM_CONTEXT_SCHEMA · constant · L24-L24 — pub const EXACT_PROGRAM_CONTEXT_SCHEMA: &str = "semaprax.exact-program-context.v1";
+- MAX_EXACT_PROGRAM_CONTEXT_BYTES · constant · L25-L25 — pub const MAX_EXACT_PROGRAM_CONTEXT_BYTES: usize = 64 * 1024;
+- CONTEXT_DOMAIN · constant · L27-L27 — const CONTEXT_DOMAIN: &[u8] = b"semaprax.exact-program-context.digest.v1\0";
+- LOCK_BYTES_DOMAIN · constant · L28-L29 — const LOCK_BYTES_DOMAIN: &[u8] =
+- Result · type · L31-L31 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- ExactProgramContext · struct · L35-L45 — pub struct ExactProgramContext
+- assemble · function · L49-L75 — pub fn assemble(
+- derive · function · L80-L185 — pub fn derive(
+- select · function · L188-L203 — pub fn select(
+- revision · function · L205-L207 — pub fn revision(&self) -> &Arc<ProjectRevision>
+- project_revision · function · L208-L210 — pub fn project_revision(&self) -> &str
+- semantic_workspace · function · L211-L213 — pub fn semantic_workspace(&self) -> &SemanticWorkspaceRevision
+- base_project_root · function · L214-L216 — pub fn base_project_root(&self) -> &ProgramRoot
+- semantic_workspace_root · function · L217-L219 — pub fn semantic_workspace_root(&self) -> &ProgramRoot
+- interface_artifact_facts · function · L220-L222 — pub fn interface_artifact_facts(&self) -> &InterfaceArtifactFacts
+- dependency_lock_association · function · L223-L225 — pub fn dependency_lock_association(&self) -> &ProgramRootDependencyLockAssociation
+- program_root_v2 · function · L226-L228 — pub fn program_root_v2(&self) -> &ProgramRootV2
+- context_digest · function · L229-L231 — pub fn context_digest(&self) -> &str
+- to_json · function · L232-L234 — pub fn to_json(&self) -> &str
+- validate_enriched_workspace · function · L237-L276 — fn validate_enriched_workspace(
+- replay_interface_artifact_facts · function · L278-L328 — fn replay_interface_artifact_facts(
+- validate_lock_association · function · L330-L365 — fn validate_lock_association(
+- parse_json · function · L367-L369 — fn parse_json(source: &str, subject: &str) -> Result<Value>
+- canonical_json · function · L371-L377 — fn canonical_json(mut value: Value) -> Result<String>
+- validate_digest · function · L379-L391 — fn validate_digest(value: &str) -> Result<()>
+- framed_digest · function · L393-L402 — fn framed_digest(domain: &[u8], bytes: &[u8]) -> String
+- invalid · function · L404-L406 — fn invalid(message: impl Into<String>) -> Vec<Diagnostic>
+- stale · function · L408-L410 — fn stale(message: impl Into<String>) -> Vec<Diagnostic>

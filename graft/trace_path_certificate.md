@@ -1,0 +1,44 @@
+---
+covers: []
+---
+# trace_path_certificate.rs
+
+- TRACE_PATH_CERTIFICATE_V1 · constant · L24-L24 — pub const TRACE_PATH_CERTIFICATE_V1: &str = "semaprax.trace-path-certificate.v1";
+- FINGERPRINT_DOMAIN · constant · L26-L26 — const FINGERPRINT_DOMAIN: &[u8] = b"semaprax.trace-path-certificate-fingerprint.v1\0";
+- MAX_PATHS · constant · L27-L27 — const MAX_PATHS: usize = 65_536;
+- MAX_WORK_UNITS · constant · L28-L28 — const MAX_WORK_UNITS: usize = 1_000_000;
+- TracePathOutcome · enum · L32-L36 — pub enum TracePathOutcome
+- nested_owned_records_tests · module · L40-L40 — mod nested_owned_records_tests;
+- DfaState · struct · L43-L46 — struct DfaState
+- TracePathCertificate · struct · L53-L59 — pub struct TracePathCertificate
+- schema · function · L63-L65 — pub fn schema(&self) -> &'static str
+- function · function · L68-L70 — pub fn function(&self) -> &DeclarationId
+- dictionary_fingerprint · function · L73-L75 — pub fn dictionary_fingerprint(&self) -> [u8; 32]
+- max_path_events · function · L78-L80 — pub fn max_path_events(&self) -> u32
+- state_count · function · L83-L85 — pub fn state_count(&self) -> usize
+- transition_count · function · L88-L93 — pub fn transition_count(&self) -> usize
+- accepts · function · L98-L121 — pub fn accepts(&self, ordinals: &[u32], outcome: TracePathOutcome) -> bool
+- canonical_json · function · L125-L154 — pub fn canonical_json(&self) -> String
+- fingerprint · function · L157-L164 — pub fn fingerprint(&self) -> [u8; 32]
+- AcceptedPath · struct · L168-L171 — struct AcceptedPath
+- Leaf · struct · L174-L176 — struct Leaf
+- PathState · struct · L179-L185 — struct PathState
+- build_trace_path_certificate · function · L189-L364 — pub fn build_trace_path_certificate(
+- trace_path_schema_is_admitted · function · L366-L378 — fn trace_path_schema_is_admitted(schema: &str) -> bool
+- apply_transition · function · L380-L439 — fn apply_transition(
+- validate_result_liveness · function · L441-L465 — fn validate_result_liveness(
+- edge_target · function · L467-L479 — fn edge_target(
+- event_ordinal · function · L481-L488 — fn event_ordinal(
+- select_failure_ordinal · function · L490-L513 — fn select_failure_ordinal(
+- finalizer_ordinal · function · L515-L555 — fn finalizer_ordinal(
+- collect_plan_leaves · function · L557-L570 — fn collect_plan_leaves(
+- collect_leaves · function · L572-L616 — fn collect_leaves(
+- flags_under · function · L618-L634 — fn flags_under(
+- insert_path · function · L636-L646 — fn insert_path(
+- build_dfa · function · L648-L695 — fn build_dfa(
+- outcome_json · function · L697-L705 — fn outcome_json(outcome: &TracePathOutcome) -> String
+- hex · function · L707-L715 — fn hex(bytes: &[u8; 32]) -> String
+- certificate_error · function · L717-L722 — fn certificate_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L725-L867 — mod tests
+- all_fourteen_authoritative_paths_are_accepted_and_deterministic · function · L737-L840 — fn all_fourteen_authoritative_paths_are_accepted_and_deterministic()
+- trace_outcome · function · L842-L866 — fn trace_outcome(

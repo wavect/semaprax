@@ -1,0 +1,28 @@
+# hir/owned_record_collection.rs
+
+- operation_tests · module · L39-L39 — mod operation_tests;
+- is_admitted_owned_record_collection_element · function · L43-L73 — pub(crate) fn is_admitted_owned_record_collection_element(
+- admits_field_shape · function · L78-L94 — fn admits_field_shape(fields: &[ResolvedFieldDeclaration]) -> bool
+- OwnedRecordElementFields · struct · L103-L108 — pub(crate) struct OwnedRecordElementFields<'a>
+- owned_record_element_fields · function · L112-L131 — pub(crate) fn owned_record_element_fields<'a>(
+- admits_vec_operation · function · L142-L151 — pub(crate) fn admits_vec_operation(op: crate::vec_ops::VecOp) -> bool
+- admits_vec_operation_element · function · L154-L160 — pub(crate) fn admits_vec_operation_element(
+- is_owned_record_vec_type · function · L175-L185 — pub(crate) fn is_owned_record_vec_type(declarations: &DeclarationIndex, ty: &ResolvedType) -> bool
+- program_uses_profile · function · L195-L228 — pub(crate) fn program_uses_profile(program: &ResolvedProgram) -> bool
+- OWNED_PAYLOAD_BYTES_PER_RECORD_ELEMENT · constant · L240-L241 — pub(crate) const OWNED_PAYLOAD_BYTES_PER_RECORD_ELEMENT: u64 =
+- tests · module · L244-L570 — mod tests
+- resolve · function · L247-L251 — fn resolve(source: &str) -> ResolvedProgram
+- resolve_if_admitted · function · L259-L263 — fn resolve_if_admitted(source: &str) -> Option<ResolvedProgram>
+- exact_selected_payload_is_admitted_for_every_copy_scalar · function · L266-L288 — fn exact_selected_payload_is_admitted_for_every_copy_scalar()
+- field_order_does_not_affect_admission · function · L291-L309 — fn field_order_does_not_affect_admission()
+- extra_field_is_refused · function · L312-L331 — fn extra_field_is_refused()
+- missing_field_is_refused · function · L334-L351 — fn missing_field_is_refused()
+- second_copy_field_instead_of_bytes_is_refused · function · L354-L372 — fn second_copy_field_instead_of_bytes_is_refused()
+- string_field_is_refused · function · L375-L413 — fn string_field_is_refused()
+- two_copy_fields_and_one_bytes_field_is_refused · function · L416-L434 — fn two_copy_fields_and_one_bytes_field_is_refused()
+- nested_record_field_is_refused · function · L437-L458 — fn nested_record_field_is_refused()
+- resource_declaration_is_refused · function · L461-L477 — fn resource_declaration_is_refused()
+- class_declaration_is_refused · function · L480-L503 — fn class_declaration_is_refused()
+- generic_record_is_refused_even_when_instantiated_to_the_exact_field_shape · function · L506-L529 — fn generic_record_is_refused_even_when_instantiated_to_the_exact_field_shape()
+- foreign_variant_declaration_with_the_same_id_shape_is_refused · function · L532-L553 — fn foreign_variant_declaration_with_the_same_id_shape_is_refused()
+- non_nominal_type_is_refused · function · L556-L569 — fn non_nominal_type_is_refused()

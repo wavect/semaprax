@@ -1,0 +1,45 @@
+---
+covers: []
+---
+# semantic_retention_store.rs
+
+- unix · module · L39-L39 — mod unix;
+- MAX_RETENTION_METADATA_STORE_ENTRIES · constant · L41-L41 — pub const MAX_RETENTION_METADATA_STORE_ENTRIES: usize = 32;
+- MAX_RETENTION_METADATA_STORE_PATH_BYTES · constant · L42-L42 — pub const MAX_RETENTION_METADATA_STORE_PATH_BYTES: usize = 4096;
+- MAX_RETENTION_METADATA_STORE_PATH_DEPTH · constant · L43-L43 — pub const MAX_RETENTION_METADATA_STORE_PATH_DEPTH: usize = 64;
+- RETENTION_METADATA_STORE_COMPATIBILITY · constant · L44-L45 — pub const RETENTION_METADATA_STORE_COMPATIBILITY: &str =
+- MAGIC · constant · L47-L47 — const MAGIC: &[u8; 8] = b"SPXRET01";
+- DIGEST_BYTES · constant · L48-L48 — const DIGEST_BYTES: usize = 71;
+- LENGTH_BYTES · constant · L49-L49 — const LENGTH_BYTES: usize = 8;
+- ENVELOPE_OVERHEAD · constant · L50-L50 — const ENVELOPE_OVERHEAD: usize = MAGIC.len() + DIGEST_BYTES * 2 + LENGTH_BYTES * 2;
+- MAX_RETENTION_METADATA_ENVELOPE_BYTES · constant · L51-L52 — pub(crate) const MAX_RETENTION_METADATA_ENVELOPE_BYTES: usize =
+- ENVELOPE_DOMAIN · constant · L53-L53 — const ENVELOPE_DOMAIN: &[u8] = b"semaprax.semantic-retention-metadata-store.envelope.v1\0";
+- Result · type · L55-L55 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- RetentionMetadataStoreReceipt · struct · L60-L65 — pub struct RetentionMetadataStoreReceipt
+- checkpoint_digest · function · L68-L70 — pub fn checkpoint_digest(&self) -> &str
+- plan_digest · function · L71-L73 — pub fn plan_digest(&self) -> &str
+- envelope_digest · function · L74-L76 — pub fn envelope_digest(&self) -> &str
+- envelope_bytes · function · L77-L79 — pub const fn envelope_bytes(&self) -> usize
+- authority · function · L80-L82 — pub const fn authority(&self) -> RetentionAuthority
+- StoredRetentionMetadata · struct · L88-L91 — pub struct StoredRetentionMetadata
+- checkpoint · function · L94-L96 — pub fn checkpoint(&self) -> &RetentionCheckpoint
+- plan · function · L97-L99 — pub fn plan(&self) -> &RetentionGarbageCollectionPlan
+- authority · function · L100-L102 — pub const fn authority(&self) -> RetentionAuthority
+- persist · function · L107-L150 — pub fn persist(
+- load · function · L154-L194 — pub fn load(
+- persist_held · function · L207-L224 — pub(crate) fn persist_held(
+- load_held · function · L236-L250 — pub(crate) fn load_held(
+- prepare · function · L252-L301 — fn prepare(
+- encode · function · L303-L330 — fn encode(
+- decode · function · L332-L384 — fn decode(
+- pair_name · function · L386-L392 — pub(crate) fn pair_name(checkpoint: &str, plan: &str) -> Result<String>
+- text · function · L394-L399 — fn text(bytes: &[u8]) -> Result<&str>
+- length · function · L401-L407 — fn length(bytes: &[u8]) -> Result<usize>
+- validate_digest · function · L409-L411 — fn validate_digest(value: &str) -> Result<()>
+- digest_hex · function · L413-L427 — fn digest_hex(value: &str) -> Result<&str>
+- hash · function · L429-L438 — fn hash(bytes: &[u8]) -> String
+- invalid · function · L440-L442 — fn invalid(message: impl Into<String>) -> Vec<Diagnostic>
+- capacity · function · L443-L445 — fn capacity(message: impl Into<String>) -> Vec<Diagnostic>
+- binding · function · L446-L448 — fn binding(message: impl Into<String>) -> Vec<Diagnostic>
+- io · function · L449-L451 — fn io(message: impl Into<String>) -> Vec<Diagnostic>
+- post_pivot · function · L461-L463 — fn post_pivot(message: impl Into<String>) -> Vec<Diagnostic>

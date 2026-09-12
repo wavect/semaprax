@@ -1,0 +1,32 @@
+---
+covers: []
+---
+# semantic_service_transport.rs
+
+- SEMANTIC_SERVICE_TRANSPORT_SCHEMA · constant · L14-L15 — pub const SEMANTIC_SERVICE_TRANSPORT_SCHEMA: &str =
+- SEMANTIC_SERVICE_TRANSPORT_RESULT_SCHEMA · constant · L16-L17 — pub const SEMANTIC_SERVICE_TRANSPORT_RESULT_SCHEMA: &str =
+- SEMANTIC_SERVICE_TRANSPORT_ERROR_SCHEMA · constant · L18-L19 — pub const SEMANTIC_SERVICE_TRANSPORT_ERROR_SCHEMA: &str =
+- MAX_SEMANTIC_SERVICE_REQUEST_BYTES · constant · L20-L20 — pub const MAX_SEMANTIC_SERVICE_REQUEST_BYTES: usize = 64 * 1024 * 1024;
+- MAX_SEMANTIC_SERVICE_RESPONSE_BYTES · constant · L21-L21 — pub const MAX_SEMANTIC_SERVICE_RESPONSE_BYTES: usize = 128 * 1024 * 1024;
+- MAX_MANIFEST_INPUT_BYTES · constant · L22-L22 — const MAX_MANIFEST_INPUT_BYTES: usize = 65_536;
+- MAX_DIAGNOSTICS · constant · L23-L23 — const MAX_DIAGNOSTICS: usize = 64;
+- Result · type · L25-L25 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- SemanticWorkspaceStdioSession · struct · L29-L33 — pub struct SemanticWorkspaceStdioSession
+- open · function · L36-L42 — pub fn open(revision: Arc<ProjectRevision>) -> Result<Self>
+- service · function · L44-L46 — pub fn service(&self) -> &SemanticWorkspaceService
+- is_terminal · function · L48-L50 — pub fn is_terminal(&self) -> bool
+- handle_frame · function · L54-L96 — pub fn handle_frame(&mut self, frame: &[u8]) -> Option<Vec<u8>>
+- dispatch · function · L98-L175 — fn dispatch(&mut self, request: RpcRequest) -> Result<Value>
+- refresh · function · L177-L218 — fn refresh(&mut self, params: Option<Map<String, Value>>) -> Result<Value>
+- require_open · function · L220-L226 — fn require_open(&self) -> Result<()>
+- wrap · function · L228-L239 — fn wrap(&self, payload: Value) -> Result<Value>
+- application_error · function · L241-L259 — fn application_error(&self, id: &RequestId, diagnostics: Vec<Diagnostic>) -> Vec<u8>
+- serve_semantic_workspace_stdio · function · L263-L291 — pub fn serve_semantic_workspace_stdio<R: BufRead, W: Write>(
+- read_frame · function · L293-L317 — fn read_frame<R: BufRead>(input: &mut R) -> io::Result<Option<Vec<u8>>>
+- protocol · function · L319-L340 — fn protocol() -> Value
+- require_no_params · function · L342-L348 — fn require_no_params(params: Option<Map<String, Value>>) -> Result<()>
+- closed_params · function · L350-L361 — fn closed_params(
+- take_string · function · L363-L368 — fn take_string(params: &mut Map<String, Value>, key: &str) -> Result<String>
+- exact_json · function · L370-L372 — fn exact_json(text: &str) -> Result<Value>
+- invalid · function · L374-L376 — fn invalid(message: &str) -> Vec<Diagnostic>
+- capacity · function · L378-L380 — fn capacity(message: &str) -> Vec<Diagnostic>

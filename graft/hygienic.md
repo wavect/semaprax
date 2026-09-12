@@ -1,0 +1,99 @@
+---
+covers: []
+---
+# hygienic.rs
+
+- bformat · function · L53-L57 — macro_rules! bformat
+- SCHEMA · constant · L59-L59 — pub const SCHEMA: &str = "semaprax.hygienic-gen.v1";
+- RESERVED_PREFIX · constant · L63-L63 — pub const RESERVED_PREFIX: &str = "__gen_";
+- DEFAULT_MAX_BYTES · constant · L65-L65 — const DEFAULT_MAX_BYTES: usize = 64 * 1024;
+- RESERVE_OUTER_BYTES · constant · L68-L68 — const RESERVE_OUTER_BYTES: usize = 90;
+- MAX_SCAN_STEPS · constant · L69-L69 — const MAX_SCAN_STEPS: usize = 200_000;
+- OUTER_DIGEST_DOMAIN · constant · L71-L71 — const OUTER_DIGEST_DOMAIN: &[u8] = b"semaprax.hygienic-gen.v1:outer-digest.v1\0";
+- NAME_DIGEST_DOMAIN · constant · L72-L72 — const NAME_DIGEST_DOMAIN: &[u8] = b"semaprax.hygienic-gen.v1:name-digest.v1\0";
+- FORMATTED_DIGEST_DOMAIN · constant · L73-L73 — const FORMATTED_DIGEST_DOMAIN: &[u8] = b"semaprax.hygienic-gen.v1:formatted.v1\0";
+- SOURCE_DIGEST_DOMAIN · constant · L74-L74 — const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.hygienic-gen.v1:source.v1\0";
+- REASON_RESOURCE_DECLARATION · constant · L76-L76 — const REASON_RESOURCE_DECLARATION: &str = "resource_declaration";
+- REASON_VARIANT_DECLARATION · constant · L77-L77 — const REASON_VARIANT_DECLARATION: &str = "variant_declaration";
+- REASON_INTERFACE_DECLARATION · constant · L78-L78 — const REASON_INTERFACE_DECLARATION: &str = "interface_declaration";
+- REASON_GENERIC_RECORD · constant · L79-L79 — const REASON_GENERIC_RECORD: &str = "generic_record";
+- REASON_NON_SCALAR_FIELD · constant · L80-L80 — const REASON_NON_SCALAR_FIELD: &str = "non_scalar_field";
+- REASON_EMPTY_RECORD · constant · L81-L81 — const REASON_EMPTY_RECORD: &str = "empty_record";
+- REASON_GENERIC_FUNCTION · constant · L83-L83 — const REASON_GENERIC_FUNCTION: &str = "generic_function";
+- REASON_DECLARED_EFFECTS · constant · L84-L84 — const REASON_DECLARED_EFFECTS: &str = "declared_effects";
+- REASON_UNSUPPORTED_PARAMETER_MODE · constant · L85-L85 — const REASON_UNSUPPORTED_PARAMETER_MODE: &str = "unsupported_parameter_mode";
+- REASON_UNSUPPORTED_PARAMETER_TYPE · constant · L86-L86 — const REASON_UNSUPPORTED_PARAMETER_TYPE: &str = "unsupported_parameter_type";
+- REASON_UNSUPPORTED_RESULT_TYPE · constant · L87-L87 — const REASON_UNSUPPORTED_RESULT_TYPE: &str = "unsupported_result_type";
+- REASON_SCAN_STEP_BUDGET_EXHAUSTED · constant · L88-L88 — const REASON_SCAN_STEP_BUDGET_EXHAUSTED: &str = "scan_step_budget_exhausted";
+- REASON_FLOAT_LITERAL · constant · L89-L89 — const REASON_FLOAT_LITERAL: &str = "float_literal";
+- REASON_CHAR_LITERAL · constant · L90-L90 — const REASON_CHAR_LITERAL: &str = "char_literal";
+- REASON_RECORD_CONSTRUCTION · constant · L91-L91 — const REASON_RECORD_CONSTRUCTION: &str = "record_construction";
+- REASON_VARIANT_CONSTRUCTION · constant · L92-L92 — const REASON_VARIANT_CONSTRUCTION: &str = "variant_construction";
+- REASON_RECORD_UPDATE · constant · L93-L93 — const REASON_RECORD_UPDATE: &str = "record_update";
+- REASON_RECORD_PROJECTION · constant · L94-L94 — const REASON_RECORD_PROJECTION: &str = "record_projection";
+- REASON_MATCH_EXPRESSION · constant · L95-L95 — const REASON_MATCH_EXPRESSION: &str = "match_expression";
+- REASON_TRY_EXPRESSION · constant · L96-L96 — const REASON_TRY_EXPRESSION: &str = "try_expression";
+- REASON_GENERIC_CALL · constant · L97-L97 — const REASON_GENERIC_CALL: &str = "generic_call";
+- REASON_UNSUPPORTED_CALLEE · constant · L98-L98 — const REASON_UNSUPPORTED_CALLEE: &str = "unsupported_callee";
+- REASON_CLASS_DECLARATION · constant · L99-L99 — const REASON_CLASS_DECLARATION: &str = "class_declaration";
+- REASON_METHOD_CALL · constant · L100-L100 — const REASON_METHOD_CALL: &str = "method_call";
+- REASON_BYTE_DATA_EXPRESSION · constant · L101-L101 — const REASON_BYTE_DATA_EXPRESSION: &str = "byte_data_expression";
+- TRUNCATION_BYTE_BUDGET · constant · L103-L103 — const TRUNCATION_BYTE_BUDGET: &str = "byte_budget";
+- REGISTRY_JSON · constant · L105-L105 — const REGISTRY_JSON: &str = "[\"default-constructor\",\"field-accessors\"]";
+- NONCLAIMS · constant · L108-L115 — pub const NONCLAIMS: [&str; 6] = [
+- nonclaims_json · function · L117-L124 — fn nonclaims_json() -> String
+- Template · enum · L128-L133 — pub enum Template
+- REGISTRY · constant · L137-L137 — pub const REGISTRY: [Template; 2] = [Self::DefaultConstructor, Self::FieldAccessors];
+- id · function · L140-L145 — pub const fn id(self) -> &'static str
+- from_id · function · L150-L154 — pub fn from_id(name: &str) -> Option<Self>
+- HygienicGenOptions · struct · L159-L162 — pub struct HygienicGenOptions
+- new · function · L167-L193 — pub fn new(templates: &[Template], max_bytes: usize) -> Result<Self, Diagnostic>
+- templates · function · L197-L199 — pub fn templates(&self) -> &[Template]
+- max_bytes · function · L203-L205 — pub const fn max_bytes(&self) -> usize
+- default · function · L209-L214 — fn default() -> Self
+- option_error · function · L217-L219 — fn option_error(message: impl Into<String>) -> Diagnostic
+- bound_error · function · L221-L223 — fn bound_error(message: impl Into<String>) -> Diagnostic
+- invariant_error · function · L225-L227 — fn invariant_error(message: impl Into<String>) -> Diagnostic
+- hygiene_error · function · L229-L231 — fn hygiene_error(code: &'static str, message: String, span: Span) -> Diagnostic
+- identity_digest_hex · function · L237-L248 — pub fn identity_digest_hex(stable_id: &str) -> String
+- default_constructor_name · function · L256-L261 — pub fn default_constructor_name(stable_id: &str) -> String
+- accessor_name · function · L269-L275 — pub fn accessor_name(stable_id: &str, field_name: &str) -> String
+- source_digest · function · L277-L286 — fn source_digest(source: &str) -> String
+- generate · function · L291-L342 — pub fn generate(
+- AdmittedRecord · struct · L344-L348 — struct AdmittedRecord
+- Inventory · struct · L350-L357 — struct Inventory
+- is_scalar · function · L359-L361 — fn is_scalar(ty: &Type) -> bool
+- scalar_type_text · function · L363-L368 — fn scalar_type_text(ty: &Type) -> &'static str
+- excluded_type_json · function · L370-L375 — fn excluded_type_json(declaration: &TypeDeclaration, kind: &str, reason: &str) -> String
+- excluded_function_json · function · L377-L383 — fn excluded_function_json(function: &Function, reason: &str) -> String
+- ScanState · struct · L385-L388 — struct ScanState<'a>
+- scan · function · L391-L455 — fn scan(&mut self, expression: &Expr) -> Option<&'static str>
+- scan_function · function · L457-L464 — fn scan_function(&mut self, function: &Function) -> Option<&'static str>
+- function_signature_exclusion · function · L467-L486 — fn function_signature_exclusion(function: &Function) -> Option<&'static str>
+- collect_inventory · function · L488-L583 — fn collect_inventory(program: &Program) -> Result<Inventory, Vec<Diagnostic>>
+- enforce_hygiene · function · L585-L656 — fn enforce_hygiene(program: &Program, inventory: &Inventory) -> Result<(), Vec<Diagnostic>>
+- GeneratedArtifact · struct · L658-L664 — struct GeneratedArtifact
+- zero_literal · function · L666-L674 — fn zero_literal(ty: &Type, span: Span) -> Expr
+- record_type · function · L676-L681 — fn record_type(record: &AdmittedRecord) -> Type
+- block · function · L683-L691 — fn block(tail: Expr, span: Span) -> Expr
+- build_function · function · L694-L719 — fn build_function(
+- synthesize · function · L721-L796 — fn synthesize(
+- combine · function · L798-L804 — fn combine(program: &Program, artifacts: &[GeneratedArtifact]) -> Program
+- GraphFacts · struct · L806-L811 — struct GraphFacts
+- graph_facts · function · L813-L844 — fn graph_facts(program: &Program) -> Result<GraphFacts, Vec<Diagnostic>>
+- generated_identities · function · L846-L877 — fn generated_identities(
+- formatted_digest · function · L879-L903 — fn formatted_digest(module: &str, artifact: &GeneratedArtifact) -> String
+- formatted_digests · function · L905-L910 — fn formatted_digests(module: &str, artifacts: &[GeneratedArtifact]) -> Vec<String>
+- RenderContext · struct · L912-L922 — struct RenderContext<'a>
+- render_bounded · function · L924-L983 — fn render_bounded(
+- domain_digest · function · L985-L993 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- entry_json · function · L995-L1016 — fn entry_json(artifact: &GeneratedArtifact, identity: &str, digest: &str) -> String
+- render_payload · function · L1018-L1081 — fn render_payload(
+- admitted_record_json · function · L1083-L1101 — fn admitted_record_json(record: &AdmittedRecord) -> String
+- tests · module · L1104-L1221 — mod tests
+- parse_ok · function · L1107-L1111 — fn parse_ok(source: &str) -> Program
+- template_registry_is_closed_and_ordered · function · L1114-L1128 — fn template_registry_is_closed_and_ordered()
+- options_reject_unknown_duplicate_templates_and_bounds · function · L1131-L1148 — fn options_reject_unknown_duplicate_templates_and_bounds()
+- derived_names_bind_identity_not_display_name · function · L1151-L1171 — fn derived_names_bind_identity_not_display_name()
+- hygiene_scan_flags_user_symbols_matching_derived_names · function · L1174-L1201 — fn hygiene_scan_flags_user_symbols_matching_derived_names()
+- envelope_reserve_is_exact_and_digest_is_domain_separated · function · L1204-L1220 — fn envelope_reserve_is_exact_and_digest_is_domain_separated()

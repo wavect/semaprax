@@ -1,0 +1,25 @@
+# workspace_analysis/tests.rs
+
+- SERIAL · constant · L7-L7 — static SERIAL: AtomicU64 = AtomicU64::new(0);
+- Fixture · struct · L9-L11 — struct Fixture
+- new · function · L14-L69 — fn new() -> Self
+- analysis · function · L71-L74 — fn analysis(&self) -> WorkspaceAnalysis
+- drop · function · L78-L80 — fn drop(&mut self)
+- code · function · L83-L85 — fn code<T>(result: Result<T, Vec<Diagnostic>>) -> &'static str
+- declaration · function · L87-L89 — fn declaration(id: &str) -> WorkspaceAnalysisNode
+- capability · function · L91-L93 — fn capability(id: &str) -> WorkspaceAnalysisNode
+- add_typed_edge · function · L95-L133 — fn add_typed_edge(
+- typed_selectors_keep_module_declaration_and_capability_namespaces_distinct · function · L136-L196 — fn typed_selectors_keep_module_declaration_and_capability_namespaces_distinct()
+- six_family_indexes_and_typed_endpoint_replay_are_exact_and_ordered · function · L199-L272 — fn six_family_indexes_and_typed_endpoint_replay_are_exact_and_ordered()
+- context_and_impact_preserve_minimum_depth_ties_and_exact_path_edges · function · L275-L366 — fn context_and_impact_preserve_minimum_depth_ties_and_exact_path_edges()
+- truncation_uses_bfs_depth_before_kind_and_deduplicates_deferred_nodes · function · L369-L423 — fn truncation_uses_bfs_depth_before_kind_and_deduplicates_deferred_nodes()
+- target_depth_node_and_discovery_boundaries_are_exact · function · L426-L482 — fn target_depth_node_and_discovery_boundaries_are_exact()
+- document_sha · function · L484-L491 — fn document_sha(document: &str) -> String
+- assert_fragments_in_order · function · L493-L501 — fn assert_fragments_in_order(document: &str, fragments: &[&str])
+- context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay · function · L504-L862 — fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay()
+- output_caps_are_exact_and_truncated_documents_have_no_dangling_edges · function · L865-L1012 — fn output_caps_are_exact_and_truncated_documents_have_no_dangling_edges()
+- wide_depth_prefix_fit_is_maximal_with_a_late_tiny_builder_remainder · function · L1015-L1152 — fn wide_depth_prefix_fit_is_maximal_with_a_late_tiny_builder_remainder()
+- review_rejects_any_child_discovery_truncation_as_g180 · function · L1155-L1174 — fn review_rejects_any_child_discovery_truncation_as_g180()
+- mutate_active_and_assert_immediate_reacquire · function · L1176-L1184 — fn mutate_active_and_assert_immediate_reacquire(root: &Path)
+- assert_immediate_exclusive_reacquire · function · L1186-L1194 — fn assert_immediate_exclusive_reacquire(root: &Path)
+- context_impact_and_review_discard_after_render_drift_and_release_authority · function · L1197-L1276 — fn context_impact_and_review_discard_after_render_drift_and_release_authority()

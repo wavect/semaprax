@@ -1,0 +1,42 @@
+# public_generic_abi/classifier.rs
+
+- BOUNDARY_PROFILE_SCHEMA · constant · L152-L152 — pub const BOUNDARY_PROFILE_SCHEMA: &str = "semaprax.public-generic-boundary-profile.v1";
+- SUBJECT_DOMAIN · constant · L154-L154 — const SUBJECT_DOMAIN: &[u8] = b"semaprax.public-generic-boundary-profile.v1.admitted-subject\0";
+- EXPORT_NOT_FOUND · constant · L157-L157 — pub const EXPORT_NOT_FOUND: &str = "SPX-PG601";
+- GENERIC_FUNCTION_TEMPLATE · constant · L160-L160 — pub const GENERIC_FUNCTION_TEMPLATE: &str = "SPX-PG602";
+- WRONG_PARAMETER_COUNT · constant · L162-L162 — pub const WRONG_PARAMETER_COUNT: &str = "SPX-PG603";
+- WRONG_OWNERSHIP_MODE · constant · L164-L164 — pub const WRONG_OWNERSHIP_MODE: &str = "SPX-PG604";
+- UNSUPPORTED_RESULT_SHAPE · constant · L166-L166 — pub const UNSUPPORTED_RESULT_SHAPE: &str = "SPX-PG605";
+- UNRESOLVED_TYPE_ARGUMENT · constant · L169-L169 — pub const UNRESOLVED_TYPE_ARGUMENT: &str = "SPX-PG606";
+- ARITY_MISMATCH · constant · L171-L171 — pub const ARITY_MISMATCH: &str = "SPX-PG607";
+- TYPE_OUTSIDE_GRAMMAR · constant · L173-L173 — pub const TYPE_OUTSIDE_GRAMMAR: &str = "SPX-PG608";
+- BORROWED_FIELD_PRESENT · constant · L175-L175 — pub const BORROWED_FIELD_PRESENT: &str = "SPX-PG609";
+- VARIANT_RESOURCE_OR_FUNCTION_VALUE · constant · L178-L178 — pub const VARIANT_RESOURCE_OR_FUNCTION_VALUE: &str = "SPX-PG610";
+- RECURSIVE_CLOSURE · constant · L180-L180 — pub const RECURSIVE_CLOSURE: &str = "SPX-PG611";
+- AMBIGUOUS_STABLE_IDENTITY · constant · L182-L182 — pub const AMBIGUOUS_STABLE_IDENTITY: &str = "SPX-PG612";
+- BOUND_EXCEEDED · constant · L184-L184 — pub const BOUND_EXCEEDED: &str = "SPX-PG613";
+- CLEANUP_INVENTORY_MISMATCH · constant · L188-L188 — pub const CLEANUP_INVENTORY_MISMATCH: &str = "SPX-PG614";
+- SETTLEMENT_OBLIGATION_MISMATCH · constant · L192-L192 — pub const SETTLEMENT_OBLIGATION_MISMATCH: &str = "SPX-PG615";
+- EFFECTFUL_EXPORT · constant · L195-L195 — pub const EFFECTFUL_EXPORT: &str = "SPX-PG616";
+- INCOMPATIBLE_RETAINED_FACTS · constant · L198-L198 — pub const INCOMPATIBLE_RETAINED_FACTS: &str = "SPX-PG617";
+- UNSUPPORTED_INPUT_SHAPE · constant · L206-L206 — pub const UNSUPPORTED_INPUT_SHAPE: &str = "SPX-PG618";
+- Refusal · enum · L212-L231 — pub enum Refusal
+- code · function · L235-L256 — pub const fn code(&self) -> &'static str
+- reason · function · L259-L280 — pub fn reason(&self) -> &'static str
+- diagnostic · function · L283-L294 — pub fn diagnostic(&self) -> Diagnostic
+- AdmittedSubject · struct · L302-L309 — pub struct AdmittedSubject
+- export_id · function · L313-L315 — pub fn export_id(&self) -> &str
+- export_name · function · L318-L320 — pub fn export_name(&self) -> &str
+- input · function · L323-L325 — pub fn input(&self) -> &InstanceFacts
+- result · function · L328-L330 — pub fn result(&self) -> &InstanceFacts
+- record_closure · function · L335-L337 — pub fn record_closure(&self) -> &BTreeMap<String, InstanceFacts>
+- settlement · function · L341-L343 — pub fn settlement(&self) -> &SettlementPlan
+- digest · function · L351-L358 — pub fn digest(&self) -> String
+- classify · function · L368-L431 — pub fn classify(program: &ResolvedProgram, export_id: &str) -> Result<AdmittedSubject, Refusal>
+- translate_grammar_error · function · L438-L462 — fn translate_grammar_error(diagnostic: Diagnostic) -> Refusal
+- translate_settlement_error · function · L468-L475 — fn translate_settlement_error(diagnostic: Diagnostic) -> Refusal
+- check_acyclic · function · L484-L488 — pub(crate) fn check_acyclic(program: &ResolvedProgram, ty: &ResolvedType) -> Result<(), Refusal>
+- walk_acyclic · function · L490-L524 — fn walk_acyclic<'a>(
+- check_field_counts · function · L539-L546 — pub(crate) fn check_field_counts(
+- walk_field_counts · function · L548-L583 — fn walk_field_counts<'a>(
+- tests · module · L586-L586 — mod tests;

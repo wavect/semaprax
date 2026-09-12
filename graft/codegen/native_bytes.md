@@ -1,0 +1,62 @@
+# codegen/native_bytes.rs
+
+- nested_owned · module · L17-L17 — mod nested_owned;
+- owned_leaf · module · L18-L18 — mod owned_leaf;
+- record_if · module · L19-L19 — mod record_if;
+- variant_match · module · L20-L20 — mod variant_match;
+- NativeBytesPlan · struct · L24-L33 — pub(super) struct NativeBytesPlan
+- ByteSlot · struct · L36-L41 — struct ByteSlot
+- build · function · L44-L305 — pub(super) fn build(function: &ResolvedFunction) -> Result<Option<Self>, Diagnostic>
+- declarations · function · L306-L348 — pub(super) fn declarations(
+- value · function · L349-L354 — pub(super) fn value(&self, storage: &StorageId) -> Result<&str, Diagnostic>
+- value_at · function · L355-L360 — pub(super) fn value_at(&self, place: &CleanupPlace) -> Result<&str, Diagnostic>
+- initialize_parameter · function · L361-L375 — pub(super) fn initialize_parameter(
+- initialize_record_parameter · function · L376-L395 — pub(super) fn initialize_record_parameter(
+- initialize_variant_parameter · function · L396-L443 — pub(super) fn initialize_variant_parameter(
+- has_projected_leaves · function · L444-L448 — pub(super) fn has_projected_leaves(&self, storage: &StorageId) -> bool
+- has_variant_leaves · function · L449-L451 — pub(super) fn has_variant_leaves(&self, storage: &StorageId) -> bool
+- apply_at · function · L452-L454 — pub(super) fn apply_at(&self, at: &ExpressionId) -> Result<String, Diagnostic>
+- apply_transitions · function · L455-L502 — fn apply_transitions<'a>(
+- apply_variant_case_at · function · L503-L509 — pub(super) fn apply_variant_case_at(
+- apply_try_variant_case_at · function · L510-L517 — pub(super) fn apply_try_variant_case_at(
+- apply_variant_case_at_inner · function · L518-L525 — fn apply_variant_case_at_inner(
+- authenticate_variant_case_at · function · L526-L532 — pub(super) fn authenticate_variant_case_at(
+- apply_variant_at · function · L533-L575 — pub(super) fn apply_variant_at(
+- result_at · function · L576-L596 — pub(super) fn result_at(&self, at: &ExpressionId) -> Option<&str>
+- transfer_to · function · L597-L651 — pub(super) fn transfer_to(
+- transfer_field_at · function · L652-L703 — pub(super) fn transfer_field_at(
+- transfer_branch_at · function · L704-L747 — pub(super) fn transfer_branch_at(
+- call_argument · function · L748-L768 — pub(super) fn call_argument(
+- call_argument_storage · function · L769-L792 — pub(super) fn call_argument_storage(
+- materialize_record_carrier · function · L794-L815 — pub(super) fn materialize_record_carrier(
+- materialize_variant_carrier · function · L816-L858 — pub(super) fn materialize_variant_carrier(
+- materialize_variant_borrow_view · function · L860-L868 — pub(super) fn materialize_variant_borrow_view(
+- initialize_record_result_at · function · L870-L905 — pub(super) fn initialize_record_result_at(
+- initialize_variant_result_at · function · L907-L962 — pub(super) fn initialize_variant_result_at(
+- publish_record_result · function · L964-L966 — pub(super) fn publish_record_result(&self, carrier: &str) -> Result<String, Diagnostic>
+- projected_value · function · L968-L977 — pub(super) fn projected_value(
+- projected_value_if_present · function · L979-L990 — pub(super) fn projected_value_if_present(
+- variant_value_if_present · function · L992-L1004 — pub(super) fn variant_value_if_present(
+- provisional · function · L1006-L1015 — pub(super) fn provisional(&self) -> Result<(&str, &str), Diagnostic>
+- epilogue · function · L1017-L1019 — pub(super) fn epilogue(&self) -> String
+- scope_exit · function · L1021-L1037 — pub(super) fn scope_exit(&self, anchors: &BTreeSet<StorageId>) -> Result<String, Diagnostic>
+- emit_finalizers · function · L1039-L1054 — fn emit_finalizers(&self, finalizers: &[ByteSlot], terminal: bool) -> String
+- leaves_under · function · L1056-L1065 — fn leaves_under(&self, prefix: &CleanupPlace) -> Result<Vec<&CleanupPlace>, Diagnostic>
+- transfer_pairs · function · L1067-L1097 — fn transfer_pairs(
+- transfer_case_pairs · function · L1099-L1121 — fn transfer_case_pairs(
+- emit_variant_transfer · function · L1123-L1147 — fn emit_variant_transfer(
+- leaves_under_map · function · L1150-L1161 — fn leaves_under_map(
+- mark_referenced_under · function · L1163-L1169 — fn mark_referenced_under(
+- reachable_variant_cases · function · L1171-L1246 — fn reachable_variant_cases(
+- propagate_variant_cases · function · L1248-L1265 — fn propagate_variant_cases(
+- place_contains · function · L1267-L1269 — fn place_contains(prefix: &CleanupPlace, leaf: &CleanupPlace) -> bool
+- flatten_byte_leaves · function · L1271-L1312 — fn flatten_byte_leaves(
+- canonical_finalizer_order · function · L1314-L1358 — fn canonical_finalizer_order(sequences: &[Vec<ByteSlot>]) -> Result<Vec<ByteSlot>, Diagnostic>
+- error · function · L1360-L1362 — fn error(message: impl Into<String>) -> Diagnostic
+- tests · module · L1365-L1499 — mod tests
+- slot · function · L1368-L1378 — fn slot(name: &str) -> ByteSlot
+- finalizer_order_accepts_reordered_subset_before_superset · function · L1381-L1388 — fn finalizer_order_accepts_reordered_subset_before_superset()
+- finalizer_order_rejects_contradictory_exit_precedence · function · L1391-L1395 — fn finalizer_order_rejects_contradictory_exit_precedence()
+- projected_plan · function · L1397-L1453 — fn projected_plan(
+- whole_record_transfer_pairs_exact_projected_leaves_in_plan_order · function · L1456-L1478 — fn whole_record_transfer_pairs_exact_projected_leaves_in_plan_order()
+- whole_record_transfer_rejects_hostile_field_identity_substitution · function · L1481-L1498 — fn whole_record_transfer_rejects_hostile_field_identity_substitution()

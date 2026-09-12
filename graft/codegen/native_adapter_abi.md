@@ -1,0 +1,37 @@
+# codegen/native_adapter_abi.rs
+
+- MAGIC · constant · L28-L28 — const MAGIC: &[u8; 8] = b"SPXNABI1";
+- VERSION · constant · L29-L29 — const VERSION: u32 = 1;
+- HEADER_SIZE · constant · L30-L30 — const HEADER_SIZE: u32 = 20;
+- FINGERPRINT_BYTES · constant · L31-L31 — const FINGERPRINT_BYTES: usize = 32;
+- SCHEMA_FINGERPRINT_DOMAIN · constant · L32-L32 — const SCHEMA_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.native-adapter-schema.v1\0";
+- TARGET_FINGERPRINT_DOMAIN · constant · L33-L33 — const TARGET_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.native-adapter-target.v1\0";
+- PHYSICAL_MODULE_FINGERPRINT_DOMAIN · constant · L34-L34 — const PHYSICAL_MODULE_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.native-adapter-physical-module.v1\0";
+- GETTER_SYMBOL_DOMAIN · constant · L35-L35 — const GETTER_SYMBOL_DOMAIN: &[u8] = b"semaprax.native-adapter-getter.v1\0";
+- PARAMETER_SCALAR · constant · L37-L37 — const PARAMETER_SCALAR: u32 = 1;
+- PARAMETER_OWNED_RESOURCE · constant · L38-L38 — const PARAMETER_OWNED_RESOURCE: u32 = 2;
+- SCALAR_I64 · constant · L39-L39 — const SCALAR_I64: u32 = 1;
+- SCALAR_BOOL · constant · L40-L40 — const SCALAR_BOOL: u32 = 2;
+- RESULT_SCALAR_I64 · constant · L41-L41 — const RESULT_SCALAR_I64: u32 = 1;
+- RESULT_OWNED_INPUT · constant · L42-L42 — const RESULT_OWNED_INPUT: u32 = 2;
+- NativeAdapterDescriptor · struct · L46-L49 — pub(super) struct NativeAdapterDescriptor
+- derive · function · L54-L170 — pub(super) fn derive(
+- emit_header · function · L174-L205 — pub(super) fn emit_header(descriptor: &NativeAdapterDescriptor) -> String
+- emit_source · function · L209-L243 — pub(super) fn emit_source(
+- provider_target_guards · function · L249-L347 — fn provider_target_guards() -> Result<String, Diagnostic>
+- require_index · function · L349-L357 — fn require_index(actual: usize, expected: usize) -> Result<(), Diagnostic>
+- physical_target_tag · function · L359-L398 — fn physical_target_tag() -> Result<String, Diagnostic>
+- schema_fingerprint · function · L400-L418 — fn schema_fingerprint() -> [u8; FINGERPRINT_BYTES]
+- target_fingerprint · function · L420-L425 — fn target_fingerprint(target: &[u8]) -> [u8; FINGERPRINT_BYTES]
+- physical_module_fingerprint · function · L427-L440 — fn physical_module_fingerprint(
+- getter_symbol · function · L442-L457 — fn getter_symbol(
+- hash_field · function · L459-L462 — fn hash_field(hasher: &mut Sha256, bytes: &[u8])
+- decode_fingerprint · function · L464-L481 — fn decode_fingerprint(value: &str, context: &str) -> Result<[u8; 32], Diagnostic>
+- WireWriter · struct · L483-L485 — struct WireWriter
+- new · function · L488-L490 — fn new() -> Self
+- u32 · function · L492-L494 — fn u32(&mut self, value: u32)
+- count · function · L496-L502 — fn count(&mut self, value: usize, context: &str) -> Result<(), Diagnostic>
+- index · function · L504-L506 — fn index(&mut self, value: usize, context: &str) -> Result<(), Diagnostic>
+- text · function · L508-L515 — fn text(&mut self, value: &str, context: &str) -> Result<(), Diagnostic>
+- adapter_error · function · L518-L523 — fn adapter_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L527-L527 — mod tests;

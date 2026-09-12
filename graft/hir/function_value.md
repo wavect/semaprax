@@ -1,0 +1,21 @@
+# hir/function_value.rs
+
+- scalar · function · L9-L11 — pub fn scalar(ty: &ResolvedType) -> bool
+- is_signature · function · L12-L14 — pub fn is_signature(ty: &ResolvedType) -> bool
+- private_helper_signature · function · L17-L28 — pub(crate) fn private_helper_signature(function: &ResolvedFunction) -> bool
+- signature · function · L29-L41 — pub fn signature(function: &ResolvedFunction) -> Option<ResolvedType>
+- walk · function · L42-L53 — pub(crate) fn walk<'a>(function: &'a ResolvedFunction, mut visit: impl FnMut(&'a ResolvedExpr))
+- target_universe · function · L54-L75 — pub fn target_universe(program: &ResolvedProgram) -> Vec<&ResolvedFunction>
+- compatible_targets · function · L76-L84 — pub fn compatible_targets<'a>(
+- requires_function_values · function · L85-L97 — pub fn requires_function_values(program: &ResolvedProgram) -> bool
+- validate_reference · function · L98-L114 — pub(crate) fn validate_reference(
+- validate_invocation · function · L115-L117 — pub(crate) fn validate_invocation(expression: &ResolvedExpr) -> Result<(), Diagnostic>
+- validate_invocation_scoped · function · L118-L145 — pub(crate) fn validate_invocation_scoped(
+- error · function · L146-L148 — pub(crate) fn error(message: &str) -> Diagnostic
+- resolve · module · L150-L150 — pub(crate) mod resolve;
+- INVOKE_ID · constant · L152-L153 — pub(crate) static INVOKE_ID: std::sync::LazyLock<DeclarationId> =
+- invocation_params · function · L154-L175 — pub(crate) fn invocation_params(
+- validate_program · function · L177-L260 — pub(crate) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnostic>
+- function_uses_value · function · L262-L276 — pub(crate) fn function_uses_value(f: &ResolvedFunction) -> bool
+- tests · module · L279-L279 — mod tests;
+- template_uses_value · function · L281-L308 — pub(crate) fn template_uses_value(template: &super::ResolvedFunctionTemplate) -> bool

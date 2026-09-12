@@ -1,0 +1,27 @@
+# workspace_graph/retained_validation.rs
+
+- dependency_closure · module · L13-L13 — mod dependency_closure;
+- scalar_link · module · L14-L14 — mod scalar_link;
+- useful_data_v1_dependency_fallback · function · L27-L42 — pub(super) fn useful_data_v1_dependency_fallback(module: &WorkspaceResolvedModule) -> bool
+- validate_retained_facts · function · L44-L188 — pub(super) fn validate_retained_facts(
+- reconstruct_authenticated_call_edges · function · L190-L266 — fn reconstruct_authenticated_call_edges(
+- validate_retained_call_projection · function · L268-L323 — fn validate_retained_call_projection(
+- collect_retained_call_projection · function · L325-L355 — fn collect_retained_call_projection(
+- visit_resolved_calls · function · L357-L468 — fn visit_resolved_calls(
+- validate_effect_and_capability_edges · function · L470-L479 — pub(super) fn validate_effect_and_capability_edges(
+- validate_effect_and_capability_edges_against_calls · function · L481-L699 — fn validate_effect_and_capability_edges_against_calls(
+- collect_resolved_signature_sites · function · L701-L716 — fn collect_resolved_signature_sites(
+- collect_resolved_type_sites · function · L718-L753 — fn collect_resolved_type_sites(
+- collect_resolved_function_type_sites · function · L755-L786 — fn collect_resolved_function_type_sites(
+- collect_resolved_expression_type_sites · function · L788-L1124 — fn collect_resolved_expression_type_sites(
+- collect_resolved_pattern_type_sites · function · L1126-L1188 — fn collect_resolved_pattern_type_sites(
+- collect_resolved_record_pattern_type_sites · function · L1190-L1221 — fn collect_resolved_record_pattern_type_sites(
+- ScalarNativeImports · struct · L1229-L1232 — pub(super) struct ScalarNativeImports
+- scalar_native_imports · function · L1236-L1257 — pub(super) fn scalar_native_imports<'a>(
+- scalar_web_entrypoint · function · L1259-L1277 — pub(super) fn scalar_web_entrypoint(
+- project_effects_admitted · function · L1279-L1324 — pub(super) fn project_effects_admitted(
+- project_linker_name · function · L1326-L1349 — pub(super) fn project_linker_name(profile: crate::project::ProjectProfile) -> &'static str
+- permits_admitted · function · L1353-L1406 — pub(super) fn permits_admitted(
+- retain_linked_fact · function · L1410-L1446 — fn retain_linked_fact(
+- environment_profile_tests · module · L1449-L1494 — mod environment_profile_tests
+- environment_workspace_effect_lane_is_explicit_and_closed · function · L1454-L1493 — fn environment_workspace_effect_lane_is_explicit_and_closed()

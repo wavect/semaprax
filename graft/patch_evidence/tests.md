@@ -1,0 +1,27 @@
+# patch_evidence/tests.rs
+
+- NEXT_FIXTURE · constant · L6-L6 — static NEXT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+- fixture · function · L8-L29 — fn fixture(
+- assert_no_a0_artifacts · function · L31-L39 — fn assert_no_a0_artifacts(source_path: &Path)
+- verification_rejects_oversize_before_source_semantics · function · L42-L48 — fn verification_rejects_oversize_before_source_semantics()
+- typed_assessment_count_is_an_invariant_not_an_indexing_panic · function · L51-L55 — fn typed_assessment_count_is_an_invariant_not_an_indexing_panic()
+- workspace_child_renderer_respects_tiny_remaining_budget · function · L58-L85 — fn workspace_child_renderer_respects_tiny_remaining_budget()
+- evidence_v2_translates_target_bounds_and_invariants · function · L88-L95 — fn evidence_v2_translates_target_bounds_and_invariants()
+- parsed_ast_call_boundary_accepts_exact_and_rejects_limit_plus_one · function · L98-L118 — fn parsed_ast_call_boundary_accepts_exact_and_rejects_limit_plus_one()
+- parsed_ast_declaration_and_callable_boundaries_are_exact · function · L121-L174 — fn parsed_ast_declaration_and_callable_boundaries_are_exact()
+- owned_text_reads_accept_exact_limits_and_reject_one_more_byte · function · L177-L198 — fn owned_text_reads_accept_exact_limits_and_reject_one_more_byte()
+- generation_and_verification_reject_final_source_drift · function · L201-L234 — fn generation_and_verification_reject_final_source_drift()
+- owned_patch_and_evidence_bytes_are_never_reread · function · L237-L286 — fn owned_patch_and_evidence_bytes_are_never_reread()
+- evidence_apply_uses_owned_patch_and_evidence_bytes_exactly_once · function · L289-L321 — fn evidence_apply_uses_owned_patch_and_evidence_bytes_exactly_once()
+- evidence_apply_rechecks_source_at_every_a0_boundary · function · L324-L356 — fn evidence_apply_rechecks_source_at_every_a0_boundary()
+- evidence_apply_rejects_same_bytes_with_replaced_source_identity · function · L359-L387 — fn evidence_apply_rejects_same_bytes_with_replaced_source_identity()
+- evidence_apply_bounds_both_final_source_reads_and_cleans_stage · function · L390-L421 — fn evidence_apply_bounds_both_final_source_reads_and_cleans_stage()
+- evidence_apply_rejects_stage_mutation_and_injected_rename_failure · function · L424-L461 — fn evidence_apply_rejects_stage_mutation_and_injected_rename_failure()
+- evidence_apply_never_deletes_a_foreign_stage_path_replacement · function · L464-L505 — fn evidence_apply_never_deletes_a_foreign_stage_path_replacement()
+- evidence_v2_apply_owns_inputs_and_replays_every_a0_boundary · function · L508-L562 — fn evidence_v2_apply_owns_inputs_and_replays_every_a0_boundary()
+- evidence_v2_read_only_routes_own_inputs_and_reject_final_drift · function · L565-L644 — fn evidence_v2_read_only_routes_own_inputs_and_reject_final_drift()
+- evidence_v2_apply_rejects_stage_replacement_and_rename_failure · function · L647-L684 — fn evidence_v2_apply_rejects_stage_replacement_and_rename_failure()
+- evidence_v2_apply_rejects_same_bytes_with_replaced_source_identity · function · L687-L715 — fn evidence_v2_apply_rejects_same_bytes_with_replaced_source_identity()
+- evidence_v2_apply_bounds_both_final_reads_and_preserves_foreign_stage · function · L718-L781 — fn evidence_v2_apply_bounds_both_final_reads_and_preserves_foreign_stage()
+- evidence_v2_apply_acquires_lock_before_owned_reads · function · L784-L812 — fn evidence_v2_apply_acquires_lock_before_owned_reads()
+- evidence_v2_apply_preserves_source_permissions · function · L816-L836 — fn evidence_v2_apply_preserves_source_permissions()

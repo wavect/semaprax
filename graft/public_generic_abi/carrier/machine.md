@@ -1,0 +1,35 @@
+# public_generic_abi/carrier/machine.rs
+
+- illegal_here · function · L33-L35 — fn illegal_here(reason: &str) -> Diagnostic
+- HandleSet · struct · L42-L45 — pub struct HandleSet
+- new · function · L48-L53 — pub fn new(root: Handle, leaves: Vec<Handle>) -> Self
+- indexed_ledgers · function · L57-L64 — fn indexed_ledgers(&self) -> impl Iterator<Item = (Option<u32>, &HandleLedger)>
+- indexed_ledgers_mut · function · L66-L73 — fn indexed_ledgers_mut(&mut self) -> impl Iterator<Item = (Option<u32>, &mut HandleLedger)>
+- obligation_order · function · L77-L81 — pub fn obligation_order(&self) -> Vec<Handle>
+- root_state · function · L83-L85 — pub fn root_state(&self) -> CarrierState
+- leaf_state · function · L87-L89 — pub fn leaf_state(&self, index: usize) -> CarrierState
+- all_ready_for · function · L94-L97 — fn all_ready_for(&self, event: Event) -> bool
+- CarrierCallMachine · struct · L108-L115 — pub struct CarrierCallMachine
+- new · function · L118-L127 — pub fn new(root: Handle, leaves: Vec<Handle>) -> Self
+- phase · function · L129-L131 — pub fn phase(&self) -> Phase
+- settlement · function · L133-L135 — pub fn settlement(&self) -> Option<Settlement>
+- input · function · L137-L139 — pub fn input(&self) -> &HandleSet
+- input_mut · function · L141-L143 — pub fn input_mut(&mut self) -> &mut HandleSet
+- result · function · L145-L147 — pub fn result(&self) -> Option<&HandleSet>
+- result_mut · function · L149-L151 — pub fn result_mut(&mut self) -> Option<&mut HandleSet>
+- trace · function · L153-L155 — pub fn trace(&self) -> &Trace
+- validate · function · L159-L170 — pub fn validate(&mut self) -> Result<(), Diagnostic>
+- prepare_input · function · L174-L185 — pub fn prepare_input(&mut self) -> Result<(), Diagnostic>
+- fill_and_trace · function · L187-L222 — fn fill_and_trace(
+- commit_input_transfer · function · L233-L257 — pub fn commit_input_transfer(&mut self) -> Result<(), Diagnostic>
+- begin_execution · function · L261-L277 — pub fn begin_execution(&mut self) -> Result<(), Diagnostic>
+- finish_execution · function · L279-L295 — pub fn finish_execution(&mut self) -> Result<(), Diagnostic>
+- begin_result · function · L299-L307 — pub fn begin_result(&mut self, root: Handle, leaves: Vec<Handle>) -> Result<(), Diagnostic>
+- prepare_result · function · L311-L326 — pub fn prepare_result(&mut self) -> Result<(), Diagnostic>
+- commit_result · function · L331-L353 — pub fn commit_result(&mut self) -> Result<(), Diagnostic>
+- settle · function · L361-L372 — pub fn settle(&mut self, outcome: Settlement) -> Result<(), Diagnostic>
+- release_set · function · L379-L415 — fn release_set(
+- release_input_before_transfer · function · L419-L421 — pub fn release_input_before_transfer(&mut self) -> Result<(), Diagnostic>
+- release_input_after_transfer · function · L425-L427 — pub fn release_input_after_transfer(&mut self) -> Result<(), Diagnostic>
+- release_result_before_commit · function · L434-L440 — pub fn release_result_before_commit(&mut self) -> Result<(), Diagnostic>
+- tests · module · L444-L444 — mod tests;

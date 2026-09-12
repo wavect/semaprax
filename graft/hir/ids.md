@@ -1,0 +1,34 @@
+# hir/ids.rs
+
+- DeclarationId · struct · L14-L14 — pub struct DeclarationId(pub(super) String);
+- new · function · L17-L19 — pub fn new(value: impl Into<String>) -> Self
+- as_str · function · L21-L23 — pub fn as_str(&self) -> &str
+- clone · function · L27-L29 — fn clone(&self) -> Self
+- fmt · function · L33-L35 — fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result
+- FunctionInstanceId · struct · L39-L39 — pub struct FunctionInstanceId(pub(super) String);
+- as_str · function · L42-L44 — pub fn as_str(&self) -> &str
+- clone · function · L48-L50 — fn clone(&self) -> Self
+- FunctionExecutionId · enum · L54-L57 — pub enum FunctionExecutionId
+- diagnostic_text · function · L60-L65 — pub(super) fn diagnostic_text(&self) -> &str
+- identity_key · function · L67-L80 — pub fn identity_key(&self) -> String
+- instance · function · L82-L87 — pub fn instance(&self) -> Option<&FunctionInstanceId>
+- monomorphic_declaration · function · L89-L94 — pub fn monomorphic_declaration(&self) -> Option<&DeclarationId>
+- fmt · function · L98-L100 — fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result
+- fmt · function · L104-L106 — fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result
+- ValueId · struct · L110-L110 — pub struct ValueId(pub(super) Arc<str>, u64);
+- new · function · L113-L119 — pub(super) fn new(value: String) -> Self
+- intrinsic_parameter · function · L124-L126 — pub(crate) fn intrinsic_parameter(operation: &str, index: usize) -> Self
+- parameter · function · L128-L130 — pub(super) fn parameter(function: &FunctionExecutionId, index: usize) -> Self
+- local · function · L132-L134 — pub(super) fn local(function: &FunctionExecutionId, path: &str) -> Self
+- result · function · L136-L138 — pub(super) fn result(function: &FunctionExecutionId) -> Self
+- as_str · function · L140-L142 — pub fn as_str(&self) -> &str
+- hash · function · L146-L148 — fn hash<H: Hasher>(&self, state: &mut H)
+- fmt · function · L152-L154 — fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result
+- ExpressionId · struct · L158-L158 — pub struct ExpressionId(pub(super) String);
+- new · function · L161-L163 — pub(crate) fn new(function: &FunctionExecutionId, path: &str) -> Self
+- as_str · function · L165-L167 — pub fn as_str(&self) -> &str
+- clone · function · L171-L173 — fn clone(&self) -> Self
+- exact_string · function · L176-L178 — pub(super) fn exact_string(value: String) -> String
+- scoped_identity · function · L180-L198 — pub(super) fn scoped_identity(owner: &FunctionExecutionId, kind: &str, path: &str) -> String
+- fmt · function · L201-L203 — fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result
+- derive · function · L207-L221 — pub fn derive(template: &DeclarationId, arguments: &[ResolvedType]) -> Self

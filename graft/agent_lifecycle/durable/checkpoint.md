@@ -1,0 +1,47 @@
+# agent_lifecycle/durable/checkpoint.rs
+
+- CHECKPOINT_SCHEMA · constant · L36-L36 — pub const CHECKPOINT_SCHEMA: &str = "semaprax.agent-checkpoint.v1";
+- CHECKPOINT_DOMAIN · constant · L38-L38 — pub(super) const CHECKPOINT_DOMAIN: &[u8] = b"semaprax.agent-checkpoint.digest.v1\0";
+- STATE_DOMAIN · constant · L39-L39 — pub(super) const STATE_DOMAIN: &[u8] = b"semaprax.agent-checkpoint.state.v1\0";
+- PROPOSAL_DOMAIN · constant · L40-L40 — pub(super) const PROPOSAL_DOMAIN: &[u8] = b"semaprax.agent-checkpoint.proposal.v1\0";
+- OBSERVATION_DOMAIN · constant · L41-L41 — pub(super) const OBSERVATION_DOMAIN: &[u8] = b"semaprax.agent-checkpoint.observation.v1\0";
+- RESULT_DOMAIN · constant · L42-L42 — pub(super) const RESULT_DOMAIN: &[u8] = b"semaprax.agent-checkpoint.result.v1\0";
+- SOURCE_DOMAIN · constant · L43-L43 — pub(super) const SOURCE_DOMAIN: &[u8] = b"semaprax.agent-checkpoint.source.v1\0";
+- TASK_DOMAIN · constant · L44-L44 — pub(super) const TASK_DOMAIN: &[u8] = b"semaprax.agent-checkpoint.task.v1\0";
+- MAX_CHECKPOINT_BYTES · constant · L46-L46 — const MAX_CHECKPOINT_BYTES: usize = 262_144;
+- MAX_JOURNAL_ENTRIES · constant · L47-L47 — const MAX_JOURNAL_ENTRIES: usize = 8;
+- NONCLAIMS · constant · L50-L59 — pub(super) const NONCLAIMS: [&str; 8] = [
+- malformed · function · L61-L66 — pub(super) fn malformed() -> Diagnostic
+- digest · function · L68-L73 — pub(super) fn digest(domain: &[u8], bytes: &[u8]) -> String
+- ProgramCounter · enum · L78-L91 — pub enum ProgramCounter
+- name · function · L95-L104 — pub const fn name(self) -> &'static str
+- parse · function · L106-L116 — fn parse(name: &str) -> Option<Self>
+- of · function · L118-L127 — pub(super) const fn of(entry: &JournalEntry) -> Self
+- Retention · enum · L132-L140 — pub enum Retention
+- name · function · L144-L149 — pub const fn name(self) -> &'static str
+- parse · function · L151-L157 — fn parse(name: &str) -> Option<Self>
+- CheckpointBinding · struct · L166-L175 — pub struct CheckpointBinding
+- drift · function · L184-L210 — pub(super) fn drift(&self, live: &Self) -> Option<&'static str>
+- CheckpointBudgets · struct · L219-L223 — pub struct CheckpointBudgets
+- AgentCheckpoint · struct · L230-L242 — pub struct AgentCheckpoint
+- seal · function · L245-L286 — pub(super) fn seal(
+- decode · function · L295-L316 — pub fn decode(document: &str) -> Result<Self, Vec<Diagnostic>>
+- document · function · L320-L322 — pub fn document(&self) -> &str
+- digest · function · L326-L328 — pub fn digest(&self) -> &str
+- generation · function · L332-L334 — pub const fn generation(&self) -> u64
+- agent_id · function · L337-L339 — pub fn agent_id(&self) -> &str
+- program_counter · function · L343-L345 — pub const fn program_counter(&self) -> ProgramCounter
+- retention · function · L349-L351 — pub const fn retention(&self) -> Retention
+- operation_identity · function · L357-L359 — pub fn operation_identity(&self) -> Option<&str>
+- journal_link · function · L363-L365 — pub fn journal_link(&self) -> &str
+- effect_grants_remaining · function · L369-L371 — pub const fn effect_grants_remaining(&self) -> usize
+- total_steps_remaining · function · L375-L377 — pub const fn total_steps_remaining(&self) -> usize
+- binding · function · L379-L381 — pub(super) const fn binding(&self) -> &CheckpointBinding
+- budgets · function · L383-L385 — pub(super) const fn budgets(&self) -> CheckpointBudgets
+- task_digest · function · L387-L389 — pub(super) fn task_digest(&self) -> &str
+- journal · function · L391-L393 — pub(super) fn journal(&self) -> &[JournalEntry]
+- Parsed · struct · L396-L406 — struct Parsed
+- render · function · L409-L450 — fn render(
+- text · function · L452-L454 — fn text<'a>(map: &'a Map<String, Value>, key: &str) -> Option<&'a str>
+- closed · function · L456-L458 — fn closed(map: &Map<String, Value>, keys: &[&str]) -> Option<()>
+- parse · function · L460-L538 — fn parse(body: &str) -> Option<Parsed>

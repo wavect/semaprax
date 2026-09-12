@@ -1,0 +1,25 @@
+# codegen/native_emit/expression/nested_owned.rs
+
+- owned_record_pattern_anchors · function · L14-L51 — pub(super) fn owned_record_pattern_anchors(
+- bind_record_match_pattern · function · L53-L270 — pub(super) fn bind_record_match_pattern<O: COutput>(
+- Frame · struct · L62-L72 — struct Frame<'p, 's>
+- wildcard_is_exact · function · L272-L278 — fn wildcard_is_exact(mode: hir::ResolvedMatchMode, owns_bytes: bool) -> bool
+- nested_record_binding_is_exact · function · L280-L282 — fn nested_record_binding_is_exact(contains_owned_bytes: bool) -> bool
+- emit_update_record_expr · function · L285-L348 — pub(super) fn emit_update_record_expr(
+- emit_nested_update_record · function · L350-L427 — fn emit_nested_update_record(
+- record_contains_owned_bytes · function · L429-L440 — pub(crate) fn record_contains_owned_bytes(
+- record_is_nested_owned · function · L442-L452 — fn record_is_nested_owned(&self, ty: &ResolvedType) -> Result<bool, Diagnostic>
+- record_update_uses_owned_plan · function · L454-L458 — fn record_update_uses_owned_plan(&self, ty: &ResolvedType) -> Result<bool, Diagnostic>
+- move_owned_record_fields · function · L460-L472 — pub(crate) fn move_owned_record_fields(
+- zero_owned_record_bytes · function · L474-L485 — pub(crate) fn zero_owned_record_bytes(
+- is_exact_record · function · L487-L503 — fn is_exact_record(&self, ty: &ResolvedType) -> Result<bool, Diagnostic>
+- classify_owned_record · function · L505-L582 — fn classify_owned_record(&self, root: &ResolvedType) -> Result<bool, Diagnostic>
+- Frame · enum · L506-L509 — enum Frame
+- move_fields · function · L584-L630 — fn move_fields(
+- Action · enum · L590-L593 — enum Action
+- zero_bytes · function · L632-L658 — fn zero_bytes(&mut self, destination: &str, ty: &ResolvedType) -> Result<(), Diagnostic>
+- Action · enum · L633-L636 — enum Action
+- match_admission_tests · module · L662-L683 — mod match_admission_tests
+- hostile_ownership_aware_hir_cannot_hide_owned_subtrees_with_wildcards · function · L667-L670 — fn hostile_ownership_aware_hir_cannot_hide_owned_subtrees_with_wildcards()
+- hostile_hir_cannot_bind_an_owning_record_as_one_terminal · function · L673-L676 — fn hostile_hir_cannot_bind_an_owning_record_as_one_terminal()
+- copy_only_wildcards_remain_admitted · function · L679-L682 — fn copy_only_wildcards_remain_admitted()

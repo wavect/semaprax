@@ -1,0 +1,41 @@
+# public_generic_surface/tests.rs
+
+- BASE · constant · L21-L56 — const BASE: &str = r#"
+- RENAMED · constant · L59-L94 — const RENAMED: &str = r#"
+- COPY_FIELD · constant · L97-L134 — const COPY_FIELD: &str = r#"
+- OWNED_FIELD · constant · L137-L175 — const OWNED_FIELD: &str = r#"
+- PERMUTED · constant · L178-L213 — const PERMUTED: &str = r#"
+- SUBSTITUTED · constant · L217-L252 — const SUBSTITUTED: &str = r#"
+- ARITY_CHANGED · constant · L256-L294 — const ARITY_CHANGED: &str = r#"
+- REORDERED_FIELDS · constant · L298-L335 — const REORDERED_FIELDS: &str = r#"
+- BORROWED · constant · L338-L372 — const BORROWED: &str = r#"
+- RESULT_I32 · constant · L375-L410 — const RESULT_I32: &str = r#"
+- EXTRAS · constant · L413-L449 — const EXTRAS: &str = r#"
+- PAIR_TERM · constant · L451-L451 — const PAIR_TERM: &str = "@12:surface.pair<@12:surface.leaf<>,bool>";
+- LEAF_TERM · constant · L452-L452 — const LEAF_TERM: &str = "@12:surface.leaf<>";
+- resolved · function · L454-L457 — fn resolved(source: &str) -> hir::ResolvedProgram
+- selection · function · L459-L461 — fn selection(ids: &[&str]) -> Vec<String>
+- surface · function · L463-L465 — fn surface(source: &str, ids: &[&str]) -> CandidateSurface
+- base · function · L467-L469 — fn base() -> CandidateSurface
+- reasons · function · L471-L480 — fn reasons(report: &CompatibilityReport) -> Vec<&'static str>
+- subjects · function · L482-L489 — fn subjects(report: &CompatibilityReport, reason: Reason) -> Vec<&str>
+- a_candidate_surface_describes_entries_positions_and_reachable_instances · function · L492-L537 — fn a_candidate_surface_describes_entries_positions_and_reachable_instances()
+- renaming_presentation_changes_no_identity_and_no_verdict · function · L543-L566 — fn renaming_presentation_changes_no_identity_and_no_verdict()
+- an_added_export_is_compatible_and_a_removed_one_is_breaking · function · L569-L585 — fn an_added_export_is_compatible_and_a_removed_one_is_breaking()
+- losing_the_last_reference_reports_reachability_without_double_counting · function · L591-L611 — fn losing_the_last_reference_reports_reachability_without_double_counting()
+- permuting_type_arguments_is_breaking · function · L620-L663 — fn permuting_type_arguments_is_breaking()
+- substituting_one_type_argument_is_breaking_with_an_exact_position_reason · function · L670-L699 — fn substituting_one_type_argument_is_breaking_with_an_exact_position_reason()
+- changing_a_templates_declared_arity_is_breaking_with_an_exact_template_reason · function · L706-L730 — fn changing_a_templates_declared_arity_is_breaking_with_an_exact_template_reason()
+- removing_a_field_is_breaking · function · L736-L746 — fn removing_a_field_is_breaking()
+- reordering_fields_is_breaking · function · L753-L780 — fn reordering_fields_is_breaking()
+- changing_a_parameter_ownership_mode_is_breaking · function · L784-L794 — fn changing_a_parameter_ownership_mode_is_breaking()
+- changing_the_result_type_is_breaking · function · L797-L803 — fn changing_the_result_type_is_breaking()
+- adding_a_copy_field_to_a_reachable_record_is_breaking · function · L810-L832 — fn adding_a_copy_field_to_a_reachable_record_is_breaking()
+- adding_an_owned_field_changes_the_owned_leaf_shape_too · function · L838-L857 — fn adding_an_owned_field_changes_the_owned_leaf_shape_too()
+- selection_fails_closed · function · L863-L908 — fn selection_fails_closed()
+- a_position_outside_the_grammar_rejects_with_its_grammar_reason · function · L913-L923 — fn a_position_outside_the_grammar_rejects_with_its_grammar_reason()
+- replay_requires_byte_equality · function · L927-L958 — fn replay_requires_byte_equality()
+- the_report_infers_no_version_support_or_runtime_decision · function · L963-L982 — fn the_report_infers_no_version_support_or_runtime_decision()
+- the_reason_vocabulary_is_closed_and_weighted · function · L987-L1058 — fn the_reason_vocabulary_is_closed_and_weighted()
+- REASONS · constant · L988-L1042 — const REASONS: [(Reason, &str, Verdict); 13] = [
+- comparison_is_reflexive_and_deterministic · function · L1063-L1077 — fn comparison_is_reflexive_and_deterministic()

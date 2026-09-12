@@ -1,0 +1,29 @@
+# public_generic_abi/descriptor.rs
+
+- DESCRIPTOR_SCHEMA · constant · L24-L24 — pub const DESCRIPTOR_SCHEMA: &str = "semaprax.public-generic-descriptor.v1";
+- IDENTITY_DOMAIN · constant · L26-L26 — const IDENTITY_DOMAIN: &[u8] = b"semaprax.public-generic-descriptor.v1.identity\0";
+- MALFORMED_DESCRIPTOR · constant · L30-L30 — pub const MALFORMED_DESCRIPTOR: &str = "SPX-PG701";
+- DESCRIPTOR_CAPACITY · constant · L32-L32 — pub const DESCRIPTOR_CAPACITY: &str = "SPX-PG702";
+- DESCRIPTOR_REPLAY_MISMATCH · constant · L35-L35 — pub const DESCRIPTOR_REPLAY_MISMATCH: &str = "SPX-PG703";
+- DESCRIPTOR_VERSION_MISMATCH · constant · L38-L38 — pub const DESCRIPTOR_VERSION_MISMATCH: &str = "SPX-PG704";
+- InstanceBinding · struct · L47-L50 — pub struct InstanceBinding
+- from_facts · function · L56-L61 — pub fn from_facts(facts: &InstanceFacts) -> Self
+- DescriptorV1 · struct · L68-L79 — pub struct DescriptorV1
+- new · function · L85-L106 — pub fn new(
+- export_id · function · L108-L110 — pub fn export_id(&self) -> &str
+- export_name · function · L112-L114 — pub fn export_name(&self) -> &str
+- boundary_profile · function · L116-L118 — pub fn boundary_profile(&self) -> &str
+- type_grammar_schema · function · L120-L122 — pub fn type_grammar_schema(&self) -> &str
+- input · function · L124-L126 — pub fn input(&self) -> &InstanceBinding
+- result · function · L128-L130 — pub fn result(&self) -> &InstanceBinding
+- with_export_name · function · L134-L137 — pub fn with_export_name(mut self, export_name: impl Into<String>) -> Self
+- identity_preimage · function · L139-L153 — fn identity_preimage(&self) -> Vec<u8>
+- identity_digest · function · L158-L160 — pub fn identity_digest(&self) -> String
+- encode · function · L165-L169 — pub fn encode(&self) -> Vec<u8>
+- malformed · function · L172-L177 — fn malformed(subject: &str) -> Diagnostic
+- capacity · function · L179-L184 — fn capacity(subject: &str) -> Diagnostic
+- decode · function · L190-L240 — pub fn decode(bytes: &[u8]) -> Result<DescriptorV1, Diagnostic>
+- replay · function · L248-L265 — pub fn replay(candidate: &[u8], trusted: &DescriptorV1) -> Result<DescriptorV1, Diagnostic>
+- producer · module · L267-L267 — pub mod producer;
+- verify · module · L268-L268 — pub mod verify;
+- tests · module · L271-L271 — mod tests;

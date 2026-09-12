@@ -1,0 +1,48 @@
+# hir/workspace_link.rs
+
+- link_scalar_project_workspace · function · L14-L21 — pub(crate) fn link_scalar_project_workspace(
+- link_scalar_project_exports · function · L23-L30 — pub(crate) fn link_scalar_project_exports(
+- link_package_scalar_workspace · function · L35-L41 — pub(crate) fn link_package_scalar_workspace(
+- LinkedScalarProjectParts · struct · L43-L50 — pub(crate) struct LinkedScalarProjectParts
+- link_scalar_workspace_impl · function · L52-L294 — fn link_scalar_workspace_impl(
+- link_useful_text_workspace · function · L300-L408 — pub(crate) fn link_useful_text_workspace(
+- link_useful_data_workspace · function · L416-L427 — pub(crate) fn link_useful_data_workspace(
+- link_owned_data_api_workspace · function · L434-L534 — pub(crate) fn link_owned_data_api_workspace(
+- resolved_function_uses_vec · function · L536-L551 — fn resolved_function_uses_vec(function: &ResolvedFunction) -> bool
+- resolved_function_uses_box · function · L552-L567 — fn resolved_function_uses_box(function: &ResolvedFunction) -> bool
+- link_useful_data_command_workspace · function · L572-L583 — pub(crate) fn link_useful_data_command_workspace(
+- link_language_command_io_workspace · function · L588-L600 — pub(crate) fn link_language_command_io_workspace(
+- link_line_command_io_workspace · function · L606-L618 — pub(crate) fn link_line_command_io_workspace(
+- link_network_command_io_workspace · function · L623-L635 — pub(crate) fn link_network_command_io_workspace(
+- link_network_entry_workspace · function · L639-L650 — pub(crate) fn link_network_entry_workspace(
+- link_https_command_io_workspace · function · L654-L666 — pub(crate) fn link_https_command_io_workspace(
+- link_https_entry_workspace · function · L668-L679 — pub(crate) fn link_https_entry_workspace(
+- WorkspaceIoProfile · enum · L682-L691 — enum WorkspaceIoProfile
+- link_useful_data_workspace_profile · function · L693-L913 — fn link_useful_data_workspace_profile(
+- useful_data_workspace_parameter_admitted · function · L915-L934 — pub(crate) fn useful_data_workspace_parameter_admitted(
+- useful_data_workspace_return_admitted · function · L936-L946 — pub(crate) fn useful_data_workspace_return_admitted(ty: &ResolvedType) -> bool
+- owned_data_api_workspace_return_admitted · function · L948-L960 — pub(crate) fn owned_data_api_workspace_return_admitted(ty: &ResolvedType) -> bool
+- workspace_linker_prelude_program · function · L962-L975 — fn workspace_linker_prelude_program() -> Program
+- compiler_prelude_declarations · function · L977-L979 — pub(crate) fn compiler_prelude_declarations() -> Result<DeclarationIndex, Diagnostic>
+- compiler_prelude_declarations_for_vec · function · L981-L1004 — fn compiler_prelude_declarations_for_vec(
+- compiler_prelude_declarations_for · function · L1006-L1031 — fn compiler_prelude_declarations_for(
+- workspace_compiler_prelude · function · L1033-L1036 — fn workspace_compiler_prelude(
+- workspace_compiler_prelude_for_vec · function · L1038-L1042 — fn workspace_compiler_prelude_for_vec(
+- workspace_compiler_prelude_for · function · L1044-L1100 — fn workspace_compiler_prelude_for(
+- scalar_type · function · L1104-L1106 — fn scalar_type(ty: &ResolvedType) -> bool
+- COPY_SCALAR_NAMES · constant · L1111-L1111 — pub(crate) const COPY_SCALAR_NAMES: [&str; 7] = ["i64", "i32", "u8", "char", "f32", "f64", "bool"];
+- copy_scalar_type · function · L1116-L1127 — pub(crate) fn copy_scalar_type(ty: &ResolvedType) -> bool
+- PACKAGE_SCALAR_NAME · constant · L1133-L1133 — pub(crate) const PACKAGE_SCALAR_NAME: &str = "usize";
+- package_scalar_type · function · L1140-L1142 — pub(crate) fn package_scalar_type(ty: &ResolvedType) -> bool
+- link_error · function · L1144-L1146 — fn link_error(message: impl Into<String>) -> Diagnostic
+- rebuild_cleanup_metadata · function · L1148-L1210 — fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnostic>
+- resolved_function_uses_iterator · function · L1212-L1224 — fn resolved_function_uses_iterator(function: &ResolvedFunction) -> bool
+- tests · module · L1227-L1516 — mod tests
+- HOST_EFFECT · constant · L1232-L1232 — const HOST_EFFECT: &str = "host.adjust";
+- source · function · L1234-L1240 — fn source(path: &str, text: &str) -> WorkspaceSource
+- test_module · function · L1242-L1247 — fn test_module() -> WorkspaceSource
+- scalar_project_closure_retains_native_rust_imports_and_their_effectful_callers · function · L1250-L1303 — fn scalar_project_closure_retains_native_rust_imports_and_their_effectful_callers()
+- scalar_project_closure_rejects_an_ordinary_interface_import · function · L1306-L1340 — fn scalar_project_closure_rejects_an_ordinary_interface_import()
+- useful_text_consumer_workspace · function · L1352-L1392 — fn useful_text_consumer_workspace() -> WorkspaceSource
+- useful_text_consumer_closure_resolves_core_option_for_byte_get_match · function · L1395-L1466 — fn useful_text_consumer_closure_resolves_core_option_for_byte_get_match()
+- useful_text_consumer_public_signature_boundary_is_unchanged · function · L1478-L1515 — fn useful_text_consumer_public_signature_boundary_is_unchanged()

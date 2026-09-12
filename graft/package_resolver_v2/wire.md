@@ -1,0 +1,36 @@
+# package_resolver_v2/wire.rs
+
+- bf · function · L11-L13 — macro_rules! bf
+- charge · function · L15-L23 — pub(super) fn charge(work: &mut usize, units: usize) -> Result<(), Diagnostic>
+- render_wrapper · function · L25-L33 — pub(super) fn render_wrapper(payload: &str) -> String
+- parse_wrapper · function · L35-L65 — pub(super) fn parse_wrapper(wire: &str) -> Result<(), Diagnostic>
+- validate_payload · function · L67-L212 — fn validate_payload(payload: &Value) -> Result<(), Diagnostic>
+- require_keys · function · L214-L224 — fn require_keys(value: &Value, keys: &[&str], label: &str) -> Result<(), Diagnostic>
+- require_strings · function · L226-L231 — fn require_strings(value: &Value, keys: &[&str], label: &str) -> Result<(), Diagnostic>
+- require_numbers · function · L233-L238 — fn require_numbers(value: &Value, keys: &[&str], label: &str) -> Result<(), Diagnostic>
+- validate_json · function · L240-L258 — fn validate_json(wire: &str) -> Result<(), Diagnostic>
+- DuplicateParser · struct · L260-L264 — struct DuplicateParser<'a>
+- value · function · L267-L278 — fn value(&mut self) -> Result<(), Diagnostic>
+- object · function · L280-L298 — fn object(&mut self) -> Result<(), Diagnostic>
+- array · function · L300-L312 — fn array(&mut self) -> Result<(), Diagnostic>
+- string · function · L314-L340 — fn string(&mut self) -> Result<String, Diagnostic>
+- number · function · L342-L358 — fn number(&mut self) -> Result<(), Diagnostic>
+- literal · function · L360-L367 — fn literal(&mut self, literal: &[u8]) -> Result<(), Diagnostic>
+- enter · function · L369-L379 — fn enter(&mut self, byte: u8) -> Result<(), Diagnostic>
+- leave · function · L381-L387 — fn leave(&mut self) -> Result<(), Diagnostic>
+- expect · function · L389-L395 — fn expect(&mut self, byte: u8) -> Result<(), Diagnostic>
+- take · function · L397-L404 — fn take(&mut self, byte: u8) -> bool
+- peek · function · L406-L408 — fn peek(&self) -> Option<u8>
+- required_str · function · L411-L416 — pub(super) fn required_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, Diagnostic>
+- digest · function · L418-L427 — pub(super) fn digest(domain: &[u8], bytes: &[u8]) -> String
+- map_subject_error · function · L429-L434 — pub(super) fn map_subject_error(error: &Diagnostic) -> Diagnostic
+- map_lock_errors · function · L436-L441 — pub(super) fn map_lock_errors(errors: &[Diagnostic], message: &str) -> Diagnostic
+- map_lock_error · function · L443-L450 — pub(super) fn map_lock_error(error: &Diagnostic, message: &str) -> Diagnostic
+- option_error · function · L452-L454 — pub(super) fn option_error(message: impl Into<String>) -> Diagnostic
+- input_error · function · L455-L457 — pub(super) fn input_error(message: impl Into<String>) -> Diagnostic
+- authentication_error · function · L458-L460 — pub(super) fn authentication_error(message: impl Into<String>) -> Diagnostic
+- resolution_error · function · L461-L463 — pub(super) fn resolution_error(message: impl Into<String>) -> Diagnostic
+- policy_error · function · L464-L466 — pub(super) fn policy_error(message: impl Into<String>) -> Diagnostic
+- limit_error · function · L467-L469 — pub(super) fn limit_error(message: impl Into<String>) -> Diagnostic
+- wire_error · function · L470-L472 — pub(super) fn wire_error(message: impl Into<String>) -> Diagnostic
+- replay_error · function · L473-L475 — pub(super) fn replay_error(message: impl Into<String>) -> Diagnostic

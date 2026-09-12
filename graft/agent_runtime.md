@@ -1,0 +1,161 @@
+---
+covers: []
+---
+# agent_runtime.rs
+
+- PROFILE_SCHEMA · constant · L23-L23 — const PROFILE_SCHEMA: &str = "semaprax.agent-runtime-profile.v1";
+- TASK_SCHEMA · constant · L24-L24 — const TASK_SCHEMA: &str = "semaprax.agent-runtime-task.v1";
+- ACTION_SCHEMA · constant · L25-L25 — const ACTION_SCHEMA: &str = "semaprax.agent-runtime-action.v1";
+- TRACE_SCHEMA · constant · L26-L26 — const TRACE_SCHEMA: &str = "semaprax.agent-runtime-trace.v1";
+- EVIDENCE_SCHEMA · constant · L27-L27 — const EVIDENCE_SCHEMA: &str = "semaprax.agent-runtime-evidence.v1";
+- PROVIDER_REQUEST_SCHEMA · constant · L28-L28 — const PROVIDER_REQUEST_SCHEMA: &str = "semaprax.agent-runtime-provider-request.v1";
+- TOOL_RESULT_SCHEMA · constant · L29-L29 — const TOOL_RESULT_SCHEMA: &str = "semaprax.agent-runtime-tool-result.v1";
+- PROFILE_DOMAIN · constant · L31-L31 — const PROFILE_DOMAIN: &[u8] = b"semaprax.agent-runtime.profile-digest.v1\0";
+- TASK_DOMAIN · constant · L32-L32 — const TASK_DOMAIN: &[u8] = b"semaprax.agent-runtime.task-digest.v1\0";
+- ACTION_DOMAIN · constant · L33-L33 — const ACTION_DOMAIN: &[u8] = b"semaprax.agent-runtime.action-digest.v1\0";
+- TRACE_DOMAIN · constant · L34-L34 — const TRACE_DOMAIN: &[u8] = b"semaprax.agent-runtime.trace-digest.v1\0";
+- EVIDENCE_DOMAIN · constant · L35-L35 — const EVIDENCE_DOMAIN: &[u8] = b"semaprax.agent-runtime.evidence-digest.v1\0";
+- REQUEST_DOMAIN · constant · L36-L36 — const REQUEST_DOMAIN: &[u8] = b"semaprax.agent-runtime.provider-request-digest.v1\0";
+- PROVIDER_RESPONSE_DOMAIN · constant · L37-L37 — const PROVIDER_RESPONSE_DOMAIN: &[u8] = b"semaprax.agent-runtime.provider-response-digest.v1\0";
+- TOOL_RESULT_DOMAIN · constant · L38-L38 — const TOOL_RESULT_DOMAIN: &[u8] = b"semaprax.agent-runtime.tool-result-digest.v1\0";
+- RUN_ID_DOMAIN · constant · L39-L39 — const RUN_ID_DOMAIN: &[u8] = b"semaprax.agent-runtime.run-id.v1\0";
+- CALL_ID_DOMAIN · constant · L40-L40 — const CALL_ID_DOMAIN: &[u8] = b"semaprax.agent-runtime.call-id.v1\0";
+- FINAL_MESSAGE_DOMAIN · constant · L41-L41 — const FINAL_MESSAGE_DOMAIN: &[u8] = b"semaprax.agent-runtime.final-message-digest.v1\0";
+- MAX_PROFILE_BYTES · constant · L43-L43 — const MAX_PROFILE_BYTES: usize = 1_048_576;
+- MAX_TASK_BYTES · constant · L44-L44 — const MAX_TASK_BYTES: usize = 4_194_304;
+- MAX_MODELS · constant · L45-L45 — const MAX_MODELS: usize = 32;
+- MAX_TOOLS · constant · L46-L46 — const MAX_TOOLS: usize = 32;
+- MAX_CAPABILITIES · constant · L47-L47 — const MAX_CAPABILITIES: usize = 64;
+- MAX_TURNS · constant · L48-L48 — const MAX_TURNS: u64 = 16;
+- MAX_PROVIDER_ATTEMPTS · constant · L49-L49 — const MAX_PROVIDER_ATTEMPTS: u64 = 32;
+- MAX_RETRIES_PER_TURN · constant · L50-L50 — const MAX_RETRIES_PER_TURN: u64 = 1;
+- MAX_CONCURRENCY · constant · L51-L51 — const MAX_CONCURRENCY: u64 = 1;
+- MAX_ELAPSED_MS · constant · L52-L52 — const MAX_ELAPSED_MS: u64 = 300_000;
+- MAX_PROVIDER_REQUEST_BYTES · constant · L53-L53 — const MAX_PROVIDER_REQUEST_BYTES: u64 = 4_194_304;
+- MAX_PROVIDER_RESPONSE_BYTES · constant · L54-L54 — const MAX_PROVIDER_RESPONSE_BYTES: u64 = 1_048_576;
+- MAX_STREAM_CHUNKS · constant · L55-L55 — const MAX_STREAM_CHUNKS: u64 = 8_192;
+- MAX_TOTAL_PROVIDER_INPUT_BYTES · constant · L56-L56 — const MAX_TOTAL_PROVIDER_INPUT_BYTES: u64 = 33_554_432;
+- MAX_TOTAL_PROVIDER_OUTPUT_BYTES · constant · L57-L57 — const MAX_TOTAL_PROVIDER_OUTPUT_BYTES: u64 = 8_388_608;
+- MAX_REPORTED_MODEL_INPUT_TOKENS · constant · L58-L58 — const MAX_REPORTED_MODEL_INPUT_TOKENS: u64 = 2_097_152;
+- MAX_REPORTED_MODEL_OUTPUT_TOKENS · constant · L59-L59 — const MAX_REPORTED_MODEL_OUTPUT_TOKENS: u64 = 262_144;
+- MAX_USD_MICROUNITS · constant · L60-L60 — const MAX_USD_MICROUNITS: u64 = 10_000_000;
+- MAX_TOOL_CALLS · constant · L61-L61 — const MAX_TOOL_CALLS: u64 = 32;
+- MAX_TOOL_ARGUMENT_BYTES · constant · L62-L62 — const MAX_TOOL_ARGUMENT_BYTES: u64 = 262_144;
+- MAX_TOOL_RESULT_BYTES · constant · L63-L63 — const MAX_TOOL_RESULT_BYTES: u64 = 1_048_576;
+- MAX_TOTAL_TOOL_BYTES · constant · L64-L64 — const MAX_TOTAL_TOOL_BYTES: u64 = 16_777_216;
+- MAX_RETAINED_STATE_BYTES · constant · L65-L65 — const MAX_RETAINED_STATE_BYTES: u64 = 16_777_216;
+- MAX_TRACE_EVENTS · constant · L66-L66 — const MAX_TRACE_EVENTS: u64 = 4_096;
+- MAX_TRACE_BYTES · constant · L67-L67 — const MAX_TRACE_BYTES: u64 = 16_777_216;
+- MAX_EVIDENCE_BYTES · constant · L68-L68 — const MAX_EVIDENCE_BYTES: u64 = 20_971_520;
+- MAX_BUILDER_BYTES · constant · L69-L69 — const MAX_BUILDER_BYTES: usize = 67_108_864;
+- MAX_JSON_DEPTH · constant · L70-L70 — const MAX_JSON_DEPTH: usize = 16;
+- MAX_IDENTIFIER_BYTES · constant · L71-L71 — const MAX_IDENTIFIER_BYTES: usize = 240;
+- MAX_DESCRIPTION_BYTES · constant · L72-L72 — const MAX_DESCRIPTION_BYTES: usize = 4_096;
+- NONCLAIMS · constant · L74-L99 — const NONCLAIMS: [&str; 24] = [
+- Locality · enum · L102-L105 — enum Locality
+- text · function · L108-L113 — fn text(self) -> &'static str
+- QualityTier · enum · L117-L122 — enum QualityTier
+- text · function · L125-L132 — fn text(self) -> &'static str
+- RequiredLocality · enum · L136-L139 — enum RequiredLocality
+- text · function · L142-L147 — fn text(self) -> &'static str
+- ScalarKind · enum · L151-L155 — enum ScalarKind
+- text · function · L158-L164 — fn text(self) -> &'static str
+- SchemaField · struct · L168-L173 — struct SchemaField
+- ClosedSchema · struct · L176-L178 — struct ClosedSchema
+- Model · struct · L181-L191 — struct Model
+- Tool · struct · L194-L200 — struct Tool
+- Policy · struct · L203-L211 — struct Policy
+- EffectiveLimits · struct · L214-L237 — struct EffectiveLimits
+- Profile · struct · L240-L248 — struct Profile
+- Provenance · enum · L251-L255 — enum Provenance
+- text · function · L258-L264 — fn text(self) -> &'static str
+- ContextItem · struct · L268-L272 — struct ContextItem
+- Task · struct · L275-L281 — struct Task
+- Action · enum · L284-L294 — enum Action
+- UsageDelta · struct · L297-L306 — struct UsageDelta
+- Usage · struct · L309-L323 — struct Usage
+- TraceEvent · struct · L326-L337 — struct TraceEvent
+- AgentRunStatus · enum · L341-L349 — pub enum AgentRunStatus
+- text · function · L352-L362 — fn text(self) -> &'static str
+- Termination · struct · L366-L370 — struct Termination
+- AgentRun · struct · L373-L380 — pub struct AgentRun
+- fmt · function · L383-L385 — fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result
+- fmt · function · L389-L391 — fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result
+- AgentProviderAttempt · struct · L397-L400 — pub struct AgentProviderAttempt
+- new · function · L404-L406 — pub const fn new(disposition: AgentProviderDisposition, usage: AgentProviderUsage) -> Self
+- disposition · function · L409-L411 — pub const fn disposition(&self) -> AgentProviderDisposition
+- usage · function · L413-L415 — pub const fn usage(&self) -> AgentProviderUsage
+- AgentProviderDisposition · enum · L420-L424 — pub enum AgentProviderDisposition
+- AgentProviderUsage · struct · L428-L432 — pub struct AgentProviderUsage
+- new · function · L436-L442 — pub const fn new(input_tokens: u64, output_tokens: u64, usd_microunits: u64) -> Self
+- input_tokens · function · L445-L447 — pub const fn input_tokens(&self) -> u64
+- output_tokens · function · L449-L451 — pub const fn output_tokens(&self) -> u64
+- usd_microunits · function · L453-L455 — pub const fn usd_microunits(&self) -> u64
+- AgentHost · interface · L463-L489 — pub trait AgentHost
+- policy_epoch · function · L465-L465 — fn policy_epoch(&self) -> u64;
+- elapsed_ms · function · L467-L467 — fn elapsed_ms(&self) -> u64;
+- boundary_probe · function · L469-L469 — fn boundary_probe(&self) -> Box<dyn AgentBoundaryProbe>;
+- tokenize · function · L471-L471 — fn tokenize(&mut self, tokenizer_id: &str, request: &str) -> Option<u64>;
+- attempt_provider · function · L473-L480 — fn attempt_provider(
+- invoke_tool · function · L482-L488 — fn invoke_tool(
+- AgentBoundaryProbe · interface · L492-L497 — pub trait AgentBoundaryProbe
+- policy_epoch · function · L494-L494 — fn policy_epoch(&self) -> u64;
+- elapsed_ms · function · L496-L496 — fn elapsed_ms(&self) -> u64;
+- AgentProviderSink · struct · L500-L512 — pub struct AgentProviderSink
+- SinkRejection · enum · L515-L519 — enum SinkRejection
+- new · function · L522-L542 — fn new(
+- push · function · L545-L580 — pub fn push(&mut self, chunk: &[u8]) -> bool
+- AgentToolResultSink · struct · L584-L594 — pub struct AgentToolResultSink
+- new · function · L597-L615 — fn new(
+- push · function · L617-L647 — pub fn push(&mut self, chunk: &[u8]) -> bool
+- Agent · struct · L651-L656 — pub struct Agent<H: AgentHost>
+- AgentCancellation · struct · L660-L662 — pub struct AgentCancellation
+- new · function · L666-L670 — pub fn new() -> Self
+- cancel · function · L673-L675 — pub fn cancel(&self)
+- is_cancelled · function · L678-L680 — pub fn is_cancelled(&self) -> bool
+- default · function · L684-L686 — fn default() -> Self
+- status · function · L691-L693 — pub const fn status(&self) -> AgentRunStatus
+- final_message · function · L695-L697 — pub fn final_message(&self) -> Option<&str>
+- trace · function · L699-L701 — pub fn trace(&self) -> &str
+- trace_digest · function · L703-L705 — pub fn trace_digest(&self) -> &str
+- evidence · function · L707-L709 — pub fn evidence(&self) -> &str
+- evidence_digest · function · L711-L713 — pub fn evidence_digest(&self) -> &str
+- economic_binding · function · L715-L723 — pub(crate) fn economic_binding(&self) -> EconomicAgentBinding<'_>
+- EconomicAgentBinding · struct · L726-L732 — pub(crate) struct EconomicAgentBinding<'a>
+- RunStatus · type · L734-L734 — type RunStatus = AgentRunStatus;
+- AgentRuntimeEvidence · type · L735-L735 — type AgentRuntimeEvidence = AgentRun;
+- ProviderAttempt · type · L736-L736 — type ProviderAttempt = AgentProviderAttempt;
+- ProviderDisposition · type · L737-L737 — type ProviderDisposition = AgentProviderDisposition;
+- ProviderUsage · type · L738-L738 — type ProviderUsage = AgentProviderUsage;
+- ProviderSink · type · L739-L739 — type ProviderSink = AgentProviderSink;
+- ToolResultSink · type · L740-L740 — type ToolResultSink = AgentToolResultSink;
+- g204 · function · L742-L747 — fn g204(document: &str, schema: &str) -> Diagnostic
+- g205 · function · L749-L754 — fn g205(field: &str) -> Diagnostic
+- g206 · function · L756-L761 — fn g206() -> Diagnostic
+- g207 · function · L763-L768 — fn g207(reason: &str) -> Diagnostic
+- g208 · function · L770-L772 — fn g208(field: &str, maximum: u64) -> Diagnostic
+- g209 · function · L774-L779 — fn g209() -> Diagnostic
+- operational · function · L781-L783 — fn operational(code: &'static str, message: &'static str) -> Diagnostic
+- digest · function · L785-L790 — fn digest(domain: &[u8], bytes: &[u8]) -> String
+- run_id · function · L792-L803 — fn run_id(profile_digest: &str, task_digest: &str, nonce: &str) -> Result<String, Diagnostic>
+- call_id · function · L805-L813 — fn call_id(run_id: &str, turn: u64, tool_id: &str, arguments: &str) -> String
+- decode_hex_32 · function · L815-L828 — fn decode_hex_32(value: &str) -> Option<[u8; 32]>
+- canonical_document · function · L830-L871 — fn canonical_document<'a>(
+- json_depth · function · L873-L879 — fn json_depth(value: &Value) -> usize
+- exact_keys · function · L881-L883 — fn exact_keys(object: &Map<String, Value>, keys: &[&str]) -> bool
+- object · function · L885-L891 — fn object<'a>(
+- string_member · function · L893-L903 — fn string_member<'a>(
+- u64_member · function · L905-L915 — fn u64_member(
+- string_array_member · function · L917-L935 — fn string_array_member(
+- sorted_unique · function · L937-L939 — fn sorted_unique(values: &[String]) -> bool
+- canonical_identifier · function · L941-L948 — fn canonical_identifier(value: &str) -> bool
+- json_string_array · function · L950-L960 — fn json_string_array(values: &[String]) -> String
+- render_schema · function · L962-L980 — fn render_schema(schema: &ClosedSchema) -> String
+- parse_schema · function · L982-L1034 — fn parse_schema(value: &Value) -> Result<ClosedSchema, Diagnostic>
+- render_profile · function · L1036-L1112 — fn render_profile(profile: &Profile) -> String
+- render_effective_limits · function · L1114-L1116 — fn render_effective_limits(limits: EffectiveLimits) -> String
+- compatibility · module · L1121-L1121 — mod compatibility;
+- private · module · L1122-L1122 — mod private;
+- RuntimeV1CompatibilityProfile · type · L1124-L1124 — pub(crate) type RuntimeV1CompatibilityProfile = compatibility::RuntimeV1CompatibilityProfile;
+- proposal_compatibility_profile · function · L1126-L1130 — pub(crate) fn proposal_compatibility_profile(
+- tests · module · L1136-L1136 — mod tests;

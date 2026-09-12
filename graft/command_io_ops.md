@@ -1,0 +1,62 @@
+---
+covers: []
+---
+# command_io_ops.rs
+
+- ARGS_LEN_NAME · constant · L16-L16 — pub(crate) const ARGS_LEN_NAME: &str = "args_len";
+- ARG_UTF8_NAME · constant · L17-L17 — pub(crate) const ARG_UTF8_NAME: &str = "arg_utf8";
+- STDIN_READ_NAME · constant · L18-L18 — pub(crate) const STDIN_READ_NAME: &str = "stdin_read";
+- STDERR_WRITE_NAME · constant · L19-L19 — pub(crate) const STDERR_WRITE_NAME: &str = "stderr_write";
+- STDOUT_APPEND_NAME · constant · L20-L20 — pub(crate) const STDOUT_APPEND_NAME: &str = "stdout_append";
+- STDERR_APPEND_NAME · constant · L21-L21 — pub(crate) const STDERR_APPEND_NAME: &str = "stderr_append";
+- ARGS_LEN_ID · constant · L22-L22 — pub(crate) const ARGS_LEN_ID: &str = "core.host.args-len";
+- ARG_UTF8_ID · constant · L23-L23 — pub(crate) const ARG_UTF8_ID: &str = "core.host.arg-utf8";
+- STDIN_READ_ID · constant · L24-L24 — pub(crate) const STDIN_READ_ID: &str = "core.host.stdin-read";
+- STDERR_WRITE_ID · constant · L25-L25 — pub(crate) const STDERR_WRITE_ID: &str = "core.host.stderr-write";
+- STDOUT_APPEND_ID · constant · L26-L26 — pub(crate) const STDOUT_APPEND_ID: &str = "core.host.stdout-append";
+- STDERR_APPEND_ID · constant · L27-L27 — pub(crate) const STDERR_APPEND_ID: &str = "core.host.stderr-append";
+- ARGS_READ_EFFECT · constant · L28-L28 — pub(crate) const ARGS_READ_EFFECT: &str = "process.args.read";
+- STDIN_READ_EFFECT · constant · L29-L29 — pub(crate) const STDIN_READ_EFFECT: &str = "process.stdin.read";
+- STDERR_WRITE_EFFECT · constant · L30-L30 — pub(crate) const STDERR_WRITE_EFFECT: &str = "process.stderr.write";
+- STDOUT_WRITE_EFFECT · constant · L31-L31 — pub(crate) const STDOUT_WRITE_EFFECT: &str = "process.stdout.write";
+- INPUT_STATUS_DOMAIN · constant · L32-L32 — pub(crate) const INPUT_STATUS_DOMAIN: &str = "semaprax.command-input.v1";
+- STATUS_DOMAIN · constant · L34-L34 — pub(crate) const STATUS_DOMAIN: &str = INPUT_STATUS_DOMAIN;
+- OUTPUT_STATUS_DOMAIN · constant · L35-L35 — pub(crate) const OUTPUT_STATUS_DOMAIN: &str = "semaprax.command-output.v1";
+- MAX_ARGUMENTS · constant · L36-L36 — pub(crate) const MAX_ARGUMENTS: u64 = 16;
+- MAX_INPUT_BYTES · constant · L37-L37 — pub(crate) const MAX_INPUT_BYTES: u64 = 65_536;
+- MAX_OUTPUT_BYTES · constant · L39-L39 — pub(crate) const MAX_OUTPUT_BYTES: u64 = 65_536;
+- ARG_INDEX_OUT_OF_BOUNDS · constant · L40-L40 — pub(crate) const ARG_INDEX_OUT_OF_BOUNDS: u32 = 1;
+- ARG_INVALID_UTF8 · constant · L41-L41 — pub(crate) const ARG_INVALID_UTF8: u32 = 2;
+- STDIN_READ_FAILED · constant · L42-L42 — pub(crate) const STDIN_READ_FAILED: u32 = 3;
+- INPUT_CAPACITY_EXCEEDED · constant · L43-L43 — pub(crate) const INPUT_CAPACITY_EXCEEDED: u32 = 4;
+- OUTPUT_CAPACITY_EXCEEDED · constant · L44-L44 — pub(crate) const OUTPUT_CAPACITY_EXCEEDED: u32 = 1;
+- CommandOperationProfile · enum · L49-L67 — pub(crate) enum CommandOperationProfile
+- validate_operation_profile · function · L72-L259 — pub(crate) fn validate_operation_profile(
+- profile_error · function · L261-L263 — fn profile_error(message: impl Into<String>) -> Diagnostic
+- CommandIoFailure · enum · L266-L269 — pub(crate) enum CommandIoFailure
+- CommandIoStatusMetadata · struct · L272-L275 — pub(crate) struct CommandIoStatusMetadata
+- by_name · function · L277-L290 — pub(crate) fn by_name(name: &str) -> Option<ResolvedHostCommandOperation>
+- by_id · function · L292-L305 — pub(crate) fn by_id(id: &str) -> Option<ResolvedHostCommandOperation>
+- name · function · L307-L322 — pub(crate) const fn name(op: ResolvedHostCommandOperation) -> &'static str
+- id · function · L324-L339 — pub(crate) const fn id(op: ResolvedHostCommandOperation) -> &'static str
+- effect · function · L341-L357 — pub(crate) const fn effect(op: ResolvedHostCommandOperation) -> &'static str
+- failure · function · L359-L378 — pub(crate) const fn failure(op: ResolvedHostCommandOperation) -> CommandIoFailure
+- status_metadata · function · L383-L429 — pub(crate) const fn status_metadata(
+- arity · function · L431-L445 — pub(crate) const fn arity(op: ResolvedHostCommandOperation) -> usize
+- ast_return_type · function · L447-L466 — pub(crate) const fn ast_return_type(op: ResolvedHostCommandOperation) -> Type
+- return_type · function · L468-L487 — pub(crate) const fn return_type(op: ResolvedHostCommandOperation) -> ResolvedType
+- result_ownership · function · L489-L508 — pub(crate) const fn result_ownership(op: ResolvedHostCommandOperation) -> OwnershipMode
+- required_effects · function · L512-L521 — pub(crate) fn required_effects(
+- admitted_in_while · function · L527-L546 — pub(crate) const fn admitted_in_while(op: ResolvedHostCommandOperation) -> bool
+- accepts_ast · function · L548-L569 — pub(crate) fn accepts_ast(op: ResolvedHostCommandOperation, index: usize, ty: &Type) -> bool
+- accepts_resolved · function · L571-L605 — pub(crate) fn accepts_resolved(
+- ast_params · function · L607-L650 — pub(crate) fn ast_params(op: ResolvedHostCommandOperation) -> Vec<Param>
+- resolved_params · function · L652-L668 — pub(crate) fn resolved_params(op: ResolvedHostCommandOperation) -> Vec<ResolvedParam>
+- tests · module · L671-L888 — mod tests
+- resolved · function · L676-L679 — fn resolved(source: &str) -> ResolvedProgram
+- append_operations_have_exact_closed_signatures_and_status_space · function · L682-L720 — fn append_operations_have_exact_closed_signatures_and_status_space()
+- NETWORK_MODULE · constant · L722-L745 — const NETWORK_MODULE: &str = r#"
+- network_operations_belong_only_to_the_network_profile · function · L748-L788 — fn network_operations_belong_only_to_the_network_profile()
+- while_admission_and_required_effects_follow_the_operation_tables · function · L791-L839 — fn while_admission_and_required_effects_follow_the_operation_tables()
+- language_v1_rejects_byte_range_reached_directly_from_a_contract · function · L842-L861 — fn language_v1_rejects_byte_range_reached_directly_from_a_contract()
+- language_v1_follows_a_helper_reached_only_from_a_contract · function · L864-L887 — fn language_v1_follows_a_helper_reached_only_from_a_contract()

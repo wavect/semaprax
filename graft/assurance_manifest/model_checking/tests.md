@@ -1,0 +1,72 @@
+# assurance_manifest/model_checking/tests.rs
+
+- BOUNDS · constant · L20-L24 — const BOUNDS: Bounds = Bounds
+- EmptyToy · struct · L27-L27 — struct EmptyToy;
+- State · type · L30-L30 — type State = u8;
+- Event · type · L31-L31 — type Event = u8;
+- initial_states · function · L33-L35 — fn initial_states(&self) -> Vec<u8>
+- enabled_events · function · L37-L39 — fn enabled_events(&self, _state: &u8) -> Vec<u8>
+- apply · function · L41-L43 — fn apply(&self, state: &u8, _event: &u8) -> Option<u8>
+- is_terminal · function · L45-L47 — fn is_terminal(&self, _state: &u8) -> bool
+- safety_invariant · function · L49-L51 — fn safety_invariant(&self, _state: &u8) -> Result<(), String>
+- vacuous_empty_initial_state_space_is_not_verified · function · L55-L59 — fn vacuous_empty_initial_state_space_is_not_verified()
+- vacuous_empty_initial_state_space_is_not_reported_reachable_or_never_reached · function · L62-L65 — fn vacuous_empty_initial_state_space_is_not_reported_reachable_or_never_reached()
+- IncompleteToy · struct · L75-L75 — pub(super) struct IncompleteToy;
+- State · type · L78-L78 — type State = u8;
+- Event · type · L79-L79 — type Event = u8;
+- initial_states · function · L81-L83 — fn initial_states(&self) -> Vec<u8>
+- enabled_events · function · L85-L87 — fn enabled_events(&self, _state: &u8) -> Vec<u8>
+- apply · function · L89-L91 — fn apply(&self, _state: &u8, _event: &u8) -> Option<u8>
+- is_terminal · function · L93-L95 — fn is_terminal(&self, _state: &u8) -> bool
+- safety_invariant · function · L97-L102 — fn safety_invariant(&self, _state: &u8) -> Result<(), String>
+- under_implemented_transition_table_is_reported_as_dead_state_not_verified · function · L106-L116 — fn under_implemented_transition_table_is_reported_as_dead_state_not_verified()
+- under_implemented_transition_table_is_reported_as_dead_state_for_reachability_too · function · L119-L126 — fn under_implemented_transition_table_is_reported_as_dead_state_for_reachability_too()
+- DeclaredTerminalToy · struct · L133-L133 — struct DeclaredTerminalToy;
+- State · type · L136-L136 — type State = u8;
+- Event · type · L137-L137 — type Event = u8;
+- initial_states · function · L139-L141 — fn initial_states(&self) -> Vec<u8>
+- enabled_events · function · L143-L145 — fn enabled_events(&self, _state: &u8) -> Vec<u8>
+- apply · function · L147-L149 — fn apply(&self, _state: &u8, _event: &u8) -> Option<u8>
+- is_terminal · function · L151-L153 — fn is_terminal(&self, _state: &u8) -> bool
+- safety_invariant · function · L155-L157 — fn safety_invariant(&self, _state: &u8) -> Result<(), String>
+- a_declared_terminal_dead_end_is_verified · function · L161-L166 — fn a_declared_terminal_dead_end_is_verified()
+- UnboundedCounter · struct · L170-L170 — struct UnboundedCounter;
+- State · type · L173-L173 — type State = u32;
+- Event · type · L174-L174 — type Event = ();
+- initial_states · function · L176-L178 — fn initial_states(&self) -> Vec<u32>
+- enabled_events · function · L180-L182 — fn enabled_events(&self, _state: &u32) -> Vec<()>
+- apply · function · L184-L186 — fn apply(&self, state: &u32, (): &()) -> Option<u32>
+- is_terminal · function · L188-L190 — fn is_terminal(&self, _state: &u32) -> bool
+- safety_invariant · function · L192-L194 — fn safety_invariant(&self, _state: &u32) -> Result<(), String>
+- unbounded_state_space_reports_max_states_exhaustion_not_verified · function · L198-L212 — fn unbounded_state_space_reports_max_states_exhaustion_not_verified()
+- unbounded_state_space_reports_max_transitions_exhaustion_when_that_is_the_tighter_bound · function · L215-L228 — fn unbounded_state_space_reports_max_transitions_exhaustion_when_that_is_the_tighter_bound()
+- unbounded_state_space_reports_max_depth_exhaustion_when_that_is_the_tighter_bound · function · L231-L244 — fn unbounded_state_space_reports_max_depth_exhaustion_when_that_is_the_tighter_bound()
+- unbounded_state_space_never_reaches_an_unsatisfiable_target_within_bound_is_bound_exhausted_not_never_reached · function · L247-L262 — fn unbounded_state_space_never_reaches_an_unsatisfiable_target_within_bound_is_bound_exhausted_not_never_reached(
+- BranchingToy · struct · L267-L267 — struct BranchingToy;
+- State · type · L270-L270 — type State = u8;
+- Event · type · L271-L271 — type Event = u8;
+- initial_states · function · L273-L275 — fn initial_states(&self) -> Vec<u8>
+- enabled_events · function · L277-L283 — fn enabled_events(&self, state: &u8) -> Vec<u8>
+- apply · function · L285-L287 — fn apply(&self, state: &u8, event: &u8) -> Option<u8>
+- is_terminal · function · L289-L291 — fn is_terminal(&self, state: &u8) -> bool
+- safety_invariant · function · L293-L295 — fn safety_invariant(&self, _state: &u8) -> Result<(), String>
+- determinism_two_runs_of_a_branching_model_are_byte_identical · function · L299-L307 — fn determinism_two_runs_of_a_branching_model_are_byte_identical()
+- determinism_holds_for_reachability_search_too · function · L310-L314 — fn determinism_holds_for_reachability_search_too()
+- ViolatesImmediately · struct · L318-L318 — struct ViolatesImmediately;
+- State · type · L321-L321 — type State = u8;
+- Event · type · L322-L322 — type Event = u8;
+- initial_states · function · L324-L326 — fn initial_states(&self) -> Vec<u8>
+- enabled_events · function · L328-L330 — fn enabled_events(&self, _state: &u8) -> Vec<u8>
+- apply · function · L332-L334 — fn apply(&self, _state: &u8, _event: &u8) -> Option<u8>
+- is_terminal · function · L336-L338 — fn is_terminal(&self, _state: &u8) -> bool
+- safety_invariant · function · L340-L342 — fn safety_invariant(&self, _state: &u8) -> Result<(), String>
+- a_violation_at_an_initial_state_is_reported_with_an_empty_trace · function · L346-L355 — fn a_violation_at_an_initial_state_is_reported_with_an_empty_trace()
+- TwoInitials · struct · L360-L360 — struct TwoInitials;
+- State · type · L363-L363 — type State = u8;
+- Event · type · L364-L364 — type Event = u8;
+- initial_states · function · L366-L368 — fn initial_states(&self) -> Vec<u8>
+- enabled_events · function · L370-L372 — fn enabled_events(&self, _state: &u8) -> Vec<u8>
+- apply · function · L374-L376 — fn apply(&self, _state: &u8, _event: &u8) -> Option<u8>
+- is_terminal · function · L378-L380 — fn is_terminal(&self, _state: &u8) -> bool
+- safety_invariant · function · L382-L388 — fn safety_invariant(&self, state: &u8) -> Result<(), String>
+- multiple_initial_states_are_each_checked_for_safety · function · L392-L401 — fn multiple_initial_states_are_each_checked_for_safety()

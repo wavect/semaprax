@@ -1,0 +1,27 @@
+# project/candidate/schemas.rs
+
+- EXPRESSION_ID · constant · L17-L17 — const EXPRESSION_ID: &str = "urn:semaprax.typed-expression.v1";
+- INTENT_ID · constant · L18-L18 — const INTENT_ID: &str = "urn:semaprax.semantic-change-intent.v1";
+- CHANGE_ID · constant · L19-L19 — const CHANGE_ID: &str = "urn:semaprax.semantic-change.v1";
+- COMPUTED_SCALAR_KINDS · constant · L20-L20 — const COMPUTED_SCALAR_KINDS: &[&str] = &["i64", "i32", "u8", "usize", "bool"];
+- SIGNATURE_LITERAL_KINDS · constant · L21-L22 — const SIGNATURE_LITERAL_KINDS: &[&str] =
+- RECORD_FIELD_LITERAL_KINDS · constant · L23-L23 — const RECORD_FIELD_LITERAL_KINDS: &[&str] = &["i64", "bool", "i32", "u8", "usize"];
+- HEX32_PATTERN · constant · L24-L24 — const HEX32_PATTERN: &str = "^[0-9a-f]{8}$";
+- HEX64_PATTERN · constant · L25-L25 — const HEX64_PATTERN: &str = "^[0-9a-f]{16}$";
+- constructor_schemas · function · L32-L93 — pub fn constructor_schemas() -> Result<String, Vec<Diagnostic>>
+- document · function · L96-L98 — fn document(id: &str, root: &str, definitions: Value) -> Value
+- closed · function · L100-L106 — fn closed(fields: &[(&str, Value)]) -> Value
+- reference · function · L108-L110 — fn reference(name: &str) -> Value
+- text · function · L111-L113 — fn text(max: usize) -> Value
+- identifier · function · L115-L117 — fn identifier() -> Value
+- literal · function · L119-L153 — fn literal(kind: &str) -> Value
+- expression_schema · function · L155-L318 — fn expression_schema() -> Value
+- new_parameter · function · L320-L322 — fn new_parameter() -> Value
+- computed_parameter · function · L324-L333 — fn computed_parameter() -> Value
+- intent_schema · function · L335-L464 — fn intent_schema() -> Value
+- digest_schema · function · L466-L468 — fn digest_schema() -> Value
+- stable_id · function · L469-L471 — fn stable_id() -> Value
+- nominal_type_schema · function · L472-L482 — fn nominal_type_schema() -> Value
+- declaration_schema · function · L484-L514 — fn declaration_schema() -> Value
+- function_declaration_schema · function · L516-L571 — fn function_declaration_schema() -> Value
+- aggregate_expression_schema_tests · module · L575-L575 — mod aggregate_expression_schema_tests;

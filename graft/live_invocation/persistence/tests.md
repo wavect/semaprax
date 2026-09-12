@@ -1,0 +1,21 @@
+# live_invocation/persistence/tests.rs
+
+- SCHEMA_DIGEST · constant · L14-L15 — const SCHEMA_DIGEST: &str =
+- identity · function · L17-L26 — fn identity() -> LiveInvocationId
+- RecordingStore · struct · L36-L40 — struct RecordingStore
+- failing_from · function · L43-L48 — fn failing_from(call: usize) -> Self
+- last · function · L50-L52 — fn last(&self) -> &str
+- commit · function · L56-L63 — fn commit(&mut self, _generation: u64, document: &str) -> Result<(), CheckpointStoreError>
+- sample_journal · function · L66-L79 — fn sample_journal() -> Vec<JournalEntry>
+- encode_then_recover_round_trips_the_exact_entries · function · L82-L89 — fn encode_then_recover_round_trips_the_exact_entries()
+- recovery_rejects_a_document_bound_to_a_different_invocation · function · L92-L108 — fn recovery_rejects_a_document_bound_to_a_different_invocation()
+- recovery_rejects_an_unknown_schema_tag · function · L111-L119 — fn recovery_rejects_an_unknown_schema_tag()
+- recovery_rejects_malformed_bytes · function · L122-L129 — fn recovery_rejects_malformed_bytes()
+- recovery_rejects_a_document_whose_entries_were_tampered_with_after_writing · function · L132-L148 — fn recovery_rejects_a_document_whose_entries_were_tampered_with_after_writing()
+- recovery_rejects_reordered_entries_even_though_each_entry_individually_decodes · function · L151-L174 — fn recovery_rejects_reordered_entries_even_though_each_entry_individually_decodes()
+- checkpoint_journal_sink_commits_an_incrementing_generation_each_call · function · L177-L189 — fn checkpoint_journal_sink_commits_an_incrementing_generation_each_call()
+- checkpoint_journal_sink_resumes_from_a_recovered_generation · function · L192-L203 — fn checkpoint_journal_sink_resumes_from_a_recovered_generation()
+- cfg · function · L209-L219 — fn cfg<'a>(identity: &'a LiveInvocationId) -> LiveInvocationConfig<'a>
+- a_store_failure_before_the_first_dispatch_makes_zero_model_calls · function · L226-L263 — fn a_store_failure_before_the_first_dispatch_makes_zero_model_calls()
+- a_store_failure_immediately_after_the_response_still_reports_the_real_dispatch_count · function · L266-L316 — fn a_store_failure_immediately_after_the_response_still_reports_the_real_dispatch_count()
+- a_fully_persisted_completed_run_recovers_and_replays_with_zero_dispatches · function · L319-L385 — fn a_fully_persisted_completed_run_recovers_and_replays_with_zero_dispatches()

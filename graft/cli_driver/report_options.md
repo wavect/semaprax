@@ -1,0 +1,23 @@
+# cli_driver/report_options.rs
+
+- workspace_analysis_target_kind · function · L3-L15 — pub(super) fn workspace_analysis_target_kind(
+- workspace_context_options · function · L17-L71 — pub(super) fn workspace_context_options(
+- workspace_impact_options · function · L73-L108 — pub(super) fn workspace_impact_options(
+- workspace_analysis_number · function · L110-L126 — pub(super) fn workspace_analysis_number(
+- impact_options · function · L128-L161 — pub(super) fn impact_options(args: &[String]) -> Result<impact::SemanticImpactOptions, u8>
+- impact_number · function · L163-L175 — pub(super) fn impact_number(option: &str, value: &str) -> Result<usize, u8>
+- openapi_options · function · L177-L230 — pub(super) fn openapi_options(
+- openapi_compat_options · function · L232-L260 — pub(super) fn openapi_compat_options(args: &[String]) -> Result<openapi::OpenApiOptions, u8>
+- openapi_number · function · L262-L274 — pub(super) fn openapi_number(option: &str, value: &str) -> Result<usize, u8>
+- property_options · function · L276-L320 — pub(super) fn property_options(args: &[String]) -> Result<properties::PropertyTestOptions, u8>
+- hygienic_options · function · L322-L357 — pub(super) fn hygienic_options(args: &[String]) -> Result<hygienic::HygienicGenOptions, u8>
+- hygienic_templates · function · L359-L376 — pub(super) fn hygienic_templates(option: &str, value: &str) -> Result<Vec<hygienic::Template>, u8>
+- abi_report_options · function · L378-L425 — pub(super) fn abi_report_options(args: &[String]) -> Result<abi_report::AbiReportOptions, u8>
+- c_header_options · function · L427-L484 — pub(super) fn c_header_options(args: &[String]) -> Result<(c_header::CHeaderOptions, bool), u8>
+- freestanding_object_options · function · L486-L517 — pub(super) fn freestanding_object_options(
+- capability_manifest_options · function · L519-L546 — pub(super) fn capability_manifest_options(
+- package_report_options · function · L548-L575 — pub(super) fn package_report_options(
+- region_report_options · function · L577-L604 — pub(super) fn region_report_options(
+- simd_report_options · function · L606-L631 — pub(super) fn simd_report_options(args: &[String]) -> Result<simd_report::SimdReportOptions, u8>
+- protocol_check_options · function · L633-L660 — pub(super) fn protocol_check_options(
+- tests · module · L664-L664 — mod tests;

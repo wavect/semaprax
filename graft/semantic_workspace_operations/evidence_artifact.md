@@ -1,0 +1,39 @@
+# semantic_workspace_operations/evidence_artifact.rs
+
+- EVIDENCE_SCHEMA · constant · L15-L15 — pub(super) const EVIDENCE_SCHEMA: &str = "semaprax.semantic-workspace-operations-evidence.v1";
+- VERIFICATION_RECEIPT_SCHEMA · constant · L16-L17 — pub(super) const VERIFICATION_RECEIPT_SCHEMA: &str =
+- APPLICATION_RECEIPT_SCHEMA · constant · L18-L19 — pub(super) const APPLICATION_RECEIPT_SCHEMA: &str =
+- EVIDENCE_DOMAIN · constant · L20-L21 — const EVIDENCE_DOMAIN: &[u8] =
+- MAX_CHANGE_EVIDENCE_BYTES · constant · L23-L23 — pub(super) const MAX_CHANGE_EVIDENCE_BYTES: usize = 1_048_576;
+- MAX_OPERATIONS_EVIDENCE_BYTES · constant · L24-L24 — pub(super) const MAX_OPERATIONS_EVIDENCE_BYTES: usize = 4_194_304;
+- MAX_RECEIPT_BYTES · constant · L25-L25 — pub(super) const MAX_RECEIPT_BYTES: usize = 65_536;
+- MAX_TOTAL_BYTES · constant · L26-L26 — pub(super) const MAX_TOTAL_BYTES: usize = 150_994_944;
+- NONCLAIMS · constant · L28-L53 — pub(super) const NONCLAIMS: [&str; 24] = [
+- SemanticWorkspaceOperationsEvidenceArtifacts · struct · L56-L66 — pub struct SemanticWorkspaceOperationsEvidenceArtifacts
+- operations_proposal_digest · function · L70-L72 — pub fn operations_proposal_digest(&self) -> &str
+- derivation · function · L74-L76 — pub fn derivation(&self) -> &str
+- derivation_digest · function · L78-L80 — pub fn derivation_digest(&self) -> &str
+- derived_change_proposal · function · L82-L84 — pub fn derived_change_proposal(&self) -> &str
+- derived_change_proposal_digest · function · L86-L88 — pub fn derived_change_proposal_digest(&self) -> &str
+- workspace_change_evidence · function · L90-L92 — pub fn workspace_change_evidence(&self) -> &str
+- workspace_change_evidence_digest · function · L94-L96 — pub fn workspace_change_evidence_digest(&self) -> &str
+- operations_evidence · function · L98-L100 — pub fn operations_evidence(&self) -> &str
+- operations_evidence_digest · function · L102-L104 — pub fn operations_evidence_digest(&self) -> &str
+- into_operations_evidence · function · L105-L107 — pub(super) fn into_operations_evidence(self) -> String
+- Usage · struct · L111-L121 — struct Usage
+- render_evidence · function · L123-L133 — pub(super) fn render_evidence(
+- render_evidence_with_limits · function · L135-L210 — fn render_evidence_with_limits(
+- render_evidence_with_test_limits · function · L213-L222 — pub(super) fn render_evidence_with_test_limits(
+- render_evidence_document · function · L224-L279 — fn render_evidence_document(
+- render_receipt · function · L281-L295 — pub(super) fn render_receipt(
+- render_receipt_with_limits · function · L297-L353 — fn render_receipt_with_limits(
+- render_receipt_with_test_limits · function · L356-L374 — pub(super) fn render_receipt_with_test_limits(
+- ExactOperationsEvidenceReplay · struct · L376-L384 — pub(super) struct ExactOperationsEvidenceReplay
+- exact_replay_token · function · L386-L407 — pub(super) fn exact_replay_token(
+- render_receipt_document · function · L409-L482 — fn render_receipt_document(
+- reference · function · L484-L490 — fn reference(out: &mut CappedString, schema: &str, digest: &str, bytes: usize)
+- push_limits · function · L492-L494 — fn push_limits(out: &mut CappedString)
+- push_budget · function · L496-L511 — fn push_budget(out: &mut CappedString, usage: Usage)
+- push_nonclaims · function · L513-L522 — fn push_nonclaims(out: &mut CappedString)
+- json · function · L524-L540 — fn json(out: &mut CappedString, value: &str)
+- digest · function · L542-L550 — fn digest(domain: &[u8], bytes: &[u8]) -> String

@@ -1,0 +1,33 @@
+# project/npm/owned_data.rs
+
+- invocation · module · L4-L4 — mod invocation;
+- OWNED_DATA_PACKAGE_PATHS · constant · L21-L28 — pub const OWNED_DATA_PACKAGE_PATHS: [&str; 6] = [
+- OWNED_DATA_API_SCHEMA · constant · L29-L29 — pub const OWNED_DATA_API_SCHEMA: &str = "semaprax.owned-data-api.v1";
+- MAX_WASM_BYTES · constant · L30-L30 — pub(super) const MAX_WASM_BYTES: usize = 16 * 1024 * 1024;
+- OwnedExport · struct · L33-L38 — struct OwnedExport
+- prepare · function · L40-L138 — pub(super) fn prepare(
+- validate_replayed · function · L140-L246 — pub(super) fn validate_replayed(
+- exports_from_descriptor · function · L248-L263 — fn exports_from_descriptor(
+- render_package · function · L265-L306 — fn render_package(
+- render_runtime · function · L308-L339 — fn render_runtime(
+- render_runtime_prelude · function · L342-L344 — fn render_runtime_prelude(wasm_sha256: &str) -> String
+- render_runtime_prelude_with_admission · function · L348-L369 — pub(super) fn render_runtime_prelude_with_admission(
+- LEGACY_INPUT_PRELUDE · constant · L371-L374 — const LEGACY_INPUT_PRELUDE: &str = r#"const TypedArrayPrototype=Object.getPrototypeOf(Uint8Array.prototype),typedTag=Object.getOwnPropertyDescriptor(TypedArrayPrototype,Symbol.toStringTag).get,typedBuffer=Object.getOwnPropertyDescriptor(TypedArrayPrototype,"buffer").get,typedOffset=Object.getOwnPropertyDescriptor(TypedArrayPrototype,"byteOffset").get,typedLength=Object.getOwnPropertyDescriptor(TypedArrayPrototype,"byteLength").get,typedSet=TypedArrayPrototype.set,reflectApply=Reflect.apply,objectGetPrototypeOf=Object.getPrototypeOf;
+- render_mixed_runtime_facade · function · L376-L417 — fn render_mixed_runtime_facade(exports: &[OwnedExport], bounded: bool) -> String
+- render_runtime_facade · function · L419-L453 — fn render_runtime_facade(exports: &[OwnedExport], bounded: bool) -> String
+- render_variant_runtime_facade · function · L455-L490 — fn render_variant_runtime_facade(exports: &[OwnedExport], bounded: bool) -> String
+- render_bounded_facade · function · L492-L520 — fn render_bounded_facade(exports: &[OwnedExport]) -> String
+- render_flat_runtime_facade · function · L522-L524 — pub(super) fn render_flat_runtime_facade(facts: &str) -> String
+- render_bindings · function · L526-L528 — fn render_bindings(_exports: &[OwnedExport], _wasm_sha256: &str) -> String
+- render_declarations · function · L530-L561 — fn render_declarations(exports: &[OwnedExport]) -> String
+- render_metadata · function · L563-L577 — fn render_metadata(
+- render_package_json · function · L579-L581 — fn render_package_json(package: &str, version: &str) -> String
+- parameter_wire · function · L582-L584 — fn parameter_wire(value: PublicApiParameterType) -> &'static str
+- parameter_ts · function · L585-L592 — fn parameter_ts(value: PublicApiParameterType) -> &'static str
+- result_ts · function · L593-L602 — fn result_ts(value: PublicApiResultType) -> &'static str
+- raw_symbol · function · L603-L610 — fn raw_symbol(stable_id: &str) -> String
+- descriptor_subject · function · L611-L618 — fn descriptor_subject(descriptor: &PublicApiDescriptor) -> PublicApiSubject<'_>
+- validate_identity · function · L619-L638 — pub(super) fn validate_identity(package: &str, version: &str) -> Result<(), Diagnostic>
+- hex_sha256 · function · L639-L641 — fn hex_sha256(bytes: &[u8]) -> String
+- artifact_bytes · function · L642-L648 — fn artifact_bytes<'a>(artifacts: &'a [NpmArtifact; 6], path: &str) -> Result<&'a [u8], Diagnostic>
+- hostile_source_tests · module · L652-L652 — mod hostile_source_tests;

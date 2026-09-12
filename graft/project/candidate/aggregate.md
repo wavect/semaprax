@@ -1,0 +1,38 @@
+# project/candidate/aggregate.rs
+
+- matching · module · L17-L17 — mod matching;
+- nominal · module · L19-L19 — mod nominal;
+- MAX_FIELDS · constant · L28-L28 — const MAX_FIELDS: usize = MAX_EXPRESSION_NODES - 1;
+- MAX_AGGREGATE_TYPE_ARGUMENTS · constant · L29-L30 — pub(in crate::project::candidate) const MAX_AGGREGATE_TYPE_ARGUMENTS: usize =
+- MAX_ITEMS · constant · L31-L31 — const MAX_ITEMS: usize = 65_536;
+- MAX_CATALOG_BYTES · constant · L32-L32 — const MAX_CATALOG_BYTES: usize = 1024 * 1024;
+- Plan · struct · L34-L39 — pub(super) struct Plan
+- ProjectionPlan · struct · L41-L44 — pub(super) struct ProjectionPlan
+- projection_plan · function · L46-L66 — pub(super) fn projection_plan(
+- field_place_plan · function · L68-L101 — pub(super) fn field_place_plan(
+- field_places · function · L103-L116 — pub(in crate::project::candidate) fn field_places(
+- field_place_dependency_fingerprint · function · L118-L138 — pub(in crate::project::candidate) fn field_place_dependency_fingerprint(
+- projection_subject · function · L140-L161 — fn projection_subject<'a>(
+- aggregate_projection_dependency_fingerprint · function · L164-L171 — pub(in crate::project::candidate) fn aggregate_projection_dependency_fingerprint(
+- aggregate_projections · function · L175-L231 — pub(in crate::project::candidate) fn aggregate_projections(
+- aggregate_updates · function · L235-L286 — pub(in crate::project::candidate) fn aggregate_updates(
+- Subject · struct · L288-L299 — struct Subject<'a>
+- plan · function · L301-L367 — pub(super) fn plan(
+- aggregate_dependency_fingerprint · function · L371-L379 — pub(in crate::project::candidate) fn aggregate_dependency_fingerprint(
+- aggregate_constructors · function · L382-L455 — pub(in crate::project::candidate) fn aggregate_constructors(
+- subject · function · L457-L509 — fn subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Subject<'a>>>
+- prelude_index · function · L513-L528 — fn prelude_index<'a>(
+- prelude_subject · function · L530-L713 — fn prelude_subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Subject<'a>>>
+- Payload · type · L577-L577 — type Payload = (&'static str, &'static str, u32);
+- Case · type · L578-L578 — type Case = (&'static str, &'static str, Option<Payload>);
+- PreludeShape · type · L579-L584 — type PreludeShape = (
+- visible_binding · function · L715-L731 — fn visible_binding(program: &Program, subject: &Subject<'_>) -> Result<Option<String>>
+- explicit_subject · function · L736-L751 — fn explicit_subject(revision: &ProjectRevision, subject: &Subject<'_>) -> bool
+- binding · function · L753-L780 — fn binding(program: &Program, owner: &str, provider: &str) -> Result<Option<String>>
+- descriptor · function · L782-L853 — fn descriptor(
+- vec_compiler_prelude · function · L855-L858 — fn vec_compiler_prelude(revision: &ProjectRevision) -> Value
+- selected_vec_prelude · function · L860-L867 — fn selected_vec_prelude(revision: &ProjectRevision) -> Option<(&'static str, String)>
+- retain_newest_vec_prelude · function · L869-L882 — fn retain_newest_vec_prelude(
+- selector · function · L884-L891 — fn selector(id: &str) -> Result<()>
+- tests · module · L894-L914 — mod tests
+- mixed_vec_box_source_retains_prelude_v4_over_v2_and_v3 · function · L898-L913 — fn mixed_vec_box_source_retains_prelude_v4_over_v2_and_v3()

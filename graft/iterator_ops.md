@@ -1,0 +1,53 @@
+---
+covers: []
+---
+# iterator_ops.rs
+
+- lazy_adapter_tests · module · L5-L5 — mod lazy_adapter_tests;
+- owned · module · L6-L6 — mod owned;
+- owned_tests · module · L8-L8 — mod owned_tests;
+- ITER_ID · constant · L10-L10 — pub(crate) const ITER_ID: &str = "core.iter";
+- STEP_ID · constant · L11-L11 — pub(crate) const STEP_ID: &str = "core.iter-step";
+- DONE_ID · constant · L12-L12 — pub(crate) const DONE_ID: &str = "core.iter-step.done";
+- YIELD_ID · constant · L13-L13 — pub(crate) const YIELD_ID: &str = "core.iter-step.yield";
+- ITEM_ID · constant · L14-L14 — pub(crate) const ITEM_ID: &str = "core.iter-step.yield.item";
+- REST_ID · constant · L15-L15 — pub(crate) const REST_ID: &str = "core.iter-step.yield.rest";
+- INTO_ITER_ID · constant · L16-L16 — pub(crate) const INTO_ITER_ID: &str = "core.vec.into-iter";
+- NEXT_ID · constant · L17-L17 — pub(crate) const NEXT_ID: &str = "core.iter.next";
+- IteratorOp · enum · L19-L22 — pub(crate) enum IteratorOp
+- ALL · constant · L23-L23 — pub(crate) const ALL: [IteratorOp; 2] = [IteratorOp::VecIntoIter, IteratorOp::Next];
+- name · function · L25-L30 — pub(crate) const fn name(self) -> &'static str
+- id · function · L31-L36 — pub(crate) const fn id(self) -> &'static str
+- param_ownership · function · L37-L39 — pub(crate) const fn param_ownership(self) -> OwnershipMode
+- ast_param_type · function · L40-L49 — pub(crate) fn ast_param_type(self, element: &Type) -> Type
+- ast_return_type · function · L50-L59 — pub(crate) fn ast_return_type(self, element: &Type) -> Type
+- resolved_param_type · function · L60-L69 — pub(crate) fn resolved_param_type(self, element: &ResolvedType) -> ResolvedType
+- resolved_return_type · function · L70-L79 — pub(crate) fn resolved_return_type(self, element: &ResolvedType) -> ResolvedType
+- by_name · function · L81-L83 — pub(crate) fn by_name(name: &str) -> Option<IteratorOp>
+- by_id · function · L84-L86 — pub(crate) fn by_id(id: &str) -> Option<IteratorOp>
+- ast_element_is_admitted · function · L87-L89 — pub(crate) fn ast_element_is_admitted(ty: &Type) -> bool
+- resolved_element_is_admitted · function · L90-L92 — pub(crate) fn resolved_element_is_admitted(ty: &ResolvedType) -> bool
+- nominal · function · L93-L98 — fn nominal(name: &str, element: Type) -> Type
+- resolved · function · L99-L104 — fn resolved(id: &str, element: ResolvedType) -> ResolvedType
+- resolved_iter · function · L105-L107 — pub(crate) fn resolved_iter(element: ResolvedType) -> ResolvedType
+- resolved_iter_step · function · L108-L110 — pub(crate) fn resolved_iter_step(element: ResolvedType) -> ResolvedType
+- element · function · L111-L122 — pub(crate) fn element(ty: &ResolvedType) -> Option<&ResolvedType>
+- is_iter · function · L123-L126 — pub(crate) fn is_iter(ty: &ResolvedType) -> bool
+- is_step · function · L127-L130 — pub(crate) fn is_step(ty: &ResolvedType) -> bool
+- ast_is_iterator · function · L131-L133 — pub(crate) fn ast_is_iterator(ty: &Type) -> bool
+- ast_params · function · L134-L141 — pub(crate) fn ast_params(op: IteratorOp, element: &Type) -> Vec<Param>
+- resolved_params · function · L142-L150 — pub(crate) fn resolved_params(op: IteratorOp, element: &ResolvedType) -> Vec<ResolvedParam>
+- program_uses_iterator · function · L151-L170 — pub(crate) fn program_uses_iterator(program: &crate::ast::Program) -> bool
+- uses_function · function · L152-L164 — fn uses_function(function: &crate::ast::Function) -> bool
+- ast_expression_uses_iterator · function · L174-L228 — pub(crate) fn ast_expression_uses_iterator(expression: &crate::ast::Expr) -> bool
+- ast_type_uses_iterator · function · L230-L248 — pub(crate) fn ast_type_uses_iterator(ty: &Type) -> bool
+- resolved_type_uses_iterator · function · L250-L271 — pub(crate) fn resolved_type_uses_iterator(ty: &ResolvedType) -> bool
+- resolved_expression_uses_iterator · function · L275-L308 — pub(crate) fn resolved_expression_uses_iterator(expression: &crate::hir::ResolvedExpr) -> bool
+- type_facts · function · L310-L335 — pub(crate) fn type_facts(
+- step_shape · function · L338-L354 — pub(crate) fn step_shape(index: &crate::hir::DeclarationIndex, ty: &ResolvedType) -> bool
+- validate_declarations · function · L355-L391 — pub(crate) fn validate_declarations(
+- is_step_rest_field · function · L393-L408 — pub(crate) fn is_step_rest_field(
+- tests · module · L411-L461 — mod tests
+- SOURCE · constant · L412-L417 — const SOURCE: &str = r#"module test.iterators;
+- iterator_source_hir_owns_yield_remainder · function · L419-L438 — fn iterator_source_hir_owns_yield_remainder()
+- iterator_source_rejects_implicit_copy_and_unsupported_owned_element · function · L440-L460 — fn iterator_source_rejects_implicit_copy_and_unsupported_owned_element()

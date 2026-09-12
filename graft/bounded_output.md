@@ -1,0 +1,64 @@
+---
+covers: []
+---
+# bounded_output.rs
+
+- Budget · struct · L6-L11 — struct Budget
+- with_limit · function · L17-L20 — pub(crate) fn with_limit<T>(limit: usize, operation: impl FnOnce() -> T) -> (T, bool)
+- with_limit_usage · function · L22-L70 — pub(crate) fn with_limit_usage<T>(limit: usize, operation: impl FnOnce() -> T) -> (T, bool, usize)
+- Restore · struct · L23-L27 — struct Restore
+- drop · function · L29-L47 — fn drop(&mut self)
+- active · function · L72-L74 — fn active() -> Option<Rc<Budget>>
+- reserve · function · L76-L93 — fn reserve(budget: Option<&Budget>, length: usize) -> bool
+- reserve_active · function · L95-L98 — pub(crate) fn reserve_active(length: usize) -> bool
+- reserve_active_preserving · function · L100-L113 — pub(crate) fn reserve_active_preserving(length: usize, floor: usize) -> bool
+- set_active_floor · function · L115-L124 — pub(crate) fn set_active_floor(floor: usize) -> bool
+- clear_active_floor · function · L126-L130 — pub(crate) fn clear_active_floor()
+- active_remaining · function · L132-L134 — pub(crate) fn active_remaining() -> Option<usize>
+- active_limit · function · L136-L138 — pub(crate) fn active_limit() -> Option<usize>
+- reserve_sink · function · L140-L146 — fn reserve_sink(captured: Option<&Rc<Budget>>, length: usize) -> bool
+- budgeted_format · function · L148-L165 — pub(crate) fn budgeted_format(arguments: fmt::Arguments<'_>) -> String
+- Counter · struct · L149-L149 — struct Counter(usize);
+- write_str · function · L151-L154 — fn write_str(&mut self, value: &str) -> fmt::Result
+- budgeted_join · function · L167-L170 — pub(crate) fn budgeted_join(values: impl IntoIterator<Item = String>, separator: &str) -> String
+- budgeted_clone · function · L172-L178 — pub(crate) fn budgeted_clone(value: &str) -> String
+- BudgetedJoin · interface · L180-L182 — pub(crate) trait BudgetedJoin
+- budgeted_join · function · L181-L181 — fn budgeted_join(&self, separator: &str) -> String;
+- budgeted_join · function · L185-L187 — fn budgeted_join(&self, separator: &str) -> String
+- join_slices · function · L190-L220 — fn join_slices<T: AsRef<str>>(values: &[T], separator: &str) -> String
+- CappedString · struct · L222-L225 — pub(crate) struct CappedString
+- new · function · L228-L233 — pub(crate) fn new() -> Self
+- allocated_capacity · function · L236-L238 — pub(crate) fn allocated_capacity(&self) -> usize
+- push_str · function · L240-L244 — pub(crate) fn push_str(&mut self, value: &str)
+- push · function · L246-L250 — pub(crate) fn push(&mut self, value: char)
+- into_string · function · L252-L254 — pub(crate) fn into_string(self) -> String
+- write_str · function · L258-L261 — fn write_str(&mut self, value: &str) -> fmt::Result
+- CappedVec · struct · L264-L267 — pub(crate) struct CappedVec
+- new · function · L270-L275 — pub(crate) fn new() -> Self
+- from_slice · function · L277-L281 — pub(crate) fn from_slice(value: &[u8]) -> Self
+- push · function · L283-L287 — pub(crate) fn push(&mut self, value: u8)
+- extend · function · L289-L291 — pub(crate) fn extend<const N: usize>(&mut self, values: [u8; N])
+- extend_from_slice · function · L293-L297 — pub(crate) fn extend_from_slice(&mut self, values: &[u8])
+- len · function · L299-L301 — pub(crate) fn len(&self) -> usize
+- into_vec · function · L303-L305 — pub(crate) fn into_vec(self) -> Vec<u8>
+- Target · type · L309-L309 — type Target = [u8];
+- deref · function · L311-L313 — fn deref(&self) -> &Self::Target
+- tests · module · L317-L759 — mod tests
+- exact_limit_succeeds_and_over_limit_fails_closed · function · L327-L343 — fn exact_limit_succeeds_and_over_limit_fails_closed()
+- join_length_is_checked_and_budgeted · function · L346-L356 — fn join_length_is_checked_and_budgeted()
+- nested_budget_debits_parent_and_parent_sink_uses_child · function · L359-L379 — fn nested_budget_debits_parent_and_parent_sink_uses_child()
+- panic_restores_and_debits_parent_budget · function · L382-L396 — fn panic_restores_and_debits_parent_budget()
+- usage_reports_exact_debits_and_preserves_nested_restoration · function · L399-L428 — fn usage_reports_exact_debits_and_preserves_nested_restoration()
+- zero_and_one_byte_budgets_admit_only_what_fits · function · L431-L467 — fn zero_and_one_byte_budgets_admit_only_what_fits()
+- budgets_count_bytes_and_never_split_a_code_point · function · L470-L512 — fn budgets_count_bytes_and_never_split_a_code_point()
+- capped_vec_writes_are_all_or_nothing_and_leave_the_budget_usable · function · L515-L540 — fn capped_vec_writes_are_all_or_nothing_and_leave_the_budget_usable()
+- a_floor_reserves_a_trailer_lane_without_reporting_overflow · function · L543-L570 — fn a_floor_reserves_a_trailer_lane_without_reporting_overflow()
+- preserving_reservations_check_a_trailer_without_arming_the_floor · function · L573-L587 — fn preserving_reservations_check_a_trailer_without_arming_the_floor()
+- reservations_outside_any_budget_always_succeed · function · L590-L598 — fn reservations_outside_any_budget_always_succeed()
+- a_nested_limit_is_clamped_to_what_the_parent_has_left · function · L601-L628 — fn a_nested_limit_is_clamped_to_what_the_parent_has_left()
+- a_child_that_would_consume_the_parents_floor_fails_the_parent_closed · function · L631-L644 — fn a_child_that_would_consume_the_parents_floor_fails_the_parent_closed()
+- a_child_that_breaches_the_parents_floor_is_still_charged_to_the_parent · function · L647-L685 — fn a_child_that_breaches_the_parents_floor_is_still_charged_to_the_parent()
+- identical_input_and_budget_produce_identical_output_after_an_overflow · function · L688-L708 — fn identical_input_and_budget_produce_identical_output_after_an_overflow()
+- render · function · L689-L696 — fn render(limit: usize) -> (String, bool)
+- formatting_and_cloning_charge_exact_byte_lengths · function · L711-L733 — fn formatting_and_cloning_charge_exact_byte_lengths()
+- joins_charge_one_separator_fewer_than_their_elements · function · L736-L758 — fn joins_charge_one_separator_fewer_than_their_elements()

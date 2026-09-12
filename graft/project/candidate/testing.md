@@ -1,0 +1,38 @@
+# project/candidate/testing.rs
+
+- PROJECT_CANDIDATE_TEST_PLAN_SCHEMA · constant · L16-L16 — pub const PROJECT_CANDIDATE_TEST_PLAN_SCHEMA: &str = "semaprax.project-candidate-test-plan.v1";
+- PROJECT_CANDIDATE_TEST_REPORT_SCHEMA · constant · L17-L17 — pub const PROJECT_CANDIDATE_TEST_REPORT_SCHEMA: &str = "semaprax.project-candidate-test-report.v1";
+- MAX_PROJECT_CANDIDATE_TEST_PLAN_BYTES · constant · L18-L18 — pub const MAX_PROJECT_CANDIDATE_TEST_PLAN_BYTES: usize = 65_536;
+- MAX_PROJECT_CANDIDATE_TEST_REPORT_BYTES · constant · L19-L19 — pub const MAX_PROJECT_CANDIDATE_TEST_REPORT_BYTES: usize = 2 * 1024 * 1024;
+- MAX_CANDIDATE_TEST_STEPS · constant · L20-L20 — pub const MAX_CANDIDATE_TEST_STEPS: usize = 1_000_000;
+- MAX_EXECUTION_BYTES · constant · L21-L21 — const MAX_EXECUTION_BYTES: usize = 65_536;
+- MAX_CALLS · constant · L22-L22 — const MAX_CALLS: usize = 65_536;
+- REPORT_DOMAIN · constant · L23-L23 — const REPORT_DOMAIN: &[u8] = b"semaprax.candidate-test.report.v1\0";
+- Result · type · L24-L24 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- CandidateTestPolicy · struct · L29-L33 — pub struct CandidateTestPolicy
+- new · function · L36-L56 — pub fn new(
+- max_steps · function · L57-L59 — pub fn max_steps(&self) -> usize
+- max_execution_bytes · function · L60-L62 — pub fn max_execution_bytes(&self) -> usize
+- max_report_bytes · function · L63-L65 — pub fn max_report_bytes(&self) -> usize
+- value · function · L66-L70 — fn value(&self) -> Value
+- CandidateTestReport · struct · L75-L79 — pub struct CandidateTestReport
+- to_json · function · L82-L84 — pub fn to_json(&self) -> &str
+- report_digest · function · L86-L88 — pub fn report_digest(&self) -> &str
+- passed · function · L89-L91 — pub fn passed(&self) -> bool
+- execution · function · L92-L94 — pub fn execution(&self) -> &ProjectExecution
+- ProjectCandidateTestTaskOutcome · enum · L105-L112 — pub enum ProjectCandidateTestTaskOutcome
+- PreparedCandidateTestReport · struct · L114-L118 — struct PreparedCandidateTestReport
+- finish · function · L121-L145 — fn finish(self, execution: ProjectExecution) -> Result<CandidateTestReport>
+- test_plan · function · L151-L286 — pub fn test_plan(&self, expected_candidate: &str) -> Result<String>
+- execute_tests · function · L291-L302 — pub fn execute_tests(
+- execute_tests_cancellable · function · L307-L357 — pub fn execute_tests_cancellable(
+- prepare_test_report · function · L359-L408 — fn prepare_test_report(
+- Reachability · struct · L411-L414 — struct Reachability
+- reachability · function · L416-L466 — fn reachability(revision: &ProjectRevision) -> Result<Reachability>
+- test_origin · function · L468-L490 — fn test_origin(revision: &ProjectRevision) -> Result<Value>
+- source_inventory · function · L492-L494 — fn source_inventory(revision: &ProjectRevision) -> Vec<Value>
+- diff_inventory · function · L496-L511 — fn diff_inventory(candidate: &ProjectCandidate) -> Result<Vec<Value>>
+- required_id · function · L513-L517 — fn required_id<'a>(value: &'a Value, key: &str) -> Result<&'a str>
+- render · function · L518-L521 — fn render(value: Value, bytes: usize) -> Result<String>
+- invalid · function · L522-L524 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L525-L527 — fn capacity(message: &'static str) -> Vec<Diagnostic>

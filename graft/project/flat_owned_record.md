@@ -1,0 +1,45 @@
+# project/flat_owned_record.rs
+
+- derivation · module · L16-L16 — mod derivation;
+- metadata · module · L17-L17 — mod metadata;
+- projections · module · L18-L18 — mod projections;
+- settlement · module · L19-L19 — mod settlement;
+- FLAT_OWNED_RECORD_PROJECT_SCHEMA · constant · L29-L29 — pub const FLAT_OWNED_RECORD_PROJECT_SCHEMA: &str = "semaprax.project.v9";
+- FLAT_OWNED_RECORD_API_SCHEMA · constant · L30-L30 — pub const FLAT_OWNED_RECORD_API_SCHEMA: &str = "semaprax.public-flat-owned-record-api.v1";
+- FLAT_OWNED_RECORD_METADATA_SCHEMA · constant · L31-L31 — pub const FLAT_OWNED_RECORD_METADATA_SCHEMA: &str = "semaprax.flat-owned-record-api.v1";
+- FLAT_OWNED_RECORD_NPM_BUILD_SCHEMA · constant · L32-L32 — pub const FLAT_OWNED_RECORD_NPM_BUILD_SCHEMA: &str = "semaprax.project-npm-build.v8";
+- MAX_FLAT_RECORD_FIELDS · constant · L33-L33 — pub const MAX_FLAT_RECORD_FIELDS: usize = 64;
+- MAX_FLAT_RECORD_DESCRIPTOR_BYTES · constant · L34-L34 — pub const MAX_FLAT_RECORD_DESCRIPTOR_BYTES: usize = 1024 * 1024;
+- DIGEST_DOMAIN · constant · L36-L36 — const DIGEST_DOMAIN: &[u8] = b"semaprax.public-flat-owned-record-api.digest.v1\0";
+- FlatOwnedRecordFieldType · enum · L39-L44 — pub enum FlatOwnedRecordFieldType
+- wire_name · function · L47-L54 — pub const fn wire_name(self) -> &'static str
+- typescript · function · L56-L62 — const fn typescript(self) -> &'static str
+- rust · function · L64-L71 — const fn rust(self) -> &'static str
+- FlatOwnedRecordField · struct · L75-L81 — pub struct FlatOwnedRecordField
+- stable_id · function · L84-L86 — pub fn stable_id(&self) -> &DeclarationId
+- source_name · function · L87-L89 — pub fn source_name(&self) -> &str
+- host_name · function · L90-L92 — pub fn host_name(&self) -> &str
+- ordinal · function · L93-L95 — pub const fn ordinal(&self) -> u32
+- ty · function · L96-L98 — pub const fn ty(&self) -> FlatOwnedRecordFieldType
+- FlatOwnedRecordExport · struct · L102-L111 — pub struct FlatOwnedRecordExport
+- stable_id · function · L114-L116 — pub fn stable_id(&self) -> &DeclarationId
+- typescript_name · function · L117-L119 — pub fn typescript_name(&self) -> &str
+- rust_method_name · function · L120-L122 — pub fn rust_method_name(&self) -> &str
+- parameters · function · L123-L125 — pub fn parameters(&self) -> &[(String, String, PublicApiParameterType)]
+- record_id · function · L126-L128 — pub fn record_id(&self) -> &DeclarationId
+- record_host_name · function · L129-L131 — pub fn record_host_name(&self) -> &str
+- record_source_name · function · L132-L134 — pub fn record_source_name(&self) -> &str
+- fields · function · L135-L137 — pub fn fields(&self) -> &[FlatOwnedRecordField]
+- FlatOwnedRecordCarrierPlan · struct · L143-L149 — pub struct FlatOwnedRecordCarrierPlan
+- FlatOwnedRecordApiDescriptor · struct · L152-L157 — pub struct FlatOwnedRecordApiDescriptor
+- exports · function · L160-L162 — pub fn exports(&self) -> &[FlatOwnedRecordExport]
+- project_revision · function · L163-L165 — pub fn project_revision(&self) -> &str
+- workspace_revision · function · L166-L168 — pub fn workspace_revision(&self) -> &str
+- project_graph_digest · function · L169-L171 — pub fn project_graph_digest(&self) -> &str
+- canonical_bytes · function · L172-L174 — pub fn canonical_bytes(&self) -> Vec<u8>
+- digest · function · L175-L177 — pub fn digest(&self) -> String
+- carrier_plans · function · L178-L199 — pub fn carrier_plans(&self) -> Vec<FlatOwnedRecordCarrierPlan>
+- replay_flat_owned_record_api_descriptor · function · L202-L257 — pub fn replay_flat_owned_record_api_descriptor(
+- render_descriptor · function · L259-L324 — fn render_descriptor(descriptor: &FlatOwnedRecordApiDescriptor) -> String
+- domain_digest · function · L326-L335 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- error · function · L337-L339 — fn error(message: impl Into<String>) -> Diagnostic

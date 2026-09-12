@@ -1,0 +1,34 @@
+# semantic_discovery/tests.rs
+
+- write_temp · function · L9-L18 — fn write_temp(source: &str) -> PathBuf
+- COUNTER · constant · L10-L10 — static COUNTER: AtomicUsize = AtomicUsize::new(0);
+- forward_options · function · L20-L34 — fn forward_options(depth: usize) -> AgentContextV2Options
+- base_snapshot · function · L39-L46 — fn base_snapshot(source: &str, symbol: &str, options: &AgentContextV2Options) -> (String, String)
+- V1_BASE · constant · L48-L55 — const V1_BASE: &str = "module test.discovery;
+- V2_RENAMED · constant · L57-L64 — const V2_RENAMED: &str = "module test.discovery;
+- V3_EFFECT_CHANGED · constant · L66-L75 — const V3_EFFECT_CHANGED: &str = "module test.discovery;
+- V4_ADDED_CALLEE · constant · L77-L87 — const V4_ADDED_CALLEE: &str = "module test.discovery;
+- V5_REMOVED_CALLEE · constant · L89-L96 — const V5_REMOVED_CALLEE: &str = "module test.discovery;
+- discovery_manifest_is_compact_and_measures_well_under_its_default_budget · function · L103-L127 — fn discovery_manifest_is_compact_and_measures_well_under_its_default_budget()
+- discovery_manifest_generation_is_byte_identical_on_repetition · function · L130-L137 — fn discovery_manifest_generation_is_byte_identical_on_repetition()
+- catalog_is_sorted_by_name_and_covers_every_tool_class · function · L140-L168 — fn catalog_is_sorted_by_name_and_covers_every_tool_class()
+- discovery_manifest_verifies_against_its_exact_source_and_fails_closed_on_drift · function · L171-L188 — fn discovery_manifest_verifies_against_its_exact_source_and_fails_closed_on_drift()
+- unchanged_revision_yields_an_unchanged_outcome_with_no_diff · function · L195-L212 — fn unchanged_revision_yields_an_unchanged_outcome_with_no_diff()
+- compute_context_delta_is_deterministic_for_the_same_revision_pair · function · L215-L234 — fn compute_context_delta_is_deterministic_for_the_same_revision_pair()
+- a_display_rename_changes_only_the_renamed_facts_and_preserves_identity · function · L237-L268 — fn a_display_rename_changes_only_the_renamed_facts_and_preserves_identity()
+- an_effect_declaration_change_updates_only_the_relevant_context_facts · function · L271-L305 — fn an_effect_declaration_change_updates_only_the_relevant_context_facts()
+- a_new_callee_is_reported_as_added_and_the_caller_as_changed · function · L308-L331 — fn a_new_callee_is_reported_as_added_and_the_caller_as_changed()
+- a_dropped_callee_is_reported_as_removed_and_the_caller_as_changed · function · L334-L356 — fn a_dropped_callee_is_reported_as_removed_and_the_caller_as_changed()
+- an_unknown_symbol_is_a_hard_error_not_an_empty_delta · function · L359-L373 — fn an_unknown_symbol_is_a_hard_error_not_an_empty_delta()
+- sample_current_and_base · function · L382-L393 — fn sample_current_and_base() -> (String, ParsedFixture)
+- ParsedFixture · struct · L395-L398 — struct ParsedFixture
+- outcome_of · function · L400-L403 — fn outcome_of(result: &str) -> String
+- reason_of · function · L405-L408 — fn reason_of(result: &str) -> String
+- a_malformed_base_document_forces_resynchronization · function · L411-L417 — fn a_malformed_base_document_forces_resynchronization()
+- a_schema_mismatched_base_forces_resynchronization · function · L420-L435 — fn a_schema_mismatched_base_forces_resynchronization()
+- a_base_that_lies_about_its_own_revision_forces_resynchronization · function · L438-L445 — fn a_base_that_lies_about_its_own_revision_forces_resynchronization()
+- a_base_for_a_different_target_forces_resynchronization · function · L448-L457 — fn a_base_for_a_different_target_forces_resynchronization()
+- a_base_built_from_a_different_query_shape_forces_resynchronization · function · L460-L472 — fn a_base_built_from_a_different_query_shape_forces_resynchronization()
+- a_truncated_base_forces_resynchronization_rather_than_an_incomplete_diff · function · L475-L484 — fn a_truncated_base_forces_resynchronization_rather_than_an_incomplete_diff()
+- an_oversized_delta_forces_resynchronization_instead_of_a_partial_diff · function · L487-L498 — fn an_oversized_delta_forces_resynchronization_instead_of_a_partial_diff()
+- equal_revisions_with_disagreeing_facts_is_a_hard_invariant_violation · function · L501-L512 — fn equal_revisions_with_disagreeing_facts_is_a_hard_invariant_violation()

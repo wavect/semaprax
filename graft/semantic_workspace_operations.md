@@ -1,0 +1,142 @@
+---
+covers: []
+---
+# semantic_workspace_operations.rs
+
+- evidence_artifact · module · L24-L24 — mod evidence_artifact;
+- evidence_verification · module · L25-L25 — mod evidence_verification;
+- nominal_rename · module · L26-L26 — mod nominal_rename;
+- SCHEMA · constant · L32-L32 — const SCHEMA: &str = "semaprax.semantic-workspace-operations.v1";
+- DIGEST_DOMAIN · constant · L33-L33 — const DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-workspace-operations.proposal-digest.v1\0";
+- MAX_PROPOSAL_BYTES · constant · L34-L34 — pub(crate) const MAX_PROPOSAL_BYTES: usize = 1_048_576;
+- MAX_OPERATIONS · constant · L35-L35 — const MAX_OPERATIONS: usize = 64;
+- MAX_AFFECTED_PATHS · constant · L36-L36 — const MAX_AFFECTED_PATHS: usize = 16;
+- MAX_PATH_BYTES · constant · L37-L37 — const MAX_PATH_BYTES: usize = 240;
+- MAX_TARGET_ID_BYTES · constant · L38-L38 — const MAX_TARGET_ID_BYTES: usize = 4096;
+- MAX_TARGET_MODULE_BYTES · constant · L39-L39 — const MAX_TARGET_MODULE_BYTES: usize = 240;
+- MAX_ENTRY_MODULE_BYTES · constant · L40-L40 — const MAX_ENTRY_MODULE_BYTES: usize = 16_777_216;
+- MAX_NAME_BYTES · constant · L41-L41 — const MAX_NAME_BYTES: usize = 128;
+- MAX_PLANNED_EDITS · constant · L42-L42 — const MAX_PLANNED_EDITS: usize = 131_072;
+- MAX_EDIT_REPLACEMENT_BYTES · constant · L43-L43 — const MAX_EDIT_REPLACEMENT_BYTES: usize = 16_777_216;
+- MAX_TOTAL_SOURCE_BYTES · constant · L44-L44 — const MAX_TOTAL_SOURCE_BYTES: usize = 16_777_216;
+- MAX_TOTAL_REPLACEMENT_SOURCE_BYTES · constant · L45-L45 — const MAX_TOTAL_REPLACEMENT_SOURCE_BYTES: usize = 4_194_304;
+- MAX_REPLACEMENT_SOURCE_BYTES_PER_PATH · constant · L46-L46 — const MAX_REPLACEMENT_SOURCE_BYTES_PER_PATH: usize = 1_048_576;
+- MAX_CANDIDATE_GRAPH_BUILDER_BYTES · constant · L47-L47 — pub(crate) const MAX_CANDIDATE_GRAPH_BUILDER_BYTES: usize = 16_777_216;
+- MAX_OPERATIONS_BUILDER_BYTES · constant · L48-L48 — pub(crate) const MAX_OPERATIONS_BUILDER_BYTES: usize = 67_108_864;
+- MAX_DERIVED_CHANGE_PROPOSAL_BYTES · constant · L49-L49 — const MAX_DERIVED_CHANGE_PROPOSAL_BYTES: usize = 33_554_432;
+- DERIVATION_SCHEMA · constant · L50-L50 — const DERIVATION_SCHEMA: &str = "semaprax.semantic-workspace-operations-derivation.v1";
+- DERIVATION_DOMAIN · constant · L51-L52 — const DERIVATION_DOMAIN: &[u8] =
+- WORKSPACE_MANIFEST_SCHEMA · constant · L53-L53 — const WORKSPACE_MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
+- CHANGE_SCHEMA · constant · L54-L54 — const CHANGE_SCHEMA: &str = "semaprax.workspace-semantic-change.v1";
+- MAX_DERIVATION_BYTES · constant · L55-L55 — const MAX_DERIVATION_BYTES: usize = 33_554_432;
+- MAX_TOTAL_DERIVATION_BYTES · constant · L56-L56 — const MAX_TOTAL_DERIVATION_BYTES: usize = 67_108_864;
+- MAX_JSON_DEPTH · constant · L57-L57 — const MAX_JSON_DEPTH: usize = 8;
+- reset_candidate_preflight_entry_count · function · L66-L68 — fn reset_candidate_preflight_entry_count()
+- candidate_preflight_entry_count · function · L71-L73 — fn candidate_preflight_entry_count() -> usize
+- reset_base_operations_preflight_entry_count · function · L76-L78 — fn reset_base_operations_preflight_entry_count()
+- base_operations_preflight_entry_count · function · L81-L83 — fn base_operations_preflight_entry_count() -> usize
+- mark_base_operations_preflight_entry · function · L86-L88 — pub(crate) fn mark_base_operations_preflight_entry()
+- mark_candidate_preflight_entry · function · L91-L93 — fn mark_candidate_preflight_entry()
+- DeclarationSubject · enum · L96-L107 — enum DeclarationSubject
+- parse · function · L110-L120 — fn parse(value: &str) -> Option<Self>
+- text · function · L122-L134 — const fn text(self) -> &'static str
+- ImportSubject · enum · L138-L141 — enum ImportSubject
+- parse · function · L144-L150 — fn parse(value: &str) -> Option<Self>
+- text · function · L152-L157 — const fn text(self) -> &'static str
+- Operation · enum · L161-L177 — enum Operation
+- sort_key · function · L180-L198 — fn sort_key(&self) -> (&str, u8, u8, &str, &str, &str, &str)
+- selector · function · L200-L203 — fn selector(&self) -> (&str, u8, u8, &str, &str)
+- path · function · L205-L207 — fn path(&self) -> &str
+- from · function · L208-L210 — fn from(&self) -> &str
+- to · function · L211-L213 — fn to(&self) -> &str
+- OperationsProposal · struct · L216-L222 — struct OperationsProposal
+- PlannedEditFact · struct · L225-L231 — pub(crate) struct PlannedEditFact
+- PreparedSemanticWorkspaceOperations · struct · L233-L251 — pub(crate) struct PreparedSemanticWorkspaceOperations
+- PreparedOperationsEvidenceInput · struct · L253-L258 — struct PreparedOperationsEvidenceInput
+- SemanticWorkspaceOperationsCommitAuthority · struct · L260-L271 — pub(crate) struct SemanticWorkspaceOperationsCommitAuthority
+- into_parts · function · L274-L298 — pub(crate) fn into_parts(
+- into_evidence_input · function · L302-L335 — fn into_evidence_input(
+- SemanticWorkspaceOperationsDerivation · struct · L339-L345 — pub struct SemanticWorkspaceOperationsDerivation
+- OperationsDerivePoint · enum · L348-L351 — pub(crate) enum OperationsDerivePoint
+- OperationsEvidencePoint · enum · L354-L363 — pub(crate) enum OperationsEvidencePoint
+- OperationsUsageFacts · struct · L366-L380 — struct OperationsUsageFacts
+- proposal_source · function · L384-L386 — pub(crate) fn proposal_source(&self) -> &str
+- proposal_digest · function · L387-L389 — pub(crate) fn proposal_digest(&self) -> &str
+- edits · function · L390-L392 — pub(crate) fn edits(&self) -> &[PlannedEditFact]
+- derived_change_proposal · function · L393-L395 — pub(crate) fn derived_change_proposal(&self) -> &str
+- derived_change · function · L396-L398 — pub(crate) fn derived_change(&self) -> &semantic_workspace_change::SemanticWorkspaceChangeSet
+- operations_len · function · L399-L401 — pub(crate) fn operations_len(&self) -> usize
+- candidate_sources · function · L402-L404 — pub(crate) fn candidate_sources(&self) -> &[semantic_workspace::SemanticWorkspaceFileFact]
+- base_graph · function · L405-L407 — pub(crate) fn base_graph(&self) -> &workspace_graph::WorkspaceGraphChangeView
+- candidate_graph · function · L408-L410 — pub(crate) fn candidate_graph(&self) -> &workspace_graph::WorkspaceGraphChangeView
+- used_operations_builder_bytes · function · L411-L413 — pub(crate) fn used_operations_builder_bytes(&self) -> usize
+- operations_proposal_digest · function · L418-L420 — pub fn operations_proposal_digest(&self) -> &str
+- derived_change_proposal · function · L423-L425 — pub fn derived_change_proposal(&self) -> &str
+- derived_change_proposal_digest · function · L428-L430 — pub fn derived_change_proposal_digest(&self) -> &str
+- derivation · function · L433-L435 — pub fn derivation(&self) -> &str
+- derivation_digest · function · L438-L440 — pub fn derivation_digest(&self) -> &str
+- into_derived_change_proposal · function · L442-L444 — fn into_derived_change_proposal(self) -> String
+- into_derivation · function · L446-L448 — fn into_derivation(self) -> String
+- derive · function · L452-L457 — pub fn derive(
+- derived_change_proposal · function · L460-L466 — pub fn derived_change_proposal(
+- derivation · function · L469-L471 — pub fn derivation(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>>
+- generate_evidence · function · L474-L479 — pub fn generate_evidence(
+- evidence · function · L482-L485 — pub fn evidence(root: &Path, proposal_path: &Path) -> Result<String, Vec<Diagnostic>>
+- generate_evidence_with_hook · function · L487-L526 — fn generate_evidence_with_hook(
+- verify · function · L529-L535 — pub fn verify(
+- apply · function · L538-L544 — pub fn apply(
+- apply_with_hook · function · L546-L675 — pub(crate) fn apply_with_hook(
+- operations_apply_hook · function · L677-L679 — fn operations_apply_hook(label: &'static str, error: std::io::Error) -> Vec<Diagnostic>
+- verify_with_hook · function · L681-L740 — fn verify_with_hook(
+- derive_with_hook · function · L742-L770 — pub(crate) fn derive_with_hook(
+- read_operations_proposal · function · L772-L792 — fn read_operations_proposal(path: &Path) -> Result<String, Vec<Diagnostic>>
+- proposal_io · function · L794-L799 — fn proposal_io(detail: &'static str) -> Vec<Diagnostic>
+- map_base_operations_builder_limit · function · L801-L813 — fn map_base_operations_builder_limit(diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic>
+- render_derivation · function · L815-L819 — fn render_derivation(
+- render_derivation_with_test_limits · function · L822-L830 — fn render_derivation_with_test_limits(
+- render_derivation_with_limits · function · L832-L897 — fn render_derivation_with_limits(
+- validate_derivation_usage · function · L899-L1067 — fn validate_derivation_usage(
+- parse_proposal · function · L1069-L1172 — fn parse_proposal(source: &str) -> Result<OperationsProposal, Vec<Diagnostic>>
+- parse_operation · function · L1174-L1286 — fn parse_operation(value: &Value) -> Result<Operation, Vec<Diagnostic>>
+- prepare_owned · function · L1289-L1294 — pub(crate) fn prepare_owned(
+- prepare_owned_with_limit · function · L1297-L1304 — fn prepare_owned_with_limit(
+- prepare_parsed_with_limit · function · L1306-L1356 — fn prepare_parsed_with_limit(
+- prepare_owned_inner · function · L1358-L1649 — fn prepare_owned_inner(
+- reserve_operations · function · L1651-L1660 — fn reserve_operations(bytes: usize) -> Result<(), Vec<Diagnostic>>
+- render_candidate_source · function · L1662-L1710 — fn render_candidate_source(
+- validate_replacement_source_per_path · function · L1712-L1721 — fn validate_replacement_source_per_path(source: &str) -> Result<(), Vec<Diagnostic>>
+- map_candidate_diagnostics · function · L1723-L1751 — fn map_candidate_diagnostics(
+- validate_candidate_namespaces · function · L1753-L1829 — fn validate_candidate_namespaces(
+- select_occurrences · function · L1831-L1898 — fn select_occurrences(
+- replay_candidate · function · L1900-L2047 — fn replay_candidate(
+- selected_occurrences · function · L2049-L2081 — fn selected_occurrences<'a>(
+- same_occurrence_owners · function · L2083-L2092 — fn same_occurrence_owners(
+- same_normalized_sidecar · function · L2094-L2138 — fn same_normalized_sidecar(
+- same_normalized_edges · function · L2140-L2214 — fn same_normalized_edges(
+- OccurrenceKey · type · L2148-L2148 — type OccurrenceKey<'a> = (&'a str, &'a str, &'a str, &'a str, &'a str, usize);
+- render_proposal · function · L2216-L2240 — fn render_proposal(p: &OperationsProposal) -> Result<String, Vec<Diagnostic>>
+- render_derivation_document · function · L2242-L2289 — fn render_derivation_document(
+- render_derivation_limits · function · L2291-L2302 — fn render_derivation_limits(out: &mut CappedString)
+- render_derivation_budget · function · L2304-L2339 — fn render_derivation_budget(
+- number · function · L2341-L2343 — fn number(out: &mut CappedString, value: usize)
+- digest_without_length · function · L2345-L2353 — fn digest_without_length(domain: &[u8], bytes: &[u8]) -> String
+- DERIVATION_LIMITS · constant · L2355-L2389 — const DERIVATION_LIMITS: [(&str, usize); 21] = [
+- DERIVATION_BUDGET_FIELDS · constant · L2391-L2408 — const DERIVATION_BUDGET_FIELDS: [&str; 16] = [
+- DERIVATION_NONCLAIMS · constant · L2410-L2435 — const DERIVATION_NONCLAIMS: [&str; 24] = [
+- render_op · function · L2436-L2479 — fn render_op(x: &mut CappedString, op: &Operation)
+- json · function · L2480-L2496 — fn json(x: &mut CappedString, s: &str)
+- proposal_digest · function · L2497-L2503 — fn proposal_digest(s: &str) -> String
+- exact_keys · function · L2504-L2512 — fn exact_keys(o: &serde_json::Map<String, Value>, keys: &[&str]) -> Result<(), Vec<Diagnostic>>
+- text · function · L2513-L2517 — fn text(v: Option<&Value>) -> Result<&str, Vec<Diagnostic>>
+- bounded · function · L2518-L2528 — fn bounded(v: &str, field: &str, max: usize, identifier: bool) -> Result<String, Vec<Diagnostic>>
+- valid_ident · function · L2529-L2534 — fn valid_ident(v: &str) -> bool
+- valid_qualified_module · function · L2535-L2537 — pub(super) fn valid_qualified_module(value: &str) -> bool
+- valid_digest · function · L2538-L2545 — pub(super) fn valid_digest(value: &str) -> bool
+- json_depth · function · L2546-L2565 — fn json_depth(s: &str) -> Result<usize, Vec<Diagnostic>>
+- grammar · function · L2566-L2568 — fn grammar(m: &'static str) -> Vec<Diagnostic>
+- binding · function · L2569-L2578 — fn binding(import: bool) -> Vec<Diagnostic>
+- conflict · function · L2579-L2581 — fn conflict(m: &'static str) -> Vec<Diagnostic>
+- limit · function · L2582-L2587 — fn limit(f: &str, m: usize) -> Vec<Diagnostic>
+- replay · function · L2588-L2590 — fn replay() -> Vec<Diagnostic>
+- operations_evidence_replay · function · L2592-L2597 — fn operations_evidence_replay() -> Vec<Diagnostic>
+- tests · module · L2601-L2601 — mod tests;

@@ -1,0 +1,33 @@
+# agent_interaction_schema/tests.rs
+
+- SCHEMA_DOMAIN · constant · L7-L7 — const SCHEMA_DOMAIN: &[u8] = b"semaprax.agent-interaction-schema.digest.v1\0";
+- REVISION_DOMAIN · constant · L8-L8 — const REVISION_DOMAIN: &[u8] = b"semaprax.agent-interaction-schema.type-revision.v1\0";
+- FIXTURE · constant · L16-L62 — const FIXTURE: &str = r#"
+- RENAMED_FIXTURE · constant · L64-L91 — const RENAMED_FIXTURE: &str = r#"
+- STRUCTURAL_CHANGE_FIXTURE · constant · L93-L122 — const STRUCTURAL_CHANGE_FIXTURE: &str = r#"
+- GENERIC_ARGUMENT_FIXTURE · constant · L124-L141 — const GENERIC_ARGUMENT_FIXTURE: &str = r#"
+- UNSUPPORTED_TYPE_FIXTURE · constant · L143-L154 — const UNSUPPORTED_TYPE_FIXTURE: &str = r#"
+- write_temp · function · L156-L167 — fn write_temp(source: &str, label: &str) -> PathBuf
+- expect_digest · function · L169-L174 — fn expect_digest(domain: &[u8], bytes: &[u8]) -> String
+- golden_derivation_is_deterministic_and_digests_are_independently_verifiable · function · L180-L224 — fn golden_derivation_is_deterministic_and_digests_are_independently_verifiable()
+- display_rename_preserves_identity_structural_change_invalidates_it · function · L230-L259 — fn display_rename_preserves_identity_structural_change_invalidates_it()
+- record_value · function · L261-L268 — fn record_value(fields: &[(&str, &str)]) -> String
+- inner_value · function · L270-L275 — fn inner_value(x: i64, y: &str) -> String
+- document · function · L277-L283 — fn document(root_type_id: &str, schema_digest: &str, value: &str) -> String
+- outer_document · function · L285-L294 — fn outer_document(schema_digest: &str, inner: &str) -> String
+- bytes_document · function · L296-L306 — fn bytes_document(schema_digest: &str, tag: u8, blob: &[u8]) -> String
+- full_record_with_nested_field_round_trips_exactly · function · L313-L361 — fn full_record_with_nested_field_round_trips_exactly()
+- bytes_field_round_trips_exactly · function · L366-L387 — fn bytes_field_round_trips_exactly()
+- variant_case_round_trips_and_rejects_wrong_tag · function · L392-L433 — fn variant_case_round_trips_and_rejects_wrong_tag()
+- malformed_utf8_is_refused · function · L438-L450 — fn malformed_utf8_is_refused()
+- oversized_document_is_refused · function · L455-L467 — fn oversized_document_is_refused()
+- duplicate_json_key_is_refused · function · L473-L498 — fn duplicate_json_key_is_refused()
+- unknown_field_is_refused · function · L502-L520 — fn unknown_field_is_refused()
+- missing_field_is_refused · function · L524-L538 — fn missing_field_is_refused()
+- oversized_string_field_is_refused · function · L542-L556 — fn oversized_string_field_is_refused()
+- oversized_bytes_field_is_refused · function · L560-L573 — fn oversized_bytes_field_is_refused()
+- generic_argument_nested_field_is_refused_explicitly · function · L588-L594 — fn generic_argument_nested_field_is_refused_explicitly()
+- unsupported_scalar_type_is_refused_explicitly · function · L599-L606 — fn unsupported_scalar_type_is_refused_explicitly()
+- verify_bundle_accepts_exact_replay_and_rejects_drift · function · L612-L627 — fn verify_bundle_accepts_exact_replay_and_rejects_drift()
+- missing_source_path_fails_closed_through_the_shared_binding · function · L634-L639 — fn missing_source_path_fails_closed_through_the_shared_binding()
+- provider_json_schema_matches_the_canonical_wire_shape · function · L648-L678 — fn provider_json_schema_matches_the_canonical_wire_shape()

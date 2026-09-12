@@ -1,0 +1,81 @@
+---
+covers: []
+---
+# ast.rs
+
+- Span · struct · L4-L9 — pub struct Span
+- merge · function · L12-L19 — pub fn merge(self, other: Span) -> Span
+- Type · enum · L23-L54 — pub enum Type
+- fmt · function · L57-L119 — fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+- Frame · enum · L58-L63 — enum Frame<'a>
+- is_named · function · L123-L125 — pub fn is_named(&self) -> bool
+- is_uniquely_owned · function · L129-L131 — pub fn is_uniquely_owned(&self) -> bool
+- ParamMode · enum · L135-L141 — pub enum ParamMode
+- MatchMode · enum · L149-L154 — pub enum MatchMode
+- source_prefix · function · L157-L163 — pub fn source_prefix(self) -> &'static str
+- text · function · L167-L174 — pub fn text(self) -> &'static str
+- source_prefix · function · L176-L183 — pub fn source_prefix(self) -> &'static str
+- Program · struct · L187-L201 — pub struct Program
+- drop · function · L204-L425 — fn drop(&mut self)
+- AgentTypeRole · enum · L429-L436 — pub enum AgentTypeRole
+- source_name · function · L439-L448 — pub const fn source_name(self) -> &'static str
+- AgentOperationRole · enum · L452-L459 — pub enum AgentOperationRole
+- source_name · function · L462-L471 — pub const fn source_name(self) -> &'static str
+- AgentOperationKind · enum · L475-L479 — pub enum AgentOperationKind
+- source_prefix · function · L482-L488 — pub const fn source_prefix(self) -> &'static str
+- AgentTypeRoleDeclaration · struct · L492-L496 — pub struct AgentTypeRoleDeclaration
+- AgentOperationDeclaration · struct · L499-L504 — pub struct AgentOperationDeclaration
+- AgentDeclaration · struct · L507-L517 — pub struct AgentDeclaration
+- ModuleUseKind · enum · L520-L525 — pub enum ModuleUseKind
+- ModuleUse · struct · L528-L534 — pub struct ModuleUse
+- TypeDeclaration · struct · L537-L548 — pub struct TypeDeclaration
+- TypeParameterDeclaration · struct · L551-L554 — pub struct TypeParameterDeclaration
+- TypeDeclarationKind · enum · L557-L571 — pub enum TypeDeclarationKind
+- VariantCaseDeclaration · struct · L574-L581 — pub struct VariantCaseDeclaration
+- ResourceLifecycleDeclaration · struct · L584-L588 — pub struct ResourceLifecycleDeclaration
+- ResourceLifecycleKind · enum · L591-L594 — pub enum ResourceLifecycleKind
+- InterfaceDeclaration · struct · L597-L605 — pub struct InterfaceDeclaration
+- ProtocolDeclaration · struct · L611-L618 — pub struct ProtocolDeclaration
+- ProtocolMethod · struct · L624-L632 — pub struct ProtocolMethod
+- ProtocolImplementation · struct · L636-L643 — pub struct ProtocolImplementation
+- ProtocolImplementationMember · struct · L646-L650 — pub struct ProtocolImplementationMember
+- ImportDeclaration · struct · L653-L666 — pub struct ImportDeclaration
+- ImportResult · enum · L669-L673 — pub enum ImportResult
+- fmt · function · L676-L682 — fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+- ImportFailure · enum · L686-L689 — pub enum ImportFailure
+- FieldDeclaration · struct · L692-L699 — pub struct FieldDeclaration
+- Function · struct · L702-L715 — pub struct Function
+- Param · struct · L718-L723 — pub struct Param
+- Expr · struct · L726-L729 — pub struct Expr
+- ClosureParam · struct · L732-L736 — pub struct ClosureParam
+- ExprKind · enum · L739-L845 — pub enum ExprKind
+- MatchArm · struct · L848-L856 — pub struct MatchArm
+- MatchPattern · enum · L859-L895 — pub enum MatchPattern
+- PatternLiteral · enum · L901-L908 — pub enum PatternLiteral
+- type_text · function · L912-L921 — pub fn type_text(&self) -> &'static str
+- span · function · L925-L934 — pub fn span(&self) -> Span
+- RecordMatchPatternField · struct · L938-L943 — pub struct RecordMatchPatternField
+- RecordMatchFieldPattern · enum · L946-L960 — pub enum RecordMatchFieldPattern
+- span · function · L963-L969 — pub fn span(&self) -> Span
+- MatchPatternField · struct · L973-L979 — pub struct MatchPatternField
+- FieldInitializer · struct · L982-L987 — pub struct FieldInitializer
+- FieldTarget · struct · L992-L995 — pub struct FieldTarget
+- Statement · enum · L998-L1057 — pub enum Statement
+- value · function · L1064-L1072 — pub fn value(&self) -> &Expr
+- value_mut · function · L1075-L1083 — pub fn value_mut(&mut self) -> &mut Expr
+- name · function · L1087-L1094 — pub fn name(&self) -> &str
+- audit · function · L1097-L1102 — pub fn audit(&self) -> Option<&str>
+- is_assign · function · L1105-L1107 — pub fn is_assign(&self) -> bool
+- child_count · function · L1112-L1117 — pub fn child_count(&self) -> usize
+- child · function · L1120-L1131 — pub fn child(&self, index: usize) -> Option<&Expr>
+- UnaryOp · enum · L1135-L1138 — pub enum UnaryOp
+- BinaryOp · enum · L1141-L1155 — pub enum BinaryOp
+- precedence · function · L1158-L1167 — pub fn precedence(self) -> u8
+- text · function · L1169-L1185 — pub fn text(self) -> &'static str
+- visit_call_nodes · function · L1189-L1224 — fn visit_call_nodes(&self, mut visit: impl FnMut(&Expr))
+- FIXED_DEPTH · constant · L1190-L1190 — const FIXED_DEPTH: usize = 513;
+- child · function · L1226-L1287 — pub(crate) fn child(&self, index: usize) -> Option<&Expr>
+- visit_calls · function · L1289-L1295 — pub fn visit_calls(&self, visit: &mut impl FnMut(&str, Span))
+- visit_call_instances · function · L1297-L1308 — pub fn visit_call_instances(&self, visit: &mut impl FnMut(&str, &[Type], Span))
+- call_visitor_tests · module · L1313-L1313 — mod call_visitor_tests;
+- iterative_program_drop_tests · module · L1317-L1317 — mod iterative_program_drop_tests;

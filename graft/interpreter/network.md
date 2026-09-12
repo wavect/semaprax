@@ -1,0 +1,26 @@
+# interpreter/network.rs
+
+- command · module · L10-L10 — pub(crate) mod command;
+- NetworkState · struct · L26-L36 — pub(super) struct NetworkState<'a>
+- new · function · L39-L47 — pub(super) fn new(provider: &'a mut dyn NetworkProvider) -> Self
+- settle · function · L51-L53 — pub(super) fn settle(self)
+- connection · function · L55-L60 — fn connection(&self, handle: u64) -> Result<ProviderConnection, Flow>
+- charge · function · L63-L73 — fn charge(&mut self, count: usize) -> Result<(), Flow>
+- connect · function · L75-L77 — fn connect(&mut self, host: &[u8], port: u64) -> Result<u64, Flow>
+- connect_with · function · L79-L109 — fn connect_with(&mut self, host: &[u8], port: u64, tls: bool) -> Result<u64, Flow>
+- listen · function · L111-L135 — fn listen(&mut self, host: &[u8], port: u64) -> Result<u64, Flow>
+- accept · function · L137-L156 — fn accept(&mut self, handle: u64, tls: bool) -> Result<u64, Flow>
+- close_listener · function · L158-L167 — fn close_listener(&mut self, handle: u64) -> Result<u64, Flow>
+- send · function · L169-L187 — fn send(&mut self, handle: u64, bytes: &[u8]) -> Result<u64, Flow>
+- recv · function · L190-L208 — fn recv(&mut self, handle: u64, max: u64) -> Result<Vec<u8>, Flow>
+- wait · function · L210-L222 — fn wait(&mut self, handle: u64, timeout_ms: u64) -> Result<u64, Flow>
+- close · function · L224-L229 — fn close(&mut self, handle: u64) -> Result<u64, Flow>
+- https_get · function · L231-L253 — fn https_get(&mut self, url: &[u8], max: u64) -> Result<Vec<u8>, Flow>
+- failure · function · L256-L258 — fn failure(code: u32) -> Flow
+- service_failure · function · L260-L262 — fn service_failure(code: u32) -> Flow
+- http_failure · function · L264-L266 — fn http_failure(code: u32) -> Flow
+- failure_in · function · L268-L278 — fn failure_in(domain: &'static str, code: u32) -> Flow
+- provider_failure · function · L280-L282 — fn provider_failure(error: NetworkFailure) -> Flow
+- provider_service_failure · function · L284-L286 — fn provider_service_failure(error: NetworkFailure) -> Flow
+- provider_http_failure · function · L288-L297 — fn provider_http_failure(error: HttpFailure) -> Flow
+- evaluate_network_operation · function · L300-L422 — pub(super) fn evaluate_network_operation(

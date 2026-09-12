@@ -1,0 +1,36 @@
+---
+covers: []
+---
+# semantic_service_mcp.rs
+
+- SEMANTIC_SERVICE_MCP_SCHEMA · constant · L15-L15 — pub const SEMANTIC_SERVICE_MCP_SCHEMA: &str = "semaprax.semantic-workspace-service-mcp.v1";
+- SEMANTIC_SERVICE_MCP_PROTOCOL_VERSION · constant · L16-L16 — pub const SEMANTIC_SERVICE_MCP_PROTOCOL_VERSION: &str = "2025-11-25";
+- MAX_SEMANTIC_SERVICE_MCP_REQUEST_BYTES · constant · L17-L17 — pub const MAX_SEMANTIC_SERVICE_MCP_REQUEST_BYTES: usize = MAX_SEMANTIC_SERVICE_REQUEST_BYTES;
+- MAX_SEMANTIC_SERVICE_MCP_RESPONSE_BYTES · constant · L20-L21 — pub const MAX_SEMANTIC_SERVICE_MCP_RESPONSE_BYTES: usize =
+- MAX_DEPTH · constant · L22-L22 — const MAX_DEPTH: usize = 128;
+- MAX_NODES · constant · L23-L23 — const MAX_NODES: usize = 32_768;
+- MAX_ID_BYTES · constant · L24-L24 — const MAX_ID_BYTES: usize = 128;
+- Lifecycle · enum · L27-L31 — enum Lifecycle
+- SemanticWorkspaceMcpSession · struct · L35-L38 — pub struct SemanticWorkspaceMcpSession
+- open · function · L41-L64 — pub fn open(
+- service · function · L66-L68 — pub fn service(&self) -> &crate::project::SemanticWorkspaceService
+- handle_frame · function · L70-L112 — pub fn handle_frame(&mut self, frame: &[u8]) -> Option<Vec<u8>>
+- initialize · function · L114-L140 — fn initialize(&mut self, params: &Map<String, Value>) -> RpcResult
+- call · function · L142-L188 — fn call(&mut self, id: &Value, params: &Map<String, Value>) -> Vec<u8>
+- serve_semantic_workspace_mcp · function · L193-L218 — pub fn serve_semantic_workspace_mcp<R: BufRead, W: Write>(
+- RpcResult · type · L220-L220 — type RpcResult = Result<Value, (i64, String)>;
+- Request · struct · L222-L226 — struct Request
+- decode · function · L228-L272 — fn decode(frame: &[u8]) -> Result<Request, (i64, String)>
+- list_tools · function · L274-L283 — fn list_tools(params: &Map<String, Value>) -> RpcResult
+- tools · function · L285-L304 — fn tools() -> Vec<Value>
+- tool · function · L306-L308 — fn tool(name: &str, description: &str, input_schema: Value) -> Value
+- one_string_schema · function · L310-L314 — fn one_string_schema(name: &str) -> Value
+- tool_method · function · L316-L327 — fn tool_method(name: &str) -> Option<&'static str>
+- checked_parameters · function · L329-L341 — fn checked_parameters(params: &Map<String, Value>, allowed: &[&str]) -> Result<(), (i64, String)>
+- parameters · function · L343-L349 — fn parameters(params: &Option<Value>, allowed: &[&str]) -> Result<(), (i64, String)>
+- check_tree · function · L351-L370 — fn check_tree(value: &Value, depth: usize, nodes: &mut usize) -> Result<(), (i64, String)>
+- rpc_result · function · L372-L376 — fn rpc_result(id: &Value, result: Value) -> Vec<u8>
+- rpc_error · function · L378-L382 — fn rpc_error(id: &Value, code: i64, message: &str) -> Vec<u8>
+- escape_json_bytes · function · L384-L400 — fn escape_json_bytes(bytes: &[u8], output: &mut Vec<u8>)
+- HEX · constant · L385-L385 — const HEX: &[u8; 16] = b"0123456789abcdef";
+- read_frame · function · L402-L426 — fn read_frame<R: BufRead>(input: &mut R) -> io::Result<Option<Vec<u8>>>

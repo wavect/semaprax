@@ -1,0 +1,39 @@
+---
+covers: []
+---
+# string_ops.rs
+
+- LEN_NAME · constant · L37-L37 — pub(crate) const LEN_NAME: &str = "string_len";
+- CONCAT_NAME · constant · L38-L38 — pub(crate) const CONCAT_NAME: &str = "string_concat";
+- IS_EMPTY_NAME · constant · L39-L39 — pub(crate) const IS_EMPTY_NAME: &str = "string_is_empty";
+- STARTS_WITH_NAME · constant · L40-L40 — pub(crate) const STARTS_WITH_NAME: &str = "string_starts_with";
+- CONTAINS_NAME · constant · L41-L41 — pub(crate) const CONTAINS_NAME: &str = "string_contains";
+- LEN_CHARS_NAME · constant · L42-L42 — pub(crate) const LEN_CHARS_NAME: &str = "string_len_chars";
+- FROM_CHAR_NAME · constant · L43-L43 — pub(crate) const FROM_CHAR_NAME: &str = "string_from_char";
+- FROM_I64_NAME · constant · L44-L44 — pub(crate) const FROM_I64_NAME: &str = "string_from_i64";
+- FROM_USIZE_NAME · constant · L45-L45 — pub(crate) const FROM_USIZE_NAME: &str = "string_from_usize";
+- LEN_ID · constant · L47-L47 — pub(crate) const LEN_ID: &str = "core.string.len";
+- CONCAT_ID · constant · L48-L48 — pub(crate) const CONCAT_ID: &str = "core.string.concat";
+- IS_EMPTY_ID · constant · L49-L49 — pub(crate) const IS_EMPTY_ID: &str = "core.string.is_empty";
+- STARTS_WITH_ID · constant · L50-L50 — pub(crate) const STARTS_WITH_ID: &str = "core.string.starts_with";
+- CONTAINS_ID · constant · L51-L51 — pub(crate) const CONTAINS_ID: &str = "core.string.contains";
+- LEN_CHARS_ID · constant · L52-L52 — pub(crate) const LEN_CHARS_ID: &str = "core.string.len_chars";
+- FROM_CHAR_ID · constant · L53-L53 — pub(crate) const FROM_CHAR_ID: &str = "core.string.from_char";
+- FROM_I64_ID · constant · L54-L54 — pub(crate) const FROM_I64_ID: &str = "core.string.from_i64";
+- FROM_USIZE_ID · constant · L55-L55 — pub(crate) const FROM_USIZE_ID: &str = "core.string.from_usize";
+- StringOp · enum · L59-L78 — pub(crate) enum StringOp
+- ALL · constant · L81-L91 — pub(crate) const ALL: [Self; 9] = [
+- name · function · L93-L105 — pub(crate) fn name(self) -> &'static str
+- id · function · L107-L119 — pub(crate) fn id(self) -> &'static str
+- arity · function · L121-L127 — pub(crate) fn arity(self) -> usize
+- param_names · function · L131-L140 — pub(crate) fn param_names(self) -> &'static [&'static str]
+- param_types · function · L144-L154 — pub(crate) fn param_types(self) -> &'static [ResolvedType]
+- consumes_arguments · function · L156-L158 — pub(crate) fn consumes_arguments(self) -> bool
+- is_breadth_v2 · function · L163-L168 — pub(crate) fn is_breadth_v2(self) -> bool
+- is_numeric_text · function · L172-L174 — pub(crate) fn is_numeric_text(self) -> bool
+- return_type · function · L176-L184 — pub(crate) fn return_type(self) -> ResolvedType
+- ast_return_type · function · L186-L194 — pub(crate) fn ast_return_type(self) -> Type
+- by_name · function · L198-L211 — pub(crate) fn by_name(name: &str) -> Option<StringOp>
+- by_id · function · L214-L227 — pub(crate) fn by_id(id: &str) -> Option<StringOp>
+- resolved_params · function · L233-L258 — pub(crate) fn resolved_params(op: StringOp) -> Vec<ResolvedParam>
+- ast_params · function · L263-L287 — pub(crate) fn ast_params(op: StringOp) -> Vec<Param>

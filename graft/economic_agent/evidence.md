@@ -1,0 +1,31 @@
+# economic_agent/evidence.rs
+
+- CountSink · struct · L20-L20 — pub(super) struct CountSink(pub(super) usize);
+- write_str · function · L22-L25 — fn write_str(&mut self, value: &str) -> fmt::Result
+- MatchSink · struct · L28-L31 — pub(super) struct MatchSink<'a>
+- DigestSink · struct · L33-L36 — pub(super) struct DigestSink
+- new · function · L38-L42 — pub(super) fn new(domain: &[u8]) -> Self
+- finish · function · L43-L51 — pub(super) fn finish(self) -> (String, usize)
+- write_str · function · L54-L58 — fn write_str(&mut self, value: &str) -> fmt::Result
+- write_str · function · L61-L68 — fn write_str(&mut self, value: &str) -> fmt::Result
+- write_json · function · L71-L85 — pub(super) fn write_json<W: fmt::Write>(output: &mut W, value: &str) -> fmt::Result
+- write_optional_json · function · L86-L94 — pub(super) fn write_optional_json<W: fmt::Write>(
+- write_usage · function · L95-L97 — pub(super) fn write_usage<W: fmt::Write>(output: &mut W, usage: &Usage) -> fmt::Result
+- write_event · function · L98-L116 — pub(super) fn write_event<W: fmt::Write>(
+- write_result · function · L117-L129 — pub(super) fn write_result<W: fmt::Write>(output: &mut W, terminal: &Terminal) -> fmt::Result
+- write_nonclaims · function · L130-L139 — pub(super) fn write_nonclaims<W: fmt::Write>(output: &mut W) -> fmt::Result
+- write_trace · function · L140-L171 — pub(super) fn write_trace<W: fmt::Write>(
+- usage_json · function · L173-L177 — pub(super) fn usage_json(usage: &Usage) -> String
+- event_json · function · L178-L182 — pub(super) fn event_json(index: usize, event: &Event) -> String
+- result_json · function · L183-L187 — pub(super) fn result_json(terminal: &Terminal) -> String
+- render_trace · function · L188-L234 — pub(super) fn render_trace(
+- limits_evidence_json · function · L235-L237 — pub(super) fn limits_evidence_json(l: &Limits) -> String
+- budget_json · function · L238-L242 — pub(super) fn budget_json(b: &Budget) -> String
+- write_budget · function · L243-L245 — pub(super) fn write_budget<W: fmt::Write>(output: &mut W, b: &Budget) -> fmt::Result
+- EvidenceParts · struct · L246-L263 — pub(super) struct EvidenceParts<'a>
+- write_doc_reference · function · L265-L276 — pub(super) fn write_doc_reference<W: fmt::Write>(
+- write_optional_reference · function · L278-L289 — pub(super) fn write_optional_reference<W: fmt::Write>(
+- write_evidence · function · L291-L362 — pub(super) fn write_evidence<W: fmt::Write>(
+- journal_identity · function · L363-L367 — pub(super) fn journal_identity(parts: &EvidenceParts<'_>) -> (String, usize)
+- render_evidence · function · L369-L420 — pub(super) fn render_evidence(parts: &mut EvidenceParts<'_>) -> Result<Doc, Diagnostic>
+- run_id · function · L422-L435 — pub(super) fn run_id(

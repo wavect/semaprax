@@ -1,0 +1,58 @@
+---
+covers: []
+---
+# architecture_claims.rs
+
+- ARCHITECTURE_CLAIM_SET_RESULT_SCHEMA · constant · L65-L65 — pub const ARCHITECTURE_CLAIM_SET_RESULT_SCHEMA: &str = "semaprax.architecture-claim-set-result.v1";
+- MAX_ARCHITECTURE_CLAIM_ID_BYTES · constant · L67-L67 — pub const MAX_ARCHITECTURE_CLAIM_ID_BYTES: usize = 256;
+- MAX_ARCHITECTURE_CLAIM_TARGET_BYTES · constant · L69-L69 — pub const MAX_ARCHITECTURE_CLAIM_TARGET_BYTES: usize = 4096;
+- MAX_ARCHITECTURE_CLAIMS_PER_SET · constant · L71-L71 — pub const MAX_ARCHITECTURE_CLAIMS_PER_SET: usize = 256;
+- MAX_ARCHITECTURE_CLAIM_HIR_WALK · constant · L73-L73 — pub const MAX_ARCHITECTURE_CLAIM_HIR_WALK: usize = 65_536;
+- MAX_ARCHITECTURE_CLAIM_GRAPH_WALK · constant · L75-L75 — pub const MAX_ARCHITECTURE_CLAIM_GRAPH_WALK: usize = 65_536;
+- MAX_ARCHITECTURE_CLAIM_RESULT_BYTES · constant · L77-L77 — pub const MAX_ARCHITECTURE_CLAIM_RESULT_BYTES: usize = 8 * 1024 * 1024;
+- NONCLAIMS · constant · L79-L85 — const NONCLAIMS: &[&str] = &[
+- Result · type · L87-L87 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- ArchitectureClaimOperator · enum · L93-L95 — enum ArchitectureClaimOperator
+- ArchitectureClaim · struct · L99-L102 — pub struct ArchitectureClaim
+- forbid_reaches · function · L108-L128 — pub fn forbid_reaches(
+- id · function · L131-L133 — pub fn id(&self) -> &str
+- operator_name · function · L135-L139 — fn operator_name(&self) -> &'static str
+- evaluate · function · L141-L147 — fn evaluate(&self, graph: &CallGraphFacts, max_walk: usize) -> Result<Value>
+- evaluate_forbid_reaches · function · L149-L196 — fn evaluate_forbid_reaches(
+- ArchitectureClaimSet · struct · L202-L204 — pub struct ArchitectureClaimSet
+- new · function · L210-L223 — pub fn new(claims: Vec<ArchitectureClaim>) -> Result<Self>
+- evaluate · function · L227-L229 — pub fn evaluate(&self, revision: &ProjectRevision) -> Result<ArchitectureClaimSetResult>
+- evaluate_bounded · function · L231-L244 — fn evaluate_bounded(
+- ArchitectureClaimSetResult · struct · L249-L251 — pub struct ArchitectureClaimSetResult
+- to_json · function · L254-L256 — pub fn to_json(&self) -> &str
+- render_result · function · L259-L281 — fn render_result(
+- collect_frontier · function · L283-L305 — fn collect_frontier(graph: &CallGraphFacts, visited: &BTreeSet<String>) -> Vec<Value>
+- reconstruct_path · function · L307-L320 — fn reconstruct_path(reachability: &Reachability, from: &str, to: &str) -> Vec<String>
+- Reachability · struct · L322-L325 — struct Reachability
+- bfs · function · L329-L354 — fn bfs(graph: &CallGraphFacts, from: &str, max_walk: usize) -> Result<Reachability>
+- CallGraphFacts · struct · L363-L365 — struct CallGraphFacts
+- NodeFacts · struct · L368-L372 — struct NodeFacts
+- from_revision · function · L375-L408 — fn from_revision(revision: &ProjectRevision) -> Result<Self>
+- index_declaration · function · L411-L432 — fn index_declaration<'a>(
+- walk_for_edges · function · L440-L542 — fn walk_for_edges(root: &ResolvedExpr, walked: &mut usize, node: &mut NodeFacts) -> Result<()>
+- field_values · function · L544-L546 — fn field_values(fields: &[ResolvedFieldInitializer]) -> impl Iterator<Item = &ResolvedExpr>
+- validate_claim_id · function · L548-L553 — fn validate_claim_id(value: &str) -> Result<()>
+- validate_target · function · L555-L563 — fn validate_target(value: &str) -> Result<()>
+- invalid · function · L565-L567 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L569-L571 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- tests · module · L574-L781 — mod tests
+- node · function · L577-L583 — fn node(kind: &'static str, edges: &[&str], dynamic_invoke: bool) -> NodeFacts
+- graph · function · L585-L592 — fn graph(nodes: &[(&str, NodeFacts)]) -> CallGraphFacts
+- claim · function · L594-L596 — fn claim(id: &str, from: &str, to: &str) -> ArchitectureClaim
+- forbid_reaches_holds_when_no_static_path_exists · function · L599-L611 — fn forbid_reaches_holds_when_no_static_path_exists()
+- forbid_reaches_violated_reports_the_minimal_witness_path · function · L614-L632 — fn forbid_reaches_violated_reports_the_minimal_witness_path()
+- forbid_reaches_is_deterministic_across_multiple_equal_length_paths · function · L635-L661 — fn forbid_reaches_is_deterministic_across_multiple_equal_length_paths()
+- forbid_reaches_is_unevaluable_when_reachable_closure_touches_a_dynamic_invoke · function · L664-L679 — fn forbid_reaches_is_unevaluable_when_reachable_closure_touches_a_dynamic_invoke()
+- forbid_reaches_is_unevaluable_when_reachable_closure_touches_an_external_boundary · function · L682-L699 — fn forbid_reaches_is_unevaluable_when_reachable_closure_touches_an_external_boundary()
+- forbid_reaches_violation_takes_priority_over_an_unrelated_unevaluable_branch · function · L702-L713 — fn forbid_reaches_violation_takes_priority_over_an_unrelated_unevaluable_branch()
+- forbid_reaches_rejects_reflexive_from_and_to · function · L716-L719 — fn forbid_reaches_rejects_reflexive_from_and_to()
+- forbid_reaches_rejects_an_unknown_from_declaration · function · L722-L728 — fn forbid_reaches_rejects_an_unknown_from_declaration()
+- claim_set_rejects_duplicate_claim_ids · function · L731-L735 — fn claim_set_rejects_duplicate_claim_ids()
+- claim_set_rejects_more_than_the_maximum_claim_count · function · L738-L744 — fn claim_set_rejects_more_than_the_maximum_claim_count()
+- reachability_search_fails_closed_on_a_tiny_capacity_bound · function · L747-L757 — fn reachability_search_fails_closed_on_a_tiny_capacity_bound()
+- claim_set_render_is_byte_identical_across_repeated_evaluation_of_equivalent_input · function · L760-L780 — fn claim_set_render_is_byte_identical_across_repeated_evaluation_of_equivalent_input()

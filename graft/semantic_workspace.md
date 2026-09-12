@@ -1,0 +1,76 @@
+---
+covers: []
+---
+# semantic_workspace.rs
+
+- PATH_SET_SCHEMA · constant · L20-L20 — pub(crate) const PATH_SET_SCHEMA: &str = "semaprax.workspace-semantic-path-set.v1";
+- ROOT_SCHEMA · constant · L21-L21 — pub(crate) const ROOT_SCHEMA: &str = "semaprax.workspace-semantic-root.v1";
+- MANIFEST_SCHEMA · constant · L22-L22 — pub(crate) const MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
+- MAX_MANAGED_FILES · constant · L23-L23 — pub(crate) const MAX_MANAGED_FILES: usize = 16;
+- MAX_TOTAL_SOURCE_BYTES · constant · L24-L24 — pub(crate) const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+- MAX_CONTROL_JSON_BYTES · constant · L25-L25 — pub(crate) const MAX_CONTROL_JSON_BYTES: usize = 1024 * 1024;
+- MAX_JSON_DEPTH · constant · L26-L26 — pub(crate) const MAX_JSON_DEPTH: usize = 8;
+- MAX_CHANGE_BUILDER_BYTES · constant · L27-L27 — pub(crate) const MAX_CHANGE_BUILDER_BYTES: usize = 32 * 1024 * 1024;
+- WORKSPACE_REVISION_DOMAIN · constant · L29-L29 — const WORKSPACE_REVISION_DOMAIN: &[u8] = b"semaprax.workspace-semantic-revision.v1\0";
+- initialize · function · L35-L37 — pub fn initialize(root: &Path, path_set_path: &Path) -> Result<String, Vec<Diagnostic>>
+- initialize_from_preflight · function · L40-L45 — pub(crate) fn initialize_from_preflight(
+- initialize_from_preflight_with_hook · function · L47-L53 — pub(crate) fn initialize_from_preflight_with_hook(
+- SemanticWorkspaceSource · struct · L55-L58 — pub(crate) struct SemanticWorkspaceSource
+- SemanticWorkspaceFileFact · struct · L61-L68 — pub(crate) struct SemanticWorkspaceFileFact
+- SemanticWorkspacePreflight · struct · L70-L76 — pub(crate) struct SemanticWorkspacePreflight
+- path · function · L79-L81 — pub(crate) fn path(&self) -> &str
+- source_graph_schema · function · L83-L85 — pub(crate) fn source_graph_schema(&self) -> &str
+- source_revision · function · L87-L89 — pub(crate) fn source_revision(&self) -> &str
+- source_digest · function · L91-L93 — pub(crate) fn source_digest(&self) -> &str
+- bytes · function · L95-L97 — pub(crate) fn bytes(&self) -> usize
+- source · function · L99-L101 — pub(crate) fn source(&self) -> &str
+- source_mut · function · L104-L106 — pub(crate) fn source_mut(&mut self) -> &mut String
+- into_parts · function · L108-L116 — pub(crate) fn into_parts(self) -> (String, String, String, String, String)
+- path_set · function · L120-L122 — pub(crate) fn path_set(&self) -> &[String]
+- files · function · L124-L126 — pub(crate) fn files(&self) -> &[SemanticWorkspaceFileFact]
+- manifest · function · L129-L131 — pub(crate) fn manifest(&self) -> &str
+- workspace_revision · function · L133-L135 — pub(crate) fn workspace_revision(&self) -> &str
+- graph · function · L137-L139 — pub(crate) fn graph(&self) -> &workspace_graph::WorkspaceGraphBuild
+- into_generation_parts · function · L141-L143 — pub(crate) fn into_generation_parts(self) -> (Vec<SemanticWorkspaceFileFact>, String, String)
+- into_snapshot_parts · function · L145-L159 — pub(crate) fn into_snapshot_parts(
+- preflight_owned · function · L162-L167 — pub(crate) fn preflight_owned(
+- preflight_owned_with_frontend · function · L169-L175 — pub(crate) fn preflight_owned_with_frontend(
+- preflight_owned_for_change · function · L177-L183 — pub(crate) fn preflight_owned_for_change(
+- preflight_owned_for_operations · function · L185-L203 — pub(crate) fn preflight_owned_for_operations(
+- preflight_owned_inner · function · L205-L218 — fn preflight_owned_inner(
+- preflight_owned_inner_mode · function · L220-L316 — fn preflight_owned_inner_mode(
+- replay_manifest_owned_for_change · function · L318-L336 — pub(crate) fn replay_manifest_owned_for_change(
+- replay_manifest_owned_for_operations · function · L338-L369 — pub(crate) fn replay_manifest_owned_for_operations(
+- authenticated_operations_preflight · function · L371-L408 — pub(crate) fn authenticated_operations_preflight(
+- replay_manifest_owned · function · L410-L434 — pub(crate) fn replay_manifest_owned(
+- parse_path_set · function · L436-L443 — pub(crate) fn parse_path_set(source: &str) -> Result<Vec<String>, Vec<Diagnostic>>
+- parse_path_set_inner · function · L445-L482 — fn parse_path_set_inner(source: &str) -> Result<Vec<String>, Vec<Diagnostic>>
+- render_path_set · function · L484-L501 — pub(crate) fn render_path_set(paths: &[String]) -> Result<String, Vec<Diagnostic>>
+- parse_root · function · L503-L510 — pub(crate) fn parse_root(source: &str) -> Result<String, Vec<Diagnostic>>
+- parse_root_inner · function · L512-L527 — fn parse_root_inner(source: &str) -> Result<String, Vec<Diagnostic>>
+- render_root · function · L529-L540 — pub(crate) fn render_root(revision: &str) -> Result<String, Vec<Diagnostic>>
+- parse_manifest · function · L542-L551 — pub(crate) fn parse_manifest(
+- parse_manifest_inner · function · L553-L618 — fn parse_manifest_inner(source: &str) -> Result<Vec<SemanticWorkspaceFileFact>, Vec<Diagnostic>>
+- render_manifest · function · L620-L648 — pub(crate) fn render_manifest(
+- render_manifest_facts · function · L650-L697 — pub(crate) fn render_manifest_facts(
+- validate_path_set_values · function · L699-L716 — fn validate_path_set_values(paths: &[String]) -> Result<(), Vec<Diagnostic>>
+- validate_manifest_values · function · L718-L749 — fn validate_manifest_values(files: &[SemanticWorkspaceFileFact]) -> Result<(), Vec<Diagnostic>>
+- semantic_workspace_revision · function · L751-L760 — pub(crate) fn semantic_workspace_revision(manifest: &str) -> String
+- validate_preflight_replay · function · L762-L800 — fn validate_preflight_replay(
+- same_manifest_fact · function · L802-L808 — fn same_manifest_fact(left: &SemanticWorkspaceFileFact, right: &SemanticWorkspaceFileFact) -> bool
+- render_bounded · function · L810-L823 — fn render_bounded(
+- require_bounded_control_json · function · L825-L831 — fn require_bounded_control_json(source: &str, field: &'static str) -> Result<(), Vec<Diagnostic>>
+- canonical_body · function · L833-L844 — fn canonical_body<'a>(source: &'a str, label: &str) -> Result<&'a str, Vec<Diagnostic>>
+- validate_json_depth · function · L846-L883 — fn validate_json_depth(source: &str) -> Result<(), Vec<Diagnostic>>
+- exact_object · function · L885-L896 — fn exact_object<'a>(
+- text · function · L898-L903 — fn text<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Vec<Diagnostic>>
+- array · function · L905-L910 — fn array<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a Vec<Value>, Vec<Diagnostic>>
+- integer · function · L912-L922 — fn integer(object: &Map<String, Value>, key: &str) -> Result<usize, Vec<Diagnostic>>
+- digest_text · function · L924-L928 — fn digest_text<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Vec<Diagnostic>>
+- require_digest · function · L930-L942 — fn require_digest(value: &str) -> Result<(), Vec<Diagnostic>>
+- is_source_graph_schema · function · L944-L984 — fn is_source_graph_schema(value: &str) -> bool
+- normalize_parser_diagnostics · function · L986-L1002 — fn normalize_parser_diagnostics(
+- grammar · function · L1004-L1006 — fn grammar(message: impl Into<String>) -> Vec<Diagnostic>
+- storage_limit · function · L1008-L1013 — fn storage_limit(field: &'static str, maximum: usize) -> Vec<Diagnostic>
+- invariant · function · L1015-L1017 — fn invariant(message: impl Into<String>) -> Vec<Diagnostic>
+- tests · module · L1021-L1021 — mod tests;

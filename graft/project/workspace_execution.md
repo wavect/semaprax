@@ -1,0 +1,21 @@
+# project/workspace_execution.rs
+
+- runtime · module · L14-L14 — mod runtime;
+- WORKSPACE_EXECUTION_BINDING_SCHEMA · constant · L23-L23 — pub const WORKSPACE_EXECUTION_BINDING_SCHEMA: &str = "semaprax.workspace-execution-binding.v1";
+- MAX_WORKSPACE_EXECUTION_BINDING_BYTES · constant · L24-L24 — pub const MAX_WORKSPACE_EXECUTION_BINDING_BYTES: usize = 16_384;
+- Result · type · L26-L26 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- WorkspaceExecutionRootVersion · enum · L30-L34 — pub enum WorkspaceExecutionRootVersion
+- schema · function · L37-L43 — fn schema(self) -> &'static str
+- WorkspaceExecutionBinding · struct · L49-L54 — pub struct WorkspaceExecutionBinding
+- select · function · L57-L97 — pub fn select(
+- replay · function · L101-L126 — pub fn replay(
+- association_root · function · L128-L130 — pub fn association_root(&self) -> &ExecutionRoot
+- root_version · function · L132-L134 — pub fn root_version(&self) -> WorkspaceExecutionRootVersion
+- workspace_revision · function · L136-L138 — pub fn workspace_revision(&self) -> &str
+- image_digest · function · L140-L142 — pub fn image_digest(&self) -> &str
+- project_revision · function · L144-L146 — pub fn project_revision(&self) -> &Arc<ProjectRevision>
+- program_root · function · L148-L150 — pub fn program_root(&self) -> ProgramRootRef<'_>
+- require_current · function · L154-L165 — pub fn require_current(&self, service: &SemanticWorkspaceService) -> Result<()>
+- selected_root · function · L168-L185 — fn selected_root(
+- associate · function · L187-L189 — pub(super) fn associate(schema: &str, facts: serde_json::Value) -> ExecutionRoot
+- refused · function · L191-L196 — pub(super) fn refused(detail: &str) -> Vec<Diagnostic>

@@ -1,0 +1,49 @@
+# project/candidate/ownership_delta.rs
+
+- Result · type · L20-L20 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- PROJECT_CANDIDATE_OWNERSHIP_DELTA_SCHEMA · constant · L21-L22 — pub const PROJECT_CANDIDATE_OWNERSHIP_DELTA_SCHEMA: &str =
+- PROJECT_CANDIDATE_OWNERSHIP_DELTA_VERIFICATION_SCHEMA · constant · L23-L24 — pub const PROJECT_CANDIDATE_OWNERSHIP_DELTA_VERIFICATION_SCHEMA: &str =
+- MAX_PROJECT_CANDIDATE_OWNERSHIP_DELTA_BYTES · constant · L25-L25 — pub const MAX_PROJECT_CANDIDATE_OWNERSHIP_DELTA_BYTES: usize = 8 * 1024 * 1024;
+- MAX_FACT_BYTES · constant · L26-L26 — const MAX_FACT_BYTES: usize = 32 * 1024 * 1024;
+- MAX_ITEMS · constant · L27-L27 — const MAX_ITEMS: usize = 65_536;
+- MAX_VISITS · constant · L28-L28 — const MAX_VISITS: usize = 1_048_576;
+- MAX_DEPTH · constant · L29-L29 — const MAX_DEPTH: usize = 256;
+- FACT_DOMAIN · constant · L30-L30 — const FACT_DOMAIN: &[u8] = b"semaprax.candidate-ownership-delta.fact.v1\0";
+- SOURCE_DOMAIN · constant · L31-L31 — const SOURCE_DOMAIN: &[u8] = b"semaprax.candidate-ownership-delta.source.v1\0";
+- REPORT_DOMAIN · constant · L32-L32 — const REPORT_DOMAIN: &[u8] = b"semaprax.candidate-ownership-delta.report.v1\0";
+- Budget · struct · L35-L39 — struct Budget
+- visit · function · L41-L47 — fn visit(&mut self, depth: usize) -> Result<()>
+- items · function · L48-L54 — fn items(&mut self, count: usize) -> Result<()>
+- bytes · function · L55-L61 — fn bytes(&mut self, count: usize) -> Result<()>
+- fact · function · L62-L64 — fn fact(&mut self, value: &Value) -> Result<()>
+- string_fact · function · L65-L67 — fn string_fact(&mut self, value: &str) -> Result<()>
+- serialized_fact · function · L68-L89 — fn serialized_fact(
+- Counter · struct · L72-L72 — struct Counter(usize);
+- write · function · L74-L81 — fn write(&mut self, bytes: &[u8]) -> io::Result<usize>
+- flush · function · L82-L84 — fn flush(&mut self) -> io::Result<()>
+- copy · function · L90-L93 — fn copy(&mut self, value: &Value) -> Result<Value>
+- Inventory · struct · L96-L100 — struct Inventory
+- ownership_delta · function · L103-L173 — pub fn ownership_delta(&self, expected_candidate: &str) -> Result<String>
+- verify_ownership_delta · function · L175-L198 — pub fn verify_ownership_delta(&self, expected_candidate: &str, bytes: &[u8]) -> Result<String>
+- inventory · function · L201-L348 — fn inventory(revision: &ProjectRevision, budget: &mut Budget) -> Result<Inventory>
+- attach_source · function · L350-L357 — fn attach_source(row: &mut Value, path: &str, availability: &str) -> Result<()>
+- source_type_kind · function · L359-L366 — fn source_type_kind(kind: &TypeDeclarationKind) -> &'static str
+- resolved_type_kind · function · L368-L375 — fn resolved_type_kind(kind: &ResolvedTypeDeclarationKind) -> &'static str
+- attach_type · function · L377-L435 — fn attach_type(
+- resolved_fields · function · L437-L449 — fn resolved_fields(fields: &[ResolvedFieldDeclaration], budget: &mut Budget) -> Result<Vec<Value>>
+- type_facts · function · L451-L456 — fn type_facts(facts: &TypeFacts, budget: &mut Budget) -> Result<Value>
+- signature · function · L458-L477 — fn signature(
+- attach_function · function · L479-L534 — fn attach_function(
+- type_key · function · L536-L541 — fn type_key(ty: &ResolvedType, budget: &mut Budget) -> Result<String>
+- preflight_type · function · L542-L555 — fn preflight_type(ty: &ResolvedType, budget: &mut Budget, depth: usize) -> Result<()>
+- preflight_shape · function · L557-L576 — fn preflight_shape(shape: &FieldLivenessShape, budget: &mut Budget, depth: usize) -> Result<()>
+- cleanup_inventory · function · L578-L633 — fn cleanup_inventory(inventory: &CleanupInventory, budget: &mut Budget) -> Result<Value>
+- shape_value · function · L635-L672 — fn shape_value(shape: &FieldLivenessShape, budget: &mut Budget, depth: usize) -> Result<Value>
+- plan_value · function · L674-L721 — fn plan_value(operation: impl FnOnce() -> String, budget: &mut Budget) -> Result<Value>
+- comparison · function · L723-L809 — fn comparison(
+- type_comparison · function · L811-L898 — fn type_comparison(
+- ownership · function · L900-L907 — fn ownership(mode: OwnershipMode) -> &'static str
+- sources · function · L908-L910 — fn sources(revision: &ProjectRevision) -> Vec<Value>
+- render · function · L911-L913 — fn render(value: Value) -> Result<String>
+- invalid · function · L914-L919 — fn invalid() -> Vec<Diagnostic>
+- capacity · function · L920-L925 — fn capacity() -> Vec<Diagnostic>

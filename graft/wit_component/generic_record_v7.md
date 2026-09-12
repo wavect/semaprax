@@ -1,0 +1,42 @@
+# wit_component/generic_record_v7.rs
+
+- INTERFACE_EXPORT · constant · L16-L16 — const INTERFACE_EXPORT: &str = "semaprax:private/generic-records@0.5.0";
+- FUNCTION_EXPORTS · constant · L17-L22 — const FUNCTION_EXPORTS: [&str; 4] = [
+- TYPE_EXPORTS · constant · L23-L29 — const TYPE_EXPORTS: [&str; 5] = [
+- WIT_V7 · constant · L31-L31 — const WIT_V7: &str = "package semaprax:private@0.5.0;\n\ninterface generic-records {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  record duo-i64-bool { left: s64, right: bool }\n  record duo-bool-i64 { left: bool, right: s64 }\n  record phantom-i64 { marker: bool }\n  record phantom-bool { marker: bool }\n  transform-i64-bool: func(input: duo-i64-bool, delta: s64, divisor: s64) -> result<duo-i64-bool, status>;\n  transform-bool-i64: func(input: duo-bool-i64, delta: s64, divisor: s64) -> result<duo-bool-i64, status>;\n  preserve-phantom-i64: func(input: phantom-i64) -> result<phantom-i64, status>;\n  invert-phantom-bool: func(input: phantom-bool) -> result<phantom-bool, status>;\n}\n\nworld semaprax-private-v7 {\n  export generic-records;\n}\n";
+- PROFILE · constant · L33-L33 — const PROFILE: &[u8] = b"semaprax.private-generic-record-component.v7\0canonical-abi-memory32-utf8\0four-ordered-concrete-instances\0duo-ordered-arguments\0phantom-identical-layout-distinct-instance\0fieldwise-status-first-tag-last\0graph-v12\0";
+- PROFILE_DOMAIN · constant · L34-L34 — const PROFILE_DOMAIN: &[u8] = b"semaprax.private-generic-record-component-profile.v7\0";
+- ARTIFACT_DOMAIN · constant · L35-L35 — const ARTIFACT_DOMAIN: &[u8] = b"semaprax.private-generic-record-component-artifact.v7\0";
+- PLAN_DOMAIN · constant · L36-L36 — const PLAN_DOMAIN: &[u8] = b"semaprax.component-generic-record-plan.v7\0";
+- SOURCE_REVISION_KAT · constant · L38-L39 — const SOURCE_REVISION_KAT: &str =
+- GENERATED_CORE_KAT · constant · L40-L43 — const GENERATED_CORE_KAT: [u8; 32] = [
+- PrivateGenericRecordComponentArtifactV7 · struct · L46-L55 — pub struct PrivateGenericRecordComponentArtifactV7
+- bytes · function · L59-L61 — pub fn bytes(&self) -> &[u8]
+- digest · function · L63-L65 — pub const fn digest(&self) -> [u8; 32]
+- generated_core_digest · function · L67-L69 — pub const fn generated_core_digest(&self) -> [u8; 32]
+- profile_digest · function · L71-L73 — pub const fn profile_digest(&self) -> [u8; 32]
+- graph_digest · function · L75-L77 — pub const fn graph_digest(&self) -> [u8; 32]
+- plan_digest · function · L79-L81 — pub const fn plan_digest(&self) -> [u8; 32]
+- layout_digests · function · L83-L85 — pub const fn layout_digests(&self) -> [[u8; 32]; 4]
+- source_revision · function · L87-L89 — pub fn source_revision(&self) -> &str
+- wit · function · L91-L93 — pub const fn wit(&self) -> &'static str
+- ValidatedPrivateGenericRecordComponentV7 · struct · L97-L100 — pub struct ValidatedPrivateGenericRecordComponentV7<'a>
+- generated_core · function · L104-L106 — pub const fn generated_core(self) -> &'a [u8]
+- source_revision · function · L108-L110 — pub const fn source_revision(self) -> &'a str
+- interface_export_name · function · L112-L114 — pub const fn interface_export_name(self) -> &'static str
+- function_export_names · function · L116-L118 — pub const fn function_export_names(self) -> [&'static str; 4]
+- type_export_names · function · L120-L122 — pub const fn type_export_names(self) -> [&'static str; 5]
+- emit_private_generic_record_component_v7 · function · L125-L158 — pub fn emit_private_generic_record_component_v7(
+- compose · function · L160-L195 — fn compose(core: &[u8]) -> Vec<u8>
+- component_types · function · L197-L238 — fn component_types() -> Vec<u8>
+- validate_private_generic_record_component_v7 · function · L240-L329 — pub fn validate_private_generic_record_component_v7<'a>(
+- validate_core · function · L331-L388 — fn validate_core<'a>(
+- ProfileEvidence · struct · L390-L395 — struct ProfileEvidence
+- profile_evidence · function · L397-L436 — fn profile_evidence(program: &Program) -> Result<ProfileEvidence, Diagnostic>
+- nominal · function · L438-L443 — fn nominal(id: &str, arguments: Vec<ResolvedType>) -> ResolvedType
+- plan_digest · function · L445-L478 — fn plan_digest(instances: &[ResolvedType; 4], layouts: &[[u8; 32]; 4]) -> [u8; 32]
+- profile_digest · function · L480-L493 — fn profile_digest(evidence: &ProfileEvidence) -> [u8; 32]
+- artifact_digest · function · L495-L505 — fn artifact_digest(revision: &str, core: &[u8; 32], profile: &[u8; 32], bytes: &[u8]) -> [u8; 32]
+- first_error · function · L507-L512 — fn first_error(diagnostics: Vec<Diagnostic>) -> Diagnostic
+- profile_error · function · L514-L516 — fn profile_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L520-L520 — mod tests;

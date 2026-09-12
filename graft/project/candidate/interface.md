@@ -1,0 +1,39 @@
+# project/candidate/interface.rs
+
+- Result · type · L13-L13 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- MAX_MEMBERS · constant · L14-L14 — const MAX_MEMBERS: usize = 64;
+- MAX_ITEMS · constant · L15-L15 — const MAX_ITEMS: usize = 65_536;
+- MAX_REPORT_BYTES · constant · L16-L16 — const MAX_REPORT_BYTES: usize = 1024 * 1024;
+- ImplementationAddition · struct · L18-L24 — pub(super) struct ImplementationAddition
+- apply · function · L26-L182 — pub(super) fn apply(
+- interface_catalog · function · L187-L197 — pub fn interface_catalog(&self, expected_candidate: &str, target: &str) -> Result<String>
+- discover · function · L200-L291 — pub(super) fn discover(revision: &ProjectRevision, target: &str) -> Result<Vec<Value>>
+- rebase_fingerprint · function · L296-L538 — pub(super) fn rebase_fingerprint(
+- complete_mapping · function · L542-L575 — fn complete_mapping(members: &[Value]) -> bool
+- assign · function · L543-L560 — fn assign(
+- exact_implementation · function · L577-L586 — fn exact_implementation(request: &Value) -> Result<()>
+- destination_module · function · L588-L601 — fn destination_module(programs: &[Program], destination: &str) -> Result<usize>
+- explicit_protocol · function · L603-L622 — fn explicit_protocol<'a>(
+- explicit_function · function · L624-L643 — fn explicit_function<'a>(
+- member_matches_project · function · L646-L691 — fn member_matches_project(
+- type_key · function · L693-L741 — fn type_key(programs: &[Program], owner: usize, ty: &Type, depth: usize) -> Result<String>
+- authenticate_checked_bindings · function · L743-L869 — fn authenticate_checked_bindings(
+- authenticate_source_program · function · L871-L884 — fn authenticate_source_program(revision: &ProjectRevision, program: &Program) -> Result<()>
+- resolved_source_type · function · L886-L963 — fn resolved_source_type(
+- plan_imports · function · L965-L1073 — fn plan_imports(
+- receiver_owner · function · L1075-L1090 — fn receiver_owner(programs: &[Program], target: &str) -> Result<Option<usize>>
+- binding_fact · function · L1092-L1101 — fn binding_fact(program: &Program, implementation: &ProtocolImplementation) -> Value
+- inventory · function · L1103-L1124 — pub(super) fn inventory(programs: &[Program]) -> Result<BTreeMap<String, Value>>
+- binding · function · L1126-L1128 — pub(super) fn binding(revision: &ProjectRevision, target: &str) -> Result<Option<Value>>
+- related · function · L1130-L1144 — pub(super) fn related(revision: &ProjectRevision, target: &str) -> Result<Vec<Value>>
+- identities · function · L1148-L1215 — pub(super) fn identities(programs: &[Program]) -> Result<BTreeSet<String>>
+- exact · function · L1217-L1225 — fn exact(value: &Value, fields: &[&str]) -> Result<()>
+- selector · function · L1226-L1236 — fn selector<'a>(value: &'a Value, field: &str) -> Result<&'a str>
+- invalid · function · L1237-L1239 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L1240-L1242 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- placement · function · L1243-L1245 — fn placement(message: &'static str) -> Vec<Diagnostic>
+- import_conflict · function · L1246-L1248 — fn import_conflict(message: &'static str) -> Vec<Diagnostic>
+- authentication · function · L1249-L1251 — fn authentication(message: &'static str) -> Vec<Diagnostic>
+- mismatch · function · L1252-L1257 — pub(super) fn mismatch() -> Vec<Diagnostic>
+- tests · module · L1259-L1273 — mod tests
+- discovery_requires_a_complete_distinct_function_matching · function · L1262-L1272 — fn discovery_requires_a_complete_distinct_function_matching()

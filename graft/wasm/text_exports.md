@@ -1,0 +1,58 @@
+# wasm/text_exports.rs
+
+- STATUS_GLOBAL_EXPORT · constant · L18-L18 — pub(super) const STATUS_GLOBAL_EXPORT: &str = "__spx_text_status_v1";
+- SCRATCH_BASE_EXPORT · constant · L19-L19 — pub(super) const SCRATCH_BASE_EXPORT: &str = "__spx_text_scratch_base_v1";
+- SCRATCH_CAPACITY_EXPORT · constant · L20-L20 — pub(super) const SCRATCH_CAPACITY_EXPORT: &str = "__spx_text_scratch_capacity_v1";
+- MEMORY_EXPORT · constant · L21-L21 — pub(super) const MEMORY_EXPORT: &str = "memory";
+- SCRATCH_BASE · constant · L22-L22 — pub(super) const SCRATCH_BASE: u32 = 0;
+- SCRATCH_CAPACITY · constant · L23-L23 — pub(super) const SCRATCH_CAPACITY: u32 = 65_536;
+- KMP_TABLE_BASE · constant · L24-L24 — pub(super) const KMP_TABLE_BASE: u32 = SCRATCH_CAPACITY;
+- FIXED_MEMORY_PAGES · constant · L25-L25 — pub(super) const FIXED_MEMORY_PAGES: u8 = 3;
+- MAX_EXPORTS · constant · L27-L27 — const MAX_EXPORTS: usize = 32;
+- MAX_FUNCTIONS · constant · L28-L28 — const MAX_FUNCTIONS: usize = 256;
+- MAX_PARAMETERS · constant · L29-L29 — const MAX_PARAMETERS: usize = 8;
+- MAX_STABLE_ID_BYTES · constant · L30-L30 — const MAX_STABLE_ID_BYTES: usize = 128;
+- TextAbiType · enum · L33-L37 — pub(super) enum TextAbiType
+- internal_wasm_type · function · L40-L45 — pub(super) fn internal_wasm_type(self) -> u8
+- raw_wasm_types · function · L47-L53 — pub(super) fn raw_wasm_types(self) -> &'static [u8]
+- TextExportPlan · struct · L57-L63 — pub(super) struct TextExportPlan
+- raw_params · function · L66-L71 — pub(super) fn raw_params(&self) -> Vec<u8>
+- emit_wrapper_body · function · L73-L178 — pub(super) fn emit_wrapper_body(
+- prepare · function · L181-L339 — pub(super) fn prepare(
+- Strictness · enum · L343-L355 — enum Strictness
+- reject_call_cycles · function · L357-L390 — fn reject_call_cycles(
+- visit · function · L360-L382 — fn visit(
+- validate_function · function · L392-L593 — fn validate_function(
+- abi_parameter · function · L595-L608 — fn abi_parameter(
+- abi_result · function · L610-L616 — fn abi_result(ty: &ResolvedType) -> Option<TextAbiType>
+- require_explicit · function · L618-L633 — fn require_explicit(
+- validate_selection · function · L635-L662 — fn validate_selection(ids: &[String]) -> Result<(), Diagnostic>
+- raw_symbol · function · L664-L673 — pub(super) fn raw_symbol(stable_id: &str) -> String
+- HEX · constant · L665-L665 — const HEX: &[u8; 16] = b"0123456789abcdef";
+- emit_utf8_validator_body · function · L678-L814 — pub(super) fn emit_utf8_validator_body(body: &mut impl ByteOutput)
+- emit_starts_with_body · function · L817-L844 — pub(super) fn emit_starts_with_body(body: &mut impl ByteOutput)
+- emit_contains_body · function · L847-L849 — pub(super) fn emit_contains_body(body: &mut impl ByteOutput)
+- emit_contains_body_at · function · L851-L917 — pub(super) fn emit_contains_body_at(body: &mut impl ByteOutput, kmp_table_base: u32)
+- emit_contains_bounded_scan_body · function · L922-L967 — pub(super) fn emit_contains_bounded_scan_body(body: &mut impl ByteOutput)
+- emit_kmp_fallback · function · L969-L987 — fn emit_kmp_fallback(
+- store_kmp_prefix · function · L989-L997 — fn store_kmp_prefix(body: &mut impl ByteOutput, index: u32, value: u32, kmp_table_base: u32)
+- load_kmp_prefix_before · function · L999-L1006 — fn load_kmp_prefix_before(body: &mut impl ByteOutput, matched: u32, kmp_table_base: u32)
+- unpack_view · function · L1008-L1019 — fn unpack_view(body: &mut impl ByteOutput, parameter: u32, pointer: u32, length: u32)
+- require_remaining · function · L1021-L1028 — fn require_remaining(body: &mut impl ByteOutput, cursor: u32, needed: i32, status: i32)
+- require_continuation_or_return · function · L1030-L1039 — fn require_continuation_or_return(body: &mut impl ByteOutput, local: u32, status: i32)
+- if_return_i32 · function · L1041-L1046 — fn if_return_i32(body: &mut impl ByteOutput, value: i32)
+- load8 · function · L1048-L1051 — fn load8(body: &mut impl ByteOutput, pointer_local: u32)
+- load8_offset · function · L1053-L1058 — fn load8_offset(body: &mut impl ByteOutput, pointer_local: u32, offset: i32)
+- load8_indexed · function · L1060-L1065 — fn load8_indexed(body: &mut impl ByteOutput, pointer: u32, index: u32)
+- advance_and_continue · function · L1067-L1078 — fn advance_and_continue(body: &mut impl ByteOutput, cursor: u32, amount: i32)
+- increment_local · function · L1080-L1086 — fn increment_local(body: &mut impl ByteOutput, local: u32)
+- emit_zero · function · L1088-L1093 — fn emit_zero(body: &mut impl ByteOutput, ty: TextAbiType)
+- emit_bool_trap · function · L1095-L1100 — fn emit_bool_trap(body: &mut impl ByteOutput, local: u32)
+- local_get · function · L1102-L1105 — fn local_get(body: &mut impl ByteOutput, index: u32)
+- local_set · function · L1107-L1110 — fn local_set(body: &mut impl ByteOutput, index: u32)
+- global_set · function · L1112-L1115 — fn global_set(body: &mut impl ByteOutput, index: u32)
+- call · function · L1117-L1120 — fn call(body: &mut impl ByteOutput, index: u32)
+- i32_const · function · L1122-L1125 — fn i32_const(body: &mut impl ByteOutput, value: i32)
+- i64_const · function · L1127-L1130 — fn i64_const(body: &mut impl ByteOutput, value: i64)
+- admission · function · L1132-L1134 — fn admission(message: impl Into<String>) -> Diagnostic
+- capacity · function · L1136-L1138 — fn capacity(message: impl Into<String>) -> Diagnostic

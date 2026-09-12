@@ -1,0 +1,39 @@
+---
+covers: []
+---
+# doc.rs
+
+- SCHEMA_V1 · constant · L27-L27 — pub const SCHEMA_V1: &str = "semaprax.doc.v1";
+- Document · struct · L31-L37 — pub struct Document
+- Use · struct · L41-L46 — pub struct Use
+- Location · struct · L52-L57 — pub struct Location
+- of · function · L60-L67 — fn of(span: Span) -> Self
+- json · function · L69-L74 — fn json(self) -> String
+- Entry · struct · L79-L96 — pub struct Entry
+- Fact · struct · L100-L103 — pub struct Fact
+- Member · struct · L108-L116 — pub struct Member
+- document · function · L121-L172 — pub fn document(program: &Program, comments: &Comments) -> Document
+- markdown · function · L176-L178 — pub fn markdown(program: &Program, comments: &Comments) -> String
+- json · function · L182-L184 — pub fn json(program: &Program, comments: &Comments) -> String
+- description · function · L186-L192 — fn description(placement: &Placement, start: usize) -> Vec<String>
+- type_text · function · L194-L198 — fn type_text(ty: &Type) -> String
+- param_text · function · L200-L207 — fn param_text(param: &Param) -> String
+- contract_text · function · L209-L213 — fn contract_text(expr: &Expr) -> String
+- write_id_line · function · L215-L219 — fn write_id_line(output: &mut String, id: &str, indent: &str)
+- write_params · function · L221-L230 — fn write_params(output: &mut String, params: &[Param])
+- write_function_header · function · L232-L256 — fn write_function_header(output: &mut String, function: &Function, indent: &str)
+- push_fact · function · L258-L262 — fn push_fact(facts: &mut Vec<Fact>, label: &'static str, values: Vec<String>)
+- type_parameter_names · function · L264-L269 — fn type_parameter_names(parameters: &[TypeParameterDeclaration]) -> Vec<String>
+- function_entry · function · L271-L311 — fn function_entry(function: &Function, placement: &Placement, kind: &'static str) -> Entry
+- field_members · function · L313-L335 — fn field_members(
+- type_entry · function · L337-L490 — fn type_entry(declaration: &TypeDeclaration, placement: &Placement) -> Entry
+- interface_entry · function · L492-L554 — fn interface_entry(interface: &crate::ast::InterfaceDeclaration, placement: &Placement) -> Entry
+- protocol_entry · function · L556-L593 — fn protocol_entry(protocol: &crate::ast::ProtocolDeclaration, placement: &Placement) -> Entry
+- implementation_entry · function · L595-L649 — fn implementation_entry(
+- SECTIONS · constant · L652-L662 — const SECTIONS: &[(&str, &str)] = &[
+- member_heading · function · L664-L675 — fn member_heading(kind: &str) -> &'static str
+- code · function · L677-L679 — fn code(text: &str) -> String
+- render_markdown · function · L681-L781 — fn render_markdown(document: &Document) -> String
+- json_strings · function · L783-L793 — fn json_strings(values: &[String]) -> String
+- render_json · function · L795-L867 — fn render_json(document: &Document) -> String
+- tests · module · L870-L870 — mod tests;

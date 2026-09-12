@@ -1,0 +1,22 @@
+# codegen/native_module_lease.rs
+
+- STATE_OPEN · constant · L20-L20 — const STATE_OPEN: u8 = 1;
+- STATE_DRAINING · constant · L21-L21 — const STATE_DRAINING: u8 = 2;
+- NativeProcessIncarnation · struct · L28-L31 — pub(super) struct NativeProcessIncarnation
+- current_for_test · function · L35-L40 — pub(super) fn current_for_test(incarnation: u64) -> Self
+- NativeModuleLease · struct · L49-L51 — pub(super) struct NativeModuleLease
+- NativeModulePinInner · struct · L55-L61 — struct NativeModulePinInner
+- NativeModuleLeaseError · enum · L64-L69 — pub(super) enum NativeModuleLeaseError
+- retain_current_process · function · L78-L83 — pub(super) fn retain_current_process(&self) -> Result<Self, NativeModuleLeaseError>
+- retain · function · L91-L96 — pub(super) fn retain(
+- retain_with_after_clone · function · L98-L115 — fn retain_with_after_clone(
+- begin_draining · function · L122-L137 — pub(super) fn begin_draining(
+- is_same_instance · function · L139-L141 — pub(super) fn is_same_instance(&self, other: &Self) -> bool
+- physical_module_fingerprint · function · L143-L145 — pub(super) fn physical_module_fingerprint(&self) -> &[u8; 32]
+- require_origin · function · L147-L156 — fn require_origin(
+- fake_retained · function · L161-L180 — pub(super) fn fake_retained(
+- FakeRetainedPinProbe · struct · L184-L186 — pub(super) struct FakeRetainedPinProbe
+- new · function · L190-L194 — pub(super) fn new() -> Self
+- releases · function · L196-L198 — pub(super) fn releases(&self) -> usize
+- drop · function · L203-L205 — fn drop(&mut self)
+- tests · module · L210-L210 — mod tests;

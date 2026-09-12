@@ -1,0 +1,3 @@
+# cleanup_plan/replay/mixed_result_tests.rs
+
+- mixed_result_residual_replay_keeps_empty_error_cases_and_rejects_missing_transfer · function · L5-L67 — fn mixed_result_residual_replay_keeps_empty_error_cases_and_rejects_missing_transfer()

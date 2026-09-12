@@ -1,0 +1,64 @@
+---
+covers: []
+---
+# public_generic_type.rs
+
+- PUBLIC_GENERIC_TYPE_GRAMMAR_SCHEMA · constant · L45-L45 — pub const PUBLIC_GENERIC_TYPE_GRAMMAR_SCHEMA: &str = "semaprax.public-generic-type-grammar.v1";
+- TERM_DOMAIN · constant · L47-L47 — const TERM_DOMAIN: &[u8] = b"semaprax.public-generic-type-grammar.v1.term\0";
+- TEMPLATE_DOMAIN · constant · L48-L48 — const TEMPLATE_DOMAIN: &[u8] = b"semaprax.public-generic-type-grammar.v1.template\0";
+- INSTANCE_DOMAIN · constant · L49-L49 — const INSTANCE_DOMAIN: &[u8] = b"semaprax.public-generic-type-grammar.v1.instance\0";
+- MAX_TERM_BYTES · constant · L52-L52 — pub const MAX_TERM_BYTES: usize = 64 * 1024;
+- MAX_RECORD_DEPTH · constant · L54-L54 — pub const MAX_RECORD_DEPTH: usize = 64;
+- MAX_OWNED_LEAVES · constant · L56-L56 — pub const MAX_OWNED_LEAVES: usize = 256;
+- MAX_VISITED_NODES · constant · L58-L58 — pub const MAX_VISITED_NODES: usize = 4096;
+- MAX_TEMPLATE_ARITY · constant · L60-L60 — pub const MAX_TEMPLATE_ARITY: usize = 16;
+- REJECTED_TYPE · constant · L63-L63 — pub const REJECTED_TYPE: &str = "SPX-PG101";
+- GRAMMAR_CAPACITY · constant · L65-L65 — pub const GRAMMAR_CAPACITY: &str = "SPX-PG102";
+- MALFORMED_TERM · constant · L67-L67 — pub const MALFORMED_TERM: &str = "SPX-PG103";
+- TERM_REPLAY_MISMATCH · constant · L69-L69 — pub const TERM_REPLAY_MISMATCH: &str = "SPX-PG104";
+- Rejection · enum · L74-L99 — pub enum Rejection
+- ALL · constant · L103-L116 — pub const ALL: [Self; 12] = [
+- of · function · L125-L135 — pub fn of(diagnostic: &Diagnostic) -> Option<Self>
+- reason · function · L138-L153 — pub const fn reason(self) -> &'static str
+- diagnostic · function · L155-L163 — fn diagnostic(self) -> Diagnostic
+- GrammarScalar · enum · L168-L177 — pub enum GrammarScalar
+- text · function · L181-L192 — pub const fn text(self) -> &'static str
+- from_text · function · L194-L206 — const fn from_text(text: &str) -> Option<Self>
+- GrammarTerm · enum · L212-L221 — pub enum GrammarTerm
+- render · function · L225-L229 — pub fn render(&self) -> String
+- write · function · L231-L250 — fn write(&self, output: &mut String)
+- TemplateParameter · struct · L256-L260 — pub struct TemplateParameter
+- TemplateIdentity · struct · L266-L272 — pub struct TemplateIdentity
+- ArgumentFact · struct · L277-L283 — pub struct ArgumentFact
+- FieldFact · struct · L288-L294 — pub struct FieldFact
+- InstanceFacts · struct · L298-L310 — pub struct InstanceFacts
+- Budget · struct · L313-L316 — struct Budget
+- visit · function · L319-L325 — fn visit(&mut self, depth: usize) -> Result<(), Diagnostic>
+- leaf · function · L327-L333 — fn leaf(&mut self) -> Result<(), Diagnostic>
+- capacity · function · L336-L341 — fn capacity(subject: &str) -> Diagnostic
+- malformed · function · L343-L348 — fn malformed(subject: &str) -> Diagnostic
+- digest · function · L350-L356 — fn digest(domain: &[u8], bytes: &[u8]) -> String
+- write_identity · function · L360-L365 — fn write_identity(output: &mut String, identity: &str)
+- frame · function · L367-L370 — fn frame(preimage: &mut Vec<u8>, bytes: &[u8])
+- term_digest · function · L373-L375 — pub fn term_digest(term: &str) -> String
+- TypeInventory · struct · L385-L388 — pub struct TypeInventory<'a>
+- new · function · L392-L394 — pub fn new() -> Self
+- extend · function · L397-L408 — pub fn extend(
+- of · function · L411-L415 — pub fn of(program: &'a ResolvedProgram) -> Self
+- find · function · L417-L425 — fn find(&self, identity: &str) -> Result<&'a ResolvedTypeDeclaration, Diagnostic>
+- record_fields · function · L428-L435 — fn record_fields(
+- classify · function · L438-L444 — pub fn classify(
+- classify_with · function · L446-L497 — fn classify_with(
+- term · function · L500-L506 — pub fn term(inventory: &TypeInventory<'_>, ty: &ResolvedType) -> Result<String, Diagnostic>
+- concrete_fields · function · L513-L531 — pub fn concrete_fields(
+- substitute · function · L534-L562 — fn substitute(
+- describe · function · L570-L659 — pub fn describe(
+- template_identity · function · L661-L685 — fn template_identity(declaration: &ResolvedTypeDeclaration) -> TemplateIdentity
+- collect_owned_leaves · function · L687-L724 — fn collect_owned_leaves(
+- parse_term · function · L728-L742 — pub fn parse_term(text: &str) -> Result<GrammarTerm, Diagnostic>
+- Cursor · struct · L744-L748 — struct Cursor<'a>
+- rest · function · L751-L753 — fn rest(&self) -> &str
+- term · function · L755-L779 — fn term(&mut self, depth: usize) -> Result<GrammarTerm, Diagnostic>
+- instance · function · L781-L844 — fn instance(&mut self, depth: usize) -> Result<GrammarTerm, Diagnostic>
+- verify_term · function · L850-L867 — pub fn verify_term(
+- tests · module · L870-L870 — mod tests;

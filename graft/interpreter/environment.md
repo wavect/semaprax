@@ -1,0 +1,21 @@
+# interpreter/environment.rs
+
+- ADMITTED_EFFECTS · constant · L19-L25 — const ADMITTED_EFFECTS: [&str; 5] = [
+- EnvironmentState · struct · L27-L29 — pub(super) struct EnvironmentState
+- new · function · L32-L34 — pub(super) fn new(snapshot: Option<EnvironmentSnapshot>) -> Self
+- len · function · L36-L56 — fn len(&self) -> Result<usize, Flow>
+- entry · function · L58-L66 — fn entry(&self, index: usize, value: bool) -> Result<Arc<[u8]>, Flow>
+- failure · function · L69-L79 — fn failure(code: u32) -> Flow
+- authority_denied · function · L80-L82 — fn authority_denied() -> Flow
+- index_out_of_bounds · function · L83-L85 — fn index_out_of_bounds() -> Flow
+- invalid_input · function · L86-L88 — fn invalid_input() -> Flow
+- capacity_exceeded · function · L89-L91 — fn capacity_exceeded() -> Flow
+- evaluate_resolved_environment_command · function · L93-L111 — pub(crate) fn evaluate_resolved_environment_command(
+- evaluate_profile · function · L114-L283 — pub(crate) fn evaluate_profile(
+- validate_input · function · L285-L317 — fn validate_input(
+- evaluate_environment_operation · function · L320-L358 — pub(super) fn evaluate_environment_operation(
+- tests · module · L363-L422 — mod tests
+- environment_is_charged_once_alongside_argv_and_stdin · function · L367-L391 — fn environment_is_charged_once_alongside_argv_and_stdin()
+- absent_snapshot_fails_with_the_environment_authority_status · function · L394-L401 — fn absent_snapshot_fails_with_the_environment_authority_status()
+- entries_keep_one_immutable_arc_root_per_snapshot_value · function · L404-L421 — fn entries_keep_one_immutable_arc_root_per_snapshot_value()
+- handles · function · L425-L427 — pub(super) fn handles(operation: Operation) -> bool

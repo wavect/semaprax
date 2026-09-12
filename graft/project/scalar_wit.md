@@ -1,0 +1,53 @@
+# project/scalar_wit.rs
+
+- SCALAR_WIT_INTERFACE_SCHEMA · constant · L17-L17 — pub const SCALAR_WIT_INTERFACE_SCHEMA: &str = "semaprax.project.scalar-wit-interface.v1";
+- MAX_SCALAR_WIT_INTERFACE_BYTES · constant · L18-L18 — pub const MAX_SCALAR_WIT_INTERFACE_BYTES: usize = 65_536;
+- MAX_SCALAR_WIT_DESCRIPTOR_BYTES · constant · L19-L19 — pub const MAX_SCALAR_WIT_DESCRIPTOR_BYTES: usize = 262_144;
+- MAX_EXPORTS · constant · L21-L21 — const MAX_EXPORTS: usize = 32;
+- MAX_PARAMETERS · constant · L22-L22 — const MAX_PARAMETERS: usize = 8;
+- MAX_STABLE_ID_BYTES · constant · L23-L23 — const MAX_STABLE_ID_BYTES: usize = 128;
+- DIGEST_DOMAIN · constant · L24-L24 — const DIGEST_DOMAIN: &[u8] = b"semaprax.project.scalar-wit-interface.digest.v1\0";
+- WIT_DIGEST_DOMAIN · constant · L25-L25 — const WIT_DIGEST_DOMAIN: &[u8] = b"semaprax.project.scalar-wit-interface.wit-digest.v1\0";
+- WIT_PACKAGE · constant · L26-L26 — const WIT_PACKAGE: &str = "semaprax:project-scalar@1.0.0";
+- WIT_INTERFACE · constant · L27-L27 — const WIT_INTERFACE: &str = "exports";
+- WIT_WORLD · constant · L28-L28 — const WIT_WORLD: &str = "project-scalar-v1";
+- ScalarWitTypeV1 · enum · L31-L39 — pub enum ScalarWitTypeV1
+- WIDENED · constant · L45-L45 — const WIDENED: [Self; 5] = [Self::I32, Self::U8, Self::Char, Self::F32, Self::F64];
+- wit_name · function · L48-L58 — pub const fn wit_name(self) -> &'static str
+- language_name · function · L62-L72 — const fn language_name(self) -> &'static str
+- ScalarWitExportV1 · struct · L76-L81 — pub struct ScalarWitExportV1
+- stable_id · function · L85-L87 — pub fn stable_id(&self) -> &DeclarationId
+- wit_name · function · L90-L92 — pub fn wit_name(&self) -> &str
+- parameters · function · L95-L97 — pub fn parameters(&self) -> &[ScalarWitTypeV1]
+- result · function · L100-L102 — pub const fn result(&self) -> ScalarWitTypeV1
+- ScalarWitInterfaceArtifactV1 · struct · L108-L116 — pub struct ScalarWitInterfaceArtifactV1
+- schema · function · L120-L122 — pub const fn schema(&self) -> &'static str
+- project_schema · function · L125-L127 — pub const fn project_schema(&self) -> &'static str
+- project_name · function · L130-L132 — pub fn project_name(&self) -> &str
+- project_revision · function · L135-L137 — pub fn project_revision(&self) -> &str
+- workspace_revision · function · L140-L142 — pub fn workspace_revision(&self) -> &str
+- project_graph_digest · function · L145-L147 — pub fn project_graph_digest(&self) -> &str
+- exports · function · L150-L152 — pub fn exports(&self) -> &[ScalarWitExportV1]
+- wit · function · L155-L157 — pub fn wit(&self) -> &str
+- wit_digest · function · L160-L162 — pub fn wit_digest(&self) -> &str
+- canonical_bytes · function · L165-L167 — pub fn canonical_bytes(&self) -> Vec<u8>
+- digest · function · L170-L172 — pub fn digest(&self) -> String
+- ScalarWitSubject · struct · L176-L181 — pub(super) struct ScalarWitSubject<'a>
+- derive_scalar_wit_interface_v1 · function · L183-L294 — pub(super) fn derive_scalar_wit_interface_v1(
+- replay_scalar_wit_interface_v1 · function · L296-L356 — pub(super) fn replay_scalar_wit_interface_v1(
+- validate_subject · function · L358-L383 — fn validate_subject(subject: ScalarWitSubject<'_>) -> Result<(), Diagnostic>
+- validate_stable_id · function · L385-L399 — fn validate_stable_id(value: &str) -> Result<(), Diagnostic>
+- wit_type · function · L403-L414 — fn wit_type(ty: &ResolvedType) -> Option<ScalarWitTypeV1>
+- widened_mapping_rows · function · L418-L428 — fn widened_mapping_rows(exports: &[ScalarWitExportV1]) -> String
+- wit_function_name · function · L430-L439 — fn wit_function_name(stable_id: &str) -> String
+- HEX · constant · L431-L431 — const HEX: &[u8; 16] = b"0123456789abcdef";
+- render_wit · function · L441-L468 — fn render_wit(exports: &[ScalarWitExportV1]) -> String
+- render_descriptor · function · L470-L514 — fn render_descriptor(artifact: &ScalarWitInterfaceArtifactV1) -> String
+- is_sha256_fact · function · L516-L522 — fn is_sha256_fact(value: &str) -> bool
+- domain_digest · function · L524-L530 — fn domain_digest(bytes: &[u8]) -> String
+- wit_digest · function · L532-L538 — fn wit_digest(bytes: &[u8]) -> String
+- interface_error · function · L540-L542 — fn interface_error(message: impl Into<String>) -> Diagnostic
+- capacity · function · L544-L546 — fn capacity(message: impl Into<String>) -> Diagnostic
+- tests · module · L549-L575 — mod tests
+- stable_identity_names_are_injective_without_lossy_normalization · function · L553-L559 — fn stable_identity_names_are_injective_without_lossy_normalization()
+- wit_uses_ordinal_parameters_and_typed_status_results · function · L562-L574 — fn wit_uses_ordinal_parameters_and_typed_status_results()

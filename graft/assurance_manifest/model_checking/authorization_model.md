@@ -1,0 +1,46 @@
+# assurance_manifest/model_checking/authorization_model.rs
+
+- NAME · constant · L34-L34 — pub const NAME: &str = "agent_turn_authorization_dispatch_checkpoint";
+- VERSION · constant · L35-L35 — pub const VERSION: &str = "v1";
+- INVARIANTS · constant · L37-L40 — pub const INVARIANTS: &[&str] = &[
+- TERMINAL_PHASES · constant · L42-L42 — pub const TERMINAL_PHASES: &[&str] = &["Completed", "Failed", "RecoveryRefused"];
+- DESCRIPTOR · constant · L44-L49 — pub const DESCRIPTOR: ModelDescriptor = ModelDescriptor
+- BOUNDS · constant · L55-L59 — pub const BOUNDS: Bounds = Bounds
+- Phase · enum · L62-L73 — pub enum Phase
+- State · struct · L84-L89 — pub struct State
+- initial · function · L92-L99 — const fn initial() -> Self
+- Event · enum · L103-L120 — pub enum Event
+- dispatch_descendant · function · L122-L134 — fn dispatch_descendant(phase: Phase) -> bool
+- safety_invariant · function · L136-L148 — fn safety_invariant(state: &State) -> Result<(), String>
+- is_terminal · function · L150-L155 — fn is_terminal(phase: Phase) -> bool
+- Correct · struct · L160-L160 — pub struct Correct;
+- State · type · L163-L163 — type State = State;
+- Event · type · L164-L164 — type Event = Event;
+- initial_states · function · L166-L168 — fn initial_states(&self) -> Vec<State>
+- enabled_events · function · L170-L180 — fn enabled_events(&self, state: &State) -> Vec<Event>
+- apply · function · L182-L184 — fn apply(&self, state: &State, event: &Event) -> Option<State>
+- is_terminal · function · L186-L188 — fn is_terminal(&self, state: &State) -> bool
+- safety_invariant · function · L190-L192 — fn safety_invariant(&self, state: &State) -> Result<(), String>
+- apply_common · function · L195-L231 — fn apply_common(state: &State, event: &Event) -> Option<State>
+- Fault · enum · L238-L247 — pub enum Fault
+- Faulty · struct · L255-L255 — pub struct Faulty(pub Fault);
+- State · type · L258-L258 — type State = State;
+- Event · type · L259-L259 — type Event = Event;
+- initial_states · function · L261-L263 — fn initial_states(&self) -> Vec<State>
+- enabled_events · function · L265-L277 — fn enabled_events(&self, state: &State) -> Vec<Event>
+- apply · function · L279-L281 — fn apply(&self, state: &State, event: &Event) -> Option<State>
+- is_terminal · function · L283-L285 — fn is_terminal(&self, state: &State) -> bool
+- safety_invariant · function · L287-L289 — fn safety_invariant(&self, state: &State) -> Result<(), String>
+- tests · module · L293-L470 — mod tests
+- correct_model_is_verified_within_declared_bounds · function · L300-L303 — fn correct_model_is_verified_within_declared_bounds()
+- correct_model_explores_every_declared_phase · function · L311-L323 — fn correct_model_explores_every_declared_phase()
+- correct_model_state_space_is_well_under_its_declared_bounds · function · L326-L331 — fn correct_model_state_space_is_well_under_its_declared_bounds()
+- dispatch_without_authorization_is_a_one_step_counterexample · function · L334-L348 — fn dispatch_without_authorization_is_a_one_step_counterexample()
+- redispatch_uncertain_intent_is_a_five_step_counterexample · function · L351-L374 — fn redispatch_uncertain_intent_is_a_five_step_counterexample()
+- counterexample_trace_replays_independently_to_the_same_violation · function · L385-L398 — fn counterexample_trace_replays_independently_to_the_same_violation()
+- bound_exhaustion_on_the_correct_model_is_never_reported_as_verified · function · L401-L415 — fn bound_exhaustion_on_the_correct_model_is_never_reported_as_verified()
+- depth_bound_exhaustion_is_distinct_from_verified · function · L418-L431 — fn depth_bound_exhaustion_is_distinct_from_verified()
+- a_terminal_success_is_reachable_within_bound · function · L434-L443 — fn a_terminal_success_is_reachable_within_bound()
+- an_unreachable_target_is_reported_never_reached_not_silently_ignored · function · L446-L452 — fn an_unreachable_target_is_reported_never_reached_not_silently_ignored()
+- same_run_twice_produces_byte_identical_reports · function · L455-L459 — fn same_run_twice_produces_byte_identical_reports()
+- model_digest_is_stable_for_the_committed_descriptor_and_bounds · function · L462-L469 — fn model_digest_is_stable_for_the_committed_descriptor_and_bounds()

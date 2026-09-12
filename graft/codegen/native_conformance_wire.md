@@ -1,0 +1,51 @@
+# codegen/native_conformance_wire.rs
+
+- MAGIC · constant · L23-L23 — pub(super) const MAGIC: &[u8; 8] = b"SPXTRC1\0";
+- VERSION · constant · L24-L24 — pub(super) const VERSION: u32 = 1;
+- DecodeLimits · struct · L27-L33 — pub(super) struct DecodeLimits
+- DEFAULT_LIMITS · constant · L35-L41 — pub(super) const DEFAULT_LIMITS: DecodeLimits = DecodeLimits
+- WireStorage · enum · L44-L57 — pub(super) enum WireStorage
+- WirePlace · struct · L60-L63 — pub(super) struct WirePlace
+- WireStatusLane · enum · L66-L69 — pub(super) enum WireStatusLane
+- WireStatusSource · struct · L72-L75 — pub(super) struct WireStatusSource
+- WireStatusClass · enum · L78-L84 — pub(super) enum WireStatusClass
+- WireRetryability · enum · L87-L91 — pub(super) enum WireRetryability
+- WireStatus · struct · L94-L100 — pub(super) struct WireStatus
+- WireResultSource · enum · L103-L106 — pub(super) enum WireResultSource
+- WireEventKind · enum · L109-L134 — pub(super) enum WireEventKind
+- WireEvent · struct · L137-L141 — pub(super) struct WireEvent
+- WireResult · enum · L144-L149 — pub(super) enum WireResult
+- WireOutcome · enum · L152-L158 — pub(super) enum WireOutcome
+- WireTrace · struct · L161-L166 — pub(super) struct WireTrace
+- WireDecodeError · enum · L169-L185 — pub(super) enum WireDecodeError
+- fmt · function · L188-L243 — fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result
+- decode · function · L248-L250 — pub(super) fn decode(bytes: &[u8]) -> Result<WireTrace, WireDecodeError>
+- decode_with_limits · function · L252-L302 — pub(super) fn decode_with_limits(
+- Reader · struct · L304-L310 — struct Reader<'a>
+- new · function · L313-L321 — fn new(bytes: &'a [u8], limits: DecodeLimits) -> Self
+- read_exact · function · L323-L337 — fn read_exact(&mut self, length: usize) -> Result<&'a [u8], WireDecodeError>
+- read_u32 · function · L339-L345 — fn read_u32(&mut self) -> Result<u32, WireDecodeError>
+- read_i64 · function · L347-L353 — fn read_i64(&mut self) -> Result<i64, WireDecodeError>
+- read_count · function · L355-L357 — fn read_count(&mut self) -> Result<usize, WireDecodeError>
+- read_tag · function · L359-L365 — fn read_tag(&mut self, context: &'static str) -> Result<u32, WireDecodeError>
+- read_text · function · L367-L389 — fn read_text(&mut self) -> Result<String, WireDecodeError>
+- read_identity · function · L391-L398 — fn read_identity(&mut self) -> Result<String, WireDecodeError>
+- claim_items · function · L400-L411 — fn claim_items(&mut self, count: usize) -> Result<(), WireDecodeError>
+- collection · function · L413-L419 — fn collection<T>(&self, count: usize) -> Result<Vec<T>, WireDecodeError>
+- ensure_remaining_for · function · L421-L439 — fn ensure_remaining_for(
+- read_identities · function · L441-L450 — fn read_identities(&mut self) -> Result<Vec<String>, WireDecodeError>
+- read_event · function · L452-L499 — fn read_event(&mut self) -> Result<WireEvent, WireDecodeError>
+- read_storage · function · L501-L521 — fn read_storage(&mut self) -> Result<WireStorage, WireDecodeError>
+- read_place · function · L523-L528 — fn read_place(&mut self) -> Result<WirePlace, WireDecodeError>
+- read_status_source · function · L530-L546 — fn read_status_source(&mut self) -> Result<WireStatusSource, WireDecodeError>
+- read_status · function · L548-L585 — fn read_status(&mut self) -> Result<WireStatus, WireDecodeError>
+- read_result_source · function · L587-L601 — fn read_result_source(&mut self) -> Result<WireResultSource, WireDecodeError>
+- read_optional_identity · function · L603-L612 — fn read_optional_identity(&mut self) -> Result<Option<String>, WireDecodeError>
+- read_outcome · function · L614-L627 — fn read_outcome(&mut self) -> Result<WireOutcome, WireDecodeError>
+- read_result · function · L629-L650 — fn read_result(&mut self) -> Result<WireResult, WireDecodeError>
+- validate_status · function · L653-L712 — fn validate_status(status: &WireStatus) -> Result<(), WireDecodeError>
+- STATUS_SCHEMA · constant · L654-L654 — const STATUS_SCHEMA: &str = "semaprax.status.v1";
+- CONTRACT_DOMAIN · constant · L655-L655 — const CONTRACT_DOMAIN: &str = "semaprax.contract.v1";
+- ARITHMETIC_DOMAIN · constant · L656-L656 — const ARITHMETIC_DOMAIN: &str = "semaprax.arithmetic.v1";
+- MAX_DOMAIN_BYTES · constant · L657-L657 — const MAX_DOMAIN_BYTES: usize = 255;
+- tests · module · L716-L716 — mod tests;

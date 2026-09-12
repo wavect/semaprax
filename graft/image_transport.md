@@ -1,0 +1,42 @@
+---
+covers: []
+---
+# image_transport.rs
+
+- candidates · module · L25-L25 — mod candidates;
+- vnext · module · L26-L26 — mod vnext;
+- PROTOCOL_SCHEMA · constant · L36-L36 — pub const PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v1";
+- RESULT_SCHEMA · constant · L37-L37 — pub const RESULT_SCHEMA: &str = "semaprax.image-agent-result.v1";
+- MAX_REQUEST_BYTES · constant · L38-L38 — pub const MAX_REQUEST_BYTES: usize = 64 * 1024;
+- MAX_RESPONSE_BYTES · constant · L39-L39 — pub const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
+- MAX_QUERY_BYTES · constant · L40-L40 — const MAX_QUERY_BYTES: usize = 512 * 1024;
+- ImageHostCapability · enum · L45-L51 — pub enum ImageHostCapability
+- ParameterKind · enum · L54-L65 — enum ParameterKind
+- Parameter · struct · L68-L72 — struct Parameter
+- REVISION · constant · L74-L78 — const REVISION: Parameter = Parameter
+- TARGET · constant · L79-L83 — const TARGET: Parameter = Parameter
+- TARGET_KIND · constant · L84-L88 — const TARGET_KIND: Parameter = Parameter
+- DEPTH · constant · L89-L93 — const DEPTH: Parameter = Parameter
+- BYTES · constant · L94-L98 — const BYTES: Parameter = Parameter
+- NODES · constant · L99-L103 — const NODES: Parameter = Parameter
+- Operation · enum · L106-L121 — enum Operation
+- Method · struct · L123-L129 — struct Method
+- METHODS · constant · L133-L279 — const METHODS: &[Method] = &[
+- ImageSession · struct · L282-L289 — pub struct ImageSession
+- open · function · L292-L318 — pub fn open(manifest: &Path, capability: ImageHostCapability) -> Result<Self, Vec<Diagnostic>>
+- open_test_enabled · function · L322-L329 — pub fn open_test_enabled(
+- open_diagnostics · function · L333-L340 — pub fn open_diagnostics(
+- image_revision · function · L342-L344 — pub fn image_revision(&self) -> &str
+- is_terminal · function · L346-L348 — pub fn is_terminal(&self) -> bool
+- handle_frame · function · L352-L446 — pub fn handle_frame(&mut self, frame: &[u8]) -> Option<Vec<u8>>
+- finish · function · L449-L451 — pub fn finish(&mut self) -> Result<(), Vec<Diagnostic>>
+- serve · function · L455-L495 — pub fn serve<R: BufRead, W: Write>(
+- diagnostics · function · L497-L503 — fn diagnostics(errors: &[Diagnostic]) -> String
+- validate_parameters · function · L505-L549 — fn validate_parameters(method: &Method, params: &Map<String, Value>) -> Result<(), String>
+- text · function · L551-L553 — fn text<'a>(params: &'a Map<String, Value>, key: &str) -> &'a str
+- number · function · L555-L560 — fn number(params: &Map<String, Value>, key: &str, default: usize) -> usize
+- dispatch · function · L562-L667 — fn dispatch(
+- parse_payload · function · L669-L676 — fn parse_payload(payload: String) -> Result<Value, Vec<Diagnostic>>
+- method_names · function · L678-L680 — fn method_names() -> Vec<&'static str>
+- method_description · function · L682-L719 — fn method_description(method: &Method) -> Value
+- client_source · function · L721-L728 — fn client_source(language: &str) -> String

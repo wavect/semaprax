@@ -1,0 +1,50 @@
+# project_revision_store/unix.rs
+
+- Identity · struct · L22-L27 — struct Identity
+- RetainedEntryFact · struct · L29-L32 — struct RetainedEntryFact
+- RootInventory · struct · L34-L38 — struct RootInventory
+- RootInventoryPolicy · enum · L41-L44 — enum RootInventoryPolicy
+- CreatedEntry · struct · L46-L49 — struct CreatedEntry
+- AdvisoryLock · struct · L51-L54 — struct AdvisoryLock
+- new · function · L57-L59 — fn new(file: std::fs::File) -> Self
+- release · function · L61-L67 — fn release(mut self) -> Result<(), std::io::Error>
+- drop · function · L71-L75 — fn drop(&mut self)
+- persist · function · L78-L80 — pub(super) fn persist(root: &Path, prepared: &PreparedEntry) -> Result<(), Vec<Diagnostic>>
+- StorePoint · enum · L83-L88 — pub(super) enum StorePoint
+- persist_with_hook · function · L90-L270 — pub(super) fn persist_with_hook(
+- require_publication_capacity · function · L272-L277 — pub(super) fn require_publication_capacity(entries: usize) -> Result<(), Vec<Diagnostic>>
+- reset_retained_metadata_authentications · function · L280-L282 — pub(super) fn reset_retained_metadata_authentications()
+- retained_metadata_authentications · function · L285-L287 — pub(super) fn retained_metadata_authentications() -> usize
+- load · function · L289-L291 — pub(super) fn load(root_path: &Path, entry_digest: &str) -> Result<StoredEntry, Vec<Diagnostic>>
+- LoadPoint · enum · L295-L297 — pub(super) enum LoadPoint
+- load_with_hook · function · L300-L308 — pub(super) fn load_with_hook(
+- load_with_hook_inner · function · L310-L360 — fn load_with_hook_inner(
+- open_root · function · L362-L430 — fn open_root(path: &Path) -> Result<OwnedFd, Vec<Diagnostic>>
+- require_root_path_identity · function · L432-L440 — fn require_root_path_identity(path: &Path, expected: Identity) -> Result<(), Vec<Diagnostic>>
+- root_inventory · function · L442-L513 — fn root_inventory(
+- canonical_entry_hex · function · L515-L521 — fn canonical_entry_hex(value: &str) -> bool
+- require_root_inventory · function · L523-L552 — fn require_root_inventory(
+- authenticate_retained_entry · function · L554-L646 — fn authenticate_retained_entry(
+- require_file_size · function · L648-L666 — fn require_file_size(
+- directory_names · function · L668-L695 — fn directory_names(directory: &OwnedFd) -> Result<Vec<String>, Vec<Diagnostic>>
+- write_entry · function · L697-L800 — fn write_entry(
+- sync_created_directories · function · L802-L818 — fn sync_created_directories(
+- authenticate_prepared · function · L820-L850 — fn authenticate_prepared(
+- read_stored · function · L852-L905 — fn read_stored(directory: &OwnedFd) -> Result<StoredEntry, Vec<Diagnostic>>
+- expected_inventory · function · L907-L931 — fn expected_inventory(paths: &[String]) -> Result<BTreeMap<String, bool>, Vec<Diagnostic>>
+- require_entry_inventory · function · L933-L940 — fn require_entry_inventory(
+- entry_inventory · function · L942-L948 — fn entry_inventory(
+- require_inventory_shape · function · L950-L964 — fn require_inventory_shape(
+- require_exact_inventory · function · L966-L978 — fn require_exact_inventory(
+- walk · function · L980-L1045 — fn walk(
+- write_file · function · L1047-L1086 — fn write_file(parent: &OwnedFd, name: &[u8], bytes: &[u8]) -> Result<Identity, Vec<Diagnostic>>
+- read_expected_plus_one · function · L1088-L1105 — pub(super) fn read_expected_plus_one(
+- read_nested_file · function · L1107-L1110 — fn read_nested_file(root: &OwnedFd, path: &str, limit: usize) -> Result<Vec<u8>, Vec<Diagnostic>>
+- read_file · function · L1112-L1154 — fn read_file(parent: &OwnedFd, name: &str, limit: usize) -> Result<Vec<u8>, Vec<Diagnostic>>
+- require_entry_directory_mode · function · L1156-L1165 — fn require_entry_directory_mode(directory: &OwnedFd) -> Result<(), Vec<Diagnostic>>
+- open_parent · function · L1167-L1182 — fn open_parent(root: &OwnedFd, path: &str) -> Result<(OwnedFd, String), Vec<Diagnostic>>
+- open_directory_at · function · L1184-L1192 — fn open_directory_at<Fd: AsFd>(parent: Fd, name: &[u8]) -> Result<OwnedFd, Vec<Diagnostic>>
+- identity · function · L1194-L1203 — fn identity<Fd: AsFd>(fd: Fd) -> Result<Identity, Vec<Diagnostic>>
+- identity_at · function · L1205-L1214 — fn identity_at<Fd: AsFd>(parent: Fd, name: &[u8]) -> Result<Identity, Vec<Diagnostic>>
+- require_identity · function · L1216-L1225 — fn require_identity<Fd: AsFd>(
+- require_identity_at · function · L1227-L1237 — fn require_identity_at<Fd: AsFd>(

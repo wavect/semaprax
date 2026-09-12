@@ -1,0 +1,23 @@
+# graph/nested_owned.rs
+
+- nested_cleanup_graph_schema · function · L11-L115 — pub(super) fn nested_cleanup_graph_schema<'a>(
+- function_has_nested_storage · function · L117-L126 — fn function_has_nested_storage(function: &ResolvedFunction) -> Result<bool, Diagnostic>
+- select_schema · function · L128-L174 — pub(super) fn select_schema<'a>(
+- loan_origin_is_nested_owned_leaf · function · L176-L203 — fn loan_origin_is_nested_owned_leaf(
+- composition_error · function · L205-L207 — fn composition_error(message: &str) -> Diagnostic
+- parts_use_iterator · function · L209-L267 — fn parts_use_iterator(
+- function_uses_iterator · function · L215-L227 — fn function_uses_iterator(function: &ResolvedFunction) -> bool
+- pre_filesystem_schema_from_parts · function · L270-L368 — pub(super) fn pre_filesystem_schema_from_parts(
+- pre_filesystem_graph_schema · function · L370-L437 — pub(super) fn pre_filesystem_graph_schema(
+- requires_generic_result_schema · function · L439-L444 — pub(super) fn requires_generic_result_schema(program: &ResolvedProgram) -> bool
+- generic_payload_schema · function · L449-L459 — pub(super) fn generic_payload_schema(
+- legacy_graph_schema · function · L461-L463 — pub(crate) fn legacy_graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic>
+- program_schema · function · L465-L526 — fn program_schema(
+- graph_schema_includes_modern_composite_facts · function · L528-L555 — pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
+- graph_schema_includes_loans · function · L557-L579 — pub(super) fn graph_schema_includes_loans(schema: &str) -> bool
+- graph_schema_includes_projected_provenance · function · L581-L601 — pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool
+- rejected_evidence_schema · function · L603-L616 — pub(super) fn rejected_evidence_schema(schema: &str) -> Option<Diagnostic>
+- reject_nested_native_flags · function · L618-L629 — pub(super) fn reject_nested_native_flags(
+- iterator_loop_schema · function · L631-L670 — fn iterator_loop_schema<'a>(
+- has_iterator_cleanup · function · L672-L680 — pub(super) fn has_iterator_cleanup(function: &ResolvedFunction) -> bool
+- has_nested_cleanup · function · L682-L687 — pub(super) fn has_nested_cleanup(function: &ResolvedFunction) -> bool

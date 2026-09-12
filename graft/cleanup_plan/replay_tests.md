@@ -1,0 +1,48 @@
+# cleanup_plan/replay_tests.rs
+
+- block_work · module · L9-L9 — mod block_work;
+- transition_mutations · module · L11-L11 — mod transition_mutations;
+- SOURCE · constant · L13-L139 — const SOURCE: &str = r#"module test.replay_paths;
+- TRY_SOURCE · constant · L141-L153 — const TRY_SOURCE: &str = r#"module test.replay_try;
+- program · function · L155-L158 — fn program() -> ResolvedProgram
+- byte_range_v4_replay_rejects_legacy_schema_substitution · function · L161-L182 — fn byte_range_v4_replay_rejects_legacy_schema_substitution()
+- function · function · L184-L191 — fn function(program: &ResolvedProgram, id: &str) -> ResolvedFunction
+- try_program · function · L193-L196 — fn try_program() -> ResolvedProgram
+- update_expression · function · L198-L204 — fn update_expression(function: &ResolvedFunction) -> &ResolvedExpr
+- match_expression · function · L206-L212 — fn match_expression(function: &ResolvedFunction) -> &ResolvedExpr
+- assert_independent_replay_rejects · function · L214-L218 — fn assert_independent_replay_rejects(program: &ResolvedProgram, function: &ResolvedFunction)
+- copy_variant_match_is_scrutinee_once_authored_order_and_cleanup_free · function · L221-L278 — fn copy_variant_match_is_scrutinee_once_authored_order_and_cleanup_free()
+- generic_instance_matches_are_cleanup_free_and_replay_rejects_scrutinee_confusion · function · L281-L364 — fn generic_instance_matches_are_cleanup_free_and_replay_rejects_scrutinee_confusion()
+- match_scrutinee_call_is_lowered_and_replayed_exactly_once · function · L367-L395 — fn match_scrutinee_call_is_lowered_and_replayed_exactly_once()
+- match_replay_rejects_authored_case_scrutinee_and_polarity_confusion · function · L398-L449 — fn match_replay_rejects_authored_case_scrutinee_and_polarity_confusion()
+- match_checked_arm_failure_cannot_publish_the_poisoned_result · function · L452-L489 — fn match_checked_arm_failure_cannot_publish_the_poisoned_result()
+- update_replay_rejects_missing_base_and_untouched_transfers · function · L492-L547 — fn update_replay_rejects_missing_base_and_untouched_transfers()
+- update_replay_rejects_reordered_authored_replacements_and_displaced_finalizers · function · L550-L614 — fn update_replay_rejects_reordered_authored_replacements_and_displaced_finalizers()
+- update_replay_rejects_partial_failure_and_child_region_mutations · function · L617-L661 — fn update_replay_rejects_partial_failure_and_child_region_mutations()
+- path_replay_rejects_non_reverse_live_finalizer_order · function · L664-L678 — fn path_replay_rejects_non_reverse_live_finalizer_order()
+- path_replay_requires_selection_from_the_failing_edge · function · L681-L706 — fn path_replay_requires_selection_from_the_failing_edge()
+- inventory_replay_rejects_a_coherently_deleted_owned_slot · function · L709-L738 — fn inventory_replay_rejects_a_coherently_deleted_owned_slot()
+- status_replay_rejects_a_deleted_checked_failure_source · function · L741-L750 — fn status_replay_rejects_a_deleted_checked_failure_source()
+- terminal_replay_rejects_return_unit_for_scalar_functions · function · L753-L768 — fn terminal_replay_rejects_return_unit_for_scalar_functions()
+- terminal_replay_rejects_projected_owned_results · function · L771-L792 — fn terminal_replay_rejects_projected_owned_results()
+- region_replay_rejects_over_and_under_leave_chains · function · L795-L833 — fn region_replay_rejects_over_and_under_leave_chains()
+- deep_cfg_reachability_is_iterative · function · L836-L863 — fn deep_cfg_reachability_is_iterative()
+- DEPTH · constant · L839-L839 — const DEPTH: u32 = 20_000;
+- replay_preflight_rejects_every_invalid_cfg_target_and_cycles_without_panicking · function · L866-L953 — fn replay_preflight_rejects_every_invalid_cfg_target_and_cycles_without_panicking()
+- assert_unknown · function · L867-L877 — fn assert_unknown(program: &ResolvedProgram, function: &ResolvedFunction)
+- replay_budget_exhaustion_is_a_deterministic_diagnostic · function · L956-L966 — fn replay_budget_exhaustion_is_a_deterministic_diagnostic()
+- assert_program_skeleton_authority · function · L968-L1023 — fn assert_program_skeleton_authority(program: &ResolvedProgram) -> usize
+- program_wide_skeleton_preflight_sums_every_function_before_materialization · function · L1026-L1045 — fn program_wide_skeleton_preflight_sums_every_function_before_materialization()
+- many_functions_and_deep_lazy_paths_share_one_exact_skeleton_authority · function · L1048-L1069 — fn many_functions_and_deep_lazy_paths_share_one_exact_skeleton_authority()
+- wide_resource_update_untouched_fields_are_inside_charge_first_authority · function · L1072-L1133 — fn wide_resource_update_untouched_fields_are_inside_charge_first_authority()
+- terminated_prefix_skips_unreachable_invalid_lazy_if_and_match_children · function · L1136-L1207 — fn terminated_prefix_skips_unreachable_invalid_lazy_if_and_match_children()
+- unreachable_prefix · function · L1137-L1151 — fn unreachable_prefix(
+- poison · function · L1153-L1160 — fn poison(expression: &mut ResolvedExpr)
+- wide_match_path_clones_and_pushes_are_charged_before_materialization · function · L1210-L1254 — fn wide_match_path_clones_and_pushes_are_charged_before_materialization()
+- replay_with_limit · function · L1211-L1226 — fn replay_with_limit(
+- skeleton_replay_rejects_a_checked_status_lane_swap · function · L1257-L1303 — fn skeleton_replay_rejects_a_checked_status_lane_swap()
+- skeleton_replay_rejects_a_boolean_expression_id_swap · function · L1306-L1341 — fn skeleton_replay_rejects_a_boolean_expression_id_swap()
+- try_replay_authenticates_complementary_result_cases_and_exact_staging · function · L1344-L1546 — fn try_replay_authenticates_complementary_result_cases_and_exact_staging()
+- owned_record_match_v5_replay_authenticates_transfer_region_and_borrow_absence · function · L1549-L1786 — fn owned_record_match_v5_replay_authenticates_transfer_region_and_borrow_absence()
+- transfer_position · function · L1708-L1723 — fn transfer_position(candidate: &ResolvedFunction, match_id: &ExpressionId) -> (usize, usize)
+- supplemental_call_argument_replay_rejects_depth_two_bytes_and_oracles_agree · function · L1789-L1835 — fn supplemental_call_argument_replay_rejects_depth_two_bytes_and_oracles_agree()

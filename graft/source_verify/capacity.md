@@ -1,0 +1,45 @@
+# source_verify/capacity.rs
+
+- command_io · module · L5-L5 — mod command_io;
+- functions · module · L7-L7 — mod functions;
+- SourceCapacityContext · struct · L10-L14 — pub(super) struct SourceCapacityContext<'a>
+- SourceCapacityScope · struct · L16-L19 — struct SourceCapacityScope
+- SourceTranscriptRoots · enum · L21-L24 — enum SourceTranscriptRoots<'a>
+- SourceTranscriptScope · struct · L26-L28 — struct SourceTranscriptScope<'a>
+- borrowed · function · L47-L49 — fn borrowed(roots: &'a BTreeMap<String, crate::byte_data_capacity::TranscriptSource>) -> Self
+- owned · function · L51-L62 — fn owned(roots: BTreeMap<String, crate::byte_data_capacity::TranscriptSource>) -> Self
+- new · function · L64-L75 — fn new(roots: SourceTranscriptRoots<'a>) -> Self
+- roots · function · L77-L82 — fn roots(&self) -> &BTreeMap<String, crate::byte_data_capacity::TranscriptSource>
+- roots_mut · function · L84-L89 — fn roots_mut(&mut self) -> &mut BTreeMap<String, crate::byte_data_capacity::TranscriptSource>
+- new · function · L93-L110 — fn new(
+- drop · function · L115-L123 — fn drop(&mut self)
+- drop · function · L128-L136 — fn drop(&mut self)
+- reset_source_capacity_scope_peak · function · L140-L148 — pub(super) fn reset_source_capacity_scope_peak()
+- source_capacity_scope_peak · function · L151-L153 — pub(super) fn source_capacity_scope_peak() -> usize
+- source_capacity_scope_live · function · L156-L158 — pub(super) fn source_capacity_scope_live() -> usize
+- source_capacity_match_next_scratch_peak · function · L161-L167 — pub(super) fn source_capacity_match_next_scratch_peak() -> (usize, usize, usize)
+- source_type_scope_copy_totals · function · L170-L175 — pub(super) fn source_type_scope_copy_totals() -> (usize, usize)
+- reset_source_transcript_scope_peak · function · L178-L184 — pub(super) fn reset_source_transcript_scope_peak()
+- source_transcript_scope_peak · function · L187-L189 — pub(super) fn source_transcript_scope_peak() -> usize
+- source_transcript_scope_live · function · L192-L194 — pub(super) fn source_transcript_scope_live() -> usize
+- source_transcript_owned_map_allocations · function · L197-L199 — pub(super) fn source_transcript_owned_map_allocations() -> usize
+- source_transcript_frame_scratch_peak · function · L202-L207 — pub(super) fn source_transcript_frame_scratch_peak() -> (usize, usize)
+- source_array_payload · function · L209-L243 — fn source_array_payload(types: &TypeTable<'_>, ty: &Type) -> Result<u32, ()>
+- source_capacity_super_method · function · L245-L255 — fn source_capacity_super_method<'a>(
+- source_capacity_expr_type · function · L257-L508 — pub(super) fn source_capacity_expr_type(
+- OwnedBindings · type · L262-L262 — type OwnedBindings = std::rc::Rc<std::cell::RefCell<BTreeMap<String, Type>>>;
+- Bindings · enum · L263-L266 — enum Bindings<'a>
+- cloned_map · function · L269-L274 — fn cloned_map(&self) -> BTreeMap<String, Type>
+- Continuation · enum · L277-L287 — enum Continuation<'a>
+- source_capacity_slot · function · L510-L526 — fn source_capacity_slot(
+- source_transcript_source_from_roots · function · L528-L771 — pub(super) fn source_transcript_source_from_roots(
+- RootsRef · type · L533-L533 — type RootsRef<'roots> = std::rc::Rc<std::cell::RefCell<SourceTranscriptScope<'roots>>>;
+- Frame · enum · L534-L558 — enum Frame<'expr, 'roots>
+- source_capacity_pattern_slots · function · L773-L841 — fn source_capacity_pattern_slots(
+- source_capacity_pattern_transcript_bindings · function · L843-L877 — fn source_capacity_pattern_transcript_bindings(
+- source_capacity_expr · function · L879-L1559 — fn source_capacity_expr(
+- ScopeRef · type · L890-L890 — type ScopeRef = std::rc::Rc<std::cell::RefCell<SourceCapacityScope>>;
+- BlockUpdate · enum · L891-L899 — enum BlockUpdate<'a>
+- Frame · enum · L900-L943 — enum Frame<'a>
+- sequence · function · L945-L951 — fn sequence(children: Vec<CapacityFlow>) -> CapacityFlow
+- verify_byte_data_capacity · function · L1561-L1667 — pub(super) fn verify_byte_data_capacity(

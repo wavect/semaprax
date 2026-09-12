@@ -1,0 +1,36 @@
+# project/image_dependencies.rs
+
+- IMAGE_DECLARATION_DEPENDENCIES_SCHEMA · constant · L15-L16 — pub const IMAGE_DECLARATION_DEPENDENCIES_SCHEMA: &str =
+- MAX_IMAGE_DECLARATION_DEPENDENCIES_BYTES · constant · L17-L17 — pub const MAX_IMAGE_DECLARATION_DEPENDENCIES_BYTES: usize = 8 * 1024 * 1024;
+- navigation · module · L18-L18 — mod navigation;
+- obligations · module · L19-L19 — mod obligations;
+- MAX_ITEMS · constant · L28-L28 — const MAX_ITEMS: usize = 65_536;
+- MAX_VISITS · constant · L29-L29 — const MAX_VISITS: usize = 1_048_576;
+- MAX_DEPTH · constant · L30-L30 — const MAX_DEPTH: usize = 256;
+- MAX_RETAINED_BYTES · constant · L31-L31 — const MAX_RETAINED_BYTES: usize = 16 * 1024 * 1024;
+- Result · type · L32-L32 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- DependencyCell · type · L33-L33 — pub(super) type DependencyCell = OnceLock<Result<DependencyIndex>>;
+- DependencySelection · struct · L35-L41 — struct DependencySelection
+- DependencyIndex · struct · L44-L58 — pub(super) struct DependencyIndex
+- charge · function · L60-L69 — fn charge(&mut self, bytes: usize) -> Result<()>
+- charge_value · function · L70-L75 — fn charge_value(&mut self, value: &Value) -> Result<()>
+- typed_entry · function · L76-L103 — fn typed_entry(&mut self, id: &str, value: Value, members: Vec<String>) -> Result<()>
+- build · function · L104-L194 — pub(super) fn build(revision: &ProjectRevision) -> Result<Self>
+- function · function · L195-L204 — fn function(&mut self, id: &str) -> Result<()>
+- site · function · L205-L232 — fn site(
+- call · function · L233-L278 — fn call(
+- typed_declaration · function · L279-L281 — pub(super) fn typed_declaration(&self, target: &str) -> Value
+- selected · function · L282-L301 — fn selected(&self, target: &str, complete: bool) -> BTreeSet<String>
+- reverse_relationships · function · L302-L309 — pub(super) fn reverse_relationships(
+- selection · function · L310-L362 — fn selection(&self, target: &str, complete: bool) -> Result<DependencySelection>
+- relationships · function · L363-L380 — fn relationships(
+- dependency_index · function · L384-L389 — pub(super) fn dependency_index(&self) -> Result<&DependencyIndex>
+- declaration_dependencies · function · L392-L430 — pub fn declaration_dependencies(&self, expected_image: &str, target: &str) -> Result<String>
+- field_value · function · L433-L435 — fn field_value(field: &hir::ResolvedFieldDeclaration) -> Value
+- site_origin · function · L436-L446 — fn site_origin(
+- value_bytes · function · L447-L478 — fn value_bytes(value: &Value) -> Result<usize>
+- invalid · function · L479-L481 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L482-L484 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- scan_function · function · L486-L584 — fn scan_function(
+- pattern_accesses · function · L585-L634 — fn pattern_accesses(
+- record_pattern_accesses · function · L635-L674 — fn record_pattern_accesses(

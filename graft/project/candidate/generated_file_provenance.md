@@ -1,0 +1,26 @@
+# project/candidate/generated_file_provenance.rs
+
+- Result · type · L13-L13 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_DECLARATION_SCHEMA · constant · L15-L16 — pub const PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_DECLARATION_SCHEMA: &str =
+- PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_EVIDENCE_SCHEMA · constant · L17-L18 — pub const PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_EVIDENCE_SCHEMA: &str =
+- MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_DECLARATION_BYTES · constant · L19-L19 — pub const MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_DECLARATION_BYTES: usize = 65_536;
+- MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_EVIDENCE_BYTES · constant · L20-L20 — pub const MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_EVIDENCE_BYTES: usize = 2 * 1024 * 1024;
+- MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_FILES · constant · L21-L21 — pub const MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_FILES: usize = 64;
+- MAX_GENERATOR_ID_BYTES · constant · L23-L23 — const MAX_GENERATOR_ID_BYTES: usize = 256;
+- DECLARATION_DOMAIN · constant · L24-L25 — const DECLARATION_DOMAIN: &[u8] =
+- AREA_ORDER · constant · L26-L35 — const AREA_ORDER: [&str; 8] = [
+- analysis_generated_file_provenance_evidence · function · L42-L201 — pub fn analysis_generated_file_provenance_evidence(
+- authenticate_declaration · function · L204-L346 — fn authenticate_declaration(
+- validate_coverage · function · L348-L367 — fn validate_coverage(candidate: &ProjectCandidate, coverage: &Value) -> Result<()>
+- child · function · L369-L384 — fn child<'a>(
+- require_keys · function · L386-L391 — fn require_keys(object: &Map<String, Value>, keys: &[&str], message: &'static str) -> Result<()>
+- text · function · L393-L398 — fn text<'a>(object: &'a Map<String, Value>, key: &str, message: &'static str) -> Result<&'a str>
+- validate_digest · function · L400-L410 — fn validate_digest(value: &str, message: &'static str) -> Result<()>
+- invalid · function · L412-L414 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L415-L417 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- binding · function · L418-L420 — fn binding(message: &'static str) -> Vec<Diagnostic>
+- tests · module · L423-L569 — mod tests
+- candidate · function · L427-L434 — fn candidate() -> ProjectCandidate
+- declaration · function · L436-L454 — fn declaration(candidate: &ProjectCandidate) -> (String, String)
+- exact_declaration_marks_only_generated_file_provenance_partial · function · L457-L490 — fn exact_declaration_marks_only_generated_file_provenance_partial()
+- declaration_rejects_unknown_fields_stale_source_and_digest · function · L493-L568 — fn declaration_rejects_unknown_fields_stale_source_and_digest()

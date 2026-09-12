@@ -1,0 +1,36 @@
+# project_revision_store/tests.rs
+
+- NEXT · constant · L7-L7 — static NEXT: AtomicU64 = AtomicU64::new(0);
+- Fixture · struct · L9-L12 — struct Fixture
+- new · function · L15-L28 — fn new(label: &str) -> Self
+- drop · function · L32-L34 — fn drop(&mut self)
+- revision · function · L37-L43 — fn revision() -> std::sync::Arc<ProjectRevision>
+- private_windows_host_receives_checked_bytes_and_cannot_skip_load_replay · function · L46-L112 — fn private_windows_host_receives_checked_bytes_and_cannot_skip_load_replay()
+- private_windows_replay_bounds_untrusted_host_carriers_before_parsing · function · L115-L137 — fn private_windows_replay_bounds_untrusted_host_carriers_before_parsing()
+- prepared · function · L139-L141 — fn prepared(revision: &ProjectRevision) -> PreparedEntry
+- exact_revision_round_trips_through_one_content_addressed_entry · function · L144-L176 — fn exact_revision_round_trips_through_one_content_addressed_entry()
+- authority_neutral_locator_matches_publication_and_opens_no_store · function · L179-L199 — fn authority_neutral_locator_matches_publication_and_opens_no_store()
+- stale_subject_rejects_before_the_first_store_effect · function · L202-L209 — fn stale_subject_rejects_before_the_first_store_effect()
+- stale_load_subject_rejects_without_mutating_the_entry · function · L212-L226 — fn stale_load_subject_rejects_without_mutating_the_entry()
+- exact_destination_collision_is_no_clobber_and_preserves_bytes · function · L229-L241 — fn exact_destination_collision_is_no_clobber_and_preserves_bytes()
+- unrelated_retained_metadata_is_authenticated_once_per_invocation · function · L244-L258 — fn unrelated_retained_metadata_is_authenticated_once_per_invocation()
+- foreign_root_bytes_fail_closed_before_stage_creation · function · L261-L271 — fn foreign_root_bytes_fail_closed_before_stage_creation()
+- owned_partial_stage_is_preserved_and_blocks_future_adoption · function · L274-L301 — fn owned_partial_stage_is_preserved_and_blocks_future_adoption()
+- hostile · module · L303-L303 — mod hostile;
+- profiles · module · L304-L304 — mod profiles;
+- staged_byte_drift_is_rejected_and_never_published_or_deleted · function · L307-L324 — fn staged_byte_drift_is_rejected_and_never_published_or_deleted()
+- same_byte_stage_child_replacement_is_identity_rejected · function · L327-L351 — fn same_byte_stage_child_replacement_is_identity_rejected()
+- non_absolute_and_non_normalized_roots_reject_before_effect · function · L354-L363 — fn non_absolute_and_non_normalized_roots_reject_before_effect()
+- store_root_rejects_non_private_permissions_before_effect · function · L366-L375 — fn store_root_rejects_non_private_permissions_before_effect()
+- symlink_root_and_same_path_root_substitution_fail_closed · function · L378-L408 — fn symlink_root_and_same_path_root_substitution_fail_closed()
+- same_name_stage_substitution_is_identity_rejected_with_foreign_bytes_preserved · function · L411-L435 — fn same_name_stage_substitution_is_identity_rejected_with_foreign_bytes_preserved()
+- post_pivot_uncertainty_preserves_a_complete_loadable_entry · function · L438-L460 — fn post_pivot_uncertainty_preserves_a_complete_loadable_entry()
+- truncation_and_nested_foreign_inventory_both_fail_closed · function · L463-L486 — fn truncation_and_nested_foreign_inventory_both_fail_closed()
+- every_stored_byte_and_digest_binding_is_replayed_not_trusted · function · L489-L552 — fn every_stored_byte_and_digest_binding_is_replayed_not_trusted()
+- canonical_entry_and_digest_are_deterministic_and_depth_is_closed · function · L555-L576 — fn canonical_entry_and_digest_are_deterministic_and_depth_is_closed()
+- every_frozen_numeric_limit_accepts_exact_and_rejects_plus_one · function · L579-L608 — fn every_frozen_numeric_limit_accepts_exact_and_rejects_plus_one()
+- selected_entry_workspace_fact_failure_stays_inside_store_diagnostics · function · L611-L631 — fn selected_entry_workspace_fact_failure_stays_inside_store_diagnostics()
+- source_hardlink_and_symlink_substitution_are_rejected · function · L634-L662 — fn source_hardlink_and_symlink_substitution_are_rejected()
+- existing_foreign_digest_directory_is_collision_not_adoption · function · L665-L678 — fn existing_foreign_digest_directory_is_collision_not_adoption()
+- legacy_project_and_transport_sources_gain_no_store_dependency · function · L681-L707 — fn legacy_project_and_transport_sources_gain_no_store_dependency()
+- windows_entry_profile_is_additive_and_cross_schema_replay_is_rejected · function · L710-L751 — fn windows_entry_profile_is_additive_and_cross_schema_replay_is_rejected()

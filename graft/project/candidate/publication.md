@@ -1,0 +1,26 @@
+# project/candidate/publication.rs
+
+- Result · type · L18-L18 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- PROJECT_CANDIDATE_PUBLICATION_SCHEMA · constant · L19-L19 — pub const PROJECT_CANDIDATE_PUBLICATION_SCHEMA: &str = "semaprax.project-candidate-publication.v1";
+- MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES · constant · L20-L20 — pub const MAX_PROJECT_CANDIDATE_PUBLICATION_BYTES: usize = 128 * 1024 * 1024;
+- DOMAIN · constant · L21-L21 — const DOMAIN: &[u8] = b"semaprax.project-candidate-publication.artifact.v1\0";
+- ProjectCandidatePublication · struct · L25-L31 — pub struct ProjectCandidatePublication
+- to_json · function · L33-L35 — pub fn to_json(&self) -> &str
+- publication_digest · function · L36-L38 — pub fn publication_digest(&self) -> &str
+- proposal · function · L39-L41 — pub fn proposal(&self) -> &str
+- workspace_change_evidence · function · L42-L44 — pub fn workspace_change_evidence(&self) -> &str
+- candidate_workspace_revision · function · L45-L47 — pub fn candidate_workspace_revision(&self) -> &str
+- prepare_candidate_publication · function · L52-L91 — pub fn prepare_candidate_publication(
+- apply_candidate_publication · function · L96-L113 — pub fn apply_candidate_publication(
+- apply_with_hook · function · L115-L207 — fn apply_with_hook(
+- validate_host · function · L209-L231 — fn validate_host(
+- derive · function · L233-L324 — fn derive(
+- render · function · L326-L365 — fn render(
+- render_receipt · function · L366-L380 — fn render_receipt(
+- finish_read · function · L381-L390 — fn finish_read<T>(result: Result<T>, check: Result<()>) -> Result<T>
+- invalid · function · L391-L393 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L394-L396 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L397-L399 — fn stale(message: &'static str) -> Vec<Diagnostic>
+- publication_boundary_tests · module · L402-L474 — mod publication_boundary_tests
+- SERIAL · constant · L407-L407 — static SERIAL: AtomicU64 = AtomicU64::new(0);
+- source_drift_after_active_pivot_reports_publication_uncertainty · function · L410-L473 — fn source_drift_after_active_pivot_reports_publication_uncertainty()

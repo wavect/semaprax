@@ -1,0 +1,108 @@
+---
+covers: []
+---
+# properties.rs
+
+- bformat · function · L13-L17 — macro_rules! bformat
+- SCHEMA · constant · L19-L19 — pub const SCHEMA: &str = "semaprax.property-tests.v1";
+- DEFAULT_MAX_CASES · constant · L21-L21 — const DEFAULT_MAX_CASES: usize = 64;
+- DEFAULT_MAX_FUNCTIONS · constant · L22-L22 — const DEFAULT_MAX_FUNCTIONS: usize = 64;
+- DEFAULT_MAX_BYTES · constant · L23-L23 — const DEFAULT_MAX_BYTES: usize = 64 * 1024;
+- DEFAULT_SEED · constant · L24-L24 — pub const DEFAULT_SEED: u64 = 0x9e37_79b9_7f4a_7c15;
+- MAX_CASES_LIMIT · constant · L26-L26 — pub const MAX_CASES_LIMIT: usize = 4096;
+- MAX_FUNCTIONS_LIMIT · constant · L27-L27 — pub const MAX_FUNCTIONS_LIMIT: usize = 1024;
+- MAX_TOTAL_STEPS · constant · L28-L28 — const MAX_TOTAL_STEPS: usize = 1_000_000;
+- MAX_CALL_DEPTH · constant · L29-L29 — const MAX_CALL_DEPTH: usize = 16;
+- REASON_GENERIC_FUNCTION · constant · L31-L31 — const REASON_GENERIC_FUNCTION: &str = "generic_function";
+- REASON_DECLARED_EFFECTS · constant · L32-L32 — const REASON_DECLARED_EFFECTS: &str = "declared_effects";
+- REASON_UNSUPPORTED_PARAMETER_MODE · constant · L33-L33 — const REASON_UNSUPPORTED_PARAMETER_MODE: &str = "unsupported_parameter_mode";
+- REASON_UNSUPPORTED_PARAMETER_TYPE · constant · L34-L34 — const REASON_UNSUPPORTED_PARAMETER_TYPE: &str = "unsupported_parameter_type";
+- REASON_UNSUPPORTED_RESULT_TYPE · constant · L35-L35 — const REASON_UNSUPPORTED_RESULT_TYPE: &str = "unsupported_result_type";
+- REASON_EVALUATION_STEP_BUDGET_EXHAUSTED · constant · L36-L36 — const REASON_EVALUATION_STEP_BUDGET_EXHAUSTED: &str = "evaluation_step_budget_exhausted";
+- REASON_RECORD_CONSTRUCTION · constant · L37-L37 — const REASON_RECORD_CONSTRUCTION: &str = "record_construction";
+- REASON_VARIANT_CONSTRUCTION · constant · L38-L38 — const REASON_VARIANT_CONSTRUCTION: &str = "variant_construction";
+- REASON_RECORD_UPDATE · constant · L39-L39 — const REASON_RECORD_UPDATE: &str = "record_update";
+- REASON_RECORD_PROJECTION · constant · L40-L40 — const REASON_RECORD_PROJECTION: &str = "record_projection";
+- REASON_MATCH_EXPRESSION · constant · L41-L41 — const REASON_MATCH_EXPRESSION: &str = "match_expression";
+- REASON_TRY_EXPRESSION · constant · L42-L42 — const REASON_TRY_EXPRESSION: &str = "try_expression";
+- REASON_ASSIGNMENT · constant · L43-L43 — const REASON_ASSIGNMENT: &str = "assignment_statement";
+- REASON_GENERIC_CALL · constant · L44-L44 — const REASON_GENERIC_CALL: &str = "generic_call";
+- REASON_UNRESOLVED_CALL · constant · L45-L45 — const REASON_UNRESOLVED_CALL: &str = "unresolved_call";
+- REASON_UNRESOLVED_VARIABLE · constant · L46-L46 — const REASON_UNRESOLVED_VARIABLE: &str = "unresolved_variable";
+- REASON_UNSUPPORTED_CALLEE · constant · L47-L47 — const REASON_UNSUPPORTED_CALLEE: &str = "unsupported_callee";
+- REASON_ILL_TYPED_EXPRESSION · constant · L48-L48 — const REASON_ILL_TYPED_EXPRESSION: &str = "ill_typed_expression";
+- REASON_METHOD_CALL · constant · L49-L49 — const REASON_METHOD_CALL: &str = "method_call";
+- REASON_BYTE_DATA_EXPRESSION · constant · L50-L50 — const REASON_BYTE_DATA_EXPRESSION: &str = "byte_data_expression";
+- RUNTIME_ARITHMETIC_OVERFLOW · constant · L52-L52 — const RUNTIME_ARITHMETIC_OVERFLOW: &str = "arithmetic_overflow";
+- RUNTIME_DIVISION_BY_ZERO · constant · L53-L53 — const RUNTIME_DIVISION_BY_ZERO: &str = "division_by_zero";
+- RUNTIME_REMAINDER_BY_ZERO · constant · L54-L54 — const RUNTIME_REMAINDER_BY_ZERO: &str = "remainder_by_zero";
+- RUNTIME_NEGATION_OVERFLOW · constant · L55-L55 — const RUNTIME_NEGATION_OVERFLOW: &str = "negation_overflow";
+- RUNTIME_CALL_DEPTH_EXCEEDED · constant · L56-L56 — const RUNTIME_CALL_DEPTH_EXCEEDED: &str = "call_depth_exceeded";
+- RUNTIME_CALLEE_REQUIRES_VIOLATED · constant · L57-L57 — const RUNTIME_CALLEE_REQUIRES_VIOLATED: &str = "callee_requires_violated";
+- TRUNCATION_BYTE_BUDGET · constant · L59-L59 — const TRUNCATION_BYTE_BUDGET: &str = "byte_budget";
+- TRUNCATION_FUNCTION_BUDGET · constant · L60-L60 — const TRUNCATION_FUNCTION_BUDGET: &str = "function_budget";
+- TRUNCATION_STEP_BUDGET · constant · L61-L61 — const TRUNCATION_STEP_BUDGET: &str = "step_budget";
+- NONCLAIMS_JSON · constant · L63-L68 — const NONCLAIMS_JSON: &str = "\"no_symbolic_execution_or_smt\",\
+- I64_LATTICE · constant · L70-L82 — const I64_LATTICE: [i64; 11] = [
+- I32_LATTICE · constant · L84-L96 — const I32_LATTICE: [i32; 11] = [
+- U8_LATTICE · constant · L98-L98 — const U8_LATTICE: [u8; 7] = [0, 1, 2, 3, u8::MAX, u8::MAX - 1, u8::MAX - 2];
+- CHAR_LATTICE · constant · L102-L114 — const CHAR_LATTICE: [u32; 11] = [
+- F32_LATTICE · constant · L118-L130 — const F32_LATTICE: [f32; 11] = [
+- F64_LATTICE · constant · L132-L144 — const F64_LATTICE: [f64; 11] = [
+- CHAR_SCALAR_SPACE · constant · L147-L147 — const CHAR_SCALAR_SPACE: u64 = 0x11_0000 - 0x800;
+- PropertyTestOptions · struct · L150-L155 — pub struct PropertyTestOptions
+- new · function · L158-L187 — pub fn new(
+- default · function · L191-L198 — fn default() -> Self
+- option_error · function · L201-L203 — fn option_error(message: String) -> Diagnostic
+- generate · function · L205-L210 — pub fn generate(
+- HookPhase · enum · L213-L216 — enum HookPhase
+- generate_with_hook · function · L218-L246 — fn generate_with_hook(
+- Summary · struct · L249-L258 — struct Summary
+- build_report · function · L260-L362 — fn build_report(
+- render_report · function · L365-L420 — fn render_report(
+- source_digest · function · L422-L431 — fn source_digest(source: &str) -> String
+- deferred_entry_json · function · L433-L440 — fn deferred_entry_json(function: &Function, reason: &str) -> String
+- Value · enum · L443-L451 — enum Value
+- render · function · L463-L473 — fn render(self) -> String
+- RuntimeReason · enum · L477-L484 — enum RuntimeReason
+- text · function · L487-L496 — fn text(self) -> &'static str
+- Outcome · enum · L499-L504 — enum Outcome
+- AnalyzedEntry · struct · L506-L513 — struct AnalyzedEntry
+- FunctionOutcome · enum · L515-L519 — enum FunctionOutcome
+- Environment · type · L521-L521 — type Environment = Vec<(String, Value)>;
+- lookup · function · L523-L529 — fn lookup(environment: &Environment, name: &str) -> Option<Value>
+- Analyzer · struct · L531-L535 — struct Analyzer<'a>
+- new · function · L538-L550 — fn new(program: &'a Program) -> Self
+- admission · function · L556-L575 — fn admission(function: &Function) -> Option<&'static str>
+- scan · function · L577-L642 — fn scan(&mut self, expression: &Expr) -> Option<&'static str>
+- scan_function_contracts_and_body · function · L644-L651 — fn scan_function_contracts_and_body(&mut self, function: &'a Function) -> Option<&'static str>
+- evaluate · function · L653-L899 — fn evaluate(
+- analyze_function · function · L901-L1101 — fn analyze_function(
+- is_admitted_scalar · function · L1107-L1112 — fn is_admitted_scalar(ty: &Type) -> bool
+- ScalarKind · enum · L1115-L1123 — enum ScalarKind
+- of · function · L1126-L1146 — fn of(ty: &Type) -> Self
+- lattice_len · function · L1148-L1158 — fn lattice_len(self) -> usize
+- scalar_type_text · function · L1161-L1181 — fn scalar_type_text(ty: &Type) -> &'static str
+- scalar_value · function · L1185-L1232 — fn scalar_value(kind: ScalarKind, state: &mut u64, case_index: usize) -> Value
+- next_sample · function · L1234-L1241 — fn next_sample(state: &mut u64) -> u64
+- splitmix64 · function · L1243-L1249 — fn splitmix64(state: &mut u64) -> u64
+- parameter_stream_seed · function · L1251-L1256 — fn parameter_stream_seed(base: u64, function_index: usize, parameter_index: usize) -> u64
+- combine_binary · function · L1258-L1341 — fn combine_binary(op: BinaryOp, left: Value, right: Value) -> Outcome
+- ordered · function · L1345-L1356 — fn ordered(op: BinaryOp, less: bool, equal: bool) -> Outcome
+- float_ordered · function · L1360-L1372 — fn float_ordered(op: BinaryOp, ordering: Option<std::cmp::Ordering>, equal: bool) -> Outcome
+- checked_int · function · L1374-L1379 — fn checked_int(value: Option<i64>) -> Outcome
+- checked_int32 · function · L1381-L1386 — fn checked_int32(value: Option<i32>) -> Outcome
+- checked_uint8 · function · L1388-L1393 — fn checked_uint8(value: Option<u8>) -> Outcome
+- tests · module · L1396-L1546 — mod tests
+- COUNTER · constant · L1401-L1401 — static COUNTER: AtomicUsize = AtomicUsize::new(0);
+- write_temp · function · L1403-L1411 — fn write_temp(source: &str) -> PathBuf
+- cleanup · function · L1414-L1416 — fn cleanup(path: &Path)
+- VALID_SOURCE · constant · L1418-L1434 — const VALID_SOURCE: &str = r#"
+- options_reject_out_of_bounds_values · function · L1437-L1447 — fn options_reject_out_of_bounds_values()
+- defaults_are_stable · function · L1450-L1456 — fn defaults_are_stable()
+- stream_seeds_are_stable_and_distinct · function · L1459-L1477 — fn stream_seeds_are_stable_and_distinct()
+- lattice_covers_boundaries_before_sampling · function · L1480-L1495 — fn lattice_covers_boundaries_before_sampling()
+- parse_errors_surface_as_diagnostics · function · L1498-L1503 — fn parse_errors_surface_as_diagnostics()
+- verification_errors_fail_closed · function · L1506-L1522 — fn verification_errors_fail_closed()
+- drift_after_parse_fails_closed · function · L1525-L1535 — fn drift_after_parse_fails_closed()
+- clean_hooks_preserve_success · function · L1538-L1545 — fn clean_hooks_preserve_success()

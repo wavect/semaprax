@@ -1,0 +1,26 @@
+# wit_component/tests.rs
+
+- NEXT_CONSUMER · constant · L6-L6 — static NEXT_CONSUMER: AtomicU64 = AtomicU64::new(0);
+- CHECKED_COMPONENT_SOURCE · constant · L8-L13 — const CHECKED_COMPONENT_SOURCE: &str = r#"
+- checked_component_program · function · L15-L17 — fn checked_component_program() -> crate::ast::Program
+- replace_unique_byte · function · L19-L27 — fn replace_unique_byte(bytes: &mut [u8], needle: &[u8], relative_index: usize, value: u8)
+- rehashed_artifact · function · L29-L37 — fn rehashed_artifact(
+- ConsumerDirectory · struct · L39-L39 — struct ConsumerDirectory(PathBuf);
+- create · function · L42-L50 — fn create() -> Self
+- path · function · L52-L54 — fn path(&self) -> &Path
+- drop · function · L58-L67 — fn drop(&mut self)
+- bundle_is_deterministic_canonical_and_mutation_closed · function · L71-L103 — fn bundle_is_deterministic_canonical_and_mutation_closed()
+- node_executes_exact_javascript_result_adapter · function · L106-L162 — fn node_executes_exact_javascript_result_adapter()
+- component_binary_is_deterministic_independently_parsed_and_mutation_closed · function · L165-L206 — fn component_binary_is_deterministic_independently_parsed_and_mutation_closed()
+- checked_component_v2_is_generated_bound_and_independently_parsed · function · L209-L259 — fn checked_component_v2_is_generated_bound_and_independently_parsed()
+- checked_component_v2_digest_is_read_only_and_javascript_uses_exact_bytes · function · L262-L273 — fn checked_component_v2_digest_is_read_only_and_javascript_uses_exact_bytes()
+- upstream_validator_rejects_rehashed_component_cross_type_hostiles · function · L276-L334 — fn upstream_validator_rejects_rehashed_component_cross_type_hostiles()
+- checked_component_v2_rejects_owned_core_profiles · function · L337-L355 — fn checked_component_v2_rejects_owned_core_profiles()
+- checked_component_v2_ignores_only_implicit_prelude_templates · function · L358-L376 — fn checked_component_v2_ignores_only_implicit_prelude_templates()
+- node_executes_generated_core_with_the_embedded_checked_runtime · function · L379-L436 — fn node_executes_generated_core_with_the_embedded_checked_runtime()
+- node_executes_the_authenticated_checked_component_v2_runtime · function · L439-L487 — fn node_executes_the_authenticated_checked_component_v2_runtime()
+- node_checked_component_v2_evaluate_traps_generated_overflow_and_contract_failure · function · L490-L537 — fn node_checked_component_v2_evaluate_traps_generated_overflow_and_contract_failure()
+- node_private_component_runtime_executes_the_embedded_core_export · function · L540-L604 — fn node_private_component_runtime_executes_the_embedded_core_export()
+- default_feature_external_consumer_cannot_import_component_harness · function · L607-L675 — fn default_feature_external_consumer_cannot_import_component_harness()
+- owned_resource_corpus_wit_exposes_token_resource_handles · function · L678-L720 — fn owned_resource_corpus_wit_exposes_token_resource_handles()
+- feature_consumer_can_only_read_checked_component_digests_through_accessors · function · L723-L810 — fn feature_consumer_can_only_read_checked_component_digests_through_accessors()

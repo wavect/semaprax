@@ -1,0 +1,37 @@
+# network_provider/deadline.rs
+
+- MAX_OPERATION_DEADLINE · constant · L38-L38 — pub const MAX_OPERATION_DEADLINE: Duration = Duration::from_secs(30);
+- DEFAULT_OPERATION_DEADLINE · constant · L41-L41 — pub const DEFAULT_OPERATION_DEADLINE: Duration = MAX_OPERATION_DEADLINE;
+- MIN_SYSCALL_SLICE · constant · L46-L46 — pub const MIN_SYSCALL_SLICE: Duration = Duration::from_millis(1);
+- MonotonicClock · interface · L52-L55 — pub trait MonotonicClock: Debug + Send + Sync
+- elapsed_nanos · function · L54-L54 — fn elapsed_nanos(&self) -> u128;
+- SystemClock · struct · L59-L61 — pub struct SystemClock
+- default · function · L64-L68 — fn default() -> Self
+- new · function · L74-L76 — pub fn new() -> Self
+- elapsed_nanos · function · L80-L82 — fn elapsed_nanos(&self) -> u128
+- ScriptedClock · struct · L88-L90 — pub struct ScriptedClock
+- new · function · L95-L97 — pub fn new() -> Self
+- advance · function · L100-L103 — pub fn advance(&self, step: Duration)
+- elapsed_nanos · function · L107-L109 — fn elapsed_nanos(&self) -> u128
+- DeadlinePolicy · struct · L118-L121 — pub struct DeadlinePolicy
+- default · function · L124-L126 — fn default() -> Self
+- new · function · L133-L135 — pub fn new(budget: Duration) -> Self
+- with_clock · function · L139-L144 — pub fn with_clock(budget: Duration, clock: Arc<dyn MonotonicClock>) -> Self
+- budget · function · L148-L150 — pub fn budget(&self) -> Duration
+- start · function · L154-L159 — pub fn start(&self) -> Deadline
+- Deadline · struct · L168-L171 — pub struct Deadline
+- remaining · function · L176-L185 — pub fn remaining(&self) -> Option<Duration>
+- expired · function · L189-L191 — pub fn expired(&self) -> bool
+- slice · function · L196-L198 — pub fn slice(&self) -> Option<Duration>
+- slice_capped · function · L203-L205 — pub fn slice_capped(&self, cap: Duration) -> Option<Duration>
+- deadline_expired · function · L211-L216 — pub(crate) fn deadline_expired() -> std::io::Error
+- DeadlineSocket · struct · L224-L227 — pub(crate) struct DeadlineSocket<'a>
+- new · function · L230-L232 — pub(crate) fn new(socket: &'a mut TcpStream, deadline: &'a Deadline) -> Self
+- read · function · L236-L240 — fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize>
+- write · function · L244-L248 — fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize>
+- flush · function · L250-L254 — fn flush(&mut self) -> std::io::Result<()>
+- tests · module · L258-L334 — mod tests
+- a_caller_budget_is_clamped_to_the_fixed_maximum · function · L262-L271 — fn a_caller_budget_is_clamped_to_the_fixed_maximum()
+- remaining_shrinks_and_never_restarts · function · L274-L291 — fn remaining_shrinks_and_never_restarts()
+- a_syscall_slice_is_never_zero_and_respects_a_caller_cap · function · L294-L315 — fn a_syscall_slice_is_never_zero_and_respects_a_caller_cap()
+- an_expired_deadline_refuses_socket_io_without_a_syscall · function · L318-L333 — fn an_expired_deadline_refuses_socket_io_without_a_syscall()

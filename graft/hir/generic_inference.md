@@ -1,0 +1,21 @@
+# hir/generic_inference.rs
+
+- MAX_EVIDENCE_NODES · constant · L6-L6 — const MAX_EVIDENCE_NODES: usize = 4_096;
+- MAX_EVIDENCE_DEPTH · constant · L7-L7 — const MAX_EVIDENCE_DEPTH: usize = 128;
+- infer_call_arguments · function · L10-L25 — pub(super) fn infer_call_arguments(
+- infer_call_arguments_with_budget · function · L27-L80 — fn infer_call_arguments_with_budget(
+- evidence_type · function · L85-L184 — fn evidence_type(
+- evidence_call_result · function · L186-L243 — fn evidence_call_result(
+- evidence_source_type · function · L245-L297 — fn evidence_source_type(
+- evidence_nominal_name · function · L299-L312 — fn evidence_nominal_name<'a>(&'a self, declaration: &DeclarationId) -> Option<&'a str>
+- arithmetic · function · L315-L325 — fn arithmetic(ty: &ResolvedType) -> bool
+- signed_numeric · function · L327-L332 — fn signed_numeric(ty: &ResolvedType) -> bool
+- ordered · function · L334-L345 — fn ordered(ty: &ResolvedType) -> bool
+- ordinary_call_signature · function · L350-L403 — pub(super) fn ordinary_call_signature(
+- tests · module · L407-L601 — mod tests
+- resolver · function · L410-L417 — fn resolver(program: &crate::ast::Program) -> Resolver<'_>
+- program · function · L419-L430 — fn program() -> crate::ast::Program
+- unary_chain · function · L432-L447 — fn unary_chain(count: usize) -> Expr
+- omitted_id · function · L449-L458 — fn omitted_id(value: Expr) -> Expr
+- direct_hir_inference_bounds_depth_and_total_evidence_without_source_verification · function · L461-L542 — fn direct_hir_inference_bounds_depth_and_total_evidence_without_source_verification()
+- direct_hir_inference_retains_a_generic_caller_symbol_through_nested_omission · function · L545-L600 — fn direct_hir_inference_retains_a_generic_caller_symbol_through_nested_omission()

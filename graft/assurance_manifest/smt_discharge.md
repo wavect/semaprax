@@ -1,0 +1,23 @@
+# assurance_manifest/smt_discharge.rs
+
+- cache · module · L23-L23 — mod cache;
+- model · module · L24-L24 — mod model;
+- replay · module · L25-L25 — mod replay;
+- solver · module · L26-L26 — mod solver;
+- subset · module · L27-L27 — mod subset;
+- translate · module · L28-L28 — mod translate;
+- BOUNDS_V1 · constant · L49-L51 — pub const BOUNDS_V1: &str = "semaprax-smt-discharge-bounded-subset-v1: i64/i32/u8/usize/bool, \
+- DISCHARGE_TOOL · constant · L57-L57 — pub const DISCHARGE_TOOL: &str = "semaprax-smt-discharge";
+- DischargeOutcome · enum · L63-L87 — pub enum DischargeOutcome
+- and_all · function · L89-L95 — fn and_all(terms: &[String]) -> String
+- render_declarations · function · L97-L112 — fn render_declarations(encoding: &FunctionEncoding) -> String
+- render_postcondition_script · function · L119-L155 — pub fn render_postcondition_script(
+- render_precondition_consistency_script · function · L163-L182 — pub fn render_precondition_consistency_script(
+- script_digest · function · L184-L194 — fn script_digest(script: &str) -> String
+- discharge_postcondition · function · L203-L233 — pub fn discharge_postcondition(
+- discharge_precondition_consistency · function · L241-L278 — pub fn discharge_precondition_consistency(
+- describe_non_result_verdict · function · L280-L290 — fn describe_non_result_verdict(verdict: &Verdict) -> String
+- interpret_verdict · function · L292-L329 — fn interpret_verdict(
+- to_method_record · function · L346-L381 — pub fn to_method_record(outcome: &DischargeOutcome, timeout: Duration) -> Option<MethodRecord>
+- postcondition_obligation_id · function · L389-L395 — pub fn postcondition_obligation_id(declaration_id: &str, ensures_index: usize) -> String
+- tests · module · L398-L398 — mod tests;

@@ -1,0 +1,58 @@
+---
+covers: []
+---
+# public_generic_surface.rs
+
+- CANDIDATE_SURFACE_SCHEMA · constant · L35-L35 — pub const CANDIDATE_SURFACE_SCHEMA: &str = "semaprax.public-generic-candidate-surface.v1";
+- COMPATIBILITY_SCHEMA · constant · L37-L37 — pub const COMPATIBILITY_SCHEMA: &str = "semaprax.public-generic-compatibility.v1";
+- SURFACE_DOMAIN · constant · L39-L39 — const SURFACE_DOMAIN: &[u8] = b"semaprax.public-generic-candidate-surface.v1\0";
+- COMPARISON_DOMAIN · constant · L40-L40 — const COMPARISON_DOMAIN: &[u8] = b"semaprax.public-generic-compatibility.v1\0";
+- MAX_SELECTED_EXPORTS · constant · L43-L43 — pub const MAX_SELECTED_EXPORTS: usize = 64;
+- MAX_REACHABLE_INSTANCES · constant · L45-L45 — pub const MAX_REACHABLE_INSTANCES: usize = 256;
+- MAX_SURFACE_BYTES · constant · L47-L47 — pub const MAX_SURFACE_BYTES: usize = 1024 * 1024;
+- INVALID_SELECTION · constant · L50-L50 — pub const INVALID_SELECTION: &str = "SPX-PG201";
+- SURFACE_CAPACITY · constant · L52-L52 — pub const SURFACE_CAPACITY: &str = "SPX-PG202";
+- SURFACE_REPLAY_MISMATCH · constant · L54-L54 — pub const SURFACE_REPLAY_MISMATCH: &str = "SPX-PG203";
+- COMPARISON_REPLAY_MISMATCH · constant · L56-L56 — pub const COMPARISON_REPLAY_MISMATCH: &str = "SPX-PG204";
+- invalid · function · L58-L63 — fn invalid(subject: &str) -> Diagnostic
+- capacity · function · L65-L70 — fn capacity(subject: &str) -> Diagnostic
+- digest · function · L72-L78 — fn digest(domain: &[u8], bytes: &[u8]) -> String
+- render · function · L80-L88 — fn render(value: &Value) -> Result<String, Diagnostic>
+- ownership · function · L90-L97 — const fn ownership(mode: OwnershipMode) -> &'static str
+- SurfaceValue · struct · L107-L115 — pub struct SurfaceValue
+- SurfaceParameter · struct · L121-L126 — pub struct SurfaceParameter
+- SurfaceEntry · struct · L130-L136 — pub struct SurfaceEntry
+- CandidateSurface · struct · L141-L145 — pub struct CandidateSurface
+- derive · function · L154-L165 — pub fn derive(program: &ResolvedProgram, exports: &[String]) -> Result<Self, Diagnostic>
+- derive_from · function · L170-L241 — pub fn derive_from(
+- entries · function · L244-L246 — pub fn entries(&self) -> &BTreeMap<String, SurfaceEntry>
+- instances · function · L249-L251 — pub fn instances(&self) -> &BTreeMap<String, InstanceFacts>
+- digest · function · L255-L257 — pub fn digest(&self) -> &str
+- canonical_json · function · L261-L263 — pub fn canonical_json(&self) -> Result<String, Diagnostic>
+- verify · function · L268-L279 — pub fn verify(&self, submitted: &str) -> Result<(), Diagnostic>
+- to_json · function · L281-L319 — fn to_json(&self) -> Value
+- identity_json · function · L323-L358 — fn identity_json(&self) -> Value
+- value_json · function · L361-L368 — fn value_json(value: &SurfaceValue) -> Value
+- instance_json · function · L374-L419 — pub(crate) fn instance_json(facts: &InstanceFacts) -> Value
+- value_of · function · L421-L441 — fn value_of(inventory: &TypeInventory<'_>, ty: &ResolvedType) -> Result<SurfaceValue, Diagnostic>
+- borrowed_view · function · L444-L450 — const fn borrowed_view(ty: &ResolvedType) -> Option<(&'static str, &'static str)>
+- reach · function · L454-L477 — fn reach(
+- Verdict · enum · L481-L485 — pub enum Verdict
+- text · function · L489-L495 — pub const fn text(self) -> &'static str
+- Reason · enum · L501-L537 — pub enum Reason
+- text · function · L541-L557 — pub const fn text(self) -> &'static str
+- verdict · function · L560-L576 — pub const fn verdict(self) -> Verdict
+- Finding · struct · L581-L585 — pub struct Finding
+- CompatibilityReport · struct · L589-L595 — pub struct CompatibilityReport
+- verdict · function · L600-L602 — pub fn verdict(&self) -> Verdict
+- findings · function · L605-L607 — pub fn findings(&self) -> &[Finding]
+- digest · function · L610-L612 — pub fn digest(&self) -> &str
+- canonical_json · function · L615-L617 — pub fn canonical_json(&self) -> Result<String, Diagnostic>
+- to_json · function · L619-L643 — fn to_json(&self) -> Value
+- compare · function · L648-L718 — pub fn compare(before: &CandidateSurface, after: &CandidateSurface) -> CompatibilityReport
+- compare_entry · function · L724-L779 — fn compare_entry(
+- compare_data_positions · function · L794-L815 — fn compare_data_positions(
+- walk_terms · function · L826-L888 — fn walk_terms(path: &str, before: &GrammarTerm, after: &GrammarTerm, findings: &mut Vec<Finding>)
+- compare_instance · function · L890-L933 — fn compare_instance(
+- verify_comparison · function · L937-L952 — pub fn verify_comparison(
+- tests · module · L955-L955 — mod tests;

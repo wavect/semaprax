@@ -1,0 +1,50 @@
+# project/contracts_and_tests_facts.rs
+
+- CONTRACTS_AND_TESTS_FACTS_SCHEMA · constant · L17-L17 — pub const CONTRACTS_AND_TESTS_FACTS_SCHEMA: &str = "semaprax.contracts-and-tests-facts.v1";
+- MAX_DECLARED_CONTRACT_FUNCTIONS · constant · L18-L18 — pub const MAX_DECLARED_CONTRACT_FUNCTIONS: usize = 4096;
+- MAX_DECLARED_CONTRACT_CLAUSES · constant · L19-L19 — pub const MAX_DECLARED_CONTRACT_CLAUSES: usize = 16_384;
+- MAX_DECLARED_TESTS · constant · L20-L20 — pub const MAX_DECLARED_TESTS: usize = 4096;
+- MAX_CONTRACT_SOURCE_FACT_BYTES · constant · L21-L21 — pub const MAX_CONTRACT_SOURCE_FACT_BYTES: usize = 256 * 1024;
+- MAX_CONTRACTS_AND_TESTS_FACTS_BYTES · constant · L22-L22 — pub const MAX_CONTRACTS_AND_TESTS_FACTS_BYTES: usize = 8 * 1024 * 1024;
+- DIGEST_DOMAIN · constant · L24-L24 — const DIGEST_DOMAIN: &[u8] = b"semaprax.contracts-and-tests-facts.digest.v1\0";
+- ContractSourceFact · struct · L27-L33 — pub struct ContractSourceFact
+- phase · function · L36-L38 — pub fn phase(&self) -> &str
+- index · function · L39-L41 — pub fn index(&self) -> usize
+- expression_id · function · L42-L44 — pub fn expression_id(&self) -> &str
+- type_id · function · L45-L47 — pub fn type_id(&self) -> &str
+- source_fact · function · L48-L50 — pub fn source_fact(&self) -> &str
+- value · function · L52-L62 — fn value(&self) -> Result<Value, Vec<Diagnostic>>
+- DeclaredFunctionContractFacts · struct · L66-L72 — pub struct DeclaredFunctionContractFacts
+- stable_id · function · L75-L77 — pub fn stable_id(&self) -> &str
+- module · function · L78-L80 — pub fn module(&self) -> &str
+- declaration_kind · function · L81-L83 — pub fn declaration_kind(&self) -> &str
+- requires · function · L84-L86 — pub fn requires(&self) -> &[ContractSourceFact]
+- ensures · function · L87-L89 — pub fn ensures(&self) -> &[ContractSourceFact]
+- value · function · L91-L99 — fn value(&self) -> Result<Value, Vec<Diagnostic>>
+- DeclaredTestFact · struct · L103-L107 — pub struct DeclaredTestFact
+- stable_id · function · L110-L112 — pub fn stable_id(&self) -> &str
+- name · function · L113-L115 — pub fn name(&self) -> &str
+- kind · function · L116-L118 — pub fn kind(&self) -> &str
+- value · function · L120-L122 — fn value(&self) -> Value
+- ContractsAndTestsFacts · struct · L126-L132 — pub struct ContractsAndTestsFacts
+- derive · function · L135-L256 — pub fn derive(
+- replay · function · L258-L287 — pub fn replay(
+- project_revision · function · L289-L291 — pub fn project_revision(&self) -> &str
+- functions · function · L292-L294 — pub fn functions(&self) -> &[DeclaredFunctionContractFacts]
+- tests · function · L295-L297 — pub fn tests(&self) -> &[DeclaredTestFact]
+- to_json · function · L298-L300 — pub fn to_json(&self) -> &str
+- facts_digest · function · L301-L303 — pub fn facts_digest(&self) -> &str
+- function_facts · function · L306-L317 — fn function_facts(
+- template_facts · function · L319-L330 — fn template_facts(
+- clauses · function · L332-L346 — fn clauses(
+- render_clauses · function · L348-L372 — fn render_clauses(
+- validate_wire_shape · function · L374-L514 — fn validate_wire_shape(value: &Value) -> Result<(), Vec<Diagnostic>>
+- validate_clause_fact · function · L516-L541 — fn validate_clause_fact(value: &Value, phase: &str, index: usize) -> Result<(), Vec<Diagnostic>>
+- bounded_text · function · L543-L552 — fn bounded_text<'a>(value: Option<&'a Value>, field: &str) -> Result<&'a str, Vec<Diagnostic>>
+- require_keys · function · L554-L561 — fn require_keys(object: &Map<String, Value>, expected: &[&str]) -> Result<(), Vec<Diagnostic>>
+- canonical_json · function · L563-L569 — fn canonical_json(mut value: Value) -> Result<String, Vec<Diagnostic>>
+- sort_json · function · L571-L585 — fn sort_json(value: &mut Value)
+- validate_digest · function · L587-L599 — fn validate_digest(value: &str) -> Result<(), Vec<Diagnostic>>
+- framed_digest · function · L601-L610 — fn framed_digest(domain: &[u8], bytes: &[u8]) -> String
+- invalid · function · L612-L614 — fn invalid(message: impl Into<String>) -> Vec<Diagnostic>
+- stale · function · L615-L617 — fn stale(message: impl Into<String>) -> Vec<Diagnostic>

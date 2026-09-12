@@ -1,0 +1,47 @@
+# public_generic_abi/interpreter.rs
+
+- RESULT_ID_OFFSET · constant · L81-L81 — const RESULT_ID_OFFSET: u32 = 1000;
+- result_root_handle · function · L83-L88 — fn result_root_handle(call_id: u32) -> Handle
+- result_leaf_handle · function · L90-L95 — fn result_leaf_handle(index: u32, call_id: u32) -> Handle
+- FIXTURE_ENDPOINT_EXPORT_NAME · constant · L100-L100 — pub const FIXTURE_ENDPOINT_EXPORT_NAME: &str = "spx_pg_interpreter_endpoint_reverse_bytes_v1";
+- InterpreterPgStatus · enum · L112-L127 — pub enum InterpreterPgStatus
+- status_from_diagnostic · function · L129-L141 — fn status_from_diagnostic(error: &Diagnostic) -> InterpreterPgStatus
+- status_from_settlement · function · L145-L156 — fn status_from_settlement(settlement: Settlement) -> InterpreterPgStatus
+- InterpreterHandle · struct · L162-L165 — pub struct InterpreterHandle
+- PhysicalSlot · struct · L170-L173 — struct PhysicalSlot
+- Heap · struct · L178-L182 — struct Heap
+- capacity_error · function · L184-L186 — fn capacity_error(message: &str) -> Diagnostic
+- internal_error · function · L188-L190 — fn internal_error(message: &str) -> Diagnostic
+- new · function · L193-L195 — fn new() -> Self
+- live_allocations · function · L197-L199 — fn live_allocations(&self) -> u32
+- live_bytes · function · L201-L203 — fn live_bytes(&self) -> u32
+- alloc · function · L209-L230 — fn alloc(&mut self, len: u32) -> Result<u32, Diagnostic>
+- write · function · L232-L244 — fn write(&mut self, slot: u32, data: &[u8]) -> Result<(), Diagnostic>
+- read · function · L246-L251 — fn read(&self, slot: u32) -> Result<&[u8], Diagnostic>
+- free · function · L257-L269 — fn free(&mut self, slot: u32, expected_len: u32) -> Result<(), Diagnostic>
+- CallStage · enum · L273-L276 — enum CallStage
+- CallState · struct · L279-L286 — struct CallState
+- NEXT_PROVIDER_TAG · constant · L288-L288 — static NEXT_PROVIDER_TAG: AtomicU64 = AtomicU64::new(1);
+- InterpreterProvider · struct · L294-L308 — pub struct InterpreterProvider
+- open · function · L316-L340 — pub fn open(
+- test_last_trace · function · L344-L346 — pub fn test_last_trace(&self) -> &[crate::public_generic_abi::carrier::trace::TraceEvent]
+- live_handles · function · L348-L350 — pub fn live_handles(&self) -> usize
+- live_allocations · function · L352-L354 — pub fn live_allocations(&self) -> u32
+- live_bytes · function · L356-L358 — pub fn live_bytes(&self) -> u32
+- test_inject_failure · function · L363-L365 — pub fn test_inject_failure(&mut self, label: TraceLabel)
+- test_clear_failure_injection · function · L367-L369 — pub fn test_clear_failure_injection(&mut self)
+- test_settlement_overwrite_attempts · function · L371-L373 — pub fn test_settlement_overwrite_attempts(&self) -> u32
+- take_injection_if · function · L375-L382 — fn take_injection_if(&mut self, label: TraceLabel) -> bool
+- settle · function · L384-L389 — fn settle(&mut self, machine: &mut CarrierCallMachine, outcome: Settlement)
+- fixture_endpoint · function · L391-L393 — fn fixture_endpoint(leaf: &[u8]) -> Vec<u8>
+- release_input_physical · function · L395-L402 — fn release_input_physical(&mut self, state: &CallState) -> Result<(), Diagnostic>
+- release_result_physical · function · L404-L412 — fn release_result_physical(&mut self, state: &CallState) -> Result<(), Diagnostic>
+- input_prepare · function · L420-L559 — pub fn input_prepare(
+- call_id_for · function · L561-L573 — fn call_id_for(
+- call · function · L580-L799 — pub fn call(
+- result_export · function · L805-L834 — pub fn result_export(
+- remove_call_physical · function · L836-L840 — fn remove_call_physical(&mut self, call_id: u32) -> Result<CallState, InterpreterPgStatus>
+- value_release · function · L844-L878 — pub fn value_release(&mut self, value: InterpreterHandle) -> InterpreterPgStatus
+- result_release · function · L881-L909 — pub fn result_release(&mut self, result: InterpreterHandle) -> InterpreterPgStatus
+- close · function · L914-L920 — pub fn close(self) -> InterpreterPgStatus
+- tests · module · L924-L924 — mod tests;

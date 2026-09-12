@@ -1,0 +1,25 @@
+# assurance_manifest/smt_discharge/subset.rs
+
+- UnsupportedReason · enum · L17-L48 — pub enum UnsupportedReason
+- code · function · L54-L66 — pub const fn code(&self) -> &'static str
+- detail · function · L69-L91 — pub fn detail(&self) -> String
+- Sort · enum · L97-L100 — pub enum Sort
+- NumericMode · enum · L107-L114 — pub enum NumericMode
+- min · function · L118-L124 — pub const fn min(self) -> i128
+- max · function · L127-L134 — pub const fn max(self) -> i128
+- is_signed · function · L137-L139 — pub const fn is_signed(self) -> bool
+- sort_of_type · function · L145-L154 — pub fn sort_of_type(ty: &Type) -> Option<Sort>
+- check_declaration_supported · function · L160-L178 — pub fn check_declaration_supported(function: &Function) -> Result<(), UnsupportedReason>
+- expr_reason · function · L185-L214 — pub fn expr_reason(expr: &Expr) -> Option<UnsupportedReason>
+- binary_op_reason · function · L220-L240 — pub fn binary_op_reason(op: BinaryOp) -> Option<UnsupportedReason>
+- statement_reason · function · L244-L259 — pub fn statement_reason(statement: &Statement) -> Option<UnsupportedReason>
+- tests · module · L262-L377 — mod tests
+- function · function · L265-L268 — fn function(source: &str) -> Function
+- rejects_a_function_with_no_contract_clauses · function · L271-L277 — fn rejects_a_function_with_no_contract_clauses()
+- rejects_an_unsupported_parameter_type · function · L280-L288 — fn rejects_an_unsupported_parameter_type()
+- rejects_an_unsupported_return_type · function · L291-L299 — fn rejects_an_unsupported_return_type()
+- accepts_a_plain_numeric_contract_function · function · L302-L307 — fn accepts_a_plain_numeric_contract_function()
+- division_and_remainder_are_closed_rejections_not_generic_ones · function · L310-L324 — fn division_and_remainder_are_closed_rejections_not_generic_ones()
+- mutable_let_is_rejected_but_immutable_let_is_not · function · L327-L346 — fn mutable_let_is_rejected_but_immutable_let_is_not()
+- let_statement · function · L328-L340 — fn let_statement(mutable: bool) -> Statement
+- every_reason_code_is_a_stable_short_token · function · L349-L376 — fn every_reason_code_is_a_stable_short_token()

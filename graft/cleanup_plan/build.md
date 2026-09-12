@@ -1,0 +1,114 @@
+# cleanup_plan/build.rs
+
+- bounded_box · module · L28-L28 — mod bounded_box;
+- bounded_vec · module · L29-L29 — mod bounded_vec;
+- call_reference · module · L31-L31 — mod call_reference;
+- generic_variant · module · L32-L32 — mod generic_variant;
+- hostile_tests · module · L34-L34 — mod hostile_tests;
+- iterator · module · L35-L35 — mod iterator;
+- owned_try · module · L36-L36 — mod owned_try;
+- record_destructure · module · L37-L37 — mod record_destructure;
+- renewal · module · L38-L38 — mod renewal;
+- schema · module · L39-L39 — mod schema;
+- type_shape · module · L40-L40 — mod type_shape;
+- UNRESOLVED_EXIT · constant · L41-L41 — const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
+- CLEANUP_EVAL_RESULT_SIZE_CEILING · constant · L43-L43 — const CLEANUP_EVAL_RESULT_SIZE_CEILING: usize = 192;
+- reset_lower_capacity_high_water · function · L51-L53 — pub(crate) fn reset_lower_capacity_high_water()
+- lower_capacity_high_water · function · L56-L58 — pub(crate) fn lower_capacity_high_water() -> usize
+- note_lower_capacity_high_water · function · L61-L63 — fn note_lower_capacity_high_water(bytes: usize)
+- storage_id_owned_capacity · function · L66-L77 — fn storage_id_owned_capacity(storage: &StorageId) -> usize
+- cleanup_place_owned_capacity · function · L80-L88 — fn cleanup_place_owned_capacity(place: &CleanupPlace) -> usize
+- status_source_id_owned_capacity · function · L91-L93 — fn status_source_id_owned_capacity(source: &StatusSourceId) -> usize
+- field_shape_owned_capacity · function · L96-L133 — fn field_shape_owned_capacity(shape: &FieldLivenessShape) -> usize
+- cleanup_slot_owned_capacity · function · L136-L140 — fn cleanup_slot_owned_capacity(slot: &CleanupSlot) -> usize
+- transition_owned_capacity · function · L143-L247 — fn transition_owned_capacity(transition: &CleanupTransition) -> usize
+- edge_condition_owned_capacity · function · L250-L262 — fn edge_condition_owned_capacity(condition: &EdgeCondition) -> usize
+- exit_continuation_owned_capacity · function · L265-L276 — fn exit_continuation_owned_capacity(continuation: &ExitContinuation) -> usize
+- builder_nested_capacity · function · L279-L408 — fn builder_nested_capacity(builder: &PlanBuilder<'_>) -> usize
+- flow_state_owned_capacity · function · L411-L422 — fn flow_state_owned_capacity(state: &FlowState) -> usize
+- eval_result_owned_capacity · function · L425-L432 — fn eval_result_owned_capacity(result: &EvalResult) -> usize
+- resolved_type_owned_capacity · function · L435-L470 — fn resolved_type_owned_capacity(ty: &ResolvedType) -> usize
+- resolved_param_owned_capacity · function · L473-L475 — fn resolved_param_owned_capacity(param: &crate::hir::ResolvedParam) -> usize
+- build_plan · function · L477-L482 — pub(crate) fn build_plan(
+- assert_expression_lowering_oracle · function · L485-L498 — pub(super) fn assert_expression_lowering_oracle(
+- FlowState · struct · L501-L509 — struct FlowState
+- ConditionalFlowVariant · struct · L512-L516 — struct ConditionalFlowVariant
+- is_live · function · L519-L525 — fn is_live(&self, flag: LivenessFlagId) -> bool
+- remove · function · L527-L548 — fn remove(&mut self, flags: &BTreeSet<LivenessFlagId>)
+- append_distinct · function · L550-L555 — fn append_distinct(&mut self, flags: impl IntoIterator<Item = LivenessFlagId>)
+- EvalResult · struct · L559-L563 — struct EvalResult
+- LoweringFlow · struct · L565-L569 — struct LoweringFlow
+- PendingTryResidual · struct · L572-L576 — struct PendingTryResidual
+- OpenBlock · struct · L579-L584 — struct OpenBlock
+- LeafMetadata · struct · L587-L590 — struct LeafMetadata
+- PlanBuilder · struct · L593-L610 — struct PlanBuilder<'a>
+- new · function · L613-L728 — fn new(
+- seed_entry · function · L730-L802 — fn seed_entry(&mut self, root: CleanupRegionId) -> Result<(), Diagnostic>
+- build · function · L804-L960 — fn build(mut self) -> Result<CleanupPlan, Diagnostic>
+- result_needs_drop · function · L962-L964 — fn result_needs_drop(&self) -> Result<bool, Diagnostic>
+- needs_drop · function · L966-L968 — fn needs_drop(&self, ty: &ResolvedType) -> Result<bool, Diagnostic>
+- assign_slot · function · L970-L984 — fn assign_slot(
+- add_supplemental_slot · function · L986-L1014 — fn add_supplemental_slot(
+- flags_under · function · L1016-L1025 — fn flags_under(&self, place: &CleanupPlace) -> Vec<LivenessFlagId>
+- place_from_hir · function · L1027-L1057 — fn place_from_hir(&self, place: &Place) -> Result<CleanupPlace, Diagnostic>
+- expression_slot · function · L1059-L1070 — fn expression_slot(
+- binding_slot · function · L1072-L1083 — fn binding_slot(
+- call_argument_slot · function · L1085-L1101 — fn call_argument_slot(
+- push_transition · function · L1103-L1105 — fn push_transition(&mut self, block: BlockId, transition: CleanupTransition)
+- transfer · function · L1107-L1247 — fn transfer(
+- initialize · function · L1249-L1263 — fn initialize(
+- initialize_variant · function · L1265-L1315 — fn initialize_variant(
+- initialize_owned_result · function · L1317-L1341 — fn initialize_owned_result(
+- seal_constructed_variant · function · L1343-L1389 — fn seal_constructed_variant(
+- canonicalize_complete_aggregate · function · L1391-L1406 — fn canonicalize_complete_aggregate(
+- new_block · function · L1408-L1419 — fn new_block(&mut self, region: CleanupRegionId) -> Result<BlockId, Diagnostic>
+- new_edge · function · L1421-L1437 — fn new_edge(
+- terminate · function · L1439-L1452 — fn terminate(
+- add_status_source · function · L1454-L1467 — fn add_status_source(
+- finalizers_for · function · L1469-L1508 — fn finalizers_for(
+- region_chain · function · L1510-L1520 — fn region_chain(&self, mut region: CleanupRegionId) -> Vec<CleanupRegionId>
+- emit_exit · function · L1522-L1541 — fn emit_exit(
+- emit_failure · function · L1543-L1564 — fn emit_failure(
+- lower_while · function · L1576-L1626 — fn lower_while(
+- lower_scalar_match · function · L1633-L1760 — fn lower_scalar_match(
+- split_status · function · L1762-L1781 — fn split_status(
+- lower_contract · function · L1783-L1822 — fn lower_contract(
+- lower_contract_expression · function · L1824-L1847 — fn lower_contract_expression(
+- checked_source · function · L1849-L1867 — fn checked_source(
+- new_region · function · L1869-L1880 — fn new_region(&mut self, parent: CleanupRegionId) -> Result<CleanupRegionId, Diagnostic>
+- exit_scope · function · L1882-L1935 — fn exit_scope(
+- finish_success · function · L1937-L1955 — fn finish_success(
+- consume_place · function · L1957-L1979 — fn consume_place(
+- lower_root_body · function · L1981-L2077 — fn lower_root_body(
+- lower_expr · function · L2079-L2087 — fn lower_expr(
+- assert_lowering_oracle · function · L2090-L2142 — fn assert_lowering_oracle(
+- lower_expr_iterative · function · L2144-L4722 — fn lower_expr_iterative(
+- Frame · enum · L2151-L2419 — enum Frame<'e>
+- frame_owned_capacity · function · L2422-L2565 — fn frame_owned_capacity(frame: &Frame<'_>) -> usize
+- lower_expr_recursive_reference · function · L4725-L5073 — fn lower_expr_recursive_reference(
+- lower_lazy · function · L5077-L5123 — fn lower_lazy(
+- lower_block · function · L5126-L5228 — fn lower_block(
+- lower_if · function · L5232-L5310 — fn lower_if(
+- lower_record · function · L5313-L5369 — fn lower_record(
+- lower_variant · function · L5372-L5425 — fn lower_variant(
+- finish_try · function · L5428-L5502 — fn finish_try(
+- check_try_option_metadata · function · L5505-L5565 — fn check_try_option_metadata(
+- finish_try_option · function · L5568-L5634 — fn finish_try_option(
+- lower_try · function · L5638-L5759 — fn lower_try(
+- lower_try_option · function · L5763-L5881 — fn lower_try_option(
+- prepare_record_match · function · L5883-L5944 — fn prepare_record_match(
+- prepare_variant_match_arm · function · L5946-L6050 — fn prepare_variant_match_arm(
+- authenticate_variant_case · function · L6052-L6112 — fn authenticate_variant_case(
+- lower_match · function · L6115-L6337 — fn lower_match(
+- lower_update_record · function · L6340-L6483 — fn lower_update_record(
+- result_arguments · function · L6486-L6503 — fn result_arguments<'a>(
+- option_arguments · function · L6505-L6524 — fn option_arguments<'a>(
+- condition_id · function · L6526-L6533 — fn condition_id(expression: &ResolvedExpr) -> Result<ExpressionId, Diagnostic>
+- plan_error · function · L6535-L6537 — fn plan_error(message: impl Into<String>) -> Diagnostic
+- iterative_lowering_tests · module · L6540-L6847 — mod iterative_lowering_tests
+- iterative_lowering_private_frame_sizes_stay_within_capacity_formula · function · L6549-L6556 — fn iterative_lowering_private_frame_sizes_stay_within_capacity_formula()
+- fallible_byte_range_selects_v4_and_keeps_an_exact_status_source · function · L6559-L6589 — fn fallible_byte_range_selects_v4_and_keeps_an_exact_status_source()
+- iterative_lowering_matches_recursive_reference_for_every_resolved_body · function · L6592-L6643 — fn iterative_lowering_matches_recursive_reference_for_every_resolved_body()
+- inventory_and_cleanup_capacity_cover_owned_hostile_families · function · L6646-L6759 — fn inventory_and_cleanup_capacity_cover_owned_hostile_families()
+- long_identity_cleanup_dag_owned_census_covers_many_deep_roots · function · L6762-L6846 — fn long_identity_cleanup_dag_owned_census_covers_many_deep_roots()
+- long_id · function · L6765-L6767 — fn long_id(family: &str, index: usize) -> String

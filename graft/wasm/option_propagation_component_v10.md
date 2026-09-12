@@ -1,0 +1,44 @@
+# wasm/option_propagation_component_v10.rs
+
+- FUNCTION_ID · constant · L22-L22 — pub(crate) const FUNCTION_ID: &str = "component.option-propagation.evaluate";
+- STATUS_OUT_EXPORT · constant · L23-L23 — pub(crate) const STATUS_OUT_EXPORT: &str = "semaprax_evaluate_option_propagation_status_out";
+- CANONICAL_EXPORT · constant · L24-L24 — pub(crate) const CANONICAL_EXPORT: &str = "cabi_evaluate_option_propagation_v10";
+- TEST_SELECTED_EXPORT · constant · L25-L25 — const TEST_SELECTED_EXPORT: &str = "__spx_test_option_propagation_selected_v10";
+- TEST_VALIDATE_EXPORT · constant · L26-L26 — const TEST_VALIDATE_EXPORT: &str = "__spx_test_validate_option_bool_v10";
+- CONTRACT_DOMAIN · constant · L27-L27 — const CONTRACT_DOMAIN: &str = "semaprax.contract.v1";
+- ARITHMETIC_DOMAIN · constant · L28-L28 — const ARITHMETIC_DOMAIN: &str = "semaprax.arithmetic.v1";
+- INTERNAL_RESULT_AREA · constant · L29-L29 — const INTERNAL_RESULT_AREA: i32 = 128;
+- INTERNAL_INPUT_AREA · constant · L30-L30 — const INTERNAL_INPUT_AREA: i32 = 64;
+- RESULT_AREA · constant · L31-L31 — pub(crate) const RESULT_AREA: i32 = 256;
+- POISON_I64 · constant · L32-L32 — const POISON_I64: i64 = 0xa5a5_a5a5_a5a5_a5a5_u64 as i64;
+- CUSTOM_SECTION · constant · L33-L33 — const CUSTOM_SECTION: &str = "semaprax.component-option-propagation-v10";
+- PLAN_DOMAIN · constant · L34-L34 — const PLAN_DOMAIN: &[u8] = b"semaprax.component-option-propagation-plan.v10\0";
+- SOURCE_V10 · constant · L36-L36 — pub(crate) const SOURCE_V10: &str = include_str!("../../platform-tests/component-runtime/v10.spx");
+- CONTRACT_REQUIRES · constant · L38-L38 — const CONTRACT_REQUIRES: i32 = status_word(1, 1);
+- CONTRACT_ENSURES · constant · L39-L39 — const CONTRACT_ENSURES: i32 = status_word(1, 2);
+- ARITHMETIC_BASE · constant · L40-L40 — const ARITHMETIC_BASE: i32 = status_word(2, 0);
+- status_word · function · L42-L44 — const fn status_word(class: i32, code: i32) -> i32
+- PrivateOptionPropagationCoreArtifactV10 · struct · L47-L55 — pub(crate) struct PrivateOptionPropagationCoreArtifactV10
+- ProfileRoots · struct · L57-L64 — struct ProfileRoots<'a>
+- emit_private_option_propagation_core_v10 · function · L66-L71 — pub(crate) fn emit_private_option_propagation_core_v10(
+- emit_test_profile · function · L74-L78 — fn emit_test_profile(
+- emit_profile · function · L80-L138 — fn emit_profile(
+- option_type · function · L140-L145 — fn option_type(value: ResolvedType) -> ResolvedType
+- require_layout · function · L147-L171 — fn require_layout(
+- validate_profile · function · L173-L261 — fn validate_profile(program: &ResolvedProgram) -> Result<Vec<DeclarationId>, Diagnostic>
+- require_exact_source · function · L263-L274 — fn require_exact_source(program: &Program) -> Result<(), Diagnostic>
+- plan_digest · function · L276-L282 — fn plan_digest(plan_json: &str) -> [u8; 32]
+- function · function · L284-L293 — fn function<'a>(
+- require_function_signature · function · L295-L314 — fn require_function_signature(
+- validate_expr · function · L316-L341 — fn validate_expr(program: &ResolvedProgram, expr: &ResolvedExpr) -> Result<(), Diagnostic>
+- validate_type · function · L343-L366 — fn validate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<(), Diagnostic>
+- walk_children · function · L368-L395 — fn walk_children(expr: &ResolvedExpr, mut visit: impl FnMut(&ResolvedExpr))
+- compose · function · L397-L523 — fn compose(
+- active_data · function · L525-L531 — fn active_data(output: &mut Vec<u8>, offset: i32, bytes: &[u8])
+- validate_copy_body · function · L533-L560 — fn validate_copy_body() -> Vec<u8>
+- status_out_body · function · L562-L583 — fn status_out_body(selected_index: u32, validate_index: u32) -> Vec<u8>
+- emit_normalized_status · function · L585-L617 — fn emit_normalized_status(output: &mut Vec<u8>, status: u32)
+- canonical_adapter_body · function · L619-L714 — fn canonical_adapter_body(status_out_index: u32) -> Vec<u8>
+- profile_error · function · L716-L718 — fn profile_error(message: impl Into<String>) -> Diagnostic
+- first_error · function · L720-L725 — fn first_error(diagnostics: Vec<Diagnostic>) -> Diagnostic
+- tests · module · L729-L729 — mod tests;

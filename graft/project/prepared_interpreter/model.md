@@ -1,0 +1,29 @@
+# project/prepared_interpreter/model.rs
+
+- MIN_PROJECT_SOURCE_TRACE_BYTES · constant · L10-L10 — pub const MIN_PROJECT_SOURCE_TRACE_BYTES: usize = 64 * 1024;
+- MAX_PROJECT_SOURCE_TRACE_BYTES · constant · L11-L11 — pub const MAX_PROJECT_SOURCE_TRACE_BYTES: usize = 16 * 1024 * 1024;
+- MAX_PROJECT_SOURCE_TRACE_EVENTS · constant · L12-L12 — pub const MAX_PROJECT_SOURCE_TRACE_EVENTS: usize = 65_536;
+- DEFAULT_PROJECT_SOURCE_TRACE_BYTES · constant · L13-L13 — pub const DEFAULT_PROJECT_SOURCE_TRACE_BYTES: usize = 1024 * 1024;
+- DEFAULT_PROJECT_SOURCE_TRACE_EVENTS · constant · L14-L14 — pub const DEFAULT_PROJECT_SOURCE_TRACE_EVENTS: usize = 4096;
+- ProjectExecutionCancellation · struct · L18-L20 — pub struct ProjectExecutionCancellation
+- new · function · L23-L25 — pub fn new() -> Self
+- cancel · function · L26-L28 — pub fn cancel(&self)
+- is_cancelled · function · L29-L31 — pub fn is_cancelled(&self) -> bool
+- signal · function · L33-L35 — pub(crate) fn signal(&self) -> &AtomicBool
+- PreparedProjectInterpreterOptions · struct · L40-L43 — pub struct PreparedProjectInterpreterOptions
+- new · function · L46-L52 — pub fn new(max_trace_bytes: usize, max_trace_events: usize) -> Result<Self, Diagnostic>
+- default · function · L56-L61 — fn default() -> Self
+- PreparedProjectExecutionOptions · struct · L65-L69 — pub struct PreparedProjectExecutionOptions
+- new · function · L72-L89 — pub fn new(
+- default · function · L93-L99 — fn default() -> Self
+- PreparedProjectExecution · struct · L103-L109 — pub struct PreparedProjectExecution
+- role · function · L112-L114 — pub const fn role(&self) -> ProjectExecutionRole
+- outcome · function · L115-L117 — pub const fn outcome(&self) -> &ProjectPreparedExecutionOutcome
+- steps_used · function · L118-L120 — pub const fn steps_used(&self) -> usize
+- max_steps · function · L121-L123 — pub const fn max_steps(&self) -> usize
+- trace · function · L124-L126 — pub const fn trace(&self) -> &ProjectSourceTrace
+- validate_trace_limits · function · L129-L140 — pub(super) fn validate_trace_limits(
+- preparation_diagnostics · function · L142-L147 — pub(super) fn preparation_diagnostics(diagnostics: Vec<Diagnostic>) -> Vec<Diagnostic>
+- prepare_error · function · L148-L150 — pub(super) fn prepare_error(message: &str) -> Diagnostic
+- request_error · function · L151-L153 — pub(super) fn request_error(message: String) -> Diagnostic
+- worker_error · function · L154-L156 — pub(super) fn worker_error(message: &str) -> Diagnostic

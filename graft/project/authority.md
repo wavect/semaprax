@@ -1,0 +1,26 @@
+# project/authority.rs
+
+- HeldFile · struct · L12-L21 — pub(super) struct HeldFile
+- open · function · L24-L83 — pub(super) fn open(path: PathBuf, limit: usize) -> Result<Self, Vec<Diagnostic>>
+- utf8 · function · L85-L88 — pub(super) fn utf8(&mut self) -> Result<String, Vec<Diagnostic>>
+- recheck · function · L90-L130 — pub(super) fn recheck(&mut self) -> Result<(), Vec<Diagnostic>>
+- DeclaredPathSelection · struct · L133-L138 — pub(super) struct DeclaredPathSelection
+- open · function · L141-L200 — pub(super) fn open(path: &Path, subject: &str) -> Result<Self, Vec<Diagnostic>>
+- recheck · function · L202-L227 — pub(super) fn recheck(&self) -> Result<(), Vec<Diagnostic>>
+- declared_absolute_path · function · L230-L246 — pub(super) fn declared_absolute_path(
+- has_declared_alias_component · function · L249-L274 — pub(super) fn has_declared_alias_component(path: &Path) -> bool
+- windows_units_have_alias_component · function · L277-L293 — fn windows_units_have_alias_component(units: impl Iterator<Item = u16>) -> bool
+- has_declared_alias_component · function · L296-L303 — pub(super) fn has_declared_alias_component(path: &Path) -> bool
+- HeldDirectory · struct · L305-L309 — pub(super) struct HeldDirectory
+- open · function · L312-L336 — pub(super) fn open(path: PathBuf) -> Result<Self, Vec<Diagnostic>>
+- recheck · function · L338-L360 — pub(super) fn recheck(&self) -> Result<(), Vec<Diagnostic>>
+- PermissionFingerprint · struct · L364-L368 — struct PermissionFingerprint
+- from_metadata · function · L371-L380 — fn from_metadata(metadata: &Metadata) -> Self
+- plain_regular · function · L383-L385 — fn plain_regular(metadata: &Metadata) -> bool
+- plain_directory · function · L387-L389 — fn plain_directory(metadata: &Metadata) -> bool
+- single_link · function · L392-L395 — fn single_link(_: &Path, metadata: &Metadata) -> bool
+- single_link · function · L398-L402 — fn single_link(path: &Path, _: &Metadata) -> bool
+- single_link · function · L405-L407 — fn single_link(_: &Path, _: &Metadata) -> bool
+- metadata_is_reparse · function · L410-L413 — fn metadata_is_reparse(metadata: &Metadata) -> bool
+- metadata_is_reparse · function · L416-L418 — fn metadata_is_reparse(_: &Metadata) -> bool
+- authentication · function · L420-L422 — pub(super) fn authentication(message: impl Into<String>) -> Vec<Diagnostic>

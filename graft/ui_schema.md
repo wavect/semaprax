@@ -1,0 +1,56 @@
+---
+covers: []
+---
+# ui_schema.rs
+
+- bformat · function · L46-L50 — macro_rules! bformat
+- SCHEMA · constant · L52-L52 — pub const SCHEMA: &str = "semaprax.ui-dialect-schema.v1";
+- DEFAULT_MAX_BYTES · constant · L54-L54 — const DEFAULT_MAX_BYTES: usize = 64 * 1024;
+- SOURCE_DIGEST_DOMAIN · constant · L56-L56 — const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.ui-dialect-schema.source.v1\0";
+- PAYLOAD_DIGEST_DOMAIN · constant · L57-L57 — const PAYLOAD_DIGEST_DOMAIN: &[u8] = b"semaprax.ui-dialect-schema.payload.v1\0";
+- STATE_SHAPE_DIGEST_DOMAIN · constant · L58-L58 — const STATE_SHAPE_DIGEST_DOMAIN: &[u8] = b"semaprax.ui-dialect-schema.state-shape.v1\0";
+- ACTION_SIGNATURE_DIGEST_DOMAIN · constant · L59-L59 — const ACTION_SIGNATURE_DIGEST_DOMAIN: &[u8] = b"semaprax.ui-dialect-schema.action-signature.v1\0";
+- REASON_AUTOMATIC_IDENTITY · constant · L61-L61 — const REASON_AUTOMATIC_IDENTITY: &str = "automatic_identity";
+- REASON_GENERIC_FUNCTION · constant · L62-L62 — const REASON_GENERIC_FUNCTION: &str = "generic_function";
+- REASON_DECLARED_EFFECTS · constant · L63-L63 — const REASON_DECLARED_EFFECTS: &str = "declared_effects";
+- REASON_UNSUPPORTED_PARAMETER_MODE · constant · L64-L64 — const REASON_UNSUPPORTED_PARAMETER_MODE: &str = "unsupported_parameter_mode";
+- REASON_UNSUPPORTED_PARAMETER_TYPE · constant · L65-L65 — const REASON_UNSUPPORTED_PARAMETER_TYPE: &str = "unsupported_parameter_type";
+- REASON_UNSUPPORTED_RESULT_TYPE · constant · L66-L66 — const REASON_UNSUPPORTED_RESULT_TYPE: &str = "unsupported_result_type";
+- RECORD_REASON_AUTOMATIC_IDENTITY · constant · L68-L68 — const RECORD_REASON_AUTOMATIC_IDENTITY: &str = "automatic_identity";
+- RECORD_REASON_GENERIC_TYPE · constant · L69-L69 — const RECORD_REASON_GENERIC_TYPE: &str = "generic_type";
+- RECORD_REASON_RESOURCE_TYPE · constant · L70-L70 — const RECORD_REASON_RESOURCE_TYPE: &str = "resource_type";
+- RECORD_REASON_VARIANT_TYPE · constant · L71-L71 — const RECORD_REASON_VARIANT_TYPE: &str = "variant_type";
+- RECORD_REASON_MIXED_FIELD_TYPES · constant · L72-L72 — const RECORD_REASON_MIXED_FIELD_TYPES: &str = "mixed_field_types";
+- RECORD_REASON_CLASS_TYPE · constant · L73-L73 — const RECORD_REASON_CLASS_TYPE: &str = "class_type";
+- KIND_RECORD · constant · L75-L75 — const KIND_RECORD: &str = "record";
+- KIND_FUNCTION · constant · L76-L76 — const KIND_FUNCTION: &str = "function";
+- NONCLAIMS_JSON · constant · L78-L88 — const NONCLAIMS_JSON: &str = "\"schema_projection_only\",\
+- UiSchemaOptions · struct · L91-L93 — pub struct UiSchemaOptions
+- new · function · L96-L105 — pub fn new(max_bytes: usize) -> Result<Self, Diagnostic>
+- default · function · L109-L113 — fn default() -> Self
+- option_error · function · L116-L118 — fn option_error(message: String) -> Diagnostic
+- consistency_error · function · L120-L122 — fn consistency_error(message: String) -> Diagnostic
+- StateShapeField · struct · L124-L130 — struct StateShapeField
+- StateShape · struct · L132-L138 — struct StateShape
+- ActionParameter · struct · L140-L143 — struct ActionParameter
+- Action · struct · L145-L150 — struct Action
+- ExcludedEntry · struct · L152-L157 — struct ExcludedEntry
+- VerifiedStateShapeField · struct · L162-L169 — pub struct VerifiedStateShapeField
+- VerifiedStateShape · struct · L172-L178 — pub struct VerifiedStateShape
+- VerifiedAction · struct · L183-L188 — pub struct VerifiedAction
+- VerifiedUiSchema · struct · L191-L194 — pub struct VerifiedUiSchema
+- generate · function · L201-L291 — pub fn generate(source_path: &Path, options: &UiSchemaOptions) -> Result<String, Vec<Diagnostic>>
+- SchemaInput · struct · L293-L300 — struct SchemaInput
+- record_admission · function · L306-L328 — fn record_admission(declaration: &TypeDeclaration) -> Option<&'static str>
+- ast_scalar_type_name · function · L330-L341 — fn ast_scalar_type_name(ty: &Type) -> Option<&'static str>
+- function_admission · function · L346-L368 — fn function_admission(function: &Function) -> Option<&'static str>
+- project_state_shape · function · L370-L417 — fn project_state_shape(
+- resolved_scalar_type_name · function · L419-L433 — fn resolved_scalar_type_name(ty: &ResolvedType) -> Result<&'static str, Vec<Diagnostic>>
+- state_shape_layout_text · function · L438-L465 — fn state_shape_layout_text(
+- action_signature_text · function · L470-L486 — fn action_signature_text(parameters: &[(&str, &str)], result_ty: &str) -> String
+- source_digest · function · L488-L490 — fn source_digest(source: &str) -> String
+- domain_digest · function · L492-L501 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- render · function · L503-L608 — fn render(
+- verify_envelope · function · L617-L847 — pub fn verify_envelope(envelope: &str) -> Result<VerifiedUiSchema, Diagnostic>
+- PAYLOAD_KEY · constant · L646-L646 — const PAYLOAD_KEY: &str = "\"payload\":";
+- tests · module · L851-L851 — mod tests;

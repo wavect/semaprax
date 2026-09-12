@@ -1,0 +1,26 @@
+# project/cxx_owned_data.rs
+
+- render · module · L13-L13 — mod render;
+- PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA · constant · L15-L16 — pub const PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA: &str =
+- MAX_CXX_OWNED_DATA_PACKAGE_BYTES · constant · L17-L17 — pub const MAX_CXX_OWNED_DATA_PACKAGE_BYTES: usize = 4 * 1024 * 1024;
+- MAX_CXX_PROVIDER_WRAPPER_BYTES · constant · L20-L20 — const MAX_CXX_PROVIDER_WRAPPER_BYTES: usize = 2 * 1024 * 1024;
+- DIGEST_DOMAIN · constant · L21-L21 — const DIGEST_DOMAIN: &[u8] = b"semaprax.project-cxx-owned-data-package.digest.v1\0";
+- render_owned_data_c_header · function · L26-L28 — pub fn render_owned_data_c_header(descriptor: &PublicApiDescriptor) -> String
+- CxxOwnedDataPackage · struct · L31-L39 — pub struct CxxOwnedDataPackage
+- canonical_bytes · function · L42-L44 — pub fn canonical_bytes(&self) -> &[u8]
+- digest · function · L45-L47 — pub fn digest(&self) -> &str
+- descriptor · function · L48-L50 — pub fn descriptor(&self) -> &[u8]
+- descriptor_digest · function · L51-L53 — pub fn descriptor_digest(&self) -> &str
+- c_header · function · L54-L56 — pub fn c_header(&self) -> &str
+- cxx_header · function · L57-L59 — pub fn cxx_header(&self) -> &str
+- provider_c · function · L60-L62 — pub fn provider_c(&self) -> &str
+- cxx_owned_data_package_v1 · function · L67-L123 — pub fn cxx_owned_data_package_v1(&mut self) -> Result<CxxOwnedDataPackage, Vec<Diagnostic>>
+- replay_cxx_owned_data_package_v1 · function · L126-L133 — pub fn replay_cxx_owned_data_package_v1(
+- replay_cxx_owned_data_package · function · L137-L143 — pub fn replay_cxx_owned_data_package(
+- build_package · function · L145-L201 — fn build_package(
+- push_artifact · function · L203-L217 — fn push_artifact(output: &mut CappedString, name: &str, bytes: &[u8])
+- exact_replay · function · L219-L234 — fn exact_replay(
+- sha256 · function · L236-L238 — fn sha256(bytes: &[u8]) -> String
+- domain_digest · function · L239-L245 — fn domain_digest(bytes: &[u8]) -> String
+- package_error · function · L246-L248 — fn package_error(message: impl Into<String>) -> Diagnostic
+- push_json · function · L250-L269 — fn push_json(output: &mut CappedString, value: &str)

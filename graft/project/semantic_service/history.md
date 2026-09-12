@@ -1,0 +1,63 @@
+# project/semantic_service/history.rs
+
+- SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRY_SCHEMA · constant · L10-L11 — pub const SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRY_SCHEMA: &str =
+- SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_SCHEMA · constant · L12-L13 — pub const SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_SCHEMA: &str =
+- SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_SCHEMA · constant · L14-L15 — pub const SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_SCHEMA: &str =
+- MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRIES · constant · L16-L16 — pub const MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRIES: usize = 1024;
+- MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_LIMIT · constant · L17-L17 — pub const MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_LIMIT: usize = 64;
+- MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_BYTES · constant · L18-L18 — pub const MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_BYTES: usize = 4096;
+- MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_BYTES · constant · L19-L19 — pub const MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_BYTES: usize = 1024 * 1024;
+- ENTRY_DOMAIN · constant · L21-L21 — const ENTRY_DOMAIN: &[u8] = b"semaprax.semantic-workspace-service.history-entry.digest.v1\0";
+- QUERY_DOMAIN · constant · L22-L22 — const QUERY_DOMAIN: &[u8] = b"semaprax.semantic-workspace-service.history-query.digest.v1\0";
+- RESULT_DOMAIN · constant · L23-L23 — const RESULT_DOMAIN: &[u8] = b"semaprax.semantic-workspace-service.history-result.digest.v1\0";
+- SemanticWorkspaceServiceHistoryEntry · struct · L26-L38 — pub struct SemanticWorkspaceServiceHistoryEntry
+- ordinal · function · L41-L43 — pub fn ordinal(&self) -> usize
+- kind · function · L45-L47 — pub fn kind(&self) -> &str
+- base_workspace_revision · function · L49-L51 — pub fn base_workspace_revision(&self) -> &str
+- base_project_revision · function · L53-L55 — pub fn base_project_revision(&self) -> &str
+- outcome_workspace_revision · function · L57-L59 — pub fn outcome_workspace_revision(&self) -> &str
+- outcome_project_revision · function · L61-L63 — pub fn outcome_project_revision(&self) -> &str
+- transaction_digest · function · L65-L67 — pub fn transaction_digest(&self) -> Option<&str>
+- result_digest · function · L69-L71 — pub fn result_digest(&self) -> Option<&str>
+- refresh_receipt_digest · function · L73-L75 — pub fn refresh_receipt_digest(&self) -> Option<&str>
+- to_json · function · L77-L79 — pub fn to_json(&self) -> &str
+- entry_digest · function · L81-L83 — pub fn entry_digest(&self) -> &str
+- SemanticWorkspaceServiceHistory · struct · L86-L88 — pub(super) struct SemanticWorkspaceServiceHistory
+- new · function · L91-L95 — pub(super) fn new() -> Self
+- require_capacity · function · L97-L104 — pub(super) fn require_capacity(&self) -> Result<()>
+- transaction_entry · function · L106-L125 — pub(super) fn transaction_entry(
+- refresh_entry · function · L127-L145 — pub(super) fn refresh_entry(
+- entry · function · L148-L207 — fn entry(
+- append · function · L209-L212 — pub(super) fn append(&mut self, entry: SemanticWorkspaceServiceHistoryEntry)
+- snapshot · function · L214-L228 — pub(super) fn snapshot(
+- SemanticWorkspaceServiceHistoryQuery · struct · L232-L238 — pub struct SemanticWorkspaceServiceHistoryQuery
+- new · function · L241-L270 — pub fn new(expected_workspace_revision: &str, offset: usize, limit: usize) -> Result<Self>
+- from_json · function · L272-L312 — pub fn from_json(bytes: &[u8]) -> Result<Self>
+- expected_workspace_revision · function · L314-L316 — pub fn expected_workspace_revision(&self) -> &str
+- offset · function · L318-L320 — pub fn offset(&self) -> usize
+- limit · function · L322-L324 — pub fn limit(&self) -> usize
+- to_json · function · L326-L328 — pub fn to_json(&self) -> &str
+- query_digest · function · L330-L332 — pub fn query_digest(&self) -> &str
+- replay · function · L334-L356 — pub fn replay(
+- SemanticWorkspaceServiceHistorySnapshot · struct · L360-L366 — pub struct SemanticWorkspaceServiceHistorySnapshot
+- workspace_revision · function · L369-L371 — pub fn workspace_revision(&self) -> &str
+- project_revision · function · L373-L375 — pub fn project_revision(&self) -> &str
+- len · function · L377-L379 — pub fn len(&self) -> usize
+- is_empty · function · L381-L383 — pub fn is_empty(&self) -> bool
+- program_root_v2 · function · L385-L387 — pub fn program_root_v2(&self) -> Option<&super::ProgramRootV2>
+- retain_program_root_v2 · function · L389-L391 — pub(super) fn retain_program_root_v2(&mut self, root: super::ProgramRootV2)
+- program_root_v3 · function · L393-L395 — pub fn program_root_v3(&self) -> Option<&ProgramRootV3>
+- retain_program_root_v3 · function · L397-L399 — pub(super) fn retain_program_root_v3(&mut self, root: ProgramRootV3)
+- query · function · L401-L456 — pub fn query(
+- SemanticWorkspaceServiceHistoryResult · struct · L459-L470 — pub struct SemanticWorkspaceServiceHistoryResult
+- workspace_revision · function · L473-L475 — pub fn workspace_revision(&self) -> &str
+- project_revision · function · L477-L479 — pub fn project_revision(&self) -> &str
+- query_digest · function · L481-L483 — pub fn query_digest(&self) -> &str
+- result_digest · function · L485-L487 — pub fn result_digest(&self) -> &str
+- items · function · L489-L491 — pub fn items(&self) -> &[SemanticWorkspaceServiceHistoryEntry]
+- next_offset · function · L493-L495 — pub fn next_offset(&self) -> Option<usize>
+- history_length · function · L497-L499 — pub fn history_length(&self) -> usize
+- to_json · function · L501-L503 — pub fn to_json(&self) -> &str
+- program_root_v2 · function · L505-L507 — pub fn program_root_v2(&self) -> Option<&super::ProgramRootV2>
+- program_root_v3 · function · L509-L511 — pub fn program_root_v3(&self) -> Option<&ProgramRootV3>
+- render_bounded · function · L514-L523 — fn render_bounded(mut value: Value, limit: usize, message: &'static str) -> Result<String>

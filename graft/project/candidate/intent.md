@@ -1,0 +1,51 @@
+# project/candidate/intent.rs
+
+- MAX_NAME_BYTES · constant · L19-L19 — pub(super) const MAX_NAME_BYTES: usize = 128;
+- MAX_ID_BYTES · constant · L20-L20 — pub(super) const MAX_ID_BYTES: usize = 4096;
+- MAX_APPEND_PARAMETERS · constant · L21-L21 — pub(super) const MAX_APPEND_PARAMETERS: usize = 16;
+- MAX_EXPRESSION_DEPTH · constant · L22-L22 — pub(super) const MAX_EXPRESSION_DEPTH: usize = 64;
+- MAX_EXPRESSION_NODES · constant · L23-L23 — pub(super) const MAX_EXPRESSION_NODES: usize = 4096;
+- MAX_STRING_LITERAL_BYTES · constant · L24-L24 — pub(super) const MAX_STRING_LITERAL_BYTES: usize = 16_384;
+- MAX_WALK_DEPTH · constant · L25-L25 — const MAX_WALK_DEPTH: usize = 256;
+- MAX_WALK_NODES · constant · L26-L26 — const MAX_WALK_NODES: usize = 1_048_576;
+- aggregate · module · L29-L29 — mod aggregate;
+- append · module · L31-L31 — mod append;
+- builtin · module · L33-L33 — mod builtin;
+- field_place · module · L35-L35 — mod field_place;
+- signature · module · L37-L37 — mod signature;
+- walk · module · L39-L39 — mod walk;
+- apply_detached_signature · function · L61-L89 — pub(super) fn apply_detached_signature(
+- apply_detached_signature_with_revision · function · L95-L103 — pub(super) fn apply_detached_signature_with_revision(
+- Result · type · L105-L105 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- IntentSummary · struct · L107-L111 — pub(super) struct IntentSummary
+- apply · function · L116-L118 — pub(super) fn apply(programs: &mut [Program], intent: &Value) -> Result<IntentSummary>
+- apply_with_revision · function · L120-L126 — pub(super) fn apply_with_revision(
+- apply_inner · function · L128-L307 — fn apply_inner(
+- uses_field_places · function · L309-L311 — pub(super) fn uses_field_places(value: &Value) -> bool
+- construct_expression_with_scope · function · L316-L324 — pub(super) fn construct_expression_with_scope(
+- insert_nominal_type · function · L326-L334 — pub(super) fn insert_nominal_type(
+- construct_expression_inner · function · L336-L364 — fn construct_expression_inner(
+- call_bindings · function · L366-L385 — pub(super) fn call_bindings(program: &Program) -> Result<BTreeMap<String, String>>
+- Constructor · struct · L387-L401 — struct Constructor<'a>
+- PreparedMatchArm · struct · L403-L408 — struct PreparedMatchArm<'a>
+- infer_nominal · function · L411-L430 — fn infer_nominal(
+- match_binder · function · L431-L459 — fn match_binder(&self, name: &str) -> Result<()>
+- match_expression · function · L461-L635 — fn match_expression(&mut self, value: &Value, depth: usize) -> Result<Expr>
+- projection_name · function · L637-L670 — fn projection_name(&mut self) -> Result<String>
+- expression · function · L672-L1173 — fn expression(&mut self, value: &Value, depth: usize) -> Result<Expr>
+- block · function · L1176-L1184 — fn block(tail: Expr) -> Expr
+- literal · function · L1186-L1273 — fn literal(value: &Value) -> Result<Expr>
+- exact_hex · function · L1275-L1288 — fn exact_hex(value: &Value, key: &str, digits: usize) -> Result<u64>
+- float_literal · function · L1290-L1296 — fn float_literal(magnitude: u32, negative: bool) -> Expr
+- float64_literal · function · L1298-L1304 — fn float64_literal(magnitude: u64, negative: bool) -> Expr
+- signed_float · function · L1306-L1318 — fn signed_float(value: Expr, negative: bool) -> Expr
+- literal_nodes · function · L1320-L1322 — fn literal_nodes(expression: &Expr) -> usize
+- scalar_type · function · L1324-L1338 — fn scalar_type(name: &str) -> Result<Type>
+- identifier · function · L1340-L1377 — pub(super) fn identifier(name: &str) -> Result<&str>
+- member · function · L1379-L1383 — fn member<'a>(value: &'a Value, key: &str) -> Result<&'a Value>
+- text · function · L1385-L1389 — fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str>
+- array · function · L1391-L1396 — fn array<'a>(value: &'a Value, key: &str) -> Result<&'a [Value]>
+- object · function · L1398-L1406 — fn object<'a>(value: &'a Value, keys: &[&str]) -> Result<&'a Map<String, Value>>
+- grammar · function · L1408-L1410 — fn grammar(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L1412-L1414 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- tests · module · L1418-L1418 — mod tests;

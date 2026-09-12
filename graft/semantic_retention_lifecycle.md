@@ -1,0 +1,44 @@
+---
+covers: []
+---
+# semantic_retention_lifecycle.rs
+
+- automatic · module · L18-L18 — mod automatic;
+- SEMANTIC_RETENTION_LIFECYCLE_REPORT_SCHEMA · constant · L25-L26 — pub const SEMANTIC_RETENTION_LIFECYCLE_REPORT_SCHEMA: &str =
+- MAX_SEMANTIC_RETENTION_LIFECYCLE_REPORT_BYTES · constant · L27-L27 — pub const MAX_SEMANTIC_RETENTION_LIFECYCLE_REPORT_BYTES: usize = 65_536;
+- MAX_RECEIPTS · constant · L28-L28 — const MAX_RECEIPTS: usize = 96;
+- MAX_DIAGNOSTICS · constant · L29-L29 — const MAX_DIAGNOSTICS: usize = 64;
+- NONCLAIMS · constant · L30-L36 — const NONCLAIMS: &[&str] = &[
+- Result · type · L38-L38 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- SuccessfulRetentionReceipt · enum · L42-L46 — pub enum SuccessfulRetentionReceipt<'a>
+- receipt · function · L49-L55 — fn receipt(self) -> &'a dyn RetentionReceipt
+- projection · function · L57-L90 — fn projection(self) -> Result<Value>
+- ordering_key · function · L92-L119 — fn ordering_key(self) -> ReceiptOrderingKey
+- ReceiptOrderingKey · type · L122-L122 — type ReceiptOrderingKey = (u8, String, String, String, String, u64);
+- RetentionLifecycleCoordinator · struct · L127-L132 — pub struct RetentionLifecycleCoordinator
+- open · function · L137-L172 — pub fn open(
+- expected_cursor_digest · function · L174-L176 — pub fn expected_cursor_digest(&self) -> Option<&str>
+- held_root_identity · function · L180-L182 — pub(crate) fn held_root_identity(&self) -> (u64, u64)
+- authority · function · L184-L186 — pub const fn authority(&self) -> RetentionAuthority
+- checkpoint · function · L190-L294 — pub fn checkpoint(
+- sort_receipt_projections · function · L297-L311 — fn sort_receipt_projections(receipts: &mut [Value])
+- collect_projection_results · function · L313-L346 — fn collect_projection_results(
+- RetentionLifecycleOutcome · struct · L350-L356 — pub struct RetentionLifecycleOutcome
+- new · function · L359-L432 — fn new(
+- registry_advanced · function · L433-L435 — pub const fn registry_advanced(&self) -> bool
+- sequence · function · L436-L438 — pub const fn sequence(&self) -> Option<u64>
+- cursor_digest · function · L439-L441 — pub fn cursor_digest(&self) -> Option<&str>
+- diagnostics · function · L442-L444 — pub fn diagnostics(&self) -> &[Diagnostic]
+- to_json · function · L445-L447 — pub fn to_json(&self) -> &str
+- authority · function · L448-L450 — pub const fn authority(&self) -> RetentionAuthority
+- failure_status · function · L453-L472 — fn failure_status(diagnostics: &[Diagnostic]) -> &'static str
+- render · function · L474-L484 — fn render(mut value: Value) -> Result<String>
+- validate_digest · function · L486-L498 — fn validate_digest(value: &str) -> Result<()>
+- invalid · function · L500-L502 — fn invalid(message: impl Into<String>) -> Vec<Diagnostic>
+- capacity · function · L503-L505 — fn capacity(message: impl Into<String>) -> Vec<Diagnostic>
+- binding · function · L506-L508 — fn binding(message: impl Into<String>) -> Vec<Diagnostic>
+- poisoned · function · L509-L511 — fn poisoned(message: impl Into<String>) -> Vec<Diagnostic>
+- encoding · function · L512-L514 — fn encoding(message: impl Into<String>) -> Vec<Diagnostic>
+- tests · module · L517-L585 — mod tests
+- equal_subject_digest_rows_have_a_total_canonical_order · function · L521-L543 — fn equal_subject_digest_rows_have_a_total_canonical_order()
+- mixed_projection_failure_inventory_is_independent_of_input_order · function · L546-L584 — fn mixed_projection_failure_inventory_is_independent_of_input_order()

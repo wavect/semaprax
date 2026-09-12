@@ -1,0 +1,28 @@
+# project/semantic_query_facts.rs
+
+- MAX_FACT_WALK · constant · L19-L19 — pub(super) const MAX_FACT_WALK: usize = 65_536;
+- Result · type · L21-L21 — type Result<T> = std::result::Result<T, Vec<crate::diagnostic::Diagnostic>>;
+- ownership_at_expression_payload · function · L23-L80 — pub(super) fn ownership_at_expression_payload(
+- FunctionParts · struct · L82-L87 — struct FunctionParts<'a>
+- function_parts · function · L89-L96 — fn function_parts(function: &ResolvedFunction) -> FunctionParts<'_>
+- template_parts · function · L98-L105 — fn template_parts(function: &ResolvedFunctionTemplate) -> FunctionParts<'_>
+- ownership_fact · function · L107-L152 — fn ownership_fact(stable_id: &str, expression_id: &str, parts: FunctionParts<'_>) -> Result<Value>
+- declaration_consumers_payload · function · L154-L250 — pub(super) fn declaration_consumers_payload(
+- Consumer · struct · L252-L257 — struct Consumer
+- value · function · L260-L275 — fn value(self, revision: &ProjectRevision) -> Value
+- index_consumer · function · L279-L311 — fn index_consumer<'a>(
+- declaration_exists · function · L313-L318 — fn declaration_exists(revision: &ProjectRevision, target: &str) -> bool
+- programs · function · L320-L326 — pub(super) fn programs(revision: &ProjectRevision) -> [&crate::hir::ResolvedProgram; 3]
+- walk_expression · function · L328-L343 — pub(super) fn walk_expression<'a>(
+- push_children · function · L345-L429 — fn push_children<'a>(expression: &'a ResolvedExpr, pending: &mut Vec<&'a ResolvedExpr>)
+- collect_expression_uses · function · L431-L548 — fn collect_expression_uses(
+- collect_pattern_uses · function · L550-L590 — fn collect_pattern_uses(
+- collect_record_pattern_fields · function · L592-L612 — fn collect_record_pattern_fields(
+- collect_place_uses · function · L614-L624 — fn collect_place_uses(place: &Place, target: &str, uses: &mut BTreeSet<&'static str>)
+- collect_fields · function · L626-L635 — fn collect_fields<'a>(
+- matches_id · function · L637-L646 — fn matches_id(
+- type_references · function · L648-L659 — fn type_references(ty: &ResolvedType, target: &str) -> bool
+- place_value · function · L661-L669 — fn place_value(place: &Place) -> Value
+- loan_value · function · L671-L695 — fn loan_value(loan: &crate::loan_plan::Loan) -> Value
+- ownership_name · function · L697-L704 — fn ownership_name(mode: OwnershipMode) -> &'static str
+- expression_kind · function · L706-L740 — fn expression_kind(kind: &ResolvedExprKind) -> &'static str

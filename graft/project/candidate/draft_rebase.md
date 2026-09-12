@@ -1,0 +1,22 @@
+# project/candidate/draft_rebase.rs
+
+- PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA · constant · L13-L14 — pub const PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA: &str =
+- PROJECT_CANDIDATE_DRAFT_LINEAGE_REBASE_SCHEMA · constant · L15-L16 — pub const PROJECT_CANDIDATE_DRAFT_LINEAGE_REBASE_SCHEMA: &str =
+- MAX_PROJECT_CANDIDATE_DRAFT_REBASE_BYTES · constant · L17-L17 — pub const MAX_PROJECT_CANDIDATE_DRAFT_REBASE_BYTES: usize = 1024 * 1024;
+- MAX_VISITS · constant · L18-L18 — const MAX_VISITS: usize = 1_048_576;
+- MAX_DEPTH · constant · L19-L19 — const MAX_DEPTH: usize = 256;
+- Result · type · L20-L20 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- ProjectCandidateDraftRebase · struct · L24-L27 — pub struct ProjectCandidateDraftRebase
+- draft · function · L29-L31 — pub fn draft(&self) -> &ProjectCandidateDraft
+- into_draft · function · L32-L34 — pub fn into_draft(self) -> ProjectCandidateDraft
+- to_json · function · L35-L37 — pub fn to_json(&self) -> &str
+- rebase · function · L44-L93 — pub fn rebase(
+- rebind_pending · function · L97-L248 — pub(super) fn rebind_pending(
+- validate_pending_contexts · function · L252-L263 — pub(super) fn validate_pending_contexts(&self) -> Result<()>
+- row · function · L266-L277 — fn row(
+- nominal_owners · function · L279-L325 — fn nominal_owners(
+- collect_type · function · L326-L350 — fn collect_type(ty: &ResolvedType, ids: &mut BTreeSet<String>, visits: &mut usize) -> Result<()>
+- charge · function · L351-L359 — fn charge(visits: &mut usize, count: usize) -> Result<()>
+- invalid · function · L360-L362 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L363-L365 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- conflict · function · L366-L368 — fn conflict(message: &'static str) -> Vec<Diagnostic>

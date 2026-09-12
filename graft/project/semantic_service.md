@@ -1,0 +1,103 @@
+# project/semantic_service.rs
+
+- history · module · L28-L28 — mod history;
+- SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA · constant · L43-L44 — pub const SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA: &str =
+- SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA · constant · L45-L46 — pub const SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA: &str =
+- MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES · constant · L47-L47 — pub const MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES: usize = 65_536;
+- WORK_DOMAIN · constant · L49-L49 — const WORK_DOMAIN: &[u8] = b"semaprax.semantic-workspace-service.work.digest.v1\0";
+- REFRESH_DOMAIN · constant · L50-L50 — const REFRESH_DOMAIN: &[u8] = b"semaprax.semantic-workspace-service.refresh.digest.v1\0";
+- Result · type · L51-L51 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- SemanticWorkspaceGeneration · struct · L55-L63 — pub struct SemanticWorkspaceGeneration
+- revision · function · L66-L68 — pub fn revision(&self) -> &Arc<ProjectRevision>
+- canonical · function · L70-L72 — pub fn canonical(&self) -> &SemanticWorkspaceRevision
+- program_root · function · L74-L76 — pub fn program_root(&self) -> &ProgramRoot
+- agent_definitions · function · L78-L80 — pub fn agent_definitions(&self) -> &AgentDefinitions
+- source_agents · function · L82-L84 — pub fn source_agents(&self) -> &[super::ResolvedSourceAgent]
+- compiled_agent_definitions · function · L86-L90 — pub fn compiled_agent_definitions(
+- agent_interaction_contract_facts · function · L92-L96 — pub fn agent_interaction_contract_facts(
+- exact_context · function · L99-L105 — pub fn exact_context(&self) -> Option<&Arc<ExactProgramContext>>
+- program_root_v2 · function · L107-L110 — pub fn program_root_v2(&self) -> Option<&ProgramRootV2>
+- exact_context_v2 · function · L112-L114 — pub fn exact_context_v2(&self) -> Option<&Arc<ExactProgramContextV2>>
+- program_root_v3 · function · L116-L120 — pub fn program_root_v3(&self) -> Option<&ProgramRootV3>
+- image · function · L122-L124 — pub fn image(&self) -> &Arc<ProjectSemanticImage>
+- workspace_revision · function · L126-L128 — pub fn workspace_revision(&self) -> &str
+- indexes · function · L130-L132 — pub(crate) fn indexes(&self) -> &SemanticServiceIndexes
+- SemanticWorkspaceSnapshot · struct · L137-L140 — pub struct SemanticWorkspaceSnapshot
+- generation · function · L143-L145 — pub fn generation(&self) -> &Arc<SemanticWorkspaceGeneration>
+- workspace_revision · function · L147-L149 — pub fn workspace_revision(&self) -> &str
+- program_root · function · L151-L153 — pub fn program_root(&self) -> &ProgramRoot
+- agent_definitions · function · L155-L157 — pub fn agent_definitions(&self) -> &AgentDefinitions
+- source_agents · function · L159-L161 — pub fn source_agents(&self) -> &[super::ResolvedSourceAgent]
+- compiled_agent_definitions · function · L163-L167 — pub fn compiled_agent_definitions(
+- agent_interaction_contract_facts · function · L169-L173 — pub fn agent_interaction_contract_facts(
+- exact_context · function · L175-L177 — pub fn exact_context(&self) -> Option<&ExactProgramContext>
+- program_root_v2 · function · L179-L181 — pub fn program_root_v2(&self) -> Option<&ProgramRootV2>
+- exact_context_v2 · function · L183-L185 — pub fn exact_context_v2(&self) -> Option<&ExactProgramContextV2>
+- program_root_v3 · function · L187-L191 — pub fn program_root_v3(&self) -> Option<&ProgramRootV3>
+- symbol · function · L193-L197 — pub fn symbol(&self, id: &str) -> Result<String>
+- context · function · L199-L211 — pub fn context(
+- impact · function · L213-L225 — pub fn impact(
+- query · function · L227-L229 — pub fn query(&self, query: &SemanticQuery) -> Result<SemanticQueryResult>
+- query_agent_definitions · function · L231-L236 — pub fn query_agent_definitions(
+- query_exact · function · L238-L249 — pub fn query_exact(
+- query_exact_v2 · function · L251-L262 — pub fn query_exact_v2(
+- index_query · function · L265-L270 — pub fn index_query(
+- SemanticWorkspaceServiceWork · struct · L274-L277 — pub struct SemanticWorkspaceServiceWork
+- to_json · function · L280-L282 — pub fn to_json(&self) -> &str
+- receipt_digest · function · L284-L286 — pub fn receipt_digest(&self) -> &str
+- SemanticWorkspaceServiceRefresh · struct · L290-L296 — pub struct SemanticWorkspaceServiceRefresh
+- to_json · function · L299-L301 — pub fn to_json(&self) -> &str
+- receipt_digest · function · L303-L305 — pub fn receipt_digest(&self) -> &str
+- old_workspace_revision · function · L307-L309 — pub fn old_workspace_revision(&self) -> &str
+- workspace_revision · function · L311-L313 — pub fn workspace_revision(&self) -> &str
+- generation_reused · function · L315-L317 — pub fn generation_reused(&self) -> bool
+- SemanticWorkspaceService · struct · L322-L327 — pub struct SemanticWorkspaceService
+- open · function · L332-L334 — pub fn open(revision: Arc<ProjectRevision>) -> Result<Self>
+- open_exact · function · L338-L343 — pub fn open_exact(context: Arc<ExactProgramContext>) -> Result<Self>
+- open_exact_v2 · function · L345-L350 — pub fn open_exact_v2(context: Arc<ExactProgramContextV2>) -> Result<Self>
+- open_with_semantic_cache · function · L354-L359 — pub fn open_with_semantic_cache(
+- open_with_semantic_cache_exact · function · L361-L371 — pub fn open_with_semantic_cache_exact(
+- open_with_semantic_cache_exact_v2 · function · L373-L383 — pub fn open_with_semantic_cache_exact_v2(
+- open_generation_with_semantic_cache · function · L385-L435 — fn open_generation_with_semantic_cache(
+- open_work · function · L437-L439 — pub fn open_work(&self) -> &SemanticWorkspaceServiceWork
+- active_generation · function · L441-L443 — pub fn active_generation(&self) -> &Arc<SemanticWorkspaceGeneration>
+- semantic_cache · function · L445-L447 — pub fn semantic_cache(&self) -> &ProjectFrontendCache
+- history_snapshot · function · L451-L468 — pub fn history_snapshot(
+- history_query · function · L472-L479 — pub fn history_query(
+- history_snapshot_exact · function · L483-L497 — pub fn history_snapshot_exact(
+- history_query_exact · function · L501-L511 — pub fn history_query_exact(
+- history_snapshot_exact_v2 · function · L515-L530 — pub fn history_snapshot_exact_v2(
+- history_query_exact_v2 · function · L532-L544 — pub fn history_query_exact_v2(
+- query · function · L547-L554 — pub fn query(&self, query_bytes: &[u8]) -> Result<SemanticQueryResult>
+- query_agent_definitions · function · L558-L567 — pub fn query_agent_definitions(
+- query_exact · function · L571-L585 — pub fn query_exact(
+- replay_query_exact · function · L589-L607 — pub fn replay_query_exact(
+- query_exact_v2 · function · L609-L623 — pub fn query_exact_v2(
+- replay_query_exact_v2 · function · L625-L643 — pub fn replay_query_exact_v2(
+- index_query · function · L647-L654 — pub fn index_query(&self, query_bytes: &[u8]) -> Result<SemanticServiceIndexResult>
+- snapshot · function · L658-L667 — pub fn snapshot(&self, expected_workspace_revision: &str) -> Result<SemanticWorkspaceSnapshot>
+- snapshot_exact · function · L669-L682 — pub fn snapshot_exact(
+- snapshot_exact_v2 · function · L684-L697 — pub fn snapshot_exact_v2(
+- refresh_owned_sources · function · L701-L791 — pub fn refresh_owned_sources(
+- refresh_owned_sources_exact_v2 · function · L799-L902 — pub fn refresh_owned_sources_exact_v2(
+- validate_transaction · function · L906-L933 — pub fn validate_transaction(
+- validate_transaction_v2 · function · L938-L965 — pub fn validate_transaction_v2(
+- replay_transaction_v2 · function · L969-L979 — pub fn replay_transaction_v2(
+- validate_transaction_v2_exact · function · L983-L1014 — pub fn validate_transaction_v2_exact(
+- replay_transaction_v2_exact · function · L1018-L1036 — pub fn replay_transaction_v2_exact(
+- validate_transaction_v2_exact_v2 · function · L1040-L1071 — pub fn validate_transaction_v2_exact_v2(
+- replay_transaction_v2_exact_v2 · function · L1075-L1093 — pub fn replay_transaction_v2_exact_v2(
+- validate_transaction_exact · function · L1095-L1126 — pub fn validate_transaction_exact(
+- replay_transaction_exact · function · L1130-L1147 — pub fn replay_transaction_exact(
+- validate_transaction_exact_v2 · function · L1149-L1180 — pub fn validate_transaction_exact_v2(
+- replay_transaction_exact_v2 · function · L1183-L1200 — pub fn replay_transaction_exact_v2(
+- derive_generation · function · L1203-L1243 — fn derive_generation(
+- invalidation · function · L1245-L1302 — fn invalidation(
+- same_revision · function · L1304-L1321 — fn same_revision(left: &ProjectRevision, right: &ProjectRevision) -> bool
+- parse_value · function · L1323-L1326 — fn parse_value(source: &str) -> Result<Value>
+- render · function · L1328-L1339 — fn render(mut value: Value) -> Result<String>
+- hash · function · L1341-L1350 — fn hash(domain: &[u8], bytes: &[u8]) -> String
+- validate_digest · function · L1352-L1364 — fn validate_digest(value: &str) -> Result<()>
+- invalid · function · L1366-L1368 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L1370-L1372 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L1374-L1376 — fn stale(message: &'static str) -> Vec<Diagnostic>

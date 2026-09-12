@@ -1,0 +1,104 @@
+---
+covers: []
+---
+# review.rs
+
+- format · function · L16-L20 — macro_rules! format
+- REVIEW_SCHEMA · constant · L22-L22 — const REVIEW_SCHEMA: &str = "semaprax.semantic-review.v1";
+- IDENTITY_REBASE_SCHEMA · constant · L23-L23 — const IDENTITY_REBASE_SCHEMA: &str = "semaprax.identity-rebase.v1";
+- MAX_SOURCE_BYTES · constant · L24-L24 — pub(crate) const MAX_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+- MAX_PATCH_BYTES · constant · L25-L25 — pub(crate) const MAX_PATCH_BYTES: usize = 4 * 1024 * 1024;
+- MAX_OPERATIONS · constant · L26-L26 — pub(crate) const MAX_OPERATIONS: usize = 4096;
+- MAX_DECLARATIONS · constant · L27-L27 — pub(crate) const MAX_DECLARATIONS: usize = 4096;
+- MAX_CALLABLES · constant · L28-L28 — pub(crate) const MAX_CALLABLES: usize = 1024;
+- MAX_CALL_SITES · constant · L29-L29 — pub(crate) const MAX_CALL_SITES: usize = 65_536;
+- MAX_IMPACT_DEPTH · constant · L30-L30 — pub(crate) const MAX_IMPACT_DEPTH: usize = 1024;
+- MAX_IMPACT_NODES · constant · L31-L31 — pub(crate) const MAX_IMPACT_NODES: usize = 1024;
+- MAX_IMPACT_BYTES · constant · L32-L32 — pub(crate) const MAX_IMPACT_BYTES: usize = 16 * 1024 * 1024;
+- MAX_OUTPUT_BYTES · constant · L33-L33 — pub(crate) const MAX_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
+- SOURCE_DIGEST_DOMAIN · constant · L34-L34 — const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-review.source-digest.v1\0";
+- PATCH_DIGEST_DOMAIN · constant · L35-L35 — const PATCH_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-review.patch-digest.v1\0";
+- IMPACT_DIGEST_DOMAIN · constant · L36-L36 — const IMPACT_DIGEST_DOMAIN: &[u8] = b"semaprax.semantic-review.impact-digest.v1\0";
+- IDENTITY_REBASE_DIGEST_DOMAIN · constant · L37-L38 — const IDENTITY_REBASE_DIGEST_DOMAIN: &[u8] =
+- EVIDENCE_ID · constant · L39-L39 — const EVIDENCE_ID: &str = "evidence:0";
+- source_digest · function · L41-L43 — pub(crate) fn source_digest(source: &[u8]) -> String
+- ReviewUsage · struct · L46-L56 — pub(crate) struct ReviewUsage
+- source_bytes · function · L59-L61 — pub(crate) fn source_bytes(self) -> usize
+- patch_bytes · function · L63-L65 — pub(crate) fn patch_bytes(self) -> usize
+- operations · function · L67-L69 — pub(crate) fn operations(self) -> usize
+- declarations · function · L71-L73 — pub(crate) fn declarations(self) -> usize
+- callables · function · L75-L77 — pub(crate) fn callables(self) -> usize
+- call_sites · function · L79-L81 — pub(crate) fn call_sites(self) -> usize
+- impact_depth · function · L83-L85 — pub(crate) fn impact_depth(self) -> usize
+- impact_nodes · function · L87-L89 — pub(crate) fn impact_nodes(self) -> usize
+- impact_bytes · function · L91-L93 — pub(crate) fn impact_bytes(self) -> usize
+- AstUsage · struct · L96-L100 — struct AstUsage
+- Evidence · struct · L102-L110 — struct Evidence
+- SectionKind · enum · L113-L121 — enum SectionKind
+- ALL · constant · L124-L132 — const ALL: [Self; 7] = [
+- text · function · L134-L144 — const fn text(self) -> &'static str
+- Disposition · enum · L148-L154 — enum Disposition
+- text · function · L157-L165 — const fn text(self) -> &'static str
+- Finding · struct · L168-L173 — struct Finding
+- ReviewAssessment · struct · L175-L178 — pub(crate) struct ReviewAssessment
+- key · function · L181-L183 — pub(crate) fn key(&self) -> &'static str
+- value · function · L185-L187 — pub(crate) fn value(&self) -> &'static str
+- ReviewSupportingEvidence · struct · L190-L194 — pub(crate) struct ReviewSupportingEvidence
+- kind · function · L197-L199 — pub(crate) fn kind(&self) -> &'static str
+- schema · function · L201-L203 — pub(crate) fn schema(&self) -> &'static str
+- digest · function · L205-L207 — pub(crate) fn digest(&self) -> &str
+- ReviewBuild · struct · L210-L224 — pub(crate) struct ReviewBuild
+- WorkspaceEvidenceLimits · struct · L227-L231 — pub(crate) struct WorkspaceEvidenceLimits
+- preflight · function · L234-L236 — pub(crate) fn preflight(&self) -> &patch::PatchPreflight
+- before_resolved · function · L238-L240 — pub(crate) fn before_resolved(&self) -> &hir::ResolvedProgram
+- candidate_resolved · function · L242-L244 — pub(crate) fn candidate_resolved(&self) -> &hir::ResolvedProgram
+- report · function · L246-L248 — pub(crate) fn report(&self) -> &str
+- into_report · function · L250-L252 — pub(crate) fn into_report(self) -> String
+- source_graph_schema · function · L254-L256 — pub(crate) fn source_graph_schema(&self) -> &'static str
+- base_revision · function · L258-L260 — pub(crate) fn base_revision(&self) -> &str
+- candidate_revision · function · L262-L264 — pub(crate) fn candidate_revision(&self) -> &str
+- source_digest · function · L266-L268 — pub(crate) fn source_digest(&self) -> &str
+- patch_schema · function · L270-L272 — pub(crate) fn patch_schema(&self) -> &'static str
+- patch_digest · function · L274-L276 — pub(crate) fn patch_digest(&self) -> &str
+- assessments · function · L278-L280 — pub(crate) fn assessments(&self) -> &[ReviewAssessment]
+- supporting_evidence · function · L282-L284 — pub(crate) fn supporting_evidence(&self) -> &ReviewSupportingEvidence
+- usage · function · L286-L288 — pub(crate) fn usage(&self) -> ReviewUsage
+- preview · function · L291-L293 — pub fn preview(source_path: &Path, patch_path: &Path) -> Result<String, Vec<Diagnostic>>
+- preview_with_hook · function · L295-L323 — fn preview_with_hook(
+- build_owned · function · L325-L331 — pub(crate) fn build_owned(
+- build_target_owned · function · L333-L345 — pub(crate) fn build_target_owned(
+- build_owned_with_candidate_limit · function · L347-L378 — fn build_owned_with_candidate_limit(
+- build_from_preflight · function · L388-L393 — pub(crate) fn build_from_preflight(
+- build_from_preflight_for_workspace · function · L395-L401 — pub(crate) fn build_from_preflight_for_workspace(
+- build_from_preflight_with_candidate_limit · function · L403-L409 — fn build_from_preflight_with_candidate_limit(
+- build_from_preflight_with_limits · function · L411-L543 — fn build_from_preflight_with_limits(
+- read_patch_bounded · function · L545-L586 — pub(crate) fn read_patch_bounded(path: &Path) -> Result<String, Vec<Diagnostic>>
+- precheck_program · function · L588-L712 — fn precheck_program(program: &Program) -> Result<AstUsage, Vec<Diagnostic>>
+- workspace_ast_counts · function · L714-L719 — pub(crate) fn workspace_ast_counts(
+- precheck_counts_for_test · function · L722-L727 — pub(crate) fn precheck_counts_for_test(
+- evidence_json · function · L729-L776 — fn evidence_json(
+- identity_rebase_evidence · function · L778-L820 — fn identity_rebase_evidence(preflight: &PatchPreflight) -> Result<Evidence, Vec<Diagnostic>>
+- prove_review_classifications · function · L822-L842 — fn prove_review_classifications(preflight: &PatchPreflight) -> Result<(), Vec<Diagnostic>>
+- prove_rename_graph_delta · function · L844-L931 — fn prove_rename_graph_delta(preflight: &PatchPreflight) -> Result<(), Vec<Diagnostic>>
+- security_facts · function · L933-L955 — fn security_facts(program: &Program) -> String
+- sections_json · function · L957-L974 — fn sections_json(operations: &[PreflightOperation]) -> (String, Vec<ReviewAssessment>)
+- section_json · function · L976-L1012 — fn section_json(
+- assessment · function · L1014-L1028 — fn assessment(findings: &[Finding]) -> &'static str
+- finding · function · L1030-L1066 — fn finding(section: SectionKind, operation: &PreflightOperation) -> Finding
+- operation_index · function · L1068-L1077 — fn operation_index(operation: &PreflightOperation) -> usize
+- operation_subject · function · L1079-L1103 — fn operation_subject(operation: &PreflightOperation) -> (&'static str, String)
+- render_with_budget · function · L1105-L1132 — fn render_with_budget(
+- ReviewRender · struct · L1134-L1142 — struct ReviewRender<'a>
+- render_report · function · L1144-L1167 — fn render_report(input: &ReviewRender<'_>, used_output_bytes: usize) -> String
+- domain_digest · function · L1169-L1178 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- limit_error · function · L1180-L1182 — fn limit_error(message: impl Into<String>) -> Diagnostic
+- invariant_error · function · L1184-L1186 — fn invariant_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L1189-L1331 — mod tests
+- NEXT_FIXTURE · constant · L1194-L1194 — static NEXT_FIXTURE: AtomicUsize = AtomicUsize::new(0);
+- fixture · function · L1196-L1211 — fn fixture(
+- non_utf8_patch_uses_the_shared_read_diagnostic · function · L1214-L1227 — fn non_utf8_patch_uses_the_shared_read_diagnostic()
+- final_source_drift_is_rejected · function · L1230-L1244 — fn final_source_drift_is_rejected()
+- oversized_patch_is_rejected_without_reading_past_bound · function · L1247-L1254 — fn oversized_patch_is_rejected_without_reading_past_bound()
+- oversized_source_is_rejected_by_the_initial_bounded_snapshot · function · L1257-L1263 — fn oversized_source_is_rejected_by_the_initial_bounded_snapshot()
+- final_source_growth_is_rejected_by_the_same_hard_bound · function · L1266-L1280 — fn final_source_growth_is_rejected_by_the_same_hard_bound()
+- late_workspace_v3_child_caps_many_caller_identity_serialization · function · L1283-L1330 — fn late_workspace_v3_child_caps_many_caller_identity_serialization()

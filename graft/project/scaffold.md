@@ -1,0 +1,65 @@
+# project/scaffold.rs
+
+- PROJECT_SCAFFOLD_SCHEMA · constant · L19-L19 — pub const PROJECT_SCAFFOLD_SCHEMA: &str = "semaprax.project-scaffold.v2";
+- PROJECT_SCAFFOLD_SCHEMA_V3 · constant · L23-L23 — pub const PROJECT_SCAFFOLD_SCHEMA_V3: &str = "semaprax.project-scaffold.v3";
+- PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR · constant · L24-L24 — pub const PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR: &str = "calculator";
+- PROJECT_SCAFFOLD_TEMPLATE_LIBRARY · constant · L25-L25 — pub const PROJECT_SCAFFOLD_TEMPLATE_LIBRARY: &str = "library";
+- PROJECT_SCAFFOLD_TEMPLATES · constant · L26-L29 — pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 2] = [
+- PROJECT_SCAFFOLD_FILE_COUNT · constant · L30-L30 — pub const PROJECT_SCAFFOLD_FILE_COUNT: usize = 5;
+- PROJECT_SCAFFOLD_TABLES_FILE_COUNT · constant · L31-L31 — pub const PROJECT_SCAFFOLD_TABLES_FILE_COUNT: usize = 6;
+- PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT · constant · L32-L32 — pub const PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT: usize = 6;
+- MAX_PROJECT_SCAFFOLD_NAME_BYTES · constant · L33-L33 — pub const MAX_PROJECT_SCAFFOLD_NAME_BYTES: usize = 64;
+- MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES · constant · L34-L34 — pub const MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES: usize = 65_536;
+- PROJECT_SCAFFOLD_INVENTORY · constant · L36-L42 — pub const PROJECT_SCAFFOLD_INVENTORY: [&str; PROJECT_SCAFFOLD_FILE_COUNT] = [
+- PROJECT_SCAFFOLD_TABLES_INVENTORY · constant · L43-L50 — pub const PROJECT_SCAFFOLD_TABLES_INVENTORY: [&str; PROJECT_SCAFFOLD_TABLES_FILE_COUNT] = [
+- PROJECT_SCAFFOLD_LIBRARY_INVENTORY · constant · L53-L60 — pub const PROJECT_SCAFFOLD_LIBRARY_INVENTORY: [&str; PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT] = [
+- project_scaffold_inventory · function · L64-L70 — pub fn project_scaffold_inventory(template: &str) -> &'static [&'static str]
+- project_scaffold_inventory_with_layout · function · L74-L85 — pub fn project_scaffold_inventory_with_layout(
+- DIGEST_DOMAIN · constant · L87-L87 — const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v2\0";
+- DIGEST_DOMAIN_V3 · constant · L88-L88 — const DIGEST_DOMAIN_V3: &[u8] = b"semaprax.project-scaffold.digest.v3\0";
+- ScaffoldLayout · enum · L97-L100 — pub enum ScaffoldLayout
+- schema · function · L103-L108 — const fn schema(self) -> &'static str
+- digest_domain · function · L110-L115 — const fn digest_domain(self) -> &'static [u8]
+- from_schema · function · L117-L123 — fn from_schema(schema: &str) -> Option<Self>
+- README · constant · L126-L126 — const README: &str = "# {{name}}\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build . --target web -o web\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
+- AGENTS · constant · L127-L127 — const AGENTS: &str = "# Agent guide for {{name}}\n\nThis is a SEMAPRAX project. `semaprax.toml` lists its modules; the compiler\nis the authority on what the language admits. Read `semaprax help language`\nbefore writing source.\n\n## Commands\n\n- `semaprax check .` parses, resolves, type-checks, and verifies every module.\n- `semaprax test .` runs `{{module}}.tests`; `semaprax run .` runs the entry and prints its `i64`.\n- `semaprax fmt <file>` rewrites one file in canonical form.\n- `semaprax build . --target web -o dist/web` emits a browser package.\n- `semaprax help <command>` prints one command's exact grammar.\n\n## Rules that differ from other languages\n\n- Every file starts with `module dotted.name;`, and every declaration carries\n  `@id(\"...\")`. The id is the stable identity: rename freely, never change an id.\n- A function body is statements followed by exactly one tail expression. There\n  is no `return`, `for`, `else if`, tuple, or unit value.\n- `if` always has `else`; a `while` body ends with the bool that decides\n  whether to loop again.\n- Contracts are `requires` and `ensures` lines; effects are `permit` at module\n  level plus `uses` on every function that performs or calls into one.\n- Check the whole project, not one file: modules import each other, so a\n  single file reports `SPX-G172` or `SPX-T105`.\n- A new module must be listed in `sources` in `semaprax.toml`, and a test\n  module in `tests`.\n- Tests live in the `tests` module: `fn main() -> i64` returns 0 on success, and\n  every `fn test_<name>() -> i64` with an `@id` runs as a named case that\n  `semaprax test .` reports on failure.\n- Diagnostics carry stable `SPX-` codes and, where the compiler knows the fix,\n  a `help:` line. `semaprax check . --json` prints one diagnostic per line.\n";
+- PROJECT_BOUNDARY_GUIDE · constant · L128-L128 — const PROJECT_BOUNDARY_GUIDE: &str = "\n## Project v1 function boundaries\n\nFunction parameters and results are Copy scalars. Records, classes, variants,\n`Option`, and `Result` may stay inside scalar-signature functions but cannot\ncross their boundaries; `SPX-G174` points at a declaration that must change.\n";
+- MANIFEST · constant · L129-L129 — const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.add\"]\ntests = [\"{{module}}.tests\"]\n";
+- MANIFEST_TABLES · constant · L130-L130 — const MANIFEST_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{name}}.add\"]\n";
+- APP · constant · L131-L131 — const APP: &str = "module {{module}}.app;\n\n@id(\"{{name}}.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
+- APP_TABLES · constant · L132-L132 — const APP_TABLES: &str = "module {{module}}.app;\nuse function @id(\"{{name}}.add\") from {{module}}.core as add;\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
+- CORE · constant · L133-L133 — const CORE: &str = "module {{module}}.core;\n\n@id(\"{{name}}.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n";
+- TESTS · constant · L134-L134 — const TESTS: &str = "module {{module}}.tests;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    if 19 + 23 == 42 { 0 } else { 1 }\n}\n";
+- LIBRARY_README · constant · L135-L135 — const LIBRARY_README: &str = "# {{name}}\n\nA library package created by SEMAPRAX. `src/lib.spx` holds the public functions with their contracts, `src/examples.spx` is the entry that shows how to call them, and `src/tests.spx` is the conformance suite; both return `0` on success.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
+- LIBRARY_MANIFEST · constant · L136-L136 — const LIBRARY_MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.examples\"\nsources = [\"src/examples.spx\", \"src/lib.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.twice\"]\ntests = [\"{{module}}.tests\"]\n";
+- LIBRARY_MANIFEST_TABLES · constant · L137-L137 — const LIBRARY_MANIFEST_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"{{module}}.examples\"\nsources = [\"src/examples.spx\", \"src/lib.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{name}}.twice\"]\n";
+- LIBRARY_EXAMPLES · constant · L138-L138 — const LIBRARY_EXAMPLES: &str = "module {{module}}.examples;\nuse function @id(\"{{name}}.twice\") from {{module}}.lib as twice;\n\n@id(\"{{name}}.examples.main\")\nfn main() -> i64\n{\n    if twice(21) == 42 { 0 } else { 1 }\n}\n";
+- LIBRARY_LIB · constant · L139-L139 — const LIBRARY_LIB: &str = "module {{module}}.lib;\n\n@id(\"{{name}}.twice\")\nfn twice(value: i64) -> i64\n    requires value >= -4611686018427387904 && value <= 4611686018427387903\n    ensures result == value * 2\n{\n    value * 2\n}\n";
+- LIBRARY_TESTS · constant · L140-L140 — const LIBRARY_TESTS: &str = "module {{module}}.tests;\nuse function @id(\"{{name}}.twice\") from {{module}}.lib as twice;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    let mut failed = 0;\n    failed = failed + if twice(0) == 0 { 0 } else { 1 };\n    failed = failed + if twice(-3) == -6 { 0 } else { 2 };\n    failed\n}\n";
+- NONCLAIMS · constant · L141-L146 — const NONCLAIMS: [&str; 4] = [
+- ProjectScaffoldFileV1 · struct · L149-L153 — pub struct ProjectScaffoldFileV1
+- path · function · L157-L159 — pub const fn path(&self) -> &'static str
+- bytes · function · L162-L164 — pub fn bytes(&self) -> &[u8]
+- utf8 · function · L167-L170 — pub fn utf8(&self) -> &str
+- sha256 · function · L173-L175 — pub fn sha256(&self) -> &str
+- ProjectScaffoldV1 · struct · L179-L185 — pub struct ProjectScaffoldV1
+- schema · function · L189-L191 — pub const fn schema(&self) -> &'static str
+- template · function · L194-L196 — pub const fn template(&self) -> &'static str
+- project_schema · function · L199-L201 — pub const fn project_schema(&self) -> &'static str
+- project_name · function · L204-L206 — pub fn project_name(&self) -> &str
+- files · function · L209-L211 — pub fn files(&self) -> &[ProjectScaffoldFileV1]
+- digest · function · L214-L216 — pub fn digest(&self) -> &str
+- canonical_bytes · function · L219-L221 — pub fn canonical_bytes(&self) -> Vec<u8>
+- derive_project_scaffold_v1 · function · L226-L231 — pub fn derive_project_scaffold_v1(
+- derive_project_scaffold_v1_with_layout · function · L238-L301 — pub fn derive_project_scaffold_v1_with_layout(
+- replay_project_scaffold_v1 · function · L304-L373 — pub fn replay_project_scaffold_v1(
+- validate_template · function · L375-L382 — fn validate_template(template: &str) -> Result<&'static str, Vec<Diagnostic>>
+- validate_project_name · function · L384-L402 — fn validate_project_name(project_name: &str) -> Result<(), Vec<Diagnostic>>
+- validate_rendered_project · function · L404-L432 — fn validate_rendered_project(
+- render_descriptor · function · L434-L442 — fn render_descriptor(artifact: &ProjectScaffoldV1) -> String
+- render_descriptor_without_digest · function · L444-L451 — fn render_descriptor_without_digest(artifact: &ProjectScaffoldV1) -> String
+- render_descriptor_tail · function · L453-L488 — fn render_descriptor_tail(artifact: &ProjectScaffoldV1) -> String
+- artifact_digest · function · L490-L496 — fn artifact_digest(layout: ScaffoldLayout, canonical_without_digest: &str) -> String
+- ordinary_sha256 · function · L498-L503 — fn ordinary_sha256(bytes: &[u8]) -> String
+- scaffold_error · function · L505-L507 — fn scaffold_error(message: impl Into<String>) -> Vec<Diagnostic>
+- capacity · function · L509-L511 — fn capacity(message: impl Into<String>) -> Vec<Diagnostic>

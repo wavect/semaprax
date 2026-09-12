@@ -1,0 +1,66 @@
+---
+covers: []
+---
+# region_report.rs
+
+- replay · module · L68-L68 — mod replay;
+- bformat · function · L70-L74 — macro_rules! bformat
+- SCHEMA · constant · L76-L76 — pub const SCHEMA: &str = "semaprax.region-report.v1";
+- DEFAULT_MAX_BYTES · constant · L78-L78 — const DEFAULT_MAX_BYTES: usize = 64 * 1024;
+- SOURCE_DIGEST_DOMAIN · constant · L80-L80 — const SOURCE_DIGEST_DOMAIN: &[u8] = b"semaprax.region-report.source.v1\0";
+- PAYLOAD_DIGEST_DOMAIN · constant · L81-L81 — const PAYLOAD_DIGEST_DOMAIN: &[u8] = b"semaprax.region-report.payload.v1\0";
+- REASON_AUTOMATIC_IDENTITY · constant · L83-L83 — const REASON_AUTOMATIC_IDENTITY: &str = "automatic_identity";
+- REASON_GENERIC_FUNCTION · constant · L84-L84 — const REASON_GENERIC_FUNCTION: &str = "generic_function";
+- REASON_DECLARED_EFFECTS · constant · L85-L85 — const REASON_DECLARED_EFFECTS: &str = "declared_effects";
+- REASON_UNSUPPORTED_PARAMETER_MODE · constant · L86-L86 — const REASON_UNSUPPORTED_PARAMETER_MODE: &str = "unsupported_parameter_mode";
+- REASON_UNSUPPORTED_PARAMETER_TYPE · constant · L87-L87 — const REASON_UNSUPPORTED_PARAMETER_TYPE: &str = "unsupported_parameter_type";
+- REASON_UNSUPPORTED_RESULT_TYPE · constant · L88-L88 — const REASON_UNSUPPORTED_RESULT_TYPE: &str = "unsupported_result_type";
+- EXCLUSION_REASONS · constant · L89-L96 — const EXCLUSION_REASONS: [&str; 6] = [
+- ESCAPE_ENFORCING_CHECK · constant · L101-L101 — pub const ESCAPE_ENFORCING_CHECK: &str = "SPX-O104";
+- ESCAPE_ENFORCING_CHECK_SUMMARY · constant · L102-L103 — pub const ESCAPE_ENFORCING_CHECK_SUMMARY: &str =
+- KIND_PARAM · constant · L105-L105 — const KIND_PARAM: &str = "param";
+- KIND_LOCAL · constant · L106-L106 — const KIND_LOCAL: &str = "local";
+- KIND_PATTERN · constant · L107-L107 — const KIND_PATTERN: &str = "match_pattern";
+- NONCLAIMS_JSON · constant · L109-L115 — const NONCLAIMS_JSON: &str = "\"no_region_inference_implementation\",\
+- RegionReportOptions · struct · L118-L120 — pub struct RegionReportOptions
+- new · function · L123-L132 — pub fn new(max_bytes: usize) -> Result<Self, Diagnostic>
+- default · function · L136-L140 — fn default() -> Self
+- option_error · function · L143-L145 — fn option_error(message: String) -> Diagnostic
+- consistency_error · function · L147-L149 — fn consistency_error(message: String) -> Diagnostic
+- BindingFact · struct · L152-L164 — struct BindingFact
+- range_end · function · L167-L169 — fn range_end(&self) -> usize
+- overlaps · function · L171-L173 — fn overlaps(&self, other: &Self) -> bool
+- ConsumptionSite · struct · L177-L180 — struct ConsumptionSite
+- FunctionReport · struct · L183-L189 — struct FunctionReport
+- ExcludedFunction · struct · L192-L196 — struct ExcludedFunction
+- VerifiedFunctionReport · struct · L201-L206 — pub struct VerifiedFunctionReport
+- VerifiedRegionReport · struct · L209-L211 — pub struct VerifiedRegionReport
+- generate · function · L218-L283 — pub fn generate(
+- admission · function · L286-L308 — fn admission(function: &Function) -> Option<&'static str>
+- ownership_text · function · L310-L317 — fn ownership_text(mode: OwnershipMode) -> &'static str
+- FunctionFacts · struct · L320-L325 — struct FunctionFacts
+- push_binding · function · L328-L332 — fn push_binding(&mut self, fact: BindingFact)
+- push_pattern_binding · function · L334-L346 — fn push_pattern_binding(&mut self, binding: &ResolvedBinding)
+- function_report · function · L349-L406 — fn function_report(
+- collect_expr · function · L413-L584 — fn collect_expr(
+- collect_pattern_bindings · function · L586-L602 — fn collect_pattern_bindings(pattern: &ResolvedMatchPattern, facts: &mut FunctionFacts)
+- collect_record_pattern_fields · function · L604-L619 — fn collect_record_pattern_fields(
+- derive_regions · function · L622-L643 — fn derive_regions(facts: &[BindingFact]) -> Vec<Vec<String>>
+- derive_release_groups · function · L647-L666 — fn derive_release_groups(facts: &[BindingFact]) -> Vec<(usize, Vec<String>)>
+- derive_moved_bindings · function · L670-L678 — fn derive_moved_bindings(sites: &[ConsumptionSite]) -> Vec<&str>
+- render_binding · function · L680-L694 — fn render_binding(binding: &BindingFact) -> String
+- render · function · L697-L831 — fn render(
+- source_digest · function · L833-L835 — fn source_digest(source: &str) -> String
+- domain_digest · function · L837-L846 — fn domain_digest(domain: &[u8], bytes: &[u8]) -> String
+- verify_envelope · function · L855-L857 — pub fn verify_envelope(envelope: &str) -> Result<VerifiedRegionReport, Diagnostic>
+- verify_envelope_against_source · function · L861-L866 — pub fn verify_envelope_against_source(
+- tests · module · L869-L1000 — mod tests
+- options_reject_out_of_bounds_values · function · L873-L878 — fn options_reject_out_of_bounds_values()
+- constants_are_canonical · function · L881-L916 — fn constants_are_canonical()
+- domain_digest_is_domain_separated · function · L919-L924 — fn domain_digest_is_domain_separated()
+- fact · function · L926-L938 — fn fact(id: &str, def: usize, end: usize) -> BindingFact
+- overlapping_live_ranges_never_share_a_region · function · L941-L949 — fn overlapping_live_ranges_never_share_a_region()
+- disjoint_live_ranges_share_the_lowest_region · function · L952-L958 — fn disjoint_live_ranges_share_the_lowest_region()
+- release_groups_collect_maximal_same_end_sets · function · L961-L968 — fn release_groups_collect_maximal_same_end_sets()
+- unused_bindings_do_not_form_spurious_groups · function · L971-L975 — fn unused_bindings_do_not_form_spurious_groups()
+- admission_mirrors_the_scalar_profile · function · L978-L999 — fn admission_mirrors_the_scalar_profile()

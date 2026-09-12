@@ -1,0 +1,63 @@
+# semantic_workspace_change/tests.rs
+
+- SERIAL · constant · L12-L12 — static SERIAL: AtomicU64 = AtomicU64::new(0);
+- DIGEST · constant · L13-L13 — const DIGEST: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
+- Fixture · struct · L15-L18 — pub(super) struct Fixture
+- new · function · L21-L23 — pub(super) fn new(label: &str) -> Self
+- new_with_island · function · L25-L27 — fn new_with_island(label: &str) -> Self
+- build · function · L29-L54 — fn build(label: &str, island: bool) -> Self
+- authenticated_sources · function · L56-L61 — fn authenticated_sources(&self) -> Vec<workspace::WorkspaceSemanticSource>
+- proposal · function · L63-L88 — pub(super) fn proposal(&self) -> SemanticWorkspaceChangeSet
+- disconnected_proposal · function · L90-L115 — fn disconnected_proposal(&self) -> SemanticWorkspaceChangeSet
+- assert_exclusive_reacquire · function · L117-L125 — pub(super) fn assert_exclusive_reacquire(&self)
+- drop · function · L129-L131 — fn drop(&mut self)
+- canonical · function · L134-L137 — fn canonical(source: &str, path: &str) -> String
+- write_source · function · L139-L143 — fn write_source(root: &Path, path: &str, source: &str)
+- write_apply_inputs · function · L145-L158 — fn write_apply_inputs(fixture: &Fixture) -> (PathBuf, PathBuf, String, String)
+- spawn_semantic_change_apply_process · function · L160-L199 — fn spawn_semantic_change_apply_process(
+- semantic_change_apply_process_child · function · L202-L242 — fn semantic_change_apply_process_child()
+- semantic_change_apply_killed_process_boundaries_preserve_exact_old_or_new · function · L245-L309 — fn semantic_change_apply_killed_process_boundaries_preserve_exact_old_or_new()
+- directory_names · function · L311-L318 — fn directory_names(path: &Path) -> Vec<String>
+- replace_same_bytes · function · L320-L324 — fn replace_same_bytes(path: &Path) -> std::io::Result<()>
+- provider_base · function · L326-L342 — fn provider_base() -> &'static str
+- entry_base · function · L344-L355 — fn entry_base() -> &'static str
+- consumer_source · function · L357-L370 — fn consumer_source() -> &'static str
+- provider_candidate · function · L372-L388 — fn provider_candidate() -> &'static str
+- entry_candidate · function · L390-L401 — fn entry_candidate() -> &'static str
+- island_base · function · L403-L414 — fn island_base() -> &'static str
+- island_candidate · function · L416-L427 — fn island_candidate() -> &'static str
+- root_tuple · function · L429-L449 — fn root_tuple(
+- real_change_has_exact_typed_delta_impact_and_deterministic_replay · function · L452-L725 — fn real_change_has_exact_typed_delta_impact_and_deterministic_replay()
+- proposal_limits_and_canonical_replay_are_fail_closed · function · L728-L775 — fn proposal_limits_and_canonical_replay_are_fail_closed()
+- stale_unmanaged_noop_and_entry_removal_are_rejected · function · L778-L843 — fn stale_unmanaged_noop_and_entry_removal_are_rejected()
+- replacement_source_and_total_limits_are_exact · function · L846-L924 — fn replacement_source_and_total_limits_are_exact()
+- disconnected_changed_module_is_retained_by_full_delta_and_impact · function · L927-L974 — fn disconnected_changed_module_is_retained_by_full_delta_and_impact()
+- graph_digests_bind_public_base_candidate_facts_and_entry · function · L977-L1023 — fn graph_digests_bind_public_base_candidate_facts_and_entry()
+- canonical_proposal_mutation_matrix_and_entry_boundary · function · L1026-L1107 — fn canonical_proposal_mutation_matrix_and_entry_boundary()
+- capability_root · function · L1109-L1119 — fn capability_root(state: &'static str, index: usize) -> SemanticWorkspaceChangeRoot
+- construct_delta_with_limit · function · L1121-L1158 — fn construct_delta_with_limit(
+- cumulative_builder_and_closure_limits_reject_during_construction · function · L1161-L1246 — fn cumulative_builder_and_closure_limits_reject_during_construction()
+- depth_build · function · L1248-L1264 — fn depth_build(fixture: &Fixture, edge_count: usize) -> Result<usize, Vec<Diagnostic>>
+- impact_depth_limit_is_exact_during_reverse_construction · function · L1267-L1279 — fn impact_depth_limit_is_exact_during_reverse_construction()
+- public_generate_hook_discards_final_workspace_drift_and_unlocks · function · L1282-L1310 — fn public_generate_hook_discards_final_workspace_drift_and_unlocks()
+- consumed_retained_graph_invariant_fails_and_unlocks_immediately · function · L1313-L1325 — fn consumed_retained_graph_invariant_fails_and_unlocks_immediately()
+- proposal_owned_hook_never_reopens_same_or_replaced_path_bytes · function · L1328-L1372 — fn proposal_owned_hook_never_reopens_same_or_replaced_path_bytes()
+- verifier_owned_inputs_never_reopen_and_final_drift_discards_receipt · function · L1375-L1434 — fn verifier_owned_inputs_never_reopen_and_final_drift_discards_receipt()
+- final_authenticated_boundary_discards_prepared_change_and_unlocks · function · L1437-L1460 — fn final_authenticated_boundary_discards_prepared_change_and_unlocks()
+- private_root_and_edge_append_limits_are_exact · function · L1463-L1508 — fn private_root_and_edge_append_limits_are_exact()
+- apply_exclusive_precedence_and_prepublication_failures_publish_nothing · function · L1511-L1591 — fn apply_exclusive_precedence_and_prepublication_failures_publish_nothing()
+- apply_creates_then_reuses_exact_candidate_and_uses_first_free_staging_slot · function · L1594-L1710 — fn apply_creates_then_reuses_exact_candidate_and_uses_first_free_staging_slot()
+- apply_selects_first_free_staging_slot_and_preserves_occupied_objects · function · L1713-L1746 — fn apply_selects_first_free_staging_slot_and_preserves_occupied_objects()
+- apply_all_staging_slots_occupied_is_bounded_and_preserves_foreign_objects · function · L1749-L1782 — fn apply_all_staging_slots_occupied_is_bounded_and_preserves_foreign_objects()
+- apply_uses_owned_replayed_inputs_once_and_never_writes_raw_sources · function · L1785-L1820 — fn apply_uses_owned_replayed_inputs_once_and_never_writes_raw_sources()
+- apply_each_commit_boundary_maps_pre_and_post_pivot_failures_exactly · function · L1823-L1859 — fn apply_each_commit_boundary_maps_pre_and_post_pivot_failures_exactly()
+- apply_final_rechecks_reject_object_mutation_before_and_after_pivot · function · L1862-L1911 — fn apply_final_rechecks_reject_object_mutation_before_and_after_pivot()
+- apply_all_candidate_generation_hook_rejections_are_pre_pivot_i211 · function · L1914-L1950 — fn apply_all_candidate_generation_hook_rejections_are_pre_pivot_i211()
+- apply_candidate_destination_races_never_clobber_foreign_objects · function · L1953-L1989 — fn apply_candidate_destination_races_never_clobber_foreign_objects()
+- apply_post_pivot_manifest_source_and_inventory_drift_are_i212 · function · L1992-L2039 — fn apply_post_pivot_manifest_source_and_inventory_drift_are_i212()
+- apply_permission_drift_for_lock_active_and_candidate_is_rejected_before_pivot · function · L2043-L2077 — fn apply_permission_drift_for_lock_active_and_candidate_is_rejected_before_pivot()
+- apply_candidate_hardlink_alias_is_rejected_without_clobbering_source · function · L2080-L2115 — fn apply_candidate_hardlink_alias_is_rejected_without_clobbering_source()
+- apply_candidate_symlink_alias_is_rejected_without_following_its_target · function · L2119-L2152 — fn apply_candidate_symlink_alias_is_rejected_without_following_its_target()
+- apply_candidate_windows_junction_is_rejected_without_following_its_target · function · L2156-L2212 — fn apply_candidate_windows_junction_is_rejected_without_following_its_target()
+- apply_windows_readonly_permission_drift_is_rejected_before_pivot · function · L2216-L2255 — fn apply_windows_readonly_permission_drift_is_rejected_before_pivot()
+- cooperative_reader_observes_no_partial_semantic_change_generation · function · L2258-L2299 — fn cooperative_reader_observes_no_partial_semantic_change_generation()

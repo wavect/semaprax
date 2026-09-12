@@ -1,0 +1,59 @@
+# semantic_workspace_operations/tests.rs
+
+- public_declaration_subject_grammar_excludes_private_members · function · L4-L23 — fn public_declaration_subject_grammar_excludes_private_members()
+- MANAGED_SERIAL · constant · L32-L32 — static MANAGED_SERIAL: AtomicU64 = AtomicU64::new(0);
+- ManagedOperationsFixture · struct · L34-L38 — struct ManagedOperationsFixture
+- new · function · L41-L82 — fn new(label: &str) -> Self
+- inventory · function · L84-L111 — fn inventory(&self) -> Vec<(String, bool, Vec<u8>)>
+- walk · function · L85-L107 — fn walk(root: &Path, path: &Path, facts: &mut Vec<(String, bool, Vec<u8>)>)
+- assert_exclusive_reacquire · function · L113-L121 — fn assert_exclusive_reacquire(&self)
+- managed_source_path · function · L123-L132 — fn managed_source_path(&self, relative: &str) -> PathBuf
+- drop · function · L136-L138 — fn drop(&mut self)
+- canonical · function · L141-L144 — fn canonical(path: &str, source: &str) -> String
+- fixture · function · L146-L178 — fn fixture() -> (semantic_workspace::SemanticWorkspacePreflight, String)
+- evidence_render_fixture · function · L180-L193 — fn evidence_render_fixture() -> (
+- broad_fixture · function · L195-L253 — fn broad_fixture() -> (semantic_workspace::SemanticWorkspacePreflight, String)
+- code · function · L255-L257 — fn code(result: Result<PreparedSemanticWorkspaceOperations, Vec<Diagnostic>>) -> String
+- compiles_two_prestate_operations_into_exact_change_v1 · function · L260-L288 — fn compiles_two_prestate_operations_into_exact_change_v1()
+- derivation_wrapper_binds_exact_retained_proposals_and_fixed_point_usage · function · L291-L322 — fn derivation_wrapper_binds_exact_retained_proposals_and_fixed_point_usage()
+- authenticated_derivation_kat_binds_refs_budget_nonclaims_and_build_counts · function · L325-L390 — fn authenticated_derivation_kat_binds_refs_budget_nonclaims_and_build_counts()
+- derivation_refs_usage_and_candidate_facts_fail_closed_on_mutation · function · L393-L414 — fn derivation_refs_usage_and_candidate_facts_fail_closed_on_mutation()
+- expect_replay · function · L394-L401 — fn expect_replay(mutator: impl FnOnce(&mut PreparedSemanticWorkspaceOperations))
+- derivation_individual_and_aggregate_caps_are_exact_and_cannot_expand · function · L417-L450 — fn derivation_individual_and_aggregate_caps_are_exact_and_cannot_expand()
+- derivation_limit_test_seam_cannot_expand_production_authority · function · L454-L462 — fn derivation_limit_test_seam_cannot_expand_production_authority()
+- operations_input_ownership_lock_precedence_and_limits_are_fail_closed · function · L465-L533 — fn operations_input_ownership_lock_precedence_and_limits_are_fail_closed()
+- operations_proposal_is_owned_once_and_final_drift_returns_no_derivation · function · L536-L635 — fn operations_proposal_is_owned_once_and_final_drift_returns_no_derivation()
+- canonical_order_binding_and_path_cardinality_fail_closed · function · L638-L653 — fn canonical_order_binding_and_path_cardinality_fail_closed()
+- typed_occurrence_sidecar_covers_constructor_arguments_and_nested_patterns · function · L656-L706 — fn typed_occurrence_sidecar_covers_constructor_arguments_and_nested_patterns()
+- all_admitted_subjects_and_alias_occurrences_are_exact_without_textual_capture · function · L709-L817 — fn all_admitted_subjects_and_alias_occurrences_are_exact_without_textual_capture()
+- one_of_two_effectful_imports_changes_only_its_exact_call_family · function · L820-L902 — fn one_of_two_effectful_imports_changes_only_its_exact_call_family()
+- trailing_as_keyword_and_alias_do_not_capture_the_module_segment · function · L905-L960 — fn trailing_as_keyword_and_alias_do_not_capture_the_module_segment()
+- grammar_binding_conflict_and_limit_matrix_is_exact · function · L963-L1060 — fn grammar_binding_conflict_and_limit_matrix_is_exact()
+- affected_path_cardinality_accepts_sixteen_and_rejects_seventeen · function · L1063-L1112 — fn affected_path_cardinality_accepts_sixteen_and_rejects_seventeen()
+- automatic_compiler_and_unsupported_targets_are_not_addressable · function · L1115-L1155 — fn automatic_compiler_and_unsupported_targets_are_not_addressable()
+- candidate_namespace_checks_include_automatic_declarations · function · L1158-L1195 — fn candidate_namespace_checks_include_automatic_declarations()
+- dense_fixture · function · L1197-L1246 — fn dense_fixture() -> (semantic_workspace::SemanticWorkspacePreflight, String)
+- dense_sixty_four_operation_late_edits_are_one_pass_and_exactly_bounded · function · L1249-L1291 — fn dense_sixty_four_operation_late_edits_are_one_pass_and_exactly_bounded()
+- derived_changed_source_cap_helper_is_exact_and_rejects_one_over · function · L1294-L1333 — fn derived_changed_source_cap_helper_is_exact_and_rejects_one_over()
+- candidate_replay_rejects_unrelated_semantic_mutation · function · L1336-L1382 — fn candidate_replay_rejects_unrelated_semantic_mutation()
+- operations_builder_limit_is_exact_and_cannot_exceed_production · function · L1385-L1400 — fn operations_builder_limit_is_exact_and_cannot_exceed_production()
+- operations_builder_test_seam_cannot_expand_authority · function · L1404-L1407 — fn operations_builder_test_seam_cannot_expand_authority()
+- dense_late_edits_stream_once_and_fail_before_tiny_capacity · function · L1410-L1436 — fn dense_late_edits_stream_once_and_fail_before_tiny_capacity()
+- raw_sha256 · function · L1438-L1445 — fn raw_sha256(bytes: &[u8]) -> String
+- directory_names · function · L1447-L1454 — fn directory_names(path: &Path) -> Vec<String>
+- spawn_operations_apply_process · function · L1456-L1494 — fn spawn_operations_apply_process(
+- operations_evidence_and_verification_are_exact_one_build_kats · function · L1497-L1562 — fn operations_evidence_and_verification_are_exact_one_build_kats()
+- operations_evidence_and_receipt_individual_and_aggregate_caps_are_exact · function · L1565-L1657 — fn operations_evidence_and_receipt_individual_and_aggregate_caps_are_exact()
+- operations_evidence_cap_seam_cannot_expand_production_authority · function · L1661-L1669 — fn operations_evidence_cap_seam_cannot_expand_production_authority()
+- operations_receipt_cap_seam_cannot_expand_production_authority · function · L1673-L1691 — fn operations_receipt_cap_seam_cannot_expand_production_authority()
+- operations_evidence_parser_and_exact_replay_fail_closed · function · L1694-L1927 — fn operations_evidence_parser_and_exact_replay_fail_closed()
+- operations_verify_io_precedence_is_read_only_and_unlocks · function · L1930-L1957 — fn operations_verify_io_precedence_is_read_only_and_unlocks()
+- operations_evidence_io_owned_once_and_final_drift_are_exact · function · L1960-L2100 — fn operations_evidence_io_owned_once_and_final_drift_are_exact()
+- every_operations_public_route_owns_bounded_inputs_and_fails_closed · function · L2103-L2226 — fn every_operations_public_route_owns_bounded_inputs_and_fails_closed()
+- operations_apply_is_exact_stale_and_zero_write_before_replay · function · L2229-L2289 — fn operations_apply_is_exact_stale_and_zero_write_before_replay()
+- every_operations_apply_boundary_fails_closed_and_unlocks_exactly · function · L2292-L2408 — fn every_operations_apply_boundary_fails_closed_and_unlocks_exactly()
+- operations_candidate_residue_requires_regenerated_evidence_and_is_reused · function · L2411-L2509 — fn operations_candidate_residue_requires_regenerated_evidence_and_is_reused()
+- operations_destination_races_never_clobber_foreign_objects · function · L2512-L2552 — fn operations_destination_races_never_clobber_foreign_objects()
+- operations_cooperative_reader_observes_old_then_new_generation · function · L2555-L2602 — fn operations_cooperative_reader_observes_old_then_new_generation()
+- operations_apply_process_child · function · L2605-L2643 — fn operations_apply_process_child()
+- operations_apply_killed_process_boundaries_preserve_exact_old_or_new · function · L2646-L2729 — fn operations_apply_killed_process_boundaries_preserve_exact_old_or_new()

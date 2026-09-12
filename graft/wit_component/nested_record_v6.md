@@ -1,0 +1,37 @@
+# wit_component/nested_record_v6.rs
+
+- INTERFACE_EXPORT · constant · L16-L16 — const INTERFACE_EXPORT: &str = "semaprax:private/nested-records@0.4.0";
+- FUNCTION_EXPORT · constant · L17-L17 — const FUNCTION_EXPORT: &str = "transform";
+- TYPE_EXPORTS · constant · L18-L18 — const TYPE_EXPORTS: [&str; 3] = ["status", "inner", "outer"];
+- WIT_V6 · constant · L20-L20 — const WIT_V6: &str = "package semaprax:private@0.4.0;\n\ninterface nested-records {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  record inner { value: s64, flag: bool }\n  record outer { inner: inner, other: s64 }\n  transform: func(input: outer, delta: s64) -> result<outer, status>;\n}\n\nworld semaprax-private-v6 {\n  export nested-records;\n}\n";
+- PROFILE · constant · L22-L22 — const PROFILE: &[u8] = b"semaprax.private-nested-record-component.v6\0canonical-abi-memory32-utf8\0one-stable-id-export\0inner-i64-bool\0outer-inner-i64\0fieldwise-reconstruction\0status-first-tag-last\0no-layout-identity-inference\0";
+- PROFILE_DIGEST_DOMAIN · constant · L23-L23 — const PROFILE_DIGEST_DOMAIN: &[u8] = b"semaprax.private-nested-record-component-profile.v6\0";
+- COMPONENT_DIGEST_DOMAIN · constant · L24-L24 — const COMPONENT_DIGEST_DOMAIN: &[u8] = b"semaprax.private-nested-record-component-artifact.v6\0";
+- SOURCE_REVISION_KAT · constant · L28-L29 — const SOURCE_REVISION_KAT: &str =
+- GENERATED_CORE_KAT · constant · L30-L33 — const GENERATED_CORE_KAT: [u8; 32] = [
+- PrivateNestedRecordComponentArtifactV6 · struct · L36-L44 — pub struct PrivateNestedRecordComponentArtifactV6
+- bytes · function · L48-L50 — pub fn bytes(&self) -> &[u8]
+- digest · function · L53-L55 — pub const fn digest(&self) -> [u8; 32]
+- generated_core_digest · function · L58-L60 — pub const fn generated_core_digest(&self) -> [u8; 32]
+- profile_digest · function · L63-L65 — pub const fn profile_digest(&self) -> [u8; 32]
+- layout_digests · function · L68-L70 — pub const fn layout_digests(&self) -> [[u8; 32]; 2]
+- source_revision · function · L73-L75 — pub fn source_revision(&self) -> &str
+- wit · function · L78-L80 — pub const fn wit(&self) -> &'static str
+- ValidatedPrivateNestedRecordComponentV6 · struct · L84-L87 — pub struct ValidatedPrivateNestedRecordComponentV6<'a>
+- generated_core · function · L91-L93 — pub const fn generated_core(self) -> &'a [u8]
+- source_revision · function · L96-L98 — pub const fn source_revision(self) -> &'a str
+- interface_export_name · function · L101-L103 — pub const fn interface_export_name(self) -> &'static str
+- function_export_name · function · L106-L108 — pub const fn function_export_name(self) -> &'static str
+- type_export_names · function · L111-L113 — pub const fn type_export_names(self) -> [&'static str; 3]
+- emit_private_nested_record_component_v6 · function · L116-L147 — pub fn emit_private_nested_record_component_v6(
+- compose · function · L149-L188 — fn compose(core: &[u8]) -> Vec<u8>
+- component_types · function · L190-L223 — fn component_types() -> Vec<u8>
+- validate_private_nested_record_component_v6 · function · L225-L310 — pub fn validate_private_nested_record_component_v6<'a>(
+- validate_core · function · L312-L363 — fn validate_core<'a>(
+- ProfileEvidence · struct · L365-L369 — struct ProfileEvidence
+- profile_evidence · function · L371-L439 — fn profile_evidence(program: &Program) -> Result<ProfileEvidence, Diagnostic>
+- profile_digest · function · L441-L451 — fn profile_digest(evidence: &ProfileEvidence) -> [u8; 32]
+- artifact_digest · function · L453-L468 — fn artifact_digest(
+- first_error · function · L470-L475 — fn first_error(diagnostics: Vec<Diagnostic>) -> Diagnostic
+- profile_error · function · L477-L479 — fn profile_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L483-L483 — mod tests;

@@ -1,0 +1,51 @@
+# wasm/data_exports.rs
+
+- STATUS_GLOBAL_EXPORT · constant · L19-L19 — pub(super) const STATUS_GLOBAL_EXPORT: &str = "__spx_data_status_v1";
+- SCRATCH_BASE_EXPORT · constant · L20-L20 — pub(super) const SCRATCH_BASE_EXPORT: &str = "__spx_data_scratch_base_v1";
+- SCRATCH_CAPACITY_EXPORT · constant · L21-L21 — pub(super) const SCRATCH_CAPACITY_EXPORT: &str = "__spx_data_scratch_capacity_v1";
+- MEMORY_EXPORT · constant · L22-L22 — pub(super) const MEMORY_EXPORT: &str = "memory";
+- SCRATCH_BASE · constant · L23-L23 — pub(super) const SCRATCH_BASE: u32 = 0;
+- SCRATCH_CAPACITY · constant · L24-L24 — pub(super) const SCRATCH_CAPACITY: u32 = 65_536;
+- FIXED_MEMORY_PAGES · constant · L25-L25 — pub(super) const FIXED_MEMORY_PAGES: u8 = 2;
+- BOUNDARY_STATUS · constant · L26-L26 — pub(super) const BOUNDARY_STATUS: i32 = 11;
+- MAX_EXPORTS · constant · L28-L28 — const MAX_EXPORTS: usize = 32;
+- MAX_FUNCTIONS · constant · L29-L29 — const MAX_FUNCTIONS: usize = 256;
+- MAX_PARAMETERS · constant · L30-L30 — const MAX_PARAMETERS: usize = 8;
+- MAX_STABLE_ID_BYTES · constant · L31-L31 — const MAX_STABLE_ID_BYTES: usize = 128;
+- DataResultType · enum · L34-L38 — pub(super) enum DataResultType
+- raw_wasm_type · function · L41-L46 — pub(super) const fn raw_wasm_type(self) -> u8
+- DataExportPlan · struct · L50-L56 — pub(super) struct DataExportPlan
+- raw_params · function · L59-L61 — pub(super) fn raw_params(&self) -> Vec<u8>
+- emit_wrapper_body · function · L63-L76 — pub(super) fn emit_wrapper_body(
+- emit_wrapper_body_with_stdout_transcript · function · L78-L92 — pub(super) fn emit_wrapper_body_with_stdout_transcript(
+- emit_command_v2_wrapper_body · function · L94-L108 — pub(super) fn emit_command_v2_wrapper_body(
+- emit_wrapper_body_profile · function · L110-L240 — fn emit_wrapper_body_profile(
+- prepare · function · L243-L248 — pub(super) fn prepare(
+- prepare_with_stdout_transcript · function · L250-L255 — pub(super) fn prepare_with_stdout_transcript(
+- prepare_command_v2 · function · L257-L263 — pub(super) fn prepare_command_v2(
+- prepare_profile · function · L265-L412 — fn prepare_profile(
+- validate_function · function · L414-L586 — fn validate_function(
+- validate_stdout_external_argument · function · L588-L625 — fn validate_stdout_external_argument(
+- internal_parameter · function · L627-L633 — fn internal_parameter(ty: &ResolvedType, ownership: OwnershipMode) -> bool
+- internal_result · function · L635-L645 — fn internal_result(ty: &ResolvedType) -> bool
+- internal_expression_type · function · L647-L649 — fn internal_expression_type(ty: &ResolvedType) -> bool
+- public_result · function · L651-L658 — fn public_result(ty: &ResolvedType) -> Option<DataResultType>
+- require_explicit · function · L660-L675 — fn require_explicit(
+- reject_call_cycles · function · L677-L710 — fn reject_call_cycles(
+- visit · function · L680-L702 — fn visit(
+- validate_selection · function · L712-L739 — fn validate_selection(ids: &[String]) -> Result<(), Diagnostic>
+- raw_symbol · function · L741-L750 — pub(super) fn raw_symbol(stable_id: &str) -> String
+- HEX · constant · L742-L742 — const HEX: &[u8; 16] = b"0123456789abcdef";
+- emit_boundary_return · function · L752-L759 — fn emit_boundary_return(body: &mut impl ByteOutput, status_global: u32, result: DataResultType)
+- emit_zero · function · L761-L766 — fn emit_zero(body: &mut impl ByteOutput, result: DataResultType)
+- local_get · function · L768-L771 — fn local_get(body: &mut impl ByteOutput, index: u32)
+- local_set · function · L773-L776 — fn local_set(body: &mut impl ByteOutput, index: u32)
+- local_tee · function · L778-L781 — fn local_tee(body: &mut impl ByteOutput, index: u32)
+- global_get · function · L783-L786 — fn global_get(body: &mut impl ByteOutput, index: u32)
+- global_set · function · L788-L791 — fn global_set(body: &mut impl ByteOutput, index: u32)
+- call · function · L793-L796 — fn call(body: &mut impl ByteOutput, index: u32)
+- i32_const · function · L798-L801 — fn i32_const(body: &mut impl ByteOutput, value: i32)
+- i64_const · function · L803-L806 — fn i64_const(body: &mut impl ByteOutput, value: i64)
+- admission · function · L808-L810 — fn admission(message: impl Into<String>) -> Diagnostic
+- capacity · function · L812-L814 — fn capacity(message: impl Into<String>) -> Diagnostic
+- tests · module · L818-L818 — mod tests;

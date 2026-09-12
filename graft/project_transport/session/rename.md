@@ -1,0 +1,21 @@
+# project_transport/session/rename.rs
+
+- RenameRuntime · interface · L14-L29 — trait RenameRuntime
+- before_a0 · function · L15-L17 — fn before_a0(&mut self) -> Result<(), Vec<Diagnostic>>
+- after_a0 · function · L19-L21 — fn after_a0(&mut self) -> Result<(), Vec<Diagnostic>>
+- commit · function · L23-L26 — fn commit(
+- reload · function · L28-L28 — fn reload(&mut self, manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>>;
+- ProductionRuntime · struct · L31-L31 — struct ProductionRuntime;
+- commit · function · L34-L39 — fn commit(
+- reload · function · L41-L43 — fn reload(&mut self, manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>>
+- rename_preview · function · L47-L108 — pub(super) fn rename_preview(
+- rename_apply · function · L110-L116 — pub(super) fn rename_apply(
+- change_apply · function · L118-L124 — pub(super) fn change_apply(
+- rename_apply_with_runtime · function · L127-L134 — fn rename_apply_with_runtime(
+- change_apply_with_runtime · function · L137-L144 — fn change_apply_with_runtime(
+- apply_with_runtime · function · L146-L293 — fn apply_with_runtime(
+- render_rename_receipt · function · L296-L307 — fn render_rename_receipt(prepared: &PreparedProjectRename) -> String
+- render_change_receipt · function · L309-L323 — fn render_change_receipt(prepared: &PreparedProjectRename) -> String
+- snapshot_matches_candidate · function · L325-L336 — fn snapshot_matches_candidate(
+- snapshot_matches_base · function · L338-L344 — fn snapshot_matches_base(snapshot: &ProjectSnapshot, prepared: &PreparedProjectRename) -> bool
+- tests · module · L348-L348 — mod tests;

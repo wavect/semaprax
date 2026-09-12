@@ -1,0 +1,62 @@
+# economic_agent/tests.rs
+
+- limits · function · L4-L39 — fn limits() -> Limits
+- evm_policy · function · L40-L61 — fn evm_policy() -> Policy
+- evm_intent · function · L62-L82 — fn evm_intent() -> Intent
+- regtest_recipient · function · L84-L120 — fn regtest_recipient(program: [u8; 20]) -> String
+- rail_fixture · function · L122-L204 — fn rail_fixture(rail: EconomicRail) -> (Policy, Intent)
+- x402_fixture · function · L206-L262 — fn x402_fixture() -> (Policy, Intent, Invoice)
+- policy_and_intent_are_exact_canonical_documents · function · L265-L280 — fn policy_and_intent_are_exact_canonical_documents()
+- sealed_agent_fixture_binds_exact_canonical_payment_intent · function · L283-L294 — fn sealed_agent_fixture_binds_exact_canonical_payment_intent()
+- origin_resource_and_base58_identity_are_fail_closed · function · L297-L323 — fn origin_resource_and_base58_identity_are_fail_closed()
+- evm_unsigned_and_signed_replay_bind_every_field · function · L326-L363 — fn evm_unsigned_and_signed_replay_bind_every_field()
+- solana_fee_conversion_and_v0_shape_are_exact · function · L366-L407 — fn solana_fee_conversion_and_v0_shape_are_exact()
+- keccak_and_rail_transaction_id_vectors_are_pinned · function · L410-L432 — fn keccak_and_rail_transaction_id_vectors_are_pinned()
+- simulation_requires_exact_native_value_conservation · function · L435-L462 — fn simulation_requires_exact_native_value_conservation()
+- RollingKey · type · L464-L464 — type RollingKey = (String, String, String, String);
+- RollingRows · type · L465-L465 — type RollingRows = Vec<(String, u64, u64)>;
+- FixedEconomicProbe · struct · L467-L467 — struct FixedEconomicProbe(u64);
+- elapsed_ms · function · L469-L471 — fn elapsed_ms(&self) -> u64
+- FullHost · struct · L474-L490 — struct FullHost
+- new · function · L493-L511 — fn new(intent: Intent) -> Self
+- with_invoice · function · L513-L518 — fn with_invoice(intent: Intent, invoice: Invoice) -> Self
+- record_call · function · L520-L532 — fn record_call(&mut self, call: &'static str)
+- stop_after_effect_if_requested · function · L534-L544 — fn stop_after_effect_if_requested(&self, stage: &str)
+- simulation · function · L546-L583 — fn simulation(&mut self, plan: &str, sink: &mut EconomicDocumentSink)
+- broadcast · function · L585-L609 — fn broadcast(&mut self, signed: &[u8], sink: &mut EconomicDocumentSink)
+- reconciliation · function · L611-L630 — fn reconciliation(&mut self, transaction_id: &str, sink: &mut EconomicDocumentSink)
+- boundary_probe · function · L634-L636 — fn boundary_probe(&self) -> Box<dyn EconomicBoundaryProbe>
+- load · function · L640-L661 — fn load(
+- compare_and_swap · function · L663-L778 — fn compare_and_swap(
+- fetch_invoice · function · L782-L799 — fn fetch_invoice(
+- evm_snapshot · function · L803-L829 — fn evm_snapshot(
+- evm_simulate · function · L831-L839 — fn evm_simulate(
+- evm_broadcast · function · L841-L848 — fn evm_broadcast(
+- evm_reconcile · function · L850-L857 — fn evm_reconcile(
+- solana_snapshot · function · L861-L886 — fn solana_snapshot(
+- solana_simulate · function · L888-L896 — fn solana_simulate(
+- solana_broadcast · function · L898-L905 — fn solana_broadcast(
+- solana_reconcile · function · L907-L914 — fn solana_reconcile(
+- bitcoin_snapshot · function · L918-L949 — fn bitcoin_snapshot(
+- bitcoin_simulate · function · L951-L959 — fn bitcoin_simulate(
+- bitcoin_broadcast · function · L961-L968 — fn bitcoin_broadcast(
+- bitcoin_reconcile · function · L970-L977 — fn bitcoin_reconcile(
+- approve · function · L981-L1012 — fn approve(
+- sign · function · L1016-L1077 — fn sign(
+- full_evm_authority_route_is_ordered_and_self_replayed · function · L1081-L1126 — fn full_evm_authority_route_is_ordered_and_self_replayed()
+- solana_bitcoin_and_x402_routes_are_chain_distinct_and_self_replayed · function · L1129-L1189 — fn solana_bitcoin_and_x402_routes_are_chain_distinct_and_self_replayed()
+- uncertain_broadcast_is_never_retried_and_restart_reconciles_retained_capsule · function · L1192-L1235 — fn uncertain_broadcast_is_never_retried_and_restart_reconciles_retained_capsule()
+- rolling_window_uses_trusted_admission_time_and_expires_at_exact_24h · function · L1238-L1294 — fn rolling_window_uses_trusted_admission_time_and_expires_at_exact_24h()
+- rolling_window_distinct_keys_race_to_one_atomic_winner · function · L1297-L1349 — fn rolling_window_distinct_keys_race_to_one_atomic_winner()
+- malformed_post_effect_adapter_output_is_terminal_replayable_and_secret_free · function · L1352-L1368 — fn malformed_post_effect_adapter_output_is_terminal_replayable_and_secret_free()
+- pre_effect_cancellation_is_diagnostic_only_and_invokes_no_authority · function · L1371-L1387 — fn pre_effect_cancellation_is_diagnostic_only_and_invokes_no_authority()
+- cancellation_and_deadline_after_durable_markers_block_the_next_effect · function · L1390-L1414 — fn cancellation_and_deadline_after_durable_markers_block_the_next_effect()
+- chain_documents_reject_key_order_schema_reference_and_identity_mutations · function · L1417-L1530 — fn chain_documents_reject_key_order_schema_reference_and_identity_mutations()
+- configured_child_limits_are_exact_and_lower_than_global_caps · function · L1533-L1631 — fn configured_child_limits_are_exact_and_lower_than_global_caps()
+- thirteen_document_x402_raw_sha_and_domain_digest_ledger_is_pinned · function · L1634-L1710 — fn thirteen_document_x402_raw_sha_and_domain_digest_ledger_is_pinned()
+- journal_uncertainty_never_retries_in_process_and_reload_governs_persistence · function · L1713-L1784 — fn journal_uncertainty_never_retries_in_process_and_reload_governs_persistence()
+- economic_process_kill_markers_never_repeat_sign_or_broadcast · function · L1787-L1880 — fn economic_process_kill_markers_never_repeat_sign_or_broadcast()
+- ROLE · constant · L1788-L1788 — const ROLE: &str = "SEMAPRAX_ECONOMIC_KILL_ROLE";
+- DIRECTORY · constant · L1789-L1789 — const DIRECTORY: &str = "SEMAPRAX_ECONOMIC_DURABLE_DIR";
+- STAGE · constant · L1790-L1790 — const STAGE: &str = "SEMAPRAX_ECONOMIC_KILL_STAGE";
+- reconciliation_authority_is_durably_bounded_at_exact_sixty_four · function · L1883-L1914 — fn reconciliation_authority_is_durably_bounded_at_exact_sixty_four()

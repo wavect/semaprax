@@ -1,0 +1,29 @@
+# project/candidate/draft_navigation.rs
+
+- PROJECT_HOLE_SUMMARY_SCHEMA · constant · L7-L7 — pub const PROJECT_HOLE_SUMMARY_SCHEMA: &str = "semaprax.project-hole-summary.v1";
+- PROJECT_HOLE_PAGE_SCHEMA · constant · L8-L8 — pub const PROJECT_HOLE_PAGE_SCHEMA: &str = "semaprax.project-hole-page.v1";
+- MAX_PROJECT_HOLE_NAVIGATION_BYTES · constant · L9-L9 — pub const MAX_PROJECT_HOLE_NAVIGATION_BYTES: usize = 64 * 1024;
+- MAX_PROJECT_HOLE_NAVIGATION_ITEMS · constant · L10-L10 — pub const MAX_PROJECT_HOLE_NAVIGATION_ITEMS: usize = 16_384;
+- MAX_CONTEXT_BYTES · constant · L11-L11 — const MAX_CONTEXT_BYTES: usize = 1024 * 1024;
+- CONTEXT_DOMAIN · constant · L12-L12 — const CONTEXT_DOMAIN: &[u8] = b"semaprax.project-hole-context.v1\0";
+- REFERENCE_DOMAIN · constant · L13-L13 — const REFERENCE_DOMAIN: &[u8] = b"semaprax.project-hole-facet.v1\0";
+- Result · type · L14-L14 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- hole_summary · function · L20-L23 — pub fn hole_summary(&self, expected_draft: &str, hole_id: &str) -> Result<String>
+- hole_page · function · L29-L39 — pub fn hole_page(
+- page · function · L42-L85 — fn page(navigation: &Navigation, reference: &str, offset: usize, limit: usize) -> Result<String>
+- Facet · struct · L87-L91 — struct Facet
+- Navigation · struct · L92-L95 — struct Navigation
+- derive · function · L98-L214 — fn derive(draft: &ProjectCandidateDraft, expected: &str, hole_id: &str) -> Result<Self>
+- validate_call · function · L217-L243 — fn validate_call(call: &Value) -> Result<()>
+- ownership · function · L244-L252 — fn ownership(value: &Value) -> Result<()>
+- text · function · L253-L258 — fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str>
+- strings · function · L259-L267 — fn strings(value: &Value) -> Result<()>
+- take_array · function · L268-L280 — fn take_array(context: &mut Value, key: &str) -> Result<Vec<Value>>
+- render · function · L281-L284 — fn render(value: Value) -> Result<String>
+- grammar · function · L285-L287 — fn grammar(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L288-L290 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L291-L293 — fn stale(message: &'static str) -> Vec<Diagnostic>
+- tests · module · L296-L365 — mod tests
+- inventory · function · L299-L309 — fn inventory(items: Vec<Value>) -> Navigation
+- byte_bound_returns_complete_ordered_prefix_and_exact_continuation · function · L312-L333 — fn byte_bound_returns_complete_ordered_prefix_and_exact_continuation()
+- empty_end_pages_and_oversized_first_items_never_loop · function · L336-L364 — fn empty_end_pages_and_oversized_first_items_never_loop()

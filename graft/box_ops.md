@@ -1,0 +1,44 @@
+---
+covers: []
+---
+# box_ops.rs
+
+- wrappers · module · L6-L6 — mod wrappers;
+- NEW_NAME · constant · L9-L9 — pub(crate) const NEW_NAME: &str = "box_new";
+- GET_NAME · constant · L10-L10 — pub(crate) const GET_NAME: &str = "box_get";
+- INTO_INNER_NAME · constant · L11-L11 — pub(crate) const INTO_INNER_NAME: &str = "box_into_inner";
+- NEW_ID · constant · L12-L12 — pub(crate) const NEW_ID: &str = "core.box.new";
+- GET_ID · constant · L13-L13 — pub(crate) const GET_ID: &str = "core.box.get";
+- INTO_INNER_ID · constant · L14-L14 — pub(crate) const INTO_INNER_ID: &str = "core.box.into-inner";
+- STATUS_DOMAIN · constant · L15-L15 — pub(crate) const STATUS_DOMAIN: &str = "semaprax.box.v1";
+- ALLOCATION_FAILURE_CODE · constant · L16-L16 — pub(crate) const ALLOCATION_FAILURE_CODE: u32 = 1;
+- MAX_LIVE_ALLOCATIONS · constant · L17-L17 — pub(crate) const MAX_LIVE_ALLOCATIONS: usize = 4_096;
+- BoxOp · enum · L20-L24 — pub(crate) enum BoxOp
+- ALL · constant · L26-L26 — pub(crate) const ALL: [BoxOp; 3] = [BoxOp::New, BoxOp::Get, BoxOp::IntoInner];
+- name · function · L29-L35 — pub(crate) const fn name(self) -> &'static str
+- id · function · L36-L42 — pub(crate) const fn id(self) -> &'static str
+- param_ownership · function · L43-L49 — pub(crate) const fn param_ownership(self) -> OwnershipMode
+- param_ownership_for · function · L50-L56 — pub(crate) const fn param_ownership_for(self, element: &ResolvedType) -> OwnershipMode
+- resolved_param_type · function · L57-L62 — pub(crate) fn resolved_param_type(self, element: &ResolvedType) -> ResolvedType
+- ast_param_type · function · L63-L68 — pub(crate) fn ast_param_type(self, element: &Type) -> Type
+- resolved_return_type · function · L69-L74 — pub(crate) fn resolved_return_type(self, element: &ResolvedType) -> ResolvedType
+- ast_return_type · function · L75-L80 — pub(crate) fn ast_return_type(self, element: &Type) -> Type
+- by_name · function · L83-L85 — pub(crate) fn by_name(name: &str) -> Option<BoxOp>
+- by_id · function · L86-L88 — pub(crate) fn by_id(id: &str) -> Option<BoxOp>
+- ast_element_is_admitted · function · L89-L101 — pub(crate) fn ast_element_is_admitted(ty: &Type) -> bool
+- resolved_element_is_admitted · function · L102-L114 — pub(crate) fn resolved_element_is_admitted(ty: &ResolvedType) -> bool
+- ast_box_element_is_admitted · function · L117-L119 — pub(crate) fn ast_box_element_is_admitted(ty: &Type) -> bool
+- resolved_box_element_is_admitted · function · L120-L122 — pub(crate) fn resolved_box_element_is_admitted(ty: &ResolvedType) -> bool
+- ast_operation_element_is_admitted · function · L123-L125 — pub(crate) fn ast_operation_element_is_admitted(op: BoxOp, ty: &Type) -> bool
+- resolved_operation_element_is_admitted · function · L126-L128 — pub(crate) fn resolved_operation_element_is_admitted(op: BoxOp, ty: &ResolvedType) -> bool
+- ast_box · function · L129-L134 — pub(crate) fn ast_box(element: Type) -> Type
+- resolved_box · function · L135-L140 — pub(crate) fn resolved_box(element: ResolvedType) -> ResolvedType
+- ast_params · function · L141-L156 — pub(crate) fn ast_params(op: BoxOp, element: &Type) -> Vec<Param>
+- resolved_params · function · L157-L165 — pub(crate) fn resolved_params(op: BoxOp, element: &ResolvedType) -> Vec<ResolvedParam>
+- is_type · function · L166-L168 — pub(crate) fn is_type(ty: &ResolvedType) -> bool
+- program_uses_owned_payload · function · L172-L214 — pub(crate) fn program_uses_owned_payload(program: &crate::ast::Program) -> bool
+- has_box_bytes · function · L178-L181 — fn has_box_bytes(ty: &Type) -> bool
+- function_uses · function · L182-L198 — fn function_uses(function: &crate::ast::Function) -> bool
+- resolved_program_uses_owned_payload · function · L218-L257 — pub(crate) fn resolved_program_uses_owned_payload(program: &crate::hir::ResolvedProgram) -> bool
+- has_box_bytes · function · L219-L225 — fn has_box_bytes(ty: &ResolvedType) -> bool
+- owned_payload_tests · module · L260-L260 — mod owned_payload_tests;

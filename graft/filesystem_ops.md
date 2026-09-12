@@ -1,0 +1,45 @@
+---
+covers: []
+---
+# filesystem_ops.rs
+
+- READ_NAME · constant · L5-L5 — pub(crate) const READ_NAME: &str = "file_read";
+- WRITE_NEW_NAME · constant · L6-L6 — pub(crate) const WRITE_NEW_NAME: &str = "file_write_new";
+- READ_ID · constant · L7-L7 — pub(crate) const READ_ID: &str = "core.host.file-read";
+- WRITE_NEW_ID · constant · L8-L8 — pub(crate) const WRITE_NEW_ID: &str = "core.host.file-write-new";
+- READ_EFFECT · constant · L9-L9 — pub(crate) const READ_EFFECT: &str = "fs.read";
+- WRITE_EFFECT · constant · L10-L10 — pub(crate) const WRITE_EFFECT: &str = "fs.write";
+- FILESYSTEM_EFFECTS · constant · L11-L11 — pub(crate) const FILESYSTEM_EFFECTS: [&str; 2] = [READ_EFFECT, WRITE_EFFECT];
+- STATUS_DOMAIN · constant · L12-L12 — pub(crate) const STATUS_DOMAIN: &str = "semaprax.filesystem.v1";
+- STATUS_CODES · constant · L13-L13 — pub(crate) const STATUS_CODES: [u32; 7] = [1, 2, 3, 4, 5, 6, 7];
+- INVALID_PATH · constant · L14-L14 — pub(crate) const INVALID_PATH: u32 = 1;
+- NOT_FOUND · constant · L15-L15 — pub(crate) const NOT_FOUND: u32 = 2;
+- ALREADY_EXISTS · constant · L16-L16 — pub(crate) const ALREADY_EXISTS: u32 = 3;
+- CAPACITY_EXCEEDED · constant · L17-L17 — pub(crate) const CAPACITY_EXCEEDED: u32 = 4;
+- IO_FAILURE · constant · L18-L18 — pub(crate) const IO_FAILURE: u32 = 5;
+- AUTHORITY_DENIED · constant · L19-L19 — pub(crate) const AUTHORITY_DENIED: u32 = 6;
+- INVALID_FILE_TYPE · constant · L20-L20 — pub(crate) const INVALID_FILE_TYPE: u32 = 7;
+- MAX_PATH_BYTES · constant · L21-L21 — pub(crate) const MAX_PATH_BYTES: u64 = crate::filesystem_provider::MAX_PATH_BYTES as u64;
+- MAX_FILE_BYTES · constant · L22-L22 — pub(crate) const MAX_FILE_BYTES: u64 = crate::filesystem_provider::MAX_FILE_BYTES as u64;
+- MAX_TOTAL_BYTES · constant · L23-L23 — pub(crate) const MAX_TOTAL_BYTES: u64 = crate::filesystem_provider::MAX_TOTAL_BYTES as u64;
+- MAX_OPERATIONS · constant · L24-L24 — pub(crate) const MAX_OPERATIONS: u64 = crate::filesystem_provider::MAX_OPERATIONS as u64;
+- OPERATIONS · constant · L25-L33 — pub(crate) const OPERATIONS: [Op; 7] = [
+- is_v2 · function · L34-L39 — pub(crate) const fn is_v2(op: Op) -> bool
+- permits_root · function · L40-L42 — pub(crate) const fn permits_root(op: Op) -> bool
+- is_filesystem · function · L43-L45 — pub(crate) const fn is_filesystem(op: Op) -> bool
+- by_name · function · L46-L50 — pub(crate) fn by_name(value: &str) -> Option<Op>
+- by_id · function · L51-L55 — pub(crate) fn by_id(value: &str) -> Option<Op>
+- name · function · L56-L67 — pub(crate) const fn name(op: Op) -> &'static str
+- id · function · L68-L79 — pub(crate) const fn id(op: Op) -> &'static str
+- effect · function · L80-L86 — pub(crate) const fn effect(op: Op) -> &'static str
+- arity · function · L87-L94 — pub(crate) const fn arity(op: Op) -> usize
+- ast_return_type · function · L95-L105 — pub(crate) const fn ast_return_type(op: Op) -> Type
+- return_type · function · L106-L116 — pub(crate) const fn return_type(op: Op) -> ResolvedType
+- result_ownership · function · L117-L127 — pub(crate) const fn result_ownership(op: Op) -> OwnershipMode
+- accepts_ast · function · L128-L135 — pub(crate) fn accepts_ast(op: Op, index: usize, ty: &Type) -> bool
+- accepts_resolved · function · L136-L143 — pub(crate) fn accepts_resolved(op: Op, index: usize, ty: &ResolvedType) -> bool
+- ast_params · function · L144-L168 — pub(crate) fn ast_params(op: Op) -> Vec<Param>
+- encode_metadata · function · L170-L183 — pub(crate) fn encode_metadata(
+- validate_listing · function · L186-L213 — pub(crate) fn validate_listing(
+- tests · module · L216-L262 — mod tests
+- filesystem_v2_provider_wire_is_canonical · function · L219-L261 — fn filesystem_v2_provider_wire_is_canonical()

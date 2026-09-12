@@ -1,0 +1,28 @@
+# hir/type_reachability.rs
+
+- nested_generic_function · module · L12-L12 — mod nested_generic_function;
+- reachable_authored_types · function · L14-L21 — pub(crate) fn reachable_authored_types(
+- reachable_authored_types_with_roots · function · L23-L94 — pub(crate) fn reachable_authored_types_with_roots(
+- collect_function · function · L96-L109 — fn collect_function(function: &ResolvedFunction, declarations: &mut BTreeSet<DeclarationId>)
+- collect_expression · function · L111-L252 — fn collect_expression(expression: &ResolvedExpr, declarations: &mut BTreeSet<DeclarationId>)
+- collect_pattern · function · L254-L281 — fn collect_pattern(pattern: &ResolvedMatchPattern, declarations: &mut BTreeSet<DeclarationId>)
+- collect_record_pattern · function · L283-L304 — fn collect_record_pattern(
+- collect_type · function · L306-L317 — fn collect_type(ty: &ResolvedType, declarations: &mut BTreeSet<DeclarationId>)
+- MAX_NESTED_OWNED_RECORD_DEPTH · constant · L319-L319 — const MAX_NESTED_OWNED_RECORD_DEPTH: usize = 64;
+- MAX_NESTED_OWNED_BYTE_LEAVES · constant · L320-L320 — const MAX_NESTED_OWNED_BYTE_LEAVES: usize = 256;
+- MAX_NESTED_OWNED_RECORD_FIELDS · constant · L321-L321 — const MAX_NESTED_OWNED_RECORD_FIELDS: usize = 4_096;
+- NestedOwnedRecordFacts · struct · L323-L328 — struct NestedOwnedRecordFacts
+- NestedOwnedRecordAdmission · enum · L330-L336 — enum NestedOwnedRecordAdmission
+- nested_record_copy_scalar_is_admitted · function · L338-L350 — pub(super) fn nested_record_copy_scalar_is_admitted(ty: &ResolvedType) -> bool
+- is_admitted_concrete_owned_byte_variant · function · L363-L417 — pub(crate) fn is_admitted_concrete_owned_byte_variant(
+- classify_nested_owned_byte_record · function · L421-L557 — fn classify_nested_owned_byte_record(
+- Frame · enum · L425-L436 — enum Frame<'a>
+- is_admitted_nested_owned_byte_record · function · L559-L572 — pub(crate) fn is_admitted_nested_owned_byte_record(
+- is_flat_owned_byte_record · function · L574-L618 — pub(crate) fn is_flat_owned_byte_record(
+- is_flat_owned_byte_record_template · function · L620-L668 — pub(super) fn is_flat_owned_byte_record_template(
+- is_nested_owned_byte_record_template · function · L670-L677 — pub(super) fn is_nested_owned_byte_record_template(
+- record_args_ok · function · L679-L694 — pub(super) fn record_args_ok(
+- is_nested_nonflat_owned_byte_record · function · L696-L702 — pub(super) fn is_nested_nonflat_owned_byte_record(
+- tests · module · L705-L802 — mod tests
+- flat_generic_owned_record_classifier_rejects_classes · function · L709-L727 — fn flat_generic_owned_record_classifier_rejects_classes()
+- nested_generic_owned_record_classifier_rederives_instances_and_depth_bound · function · L730-L801 — fn nested_generic_owned_record_classifier_rederives_instances_and_depth_bound()

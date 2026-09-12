@@ -1,0 +1,42 @@
+# project/candidate/interface_delta.rs
+
+- Result · type · L14-L14 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- PROJECT_CANDIDATE_INTERFACE_DELTA_SCHEMA · constant · L15-L16 — pub const PROJECT_CANDIDATE_INTERFACE_DELTA_SCHEMA: &str =
+- PROJECT_CANDIDATE_INTERFACE_DELTA_VERIFICATION_SCHEMA · constant · L17-L18 — pub const PROJECT_CANDIDATE_INTERFACE_DELTA_VERIFICATION_SCHEMA: &str =
+- MAX_PROJECT_CANDIDATE_INTERFACE_DELTA_BYTES · constant · L19-L19 — pub const MAX_PROJECT_CANDIDATE_INTERFACE_DELTA_BYTES: usize = 8 * 1024 * 1024;
+- MAX_ITEMS · constant · L20-L20 — const MAX_ITEMS: usize = 65_536;
+- MAX_CALLS · constant · L21-L21 — const MAX_CALLS: usize = 1_048_576;
+- MAX_WORK · constant · L22-L22 — const MAX_WORK: usize = 1_048_576;
+- MAX_DEPTH · constant · L23-L23 — const MAX_DEPTH: usize = 256;
+- FACT_DOMAIN · constant · L24-L24 — const FACT_DOMAIN: &[u8] = b"semaprax.candidate-interface-delta.fact.v1\0";
+- SOURCE_DOMAIN · constant · L25-L25 — const SOURCE_DOMAIN: &[u8] = b"semaprax.candidate-interface-delta.source.v1\0";
+- REPORT_DOMAIN · constant · L26-L26 — const REPORT_DOMAIN: &[u8] = b"semaprax.candidate-interface-delta.report.v1\0";
+- Inventory · struct · L29-L36 — struct Inventory
+- CallableFacts · struct · L40-L44 — pub(super) struct CallableFacts
+- callable_facts · function · L46-L53 — pub(super) fn callable_facts(revision: &ProjectRevision) -> Result<CallableFacts>
+- Budget · struct · L58-L64 — struct Budget
+- fact · function · L66-L90 — fn fact(&mut self, value: &Value) -> Result<()>
+- Count · struct · L67-L67 — struct Count(usize);
+- write · function · L69-L76 — fn write(&mut self, bytes: &[u8]) -> io::Result<usize>
+- flush · function · L77-L79 — fn flush(&mut self) -> io::Result<()>
+- copy · function · L91-L94 — fn copy(&mut self, value: &Value) -> Result<Value>
+- interface_delta · function · L100-L155 — pub fn interface_delta(&self, expected_candidate: &str) -> Result<String>
+- verify_interface_delta · function · L159-L182 — pub fn verify_interface_delta(&self, expected_candidate: &str, bytes: &[u8]) -> Result<String>
+- inventory · function · L185-L278 — fn inventory(revision: &ProjectRevision, budget: &mut Budget) -> Result<Inventory>
+- source_function · function · L280-L288 — fn source_function(function: &Function, source: &str, provenance: Value) -> Result<Value>
+- checked_function · function · L291-L341 — fn checked_function(
+- implementation · function · L343-L379 — fn implementation(inventory: &Inventory, id: &str, budget: &mut Budget) -> Result<Option<Value>>
+- dependencies · function · L381-L420 — fn dependencies(inventory: &Inventory, root: &str, budget: &mut Budget) -> Result<Vec<Value>>
+- member_map · function · L422-L433 — fn member_map(value: Option<&Value>, budget: &mut Budget) -> Result<BTreeMap<String, Value>>
+- pair · function · L434-L444 — fn pair(base: Option<&Value>, candidate: Option<&Value>, budget: &mut Budget) -> Result<Value>
+- normalize · function · L445-L471 — fn normalize(mut value: Value) -> Value
+- plan · function · L472-L483 — fn plan(produce: impl FnOnce() -> String) -> Result<Value>
+- sources · function · L484-L486 — fn sources(revision: &ProjectRevision) -> Vec<Value>
+- union · function · L487-L489 — fn union(a: &BTreeMap<String, Value>, b: &BTreeMap<String, Value>) -> BTreeSet<String>
+- insert · function · L490-L501 — fn insert(
+- fragment · function · L502-L510 — fn fragment(source: &str, span: Span) -> Result<String>
+- fact_digest · function · L511-L513 — fn fact_digest(value: Value) -> Result<String>
+- render · function · L514-L516 — fn render(value: Value) -> Result<String>
+- ownership · function · L517-L524 — fn ownership(mode: OwnershipMode) -> &'static str
+- invalid · function · L525-L530 — fn invalid() -> Vec<Diagnostic>
+- capacity · function · L531-L536 — fn capacity() -> Vec<Diagnostic>

@@ -1,0 +1,28 @@
+# project/semantic_transaction/add_declaration.rs
+
+- SOURCE_DOMAIN · constant · L14-L14 — const SOURCE_DOMAIN: &[u8] = b"semaprax.semantic-transaction.module-source.digest.v1\0";
+- MAX_MODULE_IDENTITIES · constant · L15-L15 — const MAX_MODULE_IDENTITIES: usize = 65_536;
+- SemanticTransactionAddDeclaration · struct · L20-L24 — pub struct SemanticTransactionAddDeclaration
+- new · function · L27-L33 — pub fn new(target: impl Into<String>, expected_old_module: Value, declaration: Value) -> Self
+- target · function · L35-L37 — pub fn target(&self) -> &str
+- expected_old_module · function · L39-L41 — pub fn expected_old_module(&self) -> &Value
+- declaration · function · L43-L45 — pub fn declaration(&self) -> &Value
+- value · function · L47-L54 — pub(super) fn value(&self) -> Value
+- validate_shape · function · L56-L60 — pub(super) fn validate_shape(&self) -> Result<(), Vec<Diagnostic>>
+- AddDeclarationEligibility · struct · L63-L69 — pub(in crate::project) struct AddDeclarationEligibility
+- available · function · L72-L77 — pub(in crate::project) fn available(&self) -> bool
+- DeclarationAddition · struct · L80-L84 — pub(super) struct DeclarationAddition
+- add_declaration_eligibility · function · L86-L114 — pub(in crate::project) fn add_declaration_eligibility(
+- require_add_declaration_preconditions · function · L116-L139 — pub(super) fn require_add_declaration_preconditions(
+- require_source_preserving_declaration_addition · function · L141-L200 — pub(super) fn require_source_preserving_declaration_addition(
+- select_module · function · L202-L224 — fn select_module<'a>(
+- module_snapshot · function · L226-L232 — fn module_snapshot(path: &str, source: &str, program: &Program) -> Result<Value, Vec<Diagnostic>>
+- require_module_snapshot_shape · function · L234-L261 — fn require_module_snapshot_shape(value: &Value) -> Result<(), Vec<Diagnostic>>
+- declaration_identity_inventory · function · L263-L354 — fn declaration_identity_inventory(program: &Program) -> Result<Vec<String>, Vec<Diagnostic>>
+- project_identity_inventory · function · L356-L372 — fn project_identity_inventory(
+- planned_identity_inventory · function · L374-L409 — fn planned_identity_inventory(declaration: &Value) -> Result<Vec<String>, Vec<Diagnostic>>
+- append_field_ids · function · L411-L425 — fn append_field_ids(
+- required_id · function · L427-L434 — fn required_id(value: &Value, message: &'static str) -> Result<String, Vec<Diagnostic>>
+- single_insertion · function · L436-L458 — fn single_insertion<'a>(before: &str, after: &'a str) -> Result<&'a str, Vec<Diagnostic>>
+- is_ordered_subsequence · function · L460-L468 — fn is_ordered_subsequence(old: &[String], new: &[String]) -> bool
+- source_digest · function · L470-L479 — fn source_digest(source: &str) -> String

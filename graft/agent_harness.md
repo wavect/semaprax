@@ -1,0 +1,31 @@
+---
+covers: []
+---
+# agent_harness.rs
+
+- GRAPH_SCHEMA · constant · L19-L19 — const GRAPH_SCHEMA: &str = "semaprax.agent-payment-graph.v1";
+- GRAPH_DOMAIN · constant · L20-L20 — const GRAPH_DOMAIN: &[u8] = b"semaprax.agent-payment-graph.digest.v1\0";
+- MAX_GRAPH_BYTES · constant · L21-L21 — const MAX_GRAPH_BYTES: usize = 65_536;
+- NONCLAIMS · constant · L23-L32 — const NONCLAIMS: [&str; 8] = [
+- AgentPaymentGraph · struct · L35-L38 — pub struct AgentPaymentGraph
+- canonical_json · function · L42-L44 — pub fn canonical_json(&self) -> &str
+- digest · function · L47-L49 — pub fn digest(&self) -> &str
+- CompiledAgentPaymentGraph · struct · L53-L58 — pub struct CompiledAgentPaymentGraph
+- agent · function · L62-L64 — pub fn agent(&self) -> &CompiledAgentDefinition
+- economic_policy · function · L67-L69 — pub fn economic_policy(&self) -> &str
+- economic_policy_digest · function · L72-L74 — pub fn economic_policy_digest(&self) -> &str
+- graph · function · L77-L79 — pub fn graph(&self) -> &AgentPaymentGraph
+- instantiate · function · L82-L97 — pub fn instantiate<AH: AgentHost, EH: EconomicAgentHost>(
+- AgentPaymentHarness · struct · L101-L107 — pub struct AgentPaymentHarness<AH: AgentHost, EH: EconomicAgentHost>
+- run_payment · function · L113-L123 — pub fn run_payment(&mut self, task: &str) -> Result<AgentPaymentRun, Vec<Diagnostic>>
+- AgentPaymentRun · struct · L127-L133 — pub struct AgentPaymentRun
+- agent_definition_digest · function · L136-L138 — pub fn agent_definition_digest(&self) -> &str
+- agent_graph_digest · function · L140-L142 — pub fn agent_graph_digest(&self) -> &str
+- payment_graph_digest · function · L144-L146 — pub fn payment_graph_digest(&self) -> &str
+- agent_run · function · L148-L150 — pub fn agent_run(&self) -> &AgentRun
+- economic_run · function · L152-L154 — pub fn economic_run(&self) -> &EconomicRun
+- compile_agent_payment_graph · function · L158-L178 — pub fn compile_agent_payment_graph(
+- verify_agent_payment_graph_bundle · function · L182-L201 — pub fn verify_agent_payment_graph_bundle(
+- render_graph · function · L203-L225 — fn render_graph(agent: &CompiledAgentDefinition, policy_digest: &str) -> String
+- digest · function · L227-L232 — fn digest(domain: &[u8], bytes: &[u8]) -> String
+- graph_mismatch · function · L234-L239 — fn graph_mismatch() -> Diagnostic

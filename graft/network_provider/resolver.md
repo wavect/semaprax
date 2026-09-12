@@ -1,0 +1,22 @@
+# network_provider/resolver.rs
+
+- ResolveFailure · enum · L34-L41 — pub enum ResolveFailure
+- NameResolver · interface · L47-L58 — pub trait NameResolver: Debug + Send + Sync
+- resolve · function · L49-L54 — fn resolve(
+- settle · function · L57-L57 — fn settle(&self) {}
+- SystemResolver · struct · L62-L66 — pub struct SystemResolver
+- new · function · L71-L73 — pub fn new() -> Self
+- pending · function · L78-L85 — pub fn pending(&self) -> usize
+- retain · function · L87-L94 — fn retain(&self, worker: JoinHandle<()>)
+- resolve · function · L98-L143 — fn resolve(
+- settle · function · L145-L150 — fn settle(&self)
+- ScriptedResolver · struct · L158-L161 — pub struct ScriptedResolver
+- ScriptedResolution · struct · L164-L168 — struct ScriptedResolution
+- new · function · L173-L178 — pub fn new(clock: std::sync::Arc<ScriptedClock>) -> Self
+- with · function · L182-L192 — pub fn with(self, host: &str, cost: Duration, addresses: Vec<SocketAddr>) -> Self
+- resolve · function · L196-L219 — fn resolve(
+- tests · module · L223-L298 — mod tests
+- a_literal_address_resolves_without_a_worker_or_budget · function · L230-L240 — fn a_literal_address_resolves_without_a_worker_or_budget()
+- a_zero_budget_refuses_a_name_before_spawning_a_worker · function · L243-L250 — fn a_zero_budget_refuses_a_name_before_spawning_a_worker()
+- an_abandoned_worker_stays_owned_and_is_reaped · function · L253-L271 — fn an_abandoned_worker_stays_owned_and_is_reaped()
+- a_scripted_resolution_charges_its_cost_to_the_clock · function · L274-L297 — fn a_scripted_resolution_charges_its_cost_to_the_clock()

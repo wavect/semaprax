@@ -1,0 +1,31 @@
+# codegen/native_callable_provider_v3/tests.rs
+
+- NEXT_DIRECTORY · constant · L22-L22 — static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(1);
+- FixtureDirectory · struct · L24-L24 — struct FixtureDirectory(PathBuf);
+- new · function · L27-L35 — fn new() -> Self
+- path · function · L37-L39 — fn path(&self) -> &Path
+- drop · function · L43-L45 — fn drop(&mut self)
+- binding · function · L48-L62 — fn binding(
+- initial_owned_wires · function · L64-L72 — fn initial_owned_wires(binding: ProviderBinding, payloads: &[u64]) -> (Vec<u8>, Vec<u8>)
+- preexecute_unwind_owned_wires · function · L74-L108 — fn preexecute_unwind_owned_wires(
+- owned_wires_at · function · L110-L153 — fn owned_wires_at(
+- corpus_wires · function · L155-L211 — fn corpus_wires(
+- append_array · function · L213-L215 — fn append_array(output: &mut String, name: &str, bytes: &[u8])
+- semantic_digest · function · L217-L219 — fn semantic_digest(trace: [u8; 32], ordinals: &[u32], outcome: u8) -> [u8; 32]
+- semantic_digest_exact · function · L221-L239 — fn semantic_digest_exact(
+- append_u32_array · function · L241-L254 — fn append_u32_array(output: &mut String, name: &str, values: &[u32])
+- append_u64_array · function · L256-L269 — fn append_u64_array(output: &mut String, name: &str, values: &[u64])
+- compile_and_run · function · L271-L273 — fn compile_and_run(source: &str, optimization: &str)
+- compile_and_run_labeled · function · L275-L352 — fn compile_and_run_labeled(source: &str, optimization: &str, label: &str)
+- strict_sanitizer_options · function · L354-L372 — fn strict_sanitizer_options(name: &str, default: &str) -> String
+- spec · function · L374-L384 — fn spec(function_id: &str, plan: ProviderV3Plan) -> NativeCallableProviderV3Spec
+- ios_static_descriptors_and_provider_guards_are_exactly_paired · function · L387-L441 — fn ios_static_descriptors_and_provider_guards_are_exactly_paired()
+- android_dynamic_descriptors_and_provider_guards_are_exactly_paired · function · L444-L513 — fn android_dynamic_descriptors_and_provider_guards_are_exactly_paired()
+- graph_spec · function · L515-L580 — fn graph_spec(
+- scalar_two_owner_provider_is_durable_strict_and_idempotent_at_o0_o2 · function · L583-L678 — fn scalar_two_owner_provider_is_durable_strict_and_idempotent_at_o0_o2()
+- all_fourteen_graph_witness_specs_are_unique_and_bounded · function · L681-L699 — fn all_fourteen_graph_witness_specs_are_unique_and_bounded()
+- authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2 · function · L702-L900 — fn authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2()
+- owned_identity_accept_abort_and_finalizing_uncertainty_are_exact_at_o0_o2 · function · L903-L992 — fn owned_identity_accept_abort_and_finalizing_uncertainty_are_exact_at_o0_o2()
+- physical_failure_injection_and_durable_settlement_boundaries_are_exact_at_o0_o2 · function · L995-L1161 — fn physical_failure_injection_and_durable_settlement_boundaries_are_exact_at_o0_o2()
+- fixture · function · L996-L1032 — fn fixture(
+- provider_spec_rejects_noncanonical_plan_symbols_and_capacities · function · L1164-L1289 — fn provider_spec_rejects_noncanonical_plan_symbols_and_capacities()

@@ -1,0 +1,37 @@
+# codegen/native_host_contract.rs
+
+- MODULE_IDENTITY_DOMAIN · constant · L36-L36 — const MODULE_IDENTITY_DOMAIN: &str = "semaprax.native-host-module.v1";
+- ADAPTER_IDENTITY_DOMAIN · constant · L37-L37 — const ADAPTER_IDENTITY_DOMAIN: &str = "semaprax.native-host-adapter.v1";
+- FUNCTION_IDENTITY_DOMAIN · constant · L38-L38 — const FUNCTION_IDENTITY_DOMAIN: &str = "semaprax.native-host-function.v1";
+- BOUND_FUNCTION_IDENTITY_DOMAIN · constant · L39-L39 — const BOUND_FUNCTION_IDENTITY_DOMAIN: &str = "semaprax.native-host-bound-function.v1";
+- RESOURCE_IDENTITY_DOMAIN · constant · L40-L40 — const RESOURCE_IDENTITY_DOMAIN: &str = "semaprax.native-host-resource.v1";
+- LIFECYCLE_IDENTITY_DOMAIN · constant · L41-L41 — const LIFECYCLE_IDENTITY_DOMAIN: &str = "semaprax.native-host-lifecycle.v1";
+- TEMPLATE_FINGERPRINT_DOMAIN · constant · L42-L42 — const TEMPLATE_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.native-host-template.v1\0";
+- MODULE_ABI_FINGERPRINT_DOMAIN · constant · L43-L43 — const MODULE_ABI_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.native-host-module-abi.v1\0";
+- NEXT_ADAPTER_BINDING_INSTANCE · constant · L45-L45 — static NEXT_ADAPTER_BINDING_INSTANCE: AtomicU64 = AtomicU64::new(1);
+- NativeHostScalarKind · enum · L48-L51 — pub(super) enum NativeHostScalarKind
+- NativeHostParameter · enum · L54-L67 — pub(super) enum NativeHostParameter
+- NativeHostResult · enum · L70-L77 — pub(super) enum NativeHostResult
+- NativeHostContractTemplate · struct · L81-L90 — pub(super) struct NativeHostContractTemplate
+- NativeAdapterTemplateProjection · struct · L97-L104 — pub(super) struct NativeAdapterTemplateProjection
+- NativeAdapterParameterProjection · enum · L107-L120 — pub(super) enum NativeAdapterParameterProjection
+- NativeAdapterResultProjection · enum · L123-L130 — pub(super) enum NativeAdapterResultProjection
+- project_for_adapter_abi · function · L132-L181 — pub(super) fn project_for_adapter_abi(
+- project_for_callable_abi · function · L183-L190 — pub(super) fn project_for_callable_abi(
+- NativeHostAdapterBinding · struct · L198-L203 — pub(super) struct NativeHostAdapterBinding
+- NativeBoundHostContract · struct · L209-L213 — pub(super) struct NativeBoundHostContract
+- execute_scalar · function · L216-L232 — pub(super) fn execute_scalar<F>(
+- execute_owned · function · L234-L250 — pub(super) fn execute_owned<F>(
+- for_current_thread · function · L254-L271 — pub(super) fn for_current_thread(
+- derive_from_admitted · function · L277-L452 — pub(super) fn derive_from_admitted(
+- bind · function · L456-L503 — pub(super) fn bind(
+- template_fingerprint · function · L505-L562 — fn template_fingerprint(template: &NativeHostContractTemplate) -> String
+- module_abi_fingerprint · function · L564-L605 — fn module_abi_fingerprint(program: &ResolvedProgram, abi: &NativeResourceAbi) -> String
+- ownership_tag · function · L607-L614 — fn ownership_tag(ownership: OwnershipMode) -> u8
+- encode_digest · function · L616-L624 — fn encode_digest(digest: impl IntoIterator<Item = u8>) -> String
+- hash_field · function · L626-L629 — fn hash_field(hasher: &mut Sha256, value: &str)
+- direct_trivial_lifecycle · function · L631-L670 — fn direct_trivial_lifecycle<'a>(
+- framed_identity · function · L672-L674 — fn framed_identity(domain: &str, value: &str) -> Result<HostIdentity, Diagnostic>
+- boundary_error · function · L676-L678 — fn boundary_error(rejection: HostBoundaryRejection) -> Diagnostic
+- host_error · function · L680-L685 — fn host_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L689-L689 — mod tests;

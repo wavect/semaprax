@@ -1,0 +1,210 @@
+# wasm/aggregate.rs
+
+- closure · module · L9-L9 — mod closure;
+- collect_block · module · L10-L10 — mod collect_block;
+- expressions · module · L11-L11 — mod expressions;
+- function_value · module · L12-L12 — mod function_value;
+- target_gates · module · L13-L13 — mod target_gates;
+- filesystem_ops · module · L20-L20 — mod filesystem_ops;
+- filesystem_v2 · module · L21-L21 — mod filesystem_v2;
+- generic_record · module · L22-L22 — mod generic_record;
+- generic_variant · module · L23-L23 — mod generic_variant;
+- host_command · module · L24-L24 — mod host_command;
+- http_io · module · L25-L25 — mod http_io;
+- internal_strings · module · L26-L26 — pub(super) mod internal_strings;
+- iterator_ops · module · L27-L27 — mod iterator_ops;
+- nested_owned · module · L28-L28 — mod nested_owned;
+- network_io · module · L29-L29 — mod network_io;
+- owned_stack · module · L30-L30 — mod owned_stack;
+- owned_strings · module · L31-L31 — mod owned_strings;
+- post_transitions · module · L32-L32 — mod post_transitions;
+- process_io · module · L33-L33 — mod process_io;
+- owned_arena_capacity · function · L34-L40 — pub(crate) fn owned_arena_capacity(
+- box_ops · module · L58-L58 — mod box_ops;
+- scalar_shape · module · L59-L59 — mod scalar_shape;
+- vec_owned_payload · module · L60-L60 — mod vec_owned_payload;
+- vec_record_payload · module · L61-L61 — mod vec_record_payload;
+- BYTE_IMPORT_COUNT · constant · L65-L65 — const BYTE_IMPORT_COUNT: u32 = 4;
+- OWNED_BUFFER_IMPORT_COUNT · constant · L66-L66 — const OWNED_BUFFER_IMPORT_COUNT: u32 = 2;
+- VEC_IMPORT_COUNT · constant · L67-L67 — const VEC_IMPORT_COUNT: u32 = 6;
+- EXTENDED_VEC_IMPORT_COUNT · constant · L68-L68 — const EXTENDED_VEC_IMPORT_COUNT: u32 = 3;
+- RECORD_VEC_IMPORT_COUNT · constant · L71-L71 — const RECORD_VEC_IMPORT_COUNT: u32 = 1;
+- OWNED_ITER_IMPORT_COUNT · constant · L72-L72 — const OWNED_ITER_IMPORT_COUNT: u32 = iterator_ops::OWNED_IMPORT_COUNT;
+- BOX_IMPORT_COUNT · constant · L73-L73 — const BOX_IMPORT_COUNT: u32 = 4;
+- BYTE_COPY_IMPORT · constant · L74-L74 — const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
+- BYTE_GET_IMPORT · constant · L75-L75 — pub(super) const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
+- BYTE_DROP_IMPORT · constant · L76-L76 — const BYTE_DROP_IMPORT: u32 = SCALAR_IMPORT_COUNT + 2;
+- BYTE_AS_SLICE_IMPORT · constant · L77-L77 — const BYTE_AS_SLICE_IMPORT: u32 = SCALAR_IMPORT_COUNT + 3;
+- BYTE_ZEROED_IMPORT · constant · L78-L78 — const BYTE_ZEROED_IMPORT: u32 = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT;
+- BYTE_SET_IMPORT · constant · L79-L79 — const BYTE_SET_IMPORT: u32 = BYTE_ZEROED_IMPORT + 1;
+- OWNED_UTF8_LITERAL_BASE · constant · L80-L80 — const OWNED_UTF8_LITERAL_BASE: u32 = 196_608;
+- OwnedUtf8Literals · struct · L82-L86 — struct OwnedUtf8Literals
+- base · function · L89-L91 — fn base(&self) -> u32
+- intern · function · L92-L110 — fn intern(&mut self, value: &str) -> Result<(u32, u32), Diagnostic>
+- RANGE_DESCRIPTOR_SIZE · constant · L112-L112 — const RANGE_DESCRIPTOR_SIZE: u32 = 32;
+- RANGE_DESCRIPTOR_TAG · constant · L113-L113 — const RANGE_DESCRIPTOR_TAG: u32 = 0x4000_0000;
+- RANGE_DESCRIPTOR_TAG_MASK · constant · L114-L114 — const RANGE_DESCRIPTOR_TAG_MASK: u32 = 0xc000_0000;
+- RANGE_DESCRIPTOR_POINTER_MASK · constant · L115-L115 — const RANGE_DESCRIPTOR_POINTER_MASK: u32 = 0x0000_ffff;
+- RANGE_DESCRIPTOR_COOKIE_MASK · constant · L116-L116 — const RANGE_DESCRIPTOR_COOKIE_MASK: u32 = 0x1fff;
+- SHADOW_STACK_TOP · constant · L118-L118 — pub(super) const SHADOW_STACK_TOP: u32 = 65_536;
+- RANGE_DESCRIPTOR_ADDRESS_LIMIT · constant · L120-L120 — pub(super) const RANGE_DESCRIPTOR_ADDRESS_LIMIT: u32 = (RANGE_DESCRIPTOR_POINTER_MASK + 1) * 8;
+- _ · constant · L125-L125 — const _: () = assert!(SHADOW_STACK_TOP <= RANGE_DESCRIPTOR_ADDRESS_LIMIT);
+- STATUS_SUCCESS · constant · L126-L126 — pub(super) const STATUS_SUCCESS: i32 = 0;
+- STATUS_ADD_OVERFLOW · constant · L127-L127 — pub(super) const STATUS_ADD_OVERFLOW: i32 = 1;
+- STATUS_SUB_OVERFLOW · constant · L128-L128 — pub(super) const STATUS_SUB_OVERFLOW: i32 = 2;
+- STATUS_MUL_OVERFLOW · constant · L129-L129 — pub(super) const STATUS_MUL_OVERFLOW: i32 = 3;
+- STATUS_DIV_ZERO · constant · L130-L130 — pub(super) const STATUS_DIV_ZERO: i32 = 4;
+- STATUS_DIV_OVERFLOW · constant · L131-L131 — pub(super) const STATUS_DIV_OVERFLOW: i32 = 5;
+- STATUS_REM_ZERO · constant · L132-L132 — pub(super) const STATUS_REM_ZERO: i32 = 6;
+- STATUS_REM_OVERFLOW · constant · L133-L133 — pub(super) const STATUS_REM_OVERFLOW: i32 = 7;
+- STATUS_NEG_OVERFLOW · constant · L134-L134 — pub(super) const STATUS_NEG_OVERFLOW: i32 = 8;
+- STATUS_REQUIRES_FALSE · constant · L135-L135 — pub(super) const STATUS_REQUIRES_FALSE: i32 = 9;
+- STATUS_ENSURES_FALSE · constant · L136-L136 — pub(super) const STATUS_ENSURES_FALSE: i32 = 10;
+- STATUS_BYTE_RANGE_START_AFTER_END · constant · L137-L137 — pub(super) const STATUS_BYTE_RANGE_START_AFTER_END: i32 = 11;
+- STATUS_BYTE_RANGE_END_OUT_OF_BOUNDS · constant · L138-L138 — pub(super) const STATUS_BYTE_RANGE_END_OUT_OF_BOUNDS: i32 = 12;
+- STATUS_VEC_PUSH_FULL · constant · L139-L139 — pub(super) const STATUS_VEC_PUSH_FULL: i32 = 13;
+- STATUS_VEC_GET_OUT_OF_BOUNDS · constant · L140-L140 — pub(super) const STATUS_VEC_GET_OUT_OF_BOUNDS: i32 = 14;
+- STATUS_VEC_ALLOCATION_FAILURE · constant · L141-L141 — pub(super) const STATUS_VEC_ALLOCATION_FAILURE: i32 = 15;
+- STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS · constant · L142-L142 — pub(super) const STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS: i32 = 16;
+- STATUS_BOX_ALLOCATION_FAILURE · constant · L143-L143 — pub(super) const STATUS_BOX_ALLOCATION_FAILURE: i32 = 17;
+- STATUS_INTERNAL_INVALID_TAG · constant · L144-L144 — pub(super) const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
+- SelectedAggregateLowering · struct · L147-L152 — pub(super) struct SelectedAggregateLowering
+- Pointer · struct · L155-L158 — struct Pointer
+- Value · enum · L161-L165 — enum Value
+- VariantMatchEmission · struct · L167-L174 — struct VariantMatchEmission<'a>
+- FrameAllocator · struct · L177-L180 — struct FrameAllocator
+- allocate · function · L183-L198 — fn allocate(&mut self, size: u32, align: u32) -> Result<u32, Diagnostic>
+- finish · function · L200-L207 — fn finish(&self) -> Result<u32, Diagnostic>
+- FunctionPlan · struct · L210-L240 — struct FunctionPlan
+- RangeScratch · struct · L243-L250 — struct RangeScratch
+- RangeBinding · struct · L253-L258 — struct RangeBinding
+- RangeBindings · type · L260-L260 — type RangeBindings = Vec<(ExpressionId, RangeBinding)>;
+- build_range_bindings · function · L262-L311 — fn build_range_bindings(
+- build · function · L314-L320 — fn build(
+- build_profile · function · L322-L527 — fn build_profile(
+- add_local · function · L529-L537 — fn add_local(&mut self, parameter_count: u32, ty: u8) -> Result<u32, Diagnostic>
+- collect_expr · function · L539-L760 — fn collect_expr(
+- collect_exprs · function · L762-L774 — fn collect_exprs(
+- collect_byte_range · function · L777-L790 — fn collect_byte_range(
+- collect_binary · function · L792-L803 — fn collect_binary(
+- collect_if · function · L806-L831 — fn collect_if(
+- collect_record_fields · function · L833-L851 — fn collect_record_fields(
+- collect_variant_fields · function · L853-L871 — fn collect_variant_fields(
+- expr_scalar · function · L873-L878 — fn expr_scalar(&self, expr: &ResolvedExpr) -> Result<u32, Diagnostic>
+- expr_pointer · function · L880-L889 — fn expr_pointer(&self, expr: &ResolvedExpr) -> Result<Pointer, Diagnostic>
+- expression_uses_str_ops · function · L892-L976 — fn expression_uses_str_ops(expression: &ResolvedExpr) -> bool
+- program_uses_str_ops · function · L978-L984 — fn program_uses_str_ops(program: &ResolvedProgram) -> bool
+- error · function · L986-L988 — fn error(message: impl Into<String>) -> Diagnostic
+- flatten_byte_leaves · function · L990-L1031 — fn flatten_byte_leaves(
+- resource_gate · function · L1033-L1038 — fn resource_gate() -> Diagnostic
+- is_record · function · L1040-L1070 — fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic>
+- is_variant · function · L1072-L1106 — fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic>
+- is_aggregate · function · L1108-L1125 — fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic>
+- layout · function · L1127-L1131 — fn layout(program: &ResolvedProgram, ty: &ResolvedType) -> Result<AggregateLayout, Diagnostic>
+- variant_layout · function · L1133-L1138 — fn variant_layout(
+- aggregate_size_align · function · L1140-L1170 — fn aggregate_size_align(
+- lower_selected_functions · function · L1173-L1258 — pub(super) fn lower_selected_functions(
+- lower_selected_function_instances · function · L1261-L1366 — pub(super) fn lower_selected_function_instances(
+- emit · function · L1368-L1370 — pub(super) fn emit(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic>
+- emit_scalar_exports · function · L1375-L1380 — pub(super) fn emit_scalar_exports(
+- emit_stdout_transcript · function · L1383-L1385 — pub(super) fn emit_stdout_transcript(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic>
+- emit_byte_exports · function · L1390-L1395 — pub(super) fn emit_byte_exports(
+- emit_owned_data_exports · function · L1397-L1402 — pub(super) fn emit_owned_data_exports(
+- emit_byte_exports_with_stdout_transcript · function · L1404-L1409 — pub(super) fn emit_byte_exports_with_stdout_transcript(
+- emit_useful_data_command_v2 · function · L1411-L1416 — pub(super) fn emit_useful_data_command_v2(
+- emit_language_command_io · function · L1418-L1423 — pub(super) fn emit_language_command_io(
+- emit_byte_exports_profile · function · L1425-L2193 — fn emit_byte_exports_profile(
+- emit_profile · function · L2198-L2204 — fn emit_profile(
+- emit_profile_with_scalar_exports · function · L2206-L2886 — fn emit_profile_with_scalar_exports(
+- emit_function · function · L2891-L2916 — fn emit_function(
+- emit_function_profile · function · L2919-L3213 — fn emit_function_profile(
+- emit_external_byte_root_admission · function · L3215-L3301 — fn emit_external_byte_root_admission(
+- Emitter · struct · L3303-L3329 — struct Emitter<'a>
+- emit_expr · function · L3332-L3382 — fn emit_expr(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic>
+- emit_success_cleanup · function · L3384-L3401 — fn emit_success_cleanup(
+- emit_failure_cleanup · function · L3403-L3427 — fn emit_failure_cleanup(
+- emit_cleanup_actions · function · L3429-L3525 — fn emit_cleanup_actions(
+- emit_block_scope_cleanup · function · L3527-L3599 — fn emit_block_scope_cleanup(
+- emit_owned_record_match_cleanup · function · L3601-L3639 — fn emit_owned_record_match_cleanup(
+- cleanup_value_at · function · L3641-L3783 — fn cleanup_value_at(
+- clear_scalar · function · L3785-L3810 — fn clear_scalar(&mut self, value: &Value) -> Result<(), Diagnostic>
+- poison_owned_record · function · L3812-L3827 — fn poison_owned_record(&mut self, value: &Value) -> Result<(), Diagnostic>
+- set_storage_flag · function · L3829-L3853 — fn set_storage_flag(
+- set_variant_storage_flags_from_value · function · L3855-L3899 — fn set_variant_storage_flags_from_value(
+- assert_conditional_variant_liveness · function · L3901-L3951 — fn assert_conditional_variant_liveness(
+- assert_variant_destination_dead · function · L3953-L3975 — fn assert_variant_destination_dead(
+- assert_storage_flag_state · function · L3977-L4003 — fn assert_storage_flag_state(
+- assert_selected_variant_liveness · function · L4005-L4035 — fn assert_selected_variant_liveness(
+- apply_call_commit · function · L4037-L4058 — fn apply_call_commit(&mut self, expression: &ExpressionId) -> Result<(), Diagnostic>
+- authenticate_record_match_transfers · function · L4060-L4065 — fn authenticate_record_match_transfers(
+- authenticate_record_match_phase · function · L4067-L4168 — fn authenticate_record_match_phase(
+- apply_variant_transfer_group · function · L4170-L4210 — fn apply_variant_transfer_group(
+- assert_merged_variant_liveness · function · L4212-L4284 — fn assert_merged_variant_liveness(
+- apply_variant_case_transitions · function · L4286-L4352 — fn apply_variant_case_transitions(
+- apply_try_variant_case_transitions · function · L4354-L4397 — fn apply_try_variant_case_transitions(
+- apply_owned_try_success_transitions · function · L4399-L4455 — fn apply_owned_try_success_transitions(
+- materialize_owned_try_call_arguments · function · L4457-L4492 — fn materialize_owned_try_call_arguments(
+- emit_complex_expr · function · L4494-L5379 — fn emit_complex_expr(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic>
+- emit_nested_update_record · function · L5381-L5425 — fn emit_nested_update_record(
+- materialize · function · L5427-L5441 — fn materialize(&mut self, expr: &ResolvedExpr, source: &Value) -> Result<Value, Diagnostic>
+- emit_match_arms · function · L5443-L5534 — fn emit_match_arms(
+- emit_scalar_refutable_match · function · L5543-L5624 — fn emit_scalar_refutable_match(
+- emit_scalar_pattern_test · function · L5628-L5698 — fn emit_scalar_pattern_test(
+- bind_record_match_pattern · function · L5700-L5709 — fn bind_record_match_pattern(
+- emit_command_transcript_write · function · L5711-L5794 — fn emit_command_transcript_write(
+- emit_command_transcript_append · function · L5796-L5905 — fn emit_command_transcript_append(
+- emit_command_failure_if · function · L5911-L5937 — fn emit_command_failure_if(
+- emit_call · function · L5939-L6184 — fn emit_call(
+- emit_vec_op · function · L6186-L6470 — fn emit_vec_op(
+- emit_vec_borrow_place · function · L6472-L6490 — fn emit_vec_borrow_place(
+- emit_vec_failure_if · function · L6492-L6501 — fn emit_vec_failure_if(
+- emit_vec_element_bits · function · L6503-L6522 — fn emit_vec_element_bits(
+- store_vec_element_bits · function · L6524-L6545 — fn store_vec_element_bits(
+- emit_byte_op · function · L6547-L6714 — fn emit_byte_op(
+- emit_str_op · function · L6716-L6785 — fn emit_str_op(
+- emit_text_helper_view · function · L6787-L6799 — fn emit_text_helper_view(&mut self, value: &Value)
+- emit_array_literal · function · L6801-L6840 — fn emit_array_literal(
+- emit_borrow_place · function · L6842-L6917 — fn emit_borrow_place(
+- emit_byte_range · function · L6919-L7062 — fn emit_byte_range(
+- emit_owned_buffer_index_failure · function · L7068-L7092 — fn emit_owned_buffer_index_failure(
+- emit_byte_range_failure_if · function · L7094-L7116 — fn emit_byte_range_failure_if(
+- emit_decode_validated_range_descriptor · function · L7118-L7244 — fn emit_decode_validated_range_descriptor(&mut self, value: &Value) -> Result<(), Diagnostic>
+- validate_byte_slice · function · L7246-L7280 — fn validate_byte_slice(&mut self, value: &Value)
+- emit_unary · function · L7282-L7345 — fn emit_unary(
+- emit_binary · function · L7347-L7562 — fn emit_binary(
+- emit_float_binary · function · L7566-L7605 — fn emit_float_binary(
+- emit_if · function · L7607-L7638 — fn emit_if(
+- emit_checked_add · function · L7640-L7666 — fn emit_checked_add(
+- emit_checked_sub · function · L7668-L7693 — fn emit_checked_sub(
+- emit_checked_mul · function · L7695-L7743 — fn emit_checked_mul(
+- emit_checked_div_rem · function · L7745-L7784 — fn emit_checked_div_rem(
+- emit_checked_i32_add · function · L7786-L7812 — fn emit_checked_i32_add(
+- emit_checked_i32_sub · function · L7814-L7839 — fn emit_checked_i32_sub(
+- emit_checked_i32_mul · function · L7841-L7868 — fn emit_checked_i32_mul(
+- emit_checked_i32_div_rem · function · L7870-L7907 — fn emit_checked_i32_div_rem(
+- require_i32_pair · function · L7909-L7917 — fn require_i32_pair(
+- require_i64_pair · function · L7919-L7927 — fn require_i64_pair(
+- emit_u8_binary · function · L7932-L7993 — fn emit_u8_binary(
+- emit_usize_binary · function · L7995-L8071 — fn emit_usize_binary(
+- place_value · function · L8073-L8087 — fn place_value(&self, place: &crate::hir::Place) -> Result<Value, Diagnostic>
+- project_value · function · L8089-L8109 — fn project_value(&self, base: &Value, field: &DeclarationId) -> Result<Value, Diagnostic>
+- copy_value · function · L8111-L8282 — fn copy_value(
+- copy_borrowed_scalar_alias · function · L8284-L8315 — fn copy_borrowed_scalar_alias(
+- require_scalar · function · L8317-L8327 — fn require_scalar(
+- get_scalar · function · L8329-L8341 — fn get_scalar(&mut self, value: &Value)
+- emit_pointer · function · L8343-L8351 — fn emit_pointer(&mut self, pointer: Pointer)
+- load_scalar · function · L8353-L8372 — fn load_scalar(&mut self, ty: &ResolvedType)
+- store_scalar · function · L8374-L8393 — fn store_scalar(&mut self, ty: &ResolvedType)
+- fail_if · function · L8395-L8397 — fn fail_if(&mut self, status: i32) -> Result<(), Diagnostic>
+- fail_if_in_lane · function · L8399-L8414 — fn fail_if_in_lane(&mut self, status: i32, lane: StatusLane) -> Result<(), Diagnostic>
+- trap_if · function · L8420-L8422 — fn trap_if(&mut self)
+- emit_while · function · L8429-L8453 — fn emit_while(
+- borrow_place_shape_is_admitted · function · L8461-L8476 — fn borrow_place_shape_is_admitted(operation: &DeclarationId, place: &crate::hir::Place) -> bool
+- value_type · function · L8478-L8484 — fn value_type(value: &Value) -> &ResolvedType
+- value_at · function · L8486-L8497 — fn value_at(
+- require_type · function · L8499-L8513 — fn require_type(
+- emit_scalar_export_wrapper · function · L8515-L8588 — fn emit_scalar_export_wrapper(
+- emit_aggregate_status_traps · function · L8590-L8626 — fn emit_aggregate_status_traps(body: &mut Vec<u8>, status: u32)
+- emit_wrapper · function · L8628-L8723 — fn emit_wrapper(main_index: u32, host_output: bool) -> Vec<u8>
+- range_tests · module · L8729-L8729 — mod range_tests;
+- tests · module · L8732-L8732 — mod tests;

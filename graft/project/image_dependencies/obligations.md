@@ -1,0 +1,35 @@
+# project/image_dependencies/obligations.rs
+
+- IMAGE_CLEANUP_DEPENDENCIES_SCHEMA · constant · L8-L8 — pub const IMAGE_CLEANUP_DEPENDENCIES_SCHEMA: &str = "semaprax.image-cleanup-dependencies.v1";
+- IMAGE_CLEANUP_DEPENDENCIES_VERIFICATION_SCHEMA · constant · L9-L10 — pub const IMAGE_CLEANUP_DEPENDENCIES_VERIFICATION_SCHEMA: &str =
+- MAX_IMAGE_CLEANUP_DEPENDENCIES_BYTES · constant · L11-L11 — pub const MAX_IMAGE_CLEANUP_DEPENDENCIES_BYTES: usize = 8 * 1024 * 1024;
+- MAX_BYTES · constant · L12-L12 — const MAX_BYTES: usize = 32 * 1024 * 1024;
+- Ids · type · L13-L13 — type Ids = BTreeSet<String>;
+- ShapeNodes · type · L14-L14 — type ShapeNodes = Vec<(Vec<String>, String)>;
+- Slots · type · L15-L15 — type Slots = BTreeMap<StorageId, ShapeNodes>;
+- CleanupDependencyIndex · struct · L18-L27 — pub(super) struct CleanupDependencyIndex
+- visit · function · L30-L36 — fn visit(&mut self, depth: usize) -> Result<()>
+- items · function · L37-L43 — fn items(&mut self, count: usize) -> Result<()>
+- charge · function · L44-L50 — fn charge(&mut self, count: usize) -> Result<()>
+- value · function · L51-L53 — fn value(&mut self, value: &Value) -> Result<()>
+- add · function · L54-L83 — fn add(
+- build · function · L84-L117 — fn build(revision: &ProjectRevision) -> Result<Self>
+- function · function · L118-L445 — fn function(&mut self, function: &hir::ResolvedFunction, origin: &Value) -> Result<()>
+- nodes · function · L446-L455 — fn nodes(&mut self, ty: &hir::ResolvedType, shape: &FieldLivenessShape) -> Result<ShapeNodes>
+- plan_value · function · L456-L490 — fn plan_value(&mut self, render: impl FnOnce() -> String) -> Result<Value>
+- inventory · function · L491-L567 — fn inventory(&mut self, function: &hir::ResolvedFunction, origin: &Value) -> Result<()>
+- type_ids · function · L570-L589 — fn type_ids(
+- extend_ids · function · L590-L603 — fn extend_ids(
+- shape_nodes · function · L604-L643 — fn shape_nodes(
+- push_node · function · L644-L654 — fn push_node(
+- prefix_ids · function · L655-L680 — fn prefix_ids(
+- place_ids · function · L681-L688 — fn place_ids(
+- stage_ids · function · L689-L733 — fn stage_ids(
+- shape_value · function · L734-L770 — fn shape_value(
+- origin · function · L771-L787 — fn origin(
+- cleanup_dependencies · function · L792-L802 — pub fn cleanup_dependencies(&self, expected_image: &str, target: &str) -> Result<String>
+- verify_cleanup_dependencies · function · L805-L825 — pub fn verify_cleanup_dependencies(
+- cleanup_selection · function · L826-L859 — fn cleanup_selection(&self, target: &str) -> Result<Ids>
+- cleanup_report · function · L860-L902 — fn cleanup_report(
+- invalid · function · L904-L909 — fn invalid() -> Vec<Diagnostic>
+- limit · function · L910-L915 — fn limit() -> Vec<Diagnostic>

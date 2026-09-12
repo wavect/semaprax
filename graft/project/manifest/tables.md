@@ -1,0 +1,69 @@
+# project/manifest/tables.rs
+
+- PACKAGE_MANIFEST_SCHEMA · constant · L50-L50 — pub const PACKAGE_MANIFEST_SCHEMA: &str = "semaprax.manifest.v1";
+- MAX_DEPENDENCIES · constant · L52-L52 — pub const MAX_DEPENDENCIES: usize = 64;
+- MAX_DEPENDENCY_SOURCES · constant · L54-L54 — pub const MAX_DEPENDENCY_SOURCES: usize = 4;
+- MAX_RUST_DEPENDENCIES · constant · L56-L56 — pub const MAX_RUST_DEPENDENCIES: usize = 32;
+- PACKAGE_TARGET_NATIVE64 · constant · L58-L58 — pub const PACKAGE_TARGET_NATIVE64: &str = "native64";
+- PACKAGE_TARGET_WASM32 · constant · L60-L60 — pub const PACKAGE_TARGET_WASM32: &str = "wasm32";
+- PACKAGE_MANIFEST_TABLES · constant · L62-L72 — pub const PACKAGE_MANIFEST_TABLES: [&str; 9] = [
+- PACKAGE_MANIFEST_RESERVED_TABLES · constant · L75-L82 — pub const PACKAGE_MANIFEST_RESERVED_TABLES: [&str; 6] = [
+- PACKAGE_RESERVED_KEYS · constant · L84-L84 — pub const PACKAGE_RESERVED_KEYS: [&str; 3] = ["compatibility", "license", "description"];
+- CODE_UNADMITTED · constant · L86-L86 — const CODE_UNADMITTED: &str = "SPX-J120";
+- CODE_TARGET_OUTSIDE_MATRIX · constant · L87-L87 — const CODE_TARGET_OUTSIDE_MATRIX: &str = "SPX-J122";
+- LABEL · constant · L88-L88 — const LABEL: &str = "Package Manifest v1";
+- MAX_RANGE_BYTES · constant · L89-L89 — const MAX_RANGE_BYTES: usize = 33;
+- SCAFFOLD_HELP · constant · L90-L90 — const SCAFFOLD_HELP: &str = "start from `semaprax new <destination>` or render a canonical template with `semaprax project-scaffold --name <name> --layout tables`";
+- ManifestLayout · enum · L95-L100 — pub enum ManifestLayout
+- PackageDependency · struct · L105-L108 — pub struct PackageDependency
+- PackageDependencySource · struct · L113-L116 — pub struct PackageDependencySource
+- name · function · L119-L121 — pub fn name(&self) -> &str
+- path · function · L123-L125 — pub fn path(&self) -> &str
+- RustDependency · struct · L133-L137 — pub struct RustDependency
+- name · function · L140-L142 — pub fn name(&self) -> &str
+- version · function · L144-L146 — pub fn version(&self) -> &str
+- features · function · L148-L150 — pub fn features(&self) -> &[String]
+- crate_ident · function · L152-L154 — pub fn crate_ident(&self) -> String
+- new · function · L158-L163 — pub(super) fn new(name: &str, range: &str) -> Self
+- name · function · L165-L167 — pub fn name(&self) -> &str
+- range · function · L169-L171 — pub fn range(&self) -> &str
+- TableParts · struct · L176-L192 — pub(super) struct TableParts
+- Value · enum · L194-L197 — enum Value
+- Table · struct · L199-L202 — struct Table<'a>
+- parse · function · L204-L374 — pub(super) fn parse(lines: &[&str]) -> Result<TableParts, Vec<Diagnostic>>
+- structural_diagnostics · function · L376-L642 — fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic>
+- table_text · function · L644-L655 — fn table_text<'a>(tables: &'a [Table<'a>], table: &str, key: &str) -> Option<&'a str>
+- table_list · function · L657-L668 — fn table_list<'a>(tables: &'a [Table<'a>], table: &str, key: &str) -> Option<&'a [String]>
+- lower_profile · function · L672-L785 — fn lower_profile(
+- parse_dependencies · function · L787-L827 — fn parse_dependencies(table: TableReader<'_>) -> Result<Vec<PackageDependency>, Vec<Diagnostic>>
+- dependency_range_error · function · L829-L831 — fn dependency_range_error(message: String) -> Diagnostic
+- parse_dependency_sources · function · L833-L886 — fn parse_dependency_sources(
+- parse_rust_dependencies · function · L888-L949 — fn parse_rust_dependencies(table: TableReader<'_>) -> Result<Vec<RustDependency>, Vec<Diagnostic>>
+- valid_rust_dependency_name · function · L951-L961 — fn valid_rust_dependency_name(name: &str) -> bool
+- valid_rust_feature · function · L963-L968 — fn valid_rust_feature(feature: &str) -> bool
+- validate_target_matrix · function · L970-L989 — fn validate_target_matrix(matrix: Vec<String>) -> Result<Vec<String>, Vec<Diagnostic>>
+- render · function · L993-L1065 — pub(super) fn render(manifest: &ProjectManifest) -> String
+- canonical_mismatch · function · L1068-L1097 — pub(super) fn canonical_mismatch(source: &str, canonical: &str) -> Vec<Diagnostic>
+- manifest_schema · function · L1104-L1109 — pub fn manifest_schema(&self) -> &'static str
+- layout · function · L1111-L1113 — pub fn layout(&self) -> ManifestLayout
+- dependencies · function · L1117-L1119 — pub fn dependencies(&self) -> &[PackageDependency]
+- dependency_sources · function · L1123-L1125 — pub fn dependency_sources(&self) -> &[PackageDependencySource]
+- rust_dependencies · function · L1128-L1130 — pub fn rust_dependencies(&self) -> &[RustDependency]
+- target_matrix · function · L1134-L1136 — pub fn target_matrix(&self) -> Option<&[String]>
+- admit_build_target · function · L1140-L1161 — pub fn admit_build_target(&self, target: &str) -> Result<(), Vec<Diagnostic>>
+- TableReader · struct · L1164-L1167 — struct TableReader<'a>
+- take · function · L1170-L1173 — fn take(&mut self, key: &str) -> Option<Value>
+- text · function · L1175-L1187 — fn text(&mut self, key: &str) -> Result<String, Vec<Diagnostic>>
+- optional_text · function · L1189-L1198 — fn optional_text(&mut self, key: &str) -> Result<Option<String>, Vec<Diagnostic>>
+- list · function · L1200-L1212 — fn list(&mut self, key: &str) -> Result<Vec<String>, Vec<Diagnostic>>
+- finish · function · L1214-L1227 — fn finish(self) -> Result<(), Vec<Diagnostic>>
+- require_table · function · L1230-L1236 — fn require_table<'a>(
+- optional_table · function · L1238-L1258 — fn optional_table<'a>(tables: &[Table<'a>], name: &'static str) -> Option<TableReader<'a>>
+- parse_assignment · function · L1260-L1283 — fn parse_assignment<'a>(line: &'a str, table: &str) -> Result<(&'a str, Value), Vec<Diagnostic>>
+- valid_dependency_identity · function · L1289-L1305 — fn valid_dependency_identity(name: &str) -> bool
+- valid_table_name · function · L1307-L1316 — fn valid_table_name(name: &str) -> bool
+- profile_by_name · function · L1318-L1339 — fn profile_by_name(name: &str) -> Option<ProjectProfile>
+- scaffold_diagnostic · function · L1341-L1343 — fn scaffold_diagnostic(message: String) -> Diagnostic
+- grammar · function · L1345-L1347 — fn grammar(message: impl Into<String>) -> Vec<Diagnostic>
+- capacity · function · L1349-L1354 — fn capacity(field: &str, limit: usize) -> Vec<Diagnostic>
+- unadmitted · function · L1356-L1358 — fn unadmitted(message: String) -> Vec<Diagnostic>

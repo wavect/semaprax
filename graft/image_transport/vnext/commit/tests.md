@@ -1,0 +1,24 @@
+# image_transport/vnext/commit/tests.rs
+
+- SERIAL · constant · L8-L8 — static SERIAL: AtomicU64 = AtomicU64::new(0);
+- Git · struct · L9-L14 — struct Git
+- Authority · struct · L16-L16 — struct Authority(Rc<RefCell<Git>>);
+- repository · function · L18-L24 — fn repository(&self) -> io::Result<CandidateGitRepository>
+- read_ref · function · L25-L27 — fn read_ref(&mut self, _: &str) -> io::Result<Option<String>>
+- read_object · function · L28-L41 — fn read_object(&mut self, oid: &str, max: usize) -> io::Result<CandidateGitObject>
+- write_object · function · L42-L53 — fn write_object(
+- compare_and_swap_ref · function · L54-L71 — fn compare_and_swap_ref(
+- Fixture · struct · L73-L77 — struct Fixture
+- new · function · L79-L142 — fn new() -> Self
+- manifest · function · L143-L145 — fn manifest(&self) -> PathBuf
+- host · function · L146-L148 — fn host(&self) -> GitCommitHost
+- host_with_base · function · L149-L167 — fn host_with_base(&self, base: &str) -> GitCommitHost
+- params · function · L168-L173 — fn params(&self, approval: &str) -> Map<String, Value>
+- drop · function · L176-L178 — fn drop(&mut self)
+- object · function · L180-L192 — fn object(git: &mut Git, kind: CandidateGitObjectKind, bytes: &[u8]) -> String
+- tree · function · L193-L205 — fn tree(git: &mut Git, mut entries: Vec<(String, &str, String)>) -> String
+- request_digest_cannot_self_approve_or_replace_host_approval · function · L207-L226 — fn request_digest_cannot_self_approve_or_replace_host_approval()
+- success_consumes_approval_retains_receipt_and_cannot_publish_twice · function · L228-L255 — fn success_consumes_approval_retains_receipt_and_cannot_publish_twice()
+- uncertain_pivot_is_terminal_but_definite_preflight_consumes_only_approval · function · L257-L289 — fn uncertain_pivot_is_terminal_but_definite_preflight_consumes_only_approval()
+- v5_commit_requires_startup_authority_and_preserves_terminal_status · function · L292-L341 — fn v5_commit_requires_startup_authority_and_preserves_terminal_status()
+- request · function · L294-L298 — fn request(session: &mut VNextSession, method: &str, mut params: Value) -> Value

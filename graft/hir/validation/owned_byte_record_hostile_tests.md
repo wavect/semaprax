@@ -1,0 +1,22 @@
+# hir/validation/owned_byte_record_hostile_tests.rs
+
+- DECLARATION_FIXTURE · constant · L3-L17 — const DECLARATION_FIXTURE: &str = r#"
+- declaration_fixture · function · L19-L26 — fn declaration_fixture() -> ResolvedProgram
+- set_record_field_type · function · L28-L61 — fn set_record_field_type(
+- set_variant_field_type · function · L63-L113 — fn set_variant_field_type(
+- assert_hir_rejects · function · L115-L119 — fn assert_hir_rejects(program: &ResolvedProgram, expected: &str)
+- validation_admits_nested_records_but_rejects_non_record_and_forbidden_leaves · function · L122-L181 — fn validation_admits_nested_records_but_rejects_non_record_and_forbidden_leaves()
+- validation_rederives_nested_generic_record_admission_from_exact_arguments · function · L184-L223 — fn validation_rederives_nested_generic_record_admission_from_exact_arguments()
+- validation_rejects_a_projected_borrow_match_scrutinee · function · L226-L294 — fn validation_rejects_a_projected_borrow_match_scrutinee()
+- validation_rejects_a_non_place_owned_byte_record_borrow_argument · function · L297-L345 — fn validation_rejects_a_non_place_owned_byte_record_borrow_argument()
+- validation_rejects_a_forged_nested_update_field_type_mismatch · function · L348-L389 — fn validation_rejects_a_forged_nested_update_field_type_mismatch()
+- NESTED_PATTERN_FIXTURE · constant · L391-L410 — const NESTED_PATTERN_FIXTURE: &str = r#"
+- nested_pattern_fixture · function · L412-L419 — fn nested_pattern_fixture() -> ResolvedProgram
+- nested_pattern_fields_mut · function · L421-L439 — fn nested_pattern_fields_mut(
+- nested_borrow_pattern_fixture · function · L441-L451 — fn nested_borrow_pattern_fixture() -> ResolvedProgram
+- validation_rejects_a_forged_nested_record_pattern_field_identity · function · L454-L475 — fn validation_rejects_a_forged_nested_record_pattern_field_identity()
+- validation_rejects_a_wildcard_concealing_a_nested_owned_subtree · function · L478-L499 — fn validation_rejects_a_wildcard_concealing_a_nested_owned_subtree()
+- validation_rejects_a_nonplace_nested_owned_match_scrutinee · function · L502-L551 — fn validation_rejects_a_nonplace_nested_owned_match_scrutinee()
+- validation_rejects_a_whole_nested_record_field_binding · function · L554-L588 — fn validation_rejects_a_whole_nested_record_field_binding()
+- validation_rejects_a_borrow_wildcard_concealing_an_owned_subtree · function · L591-L612 — fn validation_rejects_a_borrow_wildcard_concealing_an_owned_subtree()
+- nested_update_base_shape_rejects_a_well_typed_nonplace_before_lowering · function · L615-L661 — fn nested_update_base_shape_rejects_a_well_typed_nonplace_before_lowering()

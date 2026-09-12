@@ -1,0 +1,24 @@
+# project/candidate/declaration.rs
+
+- MAX_ITEMS · constant · L17-L17 — const MAX_ITEMS: usize = 64;
+- MAX_IDENTIFIER_BYTES · constant · L18-L18 — const MAX_IDENTIFIER_BYTES: usize = 128;
+- Result · type · L19-L19 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- DeclarationAddition · struct · L21-L29 — pub(super) struct DeclarationAddition
+- apply · function · L31-L174 — pub(super) fn apply(
+- append_function · function · L178-L299 — pub(super) fn append_function(
+- anchor · function · L301-L320 — pub(super) fn anchor(programs: &[Program], target: &str) -> Result<(usize, usize)>
+- type_name · function · L322-L337 — fn type_name(name: &str) -> Result<Type>
+- requested_type · function · L339-L353 — fn requested_type(revision: &ProjectRevision, program: &Program, value: &Value) -> Result<Type>
+- validate_added_signature · function · L358-L428 — pub(super) fn validate_added_signature(
+- checked_signature_type · function · L430-L473 — fn checked_signature_type(
+- validate_owned_nominal · function · L475-L539 — fn validate_owned_nominal(
+- scalar · function · L541-L546 — fn scalar(ty: &Type) -> bool
+- validate_parameter · function · L548-L559 — fn validate_parameter(ty: &Type, mode: ParamMode) -> Result<()>
+- validate_return · function · L561-L569 — fn validate_return(ty: &Type) -> Result<()>
+- stable_id · function · L571-L583 — pub(super) fn stable_id(id: &str) -> Result<&str>
+- identifier · function · L585-L623 — pub(super) fn identifier(name: &str) -> Result<&str>
+- text · function · L625-L630 — fn text<'a>(value: &'a Value, key: &str) -> Result<&'a str>
+- array · function · L632-L643 — fn array<'a>(value: &'a Value, key: &str) -> Result<&'a [Value]>
+- object · function · L645-L653 — fn object(value: &Value, keys: &[&str]) -> Result<()>
+- grammar · function · L655-L657 — fn grammar(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L659-L661 — fn capacity(message: &'static str) -> Vec<Diagnostic>

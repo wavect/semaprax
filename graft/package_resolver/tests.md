@@ -1,0 +1,21 @@
+# package_resolver/tests.rs
+
+- remint · function · L8-L17 — fn remint(schema: &str, domain: &[u8], payload: &str) -> String
+- test_digest · function · L19-L28 — fn test_digest(domain: &[u8], bytes: &[u8]) -> String
+- replace_subject_report · function · L30-L58 — fn replace_subject_report(subject: &str, report: &str) -> String
+- PAYLOAD · constant · L31-L31 — const PAYLOAD: &str = "\"payload\":";
+- REPORT · constant · L32-L32 — const REPORT: &str = "\"report\":";
+- END · constant · L33-L33 — const END: &str = ",\"dependencies\":";
+- report · function · L60-L66 — fn report(path: &str) -> String
+- subject · function · L68-L88 — fn subject(
+- input · function · L90-L100 — fn input(subjects: Vec<String>, range: &str) -> ResolutionInput
+- options_and_semver_boundaries_are_closed · function · L103-L152 — fn options_and_semver_boundaries_are_closed()
+- nested_report_bounds_and_authentication_keep_distinct_resolver_codes · function · L155-L203 — fn nested_report_bounds_and_authentication_keep_distinct_resolver_codes()
+- first_feasible_backtracking_and_catalog_permutation_are_exact · function · L206-L247 — fn first_feasible_backtracking_and_catalog_permutation_are_exact()
+- exact_lock_boundary_ignores_nested_limits_text_strings_and_escapes · function · L250-L262 — fn exact_lock_boundary_ignores_nested_limits_text_strings_and_escapes()
+- exact_transitive_graph_and_capability_policy_are_enforced · function · L265-L295 — fn exact_transitive_graph_and_capability_policy_are_enforced()
+- catalog_confusion_and_outer_remints_fail_closed · function · L298-L423 — fn catalog_confusion_and_outer_remints_fail_closed()
+- input_and_catalog_count_limits_precede_subject_replay · function · L426-L449 — fn input_and_catalog_count_limits_precede_subject_replay()
+- hostile_input_grammar_and_subject_bounds_have_stable_codes · function · L452-L483 — fn hostile_input_grammar_and_subject_bounds_have_stable_codes()
+- unavailable_and_unproven_candidates_are_policy_rejections · function · L486-L535 — fn unavailable_and_unproven_candidates_are_policy_rejections()
+- public_selected_package_limit_accepts_four_and_rejects_five · function · L538-L586 — fn public_selected_package_limit_accepts_four_and_rejects_five()

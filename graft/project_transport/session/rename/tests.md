@@ -1,0 +1,33 @@
+# project_transport/session/rename/tests.rs
+
+- SERIAL · constant · L6-L6 — static SERIAL: AtomicU64 = AtomicU64::new(0);
+- Fixture · struct · L8-L8 — struct Fixture(PathBuf);
+- new · function · L11-L28 — fn new() -> Self
+- plan · function · L30-L35 — fn plan(&self) -> PreparedProjectRename
+- manifest · function · L37-L39 — fn manifest(&self) -> PathBuf
+- source · function · L41-L43 — fn source(&self, relative: &str) -> PathBuf
+- session_with_profile · function · L45-L62 — fn session_with_profile(&self, profile: ServerProfile) -> (Session, String, String)
+- session · function · L64-L66 — fn session(&self) -> (Session, String, String)
+- drop · function · L70-L72 — fn drop(&mut self)
+- apply_success_and_uncertainty_responses_have_exact_minimum_boundaries · function · L76-L129 — fn apply_success_and_uncertainty_responses_have_exact_minimum_boundaries()
+- params · function · L131-L136 — fn params(entries: impl IntoIterator<Item = (&'static str, String)>) -> Map<String, Value>
+- prepare_session · function · L138-L156 — fn prepare_session(fixture: &Fixture) -> (Session, String, String, String)
+- apply_params · function · L158-L164 — fn apply_params(project: String, workspace: String, digest: String) -> Map<String, Value>
+- prepare_workflow_session · function · L166-L198 — fn prepare_workflow_session(fixture: &Fixture) -> (Session, String, String, String)
+- change_apply_params · function · L200-L206 — fn change_apply_params(project: String, workspace: String, digest: String) -> Map<String, Value>
+- CommitRejectRuntime · struct · L208-L208 — struct CommitRejectRuntime;
+- commit · function · L211-L219 — fn commit(
+- reload · function · L221-L223 — fn reload(&mut self, manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>>
+- ReloadRejectRuntime · struct · L226-L226 — struct ReloadRejectRuntime;
+- commit · function · L229-L234 — fn commit(
+- reload · function · L236-L241 — fn reload(&mut self, _manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>>
+- rejected_commit_reloads_exact_base_and_returns_to_open · function · L245-L266 — fn rejected_commit_reloads_exact_base_and_returns_to_open()
+- post_commit_reload_rejection_is_correlated_terminal_uncertainty · function · L269-L292 — fn post_commit_reload_rejection_is_correlated_terminal_uncertainty()
+- workflow_reload_uncertainty_is_terminal_and_blocks_every_later_build · function · L295-L320 — fn workflow_reload_uncertainty_is_terminal_and_blocks_every_later_build()
+- SubstituteRuntime · struct · L323-L326 — struct SubstituteRuntime
+- substitute · function · L330-L334 — fn substitute(&self)
+- before_a0 · function · L339-L344 — fn before_a0(&mut self) -> Result<(), Vec<Diagnostic>>
+- after_a0 · function · L346-L351 — fn after_a0(&mut self) -> Result<(), Vec<Diagnostic>>
+- commit · function · L353-L358 — fn commit(
+- reload · function · L360-L362 — fn reload(&mut self, _manifest_path: &Path) -> Result<ProjectSnapshot, Vec<Diagnostic>>
+- target_and_foreign_identity_drift_stop_across_the_a0_handoff · function · L367-L392 — fn target_and_foreign_identity_drift_stop_across_the_a0_handoff()

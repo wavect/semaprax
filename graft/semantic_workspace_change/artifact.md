@@ -1,0 +1,97 @@
+# semantic_workspace_change/artifact.rs
+
+- PREVIEW_SCHEMA · constant · L24-L24 — const PREVIEW_SCHEMA: &str = "semaprax.workspace-semantic-change-preview.v1";
+- CONTEXT_SCHEMA · constant · L25-L25 — const CONTEXT_SCHEMA: &str = "semaprax.workspace-semantic-change-context.v1";
+- IMPACT_SCHEMA · constant · L26-L26 — const IMPACT_SCHEMA: &str = "semaprax.workspace-semantic-change-impact.v1";
+- REVIEW_SCHEMA · constant · L27-L27 — const REVIEW_SCHEMA: &str = "semaprax.workspace-semantic-change-review.v1";
+- EVIDENCE_SCHEMA · constant · L28-L28 — pub(super) const EVIDENCE_SCHEMA: &str = "semaprax.workspace-semantic-change-evidence.v1";
+- RECEIPT_SCHEMA · constant · L29-L30 — pub(super) const RECEIPT_SCHEMA: &str =
+- APPLICATION_RECEIPT_SCHEMA · constant · L31-L32 — const APPLICATION_RECEIPT_SCHEMA: &str =
+- GRAPH_SCHEMA · constant · L33-L33 — const GRAPH_SCHEMA: &str = "semaprax.workspace-semantic-graph.v1";
+- MANIFEST_SCHEMA · constant · L34-L34 — const MANIFEST_SCHEMA: &str = "semaprax.workspace-semantic-manifest.v1";
+- PROPOSAL_DIGEST_DOMAIN · constant · L36-L36 — const PROPOSAL_DIGEST_DOMAIN: &[u8] = b"semaprax.workspace-semantic-change.proposal-digest.v1\0";
+- CANDIDATE_MANIFEST_DIGEST_DOMAIN · constant · L37-L38 — const CANDIDATE_MANIFEST_DIGEST_DOMAIN: &[u8] =
+- PREVIEW_DIGEST_DOMAIN · constant · L39-L40 — const PREVIEW_DIGEST_DOMAIN: &[u8] =
+- CONTEXT_DIGEST_DOMAIN · constant · L41-L42 — const CONTEXT_DIGEST_DOMAIN: &[u8] =
+- IMPACT_DIGEST_DOMAIN · constant · L43-L44 — const IMPACT_DIGEST_DOMAIN: &[u8] =
+- REVIEW_DIGEST_DOMAIN · constant · L45-L46 — const REVIEW_DIGEST_DOMAIN: &[u8] =
+- EVIDENCE_DIGEST_DOMAIN · constant · L47-L48 — pub(super) const EVIDENCE_DIGEST_DOMAIN: &[u8] =
+- digest_evidence · function · L50-L52 — pub(crate) fn digest_evidence(source: &str) -> String
+- MAX_TOTAL_BASE_SOURCE_BYTES · constant · L54-L54 — const MAX_TOTAL_BASE_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+- MAX_TOTAL_CANDIDATE_SOURCE_BYTES · constant · L55-L55 — const MAX_TOTAL_CANDIDATE_SOURCE_BYTES: usize = 16 * 1024 * 1024;
+- MAX_CANDIDATE_MANIFEST_BYTES · constant · L56-L56 — const MAX_CANDIDATE_MANIFEST_BYTES: usize = 1024 * 1024;
+- MAX_CONTEXT_NODES · constant · L57-L57 — const MAX_CONTEXT_NODES: usize = 16_384;
+- MAX_ANALYSIS_BUILDER_BYTES · constant · L58-L58 — const MAX_ANALYSIS_BUILDER_BYTES: usize = 32 * 1024 * 1024;
+- MAX_PREVIEW_BYTES · constant · L59-L59 — const MAX_PREVIEW_BYTES: usize = 32 * 1024 * 1024;
+- MAX_CONTEXT_BYTES · constant · L60-L60 — const MAX_CONTEXT_BYTES: usize = 16 * 1024 * 1024;
+- MAX_IMPACT_BYTES · constant · L61-L61 — const MAX_IMPACT_BYTES: usize = 32 * 1024 * 1024;
+- MAX_REVIEW_BYTES · constant · L62-L62 — const MAX_REVIEW_BYTES: usize = 16 * 1024 * 1024;
+- MAX_EVIDENCE_BYTES · constant · L63-L63 — pub(super) const MAX_EVIDENCE_BYTES: usize = 1024 * 1024;
+- MAX_RECEIPT_BYTES · constant · L64-L64 — pub(super) const MAX_RECEIPT_BYTES: usize = 65_536;
+- MAX_TOTAL_ARTIFACT_BYTES · constant · L65-L65 — const MAX_TOTAL_ARTIFACT_BYTES: usize = 96 * 1024 * 1024;
+- NONCLAIMS · constant · L67-L87 — const NONCLAIMS: [&str; 19] = [
+- Artifact · struct · L90-L94 — struct Artifact
+- ChildRefs · struct · L97-L104 — struct ChildRefs<'a>
+- EvidenceOffsets · struct · L107-L112 — struct EvidenceOffsets
+- new · function · L115-L127 — fn new(prepared: &SemanticWorkspacePreparedChange) -> Self
+- push_review_evidence · function · L130-L153 — fn push_review_evidence(output: &mut CappedString, prepared: &SemanticWorkspacePreparedChange)
+- SemanticWorkspaceChangeArtifacts · struct · L156-L164 — pub struct SemanticWorkspaceChangeArtifacts
+- proposal_digest · function · L167-L169 — pub fn proposal_digest(&self) -> &str
+- candidate_manifest_digest · function · L171-L173 — pub fn candidate_manifest_digest(&self) -> &str
+- preview · function · L175-L177 — pub fn preview(&self) -> &str
+- preview_digest · function · L179-L181 — pub fn preview_digest(&self) -> &str
+- context · function · L183-L185 — pub fn context(&self) -> &str
+- context_digest · function · L187-L189 — pub fn context_digest(&self) -> &str
+- impact · function · L191-L193 — pub fn impact(&self) -> &str
+- impact_digest · function · L195-L197 — pub fn impact_digest(&self) -> &str
+- review · function · L199-L201 — pub fn review(&self) -> &str
+- review_digest · function · L203-L205 — pub fn review_digest(&self) -> &str
+- evidence · function · L207-L209 — pub fn evidence(&self) -> &str
+- evidence_digest · function · L211-L213 — pub fn evidence_digest(&self) -> &str
+- into_preview · function · L215-L217 — pub(super) fn into_preview(mut self) -> String
+- into_evidence · function · L219-L221 — pub(super) fn into_evidence(mut self) -> String
+- evidence_bytes · function · L223-L225 — pub(crate) fn evidence_bytes(&self) -> &str
+- evidence_artifact_digest · function · L227-L229 — pub(crate) fn evidence_artifact_digest(&self) -> &str
+- total_artifact_bytes · function · L231-L242 — pub(crate) fn total_artifact_bytes(&self, proposal_bytes: usize) -> Option<usize>
+- build_authenticated_artifacts · function · L246-L251 — pub(crate) fn build_authenticated_artifacts(
+- build_authenticated_artifacts_with_hook · function · L254-L264 — fn build_authenticated_artifacts_with_hook(
+- ArtifactSizes · struct · L267-L273 — struct ArtifactSizes
+- Usage · struct · L276-L297 — struct Usage
+- render_artifacts · function · L299-L420 — pub(crate) fn render_artifacts(
+- render_verification_receipt · function · L422-L434 — pub(super) fn render_verification_receipt(
+- render_application_receipt · function · L436-L448 — pub(super) fn render_application_receipt(
+- render_receipt_bounded · function · L450-L505 — fn render_receipt_bounded(
+- evidence_replay · function · L507-L512 — fn evidence_replay() -> Vec<Diagnostic>
+- usage · function · L514-L590 — fn usage(
+- validate_frozen_usage · function · L592-L664 — fn validate_frozen_usage(
+- checked_sum · function · L666-L680 — fn checked_sum(
+- artifact · function · L683-L691 — fn artifact(
+- artifact_bounded · function · L693-L724 — fn artifact_bounded(
+- digest · function · L726-L734 — fn digest(domain: &[u8], bytes: &[u8]) -> String
+- render_preview · function · L736-L789 — fn render_preview(
+- render_context · function · L791-L833 — fn render_context(
+- render_impact · function · L835-L873 — fn render_impact(
+- render_review · function · L875-L903 — fn render_review(
+- push_review_sections · function · L905-L1015 — fn push_review_sections(output: &mut CappedString, prepared: &SemanticWorkspacePreparedChange)
+- push_section · function · L1017-L1043 — fn push_section(
+- render_evidence · function · L1045-L1096 — fn render_evidence(
+- render_receipt · function · L1098-L1150 — fn render_receipt(
+- push_common_change_members · function · L1152-L1162 — fn push_common_change_members(
+- push_ref · function · L1164-L1170 — fn push_ref(output: &mut CappedString, schema: &str, digest: &str, bytes: usize)
+- push_graph_ref · function · L1172-L1178 — fn push_graph_ref(output: &mut CappedString, digest: &str)
+- push_artifact_ref · function · L1180-L1187 — fn push_artifact_ref(output: &mut CappedString, artifact: &Artifact)
+- push_files · function · L1189-L1217 — fn push_files(output: &mut CappedString, files: &[SemanticWorkspaceChangedFileFact])
+- push_root · function · L1219-L1235 — fn push_root(output: &mut CappedString, root: &SemanticWorkspaceChangeRoot)
+- push_delta_edge · function · L1237-L1245 — fn push_delta_edge(output: &mut CappedString, edge: &SemanticWorkspaceChangeEdge)
+- push_impact_edge · function · L1247-L1253 — fn push_impact_edge(output: &mut CappedString, edge: &SemanticWorkspaceChangeImpactEdge)
+- push_edge · function · L1255-L1275 — fn push_edge(output: &mut CappedString, edge: &workspace_graph::WorkspaceEdge)
+- push_impact_fact · function · L1277-L1310 — fn push_impact_fact(output: &mut CappedString, fact: &SemanticWorkspaceChangeImpactFact)
+- push_limits · function · L1312-L1318 — fn push_limits(output: &mut CappedString)
+- push_budget · function · L1320-L1350 — fn push_budget(output: &mut CappedString, usage: Usage)
+- push_limits_budget_nonclaims · function · L1352-L1360 — fn push_limits_budget_nonclaims(output: &mut CappedString, usage: Usage)
+- push_nonclaims · function · L1362-L1371 — fn push_nonclaims(output: &mut CappedString)
+- push_optional · function · L1373-L1379 — fn push_optional(output: &mut CappedString, value: Option<&str>)
+- push_json · function · L1381-L1397 — fn push_json(output: &mut CappedString, value: &str)
+- replay_prepared · function · L1399-L1479 — fn replay_prepared(prepared: &SemanticWorkspacePreparedChange) -> Result<(), Vec<Diagnostic>>
+- verify_artifact_bindings · function · L1481-L1500 — fn verify_artifact_bindings(
+- tests · module · L1504-L1504 — mod tests;

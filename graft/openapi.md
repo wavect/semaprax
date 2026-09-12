@@ -1,0 +1,86 @@
+---
+covers: []
+---
+# openapi.rs
+
+- SCHEMA · constant · L43-L43 — pub const SCHEMA: &str = "semaprax.openapi.v1";
+- COMPAT_SCHEMA · constant · L44-L44 — pub const COMPAT_SCHEMA: &str = "semaprax.openapi-compat.v1";
+- MAX_FUNCTIONS · constant · L46-L46 — pub const MAX_FUNCTIONS: usize = 32;
+- DEFAULT_MAX_BYTES · constant · L47-L47 — const DEFAULT_MAX_BYTES: usize = 64 * 1024;
+- OPENAPI_VERSION · constant · L49-L49 — const OPENAPI_VERSION: &str = "3.1.0";
+- STATUS_COMPONENT_NAME · constant · L50-L50 — const STATUS_COMPONENT_NAME: &str = "Semaprax.Status.v1";
+- REQUEST_SUFFIX · constant · L51-L51 — const REQUEST_SUFFIX: &str = ".Request";
+- RESULT_SUFFIX · constant · L52-L52 — const RESULT_SUFFIX: &str = ".Result";
+- REASON_GENERIC_FUNCTION · constant · L54-L54 — const REASON_GENERIC_FUNCTION: &str = "generic_function";
+- REASON_DECLARED_EFFECTS · constant · L55-L55 — const REASON_DECLARED_EFFECTS: &str = "declared_effects";
+- REASON_UNSUPPORTED_PARAMETER_MODE · constant · L56-L56 — const REASON_UNSUPPORTED_PARAMETER_MODE: &str = "unsupported_parameter_mode";
+- REASON_UNSUPPORTED_PARAMETER_TYPE · constant · L57-L57 — const REASON_UNSUPPORTED_PARAMETER_TYPE: &str = "unsupported_parameter_type";
+- REASON_UNSUPPORTED_RESULT_TYPE · constant · L58-L58 — const REASON_UNSUPPORTED_RESULT_TYPE: &str = "unsupported_result_type";
+- FINDING_OPERATION_REMOVED · constant · L62-L62 — const FINDING_OPERATION_REMOVED: &str = "OAC-B001";
+- FINDING_PARAMETER_REMOVED · constant · L63-L63 — const FINDING_PARAMETER_REMOVED: &str = "OAC-B002";
+- FINDING_PARAMETER_TYPE_CHANGED · constant · L64-L64 — const FINDING_PARAMETER_TYPE_CHANGED: &str = "OAC-B003";
+- FINDING_REQUIRED_PARAMETER_ADDED · constant · L65-L65 — const FINDING_REQUIRED_PARAMETER_ADDED: &str = "OAC-B004";
+- FINDING_RESULT_TYPE_CHANGED · constant · L66-L66 — const FINDING_RESULT_TYPE_CHANGED: &str = "OAC-B005";
+- FINDING_OPERATION_ADDED · constant · L67-L67 — const FINDING_OPERATION_ADDED: &str = "OAC-N001";
+- FINDING_OPERATION_DESCRIPTION_CHANGED · constant · L68-L68 — const FINDING_OPERATION_DESCRIPTION_CHANGED: &str = "OAC-I001";
+- FINDING_SOURCE_REVISION_CHANGED · constant · L69-L69 — const FINDING_SOURCE_REVISION_CHANGED: &str = "OAC-I002";
+- SEVERITY_BREAKING · constant · L71-L71 — const SEVERITY_BREAKING: &str = "breaking";
+- SEVERITY_NON_BREAKING · constant · L72-L72 — const SEVERITY_NON_BREAKING: &str = "non-breaking";
+- SEVERITY_INFORMATIONAL · constant · L73-L73 — const SEVERITY_INFORMATIONAL: &str = "informational";
+- VERDICT_BREAKING · constant · L75-L75 — const VERDICT_BREAKING: &str = "breaking";
+- VERDICT_COMPATIBLE · constant · L76-L76 — const VERDICT_COMPATIBLE: &str = "compatible";
+- I64_DESCRIPTION · constant · L78-L80 — const I64_DESCRIPTION: &str = "Signed 64-bit two's-complement integer; \
+- I32_DESCRIPTION · constant · L81-L82 — const I32_DESCRIPTION: &str = "Signed 32-bit two's-complement integer; \
+- U8_DESCRIPTION · constant · L83-L84 — const U8_DESCRIPTION: &str = "Unsigned 8-bit integer; range [0, 255]; \
+- F32_DESCRIPTION · constant · L85-L87 — const F32_DESCRIPTION: &str = "IEEE-754 single-precision binary floating-point \
+- F64_DESCRIPTION · constant · L88-L90 — const F64_DESCRIPTION: &str = "IEEE-754 double-precision binary floating-point \
+- CHAR_DESCRIPTION · constant · L91-L93 — const CHAR_DESCRIPTION: &str = "Exactly one Unicode scalar value; compared by \
+- BOOL_DESCRIPTION · constant · L94-L94 — const BOOL_DESCRIPTION: &str = "Canonical true/false boolean.";
+- ARITHMETIC_STATUS_NOTE · constant · L96-L99 — const ARITHMETIC_STATUS_NOTE: &str = "Checked i64 arithmetic failures select \
+- I32_ARITHMETIC_STATUS_NOTE · constant · L100-L102 — const I32_ARITHMETIC_STATUS_NOTE: &str = "Checked i32 arithmetic failures \
+- U8_ARITHMETIC_STATUS_NOTE · constant · L103-L105 — const U8_ARITHMETIC_STATUS_NOTE: &str = "Checked u8 range-guarded arithmetic \
+- CONTRACT_STATUS_NOTE · constant · L106-L108 — const CONTRACT_STATUS_NOTE: &str = "A violated requires clause selects the \
+- TOTAL_SIGNATURE_NOTE · constant · L109-L111 — const TOTAL_SIGNATURE_NOTE: &str = "The direct signature declares no contract \
+- MIGRATION_NOTES · constant · L113-L117 — const MIGRATION_NOTES: [&str; 3] = [
+- NONCLAIMS_GENERATION_JSON · constant · L119-L125 — const NONCLAIMS_GENERATION_JSON: &str = "[\
+- NONCLAIMS_COMPAT_JSON · constant · L127-L131 — const NONCLAIMS_COMPAT_JSON: &str = "[\
+- OpenApiOptions · struct · L134-L136 — pub struct OpenApiOptions
+- new · function · L139-L148 — pub fn new(max_bytes: usize) -> Result<Self, Diagnostic>
+- default · function · L152-L156 — fn default() -> Self
+- options_error · function · L159-L161 — fn options_error(message: String) -> Diagnostic
+- selection_error · function · L163-L165 — fn selection_error(message: String) -> Diagnostic
+- excluded_error · function · L167-L169 — fn excluded_error(message: String) -> Diagnostic
+- authentication_error · function · L171-L173 — fn authentication_error(message: String) -> Diagnostic
+- budget_error · function · L175-L182 — fn budget_error(limit: usize, required: usize) -> Diagnostic
+- generate · function · L188-L266 — pub fn generate(
+- project_source_envelope · function · L272-L342 — pub(crate) fn project_source_envelope(
+- admission · function · L348-L367 — fn admission(function: &Function) -> Option<&'static str>
+- is_widened_scalar · function · L370-L375 — fn is_widened_scalar(ty: &Type) -> bool
+- build_envelope · function · L377-L430 — fn build_envelope(
+- render_bounded · function · L432-L446 — fn render_bounded(value: &Value, max_bytes: usize) -> Result<String, Vec<Diagnostic>>
+- build_document · function · L448-L607 — fn build_document(
+- signature_has_type · function · L609-L614 — fn signature_has_type<F>(function: &Function, predicate: F) -> bool
+- scalar_schema · function · L616-L687 — fn scalar_schema(ty: &Type) -> Value
+- status_schema · function · L689-L762 — fn status_schema() -> Value
+- operation_description · function · L764-L797 — fn operation_description(function: &Function) -> String
+- derived_name · function · L801-L812 — fn derived_name(stable_id: &str) -> String
+- source_digest · function · L814-L823 — fn source_digest(source: &str) -> String
+- document_digest · function · L829-L839 — fn document_digest(document: &Value) -> String
+- authenticate · function · L842-L900 — fn authenticate(raw: &str, label: &str) -> Result<Value, Vec<Diagnostic>>
+- compatibility · function · L908-L1004 — pub fn compatibility(
+- envelope_reference · function · L1006-L1034 — fn envelope_reference(envelope: &Value, label: &str) -> Value
+- compatibility_input_digest · function · L1036-L1047 — fn compatibility_input_digest(base: String, candidate: String) -> String
+- Finding · struct · L1049-L1054 — struct Finding
+- to_value · function · L1057-L1067 — fn to_value(&self) -> Value
+- paths_of · function · L1070-L1080 — fn paths_of(envelope: &Value) -> BTreeMap<String, Value>
+- post_of · function · L1082-L1084 — fn post_of(operation_path: &Value) -> Option<&Value>
+- request_schema · function · L1087-L1091 — fn request_schema<'a>(operation: &'a Value, schemas: &'a Map<String, Value>) -> Option<&'a Value>
+- result_schema · function · L1094-L1098 — fn result_schema<'a>(operation: &'a Value, schemas: &'a Map<String, Value>) -> Option<&'a Value>
+- resolve_ref · function · L1100-L1103 — fn resolve_ref<'a>(reference: &str, schemas: &'a Map<String, Value>) -> Option<&'a Value>
+- request_parameters · function · L1106-L1116 — fn request_parameters(schema: &Value) -> Vec<(String, SchemaShape)>
+- SchemaShape · struct · L1123-L1130 — struct SchemaShape
+- of · function · L1133-L1149 — fn of(schema: &Value) -> Self
+- label · function · L1153-L1174 — fn label(&self) -> String
+- result_shape · function · L1177-L1179 — fn result_shape(schema: &Value) -> SchemaShape
+- classify · function · L1181-L1330 — fn classify(base: &Value, candidate: &Value) -> Vec<Finding>
+- tests · module · L1333-L1333 — mod tests;

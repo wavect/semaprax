@@ -1,0 +1,27 @@
+# codegen/native_adapter_abi/tests.rs
+
+- NEXT_DIRECTORY · constant · L12-L12 — static NEXT_DIRECTORY: AtomicU64 = AtomicU64::new(0);
+- SOURCE · constant · L14-L30 — const SOURCE: &str = r#"module test.native_adapter;
+- ParsedParameter · enum · L33-L46 — enum ParsedParameter
+- ParsedResult · enum · L49-L56 — enum ParsedResult
+- ParsedDescriptor · struct · L59-L69 — struct ParsedDescriptor
+- Reader · struct · L71-L74 — struct Reader<'a>
+- take · function · L77-L88 — fn take(&mut self, length: usize) -> Result<&'a [u8], String>
+- u32 · function · L90-L96 — fn u32(&mut self) -> Result<u32, String>
+- text · function · L98-L111 — fn text(&mut self) -> Result<String, String>
+- fingerprint · function · L113-L117 — fn fingerprint(&mut self) -> Result<[u8; 32], String>
+- parse_descriptor · function · L120-L226 — fn parse_descriptor(bytes: &[u8]) -> Result<ParsedDescriptor, String>
+- program · function · L228-L231 — fn program(source: &str) -> ResolvedProgram
+- function · function · L233-L239 — fn function<'a>(program: &'a ResolvedProgram, id: &str) -> &'a ResolvedFunction
+- descriptor · function · L241-L263 — fn descriptor(source: &str, id: &str) -> NativeAdapterDescriptor
+- descriptor_round_trips_complete_ordered_signature_and_result_metadata · function · L266-L316 — fn descriptor_round_trips_complete_ordered_signature_and_result_metadata()
+- display_and_whitespace_do_not_change_bytes_but_physical_abi_changes_do · function · L319-L335 — fn display_and_whitespace_do_not_change_bytes_but_physical_abi_changes_do()
+- same_module_functions_have_distinct_deterministic_getters_and_ordered_bytes · function · L338-L358 — fn same_module_functions_have_distinct_deterministic_getters_and_ordered_bytes()
+- hostile_wire_inputs_fail_closed_without_repairs · function · L361-L399 — fn hostile_wire_inputs_fail_closed_without_repairs()
+- TestDirectory · struct · L401-L403 — struct TestDirectory
+- create · function · L406-L414 — fn create() -> Self
+- drop · function · L418-L422 — fn drop(&mut self)
+- compile · function · L425-L433 — fn compile(command: &mut Command, context: &str)
+- strict_separate_c_and_cpp_translation_units_link_and_inspect_descriptor · function · L436-L582 — fn strict_separate_c_and_cpp_translation_units_link_and_inspect_descriptor()
+- shared_library_exports_only_getter_and_dynamic_consumer_runs · function · L585-L679 — fn shared_library_exports_only_getter_and_dynamic_consumer_runs()
+- assert_dynamic_export_allowlist · function · L681-L745 — fn assert_dynamic_export_allowlist(library: &Path, getter: &str)

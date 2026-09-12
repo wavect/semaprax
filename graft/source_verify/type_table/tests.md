@@ -1,0 +1,25 @@
+# source_verify/type_table/tests.rs
+
+- parsed · function · L12-L14 — fn parsed(source: &str, path: &str) -> Program
+- named · function · L16-L21 — fn named(name: &str) -> Type
+- generic · function · L23-L28 — fn generic(name: &str, arguments: Vec<Type>) -> Type
+- INHERITANCE · constant · L32-L81 — const INHERITANCE: &str = r#"module test.type_table_inheritance;
+- field_names · function · L83-L85 — fn field_names(fields: &[FieldDeclaration]) -> Vec<String>
+- effective_class_fields_are_merged_root_ancestor_first · function · L88-L116 — fn effective_class_fields_are_merged_root_ancestor_first()
+- method_resolution_prefers_the_nearest_declaring_class · function · L119-L140 — fn method_resolution_prefers_the_nearest_declaring_class()
+- class_ancestry_is_transitive_and_a_cycle_terminates · function · L143-L180 — fn class_ancestry_is_transitive_and_a_cycle_terminates()
+- SHAPES · constant · L182-L244 — const SHAPES: &str = r#"module test.type_table_shapes;
+- drop_authority_is_broader_than_authored_resource_membership · function · L247-L284 — fn drop_authority_is_broader_than_authored_resource_membership()
+- owned_byte_aggregates_are_classified_flat_nested_or_outside_the_profile · function · L287-L336 — fn owned_byte_aggregates_are_classified_flat_nested_or_outside_the_profile()
+- nested_generic_owned_instances_share_one_bounded_worklist · function · L339-L377 — fn nested_generic_owned_instances_share_one_bounded_worklist()
+- generic_nested_field_bound_source · function · L379-L389 — fn generic_nested_field_bound_source(inner_fields: usize) -> String
+- nested_generic_owned_instances_charge_descendant_fields_globally · function · L392-L416 — fn nested_generic_owned_instances_charge_descendant_fields_globally()
+- nested_generic_owned_instance_cycles_fail_closed · function · L419-L434 — fn nested_generic_owned_instance_cycles_fail_closed()
+- a_self_recursive_record_is_reported_recursive_rather_than_traversed · function · L437-L464 — fn a_self_recursive_record_is_reported_recursive_rather_than_traversed()
+- chain_source · function · L466-L484 — fn chain_source(depth: usize) -> String
+- the_nested_record_depth_bound_admits_the_limit_and_refuses_one_deeper · function · L487-L507 — fn the_nested_record_depth_bound_admits_the_limit_and_refuses_one_deeper()
+- leaves_source · function · L509-L519 — fn leaves_source(leaves: usize) -> String
+- the_owned_byte_leaf_bound_admits_the_limit_and_refuses_one_more · function · L522-L540 — fn the_owned_byte_leaf_bound_admits_the_limit_and_refuses_one_more()
+- the_owned_byte_prelude_carriers_are_an_exact_closed_list · function · L543-L572 — fn the_owned_byte_prelude_carriers_are_an_exact_closed_list()
+- generic_record_field_types_are_substituted_by_declaration_position · function · L575-L607 — fn generic_record_field_types_are_substituted_by_declaration_position()
+- field_and_case_lookups_reject_the_wrong_declaration_kind · function · L610-L627 — fn field_and_case_lookups_reject_the_wrong_declaration_kind()

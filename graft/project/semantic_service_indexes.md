@@ -1,0 +1,55 @@
+# project/semantic_service_indexes.rs
+
+- SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA · constant · L16-L17 — pub const SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA: &str =
+- SEMANTIC_SERVICE_INDEX_RESULT_SCHEMA · constant · L18-L19 — pub const SEMANTIC_SERVICE_INDEX_RESULT_SCHEMA: &str =
+- MAX_SEMANTIC_SERVICE_INDEX_QUERY_BYTES · constant · L20-L20 — pub const MAX_SEMANTIC_SERVICE_INDEX_QUERY_BYTES: usize = 4_096;
+- MAX_SEMANTIC_SERVICE_INDEX_RESULT_BYTES · constant · L21-L21 — pub const MAX_SEMANTIC_SERVICE_INDEX_RESULT_BYTES: usize = 1024 * 1024;
+- MAX_SEMANTIC_SERVICE_INDEX_ITEMS · constant · L22-L22 — pub const MAX_SEMANTIC_SERVICE_INDEX_ITEMS: usize = 8_192;
+- MAX_INDEX_WALK · constant · L23-L23 — const MAX_INDEX_WALK: usize = 65_536;
+- QUERY_DOMAIN · constant · L25-L25 — const QUERY_DOMAIN: &[u8] = b"semaprax.semantic-workspace-service.index-query.digest.v1\0";
+- RESULT_DOMAIN · constant · L26-L26 — const RESULT_DOMAIN: &[u8] = b"semaprax.semantic-workspace-service.index-result.digest.v1\0";
+- Result · type · L28-L28 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- SemanticServiceIndexOperation · enum · L31-L34 — pub enum SemanticServiceIndexOperation
+- name · function · L37-L42 — pub const fn name(self) -> &'static str
+- SemanticServiceIndexItemKind · enum · L46-L50 — pub enum SemanticServiceIndexItemKind
+- name · function · L53-L59 — const fn name(self) -> &'static str
+- SemanticServiceIndexItem · struct · L63-L67 — pub struct SemanticServiceIndexItem
+- stable_id · function · L70-L72 — pub fn stable_id(&self) -> &str
+- name · function · L74-L76 — pub fn name(&self) -> &str
+- kind · function · L78-L80 — pub const fn kind(&self) -> SemanticServiceIndexItemKind
+- SemanticServiceIndexQuery · struct · L84-L90 — pub struct SemanticServiceIndexQuery
+- tests_covering_declaration · function · L93-L102 — pub fn tests_covering_declaration(
+- functions_reaching_effect · function · L104-L113 — pub fn functions_reaching_effect(
+- new · function · L115-L144 — fn new(
+- from_json · function · L146-L220 — pub fn from_json(bytes: &[u8]) -> Result<Self>
+- to_json · function · L222-L224 — pub fn to_json(&self) -> &str
+- query_digest · function · L226-L228 — pub fn query_digest(&self) -> &str
+- expected_workspace_revision · function · L230-L232 — pub fn expected_workspace_revision(&self) -> &str
+- operation · function · L234-L236 — pub const fn operation(&self) -> SemanticServiceIndexOperation
+- selector · function · L238-L240 — pub fn selector(&self) -> &str
+- execute · function · L242-L299 — pub fn execute(
+- replay · function · L303-L326 — pub fn replay(
+- SemanticServiceIndexResult · struct · L329-L336 — pub struct SemanticServiceIndexResult
+- to_json · function · L339-L341 — pub fn to_json(&self) -> &str
+- result_digest · function · L342-L344 — pub fn result_digest(&self) -> &str
+- query_digest · function · L345-L347 — pub fn query_digest(&self) -> &str
+- workspace_revision · function · L348-L350 — pub fn workspace_revision(&self) -> &str
+- operation · function · L351-L353 — pub const fn operation(&self) -> SemanticServiceIndexOperation
+- items · function · L354-L356 — pub fn items(&self) -> &[SemanticServiceIndexItem]
+- IndexedFunction · struct · L360-L363 — struct IndexedFunction
+- SemanticServiceIndexes · struct · L365-L369 — pub(crate) struct SemanticServiceIndexes
+- derive · function · L372-L422 — pub(crate) fn derive(revision: &ProjectRevision) -> Result<Self>
+- tests_covering · function · L424-L437 — fn tests_covering(&self, stable_id: &str) -> Result<Vec<SemanticServiceIndexItem>>
+- functions_reaching_effect · function · L439-L450 — fn functions_reaching_effect(&self, effect: &str) -> Result<Vec<SemanticServiceIndexItem>>
+- reverse_closure · function · L452-L480 — fn reverse_closure<'a>(
+- item · function · L482-L494 — fn item(
+- index_program · function · L497-L547 — fn index_program(
+- insert_function_fact · function · L549-L567 — fn insert_function_fact(
+- exact_keys · function · L569-L574 — fn exact_keys(object: &serde_json::Map<String, Value>, expected: &[&str]) -> Result<()>
+- validate_selector · function · L576-L581 — fn validate_selector(value: &str) -> Result<()>
+- validate_digest · function · L583-L593 — fn validate_digest(value: &str) -> Result<()>
+- render · function · L595-L606 — fn render(mut value: Value, max_bytes: usize) -> Result<String>
+- hash · function · L608-L617 — fn hash(domain: &[u8], bytes: &[u8]) -> String
+- invalid · function · L619-L621 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L622-L624 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L625-L627 — fn stale(message: &'static str) -> Vec<Diagnostic>

@@ -1,0 +1,26 @@
+# project/prepared_interpreter/worker.rs
+
+- replacement · module · L17-L17 — mod replacement;
+- tests · module · L19-L19 — mod tests;
+- MAX_PREPARED_PROJECT_INTERPRETER_WORKERS · constant · L23-L23 — pub(super) const MAX_PREPARED_PROJECT_INTERPRETER_WORKERS: usize = 8;
+- ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS · constant · L24-L24 — pub(super) static ACTIVE_PREPARED_PROJECT_INTERPRETER_WORKERS: AtomicUsize = AtomicUsize::new(0);
+- ExecutionRequest · struct · L26-L31 — struct ExecutionRequest
+- WorkerMessage · enum · L33-L37 — enum WorkerMessage
+- PreparedProjectInterpreter · struct · L41-L49 — pub struct PreparedProjectInterpreter
+- replace_revision · function · L56-L83 — pub fn replace_revision(
+- execute · function · L85-L119 — pub fn execute(
+- execute_entry · function · L120-L126 — pub fn execute_entry(
+- execute_test · function · L127-L133 — pub fn execute_test(
+- drop · function · L137-L142 — fn drop(&mut self)
+- ExecutionAdmission · struct · L146-L148 — pub(super) struct ExecutionAdmission<'a>
+- acquire · function · L150-L159 — pub(super) fn acquire(executing: &'a AtomicBool) -> Result<Self, Vec<Diagnostic>>
+- drop · function · L162-L164 — fn drop(&mut self)
+- PreparedWorkerPermit · struct · L168-L170 — pub(super) struct PreparedWorkerPermit
+- acquire · function · L172-L193 — pub(super) fn acquire(
+- drop · function · L196-L199 — fn drop(&mut self)
+- prepare_project_interpreter · function · L202-L233 — pub fn prepare_project_interpreter(
+- worker_loop · function · L235-L269 — fn worker_loop(
+- execute_request · function · L271-L294 — fn execute_request(
+- finish_execution · function · L296-L311 — fn finish_execution(
+- prepare_interpreter · function · L314-L319 — pub fn prepare_interpreter(
+- prepare_interpreter · function · L322-L327 — pub fn prepare_interpreter(

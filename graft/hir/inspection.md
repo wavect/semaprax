@@ -1,0 +1,28 @@
+# hir/inspection.rs
+
+- validate · function · L12-L19 — pub fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic>
+- validate_nul_free_identities · function · L21-L140 — pub(super) fn validate_nul_free_identities(program: &ResolvedProgram) -> Result<(), Diagnostic>
+- validate_attached_identity_references · function · L147-L155 — pub(crate) fn validate_attached_identity_references(
+- audit_resolved_type · function · L157-L192 — fn audit_resolved_type(root: &ResolvedType) -> Result<(), Diagnostic>
+- audit_resolved_record_match_pattern · function · L194-L217 — fn audit_resolved_record_match_pattern(
+- audit_resolved_expression · function · L219-L439 — fn audit_resolved_expression(root: &ResolvedExpr) -> Result<(), Diagnostic>
+- audit_hir_place · function · L441-L455 — fn audit_hir_place(place: &Place) -> Result<(), Diagnostic>
+- audit_field_liveness_shape · function · L457-L493 — fn audit_field_liveness_shape(root: &crate::cleanup::FieldLivenessShape) -> Result<(), Diagnostic>
+- audit_inventory_place · function · L495-L500 — fn audit_inventory_place(place: &crate::cleanup::CleanupPlace) -> Result<(), Diagnostic>
+- audit_cleanup_inventory · function · L502-L522 — fn audit_cleanup_inventory(inventory: &CleanupInventory) -> Result<(), Diagnostic>
+- audit_plan_storage · function · L524-L546 — fn audit_plan_storage(storage: &crate::cleanup_plan::StorageId) -> Result<(), Diagnostic>
+- audit_plan_place · function · L548-L554 — fn audit_plan_place(place: &crate::cleanup_plan::CleanupPlace) -> Result<(), Diagnostic>
+- audit_status_source · function · L556-L558 — fn audit_status_source(source: &crate::cleanup_plan::StatusSourceId) -> Result<(), Diagnostic>
+- audit_result_source · function · L560-L572 — fn audit_result_source(
+- audit_cleanup_plan · function · L574-L786 — fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic>
+- declaration_identity_subject · function · L788-L802 — fn declaration_identity_subject(kind: DeclarationKind) -> &'static str
+- reject_nul_identity · function · L804-L810 — pub(super) fn reject_nul_identity(subject: &str, value: &str) -> Result<(), Diagnostic>
+- path_is_prefix · function · L812-L814 — pub(super) fn path_is_prefix<T: PartialEq>(prefix: &[T], path: &[T]) -> bool
+- resolved_lifecycle_effects · function · L816-L874 — pub(super) fn resolved_lifecycle_effects(
+- collect · function · L820-L869 — fn collect(
+- visit_resolved_calls · function · L876-L994 — pub(crate) fn visit_resolved_calls(
+- workspace_call_edges · function · L996-L1013 — pub(super) fn workspace_call_edges(
+- workspace_expression_identity · function · L1016-L1020 — pub(crate) fn workspace_expression_identity(owner: &DeclarationId, path: &str) -> String
+- workspace_call_sites · function · L1023-L1169 — pub(crate) fn workspace_call_sites(
+- walk · function · L1026-L1145 — fn walk(
+- tests · module · L1172-L1172 — mod tests;

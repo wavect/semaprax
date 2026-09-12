@@ -1,0 +1,106 @@
+---
+covers: []
+---
+# scoped_tasks.rs
+
+- SCOPED_TASKS_MODEL_V1 · constant · L28-L28 — pub const SCOPED_TASKS_MODEL_V1: &str = "semaprax.scoped-tasks-model.v1";
+- SCOPED_TASKS_TRACE_V1 · constant · L29-L29 — pub const SCOPED_TASKS_TRACE_V1: &str = "semaprax.scoped-tasks-trace.v1";
+- MAX_SCOPES · constant · L31-L31 — pub const MAX_SCOPES: usize = 4_096;
+- MAX_TASKS · constant · L32-L32 — pub const MAX_TASKS: usize = 4_096;
+- MAX_DEPENDENCIES · constant · L33-L33 — pub const MAX_DEPENDENCIES: usize = 65_536;
+- MAX_WORK_UNITS · constant · L34-L34 — const MAX_WORK_UNITS: u64 = 1_000_000;
+- MODEL_FINGERPRINT_DOMAIN · constant · L35-L35 — const MODEL_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.scoped-tasks-model-fingerprint.v1\0";
+- TRACE_FINGERPRINT_DOMAIN · constant · L36-L36 — const TRACE_FINGERPRINT_DOMAIN: &[u8] = b"semaprax.scoped-tasks-trace-fingerprint.v1\0";
+- SendableMark · enum · L41-L44 — pub enum SendableMark
+- ShareableMark · enum · L49-L52 — pub enum ShareableMark
+- TaskOutcome · enum · L56-L59 — pub enum TaskOutcome
+- FailureKind · enum · L64-L67 — pub enum FailureKind
+- ScopeSpec · struct · L72-L75 — pub struct ScopeSpec
+- root · function · L79-L84 — pub fn root(id: impl Into<String>) -> Self
+- child · function · L87-L92 — pub fn child(id: impl Into<String>, parent: impl Into<String>) -> Self
+- id · function · L95-L97 — pub fn id(&self) -> &DeclarationId
+- parent · function · L100-L102 — pub fn parent(&self) -> Option<&DeclarationId>
+- TaskSpec · struct · L108-L114 — pub struct TaskSpec
+- new · function · L118-L132 — pub fn new(
+- id · function · L135-L137 — pub fn id(&self) -> &DeclarationId
+- scope · function · L140-L142 — pub fn scope(&self) -> &DeclarationId
+- sendable · function · L145-L147 — pub const fn sendable(&self) -> SendableMark
+- shareable · function · L150-L152 — pub const fn shareable(&self) -> ShareableMark
+- outcome · function · L155-L157 — pub const fn outcome(&self) -> &TaskOutcome
+- ScopeJoin · struct · L163-L166 — pub struct ScopeJoin
+- new · function · L170-L175 — pub fn new(waiter: impl Into<String>, target: impl Into<String>) -> Self
+- waiter · function · L178-L180 — pub fn waiter(&self) -> &DeclarationId
+- target · function · L183-L185 — pub fn target(&self) -> &DeclarationId
+- DependencyEdge · struct · L193-L196 — pub struct DependencyEdge
+- new · function · L200-L205 — pub fn new(prerequisite: impl Into<String>, dependent: impl Into<String>) -> Self
+- prerequisite · function · L208-L210 — pub fn prerequisite(&self) -> &DeclarationId
+- dependent · function · L213-L215 — pub fn dependent(&self) -> &DeclarationId
+- ScopeEntry · struct · L219-L222 — struct ScopeEntry
+- TaskEntry · struct · L225-L230 — struct TaskEntry
+- ScopedTaskModel · struct · L238-L247 — pub struct ScopedTaskModel
+- try_new · function · L251-L424 — pub fn try_new(
+- schema · function · L427-L429 — pub const fn schema(&self) -> &'static str
+- root · function · L432-L434 — pub fn root(&self) -> &DeclarationId
+- scopes · function · L436-L440 — pub fn scopes(&self) -> impl Iterator<Item = (&DeclarationId, Option<&DeclarationId>)>
+- tasks · function · L442-L462 — pub fn tasks(
+- dependencies · function · L464-L466 — pub fn dependencies(&self) -> impl Iterator<Item = (&DeclarationId, &DeclarationId)>
+- joins · function · L468-L470 — pub fn joins(&self) -> impl Iterator<Item = (&DeclarationId, &DeclarationId)>
+- fingerprint · function · L473-L475 — pub const fn fingerprint(&self) -> [u8; 32]
+- canonical_json · function · L478-L543 — pub fn canonical_json(&self) -> String
+- prepare_run · function · L547-L586 — pub fn prepare_run(&self) -> ScopedTaskRun<'_>
+- validate_identity · function · L589-L594 — fn validate_identity(name: &str) -> Result<(), ScopedTasksError>
+- is_self_or_ancestor · function · L596-L609 — fn is_self_or_ancestor(
+- canonical_depths · function · L611-L641 — fn canonical_depths(
+- validate_acyclic · function · L643-L680 — fn validate_acyclic(
+- TaskEvent · enum · L685-L709 — pub enum TaskEvent
+- canonical_json · function · L713-L748 — pub fn canonical_json(&self) -> String
+- ScopeExitOutcome · enum · L755-L762 — pub enum ScopeExitOutcome
+- TaskPhase · enum · L766-L772 — pub enum TaskPhase
+- RunTotals · struct · L775-L780 — pub struct RunTotals
+- ScopeRunSummary · struct · L785-L788 — pub struct ScopeRunSummary
+- root_outcome · function · L792-L794 — pub const fn root_outcome(&self) -> &ScopeExitOutcome
+- totals · function · L797-L799 — pub const fn totals(&self) -> RunTotals
+- TaskState · enum · L803-L809 — enum TaskState
+- TaskRuntime · struct · L812-L815 — struct TaskRuntime
+- pending · function · L818-L823 — const fn pending() -> Self
+- ScopedTaskRun · struct · L831-L848 — pub struct ScopedTaskRun<'a>
+- model_fingerprint · function · L852-L854 — pub const fn model_fingerprint(&self) -> [u8; 32]
+- events · function · L857-L859 — pub fn events(&self) -> &[TaskEvent]
+- is_complete · function · L862-L864 — pub const fn is_complete(&self) -> bool
+- totals · function · L867-L869 — pub fn totals(&self) -> RunTotals
+- task_phase · function · L872-L881 — pub fn task_phase(&self, task: &str) -> Option<TaskPhase>
+- is_scope_cancelled · function · L884-L886 — pub fn is_scope_cancelled(&self, scope: &str) -> bool
+- cancel_scope · function · L893-L908 — pub fn cancel_scope(&mut self, scope: &str) -> Result<bool, ScopedTasksError>
+- step · function · L915-L949 — pub fn step(&mut self) -> Result<Option<TaskEvent>, ScopedTasksError>
+- finish · function · L952-L966 — pub fn finish(&self) -> Result<ScopeRunSummary, ScopedTasksError>
+- trace_canonical_json · function · L971-L1000 — pub fn trace_canonical_json(&self) -> String
+- trace_digest · function · L1004-L1009 — pub fn trace_digest(&self) -> [u8; 32]
+- first_failure · function · L1013-L1016 — pub fn first_failure(&self, scope: &str) -> Option<(&DeclarationId, FailureKind)>
+- authenticate · function · L1018-L1023 — fn authenticate(&self) -> Result<(), ScopedTasksError>
+- record · function · L1025-L1037 — fn record(&mut self, event: TaskEvent) -> TaskEvent
+- apply_running_outcome · function · L1039-L1064 — fn apply_running_outcome(&mut self) -> Option<TaskEvent>
+- settle_completion_edges · function · L1066-L1072 — fn settle_completion_edges(&mut self, task: &DeclarationId)
+- record_failure · function · L1074-L1097 — fn record_failure(&mut self, task: &DeclarationId, failure: FailureKind)
+- materialize_scope_cancelled · function · L1099-L1107 — fn materialize_scope_cancelled(&mut self) -> Option<TaskEvent>
+- task_in_cancelled_scope · function · L1109-L1125 — fn task_in_cancelled_scope(&self, task: &DeclarationId) -> bool
+- materialize_task_cancelled · function · L1127-L1137 — fn materialize_task_cancelled(&mut self) -> Option<TaskEvent>
+- is_ready · function · L1139-L1145 — fn is_ready(&self, task: &DeclarationId) -> bool
+- start_ready_task · function · L1147-L1158 — fn start_ready_task(&mut self) -> Option<TaskEvent>
+- abandon_blocked_task · function · L1160-L1170 — fn abandon_blocked_task(&mut self) -> Option<TaskEvent>
+- exit_candidate · function · L1175-L1211 — fn exit_candidate(&self) -> Option<DeclarationId>
+- unfinalized_ran_tasks · function · L1213-L1225 — fn unfinalized_ran_tasks<'scope>(
+- finalize_one_task · function · L1227-L1235 — fn finalize_one_task(&mut self) -> Option<TaskEvent>
+- exit_one_scope · function · L1237-L1246 — fn exit_one_scope(&mut self) -> Option<TaskEvent>
+- scope_exit_outcome_for · function · L1248-L1259 — fn scope_exit_outcome_for(&self, scope: &DeclarationId) -> ScopeExitOutcome
+- descendants_including · function · L1261-L1278 — fn descendants_including(&self, scope: &DeclarationId) -> Vec<DeclarationId>
+- fmt · function · L1282-L1289 — fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result
+- ScopedTasksError · enum · L1293-L1317 — pub enum ScopedTasksError
+- fmt · function · L1320-L1346 — fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result
+- fingerprint · function · L1351-L1357 — fn fingerprint(domain: &[u8], bytes: &[u8]) -> [u8; 32]
+- hex · function · L1359-L1366 — fn hex(bytes: &[u8]) -> String
+- sendable_name · function · L1368-L1373 — const fn sendable_name(mark: SendableMark) -> &'static str
+- shareable_name · function · L1375-L1380 — const fn shareable_name(mark: ShareableMark) -> &'static str
+- failure_json · function · L1382-L1387 — fn failure_json(failure: FailureKind) -> String
+- outcome_json · function · L1389-L1399 — fn outcome_json(outcome: &TaskOutcome) -> String
+- scope_exit_outcome_json · function · L1401-L1411 — fn scope_exit_outcome_json(outcome: &ScopeExitOutcome) -> String
+- tests · module · L1415-L1415 — mod tests;

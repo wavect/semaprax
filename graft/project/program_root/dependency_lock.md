@@ -1,0 +1,29 @@
+# project/program_root/dependency_lock.rs
+
+- PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_SCHEMA · constant · L16-L17 — pub const PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_SCHEMA: &str =
+- MAX_PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_BYTES · constant · L18-L18 — pub const MAX_PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_BYTES: usize = 64 * 1024;
+- ASSOCIATION_DOMAIN · constant · L20-L20 — const ASSOCIATION_DOMAIN: &[u8] = b"semaprax.program-root.dependency-lock-association.digest.v1\0";
+- LOCK_BYTES_DOMAIN · constant · L21-L22 — const LOCK_BYTES_DOMAIN: &[u8] =
+- NONCLAIMS · constant · L23-L28 — const NONCLAIMS: [&str; 4] = [
+- Result · type · L30-L30 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- ProgramRootDependencyLockAssociation · struct · L34-L41 — pub struct ProgramRootDependencyLockAssociation
+- derive · function · L44-L110 — pub fn derive(
+- replay · function · L112-L155 — pub fn replay(
+- association_digest · function · L157-L159 — pub fn association_digest(&self) -> &str
+- program_root_digest · function · L160-L162 — pub fn program_root_digest(&self) -> &str
+- project_lock_digest · function · L163-L165 — pub fn project_lock_digest(&self) -> &str
+- project_lock_bytes_digest · function · L166-L168 — pub fn project_lock_bytes_digest(&self) -> &str
+- project_lock_bytes · function · L170-L172 — pub fn project_lock_bytes(&self) -> &str
+- to_json · function · L173-L175 — pub fn to_json(&self) -> &str
+- program_root_segment · function · L180-L187 — pub fn program_root_segment(&self) -> Result<ProgramRootSegment>
+- associate_dependency_lock · function · L192-L204 — pub fn associate_dependency_lock(
+- validate_wire · function · L207-L307 — fn validate_wire(value: &Value, project_lock_bytes: &str) -> Result<()>
+- canonical_json · function · L309-L320 — fn canonical_json(mut value: Value, maximum: usize) -> Result<String>
+- with_field · function · L322-L329 — fn with_field(value: Value, key: &str, field: Value) -> Value
+- without_field · function · L331-L339 — fn without_field(value: &Value, key: &str) -> Result<Value>
+- exact_object · function · L341-L343 — fn exact_object<'a>(value: &'a Value, subject: &'static str) -> Result<&'a Map<String, Value>>
+- exact_fields · function · L345-L350 — fn exact_fields(object: &Map<String, Value>, fields: &[&str], subject: &'static str) -> Result<()>
+- validate_digest · function · L352-L362 — fn validate_digest(value: &str) -> Result<()>
+- framed_digest · function · L364-L373 — fn framed_digest(domain: &[u8], bytes: &[u8]) -> String
+- invalid · function · L375-L377 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L379-L381 — fn stale(message: &'static str) -> Vec<Diagnostic>

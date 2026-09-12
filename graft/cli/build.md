@@ -1,0 +1,32 @@
+# cli/build.rs
+
+- BuildOptions · struct · L12-L20 — pub(crate) struct BuildOptions
+- BuildInput · enum · L23-L26 — pub(crate) enum BuildInput
+- ProjectBuildParentHook · interface · L28-L30 — pub(crate) trait ProjectBuildParentHook
+- before_create · function · L29-L29 — fn before_create(&self, grandparent: &Path, parent: &Path) -> Result<(), String>;
+- NoopProjectBuildParentHook · struct · L32-L32 — struct NoopProjectBuildParentHook;
+- before_create · function · L35-L37 — fn before_create(&self, _grandparent: &Path, _parent: &Path) -> Result<(), String>
+- ProjectOutputParent · struct · L40-L43 — pub(crate) struct ProjectOutputParent
+- SourceNativeOutput · struct · L54-L61 — pub(crate) struct SourceNativeOutput
+- prepare · function · L68-L127 — pub(crate) fn prepare(path: &Path) -> Result<Self, Diagnostic>
+- publish · function · L129-L169 — pub(crate) fn publish(&mut self, compiled: &Path) -> Result<(), Diagnostic>
+- drop · function · L173-L183 — fn drop(&mut self)
+- CreatedProjectOutputParent · struct · L186-L191 — struct CreatedProjectOutputParent
+- prepare · function · L194-L196 — pub(crate) fn prepare(output: &Path) -> Result<Self, Diagnostic>
+- prepare_with_hook · function · L198-L300 — pub(crate) fn prepare_with_hook(
+- retain · function · L302-L317 — pub(crate) fn retain(&mut self) -> Result<(), Diagnostic>
+- drop · function · L321-L335 — fn drop(&mut self)
+- directory_is_empty · function · L338-L342 — fn directory_is_empty(path: &Path) -> bool
+- authenticate_directory · function · L344-L350 — fn authenticate_directory(path: &Path, expected: &Handle, message: &str) -> Result<(), Diagnostic>
+- same_plain_directory · function · L352-L359 — fn same_plain_directory(path: &Path, expected: &Handle) -> bool
+- is_plain_directory · function · L361-L363 — fn is_plain_directory(metadata: &fs::Metadata) -> bool
+- metadata_is_reparse · function · L366-L371 — fn metadata_is_reparse(metadata: &fs::Metadata) -> bool
+- FILE_ATTRIBUTE_REPARSE_POINT · constant · L369-L369 — const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+- metadata_is_reparse · function · L374-L376 — fn metadata_is_reparse(_metadata: &fs::Metadata) -> bool
+- parent_error · function · L378-L380 — fn parent_error(message: impl Into<String>) -> Diagnostic
+- absolute_rust_output · function · L382-L415 — pub(crate) fn absolute_rust_output(path: &Path) -> Result<PathBuf, Diagnostic>
+- bind_rust_output_parent · function · L417-L438 — pub(crate) fn bind_rust_output_parent(path: &Path) -> Result<PathBuf, Diagnostic>
+- parse · function · L444-L446 — pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8>
+- parse_with_capabilities · function · L448-L617 — pub(crate) fn parse_with_capabilities(
+- target_catalog · function · L619-L625 — fn target_catalog(input: &BuildInput, private_toolchain: bool) -> &'static [&'static str]
+- tests · module · L629-L629 — mod tests;

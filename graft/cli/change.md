@@ -1,0 +1,35 @@
+# cli/change.rs
+
+- ChangeCommand · enum · L16-L20 — pub(crate) enum ChangeCommand
+- ChangePreview · struct · L22-L27 — pub(crate) struct ChangePreview
+- PreviewOperation · enum · L29-L48 — enum PreviewOperation
+- ChangeRebase · struct · L50-L57 — pub(crate) struct ChangeRebase
+- ChangeMerge · struct · L59-L67 — pub(crate) struct ChangeMerge
+- PreviewOutput · enum · L70-L74 — enum PreviewOutput
+- MergeOrder · enum · L77-L80 — enum MergeOrder
+- PREVIEW_USAGE · constant · L82-L82 — const PREVIEW_USAGE: &str = "change requires preview <project> <rename-display-name <stable-id> <new-name>|replace-expression <stable-id> <expression-id> <replacement-json>|add-contract <stable-id> <requires|ensures> <predicate-json>|add-declaration <anchor-stable-id> <declaration-json>> [--revision digest] [--evidence|--structural-diff]";
+- REBASE_USAGE · constant · L83-L83 — const REBASE_USAGE: &str = "change rebase requires <base-project> rename-display-name <stable-id> <new-name> --onto <onto-project> [--revision digest] [--onto-revision digest]";
+- MERGE_USAGE · constant · L84-L84 — const MERGE_USAGE: &str = "change merge requires <project> rename-display-name <left-id> <left-new-name> --with rename-display-name <right-id> <right-new-name> [--revision digest] --order <left-then-right|right-then-left>";
+- parse · function · L86-L93 — pub(crate) fn parse(args: &[String]) -> Result<ChangeCommand, u8>
+- parse_preview · function · L95-L201 — fn parse_preview(args: &[String]) -> Result<ChangePreview, u8>
+- parse_rebase · function · L203-L242 — fn parse_rebase(args: &[String]) -> Result<ChangeRebase, u8>
+- parse_merge · function · L244-L296 — fn parse_merge(args: &[String]) -> Result<ChangeMerge, u8>
+- project_operand · function · L298-L305 — fn project_operand(
+- project_path · function · L307-L314 — fn project_path(path: String, label: &str) -> Result<PathBuf, u8>
+- required · function · L316-L321 — fn required(args: &[String], index: usize, usage: fn() -> u8) -> Result<String, u8>
+- preview_usage · function · L323-L326 — fn preview_usage() -> u8
+- rebase_usage · function · L328-L331 — fn rebase_usage() -> u8
+- merge_usage · function · L333-L336 — fn merge_usage() -> u8
+- run · function · L338-L347 — pub(crate) fn run(command: ChangeCommand, report: impl Fn(&[Diagnostic]) -> u8) -> Result<(), u8>
+- run_preview · function · L349-L404 — fn run_preview(options: ChangePreview) -> Result<String, Vec<Diagnostic>>
+- replace_expression_transaction · function · L406-L496 — fn replace_expression_transaction(
+- run_rebase · function · L498-L515 — fn run_rebase(options: ChangeRebase) -> Result<String, Vec<Diagnostic>>
+- run_merge · function · L517-L540 — fn run_merge(options: ChangeMerge) -> Result<String, Vec<Diagnostic>>
+- selected_revision · function · L542-L546 — fn selected_revision(service: &SemanticWorkspaceService, requested: Option<&str>) -> String
+- rename_transaction · function · L548-L593 — fn rename_transaction(
+- add_contract_transaction · function · L595-L633 — fn add_contract_transaction(
+- add_declaration_transaction · function · L635-L672 — fn add_declaration_transaction(
+- tests · module · L675-L895 — mod tests
+- strings · function · L678-L680 — fn strings(values: &[&str]) -> Vec<String>
+- preview_grammar_is_closed · function · L683-L794 — fn preview_grammar_is_closed()
+- rebase_and_merge_grammars_are_closed · function · L797-L894 — fn rebase_and_merge_grammars_are_closed()

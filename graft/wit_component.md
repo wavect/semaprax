@@ -1,0 +1,82 @@
+---
+covers: []
+---
+# wit_component.rs
+
+- generic_function_v9 · module · L11-L11 — mod generic_function_v9;
+- generic_record_v7 · module · L12-L12 — mod generic_record_v7;
+- nested_record_v6 · module · L13-L13 — mod nested_record_v6;
+- option_propagation_v10 · module · L14-L14 — mod option_propagation_v10;
+- record_pattern_v8 · module · L15-L15 — mod record_pattern_v8;
+- result_v3 · module · L16-L16 — mod result_v3;
+- scalar_algebra_v5 · module · L17-L17 — mod scalar_algebra_v5;
+- source_result_v4 · module · L18-L18 — mod source_result_v4;
+- is_trivial_drop_resource · function · L62-L75 — pub fn is_trivial_drop_resource(program: &Program, name: &str) -> bool
+- wit_scalar · function · L77-L89 — fn wit_scalar(ty: &crate::ast::Type) -> Option<&'static str>
+- wit_resource_ident · function · L91-L103 — fn wit_resource_ident(name: &str) -> String
+- wit_func_ident · function · L105-L107 — fn wit_func_ident(name: &str) -> String
+- emit_owned_resource_wit · function · L116-L118 — pub fn emit_owned_resource_wit(program: &Program) -> Result<String, Diagnostic>
+- emit_wit · function · L122-L349 — pub fn emit_wit(program: &Program) -> Result<String, Diagnostic>
+- MAGIC · constant · L351-L351 — const MAGIC: &[u8; 8] = b"SPXWIT01";
+- WIT · constant · L353-L353 — const WIT: &str = "package semaprax:private@0.1.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  evaluate: func(left: s64, right: s64) -> result<s64, status>;\n}\n\nworld semaprax-private-v1 {\n  export evaluation;\n}\n";
+- SCHEMA · constant · L355-L355 — const SCHEMA: &str = "{\"abi\":\"wasm-component-canonical-v1\",\"copy\":{\"status.domain\":\"utf8-copy\"},\"interface\":\"semaprax:private/evaluation@0.1.0\",\"mapping\":{\"status.domain\":\"semaprax.status.v1.domain_id\"},\"result\":{\"err\":\"status\",\"ok\":\"s64\"},\"version\":1}";
+- JAVASCRIPT · constant · L357-L391 — const JAVASCRIPT: &str = r#"function spxOwnDataSnapshot(candidate, error)
+- PrivateWitBundleV1 · struct · L394-L400 — pub struct PrivateWitBundleV1
+- emit_private_wit_bundle_v1 · function · L403-L418 — pub fn emit_private_wit_bundle_v1() -> PrivateWitBundleV1
+- bytes · function · L422-L424 — pub fn bytes(&self) -> &[u8]
+- COMPONENT_HEADER · constant · L427-L427 — const COMPONENT_HEADER: &[u8; 8] = b"\0asm\x0d\0\x01\0";
+- PrivateComponentArtifactV1 · struct · L437-L440 — pub struct PrivateComponentArtifactV1
+- bytes · function · L444-L446 — pub fn bytes(&self) -> &[u8]
+- PrivateComponentValidationError · enum · L451-L456 — pub enum PrivateComponentValidationError
+- code · function · L460-L467 — pub const fn code(self) -> &'static str
+- ValidatedPrivateComponentV1 · struct · L472-L474 — pub struct ValidatedPrivateComponentV1<'a>
+- core_module · function · L478-L480 — pub const fn core_module(self) -> &'a [u8]
+- export_name · function · L483-L485 — pub const fn export_name(self) -> &'static str
+- emit_private_component_v1 · function · L490-L515 — pub fn emit_private_component_v1() -> PrivateComponentArtifactV1
+- validate_private_component_v1 · function · L521-L577 — pub fn validate_private_component_v1(
+- private_component_runtime_javascript_v1 · function · L583-L585 — pub const fn private_component_runtime_javascript_v1() -> &'static str
+- PRIVATE_COMPONENT_RUNTIME_JAVASCRIPT_V1 · constant · L587-L651 — const PRIVATE_COMPONENT_RUNTIME_JAVASCRIPT_V1: &str = r#"function spxComponentCursor(bytes)
+- PrivateCheckedComponentArtifactV2 · struct · L656-L662 — pub struct PrivateCheckedComponentArtifactV2
+- bytes · function · L666-L668 — pub fn bytes(&self) -> &[u8]
+- source_revision · function · L671-L673 — pub fn source_revision(&self) -> &str
+- digest · function · L676-L678 — pub const fn digest(&self) -> [u8; 32]
+- generated_core_digest · function · L681-L683 — pub const fn generated_core_digest(&self) -> [u8; 32]
+- runtime_core_digest · function · L686-L688 — pub const fn runtime_core_digest(&self) -> [u8; 32]
+- ValidatedPrivateCheckedComponentV2 · struct · L693-L696 — pub struct ValidatedPrivateCheckedComponentV2<'a>
+- runtime_core · function · L700-L702 — pub const fn runtime_core(self) -> &'a [u8]
+- generated_core · function · L705-L707 — pub const fn generated_core(self) -> &'a [u8]
+- export_name · function · L710-L712 — pub const fn export_name(self) -> &'static str
+- CHECKED_RUNTIME_CORE_V2_SHA256 · constant · L715-L718 — const CHECKED_RUNTIME_CORE_V2_SHA256: [u8; 32] = [
+- emit_private_checked_component_v2 · function · L723-L766 — pub fn emit_private_checked_component_v2(
+- validate_private_checked_component_v2 · function · L770-L834 — pub fn validate_private_checked_component_v2(
+- private_checked_component_runtime_javascript_v2 · function · L840-L848 — pub fn private_checked_component_runtime_javascript_v2(
+- PRIVATE_CHECKED_COMPONENT_RUNTIME_JAVASCRIPT_V2 · constant · L850-L922 — const PRIVATE_CHECKED_COMPONENT_RUNTIME_JAVASCRIPT_V2: &str = r#"function spxCheckedComponentCursor(bytes)
+- hex_digest · function · L924-L931 — fn hex_digest(digest: &[u8; 32]) -> String
+- validate_generated_scalar_core_v2 · function · L933-L978 — fn validate_generated_scalar_core_v2(
+- emit_checked_runtime_core_v2 · function · L980-L1026 — fn emit_checked_runtime_core_v2() -> Vec<u8>
+- checked_add_body · function · L1028-L1033 — fn checked_add_body() -> Vec<u8>
+- checked_sub_body · function · L1035-L1040 — fn checked_sub_body() -> Vec<u8>
+- checked_mul_body · function · L1042-L1047 — fn checked_mul_body() -> Vec<u8>
+- checked_rem_body · function · L1049-L1058 — fn checked_rem_body() -> Vec<u8>
+- checked_neg_body · function · L1060-L1065 — fn checked_neg_body() -> Vec<u8>
+- push_core_body · function · L1067-L1073 — fn push_core_body(code: &mut Vec<u8>, locals: &[u8], instructions: &[u8])
+- push_i64 · function · L1075-L1085 — fn push_i64(output: &mut Vec<u8>, mut value: i64)
+- emit_private_component_core_v1 · function · L1087-L1101 — fn emit_private_component_core_v1() -> Vec<u8>
+- validate_private_component_core_v1 · function · L1103-L1131 — fn validate_private_component_core_v1(
+- validate_exact_counted_section · function · L1133-L1142 — fn validate_exact_counted_section(
+- validate_exact_payload · function · L1144-L1154 — fn validate_exact_payload(
+- push_counted_section · function · L1156-L1161 — fn push_counted_section(output: &mut Vec<u8>, id: u8, count: u32, entries: &[u8])
+- push_section · function · L1163-L1170 — fn push_section(output: &mut Vec<u8>, id: u8, payload: &[u8])
+- push_name · function · L1172-L1178 — fn push_name(output: &mut Vec<u8>, name: &str)
+- push_u32 · function · L1180-L1192 — fn push_u32(output: &mut Vec<u8>, mut value: u32)
+- Cursor · struct · L1195-L1198 — struct Cursor<'a>
+- new · function · L1201-L1203 — const fn new(bytes: &'a [u8]) -> Self
+- take · function · L1205-L1214 — fn take(&mut self, count: usize) -> Result<&'a [u8], PrivateComponentValidationError>
+- u32 · function · L1216-L1235 — fn u32(&mut self) -> Result<u32, PrivateComponentValidationError>
+- section · function · L1237-L1244 — fn section(&mut self, expected_id: u8) -> Result<&'a [u8], PrivateComponentValidationError>
+- expect_u32 · function · L1246-L1256 — fn expect_u32(
+- expect_bytes · function · L1258-L1268 — fn expect_bytes(
+- expect_name · function · L1270-L1282 — fn expect_name(
+- finish · function · L1284-L1293 — fn finish(
+- verify_private_wit_bundle_v1 · function · L1296-L1305 — pub fn verify_private_wit_bundle_v1(candidate: &[u8]) -> Result<(), &'static str>
+- tests · module · L1309-L1309 — mod tests;

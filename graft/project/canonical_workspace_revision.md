@@ -1,0 +1,46 @@
+# project/canonical_workspace_revision.rs
+
+- SEMANTIC_WORKSPACE_REVISION_SCHEMA · constant · L18-L18 — pub const SEMANTIC_WORKSPACE_REVISION_SCHEMA: &str = "semaprax.semantic-workspace-revision.v1";
+- SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY · constant · L19-L20 — pub const SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY: &str =
+- MAX_SEMANTIC_WORKSPACE_REVISION_BYTES · constant · L21-L21 — pub const MAX_SEMANTIC_WORKSPACE_REVISION_BYTES: usize = 32 * 1024 * 1024;
+- MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITIONS · constant · L22-L22 — pub const MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITIONS: usize = 64;
+- MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITION_INPUT_BYTES · constant · L23-L23 — pub const MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITION_INPUT_BYTES: usize = 8 * 1024 * 1024;
+- REVISION_DOMAIN · constant · L25-L25 — const REVISION_DOMAIN: &[u8] = b"semaprax.semantic-workspace-revision.digest.v1\0";
+- SEMANTIC_DOMAIN · constant · L26-L26 — const SEMANTIC_DOMAIN: &[u8] = b"semaprax.semantic-workspace-revision.semantic.digest.v1\0";
+- MANIFEST_DOMAIN · constant · L27-L27 — const MANIFEST_DOMAIN: &[u8] = b"semaprax.semantic-workspace-revision.manifest.digest.v1\0";
+- DEPENDENCY_LOCK_DOMAIN · constant · L28-L29 — const DEPENDENCY_LOCK_DOMAIN: &[u8] =
+- NORMALIZED_SOURCE_DOMAIN · constant · L30-L31 — const NORMALIZED_SOURCE_DOMAIN: &[u8] =
+- PRELUDE_DOMAIN · constant · L32-L32 — const PRELUDE_DOMAIN: &[u8] = b"semaprax.semantic-workspace-revision.prelude.digest.v1\0";
+- node_type · function · L34-L63 — macro_rules! node_type
+- generic_instances · module · L71-L71 — mod generic_instances;
+- SemanticWorkspaceRevision · struct · L111-L127 — pub struct SemanticWorkspaceRevision
+- derive · function · L130-L142 — pub fn derive(revision: &ProjectRevision) -> Result<Self, Vec<Diagnostic>>
+- derive_with_agent_definitions · function · L151-L176 — pub fn derive_with_agent_definitions(
+- derive_inner · function · L178-L412 — fn derive_inner(
+- replay · function · L414-L444 — pub fn replay(
+- replay_with_agent_definitions · function · L447-L465 — pub fn replay_with_agent_definitions(
+- to_json · function · L467-L469 — pub fn to_json(&self) -> &str
+- workspace_revision · function · L470-L472 — pub fn workspace_revision(&self) -> &str
+- semantic_digest · function · L473-L475 — pub fn semantic_digest(&self) -> &str
+- source_projection_digest · function · L476-L478 — pub fn source_projection_digest(&self) -> &str
+- manifest_digest · function · L479-L481 — pub fn manifest_digest(&self) -> &str
+- dependency_lock_digest · function · L482-L484 — pub fn dependency_lock_digest(&self) -> &str
+- source_projection · function · L485-L487 — pub fn source_projection(&self) -> &SourceProjection
+- semantic_program · function · L488-L490 — pub fn semantic_program(&self) -> &SemanticProgram
+- stable_identity_index · function · L491-L493 — pub fn stable_identity_index(&self) -> &StableIdentityIndex
+- dependency_closure · function · L494-L496 — pub fn dependency_closure(&self) -> &DependencyClosure
+- contracts_and_tests · function · L497-L499 — pub fn contracts_and_tests(&self) -> &ContractsAndTests
+- agent_definitions · function · L500-L502 — pub fn agent_definitions(&self) -> &AgentDefinitions
+- authority_policies · function · L503-L505 — pub fn authority_policies(&self) -> &AuthorityPolicies
+- target_profiles · function · L506-L508 — pub fn target_profiles(&self) -> &TargetProfiles
+- projection_metadata · function · L509-L511 — pub fn projection_metadata(&self) -> &ProjectionMetadata
+- agent_definitions_payload · function · L514-L614 — fn agent_definitions_payload(
+- validate_replay_input · function · L616-L636 — fn validate_replay_input(
+- validate_wire_shape · function · L638-L746 — fn validate_wire_shape(value: &Value) -> Result<(), Vec<Diagnostic>>
+- validate_digest · function · L748-L760 — fn validate_digest(value: &str) -> Result<(), Vec<Diagnostic>>
+- node_value · function · L762-L766 — fn node_value(source: &str, digest: &str) -> Result<Value, Vec<Diagnostic>>
+- canonical_json · function · L768-L779 — fn canonical_json(mut value: Value) -> Result<String, Vec<Diagnostic>>
+- framed_digest · function · L781-L790 — fn framed_digest(domain: &[u8], bytes: &[u8]) -> String
+- digest_sequence · function · L792-L803 — fn digest_sequence<'a>(domain: &[u8], values: impl IntoIterator<Item = &'a str>) -> String
+- invalid · function · L805-L807 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L809-L811 — fn stale(message: &'static str) -> Vec<Diagnostic>

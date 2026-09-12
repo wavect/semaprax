@@ -1,0 +1,45 @@
+---
+covers: []
+---
+# structured_tasks.rs
+
+- MAX_RUNTIME_TASKS · constant · L18-L18 — pub const MAX_RUNTIME_TASKS: usize = 64;
+- MAX_HTTPS_TASK_DEADLINE · constant · L21-L21 — pub const MAX_HTTPS_TASK_DEADLINE: Duration = Duration::from_secs(30);
+- CancellationToken · struct · L24-L24 — pub struct CancellationToken(Arc<AtomicBool>);
+- is_cancelled · function · L28-L30 — pub fn is_cancelled(&self) -> bool
+- cancellation_point · function · L32-L38 — pub fn cancellation_point(&self) -> Result<(), TaskFailure>
+- TaskFailure · enum · L42-L48 — pub enum TaskFailure
+- physical · function · L51-L57 — pub fn physical(code: u32) -> Result<Self, TaskRuntimeError>
+- TaskResult · struct · L61-L64 — pub struct TaskResult
+- TaskReport · struct · L67-L70 — pub struct TaskReport
+- TaskRuntimeError · enum · L73-L81 — pub enum TaskRuntimeError
+- fmt · function · L84-L94 — fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+- TaskBody · type · L99-L100 — type TaskBody<'scope> =
+- TaskScope · struct · L102-L107 — pub struct TaskScope<'scope, 'env>
+- HttpsTaskOutput · struct · L112-L114 — pub struct HttpsTaskOutput
+- take · function · L117-L125 — pub fn take(
+- NetworkProviderGuard · struct · L128-L130 — struct NetworkProviderGuard<P: crate::network_provider::NetworkProvider>
+- provider · function · L133-L135 — fn provider(&mut self) -> &mut P
+- settle · function · L137-L141 — fn settle(&mut self)
+- drop · function · L145-L147 — fn drop(&mut self)
+- spawn · function · L151-L170 — pub fn spawn<F>(&mut self, id: impl Into<String>, body: F) -> Result<(), TaskRuntimeError>
+- cancel · function · L172-L174 — pub fn cancel(&self)
+- spawn_https_get · function · L181-L217 — pub fn spawn_https_get<P>(
+- finish · function · L219-L250 — fn finish(mut self) -> TaskReport
+- task_scope · function · L255-L269 — pub fn task_scope<'env, F, R>(body: F) -> Result<(R, TaskReport), TaskRuntimeError>
+- tests · module · L272-L565 — mod tests
+- HttpsProvider · struct · L277-L282 — struct HttpsProvider
+- https_get · function · L285-L295 — fn https_get(
+- connect · function · L297-L306 — fn connect(
+- send · function · L308-L314 — fn send(
+- recv · function · L316-L322 — fn recv(
+- wait · function · L324-L331 — fn wait(
+- close · function · L333-L338 — fn close(
+- settle · function · L340-L342 — fn settle(&mut self)
+- https_provider · function · L345-L355 — fn https_provider(
+- borrowed_work_is_joined_and_reported_in_stable_order · function · L358-L383 — fn borrowed_work_is_joined_and_reported_in_stable_order()
+- failure_cancels_siblings_cooperatively_and_is_sticky · function · L386-L398 — fn failure_cancels_siblings_cooperatively_and_is_sticky()
+- duplicate_and_zero_physical_failure_are_rejected · function · L401-L413 — fn duplicate_and_zero_physical_failure_are_rejected()
+- https_task_publishes_only_after_exact_provider_settlement · function · L416-L434 — fn https_task_publishes_only_after_exact_provider_settlement()
+- https_failure_is_sticky_and_deadline_discards_a_drained_response · function · L437-L487 — fn https_failure_is_sticky_and_deadline_discards_a_drained_response()
+- cancelled_panicked_and_unregistered_https_tasks_still_settle · function · L490-L564 — fn cancelled_panicked_and_unregistered_https_tasks_still_settle()

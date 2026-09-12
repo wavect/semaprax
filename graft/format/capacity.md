@@ -1,0 +1,22 @@
+# format/capacity.rs
+
+- rendered_expr_len · function · L7-L18 — fn rendered_expr_len(value: &Expr, parent_precedence: u8) -> usize
+- Counter · struct · L8-L8 — struct Counter(usize);
+- write_str · function · L10-L13 — fn write_str(&mut self, value: &str) -> std::fmt::Result
+- display_len · function · L20-L31 — fn display_len(value: &impl std::fmt::Display) -> usize
+- Counter · struct · L21-L21 — struct Counter(usize);
+- write_str · function · L23-L26 — fn write_str(&mut self, value: &str) -> std::fmt::Result
+- joined_len · function · L33-L38 — fn joined_len(lengths: impl IntoIterator<Item = usize>, count: usize, separator: usize) -> usize
+- escaped_len · function · L40-L44 — fn escaped_len(value: &str) -> usize
+- legacy_type_parameter_bytes · function · L46-L56 — fn legacy_type_parameter_bytes(parameters: &[crate::ast::TypeParameterDeclaration]) -> usize
+- legacy_string_join_bytes · function · L58-L64 — fn legacy_string_join_bytes(values: &[String]) -> usize
+- legacy_canonical_temporary_bytes · function · L66-L200 — pub(super) fn legacy_canonical_temporary_bytes(program: &Program) -> usize
+- legacy_expr_temporary_bytes · function · L202-L499 — pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize
+- rendered_match_pattern_len · function · L501-L512 — fn rendered_match_pattern_len(pattern: &MatchPattern) -> usize
+- Counter · struct · L502-L502 — struct Counter(usize);
+- write_str · function · L504-L507 — fn write_str(&mut self, value: &str) -> std::fmt::Result
+- legacy_match_pattern_bytes · function · L514-L553 — fn legacy_match_pattern_bytes(pattern: &MatchPattern) -> usize
+- legacy_record_pattern_bytes · function · L555-L604 — fn legacy_record_pattern_bytes(
+- rendered_record_pattern_len · function · L606-L620 — fn rendered_record_pattern_len(
+- Counter · struct · L610-L610 — struct Counter(usize);
+- write_str · function · L612-L615 — fn write_str(&mut self, value: &str) -> std::fmt::Result

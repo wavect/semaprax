@@ -1,0 +1,31 @@
+# wasm/host_output.rs
+
+- MEMORY_PAGES · constant · L8-L8 — pub(super) const MEMORY_PAGES: u8 = 3;
+- TRANSCRIPT_BASE · constant · L9-L9 — pub(super) const TRANSCRIPT_BASE: u32 = 131_072;
+- TRANSCRIPT_CAPACITY · constant · L10-L10 — pub(super) const TRANSCRIPT_CAPACITY: u32 = 65_536;
+- STDERR_TRANSCRIPT_BASE · constant · L11-L11 — pub(super) const STDERR_TRANSCRIPT_BASE: u32 = 196_608;
+- COMMAND_STDOUT_STAGE_BASE · constant · L12-L12 — pub(super) const COMMAND_STDOUT_STAGE_BASE: u32 = 262_144;
+- COMMAND_STDERR_STAGE_BASE · constant · L13-L13 — pub(super) const COMMAND_STDERR_STAGE_BASE: u32 = 327_680;
+- Globals · struct · L15-L26 — pub(super) struct Globals
+- ROOT_GLOBALS · constant · L28-L36 — pub(super) const ROOT_GLOBALS: Globals = Globals
+- DATA_GLOBALS · constant · L38-L46 — pub(super) const DATA_GLOBALS: Globals = Globals
+- COMMAND_STDERR_GLOBALS · constant · L48-L56 — pub(super) const COMMAND_STDERR_GLOBALS: Globals = Globals
+- COMMAND_STDOUT_GLOBALS · constant · L58-L62 — pub(super) const COMMAND_STDOUT_GLOBALS: Globals = Globals
+- MEMORY_EXPORT · constant · L64-L64 — pub(super) const MEMORY_EXPORT: &str = "memory";
+- LENGTH_EXPORT · constant · L65-L65 — pub(super) const LENGTH_EXPORT: &str = "__spx_stdout_length_v1";
+- BASE_EXPORT · constant · L66-L66 — pub(super) const BASE_EXPORT: &str = "__spx_stdout_base_v1";
+- CAPACITY_EXPORT · constant · L67-L67 — pub(super) const CAPACITY_EXPORT: &str = "__spx_stdout_capacity_v1";
+- STDERR_LENGTH_EXPORT · constant · L68-L68 — pub(super) const STDERR_LENGTH_EXPORT: &str = "__spx_stderr_length_v1";
+- STDERR_BASE_EXPORT · constant · L69-L69 — pub(super) const STDERR_BASE_EXPORT: &str = "__spx_stderr_base_v1";
+- STDERR_CAPACITY_EXPORT · constant · L70-L70 — pub(super) const STDERR_CAPACITY_EXPORT: &str = "__spx_stderr_capacity_v1";
+- append_globals · function · L72-L83 — pub(super) fn append_globals(globals: &mut Vec<u8>)
+- append_data_globals · function · L85-L89 — pub(super) fn append_data_globals(globals: &mut Vec<u8>)
+- append_stderr_data_globals · function · L91-L94 — pub(super) fn append_stderr_data_globals(globals: &mut Vec<u8>)
+- append_channel_globals · function · L96-L105 — fn append_channel_globals(globals: &mut Vec<u8>, base: u32)
+- append_stderr_exports · function · L107-L120 — pub(super) fn append_stderr_exports(exports: &mut Vec<u8>)
+- append_exports · function · L122-L137 — pub(super) fn append_exports(exports: &mut Vec<u8>, globals: Globals, export_memory: bool)
+- emit_reset · function · L140-L161 — pub(super) fn emit_reset(body: &mut Vec<u8>, globals: Globals)
+- emit_write · function · L169-L211 — pub(super) fn emit_write(
+- emit_publish · function · L213-L235 — pub(super) fn emit_publish(body: &mut Vec<u8>, globals: Globals)
+- emit_publish_immediate · function · L239-L268 — pub(super) fn emit_publish_immediate(body: &mut Vec<u8>, globals: Globals)
+- emit_discard · function · L270-L291 — pub(super) fn emit_discard(body: &mut Vec<u8>, globals: Globals)

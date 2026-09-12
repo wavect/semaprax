@@ -1,0 +1,40 @@
+# process_provider/registered/platform.rs
+
+- Fd · struct · L18-L18 — struct Fd(Option<c_int>);
+- new · function · L21-L23 — fn new(raw: c_int) -> Self
+- raw · function · L25-L27 — fn raw(&self) -> c_int
+- close · function · L29-L39 — fn close(mut self) -> io::Result<()>
+- drop · function · L43-L51 — fn drop(&mut self)
+- Pipe · struct · L54-L57 — struct Pipe
+- ChildIo · struct · L59-L65 — struct ChildIo<'a>
+- pipe · function · L67-L87 — fn pipe() -> io::Result<Pipe>
+- spawn_linux · function · L90-L203 — fn spawn_linux(
+- fexecve · function · L193-L198 — unsafe extern "C"
+- spawn_macos · function · L221-L234 — fn spawn_macos(
+- posix_spawn_file_actions_addfchdir_np · function · L229-L233 — unsafe extern "C"
+- attest_macos · function · L336-L419 — fn attest_macos(pid: libc::pid_t, executable: &Metadata, repository: &File) -> io::Result<()>
+- RegionInfo · struct · L338-L360 — struct RegionInfo
+- VnodeStat · struct · L363-L385 — struct VnodeStat
+- VnodeInfo · struct · L388-L393 — struct VnodeInfo
+- VnodePath · struct · L396-L399 — struct VnodePath
+- RegionPath · struct · L401-L404 — struct RegionPath
+- VnodePaths · struct · L406-L409 — struct VnodePaths
+- proc_pidinfo · function · L411-L418 — unsafe extern "C"
+- launch_failed · function · L494-L499 — unsafe fn launch_failed(fd: c_int, code: u8) -> !
+- QUARANTINE · constant · L504-L504 — static QUARANTINE: Mutex<Vec<Pending>> = Mutex::new(Vec::new());
+- Pending · struct · L505-L509 — struct Pending
+- attempt · function · L511-L569 — fn attempt(&mut self, deadline: Instant) -> bool
+- quarantine · function · L571-L576 — fn quarantine(pending: Pending)
+- must_settle · function · L577-L586 — fn must_settle(pid: libc::pid_t)
+- settle · function · L587-L598 — pub(super) fn settle() -> Result<(), ProcessFailure>
+- ChildGuard · struct · L599-L599 — struct ChildGuard(Option<Pending>);
+- finish · function · L601-L611 — fn finish(&mut self) -> Result<(), ProcessFailure>
+- drop · function · L614-L616 — fn drop(&mut self)
+- set_nonblocking · function · L619-L626 — fn set_nonblocking(fd: &Fd) -> io::Result<()>
+- run · function · L628-L723 — pub(super) fn run(
+- observe_exit · function · L725-L754 — fn observe_exit(pid: libc::pid_t) -> Result<Option<ProcessTermination>, ProcessFailure>
+- exchange · function · L756-L854 — fn exchange(
+- drain · function · L856-L877 — fn drain(pipe: &Fd, output: &mut Vec<u8>, maximum: usize) -> Result<bool, ProcessFailure>
+- write_input · function · L879-L925 — fn write_input(pipe: &Fd, input: &[u8]) -> Result<usize, ProcessFailure>
+- tests · module · L928-L943 — mod tests
+- process_settlement_lost_child_identity_is_never_signalled_again · function · L931-L942 — fn process_settlement_lost_child_identity_is_never_signalled_again()

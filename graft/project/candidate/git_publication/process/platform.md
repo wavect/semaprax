@@ -1,0 +1,47 @@
+# project/candidate/git_publication/process/platform.rs
+
+- POLL_SLICE_MS · constant · L19-L19 — const POLL_SLICE_MS: c_int = 25;
+- SETTLEMENT_LIMIT · constant · L20-L20 — const SETTLEMENT_LIMIT: Duration = Duration::from_secs(30);
+- SUPPORTED · constant · L21-L21 — pub(super) const SUPPORTED: bool = true;
+- Limits · struct · L24-L28 — pub(super) struct Limits
+- Fd · struct · L30-L30 — struct Fd(Option<c_int>);
+- new · function · L33-L35 — fn new(raw: c_int) -> Self
+- raw · function · L37-L39 — fn raw(&self) -> c_int
+- close · function · L41-L50 — fn close(mut self) -> io::Result<()>
+- drop · function · L54-L62 — fn drop(&mut self)
+- Pipe · struct · L65-L68 — struct Pipe
+- ChildIo · struct · L70-L74 — struct ChildIo<'a>
+- pipe · function · L76-L96 — fn pipe() -> io::Result<Pipe>
+- arguments · function · L98-L130 — fn arguments(executable: &Path, command: &[&str]) -> io::Result<Vec<CString>>
+- environment · function · L132-L165 — fn environment() -> Vec<CString>
+- run · function · L167-L188 — pub(super) fn run(
+- run_for_test · function · L192-L226 — pub(super) fn run_for_test(
+- run_arguments · function · L228-L281 — fn run_arguments(
+- set_nonblocking · function · L283-L292 — fn set_nonblocking(descriptor: &Fd) -> io::Result<()>
+- close_parent_child_ends · function · L294-L306 — fn close_parent_child_ends(
+- spawn_linux · function · L309-L406 — fn spawn_linux(
+- fexecve · function · L396-L401 — unsafe extern "C"
+- spawn_macos · function · L422-L435 — fn spawn_macos(
+- posix_spawn_file_actions_addfchdir_np · function · L430-L434 — unsafe extern "C"
+- drain_and_settle · function · L535-L672 — fn drain_and_settle(
+- ChildSettlement · struct · L674-L678 — struct ChildSettlement
+- new · function · L681-L687 — fn new(pid: libc::pid_t) -> Self
+- settle_now · function · L689-L696 — fn settle_now(&mut self)
+- drop · function · L700-L704 — fn drop(&mut self)
+- close_child_pipe · function · L707-L713 — fn close_child_pipe(descriptor: Fd, settlement: &mut ChildSettlement) -> Fd
+- drain_pipe · function · L715-L736 — fn drain_pipe(pipe: &Fd, output: &mut Vec<u8>, limit: usize) -> io::Result<bool>
+- discard_pipe · function · L738-L761 — fn discard_pipe(pipe: &Fd, total: &mut usize, limit: usize) -> io::Result<bool>
+- must_settle_with_pipes · function · L763-L775 — fn must_settle_with_pipes(
+- must_settle · function · L777-L781 — fn must_settle(pid: libc::pid_t)
+- settle · function · L783-L790 — fn settle(pid: libc::pid_t, leader_reaped: bool) -> io::Result<()>
+- wait_leader · function · L792-L811 — fn wait_leader(pid: libc::pid_t, deadline: Instant) -> io::Result<()>
+- quiesce_group · function · L813-L815 — fn quiesce_group(pid: libc::pid_t) -> io::Result<()>
+- quiesce_group_until · function · L817-L839 — fn quiesce_group_until(pid: libc::pid_t, deadline: Instant) -> io::Result<()>
+- attest_macos · function · L842-L925 — fn attest_macos(pid: libc::pid_t, executable: &Metadata, repository: &File) -> io::Result<()>
+- RegionInfo · struct · L844-L866 — struct RegionInfo
+- VnodeStat · struct · L869-L891 — struct VnodeStat
+- VnodeInfo · struct · L894-L899 — struct VnodeInfo
+- VnodePath · struct · L902-L905 — struct VnodePath
+- RegionPath · struct · L907-L910 — struct RegionPath
+- VnodePaths · struct · L912-L915 — struct VnodePaths
+- proc_pidinfo · function · L917-L924 — unsafe extern "C"

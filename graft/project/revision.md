@@ -1,0 +1,43 @@
+# project/revision.rs
+
+- ProjectRevision · struct · L21-L35 — pub struct ProjectRevision
+- from_built · function · L38-L54 — pub(super) fn from_built(manifest: ProjectManifest, built: BuiltProject) -> Self
+- manifest · function · L56-L58 — pub fn manifest(&self) -> &ProjectManifest
+- sources · function · L60-L62 — pub fn sources(&self) -> &[ProjectSource]
+- workspace_manifest · function · L64-L66 — pub fn workspace_manifest(&self) -> &str
+- workspace_revision · function · L68-L70 — pub fn workspace_revision(&self) -> &str
+- project_revision · function · L72-L74 — pub fn project_revision(&self) -> &str
+- source_agents · function · L77-L79 — pub fn source_agents(&self) -> &[super::ResolvedSourceAgent]
+- agent_definitions · function · L82-L84 — pub fn agent_definitions(&self) -> &[crate::agent_definition::CompiledAgentDefinition]
+- agent_interaction_contract_facts · function · L87-L91 — pub fn agent_interaction_contract_facts(
+- canonical_workspace_revision · function · L95-L108 — pub fn canonical_workspace_revision(
+- entry_program · function · L110-L112 — pub fn entry_program(&self) -> &crate::hir::ResolvedProgram
+- public_api_program · function · L117-L119 — pub fn public_api_program(&self) -> &crate::hir::ResolvedProgram
+- test_program · function · L121-L123 — pub fn test_program(&self) -> &crate::hir::ResolvedProgram
+- check · function · L127-L133 — pub fn check(&self) -> Result<(), Vec<Diagnostic>>
+- scalar_wit_interface_v1 · function · L138-L155 — pub fn scalar_wit_interface_v1(&self) -> Result<ScalarWitInterfaceArtifactV1, Vec<Diagnostic>>
+- replay_scalar_wit_interface_v1 · function · L159-L183 — pub fn replay_scalar_wit_interface_v1(
+- semantic_graph · function · L186-L188 — pub fn semantic_graph(&self) -> &str
+- semantic_graph_digest · function · L191-L193 — pub fn semantic_graph_digest(&self) -> &str
+- semantic_context · function · L196-L210 — pub fn semantic_context(
+- semantic_impact · function · L213-L227 — pub fn semantic_impact(
+- execute_entry · function · L230-L235 — pub fn execute_entry(
+- execute_test · function · L238-L243 — pub fn execute_test(
+- execute_test_cancellable · function · L245-L251 — pub(super) fn execute_test_cancellable(
+- execute · function · L254-L260 — pub fn execute(
+- build_web_inline · function · L263-L310 — pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>>
+- build_npm_inline · function · L313-L323 — pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>>
+- public_api_descriptor · function · L327-L354 — pub fn public_api_descriptor(&self) -> Result<super::PublicApiDescriptor, Vec<Diagnostic>>
+- evaluate_text_api_v1 · function · L360-L389 — pub fn evaluate_text_api_v1(
+- evaluate_public_api_v1 · function · L394-L450 — pub fn evaluate_public_api_v1(
+- flat_owned_record_api_descriptor · function · L454-L486 — pub fn flat_owned_record_api_descriptor(
+- evaluate_flat_owned_record_api_v1 · function · L491-L546 — pub fn evaluate_flat_owned_record_api_v1(
+- owned_utf8_api_descriptor · function · L550-L577 — pub fn owned_utf8_api_descriptor(&self) -> Result<super::PublicApiDescriptor, Vec<Diagnostic>>
+- nested_owned_record_api_descriptor · function · L581-L613 — pub fn nested_owned_record_api_descriptor(
+- evaluate_owned_utf8_api_v1 · function · L618-L674 — pub fn evaluate_owned_utf8_api_v1(
+- test_wasm_module · function · L677-L679 — pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>>
+- public_argument_matches · function · L682-L699 — fn public_argument_matches(
+- public_argument_name · function · L701-L708 — fn public_argument_name(argument: &PublicApiArgument<'_>) -> &'static str
+- tests · module · L711-L784 — mod tests
+- retained_revision_outlives_live_authority_and_keeps_every_read_only_product · function · L721-L765 — fn retained_revision_outlives_live_authority_and_keeps_every_read_only_product()
+- project_v6_execution_envelope_replays_independently · function · L768-L783 — fn project_v6_execution_envelope_replays_independently()

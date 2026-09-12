@@ -1,0 +1,48 @@
+---
+covers: []
+---
+# semantic_retention_registry.rs
+
+- tests · module · L37-L37 — mod tests;
+- unix · module · L47-L47 — mod unix;
+- SEMANTIC_RETENTION_REGISTRY_CURSOR_SCHEMA · constant · L49-L50 — pub const SEMANTIC_RETENTION_REGISTRY_CURSOR_SCHEMA: &str =
+- MAX_RETENTION_REGISTRY_CURSOR_BYTES · constant · L51-L51 — pub const MAX_RETENTION_REGISTRY_CURSOR_BYTES: usize = 4096;
+- CURSOR_DOMAIN · constant · L53-L53 — const CURSOR_DOMAIN: &[u8] = b"semaprax.semantic-retention-registry-cursor.digest.v1\0";
+- NONCLAIMS · constant · L54-L60 — const NONCLAIMS: &[&str] = &[
+- Result · type · L62-L62 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- RetentionRegistryState · struct · L67-L71 — pub struct RetentionRegistryState
+- RetentionRegistryHandle · struct · L76-L97 — pub(crate) struct RetentionRegistryHandle
+- open · function · L100-L130 — pub(crate) fn open(root: &Path) -> Result<Self>
+- held_root_identity · function · L132-L157 — pub(crate) fn held_root_identity(&self) -> (u64, u64)
+- initialize · function · L159-L200 — pub(crate) fn initialize(
+- recover · function · L202-L239 — pub(crate) fn recover(&self) -> Result<RetentionRegistryState>
+- advance · function · L241-L303 — pub(crate) fn advance(
+- metadata · function · L307-L309 — pub fn metadata(&self) -> &StoredRetentionMetadata
+- cursor_json · function · L310-L312 — pub fn cursor_json(&self) -> &str
+- cursor_digest · function · L313-L315 — pub fn cursor_digest(&self) -> &str
+- authority · function · L316-L318 — pub const fn authority(&self) -> RetentionAuthority
+- Cursor · struct · L322-L330 — struct Cursor
+- initialize · function · L334-L341 — pub fn initialize(
+- recover · function · L345-L347 — pub fn recover(root: &Path) -> Result<RetentionRegistryState>
+- advance · function · L352-L360 — pub fn advance(
+- require_receipts · function · L362-L369 — fn require_receipts(receipts: &[&dyn RetentionReceipt]) -> Result<()>
+- settle_transition · function · L380-L412 — fn settle_transition(
+- state · function · L414-L420 — fn state(metadata: StoredRetentionMetadata, cursor: Cursor) -> RetentionRegistryState
+- validate_metadata · function · L422-L437 — fn validate_metadata(cursor: &Cursor, metadata: &StoredRetentionMetadata) -> Result<()>
+- new · function · L440-L466 — fn new(
+- parse · function · L468-L541 — fn parse(bytes: &[u8]) -> Result<Self>
+- value · function · L543-L558 — fn value(&self) -> Value
+- render · function · L560-L562 — fn render(&self) -> Result<String>
+- validate_stage_relationship · function · L574-L614 — fn validate_stage_relationship(
+- policy_number · function · L616-L631 — fn policy_number(value: &Value, field: &str) -> Result<u64>
+- digest_field · function · L633-L640 — fn digest_field<'a>(object: &'a Map<String, Value>, field: &str) -> Result<&'a str>
+- require_keys · function · L642-L649 — fn require_keys(object: &Map<String, Value>, keys: &[&str]) -> Result<()>
+- render · function · L651-L660 — fn render(mut value: Value) -> Result<String>
+- digest · function · L662-L668 — fn digest(bytes: &[u8]) -> String
+- validate_digest · function · L670-L682 — fn validate_digest(value: &str) -> Result<()>
+- invalid · function · L684-L686 — fn invalid(message: impl Into<String>) -> Vec<Diagnostic>
+- capacity · function · L687-L689 — fn capacity(message: impl Into<String>) -> Vec<Diagnostic>
+- binding · function · L690-L692 — fn binding(message: impl Into<String>) -> Vec<Diagnostic>
+- stale · function · L693-L695 — fn stale(message: impl Into<String>) -> Vec<Diagnostic>
+- io · function · L696-L698 — fn io(message: impl Into<String>) -> Vec<Diagnostic>
+- post_pivot · function · L709-L711 — fn post_pivot(message: impl Into<String>) -> Vec<Diagnostic>

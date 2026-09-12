@@ -1,0 +1,31 @@
+# project/npm/data.rs
+
+- USEFUL_DATA_PACKAGE_PATHS · constant · L26-L33 — pub(super) const USEFUL_DATA_PACKAGE_PATHS: [&str; 6] = [
+- MAX_WASM_BYTES · constant · L35-L35 — const MAX_WASM_BYTES: usize = 16 * 1024 * 1024;
+- MAX_EXPORTS · constant · L36-L36 — const MAX_EXPORTS: usize = 32;
+- MAX_PARAMETERS · constant · L37-L37 — const MAX_PARAMETERS: usize = 8;
+- DataType · enum · L40-L45 — pub(super) enum DataType
+- json · function · L48-L55 — fn json(self) -> &'static str
+- typescript · function · L57-L63 — fn typescript(self) -> &'static str
+- DataExport · struct · L67-L72 — pub(super) struct DataExport
+- prepare · function · L74-L122 — pub(super) fn prepare(
+- require_profile · function · L124-L142 — fn require_profile(manifest: &ProjectManifest) -> Result<&str, Diagnostic>
+- derive_exports · function · L144-L194 — pub(super) fn derive_exports(
+- validate_exports · function · L196-L226 — fn validate_exports(exports: &[DataExport]) -> Result<(), Diagnostic>
+- render_package · function · L228-L254 — fn render_package(
+- render_runtime · function · L256-L350 — pub(super) fn render_runtime(wasm_sha256: &str) -> String
+- render_bindings · function · L352-L435 — pub(super) fn render_bindings(exports: &[DataExport], wasm_sha256: &str) -> String
+- render_declarations · function · L437-L457 — pub(super) fn render_declarations(exports: &[DataExport]) -> String
+- render_metadata · function · L459-L479 — fn render_metadata(name: &str, version: &str, wasm_sha256: &str, exports: &[DataExport]) -> String
+- render_package_json · function · L481-L483 — fn render_package_json(name: &str, version: &str) -> String
+- validate_replayed · function · L485-L615 — pub(super) fn validate_replayed(
+- render_package_from_identity · function · L617-L637 — fn render_package_from_identity(
+- parse_export · function · L639-L665 — fn parse_export(value: &serde_json::Value) -> Result<DataExport, Diagnostic>
+- parse_type · function · L667-L675 — fn parse_type(value: &serde_json::Value) -> Result<DataType, Diagnostic>
+- validate_wasm_inventory · function · L677-L712 — fn validate_wasm_inventory(wasm: &[u8], exports: &[DataExport]) -> Result<(), Diagnostic>
+- artifact_bytes · function · L714-L720 — fn artifact_bytes<'a>(artifacts: &'a [NpmArtifact; 6], path: &str) -> Result<&'a [u8], Diagnostic>
+- raw_symbol · function · L722-L729 — pub(super) fn raw_symbol(stable_id: &str) -> String
+- hex_sha256 · function · L730-L732 — pub(super) fn hex_sha256(bytes: &[u8]) -> String
+- tests · module · L735-L821 — mod tests
+- identity · function · L738-L751 — fn identity<'a>(recipe: &'a str, project_schema: &'a str) -> NpmBuildIdentity<'a>
+- v2_replay_rejects_resigned_artifact_and_cross_label_substitution · function · L754-L820 — fn v2_replay_rejects_resigned_artifact_and_cross_label_substitution()

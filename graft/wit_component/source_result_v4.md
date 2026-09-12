@@ -1,0 +1,40 @@
+# wit_component/source_result_v4.rs
+
+- INTERFACE_EXPORT · constant · L18-L18 — const INTERFACE_EXPORT: &str = "semaprax:private/evaluation@0.3.0";
+- FUNCTION_EXPORT · constant · L19-L19 — const FUNCTION_EXPORT: &str = "evaluate";
+- LANGUAGE_RESULT_EXPORT · constant · L20-L20 — const LANGUAGE_RESULT_EXPORT: &str = "language-result";
+- WIT_V4 · constant · L22-L22 — const WIT_V4: &str = "package semaprax:private@0.3.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type language-result = result<bool, bool>;\n  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;\n}\n\nworld semaprax-private-v4 {\n  export evaluation;\n}\n";
+- PROFILE · constant · L24-L24 — const PROFILE: &[u8] = b"semaprax.private-source-result-component.v4\0canonical-abi-memory32-utf8\0nested-language-result-never-flattened\0status-first-known-v3-domains\0invalid-tag-and-unknown-status-trap\0canonical-result-area-256-size20-align4\0outer-payload-offset4-inner-tag-offset4-inner-bool-offset5\0compiler-result-layout-v2-field-reconstruction\0cleanup-plan-v2\0";
+- PROFILE_DIGEST_DOMAIN · constant · L25-L25 — const PROFILE_DIGEST_DOMAIN: &[u8] = b"semaprax.private-source-result-component-profile.v4\0";
+- COMPONENT_DIGEST_DOMAIN · constant · L26-L26 — const COMPONENT_DIGEST_DOMAIN: &[u8] = b"semaprax.private-source-result-component-artifact.v4\0";
+- RESULT_I64_BOOL · constant · L28-L28 — const RESULT_I64_BOOL: [ResolvedType; 2] = [ResolvedType::I64, ResolvedType::Bool];
+- RESULT_BOOL_BOOL · constant · L29-L29 — const RESULT_BOOL_BOOL: [ResolvedType; 2] = [ResolvedType::Bool, ResolvedType::Bool];
+- PrivateSourceResultComponentArtifactV4 · struct · L34-L43 — pub struct PrivateSourceResultComponentArtifactV4
+- bytes · function · L47-L49 — pub fn bytes(&self) -> &[u8]
+- digest · function · L52-L54 — pub const fn digest(&self) -> [u8; 32]
+- generated_core_digest · function · L57-L59 — pub const fn generated_core_digest(&self) -> [u8; 32]
+- profile_digest · function · L62-L64 — pub const fn profile_digest(&self) -> [u8; 32]
+- prelude_digest · function · L67-L69 — pub const fn prelude_digest(&self) -> [u8; 32]
+- result_i64_bool_layout_digest · function · L72-L74 — pub const fn result_i64_bool_layout_digest(&self) -> [u8; 32]
+- result_bool_bool_layout_digest · function · L77-L79 — pub const fn result_bool_bool_layout_digest(&self) -> [u8; 32]
+- source_revision · function · L82-L84 — pub fn source_revision(&self) -> &str
+- wit · function · L87-L89 — pub const fn wit(&self) -> &'static str
+- ValidatedPrivateSourceResultComponentV4 · struct · L93-L96 — pub struct ValidatedPrivateSourceResultComponentV4<'a>
+- generated_core · function · L100-L102 — pub const fn generated_core(self) -> &'a [u8]
+- source_revision · function · L105-L107 — pub const fn source_revision(self) -> &'a str
+- interface_export_name · function · L110-L112 — pub const fn interface_export_name(self) -> &'static str
+- function_export_name · function · L115-L117 — pub const fn function_export_name(self) -> &'static str
+- language_result_export_name · function · L120-L122 — pub const fn language_result_export_name(self) -> &'static str
+- emit_private_source_result_component_v4 · function · L125-L158 — pub fn emit_private_source_result_component_v4(
+- compose · function · L160-L200 — fn compose(core: &[u8]) -> Vec<u8>
+- component_types · function · L202-L229 — fn component_types() -> Vec<u8>
+- validate_private_source_result_component_v4 · function · L231-L308 — pub fn validate_private_source_result_component_v4<'a>(
+- validate_core · function · L310-L380 — fn validate_core<'a>(
+- ProfileEvidence · struct · L382-L387 — struct ProfileEvidence
+- profile_evidence · function · L389-L453 — fn profile_evidence(program: &Program) -> Result<ProfileEvidence, Diagnostic>
+- result_type · function · L455-L460 — fn result_type(arguments: &[ResolvedType; 2]) -> ResolvedType
+- profile_digest · function · L462-L482 — fn profile_digest(evidence: &ProfileEvidence) -> [u8; 32]
+- artifact_digest · function · L484-L499 — fn artifact_digest(
+- first_error · function · L501-L506 — fn first_error(diagnostics: Vec<Diagnostic>) -> Diagnostic
+- profile_error · function · L508-L510 — fn profile_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L514-L514 — mod tests;

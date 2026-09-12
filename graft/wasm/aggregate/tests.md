@@ -1,0 +1,31 @@
+# wasm/aggregate/tests.rs
+
+- NEXT_ID · constant · L17-L17 — static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+- owned_buffer · module · L19-L19 — mod owned_buffer;
+- owned_result_hostile · module · L20-L20 — mod owned_result_hostile;
+- scalar_exports · module · L21-L21 — mod scalar_exports;
+- raw_two_owned_generic_variant_rejects_invalid_tag_before_payload_authority · function · L24-L111 — fn raw_two_owned_generic_variant_rejects_invalid_tag_before_payload_authority()
+- projected_borrow_shape_gate_rejects_wrong_operation_and_depth · function · L114-L136 — fn projected_borrow_shape_gate_rejects_wrong_operation_and_depth()
+- projected_borrowed_bytes_forwards_one_token_and_drops_only_the_owner · function · L139-L218 — fn projected_borrowed_bytes_forwards_one_token_and_drops_only_the_owner()
+- owned_data_scalar_wrappers_publish_exact_width_and_preserve_foreign_sentinels · function · L221-L304 — fn owned_data_scalar_wrappers_publish_exact_width_and_preserve_foreign_sentinels()
+- range_descriptor_carrier_covers_the_entire_private_shadow_stack · function · L307-L314 — fn range_descriptor_carrier_covers_the_entire_private_shadow_stack()
+- BYTE_BOUNDARY_SOURCE · constant · L316-L368 — const BYTE_BOUNDARY_SOURCE: &str = r#"
+- node_rejects_invalid_and_cumulatively_oversized_external_byte_roots · function · L371-L488 — fn node_rejects_invalid_and_cumulatively_oversized_external_byte_roots()
+- GENERIC_INSTANCE_SOURCE · constant · L490-L491 — const GENERIC_INSTANCE_SOURCE: &str =
+- selected_generic_lowering_authenticates_exact_instance_sequence_and_identity · function · L494-L543 — fn selected_generic_lowering_authenticates_exact_instance_sequence_and_identity()
+- SOURCE · constant · L545-L587 — const SOURCE: &str = r#"
+- VARIANT_SOURCE · constant · L589-L671 — const VARIANT_SOURCE: &str = r#"
+- GENERIC_VARIANT_SOURCE · constant · L673-L727 — const GENERIC_VARIANT_SOURCE: &str = r#"
+- RESULT_TRY_SOURCE · constant · L729-L805 — const RESULT_TRY_SOURCE: &str = r#"
+- node_executes_aggregate_status_out_poison_order_and_shadow_stack_reentry · function · L808-L887 — fn node_executes_aggregate_status_out_poison_order_and_shadow_stack_reentry()
+- node_executes_copy_variants_selected_arms_invalid_tags_and_reentry · function · L890-L1002 — fn node_executes_copy_variants_selected_arms_invalid_tags_and_reentry()
+- OWNED_VARIANT_INVALID_CARRIER_SOURCE · constant · L1004-L1022 — const OWNED_VARIANT_INVALID_CARRIER_SOURCE: &str = r#"
+- owned_variant_invalid_carrier_traps_before_cleanup_or_publication · function · L1025-L1090 — fn owned_variant_invalid_carrier_traps_before_cleanup_or_publication()
+- node_executes_generic_option_result_and_preserves_full_failure_poison · function · L1093-L1174 — fn node_executes_generic_option_result_and_preserves_full_failure_poison()
+- node_executes_result_try_reconstruction_status_poison_and_reentry · function · L1177-L1295 — fn node_executes_result_try_reconstruction_status_poison_and_reentry()
+- private_node_resource_records_follow_plan_order_and_finish_with_zero_liveness · function · L1298-L1362 — fn private_node_resource_records_follow_plan_order_and_finish_with_zero_liveness()
+- private_resource_harness_wasm · function · L1364-L1441 — fn private_resource_harness_wasm(scenario: &ResourceHarnessScenario) -> Vec<u8>
+- store · function · L1443-L1449 — fn store(body: &mut Vec<u8>, address: i32, value: i32)
+- load · function · L1451-L1455 — fn load(body: &mut Vec<u8>, address: i32)
+- transfer · function · L1457-L1463 — fn transfer(body: &mut Vec<u8>, source: i32, destination: i32)
+- finalize · function · L1465-L1470 — fn finalize(body: &mut Vec<u8>, address: i32)

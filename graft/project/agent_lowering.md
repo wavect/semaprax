@@ -1,0 +1,28 @@
+# project/agent_lowering.rs
+
+- SOURCE_AGENT_LOWERING_SCHEMA · constant · L20-L20 — pub const SOURCE_AGENT_LOWERING_SCHEMA: &str = "semaprax.source-agent-lowering.v1";
+- MAX_SOURCE_AGENTS_PER_PROJECT · constant · L21-L21 — pub const MAX_SOURCE_AGENTS_PER_PROJECT: usize = 64;
+- TYPE_ROLES · constant · L23-L30 — const TYPE_ROLES: [AgentTypeRole; 6] = [
+- OPERATION_ROLES · constant · L31-L50 — const OPERATION_ROLES: [(AgentOperationRole, AgentOperationKind); 6] = [
+- Result · type · L52-L52 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- CompiledSourceAgents · struct · L56-L59 — pub struct CompiledSourceAgents
+- ResolvedSourceAgent · type · L61-L61 — pub type ResolvedSourceAgent = crate::hir::ResolvedAgentDeclaration;
+- definitions · function · L64-L66 — pub fn definitions(&self) -> &[CompiledAgentDefinition]
+- is_empty · function · L68-L70 — pub fn is_empty(&self) -> bool
+- agents · function · L72-L74 — pub fn agents(&self) -> &[ResolvedSourceAgent]
+- into_definitions · function · L76-L78 — pub fn into_definitions(self) -> Vec<CompiledAgentDefinition>
+- into_parts · function · L80-L82 — pub fn into_parts(self) -> (Vec<ResolvedSourceAgent>, Vec<CompiledAgentDefinition>)
+- derive_workspace · function · L87-L107 — pub fn derive_workspace(
+- compile_source_agent_declaration · function · L111-L125 — pub fn compile_source_agent_declaration(
+- compile_source_program_agents · function · L128-L130 — pub fn compile_source_program_agents(program: &Program) -> Result<CompiledSourceAgents>
+- compile_source_agent_proposal_schema · function · L137-L164 — pub fn compile_source_agent_proposal_schema(
+- compile_source_project_agents · function · L168-L215 — pub fn compile_source_project_agents(programs: &[&Program]) -> Result<CompiledSourceAgents>
+- resolve_source_agent · function · L217-L274 — fn resolve_source_agent(declaration: &AgentDeclaration) -> ResolvedSourceAgent
+- collect_existing_program_ids · function · L276-L335 — fn collect_existing_program_ids(program: &Program, ids: &mut BTreeSet<String>)
+- validate_project_identity_separation · function · L337-L374 — fn validate_project_identity_separation(
+- visit · function · L341-L360 — fn visit(value: &serde_json::Value, retained_ids: &mut BTreeSet<String>)
+- validate_declaration_shape · function · L376-L432 — fn validate_declaration_shape(declaration: &AgentDeclaration) -> Result<()>
+- render_definition_v1 · function · L434-L471 — fn render_definition_v1(declaration: &AgentDeclaration) -> Result<String>
+- operation_kind_name · function · L473-L479 — const fn operation_kind_name(kind: AgentOperationKind) -> &'static str
+- malformed · function · L481-L483 — fn malformed(message: impl Into<String>) -> Vec<Diagnostic>
+- invariant · function · L485-L487 — fn invariant(message: impl Into<String>) -> Vec<Diagnostic>

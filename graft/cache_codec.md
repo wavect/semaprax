@@ -1,0 +1,58 @@
+---
+covers: []
+---
+# cache_codec.rs
+
+- carriers · module · L6-L6 — mod carriers;
+- MAX_BYTES · constant · L8-L8 — pub(crate) const MAX_BYTES: usize = 128 * 1024 * 1024;
+- MAX_ALLOCATION · constant · L9-L9 — pub(crate) const MAX_ALLOCATION: usize = 128 * 1024 * 1024;
+- MAX_NODES · constant · L10-L10 — pub(crate) const MAX_NODES: usize = 1_000_000;
+- MAX_DEPTH · constant · L11-L11 — pub(crate) const MAX_DEPTH: usize = 256;
+- Result · type · L12-L12 — pub(crate) type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- Codec · interface · L14-L17 — pub(crate) trait Codec: Sized
+- encode · function · L15-L15 — fn encode(&self, encoder: &mut Encoder) -> Result<()>;
+- decode · function · L16-L16 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>;
+- encode · function · L19-L27 — pub(crate) fn encode<T: Codec>(value: &T) -> Result<Vec<u8>>
+- decode · function · L29-L46 — pub(crate) fn decode<T: Codec>(bytes: &[u8]) -> Result<T>
+- Encoder · struct · L48-L52 — pub(crate) struct Encoder
+- nested · function · L54-L66 — pub(crate) fn nested<T>(
+- node · function · L67-L73 — fn node(&mut self) -> Result<()>
+- raw · function · L74-L92 — fn raw(&mut self, bytes: &[u8]) -> Result<()>
+- length · function · L93-L97 — fn length(&mut self, length: usize) -> Result<()>
+- text · function · L98-L103 — fn text(&mut self, text: &str) -> Result<()>
+- Decoder · struct · L106-L112 — pub(crate) struct Decoder<'a>
+- nested · function · L114-L126 — pub(crate) fn nested<T>(
+- node · function · L127-L133 — fn node(&mut self) -> Result<()>
+- take · function · L134-L143 — fn take(&mut self, length: usize) -> Result<&'a [u8]>
+- allocate · function · L144-L151 — pub(crate) fn allocate(&mut self, bytes: usize) -> Result<()>
+- sequence · function · L152-L163 — fn sequence(&mut self, length: usize, element_bytes: usize) -> Result<()>
+- length · function · L164-L166 — fn length(&mut self) -> Result<usize>
+- text · function · L167-L173 — fn text(&mut self) -> Result<&'a str>
+- integer · function · L176-L187 — macro_rules! integer
+- encode · function · L190-L194 — fn encode(&self, encoder: &mut Encoder) -> Result<()>
+- decode · function · L195-L198 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>
+- encode · function · L201-L203 — fn encode(&self, encoder: &mut Encoder) -> Result<()>
+- decode · function · L204-L210 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>
+- encode · function · L213-L215 — fn encode(&self, encoder: &mut Encoder) -> Result<()>
+- decode · function · L216-L225 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>
+- encode · function · L228-L231 — fn encode(&self, encoder: &mut Encoder) -> Result<()>
+- decode · function · L232-L234 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>
+- static_token · function · L236-L259 — fn static_token(value: &str) -> Result<&'static str>
+- encode · function · L261-L269 — fn encode(&self, encoder: &mut Encoder) -> Result<()>
+- decode · function · L270-L283 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>
+- encode · function · L286-L294 — fn encode(&self, encoder: &mut Encoder) -> Result<()>
+- decode · function · L295-L301 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>
+- encode · function · L304-L306 — fn encode(&self, encoder: &mut Encoder) -> Result<()>
+- decode · function · L307-L312 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>
+- encode · function · L315-L320 — fn encode(&self, encoder: &mut Encoder) -> Result<()>
+- decode · function · L321-L323 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>
+- encode · function · L326-L335 — fn encode(&self, encoder: &mut Encoder) -> Result<()>
+- decode · function · L336-L360 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>
+- encode · function · L363-L371 — fn encode(&self, encoder: &mut Encoder) -> Result<()>
+- decode · function · L372-L392 — fn decode(decoder: &mut Decoder<'_>) -> Result<Self>
+- codec_struct · function · L395-L402 — macro_rules! codec_struct
+- codec_tuple · function · L403-L410 — macro_rules! codec_tuple
+- codec_enum · function · L411-L423 — macro_rules! codec_enum
+- grammar · function · L425-L427 — pub(crate) fn grammar(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L428-L430 — pub(crate) fn capacity(message: &'static str) -> Vec<Diagnostic>
+- nested_owned_records_tests · module · L434-L434 — mod nested_owned_records_tests;

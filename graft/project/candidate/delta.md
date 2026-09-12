@@ -1,0 +1,27 @@
+# project/candidate/delta.rs
+
+- Result · type · L14-L14 — type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+- PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA · constant · L15-L16 — pub const PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA: &str =
+- PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_SCHEMA · constant · L17-L18 — pub const PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_SCHEMA: &str =
+- MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_BYTES · constant · L19-L19 — pub const MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_BYTES: usize = 8 * 1024 * 1024;
+- MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_BYTES · constant · L20-L20 — pub const MAX_PROJECT_CANDIDATE_SEMANTIC_DELTA_CATALOG_BYTES: usize = 1024 * 1024;
+- MAX_ITEMS · constant · L21-L21 — const MAX_ITEMS: usize = 65_536;
+- MAX_VISITS · constant · L22-L22 — const MAX_VISITS: usize = 1_048_576;
+- MAX_DEPTH · constant · L23-L23 — const MAX_DEPTH: usize = 256;
+- FACT_DOMAIN · constant · L24-L24 — const FACT_DOMAIN: &[u8] = b"semaprax.candidate-semantic-delta.fact.v1\0";
+- REPORT_DOMAIN · constant · L25-L25 — const REPORT_DOMAIN: &[u8] = b"semaprax.candidate-semantic-delta.report.v1\0";
+- semantic_delta · function · L30-L85 — pub fn semantic_delta(&self, expected_candidate: &str, target: &str) -> Result<String>
+- semantic_delta_catalog · function · L89-L122 — pub fn semantic_delta_catalog(&self, expected_candidate: &str) -> Result<String>
+- verify_semantic_delta · function · L126-L155 — pub fn verify_semantic_delta(
+- target_facts · function · L158-L220 — fn target_facts(
+- pair · function · L222-L238 — fn pair(name: &str, before: Value, after: Value) -> Result<Value>
+- normalize · function · L240-L269 — fn normalize(mut value: Value) -> Value
+- authored · function · L271-L379 — fn authored(revision: &ProjectRevision) -> Result<BTreeMap<String, Value>>
+- compact_authored · function · L380-L382 — fn compact_authored(value: &Value) -> Value
+- source_binding · function · L383-L393 — fn source_binding(revision: &ProjectRevision, target: &str, authored: Option<&Value>) -> Value
+- target_id · function · L394-L400 — fn target_id(id: &str) -> Result<()>
+- presence · function · L401-L408 — fn presence(before: bool, after: bool) -> &'static str
+- render · function · L409-L412 — fn render(value: Value, bound: usize) -> Result<String>
+- invalid · function · L413-L415 — fn invalid(message: &'static str) -> Vec<Diagnostic>
+- capacity · function · L416-L418 — fn capacity(message: &'static str) -> Vec<Diagnostic>
+- stale · function · L419-L421 — fn stale(message: &'static str) -> Vec<Diagnostic>

@@ -1,0 +1,37 @@
+# codegen/native_capability_token.rs
+
+- TOKEN_MAGIC · constant · L16-L16 — const TOKEN_MAGIC: &[u8; 4] = b"SPXC";
+- TOKEN_VERSION · constant · L17-L17 — const TOKEN_VERSION: u8 = 1;
+- TOKEN_BODY_BYTES · constant · L18-L18 — const TOKEN_BODY_BYTES: usize = 32;
+- TOKEN_TAG_BYTES · constant · L19-L19 — const TOKEN_TAG_BYTES: usize = 32;
+- TOKEN_BYTES · constant · L20-L20 — pub(super) const TOKEN_BYTES: usize = TOKEN_BODY_BYTES + TOKEN_TAG_BYTES;
+- TOKEN_AUTHENTICATION_DOMAIN · constant · L21-L21 — const TOKEN_AUTHENTICATION_DOMAIN: &[u8] = b"semaprax.native-capability-token.v1\0";
+- HmacSha256 · type · L23-L23 — type HmacSha256 = Hmac<Sha256>;
+- MAGIC_OFFSET · constant · L25-L25 — const MAGIC_OFFSET: usize = 0;
+- VERSION_OFFSET · constant · L26-L26 — const VERSION_OFFSET: usize = 4;
+- KIND_OFFSET · constant · L27-L27 — const KIND_OFFSET: usize = 5;
+- RESERVED_OFFSET · constant · L28-L28 — const RESERVED_OFFSET: usize = 6;
+- EPOCH_OFFSET · constant · L29-L29 — const EPOCH_OFFSET: usize = 8;
+- SLOT_OFFSET · constant · L30-L30 — const SLOT_OFFSET: usize = 16;
+- GENERATION_OFFSET · constant · L31-L31 — const GENERATION_OFFSET: usize = 24;
+- NativeCapabilitySecret · struct · L38-L38 — pub(super) struct NativeCapabilitySecret([u8; 32]);
+- from_trusted_runtime_entropy · function · L41-L48 — pub(super) fn from_trusted_runtime_entropy(
+- drop · function · L52-L57 — fn drop(&mut self)
+- NativeCapabilityKind · enum · L62-L65 — pub(super) enum NativeCapabilityKind
+- from_byte · function · L68-L74 — fn from_byte(value: u8) -> Option<Self>
+- NativeCapabilityBinding · struct · L81-L95 — pub(super) struct NativeCapabilityBinding<'a>
+- from_trusted_runtime_binding · function · L103-L148 — pub(super) fn from_trusted_runtime_binding(
+- NativeCapabilityClaims · struct · L152-L155 — pub(super) struct NativeCapabilityClaims
+- NativeCapabilityTokenError · enum · L158-L170 — pub(super) enum NativeCapabilityTokenError
+- mint · function · L173-L195 — pub(super) fn mint(
+- authenticate · function · L200-L245 — pub(super) fn authenticate(
+- authenticate_expected · function · L250-L263 — pub(super) fn authenticate_expected(
+- authentication_tag · function · L265-L271 — fn authentication_tag(
+- verify_authentication_tag · function · L273-L284 — fn verify_authentication_tag(
+- authentication_message · function · L290-L334 — fn authentication_message(binding: &NativeCapabilityBinding<'_>, body: &[u8]) -> Vec<u8>
+- frame · function · L336-L341 — fn frame(output: &mut Vec<u8>, label: &[u8], value: &[u8])
+- audited_hmac_sha256 · function · L345-L349 — fn audited_hmac_sha256(key: &[u8], message: &[u8]) -> [u8; 32]
+- read_u64 · function · L351-L357 — fn read_u64(bytes: &[u8], offset: usize) -> u64
+- require_identity · function · L359-L365 — fn require_identity(value: &[u8]) -> Result<(), NativeCapabilityTokenError>
+- fingerprint_is_uninitialized · function · L367-L369 — fn fingerprint_is_uninitialized(fingerprint: &[u8; 32]) -> bool
+- tests · module · L373-L373 — mod tests;

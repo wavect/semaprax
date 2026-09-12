@@ -1,0 +1,28 @@
+# public_generic_abi/descriptor/producer.rs
+
+- PROGRAM_ROOT_DOMAIN · constant · L116-L116 — const PROGRAM_ROOT_DOMAIN: &[u8] = b"semaprax.public-generic-descriptor.v1.program-root\0";
+- SOURCE_PROJECTION_DOMAIN · constant · L117-L118 — const SOURCE_PROJECTION_DOMAIN: &[u8] =
+- CLEANUP_INVENTORY_DOMAIN · constant · L119-L120 — const CLEANUP_INVENTORY_DOMAIN: &[u8] =
+- CLEANUP_PLAN_DOMAIN · constant · L121-L121 — const CLEANUP_PLAN_DOMAIN: &[u8] = b"semaprax.public-generic-descriptor.v1.cleanup-plan\0";
+- WRONG_PARAMETER_COUNT · constant · L127-L127 — pub const WRONG_PARAMETER_COUNT: &str = "SPX-PG705";
+- WRONG_OWNERSHIP_MODE · constant · L129-L129 — pub const WRONG_OWNERSHIP_MODE: &str = "SPX-PG706";
+- UNSUPPORTED_INSTANCE_SHAPE · constant · L133-L133 — pub const UNSUPPORTED_INSTANCE_SHAPE: &str = "SPX-PG707";
+- EFFECTFUL_EXPORT · constant · L136-L136 — pub const EFFECTFUL_EXPORT: &str = "SPX-PG708";
+- DESCRIPTOR_RENDER_BUDGET_EXCEEDED · constant · L139-L139 — pub const DESCRIPTOR_RENDER_BUDGET_EXCEEDED: &str = "SPX-PG709";
+- shape · function · L141-L146 — fn shape(code: &'static str, subject: &str) -> Diagnostic
+- GeneratedDescriptor · struct · L158-L168 — pub struct GeneratedDescriptor
+- descriptor · function · L172-L174 — pub fn descriptor(&self) -> &DescriptorV1
+- wire_bytes · function · L179-L181 — pub fn wire_bytes(&self) -> &[u8]
+- descriptor_digest · function · L184-L186 — pub fn descriptor_digest(&self) -> String
+- input_facts · function · L189-L191 — pub fn input_facts(&self) -> &InstanceFacts
+- result_facts · function · L194-L196 — pub fn result_facts(&self) -> &InstanceFacts
+- record_closure · function · L201-L203 — pub fn record_closure(&self) -> &BTreeMap<String, InstanceFacts>
+- settlement · function · L207-L209 — pub fn settlement(&self) -> &SettlementPlan
+- cleanup_inventory_digest · function · L214-L216 — pub fn cleanup_inventory_digest(&self) -> &str
+- cleanup_plan_digest · function · L220-L222 — pub fn cleanup_plan_digest(&self) -> &str
+- settlement_obligations_digest · function · L227-L229 — pub fn settlement_obligations_digest(&self) -> &str
+- declaration_identity_preimage · function · L237-L272 — fn declaration_identity_preimage(program: &ResolvedProgram) -> Vec<u8>
+- find_function · function · L280-L286 — fn find_function<'a>(program: &'a ResolvedProgram, export_id: &str) -> &'a ResolvedFunction
+- generate_public_generic_descriptor · function · L302-L461 — pub fn generate_public_generic_descriptor(
+- is_admitted_input_ownership · function · L466-L468 — pub const fn is_admitted_input_ownership(mode: OwnershipMode) -> bool
+- tests · module · L471-L471 — mod tests;

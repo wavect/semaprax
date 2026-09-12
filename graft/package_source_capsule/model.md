@@ -1,0 +1,32 @@
+# package_source_capsule/model.rs
+
+- SCHEMA · constant · L4-L4 — pub const SCHEMA: &str = "semaprax.offline-multi-package-source-capsule.v1";
+- MIN_OUTPUT_BYTES · constant · L5-L5 — pub const MIN_OUTPUT_BYTES: usize = 4 * 1024;
+- MAX_OUTPUT_BYTES · constant · L6-L6 — pub const MAX_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
+- MAX_RENDER_BYTES · constant · L7-L7 — pub const MAX_RENDER_BYTES: usize = 128 * 1024 * 1024;
+- MAX_PACKAGES · constant · L8-L8 — pub const MAX_PACKAGES: usize = 4;
+- MIN_PACKAGES · constant · L9-L9 — pub const MIN_PACKAGES: usize = 2;
+- MAX_SOURCE_BYTES · constant · L10-L10 — pub const MAX_SOURCE_BYTES: usize = 1024 * 1024;
+- MAX_TOTAL_SOURCE_BYTES · constant · L11-L11 — pub const MAX_TOTAL_SOURCE_BYTES: usize = 4 * 1024 * 1024;
+- MAX_IMPORTS · constant · L12-L12 — pub const MAX_IMPORTS: usize = 256;
+- PackageSource · struct · L15-L19 — pub struct PackageSource
+- SourceCapsuleOptions · struct · L22-L25 — pub struct SourceCapsuleOptions
+- new · function · L28-L38 — pub fn new(
+- default · function · L42-L47 — fn default() -> Self
+- VerifiedSourceCapsule · struct · L51-L61 — pub struct VerifiedSourceCapsule
+- schema · function · L64-L66 — pub fn schema(&self) -> &str
+- digest · function · L67-L69 — pub fn digest(&self) -> &str
+- bytes · function · L70-L72 — pub const fn bytes(&self) -> usize
+- source_set_digest · function · L73-L75 — pub fn source_set_digest(&self) -> &str
+- link_digest · function · L76-L78 — pub fn link_digest(&self) -> &str
+- root_package · function · L79-L81 — pub fn root_package(&self) -> &str
+- packages · function · L82-L84 — pub fn packages(&self) -> &[Coordinate]
+- source_revisions · function · L85-L87 — pub fn source_revisions(&self) -> &[(Coordinate, String)]
+- exports · function · L88-L90 — pub fn exports(&self) -> &[String]
+- LinkedPackageSourceFact · struct · L94-L103 — pub(crate) struct LinkedPackageSourceFact
+- LinkedPackageImportFact · struct · L106-L112 — pub(crate) struct LinkedPackageImportFact
+- LinkedPackageCallFact · struct · L115-L125 — pub(crate) struct LinkedPackageCallFact
+- VerifiedLinkedSourceCapsule · struct · L131-L138 — pub(crate) struct VerifiedLinkedSourceCapsule
+- BuiltCapsule · struct · L140-L148 — pub(crate) struct BuiltCapsule
+- VerifiedSourceCapsuleFacts · struct · L150-L159 — pub(crate) struct VerifiedSourceCapsuleFacts
+- new · function · L162-L174 — pub(crate) fn new(facts: VerifiedSourceCapsuleFacts) -> Self

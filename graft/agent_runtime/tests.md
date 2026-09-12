@@ -1,0 +1,64 @@
+# agent_runtime/tests.rs
+
+- FakeProbe · struct · L16-L20 — struct FakeProbe
+- policy_epoch · function · L23-L25 — fn policy_epoch(&self) -> u64
+- elapsed_ms · function · L26-L28 — fn elapsed_ms(&self) -> u64
+- FakeHost · struct · L31-L35 — struct FakeHost
+- fixture · function · L38-L48 — fn fixture() -> Self
+- policy_epoch · function · L52-L54 — fn policy_epoch(&self) -> u64
+- elapsed_ms · function · L55-L57 — fn elapsed_ms(&self) -> u64
+- boundary_probe · function · L58-L60 — fn boundary_probe(&self) -> Box<dyn AgentBoundaryProbe>
+- tokenize · function · L61-L63 — fn tokenize(&mut self, _: &str, request: &str) -> Option<u64>
+- attempt_provider · function · L64-L88 — fn attempt_provider(
+- invoke_tool · function · L89-L94 — fn invoke_tool(&mut self, _: &str, tool_id: &str, _: &str, sink: &mut ToolResultSink) -> bool
+- fixture_profile · function · L97-L165 — pub(super) fn fixture_profile() -> String
+- fixture_task · function · L167-L180 — fn fixture_task() -> String
+- private_fixture_runs_one_tool_then_completes_with_replayable_evidence · function · L183-L206 — fn private_fixture_runs_one_tool_then_completes_with_replayable_evidence()
+- BoundaryFault · enum · L209-L214 — enum BoundaryFault
+- ScriptHost · struct · L216-L230 — struct ScriptHost
+- final_only · function · L233-L257 — fn final_only(message: &str) -> Self
+- apply_fault · function · L259-L266 — fn apply_fault(&self, fault: BoundaryFault)
+- policy_epoch · function · L270-L276 — fn policy_epoch(&self) -> u64
+- elapsed_ms · function · L278-L280 — fn elapsed_ms(&self) -> u64
+- boundary_probe · function · L282-L284 — fn boundary_probe(&self) -> Box<dyn AgentBoundaryProbe>
+- tokenize · function · L286-L289 — fn tokenize(&mut self, _: &str, request: &str) -> Option<u64>
+- attempt_provider · function · L291-L328 — fn attempt_provider(
+- invoke_tool · function · L330-L340 — fn invoke_tool(&mut self, call_id: &str, _: &str, _: &str, sink: &mut ToolResultSink) -> bool
+- raw_sha · function · L343-L348 — fn raw_sha(source: &str) -> String
+- diagnostic · function · L350-L353 — fn diagnostic(error: Vec<Diagnostic>) -> (&'static str, String)
+- parsed_profile · function · L355-L357 — fn parsed_profile() -> Profile
+- profile_error · function · L359-L364 — fn profile_error(source: &str) -> Diagnostic
+- task_error · function · L366-L371 — fn task_error(source: &str) -> Diagnostic
+- run_error · function · L373-L378 — fn run_error<H: AgentHost>(profile: &str, host: H, task: &str) -> Vec<Diagnostic>
+- final_action · function · L380-L386 — fn final_action(message: &str) -> Vec<u8>
+- tool_action · function · L388-L394 — fn tool_action(tool: &str, arguments: &str) -> Vec<u8>
+- canonical_profile_and_task_parsers_reject_wire_and_invariant_mutations · function · L397-L498 — fn canonical_profile_and_task_parsers_reject_wire_and_invariant_mutations()
+- NoWriteFixture · struct · L500-L503 — struct NoWriteFixture
+- new · function · L506-L526 — fn new() -> Self
+- assert_unchanged · function · L528-L543 — fn assert_unchanged(&self)
+- drop · function · L547-L549 — fn drop(&mut self)
+- private_runtime_has_no_ambient_write_authority · function · L553-L566 — fn private_runtime_has_no_ambient_write_authority()
+- router_is_cost_then_identity_ordered_and_permutation_independent · function · L569-L614 — fn router_is_cost_then_identity_ordered_and_permutation_independent()
+- provider_streaming_retry_and_uncertainty_are_exact · function · L617-L673 — fn provider_streaming_retry_and_uncertainty_are_exact()
+- cancellation_deadline_and_policy_revocation_close_provider_and_tool_sinks · function · L676-L777 — fn cancellation_deadline_and_policy_revocation_close_provider_and_tool_sinks()
+- tool_authority_schema_and_preinvoke_budgets_fail_without_a_call · function · L780-L846 — fn tool_authority_schema_and_preinvoke_budgets_fail_without_a_call()
+- tool_result_failures_are_terminal_and_call_ids_are_deterministic · function · L849-L963 — fn tool_result_failures_are_terminal_and_call_ids_are_deterministic()
+- trace_and_evidence_known_answers_and_replay_mutations_are_exact · function · L966-L1055 — fn trace_and_evidence_known_answers_and_replay_mutations_are_exact()
+- secret_isolation_and_builder_limits_are_fail_closed · function · L1058-L1084 — fn secret_isolation_and_builder_limits_are_fail_closed()
+- profile_cardinality_and_task_byte_boundaries_are_exact · function · L1087-L1172 — fn profile_cardinality_and_task_byte_boundaries_are_exact()
+- action_stream_and_usage_hostility_fails_closed · function · L1175-L1235 — fn action_stream_and_usage_hostility_fails_closed()
+- minimum_successful_limit · function · L1237-L1261 — fn minimum_successful_limit(
+- long_provider_profile · function · L1263-L1270 — fn long_provider_profile() -> Profile
+- escaped_task · function · L1272-L1277 — fn escaped_task() -> String
+- provider_boundary_calls · function · L1279-L1292 — fn provider_boundary_calls(
+- minimum_provider_boundary_limit · function · L1294-L1312 — fn minimum_provider_boundary_limit(
+- long_tool_host · function · L1314-L1323 — fn long_tool_host(tool_id: &str) -> ScriptHost
+- tool_boundary_calls · function · L1325-L1337 — fn tool_boundary_calls(
+- minimum_tool_boundary_limit · function · L1339-L1356 — fn minimum_tool_boundary_limit(
+- long_identifiers_and_escaping_are_counted_before_external_boundaries · function · L1359-L1445 — fn long_identifiers_and_escaping_are_counted_before_external_boundaries()
+- history_stress_profile · function · L1447-L1461 — fn history_stress_profile(payload_bytes: usize, retained_limit: u64) -> String
+- history_stress_run · function · L1463-L1487 — fn history_stress_run(
+- cumulative_builder_and_retained_history_boundaries_are_exact · function · L1490-L1561 — fn cumulative_builder_and_retained_history_boundaries_are_exact()
+- terminal_preflight_counts_the_longest_g204_after_nonempty_history_exactly · function · L1564-L1677 — fn terminal_preflight_counts_the_longest_g204_after_nonempty_history_exactly()
+- G204_MESSAGE · constant · L1565-L1566 — const G204_MESSAGE: &str =
+- trace_evidence_and_builder_caps_have_exact_minimum_boundaries · function · L1680-L1741 — fn trace_evidence_and_builder_caps_have_exact_minimum_boundaries()

@@ -1,0 +1,38 @@
+# semantic_workspace_change/verification.rs
+
+- FORMAT_LEAD · constant · L15-L16 — const FORMAT_LEAD: &str =
+- REPLAY_MESSAGE · constant · L17-L18 — const REPLAY_MESSAGE: &str =
+- MAX_JSON_DEPTH · constant · L19-L19 — const MAX_JSON_DEPTH: usize = 8;
+- TOP_KEYS · constant · L21-L39 — const TOP_KEYS: [&str; 17] = [
+- REF_KEYS · constant · L40-L40 — const REF_KEYS: [&str; 3] = ["schema", "digest", "bytes"];
+- GRAPH_REF_KEYS · constant · L41-L41 — const GRAPH_REF_KEYS: [&str; 2] = ["schema", "digest"];
+- FILE_KEYS · constant · L42-L52 — const FILE_KEYS: [&str; 9] = [
+- LIMIT_KEYS · constant · L53-L81 — const LIMIT_KEYS: [&str; 27] = [
+- LIMIT_VALUES · constant · L82-L110 — const LIMIT_VALUES: [usize; 27] = [
+- BUDGET_KEYS · constant · L111-L137 — const BUDGET_KEYS: [&str; 25] = [
+- NONCLAIMS · constant · L138-L158 — const NONCLAIMS: [&str; 19] = [
+- SubmittedEvidence · struct · L160-L160 — pub(super) struct SubmittedEvidence;
+- read_evidence · function · L162-L182 — pub(super) fn read_evidence(path: &Path) -> Result<String, Vec<Diagnostic>>
+- parse_evidence · function · L184-L247 — pub(super) fn parse_evidence(source: &str) -> Result<SubmittedEvidence, Vec<Diagnostic>>
+- verify_replay · function · L249-L259 — pub(super) fn verify_replay(
+- validate_claim_bindings · function · L261-L353 — fn validate_claim_bindings(
+- validate_ref · function · L355-L361 — fn validate_ref(value: &Value) -> Result<(), Vec<Diagnostic>>
+- validate_graph_ref · function · L363-L368 — fn validate_graph_ref(value: &Value) -> Result<(), Vec<Diagnostic>>
+- validate_files · function · L370-L411 — fn validate_files(value: &Value) -> Result<(), Vec<Diagnostic>>
+- validate_number_object · function · L413-L419 — fn validate_number_object(value: &Value, keys: &[&str]) -> Result<(), Vec<Diagnostic>>
+- validate_nonclaims_shape · function · L421-L429 — fn validate_nonclaims_shape(value: &Value) -> Result<(), Vec<Diagnostic>>
+- render_canonical · function · L431-L468 — fn render_canonical(top: &Map<String, Value>) -> Result<String, Vec<Diagnostic>>
+- push_object · function · L470-L486 — fn push_object(
+- push_scalar · function · L488-L491 — fn push_scalar(output: &mut String, value: &Value) -> Result<(), Vec<Diagnostic>>
+- validate_json_depth · function · L493-L526 — fn validate_json_depth(source: &str) -> Result<(), Vec<Diagnostic>>
+- exact_object · function · L528-L537 — fn exact_object<'a>(
+- object · function · L539-L541 — fn object(value: &Value) -> Result<&Map<String, Value>, Vec<Diagnostic>>
+- validate_text_fields · function · L543-L548 — fn validate_text_fields(object: &Map<String, Value>, keys: &[&str]) -> Result<(), Vec<Diagnostic>>
+- string · function · L550-L552 — fn string<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Vec<Diagnostic>>
+- number · function · L554-L559 — fn number(object: &Map<String, Value>, key: &str) -> Result<usize, Vec<Diagnostic>>
+- digest · function · L561-L572 — fn digest(object: &Map<String, Value>, key: &str) -> Result<(), Vec<Diagnostic>>
+- ref_bytes · function · L574-L576 — fn ref_bytes(value: &Value) -> Result<usize, Vec<Diagnostic>>
+- format_error · function · L578-L584 — fn format_error(suffix: Option<&str>) -> Vec<Diagnostic>
+- value_type_error · function · L586-L588 — fn value_type_error() -> Vec<Diagnostic>
+- replay_error · function · L590-L592 — fn replay_error() -> Vec<Diagnostic>
+- evidence_io · function · L594-L599 — fn evidence_io(detail: &'static str) -> Vec<Diagnostic>

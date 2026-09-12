@@ -1,0 +1,21 @@
+# wasm/aggregate/nested_owned.rs
+
+- Frame · enum · L12-L15 — enum Frame
+- record_contains_owned_bytes · function · L17-L111 — pub(super) fn record_contains_owned_bytes(
+- record_is_nested_owned · function · L113-L138 — pub(super) fn record_is_nested_owned(
+- record_update_uses_owned_plan · function · L140-L146 — pub(super) fn record_update_uses_owned_plan(
+- is_concrete_generic_flat_owned_record · function · L148-L151 — fn is_concrete_generic_flat_owned_record(program: &ResolvedProgram, root: &ResolvedType) -> bool
+- emit_update_scope_cleanup · function · L153-L201 — pub(super) fn emit_update_scope_cleanup(
+- is_exact_record · function · L203-L220 — fn is_exact_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic>
+- owned_record_pattern_anchors · function · L222-L259 — pub(super) fn owned_record_pattern_anchors(
+- bind_record_match_pattern · function · L261-L444 — pub(super) fn bind_record_match_pattern(
+- Frame · struct · L269-L277 — struct Frame<'a>
+- byte_binding_mode_is_exact · function · L446-L460 — fn byte_binding_mode_is_exact(
+- wildcard_is_exact · function · L462-L468 — fn wildcard_is_exact(mode: crate::hir::ResolvedMatchMode, owns_bytes: bool) -> bool
+- nested_record_binding_is_exact · function · L470-L472 — fn nested_record_binding_is_exact(contains_owned_bytes: bool) -> bool
+- tests · module · L475-L524 — mod tests
+- hostile_hir_cannot_alias_an_owned_record_match_terminal · function · L480-L489 — fn hostile_hir_cannot_alias_an_owned_record_match_terminal()
+- hostile_hir_cannot_move_a_borrowed_record_match_terminal · function · L492-L505 — fn hostile_hir_cannot_move_a_borrowed_record_match_terminal()
+- hostile_hir_cannot_hide_owned_subtrees_with_wildcards · function · L508-L511 — fn hostile_hir_cannot_hide_owned_subtrees_with_wildcards()
+- hostile_hir_cannot_bind_an_owning_record_as_one_terminal · function · L514-L517 — fn hostile_hir_cannot_bind_an_owning_record_as_one_terminal()
+- copy_only_wildcards_remain_admitted · function · L520-L523 — fn copy_only_wildcards_remain_admitted()

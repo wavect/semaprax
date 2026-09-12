@@ -1,0 +1,25 @@
+# cxx_shim/package.rs
+
+- PACKAGE_SCHEMA · constant · L14-L14 — pub const PACKAGE_SCHEMA: &str = "semaprax.cxx-package.v1";
+- PAYLOAD_DOMAIN · constant · L15-L15 — const PAYLOAD_DOMAIN: &[u8] = b"semaprax.cxx-package.payload.v1\0";
+- HEADER_DOMAIN · constant · L16-L16 — const HEADER_DOMAIN: &[u8] = b"semaprax.cxx-package.header.v1\0";
+- PROVIDER_DOMAIN · constant · L17-L17 — const PROVIDER_DOMAIN: &[u8] = b"semaprax.cxx-package.provider.v1\0";
+- GUARD_DOMAIN · constant · L18-L18 — const GUARD_DOMAIN: &[u8] = b"semaprax.cxx-package.guard.v1\0";
+- MAX_CONSTRUCTION_BYTES · constant · L19-L19 — const MAX_CONSTRUCTION_BYTES: usize = crate::graph::MAX_AGENT_CONTEXT_BYTES;
+- NONCLAIMS · constant · L20-L29 — const NONCLAIMS: [&str; 8] = [
+- CxxPackage · struct · L33-L37 — pub struct CxxPackage
+- generate_package · function · L41-L153 — pub fn generate_package(
+- verify_package_envelope · function · L158-L179 — pub fn verify_package_envelope(
+- inspect_package_envelope · function · L181-L192 — fn inspect_package_envelope(envelope: &str) -> Result<CxxPackage, Diagnostic>
+- inspect_package_envelope_inner · function · L194-L318 — fn inspect_package_envelope_inner(envelope: &str) -> Result<CxxPackage, Diagnostic>
+- artifact · function · L320-L338 — fn artifact(
+- exact_object · function · L340-L352 — fn exact_object<'a>(
+- package_guard · function · L354-L364 — fn package_guard(revision: &str, functions: &[super::EmittedFunction]) -> String
+- render_header · function · L366-L380 — fn render_header(guard_digest: &str, functions: &[super::EmittedFunction]) -> String
+- render_provider · function · L382-L393 — fn render_provider(native: &str, functions: &[super::EmittedFunction]) -> String
+- wrapper_declaration · function · L395-L401 — fn wrapper_declaration(function: &super::EmittedFunction) -> String
+- wrapper_definition · function · L403-L427 — fn wrapper_definition(function: &super::EmittedFunction) -> String
+- wrapper_parameters · function · L429-L443 — fn wrapper_parameters(function: &super::EmittedFunction) -> String
+- c_type · function · L445-L456 — fn c_type(ty: &Type) -> &'static str
+- wrapper_symbol · function · L458-L466 — fn wrapper_symbol(stable_id: &str) -> String
+- verify_wrapper_inventory · function · L468-L506 — fn verify_wrapper_inventory(

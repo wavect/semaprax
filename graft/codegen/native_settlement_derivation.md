@@ -1,0 +1,39 @@
+# codegen/native_settlement_derivation.rs
+
+- RECOVERY_CONTRACT_DOMAIN · constant · L42-L42 — const RECOVERY_CONTRACT_DOMAIN: &[u8] = b"semaprax.native-recovery-contract.v1\0";
+- TRACE_EVIDENCE_DOMAIN · constant · L43-L43 — const TRACE_EVIDENCE_DOMAIN: &[u8] = b"semaprax.native-recovery-trace-evidence.v1\0";
+- MAX_DERIVATION_PATHS · constant · L44-L44 — const MAX_DERIVATION_PATHS: usize = 65_536;
+- MAX_DERIVATION_WORK_UNITS · constant · L45-L45 — const MAX_DERIVATION_WORK_UNITS: usize = 1_000_000;
+- NativeSettlementDerivation · struct · L49-L54 — pub(super) struct NativeSettlementDerivation
+- recovery_contract_fingerprint · function · L57-L59 — pub(super) const fn recovery_contract_fingerprint(&self) -> [u8; 32]
+- trace_certificate_fingerprint · function · L61-L63 — pub(super) const fn trace_certificate_fingerprint(&self) -> [u8; 32]
+- certificate · function · L65-L67 — pub(super) fn certificate(&self) -> &NativeSettlementCertificate
+- trace_evidence_witness · function · L69-L74 — pub(super) fn trace_evidence_witness(
+- TraceEvidenceWitness · struct · L80-L83 — pub(super) struct TraceEvidenceWitness
+- ordinals · function · L86-L88 — pub(super) fn ordinals(&self) -> &[u32]
+- outcome · function · L90-L92 — pub(super) const fn outcome(&self) -> TracePathOutcome
+- PathState · struct · L96-L103 — struct PathState
+- TerminalPath · struct · L106-L112 — struct TerminalPath
+- PhysicalProgress · enum · L115-L118 — enum PhysicalProgress
+- DerivedCheckpointRow · struct · L121-L125 — struct DerivedCheckpointRow
+- derive_native_settlement · function · L128-L231 — pub(super) fn derive_native_settlement(
+- OwnerMeaning · struct · L234-L239 — struct OwnerMeaning
+- owner_meanings · function · L241-L302 — fn owner_meanings(
+- recovery_contract_fingerprint · function · L304-L339 — fn recovery_contract_fingerprint(
+- collect_terminal_paths · function · L341-L542 — fn collect_terminal_paths(
+- apply_transition · function · L544-L616 — fn apply_transition(
+- finalize_owner · function · L618-L642 — fn finalize_owner(
+- owner_for_place · function · L644-L660 — fn owner_for_place(
+- flags_under · function · L662-L685 — fn flags_under(
+- collect_flags · function · L687-L720 — fn collect_flags(
+- edge_target · function · L722-L734 — fn edge_target(
+- event_ordinal · function · L736-L743 — fn event_ordinal(
+- select_failure_ordinal · function · L745-L765 — fn select_failure_ordinal(
+- finalizer_ordinal · function · L767-L807 — fn finalizer_ordinal(
+- trace_evidence · function · L809-L830 — fn trace_evidence(
+- derive_checkpoints · function · L832-L950 — fn derive_checkpoints(
+- next_checkpoint · function · L952-L955 — fn next_checkpoint(rows: &[DerivedCheckpointRow]) -> Result<u32, Diagnostic>
+- insert_progress_row · function · L957-L978 — fn insert_progress_row(
+- abort_order · function · L980-L1000 — fn abort_order(
+- derivation_error · function · L1002-L1007 — fn derivation_error(message: impl Into<String>) -> Diagnostic
+- tests · module · L1011-L1011 — mod tests;

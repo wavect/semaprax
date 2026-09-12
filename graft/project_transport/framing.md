@@ -1,0 +1,28 @@
+# project_transport/framing.rs
+
+- DEFAULT_MAX_REQUEST_BYTES · constant · L7-L7 — pub(crate) const DEFAULT_MAX_REQUEST_BYTES: usize = 64 * 1024;
+- DEFAULT_MAX_RESPONSE_BYTES · constant · L8-L8 — pub(crate) const DEFAULT_MAX_RESPONSE_BYTES: usize = 1024 * 1024;
+- MAX_REQUEST_BYTES · constant · L9-L9 — pub(crate) const MAX_REQUEST_BYTES: usize = 1024 * 1024;
+- MAX_RESPONSE_BYTES · constant · L10-L10 — pub(crate) const MAX_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
+- StdioLimits · struct · L13-L16 — pub(crate) struct StdioLimits
+- new · function · L19-L37 — pub(crate) fn new(request_bytes: usize, response_bytes: usize) -> Result<Self, String>
+- request_bytes · function · L39-L41 — pub(crate) const fn request_bytes(self) -> usize
+- response_bytes · function · L43-L45 — pub(crate) const fn response_bytes(self) -> usize
+- default · function · L49-L54 — fn default() -> Self
+- Frame · enum · L58-L62 — pub(crate) enum Frame
+- FrameReader · struct · L64-L68 — pub(crate) struct FrameReader<R: BufRead>
+- new · function · L71-L77 — pub(crate) fn new(inner: R, limits: StdioLimits) -> Self
+- read_frame · function · L82-L121 — pub(crate) fn read_frame(&mut self) -> io::Result<Frame>
+- into_inner · function · L124-L126 — pub(crate) fn into_inner(self) -> R
+- WriteDisposition · enum · L130-L133 — pub(crate) enum WriteDisposition
+- FrameWriter · struct · L135-L138 — pub(crate) struct FrameWriter<W: Write>
+- new · function · L141-L146 — pub(crate) fn new(inner: W, limits: StdioLimits) -> Self
+- write_response · function · L150-L172 — pub(crate) fn write_response(&mut self, response: &[u8]) -> io::Result<WriteDisposition>
+- into_inner · function · L175-L177 — pub(crate) fn into_inner(self) -> W
+- tests · module · L181-L250 — mod tests
+- limits · function · L185-L187 — fn limits(request: usize, response: usize) -> StdioLimits
+- reader_accepts_exact_limit_and_final_unterminated_frames · function · L190-L197 — fn reader_accepts_exact_limit_and_final_unterminated_frames()
+- oversized_frame_is_fully_drained_and_terminal · function · L200-L207 — fn oversized_frame_is_fully_drained_and_terminal()
+- oversized_unterminated_frame_is_bounded_and_terminal · function · L210-L215 — fn oversized_unterminated_frame_is_bounded_and_terminal()
+- writer_uses_one_lf_flushes_and_replaces_oversized_responses · function · L218-L238 — fn writer_uses_one_lf_flushes_and_replaces_oversized_responses()
+- writer_rejects_raw_line_breaks_and_limits_are_closed · function · L241-L249 — fn writer_rejects_raw_line_breaks_and_limits_are_closed()

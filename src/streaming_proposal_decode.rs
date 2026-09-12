@@ -381,8 +381,8 @@ impl<'a> ProposalStreamDecoder<'a> {
             Ok(text) => (text, false),
             Err(error) => {
                 let valid = error.valid_up_to();
-                let text =
-                    std::str::from_utf8(&tail[..valid]).expect("from_utf8 proved this prefix valid");
+                let text = std::str::from_utf8(&tail[..valid])
+                    .expect("from_utf8 proved this prefix valid");
                 (text, error.error_len().is_some())
             }
         };

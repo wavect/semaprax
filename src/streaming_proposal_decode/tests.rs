@@ -82,7 +82,12 @@ fn compile_choice() -> CompiledInteractionSchema {
 /// produces, so a syntactically legal mutation still exercises real
 /// semantic admission rather than being rejected first by an accidental
 /// formatting slip.
-fn outer_document(schema: &CompiledInteractionSchema, id: &str, active: &str, note: &str) -> String {
+fn outer_document(
+    schema: &CompiledInteractionSchema,
+    id: &str,
+    active: &str,
+    note: &str,
+) -> String {
     let inner = format!("{{\"fields\":{{\"inner.note\":{}}}}}", quote_json(note));
     let value = format!(
         "{{\"fields\":{{\"outer.id\":{},\"outer.active\":{active},\"outer.inner\":{inner}}}}}",
@@ -181,27 +186,28 @@ fn streaming_outcome_agrees_with_the_whole_document_decoder_for_every_case() {
         ),
         (
             "wrong scalar type",
-            valid_outer.replace("\"outer.active\":true", "\"outer.active\":\"true\"")
+            valid_outer
+                .replace("\"outer.active\":true", "\"outer.active\":\"true\"")
                 .into_bytes(),
         ),
         (
             "integer out of range",
             valid_outer
-                .replace("\"outer.id\":\"7\"", "\"outer.id\":\"99999999999999999999999999\"")
+                .replace(
+                    "\"outer.id\":\"7\"",
+                    "\"outer.id\":\"99999999999999999999999999\"",
+                )
                 .into_bytes(),
         ),
         (
             "oversized text field exceeds the checked bound",
             outer_document(&outer, "7", "true", &oversized).into_bytes(),
         ),
-        (
-            "trailing data after the terminal newline",
-            {
-                let mut bytes = valid_outer.clone().into_bytes();
-                bytes.push(b'{');
-                bytes
-            },
-        ),
+        ("trailing data after the terminal newline", {
+            let mut bytes = valid_outer.clone().into_bytes();
+            bytes.push(b'{');
+            bytes
+        }),
         (
             "valid choice tag",
             choice_document(&choice, "choice.yes").into_bytes(),
@@ -213,7 +219,11 @@ fn streaming_outcome_agrees_with_the_whole_document_decoder_for_every_case() {
     ];
 
     for (label, bytes) in cases {
-        let schema = if label.contains("choice") { &choice } else { &outer };
+        let schema = if label.contains("choice") {
+            &choice
+        } else {
+            &outer
+        };
         let whole = schema.decode(&bytes);
 
         let whole_at_once = push_all_at_once(schema, &bytes);
@@ -378,9 +388,13 @@ fn identical_bytes_produce_identical_outcomes_regardless_of_chunk_boundaries() {
     let outer = compile_outer();
 
     let valid = outer_document(&outer, "7", "true", "hi").into_bytes();
-    let multibyte_utf8 = outer_document(&outer, "42", "false", "caf\u{e9} \u{1f600} \u{4e2d}").into_bytes();
+    let multibyte_utf8 =
+        outer_document(&outer, "42", "false", "caf\u{e9} \u{1f600} \u{4e2d}").into_bytes();
     let unknown_field = outer_document(&outer, "7", "true", "hi")
-        .replace("\"outer.active\":true", "\"outer.active\":true,\"outer.bogus\":\"1\"")
+        .replace(
+            "\"outer.active\":true",
+            "\"outer.active\":true,\"outer.bogus\":\"1\"",
+        )
         .into_bytes();
     let bad_utf8 = {
         let mut bytes = outer_document(&outer, "7", "true", "hi").into_bytes();
@@ -405,7 +419,8 @@ fn identical_bytes_produce_identical_outcomes_regardless_of_chunk_boundaries() {
         for split in 1..bytes.len() {
             let split_outcome = push_split_at(&outer, &bytes, split);
             assert_eq!(
-                reference, split_outcome,
+                reference,
+                split_outcome,
                 "splitting at byte {split}/{} must not change the outcome",
                 bytes.len()
             );
@@ -461,7 +476,7 @@ fn depth_bound_is_enforced_at_its_exact_limit() {
     // The mandatory leading '{' is depth 1; MAX_STREAM_DEPTH - 1 further
     // opens reach exactly MAX_STREAM_DEPTH.
     let mut bytes = vec![b'{'];
-    bytes.extend(std::iter::repeat(b'[').take(MAX_STREAM_DEPTH - 1));
+    bytes.extend(std::iter::repeat_n(b'[', MAX_STREAM_DEPTH - 1));
     assert_eq!(
         decoder.push(&bytes),
         PushOutcome::Incomplete,
@@ -614,7 +629,10 @@ fn finish_refuses_a_stream_that_never_reached_its_terminal_newline() {
     let outer = compile_outer();
     let mut decoder = ProposalStreamDecoder::new(&outer);
     let valid = outer_document(&outer, "1", "true", "ok").into_bytes();
-    assert_eq!(decoder.push(&valid[..valid.len() - 1]), PushOutcome::Incomplete);
+    assert_eq!(
+        decoder.push(&valid[..valid.len() - 1]),
+        PushOutcome::Incomplete
+    );
 
     match decoder.finish() {
         PushOutcome::Refused(refusal) => assert_eq!(refusal.code, STREAM_TRUNCATED),
@@ -666,10 +684,7 @@ fn cancel_after_acceptance_cannot_retroactively_unauthorize_the_decoded_value() 
 fn a_refusal_is_sticky_across_further_pushes() {
     let outer = compile_outer();
     let mut decoder = ProposalStreamDecoder::new(&outer);
-    assert!(matches!(
-        decoder.push(b"["),
-        PushOutcome::Refused(_)
-    ));
+    assert!(matches!(decoder.push(b"["), PushOutcome::Refused(_)));
     let first = decoder.push(b"[");
     let second = decoder.push(b"anything else at all");
     assert_eq!(first, second);

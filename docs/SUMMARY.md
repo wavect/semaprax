@@ -315,6 +315,7 @@ Audience: all documentation readers.
 - [HTTP Application Routing](HTTP-APPLICATION-ROUTING-V1.md)
 - [Database Access v1](DATABASE-ACCESS-V1.md)
 - [Durable Jobs v1](DURABLE-JOBS-V1.md)
+- [Host Operation Outcome v1](HOST-OPERATION-OUTCOME-V1.md)
 - [Authentication and Sessions v1](AUTHENTICATION-SESSIONS-V1.md)
 - [Wasm scalar exports](WASM-SCALAR-EXPORTS-V1.md)
 - [Public Scalar WIT Interface v1](PUBLIC-SCALAR-WIT-INTERFACE-V1.md)

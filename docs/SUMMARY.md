@@ -34,6 +34,7 @@ Audience: all documentation readers.
 - [Generic compiler collections v1](GENERIC-COMPILER-COLLECTIONS-V1.md)
 - [Generic Iterator Helpers v1](GENERIC-ITERATORS-V1.md)
 - [Generic Iterator Operations v1](GENERIC-ITERATOR-OPERATIONS-V1.md)
+- [Bounded Lazy Iterator Adapters v1](BOUNDED-LAZY-ITERATOR-ADAPTERS-V1.md)
 - [Standard library catalog](STANDARD-LIBRARY-CATALOG.md)
 - [Language shapes catalog](LANGUAGE-SHAPES-CATALOG.md)
 - [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)

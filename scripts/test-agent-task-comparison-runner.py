@@ -160,6 +160,23 @@ class OwnedOracleTests(unittest.TestCase):
         self.assertEqual(outcomes["signature"], "failed")
         self.assertEqual(outcomes["ownership"], "failed")
 
+    def test_projection_facts_reject_missing_staging_and_comment_decoys(self):
+        record = {"stdout": json.dumps({"schema": "semaprax.graph.v17", "nodes": [
+            {"id": "benchmark.owned.select", "params": [], "cleanup": {"kind": "cleanup_plan"}},
+            {"id": "benchmark.owned.call", "body": {"statements": [{"binding": {"name": "fake // let left = bytes_copy(input)"}}], "tail": {}}, "cleanup": {"kind": "cleanup_plan"}},
+        ]})}
+        self.assertIsNone(runner._projection_facts(record))
+
+    def test_baseline_command_failure_fails_semantic_rows(self):
+        binding, candidate, before, after = self._candidate()
+        evidence = self._compiler_evidence()
+        evidence["baseline"]["check"]["returncode"] = 1
+        with mock.patch.object(runner, "_owned_compiler_evidence", return_value=evidence):
+            rows, _ = runner.check_owned_signature_migration(candidate, binding, before, after, "unused")
+        outcomes = {row["id"]: row["outcome"] for row in rows}
+        self.assertEqual(outcomes["meaning"], "failed")
+        self.assertEqual(outcomes["signature"], "failed")
+
     def test_owned_oracle_rejects_runtime_regression_against_baseline(self):
         binding, candidate, before, after = self._candidate()
         evidence = self._compiler_evidence()

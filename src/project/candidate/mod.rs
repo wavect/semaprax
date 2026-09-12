@@ -51,6 +51,7 @@ mod interface;
 mod interface_delta;
 mod merge_preview;
 mod movement;
+mod multi_agent_coordination;
 mod owned_workflow_approval;
 mod ownership_delta;
 mod package_consumer_replay;
@@ -258,6 +259,14 @@ pub use draft_suggestions::{
 pub use merge_preview::{
     MAX_PROJECT_CANDIDATE_MERGE_PREVIEW_BYTES, PROJECT_CANDIDATE_MERGE_PREVIEW_SCHEMA,
     PROJECT_CANDIDATE_MERGE_PREVIEW_VERIFICATION_SCHEMA,
+};
+pub use multi_agent_coordination::{
+    record_scheduling_comparison, AgentProposal, CoordinationParticipant, OperationClass,
+    SchedulingObservation, COORDINATION_EVALUATION_SCHEMA, COORDINATION_SESSION_SCHEMA,
+    MAX_COORDINATION_EVALUATION_BYTES, MAX_COORDINATION_IDENTITY_BYTES,
+    MAX_COORDINATION_PARTICIPANTS, MAX_COORDINATION_SESSION_BYTES, MAX_INTENTION_BYTES,
+    MAX_PROPOSALS, MAX_SCHEDULING_COMPARISON_BYTES, MAX_SCHEDULING_METRIC,
+    MAX_SCOPE_IDS_PER_PARTICIPANT, MAX_TARGET_IDS_PER_PROPOSAL, SCHEDULING_COMPARISON_SCHEMA,
 };
 pub use rebase::{ProjectCandidateRebase, PROJECT_CANDIDATE_REBASE_SCHEMA};
 pub use recovery::{

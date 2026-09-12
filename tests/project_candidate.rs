@@ -110,6 +110,8 @@ mod member_rename;
 mod merge_preview;
 #[path = "project_candidate/movement.rs"]
 mod movement;
+#[path = "project_candidate/multi_agent_coordination.rs"]
+mod multi_agent_coordination;
 #[path = "project_candidate/nominal_declarations.rs"]
 mod nominal_declarations;
 #[path = "project_candidate/nominal_extraction.rs"]

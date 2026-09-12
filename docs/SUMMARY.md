@@ -199,6 +199,7 @@ Audience: all documentation readers.
 - [Project Candidate Analysis Artifact Evidence v1](PROJECT-CANDIDATE-ANALYSIS-ARTIFACT-EVIDENCE-V1.md)
 - [Project Candidate Analysis Runtime Evidence v1](PROJECT-CANDIDATE-ANALYSIS-RUNTIME-EVIDENCE-V1.md)
 - [Project Candidate Assurance and Acceptance v1](PROJECT-CANDIDATE-ASSURANCE-ACCEPTANCE-V1.md)
+- [Multi-Agent Coordination v1](MULTI-AGENT-COORDINATION-V1.md)
 - [Project Candidate Blind-Spot Declarations v1](PROJECT-CANDIDATE-BLIND-SPOT-DECLARATIONS-V1.md)
 - [Project Candidate Environment Review v1](PROJECT-CANDIDATE-ENVIRONMENT-REVIEW-V1.md)
 - [Project Candidate Environment Consumer Review v1](PROJECT-CANDIDATE-ENVIRONMENT-CONSUMER-REVIEW-V1.md)

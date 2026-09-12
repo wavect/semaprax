@@ -64,6 +64,7 @@ pub mod codegen;
 pub(crate) mod command_io_ops;
 pub(crate) mod command_profile;
 pub mod compact_semantic_projection;
+pub mod compute_profile;
 pub mod conformance;
 pub mod cxx_shim;
 pub mod diagnostic;

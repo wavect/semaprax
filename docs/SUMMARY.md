@@ -438,6 +438,7 @@ Audience: all documentation readers.
 - [ADR 0002: Managed workspace generations](decisions/0002-managed-workspace-generations.md)
 - [Draft string and object-oriented types RFC](RFC-STRING-OO.md)
 - [RFC 0004: Native call settlement](RFC-0004-NATIVE-CALL-SETTLEMENT.md)
+- [RFC 0005: Compute Kernel Profile v1](RFC-0005-COMPUTE-KERNEL-PROFILE.md)
 
 ## Private and proof-only runtime contracts
 

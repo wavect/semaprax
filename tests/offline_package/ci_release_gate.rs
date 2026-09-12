@@ -39,6 +39,11 @@ fn workflow() -> String {
         .expect("CI workflow must be readable")
 }
 
+fn docs_workflow() -> String {
+    fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(".github/workflows/docs.yml"))
+        .expect("Docs workflow must be readable")
+}
+
 fn job<'a>(workflow: &'a str, name: &str) -> &'a str {
     let marker = format!("  {name}:\n");
     let tail = workflow
@@ -207,6 +212,38 @@ fn existing_core_matrix_and_global_authority_remain_bounded() {
             );
         }
     }
+}
+
+/// `docs.yml`'s `deploy` job publishes the GitHub Pages site and, unlike
+/// `ci.yml`, has no release gate downstream to notice a missed publish. Issue
+/// #169 fixed the identical defect in `ci.yml`: the unconditional
+/// `cancel-in-progress: true` cancelled a `main` run whenever a later push
+/// landed before it finished, and a cancellation is neither a pass nor a
+/// failure, so nothing ever turned red. For `docs.yml` this means a
+/// cancelled run's commit is simply never published to the site, silently,
+/// with the previously published commit left standing and no signal that it
+/// is stale. Pinned exactly, and the negative assertion kept alongside it,
+/// because a weaker positive-only check would not catch a regression that
+/// restored the unconditional form.
+#[test]
+fn docs_workflow_never_cancels_a_completed_main_publish() {
+    let workflow = docs_workflow();
+
+    assert!(
+        workflow.contains("concurrency:\n  group: docs-${{ github.workflow }}-${{ github.ref }}\n")
+    );
+    assert!(
+        workflow.contains("  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}\n"),
+        "a cancelled `Docs` run on `main` means that commit's site is never \
+         published, and a cancellation is neither a pass nor a failure, so \
+         nothing detects the gap; `main` runs must never be cancelled by a \
+         later push"
+    );
+    assert!(
+        !workflow.contains("  cancel-in-progress: true\n"),
+        "the unconditional form must not return once the ref-scoped \
+         expression is in place"
+    );
 }
 
 /// Every top-level job identifier declared under `jobs:`, in declaration order.

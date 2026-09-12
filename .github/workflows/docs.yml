@@ -10,7 +10,12 @@ permissions:
 
 concurrency:
   group: docs-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseding a run is right for a branch or pull request, where only the tip
+  # matters. It is wrong for `main`: a cancelled run here means that commit's
+  # site is never published, and a cancellation is neither a pass nor a
+  # failure, so nothing turns red. Every push to `main` must be allowed to
+  # finish and publish (see the identical `ci.yml` fix for issue #169).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   CARGO_TERM_COLOR: always

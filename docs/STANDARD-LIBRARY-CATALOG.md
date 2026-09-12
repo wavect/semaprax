@@ -1688,16 +1688,24 @@ fn literal_quoted_key_end(record: borrow Slice<u8>, start: usize) -> usize
 
 ### `std.data.toml.bare_key_end`
 
-Offset just past a bare key starting at `start`, reusing `is_bare_key` on
-the growing candidate to admit exactly the same character set, or a
-failure encoding when no bare-key byte is admitted at `start`.
-Walks bytes directly rather than testing a growing `byte_range` sub-slice:
-`byte_range` is not one of the two shapes a `while` loop may call
+Offset just past a bare key starting at `start`, or a failure encoding when
+no bare-key byte is admitted at `start`.
+The scan itself walks bytes one at a time with `byte_get`, never testing a
+growing `byte_range` sub-slice inside the loop: `byte_range` is not one of
+the two shapes a `while` loop may call
 (`hir::validation::owned_buffer::require_admitted_while_operation` admits
-only `byte_len`/`byte_get` reads and a loop-carried `bytes_set` fill), so
-it is rejected with `SPX-H006` regardless of the corrected Wasm decoder
-(issue #100, comment 5626417135) - confirmed while attempting the issue
-#218 restoration in this while-loop scanner; this was its only user.
+only `byte_len`/`byte_get` reads and a loop-carried `bytes_set` fill), so it
+is rejected with `SPX-H006` regardless of the corrected Wasm decoder (issue
+#100, comment 5626417135) - confirmed while attempting the issue #218
+restoration directly inside this while-loop scanner.
+`byte_range` is restored here instead the way issue #218 asks: once, after
+the loop has already left `index` past the last admitted byte, reusing
+`is_bare_key` on the exact `[start, index)` sub-slice the scan found. That
+call sits outside any `while` body, so the compiler admits it, and it is
+not a no-op check: it is the only call in this module that actually decodes
+a range-descriptor carrier end to end (build it from `start`/`index`, hand
+it across the Wasm host boundary, read it back), so a corrupt carrier on
+any backend surfaces here as a scan failure rather than silently passing.
 
 ```semaprax
 fn bare_key_end(record: borrow Slice<u8>, start: usize) -> usize

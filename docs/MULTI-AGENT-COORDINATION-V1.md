@@ -259,3 +259,22 @@ the codes above.
   (`evaluation_is_deterministic_so_a_repeated_call_can_never_adopt_a_partial_merge`).
   There is no partial merge state for a crash between calls to ever leave
   behind, because no call ever merges anything.
+  `a_genuine_source_drift_makes_the_session_stale_and_leaves_authoritative_source_unchanged`
+  adds a second, materially different proof over a *real* intervening edit
+  (the fixture's own `src/lib.spx` is rewritten on disk between session-open
+  and evaluation, simulating a second transaction landing mid-session)
+  rather than a hand-tampered session record: the stale evaluation fails
+  closed (`SPX-Z503`) and the already-drifted source is asserted
+  byte-for-byte unchanged afterward, not merely that the call returned an
+  error.
+- "Rename/move rebase using stable IDs" is exercised end to end by
+  `a_rename_rebase_lets_a_fresh_session_resolve_the_same_stable_id_while_the_old_session_goes_stale`:
+  a real `rename_declaration` `SemanticChange` (the same intent/`apply` path
+  every other candidate rename uses) changes a granted id's *display* name
+  in an unpublished candidate while its stable `@id` is untouched; the old
+  session (opened before the rename) is now stale against that candidate
+  (`SPX-Z503`), while a fresh session opened against the renamed candidate,
+  granting the identical stable id, still resolves it and accepts a
+  proposal against it -- proving multi-agent scope/target tracking is by
+  stable `@id`, not display name, and that neither the rename nor either
+  evaluation ever rewrites the fixture's files on disk.

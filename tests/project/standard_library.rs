@@ -1516,3 +1516,6 @@ mod core_num_backend_audit;
 
 #[path = "standard_library/data_encoding_backend_audit.rs"]
 mod data_encoding_backend_audit;
+
+#[path = "standard_library/async_net_backend_audit.rs"]
+mod async_net_backend_audit;

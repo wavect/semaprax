@@ -15,8 +15,13 @@
 // the exact split and its nonclaims.
 //
 // Invoked as: node reverse_probe.mjs <hex-encoded-leaf-bytes>...
+// or: node reverse_probe.mjs --file <path-with-one-hex-per-line>
 // Prints one JSON line: {"results":[{"reversedHex":"...","pages":N}, ...],
-// "ok":true}.
+// "ok":true}. The --file form avoids ARG_MAX on large leaves (70k bytes =>
+// 140k hex chars exceeds Linux's 128k argv limit, surfacing as
+// "Argument list too long").
+
+import fs from "fs";
 
 const PAGE_BYTES = 65536;
 
@@ -32,8 +37,18 @@ function bytesToHex(bytes) {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const leafArgs = process.argv.slice(2);
-if (leafArgs.length === 0) {
+let leafHexes;
+const rawArgs = process.argv.slice(2);
+if (rawArgs.length === 2 && rawArgs[0] === "--file") {
+  const content = fs.readFileSync(rawArgs[1], "utf8");
+  leafHexes = JSON.parse(content);
+  if (!Array.isArray(leafHexes)) {
+    throw new Error("reverse_probe.mjs --file must contain a JSON array of hex strings");
+  }
+} else {
+  leafHexes = rawArgs;
+}
+if (leafHexes.length === 0) {
   throw new Error("reverse_probe.mjs requires at least one hex-encoded leaf argument");
 }
 
@@ -46,7 +61,7 @@ if (!(memory.buffer instanceof ArrayBuffer)) {
 }
 
 const results = [];
-for (const hex of leafArgs) {
+for (const hex of leafHexes) {
   const leaf = hexToBytes(hex);
   const requiredPages = Math.max(1, Math.ceil(leaf.length / PAGE_BYTES));
   const currentPages = memory.buffer.byteLength / PAGE_BYTES;

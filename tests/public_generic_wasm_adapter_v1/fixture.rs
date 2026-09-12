@@ -66,11 +66,19 @@ fn run_probe(leaves: &[&[u8]]) -> serde_json::Value {
     )
     .unwrap();
 
+    // Use --file to avoid ARG_MAX on large leaves (70k bytes => 140k hex
+    // chars exceeds Linux's 128k argv limit, surfacing as "Argument list
+    // too long" on ubuntu-latest). Writing hexes to a JSON array file and
+    // passing the path keeps the command line small and preserves empty
+    // leaves (hex "" would be lost with a line-per-hex text file).
+    let leaves_file = root.join("leaves.json");
+    let hexes = leaves
+        .iter()
+        .map(|leaf| hex_encode(leaf))
+        .collect::<Vec<_>>();
+    fs::write(&leaves_file, serde_json::to_string(&hexes).unwrap()).unwrap();
     let mut command = Command::new("node");
-    command.arg(&script);
-    for leaf in leaves {
-        command.arg(hex_encode(leaf));
-    }
+    command.arg(&script).arg("--file").arg(&leaves_file);
     let output = command.output().unwrap();
     assert!(
         output.status.success(),

@@ -262,5 +262,13 @@ int main(void) {
         String::from_utf8_lossy(&ran.stdout),
         String::from_utf8_lossy(&ran.stderr)
     );
-    assert_eq!(ran.stdout, b"result-release-records-the-normalized-trace\n");
+    // Windows C stdout is in text mode and translates \n to \r\n; accept
+    // either line ending so the same physical-adapter proof runs on all
+    // three OSes (303: left was \r\n, right was \n).
+    let stdout = String::from_utf8_lossy(&ran.stdout);
+    assert!(
+        stdout == "result-release-records-the-normalized-trace\n"
+            || stdout == "result-release-records-the-normalized-trace\r\n",
+        "unexpected stdout: {stdout:?}"
+    );
 }

@@ -321,7 +321,16 @@ static void test_handle_hostility(void) {
     spx_pg_result_v1 *ignored_result = NULL;
     REQUIRE(spx_pg_call_v1(provider_a, stale_input_a, &ignored_result) == SPX_PG_STATUS_HANDLE_INVALID);
     REQUIRE(ignored_result == NULL);
-    REQUIRE(spx_pg_value_release_v1(&stale_input_a) == SPX_PG_STATUS_HANDLE_INVALID);
+    // `stale_input_a` is a dangling pointer whose storage was freed by the
+    // successful call. If `malloc` reuses that same address for the fresh
+    // result object (`result_a`), the stale pointer's *value* now equals a
+    // live result handle's value. Releasing it as a value then correctly
+    // reports `ILLEGAL_TRANSITION` (wrong kind) rather than `HANDLE_INVALID`
+    // (not found). Both are valid rejections of a stale handle; accept
+    // either so the test is not sensitive to allocator address reuse.
+    spx_pg_status_v1 stale_status = spx_pg_value_release_v1(&stale_input_a);
+    REQUIRE(stale_status == SPX_PG_STATUS_HANDLE_INVALID ||
+            stale_status == SPX_PG_STATUS_ILLEGAL_TRANSITION);
 
     /* Input handle presented where a result handle is required, and vice
      * versa, both while genuinely still live. */

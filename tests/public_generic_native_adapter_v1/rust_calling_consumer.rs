@@ -248,7 +248,10 @@ fn generated_rust_calling_consumer_executes_against_the_real_native_provider() {
     // Clippy-clean and warning-free as a standalone crate -- required tests
     // "warning-free build and clippy where applicable" -- built once here so
     // the immediately following `cargo test` reuses the same target
-    // directory rather than rebuilding from scratch.
+    // directory rather than rebuilding from scratch. On CI runners where
+    // `cargo clippy` is not installed for the selected toolchain (e.g.
+    // verify-tests with 1.97.1 without clippy component, or msrv 1.88), skip
+    // the clippy gate rather than failing the whole integration test.
     let clippy = run(
         cargo_command(&crate_root, &target_dir, &lib_dir).args([
             "clippy",
@@ -260,12 +263,21 @@ fn generated_rust_calling_consumer_executes_against_the_real_native_provider() {
         ]),
         "cargo clippy",
     );
-    assert!(
-        clippy.status.success(),
-        "the generated crate is not clippy-clean:\nstdout:\n{}\nstderr:\n{}",
-        String::from_utf8_lossy(&clippy.stdout),
-        String::from_utf8_lossy(&clippy.stderr)
-    );
+    if !clippy.status.success() {
+        let stderr = String::from_utf8_lossy(&clippy.stderr);
+        if stderr.contains("cargo-clippy' is not installed")
+            || stderr.contains("clippy` is not installed")
+            || stderr.contains("unknown command: clippy")
+        {
+            eprintln!("clippy not installed for this toolchain, skipping clippy check");
+        } else {
+            panic!(
+                "the generated crate is not clippy-clean:\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&clippy.stdout),
+                stderr
+            );
+        }
+    }
 
     // Single-threaded: the linked native provider is explicitly documented
     // as "single translation unit, single-threaded: no concurrency claim is

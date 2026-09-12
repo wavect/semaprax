@@ -220,6 +220,16 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     const ASSURANCE_DIFF_LINE: &str = "semaprax assurance-diff <base-file> <candidate-file> --profile <require-static|allow-runtime-guard|allow-test-evidence|report-only> [--as-of YYYY-MM-DD] [--max-bytes N] [--max-obligations N]\n";
     assert_eq!(current.matches(ASSURANCE_DIFF_LINE).count(), 1);
     current = current.replacen(ASSURANCE_DIFF_LINE, "", 1);
+    // `semaprax assurance-manifest` was added by #214's predecessor (commit
+    // 549af884) after these witnesses were pinned, and its normalization was
+    // not added with it -- which is why this test was red on `main`.
+    // Normalized away here exactly as every other intentional usage addition
+    // above is, so the historical byte and digest pins below keep describing
+    // the surface they were taken from.
+    const ASSURANCE_MANIFEST_LINE: &str =
+        "semaprax assurance-manifest <file> [--max-bytes N] [--max-obligations N]\n";
+    assert_eq!(current.matches(ASSURANCE_MANIFEST_LINE).count(), 1);
+    current = current.replacen(ASSURANCE_MANIFEST_LINE, "", 1);
     const GIT_PUBLISH_LINE: &str = "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n";
     const WORKSPACE_LINE: &str = "semaprax serve-workspace <manifest> <host-policy.json>\n";
     const PROFILE_DOCTOR_LINE: &str =

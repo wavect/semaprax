@@ -167,6 +167,24 @@ fn leaf_count_over_max_is_rejected_before_endpoint_execution() {
 }
 
 #[test]
+fn value_release_before_call_is_a_legal_abandon() {
+    // Mirrors `WasmProvider`'s own
+    // `value_release_before_call_is_a_legal_abandon` exactly: this adapter
+    // had no direct test of its own for the plain legal-abandon path (only
+    // the stale-prior-generation negative case below exercised
+    // `value_release` at all), so the "consumer-side release" outcome
+    // documented for both adapters was unverified for the interpreter on
+    // its own.
+    let mut provider = open_provider();
+    let value = provider.input_prepare(&[b"abandoned".to_vec()]).unwrap();
+    assert_eq!(provider.value_release(value), InterpreterPgStatus::Ok);
+    assert_eq!(provider.live_allocations(), 0);
+    assert_eq!(provider.live_handles(), 0);
+    assert_eq!(provider.live_bytes(), 0);
+    assert_eq!(provider.close(), InterpreterPgStatus::Ok);
+}
+
+#[test]
 fn a_stale_handle_from_a_prior_provider_generation_is_rejected() {
     let mut first = open_provider();
     let value = first.input_prepare(&[b"x".to_vec()]).unwrap();

@@ -874,13 +874,14 @@ hand-constructed fixture compared byte-for-byte, not
 `src/public_generic_abi/interpreter/tests.rs` exercises `InterpreterProvider`
 on its own: a success round trip with two-pass, byte-identical repeated
 export; zero-length and embedded-zero-byte leaves; the exact and
-first-over-bound leaf-count and leaf-byte-size cases; a stale handle from a
-prior provider generation; the full 0-13 failure-injection matrix (every
-non-terminal `TraceLabel`, one fresh provider and call each), asserting
-zero live allocations, zero live bytes, and zero live handles after every
-terminal case; repeated invocation with no state leak between independent
-calls; and provider recreation rejecting a stale child handle from a prior
-generation.
+first-over-bound leaf-count and leaf-byte-size cases; a legal abandon
+(`value_release` before `call`, zeroing every live resource); a stale handle
+from a prior provider generation; the full 0-13 failure-injection matrix
+(every non-terminal `TraceLabel`, one fresh provider and call each),
+asserting zero live allocations, zero live bytes, and zero live handles
+after every terminal case; repeated invocation with no state leak between
+independent calls; and provider recreation rejecting a stale child handle
+from a prior generation.
 
 ### Cross-engine settlement corpus (issue #162)
 
@@ -901,7 +902,16 @@ independently pinned expectation, and engine against engine. Four
 perturbed result, a status that does not match the pinned expectation, a
 truncated trace, and a leaked resource count), matching issue #160's own
 consumer-corpus pattern of proving the checker itself, not merely
-asserting a pass.
+asserting a pass. `abandoned_value_release_agrees_across_engines_with_zero_leaks`
+extends the comparison to the one call shape every other corpus case skips:
+`value_release` on a value handle that is never passed to `call` at all.
+This exercises `release_input_before_transfer` (an `Initialized`, never-
+`Transferred` release) rather than the `release_input_after_transfer` path
+every other case in this corpus takes, and pins the literal two-leaf
+release order — `vec![Some(1), Some(0), None]` — independently, not merely
+that the engines agree with each other, matching the same literal-order
+discipline `structural_leaf_order_is_left_to_right_staged_and_exact_reverse_released`
+established for the post-call path.
 
 ### Nonclaims (reference interpreter adapter and cross-engine corpus)
 

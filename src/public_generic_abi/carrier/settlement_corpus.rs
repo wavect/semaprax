@@ -711,6 +711,93 @@ fn repeated_invocation_and_provider_recreation_agree_across_engines() {
     assert_eq!(wasm_second.close() as i32, WasmPgStatus::Ok as i32);
 }
 
+#[test]
+fn abandoned_value_release_agrees_across_engines_with_zero_leaks() {
+    // "Input transfer, output adoption, and consumer-side release" (issue
+    // #174's in-scope list) exercises `value_release` on both engines
+    // individually (`value_release_before_call_is_a_legal_abandon` on each),
+    // but neither engine's own suite compares the abandon path AGAINST the
+    // other, and this corpus's own `Case`/`run_*_case` helpers always drive
+    // `input_prepare().and_then(call)` — never the abandon-before-call
+    // path. This closes that gap: both engines take the identical two-leaf
+    // input, never call it, and release the value directly instead.
+    let two_leaves = vec![b"AA".to_vec(), b"BBB".to_vec()];
+
+    let trusted_interpreter = interpreter_binding();
+    let mut interpreter = InterpreterProvider::open(
+        DESCRIPTOR_FIXTURE,
+        DESCRIPTOR_FIXTURE,
+        &trusted_interpreter.encode(),
+        &trusted_interpreter,
+    )
+    .expect("the settlement-corpus fixture binding must open on the interpreter engine");
+    let interpreter_value = interpreter.input_prepare(&two_leaves).unwrap();
+    let interpreter_release_status = interpreter.value_release(interpreter_value) as i32;
+    let interpreter_trace = interpreter.test_last_trace().to_vec();
+
+    let trusted_wasm = wasm_binding();
+    let mut wasm = WasmProvider::open(
+        DESCRIPTOR_FIXTURE,
+        DESCRIPTOR_FIXTURE,
+        &trusted_wasm.encode(),
+        &trusted_wasm,
+    )
+    .expect("the settlement-corpus fixture binding must open on the Wasm engine");
+    let wasm_value = wasm.input_prepare(&two_leaves).unwrap();
+    let wasm_release_status = wasm.value_release(wasm_value) as i32;
+    let wasm_trace = wasm.test_last_trace().to_vec();
+
+    assert_eq!(
+        interpreter_release_status,
+        InterpreterPgStatus::Ok as i32,
+        "a legal abandon must report Ok on the interpreter engine"
+    );
+    assert_eq!(
+        wasm_release_status,
+        WasmPgStatus::Ok as i32,
+        "a legal abandon must report Ok on the Wasm engine"
+    );
+    assert_eq!(
+        trace_labels(&interpreter_trace),
+        trace_labels(&wasm_trace),
+        "abandon-path normalized trace label sequence disagrees between engines"
+    );
+    // The abandon path releases handles that were only ever `Initialized`,
+    // never `Transferred` (`release_input_before_transfer`), a distinct
+    // release ordinal from the post-call, post-commit path every other
+    // corpus case exercises (`release_input_after_transfer`) — pin the
+    // literal leaf release order here too, not only accept/reject.
+    assert_eq!(
+        release_order(&interpreter_trace),
+        vec![Some(1), Some(0), None],
+        "interpreter: abandoned leaves must release in exact reverse structural order"
+    );
+    assert_eq!(
+        release_order(&interpreter_trace),
+        release_order(&wasm_trace),
+        "abandon-path canonical leaf release order disagrees between engines"
+    );
+
+    let interpreter_live_allocations = interpreter.live_allocations();
+    let interpreter_live_handles = interpreter.live_handles();
+    let interpreter_live_bytes = interpreter.live_bytes();
+    let wasm_live_allocations = wasm.live_allocations();
+    let wasm_live_handles = wasm.live_handles();
+    let wasm_live_bytes = wasm.live_bytes();
+    assert_eq!(interpreter_live_allocations, 0);
+    assert_eq!(interpreter_live_handles, 0);
+    assert_eq!(interpreter_live_bytes, 0);
+    assert_eq!(wasm_live_allocations, 0);
+    assert_eq!(wasm_live_handles, 0);
+    assert_eq!(wasm_live_bytes, 0);
+    assert_eq!(
+        interpreter.close() as i32,
+        InterpreterPgStatus::Ok as i32,
+        "an abandoned-and-released provider must still close cleanly"
+    );
+    assert_eq!(wasm.close() as i32, WasmPgStatus::Ok as i32);
+}
+
 // ---------------------------------------------------------------------
 // Negative controls: proof that `compare` can fail, not merely pass.
 // ---------------------------------------------------------------------

@@ -3,7 +3,7 @@
 # disappear; a count that rises means a split moved audited text out from under a contract.
 crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs	src/hir.rs	15
 crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs	src/hir/validation.rs	2
-crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs	src/source_verify.rs	13
+crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs	src/source_verify.rs	14
 tests/desktop_native_ui_ci_contract.rs	src/codegen.rs	31
 tests/native_rust_interop_ci_contract.rs	crates/semaprax-native-rust-interop-builder/src/implementation.rs	4
 tests/projections/public_api_descriptor.rs	src/wasm.rs	18

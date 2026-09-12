@@ -155,9 +155,7 @@ fn agents_md_lists_every_installed_public_workflow_verb_and_nothing_else() {
     // sibling of the real ones.
     for absent_verb in ["merge", "deploy", "compile", "format"] {
         assert!(
-            !PUBLIC_WORKFLOW
-                .iter()
-                .any(|verb| verb.verb == absent_verb),
+            !PUBLIC_WORKFLOW.iter().any(|verb| verb.verb == absent_verb),
             "test fixture bug: `{absent_verb}` must not itself be an installed verb"
         );
         let bullet = format!("- `{absent_verb}` (");

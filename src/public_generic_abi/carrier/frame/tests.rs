@@ -289,6 +289,47 @@ fn a_leaf_at_the_max_bytes_per_leaf_bound_is_admitted_and_one_over_is_refused() 
 }
 
 #[test]
+fn total_payload_one_under_the_bound_is_admitted() {
+    // Completes the one-under/exactly-at/one-over triple for the
+    // total-payload bound: `total_payload_at_the_bound_with_max_sized_leaves_is_admitted`
+    // below proves exactly-at, and
+    // `a_declared_total_payload_length_over_the_bound_is_refused_before_any_leaf_is_read`
+    // proves one-over, but neither exercises one byte *under* the bound with
+    // real leaf data. The last leaf is one byte short of
+    // `MAX_BYTES_PER_LEAF` so the real, decoded total is exactly
+    // `MAX_TOTAL_PAYLOAD_BYTES - 1`, never trusting a declared field alone.
+    assert_eq!(
+        MAX_OWNED_LEAVES_PER_INSTANCE * MAX_BYTES_PER_LEAF,
+        MAX_TOTAL_PAYLOAD_BYTES,
+        "this fixture assumes the three bounds are related exactly this way"
+    );
+    let leaves: Vec<CarrierLeaf> = (0..MAX_OWNED_LEAVES_PER_INSTANCE)
+        .map(|index| {
+            let len = if index + 1 == MAX_OWNED_LEAVES_PER_INSTANCE {
+                MAX_BYTES_PER_LEAF - 1
+            } else {
+                MAX_BYTES_PER_LEAF
+            };
+            CarrierLeaf::new(format!("leaf.{index}"), LeafKind::Bytes, vec![9u8; len])
+        })
+        .collect();
+    let frame = LogicalCarrierFrame::new(
+        Direction::Input,
+        "sha256:d",
+        "sha256:e",
+        "sha256:i",
+        "sha256:l",
+        leaves,
+    );
+    let decoded = parse_bounded(&frame.encode())
+        .expect("one byte under the total-payload bound must be admitted");
+    assert_eq!(
+        decoded.total_payload_length(),
+        MAX_TOTAL_PAYLOAD_BYTES as u64 - 1
+    );
+}
+
+#[test]
 fn total_payload_at_the_bound_with_max_sized_leaves_is_admitted() {
     // `MAX_TOTAL_PAYLOAD_BYTES` (16 MiB) equals exactly
     // `MAX_OWNED_LEAVES_PER_INSTANCE * MAX_BYTES_PER_LEAF` (256 * 64 KiB), so

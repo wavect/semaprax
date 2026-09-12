@@ -25,7 +25,12 @@ fn report(path: &str) -> String {
     .expect("v2 report fixture")
 }
 
-fn subject_with_capabilities(package: &str, version: &str, report: &str, capabilities: &[&str]) -> String {
+fn subject_with_capabilities(
+    package: &str,
+    version: &str,
+    report: &str,
+    capabilities: &[&str],
+) -> String {
     package_lock_v3::create_subject(
         &package_lock_v3::Coordinate {
             package: package.to_owned(),
@@ -87,12 +92,8 @@ fn meaning_entry(version: &str, seed: &str) -> PublishedEntry {
 
 /// A fully valid, self-consistent `examples.calculator@version` entry.
 fn calculator_entry(version: &str, seed: &str) -> PublishedEntry {
-    let subject_bytes = subject_with_capabilities(
-        CALCULATOR,
-        version,
-        &report("examples/calculator.spx"),
-        &[],
-    );
+    let subject_bytes =
+        subject_with_capabilities(CALCULATOR, version, &report("examples/calculator.spx"), &[]);
     entry_from(CALCULATOR, version, subject_bytes, seed)
 }
 
@@ -111,8 +112,7 @@ fn same_entries_produce_byte_identical_snapshots_every_time() {
 fn entry_order_does_not_affect_canonical_bytes() {
     let meaning = meaning_entry("1.0.0", "alpha");
     let calculator = calculator_entry("2.0.0", "beta");
-    let forward =
-        build_snapshot(&[meaning.clone(), calculator.clone()]).expect("forward build");
+    let forward = build_snapshot(&[meaning.clone(), calculator.clone()]).expect("forward build");
     let reversed = build_snapshot(&[calculator, meaning]).expect("reversed build");
     assert_eq!(forward.envelope(), reversed.envelope());
     assert_eq!(forward.digest(), reversed.digest());
@@ -147,8 +147,8 @@ fn verify_snapshot_refuses_a_single_tampered_byte() {
     let snapshot = build_snapshot(&entries).expect("build");
     // Flip one ASCII hex digit inside the rendered digest field -- still
     // valid JSON shape and valid UTF-8, just one wrong byte.
-    let position = snapshot.envelope().find("\"digest\":\"sha256:").unwrap()
-        + "\"digest\":\"sha256:".len();
+    let position =
+        snapshot.envelope().find("\"digest\":\"sha256:").unwrap() + "\"digest\":\"sha256:".len();
     let mut bytes = snapshot.envelope().as_bytes().to_vec();
     bytes[position] = if bytes[position] == b'0' { b'1' } else { b'0' };
     let tampered = String::from_utf8(bytes).expect("ASCII hex digit swap stays valid UTF-8");
@@ -166,7 +166,10 @@ fn verify_snapshot_refuses_stale_evidence_after_entries_change() {
     // first, so the refusal below is about staleness, not a malformed
     // baseline.
     assert!(verify_snapshot(snapshot_v1.envelope(), &entries_v1).is_ok());
-    let entries_v2 = vec![meaning_entry("1.0.0", "alpha"), calculator_entry("2.0.0", "beta")];
+    let entries_v2 = vec![
+        meaning_entry("1.0.0", "alpha"),
+        calculator_entry("2.0.0", "beta"),
+    ];
     assert_eq!(
         verify_snapshot(snapshot_v1.envelope(), &entries_v2)
             .unwrap_err()
@@ -239,7 +242,9 @@ fn an_exact_bundled_std_name_is_also_reserved() {
     // Ties this registry's reservation directly to the compiler's existing
     // closed bundled-dependency registry (src/project/standard_dependencies.rs),
     // which shipped `std.auth` as a bundled package (issue #189-192).
-    assert!(crate::project::standard_dependencies::is_bundled("std.auth"));
+    assert!(crate::project::standard_dependencies::is_bundled(
+        "std.auth"
+    ));
     let mut reserved = meaning_entry("1.0.0", "confusion");
     reserved.package = "std.auth".to_owned();
     assert_eq!(build_snapshot(&[reserved]).unwrap_err().code, "SPX-PKR602");
@@ -263,7 +268,10 @@ fn declared_coordinate_must_match_the_embedded_subject_coordinate() {
     mismatched.package = CALCULATOR.to_owned();
     mismatched.content_digest =
         crate::audit_capsule::sha256_digest(mismatched.subject_bytes.as_bytes());
-    assert_eq!(build_snapshot(&[mismatched]).unwrap_err().code, "SPX-PKR603");
+    assert_eq!(
+        build_snapshot(&[mismatched]).unwrap_err().code,
+        "SPX-PKR603"
+    );
 }
 
 // --- Shape / grammar ------------------------------------------------------------

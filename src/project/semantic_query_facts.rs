@@ -16,7 +16,7 @@ use super::semantic_query::{
 };
 use super::{ProjectRevision, SemanticWorkspaceSnapshot};
 
-const MAX_FACT_WALK: usize = 65_536;
+pub(super) const MAX_FACT_WALK: usize = 65_536;
 
 type Result<T> = std::result::Result<T, Vec<crate::diagnostic::Diagnostic>>;
 
@@ -317,7 +317,7 @@ fn declaration_exists(revision: &ProjectRevision, target: &str) -> bool {
         .any(|program| program.declarations.declaration(&id).is_some())
 }
 
-fn programs(revision: &ProjectRevision) -> [&crate::hir::ResolvedProgram; 3] {
+pub(super) fn programs(revision: &ProjectRevision) -> [&crate::hir::ResolvedProgram; 3] {
     [
         revision.entry_program(),
         revision.public_api_program(),
@@ -325,7 +325,7 @@ fn programs(revision: &ProjectRevision) -> [&crate::hir::ResolvedProgram; 3] {
     ]
 }
 
-fn walk_expression<'a>(
+pub(super) fn walk_expression<'a>(
     root: &'a ResolvedExpr,
     visited: &mut usize,
     visit: &mut impl FnMut(&'a ResolvedExpr),

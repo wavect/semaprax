@@ -24,13 +24,17 @@ That authority-free document is static installed-support metadata, not a
 revision-bound query result or live service discovery, and it cannot enable an
 operation.
 
-The additive v1 operation set contains seven operations: `declarations`,
+The additive v1 operation set contains eight operations: `declarations`,
 `symbol`, `context`, `impact`, `available_operations`,
-`ownership_at_expression`, and `declaration_consumers`. The implementation
-reuses the existing Project declaration query, Semantic Workspace Image symbol
-lookup, Workspace Analysis context and impact, and Universal Semantic
-Transaction eligibility classifier. It does not create a parallel semantic
-index or a second operation-eligibility truth.
+`ownership_at_expression`, `declaration_consumers`, and `next_constructs`. The
+implementation reuses the existing Project declaration query, Semantic
+Workspace Image symbol lookup, Workspace Analysis context and impact, and
+Universal Semantic Transaction eligibility classifier. It does not create a
+parallel semantic index or a second operation-eligibility truth. The first
+seven operations carry **HOSTED GREEN** evidence under the v0.4.0 release
+baseline named above; `next_constructs` is a later additive operation with
+local evidence only (see its own section below), and adding it does not
+reclaim hosted status for itself.
 
 ## Public API
 
@@ -49,6 +53,8 @@ pub const SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA: &str =
     "semaprax.semantic-query-ownership-at-expression.v1";
 pub const SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA: &str =
     "semaprax.semantic-query-declaration-consumers.v1";
+pub const SEMANTIC_QUERY_NEXT_CONSTRUCTS_SCHEMA: &str =
+    "semaprax.semantic-query-next-constructs.v1";
 pub const MAX_SEMANTIC_QUERY_BYTES: usize = 65_536;
 pub const MAX_SEMANTIC_QUERY_RESULT_BYTES: usize = 32 * 1024 * 1024;
 
@@ -107,6 +113,7 @@ semaprax.semantic-query.impact.payload.digest.v1\0
 semaprax.semantic-query.available-operations.payload.digest.v1\0
 semaprax.semantic-query.ownership-at-expression.payload.digest.v1\0
 semaprax.semantic-query.declaration-consumers.payload.digest.v1\0
+semaprax.semantic-query.next-constructs.payload.digest.v1\0
 ```
 
 `SemanticQuery::replay` admits the exact canonical query and closed result
@@ -218,6 +225,53 @@ visibility claim. Test-module consumers are `test`, and all others are
 cross-project, or unloaded-source claim. A global 65,536-expression walk bound,
 page bound, existing request bound, and existing result-byte bound fail closed.
 
+### `next_constructs`
+
+This operation selects one retained function or function-template stable
+identity and one revision-scoped expression identity within it, with the same
+uniqueness and cross-copy consistency requirement as `ownership_at_expression`.
+The result schema is `semaprax.semantic-query-next-constructs.v1`. It reports
+the expression's own checked expected type identity and ownership mode
+(`value`, `own`, `borrow`, or `shared`), then a closed, bounded, checked
+construct vocabulary of what may soundly stand in for it: `literal`,
+`parameter_reference`, and `call`. Every `admitted` entry is derived only from
+facts the compiler already verified for the selected revision; nothing is
+inferred. `admitted` and `excluded` are each sorted by construct kind and then
+by name/stable-ID bytes and independently capped at 128 entries with a
+`totals` object recording the true count and whether that list was truncated,
+so truncation is deterministic rather than order-dependent.
+
+This is intentionally the narrowest slice of the "next construct" idea this
+codebase can currently back with a checked guarantee, and it says exactly
+where that guarantee stops:
+
+- A `literal` is admitted only when the expected type is one of Explicit
+  Mutation v1's own closed Copy-scalar kinds (`i64`, `i32`, `u8`, `usize`,
+  `char`, `f32`, `f64`, `bool`); this operation invents no value, only the
+  admissibility of the construct kind.
+- A `parameter_reference` is admitted only for one of the enclosing
+  declaration's own parameters, only when its declared ownership mode exactly
+  equals the mode already required at the target position, and never when
+  that parameter is declared `own` — an `own` parameter of matching type is
+  reported in `excluded` with reason `flow_sensitive_availability_not_computed`
+  instead of a guess, because proving it has not already been moved away
+  needs flow-sensitive tracking across branches and loops that this v1 does
+  not perform. Local `let` bindings, match bindings, and closure captures are
+  not covered by v1.
+- A `call` is offered only at a `value` or `own` position (never at a
+  `borrow`/`shared` position, matching the documented rule that a borrowed
+  argument must name an existing binding, not a call result) and only when
+  the callee's declared `uses { .. }` effect set is already a subset of the
+  target declaration's own declared effects — the same containment
+  `SPX-E102` itself enforces on a direct call. A callee whose effects are not
+  already covered is reported in `excluded` with reason
+  `effect_not_available` and the exact missing effect names, rather than
+  silently omitted.
+- No entry, admitted or excluded, proves that a completed replacement program
+  will verify: argument shapes, contracts, and nested effects of a `call`
+  candidate are not checked here, and only full validation after generation
+  can make that claim.
+
 ## Diagnostics and precedence
 
 | Code | Meaning |
@@ -291,6 +345,17 @@ CARGO_TARGET_DIR=target/universal-semantic-query-v1 \
   cargo test --locked -p semaprax --test workspace \
   universal_semantic_query --no-fail-fast
 ```
+
+`next_constructs` has its own module, `tests/workspace/next_construct_query.rs`,
+covering: literal admission for a scalar position; parameter-reference
+admission at a matching mode; an `own` parameter of matching type excluded
+with `flow_sensitive_availability_not_computed`; a call candidate excluded
+with `effect_not_available` and its exact missing effect, alongside a second
+call candidate whose effects are covered and is admitted; a `borrow`-mode
+position offering no `call` candidate; byte-identical repeat execution against
+one unchanged revision (determinism); and stale-revision, unknown-expression,
+and unknown-declaration rejection. See its own module doc comment for the
+exact focused command and current pass count.
 
 ## Additive exact selection
 

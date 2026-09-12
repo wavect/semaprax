@@ -25,6 +25,8 @@ pub const SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA: &str =
     "semaprax.semantic-query-ownership-at-expression.v1";
 pub const SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA: &str =
     "semaprax.semantic-query-declaration-consumers.v1";
+pub const SEMANTIC_QUERY_NEXT_CONSTRUCTS_SCHEMA: &str =
+    "semaprax.semantic-query-next-constructs.v1";
 pub const MAX_SEMANTIC_QUERY_BYTES: usize = 65_536;
 pub const MAX_SEMANTIC_QUERY_RESULT_BYTES: usize = 32 * 1024 * 1024;
 
@@ -41,6 +43,8 @@ const OWNERSHIP_AT_EXPRESSION_PAYLOAD_DOMAIN: &[u8] =
     b"semaprax.semantic-query.ownership-at-expression.payload.digest.v1\0";
 const DECLARATION_CONSUMERS_PAYLOAD_DOMAIN: &[u8] =
     b"semaprax.semantic-query.declaration-consumers.payload.digest.v1\0";
+const NEXT_CONSTRUCTS_PAYLOAD_DOMAIN: &[u8] =
+    b"semaprax.semantic-query.next-constructs.payload.digest.v1\0";
 const MAX_TARGET_BYTES: usize = 4096;
 pub const MAX_SEMANTIC_QUERY_DECLARATION_OFFSET: usize = 16_384;
 pub const MAX_SEMANTIC_QUERY_DECLARATION_LIMIT: usize = 128;
@@ -157,6 +161,10 @@ enum Operation {
         offset: usize,
         limit: usize,
     },
+    NextConstructs {
+        stable_id: String,
+        expression_id: String,
+    },
 }
 
 impl Operation {
@@ -169,6 +177,7 @@ impl Operation {
             Self::AvailableOperations { .. } => "available_operations",
             Self::OwnershipAtExpression { .. } => "ownership_at_expression",
             Self::DeclarationConsumers { .. } => "declaration_consumers",
+            Self::NextConstructs { .. } => "next_constructs",
         }
     }
 
@@ -181,6 +190,7 @@ impl Operation {
             Self::AvailableOperations { .. } => AVAILABLE_OPERATIONS_PAYLOAD_DOMAIN,
             Self::OwnershipAtExpression { .. } => OWNERSHIP_AT_EXPRESSION_PAYLOAD_DOMAIN,
             Self::DeclarationConsumers { .. } => DECLARATION_CONSUMERS_PAYLOAD_DOMAIN,
+            Self::NextConstructs { .. } => NEXT_CONSTRUCTS_PAYLOAD_DOMAIN,
         }
     }
 
@@ -249,6 +259,14 @@ impl Operation {
                 "kind": "declaration_consumers",
                 "limit": limit,
                 "offset": offset,
+                "stable_id": stable_id,
+            }),
+            Self::NextConstructs {
+                stable_id,
+                expression_id,
+            } => json!({
+                "expression_id": expression_id,
+                "kind": "next_constructs",
                 "stable_id": stable_id,
             }),
         }
@@ -391,6 +409,27 @@ impl SemanticQuery {
         )
     }
 
+    /// Closed, bounded, checked next-construct vocabulary at one exact
+    /// checked expression inside one retained function or function-template
+    /// declaration. See `next_construct_query` for the exact scope and its
+    /// documented nonclaims.
+    pub fn next_constructs(
+        expected_workspace_revision: &str,
+        stable_id: &str,
+        expression_id: &str,
+    ) -> Result<Self> {
+        validate_digest(expected_workspace_revision)?;
+        validate_target(stable_id)?;
+        validate_target(expression_id)?;
+        Self::new(
+            expected_workspace_revision,
+            Operation::NextConstructs {
+                stable_id: stable_id.to_owned(),
+                expression_id: expression_id.to_owned(),
+            },
+        )
+    }
+
     fn new(expected_workspace_revision: &str, operation: Operation) -> Result<Self> {
         let json = render(
             json!({
@@ -519,6 +558,14 @@ impl SemanticQuery {
                     integer(operation, "limit")?,
                 )?
             }
+            "next_constructs" => {
+                exact_map(operation, &["expression_id", "kind", "stable_id"])?;
+                Self::next_constructs(
+                    expected,
+                    text(operation, "stable_id")?,
+                    text(operation, "expression_id")?,
+                )?
+            }
             _ => return Err(invalid("semantic query operation is unsupported")),
         };
         if query.json.as_bytes() != bytes {
@@ -577,6 +624,14 @@ impl SemanticQuery {
                 limit,
             } => super::semantic_query_facts::declaration_consumers_payload(
                 snapshot, stable_id, *offset, *limit,
+            )?,
+            Operation::NextConstructs {
+                stable_id,
+                expression_id,
+            } => super::next_construct_query::next_constructs_payload(
+                snapshot,
+                stable_id,
+                expression_id,
             )?,
         };
         let payload_value: Value = serde_json::from_str(&payload)
@@ -1045,6 +1100,7 @@ fn validate_result_wire(bytes: &[u8]) -> Result<()> {
                     | "available_operations"
                     | "ownership_at_expression"
                     | "declaration_consumers"
+                    | "next_constructs"
             )
         )
         || object["nonclaims"] != json!(NONCLAIMS)

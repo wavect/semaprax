@@ -2,13 +2,19 @@
 
 Audience: language users, tool authors, and compiler contributors.
 
-Status: first bounded slice of issue #191's authentication/session profile.
-This tranche ships `std.auth`: the pure, effect-free decision procedures for
+Status: first bounded slice of issue #191's authentication/session profile,
+plus a second tranche adding the OAuth/OIDC authorization-code callback
+policy. `std.auth` ships the pure, effect-free decision procedures for
 session lifecycle legality, CSRF and cookie policy, constant-time secret
 comparison, closed-algorithm token verification, password-hash *policy*
-bounds, and audit-event safety. It does **not** ship a password hash function,
-a real signature/MAC implementation, an `Secret<T>` wrapper type, an OAuth/OIDC
-adapter, or any new host operation, `permit`, or dependency. See
+bounds, audit-event safety, and an OAuth/OIDC authorization-code callback
+policy (state binding, redirect-uri matching, PKCE challenge validity, and
+single-use code freshness — see
+[OAuth/OIDC authorization-code callback policy](#oauthoidc-authorization-code-callback-policy)).
+It does **not** ship a password hash function, a real signature/MAC
+implementation, an `Secret<T>` wrapper type, a real PKCE `S256` hash
+computation, an OAuth token-endpoint or discovery-document client, or any new
+host operation, `permit`, or dependency. See
 [Non-claims and remaining work](#non-claims-and-remaining-work) for exactly
 why and what would be required to lift each one, and
 [Acceptance-criteria mapping](#acceptance-criteria-mapping) for a line-by-line
@@ -51,6 +57,7 @@ importantly, what it explicitly does not.
 | Key confusion / rotation | `token_key_id_is_allowed` requires membership in an explicit deployment-supplied allow-list (never "trust the token's claimed key"); `token_key_is_current_or_in_grace` bounds how long a rotated-out key stays valid | key storage, distribution, or the rotation schedule itself |
 | Clock skew / unbounded acceptance window | `token_leeway_is_bounded` caps leeway at 300 ticks; `token_time_is_valid` requires that bound before it runs, so no deployment configuration path produces an unbounded window | a real wall clock — every tick argument here is caller-supplied, exactly like `std.jobs`'s deterministic tick clock |
 | Log/audit leakage | `audit_event_is_safe` is a closed refusal over six named secret-bearing fields (raw password, password hash, session token, bearer token, CSRF token, authorization header); it is `false` if *any* one is present, regardless of what else the event carries | a logging sink, redaction pipeline, or structured writer — `std.log` (see [Non-claims](#non-claims-and-remaining-work)) is the existing package for that, unmodified here |
+| OAuth callback CSRF / authorization-code interception / PKCE downgrade | `oauth_state_matches` binds a callback to its request; `oauth_pkce_method_is_allowed` refuses "no PKCE" and any unrecognized method identically; `oauth_authorization_code_is_fresh` refuses a replayed code | opening the redirect, calling the token endpoint, or computing the `S256` digest itself (see [OAuth/OIDC authorization-code callback policy](#oauthoidc-authorization-code-callback-policy)) |
 
 ## Secret value semantics: why there is no `Secret<T>`
 
@@ -301,6 +308,43 @@ useful, independent of the safety check. A caller composing a real audit
 event (for example, one it intends to hand to `std.log`'s `Event`, which is
 unmodified by this tranche) checks both before emitting it.
 
+## OAuth/OIDC authorization-code callback policy
+
+The issue's "OAuth/OIDC adapter interface as a later part of the same profile
+if scope permits" is partially shipped: the same posture as
+[Token verification](#token-verification) applies here, restated for the
+authorization-code grant. `oauth_state_matches` and
+`oauth_redirect_uri_matches` both go through `ct_bytes_equal`, exactly like
+`token_issuer_matches`/`token_audience_matches` — public, request-shaped
+values compared with the constant-time primitive anyway, because it costs
+nothing extra at these sizes. `oauth_pkce_method_is_allowed` is a closed
+two-value allow-list (`1` = `plain`, `2` = `S256`); `method_id == 0`
+("no PKCE") is refused identically to any unrecognized value, the same
+downgrade defense `token_algorithm_is_allowed` gives token verification.
+`oauth_authorization_code_is_fresh` is `token_replay_is_fresh` under a
+domain-specific name, so a single-use code cannot be redeemed twice.
+
+**Signature computation is out of scope here, exactly like token
+verification.** `oauth_pkce_challenge_is_valid`'s `has_valid_s256_hash`
+parameter is the same opaque, already-decided `bool` idiom as
+`token_verification_admits`'s `has_valid_signature`: this pure package cannot
+compute a SHA-256 digest, so a deployment choosing the `S256` method must
+supply its own comparison result. The `plain` method needs no such input —
+`ct_bytes_equal` directly compares the verifier against the challenge — which
+is why `std.auth.tests.oauth_pkce_policy`'s
+`s256_needs_real_hash`/`plain_accepts_matching_verifier` pair exists: it
+proves the `S256` branch is refused without a confirmed hash while the
+`plain` branch is a real, self-contained check, not two branches that merely
+look different.
+
+`oauth_authorization_request_is_valid` and `oauth_callback_is_valid` compose
+these primitives into the two calls a caller makes around a redirect: the
+request-side check before minting the redirect, and the callback-side check
+before exchanging the code for a token. Neither call opens a redirect,
+contacts a token endpoint, or reads a discovery document — those remain
+deployment-side I/O this pure layer has no capability to perform, the same
+boundary [Objective](#objective) states for the rest of the package.
+
 ## Authentication is not authorization
 
 No function in `std.auth` takes a session or token state and returns a
@@ -308,13 +352,28 @@ capability, role, or permission value. The complete function inventory in
 `src/auth.spx` is: session-state predicates and transitions (return `bool` or
 a closed session-state `usize`), CSRF/cookie predicates (`bool`), token
 predicates and the two verification functions (`bool`), password-policy
-predicates (`bool`), and audit predicates (`bool`). `session_is_usable` and
-`token_verification_admits` answer exactly one question each — "is this
-credential currently valid" — never "what may the caller do." A caller
-combines a `true` result from either with an independently supplied
-authorization policy; this package supplies no such policy and no mechanism
-to derive one from authentication state, by omission rather than by a
-runtime check this pure layer cannot perform.
+predicates (`bool`), audit predicates (`bool`), and OAuth callback predicates
+(`bool`). `session_is_usable` and `token_verification_admits` answer exactly
+one question each — "is this credential currently valid" — never "what may
+the caller do." A caller combines a `true` result from either with an
+independently supplied authorization policy; this package supplies no such
+policy and no mechanism to derive one from authentication state, by omission
+rather than by a runtime check this pure layer cannot perform.
+
+**No auth-middleware success grants unrelated effects.** Every function in
+`std.auth` declares an empty `uses` clause and the module declares no
+`permit` at all — there is no capability this package could hand a caller
+even if it wanted to. This is not merely a design intent: it is a compiler-
+checked invariant. `tests/project/standard_library.rs`'s
+`every_public_declaration_has_a_std_identity_contracts_examples_and_conformance`
+asserts, for every package in `std/packages.json` including `std.auth`, that
+`library.program.functions[i].effects == expected_effects` and
+`library.program.permits == expected_permits`; for any module other than
+`std.fs`/`std.env`/`std.process` (which the same test binds to their real
+effect names) both expected lists are `vec![]`. A `std.auth` function that
+started declaring `uses { ... }` for any host effect, or a module-level
+`permit` granting one, would fail that assertion immediately — the same test
+that already runs, unmodified, for this package.
 
 ## Non-claims and remaining work
 
@@ -326,7 +385,7 @@ Restated plainly, matched against issue #191's "In scope" list:
 | Password hashing via a maintained memory-hard algorithm through an explicit host/runtime implementation | **Not shipped**, `HUMAN_BLOCKED`. Policy bounds only; see [Password hashing](#password-hashing-policy-only-not-an-algorithm). |
 | Session IDs, storage contract, rotation, expiry, revocation, CSRF policy, secure cookies | **Shipped** as pure decision procedures (this document's session/CSRF/cookie sections). A storage contract (where session records actually live) is not shipped — like `std.db` and `std.jobs`, that is a host/driver concern this pure layer only decides over, never performs. |
 | Signed token verification with algorithm/key policy and claims validation | **Policy shipped**; the signature/MAC computation itself is not (same reason as password hashing). |
-| OAuth/OIDC adapter interface | **Not shipped.** Explicitly marked "as a later part of the same profile if scope permits" in the issue; out of this tranche entirely. |
+| OAuth/OIDC adapter interface | **Policy shipped**; see [OAuth/OIDC authorization-code callback policy](#oauthoidc-authorization-code-callback-policy). State binding, redirect-uri matching, PKCE method allow-listing, and single-use code freshness are pure decision procedures with their own tests. The `S256` hash computation, an actual token-endpoint/discovery-document client, and the redirect itself are not shipped, for the same reason password hashing and token-signature computation are not (see those sections) — this remains a decision layer, not an HTTP client. |
 | Auth middleware integration | **Not shipped** as `std.http` wiring: `examples/http_app_routing.spx` and `tests/http_app_routing.rs` are outside this change's file lease (owned by issue #189). `std.auth.examples.main` demonstrates the decision procedures composing into a signup/login/protected-route/logout sequence entirely in the abstract (synthetic ticks and byte arrays, no request parsing, no socket), proving the pure layer is internally coherent, not that it is wired into a real router. |
 | Audit events without secret leakage | **Shipped** as the closed `audit_event_is_safe`/`_is_complete` predicates. |
 
@@ -336,12 +395,13 @@ Issue #191's acceptance criteria, matched exactly:
 
 - "A reference application can implement signup/login/logout/session-protected
   routes safely" — **partially met**. `std.auth.examples.main` composes
-  signup-policy, login, a protected-route access, and logout using only the
-  decision procedures in this package, and is executed on the interpreter,
-  native C11, and Core Wasm (see [Local evidence](#local-evidence)). It is
-  **not** a reference HTTP application: no request is parsed, no socket is
-  opened, and it is not integrated with `std.http`/`examples/
-  http_app_routing.spx`, both outside this change's lease.
+  signup-policy, login, a protected-route access, an OAuth authorization-code
+  callback, and logout using only the decision procedures in this package,
+  and is executed on the interpreter, native C11, and Core Wasm (see
+  [Local evidence](#local-evidence)). It is **not** a reference HTTP
+  application: no request is parsed, no socket is opened, and it is not
+  integrated with `std.http`/`examples/http_app_routing.spx`, both outside
+  this change's lease.
 - "Secrets cannot enter ordinary source, logs, diagnostics, or public
   evidence" — **met for what this package touches**: no function returns
   secret bytes it was not handed, and `audit_event_is_safe` gives a caller a
@@ -362,10 +422,18 @@ Issue #191's acceptance criteria, matched exactly:
 - "Security tests cover the named attack classes" — **met for the classes a
   pure decision procedure can exercise**: fixation, rotation, expiry,
   revocation, concurrent-session policy, CSRF, algorithm/key confusion,
-  clock-skew bounding, and replay all have passing named tests (see
-  [Local evidence](#local-evidence)). Credential stuffing/rate-limiting,
-  live timing measurement, and OAuth-specific classes are not exercised,
-  consistent with the non-claims above.
+  clock-skew bounding, replay, and — as of this tranche — OAuth state/
+  redirect-uri substitution, PKCE downgrade and method confusion, and
+  authorization-code replay all have passing named tests (see
+  [Local evidence](#local-evidence)). Credential stuffing/rate-limiting and
+  live timing measurement are not exercised, consistent with the non-claims
+  above.
+- "No auth middleware success grants unrelated effects" — **met, compiler-
+  checked**: see [Authentication is not authorization](#authentication-is-not-authorization)'s
+  "No auth-middleware success grants unrelated effects" paragraph. Every
+  `std.auth` function (OAuth functions included) declares an empty `uses`
+  clause and the module declares no `permit`, asserted by the same generic
+  structural test every standard-library package runs.
 
 ## Local evidence
 
@@ -378,3 +446,20 @@ Wasm, the same three-backend audit pattern `db_jobs_backend_audit.rs`
 established for issue #102. All of this is local, interpreter/generated-code
 evidence from this repository's own test suite; no hosted, device, or
 production deployment is described or implied.
+
+`tests/project/standard_library.rs`'s
+`every_public_declaration_has_a_std_identity_contracts_examples_and_conformance`
+runs over every package in `std/packages.json`, `std.auth` included, and
+independently confirms canonical source formatting, the `@id` identity
+prefix, an empty effect/permit inventory, and that the conformance module
+imports every library declaration — all without this package needing its own
+copy of that check.
+
+The OAuth/PKCE addition's negative controls were verified by deliberate
+mutation, not merely written and trusted: `oauth_pkce_challenge_is_valid`'s
+`S256` branch was temporarily changed from `has_valid_s256_hash` to a bare
+`true`, `auth_executes_on_all_three_backends` was re-run and failed
+(`Returned(16)`, `std.auth.tests.summary_oauth_policy`'s exact bit), and the
+change was reverted and the suite re-run green before this tranche's commit —
+proving `s256_needs_real_hash` genuinely exercises the check it names, not
+merely a rejection path a deleted check would also satisfy.

@@ -144,8 +144,7 @@ fn multi_seed_budget_is_enforced_at_its_exact_boundary() {
 
     // Discover each seed's real token cost from an unconstrained compile,
     // rather than hand-guessing a byte count that formatting could change.
-    let unconstrained =
-        compile(&program, &goal, &options, generous_budget("byte-v1")).unwrap();
+    let unconstrained = compile(&program, &goal, &options, generous_budget("byte-v1")).unwrap();
     let unconstrained: Value = serde_json::from_str(&unconstrained).unwrap();
     let tokens_a = tokens_of(&unconstrained, "app.goal_a_root");
     let tokens_b = tokens_of(&unconstrained, "app.goal_b_root");
@@ -179,7 +178,9 @@ fn multi_seed_budget_is_enforced_at_its_exact_boundary() {
         tokens_a
     );
     // The omitted seed's compiled bytes are absent entirely, not truncated.
-    assert!(seed_entry(&document, "app.goal_b_root").get("context").is_none());
+    assert!(seed_entry(&document, "app.goal_b_root")
+        .get("context")
+        .is_none());
 
     // One over the boundary: still both included, using the same tokens as
     // the exact boundary case (no extra content appears just because
@@ -352,13 +353,8 @@ fn seed_reason_text_never_influences_selection_or_budget() {
 
     // A budget picked to omit the lower-priority seed under the innocuous
     // goal; the hostile reason text must not change that outcome.
-    let unconstrained = compile(
-        &program,
-        &innocuous,
-        &options,
-        generous_budget("byte-v1"),
-    )
-    .unwrap();
+    let unconstrained =
+        compile(&program, &innocuous, &options, generous_budget("byte-v1")).unwrap();
     let unconstrained: Value = serde_json::from_str(&unconstrained).unwrap();
     let tight = CompilationBudget::new(
         tokens_of(&unconstrained, "app.goal_a_root") as usize,
@@ -379,10 +375,7 @@ fn seed_reason_text_never_influences_selection_or_budget() {
         status_of(&innocuous_document, "app.goal_b_root"),
         "omitted_budget_exhausted"
     );
-    assert_eq!(
-        status_of(&hostile_document, "app.goal_a_root"),
-        "included"
-    );
+    assert_eq!(status_of(&hostile_document, "app.goal_a_root"), "included");
     assert_eq!(
         status_of(&hostile_document, "app.goal_b_root"),
         "omitted_budget_exhausted"
@@ -402,13 +395,7 @@ fn digest_changes_with_revision() {
     let budget = generous_budget("byte-v1");
 
     let base = compile(&program(FIXTURE), &goal, &options, budget).unwrap();
-    let changed = compile(
-        &program(FIXTURE_REVISION_CHANGED),
-        &goal,
-        &options,
-        budget,
-    )
-    .unwrap();
+    let changed = compile(&program(FIXTURE_REVISION_CHANGED), &goal, &options, budget).unwrap();
     let base: Value = serde_json::from_str(&base).unwrap();
     let changed: Value = serde_json::from_str(&changed).unwrap();
     assert_ne!(base["source_revision"], changed["source_revision"]);
@@ -429,7 +416,10 @@ fn digest_changes_with_tokenizer() {
         &compile(&program, &goal, &options, generous_budget("lexical-v1")).unwrap(),
     )
     .unwrap();
-    assert_ne!(byte_document["goal_digest"], lexical_document["goal_digest"]);
+    assert_ne!(
+        byte_document["goal_digest"],
+        lexical_document["goal_digest"]
+    );
 }
 
 #[test]

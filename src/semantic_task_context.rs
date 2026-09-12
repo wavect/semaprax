@@ -35,6 +35,7 @@
 //!      there as "deliberately not a model tokenizer"). Every output marks
 //!      this unit `"exactness":"approximate"`; it is never reported or
 //!      claimed as an exact model-token count.
+//!
 //!    Any other tokenizer identity is refused with `SPX-Z803` rather than
 //!    silently downgraded to one of the two above -- a caller can never
 //!    receive output that silently claims a tokenizer it did not ask for.
@@ -380,7 +381,11 @@ fn render_entry(item: &CompiledSeed<'_>, included: bool) -> String {
 /// the same order `compile` renders them in, so it is insensitive to the
 /// order the caller originally listed seeds in, exactly like the rendered
 /// output itself.
-fn digest(source_revision: &str, budget: CompilationBudget, compiled: &[CompiledSeed<'_>]) -> String {
+fn digest(
+    source_revision: &str,
+    budget: CompilationBudget,
+    compiled: &[CompiledSeed<'_>],
+) -> String {
     let mut hasher = Sha256::new();
     hasher.update(DIGEST_DOMAIN);
     update_field(&mut hasher, SCHEMA.as_bytes());

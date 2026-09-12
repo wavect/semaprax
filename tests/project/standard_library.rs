@@ -1510,3 +1510,6 @@ mod json_cursors;
 mod db_jobs_backend_audit;
 #[path = "standard_library/provider_outcomes.rs"]
 mod provider_outcomes;
+
+#[path = "standard_library/core_num_backend_audit.rs"]
+mod core_num_backend_audit;

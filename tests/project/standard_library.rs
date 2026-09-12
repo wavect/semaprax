@@ -1522,3 +1522,6 @@ mod async_net_backend_audit;
 
 #[path = "standard_library/collections_mem_text_backend_audit.rs"]
 mod collections_mem_text_backend_audit;
+
+#[path = "standard_library/auth_backend_audit.rs"]
+mod auth_backend_audit;

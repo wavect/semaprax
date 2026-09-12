@@ -6,6 +6,7 @@ use function @id("std.auth.session.next_state_on_logout") from std.auth as sessi
 use function @id("std.auth.csrf.token_matches") from std.auth as csrf_token_matches;
 use function @id("std.auth.cookie.attributes_are_safe") from std.auth as cookie_attributes_are_safe;
 use function @id("std.auth.token.verification_admits") from std.auth as token_verification_admits;
+use function @id("std.auth.oauth.callback_is_valid") from std.auth as oauth_callback_is_valid;
 
 // A synthetic signup -> login -> protected-route -> logout walk composed
 // entirely from the pure decision procedures in `std.auth`. This is NOT a
@@ -49,5 +50,13 @@ fn main() -> i64
     let logged_out = session_next_state_on_logout(state_at_route);
     let after_logout_tick = route_tick + 1usize;
     let state_after_logout_access = session_next_state_on_access(logged_out, after_logout_tick, idle_deadline, absolute_deadline);
-    if signup_policy_ok && usable_at_login && csrf_ok && cookie_ok && state_at_route == active && token_ok && logged_out == 5usize && state_after_logout_access == 5usize { 0 } else { 1 }
+    // Sign-in-with-provider: the callback presents the same `state` the
+    // deployment minted before the redirect, the registered redirect URI, a
+    // PKCE `plain` verifier matching its own challenge, and a fresh
+    // (not-yet-seen) authorization code.
+    let oauth_state = [7u8, 8u8, 9u8];
+    let oauth_redirect = [104u8, 116u8, 116u8, 112u8];
+    let pkce_verifier = [1u8, 2u8, 3u8, 4u8];
+    let oauth_ok = oauth_callback_is_valid(array_as_slice(oauth_state), array_as_slice(oauth_state), array_as_slice(oauth_redirect), array_as_slice(oauth_redirect), 1u8, array_as_slice(pkce_verifier), array_as_slice(pkce_verifier), false, false);
+    if signup_policy_ok && usable_at_login && csrf_ok && cookie_ok && state_at_route == active && token_ok && logged_out == 5usize && state_after_logout_access == 5usize && oauth_ok { 0 } else { 1 }
 }

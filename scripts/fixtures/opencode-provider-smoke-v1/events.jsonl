@@ -1,0 +1,3 @@
+{"type":"step_start","timestamp":1789250315878,"sessionID":"ses_fixture","part":{"id":"prt_start","messageID":"msg_fixture","sessionID":"ses_fixture","snapshot":"fixture","type":"step-start"}}
+{"type":"text","timestamp":1789250319509,"sessionID":"ses_fixture","part":{"id":"prt_text","messageID":"msg_fixture","sessionID":"ses_fixture","type":"text","text":"SEMAPRAX_SMOKE_OK","time":{"start":1789250319427,"end":1789250319507}}}
+{"type":"step_finish","timestamp":1789250319578,"sessionID":"ses_fixture","part":{"id":"prt_finish","reason":"stop","snapshot":"fixture","messageID":"msg_fixture","sessionID":"ses_fixture","type":"step-finish","tokens":{"total":4651,"input":4437,"output":18,"reasoning":196,"cache":{"write":0,"read":0}},"cost":0}}

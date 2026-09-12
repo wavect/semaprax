@@ -27,6 +27,7 @@ DEFAULT_MODEL = "opencode/muse-spark-1.3-contributor-free"
 MAX_TIMEOUT_SECONDS = 600
 MAX_OUTPUT_BYTES = 1_048_576
 MAX_PROMPT_BYTES = 65_536
+MAX_SESSION_EXPORT_BYTES = 1_048_576
 
 
 class SmokeFailure(Exception):
@@ -35,6 +36,10 @@ class SmokeFailure(Exception):
 
 def sha256(body):
     return hashlib.sha256(body).hexdigest()
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
 def positive(value, label, maximum):
@@ -115,32 +120,33 @@ def command(opencode, model, sandbox, prompt):
     ]
 
 
-def _event_names_model(value, expected):
-    if isinstance(value, list):
-        return any(_event_names_model(item, expected) for item in value)
-    if not isinstance(value, dict):
-        return False
-    for key in ("model", "model_id", "modelID"):
-        if value.get(key) == expected:
-            return True
-    provider = value.get("provider") or value.get("provider_id") or value.get("providerID")
-    model = value.get("model_id") or value.get("modelID") or value.get("id")
-    if isinstance(provider, str) and isinstance(model, str) and f"{provider}/{model}" == expected:
-        return True
-    return any(_event_names_model(item, expected) for item in value.values())
+def exact_text(value, label):
+    if not isinstance(value, str) or not value:
+        raise SmokeFailure(f"{label} must be nonempty text")
+    return value
 
 
-def verify_raw_events(raw, expected_model):
-    """Require newline-delimited JSON and a matching model self-report.
+def nonnegative(value, label):
+    if not isinstance(value, int) or value < 0:
+        raise SmokeFailure(f"{label} must be a nonnegative integer")
+    return value
 
-    OpenCode documents JSON event output but not a stable event schema.  This
-    deliberately accepts only documented-style model identity fields and
-    fails closed on a future incompatible event shape while retaining the raw
-    bytes for operator inspection.
-    """
+
+def read_bounded(path, maximum, label):
+    try:
+        with Path(path).open("rb") as source:
+            body = source.read(maximum + 1)
+    except OSError as error:
+        raise SmokeFailure(f"unable to read {label}: {error}") from error
+    if len(body) > maximum:
+        raise SmokeFailure(f"{label} exceeds {maximum} bytes")
+    return body
+
+
+def parse_event_stream(raw):
     if not raw:
         raise SmokeFailure("OpenCode produced no JSON events")
-    found_identity = False
+    events = []
     for line in raw.splitlines():
         if not line:
             continue
@@ -148,9 +154,152 @@ def verify_raw_events(raw, expected_model):
             event = json.loads(line)
         except json.JSONDecodeError as error:
             raise SmokeFailure("OpenCode stdout was not newline-delimited JSON") from error
-        found_identity = found_identity or _event_names_model(event, expected_model)
-    if not found_identity:
-        raise SmokeFailure("OpenCode events did not identify the exact requested model")
+        if not isinstance(event, dict):
+            raise SmokeFailure("OpenCode event must be an object")
+        event_type = exact_text(event.get("type"), "OpenCode event type")
+        if event_type not in ("step_start", "text", "step_finish"):
+            raise SmokeFailure(f"unsupported OpenCode event type: {event_type}")
+        session_id = exact_text(event.get("sessionID"), "OpenCode event sessionID")
+        part = event.get("part")
+        if not isinstance(part, dict):
+            raise SmokeFailure("OpenCode event lacks a part object")
+        part_id = exact_text(part.get("id"), "OpenCode event part id")
+        message_id = exact_text(part.get("messageID"), "OpenCode event messageID")
+        if exact_text(part.get("sessionID"), "OpenCode event part sessionID") != session_id:
+            raise SmokeFailure("OpenCode event part sessionID disagrees with its stream")
+        expected_part_type = event_type.replace("_", "-")
+        if exact_text(part.get("type"), "OpenCode event part type") != expected_part_type:
+            raise SmokeFailure("OpenCode event type disagrees with its part type")
+        events.append((event, session_id, message_id, part_id))
+    if not events:
+        raise SmokeFailure("OpenCode produced no JSON events")
+    return events
+
+
+def _assistant_message(session, session_id, message_id):
+    info = session.get("info")
+    messages = session.get("messages")
+    if not isinstance(info, dict) or exact_text(info.get("id"), "session export id") != session_id:
+        raise SmokeFailure("session export does not bind the event session")
+    if not isinstance(messages, list):
+        raise SmokeFailure("session export lacks messages")
+    matches = []
+    for message in messages:
+        if not isinstance(message, dict) or not isinstance(message.get("info"), dict):
+            continue
+        candidate = message["info"]
+        if candidate.get("role") == "assistant" and candidate.get("id") == message_id:
+            matches.append(message)
+    if len(matches) != 1:
+        raise SmokeFailure("event stream does not identify exactly one exported assistant message")
+    assistant = matches[0]
+    if exact_text(assistant["info"].get("sessionID"), "assistant sessionID") != session_id:
+        raise SmokeFailure("assistant message does not bind the event session")
+    return info, assistant
+
+
+def validate_archived_session(raw, session_body, expected_model):
+    """Validate the observed OpenCode v1.18 stream/export relation.
+
+    This intentionally admits only the event and export fields observed in the
+    archived availability smoke. It does not recursively search arbitrary
+    JSON for a model string, and it does not promise compatibility with a
+    future OpenCode export schema without a reviewed extension.
+    """
+    provider, model = exact_model(expected_model).split("/", 1)
+    events = parse_event_stream(raw)
+    session_ids = {item[1] for item in events}
+    message_ids = {item[2] for item in events}
+    if len(session_ids) != 1 or len(message_ids) != 1:
+        raise SmokeFailure("OpenCode stream spans more than one session or assistant message")
+    session_id = next(iter(session_ids))
+    message_id = next(iter(message_ids))
+    try:
+        session = json.loads(session_body)
+    except json.JSONDecodeError as error:
+        raise SmokeFailure("OpenCode session export was not JSON") from error
+    if not isinstance(session, dict):
+        raise SmokeFailure("OpenCode session export must be an object")
+    session_info, assistant = _assistant_message(session, session_id, message_id)
+    assistant_info = assistant["info"]
+    session_model = session_info.get("model")
+    if not isinstance(session_model, dict):
+        raise SmokeFailure("session export lacks session model identity")
+    if session_model.get("providerID") != provider or session_model.get("id") != model:
+        raise SmokeFailure("session model identity does not match the requested model")
+    if assistant_info.get("providerID") != provider or assistant_info.get("modelID") != model:
+        raise SmokeFailure("assistant model identity does not match the requested model")
+    parts = assistant.get("parts")
+    if not isinstance(parts, list):
+        raise SmokeFailure("assistant export lacks parts")
+    exported_parts = {}
+    for part in parts:
+        if not isinstance(part, dict):
+            raise SmokeFailure("assistant export part must be an object")
+        part_id = exact_text(part.get("id"), "assistant export part id")
+        if part_id in exported_parts:
+            raise SmokeFailure("assistant export repeats a part id")
+        exported_parts[part_id] = part
+    seen_part_ids = set()
+    saw_text = False
+    finish_event = None
+    for event, event_session_id, event_message_id, part_id in events:
+        if event_session_id != session_id or event_message_id != message_id:
+            raise SmokeFailure("OpenCode stream binding changed during validation")
+        if part_id in seen_part_ids:
+            raise SmokeFailure("OpenCode stream repeats a part id")
+        seen_part_ids.add(part_id)
+        if part_id not in exported_parts or canonical(event["part"]) != canonical(exported_parts[part_id]):
+            raise SmokeFailure("OpenCode stream part does not exactly match the exported assistant part")
+        if event["type"] == "text":
+            if not isinstance(event["part"].get("text"), str) or not event["part"]["text"]:
+                raise SmokeFailure("OpenCode text event lacks nonempty completion text")
+            saw_text = True
+        if event["type"] == "step_finish":
+            if finish_event is not None:
+                raise SmokeFailure("OpenCode stream has more than one finish event")
+            finish_event = event
+    if not saw_text or finish_event is None or assistant_info.get("finish") != "stop":
+        raise SmokeFailure("OpenCode availability stream does not prove a stopped text completion")
+    finish_part = finish_event["part"]
+    if finish_part.get("reason") != "stop":
+        raise SmokeFailure("OpenCode finish event was not a stop")
+    tokens = assistant_info.get("tokens")
+    if not isinstance(tokens, dict) or canonical(finish_part.get("tokens")) != canonical(tokens):
+        raise SmokeFailure("OpenCode finish usage does not exactly match the exported assistant usage")
+    usage = {
+        "total": nonnegative(tokens.get("total"), "assistant total tokens"),
+        "input": nonnegative(tokens.get("input"), "assistant input tokens"),
+        "output": nonnegative(tokens.get("output"), "assistant output tokens"),
+        "reasoning": nonnegative(tokens.get("reasoning"), "assistant reasoning tokens"),
+    }
+    cache = tokens.get("cache")
+    if not isinstance(cache, dict):
+        raise SmokeFailure("assistant usage lacks cache counters")
+    usage["cache_read"] = nonnegative(cache.get("read"), "assistant cache-read tokens")
+    usage["cache_write"] = nonnegative(cache.get("write"), "assistant cache-write tokens")
+    if usage["total"] != usage["input"] + usage["output"] + usage["reasoning"]:
+        raise SmokeFailure("assistant total tokens disagree with the observed usage components")
+    if finish_part.get("cost") != assistant_info.get("cost"):
+        raise SmokeFailure("OpenCode finish cost does not match the exported assistant cost")
+    return {
+        "schema": "semaprax.opencode-provider-smoke-validation.v1",
+        "model": expected_model,
+        "session_id": session_id,
+        "assistant_message_id": message_id,
+        "raw_events_sha256": sha256(raw),
+        "session_export_sha256": sha256(session_body),
+        "completion": "stopped_text_completion",
+        "usage": usage,
+        "cost": finish_part["cost"],
+        "model_identity": "matching OpenCode session/export self-report; not cryptographic attestation",
+    }
+
+
+def validate_archive(raw_events_path, session_export_path, expected_model):
+    raw = read_bounded(raw_events_path, MAX_OUTPUT_BYTES, "raw OpenCode event stream")
+    session_body = read_bounded(session_export_path, MAX_SESSION_EXPORT_BYTES, "OpenCode session export")
+    return validate_archived_session(raw, session_body, expected_model)
 
 
 def terminate_process_group(process):
@@ -269,7 +418,6 @@ def execute(arguments):
     output = output_path_outside_sandbox(arguments.raw_events_output, sandbox)
     line = command(arguments.opencode, model, sandbox, prompt)
     raw = capture_stdout(line, output, timeout_seconds, max_output_bytes)
-    verify_raw_events(raw, model)
     return {
         "schema": "semaprax.opencode-provider-smoke.v1",
         "mode": "opencode-managed-auth-store",
@@ -280,8 +428,8 @@ def execute(arguments):
         "raw_events_path": str(output),
         "raw_events_sha256": sha256(raw),
         "raw_events_bytes": len(raw),
-        "completion": "unverified: this availability smoke does not infer a completion from event fields",
-        "model_identity": "matching OpenCode JSON self-report; not cryptographic attestation",
+        "completion": "unverified: validate an explicit OpenCode session export before claiming completion",
+        "model_identity": "unverified until a matching OpenCode session export is archived",
         "provider_usage": "unknown: this smoke does not infer billing from local bytes",
     }
 
@@ -295,11 +443,20 @@ def main():
     parser.add_argument("--opencode", default=DEFAULT_OPENCODE)
     parser.add_argument("--execute", action="store_true", help="perform the one provider call")
     parser.add_argument("--raw-events-output")
+    parser.add_argument("--validate-raw-events", help="archived raw JSON event stream to validate without a provider call")
+    parser.add_argument("--session-export", help="archived `opencode export` JSON for --validate-raw-events")
     parser.add_argument("--timeout-seconds", type=int, default=60)
     parser.add_argument("--max-output-bytes", type=int, default=262_144)
     arguments = parser.parse_args()
     try:
-        result = execute(arguments) if arguments.execute else plan(arguments)
+        if arguments.validate_raw_events or arguments.session_export:
+            if arguments.execute:
+                raise SmokeFailure("--execute cannot be combined with archived-session validation")
+            if not arguments.validate_raw_events or not arguments.session_export:
+                raise SmokeFailure("archived-session validation requires both --validate-raw-events and --session-export")
+            result = validate_archive(arguments.validate_raw_events, arguments.session_export, arguments.model)
+        else:
+            result = execute(arguments) if arguments.execute else plan(arguments)
     except SmokeFailure as error:
         print(f"OpenCode provider smoke refused: {error}", file=sys.stderr)
         raise SystemExit(2)

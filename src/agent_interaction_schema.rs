@@ -46,6 +46,7 @@ use crate::diagnostic::Diagnostic;
 use crate::patch;
 
 pub(crate) mod decode;
+pub mod live_bridge;
 mod provider;
 pub(crate) mod shape;
 

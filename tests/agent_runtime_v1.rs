@@ -339,6 +339,8 @@ mod agent_proposal_schema_v1;
 mod source_agent_lifecycle;
 #[path = "agent_runtime_v1/source_agent_lowering.rs"]
 mod source_agent_lowering;
+#[path = "agent_runtime_v1/stage_backend_parity.rs"]
+mod stage_backend_parity;
 
 #[test]
 fn public_cancellation_retry_and_sink_limits_are_fail_closed() {

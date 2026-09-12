@@ -93,9 +93,10 @@ fn parse_node_i64(output: &std::process::Output) -> i64 {
         String::from_utf8_lossy(&output.stderr)
     );
     let stdout = String::from_utf8_lossy(&output.stdout);
-    stdout.trim().parse::<i64>().unwrap_or_else(|error| {
-        panic!("node script printed a non-i64 result {stdout:?}: {error}")
-    })
+    stdout
+        .trim()
+        .parse::<i64>()
+        .unwrap_or_else(|error| panic!("node script printed a non-i64 result {stdout:?}: {error}"))
 }
 
 /// Proves the cross-backend comparison wired into `run_examples_and_conformance`

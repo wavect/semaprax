@@ -1519,3 +1519,6 @@ mod data_encoding_backend_audit;
 
 #[path = "standard_library/async_net_backend_audit.rs"]
 mod async_net_backend_audit;
+
+#[path = "standard_library/collections_mem_text_backend_audit.rs"]
+mod collections_mem_text_backend_audit;

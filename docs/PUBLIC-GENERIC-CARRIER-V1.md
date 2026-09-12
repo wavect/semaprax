@@ -660,14 +660,26 @@ gap, not something this physical adapter re-decides, and it is why the two
 release ordinals (`LeafRelease`, `CarrierRelease`) fire on every call, not
 only a failing one — matching native's behavior exactly.
 
-**Deferred scope**, identical to native's own: deriving a provider from a
-real checked *generic* export requires #119's still-blocked owned-record
-ownership evidence. Until that lands, the bound endpoint is the same
-fixture (`spx_pg_wasm_endpoint_reverse_bytes_v1`, byte-reversal per owned
-leaf) operating on the same flat owned-`Bytes` shape, and the trusted
-descriptor bytes an `open` caller replays against are a hand-constructed
-fixture compared byte-for-byte, not [`descriptor::verify`](PUBLIC-GENERIC-DESCRIPTOR-V1.md)
-output, since no admitted public generic export exists yet.
+**Deferred scope, updated (issue #135).** The owned-record-collection
+ownership evidence this section originally deferred to (#119) has since
+landed and is not this adapter's blocker any more. The real, current blocker
+is upstream of this file entirely: [PG-4's own gate scope
+note](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md#gate-scope-notes) records
+that the classifier and descriptor producer still describe no admitted
+public generic export — "the milestone's own generic fixture therefore
+still comes out all-excluded" — because no Project profile admits a generic
+`web_export` at all yet. Deriving a provider from a *real* checked generic
+export therefore still requires that admission, owned by
+`src/public_generic_abi/classifier.rs`/`boundary_profile.rs` and the
+descriptor producer, none of which this adapter's file lease covers. Until
+that lands, the bound endpoint remains the same fixture
+(`spx_pg_wasm_endpoint_reverse_bytes_v1`, byte-reversal per owned leaf)
+operating on the same flat owned-`Bytes` shape, and the trusted descriptor
+bytes an `open` caller replays against are a hand-constructed fixture
+compared byte-for-byte, not [`descriptor::verify`](PUBLIC-GENERIC-DESCRIPTOR-V1.md)
+output, since no admitted public generic export exists yet. This paragraph
+corrects the previous "blocked on #119" text, which had gone stale once
+#119 closed while this section was not the one to notice.
 
 ### Provider binding
 
@@ -798,24 +810,70 @@ at a finer grain:
 
 This adapter is local, proof-only evidence, not hosted, supported, or
 published evidence. It does not derive a provider from a real checked
-public generic export (blocked on #119); its bound endpoint and trusted
-descriptor bytes are fixtures. It does not compile or execute a full
-`.wasm` module produced by this repository's own Wasm backend or any
-external toolchain — the real-Wasm-host proof above exercises the
-byte-reversal primitive and genuine `WebAssembly.Memory` allocation
-directly, not a compiled module, and the full carrier protocol is exercised
-in Rust against `WasmProvider`, not replayed a second time in JavaScript.
-It has not been exercised under a hosted CI sanitizer or fuzzing gate. It
-is not the generated TypeScript/Wasm consumer (#157) — that is a separate
-acceptance surface this issue does not build, and #157 is a foreign-caller
-concern with its own separate trust boundary, not a re-scoping of this
-provider-side adapter. It is not a cross-engine equivalence test against
-the native adapter: real compiled-and-executed native (at `-O0`/`-O2`) has
-no in-process Rust adapter comparable to this one, so it is not a party to
+public generic export (blocked on the classifier/descriptor-producer
+admission gap tracked by PG-4, not on #119, which has since closed); its
+bound endpoint and trusted descriptor bytes are fixtures. It does not
+compile or execute a full `.wasm` module produced by this repository's own
+Wasm backend or any external toolchain — the real-Wasm-host proof above
+exercises the byte-reversal primitive and genuine `WebAssembly.Memory`
+allocation directly, not a compiled module, and the full carrier protocol
+is exercised in Rust against `WasmProvider`, not replayed a second time in
+JavaScript. **No compiled `.wasm` artifact anywhere in this repository
+implements the full open/input_prepare/call/result_export/release provider
+ABI** — this is tracked as its own follow-up (#229), and whether to build
+one or to permanently accept the host-side-bookkeeping design is a
+scope/design decision outside a bounded implementation worker's authority,
+not something issue #135's work re-decides. It has not been exercised under
+a hosted CI sanitizer or fuzzing gate. It is not the generated
+TypeScript/Wasm consumer (#157) — that is a separate acceptance surface
+this issue does not build, and #157 is a foreign-caller concern with its
+own separate trust boundary, not a re-scoping of this provider-side
+adapter. It is not a cross-engine equivalence test against the native
+adapter: real compiled-and-executed native (at `-O0`/`-O2`) has no
+in-process Rust adapter comparable to this one, so it is not a party to
 `carrier::settlement_corpus` below; see that section's own nonclaims. It
 *is* now a party to a cross-engine equivalence test against the reference
 interpreter adapter — see [Reference interpreter physical adapter (issue
 #162)](#reference-interpreter-physical-adapter-issue-162) below.
+
+### Residual acceptance items closed (issue #135)
+
+Issue #135 asked this adapter's already-closed #155 evidence to add: a
+large valid boundary that genuinely forces more than one Wasm-page
+`memory.grow`, with byte-exact copy-out correctness after that growth and
+after the freed span is reused; two independent provider instances
+operating at once rather than only sequentially; and a negative control
+proving that presenting this adapter with a binding for a target it does
+not admit fails closed as a diagnostic, never a panic or a half-built
+provider. All three are now exercised, in Rust against `WasmProvider`, in
+`src/public_generic_abi/wasm/provider/tests.rs`:
+
+- `large_multi_leaf_payload_forces_multi_page_growth_and_round_trips_byte_exact`
+  — three leaves at the exact `MAX_BYTES_PER_LEAF` bound (192 KiB total, 3
+  Wasm pages) force `WasmLinearMemory` past a single-page grow; each leaf
+  carries a distinct non-zero byte pattern so an offset or aliasing defect
+  would show as wrong bytes, not a coincidentally-matching zero-fill;
+  `test_memory_pages` (a new test-only accessor) confirms the arena grows
+  to fit the input and is exactly reused, not grown again, for the
+  equally-sized result.
+- `two_independent_providers_operate_simultaneously_without_cross_contamination`
+  — two `WasmProvider`s are opened from the same trusted fixture binding
+  and interleaved (both `input_prepare` before either `call`), proving
+  neither's registry, allocator, or generation counter is shared even
+  though both independently mint the identical `(id, generation)` pair for
+  their own first call.
+- `open_rejects_a_binding_naming_a_foreign_target_profile_as_a_diagnostic_not_a_panic`
+  — the negative control: a `CarrierBindingV1` built for
+  `TargetProfile::NativeC11`, wrapped in an otherwise well-formed
+  `WasmProviderBindingV1` and submitted to `WasmProvider::open`, is
+  refused with `WasmPgStatus::MalformedBinding` (`SPX-PG910`) inside a
+  `std::panic::catch_unwind`, making "does not panic" a checked assertion
+  rather than an assumption, and the `Err` return proves no
+  half-constructed provider ever escapes.
+
+This closes the specific residual test gaps; it does not change what target
+this adapter can bind to (still the fixture endpoint) or move the compiled-
+`.wasm`-artifact question (#229) at all.
 
 ## Reference interpreter physical adapter (issue #162)
 

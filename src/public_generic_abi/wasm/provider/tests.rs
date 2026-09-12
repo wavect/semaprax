@@ -373,3 +373,161 @@ fn zero_leaf_call_round_trips() {
     provider.result_release(result);
     assert_eq!(provider.live_allocations(), 0);
 }
+
+/// Issue #135 (SPX-AI-036) closes the residual "large valid boundary" and
+/// "returned byte values remain correct after ... memory growth" acceptance
+/// items #155 left as narrower single-page fixtures. Three leaves at the
+/// exact per-leaf bound (`MAX_BYTES_PER_LEAF`, one Wasm page each) push the
+/// arena past a single `memory.grow` — `WasmLinearMemory` never shrinks, so
+/// a real multi-page growth genuinely happened rather than being coincidence
+/// — and each leaf carries a distinct, non-zero byte pattern so an
+/// offset/aliasing bug would surface as wrong bytes, not as a fresh
+/// zero-fill happening to match.
+#[test]
+fn large_multi_leaf_payload_forces_multi_page_growth_and_round_trips_byte_exact() {
+    let mut provider = open();
+    assert_eq!(provider.test_memory_pages(), 0);
+
+    let leaves: Vec<Vec<u8>> = (0u8..3)
+        .map(|pattern| vec![pattern.wrapping_mul(37).wrapping_add(1); MAX_BYTES_PER_LEAF])
+        .collect();
+    let expected: Vec<Vec<u8>> = leaves
+        .iter()
+        .map(|leaf| leaf.iter().rev().copied().collect())
+        .collect();
+    let total_bytes = (leaves.len() * MAX_BYTES_PER_LEAF) as u32;
+    let expected_min_pages =
+        total_bytes.div_ceil(crate::public_generic_abi::wasm::memory::PAGE_BYTES);
+    assert!(
+        expected_min_pages > 1,
+        "fixture must span more than one page"
+    );
+
+    let value = provider.input_prepare(&leaves).unwrap();
+    let pages_after_input = provider.test_memory_pages();
+    assert!(
+        pages_after_input >= expected_min_pages,
+        "expected at least {expected_min_pages} pages after a {total_bytes}-byte input, got {pages_after_input}"
+    );
+
+    let result = provider.call(value).unwrap();
+    // The arena never shrinks, so the input's freed span is still there for
+    // the equally sized result to reuse: growth for the result allocation
+    // must be a no-op, not a second independent grow.
+    assert_eq!(
+        provider.test_memory_pages(),
+        pages_after_input,
+        "result allocation of the same total size should reuse the already-grown arena"
+    );
+
+    let exported = provider
+        .result_export(result, total_bytes as usize * 2)
+        .unwrap();
+    assert_eq!(decode_leaves(&exported), expected);
+
+    assert_eq!(provider.result_release(result), WasmPgStatus::Ok);
+    assert_eq!(provider.live_allocations(), 0);
+    assert_eq!(provider.live_bytes(), 0);
+    assert_eq!(provider.live_handles(), 0);
+    assert_eq!(provider.close(), WasmPgStatus::Ok);
+}
+
+/// Two providers opened from the same trusted fixture binding are still two
+/// fully independent carrier instances: interleaving their calls (rather
+/// than finishing one before starting the other) proves neither's
+/// registry, allocator, or generation counter is shared, matching this
+/// issue's "simultaneous independent instances" requirement and the
+/// "one module instance must not accept a handle or allocator state from
+/// another, even when its descriptor matches" bounded-scope note.
+#[test]
+fn two_independent_providers_operate_simultaneously_without_cross_contamination() {
+    let mut provider_a = open();
+    let mut provider_b = open();
+
+    let leaves_a = vec![b"alpha".to_vec()];
+    let leaves_b = vec![b"bravo".to_vec(), b"charlie".to_vec()];
+    let expected_a: Vec<Vec<u8>> = leaves_a
+        .iter()
+        .map(|leaf| leaf.iter().rev().copied().collect())
+        .collect();
+    let expected_b: Vec<Vec<u8>> = leaves_b
+        .iter()
+        .map(|leaf| leaf.iter().rev().copied().collect())
+        .collect();
+
+    // Interleaved, not sequential: both instances are live at once before
+    // either call runs.
+    let value_a = provider_a.input_prepare(&leaves_a).unwrap();
+    let value_b = provider_b.input_prepare(&leaves_b).unwrap();
+
+    // A handle minted by `a` is simply foreign to `b`'s registry, even
+    // though both providers independently minted the identical
+    // `(id, generation)` pair for their own first call.
+    assert_eq!(
+        provider_b.value_release(value_a),
+        WasmPgStatus::HandleInvalid
+    );
+    assert_eq!(
+        provider_a.value_release(value_b),
+        WasmPgStatus::HandleInvalid
+    );
+    // Root + leaf handles: one root and one leaf for `a`, one root and two
+    // leaves for `b`.
+    assert_eq!(provider_a.live_handles(), 2);
+    assert_eq!(provider_b.live_handles(), 3);
+
+    let result_a = provider_a.call(value_a).unwrap();
+    let result_b = provider_b.call(value_b).unwrap();
+
+    assert_eq!(
+        decode_leaves(&provider_a.result_export(result_a, 4096).unwrap()),
+        expected_a
+    );
+    assert_eq!(
+        decode_leaves(&provider_b.result_export(result_b, 4096).unwrap()),
+        expected_b
+    );
+
+    assert_eq!(provider_a.result_release(result_a), WasmPgStatus::Ok);
+    assert_eq!(provider_b.result_release(result_b), WasmPgStatus::Ok);
+    assert_eq!(provider_a.live_allocations(), 0);
+    assert_eq!(provider_b.live_allocations(), 0);
+    assert_eq!(provider_a.live_handles(), 0);
+    assert_eq!(provider_b.live_handles(), 0);
+    assert_eq!(provider_a.close(), WasmPgStatus::Ok);
+    assert_eq!(provider_b.close(), WasmPgStatus::Ok);
+}
+
+/// Negative control (ownership errors are diagnostics, never backend
+/// accidents): a `CarrierBindingV1` built for `TargetProfile::NativeC11` -
+/// a target this adapter never admits - wrapped in an otherwise
+/// well-formed `WasmProviderBindingV1` and presented to `WasmProvider::open`
+/// must fail closed with a normalized diagnostic status. `catch_unwind`
+/// makes "not a panic" a literal, checked assertion rather than an implicit
+/// side effect of the test merely not crashing, and the `Err` return proves
+/// no half-constructed `WasmProvider` (a "malformed module") ever escapes.
+#[test]
+fn open_rejects_a_binding_naming_a_foreign_target_profile_as_a_diagnostic_not_a_panic() {
+    let foreign = WasmProviderBindingV1::new(
+        CarrierBindingV1::new(
+            "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            TargetProfile::NativeC11,
+            "runtime:core-wasm-fixture-issue-155",
+        ),
+        "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        FIXTURE_ENDPOINT_EXPORT_NAME,
+        "semaprax-0.4.1",
+    );
+    let foreign_bytes = foreign.encode();
+
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        WasmProvider::open(
+            FIXTURE_DESCRIPTOR_BYTES,
+            FIXTURE_DESCRIPTOR_BYTES,
+            &foreign_bytes,
+            &foreign,
+        )
+    }))
+    .expect("open must not panic on a binding naming a foreign target profile");
+    assert_eq!(outcome.unwrap_err(), WasmPgStatus::MalformedBinding);
+}

@@ -276,6 +276,16 @@ impl WasmProvider {
         self.allocator.live_bytes()
     }
 
+    /// Test-only: the physical arena's current page count. `WasmLinearMemory`
+    /// only ever grows, exactly like real Wasm linear memory, so this proves
+    /// whether a large payload actually forced a real `memory.grow` (more
+    /// than the trivial single page) and whether a later allocation of equal
+    /// size genuinely reused the already-grown arena instead of growing it
+    /// again.
+    pub fn test_memory_pages(&self) -> u32 {
+        self.memory.pages()
+    }
+
     /// Test-only: not part of the production surface, never emitted for a
     /// support/publication claim (this whole module already carries that
     /// blanket claim). Arms deterministic failure at trace ordinal `label`

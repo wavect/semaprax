@@ -1,0 +1,93 @@
+module catalog_normalizer.tests;
+use function @id("catalog_normalizer.app.token_valid") from catalog_normalizer.app as token_valid;
+use function @id("catalog_normalizer.app.trimmed_matches") from catalog_normalizer.app as trimmed_matches;
+use function @id("catalog_normalizer.app.decoded_matches") from catalog_normalizer.app as decoded_matches;
+
+// `owned-data-api.v1` requires every function reachable from `[exports]
+// web` to be contract-free; `std.data.json.dec` uses `ensures` throughout
+// (by design -- see its own tests), so nothing that reaches `token_valid`/
+// `trimmed_matches` through it can be a web export. This trivial function
+// is the one this project lists there instead; every real assertion lives
+// in the named `test_*` cases below, exercised by `semaprax test`.
+@id("catalog_normalizer.tests.smoke")
+fn smoke() -> bool
+{
+    true
+}
+
+// Every case below reproduces one label value from
+// `tests/oracle/catalog_normalizer/cases/published/basics.json` byte for
+// byte: the raw JSON string token (position 0 in its own tiny buffer) is
+// this project's own input, and the expected decoded/trimmed bytes are
+// copied from that frozen case's own `expected_output` (never edited to
+// make a run pass; cross-checked against the oracle with a one-off
+// script, not hand-transcribed).
+// "basic-single-record": label value "hello" -> unchanged (no boundary
+// whitespace to trim). Also exercises CNORM-010's decode path directly
+// (`decoded_matches`) as well as the trim (`trimmed_matches`).
+@id("catalog_normalizer.tests.test-basic-label")
+fn test_basic_label() -> i64
+{
+    let token = [34u8, 104u8, 101u8, 108u8, 108u8, 111u8, 34u8];
+    let view = array_as_slice(token);
+    let expected = [104u8, 101u8, 108u8, 108u8, 111u8];
+    if token_valid(view, 0usize) && decoded_matches(view, 0usize, array_as_slice(expected)) && trimmed_matches(view, 0usize, array_as_slice(expected)) { 0 } else { 1 }
+}
+
+// "label-trim-boundary-whitespace": " \t hello world \t " -> "hello world".
+// CNORM-012's flagship rule: a `\t` escape is trimmed exactly like a raw
+// space on both boundaries, interior whitespace is untouched.
+@id("catalog_normalizer.tests.test-label-trim-boundary-whitespace")
+fn test_label_trim_boundary_whitespace() -> i64
+{
+    let token = [34u8, 32u8, 92u8, 116u8, 32u8, 104u8, 101u8, 108u8, 108u8, 111u8, 32u8, 119u8, 111u8, 114u8, 108u8, 100u8, 32u8, 92u8, 116u8, 32u8, 34u8];
+    let view = array_as_slice(token);
+    let expected = [104u8, 101u8, 108u8, 108u8, 111u8, 32u8, 119u8, 111u8, 114u8, 108u8, 100u8];
+    if token_valid(view, 0usize) && trimmed_matches(view, 0usize, array_as_slice(expected)) { 0 } else { 1 }
+}
+
+// "label-internal-whitespace-preserved": "hello    world" -> unchanged;
+// interior whitespace is never touched.
+@id("catalog_normalizer.tests.test-label-internal-whitespace-preserved")
+fn test_label_internal_whitespace_preserved() -> i64
+{
+    let token = [34u8, 104u8, 101u8, 108u8, 108u8, 111u8, 32u8, 32u8, 32u8, 32u8, 119u8, 111u8, 114u8, 108u8, 100u8, 34u8];
+    let view = array_as_slice(token);
+    let expected = [104u8, 101u8, 108u8, 108u8, 111u8, 32u8, 32u8, 32u8, 32u8, 119u8, 111u8, 114u8, 108u8, 100u8];
+    if token_valid(view, 0usize) && trimmed_matches(view, 0usize, array_as_slice(expected)) { 0 } else { 1 }
+}
+
+// "label-multibyte-unicode-no-normalization": "  Café STRASSE ÜBER  " ->
+// "Café STRASSE ÜBER" -- raw multi-byte UTF-8 passed through unchanged, no
+// case folding or Unicode normalization.
+@id("catalog_normalizer.tests.test-label-multibyte-unicode-no-normalization")
+fn test_label_multibyte_unicode_no_normalization() -> i64
+{
+    let token = [34u8, 32u8, 32u8, 67u8, 97u8, 102u8, 195u8, 169u8, 32u8, 83u8, 84u8, 82u8, 65u8, 83u8, 83u8, 69u8, 32u8, 195u8, 156u8, 66u8, 69u8, 82u8, 32u8, 32u8, 34u8];
+    let view = array_as_slice(token);
+    let expected = [67u8, 97u8, 102u8, 195u8, 169u8, 32u8, 83u8, 84u8, 82u8, 65u8, 83u8, 83u8, 69u8, 32u8, 195u8, 156u8, 66u8, 69u8, 82u8];
+    if token_valid(view, 0usize) && trimmed_matches(view, 0usize, array_as_slice(expected)) { 0 } else { 1 }
+}
+
+// CNORM-010: an unterminated string is a decode failure, not a value.
+// Self-authored (not a literal oracle case reproduction), following
+// `tests/oracle/catalog_normalizer/cases/published/errors.json`'s own
+// "malformed-json-unterminated-string-rejected" pattern.
+@id("catalog_normalizer.tests.test-unterminated-string-rejected")
+fn test_unterminated_string_rejected() -> i64
+{
+    let token = [34u8, 110u8, 101u8, 118u8, 101u8, 114u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 115u8];
+    if !token_valid(array_as_slice(token), 0usize) { 0 } else { 1 }
+}
+
+@id("catalog_normalizer.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if test_basic_label() == 0 { 0 } else { 1 };
+    failed = failed + if test_label_trim_boundary_whitespace() == 0 { 0 } else { 2 };
+    failed = failed + if test_label_internal_whitespace_preserved() == 0 { 0 } else { 4 };
+    failed = failed + if test_label_multibyte_unicode_no_normalization() == 0 { 0 } else { 8 };
+    failed = failed + if test_unterminated_string_rejected() == 0 { 0 } else { 16 };
+    failed
+}

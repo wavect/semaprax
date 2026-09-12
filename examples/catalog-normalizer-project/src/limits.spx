@@ -1,0 +1,68 @@
+module catalog_normalizer.limits;
+
+// Frozen bounds from docs/CATALOG-NORMALIZER-ORACLE-V1.md. Every constant
+// here is named after the CNORM requirement that defines it so a reviewer
+// can match this file back to the frozen document line by line. Only the
+// per-record bounds are kept: this slice does not implement the whole-body
+// limits (CNORM-002/003, `MAX_TOTAL_INPUT_BYTES`/`MAX_RECORDS`) because it
+// does not implement batch orchestration at all -- see
+// `catalog_normalizer.app`'s own header comment.
+@id("catalog_normalizer.limits.max_line_bytes")
+fn max_line_bytes() -> usize
+    ensures result == 512usize
+{
+    512usize
+}
+
+@id("catalog_normalizer.limits.max_id_bytes")
+fn max_id_bytes() -> usize
+    ensures result == 64usize
+{
+    64usize
+}
+
+@id("catalog_normalizer.limits.max_label_bytes")
+fn max_label_bytes() -> usize
+    ensures result == 256usize
+{
+    256usize
+}
+
+@id("catalog_normalizer.limits.max_nested_depth")
+fn max_nested_depth() -> usize
+    ensures result == 8usize
+{
+    8usize
+}
+
+// Failure category codes. There is no tenth category (CNORM-020): 0 means
+// "no failure" everywhere below.
+@id("catalog_normalizer.limits.category_none")
+fn category_none() -> i64
+{
+    0
+}
+
+@id("catalog_normalizer.limits.category_oversized_input")
+fn category_oversized_input() -> i64
+{
+    1
+}
+
+@id("catalog_normalizer.limits.category_invalid_utf8")
+fn category_invalid_utf8() -> i64
+{
+    2
+}
+
+@id("catalog_normalizer.limits.category_malformed_json")
+fn category_malformed_json() -> i64
+{
+    3
+}
+
+@id("catalog_normalizer.limits.category_schema")
+fn category_schema() -> i64
+{
+    4
+}

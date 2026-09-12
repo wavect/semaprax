@@ -1,0 +1,175 @@
+module catalog_normalizer.app;
+use function @id("std.data.json.dec.decoded_len") from std.data.json.dec as decoded_len;
+use function @id("std.data.json.dec.is_failure") from std.data.json.dec as is_failure;
+use function @id("std.data.json.dec.emit_at") from std.data.json.dec as emit_at;
+use function @id("std.data.json.dec.emit_len") from std.data.json.dec as emit_len;
+use function @id("std.data.json.dec.token_end") from std.data.json.dec as token_end;
+use function @id("std.data.json.dec.code_byte") from std.data.json.dec as dec_code_byte;
+use function @id("catalog_normalizer.limits.max_label_bytes") from catalog_normalizer.limits as max_label_bytes;
+
+// Only `std.data.json.dec` is a declared package dependency. This is a
+// real, measured constraint, not a style choice: `SPX-G171` (the Workspace
+// Semantic Graph builder's byte pre-bound) is exceeded well before this
+// module's own size is the limiting factor -- confirmed with minimal probe
+// projects (a trivial function importing only
+// `std.data.json.doc.is_document` and `std.data.json.dec.decoded_size`
+// together already exceeds the pre-bound) and reconfirmed repeatedly while
+// this module was cut down from a full multi-record implementation (with
+// `std.data.json.doc`-equivalent structural/schema scanning ported locally,
+// duplicate-id detection, checked-overflow accumulation and canonical JSON
+// envelope rendering) to the CNORM-012 slice below. See this session's
+// final report for the exact sequence of cuts and their measured effect;
+// none of the structural/schema/render layers fit inside the same budget
+// as `std.data.json.dec` itself once that layer's own AST cost is counted,
+// independent of raw source-byte size.
+//
+// CNORM-012 demonstration surface. This project composes
+// `std.data.json.dec` (decode) with a locally ported ASCII-boundary trim
+// (`std.bytes.trim_start`/`trim_end`, not imported as a package for the
+// same budget reason) and demonstrates CNORM-010 (decode validity),
+// CNORM-011 (length bound) and CNORM-012 (the trim itself) directly over
+// one JSON string TOKEN. It does not parse a surrounding `{...}` record,
+// locate members by key, or implement CNORM-001..009/013..016/040..043 (see
+// this project's own final report for exactly why and what a wider budget
+// would need to unlock next).
+@id("catalog_normalizer.app.is_space")
+fn is_space(byte: u8) -> bool
+{
+    byte == 32u8 || byte == 9u8 || byte == 13u8 || byte == 10u8
+}
+
+@id("catalog_normalizer.app.trim_start")
+fn trim_start(view: borrow Slice<u8>) -> usize
+{
+    let length = byte_len(view);
+    let mut index = 0usize;
+    let mut scanning = index < length;
+    while scanning {
+        let blank = match byte_get(view, index) { Option::Some { value } => is_space(value), Option::None {} => false, };
+        index = if blank { index + 1usize } else { index };
+        scanning = blank && index < length;
+        scanning
+    }
+    index
+}
+
+@id("catalog_normalizer.app.trim_end")
+fn trim_end(view: borrow Slice<u8>) -> usize
+{
+    let mut end = byte_len(view);
+    let mut scanning = end > 0usize;
+    while scanning {
+        let blank = match byte_get(view, end - 1usize) { Option::Some { value } => is_space(value), Option::None {} => false, };
+        end = if blank { end - 1usize } else { end };
+        scanning = blank && end > 0usize;
+        scanning
+    }
+    end
+}
+
+@id("catalog_normalizer.app.dec_code_byte_i64")
+fn dec_code_byte_i64(byte: u8) -> i64
+{
+    let mut probe = 0u8;
+    let mut value = 0;
+    let mut scanning = probe != byte && value < 255;
+    while scanning {
+        probe = probe + 1u8;
+        value = value + 1;
+        scanning = probe != byte && value < 255;
+        scanning
+    }
+    value
+}
+
+@id("catalog_normalizer.app.bytes_get_or")
+fn bytes_get_or(view: borrow Slice<u8>, index: usize, fallback: i64) -> i64
+{
+    match byte_get(view, index) { Option::Some { value } => dec_code_byte_i64(value), Option::None {} => fallback, }
+}
+
+@id("catalog_normalizer.app.bytes_equal")
+fn bytes_equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(left);
+    let mut index = 0usize;
+    let mut same = length == byte_len(right);
+    while index < length && same {
+        same = bytes_get_or(left, index, -1) == bytes_get_or(right, index, -1);
+        index = index + 1usize;
+        index < length && same
+    }
+    same
+}
+
+// CNORM-010/CNORM-011: a JSON string token at `pos` (its opening `"`)
+// decodes without failure (bad escape, lone surrogate, unterminated
+// string all reported by `std.data.json.dec.is_failure`) and is at most
+// `max_label_bytes()` (256) decoded bytes.
+@id("catalog_normalizer.app.token_valid")
+fn token_valid(line: borrow Slice<u8>, pos: usize) -> bool
+{
+    let length = decoded_len(line, pos);
+    !is_failure(line, length) && length <= max_label_bytes()
+}
+
+// Decodes the JSON string token at `pos` (escapes resolved exactly as
+// `std.data.json.dec` documents) into a freshly owned buffer sized to its
+// exact decoded length.
+@id("catalog_normalizer.app.decode_into")
+fn decode_into(line: borrow Slice<u8>, pos: usize) -> Bytes
+{
+    let total = decoded_len(line, pos);
+    let mut out = bytes_zeroed(256usize);
+    let mut index = pos + 1usize;
+    let mut part = 0usize;
+    let mut write = 0usize;
+    let mut running = write < total;
+    while running {
+        out = bytes_set(out, write, dec_code_byte(emit_at(line, index, part)));
+        let last = part + 1usize >= emit_len(line, index);
+        index = if last { token_end(line, index) } else { index };
+        part = if last { 0usize } else { part + 1usize };
+        write = write + 1usize;
+        running = write < total;
+        running
+    }
+    let out_view = bytes_as_slice(out);
+    bytes_copy(byte_range(out_view, 0usize, total))
+}
+
+// CNORM-012: the decoded value with only the four ASCII whitespace bytes
+// stripped from both boundaries -- nothing else touched, no other Unicode
+// whitespace, no Unicode normalization.
+@id("catalog_normalizer.app.trimmed_bytes")
+fn trimmed_bytes(line: borrow Slice<u8>, pos: usize) -> Bytes
+{
+    let decoded = decode_into(line, pos);
+    let view = bytes_as_slice(decoded);
+    let start = trim_start(view);
+    let end_raw = trim_end(view);
+    let end = if end_raw > start { end_raw } else { start };
+    bytes_copy(byte_range(view, start, end))
+}
+
+// Cross-module-safe (scalar `bool`) wrappers: the `Bytes` values above
+// never leave this module, only the comparison result does.
+@id("catalog_normalizer.app.trimmed_matches")
+fn trimmed_matches(line: borrow Slice<u8>, pos: usize, expected_trimmed: borrow Slice<u8>) -> bool
+{
+    let trimmed = trimmed_bytes(line, pos);
+    bytes_equal(bytes_as_slice(trimmed), expected_trimmed)
+}
+
+@id("catalog_normalizer.app.decoded_matches")
+fn decoded_matches(line: borrow Slice<u8>, pos: usize, expected: borrow Slice<u8>) -> bool
+{
+    let decoded = decode_into(line, pos);
+    bytes_equal(bytes_as_slice(decoded), expected)
+}
+
+@id("main")
+fn main() -> i64
+{
+    0
+}

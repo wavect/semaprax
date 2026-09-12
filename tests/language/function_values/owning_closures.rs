@@ -250,6 +250,99 @@ fn owning_closures_are_not_admitted_inside_a_generic_function() {
 }
 
 #[test]
+fn calling_an_owning_closure_with_an_explicit_argument_is_rejected() {
+    // The bounded profile's call site admits zero explicit arguments. Use a
+    // literal (not `payload`) so the failure is isolated to the argument
+    // count, not conflated with the unrelated use-after-move diagnostic a
+    // second reference to the already-moved capture would also report.
+    let body = r#"
+    let payload = bytes_zeroed(4usize);
+    let clo = own fn() -> i64 { checksum(payload) };
+    clo(1)
+"#;
+    let codes = error_codes(body);
+    assert!(
+        codes.contains(&"SPX-T295"),
+        "calling an owning closure with an explicit argument must be rejected, got {codes:?}"
+    );
+    assert!(
+        !codes.contains(&"SPX-O101"),
+        "the extra-argument rejection must not be conflated with use-after-move, got {codes:?}"
+    );
+    assert!(
+        !codes.contains(&"SPX-T296"),
+        "the extra-argument rejection must not be conflated with the escaping-read diagnostic, got {codes:?}"
+    );
+}
+
+#[test]
+fn an_owning_closure_with_an_explicit_parameter_is_rejected_by_the_parser() {
+    // This bounded profile fixes the parameter list at zero: `own fn(...)`
+    // with any explicit parameter must fail to parse with a dedicated code,
+    // distinct from every source_verify-level rejection above.
+    let body = r#"
+    let clo = own fn(payload: own Bytes) -> i64 { checksum(payload) };
+    clo()
+"#;
+    let codes = error_codes(body);
+    assert_eq!(
+        codes,
+        vec!["SPX-P130"],
+        "an explicit closure parameter must be rejected by the parser with exactly SPX-P130, got {codes:?}"
+    );
+}
+
+#[test]
+fn owning_closures_are_not_admitted_inside_a_contract_expression() {
+    // Contract expressions (`requires`/`ensures`) run with move-tracking
+    // disabled (`allow_moves = false`, the same restriction that already
+    // rejects consuming a resource in a contract with SPX-O105): a distinct
+    // code, SPX-O119, covers constructing an owning closure there. A
+    // multi-statement contract clause is written as a doubled block
+    // (`ensures {{ ... }}`) elsewhere in this test suite (see
+    // `tests/language/while_loops.rs`'s `while_in_contract_expression_is_spx_t253`);
+    // this is a fresh top-level program, not `check_errors`'s `main`-wrapped
+    // body helper, since a `module`/`fn` declaration cannot nest inside
+    // another function.
+    let source_text = r#"module test.owning_closures_contract;
+@id("owning.checksum") fn checksum(payload: own Bytes) -> i64 {
+    42
+}
+@id("owning.guarded") fn guarded(payload: own Bytes) -> i64
+requires {{
+    let clo = own fn() -> i64 { checksum(payload) };
+    clo() == 42
+}}
+{ 42 }
+@id("owning.main") fn main() -> i64 { guarded(bytes_zeroed(4usize)) }
+"#;
+    let diagnostics = match semaprax::check(source_text, "owning-closures-contract.spx") {
+        Ok(_) => Vec::new(),
+        Err(diagnostics) => diagnostics,
+    };
+    let codes: Vec<&str> = diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.severity.is_error())
+        .map(|diagnostic| diagnostic.code)
+        .collect();
+    assert!(
+        codes.contains(&"SPX-O119"),
+        "constructing an owning closure inside a contract expression must be rejected, got {codes:?}"
+    );
+    assert!(
+        !codes.contains(&"SPX-O105"),
+        "the contract-construction rejection must use its own code, not the resource-consumption one, got {codes:?}"
+    );
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-O119"
+                && diagnostic.message.contains("contract expression")),
+        "the SPX-O119 diagnostic must name the contract-expression restriction, got {diagnostics:?}"
+    );
+}
+
+#[test]
 fn hir_resolution_refuses_an_otherwise_source_clean_owning_closure() {
     // Confirms the exact seam: source verification fully admits and checks
     // this program (proving the compile-time one-shot diagnostics above are

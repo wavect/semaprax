@@ -124,10 +124,25 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             params,
             return_type,
             body,
+            owning,
         } = &expression.kind
         else {
             unreachable!()
         };
+        if *owning {
+            let value = super::owning_closure::check_construction(
+                self.program,
+                self.current,
+                expression,
+                return_type,
+                body,
+                self.allow_moves,
+                &mut self.scopes[scope].bindings,
+                self.diagnostics,
+            );
+            self.values.push(value);
+            return Ok(());
+        }
         if !self.current.type_parameters.is_empty()
             && !super::generic_collection_profile(self.current)
         {
@@ -237,6 +252,7 @@ pub(super) fn oracle(
         params,
         return_type,
         body,
+        owning: _,
     } = &expression.kind
     else {
         unreachable!()
@@ -337,10 +353,19 @@ pub(super) fn validate_generic_syntax(
     }
     let mut pending = vec![(&function.body, false)];
     while let Some((expression, in_closure)) = pending.pop() {
+        if let ExprKind::Closure { owning: true, .. } = &expression.kind {
+            return Err(error(
+                program,
+                "SPX-T291",
+                "owning-capture closures are not admitted inside a generic function",
+                expression.span,
+            ));
+        }
         if let ExprKind::Closure {
             params,
             return_type,
             body,
+            owning: false,
         } = &expression.kind
         {
             let scalar = |ty: &Type| {

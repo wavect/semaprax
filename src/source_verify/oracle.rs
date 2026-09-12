@@ -48,6 +48,21 @@ pub(super) fn check_expr(
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<CheckedValue> {
     match &expr.kind {
+        ExprKind::Closure {
+            owning: true,
+            return_type,
+            body,
+            ..
+        } => super::owning_closure::check_construction(
+            program,
+            current,
+            expr,
+            return_type,
+            body,
+            allow_moves,
+            variables,
+            diagnostics,
+        ),
         ExprKind::Closure { .. } => super::closure::oracle(program, current, expr, variables, functions, types, diagnostics),
         ExprKind::Int(_) => Some(CheckedValue::value(Type::I64)),
         ExprKind::Int32(_) => Some(CheckedValue::value(Type::I32)),
@@ -90,6 +105,13 @@ pub(super) fn check_expr(
         ExprKind::Var(name) => variables
             .get(name.as_str())
             .map(|binding| {
+                super::owning_closure::reject_escaping_read(
+                    program,
+                    name,
+                    &binding.ty,
+                    expr.span,
+                    diagnostics,
+                );
                 match binding.availability {
                     Availability::Moved => diagnostics.push(
                         error(

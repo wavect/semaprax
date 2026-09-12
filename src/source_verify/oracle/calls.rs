@@ -31,6 +31,18 @@ pub(super) fn oracle_call(
     allow_moves: bool,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<CheckedValue> {
+    if let Some(result) = crate::source_verify::owning_closure::check_call(
+        program,
+        name,
+        type_arguments,
+        args,
+        expr.span,
+        variables,
+        types,
+        diagnostics,
+    ) {
+        return result;
+    }
     if let Some(binding_type) = variables
         .get(name.as_str())
         .map(|binding| binding.ty.clone())

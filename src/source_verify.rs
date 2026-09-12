@@ -38,6 +38,7 @@ mod hints;
 mod iterative;
 mod loans;
 mod owned_buffer;
+mod owning_closure;
 mod place;
 mod scope;
 mod type_table;

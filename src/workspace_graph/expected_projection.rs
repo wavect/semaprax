@@ -1295,6 +1295,7 @@ fn collect_expression_type_edges(
             params,
             return_type,
             body,
+            ..
         } => {
             for (index, parameter) in params.iter().enumerate() {
                 collect_type_reference_edge_at(

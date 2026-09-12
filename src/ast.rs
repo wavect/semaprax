@@ -261,6 +261,7 @@ impl Drop for Program {
                     params,
                     return_type,
                     body,
+                    owning: _,
                 } => {
                     types.extend(params.into_iter().map(|param| param.ty));
                     types.push(return_type);
@@ -740,6 +741,13 @@ pub enum ExprKind {
         params: Vec<ClosureParam>,
         return_type: Type,
         body: Box<Expr>,
+        /// SPX-AI-021 bounded owning-capture profile: `true` for
+        /// `own fn() -> R { body }`, which admits zero explicit parameters
+        /// and checks its body as one call transferring exactly one lexical
+        /// owned `Bytes` capture. `false` is the existing Copy-scalar
+        /// snapshot profile (Closures v1/v2), unchanged. See
+        /// `docs/CLOSURES-OWNING-V1.md`.
+        owning: bool,
     },
     Int(i64),
     /// An `i32` literal stored as its exact value.

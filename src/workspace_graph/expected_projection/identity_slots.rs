@@ -111,6 +111,7 @@ fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> 
             params,
             return_type,
             body,
+            ..
         } => {
             // Derived function/result identities plus up to eight capture bindings
             // and their scalar read expressions.

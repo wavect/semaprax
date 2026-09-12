@@ -28,6 +28,7 @@ Audience: all documentation readers.
 - [Function Values v2: generic collection callbacks](FUNCTION-VALUES-V2.md)
 - [Scalar Snapshot Closures v1](CLOSURES-V1.md)
 - [Generic and Loop Closures v2](CLOSURES-V2.md)
+- [Bounded Owning-Capture Closures v1](CLOSURES-OWNING-V1.md)
 - [Execution root association v1](EXECUTION-ROOT-ASSOCIATION-V1.md)
 - [Workspace execution association v1](WORKSPACE-EXECUTION-ASSOCIATION-V1.md)
 - [Workspace execution migration v1](WORKSPACE-EXECUTION-MIGRATION-V1.md)

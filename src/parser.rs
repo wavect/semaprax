@@ -965,10 +965,7 @@ impl Parser {
             TokenKind::Ident(value) if value == "fn" => self.closure_expression(token.span)?,
             TokenKind::Ident(value) if value == "if" => self.if_expression(token.span)?,
             TokenKind::Ident(value) if value == "match" => self.match_expression(token.span)?,
-            TokenKind::Ident(value) => Expr {
-                kind: ExprKind::Var(value),
-                span: token.span,
-            },
+            TokenKind::Ident(value) => self.ident_or_own_closure(value, token.span)?,
             TokenKind::Minus | TokenKind::Bang => {
                 let mut ops: Vec<(UnaryOp, crate::ast::Span)> = Vec::new();
                 let mut current_token = token;

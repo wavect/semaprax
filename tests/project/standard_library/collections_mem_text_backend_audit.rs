@@ -24,7 +24,12 @@ fn collections_mem_text_execute_on_all_three_backends() {
     run_examples_and_conformance(
         packages()
             .into_iter()
-            .filter(|p| matches!(p.module.as_str(), "std.collections" | "std.mem" | "std.text"))
+            .filter(|p| {
+                matches!(
+                    p.module.as_str(),
+                    "std.collections" | "std.mem" | "std.text"
+                )
+            })
             .collect(),
     );
 }

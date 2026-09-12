@@ -27,7 +27,12 @@ fn core_num_random_time_test_execute_on_all_three_backends() {
             .filter(|p| {
                 matches!(
                     p.module.as_str(),
-                    "std.core" | "std.num" | "std.num.overflow" | "std.random" | "std.time" | "std.test"
+                    "std.core"
+                        | "std.num"
+                        | "std.num.overflow"
+                        | "std.random"
+                        | "std.time"
+                        | "std.test"
                 )
             })
             .collect(),

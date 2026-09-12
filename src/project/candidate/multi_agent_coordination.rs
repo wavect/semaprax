@@ -45,14 +45,24 @@
 //!
 //! Graph-derived data (`graph_signal`, from the existing
 //! [`ProjectCandidate::impact_summary`] artifact) is attached to each granted
-//! scope id as descriptive guidance only; it is never compared, thresholded,
-//! or used to decide compatibility. "Graph independence can miss hidden
-//! external/generated/deployment coupling" is a named failure case this
-//! module does not claim to solve: only exact stable-`@id` overlap is proof
-//! of a conflict here, and
-//! [`tests::disjoint_but_graph_dependent_targets_are_not_flagged_as_a_cross_target_conflict`]
-//! demonstrates the gap this module honestly declares rather than papering
-//! over with an unverified heuristic.
+//! scope id as descriptive guidance only when a session opens; it is never
+//! compared, thresholded, or used to decide compatibility there. Evaluation
+//! does use the graph for one proven purpose: two surviving proposals from
+//! different agents whose target sets are disjoint (no `same_target`
+//! overlap) are still a `cross_target` conflict when the *existing*
+//! six-edge-family reverse impact artifact
+//! ([`ProjectRevision::semantic_impact`], `direction: reverse`) shows one
+//! proposal's target id in the other's `affected` set -- i.e. a real,
+//! already-computed dependency edge (for example, one target calls the
+//! other) rather than a heuristic this module invents.
+//! [`tests::disjoint_but_graph_dependent_targets_are_flagged_as_a_cross_target_conflict`]
+//! proves this. "Graph independence can miss hidden external/generated/
+//! deployment coupling" remains a named failure case this module does not
+//! claim to solve: the reverse impact artifact only covers its own six edge
+//! families, so an id pair connected only through coupling outside those
+//! families -- deployment, generated output, an external consumer -- is
+//! still reported compatible, and the nonclaims say so rather than papering
+//! over the remaining gap.
 //!
 //! [`record_scheduling_comparison`] is the bounded "scheduling/economics
 //! evidence" the issue's in-scope list names: a pure function over
@@ -83,7 +93,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{json, Value};
 
 use crate::diagnostic::Diagnostic;
-use crate::workspace_analysis::WorkspaceImpactOptions;
+use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOptions};
 
 use super::{wire, ProjectCandidate};
 
@@ -127,6 +137,41 @@ fn validate_identity(identity: &str) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+/// The stable ids the existing six-edge-family reverse impact artifact
+/// records as depending on `target` (its `affected` set, `direction:
+/// reverse`, the artifact's own default): real, already-computed dependency
+/// edges such as "this id calls `target`", never a claim about coupling
+/// outside those six edge families. Reuses
+/// [`ProjectCandidate::impact_summary`]'s own compiler artifact rather than
+/// a parallel graph walk. `target` is required to already exist in `self`
+/// (every caller here draws it from a granted scope this exact candidate
+/// has already verified), so a failure is treated as an unexpected staleness
+/// rather than a caller input error.
+fn reverse_dependents(candidate: &ProjectCandidate, target: &str) -> Result<BTreeSet<String>> {
+    let report = candidate
+        .revision
+        .semantic_impact(
+            WorkspaceAnalysisTargetKind::Declaration,
+            target,
+            WorkspaceImpactOptions::default(),
+        )
+        .map_err(|_| {
+            stale(
+                "coordination cross-target dependency check could not recompute the reverse \
+                 impact artifact for a previously granted scope id",
+            )
+        })?;
+    let value: Value =
+        serde_json::from_str(&report).expect("semantic_impact always renders valid JSON");
+    let affected = value["affected"]
+        .as_array()
+        .expect("semantic_impact always renders an affected array");
+    Ok(affected
+        .iter()
+        .filter_map(|item| item["id"].as_str().map(str::to_owned))
+        .collect())
 }
 
 /// One caller-declared agent participant granted into a coordination
@@ -339,11 +384,15 @@ impl ProjectCandidate {
     /// granted scope -- enforced from the session's own record, never from
     /// what the proposal itself claims). Two surviving proposals from
     /// different agents that share a target id are a `same_target`
-    /// conflict, recorded with both intentions and a closed set of
-    /// resolution choices; the remaining, non-conflicting proposals are
-    /// returned as one deterministic `compatible_order`, which is guidance
-    /// for a separate authorized rebase/merge invocation and never itself a
-    /// merge, rebase, or candidate build.
+    /// conflict; two surviving proposals from different agents with
+    /// disjoint target ids are a `cross_target` conflict when the existing
+    /// reverse impact artifact shows a real dependency edge between one
+    /// proposal's target and the other's (see the module documentation).
+    /// Both classes are recorded with both intentions, the affected ids, and
+    /// a closed set of resolution choices; the remaining, non-conflicting
+    /// proposals are returned as one deterministic `compatible_order`, which
+    /// is guidance for a separate authorized rebase/merge invocation and
+    /// never itself a merge, rebase, or candidate build.
     pub fn evaluate_agent_proposals(
         &self,
         expected_candidate: &str,
@@ -467,10 +516,26 @@ impl ProjectCandidate {
             });
         }
 
-        // Pairwise same-target conflict detection among survivors from
-        // different agents; two proposals from the same agent sharing a
-        // target are that agent's own sequencing choice, not a coordination
-        // conflict between agents.
+        // Every distinct target id named by a surviving proposal has its
+        // existing reverse impact artifact (the same six-edge-family
+        // artifact `open_coordination_session` already uses for scope
+        // existence) computed once and memoized here, so an id shared by
+        // several proposals is never recomputed.
+        let mut reverse_cache: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
+        for entry in &accepted {
+            for id in entry.target_ids.iter().copied() {
+                if let std::collections::btree_map::Entry::Vacant(slot) =
+                    reverse_cache.entry(id)
+                {
+                    slot.insert(reverse_dependents(self, id)?);
+                }
+            }
+        }
+
+        // Pairwise conflict detection among survivors from different
+        // agents; two proposals from the same agent sharing a target are
+        // that agent's own sequencing choice, not a coordination conflict
+        // between agents.
         let mut conflicting_indices: BTreeSet<usize> = BTreeSet::new();
         let mut conflicts: Vec<Value> = Vec::new();
         for i in 0..accepted.len() {
@@ -481,14 +546,63 @@ impl ProjectCandidate {
                 }
                 let overlap: Vec<&str> =
                     a.target_ids.intersection(&b.target_ids).copied().collect();
-                if overlap.is_empty() {
+                if !overlap.is_empty() {
+                    conflicting_indices.insert(a.index);
+                    conflicting_indices.insert(b.index);
+                    conflicts.push(json!({
+                        "conflict_class": "same_target",
+                        "affected_ids": overlap,
+                        "proposals": [
+                            {
+                                "index": a.index, "agent_id": a.agent_id,
+                                "intention": a.intention, "operation_class": a.operation_class.token(),
+                            },
+                            {
+                                "index": b.index, "agent_id": b.agent_id,
+                                "intention": b.intention, "operation_class": b.operation_class.token(),
+                            },
+                        ],
+                        "allowed_resolution_choices": [
+                            "prefer_first_proposal", "prefer_second_proposal",
+                            "manual_reconciliation", "abandon_both",
+                        ],
+                    }));
+                    continue;
+                }
+
+                // Disjoint targets can still be a `cross_target` conflict:
+                // the existing reverse impact artifact for one proposal's
+                // target names the other proposal's target in its
+                // `affected` set, i.e. a real, already-computed dependency
+                // edge (for example, one target calls the other) rather
+                // than a heuristic this module invents.
+                let mut affected_ids: BTreeSet<&str> = BTreeSet::new();
+                let mut dependency_witnesses: Vec<Value> = Vec::new();
+                for &upstream in &a.target_ids {
+                    for &downstream in &b.target_ids {
+                        if reverse_cache[upstream].contains(downstream) {
+                            affected_ids.insert(upstream);
+                            affected_ids.insert(downstream);
+                            dependency_witnesses
+                                .push(json!({"upstream": upstream, "downstream": downstream}));
+                        }
+                        if reverse_cache[downstream].contains(upstream) {
+                            affected_ids.insert(upstream);
+                            affected_ids.insert(downstream);
+                            dependency_witnesses
+                                .push(json!({"upstream": downstream, "downstream": upstream}));
+                        }
+                    }
+                }
+                if dependency_witnesses.is_empty() {
                     continue;
                 }
                 conflicting_indices.insert(a.index);
                 conflicting_indices.insert(b.index);
                 conflicts.push(json!({
-                    "conflict_class": "same_target",
-                    "affected_ids": overlap,
+                    "conflict_class": "cross_target",
+                    "affected_ids": affected_ids.into_iter().collect::<Vec<_>>(),
+                    "dependency_witnesses": dependency_witnesses,
                     "proposals": [
                         {
                             "index": a.index, "agent_id": a.agent_id,
@@ -541,7 +655,8 @@ impl ProjectCandidate {
                 "does_not_rebase_merge_or_build_any_candidate",
                 "does_not_execute_or_schedule_any_agent",
                 "compatible_order_is_guidance_for_a_separate_authorized_invocation",
-                "same_target_stable_id_overlap_is_the_only_proven_automatic_conflict_detection",
+                "same_target_and_cross_target_via_the_existing_reverse_impact_artifact_are_the_only_proven_automatic_conflict_detection",
+                "cross_target_detection_covers_only_the_reverse_impact_artifacts_own_six_edge_families",
                 "operation_class_is_caller_declared_not_independently_verified",
                 "graph_independence_can_miss_hidden_external_or_generated_coupling",
             ],
@@ -641,12 +756,21 @@ mod tests {
 
     struct Fixture(PathBuf);
 
+    // `divide` lives in a separate module/file from `main` so that
+    // `main`'s call to it is a genuine *cross-file* dependency edge: the
+    // reverse impact artifact this module's cross-target detection reads
+    // only records the six cross-file edge families (see
+    // `WorkspaceAnalysis::image_symbol`'s `edge_scope:
+    // "six_cross_file_families"`), never same-file/same-module calls.
     const APP: &str = "module coordination.app;\n\
-@id(\"coordination.divide\") fn divide(left: i64, right: i64) -> i64\n\
-    requires right != 0\n\
-{\n    left / right\n}\n\
+use function @id(\"coordination.divide\") from coordination.lib as divide;\n\
 @id(\"coordination.main\") fn main() -> i64 { divide(4, 2) }\n\
 @id(\"coordination.helper\") fn helper() -> i64 { 7 }\n";
+
+    const LIB: &str = "module coordination.lib;\n\
+@id(\"coordination.divide\") fn divide(left: i64, right: i64) -> i64\n\
+    requires right != 0\n\
+{\n    left / right\n}\n";
 
     const OTHER: &str = "module coordination.tests;\n\
 @id(\"coordination.tests.check\") fn main() -> i64 { 0 }\n";
@@ -667,13 +791,17 @@ name = "multi-agent-coordination"
 version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "coordination.app"
-sources = ["src/app.spx", "src/tests.spx"]
+sources = ["src/app.spx", "src/lib.spx", "src/tests.spx"]
 web_exports = []
 tests = ["coordination.tests"]
 "#,
             )
             .unwrap();
-            for (path, text) in [("src/app.spx", APP), ("src/tests.spx", OTHER)] {
+            for (path, text) in [
+                ("src/app.spx", APP),
+                ("src/lib.spx", LIB),
+                ("src/tests.spx", OTHER),
+            ] {
                 let parsed = crate::parse(text, path).unwrap();
                 std::fs::write(root.join(path), crate::format::canonical(&parsed)).unwrap();
             }
@@ -1053,14 +1181,16 @@ tests = ["coordination.tests"]
     }
 
     #[test]
-    fn disjoint_but_graph_dependent_targets_are_not_flagged_as_a_cross_target_conflict() {
+    fn disjoint_but_graph_dependent_targets_are_flagged_as_a_cross_target_conflict() {
         // `coordination.main` calls `coordination.divide`: a real dependency
-        // edge between two disjoint stable ids. This module's automatic
-        // classification proves only exact same-target overlap, so two
-        // different agents independently proposing against these two
-        // dependent-but-distinct ids come back "compatible" here -- the
-        // honestly-declared gap the module's nonclaims name, not a silent
-        // false negative it hides.
+        // edge between two disjoint stable ids, already recorded in
+        // `coordination.divide`'s own reverse impact artifact (`main` is a
+        // "consumer" of `divide`). Two different agents independently
+        // proposing against these two dependent-but-distinct ids must not
+        // come back "compatible": that is exactly the case multi-agent
+        // scheduling most needs to get right, so this asserts a
+        // `cross_target` conflict, not a same-target one (the ids are
+        // disjoint) and not silence.
         let fixture = Fixture::new();
         let candidate = open(&fixture.revision());
         let participants = [
@@ -1102,12 +1232,86 @@ tests = ["coordination.tests"]
             .evaluate_agent_proposals(candidate.candidate_digest(), &session_text, &proposals)
             .unwrap();
         let evaluation: Value = serde_json::from_str(&evaluation).unwrap();
-        assert_eq!(evaluation["conflicts"], json!([]));
-        assert_eq!(evaluation["compatible_order"].as_array().unwrap().len(), 2);
+        let conflicts = evaluation["conflicts"].as_array().unwrap();
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0]["conflict_class"], json!("cross_target"));
+        let affected_ids: BTreeSet<String> = conflicts[0]["affected_ids"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|id| id.as_str().unwrap().to_owned())
+            .collect();
+        assert_eq!(
+            affected_ids,
+            BTreeSet::from([
+                "coordination.divide".to_owned(),
+                "coordination.main".to_owned()
+            ])
+        );
+        let witnesses = conflicts[0]["dependency_witnesses"].as_array().unwrap();
+        assert!(witnesses.iter().any(|w| w
+            == &json!({"upstream": "coordination.divide", "downstream": "coordination.main"})));
+        // Neither conflicting proposal is silently chosen into the
+        // compatible order.
+        assert_eq!(evaluation["compatible_order"], json!([]));
         let nonclaims = evaluation["nonclaims"].as_array().unwrap();
         assert!(nonclaims
             .iter()
             .any(|c| c == "graph_independence_can_miss_hidden_external_or_generated_coupling"));
+    }
+
+    #[test]
+    fn cross_target_conflict_direction_is_symmetric_regardless_of_proposal_order() {
+        // Same dependency edge as above, but the caller's target
+        // (`coordination.main`) is proposed by the *first* agent and the
+        // callee (`coordination.divide`) by the second -- proving the
+        // pairwise check does not depend on which side of the `a`/`b` pair
+        // happens to hold the upstream id.
+        let fixture = Fixture::new();
+        let candidate = open(&fixture.revision());
+        let participants = [
+            CoordinationParticipant {
+                agent_id: "agent-a",
+                granted_scope: &["coordination.main"],
+                budget_units: 10,
+            },
+            CoordinationParticipant {
+                agent_id: "agent-b",
+                granted_scope: &["coordination.divide"],
+                budget_units: 10,
+            },
+        ];
+        let session = session_for(&candidate, "coordinator", &participants);
+        let base = session["base_project_revision"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let session_text = session.to_string();
+
+        let proposals = [
+            AgentProposal {
+                agent_id: "agent-a",
+                declared_base_project_revision: &base,
+                target_ids: &["coordination.main"],
+                operation_class: OperationClass::Call,
+                intention: "change main's call site",
+            },
+            AgentProposal {
+                agent_id: "agent-b",
+                declared_base_project_revision: &base,
+                target_ids: &["coordination.divide"],
+                operation_class: OperationClass::Contract,
+                intention: "change divide's contract",
+            },
+        ];
+        let evaluation = candidate
+            .evaluate_agent_proposals(candidate.candidate_digest(), &session_text, &proposals)
+            .unwrap();
+        let evaluation: Value = serde_json::from_str(&evaluation).unwrap();
+        let conflicts = evaluation["conflicts"].as_array().unwrap();
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0]["conflict_class"], json!("cross_target"));
+        assert_eq!(evaluation["compatible_order"], json!([]));
     }
 
     #[test]

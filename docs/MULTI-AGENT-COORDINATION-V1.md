@@ -150,6 +150,19 @@ recorded, and neither is ever silently chosen. Two proposals from the *same*
 agent sharing a target are that agent's own sequencing choice, not a
 coordination conflict.
 
+Two surviving proposals from *different* agents whose target ids are
+disjoint can still be a `cross_target` conflict: each accepted proposal's
+target ids have their existing reverse impact artifact
+(`ProjectRevision::semantic_impact`, `direction: reverse` -- the same
+six-cross-file-edge-family artifact `open_coordination_session` already uses
+to verify scope-id existence) computed once and memoized, and a pair is
+flagged when one proposal's target id appears in the other's `affected` set
+-- a real, already-computed dependency edge (for example, one target calls
+the other), never a heuristic this module invents. The conflict record adds
+`dependency_witnesses` (`{"upstream": id, "downstream": id}` pairs) alongside
+the same `affected_ids`/`allowed_resolution_choices` shape `same_target`
+uses.
+
 The remaining, non-conflicting proposals are returned as one deterministic
 `compatible_order` (sorted by agent id, then proposal index) -- guidance for
 a separate authorized rebase/merge invocation. `merge_authority`,
@@ -182,20 +195,27 @@ the codes above.
 ## Failure cases this module names rather than silently mishandles
 
 - **Graph independence can miss hidden coupling.** `graph_signal` is
-  descriptive only. This module's *only* proven, automatically-computed
-  conflict is exact stable-`@id` overlap (`same_target`); it does not claim
-  to detect that two disjoint target ids are semantically coupled (for
-  example, one calls the other). The unit test
-  `disjoint_but_graph_dependent_targets_are_not_flagged_as_a_cross_target_conflict`
-  demonstrates this honestly-declared gap using a real dependency
-  (`coordination.main` calls `coordination.divide`): both proposals come back
-  `compatible`, and the rendered record's `nonclaims` say so
-  (`graph_independence_can_miss_hidden_external_or_generated_coupling`). A
-  caller that needs real cross-target semantic coupling must independently
+  descriptive only and never itself decides compatibility. This module's
+  proven, automatically-computed conflicts are exact stable-`@id` overlap
+  (`same_target`) and a real dependency edge between two disjoint target ids
+  recorded in the existing reverse impact artifact (`cross_target`). The
+  unit test
+  `disjoint_but_graph_dependent_targets_are_flagged_as_a_cross_target_conflict`
+  proves the latter using a real cross-file dependency
+  (`coordination.main` calls `coordination.divide` across module files): the
+  pair is reported `cross_target`, not `compatible`. What remains an
+  honestly-declared gap is coupling *outside* the reverse impact artifact's
+  six edge families -- deployment, generated output, an external consumer --
+  which this module still cannot see, and the rendered record's `nonclaims`
+  say so
+  (`graph_independence_can_miss_hidden_external_or_generated_coupling`,
+  `cross_target_detection_covers_only_the_reverse_impact_artifacts_own_six_edge_families`).
+  A caller that needs coupling beyond those six families must independently
   run the existing impact/dependency analysis
   (`ProjectCandidate::impact_summary`/`impact_page`,
   `dependency_summary`/`dependency_page`) over the candidate proposals before
-  trusting a "compatible" verdict for anything beyond stable-id disjointness.
+  trusting a "compatible" verdict for anything beyond what this module now
+  proves.
 - **A rebase can preserve syntax but change intention under intervening
   edits.** Handled at the session level: `evaluate_agent_proposals` fails
   closed the moment `self` is a different exact candidate than the session
@@ -217,10 +237,11 @@ the codes above.
 - Local evidence only: every test in this suite runs the fixture harness
   in-process; no hosted, multi-process, or genuinely concurrent agent run is
   exercised or claimed.
-- `evaluate_agent_proposals` proves only *same-target* conflicts
-  automatically; it does not attempt cross-target semantic-coupling
-  detection (see above) -- a deliberate, tested, and declared limitation
-  rather than an unverified heuristic.
+- `evaluate_agent_proposals` proves *same-target* conflicts and
+  *cross-target* conflicts backed by the existing reverse impact artifact's
+  six edge families automatically; it does not attempt semantic-coupling
+  detection beyond those families (see above) -- a deliberate, tested, and
+  declared limitation rather than an unverified heuristic.
 - This module never builds a merged `ProjectCandidate`, never reruns
   assurance or requirement traceability over a merged result, and never
   selects or runs cross-target tests. "Full candidate rebuild/assurance/test

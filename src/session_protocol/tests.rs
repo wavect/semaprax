@@ -32,8 +32,14 @@ struct RecordingCleanup {
     calls: Vec<(String, StateId, &'static str)>,
 }
 impl CleanupHandler for RecordingCleanup {
-    fn run(&mut self, session_id: &str, terminal_state: StateId, op: &'static str) -> Result<(), String> {
-        self.calls.push((session_id.to_string(), terminal_state, op));
+    fn run(
+        &mut self,
+        session_id: &str,
+        terminal_state: StateId,
+        op: &'static str,
+    ) -> Result<(), String> {
+        self.calls
+            .push((session_id.to_string(), terminal_state, op));
         Ok(())
     }
 }
@@ -43,7 +49,12 @@ struct FailingCleanup {
     calls: Vec<&'static str>,
 }
 impl CleanupHandler for FailingCleanup {
-    fn run(&mut self, _session_id: &str, _terminal_state: StateId, op: &'static str) -> Result<(), String> {
+    fn run(
+        &mut self,
+        _session_id: &str,
+        _terminal_state: StateId,
+        op: &'static str,
+    ) -> Result<(), String> {
         self.calls.push(op);
         Err(format!("cleanup op '{op}' failed"))
     }
@@ -163,10 +174,12 @@ mod spec_validation {
             next: Next::Then("A"),
         });
         let errors = spec.validate().unwrap_err();
-        assert!(errors.contains(&SpecError::TerminalStateHasOutgoingTransition {
-            state: "B",
-            label: "oops"
-        }));
+        assert!(
+            errors.contains(&SpecError::TerminalStateHasOutgoingTransition {
+                state: "B",
+                label: "oops"
+            })
+        );
     }
 
     #[test]
@@ -273,14 +286,19 @@ fn duplicate_open_is_refused_distinctly() {
     let spec = model_stream_protocol();
     let mut table = SessionTable::new(&spec);
     let first = table.open("dup-1").expect("first open is legal");
-    let err = table.open("dup-1").expect_err("second open of the same id must be refused");
+    let err = table
+        .open("dup-1")
+        .expect_err("second open of the same id must be refused");
     assert_eq!(
         err,
         ProtocolError::DuplicateOpen {
             session_id: "dup-1".to_string()
         }
     );
-    assert_debug_excludes(&err, &["UseAfterTerminal", "StaleHandle", "IllegalTransition"]);
+    assert_debug_excludes(
+        &err,
+        &["UseAfterTerminal", "StaleHandle", "IllegalTransition"],
+    );
     first.discard_for_test();
 }
 
@@ -297,7 +315,9 @@ fn duplicate_open_is_refused_even_after_the_first_session_closed() {
         panic!("expected terminal")
     };
     drop(endpoint);
-    let err = table.open("dup-2").expect_err("id stays claimed once opened, even after closing");
+    let err = table
+        .open("dup-2")
+        .expect_err("id stays claimed once opened, even after closing");
     assert_eq!(
         err,
         ProtocolError::DuplicateOpen {
@@ -319,7 +339,15 @@ fn out_of_order_operation_is_refused_distinctly() {
     let mut cleanup = RecordingCleanup::default();
     // Endpoint is in Idle; "close" is only legal from Closing.
     let (err, endpoint) = table
-        .advance(endpoint, "close", "StreamClose", Some("stream.close"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "close",
+            "StreamClose",
+            Some("stream.close"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect_err("close is not legal from Idle");
     assert_eq!(
         err,
@@ -329,12 +357,27 @@ fn out_of_order_operation_is_refused_distinctly() {
             label: "close",
         }
     );
-    assert_debug_excludes(&err, &["MissingAuthority", "UseAfterTerminal", "UnknownBranchChoice"]);
+    assert_debug_excludes(
+        &err,
+        &[
+            "MissingAuthority",
+            "UseAfterTerminal",
+            "UnknownBranchChoice",
+        ],
+    );
 
     // Legal-sequence control: the correct next message, from the same
     // still-live endpoint the failed attempt handed back, succeeds.
     let outcome = table
-        .advance(endpoint, "open", "StreamRequest", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "StreamRequest",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect("open is legal from Idle");
     match outcome {
         AdvanceOutcome::Live(endpoint) => {
@@ -356,7 +399,15 @@ fn stale_handle_is_refused_distinctly_from_use_after_terminal() {
     let endpoint = table.open("stale-1").unwrap();
     let mut cleanup = RecordingCleanup::default();
     let outcome = table
-        .advance(endpoint, "open", "StreamRequest", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "StreamRequest",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect("open is legal");
     let AdvanceOutcome::Live(current) = outcome else {
         panic!("expected a live outcome")
@@ -378,7 +429,15 @@ fn stale_handle_is_refused_distinctly_from_use_after_terminal() {
         defused: false,
     };
     let (err, replacement) = table
-        .advance(stale, "open", "StreamRequest", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            stale,
+            "open",
+            "StreamRequest",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect_err("a stale generation must be refused");
     assert_eq!(
         err,
@@ -388,7 +447,10 @@ fn stale_handle_is_refused_distinctly_from_use_after_terminal() {
             current_generation: 1,
         }
     );
-    assert_debug_excludes(&err, &["UseAfterTerminal", "DuplicateOpen", "IllegalTransition"]);
+    assert_debug_excludes(
+        &err,
+        &["UseAfterTerminal", "DuplicateOpen", "IllegalTransition"],
+    );
     replacement.discard_for_test();
 
     // Legal-sequence control: the genuinely current endpoint can still
@@ -445,7 +507,15 @@ fn unrecognized_branch_choice_is_refused_distinctly() {
     let endpoint = table.open("branch-1").unwrap();
     let mut cleanup = RecordingCleanup::default();
     let outcome = table
-        .advance(endpoint, "open", "StreamRequest", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "StreamRequest",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .unwrap();
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("expected live")
@@ -476,16 +546,34 @@ fn unrecognized_branch_choice_is_refused_distinctly() {
     // Legal-sequence control: both declared choices succeed and land in
     // their declared distinct states.
     let outcome = table
-        .advance(endpoint, "end", "StreamEnd", None, Some("graceful"), None, &mut cleanup)
+        .advance(
+            endpoint,
+            "end",
+            "StreamEnd",
+            None,
+            Some("graceful"),
+            None,
+            &mut cleanup,
+        )
         .expect("the declared 'graceful' choice is legal");
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("Closing is nonterminal")
     };
     assert_eq!(endpoint.state(), "Closing");
     let outcome = table
-        .advance(endpoint, "close", "StreamClose", Some("stream.close"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "close",
+            "StreamClose",
+            Some("stream.close"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .unwrap();
-    assert!(matches!(outcome, AdvanceOutcome::Terminal(ref e, ref t) if e.state() == "Closed" && t.terminal_state == "Closed"));
+    assert!(
+        matches!(outcome, AdvanceOutcome::Terminal(ref e, ref t) if e.state() == "Closed" && t.terminal_state == "Closed")
+    );
 }
 
 #[test]
@@ -495,7 +583,15 @@ fn missing_branch_choice_is_refused() {
     let endpoint = table.open("branch-2").unwrap();
     let mut cleanup = RecordingCleanup::default();
     let outcome = table
-        .advance(endpoint, "open", "StreamRequest", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "StreamRequest",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .unwrap();
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("expected live")
@@ -526,7 +622,15 @@ fn payload_type_mismatch_is_refused_distinctly() {
     let endpoint = table.open("payload-1").unwrap();
     let mut cleanup = RecordingCleanup::default();
     let (err, endpoint) = table
-        .advance(endpoint, "open", "WrongPayload", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "WrongPayload",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect_err("the wrong payload tag must be refused");
     assert_eq!(
         err,
@@ -540,7 +644,15 @@ fn payload_type_mismatch_is_refused_distinctly() {
     assert_debug_excludes(&err, &["MissingAuthority", "IllegalTransition"]);
 
     let outcome = table
-        .advance(endpoint, "open", "StreamRequest", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "StreamRequest",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect("the declared payload tag is legal");
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("expected live")
@@ -565,7 +677,15 @@ fn missing_authority_is_refused_even_in_correct_order() {
     // Correct state (Idle), correct label ("open"), correct payload -- the
     // sequence is legal. Only the capability is missing.
     let (err, endpoint) = table
-        .advance(endpoint, "open", "StreamRequest", None, None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "StreamRequest",
+            None,
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect_err("order alone must not grant authority");
     assert_eq!(
         err,
@@ -590,12 +710,23 @@ fn missing_authority_is_refused_even_in_correct_order() {
             &mut cleanup,
         )
         .expect_err("the wrong capability must also be refused");
-    assert_eq!(err2, err, "wrong-capability and no-capability are the same MissingAuthority reason");
+    assert_eq!(
+        err2, err,
+        "wrong-capability and no-capability are the same MissingAuthority reason"
+    );
 
     // Legal-sequence control: identical state/order/payload, correct
     // capability now presented, succeeds.
     let outcome = table
-        .advance(endpoint, "open", "StreamRequest", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "StreamRequest",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect("the right capability, in the right order, is legal");
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("expected live")
@@ -617,13 +748,29 @@ fn commit_without_a_resource_token_is_refused() {
     let endpoint = table.open("txn-1").unwrap();
     let mut cleanup = RecordingCleanup::default();
     let outcome = table
-        .advance(endpoint, "begin", "BeginTxn", Some("txn.begin"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "begin",
+            "BeginTxn",
+            Some("txn.begin"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .unwrap();
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("expected live")
     };
     let (err, endpoint) = table
-        .advance(endpoint, "commit", "Commit", Some("txn.commit"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "commit",
+            "Commit",
+            Some("txn.commit"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect_err("commit consumes a resource token; none was presented");
     assert_eq!(
         err,
@@ -647,13 +794,29 @@ fn a_consumed_resource_token_cannot_be_reused_even_by_a_different_session() {
     // Session A legitimately commits, consuming the token.
     let a = table.open("txn-a").unwrap();
     let outcome = table
-        .advance(a, "begin", "BeginTxn", Some("txn.begin"), None, None, &mut cleanup)
+        .advance(
+            a,
+            "begin",
+            "BeginTxn",
+            Some("txn.begin"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .unwrap();
     let AdvanceOutcome::Live(a) = outcome else {
         panic!("expected live")
     };
     let outcome = table
-        .advance(a, "commit", "Commit", Some("txn.commit"), None, Some(&token), &mut cleanup)
+        .advance(
+            a,
+            "commit",
+            "Commit",
+            Some("txn.commit"),
+            None,
+            Some(&token),
+            &mut cleanup,
+        )
         .expect("committing with a fresh token is legal");
     let AdvanceOutcome::Terminal(a, terminal) = outcome else {
         panic!("commit reaches a terminal state")
@@ -668,14 +831,30 @@ fn a_consumed_resource_token_cannot_be_reused_even_by_a_different_session() {
     // protocol order and capability are perfectly legal.
     let b = table.open("txn-b").unwrap();
     let outcome = table
-        .advance(b, "begin", "BeginTxn", Some("txn.begin"), None, None, &mut cleanup)
+        .advance(
+            b,
+            "begin",
+            "BeginTxn",
+            Some("txn.begin"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .unwrap();
     let AdvanceOutcome::Live(b) = outcome else {
         panic!("expected live")
     };
     let cloned_token = token.clone();
     let (err, b) = table
-        .advance(b, "commit", "Commit", Some("txn.commit"), None, Some(&cloned_token), &mut cleanup)
+        .advance(
+            b,
+            "commit",
+            "Commit",
+            Some("txn.commit"),
+            None,
+            Some(&cloned_token),
+            &mut cleanup,
+        )
         .expect_err("a previously-consumed token id must be refused even for a fresh session");
     assert_eq!(
         err,
@@ -710,18 +889,36 @@ fn checkpoint_is_refused_while_a_call_is_in_flight_and_allowed_once_settled() {
     let endpoint = table.open("chk-1").unwrap();
     let mut cleanup = RecordingCleanup::default();
     let outcome = table
-        .advance(endpoint, "begin", "BeginTxn", Some("txn.begin"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "begin",
+            "BeginTxn",
+            Some("txn.begin"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .unwrap();
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("expected live")
     };
 
     // Settled (Open, no pending call): checkpoint is allowed.
-    let checkpoint = table.checkpoint(&endpoint).expect("Open with no pending call is checkpointable");
+    let checkpoint = table
+        .checkpoint(&endpoint)
+        .expect("Open with no pending call is checkpointable");
     assert_eq!(checkpoint.state, "Open");
 
     let outcome = table
-        .advance(endpoint, "read", "ReadOp", Some("txn.read"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "read",
+            "ReadOp",
+            Some("txn.read"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect("read is legal from Open");
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("AwaitingRead is nonterminal")
@@ -736,7 +933,15 @@ fn checkpoint_is_refused_while_a_call_is_in_flight_and_allowed_once_settled() {
 
     // Resolve the call; checkpoint is allowed again.
     let outcome = table
-        .advance(endpoint, "read_result", "ReadResult", None, None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "read_result",
+            "ReadResult",
+            None,
+            None,
+            None,
+            &mut cleanup,
+        )
         .expect("read_result resolves the pending call");
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("Open is nonterminal")
@@ -762,7 +967,15 @@ fn cancellation_runs_its_declared_cleanup_in_exact_order() {
     let endpoint = table.open("cancel-1").unwrap();
     let mut cleanup = RecordingCleanup::default();
     let outcome = table
-        .advance(endpoint, "open", "StreamRequest", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "StreamRequest",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .unwrap();
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("expected live")
@@ -790,7 +1003,15 @@ fn timeout_reaches_its_own_distinct_uncertain_terminal_state() {
     let endpoint = table.open("timeout-1").unwrap();
     let mut cleanup = RecordingCleanup::default();
     let outcome = table
-        .advance(endpoint, "open", "StreamRequest", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "StreamRequest",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .unwrap();
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("expected live")
@@ -807,7 +1028,10 @@ fn timeout_reaches_its_own_distinct_uncertain_terminal_state() {
     assert_eq!(terminal.terminal_state, "Uncertain");
     assert_ne!(terminal.terminal_state, "Cancelled");
     assert_eq!(terminal.terminal_kind, Kind::Timeout);
-    assert_eq!(terminal.cleanup, vec![("mark_uncertain_for_reconciliation", Ok(()))]);
+    assert_eq!(
+        terminal.cleanup,
+        vec![("mark_uncertain_for_reconciliation", Ok(()))]
+    );
     drop(endpoint);
 }
 
@@ -818,7 +1042,15 @@ fn remote_failure_terminal_status_is_sticky_against_cleanup_failure() {
     let endpoint = table.open("fail-1").unwrap();
     let mut cleanup = RecordingCleanup::default();
     let outcome = table
-        .advance(endpoint, "open", "StreamRequest", Some("stream.open"), None, None, &mut cleanup)
+        .advance(
+            endpoint,
+            "open",
+            "StreamRequest",
+            Some("stream.open"),
+            None,
+            None,
+            &mut cleanup,
+        )
         .unwrap();
     let AdvanceOutcome::Live(endpoint) = outcome else {
         panic!("expected live")
@@ -826,7 +1058,15 @@ fn remote_failure_terminal_status_is_sticky_against_cleanup_failure() {
 
     let mut failing_cleanup = FailingCleanup::default();
     let outcome = table
-        .advance(endpoint, "fail", "Unit", None, None, None, &mut failing_cleanup)
+        .advance(
+            endpoint,
+            "fail",
+            "Unit",
+            None,
+            None,
+            None,
+            &mut failing_cleanup,
+        )
         .expect("the Fail transition itself is legal even though its cleanup will error");
     let AdvanceOutcome::Terminal(endpoint, terminal) = outcome else {
         panic!("fail reaches a terminal state")
@@ -843,8 +1083,14 @@ fn remote_failure_terminal_status_is_sticky_against_cleanup_failure() {
     assert_eq!(
         terminal.cleanup,
         vec![
-            ("release_socket", Err("cleanup op 'release_socket' failed".to_string())),
-            ("emit_failure_report", Err("cleanup op 'emit_failure_report' failed".to_string())),
+            (
+                "release_socket",
+                Err("cleanup op 'release_socket' failed".to_string())
+            ),
+            (
+                "emit_failure_report",
+                Err("cleanup op 'emit_failure_report' failed".to_string())
+            ),
         ]
     );
     // Failure selection is sticky: cleanup's own failure is recorded, but
@@ -941,7 +1187,8 @@ fn capability_divergence_is_refused_distinctly_from_a_generic_mismatch() {
             t.required_capability = Some("net.ping.v2");
         }
     }
-    let errors = check_duality(&client, &server).expect_err("capability divergence must be flagged");
+    let errors =
+        check_duality(&client, &server).expect_err("capability divergence must be flagged");
     assert!(errors.iter().any(|e| matches!(
         e,
         DualityError::CapabilityDivergence {
@@ -953,7 +1200,10 @@ fn capability_divergence_is_refused_distinctly_from_a_generic_mismatch() {
     )));
     for e in &errors {
         assert!(
-            !matches!(e, DualityError::MissingCounterpart { .. } | DualityError::KindNotComplementary { .. }),
+            !matches!(
+                e,
+                DualityError::MissingCounterpart { .. } | DualityError::KindNotComplementary { .. }
+            ),
             "a pure capability divergence must not also render as a structural mismatch: {e:?}"
         );
     }
@@ -964,10 +1214,15 @@ fn missing_counterpart_is_refused_distinctly_from_capability_divergence() {
     let client = ping_client();
     let mut server = ping_server_dual_of(&client);
     server.transitions.retain(|t| t.label != "pong");
-    let errors = check_duality(&client, &server).expect_err("a one-sided transition must be flagged");
-    assert!(errors
-        .iter()
-        .any(|e| matches!(e, DualityError::MissingCounterpart { state: "AwaitingPong", label: "pong" })));
+    let errors =
+        check_duality(&client, &server).expect_err("a one-sided transition must be flagged");
+    assert!(errors.iter().any(|e| matches!(
+        e,
+        DualityError::MissingCounterpart {
+            state: "AwaitingPong",
+            label: "pong"
+        }
+    )));
     for e in &errors {
         assert!(
             !matches!(e, DualityError::CapabilityDivergence { .. }),

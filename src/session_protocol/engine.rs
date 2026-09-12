@@ -172,7 +172,9 @@ pub enum CheckpointError {
     StaleHandle,
     /// A `Call` transition's matching `Return`/escape has not yet been
     /// recorded: whether the physical effect completed is uncertain.
-    InFlightCall { label: Label },
+    InFlightCall {
+        label: Label,
+    },
 }
 
 /// A resumable snapshot: a session id, its settled state, and the
@@ -212,7 +214,12 @@ pub enum AdvanceOutcome {
 /// The injected cleanup boundary, called once per declared cleanup-op name
 /// in a terminal state's canonical (never sorted, never repaired) order.
 pub trait CleanupHandler {
-    fn run(&mut self, session_id: &str, terminal_state: StateId, op: &'static str) -> Result<(), String>;
+    fn run(
+        &mut self,
+        session_id: &str,
+        terminal_state: StateId,
+        op: &'static str,
+    ) -> Result<(), String>;
 }
 
 /// The authoritative registry for every session opened against one
@@ -291,7 +298,12 @@ impl<'p> SessionTable<'p> {
         fn still_live(session_id: &str, state: StateId, generation: u64) -> Endpoint {
             endpoint_at(session_id, state, generation, false)
         }
-        fn endpoint_at(session_id: &str, state: StateId, generation: u64, is_terminal: bool) -> Endpoint {
+        fn endpoint_at(
+            session_id: &str,
+            state: StateId,
+            generation: u64,
+            is_terminal: bool,
+        ) -> Endpoint {
             Endpoint {
                 session_id: session_id.to_string(),
                 state,
@@ -303,7 +315,9 @@ impl<'p> SessionTable<'p> {
 
         let Some(record) = self.records.get(&session_id) else {
             return Err((
-                ProtocolError::UnknownSession { session_id: session_id.clone() },
+                ProtocolError::UnknownSession {
+                    session_id: session_id.clone(),
+                },
                 still_live(&session_id, old.state, old.generation),
             ));
         };
@@ -313,7 +327,10 @@ impl<'p> SessionTable<'p> {
             // is not flagged terminal would wrongly arm the abandonment
             // drop bomb for a session that is legitimately already done.
             return Err((
-                ProtocolError::UseAfterTerminal { session_id: session_id.clone(), state },
+                ProtocolError::UseAfterTerminal {
+                    session_id: session_id.clone(),
+                    state,
+                },
                 endpoint_at(&session_id, state, record.generation, true),
             ));
         }
@@ -334,7 +351,11 @@ impl<'p> SessionTable<'p> {
 
         let Some(transition) = self.spec.transitions_from(state).find(|t| t.label == label) else {
             return Err((
-                ProtocolError::IllegalTransition { session_id: session_id.clone(), state, label },
+                ProtocolError::IllegalTransition {
+                    session_id: session_id.clone(),
+                    state,
+                    label,
+                },
                 still_live(&session_id, state, generation),
             ));
         };
@@ -354,7 +375,11 @@ impl<'p> SessionTable<'p> {
         if let Some(required) = transition.required_capability {
             if presented_capability != Some(required) {
                 return Err((
-                    ProtocolError::MissingAuthority { session_id: session_id.clone(), label, required },
+                    ProtocolError::MissingAuthority {
+                        session_id: session_id.clone(),
+                        label,
+                        required,
+                    },
                     still_live(&session_id, state, generation),
                 ));
             }
@@ -365,7 +390,10 @@ impl<'p> SessionTable<'p> {
             OwnershipMove::ConsumesResource => match resource_token {
                 None => {
                     return Err((
-                        ProtocolError::ResourceTokenRequired { session_id: session_id.clone(), label },
+                        ProtocolError::ResourceTokenRequired {
+                            session_id: session_id.clone(),
+                            label,
+                        },
                         still_live(&session_id, state, generation),
                     ));
                 }

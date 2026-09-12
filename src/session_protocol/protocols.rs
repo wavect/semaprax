@@ -27,7 +27,15 @@ fn states(names: &[&'static str]) -> BTreeSet<&'static str> {
 pub fn model_stream_protocol() -> ProtocolSpec {
     ProtocolSpec {
         name: "model-stream-v1",
-        states: states(&["Idle", "Streaming", "Closing", "Closed", "Cancelled", "Uncertain", "Failed"]),
+        states: states(&[
+            "Idle",
+            "Streaming",
+            "Closing",
+            "Closed",
+            "Cancelled",
+            "Uncertain",
+            "Failed",
+        ]),
         initial: "Idle",
         terminal: states(&["Closed", "Cancelled", "Uncertain", "Failed"]),
         transitions: vec![
@@ -229,7 +237,10 @@ pub fn resource_transaction_protocol() -> ProtocolSpec {
             },
         ],
         cleanup: vec![
-            ("Committed", vec!["persist_commit_record", "release_connection"]),
+            (
+                "Committed",
+                vec!["persist_commit_record", "release_connection"],
+            ),
             ("RolledBack", vec!["release_connection"]),
             ("Uncertain", vec!["mark_uncertain_for_reconciliation"]),
         ],

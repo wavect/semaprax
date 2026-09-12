@@ -59,8 +59,11 @@ fn complementary(a: Kind, b: Kind) -> bool {
 /// [`check_duality`] for the full two-way guarantee.
 pub fn check_duality_one_way(a: &ProtocolSpec, b: &ProtocolSpec) -> Result<(), Vec<DualityError>> {
     let mut errors = Vec::new();
-    let index_b: BTreeMap<(StateId, Label), &Transition> =
-        b.transitions.iter().map(|t| ((t.from, t.label), t)).collect();
+    let index_b: BTreeMap<(StateId, Label), &Transition> = b
+        .transitions
+        .iter()
+        .map(|t| ((t.from, t.label), t))
+        .collect();
 
     for ta in &a.transitions {
         match index_b.get(&(ta.from, ta.label)) {

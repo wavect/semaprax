@@ -11,12 +11,24 @@
 //! descriptor bytes are a fixture placeholder (`#119` still blocks deriving
 //! one from a real checked generic export), and this harness runs on the one
 //! Unix-like host this round ran on -- Linux/macOS with `clang`, `ar`, and
-//! `cargo` on `PATH` -- not cross-platform hosted evidence. The generated
-//! crate's `rust-version = "1.88"` field states the minimum toolchain claim;
-//! this harness builds and runs it with whatever `rustc`/`cargo` the host
-//! provides (1.98 locally), not a provisioned 1.88 toolchain -- it does not
-//! itself prove the 1.88 minimum, only that a real, generated, external,
-//! non-workspace crate compiles and executes against the real provider.
+//! `cargo` on `PATH` -- not cross-platform hosted evidence.
+//!
+//! Issue #226 follow-up: the generated crate's `rust-version =
+//! "1.88"` field (`public_generic_consumer::rust_calling::RUST_VERSION`)
+//! states the minimum toolchain claim. The executed test above builds and
+//! runs it with whatever `rustc`/`cargo` the host provides -- real evidence
+//! that a generated, external, non-workspace crate compiles and executes
+//! against the real provider, but not evidence for the 1.88 claim
+//! specifically whenever the host's default toolchain is newer.
+//! `generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchain`
+//! below closes that gap: it resolves the EXACT declared version through
+//! `rustup` (never the host's default `cargo`), asserts the resolved
+//! `cargo --version` actually reports that version (so a channel alias can
+//! never silently drift into evidence for a different toolchain), and then
+//! builds and runs the same generated crate against the same compiled
+//! provider with it. It hard-fails, rather than skipping, when `rustup` or
+//! the declared toolchain is not provisioned -- a missing toolchain proves
+//! nothing about the MSRV claim, so it must never read as a pass.
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -27,7 +39,7 @@ use semaprax::public_generic_abi::carrier::{CarrierBindingV1, TargetProfile};
 use semaprax::public_generic_abi::native::binding::NativeProviderBindingV1;
 use semaprax::public_generic_abi::native::template::render_reference_provider;
 use semaprax::public_generic_consumer::rust_calling::{
-    generate_rust_calling_consumer, CallingConsumer, OwnedByteField, RecordShape,
+    generate_rust_calling_consumer, CallingConsumer, OwnedByteField, RecordShape, RUST_VERSION,
 };
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
@@ -141,7 +153,16 @@ fn write_generated_crate(root: &Path, consumer: &CallingConsumer) {
 }
 
 fn cargo_command(crate_root: &Path, target_dir: &Path, lib_dir: &Path) -> Command {
-    let mut command = Command::new(tool("CARGO", "cargo"));
+    cargo_command_with(&tool("CARGO", "cargo"), crate_root, target_dir, lib_dir)
+}
+
+/// Like [`cargo_command`], but against an explicit `cargo` binary rather
+/// than the host's default -- what
+/// `generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchain`
+/// uses to drive the generated crate through the exact resolved MSRV
+/// `cargo`, never the ambient one.
+fn cargo_command_with(cargo: &Path, crate_root: &Path, target_dir: &Path, lib_dir: &Path) -> Command {
+    let mut command = Command::new(cargo);
     command
         .current_dir(crate_root)
         .env("CARGO_TARGET_DIR", target_dir)
@@ -329,5 +350,151 @@ fn generated_crate_declares_no_workspace_or_external_dependency() {
     assert!(
         !cargo_toml.contains("[dependencies]") && !cargo_toml.contains("semaprax"),
         "the generated crate must declare no dependency at all:\n{cargo_toml}"
+    );
+}
+
+/// Resolve the exact `cargo` for rustup's `toolchain` (e.g. `"1.88"`) --
+/// never the ambient default on `PATH`, whatever that happens to be. Hard-
+/// fails, rather than skipping, when `rustup` is absent or the toolchain is
+/// not provisioned: a missing MSRV toolchain proves nothing about whether
+/// the generated crate builds on its declared minimum, and scoring that
+/// absence as a pass would be a false evidence claim, worse than an unmet
+/// criterion. Override the `rustup` binary itself with `$RUSTUP` for a host
+/// where it is installed but not on `PATH`.
+fn resolve_msrv_cargo(toolchain: &str) -> PathBuf {
+    let rustup = tool("RUSTUP", "rustup");
+    let resolved = Command::new(&rustup)
+        .args(["which", "cargo", "--toolchain", toolchain])
+        .output()
+        .unwrap_or_else(|error| {
+            panic!(
+                "rustup ({}) is required to prove the generated crate builds on its declared \
+                 MSRV ({toolchain}), not merely on whatever cargo happens to be on PATH: {error}. \
+                 Install rustup, then `rustup toolchain install {toolchain}` (or point $RUSTUP at \
+                 a working rustup binary).",
+                rustup.display()
+            )
+        });
+    assert!(
+        resolved.status.success(),
+        "rustup could not resolve toolchain \"{toolchain}\"; install it first with \
+         `rustup toolchain install {toolchain}`:\n{}",
+        String::from_utf8_lossy(&resolved.stderr)
+    );
+    let path_text = String::from_utf8(resolved.stdout)
+        .expect("`rustup which` output must be UTF-8")
+        .trim()
+        .to_owned();
+    let cargo_path = PathBuf::from(&path_text);
+    assert!(
+        cargo_path.is_file(),
+        "`rustup which cargo --toolchain {toolchain}` did not print a real file: {path_text:?}"
+    );
+    cargo_path
+}
+
+/// Issue #226 follow-up: proves the generated crate's declared
+/// `rust-version` actually builds and runs on that exact toolchain, not
+/// merely on whatever `cargo` the host's default happens to resolve to (as
+/// `generated_rust_calling_consumer_executes_against_the_real_native_provider`
+/// above does). Resolves the MSRV `cargo` through `rustup` and hard-fails
+/// if it cannot (see [`resolve_msrv_cargo`]), asserts the resolved binary's
+/// own `--version` really reports the declared version -- so a channel
+/// alias or stale install can never silently substitute a different
+/// toolchain's evidence for the declared one -- then builds and runs the
+/// SAME generated crate against the SAME compiled native provider entirely
+/// through that resolved MSRV `cargo`.
+#[test]
+fn generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchain() {
+    let msrv_cargo = resolve_msrv_cargo(RUST_VERSION);
+    let version = run(Command::new(&msrv_cargo).arg("--version"), "msrv cargo --version");
+    assert!(
+        version.status.success(),
+        "resolved MSRV cargo failed to report its own version: {}",
+        String::from_utf8_lossy(&version.stderr)
+    );
+    let version_text = String::from_utf8_lossy(&version.stdout);
+    assert!(
+        version_text.contains(RUST_VERSION),
+        "the toolchain rustup resolved for \"{RUST_VERSION}\" does not report that version in \
+         `cargo --version`, so running it would not be real MSRV evidence: {version_text}"
+    );
+
+    let (input, output) = shapes();
+    let binding = fixture_binding();
+    let consumer =
+        generate_rust_calling_consumer(FIXTURE_DESCRIPTOR_BYTES, &binding, &input, &output)
+            .expect("a well-formed shape must generate");
+
+    let workspace = Workspace::new("msrv");
+    eprintln!(
+        "generated Rust calling consumer MSRV workspace: {}",
+        workspace.0.display()
+    );
+    let lib_dir = compile_provider_static_lib(&workspace.0, FIXTURE_DESCRIPTOR_BYTES, &binding);
+    let crate_root = workspace.path("generated-rust-consumer");
+    write_generated_crate(&crate_root, &consumer);
+    let target_dir = workspace.path("cargo-target");
+
+    let lockfile = run(
+        Command::new(&msrv_cargo)
+            .current_dir(&crate_root)
+            .env("CARGO_TARGET_DIR", &target_dir)
+            .arg("generate-lockfile"),
+        "msrv cargo generate-lockfile",
+    );
+    assert!(
+        lockfile.status.success(),
+        "generate-lockfile on the declared MSRV ({RUST_VERSION}): {}",
+        String::from_utf8_lossy(&lockfile.stderr)
+    );
+    assert!(
+        crate_root.join("Cargo.lock").is_file(),
+        "cargo generate-lockfile must produce Cargo.lock"
+    );
+
+    // No clippy gate here, deliberately: unlike the host's default
+    // toolchain, a provisioned MSRV toolchain commonly lacks the clippy
+    // component (see the skip already documented on the executed test
+    // above); this test's whole claim is "builds and runs", not "is
+    // clippy-clean on 1.88".
+    let build = run(
+        cargo_command_with(&msrv_cargo, &crate_root, &target_dir, &lib_dir)
+            .args(["build", "--locked"]),
+        "msrv cargo build",
+    );
+    assert!(
+        build.status.success(),
+        "the generated crate does not build on its declared MSRV ({RUST_VERSION}):\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&build.stdout),
+        String::from_utf8_lossy(&build.stderr)
+    );
+
+    // Single-threaded: see the header comment on
+    // `generated_rust_calling_consumer_executes_against_the_real_native_provider`
+    // -- the linked native provider's allocator, handle registry, and
+    // failure-injection state are process-global.
+    let tests = run(
+        cargo_command_with(&msrv_cargo, &crate_root, &target_dir, &lib_dir).args([
+            "test",
+            "--locked",
+            "--",
+            "--test-threads=1",
+        ]),
+        "msrv cargo test",
+    );
+    let stdout = String::from_utf8_lossy(&tests.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&tests.stderr).into_owned();
+    assert!(
+        tests.status.success(),
+        "the generated crate's own tests failed on its declared MSRV ({RUST_VERSION}):\nstdout:\n{stdout}\nstderr:\n{stderr}"
+    );
+    let summary = parse_test_result_line(&stdout)
+        .unwrap_or_else(|| panic!("no 'test result:' line found in:\n{stdout}"));
+    assert_eq!(summary.failed, 0, "stdout:\n{stdout}");
+    assert_eq!(summary.ignored, 0, "stdout:\n{stdout}");
+    assert_eq!(
+        summary.passed, 7,
+        "expected exactly 7 selected tests in the generated crate; stdout:\n{stdout}"
     );
 }

@@ -141,6 +141,15 @@ impl CallingConsumer {
 pub const CRATE_NAME: &str = "spx-pg-rust-calling-consumer";
 pub const LIB_NAME: &str = "spx_pg_rust_calling_consumer";
 
+/// The declared minimum supported Rust version for every generated calling
+/// consumer crate, emitted verbatim into its `Cargo.toml`'s `rust-version`
+/// field. Kept as one named constant, not a literal duplicated at each call
+/// site, so a harness that wants to actually build the generated crate on
+/// its declared minimum toolchain (rather than merely asserting the string)
+/// can select the same version rustup resolves against, and the two can
+/// never silently drift apart.
+pub const RUST_VERSION: &str = "1.88";
+
 /// Generate one Rust calling consumer crate for `descriptor_bytes` and
 /// `binding`, admitting exactly `input`/`output` as the one owned input
 /// parameter and one owned result [Public Generic Boundary Profile

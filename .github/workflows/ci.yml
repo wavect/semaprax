@@ -284,6 +284,26 @@ jobs:
           echo "CXX=$(command -v clang++)" >> "$GITHUB_ENV"
           clang --version
           node --version
+      - name: Install the generated Rust consumer's declared MSRV toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Issue #226: the crate `public_generic_consumer::rust_calling`
+          # generator declares `rust-version = "1.88"` in its own Cargo.toml
+          # (`public_generic_consumer::rust_calling::RUST_VERSION`). This
+          # job's own build/test run on this job's toolchain above
+          # (1.97.1), which proves the generated crate compiles on SOME
+          # newer host toolchain, never on its declared minimum. Installing
+          # 1.88 here, alongside rather than instead of 1.97.1, is what lets
+          # `rust_calling_consumer.rs`'s
+          # `generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchain`
+          # resolve it through `rustup which cargo --toolchain 1.88` and
+          # actually build and run the generated crate on it. Hard-fail
+          # rather than report absence and continue, matching the C/C++
+          # toolchain requirement above: a missing MSRV toolchain proves
+          # nothing about the 1.88 claim, so it must never read as a pass.
+          rustup toolchain install "1.88" --profile minimal --no-self-update
+          rustup which cargo --toolchain "1.88"
       - name: Fetch locked workspace dependencies
         run: cargo fetch --locked
       - name: Grammar, template identities and compatibility rules

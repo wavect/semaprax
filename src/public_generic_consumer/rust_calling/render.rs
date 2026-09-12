@@ -5,7 +5,7 @@
 
 use std::fmt::Write as _;
 
-use super::{RecordShape, CRATE_NAME, LIB_NAME};
+use super::{RecordShape, CRATE_NAME, LIB_NAME, RUST_VERSION};
 
 pub(super) fn cargo_toml() -> String {
     format!(
@@ -13,7 +13,7 @@ pub(super) fn cargo_toml() -> String {
          name = \"{CRATE_NAME}\"\n\
          version = \"0.1.0\"\n\
          edition = \"2021\"\n\
-         rust-version = \"1.88\"\n\
+         rust-version = \"{RUST_VERSION}\"\n\
          \n\
          [lib]\n\
          name = \"{LIB_NAME}\"\n\

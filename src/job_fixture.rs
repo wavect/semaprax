@@ -148,7 +148,10 @@ pub enum JobState {
 }
 
 impl JobState {
-    fn code(self) -> usize {
+    /// The numeric `std.jobs.state.*` code this variant mirrors. Public so
+    /// `crate::job_evidence` can record and replay a run's true state
+    /// without duplicating this mapping as a second source of truth.
+    pub fn code(self) -> usize {
         match self {
             JobState::Pending => 0,
             JobState::Scheduled => 1,

@@ -188,7 +188,11 @@ fn main() -> i64 {
     assert!(codes(source).is_empty());
     let program = parse(source, Path::new("variant-copy-aggregate.spx")).unwrap();
     let canonical = format::canonical(&program);
-    let reparsed = parse(&canonical, Path::new("variant-copy-aggregate-canonical.spx")).unwrap();
+    let reparsed = parse(
+        &canonical,
+        Path::new("variant-copy-aggregate-canonical.spx"),
+    )
+    .unwrap();
     assert!(verify::verify(&reparsed).is_empty());
     assert_eq!(canonical, format::canonical(&reparsed));
     assert_eq!(graph::revision(&program), graph::revision(&reparsed));

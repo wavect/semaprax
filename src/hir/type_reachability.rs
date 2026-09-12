@@ -440,10 +440,7 @@ pub(crate) fn is_admitted_copy_aggregate_variant_field(
     if !arguments.is_empty() {
         return false;
     }
-    if declarations
-        .declaration(declaration)
-        .map(|item| item.kind)
-        != Some(DeclarationKind::Record)
+    if declarations.declaration(declaration).map(|item| item.kind) != Some(DeclarationKind::Record)
     {
         return false;
     }

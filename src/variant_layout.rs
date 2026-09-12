@@ -16,7 +16,9 @@ use std::fmt::Write as _;
 
 use sha2::{Digest, Sha256};
 
-use crate::aggregate_layout::{owned_bytes_size_align, scalar_size_align, AggregateLayout, AggregateTarget};
+use crate::aggregate_layout::{
+    owned_bytes_size_align, scalar_size_align, AggregateLayout, AggregateTarget,
+};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     substitute_type, DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedProgram, ResolvedType,

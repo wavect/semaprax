@@ -598,7 +598,10 @@ int main(void) {{
     );
     for optimization in ["-O0", "-O2"] {
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-        let stem = format!("semaprax-variant-copy-aggregate-{}-{id}", std::process::id());
+        let stem = format!(
+            "semaprax-variant-copy-aggregate-{}-{id}",
+            std::process::id()
+        );
         let source = std::env::temp_dir().join(format!("{stem}.c"));
         let executable =
             std::env::temp_dir().join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));

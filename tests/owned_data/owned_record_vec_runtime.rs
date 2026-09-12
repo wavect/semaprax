@@ -3,22 +3,22 @@
 //!
 //! The element is the catalog-normalizer payload shape — two owned `Bytes`
 //! leaves and one Copy scalar — inside the compiler-owned `Vec` carrier. The
-//! reference interpreter and the native C11 backend both execute it per
-//! element and must publish the same value or select the same status; Core
-//! Wasm (`SPX-W125`) does not implement the carrier yet and refuses the same
-//! source up front with its own stable diagnostic. Backend agreement here is
-//! therefore real executed values for the two targets that claim the feature,
-//! and agreement-by-refusal for the one that claims nothing.
+//! reference interpreter, the native C11 backend and Core Wasm all execute it
+//! per element, and all three must publish the same value or select the same
+//! status. Backend agreement here is real executed values on every target, not
+//! agreement by refusal: no target refuses the profile any more.
 //!
 //! Every case below is a real `.spx` program driven through `semaprax::check`
-//! and `interpreter::interpret`, and — for the native lane — through
-//! `codegen::emit_c`, `clang -O0`/`-O2` and an executed binary, not a
-//! hand-built plan.
+//! and `interpreter::interpret`, through `codegen::emit_c`, `clang -O0`/`-O2`
+//! and an executed binary, and through `wasm::emit_module` and an instantiated
+//! module under Node — not a hand-built plan.
 
-use semaprax::{codegen, hir, interpreter, wasm};
+use semaprax::{codegen, hir, interpreter};
 
 #[path = "owned_record_vec_runtime/native.rs"]
 mod native;
+#[path = "owned_record_vec_runtime/wasm.rs"]
+mod wasm;
 
 /// The admitted element declaration, shared by every fixture.
 const DECLARATION: &str = r#"module app.catalog;
@@ -92,11 +92,6 @@ fn fixture_path(name: &str) -> std::path::PathBuf {
         std::process::id(),
         name
     ))
-}
-
-fn resolved(source: &str) -> hir::ResolvedProgram {
-    let parsed = semaprax::parse(source, std::path::Path::new("owned-record-vec.spx")).unwrap();
-    hir::resolve(&parsed).expect("the profile must resolve")
 }
 
 /// One interpreter run of one fixture, returning either the published value or
@@ -185,25 +180,75 @@ fn a_selected_vec_failure_survives_the_cleanup_that_follows_it() {
     assert_eq!(interpret_once("sticky-widened", &widened), Ok(29));
 }
 
-/// Backend agreement while conformance is partial. Core Wasm does not
-/// implement this carrier, so it refuses the exact same source the interpreter
-/// and the native lane execute, with its own stable diagnostic, rather than
-/// emitting a carrier it cannot lower. When it lifts, it must agree with the
-/// interpreter's values above, not merely stop refusing.
+/// Core Wasm executes the whole corpus and must publish exactly what the
+/// reference interpreter and the native C11 lane publish above.
+///
+/// The Wasm carrier is not in linear memory: it is one `i64` host handle behind
+/// the owned-payload import boundary, so the settlement probe is host-side.
+/// Every fixture is invoked four times; after each invocation the host must
+/// hold zero live vector handles and zero live `Bytes` handles, and must have
+/// dropped exactly as many payloads as it allocated — the host errors on a
+/// double drop, so each element's two leaves are proven dropped exactly once.
+/// The ordered element scalars the host was handed are checked too, which is
+/// what distinguishes real per-element record storage from a carrier that
+/// stored nothing.
 #[test]
-fn wasm_still_refuses_the_same_source_the_interpreter_and_native_execute() {
-    for (name, body) in [
-        ("accumulate", ACCUMULATE),
-        ("empty", EMPTY),
-        ("singleton", SINGLETON_AT_CAPACITY),
-    ] {
-        let program = resolved(&source(body));
-        let emitted = wasm::emit_resolved_module(&program)
-            .err()
-            .unwrap_or_else(|| panic!("Wasm must refuse `{name}`"));
-        assert_eq!(emitted.code, "SPX-W125", "fixture `{name}`");
+fn core_wasm_executes_the_owned_record_collection_corpus() {
+    let full = [11, 22, 33, 44];
+    let cases: [(&str, u32, i64, u32, &[i64]); 7] = [
+        (ACCUMULATE, 0, 29, 8, &full),
+        (EMPTY, 0, 29, 0, &[]),
+        (SINGLETON_AT_CAPACITY, 0, 29, 2, &[7]),
+        (PUSH_AT_FULL_CAPACITY, WASM_STATUS_VEC_PUSH_FULL, 0, 4, &[7]),
+        (
+            OVERSIZED_OWNED_PAYLOAD,
+            WASM_STATUS_VEC_ALLOCATION_FAILURE,
+            0,
+            0,
+            &[],
+        ),
+        (
+            &ACCUMULATE.replace("fn main()->i64 {", "fn main()->i64 requires false {"),
+            WASM_STATUS_REQUIRES_FALSE,
+            0,
+            0,
+            &[],
+        ),
+        (
+            &ACCUMULATE.replace("fn main()->i64 {", "fn main()->i64 ensures false {"),
+            WASM_STATUS_ENSURES_FALSE,
+            0,
+            8,
+            &full,
+        ),
+    ];
+    for (body, status, value, copies, scalars) in cases {
+        wasm::run_wasm(&source(body), status, value, copies, scalars, "none");
     }
 }
+
+/// The same injected carrier-allocation failure the native lane settles, at the
+/// Wasm host boundary: the record `with_capacity` refuses, the profile's own
+/// allocation status is selected, no value is published, and nothing stays live.
+#[test]
+fn core_wasm_settles_injected_carrier_allocation_failure() {
+    wasm::run_wasm(
+        &source(ACCUMULATE),
+        WASM_STATUS_VEC_ALLOCATION_FAILURE,
+        0,
+        0,
+        &[],
+        "allocation",
+    );
+}
+
+/// The Wasm status integers the module selects, mapped to the status domains
+/// and codes the reference interpreter publishes for the same fixtures:
+/// `semaprax.vec.v1` 1 and 3, and `semaprax.contract.v1` 1 and 2.
+const WASM_STATUS_REQUIRES_FALSE: u32 = 9;
+const WASM_STATUS_ENSURES_FALSE: u32 = 10;
+const WASM_STATUS_VEC_PUSH_FULL: u32 = 13;
+const WASM_STATUS_VEC_ALLOCATION_FAILURE: u32 = 15;
 
 /// The native C11 lane executes the whole corpus, at `-O0` and `-O2`, and must
 /// publish exactly what the reference interpreter publishes above. Each case
@@ -240,7 +285,10 @@ fn native_c11_executes_the_owned_record_collection_corpus() {
 /// compile-time diagnostics, never backend accidents. An element one field
 /// away from the admitted shape reaches neither the record lowering nor the
 /// scalar lowering; the front end refuses it with a stable diagnostic, and
-/// the native emitter is never asked to place a carrier it has no layout for.
+/// neither backend emitter is ever asked to place a carrier it has no layout
+/// for. Both emitters additionally re-derive admission from declaration facts
+/// at their own emission boundary, so a forged or widened HIR that got past the
+/// front end is a diagnostic there too, never a panic.
 #[test]
 fn an_element_outside_the_admitted_shape_is_refused_with_a_stable_diagnostic() {
     let near_miss = r#"module app.catalog;
@@ -271,6 +319,9 @@ fn an_element_outside_the_admitted_shape_is_refused_with_a_stable_diagnostic() {
             let native = codegen::emit_hir_c(&program)
                 .expect_err("native must refuse an inadmissible element");
             assert!(native.code.starts_with("SPX-"), "{native:?}");
+            let emitted = semaprax::wasm::emit_resolved_module(&program)
+                .expect_err("Wasm must refuse an inadmissible element");
+            assert!(emitted.code.starts_with("SPX-"), "{emitted:?}");
         }
     }
 }

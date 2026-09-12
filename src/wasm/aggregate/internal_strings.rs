@@ -123,7 +123,7 @@ pub(in crate::wasm) fn emit(
         let mut params = function
             .params
             .iter()
-            .map(|parameter| scalar_wasm_type(&parameter.ty))
+            .map(|parameter| scalar_wasm_type(program, &parameter.ty))
             .collect::<Result<Vec<_>, _>>()?;
         params.push(I32);
         function_types.push(intern_type(
@@ -141,7 +141,7 @@ pub(in crate::wasm) fn emit(
                 params: export
                     .parameters
                     .iter()
-                    .map(scalar_wasm_type)
+                    .map(|parameter| scalar_wasm_type(program, parameter))
                     .collect::<Result<Vec<_>, _>>()?,
                 results: vec![I32],
             },

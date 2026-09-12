@@ -1,8 +1,13 @@
 //! Versioned host boundary for a vector that owns Bytes payload handles.
 use super::*;
 
+/// The owned-payload boundary is selected whenever an admitted element owns
+/// host payload: an owned `Bytes` element, or the SPX-AI-019 owned-record
+/// element, whose two `Bytes` leaves the same host must drop.
 pub(super) fn import_names(program: &ResolvedProgram) -> [&'static str; 9] {
-    if crate::vec_ops::resolved_program_uses_owned_payload(program) {
+    if crate::vec_ops::resolved_program_uses_owned_payload(program)
+        || super::super::vec_ops::program_uses_record_vec(program)
+    {
         [
             "spx_vec_with_capacity_v2",
             "spx_vec_push_v2",

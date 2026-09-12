@@ -24,14 +24,13 @@
 //!
 //! This module is also the one audited home for the profile's bounded `Vec`
 //! operation surface (`vec_with_capacity`, `vec_push`, `vec_len`,
-//! `vec_capacity`, `vec_clear`), for the carrier predicate the front end and
-//! cleanup consult, and for the refusal the execution targets that do not yet
-//! implement the carrier raise. The reference interpreter and the native C11
-//! backend both execute the profile with real per-element record storage
-//! (SPX-AI-020); Wasm (`SPX-W125`) still refuses it up front with a stable
-//! diagnostic rather than emitting a carrier it cannot lower, so the backends
-//! agree by refusal there until its conformance lands. `Box` of this element
-//! is not admitted.
+//! `vec_capacity`, `vec_clear`) and for the carrier predicate the front end
+//! and cleanup consult. All three ordinary execution targets now execute the
+//! profile with real per-element record storage (SPX-AI-020): the reference
+//! interpreter, the native C11 backend, and Core Wasm through its owned-payload
+//! host boundary. No target refuses it any more, so the former per-target
+//! refusal codes (`SPX-F112`, `SPX-B115`, `SPX-W125`) are all retired. `Box` of
+//! this element is not admitted.
 
 use super::*;
 
@@ -168,11 +167,11 @@ pub(crate) fn admits_vec_operation_element(
 /// question from the resolved type alone, and roughly forty native and Wasm
 /// layout, ABI and cleanup-replay call sites consult it to map the carrier
 /// onto a concrete machine representation. This profile's element admission
-/// needs `DeclarationIndex` facts, and the Wasm lane still has no
-/// representation for it, so it stays a separate question: the native lane
-/// asks `codegen::native_emit::is_native_owned_vec_type` (which is the union
-/// of both), and Wasm refuses a program that uses this one rather than
-/// emitting a broken carrier.
+/// needs `DeclarationIndex` facts, so it stays a separate question and each
+/// backend lane asks its own union predicate:
+/// `codegen::native_emit::owned_carrier::is_native_owned_vec_type` and
+/// `wasm::vec_ops::is_wasm_owned_vec_type`. Widening the shared one
+/// would silently change both lanes at once.
 pub(crate) fn is_owned_record_vec_type(declarations: &DeclarationIndex, ty: &ResolvedType) -> bool {
     matches!(
         ty,
@@ -240,44 +239,6 @@ pub(crate) fn program_uses_profile(program: &ResolvedProgram) -> bool {
 /// shared `crate::vec_ops::MAX_CAPACITY` of 8192.
 pub(crate) const OWNED_PAYLOAD_BYTES_PER_RECORD_ELEMENT: u64 =
     2 * crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT;
-
-/// Stable refusal code each ordinary execution target that does not yet
-/// implement this profile's carrier uses.
-///
-/// The code stays in its own target's family so an agent reading it knows
-/// which backend refused and which issue owns the conformance work. The
-/// interpreter's former code (`SPX-F112`) and the native lane's former code
-/// (`SPX-B115`) are both retired: the reference interpreter and native C11
-/// now execute the profile per element (SPX-AI-020), so neither has anything
-/// left to refuse. Wasm still refuses, which is the agreement-by-refusal form
-/// of "equivalent checked behavior on every backend that claims to implement
-/// the admitted feature".
-pub(crate) const WASM_TARGET_CODE: &str = "SPX-W125";
-
-/// Refuse, with one stable diagnostic, a program that names this profile on an
-/// ordinary execution target.
-///
-/// Source and HIR admit the profile so its ownership, borrow and cleanup
-/// meaning is checked; no backend implements its carrier yet. This gate keeps
-/// "no backend executes the new shape" a compile-time diagnostic instead of a
-/// broken carrier or a backend accident, per the SPX-AI-019 implementation
-/// contract; SPX-AI-020 (issue #119) owns lifting it.
-pub(crate) fn reject_for_target(
-    program: &ResolvedProgram,
-    code: &'static str,
-    target: &str,
-) -> Result<(), crate::diagnostic::Diagnostic> {
-    if program_uses_profile(program) {
-        return Err(crate::diagnostic::Diagnostic::io(
-            code,
-            format!(
-                "the internal owned-record collection profile has no {target} execution profile; \
-                 its backend conformance is owned by SPX-AI-020"
-            ),
-        ));
-    }
-    Ok(())
-}
 
 #[cfg(test)]
 mod tests {

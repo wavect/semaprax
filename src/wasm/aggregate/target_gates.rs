@@ -9,6 +9,14 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedProgram, ResolvedTypeDeclarationKind};
 
 /// Refuse every semantic profile the aggregate lane cannot lower.
+///
+/// The SPX-AI-019 owned-record collection element used to be refused here
+/// (`SPX-W125`). It is not any more: this lane lowers it per element through
+/// the owned-payload host boundary (SPX-AI-020), so it has nothing left to
+/// refuse and every admitted element now executes rather than agreeing by
+/// refusal. An element outside the admitted shape is still a front-end
+/// diagnostic, and `vec_record_payload` re-derives the same admission at the
+/// emission boundary.
 pub(super) fn reject_unsupported_profiles(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     if program
         .types
@@ -17,9 +25,5 @@ pub(super) fn reject_unsupported_profiles(program: &ResolvedProgram) -> Result<(
     {
         return Err(super::resource_gate());
     }
-    crate::hir::owned_record_collection::reject_for_target(
-        program,
-        crate::hir::owned_record_collection::WASM_TARGET_CODE,
-        "WebAssembly",
-    )
+    Ok(())
 }

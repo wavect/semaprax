@@ -41,7 +41,8 @@ impl FunctionPlan {
                     )));
                 }
             } else {
-                let local = self.add_local(parameter_count, scalar_wasm_type(&binding.ty)?)?;
+                let local =
+                    self.add_local(parameter_count, scalar_wasm_type(program, &binding.ty)?)?;
                 if binding.ty == ResolvedType::String {
                     self.owned_strings.insert(local)?;
                 }
@@ -81,8 +82,10 @@ impl FunctionPlan {
                                 .insert(field.binding.id.clone(), frame.allocate(size, align)?)
                                 .is_some()
                         } else {
-                            let local = self
-                                .add_local(parameter_count, scalar_wasm_type(&field.binding.ty)?)?;
+                            let local = self.add_local(
+                                parameter_count,
+                                scalar_wasm_type(program, &field.binding.ty)?,
+                            )?;
                             self.scalar_bindings
                                 .insert(field.binding.id.clone(), local)
                                 .is_some()
@@ -107,7 +110,8 @@ impl FunctionPlan {
                 // Refutable Match v1: a binding arm owns one scalar local;
                 // literals and or-patterns own nothing.
                 crate::hir::ResolvedMatchPattern::Binding(binding) => {
-                    let local = self.add_local(parameter_count, scalar_wasm_type(&binding.ty)?)?;
+                    let local =
+                        self.add_local(parameter_count, scalar_wasm_type(program, &binding.ty)?)?;
                     if self
                         .scalar_bindings
                         .insert(binding.id.clone(), local)
@@ -148,8 +152,8 @@ impl FunctionPlan {
                             .insert(binding.id.clone(), frame.allocate(size, align)?)
                             .is_some()
                     } else {
-                        let local =
-                            self.add_local(parameter_count, scalar_wasm_type(&binding.ty)?)?;
+                        let local = self
+                            .add_local(parameter_count, scalar_wasm_type(program, &binding.ty)?)?;
                         self.scalar_bindings
                             .insert(binding.id.clone(), local)
                             .is_some()

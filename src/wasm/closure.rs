@@ -3,6 +3,7 @@
 use super::*;
 
 pub(super) fn adapter_types(
+    program: &ResolvedProgram,
     plan: &function_value::TablePlan,
     types: &mut Vec<Signature>,
     indexes: &mut HashMap<Signature, u32>,
@@ -15,7 +16,7 @@ pub(super) fn adapter_types(
         .map(|target| {
             let signature = crate::hir::function_value::signature(target)
                 .ok_or_else(|| error("closure adapter target signature is invalid"))?;
-            let mut abi = function_value::abi_signature(&signature)?;
+            let mut abi = function_value::abi_signature(program, &signature)?;
             abi.params.insert(0, I32);
             Ok(intern_type(abi, types, indexes))
         })
@@ -26,6 +27,7 @@ pub(super) fn adapter_types(
 /// Each environment slot has its target-authenticated scalar type; no runtime
 /// tag or ambient memory allocation participates in capture interpretation.
 pub(super) fn append_adapters(
+    program: &ResolvedProgram,
     code: &mut Vec<u8>,
     plan: &function_value::TablePlan,
     indexes: &HashMap<FunctionExecutionId, u32>,
@@ -38,7 +40,7 @@ pub(super) fn append_adapters(
         if let Some(captures) = plan.captures.get(&target.id) {
             for (ordinal, ty) in captures.iter().enumerate() {
                 body.extend([0x20, 0x00]);
-                let (opcode, align) = load(ty)?;
+                let (opcode, align) = load(program, ty)?;
                 body.push(opcode);
                 write_u32(&mut body, align);
                 write_u32(&mut body, 8 + ordinal as u32 * 8);
@@ -62,8 +64,8 @@ pub(super) fn append_adapters(
     Ok(())
 }
 
-fn load(ty: &ResolvedType) -> Result<(u8, u32), Diagnostic> {
-    match scalar_wasm_type(ty)? {
+fn load(program: &ResolvedProgram, ty: &ResolvedType) -> Result<(u8, u32), Diagnostic> {
+    match scalar_wasm_type(program, ty)? {
         I64 => Ok((0x29, 3)),
         F32 => Ok((0x2a, 2)),
         F64 => Ok((0x2b, 3)),

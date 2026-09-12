@@ -56,12 +56,19 @@ use super::{
 };
 
 mod box_ops;
+mod scalar_shape;
 mod vec_owned_payload;
+mod vec_record_payload;
+use crate::wasm::vec_ops::is_wasm_owned_vec_type as owned_vec;
+use scalar_shape::{scalar_local, scalar_size_align, scalar_wasm_type, vec_element_tag};
 
 const BYTE_IMPORT_COUNT: u32 = 4;
 const OWNED_BUFFER_IMPORT_COUNT: u32 = 2;
 const VEC_IMPORT_COUNT: u32 = 6;
 const EXTENDED_VEC_IMPORT_COUNT: u32 = 3;
+/// The owned-record element adds exactly one function to the owned-payload
+/// boundary; every other operation reuses it with the record element tag.
+const RECORD_VEC_IMPORT_COUNT: u32 = 1;
 const OWNED_ITER_IMPORT_COUNT: u32 = iterator_ops::OWNED_IMPORT_COUNT;
 const BOX_IMPORT_COUNT: u32 = 4;
 const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
@@ -434,7 +441,10 @@ impl FunctionPlan {
                 (None, Some(frame.allocate(size, align)?))
             } else {
                 (
-                    Some(add_local(scalar_wasm_type(&function.return_type)?)?),
+                    Some(add_local(scalar_wasm_type(
+                        program,
+                        &function.return_type,
+                    )?)?),
                     None,
                 )
             };
@@ -552,7 +562,7 @@ impl FunctionPlan {
                 )));
             }
         } else {
-            let ty = scalar_wasm_type(&expr.ty)?;
+            let ty = scalar_wasm_type(program, &expr.ty)?;
             let local = self.add_local(parameter_count, ty)?;
             if expr.ty == ResolvedType::String {
                 self.owned_strings.insert(local)?;
@@ -573,7 +583,7 @@ impl FunctionPlan {
                     | ResolvedExprKind::HostCommandCall(_)
                     | ResolvedExprKind::Invoke { .. }
             ) {
-                let (size, align) = scalar_size_align(&expr.ty)?;
+                let (size, align) = scalar_size_align(program, &expr.ty)?;
                 self.call_out
                     .insert(expr.id.clone(), frame.allocate(size, align)?);
             }
@@ -616,7 +626,8 @@ impl FunctionPlan {
                     return Err(error("aggregate function invocation scratch repeats"));
                 }
                 for argument in args {
-                    let local = self.add_local(parameter_count, scalar_wasm_type(&argument.ty)?)?;
+                    let local =
+                        self.add_local(parameter_count, scalar_wasm_type(program, &argument.ty)?)?;
                     if self
                         .function_arguments
                         .insert(argument.id.clone(), local)
@@ -1100,7 +1111,7 @@ fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Di
     {
         return Ok(true);
     }
-    if crate::cleanup::is_owned_bounded_vec_type(ty)
+    if crate::wasm::vec_ops::is_wasm_owned_vec_type(program, ty)
         || crate::cleanup::is_owned_bounded_box_type(ty)
     {
         return Ok(false);
@@ -1158,75 +1169,6 @@ fn aggregate_size_align(
     }
 }
 
-fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
-    match ty {
-        ResolvedType::I64 => Ok(I64),
-        ResolvedType::I32 => Ok(I32),
-        ResolvedType::Char => Ok(I32),
-        ResolvedType::U8 => Ok(I32),
-        ResolvedType::Usize => Ok(I64),
-        ResolvedType::SliceU8 | ResolvedType::Str => Ok(I64),
-        ResolvedType::Bytes => Ok(I64),
-        ty if crate::cleanup::is_owned_bounded_vec_type(ty) => Ok(I64),
-        ty if crate::cleanup::is_owned_bounded_box_type(ty) => Ok(I64),
-        ResolvedType::String => Ok(I64),
-        ResolvedType::F32 => Ok(F32),
-        ResolvedType::F64 => Ok(F64),
-        ResolvedType::Bool => Ok(I32),
-        ResolvedType::Function { .. } => Ok(I32),
-        _ => Err(error(format!(
-            "non-scalar type `{}` reached scalar aggregate lowering",
-            ty.identity_key()
-        ))),
-    }
-}
-
-fn vec_element_tag(ty: &ResolvedType) -> Result<i32, Diagnostic> {
-    match ty {
-        ResolvedType::I64 => Ok(1),
-        ResolvedType::I32 => Ok(2),
-        ResolvedType::U8 => Ok(3),
-        ResolvedType::Usize => Ok(4),
-        ResolvedType::Char => Ok(5),
-        ResolvedType::F32 => Ok(6),
-        ResolvedType::F64 => Ok(7),
-        ResolvedType::Bool => Ok(8),
-        _ => Err(error(
-            "Vec element type is outside the admitted scalar profile",
-        )),
-    }
-}
-
-fn scalar_local(value: &Value) -> Result<u32, Diagnostic> {
-    match value {
-        Value::Scalar { local, .. } => Ok(*local),
-        _ => Err(error("Vec operation requires an exact scalar local")),
-    }
-}
-
-fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
-    match ty {
-        ResolvedType::I64 => Ok((8, 8)),
-        ResolvedType::I32 => Ok((4, 4)),
-        ResolvedType::Char => Ok((4, 4)),
-        ResolvedType::U8 => Ok((4, 4)),
-        ResolvedType::Usize => Ok((8, 8)),
-        ResolvedType::SliceU8 | ResolvedType::Str => Ok((8, 8)),
-        ResolvedType::Bytes => Ok((8, 8)),
-        ty if crate::cleanup::is_owned_bounded_vec_type(ty) => Ok((8, 8)),
-        ty if crate::cleanup::is_owned_bounded_box_type(ty) => Ok((8, 8)),
-        ResolvedType::String => Ok((8, 8)),
-        ResolvedType::F32 => Ok((4, 4)),
-        ResolvedType::F64 => Ok((8, 8)),
-        ResolvedType::Bool => Ok((4, 4)),
-        ResolvedType::Function { .. } => Ok((4, 4)),
-        _ => Err(error(format!(
-            "non-scalar type `{}` has no Wasm32 scalar layout",
-            ty.identity_key()
-        ))),
-    }
-}
-
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 pub(super) fn lower_selected_functions(
     program: &ResolvedProgram,
@@ -1261,7 +1203,7 @@ pub(super) fn lower_selected_functions(
             params.push(if is_aggregate(program, &param.ty)? {
                 I32
             } else {
-                scalar_wasm_type(&param.ty)?
+                scalar_wasm_type(program, &param.ty)?
             });
         }
         params.push(I32);
@@ -1366,7 +1308,7 @@ pub(super) fn lower_selected_function_instances(
             params.push(if is_aggregate(program, &param.ty)? {
                 I32
             } else {
-                scalar_wasm_type(&param.ty)?
+                scalar_wasm_type(program, &param.ty)?
             });
         }
         params.push(I32);
@@ -1678,7 +1620,7 @@ fn emit_byte_exports_profile(
             params.push(if is_aggregate(program, &parameter.ty)? {
                 I32
             } else {
-                scalar_wasm_type(&parameter.ty)?
+                scalar_wasm_type(program, &parameter.ty)?
             });
         }
         params.push(I32); // exact caller-owned result slot
@@ -1692,6 +1634,7 @@ fn emit_byte_exports_profile(
         ));
     }
     let function_type_indexes = function_value::type_indexes(
+        program,
         &function_value_plan.signatures,
         &mut types,
         &mut type_indexes,
@@ -1699,7 +1642,7 @@ fn emit_byte_exports_profile(
     )?;
     let function_tables = function_value::table_indexes(&function_value_plan.targets)?;
     let adapter_types =
-        closure::adapter_types(&function_value_plan, &mut types, &mut type_indexes)?;
+        closure::adapter_types(program, &function_value_plan, &mut types, &mut type_indexes)?;
 
     let mut wrapper_types = plans
         .iter()
@@ -2229,7 +2172,7 @@ fn emit_byte_exports_profile(
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
-    closure::append_adapters(&mut code, &function_value_plan, &function_indexes)?;
+    closure::append_adapters(program, &mut code, &function_value_plan, &function_indexes)?;
     section(&mut module, 10, code);
     if has_owned_utf8 {
         let mut data = Vec::new();
@@ -2270,6 +2213,7 @@ fn emit_profile_with_scalar_exports(
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let uses_vec = super::program_uses_vec(program);
     let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
+    let uses_vec_record = super::vec_ops::program_uses_record_vec(program);
     let uses_owned_iterator = crate::iterator_ops::resolved_program_uses_owned_iterator(program);
     let uses_box = super::program_uses_box(program);
     target_gates::reject_unsupported_profiles(program)?;
@@ -2407,6 +2351,16 @@ fn emit_profile_with_scalar_exports(
             &mut type_indexes,
         )
     });
+    let vec_record_push = uses_vec_record.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32, I64, I64, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
     let vec_set = uses_extended_vec.then(|| {
         intern_type(
             Signature {
@@ -2500,7 +2454,7 @@ fn emit_profile_with_scalar_exports(
             params.push(if is_aggregate(program, &param.ty)? {
                 I32
             } else {
-                scalar_wasm_type(&param.ty)?
+                scalar_wasm_type(program, &param.ty)?
             });
         }
         params.push(I32);
@@ -2514,6 +2468,7 @@ fn emit_profile_with_scalar_exports(
         ));
     }
     let function_type_indexes = function_value::type_indexes(
+        program,
         &function_value_plan.signatures,
         &mut types,
         &mut type_indexes,
@@ -2521,7 +2476,7 @@ fn emit_profile_with_scalar_exports(
     )?;
     let function_tables = function_value::table_indexes(&function_value_plan.targets)?;
     let adapter_types =
-        closure::adapter_types(&function_value_plan, &mut types, &mut type_indexes)?;
+        closure::adapter_types(program, &function_value_plan, &mut types, &mut type_indexes)?;
     let wrapper_type = intern_type(
         Signature {
             params: Vec::new(),
@@ -2562,6 +2517,11 @@ fn emit_profile_with_scalar_exports(
                     } else {
                         0
                     }
+                    + if uses_vec_record {
+                        RECORD_VEC_IMPORT_COUNT
+                    } else {
+                        0
+                    }
                     + if uses_owned_iterator {
                         OWNED_ITER_IMPORT_COUNT
                     } else {
@@ -2596,6 +2556,11 @@ fn emit_profile_with_scalar_exports(
             + if uses_vec { VEC_IMPORT_COUNT } else { 0 }
             + if uses_extended_vec {
                 EXTENDED_VEC_IMPORT_COUNT
+            } else {
+                0
+            }
+            + if uses_vec_record {
+                RECORD_VEC_IMPORT_COUNT
             } else {
                 0
             }
@@ -2638,6 +2603,14 @@ fn emit_profile_with_scalar_exports(
             function_import(&mut imports, "env", names[6], vec_push.unwrap());
             function_import(&mut imports, "env", names[7], vec_set.unwrap());
             function_import(&mut imports, "env", names[8], vec_read.unwrap());
+        }
+        if uses_vec_record {
+            function_import(
+                &mut imports,
+                "env",
+                vec_record_payload::RECORD_PUSH_IMPORT,
+                vec_record_push.unwrap(),
+            );
         }
     }
     if uses_owned_iterator {
@@ -2771,6 +2744,13 @@ fn emit_profile_with_scalar_exports(
             })
         })
         .and_then(|value| {
+            value.checked_add(if uses_vec_record {
+                RECORD_VEC_IMPORT_COUNT
+            } else {
+                0
+            })
+        })
+        .and_then(|value| {
             value.checked_add(if uses_owned_iterator {
                 OWNED_ITER_IMPORT_COUNT
             } else {
@@ -2899,7 +2879,7 @@ fn emit_profile_with_scalar_exports(
         write_u32(&mut code, adapter.len() as u32);
         code.extend(adapter);
     }
-    closure::append_adapters(&mut code, &function_value_plan, &function_indexes)?;
+    closure::append_adapters(program, &mut code, &function_value_plan, &function_indexes)?;
     section(&mut module, 10, code);
     owned_strings::emit_literal_data(&mut module, owned_utf8, &utf8_literals)?;
     Ok(module)
@@ -3471,7 +3451,7 @@ impl Emitter<'_> {
                     ));
                 }
             } else if vec_leaf {
-                if !crate::cleanup::is_owned_bounded_vec_type(value_type(&value)) {
+                if !owned_vec(self.program, value_type(&value)) {
                     return Err(error(
                         "Vec CleanupPlan finalizer type disagrees with lifecycle",
                     ));
@@ -3554,7 +3534,7 @@ impl Emitter<'_> {
                 let mut anchors = Vec::with_capacity(2);
                 if let ResolvedStatement::Let { binding, .. } = statement {
                     if binding.ty == ResolvedType::Bytes
-                        || crate::cleanup::is_owned_bounded_vec_type(&binding.ty)
+                        || owned_vec(self.program, &binding.ty)
                         || crate::cleanup::is_owned_bounded_box_type(&binding.ty)
                         || crate::iterator_ops::is_iter(&binding.ty)
                         || crate::iterator_ops::is_step(&binding.ty)
@@ -3570,7 +3550,7 @@ impl Emitter<'_> {
                 };
                 if let Some(value) = value.filter(|value| {
                     value.ty == ResolvedType::Bytes
-                        || crate::cleanup::is_owned_bounded_vec_type(&value.ty)
+                        || owned_vec(self.program, &value.ty)
                         || crate::cleanup::is_owned_bounded_box_type(&value.ty)
                         || crate::iterator_ops::is_iter(&value.ty)
                         || crate::iterator_ops::is_step(&value.ty)
@@ -3806,7 +3786,7 @@ impl Emitter<'_> {
         if !matches!(
             value_type(value),
             ResolvedType::Bytes | ResolvedType::String
-        ) && !crate::cleanup::is_owned_bounded_vec_type(value_type(value))
+        ) && !owned_vec(self.program, value_type(value))
             && !crate::cleanup::is_owned_bounded_box_type(value_type(value))
         {
             return Err(error(
@@ -6047,7 +6027,7 @@ impl Emitter<'_> {
             let borrowed_bytes = parameter.ownership == crate::hir::OwnershipMode::Borrow
                 && parameter.ty == ResolvedType::Bytes;
             let borrowed_vec = parameter.ownership == crate::hir::OwnershipMode::Borrow
-                && crate::cleanup::is_owned_bounded_vec_type(&parameter.ty);
+                && owned_vec(self.program, &parameter.ty);
             let borrowed_box = parameter.ownership == crate::hir::OwnershipMode::Borrow
                 && crate::cleanup::is_owned_bounded_box_type(&parameter.ty);
             let borrowed_aggregate = parameter.ownership == crate::hir::OwnershipMode::Borrow
@@ -6213,6 +6193,12 @@ impl Emitter<'_> {
         let [element] = type_arguments else {
             return Err(error("Vec operation requires one exact type argument"));
         };
+        if crate::hir::owned_record_collection::is_admitted_owned_record_collection_element(
+            &self.program.declarations,
+            element,
+        ) {
+            return self.emit_vec_record_payload(expr, op, element, args);
+        }
         if !crate::vec_ops::resolved_operation_element_is_admitted(op, element)
             || args.len() != op.arity()
         {
@@ -8137,9 +8123,9 @@ impl Emitter<'_> {
                 self.get_scalar(source);
                 self.output.push(0x21);
                 write_u32(self.output, *local);
-                scalar_wasm_type(ty)?;
+                scalar_wasm_type(self.program, ty)?;
                 if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
-                    || crate::cleanup::is_owned_bounded_vec_type(ty)
+                    || owned_vec(self.program, ty)
                     || crate::cleanup::is_owned_bounded_box_type(ty)
                 {
                     self.clear_scalar(source)?;
@@ -8150,7 +8136,7 @@ impl Emitter<'_> {
                 self.get_scalar(source);
                 self.store_scalar(ty);
                 if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
-                    || crate::cleanup::is_owned_bounded_vec_type(ty)
+                    || owned_vec(self.program, ty)
                     || crate::cleanup::is_owned_bounded_box_type(ty)
                 {
                     self.clear_scalar(source)?;
@@ -8377,9 +8363,7 @@ impl Emitter<'_> {
             ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
                 self.output.extend([0x28, 0x02, 0x00])
             }
-            ty if crate::cleanup::is_owned_bounded_vec_type(ty) => {
-                self.output.extend([0x29, 0x03, 0x00])
-            }
+            ty if owned_vec(self.program, ty) => self.output.extend([0x29, 0x03, 0x00]),
             ty if crate::cleanup::is_owned_bounded_box_type(ty) => {
                 self.output.extend([0x29, 0x03, 0x00])
             }
@@ -8400,9 +8384,7 @@ impl Emitter<'_> {
             ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
                 self.output.extend([0x36, 0x02, 0x00])
             }
-            ty if crate::cleanup::is_owned_bounded_vec_type(ty) => {
-                self.output.extend([0x37, 0x03, 0x00])
-            }
+            ty if owned_vec(self.program, ty) => self.output.extend([0x37, 0x03, 0x00]),
             ty if crate::cleanup::is_owned_bounded_box_type(ty) => {
                 self.output.extend([0x37, 0x03, 0x00])
             }
@@ -8509,7 +8491,7 @@ fn value_at(
     if is_aggregate(program, &ty)? {
         Ok(Value::Aggregate { pointer, ty })
     } else {
-        scalar_wasm_type(&ty)?;
+        scalar_wasm_type(program, &ty)?;
         Ok(Value::ScalarMemory { pointer, ty })
     }
 }

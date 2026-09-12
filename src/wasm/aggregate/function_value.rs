@@ -71,7 +71,10 @@ pub(super) fn table_plan(program: &ResolvedProgram) -> Result<TablePlan, Diagnos
     })
 }
 
-pub(super) fn abi_signature(signature: &ResolvedType) -> Result<Signature, Diagnostic> {
+pub(super) fn abi_signature(
+    program: &ResolvedProgram,
+    signature: &ResolvedType,
+) -> Result<Signature, Diagnostic> {
     let ResolvedType::Function { parameters, .. } = signature else {
         return Err(error(
             "function invocation has a non-function callable type",
@@ -79,7 +82,7 @@ pub(super) fn abi_signature(signature: &ResolvedType) -> Result<Signature, Diagn
     };
     let mut params = parameters
         .iter()
-        .map(scalar_wasm_type)
+        .map(|parameter| scalar_wasm_type(program, parameter))
         .collect::<Result<Vec<_>, _>>()?;
     params.push(I32);
     Ok(Signature {
@@ -89,6 +92,7 @@ pub(super) fn abi_signature(signature: &ResolvedType) -> Result<Signature, Diagn
 }
 
 pub(super) fn type_indexes(
+    program: &ResolvedProgram,
     signatures: &[ResolvedType],
     types: &mut Vec<Signature>,
     indexes: &mut HashMap<Signature, u32>,
@@ -96,7 +100,7 @@ pub(super) fn type_indexes(
 ) -> Result<HashMap<String, u32>, Diagnostic> {
     let mut result = HashMap::new();
     for signature in signatures {
-        let mut abi = abi_signature(signature)?;
+        let mut abi = abi_signature(program, signature)?;
         if closure_profile {
             abi.params.insert(0, I32);
         }
@@ -357,6 +361,11 @@ pub(in crate::wasm) fn box_import_base(program: &ResolvedProgram) -> u32 {
         }
         + if super::super::vec_ops::program_uses_extended_vec(program) {
             super::EXTENDED_VEC_IMPORT_COUNT
+        } else {
+            0
+        }
+        + if super::super::vec_ops::program_uses_record_vec(program) {
+            super::RECORD_VEC_IMPORT_COUNT
         } else {
             0
         }

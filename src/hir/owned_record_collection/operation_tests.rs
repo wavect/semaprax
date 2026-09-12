@@ -397,26 +397,33 @@ fn fallible_owned_calls_select_a_sticky_failure_status() {
     assert!(!build.cleanup_plan.status_sources.is_empty());
 }
 
-/// Backend agreement, in the only honest form available while conformance is
-/// partial: the reference interpreter and the native C11 backend both execute
-/// the profile, and the one target that does not yet implement its carrier
-/// refuses it up front with its own stable diagnostic rather than emitting a
-/// broken carrier or reaching a backend accident. When Wasm lifts, it must
-/// agree with the interpreter's value, not merely stop refusing.
+/// Backend agreement, now in its executed form: every ordinary execution
+/// target emits real per-element storage for this profile rather than refusing
+/// it. The native lane names its fixed record runtime, and the Wasm lane binds
+/// the owned-payload host boundary plus the one extra import the record
+/// element needs — no target carries a refusal code any more.
 ///
-/// The native lane's emission here is the compile-time half of that
-/// agreement; `tests/owned_data/owned_record_vec_runtime.rs` compiles and
-/// runs the emitted C at `-O0` and `-O2` and checks the executed values,
-/// selected statuses and physical settlement against this same interpreter.
+/// This is the compile-time half of that agreement;
+/// `tests/owned_data/owned_record_vec_runtime.rs` runs the emitted C at `-O0`
+/// and `-O2` and the emitted module under Node, and checks the executed
+/// values, selected statuses and physical settlement against this same
+/// interpreter.
 #[test]
-fn wasm_still_refuses_the_profile_while_the_interpreter_and_native_execute_it() {
+fn every_execution_target_emits_the_profile_the_interpreter_executes() {
     let resolved = admitted(DECLARATION, BUILD);
     let native = crate::codegen::emit_hir_c(&resolved).expect("native must emit");
     assert!(native.contains("spx_vec_record_with_capacity"));
     assert!(native.contains("spx_vec_record_push"));
-    let wasm = crate::wasm::emit_resolved_module(&resolved).expect_err("Wasm must refuse");
-    assert_eq!(wasm.code, super::WASM_TARGET_CODE);
-    assert_eq!(wasm.code, "SPX-W125");
+    let wasm = crate::wasm::emit_resolved_module(&resolved).expect("Wasm must emit");
+    let text = String::from_utf8_lossy(&wasm).into_owned();
+    assert!(
+        text.contains("spx_vec_record_push_v2"),
+        "record push import"
+    );
+    assert!(
+        text.contains("spx_vec_with_capacity_v2"),
+        "owned payload host"
+    );
     assert_eq!(interpreted_main(EXECUTE), 41);
 }
 

@@ -86,7 +86,7 @@ impl Emitter<'_> {
                         .copied()
                     {
                         if *value_type(value) != ResolvedType::Bytes
-                            && !crate::cleanup::is_owned_bounded_vec_type(value_type(value))
+                            && !owned_vec(self.program, value_type(value))
                             && !crate::cleanup::is_owned_bounded_box_type(value_type(value))
                         {
                             return Err(error(

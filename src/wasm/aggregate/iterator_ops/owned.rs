@@ -1,5 +1,5 @@
 //! Versioned host calls for the `Iter<Bytes>` ownership transfer protocol.
-use super::super::{EXTENDED_VEC_IMPORT_COUNT, VEC_IMPORT_COUNT};
+use super::super::{EXTENDED_VEC_IMPORT_COUNT, RECORD_VEC_IMPORT_COUNT, VEC_IMPORT_COUNT};
 use super::*;
 
 pub(super) const IMPORT_COUNT: u32 = 3;
@@ -17,6 +17,11 @@ pub(super) fn import_base(program: &ResolvedProgram) -> u32 {
         + VEC_IMPORT_COUNT
         + if crate::wasm::vec_ops::program_uses_extended_vec(program) {
             EXTENDED_VEC_IMPORT_COUNT
+        } else {
+            0
+        }
+        + if crate::wasm::vec_ops::program_uses_record_vec(program) {
+            RECORD_VEC_IMPORT_COUNT
         } else {
             0
         }

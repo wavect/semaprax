@@ -3,9 +3,9 @@
 Audience: compiler contributors and reviewers of SPX-AI-019/020 (issues #118,
 #119).
 
-Status: **the reference interpreter and native C11 execute it; Core Wasm
-still refuses it**. Source and HIR independently recognize the one admitted
-record shape this document defines (`src/hir/owned_record_collection.rs`,
+Status: **all three ordinary execution targets execute it**. Source and HIR
+independently recognize the one admitted record shape this document defines
+(`src/hir/owned_record_collection.rs`,
 `src/source_verify/declared_type/owned_record_collection.rs`), and a bounded
 `Vec<T>` operation surface over it — `vec_with_capacity`, `vec_push`,
 `vec_len`, `vec_capacity`, `vec_clear` — is wired through the source verifier,
@@ -13,13 +13,14 @@ the resolver, HIR validation, the loan plan, the cleanup inventory, the
 cleanup plan and its replay. `vec_get`, `vec_set` and `vec_reserve_exact`
 stay refused, as does `Box<T>` of this element. The reference interpreter
 stores one authored record per element and executes the whole surface
-(`SPX-F112` retired), and the native C11 backend lowers the same surface to
-real per-element storage and drop (`SPX-B115` retired); WebAssembly
-(`SPX-W125`) does not implement the carrier yet and refuses the same source
-up front rather than emitting a carrier it cannot lower. See "Interpreter
-conformance tranche (2026-09-12)" and "Native C11 conformance tranche
-(2026-09-12)" at the end of this document for what that cost and for the
-measured seam the remaining backend sits behind. Earlier sections
+(`SPX-F112` retired), the native C11 backend lowers the same surface to real
+per-element storage and drop (`SPX-B115` retired), and Core Wasm lowers it per
+element across the owned-payload host boundary (`SPX-W125` retired). No target
+refuses the profile any more, so backend agreement here is executed values on
+every target rather than agreement by refusal. See "Interpreter conformance
+tranche (2026-09-12)", "Native C11 conformance tranche (2026-09-12)" and
+"Core Wasm conformance tranche (2026-09-12)" at the end of this document for
+what each cost. Earlier sections
 record how the profile reached this state: the classifier tranche, the
 backend panic-hardening, the 2026-09-11 acceptance-criteria audit, and the
 front-end admission tranche. Statements there about "no call site exists",
@@ -696,16 +697,17 @@ through `evaluate_resolved_zero_arg_i64`.
 
 **Backend agreement, honestly.** At the time of this tranche native C11
 (`SPX-B115`) and Core Wasm (`SPX-W125`) both still refused, asserted against
-the exact same source the interpreter executes. Native has since lifted; see
-the native tranche below. Core Wasm still refuses, and that assertion is still
-carried by both the lib and the integration harness.
+the exact same source the interpreter executes. Both have since lifted; see
+the native and Core Wasm tranches below. No target refuses the profile any
+more, and the harnesses that carried the refusal assertions now carry executed
+values instead.
 
 **Why native and Wasm did not lift in the same sitting.** The seam is not the
 predicate count; it is that neither backend's carrier is element-type generic
-the way the interpreter's `Vec<Value>` already was. (The native bullet below
-is the measurement as it stood at this tranche. It over-estimated: see "Native
-C11 conformance tranche (2026-09-12)" for what the native lift actually cost
-and why. The Wasm bullet still stands.)
+the way the interpreter's `Vec<Value>` already was. (Both bullets below are the
+measurement as it stood at this tranche, and **both over-estimated**. See
+"Native C11 conformance tranche (2026-09-12)" and "Core Wasm conformance
+tranche (2026-09-12)" for what each lift actually cost and why.)
 
 - Native selects exactly one of two whole-program `Vec` runtimes in
   `codegen::native_vec::emit_runtime`: the scalar runtime, whose slot is
@@ -769,8 +771,10 @@ selection into one extra disjunct on the existing two-way choice.
 unchanged. The native lane asks a new union predicate,
 `codegen::native_emit::owned_carrier::is_native_owned_vec_type`, at the sites
 that map a carrier onto a machine representation. Widening the shared
-predicate instead would silently have changed the fifteen Wasm sites, which
-still refuse this profile. No file under `src/wasm/` is touched.
+predicate instead would silently have changed the Wasm sites, which at the time
+of this tranche still refused this profile. No file under `src/wasm/` is
+touched. (The Wasm lane has since lifted by adding its own union predicate the
+same way, rather than by widening the shared one; see the Core Wasm tranche.)
 
 **Element authenticity and staging.** The record lowering re-derives the
 element's admission from `DeclarationIndex` facts at the emission boundary,
@@ -818,21 +822,125 @@ assumed.
 change to either constant fails the build rather than letting the native
 ceiling drift away from the interpreter's.
 
+## Core Wasm conformance tranche (2026-09-12)
+
+`SPX-W125` is retired. The aggregate lane lowers this profile per element
+through the owned-payload host boundary instead of refusing the program up
+front, and Core Wasm now executes the same committed corpus the reference
+interpreter and the native C11 lane execute.
+
+**The seam was one function, not a third import set.** Every preceding tranche
+measured the Wasm cost as "a third nine-function import set implemented in
+every linking test host". That over-estimated it for a reason worth recording.
+The carrier is an `i64` host handle, and the signatures of `with_capacity`,
+`len`, `capacity`, `clear` and `drop` never mention the element at all — they
+carry a handle and a tag. So those five reuse the existing owned-payload
+imports with the record element tag, `10`, the same number the native C11
+runtime chose for the same slot. Only `push` needs a wider signature, because
+the element is three words rather than one. The profile therefore adds exactly
+`spx_vec_record_push_v2` — `(handle, tag, owned0, owned1, scalar) -> handle` —
+and the whole-program boundary selection stays two-way: a program that names
+this profile selects the `_v2` owned-payload names, because its element's two
+`Bytes` leaves are payload the same host must drop.
+
+**The element crosses as the three words it owns.** The record itself is an
+ordinary flat aggregate in linear memory whose two `Bytes` leaves the canonical
+cleanup plan already tracks as projected liveness. The emitter loads those two
+handles at their field offsets in declaration order — the admission rule is a
+field-type multiset, so that is the only canonical order available, and it is
+the same order the native lane places — and widens the one Copy-scalar field
+with the existing `emit_vec_element_bits` helper. The profile admits no `get`,
+so nothing ever reads an element back out of the host; the placement is
+write-only bookkeeping the host owns.
+
+**Failure settles the way this boundary already settles.** A host that refuses
+an operation consumes nothing and returns the null handle. The emitter checks
+for it before the call commit runs, so the caller's own `CleanupPlan` flags are
+still live and the plan's own exit path drops the carrier and the staged
+element exactly once. That is the opposite convention from the native runtime,
+which settles a refused element itself — and it is the right one here, because
+it is the convention the existing `Vec<Bytes>` boundary already has. Nothing in
+this lowering sorts, repairs or reinterprets a cleanup vector; the plan's
+transitions are replayed verbatim, including the record temporary's transfer
+into the call-argument epoch, which is registered as an authenticated aggregate
+carrier exactly as an owned-record argument to a user call is.
+
+**The hazard stayed where it was.** `cleanup::is_owned_bounded_vec_type` and
+`vec_ops::resolved_vec_element_is_admitted` are byte-for-byte unchanged. The
+Wasm lane asks its own union predicate, `wasm::vec_ops`, at the fourteen
+sites that map a carrier onto a machine representation, exactly as the native
+lane asks `native_emit::owned_carrier::is_native_owned_vec_type` at its own —
+because widening the shared predicate would silently change both lanes at once.
+Four scalar-shape helpers moved verbatim into `wasm::aggregate::scalar_shape`
+so `aggregate.rs` stayed inside its recorded module-size budget while taking
+the program parameter that union needs; **no budget was raised**.
+
+**Executed evidence.** `tests/owned_data/owned_record_vec_runtime.rs`
+instantiates the emitted module under Node with a conforming host and runs the
+same seven fixtures: accumulate-clear-reuse → 29, the empty and
+exactly-full-capacity boundaries → 29, push past capacity → `semaprax.vec.v1`
+code 1, the owned-payload bound → code 3, and `requires false`/`ensures false`
+→ `semaprax.contract.v1` 1 and 2. Every fixture is invoked four times in one
+instance and must publish the same outcome each time.
+
+**Host-side settlement.** The carrier is not in linear memory, so the liveness
+probe is the host's own census: after each of those four invocations the host
+must hold **zero live vector handles** and **zero live `Bytes` handles**, and
+must have dropped exactly as many payloads as it allocated — on success and
+after failure alike. The host errors on a double drop, so each element's two
+leaves are proven dropped exactly once. An injected refusal at the one site
+this profile allocates a carrier selects `semaprax.vec.v1` code 3, publishes no
+value and leaves nothing live.
+
+**Per-element storage, checked rather than inferred.** The host records the
+scalar of every element it is handed, in order, and the accumulate fixture must
+reproduce `11,22,33,44` — three elements, then a `clear`, then a fourth into
+the reused carrier. A carrier that stored nothing, stored one fused blob, or
+reordered its pushes could not reproduce that. The host additionally refuses an
+element whose two payload handles alias, and refuses a `Vec<Bytes>` `push`,
+`set`, `reserve_exact` or `get` arriving at the record tag.
+
+**Host-boundary obligations.** A conforming host must (a) reject a tag outside
+`1..=10`, (b) enforce the record element's capacity ceiling, and (c) drop both
+leaves of every initialized element on `clear` and `drop`. The ceiling is
+`MAX_OWNED_PAYLOAD_BYTES / OWNED_PAYLOAD_BYTES_PER_RECORD_ELEMENT` = 4096,
+computed in `wasm::vec_ops::RECORD_ELEMENT_MAX_CAPACITY` and pinned by a
+`const` assertion, so no second bound is invented for this lane. As with the
+existing 8192-element `Vec<Bytes>` ceiling, the host enforces it: on this
+target the host *is* the runtime. A module linked against a host that does not
+implement `spx_vec_record_push_v2` does not load at all — the test asserts the
+`LinkError` — so the profile cannot be silently reinterpreted as some other
+admitted payload.
+
+**Negative control, run rather than assumed.** With the record dispatch
+disabled in `emit_vec_op`, both Core Wasm execution tests fail with a stable
+`SPX-W110` diagnostic; with the element admission itself disabled, they fail
+with `SPX-H006`. Neither is a panic, an `unreachable!` or a malformed module,
+and both pass again when restored. `emit_vec_record_payload` additionally
+re-derives admission from `DeclarationIndex` facts at the emission boundary,
+so forged or widened HIR that got past the front end is a diagnostic there too.
+The near-miss control now asserts the Wasm emitter's refusal beside the native
+emitter's.
+
+**Limits of this evidence.** One macOS host, one Node build, this repository's
+own conforming test host. Local focused runs, not hosted, not cross-platform,
+and not a statement about any other WebAssembly embedder.
+
 ## What remains (explicitly out of scope here)
 
-- Core Wasm conformance. The seam is unchanged from the interpreter tranche's
-  measurement: the carrier is an `i64` host handle, the module imports a fixed
-  nine-function host boundary chosen `_v*` by a whole-program question, and a
-  record element needs a third import set implemented in every linking test
-  host, plus the fifteen `is_owned_bounded_vec_type` sites in
-  `wasm/aggregate.rs`, `wasm/vec_ops.rs` and `wasm/aggregate/post_transitions.rs`.
-  The native tranche's fixed-slot result suggests the per-declaration part of
-  that estimate may also be avoidable, but the host-boundary part is not.
-  Lifting `SPX-W125` is the rest of this issue's acceptance boundary.
-- Physical allocation-count probes on Core Wasm. Native now provides them (see
-  the native tranche above); the interpreter's byte accounting remains a
+- A hosted or cross-platform run of the Core Wasm lane. The evidence below is
+  a local focused run on one macOS host with one Node build, against this
+  repository's own conforming test host. It is not a claim about any other
+  WebAssembly embedder.
+- Physical allocation-count probes on the interpreter. Native and Core Wasm
+  both provide liveness probes now (an interposed allocator and a host-side
+  handle census respectively); the interpreter's byte accounting remains a
   cumulative budget rather than a liveness counter, so its evidence stays
   values, ordering and sticky failure selection.
+- A published host contract for `spx_vec_record_push_v2` outside this
+  repository. The import is internal to the profile and versioned with the
+  owned-payload boundary; it is not a public collection ABI and no foreign
+  function descriptor was widened.
 - `Box<T>` of this element, and any consuming extraction. `vec_get`,
   `vec_set` and `vec_reserve_exact` also stay refused: `get` would be "an
   ambiguous copy-returning get of an owned value" per this issue's own
@@ -855,7 +963,9 @@ focused unit tests: the 19 classifier cases above (13 HIR-side, 6
 source-side) plus the 14 operation-surface and interpreter-execution
 regressions in `src/hir/owned_record_collection/operation_tests.rs`.
 `cargo test --locked --test owned_data owned_record_vec_runtime` selects the
-3 committed-source runtime cases. They construct real
+7 committed-source runtime cases (interpreter, native C11 and Core Wasm
+corpora, the two injected carrier-allocation failures, the sticky-failure
+pairing and the inadmissible-element negative control). They construct real
 `.spx` source through `crate::parse`/`crate::hir::resolve` (not hand-built
 HIR), the same pattern `type_reachability`'s own classifier tests use, so the
 positive cases are genuine parsed-and-resolved programs, not synthetic

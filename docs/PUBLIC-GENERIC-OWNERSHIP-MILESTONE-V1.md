@@ -1,14 +1,20 @@
 # Public Generic Ownership Milestone v1
 
 Status: open milestone, separately gated. Five of its nine prerequisite gates
-are hosted green on Linux, macOS, and Windows for one exact implementation
-commit; four remain open. No public generic ownership surface is admitted,
-generated, published, or supported at this commit. This document owns the
-milestone's identity, its gates, the separation invariants that keep it
-independent of internal generic work, and the standing support and publication
-decision. It is a charter, not evidence.
+are hosted green for one exact implementation commit; three more (PG-5, PG-6,
+PG-7) now have real code and passing local gates but no hosted run and named
+open gaps (see the gate table below). PG-9 remains undecided. No public
+generic ownership surface is admitted, generated, published, or supported at
+this commit. This document owns the milestone's identity, its gates, the
+separation invariants, and the standing support/publication decision. It is a
+charter, not evidence.
 
 Audience: language, ABI, package, evidence, and promotion reviewers.
+
+Every CI run on `main` since the recorded PG-8 commit has been cancelled
+(`cancel-in-progress` plus a fast push cadence), so none of PG-5/PG-6/PG-7's
+local evidence below is hosted evidence yet, and the recorded PG-8 green run
+predates all of that code.
 
 ## Why this is a separate milestone
 
@@ -72,9 +78,9 @@ reads `Hosted green`.
 | PG-2 | Explicit template identity and ordered argument identities: persistent template declaration identity, declared arity, positional parameter owner and index, and digests that distinguish permutation, omission, duplication, and substitution | [Public Generic Type Grammar v1](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | Hosted green |
 | PG-3 | Semantic compatibility rules: a closed classification over two grammar surfaces with explicit reasons, no compatibility inferred from a diff classification, and no version decision inferred from a classification | [Public Generic Compatibility v1](PUBLIC-GENERIC-COMPATIBILITY-V1.md) | Hosted green |
 | PG-4 | Candidate ABI-delta evidence that selects the public generic signature, retains ordered arguments and substituted fields, and survives mutation, recovery, and independent byte-exact replay | [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | Hosted green |
-| PG-5 | Generated Rust, TypeScript/Wasm, C, and C++ consumers derived from the grammar, byte-deterministic, with no ambient authority | Pending its owning specification | Open |
-| PG-6 | Hostile metadata replay: forged, stale, truncated, reordered, and mutated grammar or descriptor bytes fail closed in every consumer route and in independent replay | Pending its owning specification | Open |
-| PG-7 | Owned allocation and failure settlement across the boundary: bounded allocation, exact copy-out, sticky failure selection, canonical cleanup order, and equal checked behavior on interpreter, native C11, and Core Wasm | [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md) | Open |
+| PG-5 | Generated Rust, TypeScript/Wasm, C, and C++ consumers derived from the grammar, byte-deterministic, with no ambient authority | [Public Generic Consumers v1](PUBLIC-GENERIC-CONSUMERS-V1.md), [Public Generic Carrier v1](PUBLIC-GENERIC-CARRIER-V1.md) | Implemented, local evidence |
+| PG-6 | Hostile metadata replay: forged, stale, truncated, reordered, and mutated grammar or descriptor bytes fail closed in every consumer route and in independent replay | [Public Generic Descriptor v1](PUBLIC-GENERIC-DESCRIPTOR-V1.md), [Public Generic Carrier v1](PUBLIC-GENERIC-CARRIER-V1.md) | Implemented, local evidence |
+| PG-7 | Owned allocation and failure settlement across the boundary: bounded allocation, exact copy-out, sticky failure selection, canonical cleanup order, and equal checked behavior on interpreter, native C11, and Core Wasm | [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md), [Public Generic Carrier v1](PUBLIC-GENERIC-CARRIER-V1.md) | Implemented, local evidence |
 | PG-8 | Cross-platform hosted evidence for the complete milestone corpus on Linux, macOS, and Windows, recorded for an exact implementation commit | The `public-generic-ownership-milestone` job in [CI required checks v1](CI-REQUIRED-CHECKS-V1.md) | Hosted green |
 | PG-9 | An explicit support and publication decision naming the exact version, target, and consumer scope, with its prerequisite profile decisions | This milestone | Open |
 
@@ -88,19 +94,54 @@ A gate moves only when the whole of it is done. Where part of a gate has landed
 with its own artifact and its own executable gate, it is recorded here rather
 than by advancing the row.
 
-- **PG-5 and PG-6 — grammar half landed, descriptor half open.**
+- **PG-5 and PG-6 — grammar half hosted green, calling half now implemented
+  with local evidence only.**
   [Public Generic Metadata Consumers v1](PUBLIC-GENERIC-CONSUMERS-V1.md)
   generates a Rust, TypeScript/Wasm, C, and C++ consumer of the canonical
   metadata of a candidate surface. All four are compiled warning-free and run
   for real, and all four must refuse nine hostile documents — forged term
   length, reordered records, stale surface, truncation, and the rest — with the
-  same closed reason as each other and as the Rust reference reader. That
-  settles that the type grammar is implementable as a shared contract and that
-  hostile *grammar* metadata fails closed in every consumer route. It settles
-  nothing about calling a public generic export: those consumers need a
-  versioned descriptor and carrier that do not exist, and hostile replay of
-  descriptor bytes cannot be evidenced before there are descriptor bytes. Both
-  gates therefore stay `Open`.
+  same closed reason as each other and as the Rust reference reader. That part
+  is hosted green (see the PG-8 note below).
+
+  A versioned [Public Generic Descriptor v1](PUBLIC-GENERIC-DESCRIPTOR-V1.md)
+  and [Logical Carrier v1](PUBLIC-GENERIC-CARRIER-V1.md) now exist, with
+  independent byte-exact replay, and all four languages generate a *calling*
+  consumer (Rust #156, C11 #158, C++17 #159, TypeScript/Wasm #157) that
+  invokes a real native or Wasm provider adapter and is compiled and executed
+  locally (native: real `clang -O0`/`-O2` builds linked against
+  `native::template::render_reference_provider`'s C output; Wasm: a real
+  `WebAssembly.Instance` call). A shared hostile corpus (#160) is checked
+  identically across the Rust reference decoder, the native manifest, and all
+  four consumers. None of this has a hosted CI run: every run on `main` since
+  implementation commit `2ef043ba…` has been cancelled (`cancel-in-progress`
+  plus a fast push cadence), so PG-8 has not been re-executed against any of
+  it (tracked by #163). Three concrete gaps remain open and undecided:
+  - every provider adapter (interpreter, native, Wasm) binds a **fixture**
+    endpoint and **fixture** trusted descriptor/binding bytes, not a real
+    function body generated from an admitted public-generic export — the
+    codegen wiring from a verified descriptor to a callable native/Wasm
+    function body does not exist yet, so no real monomorphized `.spx` public
+    generic export has ever been called through this boundary end to end;
+  - no compiled `.wasm` artifact implements the provider ABI (open /
+    input_prepare / call / result_export / release); the TypeScript consumer
+    calls a real Wasm function for the one reversal endpoint but keeps
+    allocator/handle bookkeeping host-side in TypeScript, and the harness's
+    own `.wasm` is a hand-assembled, committed test-only stand-in
+    (`tests/public_generic_wasm_adapter_v1/reference_wasm_module.rs`), not a
+    build of `src/public_generic_abi/wasm/**` (#229, human-blocked on a
+    scope decision);
+  - #173's remaining PG-6 scope — extra/reordered/duplicate descriptor
+    fields, unknown schema/version, and stale Project/ProgramRoot/artifact
+    associations exercised through all four *calling* consumers, plus
+    persisted property/fuzz-minimized reproductions — is deliberately not
+    covered by #160's shared corpus, which compares only the opaque
+    authenticated byte-string equality check each calling consumer can
+    express identically today; that structured hostility exists only at the
+    Rust reference `descriptor.rs`/`carrier/frame.rs` layer.
+
+  Both gates therefore move from `Open` to `Implemented, local evidence`, not
+  `Hosted green`.
 - **PG-4 — route implemented, and it now describes a genuine generic export
   when one is named explicitly (issue #139).**
   [Public Generic Candidate Delta v1](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md)
@@ -130,7 +171,8 @@ than by advancing the row.
   `breaking` with the finding on the record that changed, with ordered
   arguments, substituted fields, and owned leaves retained across mutation,
   recovery, and byte-exact independent replay.
-- **PG-7 — obligations specified and bound, execution open.**
+- **PG-7 — obligations specified and bound, execution now implemented with
+  local evidence, cross-engine settlement partial.**
   [Public Generic Settlement Obligations v1](PUBLIC-GENERIC-SETTLEMENT-V1.md)
   derives, for one owned instance parameter, which owned leaves a boundary is
   accountable for, in which order, how each is discharged, and what is released
@@ -138,11 +180,49 @@ than by advancing the row.
   cleanup facts: the inventory's structural leaf order, its per-leaf liveness
   flags and drop lifecycles, and the plan's whole-parameter transfer unit. Any
   disagreement is a refusal, so a future boundary cannot quietly diverge from
-  the ownership the compiler verified. It executes nothing. PG-7 asks for
-  bounded allocation, exact copy-out, sticky failure selection, and canonical
-  cleanup order *exercised* across a real boundary on the interpreter, native
-  C11, and Core Wasm, and there is no boundary to exercise; the gate stays
-  `Open`.
+  the ownership the compiler verified. [Public Generic Carrier
+  v1](PUBLIC-GENERIC-CARRIER-V1.md) now adds a real boundary: a native C11
+  physical adapter (#154), a Core Wasm physical adapter (#155), and a
+  reference interpreter physical adapter (#162), each performing real
+  allocation, transfer, copy-out, sticky failure selection, and canonical
+  release against a fixture endpoint, each covered by its own local test
+  suite including a full 0-13 (native) / 0-7 (Wasm) failure-injection matrix
+  with zero-live-resource assertions. A shared cross-engine settlement corpus
+  (`carrier::settlement_corpus`, #162) drives the interpreter and Wasm
+  adapters through the identical case table and diffs semantic output,
+  normalized trace, release order, and resource counters byte-for-byte — this
+  is what caught two real defects this session, on both engines, where a
+  physical free was performed without its matching logical trace event
+  (Wasm input path, native result path; fixed and each pinned by a
+  concrete-trace-contents regression test, not a bare success assertion).
+
+  This is not yet the full PG-7 the milestone asks for:
+  - **native C11 is not a party to the cross-engine corpus.** It has no
+    in-process Rust adapter analogous to `InterpreterProvider`/`WasmProvider`
+    — only a C-source renderer — so its real compiled `-O0`/`-O2` equivalence
+    against this exact case table is not established, only asserted
+    separately in its own harness (#162 tracks this as open);
+  - **peak allocation/handle counters are not compared**, only final
+    (post-terminal) counts, so the corpus is silent on the "peak" fields
+    issue #162 itself lists as required;
+  - **every adapter still binds a fixture endpoint**, not a function body
+    codegenned from a real admitted public-generic export — the same gap
+    named under PG-5/PG-6 above;
+  - nested/multi-level owned records are not exercised in any adapter or the
+    corpus; every adapter is flat-owned-`Bytes`-leaves only. Issue #119
+    closed this session, but only for an unrelated internal
+    owned-record-collection execution profile — wiring an admitted
+    public-generic descriptor into a codegen-emitted function body, which is
+    what would lift this specific limitation, remains unimplemented and is
+    not what #119 covered (see the native adapter's own "Deferred scope" note
+    in [Public Generic Carrier v1](PUBLIC-GENERIC-CARRIER-V1.md)).
+
+  The gate therefore moves from `Open` to `Implemented, local evidence`, not
+  `Hosted green`: no hosted CI run exists for any of this (every run on `main`
+  since `2ef043ba…` has been cancelled), and #174 ("execute settlement on all
+  admitted backends") is closed only for interpreter/Wasm parity plus
+  independently-compiled native, explicitly short of full cross-engine
+  settlement and a hosted run.
 - **PG-8 — hosted green, and what it did and did not establish.** The
   `public-generic-ownership-milestone` job runs the whole milestone corpus on
   `ubuntu-latest`, `macos-latest`, and `windows-latest`, and it is a declared
@@ -205,25 +285,26 @@ is a diagnostic, never a backend accident.
 ## Where the milestone stands
 
 Five gates are hosted green on Linux, macOS, and Windows for one exact
-implementation commit. Four are open, and three of those are open with real
-work already behind them, recorded above rather than by advancing a row.
+implementation commit. Three more (PG-5, PG-6, PG-7) have real code and
+passing local gates but no hosted run. One (PG-8) needs a fresh run once
+those three are ready to claim. PG-9 is undecided.
 
 | Gate | Artifact | What remains |
 | --- | --- | --- |
 | PG-1, PG-2 | [type grammar](PUBLIC-GENERIC-TYPE-GRAMMAR-V1.md) | nothing; hosted green on three hosts |
 | PG-3 | [compatibility rules](PUBLIC-GENERIC-COMPATIBILITY-V1.md) | nothing; hosted green on three hosts |
-| PG-4 | [candidate delta](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | nothing; hosted green on three hosts. It describes no generic signature today because none is admitted |
-| PG-5, PG-6 | [metadata consumers](PUBLIC-GENERIC-CONSUMERS-V1.md) | consumers that *call* an export, over a versioned descriptor and carrier, and hostile replay of those descriptor bytes |
-| PG-7 | [settlement obligations](PUBLIC-GENERIC-SETTLEMENT-V1.md) | a real boundary that allocates, copies out, and settles failure on interpreter, native C11, and Core Wasm |
-| PG-8 | the `public-generic-ownership-milestone` CI job | nothing for the corpus it runs; a widened corpus needs its own run |
+| PG-4 | [candidate delta](PUBLIC-GENERIC-CANDIDATE-DELTA-V1.md) | nothing; hosted green on three hosts. It describes a genuine public-generic signature only when one is named explicitly via `public_generic_delta_with_boundary_subjects` (#139, #161); no manifest-profile route admits one on its own |
+| PG-5, PG-6 | [consumers](PUBLIC-GENERIC-CONSUMERS-V1.md), [descriptor](PUBLIC-GENERIC-DESCRIPTOR-V1.md), [carrier](PUBLIC-GENERIC-CARRIER-V1.md) | a hosted run; codegen wiring from a verified descriptor to a real callable function body on any backend (every provider still binds a fixture endpoint); a compiled `.wasm` implementing the full provider ABI (#229); #173's remaining descriptor-level hostile cases exercised through all four calling consumers, plus MSRV and the 16 MiB bound for foreign consumers (#226) |
+| PG-7 | [settlement obligations](PUBLIC-GENERIC-SETTLEMENT-V1.md), [carrier](PUBLIC-GENERIC-CARRIER-V1.md) | a hosted run; native C11 joining the cross-engine settlement corpus (#162); peak allocation/handle counters; the same fixture-endpoint and nested-record limitations as PG-5/PG-6 above |
+| PG-8 | the `public-generic-ownership-milestone` CI job | a fresh run at the exact commit where PG-5/PG-6/PG-7 land, once `main`'s CI stops being cancelled before completion; the recorded green run predates all of PG-5/PG-6/PG-7's code |
 | PG-9 | this document | the decision itself, once the eight above are hosted green |
 
-The shape of what is left is one thing, said three ways: there is no versioned
-public generic descriptor and carrier. PG-5's calling consumers, PG-6's
-descriptor replay, and PG-7's settlement all wait on it, and none of them can
-be evidenced by anything else. Designing it is the next tranche of this
-milestone, and it is a new versioned artifact — never a reinterpretation of
-Project v8, v9, or v11 bytes.
+The shape of what is left is no longer "there is no versioned public generic
+descriptor and carrier" — one now exists, with local evidence for all three
+of PG-5, PG-6, and PG-7. What is left is: no code path anywhere compiles a
+real function body from an admitted public-generic export (every physical
+adapter still calls a fixture endpoint), no compiled Wasm artifact implements
+the provider ABI, and no hosted run has ever exercised any of it.
 
 ## Standing support and publication decision
 

@@ -127,8 +127,22 @@ fn the_same_recording_replayed_twice_produces_byte_identical_conformance_reports
         response_bytes: b"recorded".to_vec(),
     };
 
-    let report_a = run_conformance_suite(&mut adapter_a, &cap(), &required, &request(4096), None, &expected);
-    let report_b = run_conformance_suite(&mut adapter_b, &cap(), &required, &request(4096), None, &expected);
+    let report_a = run_conformance_suite(
+        &mut adapter_a,
+        &cap(),
+        &required,
+        &request(4096),
+        None,
+        &expected,
+    );
+    let report_b = run_conformance_suite(
+        &mut adapter_b,
+        &cap(),
+        &required,
+        &request(4096),
+        None,
+        &expected,
+    );
 
     assert!(report_a.all_passed());
     assert_eq!(
@@ -167,7 +181,11 @@ fn negotiation_refuses_a_streaming_requirement_the_adapter_does_not_support_befo
     );
 
     assert!(!report.all_passed());
-    assert_eq!(report.cases.len(), 1, "no further case runs once negotiation refuses");
+    assert_eq!(
+        report.cases.len(),
+        1,
+        "no further case runs once negotiation refuses"
+    );
     let negotiation = report.case(CASE_CAPABILITY_NEGOTIATION).unwrap();
     assert!(!negotiation.passed);
     assert!(negotiation.detail.contains("StreamingNotSupported"));
@@ -219,7 +237,10 @@ fn negotiation_refuses_an_adapter_that_declares_an_unsafe_class_as_retryable() {
 // ---------------------------------------------------------------------
 
 fn assert_drive_refused_with(report: &super::report::ConformanceReport, code: &str) {
-    assert!(!report.all_passed(), "report unexpectedly passed: {report:?}");
+    assert!(
+        !report.all_passed(),
+        "report unexpectedly passed: {report:?}"
+    );
     let negotiation = report.case(CASE_CAPABILITY_NEGOTIATION).unwrap();
     assert!(
         negotiation.passed,
@@ -362,7 +383,10 @@ fn a_mid_stream_disconnect_is_surfaced_as_a_normalized_provider_error_not_a_host
         None,
         &ExpectedOutcome::FailedWithClass(ModelFailure::ProviderError),
     );
-    assert!(report.all_passed(), "a correctly-classified disconnect is expected, not a violation: {report:?}");
+    assert!(
+        report.all_passed(),
+        "a correctly-classified disconnect is expected, not a violation: {report:?}"
+    );
     let drive = report.case(CASE_DRIVE_TO_SETTLEMENT).unwrap();
     assert!(drive.detail.starts_with("failed:provider_error:"));
 }
@@ -377,7 +401,11 @@ fn a_mid_stream_disconnect_is_surfaced_as_a_normalized_provider_error_not_a_host
 fn a_credential_held_by_an_adapter_never_appears_in_its_conformance_report() {
     const SECRET: &str = "sk-live-conformance-canary-9f3a7e21";
     let mut adapter = hostile::CredentialHoldingAdapter::new(SECRET);
-    assert_eq!(adapter.held_credential(), SECRET, "sanity: the secret really was set");
+    assert_eq!(
+        adapter.held_credential(),
+        SECRET,
+        "sanity: the secret really was set"
+    );
 
     let report = run_conformance_suite(
         &mut adapter,
@@ -392,8 +420,14 @@ fn a_credential_held_by_an_adapter_never_appears_in_its_conformance_report() {
     assert!(report.all_passed());
     let rendered = report.render();
     let debug_rendered = format!("{report:?}");
-    assert!(!rendered.contains(SECRET), "rendered report leaked the held credential");
-    assert!(!debug_rendered.contains(SECRET), "Debug-formatted report leaked the held credential");
+    assert!(
+        !rendered.contains(SECRET),
+        "rendered report leaked the held credential"
+    );
+    assert!(
+        !debug_rendered.contains(SECRET),
+        "Debug-formatted report leaked the held credential"
+    );
 }
 
 // ---------------------------------------------------------------------
@@ -427,10 +461,22 @@ fn a_multi_byte_utf8_character_split_across_a_chunk_boundary_assembles_identical
         response_bytes: whole.clone(),
     };
 
-    let split_report =
-        run_conformance_suite(&mut split_adapter, &cap(), &required, &request(4096), None, &expected);
-    let whole_report =
-        run_conformance_suite(&mut whole_adapter, &cap(), &required, &request(4096), None, &expected);
+    let split_report = run_conformance_suite(
+        &mut split_adapter,
+        &cap(),
+        &required,
+        &request(4096),
+        None,
+        &expected,
+    );
+    let whole_report = run_conformance_suite(
+        &mut whole_adapter,
+        &cap(),
+        &required,
+        &request(4096),
+        None,
+        &expected,
+    );
 
     assert!(split_report.all_passed());
     assert!(whole_report.all_passed());
@@ -505,8 +551,9 @@ fn write_temp_schema_source() -> PathBuf {
 
 fn compile_answer_schema() -> crate::agent_interaction_schema::CompiledInteractionSchema {
     let path = write_temp_schema_source();
-    let compiled = crate::agent_interaction_schema::compile_agent_interaction_schema(&path, "answer.type")
-        .expect("answer.type derivation succeeds");
+    let compiled =
+        crate::agent_interaction_schema::compile_agent_interaction_schema(&path, "answer.type")
+            .expect("answer.type derivation succeeds");
     std::fs::remove_file(&path).ok();
     compiled
 }
@@ -524,7 +571,8 @@ fn answer_document(
 }
 
 #[test]
-fn an_adapter_response_assembled_from_a_split_multi_byte_character_decodes_via_the_real_compiled_schema() {
+fn an_adapter_response_assembled_from_a_split_multi_byte_character_decodes_via_the_real_compiled_schema(
+) {
     let schema = compile_answer_schema();
     // "café ✓" again: a two-byte and a three-byte UTF-8 sequence, so the
     // note field genuinely exercises a multi-byte boundary once embedded
@@ -540,20 +588,16 @@ fn an_adapter_response_assembled_from_a_split_multi_byte_character_decodes_via_t
         true,
     );
     let capability = cap();
-    let outcome = super::conformance::drive_to_settlement(
-        &mut adapter,
-        &capability,
-        &request(65_536),
-        None,
-    );
+    let outcome =
+        super::conformance::drive_to_settlement(&mut adapter, &capability, &request(65_536), None);
     let response_bytes = match outcome {
         DriveOutcome::Settled { response_bytes } => response_bytes,
         other => panic!("expected Settled, got {other:?}"),
     };
     assert_eq!(response_bytes, document);
-    schema
-        .decode(&response_bytes)
-        .expect("a legally split multi-byte character must still decode via the real compiled schema");
+    schema.decode(&response_bytes).expect(
+        "a legally split multi-byte character must still decode via the real compiled schema",
+    );
 }
 
 #[test]
@@ -573,12 +617,8 @@ fn a_field_tampered_after_reassembly_is_refused_by_the_real_compiled_schema_not_
     assert_ne!(valid, tampered);
 
     let mut adapter = ScriptedBatchAdapter::new(tampered.clone(), usage(1, 1, 1));
-    let outcome = super::conformance::drive_to_settlement(
-        &mut adapter,
-        &cap(),
-        &request(65_536),
-        None,
-    );
+    let outcome =
+        super::conformance::drive_to_settlement(&mut adapter, &cap(), &request(65_536), None);
     let response_bytes = match outcome {
         DriveOutcome::Settled { response_bytes } => response_bytes,
         other => panic!("expected Settled, got {other:?}"),
@@ -595,5 +635,8 @@ fn structured_output_mode_names_are_stable_and_distinct() {
         StructuredOutputMode::JsonMode.as_str(),
         StructuredOutputMode::ToolCallShaped.as_str()
     );
-    assert_ne!(StructuredOutputMode::RawText.as_str(), StructuredOutputMode::JsonMode.as_str());
+    assert_ne!(
+        StructuredOutputMode::RawText.as_str(),
+        StructuredOutputMode::JsonMode.as_str()
+    );
 }

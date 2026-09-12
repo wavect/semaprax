@@ -163,7 +163,8 @@ mod tests {
         let base = sample();
         let mut mutated = sample();
         mutated.cases[0].passed = false;
-        mutated.cases[0].detail = "ADAPTER-DUPLICATE-COMPLETION: a second Completed event arrived".into();
+        mutated.cases[0].detail =
+            "ADAPTER-DUPLICATE-COMPLETION: a second Completed event arrived".into();
         assert_ne!(base.render(), mutated.render());
         assert_ne!(base.digest(), mutated.digest());
     }
@@ -172,7 +173,10 @@ mod tests {
     fn all_passed_is_false_on_an_empty_case_list() {
         let mut report = sample();
         report.cases.clear();
-        assert!(!report.all_passed(), "an empty case list proves nothing ran, not success");
+        assert!(
+            !report.all_passed(),
+            "an empty case list proves nothing ran, not success"
+        );
     }
 
     #[test]

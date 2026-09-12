@@ -150,15 +150,27 @@ pub enum NegotiationRefusal {
     /// The adapter declared an ambient endpoint rather than
     /// [`EndpointPolicy::HostInjected`]. Refused unconditionally,
     /// independent of `required`.
-    AmbientEndpointDeclared { declared: String },
+    AmbientEndpointDeclared {
+        declared: String,
+    },
     /// The adapter declared a failure class as retryable that
     /// [`retry_is_permitted`] does not admit. Refused unconditionally,
     /// independent of `required`.
-    UnsafeRetryableClassDeclared { class: AttemptOutcomeClass },
+    UnsafeRetryableClassDeclared {
+        class: AttemptOutcomeClass,
+    },
     StreamingNotSupported,
-    StructuredOutputModeNotSupported { mode: StructuredOutputMode },
-    RequestBudgetExceedsAdapterMax { requested: usize, adapter_max: usize },
-    ResponseBudgetExceedsAdapterMax { requested: usize, adapter_max: usize },
+    StructuredOutputModeNotSupported {
+        mode: StructuredOutputMode,
+    },
+    RequestBudgetExceedsAdapterMax {
+        requested: usize,
+        adapter_max: usize,
+    },
+    ResponseBudgetExceedsAdapterMax {
+        requested: usize,
+        adapter_max: usize,
+    },
 }
 
 /// Admits (or refuses) dispatching against an adapter declaring `caps`
@@ -240,13 +252,17 @@ mod tests {
 
     #[test]
     fn a_conforming_adapter_is_admitted() {
-        assert_eq!(negotiate(&conforming_caps(), &permissive_requirement()), Ok(()));
+        assert_eq!(
+            negotiate(&conforming_caps(), &permissive_requirement()),
+            Ok(())
+        );
     }
 
     #[test]
     fn an_ambient_endpoint_declaration_is_refused_before_any_streaming_check() {
         let mut caps = conforming_caps();
-        caps.endpoint_policy = EndpointPolicy::AdapterDeclaredAmbient("http://169.254.169.254/".into());
+        caps.endpoint_policy =
+            EndpointPolicy::AdapterDeclaredAmbient("http://169.254.169.254/".into());
         // Also fails the streaming requirement below, to prove the ambient
         // check is not merely one of several equally likely reasons: it is
         // reported first, unconditionally.
@@ -264,7 +280,8 @@ mod tests {
     #[test]
     fn a_retry_unsafe_declared_class_is_refused() {
         let mut caps = conforming_caps();
-        caps.retryable_failure_classes.push(AttemptOutcomeClass::Uncertain);
+        caps.retryable_failure_classes
+            .push(AttemptOutcomeClass::Uncertain);
         assert_eq!(
             negotiate(&caps, &permissive_requirement()),
             Err(NegotiationRefusal::UnsafeRetryableClassDeclared {

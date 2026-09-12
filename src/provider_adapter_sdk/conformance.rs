@@ -107,7 +107,10 @@ pub fn drive_to_settlement(
                 if cancelled {
                     return DriveOutcome::Refused {
                         code: DRIVE_LATE_AFTER_CANCEL,
-                        reason: format!("a {} event arrived after cancel() was called", event_name(&event)),
+                        reason: format!(
+                            "a {} event arrived after cancel() was called",
+                            event_name(&event)
+                        ),
                     };
                 }
                 match event {
@@ -168,7 +171,8 @@ pub fn drive_to_settlement(
                         if completed {
                             return DriveOutcome::Refused {
                                 code: DRIVE_DUPLICATE_COMPLETION,
-                                reason: "a second Completed event arrived for one request".to_owned(),
+                                reason: "a second Completed event arrived for one request"
+                                    .to_owned(),
                             };
                         }
                         completed = true;
@@ -253,7 +257,10 @@ fn drive_outcome_matches(actual: &DriveOutcome, expected: &ExpectedOutcome) -> b
 fn describe_outcome(outcome: &DriveOutcome) -> String {
     match outcome {
         DriveOutcome::Settled { response_bytes } => {
-            format!("settled:{}", quote_json(&String::from_utf8_lossy(response_bytes)))
+            format!(
+                "settled:{}",
+                quote_json(&String::from_utf8_lossy(response_bytes))
+            )
         }
         DriveOutcome::Refused { code, reason } => format!("refused:{code}:{reason}"),
         DriveOutcome::Failed {

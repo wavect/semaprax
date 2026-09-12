@@ -108,12 +108,18 @@ pub fn usage(tokens_in: u64, tokens_out: u64, cost_micros: i64) -> AdapterUsage 
     }
 }
 
-pub(crate) fn base_capabilities(adapter_identity: &str, supports_streaming: bool) -> AdapterCapabilities {
+pub(crate) fn base_capabilities(
+    adapter_identity: &str,
+    supports_streaming: bool,
+) -> AdapterCapabilities {
     AdapterCapabilities {
         adapter_identity: adapter_identity.to_owned(),
         adapter_version: "1.0.0".into(),
         provider_profile: "fixture".into(),
-        structured_output_modes: vec![StructuredOutputMode::JsonMode, StructuredOutputMode::RawText],
+        structured_output_modes: vec![
+            StructuredOutputMode::JsonMode,
+            StructuredOutputMode::RawText,
+        ],
         supports_streaming,
         token_accounting_source: TokenAccountingSource::LocalEstimate,
         cancellation_semantics: CancellationSemantics::BestEffortRequestStop,
@@ -291,7 +297,9 @@ impl ProviderAdapter for PanicsOnStartAdapter {
         _capability: &AdapterInvocationCapability,
         _request: &AdapterRequest,
     ) -> Result<(), AdapterRefusal> {
-        panic!("start called on an adapter that negotiation should have refused before any dispatch")
+        panic!(
+            "start called on an adapter that negotiation should have refused before any dispatch"
+        )
     }
     fn poll(&mut self) -> AdapterPoll {
         panic!("poll called on an adapter that was never legally started")
@@ -313,7 +321,9 @@ mod tests {
             request_bytes: b"do-the-thing".to_vec(),
             max_response_bytes: 4096,
         };
-        adapter.start(&capability, &request).expect("scripted start always succeeds");
+        adapter
+            .start(&capability, &request)
+            .expect("scripted start always succeeds");
         match adapter.poll() {
             AdapterPoll::Settled(settlement) => {
                 assert_eq!(settlement.response_bytes, b"the-answer");
@@ -327,7 +337,9 @@ mod tests {
         let capabilities = base_capabilities("recorded-replay-adapter", true);
         let mut adapter = RecordedReplayAdapter::from_recording(
             capabilities,
-            vec![super::super::adapter::AdapterEvent::Delta(b"chunk".to_vec())],
+            vec![super::super::adapter::AdapterEvent::Delta(
+                b"chunk".to_vec(),
+            )],
             AdapterSettlement {
                 response_bytes: b"chunk".to_vec(),
                 usage: usage(1, 1, 1),

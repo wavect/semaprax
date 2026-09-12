@@ -84,7 +84,11 @@ pub fn oversized_chunk_adapter(oversized_len: usize) -> ScriptedAdapter {
             usage: usage(1, 1, 1),
         }),
     ];
-    ScriptedAdapter::new(hostile_capabilities("hostile-oversized-chunk"), script, true)
+    ScriptedAdapter::new(
+        hostile_capabilities("hostile-oversized-chunk"),
+        script,
+        true,
+    )
 }
 
 /// Ignores cancellation and keeps delivering scripted deltas after the
@@ -95,7 +99,9 @@ pub fn oversized_chunk_adapter(oversized_len: usize) -> ScriptedAdapter {
 pub fn late_data_after_cancel_adapter() -> ScriptedAdapter {
     let script = vec![
         AdapterPoll::Event(AdapterEvent::Delta(b"before-cancel".to_vec())),
-        AdapterPoll::Event(AdapterEvent::Delta(b"after-cancel-should-not-arrive".to_vec())),
+        AdapterPoll::Event(AdapterEvent::Delta(
+            b"after-cancel-should-not-arrive".to_vec(),
+        )),
         AdapterPoll::Event(AdapterEvent::Completed),
         AdapterPoll::Settled(AdapterSettlement {
             response_bytes: b"before-cancelafter-cancel-should-not-arrive".to_vec(),

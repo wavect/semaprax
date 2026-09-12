@@ -117,6 +117,7 @@ pub(super) fn ast_expr_cost(
             params,
             return_type,
             body,
+            ..
         } => {
             for parameter in params {
                 cost.inline_type_parent(parameter)?;

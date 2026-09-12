@@ -37,10 +37,22 @@ impl Resolver<'_> {
             params,
             return_type,
             body,
+            owning,
         } = &expression.kind
         else {
             unreachable!()
         };
+        if *owning {
+            // SPX-AI-021 bounded owning-capture profile: admitted and fully
+            // checked at the source level (see `source_verify::closure`),
+            // but not yet lowered to HIR/backends pending the independent
+            // review the profile's design calls for. Agreement-by-refusal:
+            // no backend observes a partially-lowered owning capture.
+            // See `docs/CLOSURES-OWNING-V1.md`.
+            return Err(hir_error(
+                "owning-capture closures are admitted and checked at the source level but are not yet lowered to HIR in this bounded profile; see docs/CLOSURES-OWNING-V1.md",
+            ));
+        }
         let source_function = parent
             .monomorphic_declaration()
             .and_then(|id| {

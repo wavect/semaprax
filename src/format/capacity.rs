@@ -219,6 +219,7 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                 params,
                 return_type,
                 body,
+                ..
             } => {
                 total = total
                     .saturating_add(rendered)

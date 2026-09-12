@@ -760,7 +760,11 @@ fn write_expr_measured(
                         params,
                         return_type,
                         body,
+                        owning,
                     } => {
+                        if *owning {
+                            output.write_str("own ").unwrap();
+                        }
                         closure::write_signature(&mut output, params, return_type);
                         frames.push(Frame::Expr(body, 0));
                     }

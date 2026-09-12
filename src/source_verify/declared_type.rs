@@ -780,6 +780,7 @@ fn substitute_forwarded_call_arguments(
             params,
             return_type,
             body,
+            ..
         } => {
             for param in params {
                 param.ty = substitute_function_type(function, arguments, &param.ty)?;

@@ -62,6 +62,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             }
             ExprKind::Var(name) => {
                 let value = self.scopes[scope].bindings.get(name).map(|binding| {
+                    crate::source_verify::owning_closure::reject_escaping_read(
+                        self.program,
+                        name,
+                        &binding.ty,
+                        expression.span,
+                        self.diagnostics,
+                    );
                     match binding.availability {
                         Availability::Moved => self.diagnostics.push(
                             error(
@@ -152,6 +159,19 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 type_arguments,
                 args,
             } => {
+                if let Some(result) = crate::source_verify::owning_closure::check_call(
+                    self.program,
+                    name,
+                    type_arguments,
+                    args,
+                    expression.span,
+                    &mut self.scopes[scope].bindings,
+                    self.types,
+                    self.diagnostics,
+                ) {
+                    self.values.push(result);
+                    return Ok(());
+                }
                 let native = self
                     .program
                     .interfaces

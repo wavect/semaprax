@@ -1,6 +1,6 @@
 * text=auto
 *.rs text eol=lf
-*.spx text eol=lf
+*.spx text eol=lf linguist-language=Rust
 *.spatch text eol=lf
 *.md text eol=lf
 *.json text eol=lf

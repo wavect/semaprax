@@ -63,7 +63,7 @@ cargo run --locked -p semaprax -- check examples/meaning.spx  # → verified exa
 cargo run --locked -p semaprax -- run examples/meaning.spx    # → 42
 ```
 
-No `cargo install`, no `PATH` edits. This is what the docs and CI use to be unambiguous. Use `semaprax --help` or `semaprax help language` (compiler-checked [agent quick reference](docs/AGENT-QUICK-REFERENCE.md)) for the one-page card without a checkout. Open a `.spx` file in VS Code with the [repository extension](editors/vscode/README.md) for syntax highlighting.
+No `cargo install`, no `PATH` edits. This is what the docs and CI use to be unambiguous. Use `semaprax --help` or `semaprax help language` (compiler-checked [agent quick reference](docs/AGENT-QUICK-REFERENCE.md)) for the one-page card without a checkout. Open a `.spx` file in VS Code with the [repository extension](editors/vscode/README.md) for syntax highlighting. On GitHub, `.spx` files render with Rust's highlighting today via a `linguist-language` override in `.gitattributes`; see [GitHub Linguist submission v1](docs/GITHUB-LINGUIST-SUBMISSION-V1.md) for what native `Semaprax` recognition still needs.
 
 ### 3. Install for short commands (optional, 60s)
 

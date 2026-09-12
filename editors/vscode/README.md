@@ -20,6 +20,10 @@ backed by `syntaxes/semaprax.tmLanguage.json` and
 The repository's documentation gate checks that the grammar names every
 keyword the parser recognises, so the highlighting cannot silently lag the
 language. The grammar itself provides no completion or navigation.
+This is also the one grammar this repository would reuse for GitHub-hosted
+`.spx` highlighting; see [GitHub Linguist submission v1](../../docs/GITHUB-LINGUIST-SUBMISSION-V1.md)
+for the interim `.gitattributes` override and what native GitHub recognition
+still requires.
 
 ## Check on save
 

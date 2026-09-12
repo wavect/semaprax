@@ -11,6 +11,7 @@ Audience: all documentation readers.
 - [Quickstart](QUICKSTART.md)
 - [Using the SEMAPRAX CLI](CLI-GUIDE.md)
 - [Language tour](LANGUAGE-TOUR.md)
+- [GitHub Linguist submission v1](GITHUB-LINGUIST-SUBMISSION-V1.md)
 - [Agent quick reference](AGENT-QUICK-REFERENCE.md)
 - [Agent iterative lifecycle v2](AGENT-ITERATIVE-LIFECYCLE-V2.md)
 - [Agent typed effects v3](AGENT-TYPED-EFFECTS-V3.md)

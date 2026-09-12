@@ -182,10 +182,7 @@ impl JobEvidenceLog {
     /// prior one (or a fixed genesis value for the first entry), so the
     /// root after the last `append` call commits to every entry in order.
     pub fn append(&mut self, entry: JobEvidenceEntry, resulting_state: usize) {
-        let previous = self
-            .digests
-            .last()
-            .map_or(GENESIS_DIGEST, String::as_str);
+        let previous = self.digests.last().map_or(GENESIS_DIGEST, String::as_str);
         let mut hasher = Sha256::new();
         hasher.update(EVIDENCE_DOMAIN);
         hasher.update(previous.as_bytes());
@@ -260,8 +257,11 @@ impl JobEvidenceLog {
                 } else {
                     attempt_before.saturating_add(1)
                 };
-                let next =
-                    decisions::retry_next_state_after_outcome(outcome_kind, attempt_after, max_attempts);
+                let next = decisions::retry_next_state_after_outcome(
+                    outcome_kind,
+                    attempt_after,
+                    max_attempts,
+                );
                 // `JobStore::complete` folds a fresh `RetryableFailure` (5)
                 // back into `Scheduled` (1) once backoff is applied; replay
                 // must agree with the live store exactly, not with the
@@ -280,7 +280,12 @@ impl JobEvidenceLog {
             ) => Some(match decision {
                 0 => 4,
                 1 => 6,
-                2 if decisions::uncertain_retry_is_permitted(is_idempotent_handler, attempt, max_attempts) => {
+                2 if decisions::uncertain_retry_is_permitted(
+                    is_idempotent_handler,
+                    attempt,
+                    max_attempts,
+                ) =>
+                {
                     0
                 }
                 _ => 8,
@@ -305,7 +310,14 @@ mod tests {
         JobStore::install_ledger_schema(&mut ledger);
         let mut store = JobStore::new(1);
         let EnqueueOutcome::Created(id) = store
-            .enqueue(&mut ledger, b"evidence-a".to_vec(), vec![1, 2, 3], None, 3, false)
+            .enqueue(
+                &mut ledger,
+                b"evidence-a".to_vec(),
+                vec![1, 2, 3],
+                None,
+                3,
+                false,
+            )
             .unwrap()
         else {
             panic!("expected a fresh job");
@@ -321,7 +333,10 @@ mod tests {
             store.state_of(id).unwrap().code(),
         );
         store.begin_execution(id, lease_generation, 1).unwrap();
-        log.append(JobEvidenceEntry::BegunExecution, store.state_of(id).unwrap().code());
+        log.append(
+            JobEvidenceEntry::BegunExecution,
+            store.state_of(id).unwrap().code(),
+        );
         store
             .complete(id, lease_generation, 2, OutcomeKind::Success, 1, 100)
             .unwrap();
@@ -334,7 +349,11 @@ mod tests {
             store.state_of(id).unwrap().code(),
         );
 
-        assert_eq!(store.state_of(id).unwrap().code(), 4, "store should have reached SUCCEEDED");
+        assert_eq!(
+            store.state_of(id).unwrap().code(),
+            4,
+            "store should have reached SUCCEEDED"
+        );
         assert_eq!(log.replay(), Ok(4));
         assert_eq!(log.replay().unwrap(), store.state_of(id).unwrap().code());
     }
@@ -345,7 +364,14 @@ mod tests {
         JobStore::install_ledger_schema(&mut ledger);
         let mut store = JobStore::new(1);
         let EnqueueOutcome::Created(id) = store
-            .enqueue(&mut ledger, b"evidence-b".to_vec(), vec![4, 5, 6], None, 3, true)
+            .enqueue(
+                &mut ledger,
+                b"evidence-b".to_vec(),
+                vec![4, 5, 6],
+                None,
+                3,
+                true,
+            )
             .unwrap()
         else {
             panic!("expected a fresh job");
@@ -361,9 +387,15 @@ mod tests {
             store.state_of(id).unwrap().code(),
         );
         store.begin_execution(id, lease_generation, 1).unwrap();
-        log.append(JobEvidenceEntry::BegunExecution, store.state_of(id).unwrap().code());
+        log.append(
+            JobEvidenceEntry::BegunExecution,
+            store.state_of(id).unwrap().code(),
+        );
         store.record_connection_uncertain(id).unwrap();
-        log.append(JobEvidenceEntry::ConnectionUncertain, store.state_of(id).unwrap().code());
+        log.append(
+            JobEvidenceEntry::ConnectionUncertain,
+            store.state_of(id).unwrap().code(),
+        );
         store.reconcile_uncertain(id, 2).unwrap();
         log.append(
             JobEvidenceEntry::ReconciledUncertain {
@@ -375,7 +407,11 @@ mod tests {
             store.state_of(id).unwrap().code(),
         );
 
-        assert_eq!(store.state_of(id).unwrap().code(), 0, "an idempotent handler's uncertain job retries back to PENDING");
+        assert_eq!(
+            store.state_of(id).unwrap().code(),
+            0,
+            "an idempotent handler's uncertain job retries back to PENDING"
+        );
         assert_eq!(log.replay(), Ok(0));
     }
 

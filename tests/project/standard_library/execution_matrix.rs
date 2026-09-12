@@ -324,3 +324,53 @@ fn a_missing_required_toolchain_fails_rather_than_skips() {
          `Command::new(..).output().unwrap()` call in this harness, not return quietly"
     );
 }
+
+/// Issue #102's own root cause, guarded permanently: a module can carry real
+/// `#[test]` functions in this harness and still never run in a hosted CI
+/// job, because `cargo test`'s bare `--test project` selects nothing on its
+/// own and every module needs its own named selector line in
+/// `.github/workflows/ci.yml`'s `std-library-depth` job. `environment`,
+/// `process`, `text`, `execution_matrix` (this module), `filesystem_v2`,
+/// `provider_outcomes`, `auth_backend_audit` and `log_redact_backend_audit`
+/// all had `#[test]` functions with zero selector anywhere in `ci.yml` when
+/// this test was written - passing locally, executed by no hosted run. This
+/// walks every `mod <name>;` declared directly in `standard_library.rs`
+/// (skipping one - `temporary` - that is a shared helper with no `#[test]`
+/// of its own) and fails if its file contains a `#[test]` but `ci.yml`
+/// contains no `standard_library::<name>` selector naming it. A module whose
+/// tests are only reached as a nested submodule of another (for example
+/// `json_cursors::json_roundtrip`) is not itself declared in
+/// `standard_library.rs`, so it is correctly out of this walk: its owning
+/// parent's selector already covers it by substring.
+#[test]
+fn every_owning_module_with_tests_has_a_ci_selector() {
+    let ci = std::fs::read_to_string(root().join(".github/workflows/ci.yml")).unwrap();
+    let harness =
+        std::fs::read_to_string(root().join("tests/project/standard_library.rs")).unwrap();
+    let directory = root().join("tests/project/standard_library");
+    let mut missing = Vec::new();
+    for line in harness.lines() {
+        let Some(name) = line
+            .trim()
+            .strip_prefix("mod ")
+            .and_then(|rest| rest.strip_suffix(';'))
+        else {
+            continue;
+        };
+        let module_source = std::fs::read_to_string(directory.join(format!("{name}.rs"))).unwrap();
+        if !module_source.contains("#[test]") {
+            // A shared helper module (e.g. `temporary`) with no test of its
+            // own needs no selector.
+            continue;
+        }
+        if !ci.contains(&format!("standard_library::{name}")) {
+            missing.push(name.to_owned());
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "these standard_library test modules declare `#[test]` functions but \
+         .github/workflows/ci.yml selects none of them, so no hosted CI run ever \
+         executes them: {missing:?}"
+    );
+}

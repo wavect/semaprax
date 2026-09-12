@@ -1199,7 +1199,11 @@ fn compare_case(
     // file's line budget; see that module's header doc for the full
     // reasoning and verdict.
     ordinal_timing_extension::assert_ordinal_timing_extension(
-        case, interpreter, wasm, native_o0, native_o2,
+        case,
+        interpreter,
+        wasm,
+        native_o0,
+        native_o2,
     );
     // Interpreter and Wasm already agree byte-for-byte on the raw result
     // (both frame each leaf directly, no leading count).

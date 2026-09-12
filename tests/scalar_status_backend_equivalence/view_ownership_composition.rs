@@ -347,8 +347,7 @@ fn main() -> i64
 }
 "#;
 
-const OWNERSHIP_CASES: [(&str, i64); 2] =
-    [("voc.case_borrow_only", 10), ("voc.case_transfer", 10)];
+const OWNERSHIP_CASES: [(&str, i64); 2] = [("voc.case_borrow_only", 10), ("voc.case_transfer", 10)];
 
 const REQUIRE_ENV: &str = "SEMAPRAX_REQUIRE_VIEW_OWNERSHIP_COMPOSITION";
 

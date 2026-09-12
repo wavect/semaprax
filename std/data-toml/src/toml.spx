@@ -151,18 +151,18 @@ fn literal_quoted_key_end(record: borrow Slice<u8>, start: usize) -> usize
 
 // Offset just past a bare key starting at `start`, or a failure encoding when
 // no bare-key byte is admitted at `start`.
-// The scan itself walks bytes one at a time with `byte_get`, never testing a
-// growing `byte_range` sub-slice inside the loop: `byte_range` is not one of
-// the two shapes a `while` loop may call
-// (`hir::validation::owned_buffer::require_admitted_while_operation` admits
-// only `byte_len`/`byte_get` reads and a loop-carried `bytes_set` fill), so it
-// is rejected with `SPX-H006` regardless of the corrected Wasm decoder (issue
-// #100, comment 5626417135) - confirmed while attempting the issue #218
-// restoration directly inside this while-loop scanner.
-// `byte_range` is restored here instead the way issue #218 asks: once, after
-// the loop has already left `index` past the last admitted byte, reusing
-// `is_bare_key` on the exact `[start, index)` sub-slice the scan found. That
-// call sits outside any `while` body, so the compiler admits it, and it is
+// The scan walks bytes one at a time with `byte_get`, then calls `byte_range`
+// once after the loop, reusing `is_bare_key` on the exact `[start, index)`
+// sub-slice the scan found.
+// This is a design choice, not a compiler constraint. `byte_range` IS admitted
+// inside a `while` body: `hir::validation::iterator_loops` has its own
+// admission arm for `ResolvedExprKind::ByteRange`, requiring an authenticated
+// byte-slice alias, and that node never reaches
+// `owned_buffer::require_admitted_while_operation` (which governs `ByteOp`
+// calls such as `byte_len`/`byte_get`/`bytes_set`). Verified directly against
+// this compiler. An earlier revision of this comment claimed the opposite.
+// One post-loop call is preferred because it decodes one range-descriptor
+// carrier per key instead of one per byte, and because it is
 // not a no-op check: it is the only call in this module that actually decodes
 // a range-descriptor carrier end to end (build it from `start`/`index`, hand
 // it across the Wasm host boundary, read it back), so a corrupt carrier on

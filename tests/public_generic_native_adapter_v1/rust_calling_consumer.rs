@@ -161,7 +161,12 @@ fn cargo_command(crate_root: &Path, target_dir: &Path, lib_dir: &Path) -> Comman
 /// `generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchain`
 /// uses to drive the generated crate through the exact resolved MSRV
 /// `cargo`, never the ambient one.
-fn cargo_command_with(cargo: &Path, crate_root: &Path, target_dir: &Path, lib_dir: &Path) -> Command {
+fn cargo_command_with(
+    cargo: &Path,
+    crate_root: &Path,
+    target_dir: &Path,
+    lib_dir: &Path,
+) -> Command {
     let mut command = Command::new(cargo);
     command
         .current_dir(crate_root)
@@ -407,7 +412,10 @@ fn resolve_msrv_cargo(toolchain: &str) -> PathBuf {
 #[test]
 fn generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchain() {
     let msrv_cargo = resolve_msrv_cargo(RUST_VERSION);
-    let version = run(Command::new(&msrv_cargo).arg("--version"), "msrv cargo --version");
+    let version = run(
+        Command::new(&msrv_cargo).arg("--version"),
+        "msrv cargo --version",
+    );
     assert!(
         version.status.success(),
         "resolved MSRV cargo failed to report its own version: {}",

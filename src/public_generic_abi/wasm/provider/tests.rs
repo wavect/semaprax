@@ -260,15 +260,26 @@ fn buffer_too_small_reports_exact_required_length_without_consuming() {
 fn sticky_failure_survives_a_later_cleanup_failure_attempt() {
     let mut provider = open();
     provider.test_inject_failure(TraceLabel::ExecutionStarted);
-    let value = provider
-        .input_prepare(&[b"x".to_vec(), b"y".to_vec()])
-        .unwrap();
     // Also arm the release-ordinal cleanup path in the same call: the
     // execution-stage failure has already selected `ContractFailure` by
     // the time input release happens, so this second injection must be
-    // discarded, not override it.
+    // discarded, not override it. `test_inject_failure`'s multi-injection
+    // support (issue #162: each call arms an independently consumable
+    // ordinal rather than replacing the last one) is what makes this
+    // actually expressible — a single `Option<TraceLabel>` slot could only
+    // ever hold one of the two, which is why this second call used to be
+    // absent here despite this comment already describing the intent.
+    provider.test_inject_failure(TraceLabel::LeafRelease);
+    let value = provider
+        .input_prepare(&[b"x".to_vec(), b"y".to_vec()])
+        .unwrap();
     let error = provider.call(value);
     assert_eq!(error, Err(WasmPgStatus::ContractFailure));
+    assert_eq!(
+        provider.test_settlement_overwrite_attempts(),
+        1,
+        "the compounding cleanup injection must be rejected and counted exactly once"
+    );
     assert_eq!(provider.live_allocations(), 0);
     assert_eq!(provider.live_bytes(), 0);
     assert_eq!(provider.live_handles(), 0);

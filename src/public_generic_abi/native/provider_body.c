@@ -139,24 +139,57 @@ static void spx_pg_trace_record(uint32_t label) {
     }
 }
 
-/* --- Deterministic failure injection, test-only. Arms for exactly one
- * subsequent trace label. */
-static uint32_t g_spx_pg_injected_ordinal = SPX_PG_TEST_NO_INJECTION;
+/* --- Deterministic failure injection, test-only. Arms up to two
+ * simultaneous trace labels, each independently consumed. A single slot
+ * cannot express issue #162's required "cleanup failure after an
+ * input/runtime failure" (and after a result-staging failure) cases: those
+ * need a REAL earlier failure ordinal (e.g. SPX_PG_TRACE_EXECUTION_STARTED)
+ * armed at the same time as a release ordinal, in the same call, so the
+ * sticky rule (`spx_pg_settle`) has something genuine to discard. Two slots
+ * are as many as any corpus case arms at once; a third simultaneous
+ * injection is not a case this repository's corpus needs. */
+static uint32_t g_spx_pg_injected_ordinals[2] = {SPX_PG_TEST_NO_INJECTION, SPX_PG_TEST_NO_INJECTION};
 
 static int spx_pg_should_inject(uint32_t label) {
-    if (g_spx_pg_injected_ordinal == label) {
-        g_spx_pg_injected_ordinal = SPX_PG_TEST_NO_INJECTION;
-        return 1;
+    for (size_t index = 0; index < 2; ++index) {
+        if (g_spx_pg_injected_ordinals[index] == label) {
+            g_spx_pg_injected_ordinals[index] = SPX_PG_TEST_NO_INJECTION;
+            return 1;
+        }
     }
     return 0;
 }
 
+/* Arms `ordinal` in the first free slot rather than replacing whatever is
+ * already armed, so calling this twice before one call with two DIFFERENT
+ * ordinals arms both simultaneously (mirrors
+ * `InterpreterProvider`/`WasmProvider::test_inject_failure` pushing onto a
+ * Vec instead of overwriting a single `Option`). Idempotent if `ordinal` is
+ * already armed in either slot: re-arming the SAME still-unconsumed
+ * ordinal a second time (existing callers, e.g.
+ * `tests/public_generic_native_adapter_v1/settlement_corpus.rs`'s driver,
+ * call this once before `spx_pg_input_prepare_v1` and again before
+ * `spx_pg_call_v1` in case the first call phase never consumed it) must
+ * stay a harmless no-op, exactly like the old single-slot design's
+ * overwrite-with-the-same-value was, rather than silently occupying the
+ * second slot with a duplicate of the first. */
 void spx_pg_test_inject_failure_v1(uint32_t ordinal) {
-    g_spx_pg_injected_ordinal = ordinal;
+    for (size_t index = 0; index < 2; ++index) {
+        if (g_spx_pg_injected_ordinals[index] == ordinal) {
+            return;
+        }
+    }
+    for (size_t index = 0; index < 2; ++index) {
+        if (g_spx_pg_injected_ordinals[index] == SPX_PG_TEST_NO_INJECTION) {
+            g_spx_pg_injected_ordinals[index] = ordinal;
+            return;
+        }
+    }
 }
 
 void spx_pg_test_clear_failure_injection_v1(void) {
-    g_spx_pg_injected_ordinal = SPX_PG_TEST_NO_INJECTION;
+    g_spx_pg_injected_ordinals[0] = SPX_PG_TEST_NO_INJECTION;
+    g_spx_pg_injected_ordinals[1] = SPX_PG_TEST_NO_INJECTION;
 }
 
 size_t spx_pg_test_live_allocations_v1(void) {

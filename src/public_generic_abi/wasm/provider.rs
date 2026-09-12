@@ -213,7 +213,12 @@ pub struct WasmProvider {
     registry: HandleRegistry,
     calls: HashMap<u32, CallState>,
     next_generation: u32,
-    injected: Option<TraceLabel>,
+    /// Test-only: every trace ordinal currently armed to fail, each
+    /// independently consumable. See `InterpreterProvider`'s identical
+    /// field for why a single `Option` cannot express issue #162's
+    /// compound "cleanup failure after an input/runtime failure" (and
+    /// after a result-staging failure) cases.
+    injected: Vec<TraceLabel>,
     settlement_overwrite_attempts: u32,
     /// Test-only: a snapshot of the most recently settled call's normalized
     /// trace, taken at the same moment `settle` runs (every terminal path,
@@ -248,7 +253,7 @@ impl WasmProvider {
             registry: HandleRegistry::new(),
             calls: HashMap::new(),
             next_generation: 1,
-            injected: None,
+            injected: Vec::new(),
             settlement_overwrite_attempts: 0,
             last_trace: Vec::new(),
         })
@@ -289,14 +294,17 @@ impl WasmProvider {
     /// Test-only: not part of the production surface, never emitted for a
     /// support/publication claim (this whole module already carries that
     /// blanket claim). Arms deterministic failure at trace ordinal `label`
-    /// for the next `input_prepare`/`call` sequence only; disarms itself
-    /// once it fires.
+    /// for the next `input_prepare`/`call` sequence only; each armed
+    /// ordinal disarms itself once it fires. Calling this more than once
+    /// before a call arms every named ordinal simultaneously (issue #162's
+    /// compound cleanup-after-an-earlier-failure cases) rather than
+    /// replacing the previous one.
     pub fn test_inject_failure(&mut self, label: TraceLabel) {
-        self.injected = Some(label);
+        self.injected.push(label);
     }
 
     pub fn test_clear_failure_injection(&mut self) {
-        self.injected = None;
+        self.injected.clear();
     }
 
     pub fn test_settlement_overwrite_attempts(&self) -> u32 {
@@ -304,8 +312,8 @@ impl WasmProvider {
     }
 
     fn take_injection_if(&mut self, label: TraceLabel) -> bool {
-        if self.injected == Some(label) {
-            self.injected = None;
+        if let Some(index) = self.injected.iter().position(|armed| *armed == label) {
+            self.injected.remove(index);
             true
         } else {
             false
@@ -561,6 +569,18 @@ impl WasmProvider {
             self.settle(&mut state.machine, Settlement::ContractFailure);
             let _ = self.release_input_physical(&state);
             let _ = state.machine.release_input_after_transfer();
+            // Issue #162: "cleanup failure after an input/runtime
+            // failure," matching `InterpreterProvider::call`'s identical
+            // addition exactly. `ExecutionStarted`'s own settle call above
+            // already made `ContractFailure` sticky; a release-ordinal
+            // injection ALSO armed for this same call is a genuinely
+            // later, distinct attempt (`Settlement::CleanupFailure`) the
+            // sticky rule must reject and count, never apply.
+            if self.take_injection_if(TraceLabel::LeafRelease)
+                || self.take_injection_if(TraceLabel::CarrierRelease)
+            {
+                self.settle(&mut state.machine, Settlement::CleanupFailure);
+            }
             return Err(WasmPgStatus::ContractFailure);
         }
 
@@ -700,6 +720,14 @@ impl WasmProvider {
             };
             self.settle(&mut state.machine, outcome);
             let _ = state.machine.release_result_before_commit();
+            // Not extended with a compounding cleanup-injection check like
+            // the `ExecutionStarted` site above: `LeafRelease`/
+            // `CarrierRelease` are already unconditionally checked at the
+            // input-release site earlier in this same function (reached
+            // by every call that gets this far), so arming either ordinal
+            // before the call is consumed there first and never reaches
+            // this block — see this module's settlement-corpus
+            // documentation of that scope boundary.
             return Err(status);
         }
 

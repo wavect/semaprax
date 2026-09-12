@@ -101,6 +101,15 @@ struct Case {
     case_id: String,
     input_leaves: Vec<Vec<u8>>,
     failure_injection_id: Option<TraceLabel>,
+    /// A SECOND, independently armed injection ordinal (issue #162's
+    /// required "cleanup failure after an input/runtime failure" case),
+    /// arming alongside `failure_injection_id` rather than replacing it —
+    /// see `InterpreterProvider`/`WasmProvider::test_inject_failure`'s own
+    /// doc comment for why a single slot cannot express this. `None` for
+    /// every pre-existing case; both engines' `test_inject_failure` are
+    /// called once per non-`None` field, in field-declaration order, so a
+    /// case that sets both arms `failure_injection_id` first.
+    compound_cleanup_injection: Option<TraceLabel>,
     expected_accepted: bool,
     /// The normalized status vocabulary both adapters converge on
     /// (`Ok` = 0 .. `NullOrWrongKind` = 13), compared as a plain integer so
@@ -128,6 +137,7 @@ fn corpus() -> Vec<Case> {
             case_id: "minimal_success".to_owned(),
             input_leaves: vec![b"hello".to_vec()],
             failure_injection_id: None,
+            compound_cleanup_injection: None,
             expected_accepted: true,
             expected_status: InterpreterPgStatus::Ok as i32,
         },
@@ -135,6 +145,7 @@ fn corpus() -> Vec<Case> {
             case_id: "zero_length_owned_bytes".to_owned(),
             input_leaves: vec![Vec::new()],
             failure_injection_id: None,
+            compound_cleanup_injection: None,
             expected_accepted: true,
             expected_status: InterpreterPgStatus::Ok as i32,
         },
@@ -142,6 +153,7 @@ fn corpus() -> Vec<Case> {
             case_id: "embedded_zero_bytes".to_owned(),
             input_leaves: vec![vec![0u8, 1, 0, 2, 0, 3, 0]],
             failure_injection_id: None,
+            compound_cleanup_injection: None,
             expected_accepted: true,
             expected_status: InterpreterPgStatus::Ok as i32,
         },
@@ -149,6 +161,7 @@ fn corpus() -> Vec<Case> {
             case_id: "two_leaves_structural_order".to_owned(),
             input_leaves: vec![b"AA".to_vec(), b"BBB".to_vec()],
             failure_injection_id: None,
+            compound_cleanup_injection: None,
             expected_accepted: true,
             expected_status: InterpreterPgStatus::Ok as i32,
         },
@@ -159,6 +172,7 @@ fn corpus() -> Vec<Case> {
                 crate::public_generic_abi::boundary_profile::MAX_BYTES_PER_LEAF
             ]],
             failure_injection_id: None,
+            compound_cleanup_injection: None,
             expected_accepted: true,
             expected_status: InterpreterPgStatus::Ok as i32,
         },
@@ -170,6 +184,7 @@ fn corpus() -> Vec<Case> {
                     + 1
             ]],
             failure_injection_id: None,
+            compound_cleanup_injection: None,
             expected_accepted: false,
             expected_status: InterpreterPgStatus::CarrierCapacity as i32,
         },
@@ -181,6 +196,7 @@ fn corpus() -> Vec<Case> {
                     + 1
             ],
             failure_injection_id: None,
+            compound_cleanup_injection: None,
             expected_accepted: false,
             expected_status: InterpreterPgStatus::CarrierCapacity as i32,
         },
@@ -252,10 +268,41 @@ fn corpus() -> Vec<Case> {
             case_id: format!("failure_injection_{label:?}"),
             input_leaves: vec![b"inject-me".to_vec(), b"second-leaf".to_vec()],
             failure_injection_id: Some(*label),
+            compound_cleanup_injection: None,
             expected_accepted: false,
             expected_status: *status,
         });
     }
+
+    // Issue #162's required "cleanup failure after an input/runtime
+    // failure" case: `ExecutionStarted`'s own injected failure settles
+    // `ContractFailure` first and physically releases the input; a
+    // release-ordinal injection ALSO armed for this same call is then a
+    // genuinely later, distinct attempt (`Settlement::CleanupFailure`) the
+    // sticky rule must reject and count instead of apply — see
+    // `InterpreterProvider::call`/`WasmProvider::call`'s own new comment at
+    // the `ExecutionStarted` site. Distinct from the pre-existing
+    // `failure_injection_LeafRelease`/`CarrierRelease` cases above, which
+    // exercise "cleanup failure with NO prior failure": those never inject
+    // anything earlier, so the release-ordinal injection there legally
+    // becomes the terminal status instead of being discarded. The expected
+    // accept/reject and status are unchanged from the earlier-only case
+    // (`ExecutionStarted` alone): the compounding cleanup attempt is
+    // rejected, never applied, so it cannot change what the caller
+    // observes — only `test_settlement_overwrite_attempts` reveals it,
+    // which `sticky_failure_selection_matches_across_engines_when_cleanup_follows_an_earlier_failure`
+    // (below) already established interpreter/Wasm both increment
+    // identically for a single-injection call; this case proves the same
+    // sticky rule holds when the cleanup ordinal is real too, not merely
+    // absent.
+    cases.push(Case {
+        case_id: "execution_failure_with_compounding_cleanup_injection".to_owned(),
+        input_leaves: vec![b"payload".to_vec()],
+        failure_injection_id: Some(TraceLabel::ExecutionStarted),
+        compound_cleanup_injection: Some(TraceLabel::LeafRelease),
+        expected_accepted: false,
+        expected_status: InterpreterPgStatus::ContractFailure as i32,
+    });
     cases
 }
 
@@ -285,6 +332,9 @@ fn run_interpreter_case(case: &Case) -> EngineOutcome {
     )
     .expect("the settlement-corpus fixture binding must open on the interpreter engine");
     if let Some(label) = case.failure_injection_id {
+        provider.test_inject_failure(label);
+    }
+    if let Some(label) = case.compound_cleanup_injection {
         provider.test_inject_failure(label);
     }
     let outcome = provider
@@ -330,6 +380,9 @@ fn run_wasm_case(case: &Case) -> EngineOutcome {
     )
     .expect("the settlement-corpus fixture binding must open on the Wasm engine");
     if let Some(label) = case.failure_injection_id {
+        provider.test_inject_failure(label);
+    }
+    if let Some(label) = case.compound_cleanup_injection {
         provider.test_inject_failure(label);
     }
     let outcome = provider
@@ -519,8 +572,9 @@ fn compare(
 fn every_corpus_case_agrees_across_the_interpreter_and_wasm_engines() {
     let cases = corpus();
     assert!(
-        cases.len() >= 21,
-        "the corpus must cover the base shapes and the full 14-ordinal injection matrix"
+        cases.len() >= 22,
+        "the corpus must cover the base shapes, the full 14-ordinal injection matrix, and the \
+         compounding cleanup-after-an-earlier-failure case"
     );
     for case in &cases {
         let interpreter = run_interpreter_case(case);
@@ -565,6 +619,7 @@ fn structural_leaf_order_is_left_to_right_staged_and_exact_reverse_released() {
         case_id: "structural_order_pin".to_owned(),
         input_leaves: vec![b"AA".to_vec(), b"BBB".to_vec()],
         failure_injection_id: None,
+            compound_cleanup_injection: None,
         expected_accepted: true,
         expected_status: InterpreterPgStatus::Ok as i32,
     };
@@ -611,6 +666,7 @@ fn sticky_failure_selection_matches_across_engines_when_cleanup_follows_an_earli
         case_id: "execution_failure_then_no_cleanup_injection".to_owned(),
         input_leaves: vec![b"payload".to_vec()],
         failure_injection_id: Some(TraceLabel::ExecutionStarted),
+        compound_cleanup_injection: None,
         expected_accepted: false,
         expected_status: InterpreterPgStatus::ContractFailure as i32,
     };
@@ -625,6 +681,82 @@ fn sticky_failure_selection_matches_across_engines_when_cleanup_follows_an_earli
     );
     assert_eq!(interpreter.settlement_overwrite_attempts, 0);
     assert_eq!(wasm.settlement_overwrite_attempts, 0);
+}
+
+/// The genuine compound case the test above is a deliberate control for:
+/// here the release-ordinal injection IS also armed, alongside the earlier
+/// `ExecutionStarted` failure, in the same call. "Cleanup cannot replace
+/// the selected status" is only proven end-to-end once something actually
+/// attempts to replace it; the test above proves the counter is zero when
+/// nothing does, this one proves it becomes exactly one when something
+/// does, and both engines must agree on that count, not merely on the
+/// unchanged accept/reject and status. Uses the corpus's own
+/// `execution_failure_with_compounding_cleanup_injection` case rather than
+/// a private one, so this is the identical case
+/// `every_corpus_case_agrees_across_the_interpreter_and_wasm_engines`
+/// already runs — this test only adds the overwrite-count assertion that
+/// generic sweep does not make on every case.
+#[test]
+fn sticky_failure_selection_matches_across_engines_when_cleanup_also_fails_after_an_earlier_failure(
+) {
+    let case = corpus()
+        .into_iter()
+        .find(|case| case.case_id == "execution_failure_with_compounding_cleanup_injection")
+        .expect("the corpus must define the compounding cleanup-injection case");
+    let interpreter = run_interpreter_case(&case);
+    let wasm = run_wasm_case(&case);
+    compare(
+        &case.case_id,
+        case.expected_accepted,
+        case.expected_status,
+        &interpreter,
+        &wasm,
+    );
+    assert_eq!(
+        interpreter.settlement_overwrite_attempts, 1,
+        "the compounding cleanup injection must be rejected and counted exactly once"
+    );
+    assert_eq!(
+        wasm.settlement_overwrite_attempts, 1,
+        "the compounding cleanup injection must be rejected and counted exactly once"
+    );
+}
+
+/// Negative control: proves the assertion above is real, not vacuously
+/// true because `run_interpreter_case`/`run_wasm_case` always happen to
+/// return 1 regardless of whether the compounding injection fired. Both
+/// engines are corrupted to the SAME wrong value (rather than only one) so
+/// `compare`'s own pairwise `a.settlement_overwrite_attempts ==
+/// b.settlement_overwrite_attempts` check — which would otherwise catch a
+/// single-engine corruption first and mask the absolute-value assertion
+/// this test targets — still passes, isolating the failure to the
+/// explicit `== 1` checks below.
+#[test]
+#[should_panic(expected = "the compounding cleanup injection must be rejected and counted exactly once")]
+fn sticky_failure_selection_rejects_a_missing_compounding_overwrite_count() {
+    let case = corpus()
+        .into_iter()
+        .find(|case| case.case_id == "execution_failure_with_compounding_cleanup_injection")
+        .expect("the corpus must define the compounding cleanup-injection case");
+    let mut interpreter = run_interpreter_case(&case);
+    let mut wasm = run_wasm_case(&case);
+    interpreter.settlement_overwrite_attempts = 0;
+    wasm.settlement_overwrite_attempts = 0;
+    compare(
+        &case.case_id,
+        case.expected_accepted,
+        case.expected_status,
+        &interpreter,
+        &wasm,
+    );
+    assert_eq!(
+        interpreter.settlement_overwrite_attempts, 1,
+        "the compounding cleanup injection must be rejected and counted exactly once"
+    );
+    assert_eq!(
+        wasm.settlement_overwrite_attempts, 1,
+        "the compounding cleanup injection must be rejected and counted exactly once"
+    );
 }
 
 #[test]

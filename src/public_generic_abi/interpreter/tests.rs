@@ -275,10 +275,11 @@ fn cleanup_cannot_overwrite_an_earlier_sticky_failure() {
         .call(value)
         .expect_err("execution-start injection must fail the call");
     assert_eq!(error, InterpreterPgStatus::ContractFailure);
-    // The primary failure is already sticky; the two release-ordinal
-    // injections that fire during this same call's cleanup never got a
-    // chance to run (the call already returned), so exercise the
-    // overwrite-attempt counter directly against a fresh call instead.
+    // No release-ordinal injection was armed for this call, so the
+    // release-ordinal check `call` now runs right after this same
+    // `ExecutionStarted` branch (see issue #162's compound case, exercised
+    // directly by `cleanup_failure_is_rejected_and_counted_when_it_compounds_an_earlier_sticky_failure`
+    // below) never finds anything armed and never attempts a settle.
     assert_eq!(provider.test_settlement_overwrite_attempts(), 0);
 
     provider.test_inject_failure(TraceLabel::LeafRelease);
@@ -291,6 +292,45 @@ fn cleanup_cannot_overwrite_an_earlier_sticky_failure() {
         .expect_err("a cleanup failure with no earlier failure becomes terminal");
     assert_eq!(error2, InterpreterPgStatus::ContractFailure);
     assert_eq!(provider.test_settlement_overwrite_attempts(), 0);
+}
+
+/// Issue #162's required "cleanup failure after an input/runtime failure"
+/// case, at the single-engine level: unlike the test above (which arms
+/// only `ExecutionStarted`, so the release-ordinal check never finds
+/// anything armed), this one arms BOTH `ExecutionStarted` and
+/// `LeafRelease` before the SAME call.
+/// `InterpreterProvider::test_inject_failure`'s multi-injection support
+/// (each call arms an independently consumable ordinal rather than
+/// replacing the last one) is what makes this expressible at all — a
+/// single `Option<TraceLabel>` slot could only ever hold one of the two.
+/// `ExecutionStarted` settles `ContractFailure` first and physically
+/// releases the input; `LeafRelease` is checked immediately afterward
+/// (still in the same early-return branch) and must be REJECTED and
+/// COUNTED, never applied, proving "cleanup cannot replace the selected
+/// status" holds even when the cleanup failure is real, not merely absent.
+#[test]
+fn cleanup_failure_is_rejected_and_counted_when_it_compounds_an_earlier_sticky_failure() {
+    let mut provider = open_provider();
+    provider.test_inject_failure(TraceLabel::ExecutionStarted);
+    provider.test_inject_failure(TraceLabel::LeafRelease);
+    let value = provider.input_prepare(&[b"x".to_vec()]).unwrap();
+    let error = provider
+        .call(value)
+        .expect_err("execution-start injection must fail the call");
+    assert_eq!(
+        error,
+        InterpreterPgStatus::ContractFailure,
+        "the earlier ExecutionStarted failure must remain the sticky status, not be replaced by \
+         the compounding cleanup failure"
+    );
+    assert_eq!(
+        provider.test_settlement_overwrite_attempts(),
+        1,
+        "the compounding cleanup injection must be rejected and counted exactly once"
+    );
+    assert_eq!(provider.live_allocations(), 0);
+    assert_eq!(provider.live_handles(), 0);
+    assert_eq!(provider.live_bytes(), 0);
 }
 
 #[test]

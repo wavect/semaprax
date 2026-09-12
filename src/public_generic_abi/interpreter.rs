@@ -297,7 +297,17 @@ pub struct InterpreterProvider {
     registry: HandleRegistry,
     calls: HashMap<u32, CallState>,
     next_generation: u32,
-    injected: Option<TraceLabel>,
+    /// Test-only: every trace ordinal currently armed to fail, each
+    /// independently consumable. A plain `Option` cannot express issue
+    /// #162's required "cleanup failure after an input/runtime failure"
+    /// case: that needs a REAL earlier failure (e.g. `ExecutionStarted`)
+    /// and the subsequent release-ordinal cleanup to ALSO be armed, in the
+    /// same call, so the sticky rule has something genuine to discard.
+    /// [`Self::test_inject_failure`] arms an ordinal by pushing it here
+    /// rather than replacing the field, so every existing single-injection
+    /// call site keeps its exact prior behavior (one entry in, one
+    /// entry consumed).
+    injected: Vec<TraceLabel>,
     settlement_overwrite_attempts: u32,
     /// Test-only: a snapshot of the most recently settled call's normalized
     /// trace, taken at the same moment `settle` runs. See
@@ -333,7 +343,7 @@ impl InterpreterProvider {
             registry: HandleRegistry::new(),
             calls: HashMap::new(),
             next_generation: 1,
-            injected: None,
+            injected: Vec::new(),
             settlement_overwrite_attempts: 0,
             last_trace: Vec::new(),
         })
@@ -359,13 +369,17 @@ impl InterpreterProvider {
 
     /// Test-only, never part of a support/publication claim. Arms
     /// deterministic failure at trace ordinal `label` for the next
-    /// `input_prepare`/`call` sequence only; disarms itself once it fires.
+    /// `input_prepare`/`call` sequence only; each armed ordinal disarms
+    /// itself once it fires. Calling this more than once before a call
+    /// arms every named ordinal simultaneously (issue #162's compound
+    /// cleanup-after-an-earlier-failure cases) rather than replacing the
+    /// previous one.
     pub fn test_inject_failure(&mut self, label: TraceLabel) {
-        self.injected = Some(label);
+        self.injected.push(label);
     }
 
     pub fn test_clear_failure_injection(&mut self) {
-        self.injected = None;
+        self.injected.clear();
     }
 
     pub fn test_settlement_overwrite_attempts(&self) -> u32 {
@@ -373,8 +387,8 @@ impl InterpreterProvider {
     }
 
     fn take_injection_if(&mut self, label: TraceLabel) -> bool {
-        if self.injected == Some(label) {
-            self.injected = None;
+        if let Some(index) = self.injected.iter().position(|armed| *armed == label) {
+            self.injected.remove(index);
             true
         } else {
             false
@@ -623,6 +637,23 @@ impl InterpreterProvider {
             self.settle(&mut state.machine, Settlement::ContractFailure);
             let _ = self.release_input_physical(&state);
             let _ = state.machine.release_input_after_transfer();
+            // Issue #162: "cleanup failure after an input/runtime
+            // failure." `ExecutionStarted`'s own settle call above already
+            // made `ContractFailure` sticky; if a release-ordinal
+            // injection is ALSO armed for this same call, it is a
+            // genuinely later, distinct attempt (`Settlement::CleanupFailure`,
+            // not `Settlement::ContractFailure` again) that the sticky rule
+            // must reject and count, never apply — this is the compound
+            // case the corpus's own
+            // `execution_failure_with_compounding_cleanup_injection` case
+            // exercises, distinct from the pre-existing "cleanup failure
+            // with no prior failure" case, which never reaches this
+            // early-return site at all.
+            if self.take_injection_if(TraceLabel::LeafRelease)
+                || self.take_injection_if(TraceLabel::CarrierRelease)
+            {
+                self.settle(&mut state.machine, Settlement::CleanupFailure);
+            }
             return Err(InterpreterPgStatus::ContractFailure);
         }
 
@@ -745,6 +776,14 @@ impl InterpreterProvider {
             };
             self.settle(&mut state.machine, outcome);
             let _ = state.machine.release_result_before_commit();
+            // Not extended with a compounding cleanup-injection check like
+            // the `ExecutionStarted` site above: `LeafRelease`/
+            // `CarrierRelease` are already unconditionally checked at the
+            // input-release site earlier in this same function (reached
+            // by every call that gets this far), so arming either ordinal
+            // before the call is consumed there first and never reaches
+            // this block — see this module's settlement-corpus
+            // documentation of that scope boundary.
             return Err(status);
         }
 

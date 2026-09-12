@@ -234,6 +234,13 @@
 #[path = "settlement_corpus/ordinal_timing_extension.rs"]
 mod ordinal_timing_extension;
 
+/// Issue #162's own divergence 7 (its compound cleanup-after-an-earlier-
+/// failure case). Factored out for the identical line-budget reason as
+/// `ordinal_timing_extension` above; also owns that case's own `Case`
+/// construction, reached from `corpus()` below through `super`.
+#[path = "settlement_corpus/divergence_7_compounding_cleanup.rs"]
+mod divergence_7_compounding_cleanup;
+
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -303,6 +310,12 @@ struct Case {
     case_id: &'static str,
     input_leaves: Vec<Vec<u8>>,
     failure_injection: Option<TraceLabel>,
+    /// A second, independently armed injection ordinal, alongside
+    /// `failure_injection` rather than replacing it (issue #162's
+    /// compound cleanup-after-an-earlier-failure case; see
+    /// `divergence_7_compounding_cleanup`). `None` for every pre-existing
+    /// case.
+    compound_cleanup_injection: Option<TraceLabel>,
     expected_accepted: bool,
     expected_status: i32,
 }
@@ -313,6 +326,7 @@ fn corpus() -> Vec<Case> {
             case_id: "minimal_success",
             input_leaves: vec![b"hello".to_vec()],
             failure_injection: None,
+            compound_cleanup_injection: None,
             expected_accepted: true,
             expected_status: InterpreterPgStatus::Ok as i32,
         },
@@ -320,6 +334,7 @@ fn corpus() -> Vec<Case> {
             case_id: "zero_length_owned_bytes",
             input_leaves: vec![Vec::new()],
             failure_injection: None,
+            compound_cleanup_injection: None,
             expected_accepted: true,
             expected_status: InterpreterPgStatus::Ok as i32,
         },
@@ -327,6 +342,7 @@ fn corpus() -> Vec<Case> {
             case_id: "embedded_zero_bytes",
             input_leaves: vec![vec![0u8, 1, 0, 2, 0, 3, 0]],
             failure_injection: None,
+            compound_cleanup_injection: None,
             expected_accepted: true,
             expected_status: InterpreterPgStatus::Ok as i32,
         },
@@ -334,6 +350,7 @@ fn corpus() -> Vec<Case> {
             case_id: "two_leaves_structural_order",
             input_leaves: vec![b"AA".to_vec(), b"BBB".to_vec()],
             failure_injection: None,
+            compound_cleanup_injection: None,
             expected_accepted: true,
             expected_status: InterpreterPgStatus::Ok as i32,
         },
@@ -341,6 +358,7 @@ fn corpus() -> Vec<Case> {
             case_id: "max_bytes_per_leaf",
             input_leaves: vec![vec![0xABu8; MAX_BYTES_PER_LEAF]],
             failure_injection: None,
+            compound_cleanup_injection: None,
             expected_accepted: true,
             expected_status: InterpreterPgStatus::Ok as i32,
         },
@@ -348,6 +366,7 @@ fn corpus() -> Vec<Case> {
             case_id: "first_over_max_bytes_per_leaf",
             input_leaves: vec![vec![0u8; MAX_BYTES_PER_LEAF + 1]],
             failure_injection: None,
+            compound_cleanup_injection: None,
             expected_accepted: false,
             expected_status: InterpreterPgStatus::CarrierCapacity as i32,
         },
@@ -355,6 +374,7 @@ fn corpus() -> Vec<Case> {
             case_id: "first_over_max_leaf_count",
             input_leaves: vec![Vec::new(); MAX_OWNED_LEAVES_PER_INSTANCE + 1],
             failure_injection: None,
+            compound_cleanup_injection: None,
             expected_accepted: false,
             expected_status: InterpreterPgStatus::CarrierCapacity as i32,
         },
@@ -427,10 +447,16 @@ fn corpus() -> Vec<Case> {
             case_id: Box::leak(format!("failure_injection_{label:?}").into_boxed_str()),
             input_leaves: vec![b"inject-me".to_vec(), b"second-leaf".to_vec()],
             failure_injection: Some(*label),
+            compound_cleanup_injection: None,
             expected_accepted: false,
             expected_status: *status,
         });
     }
+
+    // Issue #162's compound cleanup-after-an-earlier-failure case; see
+    // `divergence_7_compounding_cleanup` for the case itself and the
+    // finding it exists to prove.
+    cases.push(divergence_7_compounding_cleanup::compounding_case());
     cases
 }
 
@@ -555,6 +581,9 @@ fn run_interpreter_case(case: &Case) -> EngineOutcome {
     if let Some(label) = case.failure_injection {
         provider.test_inject_failure(label);
     }
+    if let Some(label) = case.compound_cleanup_injection {
+        provider.test_inject_failure(label);
+    }
     let outcome = provider
         .input_prepare(&case.input_leaves)
         .and_then(|value| provider.call(value));
@@ -599,6 +628,9 @@ fn run_wasm_case(case: &Case) -> EngineOutcome {
     )
     .expect("the settlement-corpus fixture binding must open on the Wasm engine");
     if let Some(label) = case.failure_injection {
+        provider.test_inject_failure(label);
+    }
+    if let Some(label) = case.compound_cleanup_injection {
         provider.test_inject_failure(label);
     }
     let outcome = provider
@@ -711,10 +743,13 @@ static spx_pg_provider_v1 *open_trusted_provider(void) {
 }
 
 static void run_one_case(const char *case_id, const uint8_t *carrier, size_t carrier_len,
-                          int32_t injection_ordinal) {
+                          int32_t injection_ordinal, int32_t injection_ordinal2) {
     spx_pg_provider_v1 *provider = open_trusted_provider();
     if (injection_ordinal >= 0) {
         spx_pg_test_inject_failure_v1((uint32_t)injection_ordinal);
+    }
+    if (injection_ordinal2 >= 0) {
+        spx_pg_test_inject_failure_v1((uint32_t)injection_ordinal2);
     }
     spx_pg_value_v1 *input = NULL;
     spx_pg_status_v1 status = spx_pg_input_prepare_v1(provider, carrier, carrier_len, &input);
@@ -722,6 +757,9 @@ static void run_one_case(const char *case_id, const uint8_t *carrier, size_t car
     if (status == SPX_PG_STATUS_OK) {
         if (injection_ordinal >= 0) {
             spx_pg_test_inject_failure_v1((uint32_t)injection_ordinal);
+        }
+        if (injection_ordinal2 >= 0) {
+            spx_pg_test_inject_failure_v1((uint32_t)injection_ordinal2);
         }
         status = spx_pg_call_v1(provider, input, &result);
     }
@@ -790,8 +828,13 @@ static void run_one_case(const char *case_id, const uint8_t *carrier, size_t car
             Some(label) => (label as i64).to_string(),
             None => "-1".to_owned(),
         };
+        let ordinal2 = match case.compound_cleanup_injection {
+            Some(label) => (label as i64).to_string(),
+            None => "-1".to_owned(),
+        };
         source.push_str(&format!(
-            "    run_one_case({}, CASE_{index}_CARRIER, sizeof(CASE_{index}_CARRIER), {ordinal});\n",
+            "    run_one_case({}, CASE_{index}_CARRIER, sizeof(CASE_{index}_CARRIER), {ordinal}, \
+             {ordinal2});\n",
             c_string_literal(case.case_id)
         ));
     }
@@ -1072,15 +1115,29 @@ fn compare_case(
     // already `Some`) never did. `provider_body.c`'s `spx_pg_call_v1` now
     // reads the already-sticky status directly instead of re-proposing
     // `SPX_PG_STATUS_OK` against it, so the overwrite-attempt count is
-    // compared across ALL FOUR engines, not only within each family.
-    for engine in engines {
-        assert_eq!(
-            engine.settlement_overwrite_attempts, interpreter.settlement_overwrite_attempts,
-            "case {:?}: sticky-settlement overwrite-attempt count disagrees between {} and \
-             interpreter (issue #240 divergence 5)",
-            case.case_id, engine.engine_id
-        );
+    // compared across ALL FOUR engines, not only within each family — for
+    // every case EXCEPT `execution_failure_with_compounding_cleanup_injection`,
+    // whose own divergence-7 block below pins a real, different exception.
+    if case.case_id != "execution_failure_with_compounding_cleanup_injection" {
+        for engine in engines {
+            assert_eq!(
+                engine.settlement_overwrite_attempts, interpreter.settlement_overwrite_attempts,
+                "case {:?}: sticky-settlement overwrite-attempt count disagrees between {} and \
+                 interpreter (issue #240 divergence 5)",
+                case.case_id, engine.engine_id
+            );
+        }
     }
+    // Issue #162's own divergence 7 (see that module's doc for the finding
+    // and verdict); a no-op for every case but its own, like
+    // `ordinal_timing_extension`'s call below.
+    divergence_7_compounding_cleanup::assert_divergence_7(
+        case,
+        interpreter,
+        wasm,
+        native_o0,
+        native_o2,
+    );
     // Issue #240 divergences 1 and 2 (fixed): native's flat-`Bytes` root
     // handle now gets the identical LeafAllocationStarted/Committed/
     // PayloadCopied triple (input side) and ResultLeafAllocationStarted/
@@ -1259,8 +1316,9 @@ fn compare_case(
 fn native_o0_and_o2_agree_with_interpreter_and_wasm_across_the_shared_settlement_corpus() {
     let (cases, o0, o2) = corpus_and_native_outcomes();
     assert!(
-        cases.len() >= 21,
-        "the corpus must cover the base shapes and the full 14-ordinal injection matrix"
+        cases.len() >= 22,
+        "the corpus must cover the base shapes, the full 14-ordinal injection matrix, and the \
+         compounding cleanup-after-an-earlier-failure case"
     );
     assert_eq!(o0.len(), cases.len());
     assert_eq!(o2.len(), cases.len());

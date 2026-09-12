@@ -10,5 +10,5 @@ pub use model::{
     ProjectPreparedExecutionOutcome, ProjectSourceTrace, ProjectSourceTraceEvent,
     PROJECT_SOURCE_TRACE_SCHEMA,
 };
-pub(super) use render::render;
+pub(super) use render::{map_outcome, render};
 pub use verify::{verify_project_source_trace, verify_project_source_trace_against_revision};

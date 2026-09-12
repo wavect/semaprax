@@ -412,7 +412,7 @@ pub use prepared_interpreter::{
     verify_project_source_trace_against_revision, PreparedProjectExecution,
     PreparedProjectExecutionOptions, PreparedProjectInterpreter, PreparedProjectInterpreterOptions,
     ProjectExecutionCancellation, ProjectPreparedExecutionOutcome, ProjectSourceTrace,
-    ProjectSourceTraceEvent, DEFAULT_PROJECT_SOURCE_TRACE_BYTES,
+    ProjectSourceTraceEvent, UntracedPreparedProjectExecution, DEFAULT_PROJECT_SOURCE_TRACE_BYTES,
     DEFAULT_PROJECT_SOURCE_TRACE_EVENTS, MAX_PROJECT_SOURCE_TRACE_BYTES,
     MAX_PROJECT_SOURCE_TRACE_EVENTS, MIN_PROJECT_SOURCE_TRACE_BYTES, PROJECT_SOURCE_TRACE_SCHEMA,
 };

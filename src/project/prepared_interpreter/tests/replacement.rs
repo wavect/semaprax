@@ -478,3 +478,49 @@ fn replacement_preserves_cancellation_trace_saturation_fuel_and_original_ceiling
     drop(prepared);
     candidate.cleanup();
 }
+
+#[test]
+fn untraced_replacement_keeps_language_failure_and_call_depth_outcomes() {
+    let _serial = real_prepare_serial();
+    let old = revision();
+    let worker = old
+        .prepare_interpreter(PreparedProjectInterpreterOptions::default())
+        .unwrap();
+    let candidate = Candidate::new(false);
+    let mut expected_revision = old.project_revision().to_owned();
+    let cancellation = ProjectExecutionCancellation::new();
+    for (body, expected) in [
+        (
+            "1 / 0",
+            ProjectPreparedExecutionOutcome::LanguageFailure(
+                crate::runtime_status::normalize_arithmetic(
+                    crate::cleanup_plan::StatusCase::DivisionByZero,
+                ),
+            ),
+        ),
+        ("main()", ProjectPreparedExecutionOutcome::CallDepthExceeded),
+    ] {
+        let source = format!(
+            "module calculator.app;\n@id(\"calculator.app.main\")\nfn main() -> i64 {{ {body} }}\n"
+        );
+        let source =
+            crate::format::canonical(&crate::parse(&source, Path::new("src/app.spx")).unwrap());
+        std::fs::write(candidate.root.join("src/app.spx"), source).unwrap();
+        let next = candidate.reopen();
+        worker
+            .replace_revision(&expected_revision, Arc::clone(&next))
+            .unwrap();
+        expected_revision = next.project_revision().to_owned();
+        let traced = worker
+            .execute_entry(&PreparedProjectExecutionOptions::default(), &cancellation)
+            .unwrap();
+        let untraced = worker
+            .execute_entry_untraced(interpreter::DEFAULT_MAX_STEPS, &cancellation)
+            .unwrap();
+        assert_eq!(untraced.outcome(), &expected);
+        assert_eq!(traced.outcome(), untraced.outcome());
+        assert_eq!(traced.steps_used(), untraced.steps_used());
+        verify_project_source_trace_against_revision(&next, traced.trace().envelope()).unwrap();
+    }
+    candidate.cleanup();
+}

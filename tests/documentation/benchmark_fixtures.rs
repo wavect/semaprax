@@ -105,6 +105,32 @@ fn the_scalar_loop_fixture_is_an_admissible_project_and_a_standalone_module() {
     let second = prepared.execute_entry(&options, &cancellation).unwrap();
     assert_eq!(first.steps_used(), second.steps_used());
     assert_eq!(first.outcome(), second.outcome());
+    let untraced = prepared
+        .execute_entry_untraced(options.max_steps, &cancellation)
+        .unwrap();
+    assert_eq!(first.outcome(), untraced.outcome());
+    assert_eq!(first.steps_used(), untraced.steps_used());
+    assert_eq!(execution.steps_used(), untraced.steps_used());
+    match execution.outcome() {
+        project::ProjectExecutionOutcome::Returned(value) => assert_eq!(
+            untraced.outcome(),
+            &project::ProjectPreparedExecutionOutcome::Returned(*value)
+        ),
+        other => panic!("scalar fixture must return successfully: {other:?}"),
+    }
+
+    let cold_untraced = project::with_authenticated_project(&manifest, |snapshot| {
+        let worker = snapshot.prepare_interpreter(PreparedProjectInterpreterOptions::default())?;
+        worker.execute_entry_untraced(options.max_steps, &cancellation)
+    })
+    .unwrap();
+    let cold_traced = project::with_authenticated_project(&manifest, |snapshot| {
+        let worker = snapshot.prepare_interpreter(PreparedProjectInterpreterOptions::default())?;
+        worker.execute_entry(&options, &cancellation)
+    })
+    .unwrap();
+    assert_eq!(cold_untraced, untraced);
+    assert_eq!(cold_traced, first);
 
     // The same source is interpreted directly by the cold end-to-end benchmark.
     let standalone = directory.join("standalone.spx");

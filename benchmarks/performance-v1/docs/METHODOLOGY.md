@@ -61,11 +61,20 @@ Bench groups:
   - `interpreter-prepared-evaluator`: the same scalar loop as an authenticated
     Project, executed through `ProjectRevision::prepare_interpreter` — closures
     resolved once, worker retained — beside the retained-but-unprepared
-    revision. The two rows are whole operations with different published output,
-    not a preparation delta: the prepared path always collects a
-    `ProjectSourceTrace` and the retained path collects none, and on the first
-    executed run the prepared row was the slower of the two by roughly an order
-    of magnitude on both subjects. No benchmark constructs unchecked HIR.
+    revision. The original traced and retained arms remain, with an additional
+    `scalar-loop-untraced` prepared arm. Traced and untraced prepared execution
+    must return identical outcomes and fuel facts before timing; their difference
+    measures optional trace collection/rendering. The retained arm still includes
+    closure admission, worker creation and a Project execution report, so its
+    delta from the untraced prepared result is not an isolated preparation cost.
+    No benchmark constructs unchecked HIR. This API/arm addition supplies no
+    new measured speedup. `scalar-loop-cold-untraced` and
+    `scalar-loop-cold-traced` authenticate, prepare, execute and drop the worker
+    inside every timed sample. Each must return exactly the same product as
+    its corresponding prepared arm (including full trace bytes when traced).
+    The traced prepared arm still carries evidence work; compare matching
+    traced/untraced modes for lifecycle costs. Stage observations and quiet
+    repeated measurements remain part of #85.
 - `project`:
   - `project-cold-load`: `check`, `run` and `test` through
     `project::with_authenticated_project` for the shipped `calculator-project`

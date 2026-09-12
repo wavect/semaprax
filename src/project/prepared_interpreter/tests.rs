@@ -11,6 +11,7 @@ use crate::{interpreter, project::ProjectRevision};
 use super::*;
 
 mod replacement;
+mod untraced;
 
 const TRACE_PAYLOAD_DOMAIN: &[u8] = b"semaprax.project-source-trace.payload.v1\0";
 static REAL_PREPARE_SERIAL: Mutex<()> = Mutex::new(());

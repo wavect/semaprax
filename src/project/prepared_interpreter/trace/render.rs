@@ -333,7 +333,7 @@ fn render_outcome(outcome: &ProjectPreparedExecutionOutcome) -> String {
     }
 }
 
-fn map_outcome(
+pub(crate) fn map_outcome(
     outcome: PreparedResolvedEvaluationOutcome,
 ) -> Result<ProjectPreparedExecutionOutcome, Vec<Diagnostic>> {
     match outcome {

@@ -574,6 +574,9 @@ outcomes, cancellation handle, and worker-slot model; `origin.rs` owns exact
 entry/test source-origin indexing and duplicate-fact disagreement checks; and
 `worker.rs` owns fail-fast execution admission, the bounded fixed-stack worker
 lifecycle, evaluation/cancellation dispatch, and trace assembly.
+`worker/untraced.rs` adds explicit outcome/fuel-only requests on that same
+worker, using the evaluator's existing zero-event path without rendering a
+trace; it shares admission and revision replacement with traced requests.
 
 `worker/replacement.rs` owns the additive expected-revision check and complete
 prepared-state handoff. Execution and replacement share fail-fast admission;

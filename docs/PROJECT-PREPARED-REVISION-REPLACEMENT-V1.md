@@ -78,7 +78,9 @@ This terminates the local worker, not the embedding process.
 
 ## Evaluation and trace preservation
 
-After successful replacement, both entry and test evaluation use only the
+After successful replacement, traced and explicit untraced entry/test
+requests use the same replaced state and shared operation admission.
+Both entry and test evaluation use only the
 new state. Existing `semaprax.project-source-trace.v1` bytes bind the selected
 Project/Workspace revisions, graph digest, source facts, and expression
 origins exactly as before. No new trace schema, status, event, digest domain,

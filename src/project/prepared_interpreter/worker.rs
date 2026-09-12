@@ -15,6 +15,9 @@ use super::model::{
 use super::origin::{prepare_closures, FunctionOrigin, PreparedClosures};
 
 mod replacement;
+mod untraced;
+
+pub use untraced::UntracedPreparedProjectExecution;
 #[cfg(test)]
 mod tests;
 
@@ -32,6 +35,7 @@ struct ExecutionRequest {
 
 enum WorkerMessage {
     Execute(ExecutionRequest),
+    ExecuteUntraced(untraced::Request),
     Replace(ReplacementRequest),
     Shutdown,
 }
@@ -241,6 +245,12 @@ fn worker_loop(
     while let Ok(message) = receiver.recv() {
         let request = match message {
             WorkerMessage::Execute(request) => request,
+            WorkerMessage::ExecuteUntraced(request) => {
+                if !untraced::process(&state, request) {
+                    break;
+                }
+                continue;
+            }
             WorkerMessage::Replace(request) => {
                 if !replacement::process(&mut state, request) {
                     break;

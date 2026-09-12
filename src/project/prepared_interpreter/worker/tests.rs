@@ -9,6 +9,13 @@ fn install_hook(worker: &PreparedProjectInterpreter, hook: TestHook) {
 fn assert_terminal(worker: &PreparedProjectInterpreter, revision: &Arc<ProjectRevision>) {
     assert_eq!(
         worker
+            .execute_entry_untraced(1000, &ProjectExecutionCancellation::new())
+            .unwrap_err()[0]
+            .code,
+        "SPX-F109"
+    );
+    assert_eq!(
+        worker
             .execute_entry(
                 &PreparedProjectExecutionOptions::default(),
                 &ProjectExecutionCancellation::new()
@@ -80,6 +87,13 @@ fn replacement_uses_the_actual_worker_and_excludes_both_concurrent_operations() 
             )
             .unwrap_err();
         assert_eq!(execute[0].code, "SPX-F109");
+        assert_eq!(
+            worker
+                .execute_test_untraced(1000, &ProjectExecutionCancellation::new())
+                .unwrap_err()[0]
+                .code,
+            "SPX-F109"
+        );
         assert_eq!(
             worker
                 .replace_revision(revision.project_revision(), Arc::clone(&revision))

@@ -22,7 +22,9 @@ pub use trace::{
     ProjectPreparedExecutionOutcome, ProjectSourceTrace, ProjectSourceTraceEvent,
     PROJECT_SOURCE_TRACE_SCHEMA,
 };
-pub use worker::{prepare_project_interpreter, PreparedProjectInterpreter};
+pub use worker::{
+    prepare_project_interpreter, PreparedProjectInterpreter, UntracedPreparedProjectExecution,
+};
 
 pub(super) use origin::FunctionOrigin;
 

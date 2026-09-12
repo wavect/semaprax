@@ -157,6 +157,22 @@ fn bench_interpreter_prepared(c: &mut Criterion) {
         .unwrap();
     let first = prepared.execute_entry(&options, &cancellation).unwrap();
     let steps = first.steps_used() as u64;
+    let untraced = prepared
+        .execute_entry_untraced(options.max_steps, &cancellation)
+        .unwrap();
+    assert_eq!(untraced.outcome(), first.outcome());
+    assert_eq!(untraced.steps_used(), first.steps_used());
+    let retained = revision
+        .execute_entry(&ProjectExecutionOptions::default())
+        .unwrap();
+    assert_eq!(retained.steps_used(), first.steps_used());
+    match retained.outcome() {
+        project::ProjectExecutionOutcome::Returned(value) => assert_eq!(
+            first.outcome(),
+            &project::ProjectPreparedExecutionOutcome::Returned(*value)
+        ),
+        other => panic!("scalar benchmark must return successfully: {other:?}"),
+    }
 
     let mut group = c.benchmark_group("interpreter-prepared-evaluator");
     group.throughput(Throughput::Elements(LOOP_ITERATIONS));
@@ -169,17 +185,54 @@ fn bench_interpreter_prepared(c: &mut Criterion) {
             })
         },
     );
-    // The retained (unprepared) revision re-resolves its closures per call.
-    //
-    // The difference between the two rows is NOT the preparation the prepared
-    // case avoids, and this comment claimed it was until the group was first
-    // executed. `PreparedProjectExecutionOptions` always collects a
-    // `ProjectSourceTrace` — `validate_trace_limits` admits no zero budget — and
-    // `ProjectExecutionOptions` collects none, so the prepared row carries work
-    // the retained row does not. On the first executed run the prepared row was
-    // the slower of the two by roughly an order of magnitude on both subjects.
-    // Read the pair as two whole operations with different published output,
-    // never as a preparation delta, until the paths are made to do equal work.
+    // The no-trace arm emits only outcome/fuel; tracing is a separate cost.
+    group.bench_function(
+        BenchmarkId::new("scalar-loop-untraced", format!("{steps}-evaluator-steps")),
+        |b| {
+            b.iter(|| {
+                std::hint::black_box(
+                    prepared.execute_entry_untraced(options.max_steps, &cancellation),
+                )
+                .unwrap();
+            })
+        },
+    );
+    // Cold arms authenticate and prepare inside each sample. They return the
+    // exact same products as their corresponding prepared arms; setup and
+    // worker teardown are included rather than shifted outside the timer.
+    let cold_untraced = || {
+        project::with_authenticated_project(&manifest, |snapshot| {
+            let worker =
+                snapshot.prepare_interpreter(PreparedProjectInterpreterOptions::default())?;
+            worker.execute_entry_untraced(options.max_steps, &cancellation)
+        })
+    };
+    let cold_traced = || {
+        project::with_authenticated_project(&manifest, |snapshot| {
+            let worker =
+                snapshot.prepare_interpreter(PreparedProjectInterpreterOptions::default())?;
+            worker.execute_entry(&options, &cancellation)
+        })
+    };
+    assert_eq!(cold_untraced().unwrap(), untraced);
+    assert_eq!(cold_traced().unwrap(), first);
+    group.bench_function(
+        BenchmarkId::new(
+            "scalar-loop-cold-untraced",
+            format!("{steps}-evaluator-steps"),
+        ),
+        |b| b.iter(|| std::hint::black_box(cold_untraced()).unwrap()),
+    );
+    group.bench_function(
+        BenchmarkId::new(
+            "scalar-loop-cold-traced",
+            format!("{steps}-evaluator-steps"),
+        ),
+        |b| b.iter(|| std::hint::black_box(cold_traced()).unwrap()),
+    );
+    // Retained execution includes closure re-admission, worker creation and its
+    // Project execution report. It is still a whole-operation measurement,
+    // not an isolated preparation delta; the prepared result has no envelope.
     group.bench_function(
         BenchmarkId::new("scalar-loop-retained", format!("{steps}-evaluator-steps")),
         |b| {

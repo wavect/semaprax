@@ -8,6 +8,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add explicit untraced prepared Project execution with unchanged traced
+  behavior, fuel, cancellation and revision replacement. Add matching cold
+  and prepared benchmark products and truthful platform-specific memory
+  observations (#85); no new performance measurements are claimed.
+- Persist migrated live-kernel handoffs, state and destination journals in one
+  bounded canonical checkpoint before dispatch, with recovery and store-failure
+  regressions (#115). Checked source migration and cumulative-chain integration
+  remain open.
+- Add a non-editing OpenCode availability smoke and bind archived event streams
+  to the matching exported session and frozen prompt (#105/#112). This is
+  provider availability evidence, not a coding-agent trial or live-driver adapter.
+
 - Correct the Workspace Semantic Graph and Context/Impact/Review workspace
   limit projections to report the enforced 18 MiB builder ceiling from one
   renderer (#248). The 16 MiB analysis/cache ceilings remain separate. Re-pin

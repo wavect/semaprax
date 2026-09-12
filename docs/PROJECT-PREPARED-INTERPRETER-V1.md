@@ -47,6 +47,30 @@ zero fuel and reports boundary one. Without cancellation, evaluation order,
 fuel, normalized failures, call-depth behavior, and returned values use the
 same evaluator as the legacy Project route.
 
+### Explicit untraced execution
+
+The additive `execute_untraced(role, max_steps, cancellation)`,
+`execute_entry_untraced(max_steps, cancellation)` and
+`execute_test_untraced(max_steps, cancellation)` methods return
+`UntracedPreparedProjectExecution`: role, normalized outcome, steps used and
+step ceiling, with no trace or evidence envelope. They reuse the same worker,
+fail-fast admission, retained closure checks, evaluator, cancellation and
+revision replacement. Invalid fuel bounds still fail `SPX-F108`.
+
+This explicit API selects the evaluator's existing zero-event mode. During
+execution it allocates no event vector storage, interns no trace identities,
+and performs no trace rendering. Preparation still builds the admitted closure
+and source-origin indexes, so a caller can alternate traced and untraced runs.
+Existing traced methods, positive trace bounds, defaults and canonical trace
+bytes remain unchanged. Traced execution after an untraced request has the same
+bytes for the same revision, options and observed cancellation boundary.
+
+This additive API has focused local evidence; it is not covered by the older
+release baseline cited above. It enables measuring tracing overhead but makes
+no speedup claim. Legacy retained execution additionally publishes its Project
+execution report; a no-trace result alone does not make all benchmark products
+identical.
+
 | Bound | Value |
 | --- | ---: |
 | maximum evaluator steps | 100,000,000 |

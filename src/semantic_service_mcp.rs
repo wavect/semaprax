@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use serde_json::{json, Map, Value};
 
-use crate::project::{ProjectRevision, MAX_SOURCES};
+use crate::project::{ProjectRevision, MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS, MAX_SOURCES};
 use crate::project_transport::codec;
 use crate::semantic_service_transport::{
     SemanticWorkspaceStdioSession, MAX_SEMANTIC_SERVICE_REQUEST_BYTES,
@@ -290,6 +290,14 @@ fn tools() -> Vec<Value> {
         tool("workspace__index_query", "Run one canonical retained semantic index query string against the retained generation.", one_string_schema("query")),
         tool("workspace__history_query", "Run one canonical revision-bound query over successful transaction-validation and refresh outcomes.", one_string_schema("query")),
         tool("workspace__validate_transaction", "Validate one canonical Universal Semantic Transaction v1 string without adopting its candidate.", one_string_schema("transaction")),
+        tool("workspace__validate_transaction_v2_workflow", "Validate an ordered sequence of canonical Universal Semantic Transaction v2 ReplaceExpression strings as one multi-file workflow, each step reselected against the revision its predecessor produced, without adopting its candidate.", json!({
+            "type":"object",
+            "properties":{
+                "steps":{"type":"array","minItems":1,"maxItems":MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS,"items":{"type":"string"}}
+            },
+            "required":["steps"],
+            "additionalProperties":false
+        })),
         tool("workspace__refresh", "Refresh from caller-owned canonical manifest and source bytes. Source paths are Project-relative identities, never host path selectors.", json!({
             "type":"object",
             "properties":{
@@ -321,6 +329,9 @@ fn tool_method(name: &str) -> Option<&'static str> {
         "workspace__index_query" => Some("workspace/index-query"),
         "workspace__history_query" => Some("workspace/history-query"),
         "workspace__validate_transaction" => Some("workspace/validate-transaction"),
+        "workspace__validate_transaction_v2_workflow" => {
+            Some("workspace/validate-transaction-v2-workflow")
+        }
         "workspace__refresh" => Some("workspace/refresh"),
         _ => None,
     }

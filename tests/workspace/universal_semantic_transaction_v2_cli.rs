@@ -8,8 +8,9 @@ use semaprax::project::{
     self, render_project_lock, with_authenticated_project, ExactProgramContext,
     ExactProgramContextV2, ImageArtifactKind, InterfaceArtifactFacts, ProgramRootV2,
     ProjectCandidate, ProjectRevision, SemanticTransaction, SemanticTransactionRenameDisplayName,
-    SemanticTransactionReplaceExpression, SemanticTransactionV2, SemanticWorkspaceRevision,
-    SemanticWorkspaceService, SemanticWorkspaceServiceHistoryQuery, MAX_IMAGE_ARTIFACT_BUILD_BYTES,
+    SemanticTransactionReplaceExpression, SemanticTransactionV2, SemanticTransactionV2Workflow,
+    SemanticWorkspaceRevision, SemanticWorkspaceService, SemanticWorkspaceServiceHistoryQuery,
+    MAX_IMAGE_ARTIFACT_BUILD_BYTES,
 };
 use serde_json::{json, Value};
 
@@ -470,4 +471,228 @@ fn additive_route_leaves_legacy_v1_preview_bytes_unchanged() {
     ]);
     assert_success(&output);
     assert_eq!(output.stdout, expected.result().as_bytes());
+}
+
+// ---------------------------------------------------------------------
+// `change workflow`: ordered multi-step Universal Semantic Transaction v2
+// workflows (issue #219, follow-up from #127).
+// ---------------------------------------------------------------------
+
+fn swap_op(op: &str, left: &str, right: &str) -> Value {
+    json!({
+        "kind": "binary", "op": op,
+        "left": {"kind": "place", "name": right},
+        "right": {"kind": "place", "name": left},
+    })
+}
+
+/// A calculator-project fixture with a distinct, human-authored leading
+/// comment on `src/core.spx` only; `src/app.spx` and `src/tests.spx` stay
+/// canonical. Known, load-bearing fact this fixture depends on (confirmed by
+/// reading `src/project/semantic_transaction_v2.rs`'s `validate`): the
+/// candidate a v2 step admits is ALWAYS fully canonical, comment-free
+/// source -- `require_canonical_comment_free_sources` runs unconditionally
+/// on the freshly-applied candidate, with no exemption for the just-edited
+/// file. The comment-preserving splice (#126) is a SEPARATE, Rust-only
+/// convenience (`SemanticTransactionArtifactsV2::preserved_target_source`),
+/// never part of `candidate().revision()`'s own stored text, and not
+/// currently exposed anywhere on `SemanticTransactionV2Workflow`'s own
+/// public surface. So a comment only needs to survive as far as the ONE
+/// step that admits it: by the time a LATER step runs, that file is already
+/// canonical again, which is exactly what lets a later step target a
+/// genuinely DIFFERENT file without tripping
+/// `require_canonical_comment_free_sources_except`'s "outside the edited
+/// file must already be canonical" requirement.
+struct CommentedFixture(PathBuf);
+
+impl CommentedFixture {
+    fn new() -> Self {
+        let root = std::env::temp_dir().join(format!(
+            "spx-universal-semantic-transaction-v2-cli-workflow-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project");
+        std::fs::copy(sample.join("semaprax.toml"), root.join("semaprax.toml")).unwrap();
+        std::fs::copy(sample.join("src/app.spx"), root.join("src/app.spx")).unwrap();
+        std::fs::copy(sample.join("src/tests.spx"), root.join("src/tests.spx")).unwrap();
+        let core_source = std::fs::read_to_string(sample.join("src/core.spx")).unwrap();
+        std::fs::write(
+            root.join("src/core.spx"),
+            format!("// core-owner note: keep me above add\n{core_source}"),
+        )
+        .unwrap();
+        Self(root.canonicalize().unwrap())
+    }
+
+    fn manifest(&self) -> PathBuf {
+        self.0.join("semaprax.toml")
+    }
+
+    fn revision(&self) -> Arc<ProjectRevision> {
+        with_authenticated_project(&self.manifest(), |snapshot| Ok(snapshot.retain_revision()))
+            .unwrap()
+    }
+
+    fn invoke(&self, arguments: &[&str]) -> Output {
+        Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .current_dir(&self.0)
+            .args(arguments)
+            .output()
+            .unwrap()
+    }
+}
+
+impl Drop for CommentedFixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+#[test]
+fn workflow_over_two_files_matches_the_direct_core_when_the_first_files_comment_is_admitted() {
+    let fixture = CommentedFixture::new();
+    let before = inventory(&fixture.0);
+    let base = fixture.revision();
+    let workspace_revision = base
+        .canonical_workspace_revision()
+        .unwrap()
+        .workspace_revision()
+        .to_owned();
+
+    // Step 0 replaces `calculator.multiply`'s body in the one comment-bearing
+    // file, src/core.spx. Its own artifacts still expose the comment via the
+    // Rust-only comment-preserving-splice convenience, proving the workflow
+    // core's first step admits and correctly handles comment-bearing source
+    // rather than merely tolerating an already-canonical one.
+    let (expression_id_0, old_0) = selection(&base, "calculator.multiply", "left * right");
+    let replacement_0 = swap_op("*", "left", "right");
+    let step_0 = SemanticTransactionV2::replace_expression(
+        &workspace_revision,
+        SemanticTransactionReplaceExpression::new(
+            "calculator.multiply",
+            &expression_id_0,
+            &old_0,
+            replacement_0.clone(),
+        ),
+    )
+    .unwrap();
+    let after_0 = step_0.validate(Arc::clone(&base)).unwrap();
+    assert_eq!(
+        after_0.preserved_target_source().unwrap(),
+        format!(
+            "// core-owner note: keep me above add\n{}",
+            std::fs::read_to_string(
+                Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("examples/calculator-project/src/core.spx")
+            )
+            .unwrap()
+        )
+        .replace("left * right", "right * left")
+    );
+    let intermediate = Arc::clone(after_0.candidate().revision());
+
+    // Step 1 reselects fresh against the revision step 0 actually produced,
+    // and edits a genuinely DIFFERENT file, src/app.spx -- possible only
+    // because step 0's candidate is fully canonical again (see
+    // `CommentedFixture`'s doc comment), so src/core.spx no longer trips
+    // "outside the edited file must be canonical" for this second step.
+    let target_1 = "calculator.app.main";
+    let snippet_1 = "add(multiply(6, 7), subtract(divide(4, 2), 2))";
+    let (expression_id_1, old_1) = selection(&intermediate, target_1, snippet_1);
+    let replacement_1 = json!({"kind": "i64", "value": 100});
+    let workspace_revision_1 = intermediate
+        .canonical_workspace_revision()
+        .unwrap()
+        .workspace_revision()
+        .to_owned();
+    let step_1 = SemanticTransactionV2::replace_expression(
+        &workspace_revision_1,
+        SemanticTransactionReplaceExpression::new(
+            target_1,
+            &expression_id_1,
+            &old_1,
+            replacement_1.clone(),
+        ),
+    )
+    .unwrap();
+
+    let direct = SemanticTransactionV2Workflow::derive(Arc::clone(&base), &[step_0, step_1])
+        .expect("direct core workflow composition must succeed");
+
+    let replacement_0_text = serde_json::to_string(&replacement_0).unwrap();
+    let replacement_1_text = serde_json::to_string(&replacement_1).unwrap();
+    let common = [
+        "change",
+        "workflow",
+        fixture.0.to_str().unwrap(),
+        "replace-expression",
+        "calculator.multiply",
+        &expression_id_0,
+        &replacement_0_text,
+        "--then",
+        "replace-expression",
+        target_1,
+        &expression_id_1,
+        &replacement_1_text,
+        "--revision",
+        &workspace_revision,
+    ];
+
+    // CLI/service results refer to the same final candidate as the direct
+    // core composition (issue #127's own criterion), not merely a
+    // structurally similar one: the exact result envelope bytes agree.
+    let output = fixture.invoke(&common);
+    assert_success(&output);
+    assert_eq!(output.stdout, direct.to_json().as_bytes());
+
+    let mut structural = common.to_vec();
+    structural.push("--structural-diff");
+    let structural_output = fixture.invoke(&structural);
+    assert_success(&structural_output);
+    assert_eq!(
+        structural_output.stdout,
+        direct.structural_diff().to_json().as_bytes()
+    );
+
+    assert_eq!(inventory(&fixture.0), before);
+}
+
+#[test]
+fn workflow_grammar_rejects_a_malformed_second_step_without_writes() {
+    let fixture = Fixture::new();
+    let before = inventory(&fixture.0);
+    let base = fixture.revision();
+    let workspace_revision = base
+        .canonical_workspace_revision()
+        .unwrap()
+        .workspace_revision()
+        .to_owned();
+    let (expression_id_0, _old_0) = selection(&base, "calculator.multiply", "left * right");
+    let replacement_0 = serde_json::to_string(&swap_op("*", "left", "right")).unwrap();
+
+    // The second step names an expression identity that never existed
+    // (stale/unavailable), which must surface as a diagnostic on stderr
+    // and a nonzero exit, never a written file.
+    let output = fixture.invoke(&[
+        "change",
+        "workflow",
+        fixture.0.to_str().unwrap(),
+        "replace-expression",
+        "calculator.multiply",
+        &expression_id_0,
+        &replacement_0,
+        "--then",
+        "replace-expression",
+        "calculator.app.main",
+        "no-such-expression-identity",
+        &replacement_0,
+        "--revision",
+        &workspace_revision,
+    ]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("SPX-G527"));
+    assert_eq!(inventory(&fixture.0), before);
 }

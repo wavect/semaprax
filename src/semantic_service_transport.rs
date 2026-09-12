@@ -7,7 +7,8 @@ use serde_json::{json, Map, Value};
 
 use crate::diagnostic::Diagnostic;
 use crate::project::{
-    ProjectFrontendSource, ProjectManifest, ProjectRevision, SemanticWorkspaceService, MAX_SOURCES,
+    ProjectFrontendSource, ProjectManifest, ProjectRevision, SemanticWorkspaceService,
+    MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS, MAX_SOURCES,
 };
 use crate::project_transport::codec::{self, RequestId, RequestKind, RpcRequest};
 
@@ -162,6 +163,17 @@ impl SemanticWorkspaceStdioSession {
                     "result_digest": artifacts.result_digest(),
                     "review": exact_json(artifacts.review())?,
                     "review_digest": artifacts.review_digest(),
+                }))
+            }
+            "workspace/validate-transaction-v2-workflow" => {
+                self.require_open()?;
+                let mut params = closed_params(request.params, &["steps"])?;
+                let steps = take_step_array(&mut params)?;
+                let workflow = self.service.validate_transaction_v2_workflow(&steps)?;
+                self.wrap(json!({
+                    "candidate_revision": workflow.candidate().revision().project_revision(),
+                    "digest": workflow.digest(),
+                    "value": exact_json(workflow.to_json())?,
                 }))
             }
             "workspace/refresh" => self.refresh(request.params),
@@ -328,7 +340,7 @@ fn protocol() -> Value {
         "methods": [
             "service/protocol", "workspace/open", "workspace/status", "workspace/query",
             "workspace/index-query", "workspace/history-query", "workspace/validate-transaction",
-            "workspace/refresh", "shutdown"
+            "workspace/validate-transaction-v2-workflow", "workspace/refresh", "shutdown"
         ],
         "nonclaims": [
             "no_filesystem_network_process_or_publication_authority",
@@ -365,6 +377,25 @@ fn take_string(params: &mut Map<String, Value>, key: &str) -> Result<String> {
         Some(Value::String(value)) if !value.as_bytes().contains(&0) => Ok(value),
         _ => Err(invalid("parameter must be a string without NUL bytes")),
     }
+}
+
+/// Take `steps` as a bounded array of canonical v2 transaction strings, each
+/// one caller-owned bytes exactly like `take_string`'s own NUL-byte bound.
+fn take_step_array(params: &mut Map<String, Value>) -> Result<Vec<Vec<u8>>> {
+    let values = params
+        .remove("steps")
+        .and_then(|value| value.as_array().cloned())
+        .ok_or_else(|| invalid("steps must be an array"))?;
+    if values.is_empty() || values.len() > MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS {
+        return Err(capacity("steps exceed transport count limit"));
+    }
+    values
+        .into_iter()
+        .map(|value| match value {
+            Value::String(step) if !step.as_bytes().contains(&0) => Ok(step.into_bytes()),
+            _ => Err(invalid("each workflow step must be a string without NUL bytes")),
+        })
+        .collect()
 }
 
 fn exact_json(text: &str) -> Result<Value> {

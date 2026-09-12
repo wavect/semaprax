@@ -1,14 +1,18 @@
-//! Read-only `semaprax change` workflows over Universal Semantic Transaction v1.
+//! Read-only `semaprax change` workflows over Universal Semantic Transaction v1
+//! and, additively, ordered multi-step Universal Semantic Transaction v2
+//! workflows (`change workflow`).
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
-    self, ProjectCandidate, SemanticQuery, SemanticTransaction, SemanticTransactionAddContract,
-    SemanticTransactionAddDeclaration, SemanticTransactionMergeOrder,
-    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceExpression,
-    SemanticTransactionV2, SemanticWorkspaceService, SemanticWorkspaceStructuralDiff,
-    SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
+    self, ProjectCandidate, ProjectRevision, SemanticQuery, SemanticTransaction,
+    SemanticTransactionAddContract, SemanticTransactionAddDeclaration,
+    SemanticTransactionMergeOrder, SemanticTransactionRenameDisplayName,
+    SemanticTransactionReplaceExpression, SemanticTransactionV2, SemanticTransactionV2Workflow,
+    SemanticWorkspaceService, SemanticWorkspaceStructuralDiff,
+    MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS, SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
 };
 
 use super::project::{is_project_manifest, resolve_positional};
@@ -17,6 +21,7 @@ pub(crate) enum ChangeCommand {
     Preview(ChangePreview),
     Rebase(ChangeRebase),
     Merge(ChangeMerge),
+    Workflow(ChangeWorkflow),
 }
 
 pub(crate) struct ChangePreview {
@@ -66,10 +71,29 @@ pub(crate) struct ChangeMerge {
     order: MergeOrder,
 }
 
+pub(crate) struct ChangeWorkflow {
+    manifest: PathBuf,
+    steps: Vec<WorkflowStep>,
+    revision: Option<String>,
+    output: WorkflowOutput,
+}
+
+struct WorkflowStep {
+    target: String,
+    expression_id: String,
+    replacement: serde_json::Value,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum PreviewOutput {
     Result,
     Evidence,
+    StructuralDiff,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum WorkflowOutput {
+    Result,
     StructuralDiff,
 }
 
@@ -82,12 +106,14 @@ enum MergeOrder {
 const PREVIEW_USAGE: &str = "change requires preview <project> <rename-display-name <stable-id> <new-name>|replace-expression <stable-id> <expression-id> <replacement-json>|add-contract <stable-id> <requires|ensures> <predicate-json>|add-declaration <anchor-stable-id> <declaration-json>> [--revision digest] [--evidence|--structural-diff]";
 const REBASE_USAGE: &str = "change rebase requires <base-project> rename-display-name <stable-id> <new-name> --onto <onto-project> [--revision digest] [--onto-revision digest]";
 const MERGE_USAGE: &str = "change merge requires <project> rename-display-name <left-id> <left-new-name> --with rename-display-name <right-id> <right-new-name> [--revision digest] --order <left-then-right|right-then-left>";
+const WORKFLOW_USAGE: &str = "change workflow requires <project> replace-expression <stable-id> <expression-id> <replacement-json> [--then replace-expression <stable-id> <expression-id> <replacement-json>]... [--revision digest] [--structural-diff]";
 
 pub(crate) fn parse(args: &[String]) -> Result<ChangeCommand, u8> {
     match args.first().map(String::as_str) {
         Some("preview") => parse_preview(args).map(ChangeCommand::Preview),
         Some("rebase") => parse_rebase(args).map(ChangeCommand::Rebase),
         Some("merge") => parse_merge(args).map(ChangeCommand::Merge),
+        Some("workflow") => parse_workflow(args).map(ChangeCommand::Workflow),
         _ => Err(preview_usage()),
     }
 }
@@ -295,6 +321,73 @@ fn parse_merge(args: &[String]) -> Result<ChangeMerge, u8> {
     })
 }
 
+fn parse_workflow(args: &[String]) -> Result<ChangeWorkflow, u8> {
+    let manifest = project_operand(args, 1, "change workflow", workflow_usage)?;
+    let mut steps = Vec::new();
+    let mut index = 2;
+    loop {
+        if args.get(index).map(String::as_str) != Some("replace-expression") {
+            return Err(workflow_usage());
+        }
+        let target = required(args, index + 1, workflow_usage)?;
+        let expression_id = required(args, index + 2, workflow_usage)?;
+        let replacement =
+            serde_json::from_str(&required(args, index + 3, workflow_usage)?).map_err(|_| {
+                eprintln!("change workflow replace-expression replacement must be valid JSON");
+                2
+            })?;
+        steps.push(WorkflowStep {
+            target,
+            expression_id,
+            replacement,
+        });
+        index += 4;
+        if args.get(index).map(String::as_str) == Some("--then") {
+            index += 1;
+            continue;
+        }
+        break;
+    }
+    if steps.len() > MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS {
+        eprintln!(
+            "change workflow accepts at most {MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS} steps"
+        );
+        return Err(2);
+    }
+    let mut revision = None;
+    let mut output = WorkflowOutput::Result;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--structural-diff" if output == WorkflowOutput::Result => {
+                output = WorkflowOutput::StructuralDiff;
+                index += 1;
+            }
+            "--structural-diff" => {
+                eprintln!("change workflow output options are mutually exclusive and unique");
+                return Err(2);
+            }
+            "--revision" if revision.is_none() => {
+                revision = Some(required(args, index + 1, workflow_usage)?);
+                index += 2;
+            }
+            "--revision" => {
+                eprintln!("change workflow option `--revision` may not be repeated");
+                return Err(2);
+            }
+            option => {
+                eprintln!("unknown change workflow option `{option}`");
+                return Err(2);
+            }
+        }
+    }
+    Ok(ChangeWorkflow {
+        manifest,
+        steps,
+        revision,
+        output,
+    })
+}
+
 fn project_operand(
     args: &[String],
     index: usize,
@@ -335,11 +428,17 @@ fn merge_usage() -> u8 {
     2
 }
 
+fn workflow_usage() -> u8 {
+    eprintln!("{WORKFLOW_USAGE}");
+    2
+}
+
 pub(crate) fn run(command: ChangeCommand, report: impl Fn(&[Diagnostic]) -> u8) -> Result<(), u8> {
     let output = match command {
         ChangeCommand::Preview(options) => run_preview(options),
         ChangeCommand::Rebase(options) => run_rebase(options),
         ChangeCommand::Merge(options) => run_merge(options),
+        ChangeCommand::Workflow(options) => run_workflow(options),
     }
     .map_err(|errors| report(&errors))?;
     print!("{output}");
@@ -416,7 +515,28 @@ fn replace_expression_transaction(
             "ReplaceExpression requested workspace revision is stale",
         )]);
     }
-    let revision = service.active_generation().revision();
+    replace_expression_transaction_against(
+        service.active_generation().revision(),
+        expected,
+        target,
+        expression_id,
+        replacement,
+    )
+}
+
+/// Build one v2 ReplaceExpression transaction by looking up `target`'s
+/// expression catalog directly against `revision`, rather than against a
+/// service's currently active generation. `change workflow`'s steps after
+/// the first select their expression identity and old-source precondition
+/// against the exact intermediate revision the prior step produced, which
+/// has no `SemanticWorkspaceService` of its own.
+fn replace_expression_transaction_against(
+    revision: &Arc<ProjectRevision>,
+    expected: &str,
+    target: &str,
+    expression_id: &str,
+    replacement: serde_json::Value,
+) -> Result<SemanticTransactionV2, Vec<Diagnostic>> {
     let candidate = ProjectCandidate::open(revision.clone(), revision.project_revision())?;
     let catalog: serde_json::Value = serde_json::from_str(&candidate.expression_catalog(target)?)
         .map_err(|_| {
@@ -536,6 +656,51 @@ fn run_merge(options: ChangeMerge) -> Result<String, Vec<Diagnostic>> {
             MergeOrder::RightThenLeft => SemanticTransactionMergeOrder::RightThenLeft,
         };
         Ok(left.merge(&right, base, order)?.to_json().to_owned())
+    })
+}
+
+/// Compose `options.steps` into one Universal Semantic Transaction v2
+/// workflow: step 0 selects against the project's active revision, and each
+/// later step selects against the exact revision its predecessor produced,
+/// exactly mirroring [`SemanticTransactionV2Workflow::derive`]'s own base
+/// evolution (invoked below to produce the returned evidence, so the CLI's
+/// own step-by-step reconstruction and the frozen workflow core agree on the
+/// final candidate by construction, not by trusting this loop alone).
+fn run_workflow(options: ChangeWorkflow) -> Result<String, Vec<Diagnostic>> {
+    project::with_authenticated_project(&options.manifest, |snapshot| {
+        let service = SemanticWorkspaceService::open(snapshot.retain_revision())?;
+        let expected = selected_revision(&service, options.revision.as_deref());
+        if expected != service.active_generation().workspace_revision() {
+            return Err(vec![Diagnostic::io(
+                "SPX-G527",
+                "workflow requested workspace revision is stale",
+            )]);
+        }
+        let base = service.active_generation().revision().clone();
+        let mut current_revision = base.clone();
+        let mut current_workspace_revision = expected;
+        let mut transactions = Vec::with_capacity(options.steps.len());
+        for step in &options.steps {
+            let transaction = replace_expression_transaction_against(
+                &current_revision,
+                &current_workspace_revision,
+                &step.target,
+                &step.expression_id,
+                step.replacement.clone(),
+            )?;
+            let artifacts = transaction.validate(current_revision.clone())?;
+            current_revision = artifacts.candidate().revision().clone();
+            current_workspace_revision = artifacts
+                .candidate_program_root()
+                .workspace_revision()
+                .to_owned();
+            transactions.push(transaction);
+        }
+        let workflow = SemanticTransactionV2Workflow::derive(base, &transactions)?;
+        match options.output {
+            WorkflowOutput::Result => Ok(workflow.to_json().to_owned()),
+            WorkflowOutput::StructuralDiff => Ok(workflow.structural_diff().to_json().to_owned()),
+        }
     })
 }
 
@@ -887,6 +1052,148 @@ mod tests {
                 "right",
                 "--order",
                 "automatic",
+            ],
+        ] {
+            assert!(parse(&strings(&malformed)).is_err(), "{malformed:?}");
+        }
+    }
+
+    #[test]
+    fn workflow_grammar_is_closed() {
+        let ChangeCommand::Workflow(single) = parse(&strings(&[
+            "workflow",
+            "fixtures/semaprax.toml",
+            "replace-expression",
+            "app.run",
+            "expr.0",
+            r#"{"kind":"int","value":1}"#,
+            "--revision",
+            "sha256:abc",
+            "--structural-diff",
+        ]))
+        .unwrap() else {
+            panic!("workflow grammar selected another command");
+        };
+        assert_eq!(single.steps.len(), 1);
+        assert_eq!(single.steps[0].target, "app.run");
+        assert_eq!(single.steps[0].expression_id, "expr.0");
+        assert_eq!(
+            single.steps[0].replacement,
+            serde_json::json!({"kind":"int","value":1})
+        );
+        assert_eq!(single.revision.as_deref(), Some("sha256:abc"));
+        assert_eq!(single.output, WorkflowOutput::StructuralDiff);
+
+        let ChangeCommand::Workflow(chained) = parse(&strings(&[
+            "workflow",
+            "fixtures/semaprax.toml",
+            "replace-expression",
+            "app.run",
+            "expr.0",
+            r#"{"kind":"int","value":1}"#,
+            "--then",
+            "replace-expression",
+            "app.helper",
+            "expr.1",
+            r#"{"kind":"int","value":2}"#,
+            "--then",
+            "replace-expression",
+            "app.other",
+            "expr.2",
+            r#"{"kind":"int","value":3}"#,
+        ]))
+        .unwrap() else {
+            panic!("workflow grammar selected another command");
+        };
+        assert_eq!(chained.steps.len(), 3);
+        assert_eq!(chained.steps[1].target, "app.helper");
+        assert_eq!(chained.steps[2].expression_id, "expr.2");
+        assert_eq!(chained.output, WorkflowOutput::Result);
+        assert_eq!(chained.revision, None);
+
+        let mut too_many = vec![
+            "workflow".to_owned(),
+            "fixtures/semaprax.toml".to_owned(),
+            "replace-expression".to_owned(),
+            "app.0".to_owned(),
+            "expr.0".to_owned(),
+            r#"{"kind":"int","value":0}"#.to_owned(),
+        ];
+        for index in 1..=MAX_SEMANTIC_TRANSACTION_V2_WORKFLOW_STEPS {
+            too_many.extend([
+                "--then".to_owned(),
+                "replace-expression".to_owned(),
+                format!("app.{index}"),
+                format!("expr.{index}"),
+                r#"{"kind":"int","value":0}"#.to_owned(),
+            ]);
+        }
+        assert!(parse(&too_many).is_err());
+
+        for malformed in [
+            vec!["workflow", "fixtures/semaprax.toml"],
+            vec![
+                "workflow",
+                "m.spx",
+                "replace-expression",
+                "app.run",
+                "expr.0",
+                r#"{"kind":"int","value":1}"#,
+            ],
+            vec![
+                "workflow",
+                "fixtures/semaprax.toml",
+                "rename-display-name",
+                "app.run",
+                "execute",
+            ],
+            vec![
+                "workflow",
+                "fixtures/semaprax.toml",
+                "replace-expression",
+                "app.run",
+                "expr.0",
+                "not json",
+            ],
+            vec![
+                "workflow",
+                "fixtures/semaprax.toml",
+                "replace-expression",
+                "app.run",
+                "expr.0",
+                r#"{"kind":"int","value":1}"#,
+                "--then",
+            ],
+            vec![
+                "workflow",
+                "fixtures/semaprax.toml",
+                "replace-expression",
+                "app.run",
+                "expr.0",
+                r#"{"kind":"int","value":1}"#,
+                "--structural-diff",
+                "--structural-diff",
+            ],
+            vec![
+                "workflow",
+                "fixtures/semaprax.toml",
+                "replace-expression",
+                "app.run",
+                "expr.0",
+                r#"{"kind":"int","value":1}"#,
+                "--revision",
+                "sha256:a",
+                "--revision",
+                "sha256:b",
+            ],
+            vec![
+                "workflow",
+                "fixtures/semaprax.toml",
+                "replace-expression",
+                "app.run",
+                "expr.0",
+                r#"{"kind":"int","value":1}"#,
+                "--unknown",
             ],
         ] {
             assert!(parse(&strings(&malformed)).is_err(), "{malformed:?}");

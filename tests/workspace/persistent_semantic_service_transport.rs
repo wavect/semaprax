@@ -6,10 +6,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use semaprax::project::{
-    with_authenticated_project, ProjectFrontendSource, ProjectManifest, ProjectRevision,
-    SemanticQuery, SemanticServiceIndexQuery, SemanticTransaction,
-    SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
-    SemanticWorkspaceServiceHistoryQuery,
+    with_authenticated_project, ProjectCandidate, ProjectFrontendSource, ProjectManifest,
+    ProjectRevision, SemanticQuery, SemanticServiceIndexQuery, SemanticTransaction,
+    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceExpression,
+    SemanticTransactionV2, SemanticWorkspaceService, SemanticWorkspaceServiceHistoryQuery,
 };
 use semaprax::semantic_service_transport::{
     SemanticWorkspaceStdioSession, MAX_SEMANTIC_SERVICE_REQUEST_BYTES,
@@ -190,6 +190,7 @@ fn one_session_retains_one_generation_and_delegates_exact_query_and_transaction_
             "workspace/index-query",
             "workspace/history-query",
             "workspace/validate-transaction",
+            "workspace/validate-transaction-v2-workflow",
             "workspace/refresh",
             "shutdown"
         ])
@@ -292,6 +293,60 @@ fn one_session_retains_one_generation_and_delegates_exact_query_and_transaction_
         history["payload"]["value"]["items"][0]["value"]["kind"],
         "transaction_validation"
     );
+
+    let candidate = ProjectCandidate::open(Arc::clone(&revision), revision.project_revision())
+        .unwrap();
+    let catalog: Value =
+        serde_json::from_str(&candidate.expression_catalog("calculator.add").unwrap()).unwrap();
+    let source_path = catalog["source"]["path"].as_str().unwrap();
+    let source = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == source_path)
+        .unwrap()
+        .source();
+    let entry = catalog["expressions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| {
+            let start = entry["source_span"]["start"].as_u64().unwrap() as usize;
+            let end = entry["source_span"]["end"].as_u64().unwrap() as usize;
+            source.get(start..end) == Some("left + right")
+        })
+        .unwrap();
+    let expression_id = entry["expression_id"].as_str().unwrap();
+    let workflow_step = SemanticTransactionV2::replace_expression(
+        &workspace,
+        SemanticTransactionReplaceExpression::new(
+            "calculator.add",
+            expression_id,
+            "left + right",
+            json!({
+                "kind": "binary", "op": "-",
+                "left": {"kind": "place", "name": "left"},
+                "right": {"kind": "place", "name": "right"},
+            }),
+        ),
+    )
+    .unwrap();
+    let workflowed = result(&call(
+        &mut session,
+        json!(52),
+        "workspace/validate-transaction-v2-workflow",
+        json!({"steps":[workflow_step.to_json()]}),
+    ))
+    .clone();
+    assert_eq!(workflowed["workspace_revision"], workspace);
+    assert_eq!(
+        workflowed["payload"]["value"]["step_count"].as_u64(),
+        Some(1)
+    );
+    assert_eq!(
+        workflowed["payload"]["candidate_revision"],
+        workflowed["payload"]["value"]["result"]["project_revision"]
+    );
+
     assert_eq!(
         session.service().active_generation().workspace_revision(),
         workspace

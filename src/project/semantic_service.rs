@@ -22,7 +22,7 @@ use super::{
     ProjectFrontendSource, ProjectManifest, ProjectRevision, ProjectSemanticImage, SemanticQuery,
     SemanticQueryResult, SemanticServiceIndexQuery, SemanticServiceIndexResult,
     SemanticTransaction, SemanticTransactionArtifacts, SemanticTransactionArtifactsV2,
-    SemanticTransactionV2, SemanticWorkspaceRevision,
+    SemanticTransactionV2, SemanticTransactionV2Workflow, SemanticWorkspaceRevision,
 };
 
 mod history;
@@ -962,6 +962,39 @@ impl SemanticWorkspaceService {
         )?;
         history.append(history_entry);
         Ok(artifacts)
+    }
+
+    /// Validate an ordered sequence of additive v2 `ReplaceExpression`
+    /// transactions as one [`SemanticTransactionV2Workflow`] against the
+    /// active immutable generation. Each later step is revalidated by the
+    /// frozen workflow core against the exact revision its predecessor
+    /// produced; the candidate and evidence remain read-only, and only the
+    /// bounded in-memory service history records the validation.
+    pub fn validate_transaction_v2_workflow(
+        &self,
+        step_bytes: &[Vec<u8>],
+    ) -> Result<SemanticTransactionV2Workflow> {
+        let mut history = self
+            .history
+            .lock()
+            .map_err(|_| invalid("semantic workspace service history lock is poisoned"))?;
+        history.require_capacity()?;
+        let transactions = step_bytes
+            .iter()
+            .map(|bytes| SemanticTransactionV2::parse(bytes))
+            .collect::<Result<Vec<_>>>()?;
+        let workflow =
+            SemanticTransactionV2Workflow::derive(Arc::clone(&self.active.revision), &transactions)?;
+        let history_entry = history.transaction_entry(
+            self.active.revision.project_revision(),
+            self.active.workspace_revision(),
+            workflow.candidate().revision().project_revision(),
+            workflow.candidate_program_root().workspace_revision(),
+            workflow.digest(),
+            workflow.digest(),
+        )?;
+        history.append(history_entry);
+        Ok(workflow)
     }
 
     /// Replay frozen v2 transaction evidence against the active generation.

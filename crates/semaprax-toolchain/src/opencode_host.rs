@@ -6,11 +6,10 @@
 //! decoder. `--dir` and the deny-all OpenCode policy constrain OpenCode's tool
 //! permissions. They are not claimed to provide operating-system isolation.
 
-use std::io::Read;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 #[cfg(unix)]
@@ -166,14 +165,18 @@ pub trait OpenCodeRunner {
 pub struct ProcessOpenCodeRunner;
 
 impl ProcessOpenCodeRunner {
-    fn terminate(child: &mut std::process::Child, reader: std::thread::JoinHandle<()>) {
-        #[cfg(unix)]
+    #[cfg(unix)]
+    fn kill_group(child: &mut std::process::Child) {
         if let Some(group) = rustix::process::Pid::from_raw(child.id() as i32) {
             let _ = rustix::process::kill_process_group(group, rustix::process::Signal::Kill);
         }
+    }
+
+    #[cfg(unix)]
+    fn terminate(child: &mut std::process::Child) {
+        Self::kill_group(child);
         let _ = child.kill();
         let _ = child.wait();
-        let _ = reader.join();
     }
 
     fn capture(
@@ -181,93 +184,95 @@ impl ProcessOpenCodeRunner {
         args: &[String],
         limit: usize,
     ) -> Result<Vec<u8>, OpenCodeRunnerFailure> {
-        let mut command = Command::new(&config.executable);
-        command
-            .args(args)
-            .current_dir(&config.sandbox)
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null());
+        // This v1 runner has a bounded, same-thread nonblocking pipe loop only
+        // on Unix. Refuse before spawn elsewhere rather than leave a blocking
+        // `ChildStdout::read` path that could outlive its deadline.
+        #[cfg(not(unix))]
+        {
+            let _ = (config, args, limit);
+            return Err(OpenCodeRunnerFailure::Refused);
+        }
         #[cfg(unix)]
-        command.process_group(0);
-        let mut child = command
-            .spawn()
-            .map_err(|_| OpenCodeRunnerFailure::Refused)?;
-        let mut stdout = child.stdout.take().ok_or(OpenCodeRunnerFailure::Provider)?;
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let reader = std::thread::spawn(move || {
+        {
+            let deadline = Instant::now()
+                .checked_add(config.deadline)
+                .ok_or(OpenCodeRunnerFailure::Refused)?;
+            let mut command = Command::new(&config.executable);
+            command
+                .args(args)
+                .current_dir(&config.sandbox)
+                .stdin(Stdio::null())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::null());
+            command.process_group(0);
+            let mut child = command
+                .spawn()
+                .map_err(|_| OpenCodeRunnerFailure::Refused)?;
+            let stdout = child.stdout.take().ok_or(OpenCodeRunnerFailure::Provider)?;
+            let flags =
+                rustix::fs::fcntl_getfl(&stdout).map_err(|_| OpenCodeRunnerFailure::Provider)?;
+            if rustix::fs::fcntl_setfl(&stdout, flags | rustix::fs::OFlags::NONBLOCK).is_err() {
+                Self::terminate(&mut child);
+                return Err(OpenCodeRunnerFailure::Provider);
+            }
             let mut output = Vec::new();
+            let mut eof = false;
+            let mut status = None;
             let mut chunk = [0u8; 8192];
             loop {
-                match stdout.read(&mut chunk) {
-                    Ok(0) => break,
-                    Ok(count) if output.len().saturating_add(count) <= limit => {
-                        output.extend_from_slice(&chunk[..count])
-                    }
-                    Ok(_) => {
-                        let _ = sender.send(Err(OpenCodeRunnerFailure::Malformed));
-                        return;
-                    }
-                    Err(_) => {
-                        let _ = sender.send(Err(OpenCodeRunnerFailure::Provider));
-                        return;
+                if config.cancellation.is_cancelled() {
+                    Self::terminate(&mut child);
+                    return Err(OpenCodeRunnerFailure::Cancelled);
+                }
+                if Instant::now() >= deadline {
+                    Self::terminate(&mut child);
+                    return Err(OpenCodeRunnerFailure::Timeout);
+                }
+                loop {
+                    match rustix::io::read(&stdout, &mut chunk[..]) {
+                        Ok(0) => {
+                            eof = true;
+                            break;
+                        }
+                        Ok(count) if output.len().saturating_add(count) <= limit => {
+                            output.extend_from_slice(&chunk[..count])
+                        }
+                        Ok(_) => {
+                            Self::terminate(&mut child);
+                            return Err(OpenCodeRunnerFailure::Malformed);
+                        }
+                        Err(rustix::io::Errno::AGAIN) => break,
+                        Err(_) => {
+                            Self::terminate(&mut child);
+                            return Err(OpenCodeRunnerFailure::Provider);
+                        }
                     }
                 }
-            }
-            let _ = sender.send(Ok(output));
-        });
-        let deadline = Instant::now()
-            .checked_add(config.deadline)
-            .ok_or(OpenCodeRunnerFailure::Refused)?;
-        let mut output = None;
-        loop {
-            if config.cancellation.is_cancelled() {
-                Self::terminate(&mut child, reader);
-                return Err(OpenCodeRunnerFailure::Cancelled);
-            }
-            if Instant::now() >= deadline {
-                Self::terminate(&mut child, reader);
-                return Err(OpenCodeRunnerFailure::Timeout);
-            }
-            if output.is_none() {
-                match receiver.try_recv() {
-                    Ok(Ok(bytes)) => output = Some(bytes),
-                    Ok(Err(error)) => {
-                        Self::terminate(&mut child, reader);
-                        return Err(error);
+                if status.is_none() {
+                    match child.try_wait() {
+                        Ok(Some(exit)) => {
+                            status = Some(exit);
+                            // The leader may have exited while a descendant still
+                            // owns stdout. Group kill forces the pipe to EOF.
+                            Self::kill_group(&mut child);
+                        }
+                        Ok(None) => {}
+                        Err(_) => {
+                            Self::terminate(&mut child);
+                            return Err(OpenCodeRunnerFailure::Provider);
+                        }
                     }
-                    Err(mpsc::TryRecvError::Disconnected) => {
-                        Self::terminate(&mut child, reader);
-                        return Err(OpenCodeRunnerFailure::Provider);
+                }
+                if let Some(exit) = status {
+                    if eof {
+                        return if exit.success() {
+                            Ok(output)
+                        } else {
+                            Err(OpenCodeRunnerFailure::Provider)
+                        };
                     }
-                    Err(mpsc::TryRecvError::Empty) => {}
                 }
-            }
-            match child.try_wait() {
-                Ok(Some(status)) => {
-                    // A direct child may exit while a descendant still owns stdout.
-                    // Kill the dedicated process group before joining the reader, so a
-                    // pipe inheritor cannot turn this bounded call into an unbounded join.
-                    Self::terminate(&mut child, reader);
-                    let bytes = match output {
-                        Some(bytes) => bytes,
-                        None => match receiver.try_recv() {
-                            Ok(Ok(bytes)) => bytes,
-                            Ok(Err(error)) => return Err(error),
-                            Err(_) => return Err(OpenCodeRunnerFailure::Provider),
-                        },
-                    };
-                    return if status.success() {
-                        Ok(bytes)
-                    } else {
-                        Err(OpenCodeRunnerFailure::Provider)
-                    };
-                }
-                Ok(None) => std::thread::sleep(Duration::from_millis(5)),
-                Err(_) => {
-                    Self::terminate(&mut child, reader);
-                    return Err(OpenCodeRunnerFailure::Provider);
-                }
+                std::thread::sleep(Duration::from_millis(5));
             }
         }
     }

@@ -383,6 +383,72 @@ fn the_recorded_host_and_subject_come_from_the_run_that_happened() {
 }
 
 #[test]
+fn available_memory_probe_parsers_accept_supported_platform_output() {
+    let script = format!(
+        r#"
+import runpy
+runner = runpy.run_path({:?})
+linux = runner['parse_linux_available_memory']('MemTotal:       16384 kB\nMemAvailable:    4096 kB\n')
+assert linux == 4096 * 1024, linux
+mac = runner['parse_macos_available_memory']('Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free: 10.\nPages inactive: 20.\nPages active: 30.\n')
+assert mac == 30 * 16384, mac
+assert runner['parse_linux_available_memory']('MemAvailable: not-a-number kB\n') is None
+assert runner['parse_linux_available_memory']('MemAvailable: 1 MB\n') is None
+assert runner['parse_linux_available_memory']('MemAvailable: -1 kB\n') is None
+assert runner['parse_macos_available_memory']('Pages free: 10.\n') is None
+assert runner['parse_macos_available_memory']('Mach Virtual Memory Statistics: (page size of 0 bytes)\nPages free: 10.\nPages inactive: 20.\n') is None
+print('ok')
+"#,
+        root().join(SUITE).join("run.py").to_str().unwrap()
+    );
+    let result = Command::new("python3")
+        .args(["-c", &script])
+        .current_dir(root())
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+}
+
+#[test]
+fn unavailable_memory_probe_is_explicitly_unknown() {
+    let script = format!(
+        r#"
+import runpy
+runner = runpy.run_path({:?})
+runner['platform'].system = lambda: 'Plan9'
+assert runner['available_memory']() == {{'bytes': None, 'basis': 'unavailable'}}
+runner['platform'].system = lambda: 'Darwin'
+runner['subprocess'].run = lambda *args, **kwargs: type('Result', (), {{'returncode': 1, 'stdout': ''}})()
+assert runner['available_memory']() == {{'bytes': None, 'basis': 'unavailable'}}
+def fail(*args, **kwargs):
+    raise OSError('vm_stat unavailable')
+runner['subprocess'].run = fail
+assert runner['available_memory']() == {{'bytes': None, 'basis': 'unavailable'}}
+def hang(*args, **kwargs):
+    raise runner['subprocess'].TimeoutExpired('vm_stat', 2)
+runner['subprocess'].run = hang
+assert runner['available_memory']() == {{'bytes': None, 'basis': 'unavailable'}}
+print('ok')
+"#,
+        root().join(SUITE).join("run.py").to_str().unwrap()
+    );
+    let result = Command::new("python3")
+        .args(["-c", &script])
+        .current_dir(root())
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+}
+
+#[test]
 fn a_failing_scenario_is_a_failure_and_can_never_be_scored_as_an_improvement() {
     let directory = scratch("failure");
     std::fs::write(directory.join("good.spx"), GOOD_SOURCE).unwrap();

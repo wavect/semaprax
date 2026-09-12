@@ -26,6 +26,7 @@ import json
 import os
 import pathlib
 import platform
+import re
 import shutil
 import statistics
 import subprocess
@@ -86,6 +87,85 @@ def tool_version(command: list) -> str:
         return "unknown"
 
 
+def parse_linux_available_memory(text: str):
+    """Parse Linux's kernel estimate, in bytes, without guessing on failure."""
+    for line in text.splitlines():
+        if not line.startswith("MemAvailable:"):
+            continue
+        fields = line.split()
+        if len(fields) < 2:
+            return None
+        try:
+            value = int(fields[1])
+        except ValueError:
+            return None
+        if value < 0:
+            return None
+        if len(fields) != 3:
+            return None
+        if fields[2] != "kB":
+            return None
+        return value * 1024
+    return None
+
+
+def parse_macos_available_memory(text: str):
+    """Parse vm_stat's free plus inactive pages, in bytes.
+
+    Inactive pages are reclaimable only as determined by macOS; this is an
+    observation of the two reported counters, not a claim about all purgeable
+    memory or immediately free allocator capacity.
+    """
+    page_match = re.search(r"page size of (\d+) bytes", text)
+    if not page_match:
+        return None
+    pages = {}
+    for line in text.splitlines():
+        match = re.match(r"Pages (free|inactive):\s+(\d+)\.", line)
+        if match:
+            pages[match.group(1)] = int(match.group(2))
+    if set(pages) != {"free", "inactive"} or int(page_match.group(1)) <= 0:
+        return None
+    return (pages["free"] + pages["inactive"]) * int(page_match.group(1))
+
+
+def available_memory() -> dict:
+    """Observe available memory, retaining an explicit unknown on failure."""
+    system = platform.system()
+    if system == "Linux":
+        try:
+            value = parse_linux_available_memory(
+                pathlib.Path("/proc/meminfo").read_text()
+            )
+        except (OSError, UnicodeError):
+            value = None
+        return {
+            "bytes": value,
+            "basis": "linux:/proc/meminfo:MemAvailable"
+            if value is not None
+            else "unavailable",
+        }
+    if system == "Darwin":
+        try:
+            result = subprocess.run(
+                ["vm_stat"], capture_output=True, text=True, check=False, timeout=2
+            )
+            value = (
+                parse_macos_available_memory(result.stdout)
+                if result.returncode == 0
+                else None
+            )
+        except (OSError, UnicodeError, subprocess.TimeoutExpired):
+            value = None
+        return {
+            "bytes": value,
+            "basis": "macos:vm_stat:free+inactive"
+            if value is not None
+            else "unavailable",
+        }
+    return {"bytes": None, "basis": "unavailable"}
+
+
 def host_facts() -> dict:
     """Actual host identity. Never a hardcoded platform string."""
     system = platform.system().lower()
@@ -100,6 +180,7 @@ def host_facts() -> dict:
         "rustc": tool_version(["rustc", "--version"]),
         "cargo": tool_version(["cargo", "--version"]),
         "clang": tool_version(["clang", "--version"]),
+        "available_memory": available_memory(),
     }
     try:
         facts["load_average"] = [round(value, 2) for value in os.getloadavg()]
@@ -445,7 +526,7 @@ def render_markdown(document: dict) -> str:
         f"- Recorded: {document['timestamp']}",
         f"- Host: `{host['platform']}` ({host['system']} {host['release']}, "
         f"{host['cpu_count']} logical CPUs, load average at start "
-        f"{host.get('load_average')})",
+        f"{host.get('load_average')}, available memory {host.get('available_memory')})",
         f"- Toolchain: {host['rustc']}, {host['cargo']}",
         f"- Subject: `{subject['version']}` profile `{subject['profile']}`, "
         f"binary digest `{subject['digest']}`",

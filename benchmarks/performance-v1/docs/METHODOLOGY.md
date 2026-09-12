@@ -5,8 +5,16 @@
 The host is not declared here; it is **recorded by the runner from the machine
 that actually ran**, into the result document's `host` object: platform tag
 (`darwin-arm64`, `linux-x86_64`, …), system, release, machine, logical CPU
-count, load average at the start, and the `rustc`, `cargo` and `clang` versions
-it observed. A Linux run therefore never identifies itself as macOS.
+count, load average at the start, an available-memory observation, and the
+`rustc`, `cargo` and `clang` versions it observed. A Linux run therefore never
+identifies itself as macOS.
+
+`host.available_memory` is an object with `bytes` and `basis`. Linux uses the
+kernel's `/proc/meminfo` `MemAvailable` estimate. macOS reports `vm_stat` free
+plus inactive pages; inactive pages are not guaranteed immediately available,
+and this does not claim to include all purgeable memory. Unsupported platforms,
+probe failures, and malformed probe output record `{"bytes": null, "basis":
+"unavailable"}` rather than an inferred zero.
 
 `results/baseline.json` holds one recorded run of the committed inventory, and
 [`results/baseline.md`](../results/baseline.md) renders it. The document names
@@ -136,7 +144,8 @@ removes only the parent it created. The committed inventory contains web
   "host": {"platform": "linux-x86_64", "system": "Linux", "release": "6.8.0",
            "machine": "x86_64", "cpu_count": 16, "python": "3.12.3",
            "rustc": "rustc 1.88.0 (…)", "cargo": "cargo 1.88.0 (…)",
-           "clang": "clang version 18.1.3", "load_average": [0.2, 0.3, 0.4]},
+           "clang": "clang version 18.1.3", "load_average": [0.2, 0.3, 0.4],
+           "available_memory": {"bytes": 123456789, "basis": "linux:/proc/meminfo:MemAvailable"}},
   "subject": {"binary": "/…/target/debug/semaprax", "digest": "sha256:…",
               "profile": "debug", "build_ms": 41234.0,
               "version": "semaprax 0.3.0", "commit": "…", "dirty": false},

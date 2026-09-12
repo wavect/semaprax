@@ -47,8 +47,9 @@ python3 benchmarks/performance-v1/run.py --semaprax target/debug/semaprax \
 
 **One baseline is committed.** [`results/baseline.json`](results/baseline.json)
 records a single run of the committed inventory on an idle host, with the host
-facts, load average, toolchain, commit, clean-tree flag and binary digest the
-runner observed; [`results/baseline.md`](results/baseline.md) is its rendering.
+facts, load average, available-memory observation, toolchain, commit, clean-tree
+flag and binary digest the runner observed; [`results/baseline.md`](results/baseline.md)
+is its rendering.
 Compare a local run against it with:
 
 ```sh

@@ -3531,7 +3531,11 @@ fn render_graph_json(
         push_json_string(&mut output, &edge.alias);
         write!(output, ",\"ordinal\":{}}}", edge.ordinal).expect("writing to a string cannot fail");
     }
-    output.push_str("],\"limits\":{\"max_managed_files\":16,\"max_reachable_modules\":16,\"max_entry_module_bytes\":16777216,\"max_total_source_bytes\":16777216,\"max_declarations\":4096,\"max_callables\":1024,\"max_call_sites\":65536,\"max_uses\":4096,\"max_resolved_cross_file_edges\":65536,\"max_dependency_depth\":16,\"max_builder_bytes\":16777216,\"max_manifest_bytes\":1048576,\"max_output_bytes\":16777216,\"max_retained_generations\":32,\"max_staging_attempts\":32,\"max_unexpected_inventory_entries\":0},\"budget\":{");
+    write!(
+        output,
+        "],\"limits\":{{\"max_managed_files\":{MAX_FILES},\"max_reachable_modules\":{MAX_FILES},\"max_entry_module_bytes\":{MAX_ENTRY_MODULE_BYTES},\"max_total_source_bytes\":{MAX_TOTAL_SOURCE_BYTES},\"max_declarations\":{MAX_DECLARATIONS},\"max_callables\":{MAX_CALLABLES},\"max_call_sites\":{MAX_CALLS},\"max_uses\":{MAX_USES},\"max_resolved_cross_file_edges\":{MAX_CROSS_FILE_EDGES},\"max_dependency_depth\":{MAX_DEPENDENCY_DEPTH},\"max_builder_bytes\":{MAX_BUILDER_BYTES},\"max_manifest_bytes\":1048576,\"max_output_bytes\":{MAX_OUTPUT_BYTES},\"max_retained_generations\":32,\"max_staging_attempts\":32,\"max_unexpected_inventory_entries\":0}},\"budget\":{{"
+    )
+    .expect("writing to a string cannot fail");
     let usage = projection.usage;
     write!(
         output,

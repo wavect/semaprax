@@ -128,7 +128,7 @@ The `limits` object has this exact order and values:
 | `max_uses` | 4,096 |
 | `max_resolved_cross_file_edges` | 65,536 |
 | `max_dependency_depth` | 16 |
-| `max_builder_bytes` | 16,777,216 |
+| `max_builder_bytes` | 18,874,368 |
 | `max_manifest_bytes` | 1,048,576 |
 | `max_output_bytes` | 16,777,216 |
 | `max_retained_generations` | 32 |

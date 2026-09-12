@@ -292,20 +292,7 @@ fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
             limits.max_unexpected_inventory_entries(),
         ),
     ] {
-        if key == "max_builder_bytes" {
-            // 16→18 transition for json roundtrip; allow either during migration
-            let wire_val = wire["limits"][key].as_u64().unwrap();
-            assert!(
-                wire_val == 16 * 1024 * 1024 || wire_val == 18 * 1024 * 1024,
-                "{key} wire {wire_val}"
-            );
-            assert!(
-                actual == 16 * 1024 * 1024 || actual == 18 * 1024 * 1024,
-                "{key} actual {actual}"
-            );
-        } else {
-            assert_eq!(wire["limits"][key].as_u64(), Some(actual as u64), "{key}");
-        }
+        assert_eq!(wire["limits"][key].as_u64(), Some(actual as u64), "{key}");
     }
 
     let budget: WorkspaceSemanticGraphBudget = graph.budget();

@@ -303,8 +303,7 @@ fn a_transfer_unit_named_zero_times_is_a_transfer_unit_disagreement() {
         .live_owned_parameters
         .clear();
 
-    let error =
-        plan(&inventory, &mutated, 0).expect_err("an absent transfer unit must be refused");
+    let error = plan(&inventory, &mutated, 0).expect_err("an absent transfer unit must be refused");
     assert_eq!(error.code, TRANSFER_UNIT_DISAGREEMENT);
     assert!(
         error

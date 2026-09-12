@@ -410,6 +410,8 @@ def _bounded_command(argv, cwd, limit=131072, timeout=20):
                 pass
         child.wait()
     stdout, stderr = bytes(streams[child.stdout]), bytes(streams[child.stderr])
+    child.stdout.close()
+    child.stderr.close()
     return {"returncode": child.returncode, "stdout": stdout, "stderr": stderr, "error": failure}
 
 

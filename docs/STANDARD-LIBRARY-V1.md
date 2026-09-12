@@ -418,9 +418,51 @@ the full toolchain by release policy.
 - every library function has an explicit `@id` below the module name, no
   effects, and an import in the conformance module, and the examples module
   imports at least one;
-- examples and conformance return `0` on the interpreter, on native C11 at
-  `-O0` and `-O2`, and, for the conformance closure, on Core Wasm under Node;
+- examples and conformance both return `0` on the interpreter, on native C11
+  at `-O0` and `-O2`, and on Core Wasm under Node. Before issue #102, the
+  Core Wasm step built and ran only the conformance closure; a `byte_range`
+  use that existed solely in `std/bytes`'s examples module was never
+  executed on that backend despite the package's Wasm claim. Both closures
+  now run on all three backends;
 - the committed catalogs equal the generated ones.
+
+`tests/project/standard_library/execution_matrix.rs` additionally holds an
+explicit package -> owning-test table (one row per module in
+`std/packages.json`) so a missing or duplicate row fails before the standard
+library can be read as having complete per-backend coverage, and carries a
+negative control for each of: a wrong example result, a duplicate or a
+missing inventory row, a missing required toolchain, and a hosted example
+that never calls its injected provider the documented number of times. Row
+exclusions with a recorded reason are legitimate (see below); a silent gap
+is not.
+
+Every package in `std/packages.json` currently claims the same three
+targets (`interpreter`, `native-c11`, `core-wasm`) on every host platform;
+there is no per-package target exclusion today. The one recorded exclusion
+is platform-wide: every native-C11/Core-Wasm-executing test in
+`tests/project/standard_library/` opens with `if cfg!(windows) { return; }`
+and returns before invoking `clang`/`node`, because this harness does not
+invoke those toolchains on Windows CI runners. This is a compile-time
+platform gate, not a runtime toolchain-availability probe: nowhere in this
+harness does a *reachable* `Command::new("clang"|"node")` call silently
+treat a missing binary as a skip - every such call uses
+`Command::output().unwrap()`, which panics (fails the test) if the binary
+cannot be found, exactly as issue #102 requires for a toolchain that is
+supposed to be present.
+
+Known residual gap, not fixed by issue #102: three of this harness's owning
+tests carry no `.github/workflows/ci.yml` selector at all, so they do not
+run as part of any required CI job today - `environment::
+environment_package_executes_all_functions_with_injected_snapshot`
+(`std.env`), `process::process_package_executes_all_functions_with_registered_request_shape`
+(`std.process`), and `auth_backend_audit::auth_executes_on_all_three_backends`
+(`std.auth`). `filesystem_v2::filesystem_v2_standard_commands_execute_on_all_three_backends`
+(a second, additional `std.fs` conformance path) and `provider_outcomes`'s
+tests (composition regressions, not tied to one package's backend claim)
+are likewise unselected. `tests/project/standard_library/execution_matrix.rs`
+records the owning test for every package regardless of whether CI selects
+it; wiring the missing selectors into `ci.yml` is out of this harness's
+lease and is tracked for the coordinator to apply.
 
 `tests/examples.rs` additionally holds every `.spx` file below `std/` to the
 canonical form. Nothing here claims a package registry, ordinary-package

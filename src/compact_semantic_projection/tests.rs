@@ -505,7 +505,7 @@ fn max_body_tokens_bound_is_enforced_at_its_exact_limit() {
         1,
         "the construction below assumes an odd bound"
     );
-    let at_occurrences = (MAX_BODY_TOKENS + 1) / 2; // 2*o - 1 == MAX_BODY_TOKENS
+    let at_occurrences = MAX_BODY_TOKENS.div_ceil(2); // 2*o - 1 == MAX_BODY_TOKENS
     let under_occurrences = at_occurrences - 1; // with leading_raw: 2*o == MAX_BODY_TOKENS - 1
     let over_occurrences = at_occurrences; // with leading_raw: 2*o == MAX_BODY_TOKENS + 1
 

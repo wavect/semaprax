@@ -14,7 +14,11 @@
 use std::path::Path;
 
 use super::*;
-use crate::hir::{self, DeclarationId, ResolvedProgram, ResolvedTypeDeclarationKind};
+use crate::ast::Span;
+use crate::hir::{
+    self, DeclarationId, ResolvedFieldDeclaration, ResolvedProgram, ResolvedTypeDeclaration,
+    ResolvedTypeDeclarationKind,
+};
 use crate::parse;
 
 /// One base program exercising: a nested owned record (`Pair<Leaf, i64>`),
@@ -206,6 +210,34 @@ fn recount(value: own Pair<Leaf, i64>) -> Pair<Leaf, bool> {
 fn main() -> i64 { 0 }
 "#;
 
+/// `Pair<i64, Leaf>`: the same template and the same two concrete arguments
+/// as `BASE`'s `classifier.take` (`Pair<Leaf, i64>`), positionally swapped.
+/// Used only to prove a same-count argument reorder is admitted as a
+/// distinct instance rather than conflated with `ArityMismatch`.
+const SWAPPED_ARGUMENTS: &str = r#"
+module test.public_generic_classifier_swapped_arguments;
+
+@id("classifier.leaf")
+record Leaf {
+    @id("classifier.leaf.head")
+    head: Bytes,
+}
+
+@id("classifier.pair")
+record Pair<T, U> {
+    @id("classifier.pair.left")
+    left: T,
+    @id("classifier.pair.right")
+    right: U,
+}
+
+@id("classifier.swap_take")
+fn swap_take(value: own Pair<i64, Leaf>) -> Pair<i64, Leaf> { value }
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
 fn resolved(source: &str) -> ResolvedProgram {
     let parsed = parse(source, Path::new("classifier.spx")).unwrap();
     hir::resolve(&parsed).unwrap()
@@ -367,6 +399,315 @@ fn a_record_one_field_over_the_bound_is_refused() {
     assert_eq!(error.code(), BOUND_EXCEEDED);
 }
 
+/// Build a linear chain of `level_count` distinct record declarations,
+/// `Level0` through `Level{level_count - 1}`: every level but the last holds
+/// one field, `next`, naming the next level; the last level ends the chain
+/// with one direct owned `Bytes` leaf instead. `tag` disambiguates every
+/// declared identity from any other fixture built by this function in the
+/// same test binary.
+///
+/// `grammar::describe`'s owned-leaf walk (`collect_owned_leaves`) increments
+/// its depth counter by exactly one per level of field nesting it descends
+/// before ever looking at a leaf, so when this chain is used as the sole
+/// `own` parameter type, the leaf sits at exactly depth `level_count` — the
+/// same counter [`grammar::MAX_RECORD_DEPTH`] bounds, re-driven here through
+/// real compiled source rather than only trusted from the grammar's own
+/// tests. Every level is a distinct declaration, so `check_acyclic` never
+/// mistakes this chain for a cycle.
+fn chain_source(level_count: usize, tag: &str) -> String {
+    assert!(level_count >= 1);
+    let mut decls = String::new();
+    for level in 0..level_count {
+        if level + 1 < level_count {
+            let next = level + 1;
+            decls.push_str(&format!(
+                "@id(\"classifier.chain{tag}.level{level}\")\n\
+                 record Level{level} {{\n\
+                 \x20\x20\x20\x20@id(\"classifier.chain{tag}.level{level}.next\")\n\
+                 \x20\x20\x20\x20next: Level{next},\n\
+                 }}\n\n"
+            ));
+        } else {
+            decls.push_str(&format!(
+                "@id(\"classifier.chain{tag}.level{level}\")\n\
+                 record Level{level} {{\n\
+                 \x20\x20\x20\x20@id(\"classifier.chain{tag}.level{level}.leaf\")\n\
+                 \x20\x20\x20\x20leaf: Bytes,\n\
+                 }}\n\n"
+            ));
+        }
+    }
+    format!(
+        "\nmodule test.public_generic_classifier_chain{tag};\n\n{decls}\
+         @id(\"classifier.chain{tag}.take\")\nfn chain_take(value: own Level0) -> Level0 {{ value }}\n\n\
+         @id(\"app.main\")\nfn main() -> i64 {{ 0 }}\n"
+    )
+}
+
+/// Exact bound: a field-nesting chain exactly `MAX_RECORD_DEPTH` levels deep
+/// is admitted through real compiled source, not only trusted from the
+/// grammar's own budget. Paired with
+/// [`nesting_one_level_over_the_depth_bound_is_refused`], the
+/// first-over-bound case below — which cannot use this same real-source
+/// technique; see that test's own documentation for exactly why.
+#[test]
+fn a_record_chain_at_the_depth_bound_is_admitted() {
+    let source = chain_source(grammar::MAX_RECORD_DEPTH, "_at_depth_bound");
+    let admitted =
+        classify(&resolved(&source), "classifier.chain_at_depth_bound.take").unwrap();
+    assert_eq!(admitted.input().owned_leaves.len(), 1);
+}
+
+/// Append `level_count` synthetic record declarations directly to `program`'s
+/// already-checked HIR — `Level0` through `Level{level_count - 1}` under
+/// `tag`, each a distinct declaration identity, so `check_acyclic` (which
+/// tracks active declarations by identity) never mistakes this chain for a
+/// self-reference — and return `Level0`'s type. Every level but the last
+/// holds one field, `next`, naming the next level; the last ends the chain
+/// with one direct owned `Bytes` leaf.
+///
+/// Built directly onto already-checked HIR rather than through real front-end
+/// source, unlike [`chain_source`] above: this fixture is one level deeper
+/// than [`grammar::MAX_RECORD_DEPTH`], and
+/// `src/source_verify/declaration/declarations.rs`'s `SPX-T268` "owned-Bytes
+/// record" front-end profile independently walks every *non-generic* record
+/// declaration's own reachable `Bytes` fields against the *same* 64-level
+/// depth bound this classifier inherits — so a hand-written `.spx` chain this
+/// deep is refused by the front end before `hir::resolve` ever returns a
+/// `ResolvedProgram` for this classifier to see at all. This mirrors the
+/// technique `crate::hir::type_reachability`'s own tests already use for its
+/// analogous depth bound: build the nested type directly in Rust rather than
+/// through source that an earlier, unrelated check already forecloses.
+fn push_chain_declarations(
+    program: &mut ResolvedProgram,
+    level_count: usize,
+    tag: &str,
+) -> ResolvedType {
+    assert!(level_count >= 1);
+    for level in (0..level_count).rev() {
+        let field = if level + 1 < level_count {
+            ResolvedFieldDeclaration {
+                id: DeclarationId::new(format!("classifier.chain{tag}.level{level}.next")),
+                name: "next".to_owned(),
+                index: 0,
+                ty: nominal(
+                    &format!("classifier.chain{tag}.level{}", level + 1),
+                    Vec::new(),
+                ),
+                span: Span::default(),
+            }
+        } else {
+            ResolvedFieldDeclaration {
+                id: DeclarationId::new(format!("classifier.chain{tag}.level{level}.leaf")),
+                name: "leaf".to_owned(),
+                index: 0,
+                ty: ResolvedType::Bytes,
+                span: Span::default(),
+            }
+        };
+        program.types.push(ResolvedTypeDeclaration {
+            id: DeclarationId::new(format!("classifier.chain{tag}.level{level}")),
+            name: format!("Level{level}"),
+            type_parameters: Vec::new(),
+            kind: ResolvedTypeDeclarationKind::Record { fields: vec![field] },
+            span: Span::default(),
+        });
+    }
+    nominal(&format!("classifier.chain{tag}.level0"), Vec::new())
+}
+
+/// First-over-bound: one field-nesting level deeper than `MAX_RECORD_DEPTH`
+/// is refused. Starts from `BASE`'s own already-checked `classifier.take`
+/// program and appends the deeper chain as new HIR declarations (see
+/// [`push_chain_declarations`] for exactly why this cannot go through real
+/// front-end source), then retargets `classifier.take`'s parameter at the
+/// chain root. Every level in this chain is a distinct declaration, so this
+/// asserts the refusal is `BoundExceeded`, not `RecursiveClosure` — the
+/// reason this depth walk could otherwise be confused with, since both are
+/// only reachable through a record structure that keeps naming itself.
+#[test]
+fn nesting_one_level_over_the_depth_bound_is_refused() {
+    let mut program = resolved(BASE);
+    let root = push_chain_declarations(
+        &mut program,
+        grammar::MAX_RECORD_DEPTH + 1,
+        "_over_depth_bound",
+    );
+    set_parameter_type(&mut program, "classifier.take", root);
+
+    let error = classify(&program, "classifier.take").unwrap_err();
+    assert_eq!(error, Refusal::BoundExceeded);
+    assert_eq!(error.code(), BOUND_EXCEEDED);
+    assert_ne!(error.code(), RECURSIVE_CLOSURE);
+    assert!(!error.diagnostic().message.contains(RECURSIVE_CLOSURE));
+}
+
+/// Build the declarations of a perfectly balanced binary tree, `Node0`
+/// through `Node{depth}`: `Node0` holds one direct owned `Bytes` leaf, and
+/// `Node{k}` (`k >= 1`) holds exactly two fields, `left` and `right`, each of
+/// type `Node{k - 1}`. Every declaration this builds has exactly one or two
+/// fields (far under `MAX_FIELDS_PER_RECORD`) and the whole tree is only
+/// `depth` field-nesting levels deep (far under `MAX_RECORD_DEPTH`), so this
+/// fixture reaches a large transitive owned-leaf count purely by width,
+/// isolating `MAX_OWNED_LEAVES_PER_INSTANCE` from the other two structural
+/// bounds. `Node{depth}` has exactly `2.pow(depth)` transitive owned leaves.
+fn balanced_tree_decls(depth: u32, tag: &str) -> String {
+    let mut decls = format!(
+        "@id(\"classifier.tree{tag}.node0\")\n\
+         record Node0 {{\n\
+         \x20\x20\x20\x20@id(\"classifier.tree{tag}.node0.leaf\")\n\
+         \x20\x20\x20\x20leaf: Bytes,\n\
+         }}\n\n"
+    );
+    for level in 1..=depth {
+        let prev = level - 1;
+        decls.push_str(&format!(
+            "@id(\"classifier.tree{tag}.node{level}\")\n\
+             record Node{level} {{\n\
+             \x20\x20\x20\x20@id(\"classifier.tree{tag}.node{level}.left\")\n\
+             \x20\x20\x20\x20left: Node{prev},\n\
+             \x20\x20\x20\x20@id(\"classifier.tree{tag}.node{level}.right\")\n\
+             \x20\x20\x20\x20right: Node{prev},\n\
+             }}\n\n"
+        ));
+    }
+    decls
+}
+
+/// A complete module admitting `Node{depth}` (`2.pow(depth)` owned leaves)
+/// directly as the sole `own` parameter.
+fn balanced_tree_source(depth: u32, tag: &str) -> String {
+    let decls = balanced_tree_decls(depth, tag);
+    format!(
+        "\nmodule test.public_generic_classifier_tree{tag};\n\n{decls}\
+         @id(\"classifier.tree{tag}.take\")\nfn tree_take(value: own Node{depth}) -> Node{depth} {{ value }}\n\n\
+         @id(\"app.main\")\nfn main() -> i64 {{ 0 }}\n"
+    )
+}
+
+/// Exact bound: a balanced tree with exactly `MAX_OWNED_LEAVES_PER_INSTANCE`
+/// transitive owned leaves is admitted through real compiled source. The
+/// fixture assumes the bound is exactly `2.pow(8)`; if that constant ever
+/// changes to a value that is not `2.pow(8)`, this assertion fails loudly
+/// instead of silently testing the wrong tree depth. Paired with
+/// [`a_record_with_one_leaf_over_the_owned_leaf_bound_is_refused`], the
+/// first-over-bound case below — which cannot use this same real-source
+/// technique; see that test's own documentation for exactly why.
+#[test]
+fn a_balanced_tree_at_the_owned_leaf_bound_is_admitted() {
+    assert_eq!(
+        1usize << 8,
+        grammar::MAX_OWNED_LEAVES,
+        "update this fixture's tree depth to match the new MAX_OWNED_LEAVES"
+    );
+    let source = balanced_tree_source(8, "_at_leaf_bound");
+    let admitted =
+        classify(&resolved(&source), "classifier.tree_at_leaf_bound.take").unwrap();
+    assert_eq!(admitted.input().owned_leaves.len(), grammar::MAX_OWNED_LEAVES);
+}
+
+/// Append a synthetic balanced binary tree of record declarations, `Node0`
+/// through `Node{depth}`, directly to `program`'s already-checked HIR (see
+/// [`push_chain_declarations`] for exactly why this cannot go through real
+/// front-end source once it is one leaf over the bound), plus one more
+/// synthetic `Wrapper` record around `Node{depth}` holding one extra direct
+/// `Bytes` field, and return `Wrapper`'s type: exactly `2.pow(depth) + 1`
+/// transitive owned leaves, `Wrapper` itself has only two fields (far under
+/// the field-count bound), and nesting one record deeper than `Node{depth}`
+/// stays far clear of the depth bound too — isolating the leaf-count bound
+/// this fixture targets from the other two structural bounds.
+fn push_balanced_tree_plus_one_declarations(
+    program: &mut ResolvedProgram,
+    depth: u32,
+    tag: &str,
+) -> ResolvedType {
+    program.types.push(ResolvedTypeDeclaration {
+        id: DeclarationId::new(format!("classifier.tree{tag}.node0")),
+        name: "Node0".to_owned(),
+        type_parameters: Vec::new(),
+        kind: ResolvedTypeDeclarationKind::Record {
+            fields: vec![ResolvedFieldDeclaration {
+                id: DeclarationId::new(format!("classifier.tree{tag}.node0.leaf")),
+                name: "leaf".to_owned(),
+                index: 0,
+                ty: ResolvedType::Bytes,
+                span: Span::default(),
+            }],
+        },
+        span: Span::default(),
+    });
+    for level in 1..=depth {
+        let prev = level - 1;
+        let child = nominal(&format!("classifier.tree{tag}.node{prev}"), Vec::new());
+        program.types.push(ResolvedTypeDeclaration {
+            id: DeclarationId::new(format!("classifier.tree{tag}.node{level}")),
+            name: format!("Node{level}"),
+            type_parameters: Vec::new(),
+            kind: ResolvedTypeDeclarationKind::Record {
+                fields: vec![
+                    ResolvedFieldDeclaration {
+                        id: DeclarationId::new(format!("classifier.tree{tag}.node{level}.left")),
+                        name: "left".to_owned(),
+                        index: 0,
+                        ty: child.clone(),
+                        span: Span::default(),
+                    },
+                    ResolvedFieldDeclaration {
+                        id: DeclarationId::new(format!("classifier.tree{tag}.node{level}.right")),
+                        name: "right".to_owned(),
+                        index: 1,
+                        ty: child,
+                        span: Span::default(),
+                    },
+                ],
+            },
+            span: Span::default(),
+        });
+    }
+    program.types.push(ResolvedTypeDeclaration {
+        id: DeclarationId::new(format!("classifier.tree{tag}.wrapper")),
+        name: "Wrapper".to_owned(),
+        type_parameters: Vec::new(),
+        kind: ResolvedTypeDeclarationKind::Record {
+            fields: vec![
+                ResolvedFieldDeclaration {
+                    id: DeclarationId::new(format!("classifier.tree{tag}.wrapper.tree")),
+                    name: "tree".to_owned(),
+                    index: 0,
+                    ty: nominal(&format!("classifier.tree{tag}.node{depth}"), Vec::new()),
+                    span: Span::default(),
+                },
+                ResolvedFieldDeclaration {
+                    id: DeclarationId::new(format!("classifier.tree{tag}.wrapper.extra")),
+                    name: "extra".to_owned(),
+                    index: 1,
+                    ty: ResolvedType::Bytes,
+                    span: Span::default(),
+                },
+            ],
+        },
+        span: Span::default(),
+    });
+    nominal(&format!("classifier.tree{tag}.wrapper"), Vec::new())
+}
+
+/// First-over-bound: one more transitive owned leaf than
+/// `MAX_OWNED_LEAVES_PER_INSTANCE` is refused as `BoundExceeded`, paired with
+/// [`a_balanced_tree_at_the_owned_leaf_bound_is_admitted`] above. Starts from
+/// `BASE`'s own already-checked `classifier.take` program; see
+/// [`push_balanced_tree_plus_one_declarations`] for why the over-bound case
+/// is built directly in HIR rather than through real front-end source.
+#[test]
+fn a_record_with_one_leaf_over_the_owned_leaf_bound_is_refused() {
+    let mut program = resolved(BASE);
+    let root = push_balanced_tree_plus_one_declarations(&mut program, 8, "_over_leaf_bound");
+    set_parameter_type(&mut program, "classifier.take", root);
+
+    let error = classify(&program, "classifier.take").unwrap_err();
+    assert_eq!(error, Refusal::BoundExceeded);
+    assert_eq!(error.code(), BOUND_EXCEEDED);
+}
+
 // ---------------------------------------------------------------------
 // Negative cases: one per closed refusal reason
 // ---------------------------------------------------------------------
@@ -476,6 +817,14 @@ fn two_declarations_sharing_one_identity_is_ambiguous_stable_identity() {
     assert_eq!(error.code(), AMBIGUOUS_STABLE_IDENTITY);
 }
 
+/// Arity-mismatch sub-case: one *missing* type argument (one supplied where
+/// `Pair<T, U>` declares two). Paired with
+/// [`an_argument_count_above_declared_arity_is_arity_mismatch`] (one *extra*
+/// argument) and
+/// [`swapping_two_type_arguments_of_the_same_arity_is_not_an_arity_mismatch`]
+/// (same count, reordered): all three collapse into this one classifier
+/// reason and code, but each is driven by a genuinely different input shape
+/// rather than only the first ever being exercised.
 #[test]
 fn an_argument_count_below_declared_arity_is_arity_mismatch() {
     let mut program = resolved(BASE);
@@ -487,6 +836,59 @@ fn an_argument_count_below_declared_arity_is_arity_mismatch() {
     let error = classify(&program, "classifier.take").unwrap_err();
     assert_eq!(error, Refusal::ArityMismatch);
     assert_eq!(error.code(), ARITY_MISMATCH);
+}
+
+/// Arity-mismatch sub-case: one *extra* (duplicated) type argument beyond
+/// `Pair<T, U>`'s declared arity of two. Same reason and code as the
+/// missing-argument case above, driven by the opposite direction of count
+/// mismatch, so a classifier that only ever checked "too few" could not pass
+/// this test.
+#[test]
+fn an_argument_count_above_declared_arity_is_arity_mismatch() {
+    let mut program = resolved(BASE);
+    set_parameter_type(
+        &mut program,
+        "classifier.take",
+        nominal(
+            "classifier.pair",
+            vec![
+                nominal("classifier.leaf", Vec::new()),
+                ResolvedType::I64,
+                ResolvedType::I64,
+            ],
+        ),
+    );
+    let error = classify(&program, "classifier.take").unwrap_err();
+    assert_eq!(error, Refusal::ArityMismatch);
+    assert_eq!(error.code(), ARITY_MISMATCH);
+}
+
+/// Arity-mismatch sub-case that is *not* a refusal at all: two type
+/// arguments at the correct declared count, reordered. `classify_with`'s
+/// arity check is a bare length comparison
+/// (`found.type_parameters.len() != arguments.len()`), so a same-count
+/// reorder never trips `ArityMismatch`; it is admitted as a legitimately
+/// different instance. This is the paired legal-input counterpart to the two
+/// tests above: it proves the classifier distinguishes "wrong count" from
+/// "same count, different order" rather than conflating every argument-list
+/// change into one reason.
+///
+/// A real, separately compiled program is used here rather than mutating
+/// `BASE`'s checked `classifier.take`: swapping which type argument lands in
+/// `Pair`'s `left` vs. `right` field moves which field carries the owned
+/// `Bytes` leaf, and an in-place HIR mutation would leave the compiler's own
+/// cleanup inventory pointing at the old (pre-swap) leaf path, tripping
+/// `CleanupInventoryMismatch` instead of proving the swap is legal. Compiling
+/// `SWAPPED_ARGUMENTS` from scratch gives the swapped function its own
+/// internally consistent cleanup facts, as a real front end would.
+#[test]
+fn swapping_two_type_arguments_of_the_same_arity_is_not_an_arity_mismatch() {
+    let original = classify(&resolved(BASE), "classifier.take").unwrap();
+    let swapped = classify(&resolved(SWAPPED_ARGUMENTS), "classifier.swap_take").unwrap();
+
+    assert_ne!(swapped.input().term, original.input().term);
+    assert_eq!(swapped.input().arguments.len(), 2);
+    assert_eq!(swapped.input().owned_leaves.len(), 1);
 }
 
 #[test]

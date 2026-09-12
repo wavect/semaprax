@@ -297,7 +297,7 @@ independently re-derived; see
 ## Evidence
 
 `src/public_generic_abi/classifier.rs` and its owning
-`src/public_generic_abi/classifier/tests.rs` (29 tests, all passing locally;
+`src/public_generic_abi/classifier/tests.rs` (35 tests, all passing locally;
 no hosted CI run is claimed by this document) are the classifier and its
 test matrix this section originally deferred. What is covered, matched
 against the matrix this section used to list as not-yet-run:
@@ -312,43 +312,68 @@ with unchanged stable identities (`display_only_rename_does_not_move_the_digest`
 exact reconstruction of the same classified subject
 (`classification_is_deterministic`, `reparsing_the_same_source_reconstructs_the_same_subject`);
 the field-count bound admitted at exactly its limit
-(`a_record_at_the_field_count_bound_is_admitted`).
+(`a_record_at_the_field_count_bound_is_admitted`); two type arguments of the
+same template swapped, admitted as a distinct instance rather than conflated
+with an arity mismatch
+(`swapping_two_type_arguments_of_the_same_arity_is_not_an_arity_mismatch`);
+nested concrete records at the *maximum* admitted depth, 64 levels
+(`a_record_chain_at_the_depth_bound_is_admitted`), and at the *maximum*
+admitted transitive leaf count, 256
+(`a_balanced_tree_at_the_owned_leaf_bound_is_admitted`) — both re-issue
+#231's follow-up ask, exercised through real compiled `.spx` source rather
+than only trusted from `grammar::describe`'s own depth and leaf budgets.
 
-**Positive — not independently covered:** nested concrete records at the
-*maximum* admitted depth (64 levels) and the *maximum* admitted leaf count
-(256) are not exercised through real compiled `.spx` source by this
-classifier's own tests, or anywhere else in this repository today (see
-[Bounds](#bounds) discussion above); one level of nesting and one owned leaf
-are covered, and the classifier inherits — but does not independently
-re-verify at scale — `grammar::describe`'s own depth and leaf budgets.
-Zero-length `Bytes` is a *value*-level fact (a runtime byte length), not a
-type-admission distinction this type-level classifier can exercise; it is
-covered at the carrier/value level elsewhere in `public_generic_abi`, not
-here.
+**Positive — not independently covered:** zero-length `Bytes` is a *value*-
+level fact (a runtime byte length), not a type-admission distinction this
+type-level classifier can exercise; it is covered at the carrier/value level
+elsewhere in `public_generic_abi`, not here.
 
 **Negative — covered, one test per reason:** export not found, generic
 function template, wrong parameter count, wrong ownership mode (both a
 value-mode and a borrow-mode parameter), unsupported input shape,
 unsupported result shape, an effect declaration, unresolved type argument,
-arity mismatch, type outside the grammar (compiler-owned nominal), a
-borrowed field (both `str` and `Slice<u8>`), a variant field, a
-self-referential record graph (recursive closure), an ambiguous stable
-identity, a field naming an absent declaration (incompatible retained
-facts), a scalar-only owned instance (cleanup inventory mismatch), and the
-field-count bound's exact first-over-limit case.
+arity mismatch — now separately exercised for one missing argument
+(`an_argument_count_below_declared_arity_is_arity_mismatch`) and one extra,
+duplicated argument
+(`an_argument_count_above_declared_arity_is_arity_mismatch`) — type outside
+the grammar (compiler-owned nominal), a borrowed field (both `str` and
+`Slice<u8>`), a variant field, a self-referential record graph (recursive
+closure), an ambiguous stable identity, a field naming an absent declaration
+(incompatible retained facts), a scalar-only owned instance (cleanup
+inventory mismatch), the field-count bound's exact first-over-limit case,
+and the depth and leaf-count bounds' exact first-over-limit cases
+(`nesting_one_level_over_the_depth_bound_is_refused`,
+`a_record_with_one_leaf_over_the_owned_leaf_bound_is_refused`) — each
+asserting `Refusal::BoundExceeded` specifically, not `RecursiveClosure`,
+the reason a depth-bound overrun could otherwise be confused with.
 
-**Negative — not independently covered:** one missing argument, one
-duplicated argument, and two arguments swapped are not separately exercised
-beyond the arity-mismatch case above (an arity mismatch is exactly "wrong
-argument count," but swapped-with-the-same-count arguments are not
-distinctly tested); a never-instantiated template is not distinguished from
-a plain generic-function-template selection; the target-width-integer case
-this document's own [Bounds](#bounds) discussion flagged as unresolved is
-still unresolved, so no test exists for it; `SPX-PG615`
-(settlement-obligation mismatch) has no fixture that produces it as distinct
-from `SPX-PG614` — see the classifier module's own "Known limitations"
-documentation for exactly why (the settlement module's own diagnostic
-vocabulary does not distinguish the two).
+The depth- and leaf-count first-over-limit cases cannot go through real
+compiled `.spx` source the way their at-the-bound counterparts do: a
+hand-written record chain or tree this deep or wide is refused by
+`src/source_verify/declaration/declarations.rs`'s pre-existing `SPX-T268`
+"owned-Bytes record" front-end profile before `hir::resolve` ever returns a
+checked `ResolvedProgram` for this classifier to see at all — expected,
+since [Bounds](#bounds) above notes `MAX_RECORD_DEPTH` and `MAX_OWNED_LEAVES`
+were deliberately reused from that exact profile's own internal bound, not
+independently chosen. Both tests instead append synthetic record
+declarations directly onto an already-checked HIR program, one level or one
+leaf past the bound, mirroring the same technique
+`crate::hir::type_reachability`'s own tests already use for its analogous
+depth bound. This means that, through a plain owned-`Bytes`-record shape,
+the classifier's own inherited-bound `BoundExceeded` refusal is exercised
+directly here but is not independently reachable from real front-end-checked
+source — the same category of limitation this document's classifier module
+already records for `SPX-O002` foreclosing a scalar-only owned instance (see
+the module's own "Known limitations" documentation).
+
+**Negative — not independently covered:** a never-instantiated template is
+not distinguished from a plain generic-function-template selection; the
+target-width-integer case this document's own [Bounds](#bounds) discussion
+flagged as unresolved is still unresolved, so no test exists for it;
+`SPX-PG615` (settlement-obligation mismatch) has no fixture that produces it
+as distinct from `SPX-PG614` — see the classifier module's own "Known
+limitations" documentation for exactly why (the settlement module's own
+diagnostic vocabulary does not distinguish the two).
 
 **Separation — partially covered.** One regression
 (`admission_agrees_with_the_surface_and_settlement_projections_it_composes`)

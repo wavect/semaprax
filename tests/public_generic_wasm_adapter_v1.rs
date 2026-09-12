@@ -3,6 +3,13 @@
 //! mirroring `tests/public_generic_native_adapter_v1.rs`'s own convention
 //! for its native sibling; future Wasm-adapter fixtures add modules rather
 //! than new top-level files.
+/// Issue #229: real, Node-executed evidence that this compiler's own Wasm
+/// backend can genuinely compile (not hand-assemble) a `.wasm` artifact
+/// whose own bytecode performs the fixture endpoint's byte-reversal
+/// computation, plus a precise accounting of what still blocks compiling
+/// the full open/input_prepare/call/result_export/release provider ABI.
+#[path = "public_generic_wasm_adapter_v1/compiled_reference_endpoint.rs"]
+mod compiled_reference_endpoint;
 #[path = "public_generic_wasm_adapter_v1/fixture.rs"]
 mod fixture;
 #[path = "public_generic_wasm_adapter_v1/reference_wasm_module.rs"]

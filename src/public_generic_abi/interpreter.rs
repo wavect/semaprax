@@ -603,22 +603,26 @@ impl InterpreterProvider {
         if let Err(error) = state.machine.commit_input_transfer() {
             self.settle(&mut state.machine, Settlement::ProviderFailure);
             let _ = self.release_input_physical(&state);
+            let _ = state.machine.release_input_before_transfer();
             return Err(status_from_diagnostic(&error));
         }
         if self.take_injection_if(TraceLabel::InputTransferCommitted) {
             self.settle(&mut state.machine, Settlement::ProviderFailure);
             let _ = self.release_input_physical(&state);
+            let _ = state.machine.release_input_after_transfer();
             return Err(InterpreterPgStatus::IllegalTransition);
         }
 
         if let Err(error) = state.machine.begin_execution() {
             self.settle(&mut state.machine, Settlement::ContractFailure);
             let _ = self.release_input_physical(&state);
+            let _ = state.machine.release_input_after_transfer();
             return Err(status_from_diagnostic(&error));
         }
         if self.take_injection_if(TraceLabel::ExecutionStarted) {
             self.settle(&mut state.machine, Settlement::ContractFailure);
             let _ = self.release_input_physical(&state);
+            let _ = state.machine.release_input_after_transfer();
             return Err(InterpreterPgStatus::ContractFailure);
         }
 
@@ -634,11 +638,18 @@ impl InterpreterProvider {
         if let Err(error) = state.machine.finish_execution() {
             self.settle(&mut state.machine, Settlement::ContractFailure);
             let _ = self.release_input_physical(&state);
+            let _ = state.machine.release_input_after_transfer();
             return Err(status_from_diagnostic(&error));
         }
         let injected_after_execution = self.take_injection_if(TraceLabel::ExecutionFinished);
 
+        // The LOGICAL release (`release_input_after_transfer`) runs
+        // alongside the physical free so the normalized trace this call
+        // emits actually records the input side's release, on every
+        // terminal path including success — matching the identical fix in
+        // `WasmProvider::call`.
         let release_result = self.release_input_physical(&state);
+        let _ = state.machine.release_input_after_transfer();
         if self.take_injection_if(TraceLabel::LeafRelease)
             || self.take_injection_if(TraceLabel::CarrierRelease)
         {

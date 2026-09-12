@@ -551,6 +551,51 @@ fn every_corpus_case_agrees_across_the_interpreter_and_wasm_engines() {
 }
 
 #[test]
+fn structural_leaf_order_is_left_to_right_staged_and_exact_reverse_released() {
+    // Not merely "the two engines agree with each other" (which a
+    // consistently-wrong order — e.g. both sorted ascending on release
+    // instead of exact-reverse — would also satisfy): pin the literal
+    // expected sequence independently, restating "an owned call stages
+    // arguments left to right and transfers them together at its declared
+    // commit boundary" and "cleanup inventory order is structural
+    // metadata... canonical runtime order" at the physical-adapter
+    // boundary, not only at the `CarrierCallMachine` unit-test level
+    // (`carrier::machine::tests::a_full_success_run_transitions_every_handle_and_records_the_expected_trace`).
+    let case = Case {
+        case_id: "structural_order_pin".to_owned(),
+        input_leaves: vec![b"AA".to_vec(), b"BBB".to_vec()],
+        failure_injection_id: None,
+        expected_accepted: true,
+        expected_status: InterpreterPgStatus::Ok as i32,
+    };
+    for (engine_name, trace) in [
+        ("interpreter", run_interpreter_case(&case).trace),
+        ("core-wasm", run_wasm_case(&case).trace),
+    ] {
+        let staged_leaf_order: Vec<u32> = trace
+            .iter()
+            .filter(|event| event.label == TraceLabel::LeafAllocationStarted)
+            .filter_map(|event| event.leaf)
+            .collect();
+        assert_eq!(
+            staged_leaf_order,
+            vec![0, 1],
+            "{engine_name}: leaves must stage left to right (input order), not reordered"
+        );
+        // The trailing `None` is the root aggregate handle's own release
+        // (recorded as a `LeafRelease` event with no leaf index), released
+        // last per the canonical obligation order (root, then leaves) —
+        // reversed is (leaves reversed, then root).
+        let released_leaf_order: Vec<Option<u32>> = release_order(&trace);
+        assert_eq!(
+            released_leaf_order,
+            vec![Some(1), Some(0), None],
+            "{engine_name}: leaf release must be the exact reverse of staging order, not sorted or otherwise repaired"
+        );
+    }
+}
+
+#[test]
 fn sticky_failure_selection_matches_across_engines_when_cleanup_follows_an_earlier_failure() {
     // "Cleanup cannot replace the selected status": inject a primary
     // failure at execution start, which settles before either release

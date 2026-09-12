@@ -79,9 +79,8 @@ fn fourteen_independent_scalar_comparisons_replay_within_budget() {
 #[test]
 fn fifteen_independent_scalar_comparisons_exceed_the_cleanup_replay_path_budget() {
     let source = source_with_independent_comparisons(15);
-    let error = validate_source(&source).expect_err(
-        "15 independent branch terms must exceed the 65,536-path replay budget here",
-    );
+    let error = validate_source(&source)
+        .expect_err("15 independent branch terms must exceed the 65,536-path replay budget here");
     assert_eq!(error.code, "SPX-H006");
     // 98,300 is the exact terminal-path count this session measured for this
     // source shape (not the naive `2^15 = 32,768` estimate -- see the module

@@ -172,7 +172,8 @@ impl Workspace {
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(&root).unwrap();
-        Self(root.canonicalize().unwrap())
+        // Avoid `\\?\` prefix on Windows (see rust_calling_consumer fix).
+        Self(root)
     }
 
     fn path(&self, name: &str) -> PathBuf {

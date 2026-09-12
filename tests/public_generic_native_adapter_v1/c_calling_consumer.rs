@@ -67,7 +67,9 @@ impl Workspace {
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(&root).unwrap();
-        Self(root.canonicalize().unwrap())
+        // Do not canonicalize: on Windows this adds a `\\?\` prefix that the
+        // native toolchain does not expect.
+        Self(root)
     }
 
     fn path(&self, name: &str) -> PathBuf {
@@ -213,7 +215,19 @@ fn build_and_run(sanitized: bool) {
             String::from_utf8_lossy(&result.stdout),
             String::from_utf8_lossy(&result.stderr)
         );
-        assert_eq!(result.stdout, b"c-calling-consumer-settled\n");
+        // Windows process output is CRLF (`\r\n`) while Unix is LF (`\n`); the
+        // semantic output is the same. Normalize before asserting so the same
+        // test passes on both without relaxing the "settled" contract.
+        let normalized_stdout = if result.stdout.ends_with(b"\r\n") {
+            let mut owned = result.stdout.clone();
+            owned.pop();
+            owned.pop();
+            owned.push(b'\n');
+            owned
+        } else {
+            result.stdout.clone()
+        };
+        assert_eq!(normalized_stdout, b"c-calling-consumer-settled\n");
         assert!(result.stderr.is_empty());
     }
 }

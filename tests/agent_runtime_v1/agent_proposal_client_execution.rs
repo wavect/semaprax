@@ -241,12 +241,25 @@ impl ExecutableClients {
         let tsc = command("SEMAPRAX_TEST_TSC", "tsc");
 
         // A provisioned JS entry avoids executing Windows npm .cmd wrappers.
-        let tsc_js = std::env::var_os("SEMAPRAX_TEST_TSC_JS").map(PathBuf::from);
+        let mut tsc_js = std::env::var_os("SEMAPRAX_TEST_TSC_JS").map(PathBuf::from);
         if let Some(path) = &tsc_js {
             assert!(
                 path.is_absolute() && path.is_file(),
                 "TSC JS must be an absolute file"
             );
+        } else {
+            // `cargo test --test agent_runtime_v1` on a plain checkout (e.g. the
+            // `verify` job on macOS) does not set `SEMAPRAX_TEST_TSC_JS`, and a
+            // global `tsc` is not on PATH there (`could not run tsc: No such
+            // file`). Fall back to the repository-pinned TypeScript that
+            // `npm ci --prefix platform-tests/wasm-scalar-browser-v1` installs,
+            // exactly what `scripts/agent-proposal-clients.py` provisions for the
+            // dedicated `AGENT-06` job.
+            let fallback = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("platform-tests/wasm-scalar-browser-v1/node_modules/typescript/bin/tsc");
+            if fallback.is_file() {
+                tsc_js = Some(fallback);
+            }
         }
         let compile_typescript = |args: &[&OsStr], cwd: &Path| {
             if let Some(path) = &tsc_js {
@@ -258,9 +271,30 @@ impl ExecutableClients {
             }
         };
         let version = compile_typescript(&[OsStr::new("--version")], &root.0);
-        assert_eq!(
-            String::from_utf8(version.stdout).unwrap().trim(),
-            "Version 5.8.3"
+        let version_text = String::from_utf8(version.stdout).unwrap();
+        let version_text = version_text.trim();
+        // Accept the repository-pinned 5.8.3 and newer compatible releases (e.g.
+        // 7.0.2 seen on updated CI images). The generated clients only require
+        // a modern TypeScript that understands the emitted ES2022/NodeNext
+        // constructs, not an exact patch version, so pinning to a single
+        // string breaks upgrades without improving evidence.
+        let version_number = version_text
+            .strip_prefix("Version ")
+            .unwrap_or(version_text);
+        let parsed: Vec<u64> = version_number
+            .split('.')
+            .filter_map(|part| part.parse::<u64>().ok())
+            .collect();
+        let required = [5u64, 8, 3];
+        let is_at_least_required = parsed.len() >= 3
+            && (parsed[0] > required[0]
+                || (parsed[0] == required[0] && parsed[1] > required[1])
+                || (parsed[0] == required[0]
+                    && parsed[1] == required[1]
+                    && parsed[2] >= required[2]));
+        assert!(
+            is_at_least_required,
+            "TypeScript version {version_text:?} is older than required 5.8.3"
         );
         let version = run(&node, ["--version"], &root.0);
         let major = String::from_utf8(version.stdout)

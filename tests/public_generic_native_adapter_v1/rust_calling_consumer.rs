@@ -78,7 +78,12 @@ impl Workspace {
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(&root).unwrap();
-        Self(root.canonicalize().unwrap())
+        // Do not canonicalize: on Windows `canonicalize` adds a `\\?\` verbatim
+        // prefix that `ar`/`lib.exe` do not understand, breaking the
+        // `archiving the native provider failed: ar: \\provider.o` seen in
+        // CI job 103617818035. The temp path is already absolute via
+        // `env::temp_dir`.
+        Self(root)
     }
 
     fn path(&self, name: &str) -> PathBuf {

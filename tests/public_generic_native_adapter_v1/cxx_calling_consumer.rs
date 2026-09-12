@@ -73,7 +73,8 @@ impl Workspace {
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         fs::create_dir_all(&root).unwrap();
-        Self(root.canonicalize().unwrap())
+        // Avoid `\\?\` verbatim prefix on Windows (see rust_calling_consumer).
+        Self(root)
     }
 
     fn path(&self, name: &str) -> PathBuf {
@@ -267,7 +268,18 @@ fn build_and_run(sanitized: bool) {
             String::from_utf8_lossy(&result.stdout),
             String::from_utf8_lossy(&result.stderr)
         );
-        assert_eq!(result.stdout, b"cxx-calling-consumer-settled\n");
+        // Normalize CRLF to LF so the same "settled" contract passes on
+        // Windows (which emits `\r\n`) and Unix (which emits `\n`).
+        let normalized_stdout = if result.stdout.ends_with(b"\r\n") {
+            let mut owned = result.stdout.clone();
+            owned.pop();
+            owned.pop();
+            owned.push(b'\n');
+            owned
+        } else {
+            result.stdout.clone()
+        };
+        assert_eq!(normalized_stdout, b"cxx-calling-consumer-settled\n");
         assert!(result.stderr.is_empty());
     }
 }

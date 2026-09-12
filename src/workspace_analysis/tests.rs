@@ -564,6 +564,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
     for artifact in &contexts {
         let wire: serde_json::Value = serde_json::from_str(&artifact.json).unwrap();
         assert_eq!(
+            wire["limits"]["workspace"]["max_builder_bytes"].as_u64(),
+            Some(crate::workspace_graph::MAX_BUILDER_BYTES as u64)
+        );
+        assert_eq!(
             wire["budget"]["analysis"]["used_output_bytes"],
             artifact.json.len()
         );
@@ -713,6 +717,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
     for artifact in &impacts {
         let wire: serde_json::Value = serde_json::from_str(&artifact.json).unwrap();
         assert_eq!(
+            wire["limits"]["workspace"]["max_builder_bytes"].as_u64(),
+            Some(crate::workspace_graph::MAX_BUILDER_BYTES as u64)
+        );
+        assert_eq!(
             wire["budget"]["analysis"]["used_output_bytes"],
             artifact.json.len()
         );
@@ -780,6 +788,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
     )));
     let review_wire: serde_json::Value = serde_json::from_str(&review.json).unwrap();
     assert_eq!(review_wire["schema"], REVIEW_SCHEMA);
+    assert_eq!(
+        review_wire["limits"]["workspace"]["max_builder_bytes"].as_u64(),
+        Some(crate::workspace_graph::MAX_BUILDER_BYTES as u64)
+    );
     assert_eq!(review_wire["context"]["schema"], CONTEXT_SCHEMA);
     assert_eq!(review_wire["impact"]["schema"], IMPACT_SCHEMA);
     assert_eq!(

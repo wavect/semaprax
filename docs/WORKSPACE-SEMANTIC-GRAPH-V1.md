@@ -135,6 +135,12 @@ The `limits` object has this exact order and values:
 | `max_staging_attempts` | 32 |
 | `max_unexpected_inventory_entries` | 0 |
 
+Corrective byte compatibility: `max_builder_bytes` is 18,874,368 because that
+is the `SPX-G171` enforcement limit. Earlier v1 output that encoded
+16,777,216 was defective and is not canonical. Re-rendering a graph with the
+corrected limit changes its digest, but does not change the schema or raise a
+ceiling.
+
 The `budget` object uses the corresponding `used_` names in the same order.
 Full authenticated-work counters are `used_managed_files`,
 `used_total_source_bytes`, `used_declarations`, `used_callables`,

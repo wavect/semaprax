@@ -1,8 +1,6 @@
-//! Public read-only Workspace Semantic Graph over an authenticated managed
-//! workspace snapshot. The route holds the shared workspace lock through one
-//! bounded resolver pass, canonical bounded wire rendering, final
-//! authentication, and checked unlock; the fixed `workspace-graph` CLI prints
-//! that exact API body plus one terminal LF.
+//! Public read-only Workspace Semantic Graph over an authenticated managed workspace.
+//! The route holds the shared lock through bounded resolution, canonical rendering, final
+//! authentication, and checked unlock; the CLI prints the API body plus one terminal LF.
 //!
 //! This module exposes no parser, verifier, raw-source constructor, write,
 //! staging, ACTIVE-pivot, backend, or runtime authority.
@@ -10,7 +8,7 @@
     dead_code,
     reason = "sealed validation and test-only replay seams remain non-public"
 )]
-mod diagnostics;
+pub(crate) mod diagnostics;
 mod expected_projection;
 mod generic_type_import;
 mod operation_sidecar;
@@ -54,7 +52,7 @@ const MAX_CALLS: usize = 65_536;
 const MAX_USES: usize = 4096;
 const MAX_CROSS_FILE_EDGES: usize = 65_536;
 const MAX_DEPENDENCY_DEPTH: usize = 16;
-const MAX_BUILDER_BYTES: usize = 18 * 1024 * 1024;
+pub(crate) const MAX_BUILDER_BYTES: usize = 18 * 1024 * 1024;
 const MAX_CHANGE_BUILDER_BYTES: usize = 32 * 1024 * 1024;
 const MAX_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
 const MAX_ENTRY_MODULE_BYTES: usize = 16 * 1024 * 1024;
@@ -3531,11 +3529,9 @@ fn render_graph_json(
         push_json_string(&mut output, &edge.alias);
         write!(output, ",\"ordinal\":{}}}", edge.ordinal).expect("writing to a string cannot fail");
     }
-    write!(
-        output,
-        "],\"limits\":{{\"max_managed_files\":{MAX_FILES},\"max_reachable_modules\":{MAX_FILES},\"max_entry_module_bytes\":{MAX_ENTRY_MODULE_BYTES},\"max_total_source_bytes\":{MAX_TOTAL_SOURCE_BYTES},\"max_declarations\":{MAX_DECLARATIONS},\"max_callables\":{MAX_CALLABLES},\"max_call_sites\":{MAX_CALLS},\"max_uses\":{MAX_USES},\"max_resolved_cross_file_edges\":{MAX_CROSS_FILE_EDGES},\"max_dependency_depth\":{MAX_DEPENDENCY_DEPTH},\"max_builder_bytes\":{MAX_BUILDER_BYTES},\"max_manifest_bytes\":1048576,\"max_output_bytes\":{MAX_OUTPUT_BYTES},\"max_retained_generations\":32,\"max_staging_attempts\":32,\"max_unexpected_inventory_entries\":0}},\"budget\":{{"
-    )
-    .expect("writing to a string cannot fail");
+    output.push_str("],\"limits\":");
+    diagnostics::push_workspace_graph_limits(&mut output);
+    output.push_str(",\"budget\":{");
     let usage = projection.usage;
     write!(
         output,

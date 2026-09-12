@@ -2483,7 +2483,7 @@ fn push_entry(output: &mut crate::bounded_output::CappedString, analysis: &Works
 }
 
 fn push_workspace_limits(output: &mut crate::bounded_output::CappedString) {
-    output.push_str("{\"max_managed_files\":16,\"max_reachable_modules\":16,\"max_entry_module_bytes\":16777216,\"max_total_source_bytes\":16777216,\"max_declarations\":4096,\"max_callables\":1024,\"max_call_sites\":65536,\"max_uses\":4096,\"max_resolved_cross_file_edges\":65536,\"max_dependency_depth\":16,\"max_builder_bytes\":16777216,\"max_manifest_bytes\":1048576,\"max_output_bytes\":16777216,\"max_retained_generations\":32,\"max_staging_attempts\":32,\"max_unexpected_inventory_entries\":0}");
+    crate::workspace_graph::diagnostics::push_workspace_graph_limits(output);
 }
 
 fn push_workspace_budget(

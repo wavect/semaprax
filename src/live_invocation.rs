@@ -34,6 +34,7 @@
 //! constructed by a caller before [`kernel::run_live_invocation`] can be
 //! called at all.
 
+pub mod alternate_fixture;
 pub mod budget;
 pub mod fixture;
 pub mod identity;
@@ -43,6 +44,8 @@ pub mod migration;
 pub mod model_invoke;
 pub mod persistence;
 
+#[cfg(test)]
+mod neutrality_tests;
 #[cfg(test)]
 mod tests;
 

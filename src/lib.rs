@@ -92,6 +92,7 @@ pub(crate) mod iterator_ops;
 pub mod lexer;
 pub mod live_invocation;
 pub mod loan_plan;
+pub mod model_call_receipt;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]
 pub(crate) mod native_settlement;

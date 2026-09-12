@@ -1044,7 +1044,22 @@ jobs:
         if: runner.os == 'Linux'
         env:
           SEMAPRAX_REQUIRE_SCALAR_BACKEND_EQUIVALENCE: "1"
+          # Arms the view-composition matrix's own hard-fail. Without it that
+          # corpus returns early when clang or Node is absent, so the whole
+          # issue #103 matrix would skip silently while this step still
+          # reported success.
+          SEMAPRAX_REQUIRE_VIEW_OWNERSHIP_COMPOSITION: "1"
         run: cargo test --locked -p semaprax --test scalar_status_backend_equivalence -- --nocapture
+      - name: Require interpreter/native/Core-Wasm backend parity
+        if: runner.os == 'Linux'
+        env:
+          # Both parity corpora skip themselves when clang or Node is absent.
+          # Nothing set this before, so their tool-dependent lanes had never
+          # been required to run anywhere.
+          SEMAPRAX_REQUIRE_INTERPRETER_BACKEND_PARITY: "1"
+        run: |
+          cargo test --locked -p semaprax --test interpreter_v1 -- --nocapture
+          cargo test --locked -p semaprax --test language interpreter_scalar_widen:: -- --nocapture
       - name: Require the fixed grammar-driven differential seeds
         # Fixed seeds only. The frontend and reference-interpreter lanes need no
         # provisioned tool, so this runs on every platform; the native and
@@ -1064,6 +1079,11 @@ jobs:
       - name: Require private bounded Agent Runtime deterministic fake-host evidence
         run: cargo test --locked -p semaprax --lib agent_runtime::tests -- --nocapture
       - name: Require public bounded Agent Runtime injected-host evidence
+        env:
+          # `generated_proposal_clients_compile_execute_and_round_trip`
+          # returns before its body unless this is set, so without it that
+          # test has never executed anywhere -- it passed by skipping.
+          SEMAPRAX_REQUIRE_AGENT_PROPOSAL_CLIENTS: "1"
         run: cargo test --locked -p semaprax --test agent_runtime_v1 -- --nocapture
       - name: Require private Economic Agent deterministic fake-host evidence
         run: cargo test --locked -p semaprax --lib economic_agent::tests -- --nocapture

@@ -499,3 +499,92 @@ fn required_checks_doc_min_jobs_matches_the_live_gate() {
          update its prose when the release-gate blocker count changes"
     );
 }
+
+/// A harness that gates its own tool-dependent lanes behind a
+/// `SEMAPRAX_REQUIRE_*` environment flag only actually runs those lanes where
+/// something sets the flag. Nothing did for three of them
+/// (`SEMAPRAX_REQUIRE_VIEW_OWNERSHIP_COMPOSITION`,
+/// `SEMAPRAX_REQUIRE_AGENT_PROPOSAL_CLIENTS`,
+/// `SEMAPRAX_REQUIRE_INTERPRETER_BACKEND_PARITY`), so those lanes had never
+/// executed on any runner while the steps selecting their harnesses still
+/// reported success -- a test that passes by returning early is the same
+/// blackout as a test with no CI selector at all, and is harder to see.
+///
+/// This walks the declared flags out of the test sources rather than pinning
+/// a fixed list, so a newly introduced flag is refused until it is armed or
+/// deliberately recorded below.
+#[test]
+fn every_declared_require_flag_is_armed_by_some_workflow() {
+    /// Flags that are deliberately never armed in this repository, each with
+    /// the reason it cannot be. Adding an entry here is a claim that the flag
+    /// *must not* run in CI, not a way to silence this test.
+    const DELIBERATELY_UNARMED: [(&str, &str); 0] = [];
+
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut declared = std::collections::BTreeSet::new();
+    let mut stack = vec![root.join("tests"), root.join("src"), root.join("crates")];
+    while let Some(directory) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                if path.file_name().is_some_and(|name| name == "target") {
+                    continue;
+                }
+                stack.push(path);
+            } else if path.extension().is_some_and(|extension| extension == "rs") {
+                let source = fs::read_to_string(&path).unwrap_or_default();
+                let mut rest = source.as_str();
+                while let Some(start) = rest.find("SEMAPRAX_REQUIRE_") {
+                    let tail = &rest[start..];
+                    let end = tail
+                        .find(|character: char| {
+                            !character.is_ascii_uppercase()
+                                && character != '_'
+                                && !character.is_ascii_digit()
+                        })
+                        .unwrap_or(tail.len());
+                    declared.insert(tail[..end].to_string());
+                    rest = &tail[end..];
+                }
+            }
+        }
+    }
+    assert!(
+        declared.len() > 5,
+        "found only {} declared SEMAPRAX_REQUIRE_* flags; the walk is not \
+         reaching the test sources and would pass vacuously",
+        declared.len()
+    );
+
+    let mut workflows = String::new();
+    for entry in fs::read_dir(root.join(".github/workflows"))
+        .expect("workflow directory must be readable")
+        .flatten()
+    {
+        let path = entry.path();
+        if path.extension().is_some_and(|extension| extension == "yml") {
+            workflows.push_str(&fs::read_to_string(&path).unwrap_or_default());
+        }
+    }
+
+    let unarmed = declared
+        .iter()
+        .filter(|flag| !workflows.contains(flag.as_str()))
+        .filter(|flag| {
+            !DELIBERATELY_UNARMED
+                .iter()
+                .any(|(recorded, _)| recorded == flag)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    assert!(
+        unarmed.is_empty(),
+        "these SEMAPRAX_REQUIRE_* flags gate tool-dependent test lanes but no \
+         workflow sets them, so those lanes skip themselves on every runner \
+         while their step still reports success: {}",
+        unarmed.join(", ")
+    );
+}

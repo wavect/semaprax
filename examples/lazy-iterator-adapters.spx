@@ -3,10 +3,7 @@ module example.lazy_iterator_adapters;
 @id("lazy.first-if-step")
 fn first_if_step<T>(step: own IterStep<T>, keep: fn(T) -> bool) -> bool
 {
-    match own step {
-        IterStep::Done{} => false,
-        IterStep::Yield{item, rest} => keep(item),
-    }
+    match own step { IterStep::Done {} => false, IterStep::Yield { item, rest } => keep(item), }
 }
 
 @id("lazy.first-if")

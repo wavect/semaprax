@@ -75,3 +75,21 @@ deadline, bounded-output, and export coverage; it must never call a provider.
 The existing `agent_interaction_schema::live_bridge` kernel test remains the
 compiled-schema decoder gate. A coordinated, separately recorded free-model
 call is required before any hosted claim.
+
+## Source-feedback smoke embedding
+
+`crates/semaprax-toolchain/examples/opencode_live_smoke.rs` compiles a frozen,
+pure one-turn source lifecycle and calls its existing #111 `run_live` route.
+With no arguments it uses one canonical offline proposal. A real invocation is
+opt-in and requires all of:
+
+```sh
+cargo run -p semaprax-toolchain --example opencode_live_smoke -- \
+  --live --opencode /absolute/path/to/opencode --scratch /absolute/empty/dir
+```
+
+The `--live` branch keeps the source lifecycle's own proposal decode and
+bounded retry loop. It swaps only the `ProposalSource` callback for the
+explicit OpenCode bridge, uses the free configured profile, and has no paid
+fallback. This example is local host evidence only; it does not establish a
+hosted support claim.

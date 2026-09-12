@@ -1454,6 +1454,8 @@ mod byte_spans;
 mod catalog;
 #[path = "standard_library/env_policy.rs"]
 mod env_policy;
+#[path = "standard_library/execution_matrix.rs"]
+mod execution_matrix;
 #[path = "standard_library/toml_cursors.rs"]
 mod toml_cursors;
 use catalog::render_catalogs;

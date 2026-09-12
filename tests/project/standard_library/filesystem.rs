@@ -197,3 +197,49 @@ fn filesystem_standard_commands_execute_on_all_three_backends() {
     }
     run_conformance();
 }
+
+/// Issue #102's required failure case: "a hosted example that never calls
+/// its injected provider fails a call-count assertion." `run_conformance`
+/// above already asserts the fixture provider's exact call count
+/// (`EXPECTED_CALLS`) inside its generated C harness - `state.calls !=
+/// EXPECTED_CALLS` in `C_PROVIDER`'s `main` - for every one of its three
+/// cases. This replays the identical generated source for
+/// `std.fs.tests.prefix` (which `run_conformance` pins at exactly one
+/// provider call) with a deliberately wrong expected count and confirms
+/// the harness's own comparison rejects it, proving that assertion is
+/// load-bearing - it would catch a hosted example that called its
+/// provider a different number of times than the documented shape - rather
+/// than vacuous.
+#[test]
+fn a_hosted_example_with_the_wrong_provider_call_count_fails_the_native_gate() {
+    if cfg!(windows) {
+        return;
+    }
+    let manifest = package("fs-negative-control", "std.fs.tests.prefix", false);
+    let scratch = manifest.parent().unwrap().to_path_buf();
+    project::with_authenticated_project(&manifest, |snapshot| {
+        let mut provider = FixtureFileProvider::new([], true).unwrap();
+        let result = snapshot.execute_filesystem_command(&mut provider, 1_000_000)?;
+        assert!(
+            matches!(result.outcome, CommandEvaluationOutcome::ReturnedBool(true)),
+            "{result:?}"
+        );
+        let revision = snapshot.retain_revision();
+        let generated = revision.filesystem_c_source()?;
+        // The real shape calls the provider exactly once; `2` is the
+        // deliberately wrong expectation.
+        let source = format!(
+            "{generated}\n#define EXPECTED_PATH 112\n#define EXPECTED_LENGTH UINT64_C(1)\n#define EXPECTED_CALLS UINT64_C(2)\n{C_PROVIDER}"
+        );
+        let caught = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            super::compile_and_run_c(&source, &scratch, "-O0", "");
+        }));
+        assert!(
+            caught.is_err(),
+            "a wrong provider call count must fail the native conformance gate, not pass it"
+        );
+        Ok(())
+    })
+    .unwrap();
+    std::fs::remove_dir_all(&scratch).unwrap();
+}

@@ -1,5 +1,5 @@
 //! Model identity: a stable digest over one model's declared descriptor and
-//! the exact [`Bounds`](super::engine::Bounds) an exploration ran under.
+//! the exact [`Bounds`] an exploration ran under.
 //!
 //! This binds `model_checked` manifest records to "which model, at which
 //! declared shape, under which bounds" the same way

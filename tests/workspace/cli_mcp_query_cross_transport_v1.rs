@@ -193,8 +193,7 @@ fn cli_and_mcp_answer_the_same_declarations_query_byte_identically() {
 
     // Direct core: the same kernel entry point every transport delegates to.
     let direct: Value =
-        serde_json::from_str(&service.query(query.to_json().as_bytes()).unwrap().to_json())
-            .unwrap();
+        serde_json::from_str(service.query(query.to_json().as_bytes()).unwrap().to_json()).unwrap();
 
     let cli = cli_declarations_result(&fixture, &workspace_revision);
     let mcp = mcp_declarations_result(&fixture, &query);

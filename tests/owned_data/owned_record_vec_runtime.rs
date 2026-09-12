@@ -125,11 +125,19 @@ fn interpret_once(name: &str, source: &str) -> Result<i64, (String, u64)> {
     }
 }
 
+/// One corpus row for a lane whose failure status carries a `u64` code:
+/// a fixture name, its source, and either the published value or the
+/// `(status domain, code)` pair the lane must select.
+type InterpreterCase<'a> = (&'a str, &'a str, Result<i64, (&'a str, u64)>);
+
+/// The same row for a lane whose failure status carries a `u32` code.
+type NativeCase<'a> = (&'a str, Result<i64, (&'a str, u32)>);
+
 /// The interpreter executes the whole corpus, deterministically: every fixture
 /// is run four times and must publish the same outcome each time.
 #[test]
 fn the_interpreter_executes_the_owned_record_collection_corpus() {
-    let cases: [(&str, &str, Result<i64, (&str, u64)>); 7] = [
+    let cases: [InterpreterCase<'_>; 7] = [
         ("accumulate", ACCUMULATE, Ok(29)),
         ("empty", EMPTY, Ok(29)),
         ("singleton", SINGLETON_AT_CAPACITY, Ok(29)),
@@ -257,7 +265,7 @@ const WASM_STATUS_VEC_ALLOCATION_FAILURE: u32 = 15;
 /// injected failure alike.
 #[test]
 fn native_c11_executes_the_owned_record_collection_corpus() {
-    let cases: [(&str, Result<i64, (&str, u32)>); 7] = [
+    let cases: [NativeCase<'_>; 7] = [
         (ACCUMULATE, Ok(29)),
         (EMPTY, Ok(29)),
         (SINGLETON_AT_CAPACITY, Ok(29)),

@@ -22,7 +22,7 @@
 //! below confirm the two different outcomes that follow from that closure
 //! being sound:
 //!
-//! - [`text_export_profile_admits_an_unreachable_scalar_while_loop`]: a
+//! - [`text_export_profile_admits_an_unreachable_scalar_while_loop`] -- a
 //!   private, unexported `while` loop over plain `i64`/`bool` locals is now
 //!   admitted, because the shared scalar-core Wasm emitter (`emit_expr` in
 //!   `src/wasm.rs`, "Bounded While-Loops v1") already lowers such a loop
@@ -48,7 +48,7 @@
 //!   unrelated consumer's `Option`-free export — is left as follow-up work;
 //!   this test pins the residual gap's exact, now-correct diagnostic so a
 //!   regression is caught either way.
-//! - [`text_export_profile_rejects_a_reachable_byte_inspection_match`]: a
+//! - [`text_export_profile_rejects_a_reachable_byte_inspection_match`] -- a
 //!   `match` on `Option` reached directly from a declared export is, and
 //!   must remain, rejected: no Wasm lowering exists anywhere in this profile
 //!   for a variant scrutinee (`src/wasm.rs::emit_expr` only lowers

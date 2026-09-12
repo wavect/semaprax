@@ -196,6 +196,72 @@ fn multi_seed_budget_is_enforced_at_its_exact_boundary() {
     );
 }
 
+/// The same exact-boundary enforcement as
+/// [`multi_seed_budget_is_enforced_at_its_exact_boundary`], but under
+/// `lexical-v1` instead of `byte-v1`. The issue's required-tests list asks
+/// for the exact budget boundary to hold "with multiple tokenizers"; this
+/// proves the boundary/omission logic is unit-agnostic rather than something
+/// that happens to work only because `byte-v1` counts are large and never
+/// collide with the fixture's small `depth: 1` closures. The two tokenizers
+/// disagree on the literal counts involved (see
+/// `byte_tokenizer_reports_exact_and_lexical_tokenizer_reports_approximate`),
+/// so this exercises different numeric boundaries than the byte-v1 test does.
+#[test]
+fn multi_seed_budget_is_enforced_at_its_exact_boundary_under_lexical_tokenizer() {
+    let program = program(FIXTURE);
+    let options = per_seed_options(1);
+
+    let goal = CompilationGoal::new(vec![
+        CompilationSeed::new("app.goal_a_root", 10, "higher priority"),
+        CompilationSeed::new("app.goal_b_root", 5, "lower priority"),
+    ])
+    .unwrap();
+
+    let unconstrained =
+        compile(&program, &goal, &options, generous_budget("lexical-v1")).unwrap();
+    let unconstrained: Value = serde_json::from_str(&unconstrained).unwrap();
+    let tokens_a = tokens_of(&unconstrained, "app.goal_a_root");
+    let tokens_b = tokens_of(&unconstrained, "app.goal_b_root");
+    let exact_total = tokens_a + tokens_b;
+
+    let at_boundary = CompilationBudget::new(exact_total as usize, "lexical-v1").unwrap();
+    let document: Value =
+        serde_json::from_str(&compile(&program, &goal, &options, at_boundary).unwrap()).unwrap();
+    assert_eq!(status_of(&document, "app.goal_a_root"), "included");
+    assert_eq!(status_of(&document, "app.goal_b_root"), "included");
+    assert_eq!(
+        document["budget"]["used_tokens"].as_u64().unwrap(),
+        exact_total
+    );
+
+    let one_under = CompilationBudget::new((exact_total - 1) as usize, "lexical-v1").unwrap();
+    let document: Value =
+        serde_json::from_str(&compile(&program, &goal, &options, one_under).unwrap()).unwrap();
+    assert_eq!(status_of(&document, "app.goal_a_root"), "included");
+    assert_eq!(
+        status_of(&document, "app.goal_b_root"),
+        "omitted_budget_exhausted"
+    );
+    assert_eq!(tokens_of(&document, "app.goal_b_root"), tokens_b);
+    assert_eq!(
+        document["budget"]["used_tokens"].as_u64().unwrap(),
+        tokens_a
+    );
+    assert!(seed_entry(&document, "app.goal_b_root")
+        .get("context")
+        .is_none());
+
+    let one_over = CompilationBudget::new((exact_total + 1) as usize, "lexical-v1").unwrap();
+    let document: Value =
+        serde_json::from_str(&compile(&program, &goal, &options, one_over).unwrap()).unwrap();
+    assert_eq!(status_of(&document, "app.goal_a_root"), "included");
+    assert_eq!(status_of(&document, "app.goal_b_root"), "included");
+    assert_eq!(
+        document["budget"]["used_tokens"].as_u64().unwrap(),
+        exact_total
+    );
+}
+
 #[test]
 fn max_tokens_below_minimum_is_a_clean_refusal_not_a_silent_clamp() {
     let error = CompilationBudget::new(0, "byte-v1").unwrap_err();

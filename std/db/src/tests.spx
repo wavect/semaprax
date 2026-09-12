@@ -1,0 +1,145 @@
+module std.db.tests;
+use function @id("std.db.descriptor.mismatch_class") from std.db as descriptor_mismatch_class;
+use function @id("std.db.descriptor.matches") from std.db as descriptor_matches;
+use function @id("std.db.descriptor.tag_is_valid") from std.db as descriptor_tag_is_valid;
+use function @id("std.db.identifier.is_safe_byte") from std.db as identifier_is_safe_byte;
+use function @id("std.db.identifier.is_valid") from std.db as identifier_is_valid;
+use function @id("std.db.limits.should_stop") from std.db as limits_should_stop;
+use function @id("std.db.limits.within_bounds") from std.db as limits_within_bounds;
+use function @id("std.db.migration.checksum_drift") from std.db as migration_checksum_drift;
+use function @id("std.db.migration.is_duplicate") from std.db as migration_is_duplicate;
+use function @id("std.db.migration.is_out_of_order") from std.db as migration_is_out_of_order;
+use function @id("std.db.migration.missing_predecessor") from std.db as migration_missing_predecessor;
+use function @id("std.db.transaction.can_begin") from std.db as transaction_can_begin;
+use function @id("std.db.transaction.is_open") from std.db as transaction_is_open;
+use function @id("std.db.transaction.is_settled") from std.db as transaction_is_settled;
+use function @id("std.db.transaction.next_on_begin") from std.db as transaction_next_on_begin;
+use function @id("std.db.transaction.next_on_commit") from std.db as transaction_next_on_commit;
+use function @id("std.db.transaction.next_on_connection_lost") from std.db as transaction_next_on_connection_lost;
+use function @id("std.db.transaction.next_on_rollback") from std.db as transaction_next_on_rollback;
+
+@id("std.db.tests.descriptor_tags")
+fn descriptor_tags() -> bool
+{
+    descriptor_tag_is_valid(0u8) && descriptor_tag_is_valid(4u8) && !descriptor_tag_is_valid(5u8) && !descriptor_tag_is_valid(255u8)
+}
+
+@id("std.db.tests.descriptor_binds")
+fn descriptor_binds() -> bool
+{
+    let params = [0u8, 4u8, 2u8];
+    let ok = [0u8, 4u8, 2u8];
+    let missing = [0u8, 4u8];
+    let extra = [0u8, 4u8, 2u8, 3u8];
+    let mismatched = [0u8, 1u8, 2u8];
+    let invalid = [0u8, 9u8, 2u8];
+    descriptor_mismatch_class(array_as_slice(params), array_as_slice(ok)) == 0usize && descriptor_matches(array_as_slice(params), array_as_slice(ok)) && descriptor_mismatch_class(array_as_slice(params), array_as_slice(missing)) == 1usize && descriptor_mismatch_class(array_as_slice(params), array_as_slice(extra)) == 2usize && descriptor_mismatch_class(array_as_slice(params), array_as_slice(mismatched)) == 3usize && descriptor_mismatch_class(array_as_slice(params), array_as_slice(invalid)) == 4usize && !descriptor_matches(array_as_slice(params), array_as_slice(mismatched))
+}
+
+@id("std.db.tests.identifiers_valid")
+fn identifiers_valid() -> bool
+{
+    let plain = [117u8, 115u8, 101u8, 114u8];
+    let underscore_start = [95u8, 105u8, 100u8];
+    let digits_after = [97u8, 49u8, 50u8];
+    identifier_is_safe_byte(97u8) && identifier_is_safe_byte(90u8) && identifier_is_safe_byte(48u8) && identifier_is_safe_byte(95u8) && !identifier_is_safe_byte(39u8) && !identifier_is_safe_byte(45u8) && identifier_is_valid(array_as_slice(plain)) && identifier_is_valid(array_as_slice(underscore_start)) && identifier_is_valid(array_as_slice(digits_after))
+}
+
+@id("std.db.tests.identifiers_invalid")
+fn identifiers_invalid() -> bool
+{
+    let leading_digit = [49u8, 97u8];
+    let empty = [0u8; 0];
+    let quote = [97u8, 39u8, 98u8];
+    let dash = [97u8, 45u8, 98u8];
+    let dot = [97u8, 46u8, 98u8];
+    !identifier_is_valid(array_as_slice(leading_digit)) && !identifier_is_valid(array_as_slice(empty)) && !identifier_is_valid(array_as_slice(quote)) && !identifier_is_valid(array_as_slice(dash)) && !identifier_is_valid(array_as_slice(dot))
+}
+
+@id("std.db.tests.identifiers_invalid_structural")
+fn identifiers_invalid_structural() -> bool
+{
+    let semicolon = [97u8, 59u8, 98u8];
+    let space = [97u8, 32u8, 98u8];
+    !identifier_is_valid(array_as_slice(semicolon)) && !identifier_is_valid(array_as_slice(space))
+}
+
+@id("std.db.tests.transaction_happy_path")
+fn transaction_happy_path() -> bool
+{
+    let none = 0usize;
+    let open = transaction_next_on_begin(none);
+    let committed = transaction_next_on_commit(open);
+    let rolled_back = transaction_next_on_rollback(open);
+    transaction_can_begin(none) && !transaction_can_begin(open) && open == 1usize && transaction_is_open(open) && !transaction_is_settled(open) && committed == 2usize && transaction_is_settled(committed) && rolled_back == 3usize && transaction_is_settled(rolled_back)
+}
+
+@id("std.db.tests.transaction_reusable_after_settlement")
+fn transaction_reusable_after_settlement() -> bool
+{
+    let none = 0usize;
+    let open = transaction_next_on_begin(none);
+    let committed = transaction_next_on_commit(open);
+    let reopened_after_commit = transaction_next_on_begin(committed);
+    let rolled_back = transaction_next_on_rollback(reopened_after_commit);
+    let reopened_after_rollback = transaction_next_on_begin(rolled_back);
+    let failed = transaction_next_on_begin(reopened_after_rollback);
+    let reopened_after_failure = transaction_next_on_begin(failed);
+    transaction_can_begin(committed) && reopened_after_commit == 1usize && transaction_can_begin(rolled_back) && reopened_after_rollback == 1usize && failed == 4usize && transaction_can_begin(failed) && reopened_after_failure == 1usize
+}
+
+@id("std.db.tests.transaction_failure_is_sticky")
+fn transaction_failure_is_sticky() -> bool
+{
+    let none = 0usize;
+    let open = transaction_next_on_begin(none);
+    let nested = transaction_next_on_begin(open);
+    let commit_without_open = transaction_next_on_commit(none);
+    let rollback_without_open = transaction_next_on_rollback(none);
+    let failed_then_commit = transaction_next_on_commit(nested);
+    let failed_then_rollback = transaction_next_on_rollback(nested);
+    nested == 4usize && commit_without_open == 4usize && rollback_without_open == 4usize && failed_then_commit == 4usize && failed_then_rollback == 4usize && transaction_is_settled(nested) && !transaction_is_open(nested)
+}
+
+@id("std.db.tests.transaction_connection_loss")
+fn transaction_connection_loss() -> bool
+{
+    let none = 0usize;
+    let open = transaction_next_on_begin(none);
+    let committed = transaction_next_on_commit(open);
+    let lost_while_open = transaction_next_on_connection_lost(open);
+    let lost_after_commit = transaction_next_on_connection_lost(committed);
+    let lost_while_none = transaction_next_on_connection_lost(none);
+    lost_while_open == 4usize && lost_after_commit == 2usize && lost_while_none == 0usize
+}
+
+@id("std.db.tests.migrations_clean_and_drifted")
+fn migrations_clean_and_drifted() -> bool
+{
+    let applied = [1u8, 2u8, 3u8];
+    !migration_is_out_of_order(3u8, 4u8) && migration_is_out_of_order(3u8, 3u8) && migration_is_out_of_order(3u8, 2u8) && migration_is_duplicate(array_as_slice(applied), 2u8) && !migration_is_duplicate(array_as_slice(applied), 4u8) && !migration_missing_predecessor(3u8, 4u8) && migration_missing_predecessor(3u8, 5u8) && !migration_checksum_drift(7u8, 7u8) && migration_checksum_drift(7u8, 8u8)
+}
+
+@id("std.db.tests.limits")
+fn limits() -> bool
+{
+    limits_within_bounds(10usize, 10usize, 10usize, 10usize, 10usize, 10usize, 10usize, 10usize) && !limits_within_bounds(11usize, 10usize, 0usize, 10usize, 0usize, 10usize, 0usize, 10usize) && !limits_within_bounds(0usize, 10usize, 11usize, 10usize, 0usize, 10usize, 0usize, 10usize) && !limits_within_bounds(0usize, 10usize, 0usize, 10usize, 11usize, 10usize, 0usize, 10usize) && !limits_within_bounds(0usize, 10usize, 0usize, 10usize, 0usize, 10usize, 11usize, 10usize) && limits_should_stop(10usize, 10usize) && limits_should_stop(11usize, 10usize) && !limits_should_stop(9usize, 10usize)
+}
+
+@id("std.db.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if descriptor_tags() { 0 } else { 1 };
+    failed = failed + if descriptor_binds() { 0 } else { 2 };
+    failed = failed + if identifiers_valid() { 0 } else { 4 };
+    failed = failed + if identifiers_invalid() { 0 } else { 8 };
+    failed = failed + if identifiers_invalid_structural() { 0 } else { 16 };
+    failed = failed + if transaction_happy_path() { 0 } else { 32 };
+    failed = failed + if transaction_reusable_after_settlement() { 0 } else { 64 };
+    failed = failed + if transaction_failure_is_sticky() { 0 } else { 128 };
+    failed = failed + if transaction_connection_loss() { 0 } else { 256 };
+    failed = failed + if migrations_clean_and_drifted() { 0 } else { 512 };
+    failed = failed + if limits() { 0 } else { 1024 };
+    failed
+}

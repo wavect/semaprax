@@ -1,0 +1,143 @@
+module std.db;
+
+@id("std.db.descriptor.tag_is_valid")
+fn descriptor_tag_is_valid(tag: u8) -> bool
+{
+    tag <= 4u8
+}
+
+@id("std.db.descriptor.mismatch_class")
+fn descriptor_mismatch_class(expected: borrow Slice<u8>, actual: borrow Slice<u8>) -> usize
+    ensures result <= 4usize
+{
+    let expected_len = byte_len(expected);
+    let actual_len = byte_len(actual);
+    let mut index = 0usize;
+    let mut class = 0usize;
+    let limit = if expected_len < actual_len { expected_len } else { actual_len };
+    while index < limit && class == 0usize {
+        let expected_tag = match byte_get(expected, index) { Option::Some { value: tag } => tag, Option::None {} => 5u8, };
+        let actual_tag = match byte_get(actual, index) { Option::Some { value: tag } => tag, Option::None {} => 5u8, };
+        class = if !descriptor_tag_is_valid(expected_tag) || !descriptor_tag_is_valid(actual_tag) { 4usize } else { if expected_tag != actual_tag { 3usize } else { 0usize } };
+        index = index + 1usize;
+        index < limit && class == 0usize
+    }
+    if class != 0usize { class } else { if actual_len < expected_len { 1usize } else { if actual_len > expected_len { 2usize } else { 0usize } } }
+}
+
+@id("std.db.descriptor.matches")
+fn descriptor_matches(expected: borrow Slice<u8>, actual: borrow Slice<u8>) -> bool
+{
+    descriptor_mismatch_class(expected, actual) == 0usize
+}
+
+@id("std.db.identifier.is_safe_byte")
+fn identifier_is_safe_byte(byte: u8) -> bool
+{
+    byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 95u8
+}
+
+@id("std.db.identifier.is_valid")
+fn identifier_is_valid(name: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(name);
+    let first_ok = match byte_get(name, 0usize) { Option::Some { value: byte } => identifier_is_safe_byte(byte) && !(byte >= 48u8 && byte <= 57u8), Option::None {} => false, };
+    let mut index = 1usize;
+    let mut valid = length >= 1usize && length <= 63usize && first_ok;
+    while index < length && valid {
+        valid = match byte_get(name, index) { Option::Some { value: byte } => identifier_is_safe_byte(byte), Option::None {} => false, };
+        index = index + 1usize;
+        index < length && valid
+    }
+    valid
+}
+
+@id("std.db.transaction.can_begin")
+fn transaction_can_begin(state: usize) -> bool
+{
+    state <= 4usize && state != 1usize
+}
+
+@id("std.db.transaction.next_on_begin")
+fn transaction_next_on_begin(state: usize) -> usize
+    ensures result <= 4usize
+{
+    if transaction_can_begin(state) { 1usize } else { 4usize }
+}
+
+@id("std.db.transaction.next_on_commit")
+fn transaction_next_on_commit(state: usize) -> usize
+    ensures result <= 4usize
+{
+    if state == 1usize { 2usize } else { 4usize }
+}
+
+@id("std.db.transaction.next_on_rollback")
+fn transaction_next_on_rollback(state: usize) -> usize
+    ensures result <= 4usize
+{
+    if state == 1usize { 3usize } else { 4usize }
+}
+
+@id("std.db.transaction.next_on_connection_lost")
+fn transaction_next_on_connection_lost(state: usize) -> usize
+    ensures result <= 4usize
+{
+    if state == 1usize { 4usize } else { if state <= 4usize { state } else { 4usize } }
+}
+
+@id("std.db.transaction.is_open")
+fn transaction_is_open(state: usize) -> bool
+{
+    state == 1usize
+}
+
+@id("std.db.transaction.is_settled")
+fn transaction_is_settled(state: usize) -> bool
+{
+    state == 2usize || state == 3usize || state == 4usize
+}
+
+@id("std.db.migration.is_out_of_order")
+fn migration_is_out_of_order(last_applied: u8, candidate: u8) -> bool
+{
+    candidate <= last_applied
+}
+
+@id("std.db.migration.is_duplicate")
+fn migration_is_duplicate(applied: borrow Slice<u8>, candidate: u8) -> bool
+{
+    let length = byte_len(applied);
+    let mut index = 0usize;
+    let mut found = false;
+    while index < length && !found {
+        found = match byte_get(applied, index) { Option::Some { value: id } => id == candidate, Option::None {} => false, };
+        index = index + 1usize;
+        index < length && !found
+    }
+    found
+}
+
+@id("std.db.migration.missing_predecessor")
+fn migration_missing_predecessor(applied_count: u8, candidate: u8) -> bool
+{
+    candidate != applied_count + 1u8
+}
+
+@id("std.db.migration.checksum_drift")
+fn migration_checksum_drift(recorded: u8, candidate: u8) -> bool
+{
+    recorded != candidate
+}
+
+@id("std.db.limits.within_bounds")
+fn limits_within_bounds(rows: usize, max_rows: usize, bytes: usize, max_bytes: usize, columns: usize, max_columns: usize, elapsed_ms: usize, max_elapsed_ms: usize) -> bool
+{
+    rows <= max_rows && bytes <= max_bytes && columns <= max_columns && elapsed_ms <= max_elapsed_ms
+}
+
+@id("std.db.limits.should_stop")
+fn limits_should_stop(consumed_rows: usize, max_rows: usize) -> bool
+{
+    consumed_rows >= max_rows
+}

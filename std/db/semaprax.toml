@@ -1,0 +1,8 @@
+schema = "semaprax.project.v3"
+name = "std-db"
+version = "0.1.0"
+profile = "useful-data.v1"
+entry = "std.db.examples"
+sources = ["src/db.spx", "src/examples.spx", "src/tests.spx"]
+web_exports = ["std.db.descriptor.matches", "std.db.identifier.is_valid"]
+tests = ["std.db.tests"]

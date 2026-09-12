@@ -1,0 +1,19 @@
+module std.db.examples;
+use function @id("std.db.descriptor.matches") from std.db as descriptor_matches;
+use function @id("std.db.identifier.is_valid") from std.db as identifier_is_valid;
+use function @id("std.db.limits.within_bounds") from std.db as limits_within_bounds;
+use function @id("std.db.migration.is_out_of_order") from std.db as migration_is_out_of_order;
+use function @id("std.db.transaction.next_on_begin") from std.db as transaction_next_on_begin;
+use function @id("std.db.transaction.next_on_commit") from std.db as transaction_next_on_commit;
+
+@id("std.db.examples.main")
+fn main() -> i64
+{
+    let params = [3u8, 4u8, 1u8];
+    let binds = [3u8, 4u8, 1u8];
+    let name = [117u8, 115u8, 101u8, 114u8, 115u8];
+    let none = 0usize;
+    let open = transaction_next_on_begin(none);
+    let committed = transaction_next_on_commit(open);
+    if descriptor_matches(array_as_slice(params), array_as_slice(binds)) && identifier_is_valid(array_as_slice(name)) && committed == 2usize && !migration_is_out_of_order(1u8, 2u8) && limits_within_bounds(10usize, 100usize, 512usize, 65536usize, 4usize, 16usize, 5usize, 1000usize) { 0 } else { 1 }
+}

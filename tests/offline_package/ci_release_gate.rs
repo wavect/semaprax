@@ -2,7 +2,13 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-const RELEASE_BLOCKERS: &[&str] = &[
+/// The exact release-gate required-check inventory, in declaration order.
+/// `pub(crate)` rather than private: `release_manifest.rs` cross-checks that
+/// `scripts/release-manifest.py`'s own independent parse of the same
+/// `release-gate` `needs:` block in `.github/workflows/ci.yml` produces this
+/// exact list, so the manifest's required-check inventory and this pinned
+/// gate inventory cannot silently drift apart.
+pub(crate) const RELEASE_BLOCKERS: &[&str] = &[
     "agent-proposal-clients",
     "gen05b-generic-instance-closure",
     "public-generic-ownership-milestone",

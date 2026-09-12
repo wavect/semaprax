@@ -21,6 +21,8 @@ mod multi_source_capsule;
 mod package_namespace;
 #[path = "offline_package/ranges.rs"]
 mod ranges;
+#[path = "offline_package/release_manifest.rs"]
+mod release_manifest;
 #[path = "offline_package/release_packaging_unix.rs"]
 mod release_packaging_unix;
 #[path = "offline_package/release_packaging_windows.rs"]

@@ -9,6 +9,12 @@
 
 #[path = "scalar_status_backend_equivalence/differential.rs"]
 mod differential;
+/// Issue #103: a bounded feature-combination differential corpus (view
+/// origin x control-flow context x ownership route) across interpreter,
+/// native C11, and Core Wasm -- see that module's own header doc for the
+/// combination bound and its justification.
+#[path = "scalar_status_backend_equivalence/view_ownership_composition.rs"]
+mod view_ownership_composition;
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};

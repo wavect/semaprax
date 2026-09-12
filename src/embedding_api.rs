@@ -245,11 +245,17 @@ mod tests {
         let outcome = check_source("warned.spx", source);
         assert!(outcome.ok, "expected ok, got {:?}", outcome.diagnostics);
         assert!(
-            outcome.diagnostics.iter().any(|item| item.code == "SPX-S103"),
+            outcome
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "SPX-S103"),
             "expected the missing-@id warning to survive a successful check, got {:?}",
             outcome.diagnostics
         );
-        assert!(outcome.diagnostics.iter().all(|item| !item.severity.is_error()));
+        assert!(outcome
+            .diagnostics
+            .iter()
+            .all(|item| !item.severity.is_error()));
     }
 
     #[test]
@@ -265,7 +271,10 @@ mod tests {
         // Distinguish this genuine parser refusal from the unrelated
         // panic-normalization path: neither code's text appears in the
         // other's diagnostic.
-        assert_ne!(outcome.diagnostics[0].code, PANIC_NORMALIZED_DIAGNOSTIC_CODE);
+        assert_ne!(
+            outcome.diagnostics[0].code,
+            PANIC_NORMALIZED_DIAGNOSTIC_CODE
+        );
         assert!(!outcome.diagnostics[0]
             .message
             .contains(PANIC_NORMALIZED_DIAGNOSTIC_CODE));
@@ -275,10 +284,7 @@ mod tests {
     fn unit_name_is_never_read_from_disk() {
         // A path that certainly does not exist on this machine must not
         // cause an I/O failure: `unit_name` only labels diagnostics.
-        let outcome = check_source(
-            "/definitely/does/not/exist/on/this/machine/unit.spx",
-            HELLO,
-        );
+        let outcome = check_source("/definitely/does/not/exist/on/this/machine/unit.spx", HELLO);
         assert!(
             outcome.ok,
             "checking must depend only on `source`, not on whether `unit_name` \
@@ -300,7 +306,10 @@ mod tests {
         let outcome = check_with(&PanickingChecker, "panicking.spx", "irrelevant");
         assert!(!outcome.ok);
         assert_eq!(outcome.diagnostics.len(), 1);
-        assert_eq!(outcome.diagnostics[0].code, PANIC_NORMALIZED_DIAGNOSTIC_CODE);
+        assert_eq!(
+            outcome.diagnostics[0].code,
+            PANIC_NORMALIZED_DIAGNOSTIC_CODE
+        );
         assert!(outcome.diagnostics[0].severity.is_error());
         assert!(outcome.revision.is_none());
         // Distinguish this internal-defect path from a genuine parser

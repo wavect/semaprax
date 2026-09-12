@@ -453,8 +453,7 @@ fn chain_source(level_count: usize, tag: &str) -> String {
 #[test]
 fn a_record_chain_at_the_depth_bound_is_admitted() {
     let source = chain_source(grammar::MAX_RECORD_DEPTH, "_at_depth_bound");
-    let admitted =
-        classify(&resolved(&source), "classifier.chain_at_depth_bound.take").unwrap();
+    let admitted = classify(&resolved(&source), "classifier.chain_at_depth_bound.take").unwrap();
     assert_eq!(admitted.input().owned_leaves.len(), 1);
 }
 
@@ -509,7 +508,9 @@ fn push_chain_declarations(
             id: DeclarationId::new(format!("classifier.chain{tag}.level{level}")),
             name: format!("Level{level}"),
             type_parameters: Vec::new(),
-            kind: ResolvedTypeDeclarationKind::Record { fields: vec![field] },
+            kind: ResolvedTypeDeclarationKind::Record {
+                fields: vec![field],
+            },
             span: Span::default(),
         });
     }
@@ -601,9 +602,11 @@ fn a_balanced_tree_at_the_owned_leaf_bound_is_admitted() {
         "update this fixture's tree depth to match the new MAX_OWNED_LEAVES"
     );
     let source = balanced_tree_source(8, "_at_leaf_bound");
-    let admitted =
-        classify(&resolved(&source), "classifier.tree_at_leaf_bound.take").unwrap();
-    assert_eq!(admitted.input().owned_leaves.len(), grammar::MAX_OWNED_LEAVES);
+    let admitted = classify(&resolved(&source), "classifier.tree_at_leaf_bound.take").unwrap();
+    assert_eq!(
+        admitted.input().owned_leaves.len(),
+        grammar::MAX_OWNED_LEAVES
+    );
 }
 
 /// Append a synthetic balanced binary tree of record declarations, `Node0`

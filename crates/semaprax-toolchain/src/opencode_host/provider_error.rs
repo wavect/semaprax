@@ -1,10 +1,12 @@
 //! Closed classification of the OpenCode v1 provider-error event.
 //!
-//! Wire profile: OpenCode `v1.18.27`, [`EventSessionError`] in the official
-//! generated SDK declares `type: "session.error"` with
-//! `properties.error.{name,data}`. Its `APIError` declares an optional
-//! non-negative `statusCode`; the other accepted names below are the complete
-//! v1.18.27 union. The source is
+//! Wire profile: OpenCode `v1.18.27`'s `opencode run --format json` emitter
+//! writes `{"type":"error", ..., "error": props.error}` for a
+//! `session.error` event. `props.error` is the generated SDK's
+//! `{name,data}` union; its `APIError` declares an optional non-negative
+//! `statusCode`. The primary sources are
+//! <https://github.com/anomalyco/opencode/blob/v1.18.27/packages/opencode/src/cli/cmd/run.ts>
+//! and
 //! <https://github.com/anomalyco/opencode/blob/v1.18.27/packages/sdk/js/src/gen/types.gen.ts>.
 //!
 //! This module deliberately retains no provider message, response body,
@@ -28,7 +30,7 @@ pub enum OpenCodeProviderFailure {
     Provider,
 }
 
-/// Classifies a `session.error` JSON-lines event from OpenCode v1.18.27.
+/// Classifies an `opencode run --format json` `error` JSON-lines event.
 ///
 /// Unknown event/error shapes return `None`: callers keep their ordinary
 /// generic provider failure instead of treating an undocumented shape as an
@@ -51,10 +53,8 @@ fn classify_event(event: Value) -> Option<OpenCodeProviderFailure> {
         .as_object()?
         .get("type")?
         .as_str()
-        .filter(|kind| *kind == "session.error")
-        .and_then(|_| event.get("properties"))?
-        .as_object()?
-        .get("error")?
+        .filter(|kind| *kind == "error")
+        .and_then(|_| event.get("error"))?
         .as_object()?;
     let name = error.get("name")?.as_str()?;
     let data = error.get("data")?.as_object()?;
@@ -98,8 +98,10 @@ mod tests {
 
     fn event(error: serde_json::Value) -> Vec<u8> {
         serde_json::json!({
-            "type": "session.error",
-            "properties": {"sessionID": "session-1", "error": error},
+            "type": "error",
+            "timestamp": 1,
+            "sessionID": "session-1",
+            "error": error,
         })
         .to_string()
         .into_bytes()
@@ -167,7 +169,10 @@ mod tests {
         events.extend(valid);
 
         assert_eq!(classify_provider_failure(&events), Some(OpenCodeProviderFailure::Provider));
-        assert_eq!(classify_provider_failure(br#"{"type":"error","error":{}}"#), None);
+        assert_eq!(
+            classify_provider_failure(br#"{"type":"session.error","properties":{"error":{}}}"#),
+            None
+        );
         assert_eq!(classify_provider_failure(&vec![b'x'; 1_048_577]), None);
     }
 }

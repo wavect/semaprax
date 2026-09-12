@@ -30,6 +30,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.auth",
+        path: "dependencies/std.auth/0.1.0/auth.spx",
+        source: include_str!("../../std/auth/src/auth.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.bytes",
         path: "dependencies/std.bytes/0.1.0/bytes.spx",
         source: include_str!("../../std/bytes/src/bytes.spx"),
@@ -102,6 +108,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.db",
+        path: "dependencies/std.db/0.1.0/db.spx",
+        source: include_str!("../../std/db/src/db.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.encoding",
         path: "dependencies/std.encoding/0.1.0/encoding.spx",
         source: include_str!("../../std/encoding/src/encoding.spx"),
@@ -126,10 +138,22 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &["std.io", "std.path.value"],
     },
     BundledPackage {
+        name: "std.http",
+        path: "dependencies/std.http/0.1.0/http.spx",
+        source: include_str!("../../std/http/src/http.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.io",
         path: "dependencies/std.io/0.1.0/io.spx",
         source: include_str!("../../std/io/src/io.spx"),
         dependencies: &[],
+    },
+    BundledPackage {
+        name: "std.jobs",
+        path: "dependencies/std.jobs/0.1.0/jobs.spx",
+        source: include_str!("../../std/jobs/src/jobs.spx"),
+        dependencies: &["std.bytes"],
     },
     BundledPackage {
         name: "std.log",
@@ -275,4 +299,55 @@ fn unresolved(message: String) -> Vec<Diagnostic> {
 
 fn range_error(message: String) -> Diagnostic {
     Diagnostic::io("SPX-J121", format!("standard-library dependency {message}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // `std.auth`, `std.db`, `std.http`, and `std.jobs` shipped their pure
+    // decision-procedure source under `std/` (issues #189-192) but were not
+    // yet wired into this closed bundled-dependency registry, so no ordinary
+    // consumer project could declare them in `[dependencies]` -- only their
+    // own `std/<name>/semaprax.toml` (which lists the module's own file as a
+    // `sources` entry, not a dependency) could check them. This regression
+    // pins that they are now reachable the same way every other bundled
+    // package is.
+    #[test]
+    fn issue_189_192_packages_are_bundled() {
+        for name in ["std.auth", "std.db", "std.http", "std.jobs"] {
+            assert!(is_bundled(name), "`{name}` is not a bundled package");
+        }
+    }
+
+    #[test]
+    fn issue_189_192_packages_resolve_their_declared_source_file() {
+        for (name, path_suffix) in [
+            ("std.auth", "auth.spx"),
+            ("std.db", "db.spx"),
+            ("std.http", "http.spx"),
+            ("std.jobs", "jobs.spx"),
+        ] {
+            let bundled = package(name).unwrap_or_else(|| panic!("`{name}` is not bundled"));
+            assert!(
+                bundled.path.ends_with(path_suffix),
+                "`{name}` path `{}` does not end with `{path_suffix}`",
+                bundled.path
+            );
+            assert!(
+                !bundled.source.is_empty(),
+                "`{name}` embedded source is empty"
+            );
+        }
+        // `std.jobs` itself depends on `std.bytes` (`std/jobs/src/jobs.spx`
+        // imports `std.bytes.equals`), which must already be bundled.
+        assert_eq!(package("std.jobs").unwrap().dependencies, &["std.bytes"]);
+        assert!(is_bundled("std.bytes"));
+    }
+
+    #[test]
+    fn an_unlisted_dependency_is_still_rejected() {
+        assert!(!is_bundled("std.nonexistent"));
+        assert!(package("std.nonexistent").is_none());
+    }
 }

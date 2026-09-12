@@ -1,0 +1,60 @@
+module task_service.tests;
+use function @id("task_service.core.enqueue_outcome") from task_service.core as enqueue_outcome;
+use function @id("task_service.core.identifier_is_valid") from task_service.core as identifier_is_valid;
+use function @id("task_service.core.job_status_is_complete") from task_service.core as job_status_is_complete;
+use function @id("task_service.core.mark_job_succeeded") from task_service.core as mark_job_succeeded;
+use function @id("task_service.core.method_is_rejected") from task_service.core as method_is_rejected;
+use function @id("task_service.core.registration_admitted") from task_service.core as registration_admitted;
+use function @id("task_service.core.run_scenario") from task_service.core as run_scenario;
+use function @id("task_service.core.task_owner_authorized") from task_service.core as task_owner_authorized;
+
+// The whole acceptance scenario succeeds end to end.
+@id("task_service.tests.scenario_succeeds")
+fn scenario_succeeds() -> bool
+{
+    run_scenario() == 0
+}
+
+// Success: registration, ownership, and job completion all admit on
+// well-formed input.
+@id("task_service.tests.success_path")
+fn success_path() -> bool
+{
+    let username = [98u8, 111u8, 98u8];
+    let job_state = mark_job_succeeded(0u8, 3u8);
+    let table_name = [116u8, 97u8, 115u8, 107u8, 115u8];
+    registration_admitted(array_as_slice(username), 2usize, 10usize, 65536usize, 3usize, 4usize) && task_owner_authorized(3, 3, true) && job_status_is_complete(job_state) && identifier_is_valid(array_as_slice(table_name))
+}
+
+// Reject unauthorized: a session bound to a different account is refused
+// row access even though the row itself exists.
+@id("task_service.tests.unauthorized_is_rejected")
+fn unauthorized_is_rejected() -> bool
+{
+    !task_owner_authorized(3, 4, true)
+}
+
+// Reject invalid: a malformed HTTP method and an unsafe table identifier
+// (leading digit) are both refused before touching storage or routing.
+@id("task_service.tests.invalid_is_rejected")
+fn invalid_is_rejected() -> bool
+{
+    let bad_method = [103u8, 101u8, 116u8];
+    let bad_identifier = [57u8, 120u8];
+    method_is_rejected(array_as_slice(bad_method)) && !identifier_is_valid(array_as_slice(bad_identifier))
+}
+
+// A retried enqueue with the same idempotency key is a harmless duplicate
+// (outcome 1), never a second job.
+@id("task_service.tests.duplicate_enqueue_is_idempotent")
+fn duplicate_enqueue_is_idempotent() -> bool
+{
+    let key = [1u8, 4u8, 3u8];
+    enqueue_outcome(true, array_as_slice(key), array_as_slice(key)) == 1usize
+}
+
+@id("task_service.tests.main")
+fn main() -> i64
+{
+    if scenario_succeeds() && success_path() && unauthorized_is_rejected() && invalid_is_rejected() && duplicate_enqueue_is_idempotent() { 0 } else { 1 }
+}

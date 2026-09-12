@@ -1,0 +1,18 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "task-service"
+version = "1.0.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "task_service.app"
+sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
+tests = ["task_service.tests"]
+
+[exports]
+web = ["task_service.core.identifier_is_valid", "task_service.core.method_is_rejected"]
+
+[dependencies]
+std.auth = "=0.1.0"
+std.jobs = "=0.1.0"

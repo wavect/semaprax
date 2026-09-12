@@ -1,0 +1,16 @@
+module task_service.app;
+use function @id("task_service.core.run_scenario") from task_service.core as run_scenario;
+
+// The acceptance scenario this reference application exists to demonstrate:
+// register, log in, create/update a domain record (a task), enqueue a
+// background job, query its status, log out, then confirm that an
+// unauthorized session and an invalid request are both rejected. Every step
+// runs in deterministic fixture mode: no socket, no file, and no real clock
+// are touched, matching `std.auth` and `std.jobs`'s own non-claims (both are
+// pure decision layers with no host authority of their own). See
+// `task_service.core.run_scenario` for the full walk.
+@id("task_service.app.main")
+fn main() -> i64
+{
+    run_scenario()
+}

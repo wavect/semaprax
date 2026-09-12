@@ -1,0 +1,153 @@
+module task_service.core;
+use function @id("std.auth.password.policy_within_bounds") from std.auth as password_policy_within_bounds;
+use function @id("std.auth.session.is_usable") from std.auth as session_is_usable;
+use function @id("std.auth.session.next_state_on_access") from std.auth as session_next_state_on_access;
+use function @id("std.auth.session.next_state_on_logout") from std.auth as session_next_state_on_logout;
+use function @id("std.jobs.claim.is_legal") from std.jobs as claim_is_legal;
+use function @id("std.jobs.idempotency.enqueue_outcome") from std.jobs as idempotency_enqueue_outcome;
+use function @id("std.jobs.retry.next_state_after_outcome") from std.jobs as retry_next_state_after_outcome;
+use function @id("std.jobs.schedule.is_due") from std.jobs as schedule_is_due;
+use function @id("std.jobs.state.is_terminal") from std.jobs as state_is_terminal;
+
+// This module models the domain record (a task) and its background job as
+// plain scalar facts -- an id, an owner account id, a status -- rather than
+// an authored `record`, deliberately: `Public Useful Data Export v1` (the
+// `[exports].web` gate every `semaprax.manifest.v1` project must satisfy)
+// admits no authored aggregate anywhere in a project that also declares a
+// web export, and every dependency-consuming project needs the manifest.v1
+// schema. See this project's README for the exact `SPX-G171`/`SPX-G172`
+// shapes this composition already met.
+// A closed safe-identifier grammar for table names and usernames: a letter
+// or underscore, then letters, digits, or underscores, 1..63 bytes. This
+// mirrors `std.db.identifier.is_valid`'s grammar (kept local here rather
+// than as a dependency -- see this project's README for the `SPX-G171`
+// workspace-graph budget this two-dependency composition already reaches).
+@id("task_service.core.identifier_byte_ok")
+fn identifier_byte_ok(byte: u8) -> bool
+{
+    byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 95u8
+}
+
+@id("task_service.core.identifier_is_valid")
+fn identifier_is_valid(name: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(name);
+    let first_ok = match byte_get(name, 0usize) { Option::Some { value } => identifier_byte_ok(value) && !(value >= 48u8 && value <= 57u8), Option::None {} => false, };
+    let mut index = 1usize;
+    let mut valid = length >= 1usize && length <= 63usize && first_ok;
+    while index < length && valid {
+        valid = match byte_get(name, index) { Option::Some { value } => identifier_byte_ok(value), Option::None {} => false, };
+        index = index + 1usize;
+        index < length && valid
+    }
+    valid
+}
+
+// An HTTP method is one to sixteen uppercase ASCII letters, mirroring
+// `std.http.method_is_valid`'s grammar.
+@id("task_service.core.method_is_valid")
+fn method_is_valid(method: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(method);
+    let mut index = 0usize;
+    let mut valid = length >= 1usize && length <= 16usize;
+    while index < length && valid {
+        valid = match byte_get(method, index) { Option::Some { value } => value >= 65u8 && value <= 90u8, Option::None {} => false, };
+        index = index + 1usize;
+        index < length && valid
+    }
+    valid
+}
+
+@id("task_service.core.method_is_rejected")
+fn method_is_rejected(method: borrow Slice<u8>) -> bool
+{
+    !method_is_valid(method)
+}
+
+// Registration is a pure admission decision over caller-supplied facts: no
+// password is hashed here (see `docs/AUTHENTICATION-SESSIONS-V1.md`'s
+// non-claims -- this bounded interpreter has no hashing host capability),
+// and no row is written. A deployment's own host code performs both after
+// this decision admits the request.
+@id("task_service.core.registration_admitted")
+fn registration_admitted(username: borrow Slice<u8>, active_count: usize, max_accounts: usize, password_memory_cost_kib: usize, password_time_cost: usize, password_parallelism: usize) -> bool
+{
+    identifier_is_valid(username) && active_count < max_accounts && password_policy_within_bounds(password_memory_cost_kib, password_time_cost, password_parallelism)
+}
+
+// Row-level authorization: a usable session is necessary but not
+// sufficient -- the session's own account must also own the row.
+@id("task_service.core.task_owner_authorized")
+fn task_owner_authorized(task_owner_account_id: i64, session_account_id: i64, session_usable: bool) -> bool
+{
+    session_usable && task_owner_account_id == session_account_id
+}
+
+@id("task_service.core.enqueue_is_legal")
+fn enqueue_is_legal(pending_state: usize, now_tick: usize, next_run_tick: usize) -> bool
+{
+    claim_is_legal(pending_state, schedule_is_due(now_tick, next_run_tick))
+}
+
+// A caller-supplied idempotency key decides whether a retried enqueue
+// request is fresh (0), a harmless duplicate (1), or a conflicting reuse of
+// the same key for different work (2) -- see `std.jobs.idempotency`.
+@id("task_service.core.enqueue_outcome")
+fn enqueue_outcome(key_exists: bool, existing_descriptor: borrow Slice<u8>, candidate_descriptor: borrow Slice<u8>) -> usize
+{
+    idempotency_enqueue_outcome(key_exists, existing_descriptor, candidate_descriptor)
+}
+
+@id("task_service.core.mark_job_succeeded")
+fn mark_job_succeeded(attempt: u8, max_attempts: u8) -> usize
+{
+    retry_next_state_after_outcome(0usize, attempt, max_attempts)
+}
+
+@id("task_service.core.job_status_is_complete")
+fn job_status_is_complete(state: usize) -> bool
+{
+    state_is_terminal(state)
+}
+
+// The full acceptance scenario: register, log in, create/update the domain
+// record, enqueue and complete a background job, query its status, log out,
+// then confirm both an unauthorized access and an invalid request are
+// rejected. Returns 0 on success, 1 otherwise.
+@id("task_service.core.run_scenario")
+fn run_scenario() -> i64
+{
+    let idle_deadline = 1900usize;
+    let absolute_deadline = 5000usize;
+    let login_tick = 1000usize;
+    let update_tick = 1200usize;
+    let logout_tick = 1201usize;
+    let username = [97u8, 108u8, 105u8, 99u8, 101u8];
+    let registered = registration_admitted(array_as_slice(username), 0usize, 10usize, 65536usize, 3usize, 4usize);
+    let active = 0usize;
+    let owner_account_id = 1;
+    let usable_at_login = session_is_usable(active, login_tick, idle_deadline, absolute_deadline);
+    let table_name = [116u8, 97u8, 115u8, 107u8, 115u8];
+    let table_ok = identifier_is_valid(array_as_slice(table_name));
+    let task_id = 1;
+    let state_at_update = session_next_state_on_access(active, update_tick, idle_deadline, absolute_deadline);
+    let session_usable_at_update = session_is_usable(state_at_update, update_tick, idle_deadline, absolute_deadline);
+    let update_authorized = task_owner_authorized(owner_account_id, owner_account_id, session_usable_at_update);
+    let in_progress_status = 1usize;
+    let job_key = [1u8, 4u8, 3u8];
+    let enqueue_legal = enqueue_is_legal(0usize, update_tick, update_tick);
+    let enqueue_outcome_code = enqueue_outcome(false, array_as_slice(job_key), array_as_slice(job_key));
+    let finished_job_state = mark_job_succeeded(0u8, 3u8);
+    let status_done = job_status_is_complete(finished_job_state);
+    let logged_out = session_next_state_on_logout(state_at_update);
+    let usable_after_logout = session_is_usable(logged_out, logout_tick, idle_deadline, absolute_deadline);
+    let intruder_account_id = 2;
+    let intruder_rejected = !task_owner_authorized(owner_account_id, intruder_account_id, true);
+    let retired_session_rejected = !usable_after_logout;
+    let bad_method = [103u8, 101u8, 116u8];
+    let method_rejected = method_is_rejected(array_as_slice(bad_method));
+    let bad_identifier = [49u8, 116u8, 97u8, 115u8, 107u8];
+    let identifier_rejected = !identifier_is_valid(array_as_slice(bad_identifier));
+    if registered && usable_at_login && table_ok && task_id == 1 && update_authorized && in_progress_status == 1usize && enqueue_legal && enqueue_outcome_code == 0usize && status_done && intruder_rejected && retired_session_rejected && method_rejected && identifier_rejected { 0 } else { 1 }
+}

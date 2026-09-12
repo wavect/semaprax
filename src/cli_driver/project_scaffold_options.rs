@@ -24,7 +24,10 @@ pub(super) fn parse(arguments: &[String]) -> Result<(&str, &str, project::Scaffo
             "--name" if name.is_none() => name = Some(value.as_str()),
             "--template" if template.is_none() => {
                 if !project::PROJECT_SCAFFOLD_TEMPLATES.contains(&value.as_str()) {
-                    eprintln!("project-scaffold template must be calculator or library");
+                    eprintln!(
+                        "project-scaffold template must be {}",
+                        project::PROJECT_SCAFFOLD_TEMPLATES.join(" or ")
+                    );
                     return Err(2);
                 }
                 template = Some(value.as_str());

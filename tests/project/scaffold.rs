@@ -396,3 +396,116 @@ fn tables_layout_derives_a_v3_capsule_and_replays_only_as_itself() {
         .unwrap();
     assert_eq!(manifest.bytes(), LIBRARY_TABLES_MANIFEST);
 }
+
+/// The service template composes two bundled standard-library dependencies
+/// (`std.auth`, `std.jobs`) through the extensible table manifest. It only
+/// derives under `ScaffoldLayout::Tables`: the frozen layout has no
+/// `[dependencies]` table, so that pairing is refused before anything is
+/// rendered, and it still passes `validate_rendered_project`'s in-memory
+/// check-and-test gate exactly like the calculator and library templates do.
+#[test]
+fn service_template_composes_bundled_dependencies_and_only_derives_under_tables_layout() {
+    let frozen_error =
+        derive_project_scaffold_v1_with_layout(NAME, "service", ScaffoldLayout::Frozen)
+            .unwrap_err();
+    assert_eq!(frozen_error[0].code, "SPX-J115");
+
+    let derived =
+        derive_project_scaffold_v1_with_layout(NAME, "service", ScaffoldLayout::Tables).unwrap();
+    assert_eq!(derived.schema(), "semaprax.project-scaffold.v3");
+    assert_eq!(derived.template(), "service");
+    assert_eq!(derived.project_schema(), "semaprax.project.v1");
+    assert_eq!(derived.project_name(), NAME);
+    assert_digest(derived.digest());
+    assert_eq!(
+        derived
+            .files()
+            .iter()
+            .map(|file| file.path())
+            .collect::<Vec<_>>(),
+        [
+            "README.md",
+            "AGENTS.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/core.spx",
+            "src/tests.spx",
+        ]
+    );
+    for file in derived.files() {
+        assert_eq!(file.sha256(), sha256(file.bytes()));
+        assert!(
+            !file.utf8().contains("{{"),
+            "{} left an unrendered placeholder",
+            file.path()
+        );
+    }
+
+    let manifest = derived.files()[2].utf8();
+    assert!(manifest.contains("schema = \"semaprax.manifest.v1\"\n"));
+    assert!(manifest.contains("profile = \"useful-data.v1\"\n"));
+    assert!(manifest.contains("entry = \"demo_project.app\"\n"));
+    assert!(manifest.contains(
+        "sources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\n"
+    ));
+    assert!(manifest.contains("tests = [\"demo_project.tests\"]\n"));
+    assert!(manifest.contains(
+        "web = [\"demo-project.identifier_is_valid\", \"demo-project.method_is_rejected\"]\n"
+    ));
+    assert!(manifest.contains("[dependencies]\nstd.auth = \"=0.1.0\"\nstd.jobs = \"=0.1.0\"\n"));
+
+    let agents = derived.files()[1].utf8();
+    assert!(agents.contains("Project v1 function boundaries"));
+    assert!(agents.contains("This template's dependencies"));
+    assert!(agents.contains("demo_project.core"));
+
+    let app = derived.files()[3].utf8();
+    assert!(app.starts_with("module demo_project.app;\n"));
+    assert!(app.contains("@id(\"demo-project.app.main\")\n"));
+
+    let core = derived.files()[4].utf8();
+    assert!(core.starts_with("module demo_project.core;\n"));
+    assert!(core.contains("use function @id(\"std.auth.password.policy_within_bounds\") from std.auth"));
+    assert!(core.contains("use function @id(\"std.jobs.claim.is_legal\") from std.jobs"));
+
+    // Deterministic and self-replaying under its own schema.
+    let again =
+        derive_project_scaffold_v1_with_layout(NAME, "service", ScaffoldLayout::Tables).unwrap();
+    assert_eq!(again.canonical_bytes(), derived.canonical_bytes());
+    assert_eq!(again.digest(), derived.digest());
+    let replayed = replay_project_scaffold_v1(
+        NAME,
+        "service",
+        &derived.canonical_bytes(),
+        derived.digest(),
+    )
+    .unwrap();
+    assert_eq!(replayed.canonical_bytes(), derived.canonical_bytes());
+
+    // A service capsule does not replay as a library, and vice versa.
+    let library =
+        derive_project_scaffold_v1_with_layout(NAME, "library", ScaffoldLayout::Tables).unwrap();
+    let error = replay_project_scaffold_v1(
+        NAME,
+        "library",
+        &derived.canonical_bytes(),
+        derived.digest(),
+    )
+    .unwrap_err();
+    assert_eq!(error[0].code, "SPX-J115");
+    let error = replay_project_scaffold_v1(
+        NAME,
+        "service",
+        &library.canonical_bytes(),
+        library.digest(),
+    )
+    .unwrap_err();
+    assert_eq!(error[0].code, "SPX-J115");
+
+    // A different project name changes both the manifest and the digest.
+    let other =
+        derive_project_scaffold_v1_with_layout("other-project", "service", ScaffoldLayout::Tables)
+            .unwrap();
+    assert_ne!(other.canonical_bytes(), derived.canonical_bytes());
+    assert_ne!(other.digest(), derived.digest());
+}

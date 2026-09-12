@@ -1,10 +1,11 @@
 //! The `new` invocation grammar shared by both executables.
 //!
-//! `semaprax new <destination> [--name project-name] [--template calculator|library]`.
+//! `semaprax new <destination> [--name project-name] [--template calculator|library|service]`.
 //! The full toolchain parses the same grammar inside its private publication
-//! module and spells every shared rejection identically; it publishes only the
-//! calculator template through its held-parent authority, and says so when
-//! asked for another one.
+//! module and spells every shared rejection identically; its held-parent
+//! authority has one source-directory shape for the calculator and service
+//! templates (both name their sources `app.spx`, `core.spx`, `tests.spx`) and
+//! a separate one for the library template.
 
 use std::path::PathBuf;
 
@@ -167,8 +168,11 @@ mod tests {
         );
         assert_eq!(
             parse(&strings(&["x", "--template", "web"])).unwrap_err(),
-            "unknown new template `web`; expected calculator or library"
+            "unknown new template `web`; expected calculator or library or service"
         );
+        let service = parse(&strings(&["svc", "--template", "service"])).unwrap();
+        assert_eq!(service.template, "service");
+        assert_eq!(service.name, "svc");
         assert_eq!(
             parse(&strings(&["x", "--name"])).unwrap_err(),
             "new option `--name` requires a value"

@@ -151,6 +151,7 @@ Audience: all documentation readers.
 - [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md)
 - [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md)
 - [Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md)
+- [Project Scaffold Service Template v1](PROJECT-SCAFFOLD-SERVICE-V1.md)
 - [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 - [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md)
 - [ProgramRoot v1](PROGRAM-ROOT-V1.md)

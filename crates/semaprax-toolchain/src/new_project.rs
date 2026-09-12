@@ -79,11 +79,14 @@ impl WriteHook for NoopWriteHook {
 
 pub(crate) fn run(arguments: &[String]) -> Result<(PathBuf, &'static str), NewProjectFailure> {
     let options = parse(arguments)?;
-    let template = if options.template == project::PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
-        project::PROJECT_SCAFFOLD_TEMPLATE_LIBRARY
-    } else {
-        project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR
-    };
+    // `parse` already refused anything outside `PROJECT_SCAFFOLD_TEMPLATES`;
+    // resolve the owned, validated string back to the matching `'static`
+    // constant instead of collapsing every non-library template to the
+    // calculator (that used to silently drop the service template here).
+    let template = project::PROJECT_SCAFFOLD_TEMPLATES
+        .into_iter()
+        .find(|known| *known == options.template)
+        .unwrap_or(project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR);
     create_template_with_hook(
         &options.destination,
         &options.name,

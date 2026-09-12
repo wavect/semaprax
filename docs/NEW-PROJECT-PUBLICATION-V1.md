@@ -9,7 +9,7 @@ Audience: toolchain contributors, host integrators, and reviewers.
 ## Scope and unchanged interface
 
 The unpublished full toolchain owns `semaprax-full new <destination>` and the
-built-in calculator and library templates. Tag archives expose that full CLI as `semaprax`;
+built-in calculator, library, and service templates. Tag archives expose that full CLI as `semaprax`;
 the standalone registry compiler does not gain private-host dependencies.
 See the [quickstart](QUICKSTART.md) for the user workflow and
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) for checked project semantics.
@@ -22,10 +22,13 @@ create-new route without this protocol's staging or identity re-verification.
 
 The publication protocol does not change the command grammar, lowered Project
 schema, or source semantics. The existing
-`--name` and closed `--template calculator|library` choices are admitted. The
-authority holds one of two exact fixed-arity source inventories selected
-before staging. The exact generated inventories are those of [Public Project
-Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md):
+`--name` and closed `--template calculator|library|service` choices are
+admitted. The authority holds one of two exact fixed-arity source-directory
+shapes selected before staging: the calculator and
+[service](PROJECT-SCAFFOLD-SERVICE-V1.md) templates share one (their source
+files have identical names), and the library template uses the other. The
+exact generated inventories are those of [Public Project Scaffold Capsule
+v3](PROJECT-SCAFFOLD-V3.md):
 
 - `README.md`
 - `AGENTS.md`

@@ -277,6 +277,49 @@ fn standalone_new_creates_the_library_template_and_the_project_works() {
     );
 }
 
+/// The service template composes two bundled standard-library dependencies
+/// (`std.auth`, `std.jobs`) declared in its `[dependencies]` table; `new`
+/// always renders the table manifest layout regardless of template, so this
+/// is the one template whose own manifest could not derive under the frozen
+/// layout at all (see `tests/project/scaffold.rs`'s own coverage of that
+/// refusal).
+#[test]
+fn standalone_new_creates_the_service_template_and_the_project_works() {
+    let fixture = Fixture::new("service");
+    let created = cli(
+        &fixture.root,
+        &["new", "task-tracker", "--template", "service"],
+    );
+    assert!(created.status.success(), "{}", stderr(&created));
+    assert!(created.stderr.is_empty());
+    assert_eq!(
+        stdout(&created),
+        "created service project task-tracker\n"
+    );
+    let project = fixture.root.join("task-tracker");
+    assert_eq!(
+        read_tree(&project),
+        scaffold_files("task-tracker", "service")
+    );
+    assert!(project.join("src/core.spx").is_file());
+    assert!(project.join("src/app.spx").is_file());
+    let manifest = std::fs::read_to_string(project.join("semaprax.toml")).unwrap();
+    assert!(manifest.contains("[dependencies]\nstd.auth = \"=0.1.0\"\nstd.jobs = \"=0.1.0\"\n"));
+
+    let check = cli(&project, &["check", "."]);
+    assert!(check.status.success(), "{}", stderr(&check));
+    assert!(stdout(&check).starts_with("verified project task-tracker (sha256:"));
+    let tested = cli(&project, &["test", "."]);
+    assert!(tested.status.success(), "{}", stderr(&tested));
+    assert_eq!(stdout(&tested), "project tests passed\n");
+    let ran = cli(&project, &["run", "."]);
+    assert!(ran.status.success(), "{}", stderr(&ran));
+    assert_eq!(stdout(&ran), "0\n");
+    // The generated files are canonical, comments included.
+    let formatted = cli(&project, &["fmt", ".", "--check"]);
+    assert!(formatted.status.success(), "{}", stderr(&formatted));
+}
+
 #[test]
 fn standalone_new_refuses_existing_invalid_and_parentless_destinations() {
     let fixture = Fixture::new("rejections");
@@ -318,7 +361,7 @@ hint: run `semaprax new --help` for usage\n"
     assert_eq!(template.status.code(), Some(2));
     assert_eq!(
         stderr(&template),
-        "new: unknown new template `web`; expected calculator or library\nhint: run `semaprax new --help` for usage\n"
+        "new: unknown new template `web`; expected calculator or library or service\nhint: run `semaprax new --help` for usage\n"
     );
     assert!(!fixture.root.join("fine").exists());
 
@@ -350,7 +393,7 @@ fn standalone_new_is_listed_by_help_and_describes_its_grammar() {
     assert!(scoped.status.success());
     assert_eq!(
         stdout(&scoped),
-        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library]\n"
+        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library|service]\n"
     );
     let guided = cli(&fixture.root, &["--help"]);
     assert!(stdout(&guided).contains("\n  new <destination>"));

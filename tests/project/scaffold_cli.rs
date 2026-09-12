@@ -49,6 +49,48 @@ fn public_cli_prints_the_library_capsule_for_the_library_template() {
 }
 
 #[test]
+fn public_cli_prints_the_service_capsule_for_the_service_template_under_tables_layout() {
+    let (output, root) = invoke(&[
+        "project-scaffold",
+        "--name",
+        "demo-project",
+        "--template",
+        "service",
+        "--layout",
+        "tables",
+    ]);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stderr.is_empty());
+    assert_eq!(
+        output.stdout,
+        derive_project_scaffold_v1_with_layout("demo-project", "service", ScaffoldLayout::Tables)
+            .unwrap()
+            .canonical_bytes()
+    );
+    std::fs::remove_dir(root).unwrap();
+}
+
+#[test]
+fn public_cli_refuses_the_service_template_under_the_default_frozen_layout() {
+    let (output, root) = invoke(&[
+        "project-scaffold",
+        "--name",
+        "demo-project",
+        "--template",
+        "service",
+    ]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("SPX-J115"), "{stderr}");
+    std::fs::remove_dir(root).unwrap();
+}
+
+#[test]
 fn public_cli_prints_only_the_exact_replayable_capsule() {
     for arguments in [
         &["project-scaffold", "--name", "demo-project"][..],

@@ -193,6 +193,57 @@ fn library_template_has_exact_bytes_and_passes_the_developer_loop() {
     }
 }
 
+/// `run` previously collapsed every non-library template to the calculator
+/// after `parse` had already accepted it (both the destination and the
+/// success line were printed under the wrong template name), because
+/// `new_project::run` mapped anything but `library` straight to the
+/// calculator constant. The service template shares the calculator's
+/// held-parent authority path (both name their sources `app.spx`, `core.spx`,
+/// `tests.spx`), so this exercises that shared authority path under the
+/// template that exposed the bug, not just the calculator itself.
+#[test]
+fn service_template_has_exact_bytes_and_passes_the_developer_loop() {
+    let fixture = Fixture::new("service");
+    let created = cli(&fixture.root, &["new", "demo-svc", "--template", "service"]);
+    assert_success(&created);
+    assert_eq!(
+        String::from_utf8(created.stdout).unwrap(),
+        "created service project demo-svc\n"
+    );
+
+    let files = read_tree(&fixture.root.join("demo-svc"));
+    assert_eq!(
+        files.keys().map(String::as_str).collect::<Vec<_>>(),
+        [
+            "AGENTS.md",
+            "README.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/core.spx",
+            "src/tests.spx"
+        ]
+    );
+    let scaffold = semaprax::project::derive_project_scaffold_v1_with_layout(
+        "demo-svc",
+        "service",
+        semaprax::project::ScaffoldLayout::Tables,
+    )
+    .unwrap();
+    assert_eq!(
+        scaffold
+            .files()
+            .iter()
+            .map(|file| (file.path().to_owned(), file.bytes().to_vec()))
+            .collect::<BTreeMap<_, _>>(),
+        files
+    );
+    let manifest = String::from_utf8(files["semaprax.toml"].clone()).unwrap();
+    assert!(manifest.contains("[dependencies]\nstd.auth = \"=0.1.0\"\nstd.jobs = \"=0.1.0\"\n"));
+    for command in ["check", "test", "run"] {
+        assert_success(&cli(&fixture.root, &[command, "demo-svc/semaprax.toml"]));
+    }
+}
+
 #[test]
 fn generated_project_validation_never_reopens_the_ambient_staging_tree() {
     let implementation = include_str!("../src/new_project.rs");

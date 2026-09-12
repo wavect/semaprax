@@ -45,9 +45,10 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // Undo the intentional surface changes made after this ledger was frozen,
     // so every historical witness below still measures the shape it recorded:
     // `semaprax lock` is new, directory inputs were added to check/build/run
-    // /test, the scaffold gained a library template, `new` became public, and
-    // `doc`, `verify`, `agent`, `query`, `change`, `package`, `add`, `fetch`,
-    // `service`, and `review` were added, and `doctor` became standalone.
+    // /test, the scaffold gained a library template and later a service
+    // template, `new` became public, and `doc`, `verify`, `agent`, `query`,
+    // `change`, `package`, `add`, `fetch`, `service`, and `review` were added,
+    // and `doctor` became standalone.
     const RESTORED: [(&str, &str); 45] = [
         ("semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n", ""),
         ("semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]\n", ""),
@@ -106,7 +107,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "semaprax fmt <file> [--check]\n",
         ),
         (
-            "semaprax project-scaffold --name project-name [--template calculator|library] [--layout frozen|tables]\n",
+            "semaprax project-scaffold --name project-name [--template calculator|library|service] [--layout frozen|tables]\n",
             "semaprax project-scaffold --name project-name [--template calculator]\n",
         ),
         (
@@ -133,7 +134,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
         ),
         (
-            "semaprax new <destination> [--name project-name] [--template calculator|library]\n",
+            "semaprax new <destination> [--name project-name] [--template calculator|library|service]\n",
             "",
         ),
     ];

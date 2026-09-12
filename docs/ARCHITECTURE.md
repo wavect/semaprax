@@ -115,9 +115,10 @@ post-publication byte, inventory and path rechecks cannot regain rollback.
 See [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md) for
 admission restrictions and the explicitly scoped physical gates.
 
-The full toolchain's calculator and library generators check exact owned
-template bytes before staging through `NewProjectAuthority` in the lower
-package crate. The template choice fixes either the two-file calculator or
+The full toolchain's calculator, library, and service generators check exact
+owned template bytes before staging through `NewProjectAuthority` in the lower
+package crate. The template choice fixes either the three-file calculator/
+service `src` inventory (identical file names, distinct contents) or the
 three-file library `src` inventory before namespace creation.
 Staging selection excludes exact/ASCII-case-equivalent destination names before
 creation; the lower authority independently rejects the same collision.

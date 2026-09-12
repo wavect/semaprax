@@ -21,7 +21,7 @@ a bounded route the compiler library can implement with the standard library.
 ## Grammar and template
 
 ```text
-semaprax new <destination> [--name project-name] [--template calculator|library]
+semaprax new <destination> [--name project-name] [--template calculator|library|service]
 ```
 
 The grammar and every shared rejection message are those of the full
@@ -29,13 +29,16 @@ toolchain's `new`. The project name defaults to the destination's final
 component and must match lowercase `[a-z][a-z0-9-]*` within 64 bytes. The
 template defaults to `calculator`; every template of the [Public Project
 Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md) is admitted, and an unknown one is
-rejected with `unknown new template <name>; expected calculator or library`.
-`new` selects the extensible table layout. The calculator separates its
-exported `add` function into `src/core.spx` and imports it by stable identity
-from the entry module; the library retains its existing three source modules.
-The files are exactly the v3 capsule's files for that template and name, in
-that order. The full toolchain's `new` publishes both inventories through its
-stricter held-parent staged authority.
+rejected with `unknown new template <name>; expected calculator or library or
+service`. `new` selects the extensible table layout. The calculator and
+[service](PROJECT-SCAFFOLD-SERVICE-V1.md) templates both separate their
+entry-module logic into `src/core.spx` and import it by stable identity from
+the entry module; the library retains its existing three source modules. The
+files are exactly the v3 capsule's files for that template and name, in that
+order. The full toolchain's `new` publishes all three inventories through its
+stricter held-parent staged authority, sharing one authority path for the
+calculator and service templates (identical source file names) and a separate
+one for the library template.
 
 ## Route
 

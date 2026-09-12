@@ -55,6 +55,18 @@ def changelog_section(text, version):
 
 
 def main(argv=None):
+    # Windows' default stdout/stderr encoding is still a legacy charmap
+    # (cp1252) when PYTHONUTF8 is not set; the release notes contain `→`
+    # and `…` from CHANGELOG.md, so printing with `print()` would raise
+    # `UnicodeEncodeError: 'charmap' codec can't encode` on that platform.
+    # Reconfigure to UTF-8 when available so the same bytes are emitted on
+    # every host; fall back to binary buffer writes for older interpreters.
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+            sys.stderr.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", required=True)
     parser.add_argument("--changelog", type=Path, default=ROOT / "CHANGELOG.md")
@@ -65,13 +77,17 @@ def main(argv=None):
         args.changelog.read_text(encoding="utf-8"), args.version
     )
     section = bound_section(section, args.version)
-    print(f"SEMAPRAX v{args.version} is pre-alpha research software.\n")
-    print("## Changes\n")
-    print(section)
-    print(
+    # Use `write` rather than `print` after reconfigure so the UTF-8
+    # setting is respected even if `print` would still use the legacy
+    # encoding on some Windows runners.
+    out = sys.stdout
+    out.write(f"SEMAPRAX v{args.version} is pre-alpha research software.\n\n")
+    out.write("## Changes\n\n")
+    out.write(section + "\n")
+    out.write(
         "\nThese unsigned archives are not notarized and make no cross-host "
         "reproducible-build claim.\n"
-        "SHA-256 checksums are integrity facts, not signatures."
+        "SHA-256 checksums are integrity facts, not signatures.\n"
     )
 
 

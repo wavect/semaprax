@@ -8,8 +8,11 @@
 //! and ordering rules ([`journal`]); the trust model and determinism/replay
 //! rules ([`kernel`]); the `model.invoke` effect's typed request,
 //! capability requirement, failure taxonomy and cancellation point
-//! ([`model_invoke`]); and persisting/recovering that same journal across a
-//! process boundary through a caller-owned store ([`persistence`]).
+//! ([`model_invoke`]); persisting/recovering that same journal across a
+//! process boundary through a caller-owned store ([`persistence`]); and
+//! migrating a suspended invocation onto a new ProgramRoot/schema/policy
+//! through a checked pure function, with journal history and cumulative
+//! budget intact ([`migration`], issue #115).
 //!
 //! # What this module is, on purpose
 //!
@@ -36,6 +39,7 @@ pub mod fixture;
 pub mod identity;
 pub mod journal;
 pub mod kernel;
+pub mod migration;
 pub mod model_invoke;
 pub mod persistence;
 
@@ -51,6 +55,11 @@ pub use journal::{
 pub use kernel::{
     run_live_invocation, LiveInvocationConfig, LiveInvocationHandlers, LiveInvocationOutcome,
     LiveKernelError, LiveKernelRun, TurnEffect, TurnObserver, TurnPolicy, TurnTransition,
+};
+pub use migration::{
+    migrate_live_invocation, verify_destination_binding, LiveMigrationDestination,
+    LiveMigrationError, LiveMigrationHandoff, LiveMigrationSource, LiveStateMigration,
+    MigratedLiveInvocation, MAX_MIGRATED_STATE_BYTES,
 };
 pub use model_invoke::{
     AuthorizationContext, AuthorizationGate, AuthorizationGrant, AuthorizationRefusal,

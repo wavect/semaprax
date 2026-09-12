@@ -557,13 +557,22 @@ Required-evidence checklist, same audit:
   #114) adds the write-side seam (`LiveInvocationHandlers::sink`), the
   caller-owned store adapter, and the recovery envelope/checks a process
   restart needs, reusing this document's kernel and journal unchanged.
+- **Migrating onto a new identity is a separate document.** [Live
+  Invocation Migration v1](LIVE-INVOCATION-MIGRATION-V1.md) (issue #115)
+  adds `migration::migrate_live_invocation`: a checked pure function that
+  moves a suspended invocation onto a new ProgramRoot/schema/policy with
+  journal history (by never touching it) and cumulative budget (by folding
+  the predecessor's committed total forward) intact. This document's
+  kernel and journal are reused unchanged; nothing here is rewritten to add
+  that boundary.
 
 ## Executable reference
 
 `src/live_invocation/` (`identity.rs`, `journal.rs`, `model_invoke.rs`,
-`kernel.rs`, `persistence.rs`, `budget.rs`, `fixture.rs`, `tests.rs`) is the
-complete reference implementation this document describes, exercised end to
-end through the fixture provider with no network access. Focused gate:
+`kernel.rs`, `persistence.rs`, `migration.rs`, `budget.rs`, `fixture.rs`,
+`tests.rs`) is the complete reference implementation this document
+describes, exercised end to end through the fixture provider with no
+network access. Focused gate:
 
 ```sh
 cargo test --locked -p semaprax --lib live_invocation

@@ -278,6 +278,12 @@ boundary" section already exercises for its structurally identical problem.
   it is out of scope for a Rust-host-side kernel with no checked-source
   caller yet, and is named precisely so a later tranche does not have to
   rediscover it.
+- **Migrating a persisted invocation onto a new identity is a separate
+  document.** [Live Invocation Migration v1](LIVE-INVOCATION-MIGRATION-V1.md)
+  (issue #115) builds `migration::migrate_live_invocation` on top of this
+  module's `budget::committed_from_journal` fold and the same journal
+  format, without changing this module's own recovery envelope or write
+  path.
 
 ## Executable reference
 

@@ -13,6 +13,7 @@ use std::collections::VecDeque;
 
 use super::budget::InvocationClock;
 use super::kernel::{TurnEffect, TurnObserver, TurnPolicy, TurnTransition};
+use super::migration::LiveStateMigration;
 use super::model_invoke::{
     AuthorizationContext, AuthorizationGate, AuthorizationGrant, AuthorizationRefusal,
     BudgetRefusal, InvocationBudgetHook, InvocationUsage, ModelHandler, ModelInvocationOutcome,
@@ -257,5 +258,77 @@ impl StepClock {
 impl InvocationClock for StepClock {
     fn now_millis(&self) -> i64 {
         self.millis
+    }
+}
+
+/// A deterministic checked "pure" state migration: appends a fixed suffix
+/// to whatever state bytes it is given. Real deployments bind
+/// `LiveStateMigration` to a compiler-checked pure function over retained
+/// source (see `execution_revision::typed_migration::evaluate_migration`
+/// for the real mechanism); this fixture only proves *where* the checked
+/// boundary sits and that it is actually called (`calls`), never a claim
+/// about real state-schema evolution.
+pub struct FixtureStateMigration {
+    pub suffix: Vec<u8>,
+    pub calls: usize,
+}
+
+impl FixtureStateMigration {
+    #[must_use]
+    pub fn appending(suffix: impl Into<Vec<u8>>) -> Self {
+        Self {
+            suffix: suffix.into(),
+            calls: 0,
+        }
+    }
+}
+
+impl LiveStateMigration for FixtureStateMigration {
+    fn migrate(&mut self, previous_state: &[u8]) -> Result<Vec<u8>, String> {
+        self.calls += 1;
+        let mut migrated = previous_state.to_vec();
+        migrated.extend_from_slice(&self.suffix);
+        Ok(migrated)
+    }
+}
+
+/// A migration that answers differently on every call — proves
+/// `migration::migrate_live_invocation`'s double-evaluation check actually
+/// rejects an impure or effectful migration rather than trusting whatever
+/// the first call returns.
+pub struct FixtureNondeterministicStateMigration {
+    pub calls: usize,
+}
+
+impl FixtureNondeterministicStateMigration {
+    #[must_use]
+    pub fn new() -> Self {
+        Self { calls: 0 }
+    }
+}
+
+impl Default for FixtureNondeterministicStateMigration {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl LiveStateMigration for FixtureNondeterministicStateMigration {
+    fn migrate(&mut self, previous_state: &[u8]) -> Result<Vec<u8>, String> {
+        self.calls += 1;
+        let mut migrated = previous_state.to_vec();
+        migrated.push(u8::try_from(self.calls % 256).unwrap_or(0));
+        Ok(migrated)
+    }
+}
+
+/// A migration that always refuses, with a fixed closed reason. Proves a
+/// migration function's own refusal reaches
+/// `migration::LiveMigrationError::MigrationRefused` unchanged.
+pub struct FixtureRefusingStateMigration;
+
+impl LiveStateMigration for FixtureRefusingStateMigration {
+    fn migrate(&mut self, _previous_state: &[u8]) -> Result<Vec<u8>, String> {
+        Err("fixture_refuses_all_migrations".into())
     }
 }

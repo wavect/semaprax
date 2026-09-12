@@ -117,6 +117,26 @@ pub const BUDGET_EXHAUSTED: &str = "budget_exhausted";
 pub const DEADLINE_EXCEEDED: &str = "deadline_exceeded";
 pub const NEGATIVE_REQUEST: &str = "negative_request";
 
+/// Sums every `RequestIntent.reserved_budget` in `journal`, saturating —
+/// the exact fold [`CumulativeBudgetLedger::resume`],
+/// [`CumulativeBudgetLedger::resume_migrated`] and
+/// `migration::migrate_live_invocation` all need, kept in one place so a
+/// predecessor's carried-forward total and a resumed ledger's own
+/// reconstruction can never drift apart by using two slightly different
+/// folds.
+#[must_use]
+pub(crate) fn committed_from_journal(journal: &[JournalEntry]) -> i64 {
+    journal
+        .iter()
+        .filter_map(|entry| match entry {
+            JournalEntry::RequestIntent {
+                reserved_budget, ..
+            } => Some(*reserved_budget),
+            _ => None,
+        })
+        .fold(0i64, i64::saturating_add)
+}
+
 /// A source of monotonic time for deadline enforcement, injected rather than
 /// read ambiently — matching the "capabilities are explicit" discipline
 /// every other seam in this crate follows. `units` are caller-defined (a
@@ -184,15 +204,63 @@ impl<'a> CumulativeBudgetLedger<'a> {
         journal_so_far: &[JournalEntry],
         clock: &'a mut dyn InvocationClock,
     ) -> Self {
-        let committed = journal_so_far
-            .iter()
-            .filter_map(|entry| match entry {
-                JournalEntry::RequestIntent {
-                    reserved_budget, ..
-                } => Some(*reserved_budget),
-                _ => None,
-            })
-            .fold(0i64, i64::saturating_add);
+        Self {
+            ceiling,
+            committed: committed_from_journal(journal_so_far),
+            deadline_millis,
+            clock,
+            usage: Vec::new(),
+        }
+    }
+
+    /// Starts a ledger for an invocation produced by
+    /// [`super::migration::migrate_live_invocation`]: `committed` begins at
+    /// `carried_committed` — the exact total already nonrefundably spent
+    /// under the *predecessor* identity — rather than at zero. `ceiling` and
+    /// `deadline_millis` are the *destination*'s own, independently chosen
+    /// policy (a fresh deployment may narrow or widen them; this
+    /// constructor never inherits the predecessor's ceiling). This is what
+    /// makes migration unable to refund prior spend: a caller who instead
+    /// called [`Self::new`] here would silently hand back every unit the
+    /// predecessor already committed, which is exactly the double-spend
+    /// this type exists to prevent. See
+    /// `docs/LIVE-INVOCATION-CONTRACT-V1.md`'s migration section and
+    /// `migration::tests` for the fault-injection proof.
+    #[must_use]
+    pub fn migrated(
+        ceiling: i64,
+        deadline_millis: Option<i64>,
+        carried_committed: i64,
+        clock: &'a mut dyn InvocationClock,
+    ) -> Self {
+        Self {
+            ceiling,
+            committed: carried_committed.max(0),
+            deadline_millis,
+            clock,
+            usage: Vec::new(),
+        }
+    }
+
+    /// Reconstructs a *migrated* ledger after a crash on the destination
+    /// side: `carried_committed` (the predecessor's total, from the
+    /// migration handoff) plus every `RequestIntent.reserved_budget` the
+    /// destination's own journal prefix has already durably committed.
+    /// Combines [`Self::migrated`] and [`Self::resume`] rather than
+    /// composing them by hand at every call site, so the two foldable
+    /// sources of committed spend (predecessor handoff, destination journal
+    /// prefix) are always summed the same way.
+    #[must_use]
+    pub fn resume_migrated(
+        ceiling: i64,
+        deadline_millis: Option<i64>,
+        carried_committed: i64,
+        destination_journal_so_far: &[JournalEntry],
+        clock: &'a mut dyn InvocationClock,
+    ) -> Self {
+        let committed = carried_committed
+            .max(0)
+            .saturating_add(committed_from_journal(destination_journal_so_far));
         Self {
             ceiling,
             committed,

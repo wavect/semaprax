@@ -1122,6 +1122,34 @@ fn a_persisted_or_recovered_handoff_drives_destination_dispatch_and_replay() {
     let mut budget = FixtureBudgetHook::new(10);
     let mut observer = FixtureObserver;
     let mut policy = super::super::fixture::FixturePolicy { total_turns: 1 };
+    store.fail_from_call = Some(store.calls + 1);
+    {
+        let mut handlers = LiveInvocationHandlers {
+            capability: &capability,
+            handler: &mut handler,
+            decoder: &mut decoder,
+            gate: &mut gate,
+            budget: &mut budget,
+            observer: &mut observer,
+            policy: &mut policy,
+            effect: None,
+            sink: None,
+        };
+        assert!(matches!(
+            run_migrated_destination(
+                &mut recovered,
+                &mut store,
+                &cfg,
+                &mut handlers,
+                &AgentCancellation::new(),
+            ),
+            Err(MigrationDestinationError::Kernel(
+                super::super::kernel::LiveKernelError::PersistenceFailed { dispatched: 0 }
+            ))
+        ));
+    }
+    assert_eq!(handler.calls, 0, "a failed checkpoint precedes dispatch");
+    store.fail_from_call = None;
     let mut handlers = LiveInvocationHandlers {
         capability: &capability,
         handler: &mut handler,
@@ -1133,21 +1161,6 @@ fn a_persisted_or_recovered_handoff_drives_destination_dispatch_and_replay() {
         effect: None,
         sink: None,
     };
-    store.fail_from_call = Some(store.calls + 1);
-    assert!(matches!(
-        run_migrated_destination(
-            &mut recovered,
-            &mut store,
-            &cfg,
-            &mut handlers,
-            &AgentCancellation::new(),
-        ),
-        Err(MigrationDestinationError::Kernel(
-            super::super::kernel::LiveKernelError::PersistenceFailed { dispatched: 0 }
-        ))
-    ));
-    assert_eq!(handler.calls, 0, "a failed checkpoint precedes dispatch");
-    store.fail_from_call = None;
     let first = run_migrated_destination(
         &mut recovered,
         &mut store,
@@ -1156,6 +1169,7 @@ fn a_persisted_or_recovered_handoff_drives_destination_dispatch_and_replay() {
         &AgentCancellation::new(),
     )
     .unwrap();
+    drop(handlers);
     assert_eq!(first.run.dispatched, 1);
     assert!(first.generation > 1, "destination journal was checkpointed");
     assert_eq!(handler.calls, 1);
@@ -1186,6 +1200,60 @@ fn a_persisted_or_recovered_handoff_drives_destination_dispatch_and_replay() {
         &AgentCancellation::new(),
     )
     .unwrap();
+    drop(replay_handlers);
     assert_eq!(replayed.run.dispatched, 0);
     assert_eq!(never_handler.calls, 0);
+}
+
+#[test]
+fn an_accepted_max_minus_one_generation_never_publishes_an_unrecoverable_successor() {
+    let (migrated, _, destination) = checkpoint_migration();
+    let mut store = MigrationRecordingStore::default();
+    let _ = persist_migration_handoff(&mut store, migrated).unwrap();
+    let max_minus_one =
+        store
+            .last()
+            .replacen("\"generation\":1", "\"generation\":18446744073709551614", 1);
+    let mut recovered = recover_migration_handoff(&max_minus_one, &destination)
+        .expect("the canonical max-minus-one record remains recoverable");
+    assert_eq!(recovered.generation(), u64::MAX - 1);
+    let committed_before = store.calls;
+    let cfg = config(&destination, SCHEMA_B, 1);
+    let capability = ModelInvokeCapability::grant("max generation refusal");
+    let mut handler = FixtureModelHandler::scripted(Vec::new());
+    let mut decoder = FixtureProposalDecoder::new(SCHEMA_B);
+    let mut gate = FixtureAuthorizationGate::new(1);
+    let mut budget = FixtureBudgetHook::new(10);
+    let mut observer = FixtureObserver;
+    let mut policy = super::super::fixture::FixturePolicy { total_turns: 1 };
+    {
+        let mut handlers = LiveInvocationHandlers {
+            capability: &capability,
+            handler: &mut handler,
+            decoder: &mut decoder,
+            gate: &mut gate,
+            budget: &mut budget,
+            observer: &mut observer,
+            policy: &mut policy,
+            effect: None,
+            sink: None,
+        };
+        assert!(matches!(
+            run_migrated_destination(
+                &mut recovered,
+                &mut store,
+                &cfg,
+                &mut handlers,
+                &AgentCancellation::new(),
+            ),
+            Err(MigrationDestinationError::Kernel(
+                super::super::kernel::LiveKernelError::PersistenceFailed { dispatched: 0 }
+            ))
+        ));
+    }
+    assert_eq!(
+        store.calls, committed_before,
+        "no MAX checkpoint was written"
+    );
+    assert_eq!(handler.calls, 0, "refusal precedes destination dispatch");
 }

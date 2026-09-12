@@ -237,6 +237,12 @@ impl JournalSink for MigrationCheckpointSink<'_> {
         let Some(next) = self.record.generation.checked_add(1) else {
             return Err(CheckpointStoreError);
         };
+        // Every checkpoint this sink publishes must itself be recoverable.
+        // `u64::MAX` has no valid successor, so accepting it as `next`
+        // would write a document recovery must reject.
+        if !valid_generation(next) {
+            return Err(CheckpointStoreError);
+        }
         let candidate = RecoveredMigrationHandoff {
             handoff: self.record.handoff.clone(),
             migrated_state: self.record.migrated_state.clone(),

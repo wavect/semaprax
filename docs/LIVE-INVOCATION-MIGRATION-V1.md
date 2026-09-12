@@ -221,7 +221,11 @@ or future schema, a substituted destination, a reminted handoff, modified
 state bytes, or a changed journal. Zero and exhausted (`u64::MAX`) generations
 are refused, and documents larger than 2,097,152 bytes are rejected before
 JSON parsing. Exact canonical re-rendering, including the terminal LF, is
-required, so duplicate keys and alternate encodings are not adopted.
+required, so duplicate keys and alternate encodings are not adopted. The
+combined sink uses checked generation progression and refuses a would-be
+`u64::MAX` successor before store I/O; every generation it admits is therefore
+recoverable for the expected destination, subject to the trusted-store caveat
+below.
 
 This record is evidence, not authority. Its hashes prove self-consistency but
 not who produced it; `RecoveredMigrationHandoff` is cloneable and recovery
@@ -249,7 +253,8 @@ proves the round trip and rejects state, handoff, and schema tampering.
 `migration::tests::a_persisted_or_recovered_handoff_drives_destination_dispatch_and_replay`
 proves the real adapter sequence: persist, fail a checkpoint before dispatch,
 dispatch through the combined sink, recover, then replay the terminal
-destination with zero handler calls.
+destination with zero handler calls. `migration::tests::an_accepted_max_minus_one_generation_never_publishes_an_unrecoverable_successor`
+proves the outbound-generation invariant without touching the store or dispatching.
 
 ## Non-goals and known limitations (this round)
 
@@ -308,7 +313,7 @@ destination with zero handler calls.
 cargo test --locked -p semaprax --lib live_invocation
 ```
 
-93 tests (the 73 tests Live Invocation Contract v1 and Live Invocation
-Persistence v1 already established, unchanged, plus 20 in
-`migration::tests` — the original 16, two rich-schema cases, and two durable
+94 tests (the 73 tests Live Invocation Contract v1 and Live Invocation
+Persistence v1 already established, unchanged, plus 21 in
+`migration::tests` — the original 16, two rich-schema cases, and three durable
 handoff-checkpoint regressions), all fixture-backed, no network access, no model spend.

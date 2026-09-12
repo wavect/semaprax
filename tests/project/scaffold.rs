@@ -445,9 +445,7 @@ fn service_template_composes_bundled_dependencies_and_only_derives_under_tables_
     assert!(manifest.contains("schema = \"semaprax.manifest.v1\"\n"));
     assert!(manifest.contains("profile = \"useful-data.v1\"\n"));
     assert!(manifest.contains("entry = \"demo_project.app\"\n"));
-    assert!(manifest.contains(
-        "sources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\n"
-    ));
+    assert!(manifest.contains("sources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\n"));
     assert!(manifest.contains("tests = [\"demo_project.tests\"]\n"));
     assert!(manifest.contains(
         "web = [\"demo-project.identifier_is_valid\", \"demo-project.method_is_rejected\"]\n"
@@ -465,7 +463,9 @@ fn service_template_composes_bundled_dependencies_and_only_derives_under_tables_
 
     let core = derived.files()[4].utf8();
     assert!(core.starts_with("module demo_project.core;\n"));
-    assert!(core.contains("use function @id(\"std.auth.password.policy_within_bounds\") from std.auth"));
+    assert!(
+        core.contains("use function @id(\"std.auth.password.policy_within_bounds\") from std.auth")
+    );
     assert!(core.contains("use function @id(\"std.jobs.claim.is_legal\") from std.jobs"));
 
     // Deterministic and self-replaying under its own schema.

@@ -292,10 +292,7 @@ fn standalone_new_creates_the_service_template_and_the_project_works() {
     );
     assert!(created.status.success(), "{}", stderr(&created));
     assert!(created.stderr.is_empty());
-    assert_eq!(
-        stdout(&created),
-        "created service project task-tracker\n"
-    );
+    assert_eq!(stdout(&created), "created service project task-tracker\n");
     let project = fixture.root.join("task-tracker");
     assert_eq!(
         read_tree(&project),

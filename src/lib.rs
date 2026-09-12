@@ -134,6 +134,7 @@ pub mod public_generic_type;
 pub mod quality_route;
 pub mod query;
 pub mod region_report;
+pub mod release_provenance;
 pub mod repair;
 pub mod requirement_traceability;
 pub mod review;

@@ -337,6 +337,18 @@ static void spx_pg_release_leaves(uint8_t **leaf_bytes, size_t *leaf_lens, uint3
             (void)spx_pg_settle(SPX_PG_STATUS_CONTRACT_FAILURE);
         }
     }
+    /* The flat-`Bytes` root releases last (reverse of the root-then-leaves
+     * obligation order), with no physical byte behind it, mirroring the
+     * root's own allocation triple/pair above and
+     * `CarrierCallMachine::release_set` (`src/public_generic_abi/carrier/machine.rs`),
+     * whose reversed `indexed_ledgers_mut()` iteration records one
+     * `LeafRelease` for every ledger, root included, before the one
+     * `CarrierRelease`. Completes the issue #240 divergence 1 fix on the
+     * release side. */
+    spx_pg_trace_record(SPX_PG_TRACE_LEAF_RELEASE);
+    if (spx_pg_should_inject(SPX_PG_TRACE_LEAF_RELEASE)) {
+        (void)spx_pg_settle(SPX_PG_STATUS_CONTRACT_FAILURE);
+    }
     spx_pg_trace_record(SPX_PG_TRACE_CARRIER_RELEASE);
     if (spx_pg_should_inject(SPX_PG_TRACE_CARRIER_RELEASE)) {
         (void)spx_pg_settle(SPX_PG_STATUS_CONTRACT_FAILURE);
@@ -344,15 +356,32 @@ static void spx_pg_release_leaves(uint8_t **leaf_bytes, size_t *leaf_lens, uint3
 }
 
 /* Allocate and copy every leaf's payload bytes, root then leaves in
- * structural order (there is no separate root payload in this flat-Bytes
- * shape; the root is the aggregate the leaves belong to). On any failure
- * (bounded-allocator exhaustion or injected failure), every leaf allocated
- * so far is released in reverse order before returning, so the caller never
- * observes a partial value. */
+ * structural order. There is no separate root PAYLOAD in this flat-Bytes
+ * shape (the root is the aggregate the leaves belong to), but the root
+ * still gets its own recorded allocation/copy triple before the per-leaf
+ * loop below, unconditionally and with no physical byte behind it — this
+ * exactly matches `CarrierCallMachine::fill_and_trace`
+ * (`src/public_generic_abi/carrier/machine.rs`), whose shared
+ * `indexed_ledgers`/`indexed_ledgers_mut` iterates root-then-leaves and
+ * records the identical triple for every ledger, root included, and
+ * matches docs/PUBLIC-GENERIC-CARRIER-V1.md's "The normalized trace"
+ * section: "Allocation/copy events ... are per-handle, one triple per root
+ * or leaf." Interpreter/Wasm's own root physical slot (`self.heap.alloc(0)`
+ * / `self.allocator.alloc(&mut self.memory, 0)`) is unconditional and
+ * un-injectable too — it sits outside the leaf loop's own injection
+ * checks — so the root triple recorded here is likewise unconditional, not
+ * gated by `spx_pg_should_inject`. Fixes issue #240 divergence 1. On any
+ * per-LEAF failure (bounded-allocator exhaustion or injected failure),
+ * every leaf allocated so far is released in reverse order before
+ * returning, so the caller never observes a partial value. */
 static spx_pg_status_v1 spx_pg_fill_leaves(const uint8_t *bytes, size_t offset, uint32_t leaf_count,
                                             uint8_t **leaf_bytes, size_t *leaf_lens,
                                             uint32_t started_label, uint32_t committed_label,
                                             uint32_t payload_label) {
+    spx_pg_trace_record(started_label);
+    spx_pg_trace_record(committed_label);
+    spx_pg_trace_record(payload_label);
+
     for (uint32_t leaf = 0; leaf < leaf_count; ++leaf) {
         spx_pg_trace_record(started_label);
         if (spx_pg_should_inject(started_label)) {
@@ -633,9 +662,28 @@ spx_pg_status_v1 spx_pg_call_v1(spx_pg_provider_v1 *provider, spx_pg_value_v1 *i
                                                             result_leaf_lens);
     }
 
+    /* Record execution's own boundary event, and capture (without yet
+     * acting on) whether it was injected, BEFORE the non-result input
+     * release below — matching `WasmProvider::call`/`InterpreterProvider::call`
+     * exactly: both call `machine.finish_execution()` (which records
+     * `ExecutionFinished`) before `release_input_after_transfer()`, and both
+     * capture `take_injection_if(TraceLabel::ExecutionFinished)` into a flag
+     * they act on only after that release completes. Previously this file
+     * recorded `ExecutionFinished` AFTER releasing the input, so native's
+     * normalized trace disagreed with interpreter/Wasm's on the relative
+     * order of `ExecutionFinished` and `LeafRelease`/`CarrierRelease` for
+     * every call that reaches this point (issue #240 divergence 2). The
+     * release itself still always happens, success or failure, and still
+     * happens before the result is ever published — only where
+     * `ExecutionFinished` is recorded relative to it has changed. */
+    int endpoint_already_succeeded = (endpoint_status == SPX_PG_STATUS_OK);
+    spx_pg_trace_record(SPX_PG_TRACE_EXECUTION_FINISHED);
+    int execution_finished_injected = spx_pg_should_inject(SPX_PG_TRACE_EXECUTION_FINISHED);
+
     /* Non-result obligation: release the consumed input before the result is
      * ever published, matching "result publication follows postconditions
-     * and non-result cleanup." */
+     * and non-result cleanup." Runs regardless of the ExecutionFinished
+     * injection captured above. */
     spx_pg_release_leaves(input->leaf_bytes, input->leaf_lens, input->leaf_count);
     if (input->leaf_bytes != NULL) {
         spx_pg_dealloc(input->leaf_bytes, sizeof(uint8_t *) * input->leaf_count);
@@ -645,9 +693,7 @@ spx_pg_status_v1 spx_pg_call_v1(spx_pg_provider_v1 *provider, spx_pg_value_v1 *i
     }
     spx_pg_dealloc(input, sizeof(spx_pg_value_v1));
 
-    int endpoint_already_succeeded = (endpoint_status == SPX_PG_STATUS_OK);
-    spx_pg_trace_record(SPX_PG_TRACE_EXECUTION_FINISHED);
-    if (spx_pg_should_inject(SPX_PG_TRACE_EXECUTION_FINISHED)) {
+    if (execution_finished_injected) {
         endpoint_status = SPX_PG_STATUS_CONTRACT_FAILURE;
     }
 
@@ -691,12 +737,21 @@ spx_pg_status_v1 spx_pg_call_v1(spx_pg_provider_v1 *provider, spx_pg_value_v1 *i
     result->leaf_bytes = result_leaf_bytes;
     result->leaf_lens = result_leaf_lens;
 
-    /* The endpoint already performed the physical allocation above; these
-     * events record it in the normalized trace in structural order.
-     * Injection here models a deliberate post-hoc rejection (the engine
-     * chooses to fail after the physical work already succeeded), so on
-     * injection every result leaf actually allocated is rolled back rather
-     * than leaked. */
+    /* The flat-`Bytes` result root gets its own recorded allocation pair
+     * before the per-leaf loop below, unconditionally and with no physical
+     * byte behind it (native's result struct has no separate root slot to
+     * allocate) — mirroring the identical input-side root pair/triple above
+     * and interpreter/Wasm's own zero-byte result-root physical slot
+     * (`self.allocator.alloc(&mut self.memory, 0)` in `WasmProvider::call`),
+     * which is likewise unconditional and un-injectable. Fixes issue #240
+     * divergence 1 on the result side. The endpoint already performed the
+     * physical allocation above; these events record it in the normalized
+     * trace in structural order. Injection here models a deliberate post-hoc
+     * rejection (the engine chooses to fail after the physical work already
+     * succeeded), so on injection every result leaf actually allocated is
+     * rolled back rather than leaked. */
+    spx_pg_trace_record(SPX_PG_TRACE_RESULT_LEAF_ALLOCATION_STARTED);
+    spx_pg_trace_record(SPX_PG_TRACE_RESULT_LEAF_ALLOCATION_COMMITTED);
     int result_leaf_trace_injected = 0;
     for (uint32_t index = 0; index < leaf_count; ++index) {
         spx_pg_trace_record(SPX_PG_TRACE_RESULT_LEAF_ALLOCATION_STARTED);
@@ -771,8 +826,28 @@ spx_pg_status_v1 spx_pg_call_v1(spx_pg_provider_v1 *provider, spx_pg_value_v1 *i
      * "a cleanup failure with no earlier failure may legally become the
      * terminal status"). When that happens, the result must never become
      * observable to the caller: settle first, and only publish `*out_result`
-     * if the STICKY outcome is truly OK. */
-    spx_pg_status_v1 final_status = spx_pg_settle(SPX_PG_STATUS_OK);
+     * if the STICKY outcome is truly OK.
+     *
+     * Only ATTEMPT that settle when nothing has been selected yet.
+     * `WasmProvider::call`/`InterpreterProvider::call` check
+     * `state.machine.settlement()`/`machine.settlement()` immediately after
+     * the equivalent release step and return early once it is already
+     * `Some`, never attempting a further settle call at all — so a cleanup
+     * failure there never counts a settlement-overwrite attempt on this,
+     * its own engine's success path. Unconditionally calling
+     * `spx_pg_settle(SPX_PG_STATUS_OK)` here regardless of
+     * `g_spx_pg_settlement_selected` used to incur exactly one such
+     * overwrite attempt whenever a cleanup failure had already selected a
+     * sticky outcome above — a real, confirmed divergence (issue #240
+     * divergence 5) in the diagnostic overwrite COUNTER only: the sticky
+     * status itself was always correct either way, since the `final_status
+     * != SPX_PG_STATUS_OK` branch below already discarded the result on the
+     * old, already-selected status. Reading the sticky status directly
+     * instead of re-proposing `SPX_PG_STATUS_OK` against it removes that
+     * spurious attempt (and the spurious extra `TerminalStatus` trace event
+     * `spx_pg_settle` always records) without changing which status wins. */
+    spx_pg_status_v1 final_status =
+        g_spx_pg_settlement_selected ? g_spx_pg_settlement_status : spx_pg_settle(SPX_PG_STATUS_OK);
     if (final_status != SPX_PG_STATUS_OK) {
         size_t result_slot = spx_pg_registry_find(result, SPX_PG_KIND_RESULT);
         if (result_slot != SPX_PG_REGISTRY_CAPACITY) {

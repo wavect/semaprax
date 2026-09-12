@@ -24,123 +24,156 @@
 //! into [`NativeCaseOutcome`]; nothing here reinterprets or repairs the
 //! printed sequence.
 //!
-//! **Known, real wire-format divergence found while wiring this up, not
-//! papered over**: `spx_pg_result_export_v1`
-//! (`src/public_generic_abi/native/provider_body.c`, the
-//! `spx_pg_write_u64le(out_bytes + offset, result->leaf_count)` call before
-//! the per-leaf loop) prepends an 8-byte little-endian leaf-count field to
-//! the exported result carrier bytes. `InterpreterProvider::result_export`
-//! and `WasmProvider::result_export` (both frame each result leaf directly,
-//! with no leading count) do not. This is a genuine, pre-existing
-//! divergence between the native reference provider (#154) and the
-//! interpreter/Wasm fixture adapters (#155/#162) that nothing before this
-//! module compared closely enough to catch — `native/provider_body.c` is
-//! outside this issue's file lease, so it is not fixed here; filed as a
-//! follow-up. [`strip_native_leaf_count_header`] documents and isolates the
-//! exact normalization this module applies (verify the leading field
-//! really does equal the case's leaf count, then compare the identical
-//! remaining bytes) so the byte-level check below still proves something
-//! real: the reversed-per-leaf payload bytes agree exactly, and the one
-//! known structural difference is verified rather than silently swallowed.
+//! **Issue #240: six confirmed divergences, each given a verdict — fix,
+//! specify, or (for the sixth) specify-as-pre-existing — rather than left
+//! as an unexamined nonclaim.** Issue #162 originally found five
+//! trace-shape/order/counter divergences plus one wire-format divergence by
+//! running this comparison across the FULL corpus, and filed all six as a
+//! follow-up rather than fixing them (the owning files were outside that
+//! issue's lease). Issue #240 is that follow-up: it re-examined each one
+//! against [Public Generic Carrier v1](../../docs/PUBLIC-GENERIC-CARRIER-V1.md)
+//! and its "The normalized trace" section specifically, decided which
+//! engine (if either) was wrong, and either fixed the wrong side or pinned
+//! the difference as a permanently permitted, explicitly asserted one —
+//! never by narrowing what [`compare_case`] checks or silently dropping a
+//! comparison.
 //!
-//! **Five genuine trace-shape/order/counter divergences found by actually
-//! running this comparison across the FULL corpus, none papered over.**
-//! Attempting a literal full-trace equality between native and
-//! interpreter/Wasm (as first written) failed immediately, on the plain
-//! `minimal_success` case, and a first attempt at reconciling it (filtering
-//! both sides down to the trace labels every engine's own source records
-//! exactly once, with no per-leaf/per-root repetition) STILL failed once
-//! the full failure-injection matrix ran — for a fourth, independent
-//! reason, and a fifth turned up in the settlement-overwrite counter once
-//! every case ran, not merely the one that motivated the filter. All five
-//! are confirmed by reading the adapters' source, not merely inferred from
-//! a panic message:
-//!
-//! 1. Interpreter/Wasm's flat-`Bytes` root handle gets its own real (if
-//!    zero-byte) physical allocation slot — see
-//!    `WasmProvider::input_prepare`'s `self.allocator.alloc(&mut self.memory, 0)`
-//!    for the root, and `CarrierCallMachine::fill_and_trace`
+//! 1. **Root handle allocation (FIXED — native was wrong).**
+//!    Interpreter/Wasm's flat-`Bytes` root handle always got its own real
+//!    (if zero-byte) physical allocation slot and a matching
+//!    `LeafAllocationStarted`/`Committed`/`PayloadCopied` triple (input
+//!    side) or `Started`/`Committed` pair (result side) — see
+//!    `CarrierCallMachine::fill_and_trace`
 //!    (`src/public_generic_abi/carrier/machine.rs`), which iterates every
-//!    entry in the handle set — root included — recording a
-//!    `LeafAllocationStarted`/`Committed`/`PayloadCopied` triple (input side)
-//!    or `Started`/`Committed` pair (result side) for EACH one. Native's own
-//!    `spx_pg_fill_leaves` (`src/public_generic_abi/native/provider_body.c`)
-//!    loops only `for (leaf = 0; leaf < leaf_count; ...)` — by its own
-//!    comment, "there is no separate root payload in this flat-Bytes shape;
-//!    the root is the aggregate the leaves belong to" — so native never
-//!    repeats that triple/pair for a root. Interpreter/Wasm's trace is
-//!    therefore always longer than native's by exactly one triple (input
-//!    side) and one pair (result side) whenever a call reaches that phase.
-//! 2. Native releases the input (`spx_pg_release_leaves`, recording
-//!    `LeafRelease`/`CarrierRelease`) BEFORE recording
-//!    `SPX_PG_TRACE_EXECUTION_FINISHED` (`spx_pg_call_v1`, provider_body.c);
-//!    `WasmProvider::call` calls `state.machine.finish_execution()`
-//!    (recording `ExecutionFinished`) BEFORE
-//!    `state.machine.release_input_after_transfer()`. This is a real
-//!    ordering difference in the normalized trace, not a formatting
-//!    artifact.
-//! 3. Native's `spx_pg_settle` unconditionally records
-//!    `SPX_PG_TRACE_TERMINAL_STATUS`, even for the earliest bound
-//!    rejections (`spx_pg_preflight_carrier` failing before
-//!    `SPX_PG_TRACE_FRAME_VALIDATED` is ever recorded). Interpreter/Wasm's
-//!    own earliest bound checks in `input_prepare`
-//!    (`leaves.len() > MAX_OWNED_LEAVES_PER_INSTANCE`,
+//!    entry in the handle set, root included. Native's own
+//!    `spx_pg_fill_leaves` and its inline result-leaf-allocation loop
+//!    (`src/public_generic_abi/native/provider_body.c`) never repeated that
+//!    triple/pair for the root, in direct violation of the carrier spec's
+//!    "Allocation/copy events ... are per-handle, one triple per root or
+//!    leaf." Fixed: `spx_pg_fill_leaves` now records the root's
+//!    unconditional, un-injectable triple before its per-leaf loop, the
+//!    inline result-leaf loop records the matching pair before ITS loop,
+//!    and `spx_pg_release_leaves` now records the root's own `LeafRelease`
+//!    last (mirroring `CarrierCallMachine::release_set`'s reversed
+//!    root-then-leaves iteration) before the one `CarrierRelease` — the
+//!    release-side half of the identical root-handling gap, found while
+//!    fixing this and completed here rather than left half-fixed.
+//! 2. **Input release vs. `ExecutionFinished` order (FIXED — native was
+//!    wrong).** `WasmProvider::call`/`InterpreterProvider::call` call
+//!    `machine.finish_execution()` (recording `ExecutionFinished`) BEFORE
+//!    `release_input_after_transfer()`, capturing (not yet acting on) the
+//!    `ExecutionFinished` injection flag first and applying it only after
+//!    the release completes. Native's `spx_pg_call_v1` used to release the
+//!    input (`spx_pg_release_leaves`) BEFORE recording
+//!    `SPX_PG_TRACE_EXECUTION_FINISHED` — a real ordering divergence in the
+//!    normalized trace's own "record then act" convention, not a
+//!    formatting artifact. Fixed: `spx_pg_call_v1` now records
+//!    `ExecutionFinished` and captures its injection flag immediately after
+//!    the endpoint call, then releases the input unconditionally, then acts
+//!    on the captured flag — the identical order and the identical
+//!    release-runs-regardless-of-injection discipline interpreter/Wasm use.
+//! 3. **`TerminalStatus` on bound rejection (SPECIFIED — a permanently
+//!    permitted difference).** Interpreter/Wasm's own earliest bound checks
+//!    in `input_prepare` (`leaves.len() > MAX_OWNED_LEAVES_PER_INSTANCE`,
 //!    `leaf.len() > MAX_BYTES_PER_LEAF`) return before a
 //!    `CarrierCallMachine` is ever constructed, so nothing calls `settle`
-//!    and their trace is empty. This corpus's own
-//!    `first_over_max_bytes_per_leaf`/`first_over_max_leaf_count` cases hit
-//!    exactly this: native's trace is `[TerminalStatus]`, interpreter/Wasm's
-//!    is `[]`.
-//! 4. Deterministic failure injection fires at a DIFFERENT point relative
-//!    to the target event on interpreter/Wasm than on native, for at least
-//!    one ordinal: `InterpreterProvider::input_prepare` checks
+//!    and their trace is empty; native's `spx_pg_settle` — the only
+//!    status-selection mechanism `provider_body.c` has — unconditionally
+//!    records `TerminalStatus`, even here, before `FrameValidated` is ever
+//!    recorded. Both converge on the identical accept/reject and
+//!    normalized status. Not fixed: nothing in the carrier spec requires
+//!    the trace mechanism to exist before a `CarrierCallMachine` does, and
+//!    giving native a parallel "reject without a trace" path purely to
+//!    suppress one `TerminalStatus` event would add a second status-
+//!    selection mechanism to a file whose whole discipline is exactly one.
+//!    [`compare_case`] pins the exact permitted shape instead of merely
+//!    skipping the comparison: interpreter/Wasm's trace is `[]`, native's
+//!    is exactly `[TerminalStatus]`, on both
+//!    `first_over_max_bytes_per_leaf` and `first_over_max_leaf_count`.
+//! 4. **`InputValuePrepared` injection ordinal (SPECIFIED — a permanently
+//!    permitted difference).** `InterpreterProvider::input_prepare` checks
 //!    `self.take_injection_if(TraceLabel::InputValuePrepared)` and, if
 //!    armed, settles and returns BEFORE ever calling
 //!    `machine.prepare_input()` — the call that actually records
 //!    `InputValuePrepared` — so the label never appears in the trace at
-//!    all. Native's `spx_pg_input_prepare_v1` calls
-//!    `spx_pg_trace_record(SPX_PG_TRACE_INPUT_VALUE_PREPARED)` FIRST, and
-//!    only then checks `spx_pg_should_inject(...)` — so the label DOES
-//!    appear. This corpus's own `failure_injection_InputValuePrepared` case
-//!    hits exactly this: interpreter/Wasm's trace is `[FrameValidated,
-//!    TerminalStatus]`, native's is `[FrameValidated, InputValuePrepared,
-//!    TerminalStatus]`. Both converge on the identical `accepted`/`status`
-//!    outcome (`AllocationFailure`) — only the trace differs.
-//! 5. Native's `spx_pg_call_v1` keeps executing toward its own final
-//!    `spx_pg_settle(SPX_PG_STATUS_OK)` call after a cleanup failure during
-//!    input release (`spx_pg_release_leaves`) already selected a sticky
-//!    outcome — that final settle proposes a DIFFERENT status than the one
-//!    already selected, so it counts as a settlement-overwrite attempt.
+//!    all; native's `spx_pg_input_prepare_v1` records
+//!    `SPX_PG_TRACE_INPUT_VALUE_PREPARED` FIRST and only then checks
+//!    `spx_pg_should_inject(...)`, so the label DOES appear. Both converge
+//!    on the identical `accepted`/`status` outcome (`AllocationFailure`) on
+//!    `failure_injection_InputValuePrepared` — only the trace differs. Not
+//!    fixed: this is one instance of a broader, deliberate architectural
+//!    difference between the two engines' failure-injection timing for
+//!    preparation-phase ordinals (interpreter/Wasm gate their own physical
+//!    allocation loop behind injection checks and defer ALL logical
+//!    recording to a single later call; native records incrementally as it
+//!    goes), not a narrow one-line bug — reconciling it would mean
+//!    reworking one engine's injection architecture to match the other's,
+//!    which is a materially larger change than this issue's six confirmed
+//!    cases call for. [`compare_case`] pins the exact permitted difference:
+//!    native's trace contains `InputValuePrepared`; interpreter/Wasm's does
+//!    not.
+//! 5. **Post-cleanup-failure settle attempt (FIXED — native was wrong).**
 //!    `WasmProvider::call`/`InterpreterProvider::call` check
 //!    `state.machine.settlement()`/`machine.settlement()` immediately after
-//!    the equivalent release step and return early when it is already
-//!    `Some`, never attempting a further settle. This corpus's own
-//!    `failure_injection_LeafRelease` case hits exactly this: native
-//!    reports one settlement-overwrite attempt, interpreter/Wasm report
-//!    zero. The STICKY STATUS itself (`ContractFailure`) is unaffected on
-//!    both sides — the sticky rule discards the later proposal either
-//!    way — only the overwrite-attempt counter, a diagnostic signal, not
-//!    the settlement result, differs.
+//!    the non-result input release and return early once it is already
+//!    `Some`, never attempting a further settle call. Native's
+//!    `spx_pg_call_v1` used to keep executing toward its own final,
+//!    unconditional `spx_pg_settle(SPX_PG_STATUS_OK)` call even after a
+//!    cleanup failure during that same release had already selected a
+//!    sticky outcome — proposing a DIFFERENT status against an
+//!    already-sticky one counts as a settlement-overwrite attempt, so
+//!    native reported one on `failure_injection_LeafRelease` where
+//!    interpreter/Wasm reported zero. The STICKY STATUS itself was always
+//!    correct either way (the sticky rule discards the later proposal, and
+//!    `spx_pg_call_v1` already only publishes `*out_result` when the
+//!    sticky outcome is truly OK) — only the diagnostic overwrite counter
+//!    differed. Fixed: that final settle now reads the already-sticky
+//!    status directly instead of re-proposing `SPX_PG_STATUS_OK` against
+//!    it, whenever one is already selected — the same "don't attempt a
+//!    settle you already know is redundant" discipline interpreter/Wasm
+//!    apply.
+//! 6. **Result export wire format (SPECIFIED — a permanently permitted,
+//!    pre-existing difference; scope note in the issue explicitly warns
+//!    against "fixing" this without checking who depends on the current
+//!    bytes).** `spx_pg_result_export_v1` (the
+//!    `spx_pg_write_u64le(out_bytes + offset, result->leaf_count)` call
+//!    before its per-leaf loop) prepends an 8-byte little-endian leaf-count
+//!    field to the exported result carrier bytes that
+//!    `InterpreterProvider::result_export`/`WasmProvider::result_export`
+//!    (both frame each result leaf directly, no leading count) do not. Not
+//!    fixed, per the issue's own scope note; [`strip_native_leaf_count_header`]
+//!    pins the exact permitted difference instead of silently accepting it:
+//!    it verifies the leading field really does equal the case's leaf
+//!    count, THEN strips it, so the remaining byte-level check still proves
+//!    the reversed-per-leaf payload bytes agree exactly.
 //!
-//! All five are real adapter-implementation choices in files outside this
-//! issue's lease (`carrier/machine.rs`, `interpreter.rs`, `wasm/provider.rs`
-//! and `native/provider_body.c`) — not fixed here, filed as a follow-up rather
-//! than silently normalized away. Given this, [`compare_case`] does NOT
-//! claim one blanket "all four traces are identical," nor any reconciling
-//! filter across the native/interpreter-Wasm boundary (a first draft tried
-//! exactly that — a "singleton milestone" filter — and divergence 4 broke
-//! it too, on a case the initial single-case check never exercised: proof
-//! that a filter narrow enough to pass on one case is not evidence it holds
-//! in general). It compares the FULL trace exactly only where two engines
-//! genuinely share one physical shape: interpreter vs. Wasm, and native-O0
-//! vs. native-O2 (this module's "native optimization equivalence" proof for
-//! trace shape, not only for status/result bytes —
-//! `compare_case_rejects_a_native_o0_o2_full_trace_mismatch` proves it is a
-//! real, failable check). Across the native/interpreter-Wasm family
-//! boundary it compares every field this document does NOT record as
-//! diverging instead: accept/reject, normalized status, the
-//! sticky-settlement overwrite delta, live resource counts, and
-//! (normalized) result bytes.
+//! Divergences 1, 2, and 5 are real adapter-implementation choices that
+//! WERE genuinely wrong on native's side against the carrier spec's own
+//! text, and are fixed in `native/provider_body.c` (this issue's lease
+//! grants that file, unlike issue #162's). Divergences 3, 4, and 6 are
+//! specified: permanently permitted, and pinned by an explicit assertion
+//! (with its own negative control) rather than a comparison [`compare_case`]
+//! silently skips. Given this, [`compare_case`] still does NOT claim one
+//! blanket "all four traces are identical," nor any reconciling filter
+//! across the native/interpreter-Wasm boundary (a first draft of issue
+//! #162's own investigation tried exactly that — a "singleton milestone"
+//! filter — and divergence 4 broke it too, on a case the initial
+//! single-case check never exercised: proof that a filter narrow enough to
+//! pass on one case is not evidence it holds in general). It compares the
+//! FULL trace exactly only where two engines genuinely share one physical
+//! shape: interpreter vs. Wasm, and native-O0 vs. native-O2 (this module's
+//! "native optimization equivalence" proof for trace shape, not only for
+//! status/result bytes — `compare_case_rejects_a_native_o0_o2_full_trace_mismatch`
+//! proves it is a real, failable check). It additionally compares, across
+//! ALL FOUR engines: accept/reject, normalized status, the sticky-
+//! settlement overwrite count (now equal across all four post-fix, not
+//! merely within family), live resource counts, (normalized) result bytes,
+//! and — for every case with no failure injected that the independently
+//! pinned expectation accepts — native's own trace up to and including its
+//! `TerminalStatus`, truncated there because native's trace buffer is
+//! global/cumulative across this harness's own separate post-comparison
+//! `result_release` call in a way interpreter/Wasm's per-call trace is not
+//! (a harness artifact, not an engine divergence).
 //!
 //! **Other nonclaims.** Native's normalized trace (`spx_pg_test_trace_label_v1`)
 //! records only the label ordinal per event, not a leaf index
@@ -431,6 +464,32 @@ fn strip_native_leaf_count_header(native_result_bytes: &[u8], expected_leaf_coun
         "native result's leading leaf-count field does not match this case's actual leaf count"
     );
     native_result_bytes[8..].to_vec()
+}
+
+/// The portion of a native outcome's trace that corresponds to ONE call,
+/// for comparison against interpreter/Wasm's own per-call
+/// `test_last_trace()`. Native's trace buffer is global and cumulative
+/// across the whole probe process, not reset per call, so a case's own
+/// `spx_pg_result_release_v1` (this harness's own post-comparison cleanup,
+/// mirroring `provider.result_release(result_handle)` on the interpreter/
+/// Wasm side) appends its own `LeafRelease`/`CarrierRelease` events AFTER
+/// the call's own terminal event — a harness artifact, not an engine
+/// divergence. Truncating at (and including) the first `TerminalStatus`
+/// isolates the call itself. Panics if the outcome never recorded one,
+/// which every ACCEPTED case must.
+fn native_trace_through_terminal_status(native: &EngineOutcome) -> &[u32] {
+    let terminal = TraceLabel::TerminalStatus as u32;
+    let index = native
+        .trace
+        .iter()
+        .position(|&label| label == terminal)
+        .unwrap_or_else(|| {
+            panic!(
+                "{} never recorded TerminalStatus in its trace: {:?}",
+                native.engine_id, native.trace
+            )
+        });
+    &native.trace[..=index]
 }
 
 /// One engine's observed outcome for one case, shaped so
@@ -957,31 +1016,144 @@ fn compare_case(
     // Interpreter and Wasm share the identical physical trace shape
     // (including the zero-byte root slot's own event triple/pair) and
     // control flow (both short-circuit on an already-sticky settlement),
-    // so their FULL trace and overwrite count must agree exactly.
+    // so their FULL trace must agree exactly.
     assert_eq!(
         interpreter.trace, wasm.trace,
         "case {:?}: full normalized trace disagrees between interpreter and core-wasm",
         case.case_id
     );
-    assert_eq!(
-        interpreter.settlement_overwrite_attempts, wasm.settlement_overwrite_attempts,
-        "case {:?}: sticky-settlement overwrite-attempt count disagrees between interpreter and core-wasm",
-        case.case_id
-    );
     // Native-O0 and native-O2 are the identical C source at two
-    // optimization levels: their full trace and overwrite count must
-    // agree exactly, which is this module's "native optimization
-    // equivalence" proof for both, not only for status/result bytes.
+    // optimization levels: their full trace must agree exactly, which is
+    // this module's "native optimization equivalence" proof for trace
+    // shape, not only for status/result bytes.
     assert_eq!(
         native_o0.trace, native_o2.trace,
         "case {:?}: full normalized trace disagrees between {} and {}",
         case.case_id, native_o0.engine_id, native_o2.engine_id
     );
-    assert_eq!(
-        native_o0.settlement_overwrite_attempts, native_o2.settlement_overwrite_attempts,
-        "case {:?}: sticky-settlement overwrite-attempt count disagrees between {} and {}",
-        case.case_id, native_o0.engine_id, native_o2.engine_id
-    );
+    // Issue #240 divergence 5 (fixed): native used to keep attempting its
+    // own final `spx_pg_settle(SPX_PG_STATUS_OK)` even after a cleanup
+    // failure during input release had already selected a sticky outcome,
+    // incurring one settlement-overwrite attempt interpreter/Wasm's early
+    // return (once `machine.settlement()`/`state.machine.settlement()` is
+    // already `Some`) never did. `provider_body.c`'s `spx_pg_call_v1` now
+    // reads the already-sticky status directly instead of re-proposing
+    // `SPX_PG_STATUS_OK` against it, so the overwrite-attempt count is
+    // compared across ALL FOUR engines, not only within each family.
+    for engine in engines {
+        assert_eq!(
+            engine.settlement_overwrite_attempts, interpreter.settlement_overwrite_attempts,
+            "case {:?}: sticky-settlement overwrite-attempt count disagrees between {} and \
+             interpreter (issue #240 divergence 5)",
+            case.case_id, engine.engine_id
+        );
+    }
+    // Issue #240 divergences 1 and 2 (fixed): native's flat-`Bytes` root
+    // handle now gets the identical LeafAllocationStarted/Committed/
+    // PayloadCopied triple (input side) and ResultLeafAllocationStarted/
+    // Committed pair (result side) that interpreter/Wasm's shared
+    // `CarrierCallMachine::fill_and_trace` always recorded for it, and
+    // `ExecutionFinished` is now recorded before the non-result input
+    // release, not after, matching `WasmProvider::call`/
+    // `InterpreterProvider::call`'s placement exactly. For the base
+    // success shapes (no failure injected), native's normalized trace up
+    // to and including its own `TerminalStatus` is therefore now
+    // byte-identical to interpreter/Wasm's full trace — checked here for
+    // every such case, not merely the one that first motivated the fix.
+    // (Native's trace can carry MORE events after that point: this
+    // harness's own separate `spx_pg_result_release_v1`/`result_release`
+    // call releases the published result after the comparison above
+    // already captured it, and only native's trace buffer is global/
+    // cumulative across that later call — a test-harness artifact, not an
+    // engine divergence, so it is excluded by truncating at the first
+    // `TerminalStatus` rather than compared.)
+    if case.expected_accepted && case.failure_injection.is_none() {
+        for native in [native_o0, native_o2] {
+            let native_call_trace = native_trace_through_terminal_status(native);
+            assert_eq!(
+                native_call_trace,
+                interpreter.trace.as_slice(),
+                "case {:?}: {}'s normalized trace through TerminalStatus does not match \
+                 interpreter/core-wasm's full trace (issue #240 divergences 1 and 2)",
+                case.case_id, native.engine_id
+            );
+        }
+    }
+    // Issue #240 divergence 3 (specified: a permanently permitted
+    // difference, not fixed). Interpreter/Wasm's own earliest bound checks
+    // (`leaves.len() > MAX_OWNED_LEAVES_PER_INSTANCE`,
+    // `leaf.len() > MAX_BYTES_PER_LEAF`) reject before a
+    // `CarrierCallMachine` is ever constructed, so nothing calls `settle`
+    // and their trace is empty. Native's `spx_pg_preflight_carrier`
+    // performs the identical bound check, but native's own `spx_pg_settle`
+    // (the only status-selection mechanism this file has) unconditionally
+    // records `TerminalStatus`, even here, before `FrameValidated` is ever
+    // recorded. The accept/reject outcome and normalized status already
+    // agree across all four engines (checked above); this block pins the
+    // one permitted difference exactly, rather than merely not comparing
+    // it, per docs/PUBLIC-GENERIC-CARRIER-V1.md's "Nonclaims (reference
+    // interpreter adapter and cross-engine corpus)".
+    if case.case_id == "first_over_max_bytes_per_leaf" || case.case_id == "first_over_max_leaf_count"
+    {
+        assert_eq!(
+            interpreter.trace,
+            Vec::<u32>::new(),
+            "case {:?}: interpreter's trace is no longer empty on this bound rejection; issue \
+             #240 divergence 3's permitted difference no longer holds as specified",
+            case.case_id
+        );
+        assert_eq!(
+            wasm.trace,
+            Vec::<u32>::new(),
+            "case {:?}: core-wasm's trace is no longer empty on this bound rejection; issue #240 \
+             divergence 3's permitted difference no longer holds as specified",
+            case.case_id
+        );
+        for native in [native_o0, native_o2] {
+            assert_eq!(
+                native.trace,
+                vec![TraceLabel::TerminalStatus as u32],
+                "case {:?}: {}'s trace on this bound rejection is no longer exactly \
+                 [TerminalStatus]; issue #240 divergence 3's permitted difference no longer \
+                 holds as specified",
+                case.case_id, native.engine_id
+            );
+        }
+    }
+    // Issue #240 divergence 4 (specified: a permanently permitted
+    // difference, not fixed). `InterpreterProvider::input_prepare` checks
+    // `self.take_injection_if(TraceLabel::InputValuePrepared)` and, if
+    // armed, settles and returns BEFORE ever calling
+    // `machine.prepare_input()` — the call that actually records
+    // `InputValuePrepared` — so the label never appears in the trace at
+    // all. Native's `spx_pg_input_prepare_v1` records
+    // `SPX_PG_TRACE_INPUT_VALUE_PREPARED` first and only then checks
+    // `spx_pg_should_inject(...)`, so the label DOES appear. Both converge
+    // on the identical accepted/status outcome (checked above); this block
+    // pins the one permitted trace difference exactly.
+    if case.case_id == "failure_injection_InputValuePrepared" {
+        let input_value_prepared = TraceLabel::InputValuePrepared as u32;
+        assert!(
+            !interpreter.trace.contains(&input_value_prepared),
+            "case {:?}: interpreter's trace now contains InputValuePrepared; issue #240 \
+             divergence 4's permitted difference no longer holds as specified",
+            case.case_id
+        );
+        assert!(
+            !wasm.trace.contains(&input_value_prepared),
+            "case {:?}: core-wasm's trace now contains InputValuePrepared; issue #240 \
+             divergence 4's permitted difference no longer holds as specified",
+            case.case_id
+        );
+        for native in [native_o0, native_o2] {
+            assert!(
+                native.trace.contains(&input_value_prepared),
+                "case {:?}: {}'s trace no longer contains InputValuePrepared; issue #240 \
+                 divergence 4's permitted difference no longer holds as specified",
+                case.case_id, native.engine_id
+            );
+        }
+    }
     // Interpreter and Wasm already agree byte-for-byte on the raw result
     // (both frame each leaf directly, no leading count).
     assert_eq!(
@@ -1144,4 +1316,118 @@ fn native_settlement_overwrite_delta_is_zero_for_a_case_with_no_cleanup_injectio
         .unwrap();
     assert_eq!(o0[index].outcome.settlement_overwrite_attempts, 0);
     assert_eq!(o2[index].outcome.settlement_overwrite_attempts, 0);
+}
+
+// ---------------------------------------------------------------------
+// Issue #240: negative controls for the four assertions tightened above,
+// each proving its check is real and failable, not merely passing because
+// nothing exercises it (the same pattern the three controls above already
+// established for the pre-existing checks).
+// ---------------------------------------------------------------------
+
+/// Divergence 5 (fixed): proves the new 4-way settlement-overwrite-attempt
+/// comparison actually fires. Before the fix, this exact perturbation is
+/// what native's own unconditional final `spx_pg_settle(SPX_PG_STATUS_OK)`
+/// produced for real on `failure_injection_LeafRelease`.
+#[test]
+#[should_panic(
+    expected = "sticky-settlement overwrite-attempt count disagrees between native-c11-O0 and \
+                interpreter (issue #240 divergence 5)"
+)]
+fn compare_case_rejects_a_native_settlement_overwrite_count_disagreement() {
+    let (cases, o0, o2) = corpus_and_native_outcomes();
+    let case = &cases[0];
+    let interpreter = run_interpreter_case(case);
+    let wasm = run_wasm_case(case);
+    let mut corrupted_o0 = o0[0].outcome.clone();
+    corrupted_o0.settlement_overwrite_attempts = 1;
+    compare_case(case, &interpreter, &wasm, &corrupted_o0, &o2[0].outcome);
+}
+
+/// Divergences 1 and 2 (fixed): proves the new truncated-trace comparison
+/// on an accepted, non-injected case actually fires. Removes the root's own
+/// `LeafAllocationStarted`/`Committed`/`PayloadCopied` triple (indices 1..4,
+/// right after `FrameValidated` at index 0) from both native optimization
+/// levels' traces — reproducing exactly what native's pre-fix "rootless leaf
+/// loop" produced for real — and confirms `compare_case` rejects it, rather
+/// than silently comparing only the pre-existing fields.
+#[test]
+#[should_panic(
+    expected = "normalized trace through TerminalStatus does not match interpreter/core-wasm's \
+                full trace (issue #240 divergences 1 and 2)"
+)]
+fn compare_case_rejects_a_native_trace_missing_the_root_allocation_triple() {
+    let (cases, o0, o2) = corpus_and_native_outcomes();
+    let case = &cases[0];
+    let interpreter = run_interpreter_case(case);
+    let wasm = run_wasm_case(case);
+    let mut corrupted_o0 = o0[0].outcome.clone();
+    let mut corrupted_o2 = o2[0].outcome.clone();
+    assert!(
+        corrupted_o0.trace.len() > 4 && corrupted_o2.trace.len() > 4,
+        "the minimal-success case must have a long enough native trace to corrupt"
+    );
+    corrupted_o0.trace.drain(1..4);
+    corrupted_o2.trace.drain(1..4);
+    compare_case(case, &interpreter, &wasm, &corrupted_o0, &corrupted_o2);
+}
+
+/// Divergence 3 (specified): proves the pinned "empty on interpreter/Wasm,
+/// exactly `[TerminalStatus]` on native" assertion for the earliest bound
+/// rejection actually fires, rather than the corpus merely never comparing
+/// it. Both interpreter's and core-wasm's traces are perturbed identically
+/// (so the earlier interpreter-vs-wasm full-trace check still passes) to a
+/// non-empty trace, which the divergence-3 block must still reject.
+#[test]
+#[should_panic(
+    expected = "interpreter's trace is no longer empty on this bound rejection; issue #240 \
+                divergence 3's permitted difference no longer holds as specified"
+)]
+fn compare_case_rejects_a_bound_rejection_trace_that_is_no_longer_empty() {
+    let (cases, o0, o2) = corpus_and_native_outcomes();
+    let index = cases
+        .iter()
+        .position(|case| case.case_id == "first_over_max_bytes_per_leaf")
+        .unwrap();
+    let case = &cases[index];
+    let mut interpreter = run_interpreter_case(case);
+    let mut wasm = run_wasm_case(case);
+    interpreter.trace.push(TraceLabel::FrameValidated as u32);
+    wasm.trace.push(TraceLabel::FrameValidated as u32);
+    compare_case(
+        case,
+        &interpreter,
+        &wasm,
+        &o0[index].outcome,
+        &o2[index].outcome,
+    );
+}
+
+/// Divergence 4 (specified): proves the pinned "native's trace contains
+/// `InputValuePrepared`, interpreter/Wasm's does not" assertion actually
+/// fires. Simulates native no longer diverging (as if its own
+/// record-then-check ordering for this one ordinal were fixed to match
+/// interpreter/Wasm) by stripping the label from both native optimization
+/// levels' traces identically, and confirms the specified permitted
+/// difference is then correctly reported as no longer holding.
+#[test]
+#[should_panic(
+    expected = "native-c11-O0's trace no longer contains InputValuePrepared; issue #240 \
+                divergence 4's permitted difference no longer holds as specified"
+)]
+fn compare_case_rejects_a_native_trace_that_no_longer_contains_input_value_prepared() {
+    let (cases, o0, o2) = corpus_and_native_outcomes();
+    let index = cases
+        .iter()
+        .position(|case| case.case_id == "failure_injection_InputValuePrepared")
+        .unwrap();
+    let case = &cases[index];
+    let interpreter = run_interpreter_case(case);
+    let wasm = run_wasm_case(case);
+    let input_value_prepared = TraceLabel::InputValuePrepared as u32;
+    let mut corrupted_o0 = o0[index].outcome.clone();
+    let mut corrupted_o2 = o2[index].outcome.clone();
+    corrupted_o0.trace.retain(|&label| label != input_value_prepared);
+    corrupted_o2.trace.retain(|&label| label != input_value_prepared);
+    compare_case(case, &interpreter, &wasm, &corrupted_o0, &corrupted_o2);
 }

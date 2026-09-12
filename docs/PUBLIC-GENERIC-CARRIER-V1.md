@@ -1003,40 +1003,99 @@ in-process AND against native C11 compiled and executed out-of-process at
 both `-O0` and `-O2`, comparing all four engines per case against one
 independently pinned expectation. Running that comparison against the FULL
 corpus — not only the single case that first motivated it — found five
-genuine, confirmed divergences between native and the Rust-based adapters,
-none papered over: (1) interpreter/Wasm's flat-`Bytes` root handle gets its
-own zero-byte physical allocation and a matching trace event pair/triple
-that native's rootless flat-leaf loop never repeats; (2) native releases
-input before recording `ExecutionFinished`, interpreter/Wasm after; (3)
-native's `spx_pg_settle` always records a `TerminalStatus` event, even for
-the earliest bound rejections that interpreter/Wasm reject before
-constructing a `CarrierCallMachine` at all (empty trace on that side); (4)
-at least one failure-injection ordinal (`InputValuePrepared`) fires before
-the target event is recorded on interpreter/Wasm but after it on native, so
-the event is present on one side's trace and absent on the other's; (5)
-native continues past a cleanup failure during input release toward its
-own final settle attempt, incurring one settlement-overwrite count that
-interpreter/Wasm's early return (once `machine.settlement()` is already
-`Some`) never does — the STICKY STATUS itself is unaffected on both sides,
-only the diagnostic overwrite counter differs. All five are cited by exact
-file and function in that test module's own header doc, are adapter
-implementation choices in files this issue does not own, and are filed as a
-follow-up rather than fixed here. Given this, the four-engine comparison
-does not claim full trace-shape/overwrite-count equality across the
-native/Rust-adapter boundary; it compares the full trace and full
-overwrite count exactly only within each family (interpreter vs. Wasm;
-native-`O0` vs. native-`O2` — the latter is real "native optimization
-equivalence" evidence for trace shape and settlement accounting, not only
-for status and result bytes), and compares accept/reject, normalized
-status, live resource counts, and (leading-count-normalized, see below)
-result bytes across all four.
+genuine trace-shape/order/counter divergences between native and the
+Rust-based adapters plus one wire-format divergence, none papered over;
+issue #162 filed all six as a follow-up rather than fixing them, since the
+owning files were outside that issue's lease. Issue #240 is that follow-up:
+it gave each of the six a verdict — **fix** (one engine was genuinely wrong
+against this document's own text), **specify** (a permanently permitted
+difference, now pinned by an explicit, negative-control-backed assertion
+rather than merely unchecked), or, for the wire format, **specify as
+pre-existing** (per that issue's own scope note against fixing it without
+checking who depends on the current bytes) — and landed the fixes and the
+pinned assertions in the owning files this issue's lease grants
+(`src/public_generic_abi/carrier/machine.rs`, `interpreter.rs`,
+`wasm/provider.rs`, and `native/provider_body.c`; the wire format itself is
+unchanged, per that scope note).
 
-`spx_pg_result_export_v1` (native) also prepends an 8-byte little-endian
-leaf count ahead of the per-leaf frames that
-`InterpreterProvider`/`WasmProvider::result_export` do not — a sixth,
-pre-existing wire-format divergence in the native reference provider,
-likewise outside this issue's lease, normalized (verified, then stripped)
-rather than silently accepted by the cross-engine result-bytes comparison.
+**Fixed (native was wrong):**
+
+1. Interpreter/Wasm's flat-`Bytes` root handle always got its own zero-byte
+   physical allocation and a matching trace event triple/pair (input and
+   result side respectively); native's rootless flat-leaf loop never
+   repeated it, violating "Allocation/copy events ... are per-handle, one
+   triple per root or leaf" above. `spx_pg_fill_leaves`, the inline result-
+   leaf-allocation loop, and `spx_pg_release_leaves` (`provider_body.c`) now
+   record the root's own triple/pair/release event, unconditionally and
+   un-injectably, exactly where `CarrierCallMachine::fill_and_trace`/
+   `release_set` do for interpreter/Wasm.
+2. Native released input (`spx_pg_release_leaves`, recording
+   `LeafRelease`/`CarrierRelease`) BEFORE recording
+   `SPX_PG_TRACE_EXECUTION_FINISHED`; `WasmProvider::call`/
+   `InterpreterProvider::call` record `ExecutionFinished` first. Native's
+   `spx_pg_call_v1` now records `ExecutionFinished` (and captures, without
+   yet acting on, its injection flag) immediately after the endpoint call,
+   then releases input unconditionally, then acts on the captured flag —
+   the identical order and discipline.
+3. Native's `spx_pg_call_v1` kept executing toward its own final,
+   unconditional `spx_pg_settle(SPX_PG_STATUS_OK)` call after a cleanup
+   failure during input release had already selected a sticky outcome,
+   incurring one settlement-overwrite count that interpreter/Wasm's early
+   return (once `machine.settlement()` is already `Some`) never did — the
+   STICKY STATUS itself was unaffected either way, only the diagnostic
+   counter. That final settle now reads the already-sticky status directly
+   instead of re-proposing `SPX_PG_STATUS_OK` against it.
+
+**Specified (permanently permitted, pinned by an explicit assertion):**
+
+4. Native's `spx_pg_settle` always records a `TerminalStatus` event, even
+   for the earliest bound rejections that interpreter/Wasm reject before
+   constructing a `CarrierCallMachine` at all (empty trace on that side).
+   Not fixed: nothing here requires the trace mechanism to exist before a
+   `CarrierCallMachine` does, and native has exactly one status-selection
+   mechanism by design. `compare_case` pins the exact permitted shape:
+   interpreter/Wasm's trace is `[]`, native's is exactly `[TerminalStatus]`.
+5. At least one failure-injection ordinal (`InputValuePrepared`) fires
+   before the target event is recorded on interpreter/Wasm but after it on
+   native, so the event is present on native's trace and absent from
+   interpreter/Wasm's. Not fixed: this is one instance of a broader,
+   deliberate architectural difference in failure-injection timing for
+   preparation-phase ordinals between the two engine families (interpreter/
+   Wasm gate physical allocation behind injection checks and defer ALL
+   logical recording to one later call; native records incrementally),
+   materially larger to reconcile than this issue's six confirmed cases
+   call for. `compare_case` pins the exact permitted difference instead of
+   skipping the comparison.
+6. `spx_pg_result_export_v1` (native) prepends an 8-byte little-endian leaf
+   count ahead of the per-leaf frames that
+   `InterpreterProvider`/`WasmProvider::result_export` do not — a
+   pre-existing wire-format divergence in the native reference provider.
+   Not fixed, per issue #240's own scope note against changing it without
+   checking who depends on the current bytes; normalized (verified, then
+   stripped) rather than silently accepted by the cross-engine
+   result-bytes comparison.
+
+All six are cited by exact file and function in `settlement_corpus.rs`'s
+own header doc. Four new negative controls (one per tightened or newly
+pinned assertion: the settlement-overwrite count, the truncated
+success-case trace comparison, and the two "specify" pins) join the three
+pre-existing ones there, each proving its check is real and failable.
+Given this, the
+four-engine comparison still does not claim one blanket full
+trace-shape/overwrite-count equality across the native/Rust-adapter
+boundary for every case; it compares the full trace exactly within each
+family (interpreter vs. Wasm; native-`O0` vs. native-`O2` — the latter is
+real "native optimization equivalence" evidence for trace shape, not only
+for status and result bytes), and additionally, across all four engines:
+accept/reject, normalized status, live resource counts, the settlement-
+overwrite count (now equal across all four post-fix, not merely within
+family), (leading-count-normalized, see below) result bytes, and — for
+every case with no failure injected that the pinned expectation accepts —
+native's own trace up to and including its `TerminalStatus` against
+interpreter/Wasm's full trace (truncated there because native's trace
+buffer is global/cumulative across this harness's own separate
+post-comparison result release in a way interpreter/Wasm's per-call trace
+is not — a harness artifact, not an engine divergence).
 
 Generated Rust/TypeScript/C/C++ consumer execution against this corpus's
 shape and independent evidence-replay tooling remain
@@ -1245,7 +1304,8 @@ compiles and executes it out-of-process at `-O0`/`-O2` against the
 identical corpus, comparing all four engines — see [Nonclaims (reference
 interpreter adapter and cross-engine
 corpus)](#nonclaims-reference-interpreter-adapter-and-cross-engine-corpus)
-for the five genuine divergences that comparison found. #156-#159's
+for the six confirmed divergences that comparison found and issue #240's
+per-divergence fix/specify verdicts. #156-#159's
 generated consumers executing against this same corpus shape and
 independent evidence-replay tooling remain outstanding.
 It reuses no v8-v11 carrier bytes and widens none of them. The

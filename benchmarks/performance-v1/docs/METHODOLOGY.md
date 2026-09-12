@@ -28,7 +28,7 @@ hosted, release, or cross-platform claims.
 
 ## Microbenchmarks (`cargo bench`)
 
-- Harness: `criterion 0.5` with `sample_size=100`, `warm_up_time=3s`,
+- Harness: `criterion 0.8.2` with `sample_size=100`, `warm_up_time=3s`,
   `measurement_time=5s`.
 - Throughput is reported as `bytes/s` where the input is source bytes, or as
   evaluator steps/elements where the subject is execution; latency is `ns/op`.

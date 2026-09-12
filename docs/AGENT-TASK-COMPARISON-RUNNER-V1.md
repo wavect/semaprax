@@ -257,10 +257,31 @@ paired `report` (which requires the full 3-task x 2-lane x 3-trial matrix),
 and it makes no model observation, superiority claim, or the Zero-lane
 comparison — those remain exactly as unavailable/unclaimed as the existing
 contract already states. Producing the real 18-trial paired pilot with a
-live coding agent is issue #105 and needs an approved model budget; the
-`--runner live --dry-run` path above is this repository's prepared,
-documented invocation for that work, executable with no code changes once
-credentials and a budget are supplied.
+live coding agent is issue #105. The `--runner live --dry-run` path above
+prepares a plan; it does not establish an implemented live observation path.
+
+## Explicit OpenCode tuple transport
+
+`scripts/opencode-agent-task-pilot.py` adds a separate, opt-in macOS transport
+for one source-first tuple using the fixed free OpenCode profile. It requires
+an explicit absolute `--semaprax` executable, copies that compiler into private
+host state, and binds the copy to streamed SHA-256 checks of both original and
+copied bytes. The child sees the private compiler through `PATH`.
+
+The actual run and export use the same saved `sandbox-exec` profile as the
+preflight probes. The profile denies reads beneath the current checkout,
+original Git checkout, evidence parent, and user home; writes are confined to
+the disposable candidate and private host state. Probes exercise direct and
+symlink access, permitted candidate reads, and denied outside writes. Both
+processes use private home/config/data/cache/temp directories. Bounded output,
+deadlines, and process-group cleanup apply to run and export.
+
+Every result remains explicitly `ineligible`: blinded review, complete ledger
+metric mapping, the other lane, and the full 18-trial experiment are unfinished.
+The ten offline tests in `scripts/test-opencode-agent-task-pilot.py` exercise
+local stubs through the actual wrapper, including copied compiler resolution;
+they are not live-provider or productivity evidence. No real pilot tuple was
+run to validate this transport slice.
 
 ## Criterion mapping
 

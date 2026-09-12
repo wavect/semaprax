@@ -1,7 +1,7 @@
 //! End-to-end fixture-backed exercise of the effect boundary and its causal
 //! journal, plus the replay determinism test #108/#177 both require: the
-//! same journal replays to the same outcome without re-dispatching recorded
-//! work. No test in this module makes a network call, opens a file, or
+//! same journal replays to the same terminal case without re-dispatching
+//! recorded work. No test in this module makes a network call, opens a file, or
 //! spends real model budget — every response is scripted.
 
 use std::cell::Cell;
@@ -100,7 +100,7 @@ fn a_three_turn_fixture_invocation_completes_with_one_dispatch_per_turn_and_one_
 }
 
 #[test]
-fn replaying_a_terminal_journal_makes_zero_dispatches_and_reproduces_the_outcome() {
+fn replaying_a_terminal_journal_makes_zero_dispatches_and_retains_its_terminal_case() {
     // Build the same completed three-turn journal directly, independent of
     // test execution order, rather than relying on the previous test.
     let identity = identity();
@@ -170,10 +170,11 @@ fn replaying_a_terminal_journal_makes_zero_dispatches_and_reproduces_the_outcome
         replayed.journal, completed.journal,
         "replay does not rewrite the journal"
     );
-    assert!(matches!(
+    assert_eq!(
         replayed.outcome,
-        LiveInvocationOutcome::Complete(_)
-    ));
+        LiveInvocationOutcome::Complete(Vec::new()),
+        "the journal retains the terminal case and carrier digest, not the carrier bytes"
+    );
 }
 
 struct PanicObserver;

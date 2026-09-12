@@ -202,10 +202,13 @@ exactly where that journal validates to:
 - **Resume** — a journal ending right after a `continue` transition begins
   at the next turn, without redispatching the recorded prefix.
 - **Replay** — an already-terminal journal is recognised immediately
-  (`ValidatedJournal::terminal`); the kernel returns its recorded outcome
-  and `LiveKernelRun::dispatched == 0` — the turn loop never runs, so
-  `ModelHandler::invoke` and every other injected seam is never called. The
-  reference test `replaying_a_terminal_journal_makes_zero_dispatches_and_reproduces_the_outcome`
+  (`ValidatedJournal::terminal`); the kernel returns its recorded terminal
+  **case** with an empty payload and `LiveKernelRun::dispatched == 0` — the
+  turn loop never runs, so `ModelHandler::invoke` and every other injected
+  seam is never called. The journal retains the terminal carrier digest as a
+  commitment to the original bytes, but deliberately does not retain those
+  bytes, so replay cannot reproduce a fresh run's payload. The reference test
+  `replaying_a_terminal_journal_makes_zero_dispatches_and_retains_its_terminal_case`
   wires every seam to a fixture that panics if touched, to make this an
   executable, not just an asserted, property.
 - **Uncertain intent** — a journal ending right after `RequestIntent` with

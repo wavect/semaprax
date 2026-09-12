@@ -6,6 +6,14 @@ use semaprax::agent_lifecycle::{
 };
 use semaprax::agent_runtime::AgentCancellation;
 use semaprax::execution_revision::{bind_execution_revision, ProgramRootRef};
+use semaprax::live_invocation::fixture::{
+    fixture_response, FixtureAuthorizationGate, FixtureBudgetHook, FixtureModelHandler,
+    FixtureObserver, FixturePolicy, FixtureProposalDecoder,
+};
+use semaprax::live_invocation::{
+    run_live_invocation, LiveInvocationConfig, LiveInvocationHandlers, LiveInvocationId,
+    LiveInvocationOutcome, LiveInvocationSeed, ModelInvocationOutcome, ModelInvokeCapability,
+};
 use semaprax::project::with_authenticated_project;
 
 struct Fixture(std::path::PathBuf);
@@ -197,6 +205,115 @@ fn execution_roots_bind_retained_source_and_actual_run() {
             .evidence_root()
             .canonical_json()
             .contains(evidence.run().evidence_digest()));
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[test]
+fn frozen_execution_revision_evidence_is_byte_identical_after_a_live_fixture_run() {
+    // Issue #108 requires old frozen runtime invocations and evidence to
+    // retain byte-identical behavior. This exercises the retained source
+    // runtime through its real bind/run APIs on both sides of one complete,
+    // offline live-invocation fixture run; comparing the canonical roots and
+    // lifecycle evidence digest catches any accidental cross-route mutation.
+    let fixture = Fixture::new();
+    with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        let project = snapshot.retain_revision();
+        let root = project.program_root()?;
+        let source = &project.sources()[0];
+        let lifecycle =
+            compile_source_agent_lifecycle(source.source(), source.path(), "fixture.agent")?;
+        let (_, deployment) = migrate_agent_definition_v1(
+            project.agent_definitions()[0]
+                .definition()
+                .canonical_source(),
+            "fixture.deployment",
+        )?;
+        let proposed = proposal(
+            lifecycle.proposal_schema().schema().digest(),
+            "5",
+            false,
+            "1",
+        );
+
+        let run_frozen = || {
+            let revision = bind_execution_revision(
+                project.clone(),
+                ProgramRootRef::V1(&root),
+                root.program_root_digest(),
+                "src/app.spx",
+                "fixture.agent",
+                &deployment,
+                LifecycleTask {
+                    objective: b"alpha".to_vec(),
+                    budget: 12,
+                },
+                &proposed,
+                LifecycleBudget::default(),
+            )?;
+            let mut read = FixtureRead::new(b"observed".to_vec());
+            let evidence = revision.run(&mut read, &AgentCancellation::new())?;
+            assert_eq!(evidence.run().status(), LifecycleStatus::Completed);
+            assert_eq!(read.calls(), 1);
+            Ok::<_, Vec<semaprax::diagnostic::Diagnostic>>((
+                evidence.execution_revision().canonical_json().to_owned(),
+                evidence.evidence_root().canonical_json().to_owned(),
+                evidence.run().evidence_digest().to_owned(),
+            ))
+        };
+
+        let before = run_frozen()?;
+
+        let schema = "sha256:0000000000000000000000000000000000000000000000000000000000aa";
+        let live_identity = LiveInvocationId::derive(&LiveInvocationSeed {
+            program_root: root.program_root_digest().to_owned(),
+            deployment_policy: "sha256:live-fixture-policy".to_owned(),
+            task: b"fixture live task".to_vec(),
+            budget: 10,
+            interaction_schema_digest: schema.to_owned(),
+            approved_providers: vec!["fixture-provider".to_owned()],
+        });
+        let config = LiveInvocationConfig {
+            identity: &live_identity,
+            task: b"fixture live task",
+            deployment_binding: "sha256:live-fixture-policy",
+            interaction_schema_digest: schema,
+            max_turns: 1,
+            max_response_bytes: 4096,
+            requested_budget_per_turn: 10,
+        };
+        let capability = ModelInvokeCapability::grant("#108 frozen-runtime regression fixture");
+        let mut handler = FixtureModelHandler::scripted(vec![ModelInvocationOutcome::Settled(
+            fixture_response(0, "live"),
+        )]);
+        let mut decoder = FixtureProposalDecoder::new(schema);
+        let mut gate = FixtureAuthorizationGate::new(1);
+        let mut budget = FixtureBudgetHook::new(10);
+        let mut observer = FixtureObserver;
+        let mut policy = FixturePolicy { total_turns: 1 };
+        let mut handlers = LiveInvocationHandlers {
+            capability: &capability,
+            handler: &mut handler,
+            decoder: &mut decoder,
+            gate: &mut gate,
+            budget: &mut budget,
+            observer: &mut observer,
+            policy: &mut policy,
+            effect: None,
+            sink: None,
+        };
+        let live = run_live_invocation(
+            &config,
+            Vec::new(),
+            &mut handlers,
+            &AgentCancellation::new(),
+        )
+        .expect("the deterministic live fixture completes");
+        assert_eq!(live.dispatched, 1);
+        assert!(matches!(live.outcome, LiveInvocationOutcome::Complete(_)));
+
+        assert_eq!(run_frozen()?, before);
         Ok(())
     })
     .unwrap();

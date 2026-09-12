@@ -110,13 +110,14 @@ pub struct VerificationOptions {
     /// `false` (default): the caller is asserting `program`/`source_revision`
     /// is its current head checked programme. `true`: the caller explicitly
     /// authorizes checking against a deliberately selected historical
-    /// revision. This module has no retained-store access at this layer and
-    /// cannot itself distinguish "current" from "historical" — see
-    /// [Recovery and currentness](../../../docs/PUBLIC-GENERIC-DESCRIPTOR-V1.md#recovery-and-currentness)
-    /// for why that responsibility stays with the caller's own retained-store
-    /// policy. This flag is recorded on the returned
-    /// [`VerifiedPublicGenericDescriptor`] for downstream audit; it does not
-    /// change which checks run.
+    /// revision. This function itself has no retained-store access and
+    /// cannot distinguish "current" from "historical" on its own — it
+    /// simply records this flag on the returned
+    /// [`VerifiedPublicGenericDescriptor`] for downstream audit and changes
+    /// no check here. [`retained_store::verify_public_generic_descriptor_against_store`]
+    /// is the layer that actually enforces currentness against a real
+    /// store: see [Recovery and
+    /// currentness](../../../docs/PUBLIC-GENERIC-DESCRIPTOR-V1.md#recovery-and-currentness).
     pub historical_mode: bool,
 }
 
@@ -537,6 +538,8 @@ pub fn verify_public_generic_descriptor(
         options.historical_mode,
     ))
 }
+
+pub mod retained_store;
 
 #[cfg(test)]
 mod tests;

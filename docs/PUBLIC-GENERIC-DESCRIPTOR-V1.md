@@ -411,6 +411,8 @@ subject by descriptor" workflow: it exposes only the schema literal and the
 | `SPX-PG711` | the caller's own expected programme-root digest does not match the independently recomputed root of the programme it supplied |
 | `SPX-PG712` | the candidate's embedded programme-root digest does not match the trusted programme's independently recomputed root (cross-paired descriptor) |
 | `SPX-PG713` | the real generator's output disagrees with this module's independent reconstruction of the same trusted facts (a producer-side defect signal) |
+| `SPX-PG714` | (`retained_store` only, #215) no retained subject exists for the requested programme-root digest, or a retained entry no longer matches its own content-addressed digest; checked before any candidate byte is inspected |
+| `SPX-PG715` | (`retained_store` only, #215) the requested programme-root digest names a historical, non-current retained subject, and the caller did not set `VerificationOptions::historical_mode` |
 
 Every other refusal reuses an existing diagnostic exactly: `SPX-PG701`/`702`
 from `decode`, `SPX-PG703`/`704` from `replay`, `SPX-PG705`-`709` from the
@@ -429,18 +431,54 @@ that would pass an earlier phase is never used alone to exercise a later one.
 
 ### Recovery and currentness
 
-This layer has no retained-store access of its own: `program` and
-`source_revision` are supplied by the caller exactly as
-[the producer](#derivation-from-checked-facts-the-producer) already requires,
-and this module cannot itself distinguish "the caller's current head" from
-"a deliberately selected historical revision" without one. `VerificationOptions::historical_mode`
-is a caller-declared intent flag, recorded on the returned
-`VerifiedPublicGenericDescriptor` for downstream audit; it does not relax any
-check. Currentness policy — whether a given `program`/`source_revision` pair
-is the caller's current head — is entirely the caller's own retained-store
-responsibility, matching "preserve current architecture" for this round: no
-`ProgramRoot`, Project candidate, or workspace-session type is threaded
-through this layer yet.
+`verify_public_generic_descriptor` itself still has no retained-store access
+of its own, and still takes `program`/`source_revision` exactly as before:
+that function, its five diagnostics above, and its 664-line test suite are
+unchanged by #215. What changed is the layer directly above it:
+`src/public_generic_abi/descriptor/verify/retained_store.rs` adds a real,
+filesystem-backed `RetainedProgramStore` and
+`verify_public_generic_descriptor_against_store`, so a caller who does not
+already have its own retained-store integration gets one it can actually use
+and test, rather than only documentation saying this is its responsibility.
+
+`RetainedProgramStore::publish_current`/`retain_historical` persist a
+programme's canonical source text and a caller-chosen revision label under a
+directory, content-addressed by this module's own unchanged
+`program_root_digest` algorithm; `RetainedProgramStore::resolve` independently
+reparses and re-resolves that persisted source (`crate::parse` +
+`crate::hir::resolve`) on every lookup rather than trusting any cached
+`ResolvedProgram`, and fails closed with `SPX-PG714` for a digest it has never
+seen, or whose entry no longer matches its own content-addressed digest —
+checked before any byte of a candidate descriptor is inspected.
+`verify_public_generic_descriptor_against_store` converts
+`VerificationOptions::historical_mode` from a recorded-but-inert flag into an
+enforced gate: a digest that resolves to a non-current (historical) entry is
+refused with `SPX-PG715` unless the caller explicitly set `historical_mode`.
+A fresh `RetainedProgramStore::open` over the same directory — sharing no
+in-process state with whichever value published or retained an entry —
+recovers the identical trusted subject and reproduces byte-identical
+descriptors, the "process restart" case #152 could not test against a store
+that did not exist; `src/public_generic_abi/descriptor/verify/retained_store/tests.rs`
+is that evidence.
+
+This remains a bounded, additive layer, not the full acceptance criteria of
+#215. It deliberately does **not** thread `project::program_root::ProgramRoot`
+through this layer: that type is a content-addressed projection over a whole
+`SemanticWorkspaceRevision` (three `ResolvedProgram`s — entry, public-API, and
+test — plus manifest, source-projection, and dependency-closure segments;
+`src/project/program_root.rs`), not a wrapper around the one bare
+`&ResolvedProgram` this verifier takes, and `project` already imports from
+`public_generic_abi` (`src/project/candidate/public_generic_delta.rs`), so
+importing `project::ProgramRoot` back into this layer would create a real
+module cycle rather than a mechanical addition — a genuine architectural
+decision, not performed in this round. Nor does this change
+`recompute_program_root_digest`'s declaration-identity-inventory algorithm
+into a full structural digest of a versioned `ProgramRoot`; that is a
+distinct, separately-scoped acceptance item (see "Evidence for source drift"
+above for the existing, unchanged mitigation — `public_surface_digest` — for
+the gap that leaves open) and would also require changing the producer's
+independently-duplicated copy of the same algorithm and this document's own
+frozen description of it, not only this module.
 
 ### Evidence for source drift
 

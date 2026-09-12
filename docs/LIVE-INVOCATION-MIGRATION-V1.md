@@ -212,7 +212,11 @@ destination. `persist_migration_handoff` first writes one complete
 the existing caller-owned `agent_lifecycle::CheckpointStore` contract. The
 versioned document binds the destination identity and generation to the
 canonical handoff, its digest, the exact migrated-state hex bytes and their
-digest, plus the destination journal and its chain digest.
+digest, plus the destination journal and its chain digest. Before destination
+turn zero, this envelope's defined canonical state is `"entries":[]` with the
+empty journal chain. That is an envelope-only pre-dispatch state: the generic
+`journal::decode` remains unchanged and still rejects an empty standalone
+causal journal.
 
 `recover_migration_handoff` requires the exact destination identity and
 recomputes every handoff, state, and journal link before returning a

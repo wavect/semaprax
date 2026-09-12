@@ -211,7 +211,17 @@ pub fn recover_migration_handoff(
     {
         return Err(MigrationCheckpointError::StateMismatch);
     }
-    let entries = journal::decode(&object["entries"]).map_err(MigrationCheckpointError::Journal)?;
+    // A migration checkpoint is created before destination turn zero, so its
+    // own canonical pre-dispatch state is an empty `entries` array. The
+    // generic journal decoder correctly rejects that shape because it is not
+    // a standalone causal journal; do not weaken it for this envelope.
+    let entries = match object["entries"].as_array() {
+        Some(entries) if entries.is_empty() => Vec::new(),
+        Some(_) => {
+            journal::decode(&object["entries"]).map_err(MigrationCheckpointError::Journal)?
+        }
+        None => return Err(MigrationCheckpointError::Journal(journal::DecodeError)),
+    };
     if object["chain"].as_str() != Some(journal::chain(&entries).as_str()) {
         return Err(MigrationCheckpointError::ChainMismatch);
     }

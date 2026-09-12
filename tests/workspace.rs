@@ -38,6 +38,8 @@ mod function_values;
 mod graph_phase_a_surface;
 #[path = "workspace/interface_artifact_facts.rs"]
 mod interface_artifact_facts;
+#[path = "workspace/next_construct_query.rs"]
+mod next_construct_query;
 #[path = "workspace/persistent_incremental_semantic_service.rs"]
 mod persistent_incremental_semantic_service;
 #[path = "workspace/persistent_semantic_service_mcp.rs"]

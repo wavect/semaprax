@@ -799,10 +799,133 @@ is not the generated TypeScript/Wasm consumer (#157) — that is a separate
 acceptance surface this issue does not build, and #157 is a foreign-caller
 concern with its own separate trust boundary, not a re-scoping of this
 provider-side adapter. It is not a cross-engine equivalence test against
-the native adapter (#162's own remaining work): both adapters emit the same
-normalized trace vocabulary and, as a deliberate convergence, the same
-caller-facing status integers, but no test in this round runs the same
-input through both and diffs the two traces.
+the native adapter: real compiled-and-executed native (at `-O0`/`-O2`) has
+no in-process Rust adapter comparable to this one, so it is not a party to
+`carrier::settlement_corpus` below; see that section's own nonclaims. It
+*is* now a party to a cross-engine equivalence test against the reference
+interpreter adapter — see [Reference interpreter physical adapter (issue
+#162)](#reference-interpreter-physical-adapter-issue-162) below.
+
+## Reference interpreter physical adapter (issue #162)
+
+Audience: implementers and reviewers of cross-engine settlement
+equivalence, and of the reference interpreter's own boundary adapter.
+
+Status: local, proof-only reference implementation
+(`src/public_generic_abi/interpreter.rs`), unsupported and unpublished.
+This is the third PHYSICAL adapter built on the LOGICAL layer above, a
+sibling to [Native C11 physical adapter (issue
+#154)](#native-c11-physical-adapter-issue-154) and [Core Wasm physical
+adapter (issue #155)](#core-wasm-physical-adapter-issue-155): it decides no
+legality the [state machine](#the-logical-value-state-machine), [phase
+ledger](#the-call-phase-ledger), or [`CarrierCallMachine`](#the-call-machine)
+do not already fix, and it emits exactly [the normalized trace
+vocabulary](#the-normalized-trace) above, adding no second vocabulary.
+Answers part of issue #162 (the reference-interpreter-adapter and
+cross-engine-corpus portions; native O0/O2 execution, generated-consumer
+execution, and evidence-replay tooling remain outstanding — see this
+section's own nonclaims).
+
+**Why a third adapter, and why now.** Before this section, no adapter drove
+`CarrierCallMachine` as "the reference interpreter route" at all —
+`carrier.rs`'s own scope note ("no provider, no native or Wasm adapter, and
+no execution") and #153-#155's own deferred-scope notes left
+`TargetProfile::Interpreter` defined but never bound to a concrete adapter.
+Issue #162's crux is proving equal observable behavior across engines, and
+that requires a second real, executing adapter to compare the Wasm adapter
+against — a direct interpreter function call would skip the boundary being
+proven, per this issue's own instruction.
+
+**Physical model, deliberately different from both other adapters.**
+Native's C11 adapter allocates from the process heap through pointer
+identities; the Wasm adapter allocates from one bounded, page-grown
+linear-memory arena through a strict LIFO stack allocator, because a
+release out of allocation order is otherwise unobservable in a reused byte
+array. `InterpreterProvider`'s `Heap` (`src/public_generic_abi/interpreter.rs`)
+is a third, genuinely different physical model: a plain, arena-free slot
+table (`HashMap<u32, Vec<u8>>`) with no address space and no forced LIFO
+discipline — release order is enforced once, upstream, by
+`CarrierCallMachine`'s own reverse-obligation-order rule, not restated by
+this physical layer. Exercising three distinct physical representations
+against the same case shapes is the actual point: agreement is not an
+artifact of one shared allocator.
+
+**No new wire-binding artifact.** Unlike native and Wasm, this adapter
+introduces no `InterpreterProviderBindingV1`: the reference interpreter is
+in-process Rust with no cross-language wire boundary to cross, so
+`InterpreterProvider::open` replays directly against
+[`CarrierBindingV1`](#compatibility-and-lifecycle) naming
+`TargetProfile::Interpreter`. No new diagnostic code range is allocated;
+`InterpreterProvider` reuses `carrier.rs`'s own `SPX-PG8xx` codes and
+`wasm::registry`'s `SPX-PG915`/`SPX-PG916` handle-safety codes rather than
+minting a fourth, parallel range for facts those codes already name.
+
+**Deferred scope**, identical to native's and Wasm's own: deriving a
+provider from a real checked *generic* export needs #119's still-blocked
+owned-record ownership evidence, so the bound endpoint here is the same
+fixture (`spx_pg_interpreter_endpoint_reverse_bytes_v1`, byte-reversal per
+owned leaf) operating on the same flat owned-`Bytes` shape, and the
+trusted descriptor bytes an `open` caller replays against are a
+hand-constructed fixture compared byte-for-byte, not
+[`descriptor::verify`](PUBLIC-GENERIC-DESCRIPTOR-V1.md) output.
+
+### Interpreter-hosted evidence
+
+`src/public_generic_abi/interpreter/tests.rs` exercises `InterpreterProvider`
+on its own: a success round trip with two-pass, byte-identical repeated
+export; zero-length and embedded-zero-byte leaves; the exact and
+first-over-bound leaf-count and leaf-byte-size cases; a stale handle from a
+prior provider generation; the full 0-13 failure-injection matrix (every
+non-terminal `TraceLabel`, one fresh provider and call each), asserting
+zero live allocations, zero live bytes, and zero live handles after every
+terminal case; repeated invocation with no state leak between independent
+calls; and provider recreation rejecting a stale child handle from a prior
+generation.
+
+### Cross-engine settlement corpus (issue #162)
+
+`src/public_generic_abi/carrier/settlement_corpus.rs` is
+`semaprax.public-generic-settlement-corpus.v1`: one shared case table (the
+base success/rejection shapes above, plus one case per non-terminal
+`TraceLabel` failure-injection ordinal) run against both
+`InterpreterProvider` and `WasmProvider`, with one `compare` checker that
+diffs accept/reject, the normalized status, the result carrier bytes, the
+normalized trace label sequence (the literal `CarrierCallMachine` trace
+each adapter's `settle` helper now snapshots via a test-only
+`test_last_trace` accessor, not a second restatement of it), the canonical
+leaf release order extracted from that trace, final live
+allocation/handle/byte counts, the sticky-settlement overwrite-attempt
+count, and the provider close status — each engine against an
+independently pinned expectation, and engine against engine. Four
+`should_panic` negative controls prove `compare` can actually fail (a
+perturbed result, a status that does not match the pinned expectation, a
+truncated trace, and a leaked resource count), matching issue #160's own
+consumer-corpus pattern of proving the checker itself, not merely
+asserting a pass.
+
+### Nonclaims (reference interpreter adapter and cross-engine corpus)
+
+This adapter and corpus are local, proof-only evidence, not hosted,
+supported, or published evidence. The adapter does not derive a provider
+from a real checked public generic export (blocked on #119); its bound
+endpoint and trusted descriptor bytes are fixtures. The corpus compares
+only `InterpreterProvider` and `WasmProvider`: native C11 has no
+in-process Rust adapter analogous to either (only a C-source renderer,
+`native::template::render_reference_provider`), so it is not a party to
+this corpus, and real compiled-and-executed native (at `-O0`/`-O2`) equality
+against this same case shape, plus generated Rust/TypeScript/C/C++ consumer
+execution, and independent evidence-replay tooling, remain
+`tests/public_generic_native_adapter_v1/**`'s and
+`tests/public_generic_wasm_adapter_v1/**`'s own leased, outstanding work.
+Peak allocation/handle counters are not tracked by either adapter (only
+live/current counts are); the corpus compares final (post-terminal) counts
+only. Nested multi-level owned records are not exercised (#119's
+flat-owned-`Bytes`-leaves limitation applies to both adapters equally); the
+corpus's two-leaf case stands in for "at least two owned leaves with
+visible structural order," not a nested record. Native O0/O2 sanitizer
+equivalence, hosted CI execution, and the evidence-artifact canonical
+summary/independent-replay format issue #162 also describes are not built
+by this section.
 
 ## Compatibility and lifecycle
 
@@ -982,12 +1105,19 @@ direct, pre-commit state manipulation instead (see `machine`'s
 `failure_arriving_mid_transfer_leaves_no_handle_transferred` and its result-
 staging mirror), which is equivalent for a pure state machine with no
 allocation of its own to roll back. [Native C11 physical adapter
-(issue #154)](#native-c11-physical-adapter-issue-154) and [Core Wasm
-physical adapter (issue #155)](#core-wasm-physical-adapter-issue-155) below
-are the first two PHYSICAL adapters to emit the normalized trace and
-perform real allocation and release, each against a fixture endpoint only —
-see each section's own nonclaims for its exact, narrower scope; #156-#159's
-generated consumers and #162's cross-engine comparison remain outstanding.
+(issue #154)](#native-c11-physical-adapter-issue-154), [Core Wasm
+physical adapter (issue #155)](#core-wasm-physical-adapter-issue-155), and
+[Reference interpreter physical adapter (issue
+#162)](#reference-interpreter-physical-adapter-issue-162) below are the
+three PHYSICAL adapters to emit the normalized trace and perform real
+allocation and release, each against a fixture endpoint only — see each
+section's own nonclaims for its exact, narrower scope. The interpreter and
+Core Wasm adapters are now cross-engine compared directly by
+`carrier::settlement_corpus` (issue #162); native C11 has no in-process
+Rust adapter to include in that same corpus (only a C-source renderer), so
+#156-#159's generated consumers, real compiled-and-executed native
+`-O0`/`-O2` equality, and independent evidence-replay tooling remain
+outstanding.
 It reuses no v8-v11 carrier bytes and widens none of them. The
 target-mapping
 table above is naming guidance for a future physical specification, not

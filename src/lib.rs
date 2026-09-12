@@ -138,6 +138,7 @@ pub mod region_report;
 pub mod release_provenance;
 pub mod repair;
 pub mod requirement_traceability;
+pub mod resumable_effects;
 pub mod review;
 pub mod runtime_status;
 pub mod scoped_tasks;

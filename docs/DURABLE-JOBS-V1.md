@@ -301,6 +301,50 @@ socket, spawns no thread, and grants no authority; it is local evidence that
 the decision procedures above compose into something a real job runner could
 implement, nothing more.
 
+## Job evidence: `src/job_evidence.rs`
+
+The one acceptance criterion the first tranche of this issue recorded as
+**not met** was "job evidence is replayable but grants no execution
+authority" — no checkpoint/evidence-root format existed for jobs
+specifically. `src/job_evidence.rs` closes that gap with a format scoped to
+jobs alone, not copied from `src/agent_lifecycle/durable`'s checkpoint
+machinery (a resumable run's settled read observation and program counter is
+a different, larger claim than replaying one job's already-finished
+lifecycle).
+
+`JobEvidenceLog` is an append-only, domain-separated SHA-256 hash chain over
+typed entries mirroring every `JobStore` transition (`Enqueued`, `Claimed`,
+`BegunExecution`, `Completed`, `ConnectionUncertain`, `ReconciledUncertain`,
+`Cancelled`); the chained digest after the last entry is the evidence root.
+`JobEvidenceLog::replay` **independently recomputes** the job's final
+lifecycle state from the recorded entries alone, reusing
+`job_fixture::decisions` (the same Rust mirror of `std.jobs` `job_fixture.rs`
+already uses) rather than a second, parallel state machine, and returns
+`FinalStateMismatch` when a recorded input's recomputed outcome disagrees
+with the log's own claimed final state — the tamper case, where a recorded
+field changed without the claim changing to match. A terminal state
+(`SUCCEEDED`, `PERMANENT_FAILURE`, `CANCELLED`, `DEAD_LETTERED`) can never be
+reopened by a later entry, mirroring this repository's sticky-failure-
+selection invariant one level up from `cleanup_plan`.
+
+Appending an entry, computing a root, and replaying are all inert data
+operations: no socket, no thread, no lease claim, no execution. This is
+exactly "a settlement or concurrency model is proof data, not permission to
+perform a physical finalizer, spawn runtime work, or publish an artifact"
+(`AGENTS.md`), applied to a job's own recorded history instead of a single
+checkpoint's program counter.
+
+**What replay does not check.** `Claimed`'s `is_due` and `Completed`'s
+`outcome_kind` are asserted facts, not independently verified against a
+clock or an external system this format does not carry: replay only checks
+that the *asserted* facts admit a legal `std.jobs` transition and that they
+recompute to the log's own claimed final state, exactly the boundary an
+agent checkpoint's single registered read observation already accepts. A
+runner that asserts a false `is_due` produces a log that still replays
+internally consistently; catching that requires the runner's own clock
+input to be part of the trust boundary, which is out of scope for this
+tranche.
+
 ## Non-claims and remaining work
 
 This tranche adds no host operation, no new effect name, no new ABI, and
@@ -357,12 +401,15 @@ touches no file under `src/hir`, `src/wasm`, `src/codegen`,
 
 ```sh
 cargo test --locked -p semaprax --lib job_fixture::
+cargo test --locked -p semaprax --lib job_evidence::
 cargo test --locked -p semaprax --test project -- standard_library::
 cargo test --locked -p semaprax --test documentation
 ```
 
 The first command covers the Rust-only in-memory fixture described above.
-The second covers `std/jobs`'s canonical formatting, stable identities,
+The second covers the replayable job evidence log immediately above it,
+including its cross-checks against the live `JobStore`. The third covers
+`std/jobs`'s canonical formatting, stable identities,
 examples, and conformance module once it is registered in
 `std/packages.json` and `std/catalog.json` (that registration, and the
 regenerated `docs/STANDARD-LIBRARY-CATALOG.md`, land in their own commit —

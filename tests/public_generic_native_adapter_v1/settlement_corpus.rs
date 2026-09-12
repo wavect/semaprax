@@ -112,6 +112,31 @@
 //!    cases call for. [`compare_case`] pins the exact permitted difference:
 //!    native's trace contains `InputValuePrepared`; interpreter/Wasm's does
 //!    not.
+//!
+//!    **Issue #103 extension: the identical batch-vs-incremental timing
+//!    difference also affects `LeafAllocationStarted`,
+//!    `LeafAllocationCommitted`, and `LeafPayloadCopied` — confirmed, not
+//!    only `InputValuePrepared`.** `InterpreterProvider::input_prepare`'s
+//!    per-leaf loop checks `take_injection_if` for all three of these
+//!    labels too, and on any of them sets `fail_after` and `break`s BEFORE
+//!    `machine.prepare_input()` — the one call that records
+//!    `LeafAllocationStarted`/`LeafAllocationCommitted`/`LeafPayloadCopied`/
+//!    `InputValuePrepared` for the whole handle set — is ever reached. So
+//!    injecting on any one of these three ordinals leaves ALL FOUR labels
+//!    absent from interpreter/Wasm's trace, not just the one injected on.
+//!    Native's `spx_pg_fill_leaves` records each label immediately before
+//!    its own injection check (`spx_pg_trace_record(started_label)` then
+//!    `spx_pg_should_inject(started_label)`, and likewise for
+//!    `committed_label`/`payload_label`), so the injected-upon label (and
+//!    any earlier one in the per-leaf sequence) DOES appear. This is the
+//!    SAME architectural difference divergence 4 already names, one
+//!    ordinal earlier each time — not three new independent bugs. Verdict:
+//!    SPECIFIED, a permanently permitted difference, for the identical
+//!    reason divergence 4 is not fixed. [`compare_case`] pins it exactly:
+//!    on `failure_injection_LeafAllocationStarted`,
+//!    `failure_injection_LeafAllocationCommitted`, and
+//!    `failure_injection_LeafPayloadCopied`, interpreter/Wasm's trace never
+//!    contains the case's own injected-upon label; native's always does.
 //! 5. **Post-cleanup-failure settle attempt (FIXED — native was wrong).**
 //!    `WasmProvider::call`/`InterpreterProvider::call` check
 //!    `state.machine.settlement()`/`machine.settlement()` immediately after
@@ -200,6 +225,14 @@
 //! anywhere in this repository (`WasmProvider` is an in-process Rust model,
 //! matching `carrier::settlement_corpus`'s own nonclaim); this module does
 //! not change that.
+
+/// Issue #103's extension of issue #240 divergence 4 to three more
+/// preparation-phase ordinals. Factored into its own file purely to stay
+/// inside this file's line budget (`tests/module-size-budget.tsv`); it is
+/// otherwise exactly as much a part of [`compare_case`] as any block that
+/// stayed inline, and reaches this module's private items through `super`.
+#[path = "settlement_corpus/ordinal_timing_extension.rs"]
+mod ordinal_timing_extension;
 
 use std::env;
 use std::fs;
@@ -1158,6 +1191,16 @@ fn compare_case(
             );
         }
     }
+    // Issue #103's investigation of the lead issue #240 flagged as out of
+    // its own scope: the SAME architectural difference the block above pins
+    // for `InputValuePrepared` also applies to `LeafAllocationStarted`,
+    // `LeafAllocationCommitted`, and `LeafPayloadCopied`. Factored into its
+    // own module (`ordinal_timing_extension.rs`) purely to stay inside this
+    // file's line budget; see that module's header doc for the full
+    // reasoning and verdict.
+    ordinal_timing_extension::assert_ordinal_timing_extension(
+        case, interpreter, wasm, native_o0, native_o2,
+    );
     // Interpreter and Wasm already agree byte-for-byte on the raw result
     // (both frame each leaf directly, no leading count).
     assert_eq!(

@@ -523,6 +523,12 @@
       "signature": "@id(\"app.http_router.find_from\")\nfn find_from(view: borrow Slice<u8>, start: usize, target: u8, limit: usize) -> usize\n    ensures result <= limit\n"
     },
     {
+      "id": "app.http_router.find_blank_line",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.find_blank_line\")\nfn find_blank_line(view: borrow Slice<u8>, start: usize, limit: usize) -> usize\n    ensures result <= limit\n"
+    },
+    {
       "id": "app.http_router.method_is_get",
       "kind": "function",
       "path": "examples/http_app_routing.spx",
@@ -571,6 +577,24 @@
       "signature": "@id(\"app.http_router.content_length_of\")\nfn content_length_of(view: borrow Slice<u8>, header_start: usize, header_end: usize) -> i64\n    ensures result >= -1\n"
     },
     {
+      "id": "app.http_router.header_name_is_transfer_encoding",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.header_name_is_transfer_encoding\")\nfn header_name_is_transfer_encoding(view: borrow Slice<u8>, index: usize, end: usize) -> bool\n"
+    },
+    {
+      "id": "app.http_router.has_transfer_encoding",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.has_transfer_encoding\")\nfn has_transfer_encoding(view: borrow Slice<u8>, header_start: usize, header_end: usize) -> bool\n"
+    },
+    {
+      "id": "app.http_router.request_has_smuggling_risk",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.request_has_smuggling_risk\")\nfn request_has_smuggling_risk(view: borrow Slice<u8>) -> bool\n"
+    },
+    {
       "id": "app.http_router.route_for",
       "kind": "function",
       "path": "examples/http_app_routing.spx",
@@ -605,6 +629,54 @@
       "kind": "function",
       "path": "examples/http_app_routing.spx",
       "signature": "@id(\"app.http_router.route_body_len\")\nfn route_body_len(view: borrow Slice<u8>) -> usize\n"
+    },
+    {
+      "id": "app.http_router.send_health",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.send_health\")\nfn send_health(peer: usize) -> usize\n    uses { network.write }\n"
+    },
+    {
+      "id": "app.http_router.send_echo",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.send_echo\")\nfn send_echo(peer: usize) -> usize\n    uses { network.write }\n"
+    },
+    {
+      "id": "app.http_router.send_not_found",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.send_not_found\")\nfn send_not_found(peer: usize) -> usize\n    uses { network.write }\n"
+    },
+    {
+      "id": "app.http_router.send_method_not_allowed",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.send_method_not_allowed\")\nfn send_method_not_allowed(peer: usize) -> usize\n    uses { network.write }\n"
+    },
+    {
+      "id": "app.http_router.send_malformed",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.send_malformed\")\nfn send_malformed(peer: usize) -> usize\n    uses { network.write }\n"
+    },
+    {
+      "id": "app.http_router.respond",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.respond\")\nfn respond(peer: usize, route: i64) -> usize\n    uses { network.write }\n    requires route >= 0 && route <= 4\n"
+    },
+    {
+      "id": "app.http_router.serve_one",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.serve_one\")\nfn serve_one(bind_host: borrow Slice<u8>, port: usize, max_request: usize) -> bool\n    uses { network.listen, network.accept, network.read, network.write, network.connect }\n"
+    },
+    {
+      "id": "app.http_router.serve_health_example",
+      "kind": "function",
+      "path": "examples/http_app_routing.spx",
+      "signature": "@id(\"app.http_router.serve_health_example\")\nfn serve_health_example() -> bool\n    uses { network.listen, network.accept, network.read, network.write, network.connect }\n"
     },
     {
       "id": "app.main",
@@ -670,6 +742,42 @@
       "id": "app.main",
       "kind": "function",
       "path": "examples/iterator-operations.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "lazy.first-if-step",
+      "kind": "function",
+      "path": "examples/lazy-iterator-adapters.spx",
+      "signature": "@id(\"lazy.first-if-step\")\nfn first_if_step<T>(step: own IterStep<T>, keep: fn(T) -> bool) -> bool\n"
+    },
+    {
+      "id": "lazy.first-if",
+      "kind": "function",
+      "path": "examples/lazy-iterator-adapters.spx",
+      "signature": "@id(\"lazy.first-if\")\nfn first_if<T>(input: own Iter<T>, keep: fn(T) -> bool) -> bool\n"
+    },
+    {
+      "id": "lazy.map-filter",
+      "kind": "function",
+      "path": "examples/lazy-iterator-adapters.spx",
+      "signature": "@id(\"lazy.map-filter\")\nfn map_filter<T, U>(input: own Iter<T>, capacity: usize, transform: fn(T) -> U, keep: fn(U) -> bool) -> Vec<U>\n"
+    },
+    {
+      "id": "lazy.filter-fold",
+      "kind": "function",
+      "path": "examples/lazy-iterator-adapters.spx",
+      "signature": "@id(\"lazy.filter-fold\")\nfn filter_fold<T, A>(input: own Iter<T>, keep: fn(T) -> bool, initial: A, combine: fn(A, T) -> A) -> A\n"
+    },
+    {
+      "id": "lazy.map-fold",
+      "kind": "function",
+      "path": "examples/lazy-iterator-adapters.spx",
+      "signature": "@id(\"lazy.map-fold\")\nfn map_fold<T, U>(input: own Iter<T>, transform: fn(T) -> U, initial: U, combine: fn(U, U) -> U) -> U\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/lazy-iterator-adapters.spx",
       "signature": "@id(\"app.main\")\nfn main() -> i64\n"
     },
     {

@@ -798,6 +798,11 @@ fn main() -> i64
 
 ### `app.http_router.byte_is` (`examples/http_app_routing.spx`)
 
+`serve_one`, `respond`, and the `send_*` helpers below (past
+`route_body_len`) need these five tokens; every other function in this
+module is pure and declares no `uses`, exactly the posture documented for
+a route/handler in docs/HTTP-APPLICATION-ROUTING-V1.md.
+
 ```semaprax
 @id("app.http_router.byte_is")
 fn byte_is(view: borrow Slice<u8>, index: usize, expected: u8) -> bool
@@ -815,6 +820,18 @@ fn lower(byte: u8) -> u8
 ```semaprax
 @id("app.http_router.find_from")
 fn find_from(view: borrow Slice<u8>, start: usize, target: u8, limit: usize) -> usize
+    ensures result <= limit
+```
+
+### `app.http_router.find_blank_line` (`examples/http_app_routing.spx`)
+
+The blank-line header terminator (`\r\n\r\n`), not merely the next `\r`:
+a request with more than one header line before the one a caller is
+scanning for needs the *whole* header block, not just its first line.
+
+```semaprax
+@id("app.http_router.find_blank_line")
+fn find_blank_line(view: borrow Slice<u8>, start: usize, limit: usize) -> usize
     ensures result <= limit
 ```
 
@@ -878,6 +895,36 @@ fn content_length_of(view: borrow Slice<u8>, header_start: usize, header_end: us
     ensures result >= -1
 ```
 
+### `app.http_router.header_name_is_transfer_encoding` (`examples/http_app_routing.spx`)
+
+A request declaring `Transfer-Encoding` is refused outright: this profile
+implements no chunked-body framing, so admitting the header — whether
+alone or alongside `Content-Length` — would let a request/response
+smuggling ambiguity through undetected (issue #189's "reject smuggling
+ambiguities such as conflicting `Content-Length`/transfer encoding").
+Refusing the header unconditionally is the closed, fail-safe answer for a
+profile that never parses chunked framing at all, not only the narrower
+both-headers-present conflict case.
+
+```semaprax
+@id("app.http_router.header_name_is_transfer_encoding")
+fn header_name_is_transfer_encoding(view: borrow Slice<u8>, index: usize, end: usize) -> bool
+```
+
+### `app.http_router.has_transfer_encoding` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.has_transfer_encoding")
+fn has_transfer_encoding(view: borrow Slice<u8>, header_start: usize, header_end: usize) -> bool
+```
+
+### `app.http_router.request_has_smuggling_risk` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.request_has_smuggling_risk")
+fn request_has_smuggling_risk(view: borrow Slice<u8>) -> bool
+```
+
 ### `app.http_router.route_for` (`examples/http_app_routing.spx`)
 
 Route identity is a closed `i64` domain, the same idiom `std.net`'s
@@ -933,6 +980,104 @@ fn route_status(view: borrow Slice<u8>) -> i64
 ```semaprax
 @id("app.http_router.route_body_len")
 fn route_body_len(view: borrow Slice<u8>) -> usize
+```
+
+### `app.http_router.send_health` (`examples/http_app_routing.spx`)
+
+Everything above this line is pure: no `uses`. `serve_one` below is this
+profile's first *server*: it composes the already-implemented,
+already-hosted-green `net_listen`/`net_accept`/`net_recv`/`net_send`/
+`net_close`/`net_close_listener` operations from Bounded Network Services
+v1 with the route table above into one accept/dispatch/respond/close
+lifecycle. It grants no ambient authority of its own — every operation it
+calls is already effect-gated by the module's own `permit` above.
+
+```semaprax
+@id("app.http_router.send_health")
+fn send_health(peer: usize) -> usize
+    uses { network.write }
+```
+
+### `app.http_router.send_echo` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.send_echo")
+fn send_echo(peer: usize) -> usize
+    uses { network.write }
+```
+
+### `app.http_router.send_not_found` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.send_not_found")
+fn send_not_found(peer: usize) -> usize
+    uses { network.write }
+```
+
+### `app.http_router.send_method_not_allowed` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.send_method_not_allowed")
+fn send_method_not_allowed(peer: usize) -> usize
+    uses { network.write }
+```
+
+### `app.http_router.send_malformed` (`examples/http_app_routing.spx`)
+
+```semaprax
+@id("app.http_router.send_malformed")
+fn send_malformed(peer: usize) -> usize
+    uses { network.write }
+```
+
+### `app.http_router.respond` (`examples/http_app_routing.spx`)
+
+Every arm returns the same Copy scalar (`net_send`'s byte count), so this
+reuses the ordinary scalar-match idiom `status_for`/`body_len_for` already
+use above; a match arm that instead tried to build a typed `Response`
+aggregate here would be the exact `SPX-T258` hostile case
+`tests/http_app_routing.rs` already exercises.
+
+```semaprax
+@id("app.http_router.respond")
+fn respond(peer: usize, route: i64) -> usize
+    uses { network.write }
+    requires route >= 0 && route <= 4
+```
+
+### `app.http_router.serve_one` (`examples/http_app_routing.spx`)
+
+One accept/dispatch/respond/close lifecycle: bind, accept exactly one
+peer, read at most `max_request` bytes, route and respond, then release
+both the connection and the listener. The host that constructs the
+injected `NetworkProvider` — not this function — owns every socket,
+TLS, and credential decision; this function only ever sees the bounded
+handles Bounded Language Network I/O v1 and Bounded Network Services v1
+already define. A caller that wants to keep serving calls this function
+again with a fresh listener; this slice does not add a persistent accept
+loop, graceful shutdown signal, or connection-limit counter, so it is not
+a claim of a production server lifecycle — see Non-claims.
+
+```semaprax
+@id("app.http_router.serve_one")
+fn serve_one(bind_host: borrow Slice<u8>, port: usize, max_request: usize) -> bool
+    uses { network.listen, network.accept, network.read, network.write, network.connect }
+```
+
+### `app.http_router.serve_health_example` (`examples/http_app_routing.spx`)
+
+A zero-argument, bool-returning entry point on a fixed illustrative
+loopback port: the exact shape `semaprax::hosted_interpreter::
+execute_network_command` requires of a Language Network I/O v1 entry.
+`tests/http_app_routing.rs` runs this same source with only the port
+literal below substituted for an OS-assigned ephemeral one, against both
+a real loopback `TcpNetworkProvider` and a deterministic
+`FixtureNetworkProvider`, and asserts the two observations agree.
+
+```semaprax
+@id("app.http_router.serve_health_example")
+fn serve_health_example() -> bool
+    uses { network.listen, network.accept, network.read, network.write, network.connect }
 ```
 
 ### `app.main` (`examples/http_app_routing.spx`)
@@ -1006,6 +1151,48 @@ fn map_via<U, T>(input: own Iter<T>, capacity: usize, transform: fn(T) -> U) -> 
 ```
 
 ### `app.main` (`examples/iterator-operations.spx`)
+
+```semaprax
+@id("app.main")
+fn main() -> i64
+```
+
+### `lazy.first-if-step` (`examples/lazy-iterator-adapters.spx`)
+
+```semaprax
+@id("lazy.first-if-step")
+fn first_if_step<T>(step: own IterStep<T>, keep: fn(T) -> bool) -> bool
+```
+
+### `lazy.first-if` (`examples/lazy-iterator-adapters.spx`)
+
+```semaprax
+@id("lazy.first-if")
+fn first_if<T>(input: own Iter<T>, keep: fn(T) -> bool) -> bool
+```
+
+### `lazy.map-filter` (`examples/lazy-iterator-adapters.spx`)
+
+```semaprax
+@id("lazy.map-filter")
+fn map_filter<T, U>(input: own Iter<T>, capacity: usize, transform: fn(T) -> U, keep: fn(U) -> bool) -> Vec<U>
+```
+
+### `lazy.filter-fold` (`examples/lazy-iterator-adapters.spx`)
+
+```semaprax
+@id("lazy.filter-fold")
+fn filter_fold<T, A>(input: own Iter<T>, keep: fn(T) -> bool, initial: A, combine: fn(A, T) -> A) -> A
+```
+
+### `lazy.map-fold` (`examples/lazy-iterator-adapters.spx`)
+
+```semaprax
+@id("lazy.map-fold")
+fn map_fold<T, U>(input: own Iter<T>, transform: fn(T) -> U, initial: U, combine: fn(U, U) -> U) -> U
+```
+
+### `app.main` (`examples/lazy-iterator-adapters.spx`)
 
 ```semaprax
 @id("app.main")

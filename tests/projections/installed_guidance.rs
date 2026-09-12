@@ -174,7 +174,8 @@ fn query_capabilities_are_exact_inert_installed_support() {
             "impact",
             "available_operations",
             "ownership_at_expression",
-            "declaration_consumers"
+            "declaration_consumers",
+            "next_constructs"
         ]
     );
     assert_eq!(

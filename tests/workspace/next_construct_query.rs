@@ -110,6 +110,10 @@ struct Fixture(PathBuf);
 
 impl Fixture {
     fn new() -> Self {
+        Self::with_app(APP)
+    }
+
+    fn with_app(app: &str) -> Self {
         let root = std::env::temp_dir().join(format!(
             "spx-next-construct-query-v1-{}-{}",
             std::process::id(),
@@ -117,7 +121,7 @@ impl Fixture {
         ));
         std::fs::create_dir_all(root.join("src")).unwrap();
         std::fs::write(root.join("semaprax.toml"), MANIFEST).unwrap();
-        write_canonical(&root.join("src/app.spx"), "src/app.spx", APP);
+        write_canonical(&root.join("src/app.spx"), "src/app.spx", app);
         write_canonical(&root.join("src/tests.spx"), "src/tests.spx", TESTS);
         Self(root.canonicalize().unwrap())
     }
@@ -373,4 +377,59 @@ fn stale_revision_unknown_declaration_and_unknown_expression_fail_closed() {
     )
     .unwrap();
     assert_code(service.query(stale.to_json().as_bytes()), "SPX-G533");
+}
+
+/// `MAX_CANDIDATES_PER_LIST` (128) in `next_construct_query.rs` is a bound
+/// declared in the implementation; this proves it is actually enforced, not
+/// merely documented. 160 extra zero-effect `Bytes`-returning filler
+/// functions are added to the same fixture, all admissible at the `own`
+/// position alongside `identity_bytes`/`zero_bytes`, comfortably exceeding
+/// the cap. Filler stable ids are prefixed `zz_filler` so they sort after
+/// `identity_bytes`/`zero_bytes` in the admitted list's (kind, id) order and
+/// so this test does not depend on which specific 128 of 162 candidates the
+/// deterministic sort keeps.
+#[test]
+fn admitted_candidates_beyond_the_cap_are_truncated_deterministically() {
+    const FILLER_COUNT: usize = 160;
+    let mut fillers = String::new();
+    for index in 0..FILLER_COUNT {
+        fillers.push_str(&format!(
+            "\n@id(\"next_construct.zz_filler{index:04}\")\nfn zz_filler{index:04}() -> Bytes\n{{\n    let seed = [0u8];\n    bytes_copy(array_as_slice(seed))\n}}\n"
+        ));
+    }
+    let app = APP.replacen(
+        "@id(\"next_construct.command\")",
+        &format!("{fillers}\n@id(\"next_construct.command\")"),
+        1,
+    );
+    assert_ne!(
+        app, APP,
+        "the filler insertion point must exist exactly once"
+    );
+
+    let fixture = Fixture::with_app(&app);
+    let service = SemanticWorkspaceService::open(fixture.revision()).unwrap();
+    let generation = service.active_generation();
+    let revision = generation.workspace_revision();
+    let function = target_function(generation.revision());
+    let expression_id = own_position_expression_id(function);
+
+    let query =
+        SemanticQuery::next_constructs(revision, "next_construct.target", &expression_id).unwrap();
+    let result = service.query(query.to_json().as_bytes()).unwrap();
+    let body = payload(&result);
+
+    // identity_bytes + zero_bytes + 160 fillers = 162 candidates at this
+    // position, all with no effect target lacks; the cap must bite.
+    assert_eq!(body["totals"]["admitted"], 162);
+    assert_eq!(body["totals"]["admitted_truncated"], true);
+    assert_eq!(body["admitted"].as_array().unwrap().len(), 128);
+    let admitted_calls = names(&body["admitted"], "stable_id");
+    assert!(admitted_calls.contains(&"next_construct.identity_bytes".to_owned()));
+    assert!(admitted_calls.contains(&"next_construct.zero_bytes".to_owned()));
+
+    // Determinism: truncation drops the same deterministic tail every time,
+    // not an order-dependent one.
+    let repeat = service.query(query.to_json().as_bytes()).unwrap();
+    assert_eq!(repeat.to_json(), result.to_json());
 }

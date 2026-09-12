@@ -276,6 +276,107 @@ fn calling_an_owning_closure_with_an_explicit_argument_is_rejected() {
 }
 
 #[test]
+fn constructing_an_owning_closure_over_a_maybe_moved_capture_is_rejected() {
+    // `check_construction`'s `Availability::MaybeMoved` arm (a capture moved
+    // on only one control-flow branch, not every branch) is a distinct
+    // diagnostic (`SPX-O107`) from the definite-move case covered above
+    // (`SPX-O101`), and no test exercised it: every existing case either
+    // moves the capture on every path or not at all. `flag` is an ordinary
+    // parameter (not a literal) so the join is genuinely conditional to the
+    // checker, matching the pattern used throughout
+    // `tests/language/ownership_control_flow.rs`.
+    let source_text = r#"module test.owning_closures_maybe_moved;
+@id("owning.checksum") fn checksum(payload: own Bytes) -> i64 {
+    42
+}
+@id("owning.branch") fn branch(flag: bool) -> i64 {
+    let payload = bytes_zeroed(4usize);
+    let chosen = if flag { checksum(payload) } else { 0 };
+    let clo = own fn() -> i64 { checksum(payload) };
+    clo() + chosen
+}
+@id("owning.main") fn main() -> i64 { branch(true) }
+"#;
+    let codes = match semaprax::check(source_text, "owning-closures-maybe-moved.spx") {
+        Ok(_) => Vec::new(),
+        Err(diagnostics) => diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.severity.is_error())
+            .map(|diagnostic| diagnostic.code)
+            .collect::<Vec<_>>(),
+    };
+    assert!(
+        codes.contains(&"SPX-O107"),
+        "constructing an owning closure over a conditionally-moved capture must be rejected, got {codes:?}"
+    );
+    assert!(
+        !codes.contains(&"SPX-O101"),
+        "a conditional (not definite) prior move must not be reported as the definite-move code, got {codes:?}"
+    );
+}
+
+#[test]
+fn calling_an_owning_closure_that_was_maybe_moved_on_one_branch_is_rejected() {
+    // The mirror case at the *call* site: `check_call`'s own
+    // `Availability::MaybeMoved` arm, hit when the closure binding itself
+    // (not its capture) was consumed on only one branch of a prior
+    // conditional. Distinct code path from the two-call `SPX-O101` case
+    // above, and from the construction-time `SPX-O107` case just above.
+    let source_text = r#"module test.owning_closures_call_maybe_moved;
+@id("owning.checksum") fn checksum(payload: own Bytes) -> i64 {
+    42
+}
+@id("owning.branch") fn branch(flag: bool) -> i64 {
+    let payload = bytes_zeroed(4usize);
+    let clo = own fn() -> i64 { checksum(payload) };
+    let chosen = if flag { clo() } else { 0 };
+    let second = clo();
+    chosen + second
+}
+@id("owning.main") fn main() -> i64 { branch(true) }
+"#;
+    let codes = match semaprax::check(source_text, "owning-closures-call-maybe-moved.spx") {
+        Ok(_) => Vec::new(),
+        Err(diagnostics) => diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.severity.is_error())
+            .map(|diagnostic| diagnostic.code)
+            .collect::<Vec<_>>(),
+    };
+    assert!(
+        codes.contains(&"SPX-O107"),
+        "calling an owning closure conditionally consumed on one branch must be rejected, got {codes:?}"
+    );
+    assert!(
+        !codes.contains(&"SPX-O101"),
+        "a conditional (not definite) prior call must not be reported as the definite-move code, got {codes:?}"
+    );
+}
+
+#[test]
+fn constructing_an_owning_closure_over_a_capture_with_a_live_byte_view_is_rejected() {
+    // `check_construction` has its own `has_active_overlapping_loan` check
+    // (mirroring, but distinct from, the general call-argument check in
+    // `arguments.rs`), and no test drove it through the owning-closure
+    // path specifically. Pattern mirrors
+    // `a_frozen_buffer_has_exactly_one_owner_and_no_stale_view` in
+    // `tests/language/owned_byte_buffer_v1.rs`: the view must be used after
+    // the transferring point, or the loan would already be released as
+    // dead before the check runs.
+    let body = r#"
+    let payload = bytes_zeroed(4usize);
+    let view = bytes_as_slice(payload);
+    let clo = own fn() -> i64 { checksum(payload) };
+    if byte_len(view) == 4usize { 0 } else { 1 }
+"#;
+    let codes = error_codes(body);
+    assert!(
+        codes.contains(&"SPX-T265"),
+        "constructing an owning closure that transfers a capture with a live lexical byte view must be rejected, got {codes:?}"
+    );
+}
+
+#[test]
 fn an_owning_closure_with_an_explicit_parameter_is_rejected_by_the_parser() {
     // This bounded profile fixes the parameter list at zero: `own fn(...)`
     // with any explicit parameter must fail to parse with a dedicated code,

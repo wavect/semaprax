@@ -60,6 +60,7 @@ pub mod capability_manifest;
 pub mod cleanup;
 pub mod cleanup_plan;
 pub mod codegen;
+pub mod compact_semantic_projection;
 pub(crate) mod command_io_ops;
 pub(crate) mod command_profile;
 pub mod conformance;

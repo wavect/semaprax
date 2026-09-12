@@ -346,7 +346,9 @@
             "This module is the pure, effect-free decision-procedure layer for issue",
             "#191's authentication/session profile: session lifecycle legality, CSRF",
             "and cookie policy, constant-time secret comparison, closed-algorithm token",
-            "verification, password-hash *policy* bounds, and audit-event safety.",
+            "verification, password-hash *policy* bounds, audit-event safety, and an",
+            "OAuth/OIDC authorization-code callback policy (state binding, redirect-uri",
+            "matching, PKCE challenge validity, and single-use code freshness).",
             "",
             "It performs no I/O, declares no `permit`, and calls no `uses`-gated",
             "operation. Every function is a pure predicate or pure state transition over",
@@ -909,6 +911,136 @@
           "id": "std.auth.audit.event_is_complete",
           "kind": "function",
           "name": "audit_event_is_complete",
+          "requires": 0
+        },
+        {
+          "description": [
+            "---------------------------------------------------------------------",
+            "OAuth/OIDC authorization-code callback policy (the issue's \"OAuth/OIDC",
+            "adapter interface as a later part of the same profile if scope permits\")",
+            "---------------------------------------------------------------------",
+            "Same posture as token verification: this package decides over",
+            "caller-supplied signals only. It never opens a redirect, never calls a",
+            "token endpoint, and — exactly like `token_verification_admits`'s",
+            "`has_valid_signature` — never computes the SHA-256 hash PKCE's `S256`",
+            "method needs. `oauth_pkce_challenge_is_valid`'s `has_valid_s256_hash`",
+            "parameter is that same opaque, already-decided `bool`, for the same reason:",
+            "this pure, effect-free layer has no cryptographic primitive to compute one.",
+            "",
+            "`state` binds an authorization request to its callback (the OAuth CSRF",
+            "defense) and `redirect_uri` is compared against the single value the",
+            "deployment registered for this client — both public, request-shaped",
+            "values, but compared with `ct_bytes_equal` anyway, exactly like",
+            "`token_issuer_matches`/`token_audience_matches`: it costs nothing extra at",
+            "these sizes and removes one more comparison a reviewer has to re-verify."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn oauth_state_matches(presented: borrow Slice<u8>, expected: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.auth.oauth.state_matches",
+          "kind": "function",
+          "name": "oauth_state_matches",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn oauth_redirect_uri_matches(presented: borrow Slice<u8>, expected: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.auth.oauth.redirect_uri_matches",
+          "kind": "function",
+          "name": "oauth_redirect_uri_matches",
+          "requires": 0
+        },
+        {
+          "description": [
+            "An authorization code is single-use by construction: this is the same",
+            "\"replay is fresh\" question `token_replay_is_fresh` answers, under the",
+            "domain-specific name a caller composing an OAuth callback reads directly."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn oauth_authorization_code_is_fresh(seen_before: bool) -> bool"
+          ],
+          "id": "std.auth.oauth.authorization_code_is_fresh",
+          "kind": "function",
+          "name": "oauth_authorization_code_is_fresh",
+          "requires": 0
+        },
+        {
+          "description": [
+            "`method_id`: 0 is the reserved \"no PKCE\" marker and is never allowed — this",
+            "policy requires PKCE on every authorization-code exchange; 1 names `plain`",
+            "and 2 names `S256`. Any other value is refused identically to \"none\", the",
+            "same closed-allow-list idiom `token_algorithm_is_allowed` uses."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn oauth_pkce_method_is_allowed(method_id: u8) -> bool"
+          ],
+          "id": "std.auth.oauth.pkce_method_is_allowed",
+          "kind": "function",
+          "name": "oauth_pkce_method_is_allowed",
+          "requires": 0
+        },
+        {
+          "description": [
+            "`plain` compares the verifier directly against the challenge with the",
+            "constant-time primitive (the verifier is secret-shaped up to the moment of",
+            "exchange). `S256` cannot be computed here; `has_valid_s256_hash` is the",
+            "deployment's own SHA-256 comparison result, taken as opaque input. Any",
+            "method outside the closed allow-list above is refused, never treated as",
+            "one of the two known methods by default."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn oauth_pkce_challenge_is_valid(method_id: u8, code_verifier: borrow Slice<u8>, code_challenge: borrow Slice<u8>, has_valid_s256_hash: bool) -> bool"
+          ],
+          "id": "std.auth.oauth.pkce_challenge_is_valid",
+          "kind": "function",
+          "name": "oauth_pkce_challenge_is_valid",
+          "requires": 0
+        },
+        {
+          "description": [
+            "The authorization-request-side check a caller performs before redirecting",
+            "the user agent to the identity provider: the PKCE method it is about to",
+            "commit to is one this policy allows. State and redirect-uri values here are",
+            "the ones this deployment is about to mint, checked against themselves only",
+            "to keep one call shape with the callback-side check below."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn oauth_authorization_request_is_valid(state: borrow Slice<u8>, expected_state: borrow Slice<u8>, redirect_uri: borrow Slice<u8>, expected_redirect_uri: borrow Slice<u8>, pkce_method_id: u8) -> bool"
+          ],
+          "id": "std.auth.oauth.authorization_request_is_valid",
+          "kind": "function",
+          "name": "oauth_authorization_request_is_valid",
+          "requires": 0
+        },
+        {
+          "description": [
+            "The closed policy check for an authorization-code callback: state",
+            "(CSRF binding), redirect URI, PKCE challenge, and single-use freshness all",
+            "collapse to one boolean a caller can gate a token exchange on — the same",
+            "composition idiom `token_claims_are_valid` uses for its own attack classes."
+          ],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn oauth_callback_is_valid(state: borrow Slice<u8>, expected_state: borrow Slice<u8>, redirect_uri: borrow Slice<u8>, expected_redirect_uri: borrow Slice<u8>, pkce_method_id: u8, code_verifier: borrow Slice<u8>, code_challenge: borrow Slice<u8>, has_valid_s256_hash: bool, code_seen_before: bool) -> bool"
+          ],
+          "id": "std.auth.oauth.callback_is_valid",
+          "kind": "function",
+          "name": "oauth_callback_is_valid",
           "requires": 0
         }
       ],
@@ -3154,18 +3286,18 @@
           "description": [
             "Offset just past a bare key starting at `start`, or a failure encoding when",
             "no bare-key byte is admitted at `start`.",
-            "The scan itself walks bytes one at a time with `byte_get`, never testing a",
-            "growing `byte_range` sub-slice inside the loop: `byte_range` is not one of",
-            "the two shapes a `while` loop may call",
-            "(`hir::validation::owned_buffer::require_admitted_while_operation` admits",
-            "only `byte_len`/`byte_get` reads and a loop-carried `bytes_set` fill), so it",
-            "is rejected with `SPX-H006` regardless of the corrected Wasm decoder (issue",
-            "#100, comment 5626417135) - confirmed while attempting the issue #218",
-            "restoration directly inside this while-loop scanner.",
-            "`byte_range` is restored here instead the way issue #218 asks: once, after",
-            "the loop has already left `index` past the last admitted byte, reusing",
-            "`is_bare_key` on the exact `[start, index)` sub-slice the scan found. That",
-            "call sits outside any `while` body, so the compiler admits it, and it is",
+            "The scan walks bytes one at a time with `byte_get`, then calls `byte_range`",
+            "once after the loop, reusing `is_bare_key` on the exact `[start, index)`",
+            "sub-slice the scan found.",
+            "This is a design choice, not a compiler constraint. `byte_range` IS admitted",
+            "inside a `while` body: `hir::validation::iterator_loops` has its own",
+            "admission arm for `ResolvedExprKind::ByteRange`, requiring an authenticated",
+            "byte-slice alias, and that node never reaches",
+            "`owned_buffer::require_admitted_while_operation` (which governs `ByteOp`",
+            "calls such as `byte_len`/`byte_get`/`bytes_set`). Verified directly against",
+            "this compiler. An earlier revision of this comment claimed the opposite.",
+            "One post-loop call is preferred because it decodes one range-descriptor",
+            "carrier per key instead of one per byte, and because it is",
             "not a no-op check: it is the only call in this module that actually decodes",
             "a range-descriptor carrier end to end (build it from `start`/`index`, hand",
             "it across the Wasm host boundary, read it back), so a corrupt carrier on",

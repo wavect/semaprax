@@ -166,6 +166,7 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | `verify-build` | `Rust build ubuntu-latest`, `Rust build macos-latest`, `Rust build windows-latest` | 3 |
 | `verify-tests` | `Rust tests <os> (unit \| integration-0 \| integration-1 \| integration-2)` over the three hosts | 12 |
 | `desktop-native-product` | `Private desktop + native UI product (windows-2025 \| macos-15)` | 2 |
+| `doctor-macos-confinement` | `Doctor macOS Seatbelt confinement and settlement` | 1 |
 | `ios-static-cross-check` | `Private iOS static loader + host runtime` | 1 |
 | `ios-swift-app-cross-check` | `Private Swift/iOS application + XCFramework runtime` | 1 |
 | `android-emulator-cross-check` | `Private Android dynamic loader + host runtime` | 1 |
@@ -176,7 +177,7 @@ gh api repos/wavect/semaprax/commits/main/check-runs \
 | `release-gate` | **`Release gate`** | 1 |
 
 The authored workflow additionally includes the three AGENT-06 client contexts
-and the GEN-05B closure context. With `verify-build`, it declares 52 blocking
+and the GEN-05B closure context. With `verify-build`, it declares 53 blocking
 contexts plus the aggregate; the new build, library-depth, and public generic
 ownership milestone contexts await hosted execution.
 `release-artifacts`
@@ -186,7 +187,7 @@ workflow adds `Build book` and, on `main` pushes only, `Deploy to GitHub Pages`.
 
 ## The aggregate gate
 
-`.github/workflows/ci.yml` shards across twenty-two blocking jobs whose names and
+`.github/workflows/ci.yml` shards across twenty-three blocking jobs whose names and
 matrix legs change often. Pinning twenty-plus expanded context names into a ruleset
 would make every sharding change a repository-administration change. The
 proposal requires exactly one context instead: **`Release gate`**, the job that
@@ -201,7 +202,7 @@ An aggregate is only worth requiring if it cannot be satisfied vacuously. The
   environment, and fails unless **every** upstream entry has
   `result == "success"` -- `failure`, `skipped`, and `cancelled` are all
   rejected by name;
-- passes `--min-jobs 22`, so an accidentally emptied or narrowed `needs:` list
+- passes `--min-jobs 23`, so an accidentally emptied or narrowed `needs:` list
   cannot pass vacuously on `{}`;
 - checks out the repository and compares `git rev-parse HEAD` against
   `${{ github.sha }}`, so a verdict cannot be attributed to another commit.

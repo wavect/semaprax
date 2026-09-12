@@ -24,6 +24,7 @@ pub(crate) const RELEASE_BLOCKERS: &[&str] = &[
     "verify-build",
     "verify-tests",
     "desktop-native-product",
+    "doctor-macos-confinement",
     "ios-static-cross-check",
     "ios-swift-app-cross-check",
     "android-emulator-cross-check",

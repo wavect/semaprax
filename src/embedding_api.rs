@@ -482,8 +482,8 @@ mod tests {
     }
 
     #[test]
-    fn embedding_format_boundary_normalizes_a_panic_into_a_diagnostic_never_propagating_the_unwind(
-    ) {
+    fn embedding_format_boundary_normalizes_a_panic_into_a_diagnostic_never_propagating_the_unwind()
+    {
         let outcome = format_with(&PanickingFormatter, "panicking.spx", "irrelevant");
         assert!(!outcome.ok);
         assert_eq!(outcome.diagnostics.len(), 1);

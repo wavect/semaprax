@@ -1405,6 +1405,34 @@ jobs:
             "$RUNNER_TEMP/semaprax-private-desktop-ui-v1" \
             "$RUNNER_TEMP/semaprax-private-desktop-v3"
 
+  doctor-macos-confinement:
+    name: Doctor macOS Seatbelt confinement and settlement
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      # Seatbelt enforcement is a property of a real macOS kernel. Nothing on a
+      # Linux runner can stand in for it, which is why this is its own job
+      # rather than a step in an existing matrix: a skipped step reads as a
+      # pass, and the whole point of the contract in
+      # docs/DOCTOR-PRODUCTION-PROVISIONER-MACOS-V1.md is that a denial must be
+      # observed, not assumed.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.97.1
+      - name: Fetch the locked dependency closure
+        run: cargo fetch --locked
+      - name: Prove the confinement primitive denies a real escape
+        run: |
+          cargo test --locked --offline \
+            -p semaprax-native-rust-interop-platform-sys \
+            --lib doctor::darwin_confinement
+
   ios-static-cross-check:
     name: Private iOS static loader + host runtime
     runs-on: macos-latest
@@ -1741,6 +1769,7 @@ jobs:
       - verify-build
       - verify-tests
       - desktop-native-product
+      - doctor-macos-confinement
       - ios-static-cross-check
       - ios-swift-app-cross-check
       - android-emulator-cross-check
@@ -1762,7 +1791,7 @@ jobs:
           SEMAPRAX_CI_NEEDS: ${{ toJSON(needs) }}
         run: |
           python3 scripts/ci-required-checks.py \
-            --min-jobs 22 \
+            --min-jobs 23 \
             --sha "${{ github.sha }}" \
             --head-sha "$(git rev-parse HEAD)"
 

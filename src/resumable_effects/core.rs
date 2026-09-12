@@ -214,7 +214,9 @@ pub struct Journal<P: ResumableEffectProgram> {
 
 impl<P: ResumableEffectProgram> Default for Journal<P> {
     fn default() -> Self {
-        Self { entries: Vec::new() }
+        Self {
+            entries: Vec::new(),
+        }
     }
 }
 
@@ -281,7 +283,8 @@ impl<P: ResumableEffectProgram> Journal<P> {
                     open_request = Some(request);
                     phase = Phase::AfterIntent;
                 }
-                JournalEntry::Observed { request, .. } | JournalEntry::ObservationFailed { request, .. } => {
+                JournalEntry::Observed { request, .. }
+                | JournalEntry::ObservationFailed { request, .. } => {
                     if phase != Phase::AfterIntent {
                         return Err(JournalError::OutOfOrder { at });
                     }
@@ -336,14 +339,21 @@ pub enum DriverError {
     /// A replayed turn recomputed a different `request` than the journal
     /// recorded: the program is not the deterministic function it claims,
     /// or the journal was tampered with.
-    RequestDrift { turn: u32 },
+    RequestDrift {
+        turn: u32,
+    },
     /// A replayed turn recomputed a different `Transition` than the
     /// journal recorded.
-    TransitionDrift { turn: u32 },
+    TransitionDrift {
+        turn: u32,
+    },
     /// The physical handler reported failure for a freshly dispatched
     /// request. The failed intent remains in the returned journal for a
     /// later authorized resume; no transition is recorded for it.
-    HandlerFailed { turn: u32, reason: String },
+    HandlerFailed {
+        turn: u32,
+        reason: String,
+    },
     /// The turn ceiling was reached before a terminal step was selected.
     BudgetExhausted,
     /// The caller's cancellation check returned true at a turn boundary.
@@ -354,6 +364,15 @@ pub enum DriverError {
 /// step. Success carries the completed journal; failure carries the
 /// journal too (the latest durable checkpoint candidate), exactly as a
 /// caller needs it for a later authorized resume.
+/// What a drive attempt yields: either the terminal outcome, or the error that
+/// stopped it — and in **both** cases the journal as it stands.
+///
+/// The journal is returned on the error path deliberately. A run that fails
+/// part-way still produced durable entries up to that point, and a caller needs
+/// them to decide whether a later authorized resume is possible. Dropping the
+/// journal on failure would discard exactly the evidence recovery depends on.
+pub type DriveResult<P> = Result<(Outcome<P>, Journal<P>), (DriverError, Journal<P>)>;
+
 pub fn run<P: ResumableEffectProgram>(
     program: &P,
     scope: EffectScope,
@@ -362,7 +381,7 @@ pub fn run<P: ResumableEffectProgram>(
     handler: &mut dyn EffectHandler<P::Request, P::Observation>,
     cleanup: &mut dyn CleanupHandler<P::CleanupOp>,
     cancelled: &dyn Fn() -> bool,
-) -> Result<(Outcome<P>, Journal<P>), (DriverError, Journal<P>)> {
+) -> DriveResult<P> {
     resume(
         program,
         scope,
@@ -391,7 +410,7 @@ pub fn resume<P: ResumableEffectProgram>(
     handler: &mut dyn EffectHandler<P::Request, P::Observation>,
     cleanup_handler: &mut dyn CleanupHandler<P::CleanupOp>,
     cancelled: &dyn Fn() -> bool,
-) -> Result<(Outcome<P>, Journal<P>), (DriverError, Journal<P>)> {
+) -> DriveResult<P> {
     if let Err(e) = journal.validate(&scope) {
         return Err((DriverError::Journal(e), journal));
     }

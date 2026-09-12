@@ -94,6 +94,6 @@ pub mod core;
 mod tests;
 
 pub use core::{
-    run, resume, CleanupHandler, DriverError, EffectHandler, EffectScope, Journal, JournalEntry,
+    resume, run, CleanupHandler, DriverError, EffectHandler, EffectScope, Journal, JournalEntry,
     JournalError, Outcome, ResumableEffectProgram, Step,
 };

@@ -182,8 +182,8 @@ fn ownership_parameter_obligation(declaration_id: &str, index: usize) -> Obligat
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::obligation::obligation_id;
+    use super::*;
 
     fn program(source: &str) -> Program {
         crate::parse(source, "derive-test.spx").expect("parse")
@@ -343,7 +343,11 @@ fn classify() -> i64
         assert_eq!(matches[0].declaration_id, "app.derive.classify");
         assert_eq!(
             matches[0].id,
-            obligation_id(ObligationKind::Exhaustiveness, "app.derive.classify", "match:0"),
+            obligation_id(
+                ObligationKind::Exhaustiveness,
+                "app.derive.classify",
+                "match:0"
+            ),
             "obligation id must be exactly obligation_id(Exhaustiveness, decl, \"match:0\")"
         );
         assert!(

@@ -633,12 +633,10 @@ pub(super) fn assurance_manifest_options(
         }
         index += 2;
     }
-    assurance_manifest::AssuranceManifestOptions::new(max_bytes, max_obligations).map_err(
-        |error| {
-            eprintln!("{error}");
-            2
-        },
-    )
+    assurance_manifest::AssuranceManifestOptions::new(max_bytes, max_obligations).map_err(|error| {
+        eprintln!("{error}");
+        2
+    })
 }
 
 fn assurance_policy_profile(

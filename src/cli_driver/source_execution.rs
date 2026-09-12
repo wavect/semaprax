@@ -506,8 +506,8 @@ pub(super) fn run_assurance(
     command_id: super::cli::help::CommandId,
     args: &[String],
 ) -> Result<(), u8> {
-    use semaprax::{assurance_manifest, assurance_policy};
     use super::cli::help::CommandId;
+    use semaprax::{assurance_manifest, assurance_policy};
     if command_id == CommandId::AssuranceManifest {
         let path = required_path(args, 1)?;
         let options = assurance_manifest_options(args)?;

@@ -885,8 +885,7 @@ fn unicode_and_control_core_source_fixture_actually_has_every_hazard() {
         source.contains("http://example.com // not a comment"),
         "missing the string literal containing //"
     );
-    let (program, comments) =
-        semaprax::parse_with_comments(&source, "src/core.spx").unwrap();
+    let (program, comments) = semaprax::parse_with_comments(&source, "src/core.spx").unwrap();
     assert_eq!(
         semaprax::format::comments::canonical_with_comments(&program, &comments),
         source,

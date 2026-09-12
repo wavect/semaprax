@@ -160,10 +160,7 @@ impl RetainedProgramStore {
         let parsed = crate::parse(source, Path::new("retained-program-store.spx"))
             .map_err(|error| io_error("retained source does not parse", error))?;
         let program = crate::hir::resolve(&parsed).map_err(|mut errors| {
-            io_error(
-                "retained source does not resolve",
-                errors.remove(0).message,
-            )
+            io_error("retained source does not resolve", errors.remove(0).message)
         })?;
         let digest = super::recompute_program_root_digest(&program);
         Ok((program, digest))
@@ -203,8 +200,7 @@ impl RetainedProgramStore {
         });
         std::fs::write(
             self.entry_path(&digest),
-            serde_json::to_vec(&payload)
-                .expect("a JSON object of two strings always serializes"),
+            serde_json::to_vec(&payload).expect("a JSON object of two strings always serializes"),
         )
         .map_err(|error| io_error("cannot persist the retained entry", error))?;
         Ok(digest)
@@ -229,7 +225,10 @@ impl RetainedProgramStore {
             )
         })?;
         let source = value["source"].as_str().ok_or_else(|| {
-            refusal(RETAINED_SUBJECT_UNAVAILABLE, "retained entry has no source field")
+            refusal(
+                RETAINED_SUBJECT_UNAVAILABLE,
+                "retained entry has no source field",
+            )
         })?;
         let source_revision = value["source_revision"]
             .as_str()

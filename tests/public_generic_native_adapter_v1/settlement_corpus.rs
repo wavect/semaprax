@@ -1075,7 +1075,8 @@ fn compare_case(
                 interpreter.trace.as_slice(),
                 "case {:?}: {}'s normalized trace through TerminalStatus does not match \
                  interpreter/core-wasm's full trace (issue #240 divergences 1 and 2)",
-                case.case_id, native.engine_id
+                case.case_id,
+                native.engine_id
             );
         }
     }
@@ -1093,7 +1094,8 @@ fn compare_case(
     // one permitted difference exactly, rather than merely not comparing
     // it, per docs/PUBLIC-GENERIC-CARRIER-V1.md's "Nonclaims (reference
     // interpreter adapter and cross-engine corpus)".
-    if case.case_id == "first_over_max_bytes_per_leaf" || case.case_id == "first_over_max_leaf_count"
+    if case.case_id == "first_over_max_bytes_per_leaf"
+        || case.case_id == "first_over_max_leaf_count"
     {
         assert_eq!(
             interpreter.trace,
@@ -1116,7 +1118,8 @@ fn compare_case(
                 "case {:?}: {}'s trace on this bound rejection is no longer exactly \
                  [TerminalStatus]; issue #240 divergence 3's permitted difference no longer \
                  holds as specified",
-                case.case_id, native.engine_id
+                case.case_id,
+                native.engine_id
             );
         }
     }
@@ -1150,7 +1153,8 @@ fn compare_case(
                 native.trace.contains(&input_value_prepared),
                 "case {:?}: {}'s trace no longer contains InputValuePrepared; issue #240 \
                  divergence 4's permitted difference no longer holds as specified",
-                case.case_id, native.engine_id
+                case.case_id,
+                native.engine_id
             );
         }
     }
@@ -1427,7 +1431,11 @@ fn compare_case_rejects_a_native_trace_that_no_longer_contains_input_value_prepa
     let input_value_prepared = TraceLabel::InputValuePrepared as u32;
     let mut corrupted_o0 = o0[index].outcome.clone();
     let mut corrupted_o2 = o2[index].outcome.clone();
-    corrupted_o0.trace.retain(|&label| label != input_value_prepared);
-    corrupted_o2.trace.retain(|&label| label != input_value_prepared);
+    corrupted_o0
+        .trace
+        .retain(|&label| label != input_value_prepared);
+    corrupted_o2
+        .trace
+        .retain(|&label| label != input_value_prepared);
     compare_case(case, &interpreter, &wasm, &corrupted_o0, &corrupted_o2);
 }

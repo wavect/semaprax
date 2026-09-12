@@ -6,6 +6,11 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 mod doctor;
+/// The macOS Seatbelt confinement and settlement primitive of
+/// `docs/DOCTOR-PRODUCTION-PROVISIONER-MACOS-V1.md`. Exported so the
+/// doctor lifecycle can adopt it; it is a primitive, not yet a route.
+#[cfg(target_os = "macos")]
+pub use doctor::darwin_confinement;
 pub use doctor::{
     collect_provisioned_doctor_worker, finish_provisioned_doctor_report, DoctorOfflineTarget,
     SettledDoctorObservation, SettledDoctorTool,

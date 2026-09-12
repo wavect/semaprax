@@ -59,7 +59,10 @@ fn healthy_confined_process_settles_completed_and_writes_only_inside_scratch() {
     let settled = settle(confined, Duration::from_secs(5));
     assert_eq!(settled.status, Settlement::Completed);
     assert!(String::from_utf8_lossy(&settled.stdout).contains("healthy-ok"));
-    assert_eq!(std::fs::read(scratch.join("ok.txt")).unwrap(), b"confined-ok");
+    assert_eq!(
+        std::fs::read(scratch.join("ok.txt")).unwrap(),
+        b"confined-ok"
+    );
 }
 
 /// The deliberate confinement escape this contract requires: a confined
@@ -113,7 +116,8 @@ fn deliberate_confinement_escape_network_connect_is_denied_with_eperm() {
         .unwrap();
     let baseline_stdout = String::from_utf8_lossy(&baseline.stdout).into_owned();
     assert!(
-        baseline_stdout.contains("connect-denied:") && !baseline_stdout.contains("connect-permitted"),
+        baseline_stdout.contains("connect-denied:")
+            && !baseline_stdout.contains("connect-permitted"),
         "expected an unconfined ECONNREFUSED-style baseline (nothing listens on the fixed \
          loopback port), got: {baseline_stdout}"
     );
@@ -122,8 +126,8 @@ fn deliberate_confinement_escape_network_connect_is_denied_with_eperm() {
         "baseline must fail for a network reason, not already read as EPERM: {baseline_stdout}"
     );
 
-    let confined = confined_spawn(fixture_binary(), &[OsStr::new("escape-network")], &scratch)
-        .unwrap();
+    let confined =
+        confined_spawn(fixture_binary(), &[OsStr::new("escape-network")], &scratch).unwrap();
     let settled = settle(confined, Duration::from_secs(5));
     assert_eq!(settled.status, Settlement::Completed);
     let stdout = String::from_utf8_lossy(&settled.stdout).into_owned();
@@ -144,10 +148,7 @@ fn scratch_root_containing_seatbelt_metacharacters_is_escaped_not_injected() {
 
     let confined_inside = confined_spawn(
         fixture_binary(),
-        &[
-            OsStr::new("healthy"),
-            scratch.as_os_str(),
-        ],
+        &[OsStr::new("healthy"), scratch.as_os_str()],
         &scratch,
     )
     .unwrap();
@@ -176,7 +177,10 @@ fn confined_process_exiting_nonzero_settles_failed_with_exact_exit_code() {
     let scratch = fresh_dir("fail-scratch");
     let confined = confined_spawn(fixture_binary(), &[OsStr::new("fail")], &scratch).unwrap();
     let settled = settle(confined, Duration::from_secs(5));
-    assert_eq!(settled.status, Settlement::Failed(FailureReason::ExitCode(9)));
+    assert_eq!(
+        settled.status,
+        Settlement::Failed(FailureReason::ExitCode(9))
+    );
 }
 
 #[test]
@@ -195,8 +199,8 @@ fn confined_process_exceeding_deadline_settles_cancelled_not_completed_or_failed
 #[test]
 fn a_descendant_left_behind_in_the_confined_group_settles_uncertain_not_completed() {
     let scratch = fresh_dir("leak-scratch");
-    let confined = confined_spawn(fixture_binary(), &[OsStr::new("leak-descendant")], &scratch)
-        .unwrap();
+    let confined =
+        confined_spawn(fixture_binary(), &[OsStr::new("leak-descendant")], &scratch).unwrap();
     let settled = settle(confined, Duration::from_secs(5));
     assert_eq!(
         settled.status,

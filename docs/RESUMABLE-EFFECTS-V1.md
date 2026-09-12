@@ -2,13 +2,11 @@
 
 Status: **reference validator**, not yet source syntax. Issue #204 asks the
 compiler to let an ordinary, non-Agent function declare typed resumable
-effects with the same generality Aver's `yield` lowering has. This document
-records the full design that generalization needs and states, exactly, how
-far this slice carries it: a Rust-level generic driver and journal
-(`src/resumable_effects/`) that proves the required suspend/resume semantic
-properties end to end, plus this design. It does **not** add `.spx` syntax,
-an HIR node, a verifier rule, a semantic-graph projection, or native/Wasm
-lowering — see [Scope boundary](#scope-boundary).
+effects with the same generality Aver's `yield` lowering has. This slice
+delivers a Rust-level generic driver and journal (`src/resumable_effects/`)
+proving the suspend/resume semantics, plus this design. It adds no `.spx`
+syntax, HIR node, verifier rule, graph projection, or backend lowering --
+see [Scope boundary](#scope-boundary).
 
 Audience: compiler contributors implementing the source-syntax/HIR/backend
 generalization this document specifies, and reviewers auditing what #204

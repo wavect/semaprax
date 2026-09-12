@@ -34,7 +34,7 @@ const SANDBOX_EXEC: &str = "/usr/bin/sandbox-exec";
 const POLL_INTERVAL: Duration = Duration::from_millis(20);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum ConfinementError {
+pub enum ConfinementError {
     /// The fixed confinement launcher is absent or not a regular file. This
     /// is fail-closed: the caller never falls back to an unconfined spawn.
     Unsupported,
@@ -44,13 +44,13 @@ pub(crate) enum ConfinementError {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum FailureReason {
+pub enum FailureReason {
     ExitCode(i32),
     Signal(i32),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum UncertainReason {
+pub enum UncertainReason {
     /// `waitpid`-equivalent observation itself failed or errored.
     WaitFailed,
     /// The confined process group still has a member after settlement was
@@ -67,7 +67,7 @@ pub(crate) enum UncertainReason {
 /// deadline fired), and an uncertain one (the operation may or may not have
 /// taken effect). See [`StickySettlement`] for why they cannot collapse.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum Settlement {
+pub enum Settlement {
     Completed,
     Failed(FailureReason),
     Cancelled,
@@ -81,10 +81,10 @@ pub(crate) enum Settlement {
 /// proof of settlement by itself -- the group-emptiness check that runs
 /// after it is part of proving settlement, not cleanup after it.
 #[derive(Debug, Default)]
-pub(crate) struct StickySettlement(Option<Settlement>);
+pub struct StickySettlement(Option<Settlement>);
 
 impl StickySettlement {
-    pub(crate) fn select(&mut self, candidate: Settlement) {
+    pub fn select(&mut self, candidate: Settlement) {
         match self.0 {
             None => self.0 = Some(candidate),
             Some(Settlement::Completed) if !matches!(candidate, Settlement::Completed) => {
@@ -94,7 +94,7 @@ impl StickySettlement {
         }
     }
 
-    pub(crate) fn resolve(self) -> Option<Settlement> {
+    pub fn resolve(self) -> Option<Settlement> {
         self.0
     }
 }
@@ -166,7 +166,7 @@ fn escape_seatbelt_string(path: &Path) -> Result<String, ConfinementError> {
     Ok(escaped)
 }
 
-pub(crate) struct ConfinedChild {
+pub struct ConfinedChild {
     child: Child,
     pgid: libc::pid_t,
     _profile: ScratchProfile,
@@ -176,7 +176,7 @@ pub(crate) struct ConfinedChild {
 /// reading, process exec/fork, and writing under `scratch_root`. `exe` and
 /// `scratch_root` must be absolute; there is no `PATH` lookup anywhere in
 /// this path.
-pub(crate) fn confined_spawn(
+pub fn confined_spawn(
     exe: &Path,
     args: &[&OsStr],
     scratch_root: &Path,
@@ -234,9 +234,9 @@ fn confined_spawn_via(
     })
 }
 
-pub(crate) struct Settled {
-    pub(crate) status: Settlement,
-    pub(crate) stdout: Vec<u8>,
+pub struct Settled {
+    pub status: Settlement,
+    pub stdout: Vec<u8>,
 }
 
 /// Wait for the confined process, enforcing `deadline`, then prove the whole
@@ -246,7 +246,7 @@ pub(crate) struct Settled {
 /// step selects `Uncertain` and is sticky over every later step, including a
 /// clean-looking exit status this function still goes on to inspect for its
 /// own diagnostics but must not use to overwrite that selection.
-pub(crate) fn settle(mut confined: ConfinedChild, deadline: Duration) -> Settled {
+pub fn settle(mut confined: ConfinedChild, deadline: Duration) -> Settled {
     let mut state = StickySettlement::default();
     let start = Instant::now();
     let mut timed_out = false;

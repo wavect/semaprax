@@ -1,5 +1,13 @@
 # Model Budget Policy v1 (issue #179)
 
+Status: **LOCAL** bounded design + reference implementation, fixture-backed.
+No live provider call, budget charge, or billing record was produced to
+support any claim here.
+
+Audience: implementers of issue #179 ("Enforce model call, token, context,
+latency, retry, failover, and cancellation budgets") and reviewers of the
+pre-dispatch admission gate it adds ahead of `live_invocation`.
+
 Implements the pre-dispatch admission gate for the model-call budget
 dimensions issue #113 does not cover: maximum call count, maximum retry
 count (with a proven-safe retry classification gating it), maximum

@@ -1,17 +1,12 @@
 # Session/protocol types v1
 
-Status: **reference validator**, not yet source syntax. Issue #206 asks for a
-bounded, general session/protocol type model -- named states, send/receive/
-effect transitions, branching, terminal states, ownership transfer,
-cancellation, timeout, and duality/compatibility -- applied to at least two
-real Semaprax subsystems. This document records the full design that
-generalization needs and states, exactly, how far this slice carries it: a
-Rust-level generic protocol declaration, an affine typed endpoint, and a
-runtime engine (`src/session_protocol/`) that proves the required message-
-order, ownership, and authority properties end to end, plus this design. It
-does **not** add `.spx` syntax, an HIR node, a verifier rule, or a semantic-
-graph/architecture/Assurance-Manifest projection -- see
-[Scope boundary](#scope-boundary).
+Status: **reference validator**, not yet source syntax. Issue #206 asks for
+a bounded session/protocol type model applied to two real subsystems. This
+slice delivers a Rust-level protocol declaration, an affine typed endpoint,
+and a runtime engine (`src/session_protocol/`) proving the message-order,
+ownership and authority properties, plus this design. It adds no `.spx`
+syntax, HIR node, verifier rule, or graph/architecture/Assurance-Manifest
+projection -- see [Scope boundary](#scope-boundary).
 
 Audience: compiler contributors implementing the source-syntax/HIR/backend
 generalization this document specifies, and reviewers auditing what this

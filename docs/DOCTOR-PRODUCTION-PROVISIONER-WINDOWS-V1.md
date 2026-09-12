@@ -1,18 +1,16 @@
 # Windows doctor confinement and settlement contract v1
 
 Status: **design only. No code lands with this document.** Every execution
-claim in this file is `HUMAN_BLOCKED: needs a Windows host` -- this authoring
-session ran on macOS arm64, has no Windows machine, no provisioned Windows CI
-runner, and no cross-compilation or emulated substitute is treated as
-Windows evidence anywhere below. This document is the Windows half of the
-split [Issue #61](https://github.com/wavect/semaprax/issues/61) asked for;
-the macOS half is
-[DOCTOR-PRODUCTION-PROVISIONER-MACOS-V1](DOCTOR-PRODUCTION-PROVISIONER-MACOS-V1.md),
-which does carry real local execution evidence because that authoring session
-ran on macOS.
+claim here is `HUMAN_BLOCKED: needs a Windows host` -- the authoring session
+ran on macOS arm64, and no cross-compilation or emulated substitute is
+treated as Windows evidence anywhere below.
 
 Audience: release engineers, platform maintainers, and security reviewers
 with access to a real Windows host or a Windows CI runner.
+
+The macOS half of this split is
+[DOCTOR-PRODUCTION-PROVISIONER-MACOS-V1](DOCTOR-PRODUCTION-PROVISIONER-MACOS-V1.md),
+which does carry real local execution evidence.
 
 ## Why this document has no accompanying code
 

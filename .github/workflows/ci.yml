@@ -354,6 +354,12 @@ jobs:
           cargo test --locked -p semaprax --test project standard_library::json_cursors -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::logging -- --nocapture
           cargo test --locked -p semaprax --test project standard_library::catalog -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::environment -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::process -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::text -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::execution_matrix -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::filesystem_v2 -- --nocapture
+          cargo test --locked -p semaprax --test project standard_library::provider_outcomes -- --nocapture
           # Every std package's own interpreter + native-C11 (-O0/-O2) + Core-Wasm
           # conformance test. Added for issue #102, which found that the three
           # top-level sweep tests STANDARD-LIBRARY-V1.md rests its per-backend
@@ -368,6 +374,8 @@ jobs:
             standard_library::async_net_backend_audit::async_http_net_execute_on_all_three_backends \
             standard_library::collections_mem_text_backend_audit::collections_mem_text_execute_on_all_three_backends \
             standard_library::db_jobs_backend_audit::db_and_jobs_execute_on_all_three_backends \
+            standard_library::auth_backend_audit::auth_executes_on_all_three_backends \
+            standard_library::log_redact_backend_audit::log_redact_executes_on_all_three_backends \
             standard_library::committed_catalogs_match_the_sources \
             standard_library::every_public_declaration_has_a_std_identity_contracts_examples_and_conformance
           cargo test --locked -p semaprax --test examples -- --nocapture

@@ -372,7 +372,9 @@ mod semaprax_candidate {
     /// oracle.
     #[test]
     fn unterminated_string_is_rejected_by_the_live_oracle_too() {
-        let token = [34u8, 110, 101, 118, 101, 114, 32, 99, 108, 111, 115, 101, 115];
+        let token = [
+            34u8, 110, 101, 118, 101, 114, 32, 99, 108, 111, 115, 101, 115,
+        ];
         assert_oracle_rejects_as_malformed(&token);
     }
 

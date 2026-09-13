@@ -32,6 +32,7 @@
 //! (`fixture.rs` in this same directory).
 
 use std::env;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -176,6 +177,19 @@ fn run(command: &mut Command, label: &str) -> Output {
         .unwrap_or_else(|error| panic!("run {label}: {error}"))
 }
 
+fn validate_wasm_script() -> &'static str {
+    "import { readFileSync } from 'node:fs';\nconst bytes = readFileSync('reference.wasm');\nif (!WebAssembly.validate(bytes)) { throw new Error('reference.wasm fixture does not validate'); }\nconsole.log('reference.wasm validates');\n"
+}
+
+fn node_from(root: &Path, script: &str, artifact: Option<&str>) -> Command {
+    let mut command = Command::new("node");
+    command.current_dir(root).arg(script);
+    if let Some(artifact) = artifact {
+        command.arg(artifact);
+    }
+    command
+}
+
 fn count_ok_lines(stdout: &str) -> usize {
     stdout
         .lines()
@@ -231,16 +245,9 @@ fn generated_typescript_calling_consumer_executes_against_a_real_wasm_module() {
     // that follows -- a failure here means the fixture itself is broken,
     // not the generated consumer.
     let validate_script = workspace.path("validate.mjs");
-    fs::write(
-        &validate_script,
-        format!(
-            "import {{ readFileSync }} from 'node:fs';\nconst bytes = readFileSync({:?});\nif (!WebAssembly.validate(bytes)) {{ throw new Error('reference.wasm fixture does not validate'); }}\nconsole.log('reference.wasm validates');\n",
-            wasm_path.display()
-        ),
-    )
-    .unwrap();
+    fs::write(&validate_script, validate_wasm_script()).unwrap();
     let validate = run(
-        Command::new("node").arg(&validate_script),
+        &mut node_from(&workspace.0, "validate.mjs", None),
         "node validate.mjs",
     );
     assert!(
@@ -268,10 +275,11 @@ fn generated_typescript_calling_consumer_executes_against_a_real_wasm_module() {
     );
 
     let round_trip = run(
-        Command::new("node")
-            .current_dir(&package_root)
-            .arg("test/round-trip.mjs")
-            .arg(&wasm_path),
+        &mut node_from(
+            &package_root,
+            "test/round-trip.mjs",
+            Some("../reference.wasm"),
+        ),
         "node test/round-trip.mjs",
     );
     let stdout = String::from_utf8_lossy(&round_trip.stdout).into_owned();
@@ -289,6 +297,28 @@ fn generated_typescript_calling_consumer_executes_against_a_real_wasm_module() {
         !stdout.contains("FAIL -"),
         "no selected test may fail:\n{stdout}"
     );
+}
+
+#[test]
+fn node_commands_keep_extended_windows_temp_paths_out_of_entry_arguments() {
+    let workspace = Path::new(r"\\?\C:\Users\runneradmin\AppData\Local\Temp\spx");
+    let validate = node_from(workspace, "validate.mjs", None);
+    assert_eq!(validate.get_current_dir(), Some(workspace));
+    assert_eq!(
+        validate.get_args().collect::<Vec<_>>(),
+        vec![OsStr::new("validate.mjs")]
+    );
+    let package = workspace.join("generated-typescript-consumer");
+    let round_trip = node_from(&package, "test/round-trip.mjs", Some("../reference.wasm"));
+    assert_eq!(round_trip.get_current_dir(), Some(package.as_path()));
+    assert_eq!(
+        round_trip.get_args().collect::<Vec<_>>(),
+        vec![
+            OsStr::new("test/round-trip.mjs"),
+            OsStr::new("../reference.wasm")
+        ]
+    );
+    assert!(validate_wasm_script().contains("readFileSync('reference.wasm')"));
 }
 
 /// The generated package depends on nothing but the pinned `typescript`

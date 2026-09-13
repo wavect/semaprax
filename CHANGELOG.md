@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Run TypeScript/Wasm consumer Node entry points with relative fixture paths
+  to avoid Windows extended-path main-module resolution failures. Complete
+  private OpenCode/source-journal documentation metadata and catalog entries.
+
 - Include Cargo example targets in the CI unit shard, preserving exhaustive
   workspace inventory and refusal of unknown target kinds.
 

@@ -1,5 +1,8 @@
 # OpenCode Host Adapter v1
 
+Status: **LOCAL private-host** contract; no hosted provider evidence.
+Audience: local adapter maintainers and compiler contributors.
+
 ## Status and boundary
 
 This is a **LOCAL private-host** contract for issue #112. It binds one

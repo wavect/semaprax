@@ -1,6 +1,7 @@
 # Source Live Journal v1 — draft contract
 
 Status: **PRIVATE CHECKPOINT PRIMITIVES AND EXPLICIT ATTEMPT ADAPTER; SOURCE DRIVER/REPLAY UNIMPLEMENTED**.
+Audience: compiler contributors and live-invocation integrators.
 `live_invocation::source_journal` implements the bounded typed journal, strict
 canonical checkpoint encoding/recovery, and poisoned store-write cursor.
 `CumulativeBudgetLedger::resume_source` restores its validated charge and

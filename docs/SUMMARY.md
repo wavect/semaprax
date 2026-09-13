@@ -331,6 +331,8 @@ Audience: all documentation readers.
 - [Compact Semantic Projection v1](COMPACT-SEMANTIC-PROJECTION-V1.md)
 - [Agent transport v1](AGENT-TRANSPORT-V1.md)
 - [Live Invocation Contract v1](LIVE-INVOCATION-CONTRACT-V1.md)
+- [Private OpenCode Host Adapter v1](OPENCODE-HOST-ADAPTER-V1.md)
+- [Source Live Journal v1](SOURCE-LIVE-JOURNAL-V1.md)
 - [Live Invocation Persistence v1](LIVE-INVOCATION-PERSISTENCE-V1.md)
 - [Live Invocation Migration v1](LIVE-INVOCATION-MIGRATION-V1.md)
 - [Audit Capsule v1](AUDIT-CAPSULE-V1.md)

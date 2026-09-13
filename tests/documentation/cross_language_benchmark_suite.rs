@@ -623,6 +623,95 @@ mod hidden_tests {
     assert_eq!(record["leak_check"], "ok");
 }
 
+#[test]
+fn structured_input_hidden_oracle_rejects_version_first_candidate_and_visible_test_tampering() {
+    // Mutate the committed public candidate only. The hidden overlay must keep
+    // importing that copied candidate, rather than carrying a reference
+    // implementation that could mask a candidate defect.
+    let directory = scratch("structured-input-wrong-candidate");
+    let source = root()
+        .join(SUITE)
+        .join("tasks/structured-input-error-handling-v1");
+    let task_dir = directory.join("task");
+    let public = task_dir.join("public/rust");
+    let hidden = task_dir.join("hidden/rust");
+    copy_fixture_tree(&source.join("public/rust"), &public);
+    copy_fixture_tree(&source.join("hidden/rust"), &hidden);
+    let wrong_candidate = "\
+pub fn validate(kind: i64, version: i64, payload_len: i64) -> i64 {
+    if version != 1 { 2 }
+    else if kind != 7 { 1 }
+    else if payload_len < 1 || payload_len > 64 { 3 }
+    else { 0 }
+}
+";
+    std::fs::write(public.join("candidate.rs"), wrong_candidate).unwrap();
+    let tasks = serde_json::json!({
+        "schema": "benchmark.cross_language.tasks.v1",
+        "tasks": [{
+            "id": "structured-input-wrong-candidate",
+            "category": "validation",
+            "split": "validation",
+            "summary": "wrong precedence negative control",
+            "languages": {"rust": {"public": "task/public/rust", "hidden": "task/hidden/rust"}}
+        }]
+    });
+    let tasks_path = directory.join("tasks.json");
+    write_json(&tasks_path, &tasks);
+    let run = || {
+        let output = directory.join("result.json");
+        let result = runner()
+            .arg("--root")
+            .arg(&directory)
+            .arg("--tasks")
+            .arg(&tasks_path)
+            .arg("--adapters")
+            .arg(root().join(SUITE).join("adapters.json"))
+            .arg("--only")
+            .arg("structured-input-wrong-candidate")
+            .arg("--language")
+            .arg("rust")
+            .arg("--output")
+            .arg(&output)
+            .output()
+            .unwrap();
+        (result, output)
+    };
+    let (result, output) = run();
+    assert_eq!(result.status.code(), Some(1));
+    let doc = document(&output);
+    let record = result_for(&doc, "structured-input-wrong-candidate::rust");
+    assert_eq!(record["public"]["passed"], true);
+    assert_eq!(record["hidden"]["passed"], false);
+    assert_eq!(record["leak_check"], "ok");
+    assert_eq!(record["status"], "failed");
+
+    // Remove every visible assertion while preserving a valid public Rust
+    // entry. The public phase still passes, but the independently copied
+    // hidden entry imports the same wrong `candidate.rs` and fails.
+    std::fs::write(public.join("main.rs"), "mod candidate;\nfn main() {}\n").unwrap();
+    let (result, output) = run();
+    assert_eq!(result.status.code(), Some(1));
+    let doc = document(&output);
+    let record = result_for(&doc, "structured-input-wrong-candidate::rust");
+    assert_eq!(record["public"]["passed"], true);
+    assert_eq!(record["hidden"]["passed"], false);
+}
+
+fn copy_fixture_tree(source: &Path, destination: &Path) {
+    std::fs::create_dir_all(destination).unwrap();
+    for entry in std::fs::read_dir(source).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        let copied = destination.join(entry.file_name());
+        if path.is_dir() {
+            copy_fixture_tree(&path, &copied);
+        } else {
+            std::fs::copy(path, copied).unwrap();
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // The committed inventory and harness startup.
 // ---------------------------------------------------------------------------
@@ -658,14 +747,34 @@ fn python_entry_point_resolves_the_committed_suite_from_any_working_directory() 
             .filter(|row| row["implemented"] == true)
             .map(|row| row["language"].as_str().unwrap())
             .collect();
-        for language in ["semaprax", "rust", "typescript"] {
+        for language in ["semaprax", "semaprax-project", "rust", "typescript"] {
             assert!(
                 implemented.contains(&language),
                 "{language} must be a wired adapter: {implemented:?}"
             );
         }
+        let inventory: Value = serde_json::from_str(
+            &std::fs::read_to_string(root().join(SUITE).join("tasks.json")).unwrap(),
+        )
+        .unwrap();
         for row in pairs {
-            if row["implemented"] == true {
+            let task = inventory["tasks"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|task| task["id"] == row["task"])
+                .unwrap();
+            let declared = task["languages"]
+                .as_object()
+                .unwrap()
+                .contains_key(row["language"].as_str().unwrap());
+            assert_eq!(
+                row.get("exists").is_some(),
+                declared,
+                "{} must report a directory only when its task declares that adapter",
+                row["id"]
+            );
+            if declared && row["implemented"] == true {
                 assert_eq!(row["exists"], true, "{row} names a missing task directory");
             }
         }

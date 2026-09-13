@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add a separate structured-envelope validation task to the cross-language
+  corpus (#106), with candidate-preserving hidden tests and a negative control
+  for wrong error precedence and removed visible assertions. The additive
+  SEMAPRAX Project adapter leaves the original pilot and task routes intact.
+
 - Connect source checkpoint execution to the checked iterative driver (#113).
   Journal v2 reserves fresh fuel on replay, shares one model-budget ledger,
   persists optional usage and terminal evidence, refuses uncertain redispatch,

@@ -12,6 +12,16 @@
       "success": {"kind": "stdout_equals", "value": "0"}
     },
     {
+      "id": "semaprax-project",
+      "language": "SEMAPRAX Project",
+      "implemented": true,
+      "official_workflow": "semaprax run . against an explicit Project-v1 manifest; the structured-input task uses this route so hidden tests can import the unchanged public candidate module.",
+      "version_command": ["{semaprax}", "version"],
+      "entry_file": "semaprax.toml",
+      "run_command": ["{semaprax}", "run", "."],
+      "success": {"kind": "stdout_equals", "value": "0"}
+    },
+    {
       "id": "rust",
       "language": "Rust",
       "implemented": true,

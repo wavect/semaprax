@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "structured-input-error-handling"
+entry = "bench.validation.app"
+sources = ["src/app.spx", "src/candidate.spx", "src/tests.spx"]
+web_exports = ["bench.validation.validate"]
+tests = ["bench.validation.tests"]

@@ -1,0 +1,15 @@
+module bench.validation.app;
+use function @id("bench.validation.validate") from bench.validation.candidate as validate;
+
+@id("bench.validation.eq")
+fn eq(actual: i64, expected: i64) -> i64
+{
+    if actual == expected { 1 } else { 0 }
+}
+
+@id("bench.validation.app.main")
+fn main() -> i64
+{
+    let checks = eq(validate(7, 1, 1), 0) + eq(validate(7, 1, 64), 0) + eq(validate(6, 1, 10), 1) + eq(validate(7, 2, 10), 2) + eq(validate(7, 1, 0), 3) + eq(validate(7, 1, 65), 3);
+    if checks == 6 { 0 } else { 1 }
+}

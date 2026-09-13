@@ -1,0 +1,8 @@
+module bench.validation.tests;
+use function @id("bench.validation.validate") from bench.validation.candidate as validate;
+
+@id("bench.validation.tests.main")
+fn main() -> i64
+{
+    if validate(7, 1, 1) == 0 { 0 } else { 1 }
+}

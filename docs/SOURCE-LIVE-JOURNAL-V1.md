@@ -323,9 +323,14 @@ source-driver dispatch or recovery:
    clock domain. Expiry, missing clock, detectable clock regression and a
    fresh-process timeout reset all refuse before another call.
 
-Until these gates and a concrete driver/store binding pass, end-to-end
-source-mode durability remains unimplemented. Existing #114 generic-kernel results remain
-valid at their recorded scope; #113 source durability remains open.
+These were the v1 end-to-end implementation gates. They remain useful as a
+historical checklist for this primitive schema, but the v1 document is not the
+current runtime contract: the checked durable route is implemented under the
+separately tagged v2 schema described in
+[Source Live Journal v2](SOURCE-LIVE-JOURNAL-V2.md). The v2 route's local
+driver/store/replay evidence and its residual nonclaims are recorded there.
+Existing #114 generic-kernel results remain valid at their recorded scope;
+hosted and live-provider evidence remain unclaimed.
 
 ## Implemented primitive boundary
 
@@ -349,9 +354,10 @@ replayed older valid checkpoint or authenticate rewritten trusted-store contents
 
 Raw response/effect bytes and measured request/failed-response work are retained.
 Provider token/cost counters and host receipts are not serialized by this
-primitive version. The complete source driver, adapter replay, decoder replay,
-effect replay, terminal failure evidence and migration still need the shared
-journal wiring.
+primitive version. The v1 primitive itself does not provide the complete source
+driver, adapter replay, decoder replay, effect replay, terminal failure
+evidence, or migration; the implemented v2 route owns the first five within
+its v2 schema, while migration remains outside that route.
 
 A future terminal replay reader must classify an already committed terminal
 before constructing a continuation ledger. `resume_source` rejects an expired

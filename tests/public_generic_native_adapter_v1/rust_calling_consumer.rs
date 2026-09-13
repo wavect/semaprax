@@ -21,13 +21,11 @@
 //! against the real provider, but not evidence for the 1.88 claim
 //! specifically whenever the host's default toolchain is newer.
 //! `generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchain`
-//! below closes that gap: it resolves the EXACT declared version through
-//! `rustup` (never the host's default `cargo`), asserts the resolved
-//! `cargo --version` actually reports that version (so a channel alias can
-//! never silently drift into evidence for a different toolchain), and then
-//! builds and runs the same generated crate against the same compiled
-//! provider with it. It hard-fails, rather than skipping, when `rustup` or
-//! the declared toolchain is not provisioned -- a missing toolchain proves
+//! below closes that gap: it resolves the EXACT declared `cargo`, `rustc`,
+//! and `rustdoc` through `rustup` (never the host defaults), checks each
+//! reported version, and pins all three for the generated crate's build and
+//! test commands. It hard-fails, rather than skipping, when `rustup` or the
+//! declared toolchain is not provisioned -- a missing toolchain proves
 //! nothing about the MSRV claim, so it must never read as a pass.
 use std::env;
 use std::fs;
@@ -185,6 +183,32 @@ fn cargo_command_with(
         // guarantees that) and never pointing it back at this checkout's own
         // target directory.
         .env_remove("RUSTC_WRAPPER");
+    command
+}
+
+struct MsrvToolchain {
+    cargo: PathBuf,
+    rustc: PathBuf,
+    rustdoc: PathBuf,
+}
+
+/// Start Cargo with every compiler-facing tool pinned to the declared MSRV.
+/// Calling the resolved Cargo binary alone is insufficient: Cargo otherwise
+/// finds `rustc`/`rustdoc` through the ambient environment, which can name a
+/// newer Homebrew or wrapper-managed toolchain.
+fn msrv_cargo_command(
+    tools: &MsrvToolchain,
+    crate_root: &Path,
+    target_dir: &Path,
+    lib_dir: &Path,
+) -> Command {
+    let mut command = cargo_command_with(&tools.cargo, crate_root, target_dir, lib_dir);
+    command
+        .env("RUSTC", &tools.rustc)
+        .env("RUSTDOC", &tools.rustdoc)
+        .env("RUSTUP_TOOLCHAIN", RUST_VERSION)
+        .env_remove("RUSTC_WRAPPER")
+        .env_remove("RUSTC_WORKSPACE_WRAPPER");
     command
 }
 
@@ -363,18 +387,13 @@ fn generated_crate_declares_no_workspace_or_external_dependency() {
     );
 }
 
-/// Resolve the exact `cargo` for rustup's `toolchain` (e.g. `"1.88"`) --
-/// never the ambient default on `PATH`, whatever that happens to be. Hard-
-/// fails, rather than skipping, when `rustup` is absent or the toolchain is
-/// not provisioned: a missing MSRV toolchain proves nothing about whether
-/// the generated crate builds on its declared minimum, and scoring that
-/// absence as a pass would be a false evidence claim, worse than an unmet
-/// criterion. Override the `rustup` binary itself with `$RUSTUP` for a host
-/// where it is installed but not on `PATH`.
-fn resolve_msrv_cargo(toolchain: &str) -> PathBuf {
+/// Resolve one exact tool for rustup's `toolchain` (e.g. `"1.88"`) -- never
+/// the ambient default on `PATH`, whatever that happens to be. Hard-fails,
+/// rather than skipping, when rustup or its toolchain is unavailable.
+fn resolve_msrv_tool(toolchain: &str, program: &str) -> PathBuf {
     let rustup = tool("RUSTUP", "rustup");
     let resolved = Command::new(&rustup)
-        .args(["which", "cargo", "--toolchain", toolchain])
+        .args(["which", program, "--toolchain", toolchain])
         .output()
         .unwrap_or_else(|error| {
             panic!(
@@ -387,7 +406,7 @@ fn resolve_msrv_cargo(toolchain: &str) -> PathBuf {
         });
     assert!(
         resolved.status.success(),
-        "rustup could not resolve toolchain \"{toolchain}\"; install it first with \
+        "rustup could not resolve {program} for toolchain \"{toolchain}\"; install it first with \
          `rustup toolchain install {toolchain}`:\n{}",
         String::from_utf8_lossy(&resolved.stderr)
     );
@@ -395,43 +414,57 @@ fn resolve_msrv_cargo(toolchain: &str) -> PathBuf {
         .expect("`rustup which` output must be UTF-8")
         .trim()
         .to_owned();
-    let cargo_path = PathBuf::from(&path_text);
+    let tool_path = PathBuf::from(&path_text);
     assert!(
-        cargo_path.is_file(),
-        "`rustup which cargo --toolchain {toolchain}` did not print a real file: {path_text:?}"
+        tool_path.is_file(),
+        "`rustup which {program} --toolchain {toolchain}` did not print a real file: {path_text:?}"
     );
-    cargo_path
+    tool_path
+}
+
+fn assert_msrv_tool_version(program: &str, path: &Path, toolchain: &str) {
+    let version = run(
+        Command::new(path).arg("--version"),
+        &format!("MSRV {program} --version"),
+    );
+    assert!(
+        version.status.success(),
+        "resolved MSRV {program} failed to report its version: {}",
+        String::from_utf8_lossy(&version.stderr)
+    );
+    let version_text = String::from_utf8_lossy(&version.stdout);
+    let actual = version_text.split_whitespace().nth(1).unwrap_or_else(|| {
+        panic!("resolved MSRV {program} emitted no semantic version: {version_text:?}")
+    });
+    assert!(
+        actual == toolchain || actual.strip_prefix(toolchain).is_some_and(|suffix| suffix.starts_with('.')),
+        "the {program} rustup resolved for \"{toolchain}\" does not report that exact semantic-version family: {version_text}"
+    );
+}
+
+fn resolve_msrv_toolchain(toolchain: &str) -> MsrvToolchain {
+    let tools = MsrvToolchain {
+        cargo: resolve_msrv_tool(toolchain, "cargo"),
+        rustc: resolve_msrv_tool(toolchain, "rustc"),
+        rustdoc: resolve_msrv_tool(toolchain, "rustdoc"),
+    };
+    assert_msrv_tool_version("cargo", &tools.cargo, toolchain);
+    assert_msrv_tool_version("rustc", &tools.rustc, toolchain);
+    assert_msrv_tool_version("rustdoc", &tools.rustdoc, toolchain);
+    tools
 }
 
 /// Issue #226 follow-up: proves the generated crate's declared
 /// `rust-version` actually builds and runs on that exact toolchain, not
-/// merely on whatever `cargo` the host's default happens to resolve to (as
+/// merely on whatever tools the host's default happens to resolve to (as
 /// `generated_rust_calling_consumer_executes_against_the_real_native_provider`
-/// above does). Resolves the MSRV `cargo` through `rustup` and hard-fails
-/// if it cannot (see [`resolve_msrv_cargo`]), asserts the resolved binary's
-/// own `--version` really reports the declared version -- so a channel
-/// alias or stale install can never silently substitute a different
-/// toolchain's evidence for the declared one -- then builds and runs the
-/// SAME generated crate against the SAME compiled native provider entirely
-/// through that resolved MSRV `cargo`.
+/// above does). Resolves the MSRV `cargo`, `rustc`, and `rustdoc` through
+/// `rustup`, pins them in every Cargo invocation, and asserts each exact
+/// semantic-version family before building and running the same generated
+/// crate against the same compiled native provider.
 #[test]
 fn generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchain() {
-    let msrv_cargo = resolve_msrv_cargo(RUST_VERSION);
-    let version = run(
-        Command::new(&msrv_cargo).arg("--version"),
-        "msrv cargo --version",
-    );
-    assert!(
-        version.status.success(),
-        "resolved MSRV cargo failed to report its own version: {}",
-        String::from_utf8_lossy(&version.stderr)
-    );
-    let version_text = String::from_utf8_lossy(&version.stdout);
-    assert!(
-        version_text.contains(RUST_VERSION),
-        "the toolchain rustup resolved for \"{RUST_VERSION}\" does not report that version in \
-         `cargo --version`, so running it would not be real MSRV evidence: {version_text}"
-    );
+    let msrv_tools = resolve_msrv_toolchain(RUST_VERSION);
 
     let (input, output) = shapes();
     let binding = fixture_binding();
@@ -450,9 +483,7 @@ fn generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchai
     let target_dir = workspace.path("cargo-target");
 
     let lockfile = run(
-        Command::new(&msrv_cargo)
-            .current_dir(&crate_root)
-            .env("CARGO_TARGET_DIR", &target_dir)
+        msrv_cargo_command(&msrv_tools, &crate_root, &target_dir, &lib_dir)
             .arg("generate-lockfile"),
         "msrv cargo generate-lockfile",
     );
@@ -472,7 +503,7 @@ fn generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchai
     // above); this test's whole claim is "builds and runs", not "is
     // clippy-clean on 1.88".
     let build = run(
-        cargo_command_with(&msrv_cargo, &crate_root, &target_dir, &lib_dir)
+        msrv_cargo_command(&msrv_tools, &crate_root, &target_dir, &lib_dir)
             .args(["build", "--locked"]),
         "msrv cargo build",
     );
@@ -488,7 +519,7 @@ fn generated_rust_calling_consumer_builds_and_runs_on_the_declared_msrv_toolchai
     // -- the linked native provider's allocator, handle registry, and
     // failure-injection state are process-global.
     let tests = run(
-        cargo_command_with(&msrv_cargo, &crate_root, &target_dir, &lib_dir).args([
+        msrv_cargo_command(&msrv_tools, &crate_root, &target_dir, &lib_dir).args([
             "test",
             "--locked",
             "--",

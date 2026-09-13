@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Pin Cargo, rustc, and rustdoc in the generated Rust consumer's MSRV gate
+  (#226). Selecting Cargo alone had allowed the ambient newer compiler to
+  satisfy the check. Native allocator capacity remains tracked in #250.
+
 - Cover drop-free nested variant payloads through interaction-schema derivation,
   canonical decoding, and hostile nested-field refusal (#216). Correct the
   proposed checked-write taxonomy to distinguish proven non-publication from

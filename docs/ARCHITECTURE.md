@@ -106,6 +106,12 @@ nonblocking output bounds and transport receipt binding. Its source adapter
 implements the existing lifecycle `ProposalSource`; compiler-owned `run_live`
 retains canonical proposal admission and checked deterministic stages. The
 core exposes only the existing read-only retained-value encoding for context.
+The source-specific checkpoint grammar lives under
+`src/live_invocation/source_journal`; it uses the existing caller-owned
+`CheckpointStore` and keeps the generic journal wire unchanged. Its validated
+recovery data supplies the existing cumulative ledger's source restoration
+route. The source lifecycle driver has not yet been connected to these durable
+primitives; an in-memory OpenCode receipt is not a checkpoint.
 No private crate is a normal or optional dependency of the registry
 package. Compiler-owned SDK replay and Windows carrier preparation/replay remain
 before/around explicit injected host calls; opaque prepared facts are not

@@ -1,12 +1,13 @@
 # Source Live Journal v1 — draft contract
 
-Status: **DRAFT, UNIMPLEMENTED**. This document specifies a possible durable
-source mode for the existing live-invocation causal-journal family. It is not
-an executable gate, a recovery API, or evidence of a durable OpenCode run.
-Issue #114's accepted, fixture-backed **generic kernel** persistence remains
-unchanged and closed at its stated scope. Issue #113's durable source
-accounting and stage-deadline work remains **open**. Nothing here promotes
-private local evidence to hosted or production support.
+Status: **PRIVATE CHECKPOINT PRIMITIVES; SOURCE RUNTIME INTEGRATION UNIMPLEMENTED**.
+`live_invocation::source_journal` implements the bounded typed journal, strict
+canonical checkpoint encoding/recovery, and poisoned store-write cursor.
+`CumulativeBudgetLedger::resume_source` restores its validated charge and
+clock policy. These primitives do not yet drive `run_live` or OpenCode, replay
+checked source stages, or support source migration. Issue #114's accepted
+generic-kernel persistence remains unchanged and closed; #113 remains open.
+No hosted, production, or durable live-provider evidence is claimed.
 
 ## Ownership and compatibility
 
@@ -46,7 +47,8 @@ successful append.
 
 ## Bind-time identity and envelope
 
-One `SourceInvocationIdV1` is derived before any model or effect call from a
+One source invocation identity, retained by opaque `SourceInvocationBinding`,
+is derived before any model or effect call from a
 domain-separated canonical encoding of:
 
 - the exact compiled lifecycle digest and semantic source revision;
@@ -57,8 +59,8 @@ domain-separated canonical encoding of:
 - the compiler-derived proposal schema digest and the response-byte cap;
 - the caller-selected cumulative ceiling and positive fixed reservation
   units, both in the same declared policy unit;
-- one absolute deadline in a named clock domain that remains comparable
-  across process restarts; and
+- the initial clock reading and one absolute deadline in a named domain that
+  remains comparable across process restarts; and
 - the exact ProgramRoot when the bound source execution has one (an explicit
   absent tag otherwise, never a substituted root).
 
@@ -71,14 +73,17 @@ dispatch when presented with the prior checkpoint. The existing
 revision or deployment, and generic `LiveInvocationSeed` does not bind an
 absolute deadline; neither is sufficient as this source identity unchanged.
 
-Proposed envelope schema:
+The primitive envelope uses the following keys (shown formatted here; the
+accepted wire is compact, in this exact key order, with one terminal LF):
 
 ```json
 {"schema":"semaprax.live-invocation.source-persisted-journal.v1",
- "invocation":"sha256:<SourceInvocationIdV1>",
+ "invocation":"sha256:<source invocation digest>",
  "generation":1,
- "chain":"sha256:<source-domain chain of canonical entries>",
- "entries":[]}
+ "clock_domain":"operator-clock.v1",
+ "last_checked_millis":123,
+ "chain":"sha256:<source-domain chain of envelope fields and entries>",
+ "entries":[{"seq":0,"kind":"run_opened"}]}
 ```
 
 The source domain separator and schema differ from generic
@@ -101,8 +106,8 @@ host assumption, not something a digest proves.
 
 ## Source event grammar
 
-The following are **proposed** source-mode entry kinds, not variants in the
-current Rust `JournalEntry` enum. Every event names the invocation and a
+The following source-mode entries are variants of `SourceJournalEntry`,
+separate from the generic Rust `JournalEntry` enum. Every event names the invocation and a
 strict sequence position through its containing envelope/chain. Integer
 fields have bounded, canonical encodings. An event holding bytes uses a
 length bound and a digest over those exact bytes; recovery verifies both.
@@ -111,7 +116,7 @@ length bound and a digest over those exact bytes; recovery verifies both.
 | --- | --- | --- |
 | `RunOpened` | exact source invocation identity | first `TurnObserved` or policy `Stop` |
 | `TurnObserved` | source turn, checked State and Observation digests, exact feedback digest | first `AttemptIntent` or policy `Stop` |
-| `AttemptIntent` | turn, attempt, source-attempt digest, `ModelInvocationRequest` digest, prompt/context digest, reserved units, response cap | `AttemptSettled` or `AttemptFailed`, or uncertain end of journal |
+| `AttemptIntent` | turn, attempt, source-attempt digest, `ModelInvocationRequest` digest, prompt/context digest, request bytes, reserved units, response cap | `AttemptSettled` or `AttemptFailed`, or uncertain end of journal |
 | `AttemptSettled` | same turn/attempt, bounded raw response bytes and digest, measured bytes; optional validated, redacted usage counters | `ProposalAdmitted` or `ProposalRefused` |
 | `AttemptFailed` | same turn/attempt, closed transport or deadline reason, bounded attempted bytes; no asserted zero billing | `Stop` |
 | `ProposalRefused` | same turn/attempt, closed compiler-decode or pre-decode deadline reason | next attempt only for malformed decode, or `Stop` |
@@ -168,8 +173,8 @@ puts attempt, revision, State, Observation and feedback into a bounded
 prompt used as those observation bytes, but durable validation must not
 depend on parsing model-visible text. Source mode therefore adds a
 domain-separated `SourceAttemptDigestV1` over the source invocation ID,
-explicit turn and attempt, the model request digest, prompt digest, reserved
-units and bound absolute deadline. Recovery recomputes both digests from
+explicit turn and attempt, the model request digest, prompt digest, measured
+request bytes, reserved units, response cap and bound absolute deadline. Recovery recomputes both digests from
 checked live inputs before replay. Explicit turn, attempt and units remain
 in `AttemptIntent` for phase validation and charging.
 
@@ -258,9 +263,13 @@ The source route currently admits at most 4,096 iterations and four
 attempts per iteration: **16,384 model intents** is an upper bound, not a
 promise that all can fit in one persisted document. Generic v1's 16,384
 **entry** cap cannot represent that many source attempts plus their
-settlements, decode decisions and effects. Source mode needs its own fixed
-entry cap derived from the maximum event count per attempt and per turn,
-and an independent fixed **encoded-document byte** cap. Before dispatch,
+settlements, decode decisions and effects. The primitive caps source journals at **65,536 entries** and **16 MiB encoded
+bytes**. Request work and retained response/effect byte vectors are each capped
+at **65,536 bytes**, with a smaller bound response cap permitted. An attempt
+failure permits the bound response cap plus one as an overflow sentinel.
+A binding admits 1–4 attempts per turn, 1–4,096 iterations, 1–12,289 stages,
+1–1,000,000 steps per stage and 1–1,000,000,000 total steps. Fuel is bound into
+identity; the checkpoint codec is not a stage evaluator or fuel meter. Before dispatch,
 reserve enough remaining journal capacity to persist the worst-case bounded
 response (including hex/JSON encoding and event overhead); otherwise refuse
 without a model call or monetary reservation. The response, attempted-byte,
@@ -283,8 +292,9 @@ contract.
 
 ## Executable gates required before implementation claims
 
-The following are required tests for a future implementation, not tests
-this draft has run:
+The following are required end-to-end source runtime gates. Primitive unit
+checks establish encoding, phase, charge and clock properties, not actual
+source-driver dispatch or recovery:
 
 1. Exact and one-over source attempts, entry count, encoded bytes, prompt
    and response; malformed first proposal charges one reservation, then a
@@ -311,6 +321,36 @@ this draft has run:
    clock domain. Expiry, missing clock, detectable clock regression and a
    fresh-process timeout reset all refuse before another call.
 
-Until these gates and a production driver/store binding pass, source-mode
-durability is a design only. Existing #114 generic-kernel results remain
+Until these gates and a concrete driver/store binding pass, end-to-end
+source-mode durability remains unimplemented. Existing #114 generic-kernel results remain
 valid at their recorded scope; #113 source durability remains open.
+
+## Implemented primitive boundary
+
+`SourceInvocationBinding::bind` validates bounded policy inputs and derives the
+source identity. `SourceCheckpointSink::append_at` validates the causal prefix,
+retains a nondecreasing clock floor, reserves settlement capacity before an
+intent, and commits one whole generation. Any store error poisons that cursor:
+the store may have committed while losing its acknowledgement. Reloading the
+latest authoritative document may therefore reveal a charged uncertain intent.
+Recovery refuses resuming a sink whose last event is an unresolved model or
+effect intent. A generation equals its entry count in this append-only profile.
+
+`recover_source_checkpoint` rejects wrong bindings, phase drift, mismatched
+effect/terminal records, raw-byte digest mismatch, noncanonical encodings and
+extra keys. It returns an opaque validated record. Ledger restoration consumes
+its fixed reservation, ceiling and checked intent sum; a different clock domain,
+clock rollback, expiry or changed reservation amount refuses. The host must
+supply a clock whose epoch survives restart and load the **latest authoritative**
+checkpoint under exclusive writer control. The byte decoder cannot detect a
+replayed older valid checkpoint or authenticate rewritten trusted-store contents.
+
+Raw response/effect bytes and measured request/failed-response work are retained.
+Provider token/cost counters and host receipts are not serialized by this
+primitive version. The source runtime, adapter, decoder replay, effect replay,
+terminal failure evidence and migration still need the shared journal wiring.
+
+A future terminal replay reader must classify an already committed terminal
+before constructing a continuation ledger. `resume_source` rejects an expired
+clock for further work; it does not erase a previously committed terminal or
+itself implement the read-only terminal replay path.

@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add bounded source checkpoint primitives with strict causal validation,
+  poisoned writes after acknowledgement loss, and restoration through the
+  existing charge/deadline ledger (#113). Source runtime replay, provider
+  receipt persistence and migration integration remain pending.
+
 - Derive cached Project Agent interaction facts from retained authenticated
   source programs, fixing false SPX-G564 failures without reparsing (#85).
   Repair the embedding-example index and Clippy CI blockers, and provision

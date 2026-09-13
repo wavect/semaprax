@@ -383,6 +383,21 @@ private OpenCode source adapter does not supply source recovery or migration;
 those routes must retain reservations through their own checked journal binding
 before they can claim the same guarantee.
 
+Source checkpoint primitives are specified separately in
+[Source Live Journal v1](SOURCE-LIVE-JOURNAL-V1.md). Their budget restoration
+uses the same `CumulativeBudgetLedger`, with the validated bound ceiling,
+fixed reservation and committed-intent sum. `SourceInvocationClock` names the
+host's restart-stable domain; restoration rejects a different domain, a clock
+below the retained floor, and expiry at the original deadline. Subsequent
+checks retain the highest observed time and reject regression. This clock
+contract remains a host assumption; matching a domain string cannot turn a
+new process-local `Instant` into a restart-stable clock. Generic v1 callers
+retain their existing clock and reservation behavior. These primitives alone
+do not connect the source runtime to durable storage. Recovery callers must
+load the latest authoritative generation under exclusive writer control;
+this byte-decoding API cannot distinguish an old valid checkpoint from the
+current one without that external freshness guarantee.
+
 **`record` never refunds.** A settlement using fewer bytes than reserved, or
 a failed attempt using none at all, never credits the difference back onto
 `remaining` — matching issue #113's own scope note that "monetary limits are

@@ -102,11 +102,15 @@
 //! price lookup, if ever added, stays outside the compiler per that same
 //! scope note — this module is not where it would go.
 
+use std::cell::Cell;
+
 use super::journal::JournalEntry;
 use super::model_invoke::{
     BudgetRefusal, InvocationBudgetHook, InvocationUsage, ModelInvocationRequest, ReservedBudget,
 };
 
+#[cfg(test)]
+mod source_tests;
 #[cfg(test)]
 mod tests;
 
@@ -117,6 +121,9 @@ mod tests;
 pub const BUDGET_EXHAUSTED: &str = "budget_exhausted";
 pub const DEADLINE_EXCEEDED: &str = "deadline_exceeded";
 pub const NEGATIVE_REQUEST: &str = "negative_request";
+pub const CLOCK_DOMAIN_MISMATCH: &str = "clock_domain_mismatch";
+pub const CLOCK_REGRESSED: &str = "clock_regressed";
+pub const RESERVATION_MISMATCH: &str = "reservation_mismatch";
 
 /// Sums every `RequestIntent.reserved_budget` in `journal`, saturating —
 /// the exact fold [`CumulativeBudgetLedger::resume`],
@@ -148,6 +155,14 @@ pub trait InvocationClock {
     fn now_millis(&self) -> i64;
 }
 
+/// Explicit host clock for source checkpoint recovery. The host guarantees
+/// that this domain keeps the same epoch and units across process restarts.
+/// A matching name alone does not prove that guarantee; a fresh process-local
+/// `Instant` must not be advertised as a recoverable domain.
+pub trait SourceInvocationClock: InvocationClock {
+    fn clock_domain(&self) -> &str;
+}
+
 /// The real, cumulative [`InvocationBudgetHook`] policy: one monetary
 /// ceiling and, optionally, one absolute deadline, enforced identically at
 /// every `reserve` call and nonrefundable once committed. See the module
@@ -159,6 +174,8 @@ pub struct CumulativeBudgetLedger<'a> {
     deadline_millis: Option<i64>,
     clock: &'a mut dyn InvocationClock,
     usage: Vec<InvocationUsage>,
+    source_clock_floor: Option<Cell<i64>>,
+    source_reservation_units: Option<i64>,
 }
 
 impl<'a> CumulativeBudgetLedger<'a> {
@@ -171,6 +188,8 @@ impl<'a> CumulativeBudgetLedger<'a> {
             deadline_millis: None,
             clock,
             usage: Vec::new(),
+            source_clock_floor: None,
+            source_reservation_units: None,
         }
     }
 
@@ -188,6 +207,8 @@ impl<'a> CumulativeBudgetLedger<'a> {
             deadline_millis: Some(deadline_millis),
             clock,
             usage: Vec::new(),
+            source_clock_floor: None,
+            source_reservation_units: None,
         }
     }
 
@@ -211,6 +232,8 @@ impl<'a> CumulativeBudgetLedger<'a> {
             deadline_millis,
             clock,
             usage: Vec::new(),
+            source_clock_floor: None,
+            source_reservation_units: None,
         }
     }
 
@@ -240,6 +263,8 @@ impl<'a> CumulativeBudgetLedger<'a> {
             deadline_millis,
             clock,
             usage: Vec::new(),
+            source_clock_floor: None,
+            source_reservation_units: None,
         }
     }
 
@@ -268,7 +293,35 @@ impl<'a> CumulativeBudgetLedger<'a> {
             deadline_millis,
             clock,
             usage: Vec::new(),
+            source_clock_floor: None,
+            source_reservation_units: None,
         }
+    }
+
+    /// Restores the source policy solely from a validated, identity-bound
+    /// checkpoint. The caller must load the latest authoritative generation
+    /// under exclusive writer control. This API cannot detect an older valid
+    /// same-binding checkpoint or authenticate an adversarially rewritten store.
+    /// Uncertain intents remain charged. This creates no dispatch permission:
+    /// the source recovery cursor must still refuse their replay.
+    pub fn resume_source(
+        recovered: &super::source_journal::RecoveredSourceCheckpoint,
+        clock: &'a mut dyn SourceInvocationClock,
+    ) -> Result<Self, BudgetRefusal> {
+        if clock.clock_domain() != recovered.clock_domain() {
+            return Err(BudgetRefusal(CLOCK_DOMAIN_MISMATCH.to_owned()));
+        }
+        let ledger = Self {
+            ceiling: recovered.ceiling(),
+            committed: recovered.committed_reserved_units(),
+            deadline_millis: Some(recovered.deadline_millis()),
+            clock,
+            usage: Vec::new(),
+            source_clock_floor: Some(Cell::new(recovered.last_checked_millis())),
+            source_reservation_units: Some(recovered.reservation_units()),
+        };
+        ledger.check_deadline()?;
+        Ok(ledger)
     }
 
     /// The total nonrefundably committed against `ceiling` so far, across
@@ -299,7 +352,14 @@ impl<'a> CumulativeBudgetLedger<'a> {
 impl InvocationBudgetHook for CumulativeBudgetLedger<'_> {
     fn check_deadline(&self) -> Result<(), BudgetRefusal> {
         if let Some(deadline) = self.deadline_millis {
-            if self.clock.now_millis() >= deadline {
+            let now = self.clock.now_millis();
+            if let Some(floor) = &self.source_clock_floor {
+                if now < floor.get() {
+                    return Err(BudgetRefusal(CLOCK_REGRESSED.to_owned()));
+                }
+                floor.set(now);
+            }
+            if now >= deadline {
                 return Err(BudgetRefusal(DEADLINE_EXCEEDED.to_owned()));
             }
         }
@@ -314,6 +374,12 @@ impl InvocationBudgetHook for CumulativeBudgetLedger<'_> {
         let requested = request.effective_budget;
         if requested < 0 {
             return Err(BudgetRefusal(NEGATIVE_REQUEST.to_owned()));
+        }
+        if self
+            .source_reservation_units
+            .is_some_and(|units| units != requested)
+        {
+            return Err(BudgetRefusal(RESERVATION_MISMATCH.to_owned()));
         }
         let remaining = self.remaining();
         if requested > remaining {

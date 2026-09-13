@@ -43,13 +43,14 @@ pub mod kernel;
 pub mod migration;
 pub mod model_invoke;
 pub mod persistence;
+pub mod source_journal;
 
 #[cfg(test)]
 mod neutrality_tests;
 #[cfg(test)]
 mod tests;
 
-pub use budget::{CumulativeBudgetLedger, InvocationClock};
+pub use budget::{CumulativeBudgetLedger, InvocationClock, SourceInvocationClock};
 pub use identity::{LiveInvocationId, LiveInvocationSeed};
 pub use journal::{
     receipt_projection, DecodeError, JournalEntry, JournalError, ReceiptProjection,

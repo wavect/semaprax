@@ -215,6 +215,94 @@ fn generate(seed: u64) -> Module {
     Generator::new(seed, Shape::default()).module()
 }
 
+/// A deliberately small witness for the feature combination that aggregate
+/// counters cannot establish: a lazy operator whose unneeded operand contains
+/// a checked division by zero. Both short-circuit directions are included so
+/// the witness proves that the operand stays unexecuted for `&&` and `||`.
+fn lazy_checked_failure_module() -> Module {
+    use grammar::{BinaryOp, Expr, Function, Type};
+
+    fn case(index: usize, operator: BinaryOp, left: bool) -> Function {
+        let checked_failure = Expr::Binary {
+            result: Type::I64,
+            op: BinaryOp::Div,
+            left: Box::new(Expr::IntLiteral(Type::I64, 1)),
+            right: Box::new(Expr::IntLiteral(Type::I64, 0)),
+        };
+        let right = Expr::Binary {
+            result: Type::Bool,
+            op: BinaryOp::Eq,
+            left: Box::new(checked_failure),
+            right: Box::new(Expr::IntLiteral(Type::I64, 1)),
+        };
+        Function {
+            index,
+            stable_id: format!("lazy.checked.{index}"),
+            name: format!("lazy_checked_{index}"),
+            parameters: Vec::new(),
+            result: Type::Bool,
+            requires: None,
+            ensures: None,
+            body: Vec::new(),
+            tail: Expr::Binary {
+                result: Type::Bool,
+                op: operator,
+                left: Box::new(Expr::BoolLiteral(left)),
+                right: Box::new(right),
+            },
+        }
+    }
+
+    Module {
+        seed: 0x1a2b_3c4d_5e6f_7788,
+        module_name: "test.lazy_checked_failure".to_owned(),
+        helpers: Vec::new(),
+        cases: vec![case(0, BinaryOp::And, false), case(1, BinaryOp::Or, true)],
+    }
+}
+
+#[test]
+fn lazy_short_circuit_skips_checked_failure_across_every_available_lane() {
+    let root = temporary_root("lazy-checked-failure");
+    let module = lazy_checked_failure_module();
+    let seed_root = root.join("witness");
+    std::fs::create_dir_all(&seed_root).expect("a witness root is creatable");
+    let run = run_module(&module, &seed_root, Lanes::Every);
+    for lane in &run.lanes {
+        eprintln!("lazy checked-failure {:?}: {:?}", lane.lane, lane.status);
+    }
+
+    assert!(
+        run.frontend.is_empty(),
+        "lazy checked-failure witness must verify: {:?}",
+        run.frontend
+    );
+    let observations = run
+        .reference
+        .observations()
+        .expect("the interpreter must observe every witness case");
+    assert_eq!(
+        observations.get("lazy.checked.0"),
+        Some(&Observation::Returned {
+            scalar: "bool",
+            value: "false".to_owned(),
+        })
+    );
+    assert_eq!(
+        observations.get("lazy.checked.1"),
+        Some(&Observation::Returned {
+            scalar: "bool",
+            value: "true".to_owned(),
+        })
+    );
+    assert!(
+        run.agrees(),
+        "lazy short-circuit checked-failure witness disagreed: {}",
+        describe(&module, &run, &seed_root, Lanes::Every)
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[test]
 fn fixed_seeds_agree_across_every_available_lane() {
     let root = temporary_root("fixed-seeds");

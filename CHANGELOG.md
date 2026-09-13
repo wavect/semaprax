@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Exercise lazy boolean operands containing checked division failure through
+  the differential corpus (#103), including interpreter, native O0/O2, and
+  Core-Wasm observations with explicit lane results.
+
 - Derive Assurance Manifest result-ownership and resource-cleanup obligations
   from independently revalidated HIR (#214), and keep candidate summaries
   aligned. Architecture-law derivation and workspace binding remain pending.

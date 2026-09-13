@@ -4,7 +4,7 @@
 //! fixed offline proposal. `--live --opencode ABS --scratch ABS` replaces only
 //! that proposal source with the free configured OpenCode profile.
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use semaprax::agent_lifecycle::iterative::{
     compile_agent_lifecycle_v2,
@@ -14,7 +14,8 @@ use semaprax::agent_lifecycle::iterative::{
 use semaprax::agent_lifecycle::{AgentReadOperation, AuthorizedRequest, LifecycleTask};
 use semaprax::agent_runtime::AgentCancellation;
 use semaprax::diagnostic::Diagnostic;
-use semaprax::live_invocation::ModelInvokeCapability;
+use semaprax::live_invocation::{CumulativeBudgetLedger, InvocationClock, ModelInvokeCapability};
+use semaprax_toolchain::opencode_host::accounting::OpenCodeSourceAccounting;
 use semaprax_toolchain::opencode_host::source::OpenCodeProposalSource;
 use semaprax_toolchain::opencode_host::{
     OpenCodeGrammar, OpenCodeHostConfig, OpenCodeModelHandler, OpenCodeRunner,
@@ -29,6 +30,20 @@ struct Read;
 impl AgentReadOperation for Read {
     fn read(&mut self, _: &AuthorizedRequest) -> Option<Vec<u8>> {
         Some(b"observed".to_vec())
+    }
+}
+
+/// The smoke's clock is process-local only. Its absolute deadline applies to
+/// this one invocation; it is not evidence of durable resume accounting.
+struct HostClock(Instant);
+impl HostClock {
+    fn new() -> Self {
+        Self(Instant::now())
+    }
+}
+impl InvocationClock for HostClock {
+    fn now_millis(&self) -> i64 {
+        i64::try_from(self.0.elapsed().as_millis()).unwrap_or(i64::MAX)
     }
 }
 
@@ -148,12 +163,17 @@ fn main() -> Result<(), String> {
         },
     );
     let capability = ModelInvokeCapability::grant("opencode_live_smoke explicit --live");
+    let mut clock = HostClock::new();
+    let mut ledger = CumulativeBudgetLedger::with_deadline(1, 30_000, &mut clock);
+    let accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 4)
+        .map_err(|error| format!("OpenCode source accounting configuration failed: {error:?}"))?;
     let mut source = OpenCodeProposalSource::new(
         &mut handler,
         &capability,
         "opencode-live-smoke.v1".into(),
         grammar,
         65_536,
+        accounting,
     )
     .map_err(|e| format!("{e:?}"))?;
     let run = compiled

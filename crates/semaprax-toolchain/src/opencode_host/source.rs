@@ -8,8 +8,13 @@
 use semaprax::agent_lifecycle::canonical_retained_value_json;
 use semaprax::agent_lifecycle::iterative::driver::{ProposalRequest, ProposalSource};
 use semaprax::diagnostic::{quote_json, Diagnostic};
-use semaprax::live_invocation::{ModelInvocationOutcome, ModelInvokeCapability};
+use semaprax::live_invocation::{
+    ModelInvocationOutcome, ModelInvocationRequest, ModelInvokeCapability,
+};
 
+use super::accounting::{
+    OpenCodeAccountingRefusal, OpenCodeSourceAccounting, OpenCodeSourceAttemptReceipt,
+};
 use super::{OpenCodeGrammar, OpenCodeModelHandler, OpenCodeRunner};
 
 const SOURCE_CONTEXT_SCHEMA: &str = "semaprax.opencode-source-proposal-context.v1";
@@ -24,6 +29,7 @@ pub struct OpenCodeProposalSource<'a, R> {
     deployment_binding: String,
     grammar: OpenCodeGrammar,
     max_response_bytes: usize,
+    accounting: OpenCodeSourceAccounting<'a>,
 }
 
 impl<'a, R> OpenCodeProposalSource<'a, R> {
@@ -33,6 +39,7 @@ impl<'a, R> OpenCodeProposalSource<'a, R> {
         deployment_binding: String,
         grammar: OpenCodeGrammar,
         max_response_bytes: usize,
+        accounting: OpenCodeSourceAccounting<'a>,
     ) -> Result<Self, Diagnostic> {
         if max_response_bytes == 0 {
             return Err(Diagnostic::io(
@@ -46,7 +53,15 @@ impl<'a, R> OpenCodeProposalSource<'a, R> {
             deployment_binding,
             grammar,
             max_response_bytes,
+            accounting,
         })
+    }
+
+    /// Redacted host-only attempt observations. This in-memory slice is not
+    /// a durable journal and cannot support recovery or migration.
+    #[must_use]
+    pub fn receipts(&self) -> &[OpenCodeSourceAttemptReceipt] {
+        self.accounting.receipts()
     }
 }
 
@@ -94,8 +109,38 @@ impl<R: OpenCodeRunner> ProposalSource for OpenCodeProposalSource<'_, R> {
             String::from_utf8(context).expect("canonical source context is UTF-8"), self.deployment_binding,
             self.grammar.digest, self.grammar.canonical_schema,
         );
+        let turn = u32::try_from(context.turn).map_err(|_| {
+            vec![Diagnostic::io(
+                "SPX-I239",
+                "OpenCode source turn exceeds the accounting bound",
+            )]
+        })?;
+        let request = ModelInvocationRequest {
+            turn,
+            task: context.task.objective.clone(),
+            observation: prompt.as_bytes().to_vec(),
+            proposal_grammar_digest: self.grammar.digest.clone(),
+            deployment_binding: self.deployment_binding.clone(),
+            max_response_bytes: self.max_response_bytes,
+            // `OpenCodeSourceAccounting::reserve` installs the deployment's
+            // fixed policy amount immediately before consulting the shared
+            // hook; source data cannot choose the reserved amount.
+            effective_budget: 0,
+        };
+        self.accounting
+            .reserve(request, context.attempt, prompt.len())
+            .map_err(|refusal| vec![accounting_diagnostic(refusal)])?;
         let _capability_reason = self.capability.reason();
-        match self.handler.invoke_prompt(&prompt, self.max_response_bytes) {
+        let outcome = self.handler.invoke_prompt(&prompt, self.max_response_bytes);
+        let reported_usage = self
+            .handler
+            .last_receipt
+            .as_ref()
+            .and_then(|receipt| receipt.usage.clone());
+        self.accounting
+            .record(&outcome, reported_usage)
+            .map_err(|refusal| vec![accounting_diagnostic(refusal)])?;
+        match outcome {
             ModelInvocationOutcome::Settled(bytes) => String::from_utf8(bytes).map_err(|_| {
                 vec![Diagnostic::io(
                     "SPX-I239",
@@ -108,6 +153,22 @@ impl<R: OpenCodeRunner> ProposalSource for OpenCodeProposalSource<'_, R> {
             } => Err(vec![Diagnostic::io("SPX-I239", format!("OpenCode source transport failed: {}; provider category: {:?}; attempted response bytes: {attempted_bytes}", failure.as_str(), self.handler.last_provider_failure))]),
         }
     }
+}
+
+fn accounting_diagnostic(refusal: OpenCodeAccountingRefusal) -> Diagnostic {
+    let reason = match refusal {
+        OpenCodeAccountingRefusal::BudgetExhausted => "budget_exhausted",
+        OpenCodeAccountingRefusal::DeadlineExceeded => "deadline_exceeded",
+        OpenCodeAccountingRefusal::InvalidBudget => "invalid_budget",
+        OpenCodeAccountingRefusal::PolicyRefused => "budget_policy_refused",
+        OpenCodeAccountingRefusal::AttemptCapacity => "attempt_capacity",
+        OpenCodeAccountingRefusal::PendingAttempt
+        | OpenCodeAccountingRefusal::UnreservedAttempt => "accounting_state",
+    };
+    Diagnostic::io(
+        "SPX-I239",
+        format!("OpenCode source accounting refused: {reason}"),
+    )
 }
 
 impl super::OpenCodeGrammar {

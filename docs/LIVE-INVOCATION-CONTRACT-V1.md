@@ -360,7 +360,8 @@ in the same call, before returning — strictly before the kernel's own
 dispatch to `ModelHandler::invoke` (the kernel journals and persists
 `RequestIntent.reserved_budget` immediately after this call and before that
 dispatch; see `kernel.rs`). By the time a call could possibly have reached a
-provider, its cost is already charged and already durable.
+provider, its reservation is already charged; with the confirmed persistence
+sink enabled, that reservation is also durable.
 
 **Why a retry cannot double-spend.** `CumulativeBudgetLedger` is never the
 durable source of truth for `committed` — `CumulativeBudgetLedger::resume`
@@ -375,6 +376,12 @@ builds a journal ending in an uncertain `RequestIntent` (no recorded
 response — the exact shape a crash between reservation and settlement
 leaves behind) and shows a fresh ledger resuming from it still refuses a
 retry that would exceed what actually remains.
+
+This recovery statement applies to the kernel's confirmed persistence route.
+The ledger itself is in-memory and performs no journal writes. Its use by the
+private OpenCode source adapter does not supply source recovery or migration;
+those routes must retain reservations through their own checked journal binding
+before they can claim the same guarantee.
 
 **`record` never refunds.** A settlement using fewer bytes than reserved, or
 a failed attempt using none at all, never credits the difference back onto
@@ -410,6 +417,15 @@ structurally no "from now" constructor, so a resumed call cannot reset the
 deadline merely by supplying a fresh duration.
 `budget::tests::resume_preserves_an_absolute_deadline_across_the_same_simulated_crash`
 exercises this directly.
+
+`InvocationBudgetHook::check_deadline` checks the same absolute deadline without
+reserving or refunding work. Its default accepts policies without a deadline;
+`CumulativeBudgetLedger` uses the same injected clock and `>=` comparison as
+`reserve`. Settlement and effect/publication checks must respect journal order:
+a late successful model response fails before `ResponseRecorded` and decoding,
+while an already observed effect remains recorded even when a later deadline
+blocks publication. Existing provider, cancellation and effect failures remain
+selected. Known failed response bytes remain in usage observations.
 
 **Not a live price lookup.** `effective_budget`/`ceiling` stay opaque
 caller-defined units (`ModelInvocationRequest::effective_budget`'s existing

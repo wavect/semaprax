@@ -26,9 +26,9 @@
 //! crash between `reserve` and the eventual `record`, and a resumed process
 //! reconstructing a *fresh* ledger from just the ceiling would then re-admit
 //! the same amount a second time — a double-spend on exactly the attempt
-//! that might have already reached the provider. [`CumulativeBudgetLedger`]
-//! avoids this by never being the durable source of truth in the first
-//! place: [`CumulativeBudgetLedger::resume`] reconstructs `committed` by
+//! that might have already reached the provider. In the kernel's persistence
+//! route, the ledger is not the durable source of truth:
+//! [`CumulativeBudgetLedger::resume`] reconstructs `committed` by
 //! folding over an already-persisted journal prefix and summing every
 //! `RequestIntent.reserved_budget` seen so far — the exact value `reserve`
 //! already committed and the kernel already made durable *before* dispatch.
@@ -42,7 +42,9 @@
 //! that exercises exactly this: a hand-built journal ending in an uncertain
 //! `RequestIntent` (no recorded response — the crash window) still leaves
 //! its reservation charged against the ceiling when a fresh ledger resumes
-//! from it.
+//! from it. The ledger itself performs no persistence. A host using it without
+//! that journal route retains reservations only for the lifetime of the ledger
+//! and must not claim durable recovery from those in-memory observations.
 //!
 //! # `record` never refunds
 //!
@@ -296,15 +298,20 @@ impl<'a> CumulativeBudgetLedger<'a> {
 }
 
 impl InvocationBudgetHook for CumulativeBudgetLedger<'_> {
-    fn reserve(
-        &mut self,
-        request: &ModelInvocationRequest,
-    ) -> Result<ReservedBudget, BudgetRefusal> {
+    fn check_deadline(&self) -> Result<(), BudgetRefusal> {
         if let Some(deadline) = self.deadline_millis {
             if self.clock.now_millis() >= deadline {
                 return Err(BudgetRefusal(DEADLINE_EXCEEDED.to_owned()));
             }
         }
+        Ok(())
+    }
+
+    fn reserve(
+        &mut self,
+        request: &ModelInvocationRequest,
+    ) -> Result<ReservedBudget, BudgetRefusal> {
+        self.check_deadline()?;
         let requested = request.effective_budget;
         if requested < 0 {
             return Err(BudgetRefusal(NEGATIVE_REQUEST.to_owned()));

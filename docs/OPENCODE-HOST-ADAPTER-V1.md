@@ -166,3 +166,32 @@ neither read the developer's credentials nor contact a provider.
 OpenCode may install runtime dependencies in its private configuration/cache
 directories even with `--pure`; those writes are not compiler build-time work.
 The smoke archives its receipts before removing disposable scratch storage.
+
+## Source attempt accounting
+
+The source adapter requires an explicit `OpenCodeSourceAccounting` wrapper
+around the existing `InvocationBudgetHook`. The host supplies a positive fixed
+reservation in the deployment's units and a bounded attempt capacity. Each
+attempt reserves before dispatch and retains that reservation through malformed
+proposals, uncertain provider failure and cancellation in flight. Validated
+reported token counters are observations; they never refund or determine the
+reservation. A cancellation observed before reservation makes no provider call.
+
+The wrapper retains bounded host-only receipts with turn/attempt identity,
+reserved units, measured request/response bytes and optional reported counters.
+The source grammar decoder still owns admission, so a transport-settled but
+noncanonical document remains charged when the driver retries. Receipt capacity
+is checked before a new reservation. The shared absolute deadline is checked
+before dispatch and again before settled proposal bytes reach the decoder.
+
+These receipts and the source wrapper are in-memory. They do not establish
+durable source recovery, migration, or deadline checks around every source
+stage/effect. Those residual #113 requirements remain open. The earlier local
+provider evidence above is bound to its recorded executable; the accounting
+extension has separate offline regression evidence.
+
+Focused accounting validation (2026-09-13): 39 OpenCode host tests and 103
+live-invocation library tests passed, including exact-deadline rejection,
+just-before-deadline admission, nonrefundable malformed retries, prior-failure
+selection and causal journal replay. Bundle pin and both structural checks
+also passed. No additional provider call was used for this extension.

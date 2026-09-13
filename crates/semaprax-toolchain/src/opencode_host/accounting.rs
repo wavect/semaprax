@@ -317,11 +317,18 @@ mod tests {
 
     #[test]
     fn settled_at_deadline_is_charged_and_refused_before_decode() {
-        let mut clock = Clock(Cell::new(0));
+        struct SharedClock(std::rc::Rc<Cell<i64>>);
+        impl InvocationClock for SharedClock {
+            fn now_millis(&self) -> i64 {
+                self.0.get()
+            }
+        }
+        let time = std::rc::Rc::new(Cell::new(0));
+        let mut clock = SharedClock(std::rc::Rc::clone(&time));
         let mut ledger = CumulativeBudgetLedger::with_deadline(1, 10, &mut clock);
         let mut accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 1).unwrap();
         accounting.reserve(request(), 0, 10).unwrap();
-        clock.0.set(10);
+        time.set(10);
         assert_eq!(
             accounting.finish(
                 &ModelInvocationOutcome::Settled(b"actual".to_vec()),

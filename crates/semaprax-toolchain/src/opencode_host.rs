@@ -413,6 +413,7 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
+pub mod accounting;
 mod environment;
 pub mod provider_error;
 mod receipt;

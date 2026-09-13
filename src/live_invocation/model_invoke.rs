@@ -280,6 +280,13 @@ pub struct InvocationUsage {
 /// hook in [`super::fixture`] is a trivial per-invocation counter, not a
 /// cumulative-budget reference implementation.
 pub trait InvocationBudgetHook {
+    /// Check the invocation's existing absolute deadline without reserving or
+    /// refunding work. Called at settlement and dispatch/publication boundaries.
+    /// Policies without a deadline retain their existing behavior.
+    fn check_deadline(&self) -> Result<(), BudgetRefusal> {
+        Ok(())
+    }
+
     fn reserve(
         &mut self,
         request: &ModelInvocationRequest,

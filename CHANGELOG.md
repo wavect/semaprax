@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Require explicit cumulative reservations for OpenCode source attempts and
+  retain their bounded usage observations across malformed retries and failures
+  (#113). Check the shared absolute deadline at settlement and later kernel
+  boundaries; source recovery and migration accounting remain separate work.
+
 - Connect one explicitly configured free OpenCode provider to the existing
   source-feedback driver, preserving canonical proposal admission (#112).
   Bound Unix process output/cancellation, bind real CLI receipts, preserve

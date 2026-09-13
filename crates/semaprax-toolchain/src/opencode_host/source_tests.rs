@@ -279,7 +279,8 @@ fn malformed_first_proposal_spends_the_whole_ceiling_before_retry_and_dispatches
             },
             &cancellation,
         )
-        .expect_err("the second reservation must refuse before another provider call");
+        .err()
+        .expect("the second reservation must refuse before another provider call");
     let receipts = source.receipts().to_vec();
     drop(source);
     assert_eq!(error[0].code, "SPX-I239");
@@ -321,7 +322,8 @@ fn host_cancellation_before_the_first_reservation_makes_no_host_call_or_charge()
             },
             &cancellation,
         )
-        .expect_err("host cancellation refuses before reservation");
+        .err()
+        .expect("host cancellation refuses before reservation");
 
     let receipts = source.receipts().to_vec();
     drop(source);
@@ -365,7 +367,8 @@ fn settled_at_shared_deadline_is_charged_but_never_decoded_or_dispatched() {
             },
             &cancellation,
         )
-        .expect_err("a settled response at the deadline cannot reach decode");
+        .err()
+        .expect("a settled response at the deadline cannot reach decode");
     let receipts = source.receipts().to_vec();
     drop(source);
 
@@ -458,7 +461,8 @@ fn uncertain_provider_failure_keeps_the_reservation_and_records_no_provider_usag
             },
             &cancellation,
         )
-        .expect_err("unknown provider outcome ends the source run");
+        .err()
+        .expect("unknown provider outcome ends the source run");
     let receipts = source.receipts().to_vec();
     drop(source);
 

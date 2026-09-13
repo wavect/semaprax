@@ -307,10 +307,9 @@ pub fn run_migrated_destination(
     let destination_journal = record.destination_journal.clone();
     let result = {
         let mut sink = MigrationCheckpointSink { store, record };
-        let effect = match &mut *effect {
-            Some(effect) => Some(&mut **effect as &mut dyn TurnEffect),
-            None => None,
-        };
+        let effect = effect
+            .as_mut()
+            .map(|effect| &mut **effect as &mut dyn TurnEffect);
         let mut routed_handlers = LiveInvocationHandlers {
             capability,
             handler: &mut **handler,

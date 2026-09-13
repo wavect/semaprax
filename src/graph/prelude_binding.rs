@@ -25,7 +25,7 @@ fn revision_with_prelude(source: &str, prelude_schema: &str, prelude_contract: &
     hasher.update((prelude_schema.len() as u64).to_le_bytes());
     hasher.update(prelude_schema.as_bytes());
     hasher.update((prelude_contract.len() as u64).to_le_bytes());
-    hasher.update(&prelude_contract);
+    hasher.update(prelude_contract);
     format!(
         "sha256:{:x}",
         crate::digest_hex::LowerHex(hasher.finalize())

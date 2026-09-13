@@ -433,38 +433,40 @@ fn run_with_deadline(
     };
     let mut observer = FixtureObserver;
     let mut policy = FixturePolicy { total_turns: 1 };
-    let mut handlers = LiveInvocationHandlers {
-        capability: &capability,
-        handler: &mut handler,
-        decoder: &mut decoder,
-        gate: &mut gate,
-        budget: &mut ledger,
-        observer: &mut observer,
-        policy: &mut policy,
-        effect: Some(&mut effect),
-        sink: None,
+    let run = {
+        let mut handlers = LiveInvocationHandlers {
+            capability: &capability,
+            handler: &mut handler,
+            decoder: &mut decoder,
+            gate: &mut gate,
+            budget: &mut ledger,
+            observer: &mut observer,
+            policy: &mut policy,
+            effect: Some(&mut effect),
+            sink: None,
+        };
+        let run = run_live_invocation(
+            &config,
+            Vec::new(),
+            &mut handlers,
+            &AgentCancellation::new(),
+        )
+        .expect("bounded kernel run");
+        assert!(
+            journal::validate(&run.journal, identity.digest())
+                .expect("deadline path has a valid causal journal")
+                .terminal
+        );
+        let replay = run_live_invocation(
+            &config,
+            run.journal.clone(),
+            &mut handlers,
+            &AgentCancellation::new(),
+        )
+        .expect("terminal replay");
+        assert_eq!(replay.dispatched, 0);
+        run
     };
-    let run = run_live_invocation(
-        &config,
-        Vec::new(),
-        &mut handlers,
-        &AgentCancellation::new(),
-    )
-    .expect("bounded kernel run");
-    assert!(
-        journal::validate(&run.journal, identity.digest())
-            .expect("deadline path has a valid causal journal")
-            .terminal
-    );
-    let replay = run_live_invocation(
-        &config,
-        run.journal.clone(),
-        &mut handlers,
-        &AgentCancellation::new(),
-    )
-    .expect("terminal replay");
-    assert_eq!(replay.dispatched, 0);
-    drop(handlers);
     assert_eq!(handler.calls, 1);
     DeadlineEvidence {
         journal: run.journal,

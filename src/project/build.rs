@@ -156,7 +156,7 @@ fn finish_build(
             &workspace_revision,
             semantic.graph_digest(),
             &files,
-            &programs,
+            &program_refs,
             &agent_definitions,
         )?)
     };

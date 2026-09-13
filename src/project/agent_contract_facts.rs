@@ -83,7 +83,7 @@ impl AgentInteractionContractFacts {
         source_workspace_revision: &str,
         project_graph_digest: &str,
         files: &[SemanticWorkspaceFileFact],
-        programs: &[Program],
+        programs: &[&Program],
         definitions: &[CompiledAgentDefinition],
     ) -> Result<Self> {
         if definitions.is_empty()

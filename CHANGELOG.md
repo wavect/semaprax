@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Derive cached Project Agent interaction facts from retained authenticated
+  source programs, fixing false SPX-G564 failures without reparsing (#85).
+  Repair the embedding-example index and Clippy CI blockers, and provision
+  pinned Clippy for the public-generic consumer job.
+
 - Provision pinned TypeScript 5.8.3 for the public-generic hosted job and
   fail closed on missing consumer tools; record platform/toolchain identities
   with separate Unix and Windows preflights (#163). Fresh hosted evidence

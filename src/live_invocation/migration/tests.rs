@@ -1150,26 +1150,27 @@ fn a_persisted_or_recovered_handoff_drives_destination_dispatch_and_replay() {
     }
     assert_eq!(handler.calls, 0, "a failed checkpoint precedes dispatch");
     store.fail_from_call = None;
-    let mut handlers = LiveInvocationHandlers {
-        capability: &capability,
-        handler: &mut handler,
-        decoder: &mut decoder,
-        gate: &mut gate,
-        budget: &mut budget,
-        observer: &mut observer,
-        policy: &mut policy,
-        effect: None,
-        sink: None,
+    let first = {
+        let mut handlers = LiveInvocationHandlers {
+            capability: &capability,
+            handler: &mut handler,
+            decoder: &mut decoder,
+            gate: &mut gate,
+            budget: &mut budget,
+            observer: &mut observer,
+            policy: &mut policy,
+            effect: None,
+            sink: None,
+        };
+        run_migrated_destination(
+            &mut recovered,
+            &mut store,
+            &cfg,
+            &mut handlers,
+            &AgentCancellation::new(),
+        )
+        .unwrap()
     };
-    let first = run_migrated_destination(
-        &mut recovered,
-        &mut store,
-        &cfg,
-        &mut handlers,
-        &AgentCancellation::new(),
-    )
-    .unwrap();
-    drop(handlers);
     assert_eq!(first.run.dispatched, 1);
     assert!(first.generation > 1, "destination journal was checkpointed");
     assert_eq!(handler.calls, 1);
@@ -1181,26 +1182,27 @@ fn a_persisted_or_recovered_handoff_drives_destination_dispatch_and_replay() {
     let mut replay_budget = FixtureBudgetHook::new(10);
     let mut replay_observer = FixtureObserver;
     let mut replay_policy = super::super::fixture::FixturePolicy { total_turns: 1 };
-    let mut replay_handlers = LiveInvocationHandlers {
-        capability: &capability,
-        handler: &mut never_handler,
-        decoder: &mut replay_decoder,
-        gate: &mut replay_gate,
-        budget: &mut replay_budget,
-        observer: &mut replay_observer,
-        policy: &mut replay_policy,
-        effect: None,
-        sink: None,
+    let replayed = {
+        let mut replay_handlers = LiveInvocationHandlers {
+            capability: &capability,
+            handler: &mut never_handler,
+            decoder: &mut replay_decoder,
+            gate: &mut replay_gate,
+            budget: &mut replay_budget,
+            observer: &mut replay_observer,
+            policy: &mut replay_policy,
+            effect: None,
+            sink: None,
+        };
+        run_migrated_destination(
+            &mut replay,
+            &mut store,
+            &cfg,
+            &mut replay_handlers,
+            &AgentCancellation::new(),
+        )
+        .unwrap()
     };
-    let replayed = run_migrated_destination(
-        &mut replay,
-        &mut store,
-        &cfg,
-        &mut replay_handlers,
-        &AgentCancellation::new(),
-    )
-    .unwrap();
-    drop(replay_handlers);
     assert_eq!(replayed.run.dispatched, 0);
     assert_eq!(never_handler.calls, 0);
 }

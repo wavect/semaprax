@@ -191,7 +191,7 @@ fn republishing_the_identical_digest_is_refused_as_duplicate() {
     let one = meaning_entry("1.0.0", "alpha");
     // Control: the single copy alone is admitted, so the failure below is
     // caused by the second occurrence, not by this entry's own shape.
-    assert!(build_snapshot(&[one.clone()]).is_ok());
+    assert!(build_snapshot(std::slice::from_ref(&one)).is_ok());
     let entries = vec![one.clone(), one];
     assert_eq!(build_snapshot(&entries).unwrap_err().code, "SPX-PKR605");
 }
@@ -199,7 +199,7 @@ fn republishing_the_identical_digest_is_refused_as_duplicate() {
 #[test]
 fn republishing_a_different_digest_under_the_same_coordinate_is_refused_as_immutable_conflict() {
     let original = meaning_entry("1.0.0", "alpha");
-    assert!(build_snapshot(&[original.clone()]).is_ok());
+    assert!(build_snapshot(std::slice::from_ref(&original)).is_ok());
     // Same declared coordinate (`examples.meaning@1.0.0`), but a genuinely
     // different, still self-consistent, correctly digest-bound package body
     // (a nonempty capability list changes the Subject-v3 bytes).

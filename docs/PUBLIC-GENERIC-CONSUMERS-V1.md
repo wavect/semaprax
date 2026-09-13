@@ -1054,12 +1054,14 @@ public_generic_abi::carrier::settlement_corpus` — 9 passed, 0 failed (5
 cross-engine cases plus 4 `should_panic` negative controls on the checker
 itself).
 
-**Not run in hosted CI.** No required or optional hosted job invokes this
-module today (verified by reading `.github/workflows/ci.yml` directly): the
-`public-generic-ownership-milestone` job's steps stop at the grammar-only
-`projections public_generic_consumers` gate documented above. Wiring this
-lib test into that job is outside this update's file lease
-(`.github/workflows/**`); the exact step is recorded in `HANDOFF.md`.
+**Not yet recorded as hosted evidence.** The
+`public-generic-ownership-milestone` job now continues beyond the grammar-only
+`projections public_generic_consumers` gate: it invokes the native adapter,
+Core-Wasm adapter, and descriptor/carrier hostile-replay harnesses. No hosted
+run for that expanded corpus is recorded here yet; issue #163 owns the fresh
+three-host run and its exact-commit evidence record. This module's local
+settlement evidence therefore remains local evidence, and the cross-engine
+limitations described above remain open under issue #162.
 
 This section documents execution evidence only. The obligations this corpus
 executes against are derived and specified in

@@ -432,6 +432,81 @@ fn variant_case_round_trips_and_rejects_wrong_tag() {
     std::fs::remove_file(&path).ok();
 }
 
+/// Copy Aggregate Variant Payload v1 admits a case whose field is a
+/// drop-free nested record. This makes the interaction-schema path that was
+/// previously unreachable from source observable without widening the still
+/// refused `string` or owning nested-record profiles.
+#[test]
+fn copy_aggregate_variant_payload_derives_and_decodes_as_a_nested_schema_value() {
+    let source = r#"
+module test.agent_interaction_nested_variant;
+
+@id("nested.inner")
+record Inner {
+    @id("nested.inner.count")
+    count: i64,
+    @id("nested.inner.ready")
+    ready: bool,
+}
+
+@id("nested.choice")
+variant Choice {
+    @id("nested.choice.wrapped")
+    Wrapped {
+        @id("nested.choice.wrapped.value")
+        value: Inner,
+    },
+    @id("nested.choice.empty")
+    Empty,
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let path = write_temp(source, "nested-variant");
+    let compiled = compile_agent_interaction_schema(&path, "nested.choice")
+        .expect("a drop-free nested variant payload is source-admitted");
+    std::fs::remove_file(&path).ok();
+
+    let nested = "{\"fields\":{\"nested.inner.count\":\"7\",\"nested.inner.ready\":true}}";
+    let document = document(
+        "nested.choice",
+        compiled.schema().digest(),
+        &format!(
+            "{{\"case\":\"nested.choice.wrapped\",\"fields\":{{\"nested.choice.wrapped.value\":{nested}}}}}"
+        ),
+    );
+    let decoded = compiled
+        .decode(document.as_bytes())
+        .expect("the nested case payload must decode canonically");
+    assert_eq!(decoded.canonical_json(), document);
+    assert_eq!(decoded.value().case(), Some("nested.choice.wrapped"));
+    let Some(FieldValue::Nested(value)) = decoded.value().field("nested.choice.wrapped.value")
+    else {
+        panic!("variant field must retain its nested record identity");
+    };
+    assert_eq!(
+        value.field("nested.inner.count"),
+        Some(&FieldValue::Scalar(ScalarValue::Signed(7)))
+    );
+    assert_eq!(
+        value.field("nested.inner.ready"),
+        Some(&FieldValue::Scalar(ScalarValue::Bool(true)))
+    );
+
+    let wrong_nested_field = document.replace("nested.inner.ready", "nested.inner.unknown");
+    let error = compiled
+        .decode(wrong_nested_field.as_bytes())
+        .expect_err("nested variant fields stay closed under the derived schema");
+    assert_eq!(error[0].code, "SPX-Z206");
+    assert!(error[0].message.contains("value.fields.unknown"));
+
+    let provider = compiled.provider_json_schema();
+    assert!(
+        provider.contains("\"nested.choice.wrapped.value\":{\"$ref\":\"#/$defs/nested.inner\"}")
+    );
+}
+
 /// Malformed UTF-8 response bytes are refused with a stable diagnostic
 /// rather than panicking or being silently lossily decoded.
 #[test]

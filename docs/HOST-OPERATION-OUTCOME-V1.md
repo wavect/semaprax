@@ -24,8 +24,10 @@ provider status** rather than returning an inspectable value. Concretely, for
 - `src/filesystem_provider.rs:14-22` closes `FileFailure` over seven variants
   (`InvalidPath`, `NotFound`, `AlreadyExists`, `CapacityExceeded`,
   `IoFailure`, `AuthorityDenied`, `InvalidFileType`) with a `status_code`
-  (`src/filesystem_provider.rs:36-46`) — the provider boundary already
-  distinguishes failure kinds.
+  (`src/filesystem_provider.rs:36-46`). This boundary distinguishes failure
+  kinds but not the commit phase: the physical provider currently reports
+  `IoFailure` both when writing its temporary file fails and when `renameat`
+  fails (`src/filesystem_provider/unix.rs`, `write_atomic`).
 - Native lowering discards that distinction before it reaches checked source:
   `src/codegen/native_emit/expression/host_command.rs:410` emits `spx_status
   = spx_host_file_write_atomic_v2(...); if (spx_status != SPX_STATUS_SUCCESS)
@@ -107,22 +109,23 @@ current definition, not this line number, since it shifts with unrelated
 edits). Same signature shape as
 `file_write_atomic` — `(borrow Slice<u8> path, usize path_length, borrow
 Slice<u8> data, usize data_length) -> usize` — but its returned `usize` is a
-closed three-code outcome instead of a byte count, and (unlike
-`file_write_atomic`) a nonzero provider status from this operation's own
-domain **never reaches `spx_epilogue`**; it is mapped to one of the three
-outcome codes below and returned as an ordinary value.
+closed three-code outcome instead of a byte count. Its classified publication
+outcomes become ordinary values rather than taking `spx_epilogue`; unrelated
+ABI or provider-contract defects still fail closed.
 
 ### Closed three-way outcome taxonomy (`HOSTOUT-001`)
 
 | Code | Name | Meaning | Maps from |
 | --- | --- | --- | --- |
 | `0` | `PUBLISHED` | The atomic replace committed. | `write_atomic` success (today's `Ok(data_length)` path, `src/filesystem_provider.rs:305` in the reference provider). |
-| `1` | `NOT_PUBLISHED` | Validation or precondition failed before any mutating attempt; nothing changed on disk. | `FileFailure::InvalidPath`, `AlreadyExists`, `CapacityExceeded`, `AuthorityDenied`, `InvalidFileType` — every existing variant the provider can raise **before** attempting the rename/write step. |
+| `1` | `NOT_PUBLISHED` | The provider can prove the authoritative target was not published. A pre-commit failure may still have created a temporary staging file. | `FileFailure::InvalidPath`, `NotFound` for a missing parent, `AlreadyExists`, `CapacityExceeded`, `AuthorityDenied`, `InvalidFileType`, and a phase-qualified `IoFailure` when the checked provider proves no target publication. |
 | `2` | `UNCERTAIN` | The provider began the commit step and cannot confirm whether it completed. | A **new** `FileFailure::PublishUncertain` variant (this document proposes adding it under `src/filesystem_provider.rs`'s existing closed enum), raised only from the point a provider has started its atomic replace, never before. |
 
-`NotFound` does not apply to a write operation and is not part of this
-table. `HOSTOUT-001` is the frozen shape any implementer must lower
-unchanged; widening it (a fourth code, a different code assignment) is a
+`NotFound` applies when the parent directory is absent: both
+`FixtureFileProvider::write_atomic` (`src/filesystem_provider.rs`) and
+`ScopedFileProvider::parent` (`src/filesystem_provider/unix.rs`) reject that
+path before attempting to publish the target. `HOSTOUT-001` retains its
+three codes; widening it (a fourth code, a different code assignment) is a
 change to this document, not to the implementation.
 
 The critical admission rule, restated from the repository's own invariant
@@ -131,17 +134,21 @@ The critical admission rule, restated from the repository's own invariant
 outcome-unknown signal from the provider itself, exactly the discipline
 `std.jobs`'s `UNCERTAIN` state and `std.db`'s `connection_lost` transition
 already both hold** (`DURABLE-JOBS-V1.md`, "The #228 boundary"). A provider
-may not collapse an ordinary `IoFailure` into `UNCERTAIN` merely because
-uncertainty is a documented case — `IoFailure` continues to mean "failed and
-known not to have applied" and stays outside this table (it aborts, same as
-today, via the existing `file_write_atomic` op unless the specific provider
-implementation can prove the commit step was never entered). Only a provider
-that genuinely cannot distinguish "committed" from "not committed" — a
-disk write whose fsync or rename syscall itself returned an ambiguous
-error, for instance `EIO` after the rename syscall returned rather than
-before it was issued — may report `PublishUncertain`. That distinction is a
-provider-authoring discipline this document states explicitly and a future
-hostile-input test must check is documented, not silently violated.
+may not translate every ordinary `IoFailure` into `UNCERTAIN` merely because
+uncertainty is a documented case. Nor may it translate every `IoFailure` into
+`NOT_PUBLISHED`: the existing physical `write_atomic` maps both temporary
+file write failure (before target commit) and `renameat` failure (at the
+commit step) to that one variant. The legacy operation retains its fail-stop
+behavior; its `Result` is insufficient to implement the new checked outcome
+by wrapping or reclassifying it. A checked provider must report the phase
+and observed result of its **own** commit attempt. It emits
+`PublishUncertain` only when that attempt was made and its outcome truly
+cannot be determined; it reports `NOT_PUBLISHED` only when it can prove the
+target was not published. A failure after a confirmed successful rename is
+not automatically publication uncertainty; durability and cleanup require
+their own precise claims. This phase distinction is a provider-authoring
+discipline, and future hostile-input tests must check it rather than infer
+it from a legacy error code.
 
 ## Capability requirements (`HOSTOUT-002`)
 
@@ -315,6 +322,11 @@ tests must all exist alongside it before that lowering can be considered
 complete, per this document's `HOSTOUT-001` table and the repository's
 "add a success case and stable diagnostic regression before or with the
 implementation" change protocol rule.
+
+`src/filesystem_provider/tests.rs` additionally checks the current
+fixture and scoped physical providers' missing-parent `NotFound` result and
+unchanged target inventory. This is a pre-commit negative control for the
+taxonomy correction, not a test of the proposed checked host operation.
 
 ## Open questions for the review checkpoint
 

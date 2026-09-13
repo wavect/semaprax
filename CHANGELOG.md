@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Cover drop-free nested variant payloads through interaction-schema derivation,
+  canonical decoding, and hostile nested-field refusal (#216). Correct the
+  proposed checked-write taxonomy to distinguish proven non-publication from
+  phase-ambiguous legacy I/O errors (#228); missing-parent provider regressions
+  preserve the current fail-stop operation.
+
 - Add a separate structured-envelope validation task to the cross-language
   corpus (#106), with candidate-preserving hidden tests and a negative control
   for wrong error precedence and removed visible assertions. The additive

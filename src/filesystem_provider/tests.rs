@@ -154,6 +154,19 @@ fn fixture_v2_invalid_operations_cannot_mutate_inventory() {
     assert_eq!(fixture.read(b"keep", 3), Ok(b"old".to_vec()));
 }
 
+#[test]
+fn fixture_atomic_write_missing_parent_refuses_before_target_publication() {
+    let mut provider =
+        FixtureFileProvider::new([(b"keep".to_vec(), b"old".to_vec())], true).unwrap();
+    let before = provider.files().clone();
+    assert_eq!(
+        provider.write_atomic(b"missing/target", b"new"),
+        Err(FileFailure::NotFound)
+    );
+    assert_eq!(provider.files(), &before);
+    assert_eq!(provider.list(b"", 64), Ok(b"keep\0".to_vec()));
+}
+
 #[cfg(unix)]
 mod physical {
     use super::*;
@@ -342,5 +355,27 @@ mod physical {
         assert_eq!(provider.read(b"keep", 3), Ok(b"old".to_vec()));
         assert!(root.0.join("link").is_symlink());
         assert_eq!(std::fs::read(outside.0.join("target")).unwrap(), b"outside");
+    }
+
+    #[test]
+    fn physical_atomic_write_missing_parent_refuses_before_staging_or_publication() {
+        let root = Scratch::new();
+        std::fs::write(root.0.join("keep"), b"old").unwrap();
+        let before: std::collections::BTreeSet<_> = std::fs::read_dir(&root.0)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        let mut provider = ScopedFileProvider::open(&root.0, FileAccess::ReadWrite).unwrap();
+        assert_eq!(
+            provider.write_atomic(b"missing/target", b"new"),
+            Err(FileFailure::NotFound)
+        );
+        assert_eq!(std::fs::read(root.0.join("keep")).unwrap(), b"old");
+        assert!(!root.0.join("missing").exists());
+        let after: std::collections::BTreeSet<_> = std::fs::read_dir(&root.0)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        assert_eq!(after, before);
     }
 }

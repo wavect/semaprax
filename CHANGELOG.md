@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Derive Assurance Manifest result-ownership and resource-cleanup obligations
+  from independently revalidated HIR (#214), and keep candidate summaries
+  aligned. Architecture-law derivation and workspace binding remain pending.
+
 - Complete the documented-limit decision for compiler capacity (#241): name
   the distinct checked-cache ceiling in SPX-G256, pin its inclusive boundary,
   and state graph/replay limits and the source-versus-runtime byte-copy guard.

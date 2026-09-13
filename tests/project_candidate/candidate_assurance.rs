@@ -139,9 +139,9 @@ fn joins_a_genuine_envelope_bound_to_the_exact_candidate() {
         value["candidate_revision"],
         json!(candidate.candidate_digest())
     );
-    // One precondition (`requires right != 0`) plus two ownership_parameter
-    // obligations (`left`, `right`); `main` has no parameters or contracts.
-    assert_eq!(value["obligations_total"], json!(3));
+    // One precondition, two parameter obligations, and result ownership for
+    // both `divide` and `main`.
+    assert_eq!(value["obligations_total"], json!(5));
     assert_eq!(value["publication_authority"], json!(false));
     assert_eq!(value["acceptance_authority"], json!(false));
     let not_observed: Vec<&str> = value["sources_not_observed"]
@@ -151,7 +151,7 @@ fn joins_a_genuine_envelope_bound_to_the_exact_candidate() {
         .map(|v| v.as_str().unwrap())
         .collect();
     assert_eq!(not_observed, vec!["src/tests.spx"]);
-    assert_eq!(value["kinds_not_yet_derived"].as_array().unwrap().len(), 6);
+    assert_eq!(value["kinds_not_yet_derived"], json!(["architecture_law"]));
 }
 
 #[test]
@@ -195,9 +195,9 @@ fn a_stale_envelope_from_before_a_real_candidate_edit_is_rejected() {
         .candidate_assurance_summary(mutated_candidate.candidate_digest(), &fresh_inputs)
         .unwrap();
     let value: Value = serde_json::from_str(&summary).unwrap();
-    // 3 for `divide` (1 precondition + 2 ownership_parameter) plus 2
-    // ownership_parameter obligations for the new wrapper.
-    assert_eq!(value["obligations_total"], json!(5));
+    // The original two results contribute two ownership_result obligations;
+    // the new wrapper adds its result and two parameters.
+    assert_eq!(value["obligations_total"], json!(8));
 }
 
 #[test]

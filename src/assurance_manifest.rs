@@ -12,7 +12,8 @@
 //!
 //! [`generate`] derives obligations from what the established
 //! `verify::verify` diagnostic pass already proved for one source file (see
-//! [`derive`]), optionally merges caller-supplied
+//! [`derive`]), resolves and validates HIR for result ownership and
+//! target-neutral cleanup facts, optionally merges caller-supplied
 //! [`AssuranceManifestOptions::external_records`], and renders the
 //! canonical envelope. [`verify_envelope`] and
 //! [`verify_envelope_against_source`] independently replay one envelope.
@@ -127,13 +128,16 @@ pub fn generate(
     let canonical_source_path = patch::canonical_source_path(source_path)?;
     let snapshot = patch::read_source_snapshot(&canonical_source_path)?;
     let program = crate::parse(snapshot.source(), source_path).map_err(|error| vec![error])?;
-    let diagnostics = crate::verify::verify(&program);
-    if diagnostics.iter().any(|item| item.severity.is_error()) {
-        return Err(diagnostics);
-    }
+    // HIR resolution runs the established source verifier and returns its
+    // diagnostics unchanged before it builds and validates the result and
+    // cleanup facts. This keeps the single-file diagnostic boundary intact.
+    let resolved = crate::hir::resolve(&program)?;
     let revision = graph::revision(&program);
 
+    // An AST-only success cannot justify these two compiler-proved classes.
     let mut obligations = derive::derive_obligations(&program);
+    obligations
+        .extend(derive::derive_resolved_obligations(&resolved).map_err(|error| vec![error])?);
     obligations.extend(options.external_records.obligations.iter().cloned());
     let assumptions = options.external_records.assumptions.clone();
     validate_obligations_and_assumptions(&obligations, &assumptions)?;
@@ -339,6 +343,32 @@ mod tests {
         let envelope = envelope.expect("generate should succeed");
         assert!(envelope.contains("\"schema\":\"semaprax.assurance-manifest.v1\""));
         verify_envelope(&envelope).expect("generated envelope must replay");
+    }
+
+    #[test]
+    fn generate_derives_hir_result_and_cleanup_without_architecture_claim() {
+        let path = write_temp(
+            "module app.generate_unit;\n\n@id(\"app.generate_unit.owned\")\nfn owned(value: own Bytes) -> Bytes { value }\n",
+            "resolved",
+        );
+        let envelope = generate(&path, &AssuranceManifestOptions::default()).unwrap();
+        std::fs::remove_file(&path).ok();
+        verify_envelope(&envelope).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&envelope).unwrap();
+        let obligations = value["payload"]["obligations"].as_array().unwrap();
+        assert!(obligations.iter().any(|item| {
+            item["declaration_id"] == "app.generate_unit.owned"
+                && item["kind"] == "ownership_result"
+                && item["classification"] == "compiler_proved"
+        }));
+        assert!(obligations.iter().any(|item| {
+            item["declaration_id"] == "app.generate_unit.owned"
+                && item["kind"] == "resource_cleanup"
+                && item["classification"] == "compiler_proved"
+        }));
+        assert!(!obligations
+            .iter()
+            .any(|item| item["kind"] == "architecture_law"));
     }
 
     #[test]

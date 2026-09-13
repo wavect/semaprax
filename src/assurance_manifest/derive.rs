@@ -7,6 +7,8 @@
 use std::collections::HashSet;
 
 use crate::ast::{Expr, ExprKind, InterfaceDeclaration, MatchPattern, Program};
+use crate::diagnostic::Diagnostic;
+use crate::hir::ResolvedProgram;
 
 use super::lattice::AssuranceClass;
 use super::obligation::{MethodRecord, Obligation, ObligationKind};
@@ -49,6 +51,11 @@ const EFFECT_AUTHORITY_CHECKER_TOOL: &str = "semaprax-effect-authority-checker";
 /// again at the AST-level pass this producer already runs.
 const INTERFACE_IMPORT_CHECKER_TOOL: &str = "semaprax-interface-import-checker";
 
+/// `hir::resolve` validates the body/result ownership relation for each
+/// ordinary function and independently replays its canonical CleanupPlan.
+const RESULT_OWNERSHIP_CHECKER_TOOL: &str = "semaprax-hir-ownership-validator";
+const RESOURCE_CLEANUP_CHECKER_TOOL: &str = "semaprax-cleanup-plan-replayer";
+
 /// Derive the automatic obligations for `program`. Callers must have
 /// already run `verify::verify(program)` and confirmed no error diagnostic
 /// fired; this function does not re-check that itself; see
@@ -82,6 +89,73 @@ pub(super) fn derive_obligations(program: &Program) -> Vec<Obligation> {
         obligations.extend(generated_interface_obligation(interface));
     }
     obligations
+}
+
+/// Derive only facts supplied by a successfully resolved and validated HIR
+/// program. This is deliberately separate from the AST derivation API; HIR
+/// is public and mutable, so replay the checker before assigning any proof
+/// class even when the caller previously used `hir::resolve`.
+pub(super) fn derive_resolved_obligations(
+    program: &ResolvedProgram,
+) -> Result<Vec<Obligation>, Diagnostic> {
+    crate::hir::validate(program)?;
+    let mut obligations = Vec::new();
+    for function in &program.functions {
+        obligations.push(ownership_result_obligation(function.id.as_str()));
+        let has_cleanup_leaf = function
+            .cleanup
+            .slots
+            .iter()
+            .try_fold(false, |seen, slot| {
+                let profile = crate::cleanup::cleanup_shape_profile(&slot.shape)?;
+                Ok::<_, Diagnostic>(seen || profile.owned_leaves > 0)
+            })?;
+        if has_cleanup_leaf {
+            obligations.push(resource_cleanup_obligation(function.id.as_str()));
+        }
+    }
+    Ok(obligations)
+}
+
+fn ownership_result_obligation(declaration_id: &str) -> Obligation {
+    let method = MethodRecord::new(
+        AssuranceClass::CompilerProved,
+        RESULT_OWNERSHIP_CHECKER_TOOL,
+        env!("CARGO_PKG_VERSION"),
+    );
+    let method = MethodRecord {
+        detail: Some(
+            "resolved HIR validates the function body's type and ownership against its result \
+             and rejects an invalid return ownership before the manifest is derived; this \
+             is a compile-time result-boundary fact, not runtime settlement evidence"
+                .to_owned(),
+        ),
+        ..method
+    };
+    Obligation::new(ObligationKind::OwnershipResult, declaration_id, "result").with_method(method)
+}
+
+fn resource_cleanup_obligation(declaration_id: &str) -> Obligation {
+    let method = MethodRecord::new(
+        AssuranceClass::CompilerProved,
+        RESOURCE_CLEANUP_CHECKER_TOOL,
+        env!("CARGO_PKG_VERSION"),
+    );
+    let method = MethodRecord {
+        detail: Some(
+            "a resolved owned cleanup leaf exists; HIR resolution built its target-neutral \
+             CleanupPlan and independent cleanup-plan validation replayed the canonical plan \
+             across admitted exits and liveness paths; this does not prove target execution"
+                .to_owned(),
+        ),
+        ..method
+    };
+    Obligation::new(
+        ObligationKind::ResourceCleanup,
+        declaration_id,
+        "cleanup:all-paths",
+    )
+    .with_method(method)
 }
 
 /// One `effect` obligation per distinct effect name `function` declares in
@@ -279,6 +353,109 @@ mod tests {
 
     fn program(source: &str) -> Program {
         crate::parse(source, "derive-test.spx").expect("parse")
+    }
+
+    fn resolved(source: &str) -> ResolvedProgram {
+        crate::hir::resolve(&program(source)).expect("resolved and validated HIR")
+    }
+
+    #[test]
+    fn resolved_result_and_nonempty_cleanup_inventory_derive_distinct_obligations() {
+        let program = resolved(
+            r#"
+module app.resolved_assurance;
+
+@id("app.resolved_assurance.owned")
+fn owned(value: own Bytes) -> Bytes { value }
+
+@id("app.resolved_assurance.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let obligations = derive_resolved_obligations(&program).unwrap();
+        let result = obligations
+            .iter()
+            .find(|item| {
+                item.kind == ObligationKind::OwnershipResult
+                    && item.declaration_id == "app.resolved_assurance.owned"
+            })
+            .unwrap();
+        assert_eq!(
+            result.id,
+            obligation_id(
+                ObligationKind::OwnershipResult,
+                "app.resolved_assurance.owned",
+                "result"
+            )
+        );
+        assert_eq!(result.methods[0].class, AssuranceClass::CompilerProved);
+        let cleanup = obligations
+            .iter()
+            .find(|item| {
+                item.kind == ObligationKind::ResourceCleanup
+                    && item.declaration_id == "app.resolved_assurance.owned"
+            })
+            .unwrap();
+        assert_eq!(
+            cleanup.id,
+            obligation_id(
+                ObligationKind::ResourceCleanup,
+                "app.resolved_assurance.owned",
+                "cleanup:all-paths"
+            )
+        );
+        assert_eq!(cleanup.methods[0].class, AssuranceClass::CompilerProved);
+        assert!(obligations.iter().all(|item| {
+            item.kind != ObligationKind::ResourceCleanup
+                || item.declaration_id != "app.resolved_assurance.main"
+        }));
+        assert_eq!(
+            obligations
+                .iter()
+                .filter(|item| item.kind == ObligationKind::OwnershipResult)
+                .count(),
+            2
+        );
+    }
+
+    #[test]
+    fn resolved_checker_rejects_mutated_result_or_cleanup_plan_before_derivation() {
+        let source = r#"
+module app.resolved_assurance;
+@id("app.resolved_assurance.owned")
+fn owned(value: own Bytes) -> Bytes { value }
+@id("app.resolved_assurance.main")
+fn main() -> i64 { 0 }
+"#;
+        let mut wrong_result = resolved(source);
+        let owned = wrong_result
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "app.resolved_assurance.owned")
+            .unwrap();
+        owned.body.ownership = crate::hir::OwnershipMode::Borrow;
+        let result_error = crate::hir::validate(&wrong_result).unwrap_err();
+        assert_eq!(result_error.code, "SPX-H006");
+        assert!(
+            result_error.message.contains("has inconsistent ownership"),
+            "{result_error:?}"
+        );
+        assert!(derive_resolved_obligations(&wrong_result).is_err());
+
+        let mut wrong_cleanup = resolved(source);
+        let owned = wrong_cleanup
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "app.resolved_assurance.owned")
+            .unwrap();
+        owned.cleanup_plan.exits.clear();
+        let cleanup_error = crate::hir::validate(&wrong_cleanup).unwrap_err();
+        assert_eq!(cleanup_error.code, "SPX-H006");
+        assert!(
+            cleanup_error.message.contains("non-canonical"),
+            "{cleanup_error:?}"
+        );
+        assert!(derive_resolved_obligations(&wrong_cleanup).is_err());
     }
 
     #[test]

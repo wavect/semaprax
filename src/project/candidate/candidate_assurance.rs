@@ -39,19 +39,10 @@ pub const MAX_PROJECT_CANDIDATE_ACCEPTANCE_BYTES: usize = 65_536;
 /// hostile string cannot inflate the acceptance record without limit.
 pub const MAX_CANDIDATE_ACCEPTANCE_IDENTITY_BYTES: usize = 256;
 
-/// The six obligation kinds `assurance_manifest::generate` reserves in its
-/// closed vocabulary but does not yet derive automatically (see "Obligation
-/// derivation" in `docs/ASSURANCE-MANIFEST-V1.md`). Listed here, verbatim,
-/// so a joined summary states plainly what remains unknown instead of
-/// letting their absence read as "verified".
-const KINDS_NOT_YET_DERIVED: [ObligationKind; 6] = [
-    ObligationKind::OwnershipResult,
-    ObligationKind::Effect,
-    ObligationKind::Exhaustiveness,
-    ObligationKind::ResourceCleanup,
-    ObligationKind::ArchitectureLaw,
-    ObligationKind::GeneratedInterface,
-];
+/// The one reserved kind with no audited automatic producer. This list is
+/// about producer coverage, not whether an individual source has an instance
+/// of any other kind.
+const KINDS_NOT_YET_DERIVED: [ObligationKind; 1] = [ObligationKind::ArchitectureLaw];
 
 /// One caller-supplied `semaprax.assurance-manifest.v1` envelope, already
 /// produced by `assurance_manifest::generate` over the exact bytes this
@@ -470,17 +461,19 @@ tests = ["assurance.tests"]
             value["candidate_revision"],
             json!(candidate.candidate_digest())
         );
-        // One precondition (`requires right != 0`) plus two
-        // ownership_parameter obligations (`left`, `right`); `main` has no
-        // parameters or contracts of its own.
-        assert_eq!(value["obligations_total"], json!(3));
+        // One precondition, two parameter obligations, and result ownership
+        // for both `divide` and `main`.
+        assert_eq!(value["obligations_total"], json!(5));
         assert_eq!(value["publication_authority"], json!(false));
         assert_eq!(value["acceptance_authority"], json!(false));
         let not_observed = value["sources_not_observed"].as_array().unwrap();
         let not_observed: Vec<&str> = not_observed.iter().map(|v| v.as_str().unwrap()).collect();
         assert_eq!(not_observed, vec!["src/tests.spx"]);
         let kinds_not_yet_derived = value["kinds_not_yet_derived"].as_array().unwrap();
-        assert_eq!(kinds_not_yet_derived.len(), 6);
+        assert_eq!(
+            kinds_not_yet_derived.as_slice(),
+            &[json!("architecture_law")]
+        );
     }
 
     #[test]

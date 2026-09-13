@@ -58,8 +58,10 @@ pub fn delta(
 `generate` reads bounded source bytes, parses, and runs the established
 `verify::verify` diagnostic pass (the same bar `capability_manifest` and
 `region_report` already use for "one verified single-file SEMAPRAX module").
-It derives obligations from what that pass already proved (see "Obligation
-derivation" below), optionally merges `options.external_records` (obligations
+It then resolves and validates HIR, including result ownership and the
+canonical cleanup-plan replay; a HIR failure refuses generation. It derives
+obligations from the checked AST and resolved HIR (see "Obligation derivation"
+below), optionally merges `options.external_records` (obligations
 and assumptions supplied by a caller — a test harness, or a future SMT/model-
 checking/proof-kernel producer), renders the canonical envelope, and rechecks
 exact source identity, bytes, and revision before returning, exactly like the
@@ -87,10 +89,10 @@ alias two different identities. `kind` is one of the closed tokens below.
 | `precondition` | `require:<index>` | Stable across formatting/rename. Changes if a `requires` clause is added, removed, or reordered — a semantic change. |
 | `postcondition` | `ensure:<index>` | Same rule, over `ensures`. |
 | `ownership_parameter` | `param:<index>` | Stable across formatting/rename. Changes if the parameter list or a parameter's ownership mode changes. |
-| `ownership_result` | `result` | Reserved for a later producer; not derived automatically in this tranche (see "Obligation derivation"). |
+| `ownership_result` | `result` | One per resolved ordinary function; stable across formatting and unrelated renames. Derived from validated HIR result ownership. |
 | `effect` | `effect:<name>` | Stable across formatting/rename. `<name>` is a declared effect token, deduplicated within one function's `uses { ... }` set; changes if the set of distinct declared effect names changes — a semantic change. Derived automatically today; see "Obligation derivation". |
 | `exhaustiveness` | `match:<index>` | Stable across formatting/rename. `<index>` is the 0-based position of a variant `match` expression in a pre-order, left-to-right walk of the owning function's `requires` clauses, then its body, then its `ensures` clauses (`derive::walk_expr`); changes if a match is added, removed, or reordered ahead of it — a semantic change, exactly like `require:<index>`. Derived automatically today; see "Obligation derivation". |
-| `resource_cleanup` | `cleanup:<path>` | Reserved; not derived automatically in this tranche. |
+| `resource_cleanup` | `cleanup:all-paths` | One per resolved ordinary function whose canonical cleanup inventory contains an owned cleanup leaf. It covers that function's complete target-neutral cleanup plan, not a physical finalizer or backend trace. |
 | `architecture_law` | `law:<name>` | Reserved; not derived automatically in this tranche. |
 | `generated_interface` | `interface:<name>` | Stable across formatting/rename. `<name>` is the declaring `interface`'s own name; changes if the interface is renamed — a semantic change, exactly like a `stable_id`-scoped rename elsewhere in this table. Derived automatically today, one obligation per interface that declares at least one import; see "Obligation derivation". |
 
@@ -173,20 +175,27 @@ state precisely which guarantee that fact carries:
   diagnostic, every such interface's imports already survived all of those
   checks; its method record has class `compiler_proved`.
 
-Nothing else is derived automatically in this tranche. `ownership_result`
-needs the resolved-HIR `result_ownership` helper (private, and defined over
-`ResolvedProgram`, not the `ast::Program` this producer stays at); resource
-cleanup order (`cleanup_plan::build`, over `ResolvedProgram`/
-`ResolvedFunction`) needs the same resolved-HIR dependency this producer
-does not have. `architecture_law` names no existing, single checked fact at
-all yet — unlike the other reserved kinds, this repository has no producer
-to audit for it. Mapping each of these three to a specific assurance class
-needs its own audit (or, for `architecture_law`, its own design) of exactly
-what a checker proves before this manifest can state it without overstating
-it — the explicit failure case this issue calls out first. `ObligationKind`
-already reserves their tokens (closed vocabulary, not an open string) so a
-later change can add their derivation without a schema version bump; until
-then they simply do not appear unless a caller supplies them through
+`ownership_result` is derived once per resolved ordinary function, including
+scalar results: HIR validation checks the body type and ownership against the
+declared return type and result binding before `generate` emits the
+`compiler_proved` method. This is a compile-time result-boundary fact, not
+evidence that a runtime result was published.
+
+`resource_cleanup` is derived once per resolved ordinary function when
+`cleanup::cleanup_shape_profile` finds at least one owned cleanup leaf in
+its validated inventory. `hir::resolve` builds the function's canonical
+`CleanupPlan`, and `hir::validate` independently rebuilds and replays it.
+The `cleanup:all-paths` locator denotes this single function-wide plan,
+including its admitted exits and liveness paths. The `compiler_proved`
+method asserts the target-neutral cleanup proof only; it does not assert that
+a native or Wasm backend ran a physical finalizer. Generic templates and
+materialized instances are not separately assigned these two obligations
+in this single-file manifest.
+
+Nothing else is derived automatically in this tranche.
+`architecture_law` names no existing, single checked fact at all yet;
+this repository has no producer to audit for it. Its reserved token does not
+gain a `compiler_proved` label by analogy. A caller may supply it through
 `options.external_records`, which is also how `open`, `assumed`,
 `test_evidenced`, `attempt_inconclusive`, `smt_proved`, `model_checked`, and
 `theorem_proved` records reach the manifest today. A simple candidate
@@ -309,8 +318,8 @@ treating a missing optional key as "not applicable."
 
 Given byte-identical source and a byte-identical, order-identical
 `options.external_records`, `generate` produces byte-identical output. Every
-field traces to: the parsed `ast::Program` (itself a deterministic function
-of source bytes), the fixed constants in this document (schema string,
+field traces to: the parsed `ast::Program` and its validated resolved HIR
+(both deterministic functions of source bytes), the fixed constants in this document (schema string,
 digest domains, tool name/`env!("CARGO_PKG_VERSION")`), and the caller-
 supplied external records, rendered by explicit hand-written JSON formatting
 (no `HashMap`/`HashSet` iteration reaches output un-sorted). No wall-clock
@@ -461,7 +470,7 @@ not_human_approval_or_policy
 not_signature_or_publication_authority
 not_safe_compatible_or_target_conformant
 no_repository_or_multi_file_analysis
-no_ownership_result_resource_cleanup_or_architecture_law_derivation_yet
+no_architecture_law_derivation_yet
 read_only_no_source_changes
 ```
 
@@ -471,11 +480,9 @@ to accept evidence from without ever requiring them to exist. It is not test
 execution, target execution, human approval, a signature, or publication
 authority; it grants none of those and none of the ambient filesystem,
 process, network, or signing authority AGENTS.md prohibits by default. It
-does not yet derive `ownership_result`, `resource_cleanup`, or
-`architecture_law` obligations automatically (see "Obligation derivation");
-their tokens exist in the closed vocabulary so a later change can add that
-derivation without a schema version bump, and a caller can already supply
-such a record today through `options.external_records`.
+does not derive `architecture_law` automatically (see "Obligation
+derivation"); that token exists in the closed vocabulary, and a caller can
+already supply such a record through `options.external_records`.
 
 ## Known limitations
 
@@ -488,7 +495,8 @@ such a record today through `options.external_records`.
 - **Entry-point-scoped by design: a library/provider module cannot receive
   its own envelope (#230).** `generate` parses and verifies exactly the file
   it is given through the single-file `verify::verify` pass, the same pass
-  `capability_manifest`/`region_report` reuse rather than duplicate. That
+  `capability_manifest`/`region_report` reuse rather than duplicate, then
+  resolves that same file's HIR. The source pass
   pass does two things no library module satisfies: it rejects any file with
   `module_uses` outright (`SPX-G172`, "source module imports require
   Workspace Semantic Graph resolution" — a single file is never resolved
@@ -503,7 +511,7 @@ such a record today through `options.external_records`.
   declare main"`). No source edit satisfies both rules on the same file, so
   no library module can ever be pointed at directly.
   This is intended, not an oversight: `generate` derives obligations through
-  one independent, self-contained parse-and-verify pass specifically so no
+  one independent, self-contained parse/verify/resolve route specifically so no
   second call site can re-derive them a different way and drift (see
   "Why this is a separate module from Assurance Manifest v1" in
   [Assurance Policy v1](ASSURANCE-POLICY-V1.md)). Accepting an arbitrary
@@ -521,13 +529,11 @@ such a record today through `options.external_records`.
   tranche. If a future RFC adds an explicit obligation-level `@id`, it can
   become an additional identity input without breaking existing derived
   IDs, because today's IDs never depend on one.
-- **Automatic derivation is deliberately narrow.** See "Obligation
-  derivation": only `precondition`, `postcondition`, `ownership_parameter`,
-  `exhaustiveness`, `effect`, and `generated_interface` are derived from
-  source today. `ownership_result`, `resource_cleanup`, and
-  `architecture_law` remain undone: `ownership_result` and
-  `resource_cleanup` each need a resolved-HIR dependency (`result_ownership`,
-  `cleanup_plan::build`) this producer does not otherwise have, staying at
-  `ast::Program`; `architecture_law` has no existing single checked fact in
-  this repository yet to audit at all. This is a deliberate, incremental
-  boundary, not an oversight.
+- **Automatic derivation remains deliberately narrow.** The six AST-level
+  kinds remain scoped to their audited checkers. `ownership_result` covers
+  resolved ordinary functions' result ownership, and `resource_cleanup`
+  covers an ordinary function's canonical target-neutral cleanup plan only
+  when its inventory contains a cleanup leaf. Generic templates and
+  materialized instances do not get separately inferred result or cleanup
+  obligations here. `architecture_law` remains reserved because no existing
+  single checked fact defines it.

@@ -93,15 +93,15 @@ recomputed revision over this candidate's own bytes, which is stronger.
 
 ## Honest disclosure of what is not yet derived
 
-`assurance_manifest::generate` (#183) only auto-derives three of the nine
-closed `ObligationKind` tokens today: `precondition`, `postcondition`, and
-`ownership_parameter`. The joined summary carries a fixed
-`kinds_not_yet_derived` array listing the other six
-(`ownership_result`, `effect`, `exhaustiveness`, `resource_cleanup`,
-`architecture_law`, `generated_interface`) verbatim in every summary, so their
-absence reads as "not yet checked", never as "verified". This is the exact
-failure case the owning issue names first: "unsupported and unobserved
-targets remain explicit; truncation cannot look like full assurance."
+`assurance_manifest::generate` derives eight of the nine closed
+`ObligationKind` tokens under their audited conditions. The joined summary
+carries `kinds_not_yet_derived: ["architecture_law"]` in every summary:
+that kind has no audited automatic producer. This field describes producer
+coverage, not the obligations present in a particular source. An unobserved
+candidate source still appears separately in `sources_not_observed`; neither
+absence can be read as "verified". This is the exact failure case the owning
+issue names first: "unsupported and unobserved targets remain explicit;
+truncation cannot look like full assurance."
 
 ## No formal-proof status without real proof evidence
 

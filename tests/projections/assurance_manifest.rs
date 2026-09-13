@@ -95,9 +95,9 @@ fn golden_envelope_digest_is_pinned() {
     let envelope = envelope.expect("envelope");
     assert!(envelope.contains("\"schema\":\"semaprax.assurance-manifest.v1\""));
     let payload = payload_of(&envelope);
-    assert_eq!(payload["counts"]["obligations_total"], 7);
+    assert_eq!(payload["counts"]["obligations_total"], 10);
     assert_eq!(payload["counts"]["by_class"]["runtime_guarded"], 4);
-    assert_eq!(payload["counts"]["by_class"]["compiler_proved"], 3);
+    assert_eq!(payload["counts"]["by_class"]["compiler_proved"], 6);
     assert_eq!(payload["counts"]["by_class"]["open"], 0);
     assert_eq!(payload["counts"]["assumptions_total"], 0);
     verify_envelope(&envelope).expect("golden envelope must independently replay");
@@ -125,7 +125,9 @@ fn precondition_and_postcondition_obligations_are_runtime_guarded() {
         let classification = obligation["classification"].as_str().unwrap();
         match kind {
             "precondition" | "postcondition" => assert_eq!(classification, "runtime_guarded"),
-            "ownership_parameter" => assert_eq!(classification, "compiler_proved"),
+            "ownership_parameter" | "ownership_result" => {
+                assert_eq!(classification, "compiler_proved")
+            }
             other => panic!("unexpected kind {other}"),
         }
     }

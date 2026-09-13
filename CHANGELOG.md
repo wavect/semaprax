@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Complete the documented-limit decision for compiler capacity (#241): name
+  the distinct checked-cache ceiling in SPX-G256, pin its inclusive boundary,
+  and state graph/replay limits and the source-versus-runtime byte-copy guard.
+
 - Run TypeScript/Wasm consumer Node entry points with relative fixture paths
   to avoid Windows extended-path main-module resolution failures. Complete
   private OpenCode/source-journal documentation metadata and catalog entries.

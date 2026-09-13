@@ -384,9 +384,9 @@ impl FrontendPass {
 
     pub(crate) fn checked_retention_prebound(&self, bytes: usize) -> Result<()> {
         if self.semantic && bytes > MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND {
-            return Err(capacity(
-                "checked module cache exceeds its synthetic AST/HIR construction prebound",
-            ));
+            return Err(capacity(format!(
+                "checked module cache synthetic AST/HIR construction prebound exceeds {MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND} bytes; this is the checked-module cache limit, separate from Workspace Semantic Graph builder_bytes"
+            )));
         }
         Ok(())
     }
@@ -576,8 +576,8 @@ fn context_digest(bytes: &[u8]) -> String {
 fn invalid(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G255", message)]
 }
-fn capacity(message: &'static str) -> Vec<Diagnostic> {
-    vec![Diagnostic::io("SPX-G256", message)]
+fn capacity(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G256", message.into())]
 }
 
 #[cfg(test)]
@@ -619,6 +619,21 @@ mod semantic_tests {
             functions_reused: 0,
         };
         let checkpoint = pass.checkpoint_core_attempt().unwrap();
+        assert!(pass
+            .checked_retention_prebound(MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND)
+            .is_ok());
+        let capacity_error = pass
+            .checked_retention_prebound(MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND + 1)
+            .expect_err("one byte over the checked-module cache prebound must refuse");
+        assert_eq!(capacity_error.len(), 1);
+        assert_eq!(capacity_error[0].code, "SPX-G256");
+        assert_eq!(
+            capacity_error[0].message,
+            format!(
+                "checked module cache synthetic AST/HIR construction prebound exceeds {} bytes; this is the checked-module cache limit, separate from Workspace Semantic Graph builder_bytes",
+                MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND
+            )
+        );
         assert!(pass.checked_module("local.spx", &synthetic).is_some());
         assert!(pass.checkpoint_core_attempt().is_none());
         pass.resolved = 9;

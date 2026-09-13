@@ -407,11 +407,11 @@ representative hosted or device evidence.
 
 [Issue #241](https://github.com/wavect/semaprax/issues/241) records two
 independent compiler capacity ceilings — `SPX-G171` (whole-project workspace
-graph builder-bytes) and `SPX-H006` (per-function cleanup-replay path budget,
-driven by combinatorial independent-branch multiplication rather than raw
-branch count) — that bound an "ordinary application" well below what this
-section's exit condition needs. Both are now measured, named with exact
-constants, and pinned by regression fixtures ([Semantic Kernel
+graph builder-bytes, 18,874,368 bytes) and `SPX-H006` (per-function
+cleanup-replay path budget, 65,536 terminal paths, driven by combinatorial
+independent-branch multiplication rather than raw branch count) — that bound
+an "ordinary application" well below what this section's exit condition needs.
+Both are now measured, named with exact constants, and pinned by regression fixtures ([Semantic Kernel
 v1](SEMANTIC-KERNEL-V1.md)); raising either still needs first-party evidence
 that replay and the semantic cache stay finite at the new bound, sequenced
 before this section's exit condition is attempted at realistic project size.

@@ -150,6 +150,15 @@ All diagnostics use the previously unused `SPX-F1xx` family:
 `SPX-F104` budget exhaustion, `SPX-F105` fail-closed evaluation guards,
 `SPX-F106` envelope consistency or replay failure.
 
+`SPX-F105` is not the source-facing limit for owned-byte allocation sites.
+The Portable Indexed Byte Data v1 verifier admits at most 16 `bytes_copy`
+allocation-producing sites on an executable path and refuses a seventeenth
+site with `SPX-T267` before this evaluator runs. The evaluator repeats that
+same 16-site and 1,048,576-byte payload ceiling only as a post-verification
+defense-in-depth guard for an impossible resolved-HIR state; it must not make
+an ordinary authored source overage appear as an `SPX-F105` backend accident.
+The source/HIR boundary fixtures are owned by the portable byte-data profile.
+
 ## Evidence
 
 Executable evidence lives in `tests/interpreter_v1.rs` plus module tests in

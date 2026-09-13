@@ -1,6 +1,23 @@
 use super::*;
-use crate::live_invocation::fixture::StepClock;
-use crate::live_invocation::journal::JournalEntry;
+use std::cell::Cell;
+use std::rc::Rc;
+
+use crate::agent_runtime::AgentCancellation;
+use crate::live_invocation::fixture::{
+    fixture_response, FixtureAuthorizationGate, FixtureObserver, FixturePolicy,
+    FixtureProposalDecoder, StepClock,
+};
+use crate::live_invocation::identity::{LiveInvocationId, LiveInvocationSeed};
+use crate::live_invocation::journal::{self, JournalEntry};
+use crate::live_invocation::kernel::{
+    run_live_invocation, LiveInvocationConfig, LiveInvocationHandlers, LiveInvocationOutcome,
+    TurnEffect,
+};
+use crate::live_invocation::model_invoke::{
+    AuthorizationContext, AuthorizationGate, AuthorizationGrant, AuthorizationRefusal,
+    ModelFailure, ModelHandler, ModelInvocationOutcome, ModelInvokeCapability, ProposalDecoder,
+    ProposalOutcome,
+};
 
 fn request(effective_budget: i64) -> ModelInvocationRequest {
     ModelInvocationRequest {
@@ -271,4 +288,334 @@ fn resume_preserves_an_absolute_deadline_across_the_same_simulated_crash() {
         BudgetRefusal(DEADLINE_EXCEEDED.to_owned()),
         "the original deadline (1_000) is still enforced after resume, not silently dropped"
     );
+}
+
+const KERNEL_SCHEMA: &str =
+    "sha256:00000000000000000000000000000000000000000000000000000000000000aa";
+
+struct SharedClock(Rc<Cell<i64>>);
+
+impl InvocationClock for SharedClock {
+    fn now_millis(&self) -> i64 {
+        self.0.get()
+    }
+}
+
+struct TimedHandler {
+    clock: Rc<Cell<i64>>,
+    settle_at: i64,
+    outcome: Option<ModelInvocationOutcome>,
+    calls: usize,
+}
+
+impl ModelHandler for TimedHandler {
+    fn invoke(
+        &mut self,
+        _capability: &ModelInvokeCapability,
+        _request: &ModelInvocationRequest,
+    ) -> ModelInvocationOutcome {
+        self.calls += 1;
+        self.clock.set(self.settle_at);
+        self.outcome.take().expect("one scripted model attempt")
+    }
+}
+
+struct CountingDecoder {
+    inner: FixtureProposalDecoder,
+    calls: usize,
+}
+
+impl ProposalDecoder for CountingDecoder {
+    fn schema_digest(&self) -> &str {
+        self.inner.schema_digest()
+    }
+
+    fn decode(&mut self, turn: u32, response: &[u8]) -> ProposalOutcome {
+        self.calls += 1;
+        self.inner.decode(turn, response)
+    }
+}
+
+struct TimedGate {
+    inner: FixtureAuthorizationGate,
+    clock: Rc<Cell<i64>>,
+    grant_at: Option<i64>,
+}
+
+impl AuthorizationGate for TimedGate {
+    fn authorize(
+        &mut self,
+        context: &AuthorizationContext<'_>,
+    ) -> Result<AuthorizationGrant, AuthorizationRefusal> {
+        let grant = self.inner.authorize(context);
+        if grant.is_ok() {
+            if let Some(at) = self.grant_at {
+                self.clock.set(at);
+            }
+        }
+        grant
+    }
+}
+
+struct TimedEffect {
+    clock: Rc<Cell<i64>>,
+    settle_at: Option<i64>,
+    calls: usize,
+}
+
+impl TurnEffect for TimedEffect {
+    fn call(&mut self, _turn: u32, _grant_digest: &str) -> Result<Vec<u8>, String> {
+        self.calls += 1;
+        if let Some(at) = self.settle_at {
+            self.clock.set(at);
+        }
+        Ok(b"observed".to_vec())
+    }
+}
+
+struct DeadlineEvidence {
+    journal: Vec<JournalEntry>,
+    outcome: LiveInvocationOutcome,
+    committed: i64,
+    usage: Vec<InvocationUsage>,
+    dispatched: usize,
+    decoded: usize,
+    grants: usize,
+    effects: usize,
+}
+
+fn run_with_deadline(
+    settle_at: i64,
+    outcome: ModelInvocationOutcome,
+    grant_at: Option<i64>,
+    effect_at: Option<i64>,
+) -> DeadlineEvidence {
+    let identity = LiveInvocationId::derive(&LiveInvocationSeed {
+        program_root: "sha256:".to_owned() + &"1".repeat(64),
+        deployment_policy: "sha256:".to_owned() + &"2".repeat(64),
+        task: b"deadline task".to_vec(),
+        budget: 100,
+        interaction_schema_digest: KERNEL_SCHEMA.to_owned(),
+        approved_providers: vec!["fixture-provider".into()],
+    });
+    let config = LiveInvocationConfig {
+        identity: &identity,
+        task: b"deadline task",
+        deployment_binding: "sha256:fixture-deployment",
+        interaction_schema_digest: KERNEL_SCHEMA,
+        max_turns: 1,
+        max_response_bytes: 4096,
+        requested_budget_per_turn: 10,
+    };
+    let time = Rc::new(Cell::new(0));
+    let mut clock = SharedClock(Rc::clone(&time));
+    let mut ledger = CumulativeBudgetLedger::with_deadline(100, 500, &mut clock);
+    let capability = ModelInvokeCapability::grant("deadline fixture");
+    let mut handler = TimedHandler {
+        clock: Rc::clone(&time),
+        settle_at,
+        outcome: Some(outcome),
+        calls: 0,
+    };
+    let mut decoder = CountingDecoder {
+        inner: FixtureProposalDecoder::new(KERNEL_SCHEMA),
+        calls: 0,
+    };
+    let mut gate = TimedGate {
+        inner: FixtureAuthorizationGate::new(1),
+        clock: Rc::clone(&time),
+        grant_at,
+    };
+    let mut effect = TimedEffect {
+        clock: Rc::clone(&time),
+        settle_at: effect_at,
+        calls: 0,
+    };
+    let mut observer = FixtureObserver;
+    let mut policy = FixturePolicy { total_turns: 1 };
+    let mut handlers = LiveInvocationHandlers {
+        capability: &capability,
+        handler: &mut handler,
+        decoder: &mut decoder,
+        gate: &mut gate,
+        budget: &mut ledger,
+        observer: &mut observer,
+        policy: &mut policy,
+        effect: Some(&mut effect),
+        sink: None,
+    };
+    let run = run_live_invocation(
+        &config,
+        Vec::new(),
+        &mut handlers,
+        &AgentCancellation::new(),
+    )
+    .expect("bounded kernel run");
+    assert!(
+        journal::validate(&run.journal, identity.digest())
+            .expect("deadline path has a valid causal journal")
+            .terminal
+    );
+    let replay = run_live_invocation(
+        &config,
+        run.journal.clone(),
+        &mut handlers,
+        &AgentCancellation::new(),
+    )
+    .expect("terminal replay");
+    assert_eq!(replay.dispatched, 0);
+    drop(handlers);
+    assert_eq!(handler.calls, 1);
+    DeadlineEvidence {
+        journal: run.journal,
+        outcome: run.outcome,
+        committed: ledger.committed(),
+        usage: ledger.usage().to_vec(),
+        dispatched: run.dispatched,
+        decoded: decoder.calls,
+        grants: gate.inner.granted,
+        effects: effect.calls,
+    }
+}
+
+#[test]
+fn a_settled_model_response_at_the_deadline_is_charged_but_never_decoded() {
+    let response = fixture_response(0, "late");
+    let evidence = run_with_deadline(
+        500,
+        ModelInvocationOutcome::Settled(response.clone()),
+        None,
+        None,
+    );
+    assert_eq!(
+        evidence.outcome,
+        LiveInvocationOutcome::Fail(b"deadline_exceeded".to_vec())
+    );
+    assert_eq!(evidence.dispatched, 1);
+    assert_eq!(evidence.committed, 10);
+    assert_eq!(
+        evidence.usage,
+        vec![InvocationUsage {
+            turn: 0,
+            request_bytes: b"observation:0".len(),
+            response_bytes: response.len(),
+            failed: true,
+        }]
+    );
+    assert_eq!(
+        (evidence.decoded, evidence.grants, evidence.effects),
+        (0, 0, 0)
+    );
+    assert!(evidence.journal.iter().any(|entry| matches!(entry,
+        JournalEntry::ResponseFailed { failure, attempted_bytes, .. }
+            if failure == DEADLINE_EXCEEDED && *attempted_bytes == response.len()
+    )));
+    assert!(!evidence
+        .journal
+        .iter()
+        .any(|entry| matches!(entry, JournalEntry::ResponseRecorded { .. })));
+}
+
+#[test]
+fn a_settled_model_response_just_before_the_deadline_can_finish() {
+    let response = fixture_response(0, "on-time");
+    let evidence = run_with_deadline(
+        499,
+        ModelInvocationOutcome::Settled(response.clone()),
+        None,
+        None,
+    );
+    assert_eq!(evidence.outcome, LiveInvocationOutcome::Complete(response));
+    assert_eq!(
+        (evidence.decoded, evidence.grants, evidence.effects),
+        (1, 1, 1)
+    );
+    assert_eq!(evidence.committed, 10);
+    assert_eq!(evidence.usage.len(), 1);
+    assert!(!evidence.usage[0].failed);
+}
+
+#[test]
+fn a_provider_failure_remains_the_selected_failure_even_if_time_has_elapsed() {
+    let evidence = run_with_deadline(
+        500,
+        ModelInvocationOutcome::Failed {
+            failure: ModelFailure::ProviderError,
+            attempted_bytes: 7,
+        },
+        None,
+        None,
+    );
+    assert_eq!(
+        evidence.outcome,
+        LiveInvocationOutcome::Fail(b"model_call_failed".to_vec())
+    );
+    assert_eq!(evidence.committed, 10);
+    assert_eq!(
+        evidence.usage,
+        vec![InvocationUsage {
+            turn: 0,
+            request_bytes: b"observation:0".len(),
+            response_bytes: 7,
+            failed: true,
+        }]
+    );
+    assert_eq!(
+        (evidence.decoded, evidence.grants, evidence.effects),
+        (0, 0, 0)
+    );
+    assert!(evidence.journal.iter().any(|entry| matches!(entry,
+        JournalEntry::ResponseFailed { failure, attempted_bytes: 7, .. }
+            if failure == ModelFailure::ProviderError.as_str()
+    )));
+}
+
+#[test]
+fn a_deadline_crossed_after_authorization_closes_effect_intent_without_dispatch() {
+    let evidence = run_with_deadline(
+        499,
+        ModelInvocationOutcome::Settled(fixture_response(0, "ok")),
+        Some(500),
+        None,
+    );
+    assert_eq!(
+        evidence.outcome,
+        LiveInvocationOutcome::Fail(b"deadline_exceeded".to_vec())
+    );
+    assert_eq!(
+        (evidence.decoded, evidence.grants, evidence.effects),
+        (1, 1, 0)
+    );
+    assert!(evidence
+        .journal
+        .iter()
+        .any(|entry| matches!(entry, JournalEntry::EffectIntent { .. })));
+    assert!(evidence.journal.iter().any(|entry| matches!(entry,
+        JournalEntry::EffectFailed { reason, .. } if reason == DEADLINE_EXCEEDED
+    )));
+}
+
+#[test]
+fn an_effect_that_settles_after_the_deadline_is_observed_but_cannot_publish_a_result() {
+    let evidence = run_with_deadline(
+        499,
+        ModelInvocationOutcome::Settled(fixture_response(0, "ok")),
+        None,
+        Some(500),
+    );
+    assert_eq!(
+        evidence.outcome,
+        LiveInvocationOutcome::Fail(b"deadline_exceeded".to_vec())
+    );
+    assert_eq!(
+        (evidence.decoded, evidence.grants, evidence.effects),
+        (1, 1, 1)
+    );
+    assert!(evidence
+        .journal
+        .iter()
+        .any(|entry| matches!(entry, JournalEntry::EffectObserved { .. })));
+    assert!(evidence.journal.iter().any(|entry| matches!(entry,
+        JournalEntry::TerminalOutcome { case, .. } if case == "fail"
+    )));
 }

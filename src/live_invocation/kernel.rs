@@ -316,6 +316,35 @@ pub fn run_live_invocation(
             }
         }
 
+        // A response that arrives after the shared absolute deadline never
+        // becomes a successful, decodable proposal. Check before writing
+        // ResponseRecorded: the causal journal permits ResponseFailed only
+        // while this request is still waiting for its response.
+        if let ModelInvocationOutcome::Settled(response) = &outcome {
+            if let Err(refusal) = handlers.budget.check_deadline() {
+                journal.push(JournalEntry::ResponseFailed {
+                    turn,
+                    failure: refusal.0,
+                    attempted_bytes: measure(response, config.max_response_bytes),
+                });
+                persist(&mut handlers.sink, &journal, dispatched)?;
+                handlers.budget.record(&InvocationUsage {
+                    turn,
+                    request_bytes: request.observation.len(),
+                    response_bytes: measure(response, config.max_response_bytes),
+                    failed: true,
+                });
+                let mut run = finish(
+                    journal,
+                    turn,
+                    TurnTransition::Fail(b"deadline_exceeded".to_vec()),
+                );
+                run.dispatched = dispatched;
+                persist(&mut handlers.sink, &run.journal, dispatched)?;
+                return Ok(run);
+            }
+        }
+
         let response = match outcome {
             ModelInvocationOutcome::Settled(response) => {
                 let response_digest = digest(RESPONSE_DOMAIN, &response);
@@ -341,6 +370,8 @@ pub fn run_live_invocation(
                 failure,
                 attempted_bytes,
             } => {
+                let attempted_bytes =
+                    attempted_bytes.min(config.max_response_bytes.saturating_add(1));
                 journal.push(JournalEntry::ResponseFailed {
                     turn,
                     failure: failure.as_str().to_owned(),
@@ -350,7 +381,7 @@ pub fn run_live_invocation(
                 handlers.budget.record(&InvocationUsage {
                     turn,
                     request_bytes: request.observation.len(),
-                    response_bytes: 0,
+                    response_bytes: attempted_bytes,
                     failed: true,
                 });
                 let mut run = finish(
@@ -363,6 +394,24 @@ pub fn run_live_invocation(
                 return Ok(run);
             }
         };
+
+        // A durable response may take time to persist. If the deadline
+        // expires before decode starts, close the journal's NeedDecode phase
+        // with a policy refusal; this is not a malformed proposal.
+        if let Err(refusal) = handlers.budget.check_deadline() {
+            journal.push(JournalEntry::ProposalRefused {
+                turn,
+                reason: refusal.0,
+            });
+            let mut run = finish(
+                journal,
+                turn,
+                TurnTransition::Fail(b"deadline_exceeded".to_vec()),
+            );
+            run.dispatched = dispatched;
+            persist(&mut handlers.sink, &run.journal, dispatched)?;
+            return Ok(run);
+        }
 
         let proposal = match handlers.decoder.decode(turn, &response) {
             ProposalOutcome::Admitted(bytes) => {
@@ -404,6 +453,22 @@ pub fn run_live_invocation(
                 journal,
                 turn,
                 TurnTransition::Fail(b"authorization_refused".to_vec()),
+            );
+            run.dispatched = dispatched;
+            persist(&mut handlers.sink, &run.journal, dispatched)?;
+            return Ok(run);
+        }
+
+        if let Err(refusal) = handlers.budget.check_deadline() {
+            journal.push(JournalEntry::AuthorizationRefused {
+                turn,
+                reason: refusal.0,
+            });
+            persist(&mut handlers.sink, &journal, dispatched)?;
+            let mut run = finish(
+                journal,
+                turn,
+                TurnTransition::Fail(b"deadline_exceeded".to_vec()),
             );
             run.dispatched = dispatched;
             persist(&mut handlers.sink, &run.journal, dispatched)?;
@@ -477,6 +542,23 @@ pub fn run_live_invocation(
                 return Ok(run);
             }
 
+            if let Err(refusal) = handlers.budget.check_deadline() {
+                journal.push(JournalEntry::EffectFailed {
+                    turn,
+                    operation,
+                    reason: refusal.0,
+                });
+                persist(&mut handlers.sink, &journal, dispatched)?;
+                let mut run = finish(
+                    journal,
+                    turn,
+                    TurnTransition::Fail(b"deadline_exceeded".to_vec()),
+                );
+                run.dispatched = dispatched;
+                persist(&mut handlers.sink, &run.journal, dispatched)?;
+                return Ok(run);
+            }
+
             match effect.call(turn, grant.digest()) {
                 Ok(observed) => {
                     let observation_digest = digest(EFFECT_OBSERVATION_DOMAIN, &observed);
@@ -506,9 +588,33 @@ pub fn run_live_invocation(
             }
         }
 
+        // EffectObserved, when present, remains evidence of the completed
+        // physical call. Expiry now prevents the reducer from selecting a
+        // new turn or a publishable terminal result.
+        if handlers.budget.check_deadline().is_err() {
+            let mut run = finish(
+                journal,
+                turn,
+                TurnTransition::Fail(b"deadline_exceeded".to_vec()),
+            );
+            run.dispatched = dispatched;
+            persist(&mut handlers.sink, &run.journal, dispatched)?;
+            return Ok(run);
+        }
+
         let transition = match handlers.policy.reduce(turn, &proposal) {
             TurnTransition::Continue if turn.saturating_add(1) >= config.max_turns => {
                 TurnTransition::Fail(b"turn_budget_exhausted".to_vec())
+            }
+            other => other,
+        };
+        // A completed effect is still recorded truthfully as EffectObserved;
+        // expiry after it prevents publication or another turn, but cannot
+        // undo the physical call. Preserve an earlier policy failure.
+        let transition = match transition {
+            failed @ TurnTransition::Fail(_) => failed,
+            _ if handlers.budget.check_deadline().is_err() => {
+                TurnTransition::Fail(b"deadline_exceeded".to_vec())
             }
             other => other,
         };

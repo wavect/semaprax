@@ -111,7 +111,11 @@ The source-specific checkpoint grammar lives under
 `CheckpointStore` and keeps the generic journal wire unchanged. Its validated
 recovery data supplies the existing cumulative ledger's source restoration
 route. The source lifecycle driver has not yet been connected to these durable
-primitives; an in-memory OpenCode receipt is not a checkpoint.
+primitives. The private adapter's `source_checkpoint` module records one explicit
+model attempt through that sink, acknowledging the intent before transport and
+the outcome before exposing response text. It shares ordinary source request
+preparation and accounting; it does not implement source replay or an independent
+ledger. An in-memory OpenCode receipt is not a checkpoint.
 No private crate is a normal or optional dependency of the registry
 package. Compiler-owned SDK replay and Windows carrier preparation/replay remain
 before/around explicit injected host calls; opaque prepared facts are not

@@ -22,6 +22,9 @@ use std::time::Duration;
 #[path = "../../examples/fixtures/opencode_source_fixture.rs"]
 mod fixtures;
 
+#[path = "source_checkpoint_tests.rs"]
+mod checkpointed;
+
 const HOST_CREDENTIAL_SENTINEL: &str = "credential-sentinel-owned-by-runner";
 
 struct Clock(Rc<Cell<i64>>);

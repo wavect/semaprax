@@ -29,6 +29,8 @@ const ID_DOMAIN: &[u8] = b"semaprax.live-invocation.source-id.v1\0";
 const ATTEMPT_DOMAIN: &[u8] = b"semaprax.live-invocation.source-attempt.v1\0";
 const RESPONSE_DOMAIN: &[u8] = b"semaprax.live-invocation.source-response.v1\0";
 const EFFECT_DOMAIN: &[u8] = b"semaprax.live-invocation.source-effect.v1\0";
+const PROMPT_DOMAIN: &[u8] = b"semaprax.live-invocation.source-prompt.v1\0";
+const CONTEXT_DOMAIN: &[u8] = b"semaprax.live-invocation.source-context-binding.v1\0";
 
 /// All caller-selected policy, program and task inputs to one source run.
 /// The resulting binding is opaque; a recovery caller must supply it again.
@@ -58,6 +60,7 @@ pub struct SourceInvocationSeed {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceInvocationBinding {
     invocation: String,
+    proposal_source: String,
     response_limit: usize,
     max_iterations: u32,
     max_stages: u32,
@@ -145,6 +148,13 @@ impl SourceInvocationBinding {
         );
         Ok(Self {
             invocation: digest(ID_DOMAIN, canonical.as_bytes()),
+            proposal_source: proposal_source_digest(
+                &seed.source_revision,
+                &seed.deployment_binding,
+                &seed.task,
+                seed.task_budget,
+                &seed.proposal_schema_digest,
+            ),
             response_limit: seed.response_limit,
             max_iterations: seed.max_iterations,
             max_stages: seed.max_stages,
@@ -186,6 +196,31 @@ impl SourceInvocationBinding {
         self.deadline_millis
     }
 
+    /// Checks the bind-time inputs available to a host proposal adapter.
+    /// The checked lifecycle driver still owns lifecycle, stage-limit and
+    /// ProgramRoot binding; this does not authenticate arbitrary source text.
+    pub fn matches_proposal_source(
+        &self,
+        source_revision: &str,
+        deployment_binding: &str,
+        task: &[u8],
+        task_budget: i64,
+        proposal_schema_digest: &str,
+    ) -> bool {
+        task.len() <= MAX_SOURCE_REQUEST_BYTES
+            && [source_revision, deployment_binding, proposal_schema_digest]
+                .into_iter()
+                .all(looks_like_digest)
+            && self.proposal_source
+                == proposal_source_digest(
+                    source_revision,
+                    deployment_binding,
+                    task,
+                    task_budget,
+                    proposal_schema_digest,
+                )
+    }
+
     /// Binds a particular retry to the exact model request and prompt.
     pub fn attempt_digest(
         &self,
@@ -203,6 +238,24 @@ impl SourceInvocationBinding {
         );
         digest(ATTEMPT_DOMAIN, canonical.as_bytes())
     }
+}
+
+fn proposal_source_digest(
+    source_revision: &str,
+    deployment_binding: &str,
+    task: &[u8],
+    task_budget: i64,
+    proposal_schema_digest: &str,
+) -> String {
+    let canonical = format!(
+        "[{}, {}, {}, {}, {}]",
+        quote_json(source_revision),
+        quote_json(deployment_binding),
+        quote_json(&hex(task)),
+        task_budget,
+        quote_json(proposal_schema_digest),
+    );
+    digest(CONTEXT_DOMAIN, canonical.as_bytes())
 }
 
 fn valid_token(value: &str, max: usize) -> bool {
@@ -387,6 +440,9 @@ pub fn source_response_digest(bytes: &[u8]) -> String {
 pub fn source_effect_digest(bytes: &[u8]) -> String {
     digest(EFFECT_DOMAIN, bytes)
 }
+pub fn source_prompt_digest(bytes: &[u8]) -> String {
+    digest(PROMPT_DOMAIN, bytes)
+}
 
 #[derive(Clone, Debug)]
 pub struct SourceJournal {
@@ -466,6 +522,32 @@ impl<'a> SourceCheckpointSink<'a> {
         entry: SourceJournalEntry,
         now: i64,
     ) -> Result<(), SourceJournalError> {
+        let (next, generation, document) = self.prepare_append(entry, now)?;
+        if let Err(error) = self.store.commit(generation, &document) {
+            self.poisoned = true;
+            return Err(SourceJournalError::Store(error));
+        }
+        self.journal = next;
+        self.generation = generation;
+        Ok(())
+    }
+
+    /// Checks phase, clock and bounded settlement capacity before a caller
+    /// reserves budget. No store write or dispatch permission is produced;
+    /// `append_at` revalidates and must acknowledge the actual intent first.
+    pub fn preflight_at(
+        &self,
+        entry: &SourceJournalEntry,
+        now: i64,
+    ) -> Result<(), SourceJournalError> {
+        self.prepare_append(entry.clone(), now).map(|_| ())
+    }
+
+    fn prepare_append(
+        &self,
+        entry: SourceJournalEntry,
+        now: i64,
+    ) -> Result<(SourceJournal, u64, String), SourceJournalError> {
         if self.poisoned {
             return Err(SourceJournalError::Poisoned);
         }
@@ -501,13 +583,7 @@ impl<'a> SourceCheckpointSink<'a> {
         {
             return Err(SourceJournalError::Capacity);
         }
-        if let Err(error) = self.store.commit(generation, &document) {
-            self.poisoned = true;
-            return Err(SourceJournalError::Store(error));
-        }
-        self.journal = next;
-        self.generation = generation;
-        Ok(())
+        Ok((next, generation, document))
     }
     pub fn journal(&self) -> &SourceJournal {
         &self.journal

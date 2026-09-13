@@ -711,3 +711,79 @@ fn binding_and_prefix_capacity_reject_invalid_configuration_and_overflow() {
         Err(SourceJournalError::Capacity)
     );
 }
+
+#[test]
+fn adapter_context_matching_checks_every_available_bound_input() {
+    let original = seed();
+    let binding = SourceInvocationBinding::bind(original.clone()).unwrap();
+    let matches = |candidate: &SourceInvocationSeed| {
+        binding.matches_proposal_source(
+            &candidate.source_revision,
+            &candidate.deployment_binding,
+            &candidate.task,
+            candidate.task_budget,
+            &candidate.proposal_schema_digest,
+        )
+    };
+    assert!(matches(&original));
+    for index in 0..5 {
+        let mut changed = original.clone();
+        match index {
+            0 => changed.source_revision = hash("other revision"),
+            1 => changed.deployment_binding = hash("other deployment"),
+            2 => changed.task.push(b'!'),
+            3 => changed.task_budget += 1,
+            _ => changed.proposal_schema_digest = hash("other schema"),
+        }
+        assert!(!matches(&changed), "changed context input {index}");
+    }
+    let mut oversized = original;
+    oversized.task = vec![b'x'; MAX_SOURCE_REQUEST_BYTES + 1];
+    assert!(!matches(&oversized));
+    assert_ne!(source_prompt_digest(b"x"), source_response_digest(b"x"));
+}
+
+#[test]
+fn preflight_is_read_only_and_does_not_authorize_a_later_stale_append() {
+    let binding = binding();
+    let mut store = Store {
+        fail_at: Some((3, false)),
+        ..Store::default()
+    };
+    {
+        let mut sink = SourceCheckpointSink::new(&mut store, binding.clone());
+        assert_eq!(
+            sink.preflight_at(&intent(&binding, 0), 0),
+            Err(SourceJournalError::Order)
+        );
+        begin(&mut sink);
+        let before = sink.journal().entries().to_vec();
+        sink.preflight_at(&intent(&binding, 0), 2).unwrap();
+        assert_eq!(sink.generation(), 2);
+        assert_eq!(sink.journal().entries(), before);
+        assert_eq!(sink.journal().last_checked_millis(), 1);
+        assert_eq!(
+            sink.append_at(intent(&binding, 0), 2),
+            Err(SourceJournalError::Store(CheckpointStoreError))
+        );
+        assert_eq!(
+            sink.preflight_at(&intent(&binding, 0), 2),
+            Err(SourceJournalError::Poisoned)
+        );
+    }
+    assert_eq!(
+        recover_source_checkpoint(&store.document, &binding)
+            .unwrap()
+            .generation(),
+        2
+    );
+    let recovered = recover_source_checkpoint(&store.document, &binding).unwrap();
+    store.fail_at = None;
+    let mut sink = SourceCheckpointSink::resume(&mut store, recovered).unwrap();
+    sink.preflight_at(&intent(&binding, 0), 2).unwrap();
+    sink.append_at(intent(&binding, 0), 2).unwrap();
+    assert_eq!(
+        sink.append_at(intent(&binding, 0), 2),
+        Err(SourceJournalError::Order)
+    );
+}

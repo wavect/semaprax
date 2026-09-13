@@ -20,6 +20,9 @@ use super::{OpenCodeGrammar, OpenCodeModelHandler, OpenCodeRunner};
 const SOURCE_CONTEXT_SCHEMA: &str = "semaprax.opencode-source-proposal-context.v1";
 const MAX_CONTEXT_BYTES: usize = 65_536;
 
+#[path = "source_checkpoint.rs"]
+mod source_checkpoint;
+
 /// Uses the actual #111 state, observation and feedback values as canonical,
 /// read-only provider context. It holds the explicit model capability; source
 /// text and a model response cannot create that authority.
@@ -33,6 +36,8 @@ pub struct OpenCodeProposalSource<'a, R> {
 }
 
 impl<'a, R> OpenCodeProposalSource<'a, R> {
+    // Preserve the existing public constructor diagnostic type.
+    #[allow(clippy::result_large_err)]
     pub fn new(
         handler: &'a mut OpenCodeModelHandler<R>,
         capability: &'a ModelInvokeCapability,
@@ -63,9 +68,53 @@ impl<'a, R> OpenCodeProposalSource<'a, R> {
     pub fn receipts(&self) -> &[OpenCodeSourceAttemptReceipt] {
         self.accounting.receipts()
     }
+
+    fn prepare_request(
+        &self,
+        context: &ProposalRequest<'_>,
+    ) -> Result<(String, ModelInvocationRequest), Box<Diagnostic>> {
+        if context.proposal_schema_digest != self.grammar.digest {
+            return Err(Diagnostic::io(
+                "SPX-I239",
+                "OpenCode grammar does not bind the source proposal schema",
+            )
+            .into());
+        }
+        let encoded_context = context_bytes(context)?;
+        let prompt = format!(
+            "SEMAPRAX source proposal v1\nsource_context={}\ndeployment={}\nproposal_schema_digest={}\ncanonical_agent_proposal_schema={}\nReturn one canonical semaprax.agent-proposal.v1 document for the supplied proposal schema. End the document with exactly one literal LF (U+000A); a missing LF is rejected by the compiler.\n",
+            String::from_utf8(encoded_context).expect("canonical source context is UTF-8"), self.deployment_binding,
+            self.grammar.digest, self.grammar.canonical_schema,
+        );
+        if prompt.len() > super::MAX_PROMPT_BYTES {
+            return Err(Diagnostic::io(
+                "SPX-I239",
+                "OpenCode source prompt exceeds its byte limit",
+            )
+            .into());
+        }
+        let turn = u32::try_from(context.turn).map_err(|_| {
+            Diagnostic::io(
+                "SPX-I239",
+                "OpenCode source turn exceeds the accounting bound",
+            )
+        })?;
+        Ok((
+            prompt.clone(),
+            ModelInvocationRequest {
+                turn,
+                task: context.task.objective.clone(),
+                observation: prompt.into_bytes(),
+                proposal_grammar_digest: self.grammar.digest.clone(),
+                deployment_binding: self.deployment_binding.clone(),
+                max_response_bytes: self.max_response_bytes,
+                effective_budget: self.accounting.reservation_units(),
+            },
+        ))
+    }
 }
 
-fn context_bytes(request: &ProposalRequest<'_>) -> Result<Vec<u8>, Diagnostic> {
+fn context_bytes(request: &ProposalRequest<'_>) -> Result<Vec<u8>, Box<Diagnostic>> {
     let previous_effect = request
         .previous_effect
         .map(|bytes| quote_json(&hex(bytes)))
@@ -83,10 +132,9 @@ fn context_bytes(request: &ProposalRequest<'_>) -> Result<Vec<u8>, Diagnostic> {
         previous_effect, previous_rejection, request.remaining_iterations,
     );
     if body.len() > MAX_CONTEXT_BYTES {
-        return Err(Diagnostic::io(
-            "SPX-I239",
-            "OpenCode source context exceeds its byte limit",
-        ));
+        return Err(
+            Diagnostic::io("SPX-I239", "OpenCode source context exceeds its byte limit").into(),
+        );
     }
     Ok(body.into_bytes())
 }
@@ -103,48 +151,15 @@ impl<R: OpenCodeRunner> ProposalSource for OpenCodeProposalSource<'_, R> {
     }
 
     fn propose(&mut self, context: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>> {
-        if context.proposal_schema_digest != self.grammar.digest {
-            return Err(vec![Diagnostic::io(
-                "SPX-I239",
-                "OpenCode grammar does not bind the source proposal schema",
-            )]);
-        }
-        let encoded_context = context_bytes(&context).map_err(|error| vec![error])?;
-        let prompt = format!(
-            "SEMAPRAX source proposal v1\nsource_context={}\ndeployment={}\nproposal_schema_digest={}\ncanonical_agent_proposal_schema={}\nReturn one canonical semaprax.agent-proposal.v1 document for the supplied proposal schema. End the document with exactly one literal LF (U+000A); a missing LF is rejected by the compiler.\n",
-            String::from_utf8(encoded_context).expect("canonical source context is UTF-8"), self.deployment_binding,
-            self.grammar.digest, self.grammar.canonical_schema,
-        );
-        if prompt.len() > super::MAX_PROMPT_BYTES {
-            return Err(vec![Diagnostic::io(
-                "SPX-I239",
-                "OpenCode source prompt exceeds its byte limit",
-            )]);
-        }
+        let (prompt, request) = self
+            .prepare_request(&context)
+            .map_err(|error| vec![*error])?;
         if self.handler.runner.cancelled(&self.handler.config) {
             return Err(vec![Diagnostic::io(
                 "SPX-I239",
                 "OpenCode source invocation was cancelled before dispatch",
             )]);
         }
-        let turn = u32::try_from(context.turn).map_err(|_| {
-            vec![Diagnostic::io(
-                "SPX-I239",
-                "OpenCode source turn exceeds the accounting bound",
-            )]
-        })?;
-        let request = ModelInvocationRequest {
-            turn,
-            task: context.task.objective.clone(),
-            observation: prompt.as_bytes().to_vec(),
-            proposal_grammar_digest: self.grammar.digest.clone(),
-            deployment_binding: self.deployment_binding.clone(),
-            max_response_bytes: self.max_response_bytes,
-            // `OpenCodeSourceAccounting::reserve` installs the deployment's
-            // fixed policy amount immediately before consulting the shared
-            // hook; source data cannot choose the reserved amount.
-            effective_budget: 0,
-        };
         self.accounting
             .reserve(request, context.attempt, prompt.len())
             .map_err(|refusal| vec![accounting_diagnostic(refusal)])?;

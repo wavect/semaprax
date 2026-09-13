@@ -184,6 +184,12 @@ impl<'a> OpenCodeSourceAccounting<'a> {
     pub fn receipts(&self) -> &[OpenCodeSourceAttemptReceipt] {
         &self.receipts
     }
+
+    /// The deployment-selected amount that every request reserves.
+    #[must_use]
+    pub const fn reservation_units(&self) -> i64 {
+        self.reservation_units
+    }
 }
 
 fn classify_refusal(refusal: BudgetRefusal) -> OpenCodeAccountingRefusal {

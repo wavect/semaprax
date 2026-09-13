@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Include Cargo example targets in the CI unit shard, preserving exhaustive
+  workspace inventory and refusal of unknown target kinds.
+
+- Add an explicit OpenCode proposal-attempt checkpoint boundary over the same
+  source journal and accounting ledger (#113). It validates bound context and
+  phase before charging, acknowledges intent before transport, and persists
+  the outcome before exposing response text. Full source replay remains pending.
+
 - Add bounded source checkpoint primitives with strict causal validation,
   poisoned writes after acknowledgement loss, and restoration through the
   existing charge/deadline ledger (#113). Source runtime replay, provider

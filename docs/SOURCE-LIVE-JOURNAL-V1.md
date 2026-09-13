@@ -1,11 +1,12 @@
 # Source Live Journal v1 — draft contract
 
-Status: **PRIVATE CHECKPOINT PRIMITIVES; SOURCE RUNTIME INTEGRATION UNIMPLEMENTED**.
+Status: **PRIVATE CHECKPOINT PRIMITIVES AND EXPLICIT ATTEMPT ADAPTER; SOURCE DRIVER/REPLAY UNIMPLEMENTED**.
 `live_invocation::source_journal` implements the bounded typed journal, strict
 canonical checkpoint encoding/recovery, and poisoned store-write cursor.
 `CumulativeBudgetLedger::resume_source` restores its validated charge and
-clock policy. These primitives do not yet drive `run_live` or OpenCode, replay
-checked source stages, or support source migration. Issue #114's accepted
+clock policy. The private OpenCode adapter exposes `propose_checkpointed` for
+one explicit journal-bound attempt. The ordinary `run_live` route is unchanged;
+checked source-stage replay and source migration remain unimplemented. Issue #114's accepted
 generic-kernel persistence remains unchanged and closed; #113 remains open.
 No hosted, production, or durable live-provider evidence is claimed.
 
@@ -347,10 +348,41 @@ replayed older valid checkpoint or authenticate rewritten trusted-store contents
 
 Raw response/effect bytes and measured request/failed-response work are retained.
 Provider token/cost counters and host receipts are not serialized by this
-primitive version. The source runtime, adapter, decoder replay, effect replay,
-terminal failure evidence and migration still need the shared journal wiring.
+primitive version. The complete source driver, adapter replay, decoder replay,
+effect replay, terminal failure evidence and migration still need the shared
+journal wiring.
 
 A future terminal replay reader must classify an already committed terminal
 before constructing a continuation ledger. `resume_source` rejects an expired
 clock for further work; it does not erase a previously committed terminal or
 itself implement the read-only terminal replay path.
+
+
+## Explicit OpenCode attempt boundary
+
+The private `OpenCodeProposalSource::propose_checkpointed` entry point accepts
+one caller-owned source checkpoint sink and restart-stable clock. Its caller
+must supply the checked `RunOpened`/`TurnObserved` prefix. The adapter verifies
+the source revision, deployment, task bytes/budget and proposal schema available
+in its context, plus the bound response cap, fixed reservation and clock domain.
+The checked driver still owns lifecycle identity, ProgramRoot, stage limits and
+correlation of actual retained state with the observed prefix.
+
+`preflight_at` checks the candidate phase and bounded settlement capacity without
+writing or charging. The adapter then reserves through its existing accounting
+hook and requires the actual intent write to be acknowledged before invoking
+the provider. It rechecks cancellation and clock policy after that callback.
+Raw settled bytes or a closed failure are checkpointed before response text can
+reach the compiler decoder. A response already late on arrival records a
+charged deadline failure with its measured byte count. Expiry during settlement
+acknowledgement retains the already committed raw response but refuses exposing
+it; the future driver still owns the subsequent proposal refusal and stop. A failed store acknowledgement returns a refusal and poisons the
+sink; it never triggers a transport retry.
+
+This method records a single attempt, not an entire checked source execution.
+The caller must retain the one matching accounting ledger and authoritative
+store; the adapter does not authenticate an arbitrary policy hook or create a
+new ledger. It does not replay stored responses, resume uncertain intents,
+record compiler proposal decisions, or publish a terminal result. The existing
+`ProposalSource::propose` and `run_live` remain nondurable. Neither unit fixtures
+nor this optional method establish an end-to-end live-provider durability gate.

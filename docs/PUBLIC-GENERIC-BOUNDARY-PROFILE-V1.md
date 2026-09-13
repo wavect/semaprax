@@ -174,6 +174,20 @@ sibling bound.
 | Max canonical descriptor rendering bytes, total | 131,072 | derived: two instance terms (input, result) at 65,536 each, plus fixed-width identity fields; see [Descriptor v1](PUBLIC-GENERIC-DESCRIPTOR-V1.md) |
 | Max independent-replay work per verification | bounded by the same closure bounds above: at most 4,096 node visits and 256 leaf visits per instance, no unbounded recursion | reused |
 
+The 16 MiB bound counts owned payload in **one** input or result carrier;
+it excludes framing and adapter allocation metadata. The local native C11
+reference adapter has a separate process-wide **tracked requested
+allocation-byte** allowance, derived as two full carrier payloads plus two
+carriers' leaf pointer/length arrays and one each of its provider, value, and
+result control-block sizes. The input payload stays live while the bound
+reverse-bytes endpoint builds the result payload, so that overlap is required
+for an otherwise empty provider to admit and call an exact-16 MiB carrier.
+The allowance is not a process-RAM limit: allocator-internal headers and
+caller-owned frame/export buffers are outside its tracked account. Other
+simultaneously live providers or handles share it and may cause a bounded
+allocation failure. This physical allowance does not change any logical
+leaf, leaf-count, or per-carrier payload admission bound above.
+
 Where several existing bounds could apply and differ, the smaller one was
 chosen; none of the numbers above widen any bound an existing hosted-green
 specification already enforces. Exact `limit` and `limit + 1` cases are

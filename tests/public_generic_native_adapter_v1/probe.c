@@ -47,6 +47,7 @@ static size_t build_carrier(uint8_t *out, uint8_t *const *leaves, const size_t *
 
 static void assert_fully_settled(void) {
     REQUIRE(spx_pg_test_live_allocations_v1() == 0);
+    REQUIRE(g_spx_pg_live_bytes == 0);
     REQUIRE(fixture_live == 0);
 }
 
@@ -253,92 +254,135 @@ static void test_leaf_byte_bound_exact_and_first_over(void) {
     assert_fully_settled();
 }
 
-/* Build a carrier of `leaf_count` leaves, each `leaf_len` bytes, prepare it
- * against `provider`, and release the input immediately on success so the
- * physical allocator's live-byte account returns to its pre-call baseline
- * before the next probe -- required for `test_total_payload_bound_exact_
- * and_first_over`'s search below to be a clean, repeatable measurement
- * rather than one contaminated by a previous iteration's still-live bytes. */
-static spx_pg_status_v1 try_uniform_carrier(spx_pg_provider_v1 *provider, size_t leaf_len,
-                                             uint32_t leaf_count) {
-    static uint8_t leaf_data[SPX_PG_MAX_BYTES_PER_LEAF];
-    memset(leaf_data, 0x22, sizeof(leaf_data));
-    uint8_t *leaves[SPX_PG_MAX_OWNED_LEAVES];
-    size_t lens[SPX_PG_MAX_OWNED_LEAVES];
-    for (uint32_t index = 0; index < leaf_count; ++index) {
-        leaves[index] = leaf_data;
-        lens[index] = leaf_len;
-    }
-    uint8_t *buffer = carrier_buffer(carrier_size(lens, leaf_count));
-    size_t carrier_len = build_carrier(buffer, leaves, lens, leaf_count);
-    spx_pg_value_v1 *input = NULL;
-    spx_pg_status_v1 status = spx_pg_input_prepare_v1(provider, buffer, carrier_len, &input);
-    if (status == SPX_PG_STATUS_OK) {
-        REQUIRE(spx_pg_value_release_v1(&input) == SPX_PG_STATUS_OK);
-    } else {
-        REQUIRE(input == NULL);
-    }
-    return status;
+/* A 256-leaf carrier can have exactly 16 MiB of payload. Vary the final
+ * leaf by one byte to exercise the actual byte boundary, rather than a
+ * uniform-leaf search whose steps change the total by 256 bytes. */
+static uint8_t boundary_byte(uint32_t leaf, size_t offset) {
+    return (uint8_t)(leaf * 17u + offset * 31u + (offset >> 8));
 }
 
-/* Exercises the total-payload bound the physical adapter actually enforces,
- * found by search rather than asserted from the boundary-profile constant
- * directly.
- *
- * `SPX_PG_MAX_OWNED_LEAVES` (256) times `SPX_PG_MAX_BYTES_PER_LEAF` (64 KiB)
- * equals `SPX_PG_MAX_TOTAL_PAYLOAD_BYTES` (16 MiB) exactly -- so for any
- * *real* carrier that already satisfies the leaf-count and per-leaf bounds,
- * `spx_pg_preflight_carrier`'s own logical total-payload check (this file's
- * `total_payload > SPX_PG_MAX_TOTAL_PAYLOAD_BYTES`) can never independently
- * fire: the largest sum such a carrier can declare is exactly the bound,
- * never over it. Confirmed empirically here, not merely asserted: a carrier
- * of exactly 256 leaves at exactly 64 KiB each -- nominally "at the bound"
- * -- is REFUSED by this adapter, with `SPX_PG_STATUS_ALLOCATION_FAILURE`,
- * not admitted. The refusal comes from a DIFFERENT check: the bounded
- * allocator (`spx_pg_alloc`'s `g_spx_pg_live_bytes`) reuses the same
- * `SPX_PG_MAX_TOTAL_PAYLOAD_BYTES` constant as a physical, bookkeeping-
- * inclusive ceiling (it also counts the `leaf_bytes`/`leaf_lens` arrays and
- * the `spx_pg_value_v1` struct this carrier's decode allocates, none of
- * which is "owned payload" under docs/PUBLIC-GENERIC-BOUNDARY-PROFILE-V1.md
- * ¶"Max total owned payload bytes per carrier"), so its real usable ceiling
- * per carrier is a few dozen bytes under the nominal 16 MiB, not at it.
- *
- * This is a genuine, verified divergence from the Rust reference carrier
- * codec (`carrier/frame.rs`), whose `total_payload_at_the_bound_with_max_
- * sized_leaves_is_admitted` test proves the LOGICAL codec admits exactly
- * 16 MiB. Flagged here rather than silently matched: this test proves the
- * bound this adapter *actually* enforces (found by binary search, so it
- * tracks whatever the real per-platform struct/array overhead is rather
- * than a hardcoded guess) and that crossing it is refused -- it does not
- * claim the adapter admits the documented 16 MiB exactly, because it does
- * not. Reconciling the two (e.g. giving the allocator's cap headroom above
- * `SPX_PG_MAX_TOTAL_PAYLOAD_BYTES` for its own bookkeeping) is native-
- * adapter follow-up work, out of scope for a test-coverage change. */
-static void test_total_payload_bound_exact_and_first_over(void) {
-    spx_pg_provider_v1 *provider = open_trusted_provider();
-    uint32_t leaf_count = SPX_PG_MAX_OWNED_LEAVES;
+static size_t build_payload_boundary_carrier(size_t final_leaf_len) {
+    REQUIRE(SPX_PG_MAX_OWNED_LEAVES * SPX_PG_MAX_BYTES_PER_LEAF ==
+            SPX_PG_MAX_TOTAL_PAYLOAD_BYTES);
+    REQUIRE(final_leaf_len <= SPX_PG_MAX_BYTES_PER_LEAF);
+    size_t payload_len = (SPX_PG_MAX_OWNED_LEAVES - 1) * SPX_PG_MAX_BYTES_PER_LEAF +
+                         final_leaf_len;
+    size_t carrier_len = 8 + 8 * SPX_PG_MAX_OWNED_LEAVES + payload_len;
+    uint8_t *buffer = carrier_buffer(carrier_len);
+    spx_pg_write_u64le(buffer, SPX_PG_MAX_OWNED_LEAVES);
+    size_t cursor = 8;
+    for (uint32_t leaf = 0; leaf < SPX_PG_MAX_OWNED_LEAVES; ++leaf) {
+        size_t length = (leaf + 1 == SPX_PG_MAX_OWNED_LEAVES) ? final_leaf_len
+                                                                 : SPX_PG_MAX_BYTES_PER_LEAF;
+        spx_pg_write_u64le(buffer + cursor, length);
+        cursor += 8;
+        for (size_t offset = 0; offset < length; ++offset) {
+            buffer[cursor + offset] = boundary_byte(leaf, offset);
+        }
+        cursor += length;
+    }
+    REQUIRE(cursor == carrier_len);
+    return carrier_len;
+}
 
-    size_t lo = 1;
-    size_t hi = SPX_PG_MAX_BYTES_PER_LEAF;
-    REQUIRE(try_uniform_carrier(provider, lo, leaf_count) == SPX_PG_STATUS_OK);
-    REQUIRE(try_uniform_carrier(provider, hi, leaf_count) == SPX_PG_STATUS_ALLOCATION_FAILURE);
-    while (hi - lo > 1) {
-        size_t mid = lo + (hi - lo) / 2;
-        if (try_uniform_carrier(provider, mid, leaf_count) == SPX_PG_STATUS_OK) {
-            lo = mid;
-        } else {
-            hi = mid;
+static void assert_boundary_input_copied(const spx_pg_value_v1 *input, size_t final_leaf_len) {
+    REQUIRE(input->leaf_count == SPX_PG_MAX_OWNED_LEAVES);
+    for (uint32_t leaf = 0; leaf < SPX_PG_MAX_OWNED_LEAVES; ++leaf) {
+        size_t length = (leaf + 1 == SPX_PG_MAX_OWNED_LEAVES) ? final_leaf_len
+                                                                 : SPX_PG_MAX_BYTES_PER_LEAF;
+        REQUIRE(input->leaf_lens[leaf] == length);
+        for (size_t offset = 0; offset < length; ++offset) {
+            REQUIRE(input->leaf_bytes[leaf][offset] == boundary_byte(leaf, offset));
         }
     }
+}
 
-    /* `lo` bytes per leaf, times `leaf_count` leaves: the exact bound this
-     * build of the adapter enforces. Admitted. */
-    REQUIRE(try_uniform_carrier(provider, lo, leaf_count) == SPX_PG_STATUS_OK);
-    /* One byte per leaf more -- still comfortably within the PER-LEAF bound
-     * (`lo` < `SPX_PG_MAX_BYTES_PER_LEAF`, confirmed above) -- crosses the
-     * total bound and is refused. */
-    REQUIRE(try_uniform_carrier(provider, lo + 1, leaf_count) == SPX_PG_STATUS_ALLOCATION_FAILURE);
+static void test_total_payload_boundary_and_full_result_overlap(void) {
+    spx_pg_provider_v1 *provider = open_trusted_provider();
+    size_t final_leaf_len = SPX_PG_MAX_BYTES_PER_LEAF - 1;
+    size_t carrier_len = build_payload_boundary_carrier(final_leaf_len);
+    REQUIRE(carrier_len == 8 + 8 * SPX_PG_MAX_OWNED_LEAVES +
+                           SPX_PG_MAX_TOTAL_PAYLOAD_BYTES - 1);
+    spx_pg_value_v1 *input = NULL;
+    REQUIRE(spx_pg_input_prepare_v1(provider, carrier_scratch, carrier_len, &input) ==
+            SPX_PG_STATUS_OK);
+    assert_boundary_input_copied(input, final_leaf_len);
+    REQUIRE(spx_pg_value_release_v1(&input) == SPX_PG_STATUS_OK);
 
+    final_leaf_len = SPX_PG_MAX_BYTES_PER_LEAF;
+    carrier_len = build_payload_boundary_carrier(final_leaf_len);
+    REQUIRE(carrier_len == 8 + 8 * SPX_PG_MAX_OWNED_LEAVES +
+                           SPX_PG_MAX_TOTAL_PAYLOAD_BYTES);
+    REQUIRE(spx_pg_input_prepare_v1(provider, carrier_scratch, carrier_len, &input) ==
+            SPX_PG_STATUS_OK);
+    assert_boundary_input_copied(input, final_leaf_len);
+
+    spx_pg_result_v1 *result = NULL;
+    REQUIRE(spx_pg_call_v1(provider, input, &result) == SPX_PG_STATUS_OK);
+    REQUIRE(result != NULL);
+    REQUIRE(spx_pg_test_live_handles_v1(provider) == 1);
+    spx_pg_result_v1 *reused_input_result = (spx_pg_result_v1 *)(void *)0x1;
+    REQUIRE(spx_pg_call_v1(provider, input, &reused_input_result) == SPX_PG_STATUS_HANDLE_INVALID);
+    REQUIRE(reused_input_result == NULL);
+    size_t required = 0;
+    REQUIRE(spx_pg_result_export_v1(result, NULL, 0, &required) == SPX_PG_STATUS_BUFFER_TOO_SMALL);
+    REQUIRE(required == carrier_len);
+    uint8_t *output = (uint8_t *)malloc(required);
+    REQUIRE(output != NULL);
+    size_t reported = 0;
+    REQUIRE(spx_pg_result_export_v1(result, output, required, &reported) == SPX_PG_STATUS_OK);
+    REQUIRE(reported == required);
+    REQUIRE(spx_pg_read_u64le(output) == SPX_PG_MAX_OWNED_LEAVES);
+    size_t cursor = 8;
+    for (uint32_t leaf = 0; leaf < SPX_PG_MAX_OWNED_LEAVES; ++leaf) {
+        REQUIRE(spx_pg_read_u64le(output + cursor) == SPX_PG_MAX_BYTES_PER_LEAF);
+        cursor += 8;
+        for (size_t offset = 0; offset < SPX_PG_MAX_BYTES_PER_LEAF; ++offset) {
+            REQUIRE(output[cursor + offset] ==
+                    boundary_byte(leaf, SPX_PG_MAX_BYTES_PER_LEAF - 1 - offset));
+        }
+        cursor += SPX_PG_MAX_BYTES_PER_LEAF;
+    }
+    REQUIRE(cursor == required);
+    free(output);
+    REQUIRE(spx_pg_result_release_v1(&result) == SPX_PG_STATUS_OK);
+    REQUIRE(spx_pg_provider_close_v1(&provider) == SPX_PG_STATUS_OK);
+    assert_fully_settled();
+}
+
+static void test_physical_allowance_exhaustion_preserves_live_handles(void) {
+    REQUIRE(SPX_PG_MAX_PHYSICAL_LIVE_BYTES ==
+            (size_t)2 * SPX_PG_MAX_TOTAL_PAYLOAD_BYTES +
+                (size_t)2 * SPX_PG_MAX_OWNED_LEAVES * (sizeof(uint8_t *) + sizeof(size_t)) +
+                sizeof(spx_pg_provider_v1) + sizeof(spx_pg_value_v1) +
+                sizeof(spx_pg_result_v1));
+    spx_pg_provider_v1 *provider = open_trusted_provider();
+    size_t carrier_len = build_payload_boundary_carrier(SPX_PG_MAX_BYTES_PER_LEAF);
+    spx_pg_value_v1 *first = NULL;
+    spx_pg_result_v1 *retained_result = NULL;
+    spx_pg_value_v1 *retained_input = NULL;
+    spx_pg_value_v1 *third = (spx_pg_value_v1 *)(void *)0x1;
+    REQUIRE(spx_pg_input_prepare_v1(provider, carrier_scratch, carrier_len, &first) ==
+            SPX_PG_STATUS_OK);
+    REQUIRE(spx_pg_call_v1(provider, first, &retained_result) == SPX_PG_STATUS_OK);
+    REQUIRE(retained_result != NULL);
+    REQUIRE(spx_pg_input_prepare_v1(provider, carrier_scratch, carrier_len, &retained_input) ==
+            SPX_PG_STATUS_OK);
+    REQUIRE(spx_pg_test_live_handles_v1(provider) == 2);
+    size_t before_failed_prepare = g_spx_pg_live_bytes;
+    REQUIRE(before_failed_prepare <= SPX_PG_MAX_PHYSICAL_LIVE_BYTES);
+    REQUIRE(spx_pg_input_prepare_v1(provider, carrier_scratch, carrier_len, &third) ==
+            SPX_PG_STATUS_ALLOCATION_FAILURE);
+    REQUIRE(third == NULL);
+    REQUIRE(g_spx_pg_live_bytes == before_failed_prepare);
+    REQUIRE(spx_pg_test_live_handles_v1(provider) == 2);
+    assert_boundary_input_copied(retained_input, SPX_PG_MAX_BYTES_PER_LEAF);
+    size_t required = 0;
+    REQUIRE(spx_pg_result_export_v1(retained_result, NULL, 0, &required) ==
+            SPX_PG_STATUS_BUFFER_TOO_SMALL);
+    REQUIRE(required == carrier_len);
+    REQUIRE(spx_pg_value_release_v1(&retained_input) == SPX_PG_STATUS_OK);
+    REQUIRE(spx_pg_result_release_v1(&retained_result) == SPX_PG_STATUS_OK);
     REQUIRE(spx_pg_provider_close_v1(&provider) == SPX_PG_STATUS_OK);
     assert_fully_settled();
 }
@@ -580,15 +624,8 @@ int main(void) {
     test_cleanup_failure_with_no_earlier_failure_becomes_terminal();
     test_success_trace_matches_logical_vocabulary();
     test_failure_injection_matrix();
-    /* Last, deliberately: its binary search runs many more successful
-     * prepare/release cycles than any test above, each appending to the
-     * provider's global, process-lifetime, 4096-entry trace log that no
-     * `spx_pg_input_prepare_v1` call ever resets (only `spx_pg_reset_call_
-     * state`'s settlement fields are reset per call). Placed after
-     * `test_success_trace_matches_logical_vocabulary` (the only test above
-     * that reads trace state) so exhausting that log here can never affect
-     * an earlier assertion. */
-    test_total_payload_bound_exact_and_first_over();
+    test_total_payload_boundary_and_full_result_overlap();
+    test_physical_allowance_exhaustion_preserves_live_handles();
     free(carrier_scratch);
     (void)puts("native-public-generic-adapter-settled");
     return 0;

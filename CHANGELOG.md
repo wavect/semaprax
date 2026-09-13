@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Separate native public-generic allocation accounting from the 16 MiB
+  logical carrier limit (#250), allowing metadata and overlapping full input
+  and result payloads. Exercise exact-byte boundaries across local native,
+  interpreter, and Wasm fixtures, with bounded allocation failure and cleanup.
+
 - Pin Cargo, rustc, and rustdoc in the generated Rust consumer's MSRV gate
   (#226). Selecting Cargo alone had allowed the ambient newer compiler to
   satisfy the check. Native allocator capacity remains tracked in #250.

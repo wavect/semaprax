@@ -1,4 +1,5 @@
 use super::*;
+use crate::public_generic_abi::boundary_profile::MAX_TOTAL_PAYLOAD_BYTES;
 use crate::public_generic_abi::carrier::{CarrierBindingV1, TargetProfile};
 
 const FIXTURE_DESCRIPTOR_BYTES: &[u8] = b"fixture-public-generic-descriptor-bytes-issue-155";
@@ -143,6 +144,73 @@ fn exact_leaf_byte_bound_succeeds_and_first_over_bound_is_rejected() {
     let error = provider.input_prepare(&over_bound).unwrap_err();
     assert_eq!(error, WasmPgStatus::CarrierCapacity);
     assert_eq!(provider.live_allocations(), 0);
+}
+
+/// Real aggregate-bound fixture shared in shape with the native and
+/// interpreter adapter gates. Its distinct leaf bytes make the complete
+/// reverse/export oracle stronger than an admission-only capacity check.
+fn aggregate_boundary_leaves(final_leaf_len: usize) -> Vec<Vec<u8>> {
+    assert!(final_leaf_len <= MAX_BYTES_PER_LEAF);
+    let leaves: Vec<Vec<u8>> = (0..MAX_OWNED_LEAVES_PER_INSTANCE)
+        .map(|leaf| {
+            let len = if leaf + 1 == MAX_OWNED_LEAVES_PER_INSTANCE {
+                final_leaf_len
+            } else {
+                MAX_BYTES_PER_LEAF
+            };
+            (0..len)
+                .map(|offset| {
+                    (leaf as u8)
+                        .wrapping_mul(17)
+                        .wrapping_add((offset as u8).wrapping_mul(31))
+                        .wrapping_add((offset >> 8) as u8)
+                })
+                .collect()
+        })
+        .collect();
+    assert_eq!(
+        leaves.iter().map(Vec::len).sum::<usize>(),
+        MAX_TOTAL_PAYLOAD_BYTES - (MAX_BYTES_PER_LEAF - final_leaf_len)
+    );
+    leaves
+}
+
+#[test]
+fn aggregate_payload_one_under_and_at_the_total_bound_round_trip_and_settle() {
+    for final_leaf_len in [MAX_BYTES_PER_LEAF - 1, MAX_BYTES_PER_LEAF] {
+        let leaves = aggregate_boundary_leaves(final_leaf_len);
+        let expected: Vec<Vec<u8>> = leaves
+            .iter()
+            .map(|leaf| leaf.iter().rev().copied().collect())
+            .collect();
+        let total_payload = leaves.iter().map(Vec::len).sum::<usize>();
+        assert_eq!(
+            total_payload,
+            MAX_TOTAL_PAYLOAD_BYTES - (MAX_BYTES_PER_LEAF - final_leaf_len)
+        );
+
+        let mut provider = open();
+        let value = provider
+            .input_prepare(&leaves)
+            .expect("a real aggregate at the total payload boundary must prepare");
+        let result = provider
+            .call(value)
+            .expect("the reverse endpoint must accept the prepared aggregate");
+        assert_eq!(
+            provider.call(value),
+            Err(WasmPgStatus::HandleInvalid),
+            "the consumed input handle must stay rejected while the result remains live"
+        );
+        let exported = provider
+            .result_export(result, total_payload + 8 * MAX_OWNED_LEAVES_PER_INSTANCE)
+            .expect("the complete reversed aggregate must export");
+        assert_eq!(decode_leaves(&exported), expected);
+        assert_eq!(provider.result_release(result), WasmPgStatus::Ok);
+        assert_eq!(provider.live_allocations(), 0);
+        assert_eq!(provider.live_bytes(), 0);
+        assert_eq!(provider.live_handles(), 0);
+        assert_eq!(provider.close(), WasmPgStatus::Ok);
+    }
 }
 
 #[test]

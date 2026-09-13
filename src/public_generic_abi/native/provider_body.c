@@ -70,6 +70,20 @@ struct spx_pg_result_v1 {
     size_t *leaf_lens;
 };
 
+/* This is an allowance for requested bytes in this adapter's tracked
+ * allocations, not a second carrier-payload limit or a bound on malloc's
+ * internal bookkeeping. A full input remains live while the endpoint builds
+ * a full result. At that peak there can be two payloads and two pairs of
+ * pointer/length arrays. Include each control-block shape as bounded
+ * headroom; the value and result structs do not actually coexist at the
+ * peak, but retaining both terms makes the derivation explicit. Other live
+ * providers/handles share this process-wide account and can exhaust it. */
+#define SPX_PG_MAX_PHYSICAL_LIVE_BYTES \
+    ((size_t)2 * SPX_PG_MAX_TOTAL_PAYLOAD_BYTES + \
+     (size_t)2 * SPX_PG_MAX_OWNED_LEAVES * (sizeof(uint8_t *) + sizeof(size_t)) + \
+     sizeof(struct spx_pg_provider_v1) + sizeof(struct spx_pg_value_v1) + \
+     sizeof(struct spx_pg_result_v1))
+
 #define SPX_PG_PROVIDER_MAGIC 0x53504750u /* 'SPGP' */
 #define SPX_PG_VALUE_MAGIC 0x53504756u    /* 'SPGV' */
 #define SPX_PG_RESULT_MAGIC 0x53504752u   /* 'SPGR' */
@@ -104,7 +118,8 @@ static void *spx_pg_alloc(size_t size) {
     if (size == 0) {
         return NULL;
     }
-    if (g_spx_pg_live_bytes + size > SPX_PG_MAX_TOTAL_PAYLOAD_BYTES) {
+    if (g_spx_pg_live_bytes > SPX_PG_MAX_PHYSICAL_LIVE_BYTES ||
+        size > SPX_PG_MAX_PHYSICAL_LIVE_BYTES - g_spx_pg_live_bytes) {
         return NULL; /* SPX-PG903: bounded allocator exhausted */
     }
     void *pointer = malloc(size);

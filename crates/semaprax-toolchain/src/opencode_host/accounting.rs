@@ -129,6 +129,11 @@ impl<'a> OpenCodeSourceAccounting<'a> {
         Ok(reserved)
     }
 
+    /// Reads the same shared deadline used by reservation without charging.
+    pub fn check_deadline(&self) -> Result<(), OpenCodeAccountingRefusal> {
+        self.budget.check_deadline().map_err(classify_refusal)
+    }
+
     /// Settles and records exactly the one reserved attempt.
     ///
     /// A settled response is checked against the shared deadline before its

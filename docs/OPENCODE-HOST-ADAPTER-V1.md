@@ -184,14 +184,29 @@ noncanonical document remains charged when the driver retries. Receipt capacity
 is checked before a new reservation. The shared absolute deadline is checked
 before dispatch and again before settled proposal bytes reach the decoder.
 
-These receipts and the source wrapper are in-memory. They do not establish
-durable source recovery, migration, or deadline checks around every source
-stage/effect. Those residual #113 requirements remain open. The earlier local
-provider evidence above is bound to its recorded executable; the accounting
-extension has separate offline regression evidence.
+The existing source driver checks the same policy through
+`ProposalSource::check_deadline` at stage, proposal/decode, effect and result
+publication boundaries. The OpenCode source delegates that read-only check to
+its accounting wrapper; fixture sources retain an accepting default. Checks do
+not reserve again. An expired successful read blocks reduction and publication;
+an already selected effect failure or reducer `Fail` remains selected.
+
+These receipts and the source wrapper are in-memory. A deadline diagnostic from
+`run_live` does not return its partial run or durably retain an observed effect.
+Durable source recovery, migration, restart-stable deadline binding and complete
+failure evidence remain open #113 requirements. The smoke clock is process-local.
+[Source Live Journal v1](SOURCE-LIVE-JOURNAL-V1.md) records the proposed
+source durability contract and required recovery tests; it is unimplemented.
+The earlier local provider evidence above is bound to its recorded executable;
+these extensions have separate offline regression evidence.
 
 Focused accounting validation (2026-09-13): 39 OpenCode host tests and 103
 live-invocation library tests passed, including exact-deadline rejection,
 just-before-deadline admission, nonrefundable malformed retries, prior-failure
 selection and causal journal replay. Bundle pin and both structural checks
 also passed. No additional provider call was used for this extension.
+
+Source-boundary extension validation (2026-09-13): 8 source-driver tests and
+41 OpenCode host tests passed, including expiry inside stage/effect/transition
+callbacks, actual adapter reads finishing late, cancellation before Complete
+publication and sticky reducer Fail. These are local offline regressions.

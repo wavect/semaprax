@@ -34,11 +34,15 @@ impl InvocationClock for Clock {
 
 struct CountingRead {
     calls: usize,
+    advance_clock: Option<(Rc<Cell<i64>>, i64)>,
 }
 
 impl AgentReadOperation for CountingRead {
     fn read(&mut self, _: &AuthorizedRequest) -> Option<Vec<u8>> {
         self.calls += 1;
+        if let Some((clock, millis)) = &self.advance_clock {
+            clock.set(*millis);
+        }
         Some(b"observed".to_vec())
     }
 }
@@ -206,7 +210,10 @@ fn source_adapter_runs_the_checked_lifecycle_to_complete_without_host_credential
         accounting,
     )
     .expect("source bridge");
-    let mut read = CountingRead { calls: 0 };
+    let mut read = CountingRead {
+        calls: 0,
+        advance_clock: None,
+    };
 
     let run = compiled
         .run_live(
@@ -266,7 +273,10 @@ fn malformed_first_proposal_spends_the_whole_ceiling_before_retry_and_dispatches
         accounting,
     )
     .expect("source bridge");
-    let mut read = CountingRead { calls: 0 };
+    let mut read = CountingRead {
+        calls: 0,
+        advance_clock: None,
+    };
 
     let error = compiled
         .run_live(
@@ -309,7 +319,10 @@ fn host_cancellation_before_the_first_reservation_makes_no_host_call_or_charge()
         accounting,
     )
     .expect("source bridge");
-    let mut read = CountingRead { calls: 0 };
+    let mut read = CountingRead {
+        calls: 0,
+        advance_clock: None,
+    };
 
     let error = compiled
         .run_live(
@@ -354,7 +367,10 @@ fn settled_at_shared_deadline_is_charged_but_never_decoded_or_dispatched() {
         accounting,
     )
     .expect("source bridge");
-    let mut read = CountingRead { calls: 0 };
+    let mut read = CountingRead {
+        calls: 0,
+        advance_clock: None,
+    };
 
     let error = compiled
         .run_live(
@@ -405,7 +421,10 @@ fn settled_just_before_shared_deadline_is_admitted() {
         accounting,
     )
     .expect("source bridge");
-    let mut read = CountingRead { calls: 0 };
+    let mut read = CountingRead {
+        calls: 0,
+        advance_clock: None,
+    };
 
     let run = compiled
         .run_live(
@@ -431,6 +450,99 @@ fn settled_just_before_shared_deadline_is_admitted() {
 }
 
 #[test]
+fn expired_before_initialize_stops_without_model_or_effect_dispatch() {
+    let (compiled, mut handler, task, grammar) = setup(compiled_proposal());
+    let capability = ModelInvokeCapability::grant("source adapter fixture");
+    let cancellation = AgentCancellation::new();
+    let clock_value = Rc::new(Cell::new(10));
+    let mut clock = Clock(clock_value);
+    let mut ledger = CumulativeBudgetLedger::with_deadline(1, 10, &mut clock);
+    let accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 4).expect("accounting");
+    let mut source = OpenCodeProposalSource::new(
+        &mut handler,
+        &capability,
+        "source-test.v1".into(),
+        grammar,
+        4_096,
+        accounting,
+    )
+    .expect("source bridge");
+    let mut read = CountingRead {
+        calls: 0,
+        advance_clock: None,
+    };
+
+    let error = compiled
+        .run_live(
+            &task,
+            &mut source,
+            &mut read,
+            IterativeBudget {
+                max_iterations: 1,
+                ..IterativeBudget::default()
+            },
+            &cancellation,
+        )
+        .err()
+        .expect("expired source deadline refuses before initialize");
+    let receipts = source.receipts().to_vec();
+    drop(source);
+
+    assert_eq!(error[0].code, "SPX-I239");
+    assert_eq!(handler.runner.calls, 0);
+    assert_eq!(read.calls, 0);
+    assert!(receipts.is_empty());
+    assert_eq!(ledger.committed(), 0);
+}
+
+#[test]
+fn deadline_advanced_inside_effect_blocks_reduce_and_terminal_publication() {
+    let (compiled, mut handler, task, grammar) = setup(compiled_proposal());
+    let capability = ModelInvokeCapability::grant("source adapter fixture");
+    let cancellation = AgentCancellation::new();
+    let clock_value = Rc::new(Cell::new(0));
+    let mut clock = Clock(Rc::clone(&clock_value));
+    let mut ledger = CumulativeBudgetLedger::with_deadline(1, 10, &mut clock);
+    let accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 4).expect("accounting");
+    let mut source = OpenCodeProposalSource::new(
+        &mut handler,
+        &capability,
+        "source-test.v1".into(),
+        grammar,
+        4_096,
+        accounting,
+    )
+    .expect("source bridge");
+    let mut read = CountingRead {
+        calls: 0,
+        advance_clock: Some((clock_value, 10)),
+    };
+
+    let error = compiled
+        .run_live(
+            &task,
+            &mut source,
+            &mut read,
+            IterativeBudget {
+                max_iterations: 1,
+                ..IterativeBudget::default()
+            },
+            &cancellation,
+        )
+        .err()
+        .expect("an expired effect result cannot reach reduce or publication");
+    let receipts = source.receipts().to_vec();
+    drop(source);
+
+    assert_eq!(error[0].code, "SPX-I239");
+    assert_eq!(handler.runner.calls, 1);
+    assert_eq!(read.calls, 1);
+    assert_eq!(receipts.len(), 1);
+    assert!(!receipts[0].usage.failed);
+    assert_eq!(ledger.committed(), 1);
+}
+
+#[test]
 fn uncertain_provider_failure_keeps_the_reservation_and_records_no_provider_usage() {
     let (compiled, mut handler, task, grammar) = setup(compiled_proposal());
     handler.runner.failure = Some(OpenCodeRunnerFailure::Provider);
@@ -448,7 +560,10 @@ fn uncertain_provider_failure_keeps_the_reservation_and_records_no_provider_usag
         accounting,
     )
     .expect("source bridge");
-    let mut read = CountingRead { calls: 0 };
+    let mut read = CountingRead {
+        calls: 0,
+        advance_clock: None,
+    };
 
     let error = compiled
         .run_live(

@@ -260,30 +260,122 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+      - name: Install the repository-pinned TypeScript compiler (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        working-directory: platform-tests/wasm-scalar-browser-v1
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          tsc_path="$(pwd)/node_modules/.bin/tsc"
+          test -x "$tsc_path"
+          test "$("$tsc_path" --version)" = "Version 5.8.3"
+          echo "TSC=$tsc_path" >> "$GITHUB_ENV"
+          echo "SPX_PG_TSC=$tsc_path" >> "$GITHUB_ENV"
+      - name: Install the repository-pinned TypeScript compiler (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        working-directory: platform-tests/wasm-scalar-browser-v1
+        run: |
+          call npm ci --ignore-scripts
+          if errorlevel 1 exit /b 1
+          if not exist "%CD%\node_modules\.bin\tsc.cmd" exit /b 1
+          for /f "tokens=*" %%i in ('call "%CD%\node_modules\.bin\tsc.cmd" --version') do set "TSC_VERSION=%%i"
+          if not "%TSC_VERSION%"=="Version 5.8.3" exit /b 1
+          echo TSC=%CD%\node_modules\.bin\tsc.cmd>>"%GITHUB_ENV%"
+          echo SPX_PG_TSC=%CD%\node_modules\.bin\tsc.cmd>>"%GITHUB_ENV%"
       - name: Resolve the consumer toolchains this host really has
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           set -euo pipefail
-          # The four-language consumer gate skips a language whose toolchain is
-          # absent, so the resolved set is part of the evidence rather than an
-          # assumption. It is printed, and the gate fails closed if none is
-          # available.
-          echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
-          echo "NODE=$(command -v node)" >> "$GITHUB_ENV"
-          # Hard-fail rather than report absence and continue. The callable
-          # boundary step below executes generated C11 and C++17 consumers
-          # against a compiled provider; without a toolchain those rows would
-          # not run, and a step that reports "no C toolchain" and proceeds
-          # scores that absence as a pass. A missing required toolchain is a
-          # failure, not a skip.
-          command -v clang >/dev/null 2>&1 || {
-            echo "clang is required by this job on $RUNNER_OS" >&2; exit 1; }
-          command -v clang++ >/dev/null 2>&1 || {
-            echo "clang++ is required by this job on $RUNNER_OS" >&2; exit 1; }
-          echo "CC=$(command -v clang)" >> "$GITHUB_ENV"
-          echo "CXX=$(command -v clang++)" >> "$GITHUB_ENV"
+          rustc_path="$(rustup which rustc)"
+          cargo_path="$(rustup which cargo)"
+          clang_path="$(command -v clang)"
+          clangxx_path="$(command -v clang++)"
+          ld_path="$(command -v ld)"
+          node_path="$(command -v node)"
+          tsc_path="${SPX_PG_TSC:?SPX_PG_TSC was not provisioned}"
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            ar_path="$(xcrun --find ar)"
+          else
+            ar_path="$(command -v ar)"
+          fi
+          test -x "$rustc_path" && test -x "$cargo_path"
+          test -x "$clang_path" && test -x "$clangxx_path" && test -x "$ar_path" && test -x "$ld_path"
+          test -x "$node_path" && test -x "$tsc_path"
+          test "$("$tsc_path" --version)" = "Version 5.8.3"
+          echo "RUSTC=$rustc_path" >> "$GITHUB_ENV"
+          echo "CARGO=$cargo_path" >> "$GITHUB_ENV"
+          echo "CC=$clang_path" >> "$GITHUB_ENV"
+          echo "CXX=$clangxx_path" >> "$GITHUB_ENV"
+          echo "AR=$ar_path" >> "$GITHUB_ENV"
+          echo "TSC=$tsc_path" >> "$GITHUB_ENV"
+          rustc --version --verbose
+          cargo --version
+          printf 'runner_os=%s runner_arch=%s machine=' "$RUNNER_OS" "${RUNNER_ARCH:?RUNNER_ARCH missing}"
+          uname -m
+          printf 'rustc_path=%s\ncargo_path=%s\nclang_path=%s\nclangxx_path=%s\nar_path=%s\nld_path=%s\nnode_path=%s\ntsc_path=%s\n' "$rustc_path" "$cargo_path" "$clang_path" "$clangxx_path" "$ar_path" "$ld_path" "$node_path" "$tsc_path"
           clang --version
+          clang++ --version
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            xcrun --version
+          else
+            ar --version
+          fi
+          clang -### -x c /dev/null -o /dev/null 2>&1
           node --version
+          node -p 'process.arch'
+          "$tsc_path" --version
+      - name: Resolve the consumer toolchains this host really has (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          set "RUSTC="
+          set "CARGO="
+          set "CC="
+          set "CXX="
+          set "AR="
+          set "NODE="
+          for /f "usebackq tokens=*" %%i in (`rustup which rustc`) do set "RUSTC=%%i"
+          for /f "usebackq tokens=*" %%i in (`rustup which cargo`) do set "CARGO=%%i"
+          for /f "tokens=*" %%i in ('where clang.exe') do if not defined CC set "CC=%%i"
+          for /f "tokens=*" %%i in ('where clang++.exe') do if not defined CXX set "CXX=%%i"
+          for /f "tokens=*" %%i in ('where llvm-ar.exe') do if not defined AR set "AR=%%i"
+          if not defined AR for /f "tokens=*" %%i in ('where ar.exe') do if not defined AR set "AR=%%i"
+          if not defined RUSTC exit /b 1
+          if not defined CARGO exit /b 1
+          if not defined CC exit /b 1
+          if not defined CXX exit /b 1
+          if not defined AR exit /b 1
+          if not defined SPX_PG_TSC exit /b 1
+          if not exist "%SPX_PG_TSC%" exit /b 1
+          for /f "tokens=*" %%i in ('call "%SPX_PG_TSC%" --version') do set "TSC_VERSION=%%i"
+          if not "%TSC_VERSION%"=="Version 5.8.3" exit /b 1
+          echo RUSTC=%RUSTC%>>"%GITHUB_ENV%"
+          echo CARGO=%CARGO%>>"%GITHUB_ENV%"
+          echo CC=%CC%>>"%GITHUB_ENV%"
+          echo CXX=%CXX%>>"%GITHUB_ENV%"
+          echo AR=%AR%>>"%GITHUB_ENV%"
+          echo TSC=%SPX_PG_TSC%>>"%GITHUB_ENV%"
+          rustc --version --verbose || exit /b 1
+          cargo --version || exit /b 1
+          echo runner_os=%RUNNER_OS% runner_arch=%RUNNER_ARCH% machine=%PROCESSOR_ARCHITECTURE%
+          echo rustc_path=%RUSTC%
+          echo cargo_path=%CARGO%
+          echo clang_path=%CC%
+          echo clangxx_path=%CXX%
+          echo archiver_path=%AR%
+          for /f "tokens=*" %%i in ('where node.exe') do if not defined NODE set "NODE=%%i"
+          if not defined NODE exit /b 1
+          echo node_path=%NODE%
+          echo tsc_path=%SPX_PG_TSC%
+          "%CC%" --version || exit /b 1
+          "%CXX%" --version || exit /b 1
+          "%AR%" --version || exit /b 1
+          node --version || exit /b 1
+          node -p "process.arch" || exit /b 1
+          call "%SPX_PG_TSC%" --version || exit /b 1
       - name: Install the generated Rust consumer's declared MSRV toolchain
         shell: bash
         run: |

@@ -8,6 +8,15 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Provision pinned TypeScript 5.8.3 for the public-generic hosted job and
+  fail closed on missing consumer tools; record platform/toolchain identities
+  with separate Unix and Windows preflights (#163). Fresh hosted evidence
+  remains pending.
+
+- Check the OpenCode source route's shared deadline around deterministic stages,
+  proposal admission, effect dispatch and result publication (#113), preserving
+  earlier selected failures. Durable source failure evidence remains pending.
+
 - Require explicit cumulative reservations for OpenCode source attempts and
   retain their bounded usage observations across malformed retries and failures
   (#113). Check the shared absolute deadline at settlement and later kernel

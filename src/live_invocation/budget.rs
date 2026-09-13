@@ -84,11 +84,10 @@
 //! (typically `invocation_started_at + max_duration`, computed once at bind
 //! time, the same way `program_root`/`task`/`deployment_binding` are already
 //! re-supplied identically on every call into
-//! `kernel::run_live_invocation`). There is structurally no "N milliseconds
-//! from now" constructor here, so a resumed call cannot reset the deadline
-//! merely by supplying a fresh duration — the only way to change it is to
-//! supply a different absolute instant, which is a caller policy decision
-//! this module does not make for them.
+//! `kernel::run_live_invocation`). There is no "N milliseconds from now"
+//! constructor here. The host must preserve the absolute value and clock epoch
+//! across recovery: this module does not authenticate the caller's deadline
+//! binding or make a process-local clock restart-stable.
 //!
 //! # Not a live price lookup
 //!

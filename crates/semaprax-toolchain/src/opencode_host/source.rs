@@ -96,6 +96,12 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 impl<R: OpenCodeRunner> ProposalSource for OpenCodeProposalSource<'_, R> {
+    fn check_deadline(&self) -> Result<(), Vec<Diagnostic>> {
+        self.accounting
+            .check_deadline()
+            .map_err(|refusal| vec![accounting_diagnostic(refusal)])
+    }
+
     fn propose(&mut self, context: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>> {
         if context.proposal_schema_digest != self.grammar.digest {
             return Err(vec![Diagnostic::io(

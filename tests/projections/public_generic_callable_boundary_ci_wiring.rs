@@ -69,6 +69,17 @@ fn ci_workflow() -> String {
         .expect("read the pinned CI workflow")
 }
 
+fn public_generic_job(ci: &str) -> &str {
+    let start = ci
+        .find("  public-generic-ownership-milestone:")
+        .expect("public-generic-ownership-milestone job exists");
+    let end = start
+        + ci[start..]
+            .find("\n  std-library-depth:")
+            .expect("public-generic-ownership-milestone job has a following job");
+    &ci[start..end]
+}
+
 /// One row: the harness/module identity, the file(s) that must contain a
 /// real `#[test]` (so this guard cannot demand a selector for a harness
 /// that does not actually exist or has gone empty), and the exact,
@@ -132,7 +143,8 @@ fn callable_boundary_corpus_has_a_real_test_in_every_named_file() {
 
 #[test]
 fn public_generic_ownership_milestone_job_selects_the_full_callable_boundary_corpus() {
-    let ci = ci_workflow();
+    let workflow = ci_workflow();
+    let ci = public_generic_job(&workflow);
     let mut missing = Vec::new();
     for row in ROWS {
         if !ci.contains(row.required_ci_invocation) {
@@ -151,4 +163,35 @@ fn public_generic_ownership_milestone_job_selects_the_full_callable_boundary_cor
          really has\" step, so no new toolchain provisioning is needed):\n{}",
         missing.join("\n")
     );
+}
+
+#[test]
+fn public_generic_milestone_preflights_the_pinned_consumer_toolchains() {
+    let workflow = ci_workflow();
+    let ci = public_generic_job(&workflow);
+    for required in [
+        "Install the repository-pinned TypeScript compiler (Unix)",
+        "Install the repository-pinned TypeScript compiler (Windows)",
+        "if: runner.os != 'Windows'",
+        "if: runner.os == 'Windows'",
+        "npm ci --ignore-scripts",
+        "SPX_PG_TSC",
+        "xcrun --find ar",
+        "clang -### -x c /dev/null -o /dev/null",
+        "call \"%SPX_PG_TSC%\" --version || exit /b 1",
+        "Version 5.8.3",
+        "rustc --version --verbose",
+        "cargo --version",
+        "runner_arch",
+        "clangxx_path",
+        "ar_path",
+        "node_path",
+        "tsc_path",
+        "node -p 'process.arch'",
+    ] {
+        assert!(
+            ci.contains(required),
+            "public-generic-ownership-milestone preflight lost required identity/provisioning marker: {required}"
+        );
+    }
 }

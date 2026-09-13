@@ -125,6 +125,13 @@ pub struct ProposalRequest<'a> {
 /// returns `Ok` with proposal text the schema will reject, and reads the
 /// rejection back on `request.previous_rejection` next attempt.
 pub trait ProposalSource {
+    /// Checks the source route's shared host deadline without reserving work.
+    /// Fixture sources accept by default; an explicit host source delegates to
+    /// its bound accounting policy.
+    fn check_deadline(&self) -> Result<(), Vec<Diagnostic>> {
+        Ok(())
+    }
+
     fn propose(&mut self, request: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>>;
 }
 
@@ -413,6 +420,14 @@ impl CompiledIterativeLifecycle {
                 return Ok(run.finish($status, $value, self.digest()))
             };
         }
+        macro_rules! live_guard {
+            () => {
+                if cancellation.is_cancelled() {
+                    stop!(IterativeStatus::Cancelled, None);
+                }
+                source.check_deadline()?;
+            };
+        }
         macro_rules! boundary {
             () => {
                 if cancellation.is_cancelled() {
@@ -421,12 +436,14 @@ impl CompiledIterativeLifecycle {
                 if run.stages.len() >= budget.max_stages {
                     stop!(IterativeStatus::BudgetExhausted, None);
                 }
+                source.check_deadline()?;
             };
         }
         macro_rules! evaluate {
             ($stage:expr, $arguments:expr) => {{
                 boundary!();
                 driver.before_stage($stage.role(), run.iterations, budget.max_steps_per_stage)?;
+                live_guard!();
                 let evaluation = inner.evaluate($stage, $arguments, budget.max_steps_per_stage)?;
                 run.stages.push(StageRecord::of($stage, &evaluation));
                 match evaluation.outcome {
@@ -479,6 +496,7 @@ impl CompiledIterativeLifecycle {
                     remaining_iterations: budget.max_iterations - run.iterations,
                 };
                 let proposal_text = source.propose(request)?;
+                live_guard!();
                 match inner.proposal.decode(&proposal_text) {
                     Ok(decoded) => break decoded,
                     Err(_) => {
@@ -501,6 +519,7 @@ impl CompiledIterativeLifecycle {
             let mut args = vec![state.clone()];
             args.extend(projected.iter().cloned());
             driver.before_stage("authorize", run.iterations, budget.max_steps_per_stage)?;
+            live_guard!();
             let (decision, record) = authorization::run_authorize_stage(
                 &inner.program,
                 &inner.binding.authorize,
@@ -541,6 +560,7 @@ impl CompiledIterativeLifecycle {
             if expected != request.binding() {
                 return Err(vec![bad("authorization.binding")].into());
             }
+            live_guard!();
             driver.before_effect(EffectContext {
                 turn: run.iterations,
                 policy: &policy,
@@ -548,6 +568,7 @@ impl CompiledIterativeLifecycle {
                 proposal_canonical: decoded.canonical_json(),
                 authorization: &request,
             })?;
+            live_guard!();
             run.authorization_bindings
                 .push(request.binding().to_owned());
             run.effects += 1;
@@ -564,6 +585,11 @@ impl CompiledIterativeLifecycle {
             let value = evaluate!(&inner.binding.reduce, &args);
             run.iterations += 1;
             let (transition, value) = self.step.decode(value)?;
+            // A reducer-selected Fail remains sticky: a later deadline cannot
+            // replace it. Other transitions are checked before publication.
+            if transition != "Fail" {
+                live_guard!();
+            }
             if let Err(diagnostics) =
                 driver.after_transition(run.iterations - 1, transition, &value)
             {
@@ -581,6 +607,9 @@ impl CompiledIterativeLifecycle {
                 } else {
                     diagnostics.into()
                 });
+            }
+            if transition != "Fail" {
+                live_guard!();
             }
             match transition {
                 "Continue" => state = value,
@@ -601,6 +630,10 @@ mod tests {
         calls: usize,
         reject_stage: Option<&'static str>,
         reject_transition: Option<usize>,
+        advance_stage: Option<(&'static str, std::rc::Rc<std::cell::Cell<i64>>)>,
+        advance_effect: Option<std::rc::Rc<std::cell::Cell<i64>>>,
+        advance_transition: Option<std::rc::Rc<std::cell::Cell<i64>>>,
+        cancel_transition: Option<AgentCancellation>,
     }
     impl IterativeDriver for Driver {
         fn before_stage(
@@ -611,6 +644,11 @@ mod tests {
         ) -> Result<(), Vec<Diagnostic>> {
             assert_eq!(allowance, DEFAULT_STAGE_STEPS);
             self.events.push(format!("{turn}:{role}"));
+            if let Some((advance_role, clock)) = &self.advance_stage {
+                if *advance_role == role {
+                    clock.set(10);
+                }
+            }
             if self.reject_stage == Some(role) {
                 return Err(vec![bad("fixture.reservation_refused")]);
             }
@@ -623,6 +661,9 @@ mod tests {
             assert!(!context.proposal_canonical.is_empty());
             assert!(matches!(context.state, RetainedValue::Record(_)));
             self.events.push(format!("{}:intent_context", context.turn));
+            if let Some(clock) = &self.advance_effect {
+                clock.set(10);
+            }
             Ok(())
         }
         fn read(&mut self, _: &AuthorizedRequest) -> Result<Option<Vec<u8>>, Vec<Diagnostic>> {
@@ -637,6 +678,12 @@ mod tests {
             _: &RetainedValue,
         ) -> Result<(), Vec<Diagnostic>> {
             self.events.push(format!("{turn}:{kind}"));
+            if let Some(cancellation) = &self.cancel_transition {
+                cancellation.cancel();
+            }
+            if let Some(clock) = &self.advance_transition {
+                clock.set(10);
+            }
             if self.reject_transition == Some(turn) {
                 return Err(vec![bad("fixture.transition_not_durable")]);
             }
@@ -649,6 +696,10 @@ mod tests {
             calls: 0,
             reject_stage: None,
             reject_transition: None,
+            advance_stage: None,
+            advance_effect: None,
+            advance_transition: None,
+            cancel_transition: None,
         }
     }
     #[test]
@@ -758,6 +809,29 @@ mod tests {
         compiled: &'a CompiledAgentLifecycle,
     }
     impl ProposalSource for AlwaysGrant<'_> {
+        fn propose(&mut self, _: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>> {
+            Ok(crate::agent_lifecycle::tests::proposal(
+                self.compiled,
+                "1",
+                "1",
+            ))
+        }
+    }
+
+    /// Source-local view of the shared absolute deadline. Driver callbacks
+    /// mutate this clock to prove post-callback guards prevent later work.
+    struct DeadlineProbe<'a> {
+        compiled: &'a CompiledAgentLifecycle,
+        clock: std::rc::Rc<std::cell::Cell<i64>>,
+    }
+    impl ProposalSource for DeadlineProbe<'_> {
+        fn check_deadline(&self) -> Result<(), Vec<Diagnostic>> {
+            if self.clock.get() >= 10 {
+                return Err(vec![bad("fixture.deadline_exceeded")]);
+            }
+            Ok(())
+        }
+
         fn propose(&mut self, _: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>> {
             Ok(crate::agent_lifecycle::tests::proposal(
                 self.compiled,
@@ -905,6 +979,145 @@ mod tests {
         assert_eq!(locked_run.status(), IterativeStatus::Rejected);
         assert_eq!(locked.calls(), 1);
         assert_ne!(unlocked_run.evidence(), locked_run.evidence());
+    }
+
+    fn deadline_probe_compiled(step: &str) -> CompiledIterativeLifecycle {
+        compile_agent_lifecycle_v2(
+            &super::super::tests::source(step).replace("state.epoch < 3", "state.epoch < 0"),
+            "driver-live-deadline.spx",
+            &crate::agent_lifecycle::tests::DEFINITION
+                .replace("RUNTIME", crate::agent_lifecycle::tests::RUNTIME_V1),
+            "fixture.agent.type.step",
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn live_driver_rechecks_deadline_after_stage_and_effect_callbacks_before_dispatch() {
+        let compiled = deadline_probe_compiled("Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }");
+        let stage_clock = std::rc::Rc::new(std::cell::Cell::new(0));
+        let mut stage_source = DeadlineProbe {
+            compiled: &compiled.inner,
+            clock: std::rc::Rc::clone(&stage_clock),
+        };
+        let mut stage_driver = Driver {
+            advance_stage: Some(("observe", stage_clock)),
+            ..make_driver()
+        };
+        let stage_error = compiled
+            .run_with_driver_live(
+                &live_task(),
+                &mut stage_source,
+                &mut stage_driver,
+                IterativeBudget::default(),
+                &AgentCancellation::new(),
+            )
+            .err()
+            .expect("an expired stage callback must stop before evaluation");
+        assert!(matches!(stage_error, DriverFailure::Diagnostics(_)));
+        assert_eq!(stage_driver.calls, 0);
+        assert_eq!(stage_driver.events, ["0:initialize", "0:observe"]);
+
+        let effect_clock = std::rc::Rc::new(std::cell::Cell::new(0));
+        let mut effect_source = DeadlineProbe {
+            compiled: &compiled.inner,
+            clock: std::rc::Rc::clone(&effect_clock),
+        };
+        let mut effect_driver = Driver {
+            advance_effect: Some(effect_clock),
+            ..make_driver()
+        };
+        let effect_error = compiled
+            .run_with_driver_live(
+                &live_task(),
+                &mut effect_source,
+                &mut effect_driver,
+                IterativeBudget {
+                    max_iterations: 1,
+                    ..IterativeBudget::default()
+                },
+                &AgentCancellation::new(),
+            )
+            .err()
+            .expect("an expired effect callback must stop before host dispatch");
+        assert!(matches!(effect_error, DriverFailure::Diagnostics(_)));
+        assert_eq!(effect_driver.calls, 0);
+        assert_eq!(
+            effect_driver.events,
+            [
+                "0:initialize",
+                "0:observe",
+                "0:authorize",
+                "0:intent_context"
+            ]
+        );
+    }
+
+    #[test]
+    fn live_driver_rechecks_deadline_after_transition_before_publication() {
+        let compiled = deadline_probe_compiled("Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }");
+        let clock = std::rc::Rc::new(std::cell::Cell::new(0));
+        let mut source = DeadlineProbe {
+            compiled: &compiled.inner,
+            clock: std::rc::Rc::clone(&clock),
+        };
+        let mut driver = Driver {
+            advance_transition: Some(clock),
+            ..make_driver()
+        };
+        let error = compiled
+            .run_with_driver_live(
+                &live_task(),
+                &mut source,
+                &mut driver,
+                IterativeBudget {
+                    max_iterations: 1,
+                    ..IterativeBudget::default()
+                },
+                &AgentCancellation::new(),
+            )
+            .err()
+            .expect("an expired transition callback cannot publish a result");
+
+        assert!(matches!(error, DriverFailure::Diagnostics(_)));
+        assert_eq!(driver.calls, 1);
+        assert_eq!(
+            driver.events,
+            [
+                "0:initialize",
+                "0:observe",
+                "0:authorize",
+                "0:intent_context",
+                "0:read",
+                "0:reduce",
+                "0:Complete"
+            ]
+        );
+    }
+
+    #[test]
+    fn live_transition_cancellation_blocks_complete_but_preserves_selected_fail() {
+        for (step, expected) in [
+            ("Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }", IterativeStatus::Cancelled),
+            ("Step::Fail { code: 7 }", IterativeStatus::Fail),
+        ] {
+            let compiled = deadline_probe_compiled(step);
+            let clock = std::rc::Rc::new(std::cell::Cell::new(0));
+            let mut source = DeadlineProbe { compiled: &compiled.inner, clock: clock.clone() };
+            let cancellation = AgentCancellation::new();
+            let mut driver = Driver {
+                cancel_transition: Some(cancellation.clone()),
+                advance_transition: Some(clock),
+                ..make_driver()
+            };
+            let run = compiled.run_with_driver_live(
+                &live_task(), &mut source, &mut driver,
+                IterativeBudget::default(), &cancellation,
+            ).unwrap();
+            assert_eq!(run.status(), expected);
+            assert_eq!(driver.calls, 1);
+            assert_eq!(run.effects(), 1);
+        }
     }
 
     #[test]

@@ -413,8 +413,10 @@ absolute value it used originally (typically `invocation_started_at +
 max_duration`, computed once at bind time, the same way
 `program_root`/`task`/`deployment_binding` are already re-supplied
 identically on every call into `kernel::run_live_invocation`) — there is
-structurally no "from now" constructor, so a resumed call cannot reset the
-deadline merely by supplying a fresh duration.
+no "from now" constructor. The host must preserve both the absolute value and
+the clock's epoch across recovery: this API alone does not authenticate that a
+caller re-supplied the original deadline, nor make a process-local clock
+restart-stable.
 `budget::tests::resume_preserves_an_absolute_deadline_across_the_same_simulated_crash`
 exercises this directly.
 

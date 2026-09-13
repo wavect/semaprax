@@ -172,7 +172,7 @@ pub struct CumulativeBudgetLedger<'a> {
     ceiling: i64,
     committed: i64,
     deadline_millis: Option<i64>,
-    clock: &'a mut dyn InvocationClock,
+    clock: &'a dyn InvocationClock,
     usage: Vec<InvocationUsage>,
     source_clock_floor: Option<Cell<i64>>,
     source_reservation_units: Option<i64>,
@@ -298,6 +298,29 @@ impl<'a> CumulativeBudgetLedger<'a> {
         }
     }
 
+    /// Starts source accounting from the same explicit binding and clock used
+    /// by its journal. The source driver must acknowledge RunOpened before any
+    /// stage or model attempt; this ledger alone grants no dispatch authority.
+    pub fn start_source(
+        binding: &super::source_journal::SourceInvocationBinding,
+        clock: &'a dyn SourceInvocationClock,
+    ) -> Result<Self, BudgetRefusal> {
+        if clock.clock_domain() != binding.clock_domain() {
+            return Err(BudgetRefusal(CLOCK_DOMAIN_MISMATCH.to_owned()));
+        }
+        let ledger = Self {
+            ceiling: binding.ceiling(),
+            committed: 0,
+            deadline_millis: Some(binding.deadline_millis()),
+            clock,
+            usage: Vec::new(),
+            source_clock_floor: Some(Cell::new(binding.initial_millis())),
+            source_reservation_units: Some(binding.reservation_units()),
+        };
+        ledger.check_deadline()?;
+        Ok(ledger)
+    }
+
     /// Restores the source policy solely from a validated, identity-bound
     /// checkpoint. The caller must load the latest authoritative generation
     /// under exclusive writer control. This API cannot detect an older valid
@@ -307,6 +330,16 @@ impl<'a> CumulativeBudgetLedger<'a> {
     pub fn resume_source(
         recovered: &super::source_journal::RecoveredSourceCheckpoint,
         clock: &'a mut dyn SourceInvocationClock,
+    ) -> Result<Self, BudgetRefusal> {
+        Self::resume_source_shared(recovered, clock)
+    }
+
+    /// Restores the same source policy while sharing the read-only clock
+    /// interface with the journal owner. The clock's host-provided epoch and
+    /// monotonicity guarantees are unchanged; this is not a second time budget.
+    pub fn resume_source_shared(
+        recovered: &super::source_journal::RecoveredSourceCheckpoint,
+        clock: &'a dyn SourceInvocationClock,
     ) -> Result<Self, BudgetRefusal> {
         if clock.clock_domain() != recovered.clock_domain() {
             return Err(BudgetRefusal(CLOCK_DOMAIN_MISMATCH.to_owned()));

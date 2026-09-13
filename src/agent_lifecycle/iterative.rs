@@ -7,6 +7,7 @@ pub mod driver;
 )]
 pub mod effects;
 mod render;
+pub mod source_live;
 mod step;
 #[cfg(test)]
 mod tests;

@@ -11,19 +11,26 @@ use crate::diagnostic::quote_json;
 
 use super::identity::{digest, hex, looks_like_digest};
 
+mod execution;
 mod validate;
 mod wire;
 
 #[cfg(test)]
+mod execution_tests;
+#[cfg(test)]
 mod tests;
 
 pub const SOURCE_JOURNAL_SCHEMA: &str = "semaprax.live-invocation.source-persisted-journal.v1";
+pub const SOURCE_EXECUTION_JOURNAL_SCHEMA: &str =
+    "semaprax.live-invocation.source-persisted-journal.v2";
 pub const MAX_SOURCE_ENTRIES: usize = 65_536;
 pub const MAX_SOURCE_DOCUMENT_BYTES: usize = 16 * 1024 * 1024;
 pub const MAX_SOURCE_RESPONSE_BYTES: usize = 65_536;
 pub const MAX_SOURCE_REQUEST_BYTES: usize = 65_536;
 pub const MAX_SOURCE_EFFECT_BYTES: usize = 65_536;
 pub const MAX_SOURCE_ATTEMPTS: u32 = 4;
+pub const MAX_SOURCE_TERMINAL_EVIDENCE_BYTES: usize = 65_536;
+pub const MAX_SOURCE_CARRIER_BYTES: usize = 65_536;
 
 const ID_DOMAIN: &[u8] = b"semaprax.live-invocation.source-id.v1\0";
 const ATTEMPT_DOMAIN: &[u8] = b"semaprax.live-invocation.source-attempt.v1\0";
@@ -31,6 +38,7 @@ const RESPONSE_DOMAIN: &[u8] = b"semaprax.live-invocation.source-response.v1\0";
 const EFFECT_DOMAIN: &[u8] = b"semaprax.live-invocation.source-effect.v1\0";
 const PROMPT_DOMAIN: &[u8] = b"semaprax.live-invocation.source-prompt.v1\0";
 const CONTEXT_DOMAIN: &[u8] = b"semaprax.live-invocation.source-context-binding.v1\0";
+const EXECUTION_ID_DOMAIN: &[u8] = b"semaprax.live-invocation.source-id.v2\0";
 
 /// All caller-selected policy, program and task inputs to one source run.
 /// The resulting binding is opaque; a recovery caller must supply it again.
@@ -71,6 +79,17 @@ pub struct SourceInvocationBinding {
     clock_domain: String,
     initial_millis: i64,
     deadline_millis: i64,
+    profile: SourceProfile,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum SourceProfile {
+    PrimitiveV1,
+    ExecutionV2 {
+        evaluator: String,
+        max_steps_per_stage: usize,
+        max_total_steps: usize,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -165,7 +184,74 @@ impl SourceInvocationBinding {
             clock_domain: seed.clock_domain,
             initial_millis: seed.initial_millis,
             deadline_millis: seed.deadline_millis,
+            profile: SourceProfile::PrimitiveV1,
         })
+    }
+
+    /// Execution mode has a distinct identity, wire schema and chain domain.
+    /// The evaluator profile is an exact digest of the admitted interpreter.
+    pub fn bind_execution(
+        seed: SourceInvocationSeed,
+        evaluator_profile: &str,
+    ) -> Result<Self, SourceJournalError> {
+        if !looks_like_digest(evaluator_profile) {
+            return Err(SourceJournalError::Binding);
+        }
+        let max_steps_per_stage = seed.max_steps_per_stage;
+        let max_total_steps = seed.max_total_steps;
+        let mut binding = Self::bind(seed)?;
+        let canonical = format!(
+            "{{\"primitive\":{},\"evaluator\":{}}}",
+            quote_json(&binding.invocation),
+            quote_json(evaluator_profile),
+        );
+        binding.invocation = digest(EXECUTION_ID_DOMAIN, canonical.as_bytes());
+        binding.profile = SourceProfile::ExecutionV2 {
+            evaluator: evaluator_profile.to_owned(),
+            max_steps_per_stage,
+            max_total_steps,
+        };
+        Ok(binding)
+    }
+
+    pub fn is_execution_profile(&self) -> bool {
+        matches!(&self.profile, SourceProfile::ExecutionV2 { .. })
+    }
+    pub fn evaluator_profile(&self) -> Option<&str> {
+        match &self.profile {
+            SourceProfile::PrimitiveV1 => None,
+            SourceProfile::ExecutionV2 { evaluator, .. } => Some(evaluator),
+        }
+    }
+    pub fn max_steps_per_stage(&self) -> Option<usize> {
+        match &self.profile {
+            SourceProfile::PrimitiveV1 => None,
+            SourceProfile::ExecutionV2 {
+                max_steps_per_stage,
+                ..
+            } => Some(*max_steps_per_stage),
+        }
+    }
+    pub fn max_total_steps(&self) -> Option<usize> {
+        match &self.profile {
+            SourceProfile::PrimitiveV1 => None,
+            SourceProfile::ExecutionV2 {
+                max_total_steps, ..
+            } => Some(*max_total_steps),
+        }
+    }
+    pub const fn max_iterations(&self) -> u32 {
+        self.max_iterations
+    }
+    pub const fn max_stages(&self) -> u32 {
+        self.max_stages
+    }
+    fn schema(&self) -> &'static str {
+        if self.is_execution_profile() {
+            SOURCE_EXECUTION_JOURNAL_SCHEMA
+        } else {
+            SOURCE_JOURNAL_SCHEMA
+        }
     }
 
     pub fn invocation(&self) -> &str {
@@ -317,6 +403,41 @@ closed_tags!(SourceTerminalStatus {
     Cancelled => "cancelled", BudgetExhausted => "budget_exhausted",
     DeadlineExceeded => "deadline_exceeded"
 });
+closed_tags!(SourceStageRole {
+    Initialize => "initialize", Observe => "observe",
+    Authorize => "authorize", Reduce => "reduce"
+});
+closed_tags!(SourceStageOutcome {
+    Returned => "returned", LanguageFailure => "language_failure",
+    FuelExhausted => "fuel_exhausted", CallDepthExceeded => "call_depth_exceeded",
+    GuardError => "guard_error"
+});
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SourceStageSummary {
+    pub role: SourceStageRole,
+    pub function_id: String,
+    pub outcome: SourceStageOutcome,
+    pub steps_used: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SourceTerminalEvidenceInput {
+    pub completed_stages: u32,
+    pub omitted_stage_rows: u32,
+    pub stage_rows: Vec<SourceStageSummary>,
+    pub checked_run_evidence: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SourceReportedUsage {
+    pub total: Option<u64>,
+    pub input: Option<u64>,
+    pub output: Option<u64>,
+    pub reasoning: Option<u64>,
+    pub cache_read: Option<u64>,
+    pub cache_write: Option<u64>,
+}
 
 impl SourceStopReason {
     fn status(self) -> SourceStopStatus {
@@ -348,6 +469,18 @@ impl From<SourceStopStatus> for SourceTerminalStatus {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SourceJournalEntry {
     RunOpened,
+    StageReservation {
+        turn: u32,
+        attempt: Option<u32>,
+        role: SourceStageRole,
+        fuel: usize,
+    },
+    ReplayStageReservation {
+        replay: u32,
+        causal_seq: u32,
+        role: SourceStageRole,
+        fuel: usize,
+    },
     TurnObserved {
         turn: u32,
         state: String,
@@ -375,6 +508,11 @@ pub enum SourceJournalEntry {
         attempt: u32,
         reason: SourceAttemptFailure,
         attempted_bytes: usize,
+    },
+    AttemptUsage {
+        turn: u32,
+        attempt: u32,
+        reported: Option<SourceReportedUsage>,
     },
     ProposalRefused {
         turn: u32,
@@ -432,6 +570,19 @@ pub enum SourceJournalEntry {
         status: SourceTerminalStatus,
         carrier_digest: Option<String>,
     },
+    TerminalSnapshot {
+        turn: Option<u32>,
+        status: SourceTerminalStatus,
+        carrier_digest: Option<String>,
+        carrier: Option<Vec<u8>>,
+        evidence: Vec<u8>,
+        evidence_digest: String,
+        committed_model_units: i64,
+        committed_stage_fuel: u64,
+        stages: u32,
+        effects: u32,
+        attempts: u32,
+    },
 }
 
 pub fn source_response_digest(bytes: &[u8]) -> String {
@@ -480,7 +631,11 @@ impl SourceJournal {
         let mut next = self.clone();
         next.entries.push(entry);
         next.last_checked_millis = now;
-        validate::validate(&next.binding, &next.entries)?;
+        if next.binding.is_execution_profile() {
+            execution::validate(&next.binding, &next.entries)?;
+        } else {
+            validate::validate(&next.binding, &next.entries)?;
+        }
         Ok(next)
     }
 }
@@ -543,6 +698,22 @@ impl<'a> SourceCheckpointSink<'a> {
         self.prepare_append(entry.clone(), now).map(|_| ())
     }
 
+    /// Constructs the final v2 event from validated causal commitments.
+    /// The caller still must pass it to `append_at` and await its store ACK.
+    pub fn terminal_snapshot_entry(
+        &self,
+        turn: Option<u32>,
+        status: SourceTerminalStatus,
+        carrier: Option<Vec<u8>>,
+        input: SourceTerminalEvidenceInput,
+    ) -> Result<SourceJournalEntry, SourceJournalError> {
+        if !self.journal.binding.is_execution_profile() {
+            return Err(SourceJournalError::Binding);
+        }
+        let fold = execution::validate(&self.journal.binding, self.journal.entries())?;
+        execution::terminal_entry(&self.journal.binding, &fold, turn, status, carrier, input)
+    }
+
     fn prepare_append(
         &self,
         entry: SourceJournalEntry,
@@ -559,7 +730,7 @@ impl<'a> SourceCheckpointSink<'a> {
         let document = wire::encode_envelope(&next, generation)?;
         // An intent is unusable if its worst-case bounded result cannot be
         // checkpointed. Reserve room before granting a physical dispatch.
-        let (future_bytes, future_entries) = match next.entries.last() {
+        let (future_bytes, future_entries): (usize, usize) = match next.entries.last() {
             Some(SourceJournalEntry::AttemptIntent { response_limit, .. }) => {
                 (response_limit.saturating_mul(2).saturating_add(4_096), 5)
             }
@@ -570,6 +741,18 @@ impl<'a> SourceCheckpointSink<'a> {
                 3,
             ),
             _ => (0, 0),
+        };
+        let (future_bytes, future_entries) = if next.binding.is_execution_profile()
+            && !matches!(
+                next.entries.last(),
+                Some(SourceJournalEntry::TerminalSnapshot { .. })
+            ) {
+            (
+                future_bytes.saturating_add(execution::TERMINAL_ROOM_BYTES),
+                future_entries.saturating_add(2),
+            )
+        } else {
+            (future_bytes, future_entries)
         };
         if document
             .len()
@@ -588,6 +771,19 @@ impl<'a> SourceCheckpointSink<'a> {
     pub fn journal(&self) -> &SourceJournal {
         &self.journal
     }
+    /// Revalidates this cursor's last ACKed generation. A poisoned cursor may
+    /// have a newer store generation, so this is not a latest-store claim.
+    pub fn checkpoint(&self) -> Result<RecoveredSourceCheckpoint, SourceJournalError> {
+        let document = wire::encode_envelope(&self.journal, self.generation)?;
+        recover_source_checkpoint(&document, &self.journal.binding)
+    }
+    pub fn committed_stage_fuel(&self) -> Result<u64, SourceJournalError> {
+        if self.journal.binding.is_execution_profile() {
+            Ok(execution::validate(&self.journal.binding, self.journal.entries())?.stage_fuel)
+        } else {
+            Ok(0)
+        }
+    }
     pub const fn generation(&self) -> u64 {
         self.generation
     }
@@ -604,6 +800,7 @@ pub struct RecoveredSourceCheckpoint {
     generation: u64,
     chain: String,
     committed_reserved_units: i64,
+    committed_stage_fuel: u64,
 }
 
 impl RecoveredSourceCheckpoint {
@@ -640,6 +837,32 @@ impl RecoveredSourceCheckpoint {
     pub const fn committed_reserved_units(&self) -> i64 {
         self.committed_reserved_units
     }
+    pub const fn committed_stage_fuel(&self) -> u64 {
+        self.committed_stage_fuel
+    }
+    pub fn evaluator_profile(&self) -> Option<&str> {
+        self.journal.binding.evaluator_profile()
+    }
+    pub fn max_steps_per_stage(&self) -> Option<usize> {
+        self.journal.binding.max_steps_per_stage()
+    }
+    pub fn max_total_steps(&self) -> Option<usize> {
+        self.journal.binding.max_total_steps()
+    }
+    pub fn max_iterations(&self) -> u32 {
+        self.journal.binding.max_iterations()
+    }
+    pub fn max_stages(&self) -> u32 {
+        self.journal.binding.max_stages()
+    }
+    pub fn terminal_snapshot(&self) -> Option<RecoveredSourceTerminal<'_>> {
+        match self.journal.entries.last() {
+            Some(entry @ SourceJournalEntry::TerminalSnapshot { .. }) => {
+                Some(RecoveredSourceTerminal { entry })
+            }
+            _ => None,
+        }
+    }
     pub fn is_uncertain(&self) -> bool {
         matches!(
             self.journal.entries.last(),
@@ -650,16 +873,47 @@ impl RecoveredSourceCheckpoint {
     }
 }
 
+/// Read-only v2 terminal receipt. It grants no carrier or effect authority.
+pub struct RecoveredSourceTerminal<'a> {
+    entry: &'a SourceJournalEntry,
+}
+impl RecoveredSourceTerminal<'_> {
+    pub fn status(&self) -> SourceTerminalStatus {
+        let SourceJournalEntry::TerminalSnapshot { status, .. } = self.entry else {
+            unreachable!()
+        };
+        *status
+    }
+    pub fn evidence(&self) -> &[u8] {
+        let SourceJournalEntry::TerminalSnapshot { evidence, .. } = self.entry else {
+            unreachable!()
+        };
+        evidence
+    }
+    pub fn carrier(&self) -> Option<&[u8]> {
+        let SourceJournalEntry::TerminalSnapshot { carrier, .. } = self.entry else {
+            unreachable!()
+        };
+        carrier.as_deref()
+    }
+}
+
 pub fn recover_source_checkpoint(
     document: &str,
     expected: &SourceInvocationBinding,
 ) -> Result<RecoveredSourceCheckpoint, SourceJournalError> {
     let (journal, generation, chain) = wire::decode_envelope(document, expected)?;
-    let committed_reserved_units = validate::validate(expected, journal.entries())?;
+    let (committed_reserved_units, committed_stage_fuel) = if expected.is_execution_profile() {
+        let fold = execution::validate(expected, journal.entries())?;
+        (fold.model_units, fold.stage_fuel)
+    } else {
+        (validate::validate(expected, journal.entries())?, 0)
+    };
     Ok(RecoveredSourceCheckpoint {
         journal,
         generation,
         chain,
         committed_reserved_units,
+        committed_stage_fuel,
     })
 }

@@ -457,6 +457,36 @@ pub(super) fn validate(
             }
 
             (
+                Phase::Decode {
+                    turn: expected_turn,
+                    attempt: expected_attempt,
+                },
+                SourceJournalEntry::Stop {
+                    turn,
+                    attempt,
+                    status,
+                    reason,
+                },
+            ) if binding.is_execution_profile()
+                && *turn == Some(expected_turn)
+                && *attempt == Some(expected_attempt)
+                && matches!(
+                    (*status, *reason),
+                    (
+                        SourceStopStatus::DeadlineExceeded,
+                        SourceStopReason::DeadlineExceeded
+                    ) | (SourceStopStatus::Cancelled, SourceStopReason::Cancelled)
+                        | (SourceStopStatus::ModelFailed, SourceStopReason::ModelFailed)
+                ) =>
+            {
+                Phase::Terminal {
+                    turn: *turn,
+                    status: (*status).into(),
+                    carrier: None,
+                }
+            }
+
+            (
                 phase,
                 SourceJournalEntry::Stop {
                     turn,
@@ -474,6 +504,11 @@ pub(super) fn validate(
                     } => (Some(*turn), *prior_attempt, None, true),
                     Phase::NeedEffect { turn, attempt }
                     | Phase::NeedTransition { turn, attempt } => {
+                        (Some(*turn), Some(*attempt), None, true)
+                    }
+                    Phase::NeedAuthorization { turn, attempt }
+                        if binding.is_execution_profile() =>
+                    {
                         (Some(*turn), Some(*attempt), None, true)
                     }
                     Phase::NeedStop {

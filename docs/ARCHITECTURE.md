@@ -110,12 +110,19 @@ The source-specific checkpoint grammar lives under
 `src/live_invocation/source_journal`; it uses the existing caller-owned
 `CheckpointStore` and keeps the generic journal wire unchanged. Its validated
 recovery data supplies the existing cumulative ledger's source restoration
-route. The source lifecycle driver has not yet been connected to these durable
-primitives. The private adapter's `source_checkpoint` module records one explicit
-model attempt through that sink, acknowledging the intent before transport and
-the outcome before exposing response text. It shares ordinary source request
-preparation and accounting; it does not implement source replay or an independent
-ledger. An in-memory OpenCode receipt is not a checkpoint.
+route. The v2 execution profile additionally owns full stage-fuel reservations,
+charged replay reservations, optional usage observations, and terminal snapshots.
+`agent_lifecycle/iterative/source_live` owns the one ledger and replay cursor;
+its optional session hooks reuse the checked loop in `iterative/driver/live`
+for fresh and recovered execution. Replayed stages reserve fresh fuel before
+evaluation, while acknowledged model/effect results replay without physical
+redispatch. Unresolved intents fail closed. Recovered terminal bytes are an
+opaque receipt, never a newly checked carrier or continuation authority.
+The private adapter's `source_checkpoint` module records explicit model attempts
+through that sink. Its `durable_source` wrapper borrows the driver's ledger for
+one attempt, acknowledges intent before transport and settlement before exposing
+response text, and records optional usage in the same journal. Migration and a
+durable source CLI remain separate work. An in-memory receipt is not a checkpoint.
 No private crate is a normal or optional dependency of the registry
 package. Compiler-owned SDK replay and Windows carrier preparation/replay remain
 before/around explicit injected host calls; opaque prepared facts are not

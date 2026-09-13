@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Connect source checkpoint execution to the checked iterative driver (#113).
+  Journal v2 reserves fresh fuel on replay, shares one model-budget ledger,
+  persists optional usage and terminal evidence, refuses uncertain redispatch,
+  and retains partial failure evidence. The OpenCode durable source borrows
+  that ledger; source migration and a durable CLI remain pending.
+
 - Exercise lazy boolean operands containing checked division failure through
   the differential corpus (#103), including interpreter, native O0/O2, and
   Core-Wasm observations with explicit lane results.

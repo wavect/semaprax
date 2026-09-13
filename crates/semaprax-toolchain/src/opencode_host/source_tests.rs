@@ -25,6 +25,9 @@ mod fixtures;
 #[path = "source_checkpoint_tests.rs"]
 mod checkpointed;
 
+#[path = "durable_source_tests.rs"]
+mod durable_source;
+
 const HOST_CREDENTIAL_SENTINEL: &str = "credential-sentinel-owned-by-runner";
 
 struct Clock(Rc<Cell<i64>>);

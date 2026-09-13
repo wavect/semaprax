@@ -1,6 +1,8 @@
 //! Private stage/effect driver. Hooks cannot mint authorization or replace checked values.
 use super::*;
 
+mod live;
+
 pub(crate) enum DriverFailure {
     Diagnostics(Vec<Diagnostic>),
     Persistence {
@@ -130,6 +132,33 @@ pub trait ProposalSource {
     /// its bound accounting policy.
     fn check_deadline(&self) -> Result<(), Vec<Diagnostic>> {
         Ok(())
+    }
+
+    /// Explicit capability declaration for the checkpointed source route.
+    /// Ordinary sources never fall back to unjournaled execution there.
+    fn checkpoint_policy(&self) -> Option<super::source_live::SourceProposalPolicy<'_>> {
+        None
+    }
+
+    fn checkpoint_attempt_identity(
+        &self,
+        _request: &ProposalRequest<'_>,
+    ) -> Result<super::source_live::SourceAttemptIdentity, Vec<Diagnostic>> {
+        Err(vec![bad("source.checkpoint_unsupported")])
+    }
+
+    fn propose_checkpointed(
+        &mut self,
+        _request: ProposalRequest<'_>,
+        _sink: &mut crate::live_invocation::source_journal::SourceCheckpointSink<'_>,
+        _ledger: &mut crate::live_invocation::CumulativeBudgetLedger<'_>,
+        _clock: &dyn crate::live_invocation::SourceInvocationClock,
+    ) -> super::source_live::SourceProposalOutcome {
+        super::source_live::SourceProposalOutcome {
+            terminal_failure: None,
+            result: Err(vec![bad("source.checkpoint_unsupported")]),
+            model_dispatches: 0,
+        }
     }
 
     fn propose(&mut self, request: ProposalRequest<'_>) -> Result<String, Vec<Diagnostic>>;
@@ -361,255 +390,6 @@ impl CompiledIterativeLifecycle {
                 } else {
                     diagnostics.into()
                 });
-            }
-            match transition {
-                "Continue" => state = value,
-                "Complete" => stop!(IterativeStatus::Complete, Some(value)),
-                "Suspend" => stop!(IterativeStatus::Suspend, Some(value)),
-                "Fail" => stop!(IterativeStatus::Fail, Some(value)),
-                _ => return Err(vec![bad("step.transition")].into()),
-            }
-        }
-    }
-}
-
-impl CompiledIterativeLifecycle {
-    /// The live route. Shares initialize/observe/authorize/effect/reduce with
-    /// [`Self::run_with_driver_initial`] exactly; the only difference is where
-    /// each turn's proposal text comes from: a call to `source.propose`,
-    /// carrying the real previous effect result, instead of indexing a
-    /// predeclared slice by turn.
-    ///
-    /// A decode failure does not end the turn immediately: the source gets a
-    /// bounded number of attempts (see [`MAX_PROPOSAL_ATTEMPTS`]), each one
-    /// counted and producing no effect call, before the run ends as
-    /// `ModelFailed`. Every other terminal condition — refusal, budget
-    /// exhaustion, cancellation, and the reducer's own Complete/Suspend/Fail
-    /// selection — is exactly the frozen route's, because this reuses the
-    /// same authorize/effect/reduce calls on the same driver.
-    pub(crate) fn run_with_driver_live(
-        &self,
-        task: &LifecycleTask,
-        source: &mut dyn ProposalSource,
-        driver: &mut dyn IterativeDriver,
-        budget: IterativeBudget,
-        cancellation: &AgentCancellation,
-    ) -> Result<IterativeRun, DriverFailure> {
-        if budget.max_iterations > 4096 || budget.max_stages > 12289 {
-            return Err(vec![bad("budget.capacity")].into());
-        }
-        let inner = &self.inner;
-        let mut run = IterativeRun {
-            status: IterativeStatus::BudgetExhausted,
-            iterations: 0,
-            stages: Vec::new(),
-            effects: 0,
-            value: None,
-            authorization_bindings: Vec::new(),
-            invocation_digest: super::live_invocation_digest(
-                task,
-                budget,
-                inner.proposal.schema().digest(),
-            ),
-            evidence: String::new(),
-            digest: String::new(),
-        };
-        let mut last_effect: Option<Vec<u8>> = None;
-        macro_rules! stop {
-            ($status:expr, $value:expr) => {
-                return Ok(run.finish($status, $value, self.digest()))
-            };
-        }
-        macro_rules! live_guard {
-            () => {
-                if cancellation.is_cancelled() {
-                    stop!(IterativeStatus::Cancelled, None);
-                }
-                source.check_deadline()?;
-            };
-        }
-        macro_rules! boundary {
-            () => {
-                if cancellation.is_cancelled() {
-                    stop!(IterativeStatus::Cancelled, None);
-                }
-                if run.stages.len() >= budget.max_stages {
-                    stop!(IterativeStatus::BudgetExhausted, None);
-                }
-                source.check_deadline()?;
-            };
-        }
-        macro_rules! evaluate {
-            ($stage:expr, $arguments:expr) => {{
-                boundary!();
-                driver.before_stage($stage.role(), run.iterations, budget.max_steps_per_stage)?;
-                live_guard!();
-                let evaluation = inner.evaluate($stage, $arguments, budget.max_steps_per_stage)?;
-                run.stages.push(StageRecord::of($stage, &evaluation));
-                match evaluation.outcome {
-                    RetainedCallOutcome::Returned(value) => value,
-                    RetainedCallOutcome::FuelExhausted | RetainedCallOutcome::CallDepthExceeded => {
-                        stop!(IterativeStatus::BudgetExhausted, None);
-                    }
-                    _ => {
-                        stop!(IterativeStatus::Rejected, None);
-                    }
-                }
-            }};
-        }
-        if budget.max_iterations == 0 {
-            stop!(IterativeStatus::BudgetExhausted, None);
-        }
-        let mut state = evaluate!(
-            &inner.binding.initialize,
-            &[payload(
-                &inner.binding.task,
-                task.objective.clone(),
-                task.budget
-            )]
-        );
-        if !inner.carries(&state, "state") {
-            return Err(vec![bad("initialize.identity")].into());
-        }
-        loop {
-            if run.iterations >= budget.max_iterations {
-                stop!(IterativeStatus::BudgetExhausted, None);
-            }
-            let observation = evaluate!(&inner.binding.observe, std::slice::from_ref(&state));
-            if !inner.carries(&observation, "observation") {
-                return Err(vec![bad("observe.identity")].into());
-            }
-            let mut attempt = 0usize;
-            let mut rejection: Option<String> = None;
-            let decoded = loop {
-                boundary!();
-                let request = ProposalRequest {
-                    turn: run.iterations,
-                    attempt,
-                    source_revision: &inner.source_revision,
-                    proposal_schema_digest: inner.proposal.schema().digest(),
-                    task,
-                    state: &state,
-                    observation: &observation,
-                    previous_effect: last_effect.as_deref(),
-                    previous_rejection: rejection.as_deref(),
-                    remaining_iterations: budget.max_iterations - run.iterations,
-                };
-                let proposal_text = source.propose(request)?;
-                live_guard!();
-                match inner.proposal.decode(&proposal_text) {
-                    Ok(decoded) => break decoded,
-                    Err(_) => {
-                        attempt += 1;
-                        if attempt >= MAX_PROPOSAL_ATTEMPTS {
-                            stop!(IterativeStatus::ModelFailed, None);
-                        }
-                        rejection = Some(format!("proposal.decode.attempt.{attempt}"));
-                    }
-                }
-            };
-            let Some(projected) = inner.project(&decoded) else {
-                stop!(IterativeStatus::ModelFailed, None);
-            };
-            boundary!();
-            let policy = digest(
-                b"semaprax.agent-iteration-policy.v2\0",
-                format!("{}\0{}", self.digest(), run.iterations).as_bytes(),
-            );
-            let mut args = vec![state.clone()];
-            args.extend(projected.iter().cloned());
-            driver.before_stage("authorize", run.iterations, budget.max_steps_per_stage)?;
-            live_guard!();
-            let (decision, record) = authorization::run_authorize_stage(
-                &inner.program,
-                &inner.binding.authorize,
-                &args,
-                budget.max_steps_per_stage,
-                &policy,
-                &state,
-                decoded.canonical_json(),
-            )?;
-            run.stages.push(record);
-            let authorized = match decision {
-                authorization::AuthorizationOutcome::Granted(value) => value,
-                authorization::AuthorizationOutcome::Refused(_) => {
-                    stop!(IterativeStatus::Rejected, None);
-                }
-                authorization::AuthorizationOutcome::Undecided("fuel" | "depth") => {
-                    stop!(IterativeStatus::BudgetExhausted, None);
-                }
-                _ => {
-                    stop!(IterativeStatus::Rejected, None);
-                }
-            };
-            if cancellation.is_cancelled() {
-                stop!(IterativeStatus::Cancelled, None);
-            }
-            // Reserve reducer capacity before dispatch: no known-doomed effect.
-            if run.stages.len() >= budget.max_stages {
-                stop!(IterativeStatus::BudgetExhausted, None);
-            }
-            let request = authorized.consume();
-            let expected = authorization::binding(
-                &policy,
-                &state,
-                decoded.canonical_json(),
-                inner.binding.authorize.grant_case(),
-                request.seal(),
-            );
-            if expected != request.binding() {
-                return Err(vec![bad("authorization.binding")].into());
-            }
-            live_guard!();
-            driver.before_effect(EffectContext {
-                turn: run.iterations,
-                policy: &policy,
-                state: &state,
-                proposal_canonical: decoded.canonical_json(),
-                authorization: &request,
-            })?;
-            live_guard!();
-            run.authorization_bindings
-                .push(request.binding().to_owned());
-            run.effects += 1;
-            let Some(bytes) = driver.read(&request)? else {
-                stop!(IterativeStatus::EffectFailed, None);
-            };
-            if bytes.len() > MAX_READ_BYTES {
-                stop!(IterativeStatus::EffectFailed, None);
-            }
-            last_effect = Some(bytes.clone());
-            let mut args = vec![state];
-            args.extend(projected);
-            args.push(payload(&inner.binding.outcome, bytes, 0));
-            let value = evaluate!(&inner.binding.reduce, &args);
-            run.iterations += 1;
-            let (transition, value) = self.step.decode(value)?;
-            // A reducer-selected Fail remains sticky: a later deadline cannot
-            // replace it. Other transitions are checked before publication.
-            if transition != "Fail" {
-                live_guard!();
-            }
-            if let Err(diagnostics) =
-                driver.after_transition(run.iterations - 1, transition, &value)
-            {
-                let selected = match transition {
-                    "Complete" => Some(IterativeStatus::Complete),
-                    "Suspend" => Some(IterativeStatus::Suspend),
-                    "Fail" => Some(IterativeStatus::Fail),
-                    _ => None,
-                };
-                return Err(if let Some(status) = selected {
-                    DriverFailure::Persistence {
-                        terminal: Box::new(run.finish(status, Some(value), self.digest())),
-                        diagnostics,
-                    }
-                } else {
-                    diagnostics.into()
-                });
-            }
-            if transition != "Fail" {
-                live_guard!();
             }
             match transition {
                 "Continue" => state = value,

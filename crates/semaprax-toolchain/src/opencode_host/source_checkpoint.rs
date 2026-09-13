@@ -31,6 +31,7 @@ impl<R: OpenCodeRunner> OpenCodeProposalSource<'_, R> {
         sink: &mut SourceCheckpointSink<'_>,
         clock: &dyn SourceInvocationClock,
     ) -> Result<String, Vec<Diagnostic>> {
+        self.last_checkpoint_dispatches = 0;
         let (prompt, request) = self
             .prepare_request(&context)
             .map_err(|error| vec![*error])?;
@@ -118,6 +119,7 @@ impl<R: OpenCodeRunner> OpenCodeProposalSource<'_, R> {
         }
 
         let _capability_reason = self.capability.reason();
+        self.last_checkpoint_dispatches = 1;
         let outcome = self.handler.invoke_prompt(&prompt, self.max_response_bytes);
         let reported_usage = self
             .handler

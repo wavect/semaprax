@@ -77,7 +77,10 @@ additions. [Linked migration](PROJECT-LINKED-AGENT-MIGRATION-V1.md) and the
 root, currentness, trusted-store and cumulative-accounting boundaries. Their
 hosted evidence is green. An explicitly configured private Unix
 [OpenCode provider adapter](OPENCODE-HOST-ADAPTER-V1.md) additionally has local
-source-feedback smoke evidence. Distributed coordination, broader provider
+source-feedback smoke evidence. The separate [source checkpoint profile v2](SOURCE-LIVE-JOURNAL-V2.md)
+has local checked-driver and injected-host recovery gates, including cumulative
+replay fuel and model reservations. Source migration and a durable source CLI
+remain pending. Distributed coordination, broader provider
 profiles and native/Wasm Agent-stage execution remain separate functionality.
 
 The generic implementation includes [argument inference v3](GENERIC-ARGUMENT-INFERENCE-V3.md),

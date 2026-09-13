@@ -7,14 +7,18 @@ use super::*;
 use crate::live_invocation::identity::unhex;
 
 const CHAIN_DOMAIN: &[u8] = b"semaprax.live-invocation.source-chain.v1\0";
+const EXECUTION_CHAIN_DOMAIN: &[u8] = b"semaprax.live-invocation.source-chain.v2\0";
 
 fn kind(entry: &SourceJournalEntry) -> &'static str {
     match entry {
         SourceJournalEntry::RunOpened => "run_opened",
+        SourceJournalEntry::StageReservation { .. } => "stage_reservation",
+        SourceJournalEntry::ReplayStageReservation { .. } => "replay_stage_reservation",
         SourceJournalEntry::TurnObserved { .. } => "turn_observed",
         SourceJournalEntry::AttemptIntent { .. } => "attempt_intent",
         SourceJournalEntry::AttemptSettled { .. } => "attempt_settled",
         SourceJournalEntry::AttemptFailed { .. } => "attempt_failed",
+        SourceJournalEntry::AttemptUsage { .. } => "attempt_usage",
         SourceJournalEntry::ProposalRefused { .. } => "proposal_refused",
         SourceJournalEntry::ProposalAdmitted { .. } => "proposal_admitted",
         SourceJournalEntry::AuthorizationConsumed { .. } => "authorization_consumed",
@@ -25,18 +29,23 @@ fn kind(entry: &SourceJournalEntry) -> &'static str {
         SourceJournalEntry::Transition { .. } => "transition",
         SourceJournalEntry::Stop { .. } => "stop",
         SourceJournalEntry::TerminalOutcome { .. } => "terminal_outcome",
+        SourceJournalEntry::TerminalSnapshot { .. } => "terminal_snapshot",
     }
 }
 
 fn turn_attempt(entry: &SourceJournalEntry) -> (Option<u32>, Option<u32>) {
     match entry {
         SourceJournalEntry::RunOpened => (None, None),
+        SourceJournalEntry::StageReservation { turn, attempt, .. } => (Some(*turn), *attempt),
+        SourceJournalEntry::ReplayStageReservation { .. } => (None, None),
         SourceJournalEntry::TurnObserved { turn, .. } => (Some(*turn), None),
         SourceJournalEntry::Stop { turn, attempt, .. } => (*turn, *attempt),
         SourceJournalEntry::TerminalOutcome { turn, .. } => (*turn, None),
+        SourceJournalEntry::TerminalSnapshot { turn, .. } => (*turn, None),
         SourceJournalEntry::AttemptIntent { turn, attempt, .. }
         | SourceJournalEntry::AttemptSettled { turn, attempt, .. }
         | SourceJournalEntry::AttemptFailed { turn, attempt, .. }
+        | SourceJournalEntry::AttemptUsage { turn, attempt, .. }
         | SourceJournalEntry::ProposalRefused { turn, attempt, .. }
         | SourceJournalEntry::ProposalAdmitted { turn, attempt, .. }
         | SourceJournalEntry::AuthorizationConsumed { turn, attempt, .. }
@@ -45,6 +54,21 @@ fn turn_attempt(entry: &SourceJournalEntry) -> (Option<u32>, Option<u32>) {
         | SourceJournalEntry::EffectObserved { turn, attempt, .. }
         | SourceJournalEntry::EffectFailed { turn, attempt, .. }
         | SourceJournalEntry::Transition { turn, attempt, .. } => (Some(*turn), Some(*attempt)),
+    }
+}
+
+fn encode_optional_number(value: Option<u64>) -> String {
+    value.map_or_else(|| "null".to_owned(), |number| number.to_string())
+}
+fn encode_usage(usage: &Option<SourceReportedUsage>) -> String {
+    match usage {
+        None => "null".to_owned(),
+        Some(usage) => format!(
+            "{{\"total\":{},\"input\":{},\"output\":{},\"reasoning\":{},\"cache_read\":{},\"cache_write\":{}}}",
+            encode_optional_number(usage.total), encode_optional_number(usage.input),
+            encode_optional_number(usage.output), encode_optional_number(usage.reasoning),
+            encode_optional_number(usage.cache_read), encode_optional_number(usage.cache_write),
+        ),
     }
 }
 
@@ -59,6 +83,11 @@ fn encode_entry(entry: &SourceJournalEntry, seq: usize) -> String {
     }
     let fields = match entry {
         SourceJournalEntry::RunOpened => String::new(),
+        SourceJournalEntry::StageReservation { role, fuel, .. } => format!(
+            ",\"role\":{},\"fuel\":{}", quote_json(role.as_str()), fuel),
+        SourceJournalEntry::ReplayStageReservation { replay, causal_seq, role, fuel } => format!(
+            ",\"replay\":{},\"causal_seq\":{},\"role\":{},\"fuel\":{}",
+            replay, causal_seq, quote_json(role.as_str()), fuel),
         SourceJournalEntry::TurnObserved { state, observation, feedback, .. } => format!(
             ",\"state\":{},\"observation\":{},\"feedback\":{}",
             quote_json(state), quote_json(observation), quote_json(feedback)),
@@ -75,6 +104,8 @@ fn encode_entry(entry: &SourceJournalEntry, seq: usize) -> String {
         SourceJournalEntry::AttemptFailed { reason, attempted_bytes, .. } => format!(
             ",\"reason\":{},\"attempted_bytes\":{}",
             quote_json(reason.as_str()), attempted_bytes),
+        SourceJournalEntry::AttemptUsage { reported, .. } =>
+            format!(",\"reported\":{}", encode_usage(reported)),
         SourceJournalEntry::ProposalRefused { reason, .. } =>
             format!(",\"reason\":{}", quote_json(reason.as_str())),
         SourceJournalEntry::ProposalAdmitted { proposal_digest, .. } =>
@@ -104,6 +135,17 @@ fn encode_entry(entry: &SourceJournalEntry, seq: usize) -> String {
             ",\"status\":{},\"carrier_digest\":{}",
             quote_json(status.as_str()), carrier_digest.as_deref().map(quote_json)
                 .unwrap_or_else(|| "null".to_owned())),
+        SourceJournalEntry::TerminalSnapshot {
+            status, carrier_digest, carrier, evidence, evidence_digest,
+            committed_model_units, committed_stage_fuel, stages, effects, attempts, ..
+        } => format!(
+            ",\"status\":{},\"carrier_digest\":{},\"carrier\":{},\"evidence\":{},\"evidence_digest\":{},\"committed_model_units\":{},\"committed_stage_fuel\":{},\"stages\":{},\"effects\":{},\"attempts\":{}",
+            quote_json(status.as_str()),
+            carrier_digest.as_deref().map(quote_json).unwrap_or_else(|| "null".to_owned()),
+            carrier.as_ref().map(|bytes| quote_json(&hex(bytes))).unwrap_or_else(|| "null".to_owned()),
+            quote_json(&hex(evidence)), quote_json(evidence_digest),
+            committed_model_units, committed_stage_fuel, stages, effects, attempts,
+        ),
     };
     output.push_str(&fields);
     output.push('}');
@@ -131,7 +173,7 @@ fn encode_entries(entries: &[SourceJournalEntry]) -> Result<String, SourceJourna
 fn chain_input(journal: &SourceJournal, generation: u64, entries: &str) -> String {
     format!(
         "{{\"schema\":{},\"invocation\":{},\"generation\":{},\"clock_domain\":{},\"last_checked_millis\":{},\"entries\":{}}}",
-        quote_json(SOURCE_JOURNAL_SCHEMA), quote_json(journal.binding.invocation()), generation,
+        quote_json(journal.binding.schema()), quote_json(journal.binding.invocation()), generation,
         quote_json(journal.binding.clock_domain()), journal.last_checked_millis(), entries)
 }
 
@@ -144,12 +186,16 @@ pub(super) fn encode_envelope(
     }
     let entries = encode_entries(journal.entries())?;
     let link = digest(
-        CHAIN_DOMAIN,
+        if journal.binding.is_execution_profile() {
+            EXECUTION_CHAIN_DOMAIN
+        } else {
+            CHAIN_DOMAIN
+        },
         chain_input(journal, generation, &entries).as_bytes(),
     );
     let document = format!(
         "{{\"schema\":{},\"invocation\":{},\"generation\":{},\"clock_domain\":{},\"last_checked_millis\":{},\"chain\":{},\"entries\":{}}}\n",
-        quote_json(SOURCE_JOURNAL_SCHEMA), quote_json(journal.binding.invocation()), generation,
+        quote_json(journal.binding.schema()), quote_json(journal.binding.invocation()), generation,
         quote_json(journal.binding.clock_domain()), journal.last_checked_millis(),
         quote_json(&link), entries,
     );
@@ -215,6 +261,46 @@ fn bytes_field(
     }
     unhex(encoded).ok_or(SourceJournalError::Malformed)
 }
+fn optional_bytes(
+    map: &Map<String, Value>,
+    key: &str,
+    cap: usize,
+) -> Result<Option<Vec<u8>>, SourceJournalError> {
+    match map.get(key) {
+        Some(Value::Null) => Ok(None),
+        Some(Value::String(_)) => bytes_field(map, key, cap).map(Some),
+        _ => Err(SourceJournalError::Malformed),
+    }
+}
+fn optional_number(map: &Map<String, Value>, key: &str) -> Result<Option<u64>, SourceJournalError> {
+    match map.get(key) {
+        Some(Value::Null) => Ok(None),
+        Some(value) => value
+            .as_u64()
+            .map(Some)
+            .ok_or(SourceJournalError::Malformed),
+        None => Err(SourceJournalError::Malformed),
+    }
+}
+fn decode_usage(
+    map: &Map<String, Value>,
+) -> Result<Option<SourceReportedUsage>, SourceJournalError> {
+    match map.get("reported") {
+        Some(Value::Null) => Ok(None),
+        Some(value) => {
+            let usage = object(value)?;
+            Ok(Some(SourceReportedUsage {
+                total: optional_number(usage, "total")?,
+                input: optional_number(usage, "input")?,
+                output: optional_number(usage, "output")?,
+                reasoning: optional_number(usage, "reasoning")?,
+                cache_read: optional_number(usage, "cache_read")?,
+                cache_write: optional_number(usage, "cache_write")?,
+            }))
+        }
+        None => Err(SourceJournalError::Malformed),
+    }
+}
 fn tag<T>(
     map: &Map<String, Value>,
     key: &str,
@@ -237,6 +323,18 @@ fn decode_entry(value: &Value, seq: usize) -> Result<SourceJournalEntry, SourceJ
     let attempt = || u32_field(map, "attempt");
     let entry = match string(map, "kind")?.as_str() {
         "run_opened" => SourceJournalEntry::RunOpened,
+        "stage_reservation" => SourceJournalEntry::StageReservation {
+            turn: turn()?,
+            attempt: optional_u32(map, "attempt")?,
+            role: tag(map, "role", SourceStageRole::parse)?,
+            fuel: usize_field(map, "fuel")?,
+        },
+        "replay_stage_reservation" => SourceJournalEntry::ReplayStageReservation {
+            replay: u32_field(map, "replay")?,
+            causal_seq: u32_field(map, "causal_seq")?,
+            role: tag(map, "role", SourceStageRole::parse)?,
+            fuel: usize_field(map, "fuel")?,
+        },
         "turn_observed" => SourceJournalEntry::TurnObserved {
             turn: turn()?,
             state: string(map, "state")?,
@@ -264,6 +362,11 @@ fn decode_entry(value: &Value, seq: usize) -> Result<SourceJournalEntry, SourceJ
             attempt: attempt()?,
             reason: tag(map, "reason", SourceAttemptFailure::parse)?,
             attempted_bytes: usize_field(map, "attempted_bytes")?,
+        },
+        "attempt_usage" => SourceJournalEntry::AttemptUsage {
+            turn: turn()?,
+            attempt: attempt()?,
+            reported: decode_usage(map)?,
         },
         "proposal_refused" => SourceJournalEntry::ProposalRefused {
             turn: turn()?,
@@ -321,6 +424,19 @@ fn decode_entry(value: &Value, seq: usize) -> Result<SourceJournalEntry, SourceJ
             status: tag(map, "status", SourceTerminalStatus::parse)?,
             carrier_digest: optional_digest(map, "carrier_digest")?,
         },
+        "terminal_snapshot" => SourceJournalEntry::TerminalSnapshot {
+            turn: optional_u32(map, "turn")?,
+            status: tag(map, "status", SourceTerminalStatus::parse)?,
+            carrier_digest: optional_digest(map, "carrier_digest")?,
+            carrier: optional_bytes(map, "carrier", MAX_SOURCE_CARRIER_BYTES)?,
+            evidence: bytes_field(map, "evidence", MAX_SOURCE_TERMINAL_EVIDENCE_BYTES)?,
+            evidence_digest: string(map, "evidence_digest")?,
+            committed_model_units: i64_field(map, "committed_model_units")?,
+            committed_stage_fuel: u64_field(map, "committed_stage_fuel")?,
+            stages: u32_field(map, "stages")?,
+            effects: u32_field(map, "effects")?,
+            attempts: u32_field(map, "attempts")?,
+        },
         _ => return Err(SourceJournalError::Malformed),
     };
     // A typed re-encoding has exactly the admitted keys and value types.
@@ -354,7 +470,7 @@ pub(super) fn decode_envelope(
     if map.len() != keys.len() || !keys.iter().all(|key| map.contains_key(*key)) {
         return Err(SourceJournalError::Malformed);
     }
-    if string(map, "schema")? != SOURCE_JOURNAL_SCHEMA {
+    if string(map, "schema")? != expected.schema() {
         return Err(SourceJournalError::Malformed);
     }
     if string(map, "invocation")? != expected.invocation()

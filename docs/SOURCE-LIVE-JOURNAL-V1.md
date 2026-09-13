@@ -1,15 +1,15 @@
 # Source Live Journal v1 — draft contract
 
-Status: **PRIVATE CHECKPOINT PRIMITIVES AND EXPLICIT ATTEMPT ADAPTER; SOURCE DRIVER/REPLAY UNIMPLEMENTED**.
+Status: **PRIVATE CHECKPOINT PRIMITIVES; SUPERSEDED FOR THE RUNTIME ROUTE BY [SOURCE-LIVE-JOURNAL-V2](SOURCE-LIVE-JOURNAL-V2.md)**.
 Audience: compiler contributors and live-invocation integrators.
-`live_invocation::source_journal` implements the bounded typed journal, strict
-canonical checkpoint encoding/recovery, and poisoned store-write cursor.
-`CumulativeBudgetLedger::resume_source` restores its validated charge and
-clock policy. The private OpenCode adapter exposes `propose_checkpointed` for
-one explicit journal-bound attempt. The ordinary `run_live` route is unchanged;
-checked source-stage replay and source migration remain unimplemented. Issue #114's accepted
-generic-kernel persistence remains unchanged and closed; #113 remains open.
-No hosted, production, or durable live-provider evidence is claimed.
+This v1 document retains the primitive checkpoint schema and the design history
+from before the checked source driver existed. The actual runtime route now has
+its own v2 execution schema, terminal receipt, stage-fuel replay, and recovery
+rules in [Source Live Journal v2](SOURCE-LIVE-JOURNAL-V2.md). It does not change
+the generic live-invocation v1 wire. This draft must not be read as a claim that
+the v2 runtime route is unimplemented, nor as hosted or provider evidence. The
+remaining v1 sections record its primitive boundary and pre-v2 design limits,
+not the current runtime status.
 
 ## Ownership and compatibility
 

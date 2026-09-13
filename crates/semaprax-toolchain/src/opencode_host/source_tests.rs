@@ -15,6 +15,7 @@ use semaprax::agent_runtime::AgentCancellation;
 use semaprax::live_invocation::{CumulativeBudgetLedger, InvocationClock, ModelInvokeCapability};
 use std::cell::Cell;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
@@ -23,7 +24,7 @@ mod fixtures;
 
 const HOST_CREDENTIAL_SENTINEL: &str = "credential-sentinel-owned-by-runner";
 
-struct Clock(Cell<i64>);
+struct Clock(Rc<Cell<i64>>);
 
 impl InvocationClock for Clock {
     fn now_millis(&self) -> i64 {
@@ -50,6 +51,7 @@ struct FixtureRunner {
     prompts: Vec<String>,
     calls: usize,
     failure: Option<OpenCodeRunnerFailure>,
+    advance_clock: Option<(Rc<Cell<i64>>, i64)>,
 }
 
 impl OpenCodeRunner for FixtureRunner {
@@ -60,6 +62,9 @@ impl OpenCodeRunner for FixtureRunner {
     ) -> Result<Vec<u8>, OpenCodeRunnerFailure> {
         self.calls += 1;
         self.prompts.push(prompt.to_owned());
+        if let Some((clock, millis)) = &self.advance_clock {
+            clock.set(*millis);
+        }
         if let Some(failure) = self.failure {
             return Err(failure);
         }
@@ -159,6 +164,7 @@ fn setup(
             prompts: Vec::new(),
             calls: 0,
             failure: None,
+            advance_clock: None,
         },
     );
     (
@@ -188,7 +194,7 @@ fn source_adapter_runs_the_checked_lifecycle_to_complete_without_host_credential
     let (compiled, mut handler, task, grammar) = setup(compiled_proposal());
     let capability = ModelInvokeCapability::grant("source adapter fixture");
     let cancellation = AgentCancellation::new();
-    let mut clock = Clock(Cell::new(0));
+    let mut clock = Clock(Rc::new(Cell::new(0)));
     let mut ledger = CumulativeBudgetLedger::new(1, &mut clock);
     let accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 4).expect("accounting");
     let mut source = OpenCodeProposalSource::new(
@@ -248,7 +254,7 @@ fn malformed_first_proposal_spends_the_whole_ceiling_before_retry_and_dispatches
     let (compiled, mut handler, task, grammar) = setup(answer);
     let capability = ModelInvokeCapability::grant("source adapter fixture");
     let cancellation = AgentCancellation::new();
-    let mut clock = Clock(Cell::new(0));
+    let mut clock = Clock(Rc::new(Cell::new(0)));
     let mut ledger = CumulativeBudgetLedger::new(1, &mut clock);
     let accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 4).expect("accounting");
     let mut source = OpenCodeProposalSource::new(
@@ -285,13 +291,107 @@ fn malformed_first_proposal_spends_the_whole_ceiling_before_retry_and_dispatches
 }
 
 #[test]
-fn cancellation_before_the_first_reservation_makes_no_host_call_or_charge() {
+fn host_cancellation_before_the_first_reservation_makes_no_host_call_or_charge() {
     let (compiled, mut handler, task, grammar) = setup(compiled_proposal());
+    handler.config.cancellation().cancel();
     let capability = ModelInvokeCapability::grant("source adapter fixture");
     let cancellation = AgentCancellation::new();
-    cancellation.cancel();
-    let mut clock = Clock(Cell::new(0));
+    let mut clock = Clock(Rc::new(Cell::new(0)));
     let mut ledger = CumulativeBudgetLedger::new(1, &mut clock);
+    let accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 4).expect("accounting");
+    let mut source = OpenCodeProposalSource::new(
+        &mut handler,
+        &capability,
+        "source-test.v1".into(),
+        grammar,
+        4_096,
+        accounting,
+    )
+    .expect("source bridge");
+    let mut read = CountingRead { calls: 0 };
+
+    let error = compiled
+        .run_live(
+            &task,
+            &mut source,
+            &mut read,
+            IterativeBudget {
+                max_iterations: 1,
+                ..IterativeBudget::default()
+            },
+            &cancellation,
+        )
+        .expect_err("host cancellation refuses before reservation");
+
+    let receipts = source.receipts().to_vec();
+    drop(source);
+    assert_eq!(error[0].code, "SPX-I239");
+    assert_eq!(handler.runner.calls, 0);
+    assert!(receipts.is_empty());
+    assert_eq!(ledger.committed(), 0);
+}
+
+#[test]
+fn settled_at_shared_deadline_is_charged_but_never_decoded_or_dispatched() {
+    let answer = compiled_proposal();
+    let expected_bytes = answer.len();
+    let (compiled, mut handler, task, grammar) = setup(answer);
+    let shared_clock = Rc::new(Cell::new(0));
+    handler.runner.advance_clock = Some((Rc::clone(&shared_clock), 10));
+    let capability = ModelInvokeCapability::grant("source adapter fixture");
+    let cancellation = AgentCancellation::new();
+    let mut clock = Clock(shared_clock);
+    let mut ledger = CumulativeBudgetLedger::with_deadline(1, 10, &mut clock);
+    let accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 4).expect("accounting");
+    let mut source = OpenCodeProposalSource::new(
+        &mut handler,
+        &capability,
+        "source-test.v1".into(),
+        grammar,
+        4_096,
+        accounting,
+    )
+    .expect("source bridge");
+    let mut read = CountingRead { calls: 0 };
+
+    let error = compiled
+        .run_live(
+            &task,
+            &mut source,
+            &mut read,
+            IterativeBudget {
+                max_iterations: 1,
+                ..IterativeBudget::default()
+            },
+            &cancellation,
+        )
+        .expect_err("a settled response at the deadline cannot reach decode");
+    let receipts = source.receipts().to_vec();
+    drop(source);
+
+    assert_eq!(error[0].code, "SPX-I239");
+    assert_eq!(handler.runner.calls, 1);
+    assert_eq!(read.calls, 0);
+    assert_eq!(receipts.len(), 1);
+    assert!(receipts[0].usage.failed);
+    assert_eq!(receipts[0].usage.response_bytes, expected_bytes);
+    assert!(receipts[0].reported_usage.is_some());
+    assert_eq!(
+        receipts[0].accounting_refusal,
+        Some(super::accounting::OpenCodeAccountingRefusal::DeadlineExceeded)
+    );
+    assert_eq!(ledger.committed(), 1);
+}
+
+#[test]
+fn settled_just_before_shared_deadline_is_admitted() {
+    let (compiled, mut handler, task, grammar) = setup(compiled_proposal());
+    let shared_clock = Rc::new(Cell::new(0));
+    handler.runner.advance_clock = Some((Rc::clone(&shared_clock), 9));
+    let capability = ModelInvokeCapability::grant("source adapter fixture");
+    let cancellation = AgentCancellation::new();
+    let mut clock = Clock(shared_clock);
+    let mut ledger = CumulativeBudgetLedger::with_deadline(1, 10, &mut clock);
     let accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 4).expect("accounting");
     let mut source = OpenCodeProposalSource::new(
         &mut handler,
@@ -315,14 +415,16 @@ fn cancellation_before_the_first_reservation_makes_no_host_call_or_charge() {
             },
             &cancellation,
         )
-        .expect("pre-dispatch cancellation is terminal");
-
+        .expect("a settled response before the deadline is admitted");
     let receipts = source.receipts().to_vec();
     drop(source);
-    assert_eq!(run.status(), IterativeStatus::Cancelled);
-    assert_eq!(handler.runner.calls, 0);
-    assert!(receipts.is_empty());
-    assert_eq!(ledger.committed(), 0);
+
+    assert_eq!(run.status(), IterativeStatus::Complete);
+    assert_eq!(handler.runner.calls, 1);
+    assert_eq!(read.calls, 1);
+    assert!(!receipts[0].usage.failed);
+    assert!(receipts[0].accounting_refusal.is_none());
+    assert_eq!(ledger.committed(), 1);
 }
 
 #[test]
@@ -331,7 +433,7 @@ fn uncertain_provider_failure_keeps_the_reservation_and_records_no_provider_usag
     handler.runner.failure = Some(OpenCodeRunnerFailure::Provider);
     let capability = ModelInvokeCapability::grant("source adapter fixture");
     let cancellation = AgentCancellation::new();
-    let mut clock = Clock(Cell::new(0));
+    let mut clock = Clock(Rc::new(Cell::new(0)));
     let mut ledger = CumulativeBudgetLedger::new(1, &mut clock);
     let accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 4).expect("accounting");
     let mut source = OpenCodeProposalSource::new(
@@ -367,5 +469,6 @@ fn uncertain_provider_failure_keeps_the_reservation_and_records_no_provider_usag
     assert!(receipts[0].usage.failed);
     assert_eq!(receipts[0].usage.response_bytes, 0);
     assert!(receipts[0].reported_usage.is_none());
+    assert!(receipts[0].accounting_refusal.is_none());
     assert_eq!(ledger.committed(), 1);
 }

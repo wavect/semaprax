@@ -103,12 +103,24 @@ impl<R: OpenCodeRunner> ProposalSource for OpenCodeProposalSource<'_, R> {
                 "OpenCode grammar does not bind the source proposal schema",
             )]);
         }
-        let context = context_bytes(&context).map_err(|error| vec![error])?;
+        let encoded_context = context_bytes(&context).map_err(|error| vec![error])?;
         let prompt = format!(
             "SEMAPRAX source proposal v1\nsource_context={}\ndeployment={}\nproposal_schema_digest={}\ncanonical_agent_proposal_schema={}\nReturn one canonical semaprax.agent-proposal.v1 document for the supplied proposal schema. End the document with exactly one literal LF (U+000A); a missing LF is rejected by the compiler.\n",
-            String::from_utf8(context).expect("canonical source context is UTF-8"), self.deployment_binding,
+            String::from_utf8(encoded_context).expect("canonical source context is UTF-8"), self.deployment_binding,
             self.grammar.digest, self.grammar.canonical_schema,
         );
+        if prompt.len() > super::MAX_PROMPT_BYTES {
+            return Err(vec![Diagnostic::io(
+                "SPX-I239",
+                "OpenCode source prompt exceeds its byte limit",
+            )]);
+        }
+        if self.handler.runner.cancelled(&self.handler.config) {
+            return Err(vec![Diagnostic::io(
+                "SPX-I239",
+                "OpenCode source invocation was cancelled before dispatch",
+            )]);
+        }
         let turn = u32::try_from(context.turn).map_err(|_| {
             vec![Diagnostic::io(
                 "SPX-I239",
@@ -138,7 +150,7 @@ impl<R: OpenCodeRunner> ProposalSource for OpenCodeProposalSource<'_, R> {
             .as_ref()
             .and_then(|receipt| receipt.usage.clone());
         self.accounting
-            .record(&outcome, reported_usage)
+            .finish(&outcome, reported_usage)
             .map_err(|refusal| vec![accounting_diagnostic(refusal)])?;
         match outcome {
             ModelInvocationOutcome::Settled(bytes) => String::from_utf8(bytes).map_err(|_| {

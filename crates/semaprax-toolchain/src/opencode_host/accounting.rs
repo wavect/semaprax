@@ -59,6 +59,9 @@ pub struct OpenCodeSourceAttemptReceipt {
     pub reserved_units: i64,
     pub usage: InvocationUsage,
     pub reported_usage: Option<OpenCodeUsage>,
+    /// A policy refusal found only after a settled transport response. This
+    /// closed tag explains why those bytes were charged but never decoded.
+    pub accounting_refusal: Option<OpenCodeAccountingRefusal>,
 }
 
 /// Reuses one caller-owned live-invocation policy for bounded source proposals.
@@ -126,12 +129,14 @@ impl<'a> OpenCodeSourceAccounting<'a> {
         Ok(reserved)
     }
 
-    /// Records exactly the one reserved attempt after the transport settles.
+    /// Settles and records exactly the one reserved attempt.
     ///
-    /// A failed outcome retains its bounded partial byte count. Failed
-    /// outcomes never retain provider-reported counters because there is no
-    /// validated host receipt from which to take them.
-    pub fn record(
+    /// A settled response is checked against the shared deadline before its
+    /// bytes can reach proposal decoding. A deadline refusal still consumes
+    /// the pending reservation and records the actual bounded byte count as a
+    /// failed attempt. Transport failures retain their own closed failure
+    /// outcome and are never overwritten by a later deadline observation.
+    pub fn finish(
         &mut self,
         outcome: &ModelInvocationOutcome,
         reported_usage: Option<OpenCodeUsage>,
@@ -140,7 +145,13 @@ impl<'a> OpenCodeSourceAccounting<'a> {
             .pending
             .take()
             .ok_or(OpenCodeAccountingRefusal::UnreservedAttempt)?;
-        let (response_bytes, failed) = match outcome {
+        let late_refusal = match outcome {
+            ModelInvocationOutcome::Settled(_) => {
+                self.budget.check_deadline().err().map(classify_refusal)
+            }
+            ModelInvocationOutcome::Failed { .. } => None,
+        };
+        let (response_bytes, transport_failed) = match outcome {
             ModelInvocationOutcome::Settled(bytes) => (bytes.len(), false),
             ModelInvocationOutcome::Failed {
                 attempted_bytes, ..
@@ -150,7 +161,7 @@ impl<'a> OpenCodeSourceAccounting<'a> {
             turn: pending.turn,
             request_bytes: pending.request_bytes,
             response_bytes,
-            failed,
+            failed: transport_failed || late_refusal.is_some(),
         };
         self.budget.record(&usage);
         self.receipts.push(OpenCodeSourceAttemptReceipt {
@@ -158,9 +169,10 @@ impl<'a> OpenCodeSourceAccounting<'a> {
             attempt: pending.attempt,
             reserved_units: pending.reserved_units,
             usage,
-            reported_usage: (!failed).then_some(reported_usage).flatten(),
+            reported_usage: (!transport_failed).then_some(reported_usage).flatten(),
+            accounting_refusal: late_refusal,
         });
-        Ok(())
+        late_refusal.map_or(Ok(()), Err)
     }
 
     #[must_use]
@@ -222,7 +234,7 @@ mod tests {
         let mut exact = OpenCodeSourceAccounting::new(&mut exact_ledger, 3, 1).unwrap();
         assert_eq!(exact.reserve(request(), 0, 10).unwrap().amount, 3);
         exact
-            .record(&ModelInvocationOutcome::Settled(b"ok".to_vec()), None)
+            .finish(&ModelInvocationOutcome::Settled(b"ok".to_vec()), None)
             .unwrap();
         assert_eq!(exact.receipts()[0].reserved_units, 3);
         drop(exact);
@@ -254,11 +266,10 @@ mod tests {
 
         let mut capacity_clock = Clock(Cell::new(0));
         let mut capacity_ledger = CumulativeBudgetLedger::new(10, &mut capacity_clock);
-        let mut capacity =
-            OpenCodeSourceAccounting::new(&mut capacity_ledger, 1, 1).unwrap();
+        let mut capacity = OpenCodeSourceAccounting::new(&mut capacity_ledger, 1, 1).unwrap();
         capacity.reserve(request(), 0, 10).unwrap();
         capacity
-            .record(&ModelInvocationOutcome::Settled(b"ok".to_vec()), None)
+            .finish(&ModelInvocationOutcome::Settled(b"ok".to_vec()), None)
             .unwrap();
         assert_eq!(
             capacity.reserve(request(), 1, 10),
@@ -275,7 +286,7 @@ mod tests {
         let mut accounting = OpenCodeSourceAccounting::new(&mut ledger, 5, 1).unwrap();
         accounting.reserve(request(), 3, 19).unwrap();
         accounting
-            .record(
+            .finish(
                 &ModelInvocationOutcome::Failed {
                     failure: ModelFailure::ProviderError,
                     attempted_bytes: 7,
@@ -298,9 +309,53 @@ mod tests {
         assert_eq!(receipt.usage.response_bytes, 7);
         assert!(receipt.usage.failed);
         assert!(receipt.reported_usage.is_none());
+        assert!(receipt.accounting_refusal.is_none());
         drop(accounting);
         assert_eq!(ledger.committed(), 5);
         assert_eq!(ledger.usage()[0].response_bytes, 7);
+    }
+
+    #[test]
+    fn settled_at_deadline_is_charged_and_refused_before_decode() {
+        let mut clock = Clock(Cell::new(0));
+        let mut ledger = CumulativeBudgetLedger::with_deadline(1, 10, &mut clock);
+        let mut accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 1).unwrap();
+        accounting.reserve(request(), 0, 10).unwrap();
+        clock.0.set(10);
+        assert_eq!(
+            accounting.finish(
+                &ModelInvocationOutcome::Settled(b"actual".to_vec()),
+                Some(OpenCodeUsage {
+                    total: Some(6),
+                    input: Some(3),
+                    output: Some(3),
+                    reasoning: None,
+                    cache_read: None,
+                    cache_write: None,
+                }),
+            ),
+            Err(OpenCodeAccountingRefusal::DeadlineExceeded)
+        );
+        let receipt = &accounting.receipts()[0];
+        assert!(receipt.usage.failed);
+        assert_eq!(receipt.usage.response_bytes, 6);
+        assert!(receipt.reported_usage.is_some());
+        assert_eq!(
+            receipt.accounting_refusal,
+            Some(OpenCodeAccountingRefusal::DeadlineExceeded)
+        );
+        drop(accounting);
+        assert_eq!(ledger.committed(), 1);
+
+        let mut before_clock = Clock(Cell::new(9));
+        let mut before_ledger = CumulativeBudgetLedger::with_deadline(1, 10, &mut before_clock);
+        let mut before = OpenCodeSourceAccounting::new(&mut before_ledger, 1, 1).unwrap();
+        before.reserve(request(), 0, 10).unwrap();
+        before
+            .finish(&ModelInvocationOutcome::Settled(b"ok".to_vec()), None)
+            .unwrap();
+        assert!(!before.receipts()[0].usage.failed);
+        assert!(before.receipts()[0].accounting_refusal.is_none());
     }
 
     #[test]
@@ -309,7 +364,7 @@ mod tests {
         let mut ledger = CumulativeBudgetLedger::new(2, &mut clock);
         let mut accounting = OpenCodeSourceAccounting::new(&mut ledger, 1, 2).unwrap();
         assert_eq!(
-            accounting.record(&ModelInvocationOutcome::Settled(b"x".to_vec()), None),
+            accounting.finish(&ModelInvocationOutcome::Settled(b"x".to_vec()), None),
             Err(OpenCodeAccountingRefusal::UnreservedAttempt)
         );
         accounting.reserve(request(), 0, 1).unwrap();
@@ -318,10 +373,10 @@ mod tests {
             Err(OpenCodeAccountingRefusal::PendingAttempt)
         );
         accounting
-            .record(&ModelInvocationOutcome::Settled(b"x".to_vec()), None)
+            .finish(&ModelInvocationOutcome::Settled(b"x".to_vec()), None)
             .unwrap();
         assert_eq!(
-            accounting.record(&ModelInvocationOutcome::Settled(b"x".to_vec()), None),
+            accounting.finish(&ModelInvocationOutcome::Settled(b"x".to_vec()), None),
             Err(OpenCodeAccountingRefusal::UnreservedAttempt)
         );
         drop(accounting);

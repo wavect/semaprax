@@ -101,7 +101,12 @@ staged publication behind its `new`; the compiler library owns the bounded
 standalone `new` route (`src/project/create.rs`), and both share one grammar and
 one scaffold. The toolchain also owns the
 Project Native Rust package publication adapter, and safe Windows revision-store
-host. No private crate is a normal or optional dependency of the registry
+host. Its `opencode_host` module owns the explicit fixed-provider process,
+nonblocking output bounds and transport receipt binding. Its source adapter
+implements the existing lifecycle `ProposalSource`; compiler-owned `run_live`
+retains canonical proposal admission and checked deterministic stages. The
+core exposes only the existing read-only retained-value encoding for context.
+No private crate is a normal or optional dependency of the registry
 package. Compiler-owned SDK replay and Windows carrier preparation/replay remain
 before/around explicit injected host calls; opaque prepared facts are not
 filesystem authority. See [development](DEVELOPMENT.md) for binary selection.

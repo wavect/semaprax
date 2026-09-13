@@ -23,9 +23,37 @@ impl OpenCodeRunner for FixtureRunner {
     }
 }
 
+fn receipt_fixture(prompt: &str, answer: &str) -> (Vec<u8>, Vec<u8>) {
+    let mut export: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../scripts/fixtures/opencode-provider-smoke-v1/session.json"
+    ))
+    .unwrap();
+    export["messages"][0]["parts"][0]["text"] =
+        serde_json::json!(super::receipt::cli_prompt(prompt));
+    export["messages"][1]["parts"][2]["text"] = serde_json::json!(answer);
+    let parts = export["messages"][1]["parts"].as_array().unwrap();
+    let events = [
+        ("step_start", &parts[0]),
+        ("text", &parts[2]),
+        ("step_finish", &parts[3]),
+    ]
+    .iter()
+    .map(|(kind, part)| {
+        serde_json::json!({"type":kind,"sessionID":"ses_fixture","part":part}).to_string()
+    })
+    .collect::<Vec<_>>()
+    .join("\n")
+    .into_bytes();
+    (events, serde_json::to_vec(&export).unwrap())
+}
+
 fn config(digest: &str) -> OpenCodeHostConfig {
-    let sandbox =
-        std::env::temp_dir().join(format!("semaprax-opencode-host-{}", std::process::id()));
+    static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let sandbox = std::env::temp_dir().join(format!(
+        "semaprax-opencode-host-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
     let _ = std::fs::remove_dir_all(&sandbox);
     std::fs::create_dir(&sandbox).unwrap();
     let config = OpenCodeHostConfig::new(
@@ -63,8 +91,7 @@ fn configured_handler_returns_only_validated_raw_text_for_the_existing_decoder()
         },
     )
     .unwrap();
-    let events = b"{\"type\":\"step_start\",\"sessionID\":\"s\",\"part\":{\"sessionID\":\"s\",\"messageID\":\"m\"}}\n{\"type\":\"text\",\"sessionID\":\"s\",\"part\":{\"sessionID\":\"s\",\"messageID\":\"m\",\"text\":\"proposal\"}}\n{\"type\":\"step_finish\",\"sessionID\":\"s\",\"part\":{\"sessionID\":\"s\",\"messageID\":\"m\",\"reason\":\"stop\"}}\n".to_vec();
-    let export = serde_json::json!({"info":{"id":"s","model":{"providerID":"opencode","id":"muse-spark-1.3-contributor-free"}},"messages":[{"info":{"id":"u","role":"user","sessionID":"s"},"parts":[{"text":prompt}]},{"info":{"id":"m","parentID":"u","role":"assistant","sessionID":"s","tokens":{"total":7}},"parts":[{"text":"proposal"}]}]}).to_string().into_bytes();
+    let (events, export) = receipt_fixture(&prompt, "proposal");
     let mut handler = OpenCodeModelHandler::new(
         config("sha256:grammar"),
         FixtureRunner {
@@ -77,7 +104,7 @@ fn configured_handler_returns_only_validated_raw_text_for_the_existing_decoder()
         handler.invoke(&ModelInvokeCapability::grant("test"), &request),
         ModelInvocationOutcome::Settled(b"proposal".to_vec())
     );
-    assert_eq!(handler.last_receipt.unwrap().usage_total, Some(7));
+    assert_eq!(handler.last_receipt.unwrap().usage_total, Some(4651));
 }
 
 #[test]
@@ -160,7 +187,7 @@ fn main() -> i64 { 0 }
     let schema = compile_agent_interaction_schema(&source, "answer.type").unwrap();
     std::fs::remove_file(source).unwrap();
     let document = format!(
-        "{{\"schema\":\"semaprax.agent-interaction-value.v1\",\"root_type_id\":\"answer.type\",\"schema_digest\":{},\"value\":{{\"fields\":{{\"answer.note\":\"accepted\"}}}}}}}\n",
+        "{{\"schema\":\"semaprax.agent-interaction-value.v1\",\"root_type_id\":\"answer.type\",\"schema_digest\":{},\"value\":{{\"fields\":{{\"answer.note\":\"accepted\"}}}}}}\n",
         semaprax::diagnostic::quote_json(schema.schema().digest())
     );
     let request = ModelInvocationRequest {
@@ -174,11 +201,7 @@ fn main() -> i64 { 0 }
     };
     let grammar = OpenCodeGrammar::from_compiled(&schema).unwrap();
     let prompt = wire_prompt(&request, &grammar).unwrap();
-    let events = format!(
-        "{{\"type\":\"step_start\",\"sessionID\":\"s\",\"part\":{{\"sessionID\":\"s\",\"messageID\":\"m\"}}}}\n{{\"type\":\"text\",\"sessionID\":\"s\",\"part\":{{\"sessionID\":\"s\",\"messageID\":\"m\",\"text\":{}}}}}\n{{\"type\":\"step_finish\",\"sessionID\":\"s\",\"part\":{{\"sessionID\":\"s\",\"messageID\":\"m\",\"reason\":\"stop\"}}}}\n",
-        semaprax::diagnostic::quote_json(&document)
-    ).into_bytes();
-    let export = serde_json::json!({"info":{"id":"s","model":{"providerID":"opencode","id":"muse-spark-1.3-contributor-free"}},"messages":[{"info":{"id":"u","role":"user","sessionID":"s"},"parts":[{"text":prompt}]},{"info":{"id":"m","parentID":"u","role":"assistant","sessionID":"s"},"parts":[{"text":document}]}]}).to_string().into_bytes();
+    let (events, export) = receipt_fixture(&prompt, &document);
     let mut handler = OpenCodeModelHandler::new(
         OpenCodeHostConfig::new(
             PathBuf::from("/bin/true"),
@@ -239,23 +262,33 @@ fn process_runner_uses_a_local_stub_without_provider_access() {
     )
     .unwrap();
     assert_eq!(
-        ProcessOpenCodeRunner::capture(&config, &[], 64).unwrap(),
+        ProcessOpenCodeRunner
+            .run(&config, "fixture prompt")
+            .unwrap(),
         b"stub-output"
     );
+    let policy: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(config.sandbox.join("opencode.json")).unwrap())
+            .unwrap();
+    assert_eq!(policy["snapshot"], false);
+    assert_eq!(policy["agent"][OPENCODE_AGENT]["permission"]["*"], "deny");
     std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
 fn export_rejects_user_or_assistant_session_substitution() {
-    let export = serde_json::json!({
-        "info":{"id":"s","model":{"providerID":"opencode","id":"muse-spark-1.3-contributor-free"}},
-        "messages":[
-            {"info":{"id":"u","role":"user","sessionID":"other"},"parts":[{"text":"prompt"}]},
-            {"info":{"id":"m","parentID":"u","role":"assistant","sessionID":"s"},"parts":[{"text":"answer"}]}
-        ]
-    }).to_string();
+    let (events, export) = receipt_fixture("prompt", "answer");
+    let mut export: serde_json::Value = serde_json::from_slice(&export).unwrap();
+    export["messages"][0]["info"]["sessionID"] = serde_json::json!("other");
     assert_eq!(
-        validate_export(export.as_bytes(), "s", "m", "prompt", "answer"),
+        validate_export(
+            &serde_json::to_vec(&export).unwrap(),
+            &events,
+            "ses_fixture",
+            "msg_fixture",
+            "prompt",
+            "answer"
+        ),
         Err(ModelFailure::MalformedResponse)
     );
 }
@@ -422,4 +455,96 @@ fn process_runner_kills_a_pipe_inheriting_descendant_before_joining_reader() {
     );
     assert!(started.elapsed() < Duration::from_secs(1));
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn authentic_receipt_rejects_identity_shape_and_usage_drift() {
+    let (events, export) = receipt_fixture("prompt", "answer");
+    let valid: serde_json::Value = serde_json::from_slice(&export).unwrap();
+    assert_eq!(
+        event_text(&events).unwrap(),
+        ("ses_fixture".into(), "msg_fixture".into(), "answer".into())
+    );
+    let validate = |v: &serde_json::Value| {
+        validate_export(
+            &serde_json::to_vec(v).unwrap(),
+            &events,
+            "ses_fixture",
+            "msg_fixture",
+            "prompt",
+            "answer",
+        )
+    };
+    assert_eq!(validate(&valid).unwrap().usage_total, Some(4651));
+    for path in [
+        "/messages/1/info/providerID",
+        "/messages/1/info/modelID",
+        "/messages/1/info/finish",
+        "/messages/1/parts/2/text",
+        "/messages/1/parts/0/type",
+        "/messages/1/parts/3/id",
+    ] {
+        let mut wrong = valid.clone();
+        *wrong.pointer_mut(path).unwrap() = serde_json::json!("wrong");
+        assert_eq!(
+            validate(&wrong),
+            Err(ModelFailure::MalformedResponse),
+            "{path}"
+        );
+    }
+    for bad in [
+        serde_json::json!(true),
+        serde_json::json!(-1),
+        serde_json::json!("unknown"),
+    ] {
+        let mut wrong = valid.clone();
+        wrong["messages"][1]["info"]["tokens"]["total"] = bad;
+        assert_eq!(validate(&wrong), Err(ModelFailure::MalformedResponse));
+    }
+    let mut unknown = valid.clone();
+    unknown["messages"][1]["info"]
+        .as_object_mut()
+        .unwrap()
+        .remove("tokens");
+    assert_eq!(validate(&unknown).unwrap().usage_total, None);
+    let mut rows: Vec<serde_json::Value> = std::str::from_utf8(&events)
+        .unwrap()
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    rows[0]["part"]["type"] = serde_json::json!("text");
+    let wrong = rows
+        .iter()
+        .map(|r| r.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert_eq!(
+        event_text(wrong.as_bytes()),
+        Err(ModelFailure::MalformedResponse)
+    );
+}
+
+#[test]
+fn positional_prompt_binding_matches_observed_cli_quoting() {
+    assert_eq!(super::receipt::cli_prompt("plain"), "plain");
+    assert_eq!(super::receipt::cli_prompt("a \"b\"\n"), "\"a \\\"b\\\"\n\"");
+    let (events, export) = receipt_fixture("a \"b\"\n", "answer");
+    assert!(validate_export(
+        &export,
+        &events,
+        "ses_fixture",
+        "msg_fixture",
+        "a \"b\"\n",
+        "answer"
+    )
+    .is_ok());
+    assert!(validate_export(
+        &export,
+        &events,
+        "ses_fixture",
+        "msg_fixture",
+        "a b\n",
+        "answer"
+    )
+    .is_err());
 }

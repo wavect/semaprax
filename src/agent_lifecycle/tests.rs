@@ -394,9 +394,9 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
 #[test]
 fn public_canonical_retained_value_context_is_the_existing_identity_wire() {
     let value = RetainedValue::Record(RetainedRecord {
-        record: hir::DeclarationId::new("state".to_owned()).unwrap(),
+        record: hir::DeclarationId::new("state".to_owned()),
         fields: vec![RetainedField {
-            field: hir::DeclarationId::new("state.answer".to_owned()).unwrap(),
+            field: hir::DeclarationId::new("state.answer".to_owned()),
             value: RetainedValue::Bytes(vec![0xab]),
         }],
     });

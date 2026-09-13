@@ -376,7 +376,6 @@ fn unix_nonzero_provider_event_returns_provider_status() {
         &executable,
         format!(
             "#!/bin/sh\nprintf '%s\\n' '{}'\nexit 1\n",
-            "%s",
             event.replace('\'', "'\\''")
         ),
     )

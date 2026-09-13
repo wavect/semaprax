@@ -60,10 +60,14 @@ fn classify_event(event: Value) -> Option<OpenCodeProviderFailure> {
     let data = error.get("data")?.as_object()?;
 
     match name {
-        "ProviderAuthError" if required_string(data, "providerID") && required_string(data, "message") => {
+        "ProviderAuthError"
+            if required_string(data, "providerID") && required_string(data, "message") =>
+        {
             Some(OpenCodeProviderFailure::Authentication)
         }
-        "UnknownError" if required_string(data, "message") => Some(OpenCodeProviderFailure::Provider),
+        "UnknownError" if required_string(data, "message") => {
+            Some(OpenCodeProviderFailure::Provider)
+        }
         "MessageOutputLengthError" => Some(OpenCodeProviderFailure::Incomplete),
         "MessageAbortedError" if required_string(data, "message") => {
             Some(OpenCodeProviderFailure::Provider)
@@ -72,7 +76,9 @@ fn classify_event(event: Value) -> Option<OpenCodeProviderFailure> {
             if required_string(data, "message")
                 && data.get("isRetryable").is_some_and(Value::is_boolean) =>
         {
-            Some(classify_status(data.get("statusCode").and_then(Value::as_u64)))
+            Some(classify_status(
+                data.get("statusCode").and_then(Value::as_u64),
+            ))
         }
         _ => None,
     }
@@ -137,8 +143,14 @@ mod tests {
             "data": {"message": "request rejected", "statusCode": 400, "isRetryable": false},
         }));
 
-        assert_eq!(classify_provider_failure(&server), Some(OpenCodeProviderFailure::Server));
-        assert_eq!(classify_provider_failure(&refused), Some(OpenCodeProviderFailure::Refused));
+        assert_eq!(
+            classify_provider_failure(&server),
+            Some(OpenCodeProviderFailure::Server)
+        );
+        assert_eq!(
+            classify_provider_failure(&refused),
+            Some(OpenCodeProviderFailure::Refused)
+        );
     }
 
     #[test]
@@ -156,7 +168,10 @@ mod tests {
             classify_provider_failure(&authentication),
             Some(OpenCodeProviderFailure::Authentication)
         );
-        assert_eq!(classify_provider_failure(&partial), Some(OpenCodeProviderFailure::Incomplete));
+        assert_eq!(
+            classify_provider_failure(&partial),
+            Some(OpenCodeProviderFailure::Incomplete)
+        );
     }
 
     #[test]
@@ -168,7 +183,10 @@ mod tests {
         let mut events = b"not-json\n".to_vec();
         events.extend(valid);
 
-        assert_eq!(classify_provider_failure(&events), Some(OpenCodeProviderFailure::Provider));
+        assert_eq!(
+            classify_provider_failure(&events),
+            Some(OpenCodeProviderFailure::Provider)
+        );
         assert_eq!(
             classify_provider_failure(br#"{"type":"session.error","properties":{"error":{}}}"#),
             None

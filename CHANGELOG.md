@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Connect one explicitly configured free OpenCode provider to the existing
+  source-feedback driver, preserving canonical proposal admission (#112).
+  Bound Unix process output/cancellation, bind real CLI receipts, preserve
+  reported usage and redact provider error categories. The fixed local live
+  smoke reached Complete; broader hosted/provider support remains separate.
+
 - Reuse exact retained source ASTs during cached Project finalization and
   prelude-bound revision replay (#85). Remove nine hidden public parser calls
   from unchanged calculator builds in both cache modes, preserving revision

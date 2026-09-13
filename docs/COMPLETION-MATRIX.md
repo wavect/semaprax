@@ -75,8 +75,10 @@ additions. [Linked migration](PROJECT-LINKED-AGENT-MIGRATION-V1.md) and the
 [workspace association](WORKSPACE-EXECUTION-ASSOCIATION-V1.md) /
 [migration](WORKSPACE-EXECUTION-MIGRATION-V1.md) profiles retain exact source,
 root, currentness, trusted-store and cumulative-accounting boundaries. Their
-hosted evidence is green; distributed coordination, live providers and native/
-Wasm Agent-stage execution remain separate functionality.
+hosted evidence is green. An explicitly configured private Unix
+[OpenCode provider adapter](OPENCODE-HOST-ADAPTER-V1.md) additionally has local
+source-feedback smoke evidence. Distributed coordination, broader provider
+profiles and native/Wasm Agent-stage execution remain separate functionality.
 
 The generic implementation includes [argument inference v3](GENERIC-ARGUMENT-INFERENCE-V3.md),
 [authored variants](GENERIC-AUTHORED-VARIANTS-V1.md),

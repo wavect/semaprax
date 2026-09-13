@@ -5,14 +5,16 @@
 This is a **LOCAL private-host** contract for issue #112. It binds one
 explicitly configured OpenCode command to `live_invocation::ModelHandler` in
 `semaprax-toolchain`. The standalone `semaprax` compiler and SDK remain
-offline. This contract does not claim hosted evidence, provider availability,
-production support, OS isolation, or source/HIR integration; #177 owns the
-last of those.
+offline. A local source-driver smoke reached Complete with OpenCode 1.18.27;
+this contract does not claim hosted evidence, production support or OS isolation. The source adapter implements the existing
+Agent lifecycle v2 feedback callback; broader live-kernel source/HIR integration
+remains tracked separately in #177.
 
 The only admitted profile is `opencode/muse-spark-1.3-contributor-free`. There
-is no fallback model, provider, endpoint, retry, or paid route. The host owns
-credentials out of band; source, the request, stdout, receipts, and journals
-never carry credentials.
+is no fallback model, provider, endpoint or paid route. The adapter adds no
+automatic transport retry; OpenCode subprocess work remains deadline-bounded.
+Host credentials are not added to model context or runtime journals. Provider
+error bodies and headers are discarded from the closed diagnostic categories.
 
 ## Authority and route
 
@@ -33,11 +35,20 @@ opencode run --pure --agent semaprax-live \
   --model opencode/muse-spark-1.3-contributor-free --format json --dir WORKSPACE PROMPT
 ```
 
-It writes an `opencode.json` agent policy with `"*":"deny"` before the call.
+It writes an `opencode.json` agent policy with `"*":"deny"` and
+`"snapshot":false` before the call. Filesystem snapshot tracking is disabled.
+The child receives a cleared environment with private home, configuration,
+cache, temporary and database paths. Project/Claude instructions, external
+skills, default plugins and automatic updates are disabled. The explicit
+policy is the sole admitted local configuration. Existing host credentials
+remain in the original XDG data directory; their bytes never enter arguments,
+context or receipts. Remote-configuration auth entries and managed settings
+cause a generic pre-spawn refusal. Run and export share this private context.
+These controls are required because `--pure` alone only disables plugins.
 `--dir` and that policy limit OpenCode's own tools only; they are not an
 operating-system sandbox. The process output and session export each have a
 1 MiB ceiling. The runner polls both an explicit host cancellation handle and
-its deadline, kills and joins/reaps its child and reader on cancellation,
+its deadline, kills and reaps its child on cancellation,
 overflow, deadline, and process errors, and captures no stderr. On Unix it starts a dedicated process group and uses same-thread nonblocking
 stdout polling; it kills that group after direct-child exit, so a descendant
 retaining stdout cannot make the call unbounded. This v1 adapter refuses before
@@ -48,10 +59,10 @@ bounded nonblocking pipe loop there.
 
 The runner requires exactly ordered `step_start`, `text`, and `step_finish`
 NDJSON events with one session/message pair and a `stop` finish. It then runs
-`opencode export SESSION` and requires the fixed provider/model self-report,
+`opencode export SESSION --pure` and requires the fixed provider/model self-report,
 the matching user and assistant `sessionID`, matching user prompt, and matching
-assistant text before returning the raw text bytes. The receipt records only the self-reported session and optional
-token total; it proves neither identity, billing, provider authorization, nor
+assistant text before returning the raw text bytes. The receipt records the bound session/message, fixed model, supplied token
+counters and reported cost; it proves neither identity, billing, provider authorization, nor
 exclusive execution.
 
 The handler returns `Settled(raw_bytes)` only after that transport validation.
@@ -73,8 +84,8 @@ local stubs, and the rule that malformed post-start output is not cancellation. 
 stub executable is the required integration seam for process command,
 deadline, bounded-output, and export coverage; it must never call a provider.
 The existing `agent_interaction_schema::live_bridge` kernel test remains the
-compiled-schema decoder gate. A coordinated, separately recorded free-model
-call is required before any hosted claim.
+compiled-schema decoder gate. A separately recorded free-model call is required for live-provider evidence;
+it does not establish hosted CI or production support.
 
 ## Source-feedback smoke embedding
 
@@ -85,11 +96,73 @@ opt-in and requires all of:
 
 ```sh
 cargo run -p semaprax-toolchain --example opencode_live_smoke -- \
-  --live --opencode /absolute/path/to/opencode --scratch /absolute/empty/dir
+  --live --opencode /absolute/path/to/opencode --scratch /absolute/empty/dir \
+  --evidence /absolute/new/evidence-dir
 ```
 
 The `--live` branch keeps the source lifecycle's own proposal decode and
-bounded retry loop. It swaps only the `ProposalSource` callback for the
+bounded retry loop, but its host runner permits only one actual provider run.
+It archives the prompt, raw events and session export in the new explicit
+evidence directory. It swaps only the `ProposalSource` callback for the
 explicit OpenCode bridge, uses the free configured profile, and has no paid
 fallback. This example is local host evidence only; it does not establish a
 hosted support claim.
+
+
+Implementation references checked 2026-09-13: [OpenCode CLI](https://opencode.ai/docs/cli/)
+(`run`, model/agent/JSON flags and session export) and [permissions](https://opencode.ai/docs/permissions/)
+(the deny-all agent policy). The observed wire profile is OpenCode 1.18.27;
+future CLI/export changes must be admitted deliberately rather than silently
+accepted. The receipt validator compares all streamed parts to their exported
+counterparts, admits the observed empty reasoning marker, and rejects model,
+finish, prompt, session, part-order, and typed-usage drift. Missing token usage
+remains unknown. It resets the prior receipt before every attempted request.
+
+
+## Local execution evidence (2026-09-13)
+
+The explicit source smoke returned `live status=Complete` using the frozen
+source fixture, real `run_live`, compiler-derived proposal grammar and unchanged
+canonical decoder. Its in-memory read callback returned a fixed fixture value;
+no external effect mutation or deployment occurred. OpenCode 1.18.27 reported
+session `ses_f67f10b32ffeSsQKpC96WHphgi`, assistant
+`msg_0980ef5b2001CpH4AZG9d5JL7N`, model
+`opencode/muse-spark-1.3-contributor-free`, and a `stop` finish.
+Reported counters: total 3188, input 1780, output 110, reasoning 1298, cache read
+and write 0; reported cost 0. These are provider self-reports, not billing proof.
+The smoke runner allowed one actual OpenCode run and archived raw prompt,
+events and exported session under local `.agent-logs/0913-opencode-source-live-v6/`.
+
+The exercised binary SHA-256 was
+`c1ab0401fd926d9250fc8d446bdf47bd6a8f71a98807d9c6538d9f8a832a0a24`.
+Raw event SHA-256:
+`039b8955d5aaa6bebe5bc20173631d70ac43d693eaf7fc7e4068a5fc58dc32e1`.
+Export SHA-256:
+`e14ef1b0cef6f7ef95370f9aad9cc3d123af3e1f88e299b7173c59e3a9640aac`.
+Earlier unsuccessful attempts were rejected for multiple steps, the CLI's
+positional-prompt quoting, absent/literal-escaped terminal LF, and a snapshot
+patch record. The final call used scratch outside Git with snapshots disabled. The final prompt requests the LF explicitly;
+the host neither appends it nor repairs the proposal. Those failures remain
+separate local observations, not successful executions.
+
+OpenCode's tagged [CLI emitter](https://github.com/anomalyco/opencode/blob/v1.18.27/packages/opencode/src/cli/cmd/run.ts)
+also owns the positional-prompt quoting and error envelopes used here.
+`last_provider_failure` distinguishes rate limiting, authentication, refusal,
+server failure and incomplete output without retaining provider error text.
+The source driver still owns proposal decoding, bounded malformed retries and
+all checked authorization/reduction stages. Local focused gate:
+`cargo test --locked -p semaprax-toolchain --lib opencode_host -- --test-threads=1`
+passed all 29 tests. The canonical-context regression (1), existing source-driver
+tests (5), bundle pin (1), module-size (1), and source-contract coverage (1) also
+passed. The offline smoke returned Complete. These are focused local checks;
+the full/hosted quality profile was not rerun.
+
+The environment profile was checked against OpenCode v1.18.27's tagged
+[instruction loader](https://github.com/anomalyco/opencode/blob/v1.18.27/packages/opencode/src/session/instruction.ts)
+and [configuration loader](https://github.com/anomalyco/opencode/blob/v1.18.27/packages/opencode/src/config/config.ts).
+Offline environment tests use synthetic auth/settings paths; normal tests
+neither read the developer's credentials nor contact a provider.
+
+OpenCode may install runtime dependencies in its private configuration/cache
+directories even with `--pure`; those writes are not compiler build-time work.
+The smoke archives its receipts before removing disposable scratch storage.

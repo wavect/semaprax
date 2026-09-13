@@ -19,7 +19,6 @@ use semaprax::live_invocation::{
     ModelFailure, ModelHandler, ModelInvocationOutcome, ModelInvocationRequest,
     ModelInvokeCapability,
 };
-use serde_json::Value;
 
 /// The single explicitly configured free profile. There is no fallback model.
 pub const OPENCODE_MODEL: &str = "opencode/muse-spark-1.3-contributor-free";
@@ -138,6 +137,7 @@ pub enum OpenCodeRunnerFailure {
     Provider,
     Malformed,
     Cancelled,
+    ProviderStatus(provider_error::OpenCodeProviderFailure),
 }
 
 /// Injectable process seam. Production binds `ProcessOpenCodeRunner`; tests
@@ -168,7 +168,7 @@ impl ProcessOpenCodeRunner {
     #[cfg(unix)]
     fn kill_group(child: &mut std::process::Child) {
         if let Some(group) = rustix::process::Pid::from_raw(child.id() as i32) {
-            let _ = rustix::process::kill_process_group(group, rustix::process::Signal::Kill);
+            let _ = rustix::process::kill_process_group(group, rustix::process::Signal::KILL);
         }
     }
 
@@ -198,6 +198,8 @@ impl ProcessOpenCodeRunner {
                 .checked_add(config.deadline)
                 .ok_or(OpenCodeRunnerFailure::Refused)?;
             let mut command = Command::new(&config.executable);
+            environment::configure_command(&mut command, &config.sandbox)
+                .map_err(|_| OpenCodeRunnerFailure::Refused)?;
             command
                 .args(args)
                 .current_dir(&config.sandbox)
@@ -208,9 +210,17 @@ impl ProcessOpenCodeRunner {
             let mut child = command
                 .spawn()
                 .map_err(|_| OpenCodeRunnerFailure::Refused)?;
-            let stdout = child.stdout.take().ok_or(OpenCodeRunnerFailure::Provider)?;
-            let flags =
-                rustix::fs::fcntl_getfl(&stdout).map_err(|_| OpenCodeRunnerFailure::Provider)?;
+            let Some(stdout) = child.stdout.take() else {
+                Self::terminate(&mut child);
+                return Err(OpenCodeRunnerFailure::Provider);
+            };
+            let flags = match rustix::fs::fcntl_getfl(&stdout) {
+                Ok(flags) => flags,
+                Err(_) => {
+                    Self::terminate(&mut child);
+                    return Err(OpenCodeRunnerFailure::Provider);
+                }
+            };
             if rustix::fs::fcntl_setfl(&stdout, flags | rustix::fs::OFlags::NONBLOCK).is_err() {
                 Self::terminate(&mut child);
                 return Err(OpenCodeRunnerFailure::Provider);
@@ -265,10 +275,12 @@ impl ProcessOpenCodeRunner {
                 }
                 if let Some(exit) = status {
                     if eof {
-                        return if exit.success() {
+                        return if exit.success() && !output.is_empty() {
                             Ok(output)
                         } else {
-                            Err(OpenCodeRunnerFailure::Provider)
+                            Err(provider_error::classify_provider_failure(&output)
+                                .map(OpenCodeRunnerFailure::ProviderStatus)
+                                .unwrap_or(OpenCodeRunnerFailure::Provider))
                         };
                     }
                 }
@@ -284,9 +296,10 @@ impl OpenCodeRunner for ProcessOpenCodeRunner {
         config: &OpenCodeHostConfig,
         prompt: &str,
     ) -> Result<Vec<u8>, OpenCodeRunnerFailure> {
-        let policy = format!(
-            "{{\"$schema\":\"https://opencode.ai/config.json\",\"agent\":{{\"{OPENCODE_AGENT}\":{{\"permission\":{{\"*\":\"deny\"}}}}}}}}\n"
-        );
+        let policy = serde_json::json!({"$schema":"https://opencode.ai/config.json", "snapshot":false, "agent": {OPENCODE_AGENT: {
+            "permission":{"*":"deny"}, "steps":1,
+            "prompt":"You return canonical structured responses. All schema and context are supplied in the user message. Never inspect files or call tools. Do not narrate plans or explain your work. Return only the requested JSON document, without markdown or extra text. After the final closing brace, press Enter exactly once: the final byte must be a literal newline (U+000A). Do not output a backslash followed by n, and do not omit the newline."
+        }}}).to_string();
         let policy_path = config.sandbox.join("opencode.json");
         match std::fs::read(&policy_path) {
             Ok(existing) if existing == policy.as_bytes() => {}
@@ -317,7 +330,11 @@ impl OpenCodeRunner for ProcessOpenCodeRunner {
         config: &OpenCodeHostConfig,
         session: &str,
     ) -> Result<Vec<u8>, OpenCodeRunnerFailure> {
-        Self::capture(config, &["export".into(), session.into()], MAX_EXPORT_BYTES)
+        Self::capture(
+            config,
+            &["export".into(), session.into(), "--pure".into()],
+            MAX_EXPORT_BYTES,
+        )
     }
 }
 
@@ -326,7 +343,22 @@ impl OpenCodeRunner for ProcessOpenCodeRunner {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OpenCodeReceipt {
     pub session_id: String,
+    pub message_id: String,
+    pub model: &'static str,
     pub usage_total: Option<u64>,
+    pub usage: Option<OpenCodeUsage>,
+    pub reported_cost: Option<serde_json::Number>,
+}
+
+/// Provider-reported counters, preserved individually without estimating billing.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OpenCodeUsage {
+    pub total: Option<u64>,
+    pub input: Option<u64>,
+    pub output: Option<u64>,
+    pub reasoning: Option<u64>,
+    pub cache_read: Option<u64>,
+    pub cache_write: Option<u64>,
 }
 
 /// An explicit handler which has both configured host settings and a runner.
@@ -334,6 +366,7 @@ pub struct OpenCodeModelHandler<R> {
     config: OpenCodeHostConfig,
     runner: R,
     pub last_receipt: Option<OpenCodeReceipt>,
+    pub last_provider_failure: Option<provider_error::OpenCodeProviderFailure>,
 }
 
 impl<R> OpenCodeModelHandler<R> {
@@ -342,6 +375,7 @@ impl<R> OpenCodeModelHandler<R> {
             config,
             runner,
             last_receipt: None,
+            last_provider_failure: None,
         }
     }
 }
@@ -351,6 +385,18 @@ fn wire_prompt(
     grammar: &OpenCodeGrammar,
 ) -> Result<String, ModelFailure> {
     if request.proposal_grammar_digest != grammar.digest {
+        return Err(ModelFailure::Refused);
+    }
+    let bytes = request
+        .task
+        .len()
+        .saturating_add(request.observation.len())
+        .saturating_mul(2)
+        .saturating_add(request.deployment_binding.len())
+        .saturating_add(grammar.digest.len())
+        .saturating_add(grammar.canonical_schema.len())
+        .saturating_add(grammar.provider_schema.len());
+    if bytes > MAX_PROMPT_BYTES {
         return Err(ModelFailure::Refused);
     }
     let prompt = format!(
@@ -367,102 +413,11 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-fn event_text(events: &[u8]) -> Result<(String, String, String), ModelFailure> {
-    let text = std::str::from_utf8(events).map_err(|_| ModelFailure::MalformedResponse)?;
-    let rows: Result<Vec<Value>, _> = text
-        .lines()
-        .filter(|line| !line.is_empty())
-        .map(serde_json::from_str)
-        .collect();
-    let rows = rows.map_err(|_| ModelFailure::MalformedResponse)?;
-    if rows.len() != 3
-        || rows
-            .iter()
-            .map(|row| row["type"].as_str())
-            .collect::<Vec<_>>()
-            != [Some("step_start"), Some("text"), Some("step_finish")]
-    {
-        return Err(ModelFailure::MalformedResponse);
-    }
-    let session = rows[0]["sessionID"]
-        .as_str()
-        .ok_or(ModelFailure::MalformedResponse)?;
-    let message = rows[0]["part"]["messageID"]
-        .as_str()
-        .ok_or(ModelFailure::MalformedResponse)?;
-    let answer = rows[1]["part"]["text"]
-        .as_str()
-        .filter(|text| !text.is_empty())
-        .ok_or(ModelFailure::MalformedResponse)?;
-    if rows.iter().any(|row| {
-        row["sessionID"].as_str() != Some(session)
-            || row["part"]["sessionID"].as_str() != Some(session)
-            || row["part"]["messageID"].as_str() != Some(message)
-    }) || rows[2]["part"]["reason"].as_str() != Some("stop")
-    {
-        return Err(ModelFailure::MalformedResponse);
-    }
-    Ok((session.into(), message.into(), answer.into()))
-}
-
-fn validate_export(
-    export: &[u8],
-    session: &str,
-    message: &str,
-    prompt: &str,
-    answer: &str,
-) -> Result<OpenCodeReceipt, ModelFailure> {
-    let export: Value =
-        serde_json::from_slice(export).map_err(|_| ModelFailure::MalformedResponse)?;
-    let info = export["info"]
-        .as_object()
-        .ok_or(ModelFailure::MalformedResponse)?;
-    let model = info
-        .get("model")
-        .and_then(Value::as_object)
-        .ok_or(ModelFailure::MalformedResponse)?;
-    if info.get("id").and_then(Value::as_str) != Some(session)
-        || model.get("providerID").and_then(Value::as_str) != Some("opencode")
-        || model.get("id").and_then(Value::as_str) != Some("muse-spark-1.3-contributor-free")
-    {
-        return Err(ModelFailure::MalformedResponse);
-    }
-    let messages = export["messages"]
-        .as_array()
-        .ok_or(ModelFailure::MalformedResponse)?;
-    let assistant = messages
-        .iter()
-        .find(|row| row["info"]["id"].as_str() == Some(message))
-        .ok_or(ModelFailure::MalformedResponse)?;
-    let parent = assistant["info"]["parentID"]
-        .as_str()
-        .ok_or(ModelFailure::MalformedResponse)?;
-    let user = messages
-        .iter()
-        .find(|row| row["info"]["id"].as_str() == Some(parent))
-        .ok_or(ModelFailure::MalformedResponse)?;
-    if assistant["info"]["role"].as_str() != Some("assistant")
-        || assistant["info"]["sessionID"].as_str() != Some(session)
-        || user["info"]["role"].as_str() != Some("user")
-        || user["info"]["sessionID"].as_str() != Some(session)
-        || user["parts"]
-            .as_array()
-            .and_then(|parts| parts.first())
-            .and_then(|part| part["text"].as_str())
-            != Some(prompt)
-        || assistant["parts"]
-            .as_array()
-            .and_then(|parts| parts.first())
-            .and_then(|part| part["text"].as_str())
-            != Some(answer)
-    {
-        return Err(ModelFailure::MalformedResponse);
-    }
-    Ok(OpenCodeReceipt {
-        session_id: session.into(),
-        usage_total: assistant["info"]["tokens"]["total"].as_u64(),
-    })
-}
+mod environment;
+pub mod provider_error;
+mod receipt;
+pub mod source;
+use receipt::{event_text, validate_export};
 
 fn failure(
     error: OpenCodeRunnerFailure,
@@ -479,6 +434,14 @@ fn failure(
             OpenCodeRunnerFailure::Provider => ModelFailure::ProviderError,
             OpenCodeRunnerFailure::Malformed => ModelFailure::MalformedResponse,
             OpenCodeRunnerFailure::Cancelled => ModelFailure::Cancelled,
+            OpenCodeRunnerFailure::ProviderStatus(status) => match status {
+                provider_error::OpenCodeProviderFailure::Refused
+                | provider_error::OpenCodeProviderFailure::Authentication => ModelFailure::Refused,
+                provider_error::OpenCodeProviderFailure::Incomplete => {
+                    ModelFailure::MalformedResponse
+                }
+                _ => ModelFailure::ProviderError,
+            },
         }
     };
     ModelInvocationOutcome::Failed {
@@ -493,6 +456,8 @@ impl<R: OpenCodeRunner> ModelHandler for OpenCodeModelHandler<R> {
         _capability: &ModelInvokeCapability,
         request: &ModelInvocationRequest,
     ) -> ModelInvocationOutcome {
+        self.last_receipt = None;
+        self.last_provider_failure = None;
         let prompt = match wire_prompt(request, &self.config.grammar) {
             Ok(prompt) => prompt,
             Err(failure) => {
@@ -502,17 +467,49 @@ impl<R: OpenCodeRunner> ModelHandler for OpenCodeModelHandler<R> {
                 }
             }
         };
+        self.invoke_prompt(&prompt, request.max_response_bytes)
+    }
+}
+
+impl<R: OpenCodeRunner> OpenCodeModelHandler<R> {
+    pub(super) fn invoke_prompt(
+        &mut self,
+        prompt: &str,
+        max_response_bytes: usize,
+    ) -> ModelInvocationOutcome {
+        self.last_receipt = None;
+        self.last_provider_failure = None;
+        if prompt.len() > MAX_PROMPT_BYTES || max_response_bytes == 0 {
+            return ModelInvocationOutcome::Failed {
+                failure: ModelFailure::Refused,
+                attempted_bytes: 0,
+            };
+        }
         if self.runner.cancelled(&self.config) {
             return ModelInvocationOutcome::Failed {
                 failure: ModelFailure::Cancelled,
                 attempted_bytes: 0,
             };
         }
-        let events = match self.runner.run(&self.config, &prompt) {
+        let events = match self.runner.run(&self.config, prompt) {
             Ok(events) => events,
-            Err(error) => return failure(error, 0, self.runner.cancelled(&self.config)),
+            Err(error) => {
+                if let OpenCodeRunnerFailure::ProviderStatus(status) = error {
+                    self.last_provider_failure = Some(status);
+                }
+                return failure(error, 0, self.runner.cancelled(&self.config));
+            }
         };
-        let attempted_bytes = events.len().min(request.max_response_bytes);
+        let attempted_bytes = events.len().min(max_response_bytes);
+        if let Some(status) = provider_error::classify_provider_failure(&events) {
+            self.last_provider_failure = Some(status);
+            return failure(
+                OpenCodeRunnerFailure::ProviderStatus(status),
+                attempted_bytes,
+                self.runner.cancelled(&self.config),
+            );
+        }
+
         let (session, message, answer) = match event_text(&events) {
             Ok(event) => event,
             Err(error) => {
@@ -528,8 +525,8 @@ impl<R: OpenCodeRunner> ModelHandler for OpenCodeModelHandler<R> {
                 return failure(error, attempted_bytes, self.runner.cancelled(&self.config))
             }
         };
-        match validate_export(&export, &session, &message, &prompt, &answer) {
-            Ok(receipt) if answer.len() <= request.max_response_bytes => {
+        match validate_export(&export, &events, &session, &message, prompt, &answer) {
+            Ok(receipt) if answer.len() <= max_response_bytes => {
                 self.last_receipt = Some(receipt);
                 ModelInvocationOutcome::Settled(answer.into_bytes())
             }
@@ -546,4 +543,9 @@ impl<R: OpenCodeRunner> ModelHandler for OpenCodeModelHandler<R> {
 }
 
 #[cfg(test)]
+mod bounds_tests;
+#[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod source_tests;

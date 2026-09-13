@@ -120,7 +120,9 @@ fn proposal(digest: &str) -> String {
     )
 }
 
-fn setup(answer: String) -> (
+fn setup(
+    answer: String,
+) -> (
     semaprax::agent_lifecycle::iterative::CompiledIterativeLifecycle,
     OpenCodeModelHandler<FixtureRunner>,
     LifecycleTask,
@@ -243,5 +245,8 @@ fn truncated_canonical_proposal_is_model_failed_before_any_read_dispatch() {
 
     assert_eq!(run.status(), IterativeStatus::ModelFailed);
     assert_eq!(read.calls, 0);
-    assert_eq!(handler.runner.calls, 2);
+    assert_eq!(
+        handler.runner.calls,
+        semaprax::agent_lifecycle::iterative::driver::MAX_PROPOSAL_ATTEMPTS
+    );
 }

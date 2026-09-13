@@ -53,7 +53,14 @@ def plan(metadata, excluded_packages=()):
             # Bench targets are for `cargo bench` (criterion) and are not
             # part of `cargo test` sharding; they are inventoried but not
             # routed to a test shard.
-            if kind not in (["lib"], ["bin"], ["test"], ["bench"], ["custom-build"]):
+            if kind not in (
+                ["lib"],
+                ["bin"],
+                ["test"],
+                ["example"],
+                ["bench"],
+                ["custom-build"],
+            ):
                 raise ValueError(f"unrouted target kind: {kind}")
             key = (package["id"], kind[0], target["name"])
             if key in seen:
@@ -72,7 +79,7 @@ def plan(metadata, excluded_packages=()):
     names = sorted({t["name"] for t in targets if t["kind"] == "test"})
     shards = [{
         "name": "unit",
-        "command": test + ["--lib", "--bins"],
+        "command": test + ["--lib", "--bins", "--examples"],
         "targets": [t for t in targets if t["kind"] != "test"],
     }]
     for index, name in enumerate(SHARDS[1:]):

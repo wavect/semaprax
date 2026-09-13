@@ -45,7 +45,7 @@ fn msrv_shards_select_every_actual_workspace_target_exactly_once() {
             let kinds = target["kind"].as_array().unwrap();
             assert_eq!(kinds.len(), 1);
             let kind = kinds[0].as_str().unwrap();
-            assert!(["lib", "bin", "test", "bench", "custom-build"].contains(&kind));
+            assert!(["lib", "bin", "test", "example", "bench", "custom-build"].contains(&kind));
             if kind == "bench" {
                 // bench targets are for `cargo bench` (criterion) and are
                 // inventoried via cargo metadata but excluded from `cargo test`
@@ -79,7 +79,7 @@ fn msrv_shards_select_every_actual_workspace_target_exactly_once() {
             ["cargo", "test", "--locked", "--workspace", "--all-features"]
         );
         let selected: BTreeSet<_> = if index == 0 {
-            assert_eq!(&command[5..], ["--lib", "--bins"]);
+            assert_eq!(&command[5..], ["--lib", "--bins", "--examples"]);
             expected
                 .iter()
                 .filter(|(_, kind, _)| kind != "test")
@@ -262,11 +262,13 @@ def target(kind, name):
     return {'kind': [kind], 'name': name}
 metadata = {'workspace_members': ['one', 'two'], 'packages': [
     {'id': 'one', 'name': 'one', 'targets': [target('lib', 'one'), target('custom-build', 'build-script-build'), target('test', 'a'), target('test', 'b')]},
-    {'id': 'two', 'name': 'two', 'targets': [target('bin', 'two'), target('test', 'a'), target('test', 'c')]},
+    {'id': 'two', 'name': 'two', 'targets': [target('bin', 'two'), target('example', 'embedding-api'), target('test', 'a'), target('test', 'c')]},
     {'id': 'external', 'name': 'external', 'targets': [target('example', 'not_in_workspace')]},
 ]}
 plan = router['plan'](metadata)
-assert [len(shard['targets']) for shard in plan['shards']] == [3, 2, 1, 1]
+assert [len(shard['targets']) for shard in plan['shards']] == [4, 2, 1, 1]
+assert {'package': 'two', 'kind': 'example', 'name': 'embedding-api'} in plan['shards'][0]['targets']
+assert '--examples' in plan['shards'][0]['command']
 assert router['plan'](dict(metadata, packages=list(reversed(metadata['packages'])))) == plan
 excluded = copy.deepcopy(metadata)
 excluded['packages'][0]['targets'].append(target('test', 'd'))
@@ -281,7 +283,7 @@ except ValueError as error:
 else:
     raise AssertionError('unknown excluded package was accepted')
 for mutation, message in [
-    (lambda m: m['packages'][0]['targets'].append(target('example', 'future')), 'unrouted'),
+    (lambda m: m['packages'][0]['targets'].append(target('unknown', 'future')), 'unrouted'),
     (lambda m: m['packages'][0]['targets'].append(target('test', 'a')), 'duplicate'),
     (lambda m: m['packages'].pop(1), 'incomplete'),
     (lambda m: m['packages'][1]['targets'].pop(), 'empty shard'),

@@ -223,6 +223,15 @@ fn populate(
         );
         written?;
     }
+    // Minimal proc/tmp for real Rust/Node --version probes (open /proc/self/maps
+    // etc.). The bundle never carries them, but without an empty directory the
+    // open returns ENOENT and the tool exits non-zero. Keep them empty; the
+    // read-only remount below still holds for the bundle's files.
+    for dir in [c"proc", c"tmp"] {
+        let _ = operation!(Directory, control, unsafe {
+            libc::syscall(libc::SYS_mkdirat, root, dir.as_ptr(), 0o555 as libc::mode_t)
+        });
+    }
     let attributes = MountAttr {
         attr_set: RDONLY | NOSUID | NODEV,
         attr_clr: 0,

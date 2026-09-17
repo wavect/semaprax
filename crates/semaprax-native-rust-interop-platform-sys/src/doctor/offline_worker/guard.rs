@@ -28,7 +28,8 @@ const X86_COMMON: &[u32] = &[
     // (libuv, tokio). The previous inventory denied them with EPERM, causing
     // the real-distribution gate to fail while synthetic static fixtures and
     // the static clang passed.
-    232, 233, 281, 283, 284, 286, 287, 288, 290, 291, 292, 293, 294, 295, 296, 297, 298,
+    232, 233, 281, 283, 284, 286, 287, 288, 290, 291, 292, 293, 294, 295, 296, 297, 298, 319,
+    437,
 ];
 const ARM_COMMON: &[u32] = &[
     63, 65, 67, 57, 80, 79, 291, 62, 17, 78, 48, 439, 214, 222, 226, 215, 216, 233, 134, 135, 139,

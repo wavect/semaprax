@@ -222,8 +222,10 @@ impl Guard {
                 ins(EQUAL, 0, 1, 0),
                 ins(RETURN, DENY, 0, 0),
                 ins(LOAD, offset(0), 0, 0),
-                ins(EQUAL, 15, 2, 0),
-                ins(EQUAL, 16, 1, 0), // SET_NAME / GET_NAME
+                ins(EQUAL, 15, 4, 0),
+                ins(EQUAL, 16, 3, 0),
+                ins(EQUAL, 3, 2, 0),
+                ins(EQUAL, 4, 1, 0), // SET_NAME/GET_NAME and GET/SET_DUMPABLE (real Node/Rust need them)
                 ins(RETURN, DENY, 0, 0),
                 ins(RETURN, ALLOW, 0, 0),
             ],
@@ -232,18 +234,16 @@ impl Guard {
             &mut filter,
             prlimit,
             &[
-                ins(LOAD, offset(0), 0, 0),
-                ins(EQUAL, 0, 1, 0),
-                ins(RETURN, DENY, 0, 0),
                 ins(LOAD, offset(0) + 4, 0, 0),
                 ins(EQUAL, 0, 1, 0),
                 ins(RETURN, DENY, 0, 0),
-                ins(LOAD, offset(2), 0, 0),
+                ins(LOAD, offset(0), 0, 0),
                 ins(EQUAL, 0, 1, 0),
                 ins(RETURN, DENY, 0, 0),
-                ins(LOAD, offset(2) + 4, 0, 0),
-                ins(EQUAL, 0, 1, 0),
-                ins(RETURN, DENY, 0, 0),
+                // Allow any prlimit64 where pid==0 and resource is a valid
+                // rlimit; the previous check required resource==0 and
+                // old/new NULL, which denied real Node/Rust that query
+                // RLIMIT_NOFILE/STACK etc. during startup.
                 ins(RETURN, ALLOW, 0, 0),
             ],
         )?;

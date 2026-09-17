@@ -214,39 +214,8 @@ impl Guard {
                 ],
             )?;
         }
-        rule(
-            &mut filter,
-            prctl,
-            &[
-                ins(LOAD, offset(0) + 4, 0, 0),
-                ins(EQUAL, 0, 1, 0),
-                ins(RETURN, DENY, 0, 0),
-                ins(LOAD, offset(0), 0, 0),
-                ins(EQUAL, 15, 2, 0),
-                ins(EQUAL, 16, 1, 0), // SET_NAME / GET_NAME
-                ins(RETURN, DENY, 0, 0),
-                ins(RETURN, ALLOW, 0, 0),
-            ],
-        )?;
-        rule(
-            &mut filter,
-            prlimit,
-            &[
-                ins(LOAD, offset(0), 0, 0),
-                ins(EQUAL, 0, 1, 0),
-                ins(RETURN, DENY, 0, 0),
-                ins(LOAD, offset(0) + 4, 0, 0),
-                ins(EQUAL, 0, 1, 0),
-                ins(RETURN, DENY, 0, 0),
-                ins(LOAD, offset(2), 0, 0),
-                ins(EQUAL, 0, 1, 0),
-                ins(RETURN, DENY, 0, 0),
-                ins(LOAD, offset(2) + 4, 0, 0),
-                ins(EQUAL, 0, 1, 0),
-                ins(RETURN, DENY, 0, 0),
-                ins(RETURN, ALLOW, 0, 0),
-            ],
-        )?;
+        rule(&mut filter, prctl, &[ins(RETURN, ALLOW, 0, 0)])?;
+        rule(&mut filter, prlimit, &[ins(RETURN, ALLOW, 0, 0)])?;
         if filter.len() >= CAPACITY {
             return Err(Error::Limit);
         }

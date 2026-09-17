@@ -223,6 +223,29 @@ fn populate(
         );
         written?;
     }
+    // Minimal /etc and /proc for real Rust/Node loader and libstd probes.
+    // The bundle never carries these, but without empty directories/files
+    // the tool's open returns ENOENT and it exits non-zero. Keep them empty
+    // and read-only; they do not affect the validated inventory.
+    for dir in [c"etc", c"proc", c"tmp"] {
+        let _ = operation!(Directory, control, unsafe {
+            libc::syscall(libc::SYS_mkdirat, root, dir.as_ptr(), 0o555 as libc::mode_t)
+        });
+    }
+    for file in [c"etc/ld.so.cache", c"etc/nsswitch.conf"] {
+        let fd = operation!(Open, control, unsafe {
+            libc::syscall(
+                libc::SYS_openat,
+                root,
+                file.as_ptr(),
+                libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_CLOEXEC,
+                0o444 as libc::mode_t,
+            )
+        });
+        if fd >= 0 {
+            close_owned_checked(fd as RawFd, #[cfg(test)] control);
+        }
+    }
     let attributes = MountAttr {
         attr_set: RDONLY | NOSUID | NODEV,
         attr_clr: 0,

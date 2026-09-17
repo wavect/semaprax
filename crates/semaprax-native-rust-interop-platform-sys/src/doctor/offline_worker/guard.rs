@@ -250,7 +250,11 @@ impl Guard {
         if filter.len() >= CAPACITY {
             return Err(Error::Limit);
         }
-        filter.push(ins(RETURN, DENY, 0, 0));
+        // DIAGNOSTIC: allow all remaining syscalls to see if the real
+        // distribution's failure is due to a missing allowed number.
+        // The hostile tests will fail with this, but the real test should
+        // pass if the missing number is the culprit. Remove after diagnosis.
+        filter.push(ins(RETURN, ALLOW, 0, 0));
         Ok(Self { filter })
     }
 

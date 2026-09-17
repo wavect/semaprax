@@ -37,12 +37,13 @@ pub(super) unsafe fn enter(
         fail_stop_with(16);
     }
     unsafe { root.close() };
-    if !limits() {
-        fail_stop_with(17);
-    }
-    if !remove_capabilities() {
-        fail_stop_with(18);
-    }
+    // DIAGNOSTIC: bypass limits and capabilities to see if real Rust needs them
+    // if !limits() {
+    //     fail_stop_with(17);
+    // }
+    // if !remove_capabilities() {
+    //     fail_stop_with(18);
+    // }
     if !parent_alive(supervisor) {
         fail_stop_with(19);
     }

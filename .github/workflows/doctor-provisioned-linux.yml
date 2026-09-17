@@ -269,10 +269,10 @@ jobs:
           set -euo pipefail
           sudo apt-get install -y strace >/dev/null 2>&1 || true
           echo "=== strace node --version (first 200 lines) ==="
-          strace -f -e trace=open,openat,read,write,close,close_range,prctl,prlimit,arch_prctl,mmap,munmap,mprotect,brk,clone,execve,exit,exit_group,futex,epoll_create,epoll_create1,epoll_ctl,epoll_wait,epoll_pwait,eventfd,eventfd2,signalfd,signalfd4,timerfd_create,timerfd_settime,uname,stat,statx,fstat,access,faccessat,lstat,readlink,unlink,mkdir,rmdir --output=/tmp/strace_node.log "$DOCTOR_NODE" --version || true
+          strace -f -e trace=open,openat,read,write,close,close_range,prctl,prlimit64,arch_prctl,mmap,munmap,mprotect,brk,clone,execve,exit,exit_group,futex,epoll_create,epoll_create1,epoll_ctl,epoll_wait,epoll_pwait,eventfd,eventfd2,signalfd,signalfd4,timerfd_create,timerfd_settime,uname,stat,statx,fstat,access,faccessat,lstat,readlink,unlink,mkdir,rmdir --output=/tmp/strace_node.log "$DOCTOR_NODE" --version || true
           head -n 200 /tmp/strace_node.log || true
           echo "=== strace rustc --version (first 200 lines) ==="
-          strace -f -e trace=open,openat,read,write,close,close_range,prctl,prlimit,arch_prctl,mmap,munmap,mprotect,brk,clone,execve,exit,exit_group,futex,epoll_create,epoll_create1,epoll_ctl,epoll_wait,epoll_pwait,eventfd,eventfd2,signalfd,signalfd4,timerfd_create,timerfd_settime,uname,stat,statx,fstat,access,faccessat,lstat,readlink,unlink,mkdir,rmdir --output=/tmp/strace_rust.log "$DOCTOR_RUSTC" --version || true
+          strace -f -e trace=open,openat,read,write,close,close_range,prctl,prlimit64,arch_prctl,mmap,munmap,mprotect,brk,clone,execve,exit,exit_group,futex,epoll_create,epoll_create1,epoll_ctl,epoll_wait,epoll_pwait,eventfd,eventfd2,signalfd,signalfd4,timerfd_create,timerfd_settime,uname,stat,statx,fstat,access,faccessat,lstat,readlink,unlink,mkdir,rmdir --output=/tmp/strace_rust.log "$DOCTOR_RUSTC" --version || true
           head -n 200 /tmp/strace_rust.log || true
           echo "=== end diagnostic ==="
 

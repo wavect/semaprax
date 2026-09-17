@@ -94,8 +94,8 @@ fn parent_alive(supervisor: i32) -> bool {
 fn limits() -> bool {
     for (resource, value) in [
         (libc::RLIMIT_CORE, 0),
-        (libc::RLIMIT_NOFILE, 256),
-        (libc::RLIMIT_AS, 4 * 1024 * 1024 * 1024),
+        (libc::RLIMIT_NOFILE, 512),
+        (libc::RLIMIT_AS, 8 * 1024 * 1024 * 1024),
     ] {
         let limit = libc::rlimit {
             rlim_cur: value,

@@ -28,12 +28,12 @@ const X86_COMMON: &[u32] = &[
     // (libuv, tokio). The previous inventory denied them with EPERM, causing
     // the real-distribution gate to fail while synthetic static fixtures and
     // the static clang passed.
-    232, 233, 281, 283, 284, 286, 287, 288, 290, 291, 292, 293, 294, 295, 296, 297, 298,
+    232, 233, 281, 283, 284, 286, 287, 288, 290, 291, 292, 293, 294, 295, 296, 297, 298, 437,
 ];
 const ARM_COMMON: &[u32] = &[
     63, 65, 67, 57, 80, 79, 291, 62, 17, 78, 48, 439, 214, 222, 226, 215, 216, 233, 134, 135, 139,
     132, 113, 169, 101, 115, 172, 173, 178, 174, 175, 176, 177, 160, 124, 123, 98, 96, 99, 293,
-    278, 93, 94, 221,
+    278, 93, 94, 221, 437,
 ];
 
 // A role-local syscall must first be admitted here for its exact native ABI.
@@ -83,11 +83,11 @@ const ROLE_POLICIES: [RolePolicy; 3] = [
 // BPF cannot inspect the pointed-to clone_args structure safely.
 const X86_MANDATORY_DENY: &[u32] = &[
     16, 41, 42, 44, 49, 53, 56, 57, 58, 62, 101, 126, 155, 160, 161, 165, 166, 272, 310, 311, 321,
-    322, 424, 425, 426, 427, 434, 435, 437, 438,
+    322, 424, 425, 426, 427, 434, 435, 438,
 ];
 const ARM_MANDATORY_DENY: &[u32] = &[
     29, 39, 40, 41, 51, 91, 97, 117, 129, 164, 198, 199, 200, 203, 206, 220, 270, 271, 280, 281,
-    424, 425, 426, 427, 434, 435, 437, 438,
+    424, 425, 426, 427, 434, 435, 438,
 ];
 
 pub(super) struct Guard {

@@ -36,7 +36,7 @@ name = "semaprax"
 path = "src/lib.rs"
 
 [dependencies]
-argon2 = "=0.5.3"
+argon2 = "=0.6.0"
 zeroize = "=1.9.0"
 hmac = "=0.13.0"
 same-file = "=1.0.6"

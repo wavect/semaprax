@@ -452,6 +452,7 @@ fn replay_left_history_unconsumed(resumption: &Resumption) -> bool {
 /// Rebuild a continuation from authenticated checkpoint fields. The plan,
 /// every site, and the binding are re-derived from the current program and
 /// arguments; requests remain claims that the next resume replay checks.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn rebuild_control_continuation(
     program: &hir::ResolvedProgram,
     function_id: &str,

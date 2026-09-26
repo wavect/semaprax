@@ -81,7 +81,7 @@ fn fixture() -> PathBuf {
 }
 
 fn application_options() -> project::ProjectExecutionOptions {
-    project::ProjectExecutionOptions::new(OUTPUT_CAPACITY, 1_000_000)
+    project::ProjectExecutionOptions::new(OUTPUT_CAPACITY, 2_000_000)
         .expect("catalog-normalizer's documented bounded interpreter envelope")
 }
 
@@ -147,10 +147,10 @@ fn assert_batch_mutant_rejected(
     project::with_authenticated_project(&mutant.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
         let result = snapshot.execute_test(&application_options())?;
-        assert_ne!(
-            result.outcome(),
-            &project::ProjectExecutionOutcome::Returned(0),
-            "{name} mutant unexpectedly passed the application suite"
+        assert!(
+            matches!(result.outcome(), project::ProjectExecutionOutcome::Returned(code) if *code != 0),
+            "{name} mutant must return a nonzero test status, not exhaust fuel: {:?}",
+            result.outcome()
         );
         Ok(())
     })

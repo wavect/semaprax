@@ -255,17 +255,40 @@ fn assert_raw_target_parity(
     label: &str,
     expected: &RetainedCallEvaluation,
     actual: &RetainedCallEvaluation,
+    observes_owned_copy_out: bool,
 ) {
     // This is deliberately before `run_rich_turn_on` reduces the variants to
     // a turn outcome: raw grant seals and Continue markers must be equal as
     // bytes, not merely as a matching branch label or scalar state.
     assert_eq!(actual.outcome, expected.outcome, "{label}: raw outcome");
     assert_eq!(actual.failure, expected.failure, "{label}: failure");
-    assert_eq!(
-        actual.cleanup_events,
-        [crate::interpreter::OwnedDataCleanupEvent::CopyOutAndSettleBytes],
-        "{label}: the one owned result leaf is copied out and settled exactly once"
-    );
+    let RetainedCallOutcome::Returned(RetainedValue::Variant(expected_value)) = &expected.outcome
+    else {
+        panic!("{label}: expected returned variant");
+    };
+    let expected_owned_leaves = expected_value
+        .fields
+        .iter()
+        .filter(|field| matches!(field.value, RetainedValue::Bytes(_)))
+        .count();
+    if observes_owned_copy_out {
+        assert_eq!(
+            actual.cleanup_events,
+            vec![
+                crate::interpreter::OwnedDataCleanupEvent::CopyOutAndSettleBytes;
+                expected_owned_leaves
+            ],
+            "{label}: each owned result leaf is copied out and settled exactly once"
+        );
+    } else {
+        // Variant Bytes leave the Core Wasm stage through an indexed scalar
+        // projection. This proves exact payload bytes but has no settled
+        // owned-result copy-out event to observe at the boundary.
+        assert!(
+            actual.cleanup_events.is_empty(),
+            "{label}: no fabricated cleanup event"
+        );
+    }
 }
 
 /// The turn facade intentionally reduces Decision/Transition into a small
@@ -349,12 +372,18 @@ fn rich_target_backends_preserve_raw_grant_and_continue_byte_payloads() {
         ("Core Wasm", RichStageBackend::Wasm),
     ] {
         let actual_decision = raw_stage(&stages, backend, &stages.authorize, &authorize_args);
-        assert_raw_target_parity(&format!("{target}: authorize"), &decision, &actual_decision);
+        assert_raw_target_parity(
+            &format!("{target}: authorize"),
+            &decision,
+            &actual_decision,
+            !matches!(backend, RichStageBackend::Wasm),
+        );
         let actual_transition = raw_stage(&stages, backend, &stages.reduce, &reduce_args);
         assert_raw_target_parity(
             &format!("{target}: reduce"),
             &transition,
             &actual_transition,
+            !matches!(backend, RichStageBackend::Wasm),
         );
     }
 }

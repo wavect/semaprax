@@ -270,6 +270,11 @@ impl NativeStageHost {
     }
 }
 
+// The Windows LLVM runner ships a larger clang executable than the Unix
+// launchers. Both limits remain explicit, finite bounds on the held bytes.
+#[cfg(windows)]
+const MAX_HELD_COMPILER_BYTES: u64 = 256 * 1024 * 1024;
+#[cfg(not(windows))]
 const MAX_HELD_COMPILER_BYTES: u64 = 64 * 1024 * 1024;
 
 fn digest_held_file(file: &File) -> Result<[u8; 32], Diagnostic> {

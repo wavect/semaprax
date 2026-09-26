@@ -325,18 +325,20 @@ fn scan_first_failure(body: borrow Slice<u8>, enriched: bool) -> usize
         let basic = record_basic_failure(body, record, start, end);
         let line = byte_range(body, start, end);
         let id = if basic == 0usize { record_id_value(line) } else { 0usize };
+        let tail = if basic == 0usize { plain_item_tail(body, start + id) } else { 0usize };
         let mut prior = 0usize;
         let mut duplicate = false;
         let mut comparing = basic == 0usize && prior < record;
         while comparing {
-            duplicate = same_decoded_id(body, vec_get<usize>(index, prior), start + id);
+            let entry = vec_get<usize>(index, prior);
+            duplicate = indexed_id_match(body, entry, start + id, tail);
             prior = prior + 1usize;
             comparing = !duplicate && prior < record;
             comparing
         }
         let regular = indexed_record_failure(body, record, start, end, total, basic, id, duplicate);
         failure = provider_failure_if(line, enriched, regular, record, id);
-        let _ = if failure == 0usize { index = vec_push<usize>(index, start + id); 0usize } else { 0usize };
+        let _ = if failure == 0usize { index = vec_push<usize>(index, (start + id) * 16usize + tail); 0usize } else { 0usize };
         total = if failure == 0usize { total_after(total, valid_record_quantity(body, start, end)) } else { total };
         record = if failure == 0usize { record + 1usize } else { count };
         start = end + 1usize;
@@ -344,6 +346,22 @@ fn scan_first_failure(body: borrow Slice<u8>, enriched: bool) -> usize
         scanning
     }
     failure
+}
+
+@id("catalog_normalizer.batch.indexed-id-match")
+fn indexed_id_match(body: borrow Slice<u8>, entry: usize, current: usize, tail: usize) -> bool
+{
+    let prior_tail = entry % 16usize;
+    if tail != 0usize && prior_tail != 0usize && tail != prior_tail { false } else { same_decoded_id(body, entry / 16usize, current) }
+}
+
+// A fixed plain `item-###` ID has no escape ambiguity. All other IDs retain
+// the exact decoded comparison. The request bound keeps packed offsets safe.
+@id("catalog_normalizer.batch.plain-item-tail")
+fn plain_item_tail(body: borrow Slice<u8>, opening: usize) -> usize
+{
+    let plain = byte_in(body, opening + 1usize, 105u8, 105u8) && byte_in(body, opening + 2usize, 116u8, 116u8) && byte_in(body, opening + 3usize, 101u8, 101u8) && byte_in(body, opening + 4usize, 109u8, 109u8) && byte_in(body, opening + 5usize, 45u8, 45u8) && byte_in(body, opening + 6usize, 48u8, 57u8) && byte_in(body, opening + 7usize, 48u8, 57u8) && byte_in(body, opening + 9usize, 34u8, 34u8);
+    if plain { match byte_get(body, opening + 8usize) { Option::Some { value } => match value { 48u8 => 1usize, 49u8 => 2usize, 50u8 => 3usize, 51u8 => 4usize, 52u8 => 5usize, 53u8 => 6usize, 54u8 => 7usize, 55u8 => 8usize, 56u8 => 9usize, 57u8 => 10usize, _ => 0usize, }, Option::None {} => 0usize, } } else { 0usize }
 }
 
 @id("catalog_normalizer.batch.first-failure")

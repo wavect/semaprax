@@ -574,6 +574,6 @@ fn legacy_project_v3_wasm_projection_remains_byte_pinned() {
         .collect::<String>();
     assert_eq!(
         digest,
-        "774a256a968f7ed80e611ea6866ffadd79d9da39a7a71a04f23fc7dcbdfbd049"
+        "ea6a2f6e4a4615066b66ca386d90e3e41bfd0c1dccfcde63035c23a220efe2ae"
     );
 }

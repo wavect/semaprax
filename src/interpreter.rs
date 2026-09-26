@@ -131,7 +131,7 @@ const DEFAULT_MAX_BYTES: usize = 64 * 1024;
 pub const DEFAULT_MAX_STEPS: usize = 1_000_000;
 
 /// Hard upper bound for the library-level step budget option.
-pub const MAX_STEPS_LIMIT: usize = 100_000_000;
+pub const MAX_STEPS_LIMIT: usize = 160_000_000;
 
 /// Fixed call-depth ceiling; exceeding it is an interpreter-capacity outcome,
 /// never a language status.

@@ -202,9 +202,36 @@ fn open_directory(path: &Path) -> Result<File, Diagnostic> {
         use std::os::unix::fs::OpenOptionsExt;
         options.custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC);
     }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        // Windows requires BACKUP_SEMANTICS to hold a directory handle. Open
+        // the reparse point itself so a swapped link cannot become authority.
+        const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+        const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+        options.custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT);
+    }
     options
         .open(path)
         .map_err(|_| invariant("wasm_executor.workspace.open"))
+}
+
+#[cfg(all(test, windows))]
+mod windows_tests {
+    use super::*;
+
+    #[test]
+    fn private_workspace_directory_can_be_held_on_windows() {
+        let path = std::env::temp_dir().join(format!(
+            "semaprax-wasm-stage-directory-handle-{}",
+            std::process::id()
+        ));
+        fs::create_dir(&path).unwrap();
+        let held = open_directory(&path).unwrap();
+        assert!(held.metadata().unwrap().is_dir());
+        drop(held);
+        fs::remove_dir(path).unwrap();
+    }
 }
 
 fn digest_reader(file: &mut File) -> Result<[u8; 32], Diagnostic> {

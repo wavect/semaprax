@@ -219,8 +219,8 @@ fn service_template_has_exact_bytes_and_passes_the_developer_loop() {
             "README.md",
             "semaprax.toml",
             "service-config.schema.json",
-            "service.config.json",
             "service-host-adapter-request.json",
+            "service.config.json",
             "src/app.spx",
             "src/core.spx",
             "src/tests.spx"

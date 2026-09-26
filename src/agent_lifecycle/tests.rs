@@ -542,16 +542,25 @@ fn native_wasm_tools_available() -> bool {
 /// not discover `clang` through PATH. CI that installs it elsewhere can set
 /// one explicit fixture path without changing production authority.
 pub(in crate::agent_lifecycle) fn native_stage_host() -> Option<authorization::NativeStageHost> {
-    let configured =
-        std::env::var_os("SEMAPRAX_TEST_NATIVE_STAGE_CLANG").map(std::path::PathBuf::from);
-    configured
-        .into_iter()
-        .chain([
-            std::path::PathBuf::from("/usr/bin/clang"),
-            std::path::PathBuf::from("/usr/local/bin/clang"),
-            std::path::PathBuf::from("/opt/homebrew/opt/llvm/bin/clang"),
-        ])
-        .find_map(|path| authorization::NativeStageHost::open(&path).ok())
+    if let Some(path) =
+        std::env::var_os("SEMAPRAX_TEST_NATIVE_STAGE_CLANG").map(std::path::PathBuf::from)
+    {
+        return Some(
+            authorization::NativeStageHost::open(&path).unwrap_or_else(|error| {
+                panic!(
+                    "configured native stage compiler {} was refused: {error:?}",
+                    path.display()
+                )
+            }),
+        );
+    }
+    [
+        std::path::PathBuf::from("/usr/bin/clang"),
+        std::path::PathBuf::from("/usr/local/bin/clang"),
+        std::path::PathBuf::from("/opt/homebrew/opt/llvm/bin/clang"),
+    ]
+    .into_iter()
+    .find_map(|path| authorization::NativeStageHost::open(&path).ok())
 }
 
 pub(super) fn test_wasm_stage_host() -> &'static authorization::WasmStageHost {

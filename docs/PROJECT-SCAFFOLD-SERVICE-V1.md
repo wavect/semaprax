@@ -16,7 +16,7 @@ contract.
 
 `--template service` adds a third built-in [Public Project Scaffold Capsule
 v3](PROJECT-SCAFFOLD-V3.md) template beside `calculator` and `library`: a
-small multi-user task-tracking service that composes two bundled
+small multi-user task-tracking service that composes ten bundled
 standard-library decision layers instead of defining every function locally.
 Newcomers can try an end-to-end project with `[dependencies]` without writing
 one first. `semaprax new --template service <destination>` and
@@ -53,7 +53,8 @@ host configuration boundary explicit:
   `std.auth`, `std.db`, `std.http`, `std.jobs`, `std.log`, `std.log.redact`,
   `std.metrics`, `std.export.policy`, `std.tracing`, and `std.webhook` decision
   packages under `[dependencies]`, and
-  exports `<name>.identifier_is_valid` and `<name>.method_is_rejected` under
+  exports `<module>.core.identifier_is_valid` and
+  `<module>.core.method_is_rejected` under
   `[exports].web` (`Public Useful Data Export v1` admits no authored aggregate
   in a project that also declares a web export, so the domain record and its
   job are modeled as plain scalar facts, not a `record`).
@@ -120,10 +121,9 @@ ordinary project naming those packages in `[dependencies]`.
 Both CLI binaries accept `--template service` identically: `semaprax new`'s
 standalone create-new route
 ([standalone project creation v1](NEW-PROJECT-STANDALONE-V1.md)) and the full
-toolchain's held-parent staged publication route share one authority path for
-the calculator and service templates (both name their sources `app.spx`,
-`core.spx`, `tests.spx`), and a separate one for the library template's
-different file names.
+toolchain's held-parent staged publication route write the same nine checked
+files. The held authority gives service its own exact root inventory for the
+three configuration files; calculator shares only its source-file names.
 
 ## Evidence
 

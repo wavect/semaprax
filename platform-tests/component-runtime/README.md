@@ -52,3 +52,14 @@ zero imports and an empty host linker; explicit host-side fixture acquisition
 does not grant filesystem authority to guest code. This is narrow private
 resource evidence, not public generic Component support or full settlement,
 finalizer, status, or fuel parity.
+
+The `parity` submodule adds a differential for the same private profile. It
+acquires the checked-in `fixtures/public-generic-parity-v1` (non-identity
+leaf swap) and `fixtures/public-generic-parity-failure-v1` (`requires false`)
+projects the same way, admits their Components only after descriptor-bound
+retained-revision replay and pinned SHA-256 checks, and compares the
+reference interpreter, the standalone compiled Core provider and the
+Component for identical inputs. Stale Components from other revisions are
+refused before instantiation. See
+[Public Generic Wasm Component v1](../../docs/PUBLIC-GENERIC-WASM-COMPONENT-V1.md#host-admission-and-differential-conformance)
+for the gated input range and the known Core provider large-payload defect.

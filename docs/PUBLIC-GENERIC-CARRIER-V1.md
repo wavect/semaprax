@@ -329,6 +329,28 @@ the legacy flattened Rust caller; and generation-check, cleanup-check and
 checked-call omission controls, which must cross into physical work or fail
 the payload oracle.
 
+The owning `native_and_core_wasm_outcomes_are_measured_side_by_side` selector
+is the explicitly measured Core Wasm comparison for the identity, moves and
+allocating subjects. A direct C ABI caller measures the native column against
+each rendered authenticated provider at O0/O2 (raw status, endpoint entries,
+provider allocation delta, live handles). Node measures the Core Wasm column
+against `emit_public_generic_wasm_provider_v1` for the same program through its
+production exports only, which have no test counters. There, endpoint entry is
+observed as an absent input handle plus a refused call on it, allocation as
+linear-memory growth, and live handles as the provider-close status. The test
+asserts the full 27-row table, including these measured differences:
+
+| Recipe | Native | Core Wasm |
+| --- | --- | --- |
+| stale, future or zero generation; provider-owned ticket; substituted cleanup plan | raw 8/8/8/7/14 before allocation or entry | No analogue: `spx_pg_v1_input_prepare` takes only (provider, frame pointer, frame length) |
+| substituted leaf path | raw 14, SPX-PG803 | raw 5: every non-capacity codec refusal collapses to the malformed-carrier status, so SPX-PG803 is **not** distinguished |
+| unknown leaf-kind tag; legacy flattened bytes | raw 5, SPX-PG801 | raw 5, SPX-PG801 |
+| any refusal | zero allocation | no handle, no dispatch, but the one-time private 16 MiB reservation (`memory.grow`) runs before carrier admission; a repeated refusal grows nothing |
+| canonical | executes once, settles to zero | identity and moves: identical leaves, input consumed, close 0. Allocating: the emitted, verified provider traps with `unreachable` in its checked call, so that subject has **no** Core Wasm positive control |
+
+These are recorded Core Wasm gaps, not parity. This slice changes no Wasm
+emitter code.
+
 ## The logical value state machine
 
 Every handle (root or leaf) is in exactly one of these states:

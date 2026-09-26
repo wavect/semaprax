@@ -19,6 +19,8 @@ mod lifecycle;
 mod profile_hostility;
 #[path = "profile_rust.rs"]
 mod profile_rust;
+#[path = "wasm_comparison.rs"]
+mod wasm_comparison;
 #[path = "same_subject_physical.rs"]
 mod physical;
 #[path = "same_subject_rust.rs"]

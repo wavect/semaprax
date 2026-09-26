@@ -89,7 +89,8 @@ classes `language_failure`, `fuel_exhausted`, `call_depth_exceeded`,
 host's `CleanupHandler` at most once. A cleanup failure is recorded as its own
 settlement (`failed`) and never replaces the outcome. The outcome is
 **published** (`ContinuationStatus::Settled`) only after the cleanup settlement
-is durable; before that the status is `CleanupPending` or `CleanupInDoubt`.
+is durable; before that the status is `CleanupPending` or `CleanupInDoubt`,
+which carry at most the failure class and never a completed result.
 
 ## 6. Journal protocol
 
@@ -102,27 +103,44 @@ Storage rules:
   or other permission bits; it is opened with `O_DIRECTORY | O_NOFOLLOW`.
 - Journals are opened relative to that descriptor with `openat` and
   `O_NOFOLLOW`; a journal is created with `O_CREAT | O_EXCL` and mode `0600`,
-  and the directory is `fsync`ed after creation. A second start of the same
-  invocation refuses `AlreadyStarted`.
+  and the directory is flushed after creation (`F_FULLFSYNC` on Apple
+  platforms, falling back to `fsync`). A second start of the same invocation
+  refuses `AlreadyStarted`.
+- Each open journal holds an exclusive non-blocking `flock` for the lifetime of
+  its descriptor, taken before any byte is read. A second live instance, in
+  this or another process and including a poisoned instance not yet dropped,
+  refuses `JournalBusy`; this is the single-writer rule that keeps concurrent
+  recoveries from dispatching or cleaning up twice.
 - A journal must be a regular file owned by the effective user, mode without
   group or other bits, with exactly one link.
-- Each record is one line written with one `O_APPEND` write, then `fsync`ed.
-  The append is **acknowledged** only when both succeed; any later step is
-  allowed to rely only on acknowledged records. A storage error poisons the
-  in-memory invocation (`Poisoned`); only recovery may continue it.
+- Each record is one line passed to a single `write_all` on an `O_APPEND`
+  descriptor (which may issue several `write` calls), then `sync_all`ed
+  (`F_FULLFSYNC` on Apple platforms). The append is **acknowledged** only when
+  both succeed; any later step may rely only on acknowledged records. Any
+  error after an acknowledged append, from storage or from preparing the next
+  record, poisons the in-memory invocation (`Poisoned`); only recovery may
+  continue it.
+- If `sync_all` fails after the write, the record may or may not be durable.
+  The invocation is poisoned and recovery acts on whatever is observed. For
+  `Dispatched` and `CleanupStarted` this is exactly the in-doubt case: the
+  handler has not run, recovery sees either the previous tail (the step is
+  retried, never having happened) or the new record (in doubt, never
+  repeated).
 
 Each line is canonical JSON
 `{"mac","prev","record","schema","seq"}`, where `seq` counts from zero, `prev`
 is `sha256:` of the previous line's bytes (all zero for the first), and `mac`
 is `hmac-sha256:` over the domain `semaprax.resumable-journal-record.v1\0` and
 the canonical JSON of the other four fields. A journal holds at most 28 records
-and 512 KiB.
+and 512 KiB. `Started` also binds the per-segment step budget (`max_steps`),
+so recovery under a different budget refuses `BudgetMismatch` instead of
+reaching a different terminal outcome.
 
 Records, in the only admitted order:
 
 ```text
 Started{contract, function, program_digest, invocation_id, policy_epoch,
-        arguments_digest, yield_count}
+        arguments_digest, yield_count, max_steps}
 ( Yielded{k, envelope, envelope_digest}
   Dispatched{k, envelope_digest}
   Answered{k, envelope_digest, answer, answer_digest} )*    k = 0, 1, ... in order
@@ -161,10 +179,12 @@ id, policy epoch, key and budget, reads the whole observed journal, and:
    `TornTailPolicy::Refuse` recovery refuses `TornTail` and changes nothing;
    under `TornTailPolicy::TruncateUnacknowledged` it truncates exactly the
    bytes after the last newline and `fsync`s. A newline-terminated line is
-   never truncated, whatever its content.
+   never truncated, whatever its content. A torn write that persisted later
+   pages but not earlier ones can leave a newline-terminated but corrupt line:
+   that fails closed as `TamperedJournal`, and v1 has no recovery path for it.
 3. Compares `Started` with the caller's facts: `InvocationMismatch`,
    `FunctionMismatch`, `ProgramMismatch` (digest or yield count),
-   `PolicyEpochMismatch`, `ArgumentsMismatch`.
+   `PolicyEpochMismatch`, `ArgumentsMismatch`, `BudgetMismatch`.
 4. Replays records through the order above; out-of-order, wrong-site or
    wrong-digest records are `TamperedJournal`. Each `Yielded` envelope is
    decoded through the v2 envelope decoder under the recovered scope.
@@ -187,16 +207,18 @@ that preserves acknowledged records.
 
 ## 8. Threat model and limits
 
-Covered: crashes at any point, torn final appends, tampered, reordered, or
+Covered: crashes at append boundaries (the tests simulate a crash immediately
+before and after each append), torn final appends, tampered, reordered, or
 dropped middle records, answers replayed or rebound across program, invocation,
 site, or envelope, journals from another invocation or key, symlinked or
 foreign directories and journals, and hosts without the capability.
 
 Not covered in v1: an adversary who can write the owner-private directory and
 **removes whole acknowledged trailing records** (rollback) is not detected;
-that needs an external monotonic counter. Concurrent writers to one invocation
-are not coordinated beyond `O_EXCL` creation. Non-Unix hosts do not compile the
-module.
+that needs an external monotonic counter. `flock` is advisory: a process that
+writes the file without taking the lock is outside the model. Ownership and
+mode bits are checked, but macOS ACLs are not detected. Non-Unix hosts do not
+compile the module.
 
 ## 9. Remaining work (issue #296)
 

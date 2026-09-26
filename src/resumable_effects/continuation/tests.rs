@@ -245,6 +245,8 @@ fn multi_yield_run_completes_once_per_site_and_publishes_after_cleanup() {
     assert_eq!(mode & 0o777, 0o600);
 
     // A settled journal recovers as settled and dispatches nothing more.
+    // The live instance holds the single-writer lock until it is dropped.
+    drop(invocation);
     let mut recovered = recover(
         &scratch,
         &key,
@@ -289,10 +291,13 @@ fn explicit_request_answer_exchange_and_sticky_cleanup_failure() {
             )
             .unwrap();
     }
+    // The result is durable but unpublished until cleanup settles.
+    let pending = invocation.status();
     assert_eq!(
-        invocation.status(),
-        ContinuationStatus::CleanupPending(DurableOutcome::Completed(ArgumentValue::Int(EXPECTED)))
+        pending,
+        ContinuationStatus::CleanupPending { failure: None }
     );
+    assert!(!format!("{pending:?}").contains(&EXPECTED.to_string()));
     let mut cleanup = FailingCleanup(0);
     invocation.settle(&mut cleanup).unwrap();
     assert_eq!(
@@ -393,7 +398,9 @@ fn crash_at_every_record_recovers_without_repeat_dispatch_or_cleanup() {
                     .iter()
                     .all(|(site, _)| *site > request.site));
             }
-            if let ContinuationStatus::CleanupInDoubt(_) = status {
+            let cleanup_in_doubt = matches!(status, ContinuationStatus::CleanupInDoubt { .. });
+            if cleanup_in_doubt {
+                assert!(!format!("{status:?}").contains(&EXPECTED.to_string()));
                 cleanups_in_doubt += 1;
                 recovered.confirm_cleanup().unwrap();
                 status = recovered.status();
@@ -407,7 +414,11 @@ fn crash_at_every_record_recovers_without_repeat_dispatch_or_cleanup() {
                 host.calls.len(),
                 "repeat dispatch at {at}/{after}"
             );
-            assert!(cleanup.0 <= 1, "repeat cleanup at {at}/{after}");
+            if cleanup_in_doubt {
+                assert!(cleanup.0 <= 1, "repeat cleanup at {at}/{after}");
+            } else {
+                assert_eq!(cleanup.0, 1, "cleanup count at {at}/{after}");
+            }
             cases += 1;
         }
     }
@@ -533,6 +544,21 @@ fn recovery_facts_must_match_the_started_record_exactly() {
         Some("PolicyEpochMismatch")
     );
     assert_eq!(recover_with(&program, &args(), 7), None);
+    // The step budget is part of the journaled facts.
+    assert!(matches!(
+        DurableInvocation::recover(
+            &scratch.dir(),
+            &key,
+            &program,
+            "app.ask",
+            &args(),
+            "inv-facts",
+            7,
+            STEPS + 1,
+            TornTailPolicy::Refuse,
+        ),
+        Err(ContinuationError::BudgetMismatch)
+    ));
     // Another key cannot read (or forge) the journal.
     let other_key = SourceCheckpointKey::new([0x24; 32]);
     assert!(matches!(
@@ -631,6 +657,7 @@ fn torn_tail_is_refused_or_truncated_exactly_by_explicit_policy() {
             in_doubt: true
         }
     );
+    drop(recovered);
     // A journal torn inside its Started record has no acknowledged record:
     // the invocation never began, so recovery acknowledges Started afresh.
     fs::write(&path, &acknowledged[..20]).unwrap();
@@ -745,4 +772,70 @@ fn single_site_and_non_resumable_functions_are_refused_before_storage() {
         Err(ContinuationError::InvalidBudget)
     ));
     assert_eq!(fs::read_dir(&scratch.0).unwrap().count(), 0);
+}
+
+#[test]
+fn one_live_writer_per_journal_even_when_poisoned() {
+    let scratch = Scratch::new(0o700);
+    let (key, program) = (key(), program(SOURCE));
+    let live = start(&scratch, &key, &program, "inv-busy").unwrap();
+    assert!(matches!(
+        recover(&scratch, &key, &program, "inv-busy", TornTailPolicy::Refuse),
+        Err(ContinuationError::JournalBusy)
+    ));
+    // The torn-tail truncation path is behind the same lock.
+    assert!(matches!(
+        recover(
+            &scratch,
+            &key,
+            &program,
+            "inv-busy",
+            TornTailPolicy::TruncateUnacknowledged
+        ),
+        Err(ContinuationError::JournalBusy)
+    ));
+    drop(live);
+    let mut recovered =
+        recover(&scratch, &key, &program, "inv-busy", TornTailPolicy::Refuse).unwrap();
+    // A poisoned instance still holds the journal until it is dropped.
+    arm(0, false);
+    // Re-arming affects only journals opened after this point, so poison the
+    // live instance through its own fault slot.
+    recovered.journal.fault = armed_fault();
+    assert!(matches!(
+        recovered.dispatch(&policy()),
+        Err(ContinuationError::Storage)
+    ));
+    assert!(matches!(
+        recovered.dispatch(&policy()),
+        Err(ContinuationError::Poisoned)
+    ));
+    assert!(matches!(
+        recover(&scratch, &key, &program, "inv-busy", TornTailPolicy::Refuse),
+        Err(ContinuationError::JournalBusy)
+    ));
+    drop(recovered);
+    let again = recover(&scratch, &key, &program, "inv-busy", TornTailPolicy::Refuse).unwrap();
+    assert!(matches!(
+        again.status(),
+        ContinuationStatus::AwaitingDispatch(ContinuationRequest { site: 0, .. })
+    ));
+}
+
+#[test]
+fn a_hard_linked_journal_is_refused() {
+    let scratch = Scratch::new(0o700);
+    let (key, program) = (key(), program(SOURCE));
+    drop(start(&scratch, &key, &program, "inv-linked").unwrap());
+    fs::hard_link(scratch.journal("inv-linked"), scratch.0.join("alias")).unwrap();
+    assert!(matches!(
+        recover(
+            &scratch,
+            &key,
+            &program,
+            "inv-linked",
+            TornTailPolicy::Refuse
+        ),
+        Err(ContinuationError::ForeignDirectory)
+    ));
 }

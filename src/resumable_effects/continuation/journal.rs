@@ -16,7 +16,7 @@ use super::ContinuationError;
 use crate::interpreter::resumable::checkpoint::{scalar_from_json, scalar_json};
 use crate::interpreter::ArgumentValue;
 use crate::resumable_effects::source_checkpoint::SourceCheckpointKey;
-use rustix::fs::{Mode, OFlags};
+use rustix::fs::{FileType, FlockOperation, Mode, OFlags};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -33,9 +33,6 @@ const NAME_DOMAIN: &[u8] = b"semaprax.resumable-journal-name.v1\0";
 /// settlement records.
 pub(super) const MAX_RECORDS: usize = 1 + 3 * 8 + 1 + 2;
 const MAX_JOURNAL_BYTES: usize = 512 * 1024;
-const S_IFMT: u32 = 0o170_000;
-const S_IFDIR: u32 = 0o040_000;
-const S_IFREG: u32 = 0o100_000;
 
 /// What recovery does with a final fragment that has no terminating newline.
 /// Such bytes were never acknowledged, because an append is acknowledged only
@@ -72,10 +69,9 @@ impl JournalDirectory {
     /// owned by the effective user with no group or other permission bits.
     pub fn from_owned_fd(fd: OwnedFd) -> Result<Self, ContinuationError> {
         let stat = rustix::fs::fstat(&fd).map_err(|_| ContinuationError::ForeignDirectory)?;
-        let mode = u32::from(stat.st_mode);
-        if mode & S_IFMT != S_IFDIR
+        if !FileType::from_raw_mode(stat.st_mode).is_dir()
             || stat.st_uid != rustix::process::geteuid().as_raw()
-            || mode & 0o077 != 0
+            || stat.st_mode & 0o077 != 0
         {
             return Err(ContinuationError::ForeignDirectory);
         }
@@ -93,6 +89,7 @@ pub(super) enum Record {
         policy_epoch: u64,
         arguments_digest: [u8; 32],
         yield_count: u32,
+        max_steps: u64,
     },
     Yielded {
         site: u32,
@@ -180,6 +177,7 @@ fn record_json(record: &Record) -> Value {
             policy_epoch,
             arguments_digest,
             yield_count,
+            max_steps,
         } => json!({
             "kind": "started",
             "contract": super::RESUMABLE_CONTINUATION_CONTRACT_V1,
@@ -189,6 +187,7 @@ fn record_json(record: &Record) -> Value {
             "policy_epoch": policy_epoch,
             "arguments_digest": digest(arguments_digest),
             "yield_count": yield_count,
+            "max_steps": max_steps,
         }),
         Record::Yielded {
             site,
@@ -274,6 +273,7 @@ fn parse_record(value: &Value) -> Result<Record, ContinuationError> {
                     "policy_epoch",
                     "arguments_digest",
                     "yield_count",
+                    "max_steps",
                 ],
             )?;
             if value["contract"] != super::RESUMABLE_CONTINUATION_CONTRACT_V1 {
@@ -290,6 +290,9 @@ fn parse_record(value: &Value) -> Result<Record, ContinuationError> {
                 yield_count: value["yield_count"]
                     .as_u64()
                     .and_then(|count| u32::try_from(count).ok())
+                    .ok_or(ContinuationError::TamperedJournal)?,
+                max_steps: value["max_steps"]
+                    .as_u64()
                     .ok_or(ContinuationError::TamperedJournal)?,
             }
         }
@@ -380,15 +383,38 @@ fn io(_: impl Sized) -> ContinuationError {
 
 fn validate_file(file: &File) -> Result<(), ContinuationError> {
     let stat = rustix::fs::fstat(file.as_fd()).map_err(io)?;
-    let mode = u32::from(stat.st_mode);
-    if mode & S_IFMT != S_IFREG
+    if !FileType::from_raw_mode(stat.st_mode).is_file()
         || stat.st_uid != rustix::process::geteuid().as_raw()
-        || mode & 0o077 != 0
-        || u64::from(stat.st_nlink) != 1
+        || stat.st_mode & 0o077 != 0
+        || stat.st_nlink != 1
     {
         return Err(ContinuationError::ForeignDirectory);
     }
     Ok(())
+}
+
+/// Hold an exclusive advisory lock for the descriptor's lifetime. Another
+/// open description (another process, or another live instance in this one)
+/// is refused rather than waited for.
+fn lock_exclusive(file: &File) -> Result<(), ContinuationError> {
+    rustix::fs::flock(file.as_fd(), FlockOperation::NonBlockingLockExclusive).map_err(|error| {
+        if error == rustix::io::Errno::WOULDBLOCK {
+            ContinuationError::JournalBusy
+        } else {
+            ContinuationError::Storage
+        }
+    })
+}
+
+/// Make a new directory entry durable. On Apple platforms `fsync` does not
+/// flush the drive cache, so `F_FULLFSYNC` is tried first, as `sync_all` does
+/// for files.
+fn sync_directory(directory: &JournalDirectory) -> Result<(), ContinuationError> {
+    #[cfg(target_vendor = "apple")]
+    if rustix::fs::fcntl_fullfsync(&directory.fd).is_ok() {
+        return Ok(());
+    }
+    rustix::fs::fsync(&directory.fd).map_err(io)
 }
 
 impl Journal {
@@ -418,8 +444,9 @@ impl Journal {
         })?;
         let file = File::from(fd);
         validate_file(&file)?;
+        lock_exclusive(&file)?;
         // The new directory entry is durable before the first record.
-        rustix::fs::fsync(&directory.fd).map_err(io)?;
+        sync_directory(directory)?;
         Ok(Self {
             file,
             next_seq: 0,
@@ -449,6 +476,9 @@ impl Journal {
         })?;
         let mut file = File::from(fd);
         validate_file(&file)?;
+        // The single-writer lock is taken before anything is read, so no
+        // other live instance can append or truncate under this recovery.
+        lock_exclusive(&file)?;
         let mut bytes = Vec::new();
         (&mut file)
             .take(MAX_JOURNAL_BYTES as u64 + 1)

@@ -69,6 +69,8 @@ pub enum ContinuationError {
     InvocationMismatch,
     PolicyEpochMismatch,
     ArgumentsMismatch,
+    BudgetMismatch,
+    JournalBusy,
     Envelope(SourceCheckpointError),
     CapabilityDenied,
     NotAwaitingDispatch,
@@ -198,9 +200,11 @@ pub enum ContinuationStatus {
         request: ContinuationRequest,
         in_doubt: bool,
     },
-    CleanupPending(DurableOutcome),
+    /// A terminal record is durable and cleanup has not started. The result
+    /// stays unpublished; at most the failure class is visible.
+    CleanupPending { failure: Option<DurableFailure> },
     /// Journaled `CleanupStarted` without `CleanupSettled`.
-    CleanupInDoubt(DurableOutcome),
+    CleanupInDoubt { failure: Option<DurableFailure> },
     /// Fully settled; only now is the outcome published.
     Settled {
         outcome: DurableOutcome,
@@ -285,6 +289,7 @@ fn facts(
         policy_epoch,
         arguments_digest: sha256(&argument_bytes),
         yield_count: signature.yield_count(),
+        max_steps: max_steps as u64,
     };
     Ok(Facts {
         signature,
@@ -434,8 +439,12 @@ impl<'a> DurableInvocation<'a> {
                 request: self.request_of(pending),
                 in_doubt: *in_doubt,
             },
-            Phase::CleanupPending(outcome) => ContinuationStatus::CleanupPending(outcome.clone()),
-            Phase::CleanupInDoubt(outcome) => ContinuationStatus::CleanupInDoubt(outcome.clone()),
+            Phase::CleanupPending(outcome) => ContinuationStatus::CleanupPending {
+                failure: failure_class(outcome),
+            },
+            Phase::CleanupInDoubt(outcome) => ContinuationStatus::CleanupInDoubt {
+                failure: failure_class(outcome),
+            },
             Phase::Settled(outcome, cleanup) => ContinuationStatus::Settled {
                 outcome: outcome.clone(),
                 cleanup: *cleanup,
@@ -694,9 +703,15 @@ impl<'a> DurableInvocation<'a> {
                     &self.arguments,
                     &continuation,
                 )
-                .map_err(ContinuationError::Envelope)?;
-                let envelope =
-                    String::from_utf8(envelope).map_err(|_| ContinuationError::TamperedJournal)?;
+                .map_err(ContinuationError::Envelope);
+                // A prior record is already acknowledged: any failure to
+                // journal this step leaves the in-memory state behind storage.
+                let Ok(envelope) = envelope.and_then(|bytes| {
+                    String::from_utf8(bytes).map_err(|_| ContinuationError::TamperedJournal)
+                }) else {
+                    self.poisoned = true;
+                    return Err(ContinuationError::Poisoned);
+                };
                 let envelope_digest = sha256(envelope.as_bytes());
                 self.append(&Record::Yielded {
                     site: site_of(&continuation),
@@ -845,6 +860,13 @@ impl<'a> DurableInvocation<'a> {
     }
 }
 
+fn failure_class(outcome: &DurableOutcome) -> Option<DurableFailure> {
+    match outcome {
+        DurableOutcome::Completed(_) => None,
+        DurableOutcome::Failed(failure) => Some(*failure),
+    }
+}
+
 fn site_of(continuation: &ResumableContinuation) -> u32 {
     u32::try_from(continuation.history().len()).expect("at most eight sites")
 }
@@ -858,6 +880,7 @@ fn compare_started(observed: Option<&Record>, expected: &Record) -> Result<(), C
             policy_epoch,
             arguments_digest,
             yield_count,
+            max_steps,
         }),
         Record::Started {
             function: expected_function,
@@ -866,6 +889,7 @@ fn compare_started(observed: Option<&Record>, expected: &Record) -> Result<(), C
             policy_epoch: expected_epoch,
             arguments_digest: expected_arguments,
             yield_count: expected_count,
+            max_steps: expected_steps,
         },
     ) = (observed, expected)
     else {
@@ -885,6 +909,9 @@ fn compare_started(observed: Option<&Record>, expected: &Record) -> Result<(), C
     }
     if arguments_digest != expected_arguments {
         return Err(ContinuationError::ArgumentsMismatch);
+    }
+    if max_steps != expected_steps {
+        return Err(ContinuationError::BudgetMismatch);
     }
     Ok(())
 }

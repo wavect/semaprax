@@ -11,6 +11,7 @@ use crate::public_generic_abi::digest;
 use crate::public_generic_abi::wasm::binding::WasmProviderBindingV1;
 
 mod byte_runtime;
+mod carrier_classify;
 mod carrier_codec;
 mod component;
 pub use component::PublicGenericWasmComponentArtifactV1;
@@ -298,7 +299,7 @@ fn emit_bound_core(
         TargetProfile::CoreWasm,
         runtime_identity,
     );
-    let provisional = WasmProviderBindingV1::new(
+    let provisional = WasmProviderBindingV1::new_v2(
         carrier.clone(),
         BINDING_PLACEHOLDER,
         "spx_pg_v1_call",
@@ -338,6 +339,23 @@ fn emit_bound_core(
         &crate::hir::DeclarationId::new(endpoint.export_id()),
         23,
     )?;
+    let empty_input = {
+        use crate::public_generic_abi::carrier::frame::{
+            CarrierFrameBinding, CarrierLeaf, LeafKind,
+        };
+        let plan = CarrierFrameBinding::from_verified_descriptor(
+            endpoint.descriptor(),
+            crate::public_generic_abi::carrier::trace::Direction::Input,
+        );
+        plan.frame_with_leaves(
+            plan.leaf_paths()
+                .iter()
+                .map(|path| CarrierLeaf::new(path, LeafKind::Bytes, Vec::new()))
+                .collect(),
+        )
+        .encode()
+    };
+    let classifier = carrier_classify::Classifier::new(&empty_input).map_err(error)?;
     let provisional_bytes = provisional.encode();
     let provisional_wasm = assemble(
         endpoint.descriptor_bytes(),
@@ -345,12 +363,13 @@ fn emit_bound_core(
         &lowering,
         &input_codec,
         &result_codec,
+        &classifier,
         component_helpers,
         layout,
     )?;
     let provisional_slot = locate_binding_slot(&provisional_wasm, &provisional_bytes)?;
     let artifact_digest = artifact_digest(&provisional_wasm, provisional_slot);
-    let binding = WasmProviderBindingV1::new(
+    let binding = WasmProviderBindingV1::new_v2(
         carrier,
         artifact_digest,
         "spx_pg_v1_call",
@@ -362,6 +381,7 @@ fn emit_bound_core(
         &lowering,
         &input_codec,
         &result_codec,
+        &classifier,
         component_helpers,
         layout,
     )?;
@@ -439,12 +459,14 @@ fn binding_artifact_digest_offset(binding: &[u8]) -> Result<usize, Diagnostic> {
     Err(error("provider binding has no artifact digest field"))
 }
 
+#[allow(clippy::too_many_arguments)] // One deterministic module; every part is explicit.
 fn assemble(
     descriptor: &[u8],
     binding: &[u8],
     lowering: &crate::wasm::aggregate::SelectedAggregateLowering,
     input_codec: &carrier_codec::CarrierCodecEmission,
     result_codec: &carrier_codec::CarrierCodecEmission,
+    classifier: &carrier_classify::Classifier,
     component_helpers: bool,
     layout: ProviderLayout,
 ) -> Result<Vec<u8>, Diagnostic> {
@@ -485,7 +507,8 @@ fn assemble(
             + lowering.types.len()
             + input_codec.type_count() as usize
             + result_codec.type_count() as usize
-            + byte_runtime::TYPE_COUNT as usize) as u32,
+            + byte_runtime::TYPE_COUNT as usize
+            + carrier_classify::TYPE_COUNT as usize) as u32,
     );
     for (params, results) in signatures {
         types.push(0x60);
@@ -503,6 +526,8 @@ fn assemble(
     result_codec.append_type_entries(&mut types);
     let byte_runtime_type_base = result_codec_type_base + result_codec.type_count();
     byte_runtime::append_type_entries(&mut types);
+    let classify_type_base = byte_runtime_type_base + byte_runtime::TYPE_COUNT;
+    carrier_classify::append_type_entries(&mut types);
     section(&mut module, 1, &types);
 
     let mut function_types = vec![0_u32, 0, 0, 0, 0, 1, 2, 3, 4, 5, 3, 3, 6];
@@ -517,6 +542,11 @@ fn assemble(
     input_codec.append_function_type_indexes(&mut function_types, input_codec_type_base);
     result_codec.append_function_type_indexes(&mut function_types, result_codec_type_base);
     function_types.extend([byte_runtime_type_base, byte_runtime_type_base + 1]);
+    function_types.extend([
+        classify_type_base,
+        classify_type_base + 1,
+        classify_type_base + 2,
+    ]);
     let mut functions = Vec::new();
     u32_leb(&mut functions, function_types.len() as u32);
     for index in &function_types {
@@ -620,9 +650,14 @@ fn assemble(
     let input_indexes = input_codec.function_indexes(codec_function_base);
     let result_indexes =
         result_codec.function_indexes(codec_function_base + input_codec.function_count());
+    let classify = carrier_classify::Indexes {
+        utf8: heap.resolve + byte_runtime::FUNCTION_COUNT,
+        sha256: input_indexes.sha256,
+        workspace: layout.input_sha256_workspace,
+    };
     body_input_prepare(
         &mut code,
-        input_indexes.validate,
+        classify.classify(),
         input_indexes.copy,
         component_helpers,
         layout,
@@ -651,11 +686,13 @@ fn assemble(
         code.extend_from_slice(&body);
     }
     byte_runtime::helper_bodies(&mut code, heap);
+    carrier_classify::bodies(&mut code, classifier, classify);
     section(&mut module, 10, &code);
 
     let mut data = Vec::new();
-    u32_leb(&mut data, 4);
+    u32_leb(&mut data, 5);
     active_data(&mut data, DESCRIPTOR_OFFSET, descriptor);
+    active_data(&mut data, carrier_classify::DATA_OFFSET, classifier.data());
     active_data(&mut data, BINDING_OFFSET, binding);
     for segment in input_codec.data_segments() {
         active_data(&mut data, segment.offset, &segment.bytes);
@@ -833,7 +870,7 @@ fn body_open(code: &mut Vec<u8>, descriptor_len: u32, binding_len: u32) {
 
 fn body_input_prepare(
     code: &mut Vec<u8>,
-    validate_index: u32,
+    classify_index: u32,
     copy_index: u32,
     component_helpers: bool,
     layout: ProviderLayout,
@@ -892,19 +929,24 @@ fn body_input_prepare(
     lane(&mut body, 6, 0);
     body.push(0x0f);
     body.push(0x0b);
-    // Admission precedes every physical operation: the complete carrier,
-    // including its self-digest and descriptor binding, is validated in
-    // static memory before the private reservation grows linear memory. A
-    // refused carrier therefore performs no memory.grow and no private write.
+    // Admission precedes every physical operation: the ABI v2 classifier,
+    // a port of the native authenticated frame check, decodes the complete
+    // carrier, its self-digest and descriptor binding in static memory before
+    // the private reservation grows linear memory. It returns 5, 6 or 14
+    // exactly where native does; a refused carrier performs no memory.grow.
     body.extend(local_get(1));
     body.extend(local_get(2));
     body.push(0x10);
-    u32_leb(&mut body, validate_index);
+    u32_leb(&mut body, classify_index);
     body.extend(local_set(4));
     body.extend(local_get(4));
     body.push(0xa7);
     body.extend(local_set(3));
-    emit_codec_refusal(&mut body, 3);
+    // The classifier's low lane is already the physical status.
+    body.extend(local_get(3));
+    body.extend([0x04, 0x40]);
+    body.extend(local_get(3));
+    body.extend([0xad, 0x0f, 0x0b]);
     // The validated payload total (high lane) must fit the private window,
     // so a capacity refusal also precedes any memory growth.
     body.extend(local_get(4));
@@ -1223,8 +1265,9 @@ fn emit_private_reserve(body: &mut Vec<u8>, component_helpers: bool, workspace_e
     }
 }
 
-/// Return the physical refusal for a nonzero codec status in `local`:
-/// capacity maps to 6, every other codec refusal to 5.
+/// Return the Wasm adapter ABI v2 physical refusal for a nonzero codec
+/// status in `local`: capacity maps to 6, a decoded carrier whose semantic
+/// binding does not replay (`SPX-PG803`) to 14, every other refusal to 5.
 fn emit_codec_refusal(body: &mut Vec<u8>, local: u32) {
     body.extend(local_get(local));
     body.extend([0x45, 0x04, 0x40]);
@@ -1234,7 +1277,17 @@ fn emit_codec_refusal(body: &mut Vec<u8>, local: u32) {
     body.extend([0x46, 0x04, 0x7e]);
     lane(body, 6, 0);
     body.push(0x05);
+    body.extend(local_get(local));
+    body.extend(i32_const(carrier_codec::STATUS_REPLAY_MISMATCH as i32));
+    body.extend([0x46, 0x04, 0x7e]);
+    lane(
+        body,
+        crate::public_generic_abi::wasm::binding::WASM_ADAPTER_V2_STATUS_CARRIER_REPLAY_MISMATCH,
+        0,
+    );
+    body.push(0x05);
     lane(body, 5, 0);
+    body.push(0x0b);
     body.push(0x0b);
     body.push(0x0f);
     body.push(0x0b);

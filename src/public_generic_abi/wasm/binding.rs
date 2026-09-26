@@ -28,11 +28,23 @@ pub const MALFORMED_WASM_BINDING: &str = "SPX-PG910";
 /// equal the submitted one, or the embedded `CarrierBindingV1` differs.
 pub const WASM_BINDING_REPLAY_MISMATCH: &str = "SPX-PG911";
 
-/// The only admitted Wasm adapter ABI version in this round. A binding
-/// naming any other string is malformed, not merely unsupported: the
-/// generator that emits `WasmProviderBindingV1` values never produces
-/// another version yet.
+/// Wasm adapter ABI v1: the reference adapter lanes and every predecessor
+/// binding. Its physical status vocabulary is the closed `spx_pg_status_v1`
+/// set (0..=13). A v1 binding keeps exactly that meaning; it is never
+/// reinterpreted as v2.
 pub const WASM_ADAPTER_ABI_VERSION: &str = "v1";
+
+/// Wasm adapter ABI v2: the compiler-emitted Core Wasm provider. Its closed
+/// status vocabulary is v1's plus [`WASM_ADAPTER_V2_STATUS_CARRIER_REPLAY_MISMATCH`].
+/// The compiled provider emits only v2, so a v1 binding presented to it fails
+/// the byte-exact binding replay at open with status 4. Any other version
+/// string is malformed.
+pub const WASM_ADAPTER_ABI_VERSION_V2: &str = "v2";
+
+/// v2 only: a carrier that decoded but whose semantic binding (leaf path,
+/// descriptor/endpoint/instance/inventory identity or self-digest) does not
+/// replay. Restates `SPX-PG803` with native's authenticated raw status 14.
+pub const WASM_ADAPTER_V2_STATUS_CARRIER_REPLAY_MISMATCH: u32 = 14;
 
 /// A closed support/publication claim, independent of
 /// [`crate::public_generic_abi::native::binding::SupportPublicationState`]
@@ -99,6 +111,33 @@ impl WasmProviderBindingV1 {
             compiler_backend_version: compiler_backend_version.into(),
             support_publication_state: SupportPublicationState::UnsupportedUnpublished,
         }
+    }
+
+    /// The same binding facts under Wasm adapter ABI v2. Only the compiled
+    /// Core Wasm provider emits this version.
+    pub fn new_v2(
+        carrier_binding: CarrierBindingV1,
+        provider_artifact_digest: impl Into<String>,
+        exported_endpoint_export_name: impl Into<String>,
+        compiler_backend_version: impl Into<String>,
+    ) -> Self {
+        Self {
+            wasm_adapter_abi_version: WASM_ADAPTER_ABI_VERSION_V2.to_owned(),
+            ..Self::new(
+                carrier_binding,
+                provider_artifact_digest,
+                exported_endpoint_export_name,
+                compiler_backend_version,
+            )
+        }
+    }
+
+    pub fn wasm_adapter_abi_version(&self) -> &str {
+        &self.wasm_adapter_abi_version
+    }
+
+    pub fn compiler_backend_version(&self) -> &str {
+        &self.compiler_backend_version
     }
 
     pub fn carrier_binding(&self) -> &CarrierBindingV1 {
@@ -195,7 +234,9 @@ pub fn decode_wasm_provider_binding(bytes: &[u8]) -> Result<WasmProviderBindingV
     }
 
     let wasm_adapter_abi_version = next_string("wasm_adapter_abi_version", &mut offset)?;
-    if wasm_adapter_abi_version != WASM_ADAPTER_ABI_VERSION {
+    if wasm_adapter_abi_version != WASM_ADAPTER_ABI_VERSION
+        && wasm_adapter_abi_version != WASM_ADAPTER_ABI_VERSION_V2
+    {
         return Err(malformed("unknown Wasm adapter ABI version"));
     }
     let provider_artifact_digest = next_string("provider_artifact_digest", &mut offset)?;

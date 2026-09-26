@@ -338,14 +338,15 @@ against `emit_public_generic_wasm_provider_v1` for the same program through its
 production exports only, which have no test counters. There, endpoint entry is
 observed as an absent input handle plus a refused call on it, allocation as
 linear-memory growth, and live handles as the provider-close status. The test
-asserts the full 27-row table, including these measured differences:
+asserts the full 30-row table, including these measured differences:
 
 | Recipe | Native | Core Wasm |
 | --- | --- | --- |
 | stale, future or zero generation; provider-owned ticket; substituted cleanup plan | raw 8/8/8/7/14 before allocation or entry | No analogue: `spx_pg_v1_input_prepare` takes only (provider, frame pointer, frame length) |
-| substituted leaf path | raw 14, SPX-PG803 | raw 5: every non-capacity codec refusal collapses to the malformed-carrier status, so SPX-PG803 is **not** distinguished |
+| substituted leaf path | raw 14, SPX-PG803 | raw 14, SPX-PG803 (Wasm adapter ABI v2) |
 | unknown leaf-kind tag; legacy flattened bytes | raw 5, SPX-PG801 | raw 5, SPX-PG801 |
-| any refusal | zero allocation | no handle, no dispatch and no `memory.grow`: the carrier is admitted in static memory before the private reservation |
+| any refusal, including a payload total over the input window (raw 6) | zero allocation | no handle, no dispatch and no `memory.grow`: the carrier is admitted in static memory before the private reservation |
+| lifecycle before scratch reserve | no analogue | open refuses with 7, so no provider exists; preparation with a guessed handle refuses with 8; neither traps. Preparation additionally refuses with 7 whenever the scratch range is not backed by memory |
 | canonical | executes once, settles to zero | identity, moves and allocating: identical leaves, input consumed, second call refused 8, close 0 |
 
 Three Core Wasm defects this comparison exposed are fixed in
@@ -358,13 +359,31 @@ the input aggregate, which had silently overwritten payloads totalling more
 than 2 KiB; `core_wasm_large_input_payloads_match_the_interpreter` pins
 1025+1024, 1+64 KiB and 64+64 KiB inputs against the retained interpreter.
 
-The leaf-path row remains a recorded divergence. The Core Wasm provider v1
-reports carrier refusals in the closed v1 physical status vocabulary (the
-`spx_pg_status_v1` table below),
-which has no SPX-PG803 carrier status; native raw 14 belongs to the separate
-authenticated native profiles. Reporting it on Core Wasm needs a versioned
-Wasm provider ABI (binding `wasm_adapter_abi_version`, generated TypeScript
-consumer and this vocabulary together), not a new raw value inside v1.
+### Wasm adapter ABI v2 (compiled Core Wasm provider)
+
+`WasmProviderBindingV1` names its `wasm_adapter_abi_version`. Version `v1` is
+the reference adapter lanes and every predecessor binding; its physical status
+vocabulary is exactly the closed `spx_pg_status_v1` table below (0..=13), and a
+v1 binding is never reinterpreted. Version `v2` is emitted only by the
+compiler's Core Wasm provider (`WasmProviderBindingV1::new_v2`). Its closed
+vocabulary is v1's plus one status:
+
+| Status | Restates | Meaning |
+| --- | --- | --- |
+| 14 | `SPX-PG803` | the input carrier decoded structurally and its self-digest was checked, but its semantic binding (descriptor, endpoint or instance identity, leaf count or leaf path) or its digest does not replay |
+
+This is the same raw value and meaning as native's authenticated profiles
+(`SPX_PG_AUTH_STATUS_REPLAY_MISMATCH`). `spx_pg_v1_input_prepare` classifies a
+carrier with a port of the native authenticated frame check against the same
+trusted canonical empty frame, so both targets return 5, 6 or 14 for the same
+bytes. The compiled provider supersedes v1: it embeds only its v2 binding, and
+a v1 binding naming the same facts fails its byte-exact binding replay at open
+with status 4 (binding replay mismatch). The generated TypeScript consumer for
+a v2 binding maps status 14 to `carrier-rejected` with reason
+`carrier-replay`, the outcome native's generated callers report as
+`CarrierRejected`; its other mappings are unchanged. Owning selectors:
+`native_and_core_wasm_outcomes_are_measured_side_by_side` and
+`generated_typescript_maps_wasm_v2_leaf_path_refusal_like_native`.
 
 ## The logical value state machine
 

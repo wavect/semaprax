@@ -23,6 +23,8 @@ mod profile_rust;
 mod wasm_comparison;
 #[path = "wasm_large_payload.rs"]
 mod wasm_large_payload;
+#[path = "wasm_typescript_replay.rs"]
+mod wasm_typescript_replay;
 #[path = "same_subject_physical.rs"]
 mod physical;
 #[path = "same_subject_rust.rs"]

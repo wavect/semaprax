@@ -66,6 +66,16 @@ const rows = [];
 const probe = await session();
 rows.push({ id: 'prepare_arity', value: probe.api.spx_pg_v1_input_prepare.length });
 assert.equal(probe.api.spx_pg_v1_provider_close(probe.provider), 0);
+// ABI v1 is superseded for the compiled provider: the same facts under a v1
+// binding fail its byte-exact binding replay at open and mint no provider.
+{
+    const { exports: api } = await WebAssembly.instantiate(module, {});
+    const scratch = lane(api.spx_pg_v1_scratch_reserve(65536)).value;
+    const v1 = readFileSync('binding_v1.bin');
+    new Uint8Array(api.memory.buffer).set(descriptor, scratch);
+    new Uint8Array(api.memory.buffer).set(v1, scratch + descriptor.length);
+    rows.push({ id: 'v1_binding', ...lane(api.spx_pg_v1_open(scratch, descriptor.length, scratch + descriptor.length, v1.length)) });
+}
 for (const entry of cases.hostile) {
     const state = await session();
     const before = state.api.memory.buffer.byteLength;
@@ -84,6 +94,20 @@ for (const entry of cases.hostile) {
     rows.push({ id: entry.id, status: prepared.status, handle: prepared.value,
         call: call.status, grown, repeat, recovered: recovered.status === 0 ? recovered.bytes : recovered.status,
         close: trapped ? 'trapped' : state.api.spx_pg_v1_provider_close(state.provider) });
+}
+// Lifecycle order: before scratch reserve (even over host-grown memory) open
+// refuses with 7, so no provider exists; input preparation with a guessed
+// handle refuses with 8. Neither reads unbacked memory or traps.
+{
+    const { exports: api } = await WebAssembly.instantiate(module, {});
+    const scratch = api.spx_pg_v1_scratch_ptr();
+    const end = scratch + descriptor.length + binding.length;
+    api.memory.grow(Math.ceil(end / 65536) - api.memory.buffer.byteLength / 65536);
+    new Uint8Array(api.memory.buffer).set(descriptor, scratch);
+    new Uint8Array(api.memory.buffer).set(binding, scratch + descriptor.length);
+    const opened = lane(api.spx_pg_v1_open(scratch, descriptor.length, scratch + descriptor.length, binding.length));
+    const prepared = lane(api.spx_pg_v1_input_prepare(1, scratch, 65536));
+    rows.push({ id: 'prepare_before_scratch_reserve', open: opened.status, status: prepared.status, value: prepared.value });
 }
 const state = await session();
 const before = state.api.memory.buffer.byteLength;

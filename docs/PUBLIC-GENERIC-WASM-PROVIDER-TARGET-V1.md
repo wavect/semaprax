@@ -101,19 +101,33 @@ owned-`Bytes` profile remain separate.
 
 Aggregate lowering reserves slots 7..=12 for the owned-byte operations a
 legacy module imports from its host. The provider implements them itself in
-`src/wasm/public_generic_provider/byte_runtime.rs`, with the host runtime's
-carrier encoding (owned token, byte-range descriptor, fixed view) and the same
-invariants, which trap where the host import would throw. Storage is
-invocation-local: each `spx_pg_v1_call` resets the heap, presents the two
-prepared input leaves as owned tokens, and resolves result carriers before
-encoding. The heap is bounded at twice the checked cumulative owned-payload
-limit, so exhausting it is an invariant defect.
+`src/wasm/public_generic_provider/byte_runtime.rs` with the host runtime's
+carrier encoding (owned token, byte-range descriptor, and a fixed view of at
+most 64 KiB inside the first 128 KiB), trapping where the host import would
+throw. It differs from the browser host only where a checked Bytes-only
+endpoint cannot reach: the host also admits a String-profile literal window
+the provider has no use for, and it caps 16 live owned entries with token
+reuse where the provider issues up to 1023 per invocation without reuse.
+Storage is invocation-local: each `spx_pg_v1_call` resets the heap, presents
+the two prepared input leaves as owned tokens, and resolves result carriers
+before encoding. The heap covers two input tokens plus every bounded
+allocation site and twice the checked cumulative owned-payload limit, so
+exhausting it is an invariant defect.
 
-`spx_pg_v1_input_prepare` validates the complete carrier, using SHA-256
-workspaces in static memory, before it grows memory for the private region.
-A refused carrier performs no `memory.grow`, issues no handle and dispatches
-nothing. The standalone input payload window is a dedicated 128 KiB region (two
-64 KiB leaves) placed after every predecessor region, as is the heap.
+`spx_pg_v1_open` already refuses with status 7 before scratch reserve, so a
+live provider implies a backed scratch range; `spx_pg_v1_input_prepare`
+nevertheless refuses with status 7 unless the scratch range is backed by
+memory, rather than ever reading unbacked memory. It then classifies
+the complete carrier in static memory (see the Wasm adapter ABI v2 section of
+the carrier specification) and checks the admitted payload total against the
+private input window, all before it grows memory for the private region. A
+refused carrier, including a capacity refusal, performs no `memory.grow`,
+issues no handle and dispatches nothing. The standalone input payload window
+is a dedicated 128 KiB region (two 64 KiB leaves) placed after every
+predecessor region, as is the heap.
+
+The provider's binding uses Wasm adapter ABI `v2`; its status vocabulary adds
+raw 14 (`SPX-PG803`) to the closed v1 set. A v1 binding cannot open it.
 
 ## Private lifecycle admission
 

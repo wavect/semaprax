@@ -12,6 +12,9 @@ use super::*;
 use semaprax::public_generic_abi::native::authenticated::{
     render_authenticated_allocating_provider, render_authenticated_moves_provider,
 };
+use semaprax::public_generic_abi::wasm::binding::{
+    WasmProviderBindingV1, WASM_ADAPTER_ABI_VERSION, WASM_ADAPTER_ABI_VERSION_V2,
+};
 use std::fmt::Write as _;
 
 /// The production Core Wasm export inventory: no authenticated-ticket entry.
@@ -66,7 +69,8 @@ fn stable(target: &str, raw: u64) -> &'static str {
         ("native" | "wasm", 5) => "SPX-PG801",
         ("native", 7) => "SPX-PG804",
         ("native", 8) => "SPX-PG805",
-        ("native", 14) => "SPX-PG803",
+        // Native authenticated profiles and Wasm adapter ABI v2 share raw 14.
+        ("native" | "wasm", 14) => "SPX-PG803",
         _ => panic!("unmapped {target} raw status {raw}"),
     }
 }
@@ -129,6 +133,19 @@ pub(super) fn wasm_column(
     fs::write(root.join("provider.wasm"), wasm.wasm()).unwrap();
     fs::write(root.join("descriptor.bin"), wasm.descriptor_bytes()).unwrap();
     fs::write(root.join("binding.bin"), wasm.binding_bytes()).unwrap();
+    let binding = wasm.binding();
+    assert_eq!(
+        binding.wasm_adapter_abi_version(),
+        WASM_ADAPTER_ABI_VERSION_V2
+    );
+    let v1 = WasmProviderBindingV1::new(
+        binding.carrier_binding().clone(),
+        binding.provider_artifact_digest(),
+        binding.exported_endpoint_export_name(),
+        binding.compiler_backend_version(),
+    );
+    assert_eq!(v1.wasm_adapter_abi_version(), WASM_ADAPTER_ABI_VERSION);
+    fs::write(root.join("binding_v1.bin"), v1.encode()).unwrap();
     let cases = serde_json::json!({
         "exports": WASM_EXPORTS,
         "canonical": hex(canonical),
@@ -234,6 +251,15 @@ fn compare(root: &Path, label: &str, source: &str, expected: [&[u8]; 2]) -> Vec<
     assert_eq!(native_leaves, expected);
     let wasm_canonical = wasm_rows.last().unwrap();
     assert_eq!(wasm_canonical["id"], "canonical");
+    let v1 = wasm_rows
+        .iter()
+        .find(|row| row["id"] == "v1_binding")
+        .unwrap();
+    assert_eq!(
+        (&v1["status"], &v1["value"]),
+        (&serde_json::json!(4), &serde_json::json!(0)),
+        "{label}: a v1 binding must not open the ABI v2 provider"
+    );
     let wasm_executes = wasm_canonical["status"] == 0;
     if wasm_executes {
         let result_plan =
@@ -331,6 +357,14 @@ fn compare(root: &Path, label: &str, source: &str, expected: [&[u8]; 2]) -> Vec<
         }
         rows.push(line);
     }
+    let early = wasm_rows
+        .iter()
+        .find(|row| row["id"] == "prepare_before_scratch_reserve")
+        .unwrap();
+    rows.push(format!(
+        "{label} | prepare_before_scratch_reserve | native no analogue: no scratch reservation | wasm open={} prepare={} handle={}",
+        early["open"], early["status"], early["value"]
+    ));
     rows
 }
 
@@ -343,14 +377,14 @@ fn expected(label: &str) -> Vec<String> {
         format!("{label} | {id} | native raw={raw} {code} entries=0 alloc+0 live=0 | wasm no analogue: prepare arity=3")
     };
     // Measured Core Wasm facts, recorded rather than smoothed over:
-    // * its input_prepare collapses every non-capacity codec refusal to raw 5,
-    //   so a semantic leaf-path substitution is not reported as SPX-PG803;
+    // * under Wasm adapter ABI v2 a decoded carrier whose semantic binding
+    //   does not replay is raw 14 (SPX-PG803), exactly as on native;
     // * carrier admission runs in static memory before the private
     //   reservation, so a refused attempt performs no memory.grow, no handle
     //   and no dispatch; the first admitted call then grows the private
     //   region plus the owned-byte heap once.
-    let frame = |id: &str, raw: u8, code: &str, verdict: &str| {
-        format!("{label} | {id} | native raw={raw} {code} entries=0 alloc+0 live=0 | wasm raw=5 SPX-PG801 handle=0 call=8 grown=0 repeat=0 recovery={recovery} close={close} | {verdict}")
+    let frame = |id: &str, raw: u8, code: &str| {
+        format!("{label} | {id} | native raw={raw} {code} entries=0 alloc+0 live=0 | wasm raw={raw} {code} handle=0 call=8 grown=0 repeat=0 recovery={recovery} close={close} | same")
     };
     vec![
         ticket("stale_generation_replay", 8, "SPX-PG805"),
@@ -358,10 +392,11 @@ fn expected(label: &str) -> Vec<String> {
         ticket("zero_generation_replay", 8, "SPX-PG805"),
         ticket("provider_owned_before_transfer", 7, "SPX-PG804"),
         ticket("substituted_cleanup_plan", 14, "SPX-PG803"),
-        frame("substituted_leaf_path", 14, "SPX-PG803", "DIVERGES"),
-        frame("unknown_leaf_kind_tag_one_over", 5, "SPX-PG801", "same"),
-        frame("legacy_flat", 5, "SPX-PG801", "same"),
+        frame("substituted_leaf_path", 14, "SPX-PG803"),
+        frame("unknown_leaf_kind_tag_one_over", 5, "SPX-PG801"),
+        frame("legacy_flat", 5, "SPX-PG801"),
         format!("{label} | canonical | native raw=0 entries=1 allocated=1 live=0 | {canonical}"),
+        format!("{label} | prepare_before_scratch_reserve | native no analogue: no scratch reservation | wasm open=7 prepare=8 handle=0"),
     ]
 }
 
@@ -400,6 +435,6 @@ fn native_and_core_wasm_outcomes_are_measured_side_by_side() {
         "R07 measured native-vs-Core-Wasm table:\n{}",
         table.join("\n")
     );
-    assert_eq!(table.len(), 27);
+    assert_eq!(table.len(), 30);
     fs::remove_dir_all(root).unwrap();
 }

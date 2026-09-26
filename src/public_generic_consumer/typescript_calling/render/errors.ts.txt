@@ -11,7 +11,10 @@ export type CarrierReason = "input-shape" | "input-field" | "input-bytes"
   | "provider-closed" | "provider-busy" | "handle-invalid" | "handle-provider"
   | "handle-kind" | "lifo-release" | "state-invalid" | "failure-injection"
   | "carrier-framing" | "carrier-count" | "carrier-trailing"
-  | "carrier-bytes" | "leaf-bytes" | "total-payload";
+  | "carrier-bytes" | "leaf-bytes" | "total-payload"
+  // Wasm adapter ABI v2 raw 14 (SPX-PG803): the provider decoded the carrier
+  // but its semantic binding did not replay.
+  | "carrier-replay";
 export type CapacityReason = "leaf-count" | "leaf-bytes" | "total-payload"
   | "carrier-bytes" | "trace-events" | "memory-growth" | "generation" | "host-allocation";
 

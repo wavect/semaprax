@@ -8,11 +8,15 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::ast::BinaryOp;
+use crate::compute_profile::classifier::{ALIASING_BEYOND_CHECKED_RULE, GRID_SHAPE_OUT_OF_BOUNDS};
 use crate::compute_profile::cpu_reference::kernel_ir::{
     self, KernelExpr, KernelIr, Scalar, ScalarKind,
 };
 use crate::compute_profile::cpu_reference::session;
-use crate::compute_profile::cpu_reference::{KernelShape, STALE_HANDLE, TRANSFER_OUT_OF_BOUNDS};
+use crate::compute_profile::cpu_reference::{
+    ComputeCapability, CpuReferenceSession, DispatchControl, KernelShape, STALE_HANDLE,
+    TRANSFER_OUT_OF_BOUNDS,
+};
 use crate::hir::ResolvedProgram;
 use crate::interpreter::{self, ArgumentValue, InterpreterOptions};
 
@@ -556,4 +560,103 @@ fn negative_control_a_mutated_generated_kernel_disagrees_with_the_reference() {
         .dispatch_map(&program, &mutant_artifact, &[x, y], output2)
         .unwrap_err();
     assert_eq!(refusal.code(), STALE_HANDLE);
+}
+
+/// An input handle that is also the output handle is a `MayOverlap` claim
+/// the classifier never admits (`SPX-GC011`) — checked at dispatch time,
+/// against the real bound buffers, not merely at load time against a
+/// nominal `Disjoint` claim. Both backends reach this refusal through the
+/// identical `cpu_reference::session::classify_map_dispatch` call, so this
+/// asserts Metal's refusal and the CPU reference's refusal for the
+/// identical shape side by side, rather than trusting Metal alone.
+#[test]
+fn aliased_input_output_buffer_refuses_identically_on_metal_and_the_cpu_reference() {
+    device_or_skip!();
+    let program = resolve(KERNELS);
+
+    let mut session =
+        MetalSession::open(MetalCapability::all()).expect("device present (just checked)");
+    let artifact = session
+        .load_kernel(&program, "k.affine", 4)
+        .expect("kernel admitted");
+    let x = session.alloc(ScalarKind::I64, 4).unwrap();
+    session.upload(x, 0, &i64s(&[1, 2, 3, 4])).unwrap();
+    let out = session.alloc(ScalarKind::I64, 4).unwrap();
+
+    let refusal = session
+        .dispatch_map(&program, &artifact, &[x, out], out)
+        .unwrap_err();
+    assert_eq!(refusal.code(), ALIASING_BEYOND_CHECKED_RULE);
+
+    let mut cpu = CpuReferenceSession::open(ComputeCapability::cpu_reference_all());
+    let cpu_artifact = cpu
+        .load_kernel(
+            &program,
+            "k.affine",
+            KernelShape::ElementwiseMap { workgroup_size: 4 },
+        )
+        .expect("kernel admitted");
+    let cx = cpu.alloc(ScalarKind::I64, 4).unwrap();
+    cpu.upload(cx, 0, &i64s(&[1, 2, 3, 4])).unwrap();
+    let cout = cpu.alloc(ScalarKind::I64, 4).unwrap();
+    let cpu_refusal = cpu
+        .dispatch_map(
+            &program,
+            &cpu_artifact,
+            &[cx, cout],
+            cout,
+            DispatchControl::default(),
+        )
+        .unwrap_err();
+    assert_eq!(cpu_refusal.code(), ALIASING_BEYOND_CHECKED_RULE);
+}
+
+/// A single-workgroup dispatch whose *real* grid (from the bound buffers'
+/// actual length, `65_536` at `workgroup_size: 1`) exceeds `MAX_GRID_DIM`
+/// (`65_535`) must refuse (`SPX-GC006`), even though the *nominal* grid
+/// `load_kernel` classified was `[1, 1, 1]` and admitted. Both backends
+/// reach this refusal through the identical
+/// `cpu_reference::session::classify_map_dispatch` call, so this asserts
+/// Metal's refusal and the CPU reference's refusal for the identical shape
+/// side by side, rather than trusting Metal alone. On Metal this must be
+/// refused before any GPU allocation or dispatch inside `execute_map`.
+#[test]
+fn oversized_dispatch_time_grid_refuses_identically_on_metal_and_the_cpu_reference() {
+    device_or_skip!();
+    let program = resolve(KERNELS);
+    const LEN: usize = 65_536;
+
+    let mut session =
+        MetalSession::open(MetalCapability::all()).expect("device present (just checked)");
+    let artifact = session
+        .load_kernel(&program, "k.neg", 1)
+        .expect("kernel admitted");
+    let x = session.alloc(ScalarKind::I64, LEN).unwrap();
+    let out = session.alloc(ScalarKind::I64, LEN).unwrap();
+
+    let refusal = session
+        .dispatch_map(&program, &artifact, &[x], out)
+        .unwrap_err();
+    assert_eq!(refusal.code(), GRID_SHAPE_OUT_OF_BOUNDS);
+
+    let mut cpu = CpuReferenceSession::open(ComputeCapability::cpu_reference_all());
+    let cpu_artifact = cpu
+        .load_kernel(
+            &program,
+            "k.neg",
+            KernelShape::ElementwiseMap { workgroup_size: 1 },
+        )
+        .expect("kernel admitted");
+    let cx = cpu.alloc(ScalarKind::I64, LEN).unwrap();
+    let cout = cpu.alloc(ScalarKind::I64, LEN).unwrap();
+    let cpu_refusal = cpu
+        .dispatch_map(
+            &program,
+            &cpu_artifact,
+            &[cx],
+            cout,
+            DispatchControl::default(),
+        )
+        .unwrap_err();
+    assert_eq!(cpu_refusal.code(), GRID_SHAPE_OUT_OF_BOUNDS);
 }

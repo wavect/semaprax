@@ -17,6 +17,8 @@ mod interpreter;
 mod lifecycle;
 #[path = "same_subject_physical.rs"]
 mod physical;
+#[path = "profile_hostility.rs"]
+mod profile_hostility;
 #[path = "same_subject_rust.rs"]
 mod rust;
 #[path = "same_subject_typescript.rs"]

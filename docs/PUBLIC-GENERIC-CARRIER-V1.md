@@ -296,6 +296,23 @@ The legacy runtime's exact 7,489-byte concatenation is pinned independently.
 This is native-only, private and unpublished: no full arbitrary-body,
 cross-backend, sanitizer, hosted, or public-support acceptance follows.
 
+All three private profiles share one authenticated prepare entry. The owning
+`moves_and_allocating_profiles_reject_the_hostile_corpus_before_physical_work`
+selector drives the same seven frozen hostile-corpus recipes used for
+identity-v1 (stale, future and zero generation; provider-owned ticket;
+substituted cleanup plan; substituted leaf path; unknown leaf-kind tag)
+through the generated C11 and C++17 callers of moves-v1 (a real field-move
+body) and allocating-v1 (the allocating callee subject), plus the legacy
+flattened caller. Each must return its stable raw status (generation 8,
+ownership 7, cleanup plan and leaf path 14, leaf-kind tag and legacy flat 5)
+with zero endpoint entries and no provider allocation, consumed input, absent
+output and close-to-zero. Two omission controls per profile and language
+compile a provider without its generation check or without its cleanup-digest
+check; each must instead cross into allocation and endpoint entry. The
+selector runs 80 physical processes (two profiles, two languages, ten cases,
+O0/O2). No Rust caller exists for these two profiles, and this adds no Core
+Wasm comparison, sanitizer, hosted or public-support evidence.
+
 ## The logical value state machine
 
 Every handle (root or leaf) is in exactly one of these states:

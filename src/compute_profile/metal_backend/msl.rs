@@ -199,18 +199,65 @@ impl Codegen {
     }
 }
 
-/// Emit `guard` (a `uint` status expression) as a checked-failure test:
-/// non-zero records the status and returns from the invocation immediately.
-fn push_guarded(out: &mut String, ty: &str, name: &str, call: &str) {
-    out.push_str(&format!(
-        "    {ty} {name};\n    {{ uint st = {call}; if (st) {{ out_status[gid] = st; return; }} }}\n"
-    ));
+/// One piece of a straight-line sequence, generated left to right but
+/// assembled right to left by [`fold`] (see its doc comment for why).
+enum Step {
+    /// Ordinary code with no failure mode: inserted verbatim, nothing to
+    /// close.
+    Flat(String),
+    /// A checked operation's declaration and test, ending in an *open*
+    /// `else {` that [`fold`] must close after nesting everything that
+    /// follows inside it.
+    Guarded(String),
+}
+
+/// Assemble a left-to-right sequence of [`Step`]s ending in `tail` into one
+/// self-contained code fragment, folding from the last step to the first.
+///
+/// A checked operation's failure must skip every statement that would
+/// otherwise follow it in its own scope, all the way to the end of the
+/// kernel invocation (so a failed invocation never writes its output). An
+/// earlier version of this generator did that with a bare `out_status[gid]
+/// = st; return;` inside the guard, leaving the rest of the *current*
+/// scope's statements — and, critically, any `if`/`else` reached later in
+/// that same scope — textually **after** that `return`. That shape
+/// compiled and ran correctly for a lone checked operation, or for checked
+/// operations nested only inside `if`/`else` branches, but reproducibly
+/// made the system Metal compiler service fail
+/// (`XPC_ERROR_CONNECTION_INTERRUPTED`, confirmed identical across many
+/// runs on real hardware) for the one fixture shape that combines both: a
+/// `let`-bound checked value whose scope's *next* statement is an `if`.
+/// Bisection isolated exactly that combination — a trivial-branched `if`
+/// after such a `let` reproduced it just as reliably as the original
+/// nested-arithmetic kernel, while the same nested arithmetic with no
+/// preceding `let` did not.
+///
+/// This generator therefore never emits a bare `return` for a checked
+/// failure (only the one, always-first, always-isolated
+/// `if (gid >= element_count) { return; }` bounds guard remains — proven
+/// fine on every kernel, including the one that fails here, so it was
+/// never implicated). Instead every checked failure's `else` branch
+/// physically *contains* everything that follows it, built by folding this
+/// list from the end backward: each [`Step::Guarded`] wraps the
+/// (already-assembled) rest of the sequence inside its `else { … }`, so a
+/// failing invocation falls through to its own closing brace and the
+/// kernel's implicit `void` return — the output is skipped structurally,
+/// not by jumping out of it.
+fn fold(steps: Vec<Step>, tail: &str) -> String {
+    let mut rest = tail.to_owned();
+    for step in steps.into_iter().rev() {
+        rest = match step {
+            Step::Flat(code) => code + &rest,
+            Step::Guarded(prologue) => prologue + &rest + "    }\n",
+        };
+    }
+    rest
 }
 
 fn gen_expr(
     cg: &mut Codegen,
     expr: &KernelExpr,
-    out: &mut String,
+    steps: &mut Vec<Step>,
 ) -> Result<(String, ScalarKind), String> {
     match expr {
         KernelExpr::Slot(slot) => {
@@ -224,7 +271,7 @@ fn gen_expr(
         }
         KernelExpr::Literal(scalar) => Ok((literal_text(*scalar)?, scalar.kind())),
         KernelExpr::Neg(inner) => {
-            let (value, kind) = gen_expr(cg, inner, out)?;
+            let (value, kind) = gen_expr(cg, inner, steps)?;
             let ty = msl_type(kind)?;
             let function = match kind {
                 ScalarKind::I64 => "checked_neg_i64",
@@ -232,32 +279,34 @@ fn gen_expr(
                 _ => return Err(format!("negation has no Metal v1 lowering for {kind:?}")),
             };
             let name = cg.fresh();
-            push_guarded(out, ty, &name, &format!("{function}({value}, &{name})"));
+            steps.push(Step::Guarded(format!(
+                "    {ty} {name};\n    uint st_{name} = {function}({value}, &{name});\n    if (st_{name}) {{ out_status[gid] = st_{name}; }} else {{\n"
+            )));
             Ok((name, kind))
         }
         KernelExpr::Not(inner) => {
-            let (value, kind) = gen_expr(cg, inner, out)?;
+            let (value, kind) = gen_expr(cg, inner, steps)?;
             if kind != ScalarKind::Bool {
                 return Err("`!` has no Metal v1 lowering for a non-bool operand".to_owned());
             }
             let name = cg.fresh();
-            out.push_str(&format!("    bool {name} = !{value};\n"));
+            steps.push(Step::Flat(format!("    bool {name} = !{value};\n")));
             Ok((name, ScalarKind::Bool))
         }
-        KernelExpr::Binary { op, left, right } => gen_binary(cg, *op, left, right, out),
+        KernelExpr::Binary { op, left, right } => gen_binary(cg, *op, left, right, steps),
         KernelExpr::If {
             condition,
             then_branch,
             else_branch,
-        } => gen_if(cg, condition, then_branch, else_branch, out),
+        } => gen_if(cg, condition, then_branch, else_branch, steps),
         KernelExpr::Block { lets, tail } => {
             for (slot, value) in lets {
-                let (value_name, kind) = gen_expr(cg, value, out)?;
+                let (value_name, kind) = gen_expr(cg, value, steps)?;
                 let ty = msl_type(kind)?;
-                out.push_str(&format!("    {ty} slot{slot} = {value_name};\n"));
+                steps.push(Step::Flat(format!("    {ty} slot{slot} = {value_name};\n")));
                 cg.slot_kinds[*slot as usize] = Some(kind);
             }
-            gen_expr(cg, tail, out)
+            gen_expr(cg, tail, steps)
         }
     }
 }
@@ -267,17 +316,16 @@ fn gen_binary(
     op: BinaryOp,
     left: &KernelExpr,
     right: &KernelExpr,
-    out: &mut String,
+    steps: &mut Vec<Step>,
 ) -> Result<(String, ScalarKind), String> {
     if matches!(op, BinaryOp::And | BinaryOp::Or) {
-        let (lvar, lkind) = gen_expr(cg, left, out)?;
+        let (lvar, lkind) = gen_expr(cg, left, steps)?;
         if lkind != ScalarKind::Bool {
             return Err("`&&`/`||` need bool operands".to_owned());
         }
         let name = cg.fresh();
-        out.push_str(&format!("    bool {name};\n"));
-        let mut branch = String::new();
-        let (rvar, rkind) = gen_expr(cg, right, &mut branch)?;
+        let mut right_steps = Vec::new();
+        let (rvar, rkind) = gen_expr(cg, right, &mut right_steps)?;
         if rkind != ScalarKind::Bool {
             return Err("`&&`/`||` need bool operands".to_owned());
         }
@@ -286,14 +334,15 @@ fn gen_binary(
             BinaryOp::Or => ("true", ""),
             _ => unreachable!(),
         };
-        out.push_str(&format!(
-            "    if ({taken}{lvar}) {{ {name} = {short_circuit}; }} else {{\n{branch}        {name} = {rvar};\n    }}\n"
-        ));
+        let right_code = fold(right_steps, &format!("        {name} = {rvar};\n"));
+        steps.push(Step::Flat(format!(
+            "    bool {name};\n    if ({taken}{lvar}) {{ {name} = {short_circuit}; }} else {{\n{right_code}    }}\n"
+        )));
         return Ok((name, ScalarKind::Bool));
     }
 
-    let (lvar, lkind) = gen_expr(cg, left, out)?;
-    let (rvar, rkind) = gen_expr(cg, right, out)?;
+    let (lvar, lkind) = gen_expr(cg, left, steps)?;
+    let (rvar, rkind) = gen_expr(cg, right, steps)?;
     if lkind != rkind {
         return Err(format!(
             "binary operand kinds disagree: {lkind:?} vs {rkind:?}"
@@ -306,17 +355,16 @@ fn gen_binary(
         let ty = msl_type(lkind)?;
         let function = checked_fn_name(op, lkind)?;
         let name = cg.fresh();
-        push_guarded(
-            out,
-            ty,
-            &name,
-            &format!("{function}({lvar}, {rvar}, &{name})"),
-        );
+        steps.push(Step::Guarded(format!(
+            "    {ty} {name};\n    uint st_{name} = {function}({lvar}, {rvar}, &{name});\n    if (st_{name}) {{ out_status[gid] = st_{name}; }} else {{\n"
+        )));
         Ok((name, lkind))
     } else {
         let symbol = comparison_symbol(op);
         let name = cg.fresh();
-        out.push_str(&format!("    bool {name} = ({lvar} {symbol} {rvar});\n"));
+        steps.push(Step::Flat(format!(
+            "    bool {name} = ({lvar} {symbol} {rvar});\n"
+        )));
         Ok((name, ScalarKind::Bool))
     }
 }
@@ -326,16 +374,16 @@ fn gen_if(
     condition: &KernelExpr,
     then_branch: &KernelExpr,
     else_branch: &KernelExpr,
-    out: &mut String,
+    steps: &mut Vec<Step>,
 ) -> Result<(String, ScalarKind), String> {
-    let (cvar, ckind) = gen_expr(cg, condition, out)?;
+    let (cvar, ckind) = gen_expr(cg, condition, steps)?;
     if ckind != ScalarKind::Bool {
         return Err("`if` condition must be bool".to_owned());
     }
-    let mut then_code = String::new();
-    let (then_var, then_kind) = gen_expr(cg, then_branch, &mut then_code)?;
-    let mut else_code = String::new();
-    let (else_var, else_kind) = gen_expr(cg, else_branch, &mut else_code)?;
+    let mut then_steps = Vec::new();
+    let (then_var, then_kind) = gen_expr(cg, then_branch, &mut then_steps)?;
+    let mut else_steps = Vec::new();
+    let (else_var, else_kind) = gen_expr(cg, else_branch, &mut else_steps)?;
     if then_kind != else_kind {
         return Err(format!(
             "`if` branches disagree in kind: {then_kind:?} vs {else_kind:?}"
@@ -343,9 +391,14 @@ fn gen_if(
     }
     let ty = msl_type(then_kind)?;
     let name = cg.fresh();
-    out.push_str(&format!(
-        "    {ty} {name};\n    if ({cvar}) {{\n{then_code}        {name} = {then_var};\n    }} else {{\n{else_code}        {name} = {else_var};\n    }}\n"
-    ));
+    let then_code = fold(then_steps, &format!("        {name} = {then_var};\n"));
+    let else_code = fold(else_steps, &format!("        {name} = {else_var};\n"));
+    // Both branches are already fully self-contained (closed) fragments, so
+    // this whole `if`/`else` is itself a `Step::Flat`: nothing needs to
+    // nest *around* it, `name` is simply available to whatever follows.
+    steps.push(Step::Flat(format!(
+        "    {ty} {name};\n    if ({cvar}) {{\n{then_code}    }} else {{\n{else_code}    }}\n"
+    )));
     Ok((name, then_kind))
 }
 
@@ -380,11 +433,12 @@ pub(crate) fn generate(declaration: &str, ir: &KernelIr) -> Result<GeneratedKern
         cg.slot_kinds[slot] = Some(*kind);
     }
 
-    let mut body = String::new();
-    let (result_var, result_kind) = gen_expr(&mut cg, &ir.body, &mut body)?;
+    let mut steps = Vec::new();
+    let (result_var, result_kind) = gen_expr(&mut cg, &ir.body, &mut steps)?;
     if result_kind != ir.result {
         return Err("generated result kind disagrees with the checked signature".to_owned());
     }
+    let body = fold(steps, &format!("    out[gid] = {result_var};\n"));
 
     let out_index = ir.params.len();
     let status_index = out_index + 1;
@@ -418,7 +472,6 @@ pub(crate) fn generate(declaration: &str, ir: &KernelIr) -> Result<GeneratedKern
         source.push_str(&format!("    {ty} slot{index} = in{index}[gid];\n"));
     }
     source.push_str(&body);
-    source.push_str(&format!("    out[gid] = {result_var};\n"));
     source.push_str("}\n");
 
     let sha256 = format!(

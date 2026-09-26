@@ -13,6 +13,11 @@ use semaprax::outbound_host_adapter::{
 use semaprax_native_rust_interop_platform as platform;
 use semaprax_native_rust_interop_platform::HeldDirectory;
 
+/// The first non-test caller for this store: a bounded, host-authorized
+/// wiring from a decoded service outbound declaration to a real durable
+/// typed delivery session.
+pub mod service_invocation;
+
 /// The typed checkpoint family is part of the on-disk namespace.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OutboundCheckpointKind {

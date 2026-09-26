@@ -34,8 +34,10 @@ wildcards = "deny"
 highlight = "all"
 # Transitional dependency lines are admitted only at exact superseded
 # versions, so a change in a duplication shape fails this gate again. Drop the
-# RustCrypto entries when ed25519-dalek moves from digest 0.10 to 0.11, and the
-# syn entry when the remaining macro dependencies move to syn 3.
+# RustCrypto entries when ed25519-dalek moves from digest 0.10 to 0.11, the syn
+# entry when the remaining macro dependencies move to syn 3, the
+# x509-cert/der/spki entries when sigstore-verify moves to x509-cert 0.3, and
+# the base64 entry when sigstore, pem and hyper-util move to base64 0.23.
 skip = [
   { crate = "getrandom@0.2.17", reason = "ring/rustls retains the pre-0.4 getrandom line" },
   { crate = "getrandom@0.3.4", reason = "sigstore-verify's cryptographic graph retains rand 0.9's getrandom line" },
@@ -48,6 +50,11 @@ skip = [
   { crate = "rand_core@0.9.5", reason = "sigstore-verify's cryptographic graph retains rand 0.9" },
   { crate = "syn@2.0.119", reason = "macro dependencies retain syn 2 while newer serde uses syn 3" },
   { crate = "untrusted@0.7.1", reason = "aws-lc-rs in sigstore-verify retains its compatibility untrusted line" },
+  { crate = "x509-cert@0.2.5", reason = "sigstore-verify's X.509 graph retains x509-cert 0.2 while the direct dependency is 0.3" },
+  { crate = "der@0.7.10", reason = "sigstore-verify's X.509 graph retains the der 0.7 line; direct x509-cert 0.3 uses der 0.8" },
+  { crate = "der_derive@0.7.3", reason = "sigstore-verify's X.509 graph retains the der 0.7 line; direct x509-cert 0.3 uses der 0.8" },
+  { crate = "spki@0.7.3", reason = "sigstore-verify's X.509 graph retains the spki 0.7 line; direct x509-cert 0.3 uses spki 0.8" },
+  { crate = "base64@0.22.1", reason = "sigstore, pem and hyper-util retain base64 0.22 while reqwest 0.13.5 uses 0.23" },
 ]
 
 [sources]

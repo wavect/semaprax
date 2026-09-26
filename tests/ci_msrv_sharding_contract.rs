@@ -246,6 +246,25 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
     assert!(release.contains("      - verify-tests\n"));
 }
 
+#[test]
+fn windows_typed_agent_corpus_moves_without_losing_coverage() {
+    let workflow = std::fs::read_to_string(root().join(".github/workflows/ci.yml")).unwrap();
+    let agent_job = workflow
+        .split_once("\n  agent-proposal-clients:\n")
+        .unwrap()
+        .1
+        .split_once("\n  gen05b-generic-instance-closure:\n")
+        .unwrap()
+        .0;
+    assert!(agent_job.contains("if: runner.os == 'Windows'"));
+    assert!(agent_job.contains(
+        "cargo test --locked --offline -p semaprax --all-features --test agent_runtime_v1 execution_revision::typed::"
+    ));
+    let router = std::fs::read_to_string(root().join("scripts/ci-msrv.py")).unwrap();
+    assert!(router.contains("args.label == \"Rust Windows\" and args.shard == \"integration-3\""));
+    assert!(router.contains("test_arguments.extend((\"--skip\", \"execution_revision::typed::\"))"));
+}
+
 const ROUTER_FAILURES: &str = r#"
 import contextlib
 import copy

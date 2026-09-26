@@ -106,7 +106,11 @@ fn exhaustive_linux_ci_provisions_the_native_https_development_interface() {
             "desktop-native-product",
             "python3 scripts/ci-msrv.py",
         ),
-        ("msrv", "release-gate", "python3 scripts/ci-msrv.py"),
+        (
+            "msrv",
+            "release-gate",
+            "cargo check --locked --workspace --all-targets --all-features",
+        ),
     ] {
         let body = workflow
             .split_once(&format!("\n  {job}:\n"))

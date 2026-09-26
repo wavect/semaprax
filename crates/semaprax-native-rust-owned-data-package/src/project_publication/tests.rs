@@ -20,6 +20,17 @@ const LIBRARY_FILES: [(&str, &[u8]); 6] = [
     ("src/lib.spx", b"library\n"),
     ("src/tests.spx", b"tests\n"),
 ];
+const SERVICE_FILES: [(&str, &[u8]); 9] = [
+    ("README.md", b"readme\n"),
+    ("AGENTS.md", b"agents\n"),
+    ("semaprax.toml", b"manifest\n"),
+    ("src/app.spx", b"app\n"),
+    ("src/core.spx", b"core\n"),
+    ("src/tests.spx", b"tests\n"),
+    ("service-config.schema.json", b"schema\n"),
+    ("service.config.json", b"config\n"),
+    ("service-host-adapter-request.json", b"request\n"),
+];
 
 #[test]
 fn stage_and_output_collision_rejects_before_creating_children() {
@@ -159,6 +170,66 @@ fn library_inventory_is_closed_and_published_through_the_same_authority() {
     }
     fs::remove_dir(root.join("library/src")).unwrap();
     fs::remove_dir(root.join("library")).unwrap();
+    fs::remove_dir(root).unwrap();
+}
+
+#[test]
+fn service_inventory_holds_all_nine_files_through_publication() {
+    let root = fixture();
+    let mut authority =
+        NewProjectAuthority::create_service(&root, OsStr::new("service"), OsStr::new("stage"))
+            .unwrap();
+    assert_eq!(
+        authority.write("src/lib.spx", b"foreign\n"),
+        Err(NewProjectAuthorityError::Invalid)
+    );
+    for (path, bytes) in SERVICE_FILES {
+        authority.write(path, bytes).unwrap();
+    }
+    assert_eq!(
+        authority.authenticate(&SERVICE_FILES[..8]),
+        Err(NewProjectAuthorityError::Invalid)
+    );
+    fs::write(root.join("stage/foreign.json"), b"foreign\n").unwrap();
+    assert_eq!(
+        authority.authenticate(&SERVICE_FILES),
+        Err(NewProjectAuthorityError::Changed)
+    );
+    fs::remove_file(root.join("stage/foreign.json")).unwrap();
+    authority.authenticate(&SERVICE_FILES).unwrap();
+    authority.publish_and_verify(&SERVICE_FILES).unwrap();
+    drop(authority);
+    assert_eq!(names(&root), ["service"]);
+    assert_eq!(
+        names(&root.join("service")),
+        [
+            "AGENTS.md",
+            "README.md",
+            "semaprax.toml",
+            "service-config.schema.json",
+            "service-host-adapter-request.json",
+            "service.config.json",
+            "src",
+        ]
+    );
+    for (relative, bytes) in SERVICE_FILES {
+        remove_file(&root.join("service").join(relative), bytes);
+    }
+    fs::remove_dir(root.join("service/src")).unwrap();
+    fs::remove_dir(root.join("service")).unwrap();
+    fs::remove_dir(root).unwrap();
+}
+
+#[test]
+fn service_partial_stage_drop_removes_only_its_owned_files() {
+    let root = fixture();
+    let mut authority =
+        NewProjectAuthority::create_service(&root, OsStr::new("service"), OsStr::new("stage"))
+            .unwrap();
+    authority.write("README.md", b"readme\n").unwrap();
+    authority.write("AGENTS.md", b"agents\n").unwrap();
+    drop(authority);
+    assert!(names(&root).is_empty());
     fs::remove_dir(root).unwrap();
 }
 

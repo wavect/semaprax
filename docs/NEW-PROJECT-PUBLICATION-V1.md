@@ -23,12 +23,11 @@ create-new route without this protocol's staging or identity re-verification.
 Publication changes neither command grammar, lowered Project schema, nor source
 semantics. The existing
 `--name` and closed `--template calculator|library|service` choices are
-admitted. The authority holds one of two exact fixed-arity source-directory
-shapes selected before staging: the calculator and
-[service](PROJECT-SCAFFOLD-SERVICE-V1.md) templates share one (their source
-files have identical names), and the library template uses the other. The
-exact generated inventories are those of [Public Project Scaffold Capsule
-v3](PROJECT-SCAFFOLD-V3.md):
+admitted. The authority selects an exact source and root inventory before
+staging. Calculator and [service](PROJECT-SCAFFOLD-SERVICE-V1.md) share source
+names; library has different source names. Service also holds three
+configuration files at the root. The generated inventories are those of
+[Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md):
 
 - `README.md`
 - `AGENTS.md`
@@ -43,9 +42,10 @@ or the same three root files plus:
 - `src/lib.spx`
 - `src/tests.spx`
 
-(`AGENTS.md` was added by scaffold v2; scaffold v3 keeps the three-file root
-inventory and grows the calculator's held source inventory from two files to
-three.)
+The service inventory adds `service-config.schema.json`,
+`service.config.json`, and `service-host-adapter-request.json` to the
+calculator shape. All nine files are checked before publication and after the
+no-replace rename.
 
 There is no template discovery, arbitrary template input, network access,
 dependency installation, Git initialization, recursive cleanup API, general

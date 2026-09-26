@@ -16,7 +16,7 @@ All admitted parser, first-error, duplicate, checked-total, fixture-enrichment, 
 The fourteen-case source suite needs the documented bounded interpreter envelope:
 
 ```sh
-semaprax test . --max-steps 1000000 --max-bytes 69710
+semaprax test . --max-steps 2000000 --max-bytes 69710
 ```
 
 Capacity remains a development constraint. The complete source-test projection forecast 46,202,120 builder bytes but exceeded the intermediate 48 MiB ceiling during live construction, motivating the 64 MiB graph ceiling. The fully scalar writer and source suite separately motivated the 32,000,000-unit global cleanup-replay work ceiling. The per-function 65,536-path refusal remains unchanged. The focused application gate is the executable evidence for this capacity-sensitive shape.

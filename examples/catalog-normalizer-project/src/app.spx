@@ -377,21 +377,6 @@ fn record_output_len(line: borrow Slice<u8>) -> usize
     32usize + escaped_len(line, id, 0usize, decoded_len(line, id)) + escaped_len(line, label, label_start, label_end) + i64_len(quantity)
 }
 
-@id("catalog_normalizer.app.record-output-byte")
-fn record_output_byte(line: borrow Slice<u8>, index: usize) -> u8
-{
-    let id = record_id_value(line);
-    let label = record_label_value(line);
-    let id_end = decoded_len(line, id);
-    let id_len = escaped_len(line, id, 0usize, id_end);
-    let label_start = decoded_trim_start(line, label);
-    let label_end_raw = decoded_trim_end(line, label);
-    let label_end = if label_end_raw > label_start { label_end_raw } else { label_start };
-    let label_len = escaped_len(line, label, label_start, label_end);
-    let quantity = quantity_or(line, record_quantity_value(line), -1);
-    if index < 7usize { literal_byte(9usize, index) } else { let id_end_index = 7usize + id_len; if index < id_end_index { escaped_byte_at(line, id, 0usize, id_end, index - 7usize) } else { let label_start_index = id_end_index + 11usize; if index < label_start_index { literal_byte(10usize, index - id_end_index) } else { let label_end_index = label_start_index + label_len; if index < label_end_index { escaped_byte_at(line, label, label_start, label_end, index - label_start_index) } else { let quantity_start_index = label_end_index + 13usize; if index < quantity_start_index { literal_byte(11usize, index - label_end_index) } else { let quantity_end_index = quantity_start_index + i64_len(quantity); if index < quantity_end_index { i64_byte(quantity, index - quantity_start_index) } else { 125u8 } } } } } }
-}
-
 @id("catalog_normalizer.app.success-total")
 fn success_total(body: borrow Slice<u8>) -> i64
 {
@@ -616,7 +601,7 @@ fn output_len_known(body: borrow Slice<u8>, count: usize, total: i64, enriched: 
 @id("catalog_normalizer.app.output-phase-byte")
 fn output_phase_byte(body: borrow Slice<u8>, enriched: bool, phase: usize, part: usize, count: usize, total: i64, id_cursor: usize, id_length: usize, label_cursor: usize, label_length: usize, quantity: i64, outcome: usize) -> u8
 {
-    if enriched { enriched_phase_byte(body, phase, part, count, total, id_cursor, id_length, label_cursor, label_length, quantity, outcome) } else { success_phase_byte(body, phase, part, count, total, id_cursor, id_length, label_cursor, label_length, quantity) }
+    if phase == 8usize && label_cursor >= 4194304usize { let raw = label_cursor - 4194304usize; match byte_get(body, raw / 32usize + raw % 32usize) { Option::Some { value } => value, Option::None {} => 0u8, } } else { if enriched { enriched_phase_byte(body, phase, part, count, total, id_cursor, id_length, label_cursor, label_length, quantity, outcome) } else { success_phase_byte(body, phase, part, count, total, id_cursor, id_length, label_cursor, label_length, quantity) } }
 }
 
 @id("catalog_normalizer.app.output-phase-len")
@@ -670,21 +655,15 @@ fn shared_success_response(body: borrow Slice<u8>, enriched: bool) -> Bytes
     let mut outcome = outcome_if(body, active && enriched, id, 0usize);
     let mut segment = 0usize;
     while phase < terminal_phase {
-        phase = output_phase_after_empty_label(phase, label_length);
-        segment = if part == 0usize { output_phase_len(enriched, phase, count, total, record, id_length, label_length, quantity, outcome) } else { segment };
+        let _ = if part == 0usize { phase = output_phase_after_empty_label(phase, label_length); segment = output_phase_len(enriched, phase, count, total, record, id_length, label_length, quantity, outcome); true } else { false };
         let value = output_phase_byte(body, enriched, phase, part, count, total, id_cursor, id_length, label_cursor, label_length, quantity, outcome);
         out = bytes_set(out, index, value);
         index = index + 1usize;
         let advanced_part = part + 1usize;
         let done = advanced_part >= segment;
-        let next_record_value = output_next_record(enriched, done, phase, record);
-        let changed_record = next_record_value != record && next_record_value < count;
         id_cursor = if phase == 6usize { escape_cursor_next(body, id_cursor) } else { id_cursor };
         label_cursor = if phase == 8usize { escape_cursor_next(body, label_cursor) } else { label_cursor };
-        phase = output_next_phase(enriched, done, phase, count, record);
-        part = next_part(done, advanced_part);
-        record = next_record_value;
-        if changed_record { record_start = record_end + 1usize; record_end = line_end(body, record_start); id = field_if(body, true, record_start, record_end, 1usize, id); label = field_if(body, true, record_start, record_end, 2usize, label); quantity_at = field_if(body, true, record_start, record_end, 3usize, quantity_at); id_length = escaped_len(body, id, 0usize, decoded_len(body, id)); label_start = decoded_trim_start(body, label); label_end = trim_end_if(body, true, label, label_start, label_end); label_length = escaped_len(body, label, label_start, label_end); id_cursor = escape_cursor_start(body, id, 0usize); label_cursor = escape_cursor_start(body, label, label_start); quantity = quantity_or(body, quantity_at, -1); outcome = outcome_if(body, enriched, id, outcome); phase < terminal_phase } else { phase < terminal_phase }
+        if done { let next_record_value = output_next_record(enriched, true, phase, record); let changed_record = next_record_value != record && next_record_value < count; phase = output_next_phase(enriched, true, phase, count, record); part = 0usize; record = next_record_value; if changed_record { record_start = record_end + 1usize; record_end = line_end(body, record_start); id = field_if(body, true, record_start, record_end, 1usize, id); label = field_if(body, true, record_start, record_end, 2usize, label); quantity_at = field_if(body, true, record_start, record_end, 3usize, quantity_at); id_length = escaped_len(body, id, 0usize, decoded_len(body, id)); label_start = decoded_trim_start(body, label); label_end = trim_end_if(body, true, label, label_start, label_end); label_length = escaped_len(body, label, label_start, label_end); id_cursor = escape_cursor_start(body, id, 0usize); label_cursor = escape_cursor_start(body, label, label_start); quantity = quantity_or(body, quantity_at, -1); outcome = outcome_if(body, enriched, id, outcome); phase < terminal_phase } else { phase < terminal_phase } } else { part = advanced_part; phase < terminal_phase }
     }
     let view = bytes_as_slice(out);
     bytes_copy(byte_range(view, 0usize, index))

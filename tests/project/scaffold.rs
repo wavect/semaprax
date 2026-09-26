@@ -650,10 +650,10 @@ fn service_template_composes_bundled_dependencies_and_only_derives_under_tables_
     assert!(manifest.contains("sources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\n"));
     assert!(manifest.contains("tests = [\"demo_project.tests\"]\n"));
     assert!(manifest.contains(
-        "web = [\"demo-project.identifier_is_valid\", \"demo-project.method_is_rejected\"]\n"
+        "web = [\"demo_project.core.identifier_is_valid\", \"demo_project.core.method_is_rejected\"]\n"
     ));
     assert!(manifest.contains(
-        "[dependencies]\nstd.auth = \"=0.1.0\"\nstd.db = \"=0.1.0\"\nstd.export.policy = \"=0.1.0\"\nstd.http = \"=0.1.0\"\nstd.jobs = \"=0.1.0\"\nstd.log = \"=0.1.0\"\nstd.log.redact = \"=0.1.0\"\nstd.metrics = \"=0.1.0\"\nstd.tracing = \"=0.1.0\"\n"
+        "[dependencies]\nstd.auth = \"=0.1.0\"\nstd.db = \"=0.1.0\"\nstd.export.policy = \"=0.1.0\"\nstd.http = \"=0.1.0\"\nstd.jobs = \"=0.1.0\"\nstd.log = \"=0.1.0\"\nstd.log.redact = \"=0.1.0\"\nstd.metrics = \"=0.1.0\"\nstd.tracing = \"=0.1.0\"\nstd.webhook = \"=0.1.0\"\n"
     ));
 
     let agents = derived.files()[1].utf8();
@@ -680,7 +680,7 @@ fn service_template_composes_bundled_dependencies_and_only_derives_under_tables_
     assert!(core.contains(
         "use function @id(\"std.export.policy.export_admitted\") from std.export.policy"
     ));
-    assert!(core.contains("it neither reads headers nor emits a log or span"));
+    assert!(agents.contains("they neither hash a password, open a socket or database"));
 
     // Deterministic and self-replaying under its own schema.
     let again =

@@ -171,7 +171,7 @@ fn create_with_serial_template(
         .collect::<Vec<_>>();
     validate_template_inventory(template, project::ScaffoldLayout::Tables, &paths)
         .map_err(NewProjectFailure::creation)?;
-    let expected = expected_files(files)?;
+    let expected = expected_files(template, project::ScaffoldLayout::Tables, files)?;
 
     let file_name = requested_destination.file_name().ok_or_else(|| {
         NewProjectFailure::creation("new project destination must name one directory")
@@ -382,6 +382,8 @@ fn create_staging_authority(
         }
         let created = if template == project::PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
             NewProjectAuthority::create_library(parent, output_name, std::ffi::OsStr::new(&name))
+        } else if template == project::PROJECT_SCAFFOLD_TEMPLATE_SERVICE {
+            NewProjectAuthority::create_service(parent, output_name, std::ffi::OsStr::new(&name))
         } else {
             NewProjectAuthority::create(parent, output_name, std::ffi::OsStr::new(&name))
         };
@@ -396,23 +398,16 @@ fn create_staging_authority(
     ))
 }
 
-fn expected_files(
-    files: &[ProjectScaffoldFileV1],
-) -> Result<Vec<(&str, &[u8])>, NewProjectFailure> {
+fn expected_files<'a>(
+    template: &str,
+    layout: project::ScaffoldLayout,
+    files: &'a [ProjectScaffoldFileV1],
+) -> Result<Vec<(&'a str, &'a [u8])>, NewProjectFailure> {
     let expected = files
         .iter()
         .map(|file| (file.path(), file.bytes()))
         .collect::<Vec<_>>();
-    if expected.len()
-        == project::project_scaffold_inventory(
-            if expected.len() == project::PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT {
-                project::PROJECT_SCAFFOLD_TEMPLATE_LIBRARY
-            } else {
-                project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR
-            },
-        )
-        .len()
-    {
+    if expected.len() == project::project_scaffold_inventory_with_layout(template, layout).len() {
         Ok(expected)
     } else {
         Err(NewProjectFailure::creation(

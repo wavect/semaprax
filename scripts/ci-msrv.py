@@ -139,6 +139,10 @@ def main(argv=None):
         # The LINK assignment above already covers the stack reserve.
         if "--test-threads=1" not in test_arguments:
             test_arguments.append("--test-threads=1")
+    if os.name == "nt" and args.label == "Rust Windows" and args.shard == "integration-3":
+        # The typed execution-revision corpus runs in AGENT-06 on Windows.
+        # Keeping it here as well exceeded the hosted six-hour job ceiling.
+        test_arguments.extend(("--skip", "execution_revision::typed::"))
     if (
         sys.platform == "darwin"
         and args.label == "Rust macOS"

@@ -1,0 +1,7 @@
+# GitBook configuration: publish the user-facing handbook, not the
+# agent-facing specification library in docs/.
+root: ./handbook/
+
+structure:
+  readme: README.md
+  summary: SUMMARY.md

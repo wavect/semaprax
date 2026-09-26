@@ -12,7 +12,7 @@ use semaprax::{
 };
 use sha2::{Digest as _, Sha256};
 
-const HELPERS: &str = r#"
+pub(super) const HELPERS: &str = r#"
 @id("auth.offset")
 fn offset(base: usize) -> usize { base }
 @id("auth.remake")
@@ -22,7 +22,7 @@ fn remake(value: own Bytes, index: usize) -> Bytes {
     fresh
 }
 "#;
-const BODY: &str = r"{
+pub(super) const BODY: &str = r"{
     let left = value.left;
     let right = value.right;
     let copied = bytes_copy(bytes_as_slice(left));

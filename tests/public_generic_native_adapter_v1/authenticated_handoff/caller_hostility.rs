@@ -15,13 +15,13 @@ use semaprax::{
 };
 use std::env;
 
-struct Case {
-    id: &'static str,
-    source: String,
-    raw: u8,
+pub(super) struct Case {
+    pub(super) id: &'static str,
+    pub(super) source: String,
+    pub(super) raw: u8,
 }
 
-fn replace_once(source: &str, from: &str, to: &str) -> String {
+pub(super) fn replace_once(source: &str, from: &str, to: &str) -> String {
     assert_ne!(from, to);
     assert_eq!(
         source.matches(from).count(),
@@ -35,7 +35,7 @@ fn declaration(name: &str, bytes: &[u8]) -> String {
     super::super::array(name, bytes).trim_end().to_owned()
 }
 
-fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case> {
+pub(super) fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case> {
     let plan = CarrierFrameBinding::from_verified_descriptor(descriptor, Direction::Input);
     let empty = plan
         .frame_with_leaves(

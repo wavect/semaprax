@@ -335,33 +335,22 @@ fn compare(root: &Path, label: &str, source: &str, expected: [&[u8]; 2]) -> Vec<
 }
 
 fn expected(label: &str) -> Vec<String> {
-    // Measured: the compiler emits and verifies a Core Wasm provider for the
-    // allocating subject, but its checked call traps with `unreachable`, so
-    // that subject has no Core Wasm positive control.
-    let (recovery, close, canonical) = if label == "allocating" {
-        (
-            "trap:unreachable",
-            "\"trapped\"",
-            "wasm trap:unreachable".to_owned(),
-        )
-    } else {
-        (
-            "settled",
-            "0",
-            "wasm raw=0 again=8 consumed=8 grown=16777216 close=0 leaves=native".to_owned(),
-        )
-    };
+    // Every subject, including the allocating one, now executes on Core Wasm
+    // through the provider's own owned-byte runtime.
+    let (recovery, close) = ("settled", "0");
+    let canonical = "wasm raw=0 again=8 consumed=8 grown=21037056 close=0 leaves=native".to_owned();
     let ticket = |id: &str, raw: u8, code: &str| {
         format!("{label} | {id} | native raw={raw} {code} entries=0 alloc+0 live=0 | wasm no analogue: prepare arity=3")
     };
     // Measured Core Wasm facts, recorded rather than smoothed over:
     // * its input_prepare collapses every non-capacity codec refusal to raw 5,
     //   so a semantic leaf-path substitution is not reported as SPX-PG803;
-    // * it performs its one-time private 16 MiB reservation (memory.grow)
-    //   before carrier admission, even on a refused first attempt; a repeated
-    //   refusal grows nothing, and no handle or dispatch follows either way.
+    // * it performs its one-time private reservation (memory.grow: the 16 MiB
+    //   private region plus the owned-byte heap) before carrier admission,
+    //   even on a refused first attempt; a repeated refusal grows nothing,
+    //   and no handle or dispatch follows either way.
     let frame = |id: &str, raw: u8, code: &str, verdict: &str| {
-        format!("{label} | {id} | native raw={raw} {code} entries=0 alloc+0 live=0 | wasm raw=5 SPX-PG801 handle=0 call=8 grown=16777216 repeat=0 recovery={recovery} close={close} | {verdict}")
+        format!("{label} | {id} | native raw={raw} {code} entries=0 alloc+0 live=0 | wasm raw=5 SPX-PG801 handle=0 call=8 grown=21037056 repeat=0 recovery={recovery} close={close} | {verdict}")
     };
     vec![
         ticket("stale_generation_replay", 8, "SPX-PG805"),

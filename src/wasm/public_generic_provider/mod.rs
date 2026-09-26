@@ -10,6 +10,7 @@ use crate::public_generic_abi::compiler_endpoint::AdmittedPublicGenericEndpointV
 use crate::public_generic_abi::digest;
 use crate::public_generic_abi::wasm::binding::WasmProviderBindingV1;
 
+mod byte_runtime;
 mod carrier_codec;
 mod component;
 pub use component::PublicGenericWasmComponentArtifactV1;
@@ -45,12 +46,23 @@ pub(super) struct ProviderLayout {
     pub(super) result_aggregate: u32,
     pub(super) result_carrier: u32,
     pub(super) result_carrier_capacity: u32,
+    /// Invocation-local owned-byte heap: token table, then payload bytes.
+    pub(super) heap_table: u32,
+    pub(super) heap_data: u32,
+    pub(super) heap_end: u32,
     pub(super) workspace_end: u32,
 }
 
 const fn align_up(value: u32, alignment: u32) -> u32 {
     value.div_ceil(alignment) * alignment
 }
+
+// The owned-byte heap follows every predecessor region, so no earlier offset
+// moves; only the memory limit grows to cover it.
+const STANDALONE_HEAP_TABLE: u32 = PROVIDER_MEMORY_LIMIT;
+const STANDALONE_HEAP_DATA: u32 = STANDALONE_HEAP_TABLE + 65_536;
+const STANDALONE_HEAP_END: u32 = STANDALONE_HEAP_DATA + byte_runtime::HEAP_DATA_BYTES;
+const _: () = assert!(byte_runtime::HEAP_TABLE_BYTES <= 65_536);
 
 const STANDALONE_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
     input_sha256_workspace: PRIVATE_BASE,
@@ -62,7 +74,10 @@ const STANDALONE_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
     result_aggregate: RESULT_AGGREGATE,
     result_carrier: RESULT_CARRIER,
     result_carrier_capacity: MAX_SCRATCH_BYTES,
-    workspace_end: PROVIDER_MEMORY_LIMIT,
+    heap_table: STANDALONE_HEAP_TABLE,
+    heap_data: STANDALONE_HEAP_DATA,
+    heap_end: STANDALONE_HEAP_END,
+    workspace_end: align_up(STANDALONE_HEAP_END, 65_536),
 };
 
 const COMPONENT_INPUT_SHA256_WORKSPACE: u32 = PRIVATE_BASE;
@@ -76,10 +91,13 @@ const COMPONENT_INPUT_AGGREGATE: u32 = align_up(
 );
 const COMPONENT_RESULT_AGGREGATE: u32 = COMPONENT_INPUT_AGGREGATE + 16;
 const COMPONENT_RESULT_CARRIER: u32 = align_up(COMPONENT_RESULT_AGGREGATE + 16, 8);
-const COMPONENT_PROVIDER_WORKSPACE_END: u32 = align_up(
+const COMPONENT_HEAP_TABLE: u32 = align_up(
     COMPONENT_RESULT_CARRIER + carrier_codec::MAX_FRAME_WIRE_BYTES,
     65_536,
 );
+const COMPONENT_HEAP_DATA: u32 = COMPONENT_HEAP_TABLE + 65_536;
+const COMPONENT_HEAP_END: u32 = COMPONENT_HEAP_DATA + byte_runtime::HEAP_DATA_BYTES;
+const COMPONENT_PROVIDER_WORKSPACE_END: u32 = align_up(COMPONENT_HEAP_END, 65_536);
 pub(super) const COMPONENT_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
     input_sha256_workspace: COMPONENT_INPUT_SHA256_WORKSPACE,
     result_sha256_workspace: COMPONENT_RESULT_SHA256_WORKSPACE,
@@ -90,6 +108,9 @@ pub(super) const COMPONENT_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
     result_aggregate: COMPONENT_RESULT_AGGREGATE,
     result_carrier: COMPONENT_RESULT_CARRIER,
     result_carrier_capacity: carrier_codec::MAX_FRAME_WIRE_BYTES,
+    heap_table: COMPONENT_HEAP_TABLE,
+    heap_data: COMPONENT_HEAP_DATA,
+    heap_end: COMPONENT_HEAP_END,
     workspace_end: COMPONENT_PROVIDER_WORKSPACE_END,
 };
 
@@ -107,7 +128,11 @@ const _: () = assert!(
     COMPONENT_RESULT_CARRIER + COMPONENT_PROVIDER_LAYOUT.result_carrier_capacity
         <= COMPONENT_PROVIDER_WORKSPACE_END
 );
-const _: () = assert!(COMPONENT_PROVIDER_WORKSPACE_END >= PROVIDER_MEMORY_LIMIT);
+const _: () = assert!(
+    COMPONENT_RESULT_CARRIER + COMPONENT_PROVIDER_LAYOUT.result_carrier_capacity
+        <= COMPONENT_HEAP_TABLE
+);
+const _: () = assert!(COMPONENT_PROVIDER_WORKSPACE_END >= STANDALONE_PROVIDER_LAYOUT.workspace_end);
 const BINDING_SLOT_CUSTOM_SECTION: &str = "semaprax.public-generic-provider-binding-slot.v1";
 const COMPONENT_INPUT_ENCODE_EXPORT_V1: &str = "spx_pg_component_input_encode_v1";
 const COMPONENT_RESULT_COPY_EXPORT_V1: &str = "spx_pg_component_result_copy_v1";
@@ -444,7 +469,8 @@ fn assemble(
         (signatures.len()
             + lowering.types.len()
             + input_codec.type_count() as usize
-            + result_codec.type_count() as usize) as u32,
+            + result_codec.type_count() as usize
+            + byte_runtime::TYPE_COUNT as usize) as u32,
     );
     for (params, results) in signatures {
         types.push(0x60);
@@ -460,6 +486,8 @@ fn assemble(
     input_codec.append_type_entries(&mut types);
     let result_codec_type_base = input_codec_type_base + input_codec.type_count();
     result_codec.append_type_entries(&mut types);
+    let byte_runtime_type_base = result_codec_type_base + result_codec.type_count();
+    byte_runtime::append_type_entries(&mut types);
     section(&mut module, 1, &types);
 
     let mut function_types = vec![0_u32, 0, 0, 0, 0, 1, 2, 3, 4, 5, 3, 3, 6];
@@ -473,6 +501,7 @@ fn assemble(
     );
     input_codec.append_function_type_indexes(&mut function_types, input_codec_type_base);
     result_codec.append_function_type_indexes(&mut function_types, result_codec_type_base);
+    function_types.extend([byte_runtime_type_base, byte_runtime_type_base + 1]);
     let mut functions = Vec::new();
     u32_leb(&mut functions, function_types.len() as u32);
     for index in &function_types {
@@ -506,7 +535,7 @@ fn assemble(
     // subsequent global is an unexported provider-owned state cell: nothing
     // in the host can mint, inspect, or repair a handle through it.
     let mut globals = Vec::new();
-    u32_leb(&mut globals, 12);
+    u32_leb(&mut globals, 14);
     global_i32(&mut globals, 65_536); // aggregate shadow stack
     global_i32(&mut globals, 0); // scratch reserved
     global_i32(&mut globals, 0); // live provider id
@@ -519,6 +548,8 @@ fn assemble(
     global_i32(&mut globals, 0); // result carrier length
     global_i32(&mut globals, layout.input_aggregate as i32); // aggregate input pointer
     global_i32(&mut globals, layout.result_aggregate as i32); // aggregate output pointer
+    global_i32(&mut globals, layout.heap_data as i32); // owned-byte heap cursor
+    global_i32(&mut globals, 1); // next owned-byte token (zero is never issued)
     section(&mut module, 6, &globals);
 
     let mut exports = Vec::new();
@@ -547,12 +578,17 @@ fn assemble(
     }
     section(&mut module, 7, &exports);
 
+    let codec_function_base = 23 + lowering.function_type_indexes.len() as u32;
+    let heap = byte_runtime::Heap {
+        table: layout.heap_table,
+        data: layout.heap_data,
+        end: layout.heap_end,
+        resolve: codec_function_base + input_codec.function_count() + result_codec.function_count(),
+    };
     let mut code = Vec::new();
     u32_leb(&mut code, function_types.len() as u32);
-    // Slots 0..=12: no-import aggregate helpers. The supported endpoint
-    // slice currently accepts direct record movement and checked scalar
-    // arithmetic; byte mutation/inspection needs the carrier lowerer to
-    // install its private handle table before it is admitted for execution.
+    // Slots 0..=12: no-import aggregate helpers. Slots 7..=12 are the
+    // provider-owned byte runtime (`byte_runtime`), not host imports.
     body_i64_binary(&mut code, 0x7c);
     body_i64_binary(&mut code, 0x7d);
     body_i64_binary(&mut code, 0x7e);
@@ -560,18 +596,12 @@ fn assemble(
     body_i64_binary(&mut code, 0x81);
     body_i64_neg(&mut code);
     body_void(&mut code);
-    body_i64_identity(&mut code);
-    body_i32_zero(&mut code);
-    body_void(&mut code);
-    body_i64_identity(&mut code);
-    body_i64_zero(&mut code);
-    body_i64_set_identity(&mut code);
+    byte_runtime::runtime_bodies(&mut code, heap);
     // Slots 13..=22: scratch ptr, reserve, capacity and public lifecycle.
     body_i32_const(&mut code, SCRATCH_BASE as i32);
     body_scratch_reserve(&mut code, component_helpers);
     body_i32_const(&mut code, MAX_SCRATCH_BYTES as i32);
     body_open(&mut code, descriptor.len() as u32, binding.len() as u32);
-    let codec_function_base = 23 + lowering.function_type_indexes.len() as u32;
     let input_indexes = input_codec.function_indexes(codec_function_base);
     let result_indexes =
         result_codec.function_indexes(codec_function_base + input_codec.function_count());
@@ -581,6 +611,7 @@ fn assemble(
         lowering.selected_index,
         result_indexes.encode,
         layout,
+        heap,
     );
     body_result_export(&mut code);
     body_value_release(&mut code);
@@ -598,6 +629,7 @@ fn assemble(
         u32_leb(&mut code, body.len() as u32);
         code.extend_from_slice(&body);
     }
+    byte_runtime::helper_bodies(&mut code, heap);
     section(&mut module, 10, &code);
 
     let mut data = Vec::new();
@@ -636,31 +668,6 @@ fn body_void(code: &mut Vec<u8>) {
     let body = [0, 0x0b];
     u32_leb(code, body.len() as u32);
     code.extend(body);
-}
-
-fn body_i64_identity(code: &mut Vec<u8>) {
-    let body = [0, 0x20, 0, 0x0b];
-    u32_leb(code, body.len() as u32);
-    code.extend(body);
-}
-
-fn body_i64_zero(code: &mut Vec<u8>) {
-    let body = [0, 0x42, 0, 0x0b];
-    u32_leb(code, body.len() as u32);
-    code.extend(body);
-}
-
-fn body_i32_zero(code: &mut Vec<u8>) {
-    let body = [0, 0x41, 0, 0x0b];
-    u32_leb(code, body.len() as u32);
-    code.extend(body);
-}
-
-fn body_i64_set_identity(code: &mut Vec<u8>) {
-    // bytes_set(handle, index, value) keeps the caller-visible handle. The
-    // carrier runtime owns mutation and refuses this helper for unsupported
-    // source shapes until it can supply an allocated private byte object.
-    body_i64_identity(code);
 }
 
 fn body_i64_binary(code: &mut Vec<u8>, opcode: u8) {
@@ -852,7 +859,7 @@ fn body_input_prepare(
     lane(&mut body, 6, 0);
     body.push(0x0f);
     body.push(0x0b);
-    emit_private_reserve(&mut body, component_helpers);
+    emit_private_reserve(&mut body, component_helpers, layout.workspace_end);
     // Copy validates every carrier field plus its self-digest before it
     // writes private payloads and descriptor-ordered slice rows.
     body.extend(local_get(1));
@@ -900,7 +907,13 @@ fn body_input_prepare(
     code.extend(body);
 }
 
-fn body_call(code: &mut Vec<u8>, selected_index: u32, encode_index: u32, layout: ProviderLayout) {
+fn body_call(
+    code: &mut Vec<u8>,
+    selected_index: u32,
+    encode_index: u32,
+    layout: ProviderLayout,
+    heap: byte_runtime::Heap,
+) {
     let mut body = locals_i32_i64(1, 1);
     emit_live_handle_match(&mut body, 0, GLOBAL_PROVIDER);
     body.extend([0x04, 0x40]);
@@ -916,7 +929,14 @@ fn body_call(code: &mut Vec<u8>, selected_index: u32, encode_index: u32, layout:
     body.push(0x0b);
     // Codec marshalling stores a concrete aggregate at global 10 and a
     // clean output record at global 11. The selected checked HIR closure is
-    // the only endpoint target in this module.
+    // the only endpoint target in this module. Each invocation starts with a
+    // fresh owned-byte heap holding exactly the two prepared input leaves.
+    byte_runtime::emit_register_inputs(
+        &mut body,
+        heap,
+        layout.input_leaf_table,
+        layout.input_aggregate,
+    );
     body.extend(global_get(GLOBAL_INPUT_AGGREGATE));
     body.extend(global_get(GLOBAL_RESULT_AGGREGATE));
     body.push(0x10);
@@ -926,7 +946,12 @@ fn body_call(code: &mut Vec<u8>, selected_index: u32, encode_index: u32, layout:
     lane(&mut body, 11, 0);
     body.push(0x0f);
     body.push(0x0b);
-    emit_aggregate_to_slice_table(&mut body, layout.result_aggregate, layout.result_leaf_table);
+    byte_runtime::emit_resolve_results(
+        &mut body,
+        heap,
+        layout.result_aggregate,
+        layout.result_leaf_table,
+    );
     body.extend(i32_const(layout.result_leaf_table as i32));
     body.extend(i32_const(2));
     body.extend(i32_const(layout.result_carrier as i32));
@@ -1131,8 +1156,8 @@ fn emit_scratch_bound(body: &mut Vec<u8>, pointer: u32, len: u32, status: u32) {
     body.push(0x0b);
 }
 
-fn emit_private_reserve(body: &mut Vec<u8>, component_helpers: bool) {
-    let pages = (PRIVATE_BASE + MAX_SCRATCH_BYTES).div_ceil(65_536);
+fn emit_private_reserve(body: &mut Vec<u8>, component_helpers: bool, workspace_end: u32) {
+    let pages = workspace_end.div_ceil(65_536);
     if component_helpers {
         // Component constructors can grow memory beyond the provider's own
         // private floor. Skip the subtraction/grow path when that floor is
@@ -1162,17 +1187,6 @@ fn emit_slice_table_to_aggregate(body: &mut Vec<u8>, table: u32, aggregate: u32)
         body.push(0x86);
         body.extend(i32_const((table + leaf * 8 + 4) as i32));
         body.extend([0x28, 2, 0, 0xad, 0x84, 0x37, 3, 0]);
-    }
-}
-
-fn emit_aggregate_to_slice_table(body: &mut Vec<u8>, aggregate: u32, table: u32) {
-    for leaf in 0..2_u32 {
-        body.extend(i32_const((table + leaf * 8) as i32));
-        body.extend(i32_const((aggregate + leaf * 8 + 4) as i32));
-        body.extend([0x28, 2, 0, 0x36, 2, 0]);
-        body.extend(i32_const((table + leaf * 8 + 4) as i32));
-        body.extend(i32_const((aggregate + leaf * 8) as i32));
-        body.extend([0x28, 2, 0, 0x36, 2, 0]);
     }
 }
 

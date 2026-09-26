@@ -96,7 +96,7 @@ jobs:
 
   gen05b-generic-instance-closure:
     name: GEN-05B generic instance semantic closure
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The exact inference and owned-result backend corpus exceeded 90 minutes
     # on the v0.6.0 hosted runner; keep every check and allow its full run.
     timeout-minutes: 360
@@ -253,7 +253,7 @@ jobs:
 
   public-generic-ownership-milestone:
     name: Public generic ownership milestone (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     timeout-minutes: 240
     strategy:
       fail-fast: false
@@ -521,7 +521,7 @@ jobs:
 
   std-library-depth:
     name: STD-08 bundled library depth
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # The complete per-package backend audit also reached 60 minutes after
     # passing its logging and catalog selectors; retain the remaining gates.
     timeout-minutes: 120
@@ -616,7 +616,7 @@ jobs:
 
   release-claim-reconcile:
     name: Release claim reconciliation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -818,7 +818,7 @@ jobs:
 
   supply-chain:
     name: Dependency policy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Allow Windows to check out long evidence paths
@@ -1128,7 +1128,7 @@ jobs:
 
   native-rust-owned-data-sdk-v1:
     name: Public Native Rust Owned-Data SDK v1 (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     timeout-minutes: 240
     strategy:
       fail-fast: false
@@ -1209,7 +1209,7 @@ jobs:
 
   native-rust-sdk-v1:
     name: Public Native Rust SDK v1 (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     timeout-minutes: 240
     strategy:
       fail-fast: false
@@ -1327,7 +1327,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     steps:
       - name: Allow Windows to check out long evidence paths
         shell: bash
@@ -1626,7 +1626,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     steps:
       - name: Allow Windows to check out long evidence paths
         shell: bash
@@ -1774,7 +1774,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         shard: [unit, integration-0, integration-1, integration-2, integration-3, integration-4]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     steps:
       - name: Allow Windows to check out long evidence paths
         shell: bash
@@ -2066,7 +2066,7 @@ jobs:
 
   android-emulator-cross-check:
     name: Private Android dynamic loader + host runtime
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 240
     steps:
       - name: Allow Windows to check out long evidence paths
@@ -2117,12 +2117,12 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            runs-on: ubuntu-latest
+            runs-on: ubuntu-24.04
             abi: x86_64
             emulator-arch: x86_64
             emulator-target: default
           - arch: arm64-v8a
-            runs-on: ubuntu-latest
+            runs-on: ubuntu-24.04
             abi: arm64-v8a
             emulator-arch: x86_64
             emulator-target: google_apis
@@ -2170,7 +2170,7 @@ jobs:
 
   callable-host-sanitizers:
     name: Callable host ASan + UBSan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       CC: clang
@@ -2252,7 +2252,7 @@ jobs:
       CARGO_INCREMENTAL: "0"
       CARGO_BUILD_JOBS: "1"
     name: Rust 1.88 minimum
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Rust 1.88 compatibility is a compile contract. Runtime behavior is
     # exercised on the current toolchain in the three-host verify-tests matrix;
     # running those entire suites again here multiplied release latency without

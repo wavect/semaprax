@@ -5,10 +5,13 @@
   deterministic CPU reference executor for a closed kernel subset is
   implemented and tested offline (`src/compute_profile/cpu_reference.rs`,
   [Executable CPU reference semantics
-  v1](#executable-cpu-reference-semantics-v1)); no new source syntax,
-  compilation route, CLI, or accelerator backend exists, and no accelerator
-  hardware or driver evidence backs any claim in this document
-- Version: 0.2
+  v1](#executable-cpu-reference-semantics-v1)); an optional macOS-only Metal
+  backend for the elementwise-map subset has local physical-device evidence
+  on one Apple M3 Pro ([Executable Metal backend
+  v1](#executable-metal-backend-v1)); no new source syntax, compilation
+  route or CLI exists, and no hosted, multi-device or production accelerator
+  evidence backs any claim in this document
+- Version: 0.3
 - Audience: compiler contributors evaluating an eventual data-parallel
   kernel/GPU target, and reviewers of the admitted grammar and refusal
   vocabulary this profile freezes
@@ -428,7 +431,7 @@ this desk evaluation could find them) sit above every bound here.
 | An owned (consuming) or shared-alias kernel parameter mode | **EXCLUDED** | see [Affine device resources](#affine-device-resources) |
 | General arbitrary SEMAPRAX execution on a device | **EXCLUDED** | explicit epic-wide non-goal; only the admitted kernel subset above ever reaches a device |
 | A CPU reference executor for the closed map/fold subset | **IN (library level)** | see [Executable CPU reference semantics v1](#executable-cpu-reference-semantics-v1); not wired into compilation, CLI, or any backend |
-| An accelerator backend adapter | **DEFERRED** | requires an explicitly selected device API/toolchain and a real identified device; see [What is executable offline vs. what needs hardware](#what-is-executable-offline-vs-what-needs-hardware) |
+| An accelerator backend adapter | **IN (library level, Metal, macOS, feature `metal-device`)** for the elementwise-map subset on i32/i64 | see [Executable Metal backend v1](#executable-metal-backend-v1); local evidence on one identified device only; other device APIs remain deferred |
 | Bit-exact floating-point parity claim across devices | **EXCLUDED, permanently, not merely for v1** | no floating-point kernel is admitted at all in v1, and no future version of this profile may claim bit-exact parity where a real platform does not provide one, per the owning issue's own explicit non-goal |
 
 ## Refusal vocabulary
@@ -506,13 +509,13 @@ simulated as if it were evidence:**
 - a device-buffer/queue resource type integrated into the resolver's cleanup
   inventory, so the lifecycle checks run at compile time rather than in the
   CPU reference session's host-side state machine;
-- any accelerator backend (WebGPU or otherwise) actually compiling or
-  dispatching a kernel;
-- any driver, toolchain, or device-capability probing;
-- any conformance, parity, cancellation, or device-loss evidence — none of
-  this RFC's claims describe a simulated result as execution evidence, per
-  the assignment's own instruction, and none will until real hardware and a
-  real front end exist.
+- any accelerator backend other than the Metal one below, and any Metal
+  shape beyond the elementwise map on i32/i64;
+- evidence on any device other than the one recorded below, and any hosted
+  or CI device evidence;
+- real device-loss or cancellation on hardware — those outcomes are still
+  exercised only through the session state machine, never as observed GPU
+  events.
 
 ## Executable CPU reference semantics v1
 
@@ -658,3 +661,41 @@ refusal vocabulary, or any bound must:
 - add or update the corresponding [`src/compute_profile/classifier.rs`](../src/compute_profile/classifier.rs)
   test before or with the change, per this repository's own change
   protocol.
+
+## Executable Metal backend v1
+
+Schema: `semaprax.compute-metal.v1`. Implementation:
+[`src/compute_profile/metal_backend.rs`](../src/compute_profile/metal_backend.rs),
+compiled only with `target_os = "macos"` and the optional `metal-device`
+feature, through the maintained `objc2-metal` bindings. Default and
+non-macOS builds do not contain it.
+
+The backend reuses the CPU reference's admission and lowering unchanged: a
+kernel is the same checked function, bound by `@id`, through the same
+classifier, and anything outside the elementwise map over i32/i64 buffers is
+refused with the existing refusal codes rather than falling back. It
+generates deterministic Metal Shading Language from the admitted kernel IR,
+compiles it at runtime, and binds the resulting artifact to the declaration,
+shape, IR fingerprint and the SHA-256 of the generated source, so a kernel
+bound to a different checked body is refused as stale. The generated code
+has no traps: every checked operation writes a per-invocation status, and
+the lowest failing invocation is selected exactly as the CPU reference
+selects it. Buffers follow the CPU reference session's lifecycle: an
+explicit capability, sticky failure, and release of every live buffer exactly
+once in reverse allocation order.
+
+**Evidence (local, physical device, not hosted):** the
+`compute_profile::metal_backend` suite (17 tests: 5 generator tests and 12
+device tests, including overflow and division-by-zero selection, bounds
+refusal, stale-artifact refusal, settlement order, and a negative-control
+mutant the differential oracle must reject) passed on
+`Metal device present: Apple M3 Pro (registryID 4294968899), Version 26.5.1
+(Build 25F80)` on 2026-09-26, comparing every output buffer and selected
+status against the ordinary reference interpreter. This is evidence for that
+one machine only.
+
+**Compiler constraint found on that device:** the system Metal compiler
+service failed with `XPC_ERROR_CONNECTION_INTERRUPTED` on every kernel whose
+generated helpers used 64-bit unsigned division for multiplication overflow
+detection. The generator now detects that overflow with `mulhi` and must keep
+64-bit unsigned division out of generated code.

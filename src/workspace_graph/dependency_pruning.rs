@@ -102,6 +102,7 @@ fn function_regions(program: &Program, len: usize) -> Option<Vec<(usize, usize)>
     boundaries.extend(program.interfaces.iter().map(|item| item.span.end));
     boundaries.extend(program.protocols.iter().map(|item| item.span.end));
     boundaries.extend(program.implementations.iter().map(|item| item.span.end));
+    boundaries.extend(program.session_protocols.iter().map(|item| item.span.end));
     boundaries.extend(program.agents.iter().map(|item| item.span.end));
     boundaries.extend(program.functions.iter().map(|item| item.span.end));
     boundaries.retain(|end| *end <= len);

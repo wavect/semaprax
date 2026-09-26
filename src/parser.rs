@@ -21,8 +21,10 @@ mod for_loop;
 mod hints;
 mod lookahead;
 mod patterns;
+pub(crate) mod session_protocol;
 mod signed_minimum;
 mod types;
+use types::expression_path;
 mod yields;
 pub struct Parser {
     tokens: Vec<Token>,
@@ -52,6 +54,7 @@ impl Parser {
         let mut interfaces = Vec::new();
         let mut protocols = Vec::new();
         let mut implementations = Vec::new();
+        let mut session_protocols = Vec::new();
         let mut agents = Vec::new();
         let mut functions = Vec::new();
         while !self.at(&TokenKind::Eof) {
@@ -81,6 +84,13 @@ impl Parser {
                     );
                 }
                 protocols.push(self.protocol(&module, stable_id)?);
+            } else if self.at_keyword("session") {
+                if session_protocols.len() >= session_protocol::MAX_SESSION_PROTOCOLS {
+                    return Err(
+                        self.error_here("SPX-K106", "too many session protocol declarations")
+                    );
+                }
+                session_protocols.push(self.session_protocol(&module, stable_id)?);
             } else if self.at_keyword("impl") {
                 if implementations.len() >= crate::static_protocol::MAX_IMPLEMENTATIONS {
                     return Err(
@@ -108,6 +118,7 @@ impl Parser {
             interfaces,
             protocols,
             implementations,
+            session_protocols,
             agents,
             functions,
         })
@@ -1853,18 +1864,5 @@ impl Parser {
     fn error_previous(&self, code: &'static str, message: impl Into<String>) -> Diagnostic {
         let index = self.cursor.saturating_sub(1);
         Diagnostic::error(code, message, self.tokens[index].span).at_path(&self.path)
-    }
-}
-
-fn expression_path(expression: &Expr) -> Option<String> {
-    match &expression.kind {
-        ExprKind::Var(name) => Some(name.clone()),
-        ExprKind::Project { base, field, .. } => {
-            let mut path = expression_path(base)?;
-            path.push('.');
-            path.push_str(field);
-            Some(path)
-        }
-        _ => None,
     }
 }

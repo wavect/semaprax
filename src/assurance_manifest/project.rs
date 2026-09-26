@@ -213,9 +213,14 @@ pub fn derive_with_verified_proofs(
                 let id = claim["claim_id"]
                     .as_str()
                     .ok_or_else(|| invalid("architecture claim has no identity"))?;
-                let from = claim["from"]
-                    .as_str()
-                    .ok_or_else(|| invalid("architecture claim has no source"))?;
+                let operator = claim["operator"].as_str().unwrap_or("forbid_reaches");
+                let from = claim[if operator == "protocol_order_bound" {
+                    "protocol"
+                } else {
+                    "from"
+                }]
+                .as_str()
+                .ok_or_else(|| invalid("architecture claim has no source"))?;
                 let mut method = MethodRecord::new(
                     AssuranceClass::CompilerProved,
                     "semaprax-architecture-claims",
@@ -225,11 +230,15 @@ pub fn derive_with_verified_proofs(
                     revision.project_revision().to_owned(),
                     result_digest.clone(),
                 ];
-                method.detail = Some("The requested forbid_reaches claim held over the retained Project static call graph; dynamic/external uncertainty is refused, and this is not execution or publication authority.".to_owned());
+                method.detail = Some(if operator == "protocol_order_bound" {
+                    "The requested protocol_order_bound claim held: every via realization of the declared session protocol resolves to a checked node of the retained Project static call graph. Legal order is not execution, capability, or publication authority.".to_owned()
+                } else {
+                    "The requested forbid_reaches claim held over the retained Project static call graph; dynamic/external uncertainty is refused, and this is not execution or publication authority.".to_owned()
+                });
                 let obligation = Obligation::new(
                     ObligationKind::ArchitectureLaw,
                     from,
-                    &format!("architecture:forbid_reaches:{id}"),
+                    &format!("architecture:{operator}:{id}"),
                 )
                 .with_method(method);
                 records.insert(obligation, owners.get(from).map(String::as_str), false)?;

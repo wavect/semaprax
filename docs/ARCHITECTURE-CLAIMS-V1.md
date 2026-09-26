@@ -1,7 +1,9 @@
 # Architecture Claims v1
 
-Status: initial slice. One operator, `forbid_reaches`, is implemented,
-locally tested, and derives its result directly from checked HIR facts. The
+Status: initial slice. Two operators, `forbid_reaches` and
+`protocol_order_bound` (issue #297, see
+[`protocol_order_bound`](#protocol_order_bound-issue-297)), are implemented,
+locally tested, and derive their results directly from checked facts. The
 remaining operators [issue #205](https://github.com/wavect/semaprax/issues/205)
 lists (unique/bounded writers, effect/capability attribution, dependency
 direction, deployment facts, authorization mint/consume), CLI/MCP wiring,
@@ -128,6 +130,40 @@ projection with no source execution or publication authority, that absence
 of a static edge is not proof against reflection or dynamic behavior outside
 the admitted profile, and that only static direct-call and native-import
 edges are modeled.
+
+For `protocol_order_bound`, each claim entry instead carries `claim_id`,
+`operator`, `protocol`, `protocol_name`, `via`, `missing`, `authority`
+(always `"none"`), and `status`. Existing `forbid_reaches` entries and the
+top-level keys and `nonclaims` are unchanged.
+
+## `protocol_order_bound` (issue #297)
+
+`ArchitectureClaim::protocol_order_bound(id, protocol)` names one declared
+`.spx` `session protocol` by its persistent `@id`
+([Session/protocol types v1](SESSION-PROTOCOL-TYPES-V1.md#declared-session-protocols-issue-297)).
+The evaluator reparses the revision's own authenticated source bytes
+(`ProjectRevision::sources`), runs the same `SPX-K1xx` source checks the
+single-file verifier applies, and then checks every `via` edge -- declaration
+to realizing function -- against the node set of the same direct call graph
+`forbid_reaches` walks. The caller supplies only the protocol identity; no
+edge is caller-authored.
+
+- `held`: the declaration binds at least one `via`, and every `via` names a
+  checked function node of this revision.
+- `violated`: some `via` names no checked node; `missing` lists those edges
+  in declaration order.
+- `unevaluable`: the declaration binds no `via`, so nothing checked can hold.
+- Refused (`SPX-AC601`): the protocol identity is not declared in the
+  revision, a retained declaration fails its source checks (for example a
+  `via` naming a function outside the declaring module, `SPX-K104`), or two
+  retained declarations share an identity.
+
+The result is bound to `project_revision` like every other claim. It reports
+legal order as a fact; it grants no capability, effect, or execution
+authority. Project Assurance Manifest v1 records a held claim as an
+`architecture_law` obligation with locator
+`architecture:protocol_order_bound:<claim-id>` keyed to the protocol's
+`@id`. There is no CLI flag for this operator yet.
 
 ## Why staleness is loud here, not silent
 

@@ -37,6 +37,7 @@ pub mod project;
 pub mod proof_certificate;
 mod render;
 mod resumable;
+mod session_protocol;
 pub mod smt_discharge;
 mod verify;
 
@@ -195,6 +196,8 @@ pub fn generate(
     resumable::attach(&resolved, &mut obligations).map_err(|error| vec![error])?;
     obligations
         .extend(derive::derive_resolved_obligations(&resolved).map_err(|error| vec![error])?);
+    obligations
+        .extend(session_protocol::obligations(&program, &resolved).map_err(|error| vec![error])?);
     obligations.extend(options.external_records.obligations.iter().cloned());
     let assumptions = options.external_records.assumptions.clone();
     validate_obligations_and_assumptions(&obligations, &assumptions)?;

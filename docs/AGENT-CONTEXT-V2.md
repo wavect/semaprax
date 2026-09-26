@@ -136,7 +136,11 @@ catalog entry is bound to a `ProtocolSpec` declared in that program. Two real
 runtime subsystems run on that kernel's `SessionTable`:
 `project_transport::session` and `database_fixture`'s transaction. Earlier
 output said no runtime subsystem called into the kernel; this filtered output
-was corrected as a factual correction (#297), not a contract change. The `session_protocol_kernel.note` field carries this same
+was corrected as a factual correction (#297), not a contract change. When the
+queried program itself declares a `session protocol` (#297), the object also
+carries `declared`, the same bound declaration facts the per-source graph
+emits under `session_protocols`; a program without one keeps the unchanged
+bytes. The `session_protocol_kernel.note` field carries this same
 disclosure so an agent reading raw JSON sees it without this document. See
 `src/graph/session_protocol_facet.rs` and
 [Session/protocol types v1](SESSION-PROTOCOL-TYPES-V1.md).

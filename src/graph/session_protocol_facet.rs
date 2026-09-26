@@ -58,11 +58,12 @@ use super::quote_json;
 /// the same honest scope statement, so an agent reading either output sees
 /// the identical non-claim rather than two differently worded summaries.
 const NOTE: &str = "Reference catalog of this compiler's built-in session-protocol kernel \
-(src/session_protocol), not a fact about the queried .spx source: no declaration here is \
-bound to a ProtocolSpec. Two real runtime subsystems run on this kernel's SessionTable: \
-project_transport::session (project-agent-session-v1) and database_fixture's transaction \
-(database-transaction-v1). Legal order is not authority. See \
-docs/SESSION-PROTOCOL-TYPES-V1.md.";
+(src/session_protocol), not a fact about the queried .spx source: no catalog entry here is \
+bound to a declaration. Session protocols the queried source itself declares appear under \
+declared, each bound to its @id, source span, and checked HIR via targets. Two real runtime \
+subsystems run on this kernel's SessionTable: project_transport::session \
+(project-agent-session-v1) and database_fixture's transaction (database-transaction-v1). \
+Legal order is not authority. See docs/SESSION-PROTOCOL-TYPES-V1.md.";
 
 fn catalog() -> [ProtocolSpec; 4] {
     [
@@ -157,13 +158,27 @@ fn spec_header_json(spec: &ProtocolSpec) -> String {
 /// Bounded summary catalog for `context`'s envelope-level
 /// `session_protocol` filter: header fields only, no transition detail, so
 /// it stays small against `MIN_AGENT_CONTEXT_BYTES` (2048 bytes).
-pub(super) fn summary_catalog_json() -> String {
+///
+/// `declared` is the queried program's bound declaration array
+/// (`session_protocol::source::declarations_json`), or empty when the program
+/// declares none, in which case the bytes carry no `declared` key.
+pub(super) fn summary_catalog_json(declared: &str) -> String {
     let specs = catalog()
         .iter()
         .map(|spec| format!("{{{}}}", spec_header_json(spec)))
         .collect::<Vec<_>>()
         .join(",");
-    format!("{{\"note\":{},\"specs\":[{}]}}", quote_json(NOTE), specs)
+    let declared = if declared.is_empty() {
+        String::new()
+    } else {
+        format!(",\"declared\":{declared}")
+    };
+    format!(
+        "{{\"note\":{},\"specs\":[{}]{}}}",
+        quote_json(NOTE),
+        specs,
+        declared
+    )
 }
 
 /// Full catalog (header fields plus every declared transition) for the
@@ -201,7 +216,7 @@ mod tests {
 
     #[test]
     fn summary_catalog_is_deterministic_across_two_independent_calls() {
-        assert_eq!(summary_catalog_json(), summary_catalog_json());
+        assert_eq!(summary_catalog_json(""), summary_catalog_json(""));
     }
 
     #[test]
@@ -225,7 +240,7 @@ mod tests {
 
     #[test]
     fn summary_catalog_omits_transition_detail_the_full_catalog_carries() {
-        let summary = summary_catalog_json();
+        let summary = summary_catalog_json("");
         let full = full_catalog_json();
         assert!(!summary.contains("\"transitions\""), "{summary}");
         assert!(full.contains("\"transitions\""), "{full}");
@@ -237,9 +252,10 @@ mod tests {
         // Factual correction (issue #297): since e51226dd both real
         // subsystems run on the kernel, so the note must say so, and must
         // still disclose that this catalog is not bound to queried source.
-        for json in [summary_catalog_json(), full_catalog_json()] {
+        for json in [summary_catalog_json(""), full_catalog_json()] {
             assert!(json.contains("not a fact about the queried"), "{json}");
-            assert!(json.contains("no declaration here is bound"), "{json}");
+            assert!(json.contains("no catalog entry here is bound"), "{json}");
+            assert!(json.contains("appear under declared"), "{json}");
             assert!(
                 json.contains("Two real runtime subsystems run on this kernel"),
                 "{json}"

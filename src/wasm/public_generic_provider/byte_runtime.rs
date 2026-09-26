@@ -3,11 +3,19 @@
 //! Aggregate lowering reserves slots 7..=12 for the owned-byte operations
 //! (`copy`, `get`, `drop`, `as_slice`, `zeroed`, `set`) that a legacy module
 //! imports from its host. The provider has no host, so it implements them
-//! here with the host runtime's exact carrier encoding and invariants:
-//! an owned value is `((0x8000_0000 | token) << 32) | len`, a byte-range view
-//! is a `0x4000_0000`-tagged descriptor, and any other value is a fixed view
-//! of the first 128 KiB. Every invariant the host checks traps here instead
-//! (`unreachable`), exactly where the host import would throw.
+//! here with the host runtime's carrier encoding: an owned value is
+//! `((0x8000_0000 | token) << 32) | len`, a byte-range view is a
+//! `0x4000_0000`-tagged descriptor, and any other value is a fixed view of at
+//! most 64 KiB inside the first 128 KiB (the host's plain-root bounds). A violated
+//! invariant traps (`unreachable`) where the host import would throw.
+//!
+//! Deliberate differences from the browser host, none reachable from a
+//! checked Bytes-only endpoint: the host additionally admits a 256 KiB owned
+//! String literal window (196608..262144) only in its String profile, and the
+//! provider admits no String; the host caps 16 live owned entries and reuses
+//! freed tokens, while the provider issues up to `HEAP_ENTRIES - 1` tokens per
+//! invocation without reuse, so it never refuses where the host succeeds on a
+//! checked program's bounded allocation sites.
 //!
 //! Storage is invocation-local: `spx_pg_v1_call` resets the heap, registers
 //! the two input leaves as tokens 1 and 2, and resolves the result leaves
@@ -28,7 +36,17 @@ pub(super) const HEAP_TABLE_BYTES: u32 = HEAP_ENTRIES * 8;
 /// can never reach it; reaching it anyway is an invariant defect.
 pub(super) const HEAP_DATA_BYTES: u32 =
     2 * crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES as u32;
-const FIXED_VIEW_BYTES: i32 = 131_072;
+/// Host `FIXED_MEMORY_BYTES`: fixed views and range descriptors end below it.
+const FIXED_MEMORY_BYTES: i32 = 131_072;
+/// Host plain fixed-root length bound (the 64 KiB external-root limit).
+const FIXED_ROOT_MAX_BYTES: i32 = 65_536;
+/// Largest owned Bytes value (`MAX_OWNED_BYTE_VALUE_BYTES`).
+const MAX_OWNED_BYTES: i64 = 131_072;
+// Every checked invocation holds two input tokens plus at most one token per
+// bounded allocation site, and at most the checked cumulative owned payload.
+const _: () = assert!(2 + crate::byte_data_capacity::MAX_BYTES_COPY_SITES < HEAP_ENTRIES);
+const _: () =
+    assert!(crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES <= HEAP_DATA_BYTES as u64);
 const OWNED_TAG: i32 = i32::MIN; // 0x8000_0000
 const RANGE_MASK: i32 = -1_073_741_824; // 0xc000_0000
 const RANGE_TAG: i32 = 0x4000_0000;
@@ -157,7 +175,7 @@ pub(super) fn helper_bodies(code: &mut Vec<u8>, heap: Heap) {
     body.push(0x6c);
     body.push(0x22);
     u32_leb(&mut body, dp);
-    body.extend(i32_const(FIXED_VIEW_BYTES - 32));
+    body.extend(i32_const(FIXED_MEMORY_BYTES - 32));
     body.push(0x4b);
     trap_if(&mut body);
     body.extend(local_get(dp));
@@ -211,12 +229,12 @@ pub(super) fn helper_bodies(code: &mut Vec<u8>, heap: Heap) {
     body.extend(local_get(base));
     body.extend(local_get(off));
     body.extend([0xa7, 0x6a, 0x0f, 0x0b]);
-    // Fixed view: wholly inside the first 128 KiB.
+    // Fixed view: at most 64 KiB, wholly inside the first 128 KiB.
     body.extend(local_get(len));
-    body.extend(i32_const(FIXED_VIEW_BYTES));
+    body.extend(i32_const(FIXED_ROOT_MAX_BYTES));
     body.push(0x4b);
     body.extend(local_get(high));
-    body.extend(i32_const(FIXED_VIEW_BYTES));
+    body.extend(i32_const(FIXED_MEMORY_BYTES));
     body.extend(local_get(len));
     body.extend([0x6b, 0x4b, 0x72]);
     trap_if(&mut body);
@@ -320,7 +338,7 @@ pub(super) fn runtime_bodies(code: &mut Vec<u8>, heap: Heap) {
     // 11 zeroed(count) -> owned carrier of `count` zero bytes. Local: dst.
     let mut body = vec![1, 1, 0x7f];
     body.extend(local_get(0));
-    body.extend(i64_const_imm(i64::from(FIXED_VIEW_BYTES)));
+    body.extend(i64_const_imm(MAX_OWNED_BYTES));
     body.push(0x56);
     trap_if(&mut body);
     body.extend(global_get(GLOBAL_HEAP_CURSOR));

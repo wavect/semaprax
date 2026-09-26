@@ -39,6 +39,7 @@ const MAX_COMPONENT_INPUT_PAYLOAD_BYTES: u32 = 2 * 65_536;
 const STATIC_INPUT_SHA256_WORKSPACE: u32 = 98_304;
 const STATIC_RESULT_SHA256_WORKSPACE: u32 = STATIC_INPUT_SHA256_WORKSPACE + 512;
 const _: () = assert!(DESCRIPTOR_OFFSET + 64 * 1024 <= STATIC_INPUT_SHA256_WORKSPACE);
+const _: () = assert!(STATIC_INPUT_SHA256_WORKSPACE + 288 <= STATIC_RESULT_SHA256_WORKSPACE);
 const _: () = assert!(STATIC_RESULT_SHA256_WORKSPACE + 288 <= BINDING_OFFSET);
 
 #[derive(Clone, Copy)]
@@ -96,8 +97,6 @@ const STANDALONE_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
     workspace_end: align_up(STANDALONE_HEAP_END, 65_536),
 };
 
-const COMPONENT_INPUT_SHA256_WORKSPACE: u32 = PRIVATE_BASE;
-const COMPONENT_RESULT_SHA256_WORKSPACE: u32 = PRIVATE_BASE + 512;
 const COMPONENT_INPUT_LEAF_TABLE: u32 = PRIVATE_BASE + 1_024;
 const COMPONENT_RESULT_LEAF_TABLE: u32 = PRIVATE_BASE + 1_536;
 const COMPONENT_INPUT_PAYLOADS: u32 = PRIVATE_BASE + 2_048;
@@ -131,8 +130,7 @@ pub(super) const COMPONENT_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
     workspace_end: COMPONENT_PROVIDER_WORKSPACE_END,
 };
 
-const _: () = assert!(COMPONENT_INPUT_SHA256_WORKSPACE + 288 <= COMPONENT_RESULT_SHA256_WORKSPACE);
-const _: () = assert!(COMPONENT_RESULT_SHA256_WORKSPACE + 288 <= COMPONENT_INPUT_LEAF_TABLE);
+const _: () = assert!(PRIVATE_BASE + 1_024 <= COMPONENT_INPUT_LEAF_TABLE);
 const _: () = assert!(COMPONENT_INPUT_LEAF_TABLE + 16 <= COMPONENT_RESULT_LEAF_TABLE);
 const _: () = assert!(COMPONENT_RESULT_LEAF_TABLE + 16 <= COMPONENT_INPUT_PAYLOADS);
 const _: () = assert!(COMPONENT_INPUT_PAYLOADS >= PRIVATE_BASE);
@@ -862,6 +860,17 @@ fn body_input_prepare(
     lane(&mut body, 7, 0);
     body.push(0x0f);
     body.push(0x0b);
+    // Admission reads the frame in place, so the scratch range must already
+    // be backed by memory. Before scratch reserve (or an equivalent host
+    // growth) this is a lifecycle-order refusal, never a trap.
+    body.extend([0x3f, 0x00]);
+    body.extend(i32_const(
+        (SCRATCH_BASE + MAX_SCRATCH_BYTES).div_ceil(65_536) as i32,
+    ));
+    body.extend([0x49, 0x04, 0x40]);
+    lane(&mut body, 7, 0);
+    body.push(0x0f);
+    body.push(0x0b);
     // The public carrier must be wholly inside the fixed scratch range.
     body.extend(local_get(1));
     body.extend(i32_const(SCRATCH_BASE as i32));
@@ -891,9 +900,21 @@ fn body_input_prepare(
     body.extend(local_get(2));
     body.push(0x10);
     u32_leb(&mut body, validate_index);
+    body.extend(local_set(4));
+    body.extend(local_get(4));
     body.push(0xa7);
     body.extend(local_set(3));
     emit_codec_refusal(&mut body, 3);
+    // The validated payload total (high lane) must fit the private window,
+    // so a capacity refusal also precedes any memory growth.
+    body.extend(local_get(4));
+    body.extend(i64_const_imm(32));
+    body.push(0x88);
+    body.extend(i64_const_imm(i64::from(layout.input_payload_capacity)));
+    body.extend([0x56, 0x04, 0x40]);
+    lane(&mut body, 6, 0);
+    body.push(0x0f);
+    body.push(0x0b);
     emit_private_reserve(&mut body, component_helpers, layout.workspace_end);
     // Copy re-validates every carrier field plus its self-digest before it
     // writes private payloads and descriptor-ordered slice rows.

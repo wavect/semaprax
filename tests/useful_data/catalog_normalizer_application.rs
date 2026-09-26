@@ -1028,7 +1028,7 @@ fn batch_boundaries_and_string_normalization_agree_across_backends() {
         &root,
         scratch.path(),
         "utf8-mutant",
-        "line_utf8_end(body, record) == end - start",
+        "line_utf8_end_range(body, start, end) == end - start",
         "true",
     );
 

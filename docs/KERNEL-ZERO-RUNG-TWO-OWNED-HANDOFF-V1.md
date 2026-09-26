@@ -108,6 +108,32 @@ at the accepted exact revision. Hosted acceptance and any change from rung 1
 remain explicit independent review decisions. This profile promotes no rung,
 public ABI, support policy, whole-compiler self-hosting or verification claim.
 
+## Rung criteria and proof assumptions mapped to evidence
+
+Issue #294 asks for the existing Kernel-0 specification/proof assumptions and
+the self-hosting-rung ladder (`docs/SEMANTIC-KERNEL-V1.md`, "Self-hosting gate
+ladder") to be mapped against current executable evidence, without rebuilding
+any already-proved or already-reference piece. This table is that map; it
+records status only, and promotes nothing by itself.
+
+| # | Assumption / criterion | Status | Evidence |
+|---|---|---|---|
+| 1 | Kernel-0 type safety (Progress, Preservation) over the whole grammar, including `Let` and non-recursive `Call` | **Proved** (Lean 4, zero `sorry`/`admit`/custom axiom; `#print axioms` reports only `propext`/`Quot.sound`) | `docs/KERNEL-PROOF-MECHANIZATION-V1.md`; `docs/SEMANTIC-KERNEL-V1.md` "Paper safety proof". Wired into `quality.sh full` as `kernel0-lean-proof-gate`; a **hosted** verdict is still pending (not re-run this slice; no Actions credits). |
+| 2 | HIR-to-Kernel-0 reification predicate is real, mechanically checked code, not prose | **Tested** | `src/kernel_zero.rs` (`reifies_into_kernel_zero`) and its `tests` submodule. Deliberately inert: it narrows nothing it does not already reject. |
+| 3 | Reference interpreter agrees with the compiler's interpreter over a finite corpus | **Tested**, partial (finite corpus, not a proof) | `kernel_zero::differential::reference_interpreter_agrees_with_the_compiler_over_the_kernel_zero_corpus`; this slice reran it to completion (see "Local implementation evidence"). |
+| 4 | Native C11 (`-O0`/`-O2`) and Core Wasm agree with the reference interpreter over the same corpus | **Tested**, partial (finite corpus, not a proof) | `kernel_zero::differential::cross_backend::native_c11_and_core_wasm_agree_with_the_kernel_zero_reference_interpreter_over_the_corpus`; this slice reran it to completion. |
+| 5 | Rung 0 (one concrete program, same result on interpreter/native/Wasm) | **Reached** | `docs/SEMANTIC-KERNEL-V1.md` "Rung 0 evidence". Not rebuilt here. |
+| 6 | Rung 1 (kernel-sized pure computation, cross-backend agreement) | **Reached** | `rung_one_capacity_classifier_reifies_and_matches_reference_and_compiler_interpreters` and `...cross_backend::rung_one_capacity_classifier_agrees_across_native_o0_o2_and_core_wasm` (72 fixtures, 216 native/Wasm comparisons). Not rebuilt here. |
+| 7 | Rung 2 (self-hosted, pure, ownership/effect-free compiler component; broad differential; bootstrap-reproducible) | **Not reached** | `docs/SEMANTIC-KERNEL-V1.md` ladder still records "No" for rung 2. The five renderer lanes (`kernel_zero::rung_two_renderer::`, 14 passed) and the bootstrap artifact (`kernel_zero::rung_two_bootstrap::`, 10 passed) are local target/recovery evidence toward it, not the rung itself; this slice does not flip that status. |
+| 8 | Owned `Bytes` boundary: exact source/term/target binding is authenticated, and no owner is allocated before that check | **Tested** | `rung_two_owned_handoff/binding.rs` (`Binding::authenticate`) and `rung_two_owned_handoff/tests.rs::reminted_owned_handoff_substitutions_refuse_before_owner_allocation` — 9 independent mutation classes (source, entry, maximum, core source order, core entry, core term, native target, Wasm target, descriptor) plus truncated/legacy bytes all refuse with zero owners staged. |
+| 9 | Owned `Bytes` boundary: bounded execution (admission caps, 0..=20-byte input, 1..=8 fuel) | **Tested** | `interpreter::retained_call::owned_handoff` + its `tests` module (`owned_handoff` selector, 10 passed). |
+| 10 | Owned `Bytes` boundary: a refused, exhausted, mismatched, or panicking candidate falls back to the authoritative Rust bytes, and a later invocation re-enters without double-applying effects | **Tested** | `tests.rs::owned_handoff_exhaustion_has_no_candidate_and_next_invocation_recovers` (fuel-exhaustion refusal, then a fresh successful call); `tests.rs::reminted_owned_handoff_substitutions_refuse_before_owner_allocation`'s final assertion (re-entry with `b"reentry"` after every mutation refusal); `targets.rs` native/Wasm hostile handle/copy-refusal-then-reentry rows. |
+| 11 | Owned `Bytes` boundary: physical native (`-O0`/`-O2`) and Core-Wasm execution over real allocator/arena lifetimes | **Tested** | `targets.rs::owned_handoff_native_and_wasm_settle_refuse_and_reenter`, 13 rows (empty/NUL/non-UTF-8 bytes, `i64::MIN`'s 20-byte output, all five renderer lanes); this slice reran it (see below). |
+| 12 | The binding-authentication check in criterion 8 is load-bearing, not incidental | **Demonstrated once, reverted** (negative control) | This slice's negative-control mutant; see "Negative-control mutant" below. Not committed. |
+| 13 | Rung-2 promotion / owned-buffer formatter authority transfer | **Assumed open**, explicitly not decided here | Per issue #294's own boundary: "Rung promotion itself stays an explicit reviewed decision." This slice states evidence, not a promotion. |
+| 14 | Hosted acceptance (CI-run Lean gate, hosted differential, release-blocker set) | **Open** | Actions credits exhausted this session (see `docs/DEVELOPMENT.md`/coordinator notes); no hosted claim is made anywhere in this document. |
+| 15 | Whole-compiler self-hosting or formal verification (issue #212) | **Out of scope** | Not imported into this slice; #294 explicitly excludes it. |
+
 ## Local implementation evidence
 
 The following selectors completed against the local implementation before its

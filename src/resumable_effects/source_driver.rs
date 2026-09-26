@@ -215,7 +215,7 @@ pub fn run_source_resumable(
     }
 }
 
-fn tag(function_id: &str, ty: &ResolvedType) -> EffectTag {
+pub(super) fn tag(function_id: &str, ty: &ResolvedType) -> EffectTag {
     EffectTag::new(
         function_id,
         format!("{SOURCE_TYPE_SHAPE_PREFIX}{}", ty.identity_key()),
@@ -231,7 +231,7 @@ fn shape_width(shape: &str) -> Option<usize> {
     }
 }
 
-fn scalar(value: &ArgumentValue) -> Option<(ResumableScalar, ResolvedType, usize)> {
+pub(super) fn scalar(value: &ArgumentValue) -> Option<(ResumableScalar, ResolvedType, usize)> {
     Some(match value {
         ArgumentValue::Int(v) => (ResumableScalar::I64(*v), ResolvedType::I64, 9),
         ArgumentValue::Int32(v) => (ResumableScalar::I32(*v), ResolvedType::I32, 5),

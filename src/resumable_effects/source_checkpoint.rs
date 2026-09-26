@@ -53,6 +53,25 @@ impl SourceCheckpointKey {
     }
 }
 
+impl SourceCheckpointKey {
+    /// Domain-separated HMAC-SHA256 under this key for sibling authenticated
+    /// carriers (the continuation journal). The key itself never leaves.
+    pub(crate) fn authenticate(&self, domain: &[u8], payload: &[u8]) -> [u8; 32] {
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).expect("HMAC accepts a 32-byte key");
+        mac.update(domain);
+        mac.update(payload);
+        mac.finalize().into_bytes().into()
+    }
+
+    /// Constant-time verification of [`Self::authenticate`].
+    pub(crate) fn verify(&self, domain: &[u8], payload: &[u8], tag: &[u8]) -> bool {
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.0).expect("HMAC accepts a 32-byte key");
+        mac.update(domain);
+        mac.update(payload);
+        mac.verify_slice(tag).is_ok()
+    }
+}
+
 impl Drop for SourceCheckpointKey {
     fn drop(&mut self) {
         self.0.zeroize();

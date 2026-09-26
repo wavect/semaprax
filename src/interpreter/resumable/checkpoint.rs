@@ -253,7 +253,7 @@ fn checked_plan(
     Ok((plan, scalars))
 }
 
-fn scalar_json(value: &ArgumentValue) -> Value {
+pub(crate) fn scalar_json(value: &ArgumentValue) -> Value {
     match value {
         ArgumentValue::Int(value) => json!({"tag": "i64", "value": value}),
         ArgumentValue::Int32(value) => json!({"tag": "i32", "value": value}),
@@ -273,7 +273,7 @@ fn scalar_json(value: &ArgumentValue) -> Value {
     }
 }
 
-fn scalar_from_json(value: &Value) -> Result<ArgumentValue, CheckpointError> {
+pub(crate) fn scalar_from_json(value: &Value) -> Result<ArgumentValue, CheckpointError> {
     let tag = required_str(value, "tag")?;
     match tag {
         "i64" => {

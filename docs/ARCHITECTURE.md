@@ -828,6 +828,15 @@ reconstructs an inert continuation; the zeroized key grants no effect or resume
 authority, and the codec performs no dispatch or persistence.
 [Resumable Effects v1](RESUMABLE-EFFECTS-V1.md) owns the bounded contract and
 remaining general-lowering/runtime gaps.
+`src/resumable_effects/continuation.rs` is the public library driver for that
+profile's durable execution: it runs the compiler-owned start/resume plans on
+the interpreter and journals each step in `continuation/journal.rs`, an
+append-only, HMAC-chained, `fsync`-acknowledged store confined to one
+owner-private directory descriptor the host passes in. Answers are bound to
+program digest, invocation, site and envelope digest and require the host's
+capability policy; recovery never redispatches a settled yield or reruns
+cleanup. [Resumable Effects Continuation v1](RESUMABLE-EFFECTS-CONTINUATION-V1.md)
+owns that contract.
 
 ### Native bootstrap backend
 

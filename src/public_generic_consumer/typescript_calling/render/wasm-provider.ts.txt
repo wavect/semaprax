@@ -459,10 +459,15 @@ export class Provider {
   });
 }
 
+/** A raw `lane(status, value)` pair from the compiled provider's own closed
+ * Wasm ABI, exactly as the module returns it -- never remapped to this
+ * wrapper's semantic error vocabulary. Test-only surface. */
+export interface RawLane { readonly status: number; readonly value: number; }
+
 /** The compiler-owned route delegates allocation, handles, dispatch and
  * settlement to the closed Wasm ABI. The reference Provider above remains
  * selected only for an explicitly reference-bound artifact. */
-class CompiledProvider {
+export class CompiledProvider {
   #closed = false;
   #busy = false;
   readonly #memory: WebAssembly.Memory;
@@ -535,6 +540,42 @@ class CompiledProvider {
     finally { this.#busy = false; }
   }
   close(): void { if (this.#closed) return; if (this.#busy || this.#close(this.#provider) !== 0) throw new SemapraxPublicGenericException({ kind: "release-failed", status: 7 }); this.#closed = true; }
+
+  /** Test-only direct access to the compiled provider's OWN closed Wasm ABI,
+   * bypassing this wrapper's single-in-flight busy tracking, its canonical
+   * frame encode/decode and its semantic error remapping. This exists to
+   * prove the physical module itself -- not merely this generated wrapper --
+   * refuses handle, bounds and frame hostility, still only ever reached
+   * through the generated closures this class captured at open(), never a
+   * hand-written raw driver re-reading `instance.exports`. Never part of the
+   * production lifecycle API. */
+  static readonly diagnostics = Object.freeze({
+    scratchPointer(provider: CompiledProvider): number { return provider.#scratch; },
+    capacityBytes(provider: CompiledProvider): number { return provider.#capacity; },
+    writeScratch(provider: CompiledProvider, bytes: Uint8Array, at = 0): void {
+      const memory = new Uint8Array(provider.#memory.buffer);
+      memory.set(bytes, provider.#scratch + at);
+    },
+    encodeInput: encodeCanonicalInput,
+    prepareRaw(provider: CompiledProvider, ptr: number, len: number): RawLane {
+      return lane(provider.#prepare(provider.#provider, ptr, len));
+    },
+    callRaw(provider: CompiledProvider, handle: number): RawLane {
+      return lane(provider.#call(provider.#provider, handle));
+    },
+    exportRaw(provider: CompiledProvider, handle: number, ptr: number, capacity: number): RawLane {
+      return lane(provider.#export(handle, ptr, capacity));
+    },
+    releaseValueRaw(provider: CompiledProvider, handle: number): number {
+      return provider.#releaseValue(handle);
+    },
+    releaseResultRaw(provider: CompiledProvider, handle: number): number {
+      return provider.#releaseResult(handle);
+    },
+    closeRaw(provider: CompiledProvider): number {
+      return provider.#close(provider.#provider);
+    },
+  });
 }
 
 function lane(raw: bigint): { readonly status: number; readonly value: number } { return Object.freeze({ status: Number(raw & 0xffff_ffffn), value: Number((raw >> 32n) & 0xffff_ffffn) }); }

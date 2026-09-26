@@ -597,3 +597,222 @@ console.log("GENERATED COMPILED FAILURE INPUT RELEASE PASS");
         String::from_utf8_lossy(&execution.stderr)
     );
 }
+
+/// #287: the reference lifecycle test above proves the generated wrapper's
+/// OWN busy/close bookkeeping. This test instead uses the generated
+/// package's `CompiledProvider.diagnostics` test-only escape hatch -- still
+/// only the closures this class captured at `open()`, never a hand-written
+/// re-read of `instance.exports` -- to drive the compiled provider's OWN
+/// closed Wasm ABI directly: a mutated frame shape, an over-capacity
+/// declared length, and lifecycle misuse (export before call, release of a
+/// foreign/stale handle, double release, and a handle foreign to a second,
+/// simultaneously live provider instance) must each refuse at the exact
+/// status the module itself assigns, with no leaked live handle and no
+/// second physical dispatch, and the session must remain healthy afterward.
+#[test]
+fn generated_typescript_diagnostics_prove_the_compiled_providers_own_abi_hostility() {
+    assert!(
+        node_available(),
+        "generated compiled-provider consumer requires Node"
+    );
+    let tsc = required_tsc();
+    let artifact = artifact();
+    let endpoint = endpoint();
+    let input = RecordShape::new(
+        endpoint
+            .descriptor()
+            .input_facts()
+            .owned_leaves
+            .iter()
+            .cloned()
+            .map(OwnedByteField::new)
+            .collect(),
+    );
+    let output = RecordShape::new(
+        endpoint
+            .descriptor()
+            .result_facts()
+            .owned_leaves
+            .iter()
+            .cloned()
+            .map(OwnedByteField::new)
+            .collect(),
+    );
+    let consumer = generate_typescript_calling_consumer(
+        artifact.descriptor_bytes(),
+        artifact.binding(),
+        &input,
+        &output,
+    )
+    .unwrap();
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-pg-generated-compiled-provider-abi-hostility-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed),
+    ));
+    let package = root.join("package");
+    for (name, contents) in consumer.files() {
+        let path = package.join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, contents).unwrap();
+    }
+    fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("provider.wasm"), artifact.wasm()).unwrap();
+    let names = input
+        .fields
+        .iter()
+        .map(|field| generated_field_name(&field.identity))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        names.len(),
+        2,
+        "the Phase-B compiler provider has two owned leaves"
+    );
+    fs::write(
+        package.join("test/compiled-provider-abi-hostility.mjs"),
+        format!(
+            r#"import assert from "node:assert/strict";
+import {{ readFileSync }} from "node:fs";
+import {{ Provider, CompiledProvider }} from "../dist/wasm-provider.js";
+import {{ SemapraxPublicGenericException }} from "../dist/errors.js";
+const wasm = readFileSync(process.argv[2]);
+const left = "{left}", right = "{right}";
+const D = CompiledProvider.diagnostics;
+function fresh() {{ return {{ [left]: Uint8Array.from([1, 2]), [right]: Uint8Array.from([7, 8, 9]) }}; }}
+function assertSwap(output) {{
+  assert.deepEqual([...output[left]], [7, 8, 9]);
+  assert.deepEqual([...output[right]], [1, 2]);
+}}
+
+// call after close: the generated wrapper refuses locally; the closed module is never re-dispatched.
+{{
+  const provider = await Provider.open(wasm);
+  assertSwap(provider.transform(fresh()));
+  provider.close();
+  assert.throws(
+    () => provider.transform(fresh()),
+    error => error instanceof SemapraxPublicGenericException
+      && error.detail.kind === "carrier-rejected" && error.detail.reason === "provider-closed",
+    "transform after close must refuse without touching the closed module again",
+  );
+}}
+
+// bounds/over-capacity: the compiled ABI's own scratch-bound check refuses a
+// declared length or pointer outside the fixed scratch range, and the
+// session remains healthy for a genuine call right after.
+{{
+  const provider = await Provider.open(wasm);
+  const scratch = D.scratchPointer(provider), capacity = D.capacityBytes(provider);
+  const overCapacity = D.prepareRaw(provider, scratch, capacity + 1);
+  assert.equal(overCapacity.status, 6, "an over-capacity declared length must refuse as bounded");
+  assert.equal(overCapacity.value, 0);
+  const underRange = D.prepareRaw(provider, scratch - 1, 8);
+  assert.equal(underRange.status, 6, "a pointer before the fixed scratch range must refuse as bounded");
+  assertSwap(provider.transform(fresh()));
+  provider.close();
+}}
+
+// mutated frame shape: a single byte-flipped canonical frame is refused as
+// malformed by the compiled provider's OWN carrier codec, never accepted.
+{{
+  const provider = await Provider.open(wasm);
+  const scratch = D.scratchPointer(provider);
+  const bytes = D.encodeInput(fresh());
+  const corrupted = bytes.slice();
+  corrupted[corrupted.length - 30] ^= 0xff;
+  D.writeScratch(provider, corrupted);
+  const prepared = D.prepareRaw(provider, scratch, corrupted.length);
+  assert.equal(prepared.status, 5, "a structurally mutated frame must refuse as malformed, not accepted");
+  assert.equal(prepared.value, 0);
+  assertSwap(provider.transform(fresh()));
+  provider.close();
+}}
+
+// lifecycle misuse against the real compiled ABI, bypassing this wrapper's
+// own busy tracking: export before call, release of a foreign/stale handle,
+// and double release must each refuse without leaking state or re-dispatching.
+{{
+  const provider = await Provider.open(wasm);
+  const scratch = D.scratchPointer(provider);
+  const bytes = D.encodeInput(fresh());
+  D.writeScratch(provider, bytes);
+  const prepared = D.prepareRaw(provider, scratch, bytes.length);
+  assert.equal(prepared.status, 0);
+
+  const exportBeforeCall = D.exportRaw(provider, prepared.value, scratch, 0);
+  assert.equal(exportBeforeCall.status, 8, "exporting an unfilled input handle as a result must refuse");
+
+  assert.equal(D.releaseResultRaw(provider, 999999), 8, "releasing a foreign result handle must refuse");
+  assert.equal(D.releaseValueRaw(provider, 999999), 8, "releasing a foreign input handle must refuse");
+
+  const called = D.callRaw(provider, prepared.value);
+  assert.equal(called.status, 0);
+  const result = called.value;
+
+  assert.equal(D.releaseResultRaw(provider, result), 0, "the real first release must succeed");
+  assert.equal(
+    D.releaseResultRaw(provider, result), 8,
+    "a second release of the same handle must refuse, not double-dispatch",
+  );
+
+  assertSwap(provider.transform(fresh()));
+  provider.close();
+}}
+
+// a handle foreign to a second, simultaneously live and otherwise-untouched
+// provider instance must refuse there too, even though it is a genuine live
+// handle on its own, owning instance.
+{{
+  const a = await Provider.open(wasm);
+  const b = await Provider.open(wasm);
+  const aBytes = D.encodeInput(fresh());
+  D.writeScratch(a, aBytes);
+  const aPrepared = D.prepareRaw(a, D.scratchPointer(a), aBytes.length);
+  assert.equal(aPrepared.status, 0);
+  const aCalled = D.callRaw(a, aPrepared.value);
+  assert.equal(aCalled.status, 0);
+  assert.equal(D.releaseResultRaw(b, aCalled.value), 8, "a result handle from a different provider instance must refuse");
+  assert.equal(D.exportRaw(b, aCalled.value, D.scratchPointer(b), 0).status, 8, "exporting a foreign provider's result handle must refuse");
+  assert.equal(D.releaseResultRaw(a, aCalled.value), 0, "the real owning provider's release must still succeed");
+  assertSwap(a.transform(fresh()));
+  a.close(); b.close();
+}}
+
+console.log("GENERATED COMPILED PROVIDER ABI HOSTILITY PASS");
+"#,
+            left = names[0],
+            right = names[1],
+        ),
+    )
+    .unwrap();
+    let build = Command::new(&tsc)
+        .current_dir(&package)
+        .args(["-p", "tsconfig.json"])
+        .output()
+        .unwrap();
+    assert!(
+        build.status.success(),
+        "tsc stderr={}",
+        String::from_utf8_lossy(&build.stderr)
+    );
+    let execution = Command::new("node")
+        .current_dir(&package)
+        .args([
+            "test/compiled-provider-abi-hostility.mjs",
+            "../provider.wasm",
+        ])
+        .output()
+        .unwrap();
+    let _ = fs::remove_dir_all(&root);
+    assert!(
+        execution.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&execution.stdout),
+        String::from_utf8_lossy(&execution.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&execution.stdout)
+            .contains("GENERATED COMPILED PROVIDER ABI HOSTILITY PASS"),
+        "hostility runner did not emit its exact outcome marker"
+    );
+}

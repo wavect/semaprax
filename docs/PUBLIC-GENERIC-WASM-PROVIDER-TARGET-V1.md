@@ -93,9 +93,20 @@ The generated TypeScript package now emits canonical descriptor-bound carrier
 frames and executes the complete lifecycle against this compiler artifact.
 The hand-assembled reference module remains an explicit legacy test lane and
 cannot satisfy compiled-provider acceptance. This closes the former codec
-mismatch, but not #229's broader acceptance: hosted evidence, the full
-hostile/settlement matrix, and endpoint shapes beyond the admitted flat
-owned-`Bytes` profile remain separate.
+mismatch. A test-only `CompiledProvider.diagnostics` escape hatch on the same
+generated file additionally drives the compiled provider's own closed ABI
+directly (still only through the closures `CompiledProvider` captured at
+`open()`, never a hand-written re-read of `instance.exports`) to prove a
+mutated canonical frame, an over-capacity/out-of-bounds declared length, and
+lifecycle misuse — call after close, export before call, release of a
+foreign/stale handle, and double release, including across two
+simultaneously live provider instances — each refuse at the module's own
+exact status with no leaked live handle and no duplicate dispatch; see
+`compiler_provider_artifact.rs`'s
+`generated_typescript_diagnostics_prove_the_compiled_providers_own_abi_hostility`.
+This is still not #229's full broader acceptance: hosted evidence and
+endpoint shapes beyond the admitted flat owned-`Bytes` profile remain
+separate.
 
 ## Private lifecycle admission
 

@@ -1,0 +1,64 @@
+// Test-only counter observations for the moves-v1/allocating-v1 generated
+// Rust callers; every provider call goes through the actual generated safe API.
+#![allow(unsafe_code)]
+use @LIBRARY@::{diagnostics, Error, Input, Provider, TRUSTED_BINDING_BYTES, TRUSTED_DESCRIPTOR_BYTES};
+extern "C" {
+    fn auth_allocations() -> usize;
+    fn auth_live() -> usize;
+    fn auth_calls() -> usize;
+}
+fn counts() -> (usize, usize, usize) {
+    // SAFETY: these test-only accessors return process-local counters; they
+    // accept no pointer or ownership and do not invoke the selected endpoint.
+    unsafe { (auth_allocations(), auth_live(), auth_calls()) }
+}
+/// The stable prepare refusal: 5/14 are carrier rejections, 7/8 surface the raw
+/// ownership/generation status.
+fn refused<T>(result: &Result<T, Error>, raw: i32) -> bool {
+    match (raw, result) {
+        (5 | 14, Err(Error::CarrierRejected(_))) => true,
+        (7 | 8, Err(Error::ExecutionFailed(status))) => *status == raw,
+        _ => false,
+    }
+}
+fn main() {
+    const MODE: u8 = @MODE@;
+    const RAW: i32 = @RAW@;
+    let mut malformed = TRUSTED_DESCRIPTOR_BYTES.to_vec();
+    malformed[0] ^= 1;
+    assert!(matches!(Provider::open(&malformed, TRUSTED_BINDING_BYTES), Err(Error::DescriptorRejected(_))));
+    assert_eq!(counts(), (0, 0, 0));
+    let mut provider = Provider::open(TRUSTED_DESCRIPTOR_BYTES, TRUSTED_BINDING_BYTES).unwrap();
+    let live = counts().1;
+    for iteration in 0..2 {
+        let before = counts().0;
+        let result = provider.transform(Input {
+            @INPUT0@: vec![1, 7, 13], @INPUT1@: vec![2, 11, 17, 23],
+        });
+        if MODE == 1 {
+            let value = result.unwrap();
+            if value.@OUTPUT0@ != @EXPECT0@ || value.@OUTPUT1@ != @EXPECT1@ {
+                std::process::exit(42); // selected checked body was not executed
+            }
+            assert_eq!(counts().2, iteration + 1);
+            assert!(counts().0 > before);
+            drop(value);
+        } else {
+            if !refused(&result, RAW) {
+                // A check-omission control must actually reach physical work.
+                assert!(counts().2 == 1 && counts().0 > before);
+                std::process::exit(77);
+            }
+            assert_eq!(counts().0, before);
+            assert_eq!(counts().2, 0);
+        }
+        assert_eq!(counts().1, live);
+        assert_eq!(provider.last_release_status(), 0);
+        assert_eq!(diagnostics::live_handles(&provider), 0);
+    }
+    provider.close().unwrap();
+    provider.close().unwrap();
+    drop(provider);
+    assert_eq!(counts().1, 0);
+    println!("rust-authenticated-profile-settled");
+}

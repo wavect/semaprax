@@ -19,6 +19,8 @@ mod lifecycle;
 mod physical;
 #[path = "profile_hostility.rs"]
 mod profile_hostility;
+#[path = "profile_rust.rs"]
+mod profile_rust;
 #[path = "same_subject_rust.rs"]
 mod rust;
 #[path = "same_subject_typescript.rs"]

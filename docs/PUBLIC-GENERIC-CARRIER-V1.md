@@ -310,8 +310,24 @@ output and close-to-zero. Two omission controls per profile and language
 compile a provider without its generation check or without its cleanup-digest
 check; each must instead cross into allocation and endpoint entry. The
 selector runs 80 physical processes (two profiles, two languages, ten cases,
-O0/O2). No Rust caller exists for these two profiles, and this adds no Core
-Wasm comparison, sanitizer, hosted or public-support evidence.
+O0/O2). This adds no Core Wasm comparison, sanitizer, hosted or
+public-support evidence.
+
+Generated Rust callers for moves-v1 and allocating-v1 reuse the identity-v1
+Rust caller generator. Only the crate doc profile name, the Cargo package and
+library names (`spx-pg-private-authenticated-moves-rust-v1`,
+`spx-pg-private-authenticated-allocating-rust-v1`) and the separately bound
+provider artifact differ; identity-v1 output is unchanged. The owning
+`generated_rust_moves_and_allocating_callers_admit_before_physical_handoff`
+selector checks that sharing file by file and pins each generated package's
+bytes. It builds each package offline against the actual rendered provider at
+O0/O2 and runs 48 processes: a canonical control that executes the selected
+checked body exactly once per call, with exact moved or allocated leaves and
+live allocations returning to baseline and then to zero; the seven recipes,
+projected onto the generated ticket, cleanup constant and empty-frame template;
+the legacy flattened Rust caller; and generation-check, cleanup-check and
+checked-call omission controls, which must cross into physical work or fail
+the payload oracle.
 
 ## The logical value state machine
 

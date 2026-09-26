@@ -795,6 +795,30 @@ fn delete_task(
     )
 }
 
+/// The host's Rust mirror of `task_service.core.enqueue_outcome`'s
+/// documented truth table (`std.jobs.idempotency.enqueue_outcome`: fresh 0,
+/// duplicate 1, conflicting reuse 2), used instead of invoking the checked
+/// decision: the decision's closure reaches the contract-bearing
+/// `std.bytes.byte_to_i64`, so invocation through the public-API seam is
+/// refused (`SPX-F102`, see `decisions.rs`).
+///
+/// Extracted to a pure function -- rather than inlined in [`enqueue_job`]
+/// -- so the regression test below can call the exact logic production uses
+/// and check it against the real checked decision, evaluated through the
+/// project's normal (non-public-API) test-execution path, for
+/// representative inputs. Nothing else cross-checks this mirror against the
+/// checked `.spx` truth, so a std-library edit that changes the decision
+/// must fail visibly instead of only diverging silently at runtime.
+fn enqueue_outcome_mirror(key_exists: bool, existing_desc: &[u8], candidate_desc: &[u8]) -> u8 {
+    if !key_exists {
+        0
+    } else if existing_desc == candidate_desc {
+        1
+    } else {
+        2
+    }
+}
+
 fn enqueue_job(
     host: &mut BoundHost<'_, '_>,
     committed: &mut CommittedState,
@@ -812,17 +836,11 @@ fn enqueue_job(
         return error(400, "invalid_job", None);
     }
     let existing = committed.state.job_by_key(key);
-    // The host mirrors `task_service.core.enqueue_outcome`'s documented
-    // truth table (`std.jobs.idempotency.enqueue_outcome`: fresh 0,
-    // duplicate 1, conflicting reuse 2) instead of invoking it: the
-    // decision's closure reaches the contract-bearing
-    // `std.bytes.byte_to_i64`, so invocation is refused (`SPX-F102`) while
-    // the fixture scenario keeps covering the checked decision itself.
-    let outcome = match existing {
-        None => 0,
-        Some(job) if job.desc.as_bytes() == desc.as_bytes() => 1,
-        Some(_) => 2,
-    };
+    let outcome = enqueue_outcome_mirror(
+        existing.is_some(),
+        existing.map(|job| job.desc.as_bytes()).unwrap_or(&[]),
+        desc.as_bytes(),
+    );
     match outcome {
         0 => {
             if existing.is_some() {
@@ -924,6 +942,34 @@ fn get_job(
     }
 }
 
+/// Test-only crash injection exercised by
+/// `reference_service_acceptance::completion_crash_after_delivery_before_commit_settles_uncertain_on_restart`.
+///
+/// If the named environment variable holds exactly this job's decimal id,
+/// the whole process exits immediately -- after the durable webhook-delivery
+/// attempt above has already settled and before the state commit below --
+/// proving the crash-safety claim documented in
+/// `docs/REFERENCE-SERVICE-HOST-V1.md` ("a crash between the two leaves a
+/// pending job whose durable marker already exists, so the retry settles
+/// `Uncertain` instead of redispatching") against a real killed and
+/// restarted process, not only a delivery attempt that fails closed because
+/// no peer exists. A bare environment variable never grants authority (see
+/// `AGENTS.md`: capabilities stay host-granted, not ambient) and no real
+/// deployment sets this one; debug-only so it never reaches a release
+/// binary.
+#[cfg(debug_assertions)]
+fn crash_after_delivery_for_acceptance_test(job_id: i64) {
+    const VAR: &str = "SEMAPRAX_REFERENCE_SERVICE_TEST_CRASH_AFTER_DELIVERY_JOB";
+    if let Ok(value) = std::env::var(VAR) {
+        if value.parse::<i64>() == Ok(job_id) {
+            std::process::exit(91);
+        }
+    }
+}
+
+#[cfg(not(debug_assertions))]
+fn crash_after_delivery_for_acceptance_test(_job_id: i64) {}
+
 fn complete_job(
     host: &mut BoundHost<'_, '_>,
     committed: &mut CommittedState,
@@ -964,6 +1010,7 @@ fn complete_job(
             return error(503, "delivery_unavailable", Some(&committed.digest))
         }
     };
+    crash_after_delivery_for_acceptance_test(job.id);
     let mut state = committed.state.clone();
     let stored = state
         .jobs
@@ -989,422 +1036,5 @@ fn complete_job(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::reference_service::test_support::TempDir;
-    use semaprax::project::with_authenticated_project;
-    use semaprax_native_rust_interop_platform as platform;
-    use std::ffi::OsStr;
-
-    const DEPLOYMENT: &str = "reference-service-test-v1";
-
-    struct Fixture {
-        _state: TempDir,
-        _outbound: TempDir,
-        _secrets: TempDir,
-        host: BoundHost<'static, 'static>,
-        committed: CommittedState,
-    }
-
-    // The revision, directories, and secrets outlive the test body through
-    // intentional leaks: this keeps the fixture's lifetimes simple without
-    // changing any production signature for tests.
-    fn fixture() -> Fixture {
-        // The project loader rejects `.`/`..` components, so the fixture
-        // path is canonicalized before loading.
-        let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("..")
-            .join("examples")
-            .join("task-service-project")
-            .join("semaprax.toml")
-            .canonicalize()
-            .expect("canonicalize task-service-project fixture");
-        let revision: &'static semaprax::project::ProjectRevision = Box::leak(Box::new(
-            with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision()))
-                .expect("load task-service-project fixture"),
-        ));
-        let (state_dir, state_held) = TempDir::hold("reference-mapping-state");
-        let (outbound_dir, outbound_held) = TempDir::hold("reference-mapping-outbound");
-        let (secrets_dir, secrets_held) = TempDir::hold("reference-mapping-secrets");
-        let state_held: &'static HeldDirectory = Box::leak(Box::new(state_held));
-        let outbound_held: &'static HeldDirectory = Box::leak(Box::new(outbound_held));
-        write_secret(&secrets_held, "auth.pepper", &[1_u8; 32]);
-        write_secret(&secrets_held, "auth.session", &[2_u8; 32]);
-        write_secret(&secrets_held, "webhook.signing", &[3_u8; 32]);
-        write_secret(&secrets_held, "db.primary", b"held-but-unconnected");
-        let intent = decode_host_intent();
-        let secrets = super::super::secrets::resolve(
-            &secrets_held,
-            intent.secrets().unwrap(),
-            intent.database().unwrap().dsn_secret_reference(),
-        )
-        .unwrap();
-        let decisions =
-            DecisionEngine::bind(revision, super::super::decisions::DECISION_MAX_STEPS).unwrap();
-        let grants = HostGrants::from_trusted_host(
-            state_held,
-            outbound_held,
-            secrets,
-            DEPLOYMENT.to_owned(),
-            OutboundCheckpointSyncMode::FileOnly,
-        )
-        .unwrap();
-        let (host, committed) = bind(&intent, decisions, grants, InitialState::Genesis).unwrap();
-        Fixture {
-            _state: state_dir,
-            _outbound: outbound_dir,
-            _secrets: secrets_dir,
-            host,
-            committed,
-        }
-    }
-
-    fn write_secret(directory: &HeldDirectory, name: &str, bytes: &[u8]) {
-        let _ = platform::write_file_new(directory, OsStr::new(name), bytes, 0o600).unwrap();
-    }
-
-    fn decode_host_intent() -> ServiceHostAdapterRequestV1 {
-        let text = r#"{"capabilities":["semaprax.service.database.connect.v1","semaprax.service.http.serve-tls.v1","semaprax.service.secrets.resolve.v1","semaprax.service.telemetry.emit.v1"],"database":{"adapter":"sqlite","dsn_secret_ref":"db.primary","migration_table":"semaprax_migrations"},"http":{"adapter":"native","listen_origin":"https://service.example","tls_profile":"modern"},"mode":"host","schema":"semaprax.service-host-adapter-request.v1","secrets":{"password_pepper_ref":"auth.pepper","session_signing_key_ref":"auth.session","webhook_signing_key_ref":"webhook.signing"},"telemetry":{"adapter":"otlp","endpoint_origin":"https://127.0.0.1:9"}}"#;
-        let mut bytes = text.as_bytes().to_vec();
-        bytes.push(b'\n');
-        semaprax::project::service_host_adapter_request::decode(&bytes).unwrap()
-    }
-
-    fn exchange(method: &str, target: &str, body: &str, token: Option<&str>) -> HttpExchange {
-        let mut headers = vec![("content-length".to_owned(), body.len().to_string())];
-        if let Some(token) = token {
-            headers.push(("authorization".to_owned(), format!("Bearer {token}")));
-        }
-        HttpExchange {
-            method: method.to_owned(),
-            target: target.to_owned(),
-            headers,
-            body: body.as_bytes().to_vec(),
-        }
-    }
-
-    fn field(body: &str, key: &str) -> JsonValue {
-        json::parse(body.as_bytes(), 64 * 1024)
-            .unwrap()
-            .get(key)
-            .unwrap()
-            .clone()
-    }
-
-    #[test]
-    fn register_login_crud_logout_round_trip() {
-        // The fixture stays whole: destructuring it would drop the
-        // directory guards and delete the held directories mid-test.
-        let mut fixture = fixture();
-        let health = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange("GET", "/v1/health", "", None),
-        );
-        assert_eq!(health.status, 200);
-
-        let registered = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/register",
-                r#"{"username":"alice","password":"correct horse 7"}"#,
-                None,
-            ),
-        );
-        assert_eq!(registered.status, 201, "{}", registered.body);
-        let account_id = field(&registered.body, "account_id").as_i64().unwrap();
-        assert_eq!(account_id, 1);
-
-        let duplicate = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/register",
-                r#"{"username":"alice","password":"another secret 8"}"#,
-                None,
-            ),
-        );
-        assert_eq!(duplicate.status, 409);
-
-        let bad_name = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/register",
-                r#"{"username":"1alice","password":"correct horse 7"}"#,
-                None,
-            ),
-        );
-        assert_eq!(bad_name.status, 400);
-
-        let denied = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/login",
-                r#"{"username":"alice","password":"wrong password 0"}"#,
-                None,
-            ),
-        );
-        assert_eq!(denied.status, 401);
-
-        let logged_in = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/login",
-                r#"{"username":"alice","password":"correct horse 7"}"#,
-                None,
-            ),
-        );
-        assert_eq!(logged_in.status, 200, "{}", logged_in.body);
-        let token = field(&logged_in.body, "token").as_str().unwrap().to_owned();
-
-        let created = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/tasks",
-                r#"{"title":"write the report"}"#,
-                Some(&token),
-            ),
-        );
-        assert_eq!(created.status, 201, "{}", created.body);
-
-        let fetched = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange("GET", "/v1/tasks/1", "", Some(&token)),
-        );
-        assert_eq!(fetched.status, 200);
-        assert_eq!(
-            field(&fetched.body, "title").as_str().unwrap(),
-            "write the report"
-        );
-
-        let updated = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange("PATCH", "/v1/tasks/1", r#"{"status":"done"}"#, Some(&token)),
-        );
-        assert_eq!(updated.status, 200);
-
-        let deleted = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange("DELETE", "/v1/tasks/1", "", Some(&token)),
-        );
-        assert_eq!(deleted.status, 200);
-        let gone = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange("GET", "/v1/tasks/1", "", Some(&token)),
-        );
-        assert_eq!(gone.status, 404);
-
-        let logged_out = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange("POST", "/v1/logout", "", Some(&token)),
-        );
-        assert_eq!(logged_out.status, 200);
-        let retired = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange("GET", "/v1/tasks/1", "", Some(&token)),
-        );
-        assert_eq!(retired.status, 401);
-    }
-
-    #[test]
-    fn fixture_intent_and_bad_deployment_refuse_binding() {
-        let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("..")
-            .join("examples")
-            .join("task-service-project")
-            .join("semaprax.toml")
-            .canonicalize()
-            .expect("canonicalize task-service-project fixture");
-        let revision =
-            with_authenticated_project(&manifest, |snapshot| Ok(snapshot.retain_revision()))
-                .expect("load task-service-project fixture");
-        let decisions =
-            DecisionEngine::bind(&revision, super::super::decisions::DECISION_MAX_STEPS).unwrap();
-        let (_temp, directory) = TempDir::hold("reference-mapping-bind");
-        let (_secrets_temp, secrets_dir) = TempDir::hold("reference-mapping-bind-secrets");
-        write_secret(&secrets_dir, "auth.pepper", &[1_u8; 32]);
-        write_secret(&secrets_dir, "auth.session", &[2_u8; 32]);
-        write_secret(&secrets_dir, "webhook.signing", &[3_u8; 32]);
-        write_secret(&secrets_dir, "db.primary", b"held-but-unconnected");
-        let host_intent = decode_host_intent();
-        let secrets = super::super::secrets::resolve(
-            &secrets_dir,
-            host_intent.secrets().unwrap(),
-            host_intent.database().unwrap().dsn_secret_reference(),
-        )
-        .unwrap();
-        // Full grants plus fixture-mode intent still refuse: configuration
-        // intent never mints a runner.
-        let fixture_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("..")
-            .join("examples")
-            .join("task-service-project")
-            .join("service-host-adapter-request.json");
-        let fixture_bytes = std::fs::read(&fixture_path).unwrap();
-        let fixture_intent =
-            semaprax::project::service_host_adapter_request::decode(&fixture_bytes).unwrap();
-        let grants = HostGrants::from_trusted_host(
-            &directory,
-            &directory,
-            secrets,
-            DEPLOYMENT.to_owned(),
-            OutboundCheckpointSyncMode::FileOnly,
-        )
-        .unwrap();
-        // `grants` is moved by the first bind; rebuild the secrets side for
-        // the second attempt below.
-        let secrets = super::super::secrets::resolve(
-            &secrets_dir,
-            host_intent.secrets().unwrap(),
-            host_intent.database().unwrap().dsn_secret_reference(),
-        )
-        .unwrap();
-        assert_eq!(
-            bind(&fixture_intent, decisions, grants, InitialState::Genesis)
-                .err()
-                .unwrap(),
-            BindRefusal::FixtureMode
-        );
-        // A deployment binding outside the outbound identity grammar is not
-        // a grant at all.
-        assert_eq!(
-            HostGrants::from_trusted_host(
-                &directory,
-                &directory,
-                secrets,
-                "not a valid identity!".to_owned(),
-                OutboundCheckpointSyncMode::FileOnly,
-            )
-            .err()
-            .unwrap(),
-            BindRefusal::InvalidDeployment
-        );
-    }
-
-    #[test]
-    fn job_enqueue_is_idempotent_and_completion_settles_once() {
-        // The fixture stays whole: destructuring it would drop the
-        // directory guards and delete the held directories mid-test.
-        let mut fixture = fixture();
-        let registered = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/register",
-                r#"{"username":"bob","password":"correct horse 7"}"#,
-                None,
-            ),
-        );
-        assert_eq!(registered.status, 201, "{}", registered.body);
-        let logged_in = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/login",
-                r#"{"username":"bob","password":"correct horse 7"}"#,
-                None,
-            ),
-        );
-        assert_eq!(logged_in.status, 200);
-        let token = field(&logged_in.body, "token").as_str().unwrap().to_owned();
-
-        let enqueued = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/jobs/enqueue",
-                r#"{"key":"job-1","desc":"task-1"}"#,
-                Some(&token),
-            ),
-        );
-        assert_eq!(enqueued.status, 200, "{}", enqueued.body);
-        assert_eq!(
-            field(&enqueued.body, "outcome").as_str().unwrap(),
-            "created"
-        );
-
-        let duplicate = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/jobs/enqueue",
-                r#"{"key":"job-1","desc":"task-1"}"#,
-                Some(&token),
-            ),
-        );
-        assert_eq!(duplicate.status, 200);
-        assert_eq!(
-            field(&duplicate.body, "outcome").as_str().unwrap(),
-            "duplicate"
-        );
-        assert_eq!(
-            field(&duplicate.body, "state").as_str(),
-            field(&enqueued.body, "state").as_str()
-        );
-
-        let conflict = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange(
-                "POST",
-                "/v1/jobs/enqueue",
-                r#"{"key":"job-1","desc":"other"}"#,
-                Some(&token),
-            ),
-        );
-        assert_eq!(conflict.status, 409);
-
-        // No peer listens on 127.0.0.1:9, so the durable attempt fails
-        // closed and settles `Uncertain` without redispatch; the job still
-        // completes exactly once in state.
-        let completed = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange("POST", "/v1/jobs/1/complete", "", Some(&token)),
-        );
-        assert_eq!(completed.status, 200, "{}", completed.body);
-        assert_eq!(
-            field(&completed.body, "webhook").as_str().unwrap(),
-            "uncertain"
-        );
-
-        let again = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange("POST", "/v1/jobs/1/complete", "", Some(&token)),
-        );
-        assert_eq!(again.status, 409);
-
-        let queried = handle(
-            &mut fixture.host,
-            &mut fixture.committed,
-            &exchange("GET", "/v1/jobs/1", "", Some(&token)),
-        );
-        assert_eq!(queried.status, 200);
-        assert_eq!(field(&queried.body, "state").as_str().unwrap(), "completed");
-    }
-}
+#[path = "mapping/tests.rs"]
+mod tests;

@@ -98,3 +98,6 @@ this host does not mint), no OTLP protobuf, no hosted/public/production
 support, no graceful shutdown, and no per-request decisions outside the
 frozen invocation vocabulary. The `.invalid` origins in tests exist so no
 real peer can be contacted; delivery attempts there fail closed by design.
+Sessions never expire; only explicit logout retires one (`POST
+/v1/logout`) -- there is no tick, idle deadline, or absolute deadline
+checked here, unlike the scaffold's own fixture-mode session decision.

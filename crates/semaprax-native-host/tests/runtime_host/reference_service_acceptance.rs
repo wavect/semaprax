@@ -105,6 +105,16 @@ struct Server {
 
 impl Server {
     fn spawn(workdir: &Workdir, extra: &[&str]) -> Self {
+        Self::spawn_with_env(workdir, extra, &[])
+    }
+
+    /// Spawn with additional inherited-plus-extra environment variables. Used
+    /// only to arm the debug-only crash-injection hook
+    /// (`SEMAPRAX_REFERENCE_SERVICE_TEST_CRASH_AFTER_DELIVERY_JOB`, see
+    /// `reference_service::mapping::crash_after_delivery_for_acceptance_test`)
+    /// that proves the documented crash-safety claim against a real killed
+    /// process; ordinary spawns pass an empty slice.
+    fn spawn_with_env(workdir: &Workdir, extra: &[&str], envs: &[(&str, &str)]) -> Self {
         for _ in 0..5 {
             let port = free_port();
             let mut command = Command::new(SERVER);
@@ -125,6 +135,7 @@ impl Server {
                 .arg("--port")
                 .arg(port.to_string())
                 .args(extra)
+                .envs(envs.iter().copied())
                 .stdin(Stdio::null())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped());
@@ -178,6 +189,23 @@ impl Server {
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
+
+    /// Wait, bounded, for the child to exit on its own (a simulated crash),
+    /// rather than killing it. Panics on timeout so a hook that failed to
+    /// fire is a loud test failure, not a silent hang.
+    fn wait_for_exit(&mut self) -> std::process::ExitStatus {
+        let deadline = Instant::now() + READY_TIMEOUT;
+        loop {
+            if let Some(status) = self.child.try_wait().expect("poll reference server") {
+                return status;
+            }
+            if Instant::now() >= deadline {
+                self.kill_and_wait();
+                panic!("reference server did not exit on its own within the bounded wait");
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    }
 }
 
 impl Drop for Server {
@@ -227,6 +255,39 @@ fn http(port: u16, method: &str, target: &str, body: &str, token: Option<&str>) 
         .expect("HTTP status line");
     let body = text.split("\r\n\r\n").nth(1).unwrap_or("").to_owned();
     (status, body)
+}
+
+/// Send one request without requiring a response: the server under test is
+/// expected to crash mid-exchange (see
+/// `completion_crash_after_delivery_before_commit_settles_uncertain_on_restart`),
+/// so a write or read failure here is the expected outcome, not a test
+/// failure. The caller separately asserts the process actually exited.
+fn send_ignoring_response(port: u16, method: &str, target: &str, body: &str, token: Option<&str>) {
+    let deadline = Instant::now() + REQUEST_TIMEOUT;
+    let mut stream = loop {
+        match TcpStream::connect(("127.0.0.1", port)) {
+            Ok(stream) => break stream,
+            Err(_) if Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            Err(error) => panic!("loopback connect failed: {error}"),
+        }
+    };
+    let _ = stream.set_read_timeout(Some(REQUEST_TIMEOUT));
+    let _ = stream.set_write_timeout(Some(REQUEST_TIMEOUT));
+    let mut request = format!(
+        "{method} {target} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: {}\r\nConnection: close\r\n",
+        body.len()
+    );
+    if let Some(token) = token {
+        request.push_str(&format!("Authorization: Bearer {token}\r\n"));
+    }
+    request.push_str("\r\n");
+    request.push_str(body);
+    if stream.write_all(request.as_bytes()).is_ok() {
+        let mut response = Vec::new();
+        let _ = stream.read_to_end(&mut response);
+    }
 }
 
 fn field<'a>(body: &'a str, key: &str) -> &'a str {
@@ -517,4 +578,133 @@ fn bundle_command_writes_verifies_and_rejects_tamper() {
         .output()
         .expect("run bundle command");
     assert_eq!(output.status.code(), Some(2), "{output:?}");
+}
+
+/// The debug-only crash-injection hook this harness arms via
+/// `SEMAPRAX_REFERENCE_SERVICE_TEST_CRASH_AFTER_DELIVERY_JOB` (see
+/// `reference_service::mapping::crash_after_delivery_for_acceptance_test`).
+const CRASH_ENV: &str = "SEMAPRAX_REFERENCE_SERVICE_TEST_CRASH_AFTER_DELIVERY_JOB";
+/// The exact process exit code the hook uses, so a real bug elsewhere that
+/// happens to kill the process cannot be confused with the hook firing.
+const CRASH_EXIT_CODE: i32 = 91;
+
+/// `complete_job`'s durable webhook-delivery attempt precedes its
+/// `ServiceState` commit (`mapping.rs` module docs, and
+/// `docs/REFERENCE-SERVICE-HOST-V1.md`'s "Persistence and restart" claim):
+/// a crash strictly between the two must leave a pending job whose durable
+/// delivery marker already exists, so a retry settles `Uncertain` instead of
+/// redispatching, and the job still completes exactly once. This proves
+/// that exact interleave against a real killed and restarted process,
+/// distinct from `login_crud_job_restart_preserves_state_without_redispatch`
+/// above, which only ever observes a delivery attempt that fails closed
+/// over the network (no crash involved) and a clean restart afterward.
+#[test]
+fn completion_crash_after_delivery_before_commit_settles_uncertain_on_restart() {
+    if loopback_denied() {
+        eprintln!("skipping: sandbox denies loopback bind");
+        return;
+    }
+    let workdir = Workdir::create("crash-interleave");
+    workdir.write_inputs();
+
+    // First run: register, log in, and enqueue exactly one job, so there is
+    // one pending job to complete afterward. Clean shutdown (no crash hook).
+    let server = Server::spawn(&workdir, &[]);
+    let port = server.port;
+
+    let (status, body) = http(
+        port,
+        "POST",
+        "/v1/register",
+        r#"{"username":"alice","password":"correct horse 7"}"#,
+        None,
+    );
+    assert_eq!(status, 201, "{body}");
+    let (status, body) = http(
+        port,
+        "POST",
+        "/v1/login",
+        r#"{"username":"alice","password":"correct horse 7"}"#,
+        None,
+    );
+    assert_eq!(status, 200, "{body}");
+    let token = field(&body, "token").to_owned();
+    let (status, body) = http(
+        port,
+        "POST",
+        "/v1/jobs/enqueue",
+        r#"{"key":"job-1","desc":"task-1"}"#,
+        Some(&token),
+    );
+    assert_eq!(status, 200, "{body}");
+    assert_eq!(field(&body, "outcome"), "created");
+    let digest_before_completion = field(&body, "state").to_owned();
+
+    drop(server);
+    let outbound_before_crash = workdir.census("outbound");
+    assert!(
+        outbound_before_crash
+            .iter()
+            .all(|name| !name.ends_with(".marker")),
+        "no delivery has been attempted yet: {outbound_before_crash:?}"
+    );
+
+    // Second run: resume from the pre-completion digest with the crash hook
+    // armed for job 1. The completion request's durable webhook-delivery
+    // attempt commits its marker and settles (`uncertain`, since no peer
+    // exists at the `.invalid` telemetry origin) before the injected crash
+    // exits the whole process -- strictly before the `ServiceState` commit
+    // that would mark the job completed.
+    let mut crashing = Server::spawn_with_env(
+        &workdir,
+        &["--state", digest_before_completion.as_str()],
+        &[(CRASH_ENV, "1")],
+    );
+    let crash_port = crashing.port;
+    send_ignoring_response(crash_port, "POST", "/v1/jobs/1/complete", "", Some(&token));
+    let status = crashing.wait_for_exit();
+    assert_eq!(
+        status.code(),
+        Some(CRASH_EXIT_CODE),
+        "the crash hook must have fired: {status:?}"
+    );
+
+    let outbound_after_crash = workdir.census("outbound");
+    let markers_after_crash: Vec<_> = outbound_after_crash
+        .iter()
+        .filter(|name| name.ends_with(".marker"))
+        .collect();
+    assert_eq!(markers_after_crash.len(), 1, "{outbound_after_crash:?}");
+    let state_before_retry = workdir.census("state");
+
+    // Third run: restart from the SAME pre-completion digest -- the crash
+    // means the `ServiceState` commit never landed -- with no crash hook
+    // armed. The job is still pending and unsettled in state.
+    let server = Server::spawn(&workdir, &["--state", digest_before_completion.as_str()]);
+    let port = server.port;
+    let (status, body) = http(port, "GET", "/v1/jobs/1", "", Some(&token));
+    assert_eq!(status, 200, "{body}");
+    assert_eq!(field(&body, "state"), "pending");
+    assert_eq!(field(&body, "webhook"), "none");
+
+    // Retrying completion now succeeds: the durable delivery marker already
+    // exists, so this reconciles/replays instead of redispatching to the
+    // provider, and the `ServiceState` commit -- which never landed before
+    // -- now does.
+    let (status, body) = http(port, "POST", "/v1/jobs/1/complete", "", Some(&token));
+    assert_eq!(status, 200, "{body}");
+    assert_eq!(field(&body, "webhook"), "uncertain");
+    let digest_after_completion = field(&body, "state").to_owned();
+    assert_ne!(digest_after_completion, digest_before_completion);
+
+    let (status, body) = http(port, "GET", "/v1/jobs/1", "", Some(&token));
+    assert_eq!(status, 200, "{body}");
+    assert_eq!(field(&body, "state"), "completed");
+    assert_eq!(field(&body, "webhook"), "uncertain");
+
+    // No second dispatch: the outbound census is unchanged from right after
+    // the crash (the same one marker; the replay wrote nothing new), while
+    // the state census gained exactly the one new completion snapshot.
+    assert_eq!(workdir.census("outbound"), outbound_after_crash);
+    assert_eq!(workdir.census("state").len(), state_before_retry.len() + 1);
 }

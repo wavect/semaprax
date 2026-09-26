@@ -36,22 +36,28 @@ use super::super::{
 
 // Independent known answers for the checked-in parity projects. Replay must
 // not accept identity claims supplied by the emitter under test.
+//
+// R07's Core Wasm provider fixes (owned-byte runtime, admission before
+// memory.grow, the 128 KiB payload window, and ABI v2 status 14/SPX-PG803)
+// changed the compiled provider's bytes: only the provider/component
+// digests below moved. The descriptor digests are a pure function of the
+// checked source and are unchanged.
 const EXPECTED_PARITY_COMPONENT_DIGEST: &str =
-    "sha256:7dc7bfbb97cb9dcdf20ed9d93ffc775fffca8f1a536a6b4631abbca7cfe8f30f";
+    "sha256:e9ae78d98660d66cefe916859b0f6acbce075af92b743ef7707855e2e1b2df20";
 const EXPECTED_PARITY_DESCRIPTOR_DIGEST: &str =
     "sha256:a4c32697da4d273ce3883bdb485d1a449741bd157eee1ada2e92732efee2ec0c";
 const EXPECTED_PARITY_PROVIDER_DIGEST: &str =
-    "sha256:e3c69a4bc690db396741c322267edb756264bd71438334b8571e3d05b925bcba";
+    "sha256:a5934714b469bbf4985d6f69e88e9137621967148fd6d9d6777bcbb3b5597ecb";
 const EXPECTED_PARITY_COMPONENT_SHA256: &str =
-    "283eb213e9655e16ace71dd007b0c76c3b3d52056d063b9dfe8ed0a7fea9567f";
+    "3404562e58bbd7f8d046b5fad7d9d29f6d8508a1689214192ab919f191a70ef4";
 const EXPECTED_PARITY_FAILURE_COMPONENT_DIGEST: &str =
-    "sha256:da487158057c01f29c1d7c21982eb0cf5f9cfd827e04cbd2e2df811d6de22698";
+    "sha256:76bff742fca89024d23d8319f0772c4656224c7e111876ef1938a7c8e4de8de9";
 const EXPECTED_PARITY_FAILURE_DESCRIPTOR_DIGEST: &str =
     "sha256:3cdecabf943da6c44e762c17c3555fb05dd079e0dca0066ecf9cb1e7ad5a5a86";
 const EXPECTED_PARITY_FAILURE_PROVIDER_DIGEST: &str =
-    "sha256:f5c4b46fd17c31673165657da999819e7200b26db9fa12c26418d53cd31d643b";
+    "sha256:59b18df0cca80425d38d70fa784cf7a53dffaa498aac33d57585afcbb8713e0d";
 const EXPECTED_PARITY_FAILURE_COMPONENT_SHA256: &str =
-    "5b87402430aada0c6d7fd1ef44070912da93c79488c51f4b597c113612fe71ed";
+    "79b9c26633add102a7ad0fc2ccf2e691071e06055acbe55a8ad59985e02b4e18";
 
 const PARITY_MANIFEST: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -677,12 +683,14 @@ fn nonidentity_component_matches_interpreter_and_core_provider() -> HostResult<(
     Ok(())
 }
 
-/// Reproducer for a standalone Core provider defect found by this harness:
-/// input payloads beyond its 2 KiB private staging region are overwritten by
-/// the input aggregate record, and the call still reports success. The
-/// Component-specific provider layout does not share the overlap.
+/// Regression for a standalone Core provider defect this harness found and
+/// R07 fixed: input payloads beyond the private input-payload staging region
+/// used to be overwritten by the input aggregate record, with the call still
+/// reporting success. The region is now a fixed 128 KiB window
+/// (`MAX_INPUT_PAYLOAD_BYTES`), and every case in [`large_cases`] — up to
+/// that exact 128 KiB combined total — must now match both the Component
+/// (whose own provider layout never shared the overlap) and the interpreter.
 #[test]
-#[ignore = "standalone Core provider corrupts input payloads beyond 2 KiB; run with --ignored"]
 fn large_payload_core_provider_matches_component_and_interpreter() -> HostResult<()> {
     let large = large_cases();
     let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &large)?;

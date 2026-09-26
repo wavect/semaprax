@@ -16,7 +16,7 @@ Build runtime agents whose proposals must pass checked code before they can act.
 
 [Get started](#get-started) · [Why Semaprax?](#why-semaprax) ·
 [Build agents](#agents-as-programs-not-just-prompts) ·
-[Examples](examples/README.md) · [Documentation](docs/index.md)
+[Handbook](handbook/README.md) · [Examples](examples/README.md) · [Spec library](docs/index.md)
 
 </div>
 
@@ -101,9 +101,9 @@ packages, or access the network.
 
 **All remaining commands assume the repository root.** To stay with the
 no-install route, replace `semaprax` with `cargo run --locked -p semaprax --`.
-Shell examples use POSIX syntax; [Install](docs/INSTALL.md) covers Windows,
+Shell examples use POSIX syntax; [Install](handbook/getting-started/install.md) covers Windows,
 prebuilt release archives, prerequisites, and troubleshooting. The
-[full quickstart](docs/QUICKSTART.md) takes the generated project further.
+[full quickstart](handbook/getting-started/first-project.md) takes the generated project further.
 
 ## A small SEMAPRAX program
 
@@ -136,8 +136,9 @@ The last expression is the function's result.
 Verification is progressive: the implemented checks and contract machinery
 combine static validation with runtime guards in supported profiles.
 **“Verified” does not mean every program has a full formal proof or is bug-free.**
-The [language tour](docs/LANGUAGE-TOUR.md) explains the rules through committed,
-compiler-checked examples.
+The [handbook](handbook/README.md) explains the rules through practical,
+best-practice guides, and the [language tour](docs/LANGUAGE-TOUR.md) covers
+them through committed, compiler-checked examples.
 
 ## For AI coding agents: inspect meaning, then change it
 
@@ -257,7 +258,7 @@ explicit limits.
 | **Useful data and I/O** | Text, Unicode operations, bytes, parsing, and bounded filesystem, process, and network integrations. |
 | **Projects** | Multi-file manifests, declared tests and exports, and explicitly supplied dependency inputs. |
 
-Follow the [language tour](docs/LANGUAGE-TOUR.md), then choose a runnable
+Follow the [handbook](handbook/README.md), then choose a runnable
 [example](examples/README.md). The [completion matrix](docs/COMPLETION-MATRIX.md)
 separates these implemented profiles from the broader language goal.
 

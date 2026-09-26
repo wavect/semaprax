@@ -1,33 +1,34 @@
-# SEMAPRAX documentation
+# SEMAPRAX specification library
 
-Status: public alpha documentation map.
-Audience: language users and integrators. SEMAPRAX is alpha.
+Status: agent-facing contract index for the versioned specification library.
+Audience: coding agents, tool authors, and integrators needing exact contracts.
 
-Start with a guide below. Use the [reference catalog](#reference-catalog) when
-you need an exact syntax, wire-format, or ABI contract. Contributors should
-start with [First contribution](FIRST-CONTRIBUTION.md).
+> **Learning or using Semaprax?** Start with the user-facing
+> [Semaprax Handbook](../handbook/README.md) instead: task-oriented,
+> best-practice documentation with copy-paste examples. This directory is the
+> authoritative **specification library** behind it — precise, versioned
+> contracts (syntax, wire formats, ABIs, protocols, evidence boundaries) that
+> agents and tools cite for exact behavior.
 
 The [v0.4.0 baseline](RELEASE-0.4.0-STATUS.md) is the last release with a
-**HOSTED GREEN** implementation claim. At this document's 2026-09-24 update,
-the [v0.6.0 tag gate](https://github.com/wavect/semaprax/actions/runs/36047757697)
-was still in progress; v0.6.0 was not published or signed. The last
-downloadable archives were the
-[v0.5.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.5.0)
-for Linux x86-64, Apple Silicon macOS, and Windows x86-64. Read the
-[completion matrix](COMPLETION-MATRIX.md) before treating a versioned contract
-as a supported feature: a specification is not proof of implementation.
+**HOSTED GREEN** implementation claim. The workspace is at version 0.6.0,
+installable from source; v0.6.0 has no published or signed archive yet. Read
+the [completion matrix](COMPLETION-MATRIX.md) before treating a versioned
+contract as a supported feature: a specification is not proof of
+implementation. Contributors start with
+[First contribution](FIRST-CONTRIBUTION.md).
 
 ## Choose a path
 
 | You want to… | Start here |
 | --- | --- |
-| Install and run your first program | [Install](INSTALL.md) → [Quickstart](QUICKSTART.md) |
-| Learn the language | [Language tour](LANGUAGE-TOUR.md) → [RFC 0001](RFC-0001.md) |
-| Find a command or example | [CLI guide](CLI-GUIDE.md) · [Examples](https://github.com/wavect/semaprax/blob/main/examples/README.md) |
-| Fix a diagnostic | Run `semaprax help diagnostic <SPX-code>`; list codes with `semaprax help diagnostic codes` |
-| Find a library API | [Standard-library catalog](STANDARD-LIBRARY-CATALOG.md) |
-| Build a multi-file project | [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
-| Write `.spx` as an agent | [Agent quick reference](AGENT-QUICK-REFERENCE.md) |
+| Install and run your first program | [Handbook: Install](../handbook/getting-started/install.md) → [First program](../handbook/getting-started/first-program.md) |
+| Learn the language | [Handbook: Essentials](../handbook/language/essentials.md) → [RFC 0001](RFC-0001.md) |
+| Find a command or example | [Handbook: Cheatsheet](../handbook/reference/cheatsheet.md) · [Examples](https://github.com/wavect/semaprax/blob/main/examples/README.md) |
+| Fix a diagnostic | [Handbook: Debugging](../handbook/practices/debugging.md), or run `semaprax help diagnostic <SPX-code>` |
+| Find a library API | [Handbook: Stdlib](../handbook/reference/stdlib.md) → [Standard-library catalog](STANDARD-LIBRARY-CATALOG.md) |
+| Build a multi-file project | [Handbook: First project](../handbook/getting-started/first-project.md) → [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
+| Write `.spx` as an agent | [Handbook: Agents](../handbook/practices/agents.md) → [Agent quick reference](AGENT-QUICK-REFERENCE.md) |
 | Query or change program meaning | [Agent Context v2](AGENT-CONTEXT-V2.md) → [Semantic Patch v2](SEMANTIC-PATCH-V2.md) |
 | Contribute to the compiler | [First contribution](FIRST-CONTRIBUTION.md) → [Development guide](DEVELOPMENT.md) |
 | Check feature or release status | [Completion matrix](COMPLETION-MATRIX.md) · [Release status](RELEASE-0.6.0-STATUS.md) |

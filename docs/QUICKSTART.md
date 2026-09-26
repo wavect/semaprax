@@ -3,6 +3,10 @@
 Status: public alpha example, not a production-readiness claim.
 Audience: first-time SEMAPRAX users.
 
+> Prefer a guided path? The user-facing [Semaprax Handbook](../handbook/README.md)
+> covers this flow in [First project](../handbook/getting-started/first-project.md).
+> This page remains the exact, test-pinned command reference.
+
 From the repository root, install the standalone CLI:
 
 ```sh

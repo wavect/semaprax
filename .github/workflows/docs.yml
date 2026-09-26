@@ -2,6 +2,9 @@ name: Docs
 
 # A push to `main` or an explicit manual dispatch only. The book is published
 # from `main`; building it on every other branch and pull request gated nothing.
+# The published book is the user-facing handbook in `handbook/` (see book.toml
+# and .gitbook.yaml). The agent-facing specification library in `docs/` is not
+# published as a book.
 on:
   workflow_dispatch:
   push:

@@ -97,6 +97,24 @@ mismatch, but not #229's broader acceptance: hosted evidence, the full
 hostile/settlement matrix, and endpoint shapes beyond the admitted flat
 owned-`Bytes` profile remain separate.
 
+## Owned bytes, admission order and memory layout
+
+Aggregate lowering reserves slots 7..=12 for the owned-byte operations a
+legacy module imports from its host. The provider implements them itself in
+`src/wasm/public_generic_provider/byte_runtime.rs`, with the host runtime's
+carrier encoding (owned token, byte-range descriptor, fixed view) and the same
+invariants, which trap where the host import would throw. Storage is
+invocation-local: each `spx_pg_v1_call` resets the heap, presents the two
+prepared input leaves as owned tokens, and resolves result carriers before
+encoding. The heap is bounded at twice the checked cumulative owned-payload
+limit, so exhausting it is an invariant defect.
+
+`spx_pg_v1_input_prepare` validates the complete carrier, using SHA-256
+workspaces in static memory, before it grows memory for the private region.
+A refused carrier performs no `memory.grow`, issues no handle and dispatches
+nothing. The standalone input payload window is a dedicated 128 KiB region (two
+64 KiB leaves) placed after every predecessor region, as is the heap.
+
 ## Private lifecycle admission
 
 Zero is an absent-slot sentinel, never admitted as a live provider, input, or

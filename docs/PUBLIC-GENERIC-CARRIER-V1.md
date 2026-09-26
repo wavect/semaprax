@@ -345,11 +345,26 @@ asserts the full 27-row table, including these measured differences:
 | stale, future or zero generation; provider-owned ticket; substituted cleanup plan | raw 8/8/8/7/14 before allocation or entry | No analogue: `spx_pg_v1_input_prepare` takes only (provider, frame pointer, frame length) |
 | substituted leaf path | raw 14, SPX-PG803 | raw 5: every non-capacity codec refusal collapses to the malformed-carrier status, so SPX-PG803 is **not** distinguished |
 | unknown leaf-kind tag; legacy flattened bytes | raw 5, SPX-PG801 | raw 5, SPX-PG801 |
-| any refusal | zero allocation | no handle, no dispatch, but the one-time private 16 MiB reservation (`memory.grow`) runs before carrier admission; a repeated refusal grows nothing |
-| canonical | executes once, settles to zero | identity and moves: identical leaves, input consumed, close 0. Allocating: the emitted, verified provider traps with `unreachable` in its checked call, so that subject has **no** Core Wasm positive control |
+| any refusal | zero allocation | no handle, no dispatch and no `memory.grow`: the carrier is admitted in static memory before the private reservation |
+| canonical | executes once, settles to zero | identity, moves and allocating: identical leaves, input consumed, second call refused 8, close 0 |
 
-These are recorded Core Wasm gaps, not parity. This slice changes no Wasm
-emitter code.
+Three Core Wasm defects this comparison exposed are fixed in
+`src/wasm/public_generic_provider/`. The provider's owned-byte slots 7..=12
+were stubs, so the allocating subject trapped; they are now an import-free,
+invocation-local runtime (`byte_runtime.rs`) with the host runtime's carrier
+encoding and invariants. Carrier admission now precedes the private
+reservation. The standalone input payload window no longer sits 2 KiB below
+the input aggregate, which had silently overwritten payloads totalling more
+than 2 KiB; `core_wasm_large_input_payloads_match_the_interpreter` pins
+1025+1024, 1+64 KiB and 64+64 KiB inputs against the retained interpreter.
+
+The leaf-path row remains a recorded divergence. The Core Wasm provider v1
+reports carrier refusals in the closed v1 physical status vocabulary (the
+`spx_pg_status_v1` table below),
+which has no SPX-PG803 carrier status; native raw 14 belongs to the separate
+authenticated native profiles. Reporting it on Core Wasm needs a versioned
+Wasm provider ABI (binding `wasm_adapter_abi_version`, generated TypeScript
+consumer and this vocabulary together), not a new raw value inside v1.
 
 ## The logical value state machine
 

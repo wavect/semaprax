@@ -51,21 +51,49 @@ const MAX_SYMBOLS: usize = 2 * crate::parser::session_protocol::MAX_SESSION_PROT
         * (2 + 2 * crate::parser::session_protocol::MAX_SESSION_PROTOCOL_BRANCHES);
 const PLACEHOLDER: &str = "_";
 
-/// The `index`th static symbol. The pool grows monotonically and never past
-/// [`MAX_SYMBOLS`], so its total allocation is bounded for the process
-/// lifetime and no compile leaks names of its own.
-fn symbol(index: usize) -> &'static str {
+/// The `index`th static symbol, or `None` past [`MAX_SYMBOLS`]. The pool
+/// grows monotonically and never past that bound, so its total allocation is
+/// bounded for the process lifetime and no compile leaks names of its own.
+fn symbol(index: usize) -> Option<&'static str> {
     static POOL: Mutex<Vec<&'static str>> = Mutex::new(Vec::new());
-    assert!(
-        index < MAX_SYMBOLS,
-        "session protocol symbol bound exceeded"
-    );
+    if index >= MAX_SYMBOLS {
+        return None;
+    }
     let mut pool = POOL.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     while pool.len() <= index {
         let next = format!("#{:05}", pool.len());
         pool.push(Box::leak(next.into_boxed_str()));
     }
-    pool[index]
+    Some(pool[index])
+}
+
+/// Distinct names one declaration presents to lowering.
+fn distinct_names(declaration: &SessionProtocolDeclaration) -> usize {
+    let mut names = BTreeSet::new();
+    names.extend(declaration.states.iter().map(|state| state.name.as_str()));
+    names.insert(declaration.initial.name.as_str());
+    names.extend(
+        declaration
+            .terminals
+            .iter()
+            .map(|terminal| terminal.state.name.as_str()),
+    );
+    for transition in &declaration.transitions {
+        names.insert(transition.from.name.as_str());
+        names.insert(transition.label.name.as_str());
+        match &transition.next {
+            SessionProtocolNext::Then(state) => {
+                names.insert(state.name.as_str());
+            }
+            SessionProtocolNext::Choice(branches) => {
+                for (label, state) in branches {
+                    names.insert(label.name.as_str());
+                    names.insert(state.name.as_str());
+                }
+            }
+        }
+    }
+    names.len()
 }
 
 struct Symbols<'d> {
@@ -85,7 +113,9 @@ impl<'d> Symbols<'d> {
         if let Some(symbol) = self.by_name.get(name) {
             return symbol;
         }
-        let symbol = symbol(self.names.len());
+        // `kernel_defects` refuses a declaration with more distinct names than
+        // the pool holds before lowering, so the placeholder is unreachable.
+        let symbol = symbol(self.names.len()).unwrap_or(PLACEHOLDER);
         self.names.push(name);
         self.by_name.insert(name, symbol);
         symbol
@@ -114,7 +144,15 @@ pub(crate) fn kernel_kind(kind: SessionProtocolKind) -> Kind {
 
 /// Lower one declaration onto the kernel and run both of its static checks,
 /// returning source-named defect messages (sorted, deduplicated) for each.
-fn kernel_defects(declaration: &SessionProtocolDeclaration) -> (Vec<String>, Vec<String>) {
+/// `Err(count)` when the declaration presents more distinct names than the
+/// lowering pool admits (`SPX-K106`); nothing is lowered then.
+fn kernel_defects(
+    declaration: &SessionProtocolDeclaration,
+) -> Result<(Vec<String>, Vec<String>), usize> {
+    let count = distinct_names(declaration);
+    if count > MAX_SYMBOLS {
+        return Err(count);
+    }
     let mut symbols = Symbols::new();
     let states = declaration
         .states
@@ -194,7 +232,7 @@ fn kernel_defects(declaration: &SessionProtocolDeclaration) -> (Vec<String>, Vec
     };
     model.sort();
     model.dedup();
-    (validation, model)
+    Ok((validation, model))
 }
 
 fn spec_error_text(error: &SpecError, symbols: &Symbols<'_>) -> String {
@@ -343,7 +381,21 @@ pub(crate) fn check(program: &Program) -> Vec<Diagnostic> {
                 ));
             }
         }
-        let (validation, model) = kernel_defects(declaration);
+        let (validation, model) = match kernel_defects(declaration) {
+            Ok(defects) => defects,
+            Err(count) => {
+                diagnostics.push(k_error(
+                    program,
+                    "SPX-K106",
+                    format!(
+                        "session protocol `{}` presents {count} distinct names; lowering admits at most {MAX_SYMBOLS}",
+                        declaration.name
+                    ),
+                    declaration.name_span,
+                ));
+                continue;
+            }
+        };
         for message in validation {
             diagnostics.push(k_error(
                 program,
@@ -480,7 +532,8 @@ fn span_json(span: Span) -> String {
 /// `SPX-K102`/`SPX-K103`, which every caller guarantees by projecting only
 /// verified programs. `authority` is always `"none"`.
 pub(crate) fn declaration_json(declaration: &SessionProtocolDeclaration) -> String {
-    let (validation, model) = kernel_defects(declaration);
+    let (validation, model) =
+        kernel_defects(declaration).unwrap_or_else(|_| (vec!["capacity".to_owned()], Vec::new()));
     let terminals = declaration
         .terminals
         .iter()

@@ -316,3 +316,50 @@ fn source_program_carrying_a_declaration_roundtrips_through_the_cache_codec() {
     assert_eq!(restored.session_protocols, program.session_protocols);
     assert_eq!(crate::cache_codec::encode(&restored).unwrap(), bytes);
 }
+
+#[test]
+fn comments_inside_the_declaration_body_hoist_above_it_deterministically() {
+    // A declaration is one comment-placement leaf, like a static `protocol`:
+    // a comment anywhere inside its body is printed, in source order, above
+    // its `@id`. The result is a fixed point.
+    let source = DECLARED
+        .replace(
+            "    initial Idle;\n",
+            "    initial Idle; // after initial\n",
+        )
+        .replace(
+            "    on Idle misuse: fail Unit -> Failed;\n",
+            "    // before misuse\n    on Idle misuse: fail Unit -> Failed;\n",
+        );
+    let (_, canonical) = crate::parse_canonical(&source, "session.spx").unwrap();
+    assert!(
+        canonical.contains(
+            "// after initial\n// before misuse\n@id(\"fixture.session.transaction\")\nsession protocol"
+        ),
+        "{canonical}"
+    );
+    let (_, again) = crate::parse_canonical(&canonical, "session.spx").unwrap();
+    assert_eq!(again, canonical);
+}
+
+#[test]
+fn lowering_capacity_is_a_k106_diagnostic_not_a_panic() {
+    // The parser's own bounds keep a parsed declaration inside the lowering
+    // pool; a directly constructed one past it must still fail closed.
+    let mut program = crate::parse(DECLARED, "session.spx").unwrap();
+    let template = program.session_protocols[0].states[0].clone();
+    let declaration = &mut program.session_protocols[0];
+    for index in 0..40_000 {
+        let mut state = template.clone();
+        state.name = format!("Extra{index}");
+        declaration.states.push(state);
+    }
+    let diagnostics = crate::session_protocol::source::check(&program);
+    assert_eq!(
+        diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.code)
+            .collect::<Vec<_>>(),
+        vec!["SPX-K106"]
+    );
+}

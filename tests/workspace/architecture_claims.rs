@@ -76,6 +76,10 @@ impl Fixture {
     }
 
     fn with_core(raw_core: String) -> Self {
+        Self::with_sources(APP.to_owned(), raw_core)
+    }
+
+    fn with_sources(raw_app: String, raw_core: String) -> Self {
         let root = std::env::temp_dir().join(format!(
             "spx-architecture-claims-v1-{}-{}",
             std::process::id(),
@@ -83,7 +87,7 @@ impl Fixture {
         ));
         std::fs::create_dir_all(root.join("src")).unwrap();
         std::fs::write(root.join("semaprax.toml"), MANIFEST).unwrap();
-        let app_program = semaprax::parse(APP, "src/app.spx").unwrap();
+        let app_program = semaprax::parse(&raw_app, "src/app.spx").unwrap();
         std::fs::write(
             root.join("src/app.spx"),
             semaprax::format::canonical(&app_program),
@@ -192,7 +196,7 @@ fn claim_set_result_is_byte_identical_across_two_independent_builds_of_the_same_
     assert_eq!(first_result.to_json(), second_result.to_json());
 }
 
-/// Issue #297: `protocol_order_bound` over a real compiled revision whose
+/// Issue #297: `protocol_realizers_bound` over a real compiled revision whose
 /// `core` module declares a session protocol realized by its own functions.
 fn core_with_protocol(transitions: &str) -> String {
     format!(
@@ -209,7 +213,7 @@ session protocol \"archclaims-order-v1\" {{\n\
 const BOUND: &str = "    on Ready first: send Unit via \"archclaims.b\" -> Done;\n    on Ready abort: fail Unit via \"archclaims.c\" -> Done;\n";
 
 fn order_claim() -> ArchitectureClaimSet {
-    ArchitectureClaimSet::new(vec![ArchitectureClaim::protocol_order_bound(
+    ArchitectureClaimSet::new(vec![ArchitectureClaim::protocol_realizers_bound(
         "order-bound",
         "archclaims.protocol",
     )
@@ -218,17 +222,20 @@ fn order_claim() -> ArchitectureClaimSet {
 }
 
 #[test]
-fn protocol_order_bound_holds_when_every_via_is_a_checked_call_graph_node() {
+fn protocol_realizers_bound_holds_when_every_via_is_a_checked_call_graph_node() {
     let fixture = Fixture::with_core(core_with_protocol(BOUND));
     let revision = fixture.revision();
     let result = order_claim().evaluate(&revision).unwrap();
     let payload = value(result.to_json());
     let claim = &payload["claims"][0];
-    assert_eq!(claim["operator"], "protocol_order_bound");
+    assert_eq!(claim["operator"], "protocol_realizers_bound");
     assert_eq!(claim["status"], "held");
     assert_eq!(claim["authority"], "none");
+    assert_eq!(
+        claim["attests"],
+        "via_targets_are_checked_call_graph_nodes_not_ordering"
+    );
     assert_eq!(claim["protocol_name"], "archclaims-order-v1");
-    assert_eq!(claim["missing"], serde_json::Value::Null);
     let via = claim["via"]
         .as_array()
         .unwrap()
@@ -246,7 +253,7 @@ fn protocol_order_bound_holds_when_every_via_is_a_checked_call_graph_node() {
 }
 
 #[test]
-fn protocol_order_bound_is_unevaluable_without_any_via_binding() {
+fn protocol_realizers_bound_is_unevaluable_without_any_via_binding() {
     let fixture = Fixture::with_core(core_with_protocol(
         "    on Ready first: send Unit -> Done;\n    on Ready abort: fail Unit -> Done;\n",
     ));
@@ -273,7 +280,7 @@ fn a_via_outside_the_declaring_module_fails_the_build_and_an_unknown_protocol_is
     );
 
     let bound = Fixture::with_core(core_with_protocol(BOUND));
-    let unknown = ArchitectureClaimSet::new(vec![ArchitectureClaim::protocol_order_bound(
+    let unknown = ArchitectureClaimSet::new(vec![ArchitectureClaim::protocol_realizers_bound(
         "unknown",
         "archclaims.no-such-protocol",
     )
@@ -283,4 +290,58 @@ fn a_via_outside_the_declaring_module_fails_the_build_and_an_unknown_protocol_is
         unknown.evaluate(&bound.revision()).unwrap_err()[0].code,
         "SPX-AC601"
     );
+}
+
+/// No `violated` outcome is reachable from built source: even a `via` target
+/// that nothing calls or exports (`archclaims.d`) is a checked node of the
+/// revision, because project modules are never pruned. The claim holds; an
+/// absent target would be an inconsistent revision and fails closed instead.
+#[test]
+fn an_uncalled_unexported_via_target_is_still_a_checked_node() {
+    let raw_core = core_with_protocol(
+        "    on Ready first: send Unit via \"archclaims.b\" -> Done;\n    on Ready abort: fail Unit via \"archclaims.d\" -> Done;\n",
+    )
+    .replacen(
+        "\n@id(\"archclaims.protocol\")",
+        "\n@id(\"archclaims.d\")\nfn d() -> i64\n{\n    4\n}\n\n@id(\"archclaims.protocol\")",
+        1,
+    );
+    let fixture = Fixture::with_core(raw_core);
+    let payload = value(
+        order_claim()
+            .evaluate(&fixture.revision())
+            .unwrap()
+            .to_json(),
+    );
+    let claim = &payload["claims"][0];
+    assert_eq!(claim["status"], "held", "{claim}");
+    assert_eq!(claim["via"][1]["via"], "archclaims.d");
+}
+
+/// Two modules declaring the same protocol identity make only the claim that
+/// names it unevaluable; the rest of the set still evaluates.
+#[test]
+fn a_duplicate_protocol_identity_is_a_per_claim_outcome() {
+    let duplicate = "\n@id(\"archclaims.protocol\")\nsession protocol \"archclaims-other-v1\" {\n    states { Ready, Done }\n    initial Ready;\n    terminal Done cleanup { release }\n    on Ready abort: fail Unit -> Done;\n}\n";
+    let fixture = Fixture::with_sources(format!("{APP}{duplicate}"), core_with_protocol(BOUND));
+    let set = ArchitectureClaimSet::new(vec![
+        ArchitectureClaim::protocol_realizers_bound("order-bound", "archclaims.protocol").unwrap(),
+        ArchitectureClaim::forbid_reaches("no-a-to-c", "archclaims.a", "archclaims.c").unwrap(),
+    ])
+    .unwrap();
+    let payload = value(set.evaluate(&fixture.revision()).unwrap().to_json());
+    let claims = payload["claims"].as_array().unwrap();
+    let by_id = |id: &str| {
+        claims
+            .iter()
+            .find(|claim| claim["claim_id"] == id)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(by_id("order-bound")["status"], "unevaluable");
+    assert_eq!(
+        by_id("order-bound")["reason"],
+        "duplicate_session_protocol_identity"
+    );
+    assert_eq!(by_id("no-a-to-c")["status"], "held");
 }

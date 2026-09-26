@@ -98,9 +98,10 @@ enum ArchitectureClaimOperator {
         from: String,
         to: String,
     },
-    /// Issue #297: every `via` realization of one declared session protocol
-    /// resolves to a checked node of this revision's direct call graph.
-    ProtocolOrderBound {
+    /// Issue #297: every `via` target of one declared session protocol is a
+    /// checked function node of this revision's direct call graph. Not an
+    /// ordering or call-order claim.
+    ProtocolRealizersBound {
         protocol: String,
     },
 }
@@ -138,13 +139,14 @@ impl ArchitectureClaim {
         })
     }
 
-    /// Construct a `protocol_order_bound` claim over the session protocol
+    /// Construct a `protocol_realizers_bound` claim over the session protocol
     /// declared with stable id `protocol` in the revision's retained source.
-    /// It holds only when the declaration exists, passes the session-protocol
-    /// source checks, has at least one `via`, and every `via` names a checked
-    /// function node of the revision's direct call graph. Legal order is
-    /// reported as a fact; it grants no authority.
-    pub fn protocol_order_bound(
+    /// It attests only that every `via` target of that declaration is a
+    /// checked function node of the revision's direct call graph (and that at
+    /// least one `via` exists). It does **not** attest message order, call
+    /// order, or that any caller respects the protocol, and it grants no
+    /// authority.
+    pub fn protocol_realizers_bound(
         id: impl Into<String>,
         protocol: impl Into<String>,
     ) -> Result<Self> {
@@ -154,7 +156,7 @@ impl ArchitectureClaim {
         validate_target(&protocol)?;
         Ok(Self {
             id,
-            operator: ArchitectureClaimOperator::ProtocolOrderBound { protocol },
+            operator: ArchitectureClaimOperator::ProtocolRealizersBound { protocol },
         })
     }
 
@@ -166,7 +168,7 @@ impl ArchitectureClaim {
     fn operator_name(&self) -> &'static str {
         match self.operator {
             ArchitectureClaimOperator::ForbidReaches { .. } => "forbid_reaches",
-            ArchitectureClaimOperator::ProtocolOrderBound { .. } => "protocol_order_bound",
+            ArchitectureClaimOperator::ProtocolRealizersBound { .. } => "protocol_realizers_bound",
         }
     }
 
@@ -189,7 +191,7 @@ impl ArchitectureClaim {
             ArchitectureClaimOperator::ForbidReaches { from, to } => {
                 self.evaluate_forbid_reaches(graph, from, to, max_walk)
             }
-            ArchitectureClaimOperator::ProtocolOrderBound { protocol } => {
+            ArchitectureClaimOperator::ProtocolRealizersBound { protocol } => {
                 session_protocol::evaluate(&self.id, protocol, protocols, |id| {
                     graph.nodes.contains_key(id)
                 })
@@ -285,7 +287,17 @@ impl ArchitectureClaimSet {
         max_walk: usize,
     ) -> Result<ArchitectureClaimSetResult> {
         let graph = CallGraphFacts::from_revision(revision)?;
-        let protocols = session_protocol::DeclaredProtocols::from_revision(revision)?;
+        // Declarations are reparsed only when some claim needs them.
+        let protocols = if self.claims.iter().any(|claim| {
+            matches!(
+                claim.operator,
+                ArchitectureClaimOperator::ProtocolRealizersBound { .. }
+            )
+        }) {
+            session_protocol::DeclaredProtocols::from_revision(revision)?
+        } else {
+            session_protocol::DeclaredProtocols::default()
+        };
         let mut claim_values = Vec::with_capacity(self.claims.len());
         for claim in &self.claims {
             claim_values.push(claim.evaluate_in(&graph, &protocols, max_walk)?);

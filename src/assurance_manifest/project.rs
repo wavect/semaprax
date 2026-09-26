@@ -214,7 +214,7 @@ pub fn derive_with_verified_proofs(
                     .as_str()
                     .ok_or_else(|| invalid("architecture claim has no identity"))?;
                 let operator = claim["operator"].as_str().unwrap_or("forbid_reaches");
-                let from = claim[if operator == "protocol_order_bound" {
+                let from = claim[if operator == "protocol_realizers_bound" {
                     "protocol"
                 } else {
                     "from"
@@ -230,8 +230,8 @@ pub fn derive_with_verified_proofs(
                     revision.project_revision().to_owned(),
                     result_digest.clone(),
                 ];
-                method.detail = Some(if operator == "protocol_order_bound" {
-                    "The requested protocol_order_bound claim held: every via realization of the declared session protocol resolves to a checked node of the retained Project static call graph. Legal order is not execution, capability, or publication authority.".to_owned()
+                method.detail = Some(if operator == "protocol_realizers_bound" {
+                    "The requested protocol_realizers_bound claim held: every via target of the declared session protocol is a checked function node of the retained Project static call graph. It attests realizer binding only, not message or call order, and grants no execution, capability, or publication authority.".to_owned()
                 } else {
                     "The requested forbid_reaches claim held over the retained Project static call graph; dynamic/external uncertainty is refused, and this is not execution or publication authority.".to_owned()
                 });

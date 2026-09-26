@@ -16,8 +16,9 @@ at runtime.
 Issue #297 adds the source half: a `session protocol` declaration that the
 parser, canonical formatter, verifier (`SPX-K1xx`), per-source semantic
 graph (`semaprax.graph.v48`), `context`, Architecture Claims
-(`protocol_order_bound`) and Assurance Manifest (`session_protocol`
-obligations) all understand, bound to the declaration's `@id`, its source
+(`protocol_realizers_bound`) and Assurance Manifest (`session_protocol`
+obligations) understand -- and no other output (see
+[Non-claims](#non-claims)) -- bound to the declaration's `@id`, its source
 span, and the checked HIR functions its `via` clauses name. The declaration
 is checked and erased: it has no runtime representation, lowers to nothing on
 the native or Wasm backend, and grants no authority. See
@@ -463,6 +464,14 @@ spelling; a declaration is one comment-placement leaf, like a static
 `src/ast/session_protocol.rs`; the sealed cache codec carries it
 (`src/cache_codec/carriers.rs`).
 
+### Comments
+
+A declaration is one comment-placement leaf, like a static `protocol`. A
+comment before its `@id` leads it; a comment anywhere inside its body is
+hoisted, in source order, above its `@id`. This is deterministic and a fixed
+point (`comments_inside_the_declaration_body_hoist_above_it_deterministically`),
+but in-body comment position is not preserved.
+
 ### Checking
 
 `crate::session_protocol::source::check` runs inside `verify::verify`
@@ -478,7 +487,7 @@ and reports:
 | `SPX-K103` | `model_check::check_bounded` (bound = state count) refused it: an unreachable state, or no bounded path to a terminal. |
 | `SPX-K104` | A `via` names no ordinary monomorphic function of this module; also the fail-closed HIR recheck when a projection finds a `via` the checked HIR does not retain. |
 | `SPX-K105` | A `requires capability` names an effect its `via` function does not declare in `uses { ... }`. |
-| `SPX-K106` | Capacity: more than 64 declarations per module, 64 states/terminals/cleanup operations, 256 transitions, or 64 choice branches (parser). |
+| `SPX-K106` | Capacity: more than 64 declarations per module, 64 states/terminals/cleanup operations, 256 transitions, or 64 choice branches (parser); or, for a declaration built outside the parser, more distinct names than the lowering pool admits (verifier, never a panic). |
 
 ### Legal order is not authority
 
@@ -510,11 +519,43 @@ projected fact carries `"authority":"none"`.
 - **Context.** With `--filters session_protocol`, the envelope's
   `session_protocol_kernel` object gains a `declared` array of the same facts
   when, and only when, the queried program declares a protocol.
-- **Architecture.** `ArchitectureClaim::protocol_order_bound(id, protocol)`
-  (see [Architecture Claims v1](ARCHITECTURE-CLAIMS-V1.md)).
+- **Architecture.** `ArchitectureClaim::protocol_realizers_bound(id, protocol)`
+  (see [Architecture Claims v1](ARCHITECTURE-CLAIMS-V1.md)). It attests only
+  that every `via` target is a checked function node of the evaluated
+  revision's call graph. It says nothing about message order or call order.
 - **Assurance.** One `session_protocol` obligation per declaration
   (see [Assurance Manifest v1](ASSURANCE-MANIFEST-V1.md)), `compiler_proved`
   for static validation only; never `model_checked`.
+
+### Bundled dependency pruning
+
+The Workspace Semantic Graph's bundled-dependency pruning
+(`src/workspace_graph/dependency_pruning.rs`) treats every `via` target as a
+root, because `via` names its realizer by persistent id rather than display
+name (`a_session_protocol_via_target_is_retained`).
+
+### Non-claims
+
+A session protocol declaration is projected only by the per-source graph
+(v48), `context` (`--filters session_protocol`), Architecture Claims
+(`protocol_realizers_bound`, Rust API only) and single-file and Project
+Assurance Manifest v1. The following omit declarations entirely, and nothing
+here claims otherwise:
+
+- the Workspace Semantic Graph and Package Semantic Graph documents (project
+  builds do run the `SPX-K1xx` checks, but emit no protocol facts);
+- `semaprax doc`;
+- `semaprax query --kind` (no session-protocol kind);
+- the help shape catalog (`LANGUAGE-SHAPES-CATALOG`) and the agent quick
+  reference;
+- semantic-workspace operations (rename, change, impact, review do not treat
+  a declaration or its `via` as a reference);
+- the VS Code grammar (`editors/`);
+- a CLI flag for `protocol_realizers_bound`;
+- typestate checking of `.spx` endpoint values, and any runtime enforcement
+  from a declaration: it is erased, and the two live lifecycles are enforced
+  by the Rust kernel, not by their `.spx` declarations;
+- ordering attestation of any kind by `protocol_realizers_bound`.
 
 ### The two canonical declarations and the drift gate
 
@@ -613,7 +654,7 @@ Explicitly **not** done in this slice, and why:
 | Invalid order is rejected before runtime | **Static declaration defects**: at spec-validation time (`SpecError`, before any session opens). **Message-order defects**: at the engine's own runtime check (`IllegalTransition` etc.) -- not before compilation, since the protocol is declared data in this slice, not `.spx` source the compiler itself parses. The one case genuinely caught by `rustc` at compile time is presenting an already-consumed `Endpoint` binding a second time, and presenting a `Grant` for the wrong capability marker type. |
 | Ownership and authority are coupled to protocol state | **Met at the reference-kernel level**: `required_capability` and `OwnershipMove` are per-transition fields the engine checks alongside state/order, and are proven independently failing from state/order correctness (`missing_authority_is_refused_even_in_correct_order`). |
 | Failure/cancellation/uncertainty remain explicit | **Met**: `Cancel`/`Timeout`/`Fail` are ordinary declared transitions with their own cleanup; `Timeout` is routed to a distinct `Uncertain` terminal in both applied protocols. |
-| Protocol facts appear in context, graph, architecture, and assurance outputs | **Met for declared protocols (issue #297), locally evidenced.** A `.spx` `session protocol` declaration is bound to its `@id`, source span, and the checked HIR functions its `via` clauses name, and appears in all four outputs: `context` (`session_protocol_kernel.declared`, alongside the unchanged built-in catalog), the per-source graph (`semaprax.graph.v48`, selected only for a declaring program), Architecture Claims (`protocol_order_bound`, bound to the `project_revision` digest), and Assurance Manifest v1 (`session_protocol` obligations, `compiler_proved` for static validation only; the `no_model_checker_invoked` nonclaim stands). The two real lifecycles have canonical `.spx` declarations gated field-for-field against the kernel specs they run on. Ordering metadata grants nothing (`SPX-K105`, and the ordinary effect checks still apply). An earlier session had evaluated `architecture_claims` and `assurance_manifest` as not applicable because no declaration existed to bind; that reasoning no longer holds and the narrowing was never accepted. See [Declared session protocols](#declared-session-protocols-issue-297). Not claimed: typestate checking of `.spx` endpoint values, Workspace Semantic Graph projection, or a CLI flag for `protocol_order_bound`. |
+| Protocol facts appear in context, graph, architecture, and assurance outputs | **Met for declared protocols (issue #297), locally evidenced.** A `.spx` `session protocol` declaration is bound to its `@id`, source span, and the checked HIR functions its `via` clauses name, and appears in these four outputs, and only these: `context` (`session_protocol_kernel.declared`, alongside the unchanged built-in catalog), the per-source graph (`semaprax.graph.v48`, selected only for a declaring program), Architecture Claims (`protocol_realizers_bound`, bound to the `project_revision` digest; it attests only that every `via` target is a checked call-graph node, not ordering), and Assurance Manifest v1 (`session_protocol` obligations, `compiler_proved` for static validation only; the `no_model_checker_invoked` nonclaim stands). The two real lifecycles have canonical `.spx` declarations gated field-for-field against the kernel specs they run on. Ordering metadata grants nothing (`SPX-K105`, and the ordinary effect checks still apply). An earlier session had evaluated `architecture_claims` and `assurance_manifest` as not applicable because no declaration existed to bind; that reasoning no longer holds and the narrowing was never accepted. See [Declared session protocols](#declared-session-protocols-issue-297). Not claimed: see [Non-claims](#non-claims). |
 | Applied subsystem regressions and bounded model-checking integration (required tests/evidence) | **Bounded model-checking: met**, at the graph-shape level -- `model_check::check_bounded` (see [Bounded model-checking](#bounded-model-checking)), exercised against all three applied protocols including the real-subsystem transcription. **Applied subsystem regression: met.** `tests/applied_project_session.rs` still regresses the declared topology directly, and both applied subsystems' own existing suites (`src/project_transport/session/rename/tests.rs`, `tests/agent_transport*`, `database_fixture`'s transaction tests) now exercise the kernel on every run, because those subsystems have no other state machine left to exercise: breaking a `SessionTable` call in either one turns those suites red. `tests/admits.rs` additionally pins `SessionTable::admits` to `advance` across every state/label pair of both applied specs, so the read-only gate a migrated subsystem depends on cannot drift from the operation that commits. |
 
 ## Gate
@@ -624,7 +665,7 @@ formatter, `SPX-K1xx`, erasure, HIR-binding, cache-codec and drift-gate
 tests), `graph::session_protocol_decl` and `graph::session_protocol_facet`
 (graph v48 and `context`), and `assurance_manifest::session_protocol`.
 `cargo test --locked -p semaprax --test workspace architecture_claims::`
-covers `protocol_order_bound` over real compiled revisions.
+covers `protocol_realizers_bound` over real compiled revisions.
 `cargo test --locked -p semaprax --doc session_protocol` (3 `compile_fail`
 doctests: grant-for-wrong-capability, double-use of a consumed `Endpoint`,
 and the capability module's own copy of the grant-for-wrong-capability

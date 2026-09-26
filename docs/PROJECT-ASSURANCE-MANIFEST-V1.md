@@ -66,10 +66,12 @@ Coverage is provenance, not runtime evidence.
 `forbid_reaches <id> <from> <to>`. A claim contributes an `architecture_law`
 obligation with class `compiler_proved` only when the held result proves the
 forbidden reachability absent. The Rust API also admits
-`protocol_order_bound` (issue #297; see
-[Architecture Claims v1](ARCHITECTURE-CLAIMS-V1.md#protocol_order_bound-issue-297)):
+`protocol_realizers_bound` (issue #297; see
+[Architecture Claims v1](ARCHITECTURE-CLAIMS-V1.md#protocol_realizers_bound-issue-297)):
 a held result records an `architecture_law` obligation keyed to the session
-protocol's `@id` with locator `architecture:protocol_order_bound:<claim-id>`;
+protocol's `@id` with locator `architecture:protocol_realizers_bound:<claim-id>`.
+It attests only that every `via` target is a checked call-graph node, not
+message or call order, and its method detail says so;
 `forbid_reaches` obligations keep their existing locator and detail bytes. A violated or `unevaluable` claim refuses
 generation. The existing checker proves absence of a static reachable path;
 the producer never promotes a caller assertion or an unevaluable frontier.

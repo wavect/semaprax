@@ -24,7 +24,9 @@
 //!   can name another (call, method call, variable, type, contract,
 //!   closure), so the fixpoint can only retain too much, never too little.
 //!   Anything outside every function region (the module header, `use` lines,
-//!   types, interfaces, protocols, implementations, agents) seeds the roots.
+//!   types, interfaces, protocols, implementations, session protocols,
+//!   agents) seeds the roots, and so does every function a session protocol
+//!   names by persistent id in a `via` clause.
 //! * **Reaching a pruned declaration re-checks it.** The retained set is a
 //!   pure function of the whole workspace's source bytes, so the moment any
 //!   module names a pruned function it is retained again and resolved in
@@ -179,6 +181,16 @@ pub(super) fn prune(
                 .iter()
                 .map(|function| function.name.as_str())
                 .collect();
+            // A session protocol names its realizing functions by persistent
+            // id (`via "<id>"`), not by display name, so the identifier scan
+            // alone could miss one; every `via` target is a root.
+            let via_targets: BTreeSet<&str> = program
+                .session_protocols
+                .iter()
+                .flat_map(|protocol| &protocol.transitions)
+                .filter_map(|transition| transition.via.as_ref())
+                .map(|via| via.name.as_str())
+                .collect();
             let mut retained = vec![false; program.functions.len()];
             let mut pending = Vec::new();
             for (position, function) in program.functions.iter().enumerate() {
@@ -187,6 +199,7 @@ pub(super) fn prune(
                 // than only skip work.
                 if function.name == "main"
                     || externally_named.contains(function.stable_id.as_str())
+                    || via_targets.contains(function.stable_id.as_str())
                     || outside.contains(function.name.as_str())
                 {
                     retained[position] = true;
@@ -364,5 +377,54 @@ mod tests {
             .map(|function| function.stable_id.as_str())
             .collect();
         assert_eq!(restored, vec!["dep.helper", "dep.used", "dep.broken"]);
+    }
+
+    /// A session protocol's `via` names its realizer by persistent id, whose
+    /// dotted segments need not spell the function's display name. The
+    /// realizer must still be retained, or the protocol's HIR binding would
+    /// refuse a function the pruner removed.
+    #[test]
+    fn a_session_protocol_via_target_is_retained() {
+        const PROTOCOL_DEP: &str = concat!(
+            "module dep;\n",
+            "@id(\"dep.used\") fn used(input: i64) -> i64 { input }\n",
+            "@id(\"dep.opaque.target\") fn realize() -> i64 { 1 }\n",
+            "@id(\"dep.unused\") fn unused() -> i64 { 2 }\n",
+            "@id(\"dep.protocol\")\n",
+            "session protocol \"dep-order-v1\" {\n",
+            "    states { Ready, Done }\n",
+            "    initial Ready;\n",
+            "    terminal Done cleanup { release }\n",
+            "    on Ready go: send Unit via \"dep.opaque.target\" -> Done;\n",
+            "    on Ready abort: fail Unit -> Done;\n",
+            "}\n",
+        );
+        let path = "dependencies/dep/0.1.0/dep.spx";
+        let mut programs = vec![
+            crate::parse(
+                &crate::format::canonical(
+                    &crate::parse(APP_WITHOUT_CALL, Path::new("src/app.spx")).unwrap(),
+                ),
+                Path::new("src/app.spx"),
+            )
+            .unwrap(),
+            crate::parse(
+                &crate::format::canonical(&crate::parse(PROTOCOL_DEP, Path::new(path)).unwrap()),
+                Path::new(path),
+            )
+            .unwrap(),
+        ];
+        let sources = vec![
+            source("src/app.spx", APP_WITHOUT_CALL),
+            source(path, PROTOCOL_DEP),
+        ];
+        let pruned = prune(&mut programs, &sources);
+        let retained: Vec<&str> = programs[1]
+            .functions
+            .iter()
+            .map(|function| function.stable_id.as_str())
+            .collect();
+        assert_eq!(retained, vec!["dep.used", "dep.opaque.target"]);
+        assert_eq!(pruned.count(), 1);
     }
 }

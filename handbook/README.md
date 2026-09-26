@@ -41,10 +41,12 @@ authoritative reference for agents and integrators.
 | Install and run something in 5 minutes | [Install](getting-started/install.md) → [First program](getting-started/first-program.md) |
 | Start a real multi-file project | [First project](getting-started/first-project.md) |
 | Learn the language fast | [Essentials](language/essentials.md) → [Types](language/types.md) → [Ownership](language/ownership.md) |
+| Go deeper on one topic | [Functions](language/functions.md) · [Loops](language/loops.md) · [Collections](language/collections.md) · [Classes](language/classes.md) · [Matching](language/matching.md) · [I/O](language/io.md) · [Resources](language/resources.md) |
+| Ship a project | [Manifests](projects/manifests.md) → [Targets](projects/targets.md) → [Shipping](projects/shipping.md) |
 | Write correct, idiomatic code | [Style](practices/style.md) and the [Cookbook](practices/cookbook.md) |
-| Fix a compiler error | [Debugging](practices/debugging.md) |
+| Fix a compiler error | [Debugging](practices/debugging.md) → [Diagnostics reference](reference/diagnostics.md) |
 | Drive Semaprax from an AI agent | [Agents](practices/agents.md) |
-| Look something up | [Cheatsheet](reference/cheatsheet.md) and [Stdlib](reference/stdlib.md) |
+| Look something up | [Cheatsheet](reference/cheatsheet.md) · [Stdlib](reference/stdlib.md) · [Built-ins](reference/builtins.md) |
 
 ## The 2-minute tour
 

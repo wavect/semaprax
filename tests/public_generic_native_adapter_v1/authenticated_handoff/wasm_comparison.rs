@@ -345,12 +345,12 @@ fn expected(label: &str) -> Vec<String> {
     // Measured Core Wasm facts, recorded rather than smoothed over:
     // * its input_prepare collapses every non-capacity codec refusal to raw 5,
     //   so a semantic leaf-path substitution is not reported as SPX-PG803;
-    // * it performs its one-time private reservation (memory.grow: the 16 MiB
-    //   private region plus the owned-byte heap) before carrier admission,
-    //   even on a refused first attempt; a repeated refusal grows nothing,
-    //   and no handle or dispatch follows either way.
+    // * carrier admission runs in static memory before the private
+    //   reservation, so a refused attempt performs no memory.grow, no handle
+    //   and no dispatch; the first admitted call then grows the private
+    //   region plus the owned-byte heap once.
     let frame = |id: &str, raw: u8, code: &str, verdict: &str| {
-        format!("{label} | {id} | native raw={raw} {code} entries=0 alloc+0 live=0 | wasm raw=5 SPX-PG801 handle=0 call=8 grown=21037056 repeat=0 recovery={recovery} close={close} | {verdict}")
+        format!("{label} | {id} | native raw={raw} {code} entries=0 alloc+0 live=0 | wasm raw=5 SPX-PG801 handle=0 call=8 grown=0 repeat=0 recovery={recovery} close={close} | {verdict}")
     };
     vec![
         ticket("stale_generation_replay", 8, "SPX-PG805"),

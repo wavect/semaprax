@@ -34,6 +34,13 @@ const INPUT_AGGREGATE: u32 = PRIVATE_BASE + 4_096;
 const RESULT_AGGREGATE: u32 = PRIVATE_BASE + 8_192;
 const RESULT_CARRIER: u32 = PRIVATE_BASE + 16_384;
 const MAX_COMPONENT_INPUT_PAYLOAD_BYTES: u32 = 2 * 65_536;
+/// SHA-256 workspaces live in the initial (static) memory between the
+/// descriptor's 64 KiB bound and the binding segment, so carrier admission
+/// needs no private reservation. The shadow stack grows down from 64 KiB.
+const STATIC_INPUT_SHA256_WORKSPACE: u32 = 98_304;
+const STATIC_RESULT_SHA256_WORKSPACE: u32 = STATIC_INPUT_SHA256_WORKSPACE + 512;
+const _: () = assert!(DESCRIPTOR_OFFSET + 64 * 1024 <= STATIC_INPUT_SHA256_WORKSPACE);
+const _: () = assert!(STATIC_RESULT_SHA256_WORKSPACE + 288 <= BINDING_OFFSET);
 
 #[derive(Clone, Copy)]
 pub(super) struct ProviderLayout {
@@ -65,8 +72,8 @@ const STANDALONE_HEAP_END: u32 = STANDALONE_HEAP_DATA + byte_runtime::HEAP_DATA_
 const _: () = assert!(byte_runtime::HEAP_TABLE_BYTES <= 65_536);
 
 const STANDALONE_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
-    input_sha256_workspace: PRIVATE_BASE,
-    result_sha256_workspace: PRIVATE_BASE + 512,
+    input_sha256_workspace: STATIC_INPUT_SHA256_WORKSPACE,
+    result_sha256_workspace: STATIC_RESULT_SHA256_WORKSPACE,
     input_leaf_table: INPUT_LEAF_TABLE,
     result_leaf_table: RESULT_LEAF_TABLE,
     input_payloads: INPUT_PAYLOADS,
@@ -99,8 +106,8 @@ const COMPONENT_HEAP_DATA: u32 = COMPONENT_HEAP_TABLE + 65_536;
 const COMPONENT_HEAP_END: u32 = COMPONENT_HEAP_DATA + byte_runtime::HEAP_DATA_BYTES;
 const COMPONENT_PROVIDER_WORKSPACE_END: u32 = align_up(COMPONENT_HEAP_END, 65_536);
 pub(super) const COMPONENT_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
-    input_sha256_workspace: COMPONENT_INPUT_SHA256_WORKSPACE,
-    result_sha256_workspace: COMPONENT_RESULT_SHA256_WORKSPACE,
+    input_sha256_workspace: STATIC_INPUT_SHA256_WORKSPACE,
+    result_sha256_workspace: STATIC_RESULT_SHA256_WORKSPACE,
     input_leaf_table: COMPONENT_INPUT_LEAF_TABLE,
     result_leaf_table: COMPONENT_RESULT_LEAF_TABLE,
     input_payloads: COMPONENT_INPUT_PAYLOADS,
@@ -605,7 +612,13 @@ fn assemble(
     let input_indexes = input_codec.function_indexes(codec_function_base);
     let result_indexes =
         result_codec.function_indexes(codec_function_base + input_codec.function_count());
-    body_input_prepare(&mut code, input_indexes.copy, component_helpers, layout);
+    body_input_prepare(
+        &mut code,
+        input_indexes.validate,
+        input_indexes.copy,
+        component_helpers,
+        layout,
+    );
     body_call(
         &mut code,
         lowering.selected_index,
@@ -812,6 +825,7 @@ fn body_open(code: &mut Vec<u8>, descriptor_len: u32, binding_len: u32) {
 
 fn body_input_prepare(
     code: &mut Vec<u8>,
+    validate_index: u32,
     copy_index: u32,
     component_helpers: bool,
     layout: ProviderLayout,
@@ -859,8 +873,19 @@ fn body_input_prepare(
     lane(&mut body, 6, 0);
     body.push(0x0f);
     body.push(0x0b);
+    // Admission precedes every physical operation: the complete carrier,
+    // including its self-digest and descriptor binding, is validated in
+    // static memory before the private reservation grows linear memory. A
+    // refused carrier therefore performs no memory.grow and no private write.
+    body.extend(local_get(1));
+    body.extend(local_get(2));
+    body.push(0x10);
+    u32_leb(&mut body, validate_index);
+    body.push(0xa7);
+    body.extend(local_set(3));
+    emit_codec_refusal(&mut body, 3);
     emit_private_reserve(&mut body, component_helpers, layout.workspace_end);
-    // Copy validates every carrier field plus its self-digest before it
+    // Copy re-validates every carrier field plus its self-digest before it
     // writes private payloads and descriptor-ordered slice rows.
     body.extend(local_get(1));
     body.extend(local_get(2));
@@ -873,18 +898,7 @@ fn body_input_prepare(
     body.extend(local_get(4));
     body.push(0xa7);
     body.extend(local_set(3));
-    body.extend(local_get(3));
-    body.extend([0x45, 0x04, 0x40]);
-    body.push(0x05);
-    body.extend(local_get(3));
-    body.extend(i32_const(carrier_codec::STATUS_CAPACITY as i32));
-    body.extend([0x46, 0x04, 0x7e]);
-    lane(&mut body, 6, 0);
-    body.push(0x05);
-    lane(&mut body, 5, 0);
-    body.push(0x0b);
-    body.push(0x0f);
-    body.push(0x0b);
+    emit_codec_refusal(&mut body, 3);
     emit_slice_table_to_aggregate(&mut body, layout.input_leaf_table, layout.input_aggregate);
     body.extend(local_get(1));
     body.extend(global_set(GLOBAL_INPUT_PTR));
@@ -1176,6 +1190,23 @@ fn emit_private_reserve(body: &mut Vec<u8>, component_helpers: bool, workspace_e
     if component_helpers {
         body.push(0x0b);
     }
+}
+
+/// Return the physical refusal for a nonzero codec status in `local`:
+/// capacity maps to 6, every other codec refusal to 5.
+fn emit_codec_refusal(body: &mut Vec<u8>, local: u32) {
+    body.extend(local_get(local));
+    body.extend([0x45, 0x04, 0x40]);
+    body.push(0x05);
+    body.extend(local_get(local));
+    body.extend(i32_const(carrier_codec::STATUS_CAPACITY as i32));
+    body.extend([0x46, 0x04, 0x7e]);
+    lane(body, 6, 0);
+    body.push(0x05);
+    lane(body, 5, 0);
+    body.push(0x0b);
+    body.push(0x0f);
+    body.push(0x0b);
 }
 
 fn emit_slice_table_to_aggregate(body: &mut Vec<u8>, table: u32, aggregate: u32) {

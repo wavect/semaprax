@@ -225,6 +225,12 @@ fn root_sequence(program: &Program) -> Sequence {
     );
     items.extend(
         program
+            .session_protocols
+            .iter()
+            .map(|protocol| leaf(protocol.span)),
+    );
+    items.extend(
+        program
             .functions
             .iter()
             .map(|function| function_item(function.span, &function.body)),

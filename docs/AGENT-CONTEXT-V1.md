@@ -94,8 +94,15 @@ absent, like every other filter-gated field in this envelope. It is listed
 under `filter_support.included` because content is genuinely emitted, unlike
 `targets`/`diagnostics`/`tests`. This is
 declaration-independent reference data, not a fact about the queried `.spx`
-program: no declaration is bound to a `ProtocolSpec` today, and no runtime
-subsystem calls into that kernel -- see `session_protocol_facet`'s module doc
+program: no declaration is bound to a `ProtocolSpec` in the catalog. The
+catalog lists four specs, and two real runtime subsystems
+(`project_transport::session` and `database_fixture`'s transaction) run on
+that kernel. Earlier output said no runtime subsystem called into the kernel;
+that filtered output was corrected as a factual correction (#297), not a
+contract change. When the queried program itself declares a `session
+protocol` (#297), the object also carries `declared`: one fact per
+declaration, bound to its `@id`, source span, and checked HIR `via`
+functions; a program without one keeps the unchanged bytes -- see `session_protocol_facet`'s module doc
 (`src/graph/session_protocol_facet.rs`) and
 [Session/protocol types v1](SESSION-PROTOCOL-TYPES-V1.md).
 

@@ -1,5 +1,12 @@
 use std::{fmt, mem};
 
+#[path = "ast/session_protocol.rs"]
+mod session_protocol;
+pub use session_protocol::{
+    SessionProtocolDeclaration, SessionProtocolKind, SessionProtocolName, SessionProtocolNext,
+    SessionProtocolTerminal, SessionProtocolTransition,
+};
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct Span {
     pub start: usize,
@@ -194,6 +201,9 @@ pub struct Program {
     /// Static method requirements; no runtime dispatch representation.
     pub protocols: Vec<ProtocolDeclaration>,
     pub implementations: Vec<ProtocolImplementation>,
+    /// Declared session protocols (issue #297): checked, erased, no
+    /// runtime representation and no authority.
+    pub session_protocols: Vec<SessionProtocolDeclaration>,
     /// Language-native Agent declarations. Frontend admission fixes all six
     /// roles and operation kinds before semantic lowering.
     pub agents: Vec<AgentDeclaration>,

@@ -111,7 +111,7 @@ fn work_split(
     assert_eq!(report["schema"], "semaprax.project-semantic-cache-work.v1");
     assert_eq!(
         report["compiler"]["compatibility"],
-        "semaprax.project-checked-module-hir.v1"
+        "semaprax.project-checked-module-hir.v2"
     );
     assert_eq!(report["work"]["modules_parsed"], ast_parsed);
     assert_eq!(report["work"]["canonicalizer_calls"], ast_parsed);

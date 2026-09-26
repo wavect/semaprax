@@ -31,6 +31,7 @@ mod function_facts;
 mod function_values;
 mod owned_iterator;
 mod process;
+mod session_protocol_decl;
 mod session_protocol_facet;
 use expression::expr_json;
 mod generic_instances;
@@ -78,12 +79,14 @@ pub(crate) fn revision_from_canonical_source(source: &str) -> String {
 pub fn to_json(program: &Program) -> Result<String, Vec<Diagnostic>> {
     let revision = revision(program);
     let resolved = hir::resolve(program)?;
-    to_hir_json(&resolved, &revision).map_err(|diagnostic| vec![diagnostic])
+    to_hir_json(&resolved, &revision)
+        .and_then(|graph| session_protocol_decl::attach(program, &resolved, graph))
+        .map_err(|diagnostic| vec![diagnostic])
 }
 
 /// Issue #206: this compiler's built-in `session_protocol` reference-kernel
 /// catalog (`model_stream_protocol`, `resource_transaction_protocol`,
-/// `project_agent_session_protocol`), as deterministic, declaration-
+/// `project_agent_session_protocol`, `database_transaction_protocol`), as deterministic, declaration-
 /// independent reference data -- **not** merged into [`to_json`]'s per-program
 /// output.
 ///
@@ -212,6 +215,9 @@ pub struct AgentContextOptions {
     max_bytes: usize,
     max_nodes: usize,
     filters: BTreeSet<AgentContextFilter>,
+    /// Issue #297: bound declared session protocols (JSON array), set only
+    /// by `session_protocol_decl::context_options`; empty otherwise.
+    declared_session_protocols: String,
 }
 
 /// One closed call-graph traversal direction understood by
@@ -307,6 +313,7 @@ impl Default for AgentContextOptions {
                 AgentContextFilter::Effects,
                 AgentContextFilter::Types,
             ]),
+            declared_session_protocols: String::new(),
         }
     }
 }
@@ -353,6 +360,7 @@ impl AgentContextOptions {
             max_bytes,
             max_nodes,
             filters,
+            declared_session_protocols: String::new(),
         })
     }
 
@@ -387,7 +395,8 @@ pub fn agent_context_json(
     let source_revision = revision(program);
     let resolved = hir::resolve(program)?;
     reject_native_rust_imports(&resolved).map_err(|diagnostic| vec![diagnostic])?;
-    agent_context_hir_json(&resolved, &source_revision, symbol, options)
+    session_protocol_decl::context_options(program, &resolved, options)
+        .and_then(|options| agent_context_hir_json(&resolved, &source_revision, symbol, &options))
         .map_err(|diagnostic| vec![diagnostic])
 }
 
@@ -402,7 +411,10 @@ pub fn agent_context_v2_json(
     let source_revision = revision(program);
     let resolved = hir::resolve(program)?;
     reject_native_rust_imports(&resolved).map_err(|diagnostic| vec![diagnostic])?;
-    agent_context_v2_hir_json(&resolved, &source_revision, symbol, options)
+    let mut options = options.clone();
+    options.base = session_protocol_decl::context_options(program, &resolved, &options.base)
+        .map_err(|diagnostic| vec![diagnostic])?;
+    agent_context_v2_hir_json(&resolved, &source_revision, symbol, &options)
         .map_err(|diagnostic| vec![diagnostic])
 }
 
@@ -3163,7 +3175,7 @@ fn render_agent_context(
     {
         format!(
             ",\"session_protocol_kernel\":{}",
-            session_protocol_facet::summary_catalog_json()
+            session_protocol_facet::summary_catalog_json(&options.declared_session_protocols)
         )
     } else {
         String::new()
@@ -3398,7 +3410,7 @@ fn render_agent_context_v2(
     {
         format!(
             ",\"session_protocol_kernel\":{}",
-            session_protocol_facet::summary_catalog_json()
+            session_protocol_facet::summary_catalog_json(&options.base.declared_session_protocols)
         )
     } else {
         String::new()

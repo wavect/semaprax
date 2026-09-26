@@ -23,6 +23,8 @@ mod iterative_tests;
 mod kernel_zero_tokens;
 #[path = "format/literals.rs"]
 mod literals;
+#[path = "format/session_protocol.rs"]
+mod session_protocol;
 use block_statement::write_block_statement;
 use closure::contains_record_construction;
 
@@ -538,6 +540,7 @@ pub(crate) fn write_canonical_commented(
         writeln!(output, "}}").unwrap();
         placement.trailing(output, implementation.span.start, 0);
     }
+    session_protocol::write_session_protocols(&program.session_protocols, placement, output);
     agents::write_agents(&program.agents, placement, output);
     for function in &program.functions {
         writeln!(output).unwrap();

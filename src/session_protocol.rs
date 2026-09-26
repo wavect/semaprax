@@ -111,6 +111,7 @@ pub mod engine;
 pub mod model_check;
 pub mod protocols;
 pub mod shared;
+pub mod source;
 pub mod spec;
 #[cfg(test)]
 mod tests;

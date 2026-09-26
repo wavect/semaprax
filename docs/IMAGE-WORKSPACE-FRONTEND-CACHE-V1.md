@@ -46,7 +46,7 @@ optional `frontend_work` object. The AST-only route keeps the existing
 `semaprax.project-frontend-cache-work.v1` schema and `checked_HIR_reused: 0`.
 The explicitly selected semantic route uses the distinct
 `semaprax.project-semantic-cache-work.v1` schema with compiler compatibility
-`semaprax.project-checked-module-hir.v1`; its `modules_resolved` counts actual
+`semaprax.project-checked-module-hir.v2`; its `modules_resolved` counts actual
 resolver calls and `checked_HIR_reused` counts actual checked-module hits. Cold
 responses omit the object and keep their existing bytes. Both schemas report
 actual parser/canonicalizer calls, source bytes, AST clones, invalidated source

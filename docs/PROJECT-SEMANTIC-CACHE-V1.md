@@ -100,7 +100,9 @@ can reuse the previous successful cache.
 ## Work report and limits
 
 Semantic mode emits `semaprax.project-semantic-cache-work.v1`, with compatibility
-`semaprax.project-checked-module-hir.v1`. It preserves the frontend report's
+`semaprax.project-checked-module-hir.v2` (bumped from `.v1` when the sealed
+source carrier gained declared session protocols, issue #297, so a persisted
+`.v1` payload is never decoded as the new layout). It preserves the frontend report's
 field structure but uses this separate schema so the old frontend contract's
 `checked_HIR_reused: 0` remains true.
 

@@ -183,13 +183,29 @@ fn checked_fn_name(op: BinaryOp, kind: ScalarKind) -> Result<String, String> {
     Ok(format!("checked_{name}_{width}"))
 }
 
-/// Per-generation state: fresh temporary names and the inferred kind of
-/// every slot observed so far (parameters up front, `let`s as their
-/// enclosing [`KernelExpr::Block`] is reached — always before any reference,
-/// since lowering never admits a forward reference).
+/// Per-generation state: fresh temporary names, and the MSL variable name
+/// plus inferred kind already holding every slot observed so far
+/// (parameters up front — `slot{index}`, matching the kernel prologue's own
+/// declarations — `let`s as their enclosing [`KernelExpr::Block`] is
+/// reached, always before any reference since lowering never admits a
+/// forward reference). A `let` is never given its own fresh `slotN`
+/// declaration distinct from the synthetic temporary its value already
+/// computed into: it simply records that temporary's name, so
+/// [`KernelExpr::Slot`] resolves straight to it. An earlier version
+/// declared a second `long slotN = tM;` variable purely to hold the same
+/// value under the `let`'s own slot number; bisection showed that
+/// particular redundant declare-and-copy pattern — used only when a `let`
+/// existed at all, never for a bare parameter or a synthetic temporary —
+/// was what reproducibly made the system Metal compiler service fail
+/// (`XPC_ERROR_CONNECTION_INTERRUPTED`, confirmed identical across many
+/// real-hardware runs): every kernel with a `let` failed, every kernel
+/// without one passed, independent of what expression shape followed it (a
+/// trivial `if`, a nested-arithmetic `if`, or nothing). Removing the
+/// redundant declaration removes the pattern entirely rather than working
+/// around it.
 struct Codegen {
     next_tmp: u32,
-    slot_kinds: Vec<Option<ScalarKind>>,
+    slots: Vec<Option<(String, ScalarKind)>>,
 }
 
 impl Codegen {
@@ -216,33 +232,36 @@ enum Step {
 ///
 /// A checked operation's failure must skip every statement that would
 /// otherwise follow it in its own scope, all the way to the end of the
-/// kernel invocation (so a failed invocation never writes its output). An
-/// earlier version of this generator did that with a bare `out_status[gid]
-/// = st; return;` inside the guard, leaving the rest of the *current*
-/// scope's statements — and, critically, any `if`/`else` reached later in
-/// that same scope — textually **after** that `return`. That shape
-/// compiled and ran correctly for a lone checked operation, or for checked
-/// operations nested only inside `if`/`else` branches, but reproducibly
-/// made the system Metal compiler service fail
-/// (`XPC_ERROR_CONNECTION_INTERRUPTED`, confirmed identical across many
-/// runs on real hardware) for the one fixture shape that combines both: a
-/// `let`-bound checked value whose scope's *next* statement is an `if`.
-/// Bisection isolated exactly that combination — a trivial-branched `if`
-/// after such a `let` reproduced it just as reliably as the original
-/// nested-arithmetic kernel, while the same nested arithmetic with no
-/// preceding `let` did not.
+/// kernel invocation (so a failed invocation never writes its output). This
+/// generator never emits a bare `return` for that (only the one,
+/// always-first, always-isolated `if (gid >= element_count) { return; }`
+/// bounds guard uses `return` at all): instead every checked failure's
+/// `else` branch physically *contains* everything that follows it, built by
+/// folding this list from the end backward — each [`Step::Guarded`] wraps
+/// the (already-assembled) rest of the sequence inside its `else { … }`, so
+/// a failing invocation falls through to its own closing brace and the
+/// kernel's implicit `void` return.
 ///
-/// This generator therefore never emits a bare `return` for a checked
-/// failure (only the one, always-first, always-isolated
-/// `if (gid >= element_count) { return; }` bounds guard remains — proven
-/// fine on every kernel, including the one that fails here, so it was
-/// never implicated). Instead every checked failure's `else` branch
-/// physically *contains* everything that follows it, built by folding this
-/// list from the end backward: each [`Step::Guarded`] wraps the
-/// (already-assembled) rest of the sequence inside its `else { … }`, so a
-/// failing invocation falls through to its own closing brace and the
-/// kernel's implicit `void` return — the output is skipped structurally,
-/// not by jumping out of it.
+/// # History
+///
+/// An earlier version generated a bare `out_status[gid] = st; return;`
+/// instead of this nesting, and — independently — declared a `let` binding
+/// as its own fresh `long slotN = tM;` variable copying an already-computed
+/// temporary. Both existed at once in the one shape that reproducibly made
+/// the system Metal compiler service fail
+/// (`XPC_ERROR_CONNECTION_INTERRUPTED`, confirmed identical across many
+/// real-hardware runs): a `let` followed by an `if`. Bisection first
+/// pointed at the bare `return`, but switching to this nested-`else` style
+/// *alone* did not fix it — the same `let`-then-`if` fixture failed
+/// identically with no bare `return` left anywhere in it. A second
+/// bisection round across every kernel tried (with and without this
+/// nesting) showed the one fully consistent factor was simpler: every
+/// kernel that had a `let` at all failed, and every kernel without one
+/// passed, regardless of what followed it. The actual fix was removing the
+/// redundant `slotN` declaration itself (see [`Codegen`]'s doc comment) —
+/// this nested-`else` style is kept because it is still the correct,
+/// general way to express "skip the rest of this scope" without `return`,
+/// not because it was the fix.
 fn fold(steps: Vec<Step>, tail: &str) -> String {
     let mut rest = tail.to_owned();
     for step in steps.into_iter().rev() {
@@ -260,15 +279,12 @@ fn gen_expr(
     steps: &mut Vec<Step>,
 ) -> Result<(String, ScalarKind), String> {
     match expr {
-        KernelExpr::Slot(slot) => {
-            let kind = cg
-                .slot_kinds
-                .get(*slot as usize)
-                .copied()
-                .flatten()
-                .ok_or_else(|| format!("slot {slot} read before it is assigned"))?;
-            Ok((format!("slot{slot}"), kind))
-        }
+        KernelExpr::Slot(slot) => cg
+            .slots
+            .get(*slot as usize)
+            .cloned()
+            .flatten()
+            .ok_or_else(|| format!("slot {slot} read before it is assigned")),
         KernelExpr::Literal(scalar) => Ok((literal_text(*scalar)?, scalar.kind())),
         KernelExpr::Neg(inner) => {
             let (value, kind) = gen_expr(cg, inner, steps)?;
@@ -302,9 +318,7 @@ fn gen_expr(
         KernelExpr::Block { lets, tail } => {
             for (slot, value) in lets {
                 let (value_name, kind) = gen_expr(cg, value, steps)?;
-                let ty = msl_type(kind)?;
-                steps.push(Step::Flat(format!("    {ty} slot{slot} = {value_name};\n")));
-                cg.slot_kinds[*slot as usize] = Some(kind);
+                cg.slots[*slot as usize] = Some((value_name, kind));
             }
             gen_expr(cg, tail, steps)
         }
@@ -427,10 +441,10 @@ pub(crate) fn generate(declaration: &str, ir: &KernelIr) -> Result<GeneratedKern
 
     let mut cg = Codegen {
         next_tmp: 0,
-        slot_kinds: vec![None; ir.slots as usize],
+        slots: vec![None; ir.slots as usize],
     };
     for (slot, kind) in ir.params.iter().enumerate() {
-        cg.slot_kinds[slot] = Some(*kind);
+        cg.slots[slot] = Some((format!("slot{slot}"), *kind));
     }
 
     let mut steps = Vec::new();
@@ -566,7 +580,11 @@ fn main() -> i64
     fn internal_bool_condition_is_admitted_on_an_i64_signature() {
         let ir = lower("k.byte_flag");
         let generated = generate("k.byte_flag", &ir).expect("bool-flagged i64 kernel generates");
-        assert!(generated.source.contains("bool slot1"));
+        // The `let positive = x > 0;` binding never gets its own `slot1`
+        // declaration (see `Codegen`'s doc comment): it aliases straight to
+        // the comparison's own temporary, so a `bool` value is what a
+        // `let` of a comparison looks like here.
+        assert!(generated.source.contains("bool t"));
         assert!(generated.source.contains("checked_neg_i64"));
     }
 

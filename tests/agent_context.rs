@@ -355,6 +355,7 @@ fn session_protocol_filter_is_envelope_level_declaration_independent_and_opt_in(
         "model-stream-v1",
         "resource-transaction-v1",
         "project-agent-session-v1",
+        "database-transaction-v1",
     ] {
         assert!(
             json_with.contains(&format!("\"name\":\"{name}\"")),
@@ -374,7 +375,11 @@ fn session_protocol_filter_is_envelope_level_declaration_independent_and_opt_in(
         "{json_with}"
     );
     assert!(
-        json_with.contains("no runtime subsystem calls into"),
+        json_with.contains("Two real runtime subsystems run on this kernel"),
+        "{json_with}"
+    );
+    assert!(
+        !json_with.contains("no runtime subsystem calls into"),
         "{json_with}"
     );
     assert_independent_json_parse(&json_with);

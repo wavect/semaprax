@@ -83,7 +83,7 @@ pub fn to_json(program: &Program) -> Result<String, Vec<Diagnostic>> {
 
 /// Issue #206: this compiler's built-in `session_protocol` reference-kernel
 /// catalog (`model_stream_protocol`, `resource_transaction_protocol`,
-/// `project_agent_session_protocol`), as deterministic, declaration-
+/// `project_agent_session_protocol`, `database_transaction_protocol`), as deterministic, declaration-
 /// independent reference data -- **not** merged into [`to_json`]'s per-program
 /// output.
 ///

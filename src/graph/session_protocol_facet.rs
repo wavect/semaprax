@@ -14,9 +14,9 @@
 //! # What a "protocol fact" is here, and what it deliberately is not
 //!
 //! `crate::session_protocol` is a Rust-level reference validator, not a
-//! `.spx` language feature: three built-in [`ProtocolSpec`] catalog entries
+//! `.spx` language feature: four built-in [`ProtocolSpec`] catalog entries
 //! (`model_stream_protocol`, `resource_transaction_protocol`,
-//! `project_agent_session_protocol`), each checked by that module's own test
+//! `project_agent_session_protocol`, `database_transaction_protocol`), each checked by that module's own test
 //! suite (`ProtocolSpec::validate`, bounded model-checking via
 //! [`model_check::check_bounded`]). No `.spx` declaration is bound to any of
 //! these specs today: there is no session/protocol source syntax, no HIR
@@ -24,9 +24,9 @@
 //! (`docs/SESSION-PROTOCOL-TYPES-V1.md`'s "Scope boundary").
 //! `project_agent_session_protocol` is a transcription of
 //! `project_transport::session`'s real state machine, cited against exact
-//! file:line spans in its own doc comment, but that transport still
-//! performs its own hand-rolled checks and never calls into
-//! `session_protocol::engine::SessionTable` at runtime.
+//! file:line spans in its own doc comment. Since e51226dd that transport and
+//! `database_fixture`'s transaction (`database_transaction_protocol`, the
+//! fourth catalog entry) both hold live `SessionTable`s over these specs.
 //!
 //! A "protocol fact," in this projection, is therefore exactly the kernel's
 //! own fixed catalog entry for one built-in spec: its name, declared state
@@ -59,16 +59,17 @@ use super::quote_json;
 /// the identical non-claim rather than two differently worded summaries.
 const NOTE: &str = "Reference catalog of this compiler's built-in session-protocol kernel \
 (src/session_protocol), not a fact about the queried .spx source: no declaration here is \
-bound to a ProtocolSpec, no runtime subsystem calls into this kernel's SessionTable, and \
-project_agent_session_protocol's own transcription source (project_transport::session) \
-still performs its own hand-rolled checks rather than calling into it. See \
+bound to a ProtocolSpec. Two real runtime subsystems run on this kernel's SessionTable: \
+project_transport::session (project-agent-session-v1) and database_fixture's transaction \
+(database-transaction-v1). Legal order is not authority. See \
 docs/SESSION-PROTOCOL-TYPES-V1.md.";
 
-fn catalog() -> [ProtocolSpec; 3] {
+fn catalog() -> [ProtocolSpec; 4] {
     [
         protocols::model_stream_protocol(),
         protocols::resource_transaction_protocol(),
         protocols::project_agent_session_protocol(),
+        protocols::database_transaction_protocol(),
     ]
 }
 
@@ -204,12 +205,13 @@ mod tests {
     }
 
     #[test]
-    fn full_catalog_lists_exactly_the_three_built_in_specs_well_formed_and_model_checked() {
+    fn full_catalog_lists_exactly_the_four_built_in_specs_well_formed_and_model_checked() {
         let json = full_catalog_json();
         for name in [
             "model-stream-v1",
             "resource-transaction-v1",
             "project-agent-session-v1",
+            "database-transaction-v1",
         ] {
             assert!(json.contains(&format!("\"name\":\"{name}\"")), "{json}");
         }
@@ -231,18 +233,21 @@ mod tests {
     }
 
     #[test]
-    fn the_note_field_discloses_no_declaration_is_bound_and_no_runtime_subsystem_calls_in() {
-        // This is the honest-constraint test the lane's brief asks for: the
-        // projection's own documentation, not just this module's doc
-        // comment, must say it reports the kernel's model rather than
-        // asserting live transport coverage.
+    fn the_note_field_names_both_live_subsystems_and_discloses_no_declaration_is_bound() {
+        // Factual correction (issue #297): since e51226dd both real
+        // subsystems run on the kernel, so the note must say so, and must
+        // still disclose that this catalog is not bound to queried source.
         for json in [summary_catalog_json(), full_catalog_json()] {
             assert!(json.contains("not a fact about the queried"), "{json}");
-            assert!(json.contains("no runtime subsystem calls into"), "{json}");
+            assert!(json.contains("no declaration here is bound"), "{json}");
             assert!(
-                json.contains("still performs its own hand-rolled checks"),
+                json.contains("Two real runtime subsystems run on this kernel"),
                 "{json}"
             );
+            assert!(json.contains("project_transport::session"), "{json}");
+            assert!(json.contains("database_fixture"), "{json}");
+            assert!(!json.contains("no runtime subsystem calls into"), "{json}");
+            assert!(!json.contains("hand-rolled"), "{json}");
         }
     }
 }

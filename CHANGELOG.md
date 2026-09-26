@@ -76,6 +76,22 @@ format: `Unreleased` then release buckets, grouped by impact.
   held-store admission flow. Local scripted transport controls are not hosted
   registry, TLS-peer, availability or production evidence.
 
+- Steer agents to the cheapest sufficient semantic command. The repository
+  guide now orders `query`, `doc`, `context`, then `graph`, with the measured
+  cost of each step on the committed examples: one line per declaration,
+  roughly the source bytes, a caller-chosen byte budget, and roughly forty
+  times the source bytes.
+
+- Attach an actionable hint to the `compact api-surface` refusal on projects
+  without the owned-data-api.v1 profile. The `SPX-J105` diagnostic keeps its
+  code and message and now points at `semaprax doc` and `semaprax query`;
+  a CLI regression test pins the hint on the committed calculator project.
+
+- Point the agent command ladder at `doc --json` for machine consumers. The
+  contracted `semaprax.doc.v1` skeleton carries signatures, contracts, and
+  identities at roughly the source bytes, eighteen to thirty-four times
+  smaller than the full graph on the measured examples.
+
 ## 0.6.0 — 2026-09-24
 
 - Keep the frozen private Component v7 WIT identity at `0.5.0` while the crate

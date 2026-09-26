@@ -994,8 +994,11 @@ The corpus has 14 cases:
 - success with small, empty, 2048-combined-byte, 2049-combined-byte and 64 KiB-per-leaf payloads
 - a repeated three-cycle lifecycle
 - short-capacity export with untouched destination and exact retry
-- wrong-leaf-path preparation refusal
-- effect-free preparation refusal
+- wrong-leaf-path preparation refusal (a substituted leaf path fails
+  `validate_frame`'s leaf-sequence check)
+- effect-free preparation refusal (a well-formed result frame submitted as an
+  input instead fails `validate_frame`'s earlier direction check; both refuse
+  with the same status and zero physical effects)
 - injected export failure plus injected result-leaf release failure
 - injected first preparation allocation failure
 - a checked `requires false` failure, single and repeated
@@ -1045,15 +1048,16 @@ Every cell is one of the following:
 A known-defect row whose signature stops reproducing fails the gate. Flipping
 a cell after a provider fix means deleting its row.
 
-On this base the known-defect cells are all in the compiled Core Wasm
-provider and its TypeScript caller:
-
-- the 2 KiB payload/aggregate overlap
-- the allocating-subject trap
-- the collapse of the leaf-path replay mismatch to raw status 5
-- `memory.grow` before carrier admission
-
-All four are tracked by #288.
+On this base the gate asserts an exact split of the corpus's 126 cells
+(14 cases x 9 engines): 105 pass, 0 known-defect and 21 not-applicable. The
+`KNOWN_DEFECTS` table is empty: the four #288 Core Wasm provider defects that
+previously produced its eight known-defect cells (the 2 KiB payload/aggregate
+overlap, the allocating-subject trap, the collapse of the leaf-path replay
+mismatch to raw status 5, and `memory.grow` before carrier admission) are
+fixed by the owned-byte runtime, admission-before-growth, the 128 KiB payload
+window and Wasm adapter ABI v2 status 14 (`SPX-PG803`); see
+[carrier v1](PUBLIC-GENERIC-CARRIER-V1.md#wasm-adapter-abi-v2-compiled-core-wasm-provider).
+The mechanism stays in place for the next reproducible defect.
 
 ### Negative control and nonclaims
 

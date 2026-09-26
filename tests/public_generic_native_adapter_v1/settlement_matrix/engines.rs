@@ -171,25 +171,45 @@ fn build(subject: Subject) -> Built {
     }
 }
 
+/// Build one input carrier. [`Kind::WrongPath`] and [`Kind::RefusalEffects`]
+/// both produce a refused frame that must still decode structurally
+/// (`parse_bounded` succeeds) and fail only `validate_frame`'s semantic
+/// binding check with `SPX-PG803`, but through genuinely different branches
+/// of that check: [`Kind::WrongPath`] substitutes one leaf's path, which
+/// fails only the *last* check (leaf sequence versus the canonical
+/// inventory); [`Kind::RefusalEffects`] instead encodes a well-formed
+/// *result* frame (this same subject's own result plan, with its own
+/// distinct instance-identity digest, and every leaf path untouched) and
+/// submits it where an input is expected, which fails the *first* check
+/// (direction). Both are checked identically downstream: same primary
+/// status, same "no leaves returned", and (see `check_notes`) zero physical
+/// effects — proving the effect-free property holds for a distinct
+/// validate_frame branch, not merely restating [`Kind::WrongPath`].
 fn frame(built: &Built, case: &Case) -> Vec<u8> {
-    let wrong = matches!(case.kind, Kind::WrongPath | Kind::RefusalEffects);
+    let wrong_path = case.kind == Kind::WrongPath;
     let paths = built.input_plan.leaf_paths();
     assert_eq!(paths.len(), 2);
-    let leaves = paths
-        .iter()
-        .zip([case.left.bytes(), case.right.bytes()])
-        .enumerate()
-        .map(|(index, (path, payload))| {
-            let path = if wrong && index == 0 {
-                replace_once(path, "auth.left", "auth.Left")
-            } else {
-                path.clone()
-            };
-            CarrierLeaf::new(path, LeafKind::Bytes, payload)
-        })
-        .collect();
-    let encoded = built.input_plan.frame_with_leaves(leaves).encode();
-    if wrong {
+    let leaves = || {
+        paths
+            .iter()
+            .zip([case.left.bytes(), case.right.bytes()])
+            .enumerate()
+            .map(|(index, (path, payload))| {
+                let path = if wrong_path && index == 0 {
+                    replace_once(path, "auth.left", "auth.Left")
+                } else {
+                    path.clone()
+                };
+                CarrierLeaf::new(path, LeafKind::Bytes, payload)
+            })
+            .collect::<Vec<_>>()
+    };
+    let encoded = if case.kind == Kind::RefusalEffects {
+        built.result_plan.frame_with_leaves(leaves()).encode()
+    } else {
+        built.input_plan.frame_with_leaves(leaves()).encode()
+    };
+    if matches!(case.kind, Kind::WrongPath | Kind::RefusalEffects) {
         let parsed = parse_bounded(&encoded).unwrap();
         assert_eq!(
             built.input_plan.validate_frame(&parsed).unwrap_err().code,

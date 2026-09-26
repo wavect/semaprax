@@ -44,7 +44,17 @@ pub(crate) enum Kind {
     Transform = 0,
     Repeated = 1,
     ShortExport = 2,
+    /// A leaf path substituted for the trusted canonical inventory: the
+    /// frame decodes, but `validate_frame`'s *last* check (leaf sequence
+    /// versus the canonical inventory) rejects it.
     WrongPath = 3,
+    /// A distinct preparation refusal from [`Self::WrongPath`]: the encoded
+    /// frame is bound to the wrong direction (a well-formed *result* frame
+    /// submitted as an input), so `validate_frame`'s *first* check
+    /// (direction) rejects it instead. Both must still refuse with the same
+    /// primary status and zero physical effects; this kind exists to prove
+    /// that a genuinely different validate_frame branch is also effect-free,
+    /// not merely to repeat [`Self::WrongPath`] under a second name.
     RefusalEffects = 4,
     InjectExportRelease = 5,
     InjectPrepare = 6,
@@ -298,30 +308,19 @@ const NA_GENERATED_EXPORT: &str =
     "the generated caller sizes and retries the export buffer internally; the raw ABI cells own this path";
 const NA_GENERATED_FRAME: &str = "the generated caller derives canonical leaf paths from the descriptor and cannot express a wrong path without mutating generated source";
 
-const OVERLAP: &str = "input payloads beyond 2 KiB overlap the input aggregate record";
-const ALLOCATING_TRAP: &str = "allocating subject traps inside spx_pg_v1_call";
-const TRAP_AS_CONTRACT: &str = "allocating trap; the generated TypeScript caller normalizes any non-SPX exception, including this Wasm trap, to execution-failed status 11";
-const STATUS_COLLAPSE: &str = "leaf-path replay mismatch collapses to raw MALFORMED_CARRIER";
-const EARLY_GROW: &str = "memory.grow runs before carrier admission";
-const EFFECTS_GREW: &str = "effects: expected 0, observed 1";
-
 /// Known defects on this base, one row per cell: (case, engine, defect,
 /// required failure signature). Every row is tracked by
 /// [`CORE_WASM_PROVIDER_ISSUE`]. Flipping a cell after a provider fix is a
 /// one-line change: delete its row; the cell then must PASS. A row whose
 /// defect no longer reproduces fails the gate, so a fixed cell cannot stay
 /// here. The skip keeps one cell per line so the flip stays one line.
+///
+/// Empty on this base: R07 fixed the Core Wasm provider's owned-byte
+/// runtime, admission-before-`memory.grow`, 128 KiB payload window, and ABI
+/// v2 status 14 (SPX-PG803), so all eight cells that used to sit here now
+/// PASS. The mechanism stays for the next reproducible defect.
 #[rustfmt::skip]
-const KNOWN_DEFECTS: &[(&str, Engine, &str, &str)] = &[
-    ("success-over-2k", Engine::CoreWasm, OVERLAP, "leaves differ"),
-    ("success-over-2k", Engine::GeneratedTypeScript, OVERLAP, "leaves differ"),
-    ("success-max-leaf", Engine::CoreWasm, OVERLAP, "leaves differ"),
-    ("success-max-leaf", Engine::GeneratedTypeScript, OVERLAP, "leaves differ"),
-    ("allocating-success", Engine::CoreWasm, ALLOCATING_TRAP, "expected 0, observed trap"),
-    ("allocating-success", Engine::GeneratedTypeScript, TRAP_AS_CONTRACT, "expected 0, observed 11"),
-    ("prepare-wrong-leaf-path", Engine::CoreWasm, STATUS_COLLAPSE, "expected 14, observed 5"),
-    ("prepare-refusal-effect-free", Engine::CoreWasm, EARLY_GROW, EFFECTS_GREW),
-];
+const KNOWN_DEFECTS: &[(&str, Engine, &str, &str)] = &[];
 
 /// The asserted matrix. Every (case, engine) pair is decided here.
 pub(crate) fn expected_cell(case: &Case, engine: Engine) -> Expect {
@@ -505,15 +504,12 @@ fn check_observation(
     last: bool,
 ) -> Vec<String> {
     let mut problems = Vec::new();
-    let refusal_effects = case.kind == Kind::RefusalEffects;
-    if !refusal_effects {
-        require(
-            &mut problems,
-            "primary",
-            expected_primary(case),
-            &observation.primary,
-        );
-    }
+    require(
+        &mut problems,
+        "primary",
+        expected_primary(case),
+        &observation.primary,
+    );
     if observation.primary == "trap" {
         return problems;
     }
@@ -527,7 +523,7 @@ fn check_observation(
             );
         }
     }
-    if !refusal_effects && observation.leaves != expected_leaves(case) {
+    if observation.leaves != expected_leaves(case) {
         problems.push(format!(
             "leaves differ (expected {:?} bytes, observed {:?} bytes)",
             expected_leaves(case).map(|(l, r)| (l.len(), r.len())),
@@ -883,9 +879,14 @@ fn shared_settlement_corpus_matrix_is_complete_and_asserted() {
         .filter(|cell| matches!(cell.2, Expect::NotApplicable(_)))
         .count();
     assert_eq!(passes + known + not_applicable, CASES.len() * ENGINES.len());
-    assert!(
-        passes >= 60,
-        "non-vacuous matrix: only {passes} passing cells"
+    // Exact split, not a non-vacuous floor: this corpus is closed (14 cases x
+    // 9 engines = 126 cells), so a changed count means a cell moved classes
+    // and the new split must be reviewed and re-pinned, not silently widened.
+    assert_eq!(
+        (passes, known, not_applicable),
+        (105, 0, 21),
+        "settlement matrix split changed: {passes} pass, {known} known-defect, \
+         {not_applicable} not-applicable cells"
     );
     eprintln!(
         "{CORPUS_VERSION}: {passes} pass, {known} known-defect, {not_applicable} not-applicable cells"

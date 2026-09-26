@@ -629,43 +629,28 @@ impl MetalSession {
         Ok(())
     }
 
-    /// Compile `source` into a library, retrying a bounded number of times
-    /// on a transient failure of the system's out-of-process Metal
-    /// compiler service (observed on a heavily loaded host as
-    /// `XPC_ERROR_CONNECTION_INTERRUPTED`): this is a real, documented
-    /// characteristic of that shared service under system load, not a
-    /// property of the generated MSL, so retrying is honest recovery, not
-    /// papering over a real compile failure. A genuine MSL error (a bad
-    /// generated program) fails identically on every attempt and is still
-    /// surfaced after the retries are exhausted.
+    /// Compile `source` into a library. No retry: a compile failure here is
+    /// surfaced exactly once. An earlier version of this method retried on
+    /// `XPC_ERROR_CONNECTION_INTERRUPTED` on the theory that the shared
+    /// system Metal compiler service was merely overloaded; that was never
+    /// confirmed (the offline `xcrun metal` compiler is not installed on
+    /// this host — `MetalToolchain` is a separate, network-fetched
+    /// component this task is not authorized to download — so the
+    /// transient-vs-deterministic question could not be settled that way)
+    /// and a bounded retry that might paper over a real, deterministic
+    /// generated-MSL defect is worse than a visible failure.
     fn compile_library(
         &self,
         source: &str,
     ) -> Result<Retained<ProtocolObject<dyn MTLLibrary>>, MetalRefusal> {
         let ns_source = NSString::from_str(source);
-        const ATTEMPTS: u32 = 10;
-        let mut last_detail = String::new();
-        for attempt in 1..=ATTEMPTS {
-            match self
-                .device
-                .newLibraryWithSource_options_error(&ns_source, None)
-            {
-                Ok(library) => return Ok(library),
-                Err(error) => {
-                    last_detail = error.localizedDescription().to_string();
-                    if !last_detail.contains("XPC_ERROR_CONNECTION_INTERRUPTED")
-                        || attempt == ATTEMPTS
-                    {
-                        break;
-                    }
-                    std::thread::sleep(std::time::Duration::from_millis(500 * u64::from(attempt)));
-                }
-            }
-        }
-        Err(ComputeRefusal::KernelSelection {
-            detail: format!("MSL compilation failed: {last_detail}"),
-        }
-        .into())
+        self.device
+            .newLibraryWithSource_options_error(&ns_source, None)
+            .map_err(|error| {
+                MetalRefusal::from(ComputeRefusal::KernelSelection {
+                    detail: format!("MSL compilation failed: {}", error.localizedDescription()),
+                })
+            })
     }
 
     /// Generate MSL from `ir`, compile it on this device, and bundle the

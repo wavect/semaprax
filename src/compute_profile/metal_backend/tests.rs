@@ -57,6 +57,19 @@ fn neg(x: i64) -> i64
     -x
 }
 
+@id("k.affine_bisect_a")
+fn affine_bisect_a(x: i64, y: i64) -> i64
+{
+    let scaled = x * 3;
+    if scaled > y { scaled } else { y }
+}
+
+@id("k.affine_bisect_b")
+fn affine_bisect_b(x: i64, y: i64) -> i64
+{
+    if x > y { x - y } else { y - x + 1 }
+}
+
 @id("app.main")
 fn main() -> i64
 {
@@ -415,6 +428,36 @@ fn settlement_releases_every_buffer_exactly_once_in_reverse_order() {
         .iter()
         .all(|event| event.cause == MetalReleaseCause::Settlement));
     assert!(settlement.selected.is_none());
+}
+
+/// Diagnostic bisection for the `k.affine` compile failure
+/// (`XPC_ERROR_CONNECTION_INTERRUPTED` from `newLibraryWithSource`, 100%
+/// reproducing on `k.affine` and never on `k.ratio`/`k.rem`/`k.neg`/
+/// `k.halve32`): `k.affine_bisect_a` keeps the `let` before the `if` but
+/// makes both branches trivial (no arithmetic); `k.affine_bisect_b` keeps
+/// `k.affine`'s exact nested-arithmetic branches (`x - y` / `y - x + 1`)
+/// but removes the preceding `let`. Compile-only (no dispatch): whichever
+/// one still fails identifies which construct actually triggers it.
+#[test]
+fn bisect_let_before_if_with_trivial_branches_compiles() {
+    device_or_skip!();
+    let program = resolve(KERNELS);
+    let mut session =
+        MetalSession::open(MetalCapability::all()).expect("device present (just checked)");
+    session
+        .load_kernel(&program, "k.affine_bisect_a", 4)
+        .expect("k.affine_bisect_a (let + trivial if/else) must compile");
+}
+
+#[test]
+fn bisect_nested_arithmetic_branches_without_let_compiles() {
+    device_or_skip!();
+    let program = resolve(KERNELS);
+    let mut session =
+        MetalSession::open(MetalCapability::all()).expect("device present (just checked)");
+    session
+        .load_kernel(&program, "k.affine_bisect_b", 4)
+        .expect("k.affine_bisect_b (nested-arithmetic if/else, no let) must compile");
 }
 
 fn swap_first_add_for_sub(expr: &mut KernelExpr) -> bool {

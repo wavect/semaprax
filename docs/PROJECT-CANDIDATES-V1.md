@@ -173,7 +173,7 @@ Field migration and moves independently reconstruct the intended complete source
 set after admission and compare it exactly to the candidate.
 
 Both entry and test closures undergo ordinary native C11 emission and ordinary
-Core-Wasm emission plus wasmparser 0.258.0 structural validation. Reports name
+Core-Wasm emission plus wasmparser 0.259.0 structural validation. Reports name
 the exact role/lane, admission result, diagnostic on rejection, artifact digest,
 and byte length. A candidate may not lose a lane admitted by the preceding
 candidate. An ordinary lane not admitted by the base is explicitly marked;

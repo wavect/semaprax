@@ -519,7 +519,7 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
         // Reconstruct the prior binding to prove that only validator metadata
         // changed; old capsules must still fail replay before source writes.
         let report = target_evidence::preview(&fixture.source, &fixture.patch).unwrap();
-        let previous_report = report.replace("0.258.0", "0.256.0");
+        let previous_report = report.replace("0.259.0", "0.256.0");
         let report_domain = b"semaprax.semantic-target-evidence.report-digest.v1\0";
         let artifact_domain = b"semaprax.semantic-patch-evidence.artifact-digest.v2\0";
         let report_digest = domain_digest(report_domain, report.as_bytes());
@@ -575,17 +575,17 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         capsule_hashes,
         [
-            "75d5dd5aea707346fc55a7af6df132eb20238efd80f11b40265f0d76dd050122",
-            "251f8b7f905499bbb3ddb928f0afb5adcc88186de0bdd47ffc18cf9be25a84a6",
-            "10f903affc849ee6ab59c7adbafab8d96ccdcac73f36f19406d79d70e10f6ad9",
+            "a3093f8206f1a419ae945ee7c2acb8ff64d019c582d1a204cf28a3838ea67eb8",
+            "b6d6059d4d65f5a8d061bd31694fd7964c14a7a86b486a8f74a38d50618b05bb",
+            "3f671f8d63df23bc3ad025cf66cd85aacfea41363359a1b0b00bb275b9293231",
         ]
     );
     assert_eq!(
         receipt_hashes,
         [
-            "e712bcca63366a0add2fe101ac9f1601fa9a5dc76b28893b29bdcd7c5c53e43f",
-            "bb9b153d470d19f6bd322b86a184cb2ac2b576ed46d516a63bd3108a25768691",
-            "2a73c8fa2574afa59cb1d84e072678dc99cf1880c7cfe0088a07236c016c4d22",
+            "96ca776a2049a6066384ae5d9c8a5437ed632393373fab86fdd1b1a0265f186e",
+            "b3f06e3ca4615f02e5553ae59b301176c7599cf2914158ab97326a7dfcd0f826",
+            "4fa5cee23132deec24a01c5b12dd0face098be96875ac23eb90bd57bdd0d98ca",
         ]
     );
 }

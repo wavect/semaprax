@@ -29,7 +29,6 @@ const PRIVATE_BASE: u32 = SCRATCH_BASE + MAX_SCRATCH_BYTES;
 const PROVIDER_MEMORY_LIMIT: u32 = (SCRATCH_BASE + MAX_SCRATCH_BYTES * 2).div_ceil(65_536) * 65_536;
 const INPUT_LEAF_TABLE: u32 = PRIVATE_BASE + 1_024;
 const RESULT_LEAF_TABLE: u32 = PRIVATE_BASE + 1_536;
-const INPUT_PAYLOADS: u32 = PRIVATE_BASE + 2_048;
 const INPUT_AGGREGATE: u32 = PRIVATE_BASE + 4_096;
 const RESULT_AGGREGATE: u32 = PRIVATE_BASE + 8_192;
 const RESULT_CARRIER: u32 = PRIVATE_BASE + 16_384;
@@ -49,6 +48,9 @@ pub(super) struct ProviderLayout {
     pub(super) input_leaf_table: u32,
     pub(super) result_leaf_table: u32,
     pub(super) input_payloads: u32,
+    /// Exact bound of the private input payload window. The codec refuses a
+    /// carrier whose payload total exceeds it with the capacity status.
+    pub(super) input_payload_capacity: u32,
     pub(super) input_aggregate: u32,
     pub(super) result_aggregate: u32,
     pub(super) result_carrier: u32,
@@ -66,17 +68,24 @@ const fn align_up(value: u32, alignment: u32) -> u32 {
 
 // The owned-byte heap follows every predecessor region, so no earlier offset
 // moves; only the memory limit grows to cover it.
-const STANDALONE_HEAP_TABLE: u32 = PROVIDER_MEMORY_LIMIT;
+// Two admitted leaves of at most 64 KiB each. The window previously began
+// 2 KiB below the input aggregate, which silently overwrote payload bytes.
+const MAX_INPUT_PAYLOAD_BYTES: u32 = 2 * 65_536;
+const STANDALONE_INPUT_PAYLOADS: u32 = PROVIDER_MEMORY_LIMIT;
+const STANDALONE_HEAP_TABLE: u32 = STANDALONE_INPUT_PAYLOADS + MAX_INPUT_PAYLOAD_BYTES;
 const STANDALONE_HEAP_DATA: u32 = STANDALONE_HEAP_TABLE + 65_536;
 const STANDALONE_HEAP_END: u32 = STANDALONE_HEAP_DATA + byte_runtime::HEAP_DATA_BYTES;
 const _: () = assert!(byte_runtime::HEAP_TABLE_BYTES <= 65_536);
+const _: () = assert!(STANDALONE_INPUT_PAYLOADS >= RESULT_CARRIER + MAX_SCRATCH_BYTES);
+const _: () = assert!(MAX_COMPONENT_INPUT_PAYLOAD_BYTES == MAX_INPUT_PAYLOAD_BYTES);
 
 const STANDALONE_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
     input_sha256_workspace: STATIC_INPUT_SHA256_WORKSPACE,
     result_sha256_workspace: STATIC_RESULT_SHA256_WORKSPACE,
     input_leaf_table: INPUT_LEAF_TABLE,
     result_leaf_table: RESULT_LEAF_TABLE,
-    input_payloads: INPUT_PAYLOADS,
+    input_payloads: STANDALONE_INPUT_PAYLOADS,
+    input_payload_capacity: MAX_INPUT_PAYLOAD_BYTES,
     input_aggregate: INPUT_AGGREGATE,
     result_aggregate: RESULT_AGGREGATE,
     result_carrier: RESULT_CARRIER,
@@ -111,6 +120,7 @@ pub(super) const COMPONENT_PROVIDER_LAYOUT: ProviderLayout = ProviderLayout {
     input_leaf_table: COMPONENT_INPUT_LEAF_TABLE,
     result_leaf_table: COMPONENT_RESULT_LEAF_TABLE,
     input_payloads: COMPONENT_INPUT_PAYLOADS,
+    input_payload_capacity: MAX_COMPONENT_INPUT_PAYLOAD_BYTES,
     input_aggregate: COMPONENT_INPUT_AGGREGATE,
     result_aggregate: COMPONENT_RESULT_AGGREGATE,
     result_carrier: COMPONENT_RESULT_CARRIER,
@@ -890,7 +900,7 @@ fn body_input_prepare(
     body.extend(local_get(1));
     body.extend(local_get(2));
     body.extend(i32_const(layout.input_payloads as i32));
-    body.extend(i32_const(MAX_SCRATCH_BYTES as i32));
+    body.extend(i32_const(layout.input_payload_capacity as i32));
     body.extend(i32_const(layout.input_leaf_table as i32));
     body.push(0x10);
     u32_leb(&mut body, copy_index);

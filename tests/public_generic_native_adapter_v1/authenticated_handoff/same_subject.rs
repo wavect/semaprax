@@ -21,6 +21,8 @@ mod profile_hostility;
 mod profile_rust;
 #[path = "wasm_comparison.rs"]
 mod wasm_comparison;
+#[path = "wasm_large_payload.rs"]
+mod wasm_large_payload;
 #[path = "same_subject_physical.rs"]
 mod physical;
 #[path = "same_subject_rust.rs"]

@@ -44,7 +44,7 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-fn unhex(text: &str) -> Vec<u8> {
+pub(super) fn unhex(text: &str) -> Vec<u8> {
     (0..text.len())
         .step_by(2)
         .map(|at| u8::from_str_radix(&text[at..at + 2], 16).unwrap())
@@ -120,7 +120,7 @@ fn native_column(root: &Path, source: &str, constants: &str) -> Vec<Vec<String>>
     first.unwrap()
 }
 
-fn wasm_column(
+pub(super) fn wasm_column(
     root: &Path,
     wasm: &semaprax::wasm::PublicGenericWasmProviderArtifactV1,
     canonical: &[u8],
@@ -338,7 +338,7 @@ fn expected(label: &str) -> Vec<String> {
     // Every subject, including the allocating one, now executes on Core Wasm
     // through the provider's own owned-byte runtime.
     let (recovery, close) = ("settled", "0");
-    let canonical = "wasm raw=0 again=8 consumed=8 grown=21037056 close=0 leaves=native".to_owned();
+    let canonical = "wasm raw=0 again=8 consumed=8 grown=21168128 close=0 leaves=native".to_owned();
     let ticket = |id: &str, raw: u8, code: &str| {
         format!("{label} | {id} | native raw={raw} {code} entries=0 alloc+0 live=0 | wasm no analogue: prepare arity=3")
     };

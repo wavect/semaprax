@@ -243,3 +243,37 @@ pub(super) fn emit_arithmetic_trap_case(
     write_u32(body, import);
     body.extend([0x1a, 0x00, 0x0b]);
 }
+
+impl Emitter<'_> {
+    /// Bounded While-Loops v1 lowers to a core `block`/`loop` pair: the
+    /// condition re-evaluates at the top, a false condition branches out of
+    /// the enclosing block, and the discarded body value falls through to the
+    /// back-edge branch. Checked-arithmetic failures inside the loop keep the
+    /// same sticky host-status contract as straight-line code.
+    pub(super) fn emit_while(
+        &mut self,
+        condition: &ResolvedExpr,
+        body: &ResolvedExpr,
+    ) -> Result<(), Diagnostic> {
+        if self.owned_utf8_literals.is_some() && body.ty == ResolvedType::String {
+            return Err(error(
+                "discarding an owned string has no admitted WebAssembly lowering",
+            ));
+        }
+        self.output.extend([0x02, 0x40]); // block (empty) $exit
+        self.output.extend([0x03, 0x40]); // loop (empty) $top
+        self.control_depth += 2;
+        let condition_value = self.emit_expr(condition)?;
+        self.require_scalar(&condition_value, &ResolvedType::Bool, "while condition")?;
+        self.get_scalar(&condition_value);
+        self.output.push(0x45); // i32.eqz
+        self.output.extend([0x0d, 0x01]); // br_if 1 -> $exit on false
+        self.semantic_charge()?; // stage semantic work v1: metered builds only
+        let _body_value = self.emit_expr(body)?;
+        self.control_depth -= 2;
+        self.output.extend([0x0c, 0x00]); // br 0 -> $top
+        self.output.push(0x0b); // end loop
+        self.output.push(0x0b); // end block
+        Ok(())
+    }
+}

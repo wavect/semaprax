@@ -220,6 +220,20 @@ pub fn emit_hir_c(program: &ResolvedProgram) -> Result<String, Diagnostic> {
     emit_hir_c_with_labels(program, &HashMap::new(), NativeOutputProfile::Legacy, None)
 }
 
+pub(crate) use native_emit::{
+    NativeSemanticMetering, SEMANTIC_EVENT_CAPACITY, SEMANTIC_FUEL_STATUS_DOMAIN,
+};
+
+/// [`emit_hir_c`] instrumented for Agent Stage Semantic Work v1. Reserved for
+/// the private Agent-stage executor; no public build selects it.
+pub(crate) fn emit_hir_c_semantically_metered(
+    program: &ResolvedProgram,
+    metering: &NativeSemanticMetering,
+) -> Result<String, Diagnostic> {
+    reject_native_rust_for_native(program)?;
+    native_emit::emit_hir_c_semantically_metered(program, metering)
+}
+
 fn emit_hir_c_for_owned_data_provider(program: &ResolvedProgram) -> Result<String, Diagnostic> {
     reject_native_rust_for_native(program)?;
     emit_hir_c_with_labels(

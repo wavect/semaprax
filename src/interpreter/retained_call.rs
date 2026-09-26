@@ -164,6 +164,36 @@ pub struct RetainedCallEvaluation {
     pub max_steps: usize,
     /// The violated clause and frame when `outcome` is a contract failure.
     pub failure: Option<ContractFailureDetail>,
+    /// Agent Stage Semantic Work v1 accounting. The interpreter always
+    /// reports it; a compiled stage backend reports it only for a metered
+    /// dispatch. `steps_used` stays a backend-specific instruction count.
+    pub semantic_work: Option<SemanticWork>,
+}
+
+/// Backend-neutral semantic work of one stage call (Agent Stage Semantic
+/// Work v1). `fuel_used` is comparable across every backend that reports it;
+/// backend instruction counts are deliberately not part of this record.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SemanticWork {
+    /// Semantic fuel units charged: one per entered source function frame and
+    /// one per entered `while` body. A refused charge is not counted.
+    pub fuel_used: u64,
+    /// The semantic fuel limit the call was admitted under, if metered.
+    pub fuel_limit: Option<u64>,
+    /// Whether the semantic fuel limit stopped the call. Sticky once set.
+    pub exhausted: bool,
+    /// Canonical cleanup-plan finalizers this backend physically performed,
+    /// in execution order and never sorted. `None` when the backend performs
+    /// no plan finalizer at all (the interpreter's value model).
+    pub finalizer_events: Option<Vec<SemanticCleanupEvent>>,
+}
+
+/// One performed canonical cleanup-plan finalizer: the owning function and
+/// the plan's liveness-flag identity of the finalized compiler-owned slot.
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct SemanticCleanupEvent {
+    pub function: DeclarationId,
+    pub liveness_flag: u32,
 }
 
 /// The retained, authority-free product of one admitted retained call.
@@ -339,12 +369,43 @@ pub fn evaluate_retained_call(
     arguments: &[RetainedValue],
     max_steps: usize,
 ) -> Result<RetainedCallEvaluation, Vec<Diagnostic>> {
+    evaluate_on_worker(program, prepared, arguments, max_steps, None)
+}
+
+/// Execute one retained product under an Agent Stage Semantic Work v1 fuel
+/// limit. The instruction-step budget still applies independently; a metered
+/// call reports which limit stopped it through [`SemanticWork::exhausted`].
+pub fn evaluate_retained_call_metered(
+    program: &hir::ResolvedProgram,
+    prepared: &PreparedRetainedCall,
+    arguments: &[RetainedValue],
+    max_steps: usize,
+    semantic_fuel_limit: u64,
+) -> Result<RetainedCallEvaluation, Vec<Diagnostic>> {
+    evaluate_on_worker(
+        program,
+        prepared,
+        arguments,
+        max_steps,
+        Some(semantic_fuel_limit),
+    )
+}
+
+fn evaluate_on_worker(
+    program: &hir::ResolvedProgram,
+    prepared: &PreparedRetainedCall,
+    arguments: &[RetainedValue],
+    max_steps: usize,
+    semantic_fuel_limit: Option<u64>,
+) -> Result<RetainedCallEvaluation, Vec<Diagnostic>> {
     let invocation = execution::prepare(program, prepared, arguments, max_steps)?;
     std::thread::scope(|scope| {
         let worker = std::thread::Builder::new()
             .name("semaprax-retained-call".to_owned())
             .stack_size(EVALUATION_STACK_BYTES)
-            .spawn_scoped(scope, move || invocation.run(max_steps))
+            .spawn_scoped(scope, move || {
+                invocation.run(max_steps, semantic_fuel_limit)
+            })
             .map_err(|error| {
                 vec![guard_error(&format!(
                     "retained call evaluation thread failed to start: {error}"

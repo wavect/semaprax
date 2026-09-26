@@ -11,6 +11,8 @@ use super::*;
 use crate::interpreter::retained_call::evaluate_retained_call;
 
 mod lifecycle_parity;
+/// Agent Stage Semantic Work v1 cross-backend fuel and finalizer gate (#293).
+mod semantic_work_parity;
 /// Target-private scalar carrier parity (#182). Kept separate from the
 /// lifecycle authority gates because it owns an independently bound source
 /// profile and runs native/Core-Wasm artifacts.

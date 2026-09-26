@@ -27,6 +27,9 @@ impl NodeStageValue {
 pub(super) enum NodeStageRun {
     Returned(Vec<NodeStageValue>),
     LanguageFailure(NormalizedStatus),
+    /// Agent Stage Semantic Work v1 exhaustion; only a metered observer
+    /// produces it, never this ordinary decoder.
+    FuelExhausted,
 }
 
 fn normalized_raw_status(raw: u64) -> Option<NormalizedStatus> {

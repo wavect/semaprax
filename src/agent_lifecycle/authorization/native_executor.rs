@@ -462,6 +462,32 @@ impl StageExecutor for NativeStageExecutor<'_> {
         )
         .map_err(|error| vec![error])
     }
+
+    fn execute_metered(
+        &self,
+        _authority: ExecutionAuthority,
+        program: &hir::ResolvedProgram,
+        prepared: &PreparedRetainedCall,
+        arguments: &[RetainedValue],
+        max_steps: usize,
+        profile: &super::StageSemanticProfile,
+        cancellation: Option<&crate::agent_runtime::AgentCancellation>,
+    ) -> Result<RetainedCallEvaluation, Vec<Diagnostic>> {
+        if cancellation.is_some_and(crate::agent_runtime::AgentCancellation::is_cancelled) {
+            return Err(vec![invariant("stage_executor.cancelled")]);
+        }
+        semantic_work::run_metered(
+            program,
+            prepared,
+            arguments,
+            max_steps,
+            self.host,
+            self.optimization,
+            profile,
+            cancellation,
+        )
+        .map_err(|error| vec![error])
+    }
 }
 
 fn hex_symbol(prefix: &str, id: &DeclarationId) -> String {
@@ -1191,6 +1217,7 @@ fn decode(
         steps_used: 0,
         max_steps,
         failure: None,
+        semantic_work: None,
     })
 }
 
@@ -1463,3 +1490,4 @@ fn decode_variant(
 
 #[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
 mod multi_owner_cleanup_tests;
+mod semantic_work;

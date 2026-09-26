@@ -55,6 +55,12 @@ use string_ops_v2_use::program_uses_string_ops_v2;
 mod source_result_component_v4;
 mod text_exports;
 mod vec_ops;
+/// Agent Stage Semantic Work v1 selection for one private stage build.
+pub(crate) use aggregate::semantic_work::{
+    with_semantic_metering, WasmSemanticMetering, EVENT_COUNT_EXPORT, EVENT_EXPORT_PREFIX,
+    EVENT_OVERFLOW_EXPORT, EXHAUSTED_EXPORT, FUEL_USED_EXPORT, SEMANTIC_EVENT_CAPACITY,
+    SEMANTIC_FUEL_STATUS,
+};
 pub(crate) use vec_ops::program_uses_vec;
 mod box_ops;
 pub(crate) use box_ops::program_uses_box;

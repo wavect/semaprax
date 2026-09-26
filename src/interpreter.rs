@@ -81,6 +81,7 @@ mod resolved_case;
 pub mod resumable;
 pub mod retained_call;
 mod scalar_profile;
+mod semantic_work;
 use api_admission::{
     owned_utf8_api_result_matches, public_api_argument_matches, public_api_parameter_type_matches,
     public_api_result_is_admitted, require_acyclic_public_api_closure,
@@ -2205,6 +2206,7 @@ use nested_owned::{
 mod variant_admission;
 use variant_admission::{
     is_admitted_fieldless_variant, is_admitted_owned_byte_variant, is_admitted_owned_variant,
+    is_option_u8, option_u8_pattern_is_admitted,
 };
 
 fn concrete_variant_case_fields(
@@ -3051,6 +3053,7 @@ pub(crate) fn evaluate_resolved_language_command(
         trace_phase: ResolvedTracePhase::Body,
         failure_detail: None,
         resumption: resumable::Resumption::Refused,
+        semantic: Default::default(),
     };
     let evaluated = evaluator.call_frame(entry, Vec::new(), 0);
     let outcome = match evaluated {
@@ -3129,34 +3132,6 @@ enum Value {
     /// Runtime tombstone for a verifier-authenticated move from an owned
     /// storage slot. Reaching it again is an impossible post-verify state.
     Moved,
-}
-
-fn is_option_u8(ty: &ResolvedType) -> bool {
-    matches!(
-        ty,
-        ResolvedType::Nominal { declaration, arguments }
-            if declaration.as_str() == crate::prelude::OPTION_ID
-                && arguments.as_slice() == [ResolvedType::U8]
-    )
-}
-
-fn option_u8_pattern_is_admitted(pattern: &crate::hir::ResolvedMatchPattern) -> bool {
-    let crate::hir::ResolvedMatchPattern::Variant {
-        variant,
-        case,
-        fields,
-    } = pattern
-    else {
-        return false;
-    };
-    if variant.as_str() != crate::prelude::OPTION_ID {
-        return false;
-    }
-    (case.as_str() == crate::prelude::OPTION_NONE_ID && fields.is_empty())
-        || (case.as_str() == crate::prelude::OPTION_SOME_ID
-            && fields.len() == 1
-            && fields[0].field.as_str() == crate::prelude::OPTION_SOME_VALUE_ID
-            && fields[0].binding.ty == ResolvedType::U8)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -3506,6 +3481,7 @@ struct Evaluator<'a> {
     trace_phase: ResolvedTracePhase,
     failure_detail: Option<ContractFailureDetail>,
     resumption: resumable::Resumption,
+    semantic: semantic_work::SemanticMeter,
 }
 
 use function_values::{evaluate_resolved_entry, evaluate_resolved_entry_with_utf8_budget};
@@ -3541,6 +3517,7 @@ impl Evaluator<'_> {
             trace_phase: ResolvedTracePhase::Body,
             failure_detail: None,
             resumption: resumable::Resumption::Refused,
+            semantic: Default::default(),
         }
     }
 
@@ -3888,6 +3865,8 @@ impl Evaluator<'_> {
         values: Vec<(ValueId, Value)>,
         depth: usize,
     ) -> Result<Value, Flow> {
+        // Stage semantic work v1: one unit per admitted source frame.
+        self.semantic_charge()?;
         let mut frame = Environment::from(values);
         self.set_trace_phase(ResolvedTracePhase::Requires);
         for (index, clause) in function.requires.iter().enumerate() {
@@ -4726,7 +4705,11 @@ impl Evaluator<'_> {
                                 if !flag {
                                     break;
                                 }
-                                if let Err(flow) = self.evaluate(body, environment, depth) {
+                                // Stage semantic work v1: one unit per entered body.
+                                if let Err(flow) = self
+                                    .semantic_charge()
+                                    .and_then(|()| self.evaluate(body, environment, depth))
+                                {
                                     interrupted = Some(flow);
                                     break 'statements;
                                 }
@@ -6092,6 +6075,7 @@ fn main() -> i64 { 0 }
                 trace_phase: ResolvedTracePhase::Body,
                 failure_detail: None,
                 resumption: resumable::Resumption::Refused,
+                semantic: Default::default(),
             };
             let outcome = evaluator.call_frame(
                 inspect,
@@ -6179,6 +6163,7 @@ fn inspect(value: borrow Either<Bytes, Bytes>) -> i64 {
                 trace_phase: ResolvedTracePhase::Body,
                 failure_detail: None,
                 resumption: resumable::Resumption::Refused,
+                semantic: Default::default(),
             };
             let outcome = evaluator.call_frame(
                 inspect,

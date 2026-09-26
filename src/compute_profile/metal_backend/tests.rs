@@ -430,14 +430,10 @@ fn settlement_releases_every_buffer_exactly_once_in_reverse_order() {
     assert!(settlement.selected.is_none());
 }
 
-/// Diagnostic bisection for the `k.affine` compile failure
-/// (`XPC_ERROR_CONNECTION_INTERRUPTED` from `newLibraryWithSource`, 100%
-/// reproducing on `k.affine` and never on `k.ratio`/`k.rem`/`k.neg`/
-/// `k.halve32`): `k.affine_bisect_a` keeps the `let` before the `if` but
-/// makes both branches trivial (no arithmetic); `k.affine_bisect_b` keeps
-/// `k.affine`'s exact nested-arithmetic branches (`x - y` / `y - x + 1`)
-/// but removes the preceding `let`. Compile-only (no dispatch): whichever
-/// one still fails identifies which construct actually triggers it.
+/// Compile-only regression coverage for the Metal compiler service failure
+/// once triggered by 64-bit unsigned division in `checked_mul_i64` (see the
+/// `msl` module docs): `k.affine_bisect_a` multiplies before an `if`,
+/// `k.affine_bisect_b` exercises nested checked arithmetic without `*`.
 #[test]
 fn bisect_let_before_if_with_trivial_branches_compiles() {
     device_or_skip!();

@@ -57,8 +57,8 @@ inline uint checked_mul_i64(long a, long b, thread long* out) {
     bool negative = (a < 0) != (b < 0);
     ulong ua = (a < 0) ? (0UL - (ulong)a) : (ulong)a;
     ulong ub = (b < 0) ? (0UL - (ulong)b) : (ulong)b;
+    if (mulhi(ua, ub) != 0UL) { return 3u; }
     ulong product = ua * ub;
-    if (product / ua != ub) { return 3u; }
     ulong limit = negative ? 9223372036854775808UL : 9223372036854775807UL;
     if (product > limit) { return 3u; }
     *out = negative ? (long)(0UL - product) : (long)product;
@@ -207,41 +207,21 @@ impl Codegen {
 /// How a checked failure is recorded and how it stops the rest of the
 /// invocation, and why this generator's shape is what it is.
 ///
-/// # History (three tries; read before changing this again)
+/// # Metal compiler constraint (confirmed on hardware)
 ///
-/// A `let`-bound checked value immediately followed by an `if` in the same
-/// scope (e.g. `let scaled = x*3; if scaled>y {…} else {…}`) reproducibly
-/// made the system Metal compiler service fail
-/// (`XPC_ERROR_CONNECTION_INTERRUPTED`, identical across many real-hardware
-/// runs), bisected against several kernels that never reproduced it.
+/// The system Metal compiler service (`newLibraryWithSource`) failed with
+/// `XPC_ERROR_CONNECTION_INTERRUPTED`, deterministically, on every kernel
+/// containing `*` and on no other kernel. The cause was the overflow check
+/// in `checked_mul_i64`, which detected overflow with a 64-bit unsigned
+/// division (`product / ua != ub`). Replacing it with `mulhi(ua, ub) != 0`
+/// (the high half of the 128-bit product) made the whole differential suite
+/// pass on an Apple M3 Pro. Three earlier control-flow theories (an early
+/// `return` before a later `if`, a redundant `let` copy, and an `if` nested
+/// inside a guard) were each ruled out on hardware first; do not re-derive
+/// them. Keep 64-bit unsigned division out of the generated helpers.
 ///
-/// 1. First hypothesis: a bare `out_status[gid] = st; return;` inside a
-///    checked guard, followed later in the same scope by more statements
-///    and then an `if`. Fix tried: nest everything that follows a guard
-///    inside its own `else { … }` instead of `return`ing past it (a
-///    right-to-left fold over a step list). This changed nothing — the
-///    same fixture failed identically with no bare `return` left in it.
-/// 2. Second hypothesis: a `let` declaring its own redundant `long slotN =
-///    tM;` copy of an already-computed temporary (nothing else ever
-///    declared a slot variable from another variable). Fix tried: alias a
-///    `let`'s slot straight to its value's own temporary name, no second
-///    declaration. This *also* changed nothing on this exact fixture,
-///    while still being the right thing to keep — a `let` should never
-///    need to copy a value it already computed, so this remains as-is.
-/// 3. What actually distinguished every failing kernel from every passing
-///    one, comparing the two *nested-else* fragments the step-1 fold
-///    produced: a failing kernel always had a user-level `if`/`else`
-///    generated **inside** a checked-arithmetic guard's `else { … }` (a
-///    `let`'s guard, in `fold`'s right-to-left order, ends up containing
-///    everything textually after it, including a later `if`). A passing
-///    kernel only ever had guards nested **inside** `if`/`else` branches —
-///    the reverse order — which is exactly the ordinary shape a checked
-///    operation used directly inside a branch produces, and which never
-///    failed in any run. So: guard-inside-if is fine; if-inside-guard is
-///    not.
-///
-/// This generator now guarantees the second order never occurs, using a
-/// single mutable `ok` flag instead of nesting at all for guards:
+/// Checked failures are recorded with a single mutable `ok` flag rather
+/// than nested guards, which keeps the generated control flow flat:
 ///
 /// ```text
 /// long tN = 0;

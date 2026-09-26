@@ -639,6 +639,8 @@ impl MetalSession {
     /// transient-vs-deterministic question could not be settled that way)
     /// and a bounded retry that might paper over a real, deterministic
     /// generated-MSL defect is worse than a visible failure.
+    /// The failure was in fact deterministic generated-MSL input (see the
+    /// `msl` module docs), which a retry would have hidden.
     fn compile_library(
         &self,
         source: &str,

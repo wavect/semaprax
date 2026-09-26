@@ -1,0 +1,71 @@
+// Generated Rust caller driver. The generated safe API performs framing,
+// admission, dispatch, export and settlement; only scalar test observers and
+// the shared receipt cross the extern boundary.
+#![allow(unsafe_code)]
+use @LIBRARY@::{diagnostics, Error, Input, Provider, TRUSTED_BINDING_BYTES, TRUSTED_DESCRIPTOR_BYTES};
+include!(concat!(env!("CARGO_MANIFEST_DIR"), "/matrix_cases.rs"));
+extern "C" {
+    fn mx_reset();
+    fn mx_arm(kind: u32);
+    fn mx_dispatches() -> usize;
+    fn mx_live() -> usize;
+    fn mx_peak_allocations() -> usize;
+    fn mx_peak_handles() -> usize;
+    fn mx_armed() -> usize;
+    fn mx_order(out: *mut u8, capacity: usize);
+}
+fn leaf(bytes: Option<&[u8]>) -> String {
+    match bytes {
+        None => "-".to_owned(),
+        Some([]) => "e".to_owned(),
+        Some(bytes) => bytes.iter().map(|byte| format!("{byte:02x}")).collect(),
+    }
+}
+fn emit(id: &str, primary: i64, secondary: Option<i32>, leaves: Option<(&[u8], &[u8])>, note: &str) {
+    let mut order = [0_u8; 512];
+    // SAFETY: test-only observers; `order` is a live buffer of the stated size.
+    let (dispatch, live, peak, handles) = unsafe {
+        mx_order(order.as_mut_ptr(), order.len());
+        (mx_dispatches(), mx_live(), mx_peak_allocations(), mx_peak_handles())
+    };
+    let end = order.iter().position(|byte| *byte == 0).unwrap();
+    let order = std::str::from_utf8(&order[..end]).unwrap();
+    let secondary = secondary.map_or_else(|| "-".to_owned(), |status| status.to_string());
+    println!(
+        "{id} {primary} {secondary} {dispatch} {live} {peak}/{handles} {order} {} {} {note}",
+        leaf(leaves.map(|pair| pair.0)),
+        leaf(leaves.map(|pair| pair.1)),
+    );
+}
+fn main() {
+    for &(id, kind, cycles, left, right) in CASES {
+        // SAFETY: test-only scalar reset of provider-local observers.
+        unsafe { mx_reset() };
+        let mut provider = Provider::open(TRUSTED_DESCRIPTOR_BYTES, TRUSTED_BINDING_BYTES).unwrap();
+        let cycles = if kind == 1 { cycles } else { 1 };
+        for cycle in 0..cycles {
+            // SAFETY: test-only scalar recipe; no pointer or ownership crosses.
+            unsafe { mx_arm(kind) };
+            let label = if kind == 1 { format!("{id}#{cycle}") } else { id.to_owned() };
+            let result = provider.transform(Input { @INPUT0@: left.to_vec(), @INPUT1@: right.to_vec() });
+            let secondary = Some(provider.last_release_status());
+            let mut note = String::from("safe-api");
+            let last = cycle + 1 == cycles;
+            if last {
+                let handles = diagnostics::live_handles(&provider);
+                let closed = provider.close().is_ok();
+                // SAFETY: scalar observation only.
+                let armed = unsafe { mx_armed() };
+                note.push_str(&format!(",handles={handles},close={},armed={armed}", u8::from(!closed)));
+            }
+            match result {
+                Ok(output) => emit(&label, 0, secondary, Some((&output.@OUTPUT0@, &output.@OUTPUT1@)), &note),
+                Err(Error::ExecutionFailed(status)) => emit(&label, i64::from(status), secondary, None, &note),
+                Err(other) => {
+                    note.push_str(&format!(",error={other:?}").replace(' ', "_"));
+                    emit(&label, -1, secondary, None, &note);
+                }
+            }
+        }
+    }
+}

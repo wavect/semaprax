@@ -49,6 +49,12 @@ function canonical(state) {
     if (called.status === 0) {
         const size = lane(api.spx_pg_v1_result_export(called.value, scratch, 0));
         assert.equal(size.status, 12);
+        // A hostile destination (far outside this module's own linear
+        // memory) must return a status, not trap: refused before any write,
+        // with the live result and its exact required length unchanged, so
+        // the real export immediately below still succeeds normally.
+        const hostile = lane(api.spx_pg_v1_result_export(called.value, 0xffffffff, size.value));
+        assert.equal(hostile.status, 13);
         const copied = lane(api.spx_pg_v1_result_export(called.value, scratch, size.value));
         assert.deepEqual(copied, { status: 0, value: size.value });
         bytes = Buffer.from(new Uint8Array(api.memory.buffer, scratch, size.value)).toString('hex');

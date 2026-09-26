@@ -41,7 +41,31 @@ pub(super) struct Classifier {
 impl Classifier {
     /// `empty_frame` is the descriptor-bound canonical input frame with empty
     /// payloads, exactly the native profile's `SPX_PG_AUTH_EMPTY_FRAME`.
+    ///
+    /// [`LEAF_COUNT`] is baked into the emitted bytecode as an immediate
+    /// (`classify_body` compares the frame's declared leaf count against it
+    /// directly), not read from `empty_frame` at run time, so nothing forces
+    /// the two to agree by construction. This check ties them together at
+    /// emission time: it independently parses the trusted empty frame and
+    /// refuses to emit a classifier whose hardcoded [`LEAF_COUNT`] disagrees
+    /// with the endpoint it was actually derived from, rather than silently
+    /// emitting a classifier that rejects every real carrier (or admits a
+    /// wrong one) the day `mod.rs`'s own two-leaf guard changes without this
+    /// one moving with it.
     pub(super) fn new(empty_frame: &[u8]) -> Result<Self, String> {
+        let leaves = crate::public_generic_abi::carrier::frame::parse_bounded(empty_frame)
+            .map_err(|error| {
+                format!("carrier classifier trusted empty frame does not parse: {error:?}")
+            })?
+            .leaves()
+            .len();
+        if i64::try_from(leaves).unwrap_or(i64::MAX) != LEAF_COUNT {
+            return Err(format!(
+                "carrier classifier LEAF_COUNT ({LEAF_COUNT}) does not match the admitted \
+                 endpoint's actual leaf count ({leaves}); this classifier and mod.rs's Phase-B \
+                 two-leaf guard must change together"
+            ));
+        }
         let mut data = FRAME_DOMAIN.to_vec();
         data.extend_from_slice(b"inputresultsha256:");
         data.extend_from_slice(empty_frame);

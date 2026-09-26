@@ -1106,6 +1106,25 @@ fn body_result_export(code: &mut Vec<u8>) {
     body.push(0x84);
     body.push(0x0f);
     body.push(0x0b);
+    // A hostile or wrap-around destination (e.g. 0xFFFF_FFFF) must return a
+    // status, not trap inside memory.copy below: refuse unless dst + the
+    // result's exact length fits inside this module's current linear
+    // memory. `memory.size` returns whole pages; this module's memory never
+    // approaches 2^16 pages, so multiplying by the page size never
+    // overflows i32. `GLOBAL_RESULT_LEN` is this call's own already-bounded
+    // internal length, never caller-supplied, so the subtraction below
+    // cannot underflow.
+    body.extend(local_get(1));
+    body.extend([0x3f, 0x00]);
+    body.extend(i32_const(65_536));
+    body.push(0x6c);
+    body.extend(global_get(GLOBAL_RESULT_LEN));
+    body.push(0x6b);
+    body.push(0x4b);
+    body.extend([0x04, 0x40]);
+    lane(&mut body, 13, 0);
+    body.push(0x0f);
+    body.push(0x0b);
     body.extend(local_get(1));
     body.extend(global_get(GLOBAL_RESULT_PTR));
     body.extend(global_get(GLOBAL_RESULT_LEN));

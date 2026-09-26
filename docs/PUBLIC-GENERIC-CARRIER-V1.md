@@ -370,13 +370,23 @@ vocabulary is v1's plus one status:
 
 | Status | Restates | Meaning |
 | --- | --- | --- |
-| 14 | `SPX-PG803` | the input carrier decoded structurally and its self-digest was checked, but its semantic binding (descriptor, endpoint or instance identity, leaf count or leaf path) or its digest does not replay |
+| 14 | `SPX-PG803` | the input carrier decoded structurally and its self-digest was checked, but its semantic binding does not replay: wrong direction, descriptor identity, endpoint identity, or instance identity; a leaf-inventory digest that does not match the canonical path list; or a leaf path sequence that does not match it (missing, extra, reordered, or substituted) |
 
 This is the same raw value and meaning as native's authenticated profiles
 (`SPX_PG_AUTH_STATUS_REPLAY_MISMATCH`). `spx_pg_v1_input_prepare` classifies a
 carrier with a port of the native authenticated frame check against the same
 trusted canonical empty frame, so both targets return 5, 6 or 14 for the same
-bytes. The compiled provider supersedes v1: it embeds only its v2 binding, and
+bytes and the same reason — within the capacity each target actually admits.
+The two targets' capacity windows differ: native's authenticated profile has
+no fixed input-payload staging region and admits up to the shared carrier
+bound (`MAX_TOTAL_PAYLOAD_BYTES`, 16 MiB), while the compiled Core Wasm
+provider's private input-payload window (`MAX_INPUT_PAYLOAD_BYTES`) is a
+fixed 128 KiB inside its static scratch layout. A payload between 128 KiB and
+16 MiB is a genuine target divergence on the *same bytes*: native admits it,
+Wasm refuses it with raw 6 before any allocation. This is a scratch/window
+sizing difference, not a status-vocabulary one — both targets still use
+raw 6 for "over capacity" and raw 14 for "structurally valid but not this
+binding". The compiled provider supersedes v1: it embeds only its v2 binding, and
 a v1 binding naming the same facts fails its byte-exact binding replay at open
 with status 4 (binding replay mismatch). The generated TypeScript consumer for
 a v2 binding maps status 14 to `carrier-rejected` with reason
@@ -975,7 +985,9 @@ byte-exact `replay`) for `TargetProfile::CoreWasm` instead of
 `TargetProfile::NativeC11`. It wraps a `CarrierBindingV1` naming
 `TargetProfile::CoreWasm` unchanged, and adds exactly the facts a physical
 Wasm provider needs and the logical carrier never should:
-`wasm_adapter_abi_version` (closed to `"v1"` this round),
+`wasm_adapter_abi_version` (closed to `"v1"` or `"v2"`; see
+[Wasm adapter ABI v2](#wasm-adapter-abi-v2-compiled-core-wasm-provider) below
+for what `"v2"` adds and who emits it),
 `provider_artifact_digest`, `exported_endpoint_export_name` (a Wasm export
 name, since Wasm has no linker-visible "symbol" the way a native shared
 object does), a `compiler_backend_version` fact, and its own closed

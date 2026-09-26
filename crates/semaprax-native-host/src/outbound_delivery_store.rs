@@ -13,6 +13,11 @@ use semaprax::outbound_host_adapter::{
 use semaprax_native_rust_interop_platform as platform;
 use semaprax_native_rust_interop_platform::HeldDirectory;
 
+/// The first non-test caller for this store: a bounded, host-authorized
+/// wiring from a decoded service outbound declaration to a real durable
+/// typed delivery session.
+pub mod service_invocation;
+
 /// The typed checkpoint family is part of the on-disk namespace.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OutboundCheckpointKind {
@@ -75,6 +80,20 @@ impl<'directory> OutboundDeliveryStore<'directory> {
             directory,
             sync_mode,
         }
+    }
+
+    /// The caller-held directory this store is rooted at. It is the actual
+    /// authority the store operates under; nothing in this module derives it
+    /// from configuration.
+    pub fn directory(&self) -> &'directory HeldDirectory {
+        self.directory
+    }
+
+    /// The selected acknowledgment boundary. `NamespaceSynced` is required
+    /// for a no-redispatch guarantee that survives more than a process crash;
+    /// `FileOnly` (the default) closes only that narrower crash window.
+    pub fn sync_mode(&self) -> OutboundCheckpointSyncMode {
+        self.sync_mode
     }
 
     /// Read one exact typed checkpoint by its previously retained digest.

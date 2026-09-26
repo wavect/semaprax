@@ -206,6 +206,72 @@ fn forged_binding_or_recorded_site_is_refused() {
 }
 
 #[test]
+fn completion_or_failure_with_unconsumed_replay_history_is_drift() {
+    use crate::cleanup_plan::StatusCase;
+    use crate::conformance::NormalizedStatus;
+
+    let program = program(CONTROL_SOURCE);
+    let plan = lower_control(
+        &program,
+        program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "app.ask")
+            .unwrap(),
+    )
+    .unwrap();
+    let arguments = [ResumableScalar::I64(3)];
+    let replay = |observed| Resumption::Replay {
+        expected: vec![Value::Int(0), Value::Int(1)],
+        answers: vec![Value::Int(5), Value::Int(15)],
+        observed,
+        parked: None,
+        history: Vec::new(),
+        sites: None,
+        parked_site: None,
+    };
+    // One of two expected records consumed: completion and failure are both
+    // refused as drift, exactly like a per-site request mismatch.
+    for settled in [
+        Ok(Value::Int(0)),
+        Err(Flow::Failure(NormalizedStatus::arithmetic(
+            StatusCase::AddOverflow,
+        ))),
+    ] {
+        let mut resumption = replay(1);
+        assert_eq!(
+            settle(settled, &mut resumption, &plan, &arguments, Vec::new()),
+            ControlResumableStep::GuardError(REQUEST_DRIFT.to_owned()),
+        );
+    }
+    // Fully consumed history still settles honestly.
+    let mut resumption = replay(2);
+    assert!(matches!(
+        settle(
+            Ok(Value::Int(0)),
+            &mut resumption,
+            &plan,
+            &arguments,
+            Vec::new()
+        ),
+        ControlResumableStep::Completed { .. }
+    ));
+    let mut resumption = replay(2);
+    assert!(matches!(
+        settle(
+            Err(Flow::Failure(NormalizedStatus::arithmetic(
+                StatusCase::AddOverflow
+            ))),
+            &mut resumption,
+            &plan,
+            &arguments,
+            Vec::new()
+        ),
+        ControlResumableStep::LanguageFailure(_)
+    ));
+}
+
+#[test]
 fn loops_are_bounded_by_the_suspension_limit() {
     let program = program(CONTROL_SOURCE);
     let (step, sites) = drive(&program, 40);

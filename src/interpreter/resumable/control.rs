@@ -270,15 +270,20 @@ fn settle(
     history: Vec<ControlYieldRecord>,
 ) -> ControlResumableStep {
     match settled {
-        Ok(value) => match argument_of(&value) {
-            Some(result) => ControlResumableStep::Completed {
-                state: plan.complete.id.clone(),
-                result,
-            },
-            None => ControlResumableStep::GuardError(
-                "resumable-effect entry returned a non-scalar value".to_owned(),
-            ),
-        },
+        Ok(value) => {
+            if replay_left_history_unconsumed(resumption) {
+                return ControlResumableStep::GuardError(REQUEST_DRIFT.to_owned());
+            }
+            match argument_of(&value) {
+                Some(result) => ControlResumableStep::Completed {
+                    state: plan.complete.id.clone(),
+                    result,
+                },
+                None => ControlResumableStep::GuardError(
+                    "resumable-effect entry returned a non-scalar value".to_owned(),
+                ),
+            }
+        }
         Err(Flow::Guard(SUSPENDED_AT_YIELD)) => {
             let (parked, parked_site) = match resumption {
                 Resumption::Fresh {
@@ -330,7 +335,12 @@ fn settle(
                 Err(error) => ControlResumableStep::GuardError(error.message),
             }
         }
-        Err(Flow::Failure(status)) => ControlResumableStep::LanguageFailure(status),
+        Err(Flow::Failure(status)) => {
+            if replay_left_history_unconsumed(resumption) {
+                return ControlResumableStep::GuardError(REQUEST_DRIFT.to_owned());
+            }
+            ControlResumableStep::LanguageFailure(status)
+        }
         Err(Flow::Exhausted) => ControlResumableStep::FuelExhausted,
         Err(Flow::DepthExceeded) => ControlResumableStep::CallDepthExceeded,
         Err(Flow::Guard(detail)) => ControlResumableStep::GuardError(detail.to_owned()),
@@ -340,10 +350,26 @@ fn settle(
     }
 }
 
+/// True when a replayed segment finished without consuming every expected
+/// history record: the resumed run diverged from its continuation without
+/// tripping a per-site request check, so completion or failure is refused as
+/// drift (`SPX-F114`) rather than reported. A parked suspension always
+/// implies full consumption, so only the completion and failure arms consult
+/// this. Fuel and depth exhaustion stay honest resource reports.
+fn replay_left_history_unconsumed(resumption: &Resumption) -> bool {
+    matches!(
+        resumption,
+        Resumption::Replay {
+            expected,
+            observed,
+            ..
+        } if observed != &expected.len()
+    )
+}
+
 /// Rebuild a continuation from authenticated checkpoint fields. The plan,
 /// every site, and the binding are re-derived from the current program and
 /// arguments; requests remain claims that the next resume replay checks.
-#[allow(clippy::too_many_arguments)]
 pub(crate) fn rebuild_control_continuation(
     program: &hir::ResolvedProgram,
     function_id: &str,

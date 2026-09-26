@@ -16,7 +16,7 @@ use super::ContinuationError;
 use crate::interpreter::resumable::checkpoint::{scalar_from_json, scalar_json};
 use crate::interpreter::ArgumentValue;
 use crate::resumable_effects::source_checkpoint::SourceCheckpointKey;
-use rustix::fs::{FileType, FlockOperation, Mode, OFlags};
+use rustix::fs::{AtFlags, FileType, FlockOperation, Mode, OFlags};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs::File;
@@ -34,7 +34,7 @@ const NAME_DOMAIN: &[u8] = b"semaprax.resumable-journal-name.v1\0";
 /// terminal and two settlement records.
 pub(super) const MAX_RECORDS: usize =
     1 + 3 * crate::resumable_effects::lowering::control::MAX_CONTROL_SUSPENSIONS + 1 + 2;
-const MAX_JOURNAL_BYTES: usize = 512 * 1024;
+pub(super) const MAX_JOURNAL_BYTES: usize = 512 * 1024;
 
 /// What recovery does with a final fragment that has no terminating newline.
 /// Such bytes were never acknowledged, because an append is acknowledged only
@@ -421,14 +421,17 @@ fn sync_directory(directory: &JournalDirectory) -> Result<(), ContinuationError>
 
 impl Journal {
     /// Create a brand-new journal. An existing file of the same name is a
-    /// refusal, never an overwrite.
+    /// refusal, never an overwrite. If validation, locking, or the directory
+    /// sync then fails, the fresh entry is unlinked again, so a failed create
+    /// never blocks a later start with `AlreadyStarted`.
     pub(super) fn create(
         directory: &JournalDirectory,
         invocation_id: &str,
     ) -> Result<Self, ContinuationError> {
+        let name = journal_name(invocation_id);
         let fd = rustix::fs::openat(
             &directory.fd,
-            journal_name(invocation_id),
+            name.as_str(),
             OFlags::RDWR
                 | OFlags::APPEND
                 | OFlags::CREATE
@@ -445,10 +448,18 @@ impl Journal {
             }
         })?;
         let file = File::from(fd);
-        validate_file(&file)?;
-        lock_exclusive(&file)?;
-        // The new directory entry is durable before the first record.
-        sync_directory(directory)?;
+        // The entry is ours alone (`O_EXCL` just created it): on any failure
+        // below, remove it again. Only a crash between creation and the first
+        // append can still strand an empty file, and recovery treats an empty
+        // journal as never started. On success the new directory entry is
+        // durable before the first record.
+        if let Err(error) = validate_file(&file)
+            .and_then(|()| lock_exclusive(&file))
+            .and_then(|()| sync_directory(directory))
+        {
+            let _ = rustix::fs::unlinkat(&directory.fd, name.as_str(), AtFlags::empty());
+            return Err(error);
+        }
         Ok(Self {
             file,
             next_seq: 0,
@@ -557,6 +568,8 @@ impl Journal {
 
     /// Append one record with a single write and `fsync` it. Returning `Ok`
     /// is the acknowledgement; nothing after an `Err` may assume the record.
+    /// Appends past `MAX_RECORDS` records or `MAX_JOURNAL_BYTES` bytes are
+    /// refused before any byte is written, matching the read ceilings.
     pub(super) fn append(
         &mut self,
         key: &SourceCheckpointKey,
@@ -574,6 +587,11 @@ impl Journal {
         let line = render_line(key, self.next_seq, &self.prev, record);
         let mut bytes = line.clone().into_bytes();
         bytes.push(b'\n');
+        let size = rustix::fs::fstat(self.file.as_fd()).map_err(io)?.st_size;
+        let end = u64::try_from(size).map_err(io)? + bytes.len() as u64;
+        if end > MAX_JOURNAL_BYTES as u64 {
+            return Err(ContinuationError::TamperedJournal);
+        }
         self.file.write_all(&bytes).map_err(io)?;
         self.file.sync_all().map_err(io)?;
         self.next_seq += 1;

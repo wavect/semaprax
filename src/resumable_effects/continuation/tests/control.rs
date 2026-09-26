@@ -2,6 +2,7 @@
 //! branch suspensions through the v3 envelope, and a crash at every record.
 
 use super::*;
+use crate::resumable_effects::lowering::control::MAX_CONTROL_SUSPENSIONS;
 
 const CONTROL: &str = r#"
 module test.durable_control;
@@ -38,6 +39,11 @@ const RECORDS: usize = 16;
 
 #[derive(Default)]
 struct ControlHost {
+    /// The ordinal per physical call, derived from the fixture's fixed
+    /// request sequence, never from the host's own count.
+    /// `control_crash_at_every_record_never_repeats_dispatch_or_cleanup`
+    /// cross-checks this against the driver's own dynamic suspension
+    /// ordinal (`ContinuationRequest::site`) after an in-doubt recovery.
     calls: Vec<usize>,
 }
 
@@ -165,8 +171,10 @@ fn control_crash_at_every_record_never_repeats_dispatch_or_cleanup() {
             let mut recovered = open(&scratch, &key, &program, &invocation, false).unwrap();
             let mut status = recovered.drive(&policy(), &mut host, &mut cleanup).unwrap();
             if let ContinuationStatus::AwaitingAnswer { request, in_doubt } = status.clone() {
+                // Dispatched is durable but its answer is not: never redispatch.
                 assert!(in_doubt);
                 answers_in_doubt += 1;
+                let dispatched_before = host.calls.len();
                 let ArgumentValue::Int(value) = request.request else {
                     panic!()
                 };
@@ -174,6 +182,15 @@ fn control_crash_at_every_record_never_repeats_dispatch_or_cleanup() {
                     .answer(&policy(), &request.bind_answer(answer(value)))
                     .unwrap();
                 status = recovered.drive(&policy(), &mut host, &mut cleanup).unwrap();
+                // Tie the fixture-derived ordinal to the driver's own
+                // dynamic suspension ordinal (`request.site`, the journal's
+                // actual key per `docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md`
+                // section 11.4): every dispatch from here on must be a later
+                // site than the one just recovered in doubt, not merely an
+                // as-yet-unseen request value.
+                assert!(host.calls[dispatched_before..]
+                    .iter()
+                    .all(|ordinal| *ordinal as u32 > request.site));
             }
             let cleanup_in_doubt = matches!(status, ContinuationStatus::CleanupInDoubt { .. });
             if cleanup_in_doubt {
@@ -198,4 +215,88 @@ fn control_crash_at_every_record_never_repeats_dispatch_or_cleanup() {
         }
     }
     assert_eq!((answers_in_doubt, cleanups_in_doubt), (8, 2));
+}
+
+/// A loop offering more suspensions than [`MAX_CONTROL_SUSPENSIONS`] admits.
+/// `limit` is chosen well past the bound so the durable run always settles
+/// `SuspensionBoundExceeded` rather than completing.
+const UNBOUNDED_LOOP: &str = r#"
+module test.durable_control_bound;
+@id("app.ask")
+fn ask(limit: i64) -> i64
+    yields i64 -> i64
+{
+    let mut total = 0;
+    let mut round = 0;
+    while round < limit {
+        let answer = yield round;
+        total = total + answer;
+        round = round + 1;
+        round > 0
+    }
+    total
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+#[derive(Default)]
+struct CountingHost {
+    calls: usize,
+}
+
+impl EffectHandler<ArgumentValue, ArgumentValue> for CountingHost {
+    fn dispatch(&mut self, request: &ArgumentValue) -> Result<ArgumentValue, String> {
+        let ArgumentValue::Int(value) = request else {
+            return Err("unexpected request".into());
+        };
+        self.calls += 1;
+        Ok(ArgumentValue::Int(value + 1))
+    }
+}
+
+#[test]
+fn control_dependent_program_exceeding_the_suspension_bound_settles_at_the_journal_ceiling() {
+    // Section 11.5's `SPX-...` table has no source-level code for this: a
+    // per-*invocation* runtime bound, not a compile-time refusal. The
+    // interpreter (`interpreter::resumable::control::settle`) reports
+    // `SuspensionBoundExceeded` the moment a would-be 17th suspension is
+    // about to park, with the 16 preceding ones already durably committed;
+    // it never attempts a 17th `Yielded` record. The journal therefore
+    // reaches exactly `Started` + `MAX_CONTROL_SUSPENSIONS` x (`Yielded`,
+    // `Dispatched`, `Answered`) + `Failed` + `CleanupStarted` +
+    // `CleanupSettled` records -- the same 52-record arithmetic
+    // `journal::MAX_RECORDS` uses to size its own ceiling -- never one more.
+    let scratch = Scratch::new(0o700);
+    let (key, program) = (key(), program(UNBOUNDED_LOOP));
+    let arguments = [ArgumentValue::Int(20)];
+    let mut invocation = DurableInvocation::start(
+        &scratch.dir(),
+        &key,
+        &program,
+        "app.ask",
+        &arguments,
+        "inv-control-bound-exceeded",
+        7,
+        STEPS,
+    )
+    .unwrap();
+    let (mut host, mut cleanup) = (CountingHost::default(), Cleanup::default());
+    let status = invocation
+        .drive(&policy(), &mut host, &mut cleanup)
+        .unwrap();
+    assert!(matches!(
+        status,
+        ContinuationStatus::Settled {
+            outcome: DurableOutcome::Failed(DurableFailure::SuspensionBoundExceeded),
+            cleanup: CleanupSettlement::Completed,
+        }
+    ));
+    assert_eq!(host.calls, MAX_CONTROL_SUSPENSIONS);
+    assert_eq!(cleanup.0, 1);
+    let bound_records = 1 + 3 * MAX_CONTROL_SUSPENSIONS + 1 + 2;
+    assert_eq!(
+        line_count(&scratch.journal("inv-control-bound-exceeded")),
+        bound_records
+    );
 }

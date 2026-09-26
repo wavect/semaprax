@@ -7,6 +7,20 @@
 //! arguments, exact caller-owned scope, and the caller's 256-bit HMAC key
 //! again; normal resume replay still recomputes every recorded request before
 //! accepting an answer.
+//!
+//! [`SOURCE_RESUMABLE_CHECKPOINT_SCHEMA`] (this module) and
+//! [`SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V2`] ([`signature_bound`]) are this
+//! non-durable driver's original wire, and both are the sequential lane
+//! only: they wrap `interpreter::resumable::checkpoint`'s
+//! [`crate::interpreter::resumable::ResumableContinuation`], which has no
+//! representation for a control-dependent continuation, and its decode
+//! refuses (`ProgramMismatch`) any function whose lowering is not purely
+//! sequential. [`control`]'s separate `v3` envelope
+//! ([`SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V3`]) is this driver's
+//! control-dependent-lane counterpart, added with issue #296's structured
+//! control admission; it is a distinct schema and type, not a variant of
+//! this one. `resumable_effects::continuation`'s durable journal is the
+//! only driver that recovers both lanes through one route.
 
 use crate::hir::ResolvedProgram;
 use crate::interpreter::resumable::{checkpoint, ResumableContinuation};

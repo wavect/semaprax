@@ -287,6 +287,14 @@ Loops are bounded dynamically: at most 16 suspensions per invocation
 `suspension_bound_exceeded`. The journal bound grows to 52 records
 (1 + 3 x 16 + 1 + 2).
 
+Section 1's per-segment step budget (`1..=MAX_STEPS_LIMIT`) still applies
+unchanged to each resume of this profile: one interpreter worker call runs the
+replayed prefix and the newly reached suffix together from entry, so a
+replayed suspension's steps are not free. A control-dependent resume nearer
+`MAX_CONTROL_SUSPENSIONS` therefore has fewer steps left over for genuinely new
+work than an earlier one at the same `max_steps`, exactly as the sequential
+profile's own replay already spends its segment budget.
+
 ### 11.3 Envelope v3
 
 `semaprax.source-resumable-checkpoint.v3` is a new, separate wire with its own

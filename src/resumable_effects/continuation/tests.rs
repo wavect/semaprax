@@ -841,3 +841,57 @@ fn a_hard_linked_journal_is_refused() {
         Err(ContinuationError::ForeignDirectory)
     ));
 }
+
+#[test]
+fn append_refuses_a_write_past_the_byte_ceiling() {
+    let scratch = Scratch::new(0o700);
+    let key = key();
+    let mut live = journal::Journal::create(&scratch.dir(), "inv-ceiling").unwrap();
+    let oversized = journal::Record::Yielded {
+        site: 0,
+        envelope: "e".repeat(journal::MAX_JOURNAL_BYTES + 1),
+        envelope_digest: [0; 32],
+    };
+    assert!(matches!(
+        live.append(&key, &oversized),
+        Err(ContinuationError::TamperedJournal)
+    ));
+    // The refusal precedes the write: nothing landed on disk.
+    assert_eq!(
+        fs::metadata(scratch.journal("inv-ceiling")).unwrap().len(),
+        0
+    );
+    // The journal is still usable for a small record.
+    live.append(&key, &journal::Record::CleanupStarted).unwrap();
+    assert!(fs::metadata(scratch.journal("inv-ceiling")).unwrap().len() > 0);
+}
+
+#[test]
+fn an_empty_leftover_journal_blocks_start_but_not_recovery() {
+    // A crash between `O_EXCL` creation and the first append strands an empty
+    // file: `Journal::create` unlinks its entry only when it survives to
+    // report the failure itself.
+    let scratch = Scratch::new(0o700);
+    let (key, program) = (key(), program(SOURCE));
+    let path = scratch.journal("inv-leftover");
+    fs::write(&path, b"").unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+    assert!(matches!(
+        start(&scratch, &key, &program, "inv-leftover"),
+        Err(ContinuationError::AlreadyStarted)
+    ));
+    let recovered = recover(
+        &scratch,
+        &key,
+        &program,
+        "inv-leftover",
+        TornTailPolicy::Refuse,
+    )
+    .unwrap();
+    assert!(matches!(
+        recovered.status(),
+        ContinuationStatus::AwaitingDispatch(_)
+    ));
+    // Recovery acknowledged `Started` and ran the start plan.
+    assert!(fs::metadata(&path).unwrap().len() > 0);
+}

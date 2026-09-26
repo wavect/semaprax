@@ -13,19 +13,19 @@
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    self, DeclarationId, ExpressionId, FunctionExecutionId, IdentityOrigin, OwnershipMode, Place, ResolvedExpr,
-    ResolvedExprKind, ResolvedFunction, ResolvedParam, ResolvedProgram, ResolvedStatement,
-    ResolvedType, ValueId,
+    self, DeclarationId, ExpressionId, FunctionExecutionId, IdentityOrigin, OwnershipMode, Place,
+    ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedParam, ResolvedProgram,
+    ResolvedStatement, ResolvedType, ValueId,
 };
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) mod control;
+#[cfg(test)]
+mod control_tests;
 mod projection;
 #[cfg(test)]
 mod sequential_tests;
-#[cfg(test)]
-mod control_tests;
 use projection::{projection_program, resume_projection, start_projection};
 
 const INVALID_RESUMABLE_PLAN: &str = "SPX-H006";

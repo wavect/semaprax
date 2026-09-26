@@ -53,9 +53,25 @@ const BORROW_ACROSS_YIELD: &str = "SPX-T305";
 /// either leak it or run its drop before the resumed suffix.
 const RESOURCE_ACROSS_YIELD: &str = "SPX-T306";
 
-/// The stable refusal for a type outside the Copy-scalar profile. Borrows and
-/// resources get their own codes; every other owned or aggregate value keeps
-/// the original `SPX-T303`.
+/// The stable refusal for a type outside the Copy-scalar profile.
+///
+/// A syntactic `borrow`/`share` ownership, or a type that is itself an
+/// unowned view (`str`, `Slice<u8>`), gets `SPX-T305`: the referent is only
+/// as live as its original owner's frame, which a suspension does not keep
+/// around. This is checked before the scalar-type short-circuit in
+/// [`check_scalar`], so a borrowed or shared *scalar* (a `borrow i64`
+/// parameter, say) is refused too, not just a borrowed aggregate.
+///
+/// A type whose recursive [`super::TypeFacts::contains_resource`] is `true`
+/// gets `SPX-T306`: a resource or handle, live directly or nested inside a
+/// plain (non-generic) record's fields, would either leak across the
+/// suspension or run its drop before the resumed suffix. `type_facts` gives
+/// up (`None`) on a generic record or variant instantiated with a
+/// non-scalar type argument -- for example `Option<Token>` -- since the
+/// declaration index does not compute recursive facts for that shape; such
+/// a value keeps the original `SPX-T303` rather than a confident `SPX-T306`
+/// until that gap closes. Every other owned or aggregate value also keeps
+/// `SPX-T303`.
 fn profile_refusal(
     resolver: &Resolver<'_>,
     ty: &ResolvedType,
@@ -67,19 +83,19 @@ fn profile_refusal(
     {
         return (
             BORROW_ACROSS_YIELD,
-            "a borrow could be live across a suspension",
+            "a borrowed or unowned view could outlive its owner's frame across a suspension",
         );
     }
-    if let ResolvedType::Nominal { declaration, .. } = ty {
-        if resolver.program.types.iter().any(|candidate| {
-            candidate.stable_id == declaration.as_str()
-                && matches!(candidate.kind, ast::TypeDeclarationKind::Resource { .. })
-        }) {
-            return (
-                RESOURCE_ACROSS_YIELD,
-                "a resource or handle could be live across a suspension",
-            );
-        }
+    if resolver
+        .declarations
+        .type_facts(ty)
+        .is_some_and(|facts| facts.contains_resource)
+    {
+        return (
+            RESOURCE_ACROSS_YIELD,
+            "a resource or handle, directly or nested inside a record, could be live across a \
+             suspension",
+        );
     }
     (NON_SCALAR_BODY, "a value is not an admitted Copy scalar")
 }
@@ -193,6 +209,7 @@ impl Resolver<'_> {
             yields,
             body,
             true,
+            true,
             &mut found,
             &mut yielded_bindings,
         )?;
@@ -214,7 +231,15 @@ fn check_scalar(
     function_name: &str,
     expr: &ResolvedExpr,
 ) -> Result<(), Diagnostic> {
-    if is_scalar_resolved_type(&expr.ty) || expr.ty == ResolvedType::Unit {
+    // A scalar *type* is Copy, but a `borrow`/`share` *ownership* of one --
+    // `borrow i64`, say -- is still a reference to a frame a suspension does
+    // not keep live; check ownership before the scalar-type short-circuit
+    // so it is not skipped for an otherwise-admitted type.
+    let borrowed = matches!(
+        expr.ownership,
+        super::OwnershipMode::Borrow | super::OwnershipMode::Shared
+    );
+    if !borrowed && (is_scalar_resolved_type(&expr.ty) || expr.ty == ResolvedType::Unit) {
         Ok(())
     } else {
         let (code, reason) = profile_refusal(resolver, &expr.ty, expr.ownership);
@@ -229,16 +254,33 @@ fn check_scalar(
     }
 }
 
-/// Exhaustive descent over every resolved expression shape. `top_level` is
-/// `true` only while walking positions the parser already admitted a
-/// direct `yield` in (the function's own top-level statement values and
-/// tail); every recursive call into a child passes `false`.
+/// Exhaustive descent over every resolved expression shape, mirroring
+/// `parser::yields`'s two-part placement rule.
+///
+/// `top_level` is `true` only while walking positions the parser already
+/// admits a direct `yield` value in: the function's own top-level
+/// statement/tail slots, and -- recursively -- the statement values of any
+/// block reached from there through `if`/`else` branches, `while` bodies, or
+/// a block-valued slot (issue #296). It is `false`, and stays `false` for
+/// every descendant, once a child closes those positions off: call
+/// arguments, operator operands, conditions, closures, `match` arms, and a
+/// nested block's own tail.
+///
+/// `is_root` is `true` only for the function's own outermost body block --
+/// the single position the parser's `Level::Top` names. It lets that one
+/// block's tail admit a direct `yield` the same way its statement values do.
+/// Every other block the parser scans at `Level::Nested` (an `if`/`else`
+/// branch, a `while` body, or a block-valued statement value) still scans
+/// its statements with `top_level` unchanged, but scans its own tail with
+/// `is_root` forced `false`, so a nested block's tail never admits a
+/// `yield`.
 fn scan_expr(
     resolver: &Resolver<'_>,
     function_name: &str,
     yields: &ResolvedYieldsClause,
     expr: &mut ResolvedExpr,
     top_level: bool,
+    is_root: bool,
     found: &mut usize,
     yielded_bindings: &mut BTreeMap<super::ValueId, ResolvedType>,
 ) -> Result<(), Diagnostic> {
@@ -262,6 +304,7 @@ fn scan_expr(
                 function_name,
                 yields,
                 request,
+                false,
                 false,
                 found,
                 yielded_bindings,
@@ -300,6 +343,7 @@ fn scan_expr(
                     yields,
                     &mut capture.value,
                     false,
+                    false,
                     found,
                     yielded_bindings,
                 )?;
@@ -309,6 +353,7 @@ fn scan_expr(
                 function_name,
                 yields,
                 body,
+                false,
                 false,
                 found,
                 yielded_bindings,
@@ -337,6 +382,7 @@ fn scan_expr(
                 yields,
                 source,
                 false,
+                false,
                 found,
                 yielded_bindings,
             )?;
@@ -346,6 +392,7 @@ fn scan_expr(
                 yields,
                 start,
                 false,
+                false,
                 found,
                 yielded_bindings,
             )?;
@@ -354,6 +401,7 @@ fn scan_expr(
                 function_name,
                 yields,
                 end,
+                false,
                 false,
                 found,
                 yielded_bindings,
@@ -365,6 +413,7 @@ fn scan_expr(
                 function_name,
                 yields,
                 callable,
+                false,
                 false,
                 found,
                 yielded_bindings,
@@ -415,6 +464,7 @@ fn scan_expr(
                 yields,
                 value,
                 false,
+                false,
                 found,
                 yielded_bindings,
             )?;
@@ -426,6 +476,7 @@ fn scan_expr(
                 yields,
                 left,
                 false,
+                false,
                 found,
                 yielded_bindings,
             )?;
@@ -434,6 +485,7 @@ fn scan_expr(
                 function_name,
                 yields,
                 right,
+                false,
                 false,
                 found,
                 yielded_bindings,
@@ -451,16 +503,23 @@ fn scan_expr(
                     yielded_bindings,
                 )?;
             }
+            // Only the function's own outermost body block (`is_root`) has a
+            // tail the parser admits a direct `yield` in; every other block
+            // -- an `if`/`else` branch, a `while` body, or a block-valued
+            // statement value -- is `Level::Nested` and its tail stays
+            // closed, however its enclosing chain scanned (`top_level`).
+            let tail_admits_yield = top_level && is_root;
             scan_expr(
                 resolver,
                 function_name,
                 yields,
                 tail,
-                top_level,
+                tail_admits_yield,
+                false,
                 found,
                 yielded_bindings,
             )?;
-            if top_level && matches!(tail.kind, ResolvedExprKind::Yield { .. }) {
+            if tail_admits_yield && matches!(tail.kind, ResolvedExprKind::Yield { .. }) {
                 expr.ty = tail.ty.clone();
             }
         }
@@ -475,17 +534,21 @@ fn scan_expr(
                 yields,
                 condition,
                 false,
+                false,
                 found,
                 yielded_bindings,
             )?;
             // Issue #296: branches of an `if` in an admitted slot open nested
-            // blocks whose direct statement values may suspend.
+            // blocks whose direct statement values may suspend, but a branch
+            // is never the outermost body block itself, so its own tail
+            // stays closed to `yield` (`is_root` forced `false`).
             scan_expr(
                 resolver,
                 function_name,
                 yields,
                 then_branch,
                 top_level,
+                false,
                 found,
                 yielded_bindings,
             )?;
@@ -495,6 +558,7 @@ fn scan_expr(
                 yields,
                 else_branch,
                 top_level,
+                false,
                 found,
                 yielded_bindings,
             )?;
@@ -519,6 +583,7 @@ fn scan_expr(
                 yields,
                 scrutinee,
                 false,
+                false,
                 found,
                 yielded_bindings,
             )?;
@@ -540,6 +605,7 @@ fn scan_expr(
                 yields,
                 operand,
                 false,
+                false,
                 found,
                 yielded_bindings,
             )?;
@@ -550,6 +616,7 @@ fn scan_expr(
                 function_name,
                 yields,
                 base,
+                false,
                 false,
                 found,
                 yielded_bindings,
@@ -569,6 +636,7 @@ fn scan_expr(
                 function_name,
                 yields,
                 base,
+                false,
                 false,
                 found,
                 yielded_bindings,
@@ -593,6 +661,7 @@ fn scan_children(
             yields,
             child,
             false,
+            false,
             found,
             yielded_bindings,
         )?;
@@ -614,6 +683,7 @@ fn scan_fields(
             function_name,
             yields,
             &mut field.value,
+            false,
             false,
             found,
             yielded_bindings,
@@ -637,6 +707,7 @@ fn scan_arm(
             yields,
             guard,
             false,
+            false,
             found,
             yielded_bindings,
         )?;
@@ -646,6 +717,7 @@ fn scan_arm(
         function_name,
         yields,
         &mut arm.value,
+        false,
         false,
         found,
         yielded_bindings,
@@ -664,12 +736,16 @@ fn scan_statement(
     use super::expr_nodes::ResolvedStatement;
     match statement {
         ResolvedStatement::Let { binding, value, .. } => {
+            // A `let` value is a slot at any depth in the admitted chain
+            // (`top_level` carries that), but the value can never itself be
+            // the outermost body block, so its own tail stays closed.
             scan_expr(
                 resolver,
                 function_name,
                 yields,
                 value,
                 top_level,
+                false,
                 found,
                 yielded_bindings,
             )?;
@@ -694,6 +770,7 @@ fn scan_statement(
                 yields,
                 value,
                 top_level,
+                false,
                 found,
                 yielded_bindings,
             )?;
@@ -726,6 +803,7 @@ fn scan_statement(
             yields,
             body,
             false,
+            false,
             found,
             yielded_bindings,
         ),
@@ -738,17 +816,21 @@ fn scan_statement(
                 yields,
                 condition,
                 false,
+                false,
                 found,
                 yielded_bindings,
             )?;
             // Issue #296: a `while` body opens a nested block whose direct
-            // statement values may suspend (the parser owns placement).
+            // statement values may suspend (the parser owns placement), but
+            // the body is never the outermost body block itself, so its own
+            // tail stays closed to `yield` (`is_root` forced `false`).
             scan_expr(
                 resolver,
                 function_name,
                 yields,
                 body,
                 top_level,
+                false,
                 found,
                 yielded_bindings,
             )
@@ -1070,5 +1152,20 @@ fn ask(seed: i64) -> i64
 fn main() -> i64 { 0 }
 "#;
         assert_eq!(resolve(owned).unwrap_err().code, NON_SCALAR_BODY);
+    }
+
+    #[test]
+    fn a_resource_nested_inside_a_plain_record_field_is_still_the_resource_refusal() {
+        // Issue #296 review: `profile_refusal` used to classify a resource
+        // only when the checked type was itself directly the `resource`
+        // declaration; a record that merely *contains* one (no generic
+        // arguments, so `TypeFacts` computes recursively) fell through to
+        // the generic `SPX-T303`. It must get the more precise `SPX-T306`,
+        // the same as a bare resource parameter.
+        let declarations = "@id(\"app.token\")\nresource Token {\n    @id(\"app.token.drop\")\n    drop trivial;\n}\n@id(\"app.wrapper\")\nrecord Wrapper {\n    @id(\"app.wrapper.token\")\n    token: Token,\n}";
+        assert_eq!(
+            refused("wrapper: own Wrapper", declarations),
+            RESOURCE_ACROSS_YIELD
+        );
     }
 }

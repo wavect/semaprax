@@ -38,7 +38,7 @@ fn checked_tsc(candidate: &Path) -> Result<PathBuf, String> {
     Ok(resolved)
 }
 
-fn locate_tsc() -> Result<PathBuf, String> {
+pub(super) fn locate_tsc() -> Result<PathBuf, String> {
     if let Some(explicit) = env::var_os("SPX_PG_TSC").or_else(|| env::var_os("TSC")) {
         return checked_tsc(Path::new(&explicit));
     }

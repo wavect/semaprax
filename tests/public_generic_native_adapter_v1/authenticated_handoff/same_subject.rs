@@ -15,6 +15,16 @@ mod cxx;
 mod interpreter;
 #[path = "same_subject_lifecycle.rs"]
 mod lifecycle;
+#[path = "profile_hostility.rs"]
+mod profile_hostility;
+#[path = "profile_rust.rs"]
+mod profile_rust;
+#[path = "wasm_comparison.rs"]
+mod wasm_comparison;
+#[path = "wasm_large_payload.rs"]
+mod wasm_large_payload;
+#[path = "wasm_typescript_replay.rs"]
+mod wasm_typescript_replay;
 #[path = "same_subject_physical.rs"]
 mod physical;
 #[path = "profile_hostility.rs"]

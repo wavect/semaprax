@@ -16,7 +16,7 @@ Build runtime agents whose proposals must pass checked code before they can act.
 
 [Get started](#get-started) · [Why Semaprax?](#why-semaprax) ·
 [Build agents](#agents-as-programs-not-just-prompts) ·
-[Handbook](handbook/README.md) · [Examples](examples/README.md) · [Spec library](docs/index.md)
+[Handbook](https://wavect.github.io/semaprax/) · [Examples](examples/README.md) · [Spec library](docs/index.md)
 
 </div>
 

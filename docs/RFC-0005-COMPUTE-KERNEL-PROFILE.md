@@ -1,10 +1,14 @@
 # RFC 0005: Compute Kernel Profile v1
 
 - Status: Design-stage; the admission classifier is implemented and tested
-  offline (`src/compute_profile/classifier.rs`), no parser/HIR/backend
-  integration exists, and no accelerator hardware or driver evidence backs
-  any claim in this document
-- Version: 0.1
+  offline (`src/compute_profile/classifier.rs`); a library-level
+  deterministic CPU reference executor for a closed kernel subset is
+  implemented and tested offline (`src/compute_profile/cpu_reference.rs`,
+  [Executable CPU reference semantics
+  v1](#executable-cpu-reference-semantics-v1)); no new source syntax,
+  compilation route, CLI, or accelerator backend exists, and no accelerator
+  hardware or driver evidence backs any claim in this document
+- Version: 0.2
 - Audience: compiler contributors evaluating an eventual data-parallel
   kernel/GPU target, and reviewers of the admitted grammar and refusal
   vocabulary this profile freezes
@@ -14,10 +18,14 @@
 This RFC specifies a small deterministic data-parallel profile: a closed
 grammar for kernel-safe types, device effects, affine transfer, and bounded
 workgroups/grids, plus refusal codes `SPX-GC001`-`SPX-GC013`. It is a design,
-not a GPU implementation. Today only the admission predicate is executable:
+not a GPU implementation. The admission predicate is executable:
 [`src/compute_profile/classifier.rs`](../src/compute_profile/classifier.rs)
-classifies fixture kernels, so offline tests observe every refusal without
-claiming a kernel compiled, dispatched, or ran.
+classifies fixture kernels, so offline tests observe every refusal. Version
+0.2 adds [Executable CPU reference semantics
+v1](#executable-cpu-reference-semantics-v1) and codes `SPX-GC014`-`SPX-GC021`:
+a library-level CPU reference executor that runs ordinary checked functions
+as map/fold kernels under a typed owned-buffer lifecycle. No kernel has been
+compiled for or dispatched on any accelerator.
 
 ## Why "deterministic" is the load-bearing word
 
@@ -294,20 +302,26 @@ inventing a second one:
 
 The classifier this RFC ships (`src/compute_profile/classifier.rs`) decides
 only whether one candidate *kernel body/signature* is admitted — the
-[Determinism policy](#determinism-policy) rules above. It does **not**
-implement, and this RFC does not claim exists:
+[Determinism policy](#determinism-policy) rules above. The CPU reference
+executor (`src/compute_profile/cpu_reference.rs`) executes a closed subset
+and models the owned device-buffer lifecycle, double release, stale
+artifacts, cancellation, and device loss at library level — see
+[Executable CPU reference semantics
+v1](#executable-cpu-reference-semantics-v1). This RFC does **not** implement,
+and does not claim exists:
 
-- a real device-buffer/queue resource type wired into the resolver's
-  cleanup inventory, so double-release, device-absence, and stale-artifact
-  rejection have no code behind them yet — they are specified here as the
-  shape a future resource-tracker integration must take, reusing RFC 0003's
-  existing machinery, not a new one;
+- a device-buffer/queue resource type in *source*, wired into the
+  resolver's cleanup inventory and cleanup plans — the CPU reference
+  session tracks buffers in a host-side state machine, not as SEMAPRAX
+  values, so the compile-time ownership rules of RFC 0003 do not yet apply
+  to them;
 - a dispatch/evidence report binding kernel source identity, target,
   device/profile, limits, and outputs — the shape [Ownership and
   effects](#ownership-and-effects) describes above is a target for that
   future report, not a schema frozen by this document;
-- cancellation, device loss, or timeout handling;
-- a CPU reference interpreter or any accelerator backend.
+- timeout handling, or cancellation and device loss observed on a real
+  device;
+- any accelerator backend.
 
 Building any of the above requires real front-end integration (parser,
 resolver, HIR, cleanup-plan) that does not exist for a language feature not
@@ -413,7 +427,8 @@ this desk evaluation could find them) sit above every bound here.
 | Implicit device selection (a dispatch effect with no explicit device capability) | **EXCLUDED** | explicit epic-wide non-goal; see [Device-effect vocabulary](#device-effect-vocabulary) |
 | An owned (consuming) or shared-alias kernel parameter mode | **EXCLUDED** | see [Affine device resources](#affine-device-resources) |
 | General arbitrary SEMAPRAX execution on a device | **EXCLUDED** | explicit epic-wide non-goal; only the admitted kernel subset above ever reaches a device |
-| A CPU reference interpreter or accelerator backend adapter | **DEFERRED** | requires real front-end integration and, for the accelerator half, hardware this host does not have; see [What is executable offline vs. what needs hardware](#what-is-executable-offline-vs-what-needs-hardware) |
+| A CPU reference executor for the closed map/fold subset | **IN (library level)** | see [Executable CPU reference semantics v1](#executable-cpu-reference-semantics-v1); not wired into compilation, CLI, or any backend |
+| An accelerator backend adapter | **DEFERRED** | requires an explicitly selected device API/toolchain and a real identified device; see [What is executable offline vs. what needs hardware](#what-is-executable-offline-vs-what-needs-hardware) |
 | Bit-exact floating-point parity claim across devices | **EXCLUDED, permanently, not merely for v1** | no floating-point kernel is admitted at all in v1, and no future version of this profile may claim bit-exact parity where a real platform does not provide one, per the owning issue's own explicit non-goal |
 
 ## Refusal vocabulary
@@ -438,6 +453,14 @@ Compute") is unused elsewhere in this repository as of commit `d45db653`
 | `SPX-GC011` | two or more buffer parameters may alias beyond the profile's checked disjointness rule | yes |
 | `SPX-GC012` | the kernel body performs a host effect directly, independent of its declared effect list | yes |
 | `SPX-GC013` | a buffer parameter's element count exceeds the capacity bound | yes (also the exact-bound positive case) |
+| `SPX-GC014` | CPU reference: the selected declaration is absent, has no explicit persistent `@id`, or lacks the signature the kernel shape requires | yes (CPU reference test) |
+| `SPX-GC015` | CPU reference: stale handle — an artifact or buffer from another session, an artifact whose recorded fingerprint no longer matches its body, or one whose declaration no longer lowers to that fingerprint in the checked program | yes (CPU reference test) |
+| `SPX-GC016` | CPU reference: a buffer used after release, or released twice | yes (CPU reference test) |
+| `SPX-GC017` | CPU reference: a transfer range, zero-length allocation, or dispatch extent is out of bounds | yes (CPU reference test) |
+| `SPX-GC018` | CPU reference: a value or buffer element type disagrees with its buffer or kernel signature | yes (CPU reference test) |
+| `SPX-GC019` | CPU reference: a failure is already selected for the session; only release and settlement remain | yes (CPU reference test) |
+| `SPX-GC020` | CPU reference: the lowered kernel body exceeds its node or depth bound | yes (CPU reference test) |
+| `SPX-GC021` | CPU reference: the session capability does not grant the operation's device effect, or grants allocation without release | yes (CPU reference test) |
 
 Diagnostic precedence (which reason wins when several apply): effect-
 vocabulary closure, explicit device-capability presence, parameter-count
@@ -467,15 +490,22 @@ construction in `classify`'s control flow, not independently re-derived; see
   v1](INSTALLED-DIAGNOSTICS-V1.md)'s static-scan rule) and one rendered-
   diagnostic check.
 
+- the [CPU reference executor](#executable-cpu-reference-semantics-v1)
+  (`cargo test --locked -p semaprax --lib compute_profile::cpu_reference`):
+  differential agreement with the ordinary reference interpreter on the
+  same checked functions, transfer/bounds refusals, cancellation and
+  simulated device-loss settlement, stale-artifact refusal, exactly-once
+  cleanup in canonical order, and a negative-control mutant the
+  differential oracle must reject.
+
 **Needs hardware, a real front end, or both — not built, not claimed, and not
 simulated as if it were evidence:**
 
-- parsing, resolving, or checking any real kernel source — no kernel syntax
-  exists in this compiler;
+- dedicated kernel source syntax — the CPU reference binds ordinary checked
+  functions instead;
 - a device-buffer/queue resource type integrated into the resolver's cleanup
-  inventory, so double-release/device-absence/stale-artifact rejection have
-  no executable check yet;
-- a CPU reference interpreter executing an admitted kernel's semantics;
+  inventory, so the lifecycle checks run at compile time rather than in the
+  CPU reference session's host-side state machine;
 - any accelerator backend (WebGPU or otherwise) actually compiling or
   dispatching a kernel;
 - any driver, toolchain, or device-capability probing;
@@ -484,9 +514,134 @@ simulated as if it were evidence:**
   the assignment's own instruction, and none will until real hardware and a
   real front end exist.
 
+## Executable CPU reference semantics v1
+
+Schema: `semaprax.compute-cpu-reference.v1`. Implementation:
+[`src/compute_profile/cpu_reference.rs`](../src/compute_profile/cpu_reference.rs).
+This section freezes the executable meaning every later backend must match
+for the admitted subset. It adds no source syntax.
+
+### Source binding
+
+A kernel is one ordinary checked SEMAPRAX function, selected by its explicit
+persistent `@id`. The executor validates the resolved program
+(`hir::validate`), selects the monomorphic function with that identity, and
+refuses an absent declaration or an automatic identity (`SPX-GC014`). It
+lowers the function's resolved HIR — never source text or names — into a
+closed kernel IR: parameters and immutable `let` bindings addressed by
+their resolved value identity, integer/boolean literals, unary `-` (`i64`,
+`i32`) and `!`, the binary operators `+ - * / % == != < <= > >=`, lazy
+`&&`/`||`, `if`, and blocks of immutable `let` statements. The admitted
+element kinds are `i64`, `i32`, `u8`, `usize` (the checked unsigned 64-bit
+semantic integer, classified as `u64`), and `bool`.
+
+Admission reuses [`classify`](../src/compute_profile/classifier.rs) on a
+candidate built from the checked signature, the kernel shape, the dispatch
+extents, and the lowered body, so refusals keep the classifier's codes and
+precedence: a declared `uses { ... }` effect is `SPX-GC001`; one buffer per
+parameter plus the output above 8 is `SPX-GC003`; a parameter or result
+type outside the element kinds (floating point, `char`, any aggregate) is
+`SPX-GC004`; a non-value parameter mode is `SPX-GC005`; a workgroup or grid
+extent outside the bounds is `SPX-GC006`; an output buffer that is also an
+input is `SPX-GC011`; floating-point body operations are `SPX-GC010`; and
+calls, mutation, loops, `match`, contracts, projections, or any other
+construct are `SPX-GC012`. A lowered body above 4,096 nodes or depth 64 is
+`SPX-GC020`.
+
+A loaded kernel artifact records its declaration identity, its shape, its
+session, and a SHA-256 fingerprint over the schema, identity, shape,
+signature, and lowered body. Every dispatch re-validates the artifact: an
+artifact from another session, one whose body no longer matches its own
+fingerprint, or one whose declaration no longer lowers to that fingerprint
+in the checked program presented at dispatch is stale (`SPX-GC015`).
+
+### Kernel shapes
+
+- **Elementwise map** (`fn(x_0: T_0, ..., x_k: T_k) -> R`, at most seven
+  inputs): `out[i] = f(in_0[i], ..., in_k[i])`. Every input buffer and the
+  output hold the same element count `n` (`SPX-GC017` otherwise); the grid is
+  `[ceil(n / w), 1, 1]` workgroups of `[w, 1, 1]`, and invocations past `n`
+  in the last workgroup are inactive by an explicit bounds guard.
+- **Sequential fold** (`fn(acc: T, element: U) -> T`, `SPX-GC014`
+  otherwise): `acc = f(acc, in[i])` for ascending `i`, from an explicit
+  initial value of kind `T`, published to a one-element output buffer. This
+  is the classifier's `SequentialLeftToRight` reduction order, executed as
+  one invocation per element in that order.
+
+### Numeric semantics
+
+Exactly the language's checked integer semantics, identical to the ordinary
+reference interpreter: `+ - *` overflow, division or remainder by zero, and
+signed `MIN / -1` or `MIN % -1` select the compiler-owned status
+(`semaprax.status.v1` codes 1-8) that the same expression selects in the
+interpreter. There is no wrapping arithmetic and no floating point, so
+exact-equality claims cover only this deterministic integer/boolean
+subset. Evaluation is left to right and lazy boolean operands run only when
+required.
+
+### Invocation order and failure selection
+
+A dispatch's result is defined by ascending invocation order. The selected
+outcome is the first event in that order: a kernel status at the lowest
+failing ordinal, a cancellation, or a device loss. A device may schedule
+invocations in any order, but it must report this same selection. The
+output buffer is written only when every invocation completes; a failed
+dispatch publishes nothing.
+
+### Owned device-buffer lifecycle
+
+A session opens only with an explicit compute capability that names the
+device (only the CPU reference exists) and grants a subset of the six
+device effects. A grant that admits `DeviceAlloc` must admit
+`DeviceRelease`; an operation whose effect is not granted refuses
+(`SPX-GC021`). The lifecycle is:
+
+1. `DeviceAlloc`: a zero-filled buffer of 1 to 16 Mi elements of one kind
+   (`SPX-GC017` for zero, `SPX-GC013` above the bound or above 16 Mi live
+   elements per session).
+2. `DeviceCopyIn`: copy host values into an in-bounds range (`SPX-GC017`,
+   `SPX-GC018` on a kind mismatch).
+3. `DeviceDispatch`: synchronous; buffers are borrowed read-only (inputs)
+   or read-write (output) for the dispatch only.
+4. `DeviceCopyOut`: copy an in-bounds range back to host-owned storage.
+5. `DeviceRelease`: consume the buffer exactly once; a released buffer used
+   again, or released again, refuses (`SPX-GC016`).
+
+Every refused operation happens before any effect: session state is
+unchanged and nothing is journaled. The first failed dispatch selects a
+sticky session failure — kernel status, cancellation, or device loss. After
+selection, allocation, upload, kernel loading, dispatch, and download refuse
+(`SPX-GC019`), so no result is published after a failure; release and
+settlement remain admitted and cannot replace the selected failure. After a
+device loss, releases settle host-side only and journal no device release
+effect.
+
+Settlement consumes the session and releases every still-live buffer in
+reverse allocation order. With explicit releases, every allocated buffer
+appears exactly once in the settlement's release list; the settlement also
+carries the selected failure and the ordered effect journal, and is
+byte-for-byte deterministic for identical inputs.
+
+### Cancellation and device loss
+
+Both are explicit dispatch outcomes carrying the number of completed
+invocations. In the CPU reference they are produced only by deterministic
+injection points observed before a named invocation ordinal (device loss
+wins over cancellation at the same ordinal). They model the outcome
+contract an accelerator backend must report; they are not evidence about
+any real device.
+
+### What this does not claim
+
+The executor is a library-level reference on the host CPU: no source
+syntax, compilation route, CLI, generated artifact, driver call, or device
+dispatch. Its lifecycle is a host-side state machine rather than
+compile-time ownership. No accelerator backend exists, and no statement
+here describes a simulated outcome as hardware conformance.
+
 ## Freeze and change procedure
 
-This is version 0.1, not yet frozen: it precedes the front-end integration
+This is version 0.2, not yet frozen: it precedes the front-end integration
 [What this profile does not implement yet](#what-this-profile-does-not-implement-yet)
 names, and the two dependency issues in [Sequencing](#sequencing) remain
 open. A later revision that narrows or widens the admitted grammar, the

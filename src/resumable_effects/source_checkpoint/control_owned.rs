@@ -1,9 +1,14 @@
-//! Version 3: the authenticated envelope for control-dependent continuations
-//! (issue #296). It is a separate wire: v1 and v2 bytes are never
-//! reinterpreted as v3 and v3 bytes are refused by the v1/v2 decoders by
-//! schema. Besides the v2 facts it records each settled suspension's static
-//! site; the binding over sites and answers is re-derived at decode, so the
-//! bytes cannot choose a branch or loop count.
+//! Version 4: the authenticated envelope for a control-dependent continuation
+//! that carries owned `Bytes` locals across its suspension (issue #296, spec
+//! section 11.6). It is a separate wire from v1/v2/v3: those decoders refuse
+//! v4 bytes by schema and this decoder refuses theirs; v2/v3 bytes are never
+//! reinterpreted as v4 and v4 bytes are never reinterpreted as v2/v3. Besides
+//! v3's facts it carries each carried owned value's exact bytes, in the
+//! plan's own cleanup-inventory order for the awaited site; the binding is
+//! re-derived at decode over the exact carried bytes (as well as the site,
+//! arguments, and settled history), so a tampered carried value is refused
+//! rather than silently adopted, and the bytes cannot choose a branch or loop
+//! count.
 
 use super::{
     keys, required_str, scope_json, validate_scope, validate_scope_field, ArgumentValue,
@@ -18,31 +23,53 @@ use crate::resumable_effects::source_signature::{
 };
 use serde_json::{json, Value};
 
-/// Schema of the control-dependent continuation envelope.
-pub const SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V3: &str = "semaprax.source-resumable-checkpoint.v3";
-const AUTHENTICATION_DOMAIN_V3: &[u8] = b"semaprax.source-resumable-checkpoint-authentication.v3\0";
+/// Schema of the owned-Bytes-carrying control-dependent continuation
+/// envelope.
+pub const SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V4: &str = "semaprax.source-resumable-checkpoint.v4";
+const AUTHENTICATION_DOMAIN_V4: &[u8] = b"semaprax.source-resumable-checkpoint-authentication.v4\0";
 
-fn hex(bytes: &[u8; 32]) -> String {
+fn hex(bytes: &[u8]) -> String {
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        out.push_str(&format!("{byte:02x}"));
+    }
+    out
+}
+
+fn unhex(text: &str) -> Result<Vec<u8>, SourceCheckpointError> {
+    if text.len() % 2 != 0 || !text.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err(SourceCheckpointError::Malformed);
+    }
+    (0..text.len())
+        .step_by(2)
+        .map(|index| {
+            u8::from_str_radix(&text[index..index + 2], 16)
+                .map_err(|_| SourceCheckpointError::Malformed)
+        })
+        .collect()
+}
+
+fn hex32(bytes: &[u8; 32]) -> String {
     format!("{:x}", crate::digest_hex::LowerHex(bytes))
 }
 
 fn signature_json(signature: &SourceEffectSignature) -> Value {
     json!({
-        "plan": "control",
+        "plan": "control-owned",
         "request_shape": signature.request_shape(),
         "answer_shape": signature.answer_shape(),
-        "plan_identity": format!("sha256:{}", hex(signature.plan_identity())),
+        "plan_identity": format!("sha256:{}", hex32(signature.plan_identity())),
         "yield_count": signature.yield_count(),
     })
 }
 
-fn control_signature(
+fn control_owned_signature(
     program: &ResolvedProgram,
     function_id: &str,
 ) -> Result<SourceEffectSignature, SourceCheckpointError> {
     let signature = derive_source_effect_signature(program, function_id)
         .map_err(|_| SourceCheckpointError::ProgramMismatch)?;
-    if !signature.is_control_dependent() {
+    if !signature.is_control_dependent() || !signature.carries_owned_bytes() {
         return Err(SourceCheckpointError::ProgramMismatch);
     }
     Ok(signature)
@@ -51,12 +78,16 @@ fn control_signature(
 fn continuation_json(continuation: &ControlContinuation) -> Value {
     json!({
         "state": continuation.state().as_str(),
-        "binding": hex(continuation.binding().as_bytes()),
+        "binding": hex32(continuation.binding().as_bytes()),
         "request": scalar_json(continuation.request()),
         "history": continuation.history().iter().map(|record| json!({
             "site": record.site().as_str(),
             "request": scalar_json(record.request()),
             "answer": scalar_json(record.answer()),
+        })).collect::<Vec<_>>(),
+        "carried": continuation.carried().iter().map(|(binding, bytes)| json!({
+            "binding": binding.as_str(),
+            "bytes": hex(bytes),
         })).collect::<Vec<_>>(),
     })
 }
@@ -68,7 +99,7 @@ fn payload(
     continuation: Value,
 ) -> Value {
     json!({
-        "schema": SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V3,
+        "schema": SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V4,
         "scope": scope_json(scope),
         "function": function_id,
         "signature": signature,
@@ -77,7 +108,7 @@ fn payload(
 }
 
 fn render(key: &SourceCheckpointKey, mut payload: Value) -> Result<Vec<u8>, SourceCheckpointError> {
-    let tag = key.authenticate(AUTHENTICATION_DOMAIN_V3, payload.to_string().as_bytes());
+    let tag = key.authenticate(AUTHENTICATION_DOMAIN_V4, payload.to_string().as_bytes());
     payload["authentication"] = Value::String(format!("hmac-sha256:{}", hex(&tag)));
     let bytes = format!("{payload}\n").into_bytes();
     if bytes.len() > MAX_CHECKPOINT_BYTES {
@@ -86,10 +117,11 @@ fn render(key: &SourceCheckpointKey, mut payload: Value) -> Result<Vec<u8>, Sour
     Ok(bytes)
 }
 
-/// Authenticate a control continuation under the caller's exact scope. The
-/// continuation is first rebuilt from the current program and arguments, so
-/// a continuation of other source or arguments cannot be signed as current.
-pub fn encode_source_checkpoint_v3(
+/// Authenticate an owned-Bytes-carrying control continuation under the
+/// caller's exact scope. The continuation is first rebuilt from the current
+/// program and arguments -- carried bytes included -- so a continuation of
+/// other source, arguments, or carried values cannot be signed as current.
+pub fn encode_source_checkpoint_v4(
     program: &ResolvedProgram,
     key: &SourceCheckpointKey,
     scope: &SourceCheckpointScope,
@@ -99,7 +131,7 @@ pub fn encode_source_checkpoint_v3(
 ) -> Result<Vec<u8>, SourceCheckpointError> {
     validate_scope(scope)?;
     validate_scope_field(function_id)?;
-    let signature = control_signature(program, function_id)?;
+    let signature = control_owned_signature(program, function_id)?;
     let encoded = continuation_json(continuation);
     decode_continuation(program, function_id, arguments, &encoded)?;
     render(
@@ -108,9 +140,10 @@ pub fn encode_source_checkpoint_v3(
     )
 }
 
-/// Recover a control continuation from untrusted bytes under independently
-/// supplied facts. The result is inert until explicitly resumed.
-pub fn decode_source_checkpoint_v3(
+/// Recover an owned-Bytes-carrying control continuation from untrusted
+/// bytes under independently supplied facts. The result is inert until
+/// explicitly resumed.
+pub fn decode_source_checkpoint_v4(
     program: &ResolvedProgram,
     key: &SourceCheckpointKey,
     expected_scope: &SourceCheckpointScope,
@@ -125,7 +158,7 @@ pub fn decode_source_checkpoint_v3(
     }
     let document: Value =
         serde_json::from_slice(bytes).map_err(|_| SourceCheckpointError::Malformed)?;
-    if required_str(&document, "schema")? != SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V3 {
+    if required_str(&document, "schema")? != SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V4 {
         return Err(SourceCheckpointError::SchemaMismatch);
     }
     keys(
@@ -163,12 +196,9 @@ pub fn decode_source_checkpoint_v3(
         .strip_prefix("hmac-sha256:")
         .filter(|hex| hex.len() == 64 && hex.bytes().all(|b| b.is_ascii_hexdigit()))
         .ok_or(SourceCheckpointError::AuthenticationMismatch)?;
-    let tag = (0..32)
-        .map(|index| u8::from_str_radix(&tag[index * 2..index * 2 + 2], 16))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|_| SourceCheckpointError::AuthenticationMismatch)?;
+    let tag = unhex(tag).map_err(|_| SourceCheckpointError::AuthenticationMismatch)?;
     if !key.verify(
-        AUTHENTICATION_DOMAIN_V3,
+        AUTHENTICATION_DOMAIN_V4,
         unsigned.to_string().as_bytes(),
         &tag,
     ) {
@@ -183,7 +213,7 @@ pub fn decode_source_checkpoint_v3(
     if encoded_function != function_id {
         return Err(SourceCheckpointError::FunctionMismatch);
     }
-    let expected_signature = control_signature(program, function_id)?;
+    let expected_signature = control_owned_signature(program, function_id)?;
     if document["signature"] != signature_json(&expected_signature) {
         return Err(SourceCheckpointError::ProgramMismatch);
     }
@@ -200,7 +230,10 @@ fn decode_continuation(
     arguments: &[ArgumentValue],
     value: &Value,
 ) -> Result<ControlContinuation, SourceCheckpointError> {
-    keys(value, &["state", "binding", "request", "history"])?;
+    keys(
+        value,
+        &["state", "binding", "request", "history", "carried"],
+    )?;
     let binding_text = required_str(value, "binding")?;
     if binding_text.len() != 64 || !binding_text.bytes().all(|b| b.is_ascii_hexdigit()) {
         return Err(SourceCheckpointError::Malformed);
@@ -225,6 +258,15 @@ fn decode_continuation(
             scalar(&record["answer"])?,
         ));
     }
+    let carried_json = value["carried"]
+        .as_array()
+        .ok_or(SourceCheckpointError::Malformed)?;
+    let mut carried = Vec::with_capacity(carried_json.len());
+    for entry in carried_json {
+        keys(entry, &["binding", "bytes"])?;
+        let bytes = unhex(required_str(entry, "bytes")?)?;
+        carried.push((required_str(entry, "binding")?.to_owned(), bytes));
+    }
     let continuation = rebuild_control_continuation(
         program,
         function_id,
@@ -233,7 +275,7 @@ fn decode_continuation(
         binding,
         scalar(&value["request"])?,
         records,
-        Vec::new(),
+        carried,
     )
     .map_err(|_| SourceCheckpointError::SuspensionMismatch)?;
     if continuation_json(&continuation) != *value {
@@ -243,116 +285,4 @@ fn decode_continuation(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::interpreter::resumable::control::{
-        run_control_resumable_effect, ControlResumableStep,
-    };
-    use crate::resumable_effects::source_checkpoint::{
-        decode_source_checkpoint_v2, SourceCheckpointKey,
-    };
-
-    const SOURCE: &str = r#"
-module test.control_checkpoint;
-@id("app.ask")
-fn ask(limit: i64) -> i64
-    yields i64 -> i64
-{
-    let mut total = 0;
-    let mut round = 0;
-    while round < limit {
-        let answer = yield round;
-        total = total + answer;
-        round = round + 1;
-        round > 0
-    }
-    total
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-
-    fn program() -> ResolvedProgram {
-        crate::hir::resolve(&crate::parse(SOURCE, "control-checkpoint.spx").unwrap()).unwrap()
-    }
-
-    fn scope() -> SourceCheckpointScope {
-        SourceCheckpointScope::new("root", "invocation-3", 1).unwrap()
-    }
-
-    fn first(program: &ResolvedProgram) -> ControlContinuation {
-        let ControlResumableStep::Suspended { continuation } =
-            run_control_resumable_effect(program, "app.ask", &[ArgumentValue::Int(2)], 100_000)
-                .unwrap()
-                .step
-        else {
-            panic!("suspends")
-        };
-        continuation
-    }
-
-    #[test]
-    fn v3_round_trips_and_no_other_version_reads_it() {
-        let program = program();
-        let key = SourceCheckpointKey::new([7; 32]);
-        let arguments = [ArgumentValue::Int(2)];
-        let continuation = first(&program);
-        let bytes = encode_source_checkpoint_v3(
-            &program,
-            &key,
-            &scope(),
-            "app.ask",
-            &arguments,
-            &continuation,
-        )
-        .unwrap();
-        assert_eq!(
-            decode_source_checkpoint_v3(&program, &key, &scope(), "app.ask", &arguments, &bytes)
-                .unwrap(),
-            continuation
-        );
-        assert_eq!(
-            decode_source_checkpoint_v2(&program, &key, &scope(), "app.ask", &arguments, &bytes),
-            Err(SourceCheckpointError::SchemaMismatch)
-        );
-        let other_scope = SourceCheckpointScope::new("root", "invocation-4", 1).unwrap();
-        assert_eq!(
-            decode_source_checkpoint_v3(
-                &program,
-                &key,
-                &other_scope,
-                "app.ask",
-                &arguments,
-                &bytes
-            ),
-            Err(SourceCheckpointError::ScopeMismatch)
-        );
-        let tampered =
-            String::from_utf8(bytes.clone())
-                .unwrap()
-                .replacen("invocation-3", "invocation-4", 1);
-        assert_eq!(
-            decode_source_checkpoint_v3(
-                &program,
-                &key,
-                &other_scope,
-                "app.ask",
-                &arguments,
-                tampered.as_bytes()
-            ),
-            Err(SourceCheckpointError::AuthenticationMismatch)
-        );
-        // Other arguments cannot adopt the continuation.
-        assert_eq!(
-            decode_source_checkpoint_v3(
-                &program,
-                &key,
-                &scope(),
-                "app.ask",
-                &[ArgumentValue::Int(3)],
-                &bytes
-            ),
-            Err(SourceCheckpointError::SuspensionMismatch)
-        );
-    }
-}
+mod tests;

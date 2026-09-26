@@ -512,6 +512,11 @@ impl Resolver<'_> {
         {
             instance.function.cleanup_plan = cleanup_plan;
         }
+        for function in &resolved.functions {
+            if function.yields.is_some() {
+                crate::cleanup_plan::admit_owned_bytes_profile(function)?;
+            }
+        }
         validate(&resolved)?;
         Ok((resolved, self.function_work))
     }

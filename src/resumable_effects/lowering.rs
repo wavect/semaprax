@@ -307,7 +307,7 @@ pub fn lower_sequential(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<SequentialResumablePlan, Diagnostic> {
-    let yields = control::check_resumable_profile(program, function)?;
+    let yields = control::check_resumable_profile(program, function, false)?;
     reject_yield_in_contracts(function)?;
     let sites = locate_direct_yields(function)?;
     for (yield_expression, request, _) in &sites {
@@ -321,7 +321,7 @@ pub fn lower_sequential(
             ));
         }
     }
-    require_scalar_expression_tree(&function.body)?;
+    require_scalar_expression_tree(&function.body, false)?;
     reject_reachable_resumable_callees(program, function)?;
 
     let identity = plan_identity(program, function, &sites)?;
@@ -469,7 +469,15 @@ fn called_functions(function: &ResolvedFunction) -> Result<Vec<DeclarationId>, D
                     "resumable function reaches generic callee `{callee}`; generic call projection is not admitted"
                 )));
             }
-            callees.push(callee.clone());
+            // Issue #296, spec section 11.6: a builtin byte operation (e.g.
+            // `bytes_copy`, `byte_len`) is a `Call` node to a compiler-owned
+            // sentinel id the interpreter dispatches directly; it has no
+            // `ResolvedFunction` of its own in `program.functions` and never
+            // itself yields, so it is not a "reachable callee" this closure
+            // check is about.
+            if crate::byte_ops::by_id(callee.as_str()).is_none() {
+                callees.push(callee.clone());
+            }
         }
         hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
     }
@@ -587,10 +595,16 @@ fn reject_yield_in_contracts(function: &ResolvedFunction) -> Result<(), Diagnost
     Ok(())
 }
 
-fn require_scalar_expression_tree(root: &ResolvedExpr) -> Result<(), Diagnostic> {
+fn require_scalar_expression_tree(
+    root: &ResolvedExpr,
+    allow_owned_bytes: bool,
+) -> Result<(), Diagnostic> {
     let mut pending = vec![root];
     while let Some(expression) = pending.pop() {
-        if expression.ty != ResolvedType::Unit && !hir::is_scalar_resolved_type(&expression.ty) {
+        let admitted = expression.ty == ResolvedType::Unit
+            || hir::is_scalar_resolved_type(&expression.ty)
+            || (allow_owned_bytes && expression.ty == ResolvedType::Bytes);
+        if !admitted {
             return Err(invalid(
                 "resumable lowering found a non-scalar intermediate value",
             ));

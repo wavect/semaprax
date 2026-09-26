@@ -50,9 +50,11 @@ use std::collections::BTreeSet;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     self, ExpressionId, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedStatement,
+    ResolvedType, ValueId,
 };
 
 use super::{CleanupPlace, CleanupPlan, CleanupSlotId, CleanupTransition, StorageId};
+use crate::cleanup::FieldLivenessShape;
 
 const CODE: &str = "SPX-H006";
 
@@ -299,6 +301,146 @@ fn mark_executed(expr: &ResolvedExpr, executed: &mut BTreeSet<ExpressionId>) {
         executed.insert(current.id.clone());
         hir::push_resolved_expression_children_in_authored_order(current, &mut pending);
     }
+}
+
+/// Every `yield` expression's identity anywhere in `function`, in no
+/// particular order: a plain structural walk, not the admitted-placement
+/// grammar `locate_predecessors` enforces. `parser::yields`/`SPX-T297` has
+/// already refused every other placement, so this is exhaustive over the
+/// sites a real suspension can occur at.
+pub(crate) fn direct_yield_sites(function: &ResolvedFunction) -> Vec<ExpressionId> {
+    let mut sites = Vec::new();
+    let mut pending = vec![&function.body];
+    while let Some(expr) = pending.pop() {
+        if matches!(expr.kind, ResolvedExprKind::Yield { .. }) {
+            sites.push(expr.id.clone());
+        }
+        hir::push_resolved_expression_children_in_authored_order(expr, &mut pending);
+    }
+    sites
+}
+
+/// Second increment (issue #296, spec section 11.6): the whole-function
+/// admission check that lets an owned `Bytes` local -- and only that type,
+/// only a whole `let`-bound storage, never a temporary, call-argument, or
+/// partially live field -- leave the Copy-scalar profile that
+/// `hir::resolve_yield::check_scalar` otherwise enforces unconditionally.
+///
+/// `check_scalar` already defers exactly one case: an unborrowed value of
+/// type `Bytes`. Every other owned or aggregate value it still refuses
+/// outright with `SPX-T303` (and every borrow/resource keeps `SPX-T305`/
+/// `SPX-T306`), so by the time this runs -- after `function.cleanup_plan` is
+/// built, which `check_scalar` itself runs before -- every slot in the
+/// built plan is already known to be an unborrowed `Bytes` value. This
+/// function is the second, narrower half of that admission: for every slot
+/// [`owned_locals_live_at`] reports live at some real suspension site (a
+/// value that must survive a suspension as a live local, not merely exist
+/// somewhere in the function), it proves that slot is a whole `let`-bound
+/// storage, and refuses the function (`SPX-T303`) otherwise. A slot no site
+/// ever reports live -- a call's own transient provisional-result or staged
+/// call-argument storage, or a genuinely dead local -- resolves entirely
+/// within one non-suspended segment and needs no such proof; a site the
+/// query itself refuses (a preceding statement branching on its own, say)
+/// still refuses the whole function, since a slot it would have reported is
+/// then unaccounted for either way.
+pub(crate) fn admit_owned_bytes_profile(function: &ResolvedFunction) -> Result<(), Diagnostic> {
+    let plan = &function.cleanup_plan;
+    if plan.slots.is_empty() {
+        return Ok(());
+    }
+    // The cleanup plan's own inventory is not only "the function's named
+    // owned locals": a call's provisional result, or an argument staged for
+    // an atomic commit, is its own slot too, transient storage that never
+    // itself needs to survive a suspension even when the value it carries
+    // does (a whole-storage `Transfer`/`Initialize` moves the live value on
+    // to its named binding's own slot before any later site, and this
+    // increment's admission is only ever about a value that must survive
+    // *as* a suspended local). This increment's admission therefore checks
+    // only the slots [`owned_locals_live_at`] actually reports live at some
+    // real site; every other slot resolves entirely within one non-suspended
+    // segment and is this admission's concern only in that it must still be
+    // provable one way or the other -- a site the query itself refuses (a
+    // preceding statement branching on its own, say) still refuses the whole
+    // function, exactly as a value the query never reaches alive would.
+    let sites = direct_yield_sites(function);
+    let mut live_anywhere: BTreeSet<CleanupSlotId> = BTreeSet::new();
+    for site in &sites {
+        let live = owned_locals_live_at(function, site).map_err(|_| {
+            not_admitted(format!(
+                "function `{}` carries an owned value whose liveness this increment's narrower \
+                 query cannot prove at every suspension site",
+                function.name
+            ))
+        })?;
+        live_anywhere.extend(live);
+    }
+    for slot in &plan.slots {
+        if !live_anywhere.contains(&slot.id) {
+            continue;
+        }
+        if slot.ty != ResolvedType::Bytes {
+            return Err(not_admitted(format!(
+                "function `{}` carries a non-`Bytes` owned value live across a suspension site, \
+                 which this increment does not admit",
+                function.name
+            )));
+        }
+        if !matches!(slot.storage, StorageId::Value(_)) {
+            return Err(not_admitted(format!(
+                "function `{}` carries an owned `Bytes` value that is not a whole `let`-bound \
+                 local live across a suspension site",
+                function.name
+            )));
+        }
+        if !matches!(slot.field_liveness_shape, FieldLivenessShape::Leaf { .. }) {
+            return Err(not_admitted(format!(
+                "function `{}` carries an owned `Bytes` value with a non-leaf field liveness \
+                 shape live across a suspension site",
+                function.name
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// The stable refusal an owned `Bytes` local that this increment does not
+/// admit keeps: the same `SPX-T303` `hir::resolve_yield::check_scalar`
+/// would have raised immediately, had it not deferred exactly this one type
+/// to be decided here, once the cleanup plan exists. Distinct from this
+/// module's own `SPX-H006`, which stays reserved for
+/// [`owned_locals_live_at`]'s own scope-limitation refusals.
+fn not_admitted(message: impl Into<String>) -> Diagnostic {
+    Diagnostic::io("SPX-T303", message)
+}
+
+/// The ordered `ValueId`s of the owned `Bytes` locals live at `site`, exactly
+/// [`owned_locals_live_at`]'s result mapped from cleanup-slot identity to the
+/// storage identity the interpreter's environment is keyed by. Only ever
+/// called for a function [`admit_owned_bytes_profile`] has already admitted,
+/// so every returned slot is a whole `StorageId::Value` storage by
+/// construction; a caller that violates that precondition gets `Err` rather
+/// than a silently wrong mapping.
+pub(crate) fn carried_locals_at(
+    function: &ResolvedFunction,
+    site: &ExpressionId,
+) -> Result<Vec<ValueId>, Diagnostic> {
+    let live = owned_locals_live_at(function, site)?;
+    live.iter()
+        .map(|id| {
+            let slot = function
+                .cleanup_plan
+                .slots
+                .iter()
+                .find(|slot| slot.id == *id)
+                .ok_or_else(|| refused("live slot id is absent from the cleanup plan"))?;
+            match &slot.storage {
+                StorageId::Value(value) => Ok(value.clone()),
+                _ => Err(refused(
+                    "live owned Bytes slot is not a whole let-bound local",
+                )),
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]

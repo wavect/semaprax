@@ -1091,6 +1091,11 @@ fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnos
     {
         instance.function.cleanup_plan = cleanup_plan;
     }
+    for function in &program.functions {
+        if function.yields.is_some() {
+            crate::cleanup_plan::admit_owned_bytes_profile(function)?;
+        }
+    }
     Ok(())
 }
 

@@ -13,13 +13,16 @@ use super::{
     Diagnostic, Flow, Resumption, Value, REQUEST_DRIFT, SUSPENDED_AT_YIELD, SUSPENSION_MISMATCH,
 };
 use crate::conformance::NormalizedStatus;
-use crate::hir;
+use crate::hir::{self, ValueId};
+use crate::interpreter::OwnedBytesValue;
 use crate::resumable_effects::lowering::control::{
     lower_control, ControlResumablePlan, MAX_CONTROL_SUSPENSIONS,
 };
 use crate::resumable_effects::lowering::{
     ResumableScalar, ResumableStateId, ResumableSuspensionBinding,
 };
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 /// One settled suspension: its static site state, request and answer.
 #[derive(Clone, Debug, PartialEq)]
@@ -51,6 +54,11 @@ pub struct ControlContinuation {
     binding: ResumableSuspensionBinding,
     request: ArgumentValue,
     history: Vec<ControlYieldRecord>,
+    /// Issue #296, spec section 11.6: the owned `Bytes` locals live at this
+    /// exact site, in the plan's own cleanup-inventory order, carried by
+    /// value rather than left for a resume to recompute. Empty for every
+    /// continuation of a plan `carries_owned_bytes` is `false` for.
+    carried: Vec<(ValueId, Vec<u8>)>,
 }
 
 impl ControlContinuation {
@@ -68,6 +76,10 @@ impl ControlContinuation {
 
     pub fn history(&self) -> &[ControlYieldRecord] {
         &self.history
+    }
+
+    pub(crate) fn carried(&self) -> &[(ValueId, Vec<u8>)] {
+        &self.carried
     }
 }
 
@@ -153,6 +165,35 @@ fn indexed_history(
         .collect()
 }
 
+/// The exact bytes of every `ValueId` `carried` names, read from the frame
+/// snapshot taken at the moment of park, in `carried`'s own order. `Err` when
+/// a required local is absent from the snapshot or is not an owned `Bytes`
+/// value -- unreachable once `hir::resolve` has admitted the function, since
+/// every site's `carried` list is exactly the whole-storage owned `Bytes`
+/// locals `cleanup_plan::admit_owned_bytes_profile` proved live there, but
+/// checked rather than assumed.
+fn carried_bytes_of(
+    carried: &[ValueId],
+    environment: &[(ValueId, Value)],
+) -> Result<Vec<(ValueId, Vec<u8>)>, String> {
+    carried
+        .iter()
+        .map(|value_id| {
+            let value = environment
+                .iter()
+                .find(|(id, _)| id == value_id)
+                .map(|(_, value)| value)
+                .ok_or_else(|| {
+                    "a carried owned Bytes local is absent from the parked frame".to_owned()
+                })?;
+            match value {
+                Value::Bytes(inner) => Ok((value_id.clone(), inner.bytes.to_vec())),
+                _ => Err("a carried owned Bytes local is not an owned Bytes value".to_owned()),
+            }
+        })
+        .collect()
+}
+
 fn evaluate(
     program: &hir::ResolvedProgram,
     function_id: &str,
@@ -169,6 +210,7 @@ fn evaluate(
             Resumption::Fresh {
                 parked: None,
                 parked_site: None,
+                parked_environment: None,
             },
             Vec::new(),
         ),
@@ -177,8 +219,24 @@ fn evaluate(
                 .site_of_state(&continuation.state)
                 .ok_or_else(|| mismatch("control continuation state is not a site of this plan"))?;
             let indexed = indexed_history(&plan, &continuation.history)?;
+            if continuation.carried.len() != plan.sites[site].carried.len()
+                || continuation
+                    .carried
+                    .iter()
+                    .zip(&plan.sites[site].carried)
+                    .any(|((carried_id, _), expected_id)| carried_id != expected_id)
+            {
+                return Err(mismatch(
+                    "control continuation's carried owned values do not match this exact site",
+                ));
+            }
+            let carried_bytes = continuation
+                .carried
+                .iter()
+                .map(|(_, bytes)| bytes.clone())
+                .collect::<Vec<_>>();
             let expected_binding = plan
-                .binding(site, &scalar_arguments, &indexed)
+                .binding(site, &scalar_arguments, &indexed, &carried_bytes)
                 .map_err(|error| vec![error])?;
             if continuation.binding != expected_binding {
                 return Err(mismatch(
@@ -214,6 +272,16 @@ fn evaluate(
                 request: continuation.request.clone(),
                 answer: answer.clone(),
             });
+            let mut carried_values = BTreeMap::new();
+            for (index, (value_id, bytes)) in continuation.carried.iter().enumerate() {
+                carried_values.insert(
+                    value_id.clone(),
+                    Value::Bytes(OwnedBytesValue {
+                        allocation: index as u32 + 1,
+                        bytes: Arc::from(bytes.as_slice()),
+                    }),
+                );
+            }
             (
                 Resumption::Replay {
                     expected,
@@ -223,6 +291,8 @@ fn evaluate(
                     history: Vec::new(),
                     sites: Some(sites),
                     parked_site: None,
+                    parked_environment: None,
+                    carried: carried_values,
                 },
                 settled,
             )
@@ -285,17 +355,19 @@ fn settle(
             }
         }
         Err(Flow::Guard(SUSPENDED_AT_YIELD)) => {
-            let (parked, parked_site) = match resumption {
+            let (parked, parked_site, parked_environment) = match resumption {
                 Resumption::Fresh {
                     parked,
                     parked_site,
+                    parked_environment,
                 }
                 | Resumption::Replay {
                     parked,
                     parked_site,
+                    parked_environment,
                     ..
-                } => (parked.take(), parked_site.take()),
-                Resumption::Refused => (None, None),
+                } => (parked.take(), parked_site.take(), parked_environment.take()),
+                Resumption::Refused => (None, None, None),
             };
             let (Some(request), Some(site)) = (parked, parked_site) else {
                 return ControlResumableStep::GuardError(
@@ -323,13 +395,23 @@ fn settle(
                     )
                 }
             };
-            match plan.binding(index, arguments, &indexed) {
+            let environment = parked_environment.unwrap_or_default();
+            let carried = match carried_bytes_of(&plan.sites[index].carried, &environment) {
+                Ok(carried) => carried,
+                Err(message) => return ControlResumableStep::GuardError(message),
+            };
+            let carried_bytes = carried
+                .iter()
+                .map(|(_, bytes)| bytes.clone())
+                .collect::<Vec<_>>();
+            match plan.binding(index, arguments, &indexed, &carried_bytes) {
                 Ok(binding) => ControlResumableStep::Suspended {
                     continuation: ControlContinuation {
                         state: plan.sites[index].state.id.clone(),
                         binding,
                         request,
                         history,
+                        carried,
                     },
                 },
                 Err(error) => ControlResumableStep::GuardError(error.message),
@@ -378,6 +460,7 @@ pub(crate) fn rebuild_control_continuation(
     binding: [u8; 32],
     request: ArgumentValue,
     history: Vec<(String, ArgumentValue, ArgumentValue)>,
+    carried: Vec<(String, Vec<u8>)>,
 ) -> Result<ControlContinuation, Vec<Diagnostic>> {
     let entry = program
         .functions
@@ -418,8 +501,23 @@ pub(crate) fn rebuild_control_continuation(
     let state = lookup(state)?;
     let site = plan.site_of_state(&state).expect("looked-up site");
     let indexed = indexed_history(&plan, &records)?;
+    if carried.len() != plan.sites[site].carried.len()
+        || carried
+            .iter()
+            .zip(&plan.sites[site].carried)
+            .any(|((carried_id, _), expected_id)| carried_id.as_str() != expected_id.as_str())
+    {
+        return Err(mismatch(
+            "control checkpoint's carried owned values do not match this exact site",
+        ));
+    }
+    let carried_ids = plan.sites[site].carried.clone();
+    let carried_bytes = carried
+        .iter()
+        .map(|(_, bytes)| bytes.clone())
+        .collect::<Vec<_>>();
     let expected = plan
-        .binding(site, &scalars_of(arguments)?, &indexed)
+        .binding(site, &scalars_of(arguments)?, &indexed, &carried_bytes)
         .map_err(|error| vec![error])?;
     if *expected.as_bytes() != binding {
         return Err(mismatch(
@@ -431,6 +529,7 @@ pub(crate) fn rebuild_control_continuation(
         binding: expected,
         request,
         history: records,
+        carried: carried_ids.into_iter().zip(carried_bytes).collect(),
     })
 }
 

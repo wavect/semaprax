@@ -70,16 +70,18 @@
 
 use crate::conformance::NormalizedStatus;
 use crate::diagnostic::Diagnostic;
-use crate::hir::{self, ExpressionId, ResolvedFunction, ResolvedType};
+use crate::hir::{self, ExpressionId, ResolvedExpr, ResolvedFunction, ResolvedType, ValueId};
 use crate::resumable_effects::lowering::{
     self, ResumableScalar, ResumableStateId, ResumableSuspensionBinding, SequentialResumablePlan,
 };
+use std::collections::BTreeMap;
 
 use super::prepared::PreparedCancellation;
 use super::{
     admitted_resolved_functions, argument_error, option_error, resolved_signature_is_admitted,
-    scan_closure, selection_error, ArgumentValue, Evaluator, Flow, FunctionLookup, Value,
-    EVALUATION_STACK_BYTES, MAX_STEPS_LIMIT, REASON_AUTOMATIC_IDENTITY, REASON_UNSUPPORTED_CALLEE,
+    scan_closure, selection_error, ArgumentValue, Environment, Evaluator, Flow, FunctionLookup,
+    Value, EVALUATION_STACK_BYTES, MAX_STEPS_LIMIT, REASON_AUTOMATIC_IDENTITY,
+    REASON_UNSUPPORTED_CALLEE,
 };
 
 /// The function named for this lane declares no `yields` clause.
@@ -165,6 +167,11 @@ pub(super) enum Resumption {
     Fresh {
         parked: Option<Value>,
         parked_site: Option<ExpressionId>,
+        /// Issue #296, spec section 11.6: the frame's own bindings at the
+        /// moment of park, snapshotted so the control lane can read the
+        /// owned `Bytes` locals it proves live at this site. Unused by the
+        /// legacy and sequential lanes.
+        parked_environment: Option<Vec<(ValueId, Value)>>,
     },
     /// A replayed resumable invocation replays every completed request in
     /// order, then consumes one new answer. If another direct site is
@@ -178,6 +185,15 @@ pub(super) enum Resumption {
         /// Control lane only: the exact site of each replayed suspension.
         sites: Option<Vec<ExpressionId>>,
         parked_site: Option<ExpressionId>,
+        parked_environment: Option<Vec<(ValueId, Value)>>,
+        /// Issue #296, spec section 11.6: the owned `Bytes` locals carried
+        /// into this resume, keyed by the exact `let`-bound storage they
+        /// substitute. A `Let` statement whose binding identity is a key
+        /// here binds the carried value directly and removes the entry,
+        /// rather than re-evaluating (and so recomputing) its own value
+        /// expression; every other lane's map is empty and every ordinary
+        /// `Let` is unaffected.
+        carried: BTreeMap<ValueId, Value>,
     },
 }
 
@@ -194,23 +210,52 @@ enum ResumeInput {
     },
 }
 
+impl Evaluator<'_> {
+    /// A `let` statement's value: a control-lane resume that carries this
+    /// exact `let`-bound owned `Bytes` value (issue #296, spec section 11.6)
+    /// substitutes it directly instead of recomputing (and so
+    /// reallocating) its defining expression, and removes it from the map
+    /// so a later dynamic occurrence of the same static binding (inside a
+    /// loop body) still evaluates normally. Every other lane's map is
+    /// always empty, so this is a no-op there.
+    pub(super) fn resolve_let_value(
+        &mut self,
+        binding_id: &hir::ValueId,
+        value: &ResolvedExpr,
+        environment: &mut Environment,
+        depth: usize,
+    ) -> Result<Value, Flow> {
+        let carried = match &mut self.resumption {
+            Resumption::Replay { carried, .. } => carried.remove(binding_id),
+            _ => None,
+        };
+        match carried {
+            Some(value) => Ok(value),
+            None => self.evaluate(value, environment, depth),
+        }
+    }
+}
+
 /// The ordered `yield` sites' whole runtime behaviour, in one place.
 pub(super) fn settle_yield(
     state: &mut Resumption,
     site: &ExpressionId,
     request: Value,
+    environment: &Environment,
 ) -> Result<Value, Flow> {
     match state {
         Resumption::Refused => Err(Flow::Guard(YIELD_REFUSED)),
         Resumption::Fresh {
             parked,
             parked_site,
+            parked_environment,
         } => {
             if parked.is_some() {
                 return Err(Flow::Guard(SECOND_YIELD));
             }
             *parked = Some(request);
             *parked_site = Some(site.clone());
+            *parked_environment = Some(snapshot_environment(environment));
             Err(Flow::Guard(SUSPENDED_AT_YIELD))
         }
         Resumption::Replay {
@@ -220,6 +265,7 @@ pub(super) fn settle_yield(
             parked,
             sites,
             parked_site,
+            parked_environment,
             ..
         } => {
             if *observed == expected.len() {
@@ -228,6 +274,7 @@ pub(super) fn settle_yield(
                 }
                 *parked = Some(request);
                 *parked_site = Some(site.clone());
+                *parked_environment = Some(snapshot_environment(environment));
                 return Err(Flow::Guard(SUSPENDED_AT_YIELD));
             }
             // Control lane: replay must reach exactly the recorded site.
@@ -465,6 +512,7 @@ fn evaluate_resumable(
             Resumption::Fresh {
                 parked: None,
                 parked_site: None,
+                parked_environment: None,
             },
             Some(plan.suspension_binding(&scalar_arguments)),
         ),
@@ -502,6 +550,8 @@ fn evaluate_resumable(
                     history: Vec::new(),
                     sites: None,
                     parked_site: None,
+                    parked_environment: None,
+                    carried: BTreeMap::new(),
                 },
                 None,
             )
@@ -596,6 +646,8 @@ fn evaluate_resumable(
                     history,
                     sites: None,
                     parked_site: None,
+                    parked_environment: None,
+                    carried: BTreeMap::new(),
                 },
                 next_binding,
             )
@@ -718,6 +770,15 @@ pub(super) fn run_worker<T: Send>(
                     0,
                     PreparedCancellation::Never,
                 );
+                // Issue #296, spec section 11.6: a carried owned `Bytes`
+                // value is injected directly (never evaluated by an
+                // allocating operation this evaluator's own counter would
+                // charge), so the counter starts pre-charged for exactly as
+                // many carried values as this resume substitutes. Every
+                // other lane's `carried` map is empty and this is a no-op.
+                if let Resumption::Replay { carried, .. } = &resumption {
+                    evaluator.next_byte_allocation = carried.len() as u32;
+                }
                 evaluator.resumption = resumption;
                 let settled = evaluator.evaluate_entry(entry, bound);
                 let step = settle(settled, &mut evaluator.resumption);
@@ -994,6 +1055,27 @@ fn clone_scalar(value: &Value) -> Option<Value> {
         ArgumentValue::Bool(inner) => Some(Value::Bool(inner)),
         _ => None,
     })
+}
+
+/// Issue #296, spec section 11.6: every binding of `environment` this
+/// admitted profile can hold -- an admitted Copy scalar, or (only in the
+/// control lane's owned-Bytes profile) an owned `Bytes` value -- cloned into
+/// an owned snapshot at the moment of park. A binding this cannot clone is
+/// simply absent from the snapshot rather than a hard failure: the admitted
+/// profile never puts one there, so an absent entry only ever means "not
+/// carried", never a wrong or missing carried value.
+fn snapshot_environment(environment: &Environment) -> Vec<(ValueId, Value)> {
+    environment
+        .iter()
+        .filter_map(|(id, value)| clone_environment_value(value).map(|value| (id.clone(), value)))
+        .collect()
+}
+
+fn clone_environment_value(value: &Value) -> Option<Value> {
+    match value {
+        Value::Bytes(inner) => Some(Value::Bytes(inner.clone())),
+        other => clone_scalar(other),
+    }
 }
 
 /// Exact scalar identity for the drift check. Floats compare by bits, not by

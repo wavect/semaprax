@@ -25,12 +25,19 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{
     self, DeclarationId, ExpressionId, IdentityOrigin, OwnershipMode, ResolvedExpr,
     ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
-    ResolvedYieldsClause,
+    ResolvedYieldsClause, ValueId,
 };
 use sha2::{Digest, Sha256};
 
 const CONTROL_PLAN_IDENTITY_DOMAIN: &[u8] = b"semaprax.resumable-control-plan.v3\0";
 const CONTROL_BINDING_DOMAIN: &[u8] = b"semaprax.resumable-control-binding.v3\0";
+/// A distinct domain for a plan that carries owned `Bytes` locals across a
+/// suspension (issue #296, spec section 11.6, second increment): the plan
+/// shape and the binding formula both differ (the binding also commits to
+/// the exact carried bytes), so a carrying and a non-carrying plan must never
+/// collide even if every other hashed fact happened to agree.
+const CONTROL_PLAN_IDENTITY_DOMAIN_OWNED: &[u8] = b"semaprax.resumable-control-plan.v4\0";
+const CONTROL_BINDING_DOMAIN_OWNED: &[u8] = b"semaprax.resumable-control-binding.v4\0";
 
 /// Dynamic bound on suspensions of one control-dependent invocation.
 pub const MAX_CONTROL_SUSPENSIONS: usize = 16;
@@ -41,6 +48,10 @@ pub struct ControlSite {
     pub state: ResumableState,
     pub expression: ExpressionId,
     pub request_expression: ExpressionId,
+    /// The owned `Bytes` locals [`crate::cleanup_plan::carried_locals_at`]
+    /// proves live at this exact site, in cleanup-inventory order. Empty for
+    /// every plan `hir::resolve` did not admit an owned local into.
+    pub carried: Vec<ValueId>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -52,6 +63,11 @@ pub struct ControlResumablePlan {
     pub complete: ResumableState,
     pub request_type: ResolvedType,
     pub response_type: ResolvedType,
+    /// True when some site's `carried` is non-empty. Fixes the plan and
+    /// binding identity domain (v4 rather than v3) and the checkpoint
+    /// envelope schema (v4 rather than v3): both are chosen from this
+    /// checked fact, never from stored bytes.
+    pub carries_owned_bytes: bool,
 }
 
 impl ControlResumablePlan {
@@ -65,13 +81,18 @@ impl ControlResumablePlan {
         self.sites.iter().position(|site| site.state.id == *state)
     }
 
-    /// Bind a suspension at static `site` to the exact arguments and the
-    /// ordered settled history `(site, answer)`.
+    /// Bind a suspension at static `site` to the exact arguments, the ordered
+    /// settled history `(site, answer)`, and -- for a carrying plan -- the
+    /// exact carried bytes in `site`'s own cleanup-inventory order. `carried`
+    /// must be empty for a non-carrying plan and must have exactly
+    /// `self.sites[site].carried.len()` entries for a carrying one; either
+    /// disagreement is refused rather than silently hashing the wrong count.
     pub fn binding(
         &self,
         site: usize,
         arguments: &[ResumableScalar],
         history: &[(usize, ResumableScalar)],
+        carried: &[Vec<u8>],
     ) -> Result<ResumableSuspensionBinding, Diagnostic> {
         let current = self
             .sites
@@ -80,8 +101,18 @@ impl ControlResumablePlan {
         if history.len() >= MAX_CONTROL_SUSPENSIONS {
             return Err(invalid("control suspension history exceeds its bound"));
         }
+        if carried.len() != current.carried.len() {
+            return Err(invalid(
+                "control suspension carried-value count disagrees with this exact site",
+            ));
+        }
+        let domain = if self.carries_owned_bytes {
+            CONTROL_BINDING_DOMAIN_OWNED
+        } else {
+            CONTROL_BINDING_DOMAIN
+        };
         let mut hasher = Sha256::new();
-        hasher.update(CONTROL_BINDING_DOMAIN);
+        hasher.update(domain);
         frame(&mut hasher, self.identity.as_bytes());
         frame(&mut hasher, current.state.id.as_str().as_bytes());
         hasher.update((arguments.len() as u64).to_le_bytes());
@@ -97,6 +128,10 @@ impl ControlResumablePlan {
             frame(&mut hasher, settled.state.id.as_str().as_bytes());
             hash_scalar(&mut hasher, answer);
         }
+        hasher.update((carried.len() as u64).to_le_bytes());
+        for value in carried {
+            frame(&mut hasher, value);
+        }
         Ok(ResumableSuspensionBinding(hasher.finalize().into()))
     }
 }
@@ -107,6 +142,7 @@ impl ControlResumablePlan {
 pub(super) fn check_resumable_profile<'a>(
     program: &ResolvedProgram,
     function: &'a ResolvedFunction,
+    allow_owned_bytes: bool,
 ) -> Result<&'a ResolvedYieldsClause, Diagnostic> {
     let canonical = program
         .functions
@@ -152,8 +188,7 @@ pub(super) fn check_resumable_profile<'a>(
             "resumable lowering requires Copy-scalar request, response, and parameter types",
         ));
     }
-    if !function.cleanup.slots.is_empty()
-        || !function.cleanup.flags.is_empty()
+    if (!allow_owned_bytes && !function.cleanup.flags.is_empty())
         || !function
             .cleanup
             .entry_state
@@ -167,6 +202,30 @@ pub(super) fn check_resumable_profile<'a>(
     {
         return Err(invalid(
             "resumable lowering found owned cleanup state in the Copy-scalar profile",
+        ));
+    }
+    // Issue #296, spec section 11.6, second increment: only the
+    // control-dependent lane admits a non-empty cleanup inventory, and only
+    // when every slot is an unborrowed `Bytes` value. `hir::resolve` already
+    // ran `cleanup_plan::admit_owned_bytes_profile` on every
+    // `yields`-declaring function before this ever runs, so a slot present
+    // here is already known to be a whole, `let`-bound `Bytes` local proven
+    // live across some real suspension site; this is a defense-in-depth
+    // re-check, not the admission decision itself. The sequential (v2) lane
+    // keeps refusing any owned cleanup state at all.
+    if !allow_owned_bytes && !function.cleanup_plan.slots.is_empty() {
+        return Err(invalid(
+            "resumable lowering found owned cleanup state in the Copy-scalar profile",
+        ));
+    }
+    if function
+        .cleanup_plan
+        .slots
+        .iter()
+        .any(|slot| slot.ty != ResolvedType::Bytes)
+    {
+        return Err(invalid(
+            "resumable lowering found owned cleanup state outside the admitted owned-Bytes profile",
         ));
     }
     Ok(yields)
@@ -247,7 +306,7 @@ pub fn lower_control(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<ControlResumablePlan, Diagnostic> {
-    let yields = check_resumable_profile(program, function)?;
+    let yields = check_resumable_profile(program, function, true)?;
     reject_yield_in_contracts(function)?;
     if !is_control_dependent(function) {
         return Err(invalid(
@@ -281,6 +340,7 @@ pub fn lower_control(
                 "resumable yield request/response types or ownership disagree with its declaration",
             ));
         }
+        let carried = crate::cleanup_plan::carried_locals_at(function, &expression.id)?;
         sites.push(ControlSite {
             state: state(
                 &function.id,
@@ -289,10 +349,17 @@ pub fn lower_control(
             ),
             expression: expression.id.clone(),
             request_expression: request.id.clone(),
+            carried,
         });
     }
-    require_scalar_expression_tree(&function.body)?;
+    require_scalar_expression_tree(&function.body, true)?;
     reject_reachable_resumable_callees(program, function)?;
+    let carries_owned_bytes = sites.iter().any(|site| !site.carried.is_empty());
+    let identity_domain = if carries_owned_bytes {
+        CONTROL_PLAN_IDENTITY_DOMAIN_OWNED
+    } else {
+        CONTROL_PLAN_IDENTITY_DOMAIN
+    };
     let encoded = crate::cache_codec::encode(program).map_err(|diagnostics| {
         diagnostics
             .into_iter()
@@ -300,12 +367,16 @@ pub fn lower_control(
             .unwrap_or_else(|| invalid("checked-program encoding failed without a diagnostic"))
     })?;
     let mut hasher = Sha256::new();
-    hasher.update(CONTROL_PLAN_IDENTITY_DOMAIN);
+    hasher.update(identity_domain);
     frame(&mut hasher, &encoded);
     frame(&mut hasher, function.id.as_str().as_bytes());
     hasher.update((sites.len() as u64).to_le_bytes());
     for site in &sites {
         frame(&mut hasher, site.expression.as_str().as_bytes());
+        hasher.update((site.carried.len() as u64).to_le_bytes());
+        for value in &site.carried {
+            frame(&mut hasher, value.as_str().as_bytes());
+        }
     }
     Ok(ControlResumablePlan {
         function_id: function.id.clone(),
@@ -315,5 +386,6 @@ pub fn lower_control(
         complete: state(&function.id, ResumableStateKind::Complete, None),
         request_type: yields.request_type.clone(),
         response_type: yields.response_type.clone(),
+        carries_owned_bytes,
     })
 }

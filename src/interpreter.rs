@@ -3946,7 +3946,7 @@ impl Evaluator<'_> {
             // on a fresh invocation, drift check + answer on a replayed one.
             ResolvedExprKind::Yield { request } => {
                 let produced = self.evaluate(request, environment, depth)?;
-                resumable::settle_yield(&mut self.resumption, &expression.id, produced)
+                resumable::settle_yield(&mut self.resumption, &expression.id, produced, environment)
             }
             ResolvedExprKind::Closure { .. }
             | ResolvedExprKind::FunctionReference { .. }
@@ -4652,7 +4652,7 @@ impl Evaluator<'_> {
                 'statements: for statement in statements {
                     match statement {
                         ResolvedStatement::Let { binding, value, .. } => {
-                            match self.evaluate(value, environment, depth) {
+                            match self.resolve_let_value(&binding.id, value, environment, depth) {
                                 Ok(value) => environment.push((binding.id.clone(), value)),
                                 Err(flow) => {
                                     interrupted = Some(flow);

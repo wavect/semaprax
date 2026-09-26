@@ -227,8 +227,10 @@ compile the module.
 
 ## 9. Remaining work (issue #296)
 
-- Owned values live across a yield (designed in section 11.6, not admitted),
-  and owned live frames generally.
+- Owned values live across a yield: section 11.6 admits only a whole owned
+  `Bytes` local in the control-dependent plan; owned live frames generally
+  (strings, records, partial/conditional liveness, the sequential plan) stay
+  future work.
 - Ordinary native and Wasm emission of `yields` functions (`SPX-B116` and
   `SPX-W126` still refuse) and a durable driver for those engines.
 - Migration of an Agent lifecycle example onto this mechanism.
@@ -242,6 +244,7 @@ cargo test --locked -p semaprax --lib resumable_effects::continuation::
 cargo test --locked -p semaprax --lib interpreter::resumable::control::
 cargo test --locked -p semaprax --lib resumable_effects::lowering::control_tests::
 cargo test --locked -p semaprax --lib resumable_effects::source_checkpoint::control::
+cargo test --locked -p semaprax --lib resumable_effects::source_checkpoint::control_owned::
 cargo test --locked -p semaprax --lib parser::yields:: hir::resolve_yield::
 ```
 
@@ -331,39 +334,108 @@ after each of the 16 records of a loop-and-branch run.
 value; they are conservative (any borrow or resource in the function), not a
 liveness analysis.
 
-### 11.6 Owned values across a yield (designed, not admitted)
+### 11.6 Owned values across a yield
 
-Owned values (`Bytes`, `string`, owned records) stay refused with `SPX-T303`.
-The intended design, left for a later slice:
-
-- The plan computes, per site, the owned locals live across it from the
-  existing cleanup inventory (never re-sorted), and admits only values whose
-  types have a canonical by-value encoding (bytes, strings, records of those
-  and scalars). Borrows and resources stay refused.
-- A suspension moves those values into the continuation by value; the envelope
-  (a v4 wire) carries them in canonical cleanup-inventory order and the binding
-  commits to their exact bytes. Replay does not re-create them: the resumed
-  suffix receives them as the frame, so replay must stop re-evaluating the
-  prefix for owned state (a resume projection per site, as the backend
-  projections already are for scalars).
-- Settlement runs the canonical cleanup plan for the carried values exactly
-  once: on completion through the ordinary suffix, on abandon or sticky failure
-  through the journaled `CleanupStarted`/`CleanupSettled` window, whose
-  in-doubt rule already prevents a second run. A negative-control mutant that
-  skips cleanup on abandon must be caught by a leak counter.
+Every owned value stays refused with `SPX-T303` (and every borrow/resource
+keeps `SPX-T305`/`SPX-T306`, exactly as before) except a whole `Bytes` local
+the narrower query below proves live across a real suspension site: strings
+and owned records stay refused everywhere in a `yields` function regardless of
+whether they ever reach a suspension, and a `Bytes` local that does reach one
+still needs whole (not partial record-field or conditional-variant) storage
+and a site the query does not itself refuse (a preceding statement branching
+on its own, say). A `Bytes` local that never reaches a suspension at all --
+a call's own transient storage, or a genuinely dead local -- needs none of
+this: it resolves entirely within one non-suspended segment.
 
 First increment: `cleanup_plan::owned_liveness::owned_locals_live_at` (issue
-#296) implements the first bullet's query in isolation — given a suspension
-site's `ExpressionId`, it returns the ordered subset of the built
-`CleanupPlan`'s `slots` still live there, by replaying the plan's own
-`CleanupTransition`s restricted to the prefix a structural walk of the HIR
-proves runs before the site, never a fresh HIR move analysis and never a
-re-sort of `slots`. Its scope is deliberately narrower than the full design
-above: only whole-storage places (no partial record-field or conditional
-variant liveness), and only sites reached through the same `if`/`else`/
-`while`/block-valued nesting the placements above admit, with a preceding
-non-containing branch refused rather than joined. It is `pub(crate)`,
-`cfg(test)`-only, and has no caller outside its own unit tests: it is not yet
-wired to admission (`SPX-T303` still refuses every owned value), the v4
-envelope, resume projections, or settlement, and changes no program's
-behavior.
+#296) implements, in isolation, the query one suspension site's `ExpressionId`
+answers with the ordered subset of the built `CleanupPlan`'s `slots` still
+live there, by replaying the plan's own `CleanupTransition`s restricted to the
+prefix a structural walk of the HIR proves runs before the site, never a fresh
+HIR move analysis and never a re-sort of `slots`. Its scope is deliberately
+narrower than the general design a later slice may still generalize: only
+whole-storage places (no partial record-field or conditional variant
+liveness), and only sites reached through the same `if`/`else`/`while`/
+block-valued nesting the control-dependent placements admit, with a preceding
+non-containing branch refused rather than joined.
+
+Second increment (this document's own contract): the query is un-gated from
+`cfg(test)` and wired to a real caller on both ends.
+
+- **Admission.** `hir::resolve_yield::check_scalar` defers exactly one case
+  instead of refusing it immediately: an unborrowed value of type `Bytes`.
+  Once every function's `cleanup_plan` is built,
+  `cleanup_plan::admit_owned_bytes_profile` walks every `yields`-declaring
+  function's plan and checks only the slots the query reports live at some
+  real suspension site (the union across every site; a site the query itself
+  refuses fails the whole function): each such slot must be an unborrowed,
+  whole (`StorageId::Value`, leaf field-liveness shape) `Bytes` local, else
+  `SPX-T303`, now raised here instead of at the deferred check. A slot no
+  site ever reports live -- a call's own transient provisional-result or
+  staged call-argument storage, or a genuinely dead local -- resolves
+  entirely within one non-suspended segment and needs no such proof; a
+  non-`Bytes` owned value never reaches a plan slot in the first place, since
+  `check_scalar` only ever defers `Bytes`. This is a compile-time gate, not a
+  runtime one: a program that fails it never reaches lowering.
+- **Lowering.** `resumable_effects::lowering::control::lower_control` (the
+  control-dependent plan only; the sequential plan still refuses any owned
+  cleanup state) computes each `ControlSite`'s `carried: Vec<ValueId>` from
+  `cleanup_plan::carried_locals_at`, and the plan's own
+  `carries_owned_bytes` is true when any site's list is non-empty. A carrying
+  plan gets its own identity domains,
+  `semaprax.resumable-control-plan.v4`/`semaprax.resumable-control-binding.v4`,
+  distinct from the non-carrying v3 domains, so the two families can never
+  collide even over identical hashed facts; `ControlResumablePlan::binding`
+  additionally commits to the exact carried bytes at the site being bound.
+- **Envelope.** `semaprax.source-resumable-checkpoint.v4`
+  (`resumable_effects::source_checkpoint::control_owned`) is a new, separate
+  wire with its own authentication domain, carrying v3's scope, signature, and
+  continuation facts plus `carried`: each carried local's exact bytes, hex
+  encoded, in the plan's own cleanup-inventory order for the awaited site.
+  Every field, carried bytes included, is inside the HMAC-covered payload, so
+  a tampered carried value is refused (`AuthenticationMismatch`) exactly like
+  a tampered request or answer. v1/v2/v3 decoders refuse v4 bytes by schema
+  and the v4 decoder refuses theirs; nothing reinterprets v2/v3 bytes. The
+  durable driver's lane selection (`resumable_effects::continuation::lane`)
+  picks v2, v3, or v4 purely from the checked
+  `SourceEffectSignature::{is_control_dependent, carries_owned_bytes}`, never
+  from stored bytes.
+- **Interpreter resume.** The control lane's execution model is unchanged --
+  one evaluator run replays the pure prefix from function entry and
+  re-checks every recorded request -- so "receiving the carried value as
+  input instead of recomputing the prefix" is a substitution inside that same
+  replay rather than a second, statically projected HIR function (the control
+  lane has no such projections to begin with; only the retired sequential
+  lane's backend parity projections do). Concretely: `interpreter::resumable`
+  snapshots the live frame (`Resumption::{Fresh,Replay}::parked_environment`)
+  at the moment of park, and a control resume's `Resumption::Replay::carried`
+  (`BTreeMap<ValueId, Value>`, built from the continuation's carried bytes)
+  is consulted at every `let` statement: a binding named there is bound
+  directly from the map and removed, never re-evaluating (and so never
+  reallocating) its own defining expression. Only the resumed segment's own
+  carried locals are substituted this way; an earlier settled segment's own
+  locals, if any, are still recomputed during replay -- deterministically,
+  since the profile forbids host effects, but not yet avoided the way this
+  section's design intends for a future, more general slice.
+- **Settlement.** No second window: the existing journaled
+  `CleanupStarted`/`CleanupSettled` window and its already-generic
+  `CleanupHandler<DurableOutcome>` seam are reused exactly as they are.
+  `DurableInvocation::pending_cleanup_carried` exposes the exact carried bytes
+  still awaiting settlement, non-empty only for the three failures recorded
+  while a site was dispatched (`HandlerFailed`, `AnswerTypeMismatch`,
+  `HostAbandoned` -- `DurableFailure::settles_dispatch`): those are the only
+  outcomes where the interpreter never re-ran to its own natural, in-process
+  drop of the carried value. A `Completed` outcome, or any other `Failed` one,
+  only ever follows a resume or start that ran the interpreter through to
+  that outcome, which already dropped every carried value itself, so
+  `pending_cleanup_carried` stays empty for those. A caller's
+  `CleanupHandler` reads it before calling `settle`/`drive` and runs the
+  carried values' own settlement inside that one call, which the existing
+  `CleanupStarted`/`CleanupSettled` in-doubt rule still runs at most once
+  across any number of crashes and recoveries. A mutant handler that skips
+  settling a reported carried value is caught by a caller-owned leak counter
+  staying at zero instead of reaching one.
+
+Scope carried over unchanged from the first increment, and still true of the
+second: only whole-storage `Bytes` locals, only the control-dependent plan,
+only the placements the increment 1 grammar note above already lists.

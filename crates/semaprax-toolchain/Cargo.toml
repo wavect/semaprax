@@ -27,6 +27,7 @@ semaprax-project-revision-store-windows-sys = { version = "=0.1.0", path = "../s
 winapi-util = "=0.1.11"
 
 [target.'cfg(unix)'.dependencies]
+fs2 = "=0.4.3"
 rustix = { version = "=1.1.4", default-features = false, features = ["fs", "process", "std", "stdio"] }
 
 [[bin]]

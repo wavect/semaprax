@@ -1838,6 +1838,7 @@ name = "semaprax-toolchain"
 version = "0.6.0"
 dependencies = [
  "ed25519-dalek",
+ "fs2",
  "rustix",
  "same-file",
  "semaprax",

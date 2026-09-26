@@ -141,6 +141,33 @@ that a digest mismatch fails closed before any measurement, not after.
 
 ## Scoring and hidden-test isolation
 
+Before scoring, each implemented task/language pair must have a public
+directory and a non-empty hidden overlay. The overlay must add at least one
+regular file or replace a public file with different bytes. Replacing files
+at the same relative paths is supported; a new filename is not required.
+This is the same structural rule the committed-inventory test enforces,
+now also applied to caller-supplied task trees at evaluation time.
+
+Missing, non-directory, empty, or byte-identical hidden overlays produce
+`failed` with a reason before any version probe, build, or run. The agent
+scorer performs this preflight before calling its transport, so it records
+no usage, transcript, candidate, or scoring evidence for such a refusal.
+Fixture admission precedes digest checks and transport budget/retry outcomes;
+valid fixtures retain those existing checks. A refused pair has no `public`,
+`hidden`, `leak_check`, or `provenance` result because none was produced.
+Observed inspection errors also fail closed without emitting file contents.
+
+`--dry-run` uses the same check for implemented, declared pairs and exits
+nonzero for an invalid overlay. Its plan schema is unchanged: `exists`
+continues to mean that both directories exist, even when an existing overlay
+is empty or changes no bytes. Refusal details are written to standard error.
+
+This is a structural prerequisite, not proof of additional test coverage:
+different bytes can still test the same behavior. Task-specific wrong-candidate
+controls remain necessary. The preflight assumes operator-controlled fixture
+trees that stay unchanged during evaluation; it does not provide filesystem
+sandboxing, race-free snapshots, or secrecy from arbitrary host processes.
+
 Each task/language pair runs in two phases, each in its own scratch
 directory:
 

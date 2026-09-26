@@ -47,6 +47,7 @@ import platform
 import selectors
 import signal
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -344,6 +345,40 @@ def scratch_dir(label: str) -> pathlib.Path:
     return directory.resolve()
 
 
+def hidden_overlay_problem(public_dir: pathlib.Path, hidden_dir: pathlib.Path) -> str | None:
+    """Require additional fixture bytes, not proof of additional coverage.
+
+    Callers admit the public directory first. Fixture trees must remain stable
+    during evaluation; this read-only check is not filesystem confinement.
+    """
+    def inspection_failed(error: OSError) -> None:
+        raise error
+
+    try:
+        if not hidden_dir.is_dir():
+            return f"missing hidden directory: {hidden_dir}"
+        has_files = False
+        changes_public = False
+        for directory, directories, filenames in os.walk(hidden_dir, onerror=inspection_failed):
+            directories.sort()
+            for filename in sorted(filenames):
+                hidden_file = pathlib.Path(directory) / filename
+                if not stat.S_ISREG(hidden_file.stat().st_mode):
+                    continue
+                has_files = True
+                hidden_bytes = hidden_file.read_bytes()
+                public_file = public_dir / hidden_file.relative_to(hidden_dir)
+                if not public_file.is_file() or hidden_bytes != public_file.read_bytes():
+                    changes_public = True
+        if not has_files:
+            return f"empty hidden overlay: {hidden_dir}"
+        if not changes_public:
+            return f"hidden overlay adds no changes: {hidden_dir}"
+    except OSError:
+        return f"cannot inspect hidden overlay: {hidden_dir}"
+    return None
+
+
 def evaluate_pair(root: pathlib.Path, task: dict, language: str, adapter: dict,
                    semaprax_binary: str, execution: Optional[HardenedExecution] = None) -> dict:
     record = {
@@ -366,6 +401,10 @@ def evaluate_pair(root: pathlib.Path, task: dict, language: str, adapter: dict,
     hidden_dir = root / paths["hidden"]
     if not public_dir.is_dir():
         record.update(status=FAILED, reason=f"missing public directory: {public_dir}")
+        return record
+    problem = hidden_overlay_problem(public_dir, hidden_dir)
+    if problem is not None:
+        record.update(status=FAILED, reason=problem)
         return record
 
     public_digest = digest_tree(public_dir)
@@ -478,7 +517,7 @@ def fail(message: str) -> int:
 
 def dry_run(root: pathlib.Path, tasks: list, adapters: dict, args) -> int:
     planned = []
-    missing = []
+    problems = []
     for task, language in selected_pairs(tasks, adapters, args):
         adapter = adapters.get(language, {"implemented": False, "blocked_reason": "undeclared adapter"})
         paths = task.get("languages", {}).get(language)
@@ -494,8 +533,14 @@ def dry_run(root: pathlib.Path, tasks: list, adapters: dict, args) -> int:
             row["public_dir"] = str(public_dir)
             row["hidden_dir"] = str(hidden_dir)
             row["exists"] = public_dir.is_dir() and hidden_dir.is_dir()
-            if adapter.get("implemented", False) and not row["exists"]:
-                missing.append(row["id"])
+            if adapter.get("implemented", False):
+                problem = (
+                    hidden_overlay_problem(public_dir, hidden_dir)
+                    if public_dir.is_dir()
+                    else f"missing public directory: {public_dir}"
+                )
+                if problem is not None:
+                    problems.append((row["id"], problem))
         planned.append(row)
     document = {
         "schema": PLAN_SCHEMA,
@@ -507,9 +552,9 @@ def dry_run(root: pathlib.Path, tasks: list, adapters: dict, args) -> int:
     }
     write_json(pathlib.Path(args.output), document)
     print(f"Wrote {args.output} ({len(planned)} task/language pairs planned, measured nothing)")
-    for identifier in missing:
-        print(f"error: {identifier} names a missing task directory", file=sys.stderr)
-    return 1 if missing else 0
+    for identifier, problem in problems:
+        print(f"error: {identifier}: {problem}", file=sys.stderr)
+    return 1 if problems else 0
 
 
 def main():

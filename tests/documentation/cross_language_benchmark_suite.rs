@@ -33,6 +33,8 @@ mod clean_install_calculator;
 mod cold_chain_release_gate;
 #[path = "cross_language_benchmark_suite/concurrent_delta_merge.rs"]
 mod concurrent_delta_merge;
+#[path = "cross_language_benchmark_suite/hidden_overlay_admission.rs"]
+mod hidden_overlay_admission;
 #[path = "cross_language_benchmark_suite/owned_byte_sentinel_balance.rs"]
 mod owned_byte_sentinel_balance;
 #[path = "cross_language_benchmark_suite/reproducibility.rs"]
@@ -115,7 +117,7 @@ fn write_mock_language(task_dir: &Path, language: &MockLanguage) {
     std::fs::write(
         hidden.join("prog.py"),
         format!(
-            "import sys\nsys.exit({})\n",
+            "# hidden overlay keeps the same exit contract\nassert 1 == 1\nimport sys\nsys.exit({})\n",
             language.hidden_exit_code.unwrap_or(language.exit_code)
         ),
     )

@@ -87,6 +87,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   code and message and now points at `semaprax doc` and `semaprax query`;
   a CLI regression test pins the hint on the committed calculator project.
 
+- Point the agent command ladder at `doc --json` for machine consumers. The
+  contracted `semaprax.doc.v1` skeleton carries signatures, contracts, and
+  identities at roughly the source bytes, eighteen to thirty-four times
+  smaller than the full graph on the measured examples.
+
 ## 0.6.0 — 2026-09-24
 
 - Keep the frozen private Component v7 WIT identity at `0.5.0` while the crate

@@ -93,7 +93,7 @@ rather than reconstructing SEMAPRAX meaning from source text:
 
 ```sh
 cargo run --locked -p semaprax -- query <file>
-cargo run --locked -p semaprax -- doc <file>
+cargo run --locked -p semaprax -- doc <file> [--json]
 cargo run --locked -p semaprax -- context <file> <stable-id> --depth 1 --filters contracts,ownership --max-bytes 4096
 cargo run --locked -p semaprax -- graph <file>
 ```
@@ -101,7 +101,8 @@ cargo run --locked -p semaprax -- graph <file>
 Climb this ladder from the top and stop at the first command that answers the
 question. On the committed examples `query` lists a file's declarations at
 one line each and `doc` summarizes signatures, contracts, and identities in
-roughly the source bytes. `context` answers one
+roughly the source bytes, as Markdown or as machine-readable
+`semaprax.doc.v1` with `--json`. `context` answers one
 question within a byte budget. `graph` emits the whole module including
 cleanup plans and expression trees, roughly forty times the source bytes on
 the committed examples; read the source instead when it fits, and reserve

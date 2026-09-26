@@ -319,6 +319,20 @@ fn encode(options: &Options) -> Result<CompactProjection, Vec<Diagnostic>> {
             compact::encode_selected(ProjectionSelection::ApiSurface {
                 revision: &snapshot.retain_revision(),
             })
+            .map_err(|errors| {
+                errors
+                    .into_iter()
+                    .map(|error| {
+                        if error.code == "SPX-J105" && error.help.is_none() {
+                            error.with_help(
+                                "api-surface describes owned-data-api.v1 exports only; use semaprax doc or semaprax query for other projects",
+                            )
+                        } else {
+                            error
+                        }
+                    })
+                    .collect()
+            })
         }),
         "candidate-diff" => {
             let capsule = super::project_candidate::read_capsule(Path::new(
@@ -750,6 +764,18 @@ mod tests {
         assert_eq!(
             decoded.reconstructed().unwrap(),
             semaprax::graph::to_json(&program).unwrap().as_bytes()
+        );
+    }
+
+    #[test]
+    fn api_surface_on_plain_project_points_at_doc_and_query() {
+        let options = parse_inner(&args(&["api-surface", "examples/calculator-project"])).unwrap();
+        let errors = encode(&options).expect_err("plain projects have no owned-data api-surface");
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].code, "SPX-J105");
+        assert_eq!(
+            errors[0].help.as_deref(),
+            Some("api-surface describes owned-data-api.v1 exports only; use semaprax doc or semaprax query for other projects")
         );
     }
 }

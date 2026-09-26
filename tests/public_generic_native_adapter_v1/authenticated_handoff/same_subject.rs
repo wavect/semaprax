@@ -17,6 +17,8 @@ mod interpreter;
 mod lifecycle;
 #[path = "profile_hostility.rs"]
 mod profile_hostility;
+#[path = "profile_rust.rs"]
+mod profile_rust;
 #[path = "same_subject_physical.rs"]
 mod physical;
 #[path = "same_subject_rust.rs"]

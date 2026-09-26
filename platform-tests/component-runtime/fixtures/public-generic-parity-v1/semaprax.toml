@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "public-generic-component-parity-runtime"
+version = "1.0.0"
+profile = "public-generic-wasm-provider.v1"
+
+[modules]
+entry = "provider.app"
+sources = ["src/app.spx", "src/tests.spx"]
+tests = ["provider.tests"]
+
+[exports]
+web = ["provider.transform"]

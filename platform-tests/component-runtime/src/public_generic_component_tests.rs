@@ -8,6 +8,8 @@ use wasmtime::{
 
 use super::{HostResult, failure, public_generic_component_v1_bindings::PublicGenericComponentV1};
 
+mod parity;
+
 // Independent known answers for the checked-in, explicitly acquired project.
 // Replay must not accept identity claims supplied by the emitter under test.
 const EXPECTED_PUBLIC_GENERIC_COMPONENT_DIGEST: &str =

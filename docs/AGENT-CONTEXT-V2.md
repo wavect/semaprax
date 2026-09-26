@@ -120,7 +120,8 @@ execution, mutation, publication, or generic ABI authority.
 envelope-level, not per-function. When selected, the top-level
 `session_protocol_kernel` key carries a bounded summary of this compiler's
 built-in `session_protocol` reference-kernel catalog (`model_stream_protocol`,
-`resource_transaction_protocol`, `project_agent_session_protocol`): each
+`resource_transaction_protocol`, `project_agent_session_protocol`,
+`database_transaction_protocol`): each
 spec's name, declared state set, initial/terminal states, transition count,
 and whether `ProtocolSpec::validate`/bounded model-checking accept it. When
 not selected, the key is absent -- matching how `generic_instance_ownership`
@@ -131,10 +132,15 @@ emitted when selected (unlike `targets`/`diagnostics`/`tests`, which stay
 
 This is declaration-independent reference data, not a fact about the queried
 `.spx` program: no declaration in that program is consulted to produce it, no
-declaration is bound to a `ProtocolSpec`, and no runtime subsystem calls into
-that kernel's `SessionTable` -- `project_agent_session_protocol`'s own
-transcription source (`project_transport::session`) still performs its own
-hand-rolled checks. The `session_protocol_kernel.note` field carries this same
+catalog entry is bound to a `ProtocolSpec` declared in that program. Two real
+runtime subsystems run on that kernel's `SessionTable`:
+`project_transport::session` and `database_fixture`'s transaction. Earlier
+output said no runtime subsystem called into the kernel; this filtered output
+was corrected as a factual correction (#297), not a contract change. When the
+queried program itself declares a `session protocol` (#297), the object also
+carries `declared`, the same bound declaration facts the per-source graph
+emits under `session_protocols`; a program without one keeps the unchanged
+bytes. The `session_protocol_kernel.note` field carries this same
 disclosure so an agent reading raw JSON sees it without this document. See
 `src/graph/session_protocol_facet.rs` and
 [Session/protocol types v1](SESSION-PROTOCOL-TYPES-V1.md).

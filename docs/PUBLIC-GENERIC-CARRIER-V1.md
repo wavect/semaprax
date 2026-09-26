@@ -296,6 +296,105 @@ The legacy runtime's exact 7,489-byte concatenation is pinned independently.
 This is native-only, private and unpublished: no full arbitrary-body,
 cross-backend, sanitizer, hosted, or public-support acceptance follows.
 
+All three private profiles share one authenticated prepare entry. The owning
+`moves_and_allocating_profiles_reject_the_hostile_corpus_before_physical_work`
+selector drives the same seven frozen hostile-corpus recipes used for
+identity-v1 (stale, future and zero generation; provider-owned ticket;
+substituted cleanup plan; substituted leaf path; unknown leaf-kind tag)
+through the generated C11 and C++17 callers of moves-v1 (a real field-move
+body) and allocating-v1 (the allocating callee subject), plus the legacy
+flattened caller. Each must return its stable raw status (generation 8,
+ownership 7, cleanup plan and leaf path 14, leaf-kind tag and legacy flat 5)
+with zero endpoint entries and no provider allocation, consumed input, absent
+output and close-to-zero. Two omission controls per profile and language
+compile a provider without its generation check or without its cleanup-digest
+check; each must instead cross into allocation and endpoint entry. The
+selector runs 80 physical processes (two profiles, two languages, ten cases,
+O0/O2). This adds no Core Wasm comparison, sanitizer, hosted or
+public-support evidence.
+
+Generated Rust callers for moves-v1 and allocating-v1 reuse the identity-v1
+Rust caller generator. Only the crate doc profile name, the Cargo package and
+library names (`spx-pg-private-authenticated-moves-rust-v1`,
+`spx-pg-private-authenticated-allocating-rust-v1`) and the separately bound
+provider artifact differ; identity-v1 output is unchanged. The owning
+`generated_rust_moves_and_allocating_callers_admit_before_physical_handoff`
+selector checks that sharing file by file and pins each generated package's
+bytes. It builds each package offline against the actual rendered provider at
+O0/O2 and runs 48 processes: a canonical control that executes the selected
+checked body exactly once per call, with exact moved or allocated leaves and
+live allocations returning to baseline and then to zero; the seven recipes,
+projected onto the generated ticket, cleanup constant and empty-frame template;
+the legacy flattened Rust caller; and generation-check, cleanup-check and
+checked-call omission controls, which must cross into physical work or fail
+the payload oracle.
+
+The owning `native_and_core_wasm_outcomes_are_measured_side_by_side` selector
+is the explicitly measured Core Wasm comparison for the identity, moves and
+allocating subjects. A direct C ABI caller measures the native column against
+each rendered authenticated provider at O0/O2 (raw status, endpoint entries,
+provider allocation delta, live handles). Node measures the Core Wasm column
+against `emit_public_generic_wasm_provider_v1` for the same program through its
+production exports only, which have no test counters. There, endpoint entry is
+observed as an absent input handle plus a refused call on it, allocation as
+linear-memory growth, and live handles as the provider-close status. The test
+asserts the full 30-row table, including these measured differences:
+
+| Recipe | Native | Core Wasm |
+| --- | --- | --- |
+| stale, future or zero generation; provider-owned ticket; substituted cleanup plan | raw 8/8/8/7/14 before allocation or entry | No analogue: `spx_pg_v1_input_prepare` takes only (provider, frame pointer, frame length) |
+| substituted leaf path | raw 14, SPX-PG803 | raw 14, SPX-PG803 (Wasm adapter ABI v2) |
+| unknown leaf-kind tag; legacy flattened bytes | raw 5, SPX-PG801 | raw 5, SPX-PG801 |
+| any refusal, including a payload total over the input window (raw 6) | zero allocation | no handle, no dispatch and no `memory.grow`: the carrier is admitted in static memory before the private reservation |
+| lifecycle before scratch reserve | no analogue | open refuses with 7, so no provider exists; preparation with a guessed handle refuses with 8; neither traps. Preparation additionally refuses with 7 whenever the scratch range is not backed by memory |
+| canonical | executes once, settles to zero | identity, moves and allocating: identical leaves, input consumed, second call refused 8, close 0 |
+
+Three Core Wasm defects this comparison exposed are fixed in
+`src/wasm/public_generic_provider/`. The provider's owned-byte slots 7..=12
+were stubs, so the allocating subject trapped; they are now an import-free,
+invocation-local runtime (`byte_runtime.rs`) with the host runtime's carrier
+encoding and invariants. Carrier admission now precedes the private
+reservation. The standalone input payload window no longer sits 2 KiB below
+the input aggregate, which had silently overwritten payloads totalling more
+than 2 KiB; `core_wasm_large_input_payloads_match_the_interpreter` pins
+1025+1024, 1+64 KiB and 64+64 KiB inputs against the retained interpreter.
+
+### Wasm adapter ABI v2 (compiled Core Wasm provider)
+
+`WasmProviderBindingV1` names its `wasm_adapter_abi_version`. Version `v1` is
+the reference adapter lanes and every predecessor binding; its physical status
+vocabulary is exactly the closed `spx_pg_status_v1` table below (0..=13), and a
+v1 binding is never reinterpreted. Version `v2` is emitted only by the
+compiler's Core Wasm provider (`WasmProviderBindingV1::new_v2`). Its closed
+vocabulary is v1's plus one status:
+
+| Status | Restates | Meaning |
+| --- | --- | --- |
+| 14 | `SPX-PG803` | the input carrier decoded structurally and its self-digest was checked, but its semantic binding does not replay: wrong direction, descriptor identity, endpoint identity, or instance identity; a leaf-inventory digest that does not match the canonical path list; or a leaf path sequence that does not match it (missing, extra, reordered, or substituted) |
+
+This is the same raw value and meaning as native's authenticated profiles
+(`SPX_PG_AUTH_STATUS_REPLAY_MISMATCH`). `spx_pg_v1_input_prepare` classifies a
+carrier with a port of the native authenticated frame check against the same
+trusted canonical empty frame, so both targets return 5, 6 or 14 for the same
+bytes and the same reason — within the capacity each target actually admits.
+The two targets' capacity windows differ: native's authenticated profile has
+no fixed input-payload staging region and admits up to the shared carrier
+bound (`MAX_TOTAL_PAYLOAD_BYTES`, 16 MiB), while the compiled Core Wasm
+provider's private input-payload window (`MAX_INPUT_PAYLOAD_BYTES`) is a
+fixed 128 KiB inside its static scratch layout. A payload between 128 KiB and
+16 MiB is a genuine target divergence on the *same bytes*: native admits it,
+Wasm refuses it with raw 6 before any allocation. This is a scratch/window
+sizing difference, not a status-vocabulary one — both targets still use
+raw 6 for "over capacity" and raw 14 for "structurally valid but not this
+binding". The compiled provider supersedes v1: it embeds only its v2 binding, and
+a v1 binding naming the same facts fails its byte-exact binding replay at open
+with status 4 (binding replay mismatch). The generated TypeScript consumer for
+a v2 binding maps status 14 to `carrier-rejected` with reason
+`carrier-replay`, the outcome native's generated callers report as
+`CarrierRejected`; its other mappings are unchanged. Owning selectors:
+`native_and_core_wasm_outcomes_are_measured_side_by_side` and
+`generated_typescript_maps_wasm_v2_leaf_path_refusal_like_native`.
+
 ## The logical value state machine
 
 Every handle (root or leaf) is in exactly one of these states:
@@ -886,7 +985,9 @@ byte-exact `replay`) for `TargetProfile::CoreWasm` instead of
 `TargetProfile::NativeC11`. It wraps a `CarrierBindingV1` naming
 `TargetProfile::CoreWasm` unchanged, and adds exactly the facts a physical
 Wasm provider needs and the logical carrier never should:
-`wasm_adapter_abi_version` (closed to `"v1"` this round),
+`wasm_adapter_abi_version` (closed to `"v1"` or `"v2"`; see
+[Wasm adapter ABI v2](#wasm-adapter-abi-v2-compiled-core-wasm-provider) below
+for what `"v2"` adds and who emits it),
 `provider_artifact_digest`, `exported_endpoint_export_name` (a Wasm export
 name, since Wasm has no linker-visible "symbol" the way a native shared
 object does), a `compiler_backend_version` fact, and its own closed

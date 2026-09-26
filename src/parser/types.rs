@@ -3,7 +3,7 @@
 //! `parser.rs` so the grammar root stays under its module-size budget; the
 //! methods are ordinary `Parser` methods and share its private state.
 
-use crate::ast::{Type, TypeParameterDeclaration};
+use crate::ast::{Expr, ExprKind, Type, TypeParameterDeclaration};
 use crate::diagnostic::Diagnostic;
 use crate::lexer::TokenKind;
 
@@ -157,5 +157,18 @@ impl Parser {
         }
         self.expect(&TokenKind::Gt, "`>` after generic type arguments")?;
         Ok(arguments)
+    }
+}
+
+pub(super) fn expression_path(expression: &Expr) -> Option<String> {
+    match &expression.kind {
+        ExprKind::Var(name) => Some(name.clone()),
+        ExprKind::Project { base, field, .. } => {
+            let mut path = expression_path(base)?;
+            path.push('.');
+            path.push_str(field);
+            Some(path)
+        }
+        _ => None,
     }
 }

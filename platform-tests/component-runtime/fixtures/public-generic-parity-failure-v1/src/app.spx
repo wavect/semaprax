@@ -1,0 +1,36 @@
+module provider.app;
+
+@id("provider.leaf-pair")
+record LeafPair {
+    @id("provider.leaf-pair.left")
+    left: Bytes,
+    @id("provider.leaf-pair.right")
+    right: Bytes,
+}
+
+@id("provider.envelope")
+record Envelope<T> {
+    @id("provider.envelope.payload")
+    payload: T,
+}
+
+@id("provider.transform")
+fn transform(value: own Envelope<LeafPair>) -> Envelope<LeafPair>
+    requires false
+{
+    value
+}
+
+@id("provider.witness")
+fn witness(left: own Bytes, right: own Bytes) -> LeafPair
+{
+    let out = transform(Envelope<LeafPair> { payload: LeafPair { left: left, right: right } });
+    match own out { Envelope { payload: LeafPair { left: first, right: second } } => LeafPair { left: first, right: second }, }
+}
+
+@id("provider.main")
+fn main() -> i64
+{
+    let pair = witness(bytes_zeroed(1usize), bytes_zeroed(1usize));
+    0
+}

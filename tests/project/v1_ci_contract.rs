@@ -66,7 +66,7 @@ fn project_v1_cross_platform_gate_is_web_only_and_source_locked() {
         "cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1",
         "cargo test --locked -p semaprax --all-features --test project_manifest_v1 -- --test-threads=1",
         "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-        "dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772",
+        "dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de",
     ] {
         assert!(job.contains(required), "project-v1 job is missing `{required}`");
     }

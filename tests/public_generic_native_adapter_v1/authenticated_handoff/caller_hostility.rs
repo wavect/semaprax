@@ -15,13 +15,13 @@ use semaprax::{
 };
 use std::env;
 
-struct Case {
-    id: &'static str,
-    source: String,
-    raw: u8,
+pub(super) struct Case {
+    pub(super) id: &'static str,
+    pub(super) source: String,
+    pub(super) raw: u8,
 }
 
-fn replace_once(source: &str, from: &str, to: &str) -> String {
+pub(super) fn replace_once(source: &str, from: &str, to: &str) -> String {
     assert_ne!(from, to);
     assert_eq!(
         source.matches(from).count(),
@@ -35,7 +35,30 @@ fn declaration(name: &str, bytes: &[u8]) -> String {
     super::super::array(name, bytes).trim_end().to_owned()
 }
 
-fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case> {
+/// One of the seven frozen recipes, independent of the caller language that
+/// projects it; each projection edits only its generated caller's own ticket,
+/// cleanup constant or canonical empty-frame template.
+pub(super) enum Recipe {
+    Generation(Shift),
+    ProviderOwned,
+    Cleanup(&'static [u8]),
+    Empty(Vec<u8>),
+}
+
+pub(super) enum Shift {
+    Stale,
+    Future,
+    Zero,
+}
+
+pub(super) struct Hostile {
+    pub(super) id: &'static str,
+    pub(super) recipe: Recipe,
+    pub(super) raw: u8,
+}
+
+/// Returns the canonical empty input frame and the seven recipes.
+pub(super) fn recipes(descriptor: &VerifiedPublicGenericDescriptor) -> (Vec<u8>, Vec<Hostile>) {
     let plan = CarrierFrameBinding::from_verified_descriptor(descriptor, Direction::Input);
     let empty = plan
         .frame_with_leaves(
@@ -47,52 +70,26 @@ fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case
         .encode();
     let mut output = Vec::new();
     for case in hostile_corpus::cases() {
-        let (changed, raw, code) = match (case.ticket, case.mutation) {
+        let (recipe, raw, code) = match (case.ticket, case.mutation) {
             (
                 ticket @ (TicketMutation::StaleGeneration
                 | TicketMutation::FutureGeneration
                 | TicketMutation::ZeroGeneration),
                 CarrierMutation::None,
             ) => {
-                let generation = match ticket {
-                    TicketMutation::StaleGeneration => "generation - 1",
-                    TicketMutation::FutureGeneration => "generation + 1",
-                    TicketMutation::ZeroGeneration => "0",
+                let shift = match ticket {
+                    TicketMutation::StaleGeneration => Shift::Stale,
+                    TicketMutation::FutureGeneration => Shift::Future,
+                    TicketMutation::ZeroGeneration => Shift::Zero,
                     _ => unreachable!(),
                 };
-                (
-                    replace_once(
-                        source,
-                        "(consumer->provider, generation, SPX_PG_AUTH_OWNERSHIP_CALLER,",
-                        &format!(
-                            "(consumer->provider, {generation}, SPX_PG_AUTH_OWNERSHIP_CALLER,"
-                        ),
-                    ),
-                    8,
-                    "SPX-PG805",
-                )
+                (Recipe::Generation(shift), 8, "SPX-PG805")
             }
-            (TicketMutation::ProviderOwned, CarrierMutation::None) => (
-                replace_once(
-                    source,
-                    "generation, SPX_PG_AUTH_OWNERSHIP_CALLER,",
-                    "generation, SPX_PG_AUTH_OWNERSHIP_PROVIDER,",
-                ),
-                7,
-                "SPX-PG804",
-            ),
+            (TicketMutation::ProviderOwned, CarrierMutation::None) => {
+                (Recipe::ProviderOwned, 7, "SPX-PG804")
+            }
             (TicketMutation::AlternateCleanupPlan, CarrierMutation::None) => (
-                replace_once(
-                    source,
-                    &declaration(
-                        "spx_pg_ccc_auth_cleanup",
-                        descriptor.settlement().digest().as_bytes(),
-                    ),
-                    &declaration(
-                        "spx_pg_ccc_auth_cleanup",
-                        hostile_corpus::ALTERNATE_CLEANUP_PLAN_DIGEST.as_bytes(),
-                    ),
-                ),
+                Recipe::Cleanup(hostile_corpus::ALTERNATE_CLEANUP_PLAN_DIGEST.as_bytes()),
                 14,
                 "SPX-PG803",
             ),
@@ -121,22 +118,14 @@ fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case
                 assert_eq!(error.code, code);
                 // The production encoder rebuilds the payload-bearing frame and
                 // remints its digest; the injected metadata is not a fake codec.
-                (
-                    replace_once(
-                        source,
-                        &declaration("spx_pg_ccc_auth_empty", &empty),
-                        &declaration("spx_pg_ccc_auth_empty", &changed),
-                    ),
-                    raw,
-                    code,
-                )
+                (Recipe::Empty(changed), raw, code)
             }
             _ => continue,
         };
         assert_eq!(case.expected_code(), Some(code));
-        output.push(Case {
+        output.push(Hostile {
             id: case.id,
-            source: changed,
+            recipe,
             raw,
         });
     }
@@ -145,7 +134,55 @@ fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case
         7,
         "five envelope and two logical recipes must execute"
     );
-    output
+    (empty, output)
+}
+
+pub(super) fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) -> Vec<Case> {
+    let (empty, hostile) = recipes(descriptor);
+    hostile
+        .into_iter()
+        .map(|case| {
+            let changed = match &case.recipe {
+                Recipe::Generation(shift) => {
+                    let generation = match shift {
+                        Shift::Stale => "generation - 1",
+                        Shift::Future => "generation + 1",
+                        Shift::Zero => "0",
+                    };
+                    replace_once(
+                        source,
+                        "(consumer->provider, generation, SPX_PG_AUTH_OWNERSHIP_CALLER,",
+                        &format!(
+                            "(consumer->provider, {generation}, SPX_PG_AUTH_OWNERSHIP_CALLER,"
+                        ),
+                    )
+                }
+                Recipe::ProviderOwned => replace_once(
+                    source,
+                    "generation, SPX_PG_AUTH_OWNERSHIP_CALLER,",
+                    "generation, SPX_PG_AUTH_OWNERSHIP_PROVIDER,",
+                ),
+                Recipe::Cleanup(alternate) => replace_once(
+                    source,
+                    &declaration(
+                        "spx_pg_ccc_auth_cleanup",
+                        descriptor.settlement().digest().as_bytes(),
+                    ),
+                    &declaration("spx_pg_ccc_auth_cleanup", alternate),
+                ),
+                Recipe::Empty(changed) => replace_once(
+                    source,
+                    &declaration("spx_pg_ccc_auth_empty", &empty),
+                    &declaration("spx_pg_ccc_auth_empty", changed),
+                ),
+            };
+            Case {
+                id: case.id,
+                source: changed,
+                raw: case.raw,
+            }
+        })
+        .collect()
 }
 
 pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {

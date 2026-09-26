@@ -1,0 +1,28 @@
+module session_protocol.canonical.project_agent_session;
+
+@id("session_protocol.canonical.project_agent_session.main")
+fn main() -> i64 { 0 }
+
+@id("session_protocol.canonical.project_agent_session")
+session protocol "project-agent-session-v1" {
+    states { Configured, Open, Derived, Prepared, Applying, Invalidated, Uncertain, Shutdown }
+    initial Configured;
+    terminal Uncertain cleanup { release_snapshot, mark_uncertain_for_reconciliation }
+    terminal Shutdown cleanup { finish_authority }
+    on Configured open: send OpenRequest requires capability project.open -> choice { opened: Open, invalidated: Invalidated };
+    on Configured shutdown: cancel Unit -> Shutdown;
+    on Open open: send OpenRequest requires capability project.open -> choice { opened: Open, invalidated: Invalidated };
+    on Open subject_operation: send SubjectRequest requires capability project.subject -> choice { succeeded: Open, invalidated: Invalidated };
+    on Open rename_preview: send RenamePreviewRequest requires capability project.rename.preview -> choice { prepared: Prepared, invalidated: Invalidated };
+    on Open rename_derive: send RenameDeriveRequest requires capability project.rename.derive -> choice { derived: Derived, invalidated: Invalidated };
+    on Open shutdown: cancel Unit -> Shutdown;
+    on Derived change_preview: send ChangePreviewRequest requires capability project.change.preview -> choice { prepared: Prepared, invalidated: Invalidated };
+    on Derived shutdown: cancel Unit -> Shutdown;
+    on Prepared change_artifact: send ChangeArtifactRequest requires capability project.change.artifact -> choice { succeeded: Prepared, invalidated: Invalidated };
+    on Prepared apply: call ApplyRequest requires capability project.apply consumes resource -> Applying;
+    on Prepared apply_refused: fail Unit -> Invalidated;
+    on Prepared shutdown: cancel Unit -> Shutdown;
+    on Applying apply_resolved: return ApplyResult -> choice { committed: Open, rolled_back: Open, uncertain: Uncertain };
+    on Applying apply_timeout: timeout Unit -> Uncertain;
+    on Invalidated shutdown: cancel Unit -> Shutdown;
+}

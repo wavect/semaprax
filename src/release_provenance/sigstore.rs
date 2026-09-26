@@ -94,11 +94,14 @@ fn verify_immutable_repository_claims(
     };
     let certificate =
         Certificate::from_der(content.raw_bytes.as_bytes()).map_err(|_| verification_refusal())?;
-    verify_certificate_repository_claims(&certificate, expected_identity)
+    verify_certificate_repository_claims(
+        certificate.tbs_certificate().extensions(),
+        expected_identity,
+    )
 }
 
 fn verify_certificate_repository_claims(
-    certificate: &Certificate,
+    extensions: Option<&x509_cert::ext::Extensions>,
     expected_identity: &ExpectedReleaseIdentity,
 ) -> Result<(), Diagnostic> {
     for (oid, expected) in [
@@ -106,10 +109,8 @@ fn verify_certificate_repository_claims(
         ("1.3.6.1.4.1.57264.1.15", "1326961553"),
         ("1.3.6.1.4.1.57264.1.17", "47505194"),
     ] {
-        let mut matches = certificate
-            .tbs_certificate
-            .extensions
-            .as_deref()
+        let mut matches = extensions
+            .map(Vec::as_slice)
             .unwrap_or(&[])
             .iter()
             .filter(|extension| extension.extn_id.to_string() == oid);
@@ -245,39 +246,35 @@ mod tests {
         else {
             panic!("fixture must contain a certificate");
         };
-        let mut cert = Certificate::from_der(content.raw_bytes.as_bytes()).expect("fixture DER");
-        cert.tbs_certificate
-            .extensions
-            .as_mut()
+        let cert = Certificate::from_der(content.raw_bytes.as_bytes()).expect("fixture DER");
+        let mut extensions: x509_cert::ext::Extensions = cert
+            .tbs_certificate()
+            .extensions()
             .expect("fixture extensions")
-            .retain(|extension| {
-                !matches!(
-                    extension.extn_id.to_string().as_str(),
-                    "1.3.6.1.4.1.57264.1.24" | "1.3.6.1.4.1.57264.1.15" | "1.3.6.1.4.1.57264.1.17"
-                )
-            });
+            .clone();
+        extensions.retain(|extension| {
+            !matches!(
+                extension.extn_id.to_string().as_str(),
+                "1.3.6.1.4.1.57264.1.24" | "1.3.6.1.4.1.57264.1.15" | "1.3.6.1.4.1.57264.1.17"
+            )
+        });
         assert_stable_refusal(
-            verify_certificate_repository_claims(&cert, &identity()).unwrap_err(),
+            verify_certificate_repository_claims(Some(&extensions), &identity()).unwrap_err(),
         );
-        let extensions = cert.tbs_certificate.extensions.get_or_insert_with(Vec::new);
         extensions.push(extension("1.3.6.1.4.1.57264.1.24", &identity().subject));
         extensions.push(extension("1.3.6.1.4.1.57264.1.15", "1326961553"));
         extensions.push(extension("1.3.6.1.4.1.57264.1.17", "47505194"));
-        verify_certificate_repository_claims(&cert, &identity()).expect("exact immutable claims");
-        cert.tbs_certificate
-            .extensions
-            .as_mut()
-            .unwrap()
-            .push(extension("1.3.6.1.4.1.57264.1.17", "47505194"));
+        verify_certificate_repository_claims(Some(&extensions), &identity())
+            .expect("exact immutable claims");
+        extensions.push(extension("1.3.6.1.4.1.57264.1.17", "47505194"));
         assert_stable_refusal(
-            verify_certificate_repository_claims(&cert, &identity()).unwrap_err(),
+            verify_certificate_repository_claims(Some(&extensions), &identity()).unwrap_err(),
         );
-        let extensions = cert.tbs_certificate.extensions.as_mut().unwrap();
         extensions.pop();
         let last = extensions.len() - 1;
         extensions[last] = extension("1.3.6.1.4.1.57264.1.17", "other-owner");
         assert_stable_refusal(
-            verify_certificate_repository_claims(&cert, &identity()).unwrap_err(),
+            verify_certificate_repository_claims(Some(&extensions), &identity()).unwrap_err(),
         );
     }
 

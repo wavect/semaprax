@@ -141,7 +141,7 @@ pub(super) fn target_facts(revision: &ProjectRevision) -> Result<Value, Vec<Diag
                 if bytes.len() > 16 * 1024 * 1024 { return Err(capacity("Wasm target projection exceeds candidate byte budget")); }
                 wasmparser::Validator::new_with_features(wasmparser::WasmFeatures::all()).validate_all(&bytes)
                     .map_err(|_| invalid("candidate compiler-emitted Wasm failed structural validation"))?;
-                json!({"role": role, "lane": "wasm_core", "admitted": true, "bytes": bytes.len(), "digest": digest(b"semaprax.candidate.wasm-core.v1\0", &bytes), "validation": "wasmparser_structural_not_execution", "validator": "0.258.0"})
+                json!({"role": role, "lane": "wasm_core", "admitted": true, "bytes": bytes.len(), "digest": digest(b"semaprax.candidate.wasm-core.v1\0", &bytes), "validation": "wasmparser_structural_not_execution", "validator": "0.259.0"})
             }
             Err(error) => json!({"role": role, "lane": "wasm_core", "admitted": false, "diagnostic": error.code}),
         });

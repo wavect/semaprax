@@ -959,3 +959,111 @@ ABI, generated Rust/TypeScript/C/C++ execution through that actual boundary,
 complete model/caller/engine parity and hosted release evidence retain their
 own requirements. No support/publication decision or gate status is advanced
 by this private reference route.
+
+## Shared cross-engine matrix
+
+Corpus `semaprax.public-generic.settlement-matrix.v1` (issue #301) executes
+one closed case list against every engine and generated consumer that exists
+for the same checked source endpoint. The subject is the checked
+`auth.identity` export over `Pair<Bytes>`. Its two variants reuse the same
+declarations: one with `requires false`, and one with the checked allocating
+body. Every engine is built from the endpoint's exact descriptor bytes, and
+the harness asserts that equality before running anything. The owning module
+is `tests/public_generic_native_adapter_v1/settlement_matrix.rs`.
+
+This corpus is separate from the reference-fixture manifest above. Its
+subject is compiler-derived rather than a reversal fixture, and it runs the
+real authenticated native provider, the compiled Core Wasm provider, and the
+generated callers.
+
+### Engines
+
+| Column | Route |
+| --- | --- |
+| interpreter | retained-call seam over the checked export |
+| native-c11-O0, native-c11-O2 | raw authenticated provider ABI, clang C11 |
+| native-c11-asan(local) | the same raw driver under `-fsanitize=address -O1`, local only |
+| core-wasm | compiled Core Wasm provider, closed `spx_pg_v1_*` ABI in Node |
+| generated-c11, generated-rust, generated-c++17 | generated authenticated callers over the same native provider |
+| generated-typescript | generated TypeScript caller over the compiled Core Wasm provider |
+
+### Cases
+
+The corpus has 14 cases:
+
+- success with small, empty, 2048-combined-byte, 2049-combined-byte and 64 KiB-per-leaf payloads
+- a repeated three-cycle lifecycle
+- short-capacity export with untouched destination and exact retry
+- wrong-leaf-path preparation refusal (a substituted leaf path fails
+  `validate_frame`'s leaf-sequence check)
+- effect-free preparation refusal (a well-formed result frame submitted as an
+  input instead fails `validate_frame`'s earlier direction check; both refuse
+  with the same status and zero physical effects)
+- injected export failure plus injected result-leaf release failure
+- injected first preparation allocation failure
+- a checked `requires false` failure, single and repeated
+- allocating-body success
+
+### Receipts and checks
+
+Each engine prints one receipt per case, or one per cycle. A receipt holds:
+
+- the primary and secondary status
+- the returned or copied-out leaves
+- the endpoint dispatch count
+- final live resources
+- peak provider allocations/handles
+- the physical release order
+- route-specific notes, for example duplicate-call status, stale-handle
+  status, close status and consumed-input flags
+
+An engine reports `-` for anything it cannot observe; the harness does not
+infer the value.
+
+A cell passes only when every observed value matches the manifest
+expectation. In addition, the native engines (raw O0/O2/ASan and the three
+generated native callers) must report identical dispatch counts, peaks and
+release orders for the case. Release order is the settlement plan's reverse
+obligation order: input leaves in reverse, then result leaves in reverse. A
+failed native call releases only the inputs.
+
+Duplicate-call probes are passing behavior on both routes, with different
+specified values. Native consumes a call's input, so a second call is
+refused with 8 and never redispatches. Core Wasm retains a failed call's
+input without manufacturing an output handle, so one explicit recall fails
+again with the same sticky 11 before the explicit release succeeds. The
+matrix asserts the recalled 11, the release 0 and the final close 0; there
+is no dispatch observer on the compiled route.
+
+### Cell classes
+
+Every cell is one of the following:
+
+- **PASS**
+- **N/A**, with a fixed reason: frames, export buffers and injection seams
+  that a route does not expose
+- **KNOWN DEFECT**, one table row per cell naming the provider issue and the
+  failure signature that must still reproduce
+
+A known-defect row whose signature stops reproducing fails the gate. Flipping
+a cell after a provider fix means deleting its row.
+
+On this base the gate asserts an exact split of the corpus's 126 cells
+(14 cases x 9 engines): 105 pass, 0 known-defect and 21 not-applicable. The
+`KNOWN_DEFECTS` table is empty: the four #288 Core Wasm provider defects that
+previously produced its eight known-defect cells (the 2 KiB payload/aggregate
+overlap, the allocating-subject trap, the collapse of the leaf-path replay
+mismatch to raw status 5, and `memory.grow` before carrier admission) are
+fixed by the owned-byte runtime, admission-before-growth, the 128 KiB payload
+window and Wasm adapter ABI v2 status 14 (`SPX-PG803`); see
+[carrier v1](PUBLIC-GENERIC-CARRIER-V1.md#wasm-adapter-abi-v2-compiled-core-wasm-provider).
+The mechanism stays in place for the next reproducible defect.
+
+### Negative control and nonclaims
+
+A raw native caller compiled with `MX_SKIP_RESULT_RELEASE` returns correct
+bytes but must fail its `success-small` cell: live resources remain and close
+refuses. This is a permanent selector, not a one-off demonstration.
+
+The ASan column is local macOS evidence only. There is no hosted, Windows,
+TSan or publication claim, and PG-7/PG-9 status is unchanged.

@@ -1259,3 +1259,7 @@ mod applied_project_session;
 /// `SessionTable::admits`, the read-only ordering gate a migrated
 /// subsystem uses before it can name its branch.
 mod admits;
+
+/// Issue #297: declared `.spx` session protocols and the canonical-declaration
+/// drift gate.
+mod source_declarations;

@@ -93,9 +93,57 @@ The generated TypeScript package now emits canonical descriptor-bound carrier
 frames and executes the complete lifecycle against this compiler artifact.
 The hand-assembled reference module remains an explicit legacy test lane and
 cannot satisfy compiled-provider acceptance. This closes the former codec
-mismatch, but not #229's broader acceptance: hosted evidence, the full
-hostile/settlement matrix, and endpoint shapes beyond the admitted flat
-owned-`Bytes` profile remain separate.
+mismatch. The shipped generator template is unchanged for this: a dedicated
+test, `compiler_provider_artifact.rs`'s
+`generated_typescript_diagnostics_prove_the_compiled_providers_own_abi_hostility`,
+instead temporarily wraps `WebAssembly.instantiate` to capture the real,
+digest-verified `WebAssembly.Instance` the generated `Provider.open(wasm)`
+itself produces (restored in `finally`), then drives the captured
+`instance.exports.spx_pg_v1_*` and writes its `memory` directly to prove the
+module's OWN closed ABI refuses a mutated canonical frame, an
+over-capacity/out-of-bounds declared length (including 32-bit-wraparound
+arguments), and lifecycle misuse — call after close (checked at both the
+real module and, as a distinct, separately labeled case, the generated
+wrapper's own guard), export before call, release of a foreign/stale handle,
+release of an input already consumed by `call`, and double release — each at
+the module's own exact status, proven (by a real `spx_pg_v1_call` dispatch
+counter obtained from the same capture) never to reach a second physical
+dispatch, with the session remaining healthy afterward. This is a real-ABI
+hostile sample, not the full hostile/settlement matrix #229/#287's broader
+acceptance still requires; that, hosted evidence, and endpoint shapes beyond
+the admitted flat owned-`Bytes` profile remain separate.
+
+## Owned bytes, admission order and memory layout
+
+Aggregate lowering reserves slots 7..=12 for the owned-byte operations a
+legacy module imports from its host. The provider implements them itself in
+`src/wasm/public_generic_provider/byte_runtime.rs` with the host runtime's
+carrier encoding (owned token, byte-range descriptor, and a fixed view of at
+most 64 KiB inside the first 128 KiB), trapping where the host import would
+throw. It differs from the browser host only where a checked Bytes-only
+endpoint cannot reach: the host also admits a String-profile literal window
+the provider has no use for, and it caps 16 live owned entries with token
+reuse where the provider issues up to 1023 per invocation without reuse.
+Storage is invocation-local: each `spx_pg_v1_call` resets the heap, presents
+the two prepared input leaves as owned tokens, and resolves result carriers
+before encoding. The heap covers two input tokens plus every bounded
+allocation site and twice the checked cumulative owned-payload limit, so
+exhausting it is an invariant defect.
+
+`spx_pg_v1_open` already refuses with status 7 before scratch reserve, so a
+live provider implies a backed scratch range; `spx_pg_v1_input_prepare`
+nevertheless refuses with status 7 unless the scratch range is backed by
+memory, rather than ever reading unbacked memory. It then classifies
+the complete carrier in static memory (see the Wasm adapter ABI v2 section of
+the carrier specification) and checks the admitted payload total against the
+private input window, all before it grows memory for the private region. A
+refused carrier, including a capacity refusal, performs no `memory.grow`,
+issues no handle and dispatches nothing. The standalone input payload window
+is a dedicated 128 KiB region (two 64 KiB leaves) placed after every
+predecessor region, as is the heap.
+
+The provider's binding uses Wasm adapter ABI `v2`; its status vocabulary adds
+raw 14 (`SPX-PG803`) to the closed v1 set. A v1 binding cannot open it.
 
 ## Private lifecycle admission
 

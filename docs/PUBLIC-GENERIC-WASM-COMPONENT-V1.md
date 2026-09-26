@@ -107,6 +107,68 @@ WIT projection, compatibility reports, and Wasm provider v1 remain
 independently versioned. Adding this callable artifact does not change their
 bytes or imply compatibility with other WIT/component producers.
 
+## Host admission and differential conformance
+
+This section adds no new calling convention: the v1 `adapter` interface
+above stays byte-for-byte unchanged. It fixes how a host binds and checks a
+Component for one checked source endpoint.
+
+Descriptor binding is enforced before instantiation. A host adapter admits
+candidate Component bytes only after
+`replay_public_generic_wasm_component_v1` on the retained revision re-derives
+the identical Component from the compiler-owned provider and all three
+claimed identities (Component, descriptor, provider) match, and after the raw
+Component SHA-256 matches an independently pinned value. A Component derived
+from another revision of the same stable declarations, or presented under
+another endpoint's descriptor digest, is refused before `Component::new`; it
+is never instantiated and never called. Inside the Component, every `invoke`
+still opens the embedded checked provider with its embedded descriptor and
+binding, so a guest cannot run the provider against a different descriptor.
+The standalone Core provider refuses a stale descriptor at
+`spx_pg_v1_open`, before any input is staged.
+
+Result and error mapping for the admitted two-leaf owned-`Bytes` subject:
+
+| Endpoint outcome | Interpreter (retained call) | Core provider | Component |
+| --- | --- | --- | --- |
+| success | owned `LeafPair` record, two settled leaves | status `0`, result carrier | `ok((leaf 0, leaf 1))` |
+| checked `requires`/`ensures` failure | contract status, zero settled leaves | status `11` (contract) | `err(contract-violation)` |
+| provider or codec refusal | not applicable | nonzero refusal status | `err(resource-or-provider-refusal)` |
+| resource-slot exhaustion, list above 64 KiB | not applicable | not applicable | trap (no enum case) |
+
+Ownership settlement: both `own` inputs are consumed exactly once by
+`invoke` on every success and error path; the caller owns both result
+resources and must drop them. After any call returns, all 64 fixed resource
+slots can be held live simultaneously, which proves that neither inputs nor
+provider state leaked. A trap is not a typed failure; its Store is discarded
+and a fresh instance of the same Component is usable. The Component has zero
+imports, so guest-to-host re-entry is structurally impossible; sequential
+calls on one instance are ordinary re-entry and are exercised.
+
+Local differential evidence uses the checked-in
+`platform-tests/component-runtime/fixtures/public-generic-parity-v1` Project,
+whose endpoint swaps its two leaves (a non-identity body), and
+`public-generic-parity-failure-v1`, whose endpoint has `requires false`.
+Each Project also carries a monomorphic `provider.witness(left, right)`
+adapter that builds the endpoint's owned `Envelope<LeafPair>`, calls the
+endpoint and returns its `LeafPair`; the reference interpreter evaluates it
+through its retained-call seam. For each input the interpreter, the
+standalone compiled Core provider (driven through its closed `spx_pg_v1_*`
+ABI in Wasmtime 47.0.4) and the Component (typed Component Model bindings,
+Wasmtime 47.0.4) must return identical leaves or the identical checked
+contract failure. A Component skipping descriptor-bound admission fails the
+selector: the negative control was run once and reverted.
+
+The same harness found a standalone Core provider defect: when the two input
+payloads together exceed 2048 bytes, the provider's input aggregate record
+overwrites payload bytes and the call still reports success. The
+Component-specific provider layout does not share the overlap. Three-way
+agreement is therefore gated for inputs up to exactly 2048 combined bytes.
+Interpreter and Component agreement is gated through the 64 KiB per-leaf
+bound. The ignored selector
+`large_payload_core_provider_matches_component_and_interpreter` reproduces
+the defect and becomes the Core gate once the provider is fixed.
+
 ## Evidence and nonclaims
 
 The current local evidence includes deterministic retained-revision
@@ -139,9 +201,10 @@ The trapped instance is not claimed to support destructor re-entry; its Store
 is discarded. This is local failure-path and saturation evidence, not
 cross-target parity.
 
-Interpreter/native C11 `-O0`/`-O2`/Core-Wasm differential parity,
-stale descriptor/provider runtime bindings and broader resource/payload
-hostile cases remain unclaimed and outside this focused selector. The
+Native C11 `-O0`/`-O2` parity, Core-Wasm parity above 2048 combined input
+bytes, and broader resource/payload hostile cases remain unclaimed. The
+interpreter/Core/Component differential and host-side stale-descriptor
+refusal described above are the only cross-engine claims. The
 retained artifact replay test rejects mutated Component bytes and mismatched
 provider-digest metadata. It also refuses old Component bytes after an
 authenticated source-body change with stable declaration identities, then

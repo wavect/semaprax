@@ -7,6 +7,12 @@ use sha2::{Digest, Sha256};
 /// Render the pre-v34 graph contract, for consumers with frozen versioned bytes.
 /// This retains validation and does not grant admission to any new source shape.
 pub fn to_legacy_json(program: &Program) -> Result<String, Vec<Diagnostic>> {
+    if !program.session_protocols.is_empty() {
+        return Err(vec![Diagnostic::io(
+            "SPX-G411",
+            "session protocol declarations require Graph v48",
+        )]);
+    }
     let resolved = hir::resolve(program)?;
     hir::validate(&resolved).map_err(|e| vec![e])?;
     let functions = resolved

@@ -512,37 +512,44 @@ the metadata consumer's identifier scheme (lowercase hex of identity bytes),
 and it targets — never reimplements or modifies — the Core Wasm physical
 adapter ([issue #155](PUBLIC-GENERIC-CARRIER-V1.md#core-wasm-physical-adapter-issue-155)).
 
-**A load-bearing honest limitation, stated once here.** Unlike the Rust
-calling consumer above, which links against a genuinely *compiled* native
-provider artifact (`native/provider_body.c`, built into a real static
-library), issue #155's Core Wasm physical adapter
-(`public_generic_abi::wasm::provider::WasmProvider`) has never been compiled
-to an actual `.wasm` binary exposing an
-open/input_prepare/call/result_export/release ABI a JS host could
-`WebAssembly.instantiate` and call — it is a Rust struct exercised only
-in-process by Rust test code (`wasm/provider/tests.rs`). No
-`#[no_mangle] extern "C"` export and no compiled Wasm artifact for this
-protocol exists anywhere in this repository. The one genuinely real, named
-Wasm export issue #155 *does* define is
-`FIXTURE_ENDPOINT_EXPORT_NAME` (`"spx_pg_wasm_endpoint_reverse_bytes_v1"`),
-previously proven only by `reverse_probe.mjs`'s narrower, handle-free
-memory-primitive script (real `WebAssembly.Memory`, with the reversal itself
-done in JavaScript, not in compiled Wasm bytecode).
+**Two routes, one generated file, updated for #229/#287.** Issue #155's own
+Core Wasm physical adapter (`public_generic_abi::wasm::provider::WasmProvider`)
+is still exactly what it always was: a Rust struct exercised only in-process
+by Rust test code (`wasm/provider/tests.rs`), never compiled to a `.wasm`
+binary. That specific struct is not the compiled provider described below,
+and this document does not claim otherwise. Separately, issues #229/#287
+shipped a genuinely different, genuinely *compiled* closed Core Wasm
+artifact (`src/wasm/public_generic_provider`, emitted by
+`emit_public_generic_wasm_provider_v1`) that does expose a real
+open/input_prepare/call/result_export/value_release/result_release/
+provider_close ABI with zero ambient imports, and this SAME generated
+`wasm-provider.ts` already has a second, internal (not exported from the
+generated package's public surface) class, `CompiledProvider`, that
+delegates its entire lifecycle to those exports — canonical Logical Carrier
+v1 frame encode/decode included — rather than keeping allocation, handles or
+dispatch host-side. `Provider.open()` returns whichever route the binding
+selects; only `Provider`'s own public shape (`transform`/`close`/
+`settlement`) is exposed either way.
 
-This generator's `wasm-provider.ts` therefore keeps the allocator, handle
-registry, and call-lifecycle state **host-side, in generated TypeScript** —
-a bounded exact-LIFO bump allocator and a private, `#`-branded handle
-registry, mirroring `reverse_probe.mjs`'s own host-owned bookkeeping over
-real `WebAssembly.Memory` rather than sharing any code with
-`WasmProvider` — and calls into real, genuinely compiled Wasm bytecode only
-for that one already-named endpoint export, operating in place on real
-linear memory this wrapper allocates, writes, and later zeroes on release.
-It never touches `src/public_generic_abi/wasm/**`. This is real Wasm
-execution with owned copy-out, but it does not (and cannot yet) prove a
-full compiled-provider open/call/close ABI, because no such compiled
-artifact exists. See `src/public_generic_consumer/typescript_calling.rs`'s
-own module documentation for the identical accounting in the generator's
-own doc comments.
+The host-owned `Provider` class this section otherwise describes remains
+exactly as before: its allocator, handle registry, and call-lifecycle state
+stay **host-side, in generated TypeScript** — a bounded exact-LIFO bump
+allocator and a private, `#`-branded handle registry, mirroring
+`reverse_probe.mjs`'s own host-owned bookkeeping over real
+`WebAssembly.Memory` rather than sharing any code with `WasmProvider` — and
+it calls into real, genuinely compiled Wasm bytecode only for the one
+already-named fixture endpoint export, operating in place on real linear
+memory this wrapper allocates, writes, and later zeroes on release. It never
+touches `src/public_generic_abi/wasm/**`, and it remains the explicitly
+selected route for the reference/fixture and settlement corpora described
+below — `WasmProviderBindingV1::exported_endpoint_export_name` selects
+between the two classes; there is no fallback between them. See
+`src/public_generic_consumer/typescript_calling.rs`'s own module
+documentation, and
+[PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md](PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md),
+for the compiled route's own accounting; `tests/public_generic_wasm_adapter_v1/compiler_provider_artifact.rs`
+is the compiled route's real-execution and hostile-lifecycle evidence, not
+this fixture-only harness.
 
 **What is generated versus hand-written.** Every file below is produced by
 `generate_typescript_calling_consumer(descriptor_bytes, binding, input,
@@ -557,7 +564,7 @@ src/errors.ts         -- fixed template; closed discriminated error union and re
 src/descriptor.ts     -- embeds trusted descriptor/binding bytes; bounded twelve-field descriptor replay plus Web-Crypto module-artifact verification
 src/types.ts          -- Input/Output interfaces, one readonly Uint8Array field per leaf, field order preserved
 src/carrier.ts         -- Logical Carrier v1 codec for exactly FIELD_COUNT leaves, BigInt-exact leaf-count/length handling
-src/wasm-provider.ts   -- fixed template; the host-owned allocator/registry/lifecycle wrapper and the safe Provider API
+src/wasm-provider.ts   -- fixed template; the host-owned allocator/registry/lifecycle wrapper (`Provider`) plus the compiled-provider ABI wrapper (`CompiledProvider`, #229/#287), selected by the binding's endpoint export name
 src/index.ts           -- fixed template; re-exports Provider, Input/Output, errors and settlement report types
 test/round-trip.mjs    -- sampleInput/assertReversed/per-leaf-bound/failure-matrix tests, generated per shape
 ```
@@ -661,7 +668,8 @@ aggregate bound with 256 owned 64 KiB leaves (exactly 16 MiB) through input
 encoding, the test-only Wasm endpoint, result decoding, and copy-out; mutating
 only the generated total budget to one byte less refuses that same input before
 endpoint dispatch or a live allocation. This is consumer evidence over the
-fixture endpoint, not evidence for the missing compiled provider ABI. The
+fixture endpoint and the host-owned `Provider` route, not evidence for the
+`CompiledProvider` route's own ABI (see the two-routes note above). The
 TypeScript aggregate pair was added after the recorded hosted milestone run,
 so it is current local evidence rather than a backdated hosted claim.
 
@@ -677,12 +685,15 @@ before executing them. That bridge must be run before claiming generator proof. 
 trusted descriptor bytes are a canonical encoded Descriptor-v1 test fixture,
 not derived from a real checked generic export. Most importantly: this proves the generated consumer's own
 real execution, exact-copy-out, exact-integer carrier decoding, and exact
-settlement against real Wasm bytecode; it does not prove a compiled
-open/input_prepare/call/result_export/release Wasm provider ABI, because
-issue #155 has not shipped one — see the load-bearing limitation above. The
-`reference_wasm_module` fixture this harness compiles is a test-only stand-in
-for that missing artifact, not a claim that #155's protocol has been
-compiled to Wasm.
+settlement against real Wasm bytecode; this specific harness targets only
+the fixture endpoint and the host-owned `Provider` route, so it does not by
+itself prove the compiled open/input_prepare/call/result_export/release Wasm
+provider ABI issues #229/#287 shipped separately (see the two-routes note
+above and `compiler_provider_artifact.rs` for that route's own evidence).
+Issue #155's own `WasmProvider` struct remains uncompiled, as stated above.
+The `reference_wasm_module` fixture this harness compiles is, and remains, a
+test-only stand-in used deliberately by this fixture/settlement lane, not a
+claim that #155's protocol has been compiled to Wasm.
 
 ## C++17 calling consumer (issue #159)
 
@@ -978,17 +989,27 @@ every section above already states: every terminal native case asserts
 provider's OWN test-only counters, reached through each consumer's own
 accessor, never a consumer's own bookkeeping. The TypeScript route's
 "provider" here is `Provider.diagnostics.liveAllocations` — this is the
-generated `wasm-provider.ts`'s own host-side bookkeeping, since (see below)
-no independent compiled provider exists yet to hold a separate counter.
+generated `wasm-provider.ts`'s own host-side bookkeeping for its
+host-owned `Provider` route, deliberately selected by this corpus (see
+below); the same file's separate `CompiledProvider` route delegates to
+issue #229/#287's own compiled provider artifact instead, but this shared
+corpus does not exercise that route.
 
 **Known gaps, not fixed here, not duplicated:**
 
-- **#229**: this Wasm shared-corpus test runs against the SAME hand-assembled,
-  clearly test-only `reference_wasm_module` the sibling TypeScript harness
-  uses — one real endpoint export over real `WebAssembly.Memory`, never a
-  second provider implementation — so the TypeScript route in this shared
-  corpus cannot honestly be said to exercise a real provider ABI, only the
-  generated consumer's own codec/lifecycle logic against it.
+- **#229/#287**: a genuinely compiled provider ABI now exists
+  (`src/wasm/public_generic_provider`) and the generated
+  `CompiledProvider` route in this same TypeScript generator proves it
+  (`tests/public_generic_wasm_adapter_v1/compiler_provider_artifact.rs`).
+  This Wasm shared-corpus test intentionally continues to run against the
+  SAME hand-assembled, clearly test-only `reference_wasm_module` the
+  sibling TypeScript harness uses — one real fixture endpoint export over
+  real `WebAssembly.Memory`, never the compiled provider — so the
+  TypeScript route in THIS shared corpus specifically still exercises only
+  the generated consumer's own codec/lifecycle logic against the fixture,
+  not the compiled provider ABI; that is by design (explicit reference
+  selection, matching the native trio's own untouched fixtures), not a
+  remaining gap in #229/#287 itself.
 - **#119**: flat owned-`Bytes` leaves only; the shared corpus's
   single-field `RecordShape` carries the same limitation every consumer
   section above already states, not a new one.
@@ -1132,7 +1153,14 @@ issue #229," and its final summary states plainly that three of the four
 callers execute against a genuinely compiled provider artifact today (Rust,
 C11, C++17) while the fourth executes only against
 `tests/public_generic_wasm_adapter_v1/reference_wasm_module.rs`'s
-hand-assembled stand-in, pending #229. Run it with:
+hand-assembled stand-in. That fourth caller's own selected headline test
+predates #229/#287's now-shipped compiled provider and this aggregate script
+was not updated to add a fifth, compiled-provider selection, so its printed
+claim about the fourth caller remains accurate for what it runs, not a claim
+that #229/#287 is unimplemented: the compiled provider now exists and is
+proven separately, outside this aggregate, by
+`tests/public_generic_wasm_adapter_v1/compiler_provider_artifact.rs`. Run it
+with:
 
 ```sh
 sh tests/public_generic_native_adapter_v1/run_all_four_callers.sh
@@ -1140,7 +1168,8 @@ sh tests/public_generic_native_adapter_v1/run_all_four_callers.sh
 
 Exit code 0 means the three native callers passed and, when `node`/`tsc`
 were available, the TypeScript/Wasm caller also passed against its stand-in
-module — never that a real compiled Wasm provider ABI was exercised.
+module — never that this specific script exercised the compiled Wasm
+provider ABI.
 
 ## Cross-engine settlement corpus (issue #162)
 
@@ -1190,11 +1219,15 @@ behavior on interpreter, native C11, and Core Wasm" is evidenced today as two
 engines directly compared plus a third proven independently, not as one
 three-way comparison. `WasmProvider` itself is the same in-process Rust
 adapter the TypeScript/Wasm calling consumer above does **not** use — that
-consumer targets real compiled Wasm bytecode via a hand-assembled stand-in
-module (issue #229), while this corpus never leaves the Rust process — so the
-two "Wasm" claims in this document are evidence of different things and
-should not be conflated. Peak allocation/handle counts are not compared,
-only final (post-terminal) counts, since neither adapter tracks a peak.
+consumer's fixture/settlement route targets real compiled Wasm bytecode via
+a hand-assembled stand-in module, distinct from the compiled provider
+artifact issues #229/#287 shipped separately (see the two-routes note in
+the TypeScript/Wasm calling consumer section above) — while this corpus
+never leaves the Rust process — so the "Wasm" claims across this document
+are evidence of three different things (`WasmProvider` in-process, the
+fixture stand-in, and the #229/#287 compiled provider) and should not be
+conflated. Peak allocation/handle counts are not compared, only final
+(post-terminal) counts, since neither adapter tracks a peak.
 
 **Execution evidence.** Verified directly for this update:
 `cargo test --locked -p semaprax --lib

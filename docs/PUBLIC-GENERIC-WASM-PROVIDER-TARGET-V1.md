@@ -93,9 +93,25 @@ The generated TypeScript package now emits canonical descriptor-bound carrier
 frames and executes the complete lifecycle against this compiler artifact.
 The hand-assembled reference module remains an explicit legacy test lane and
 cannot satisfy compiled-provider acceptance. This closes the former codec
-mismatch, but not #229's broader acceptance: hosted evidence, the full
-hostile/settlement matrix, and endpoint shapes beyond the admitted flat
-owned-`Bytes` profile remain separate.
+mismatch. The shipped generator template is unchanged for this: a dedicated
+test, `compiler_provider_artifact.rs`'s
+`generated_typescript_diagnostics_prove_the_compiled_providers_own_abi_hostility`,
+instead temporarily wraps `WebAssembly.instantiate` to capture the real,
+digest-verified `WebAssembly.Instance` the generated `Provider.open(wasm)`
+itself produces (restored in `finally`), then drives the captured
+`instance.exports.spx_pg_v1_*` and writes its `memory` directly to prove the
+module's OWN closed ABI refuses a mutated canonical frame, an
+over-capacity/out-of-bounds declared length (including 32-bit-wraparound
+arguments), and lifecycle misuse — call after close (checked at both the
+real module and, as a distinct, separately labeled case, the generated
+wrapper's own guard), export before call, release of a foreign/stale handle,
+release of an input already consumed by `call`, and double release — each at
+the module's own exact status, proven (by a real `spx_pg_v1_call` dispatch
+counter obtained from the same capture) never to reach a second physical
+dispatch, with the session remaining healthy afterward. This is a real-ABI
+hostile sample, not the full hostile/settlement matrix #229/#287's broader
+acceptance still requires; that, hosted evidence, and endpoint shapes beyond
+the admitted flat owned-`Bytes` profile remain separate.
 
 ## Private lifecycle admission
 

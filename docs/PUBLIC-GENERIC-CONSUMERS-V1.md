@@ -523,10 +523,13 @@ artifact (`src/wasm/public_generic_provider`, emitted by
 `emit_public_generic_wasm_provider_v1`) that does expose a real
 open/input_prepare/call/result_export/value_release/result_release/
 provider_close ABI with zero ambient imports, and this SAME generated
-`wasm-provider.ts` now has a second exported class,
-`CompiledProvider`, that delegates its entire lifecycle to those exports —
-canonical Logical Carrier v1 frame encode/decode included — rather than
-keeping allocation, handles or dispatch host-side.
+`wasm-provider.ts` already has a second, internal (not exported from the
+generated package's public surface) class, `CompiledProvider`, that
+delegates its entire lifecycle to those exports — canonical Logical Carrier
+v1 frame encode/decode included — rather than keeping allocation, handles or
+dispatch host-side. `Provider.open()` returns whichever route the binding
+selects; only `Provider`'s own public shape (`transform`/`close`/
+`settlement`) is exposed either way.
 
 The host-owned `Provider` class this section otherwise describes remains
 exactly as before: its allocator, handle registry, and call-lifecycle state

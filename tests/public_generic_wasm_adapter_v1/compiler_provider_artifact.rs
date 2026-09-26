@@ -598,17 +598,29 @@ console.log("GENERATED COMPILED FAILURE INPUT RELEASE PASS");
     );
 }
 
-/// #287: the reference lifecycle test above proves the generated wrapper's
-/// OWN busy/close bookkeeping. This test instead uses the generated
-/// package's `CompiledProvider.diagnostics` test-only escape hatch -- still
-/// only the closures this class captured at `open()`, never a hand-written
-/// re-read of `instance.exports` -- to drive the compiled provider's OWN
-/// closed Wasm ABI directly: a mutated frame shape, an over-capacity
-/// declared length, and lifecycle misuse (export before call, release of a
-/// foreign/stale handle, double release, and a handle foreign to a second,
-/// simultaneously live provider instance) must each refuse at the exact
-/// status the module itself assigns, with no leaked live handle and no
-/// second physical dispatch, and the session must remain healthy afterward.
+/// #287: the reference lifecycle test above proves the generated WRAPPER's
+/// OWN busy/close bookkeeping. This test instead proves the compiled
+/// provider's OWN closed Wasm ABI refuses the same hostility directly, with
+/// no change to the shipped generator template: it temporarily wraps
+/// `WebAssembly.instantiate` (the same pattern already used above, around
+/// line 400) to capture the real `WebAssembly.Instance` -- and, via its own
+/// exports proxy, the real provider id `spx_pg_v1_open` returns and a count
+/// of every real `spx_pg_v1_call` dispatch -- while still calling the
+/// generated `Provider.open(wasm)` so digest verification and
+/// descriptor/binding replay are exercised exactly as generated. It then
+/// drives the captured `instance.exports.spx_pg_v1_*` and writes
+/// `instance.exports.memory` directly, bypassing only the safe wrapper's own
+/// bookkeeping, never the module's authentication. A mutated frame shape,
+/// over-capacity/out-of-bounds declared lengths (including 32-bit-wrap
+/// arguments), and lifecycle misuse (export before call, release of a
+/// foreign/stale handle, release of an input already consumed by `call`,
+/// double release, and close) each refuse at the module's own exact status,
+/// proven never to reach a second real `spx_pg_v1_call` dispatch by the
+/// captured counter, and the session remains healthy (a genuine `transform`
+/// still succeeds) after every non-terminal refusal. The final case also
+/// keeps a SEPARATE, explicitly labeled wrapper-level close check: the
+/// generated wrapper's own `#closed` guard must refuse locally too, without
+/// re-touching the already-closed module.
 #[test]
 fn generated_typescript_diagnostics_prove_the_compiled_providers_own_abi_hostility() {
     assert!(
@@ -673,112 +685,144 @@ fn generated_typescript_diagnostics_prove_the_compiled_providers_own_abi_hostili
         format!(
             r#"import assert from "node:assert/strict";
 import {{ readFileSync }} from "node:fs";
-import {{ Provider, CompiledProvider }} from "../dist/wasm-provider.js";
+import {{ Provider }} from "../dist/index.js";
+import {{ encodeCanonicalInput }} from "../dist/carrier.js";
 import {{ SemapraxPublicGenericException }} from "../dist/errors.js";
 const wasm = readFileSync(process.argv[2]);
 const left = "{left}", right = "{right}";
-const D = CompiledProvider.diagnostics;
 function fresh() {{ return {{ [left]: Uint8Array.from([1, 2]), [right]: Uint8Array.from([7, 8, 9]) }}; }}
 function assertSwap(output) {{
   assert.deepEqual([...output[left]], [7, 8, 9]);
   assert.deepEqual([...output[right]], [1, 2]);
 }}
+function lane(raw) {{ return {{ status: Number(raw & 0xffffffffn), value: Number((raw >> 32n) & 0xffffffffn) }}; }}
 
-// call after close: the generated wrapper refuses locally; the closed module is never re-dispatched.
-{{
+// Capture the REAL instantiated module (and, via its own exports proxy, the
+// real provider id `spx_pg_v1_open` returns and a count of every real
+// `spx_pg_v1_call` dispatch) while still letting the generated `Provider.open`
+// perform its own digest verification and descriptor/binding replay. Restored
+// in `finally`; production bytes are never edited.
+const originalInstantiate = WebAssembly.instantiate;
+let instance = null;
+let providerId = 0;
+let callCount = 0;
+WebAssembly.instantiate = async (...args) => {{
+  instance = await Reflect.apply(originalInstantiate, WebAssembly, args);
+  return {{ exports: new Proxy({{}}, {{
+    get(_target, property) {{
+      const value = Reflect.get(instance.exports, property);
+      if (property === "spx_pg_v1_open" && typeof value === "function") {{
+        return (...openArgs) => {{
+          const raw = Reflect.apply(value, instance.exports, openArgs);
+          providerId = lane(raw).value;
+          return raw;
+        }};
+      }}
+      if (property === "spx_pg_v1_call" && typeof value === "function") {{
+        return (...callArgs) => {{ callCount += 1; return Reflect.apply(value, instance.exports, callArgs); }};
+      }}
+      return value;
+    }},
+  }}) }};
+}};
+
+try {{
   const provider = await Provider.open(wasm);
+  assert.ok(instance, "the real module must have been instantiated");
+  assert.notEqual(providerId, 0, "the real open() call must have been observed and returned a live provider id");
+
+  // Baseline: a genuine call through the safe wrapper works, and is the only
+  // real endpoint dispatch this whole hostile block records so far. This
+  // block's own later raw `spx_pg_v1_call` invocation goes through
+  // `realCall` below so it is counted on the SAME `callCount`, not just the
+  // wrapper's proxied path -- one total, whichever caller dispatched it.
+  function realCall(input) {{ callCount += 1; return lane(instance.exports.spx_pg_v1_call(providerId, input)); }}
   assertSwap(provider.transform(fresh()));
+  assert.equal(callCount, 1, "the baseline call is the only real endpoint dispatch so far");
+
+  const scratch = instance.exports.spx_pg_v1_scratch_ptr();
+  const capacity = instance.exports.spx_pg_v1_scratch_capacity();
+
+  // bounds/over-capacity: the compiled ABI's OWN scratch-bound check, on the
+  // real module, refuses a declared length or pointer outside the fixed
+  // scratch range -- including 32-bit-wraparound arguments -- before any
+  // input is considered live, so none of these reach the busy check either.
+  assert.equal(lane(instance.exports.spx_pg_v1_input_prepare(providerId, scratch, capacity + 1)).status, 6,
+    "an over-capacity declared length must refuse as bounded");
+  assert.equal(lane(instance.exports.spx_pg_v1_input_prepare(providerId, scratch - 1, 8)).status, 6,
+    "a pointer before the fixed scratch range must refuse as bounded");
+  assert.equal(lane(instance.exports.spx_pg_v1_input_prepare(providerId, 0xffffffff, 2 ** 31)).status, 6,
+    "32-bit-wraparound pointer/length arguments must still refuse as bounded, never trap or wrap into range");
+
+  // mutated frame shape: a single byte flipped inside the trailing self-digest
+  // field's hex content (the last-appended `framed(digest(FRAME_DOMAIN, body))`
+  // field, which the compiled codec recomputes from the preceding bytes and
+  // compares exactly) is refused as malformed by the compiled provider's OWN
+  // carrier codec, never accepted.
+  const bytes = encodeCanonicalInput(fresh());
+  const corrupted = bytes.slice();
+  corrupted[corrupted.length - 30] ^= 0xff;
+  new Uint8Array(instance.exports.memory.buffer).set(corrupted, scratch);
+  assert.equal(lane(instance.exports.spx_pg_v1_input_prepare(providerId, scratch, corrupted.length)).status, 5,
+    "a structurally mutated frame must refuse as malformed, not accepted");
+
+  // None of the refusals above left a live input, and none dispatched the
+  // endpoint: the session is still healthy for a genuine call.
+  assertSwap(provider.transform(fresh()));
+  assert.equal(callCount, 2, "the bounds/shape refusals above must never have dispatched the endpoint");
+
+  // Lifecycle misuse against the real compiled ABI: export before call,
+  // release of a foreign/stale handle, release of an input already consumed
+  // by `call`, and double release must each refuse without leaking state or
+  // ever reaching a second real dispatch.
+  new Uint8Array(instance.exports.memory.buffer).set(bytes, scratch);
+  const prepared = lane(instance.exports.spx_pg_v1_input_prepare(providerId, scratch, bytes.length));
+  assert.equal(prepared.status, 0);
+
+  assert.equal(lane(instance.exports.spx_pg_v1_result_export(prepared.value, scratch, 0)).status, 8,
+    "exporting an unfilled input handle as a result must refuse");
+  assert.equal(instance.exports.spx_pg_v1_result_release(999999), 8, "releasing a foreign result handle must refuse");
+  assert.equal(instance.exports.spx_pg_v1_value_release(999999), 8, "releasing a foreign input handle must refuse");
+  assert.equal(callCount, 2, "export-before-call and foreign-handle releases must never dispatch the endpoint");
+
+  const called = realCall(prepared.value);
+  assert.equal(called.status, 0);
+  assert.equal(callCount, 3, "exactly one real endpoint dispatch for this prepared input");
+  const result = called.value;
+
+  assert.equal(instance.exports.spx_pg_v1_value_release(prepared.value), 8,
+    "releasing an input handle already consumed by call must refuse, not double-dispatch");
+  assert.equal(instance.exports.spx_pg_v1_result_release(result), 0, "the real first release must succeed");
+  assert.equal(instance.exports.spx_pg_v1_result_release(result), 8,
+    "a second release of the same handle must refuse, not double-dispatch");
+  assert.equal(callCount, 3, "release/double-release misuse must never dispatch the endpoint");
+
+  assertSwap(provider.transform(fresh()));
+  assert.equal(callCount, 4);
+
+  // Call after close, at the real module level: close the real provider (via
+  // the safe wrapper, which invokes the one real `spx_pg_v1_provider_close`),
+  // then prove the module's OWN ABI refuses further input preparation.
   provider.close();
+  assert.equal(lane(instance.exports.spx_pg_v1_input_prepare(providerId, scratch, bytes.length)).status, 8,
+    "input preparation after the real module close must refuse");
+  assert.equal(callCount, 4, "a refused prepare after a real close must never reach the endpoint");
+
+  // Call after close, at the WRAPPER level (a separate, explicitly labeled
+  // check): the generated wrapper's own `#closed` guard must refuse locally
+  // too, without ever re-touching the already-closed module.
   assert.throws(
     () => provider.transform(fresh()),
     error => error instanceof SemapraxPublicGenericException
       && error.detail.kind === "carrier-rejected" && error.detail.reason === "provider-closed",
-    "transform after close must refuse without touching the closed module again",
+    "transform after close must refuse at the wrapper level too, without touching the closed module again",
   );
+  assert.equal(callCount, 4, "the wrapper-level closed refusal must never reach the endpoint");
+
+  console.log("GENERATED COMPILED PROVIDER ABI HOSTILITY PASS");
+}} finally {{
+  WebAssembly.instantiate = originalInstantiate;
 }}
-
-// bounds/over-capacity: the compiled ABI's own scratch-bound check refuses a
-// declared length or pointer outside the fixed scratch range, and the
-// session remains healthy for a genuine call right after.
-{{
-  const provider = await Provider.open(wasm);
-  const scratch = D.scratchPointer(provider), capacity = D.capacityBytes(provider);
-  const overCapacity = D.prepareRaw(provider, scratch, capacity + 1);
-  assert.equal(overCapacity.status, 6, "an over-capacity declared length must refuse as bounded");
-  assert.equal(overCapacity.value, 0);
-  const underRange = D.prepareRaw(provider, scratch - 1, 8);
-  assert.equal(underRange.status, 6, "a pointer before the fixed scratch range must refuse as bounded");
-  assertSwap(provider.transform(fresh()));
-  provider.close();
-}}
-
-// mutated frame shape: a single byte-flipped canonical frame is refused as
-// malformed by the compiled provider's OWN carrier codec, never accepted.
-{{
-  const provider = await Provider.open(wasm);
-  const scratch = D.scratchPointer(provider);
-  const bytes = D.encodeInput(fresh());
-  const corrupted = bytes.slice();
-  corrupted[corrupted.length - 30] ^= 0xff;
-  D.writeScratch(provider, corrupted);
-  const prepared = D.prepareRaw(provider, scratch, corrupted.length);
-  assert.equal(prepared.status, 5, "a structurally mutated frame must refuse as malformed, not accepted");
-  assert.equal(prepared.value, 0);
-  assertSwap(provider.transform(fresh()));
-  provider.close();
-}}
-
-// lifecycle misuse against the real compiled ABI, bypassing this wrapper's
-// own busy tracking: export before call, release of a foreign/stale handle,
-// and double release must each refuse without leaking state or re-dispatching.
-{{
-  const provider = await Provider.open(wasm);
-  const scratch = D.scratchPointer(provider);
-  const bytes = D.encodeInput(fresh());
-  D.writeScratch(provider, bytes);
-  const prepared = D.prepareRaw(provider, scratch, bytes.length);
-  assert.equal(prepared.status, 0);
-
-  const exportBeforeCall = D.exportRaw(provider, prepared.value, scratch, 0);
-  assert.equal(exportBeforeCall.status, 8, "exporting an unfilled input handle as a result must refuse");
-
-  assert.equal(D.releaseResultRaw(provider, 999999), 8, "releasing a foreign result handle must refuse");
-  assert.equal(D.releaseValueRaw(provider, 999999), 8, "releasing a foreign input handle must refuse");
-
-  const called = D.callRaw(provider, prepared.value);
-  assert.equal(called.status, 0);
-  const result = called.value;
-
-  assert.equal(D.releaseResultRaw(provider, result), 0, "the real first release must succeed");
-  assert.equal(
-    D.releaseResultRaw(provider, result), 8,
-    "a second release of the same handle must refuse, not double-dispatch",
-  );
-
-  assertSwap(provider.transform(fresh()));
-  provider.close();
-}}
-
-// a handle foreign to a second, simultaneously live and otherwise-untouched
-// provider instance must refuse there too, even though it is a genuine live
-// handle on its own, owning instance.
-{{
-  const a = await Provider.open(wasm);
-  const b = await Provider.open(wasm);
-  const aBytes = D.encodeInput(fresh());
-  D.writeScratch(a, aBytes);
-  const aPrepared = D.prepareRaw(a, D.scratchPointer(a), aBytes.length);
-  assert.equal(aPrepared.status, 0);
-  const aCalled = D.callRaw(a, aPrepared.value);
-  assert.equal(aCalled.status, 0);
-  assert.equal(D.releaseResultRaw(b, aCalled.value), 8, "a result handle from a different provider instance must refuse");
-  assert.equal(D.exportRaw(b, aCalled.value, D.scratchPointer(b), 0).status, 8, "exporting a foreign provider's result handle must refuse");
-  assert.equal(D.releaseResultRaw(a, aCalled.value), 0, "the real owning provider's release must still succeed");
-  assertSwap(a.transform(fresh()));
-  a.close(); b.close();
-}}
-
-console.log("GENERATED COMPILED PROVIDER ABI HOSTILITY PASS");
 "#,
             left = names[0],
             right = names[1],

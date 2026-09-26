@@ -611,6 +611,23 @@ them:
   — so a provider cannot even be *derived* from a checked generic export
   today, compiled or not. #229 is flagged `HUMAN_BLOCKED` on a target-profile
   design decision, not a bounded-worker task.
+
+  **Correction, 2026-09-26 (issue #287 audit):** the target-profile decision
+  this bullet describes as blocking has since been made, and a genuinely
+  *compiled* closed Core Wasm provider artifact implementing
+  `open`/`input_prepare`/`call`/`result_export`/`value_release`/
+  `result_release`/`provider_close` now exists
+  (`src/wasm/public_generic_provider`, `emit_public_generic_wasm_provider_v1`,
+  selected by the `public-generic-wasm-provider.v1` profile; see
+  [PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md](PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md)).
+  The generated TypeScript consumer's `wasm-provider.ts` now has a second,
+  internal `CompiledProvider` class that delegates to it instead of keeping
+  allocator/handle bookkeeping host-side, proven by
+  `tests/public_generic_wasm_adapter_v1/compiler_provider_artifact.rs`. This
+  is a narrower, differently-scoped artifact than the manifest-derived
+  `web_export` widening this bullet also names as still missing -- that part
+  of this bullet, and #229's own open/closed tracking status, are unchanged
+  by this correction, as is the `unsupported`/`unpublished` decision below.
 - **Every physical adapter (interpreter, native, Wasm) still binds a fixture
   endpoint**, not a function body generated from a real admitted
   public-generic `.spx` export. No real monomorphized public generic export
@@ -671,8 +688,9 @@ parity (`carrier::settlement_corpus`, 9/9 local), not yet for any of the four
 generated calling consumers.
 
 **Target/toolchain versions**: native C11 (`clang`, both `-O0`/`-O2`), Core
-Wasm (model only — no compiled artifact implements the provider ABI, see
-#229), Rust generated consumer pinned to MSRV 1.88 (proven locally,
+Wasm (this settlement corpus's own target is model-only, comparing against
+the in-process `WasmProvider` struct, not the separate compiled provider
+artifact #229/#287 shipped since -- see the correction above), Rust generated consumer pinned to MSRV 1.88 (proven locally,
 `d9410607`), TypeScript/Wasm via `tsc` 5.8.3 (pinned in CI preflight,
 `1d2a3e09`, itself not yet exercised against the full corpus), C++17.
 Hosted-green platform evidence exists **only** for the narrower pre-#140

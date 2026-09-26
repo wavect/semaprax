@@ -39,6 +39,11 @@
 //! checkpoint, Agent migration, owned live-frame lowering or control-dependent
 //! yield.
 //!
+//! [`continuation`] (Unix) is the public library route that drives the
+//! two-to-eight-site sequential lane through a durable, authenticated,
+//! append-only journal with non-bearer answers and crash recovery; see
+//! [`docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md`](../../docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md).
+//!
 //! [`docs/RESUMABLE-EFFECTS-V1.md`](../../docs/RESUMABLE-EFFECTS-V1.md)
 //! records the full design and exactly this scope boundary.
 //!
@@ -100,6 +105,8 @@
 pub(crate) mod backend;
 pub mod capability;
 pub mod codec;
+#[cfg(unix)]
+pub mod continuation;
 pub mod core;
 pub(crate) mod lowering;
 pub mod migration;

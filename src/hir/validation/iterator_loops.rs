@@ -315,13 +315,11 @@ impl HirValidator<'_> {
                         "while loops cannot contain postfix `?` propagation",
                     ));
                 }
-                // Resumable Effects v1 (issue #204): unreachable in
-                // practice -- `parser::yields` already refuses `yield`
-                // anywhere inside a `while` body -- but still an explicit
-                // refusal rather than a silent fallthrough.
-                ResolvedExprKind::Yield { .. } => {
-                    return Err(hir_error("while loops cannot contain `yield`"));
-                }
+                // Resumable Effects control profile (issue #296): a direct
+                // statement-value `yield` may suspend inside a loop body; its
+                // request is an ordinary scalar operand. Placement is owned by
+                // `parser::yields` and re-checked by the control lowering.
+                ResolvedExprKind::Yield { request } => pending.push(Item::Expression(request)),
             }
         }
         Ok(())

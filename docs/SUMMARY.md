@@ -374,6 +374,7 @@ Audience: all documentation readers.
 - [Provider Adapter SDK v1](PROVIDER-ADAPTER-SDK-V1.md)
 - [Streaming Proposal Decode v1](STREAMING-PROPOSAL-DECODE-V1.md)
 - [Resumable Effects v1](RESUMABLE-EFFECTS-V1.md)
+- [Resumable Effects Continuation v1](RESUMABLE-EFFECTS-CONTINUATION-V1.md)
 - [Semantic Task Context v1](SEMANTIC-TASK-CONTEXT-V1.md)
 - [Session and Protocol Types v1](SESSION-PROTOCOL-TYPES-V1.md)
 - [Agent interaction schema v1](AGENT-INTERACTION-SCHEMA-V1.md)

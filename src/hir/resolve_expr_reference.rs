@@ -1681,12 +1681,12 @@ impl Resolver<'_> {
                     }
                 }
             }
-            // Resumable Effects v1 (issue #204): mirrors
-            // `Frame::FinishYield` in the iterative resolver -- `ty` is a
-            // placeholder (the request's own type) fixed up to the
-            // enclosing function's declared response type once resolution
-            // finishes, by `hir::resolve_yield`, which neither resolver has
-            // enough context to do here.
+            // Resumable Effects (issues #204, #296): mirrors
+            // `Frame::FinishYield` in the iterative resolver -- `ty` is the
+            // enclosing function's declared response type read from its AST
+            // `yields` clause (request type if none resolves), and
+            // `hir::resolve_yield` still checks and retags every site once
+            // resolution finishes.
             ExprKind::Yield { request } => {
                 let request = self.resolve_expr_recursive_reference(
                     function,
@@ -1694,7 +1694,7 @@ impl Resolver<'_> {
                     bindings,
                     &format!("{path}.request"),
                 )?;
-                let ty = request.ty.clone();
+                let ty = self.yield_answer_type(function, &request.ty);
                 (
                     ResolvedExprKind::Yield {
                         request: Box::new(request),

@@ -20,6 +20,9 @@ use crate::hir::{
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+pub(crate) mod control;
+#[cfg(test)]
+mod control_tests;
 mod projection;
 #[cfg(test)]
 mod sequential_tests;
@@ -304,68 +307,7 @@ pub fn lower_sequential(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<SequentialResumablePlan, Diagnostic> {
-    let canonical = program
-        .functions
-        .iter()
-        .find(|candidate| candidate.id == function.id)
-        .ok_or_else(|| invalid("resumable function is absent from the resolved program"))?;
-    if canonical != function {
-        return Err(invalid(
-            "resumable function disagrees with the resolved program's canonical function",
-        ));
-    }
-    let declaration = program
-        .declarations
-        .declaration(&function.id)
-        .ok_or_else(|| invalid("resumable function lacks a declaration-index entry"))?;
-    if declaration.identity_origin != IdentityOrigin::Explicit {
-        return Err(invalid(
-            "resumable function does not have an explicit persistent identity",
-        ));
-    }
-    if program.entrypoint == function.id {
-        return Err(invalid(
-            "resumable projection cannot replace the program entrypoint",
-        ));
-    }
-    let yields = function
-        .yields
-        .as_ref()
-        .ok_or_else(|| invalid("resumable lowering requires a `yields` clause"))?;
-    if !function.effects.is_empty() {
-        return Err(invalid(
-            "resumable lowering does not admit ordinary effects before suspension",
-        ));
-    }
-    if !hir::is_scalar_resolved_type(&yields.request_type)
-        || !hir::is_scalar_resolved_type(&yields.response_type)
-        || function
-            .params
-            .iter()
-            .any(|parameter| !hir::is_scalar_resolved_type(&parameter.ty))
-    {
-        return Err(invalid(
-            "resumable lowering requires Copy-scalar request, response, and parameter types",
-        ));
-    }
-    if !function.cleanup.slots.is_empty()
-        || !function.cleanup.flags.is_empty()
-        || !function
-            .cleanup
-            .entry_state
-            .live_owned_parameters
-            .is_empty()
-        || !function
-            .cleanup
-            .entry_state
-            .conditional_owned_parameters
-            .is_empty()
-    {
-        return Err(invalid(
-            "resumable lowering found owned cleanup state in the Copy-scalar profile",
-        ));
-    }
-
+    let yields = control::check_resumable_profile(program, function)?;
     reject_yield_in_contracts(function)?;
     let sites = locate_direct_yields(function)?;
     for (yield_expression, request, _) in &sites {

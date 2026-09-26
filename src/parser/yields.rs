@@ -9,6 +9,12 @@
 //! whole `yield` expression's type against the declared response type) are
 //! `hir::resolve_yield`'s job once types exist.
 //!
+//! Issue #296 widens this to structured control: a `yield` may also be the
+//! direct `let`/assignment value of a block reached from the body only through
+//! `if`/`else` branches, `while` bodies, or block-valued slots. Conditions,
+//! operands, nested block tails, `match` arms, `for` and `unsafe` bodies, and
+//! closures stay closed. The paragraph below records the original slice.
+//!
 //! Restricting `yield` to a function's own top-level statement/tail
 //! positions -- never nested inside a call's arguments, a binary operator,
 //! a record/variant construction, an `if`/`match` arm, or a nested block --
@@ -63,20 +69,43 @@ pub(super) fn check_function_yield_placement(
     }
 }
 
-/// Scans exactly the function body's own top-level statement values and
-/// tail. A directly-`Yield` position is admitted and recorded; everything
-/// else -- including that admitted yield's own operand -- is handed to
-/// [`forbid_nested_yield`], which never admits `Yield` at all.
+/// Where a scanned slot sits. `Top` is the function body's own block;
+/// `Nested` is any block reached from it only through `if`/`else` branches,
+/// `while` bodies, or a block-valued slot (Resumable Effects control profile,
+/// issue #296).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Level {
+    Top,
+    Nested,
+}
+
+/// Scans the function body's own block. A directly-`Yield` statement value or
+/// top-level tail is admitted and recorded, and so is a direct `let`/assign
+/// value of any block reached through structured control; everything else
+/// -- including every admitted yield's own operand, every condition, and every
+/// nested block tail -- is handed to [`forbid_nested_yield`].
 fn scan_top_level(body: &Expr, found: &mut Vec<Expr>, path: &str) -> Result<(), Diagnostic> {
-    let ExprKind::Block { statements, tail } = &body.kind else {
+    if !matches!(body.kind, ExprKind::Block { .. }) {
         // Every admitted function body is a brace block; a differently
         // shaped body has no top-level position to admit at all.
         return forbid_nested_yield(body, path);
+    }
+    scan_block(body, Level::Top, found, path)
+}
+
+fn scan_block(
+    block: &Expr,
+    level: Level,
+    found: &mut Vec<Expr>,
+    path: &str,
+) -> Result<(), Diagnostic> {
+    let ExprKind::Block { statements, tail } = &block.kind else {
+        return forbid_nested_yield(block, path);
     };
     for statement in statements {
         scan_top_level_statement(statement, found, path)?;
     }
-    scan_top_level_slot(tail, found, path)
+    scan_slot(tail, level == Level::Top, found, path)
 }
 
 fn scan_top_level_statement(
@@ -86,16 +115,16 @@ fn scan_top_level_statement(
 ) -> Result<(), Diagnostic> {
     match statement {
         Statement::Let { value, .. } | Statement::Assign { value, .. } => {
-            scan_top_level_slot(value, found, path)
+            scan_slot(value, true, found, path)
         }
-        // A loop or unsafe body is a nested block, never the function's own
-        // top-level block; any `yield` inside is a misplacement.
+        // An unsafe body stays closed to `yield`.
         Statement::Unsafe { body, .. } => forbid_nested_yield(body, path),
+        // A `while` body is a nested block; its condition never suspends.
         Statement::While {
             condition, body, ..
         } => {
             forbid_nested_yield(condition, path)?;
-            forbid_nested_yield(body, path)
+            scan_block(body, Level::Nested, found, path)
         }
         Statement::For { values, body, .. } | Statement::ForOwn { values, body, .. } => {
             forbid_nested_yield(values, path)?;
@@ -104,23 +133,41 @@ fn scan_top_level_statement(
     }
 }
 
-/// One position that admits a direct `Yield`: record it and check its
-/// operand does not itself hide another `yield`, or otherwise forbid it.
-fn scan_top_level_slot(slot: &Expr, found: &mut Vec<Expr>, path: &str) -> Result<(), Diagnostic> {
-    if let ExprKind::Yield { request } = &slot.kind {
-        forbid_nested_yield(request, path)?;
-        found.push(slot.clone());
-        Ok(())
-    } else {
-        forbid_nested_yield(slot, path)
+/// One slot. `admits_yield` is true for a `let`/assignment value and for the
+/// function's own tail. An `if` or block in any slot opens nested blocks.
+fn scan_slot(
+    slot: &Expr,
+    admits_yield: bool,
+    found: &mut Vec<Expr>,
+    path: &str,
+) -> Result<(), Diagnostic> {
+    match &slot.kind {
+        ExprKind::Yield { request } if admits_yield => {
+            forbid_nested_yield(request, path)?;
+            found.push(slot.clone());
+            Ok(())
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            forbid_nested_yield(condition, path)?;
+            scan_slot(then_branch, false, found, path)?;
+            scan_slot(else_branch, false, found, path)
+        }
+        ExprKind::Block { .. } => scan_block(slot, Level::Nested, found, path),
+        _ => forbid_nested_yield(slot, path),
     }
 }
 
 fn misplaced(span: crate::ast::Span, path: &str) -> Diagnostic {
     Diagnostic::error(
         MISPLACED_YIELD,
-        "`yield` is only admitted as a function's own top-level `let`/assignment value or tail \
-         expression, never nested inside another expression, a loop, or a conditional branch",
+        "`yield` is only admitted as a `let`/assignment value of the function's own block or of \
+         a block nested in it through `if`/`else` branches or `while` bodies, or as the \
+         function's own tail expression; never inside another expression, a condition, a \
+         nested block's tail, a `match`, `for` or `unsafe` body",
         span,
     )
     .at_path(path)
@@ -306,24 +353,48 @@ fn main() -> i64 { 0 }
     }
 
     #[test]
-    fn yield_inside_a_while_body_is_refused() {
+    fn yields_in_while_bodies_and_if_branches_parse() {
         let source = r#"
-module test.yields_in_loop;
+module test.yields_in_control;
 @id("app.ask")
-fn ask() -> i64
+fn ask(limit: i64) -> i64
     yields i64 -> i64
 {
-    while true {
-        let _consumed = yield 1;
-        0
+    let mut round = 0;
+    while round < limit {
+        let _consumed = yield round;
+        round = round + 1;
+        round > 0
     }
-    0
+    let bonus = if round > 1 {
+        let extra = yield round;
+        extra
+    } else {
+        0
+    };
+    bonus
 }
 @id("app.main")
 fn main() -> i64 { 0 }
 "#;
-        let error = parse(source).unwrap_err();
-        assert_eq!(error.code, MISPLACED_YIELD);
+        parse(source).expect("structured-control yields are admitted");
+    }
+
+    #[test]
+    fn yield_in_a_condition_nested_tail_match_or_for_is_refused() {
+        for body in [
+            "while (yield 1) > 0 { 0 } 0",
+            "let x = if true { yield 1 } else { 0 }; x",
+            "let x = if (yield 1) > 0 { 1 } else { 0 }; x",
+            "let x = match 1 { _ => yield 1, }; x",
+            "let x = { let y = 1; yield y }; x",
+        ] {
+            let source = format!(
+                "module test.yields_misplaced;\n@id(\"app.ask\")\nfn ask() -> i64\n    yields i64 -> i64\n{{\n    {body}\n}}\n@id(\"app.main\")\nfn main() -> i64 {{ 0 }}\n"
+            );
+            let error = parse(&source).unwrap_err();
+            assert_eq!(error.code, MISPLACED_YIELD, "{body}");
+        }
     }
 
     #[test]

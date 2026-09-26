@@ -24,9 +24,11 @@
 //! - every parameter and intermediate value is an admitted Copy scalar
 //!   (`SPX-T301`/`SPX-T303`), so nothing owned is live across the
 //!   suspension and the replay allocates and frees nothing;
-//! - `parser::yields` admits only a function's direct top-level sequence
-//!   (`SPX-T297`/`SPX-T298`), so control cannot branch around or repeat a site;
-//!   `resumable_effects::lowering` narrows that sequence to one to eight sites;
+//! - `parser::yields` admits direct top-level sites and, for the
+//!   control-dependent lane in [`control`], structured-control sites inside
+//!   `if`/`else` branches and `while` bodies (`SPX-T297`/`SPX-T298`); the
+//!   sequential lane narrows to one to eight direct sites, and the control
+//!   lane replays each suspension at exactly its recorded site;
 //! - `resumable_effects::lowering` rejects a call closure that reaches any
 //!   other `yields`-declaring function. The ordered replay proof is therefore
 //!   over the complete reachable computation, not merely the selected
@@ -68,7 +70,7 @@
 
 use crate::conformance::NormalizedStatus;
 use crate::diagnostic::Diagnostic;
-use crate::hir::{self, ResolvedFunction, ResolvedType};
+use crate::hir::{self, ExpressionId, ResolvedFunction, ResolvedType};
 use crate::resumable_effects::lowering::{
     self, ResumableScalar, ResumableStateId, ResumableSuspensionBinding, SequentialResumablePlan,
 };
@@ -160,7 +162,10 @@ pub(super) enum Resumption {
     Refused,
     /// A fresh resumable invocation: the first `yield` parks its request
     /// here and suspends.
-    Fresh { parked: Option<Value> },
+    Fresh {
+        parked: Option<Value>,
+        parked_site: Option<ExpressionId>,
+    },
     /// A replayed resumable invocation replays every completed request in
     /// order, then consumes one new answer. If another direct site is
     /// reached, it parks it for the next explicit continuation call.
@@ -170,6 +175,9 @@ pub(super) enum Resumption {
         observed: usize,
         parked: Option<Value>,
         history: Vec<ResumableYieldRecord>,
+        /// Control lane only: the exact site of each replayed suspension.
+        sites: Option<Vec<ExpressionId>>,
+        parked_site: Option<ExpressionId>,
     },
 }
 
@@ -187,14 +195,22 @@ enum ResumeInput {
 }
 
 /// The ordered `yield` sites' whole runtime behaviour, in one place.
-pub(super) fn settle_yield(state: &mut Resumption, request: Value) -> Result<Value, Flow> {
+pub(super) fn settle_yield(
+    state: &mut Resumption,
+    site: &ExpressionId,
+    request: Value,
+) -> Result<Value, Flow> {
     match state {
         Resumption::Refused => Err(Flow::Guard(YIELD_REFUSED)),
-        Resumption::Fresh { parked } => {
+        Resumption::Fresh {
+            parked,
+            parked_site,
+        } => {
             if parked.is_some() {
                 return Err(Flow::Guard(SECOND_YIELD));
             }
             *parked = Some(request);
+            *parked_site = Some(site.clone());
             Err(Flow::Guard(SUSPENDED_AT_YIELD))
         }
         Resumption::Replay {
@@ -202,6 +218,8 @@ pub(super) fn settle_yield(state: &mut Resumption, request: Value) -> Result<Val
             answers,
             observed,
             parked,
+            sites,
+            parked_site,
             ..
         } => {
             if *observed == expected.len() {
@@ -209,7 +227,15 @@ pub(super) fn settle_yield(state: &mut Resumption, request: Value) -> Result<Val
                     return Err(Flow::Guard(SECOND_YIELD));
                 }
                 *parked = Some(request);
+                *parked_site = Some(site.clone());
                 return Err(Flow::Guard(SUSPENDED_AT_YIELD));
+            }
+            // Control lane: replay must reach exactly the recorded site.
+            if sites
+                .as_ref()
+                .is_some_and(|sites| sites.get(*observed) != Some(site))
+            {
+                return Err(Flow::Guard(REQUEST_DRIFT));
             }
             let Some(expected) = expected.get(*observed) else {
                 return Err(Flow::Guard(SECOND_YIELD));
@@ -410,47 +436,12 @@ fn evaluate_resumable(
     sequential: bool,
     max_steps: usize,
 ) -> Result<Evaluated, Vec<Diagnostic>> {
-    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
-        return Err(vec![option_error(format!(
-            "resumable-effect evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
-        ))]);
-    }
-    let entry = program
-        .functions
-        .iter()
-        .find(|function| function.id.as_str() == function_id)
-        .ok_or_else(|| {
-            vec![selection_error(
-                REASON_UNSUPPORTED_CALLEE,
-                format!("resumable entry `{function_id}` is absent from the function index"),
-            )]
-        })?;
-    if !program
-        .declarations
-        .declaration(&entry.id)
-        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit)
-    {
-        return Err(vec![selection_error(
-            REASON_AUTOMATIC_IDENTITY,
-            format!("resumable entry `{function_id}` does not have an explicit stable identity"),
-        )]);
-    }
-    let yields = entry.yields.as_ref().ok_or_else(|| {
-        vec![selection_error(
-            REASON_NOT_RESUMABLE,
-            format!("`{function_id}` declares no `yields` clause; this lane runs only functions that can suspend"),
-        )]
-    })?;
-    if !resolved_signature_is_admitted(entry, &program.declarations) {
-        return Err(vec![selection_error(
-            REASON_OUTSIDE_PROFILE,
-            format!("resumable entry `{function_id}` is outside the interpreter profile"),
-        )]);
-    }
-    let bound = bind_scalar_arguments(entry, arguments)?;
-    let admitted = admitted_resolved_functions(program);
-    scan_closure(function_id, &admitted, program)?;
-    hir::validate(program).map_err(|error| vec![error])?;
+    let Admitted {
+        entry,
+        yields,
+        bound,
+        admitted,
+    } = admit_entry(program, function_id, arguments, max_steps)?;
     let plan = lowering::lower_sequential(program, entry).map_err(|error| vec![error])?;
     if sequential == (plan.suspensions.len() == 1) {
         let detail = if sequential {
@@ -471,7 +462,10 @@ fn evaluate_resumable(
     })?;
     let (resumption, next_binding) = match resume {
         None => (
-            Resumption::Fresh { parked: None },
+            Resumption::Fresh {
+                parked: None,
+                parked_site: None,
+            },
             Some(plan.suspension_binding(&scalar_arguments)),
         ),
         Some(ResumeInput::Legacy {
@@ -506,6 +500,8 @@ fn evaluate_resumable(
                     observed: 0,
                     parked: None,
                     history: Vec::new(),
+                    sites: None,
+                    parked_site: None,
                 },
                 None,
             )
@@ -598,47 +594,27 @@ fn evaluate_resumable(
                     observed: 0,
                     parked: None,
                     history,
+                    sites: None,
+                    parked_site: None,
                 },
                 next_binding,
             )
         }
     };
-    let closure_functions =
-        super::closures::checked_functions(program).map_err(|error| vec![error])?;
-
-    let evaluated = std::thread::scope(|scope| {
-        let worker = std::thread::Builder::new()
-            .name("semaprax-resumable-evaluate".to_owned())
-            .stack_size(EVALUATION_STACK_BYTES)
-            .spawn_scoped(scope, || {
-                let mut evaluator = Evaluator::new_prepared(
-                    FunctionLookup::Borrowed(&admitted),
-                    closure_functions,
-                    &program.declarations,
-                    max_steps,
-                    0,
-                    PreparedCancellation::Never,
-                );
-                evaluator.resumption = resumption;
-                let settled = evaluator.evaluate_entry(entry, &bound);
-                let step = settle_step(settled, &mut evaluator.resumption, &plan, next_binding);
-                Evaluated {
-                    step,
-                    steps_used: evaluator.steps,
-                    max_steps,
-                }
-            })
-            .map_err(|error| {
-                vec![option_error(format!(
-                    "resumable-effect evaluation thread failed to start: {error}"
-                ))]
-            })?;
-        worker.join().map_err(|_| {
-            vec![option_error(
-                "resumable-effect evaluation thread panicked".to_owned(),
-            )]
-        })
-    })?;
+    let (step, steps_used) = run_worker(
+        program,
+        &admitted,
+        entry,
+        &bound,
+        resumption,
+        max_steps,
+        |settled, resumption| settle_step(settled, resumption, &plan, next_binding),
+    )?;
+    let evaluated = Evaluated {
+        step,
+        steps_used,
+        max_steps,
+    };
 
     if evaluated.step == EvaluatedStep::GuardError(REQUEST_DRIFT.to_owned()) {
         return Err(vec![Diagnostic::io(
@@ -650,6 +626,114 @@ fn evaluate_resumable(
         )]);
     }
     Ok(evaluated)
+}
+
+/// The exact admitted entry facts every resumable lane shares.
+pub(super) struct Admitted<'p> {
+    pub(super) entry: &'p ResolvedFunction,
+    pub(super) yields: &'p hir::ResolvedYieldsClause,
+    pub(super) bound: Vec<(String, ArgumentValue)>,
+    pub(super) admitted: std::collections::BTreeMap<&'p str, &'p ResolvedFunction>,
+}
+
+/// Select, identity-check and bind a resumable entry before any lowering.
+pub(super) fn admit_entry<'p>(
+    program: &'p hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ArgumentValue],
+    max_steps: usize,
+) -> Result<Admitted<'p>, Vec<Diagnostic>> {
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
+        return Err(vec![option_error(format!(
+            "resumable-effect evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
+        ))]);
+    }
+    let entry = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == function_id)
+        .ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("resumable entry `{function_id}` is absent from the function index"),
+            )]
+        })?;
+    if !program
+        .declarations
+        .declaration(&entry.id)
+        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit)
+    {
+        return Err(vec![selection_error(
+            REASON_AUTOMATIC_IDENTITY,
+            format!("resumable entry `{function_id}` does not have an explicit stable identity"),
+        )]);
+    }
+    let yields = entry.yields.as_ref().ok_or_else(|| {
+        vec![selection_error(
+            REASON_NOT_RESUMABLE,
+            format!("`{function_id}` declares no `yields` clause; this lane runs only functions that can suspend"),
+        )]
+    })?;
+    if !resolved_signature_is_admitted(entry, &program.declarations) {
+        return Err(vec![selection_error(
+            REASON_OUTSIDE_PROFILE,
+            format!("resumable entry `{function_id}` is outside the interpreter profile"),
+        )]);
+    }
+    let bound = bind_scalar_arguments(entry, arguments)?;
+    let admitted = admitted_resolved_functions(program);
+    scan_closure(function_id, &admitted, program)?;
+    hir::validate(program).map_err(|error| vec![error])?;
+    Ok(Admitted {
+        entry,
+        yields,
+        bound,
+        admitted,
+    })
+}
+
+/// Evaluate one segment on the bounded-stack worker and settle it there.
+pub(super) fn run_worker<T: Send>(
+    program: &hir::ResolvedProgram,
+    admitted: &std::collections::BTreeMap<&str, &ResolvedFunction>,
+    entry: &ResolvedFunction,
+    bound: &[(String, ArgumentValue)],
+    resumption: Resumption,
+    max_steps: usize,
+    settle: impl FnOnce(Result<Value, Flow>, &mut Resumption) -> T + Send,
+) -> Result<(T, usize), Vec<Diagnostic>> {
+    let closure_functions =
+        super::closures::checked_functions(program).map_err(|error| vec![error])?;
+
+    std::thread::scope(|scope| {
+        let worker = std::thread::Builder::new()
+            .name("semaprax-resumable-evaluate".to_owned())
+            .stack_size(EVALUATION_STACK_BYTES)
+            .spawn_scoped(scope, || {
+                let mut evaluator = Evaluator::new_prepared(
+                    FunctionLookup::Borrowed(admitted),
+                    closure_functions,
+                    &program.declarations,
+                    max_steps,
+                    0,
+                    PreparedCancellation::Never,
+                );
+                evaluator.resumption = resumption;
+                let settled = evaluator.evaluate_entry(entry, bound);
+                let step = settle(settled, &mut evaluator.resumption);
+                (step, evaluator.steps)
+            })
+            .map_err(|error| {
+                vec![option_error(format!(
+                    "resumable-effect evaluation thread failed to start: {error}"
+                ))]
+            })?;
+        worker.join().map_err(|_| {
+            vec![option_error(
+                "resumable-effect evaluation thread panicked".to_owned(),
+            )]
+        })
+    })
 }
 
 fn into_legacy(evaluated: Evaluated) -> Result<ResumableEvaluation, Vec<Diagnostic>> {
@@ -732,6 +816,7 @@ fn settle_step(
             match resumption {
                 Resumption::Fresh {
                     parked: Some(request),
+                    ..
                 } => {
                     let Some(request) = argument_of(request) else {
                         return EvaluatedStep::GuardError(
@@ -922,6 +1007,7 @@ fn scalar_values_equal(left: &Value, right: &Value) -> bool {
     }
 }
 
+pub mod control;
 #[cfg(test)]
 mod tests;
 

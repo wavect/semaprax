@@ -8,6 +8,19 @@
 //! derives the state/binding rather than trusting either from the bytes. The
 //! self-digest detects accidental corruption; exact request values are
 //! independently replay-checked by the existing resume path.
+//!
+//! This driver excludes the control-dependent lane (issue #296: a `yield`
+//! inside an `if`/`else` branch or `while` body). [`decode`]'s
+//! [`checked_plan`] calls [`lowering::lower_sequential`], which itself
+//! refuses any function whose yields are not *all* direct top-level slots
+//! (`"resumable yield is nested instead of occupying a direct top-level
+//! slot"`); that refusal is folded into the generic
+//! [`CheckpointError::ProgramMismatch`] like every other lowering failure,
+//! rather than reported as its own class. A control-dependent function's
+//! non-durable checkpoint is
+//! `resumable_effects::source_checkpoint::control`'s separate v3 envelope;
+//! its durable one is `resumable_effects::continuation`'s journal, which
+//! drives both lanes.
 
 use super::{
     bind_scalar_arguments, resumable_scalars, typed_resume_value, ArgumentValue,
@@ -253,7 +266,7 @@ fn checked_plan(
     Ok((plan, scalars))
 }
 
-fn scalar_json(value: &ArgumentValue) -> Value {
+pub(crate) fn scalar_json(value: &ArgumentValue) -> Value {
     match value {
         ArgumentValue::Int(value) => json!({"tag": "i64", "value": value}),
         ArgumentValue::Int32(value) => json!({"tag": "i32", "value": value}),
@@ -273,7 +286,7 @@ fn scalar_json(value: &ArgumentValue) -> Value {
     }
 }
 
-fn scalar_from_json(value: &Value) -> Result<ArgumentValue, CheckpointError> {
+pub(crate) fn scalar_from_json(value: &Value) -> Result<ArgumentValue, CheckpointError> {
     let tag = required_str(value, "tag")?;
     match tag {
         "i64" => {

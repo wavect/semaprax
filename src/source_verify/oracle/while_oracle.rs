@@ -348,17 +348,10 @@ pub(super) fn reject_while_disallowed_oracle(
             ));
             Err(())
         }
-        // Resumable Effects v1 (issue #204): unreachable in practice --
-        // `parser::yields` already refuses `yield` anywhere inside a
-        // `while` body.
-        ExprKind::Yield { .. } => {
-            diagnostics.push(error(
-                program,
-                "SPX-T252",
-                "`yield` is not admitted in while bodies",
-                expression.span,
-            ));
-            Err(())
+        // Resumable Effects control profile (issue #296): the parser admits a
+        // direct statement-value `yield`; its request is an ordinary operand.
+        ExprKind::Yield { request } => {
+            reject_while_disallowed_oracle(program, request, functions, diagnostics)
         }
     }
 }

@@ -32,6 +32,7 @@ pub struct SourceEffectSignature {
     answer_shape: String,
     plan_identity: [u8; 32],
     yield_count: u32,
+    control_dependent: bool,
     table: EffectSignatureTable,
 }
 
@@ -52,8 +53,15 @@ impl SourceEffectSignature {
         &self.plan_identity
     }
 
+    /// Static yield-site count of the selected plan.
     pub fn yield_count(&self) -> u32 {
         self.yield_count
+    }
+
+    /// True when the plan is the control-dependent (v3) plan rather than the
+    /// direct sequential one; the two identities never coincide.
+    pub fn is_control_dependent(&self) -> bool {
+        self.control_dependent
     }
 
     pub fn table(&self) -> &EffectSignatureTable {
@@ -96,7 +104,14 @@ pub fn derive_source_effect_signature(
     function_id: &str,
 ) -> Result<SourceEffectSignature, Diagnostic> {
     let function = selected_function(program, function_id)?;
-    let plan = lowering::lower_sequential(program, function)?;
+    let control_dependent = lowering::control::is_control_dependent(function);
+    let (plan_identity, site_count) = if control_dependent {
+        let plan = lowering::control::lower_control(program, function)?;
+        (*plan.identity.as_bytes(), plan.sites.len())
+    } else {
+        let plan = lowering::lower_sequential(program, function)?;
+        (*plan.identity.as_bytes(), plan.suspensions.len())
+    };
     let yields = function
         .yields
         .as_ref()
@@ -109,14 +124,15 @@ pub fn derive_source_effect_signature(
             "compiler-derived effect signature table was invalid: {error:?}"
         ))
     })?;
-    let yield_count = u32::try_from(plan.suspensions.len())
+    let yield_count = u32::try_from(site_count)
         .map_err(|_| invalid("resumable yield count does not fit its public field"))?;
     Ok(SourceEffectSignature {
         function_id: function.id.as_str().to_owned(),
         request_shape,
         answer_shape,
-        plan_identity: *plan.identity.as_bytes(),
+        plan_identity,
         yield_count,
+        control_dependent,
         table,
     })
 }

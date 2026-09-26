@@ -8,7 +8,7 @@
 //!   loss, stale artifacts, sticky failure, and exactly-once cleanup order;
 //! - [`admission`] covers every refusal reached from checked source.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::hir::ResolvedProgram;
@@ -60,6 +60,30 @@ fn ratio(x: i64, y: i64) -> i64
     x / y
 }
 
+@id("k.rem")
+fn rem(x: i64, y: i64) -> i64
+{
+    x % y
+}
+
+@id("k.rem_usize")
+fn rem_usize(x: usize, y: usize) -> usize
+{
+    x % y
+}
+
+@id("k.neg")
+fn neg(x: i64) -> i64
+{
+    -x
+}
+
+@id("k.neg32")
+fn neg32(x: i32) -> i32
+{
+    -x
+}
+
 @id("k.sum")
 fn sum(acc: i64, element: i64) -> i64
 {
@@ -92,8 +116,26 @@ fn i64s(values: &[i64]) -> Vec<Scalar> {
     values.iter().copied().map(Scalar::I64).collect()
 }
 
-/// A fresh private source file for the file-based reference interpreter.
-fn write_source(source: &str) -> PathBuf {
+/// A fresh private source file for the file-based reference interpreter,
+/// removed when the guard drops so a failing assertion cannot leak it into
+/// the shared temp dir.
+struct TempSource {
+    path: PathBuf,
+}
+
+impl TempSource {
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for TempSource {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+fn write_source(source: &str) -> TempSource {
     static NEXT: AtomicUsize = AtomicUsize::new(0);
     let path = std::env::temp_dir().join(format!(
         "semaprax-cpu-reference-{}-{}.spx",
@@ -101,5 +143,15 @@ fn write_source(source: &str) -> PathBuf {
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));
     std::fs::write(&path, source).expect("temporary kernel source is writable");
-    path
+    TempSource { path }
+}
+
+#[test]
+fn temp_source_files_are_removed_when_the_guard_drops() {
+    let path = {
+        let source = write_source("module test.temp_probe;\n");
+        assert!(source.path().exists());
+        source.path().to_path_buf()
+    };
+    assert!(!path.exists());
 }

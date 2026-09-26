@@ -533,7 +533,9 @@ their resolved value identity, integer/boolean literals, unary `-` (`i64`,
 `i32`) and `!`, the binary operators `+ - * / % == != < <= > >=`, lazy
 `&&`/`||`, `if`, and blocks of immutable `let` statements. The admitted
 element kinds are `i64`, `i32`, `u8`, `usize` (the checked unsigned 64-bit
-semantic integer, classified as `u64`), and `bool`.
+semantic integer, classified as `u64`), and `bool`. `%` applies only to
+`i64`/`usize`, exactly as the language admits it (SPX-T208); any other
+operand type refuses with `SPX-GC012`.
 
 Admission reuses [`classify`](../src/compute_profile/classifier.rs) on a
 candidate built from the checked signature, the kernel shape, the dispatch

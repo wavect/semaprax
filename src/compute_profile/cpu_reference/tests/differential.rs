@@ -148,10 +148,9 @@ fn expected_map(path: &Path, declaration: &str, columns: &[Vec<Scalar>]) -> Vec<
 
 fn differential_map(declaration: &str, result: ScalarKind, columns: Vec<Vec<Scalar>>) {
     let program = resolve(KERNELS);
-    let path = write_source(KERNELS);
-    let expected = expected_map(&path, declaration, &columns);
+    let source = write_source(KERNELS);
+    let expected = expected_map(source.path(), declaration, &columns);
     let cpu = cpu_map(&program, declaration, result, &columns);
-    let _ = std::fs::remove_file(&path);
     compare(&cpu, &expected).unwrap();
 }
 
@@ -185,6 +184,60 @@ fn i64_division_by_zero_and_min_over_minus_one_match_the_interpreter() {
     let columns = |y: i64| vec![i64s(&[10, -9, i64::MIN, 4]), i64s(&[3, 2, y, 0])];
     differential_map("k.ratio", ScalarKind::I64, columns(-1));
     differential_map("k.ratio", ScalarKind::I64, columns(1));
+}
+
+#[test]
+fn i64_remainder_normal_by_zero_and_min_over_minus_one_match_the_interpreter() {
+    differential_map(
+        "k.rem",
+        ScalarKind::I64,
+        vec![i64s(&[10, -9, 7, 0, -1]), i64s(&[3, 2, -3, 5, 1])],
+    );
+    // `MIN % -1` at invocation 1 and `5 % 0` at invocation 2: the lowest
+    // failing ordinal wins with `RemainderOverflow`.
+    differential_map(
+        "k.rem",
+        ScalarKind::I64,
+        vec![i64s(&[4, i64::MIN, 5]), i64s(&[2, -1, 0])],
+    );
+    // Remainder by zero alone selects `RemainderByZero` at invocation 0.
+    differential_map("k.rem", ScalarKind::I64, vec![i64s(&[1]), i64s(&[0])]);
+}
+
+#[test]
+fn usize_remainder_normal_and_by_zero_match_the_interpreter() {
+    differential_map(
+        "k.rem_usize",
+        ScalarKind::Usize,
+        vec![
+            [10u64, 7, 0, u64::MAX].map(Scalar::Usize).to_vec(),
+            [3u64, 7, 5, 6].map(Scalar::Usize).to_vec(),
+        ],
+    );
+    differential_map(
+        "k.rem_usize",
+        ScalarKind::Usize,
+        vec![
+            [9u64, 1].map(Scalar::Usize).to_vec(),
+            [4u64, 0].map(Scalar::Usize).to_vec(),
+        ],
+    );
+}
+
+#[test]
+fn unary_negation_normal_and_overflow_match_the_interpreter() {
+    differential_map("k.neg", ScalarKind::I64, vec![i64s(&[0, 1, -7, 42])]);
+    differential_map("k.neg", ScalarKind::I64, vec![i64s(&[3, i64::MIN, 5])]);
+    differential_map(
+        "k.neg32",
+        ScalarKind::I32,
+        vec![[0, 9, -12].map(Scalar::I32).to_vec()],
+    );
+    differential_map(
+        "k.neg32",
+        ScalarKind::I32,
+        vec![vec![Scalar::I32(1), Scalar::I32(i32::MIN)]],
+    );
 }
 
 #[test]
@@ -236,11 +289,11 @@ fn mixed_bool_map_with_lazy_operators_matches_the_interpreter() {
 
 fn differential_fold(declaration: &str, initial: Scalar, elements: Vec<Scalar>) {
     let program = resolve(KERNELS);
-    let path = write_source(KERNELS);
+    let source = write_source(KERNELS);
     let mut accumulator = initial;
     let mut expected = Ok(());
     for (index, element) in elements.iter().enumerate() {
-        match interpret(&path, declaration, &[accumulator, *element]) {
+        match interpret(source.path(), declaration, &[accumulator, *element]) {
             Ok(value) => accumulator = value,
             Err(code) => {
                 expected = Err((index, code));
@@ -248,7 +301,6 @@ fn differential_fold(declaration: &str, initial: Scalar, elements: Vec<Scalar>) 
             }
         }
     }
-    let _ = std::fs::remove_file(&path);
 
     let mut session = session();
     let artifact = session
@@ -330,10 +382,9 @@ fn swap_first_add_for_sub(expr: &mut KernelExpr) -> bool {
 #[test]
 fn negative_control_mutated_kernel_is_rejected_by_the_differential_oracle() {
     let program = resolve(KERNELS);
-    let path = write_source(KERNELS);
+    let source = write_source(KERNELS);
     let columns = vec![i64s(&[0, 1, -7, 40]), i64s(&[0, 5, -30, 100])];
-    let expected = expected_map(&path, "k.affine", &columns);
-    let _ = std::fs::remove_file(&path);
+    let expected = expected_map(source.path(), "k.affine", &columns);
 
     let mut session = session();
     let mut artifact = session

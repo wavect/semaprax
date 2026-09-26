@@ -375,8 +375,13 @@ impl Lowerer {
 
 fn binary_result_matches(op: BinaryOp, operand: ScalarKind, result: ScalarKind) -> bool {
     match op {
-        BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Rem => {
+        BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div => {
             operand != ScalarKind::Bool && result == operand
+        }
+        // The language admits `%` only on `i64`/`usize` (SPX-T208); anything
+        // else refuses here exactly as it refuses in the verifier.
+        BinaryOp::Rem => {
+            matches!(operand, ScalarKind::I64 | ScalarKind::Usize) && result == operand
         }
         BinaryOp::Lt | BinaryOp::Le | BinaryOp::Gt | BinaryOp::Ge => {
             operand != ScalarKind::Bool && result == ScalarKind::Bool
@@ -599,4 +604,61 @@ pub(crate) fn fingerprint(declaration: &str, shape_bytes: &[u8], ir: &KernelIr) 
     bytes.extend_from_slice(&ir.slots.to_le_bytes());
     encode_expr(&ir.body, &mut bytes);
     format!("{:x}", crate::digest_hex::LowerHex(Sha256::digest(&bytes)))
+}
+
+#[cfg(test)]
+mod operator_vocabulary_tests {
+    use super::*;
+
+    const INTEGERS: [ScalarKind; 4] = [
+        ScalarKind::I64,
+        ScalarKind::I32,
+        ScalarKind::U8,
+        ScalarKind::Usize,
+    ];
+
+    #[test]
+    fn remainder_matches_the_language_exactly() {
+        // SPX-T208: `%` is `i64`/`usize` only. Checked source with any other
+        // operand type never reaches lowering, so this table is the
+        // structural guarantee for hand-built HIR.
+        for operand in INTEGERS {
+            let admitted = binary_result_matches(BinaryOp::Rem, operand, operand);
+            assert_eq!(
+                admitted,
+                matches!(operand, ScalarKind::I64 | ScalarKind::Usize),
+                "remainder on {operand:?}"
+            );
+            assert!(
+                !binary_result_matches(BinaryOp::Rem, operand, ScalarKind::Bool),
+                "remainder never yields bool"
+            );
+        }
+        assert!(!binary_result_matches(
+            BinaryOp::Rem,
+            ScalarKind::Bool,
+            ScalarKind::Bool
+        ));
+    }
+
+    #[test]
+    fn the_other_arithmetic_operators_admit_every_non_bool_scalar() {
+        for op in [BinaryOp::Add, BinaryOp::Sub, BinaryOp::Mul, BinaryOp::Div] {
+            for operand in INTEGERS {
+                assert!(
+                    binary_result_matches(op, operand, operand),
+                    "{op:?} on {operand:?}"
+                );
+                assert!(
+                    !binary_result_matches(op, operand, ScalarKind::Bool),
+                    "{op:?} on {operand:?} never yields bool"
+                );
+            }
+            assert!(!binary_result_matches(
+                op,
+                ScalarKind::Bool,
+                ScalarKind::Bool
+            ));
+        }
+    }
 }

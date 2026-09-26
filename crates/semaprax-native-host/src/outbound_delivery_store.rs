@@ -24,6 +24,11 @@ pub enum OutboundCheckpointKind {
     HttpSession,
     WebhookSession,
     EmailSession,
+    /// Canonical reference-service state snapshots. Like every other kind,
+    /// these are content-addressed, write-once, and loadable only by an
+    /// exact previously retained digest; the store never enumerates or
+    /// selects a "latest" snapshot.
+    ServiceState,
 }
 
 impl OutboundCheckpointKind {
@@ -32,6 +37,7 @@ impl OutboundCheckpointKind {
             Self::HttpSession => "http",
             Self::WebhookSession => "webhook",
             Self::EmailSession => "email",
+            Self::ServiceState => "service-state",
         }
     }
 }
@@ -94,6 +100,20 @@ impl<'directory> OutboundDeliveryStore<'directory> {
     /// `FileOnly` (the default) closes only that narrower crash window.
     pub fn sync_mode(&self) -> OutboundCheckpointSyncMode {
         self.sync_mode
+    }
+
+    /// Commit one opaque canonical service-state snapshot under its exact
+    /// content digest. This shares the typed checkpoint discipline exactly:
+    /// atomic create-new, content match on replays, file sync, optional
+    /// namespace sync, and a final named recheck. Only the reference-service
+    /// host in this crate may mint snapshots; nothing here selects which
+    /// digest is current.
+    pub(crate) fn commit_service_state(
+        &mut self,
+        digest: &str,
+        rendered: &str,
+    ) -> CheckpointCommit {
+        self.commit_rendered(OutboundCheckpointKind::ServiceState, digest, rendered)
     }
 
     /// Read one exact typed checkpoint by its previously retained digest.

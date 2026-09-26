@@ -97,6 +97,7 @@ fn program(agents: Vec<AgentDeclaration>) -> Program {
         types: Vec::new(),
         interfaces: Vec::new(),
         protocols: Vec::new(),
+        session_protocols: Vec::new(),
         implementations: Vec::new(),
         agents,
         functions: Vec::new(),

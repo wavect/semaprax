@@ -394,7 +394,14 @@ mod tests {
         assert!(parse_test(&strings(&["--max-bytes", "0"])).is_err());
         assert!(parse_test(&strings(&["--max-steps", "01"])).is_err());
         assert!(parse_test(&strings(&["--max-steps", "-1"])).is_err());
-        assert!(parse_test(&strings(&["--max-steps", "100000001"])).is_err());
+        let max_steps = semaprax::interpreter::MAX_STEPS_LIMIT;
+        assert_eq!(
+            parse_test(&["--max-steps".into(), max_steps.to_string()])
+                .unwrap()
+                .max_steps,
+            Some(max_steps)
+        );
+        assert!(parse_test(&["--max-steps".into(), (max_steps + 1).to_string()]).is_err());
         assert!(parse_test(&strings(&[
             DEFAULT_MANIFEST,
             "--manifest-path",

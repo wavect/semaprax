@@ -580,8 +580,7 @@ impl MetalSession {
             }
             .into());
         }
-        let end = checked_end(offset, values.len(), capacity, handle.index)?;
-        let _ = end;
+        checked_end(offset, values.len(), capacity, handle.index)?;
         let element_size = element_size(kind)
             .map_err(|detail| MetalRefusal::from(ComputeRefusal::ElementTypeMismatch { detail }))?;
         let base = buffer.contents().as_ptr() as *mut u8;
@@ -888,6 +887,17 @@ impl MetalSession {
             input_buffers.push(buffer.clone());
         }
 
+        // Classify the real dispatch shape and the real aliasing claim
+        // through the exact same code the CPU reference calls
+        // (`session::classify_map_dispatch`), before any Metal allocation or
+        // dispatch below: an aliased input/output buffer or a grid outside
+        // `MAX_GRID_DIM` must be refused here exactly as it would be on the
+        // CPU reference, never merely accepted because this backend never
+        // asked.
+        let aliased = inputs.contains(&output);
+        session::classify_map_dispatch(&artifact.ir, artifact.workgroup_size, len, aliased)
+            .map_err(MetalRefusal::from)?;
+
         let status_byte_len = len * 4;
         let status_buffer = self
             .device
@@ -979,11 +989,18 @@ impl MetalSession {
         // SAFETY: the command buffer completed; the status buffer's
         // `status_byte_len` bytes are host-visible and fully initialized
         // (zeroed above, then written to at most once per invocation by the
-        // kernel itself).
+        // kernel itself). `read_unaligned` because `status_base.add(invocation
+        // * 4)` is not guaranteed 4-byte aligned for every `invocation` on
+        // every allocator, unlike a `u32` place.
         let status_base = status_buffer.contents().as_ptr() as *const u8;
         let mut first_failure = None;
         for invocation in 0..len {
-            let code = unsafe { *(status_base.add(invocation * 4) as *const u32) };
+            let code = unsafe {
+                status_base
+                    .add(invocation * 4)
+                    .cast::<u32>()
+                    .read_unaligned()
+            };
             if code != 0 {
                 first_failure = Some((invocation, code));
                 break;
@@ -993,6 +1010,15 @@ impl MetalSession {
         match first_failure {
             None => Ok(MetalDispatchOutcome::Completed { invocations: len }),
             Some((invocation, code)) => {
+                // `StaleHandle`, not a new refusal: no other `ComputeRefusal`
+                // case fits a status the generated kernel was never emitted
+                // to write, and this mirrors the CPU reference's own
+                // precedent for the same class of problem (`RunOutcome::Guard`
+                // in `cpu_reference::session::finish`, "the kernel reached an
+                // impossible post-lowering state") — an internal invariant
+                // violation in the compiled artifact or the host/device
+                // synchronization around it, never an ordinary admission
+                // refusal a checked program can trigger.
                 let status = status_from_code(code).ok_or_else(|| {
                     MetalRefusal::from(ComputeRefusal::StaleHandle {
                         detail: format!("kernel wrote an unrecognized status code {code}"),

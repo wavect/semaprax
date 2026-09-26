@@ -684,6 +684,18 @@ selects it. Buffers follow the CPU reference session's lifecycle: an
 explicit capability, sticky failure, and release of every live buffer exactly
 once in reverse allocation order.
 
+Dispatch-time admission is likewise not re-derived: the load-time classifier
+call binds a *nominal*, single-workgroup `GridShape` with a `Disjoint`
+aliasing claim, but the *dispatch-time* grid (from the real buffer length)
+and the *dispatch-time* aliasing claim (from whether an input handle equals
+the output handle) can only be known when `dispatch_map` is actually called
+with real buffers. Both backends classify that real shape and claim through
+the identical `cpu_reference::session::classify_map_dispatch` function
+immediately before touching any buffer for that dispatch, so a grid outside
+`MAX_GRID_DIM` or an aliased input/output buffer is refused with the same
+`SPX-GC0xx` code and the same precedence on the Metal backend as on the CPU
+reference — never merely accepted because a backend never asked.
+
 **Evidence (local, physical device, not hosted):** the
 `compute_profile::metal_backend` suite (17 tests: 5 generator tests and 12
 device tests, including overflow and division-by-zero selection, bounds

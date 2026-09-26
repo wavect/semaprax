@@ -492,29 +492,7 @@ impl CpuReferenceSession {
             }
             columns.push(data);
         }
-        let grid = u32::try_from(len.div_ceil(workgroup_size.max(1) as usize)).unwrap_or(u32::MAX);
-        let mut params: Vec<(ScalarKind, ParamMode, usize)> = artifact
-            .ir
-            .params
-            .iter()
-            .map(|kind| (*kind, ParamMode::ReadOnlyView, len))
-            .collect();
-        params.push((artifact.ir.result, ParamMode::ReadWriteView, len));
-        let aliasing = if inputs.contains(&output) {
-            AliasingClaim::MayOverlap
-        } else {
-            AliasingClaim::Disjoint
-        };
-        let candidate = candidate(
-            &params,
-            GridShape {
-                workgroup_size: [workgroup_size, 1, 1],
-                grid_size: [grid, 1, 1],
-            },
-            aliasing,
-            map_ops(&artifact.ir),
-        );
-        classify(&candidate).map_err(|refusal| profile(refusal, "dispatch shape"))?;
+        classify_map_dispatch(&artifact.ir, workgroup_size, len, inputs.contains(&output))?;
 
         let outcome = run_map(&artifact.ir, &columns, len, control);
         self.finish(artifact, output, len, outcome)
@@ -721,6 +699,49 @@ fn expect_kind(
             ),
         })
     }
+}
+
+/// Classify one elementwise-map dispatch against the real [`GridShape`]
+/// computed from `len` (the actual buffer length, not a nominal one) and the
+/// real [`AliasingClaim`] between the bound inputs and the output (`aliased`
+/// is `inputs.contains(&output)` in the caller's own handle type). This is
+/// the exact rule [`CpuReferenceSession::dispatch_map`] applies, factored out
+/// so every backend that dispatches an [`KernelShape::ElementwiseMap`]
+/// artifact — including the macOS-only Metal backend — calls this identical
+/// code before any device allocation or dispatch, rather than re-deriving
+/// the rule and risking a backend that admits what the CPU reference would
+/// refuse (an aliased input/output buffer, or a grid outside
+/// [`MAX_GRID_DIM`](crate::compute_profile::boundary_profile::MAX_GRID_DIM)).
+pub(crate) fn classify_map_dispatch(
+    ir: &KernelIr,
+    workgroup_size: u32,
+    len: usize,
+    aliased: bool,
+) -> Result<(), ComputeRefusal> {
+    let grid = u32::try_from(len.div_ceil(workgroup_size.max(1) as usize)).unwrap_or(u32::MAX);
+    let mut params: Vec<(ScalarKind, ParamMode, usize)> = ir
+        .params
+        .iter()
+        .map(|kind| (*kind, ParamMode::ReadOnlyView, len))
+        .collect();
+    params.push((ir.result, ParamMode::ReadWriteView, len));
+    let aliasing = if aliased {
+        AliasingClaim::MayOverlap
+    } else {
+        AliasingClaim::Disjoint
+    };
+    let admission = candidate(
+        &params,
+        GridShape {
+            workgroup_size: [workgroup_size, 1, 1],
+            grid_size: [grid, 1, 1],
+        },
+        aliasing,
+        map_ops(ir),
+    );
+    classify(&admission)
+        .map(|_| ())
+        .map_err(|refusal| profile(refusal, "dispatch shape"))
 }
 
 fn candidate(

@@ -19,7 +19,7 @@ const TELEMETRY_EMIT: &str = "semaprax.service.telemetry.emit.v1";
 
 /// One exact declaration the host must satisfy outside SEMAPRAX source.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum ServiceHostAdapterCapability {
+pub enum ServiceHostAdapterCapability {
     DatabaseConnect,
     HttpServeTls,
     SecretsResolve,
@@ -27,7 +27,7 @@ pub(crate) enum ServiceHostAdapterCapability {
 }
 
 impl ServiceHostAdapterCapability {
-    pub(crate) const fn name(self) -> &'static str {
+    pub const fn name(self) -> &'static str {
         match self {
             Self::DatabaseConnect => DATABASE_CONNECT,
             Self::HttpServeTls => HTTP_SERVE_TLS,
@@ -48,12 +48,12 @@ const HOST_REQUIREMENTS: [ServiceHostAdapterCapability; 4] = [
 /// outbound grant: a separately trusted host must still provide a policy whose
 /// allowed origins contain this exact value.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ServiceTelemetryRequirement {
+pub struct ServiceTelemetryRequirement {
     endpoint_origin: String,
 }
 
 impl ServiceTelemetryRequirement {
-    pub(crate) fn endpoint_origin(&self) -> &str {
+    pub fn endpoint_origin(&self) -> &str {
         &self.endpoint_origin
     }
 }
@@ -61,69 +61,69 @@ impl ServiceTelemetryRequirement {
 /// The database connection declaration retained from a host-mode request.
 /// The secret member remains a reference; decoding never resolves it.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ServiceDatabaseRequirement {
+pub struct ServiceDatabaseRequirement {
     adapter: ServiceDatabaseAdapter,
     dsn_secret_reference: String,
     migration_table: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum ServiceDatabaseAdapter {
+pub enum ServiceDatabaseAdapter {
     Sqlite,
     Postgresql,
 }
 
 impl ServiceDatabaseRequirement {
-    pub(crate) const fn adapter(&self) -> ServiceDatabaseAdapter {
+    pub const fn adapter(&self) -> ServiceDatabaseAdapter {
         self.adapter
     }
 
-    pub(crate) fn dsn_secret_reference(&self) -> &str {
+    pub fn dsn_secret_reference(&self) -> &str {
         &self.dsn_secret_reference
     }
 
-    pub(crate) fn migration_table(&self) -> &str {
+    pub fn migration_table(&self) -> &str {
         &self.migration_table
     }
 }
 
 /// The TLS server declaration retained from a host-mode request.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ServiceHttpTlsRequirement {
+pub struct ServiceHttpTlsRequirement {
     listen_origin: String,
 }
 
 impl ServiceHttpTlsRequirement {
-    pub(crate) fn listen_origin(&self) -> &str {
+    pub fn listen_origin(&self) -> &str {
         &self.listen_origin
     }
 }
 
 /// The three host-owned secret references a service host must resolve.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ServiceSecretResolutionRequirement {
+pub struct ServiceSecretResolutionRequirement {
     password_pepper_reference: String,
     session_signing_key_reference: String,
     webhook_signing_key_reference: String,
 }
 
 impl ServiceSecretResolutionRequirement {
-    pub(crate) fn password_pepper_reference(&self) -> &str {
+    pub fn password_pepper_reference(&self) -> &str {
         &self.password_pepper_reference
     }
 
-    pub(crate) fn session_signing_key_reference(&self) -> &str {
+    pub fn session_signing_key_reference(&self) -> &str {
         &self.session_signing_key_reference
     }
 
-    pub(crate) fn webhook_signing_key_reference(&self) -> &str {
+    pub fn webhook_signing_key_reference(&self) -> &str {
         &self.webhook_signing_key_reference
     }
 }
 
 /// A bounded, independently replayed service host-adapter request.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ServiceHostAdapterRequestV1 {
+pub struct ServiceHostAdapterRequestV1 {
     canonical: Vec<u8>,
     requirements: Vec<ServiceHostAdapterCapability>,
     database: Option<ServiceDatabaseRequirement>,
@@ -134,29 +134,29 @@ pub(crate) struct ServiceHostAdapterRequestV1 {
 
 impl ServiceHostAdapterRequestV1 {
     /// Exact canonical bytes checked by this decoder.
-    pub(crate) fn canonical_bytes(&self) -> &[u8] {
+    pub fn canonical_bytes(&self) -> &[u8] {
         &self.canonical
     }
 
     /// Closed required capabilities. Fixture requests retain an empty set.
-    pub(crate) fn requirements(&self) -> &[ServiceHostAdapterCapability] {
+    pub fn requirements(&self) -> &[ServiceHostAdapterCapability] {
         &self.requirements
     }
 
-    pub(crate) fn database(&self) -> Option<&ServiceDatabaseRequirement> {
+    pub fn database(&self) -> Option<&ServiceDatabaseRequirement> {
         self.database.as_ref()
     }
 
-    pub(crate) fn http(&self) -> Option<&ServiceHttpTlsRequirement> {
+    pub fn http(&self) -> Option<&ServiceHttpTlsRequirement> {
         self.http.as_ref()
     }
 
-    pub(crate) fn secrets(&self) -> Option<&ServiceSecretResolutionRequirement> {
+    pub fn secrets(&self) -> Option<&ServiceSecretResolutionRequirement> {
         self.secrets.as_ref()
     }
 
     /// The host-mode telemetry target intent, if this request declares one.
-    pub(crate) fn telemetry(&self) -> Option<&ServiceTelemetryRequirement> {
+    pub fn telemetry(&self) -> Option<&ServiceTelemetryRequirement> {
         self.telemetry.as_ref()
     }
 }
@@ -166,7 +166,7 @@ impl ServiceHostAdapterRequestV1 {
 /// A success is only a read-only declaration replay. In particular, this API
 /// cannot construct an `OutboundPolicy`, `OutboundCapability`, secret, store,
 /// transport, or any physical adapter.
-pub(crate) fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String> {
+pub fn decode(bytes: &[u8]) -> Result<ServiceHostAdapterRequestV1, String> {
     if bytes.is_empty() || bytes.len() > MAX_SERVICE_HOST_ADAPTER_REQUEST_BYTES {
         return Err("service host adapter request exceeds its exact byte bound".into());
     }

@@ -25,7 +25,7 @@ use super::{validate_owned_project_test, ProjectExecutionOptions, PROJECT_SCHEMA
 /// bounded host-adapter handoff. This returns requirements only: it never
 /// resolves a secret, creates an outbound policy, grants a capability, or
 /// opens an adapter.
-pub(crate) fn derive_service_host_adapter_request_v1(
+pub fn derive_service_host_adapter_request_v1(
     configuration: &[u8],
 ) -> Result<ServiceHostAdapterRequestV1, String> {
     let configuration = service_config::decode(configuration)?;

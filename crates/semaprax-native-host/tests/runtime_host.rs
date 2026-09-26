@@ -1,5 +1,8 @@
 #![cfg(any(target_os = "linux", target_os = "macos"))]
 
+#[path = "runtime_host/reference_service_acceptance.rs"]
+mod reference_service_acceptance;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;

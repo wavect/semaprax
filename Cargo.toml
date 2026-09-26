@@ -73,6 +73,7 @@ required-features = ["unstable-workflow-profiling"]
 
 [features]
 default = []
+metal-device = ["dep:objc2", "dep:objc2-foundation", "dep:objc2-metal"]
 unstable-workflow-profiling = []
 unstable-native-host-internal = []
 unstable-wit-component-harness = []
@@ -89,6 +90,11 @@ rustix = { version = "=1.1.4", default-features = false, features = ["fs", "proc
 [target.'cfg(windows)'.dependencies]
 renamore = { version = "=0.3.2", default-features = false, features = ["always-supported"] }
 winapi-util = "=0.1.11"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "=0.6.4", optional = true }
+objc2-foundation = { version = "=0.3.2", optional = true }
+objc2-metal = { version = "=0.3.2", optional = true }
 
 [[bin]]
 name = "semaprax"

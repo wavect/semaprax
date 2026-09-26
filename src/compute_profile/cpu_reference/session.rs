@@ -118,7 +118,7 @@ pub enum KernelShape {
 }
 
 impl KernelShape {
-    fn encode(self) -> Vec<u8> {
+    pub(crate) fn encode(self) -> Vec<u8> {
         match self {
             Self::ElementwiseMap { workgroup_size } => {
                 let mut bytes = vec![1];
@@ -791,7 +791,14 @@ fn fold_ops(ir: &KernelIr) -> Vec<KernelOp> {
 
 /// Select, admit, and lower one declaration, returning its IR and canonical
 /// fingerprint. Refusals follow the classifier precedence.
-fn bind(
+///
+/// `pub(crate)`: the macOS-only Metal backend module reuses this exact
+/// admission and lowering path (when its `metal-device` feature is
+/// compiled in), so a kernel accepted for the CPU reference and a kernel
+/// accepted for the Metal backend are, by construction, the same checked
+/// body admitted through the same classifier precedence — never a second,
+/// drifting predicate.
+pub(crate) fn bind(
     program: &ResolvedProgram,
     declaration: &str,
     shape: KernelShape,

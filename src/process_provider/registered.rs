@@ -25,6 +25,12 @@ pub struct HeldProcessTool {
     pub(super) environment: Vec<CString>,
     #[cfg(target_os = "macos")]
     pub(super) executable_metadata: Metadata,
+    /// Canonical invocation path recorded when the executable was held, used
+    /// for the macOS spawn instead of resolving the descriptor. Required when
+    /// the executable may be multiply linked: a descriptor-derived path is an
+    /// arbitrary link, and a multicall binary dispatches on invocation path.
+    #[cfg(target_os = "macos")]
+    pub(super) invocation_path: Option<CString>,
     accepts: fn(&[Vec<u8>]) -> bool,
 }
 
@@ -62,8 +68,30 @@ impl HeldProcessTool {
             environment,
             #[cfg(target_os = "macos")]
             executable_metadata,
+            #[cfg(target_os = "macos")]
+            invocation_path: None,
             accepts,
         })
+    }
+
+    /// Records the canonical path used to establish the held executable, to be
+    /// used as the macOS spawn invocation path. This does not weaken the
+    /// held-descriptor authority: macOS attestation still verifies the
+    /// suspended child's mapped executable vnode against the held file before
+    /// it runs, so a path swapped after opening fails closed instead of
+    /// running. `None` keeps the previous descriptor-derived path, which is
+    /// only deterministic for single-link executables.
+    #[cfg(target_os = "macos")]
+    pub fn with_invocation_path(
+        mut self,
+        path: Option<&std::path::Path>,
+    ) -> Result<Self, ProcessFailure> {
+        let Some(path) = path else {
+            return Ok(self);
+        };
+        let bytes = std::os::unix::ffi::OsStrExt::as_bytes(path.as_os_str());
+        self.invocation_path = Some(CString::new(bytes).map_err(|_| ProcessFailure::InvalidInput)?);
+        Ok(self)
     }
 
     fn accepts(&self, arguments: &[Vec<u8>]) -> bool {

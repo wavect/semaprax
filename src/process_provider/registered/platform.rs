@@ -226,6 +226,7 @@ fn spawn_macos(
     arguments: &[CString],
     environment: &[CString],
     child_io: &ChildIo<'_>,
+    invocation_path: Option<&std::ffi::CStr>,
 ) -> io::Result<libc::pid_t> {
     unsafe extern "C" {
         fn posix_spawn_file_actions_addfchdir_np(
@@ -233,11 +234,21 @@ fn spawn_macos(
             fd: c_int,
         ) -> c_int;
     }
+    // A recorded invocation path selects the tool deterministically; resolving
+    // the descriptor instead returns an arbitrary link for a multiply-linked
+    // executable, and a multicall binary dispatches on that path. Either way
+    // attestation below verifies the suspended child's mapped vnode against
+    // the held file, so a swapped path fails closed.
     let mut held_path = [0_u8; 1024];
-    if unsafe { libc::fcntl(executable.as_raw_fd(), 50, held_path.as_mut_ptr()) } != 0 {
+    if invocation_path.is_none()
+        && unsafe { libc::fcntl(executable.as_raw_fd(), 50, held_path.as_mut_ptr()) } != 0
+    {
         return Err(io::Error::last_os_error());
     }
-    let executable_path = unsafe { std::ffi::CStr::from_ptr(held_path.as_ptr().cast()) };
+    let executable_path: &std::ffi::CStr = match invocation_path {
+        Some(recorded) => recorded,
+        None => unsafe { std::ffi::CStr::from_ptr(held_path.as_ptr().cast()) },
+    };
     let mut argv = arguments
         .iter()
         .map(|argument| argument.as_ptr().cast_mut())
@@ -677,6 +688,7 @@ pub(super) fn run(
         &arguments,
         &tool.environment,
         &child_io,
+        tool.invocation_path.as_deref(),
     );
     let pid = spawned.map_err(|_| ProcessFailure::LaunchFailed)?;
     let mut guard = ChildGuard(Some(Pending {

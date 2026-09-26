@@ -9,6 +9,8 @@ use std::os::unix::fs::{symlink, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+mod control;
+
 // --- fault injection consulted by `journal::Journal::append` ---------------
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

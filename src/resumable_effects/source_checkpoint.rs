@@ -16,8 +16,12 @@ use serde_json::{json, Value};
 use sha2::Sha256;
 use zeroize::Zeroize;
 
+mod control;
 mod migration;
 mod signature_bound;
+pub use control::{
+    decode_source_checkpoint_v3, encode_source_checkpoint_v3, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V3,
+};
 pub use migration::{
     migrate_source_checkpoint_v2, SourceCheckpointMigration, SourceCheckpointMigrationBudget,
     SourceCheckpointMigrationError, SourceCheckpointMigrationInput,

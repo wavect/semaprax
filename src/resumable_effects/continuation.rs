@@ -1,5 +1,5 @@
-//! Public bounded continuation execution for the admitted sequential
-//! Copy-scalar profile (`semaprax.resumable-continuation.v1`).
+//! Public bounded continuation execution for the admitted sequential and
+//! control-dependent Copy-scalar profiles (`semaprax.resumable-continuation.v1`).
 //!
 //! [`DurableInvocation`] runs the compiler-owned start/resume plans on the
 //! interpreter (`interpreter::resumable`) and records every observable step
@@ -21,27 +21,23 @@
 //! [`docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md`]: ../../docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md
 
 pub mod journal;
+mod lane;
 #[cfg(test)]
 mod tests;
 
 use super::capability::CapabilityPolicy;
 use super::core::{CleanupHandler, EffectHandler};
-use super::source_checkpoint::{
-    decode_source_checkpoint_v2, encode_source_checkpoint_v2, SourceCheckpointError,
-    SourceCheckpointKey, SourceCheckpointScope,
-};
+use super::source_checkpoint::{SourceCheckpointError, SourceCheckpointKey, SourceCheckpointScope};
 use super::source_driver::{scalar, tag};
 use super::source_signature::{derive_source_effect_signature, SourceEffectSignature};
 use crate::diagnostic::Diagnostic;
 use crate::hir::ResolvedProgram;
 use crate::interpreter::resumable::checkpoint::scalar_json;
-use crate::interpreter::resumable::{
-    resume_sequential_resumable_effect, run_sequential_resumable_effect, ResumableContinuation,
-    SequentialResumableStep,
-};
 use crate::interpreter::{ArgumentValue, MAX_STEPS_LIMIT};
+use crate::resumable_effects::lowering::control::MAX_CONTROL_SUSPENSIONS;
 use journal::{answer_digest, hex, sha256, Journal, Record};
 pub use journal::{JournalDirectory, TornTailPolicy, RESUMABLE_JOURNAL_SCHEMA_V1};
+use lane::{Carrier, LaneStep};
 
 /// Breaking changes to the request/answer or journal protocol require a new
 /// contract identity.
@@ -133,10 +129,12 @@ pub enum DurableFailure {
     HandlerFailed,
     AnswerTypeMismatch,
     HostAbandoned,
+    /// A control-dependent invocation reached more suspensions than its bound.
+    SuspensionBoundExceeded,
 }
 
 impl DurableFailure {
-    const ALL: [Self; 7] = [
+    const ALL: [Self; 8] = [
         Self::LanguageFailure,
         Self::FuelExhausted,
         Self::CallDepthExceeded,
@@ -144,6 +142,7 @@ impl DurableFailure {
         Self::HandlerFailed,
         Self::AnswerTypeMismatch,
         Self::HostAbandoned,
+        Self::SuspensionBoundExceeded,
     ];
 
     /// Failures that settle a dispatched site rather than a plan step.
@@ -163,6 +162,7 @@ impl DurableFailure {
             Self::HandlerFailed => "handler_failed",
             Self::AnswerTypeMismatch => "answer_type_mismatch",
             Self::HostAbandoned => "host_abandoned",
+            Self::SuspensionBoundExceeded => "suspension_bound_exceeded",
         }
     }
 }
@@ -223,7 +223,7 @@ enum Phase {
 
 #[derive(Clone)]
 struct Pending {
-    continuation: ResumableContinuation,
+    continuation: Carrier,
     envelope_digest: [u8; 32],
 }
 
@@ -263,7 +263,7 @@ fn facts(
     }
     let signature = derive_source_effect_signature(program, function_id)
         .map_err(|error| ContinuationError::Admission(vec![error]))?;
-    if signature.yield_count() < 2 {
+    if !signature.is_control_dependent() && signature.yield_count() < 2 {
         // The v2 continuation envelope exists only for the sequential lane.
         return Err(ContinuationError::UnsupportedProfile);
     }
@@ -327,8 +327,14 @@ impl<'a> DurableInvocation<'a> {
             policy_epoch,
             max_steps,
         )?;
-        let first = run_sequential_resumable_effect(program, function_id, arguments, max_steps)
-            .map_err(ContinuationError::Admission)?;
+        let first = lane::start(
+            program,
+            function_id,
+            arguments,
+            max_steps,
+            facts.signature.is_control_dependent(),
+        )
+        .map_err(ContinuationError::Admission)?;
         let journal = Journal::create(directory, invocation_id)?;
         let mut invocation = Self::assemble(
             program,
@@ -341,7 +347,7 @@ impl<'a> DurableInvocation<'a> {
         );
         let started = invocation.started_record();
         invocation.append(&started)?;
-        invocation.settle_step(first.step)?;
+        invocation.settle_step(first)?;
         Ok(invocation)
     }
 
@@ -456,7 +462,7 @@ impl<'a> DurableInvocation<'a> {
         ContinuationRequest {
             program_digest: *self.signature.plan_identity(),
             invocation_id: self.scope.invocation_id().to_owned(),
-            site: site_of(&pending.continuation),
+            site: pending.continuation.site(),
             envelope_digest: pending.envelope_digest,
             request: pending.continuation.request().clone(),
         }
@@ -477,7 +483,7 @@ impl<'a> DurableInvocation<'a> {
             return Err(ContinuationError::CapabilityDenied);
         }
         self.append(&Record::Dispatched {
-            site: site_of(&pending.continuation),
+            site: pending.continuation.site(),
             envelope_digest: pending.envelope_digest,
         })?;
         let request = self.request_of(&pending);
@@ -496,7 +502,7 @@ impl<'a> DurableInvocation<'a> {
         let pending = match &self.phase {
             Phase::AwaitingAnswer(pending, _) => pending.clone(),
             Phase::AwaitingDispatch(pending) => {
-                return Err(if answer.site < site_of(&pending.continuation) {
+                return Err(if answer.site < pending.continuation.site() {
                     ContinuationError::ReplayedAnswer
                 } else {
                     ContinuationError::NotDispatched
@@ -513,7 +519,7 @@ impl<'a> DurableInvocation<'a> {
         if answer.invocation_id != self.scope.invocation_id() {
             return Err(ContinuationError::InvocationMismatch);
         }
-        let site = site_of(&pending.continuation);
+        let site = pending.continuation.site();
         if answer.site < site {
             return Err(ContinuationError::ReplayedAnswer);
         }
@@ -675,10 +681,10 @@ impl<'a> DurableInvocation<'a> {
 
     fn resume_with(
         &mut self,
-        continuation: &ResumableContinuation,
+        continuation: &Carrier,
         answer: &ArgumentValue,
     ) -> Result<(), ContinuationError> {
-        match resume_sequential_resumable_effect(
+        match lane::resume(
             self.program,
             &self.function_id,
             &self.arguments,
@@ -686,16 +692,15 @@ impl<'a> DurableInvocation<'a> {
             answer,
             self.max_steps,
         ) {
-            Ok(evaluation) => self.settle_step(evaluation.step),
+            Ok(step) => self.settle_step(step),
             Err(_) => self.terminal(DurableOutcome::Failed(DurableFailure::EvaluationRejected)),
         }
     }
 
-    fn settle_step(&mut self, step: SequentialResumableStep) -> Result<(), ContinuationError> {
-        let failed = DurableOutcome::Failed;
+    fn settle_step(&mut self, step: LaneStep) -> Result<(), ContinuationError> {
         match step {
-            SequentialResumableStep::Suspended { continuation } => {
-                let envelope = encode_source_checkpoint_v2(
+            LaneStep::Suspended(continuation) => {
+                let envelope = lane::encode(
                     self.program,
                     self.key,
                     &self.scope,
@@ -714,7 +719,7 @@ impl<'a> DurableInvocation<'a> {
                 };
                 let envelope_digest = sha256(envelope.as_bytes());
                 self.append(&Record::Yielded {
-                    site: site_of(&continuation),
+                    site: continuation.site(),
                     envelope,
                     envelope_digest,
                 })?;
@@ -724,21 +729,8 @@ impl<'a> DurableInvocation<'a> {
                 });
                 Ok(())
             }
-            SequentialResumableStep::Completed { result, .. } => {
-                self.terminal(DurableOutcome::Completed(result))
-            }
-            SequentialResumableStep::LanguageFailure(_) => {
-                self.terminal(failed(DurableFailure::LanguageFailure))
-            }
-            SequentialResumableStep::FuelExhausted => {
-                self.terminal(failed(DurableFailure::FuelExhausted))
-            }
-            SequentialResumableStep::CallDepthExceeded => {
-                self.terminal(failed(DurableFailure::CallDepthExceeded))
-            }
-            SequentialResumableStep::GuardError(_) => {
-                self.terminal(failed(DurableFailure::EvaluationRejected))
-            }
+            LaneStep::Completed(result) => self.terminal(DurableOutcome::Completed(result)),
+            LaneStep::Failed(failure) => self.terminal(DurableOutcome::Failed(failure)),
         }
     }
 
@@ -754,7 +746,12 @@ impl<'a> DurableInvocation<'a> {
             CleanupStarted(DurableOutcome),
             Settled(DurableOutcome, CleanupSettlement),
         }
-        let yield_count = self.signature.yield_count();
+        let control_dependent = self.signature.is_control_dependent();
+        let site_bound = if control_dependent {
+            MAX_CONTROL_SUSPENSIONS as u32
+        } else {
+            self.signature.yield_count()
+        };
         let mut next_site = 0_u32;
         let mut tail = Tail::Started;
         for record in records {
@@ -768,21 +765,22 @@ impl<'a> DurableInvocation<'a> {
                     },
                 ) => {
                     if *site != next_site
-                        || *site >= yield_count
+                        || *site >= site_bound
                         || sha256(envelope.as_bytes()) != *envelope_digest
                     {
                         return Err(ContinuationError::TamperedJournal);
                     }
-                    let continuation = decode_source_checkpoint_v2(
+                    let continuation = lane::decode(
                         self.program,
                         self.key,
                         &self.scope,
                         &self.function_id,
                         &self.arguments,
                         envelope.as_bytes(),
+                        control_dependent,
                     )
                     .map_err(ContinuationError::Envelope)?;
-                    if site_of(&continuation) != *site {
+                    if continuation.site() != *site {
                         return Err(ContinuationError::TamperedJournal);
                     }
                     Tail::Yielded(Pending {
@@ -840,14 +838,15 @@ impl<'a> DurableInvocation<'a> {
         }
         match tail {
             Tail::Started => {
-                let evaluation = run_sequential_resumable_effect(
+                let step = lane::start(
                     self.program,
                     &self.function_id,
                     &self.arguments,
                     self.max_steps,
+                    control_dependent,
                 )
                 .map_err(ContinuationError::Admission)?;
-                self.settle_step(evaluation.step)?;
+                self.settle_step(step)?;
             }
             Tail::Yielded(pending) => self.phase = Phase::AwaitingDispatch(pending),
             Tail::Dispatched(pending) => self.phase = Phase::AwaitingAnswer(pending, true),
@@ -865,10 +864,6 @@ fn failure_class(outcome: &DurableOutcome) -> Option<DurableFailure> {
         DurableOutcome::Completed(_) => None,
         DurableOutcome::Failed(failure) => Some(*failure),
     }
-}
-
-fn site_of(continuation: &ResumableContinuation) -> u32 {
-    u32::try_from(continuation.history().len()).expect("at most eight sites")
 }
 
 fn compare_started(observed: Option<&Record>, expected: &Record) -> Result<(), ContinuationError> {

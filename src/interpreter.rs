@@ -3946,7 +3946,7 @@ impl Evaluator<'_> {
             // on a fresh invocation, drift check + answer on a replayed one.
             ResolvedExprKind::Yield { request } => {
                 let produced = self.evaluate(request, environment, depth)?;
-                resumable::settle_yield(&mut self.resumption, produced)
+                resumable::settle_yield(&mut self.resumption, &expression.id, produced)
             }
             ResolvedExprKind::Closure { .. }
             | ResolvedExprKind::FunctionReference { .. }

@@ -29,9 +29,11 @@ pub const RESUMABLE_JOURNAL_SCHEMA_V1: &str = "semaprax.resumable-journal.v1";
 
 const RECORD_DOMAIN: &[u8] = b"semaprax.resumable-journal-record.v1\0";
 const NAME_DOMAIN: &[u8] = b"semaprax.resumable-journal-name.v1\0";
-/// One Started, three records per site for eight sites, one terminal and two
-/// settlement records.
-pub(super) const MAX_RECORDS: usize = 1 + 3 * 8 + 1 + 2;
+/// One Started, three records per suspension for the control profile's
+/// sixteen suspensions (the sequential profile's eight fit inside), one
+/// terminal and two settlement records.
+pub(super) const MAX_RECORDS: usize =
+    1 + 3 * crate::resumable_effects::lowering::control::MAX_CONTROL_SUSPENSIONS + 1 + 2;
 const MAX_JOURNAL_BYTES: usize = 512 * 1024;
 
 /// What recovery does with a final fragment that has no terminating newline.

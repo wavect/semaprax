@@ -1,7 +1,8 @@
 # Resumable effects continuation v1
 
-Status: **local library contract, first slice.** Implemented for the already
-admitted sequential Copy-scalar profile by
+Status: **local library contract, second slice.** Implemented for the
+sequential Copy-scalar profile and the control-dependent profile of section 11
+by
 `src/resumable_effects/continuation.rs` and its `journal` submodule (Unix
 only). It is not a CLI, service, hosted, or production runtime, and it adds no
 language syntax.
@@ -25,6 +26,10 @@ with `UnsupportedProfile` because the sequential continuation carrier does not
 exist for it. Admission, the budget check (`1..=MAX_STEPS_LIMIT` interpreter
 steps per segment), and the pure start plan run **before** any file is
 created, so a refused start leaves storage untouched.
+
+Section 11 adds the control-dependent profile (yields inside `if`/`else`
+branches and `while` bodies). The lane is chosen by the checked program's
+plan, never by stored bytes.
 
 Execution uses only the compiler-owned start and per-site resume plans through
 `interpreter::resumable`. The driver adds no second evaluator: every resumed
@@ -222,8 +227,8 @@ compile the module.
 
 ## 9. Remaining work (issue #296)
 
-- Owned and live frames, control-dependent suspension, borrows, resources, and
-  effectful prefixes across a yield.
+- Owned values live across a yield (designed in section 11.6, not admitted),
+  and owned live frames generally.
 - Ordinary native and Wasm emission of `yields` functions (`SPX-B116` and
   `SPX-W126` still refuse) and a durable driver for those engines.
 - Migration of an Agent lifecycle example onto this mechanism.
@@ -234,9 +239,107 @@ compile the module.
 
 ```sh
 cargo test --locked -p semaprax --lib resumable_effects::continuation::
+cargo test --locked -p semaprax --lib interpreter::resumable::control::
+cargo test --locked -p semaprax --lib resumable_effects::lowering::control_tests::
+cargo test --locked -p semaprax --lib resumable_effects::source_checkpoint::control::
+cargo test --locked -p semaprax --lib parser::yields:: hir::resolve_yield::
 ```
 
 This runs the positive multi-yield run, the explicit request/answer exchange,
 sticky host failure, the crash before and after each of the thirteen records of
 a three-site run, and the hostile answer, fact, journal, torn-tail, directory,
 and admission cases. These are local, offline results, not hosted evidence.
+
+## 11. Control-dependent profile (issue #296, slice 2)
+
+### 11.1 Admitted placements
+
+A `yield` may now also be the direct `let` or assignment value of a block
+reached from the function body only through `if`/`else` branches, `while`
+bodies, or block-valued slots, at any depth. It stays refused (`SPX-T297`) in
+conditions, operands, call arguments, a nested block's tail, `match` arms,
+`for` and `unsafe` bodies, and closures. The function's own tail may still be a
+`yield`. Parser (`parser::yields`), resolver (`hir::resolve_yield`, including
+the while-body admission scan), HIR validation, canonical formatter and
+semantic graph carry the new placements; tests assert the canonical round-trip
+and the graph's `yield` nodes.
+
+### 11.2 Plan and continuation (identity v3)
+
+`resumable_effects::lowering::control` lowers such a function to a
+`ControlResumablePlan`: one static suspended state per `yield` site (at most
+eight), with plan identity domain `semaprax.resumable-control-plan.v3`. A
+function whose yields are all direct top-level sites is refused here and keeps
+its sequential plan, so the two identities never coincide.
+
+The dynamic control state at a suspension is the ordered list of settled
+suspensions, each `(static site, request, answer)`. The continuation binding
+(domain `semaprax.resumable-control-binding.v3`) commits to the plan identity,
+the current site, the exact scalar arguments, and every settled
+`(site, answer)` pair. Resume replays the pure prefix from entry: each replayed
+suspension must occur at exactly its recorded site and recompute its recorded
+request (`SPX-F114` otherwise), and the binding must match (`SPX-F115`). The
+branch taken and the loop iteration reached are recomputed, never read from
+the continuation.
+
+Loops are bounded dynamically: at most 16 suspensions per invocation
+(`MAX_CONTROL_SUSPENSIONS`). Reaching a 17th is the sticky terminal failure
+`suspension_bound_exceeded`. The journal bound grows to 52 records
+(1 + 3 x 16 + 1 + 2).
+
+### 11.3 Envelope v3
+
+`semaprax.source-resumable-checkpoint.v3` is a new, separate wire with its own
+authentication domain. It carries the v2 scope and signature facts (with
+`"plan": "control"`) and the continuation's state, binding, request and settled
+history with sites. Decode re-lowers the current program, maps every site to
+the current plan, and re-derives the binding; v1 and v2 decoders refuse v3
+bytes by schema and the v3 decoder refuses theirs. Nothing reinterprets v2
+bytes.
+
+### 11.4 Driver and journal
+
+The durable driver selects the lane from the checked signature. For the control
+profile the journal's `site` is the dynamic suspension ordinal (the number of
+settled suspensions), so the non-bearer answer binding of section 3 applies
+unchanged: an answer names the program digest, invocation, ordinal and the
+exact v3 envelope digest. Recovery decodes `Yielded` envelopes as v3. Every
+recovery rule of section 7 holds; the crash matrix covers a crash before and
+after each of the 16 records of a loop-and-branch run.
+
+### 11.5 Stable refusals
+
+| Code | Refusal |
+| --- | --- |
+| `SPX-T297` | `yield` outside the admitted placements |
+| `SPX-T302` | effectful prefix: a `yields` function declares `uses` effects, whose replay would redispatch them |
+| `SPX-T303` | an owned or aggregate value that is not an admitted Copy scalar |
+| `SPX-T305` | a borrow (`borrow T`, `str`, `Slice<u8>`) in a `yields` function, which could be live across a suspension |
+| `SPX-T306` | a resource or handle in a `yields` function, which could be live across a suspension |
+| `SPX-B116` / `SPX-W126` | ordinary native / Wasm emission of any `yields` function, including the new placements |
+| `SPX-H006` | resumable target preparation of a control-dependent plan (no yield-free projection exists) |
+
+`SPX-T305` and `SPX-T306` are checked for parameters and every intermediate
+value; they are conservative (any borrow or resource in the function), not a
+liveness analysis.
+
+### 11.6 Owned values across a yield (designed, not admitted)
+
+Owned values (`Bytes`, `string`, owned records) stay refused with `SPX-T303`.
+The intended design, left for a later slice:
+
+- The plan computes, per site, the owned locals live across it from the
+  existing cleanup inventory (never re-sorted), and admits only values whose
+  types have a canonical by-value encoding (bytes, strings, records of those
+  and scalars). Borrows and resources stay refused.
+- A suspension moves those values into the continuation by value; the envelope
+  (a v4 wire) carries them in canonical cleanup-inventory order and the binding
+  commits to their exact bytes. Replay does not re-create them: the resumed
+  suffix receives them as the frame, so replay must stop re-evaluating the
+  prefix for owned state (a resume projection per site, as the backend
+  projections already are for scalars).
+- Settlement runs the canonical cleanup plan for the carried values exactly
+  once: on completion through the ordinary suffix, on abandon or sticky failure
+  through the journaled `CleanupStarted`/`CleanupSettled` window, whose
+  in-doubt rule already prevents a second run. A negative-control mutant that
+  skips cleanup on abandon must be caught by a leak counter.

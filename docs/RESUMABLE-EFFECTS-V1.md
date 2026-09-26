@@ -542,8 +542,11 @@ defines the first public bounded continuation route for the two-to-eight-site
 sequential scalar profile: a non-bearer request/answer exchange, explicit host
 capability at dispatch and answer, sticky settlement, and a durable
 append-only journal with crash recovery from the observed tail. It reuses the
-v2 envelope and the interpreter plans above unchanged. The scope-boundary
-items below remain open except where that contract states otherwise.
+v2 envelope and the interpreter plans above unchanged. Its section 11 widens
+`yield` to structured control (`if`/`else` branches and `while` bodies) with a
+v3 plan identity and a v3 envelope, and adds the stable borrow (`SPX-T305`) and
+resource (`SPX-T306`) refusals. The scope-boundary items below remain open
+except where that contract states otherwise.
 
 ## Scope boundary
 

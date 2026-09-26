@@ -69,11 +69,19 @@ impl OutboundAdapter for PanicOnDispatch {
 }
 
 fn capability() -> OutboundCapability {
+    capability_with_policy_id("service-invocation-policy")
+}
+
+/// Same deployment binding, invocation id, and idempotency key (so the same
+/// `pending_identity_key`), but a genuinely different, independently valid
+/// policy -- used to prove a changed policy on restart cannot bypass the
+/// intent marker.
+fn capability_with_policy_id(policy_id: &'static str) -> OutboundCapability {
     OutboundCapability::grant_for_trusted_host(
         "sha256:service-invocation-deployment",
         "service-invocation-invocation",
         OutboundPolicy::new(
-            "service-invocation-policy",
+            policy_id,
             ["https://service-invocation.example.test".to_owned()],
             1_024,
             512,
@@ -224,11 +232,11 @@ fn deliver_http_durable_replays_from_a_retained_prior_terminal_reference() {
     );
 }
 
-/// The core guard behavior in one process: once the provisional intent for
-/// an exact identity and request is durably present, a brand-new session
-/// attempting the same call surfaces `Uncertain` and never enters the
-/// adapter, even though nothing in that fresh session's own memory recorded
-/// the earlier attempt.
+/// The core guard behavior in one process: once the intent marker for an
+/// exact identity is durably present, a brand-new (restored-vs-fresh
+/// mismatch: not restored at all) session attempting the same call surfaces
+/// `Uncertain` and never enters the adapter, even though nothing in that
+/// fresh session's own memory recorded the earlier attempt.
 #[test]
 fn fresh_session_never_redispatches_an_already_committed_provisional_checkpoint() {
     let temp = TempDirectory::new();
@@ -263,6 +271,119 @@ fn fresh_session_never_redispatches_an_already_committed_provisional_checkpoint(
     assert!(matches!(second, ServiceHttpDeliveryOutcome::Uncertain));
 }
 
+/// P2-1 bypass #1: a restart that constructs its fresh session with a
+/// *different capacity* must not bypass the marker. The old (reverted)
+/// digest-keyed probe failed exactly this case, because the full session
+/// checkpoint's digest also depends on capacity.
+#[test]
+fn different_capacity_on_restart_does_not_bypass_the_intent_marker() {
+    let temp = TempDirectory::new();
+    let directory = platform::hold_directory(temp.path()).expect("hold caller directory");
+    let mut store = OutboundDeliveryStore::new(&directory);
+    let mut first_adapter = RecordingAdapter::default();
+    let first = deliver_http_durable(
+        &mut store,
+        2,
+        None,
+        capability(),
+        request(),
+        &mut first_adapter,
+    )
+    .unwrap();
+    assert!(matches!(first, ServiceHttpDeliveryOutcome::Dispatched(_)));
+    assert_eq!(first_adapter.0.len(), 1);
+
+    let mut guard_adapter = PanicOnDispatch;
+    let second = deliver_http_durable(
+        &mut store,
+        7, // a different capacity than the first attempt's.
+        None,
+        capability(),
+        request(),
+        &mut guard_adapter,
+    )
+    .unwrap();
+    assert!(
+        matches!(second, ServiceHttpDeliveryOutcome::Uncertain),
+        "a different capacity on restart must not bypass the identity-keyed marker"
+    );
+}
+
+/// P2-1 bypass #2: a restart that constructs its fresh session with a
+/// *different (but independently valid) policy* for the same identity must
+/// not bypass the marker either.
+#[test]
+fn different_policy_on_restart_does_not_bypass_the_intent_marker() {
+    let temp = TempDirectory::new();
+    let directory = platform::hold_directory(temp.path()).expect("hold caller directory");
+    let mut store = OutboundDeliveryStore::new(&directory);
+    let mut first_adapter = RecordingAdapter::default();
+    let first = deliver_http_durable(
+        &mut store,
+        2,
+        None,
+        capability_with_policy_id("service-invocation-policy-a"),
+        request(),
+        &mut first_adapter,
+    )
+    .unwrap();
+    assert!(matches!(first, ServiceHttpDeliveryOutcome::Dispatched(_)));
+    assert_eq!(first_adapter.0.len(), 1);
+
+    let mut guard_adapter = PanicOnDispatch;
+    let second = deliver_http_durable(
+        &mut store,
+        2,
+        None,
+        capability_with_policy_id("service-invocation-policy-b"),
+        request(),
+        &mut guard_adapter,
+    )
+    .unwrap();
+    assert!(
+        matches!(second, ServiceHttpDeliveryOutcome::Uncertain),
+        "a different (but individually valid) policy on restart must not bypass the marker"
+    );
+}
+
+/// P2-2: the marker commit is a single atomic create-new attempt with no
+/// preceding read. Two "concurrent" fresh attempts for the same identity --
+/// modeled here as a deterministic interleaving at the store boundary rather
+/// than real OS concurrency -- must not both see `Fresh`: only the first
+/// create-new can win, even though both would compute byte-identical marker
+/// content. This is the exact race the old (reverted) load-then-commit
+/// design failed: a load that saw the marker absent, followed by a
+/// `write_new` that got `Exists`, would take the store's idempotent
+/// existing-content path and report `Committed` to *both* callers.
+#[test]
+fn concurrent_fresh_attempts_for_the_same_identity_only_one_marker_wins() {
+    let temp = TempDirectory::new();
+    let directory = platform::hold_directory(temp.path()).expect("hold caller directory");
+    let prepared =
+        prepare_http_delivery(capability(), request()).expect("admitted fixture request");
+    let identity_key = prepared.pending_identity_key().to_owned();
+
+    let first = commit_pending_intent_marker(
+        &directory,
+        OutboundCheckpointSyncMode::FileOnly,
+        OutboundCheckpointKind::HttpSession,
+        &identity_key,
+    );
+    let second = commit_pending_intent_marker(
+        &directory,
+        OutboundCheckpointSyncMode::FileOnly,
+        OutboundCheckpointKind::HttpSession,
+        &identity_key,
+    );
+    assert_eq!(first, PendingIntentCommit::Fresh);
+    assert_eq!(
+        second,
+        PendingIntentCommit::Blocked,
+        "a second create-new for the same identity must never be treated as an idempotent \
+         success, even though its content would be byte-identical"
+    );
+}
+
 fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
     !needle.is_empty()
         && haystack
@@ -276,6 +397,14 @@ fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
 #[test]
 fn failing_telemetry_sink_does_not_change_delivery_outcome_and_never_leaks_the_secret() {
     const SECRET: &[u8] = b"top-secret-delivery-marker-9f3e21";
+    const SECRET_STR: &str = "top-secret-delivery-marker-9f3e21";
+
+    // A boundary-owned credential-shaped header name refuses the secret at
+    // admission, before any store, adapter, or checkpoint exists.
+    assert!(
+        HttpHeader::new("authorization", SECRET_STR).is_err(),
+        "a credential-shaped header name must refuse the secret at admission"
+    );
 
     let temp = TempDirectory::new();
     let directory = platform::hold_directory(temp.path()).expect("hold caller directory");
@@ -283,6 +412,9 @@ fn failing_telemetry_sink_does_not_change_delivery_outcome_and_never_leaks_the_s
 
     let mut delivery_request = request();
     delivery_request.body = SECRET.to_vec();
+    delivery_request
+        .headers
+        .push(HttpHeader::new("x-service-invocation-secret", SECRET_STR).unwrap());
 
     let mut adapter = RecordingAdapter::default();
     let outcome = deliver_http_durable(
@@ -296,12 +428,22 @@ fn failing_telemetry_sink_does_not_change_delivery_outcome_and_never_leaks_the_s
     .unwrap();
     assert!(matches!(outcome, ServiceHttpDeliveryOutcome::Dispatched(_)));
 
+    // The secret must never leak through this outcome's own Debug rendering.
+    assert!(
+        !contains_bytes(format!("{outcome:?}").as_bytes(), SECRET),
+        "the Debug rendering of the delivery outcome must never contain the raw secret"
+    );
+
     // The typed checkpoint store retains only SHA-256 commitments and
     // dispositions; assert that structurally on the real persisted bytes
-    // rather than only on the library's documented claim.
+    // rather than only on the library's documented claim. Also assert at
+    // least one file was actually scanned, so this loop cannot vacuously pass
+    // over an empty directory.
+    let mut scanned = 0usize;
     for entry in fs::read_dir(temp.path()).expect("read checkpoint directory") {
         let entry = entry.expect("directory entry");
         if entry.file_type().expect("file type").is_file() {
+            scanned += 1;
             let bytes = fs::read(entry.path()).expect("read persisted checkpoint file");
             assert!(
                 !contains_bytes(&bytes, SECRET),
@@ -310,6 +452,10 @@ fn failing_telemetry_sink_does_not_change_delivery_outcome_and_never_leaks_the_s
             );
         }
     }
+    assert!(
+        scanned >= 1,
+        "the checkpoint directory must have durably persisted at least one file to scan"
+    );
 
     struct RecordingFailingAdapter(Vec<u8>);
     impl OutboundAdapter for RecordingFailingAdapter {
@@ -366,5 +512,9 @@ fn failing_telemetry_sink_does_not_change_delivery_outcome_and_never_leaks_the_s
     assert!(
         !contains_bytes(&telemetry_adapter.0, SECRET),
         "telemetry payload bytes must never contain the raw secret"
+    );
+    assert!(
+        !contains_bytes(format!("{:?}", export_result.evidence).as_bytes(), SECRET),
+        "the telemetry evidence's own Debug rendering must never contain the raw secret"
     );
 }

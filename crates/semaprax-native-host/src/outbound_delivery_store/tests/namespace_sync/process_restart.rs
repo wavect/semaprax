@@ -313,13 +313,15 @@ typed_process_restart_case!(
 mod service_invocation_phases {
     use super::*;
     use crate::outbound_delivery_store::service_invocation::{
-        deliver_http_durable, PriorTerminalReference, ServiceHttpDeliveryOutcome,
+        commit_pending_intent_marker, deliver_http_durable, PendingIntentCommit,
+        PriorTerminalReference, ServiceHttpDeliveryOutcome,
     };
 
     const PHASE_MODE: &str = "SEMAPRAX_OUTBOUND_SVC_PHASE_MODE";
     const PHASE_DIRECTORY: &str = "SEMAPRAX_OUTBOUND_SVC_PHASE_DIRECTORY";
     const DISPATCH_ENTERED_MARKER: &str = "svc-dispatch-entered.marker";
     const CRASH_AFTER_DISPATCH_CODE: i32 = 77;
+    const CRASH_AFTER_INTENT_CODE: i32 = 68;
 
     fn svc_capability() -> OutboundCapability {
         OutboundCapability::grant_for_trusted_host(
@@ -372,6 +374,47 @@ mod service_invocation_phases {
     impl OutboundAdapter for PanicOnRedispatch {
         fn send(&mut self, _: &PreparedRequest) -> AdapterObservation {
             panic!("a restored or guarded session must never redispatch");
+        }
+    }
+
+    /// A store wrapper that commits the real intent marker plus the typed
+    /// provisional checkpoint -- exactly what `deliver_http_durable`'s own
+    /// guard does -- and then crashes the whole process, before the ledger
+    /// ever calls into an adapter. This is a strictly earlier crash point
+    /// than `DispatchThenCrash`: here the adapter is never entered at all.
+    struct CommitIntentThenCrash<'a, 'directory> {
+        inner: &'a mut OutboundDeliveryStore<'directory>,
+        identity_key: String,
+        probed: bool,
+    }
+
+    impl HttpDeliverySessionCheckpointStore for CommitIntentThenCrash<'_, '_> {
+        fn commit(&mut self, checkpoint: &HttpDeliverySessionCheckpoint) -> CheckpointCommit {
+            if !self.probed {
+                self.probed = true;
+                let marker = commit_pending_intent_marker(
+                    self.inner.directory(),
+                    self.inner.sync_mode(),
+                    OutboundCheckpointKind::HttpSession,
+                    &self.identity_key,
+                );
+                assert_eq!(
+                    marker,
+                    PendingIntentCommit::Fresh,
+                    "test setup: the first attempt's marker must be fresh"
+                );
+                let outcome = HttpDeliverySessionCheckpointStore::commit(self.inner, checkpoint);
+                assert_eq!(
+                    outcome,
+                    CheckpointCommit::Committed,
+                    "test setup: the real intent commit must succeed before the simulated crash"
+                );
+                // The intent (marker + typed provisional checkpoint) is now
+                // durably committed. Crash here, before ever returning to the
+                // ledger, which would otherwise call the adapter next.
+                std::process::exit(CRASH_AFTER_INTENT_CODE);
+            }
+            HttpDeliverySessionCheckpointStore::commit(self.inner, checkpoint)
         }
     }
 
@@ -488,6 +531,74 @@ mod service_invocation_phases {
         );
     }
 
+    /// Phase 1 addition: the intent -- both the identity marker and the typed
+    /// provisional checkpoint -- is durably committed, but the process
+    /// crashes before the ledger ever calls into the adapter (a strictly
+    /// earlier crash point than the "uncertain" phase below, where the
+    /// adapter *is* entered). Per this module's documented contract, a
+    /// durably committed marker is never cleared: restart finds it and stays
+    /// permanently `Uncertain` rather than guessing an outcome or
+    /// redispatching.
+    #[test]
+    fn intent_committed_crash_before_send_then_restart_is_permanently_uncertain() {
+        const TEST_NAME: &str = "outbound_delivery_store::tests::namespace_sync::process_restart::service_invocation_phases::intent_committed_crash_before_send_then_restart_is_permanently_uncertain";
+
+        if phase_mode().as_deref() == Some("producer-crashes-after-intent-commit") {
+            let directory_path = env_directory();
+            let directory =
+                platform::hold_directory(&directory_path).expect("producer holds directory");
+            let mut session = HttpDeliverySession::new(2).expect("bounded session");
+            let prepared = prepare_http_delivery(svc_capability(), svc_request())
+                .expect("admitted fixture request");
+            let identity_key = prepared.pending_identity_key().to_owned();
+            let mut store = namespace_store(&directory);
+            let mut crash_store = CommitIntentThenCrash {
+                inner: &mut store,
+                identity_key,
+                probed: false,
+            };
+            let mut adapter = PanicOnRedispatch;
+            let _ = session.reconcile_durable(prepared, &mut crash_store, &mut adapter);
+            unreachable!(
+                "CommitIntentThenCrash always exits the process after committing the intent"
+            );
+        }
+        if phase_mode().as_deref() == Some("restart-after-intent-crash") {
+            let directory_path = env_directory();
+            let directory =
+                platform::hold_directory(&directory_path).expect("restart holds directory");
+            let mut store = namespace_store(&directory);
+            let mut adapter = PanicOnRedispatch;
+            let outcome = deliver_http_durable(
+                &mut store,
+                2,
+                None,
+                svc_capability(),
+                svc_request(),
+                &mut adapter,
+            )
+            .expect("a guarded fresh session settles instead of erroring");
+            assert!(matches!(outcome, ServiceHttpDeliveryOutcome::Uncertain));
+            return;
+        }
+
+        let temp = TempDirectory::new();
+        spawn_phase_child(
+            TEST_NAME,
+            "producer-crashes-after-intent-commit",
+            temp.path(),
+            &[],
+            ExpectedExit::Code(CRASH_AFTER_INTENT_CODE),
+        );
+        spawn_phase_child(
+            TEST_NAME,
+            "restart-after-intent-crash",
+            temp.path(),
+            &[],
+            ExpectedExit::Success,
+        );
+    }
+
     /// Phase 2: a crash after the provisional intent is durably committed and
     /// after the (real, in-process fixture) transport was actually entered,
     /// but before the terminal acknowledgment. Restart with a brand-new
@@ -582,14 +693,26 @@ mod service_invocation_phases {
             let outcome = session
                 .reconcile_durable(prepared, &mut store, &mut adapter)
                 .expect("producer completes a settled delivery");
-            assert!(matches!(outcome, DurableHttpDeliveryOutcome::Dispatched(_)));
-            assert_eq!(adapter.0.len(), 1);
+            assert!(
+                matches!(outcome, DurableHttpDeliveryOutcome::Dispatched(_)),
+                "the producer must have actually dispatched, not replayed or refused"
+            );
+            assert_eq!(
+                adapter.0.len(),
+                1,
+                "the producer must have entered the adapter exactly once"
+            );
             let checkpoint = session.session_checkpoint().expect("terminal checkpoint");
             // A real host durably retains its own reference to the exact
             // checkpoint outside this module; this simulates that with a
             // plain marker file rather than deriving it from configuration.
-            fs::write(directory_path.join(REFERENCE_FILE), checkpoint.digest())
+            let reference_path = directory_path.join(REFERENCE_FILE);
+            fs::write(&reference_path, checkpoint.digest())
                 .expect("record the host's own retained terminal reference");
+            assert!(
+                reference_path.exists(),
+                "the host's own retained terminal reference must be durably written before restart"
+            );
             return;
         }
         if phase_mode().as_deref() == Some("restart-replays") {

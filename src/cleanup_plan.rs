@@ -8,6 +8,13 @@
 mod build;
 mod deferred_commit;
 mod execute;
+// Owned-value-across-a-yield liveness query (issue #296, spec section 11.6),
+// first increment: not yet wired to any admission, envelope, or interpreter
+// path, so it has no caller outside its own tests. Gated on `cfg(test)`
+// entirely, rather than left reachable-but-uncalled in an ordinary build,
+// which would otherwise trip the `dead_code` lint under `-D warnings`.
+#[cfg(test)]
+mod owned_liveness;
 mod replay;
 mod validate;
 

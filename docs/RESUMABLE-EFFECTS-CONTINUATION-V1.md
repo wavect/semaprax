@@ -351,3 +351,19 @@ The intended design, left for a later slice:
   through the journaled `CleanupStarted`/`CleanupSettled` window, whose
   in-doubt rule already prevents a second run. A negative-control mutant that
   skips cleanup on abandon must be caught by a leak counter.
+
+First increment: `cleanup_plan::owned_liveness::owned_locals_live_at` (issue
+#296) implements the first bullet's query in isolation — given a suspension
+site's `ExpressionId`, it returns the ordered subset of the built
+`CleanupPlan`'s `slots` still live there, by replaying the plan's own
+`CleanupTransition`s restricted to the prefix a structural walk of the HIR
+proves runs before the site, never a fresh HIR move analysis and never a
+re-sort of `slots`. Its scope is deliberately narrower than the full design
+above: only whole-storage places (no partial record-field or conditional
+variant liveness), and only sites reached through the same `if`/`else`/
+`while`/block-valued nesting the placements above admit, with a preceding
+non-containing branch refused rather than joined. It is `pub(crate)`,
+`cfg(test)`-only, and has no caller outside its own unit tests: it is not yet
+wired to admission (`SPX-T303` still refuses every owned value), the v4
+envelope, resume projections, or settlement, and changes no program's
+behavior.

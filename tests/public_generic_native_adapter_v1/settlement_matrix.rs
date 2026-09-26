@@ -22,6 +22,11 @@ mod engines;
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
+/// Decodes a `frame:<hex>` result carrier into its two leaves.
+type FrameDecoder<'a> = &'a dyn Fn(&[u8]) -> (Vec<u8>, Vec<u8>);
+/// One native receipt's comparable facts: dispatch count, peak live resources, cleanup order.
+type NativeFacts = Vec<(Option<u64>, Option<String>, Option<String>)>;
+
 /// The corpus identity. Any change to [`CASES`] or to an expectation below is
 /// a new corpus version, not an in-place edit.
 pub(crate) const CORPUS_VERSION: &str = "semaprax.public-generic.settlement-matrix.v1";
@@ -397,10 +402,7 @@ fn hex_leaf(token: &str) -> Vec<u8> {
 }
 
 /// Parse receipts. `frame` decodes a `frame:<hex>` result carrier.
-pub(crate) fn parse_receipts(
-    stdout: &[u8],
-    frame: &dyn Fn(&[u8]) -> (Vec<u8>, Vec<u8>),
-) -> Vec<Observation> {
+pub(crate) fn parse_receipts(stdout: &[u8], frame: FrameDecoder<'_>) -> Vec<Observation> {
     std::str::from_utf8(stdout)
         .expect("receipts are ASCII")
         .lines()
@@ -731,7 +733,7 @@ fn native_agreement(
     case: &Case,
     observed: &BTreeMap<Engine, Vec<Observation>>,
 ) -> Result<(), String> {
-    let mut reference: Option<(Engine, Vec<(Option<u64>, Option<String>, Option<String>)>)> = None;
+    let mut reference: Option<(Engine, NativeFacts)> = None;
     for (engine, receipts) in observed {
         if !engine.native() {
             continue;

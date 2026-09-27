@@ -247,6 +247,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   never official). v1 and its Rust lane are unchanged; the six reserved
   external languages stay blocked with their recorded reasons.
 
+- Execute the genuine compiler-built npm package journey (#290): pack,
+  offline install into a clean project, strict TypeScript build, import and
+  real Wasm calls, plus tampered-file, swapped-Wasm, path-traversal and
+  stale-integrity refusals applied to that same tarball. The stale-integrity
+  check uses an npm cache the genuine tarball never touched, because a warm
+  cache masks `file:` integrity failures. Local evidence only; the npm
+  support decision stays open (ADR 0003 answer 8).
+
 ## 0.6.0 — 2026-09-24
 
 - Keep the frozen private Component v7 WIT identity at `0.5.0` while the crate

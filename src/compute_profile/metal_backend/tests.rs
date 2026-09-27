@@ -22,11 +22,12 @@ use crate::interpreter::{self, ArgumentValue, InterpreterOptions};
 
 use super::device::*;
 
-/// The shared kernel module: every declaration Metal v1 admits (`i64`/`i32`
-/// buffers and result), chosen to line up with the CPU reference's own
-/// differential fixtures (`k.affine`, `k.halve32`, `k.ratio`, `k.rem`,
-/// `k.neg`) so both backends are exercised against the identical checked
-/// bodies.
+/// The shared kernel module: every declaration Metal v1 admits — both
+/// [`KernelShape::ElementwiseMap`] and [`KernelShape::SequentialFold`], and
+/// every [`ScalarKind`] (`i64`/`i32`/`u8`/`usize`/`bool`) — chosen to line up
+/// with the CPU reference's own differential fixtures
+/// (`src/compute_profile/cpu_reference/tests/mod.rs`'s `KERNELS`) so both
+/// backends are exercised against the identical checked bodies.
 const KERNELS: &str = r#"
 module test.metal_backend;
 
@@ -72,6 +73,42 @@ fn affine_bisect_a(x: i64, y: i64) -> i64
 fn affine_bisect_b(x: i64, y: i64) -> i64
 {
     if x > y { x - y } else { y - x + 1 }
+}
+
+@id("k.byte_mix")
+fn byte_mix(a: u8, b: u8) -> u8
+{
+    a * 2u8 + b / 7u8
+}
+
+@id("k.index_scale")
+fn index_scale(n: usize) -> usize
+{
+    n * 4usize - 1usize
+}
+
+@id("k.rem_usize")
+fn rem_usize(x: usize, y: usize) -> usize
+{
+    x % y
+}
+
+@id("k.flag")
+fn flag(x: i64, keep: bool) -> bool
+{
+    (keep && x != 0) || (!keep && x == 0)
+}
+
+@id("k.sum")
+fn sum(acc: i64, element: i64) -> i64
+{
+    acc + element
+}
+
+@id("k.count_small")
+fn count_small(acc: usize, element: u8) -> usize
+{
+    if element < 10u8 { acc + 1usize } else { acc }
 }
 
 @id("app.main")
@@ -120,6 +157,18 @@ fn i64s(values: &[i64]) -> Vec<Scalar> {
     values.iter().copied().map(Scalar::I64).collect()
 }
 
+fn u8s(values: &[u8]) -> Vec<Scalar> {
+    values.iter().copied().map(Scalar::U8).collect()
+}
+
+fn usizes(values: &[u64]) -> Vec<Scalar> {
+    values.iter().copied().map(Scalar::Usize).collect()
+}
+
+fn bools(values: &[bool]) -> Vec<Scalar> {
+    values.iter().copied().map(Scalar::Bool).collect()
+}
+
 /// Print the real, local device this run observed, or explain why this
 /// test is skipping, and hand back the provenance for the caller to use.
 /// A macro (not a function) so its `return` exits the calling test.
@@ -155,7 +204,9 @@ fn render(value: Scalar) -> String {
     match value {
         Scalar::I64(value) => value.to_string(),
         Scalar::I32(value) => format!("{value}i32"),
-        other => panic!("Metal v1 differential fixtures are i64/i32 only, found {other:?}"),
+        Scalar::U8(value) => format!("{value}u8"),
+        Scalar::Usize(value) => format!("{value}usize"),
+        Scalar::Bool(value) => value.to_string(),
     }
 }
 
@@ -178,6 +229,9 @@ fn interpret(path: &Path, declaration: &str, arguments: &[Scalar]) -> Expected {
                 match interpreter::parse_argument(text).expect("canonical value") {
                     ArgumentValue::Int(value) => Scalar::I64(value),
                     ArgumentValue::Int32(value) => Scalar::I32(value),
+                    ArgumentValue::Uint8(value) => Scalar::U8(value),
+                    ArgumentValue::Usize(value) => Scalar::Usize(value),
+                    ArgumentValue::Bool(value) => Scalar::Bool(value),
                     other => panic!("non-kernel interpreter result {other:?}"),
                 },
             )
@@ -346,6 +400,54 @@ fn i32_map_matches_the_interpreter() {
 }
 
 #[test]
+fn u8_map_normal_and_overflow_match_the_interpreter() {
+    differential_map(
+        "k.byte_mix",
+        ScalarKind::U8,
+        vec![u8s(&[0, 3, 100, 127]), u8s(&[6, 13, 255, 0])],
+    );
+    // `a * 2u8` overflows at invocation 1 (`128 * 2`); `b / 7u8` never
+    // fails since `7u8` is never zero here.
+    differential_map(
+        "k.byte_mix",
+        ScalarKind::U8,
+        vec![u8s(&[1, 128, 2]), u8s(&[0, 0, 0])],
+    );
+}
+
+#[test]
+fn usize_map_normal_and_underflow_match_the_interpreter() {
+    differential_map(
+        "k.index_scale",
+        ScalarKind::Usize,
+        vec![usizes(&[1, 2, 1 << 40, 0, 5])],
+    );
+    differential_map(
+        "k.rem_usize",
+        ScalarKind::Usize,
+        vec![usizes(&[10, 7, 0, u64::MAX]), usizes(&[3, 7, 5, 6])],
+    );
+    // Remainder by zero at invocation 1.
+    differential_map(
+        "k.rem_usize",
+        ScalarKind::Usize,
+        vec![usizes(&[9, 1]), usizes(&[4, 0])],
+    );
+}
+
+#[test]
+fn bool_map_with_lazy_operators_matches_the_interpreter() {
+    differential_map(
+        "k.flag",
+        ScalarKind::Bool,
+        vec![
+            i64s(&[0, 1, 0, -4, 9]),
+            bools(&[true, true, false, false, true]),
+        ],
+    );
+}
+
+#[test]
 fn mismatched_buffer_lengths_refuse_as_out_of_bounds() {
     device_or_skip!();
     let program = resolve(KERNELS);
@@ -460,6 +562,152 @@ fn bisect_nested_arithmetic_branches_without_let_compiles() {
         .expect("k.affine_bisect_b (nested-arithmetic if/else, no let) must compile");
 }
 
+/// Run `declaration` as a [`KernelShape::SequentialFold`] left to right from
+/// `initial`, through both the ordinary reference interpreter (one
+/// invocation per element, exactly [`session::run_fold`]'s own left-to-right
+/// order) and a real Metal fold dispatch, and assert they select the
+/// identical outcome: the same final accumulator, or the same lowest-ordinal
+/// failing element and checked status.
+fn differential_fold(declaration: &str, initial: Scalar, elements: Vec<Scalar>) {
+    device_or_skip!();
+    let program = resolve(KERNELS);
+    let source = write_source(KERNELS);
+    let mut accumulator = initial;
+    let mut expected = Ok(());
+    for (index, element) in elements.iter().enumerate() {
+        match interpret(source.path(), declaration, &[accumulator, *element]) {
+            Ok(value) => accumulator = value,
+            Err(code) => {
+                expected = Err((index, code));
+                break;
+            }
+        }
+    }
+
+    let mut session =
+        MetalSession::open(MetalCapability::all()).expect("device present (just checked)");
+    let artifact = session
+        .load_fold_kernel(&program, declaration)
+        .expect("fold kernel admitted for Metal v1");
+    let input = session.alloc(elements[0].kind(), elements.len()).unwrap();
+    session.upload(input, 0, &elements).unwrap();
+    let output = session.alloc(initial.kind(), 1).unwrap();
+    let outcome = session
+        .dispatch_fold(&program, &artifact, initial, input, output)
+        .expect("dispatch admitted");
+    match (outcome, expected) {
+        (MetalDispatchOutcome::Completed { invocations }, Ok(())) => {
+            assert_eq!(invocations, elements.len());
+            assert_eq!(session.download(output, 0, 1).unwrap(), vec![accumulator]);
+        }
+        (
+            MetalDispatchOutcome::Failed(MetalSessionFailure::KernelStatus {
+                invocation,
+                status,
+                ..
+            }),
+            Err((index, code)),
+        ) => {
+            assert_eq!(
+                invocation, index,
+                "Metal selected a different failing invocation"
+            );
+            assert_eq!(
+                status.code(),
+                code,
+                "Metal selected a different status code"
+            );
+        }
+        (outcome, expected) => {
+            panic!("fold differs: metal {outcome:?}, interpreter {expected:?}")
+        }
+    }
+
+    let settlement = session.settle();
+    assert_eq!(settlement.releases.len(), 2);
+}
+
+#[test]
+fn sequential_folds_match_left_to_right_interpreter_folds() {
+    differential_fold("k.sum", Scalar::I64(5), i64s(&[1, -2, 30, 400, -5000]));
+    // A checked overflow partway through the left-to-right fold.
+    differential_fold("k.sum", Scalar::I64(i64::MAX - 10), i64s(&[4, 6, 1, -100]));
+    // An accumulator kind (`usize`) that differs from its element kind
+    // (`u8`), exercising the same fold-signature relaxation the CPU
+    // reference itself admits (only `params[0] == result` is required).
+    differential_fold(
+        "k.count_small",
+        Scalar::Usize(0),
+        u8s(&[1, 200, 9, 10, 0, 255]),
+    );
+}
+
+/// Negative control for the fold shape: a `k.sum` artifact whose lowered
+/// body has its first `+` mutated to a `-` must disagree with the
+/// interpreter reference, proving the fold differential oracle actually
+/// exercises what runs on the GPU. The tampered artifact is also
+/// independently refused by the session's own stale-artifact check when
+/// dispatched the ordinary way. Mirrors
+/// `negative_control_a_mutated_generated_kernel_disagrees_with_the_reference`
+/// for the map shape.
+#[test]
+fn negative_control_a_mutated_generated_fold_kernel_disagrees_with_the_reference() {
+    device_or_skip!();
+    let program = resolve(KERNELS);
+    let source = write_source(KERNELS);
+    let elements = i64s(&[1, 2, 3, 4]);
+    let initial = Scalar::I64(10);
+
+    let mut accumulator = initial;
+    for element in &elements {
+        accumulator = interpret(source.path(), "k.sum", &[accumulator, *element])
+            .expect("k.sum never fails on these small inputs");
+    }
+
+    let shape = KernelShape::SequentialFold;
+    let (mut mutant_ir, faithful_fingerprint) =
+        session::bind(&program, "k.sum", shape).expect("kernel admitted");
+    assert!(
+        swap_first_add_for_sub(&mut mutant_ir.body),
+        "k.sum's lowered body must contain at least one `+`"
+    );
+    let mutant_fingerprint = kernel_ir::fingerprint("k.sum", &shape.encode(), &mutant_ir);
+    assert_ne!(
+        mutant_fingerprint, faithful_fingerprint,
+        "a mutated body must not collide with the faithful one's fingerprint"
+    );
+
+    let mut session =
+        MetalSession::open(MetalCapability::all()).expect("device present (just checked)");
+    let mutant_artifact = session
+        .load_kernel_from_ir_for_test("k.sum", shape, mutant_ir, mutant_fingerprint)
+        .expect("the mutant kernel still compiles: it is a valid, just different, kernel body");
+
+    let input = session.alloc(ScalarKind::I64, elements.len()).unwrap();
+    session.upload(input, 0, &elements).unwrap();
+    let output = session.alloc(ScalarKind::I64, 1).unwrap();
+    let outcome = session
+        .dispatch_fold_unchecked_for_test(&mutant_artifact, initial, input, output)
+        .expect("the mutant dispatch itself is admitted");
+    let MetalDispatchOutcome::Completed { .. } = outcome else {
+        panic!("k.sum with a mutated `+` still never fails on these small inputs: {outcome:?}");
+    };
+    let mutant_result = session.download(output, 0, 1).unwrap()[0];
+    assert_ne!(
+        mutant_result, accumulator,
+        "the mutant fold must disagree with the faithful reference"
+    );
+
+    // Defense in depth: the ordinary dispatch path independently refuses
+    // this same tampered artifact, because it no longer matches what
+    // `session::bind` derives from the real checked program.
+    let output2 = session.alloc(ScalarKind::I64, 1).unwrap();
+    let refusal = session
+        .dispatch_fold(&program, &mutant_artifact, initial, input, output2)
+        .unwrap_err();
+    assert_eq!(refusal.code(), STALE_HANDLE);
+}
+
 fn swap_first_add_for_sub(expr: &mut KernelExpr) -> bool {
     match expr {
         KernelExpr::Binary { op, left, right } => {
@@ -519,7 +767,7 @@ fn negative_control_a_mutated_generated_kernel_disagrees_with_the_reference() {
     let mut session =
         MetalSession::open(MetalCapability::all()).expect("device present (just checked)");
     let mutant_artifact = session
-        .load_kernel_from_ir_for_test("k.affine", 4, mutant_ir, mutant_fingerprint)
+        .load_kernel_from_ir_for_test("k.affine", shape, mutant_ir, mutant_fingerprint)
         .expect("the mutant kernel still compiles: it is a valid, just different, kernel body");
 
     let len = columns[0].len();

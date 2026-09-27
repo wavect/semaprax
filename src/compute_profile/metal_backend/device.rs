@@ -53,9 +53,7 @@ use objc2_metal::{
 use crate::cleanup_plan::StatusCase;
 use crate::compute_profile::boundary_profile::MAX_BUFFER_ELEMENTS;
 use crate::compute_profile::classifier::{DeviceEffect, Refusal};
-use crate::compute_profile::cpu_reference::kernel_ir::{
-    self, KernelExpr, KernelIr, Scalar, ScalarKind,
-};
+use crate::compute_profile::cpu_reference::kernel_ir::{self, KernelIr, Scalar, ScalarKind};
 use crate::compute_profile::cpu_reference::session::{self, KernelShape};
 use crate::compute_profile::cpu_reference::{
     ComputeRefusal, FAILURE_ALREADY_SELECTED, MAX_SESSION_LIVE_ELEMENTS,
@@ -259,7 +257,7 @@ enum MetalBufferState {
 pub struct MetalKernelArtifact {
     session: u64,
     declaration: String,
-    workgroup_size: u32,
+    shape: KernelShape,
     fingerprint: String,
     msl_source: String,
     msl_sha256: String,
@@ -287,22 +285,32 @@ impl MetalKernelArtifact {
 
 static NEXT_SESSION: AtomicU64 = AtomicU64::new(1);
 
-fn element_size(kind: ScalarKind) -> Result<usize, String> {
+/// The Metal v1 buffer byte width of every admitted [`ScalarKind`]. `Bool`
+/// and `U8` are each one byte (MSL's `bool` and `uchar`); `Usize` is eight
+/// (MSL's `ulong`, the closest native type to the checked 64-bit unsigned
+/// `usize` — see [`msl::msl_type`]).
+fn element_size(kind: ScalarKind) -> usize {
     match kind {
-        ScalarKind::I64 => Ok(8),
-        ScalarKind::I32 => Ok(4),
-        other => Err(format!("{other:?} has no Metal v1 buffer element size")),
+        ScalarKind::I64 | ScalarKind::Usize => 8,
+        ScalarKind::I32 => 4,
+        ScalarKind::U8 | ScalarKind::Bool => 1,
     }
 }
 
-/// SAFETY: `base` points to at least `byte_offset + size_of::<i64>()` (or
-/// `i32`) writable bytes; every call site derives `byte_offset` from a
-/// bounds-checked `(index, element_size)` pair.
+/// SAFETY: `base` points to at least `byte_offset + element_size(value.kind())`
+/// writable bytes; every call site derives `byte_offset` from a
+/// bounds-checked `(index, element_size)` pair. `Usize` writes as `u64`
+/// (MSL's `ulong`, see [`msl::msl_type`]); `Bool` writes as a single `0`/`1`
+/// byte (MSL's `bool` is one byte).
 unsafe fn write_scalar(base: *mut u8, byte_offset: usize, value: Scalar) {
     match value {
         Scalar::I64(value) => unsafe { base.add(byte_offset).cast::<i64>().write_unaligned(value) },
         Scalar::I32(value) => unsafe { base.add(byte_offset).cast::<i32>().write_unaligned(value) },
-        other => unreachable!("Metal buffers are only ever allocated for i64/i32 ({other:?})"),
+        Scalar::Usize(value) => unsafe {
+            base.add(byte_offset).cast::<u64>().write_unaligned(value)
+        },
+        Scalar::U8(value) => unsafe { base.add(byte_offset).write(value) },
+        Scalar::Bool(value) => unsafe { base.add(byte_offset).write(u8::from(value)) },
     }
 }
 
@@ -315,7 +323,11 @@ unsafe fn read_scalar(base: *const u8, byte_offset: usize, kind: ScalarKind) -> 
         ScalarKind::I32 => {
             Scalar::I32(unsafe { base.add(byte_offset).cast::<i32>().read_unaligned() })
         }
-        other => unreachable!("Metal buffers are only ever allocated for i64/i32 ({other:?})"),
+        ScalarKind::Usize => {
+            Scalar::Usize(unsafe { base.add(byte_offset).cast::<u64>().read_unaligned() })
+        }
+        ScalarKind::U8 => Scalar::U8(unsafe { base.add(byte_offset).read() }),
+        ScalarKind::Bool => Scalar::Bool(unsafe { base.add(byte_offset).read() } != 0),
     }
 }
 
@@ -333,77 +345,31 @@ fn status_from_code(code: u32) -> Option<StatusCase> {
     }
 }
 
-fn walk_literals(expr: &KernelExpr, offending: &mut Option<ScalarKind>) {
-    if offending.is_some() {
-        return;
-    }
-    match expr {
-        KernelExpr::Slot(_) => {}
-        KernelExpr::Literal(scalar) => {
-            if !matches!(
-                scalar.kind(),
-                ScalarKind::I64 | ScalarKind::I32 | ScalarKind::Bool
-            ) {
-                *offending = Some(scalar.kind());
-            }
-        }
-        KernelExpr::Neg(inner) | KernelExpr::Not(inner) => walk_literals(inner, offending),
-        KernelExpr::Binary { left, right, .. } => {
-            walk_literals(left, offending);
-            walk_literals(right, offending);
-        }
-        KernelExpr::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            walk_literals(condition, offending);
-            walk_literals(then_branch, offending);
-            walk_literals(else_branch, offending);
-        }
-        KernelExpr::Block { lets, tail } => {
-            for (_, value) in lets {
-                walk_literals(value, offending);
-            }
-            walk_literals(tail, offending);
-        }
-    }
-}
-
-/// The Metal v1 profile admits only `i64`/`i32` buffer parameters and
-/// results, and (since nothing else can introduce one) only `i64`/`i32`/
-/// `bool` internal literals. Refuses through the same `SPX-GC004`
-/// (`TypeOutsideKernelVocabulary`) the classifier already uses for "a
-/// parameter's type is outside the kernel-safe vocabulary" — this is a
-/// narrower vocabulary within that same closed reason, not a new one.
+/// Every [`ScalarKind`] the CPU reference admits now has a Metal v1 buffer
+/// and literal lowering (see [`msl::msl_type`]), so this can only refuse a
+/// future kind added there before this backend is taught it. Refuses
+/// through the same `SPX-GC004` (`TypeOutsideKernelVocabulary`) the
+/// classifier already uses for "a parameter's type is outside the
+/// kernel-safe vocabulary" — this is defense in depth for that same closed
+/// reason, not a new one, and (unlike lowering itself) never the primary
+/// admission path: `session::bind`'s own classifier call already refused
+/// anything outside the CPU reference's vocabulary before this runs.
 fn assert_metal_admits(ir: &KernelIr) -> Result<(), MetalRefusal> {
     for kind in &ir.params {
-        if !matches!(kind, ScalarKind::I64 | ScalarKind::I32) {
+        if msl::msl_type(*kind).is_err() {
             return Err(ComputeRefusal::Profile {
                 refusal: Refusal::TypeOutsideKernelVocabulary { param: "param" },
-                detail: format!(
-                    "the Metal v1 backend admits only i64/i32 buffer parameters, found {kind:?}"
-                ),
+                detail: format!("the Metal v1 backend has no buffer lowering for {kind:?}"),
             }
             .into());
         }
     }
-    if !matches!(ir.result, ScalarKind::I64 | ScalarKind::I32) {
+    if msl::msl_type(ir.result).is_err() {
         return Err(ComputeRefusal::Profile {
             refusal: Refusal::TypeOutsideKernelVocabulary { param: "result" },
             detail: format!(
-                "the Metal v1 backend admits only an i64/i32 result, found {:?}",
+                "the Metal v1 backend has no buffer lowering for {:?}",
                 ir.result
-            ),
-        }
-        .into());
-    }
-    let mut offending = None;
-    walk_literals(&ir.body, &mut offending);
-    if let Some(kind) = offending {
-        return Err(ComputeRefusal::KernelSelection {
-            detail: format!(
-                "the Metal v1 backend has no lowering for an internal {kind:?} literal"
             ),
         }
         .into());
@@ -531,8 +497,7 @@ impl MetalSession {
             }
             .into());
         }
-        let element_size = element_size(kind)
-            .map_err(|detail| MetalRefusal::from(ComputeRefusal::ElementTypeMismatch { detail }))?;
+        let element_size = element_size(kind);
         let byte_len = len * element_size;
         let buffer = self
             .device
@@ -581,8 +546,7 @@ impl MetalSession {
             .into());
         }
         checked_end(offset, values.len(), capacity, handle.index)?;
-        let element_size = element_size(kind)
-            .map_err(|detail| MetalRefusal::from(ComputeRefusal::ElementTypeMismatch { detail }))?;
+        let element_size = element_size(kind);
         let base = buffer.contents().as_ptr() as *mut u8;
         for (position, value) in values.iter().enumerate() {
             // SAFETY: `(offset + position) < capacity` (checked above), so
@@ -604,8 +568,7 @@ impl MetalSession {
         self.admit(DeviceEffect::DeviceCopyOut)?;
         let (kind, capacity, buffer) = self.live(handle)?;
         let end = checked_end(offset, len, capacity, handle.index)?;
-        let element_size = element_size(kind)
-            .map_err(|detail| MetalRefusal::from(ComputeRefusal::ElementTypeMismatch { detail }))?;
+        let element_size = element_size(kind);
         let base = buffer.contents().as_ptr() as *const u8;
         let mut values = Vec::with_capacity(end - offset);
         for position in offset..end {
@@ -625,6 +588,38 @@ impl MetalSession {
             buffer: handle.index,
             cause: MetalReleaseCause::Explicit,
         });
+        Ok(())
+    }
+
+    /// Write one scalar directly into element `0` of a live buffer, without
+    /// going through the ordinary `DeviceCopyIn`-gated [`Self::upload`].
+    /// [`Self::dispatch_fold`] uses this to seed a fold's one-element
+    /// accumulator buffer with its explicit initial value, mirroring the CPU
+    /// reference's [`session::CpuReferenceSession::dispatch_fold`]: there,
+    /// `initial` is a plain argument the dispatch itself consumes, not a
+    /// separately admitted device transfer, so a fold dispatch needs only
+    /// `DeviceDispatch` (matching `session::bind`'s own signature check that
+    /// a fold's accumulator parameter is `ReadWriteView`, never a value the
+    /// caller must have separately copied in).
+    fn write_direct(&self, handle: MetalBufferHandle, value: Scalar) -> Result<(), MetalRefusal> {
+        let (kind, capacity, buffer) = self.live(handle)?;
+        if value.kind() != kind {
+            return Err(ComputeRefusal::ElementTypeMismatch {
+                detail: format!(
+                    "{:?} initial value written into a {kind:?} buffer {}",
+                    value.kind(),
+                    handle.index
+                ),
+            }
+            .into());
+        }
+        checked_end(0, 1, capacity, handle.index)?;
+        let base = buffer.contents().as_ptr() as *mut u8;
+        // SAFETY: `capacity >= 1` (checked by `checked_end` above), so byte
+        // offset 0 lies within the buffer's allocated length.
+        unsafe {
+            write_scalar(base, 0, value);
+        }
         Ok(())
     }
 
@@ -654,23 +649,28 @@ impl MetalSession {
             })
     }
 
-    /// Generate MSL from `ir`, compile it on this device, and bundle the
-    /// compiled pipeline with the given `fingerprint` into an artifact.
-    /// Shared by [`Self::load_kernel`] (whose `fingerprint` always comes
-    /// from [`session::bind`] against a real checked declaration) and the
+    /// Generate MSL from `ir` for `shape` (an elementwise map through
+    /// [`msl::generate`], a sequential fold through [`msl::generate_fold`]),
+    /// compile it on this device, and bundle the compiled pipeline with the
+    /// given `fingerprint` into an artifact. Shared by [`Self::load_kernel`]
+    /// and [`Self::load_fold_kernel`] (whose `fingerprint` always comes from
+    /// [`session::bind`] against a real checked declaration) and the
     /// `#[cfg(test)]` bypass [`Self::load_kernel_from_ir_for_test`] (whose
     /// caller derives `fingerprint` from a deliberately mutated `ir` for
     /// the negative-control test — never from any real checked source).
     fn build_artifact(
         &self,
         declaration: &str,
-        workgroup_size: u32,
+        shape: KernelShape,
         ir: KernelIr,
         fingerprint: String,
     ) -> Result<MetalKernelArtifact, MetalRefusal> {
         assert_metal_admits(&ir)?;
-        let generated = msl::generate(declaration, &ir)
-            .map_err(|detail| MetalRefusal::from(ComputeRefusal::KernelSelection { detail }))?;
+        let generated = match shape {
+            KernelShape::ElementwiseMap { .. } => msl::generate(declaration, &ir),
+            KernelShape::SequentialFold => msl::generate_fold(declaration, &ir),
+        }
+        .map_err(|detail| MetalRefusal::from(ComputeRefusal::KernelSelection { detail }))?;
         let library = self.compile_library(&generated.source)?;
         let function = library
             .newFunctionWithName(&NSString::from_str(msl::FUNCTION_NAME))
@@ -690,7 +690,7 @@ impl MetalSession {
         Ok(MetalKernelArtifact {
             session: self.id,
             declaration: declaration.to_owned(),
-            workgroup_size,
+            shape,
             fingerprint,
             msl_source: generated.source,
             msl_sha256: generated.sha256,
@@ -701,9 +701,10 @@ impl MetalSession {
 
     /// Bind the checked declaration `declaration` of `program` as an
     /// elementwise-map kernel, generate its MSL, and compile it on this
-    /// device. Lowering and admission reuse
-    /// [`session::bind`] verbatim, then this backend additionally admits
-    /// only `i64`/`i32` (see [`assert_metal_admits`]).
+    /// device. Lowering and admission reuse [`session::bind`] verbatim, then
+    /// this backend additionally admits only what [`assert_metal_admits`]
+    /// (in practice, every [`ScalarKind`] the CPU reference itself admits)
+    /// has a Metal buffer lowering for.
     pub fn load_kernel(
         &mut self,
         program: &ResolvedProgram,
@@ -718,25 +719,47 @@ impl MetalSession {
         let shape = KernelShape::ElementwiseMap { workgroup_size };
         let (ir, fingerprint) =
             session::bind(program, declaration, shape).map_err(MetalRefusal::from)?;
-        self.build_artifact(declaration, workgroup_size, ir, fingerprint)
+        self.build_artifact(declaration, shape, ir, fingerprint)
     }
 
-    /// Test-only bypass of [`Self::load_kernel`]'s admission path: builds an
-    /// artifact directly from a caller-supplied `(ir, fingerprint)` pair
-    /// instead of deriving both from `session::bind` against a real checked
-    /// program. Exists solely so the negative-control test can compile and
-    /// run a deliberately mutated kernel body on real hardware; see
+    /// Bind the checked declaration `declaration` of `program` as a
+    /// [`KernelShape::SequentialFold`] kernel (`fn(acc: T, element: U) -> T`),
+    /// generate its single-thread, order-preserving MSL loop, and compile it
+    /// on this device. Lowering and admission reuse [`session::bind`]
+    /// verbatim, exactly as [`Self::load_kernel`] does for a map.
+    pub fn load_fold_kernel(
+        &mut self,
+        program: &ResolvedProgram,
+        declaration: &str,
+    ) -> Result<MetalKernelArtifact, MetalRefusal> {
+        if let Some(failure) = &self.selected {
+            return Err(MetalRefusal::FailureAlreadySelected {
+                failure: failure.clone(),
+            });
+        }
+        let shape = KernelShape::SequentialFold;
+        let (ir, fingerprint) =
+            session::bind(program, declaration, shape).map_err(MetalRefusal::from)?;
+        self.build_artifact(declaration, shape, ir, fingerprint)
+    }
+
+    /// Test-only bypass of [`Self::load_kernel`]/[`Self::load_fold_kernel`]'s
+    /// admission path: builds an artifact directly from a caller-supplied
+    /// `(shape, ir, fingerprint)` triple instead of deriving all three from
+    /// `session::bind` against a real checked program. Exists solely so the
+    /// negative-control test can compile and run a deliberately mutated
+    /// kernel body on real hardware; see
     /// [`Self::dispatch_map_unchecked_for_test`] for why the ordinary
     /// dispatch path cannot be used for that.
     #[cfg(test)]
     pub(crate) fn load_kernel_from_ir_for_test(
         &mut self,
         declaration: &str,
-        workgroup_size: u32,
+        shape: KernelShape,
         ir: KernelIr,
         fingerprint: String,
     ) -> Result<MetalKernelArtifact, MetalRefusal> {
-        self.build_artifact(declaration, workgroup_size, ir, fingerprint)
+        self.build_artifact(declaration, shape, ir, fingerprint)
     }
 
     /// Refuse a stale artifact (`SPX-GC015`): re-derives the fingerprint,
@@ -756,9 +779,7 @@ impl MetalSession {
             }
             .into());
         }
-        let shape = KernelShape::ElementwiseMap {
-            workgroup_size: artifact.workgroup_size,
-        };
+        let shape = artifact.shape;
         let recorded = kernel_ir::fingerprint(&artifact.declaration, &shape.encode(), &artifact.ir);
         if recorded != artifact.fingerprint {
             return Err(ComputeRefusal::StaleHandle {
@@ -769,8 +790,13 @@ impl MetalSession {
             }
             .into());
         }
-        let regenerated = msl::generate(&artifact.declaration, &artifact.ir)
-            .map_err(|detail| MetalRefusal::from(ComputeRefusal::StaleHandle { detail }))?;
+        let regenerated = match shape {
+            KernelShape::ElementwiseMap { .. } => {
+                msl::generate(&artifact.declaration, &artifact.ir)
+            }
+            KernelShape::SequentialFold => msl::generate_fold(&artifact.declaration, &artifact.ir),
+        }
+        .map_err(|detail| MetalRefusal::from(ComputeRefusal::StaleHandle { detail }))?;
         if regenerated.sha256 != artifact.msl_sha256 {
             return Err(ComputeRefusal::StaleHandle {
                 detail: format!(
@@ -813,6 +839,11 @@ impl MetalSession {
         inputs: &[MetalBufferHandle],
         output: MetalBufferHandle,
     ) -> Result<MetalDispatchOutcome, MetalRefusal> {
+        if !matches!(artifact.shape, KernelShape::ElementwiseMap { .. }) {
+            return Err(MetalRefusal::from(ComputeRefusal::KernelSelection {
+                detail: "a fold artifact cannot be dispatched as a map".to_owned(),
+            }));
+        }
         self.admit(DeviceEffect::DeviceDispatch)?;
         self.check_artifact(program, artifact)?;
         self.execute_map(artifact, inputs, output)
@@ -842,6 +873,17 @@ impl MetalSession {
         inputs: &[MetalBufferHandle],
         output: MetalBufferHandle,
     ) -> Result<MetalDispatchOutcome, MetalRefusal> {
+        // Both public callers (`dispatch_map`, and the `#[cfg(test)]`
+        // `dispatch_map_unchecked_for_test` bypass) only ever reach this
+        // private method with a map-shaped artifact: `dispatch_map` refuses
+        // any other shape before calling it, and the test bypass exists
+        // solely to skip `check_artifact`, never the shape itself.
+        let KernelShape::ElementwiseMap { workgroup_size } = artifact.shape else {
+            return Err(ComputeRefusal::KernelSelection {
+                detail: "a fold artifact cannot be dispatched as a map".to_owned(),
+            }
+            .into());
+        };
         if inputs.len() != artifact.ir.params.len() {
             return Err(ComputeRefusal::KernelSelection {
                 detail: format!(
@@ -895,7 +937,7 @@ impl MetalSession {
         // CPU reference, never merely accepted because this backend never
         // asked.
         let aliased = inputs.contains(&output);
-        session::classify_map_dispatch(&artifact.ir, artifact.workgroup_size, len, aliased)
+        session::classify_map_dispatch(&artifact.ir, workgroup_size, len, aliased)
             .map_err(MetalRefusal::from)?;
 
         let status_byte_len = len * 4;
@@ -958,7 +1000,7 @@ impl MetalSession {
         }
 
         let max_threads = artifact.pipeline.maxTotalThreadsPerThreadgroup().max(1);
-        let threadgroup_width = (artifact.workgroup_size as usize).clamp(1, max_threads);
+        let threadgroup_width = (workgroup_size as usize).clamp(1, max_threads);
         encoder.dispatchThreads_threadsPerThreadgroup(
             MTLSize {
                 width: len,
@@ -1033,6 +1075,229 @@ impl MetalSession {
                 Ok(MetalDispatchOutcome::Failed(failure))
             }
         }
+    }
+
+    /// `DeviceDispatch` of a [`KernelShape::SequentialFold`] artifact: seeds
+    /// the one-element `output` accumulator buffer with `initial` (see
+    /// [`Self::write_direct`]), then runs the single-thread, sequential,
+    /// order-preserving generated loop over `input`'s elements. Mirrors
+    /// `cpu_reference::session::CpuReferenceSession::dispatch_fold` exactly:
+    /// the same `session::classify_fold_dispatch` call, the same sticky
+    /// failure selection, the same left-to-right invocation ordinal for
+    /// whichever element first selects a checked status.
+    pub fn dispatch_fold(
+        &mut self,
+        program: &ResolvedProgram,
+        artifact: &MetalKernelArtifact,
+        initial: Scalar,
+        input: MetalBufferHandle,
+        output: MetalBufferHandle,
+    ) -> Result<MetalDispatchOutcome, MetalRefusal> {
+        if artifact.shape != KernelShape::SequentialFold {
+            return Err(ComputeRefusal::KernelSelection {
+                detail: "a map artifact cannot be dispatched as a fold".to_owned(),
+            }
+            .into());
+        }
+        self.admit(DeviceEffect::DeviceDispatch)?;
+        self.check_artifact(program, artifact)?;
+        self.execute_fold(artifact, initial, input, output)
+    }
+
+    /// Test-only bypass of [`Self::dispatch_fold`]'s `check_artifact` step;
+    /// see [`Self::dispatch_map_unchecked_for_test`] for why the
+    /// negative-control test needs this.
+    #[cfg(test)]
+    pub(crate) fn dispatch_fold_unchecked_for_test(
+        &mut self,
+        artifact: &MetalKernelArtifact,
+        initial: Scalar,
+        input: MetalBufferHandle,
+        output: MetalBufferHandle,
+    ) -> Result<MetalDispatchOutcome, MetalRefusal> {
+        self.admit(DeviceEffect::DeviceDispatch)?;
+        self.execute_fold(artifact, initial, input, output)
+    }
+
+    fn execute_fold(
+        &mut self,
+        artifact: &MetalKernelArtifact,
+        initial: Scalar,
+        input: MetalBufferHandle,
+        output: MetalBufferHandle,
+    ) -> Result<MetalDispatchOutcome, MetalRefusal> {
+        let accumulator_kind = artifact.ir.result;
+        if initial.kind() != accumulator_kind {
+            return Err(ComputeRefusal::ElementTypeMismatch {
+                detail: format!(
+                    "{:?} initial value for a {accumulator_kind:?} fold",
+                    initial.kind()
+                ),
+            }
+            .into());
+        }
+        let (output_kind, out_len, output_buffer) = self.live(output)?;
+        if output_kind != accumulator_kind {
+            return Err(ComputeRefusal::ElementTypeMismatch {
+                detail: format!(
+                    "buffer {} holds {output_kind:?}, the kernel binds {accumulator_kind:?}",
+                    output.index
+                ),
+            }
+            .into());
+        }
+        if out_len != 1 {
+            return Err(ComputeRefusal::OutOfBounds {
+                detail: format!(
+                    "a fold publishes one element, output buffer {} holds {out_len}",
+                    output.index
+                ),
+            }
+            .into());
+        }
+        let output_buffer = output_buffer.clone();
+
+        let element_kind = artifact.ir.params[1];
+        let (input_kind, len, input_buffer) = self.live(input)?;
+        if input_kind != element_kind {
+            return Err(ComputeRefusal::ElementTypeMismatch {
+                detail: format!(
+                    "buffer {} holds {input_kind:?}, the kernel binds {element_kind:?}",
+                    input.index
+                ),
+            }
+            .into());
+        }
+        let input_buffer = input_buffer.clone();
+
+        // Classify the real dispatch shape and the real aliasing claim
+        // through the exact same code the CPU reference calls
+        // (`session::classify_fold_dispatch`), before any Metal allocation
+        // or dispatch below, exactly as `execute_map` does for a map.
+        let aliased = input == output;
+        session::classify_fold_dispatch(&artifact.ir, len, aliased).map_err(MetalRefusal::from)?;
+
+        // Seeded after classification (never before an admission refusal),
+        // exactly as `execute_map` allocates its device buffers only after
+        // `classify_map_dispatch` admits the dispatch.
+        self.write_direct(output, initial)?;
+
+        let status_buffer = self
+            .device
+            .newBufferWithLength_options(4, MTLResourceOptions::StorageModeShared)
+            .ok_or_else(|| {
+                MetalRefusal::from(ComputeRefusal::OutOfBounds {
+                    detail: "the Metal device refused the status buffer".to_owned(),
+                })
+            })?;
+        let invocation_buffer = self
+            .device
+            .newBufferWithLength_options(4, MTLResourceOptions::StorageModeShared)
+            .ok_or_else(|| {
+                MetalRefusal::from(ComputeRefusal::OutOfBounds {
+                    detail: "the Metal device refused the invocation buffer".to_owned(),
+                })
+            })?;
+        // SAFETY: both are freshly allocated shared buffers whose
+        // `contents()` is 4 host-visible bytes.
+        unsafe {
+            core::ptr::write_bytes(status_buffer.contents().as_ptr().cast::<u8>(), 0u8, 4);
+            core::ptr::write_bytes(invocation_buffer.contents().as_ptr().cast::<u8>(), 0u8, 4);
+        }
+
+        let element_count = u32::try_from(len).map_err(|_| {
+            MetalRefusal::from(ComputeRefusal::OutOfBounds {
+                detail: "too many elements for one fold dispatch".to_owned(),
+            })
+        })?;
+
+        let command_buffer = self.queue.commandBuffer().ok_or_else(|| {
+            MetalRefusal::from(ComputeRefusal::KernelSelection {
+                detail: "the Metal device refused a command buffer".to_owned(),
+            })
+        })?;
+        let encoder = command_buffer.computeCommandEncoder().ok_or_else(|| {
+            MetalRefusal::from(ComputeRefusal::KernelSelection {
+                detail: "the Metal device refused a compute encoder".to_owned(),
+            })
+        })?;
+        encoder.setComputePipelineState(&artifact.pipeline);
+        // SAFETY: every named buffer is kept alive (by a local binding or
+        // `input_buffer`/`output_buffer`/`status_buffer`/`invocation_buffer`
+        // themselves) in this stack frame past `waitUntilCompleted`.
+        unsafe {
+            encoder.setBuffer_offset_atIndex(Some(&*input_buffer), 0, 0);
+            encoder.setBuffer_offset_atIndex(Some(&*output_buffer), 0, 1);
+            encoder.setBuffer_offset_atIndex(Some(&*status_buffer), 0, 2);
+            encoder.setBuffer_offset_atIndex(Some(&*invocation_buffer), 0, 3);
+        }
+        let mut element_count_value = element_count;
+        let count_ptr = NonNull::from(&mut element_count_value).cast::<c_void>();
+        // SAFETY: `count_ptr` is a valid, live pointer to 4 bytes for the
+        // duration of this call (Metal copies the bytes immediately).
+        unsafe {
+            encoder.setBytes_length_atIndex(count_ptr, 4, 4);
+        }
+
+        // A fold is one single-threaded invocation that loops over every
+        // element itself (see `msl::generate_fold`), never one GPU thread per
+        // element: dispatching more than one thread here would run the whole
+        // sequential loop redundantly in parallel, not divide it.
+        encoder.dispatchThreads_threadsPerThreadgroup(
+            MTLSize {
+                width: 1,
+                height: 1,
+                depth: 1,
+            },
+            MTLSize {
+                width: 1,
+                height: 1,
+                depth: 1,
+            },
+        );
+        encoder.endEncoding();
+        command_buffer.commit();
+        command_buffer.waitUntilCompleted();
+
+        if command_buffer.status() == MTLCommandBufferStatus::Error {
+            let detail = command_buffer
+                .error()
+                .map(|error| error.localizedDescription().to_string())
+                .unwrap_or_else(|| "no further detail".to_owned());
+            eprintln!("Metal command buffer reported MTLCommandBufferStatusError: {detail}");
+            let failure = MetalSessionFailure::DeviceLost;
+            self.selected = Some(failure.clone());
+            return Ok(MetalDispatchOutcome::Failed(failure));
+        }
+
+        // SAFETY: the command buffer completed; both buffers' 4 bytes are
+        // host-visible and fully initialized (zeroed above, then written to
+        // at most once by the kernel itself).
+        let status_code = unsafe {
+            (status_buffer.contents().as_ptr() as *const u8)
+                .cast::<u32>()
+                .read_unaligned()
+        };
+        if status_code == 0 {
+            return Ok(MetalDispatchOutcome::Completed { invocations: len });
+        }
+        let invocation = unsafe {
+            (invocation_buffer.contents().as_ptr() as *const u8)
+                .cast::<u32>()
+                .read_unaligned()
+        } as usize;
+        let status = status_from_code(status_code).ok_or_else(|| {
+            MetalRefusal::from(ComputeRefusal::StaleHandle {
+                detail: format!("kernel wrote an unrecognized status code {status_code}"),
+            })
+        })?;
+        let failure = MetalSessionFailure::KernelStatus {
+            declaration: artifact.declaration.clone(),
+            invocation,
+            status,
+        };
+        self.selected = Some(failure.clone());
+        Ok(MetalDispatchOutcome::Failed(failure))
     }
 
     /// Consume the session: release every live buffer in reverse allocation

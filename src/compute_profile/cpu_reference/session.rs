@@ -538,24 +538,7 @@ impl CpuReferenceSession {
         let (input_kind, data) = self.live(input)?;
         expect_kind(input_kind, artifact.ir.params[1], input)?;
         let len = data.len();
-        let aliasing = if input == output {
-            AliasingClaim::MayOverlap
-        } else {
-            AliasingClaim::Disjoint
-        };
-        let candidate = candidate(
-            &[
-                (artifact.ir.params[1], ParamMode::ReadOnlyView, len),
-                (accumulator, ParamMode::ReadWriteView, 1),
-            ],
-            GridShape {
-                workgroup_size: [1, 1, 1],
-                grid_size: [1, 1, 1],
-            },
-            aliasing,
-            fold_ops(&artifact.ir),
-        );
-        classify(&candidate).map_err(|refusal| profile(refusal, "dispatch shape"))?;
+        classify_fold_dispatch(&artifact.ir, len, input == output)?;
 
         let outcome = run_fold(&artifact.ir, initial, data, control);
         self.finish(artifact, output, len, outcome)
@@ -738,6 +721,41 @@ pub(crate) fn classify_map_dispatch(
         },
         aliasing,
         map_ops(ir),
+    );
+    classify(&admission)
+        .map(|_| ())
+        .map_err(|refusal| profile(refusal, "dispatch shape"))
+}
+
+/// Classify one [`KernelShape::SequentialFold`] dispatch against the real
+/// input length `len` and the real [`AliasingClaim`] between the bound input
+/// and output handles (`aliased` is `input == output` in the caller's own
+/// handle type). This is the exact rule
+/// [`CpuReferenceSession::dispatch_fold`] applies, factored out so every
+/// backend that dispatches a [`KernelShape::SequentialFold`] artifact —
+/// including the macOS-only Metal backend — calls this identical code before
+/// any device allocation or dispatch, rather than re-deriving the rule.
+pub(crate) fn classify_fold_dispatch(
+    ir: &KernelIr,
+    len: usize,
+    aliased: bool,
+) -> Result<(), ComputeRefusal> {
+    let aliasing = if aliased {
+        AliasingClaim::MayOverlap
+    } else {
+        AliasingClaim::Disjoint
+    };
+    let admission = candidate(
+        &[
+            (ir.params[1], ParamMode::ReadOnlyView, len),
+            (ir.result, ParamMode::ReadWriteView, 1),
+        ],
+        GridShape {
+            workgroup_size: [1, 1, 1],
+            grid_size: [1, 1, 1],
+        },
+        aliasing,
+        fold_ops(ir),
     );
     classify(&admission)
         .map(|_| ())

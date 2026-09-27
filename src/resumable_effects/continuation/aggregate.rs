@@ -429,19 +429,7 @@ impl<'a> AggregateDurableInvocation<'a> {
         let Phase::AwaitingAnswer(pending, _) = &self.phase else {
             return false;
         };
-        let Some(request_type) = channel_type(pending.continuation.request()) else {
-            return false;
-        };
-        let Some(answer_type) = channel_type(value) else {
-            return false;
-        };
-        self.signature
-            .table()
-            .check_answer(
-                &super::tag(&self.function_id, &request_type),
-                &super::tag(&self.function_id, &answer_type),
-            )
-            .is_ok()
+        self.answer_type_for(pending, value)
     }
 
     fn finish_cleanup(
@@ -668,6 +656,13 @@ impl<'a> AggregateDurableInvocation<'a> {
     }
 
     fn answer_type_for(&self, pending: &Pending, value: &ResumableChannelValue) -> bool {
+        if !crate::interpreter::resumable::channel::valid_copy_channel_response(
+            self.program,
+            &self.function_id,
+            value,
+        ) {
+            return false;
+        }
         let Some(request_type) = channel_type(pending.continuation.request()) else {
             return false;
         };

@@ -51,6 +51,49 @@ pub(super) struct ChannelAdmitted<'p> {
     pub(super) admitted: std::collections::BTreeMap<&'p str, &'p ResolvedFunction>,
 }
 
+/// Check the complete Copy-only response carrier without evaluating source.
+/// Durable callers use this before acknowledging a host observation.
+pub(crate) fn valid_copy_channel_response(
+    program: &ResolvedProgram,
+    function_id: &str,
+    supplied: &ResumableChannelValue,
+) -> bool {
+    if matches!(
+        supplied,
+        ResumableChannelValue::RecordBytes { .. } | ResumableChannelValue::VariantBytes { .. }
+    ) {
+        return false;
+    }
+    let Some(yields) = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == function_id)
+        .and_then(|function| function.yields.as_ref())
+    else {
+        return false;
+    };
+    if hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.response_type) {
+        return false;
+    }
+    if !hir::is_scalar_resolved_type(&yields.response_type)
+        && hir::yield_aggregate::bounded_aggregate_refusal(
+            &program.declarations,
+            &yields.response_type,
+        )
+        .is_err()
+    {
+        return false;
+    }
+    let mut allocation = 0;
+    value_of_channel(
+        &program.declarations,
+        &yields.response_type,
+        supplied,
+        &mut allocation,
+    )
+    .is_some()
+}
+
 pub(super) fn admit_channel_entry<'p>(
     program: &'p hir::ResolvedProgram,
     function_id: &str,

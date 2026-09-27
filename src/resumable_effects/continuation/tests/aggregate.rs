@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::hir::DeclarationId;
+use crate::interpreter::resumable::ChannelField;
 
 const SOURCE: &str = r#"
 module test.durable_arguments;
@@ -480,4 +481,177 @@ fn failed_and_cleanup_append_boundaries_preserve_sticky_failure() {
             assert!(cleanup.0 <= 1);
         }
     }
+}
+
+const RECORD_RESPONSE: &str = r#"
+module test.durable_record_response;
+@id("app.input") record Input { @id("app.input.seed") seed: i64, }
+@id("app.response") record Response {
+    @id("app.response.value") value: i64,
+    @id("app.response.ok") ok: bool,
+}
+@id("app.ask") fn ask(input: Input) -> Input yields i64 -> Response {
+    let first = yield input.seed;
+    let second = yield first.value;
+    input
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+const VARIANT_RESPONSE: &str = r#"
+module test.durable_variant_response;
+@id("app.input") record Input { @id("app.input.seed") seed: i64, }
+@id("app.response") variant Response {
+    @id("app.response.value") Value { @id("app.response.value.value") value: i64, },
+    @id("app.response.stop") Stop { @id("app.response.stop.code") code: bool, },
+}
+@id("app.ask") fn ask(input: Input) -> Input yields i64 -> Response {
+    let first = yield input.seed;
+    let second = yield 9;
+    input
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+fn checked_response_run(
+    source: &str,
+    invalid: Vec<ResumableChannelValue>,
+    valid: ResumableChannelValue,
+) {
+    let scratch = Scratch::new(0o700);
+    let (key, program) = (key(), program(source));
+    let arguments = vec![ResumableChannelValue::Record {
+        declaration: DeclarationId::new("app.input"),
+        fields: vec![ArgumentValue::Int(4)],
+    }];
+    let mut invocation = AggregateDurableInvocation::start(
+        &scratch.dir(),
+        &key,
+        &program,
+        "app.ask",
+        &arguments,
+        "checked-response",
+        7,
+        STEPS,
+    )
+    .unwrap();
+    let request = invocation.dispatch(&policy()).unwrap();
+    let path = scratch
+        .0
+        .join(journal::channel::channel_journal_name("checked-response"));
+    let before = fs::read(&path).unwrap();
+    let status = invocation.status();
+    for value in invalid {
+        assert!(matches!(
+            invocation.answer(&policy(), &request.bind_answer(value)),
+            Err(ContinuationError::AnswerTypeMismatch)
+        ));
+        assert_eq!(
+            fs::read(&path).unwrap(),
+            before,
+            "invalid answer changed journal bytes"
+        );
+        assert_eq!(
+            invocation.status(),
+            status,
+            "invalid answer changed invocation state"
+        );
+    }
+    invocation
+        .answer(&policy(), &request.bind_answer(valid.clone()))
+        .unwrap();
+    drop(invocation);
+    let mut invocation = AggregateDurableInvocation::recover(
+        &scratch.dir(),
+        &key,
+        &program,
+        "app.ask",
+        &arguments,
+        "checked-response",
+        7,
+        STEPS,
+        TornTailPolicy::Refuse,
+    )
+    .unwrap();
+    let second = invocation.dispatch(&policy()).unwrap();
+    assert_eq!(second.site, 1);
+    invocation
+        .answer(&policy(), &second.bind_answer(valid))
+        .unwrap();
+    let mut cleanup = Cleanup::default();
+    invocation.settle(&mut cleanup).unwrap();
+    assert_eq!(
+        invocation.status(),
+        AggregateContinuationStatus::Settled {
+            outcome: AggregateDurableOutcome::Completed(arguments[0].clone()),
+            cleanup: CleanupSettlement::Completed,
+        }
+    );
+}
+
+#[test]
+fn full_record_answer_shape_is_checked_before_append_and_valid_response_recovers() {
+    let record = |fields| ResumableChannelValue::Record {
+        declaration: DeclarationId::new("app.response"),
+        fields,
+    };
+    checked_response_run(
+        RECORD_RESPONSE,
+        vec![
+            record(vec![ArgumentValue::Bool(true), ArgumentValue::Bool(true)]),
+            record(vec![ArgumentValue::Int(9)]),
+            record(vec![
+                ArgumentValue::Int(9),
+                ArgumentValue::Bool(true),
+                ArgumentValue::Int(1),
+            ]),
+            ResumableChannelValue::RecordBytes {
+                declaration: DeclarationId::new("app.response"),
+                fields: vec![
+                    ChannelField::Scalar(ArgumentValue::Int(9)),
+                    ChannelField::Scalar(ArgumentValue::Bool(true)),
+                ],
+            },
+            ResumableChannelValue::RecordBytes {
+                declaration: DeclarationId::new("app.response"),
+                fields: vec![
+                    ChannelField::Bytes(vec![9]),
+                    ChannelField::Scalar(ArgumentValue::Bool(true)),
+                ],
+            },
+        ],
+        record(vec![ArgumentValue::Int(9), ArgumentValue::Bool(true)]),
+    );
+}
+
+#[test]
+fn full_variant_answer_shape_is_checked_before_append_and_valid_response_recovers() {
+    let variant = |case: &str, fields| ResumableChannelValue::Variant {
+        declaration: DeclarationId::new("app.response"),
+        case: DeclarationId::new(case),
+        fields,
+    };
+    checked_response_run(
+        VARIANT_RESPONSE,
+        vec![
+            variant("app.response.unknown", vec![ArgumentValue::Int(9)]),
+            variant("app.response.value", vec![ArgumentValue::Bool(true)]),
+            variant("app.response.value", vec![]),
+            variant(
+                "app.response.value",
+                vec![ArgumentValue::Int(9), ArgumentValue::Int(1)],
+            ),
+            ResumableChannelValue::VariantBytes {
+                declaration: DeclarationId::new("app.response"),
+                case: DeclarationId::new("app.response.value"),
+                fields: vec![ChannelField::Scalar(ArgumentValue::Int(9))],
+            },
+            ResumableChannelValue::VariantBytes {
+                declaration: DeclarationId::new("app.response"),
+                case: DeclarationId::new("app.response.value"),
+                fields: vec![ChannelField::Bytes(vec![9])],
+            },
+        ],
+        variant("app.response.value", vec![ArgumentValue::Int(9)]),
+    );
 }

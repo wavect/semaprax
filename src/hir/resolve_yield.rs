@@ -6,10 +6,19 @@
 //! top-level `let`/assignment values or a tail expression of its own body
 //! block, never nested. This module adds the type-level half:
 //!
-//! - The declared request and response types must be admitted Copy
-//!   scalars (`hir::nodes::is_scalar_resolved_type`), deferring records,
-//!   variants, and any type needing cleanup to future work so a suspend/
-//!   resume never has to reason about ownership crossing the suspension.
+//! - The declared request and response types must be admitted Copy scalars
+//!   (`hir::nodes::is_scalar_resolved_type`), deferring records, variants,
+//!   and any type needing cleanup to future work so a suspend/resume never
+//!   has to reason about ownership crossing the suspension. A record or
+//!   variant that would fit the bounded, flat, non-recursive Copy-scalar
+//!   aggregate shape `yield_aggregate::bounded_aggregate_refusal` states
+//!   (issue #296 R20, docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md §12.1) is
+//!   still refused (`SPX-T307`): that module is a design record for a
+//!   future increment's admission, not a live admission here, because no
+//!   `resumable_effects` lowering, envelope, journal, or driver support for
+//!   such a channel exists yet. A checked program must either run or be
+//!   refused with a stable diagnostic before it ever reaches lowering, so
+//!   this module never admits a shape lowering cannot yet execute.
 //! - The whole function -- every parameter and every intermediate value --
 //!   must stay within that same scalar profile, so cleanup-plan
 //!   construction never needs a genuinely new exit path for `yield`
@@ -34,6 +43,7 @@ use super::expr_nodes::{
     ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer, ResolvedMatchArm,
 };
 use super::nodes::{is_scalar_resolved_type, ResolvedParam, ResolvedType, ResolvedYieldsClause};
+use super::yield_aggregate::{self, MAX_YIELD_AGGREGATE_FIELDS};
 use super::Resolver;
 
 /// A `yields`-declaring function's own request or response type is not an
@@ -52,6 +62,15 @@ const BORROW_ACROSS_YIELD: &str = "SPX-T305";
 /// A resource or handle in a `yields`-declaring function: a suspension would
 /// either leak it or run its drop before the resumed suffix.
 const RESOURCE_ACROSS_YIELD: &str = "SPX-T306";
+/// A record or variant used as a `yields` request/response type: aggregate
+/// yield channels are not yet admitted (issue #296 R20). This is a stable,
+/// dedicated refusal distinct from the generic `SPX-T301` precisely because
+/// `yield_aggregate::bounded_aggregate_refusal` already states the exact
+/// bounded, flat, non-recursive Copy-scalar shape a future increment would
+/// admit (docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md §12.1): fitting that
+/// shape today still is not enough, since no lowering, envelope, journal, or
+/// driver support for it exists yet.
+const AGGREGATE_NOT_YET_ADMITTED: &str = "SPX-T307";
 
 /// The stable refusal for a type outside the Copy-scalar profile.
 ///
@@ -155,13 +174,49 @@ impl Resolver<'_> {
         }
         let request_type = self.resolve_type(&yields.request_type, yields.span)?;
         let response_type = self.resolve_type(&yields.response_type, yields.span)?;
-        if !is_scalar_resolved_type(&request_type) || !is_scalar_resolved_type(&response_type) {
+        for (role, ty) in [("request", &request_type), ("response", &response_type)] {
+            if is_scalar_resolved_type(ty) {
+                continue;
+            }
+            // Issue #296 R20 (coordinator review after the first slice):
+            // admitting a bounded aggregate *here* without also teaching
+            // `resumable_effects::lowering`, its envelope, its durable
+            // journal, and the driver this same shape let a checked program
+            // pass this gate and then fail closed only much later, at
+            // attempted lowering, with the unrelated generic `SPX-H006` --
+            // worse than a stable diagnostic here. So every record/variant
+            // `yields` channel type is refused, always, with the dedicated
+            // `SPX-T307`; `bounded_aggregate_refusal` is consulted only to
+            // report, for a shape that already fits its future admission
+            // rule, that lowering support (not the shape) is what is
+            // missing, rather than admitting it.
+            if matches!(ty, ResolvedType::Nominal { .. }) {
+                let detail =
+                    match yield_aggregate::bounded_aggregate_refusal(&self.declarations, ty) {
+                        Ok(()) => "it fits the bounded Copy-scalar aggregate shape \
+                         (docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md §12.1), but no \
+                         resumable_effects lowering, envelope, journal, or driver support for \
+                         it exists yet"
+                            .to_owned(),
+                        Err(reason) => {
+                            format!("it does not even fit that future admission shape: {reason}")
+                        }
+                    };
+                return Err(self.error(
+                    AGGREGATE_NOT_YET_ADMITTED,
+                    format!(
+                        "function `{}` declares a `yields` {role} type that is a record or \
+                         variant; aggregate yield channels are not yet admitted: {detail}",
+                        function.name
+                    ),
+                    yields.span,
+                ));
+            }
             return Err(self.error(
                 NON_SCALAR_SIGNATURE,
                 format!(
-                    "function `{}` declares a `yields` request or response type that is not an \
-                     admitted Copy scalar; records, variants, and owned types are not yet \
-                     admitted here",
+                    "function `{}` declares a `yields` {role} type that is not an admitted \
+                     Copy scalar; records, variants, and owned types are not yet admitted here",
                     function.name
                 ),
                 yields.span,
@@ -249,20 +304,20 @@ fn check_scalar(
     // possible `borrow Bytes`/`share Bytes`) still falls through to
     // `profile_refusal` below and keeps `SPX-T305`.
     if !borrowed && (is_scalar_resolved_type(&expr.ty) || expr.ty == ResolvedType::Unit) {
-        Ok(())
-    } else if !borrowed && expr.ty == ResolvedType::Bytes {
-        Ok(())
-    } else {
-        let (code, reason) = profile_refusal(resolver, &expr.ty, expr.ownership);
-        Err(resolver.error(
-            code,
-            format!(
-                "function `{function_name}` declares `yields` but an intermediate value is \
-                 outside the resumable profile: {reason}"
-            ),
-            expr.span,
-        ))
+        return Ok(());
     }
+    if !borrowed && expr.ty == ResolvedType::Bytes {
+        return Ok(());
+    }
+    let (code, reason) = profile_refusal(resolver, &expr.ty, expr.ownership);
+    Err(resolver.error(
+        code,
+        format!(
+            "function `{function_name}` declares `yields` but an intermediate value is \
+             outside the resumable profile: {reason}"
+        ),
+        expr.span,
+    ))
 }
 
 /// Exhaustive descent over every resolved expression shape, mirroring
@@ -854,8 +909,8 @@ mod tests {
     use std::path::Path;
 
     use super::{
-        BORROW_ACROSS_YIELD, EFFECTFUL_YIELDS, ILL_TYPED_YIELD, NON_SCALAR_BODY,
-        NON_SCALAR_SIGNATURE, RESOURCE_ACROSS_YIELD,
+        AGGREGATE_NOT_YET_ADMITTED, BORROW_ACROSS_YIELD, EFFECTFUL_YIELDS, ILL_TYPED_YIELD,
+        MAX_YIELD_AGGREGATE_FIELDS, NON_SCALAR_BODY, NON_SCALAR_SIGNATURE, RESOURCE_ACROSS_YIELD,
     };
     use crate::hir;
 
@@ -1086,16 +1141,17 @@ fn main() -> i64 { 0 }
     }
 
     #[test]
-    fn a_non_scalar_yields_signature_is_refused() {
+    fn an_owned_yields_signature_that_is_not_a_record_or_variant_is_refused() {
+        // `Bytes` itself is not an admitted bounded aggregate (it is not a
+        // record or variant at all), so it keeps the original catch-all
+        // refusal rather than the new, more specific `SPX-T307`.
         let source = r#"
 module test.resolve_yield_non_scalar;
-@id("app.prompt")
-record Prompt { @id("app.prompt.seed") seed: i64, }
 @id("app.ask")
 fn ask() -> i64
-    yields Prompt -> i64
+    yields Bytes -> i64
 {
-    let answer = yield Prompt { seed: 1 };
+    let answer = yield 1;
     answer
 }
 @id("app.main")
@@ -1103,6 +1159,181 @@ fn main() -> i64 { 0 }
 "#;
         let error = resolve(source).unwrap_err();
         assert_eq!(error.code, NON_SCALAR_SIGNATURE);
+    }
+
+    #[test]
+    fn a_record_yields_signature_with_a_non_scalar_field_is_still_refused() {
+        // Even a record that also fails `bounded_aggregate_refusal`'s own
+        // future-admission shape (here, an owned `Bytes` leaf) is refused
+        // with the same dedicated `SPX-T307` as one that would fit it: no
+        // record/variant channel type is admitted today regardless.
+        let source = r#"
+module test.resolve_yield_non_scalar;
+@id("app.prompt")
+record Prompt {
+    @id("app.prompt.seed") seed: i64,
+    @id("app.prompt.note") note: Bytes,
+}
+@id("app.ask")
+fn ask() -> i64
+    yields Prompt -> i64
+{
+    let answer = yield Prompt { seed: 1, note: bytes_zeroed(1usize) };
+    answer
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let error = resolve(source).unwrap_err();
+        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
+    }
+
+    #[test]
+    fn a_bounded_copy_scalar_record_yields_signature_is_still_refused_pending_runtime_support() {
+        // Issue #296 R20 (coordinator review): a flat record of Copy scalars
+        // fits `yield_aggregate::bounded_aggregate_refusal`'s designed
+        // future-admission shape (docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md
+        // §12.1), but is still refused as a `yields` request/response type
+        // today: no `resumable_effects` lowering, envelope, journal, or
+        // driver support for it exists yet, so admitting it here would let
+        // a checked program pass this gate and then fail closed only much
+        // later, at attempted lowering, with the unrelated generic
+        // `SPX-H006`, instead of a stable diagnostic here.
+        let source = r#"
+module test.resolve_yield_record_aggregate;
+@id("app.prompt")
+record Prompt {
+    @id("app.prompt.seed") seed: i64,
+    @id("app.prompt.urgent") urgent: bool,
+}
+@id("app.ask")
+fn ask() -> i64
+    yields Prompt -> Prompt
+{
+    let answer = yield Prompt { seed: 1, urgent: true };
+    answer.seed
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let error = resolve(source).unwrap_err();
+        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
+    }
+
+    #[test]
+    fn a_bounded_copy_scalar_variant_yields_signature_is_still_refused_pending_runtime_support() {
+        let source = r#"
+module test.resolve_yield_variant_aggregate;
+@id("app.step")
+variant Step {
+    @id("app.step.continue")
+    Continue { @id("app.step.continue.round") round: i64, },
+    @id("app.step.done")
+    Done { @id("app.step.done.ok") ok: bool, },
+}
+@id("app.ask")
+fn ask() -> i64
+    yields i64 -> Step
+{
+    let answer = yield 1;
+    match answer {
+        Step::Continue { round: round } => round,
+        Step::Done { ok: ok } => if ok { 1 } else { 0 },
+    }
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let error = resolve(source).unwrap_err();
+        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
+    }
+
+    #[test]
+    fn a_record_yields_signature_past_the_field_bound_is_refused() {
+        let declared_fields: String = (0..=MAX_YIELD_AGGREGATE_FIELDS)
+            .map(|index| format!("    @id(\"app.wide.f{index}\") f{index}: i64,\n"))
+            .collect();
+        let constructed_fields: String = (0..=MAX_YIELD_AGGREGATE_FIELDS)
+            .map(|index| format!("f{index}: {index}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let source = format!(
+            "module test.resolve_yield_wide_record;\n@id(\"app.wide\")\nrecord Wide {{\n{declared_fields}}}\n@id(\"app.ask\")\nfn ask() -> i64 yields Wide -> i64 {{ let answer = yield Wide {{ {constructed_fields} }}; answer }}\n@id(\"app.main\")\nfn main() -> i64 {{ 0 }}\n"
+        );
+        let error = resolve(&source).unwrap_err();
+        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
+    }
+
+    #[test]
+    fn a_generic_record_yields_signature_is_refused() {
+        let source = r#"
+module test.resolve_yield_generic_record;
+@id("app.boxed")
+record Boxed<T> { @id("app.boxed.value") value: T, }
+@id("app.ask")
+fn ask() -> i64
+    yields Boxed<i64> -> i64
+{
+    let answer = yield Boxed<i64> { value: 1 };
+    answer
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let error = resolve(source).unwrap_err();
+        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
+    }
+
+    #[test]
+    fn a_record_nested_inside_a_record_yields_signature_is_refused() {
+        let source = r#"
+module test.resolve_yield_nested_record;
+@id("app.inner")
+record Inner { @id("app.inner.seed") seed: i64, }
+@id("app.outer")
+record Outer { @id("app.outer.inner") inner: Inner, }
+@id("app.ask")
+fn ask() -> i64
+    yields Outer -> i64
+{
+    let answer = yield Outer { inner: Inner { seed: 1 } };
+    answer
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let error = resolve(source).unwrap_err();
+        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
+    }
+
+    #[test]
+    fn a_bounded_aggregate_intermediate_value_in_a_yields_function_body_is_still_refused() {
+        // The body-level `check_scalar` walk was fully reverted alongside
+        // the signature check: an ordinary intermediate record/variant
+        // value in a `yields`-declaring function's body keeps the original,
+        // unconditional `SPX-T303` -- it was never widened to consult
+        // `yield_aggregate` at all, only the declared request/response type
+        // was (see `a_bounded_copy_scalar_record_yields_signature_is_still_refused_pending_runtime_support`).
+        let source = r#"
+module test.resolve_yield_body_aggregate;
+@id("app.prompt")
+record Prompt {
+    @id("app.prompt.seed") seed: i64,
+    @id("app.prompt.urgent") urgent: bool,
+}
+@id("app.ask")
+fn ask(seed: i64) -> i64
+    yields i64 -> i64
+{
+    let prompt = Prompt { seed: seed, urgent: false };
+    let answer = yield prompt.seed;
+    answer
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+        let error = resolve(source).unwrap_err();
+        assert_eq!(error.code, NON_SCALAR_BODY);
     }
 
     #[test]

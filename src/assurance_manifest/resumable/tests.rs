@@ -286,6 +286,63 @@ fn control_dependent_source_contracts_bind_entry_and_final_resume() {
     verify_envelope(&report).unwrap();
 }
 
+/// Bug #296 (R20): a purely scalar control-dependent function (no owned
+/// `Bytes` local, an empty cleanup plan) reaching a top-level `yield` only
+/// past a preceding statement that itself branches (`first`'s own
+/// `if`/`else`, each arm holding its own `yield`) must still let source
+/// contract obligation generation succeed -- `methods` calls `lower_control`
+/// unconditionally for every control-dependent `yields` function that
+/// carries a `requires`/`ensures` clause, and `lower_control` itself calls
+/// `cleanup_plan::carried_locals_at` for every site, which is exactly where
+/// this bug's branching-predecessor refusal used to surface.
+const JOIN_SOURCE: &str = r#"
+module test.resumable_assurance_control_join;
+@id("app.ask_join")
+fn ask_join(seed: i64) -> i64
+    yields i64 -> i64
+    requires seed >= 0
+    ensures result >= 0
+{
+    let first = if seed > 0 {
+        let a = yield seed;
+        a
+    } else {
+        let b = yield 0;
+        b
+    };
+    let second = yield first + 1;
+    second
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+#[test]
+fn control_dependent_source_contracts_bind_a_top_level_site_past_a_branching_predecessor() {
+    let (parsed, resolved) = program(JOIN_SOURCE);
+    let mut obligations = derive::derive_obligations(&parsed);
+    let original = obligations.clone();
+    attach(&resolved, &mut obligations).unwrap();
+    assert_eq!(
+        original.iter().map(|o| &o.id).collect::<Vec<_>>(),
+        obligations.iter().map(|o| &o.id).collect::<Vec<_>>(),
+        "attaching a control-dependent method must never mint a new obligation id"
+    );
+    let plan = lower_control(&resolved, &resolved.functions[0]).unwrap();
+    assert!(!plan.carries_owned_bytes);
+    assert_eq!(plan.sites.len(), 3);
+    let pre = obligations
+        .iter()
+        .find(|o| o.kind == ObligationKind::Precondition)
+        .unwrap();
+    assert_eq!(
+        pre.methods[1].bounds.as_deref(),
+        Some("control_dependent_copy_scalar_yields:3")
+    );
+    let report = envelope(JOIN_SOURCE);
+    verify_envelope(&report).unwrap();
+}
+
 #[test]
 fn control_dependent_source_drift_changes_plan_even_with_unchanged_contract_ids() {
     let report = envelope(CONTROL_SOURCE);

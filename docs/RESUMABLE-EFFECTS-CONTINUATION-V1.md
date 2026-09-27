@@ -359,7 +359,15 @@ narrower than the general design a later slice may still generalize: only
 whole-storage places (no partial record-field or conditional variant
 liveness), and only sites reached through the same `if`/`else`/`while`/
 block-valued nesting the control-dependent placements admit, with a preceding
-non-containing branch refused rather than joined.
+non-containing branch refused rather than joined -- except that this
+refusal is scoped to a genuine owned-value join: a function whose built
+`CleanupPlan::slots` is empty (no owned `Bytes` local anywhere, so nothing a
+join across the branch could lose track of) returns the vacuously empty
+result immediately, without walking toward the site at all, regardless of
+how many preceding statements branch on their own (bug #296, R20). Every
+control-dependent site of a purely scalar (Copy-only) `yields` function is
+therefore always admitted; the refusal above is only ever reached for a
+function that already carries at least one owned slot.
 
 Second increment (this document's own contract): the query is un-gated from
 `cfg(test)` and wired to a real caller on both ends.

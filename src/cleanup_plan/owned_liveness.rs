@@ -39,6 +39,15 @@
 //!   conditional (variant-guarded) owned entries are out of scope and
 //!   refused rather than approximated.
 //!
+//! The branching-predecessor refusal above only ever fires for a function
+//! whose cleanup plan carries at least one owned slot: `owned_locals_live_at`
+//! returns an empty result immediately, without walking toward `site` at all,
+//! when [`CleanupPlan::slots`] is empty (issue #296, bug #296 in R20). A
+//! purely scalar control-dependent function -- every `carried_locals_at` call
+//! sees, whether or not it ever carries an owned local -- is never refused
+//! merely because an earlier top-level statement happens to branch: there is
+//! nothing for a join across that branch to lose track of.
+//!
 //! A site inside a branch that the walk to `site` never enters contributes
 //! nothing: its locals are never marked as having run, so they are correctly
 //! absent from the result. That is the plan's own semantics falling out of
@@ -71,6 +80,21 @@ pub(crate) fn owned_locals_live_at(
     function: &ResolvedFunction,
     site: &ExpressionId,
 ) -> Result<Vec<CleanupSlotId>, Diagnostic> {
+    // A function whose cleanup plan carries no owned slot at all has nothing
+    // for any join to join: the result is vacuously empty regardless of how
+    // `site` is reached, so a purely scalar control-dependent function (an
+    // `if`/`else` preceding the site, say) is never refused merely for
+    // branching on its own. `admit_owned_bytes_profile` already short-circuits
+    // this same way before ever calling this function for its whole-function
+    // admission; `carried_locals_at` (issue #296 R20, bug #296) is the second,
+    // narrower caller this increment's own scope refusal must not reach when
+    // there is no owned local to lose track of. A function with a non-empty
+    // plan but nothing live at this particular `site` still goes through the
+    // ordinary replay below and can still be refused if the walk to `site`
+    // itself is out of the admitted grammar.
+    if function.cleanup_plan.slots.is_empty() {
+        return Ok(Vec::new());
+    }
     let executed = locate_predecessors(function, site)?;
     let plan = &function.cleanup_plan;
     let mut live = starting_live_set(plan)?;
@@ -649,6 +673,20 @@ fn no_owned() -> i64 {
     let dummy = 0;
     5
 }
+@id("test.branch_join")
+fn branch_join(data: borrow Slice<u8>, flag: bool) -> i64 {
+    let a = bytes_copy(data);
+    let branched = if flag { 1 } else { 2 };
+    let dummy = branched;
+    let _ = consume(a);
+    dummy
+}
+@id("test.scalar_branch_join")
+fn scalar_branch_join(flag: bool) -> i64 {
+    let branched = if flag { 1 } else { 2 };
+    let dummy = branched;
+    dummy
+}
 @id("app.main") fn main() -> i64 { 0 }
 "#;
 
@@ -825,6 +863,48 @@ fn no_owned() -> i64 {
         let site = site(function, "dummy");
         let live = owned_locals_live_at(function, &site).expect("site is admitted");
         assert!(live.is_empty());
+    }
+
+    /// Issue #296 R20 bug #296: a function with an empty cleanup plan (no
+    /// owned `Bytes` local anywhere) is never refused merely because an
+    /// earlier top-level statement happens to branch on its own -- there is
+    /// no owned local for a join across that branch to lose track of, so
+    /// the vacuous short-circuit at the top of `owned_locals_live_at` fires
+    /// before `locate_predecessors`'s own branching-predecessor refusal ever
+    /// runs.
+    #[test]
+    fn scalar_function_with_no_owned_locals_past_a_branching_predecessor_is_not_refused() {
+        let program = program();
+        let function = function(&program, "test.scalar_branch_join");
+        assert!(
+            function.cleanup_plan.slots.is_empty(),
+            "fixture must carry no owned slot to exercise the vacuous short-circuit"
+        );
+        let site = site(function, "dummy");
+        let live = owned_locals_live_at(function, &site)
+            .expect("an empty cleanup plan is vacuously admitted regardless of branching");
+        assert!(live.is_empty());
+    }
+
+    /// Issue #296 R20 bug #296: the empty-plan short-circuit above must not
+    /// weaken the genuine refusal. `branch_join` carries a real owned
+    /// `Bytes` local (`a`, a non-empty cleanup plan), so a later top-level
+    /// site reached only past a preceding statement that branches on its own
+    /// (`branched = if flag {..} else {..}`) still refuses `SPX-H006`,
+    /// exactly as it did before the fix.
+    #[test]
+    fn owned_local_past_a_branching_predecessor_still_refuses_h006() {
+        let program = program();
+        let function = function(&program, "test.branch_join");
+        assert!(
+            !function.cleanup_plan.slots.is_empty(),
+            "fixture must carry a real owned slot for this to be the genuine case"
+        );
+        let site = site(function, "dummy");
+        let error = owned_locals_live_at(function, &site).expect_err(
+            "a branching predecessor before a genuinely owned-Bytes-carrying site is refused",
+        );
+        assert_eq!(error.code, "SPX-H006");
     }
 
     #[test]

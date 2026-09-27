@@ -36,6 +36,7 @@ pub struct SourceEffectSignature {
     carries_owned_bytes: bool,
     aggregate_channel: bool,
     aggregate_bytes_channel: bool,
+    aggregate_function_boundary: bool,
     table: EffectSignatureTable,
 }
 
@@ -87,6 +88,11 @@ impl SourceEffectSignature {
         self.aggregate_bytes_channel
     }
 
+    /// Selects the separate Copy-only whole-function carrier and its plan.
+    pub fn has_aggregate_function_boundary(&self) -> bool {
+        self.aggregate_function_boundary
+    }
+
     pub fn table(&self) -> &EffectSignatureTable {
         &self.table
     }
@@ -105,7 +111,11 @@ impl SourceEffectSignature {
     /// Re-derive every field from the current checked program. This is a pure
     /// equality check and never repairs a stale binding.
     pub fn verify(&self, program: &ResolvedProgram) -> Result<(), Diagnostic> {
-        let observed = derive_source_effect_signature(program, &self.function_id)?;
+        let observed = if self.aggregate_function_boundary {
+            derive_source_effect_signature_with_arguments(program, &self.function_id)?
+        } else {
+            derive_source_effect_signature(program, &self.function_id)?
+        };
         if observed != *self {
             return Err(invalid(
                 "source effect signature is stale for the checked program",
@@ -126,8 +136,52 @@ pub fn derive_source_effect_signature(
     program: &ResolvedProgram,
     function_id: &str,
 ) -> Result<SourceEffectSignature, Diagnostic> {
+    derive_source_effect_signature_for_boundary(program, function_id, false)
+}
+
+/// Derive a signature only for the distinct sequential Copy aggregate
+/// whole-function carrier. The scalar durable path cannot reinterpret it.
+pub(crate) fn derive_source_effect_signature_with_arguments(
+    program: &ResolvedProgram,
+    function_id: &str,
+) -> Result<SourceEffectSignature, Diagnostic> {
+    derive_source_effect_signature_for_boundary(program, function_id, true)
+}
+
+fn derive_source_effect_signature_for_boundary(
+    program: &ResolvedProgram,
+    function_id: &str,
+    aggregate_function_boundary: bool,
+) -> Result<SourceEffectSignature, Diagnostic> {
     let function = selected_function(program, function_id)?;
+    if aggregate_function_boundary {
+        let has_nominal_boundary = function
+            .params
+            .iter()
+            .any(|param| matches!(&param.ty, ResolvedType::Nominal { .. }))
+            || matches!(&function.return_type, ResolvedType::Nominal { .. });
+        if !has_nominal_boundary {
+            return Err(invalid(
+                "aggregate function carrier requires a record or variant parameter or result",
+            ));
+        }
+        if function.params.iter().any(|param| {
+            crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &param.ty)
+        }) || crate::hir::yield_aggregate::has_bytes_leaf(
+            &program.declarations,
+            &function.return_type,
+        ) {
+            return Err(invalid(
+                "aggregate function carrier does not admit owned Bytes parameters or results",
+            ));
+        }
+    }
     let control_dependent = lowering::control::is_control_dependent(function);
+    if aggregate_function_boundary && control_dependent {
+        return Err(invalid(
+            "aggregate whole-function signatures require direct sequential yields",
+        ));
+    }
     let (plan_identity, site_count, carries_owned_bytes) = if control_dependent {
         let plan = lowering::control::lower_control(program, function)?;
         (
@@ -136,13 +190,24 @@ pub fn derive_source_effect_signature(
             plan.carries_owned_bytes,
         )
     } else {
-        let plan = lowering::lower_sequential(program, function)?;
+        let plan = if aggregate_function_boundary {
+            lowering::lower_sequential_with_arguments(program, function)?
+        } else {
+            lowering::lower_sequential(program, function)?
+        };
         (*plan.identity.as_bytes(), plan.suspensions.len(), false)
     };
     let yields = function
         .yields
         .as_ref()
         .ok_or_else(|| invalid("selected function has no `yields` clause"))?;
+    if aggregate_function_boundary
+        && crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.request_type)
+    {
+        return Err(invalid(
+            "aggregate function carrier does not admit owned Bytes requests",
+        ));
+    }
     if crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.response_type) {
         return Err(invalid(
             "source signature does not admit a Bytes response channel",
@@ -172,6 +237,7 @@ pub fn derive_source_effect_signature(
         carries_owned_bytes,
         aggregate_channel,
         aggregate_bytes_channel,
+        aggregate_function_boundary,
         table,
     })
 }
@@ -257,6 +323,22 @@ fn ask(seed: i64) -> bool yields i64 -> bool {
 fn main() -> i64 { 0 }
 "#;
 
+    const AGGREGATE_FUNCTION: &str = r#"
+module test.aggregate_source_signature;
+@id("app.input")
+record Input { @id("app.input.seed") seed: i64, }
+@id("app.output")
+record Output { @id("app.output.value") value: i64, }
+@id("app.ask")
+fn ask(input: Input) -> Output yields i64 -> i64 {
+    let first = yield input.seed;
+    let second = yield first;
+    Output { value: second }
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
     fn program(source: &str) -> ResolvedProgram {
         let parsed = crate::parse(source, "source-signature.spx").unwrap();
         crate::hir::resolve(&parsed).unwrap()
@@ -280,6 +362,27 @@ fn main() -> i64 { 0 }
             .check_answer(&signature.request_tag(), &signature.answer_tag())
             .is_ok());
         signature.verify(&program).unwrap();
+    }
+
+    #[test]
+    fn aggregate_function_signature_is_distinct_from_scalar_durable_signature() {
+        let checked = program(AGGREGATE_FUNCTION);
+        assert_eq!(
+            derive_source_effect_signature(&checked, "app.ask")
+                .unwrap_err()
+                .code,
+            "SPX-H006"
+        );
+        let signature = derive_source_effect_signature_with_arguments(&checked, "app.ask").unwrap();
+        assert!(signature.has_aggregate_function_boundary());
+        assert_eq!(signature.yield_count(), 2);
+        signature.verify(&checked).unwrap();
+        assert_eq!(
+            derive_source_effect_signature_with_arguments(&program(SOURCE), "app.ask")
+                .unwrap_err()
+                .code,
+            "SPX-H006"
+        );
     }
 
     #[test]

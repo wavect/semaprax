@@ -145,11 +145,14 @@ use super::{sealed, ExecutionAuthority, StageExecutor};
 mod outcome;
 #[path = "wasm_executor_process.rs"]
 mod process;
+#[path = "wasm_executor_semantic.rs"]
+mod semantic;
 #[path = "wasm_executor_workspace.rs"]
 mod workspace;
 use outcome::{decode_node_outcomes, NodeStageRun};
 pub use process::WasmStageHost;
 use process::{run_node_process, MAX_NODE_STDOUT_BYTES};
+use semantic::{WasmMeter, MAX_SEMANTIC_ROW_BYTES};
 use workspace::WasmStageWorkspace;
 
 // The registered process provider admits at most 64 KiB total output. Keep a
@@ -370,6 +373,35 @@ impl StageExecutor for WasmStageExecutor<'_> {
         )
         .map_err(|error| vec![error])
     }
+
+    #[allow(clippy::too_many_arguments)]
+    fn execute_metered(
+        &self,
+        _authority: ExecutionAuthority,
+        program: &hir::ResolvedProgram,
+        prepared: &PreparedRetainedCall,
+        arguments: &[RetainedValue],
+        max_steps: usize,
+        profile: &super::StageSemanticProfile,
+        cancellation: Option<&AgentCancellation>,
+    ) -> Result<RetainedCallEvaluation, Vec<Diagnostic>> {
+        let meter = WasmMeter::new(profile);
+        let run = || {
+            let mut evaluation = run_selected(
+                self.host,
+                self.source,
+                program,
+                prepared,
+                arguments,
+                max_steps,
+                cancellation,
+                Some(&meter),
+            )?;
+            evaluation.semantic_work = Some(meter.take()?);
+            Ok(evaluation)
+        };
+        run().map_err(|error| vec![error])
+    }
 }
 
 fn admitted_parameter(ty: &ResolvedType, ownership: OwnershipMode) -> bool {
@@ -404,6 +436,29 @@ fn run_admitted(
     max_steps: usize,
     cancellation: Option<&AgentCancellation>,
 ) -> Result<RetainedCallEvaluation, Diagnostic> {
+    run_selected(
+        host,
+        source,
+        program,
+        prepared,
+        arguments,
+        max_steps,
+        cancellation,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_selected(
+    host: &WasmStageHost,
+    source: &str,
+    program: &hir::ResolvedProgram,
+    prepared: &PreparedRetainedCall,
+    arguments: &[RetainedValue],
+    max_steps: usize,
+    cancellation: Option<&AgentCancellation>,
+    meter: Option<&WasmMeter<'_>>,
+) -> Result<RetainedCallEvaluation, Diagnostic> {
     if cancellation.is_some_and(AgentCancellation::is_cancelled) {
         return Err(invariant("wasm_executor.process.cancelled"));
     }
@@ -433,6 +488,7 @@ fn run_admitted(
             arguments,
             max_steps,
             cancellation,
+            meter,
         );
     }
     run_through_injected_driver(
@@ -443,6 +499,7 @@ fn run_admitted(
         arguments,
         max_steps,
         cancellation,
+        meter,
     )
 }
 
@@ -450,6 +507,7 @@ fn run_admitted(
 // The direct path: a call the existing descriptor already admits unchanged.
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 fn run_direct(
     host: &WasmStageHost,
     binding: &WasmTargetBinding<'_>,
@@ -458,6 +516,7 @@ fn run_direct(
     arguments: &[RetainedValue],
     max_steps: usize,
     cancellation: Option<&AgentCancellation>,
+    meter: Option<&WasmMeter<'_>>,
 ) -> Result<RetainedCallEvaluation, Diagnostic> {
     let mut call_args = Vec::with_capacity(arguments.len());
     for (parameter, argument) in entry.params.iter().zip(arguments) {
@@ -505,11 +564,28 @@ fn run_direct(
         &selected,
         &[call],
         cancellation,
+        meter,
     )? {
         NodeStageRun::LanguageFailure(status) => {
             return Ok(evaluation(
                 entry,
                 RetainedCallOutcome::LanguageFailure(status),
+                max_steps,
+                Vec::new(),
+            ));
+        }
+        NodeStageRun::FuelExhausted => {
+            return Ok(evaluation(
+                entry,
+                RetainedCallOutcome::FuelExhausted,
+                max_steps,
+                Vec::new(),
+            ));
+        }
+        NodeStageRun::CallDepthExceeded => {
+            return Ok(evaluation(
+                entry,
+                RetainedCallOutcome::CallDepthExceeded,
                 max_steps,
                 Vec::new(),
             ));
@@ -549,6 +625,7 @@ fn evaluation(
         steps_used: 0,
         max_steps,
         failure: None,
+        semantic_work: None,
     }
 }
 
@@ -1022,6 +1099,7 @@ fn render_fields(
     Ok(rendered.join(", "))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_through_injected_driver(
     host: &WasmStageHost,
     binding: &WasmTargetBinding<'_>,
@@ -1030,6 +1108,7 @@ fn run_through_injected_driver(
     arguments: &[RetainedValue],
     max_steps: usize,
     cancellation: Option<&AgentCancellation>,
+    meter: Option<&WasmMeter<'_>>,
 ) -> Result<RetainedCallEvaluation, Diagnostic> {
     let plan = ResultPlan::derive(program, &entry.return_type)?;
 
@@ -1129,11 +1208,28 @@ fn run_through_injected_driver(
         &invoked,
         &calls,
         cancellation,
+        meter,
     )? {
         NodeStageRun::LanguageFailure(status) => {
             return Ok(evaluation(
                 entry,
                 RetainedCallOutcome::LanguageFailure(status),
+                max_steps,
+                Vec::new(),
+            ));
+        }
+        NodeStageRun::FuelExhausted => {
+            return Ok(evaluation(
+                entry,
+                RetainedCallOutcome::FuelExhausted,
+                max_steps,
+                Vec::new(),
+            ));
+        }
+        NodeStageRun::CallDepthExceeded => {
+            return Ok(evaluation(
+                entry,
+                RetainedCallOutcome::CallDepthExceeded,
                 max_steps,
                 Vec::new(),
             ));
@@ -1246,6 +1342,7 @@ fn decode_hex(hex: &str) -> Result<Vec<u8>, Diagnostic> {
 // The shared build-and-run path: one owned-data package, one Node process.
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 fn build_and_drive(
     host: &WasmStageHost,
     binding: &WasmTargetBinding<'_>,
@@ -1254,13 +1351,15 @@ fn build_and_drive(
     invocations: &[String],
     calls: &[String],
     cancellation: Option<&AgentCancellation>,
+    meter: Option<&WasmMeter<'_>>,
 ) -> Result<NodeStageRun, Diagnostic> {
     if invocations.len() != calls.len() {
         return Err(invariant("wasm_executor.binding.invocation_arity"));
     }
+    let row_bytes = MAX_NODE_OUTCOME_ROW_BYTES + meter.map_or(0, |_| MAX_SEMANTIC_ROW_BYTES);
     let output_budget = calls
         .len()
-        .checked_mul(MAX_NODE_OUTCOME_ROW_BYTES)
+        .checked_mul(row_bytes)
         .filter(|bytes| *bytes <= MAX_NODE_STDOUT_BYTES)
         .ok_or_else(|| invariant("wasm_executor.process.output_budget"))?;
     if cancellation.is_some_and(AgentCancellation::is_cancelled) {
@@ -1270,15 +1369,24 @@ fn build_and_drive(
         .map_err(|_| invariant("wasm_executor.descriptor"))?;
     let artifact = binding.bind_artifact(&descriptor, selected)?;
     artifact.verify_invocations(invocations)?;
-    let build = project::prepare_owned_data_npm_build(
-        program,
-        &descriptor,
-        "agent-lifecycle-wasm-stage-executor",
-        "0.1.0",
-        40 * 1024 * 1024,
-    )
-    .map_err(|_| invariant("wasm_executor.npm_build"))?;
-    artifact.verify_build(&build, &descriptor)?;
+    // A metered package is built and replay-verified under one scoped
+    // metering selection, so its replay re-derives the same metered module.
+    let prepare = || {
+        let build = project::prepare_owned_data_npm_build(
+            program,
+            &descriptor,
+            "agent-lifecycle-wasm-stage-executor",
+            "0.1.0",
+            40 * 1024 * 1024,
+        )
+        .map_err(|_| invariant("wasm_executor.npm_build"))?;
+        artifact.verify_build(&build, &descriptor)?;
+        Ok(build)
+    };
+    let build = match meter {
+        Some(meter) => crate::wasm::with_semantic_metering(meter.metering(), prepare),
+        None => prepare(),
+    }?;
     let envelope: serde_json::Value =
         serde_json::from_str(build.envelope()).map_err(|_| invariant("wasm_executor.envelope"))?;
 
@@ -1290,11 +1398,15 @@ fn build_and_drive(
         &mut workspace,
         cancellation,
         output_budget,
+        meter,
     );
     let cleanup = workspace.cleanup();
     let outcome = outcome?;
     cleanup?;
-    decode_node_outcomes(&outcome, calls.len())
+    match meter {
+        Some(meter) => meter.decode(&outcome, calls.len()),
+        None => decode_node_outcomes(&outcome, calls.len()),
+    }
 }
 
 fn drive_node(
@@ -1304,6 +1416,7 @@ fn drive_node(
     workspace: &mut WasmStageWorkspace,
     cancellation: Option<&AgentCancellation>,
     output_budget: usize,
+    meter: Option<&WasmMeter<'_>>,
 ) -> Result<String, Diagnostic> {
     for row in envelope["artifacts"]
         .as_array()
@@ -1322,9 +1435,9 @@ fn drive_node(
         .map(|call| format!("() => {call}"))
         .collect::<Vec<_>>()
         .join(",\n");
-    workspace.write(
-        Path::new("observe.mjs"),
-        format!(
+    let observe = match meter {
+        Some(meter) => meter.observe_source(&call_thunks),
+        None => format!(
             r#"import fs from 'node:fs';
 import instantiate from './semaprax.bindings.js';
 const wasm = new Uint8Array(fs.readFileSync(new URL('./app.wasm', import.meta.url)));
@@ -1358,10 +1471,9 @@ for (const call of calls) {{
 }}
 process.stdout.write(out.map(value => JSON.stringify(value) + '\n').join(''));
 "#
-        )
-        .as_bytes(),
-    )
-    ?;
+        ),
+    };
+    workspace.write(Path::new("observe.mjs"), observe.as_bytes())?;
     run_node_process(host, workspace, cancellation, output_budget)
 }
 

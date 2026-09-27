@@ -193,6 +193,26 @@ failing operands and retain `unreachable` only as a fail-closed fallback for a
 raw host that violates an import contract by returning. Narrow arithmetic is
 therefore never exposed as an unclassified Wasm trap by the generated runtime.
 
+Every exported function, and every function it can reach, also carries
+call-depth admission (issue #293 P2-2): a private live-frame counter global,
+incremented at each function's entry before its own preconditions and
+decremented on its one normal-return path. A call one frame past the fixed
+ceiling (256, identical to the interpreter's `MAX_CALL_DEPTH` and the native
+C11 backend's `SPX_MAX_CALL_DEPTH`) calls `spx_contract_fail` with the same
+wire value the aggregate builder's own call-depth admission uses, then traps
+with `unreachable` as the fail-closed fallback. The runtime normalizes that
+call to `semaprax.runtime.v1` code 1 -- the identical status the native C11
+backend reports for the same refusal -- rather than an unclassified Wasm
+trap.
+
+Because that trap does not discard the module instance -- production host
+glue catches exactly this class of failure and keeps calling the same
+instance afterward -- every genuine external entry (each selected export,
+never an internal call between program functions) resets the live-frame
+counter to zero as the first thing it does. A trapped call therefore cannot
+leave a later, unrelated call on the same instance refused at a phantom
+depth.
+
 ## Package and integrity binding
 
 The destination must not exist and its parent directory must already exist.

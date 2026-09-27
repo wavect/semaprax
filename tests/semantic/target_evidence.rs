@@ -480,6 +480,34 @@ fn graph_v10_through_v14_target_projections_are_admitted() {
 ///   `env.spx_contract_fail` host import an `i32` status-code parameter.
 ///   Every identity field was byte-identical across that window, so the
 ///   re-take was correct; `ca1b21af` simply did not say so (issue #81).
+/// * Re-taken again for issue #293 P2-2: only the Wasm core target row
+///   moved. `fixture 0`/`fixture 1` (`rename_v1`/`rename`, one `helper`
+///   call) grew 194 -> 258 bytes; `fixture 2` (`rebase_v3`, one `helper`
+///   call through `caller`) grew 210 -> 302 bytes. The legacy scalar-core
+///   Wasm emitter (`emit_resolved_module_internal`'s final branch, the
+///   branch these plain scalar fixtures reach) gained call-depth admission:
+///   one private live-frame counter global, plus one increment-and-check
+///   prologue and one decrement epilogue per function
+///   (`scalar_call_admission`), mirroring the aggregate builder's own
+///   `call_admission` module (issue #293 P2-1). `budget.used_*_native_c11_bytes`
+///   and every identity field (`base_revision`, `candidate_revision`,
+///   `source.digest`, `patch.digest`, `graphs.*.digest`, `graphs.*.bytes`)
+///   were confirmed byte-identical field by field before this re-take.
+/// * Re-taken a third time in the same P2-2 change: only the Wasm core
+///   target row moved again. `fixture 0`/`fixture 1` grew 258 -> 268 bytes;
+///   `fixture 2` grew 302 -> 313 bytes. A coordinator review of the first
+///   re-take found that a trapped call (refused call depth, checked-
+///   arithmetic overflow, a false contract) left the live-frame counter
+///   un-decremented forever after on that module instance, poisoning every
+///   later call the host glue made on it (production host glue catches and
+///   normalizes exactly this class of failure rather than discarding the
+///   instance). The fix resets the counter at every genuine external entry
+///   instead of inside a directly-exported function's own body (which may
+///   be recursive): `main`, previously exported directly with no wrapper of
+///   its own, now gets one purely to hold that reset, hence the extra
+///   bytes; `scalar_exports`/`text_exports` wrappers (not reached by these
+///   three fixtures) gained the identical reset in place. Identity fields
+///   were confirmed byte-identical field by field again before this re-take.
 #[test]
 fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     let reports = [
@@ -494,17 +522,17 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
             .each_ref()
             .map(|report| sha256(&report.replace("0.259.0", "0.256.0"))),
         [
-            "bb170ceb8919eae5fcca10b80cc3dc5e4d12b6c11df23b4bc01a81b2215507ae".to_owned(),
-            "5637cd656d6dc40adb6122e92b5262d8279788e1f1fc8c4cacdecf92a8e2c449".to_owned(),
-            "53a0d865ea05ae1dc9fe7307f0867b5acfc649de2d8fe9221eb0df6d0b8d2bba".to_owned(),
+            "dc9d387f9d7775e1f6b73f075420577961c3bf91aba1055595e51515535dc8fc".to_owned(),
+            "c15b8729914463a06d8278fd6916e707d0846f905c91fecaadfad2c4048fb23b".to_owned(),
+            "d7f8a57320f14900188730eadeb5f64c212719551912c0791797a23da9dcca9f".to_owned(),
         ]
     );
     assert_eq!(
         reports.each_ref().map(|report| sha256(report)),
         [
-            "3f342892f10d02b831a464a5303766577b20f7177d57cb6ec90d19c6e88c1313".to_owned(),
-            "d870b2a9cd8d7cd1d00b3c94c368c6931fab26257ab1e110ab6bd03780e9b274".to_owned(),
-            "777bb8f0f08924bf0f5eb1bd0afe6d126d13f8befd6d498aebc66f7a353f6420".to_owned(),
+            "6faa250b181901da03dbcd3983541972573b22b06416ba5ef44ae93942e57a70".to_owned(),
+            "e3da526b723fe01a2f545f6bbfaf721cfa8300109c7777f85405c1671a174a30".to_owned(),
+            "c5bd250e5f73f7987484057c15c6907260b40b538753d1df24c14f5042ccdf60".to_owned(),
         ]
     );
 }

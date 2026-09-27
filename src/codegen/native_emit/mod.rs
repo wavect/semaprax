@@ -23,6 +23,8 @@ use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write as _;
 mod closure;
 mod compiler;
+mod contract_status;
+use contract_status::{contract_label, emit_contract_status};
 mod expression;
 mod filesystem_io;
 mod filesystem_io_v2;
@@ -63,11 +65,44 @@ pub(in crate::codegen) use owned_carrier::is_native_owned_vec_type;
 mod native_scratch;
 #[cfg(all(test, any(unix, windows)))]
 mod scratch_tests;
+mod semantic_work;
+pub(crate) use semantic_work::{
+    NativeSemanticMetering, SEMANTIC_EVENT_CAPACITY, SEMANTIC_FUEL_STATUS_DOMAIN,
+};
 pub(super) fn emit_hir_c_with_labels(
     program: &ResolvedProgram,
     contract_labels: &HashMap<ExpressionId, String>,
     output_profile: NativeOutputProfile,
     selected_command: Option<&DeclarationId>,
+) -> Result<String, Diagnostic> {
+    emit_hir_c_with_options(
+        program,
+        contract_labels,
+        output_profile,
+        selected_command,
+        None,
+    )
+}
+/// The Legacy native profile instrumented for Agent Stage Semantic Work v1.
+pub(super) fn emit_hir_c_semantically_metered(
+    program: &ResolvedProgram,
+    metering: &NativeSemanticMetering,
+) -> Result<String, Diagnostic> {
+    let labels = HashMap::new();
+    emit_hir_c_with_options(
+        program,
+        &labels,
+        NativeOutputProfile::Legacy,
+        None,
+        Some(metering),
+    )
+}
+fn emit_hir_c_with_options(
+    program: &ResolvedProgram,
+    contract_labels: &HashMap<ExpressionId, String>,
+    output_profile: NativeOutputProfile,
+    selected_command: Option<&DeclarationId>,
+    semantic: Option<&NativeSemanticMetering>,
 ) -> Result<String, Diagnostic> {
     hir::validate(program)?;
     if program.types.iter().any(|declaration| {
@@ -126,6 +161,9 @@ pub(super) fn emit_hir_c_with_labels(
     } else if output_profile.supports_stdout_transcript() {
         native_host_output::emit_runtime(&mut output);
     }
+    if let Some(metering) = semantic {
+        semantic_work::emit_runtime(&mut output, metering);
+    }
     emit_fixed_byte_array_declarations(&mut output, program)?;
     emit_aggregate_declarations(
         &mut output,
@@ -150,6 +188,7 @@ pub(super) fn emit_hir_c_with_labels(
         record_layouts: &record_layouts,
         variant_layouts: &variant_layouts,
         output_profile,
+        semantic,
     };
     for function in &program.functions {
         emit_function(
@@ -1673,6 +1712,7 @@ pub(super) struct NativeEmissionContext<'a> {
     record_layouts: &'a AggregateLayoutCache,
     variant_layouts: &'a VariantLayoutCache,
     output_profile: NativeOutputProfile,
+    semantic: Option<&'a NativeSemanticMetering>,
 }
 
 fn emit_function(
@@ -1687,7 +1727,9 @@ fn emit_function(
     let contract_labels = emission.contract_labels;
     let owned = |ty: &ResolvedType| is_direct_plan_owned(program, ty);
     let has_try = expression_has_try(&function.body);
-    let bytes_plan = native_bytes::NativeBytesPlan::build(function)?;
+    let semantic_ordinal = emission.semantic.and_then(|meter| meter.ordinal(execution));
+    let bytes_plan = native_bytes::NativeBytesPlan::build(function)?
+        .map(|plan| plan.with_semantic_function(semantic_ordinal));
     let metadata = functions
         .get(execution)
         .ok_or_else(|| backend_error(format!("function `{}` is not indexed", function.id)))?;
@@ -1915,6 +1957,8 @@ fn emit_function(
     emitter.line("}");
     emitter.line("++spx_ctx->call_depth;");
     emitter.line("spx_call_entered = true;");
+    emitter.semantic_metered = semantic_ordinal.is_some();
+    emitter.semantic_charge();
     emitter.line(&format!(
         "{} spx_result = {{0}};",
         c_value_type(program, resource_abi, &function.return_type)?
@@ -2121,78 +2165,6 @@ fn emit_function(
     Ok(())
 }
 
-fn contract_label<'a>(
-    expression: &'a ResolvedExpr,
-    labels: &'a HashMap<ExpressionId, String>,
-) -> &'a str {
-    labels
-        .get(&expression.id)
-        .map_or_else(|| expression.id.as_str(), String::as_str)
-}
-
-fn emit_contract_status<O: COutput>(
-    emitter: &mut CEmitter<'_, O>,
-    function: &ResolvedFunction,
-    code: &str,
-    phase: &str,
-    expression: &str,
-) {
-    let mut format = String::new();
-    let mut values = String::new();
-    for (index, param) in function.params.iter().enumerate() {
-        if index != 0 {
-            format.push_str(", ");
-        }
-        format.push_str(&param.name);
-        format.push_str(" = ");
-        match &param.ty {
-            ResolvedType::I64 => {
-                format.push_str("%lld");
-                values.push_str(&format!(", (long long)spx_param_{index}"));
-            }
-            ResolvedType::I32 => {
-                format.push_str("%d");
-                values.push_str(&format!(", (int)spx_param_{index}"));
-            }
-            ResolvedType::U8 | ResolvedType::Char => {
-                format.push_str("%u");
-                values.push_str(&format!(", (unsigned int)spx_param_{index}"));
-            }
-            ResolvedType::Usize => {
-                format.push_str("%llu");
-                values.push_str(&format!(", (unsigned long long)spx_param_{index}"));
-            }
-            ResolvedType::Bool => {
-                format.push_str("%s");
-                values.push_str(&format!(", spx_param_{index} ? \"true\" : \"false\""));
-            }
-            ResolvedType::F32 => {
-                format.push_str("%.9g");
-                values.push_str(&format!(", (double)spx_param_{index}"));
-            }
-            ResolvedType::F64 => {
-                format.push_str("%.17g");
-                values.push_str(&format!(", spx_param_{index}"));
-            }
-            _ => format.push_str("<data>"),
-        }
-    }
-    if format.is_empty() {
-        format.push_str("none");
-    }
-    emitter.line("char spx_contract_arguments[SPX_STATUS_ARGUMENTS_MAX_BYTES];");
-    emitter.line(&format!(
-        "int spx_contract_arguments_written = snprintf(spx_contract_arguments, sizeof spx_contract_arguments, \"{}\"{});",
-        c_string(&format), values
-    ));
-    emitter.line("if (spx_contract_arguments_written < 0 || (size_t)spx_contract_arguments_written >= sizeof spx_contract_arguments) spx_runtime_invariant_failure(\"contract argument formatting overflow\");");
-    emitter.line(&format!(
-        "spx_status = spx_rt_contract_with_arguments(spx_ctx, {code}, \"{phase}\", \"{}\", \"{}\", spx_contract_arguments);",
-        c_string(function.id.as_str()),
-        c_string(expression)
-    ));
-}
-
 fn expression_has_try(expression: &ResolvedExpr) -> bool {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
@@ -2379,6 +2351,7 @@ struct CEmitter<'a, O: COutput> {
     bytes_plan: Option<&'a native_bytes::NativeBytesPlan>,
     borrowed_aggregate_bytes: HashMap<(ValueId, Vec<DeclarationId>), String>,
     output_profile: NativeOutputProfile,
+    semantic_metered: bool,
     owned_strings: Option<owned_strings::OwnedStrings>,
     try_target_enabled: bool,
     next_local: usize,
@@ -2408,6 +2381,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             bytes_plan,
             borrowed_aggregate_bytes,
             output_profile: emission.output_profile,
+            semantic_metered: false,
             owned_strings: track_strings.then(owned_strings::OwnedStrings::default),
             try_target_enabled: false,
             next_local: 0,

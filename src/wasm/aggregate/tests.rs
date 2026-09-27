@@ -16,6 +16,7 @@ use crate::parse;
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
+mod call_admission_gate;
 mod owned_buffer;
 mod owned_result_hostile;
 mod scalar_exports;
@@ -401,7 +402,7 @@ const result = await WebAssembly.instantiate(bytes, {{ env: {{
 wasmInstance=result.instance;
 const {{ instance }} = result;
 const view = new DataView(instance.exports.__spx_test_memory.buffer);
-const output = 65536;
+const output = 2048;
 const pack = (offset, length) => (BigInt(offset) << 32n) | BigInt(length);
 const forward = instance.exports["{forward}"];
 const mixed = instance.exports["{mixed}"];

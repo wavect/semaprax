@@ -26,14 +26,15 @@ use crate::agent_runtime::AgentCancellation;
 use crate::diagnostic::Diagnostic;
 use crate::hir;
 use crate::interpreter::retained_call::{
-    evaluate_retained_call, PreparedRetainedCall, RetainedCallEvaluation, RetainedCallOutcome,
-    RetainedValue,
+    evaluate_retained_call, evaluate_retained_call_metered, PreparedRetainedCall,
+    RetainedCallEvaluation, RetainedCallOutcome, RetainedValue,
 };
 
 use super::stages::AuthorizeStage;
 use super::{encode_value, StageRecord};
 
 mod native_executor;
+mod semantic_work;
 /// Target-neutral model/effect boundary for explicitly injected host adapters.
 /// Grant construction and dispatch remain crate-owned so callers cannot mint
 /// or spend authorization outside the lifecycle kernel.
@@ -42,6 +43,7 @@ pub(in crate::agent_lifecycle) mod wasm_executor;
 
 use native_executor::NativeStageExecutor;
 pub(in crate::agent_lifecycle) use native_executor::NativeStageHost;
+pub use semantic_work::StageSemanticProfile;
 use wasm_executor::WasmStageExecutor;
 pub use wasm_executor::WasmStageHost;
 
@@ -403,6 +405,22 @@ impl ExecutionAuthority {
 ///     > {
 ///         unimplemented!()
 ///     }
+///
+///     fn execute_metered(
+///         &self,
+///         _authority: semaprax::agent_lifecycle::authorization::ExecutionAuthority,
+///         _program: &semaprax::hir::ResolvedProgram,
+///         _prepared: &semaprax::interpreter::retained_call::PreparedRetainedCall,
+///         _arguments: &[semaprax::interpreter::retained_call::RetainedValue],
+///         _max_steps: usize,
+///         _profile: &semaprax::agent_lifecycle::authorization::StageSemanticProfile,
+///         _cancellation: Option<&semaprax::agent_runtime::AgentCancellation>,
+///     ) -> Result<
+///         semaprax::interpreter::retained_call::RetainedCallEvaluation,
+///         Vec<semaprax::diagnostic::Diagnostic>,
+///     > {
+///         unimplemented!()
+///     }
 /// }
 /// ```
 ///
@@ -419,6 +437,22 @@ pub trait StageExecutor: sealed::Sealed {
         prepared: &PreparedRetainedCall,
         arguments: &[RetainedValue],
         max_steps: usize,
+        cancellation: Option<&AgentCancellation>,
+    ) -> Result<RetainedCallEvaluation, Vec<Diagnostic>>;
+
+    /// Executes one prepared stage body under an admitted Agent Stage
+    /// Semantic Work v1 profile. The backend must charge the profile's
+    /// semantic points itself and report them; it may not fall back to an
+    /// unmetered or interpreter execution.
+    #[allow(clippy::too_many_arguments)]
+    fn execute_metered(
+        &self,
+        authority: ExecutionAuthority,
+        program: &hir::ResolvedProgram,
+        prepared: &PreparedRetainedCall,
+        arguments: &[RetainedValue],
+        max_steps: usize,
+        profile: &StageSemanticProfile,
         cancellation: Option<&AgentCancellation>,
     ) -> Result<RetainedCallEvaluation, Vec<Diagnostic>>;
 }
@@ -448,6 +482,29 @@ impl StageExecutor for InterpreterStageExecutor {
             return Err(vec![super::stages::invariant("stage_executor.cancelled")]);
         }
         evaluate_retained_call(program, prepared, arguments, max_steps)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn execute_metered(
+        &self,
+        _authority: ExecutionAuthority,
+        program: &hir::ResolvedProgram,
+        prepared: &PreparedRetainedCall,
+        arguments: &[RetainedValue],
+        max_steps: usize,
+        profile: &StageSemanticProfile,
+        cancellation: Option<&AgentCancellation>,
+    ) -> Result<RetainedCallEvaluation, Vec<Diagnostic>> {
+        if cancellation.is_some_and(AgentCancellation::is_cancelled) {
+            return Err(vec![super::stages::invariant("stage_executor.cancelled")]);
+        }
+        evaluate_retained_call_metered(
+            program,
+            prepared,
+            arguments,
+            max_steps,
+            profile.fuel_limit(),
+        )
     }
 }
 
@@ -605,6 +662,88 @@ fn dispatch_on_admitted(
             max_steps,
             cancellation,
         ),
+    }
+}
+
+/// Dispatch one stage under Agent Stage Semantic Work v1. Cancellation keeps
+/// its precedence; the step interval and the metered profile are then admitted
+/// before any compiler or Node process exists. Every selection meters the
+/// same semantic points or refuses: no backend runs this request unmetered.
+pub(super) fn dispatch_on_metered(
+    backend: StageBackend<'_>,
+    program: &hir::ResolvedProgram,
+    prepared: &PreparedRetainedCall,
+    arguments: &[RetainedValue],
+    max_steps: usize,
+    semantic_fuel_limit: u64,
+    cancellation: Option<&AgentCancellation>,
+) -> Result<RetainedCallEvaluation, Vec<Diagnostic>> {
+    if cancellation.is_some_and(AgentCancellation::is_cancelled) {
+        return Err(vec![super::stages::invariant("stage_executor.cancelled")]);
+    }
+    crate::interpreter::retained_call::validate_step_limit(max_steps)?;
+    let profile = StageSemanticProfile::admit(program, prepared.function_id(), semantic_fuel_limit)
+        .map_err(|error| vec![error])?;
+    let authority = ExecutionAuthority::grant();
+    let evaluation = match backend {
+        StageBackend::Interpreter => InterpreterStageExecutor.execute_metered(
+            authority,
+            program,
+            prepared,
+            arguments,
+            max_steps,
+            &profile,
+            cancellation,
+        ),
+        StageBackend::Native { host } => NativeStageExecutor::o0(host).execute_metered(
+            authority,
+            program,
+            prepared,
+            arguments,
+            max_steps,
+            &profile,
+            cancellation,
+        ),
+        StageBackend::NativeAtOptimization { host, optimization } => {
+            NativeStageExecutor { host, optimization }.execute_metered(
+                authority,
+                program,
+                prepared,
+                arguments,
+                max_steps,
+                &profile,
+                cancellation,
+            )
+        }
+        #[cfg(test)]
+        StageBackend::Wasm { source } => WasmStageExecutor {
+            host: super::tests::test_wasm_stage_host(),
+            source,
+        }
+        .execute_metered(
+            authority,
+            program,
+            prepared,
+            arguments,
+            max_steps,
+            &profile,
+            cancellation,
+        ),
+        StageBackend::WasmHeld { host, source } => WasmStageExecutor { host, source }
+            .execute_metered(
+                authority,
+                program,
+                prepared,
+                arguments,
+                max_steps,
+                &profile,
+                cancellation,
+            ),
+    }?;
+    // Every backend must report the admitted limit it actually metered.
+    match &evaluation.semantic_work {
+        Some(work) if work.fuel_limit == Some(semantic_fuel_limit) => Ok(evaluation),
+        _ => Err(vec![super::stages::invariant("semantic_work.unreported")]),
     }
 }
 

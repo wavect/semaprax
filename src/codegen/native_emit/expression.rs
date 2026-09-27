@@ -1409,6 +1409,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 "while condition",
                             )?;
                             self.line(&format!("if (!({})) break;", condition.code));
+                            self.semantic_charge();
                             let body_value = self.emit_expr(body)?;
                             if matches!(body_value.ty, ResolvedType::String) {
                                 return Err(backend_error(

@@ -139,7 +139,7 @@ impl PreparedOwnedHandoff {
         tests::after_staging(&observer);
         // No worker, stack allocation request, process, or second evaluator.
         // The only expression recursion is the block and its two plain places.
-        let evaluation = invocation.run(max_steps);
+        let evaluation = invocation.run(max_steps, None);
         let released = observer.upgrade().is_none();
         if !released {
             return Err(refusal());

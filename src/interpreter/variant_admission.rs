@@ -124,3 +124,31 @@ pub(super) fn is_admitted_fieldless_variant(
                 !cases.is_empty() && cases.iter().all(|case| case.fields.is_empty())
             })
 }
+
+pub(super) fn is_option_u8(ty: &ResolvedType) -> bool {
+    matches!(
+        ty,
+        ResolvedType::Nominal { declaration, arguments }
+            if declaration.as_str() == crate::prelude::OPTION_ID
+                && arguments.as_slice() == [ResolvedType::U8]
+    )
+}
+
+pub(super) fn option_u8_pattern_is_admitted(pattern: &crate::hir::ResolvedMatchPattern) -> bool {
+    let crate::hir::ResolvedMatchPattern::Variant {
+        variant,
+        case,
+        fields,
+    } = pattern
+    else {
+        return false;
+    };
+    if variant.as_str() != crate::prelude::OPTION_ID {
+        return false;
+    }
+    (case.as_str() == crate::prelude::OPTION_NONE_ID && fields.is_empty())
+        || (case.as_str() == crate::prelude::OPTION_SOME_ID
+            && fields.len() == 1
+            && fields[0].field.as_str() == crate::prelude::OPTION_SOME_VALUE_ID
+            && fields[0].binding.ty == ResolvedType::U8)
+}

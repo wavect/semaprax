@@ -18,6 +18,7 @@ mod nested_owned;
 mod owned_leaf;
 mod record_if;
 mod scalar_match_scope;
+mod semantic_work;
 mod string_slots;
 mod variant_match;
 use owned_leaf::{emit_transfer, OwnedLeafKind};
@@ -33,6 +34,7 @@ pub(super) struct NativeBytesPlan {
     referenced_places: BTreeSet<CleanupPlace>,
     inactive_places: BTreeSet<CleanupPlace>,
     variant_storage: BTreeSet<StorageId>,
+    semantic_function: Option<u32>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -270,6 +272,7 @@ impl NativeBytesPlan {
             referenced_places,
             inactive_places,
             variant_storage,
+            semantic_function: None,
         }))
     }
     pub(super) fn declarations(
@@ -1036,8 +1039,9 @@ impl NativeBytesPlan {
                 slot.flag.clone()
             };
             output.push_str(&format!(
-                "    if ({guard}) {{ {} = false; {}; }}\n",
+                "    if ({guard}) {{ {} = false; {}{}; }}\n",
                 slot.flag,
+                self.semantic_event(slot),
                 slot.kind.drop_call(&slot.value),
             ));
         }
@@ -1437,6 +1441,7 @@ mod tests {
                 referenced_places: BTreeSet::new(),
                 inactive_places: BTreeSet::new(),
                 variant_storage: BTreeSet::new(),
+                semantic_function: None,
             },
             source_storage,
             destination_storage,

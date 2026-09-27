@@ -78,8 +78,8 @@ use super::{sealed, ExecutionAuthority, StageExecutor};
 /// The caller supplies an already-selected absolute compiler path. Opening it
 /// turns that choice into a held-file capability; native execution never
 /// searches `PATH`, inherits a host environment, or treats a compiler name as
-/// authority. The held file is handed to the registered-process provider,
-/// which executes the descriptor rather than resolving the path again.
+/// authority. The held file is handed to the registered-process provider with
+/// its recorded invocation path; attestation still verifies the mapped vnode.
 ///
 /// This representation remains crate-private. The public target route exposes
 /// it only through `iterative::effects::NativeTargetHost`, preserving the same
@@ -88,7 +88,6 @@ use super::{sealed, ExecutionAuthority, StageExecutor};
 #[derive(Debug)]
 pub struct NativeStageHost {
     compiler: File,
-    #[cfg(test)]
     compiler_path: PathBuf,
     identity: String,
     compiler_digest: [u8; 32],
@@ -135,7 +134,6 @@ impl NativeStageHost {
         let identity = format!("native-c11:sha256:{compiler_hex}:{compiler_len}");
         Ok(Self {
             compiler: held,
-            #[cfg(test)]
             compiler_path: canonical,
             identity,
             compiler_digest,
@@ -159,9 +157,8 @@ impl NativeStageHost {
         &self.identity
     }
 
-    /// The canonical path originally used to establish this held capability.
-    /// This is diagnostic/test plumbing only; execution always uses `compiler`.
-    #[cfg(test)]
+    /// Canonical path used to establish this held capability (also the macOS
+    /// recorded spawn invocation path; authority stays with the descriptor).
     pub(in crate::agent_lifecycle) fn compiler_path(&self) -> &Path {
         &self.compiler_path
     }
@@ -207,6 +204,7 @@ impl NativeStageHost {
             4 * 1024,
             60 * 1024 - 32,
             cancellation,
+            Some(self.compiler_path()),
         )?;
         match output.termination {
             ProcessTermination::Exited(0) => Ok(()),
@@ -241,6 +239,7 @@ impl NativeStageHost {
             48 * 1024,
             16 * 1024 - 32,
             cancellation,
+            None,
         )?;
         match output.termination {
             ProcessTermination::Exited(0) => Ok(output.stdout),
@@ -354,6 +353,7 @@ fn stage_arguments(_: &[Vec<u8>]) -> bool {
 /// and the deadline; this executor never uses `Command`, `.output()`, PATH,
 /// or an inherited environment.
 #[cfg(any(target_os = "linux", target_os = "macos"))]
+#[allow(clippy::too_many_arguments)]
 fn run_held(
     executable: File,
     directory: File,
@@ -363,6 +363,7 @@ fn run_held(
     stdout_max: usize,
     stderr_max: usize,
     cancellation: Option<&crate::agent_runtime::AgentCancellation>,
+    _invocation_path: Option<&Path>,
 ) -> Result<crate::process_provider::ProcessOutput, Diagnostic> {
     let tool = HeldProcessTool::new(
         executable,
@@ -372,6 +373,10 @@ fn run_held(
         stage_arguments,
     )
     .map_err(|_| invariant("native_executor.process.tool"))?;
+    #[cfg(target_os = "macos")]
+    let tool = tool
+        .with_invocation_path(_invocation_path)
+        .map_err(|_| invariant("native_executor.process.tool"))?;
     let mut provider = RegisteredProcessProvider::new([(1_u64, tool)])
         .map_err(|_| invariant("native_executor.process.tool"))?;
     let argv = argv_wire(arguments)?;
@@ -409,6 +414,7 @@ fn run_held(
     _stdout_max: usize,
     _stderr_max: usize,
     _cancellation: Option<&crate::agent_runtime::AgentCancellation>,
+    _invocation_path: Option<&Path>,
 ) -> Result<crate::process_provider::ProcessOutput, Diagnostic> {
     Err(invariant("native_executor.host.unsupported"))
 }
@@ -463,6 +469,33 @@ impl StageExecutor for NativeStageExecutor<'_> {
             max_steps,
             self.host,
             self.optimization,
+            cancellation,
+        )
+        .map_err(|error| vec![error])
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn execute_metered(
+        &self,
+        _authority: ExecutionAuthority,
+        program: &hir::ResolvedProgram,
+        prepared: &PreparedRetainedCall,
+        arguments: &[RetainedValue],
+        max_steps: usize,
+        profile: &super::StageSemanticProfile,
+        cancellation: Option<&crate::agent_runtime::AgentCancellation>,
+    ) -> Result<RetainedCallEvaluation, Vec<Diagnostic>> {
+        if cancellation.is_some_and(crate::agent_runtime::AgentCancellation::is_cancelled) {
+            return Err(vec![invariant("stage_executor.cancelled")]);
+        }
+        semantic_work::run_metered(
+            program,
+            prepared,
+            arguments,
+            max_steps,
+            self.host,
+            self.optimization,
+            profile,
             cancellation,
         )
         .map_err(|error| vec![error])
@@ -1196,6 +1229,7 @@ fn decode(
         steps_used: 0,
         max_steps,
         failure: None,
+        semantic_work: None,
     })
 }
 
@@ -1468,3 +1502,4 @@ fn decode_variant(
 
 #[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
 mod multi_owner_cleanup_tests;
+mod semantic_work;

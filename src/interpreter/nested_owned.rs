@@ -3,7 +3,7 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use super::{Environment, Flow, OwnedRecordValue, Value};
+use super::{Environment, Evaluator, Flow, OwnedRecordValue, OwnedVariantValue, Value};
 use crate::hir::{self, ResolvedType, ValueId};
 
 pub(super) fn is_admitted_owned_byte_record(
@@ -784,4 +784,200 @@ pub(super) fn owned_input_copy_result_is_admitted(
         pending.extend(fields.iter().map(|field| &field.ty));
     }
     true
+}
+
+// --- issue #296 R20: the bounded Copy-scalar variant profile ---------------
+//
+// A bounded, flat record/variant of Copy scalars
+// (`hir::yield_aggregate::bounded_aggregate_refusal`) needs none of this
+// module's owned-byte transfer/aliasing machinery: every field is Copy, so
+// constructing, matching, and binding one is always a plain copy. These
+// three admission predicates and the one runtime binder below are therefore
+// independent of (never routed through) `is_admitted_owned_variant`,
+// `variant_constructor_is_admitted`, or `variant_pattern_is_admitted`
+// above, which this module keeps unchanged.
+
+/// Constructing a bounded, flat Copy-scalar variant by value is admitted,
+/// independent of `variant_constructor_is_admitted`'s owned-variant profile.
+/// This is what lets a `yields`-declaring function build a variant request
+/// or answer inline (`yield Step::Continue { round: seed }`), and it is safe
+/// for any other admitted closure for the same reason.
+pub(super) fn bc_construct(
+    declarations: &hir::DeclarationIndex,
+    expression: &hir::ResolvedExpr,
+) -> bool {
+    if expression.ownership != hir::OwnershipMode::Value
+        || !matches!(expression.ty, ResolvedType::Nominal { .. })
+        || hir::yield_aggregate::bounded_aggregate_refusal(declarations, &expression.ty).is_err()
+    {
+        return false;
+    }
+    let ResolvedType::Nominal {
+        declaration: concrete_variant,
+        ..
+    } = &expression.ty
+    else {
+        return false;
+    };
+    let hir::ResolvedExprKind::ConstructVariant {
+        variant,
+        case,
+        fields,
+    } = &expression.kind
+    else {
+        return false;
+    };
+    if variant != concrete_variant {
+        return false;
+    }
+    let Some(declared_fields) =
+        super::concrete_variant_case_fields(declarations, &expression.ty, case)
+    else {
+        return false;
+    };
+    if fields.len() != declared_fields.len() {
+        return false;
+    }
+    let mut seen = BTreeSet::new();
+    fields.iter().all(|field| {
+        let Some((_, declared_ty)) = declared_fields
+            .iter()
+            .find(|(field_id, _)| *field_id == field.field)
+        else {
+            return false;
+        };
+        seen.insert(field.field.clone())
+            && field.value.ty == *declared_ty
+            && field.value.ownership == hir::OwnershipMode::Value
+    })
+}
+
+/// Either admission for a variant construction: the bounded Copy-scalar
+/// profile above, or the pre-existing owned-variant one
+/// (`super::is_admitted_owned_variant`).
+pub(super) fn construct_ok(
+    declarations: &hir::DeclarationIndex,
+    expression: &hir::ResolvedExpr,
+) -> bool {
+    super::is_admitted_owned_variant(declarations, &expression.ty)
+        || bc_construct(declarations, expression)
+}
+
+/// A `match` over a bounded, flat Copy-scalar variant is admitted by value,
+/// exhaustively, with one arm per declared case and a plain value binding
+/// for each of that case's own fields -- the shape a bounded aggregate
+/// `yields` answer's own suffix needs to branch on (`match answer {
+/// Step::Continue { round: round } => ..., ... }`), independent of
+/// `variant_pattern_is_admitted`'s owned-variant profile for the same
+/// reason `bc_construct` is.
+pub(super) fn bc_match(
+    declarations: &hir::DeclarationIndex,
+    mode: hir::ResolvedMatchMode,
+    ty: &ResolvedType,
+    arms: &[hir::ResolvedMatchArm],
+) -> bool {
+    if mode != hir::ResolvedMatchMode::Value
+        || arms.is_empty()
+        || !matches!(ty, ResolvedType::Nominal { .. })
+        || hir::yield_aggregate::bounded_aggregate_refusal(declarations, ty).is_err()
+    {
+        return false;
+    }
+    let ResolvedType::Nominal {
+        declaration: expected_variant,
+        ..
+    } = ty
+    else {
+        return false;
+    };
+    let Some(declared_cases) = declarations.variant_cases(expected_variant) else {
+        return false;
+    };
+    let mut seen_cases = BTreeSet::new();
+    for arm in arms {
+        if arm.guard.is_some() {
+            return false;
+        }
+        let hir::ResolvedMatchPattern::Variant {
+            variant,
+            case,
+            fields,
+        } = &arm.pattern
+        else {
+            return false;
+        };
+        if variant != expected_variant || !seen_cases.insert(case.clone()) {
+            return false;
+        }
+        let Some(declared_fields) = super::concrete_variant_case_fields(declarations, ty, case)
+        else {
+            return false;
+        };
+        if fields.len() != declared_fields.len() {
+            return false;
+        }
+        let mut seen_fields = BTreeSet::new();
+        for field in fields {
+            let Some((_, declared_ty)) = declared_fields
+                .iter()
+                .find(|(field_id, _)| *field_id == field.field)
+            else {
+                return false;
+            };
+            if !seen_fields.insert(field.field.clone())
+                || field.binding.ty != *declared_ty
+                || field.binding.ownership != hir::OwnershipMode::Value
+            {
+                return false;
+            }
+        }
+    }
+    seen_cases.len() == declared_cases.len()
+        && declared_cases
+            .iter()
+            .all(|case| seen_cases.contains(&case.id))
+}
+
+/// Either admission for a `match`: the bounded Copy-scalar profile above, or
+/// the pre-existing owned-variant one (`super::variant_pattern_is_admitted`).
+pub(super) fn variant_ok(
+    declarations: &hir::DeclarationIndex,
+    mode: hir::ResolvedMatchMode,
+    ty: &ResolvedType,
+    arms: &[hir::ResolvedMatchArm],
+) -> bool {
+    bc_match(declarations, mode, ty, arms)
+        || super::variant_pattern_is_admitted(declarations, mode, ty, arms)
+}
+
+/// The runtime counterpart of [`bc_match`]:
+/// every field of a bounded Copy-scalar variant's active case is itself an
+/// admitted Copy scalar, so binding it is a plain copy through the
+/// evaluator's own [`Evaluator::clone_value`] -- never the owned-byte
+/// profile's unique-ownership transfer or borrow aliasing.
+pub(super) fn bc_bind_fields(
+    evaluator: &mut Evaluator<'_>,
+    declared_fields: &[(hir::DeclarationId, ResolvedType)],
+    fields: &[hir::ResolvedMatchPatternField],
+    variant: &OwnedVariantValue,
+) -> Result<Vec<(ValueId, Value)>, Flow> {
+    let mut bindings = Vec::with_capacity(fields.len());
+    for field in fields {
+        let declared_ty = declared_fields
+            .iter()
+            .find_map(|(field_id, ty)| (field_id == &field.field).then_some(ty))
+            .ok_or(Flow::Guard(
+                "bounded copy variant pattern references an unauthenticated field",
+            ))?;
+        let value = variant.fields.get(&field.field).ok_or(Flow::Guard(
+            "bounded copy variant pattern references an absent payload",
+        ))?;
+        if !evaluator.value_has_type(value, declared_ty) {
+            return Err(Flow::Guard(
+                "bounded copy variant payload type changed before binding",
+            ));
+        }
+        bindings.push((field.binding.id.clone(), evaluator.clone_value(value)?));
+    }
+    Ok(bindings)
 }

@@ -31,8 +31,9 @@ use super::source_checkpoint::{SourceCheckpointError, SourceCheckpointKey, Sourc
 use super::source_driver::{scalar, tag};
 use super::source_signature::{derive_source_effect_signature, SourceEffectSignature};
 use crate::diagnostic::Diagnostic;
-use crate::hir::ResolvedProgram;
+use crate::hir::{ResolvedProgram, ResolvedType};
 use crate::interpreter::resumable::checkpoint::scalar_json;
+use crate::interpreter::resumable::ResumableChannelValue;
 use crate::interpreter::{ArgumentValue, MAX_STEPS_LIMIT};
 use crate::resumable_effects::lowering::control::MAX_CONTROL_SUSPENSIONS;
 use journal::{answer_digest, hex, sha256, Journal, Record};
@@ -87,18 +88,29 @@ pub struct ContinuationRequest {
     pub invocation_id: String,
     pub site: u32,
     pub envelope_digest: [u8; 32],
-    pub request: ArgumentValue,
+    /// Issue #296 R20: widened from a bare `ArgumentValue` to
+    /// [`ResumableChannelValue`], which still carries every value
+    /// `ArgumentValue` could (`ResumableChannelValue::Scalar`) plus a
+    /// bounded record/variant channel's request. Every pre-existing
+    /// scalar-channel caller keeps compiling unchanged: `ArgumentValue`
+    /// converts into this type (`Self::bind_answer` takes `impl
+    /// Into<ResumableChannelValue>`), and matching `ResumableChannelValue::
+    /// Scalar(value)` recovers the exact prior scalar.
+    pub request: ResumableChannelValue,
 }
 
 impl ContinuationRequest {
-    /// Bind `value` to exactly this request's identity.
-    pub fn bind_answer(&self, value: ArgumentValue) -> ContinuationAnswer {
+    /// Bind `value` to exactly this request's identity. Accepts a bare
+    /// `ArgumentValue` (an existing scalar-channel caller's own answer) or a
+    /// [`ResumableChannelValue`] (a bounded record/variant channel's own
+    /// answer) uniformly.
+    pub fn bind_answer(&self, value: impl Into<ResumableChannelValue>) -> ContinuationAnswer {
         ContinuationAnswer {
             program_digest: self.program_digest,
             invocation_id: self.invocation_id.clone(),
             site: self.site,
             envelope_digest: self.envelope_digest,
-            value,
+            value: value.into(),
         }
     }
 }
@@ -110,7 +122,7 @@ pub struct ContinuationAnswer {
     pub invocation_id: String,
     pub site: u32,
     pub envelope_digest: [u8; 32],
-    pub value: ArgumentValue,
+    pub value: ResumableChannelValue,
 }
 
 /// Sticky terminal outcome. Cleanup never replaces it.
@@ -311,6 +323,23 @@ fn facts(
     })
 }
 
+/// The [`ResolvedType`] a [`ResumableChannelValue`] denotes, for signature
+/// tagging. `None` for a value outside the admitted profile. A `Scalar`
+/// reuses [`scalar`]'s own type derivation exactly; a record/variant answers
+/// with its own declaration identity directly, since it is already its own
+/// type tag (no ambient context is needed to recover it, exactly like a
+/// scalar `ArgumentValue` variant already is one).
+fn channel_type(value: &ResumableChannelValue) -> Option<ResolvedType> {
+    match value {
+        ResumableChannelValue::Scalar(argument) => scalar(argument).map(|(_, ty, _)| ty),
+        ResumableChannelValue::Record { declaration, .. }
+        | ResumableChannelValue::Variant { declaration, .. } => Some(ResolvedType::Nominal {
+            declaration: declaration.clone(),
+            arguments: Vec::new(),
+        }),
+    }
+}
+
 fn failure_of(class: &str) -> Result<DurableFailure, ContinuationError> {
     DurableFailure::ALL
         .into_iter()
@@ -346,6 +375,7 @@ impl<'a> DurableInvocation<'a> {
             arguments,
             max_steps,
             facts.signature.is_control_dependent(),
+            facts.signature.is_aggregate_channel(),
         )
         .map_err(ContinuationError::Admission)?;
         let journal = Journal::create(directory, invocation_id)?;
@@ -488,7 +518,7 @@ impl<'a> DurableInvocation<'a> {
             invocation_id: self.scope.invocation_id().to_owned(),
             site: pending.continuation.site(),
             envelope_digest: pending.envelope_digest,
-            request: pending.continuation.request().clone(),
+            request: pending.continuation.request(),
         }
     }
 
@@ -642,7 +672,7 @@ impl<'a> DurableInvocation<'a> {
     pub fn drive(
         &mut self,
         policy: &CapabilityPolicy,
-        handler: &mut dyn EffectHandler<ArgumentValue, ArgumentValue>,
+        handler: &mut dyn EffectHandler<ResumableChannelValue, ResumableChannelValue>,
         cleanup: &mut dyn CleanupHandler<DurableOutcome>,
     ) -> Result<ContinuationStatus, ContinuationError> {
         loop {
@@ -691,11 +721,11 @@ impl<'a> DurableInvocation<'a> {
         })
     }
 
-    fn answer_type_matches(&self, value: &ArgumentValue) -> bool {
-        let Some((_, request_type, _)) = scalar(self.current_request()) else {
+    fn answer_type_matches(&self, value: &ResumableChannelValue) -> bool {
+        let Some(request_type) = channel_type(&self.current_request()) else {
             return false;
         };
-        let Some((_, answer_type, _)) = scalar(value) else {
+        let Some(answer_type) = channel_type(value) else {
             return false;
         };
         self.signature
@@ -707,12 +737,12 @@ impl<'a> DurableInvocation<'a> {
             .is_ok()
     }
 
-    fn current_request(&self) -> &ArgumentValue {
+    fn current_request(&self) -> ResumableChannelValue {
         match &self.phase {
             Phase::AwaitingDispatch(pending) | Phase::AwaitingAnswer(pending, _) => {
                 pending.continuation.request()
             }
-            _ => &ArgumentValue::Bool(false),
+            _ => ResumableChannelValue::Scalar(ArgumentValue::Bool(false)),
         }
     }
 
@@ -771,7 +801,7 @@ impl<'a> DurableInvocation<'a> {
     fn resume_with(
         &mut self,
         continuation: &Carrier,
-        answer: &ArgumentValue,
+        answer: &ResumableChannelValue,
     ) -> Result<(), ContinuationError> {
         match lane::resume(
             self.program,
@@ -835,7 +865,7 @@ impl<'a> DurableInvocation<'a> {
             Started,
             Yielded(Pending),
             Dispatched(Pending),
-            Answered(Pending, ArgumentValue),
+            Answered(Pending, ResumableChannelValue),
             /// The second field is the exact carried owned `Bytes` bytes
             /// still awaiting settlement -- see
             /// `DurableInvocation::pending_cleanup_carried`'s own doc
@@ -877,6 +907,7 @@ impl<'a> DurableInvocation<'a> {
                         envelope.as_bytes(),
                         control_dependent,
                         self.signature.carries_owned_bytes(),
+                        self.signature.is_aggregate_channel(),
                     )
                     .map_err(ContinuationError::Envelope)?;
                     if continuation.site() != *site {
@@ -950,6 +981,7 @@ impl<'a> DurableInvocation<'a> {
                     &self.arguments,
                     self.max_steps,
                     control_dependent,
+                    self.signature.is_aggregate_channel(),
                 )
                 .map_err(ContinuationError::Admission)?;
                 self.settle_step(step)?;

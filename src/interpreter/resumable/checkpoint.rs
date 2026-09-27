@@ -23,7 +23,8 @@
 //! drives both lanes.
 
 use super::{
-    bind_scalar_arguments, resumable_scalars, typed_resume_value, ArgumentValue,
+    bind_scalar_arguments, channel_to_resumable_scalar, resumable_scalars,
+    typed_resume_channel_value, typed_resume_value, ArgumentValue, ResumableChannelValue,
     ResumableContinuation, ResumableYieldRecord,
 };
 use crate::hir::{self, IdentityOrigin};
@@ -233,6 +234,181 @@ pub(crate) fn decode(
     Ok(continuation)
 }
 
+/// Issue #296 R20: a breaking change to this wire shape always gets a new
+/// schema name, exactly like [`SEQUENTIAL_CHECKPOINT_SCHEMA`]; the two never
+/// share a schema tag even though [`encode_channel`]'s document shape is
+/// otherwise identical to [`encode`]'s.
+pub(crate) const SEQUENTIAL_CHANNEL_CHECKPOINT_SCHEMA: &str =
+    "semaprax.source-resumable-sequential-channel-checkpoint.v1";
+
+/// [`encode`] widened to a bounded record/variant request/response channel
+/// ([`super::ResumableChannelContinuation`]). `channel_json` renders a
+/// `Scalar` value byte-for-byte like [`scalar_json`], so this differs from
+/// [`encode`]'s own bytes only in its schema tag and, for a genuinely
+/// aggregate request/history entry, the `"record"`/`"variant"` tagged shape
+/// [`channel_json`] adds.
+pub(crate) fn encode_channel(
+    function_id: &str,
+    continuation: &super::ResumableChannelContinuation,
+) -> Result<Vec<u8>, CheckpointError> {
+    if function_id.len() > MAX_CHECKPOINT_FIELD_BYTES
+        || continuation.state().as_str().len() > MAX_CHECKPOINT_FIELD_BYTES
+    {
+        return Err(CheckpointError::TooLarge);
+    }
+    let history: Vec<Value> = continuation
+        .history()
+        .map(|(request, answer)| {
+            json!({
+                "request": channel_json(request),
+                "answer": channel_json(answer),
+            })
+        })
+        .collect();
+    if history.len() > MAX_HISTORY {
+        return Err(CheckpointError::SuspensionMismatch);
+    }
+    let payload = payload_json(
+        SEQUENTIAL_CHANNEL_CHECKPOINT_SCHEMA,
+        function_id,
+        continuation.state().as_str(),
+        binding_hex(continuation.binding().as_bytes()),
+        channel_json(continuation.request()),
+        Value::Array(history.clone()),
+    );
+    let digest = checkpoint_digest(&payload);
+    let bytes = format!(
+        "{}\n",
+        json!({
+            "schema": SEQUENTIAL_CHANNEL_CHECKPOINT_SCHEMA,
+            "function": function_id,
+            "state": continuation.state().as_str(),
+            "binding": binding_hex(continuation.binding().as_bytes()),
+            "request": channel_json(continuation.request()),
+            "history": history,
+            "digest": digest,
+        })
+    )
+    .into_bytes();
+    if bytes.len() > MAX_CHECKPOINT_BYTES {
+        return Err(CheckpointError::TooLarge);
+    }
+    Ok(bytes)
+}
+
+/// [`decode`] widened to [`encode_channel`]'s schema. Recovery re-lowers the
+/// program and derives the expected state/binding from the caller's current
+/// facts plus the decoded answer bits, exactly like [`decode`]; it performs
+/// no source evaluation and grants no ability to answer a yield.
+pub(crate) fn decode_channel(
+    program: &hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ArgumentValue],
+    bytes: &[u8],
+) -> Result<super::ResumableChannelContinuation, CheckpointError> {
+    if bytes.len() > MAX_CHECKPOINT_BYTES {
+        return Err(CheckpointError::TooLarge);
+    }
+    let text = std::str::from_utf8(bytes)
+        .map_err(|error| CheckpointError::Malformed(error.to_string()))?;
+    let document: Value = serde_json::from_str(text)
+        .map_err(|error| CheckpointError::Malformed(error.to_string()))?;
+    keys(
+        &document,
+        &[
+            "schema", "function", "state", "binding", "request", "history", "digest",
+        ],
+    )?;
+    let schema = required_str(&document, "schema")?;
+    if schema != SEQUENTIAL_CHANNEL_CHECKPOINT_SCHEMA {
+        return Err(CheckpointError::SchemaMismatch);
+    }
+    let encoded_function = required_str(&document, "function")?;
+    if encoded_function != function_id {
+        return Err(CheckpointError::FunctionMismatch);
+    }
+    let state = required_str(&document, "state")?;
+    let claimed_binding = binding_from_hex(required_str(&document, "binding")?)?;
+    let request_value = document["request"].clone();
+    let history_value = document["history"].clone();
+    let history = history_value
+        .as_array()
+        .ok_or_else(|| CheckpointError::Malformed("history".to_owned()))?;
+    if history.len() > MAX_HISTORY {
+        return Err(CheckpointError::SuspensionMismatch);
+    }
+    let payload = payload_json(
+        schema,
+        encoded_function,
+        state,
+        binding_hex(&claimed_binding),
+        request_value.clone(),
+        history_value.clone(),
+    );
+    let claimed_digest = required_str(&document, "digest")?;
+    if claimed_digest != checkpoint_digest(&payload) {
+        return Err(CheckpointError::DigestMismatch);
+    }
+
+    let (plan, scalar_arguments) = checked_plan(program, function_id, arguments)?;
+    let index = plan
+        .suspensions
+        .iter()
+        .position(|site| site.state.id.as_str() == state)
+        .ok_or(CheckpointError::SuspensionMismatch)?;
+    if history.len() != index {
+        return Err(CheckpointError::SuspensionMismatch);
+    }
+
+    let declarations = &program.declarations;
+    let mut records = Vec::with_capacity(history.len());
+    let mut answer_scalars = Vec::with_capacity(history.len());
+    for (index, raw) in history.iter().enumerate() {
+        keys(raw, &["request", "answer"])?;
+        let request = channel_from_json(&raw["request"])?;
+        let answer = channel_from_json(&raw["answer"])?;
+        let site = &plan.suspensions[index];
+        typed_resume_channel_value(
+            declarations,
+            &site.request_type,
+            &request,
+            "historical request",
+        )
+        .map_err(|_| CheckpointError::SuspensionMismatch)?;
+        typed_resume_channel_value(
+            declarations,
+            &site.response_type,
+            &answer,
+            "historical answer",
+        )
+        .map_err(|_| CheckpointError::SuspensionMismatch)?;
+        answer_scalars
+            .push(channel_to_resumable_scalar(&answer).ok_or(CheckpointError::SuspensionMismatch)?);
+        records.push(super::ChannelYieldRecord { request, answer });
+    }
+    let request = channel_from_json(&request_value)?;
+    let current = &plan.suspensions[index];
+    typed_resume_channel_value(declarations, &current.request_type, &request, "request")
+        .map_err(|_| CheckpointError::SuspensionMismatch)?;
+    let binding = plan
+        .suspension_binding_at(index, &scalar_arguments, &answer_scalars)
+        .map_err(|_| CheckpointError::ProgramMismatch)?;
+    if binding.as_bytes() != &claimed_binding {
+        return Err(CheckpointError::SuspensionMismatch);
+    }
+    let continuation = super::ResumableChannelContinuation {
+        state: current.state.id.clone(),
+        binding,
+        request,
+        history: records,
+    };
+
+    if encode_channel(function_id, &continuation)?.as_slice() != bytes {
+        return Err(CheckpointError::NonCanonical);
+    }
+    Ok(continuation)
+}
+
 fn checked_plan(
     program: &hir::ResolvedProgram,
     function_id: &str,
@@ -346,6 +522,73 @@ pub(crate) fn scalar_from_json(value: &Value) -> Result<ArgumentValue, Checkpoin
                 .ok_or_else(|| CheckpointError::Malformed("bool.value".to_owned()))
         }
         _ => Err(CheckpointError::Malformed("scalar.tag".to_owned())),
+    }
+}
+
+/// Issue #296 R20: the wire projection of a [`ResumableChannelValue`].
+/// `Scalar` renders byte-for-byte identically to [`scalar_json`] -- the same
+/// `"tag"` discriminant values a bare scalar always used -- so every
+/// existing scalar-channel checkpoint or journal record stays exactly as it
+/// was; `"record"`/`"variant"` are new tag values only a bounded aggregate
+/// channel ever produces.
+pub(crate) fn channel_json(value: &ResumableChannelValue) -> Value {
+    match value {
+        ResumableChannelValue::Scalar(scalar) => scalar_json(scalar),
+        ResumableChannelValue::Record {
+            declaration,
+            fields,
+        } => json!({
+            "tag": "record",
+            "declaration": declaration.as_str(),
+            "fields": fields.iter().map(scalar_json).collect::<Vec<_>>(),
+        }),
+        ResumableChannelValue::Variant {
+            declaration,
+            case,
+            fields,
+        } => json!({
+            "tag": "variant",
+            "declaration": declaration.as_str(),
+            "case": case.as_str(),
+            "fields": fields.iter().map(scalar_json).collect::<Vec<_>>(),
+        }),
+    }
+}
+
+pub(crate) fn channel_from_json(value: &Value) -> Result<ResumableChannelValue, CheckpointError> {
+    let tag = required_str(value, "tag")?;
+    match tag {
+        "record" => {
+            keys(value, &["tag", "declaration", "fields"])?;
+            let declaration = hir::DeclarationId::new(required_str(value, "declaration")?);
+            let fields = value["fields"]
+                .as_array()
+                .ok_or_else(|| CheckpointError::Malformed("record.fields".to_owned()))?
+                .iter()
+                .map(scalar_from_json)
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(ResumableChannelValue::Record {
+                declaration,
+                fields,
+            })
+        }
+        "variant" => {
+            keys(value, &["tag", "declaration", "case", "fields"])?;
+            let declaration = hir::DeclarationId::new(required_str(value, "declaration")?);
+            let case = hir::DeclarationId::new(required_str(value, "case")?);
+            let fields = value["fields"]
+                .as_array()
+                .ok_or_else(|| CheckpointError::Malformed("variant.fields".to_owned()))?
+                .iter()
+                .map(scalar_from_json)
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(ResumableChannelValue::Variant {
+                declaration,
+                case,
+                fields,
+            })
+        }
+        _ => scalar_from_json(value).map(ResumableChannelValue::Scalar),
     }
 }
 

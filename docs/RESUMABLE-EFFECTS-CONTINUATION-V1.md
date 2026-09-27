@@ -582,9 +582,9 @@ seam) can check its work against a concrete target instead of re-deriving
 it. No source under `examples/`, `std/agent/`, or `src/agent_lifecycle/` was
 changed by this assessment.
 
-### 12.1 Blocker (1) design record: bounded Copy-scalar aggregates (issue #296 R20)
+### 12.1 Blocker (1): bounded Copy-scalar aggregates admitted end to end (issue #296 R20)
 
-An R20 increment first widened the request/answer channel-type admission the
+An earlier R20 slice widened the request/answer channel-type admission the
 first bullet of §12 named, at the compiler-shared type check only
 (`hir::resolve_yield`/`hir::validation`), to admit a `yields` request or
 response type that is a **bounded, flat, non-recursive record or variant of
@@ -599,63 +599,138 @@ lower it failed closed only much later, with the unrelated generic
 `SPX-H006` ("invalid resumable HIR plan") rather than a stable, shape-aware
 diagnostic. A checked program must either run or be refused with a stable
 diagnostic before it ever reaches lowering; "admitted here, `SPX-H006` at
-lowering" violates that, so **this admission was reverted**. Every
-`yields`-declaring function's request/response type is, today, exactly as
-narrow as §1 originally stated: an admitted Copy scalar, nothing else.
+lowering" violates that, so **that admission was reverted**, and
+`hir::yield_aggregate` was kept as a pure design record -- the exact shape
+and bound a later increment's admission (and matching runtime support)
+would use -- rather than a live admission.
 
-What R20 keeps, as a **design record** rather than a live admission, is
-`hir::yield_aggregate`: a pure module stating the exact shape and bound a
-later increment's admission (and matching runtime support) would use, so
-that increment can check its work against a concrete target instead of
-re-deriving it, and its own unit tests keep exercising the rule directly.
+A later R20 increment closes blocker (1) for the **direct top-level
+(sequential) `yield` placement**: every layer `require_scalar_expression_tree`
+above found missing now exists, and `hir::resolve_yield` admits the shape
+`hir::yield_aggregate` states, together with that runtime support, in the
+same change.
 
-- **Shape.** A record's own fields, or a variant's own case fields, must
-  themselves be `hir::is_scalar_resolved_type` Copy scalars -- never another
-  record or variant. This bans nesting outright (a field can never
-  reintroduce the enclosing declaration or any other aggregate), so the
-  shape is non-recursive by construction and needs no separate cycle check;
-  and it would always be fully `Copy`, for the same reason
-  `hir::TypeFacts::copy` would say so of any all-scalar record. A generic
-  instantiation (non-empty `arguments`) fails the shape regardless of its
-  argument types. An owned `Bytes` (or `String`) leaf also fails the shape;
-  admitting one is explicitly left to a still-later increment on top of
-  this one, once whole-Copy-scalar aggregates themselves are wired end to
-  end.
-- **Bounds.** At most 8 fields on a record
-  (`hir::yield_aggregate::MAX_YIELD_AGGREGATE_FIELDS`), and at most 8 cases
-  of at most 8 fields each on a variant
-  (`hir::yield_aggregate::MAX_YIELD_AGGREGATE_CASES`), matching the existing
-  `MAX_RESUMABLE_YIELDS` order of magnitude elsewhere in this contract
-  rather than introducing an unrelated scale.
-- **Live refusal.** `hir::resolve_yield` refuses **every** record or variant
-  `yields` request/response type with the dedicated, stable `SPX-T307`
-  ("aggregate yield channel not yet admitted") -- unconditionally, whether
-  or not it would fit the shape above; `bounded_aggregate_refusal` is
-  consulted only to make the message say which case it is (fits the shape
-  but lacks runtime support, or fails the shape outright), never to admit
-  anything. A record/variant used as an ordinary intermediate value in a
-  `yields`-declaring function's body (not the channel type) keeps the
-  original, unconditional `SPX-T303` it always had; the body-level walk was
-  never widened. Every pre-existing refusal for a non-aggregate type is
-  unchanged: a borrow keeps `SPX-T305`, a resource keeps `SPX-T306`
-  (including one nested inside an otherwise-plain record field), and any
-  other non-scalar, non-record/variant type (bare `Bytes`, `String`, `str`,
-  …) keeps `SPX-T301`.
-- **What closing blocker (1) for real still requires.** Everything R20's
-  first slice found too large to deliver soundly in one pass is still
-  exactly what is missing: an actual `ResumableScalar::Aggregate`
-  representation in `resumable_effects::lowering`, a new envelope version
-  (used only when an aggregate crosses a suspension; every existing version
-  stays byte-identical), durable-journal round-trip with crash/restart
-  coverage, and `interpreter::resumable`/the driver actually delivering the
-  request to a handler and resuming with the answer as the aggregate, field
-  order canonical. Only once that exists end to end should
-  `hir::resolve_yield` admit the shape `hir::yield_aggregate` already
-  states -- together, in the same increment, never admission first.
+- **Shape and bounds.** Unchanged from the design record: a record's own
+  fields, or a variant's own case fields, must themselves be
+  `hir::is_scalar_resolved_type` Copy scalars, never another record or
+  variant (non-recursive by construction, always fully `Copy`); at most 8
+  fields on a record and at most 8 cases of at most 8 fields each on a
+  variant (`hir::yield_aggregate::MAX_YIELD_AGGREGATE_FIELDS`/
+  `MAX_YIELD_AGGREGATE_CASES`); a generic instantiation or an owned `Bytes`
+  (or `String`) leaf still fails the shape outright, `Bytes` leaves remaining
+  explicitly reserved for a still-later increment.
+- **Placement: sequential only.** `hir::resolve_yield`
+  (`resolve_yields_clause`/`finish_yields_admission`) now admits the shape
+  above for a `yields` request or response type, but only when every
+  `yield` in the function is a direct top-level statement or tail value of
+  the function's own body block. A control-dependent placement (`yield`
+  reachable only through `if`/`else` or `while`) keeps the dedicated,
+  stable `SPX-T307` regardless of whether the shape fits the bound:
+  `resumable_effects::lowering::control` has no aggregate-channel runtime
+  support, only the pre-existing owned-`Bytes`-carrying Copy-scalar profile
+  (§11.6). A shape that does not fit the bound at all (too many
+  fields/cases, a nested aggregate, an owned `Bytes` leaf, or a generic
+  instantiation) keeps `SPX-T307` unconditionally, independent of
+  placement. `hir::validation`'s iterative validator re-derives the same
+  admission at its own `Frame::Yield` (never trusting `resolve_yield`'s own
+  work silently), and `resumable_effects::lowering`'s
+  `require_scalar_expression_tree` and
+  `lowering::control::check_resumable_profile`'s `allow_aggregate` gate
+  re-derive it a third and fourth time, independently, exactly matching
+  this repository's existing "every layer re-checks, never trusts" pattern
+  for the Copy-scalar profile. Every pre-existing refusal for a
+  non-aggregate type is unchanged: a borrow keeps `SPX-T305`, a resource
+  keeps `SPX-T306`, and any other non-scalar, non-record/variant type
+  keeps `SPX-T301`. A record/variant used as an ordinary intermediate value
+  unrelated to the channel (not *exactly* the declared request or response
+  type) keeps the original, unconditional `SPX-T303`; `check_scalar` widens
+  only to admit a value of exactly the declared channel type anywhere in
+  the body (the request built at a `yield` site, the bound answer, and any
+  later expression over that same value, such as a field read's receiver),
+  never any other aggregate.
+- **Lowering.** `resumable_effects::lowering::ResumableScalar` gained
+  `Record(Vec<ResumableScalar>)` and `Variant { case: String, fields:
+  Vec<ResumableScalar> }` variants (canonical declared field order), used
+  by the existing domain-separated suspension-binding hash
+  (`hash_scalar`) unchanged in shape -- a bit-exact commitment to the exact
+  request/answer history, now including an aggregate one, with no new hash
+  domain needed.
+- **Interpreter.** `interpreter::resumable::ResumableChannelValue` (`Scalar
+  (ArgumentValue)` | `Record { declaration, fields }` | `Variant
+  { declaration, case, fields }`) is a new, narrow boundary type, **not** a
+  widening of `ArgumentValue` itself (which stays exactly as before and
+  keeps every other interpreter lane's existing match arms exhaustive and
+  unchanged). `interpreter::resumable::channel` is the new, parallel
+  sequential-channel API (`run_sequential_channel_resumable_effect`/
+  `resume_sequential_channel_resumable_effect`/
+  `ResumableChannelContinuation`/`SequentialChannelResumableStep`), built by
+  reusing the existing `Resumption`/`settle_yield`/`run_worker` state
+  machine unchanged (it already carried the interpreter's own `Value`,
+  which already represents a record or variant) and adding only the
+  boundary conversions (`channel_of`, `value_of_channel`,
+  `channel_to_resumable_scalar`) that were missing. The function's own
+  declared parameters and overall return type stay Copy-scalar always --
+  this increment widens only the `yields` channel, never a function's
+  ordinary signature. Two narrow, pre-existing interpreter admission gates
+  needed a matching widening for a fully Copy aggregate specifically
+  (`interpreter::nested_owned`'s `bc_construct`/`bc_match`/`construct_ok`/
+  `variant_ok`/`bc_bind_fields`, independent of that module's owned-variant
+  transfer/aliasing profile, which stays unchanged): constructing a variant
+  request/answer inline, and matching a variant answer in the suffix, both
+  by value rather than through the owned-byte `Own`/`Borrow` machinery.
+- **Non-durable checkpoint envelope.** `resumable_effects::source_checkpoint`
+  gained a fifth schema, `v5` (`resumable_effects::source_checkpoint::channel`,
+  wrapping a new `interpreter::resumable::checkpoint::encode_channel`/
+  `decode_channel` inner codec), signature-bound like `v2`. `v5` is used only
+  when `SourceEffectSignature::is_aggregate_channel()` is true; encoding a
+  scalar-channel continuation into it is refused
+  (`SourceCheckpointError::ProgramMismatch`), and no existing code path in
+  `v1`-`v4` was touched. `channel_json`/`channel_from_json` render a
+  `Scalar` value byte-for-byte identically to the pre-existing
+  `scalar_json`/`scalar_from_json` (the same `"tag"` values a bare scalar
+  always used); `"record"`/`"variant"` are new tag values only a genuinely
+  aggregate value ever produces, so every existing `v1`-`v4` fixture and
+  the durable journal's own pre-existing scalar records stay byte-identical.
+- **Durable journal.** `resumable_effects::continuation`'s `Carrier` gained
+  a third variant, `SequentialChannel(ResumableChannelContinuation)`
+  (never paired with the control-dependent lane, for the placement reason
+  above). `ContinuationRequest.request`/`ContinuationAnswer.value` and the
+  journal's own `Record::Answered.answer` widened from `ArgumentValue` to
+  `ResumableChannelValue` -- again byte-identical for a `Scalar` answer, so
+  every pre-existing scalar and control-dependent journal fixture is
+  unaffected -- and `DurableInvocation::drive`'s injected handler is now
+  `EffectHandler<ResumableChannelValue, ResumableChannelValue>`.
+  `ContinuationRequest::bind_answer` takes `impl Into<ResumableChannelValue>`
+  so an existing scalar-channel caller passing a bare `ArgumentValue` keeps
+  compiling unchanged. The function's own overall result
+  (`DurableOutcome::Completed`) stays `ArgumentValue`, matching the
+  interpreter boundary's own scalar-return-type choice above.
+- **Tests.** `interpreter::resumable::channel::tests` runs a record and a
+  variant channel to completion on the interpreter directly (including a
+  variant request constructed inline and a wrong-answer-type refusal, both
+  `SPX-F113`/`SPX-F115`); `resumable_effects::source_checkpoint::channel::
+  tests` round-trips `v5`, refuses a scalar-channel function
+  (`ProgramMismatch`), and includes the negative control: a freshly,
+  validly re-signed `v5` document with one field dropped from an encoded
+  record still fails the round trip, isolating `decode_channel`'s own
+  structural check from the outer HMAC; `resumable_effects::continuation::
+  tests::channel` drives a record channel through the durable journal
+  end to end, including a crash simulated before and after every one of
+  its journal records, recovering with no repeated dispatch or cleanup,
+  exactly like the pre-existing scalar and control-dependent crash
+  matrices; `hir::resolve_yield::tests` covers the new admission (record and
+  variant, sequential placement), the still-refused control-dependent
+  placement, and every out-of-bound shape (field/case count, nesting,
+  generics, an owned `Bytes` leaf) keeping `SPX-T307`.
 
 Blocker (2) (Agent operations are not free, `yields`-eligible functions; the
 role that actually waits on a model declares an effect) is entirely
-untouched and remains exactly as described above.
+untouched and remains exactly as described above. Also still open, exactly
+as before: an owned `Bytes` leaf inside a bounded aggregate, and an
+aggregate channel for the control-dependent placement (`resumable_effects::
+lowering::control` would need its own aggregate-channel runtime support,
+including the owned-`Bytes`-carrying combination that placement already
+admits for a bare scalar channel).
 
 ## 13. Assurance and conformance evidence for the admitted profile
 

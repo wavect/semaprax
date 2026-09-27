@@ -47,9 +47,12 @@ struct ControlHost {
     calls: Vec<usize>,
 }
 
-impl EffectHandler<ArgumentValue, ArgumentValue> for ControlHost {
-    fn dispatch(&mut self, request: &ArgumentValue) -> Result<ArgumentValue, String> {
-        let ArgumentValue::Int(value) = request else {
+impl EffectHandler<ResumableChannelValue, ResumableChannelValue> for ControlHost {
+    fn dispatch(
+        &mut self,
+        request: &ResumableChannelValue,
+    ) -> Result<ResumableChannelValue, String> {
+        let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) = request else {
             return Err("unexpected request".into());
         };
         let ordinal = REQUESTS
@@ -57,7 +60,7 @@ impl EffectHandler<ArgumentValue, ArgumentValue> for ControlHost {
             .position(|expected| expected == value)
             .expect("fixture request");
         self.calls.push(ordinal);
-        Ok(answer(*value))
+        Ok(answer(*value).into())
     }
 }
 
@@ -175,7 +178,8 @@ fn control_crash_at_every_record_never_repeats_dispatch_or_cleanup() {
                 assert!(in_doubt);
                 answers_in_doubt += 1;
                 let dispatched_before = host.calls.len();
-                let ArgumentValue::Int(value) = request.request else {
+                let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) = request.request
+                else {
                     panic!()
                 };
                 recovered
@@ -245,13 +249,16 @@ struct CountingHost {
     calls: usize,
 }
 
-impl EffectHandler<ArgumentValue, ArgumentValue> for CountingHost {
-    fn dispatch(&mut self, request: &ArgumentValue) -> Result<ArgumentValue, String> {
-        let ArgumentValue::Int(value) = request else {
+impl EffectHandler<ResumableChannelValue, ResumableChannelValue> for CountingHost {
+    fn dispatch(
+        &mut self,
+        request: &ResumableChannelValue,
+    ) -> Result<ResumableChannelValue, String> {
+        let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) = request else {
             return Err("unexpected request".into());
         };
         self.calls += 1;
-        Ok(ArgumentValue::Int(value + 1))
+        Ok(ArgumentValue::Int(value + 1).into())
     }
 }
 

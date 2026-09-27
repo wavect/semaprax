@@ -19,9 +19,11 @@ use std::io::{Read, Write};
 use std::os::fd::AsFd;
 
 /// The immutable record schema for the aggregate durable carrier.
-pub(super) const RESUMABLE_JOURNAL_SCHEMA_V2: &str = "semaprax.resumable-journal.v2";
+pub(in crate::resumable_effects::continuation) const RESUMABLE_JOURNAL_SCHEMA_V2: &str =
+    "semaprax.resumable-journal.v2";
 /// Fixed Started record discriminant. It is intentionally not accepted by v1.
-pub(super) const CHANNEL_ARGUMENTS_CARRIER_V1: &str = "channel_arguments_v1";
+pub(in crate::resumable_effects::continuation) const CHANNEL_ARGUMENTS_CARRIER_V1: &str =
+    "channel_arguments_v1";
 
 const RECORD_DOMAIN_V2: &[u8] = b"semaprax.resumable-journal-record.v2\0";
 const NAME_DOMAIN_V2: &[u8] = b"semaprax.resumable-journal-name.v2\0";
@@ -29,7 +31,9 @@ const NAME_DOMAIN_V2: &[u8] = b"semaprax.resumable-journal-name.v2\0";
 /// Digest aggregate invocation arguments in their canonical channel projection.
 /// A newline terminates every argument, preserving the established scalar JSON
 /// bytes while preventing adjacent JSON values from being concatenated ambiguously.
-pub(super) fn channel_arguments_digest(arguments: &[ResumableChannelValue]) -> [u8; 32] {
+pub(in crate::resumable_effects::continuation) fn channel_arguments_digest(
+    arguments: &[ResumableChannelValue],
+) -> [u8; 32] {
     let mut bytes = Vec::new();
     for argument in arguments {
         bytes.extend_from_slice(channel_json(argument).to_string().as_bytes());
@@ -39,7 +43,9 @@ pub(super) fn channel_arguments_digest(arguments: &[ResumableChannelValue]) -> [
 }
 
 /// The v2 name domain gives aggregate journals a disjoint owner-private path.
-pub(super) fn channel_journal_name(invocation_id: &str) -> String {
+pub(in crate::resumable_effects::continuation) fn channel_journal_name(
+    invocation_id: &str,
+) -> String {
     let mut bytes = NAME_DOMAIN_V2.to_vec();
     bytes.extend_from_slice(invocation_id.as_bytes());
     format!("{}.journal", hex(&sha256(&bytes)))
@@ -47,7 +53,7 @@ pub(super) fn channel_journal_name(invocation_id: &str) -> String {
 
 /// One verified v2 aggregate-carrier journal record.
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum ChannelRecord {
+pub(in crate::resumable_effects::continuation) enum ChannelRecord {
     Started {
         function: String,
         program_digest: [u8; 32],
@@ -85,7 +91,7 @@ pub(super) enum ChannelRecord {
 }
 
 /// An append-only v2 journal. The v1 [`super::Journal`] API remains scalar.
-pub(super) struct ChannelJournal {
+pub(in crate::resumable_effects::continuation) struct ChannelJournal {
     file: File,
     next_seq: u64,
     prev: [u8; 32],
@@ -284,7 +290,7 @@ fn render_line(
 
 impl ChannelJournal {
     /// Create a disjoint v2 aggregate journal without overwriting any v1 path.
-    pub(super) fn create(
+    pub(in crate::resumable_effects::continuation) fn create(
         directory: &JournalDirectory,
         invocation_id: &str,
     ) -> Result<Self, ContinuationError> {
@@ -325,7 +331,7 @@ impl ChannelJournal {
     }
 
     /// Recover only v2 lines under the v2 MAC domain; v1 is schema-refused.
-    pub(super) fn open(
+    pub(in crate::resumable_effects::continuation) fn open(
         directory: &JournalDirectory,
         invocation_id: &str,
         key: &SourceCheckpointKey,
@@ -418,7 +424,7 @@ impl ChannelJournal {
     }
 
     /// Append a v2 record atomically. A returned `Ok` is the durable acknowledgement.
-    pub(super) fn append(
+    pub(in crate::resumable_effects::continuation) fn append(
         &mut self,
         key: &SourceCheckpointKey,
         record: &ChannelRecord,
@@ -487,7 +493,7 @@ mod tests {
                 fields: vec![crate::interpreter::ArgumentValue::Bool(true)],
             },
         ];
-        let expected = b"7\n{\"declaration\":\"app.input\",\"fields\":[true],\"tag\":\"record\"}\n";
+        let expected = b"{\"tag\":\"i64\",\"value\":7}\n{\"declaration\":\"app.input\",\"fields\":[{\"tag\":\"bool\",\"value\":true}],\"tag\":\"record\"}\n";
         assert_eq!(channel_arguments_digest(&arguments), sha256(expected));
     }
 

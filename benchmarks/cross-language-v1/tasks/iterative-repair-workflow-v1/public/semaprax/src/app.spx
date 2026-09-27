@@ -1,0 +1,22 @@
+module bench.ledger.app;
+use function @id("bench.ledger.process_batch") from bench.ledger.candidate as process_batch;
+
+@id("bench.ledger.eq")
+fn eq(left: i64, right: i64) -> i64
+{
+    if left == right { 1 } else { 0 }
+}
+
+// Public tests: four vectors that never let a withdrawal's fee interact
+// with the balance floor. See EQUIVALENCE.md's iterative-repair narrative
+// for why a candidate that passes every one of these is not yet done.
+//
+// Assertions are summed arithmetically (`eq(...)` calls added together)
+// rather than chained with `&&`, matching this suite's other fixtures: see
+// concurrent-delta-merge-v1/public/semaprax/src/app.spx for why.
+@id("bench.ledger.app.main")
+fn main() -> i64
+{
+    let checks = eq(process_batch(0, 50, 50, 50, 50, 50), 250) + eq(process_batch(400, 50, 0, 0, 0, 0), 450) + eq(process_batch(200, -10, -10, -10, -10, -10), 135) + eq(process_batch(480, 50, 0, 0, 0, 0), 500);
+    if checks == 4 { 0 } else { 1 }
+}

@@ -1,0 +1,31 @@
+module bench.ledger.app;
+use function @id("bench.ledger.process_batch") from bench.ledger.candidate as process_batch;
+use function @id("bench.ledger.tier_label") from bench.ledger.candidate as tier_label;
+
+@id("bench.ledger.eq")
+fn eq(left: i64, right: i64) -> i64
+{
+    if left == right { 1 } else { 0 }
+}
+
+// Hidden overlay: replaces the public app.spx verbatim (same relative
+// path) for the scoring phase only. src/candidate.spx is copied unchanged
+// from the public tree, so hidden scoring executes the solver-authored
+// candidate. Adds the two floor-interaction vectors that only a
+// correctly-ordered ("clamp last") repair passes, plus three checks on the
+// unrelated tier_label classifier the public suite never calls at all.
+//
+// A withdrawal fee subtracted after the balance is clamped, instead of
+// before, can return a balance below the declared floor whenever the
+// violating step is the sequence's last one (an earlier violation is
+// masked: the next step's own clamp floors it back to zero before the
+// final value is read). attempt_1 in EQUIVALENCE.md's narrative fixes the
+// deposit-fee defect but keeps this one, so it passes every public vector
+// and fails both process_batch(3, 0, 0, 0, 0, -3) and
+// process_batch(53, 0, 0, 0, 0, -51) below.
+@id("bench.ledger.app.main")
+fn main() -> i64
+{
+    let checks = eq(process_batch(0, 50, 50, 50, 50, 50), 250) + eq(process_batch(400, 50, 0, 0, 0, 0), 450) + eq(process_batch(200, -10, -10, -10, -10, -10), 135) + eq(process_batch(480, 50, 0, 0, 0, 0), 500) + eq(process_batch(3, 0, 0, 0, 0, -3), 0) + eq(process_batch(53, 0, 0, 0, 0, -51), 0) + eq(tier_label(50), 0) + eq(tier_label(150), 1) + eq(tier_label(350), 2);
+    if checks == 9 { 0 } else { 1 }
+}

@@ -49,58 +49,56 @@ own `EQUIVALENCE.md` actually measures rather than by relabeling in place:
 | `cold-chain-release-gate-v1` | validation | **security fix** | The realistic wrong candidate joins two safety predicates with `\|\|` instead of `&&` — a fail-open defect in a release/safety gate, the canonical shape of a security bug that lets unsafe data through. |
 | `telemetry-overflow-diagnosis-v1` | diagnosis | **failure recovery** | The task is precisely about recovering from an arithmetic-overflow failure (saturate) instead of panicking, silently leaving the declared range, or raising a fault, across three runtimes that each fail differently for the same root cause. |
 | `clean-install-calculator-v1` | onboarding | **feature change** | Its own `EQUIVALENCE.md` states the distinguishing skill directly: add one new operation to an existing, tool-generated scaffold without disturbing any of it — ordinary feature addition to an existing project, not greenfield authoring. |
+| `iterative-repair-workflow-v1` | repair | **Agent workflow** | Purpose-built for this category (see below): two sequentially-masked defects plus an unrelated sibling function to preserve, and a task statement that narrates a two-round debugging log a solver must read and act on rather than solve in one pass. |
 
-That accounts for ten of the eleven categories through task content. The
-eleventh, **Agent workflow**, is not a content shape a static public/hidden
-fixture can express on its own — it is a claim about *how* a task is solved
-and scored, not what the task's logic does. This corpus demonstrates it
-orthogonally, through the seam `agent/` already implements rather than
-through a twelfth task family: `agent/orchestrator.py`'s
-`evaluate_agent_pair` drives `structured-input-error-handling-v1::rust`
-through the full solver path — prompt construction, budget enforcement,
-retry accounting, a transport-produced candidate, transcript-digest binding,
-and then `run.py`'s own build/test/leak-check/provenance scoring — and
-`agent/tests/test_agent_driver.py::RealToolchainEndToEndTests` exercises
-that path end to end against a real `rustc`, including a wrong-candidate
-control that passes public but fails hidden through the agent path
-specifically (`test_wrong_candidate_from_transport_passes_public_but_fails_hidden`).
-A task's `issue_211_category` therefore names its *content* shape;
-"Agent workflow" is a property of the harness path a task is run through,
-and `structured-input-error-handling-v1` is this corpus's example of both at
-once (content: API evolution; execution path: Agent workflow).
+That now accounts for all eleven categories through task content, closing
+the scope decision this section previously left open (see "Decision"
+immediately below). `agent/orchestrator.py`'s orthogonal execution-path
+demonstration through `structured-input-error-handling-v1` — described in
+full in the paragraph after the decision note — remains true and
+unchanged; it is additional coverage, not the thing that now satisfies the
+category.
 
 This mapping is deliberately additive and reversible: no `category` value
 changed, no task was deleted or renamed, and a future task can carry its own
 `issue_211_category` without touching this table's existing rows.
 
-### Open scope decision: is orthogonal coverage enough for "Agent workflow"?
+### Decision: "Agent workflow" needed a dedicated, content-level task
 
-The paragraph above resolves the eleventh category, "Agent workflow", by
-pointing at `agent/orchestrator.py` and its end-to-end test rather than at a
-twelfth task. That resolution has never been put to a maintainer for
-sign-off; it is recorded here as an **explicit open scope-decision request**,
-not a self-approved narrowing of issue #211's eleven-category ask
-(`AGENTS.md`'s change protocol commits every implementation worker to
-requesting a scope decision rather than assuming one). Two ways this could be
-closed, for a maintainer to pick between:
+**2026-09-27, maintainer-directed.** This section previously recorded an
+open scope-decision request — whether orthogonal coverage through
+`agent/orchestrator.py` (running `structured-input-error-handling-v1`
+through the full solver path) was sufficient to demonstrate issue #211's
+eleventh category, "Agent workflow", or whether a twelfth, content-level
+task was required. The maintainer decided: **orthogonal coverage is not
+accepted; the benchmark gets a dedicated, content-level task.**
+`iterative-repair-workflow-v1` is that task (issue #298): its
+public/hidden split genuinely exercises multi-step, iterative agent work
+at the content level — a candidate with two interacting defects the
+public tests reveal only the first of at a time, hidden tests that check
+both the fully corrected behavior and preservation of an unrelated sibling
+function, and a task statement (`EQUIVALENCE.md`'s "iterative-repair
+narrative" section) that requires reading an earlier step's redacted
+output to find the second defect at all. The orthogonal demonstration
+below is not removed or narrowed by this decision — it stays in this
+corpus exactly as it already was — but it no longer stands as the sole
+answer for this category.
 
-1. **Accept orthogonal coverage.** Confirm that a task's `issue_211_category`
-   names its content shape, that "Agent workflow" is legitimately a property
-   of the execution path rather than of any task's fixture, and that
-   `structured-input-error-handling-v1` run through `agent/orchestrator.py`
-   (content: API evolution; path: Agent workflow) is accepted as this
-   corpus's demonstration of the category. No new task follows from this
-   choice.
-2. **Require a twelfth, content-level task.** Decide that "Agent workflow"
-   must also be representable as its own fixture — for example, a task whose
-   public/hidden split specifically exercises multi-step tool use or
-   iterative self-correction within one candidate's solve, a shape none of
-   the current twelve tasks attempts — and commission it as new work.
-
-Nothing in this repository currently asserts option 1 is settled; it is the
-default only because it is what the corpus already does, not because it was
-approved as sufficient. This entry stays open until a maintainer picks one of
-the two options above (or a third) explicitly.
+`agent/orchestrator.py`'s `evaluate_agent_pair` drives
+`structured-input-error-handling-v1::rust` through the full solver path —
+prompt construction, budget enforcement, retry accounting, a
+transport-produced candidate, transcript-digest binding, and then
+`run.py`'s own build/test/leak-check/provenance scoring — and
+`agent/tests/test_agent_driver.py::RealToolchainEndToEndTests` exercises
+that path end to end against a real `rustc`, including a wrong-candidate
+control that passes public but fails hidden through the agent path
+specifically (`test_wrong_candidate_from_transport_passes_public_but_fails_hidden`).
+A task's `issue_211_category` names its *content* shape;
+"Agent workflow" is also, separately, a property some tasks' harness path
+can demonstrate, and `structured-input-error-handling-v1` remains this
+corpus's example of both at once (content: API evolution; execution path:
+Agent workflow) even though it is no longer the category's sole content
+representative.
 
 ## Equivalence contract (what every task must specify)
 

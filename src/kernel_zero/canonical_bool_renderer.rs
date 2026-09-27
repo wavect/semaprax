@@ -34,9 +34,26 @@ impl From<Refusal> for RendererRefusal {
 }
 
 struct Renderer {
-    /// Retain the source binding, rather than a cached translated program, so
-    /// a formerly valid component can never authorize drifted source bytes.
+    /// Retain the source binding, rather than only a cached translated
+    /// program, so a `source` differing from `validated_source` below (only
+    /// the drift-detection test below passes one) can never authorize
+    /// drifted source bytes.
     binding: BoundTranslation,
+    /// The exact source bytes `same_source_program` below was independently
+    /// replayed against at construction time.
+    validated_source: String,
+    /// `binding.replay(&validated_source, ..)`'s own already-proven result,
+    /// reused whenever a later call's `source` is byte-identical to
+    /// `validated_source` (`bytes` below): re-parsing, re-resolving, and
+    /// re-validating this fixed, `include_str!`-embedded component source
+    /// again for that exact same input is deterministic per
+    /// `BoundTranslation::derive`'s own contract (same source bytes, same
+    /// entry, in, same program out -- see `AGENTS.md`'s "Source formatting
+    /// ... deterministic" invariant), so repeating it once per rendered
+    /// bool bought nothing beyond the first call and dominated this
+    /// renderer's cost under any caller that renders many bools from one
+    /// process (see issue #294).
+    same_source_program: KernelProgram,
 }
 
 impl Renderer {
@@ -47,7 +64,12 @@ impl Renderer {
     fn derive_from_source(source: &str) -> Result<Self, RendererRefusal> {
         let entry = DeclarationId::new("format.render-byte");
         let binding = BoundTranslation::derive(source, &entry)?;
-        Ok(Self { binding })
+        let same_source_program = binding.replay(source, &entry)?.clone();
+        Ok(Self {
+            binding,
+            validated_source: source.to_owned(),
+            same_source_program,
+        })
     }
 
     fn int(
@@ -66,8 +88,12 @@ impl Renderer {
     }
 
     fn bytes(&self, source: &str, value: bool) -> Result<Vec<u8>, RendererRefusal> {
-        let bound_entry = DeclarationId::new("format.render-byte");
-        let program = self.binding.replay(source, &bound_entry)?;
+        let program = if source == self.validated_source {
+            &self.same_source_program
+        } else {
+            let bound_entry = DeclarationId::new("format.render-byte");
+            self.binding.replay(source, &bound_entry)?
+        };
         let length = self.int(program, "format.render-length", &[Value::Bool(value)])?;
         let length = usize::try_from(length).map_err(|_| RendererRefusal::InvalidLength)?;
         if !(MIN_RENDERED_BYTES..=MAX_RENDERED_BYTES).contains(&length) {

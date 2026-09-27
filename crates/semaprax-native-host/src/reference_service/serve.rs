@@ -207,7 +207,7 @@ fn split_exchange(
     }
     while body.len() < want {
         let chunk = provider
-            .recv(connection, (want - body.len()).min(8_192).max(1))
+            .recv(connection, (want - body.len()).clamp(1, 8_192))
             .map_err(|_| 400_u16)?;
         if chunk.is_empty() {
             return Err(400);

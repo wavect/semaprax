@@ -406,7 +406,7 @@ fn authenticate(
 }
 
 fn unhex(text: &str) -> Option<Vec<u8>> {
-    if text.len() % 2 != 0 {
+    if !text.len().is_multiple_of(2) {
         return None;
     }
     let mut bytes = Vec::with_capacity(text.len() / 2);

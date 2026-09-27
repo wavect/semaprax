@@ -841,8 +841,9 @@ two sequential yields, wrong nominal ID refusal, and replay with a changed
 aggregate argument. The durable carrier tests wrong case ID, field count,
 scalar leaf and Bytes-carrier refusals before append, valid record/variant
 answers, and its v2 success/failure crash matrix, proving no second dispatch
-or cleanup. Source and graph canonical round trips remain a bridge gate.
-Only after those pass may the Agent bridge add a distinct effect-free
+or cleanup. A local source/graph regression checks canonical round trips,
+exact graph equality, and nominal boundary, field, ownership and yield facts.
+The next Agent bridge may add a distinct effect-free
 `yields` wrapper around FixtureAgent's checked `model fn propose`; the model
 role itself cannot gain `yields`. The wrapper must dispatch through
 `DurableInvocation::dispatch` exactly once, consume the ordinary model grant

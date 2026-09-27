@@ -1,7 +1,10 @@
-//! Generated Rust callers for the private moves-v1 and allocating-v1 profiles,
-//! built offline as standalone packages and linked to the actual rendered
-//! native provider. They reuse the identity-v1 Rust caller generator; only the
-//! profile name, package/library names and bound artifact differ. Private,
+//! Generated Rust callers for the private moves-v1, allocating-v1 and
+//! moves-nested.v1 (issue #292 / #288 follow-on) profiles, built offline as
+//! standalone packages and linked to the actual rendered native provider.
+//! They reuse the identity-v1 Rust caller generator; only the profile name,
+//! package/library names and bound artifact differ. moves-nested.v1 also
+//! swaps in its own genuinely two-level `Outer<Leaf>` subject
+//! (`checked_nested_moves`), never a flattened stand-in. Private,
 //! native-only evidence: no Core Wasm, sanitizer, hosted or public claim.
 use super::caller_hostility::{self, replace_once, Recipe, Shift};
 use super::rust::{cargo, compile_provider, write_consumer};
@@ -11,7 +14,7 @@ use semaprax::public_generic_abi::{
     native::{
         authenticated::{
             render_authenticated_allocating_provider, render_authenticated_moves_provider,
-            ALLOCATING_PROFILE, MOVES_PROFILE, PROFILE,
+            render_authenticated_nested_moves_provider, ALLOCATING_PROFILE, MOVES_PROFILE, PROFILE,
         },
         binding::NativeProviderBindingV1,
     },
@@ -19,7 +22,8 @@ use semaprax::public_generic_abi::{
 use semaprax::public_generic_consumer::rust_calling::{
     generate_authenticated_allocating_calling_consumer_v1,
     generate_authenticated_identity_calling_consumer_v1,
-    generate_authenticated_moves_calling_consumer_v1, generate_rust_calling_consumer,
+    generate_authenticated_moves_calling_consumer_v1,
+    generate_authenticated_nested_moves_calling_consumer_v1, generate_rust_calling_consumer,
     CallingConsumer, OwnedByteField, RecordShape,
 };
 use sha2::{Digest as _, Sha256};
@@ -250,6 +254,7 @@ fn run_profile(
     target: &Path,
     profile: &Profile,
     source: &str,
+    export_id: &str,
     render: impl Fn(
         &semaprax::hir::ResolvedProgram,
         &str,
@@ -258,7 +263,7 @@ fn run_profile(
 ) -> usize {
     let (program, revision) = checked(source);
     let endpoint =
-        derive_admitted_public_generic_endpoint_v1(&program, &revision, "auth.identity").unwrap();
+        derive_admitted_public_generic_endpoint_v1(&program, &revision, export_id).unwrap();
     let descriptor = endpoint.descriptor();
     assert_eq!(
         render_authenticated_identity_provider(&program, &revision, descriptor)
@@ -409,7 +414,7 @@ fn run_profile(
 }
 
 #[test]
-fn generated_rust_moves_and_allocating_callers_admit_before_physical_handoff() {
+fn generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physical_handoff() {
     reuse_controls();
     let root = env::temp_dir().join(format!(
         "semaprax-r07-profile-rust-{}-{}",
@@ -439,6 +444,7 @@ fn generated_rust_moves_and_allocating_callers_admit_before_physical_handoff() {
         &target,
         &moves,
         &SOURCE.replace("{ value }", super::checked_moves::BODY),
+        "auth.identity",
         |program, revision, descriptor| {
             let artifact =
                 render_authenticated_moves_provider(program, revision, descriptor).unwrap();
@@ -484,6 +490,7 @@ fn generated_rust_moves_and_allocating_callers_admit_before_physical_handoff() {
             SOURCE.replace("{ value }", super::checked_allocating::BODY),
             super::checked_allocating::HELPERS
         ),
+        "auth.identity",
         |program, revision, descriptor| {
             let artifact =
                 render_authenticated_allocating_provider(program, revision, descriptor).unwrap();
@@ -514,8 +521,66 @@ fn generated_rust_moves_and_allocating_callers_admit_before_physical_handoff() {
             )
         },
     );
-    // Two profiles x (canonical + 7 recipes + legacy flat + 3 omission
+    // Nested-moves.v1 (issue #292 / #288 follow-on): the genuinely two-level
+    // `Outer<Leaf>` subject `checked_nested_moves` owns, never a flattened
+    // stand-in. `moves-v1` itself refuses this exact body (already proved by
+    // `checked_nested_moves::flat_moves_v1_refuses_the_nested_body_nested_moves_admits_it`);
+    // this is the same body's Rust caller, driven through the real physical
+    // handoff exactly like `moves`/`allocating` above.
+    let nested_source = super::super::checked_nested_moves::SOURCE;
+    let nested_id = super::super::checked_nested_moves::EXPORT_ID;
+    let nested = Profile {
+        label: "moves-nested",
+        library: "spx_pg_private_authenticated_moves_nested_rust_v1",
+        // `Leaf { a, b }` is swapped exactly like `Pair { left, right }` above.
+        expected: ["[2, 11, 17, 23]", "[1, 7, 13]"],
+        pin: "8b75f93827d758ab8bda53b9cf1c69e7cd837af659bdf902b3f27bb7012db19e",
+    };
+    processes += run_profile(
+        &root,
+        &target,
+        &nested,
+        nested_source,
+        nested_id,
+        |program, revision, descriptor| {
+            let artifact =
+                render_authenticated_nested_moves_provider(program, revision, descriptor).unwrap();
+            let consumer =
+                generate_authenticated_nested_moves_calling_consumer_v1(descriptor, &artifact)
+                    .unwrap();
+            assert_eq!(
+                consumer,
+                generate_authenticated_nested_moves_calling_consumer_v1(descriptor, &artifact)
+                    .unwrap()
+            );
+            // A descriptor from another (still nested) subject cannot bind
+            // this artifact.
+            let other_source = nested_source.replacen("requires true", "requires false", 1);
+            let (other_program, other_revision) = checked(&other_source);
+            let other = derive_admitted_public_generic_endpoint_v1(
+                &other_program,
+                &other_revision,
+                nested_id,
+            )
+            .unwrap();
+            assert_eq!(
+                generate_authenticated_nested_moves_calling_consumer_v1(
+                    other.descriptor(),
+                    &artifact
+                )
+                .unwrap_err()
+                .code,
+                "SPX-PG803"
+            );
+            (
+                artifact.source().to_owned(),
+                consumer,
+                artifact.binding().clone(),
+            )
+        },
+    );
+    // Three profiles x (canonical + 7 recipes + legacy flat + 3 omission
     // controls) x O0/O2.
-    assert_eq!(processes, 48);
+    assert_eq!(processes, 72);
     fs::remove_dir_all(root).unwrap();
 }

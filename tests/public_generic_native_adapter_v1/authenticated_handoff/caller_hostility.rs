@@ -186,6 +186,23 @@ pub(super) fn cases(descriptor: &VerifiedPublicGenericDescriptor, source: &str) 
 }
 
 pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
+    run_sanitized(root, cxx, opt, expected, false);
+}
+
+/// Like [`run`], additionally compiling with Clang AddressSanitizer +
+/// UndefinedBehaviorSanitizer (`-fsanitize=address,undefined
+/// -fno-omit-frame-pointer -fno-sanitize-recover=all`, matching this
+/// harness's own existing `fixture.rs`/`c_calling_consumer.rs` sanitized
+/// pattern) and asserting the exact same stable raw exit status: a genuine
+/// sanitizer violation aborts with a different (nondeterministic-looking,
+/// but never the expected) status, so this is the same pass/fail oracle,
+/// now also proving the compiled path memory/UB-clean under the sanitizer
+/// runtime. LOCAL evidence on macOS arm64 only: `ASAN_OPTIONS=detect_leaks=1`
+/// is unconditionally fatal here ("detect_leaks is not supported on this
+/// platform"), so leak detection is not requested; the existing
+/// live-allocation counters (`auth_live`/`fixture_live`) remain the
+/// leak/settlement oracle, exactly as for the unsanitized runs.
+pub(super) fn run_sanitized(root: &Path, cxx: bool, opt: &str, expected: i32, sanitized: bool) {
     let clang = env::var_os("CLANG").unwrap_or_else(|| "clang".into());
     let executable = root.join(format!("probe{opt}{}", env::consts::EXE_SUFFIX));
     let assert_compiled = |command: &mut Command| {
@@ -196,6 +213,15 @@ pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
             String::from_utf8_lossy(&result.stderr)
         );
     };
+    let sanitizer_flags: &[&str] = if sanitized {
+        &[
+            "-fsanitize=address,undefined",
+            "-fno-omit-frame-pointer",
+            "-fno-sanitize-recover=all",
+        ]
+    } else {
+        &[]
+    };
     if cxx {
         let mut objects = Vec::new();
         for source in ["provider.c", c_calling::CONSUMER_SOURCE_FILE_NAME] {
@@ -203,6 +229,7 @@ pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
             assert_compiled(
                 Command::new(&clang)
                     .args(["-std=c11", opt, "-Wall", "-Wextra", "-Werror", "-c"])
+                    .args(sanitizer_flags)
                     .arg(root.join(source))
                     .arg("-o")
                     .arg(&object),
@@ -212,6 +239,7 @@ pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
         assert_compiled(
             Command::new(env::var_os("CLANGXX").unwrap_or_else(|| "clang++".into()))
                 .args(["-std=c++17", opt, "-Wall", "-Wextra", "-Werror"])
+                .args(sanitizer_flags)
                 .arg("-I")
                 .arg(root)
                 .arg(root.join("driver.cpp"))
@@ -223,13 +251,20 @@ pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
         assert_compiled(
             Command::new(clang)
                 .args(["-std=c11", opt, "-Wall", "-Wextra", "-Werror"])
+                .args(sanitizer_flags)
                 .arg(root.join("provider.c"))
                 .arg(root.join("driver.c"))
                 .arg("-o")
                 .arg(&executable),
         );
     }
-    let result = Command::new(executable).output().unwrap();
+    let mut execute = Command::new(executable);
+    if sanitized {
+        execute
+            .env("ASAN_OPTIONS", "halt_on_error=1")
+            .env("UBSAN_OPTIONS", "halt_on_error=1:print_stacktrace=1");
+    }
+    let result = execute.output().unwrap();
     assert_eq!(
         result.status.code(),
         Some(expected),
@@ -237,13 +272,26 @@ pub(super) fn run(root: &Path, cxx: bool, opt: &str, expected: i32) {
         root.display(),
         String::from_utf8_lossy(&result.stderr)
     );
+    if sanitized {
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        assert!(
+            !stderr.contains("Sanitizer") && !stderr.contains("runtime error:"),
+            "{}: unexpected sanitizer report: {stderr}",
+            root.display()
+        );
+    }
     if cxx && expected == 0 {
         assert_eq!(result.stdout, b"cxx-authenticated-caller-settled");
     }
 }
 
-#[test]
-fn generated_c_and_cxx_reject_subject_bound_hostile_handoffs() {
+/// The identity-v1 hostile corpus AND its own canonical positive control
+/// (the `"canonical"`/raw==0 case below runs at mode 1, the real checked
+/// call, not only a refusal). `sanitized` is `false` for this module's own
+/// test; [`super::sanitizer_evidence`] calls this again with `true` for its
+/// own LOCAL macOS arm64 ASan/UBSan selector, rather than duplicating this
+/// function's shape/descriptor/provider assembly a second time.
+pub(super) fn run_identity_corpus(sanitized: bool) {
     let root = env::temp_dir().join(format!(
         "semaprax-r07-callers-{}-{}",
         std::process::id(),
@@ -395,7 +443,7 @@ fn generated_c_and_cxx_reject_subject_bound_hostile_handoffs() {
                     .unwrap();
                 }
                 for opt in ["-O0", "-O2"] {
-                    run(&directory, cxx, opt, if bypass { 77 } else { 0 });
+                    run_sanitized(&directory, cxx, opt, if bypass { 77 } else { 0 }, sanitized);
                     eprintln!(
                         "R07 caller cxx={cxx} requires={guard} {} {opt}: raw={} oracle={}",
                         case.id,
@@ -407,4 +455,9 @@ fn generated_c_and_cxx_reject_subject_bound_hostile_handoffs() {
         }
     }
     fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn generated_c_and_cxx_reject_subject_bound_hostile_handoffs() {
+    run_identity_corpus(false);
 }

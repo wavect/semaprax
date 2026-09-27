@@ -1,15 +1,20 @@
 //! The same seven frozen hostile-corpus recipes, driven through the generated
-//! C11/C++17 callers of the private moves-v1 and allocating-v1 profiles. Both
-//! share the authenticated prepare entry with identity-v1; this proves neither
-//! later profile reaches allocation or its checked endpoint on a substituted
-//! generation, ownership, cleanup plan, field path or variant tag. It is
-//! native-only, private evidence: no Rust caller exists for these profiles and
-//! no Core Wasm, sanitizer, hosted or public-support claim follows.
+//! C11/C++17 callers of the private moves-v1, allocating-v1 and
+//! moves-nested.v1 profiles (issue #292 / #288 follow-on adds the third).
+//! All three share the authenticated prepare entry with identity-v1; this
+//! proves none of them reaches allocation or its checked endpoint on a
+//! substituted generation, ownership, cleanup plan, field path or variant
+//! tag. It is native-only, private evidence: this module carries no Rust
+//! caller (see [`super::profile_rust`] for the Rust caller evidence, all
+//! three profiles) and no Core Wasm, sanitizer, hosted or public-support
+//! claim follows (see [`super::sanitizer_evidence`] for this same corpus's
+//! own LOCAL macOS arm64 ASan/UBSan evidence).
 use super::caller_hostility::{self, replace_once, Case};
 use super::*;
 use semaprax::public_generic_abi::native::{
     authenticated::{
         render_authenticated_allocating_provider, render_authenticated_moves_provider,
+        render_authenticated_nested_moves_provider,
     },
     binding::NativeProviderBindingV1,
 };
@@ -24,11 +29,21 @@ const CLEANUP_CHECK: &str = "else if (!spx_pg_bytes_equal(cleanup,cleanup_len,SP
 
 /// Every refusal is a stable raw status and a zero-count endpoint/allocation
 /// receipt; each omission control removes exactly one provider check and must
-/// instead cross into physical work (driver exit 77).
-fn run_profile(
+/// instead cross into physical work (driver exit 77). `export_id` is the
+/// checked declaration's own `@id`: moves-v1/allocating-v1 share
+/// `"auth.identity"` (the flat `Pair<Bytes>` subject), while moves-nested.v1
+/// uses its own two-level `Outer<Leaf>` subject's `"auth.nested.transform"`.
+/// `sanitized` is `false` for every call in this module's own test (ordinary
+/// evidence); [`super::sanitizer_evidence`] calls this same corpus builder
+/// again with `sanitized: true` for its own LOCAL macOS arm64 ASan/UBSan
+/// selector, rather than duplicating this file's shape/descriptor/provider
+/// assembly a third time.
+pub(super) fn run_profile(
     root: &Path,
     label: &str,
     source: &str,
+    export_id: &str,
+    sanitized: bool,
     render: impl Fn(
         &semaprax::hir::ResolvedProgram,
         &str,
@@ -44,7 +59,7 @@ fn run_profile(
     let revision = semaprax::format::canonical(&parsed);
     let program = semaprax::hir::resolve(&parsed).unwrap();
     let endpoint =
-        derive_admitted_public_generic_endpoint_v1(&program, &revision, "auth.identity").unwrap();
+        derive_admitted_public_generic_endpoint_v1(&program, &revision, export_id).unwrap();
     let descriptor = endpoint.descriptor();
     // The identity-v1 renderer refuses these bodies, so a pass here cannot be
     // an identity artifact under another name.
@@ -162,7 +177,13 @@ fn run_profile(
                 fs::write(directory.join("driver.c"), driver).unwrap();
             }
             for opt in ["-O0", "-O2"] {
-                caller_hostility::run(&directory, cxx, opt, if omitted.is_some() { 77 } else { 0 });
+                caller_hostility::run_sanitized(
+                    &directory,
+                    cxx,
+                    opt,
+                    if omitted.is_some() { 77 } else { 0 },
+                    sanitized,
+                );
                 processes += 1;
                 eprintln!(
                     "R07 profile-hostility {label} cxx={cxx} {} {opt}: raw={} oracle={}",
@@ -192,20 +213,30 @@ fn moves_and_allocating_profiles_reject_the_hostile_corpus_before_physical_work(
     ));
     fs::create_dir(&root).unwrap();
     let moves = SOURCE.replace("{ value }", super::checked_moves::BODY);
-    let mut processes = run_profile(&root, "moves", &moves, |program, revision, descriptor| {
-        let artifact = render_authenticated_moves_provider(program, revision, descriptor).unwrap();
-        let c = c_calling::generate_authenticated_moves_calling_consumer_v1(descriptor, &artifact)
+    let mut processes = run_profile(
+        &root,
+        "moves",
+        &moves,
+        "auth.identity",
+        false,
+        |program, revision, descriptor| {
+            let artifact =
+                render_authenticated_moves_provider(program, revision, descriptor).unwrap();
+            let c =
+                c_calling::generate_authenticated_moves_calling_consumer_v1(descriptor, &artifact)
+                    .unwrap();
+            let cxx = cxx_calling::generate_authenticated_moves_calling_consumer_v1(
+                descriptor, &artifact,
+            )
             .unwrap();
-        let cxx =
-            cxx_calling::generate_authenticated_moves_calling_consumer_v1(descriptor, &artifact)
-                .unwrap();
-        (
-            artifact.source().to_owned(),
-            c.files().to_vec(),
-            cxx.files().to_vec(),
-            artifact.binding().clone(),
-        )
-    });
+            (
+                artifact.source().to_owned(),
+                c.files().to_vec(),
+                cxx.files().to_vec(),
+                artifact.binding().clone(),
+            )
+        },
+    );
     let allocating = format!(
         "{}\n{}",
         SOURCE.replace("{ value }", super::checked_allocating::BODY),
@@ -215,6 +246,8 @@ fn moves_and_allocating_profiles_reject_the_hostile_corpus_before_physical_work(
         &root,
         "allocating",
         &allocating,
+        "auth.identity",
+        false,
         |program, revision, descriptor| {
             let artifact =
                 render_authenticated_allocating_provider(program, revision, descriptor).unwrap();
@@ -234,8 +267,36 @@ fn moves_and_allocating_profiles_reject_the_hostile_corpus_before_physical_work(
             )
         },
     );
-    // Two profiles x two languages x (7 recipes + legacy flat + 2 omission
+    // Nested-moves.v1 (issue #292 / #288 follow-on): the genuinely two-level
+    // `Outer<Leaf>` subject from `checked_nested_moves`, never a flattened
+    // stand-in, driven through the exact same compiled-caller hostile corpus.
+    processes += run_profile(
+        &root,
+        "moves-nested",
+        super::super::checked_nested_moves::SOURCE,
+        super::super::checked_nested_moves::EXPORT_ID,
+        false,
+        |program, revision, descriptor| {
+            let artifact =
+                render_authenticated_nested_moves_provider(program, revision, descriptor).unwrap();
+            let c = c_calling::generate_authenticated_nested_moves_calling_consumer_v1(
+                descriptor, &artifact,
+            )
+            .unwrap();
+            let cxx = cxx_calling::generate_authenticated_nested_moves_calling_consumer_v1(
+                descriptor, &artifact,
+            )
+            .unwrap();
+            (
+                artifact.source().to_owned(),
+                c.files().to_vec(),
+                cxx.files().to_vec(),
+                artifact.binding().clone(),
+            )
+        },
+    );
+    // Three profiles x two languages x (7 recipes + legacy flat + 2 omission
     // controls) x O0/O2.
-    assert_eq!(processes, 80);
+    assert_eq!(processes, 120);
     fs::remove_dir_all(root).unwrap();
 }

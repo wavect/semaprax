@@ -165,6 +165,9 @@ fn run_on_with_fuel(
 
 #[test]
 fn native_o0_o2_durable_recovery_replays_the_checked_grant_without_a_second_handler_call() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let module_source = super::super::tests::typed_effect_source();
     let compiled = super::super::tests::compile_from_source(&module_source);
     for selector in [0, 1] {
@@ -205,6 +208,9 @@ fn native_o0_o2_durable_recovery_replays_the_checked_grant_without_a_second_hand
 
 #[test]
 fn core_wasm_durable_recovery_replays_without_host_delivery() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let module_source = super::super::tests::typed_effect_source();
     let compiled = super::super::tests::compile_from_source(&module_source);
     let mut handler = Handler::default();
@@ -351,6 +357,9 @@ fn retained_failure_replays_without_handler_and_wrong_root_rejects_before_store(
 
 #[test]
 fn target_backends_retain_terminal_failures_and_lost_acks_without_redelivery() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let module_source = super::super::tests::typed_effect_source();
     let compiled = super::super::tests::compile_from_source(&module_source);
     for selector in [0, 1, 2] {
@@ -437,6 +446,9 @@ fn target_backends_retain_terminal_failures_and_lost_acks_without_redelivery() {
 
 #[test]
 fn target_backend_fuel_refusal_cannot_replay_or_refund_handler_work() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let module_source = super::super::tests::typed_effect_source();
     let compiled = super::super::tests::compile_from_source(&module_source);
     for selector in [0, 1, 2] {

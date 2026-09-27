@@ -531,12 +531,45 @@ fn the_sealed_dispatch_reaches_the_interpreter_and_matches_its_direct_evaluation
 // through `authorization::dispatch_on`.
 // ---------------------------------------------------------------------------
 
-fn native_wasm_tools_available() -> bool {
-    native_stage_host().is_some()
+pub(in crate::agent_lifecycle) fn native_wasm_tools_available() -> bool {
+    stage_process_host_supported()
+        && native_stage_host().is_some()
         && std::process::Command::new("node")
             .arg("--version")
             .output()
             .is_ok_and(|output| output.status.success())
+}
+
+pub(in crate::agent_lifecycle) fn stage_process_host_supported() -> bool {
+    cfg!(any(target_os = "linux", target_os = "macos"))
+}
+
+#[cfg(windows)]
+#[test]
+fn unsupported_windows_stage_hosts_refuse_before_holding_or_dispatching() {
+    let executable = std::env::current_exe().expect("current test executable");
+    let native = authorization::NativeStageHost::open(&executable).unwrap_err();
+    assert_eq!(native.code, "SPX-G570");
+    assert!(native.message.contains("native_executor.host.unsupported"));
+    let wasm = authorization::WasmStageHost::open(&executable).unwrap_err();
+    assert_eq!(wasm.code, "SPX-G570");
+    assert!(wasm.message.contains("wasm_executor.host.unsupported"));
+
+    let compiled = lifecycle();
+    let task = payload(&compiled.binding.task, b"alpha".to_vec(), 10);
+    let refused = authorization::dispatch_on(
+        authorization::StageBackend::Wasm { source: MODULE },
+        &compiled.program,
+        compiled.binding.initialize.prepared(),
+        std::slice::from_ref(&task),
+        DEFAULT_STAGE_STEPS,
+    )
+    .expect_err("a valid Wasm stage cannot run without a supported host");
+    assert_eq!(refused.len(), 1);
+    assert_eq!(refused[0].code, "SPX-G570");
+    assert!(refused[0]
+        .message
+        .contains("wasm_executor.process.host_unavailable"));
 }
 
 /// Test-only host fixture for the explicitly held native compiler capability.
@@ -565,9 +598,14 @@ pub(in crate::agent_lifecycle) fn native_stage_host() -> Option<authorization::N
     .find_map(|path| authorization::NativeStageHost::open(&path).ok())
 }
 
-pub(super) fn test_wasm_stage_host() -> &'static authorization::WasmStageHost {
+pub(super) fn test_wasm_stage_host() -> Option<&'static authorization::WasmStageHost> {
+    if cfg!(windows) {
+        // Windows stage process hosts are unsupported, but malformed calls
+        // still must reach the executor's pre-process refusal checks.
+        return None;
+    }
     static HOST: std::sync::OnceLock<authorization::WasmStageHost> = std::sync::OnceLock::new();
-    HOST.get_or_init(|| {
+    Some(HOST.get_or_init(|| {
         std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
             .map(std::path::PathBuf::from)
             .into_iter()
@@ -578,7 +616,7 @@ pub(super) fn test_wasm_stage_host() -> &'static authorization::WasmStageHost {
             ])
             .find_map(|path| authorization::WasmStageHost::open(&path).ok())
             .expect("Core Wasm tests require an explicit absolute Node fixture path")
-    })
+    }))
 }
 
 pub(in crate::agent_lifecycle) fn native_backend(

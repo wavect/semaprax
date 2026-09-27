@@ -170,7 +170,7 @@ const MAX_NODE_OUTCOME_ROW_BYTES: usize = 4 * 1_024;
 /// allowed to re-resolve. It reads no file and opens no network; the source
 /// is data the caller hands it.
 pub(in crate::agent_lifecycle) struct WasmStageExecutor<'a> {
-    pub(super) host: &'a WasmStageHost,
+    pub(super) host: Option<&'a WasmStageHost>,
     pub(super) source: &'a str,
 }
 
@@ -430,11 +430,19 @@ fn run(
     arguments: &[RetainedValue],
     max_steps: usize,
 ) -> Result<RetainedCallEvaluation, Diagnostic> {
-    run_admitted(host, source, program, prepared, arguments, max_steps, None)
+    run_admitted(
+        Some(host),
+        source,
+        program,
+        prepared,
+        arguments,
+        max_steps,
+        None,
+    )
 }
 
 fn run_admitted(
-    host: &WasmStageHost,
+    host: Option<&WasmStageHost>,
     source: &str,
     program: &hir::ResolvedProgram,
     prepared: &PreparedRetainedCall,
@@ -515,7 +523,7 @@ fn run_selected(
 
 #[allow(clippy::too_many_arguments)]
 fn run_direct(
-    host: &WasmStageHost,
+    host: Option<&WasmStageHost>,
     binding: &WasmTargetBinding<'_>,
     program: &hir::ResolvedProgram,
     entry: &ResolvedFunction,
@@ -563,7 +571,7 @@ fn run_direct(
     };
     let selected = vec![entry.id.as_str().to_owned()];
     let value = match build_and_drive(
-        host,
+        host.ok_or_else(|| invariant("wasm_executor.process.host_unavailable"))?,
         binding,
         program,
         &selected,
@@ -777,7 +785,7 @@ fn render_fields(
 
 #[allow(clippy::too_many_arguments)]
 fn run_through_injected_driver(
-    host: &WasmStageHost,
+    host: Option<&WasmStageHost>,
     binding: &WasmTargetBinding<'_>,
     program: &hir::ResolvedProgram,
     entry: &ResolvedFunction,
@@ -882,7 +890,7 @@ fn run_through_injected_driver(
         .map(|driver| driver.id.clone())
         .collect::<Vec<_>>();
     let lines = match build_and_drive(
-        host,
+        host.ok_or_else(|| invariant("wasm_executor.process.host_unavailable"))?,
         binding,
         &resolved,
         &selected,

@@ -104,6 +104,9 @@ impl NativeStageHost {
     /// Holds one caller-selected native compiler. The supplied path must be
     /// absolute; it is resolved once before the file is held.
     pub(in crate::agent_lifecycle) fn open(compiler: &Path) -> Result<Self, Diagnostic> {
+        if cfg!(windows) {
+            return Err(invariant("native_executor.host.unsupported"));
+        }
         if !compiler.is_absolute() {
             return Err(invariant("native_executor.host.compiler_path"));
         }

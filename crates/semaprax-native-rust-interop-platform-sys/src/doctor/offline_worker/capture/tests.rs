@@ -282,8 +282,6 @@ fn exit_diagnostic_is_retained_only_for_the_selected_exit_failure() {
         Kill(Ok(())),
         Reap(Ok(Some(false))),
         time(0),
-        data(0, 0),
-        data(1, 0),
     ];
     let mut script = Script::with_termination(steps, wire::Termination::Exited(22));
     let mut output = Vec::with_capacity(65_536);

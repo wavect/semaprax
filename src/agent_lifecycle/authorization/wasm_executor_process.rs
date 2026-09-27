@@ -40,6 +40,9 @@ pub struct WasmStageHost {
 
 impl WasmStageHost {
     pub fn open(path: &Path) -> Result<Self, Diagnostic> {
+        if cfg!(windows) {
+            return Err(invariant("wasm_executor.host.unsupported"));
+        }
         if !path.is_absolute() {
             return Err(invariant("wasm_executor.host.runtime_path"));
         }

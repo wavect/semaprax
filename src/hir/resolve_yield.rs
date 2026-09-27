@@ -7,22 +7,33 @@
 //! block, never nested. This module adds the type-level half:
 //!
 //! - The declared request and response types must be admitted Copy scalars
-//!   (`hir::nodes::is_scalar_resolved_type`), deferring records, variants,
-//!   and any type needing cleanup to future work so a suspend/resume never
-//!   has to reason about ownership crossing the suspension. A record or
-//!   variant that would fit the bounded, flat, non-recursive Copy-scalar
-//!   aggregate shape `yield_aggregate::bounded_aggregate_refusal` states
-//!   (issue #296 R20, docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md §12.1) is
-//!   still refused (`SPX-T307`): that module is a design record for a
-//!   future increment's admission, not a live admission here, because no
-//!   `resumable_effects` lowering, envelope, journal, or driver support for
-//!   such a channel exists yet. A checked program must either run or be
-//!   refused with a stable diagnostic before it ever reaches lowering, so
-//!   this module never admits a shape lowering cannot yet execute.
+//!   (`hir::nodes::is_scalar_resolved_type`), or (issue #296 R20) a bounded,
+//!   flat, non-recursive record or variant of Copy scalars --
+//!   `yield_aggregate::bounded_aggregate_refusal`'s exact shape
+//!   (docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md §12.1) -- admitted only for
+//!   the direct top-level (sequential) `yield` placement this doc comment's
+//!   own first paragraph describes, never a control-dependent one
+//!   (`finish_yields_admission`'s own placement check keeps `SPX-T307` for
+//!   that combination). Every runtime layer this shape needs now exists end
+//!   to end: `resumable_effects::lowering`'s `ResumableScalar::Record`/
+//!   `Variant`, the interpreter's `ResumableChannelValue` boundary
+//!   (`crate::interpreter::resumable::channel`), the `v5` `source_checkpoint`
+//!   envelope, and the durable journal's `_channel` entry points. A shape
+//!   that does not fit the bound at all -- too many fields/cases, a nested
+//!   aggregate, an owned `Bytes` leaf, or a generic instantiation -- keeps
+//!   `SPX-T307` regardless of placement, since lowering still cannot execute
+//!   it; a checked program must either run or be refused with a stable
+//!   diagnostic before it ever reaches lowering, so this module never admits
+//!   a shape lowering cannot yet execute.
 //! - The whole function -- every parameter and every intermediate value --
-//!   must stay within that same scalar profile, so cleanup-plan
-//!   construction never needs a genuinely new exit path for `yield`
-//!   (`cleanup_plan::build` treats it as an ordinary single-child node).
+//!   must stay within that same profile: a parameter stays a bare Copy
+//!   scalar always (this widening never touches parameters), and an
+//!   ordinary intermediate value stays a bare Copy scalar unless it is
+//!   *exactly* the declared request or response type (`check_scalar`), so
+//!   cleanup-plan construction never needs a genuinely new exit path for
+//!   `yield` (`cleanup_plan::build` treats it as an ordinary single-child
+//!   node) and an unrelated aggregate used only as body scratch keeps its
+//!   ordinary `SPX-T303`.
 //! - The function may declare no `uses` effects: this slice's interpreter
 //!   resumes by re-executing the function's prefix with the resume value
 //!   substituted at the yield site, which would redispatch a host effect
@@ -178,45 +189,46 @@ impl Resolver<'_> {
             if is_scalar_resolved_type(ty) {
                 continue;
             }
-            // Issue #296 R20 (coordinator review after the first slice):
-            // admitting a bounded aggregate *here* without also teaching
-            // `resumable_effects::lowering`, its envelope, its durable
-            // journal, and the driver this same shape let a checked program
-            // pass this gate and then fail closed only much later, at
-            // attempted lowering, with the unrelated generic `SPX-H006` --
-            // worse than a stable diagnostic here. So every record/variant
-            // `yields` channel type is refused, always, with the dedicated
-            // `SPX-T307`; `bounded_aggregate_refusal` is consulted only to
-            // report, for a shape that already fits its future admission
-            // rule, that lowering support (not the shape) is what is
-            // missing, rather than admitting it.
+            // Issue #296 R20: a record or variant that fits the bounded,
+            // flat, non-recursive Copy-scalar aggregate shape
+            // `yield_aggregate::bounded_aggregate_refusal` states
+            // (docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md §12.1) is admitted
+            // here -- `resumable_effects::lowering`, the interpreter's
+            // `ResumableChannelValue` boundary, the `v5` checkpoint
+            // envelope, and the durable journal's `_channel` entry points
+            // all now run it end to end for the direct top-level
+            // (sequential) `yield` placement.
+            // `finish_yields_admission` refuses a control-dependent
+            // placement of this same aggregate shape afterward, once the
+            // resolved body's placement is known; this signature-only check
+            // cannot see placement yet. A shape that does not fit the bound
+            // at all -- too many fields/cases, a nested aggregate, an owned
+            // `Bytes` leaf, or a generic instantiation -- keeps the
+            // dedicated `SPX-T307` refusal regardless of placement.
             if matches!(ty, ResolvedType::Nominal { .. }) {
-                let detail =
-                    match yield_aggregate::bounded_aggregate_refusal(&self.declarations, ty) {
-                        Ok(()) => "it fits the bounded Copy-scalar aggregate shape \
-                         (docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md §12.1), but no \
-                         resumable_effects lowering, envelope, journal, or driver support for \
-                         it exists yet"
-                            .to_owned(),
-                        Err(reason) => {
-                            format!("it does not even fit that future admission shape: {reason}")
-                        }
-                    };
-                return Err(self.error(
-                    AGGREGATE_NOT_YET_ADMITTED,
-                    format!(
-                        "function `{}` declares a `yields` {role} type that is a record or \
-                         variant; aggregate yield channels are not yet admitted: {detail}",
-                        function.name
-                    ),
-                    yields.span,
-                ));
+                match yield_aggregate::bounded_aggregate_refusal(&self.declarations, ty) {
+                    Ok(()) => continue,
+                    Err(reason) => {
+                        return Err(self.error(
+                            AGGREGATE_NOT_YET_ADMITTED,
+                            format!(
+                                "function `{}` declares a `yields` {role} type that is a record \
+                                 or variant but does not fit the admitted bounded Copy-scalar \
+                                 aggregate shape (docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md \
+                                 §12.1): {reason}",
+                                function.name
+                            ),
+                            yields.span,
+                        ));
+                    }
+                }
             }
             return Err(self.error(
                 NON_SCALAR_SIGNATURE,
                 format!(
                     "function `{}` declares a `yields` {role} type that is not an admitted \
-                     Copy scalar; records, variants, and owned types are not yet admitted here",
+                     Copy scalar; only a Copy scalar, or a bounded flat record/variant of Copy \
+                     scalars, is admitted here",
                     function.name
                 ),
                 yields.span,
@@ -256,6 +268,30 @@ impl Resolver<'_> {
         yields: &ResolvedYieldsClause,
         body: &mut ResolvedExpr,
     ) -> Result<(), Diagnostic> {
+        // Issue #296 R20: an admitted bounded aggregate channel
+        // (`resolve_yields_clause` already checked the shape; only the
+        // signature's own type, not yet the body's placement, was known
+        // there) is wired end to end only for the direct top-level
+        // (sequential) `yield` placement. A control-dependent placement --
+        // `yield` reachable only through `if`/`else` or `while` -- keeps the
+        // dedicated `SPX-T307` refusal here, before this ever reaches
+        // lowering, rather than admitting a shape
+        // `resumable_effects::lowering::control` cannot run.
+        if (matches!(yields.request_type, ResolvedType::Nominal { .. })
+            || matches!(yields.response_type, ResolvedType::Nominal { .. }))
+            && body_is_control_dependent(body)
+        {
+            return Err(self.error(
+                AGGREGATE_NOT_YET_ADMITTED,
+                format!(
+                    "function `{function_name}` declares a bounded record/variant `yields` \
+                     channel but its `yield` is reachable only through `if`/`else` or `while`; \
+                     an aggregate channel is admitted only for the direct top-level (sequential) \
+                     placement"
+                ),
+                yields.span,
+            ));
+        }
         let mut found = 0usize;
         let mut yielded_bindings = BTreeMap::new();
         scan_expr(
@@ -284,6 +320,7 @@ impl Resolver<'_> {
 fn check_scalar(
     resolver: &Resolver<'_>,
     function_name: &str,
+    yields: &ResolvedYieldsClause,
     expr: &ResolvedExpr,
 ) -> Result<(), Diagnostic> {
     // A scalar *type* is Copy, but a `borrow`/`share` *ownership* of one --
@@ -309,6 +346,18 @@ fn check_scalar(
     if !borrowed && expr.ty == ResolvedType::Bytes {
         return Ok(());
     }
+    // Issue #296 R20: an admitted bounded record/variant `yields` channel
+    // (`resolve_yields_clause` already checked its shape) may appear as any
+    // intermediate value of *exactly* the declared request or response
+    // type -- the request built at a `yield` site, the answer bound from
+    // one, and any later expression over that same bound value (a field
+    // read's own receiver, say). This is never widened to any other
+    // record/variant: a value of some *other* aggregate type used only as
+    // body scratch still keeps the ordinary `SPX-T303` below, exactly as it
+    // did before this channel type was admitted.
+    if !borrowed && (expr.ty == yields.request_type || expr.ty == yields.response_type) {
+        return Ok(());
+    }
     let (code, reason) = profile_refusal(resolver, &expr.ty, expr.ownership);
     Err(resolver.error(
         code,
@@ -318,6 +367,44 @@ fn check_scalar(
         ),
         expr.span,
     ))
+}
+
+/// True when some `yield` in `body` is reachable only through an `if`/`else`
+/// branch or a `while` body rather than being a direct top-level statement
+/// value or tail of the function's own outermost block. Mirrors
+/// `resumable_effects::lowering::control::is_control_dependent`
+/// independently, in the shape hir's own resolved nodes already give it
+/// (`hir` does not, and must not, depend on `resumable_effects`), so a
+/// bounded aggregate `yields` channel can be refused for this placement
+/// before it ever reaches lowering.
+fn body_is_control_dependent(body: &ResolvedExpr) -> bool {
+    fn count_yields(expr: &ResolvedExpr) -> usize {
+        let mut count = 0usize;
+        let mut pending = vec![expr];
+        while let Some(expr) = pending.pop() {
+            if matches!(expr.kind, ResolvedExprKind::Yield { .. }) {
+                count += 1;
+            }
+            super::push_resolved_expression_children_in_authored_order(expr, &mut pending);
+        }
+        count
+    }
+    let ResolvedExprKind::Block { statements, tail } = &body.kind else {
+        return false;
+    };
+    let direct = statements
+        .iter()
+        .filter(|statement| {
+            matches!(
+                statement,
+                super::expr_nodes::ResolvedStatement::Let { value, .. }
+                    | super::expr_nodes::ResolvedStatement::Assign { value, .. }
+                    if matches!(value.kind, ResolvedExprKind::Yield { .. })
+            )
+        })
+        .count()
+        + usize::from(matches!(tail.kind, ResolvedExprKind::Yield { .. }));
+    count_yields(body) != direct
 }
 
 /// Exhaustive descent over every resolved expression shape, mirroring
@@ -709,7 +796,7 @@ fn scan_expr(
             )?;
         }
     }
-    check_scalar(resolver, function_name, expr)
+    check_scalar(resolver, function_name, yields, expr)
 }
 
 fn scan_children(
@@ -905,509 +992,4 @@ fn scan_statement(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::{
-        AGGREGATE_NOT_YET_ADMITTED, BORROW_ACROSS_YIELD, EFFECTFUL_YIELDS, ILL_TYPED_YIELD,
-        MAX_YIELD_AGGREGATE_FIELDS, NON_SCALAR_BODY, NON_SCALAR_SIGNATURE, RESOURCE_ACROSS_YIELD,
-    };
-    use crate::hir;
-
-    fn resolve(source: &str) -> Result<hir::ResolvedProgram, crate::diagnostic::Diagnostic> {
-        let program = crate::parse(source, Path::new("resolve-yield-fixture.spx")).unwrap();
-        hir::resolve(&program).map_err(|mut errors| errors.remove(0))
-    }
-
-    #[test]
-    fn a_well_typed_scalar_yield_resolves() {
-        let source = r#"
-module test.resolve_yield_ok;
-@id("app.ask")
-fn ask(seed: i64) -> i64
-    yields i64 -> i64
-{
-    let answer = yield seed + 1;
-    answer * 2
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let resolved = resolve(source).expect("well-typed scalar yield resolves");
-        let ask = resolved
-            .functions
-            .iter()
-            .find(|function| function.id.as_str() == "app.ask")
-            .unwrap();
-        let yields = ask.yields.as_ref().expect("declares yields");
-        assert_eq!(yields.request_type, hir::ResolvedType::I64);
-        assert_eq!(yields.response_type, hir::ResolvedType::I64);
-    }
-
-    #[test]
-    fn sequential_yields_share_the_declared_response_type() {
-        let source = r#"
-module test.resolve_sequential_yields;
-@id("app.ask")
-fn ask() -> bool
-    yields i64 -> bool
-{
-    let first = yield 1;
-    let second = yield 2;
-    first && second
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let resolved = resolve(source).expect("sequential scalar yields resolve");
-        let ask = resolved
-            .functions
-            .iter()
-            .find(|function| function.id.as_str() == "app.ask")
-            .unwrap();
-        let hir::ResolvedExprKind::Block { statements, .. } = &ask.body.kind else {
-            panic!("resumable function body is a block")
-        };
-        assert_eq!(statements.len(), 2);
-        for statement in statements {
-            let hir::ResolvedStatement::Let { value, .. } = statement else {
-                panic!("fixture contains only let statements")
-            };
-            assert!(matches!(&value.kind, hir::ResolvedExprKind::Yield { .. }));
-            assert_eq!(value.ty, hir::ResolvedType::Bool);
-        }
-    }
-
-    #[test]
-    fn a_distinct_response_type_assignment_is_retagged_before_assignment_validation() {
-        let source = r#"
-module test.resolve_yield_assignment_response;
-@id("app.ask")
-fn ask(seed: i64) -> bool yields i64 -> bool {
-    let mut answer = false;
-    answer = yield seed;
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let parsed = crate::parse(source, Path::new("resolve-yield-assignment.spx")).unwrap();
-        let source_diagnostics = crate::source_verify::verify(&parsed);
-        assert!(
-            source_diagnostics.is_empty(),
-            "the valid source must pass verification before HIR retagging: {source_diagnostics:?}"
-        );
-        let resolved = hir::resolve(&parsed)
-            .map_err(|mut diagnostics| diagnostics.remove(0))
-            .expect("a direct assignment accepts the response type");
-        hir::validate(&resolved).expect("the retagged assignment remains valid HIR");
-        let ask = resolved
-            .functions
-            .iter()
-            .find(|function| function.id.as_str() == "app.ask")
-            .unwrap();
-        let hir::ResolvedExprKind::Block { statements, .. } = &ask.body.kind else {
-            panic!("resumable function body is a block")
-        };
-        let hir::ResolvedStatement::Assign { binding, value, .. } = &statements[1] else {
-            panic!("fixture's yielded response remains a direct assignment")
-        };
-        assert_eq!(binding.ty, hir::ResolvedType::Bool);
-        assert_eq!(value.ty, hir::ResolvedType::Bool);
-        assert!(matches!(&value.kind, hir::ResolvedExprKind::Yield { .. }));
-    }
-
-    #[test]
-    fn a_direct_yield_assignment_still_requires_the_declared_response_type() {
-        let source = r#"
-module test.resolve_yield_assignment_response_mismatch;
-@id("app.ask")
-fn ask(seed: i64) -> i64 yields i64 -> bool {
-    let mut answer = 0;
-    answer = yield seed;
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let parsed =
-            crate::parse(source, Path::new("resolve-yield-assignment-mismatch.spx")).unwrap();
-        let source_diagnostics = crate::source_verify::verify(&parsed);
-        assert!(
-            source_diagnostics
-                .iter()
-                .all(|diagnostic| diagnostic.code != "SPX-U102"),
-            "the placeholder mismatch must be deferred to the response-aware HIR check: {source_diagnostics:?}"
-        );
-        let error = hir::resolve(&parsed)
-            .unwrap_err()
-            .into_iter()
-            .next()
-            .unwrap();
-        assert_eq!(error.code, ILL_TYPED_YIELD);
-        assert!(error.message.contains("yielded response of type"));
-    }
-
-    #[test]
-    fn a_distinct_response_type_can_be_the_function_tail() {
-        let source = r#"
-module test.resolve_yield_tail_response;
-@id("app.ask")
-fn ask(seed: i64) -> bool yields i64 -> bool { yield seed }
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let resolved = resolve(source).expect("yield response types the function tail");
-        hir::validate(&resolved).unwrap();
-    }
-
-    #[test]
-    fn a_yield_operand_of_the_wrong_type_is_refused() {
-        let source = r#"
-module test.resolve_yield_ill_typed;
-@id("app.ask")
-fn ask() -> i64
-    yields i64 -> i64
-{
-    let answer = yield true;
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        assert_eq!(error.code, ILL_TYPED_YIELD);
-    }
-
-    #[test]
-    fn a_later_yield_operand_of_the_wrong_type_is_refused() {
-        let source = r#"
-module test.resolve_sequential_yield_ill_typed;
-@id("app.ask")
-fn ask() -> i64
-    yields i64 -> i64
-{
-    let first = yield 1;
-    let second = yield false;
-    first + second
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        assert_eq!(error.code, ILL_TYPED_YIELD);
-    }
-
-    #[test]
-    fn a_generic_function_cannot_declare_yields() {
-        let source = r#"
-module test.resolve_yield_generic;
-@id("app.ask")
-fn ask<T>() -> i64
-    yields i64 -> i64
-{
-    let answer = yield 1;
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        // `source_verify::declared_type` refuses any generic function whose
-        // body reaches a `Yield` node before `hir::resolve` runs its own
-        // checks; see the module doc for why this module adds no second,
-        // unreachable check for the same case.
-        assert_eq!(error.code, "SPX-T226");
-    }
-
-    #[test]
-    fn a_function_with_uses_effects_cannot_also_declare_yields() {
-        let source = r#"
-module test.resolve_yield_effectful;
-permit { clock.read }
-@id("app.ask")
-fn ask() -> i64
-    uses { clock.read }
-    yields i64 -> i64
-{
-    let answer = yield 1;
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        assert_eq!(error.code, EFFECTFUL_YIELDS);
-    }
-
-    #[test]
-    fn an_owned_yields_signature_that_is_not_a_record_or_variant_is_refused() {
-        // `Bytes` itself is not an admitted bounded aggregate (it is not a
-        // record or variant at all), so it keeps the original catch-all
-        // refusal rather than the new, more specific `SPX-T307`.
-        let source = r#"
-module test.resolve_yield_non_scalar;
-@id("app.ask")
-fn ask() -> i64
-    yields Bytes -> i64
-{
-    let answer = yield 1;
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        assert_eq!(error.code, NON_SCALAR_SIGNATURE);
-    }
-
-    #[test]
-    fn a_record_yields_signature_with_a_non_scalar_field_is_still_refused() {
-        // Even a record that also fails `bounded_aggregate_refusal`'s own
-        // future-admission shape (here, an owned `Bytes` leaf) is refused
-        // with the same dedicated `SPX-T307` as one that would fit it: no
-        // record/variant channel type is admitted today regardless.
-        let source = r#"
-module test.resolve_yield_non_scalar;
-@id("app.prompt")
-record Prompt {
-    @id("app.prompt.seed") seed: i64,
-    @id("app.prompt.note") note: Bytes,
-}
-@id("app.ask")
-fn ask() -> i64
-    yields Prompt -> i64
-{
-    let answer = yield Prompt { seed: 1, note: bytes_zeroed(1usize) };
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
-    }
-
-    #[test]
-    fn a_bounded_copy_scalar_record_yields_signature_is_still_refused_pending_runtime_support() {
-        // Issue #296 R20 (coordinator review): a flat record of Copy scalars
-        // fits `yield_aggregate::bounded_aggregate_refusal`'s designed
-        // future-admission shape (docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md
-        // §12.1), but is still refused as a `yields` request/response type
-        // today: no `resumable_effects` lowering, envelope, journal, or
-        // driver support for it exists yet, so admitting it here would let
-        // a checked program pass this gate and then fail closed only much
-        // later, at attempted lowering, with the unrelated generic
-        // `SPX-H006`, instead of a stable diagnostic here.
-        let source = r#"
-module test.resolve_yield_record_aggregate;
-@id("app.prompt")
-record Prompt {
-    @id("app.prompt.seed") seed: i64,
-    @id("app.prompt.urgent") urgent: bool,
-}
-@id("app.ask")
-fn ask() -> i64
-    yields Prompt -> Prompt
-{
-    let answer = yield Prompt { seed: 1, urgent: true };
-    answer.seed
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
-    }
-
-    #[test]
-    fn a_bounded_copy_scalar_variant_yields_signature_is_still_refused_pending_runtime_support() {
-        let source = r#"
-module test.resolve_yield_variant_aggregate;
-@id("app.step")
-variant Step {
-    @id("app.step.continue")
-    Continue { @id("app.step.continue.round") round: i64, },
-    @id("app.step.done")
-    Done { @id("app.step.done.ok") ok: bool, },
-}
-@id("app.ask")
-fn ask() -> i64
-    yields i64 -> Step
-{
-    let answer = yield 1;
-    match answer {
-        Step::Continue { round: round } => round,
-        Step::Done { ok: ok } => if ok { 1 } else { 0 },
-    }
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
-    }
-
-    #[test]
-    fn a_record_yields_signature_past_the_field_bound_is_refused() {
-        let declared_fields: String = (0..=MAX_YIELD_AGGREGATE_FIELDS)
-            .map(|index| format!("    @id(\"app.wide.f{index}\") f{index}: i64,\n"))
-            .collect();
-        let constructed_fields: String = (0..=MAX_YIELD_AGGREGATE_FIELDS)
-            .map(|index| format!("f{index}: {index}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let source = format!(
-            "module test.resolve_yield_wide_record;\n@id(\"app.wide\")\nrecord Wide {{\n{declared_fields}}}\n@id(\"app.ask\")\nfn ask() -> i64 yields Wide -> i64 {{ let answer = yield Wide {{ {constructed_fields} }}; answer }}\n@id(\"app.main\")\nfn main() -> i64 {{ 0 }}\n"
-        );
-        let error = resolve(&source).unwrap_err();
-        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
-    }
-
-    #[test]
-    fn a_generic_record_yields_signature_is_refused() {
-        let source = r#"
-module test.resolve_yield_generic_record;
-@id("app.boxed")
-record Boxed<T> { @id("app.boxed.value") value: T, }
-@id("app.ask")
-fn ask() -> i64
-    yields Boxed<i64> -> i64
-{
-    let answer = yield Boxed<i64> { value: 1 };
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
-    }
-
-    #[test]
-    fn a_record_nested_inside_a_record_yields_signature_is_refused() {
-        let source = r#"
-module test.resolve_yield_nested_record;
-@id("app.inner")
-record Inner { @id("app.inner.seed") seed: i64, }
-@id("app.outer")
-record Outer { @id("app.outer.inner") inner: Inner, }
-@id("app.ask")
-fn ask() -> i64
-    yields Outer -> i64
-{
-    let answer = yield Outer { inner: Inner { seed: 1 } };
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
-    }
-
-    #[test]
-    fn a_bounded_aggregate_intermediate_value_in_a_yields_function_body_is_still_refused() {
-        // The body-level `check_scalar` walk was fully reverted alongside
-        // the signature check: an ordinary intermediate record/variant
-        // value in a `yields`-declaring function's body keeps the original,
-        // unconditional `SPX-T303` -- it was never widened to consult
-        // `yield_aggregate` at all, only the declared request/response type
-        // was (see `a_bounded_copy_scalar_record_yields_signature_is_still_refused_pending_runtime_support`).
-        let source = r#"
-module test.resolve_yield_body_aggregate;
-@id("app.prompt")
-record Prompt {
-    @id("app.prompt.seed") seed: i64,
-    @id("app.prompt.urgent") urgent: bool,
-}
-@id("app.ask")
-fn ask(seed: i64) -> i64
-    yields i64 -> i64
-{
-    let prompt = Prompt { seed: seed, urgent: false };
-    let answer = yield prompt.seed;
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let error = resolve(source).unwrap_err();
-        assert_eq!(error.code, NON_SCALAR_BODY);
-    }
-
-    #[test]
-    fn yields_in_branches_and_loops_resolve_with_the_response_type() {
-        let source = r#"
-module test.resolve_yield_control;
-@id("app.ask")
-fn ask(limit: i64) -> bool
-    yields i64 -> bool
-{
-    let mut round = 0;
-    let mut accepted = false;
-    while round < limit {
-        let ok = yield round;
-        accepted = ok;
-        round = round + 1;
-        round > 0
-    }
-    let last = if accepted {
-        let again = yield round;
-        again
-    } else {
-        false
-    };
-    last
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        let program = resolve(source).unwrap();
-        hir::validate(&program).unwrap();
-    }
-
-    fn refused(parameter: &str, declarations: &str) -> String {
-        let source = format!(
-            "module test.resolve_yield_refusal;\n{declarations}\n@id(\"app.ask\")\nfn ask({parameter}) -> i64\n    yields i64 -> i64\n{{\n    let answer = yield 1;\n    answer\n}}\n@id(\"app.main\")\nfn main() -> i64 {{ 0 }}\n"
-        );
-        resolve(&source).unwrap_err().code.to_string()
-    }
-
-    #[test]
-    fn borrows_resources_and_owned_values_have_stable_refusals() {
-        assert_eq!(refused("text: borrow str", ""), BORROW_ACROSS_YIELD);
-        let token = "@id(\"app.token\")\nresource Token {\n    @id(\"app.token.drop\")\n    drop trivial;\n}";
-        assert_eq!(refused("token: borrow Token", token), BORROW_ACROSS_YIELD);
-        assert_eq!(refused("token: own Token", token), RESOURCE_ACROSS_YIELD);
-        let owned = r#"
-module test.resolve_yield_owned;
-@id("app.ask")
-fn ask(seed: i64) -> i64
-    yields i64 -> i64
-{
-    let text = "owned";
-    let answer = yield seed;
-    answer
-}
-@id("app.main")
-fn main() -> i64 { 0 }
-"#;
-        assert_eq!(resolve(owned).unwrap_err().code, NON_SCALAR_BODY);
-    }
-
-    #[test]
-    fn a_resource_nested_inside_a_plain_record_field_is_still_the_resource_refusal() {
-        // Issue #296 review: `profile_refusal` used to classify a resource
-        // only when the checked type was itself directly the `resource`
-        // declaration; a record that merely *contains* one (no generic
-        // arguments, so `TypeFacts` computes recursively) fell through to
-        // the generic `SPX-T303`. It must get the more precise `SPX-T306`,
-        // the same as a bare resource parameter.
-        let declarations = "@id(\"app.token\")\nresource Token {\n    @id(\"app.token.drop\")\n    drop trivial;\n}\n@id(\"app.wrapper\")\nrecord Wrapper {\n    @id(\"app.wrapper.token\")\n    token: Token,\n}";
-        assert_eq!(
-            refused("wrapper: own Wrapper", declarations),
-            RESOURCE_ACROSS_YIELD
-        );
-    }
-}
+mod tests;

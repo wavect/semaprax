@@ -1,21 +1,32 @@
 //! Issue #296 R20 (docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md §12.1, blocker
-//! (1) of the Agent lifecycle migration assessment): the **design record**
-//! for a bounded, flat, non-recursive record or variant of Copy scalars as a
-//! future `yields` request/response channel type.
+//! (1) of the Agent lifecycle migration assessment): the exact shape and
+//! bound of a bounded, flat, non-recursive record or variant of Copy scalars
+//! as an admitted `yields` request/response channel type.
 //!
-//! This module states the exact shape and bound a later increment would
-//! admit, so that increment can check its work against a concrete target
-//! instead of re-deriving it. It is deliberately **not** wired into any live
-//! admission decision today: a coordinator review of this module's first
-//! use found that admitting the shape in `hir::resolve_yield` alone, with no
-//! matching `resumable_effects` lowering, envelope, journal, or driver
-//! support, let a checked program pass HIR resolution and then fail closed
-//! only much later, at attempted lowering, with the unrelated generic
-//! `SPX-H006` -- worse than the stable, dedicated `SPX-T307` refusal
-//! `hir::resolve_yield` now always gives a record/variant `yields` channel
-//! type instead, regardless of whether it fits the shape below. Widening
-//! admission again requires wiring the runtime support first (or
-//! alongside), never before it.
+//! An earlier R20 slice kept this module a design record only, refusing
+//! every record/variant channel unconditionally
+//! (`hir::resolve_yield`'s `SPX-T307`), because no matching
+//! `resumable_effects` lowering, envelope, journal, or driver support existed
+//! yet, and a checked program must either run or be refused with a stable
+//! diagnostic before it ever reaches lowering -- never "admitted here,
+//! `SPX-H006` at lowering". That runtime support now exists for the direct
+//! top-level (sequential) `yield` placement
+//! (`resumable_effects::lowering`'s `ResumableScalar::Record`/`Variant`, the
+//! `interpreter::resumable` `ResumableChannelValue` boundary, the `v5`
+//! `source_checkpoint` envelope, and the durable
+//! `resumable_effects::continuation` journal's `_channel` entry points), so
+//! `hir::resolve_yield` now admits exactly the shape this module states, for
+//! that placement only. A control-dependent placement (`yield` inside
+//! `if`/`else`/`while`) keeps `SPX-T307` regardless of shape:
+//! `resumable_effects::lowering::control` has no aggregate-channel support,
+//! only the owned-`Bytes`-carrying Copy-scalar profile it already had.
+//! `bounded_aggregate_refusal` is `pub(crate)` so both the HIR admission
+//! decision and `resumable_effects`'s own independent re-derivations
+//! (`resumable_effects::lowering::require_scalar_expression_tree`,
+//! `resumable_effects::lowering::control::check_resumable_profile`,
+//! `resumable_effects::source_signature::derive_source_effect_signature`)
+//! check their work against this one authoritative shape rule rather than
+//! re-deriving it.
 //!
 //! Depth is fixed at exactly one level: a record's own fields, or a
 //! variant's own case fields, must themselves be admitted Copy scalars --
@@ -32,14 +43,14 @@
 
 use super::{DeclarationKind, ResolvedType};
 
-pub(super) const MAX_YIELD_AGGREGATE_FIELDS: usize = 8;
-pub(super) const MAX_YIELD_AGGREGATE_CASES: usize = 8;
+pub(crate) const MAX_YIELD_AGGREGATE_FIELDS: usize = 8;
+pub(crate) const MAX_YIELD_AGGREGATE_CASES: usize = 8;
 
 /// `Ok(())` when `ty` is an admitted bounded aggregate; otherwise the exact
 /// bound or shape rule it fails, for `resolve_yield`'s `SPX-T307` message.
 /// Callers only reach this for a `ResolvedType::Nominal`; every other type
 /// keeps the pre-existing non-scalar refusal.
-pub(super) fn bounded_aggregate_refusal(
+pub(crate) fn bounded_aggregate_refusal(
     declarations: &super::DeclarationIndex,
     ty: &ResolvedType,
 ) -> Result<(), &'static str> {

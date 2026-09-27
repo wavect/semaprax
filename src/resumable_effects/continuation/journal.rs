@@ -13,7 +13,10 @@
 //! may be cut, and only under the explicit [`TornTailPolicy`] that asks for it.
 
 use super::ContinuationError;
-use crate::interpreter::resumable::checkpoint::{scalar_from_json, scalar_json};
+use crate::interpreter::resumable::checkpoint::{
+    channel_from_json, channel_json, scalar_from_json, scalar_json,
+};
+use crate::interpreter::resumable::ResumableChannelValue;
 use crate::interpreter::ArgumentValue;
 use crate::resumable_effects::source_checkpoint::SourceCheckpointKey;
 use rustix::fs::{AtFlags, FileType, FlockOperation, Mode, OFlags};
@@ -105,7 +108,7 @@ pub(super) enum Record {
     Answered {
         site: u32,
         envelope_digest: [u8; 32],
-        answer: ArgumentValue,
+        answer: ResumableChannelValue,
         answer_digest: [u8; 32],
     },
     Completed {
@@ -165,8 +168,13 @@ pub(super) fn journal_name(invocation_id: &str) -> String {
     format!("{}.journal", hex(&sha256(&bytes)))
 }
 
-pub(super) fn answer_digest(answer: &ArgumentValue) -> [u8; 32] {
-    sha256(scalar_json(answer).to_string().as_bytes())
+/// Issue #296 R20: widened to [`ResumableChannelValue`]. Byte-for-byte
+/// identical to the pre-widening digest for a `Scalar` answer, since
+/// [`channel_json`] renders that variant exactly like [`scalar_json`]
+/// always did; only a genuinely aggregate answer ever produces a different
+/// digest input.
+pub(super) fn answer_digest(answer: &ResumableChannelValue) -> [u8; 32] {
+    sha256(channel_json(answer).to_string().as_bytes())
 }
 
 fn record_json(record: &Record) -> Value {
@@ -218,7 +226,7 @@ fn record_json(record: &Record) -> Value {
             "kind": "answered",
             "site": site,
             "envelope_digest": digest(envelope_digest),
-            "answer": scalar_json(answer),
+            "answer": channel_json(answer),
             "answer_digest": digest(answer_digest),
         }),
         Record::Completed { result } => json!({"kind": "completed", "result": scalar_json(result)}),
@@ -256,6 +264,10 @@ fn site(value: &Value) -> Result<u32, ContinuationError> {
 
 fn scalar(value: &Value) -> Result<ArgumentValue, ContinuationError> {
     scalar_from_json(value).map_err(|_| ContinuationError::TamperedJournal)
+}
+
+fn channel(value: &Value) -> Result<ResumableChannelValue, ContinuationError> {
+    channel_from_json(value).map_err(|_| ContinuationError::TamperedJournal)
 }
 
 fn parse_record(value: &Value) -> Result<Record, ContinuationError> {
@@ -321,7 +333,7 @@ fn parse_record(value: &Value) -> Result<Record, ContinuationError> {
             Record::Answered {
                 site: site(value)?,
                 envelope_digest: digest_field(&value["envelope_digest"])?,
-                answer: scalar(&value["answer"])?,
+                answer: channel(&value["answer"])?,
                 answer_digest: digest_field(&value["answer_digest"])?,
             }
         }

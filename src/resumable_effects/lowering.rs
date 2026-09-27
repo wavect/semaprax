@@ -53,6 +53,16 @@ impl ResumableSuspensionBinding {
 
 /// Exact target-neutral scalar bits used to bind one suspension to the
 /// invocation arguments that produced it. Floats are bits, not IEEE equality.
+///
+/// `Record` and `Variant` (issue #296 R20) represent a bounded, flat
+/// Copy-scalar `yields` request/response value
+/// (`hir::yield_aggregate::bounded_aggregate_refusal`): a record's own
+/// fields, or a variant's selected case's own fields, in canonical declared
+/// field order. Depth is fixed at one level by that same admission rule, so
+/// neither ever recurses into another `Record` or `Variant`. Function
+/// *arguments* stay Copy-scalar only (the profile this widening does not
+/// touch), so only a suspension's request/answer history ever carries one of
+/// these two variants.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResumableScalar {
     I64(i64),
@@ -63,6 +73,11 @@ pub enum ResumableScalar {
     F32(u32),
     F64(u64),
     Bool(bool),
+    Record(Vec<ResumableScalar>),
+    Variant {
+        case: String,
+        fields: Vec<ResumableScalar>,
+    },
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -307,7 +322,7 @@ pub fn lower_sequential(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<SequentialResumablePlan, Diagnostic> {
-    let yields = control::check_resumable_profile(program, function, false)?;
+    let yields = control::check_resumable_profile(program, function, false, true)?;
     reject_yield_in_contracts(function)?;
     let sites = locate_direct_yields(function)?;
     for (yield_expression, request, _) in &sites {
@@ -321,7 +336,11 @@ pub fn lower_sequential(
             ));
         }
     }
-    require_scalar_expression_tree(&function.body, false)?;
+    require_scalar_expression_tree(
+        &function.body,
+        false,
+        Some((&yields.request_type, &yields.response_type)),
+    )?;
     reject_reachable_resumable_callees(program, function)?;
 
     let identity = plan_identity(program, function, &sites)?;
@@ -415,6 +434,21 @@ fn hash_scalar(hasher: &mut Sha256, value: &ResumableScalar) {
             hasher.update(bits.to_le_bytes());
         }
         ResumableScalar::Bool(value) => hasher.update([7u8, u8::from(*value)]),
+        ResumableScalar::Record(fields) => {
+            hasher.update([8u8]);
+            hasher.update((fields.len() as u64).to_le_bytes());
+            for field in fields {
+                hash_scalar(hasher, field);
+            }
+        }
+        ResumableScalar::Variant { case, fields } => {
+            hasher.update([9u8]);
+            frame(hasher, case.as_bytes());
+            hasher.update((fields.len() as u64).to_le_bytes());
+            for field in fields {
+                hash_scalar(hasher, field);
+            }
+        }
     }
 }
 
@@ -595,15 +629,28 @@ fn reject_yield_in_contracts(function: &ResolvedFunction) -> Result<(), Diagnost
     Ok(())
 }
 
+/// `admitted_channel`, when present, is the exact declared `(request_type,
+/// response_type)` of a bounded record/variant `yields` channel
+/// (`hir::yield_aggregate::bounded_aggregate_refusal` already checked its
+/// shape): an intermediate value of *exactly* one of those two types is
+/// admitted alongside the ordinary Copy-scalar profile (issue #296 R20). Only
+/// `lower_sequential` passes one; `lowering::control::lower_control` passes
+/// `None` and so keeps its pre-existing scalar-only re-check unchanged, since
+/// the control-dependent lane has no aggregate-channel runtime support.
 fn require_scalar_expression_tree(
     root: &ResolvedExpr,
     allow_owned_bytes: bool,
+    admitted_channel: Option<(&ResolvedType, &ResolvedType)>,
 ) -> Result<(), Diagnostic> {
     let mut pending = vec![root];
     while let Some(expression) = pending.pop() {
+        let is_admitted_channel_value = admitted_channel.is_some_and(|(request, response)| {
+            expression.ty == *request || expression.ty == *response
+        });
         let admitted = expression.ty == ResolvedType::Unit
             || hir::is_scalar_resolved_type(&expression.ty)
-            || (allow_owned_bytes && expression.ty == ResolvedType::Bytes);
+            || (allow_owned_bytes && expression.ty == ResolvedType::Bytes)
+            || is_admitted_channel_value;
         if !admitted {
             return Err(invalid(
                 "resumable lowering found a non-scalar intermediate value",

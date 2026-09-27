@@ -99,10 +99,16 @@ impl<'a> CountingCleanup<'a> {
 #[derive(Default)]
 struct Host;
 
-impl EffectHandler<ArgumentValue, ArgumentValue> for Host {
-    fn dispatch(&mut self, request: &ArgumentValue) -> Result<ArgumentValue, String> {
-        assert_eq!(*request, ArgumentValue::Int(REQUEST));
-        Ok(ArgumentValue::Int(ANSWER))
+impl EffectHandler<ResumableChannelValue, ResumableChannelValue> for Host {
+    fn dispatch(
+        &mut self,
+        request: &ResumableChannelValue,
+    ) -> Result<ResumableChannelValue, String> {
+        assert_eq!(
+            *request,
+            ResumableChannelValue::Scalar(ArgumentValue::Int(REQUEST))
+        );
+        Ok(ArgumentValue::Int(ANSWER).into())
     }
 }
 
@@ -175,7 +181,8 @@ fn completing_normally_leaves_nothing_pending_to_settle_at_every_crash_point() {
                 // redispatches an in-doubt request on its own, exactly like
                 // the non-owned control crash matrix.
                 assert!(in_doubt);
-                let ArgumentValue::Int(value) = request.request else {
+                let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) = request.request
+                else {
                     panic!()
                 };
                 recovered

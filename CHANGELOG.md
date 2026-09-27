@@ -356,8 +356,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   `@id`, typestate checked) into the per-source graph (`semaprax.graph.v49`,
   only for programs that use the clause), `context`, the Workspace and
   Package Semantic Graphs (`.v3`) and the Assurance Manifest as a
-  `compiler_proved` call-order obligation (#297). `doc` and `query` do not
-  render them.
+  `compiler_proved` call-order obligation (#297). `semaprax doc` shows the
+  binding on the function and the protocol, and `semaprax query` finds it
+  through the existing entry facts. A `follows` clause on a class method is
+  refused (`SPX-K109`) instead of being accepted unchecked.
 
 ## 0.6.0 — 2026-09-24
 

@@ -186,3 +186,9 @@ fn a_source_program_carrying_a_follows_clause_roundtrips_through_the_cache_codec
     assert_eq!(restored.functions, program.functions);
     assert_eq!(crate::cache_codec::encode(&restored).unwrap(), bytes);
 }
+
+#[test]
+fn a_follows_clause_on_a_class_method_is_refused_rather_than_left_unchecked() {
+    const METHOD: &str = "\n@id(\"typestate.holder\")\nclass Holder {\n    @id(\"typestate.holder.value\")\n    value: i64,\n\n    @id(\"typestate.holder.run\")\n    fn run(self: Holder) -> i64\n        follows session protocol \"typestate.protocol\"\n{\n        let a = begin();\n        commit()\n    }\n}\n";
+    assert_eq!(codes(METHOD), vec!["SPX-K109"]);
+}

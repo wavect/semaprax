@@ -87,6 +87,27 @@ fn k_error(program: &Program, code: &'static str, message: String, span: Span) -
 /// program pays nothing for this check existing.
 pub(crate) fn check(program: &Program) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
+    // The clause shares the function grammar, so a class method can carry
+    // it; only free functions are checked, so refuse it on a method rather
+    // than admit an unchecked claim.
+    for declaration in &program.types {
+        let crate::ast::TypeDeclarationKind::Class { methods, .. } = &declaration.kind else {
+            continue;
+        };
+        for method in methods {
+            if let Some(follows) = &method.follows {
+                diagnostics.push(k_error(
+                    program,
+                    "SPX-K109",
+                    format!(
+                        "method `{}` follows session protocol `{}`, but endpoint typestate checking admits only top-level functions",
+                        method.name, follows.protocol_id
+                    ),
+                    follows.protocol_id_span,
+                ).with_help("move the protocol calls into a top-level function that declares `follows`"));
+            }
+        }
+    }
     if !program
         .functions
         .iter()

@@ -868,7 +868,7 @@ program discipline.
 | --- | --- |
 | `SPX-K107` | A `follows` clause names no `session protocol` declaration in this module. |
 | `SPX-K108` | A call to a `via`-bound function is not legal from the function's current state at that point, or some path through the function ends in a non-terminal state. |
-| `SPX-K109` | The function contains a construct this subset does not admit reaching a `via`-bound call through: a loop, direct recursion, a closure, an indirect/ambiguous call, a `via` transition with a branching `choice` continuation, or any other unsupported expression shape. |
+| `SPX-K109` | The function contains a construct this subset does not admit reaching a `via`-bound call through: a loop, direct recursion, a closure, an indirect/ambiguous call, a `via` transition with a branching `choice` continuation, or any other unsupported expression shape; also a `follows` clause on a class method, since only top-level functions are checked. |
 
 ### Endpoint typestate non-claims
 

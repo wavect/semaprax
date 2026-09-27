@@ -11,27 +11,27 @@ use crate::agent_runtime_v2::checkpoint::{
 };
 use crate::execution_revision::typed::migration::MigrationSeed;
 
-#[cfg(test)]
-fn backend_binding(backend: crate::agent_lifecycle::authorization::StageBackend<'_>) -> String {
+/// The checked registry already commits to one exact retained module. A
+/// selected Wasm executor is handed its source text directly (never a
+/// filesystem lookup), so nothing else would otherwise stop a caller from
+/// pairing this registry with different Wasm bytes at dispatch time. This
+/// refuses that mismatch before any checkpoint identity, decode, store
+/// write, or handler dispatch, on both the fresh and the resumed leg, so a
+/// checkpoint produced or consumed under a wrong Wasm source is refused
+/// identically to any other tampered input.
+fn wasm_source_mismatch(
+    compiled: &CompiledTypedEffects,
+    backend: Option<crate::agent_lifecycle::authorization::StageBackend<'_>>,
+) -> bool {
     match backend {
-        crate::agent_lifecycle::authorization::StageBackend::Interpreter => "interpreter".into(),
-        crate::agent_lifecycle::authorization::StageBackend::Native { host } => {
-            format!("native:-O0:{}", host.identity())
+        #[cfg(test)]
+        Some(crate::agent_lifecycle::authorization::StageBackend::Wasm { source }) => {
+            compiled.target_source.as_deref() != Some(source)
         }
-        crate::agent_lifecycle::authorization::StageBackend::NativeAtOptimization {
-            host,
-            optimization,
-        } => {
-            format!("native:{optimization}:{}", host.identity())
+        Some(crate::agent_lifecycle::authorization::StageBackend::WasmHeld { source, .. }) => {
+            compiled.target_source.as_deref() != Some(source)
         }
-        crate::agent_lifecycle::authorization::StageBackend::Wasm { source } => digest(
-            b"semaprax.agent-durable-stage-backend.wasm.v1\0",
-            source.as_bytes(),
-        ),
-        crate::agent_lifecycle::authorization::StageBackend::WasmHeld { host, source } => digest(
-            b"semaprax.agent-durable-stage-backend.wasm-held.v1\0",
-            format!("{}\0{source}", host.identity()).as_bytes(),
-        ),
+        _ => false,
     }
 }
 
@@ -443,11 +443,14 @@ impl CompiledTypedEffects {
 
     /// Local backend-parity entry for the durable, frozen proposal route.
     ///
-    /// The backend name (and Wasm source bytes) becomes part of the journal
-    /// identity before any checkpoint is decoded or a handler can run. This
-    /// is deliberately test-only: it proves the sealed stage executors can
-    /// recover the same checked grant/context/result without selecting a
-    /// deployable target or adding a host capability.
+    /// Checkpoint identity does not depend on which of Interpreter, Native or
+    /// Core Wasm produced or resumes it: the same canonical checkpoint bytes
+    /// from one backend decode and continue correctly under any other, since
+    /// every backend is checked to compute the identical semantic result and
+    /// journal event sequence. This is deliberately test-only: it proves the
+    /// sealed stage executors can recover the same checked grant/context/
+    /// result without selecting a deployable target or adding a host
+    /// capability.
     #[cfg(test)]
     #[allow(clippy::too_many_arguments)]
     pub(in crate::agent_lifecycle) fn run_durable_on(
@@ -465,7 +468,6 @@ impl CompiledTypedEffects {
         max_reserved_fuel: u64,
         backend: crate::agent_lifecycle::authorization::StageBackend<'_>,
     ) -> Result<DurableTypedRun, DurableTypedFailure> {
-        let binding = backend_binding(backend);
         self.run_durable_inner(
             task,
             proposals,
@@ -479,7 +481,7 @@ impl CompiledTypedEffects {
             store,
             max_reserved_fuel,
             None,
-            Some((backend, binding)),
+            Some(backend),
         )
     }
 
@@ -518,6 +520,46 @@ impl CompiledTypedEffects {
         )
     }
 
+    /// Local backend-parity entry for the migration-seeded durable route,
+    /// symmetric with [`Self::run_durable_on`]. Production migration resume
+    /// (`run_durable_from_seed`) retains the interpreter; this proves the
+    /// same seed-continuation budgets and checkpoint identity hold when the
+    /// destination stage dispatch is selected explicitly instead.
+    #[cfg(test)]
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::agent_lifecycle) fn run_durable_from_seed_on(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        handler: &mut dyn TypedEffectHandler,
+        stages: IterativeBudget,
+        effects: EffectBudget,
+        cancellation: &AgentCancellation,
+        execution_revision_digest: &str,
+        program_root_digest: &str,
+        retained_checkpoint: Option<&str>,
+        store: &mut dyn CheckpointStore,
+        max_reserved_fuel: u64,
+        seed: &MigrationSeed,
+        backend: crate::agent_lifecycle::authorization::StageBackend<'_>,
+    ) -> Result<DurableTypedRun, DurableTypedFailure> {
+        self.run_durable_inner(
+            task,
+            proposals,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            execution_revision_digest,
+            program_root_digest,
+            retained_checkpoint,
+            store,
+            max_reserved_fuel,
+            Some(seed),
+            Some(backend),
+        )
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn run_durable_inner<'a>(
         &self,
@@ -533,19 +575,28 @@ impl CompiledTypedEffects {
         store: &mut dyn CheckpointStore,
         max_reserved_fuel: u64,
         seed: Option<&MigrationSeed>,
-        backend: Option<(
-            crate::agent_lifecycle::authorization::StageBackend<'a>,
-            String,
-        )>,
+        backend: Option<crate::agent_lifecycle::authorization::StageBackend<'a>>,
     ) -> Result<DurableTypedRun, DurableTypedFailure> {
         let fail = |diagnostics: Vec<Diagnostic>| DurableTypedFailure {
             diagnostics,
             terminal: None,
             checkpoint: retained_checkpoint.unwrap_or("").to_owned(),
         };
+        // Checked before any identity, decode, store write or handler
+        // dispatch: a selected Wasm executor that is not handed this exact
+        // registry's own retained source is refused identically on the
+        // fresh and the resumed leg, whichever backend produced the
+        // checkpoint being resumed.
+        if wasm_source_mismatch(self, backend) {
+            return Err(fail(diagnostic("backend.wasm_source")));
+        }
         let requested = super::super::invocation_digest(task, proposals, stages);
-        let invocation = match (seed, backend.as_ref().map(|(_, binding)| binding)) {
-            (None, None) => digest(
+        // Checkpoint identity never depends on which backend is selected: the
+        // same canonical bytes decode and continue under any admitted
+        // backend, so a checkpoint saved under one target restores under
+        // another.
+        let invocation = match seed {
+            None => digest(
                 b"semaprax.agent-durable-typed-invocation.v2\0",
                 format!(
                     "{}\0{},{},{},{}\0{}",
@@ -558,21 +609,7 @@ impl CompiledTypedEffects {
                 )
                 .as_bytes(),
             ),
-            (None, Some(binding)) => digest(
-                b"semaprax.agent-durable-typed-backend-invocation.v1\0",
-                format!(
-                    "{}\0{}\0{},{},{},{}\0{}",
-                    requested,
-                    binding,
-                    effects.max_calls,
-                    effects.max_argument_bytes,
-                    effects.max_result_bytes,
-                    effects.max_total_bytes,
-                    max_reserved_fuel
-                )
-                .as_bytes(),
-            ),
-            (Some(seed), None) => digest(
+            Some(seed) => digest(
                 b"semaprax.agent-migrated-durable-typed-invocation.v1\0",
                 format!(
                     "{}\0{}\0{}\0{},{},{},{}\0{}",
@@ -587,7 +624,6 @@ impl CompiledTypedEffects {
                 )
                 .as_bytes(),
             ),
-            (Some(_), Some(_)) => return Err(fail(diagnostic("seed.backend"))),
         };
         let identity = CheckpointIdentity {
             execution_revision: execution_revision_digest.to_owned(),
@@ -695,7 +731,7 @@ impl CompiledTypedEffects {
             physical_calls: 0,
             seed_binding: seed.map(|seed| seed.binding_digest().to_owned()),
         };
-        let outcome = match (seed, backend.map(|(backend, _)| backend)) {
+        let outcome = match (seed, backend) {
             (Some(seed), None) => self.lifecycle.run_with_driver_seed(
                 task,
                 proposals,
@@ -729,7 +765,25 @@ impl CompiledTypedEffects {
                     unreachable!("backend durable parity is test-only")
                 }
             }
-            (Some(_), Some(_)) => unreachable!("seeded durable backend parity is not admitted"),
+            (Some(seed), Some(backend)) => {
+                #[cfg(test)]
+                {
+                    self.lifecycle.run_with_driver_seed_on(
+                        task,
+                        proposals,
+                        &mut driver,
+                        effective_stages,
+                        cancellation,
+                        seed,
+                        backend,
+                    )
+                }
+                #[cfg(not(test))]
+                {
+                    let (_, _) = (seed, backend);
+                    unreachable!("seeded backend durable parity is test-only")
+                }
+            }
         };
         let checkpoint = driver.journal.canonical_json();
         let checkpoint_digest = driver.journal.digest();

@@ -63,8 +63,31 @@ The private frozen-run parity selector
 driver kernel with interpreter, native C11 `-O0`/`-O2`, and Core Wasm stage
 dispatch. Its test-only entry supplies the backend explicitly, including the
 Wasm source text as data. Both production frozen-run entries (ordinary and
-migration-seeded) continue to select the interpreter. The live and checkpoint
-routes do not gain a backend selector.
+migration-seeded) continue to select the interpreter. The live route does not
+gain a backend selector.
+
+The checkpoint route (`agent_lifecycle::iterative::effects::CompiledTypedEffects::run_durable`)
+and the migration-seeded checkpoint route (`run_durable_from_seed`) gain the
+same kind of test-only backend selector: `run_durable_on`/`run_durable_from_seed_on`
+supply Interpreter, native C11 or Core Wasm explicitly to the same persisted,
+replay-checked journal driver. Checkpoint identity never depends on which
+backend is selected, so the same canonical checkpoint bytes produced under
+one backend decode and continue under any other -- including a genuinely
+partial checkpoint with real dispatches still outstanding, not only an
+idempotent replay of an already-complete run -- with identical status, value,
+usage ledger and stage/iteration counts, and identical refusal of a tampered,
+foreign-root or stale-ceiling checkpoint on every backend. A selected Wasm
+executor that is not handed this exact registry's own retained source is
+refused before any identity, decode, store write or handler dispatch, on
+both the fresh and the resumed leg. Both production entries, `run_durable`
+and `run_durable_from_seed`, are unchanged and continue to select the
+interpreter only; this is local parity evidence for the sealed stage
+executors, exactly like `lifecycle_parity`, not a production or hosted
+backend-selection capability.
+
+Focused gate: `cargo test --locked -p semaprax --lib
+agent_lifecycle::iterative::effects::durable::tests`. It requires an explicit
+held `clang` and `node`, like the other cross-backend gates above.
 
 This authored local gate compares proposal admission, fresh authorization
 bindings and consumed requests, an injected read operation, continued State,

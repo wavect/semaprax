@@ -464,7 +464,7 @@ fn run_admitted(
 
 #[allow(clippy::too_many_arguments)]
 fn run_selected(
-    host: &WasmStageHost,
+    host: Option<&WasmStageHost>,
     source: &str,
     program: &hir::ResolvedProgram,
     prepared: &PreparedRetainedCall,

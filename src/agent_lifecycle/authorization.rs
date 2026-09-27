@@ -758,16 +758,19 @@ pub(super) fn dispatch_on_metered(
             &profile,
             cancellation,
         ),
-        StageBackend::WasmHeld { host, source } => WasmStageExecutor { host, source }
-            .execute_metered(
-                authority,
-                program,
-                prepared,
-                arguments,
-                max_steps,
-                &profile,
-                cancellation,
-            ),
+        StageBackend::WasmHeld { host, source } => WasmStageExecutor {
+            host: Some(host),
+            source,
+        }
+        .execute_metered(
+            authority,
+            program,
+            prepared,
+            arguments,
+            max_steps,
+            &profile,
+            cancellation,
+        ),
     }?;
     // Every backend must report the admitted limit it actually metered.
     match &evaluation.semantic_work {

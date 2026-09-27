@@ -1,4 +1,5 @@
 use super::*;
+use checked_value_retention::{retain_checked_nominal_type, retain_checked_value_types};
 #[path = "tests/builder_limits.rs"]
 mod builder_limits;
 #[path = "tests/static_protocol.rs"]

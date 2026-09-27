@@ -345,15 +345,17 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     // file: a helper relocated into a sibling submodule must still count as
     // present in the root and absent from the projection.
     let root = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("../../src/workspace_graph.rs"),
         include_str!("../../src/workspace_graph/builder_bytes_report.rs"),
+        include_str!("../../src/workspace_graph/checked_value_retention.rs"),
         include_str!("../../src/workspace_graph/diagnostics.rs"),
         include_str!("../../src/workspace_graph/generic_type_import.rs"),
         include_str!("../../src/workspace_graph/owned_generics.rs"),
         include_str!("../../src/workspace_graph/owned_function_import.rs"),
         include_str!("../../src/workspace_graph/prelude_binding.rs"),
         include_str!("../../src/workspace_graph/project_render.rs"),
+        include_str!("../../src/workspace_graph/session_protocol_decl.rs"),
         include_str!("../../src/workspace_graph/source_callables.rs"),
         include_str!("../../src/workspace_graph/retained_validation.rs"),
         include_str!("../../src/workspace_graph/retained_validation/dependency_closure.rs"),
@@ -532,11 +534,15 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         // Exact graph fields and API/CLI byte parity above independently bind
         // this re-pinned whole-document digest. Re-pinned again: issue #297
         // (commit b8116173) added `Program.session_protocols`, growing every
-        // structural charge computed from `size_of::<Program>()` and moving
-        // only `budget.used_builder_bytes` and this digest; this fixture
+        // structural charge computed from `size_of::<Program>()`. Re-pinned a
+        // third time in the same session: R21's own Workspace Semantic Graph
+        // projection added `WorkspaceResolvedModule::session_protocol_facts`
+        // and the matching `WorkspaceGraphProjectionModule` field, growing
+        // every module's structural charge by one more `Vec`. Only
+        // `budget.used_builder_bytes` and this digest move; this fixture
         // declares no session protocol, so nothing else in the document
         // moves.
-        "sha256:bf2f56b414726fd77907f3d471ecd93b3a29dd896fb3e971685dc528b0832599"
+        "sha256:f4afed9689f8efd4d117cace00b9acaf853d42830f4f88b49c89f49fe276fda7"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -940,9 +946,13 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
 
     // Re-pinned: issue #297 (commit b8116173) added
     // `Program.session_protocols`, growing every structural charge computed
-    // from `size_of::<Program>()`. These context/impact/review documents
-    // each carry a builder-byte-derived budget or embed the workspace
-    // graph's own digest, so all eight move together; none of this
+    // from `size_of::<Program>()`. Re-pinned a second time in the same
+    // session: R21's own Workspace Semantic Graph projection added
+    // `WorkspaceResolvedModule::session_protocol_facts` and the matching
+    // `WorkspaceGraphProjectionModule` field, growing every module's
+    // structural charge by one more `Vec`. These context/impact/review
+    // documents each carry a builder-byte-derived budget or embed the
+    // workspace graph's own digest, so all eight move together; none of this
     // fixture's modules declare a session protocol.
     assert_eq!(
         [
@@ -956,14 +966,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:1ff8dd7a202d8f38f2be663df2e061e671814224d5661d8e5f08337ecb7d012e",
-            "sha256:ddf1c249d522428d32bbbe74ed91958cda2356c671332524bf8f45d1b438f5be",
-            "sha256:3842f7da554eab3d13c203412842807327c3a775f2a8df2410abdd70e19151ea",
-            "sha256:639fcfa0bd78bd3cbff7d3eb88377a3cf49319f200483579fa52320f34fcedc6",
-            "sha256:152c075b67a84325a31c32edbec83c81a3f3d2b7a2e31daf17099807387a1eee",
-            "sha256:2c391f26d0066a82217f905b7655b571bb2d35823843263a24e2a085bb8668cd",
-            "sha256:23c74e5d17191e7a147e0f90515c588405569c8f793e098f1ba4412278afb7d3",
-            "sha256:85f308f80ffcefadfee47f63f6af97778a2ef46cd53f554296c4aa1d3b113314",
+            "sha256:4aba0ca61e5d0105f3731b2e7a595d6100f0dd136d33f5c06d8de97c2cfcf519",
+            "sha256:75fd3f2c66fb1f2bf3108d0fd67dbb997d0c5108cbdee6b5f28b34b20bff6eec",
+            "sha256:a3a5e4c6e99e9bca58bea8efc885170b5b58bda36027b2c1421f44a260b89cf8",
+            "sha256:46ae8f8e0cd7bbf76303eab80bc6a0218c8b6313d28e340ea8c49a3315018b69",
+            "sha256:5143b57665701c39f88efaea7c82d13c8998cacba5904129c3179fa326ca4b4f",
+            "sha256:b1d99e07df11d95c1eb518aeb1d643acc47c3358bc1eeaf3ac6c3f2196a1a22a",
+            "sha256:d2c6357dc74c329488fb600cd04bb5d9e62b3bc9783c45ba5942225b41e86033",
+            "sha256:e80e04c7dda3978c6b36d2f68f92a933e38d95723375ee725b7b63576e0dcdb7",
         ]
     );
 

@@ -9,6 +9,7 @@
     reason = "sealed validation and test-only replay seams remain non-public"
 )]
 mod builder_bytes_report;
+mod checked_value_retention;
 mod dependency_pruning;
 pub(crate) mod diagnostics;
 mod expected_projection;
@@ -419,6 +420,7 @@ pub(crate) struct WorkspaceGraphProjectionModule {
     function_templates: Vec<hir::ResolvedFunctionTemplate>,
     function_instances: Vec<hir::ResolvedFunctionInstance>,
     signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
+    session_protocol_facts: Vec<String>,
 }
 pub(crate) struct WorkspaceGraphProjectionDeclaration {
     id: String,
@@ -483,6 +485,9 @@ struct WorkspaceResolvedModule {
     function_templates: Vec<hir::ResolvedFunctionTemplate>,
     function_instances: Vec<hir::ResolvedFunctionInstance>,
     signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
+    /// Canonical facts of this module's own declared session protocols
+    /// (issue #297 follow-on), bound to checked HIR by `retain_workspace_module`.
+    session_protocol_facts: Vec<String>,
 }
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct WorkspaceEdge {
@@ -1875,6 +1880,7 @@ impl WorkspaceGraphBuild {
                 function_templates: module.function_templates,
                 function_instances: module.function_instances,
                 signature_types: module.signature_types,
+                session_protocol_facts: module.session_protocol_facts,
             });
         }
         modules.sort_by(|left, right| left.path.cmp(&right.path));
@@ -2566,6 +2572,7 @@ impl WorkspaceGraphChangeView {
                 function_templates: Vec::new(),
                 function_instances: Vec::new(),
                 signature_types: BTreeMap::new(),
+                session_protocol_facts: Vec::new(),
             });
         }
         modules.sort_by(|left, right| left.path.cmp(&right.path));
@@ -3095,6 +3102,7 @@ impl AuthenticatedWorkspaceGraphBuild {
                 function_templates: module.function_templates,
                 function_instances: module.function_instances,
                 signature_types: module.signature_types,
+                session_protocol_facts: module.session_protocol_facts,
             });
         }
         modules.sort_by(|left, right| left.path.cmp(&right.path));
@@ -3467,7 +3475,16 @@ fn render_graph_json(
         .find(|module| module.module == projection.entry_module)
         .expect("validated projection has exactly one entry module");
     let mut output = crate::bounded_output::CappedString::new();
-    let session_protocols = session_protocol_decl::recorded();
+    let session_protocols: Vec<(String, String, String)> = projection
+        .modules
+        .iter()
+        .flat_map(|module| {
+            module
+                .session_protocol_facts
+                .iter()
+                .map(|fact| (module.module.clone(), module.path.clone(), fact.clone()))
+        })
+        .collect();
     output.push_str("{\"schema\":");
     push_json_string(
         &mut output,
@@ -3805,7 +3822,6 @@ fn build_owned_inner(
     retain_operation_programs: bool,
     mut frontend: Option<&mut crate::project::incremental::FrontendPass>,
 ) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
-    session_protocol_decl::reset();
     if sources.len() < 2 {
         return Err(vec![graph_error(
             "SPX-G170",
@@ -4237,7 +4253,6 @@ fn build_resolved_core(
             resolved
         };
         verify_resolved_call_edges(program, &resolved, authored)?;
-        session_protocol_decl::record(program, &resolved)?;
         if let Some(validation) = validation.as_mut() {
             validation.record_module(&program.module, &resolved, programs)?;
             let (module, imported_instances) = retain_workspace_module(
@@ -4333,6 +4348,7 @@ fn retain_workspace_module(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     retained_output_only: bool,
 ) -> Result<(WorkspaceResolvedModule, Vec<hir::ResolvedFunctionInstance>), Vec<Diagnostic>> {
+    let session_protocol_facts = session_protocol_decl::declaration_facts(program, &resolved)?;
     let types = filter_owned_vec(
         resolved.types,
         |item| {
@@ -4383,6 +4399,7 @@ fn retain_workspace_module(
             function_templates,
             function_instances,
             signature_types,
+            session_protocol_facts,
         },
         imported_instances,
     ))
@@ -4406,7 +4423,7 @@ fn retained_signature_type_facts(
             .map(|parameter| &parameter.ty)
             .chain(std::iter::once(&function.return_type))
         {
-            retain_checked_value_types(
+            checked_value_retention::retain_checked_value_types(
                 CheckedValueNode::Type(ty),
                 declarations,
                 &mut retained,
@@ -4419,7 +4436,7 @@ fn retained_signature_type_facts(
             .chain(std::iter::once(&function.body))
             .chain(&function.ensures)
         {
-            retain_checked_value_types(
+            checked_value_retention::retain_checked_value_types(
                 CheckedValueNode::Expression(expression),
                 declarations,
                 &mut retained,
@@ -4607,100 +4624,6 @@ impl<'a> CheckedValueNode<'a> {
             },
         }
     }
-}
-
-fn retain_checked_value_types(
-    root: CheckedValueNode<'_>,
-    declarations: &hir::DeclarationIndex,
-    retained: &mut BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
-    visits: &mut usize,
-) -> Result<(), Vec<Diagnostic>> {
-    // One cursor per active ancestor: wide statement/pattern lists cannot
-    // allocate an unbounded sibling queue. This fixed scratch stack is not
-    // retained; its peak storage is charged once by the inventory entry point.
-    let mut stack = [None; MAX_CHECKED_VALUE_DEPTH + 1];
-    stack[0] = Some((root, 0usize));
-    let mut depth = 0usize;
-    loop {
-        let (node, next) = stack[depth].expect("active checked value cursor");
-        if next == 0 {
-            if *visits >= MAX_CHECKED_VALUE_VISITS {
-                return Err(vec![limit_error(
-                    "checked_value_visits",
-                    MAX_CHECKED_VALUE_VISITS,
-                )]);
-            }
-            *visits += 1;
-            if let Some(ty) = node.ty() {
-                retain_checked_nominal_type(ty, declarations, retained)?;
-            }
-        }
-        if let Some(child) = node.child(next) {
-            if depth == MAX_CHECKED_VALUE_DEPTH {
-                return Err(vec![limit_error(
-                    "checked_value_depth",
-                    MAX_CHECKED_VALUE_DEPTH,
-                )]);
-            }
-            stack[depth] = Some((node, next + 1));
-            depth += 1;
-            stack[depth] = Some((child, 0));
-        } else if depth == 0 {
-            break;
-        } else {
-            stack[depth] = None;
-            depth -= 1;
-        }
-    }
-    Ok(())
-}
-
-fn retain_checked_nominal_type(
-    ty: &hir::ResolvedType,
-    declarations: &hir::DeclarationIndex,
-    retained: &mut BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
-) -> Result<(), Vec<Diagnostic>> {
-    let hir::ResolvedType::Nominal { declaration, .. } = ty else {
-        return Ok(());
-    };
-    let key = ty.identity_key();
-    if retained.contains_key(&key) {
-        return Ok(());
-    }
-    if retained.len() >= MAX_DECLARATIONS {
-        return Err(vec![limit_error("declarations", MAX_DECLARATIONS)]);
-    }
-    let kind = declarations
-        .declaration(declaration)
-        .ok_or_else(|| {
-            vec![graph_error(
-                "SPX-G173",
-                "checked value nominal declaration is absent",
-            )]
-        })?
-        .kind;
-    let facts = declarations.type_facts(ty).ok_or_else(|| {
-        vec![graph_error(
-            "SPX-G173",
-            "checked value type facts are absent",
-        )]
-    })?;
-    let base = if retained.is_empty() {
-        std::mem::size_of::<BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>>()
-    } else {
-        0
-    };
-    let bytes = base
-        .checked_add(
-            std::mem::size_of::<(String, hir::DeclarationKind, hir::TypeFacts)>()
-                + 8 * std::mem::size_of::<usize>(),
-        )
-        .and_then(|bytes| bytes.checked_add(key.capacity()))
-        .and_then(|bytes| bytes.checked_add(facts.layout_key.capacity()))
-        .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
-    reserve_builder_structure(bytes)?;
-    retained.insert(key, (kind, facts));
-    Ok(())
 }
 
 fn resolved_loan_bytes(program: &hir::ResolvedProgram) -> Result<usize, Vec<Diagnostic>> {

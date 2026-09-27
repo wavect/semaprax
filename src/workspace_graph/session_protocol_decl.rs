@@ -1,28 +1,31 @@
 //! Issue #297 follow-on (R21): declared `.spx` session protocols projected
 //! into the Workspace Semantic Graph.
 //!
-//! Recording happens inline in `build_owned_inner`'s per-module resolve loop,
-//! where one module's own `Program` (with its `session_protocols`) and the
-//! checked `hir::ResolvedProgram` built from that same program are both in
-//! scope -- the identical pairing `verify_resolved_call_edges` already uses
-//! for cross-file call binding. A thread-local carries the bound facts from
-//! there to `render_graph_json`'s single rendering pass, so the workspace
-//! graph's own digest and byte-budget accounting (both computed over that one
-//! render) stay exactly self-consistent; nothing here re-renders or
-//! double-hashes.
+//! `declaration_facts` runs inside `retain_workspace_module`, in the same
+//! per-module resolve step that already pairs one module's own `Program`
+//! (with its `session_protocols`) with the checked `hir::ResolvedProgram`
+//! built from that same program -- the identical pairing
+//! `verify_resolved_call_edges` uses for cross-file call binding. The bound
+//! facts become part of that module's own retained data
+//! (`WorkspaceResolvedModule::session_protocol_facts`), so they flow through
+//! the existing pipeline exactly like every other per-module fact: pruned to
+//! the entry module's reachable closure by
+//! `AuthenticatedWorkspaceGraphBuild::project`, then read once by
+//! `render_graph_json` from `WorkspaceGraphProjectionModule`. Nothing here
+//! is global, thread-local, or re-rendered; the workspace graph's own digest
+//! and byte-budget accounting (both computed over that one render) stay
+//! exactly self-consistent.
 //!
-//! A workspace with no declaring module records nothing, `render_graph_json`
-//! keeps emitting `semaprax.workspace-semantic-graph.v1` unchanged, and the
-//! output is byte-for-byte identical to a build of this module never having
-//! existed. A declaring workspace selects `semaprax.workspace-semantic-graph.v2`
-//! and gains one trailing `session_protocols` object, mirroring the
-//! per-source graph's own `semaprax.graph.v48` gating
-//! (`crate::graph::session_protocol_decl`). Every fact is bound to its owning
-//! module and path, its `@id` and span, and the checked `via` functions of
-//! that same module; legal order is still not authority, and every fact
-//! carries `"authority":"none"`.
-
-use std::cell::RefCell;
+//! A workspace with no declaring module contributes no facts,
+//! `render_graph_json` keeps emitting `semaprax.workspace-semantic-graph.v1`
+//! unchanged, and the output is byte-for-byte identical to a build of this
+//! module never having existed. A declaring workspace selects
+//! `semaprax.workspace-semantic-graph.v2` and gains one trailing
+//! `session_protocols` object, mirroring the per-source graph's own
+//! `semaprax.graph.v48` gating (`crate::graph::session_protocol_decl`).
+//! Every fact is bound to its owning module and path, its `@id` and span,
+//! and the checked `via` functions of that same module; legal order is
+//! still not authority, and every fact carries `"authority":"none"`.
 
 use crate::ast::Program;
 use crate::diagnostic::{quote_json, Diagnostic};
@@ -34,50 +37,24 @@ use crate::session_protocol::source;
 /// `WORKSPACE_GRAPH_SCHEMA` unchanged.
 pub(super) const SCHEMA_V2: &str = "semaprax.workspace-semantic-graph.v2";
 
-type Recorded = Vec<(String, String, String)>;
-
-thread_local! {
-    static RECORDED: RefCell<Recorded> = const { RefCell::new(Vec::new()) };
-}
-
-/// Clear any facts left by a prior build on this thread. Called once at the
-/// top of `build_owned_inner`, the single funnel every builder entry point
-/// shares, so a reused test-harness thread never carries a previous
-/// workspace's declarations into this one.
-pub(super) fn reset() {
-    RECORDED.with(|cell| cell.borrow_mut().clear());
-}
-
-/// Bind and record one module's declared session protocols, in the same
-/// per-module loop that already pairs `program` with its checked `resolved`
-/// for `verify_resolved_call_edges`. A no-op for a module with no
-/// declarations; otherwise fails closed exactly like the per-source graph
-/// when a `via` names a function the checked HIR does not retain.
-pub(super) fn record(program: &Program, resolved: &ResolvedProgram) -> Result<(), Vec<Diagnostic>> {
+/// Bind one module's declared session protocols against its own checked HIR
+/// and return one canonical fact per declaration, in source order. A no-op
+/// (empty result) for a module with no declarations; otherwise fails closed
+/// exactly like the per-source graph when a `via` names a function the
+/// checked HIR does not retain.
+pub(super) fn declaration_facts(
+    program: &Program,
+    resolved: &ResolvedProgram,
+) -> Result<Vec<String>, Vec<Diagnostic>> {
     if program.session_protocols.is_empty() {
-        return Ok(());
+        return Ok(Vec::new());
     }
     source::bind_to_hir(program, resolved).map_err(|error| vec![error])?;
-    RECORDED.with(|cell| {
-        let mut recorded = cell.borrow_mut();
-        for declaration in &program.session_protocols {
-            recorded.push((
-                program.module.clone(),
-                program.path.clone(),
-                source::declaration_json(declaration),
-            ));
-        }
-    });
-    Ok(())
-}
-
-/// A stable clone of everything recorded for the build in progress.
-/// `render_graph_json` reads this once per rendering pass; the digest
-/// fixed-point loop calls that function repeatedly with a placeholder and
-/// then the final digest, and the recorded facts are already frozen before
-/// that loop starts, so every read within one build is identical.
-pub(super) fn recorded() -> Recorded {
-    RECORDED.with(|cell| cell.borrow().clone())
+    Ok(program
+        .session_protocols
+        .iter()
+        .map(source::declaration_json)
+        .collect())
 }
 
 /// `WORKSPACE_GRAPH_SCHEMA` when nothing was recorded, `SCHEMA_V2` otherwise.
@@ -126,8 +103,13 @@ mod tests {
     use super::*;
 
     const DECLARED_A: &str = include_str!("../session_protocol/tests/fixtures/declared.spx");
+    /// Imports the declaring module's own `begin` function, so the entry
+    /// module's reachable closure actually includes the declaring module --
+    /// the Workspace Semantic Graph prunes every fact, session-protocol or
+    /// otherwise, to that closure.
     const ENTRY: &str = "module session_protocol.fixture.entry;\n\n\
-@id(\"fixture.session.entry_main\")\nfn main() -> i64 { 0 }\n";
+use function @id(\"fixture.session.begin\") from session_protocol.fixture.declared as begin;\n\n\
+@id(\"fixture.session.entry_main\")\nfn main() -> i64 { begin() }\n";
 
     fn without_declaration(source: &str) -> String {
         let start = source.find("@id(\"fixture.session.transaction\")").unwrap();
@@ -230,13 +212,63 @@ mod tests {
     }
 
     #[test]
-    fn recording_refuses_a_via_absent_from_checked_hir() {
+    fn an_unreachable_declaring_module_contributes_no_fact() {
+        // The declaring module is never imported by the entry module here,
+        // so it is pruned from the reachable closure before rendering --
+        // exactly like every other per-module fact (`declarations`, `edges`)
+        // this graph already prunes to the entry's reachable modules.
+        let sources = vec![
+            source("a/declared.spx", DECLARED_A),
+            source(
+                "b/entry.spx",
+                "module session_protocol.fixture.entry;\n\n\
+                 @id(\"fixture.session.entry_main\")\nfn main() -> i64 { 0 }\n",
+            ),
+        ];
+        let source_facts = sources
+            .iter()
+            .map(|source| {
+                (
+                    source.path.clone(),
+                    AuthenticatedSourceFact {
+                        path: source.path.clone(),
+                        source_graph_schema: "semaprax.semantic-graph.v14".to_owned(),
+                        source_revision: format!("revision:{}", source.path),
+                        source_digest: format!("sha256:{:064x}", source.source.len()),
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let authenticated = AuthenticatedWorkspaceGraphBuild {
+            workspace_revision: "sha256:workspace".to_owned(),
+            sources: source_facts,
+            storage: AuthenticatedWorkspaceStorageUsage {
+                manifest_bytes: 1,
+                retained_generations: 1,
+                staging_attempts: 1,
+                unexpected_inventory_entries: 0,
+            },
+            graph: build_owned(sources).expect("fixture workspace must validate"),
+        };
+        let graph = super::super::render_semantic_graph(
+            authenticated
+                .project("session_protocol.fixture.entry")
+                .unwrap(),
+        )
+        .expect("authenticated projection must render");
+        let value: serde_json::Value = serde_json::from_str(graph.to_json()).unwrap();
+        assert_eq!(value["schema"], "semaprax.workspace-semantic-graph.v1");
+        assert!(value.get("session_protocols").is_none());
+    }
+
+    #[test]
+    fn declaration_facts_refuses_a_via_absent_from_checked_hir() {
         let program = crate::check(DECLARED_A, "declared.spx").unwrap();
         let mut resolved = crate::hir::resolve(&program).unwrap();
         resolved
             .functions
             .retain(|function| function.id.as_str() != "fixture.session.commit");
-        let error = record(&program, &resolved).unwrap_err();
+        let error = declaration_facts(&program, &resolved).unwrap_err();
         assert_eq!(error[0].code, "SPX-K104");
     }
 }

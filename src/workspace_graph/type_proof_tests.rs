@@ -787,15 +787,21 @@ module graph.v14;
         // Vec<SessionProtocolDeclaration>`, growing `Program` by another
         // `Vec`'s worth of bytes (24 on 64-bit) and moving every structural
         // charge computed from `size_of::<Program>()`. A field-by-field diff
-        // of the rendered document against the pre-#297 JSON confirms only
+        // of the rendered document against the pre-#297 JSON confirmed only
         // `budget.used_builder_bytes` (416669 -> 419069) and `graph_digest`
-        // moved; every other field, including wire order, is byte for byte
-        // identical. Only `used_builder_bytes` and the digest over it move;
-        // every other field of the rendered document is byte for byte
-        // identical. Wire-order and independent replay below remain exact.
+        // moved; every other field, including wire order, was byte for byte
+        // identical. Re-pinned a third time in the same session: R21's own
+        // Workspace Semantic Graph projection of declared session protocols
+        // added `WorkspaceResolvedModule::session_protocol_facts:
+        // Vec<String>` and the matching field on
+        // `WorkspaceGraphProjectionModule`, each growing by one more `Vec`
+        // per module for the same reason. Only `used_builder_bytes` and the
+        // digest over it move; every other field of the rendered document is
+        // byte for byte identical. Wire-order and independent replay below
+        // remain exact.
         assert_eq!(
             document_sha,
-            "sha256:db7f9f2a8f0b920d8175973eab9ae9029dab3a13f2acdb3c38eb69a81bf7becc"
+            "sha256:1434768a8a706eb6abc85d1b1ae60cd2ec786b918906ee02c257c7d8dffc5603"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

@@ -263,6 +263,15 @@ format: `Unreleased` then release buckets, grouped by impact.
   empty cleanup events in `rich_target_backends_preserve_raw_grant_and_continue_byte_payloads`
   is removed, restoring the strict cross-backend assertion.
 
+- Make the Kernel-0 interpreter differential corpus finish (#294): each
+  self-hosted canonical-token renderer (int, bool, char, operator, string)
+  re-derived its fixed embedded Kernel-0 component on every rendered token.
+  Renderers now derive once and reuse the program only for byte-identical
+  source, keeping drift detection intact.
+  `reference_interpreter_agrees_with_the_compiler_over_the_kernel_zero_corpus`
+  drops from over four hours to about nine minutes locally (854 comparisons,
+  0 disagreements, unchanged corpus and seed).
+
 ## 0.6.0 — 2026-09-24
 
 - Keep the frozen private Component v7 WIT identity at `0.5.0` while the crate

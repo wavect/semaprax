@@ -241,8 +241,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 - Add cross-language runnable-adapter contract v2 (#284,
   `docs/CROSS-LANGUAGE-RUNNABLE-ADAPTER-V2.md`): C, Python, Swift and Java
-  lanes with independent ports of `sequence-digest-v1`, and real execution
-  of the already-admitted TypeScript lane, all bounded, offline and pinned to
+  lanes with independent ports of all twelve comparison tasks (48 of 48
+  pairs run `ok`, each port checked against a task-specific broken
+  candidate), and real execution of the already-admitted TypeScript lane, all bounded, offline and pinned to
   exactly observed local toolchain paths and digests (local provenance only,
   never official). v1 and its Rust lane are unchanged; the six reserved
   external languages stay blocked with their recorded reasons.

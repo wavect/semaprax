@@ -808,6 +808,25 @@ fn collect_bytes_only_leaf_paths(
     }
 }
 
+/// Render one field-declaration-id path (as returned by
+/// [`owned_bytes_leaf_field_paths`]) into the exact canonical leaf-path
+/// string [`collect_owned_leaves`] itself would have produced for the same
+/// chain: [`write_identity`] per element, joined by `/`, with no leading
+/// `/`. A caller can use this to require full positional equality against a
+/// descriptor's own [`InstanceFacts::owned_leaves`] -- not merely an equal
+/// count, which would not by itself catch a reordered, renamed, or
+/// otherwise substituted leaf that still totals the same length.
+pub(crate) fn render_leaf_path(chain: &[String]) -> String {
+    let mut path = String::new();
+    for (index, id) in chain.iter().enumerate() {
+        if index > 0 {
+            path.push('/');
+        }
+        write_identity(&mut path, id);
+    }
+    path
+}
+
 /// Parse canonical bytes. Strict: no whitespace, no leading zeros in a length
 /// prefix, no trailing bytes, no repair.
 pub fn parse_term(text: &str) -> Result<GrammarTerm, Diagnostic> {

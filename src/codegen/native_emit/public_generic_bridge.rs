@@ -6,7 +6,7 @@ use super::*;
 use crate::public_generic_abi::descriptor::verify::{
     verify_public_generic_descriptor, VerificationOptions, VerifiedPublicGenericDescriptor,
 };
-use crate::public_generic_type::{owned_bytes_leaf_field_paths, TypeInventory};
+use crate::public_generic_type::{owned_bytes_leaf_field_paths, render_leaf_path, TypeInventory};
 
 mod allocating;
 pub(crate) use allocating::emit_public_generic_allocating_bridge;
@@ -334,12 +334,74 @@ fn admit_nested_moves<'a>(
     let inventory = TypeInventory::of(program);
     let paths = owned_bytes_leaf_field_paths(&inventory, &function.params[0].ty)?
         .ok_or_else(shape_error)?;
-    // Defense in depth: the descriptor's own independently derived leaf count
-    // must agree with this module's independently walked leaf count. Both
-    // walk the same substituted closure the same depth-first way, so they
-    // can only disagree if one of the two implementations has drifted.
-    if paths.is_empty() || paths.len() != input.owned_leaves.len() {
+    // Defense in depth, and not merely a count check: this module's own
+    // independently walked leaf-path chains, rendered the same way
+    // `InstanceFacts::owned_leaves` itself is rendered, must equal the
+    // descriptor's own independently derived leaf-path list *in order* --
+    // on both the input and result side, since the C bridge below marshals
+    // both the `input` and `result` structs through this one `fields` list.
+    // An equal-length-only check would miss a reordered, renamed, or
+    // substituted leaf that still totals the same count; the two walks can
+    // only disagree on order or content if one of the two implementations
+    // has drifted.
+    if paths.is_empty()
+        || !leaf_paths_match(&paths, &input.owned_leaves)
+        || !leaf_paths_match(&paths, &descriptor.result_facts().owned_leaves)
+    {
         return Err(shape_error());
     }
     Ok((function, paths))
+}
+
+/// `true` when `paths` (field-declaration-id chains, as returned by
+/// [`crate::public_generic_type::owned_bytes_leaf_field_paths`]), each
+/// rendered through [`render_leaf_path`], is positionally identical to
+/// `expected` (a descriptor's own `owned_leaves`) -- same length, same
+/// order, same content. Deliberately not a length-only or set/multiset
+/// comparison: a caller relying on this to bind physical field access to a
+/// descriptor's trusted leaf inventory needs the stronger, order-sensitive
+/// guarantee. See this module's own tests for a permuted-list case a
+/// length-only check would have let through.
+fn leaf_paths_match(paths: &[Vec<String>], expected: &[String]) -> bool {
+    paths.len() == expected.len()
+        && paths
+            .iter()
+            .zip(expected)
+            .all(|(chain, path)| render_leaf_path(chain) == *path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::leaf_paths_match;
+
+    fn chain(ids: &[&str]) -> Vec<String> {
+        ids.iter().map(|id| (*id).to_owned()).collect()
+    }
+
+    /// A permuted expected list is refused: this is the exact property
+    /// [`super::admit_nested_moves`] relies on to require positional, not
+    /// merely count, equality against a descriptor's own leaf-path list.
+    #[test]
+    fn leaf_paths_match_refuses_a_permuted_expected_list() {
+        let paths = vec![chain(&["left"]), chain(&["right"])];
+        let expected = vec![
+            crate::public_generic_type::render_leaf_path(&chain(&["left"])),
+            crate::public_generic_type::render_leaf_path(&chain(&["right"])),
+        ];
+        assert!(leaf_paths_match(&paths, &expected));
+
+        let mut permuted = expected.clone();
+        permuted.swap(0, 1);
+        assert!(
+            !leaf_paths_match(&paths, &permuted),
+            "a reordered expected list must not match, even though its length and \
+             set of members are unchanged"
+        );
+
+        // A length-only check would also have missed a substituted (but
+        // equal-count) path; confirm the same helper catches that too.
+        let mut substituted = expected.clone();
+        substituted[0] = "@30:forged.path".to_owned();
+        assert!(!leaf_paths_match(&paths, &substituted));
+    }
 }

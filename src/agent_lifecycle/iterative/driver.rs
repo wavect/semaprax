@@ -316,6 +316,34 @@ impl CompiledIterativeLifecycle {
         self.run_with_driver_initial(task, proposals, driver, budget, cancellation, None, backend)
     }
 
+    /// Local migration-seeded parity only, symmetric with [`Self::run_with_driver_on`].
+    /// Production migration resume (`run_with_driver_seed`) retains the
+    /// interpreter; this proves the same seeded State/policy binding and
+    /// budget-continuation checks hold when the destination stage dispatch is
+    /// selected explicitly instead.
+    #[cfg(test)]
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::agent_lifecycle) fn run_with_driver_seed_on(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        driver: &mut dyn IterativeDriver,
+        budget: IterativeBudget,
+        cancellation: &AgentCancellation,
+        seed: &crate::execution_revision::typed::migration::MigrationSeed,
+        backend: authorization::StageBackend<'_>,
+    ) -> Result<IterativeRun, DriverFailure> {
+        self.run_with_driver_initial(
+            task,
+            proposals,
+            driver,
+            budget,
+            cancellation,
+            Some(seed),
+            backend,
+        )
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn run_with_driver_initial(
         &self,

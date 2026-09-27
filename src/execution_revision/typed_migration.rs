@@ -82,6 +82,28 @@ impl MigrationSeed {
     pub(crate) fn max_reserved_fuel(&self) -> u64 {
         self.max_reserved_fuel
     }
+    /// Local fixture only: exercises the destination-side durable/backend
+    /// parity routes directly against a hand-built seed, without the full
+    /// checked migration/handoff pipeline this type is otherwise only ever
+    /// produced through.
+    #[cfg(test)]
+    pub(crate) fn for_test(
+        value: RetainedValue,
+        binding: ExecutionRoot,
+        usage: CheckpointUsage,
+        iterations: usize,
+        stages: usize,
+        max_reserved_fuel: u64,
+    ) -> Self {
+        Self {
+            value,
+            binding,
+            usage,
+            iterations,
+            stages,
+            max_reserved_fuel,
+        }
+    }
 }
 
 /// One newly bound runtime plus the State its checked migration actually returned.

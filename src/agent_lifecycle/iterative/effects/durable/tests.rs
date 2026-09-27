@@ -79,6 +79,35 @@ fn backend_label(selector: u8) -> &'static str {
         _ => unreachable!("durable backend fixture selector"),
     }
 }
+
+/// The three claimed target routes, for cross-backend checkpoint parity.
+/// Native `-O2` is intentionally excluded here: it is the same executor and
+/// registry as `-O0`, already exercised per-backend above, and adding it
+/// would only multiply this 3x3 matrix without a new claim.
+fn matrix_backends<'a>(
+    module_source: &'a str,
+    native_host: &'a crate::agent_lifecycle::authorization::NativeStageHost,
+) -> [(
+    &'static str,
+    crate::agent_lifecycle::authorization::StageBackend<'a>,
+); 3] {
+    [
+        (
+            "interpreter",
+            crate::agent_lifecycle::authorization::StageBackend::Interpreter,
+        ),
+        (
+            "native -O0",
+            crate::agent_lifecycle::tests::native_backend(native_host),
+        ),
+        (
+            "Core Wasm",
+            crate::agent_lifecycle::authorization::StageBackend::Wasm {
+                source: module_source,
+            },
+        ),
+    ]
+}
 fn run(
     compiled: &CompiledTypedEffects,
     handler: &mut Handler,
@@ -168,38 +197,10 @@ fn native_o0_o2_durable_recovery_replays_the_checked_grant_without_a_second_hand
             "{label}: completed work redelivered"
         );
     }
-
-    let mut handler = Handler::default();
-    let mut store = Store::default();
-    run_on(
-        &compiled,
-        &mut handler,
-        &mut store,
-        None,
-        backend(0, &module_source),
-    )
-    .unwrap();
-    let retained = store.document.clone();
-    let before = (handler.calls, store.commits);
-    for selector in [1, 2] {
-        let label = backend_label(selector);
-        assert!(
-            run_on(
-                &compiled,
-                &mut handler,
-                &mut store,
-                Some(&retained),
-                backend(selector, &module_source),
-            )
-            .is_err(),
-            "{label}: cross-backend checkpoint accepted"
-        );
-        assert_eq!(
-            (handler.calls, store.commits),
-            before,
-            "{label}: cross-backend refusal delivered or persisted"
-        );
-    }
+    // Cross-backend restore is covered by
+    // `checkpoint_bytes_are_target_neutral_across_the_full_backend_matrix`,
+    // which additionally proves it for a genuinely partial (not yet
+    // complete) checkpoint.
 }
 
 #[test]
@@ -513,4 +514,334 @@ fn reducer_and_recovery_fuel_reservations_cannot_be_refunded() {
     );
     assert!(replay.is_err());
     assert_eq!((handler.calls, store.commits), (1, commits));
+}
+
+/// R15 #293 (checkpoint/migration target parity): the same canonical
+/// checkpoint bytes, produced under any of Interpreter/Native/Core Wasm, must
+/// decode and continue to completion under any other -- including a
+/// genuinely partial checkpoint with real dispatches still outstanding, not
+/// only an idempotent replay of an already-complete run.
+#[test]
+fn checkpoint_bytes_are_target_neutral_across_the_full_backend_matrix() {
+    let native_host = crate::agent_lifecycle::tests::native_stage_host()
+        .expect("cross-backend checkpoint parity requires an explicit held compiler");
+    let module_source = super::super::tests::typed_effect_source();
+    let compiled = super::super::tests::compile_from_source(&module_source);
+
+    for (save_label, save_backend) in matrix_backends(&module_source, &native_host) {
+        // A lost acknowledgement mid-run (proven against the ordinary route
+        // in `lost_ack_intent_is_uncertain_but_observed_and_transitions_replay_once`)
+        // leaves a real, genuinely partial checkpoint: further stage
+        // dispatches remain outstanding.
+        let mut handler = Handler::default();
+        let mut store = Store {
+            fail_at: Some(11),
+            ..Default::default()
+        };
+        assert!(
+            run_on(&compiled, &mut handler, &mut store, None, save_backend).is_err(),
+            "{save_label}: expected a lost acknowledgement, not a clean completion"
+        );
+        let retained = store.document.clone();
+        assert!(!retained.is_empty(), "{save_label}: no partial checkpoint");
+
+        let mut expected: Option<(
+            IterativeStatus,
+            Option<RetainedValue>,
+            CheckpointUsage,
+            usize,
+            usize,
+        )> = None;
+        for (restore_label, restore_backend) in matrix_backends(&module_source, &native_host) {
+            let mut restore_handler = Handler::default();
+            let mut restore_store = Store {
+                document: retained.clone(),
+                ..Default::default()
+            };
+            let restored = run_on(
+                &compiled,
+                &mut restore_handler,
+                &mut restore_store,
+                Some(&retained),
+                restore_backend,
+            )
+            .unwrap_or_else(|error| panic!("{save_label} -> {restore_label}: {error:?}"));
+            assert_eq!(
+                restored.run().lifecycle().status(),
+                IterativeStatus::Complete,
+                "{save_label} -> {restore_label}"
+            );
+            let summary = (
+                restored.run().lifecycle().status(),
+                restored.run().lifecycle().value().cloned(),
+                restored.usage(),
+                restored.iterations(),
+                restored.stages(),
+            );
+            if let Some(expected_summary) = &expected {
+                assert_eq!(
+                    &summary, expected_summary,
+                    "{save_label} -> {restore_label}"
+                );
+            } else {
+                expected = Some(summary);
+            }
+        }
+    }
+}
+
+/// Negative control run by hand and reverted rather than committed:
+/// commenting out the `wasm_source_mismatch` check in `durable.rs` (so a
+/// selected Wasm executor is no longer compared against this registry's own
+/// retained source) reproduces a failure of the two "altered Wasm source"
+/// assertions below, on both the fresh and the resumed leg, proving this
+/// test is not vacuous.
+#[test]
+fn hostile_checkpoints_are_refused_identically_on_every_backend() {
+    let native_host = crate::agent_lifecycle::tests::native_stage_host()
+        .expect("hostile checkpoint parity requires an explicit held compiler");
+    let module_source = super::super::tests::typed_effect_source();
+    let compiled = super::super::tests::compile_from_source(&module_source);
+
+    let mut handler = Handler::default();
+    let mut store = Store {
+        fail_at: Some(11),
+        ..Default::default()
+    };
+    assert!(run_on(
+        &compiled,
+        &mut handler,
+        &mut store,
+        None,
+        crate::agent_lifecycle::authorization::StageBackend::Interpreter,
+    )
+    .is_err());
+    let retained = store.document.clone();
+    assert!(!retained.is_empty());
+
+    // Tamper: flip one byte in the middle of the canonical document. The
+    // re-rendering check inside `AgentCheckpoint`/`OperationCheckpoint`
+    // decode must reject it before any store write or handler dispatch.
+    let mut tampered = retained.clone().into_bytes();
+    let mid = tampered.len() / 2;
+    tampered[mid] = if tampered[mid] == b'0' { b'1' } else { b'0' };
+    let tampered = String::from_utf8(tampered).unwrap();
+
+    // Foreign: a program root the checkpoint was never bound to.
+    let foreign_root = digest(b"test-root\0", b"foreign");
+
+    // Foreign Wasm source: a Wasm dispatch handed anything but this exact
+    // registry's own retained source is refused before decode, identically
+    // on the fresh (save) leg and the resumed (restore) leg.
+    let altered_source = format!("{module_source}\n");
+    let mut h = Handler::default();
+    let mut s = Store::default();
+    assert!(
+        run_on(
+            &compiled,
+            &mut h,
+            &mut s,
+            None,
+            crate::agent_lifecycle::authorization::StageBackend::Wasm {
+                source: &altered_source,
+            },
+        )
+        .is_err(),
+        "altered Wasm source accepted on the fresh leg"
+    );
+    assert_eq!(
+        (h.calls, s.commits),
+        (0, 0),
+        "altered Wasm source delivered or persisted on the fresh leg"
+    );
+    let mut h = Handler::default();
+    let mut s = Store {
+        document: retained.clone(),
+        ..Default::default()
+    };
+    assert!(
+        run_on(
+            &compiled,
+            &mut h,
+            &mut s,
+            Some(&retained),
+            crate::agent_lifecycle::authorization::StageBackend::Wasm {
+                source: &altered_source,
+            },
+        )
+        .is_err(),
+        "altered Wasm source accepted on the resumed leg"
+    );
+    assert_eq!(
+        (h.calls, s.commits),
+        (0, 0),
+        "altered Wasm source delivered or persisted on the resumed leg"
+    );
+
+    for (label, backend) in matrix_backends(&module_source, &native_host) {
+        let mut h = Handler::default();
+        let mut s = Store {
+            document: retained.clone(),
+            ..Default::default()
+        };
+        assert!(
+            run_on(&compiled, &mut h, &mut s, Some(&tampered), backend).is_err(),
+            "{label}: tampered checkpoint accepted"
+        );
+        assert_eq!(
+            (h.calls, s.commits),
+            (0, 0),
+            "{label}: tampered checkpoint delivered or persisted"
+        );
+
+        let mut h = Handler::default();
+        let mut s = Store {
+            document: retained.clone(),
+            ..Default::default()
+        };
+        assert!(
+            compiled
+                .run_durable_on(
+                    &task(),
+                    &proposals(&compiled),
+                    &mut h,
+                    IterativeBudget::default(),
+                    budget(),
+                    &AgentCancellation::new(),
+                    &foreign_root,
+                    &root(),
+                    Some(&retained),
+                    &mut s,
+                    10_000_000,
+                    backend,
+                )
+                .is_err(),
+            "{label}: foreign program root accepted"
+        );
+        assert_eq!(
+            (h.calls, s.commits),
+            (0, 0),
+            "{label}: foreign checkpoint delivered or persisted"
+        );
+
+        // Stale: a caller ceiling that no longer agrees with the one this
+        // checkpoint was reserved under.
+        let mut h = Handler::default();
+        let mut s = Store {
+            document: retained.clone(),
+            ..Default::default()
+        };
+        assert!(
+            run_on_with_fuel(&compiled, &mut h, &mut s, Some(&retained), 300_000, backend).is_err(),
+            "{label}: stale fuel ceiling accepted"
+        );
+        assert_eq!(
+            (h.calls, s.commits),
+            (0, 0),
+            "{label}: stale-ceiling checkpoint delivered or persisted"
+        );
+    }
+}
+
+/// R15 #293: the migration-seeded route ("migration ... target-parity")
+/// gains the same backend selector as the ordinary checkpoint route.
+/// Production migration resume (`run_durable_from_seed`) is unchanged and
+/// stays interpreter-only; this is local parity evidence only, exactly like
+/// `checkpoint_bytes_are_target_neutral_across_the_full_backend_matrix`.
+#[test]
+fn migration_seeded_checkpoint_restores_on_a_different_backend_than_it_saved_on() {
+    use crate::execution_revision::root as execution_root;
+    use crate::execution_revision::typed::migration::MigrationSeed;
+    use crate::hir::DeclarationId;
+    use crate::interpreter::retained_call::{RetainedField, RetainedRecord};
+
+    let native_host = crate::agent_lifecycle::tests::native_stage_host()
+        .expect("migration backend parity requires an explicit held compiler");
+    let module_source = super::super::tests::typed_effect_source();
+    let compiled = super::super::tests::compile_from_source(&module_source);
+
+    // A hand-built State one turn short of completion (epoch 2 of 3):
+    // exactly what a checked migration function would have produced, without
+    // exercising the full destination-runtime/handoff pipeline here.
+    let seed_state = RetainedValue::Record(RetainedRecord {
+        record: DeclarationId::new("fixture.agent.type.state"),
+        fields: vec![
+            RetainedField {
+                field: DeclarationId::new("fixture.agent.type.state.objective"),
+                value: RetainedValue::Bytes(vec![9, 8, 7]),
+            },
+            RetainedField {
+                field: DeclarationId::new("fixture.agent.type.state.budget"),
+                value: RetainedValue::I64(10),
+            },
+            RetainedField {
+                field: DeclarationId::new("fixture.agent.type.state.epoch"),
+                value: RetainedValue::I64(2),
+            },
+        ],
+    });
+    let seed = MigrationSeed::for_test(
+        seed_state,
+        execution_root(
+            "test.migration-seed.v1",
+            serde_json::json!({"fixture": "durable-backend-parity"}),
+        ),
+        CheckpointUsage::default(),
+        0,
+        0,
+        10_000_000,
+    );
+
+    let mut expected_status = None;
+    let mut expected_value = None;
+    let mut retained: Option<String> = None;
+    for (label, backend) in matrix_backends(&module_source, &native_host) {
+        let mut handler = Handler::default();
+        let mut store = Store::default();
+        if let Some(document) = &retained {
+            store.document = document.clone();
+        }
+        let run = compiled
+            .run_durable_from_seed_on(
+                &task(),
+                &proposals(&compiled),
+                &mut handler,
+                IterativeBudget::default(),
+                budget(),
+                &AgentCancellation::new(),
+                &root(),
+                &root(),
+                retained.as_deref(),
+                &mut store,
+                10_000_000,
+                &seed,
+                backend,
+            )
+            .unwrap_or_else(|error| panic!("{label}: {error:?}"));
+        assert_eq!(
+            run.run().lifecycle().status(),
+            IterativeStatus::Complete,
+            "{label}"
+        );
+        if let (Some(status), Some(value)) = (&expected_status, &expected_value) {
+            assert_eq!(
+                Some(run.run().lifecycle().status()),
+                Some(*status),
+                "{label}"
+            );
+            assert_eq!(&run.run().lifecycle().value().cloned(), value, "{label}");
+            assert_eq!(
+                handler.calls, 0,
+                "{label}: cross-backend replay of a complete checkpoint redelivered"
+            );
+        } else {
+            assert_eq!(
+                handler.calls, 2,
+                "{label}: fresh seeded run delivered a different call count"
+            );
+            expected_status = Some(run.run().lifecycle().status());
+            expected_value = Some(run.run().lifecycle().value().cloned());
+            retained = Some(run.checkpoint().to_owned());
+        }
+    }
 }

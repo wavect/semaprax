@@ -248,6 +248,36 @@ pub(crate) const SEQUENTIAL_CHANNEL_CHECKPOINT_SCHEMA: &str =
 pub(crate) const SEQUENTIAL_CHANNEL_BYTES_CHECKPOINT_SCHEMA: &str =
     "semaprax.source-resumable-sequential-channel-checkpoint.v2";
 
+pub(crate) const SEQUENTIAL_CHANNEL_ARGUMENTS_CHECKPOINT_SCHEMA: &str =
+    "semaprax.source-resumable-sequential-channel-checkpoint.v3";
+
+pub(crate) fn encode_channel_arguments(
+    function_id: &str,
+    continuation: &super::ResumableChannelContinuation,
+) -> Result<Vec<u8>, CheckpointError> {
+    encode_channel_schema(
+        function_id,
+        continuation,
+        SEQUENTIAL_CHANNEL_ARGUMENTS_CHECKPOINT_SCHEMA,
+    )
+}
+
+pub(crate) fn decode_channel_arguments(
+    program: &hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+    bytes: &[u8],
+) -> Result<super::ResumableChannelContinuation, CheckpointError> {
+    decode_channel_schema(
+        program,
+        function_id,
+        &[],
+        bytes,
+        SEQUENTIAL_CHANNEL_ARGUMENTS_CHECKPOINT_SCHEMA,
+        Some(arguments),
+    )
+}
+
 /// [`encode`] widened to a bounded record/variant request/response channel
 /// ([`super::ResumableChannelContinuation`]). `channel_json` renders a
 /// `Scalar` value byte-for-byte like [`scalar_json`], so this differs from
@@ -347,6 +377,7 @@ pub(crate) fn decode_channel(
         arguments,
         bytes,
         SEQUENTIAL_CHANNEL_CHECKPOINT_SCHEMA,
+        None,
     )
 }
 
@@ -362,6 +393,7 @@ pub(crate) fn decode_channel_bytes(
         arguments,
         bytes,
         SEQUENTIAL_CHANNEL_BYTES_CHECKPOINT_SCHEMA,
+        None,
     )
 }
 
@@ -371,6 +403,7 @@ fn decode_channel_schema(
     arguments: &[ArgumentValue],
     bytes: &[u8],
     expected_schema: &str,
+    channel_arguments: Option<&[ResumableChannelValue]>,
 ) -> Result<super::ResumableChannelContinuation, CheckpointError> {
     let limit = if expected_schema == SEQUENTIAL_CHANNEL_BYTES_CHECKPOINT_SCHEMA {
         MAX_BYTES_CHANNEL_CHECKPOINT_BYTES
@@ -421,7 +454,11 @@ fn decode_channel_schema(
         return Err(CheckpointError::DigestMismatch);
     }
 
-    let (plan, scalar_arguments) = checked_plan(program, function_id, arguments)?;
+    let (plan, scalar_arguments) = if let Some(arguments) = channel_arguments {
+        checked_channel_arguments_plan(program, function_id, arguments)?
+    } else {
+        checked_plan(program, function_id, arguments)?
+    };
     let index = plan
         .suspensions
         .iter()
@@ -487,6 +524,37 @@ fn decode_channel_schema(
         return Err(CheckpointError::NonCanonical);
     }
     Ok(continuation)
+}
+
+/// Reuses interpreter admission without evaluating source or granting authority.
+pub(crate) fn checked_channel_arguments_plan(
+    program: &hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+) -> Result<(SequentialResumablePlan, Vec<ResumableScalar>), CheckpointError> {
+    let admitted = super::channel::admit_channel_entry(program, function_id, arguments, 1, true)
+        .map_err(|_| CheckpointError::ProgramMismatch)?;
+    // v7 is selected by a genuine aggregate whole-function boundary, never
+    // by caller-supplied checkpoint bytes. Owned channels remain on v6.
+    if !admitted
+        .entry
+        .params
+        .iter()
+        .any(|p| !hir::is_scalar_resolved_type(&p.ty))
+        && hir::is_scalar_resolved_type(&admitted.entry.return_type)
+        || hir::yield_aggregate::has_bytes_leaf(
+            &program.declarations,
+            &admitted.yields.request_type,
+        )
+    {
+        return Err(CheckpointError::ProgramMismatch);
+    }
+    let plan = lowering::lower_sequential_with_arguments(program, admitted.entry)
+        .map_err(|_| CheckpointError::ProgramMismatch)?;
+    if plan.suspensions.is_empty() {
+        return Err(CheckpointError::ProgramMismatch);
+    }
+    Ok((plan, admitted.arguments))
 }
 
 fn checked_plan(

@@ -30,6 +30,185 @@ const AUTHENTICATION_DOMAIN_V6: &[u8] = b"semaprax.source-resumable-checkpoint-a
 // decimal representation needs more than the scalar/v5 envelope's 32 KiB cap.
 const MAX_V6_CHECKPOINT_BYTES: usize = 64 * 1024;
 
+pub const SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V7: &str = "semaprax.source-resumable-checkpoint.v7";
+const AUTHENTICATION_DOMAIN_V7: &[u8] = b"semaprax.source-resumable-checkpoint-authentication.v7\0";
+
+/// Canonical invocation binding. Scalar channel values retain exactly the
+/// existing scalar JSON plus LF framing; nominal identities remain included.
+pub(crate) fn channel_arguments_digest(
+    arguments: &[crate::interpreter::resumable::ResumableChannelValue],
+) -> String {
+    use sha2::Digest;
+    let mut digest = Sha256::new();
+    for argument in arguments {
+        digest.update(channel_json(argument).to_string().as_bytes());
+        digest.update(b"\n");
+    }
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(digest.finalize())
+    )
+}
+
+fn arguments_signature(
+    program: &ResolvedProgram,
+    function_id: &str,
+    arguments: &[crate::interpreter::resumable::ResumableChannelValue],
+) -> Result<Value, SourceCheckpointError> {
+    let (plan, _) = checkpoint::checked_channel_arguments_plan(program, function_id, arguments)
+        .map_err(map_inner_error)?;
+    let yields = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == function_id)
+        .and_then(|f| f.yields.as_ref())
+        .ok_or(SourceCheckpointError::ProgramMismatch)?;
+    let prefix = crate::resumable_effects::source_signature::SOURCE_TYPE_SHAPE_PREFIX;
+    Ok(json!({
+        "request_shape": format!("{prefix}{}", yields.request_type.identity_key()),
+        "answer_shape": format!("{prefix}{}", yields.response_type.identity_key()),
+        "plan_identity": format!("sha256:{:x}", crate::digest_hex::LowerHex(plan.identity.as_bytes())),
+        "yield_count": plan.suspensions.len(),
+    }))
+}
+
+fn arguments_payload(
+    scope: &SourceCheckpointScope,
+    function_id: &str,
+    signature: Value,
+    arguments: Value,
+    arguments_digest: Value,
+    continuation: Value,
+) -> Value {
+    let mut value = payload(
+        SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V7,
+        scope,
+        function_id,
+        signature,
+        continuation,
+    );
+    value["arguments"] = arguments;
+    value["arguments_digest"] = arguments_digest;
+    value
+}
+
+/// Authenticate only a suspended Copy-aggregate invocation. This never runs
+/// source, dispatches host work, or grants answer or storage authority.
+pub fn encode_source_checkpoint_v7(
+    program: &ResolvedProgram,
+    key: &SourceCheckpointKey,
+    scope: &SourceCheckpointScope,
+    function_id: &str,
+    arguments: &[crate::interpreter::resumable::ResumableChannelValue],
+    continuation: &ResumableChannelContinuation,
+) -> Result<Vec<u8>, SourceCheckpointError> {
+    validate_scope(scope)?;
+    validate_scope_field(function_id)?;
+    let signature = arguments_signature(program, function_id, arguments)?;
+    let inner =
+        checkpoint::encode_channel_arguments(function_id, continuation).map_err(map_inner_error)?;
+    checkpoint::decode_channel_arguments(program, function_id, arguments, &inner)
+        .map_err(map_inner_error)?;
+    let continuation =
+        serde_json::from_slice(&inner).map_err(|_| SourceCheckpointError::Malformed)?;
+    render(
+        key,
+        arguments_payload(
+            scope,
+            function_id,
+            signature,
+            Value::Array(arguments.iter().map(channel_json).collect()),
+            Value::String(channel_arguments_digest(arguments)),
+            continuation,
+        ),
+        AUTHENTICATION_DOMAIN_V7,
+    )
+}
+
+/// Decode inert proof data under independently supplied checked invocation
+/// facts. V7 is selected from the checked boundary before interpreting bytes.
+pub fn decode_source_checkpoint_v7(
+    program: &ResolvedProgram,
+    key: &SourceCheckpointKey,
+    expected_scope: &SourceCheckpointScope,
+    function_id: &str,
+    arguments: &[crate::interpreter::resumable::ResumableChannelValue],
+    bytes: &[u8],
+) -> Result<ResumableChannelContinuation, SourceCheckpointError> {
+    validate_scope(expected_scope)?;
+    validate_scope_field(function_id)?;
+    let expected_signature = arguments_signature(program, function_id, arguments)?;
+    if bytes.len() > MAX_CHECKPOINT_BYTES {
+        return Err(SourceCheckpointError::TooLarge);
+    }
+    let document: Value =
+        serde_json::from_slice(bytes).map_err(|_| SourceCheckpointError::Malformed)?;
+    if required_str(&document, "schema")? != SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V7 {
+        return Err(SourceCheckpointError::SchemaMismatch);
+    }
+    keys(
+        &document,
+        &[
+            "schema",
+            "scope",
+            "function",
+            "signature",
+            "arguments",
+            "arguments_digest",
+            "continuation",
+            "authentication",
+        ],
+    )?;
+    let encoded_scope = &document["scope"];
+    keys(
+        encoded_scope,
+        &["program_root", "invocation_id", "policy_epoch"],
+    )?;
+    let observed_scope = SourceCheckpointScope::new(
+        required_str(encoded_scope, "program_root")?,
+        required_str(encoded_scope, "invocation_id")?,
+        encoded_scope["policy_epoch"]
+            .as_u64()
+            .ok_or(SourceCheckpointError::Malformed)?,
+    )?;
+    let encoded_function = required_str(&document, "function")?;
+    validate_scope_field(encoded_function)?;
+    let unsigned = arguments_payload(
+        &observed_scope,
+        encoded_function,
+        document["signature"].clone(),
+        document["arguments"].clone(),
+        document["arguments_digest"].clone(),
+        document["continuation"].clone(),
+    );
+    verify_authentication(
+        key,
+        &unsigned,
+        required_str(&document, "authentication")?,
+        AUTHENTICATION_DOMAIN_V7,
+    )?;
+    if render(key, unsigned, AUTHENTICATION_DOMAIN_V7)?.as_slice() != bytes {
+        return Err(SourceCheckpointError::NonCanonical);
+    }
+    if observed_scope != *expected_scope {
+        return Err(SourceCheckpointError::ScopeMismatch);
+    }
+    if encoded_function != function_id {
+        return Err(SourceCheckpointError::FunctionMismatch);
+    }
+    if document["signature"] != expected_signature {
+        return Err(SourceCheckpointError::ProgramMismatch);
+    }
+    if document["arguments"] != Value::Array(arguments.iter().map(channel_json).collect())
+        || document["arguments_digest"] != Value::String(channel_arguments_digest(arguments))
+    {
+        return Err(SourceCheckpointError::ArgumentsMismatch);
+    }
+    let inner = format!("{}\n", document["continuation"]);
+    checkpoint::decode_channel_arguments(program, function_id, arguments, inner.as_bytes())
+        .map_err(map_inner_error)
+}
+
 /// Authenticate a structurally valid bounded-aggregate-channel continuation
 /// and its compiler-derived signature under the caller's exact scope. No
 /// source is executed; a signed checkpoint remains inert proof data.
@@ -753,3 +932,6 @@ fn main() -> i64 { 0 }
         assert!(decode(&program, &forged).is_err());
     }
 }
+
+#[cfg(test)]
+mod arguments_tests;

@@ -40,6 +40,10 @@ pub use channel::{
     encode_source_checkpoint_v6, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V5,
     SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V6,
 };
+/// V7 decoding returns inert continuation data and grants no execution authority.
+pub use channel::{
+    decode_source_checkpoint_v7, encode_source_checkpoint_v7, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V7,
+};
 pub use control::{
     decode_source_checkpoint_v3, encode_source_checkpoint_v3, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V3,
 };
@@ -139,6 +143,7 @@ impl SourceCheckpointScope {
 /// Stable refusal classes for public source-continuation recovery.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SourceCheckpointError {
+    ArgumentsMismatch,
     TooLarge,
     InvalidScope,
     Malformed,

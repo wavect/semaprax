@@ -10,6 +10,8 @@ use std::os::unix::fs::{symlink, PermissionsExt};
 use std::sync::atomic::{AtomicU64, Ordering};
 #[path = "cache_tests.rs"]
 mod cache_tests;
+#[path = "mirror_acceptance_tests.rs"]
+mod mirror_acceptance_tests;
 #[path = "read_tests.rs"]
 mod read_tests;
 static SERIAL: AtomicU64 = AtomicU64::new(0);

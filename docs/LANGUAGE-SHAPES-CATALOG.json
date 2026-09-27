@@ -238,7 +238,7 @@
       "id": "checkout.session",
       "kind": "session_protocol",
       "path": "examples/session_protocol.spx",
-      "signature": "@id(\"checkout.session\")\nsession protocol \"checkout-v1\" {\n    states { Idle, Open, Committed, Failed }\n    initial Idle;\n    terminal Committed cleanup { release_snapshot }\n    terminal Failed cleanup { discard_snapshot }\n    on Idle begin: send BeginRequest via \"checkout.begin\" -> Open;\n    on Idle abort: fail Unit -> Failed;\n    on Open commit: send CommitRequest via \"checkout.commit\" -> choice { committed: Committed, refused: Failed };\n    on Open lost: fail Unit -> Failed;\n}\n"
+      "signature": "@id(\"checkout.session\")\nsession protocol \"checkout-v1\" {\n    states { Idle, Open, Done, Failed }\n    initial Idle;\n    terminal Done cleanup { release }\n    terminal Failed cleanup { discard }\n    on Idle begin: send Begin via \"checkout.begin\" -> Open;\n    on Idle abort: fail Unit -> Failed;\n    on Open commit: send Commit via \"checkout.commit\" -> choice { committed: Done, refused: Failed };\n    on Open lost: fail Unit -> Failed;\n}\n"
     },
     {
       "id": "ledger.is_deposit",

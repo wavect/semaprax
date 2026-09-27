@@ -477,13 +477,13 @@ interface TokenHost
 ```semaprax
 @id("checkout.session")
 session protocol "checkout-v1" {
-    states { Idle, Open, Committed, Failed }
+    states { Idle, Open, Done, Failed }
     initial Idle;
-    terminal Committed cleanup { release_snapshot }
-    terminal Failed cleanup { discard_snapshot }
-    on Idle begin: send BeginRequest via "checkout.begin" -> Open;
+    terminal Done cleanup { release }
+    terminal Failed cleanup { discard }
+    on Idle begin: send Begin via "checkout.begin" -> Open;
     on Idle abort: fail Unit -> Failed;
-    on Open commit: send CommitRequest via "checkout.commit" -> choice { committed: Committed, refused: Failed };
+    on Open commit: send Commit via "checkout.commit" -> choice { committed: Done, refused: Failed };
     on Open lost: fail Unit -> Failed;
 }
 ```

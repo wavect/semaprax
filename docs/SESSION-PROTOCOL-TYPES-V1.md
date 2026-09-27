@@ -536,8 +536,21 @@ projected fact carries `"authority":"none"`.
   managed source that owns it. Every `via` is bound against the checked HIR
   built from that same module before it is recorded, in the same per-module
   pass that already binds cross-file call edges
-  (`src/workspace_graph/session_protocol_decl.rs`). The Package Semantic
-  Graph does not project declarations (see [Non-claims](#non-claims)).
+  (`src/workspace_graph/session_protocol_decl.rs`).
+- **Package Semantic Graph (R21, issue #297 follow-on).**
+  `PackageSemanticGraph::derive` selects `semaprax.package-semantic-graph.v2`
+  only when at least one selected package declares a session protocol; a
+  protocol-free package graph keeps `.v1` and byte-identical output, the
+  identical gating discipline the per-source graph and the Workspace Semantic
+  Graph already use. A declaring graph gains one trailing `session_protocols`
+  object: `base_schema`, `authority: "none"`, and one fact per declaration,
+  each the same canonical fact plus `package` and `version` naming the
+  selected coordinate that owns it. The package-source build reuses the
+  Workspace Semantic Graph's own per-module pass
+  (`workspace_graph::build_package_scalar_sources` calling
+  `retain_workspace_module`), so no protocol fact here is derived by a second,
+  independent code path; see [Package Semantic Graph
+  v1](PACKAGE-SEMANTIC-GRAPH-V1.md#declared-session-protocols-issue-297-follow-on).
 - **Documentation (R21).** `semaprax doc` renders a `session_protocol` entry
   per declaration: the canonical declaration text as its signature (states,
   initial, terminals with cleanup, and every transition, in source order),
@@ -559,14 +572,12 @@ name (`a_session_protocol_via_target_is_retained`).
 ### Non-claims
 
 A session protocol declaration is projected by the per-source graph (v48),
-the Workspace Semantic Graph (v2, R21), `context` (`--filters
-session_protocol`), Architecture Claims (`protocol_realizers_bound`, Rust API
-only), single-file and Project Assurance Manifest v1, `semaprax doc`, and
-`semaprax query --kind session_protocol`. The following omit declarations
-entirely, and nothing here claims otherwise:
+the Workspace Semantic Graph (v2, R21), the Package Semantic Graph (v2, R21),
+`context` (`--filters session_protocol`), Architecture Claims
+(`protocol_realizers_bound`, Rust API only), single-file and Project Assurance
+Manifest v1, `semaprax doc`, and `semaprax query --kind session_protocol`. The
+following omit declarations entirely, and nothing here claims otherwise:
 
-- the Package Semantic Graph document (project builds do run the `SPX-K1xx`
-  checks, but emit no protocol facts);
 - the help shape catalog (`LANGUAGE-SHAPES-CATALOG`) and the agent quick
   reference;
 - semantic-workspace operations (rename, change, impact, review do not treat

@@ -145,6 +145,12 @@ pub(crate) struct PackageWorkspaceCall {
 pub(crate) struct PackageWorkspaceModule {
     pub(crate) package: String,
     pub(crate) interface: ScalarPackageInterface,
+    /// Canonical facts of this module's own declared session protocols
+    /// (issue #297 follow-on: Package Semantic Graph), already bound to this
+    /// module's own checked HIR by `retain_workspace_module` -- the identical
+    /// field the Workspace Semantic Graph's own `session_protocol_decl`
+    /// projects, reused unchanged rather than recomputed.
+    pub(crate) session_protocol_facts: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -262,6 +268,7 @@ pub(crate) fn build_package_scalar_sources(
         modules.push(PackageWorkspaceModule {
             package: module.module.clone(),
             interface,
+            session_protocol_facts: module.session_protocol_facts.clone(),
         });
     }
     modules.sort_by(|left, right| left.package.as_bytes().cmp(right.package.as_bytes()));

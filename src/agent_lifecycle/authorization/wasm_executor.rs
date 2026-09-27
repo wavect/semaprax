@@ -165,6 +165,9 @@ use workspace::WasmStageWorkspace;
 // conservative per-projection reservation inside that hard boundary; larger
 // byte-stream projections fail closed before process admission.
 const MAX_NODE_OUTCOME_ROW_BYTES: usize = 4 * 1_024;
+// Scalar values and the fixed compiler-owned status envelopes fit within
+// this bound; only owned-byte projections require the larger row allowance.
+const MAX_NODE_SCALAR_OUTCOME_ROW_BYTES: usize = 512;
 
 /// The Core Wasm stage executor, carrying the exact module source text it is
 /// allowed to re-resolve. It reads no file and opens no network; the source
@@ -577,6 +580,7 @@ fn run_direct(
         &selected,
         &selected,
         &[call],
+        0,
         cancellation,
         meter,
     )? {
@@ -875,14 +879,24 @@ fn run_through_injected_driver(
             // driver's whole-value return -- the same `settled_owned_bytes`
             // receipt tag, because it is the same real settlement, just
             // reached through more Wasm calls.
-            Projection::IndexedBytes => format!(
-                "(() => {{ const bytes = []; for (let i = 0; ; i += 1) {{ \
-                 if (i > {BYTE_STREAM_CAP}) throw new Error('indexed byte stream cap'); \
-                 const byte = api.functions['{}'](BigInt(i)); \
-                 if (byte < 0n) break; \
-                 bytes.push(Number(byte)); }} return Uint8Array.from(bytes); }})()",
-                driver.id
-            ),
+            Projection::IndexedBytes => {
+                let call = format!("api.functions['{}'](BigInt(i))", driver.id);
+                // Each byte (including the sentinel) re-executes the pure
+                // stage. Meter each physical call independently and require
+                // identical receipts, just like the other projections.
+                let call = if meter.is_some() {
+                    format!("semanticProjection(() => {call})")
+                } else {
+                    call
+                };
+                format!(
+                    "(() => {{ const bytes = []; for (let i = 0; ; i += 1) {{ \
+                     if (i > {BYTE_STREAM_CAP}) throw new Error('indexed byte stream cap'); \
+                     const byte = {call}; \
+                     if (byte < 0n) break; \
+                     bytes.push(Number(byte)); }} return Uint8Array.from(bytes); }})()"
+                )
+            }
         })
         .collect::<Vec<_>>();
     let invoked = drivers
@@ -896,6 +910,15 @@ fn run_through_injected_driver(
         &selected,
         &invoked,
         &calls,
+        drivers
+            .iter()
+            .filter(|driver| {
+                matches!(
+                    driver.projection,
+                    Projection::OwnedBytes | Projection::IndexedBytes
+                )
+            })
+            .count(),
         cancellation,
         meter,
     )? {
@@ -1053,6 +1076,35 @@ fn decode_hex(hex: &str) -> Result<Vec<u8>, Diagnostic> {
 // The shared build-and-run path: one owned-data package, one Node process.
 // ---------------------------------------------------------------------------
 
+fn node_output_budget(
+    calls: usize,
+    owned_byte_projections: usize,
+    metered: bool,
+) -> Result<usize, Diagnostic> {
+    if !metered {
+        // Preserve the legacy pooled allowance of every unmetered route.
+        return calls
+            .checked_mul(MAX_NODE_OUTCOME_ROW_BYTES)
+            .filter(|bytes| *bytes > 0 && *bytes <= MAX_NODE_STDOUT_BYTES)
+            .ok_or_else(|| invariant("wasm_executor.process.output_budget"));
+    }
+    calls
+        .checked_sub(owned_byte_projections)
+        .and_then(|count| count.checked_mul(MAX_NODE_SCALAR_OUTCOME_ROW_BYTES))
+        .and_then(|bytes| {
+            owned_byte_projections
+                .checked_mul(MAX_NODE_OUTCOME_ROW_BYTES)
+                .and_then(|owned| bytes.checked_add(owned))
+        })
+        .and_then(|bytes| {
+            calls
+                .checked_mul(if metered { MAX_SEMANTIC_ROW_BYTES } else { 0 })
+                .and_then(|semantic| bytes.checked_add(semantic))
+        })
+        .filter(|bytes| *bytes > 0 && *bytes <= MAX_NODE_STDOUT_BYTES)
+        .ok_or_else(|| invariant("wasm_executor.process.output_budget"))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn build_and_drive(
     host: &WasmStageHost,
@@ -1061,18 +1113,14 @@ fn build_and_drive(
     selected: &[String],
     invocations: &[String],
     calls: &[String],
+    owned_byte_projections: usize,
     cancellation: Option<&AgentCancellation>,
     meter: Option<&WasmMeter<'_>>,
 ) -> Result<NodeStageRun, Diagnostic> {
     if invocations.len() != calls.len() {
         return Err(invariant("wasm_executor.binding.invocation_arity"));
     }
-    let row_bytes = MAX_NODE_OUTCOME_ROW_BYTES + meter.map_or(0, |_| MAX_SEMANTIC_ROW_BYTES);
-    let output_budget = calls
-        .len()
-        .checked_mul(row_bytes)
-        .filter(|bytes| *bytes <= MAX_NODE_STDOUT_BYTES)
-        .ok_or_else(|| invariant("wasm_executor.process.output_budget"))?;
+    let output_budget = node_output_budget(calls.len(), owned_byte_projections, meter.is_some())?;
     if cancellation.is_some_and(AgentCancellation::is_cancelled) {
         return Err(invariant("wasm_executor.process.cancelled"));
     }

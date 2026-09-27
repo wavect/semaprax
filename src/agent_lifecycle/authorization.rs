@@ -550,6 +550,14 @@ impl StageExecutor for InterpreterStageExecutor {
 /// ambient authority the interpreter backend does not have.
 #[derive(Clone, Copy)]
 pub(super) enum StageBackend<'a> {
+    /// An opt-in observation around the same sealed dispatch, never another
+    /// executor or permission to fall back to an unmetered call.
+    Metered {
+        backend: &'a StageBackend<'a>,
+        fuel_limit: u64,
+        observations:
+            &'a std::cell::RefCell<Vec<super::iterative::effects::StageSemanticObservation>>,
+    },
     Interpreter,
     Native {
         host: &'a NativeStageHost,
@@ -640,6 +648,30 @@ fn dispatch_on_admitted(
     crate::interpreter::retained_call::validate_step_limit(max_steps)?;
     let authority = ExecutionAuthority::grant();
     match backend {
+        StageBackend::Metered {
+            backend,
+            fuel_limit,
+            observations,
+        } => {
+            let evaluation = dispatch_on_metered(
+                *backend,
+                program,
+                prepared,
+                arguments,
+                max_steps,
+                fuel_limit,
+                cancellation,
+            )?;
+            observations
+                .borrow_mut()
+                .push(super::iterative::effects::StageSemanticObservation {
+                    function_id: evaluation.function_id.clone(),
+                    work: evaluation.semantic_work.clone().ok_or_else(|| {
+                        vec![super::stages::invariant("semantic_work.unreported")]
+                    })?,
+                });
+            Ok(evaluation)
+        }
         StageBackend::Interpreter => InterpreterStageExecutor.execute(
             authority,
             program,
@@ -715,6 +747,9 @@ pub(super) fn dispatch_on_metered(
         .map_err(|error| vec![error])?;
     let authority = ExecutionAuthority::grant();
     let evaluation = match backend {
+        StageBackend::Metered { .. } => {
+            return Err(vec![super::stages::invariant("semantic_work.nested")]);
+        }
         StageBackend::Interpreter => InterpreterStageExecutor.execute_metered(
             authority,
             program,

@@ -185,6 +185,23 @@ const work = () => {{
   if(!Number.isInteger(n) || n < 0 || n > {capacity}) throw new Error('SEMAPRAX semantic event count');
   return {{schema:'{SEMANTIC_SCHEMA}',fuel:String(used.value),exhausted:exhausted.value,overflow:overflow.value,events:events.slice(0, n).map(event => String(event.value))}};
 }};
+// A variant byte projection repeats the same pure stage for each byte and
+// its sentinel. Each actual call has its own fuel ceiling. Compare every
+// receipt before retaining the one logical stage observation; summing or
+// ignoring divergent re-executions would not be semantic parity.
+let indexedWork = null;
+let indexedDivergence = false;
+const semanticProjection = call => {{
+  reset();
+  try {{ return call(); }} finally {{
+    const receipt = JSON.stringify(work());
+    if(indexedWork !== null && indexedWork !== receipt) {{
+      indexedDivergence = true;
+      throw new Error('SEMAPRAX indexed semantic divergence');
+    }}
+    indexedWork = receipt;
+  }}
+}};
 const out = [];
 const normalizeFailure = error => {{
   if(error?.semapraxSemantic !== true) throw error;
@@ -205,9 +222,12 @@ const calls = [
 {call_thunks}
 ];
 for (const call of calls) {{
+  indexedWork = null;
+  indexedDivergence = false;
   reset();
   let result = null;
   try {{ result = stage(call); }} catch(error) {{
+    if(indexedDivergence) throw error;
     if(depthExceeded.value === 1) result = {{schema:'semaprax.agent-wasm-stage-outcome.v2',kind:'call_depth_exceeded'}};
     else if(exhausted.value !== 1) throw error;
   }}
@@ -235,6 +255,61 @@ mod tests {
         format!(
             r#"{{"schema":"{SEMANTIC_SCHEMA}","fuel":"{fuel}","exhausted":{exhausted},"overflow":{overflow},"events":[{events}]}}"#
         )
+    }
+
+    #[test]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    fn generated_indexed_observer_rejects_divergence_before_exhaustion() {
+        let host = crate::agent_lifecycle::tests::test_wasm_stage_host().expect("held Node");
+        let checked = crate::check(SOURCE, std::path::Path::new("wasm-semantic-rows.spx")).unwrap();
+        let program = crate::hir::resolve(&checked).unwrap();
+        let profile = StageSemanticProfile::admit(&program, "app.main", 9).unwrap();
+        for divergent in [false, true] {
+            let meter = WasmMeter::new(&profile);
+            let calls = format!(
+                "() => {{ semanticProjection(() => {{ used.value = 1n; return 0n; }}); return semanticProjection(() => {{ used.value = {}n; exhausted.value = {}; return 0n; }}); }}",
+                if divergent { 2 } else { 1 }, u8::from(divergent),
+            );
+            // Execute the real generated observer against controlled exported
+            // globals, so a mismatch with exhausted=1 cannot be hidden by the
+            // outer fuel-error classifier. No source stage is simulated here.
+            let observer = meter.observe_source(&calls);
+            let body = &observer[observer.find("const global = name").unwrap()..];
+            let mut globals = vec![format!(
+                "meter['{}'] = new WebAssembly.Global({{value:'i64',mutable:true}}, 0n);",
+                crate::wasm::FUEL_USED_EXPORT
+            )];
+            for name in [
+                crate::wasm::EXHAUSTED_EXPORT,
+                crate::wasm::EVENT_COUNT_EXPORT,
+                crate::wasm::EVENT_OVERFLOW_EXPORT,
+                crate::wasm::CALL_DEPTH_EXCEEDED_EXPORT,
+            ] {
+                globals.push(format!(
+                    "meter['{name}'] = new WebAssembly.Global({{value:'i32',mutable:true}}, 0);"
+                ));
+            }
+            for index in 0..crate::wasm::SEMANTIC_EVENT_CAPACITY {
+                globals.push(format!("meter['{}{index}'] = new WebAssembly.Global({{value:'i64',mutable:true}}, 0n);", crate::wasm::EVENT_EXPORT_PREFIX));
+            }
+            let script = format!("const meter = {{}};\n{}\ntry {{\n{body}\n}} catch(error) {{ if(error.message !== 'SEMAPRAX indexed semantic divergence') throw error; process.stdout.write('DIVERGENCE\\n'); }}\n", globals.join("\n"));
+            let mut workspace = super::super::WasmStageWorkspace::create().unwrap();
+            workspace
+                .write(std::path::Path::new("observe.mjs"), script.as_bytes())
+                .unwrap();
+            let output = super::super::run_node_process(host, &workspace, None, 4096);
+            workspace.cleanup().unwrap();
+            let output = output.unwrap();
+            if divergent {
+                assert_eq!(output, "DIVERGENCE\n");
+            } else {
+                assert!(matches!(
+                    meter.decode(&output, 1).unwrap(),
+                    NodeStageRun::Returned(_)
+                ));
+                assert_eq!(meter.take().unwrap().fuel_used, 1);
+            }
+        }
     }
 
     #[test]

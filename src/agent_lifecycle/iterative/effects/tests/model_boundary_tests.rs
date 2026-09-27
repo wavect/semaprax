@@ -8,6 +8,15 @@ struct ParityModelHandler {
 }
 
 fn backend_label(backend: crate::agent_lifecycle::authorization::StageBackend<'_>) -> String {
+    if let crate::agent_lifecycle::authorization::StageBackend::Wasm { source } = backend {
+        let held = super::public_targets::held_wasm();
+        return super::live::target_backend_identity(
+            crate::agent_lifecycle::authorization::StageBackend::WasmHeld {
+                host: &held.host,
+                source,
+            },
+        );
+    }
     super::live::target_backend_identity(backend)
 }
 
@@ -219,7 +228,7 @@ fn model_target_run_on(
         request_wires: Vec::new(),
         grants: Vec::new(),
     };
-    let run = compiled.run_target_live_on(
+    let run = compiled.run_public_target_fixture(
         &LifecycleTask {
             objective: vec![],
             budget: 10,
@@ -267,7 +276,7 @@ fn target_attempt_on(
     handler: &mut dyn crate::agent_lifecycle::authorization::target_protocol::TargetHostHandler,
 ) -> Result<TargetEffectRun, Vec<Diagnostic>> {
     let mut source = TargetSource { proposals, next: 0 };
-    compiled.run_target_live_on(
+    compiled.run_public_target_fixture(
         &LifecycleTask {
             objective: vec![],
             budget: 10,
@@ -358,7 +367,7 @@ fn successful_target_run_on(
         returned_values: Vec::new(),
     };
     let run = compiled
-        .run_target_live_on(
+        .run_public_target_fixture(
             &LifecycleTask {
                 objective: vec![],
                 budget: 10,
@@ -489,8 +498,11 @@ fn successful_target_settlement_is_cumulative_and_backend_source_bound() {
         },
         &cancellation,
     );
+    // Public selectors retain their own source; callers cannot substitute
+    // sibling source bytes at dispatch. Compile that sibling independently.
+    let equivalent_compiled = compile_from_source(&equivalent_wasm_source);
     let wasm_equivalent_source = successful_target_run_on(
-        &compiled,
+        &equivalent_compiled,
         &equivalent_wasm_source,
         crate::agent_lifecycle::authorization::StageBackend::Wasm {
             source: &equivalent_wasm_source,

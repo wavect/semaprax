@@ -2,7 +2,9 @@
 //! Reducers retain Outcome{Bytes,i64}; Bytes contains the canonical typed result.
 pub(crate) mod continuation;
 mod live;
+mod metered;
 use super::*;
+pub use metered::{MeteredTargetEffectRun, StageSemanticObservation};
 pub mod durable;
 use crate::agent_deployment::BoundAgentDeployment;
 use crate::agent_lifecycle::authorization::target_protocol::{TargetAccounting, TargetEvidence};
@@ -727,6 +729,7 @@ pub(crate) mod tests {
     use super::*;
     use crate::agent_lifecycle::tests::{DEFINITION, MODULE, RUNTIME_V1};
     mod model_boundary_tests;
+    mod public_targets;
     pub(crate) fn source(terminal: &str) -> String {
         let start = MODULE.find("@id(\"fixture.agent.fn.reduce\")").unwrap();
         let end = MODULE[start..].find("@id(\"app.main\")").unwrap() + start;
@@ -983,56 +986,12 @@ fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome:
             request_wires: Vec::new(),
             grants: Vec::new(),
         };
-        // The native leg must exercise the same public selector an embedding
-        // host receives. Reopening the absolute fixture path deliberately
-        // establishes a second held descriptor, rather than smuggling the
-        // parity-only executor through the public route.
-        let public_native = match backend {
-            crate::agent_lifecycle::authorization::StageBackend::Native { host } => {
-                let public = NativeTargetHost::open(host.compiler_path())
-                    .expect("fixture held compiler reopens as a native target host");
-                assert_eq!(public.identity(), host.identity());
-                Some(public)
-            }
-            _ => None,
-        };
-        let selected = match backend {
-            crate::agent_lifecycle::authorization::StageBackend::NativeAtOptimization {
-                ..
-            } => None,
-            crate::agent_lifecycle::authorization::StageBackend::WasmHeld { .. } => None,
-            crate::agent_lifecycle::authorization::StageBackend::Interpreter => {
-                Some(TargetStageBackend::Interpreter)
-            }
-            crate::agent_lifecycle::authorization::StageBackend::Native { .. } => {
-                Some(TargetStageBackend::Native(
-                    public_native
-                        .as_ref()
-                        .expect("native selection retains public held host"),
-                ))
-            }
-            crate::agent_lifecycle::authorization::StageBackend::Wasm {
-                source: wasm_source,
-            } => {
-                assert_eq!(wasm_source, module_source);
-                Some(TargetStageBackend::CoreWasm)
-            }
-        };
         let task = LifecycleTask {
             objective: vec![],
             budget: 10,
         };
-        let run = match selected {
-            Some(selected) => compiled.run_target_live_with_backend(
-                &task,
-                &mut source,
-                &mut handler,
-                IterativeBudget::default(),
-                budgets(),
-                cancellation,
-                selected,
-            ),
-            None => compiled.run_target_live_on(
+        let run = compiled
+            .run_public_target_fixture(
                 &task,
                 &mut source,
                 &mut handler,
@@ -1040,9 +999,8 @@ fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome:
                 budgets(),
                 cancellation,
                 backend,
-            ),
-        }
-        .unwrap_or_else(|errors| panic!("target {module_source:?}: {errors:?}"));
+            )
+            .unwrap_or_else(|errors| panic!("target fixture {module_source:?}: {errors:?}"));
         (run, handler)
     }
 
@@ -1206,6 +1164,7 @@ fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome:
             .expect("availability retains native host");
         let public_native = NativeTargetHost::open(native_host.compiler_path())
             .expect("fixture compiler is an explicit target capability");
+        let public_wasm = public_targets::held_wasm();
         let module_source = typed_effect_source();
         let compiled = compile_from_source(&module_source);
         let task = LifecycleTask {
@@ -1259,7 +1218,7 @@ fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome:
 
         for (label, selected) in [
             ("native", TargetStageBackend::Native(&public_native)),
-            ("Core Wasm", TargetStageBackend::CoreWasm),
+            ("Core Wasm", TargetStageBackend::CoreWasmHeld(&public_wasm)),
         ] {
             let mut source = TargetSource {
                 proposals: Vec::new(),
@@ -1337,7 +1296,7 @@ fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome:
             assert_eq!(expected_handler.calls, 0);
             for (label, selected) in [
                 ("native", TargetStageBackend::Native(&public_native)),
-                ("Core Wasm", TargetStageBackend::CoreWasm),
+                ("Core Wasm", TargetStageBackend::CoreWasmHeld(&public_wasm)),
             ] {
                 let mut source = TargetSource {
                     proposals: Vec::new(),
@@ -1419,7 +1378,7 @@ fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome:
         assert_eq!(expected_handler.calls, 0);
         for (label, selected) in [
             ("native", TargetStageBackend::Native(&public_native)),
-            ("Core Wasm", TargetStageBackend::CoreWasm),
+            ("Core Wasm", TargetStageBackend::CoreWasmHeld(&public_wasm)),
         ] {
             let mut source = TargetSource {
                 proposals: Vec::new(),

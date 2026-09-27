@@ -21,6 +21,16 @@ pub(super) fn target_backend_identity(
     backend: crate::agent_lifecycle::authorization::StageBackend<'_>,
 ) -> String {
     match backend {
+        crate::agent_lifecycle::authorization::StageBackend::Metered {
+            backend,
+            fuel_limit,
+            ..
+        } => {
+            format!(
+                "semantic-work-v1:{fuel_limit}:{}",
+                target_backend_identity(*backend)
+            )
+        }
         crate::agent_lifecycle::authorization::StageBackend::Interpreter => "interpreter".into(),
         crate::agent_lifecycle::authorization::StageBackend::Native { host } => {
             format!("native:-O0:{}", host.identity())
@@ -472,7 +482,25 @@ impl CompiledTypedEffects {
         cancellation: &AgentCancellation,
         selected: TargetStageBackend<'_>,
     ) -> Result<TargetEffectRun, Vec<Diagnostic>> {
-        let backend = match selected {
+        let backend = self.selected_target_backend(selected)?;
+        let execution_binding = self.target_execution_binding(backend);
+        self.run_target_live_inner(
+            task,
+            source,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            backend,
+            Some(execution_binding),
+        )
+    }
+
+    pub(super) fn selected_target_backend<'a>(
+        &'a self,
+        selected: TargetStageBackend<'a>,
+    ) -> Result<crate::agent_lifecycle::authorization::StageBackend<'a>, Vec<Diagnostic>> {
+        Ok(match selected {
             TargetStageBackend::Interpreter => {
                 crate::agent_lifecycle::authorization::StageBackend::Interpreter
             }
@@ -497,18 +525,7 @@ impl CompiledTypedEffects {
                     source,
                 }
             }
-        };
-        let execution_binding = self.target_execution_binding(backend);
-        self.run_target_live_inner(
-            task,
-            source,
-            handler,
-            stages,
-            effects,
-            cancellation,
-            backend,
-            Some(execution_binding),
-        )
+        })
     }
 
     /// Local parity-only entry. It does not select a production target: the
@@ -538,7 +555,7 @@ impl CompiledTypedEffects {
         )
     }
 
-    fn target_execution_binding(
+    pub(super) fn target_execution_binding(
         &self,
         backend: crate::agent_lifecycle::authorization::StageBackend<'_>,
     ) -> String {
@@ -550,7 +567,7 @@ impl CompiledTypedEffects {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn run_target_live_inner(
+    pub(super) fn run_target_live_inner(
         &self,
         task: &LifecycleTask,
         source: &mut dyn ProposalSource,

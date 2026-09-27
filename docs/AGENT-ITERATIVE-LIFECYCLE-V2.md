@@ -98,22 +98,23 @@ iteration/stage ceilings. It requires `clang` and `node`; a tool-absent skip
 is not execution evidence. Native now additionally settles borrowed stage
 arguments and returned `Bytes` at the real boundary, with local allocation,
 free, call, cancellation, receipt, and omission/duplication controls. The
-reported native cleanup count remains limited to result-copy-out settlement;
+unmetered native cleanup count remains limited to result-copy-out settlement;
 it is not full instruction/finalizer parity. Core Wasm now reports that same
 event only for a record `Bytes` projection that the replay-verified generated
 Node facade returned as an owned `Uint8Array`: that return follows its private
 arena's consume and settlement. The stage observer checks this typed result,
 and the host requires an exact tagged row at the selected projection before
 counting it; missing, extra, malformed and duplicate rows fail closed. This
-does not report Wasm memory frees, variant-indexed-`Bytes` cleanup, or full
-stage finalizer parity. The public target-stage route instead records one
+does not report individual Wasm memory frees or full stage finalizer
+sequences. The opt-in metered route below additionally observes canonical
+finalizer events. The unmetered public target-stage route records one
 backend-neutral reservation per settled stage: the checked per-stage cap times
 the recorded stage count, bounded by the run-stage cap. Pre-dispatch
 cancellation settles before this accounting; otherwise the sealed dispatch
 rejects an invalid retained-call stage cap before native/Node admission on
 every selector. This is comparable finite admission fuel, not instruction,
-full cleanup-event, timing, or byte-identical cross-engine evidence. This private
-selector does not extend the released production or hosted support claim.
+full cleanup-event, timing, or byte-identical cross-engine evidence. These
+local selectors do not establish deployed or hosted support.
 
 The canonical v2 document explicitly records initialize-once, the iteration
 order, Continue targeting observe, terminal cases, and exact Step case/field
@@ -124,8 +125,9 @@ mappings. It does not embed the v1 lifecycle wire or acyclic-only nonclaims.
 Stage semantic work v1 is the backend-neutral accounting of the work one
 checked stage call performs. It adds a metered dispatch to the same sealed
 stage executor seam; it does not change any lifecycle wire, reservation or
-digest above. The frozen, migration-seeded, live and checkpoint routes keep
-their unmetered dispatch and do not gain this selector in this version.
+digest above. Existing frozen, migration-seeded, live and checkpoint entries
+retain their unmetered dispatch. The additive public target route below opts
+into the same metered seam.
 
 **Semantic fuel.** One unit is charged at each of two checked semantic events,
 and at no other point:
@@ -204,10 +206,23 @@ Wasm propagates private raw status 12, outside the public `1..=10` facade
 range, and exports its meter globals (`spx_semantic_*`); the executor's
 observer captures the one instance the package facade creates, resets the
 meter before every projection call and writes one
-`semaprax.agent-wasm-stage-semantic-work.v1` row per executed call. Both
+`semaprax.agent-wasm-stage-semantic-work.v1` row per projection. A variant
+Bytes projection invokes the pure stage once per byte and once for its end
+sentinel: each physical invocation receives a fresh meter, and all receipts
+must agree exactly before retaining one logical stage observation. These
+repeated projection invocations are adapter work, not extra source-level
+semantic charges. Their execution remains bounded by the byte-stream ceiling
+and the held process deadline. Both
 parsers are strict: omitted, extra, malformed, contradictory or divergent rows
 fail closed. The event capacity is 256 on native C11 and 64 on Core Wasm, and
-overflow refuses the observation rather than truncating it.
+overflow refuses the observation rather than truncating it. Core Wasm's
+metered preflight stdout reservation uses 512 bytes for each scalar or fixed-status
+projection, 4096 bytes for each owned/indexed Bytes projection, and an
+additional 2048 bytes per metered projection. Checked arithmetic and the
+unchanged held-process output cap refuse an oversized reservation before
+spawn. The Bytes allowance is a capture budget, not a promise that every
+admitted byte payload fits: actual overflow still fails closed. Unmetered
+routes retain their existing pooled 4096-byte allowance per projection.
 
 Focused gate: `cargo test --locked -p semaprax --lib
 agent_lifecycle::tests::semantic_work_parity`. It runs one stage on the
@@ -219,6 +234,61 @@ mid-loop body entry and at the last call entry; it compares the compiled
 backends' performed-finalizer sequences on each path. It requires the held
 `clang` and `node` fixtures. This is local evidence for the private seam
 only: it is not public-route, hosted, sanitizer or instruction-count evidence.
+
+## Public target semantic work v1
+
+`CompiledTypedEffects::run_target_live_metered` accepts the existing
+`TargetStageBackend` selector and a separate per-stage semantic fuel limit in
+`1..=1_000_000`. Interpreter, held native C11 and held Core Wasm all execute the
+ordinary live driver, including the checked authorize stage, through the same
+sealed metered dispatch. Existing unmetered entries, reservation accounting,
+checkpoint identities and lifecycle wires retain their meaning. Every stage's
+reachable closure must pass the metered-profile admission above; unsupported
+work fails closed before that stage launches a target process. An invalid
+semantic limit fails before proposal, compiler or effect work. Cancellation
+retains precedence over invalid limits and performs no stage work when already
+selected at invocation.
+
+The returned `MeteredTargetEffectRun` retains the ordinary `TargetEffectRun`
+and one `StageSemanticObservation` per settled stage, in the exact same order
+as its lifecycle stage records. Each observation exposes the stage function
+identity and the exact backend-reported `SemanticWork`: charged fuel, admitted
+limit, exhaustion flag and ordered performed-finalizer events. Interpreter
+finalizers remain `None`; native and Core Wasm report their physical plan
+events, including cleanup after semantic exhaustion and checked failure.
+Instruction counts remain solely in the ordinary stage records. A cancelled
+process that cannot return a valid receipt contributes no fabricated semantic
+observation. Previously settled stages remain observed when cancellation
+occurs at a later model/effect boundary. The driver's hard stage ceiling and
+the existing per-stage event capacities bound the collected observations.
+
+The additive `semaprax.agent-target-semantic-work.v1` JSON evidence has exactly
+`schema`, `execution_binding`, `target_evidence`, `semantic_fuel_limit` and
+`stages`. Each stage has `function`, `fuel_used`, `fuel_limit`, `exhausted` and
+`finalizer_events`; finalizer events are ordered `[function_id,liveness_flag]`
+pairs, or `null` for the interpreter. Objects use sorted keys, arrays retain
+execution order, and the document ends with LF. Its digest uses the matching
+NUL-terminated schema domain. The execution binding includes the held backend
+identity and the semantic limit, and is passed to the existing target grant
+minting path. Changing the limit or target therefore rejects replay of an
+old target exchange even when the source and resulting value are identical.
+This report is observation data and grants no execution authority.
+
+Focused gate: `cargo test --locked -p semaprax --lib
+agent_lifecycle::iterative::effects::metered::tests`. It requires held `clang`
+and `node` on the supported process hosts, and compares public Interpreter,
+Native and CoreWasmHeld selections on exact-limit completion, loop exhaustion,
+checked arithmetic failure, malformed model proposals, failed effects,
+effect-boundary cancellation and stage ceilings. It checks nonempty native /
+Wasm cleanup sequences in exact order, target replay, cross-target and
+cross-limit replay rejection, invalid limits, pre-cancellation and unsupported
+metered-profile refusal. The existing
+`agent_lifecycle::iterative::effects::tests` corpus additionally selects the
+public held routes for model outcomes, typed effects, grants, replay and
+bounded settlement; native `-O2` remains a separate private comparison leg.
+These gates provide local public-library-route evidence. They do not establish
+hosted execution, sanitizer coverage, provider transport, production hosting
+or equal backend instruction counts.
 
 ## Canonical retained context for explicit hosts
 

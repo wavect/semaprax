@@ -425,6 +425,8 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     let rich_stage = include_str!("rich_stage.rs");
     let driver = include_str!("iterative/driver.rs");
     let live = include_str!("iterative/driver/live.rs");
+    let target_live = include_str!("iterative/effects/live.rs");
+    let target_metered = include_str!("iterative/effects/metered.rs");
 
     // `StageExecutor` is implemented exactly three times in the whole tree:
     // the interpreter-backed executor here in `authorization.rs`, the
@@ -451,6 +453,8 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
         ("rich_stage.rs", rich_stage),
         ("iterative/driver.rs", driver),
         ("iterative/driver/live.rs", live),
+        ("iterative/effects/live.rs", target_live),
+        ("iterative/effects/metered.rs", target_metered),
     ] {
         assert_eq!(
             source.matches("impl StageExecutor for").count(),
@@ -478,6 +482,8 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
         ("durable.rs", durable),
         ("iterative/driver.rs", driver),
         ("iterative/driver/live.rs", live),
+        ("iterative/effects/live.rs", target_live),
+        ("iterative/effects/metered.rs", target_metered),
         ("stages.rs", stages),
         ("authorization/native_executor.rs", native_executor),
         ("authorization/wasm_executor.rs", wasm_executor),

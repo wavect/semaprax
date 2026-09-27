@@ -95,19 +95,28 @@ checked authorization stage and before its injected target handler:
 It must not deserialize grants, call the host before this boundary, treat a
 target artifact as proof of execution, or describe this selectable protocol as
 production target support. Per #182, durable/distributed checkpoint transport,
-arbitrary nominal carrier ABI, native/Wasm backend selection, ambient
-providers, physical trap recovery, and hosted target evidence remain outside
-this tranche.
+arbitrary nominal carrier ABI, ambient providers, physical trap recovery, and
+hosted target evidence remain outside this tranche.
 
-The crate-internal parity selector additionally drives this same live target
-loop through the sealed interpreter, native C11 `-O0`/`-O2`, and Core-Wasm
-stage executors. It compares the terminal carrier, target accounting, each
-canonical host request and each canonical target observation, then decodes and
-replays every retained observation against its request wire without handler
-work. A pre-cancelled run reaches no handler on the interpreter, native and
-Wasm legs. This is local execution evidence only; it does not add a public
-backend selector, a deployed target adapter, durable target replay, or a
-claim that target artifacts themselves provide authority.
+`run_target_live_with_backend` selects this same live target loop through the
+public Interpreter, Native and CoreWasmHeld selectors. Native and Core Wasm
+require explicit held compiler/runtime capabilities. The model/effect corpus
+uses those public entries and retains a separate private native `-O2` leg.
+It compares terminal carriers, accounting and settlements, and independently
+replays every retained exchange. Requests and observations bind the selected
+backend identity, so cross-target replay fails rather than sharing grant
+bytes. A pre-cancelled run reaches no handler on any selector. This is local
+public-library execution evidence; it does not establish a deployed target
+adapter, durable target-protocol replay or hosted execution.
+
+The additive `run_target_live_metered` entry selects observed per-stage
+semantic fuel and canonical performed-finalizer events through that same
+sealed executor and driver. The semantic limit is included in each target
+grant's execution binding; cross-limit exchange replay also fails closed.
+Its report and exact admission are owned by
+[Public target semantic work v1](AGENT-ITERATIVE-LIFECYCLE-V2.md#public-target-semantic-work-v1).
+Existing protocol wires, host fuel reservations and unmetered entries remain
+unchanged.
 
 The same local parity profile now composes an additive source-model boundary
 before Proposal decoding. `iterative::model::TargetModelSource` converts only
@@ -125,10 +134,9 @@ accounting and a normalized settlement. Independent decoding and request-pair
 replay cannot construct a grant or dispatch a host. Stronger exchange replay
 also verifies exact returned or malformed response bytes and their UTF-8
 settlement meaning; no-response refusals reject injected response bytes. The
-combined parity case
-compares model request/evidence bytes, target-effect request/evidence bytes,
+combined public-selector corpus checks model and target-effect exchange replay,
 terminal values and both accounting ledgers across interpreter, native C11
-`-O0`/`-O2`, and Core Wasm. This remains an injected local seam: it is not the
+`-O0` and held Core Wasm, plus the private native `-O2` comparison. This remains an injected local seam: it is not the
 Direct Runtime provider adapter, a physical provider, durable model recovery,
 public target ABI, or hosted target support.
 
@@ -137,3 +145,14 @@ Focused implementation gate (run by the coordinating agent):
 ```sh
 cargo test --locked -p semaprax --lib agent_lifecycle::authorization::target_protocol
 ```
+
+Public selector corpus:
+
+```sh
+cargo test --locked -p semaprax --lib agent_lifecycle::iterative::effects::tests
+cargo test --locked -p semaprax --lib agent_lifecycle::iterative::effects::metered::tests
+```
+
+These local gates require explicitly held compiler/runtime fixtures. A skipped
+tool-dependent case is not execution evidence, and local passage does not
+stand in for exact-commit hosted or sanitizer results.

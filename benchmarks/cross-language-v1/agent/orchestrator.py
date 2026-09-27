@@ -150,6 +150,22 @@ def evaluate_agent_pair(
         "request": request.to_dict(),
     }
 
+    languages = task.get("languages", {})
+    paths = languages.get(language)
+    if paths is None:
+        record.update(status="blocked", reason=f"task declares no {language} implementation")
+        return record
+
+    public_dir = root / paths["public"]
+    hidden_dir = root / paths["hidden"]
+    if not public_dir.is_dir():
+        record.update(status="failed", reason=f"missing public directory: {public_dir}")
+        return record
+    problem = run.hidden_overlay_problem(public_dir, hidden_dir)
+    if problem is not None:
+        record.update(status="failed", reason=problem)
+        return record
+
     try:
         response = transport.complete(request)
     except BudgetExceededError as error:
@@ -166,18 +182,6 @@ def evaluate_agent_pair(
     record["evidence"] = {
         "redaction_policy_digest": redaction_policy_digest(redaction_policy),
     }
-
-    languages = task.get("languages", {})
-    paths = languages.get(language)
-    if paths is None:
-        record.update(status="blocked", reason=f"task declares no {language} implementation")
-        return record
-
-    public_dir = root / paths["public"]
-    hidden_dir = root / paths["hidden"]
-    if not public_dir.is_dir():
-        record.update(status="failed", reason=f"missing public directory: {public_dir}")
-        return record
 
     if not candidate_paths:
         record.update(status="failed", reason="at least one candidate path must be declared")

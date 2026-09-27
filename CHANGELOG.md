@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Reject missing, empty, or byte-identical hidden overlays before scoring
+  cross-language benchmark tasks, including caller-supplied inventories.
+  Fixed scoring, agent scoring, and dry-run planning share the preflight;
+  invalid fixtures cannot invoke the solver transport or produce a false
+  hidden-test success. Same-path replacements remain supported. This is
+  structural fixture validation, not a test-coverage or model-quality claim.
+
 - Add caller-held native and Core Wasm selectors to durable Agent checkpoint
   and checked migration execution. Both reuse the existing journal, preserve
   target-neutral checkpoint identity, and refuse unavailable retained Wasm
@@ -455,7 +462,6 @@ format: `Unreleased` then release buckets, grouped by impact.
   and exercise ten oracle-frozen controls across interpreter, native C and
   Core Wasm. The maximal 65,536-byte response still exhausts the unchanged
   100M-step fuel bound, so the catalog acceptance milestone remains open.
-
 - Add a TUF-style local registry verifier with independently installed roots,
   namespace-delegated Ed25519 thresholds, dual-threshold root rotation, exact
   registry/manifest bindings, freshness, rollback and yank checks. Results are

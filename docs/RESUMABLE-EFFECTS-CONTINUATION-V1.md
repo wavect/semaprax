@@ -730,6 +730,53 @@ lowering::control` would need its own aggregate-channel runtime support,
 including the owned-`Bytes`-carrying combination that placement already
 admits for a bare scalar channel).
 
+### 12.2 Next slice: aggregate whole-function carrier
+
+The existing channel lane deliberately ends at scalar ordinary parameters and
+results. Widening only `lowering::control::check_resumable_profile` would be
+unsound: the argument binding, suspension binding, completed value, durable
+outcome, and journal replay would then disagree about the invocation's exact
+meaning.
+
+The smallest safe extension is a new sequential-only public entry point that
+takes `&[ResumableChannelValue]` and returns a
+`SequentialChannelResumableStep` whose `Completed` value is also a
+`ResumableChannelValue`. It admits each parameter and result only when it is
+an admitted scalar or `yield_aggregate::bounded_aggregate_refusal` succeeds;
+all parameter modes remain by-value. The existing `ArgumentValue` APIs stay
+unchanged.
+
+Implementation must make these changes as one versioned carrier slice:
+
+- `interpreter::resumable::channel`: convert each supplied channel value with
+  the checked parameter type before evaluation; derive the suspension binding
+  from its canonical `ResumableScalar` leaves; return the checked result by
+  the same conversion. Replay compares every parameter, request, and answer
+  bit exactly.
+- `resumable_effects::continuation::{facts, DurableInvocation, lane}`:
+  retain channel arguments and a channel completed value, and derive the
+  `Started.arguments_digest` from canonical channel JSON, including nominal
+  declaration and selected-case IDs. A scalar argument must retain its
+  existing digest bytes.
+- `resumable_effects::continuation::journal`: introduce a new journal schema
+  identity for aggregate `Started` arguments and aggregate `Completed`
+  values. It must never reinterpret an existing scalar journal; recovery
+  chooses the schema from the checked signature before accepting bytes.
+- `resumable_effects::source_checkpoint`: add a distinct envelope version for
+  aggregate invocation arguments and results. The version binds the same
+  signature, scope, plan, argument history, and scalar-leaf bit pattern as
+  the live carrier.
+
+Required tests are: record and variant parameter/result success through two
+sequential yields; wrong nominal ID, case ID, field count, and scalar leaf
+refusals before dispatch; source and graph canonical round trips; replay with
+a changed aggregate argument; and a crash before and after every aggregate
+`Started`, `Answered`, and `Completed` record, proving no second dispatch or
+cleanup. Only after those pass may the Agent bridge bind FixtureAgent's
+effect-free checked `propose` wait: it must dispatch through
+`DurableInvocation::dispatch` exactly once, consume the ordinary model grant
+there, and preserve the existing cancellation, replay, and refusal paths.
+
 ## 13. Assurance and conformance evidence for the admitted profile
 
 What is proved, and how, for both admitted `.spx` lanes -- sequential

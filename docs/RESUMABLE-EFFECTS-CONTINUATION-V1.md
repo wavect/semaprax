@@ -764,6 +764,63 @@ The first versioned carrier slice is interpreter-only:
   envelope authenticates suspended state only; completion is journal/public
   result data.
 
+#### Durable aggregate carrier v7 design handoff
+
+The durable extension is a separate carrier, never a widening of
+`DurableInvocation::{start,recover}` or its `ArgumentValue` journal records.
+It uses these immutable identities:
+
+- journal schema `semaprax.resumable-journal.v2`, with a `Started` carrier
+  discriminant `channel_arguments_v1` and `Completed.result` encoded as a
+  `channel_json` value;
+- source-checkpoint schema
+  `semaprax.source-resumable-sequential-channel-checkpoint.v3`, authenticated
+  under a new v7 domain; and
+- a distinct aggregate durable entry/recovery API accepting
+  `&[ResumableChannelValue]` and publishing a `ResumableChannelValue`
+  completion.
+
+For each aggregate argument, the canonical digest input is exactly
+`channel_json(argument).to_string().as_bytes()` followed by one LF byte.
+This framing includes nominal declaration and selected-case identities. The
+scalar route keeps its existing `scalar_json(argument)` plus LF bytes and its
+v1 journal schema, so v2 records cannot be presented to scalar recovery and
+scalar records cannot be interpreted as aggregate records.
+
+Aggregate start first rederives the checked aggregate-boundary sequential
+plan, validates every argument against the exact by-value parameter type,
+rejects any Bytes leaf, and computes the v2 `Started` digest before creating
+the journal. Recovery selects v2 only from the checked aggregate-boundary
+signature and then requires the v2 discriminant, exact program/plan digest,
+scope, argument digest, site, answer digest, and canonical re-encoding. A
+wrong schema or carrier discriminant is `SchemaMismatch`; a changed argument
+is `ArgumentsMismatch`; a noncanonical or mismatched continuation is refused
+before replay or dispatch. No decoded envelope or journal grants authority.
+
+The v7 checkpoint carries aggregate invocation arguments and the suspended
+continuation only. It authenticates the checked signature, scope, function,
+canonical arguments, and v3 inner channel continuation; it never contains a
+completed result. Recovery derives v7 from the checked aggregate boundary
+before inspecting bytes, then verifies the inner continuation using those
+same channel arguments. Completed data remains the v2 journal record and the
+public aggregate outcome.
+
+Implementation leases after this contract is fixed:
+
+- `src/interpreter/resumable/checkpoint.rs` and
+  `src/resumable_effects/source_checkpoint/channel.rs`: v7 inner and
+  authenticated envelope codecs plus v5/v6 cross-schema refusals.
+- `src/resumable_effects/source_signature.rs`,
+  `src/resumable_effects/continuation/lane.rs`, and
+  `src/resumable_effects/continuation.rs`: checked aggregate plan selection,
+  separate aggregate invocation lifecycle, replay, and completion carrier.
+- `src/resumable_effects/continuation/journal.rs`: v2 record codec and
+  canonical Started/Completed framing; scalar v1 codec remains unchanged.
+- Their owning test modules: two-yield success, changed argument and wrong
+  nominal/case/field/leaf refusal, v1/v2 and v5/v6/v7 cross-schema refusal,
+  recovery after every `Started`, `Answered`, and `Completed` append, and a
+  no-redispatch assertion for every recovered dispatched site.
+
 The interpreter slice tests record and variant parameter/result success through
 two sequential yields, wrong nominal ID refusal, and replay with a changed
 aggregate argument. The future durable carrier must additionally cover wrong

@@ -144,13 +144,15 @@ pub fn document(program: &Program, comments: &Comments) -> Document {
         entries.push(protocol_entry(protocol, &placement));
     }
     for declaration in &program.session_protocols {
-        entries.push(session_protocol_entry(declaration, &placement));
+        entries.push(session_protocol_entry(declaration, &placement, program));
     }
     for implementation in &program.implementations {
         entries.push(implementation_entry(implementation, &placement));
     }
     for function in &program.functions {
-        entries.push(function_entry(function, &placement, "function"));
+        let mut entry = function_entry(function, &placement, "function");
+        entry.facts.extend(follows_facts_for_function(function));
+        entries.push(entry);
     }
     Document {
         module: program.module.clone(),
@@ -268,6 +270,67 @@ fn type_parameter_names(parameters: &[TypeParameterDeclaration]) -> Vec<String> 
     parameters
         .iter()
         .map(|parameter| parameter.name.clone())
+        .collect()
+}
+
+/// Endpoint typestate `follows` bindings (issue #297 follow-on, R21): the
+/// `Follows`/`Typestate`/`Authority` facts a top-level function's `follows
+/// session protocol "<id>"` clause contributes, read from the one canonical
+/// fact every other projection shares
+/// ([`crate::session_protocol::source::follows_json`]) rather than
+/// re-deriving the protocol id or the fixed result/authority text. Empty for
+/// a function that does not opt in, so a program with no `follows` clause is
+/// unaffected, byte for byte. Only ever called for `Program::functions`
+/// (never a class method): `session_protocol::source::check`/`bind_follows`
+/// and `session_protocol::typestate::check` only ever validate and erasure-
+/// check a `follows` clause on a top-level function, so a method's clause
+/// (admitted by the shared function grammar but never checked or bound) has
+/// no canonical fact to document here.
+fn follows_facts_for_function(function: &Function) -> Vec<Fact> {
+    let Some(raw) = crate::session_protocol::source::follows_json(function) else {
+        return Vec::new();
+    };
+    let value: serde_json::Value =
+        serde_json::from_str(&raw).expect("follows_json emits canonical JSON");
+    let field = |name: &str| {
+        value[name]
+            .as_str()
+            .unwrap_or_else(|| panic!("follows_json always names `{name}`"))
+            .to_owned()
+    };
+    vec![
+        Fact {
+            label: "Follows",
+            values: vec![field("protocol")],
+        },
+        Fact {
+            label: "Typestate",
+            values: vec![field("result")],
+        },
+        Fact {
+            label: "Authority",
+            values: vec![field("authority")],
+        },
+    ]
+}
+
+/// Every function `@id` whose `follows` clause names `declaration_id`, in
+/// source order, read from
+/// [`crate::session_protocol::source::follows_facts_json`] -- the same
+/// canonical facts [`follows_facts_for_function`] reads per function --
+/// rather than re-deriving the function/protocol correspondence a second
+/// time. Empty for a declaration no function opts into, so a program with no
+/// `follows` clause is unaffected, byte for byte.
+fn following_functions(program: &Program, declaration_id: &str) -> Vec<String> {
+    let raw = crate::session_protocol::source::follows_facts_json(program);
+    let value: serde_json::Value =
+        serde_json::from_str(&raw).expect("follows_facts_json emits canonical JSON");
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|fact| fact["protocol"].as_str() == Some(declaration_id))
+        .filter_map(|fact| fact["function"].as_str().map(str::to_owned))
         .collect()
 }
 
@@ -602,6 +665,7 @@ fn protocol_entry(protocol: &crate::ast::ProtocolDeclaration, placement: &Placem
 fn session_protocol_entry(
     declaration: &crate::ast::SessionProtocolDeclaration,
     placement: &Placement,
+    program: &Program,
 ) -> Entry {
     let mut signature = String::new();
     if declaration.explicit_id {
@@ -682,6 +746,11 @@ fn session_protocol_entry(
             .collect(),
     );
     push_fact(&mut facts, "Authority", vec!["none".to_owned()]);
+    push_fact(
+        &mut facts,
+        "Following functions",
+        following_functions(program, &declaration.stable_id),
+    );
     Entry {
         kind: "session_protocol",
         id: declaration.stable_id.clone(),

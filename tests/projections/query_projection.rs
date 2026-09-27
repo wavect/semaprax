@@ -402,3 +402,75 @@ fn kind_session_protocol_selects_the_declared_protocol_and_only_it() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("session_protocol\tfixture.session.transaction\t"));
 }
+
+/// R21 (issue #297 follow-on): a function's `follows session protocol "<id>"`
+/// binding is queryable exactly the way an existing session-protocol fact
+/// (for example a method's `Owner` fact, above) already is -- present on the
+/// matched `Entry`'s `facts` once selected by the ordinary `--kind`/`--name`
+/// filters, with no dedicated `follows` filter or JSON field of its own,
+/// because `query::run` renders every entry directly from
+/// `crate::doc::document`, which now carries the binding.
+const FOLLOWS_SESSION_PROTOCOL: &str =
+    include_str!("../../src/session_protocol/tests/fixtures/follows.spx");
+
+#[test]
+fn a_follows_binding_is_queryable_via_the_entrys_facts_like_any_other_session_protocol_fact() {
+    let (program, comments) =
+        semaprax::parse_with_comments(FOLLOWS_SESSION_PROTOCOL, Path::new("follows.spx")).unwrap();
+    assert!(!verify::verify(&program)
+        .iter()
+        .any(|item| item.severity.is_error()));
+
+    let functions = query::run(
+        &program,
+        &comments,
+        &QueryFilters {
+            kinds: vec!["function".to_owned()],
+            ..QueryFilters::default()
+        },
+    )
+    .unwrap();
+    let main = functions
+        .matches
+        .iter()
+        .find(|found| found.entry.id == "fixture.follows.main")
+        .expect("the following function is a match");
+    assert!(main
+        .entry
+        .facts
+        .iter()
+        .any(|fact| fact.label == "Follows" && fact.values == ["fixture.follows.protocol"]));
+    for found in &functions.matches {
+        if found.entry.id != "fixture.follows.main" {
+            assert!(!found.entry.facts.iter().any(|fact| fact.label == "Follows"));
+        }
+    }
+
+    let protocol = query::run(
+        &program,
+        &comments,
+        &QueryFilters {
+            kinds: vec!["session_protocol".to_owned()],
+            ..QueryFilters::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(protocol.matches.len(), 1);
+    assert!(protocol.matches[0].entry.facts.iter().any(|fact| {
+        fact.label == "Following functions" && fact.values == ["fixture.follows.main"]
+    }));
+
+    // `--name` still narrows a `follows`-carrying match exactly like any
+    // other function.
+    let by_name = query::run(
+        &program,
+        &comments,
+        &QueryFilters {
+            kinds: vec!["function".to_owned()],
+            name: Some("main".to_owned()),
+            ..QueryFilters::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(ids(&by_name), ["fixture.follows.main"]);
+}

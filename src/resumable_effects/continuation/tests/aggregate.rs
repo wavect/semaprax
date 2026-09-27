@@ -32,6 +32,71 @@ fn arguments() -> Vec<ResumableChannelValue> {
     }]
 }
 
+#[test]
+fn aggregate_source_round_trip_preserves_checked_graph_boundary_and_yields() {
+    let path = Path::new("durable-aggregate-round-trip.spx");
+    let checked = crate::check(SOURCE, path).unwrap();
+    let canonical = crate::format::canonical(&checked);
+    let reparsed = crate::parse(&canonical, path).unwrap();
+    assert_eq!(crate::format::canonical(&reparsed), canonical);
+    let rechecked = crate::check(&canonical, path).unwrap();
+    let graph = crate::graph::to_json(&checked).unwrap();
+    assert_eq!(crate::graph::to_json(&rechecked).unwrap(), graph);
+
+    let graph: serde_json::Value = serde_json::from_str(&graph).unwrap();
+    let nodes = graph["nodes"].as_array().unwrap();
+    let node = |id: &str| nodes.iter().find(|node| node["id"] == id).unwrap();
+    let input_type = crate::hir::ResolvedType::Nominal {
+        declaration: DeclarationId::new("app.input"),
+        arguments: Vec::new(),
+    }
+    .identity_key();
+    let output_type = crate::hir::ResolvedType::Nominal {
+        declaration: DeclarationId::new("app.output"),
+        arguments: Vec::new(),
+    }
+    .identity_key();
+    let ask = node("app.ask");
+    assert_eq!(ask["kind"], "function");
+    assert_eq!(ask["persistent"], true);
+    assert_eq!(ask["params"].as_array().unwrap().len(), 1);
+    assert_eq!(ask["params"][0]["type_id"], input_type);
+    assert_eq!(ask["params"][0]["ownership_mode"], "value");
+    assert_eq!(ask["return_type_id"], output_type);
+    assert_eq!(ask["result"]["ownership_mode"], "value");
+    assert_eq!(node("app.input")["kind"], "record");
+    assert_eq!(node("app.output")["kind"], "record");
+    assert_eq!(
+        node("app.input")["fields"],
+        serde_json::json!(["app.input.seed", "app.input.urgent"])
+    );
+    assert_eq!(
+        node("app.output")["fields"],
+        serde_json::json!(["app.output.value", "app.output.urgent"])
+    );
+    let statements = ask["body"]["statements"].as_array().unwrap();
+    assert_eq!(statements.len(), 2);
+    for statement in statements {
+        let suspension = &statement["value"];
+        assert_eq!(suspension["kind"], "yield");
+        assert_eq!(
+            suspension["type_id"],
+            crate::hir::ResolvedType::I64.identity_key()
+        );
+        assert_eq!(
+            suspension["request_type_id"],
+            crate::hir::ResolvedType::I64.identity_key()
+        );
+        assert_eq!(
+            suspension["request_type"],
+            serde_json::json!({ "kind": "primitive", "name": "i64" })
+        );
+        assert_eq!(suspension["ownership_mode"], "value");
+    }
+    assert_eq!(ask["body"]["tail"]["kind"], "construct_record");
+    assert_eq!(ask["body"]["tail"]["type_id"], output_type);
+}
+
 fn answer(request: &ContinuationRequest) -> ContinuationAnswer {
     let value = if request.site == 0 { 9 } else { 12 };
     request.bind_answer(ArgumentValue::Int(value))

@@ -329,7 +329,10 @@ class RunnableAdapterTests(unittest.TestCase):
             ], capture_output=True, text=True, timeout=120, check=False)
             self.assertEqual(completed.returncode, 0, completed.stderr)
             plan = json.loads(output.read_text())
-        self.assertEqual(len(plan["pairs"]), 120)
+        # 12 tasks x 14 adapters (10 pre-existing plus the c/python/swift/java
+        # lanes runnable_adapter_v2 admits; see
+        # docs/CROSS-LANGUAGE-RUNNABLE-ADAPTER-V2.md).
+        self.assertEqual(len(plan["pairs"]), 168)
         by_language = {}
         for pair in plan["pairs"]:
             by_language[pair["language"]] = by_language.get(pair["language"], 0) + 1

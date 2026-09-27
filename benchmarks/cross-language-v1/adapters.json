@@ -44,6 +44,49 @@
       "success": {"kind": "exit_code_zero"}
     },
     {
+      "id": "c",
+      "language": "C",
+      "implemented": true,
+      "official_workflow": "clang -std=c11 -Wall -Wextra -o test_bin main.c, then ./test_bin. No package manager: the task has no dependencies, and this sandbox performs no package installs.",
+      "version_command": ["clang", "--version"],
+      "entry_file": "main.c",
+      "build_command": ["clang", "-std=c11", "-Wall", "-Wextra", "-o", "test_bin", "main.c"],
+      "run_command": ["./test_bin"],
+      "success": {"kind": "exit_code_zero"}
+    },
+    {
+      "id": "python",
+      "language": "Python",
+      "implemented": true,
+      "official_workflow": "python3 digest.py: CPython is its own official interpreter, so there is no separate build step.",
+      "version_command": ["python3", "--version"],
+      "entry_file": "digest.py",
+      "run_command": ["python3", "digest.py"],
+      "success": {"kind": "exit_code_zero"}
+    },
+    {
+      "id": "swift",
+      "language": "Swift",
+      "implemented": true,
+      "official_workflow": "swiftc -o test_bin main.swift, then ./test_bin. No package manager: the task has no dependencies, so a Swift Package Manifest adds nothing this snapshot needs.",
+      "version_command": ["swiftc", "--version"],
+      "entry_file": "main.swift",
+      "build_command": ["swiftc", "-o", "test_bin", "main.swift"],
+      "run_command": ["./test_bin"],
+      "success": {"kind": "exit_code_zero"}
+    },
+    {
+      "id": "java",
+      "language": "Java",
+      "implemented": true,
+      "official_workflow": "javac Main.java, then java Main (default classpath is the current directory). No build tool: the task has no dependencies, so Maven/Gradle add nothing this snapshot needs.",
+      "version_command": ["javac", "--version"],
+      "entry_file": "Main.java",
+      "build_command": ["javac", "Main.java"],
+      "run_command": ["java", "Main"],
+      "success": {"kind": "exit_code_zero"}
+    },
+    {
       "id": "zero",
       "language": "Zero",
       "implemented": false,

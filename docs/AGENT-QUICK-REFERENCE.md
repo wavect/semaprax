@@ -273,6 +273,72 @@ fn main() -> i64
   project's native or Wasm build (or the explicit `run <file> --native` lane),
   and keep interpreter-run examples free of `resource` declarations.
 
+## Session protocols
+
+```semaprax
+module app.checkout;
+
+@id("checkout.session")
+session protocol "checkout-v1" {
+    states { Idle, Open, Committed, Failed }
+    initial Idle;
+    terminal Committed cleanup {}
+    terminal Failed cleanup {}
+    on Idle begin: send BeginRequest via "checkout.begin" -> Open;
+    on Idle abort: fail Unit -> Failed;
+    on Open commit: send CommitRequest via "checkout.commit" -> choice { committed: Committed, refused: Failed };
+    on Open lost: fail Unit -> Failed;
+}
+
+@id("checkout.begin")
+fn begin() -> i64
+{
+    1
+}
+
+@id("checkout.commit")
+fn commit() -> i64
+{
+    2
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    0
+}
+```
+
+- A `session protocol` declares a named state machine: `states`, `initial`,
+  zero or more `terminal S cleanup { op, ... }` entries (a terminal state's
+  ordered cleanup inventory), and `on <state> <label>: <kind> <Payload>
+  [requires capability cap.name] [consumes resource] [via "<function-id>"]
+  -> <state> | choice { label: state, ... };` transitions. `kind` is one of
+  `send`, `receive`, `call`, `return`, `cancel`, `timeout`, `fail`.
+- It is checked and erased: `SPX-K1xx` verifies the declared graph (unknown
+  state, duplicate label, a one-branch or duplicate-labeled choice, a
+  terminal with an outgoing transition, a non-terminal dead end, a
+  non-terminal state with no `cancel`/`timeout`/`fail` escape, a terminal
+  missing its cleanup entry) and its bounded reachability, then the
+  declaration lowers to nothing on either backend and grants no authority.
+  Every projected fact carries `"authority":"none"`.
+- `via` binds a transition to an ordinary monomorphic function of the same
+  module by its `@id`, checked against that function's own retained HIR
+  (`SPX-K104`). `requires capability` is ordering metadata, not a grant: with
+  a `via`, the named capability must already be one of that function's own
+  declared `uses { ... }` effects (`SPX-K105`); the ordinary effect checks
+  stay authoritative regardless of what the protocol declares. Without a
+  `via`, the capability is realized outside checked source and every
+  projection labels it `"capability_binding":"unattributed"`.
+- Declared protocols project into the per-source graph (`semaprax.graph.v48`,
+  selected only for a declaring program), the Workspace and Package Semantic
+  Graphs (`.v2`, selected only for a declaring workspace or package),
+  `context --filters session_protocol`, Architecture Claims
+  (`protocol_realizers_bound`), Assurance Manifest v1, `semaprax doc`, and
+  `semaprax query --kind session_protocol`. See [Session/protocol types
+  v1](SESSION-PROTOCOL-TYPES-V1.md) for the full model, including what a
+  declaration explicitly does not claim.
+
 ## Strings and bytes
 
 ```semaprax

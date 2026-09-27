@@ -20,6 +20,7 @@ const SECTIONS: &[(&str, &str)] = &[
     ("resource", "Resources"),
     ("interface", "Interfaces"),
     ("protocol", "Protocols"),
+    ("session_protocol", "Session protocols"),
     ("implementation", "Implementations"),
     ("function", "Functions"),
 ];

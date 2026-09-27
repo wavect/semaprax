@@ -118,6 +118,16 @@ Treat them as `check`, `graph` and `context` subjects.
 | `examples/lifecycle.spx` | A resource whose `drop` names an imported finalizer, plus the `interface`/`permits`/`effects`/`failure`/`consumes` declaration that supplies it | `semaprax check examples/lifecycle.spx` → `verified …` (`run` fails with `SPX-B104`) | [RFC 0003](../docs/RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
 | `examples/native_callable.spx` | The smallest owned-resource identity function; the subject for a native-callable bundle | `semaprax build examples/native_callable.spx --target native-callable --function example.token.identity -o /absolute/out/callable` → `built native-callable bundle …` | [Native Callable ABI v3](../docs/NATIVE-CALLABLE-ABI-V3.md), [RFC 0004](../docs/RFC-0004-NATIVE-CALL-SETTLEMENT.md) |
 
+## Session protocols
+
+A `session protocol` declaration is checked and erased: it lowers to nothing
+on either backend and grants no authority, so `run` reaches the ordinary
+result below without any `SPX-B104`-style restriction.
+
+| Example | Teaches | Command (observed) | Reference |
+| --- | --- | --- | --- |
+| `examples/session_protocol.spx` | A declared `session protocol` state machine (`states`, `initial`, `terminal … cleanup { … }`, `send`/`fail` transitions with a `choice` branch and two `via`-bound functions) | `semaprax run examples/session_protocol.spx` → `0` | [Session/protocol types v1](../docs/SESSION-PROTOCOL-TYPES-V1.md) |
+
 ## Projects and manifests
 
 Each directory here is a multi-file project rooted at its own `semaprax.toml`.

@@ -561,6 +561,19 @@ projected fact carries `"authority":"none"`.
   selects the same `session_protocol` entries `semaprax doc` renders, for
   both a single checked module and an authenticated Project, since both reuse
   `crate::doc::document`.
+- **Help shape catalog and agent quick reference (R21, issue #297
+  follow-on).** `src/doc.rs`'s own `SECTIONS` (the order `semaprax doc`
+  renders) already carried `("session_protocol", "Session protocols")`;
+  `tests/projections/shapes_catalog.rs`'s separate `SECTIONS` (which
+  `semaprax help shapes` and `docs/LANGUAGE-SHAPES-CATALOG.{md,json}` are
+  generated from) now matches it. `examples/session_protocol.spx` is the
+  committed, compiler-verified example that gives the catalog its one
+  `session_protocol` entry. [The agent quick reference](AGENT-QUICK-REFERENCE.md#session-protocols)
+  gains a `## Session protocols` section: the shape's grammar, its
+  checked-and-erased/`via`/`requires capability` rules, and one compiler-
+  checked example module (`tests/documentation.rs::agent_quick_reference`
+  parses, verifies with zero diagnostics, and byte-compares it against
+  `format::canonical`, exactly like every other unmarked block on the page).
 
 ### Bundled dependency pruning
 
@@ -578,8 +591,6 @@ the Workspace Semantic Graph (v2, R21), the Package Semantic Graph (v2, R21),
 Manifest v1, `semaprax doc`, and `semaprax query --kind session_protocol`. The
 following omit declarations entirely, and nothing here claims otherwise:
 
-- the help shape catalog (`LANGUAGE-SHAPES-CATALOG`) and the agent quick
-  reference;
 - semantic-workspace operations (rename, change, impact, review do not treat
   a declaration or its `via` as a reference);
 - the VS Code grammar (`editors/`);

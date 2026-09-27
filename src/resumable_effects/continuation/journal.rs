@@ -27,6 +27,10 @@ use std::io::{Read, Write};
 use std::os::fd::{AsFd, OwnedFd};
 use std::path::Path;
 
+/// The aggregate, whole-function durable carrier.  It deliberately has no
+/// shared record type or filename domain with the scalar v1 journal.
+pub(super) mod channel;
+
 /// Breaking changes to a journal line require a new schema identity.
 pub const RESUMABLE_JOURNAL_SCHEMA_V1: &str = "semaprax.resumable-journal.v1";
 

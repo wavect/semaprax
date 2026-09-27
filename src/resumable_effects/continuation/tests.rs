@@ -787,6 +787,40 @@ fn single_site_and_non_resumable_functions_are_refused_before_storage() {
 }
 
 #[test]
+fn aggregate_function_result_is_refused_before_creating_a_scalar_durable_journal() {
+    let scratch = Scratch::new(0o700);
+    let key = key();
+    let aggregate_result = program(
+        r#"module test.durable_aggregate_result;
+@id("app.output")
+record Output { @id("app.output.value") value: i64, }
+@id("app.ask")
+fn ask(seed: i64) -> Output yields i64 -> i64 {
+    let first = yield seed;
+    let second = yield first;
+    Output { value: second }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+    );
+
+    assert!(matches!(
+        DurableInvocation::start(
+            &scratch.dir(),
+            &key,
+            &aggregate_result,
+            "app.ask",
+            &[ArgumentValue::Int(4)],
+            "inv-aggregate-result",
+            7,
+            STEPS,
+        ),
+        Err(ContinuationError::Admission(_))
+    ));
+    assert_eq!(fs::read_dir(&scratch.0).unwrap().count(), 0);
+}
+
+#[test]
 fn one_live_writer_per_journal_even_when_poisoned() {
     let scratch = Scratch::new(0o700);
     let (key, program) = (key(), program(SOURCE));

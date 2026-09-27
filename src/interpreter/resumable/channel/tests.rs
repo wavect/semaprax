@@ -176,7 +176,7 @@ fn a_direct_sequential_bytes_request_suspends_and_resumes() {
     assert!(matches!(
         resumed.step,
         SequentialChannelResumableStep::Completed {
-            result: ResumableChannelValue::Scalar(ArgumentValue::Int(12)),
+            result: ArgumentValue::Int(12),
             ..
         }
     ));
@@ -228,10 +228,7 @@ fn a_record_channel_suspends_twice_and_completes_with_the_combined_scalar_result
     let SequentialChannelResumableStep::Completed { result, .. } = finished.step else {
         panic!("the suffix did not complete")
     };
-    assert_eq!(
-        result,
-        ResumableChannelValue::Scalar(ArgumentValue::Int(30))
-    );
+    assert_eq!(result, ArgumentValue::Int(30));
 }
 
 #[test]
@@ -269,10 +266,7 @@ fn a_variant_channel_answer_selects_the_branch_the_suffix_takes() {
         let SequentialChannelResumableStep::Completed { result, .. } = finished.step else {
             panic!("the suffix did not complete for case {case}: {debug_step:?}")
         };
-        assert_eq!(
-            result,
-            ResumableChannelValue::Scalar(ArgumentValue::Int(expected))
-        );
+        assert_eq!(result, ArgumentValue::Int(expected));
     }
 }
 
@@ -309,10 +303,7 @@ fn a_variant_request_is_constructed_inline_and_replays_identically() {
     let SequentialChannelResumableStep::Completed { result, .. } = finished.step else {
         panic!("the suffix did not complete: {:?}", finished.step)
     };
-    assert_eq!(
-        result,
-        ResumableChannelValue::Scalar(ArgumentValue::Int(42))
-    );
+    assert_eq!(result, ArgumentValue::Int(42));
 }
 
 #[test]
@@ -329,7 +320,7 @@ fn whole_function_copy_aggregate_arguments_and_results_are_replay_bound() {
         MAX_STEPS,
     )
     .unwrap();
-    let SequentialChannelResumableStep::Suspended { continuation } = started.step else {
+    let SequentialChannelArgumentsStep::Suspended { continuation } = started.step else {
         panic!("whole-function aggregate invocation did not suspend");
     };
     let resumed = resume_sequential_channel_resumable_effect_with_arguments(
@@ -341,7 +332,7 @@ fn whole_function_copy_aggregate_arguments_and_results_are_replay_bound() {
         MAX_STEPS,
     )
     .unwrap();
-    let SequentialChannelResumableStep::Suspended { continuation } = resumed.step else {
+    let SequentialChannelArgumentsStep::Suspended { continuation } = resumed.step else {
         panic!("first answer did not reach the second yield");
     };
     let completed = resume_sequential_channel_resumable_effect_with_arguments(
@@ -354,7 +345,7 @@ fn whole_function_copy_aggregate_arguments_and_results_are_replay_bound() {
     )
     .unwrap();
     assert!(
-        matches!(completed.step, SequentialChannelResumableStep::Completed {
+        matches!(completed.step, SequentialChannelArgumentsStep::Completed {
         result: ResumableChannelValue::Record { ref declaration, ref fields }, ..
     } if *declaration == DeclarationId::new("app.output")
         && fields == &vec![ArgumentValue::Int(12), ArgumentValue::Bool(true)])
@@ -390,6 +381,19 @@ fn whole_function_argument_with_the_wrong_nominal_identity_is_refused_before_run
     )
     .unwrap_err();
     assert_eq!(error[0].code, "SPX-F103");
+}
+
+#[test]
+fn legacy_channel_api_refuses_an_aggregate_function_boundary_before_execution() {
+    let program = resolved(WHOLE_FUNCTION_AGGREGATE);
+    let error = run_sequential_channel_resumable_effect(
+        &program,
+        "app.ask",
+        &[ArgumentValue::Int(4)],
+        MAX_STEPS,
+    )
+    .unwrap_err();
+    assert_eq!(error[0].code, "SPX-F102");
 }
 
 #[test]

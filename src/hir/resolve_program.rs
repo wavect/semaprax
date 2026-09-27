@@ -921,7 +921,13 @@ impl Resolver<'_> {
             .collect::<Result<_, _>>()?;
         let mut body = self.resolve_expr(function_scope, &function.body, &bindings, "body")?;
         if let Some(yields_clause) = &yields {
-            self.finish_yields_admission(&function.name, yields_clause, &mut body)?;
+            self.finish_yields_admission(
+                &function.name,
+                yields_clause,
+                &params,
+                &return_type,
+                &mut body,
+            )?;
         }
 
         let mut ensures_bindings = bindings;

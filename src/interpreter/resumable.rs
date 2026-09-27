@@ -734,17 +734,6 @@ pub(super) struct Admitted<'p> {
     pub(super) admitted: std::collections::BTreeMap<&'p str, &'p ResolvedFunction>,
 }
 
-/// The aggregate whole-function boundary has its own admitted carrier. The
-/// legacy `Admitted` surface remains scalar-only so unrelated interpreter
-/// APIs cannot acquire aggregate arguments by accident.
-pub(super) struct ChannelAdmitted<'p> {
-    pub(super) entry: &'p ResolvedFunction,
-    pub(super) yields: &'p hir::ResolvedYieldsClause,
-    pub(super) bound: Vec<(ValueId, Value)>,
-    pub(super) arguments: Vec<ResumableScalar>,
-    pub(super) admitted: std::collections::BTreeMap<&'p str, &'p ResolvedFunction>,
-}
-
 /// Select, identity-check and bind a resumable entry before any lowering.
 pub(super) fn admit_entry<'p>(
     program: &'p hir::ResolvedProgram,
@@ -801,106 +790,7 @@ pub(super) fn admit_entry<'p>(
     })
 }
 
-pub(super) fn admit_channel_entry<'p>(
-    program: &'p hir::ResolvedProgram,
-    function_id: &str,
-    arguments: &[ResumableChannelValue],
-    max_steps: usize,
-) -> Result<ChannelAdmitted<'p>, Vec<Diagnostic>> {
-    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
-        return Err(vec![option_error(format!(
-            "resumable-effect evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
-        ))]);
-    }
-    let entry = program
-        .functions
-        .iter()
-        .find(|function| function.id.as_str() == function_id)
-        .ok_or_else(|| {
-            vec![selection_error(
-                REASON_UNSUPPORTED_CALLEE,
-                format!("resumable entry `{function_id}` is absent from the function index"),
-            )]
-        })?;
-    if !program
-        .declarations
-        .declaration(&entry.id)
-        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit)
-    {
-        return Err(vec![selection_error(
-            REASON_AUTOMATIC_IDENTITY,
-            format!("resumable entry `{function_id}` does not have an explicit stable identity"),
-        )]);
-    }
-    let yields = entry.yields.as_ref().ok_or_else(|| vec![selection_error(REASON_NOT_RESUMABLE,
-        format!("`{function_id}` declares no `yields` clause; this lane runs only functions that can suspend"))])?;
-    let channel_type = |ty: &hir::ResolvedType| {
-        hir::is_scalar_resolved_type(ty)
-            || (matches!(ty, hir::ResolvedType::Nominal { .. })
-                && !hir::yield_aggregate::has_bytes_leaf(&program.declarations, ty)
-                && hir::yield_aggregate::bounded_aggregate_refusal(&program.declarations, ty)
-                    .is_ok())
-    };
-    if !entry.effects.is_empty()
-        || !channel_type(&yields.request_type)
-        || !channel_type(&yields.response_type)
-        || !channel_type(&entry.return_type)
-        || entry.params.iter().any(|parameter| {
-            parameter.ownership != hir::OwnershipMode::Value || !channel_type(&parameter.ty)
-        })
-    {
-        return Err(vec![selection_error(
-            REASON_OUTSIDE_PROFILE,
-            format!("resumable entry `{function_id}` is outside the bounded Copy channel profile"),
-        )]);
-    }
-    if entry.params.len() != arguments.len() {
-        return Err(vec![argument_error(format!(
-            "`{}` takes {} argument(s); {} were supplied",
-            entry.name,
-            entry.params.len(),
-            arguments.len()
-        ))]);
-    }
-    let mut allocation = 0;
-    let mut bound = Vec::with_capacity(arguments.len());
-    let mut scalar_arguments = Vec::with_capacity(arguments.len());
-    for (index, (parameter, argument)) in entry.params.iter().zip(arguments).enumerate() {
-        let value = value_of_channel(
-            &program.declarations,
-            &parameter.ty,
-            argument,
-            &mut allocation,
-        )
-        .ok_or_else(|| {
-            vec![argument_error(format!(
-                "argument {index} of `{}` does not have the declared bounded Copy parameter type",
-                entry.name
-            ))]
-        })?;
-        let scalar = channel_to_resumable_scalar(argument).ok_or_else(|| {
-            vec![argument_error(format!(
-                "argument {index} of `{}` is outside the bounded Copy channel profile",
-                entry.name
-            ))]
-        })?;
-        bound.push((parameter.id.clone(), value));
-        scalar_arguments.push(scalar);
-    }
-    let mut admitted = admitted_resolved_functions(program);
-    admitted.insert(entry.id.as_str(), entry);
-    scan_closure(function_id, &admitted, program)?;
-    hir::validate(program).map_err(|error| vec![error])?;
-    Ok(ChannelAdmitted {
-        entry,
-        yields,
-        bound,
-        arguments: scalar_arguments,
-        admitted,
-    })
-}
-
-fn max_byte_allocation(value: &Value) -> u32 {
+pub(super) fn max_byte_allocation(value: &Value) -> u32 {
     match value {
         Value::Bytes(bytes) => bytes.allocation,
         Value::Record(record) => record
@@ -968,63 +858,6 @@ pub(super) fn run_worker<T: Send>(
                 }
                 evaluator.resumption = resumption;
                 let settled = evaluator.evaluate_entry(entry, bound);
-                let step = settle(settled, &mut evaluator.resumption);
-                (step, evaluator.steps)
-            })
-            .map_err(|error| {
-                vec![option_error(format!(
-                    "resumable-effect evaluation thread failed to start: {error}"
-                ))]
-            })?;
-        worker.join().map_err(|_| {
-            vec![option_error(
-                "resumable-effect evaluation thread panicked".to_owned(),
-            )]
-        })
-    })
-}
-
-pub(super) fn run_worker_values<T: Send>(
-    program: &hir::ResolvedProgram,
-    admitted: &std::collections::BTreeMap<&str, &ResolvedFunction>,
-    entry: &ResolvedFunction,
-    bound: Vec<(ValueId, Value)>,
-    resumption: Resumption,
-    max_steps: usize,
-    settle: impl FnOnce(Result<Value, Flow>, &mut Resumption) -> T + Send,
-) -> Result<(T, usize), Vec<Diagnostic>> {
-    let closure_functions =
-        super::closures::checked_functions(program).map_err(|error| vec![error])?;
-    std::thread::scope(|scope| {
-        let worker = std::thread::Builder::new()
-            .name("semaprax-resumable-evaluate".to_owned())
-            .stack_size(EVALUATION_STACK_BYTES)
-            .spawn_scoped(scope, move || {
-                let mut evaluator = Evaluator::new_prepared(
-                    FunctionLookup::Borrowed(admitted),
-                    closure_functions,
-                    &program.declarations,
-                    max_steps,
-                    0,
-                    PreparedCancellation::Never,
-                );
-                if let Resumption::Replay {
-                    carried,
-                    expected,
-                    answers,
-                    ..
-                } = &resumption
-                {
-                    evaluator.next_byte_allocation = carried
-                        .values()
-                        .chain(expected)
-                        .chain(answers)
-                        .map(max_byte_allocation)
-                        .max()
-                        .unwrap_or(0);
-                }
-                evaluator.resumption = resumption;
-                let settled = evaluator.evaluate_entry_values(entry, bound);
                 let step = settle(settled, &mut evaluator.resumption);
                 (step, evaluator.steps)
             })

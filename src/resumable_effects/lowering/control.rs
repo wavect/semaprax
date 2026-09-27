@@ -144,6 +144,7 @@ pub(super) fn check_resumable_profile<'a>(
     function: &'a ResolvedFunction,
     allow_owned_bytes: bool,
     allow_aggregate: bool,
+    allow_aggregate_boundary: bool,
 ) -> Result<&'a ResolvedYieldsClause, Diagnostic> {
     let canonical = program
         .functions
@@ -210,12 +211,19 @@ pub(super) fn check_resumable_profile<'a>(
                     .is_ok())
     };
     if !channel_type_ok(&yields.request_type)
-        || !channel_type_ok(&yields.response_type)
-        || function
-            .params
-            .iter()
-            .any(|parameter| !whole_function_type_ok(&parameter.ty))
-        || !whole_function_type_ok(&function.return_type)
+        || !whole_function_type_ok(&yields.response_type)
+        || function.params.iter().any(|parameter| {
+            if allow_aggregate_boundary {
+                !whole_function_type_ok(&parameter.ty)
+            } else {
+                !hir::is_scalar_resolved_type(&parameter.ty)
+            }
+        })
+        || if allow_aggregate_boundary {
+            !whole_function_type_ok(&function.return_type)
+        } else {
+            !hir::is_scalar_resolved_type(&function.return_type)
+        }
     {
         return Err(invalid(
             "resumable lowering requires a Copy-scalar (or, where admitted, bounded \
@@ -343,7 +351,7 @@ pub fn lower_control(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<ControlResumablePlan, Diagnostic> {
-    let yields = check_resumable_profile(program, function, true, false)?;
+    let yields = check_resumable_profile(program, function, true, false, false)?;
     reject_yield_in_contracts(function)?;
     if !is_control_dependent(function) {
         return Err(invalid(

@@ -22,25 +22,233 @@
 //! plan is always [`crate::resumable_effects::lowering::SequentialResumablePlan`].
 
 use crate::diagnostic::Diagnostic;
-use crate::hir::{self, ResolvedProgram};
+use crate::hir::{self, ResolvedFunction, ResolvedProgram, ValueId};
 use crate::resumable_effects::lowering::{
-    self, ResumableStateId, ResumableSuspensionBinding, SequentialResumablePlan,
+    self, ResumableScalar, ResumableStateId, ResumableSuspensionBinding, SequentialResumablePlan,
 };
 
 use crate::conformance::NormalizedStatus;
-use crate::interpreter::{ArgumentValue, Flow, Value};
+use crate::interpreter::prepared::PreparedCancellation;
+use crate::interpreter::{ArgumentValue, Evaluator, Flow, FunctionLookup, Value};
 
 use super::{
-    admit_channel_entry, argument_of, channel_of, channel_to_resumable_scalar, run_worker_values,
-    typed_resume_channel_value, ChannelAdmitted, ChannelYieldRecord, ResumableChannelContinuation,
-    ResumableChannelValue, Resumption, REQUEST_DRIFT, SUSPENDED_AT_YIELD, SUSPENSION_MISMATCH,
+    argument_error, argument_of, channel_of, channel_to_resumable_scalar, max_byte_allocation,
+    option_error, selection_error, typed_resume_channel_value, ChannelYieldRecord,
+    ResumableChannelContinuation, ResumableChannelValue, Resumption, EVALUATION_STACK_BYTES,
+    REASON_AUTOMATIC_IDENTITY, REASON_NOT_RESUMABLE, REASON_OUTSIDE_PROFILE,
+    REASON_UNSUPPORTED_CALLEE, REQUEST_DRIFT, SUSPENDED_AT_YIELD, SUSPENSION_MISMATCH,
 };
 
-/// One settled outcome from a bounded record/variant-channel start or resume.
-/// The whole-function channel entry point returns the same checked bounded
-/// Copy value it accepts at its parameter boundary.
+/// The aggregate whole-function boundary has its own admitted carrier. The
+/// legacy `Admitted` surface remains scalar-only so unrelated interpreter
+/// APIs cannot acquire aggregate arguments by accident.
+pub(super) struct ChannelAdmitted<'p> {
+    pub(super) entry: &'p ResolvedFunction,
+    pub(super) yields: &'p hir::ResolvedYieldsClause,
+    pub(super) bound: Vec<(ValueId, Value)>,
+    pub(super) arguments: Vec<ResumableScalar>,
+    pub(super) admitted: std::collections::BTreeMap<&'p str, &'p ResolvedFunction>,
+}
+
+pub(super) fn admit_channel_entry<'p>(
+    program: &'p hir::ResolvedProgram,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+    max_steps: usize,
+    allow_aggregate_boundary: bool,
+) -> Result<ChannelAdmitted<'p>, Vec<Diagnostic>> {
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
+        return Err(vec![option_error(format!(
+            "resumable-effect evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
+        ))]);
+    }
+    let entry = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == function_id)
+        .ok_or_else(|| {
+            vec![selection_error(
+                REASON_UNSUPPORTED_CALLEE,
+                format!("resumable entry `{function_id}` is absent from the function index"),
+            )]
+        })?;
+    if !program
+        .declarations
+        .declaration(&entry.id)
+        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit)
+    {
+        return Err(vec![selection_error(
+            REASON_AUTOMATIC_IDENTITY,
+            format!("resumable entry `{function_id}` does not have an explicit stable identity"),
+        )]);
+    }
+    let yields = entry.yields.as_ref().ok_or_else(|| vec![selection_error(REASON_NOT_RESUMABLE,
+        format!("`{function_id}` declares no `yields` clause; this lane runs only functions that can suspend"))])?;
+    // Existing v6 channels permit a bounded owned-Bytes request. Whole
+    // function inputs/results and answers remain Copy-only until they have a
+    // carried-owned-state cleanup protocol.
+    let request_type = |ty: &hir::ResolvedType| {
+        hir::is_scalar_resolved_type(ty)
+            || (matches!(ty, hir::ResolvedType::Nominal { .. })
+                && hir::yield_aggregate::bounded_aggregate_refusal(&program.declarations, ty)
+                    .is_ok())
+    };
+    let copy_type = |ty: &hir::ResolvedType| {
+        request_type(ty) && !hir::yield_aggregate::has_bytes_leaf(&program.declarations, ty)
+    };
+    if !entry.effects.is_empty()
+        || !request_type(&yields.request_type)
+        || !copy_type(&yields.response_type)
+        || !(if allow_aggregate_boundary {
+            copy_type(&entry.return_type)
+        } else {
+            hir::is_scalar_resolved_type(&entry.return_type)
+        })
+        || entry.params.iter().any(|parameter| {
+            parameter.ownership != hir::OwnershipMode::Value
+                || if allow_aggregate_boundary {
+                    !copy_type(&parameter.ty)
+                } else {
+                    !hir::is_scalar_resolved_type(&parameter.ty)
+                }
+        })
+    {
+        return Err(vec![selection_error(
+            REASON_OUTSIDE_PROFILE,
+            format!("resumable entry `{function_id}` is outside the bounded Copy channel profile"),
+        )]);
+    }
+    if entry.params.len() != arguments.len() {
+        return Err(vec![argument_error(format!(
+            "`{}` takes {} argument(s); {} were supplied",
+            entry.name,
+            entry.params.len(),
+            arguments.len()
+        ))]);
+    }
+    let mut allocation = 0;
+    let mut bound = Vec::with_capacity(arguments.len());
+    let mut scalar_arguments = Vec::with_capacity(arguments.len());
+    for (index, (parameter, argument)) in entry.params.iter().zip(arguments).enumerate() {
+        let value = value_of_channel(
+            &program.declarations,
+            &parameter.ty,
+            argument,
+            &mut allocation,
+        )
+        .ok_or_else(|| {
+            vec![argument_error(format!(
+                "argument {index} of `{}` does not have the declared bounded Copy parameter type",
+                entry.name
+            ))]
+        })?;
+        let scalar = channel_to_resumable_scalar(argument).ok_or_else(|| {
+            vec![argument_error(format!(
+                "argument {index} of `{}` is outside the bounded Copy channel profile",
+                entry.name
+            ))]
+        })?;
+        bound.push((parameter.id.clone(), value));
+        scalar_arguments.push(scalar);
+    }
+    let mut admitted = admitted_resolved_functions(program);
+    admitted.insert(entry.id.as_str(), entry);
+    scan_closure(function_id, &admitted, program)?;
+    hir::validate(program).map_err(|error| vec![error])?;
+    Ok(ChannelAdmitted {
+        entry,
+        yields,
+        bound,
+        arguments: scalar_arguments,
+        admitted,
+    })
+}
+
+pub(super) fn run_worker_values<T: Send>(
+    program: &hir::ResolvedProgram,
+    admitted: &std::collections::BTreeMap<&str, &ResolvedFunction>,
+    entry: &ResolvedFunction,
+    bound: Vec<(ValueId, Value)>,
+    resumption: Resumption,
+    max_steps: usize,
+    settle: impl FnOnce(Result<Value, Flow>, &mut Resumption) -> T + Send,
+) -> Result<(T, usize), Vec<Diagnostic>> {
+    let closure_functions =
+        super::closures::checked_functions(program).map_err(|error| vec![error])?;
+    std::thread::scope(|scope| {
+        let worker = std::thread::Builder::new()
+            .name("semaprax-resumable-evaluate".to_owned())
+            .stack_size(EVALUATION_STACK_BYTES)
+            .spawn_scoped(scope, move || {
+                let mut evaluator = Evaluator::new_prepared(
+                    FunctionLookup::Borrowed(admitted),
+                    closure_functions,
+                    &program.declarations,
+                    max_steps,
+                    0,
+                    PreparedCancellation::Never,
+                );
+                if let Resumption::Replay {
+                    carried,
+                    expected,
+                    answers,
+                    ..
+                } = &resumption
+                {
+                    evaluator.next_byte_allocation = carried
+                        .values()
+                        .chain(expected)
+                        .chain(answers)
+                        .map(max_byte_allocation)
+                        .max()
+                        .unwrap_or(0);
+                }
+                evaluator.resumption = resumption;
+                let settled = evaluator.evaluate_entry_values(entry, bound);
+                let step = settle(settled, &mut evaluator.resumption);
+                (step, evaluator.steps)
+            })
+            .map_err(|error| {
+                vec![option_error(format!(
+                    "resumable-effect evaluation thread failed to start: {error}"
+                ))]
+            })?;
+        worker.join().map_err(|_| {
+            vec![option_error(
+                "resumable-effect evaluation thread panicked".to_owned(),
+            )]
+        })
+    })
+}
+
+/// The legacy bounded request/response channel outcome. Its ordinary function
+/// boundary remains scalar, preserving the existing public API.
 #[derive(Clone, Debug, PartialEq)]
 pub enum SequentialChannelResumableStep {
+    Suspended {
+        continuation: ResumableChannelContinuation,
+    },
+    Completed {
+        state: ResumableStateId,
+        result: ArgumentValue,
+    },
+    LanguageFailure(NormalizedStatus),
+    FuelExhausted,
+    CallDepthExceeded,
+    GuardError(String),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SequentialChannelResumableEvaluation {
+    pub step: SequentialChannelResumableStep,
+    pub steps_used: usize,
+    pub max_steps: usize,
+}
+
+/// The distinct whole-function aggregate carrier. It is used only by the
+/// `_with_arguments` APIs, keeping legacy scalar callers source-compatible.
+#[derive(Clone, Debug, PartialEq)]
+pub enum SequentialChannelArgumentsStep {
     Suspended {
         continuation: ResumableChannelContinuation,
     },
@@ -55,8 +263,8 @@ pub enum SequentialChannelResumableStep {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct SequentialChannelResumableEvaluation {
-    pub step: SequentialChannelResumableStep,
+pub struct SequentialChannelArgumentsEvaluation {
+    pub step: SequentialChannelArgumentsStep,
     pub steps_used: usize,
     pub max_steps: usize,
 }
@@ -74,7 +282,14 @@ pub fn run_sequential_channel_resumable_effect(
         .cloned()
         .map(ResumableChannelValue::Scalar)
         .collect::<Vec<_>>();
-    evaluate_channel_resumable(program, function_id, &arguments, None, max_steps)
+    into_legacy(evaluate_channel_resumable(
+        program,
+        function_id,
+        &arguments,
+        None,
+        max_steps,
+        false,
+    )?)
 }
 
 /// Run the sequential channel lane with its bounded Copy whole-function
@@ -85,8 +300,15 @@ pub fn run_sequential_channel_resumable_effect_with_arguments(
     function_id: &str,
     arguments: &[ResumableChannelValue],
     max_steps: usize,
-) -> Result<SequentialChannelResumableEvaluation, Vec<Diagnostic>> {
-    evaluate_channel_resumable(program, function_id, arguments, None, max_steps)
+) -> Result<SequentialChannelArgumentsEvaluation, Vec<Diagnostic>> {
+    into_arguments(evaluate_channel_resumable(
+        program,
+        function_id,
+        arguments,
+        None,
+        max_steps,
+        true,
+    )?)
 }
 
 /// Resume an opaque channel continuation with an answer of the declared
@@ -107,13 +329,14 @@ pub fn resume_sequential_channel_resumable_effect(
         .cloned()
         .map(ResumableChannelValue::Scalar)
         .collect::<Vec<_>>();
-    evaluate_channel_resumable(
+    into_legacy(evaluate_channel_resumable(
         program,
         function_id,
         &arguments,
         Some((continuation.clone(), answer.clone())),
         max_steps,
-    )
+        false,
+    )?)
 }
 
 /// Resume an aggregate whole-function channel invocation. The supplied
@@ -126,14 +349,15 @@ pub fn resume_sequential_channel_resumable_effect_with_arguments(
     continuation: &ResumableChannelContinuation,
     answer: &ResumableChannelValue,
     max_steps: usize,
-) -> Result<SequentialChannelResumableEvaluation, Vec<Diagnostic>> {
-    evaluate_channel_resumable(
+) -> Result<SequentialChannelArgumentsEvaluation, Vec<Diagnostic>> {
+    into_arguments(evaluate_channel_resumable(
         program,
         function_id,
         arguments,
         Some((continuation.clone(), answer.clone())),
         max_steps,
-    )
+        true,
+    )?)
 }
 
 fn evaluate_channel_resumable(
@@ -142,15 +366,27 @@ fn evaluate_channel_resumable(
     arguments: &[ResumableChannelValue],
     resume: Option<(ResumableChannelContinuation, ResumableChannelValue)>,
     max_steps: usize,
-) -> Result<SequentialChannelResumableEvaluation, Vec<Diagnostic>> {
+    allow_aggregate_boundary: bool,
+) -> Result<ChannelEvaluation, Vec<Diagnostic>> {
     let ChannelAdmitted {
         entry,
         yields,
         bound,
         admitted,
         arguments: scalar_arguments,
-    } = admit_channel_entry(program, function_id, arguments, max_steps)?;
-    let plan = lowering::lower_sequential(program, entry).map_err(|error| vec![error])?;
+    } = admit_channel_entry(
+        program,
+        function_id,
+        arguments,
+        max_steps,
+        allow_aggregate_boundary,
+    )?;
+    let plan = if allow_aggregate_boundary {
+        lowering::lower_sequential_with_arguments(program, entry)
+    } else {
+        lowering::lower_sequential(program, entry)
+    }
+    .map_err(|error| vec![error])?;
     let declarations = &program.declarations;
 
     let (resumption, next_binding, channel_history) = match resume {
@@ -298,11 +534,17 @@ fn evaluate_channel_resumable(
             ),
         )]);
     }
-    Ok(SequentialChannelResumableEvaluation {
-        step: into_public(step),
+    Ok(ChannelEvaluation {
+        step,
         steps_used,
         max_steps,
     })
+}
+
+struct ChannelEvaluation {
+    step: ChannelStep,
+    steps_used: usize,
+    max_steps: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -320,21 +562,57 @@ enum ChannelStep {
     GuardError(String),
 }
 
-fn into_public(step: ChannelStep) -> SequentialChannelResumableStep {
-    match step {
-        ChannelStep::Suspended { continuation } => {
-            SequentialChannelResumableStep::Suspended { continuation }
-        }
-        ChannelStep::Completed { state, result } => {
-            SequentialChannelResumableStep::Completed { state, result }
-        }
-        ChannelStep::LanguageFailure(status) => {
-            SequentialChannelResumableStep::LanguageFailure(status)
-        }
-        ChannelStep::FuelExhausted => SequentialChannelResumableStep::FuelExhausted,
-        ChannelStep::CallDepthExceeded => SequentialChannelResumableStep::CallDepthExceeded,
-        ChannelStep::GuardError(detail) => SequentialChannelResumableStep::GuardError(detail),
-    }
+fn into_legacy(
+    evaluation: ChannelEvaluation,
+) -> Result<SequentialChannelResumableEvaluation, Vec<Diagnostic>> {
+    Ok(SequentialChannelResumableEvaluation {
+        step: match evaluation.step {
+            ChannelStep::Suspended { continuation } => {
+                SequentialChannelResumableStep::Suspended { continuation }
+            }
+            ChannelStep::Completed {
+                state,
+                result: ResumableChannelValue::Scalar(result),
+            } => SequentialChannelResumableStep::Completed { state, result },
+            ChannelStep::Completed { .. } => {
+                return Err(vec![Diagnostic::io(
+                    "SPX-F102",
+                    "legacy sequential channel entry requires a scalar function result",
+                )])
+            }
+            ChannelStep::LanguageFailure(status) => {
+                SequentialChannelResumableStep::LanguageFailure(status)
+            }
+            ChannelStep::FuelExhausted => SequentialChannelResumableStep::FuelExhausted,
+            ChannelStep::CallDepthExceeded => SequentialChannelResumableStep::CallDepthExceeded,
+            ChannelStep::GuardError(detail) => SequentialChannelResumableStep::GuardError(detail),
+        },
+        steps_used: evaluation.steps_used,
+        max_steps: evaluation.max_steps,
+    })
+}
+
+fn into_arguments(
+    evaluation: ChannelEvaluation,
+) -> Result<SequentialChannelArgumentsEvaluation, Vec<Diagnostic>> {
+    Ok(SequentialChannelArgumentsEvaluation {
+        step: match evaluation.step {
+            ChannelStep::Suspended { continuation } => {
+                SequentialChannelArgumentsStep::Suspended { continuation }
+            }
+            ChannelStep::Completed { state, result } => {
+                SequentialChannelArgumentsStep::Completed { state, result }
+            }
+            ChannelStep::LanguageFailure(status) => {
+                SequentialChannelArgumentsStep::LanguageFailure(status)
+            }
+            ChannelStep::FuelExhausted => SequentialChannelArgumentsStep::FuelExhausted,
+            ChannelStep::CallDepthExceeded => SequentialChannelArgumentsStep::CallDepthExceeded,
+            ChannelStep::GuardError(detail) => SequentialChannelArgumentsStep::GuardError(detail),
+        },
+        steps_used: evaluation.steps_used,
+        max_steps: evaluation.max_steps,
+    })
 }
 
 /// Turn the evaluator's settled `Result` into one closed step, mirroring

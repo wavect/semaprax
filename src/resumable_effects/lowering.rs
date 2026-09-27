@@ -316,11 +316,33 @@ pub fn lower_sequential(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<SequentialResumablePlan, Diagnostic> {
+    lower_sequential_profile(program, function, false)
+}
+
+/// Lower with the distinct aggregate whole-function carrier. Scalar entry
+/// points, checkpoint codecs, and journals remain on [`lower_sequential`].
+pub(crate) fn lower_sequential_with_arguments(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+) -> Result<SequentialResumablePlan, Diagnostic> {
+    lower_sequential_profile(program, function, true)
+}
+
+fn lower_sequential_profile(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    allow_aggregate_boundary: bool,
+) -> Result<SequentialResumablePlan, Diagnostic> {
     let aggregate_bytes_channel = function.yields.as_ref().is_some_and(|yields| {
         crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.request_type)
     });
-    let yields =
-        control::check_resumable_profile(program, function, aggregate_bytes_channel, true)?;
+    let yields = control::check_resumable_profile(
+        program,
+        function,
+        aggregate_bytes_channel,
+        true,
+        allow_aggregate_boundary,
+    )?;
     reject_yield_in_contracts(function)?;
     let sites = locate_direct_yields(function)?;
     for (yield_expression, request, _) in &sites {
@@ -334,12 +356,11 @@ pub fn lower_sequential(
             ));
         }
     }
-    let mut admitted_boundary_types = vec![
-        &yields.request_type,
-        &yields.response_type,
-        &function.return_type,
-    ];
-    admitted_boundary_types.extend(function.params.iter().map(|parameter| &parameter.ty));
+    let mut admitted_boundary_types = vec![&yields.request_type, &yields.response_type];
+    if allow_aggregate_boundary {
+        admitted_boundary_types.push(&function.return_type);
+        admitted_boundary_types.extend(function.params.iter().map(|parameter| &parameter.ty));
+    }
     require_scalar_expression_tree(
         &function.body,
         aggregate_bytes_channel,

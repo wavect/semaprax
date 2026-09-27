@@ -42,7 +42,11 @@ fn checked_identity_wrapper_binds_nominal_copy_channel_and_canonical_graph() {
     );
     assert_eq!(binding.proposal.as_str(), "fixture.agent.type.proposal");
     assert_eq!(binding.evaluation_fuel(), 1000);
-    assert_eq!(binding.digest().len(), 64);
+    assert_eq!(binding.digest().len(), 71);
+    assert!(binding.digest().starts_with("sha256:"));
+    assert!(binding.digest()[7..]
+        .bytes()
+        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)));
     assert_eq!(
         binding,
         compiled

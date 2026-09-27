@@ -377,6 +377,19 @@ Second increment (this document's own contract): the query is un-gated from
   non-`Bytes` owned value never reaches a plan slot in the first place, since
   `check_scalar` only ever defers `Bytes`. This is a compile-time gate, not a
   runtime one: a program that fails it never reaches lowering.
+  **A loop-embedded carried site is refused, not merely narrowed.** A
+  `while` body can suspend more than once per invocation, but the carrying
+  substitution (below) is a flat map keyed by the static `let` binding,
+  consumed on the *first* dynamic occurrence a resume's replay reaches;
+  resuming the Nth suspension of such a site would substitute that
+  iteration's bytes into the first iteration's own binding during replay,
+  silently running every earlier iteration with the wrong value.
+  `admit_owned_bytes_profile` therefore also refuses (`SPX-T303`) any site
+  that both carries something live and is reached through a `while` body
+  (`cleanup_plan::owned_liveness::site_is_loop_embedded`), until a later
+  slice makes the carrying substitution dynamic-occurrence-aware. Only an
+  if/else-nested site -- reached at most once per invocation -- admits a
+  carried value in this increment.
 - **Lowering.** `resumable_effects::lowering::control::lower_control` (the
   control-dependent plan only; the sequential plan still refuses any owned
   cleanup state) computes each `ControlSite`'s `carried: Vec<ValueId>` from
@@ -418,24 +431,35 @@ Second increment (this document's own contract): the query is un-gated from
   since the profile forbids host effects, but not yet avoided the way this
   section's design intends for a future, more general slice.
 - **Settlement.** No second window: the existing journaled
-  `CleanupStarted`/`CleanupSettled` window and its already-generic
-  `CleanupHandler<DurableOutcome>` seam are reused exactly as they are.
-  `DurableInvocation::pending_cleanup_carried` exposes the exact carried bytes
-  still awaiting settlement, non-empty only for the three failures recorded
-  while a site was dispatched (`HandlerFailed`, `AnswerTypeMismatch`,
-  `HostAbandoned` -- `DurableFailure::settles_dispatch`): those are the only
-  outcomes where the interpreter never re-ran to its own natural, in-process
-  drop of the carried value. A `Completed` outcome, or any other `Failed` one,
-  only ever follows a resume or start that ran the interpreter through to
-  that outcome, which already dropped every carried value itself, so
-  `pending_cleanup_carried` stays empty for those. A caller's
-  `CleanupHandler` reads it before calling `settle`/`drive` and runs the
-  carried values' own settlement inside that one call, which the existing
-  `CleanupStarted`/`CleanupSettled` in-doubt rule still runs at most once
-  across any number of crashes and recoveries. A mutant handler that skips
-  settling a reported carried value is caught by a caller-owned leak counter
-  staying at zero instead of reaching one.
+  `CleanupStarted`/`CleanupSettled` window is reused exactly as it is, and
+  `CleanupHandler<Op>` (`resumable_effects::core`) is extended, not
+  replaced: alongside its existing `run` (the overall sticky outcome, still
+  settled exactly once, unchanged), a new `run_carried(&mut self, item:
+  &[u8]) -> Result<(), String>` settles one carried owned value, called once
+  per entry of `DurableInvocation::pending_cleanup_carried` in that vector's
+  own order -- the same per-op audit shape `resumable_effects::core::resume`
+  already gives its own `Vec<(CleanupOp, Result<(), String>)>`, rather than
+  one outcome folded silently over several operations. `run_carried`'s
+  default fails closed (`Err`), so a handler written before this profile
+  ever had something to carry does not silently claim settlement for bytes
+  it never touches. `pending_cleanup_carried` is non-empty only for the
+  three failures recorded while a site was dispatched (`HandlerFailed`,
+  `AnswerTypeMismatch`, `HostAbandoned` -- `DurableFailure::settles_dispatch`):
+  those are the only outcomes where the interpreter never re-ran to its own
+  natural, in-process drop of the carried value. A `Completed` outcome, or
+  any other `Failed` one, only ever follows a resume or start that ran the
+  interpreter through to that outcome, which already dropped every carried
+  value itself, so `pending_cleanup_carried` stays empty for those.
+  `DurableInvocation::settle` calls every carried item's own `run_carried`
+  -- none skipped by an earlier item's failure -- and reports
+  `CleanupSettlement::Completed` only when `run` and every `run_carried`
+  call succeeded; any failure, including a handler that never overrides
+  `run_carried`, reports `Failed` instead, in both `status()` and the
+  durable journal's own `CleanupSettled` record. The driver itself, not a
+  caller-owned counter, is what makes a skipped carried settlement visible.
 
 Scope carried over unchanged from the first increment, and still true of the
 second: only whole-storage `Bytes` locals, only the control-dependent plan,
-only the placements the increment 1 grammar note above already lists.
+only the placements the increment 1 grammar note above already lists, and --
+new to this increment -- only an if/else-nested carried site, never a
+loop-embedded one, until dynamic-occurrence-aware carrying exists.

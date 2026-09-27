@@ -52,42 +52,44 @@ const COMPLETED_RECORDS: usize = 7;
 /// Started, Yielded, Dispatched, Failed, CleanupStarted, CleanupSettled.
 const ABANDONED_RECORDS: usize = 6;
 
-/// A [`CleanupHandler`] that settles every byte vector `pending_carried`
-/// gives it exactly once, counted in a caller-owned counter so a test can
-/// observe whether settlement ran 0 (a leak), 1 (correct), or more (a
-/// double free) times. `skip_carried` is the negative-control knob: `true`
-/// reproduces a mutant handler that forgets to settle a carried value.
+/// A [`CleanupHandler`] whose `run_carried` -- called by the driver itself,
+/// once per pending carried item, mirroring
+/// `resumable_effects::core::resume`'s own per-op audit shape -- counts a
+/// real settlement so a test can observe whether it ran 0 (a leak), 1
+/// (correct), or more (a double free) times. `skip_carried` is the
+/// negative-control knob: `true` reproduces a mutant handler that forgets to
+/// settle a carried value, which the driver -- not this counter -- must
+/// then report as `CleanupSettlement::Failed` rather than `Completed`.
 struct CountingCleanup<'a> {
-    pending_carried: Vec<Vec<u8>>,
     settled: &'a AtomicUsize,
     skip_carried: bool,
 }
 
 impl CleanupHandler<DurableOutcome> for CountingCleanup<'_> {
     fn run(&mut self, _: &DurableOutcome) -> Result<(), String> {
-        if !self.skip_carried {
-            self.settled
-                .fetch_add(self.pending_carried.len(), Ordering::SeqCst);
+        Ok(())
+    }
+
+    fn run_carried(&mut self, item: &[u8]) -> Result<(), String> {
+        if self.skip_carried {
+            return Err("mutant: skips carried-value settlement".to_owned());
         }
+        let _ = item;
+        self.settled.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }
 }
 
 impl<'a> CountingCleanup<'a> {
-    fn honest(invocation: &DurableInvocation<'_>, settled: &'a AtomicUsize) -> Self {
+    fn honest(settled: &'a AtomicUsize) -> Self {
         Self {
-            pending_carried: invocation.pending_cleanup_carried().to_vec(),
             settled,
             skip_carried: false,
         }
     }
 
-    fn mutant_skipping_carried_cleanup(
-        invocation: &DurableInvocation<'_>,
-        settled: &'a AtomicUsize,
-    ) -> Self {
+    fn mutant_skipping_carried_cleanup(settled: &'a AtomicUsize) -> Self {
         Self {
-            pending_carried: invocation.pending_cleanup_carried().to_vec(),
             settled,
             skip_carried: true,
         }
@@ -153,7 +155,7 @@ fn completing_normally_leaves_nothing_pending_to_settle_at_every_crash_point() {
             let settled = AtomicUsize::new(0);
             arm(at, after);
             let crashed = open(&scratch, &key, &program, &invocation, true).and_then(|mut live| {
-                let mut cleanup = CountingCleanup::honest(&live, &settled);
+                let mut cleanup = CountingCleanup::honest(&settled);
                 live.drive(&policy(), &mut host, &mut cleanup)
             });
             assert!(
@@ -166,7 +168,7 @@ fn completing_normally_leaves_nothing_pending_to_settle_at_every_crash_point() {
                 at + usize::from(after)
             );
             let mut recovered = open(&scratch, &key, &program, &invocation, false).unwrap();
-            let mut cleanup = CountingCleanup::honest(&recovered, &settled);
+            let mut cleanup = CountingCleanup::honest(&settled);
             let mut status = recovered.drive(&policy(), &mut host, &mut cleanup).unwrap();
             if let ContinuationStatus::AwaitingAnswer { request, in_doubt } = status.clone() {
                 // Dispatched is durable but its answer is not: `drive` never
@@ -180,7 +182,7 @@ fn completing_normally_leaves_nothing_pending_to_settle_at_every_crash_point() {
                     .answer(&policy(), &request.bind_answer(ArgumentValue::Int(ANSWER)))
                     .unwrap();
                 assert_eq!(value, REQUEST);
-                let mut cleanup = CountingCleanup::honest(&recovered, &settled);
+                let mut cleanup = CountingCleanup::honest(&settled);
                 status = recovered.drive(&policy(), &mut host, &mut cleanup).unwrap();
             }
             if matches!(status, ContinuationStatus::CleanupInDoubt { .. }) {
@@ -246,7 +248,7 @@ fn abandon_settles_the_carried_value_exactly_once_at_every_crash_point() {
             recovered.abandon(&policy()).unwrap();
             assert_eq!(recovered.pending_cleanup_carried().len(), 1);
             assert_eq!(recovered.pending_cleanup_carried()[0], vec![1u8, 2u8, 3u8]);
-            let mut cleanup = CountingCleanup::honest(&recovered, &settled);
+            let mut cleanup = CountingCleanup::honest(&settled);
             recovered.settle(&mut cleanup).unwrap();
             assert!(matches!(
                 recovered.status(),
@@ -264,7 +266,7 @@ fn abandon_settles_the_carried_value_exactly_once_at_every_crash_point() {
             // The existing in-doubt window already refuses a second run: a
             // fresh recovery from the now-fully-settled journal replays
             // straight to `Settled` without invoking `settle` again.
-            let mut cleanup_again = CountingCleanup::honest(&recovered, &settled);
+            let mut cleanup_again = CountingCleanup::honest(&settled);
             assert!(matches!(
                 recovered.settle(&mut cleanup_again),
                 Err(ContinuationError::NotAwaitingCleanup)
@@ -275,13 +277,18 @@ fn abandon_settles_the_carried_value_exactly_once_at_every_crash_point() {
 }
 
 /// Negative control: a mutant [`CleanupHandler`] that forgets to settle the
-/// carried value on abandon. The leak counter catches it -- settlement stays
-/// at zero although one owned value was pending -- exactly the defect
+/// carried value on abandon. The driver itself catches it -- `settle`
+/// refuses `CleanupSettlement::Completed` unless every carried item's own
+/// `run_carried` call actually succeeded, so the mutant's one failure
+/// surfaces in `status()` and the durable journal's own `CleanupSettled`
+/// record as `Failed`, not silently as `Completed` -- exactly the defect
 /// `docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md` section 11.6 asks this
-/// increment to demonstrate. The mutant lives only in this one test; every
-/// other test in this module uses the honest handler.
+/// increment to demonstrate. The leak counter corroborates it (stays at
+/// zero) but is not what a caller would actually rely on: the driver's own
+/// reported outcome is. The mutant lives only in this one test; every other
+/// test in this module uses the honest handler.
 #[test]
-fn a_mutant_that_skips_carried_cleanup_on_abandon_is_caught_by_the_leak_counter() {
+fn a_mutant_that_skips_carried_cleanup_on_abandon_is_reported_failed_by_the_driver() {
     let scratch = Scratch::new(0o700);
     let (key, program) = (key(), program(OWNED));
     let mut invocation = open(&scratch, &key, &program, "inv-owned-mutant", true).unwrap();
@@ -292,22 +299,27 @@ fn a_mutant_that_skips_carried_cleanup_on_abandon_is_caught_by_the_leak_counter(
     assert_eq!(invocation.pending_cleanup_carried().len(), 1);
 
     let settled = AtomicUsize::new(0);
-    let mut mutant = CountingCleanup::mutant_skipping_carried_cleanup(&invocation, &settled);
+    let mut mutant = CountingCleanup::mutant_skipping_carried_cleanup(&settled);
     invocation.settle(&mut mutant).unwrap();
     assert_eq!(
         settled.load(Ordering::SeqCst),
         0,
         "the mutant must leak: it never ran the carried value's own settlement"
     );
+    // The driver, not a test-local counter, is the one reporting the skip:
+    // `CleanupSettlement::Failed`, never `Completed`, and the same class in
+    // the durable journal's own `CleanupSettled` record.
     assert!(matches!(
         invocation.status(),
         ContinuationStatus::Settled {
             outcome: DurableOutcome::Failed(DurableFailure::HostAbandoned),
-            cleanup: CleanupSettlement::Completed,
+            cleanup: CleanupSettlement::Failed,
         }
     ));
-    // The driver itself reports the same terminal, journaled shape either
-    // way: the leak is only visible through the counter an honest handler
-    // (`abandon_settles_the_carried_value_exactly_once_at_every_crash_point`)
-    // increments and this one deliberately does not.
+    let text = fs::read_to_string(scratch.journal("inv-owned-mutant")).unwrap();
+    assert!(text.contains("cleanup_settled"));
+    assert!(
+        !text.contains("\"completed\""),
+        "the durable journal must not record Completed for a skipped carried item: {text}"
+    );
 }

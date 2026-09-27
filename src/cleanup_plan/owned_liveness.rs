@@ -372,6 +372,29 @@ pub(crate) fn admit_owned_bytes_profile(function: &ResolvedFunction) -> Result<(
                 function.name
             ))
         })?;
+        // Issue #296, spec section 11.6: the interpreter's carrying
+        // substitution (`interpreter::resumable::Resumption::Replay::carried`)
+        // is a flat map keyed by the static `let` binding, consumed on the
+        // *first* dynamic occurrence it is asked to substitute during one
+        // resume's replay. A site reached through a `while` body can
+        // suspend more than once per invocation (the loop's own bound is
+        // `MAX_CONTROL_SUSPENSIONS`, not one); resuming the Nth suspension
+        // would substitute that iteration's carried bytes into the first
+        // dynamic occurrence of the same static binding the replayed prefix
+        // reaches, silently running every earlier iteration with the wrong
+        // value instead of its own. Refusing every loop-embedded site that
+        // actually carries something -- rather than approximating
+        // dynamic-occurrence-aware carrying -- keeps this increment exact:
+        // only if/else-nested sites, which a single invocation reaches at
+        // most once, admit a carried value.
+        if !live.is_empty() && site_is_loop_embedded(function, site) {
+            return Err(not_admitted(format!(
+                "function `{}` carries an owned `Bytes` value live across a suspension site \
+                 reached through a `while` loop body; only if/else-nested sites admit a \
+                 carried value in this increment",
+                function.name
+            )));
+        }
         live_anywhere.extend(live);
     }
     for slot in &plan.slots {
@@ -411,6 +434,79 @@ pub(crate) fn admit_owned_bytes_profile(function: &ResolvedFunction) -> Result<(
 /// [`owned_locals_live_at`]'s own scope-limitation refusals.
 fn not_admitted(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-T303", message)
+}
+
+/// True when `site` is reached only by passing through at least one `while`
+/// loop's body (a loop-embedded site), walking exactly the same admitted
+/// if/else/while/block-valued nesting [`owned_locals_live_at`]'s own
+/// `locate_predecessors` does. `false` both when `site` sits entirely
+/// outside any `while` body and when `site` is not reachable through the
+/// admitted nesting at all (a separate refusal already handles the latter).
+fn site_is_loop_embedded(function: &ResolvedFunction, site: &ExpressionId) -> bool {
+    find_while_membership_in_block(&function.body, true, false, site).unwrap_or(false)
+}
+
+/// Mirrors `locate_predecessors::find_in_block`'s own structural descent,
+/// but instead of accumulating "already executed" identities, threads
+/// whether the walk has already entered a `while` body and reports that flag
+/// at the exact statement or tail that names `site`. `Some(in_while)` once
+/// `site` is found; `None` if this block's walk never reaches it.
+fn find_while_membership_in_block(
+    expr: &ResolvedExpr,
+    top: bool,
+    in_while: bool,
+    site: &ExpressionId,
+) -> Option<bool> {
+    let ResolvedExprKind::Block { statements, tail } = &expr.kind else {
+        return None;
+    };
+    for statement in statements {
+        match statement {
+            ResolvedStatement::Let { value, .. } | ResolvedStatement::Assign { value, .. } => {
+                if let Some(found) = find_while_membership_in_value(value, in_while, site) {
+                    return Some(found);
+                }
+            }
+            ResolvedStatement::While { body, .. } => {
+                if let Some(found) = find_while_membership_in_block(body, false, true, site) {
+                    return Some(found);
+                }
+            }
+            ResolvedStatement::Unsafe { .. } => {}
+        }
+    }
+    if top && tail.id == *site {
+        return Some(in_while);
+    }
+    None
+}
+
+/// Mirrors `locate_predecessors::find_in_value`'s own structural descent.
+fn find_while_membership_in_value(
+    expr: &ResolvedExpr,
+    in_while: bool,
+    site: &ExpressionId,
+) -> Option<bool> {
+    if expr.id == *site {
+        return Some(in_while);
+    }
+    match &expr.kind {
+        ResolvedExprKind::If {
+            then_branch,
+            else_branch,
+            ..
+        } => {
+            if let Some(found) = find_while_membership_in_block(then_branch, false, in_while, site)
+            {
+                return Some(found);
+            }
+            find_while_membership_in_block(else_branch, false, in_while, site)
+        }
+        ResolvedExprKind::Block { .. } => {
+            find_while_membership_in_block(expr, false, in_while, site)
+        }
+        _ => None,
+    }
 }
 
 /// The ordered `ValueId`s of the owned `Bytes` locals live at `site`, exactly

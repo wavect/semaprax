@@ -127,6 +127,21 @@ pub trait EffectHandler<Req, Obs> {
 /// already-selected terminal status.
 pub trait CleanupHandler<Op> {
     fn run(&mut self, op: &Op) -> Result<(), String>;
+
+    /// Settle one caller-supplied raw payload still pending at terminal
+    /// settlement, called once per entry in the caller's own recorded
+    /// order -- a second, byte-shaped kind of op alongside `run`'s
+    /// `CleanupOp`, for a caller whose own terminal state can carry
+    /// arbitrary settled-elsewhere bytes that `cleanup_plan` above does not
+    /// itself enumerate. This reference driver's own `resume` never
+    /// produces or calls it. The default fails closed: a handler written
+    /// before its caller ever had such a payload to carry reports failure
+    /// rather than silently claiming settlement for bytes it never actually
+    /// settled.
+    fn run_carried(&mut self, item: &[u8]) -> Result<(), String> {
+        let _ = item;
+        Err("carried payload settlement is not implemented".to_owned())
+    }
 }
 
 /// One journal record. Effect turns record an `Intent`/(`Observed` or

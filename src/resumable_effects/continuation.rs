@@ -595,9 +595,35 @@ impl<'a> DurableInvocation<'a> {
         };
         self.append(&Record::CleanupStarted)?;
         self.phase = Phase::CleanupInDoubt(outcome.clone());
-        let settlement = match cleanup.run(&outcome) {
-            Ok(()) => CleanupSettlement::Completed,
-            Err(_) => CleanupSettlement::Failed,
+        // Issue #296, spec section 11.6: `run` still settles the overall
+        // sticky outcome exactly once, as it always has. Mirroring
+        // `resumable_effects::core::resume`'s own per-op audit shape (a
+        // result recorded per item, never one outcome folded silently over
+        // several), every carried owned value this outcome left pending
+        // (`Self::pending_cleanup_carried`, empty unless a dispatched site's
+        // failure stranded one -- see that field's own doc comment) is
+        // settled through its own `run_carried` call, in that vector's own
+        // order. `Completed` requires every one of them, not merely the
+        // outcome itself, to have actually settled: a handler that skips or
+        // fails one -- including a handler that never overrides
+        // `run_carried`'s fail-closed default -- surfaces here, and in the
+        // durable journal's own `CleanupSettled` record, as `Failed`, never
+        // silently as `Completed`.
+        let outcome_settled = cleanup.run(&outcome).is_ok();
+        // Every carried item gets its own attempt -- exactly the per-op
+        // audit's promise -- so an earlier item's failure never skips a
+        // later one's own settlement the way a short-circuiting `all`
+        // would.
+        let carried_results: Vec<Result<(), String>> = self
+            .pending_cleanup_carried
+            .iter()
+            .map(|item| cleanup.run_carried(item))
+            .collect();
+        let carried_settled = carried_results.iter().all(Result::is_ok);
+        let settlement = if outcome_settled && carried_settled {
+            CleanupSettlement::Completed
+        } else {
+            CleanupSettlement::Failed
         };
         self.finish_cleanup(outcome, settlement)
     }

@@ -480,6 +480,19 @@ fn graph_v10_through_v14_target_projections_are_admitted() {
 ///   `env.spx_contract_fail` host import an `i32` status-code parameter.
 ///   Every identity field was byte-identical across that window, so the
 ///   re-take was correct; `ca1b21af` simply did not say so (issue #81).
+/// * Re-taken again for issue #293 P2-2: only the Wasm core target row
+///   moved. `fixture 0`/`fixture 1` (`rename_v1`/`rename`, one `helper`
+///   call) grew 194 -> 258 bytes; `fixture 2` (`rebase_v3`, one `helper`
+///   call through `caller`) grew 210 -> 302 bytes. The legacy scalar-core
+///   Wasm emitter (`emit_resolved_module_internal`'s final branch, the
+///   branch these plain scalar fixtures reach) gained call-depth admission:
+///   one private live-frame counter global, plus one increment-and-check
+///   prologue and one decrement epilogue per function
+///   (`scalar_call_admission`), mirroring the aggregate builder's own
+///   `call_admission` module (issue #293 P2-1). `budget.used_*_native_c11_bytes`
+///   and every identity field (`base_revision`, `candidate_revision`,
+///   `source.digest`, `patch.digest`, `graphs.*.digest`, `graphs.*.bytes`)
+///   were confirmed byte-identical field by field before this re-take.
 #[test]
 fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     let reports = [
@@ -494,17 +507,17 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
             .each_ref()
             .map(|report| sha256(&report.replace("0.258.0", "0.256.0"))),
         [
-            "bb170ceb8919eae5fcca10b80cc3dc5e4d12b6c11df23b4bc01a81b2215507ae".to_owned(),
-            "5637cd656d6dc40adb6122e92b5262d8279788e1f1fc8c4cacdecf92a8e2c449".to_owned(),
-            "53a0d865ea05ae1dc9fe7307f0867b5acfc649de2d8fe9221eb0df6d0b8d2bba".to_owned(),
+            "0a725aba4bd7c7ea0d6dfb00d5c0b8eae4781fa8d1bde214bcd1e7af5010bde5".to_owned(),
+            "9d801b3d2ce69f64051f5733fd4f603c68f83a79f84e24a863f020989f14447a".to_owned(),
+            "b498e45c167f25a3b26af494f2509f79135af1d23fc3596c9ddf9aeee4635c46".to_owned(),
         ]
     );
     assert_eq!(
         reports.each_ref().map(|report| sha256(report)),
         [
-            "2d6609fbda665facaf6f0064ca7e8789728d0d12eb9457d560e8d93d270e55e1".to_owned(),
-            "fd06cb1e2ba931f5acc38547d26b616a5114971d4d82dc1f5b31bd6be9e6b8e8".to_owned(),
-            "d89e3fec2876f08c31decb2b7a499af9aa4dc3bd8a5822eb4c4c4a58ae4cb77c".to_owned(),
+            "e17d8806f530300e17932e2d8b5f27442f2e269442fde1258cedc20eeeaafd6f".to_owned(),
+            "53d01193ce3e6a186becaaffd093d89629e19ab8f0a5c244afb8ed9fda40b4b1".to_owned(),
+            "3be7f74e7eb31ac8e21b010be0f5863f58d4086cc43cd6ca42d2f1dc05815fff".to_owned(),
         ]
     );
 }

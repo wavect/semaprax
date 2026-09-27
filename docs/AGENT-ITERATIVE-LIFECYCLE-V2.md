@@ -116,8 +116,16 @@ one more frame at the identical fixed ceiling (256) before that frame's own
 semantic charge and preconditions, reporting `CallDepthExceeded` rather than
 diverging into fuel exhaustion or an uncontrolled host-engine stack trap.
 Core Wasm enforces it with an always-on module global incremented at every
-function's entry and decremented at its shared exit, present in every
-compiled module whether or not a semantic meter is selected for that build.
+function's entry, present in every compiled module whether or not a semantic
+meter is selected for that build, across both Wasm emitters: the aggregate
+builder (`aggregate::call_admission`) decrements it at a shared exit every
+recoverable status already converges on, so a refused frame's decrement runs
+unconditionally alongside its increment; the legacy scalar-core emitter
+(`scalar_call_admission`), reached by a plain scalar or owned-Bytes/String
+program with no aggregate lowering, instead reports a refused frame through
+its existing `spx_contract_fail`-plus-`unreachable` failure channel, which
+traps the whole call activation rather than returning through it, so only
+its one normal-return path decrements.
 
 A dispatch is admitted with a limit in `1..=1_000_000`. A charge made while the
 charged count equals the limit is refused and not counted. Refusal is sticky:

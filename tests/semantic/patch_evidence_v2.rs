@@ -496,7 +496,12 @@ fn v2_cli_arity_and_output_are_exact() {
 ///
 /// Re-take history: `c69b09ed` (zeroed generated C temporaries) and
 /// `ca1b21af` (emitted C 23638 -> 26671 bytes, Wasm core 193 -> 194 bytes;
-/// identity unchanged — issues #80 and #81).
+/// identity unchanged — issues #80 and #81). Re-taken again for issue #293
+/// P2-2, in step with `target_evidence`'s own re-take: only the embedded
+/// Wasm core target row moved (194 -> 258 bytes for `kat-v1`/`kat-v2`, 210
+/// -> 302 bytes for `kat-v3`), because the legacy scalar-core Wasm emitter
+/// gained call-depth admission (`scalar_call_admission`); every identity
+/// field was confirmed byte-identical first.
 #[test]
 fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     let fixtures = [
@@ -559,33 +564,33 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         previous_capsule_hashes,
         [
-            "84c2e562b7ddbf7fd5ea0236878a3a5fd8a67867cb042fd24be28bc0fa9c0913",
-            "204bc2a6f8a2298889b59ae42a5fdad8f3ff69a136396d110949eed4f4501711",
-            "5da895471537d2691847c54c9062aad29d384cc8e47f9cc6335898aaace81029",
+            "7c55fa8b7bc5b915d038ba6810935591dc1973c36fbfbefa5a5cebb27039b397",
+            "441878972c28cc43e81a0e2873feccbbe0cf732934ac11a35095eee48ca02565",
+            "3f279c6de0c3f52459da5628231cc1b7d6881b5c164185ae1d416d070723a82b",
         ]
     );
     assert_eq!(
         previous_receipt_hashes,
         [
-            "c94809b8155f23607a087dd8843dccb2dfc7d1d413fae382a1dd985107ead6bc",
-            "a963c85c21ec4aa88140843e2c7061a257b338cb52df7d6e79225e4e682db8c2",
-            "16fd21fb2850cbc88923e86513683a30fe231714ac134abcaacbbe499e2e33e6",
+            "6d68a0d1ec1263ef9b1917f4bd8017b4288bcaceacb096c3e10257cfcfea4d30",
+            "21c60f961c7672880b4d2aa2a38a288b804f4926cf1c2f3fc1517ddd02b500ba",
+            "e9fbf10aebda917ae4c740323bd5a54ccff196009813a75697eefd4d4261fdee",
         ]
     );
     assert_eq!(
         capsule_hashes,
         [
-            "75d5dd5aea707346fc55a7af6df132eb20238efd80f11b40265f0d76dd050122",
-            "251f8b7f905499bbb3ddb928f0afb5adcc88186de0bdd47ffc18cf9be25a84a6",
-            "10f903affc849ee6ab59c7adbafab8d96ccdcac73f36f19406d79d70e10f6ad9",
+            "83894b47f051a7240212f57a2774b01cd33e437d85595be0e967546a0548bbd4",
+            "cf2fd324002d369fa5ec7c08930bf4ec3adb8d240224012c1aaab43f440bc687",
+            "ad9421152c9e654b6dc05f4e1dbf178caa5eb0bdf125343ae2624edf714e8dfc",
         ]
     );
     assert_eq!(
         receipt_hashes,
         [
-            "e712bcca63366a0add2fe101ac9f1601fa9a5dc76b28893b29bdcd7c5c53e43f",
-            "bb9b153d470d19f6bd322b86a184cb2ac2b576ed46d516a63bd3108a25768691",
-            "2a73c8fa2574afa59cb1d84e072678dc99cf1880c7cfe0088a07236c016c4d22",
+            "a43995b2f3075ea2a1b6ab58f199f197eabf0ff4650b1f84b199ce4d4e6700d0",
+            "df676a9ff56a68078ec11374905fea6d37387490290f528624768cdd92b35d19",
+            "de34d1eef2ff19ac0c722cf992e8edbd57ddd91546ec537fca249cffd17cd939",
         ]
     );
 }

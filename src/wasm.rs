@@ -51,6 +51,10 @@ mod scalar_algebra_component_v5;
 mod scalar_exports;
 mod string_ops_v2_use;
 use string_ops_v2_use::program_uses_string_ops_v2;
+/// Core Wasm call-depth admission for the legacy scalar-core emitter (issue
+/// #293 P2-2): the aggregate family's sibling in `aggregate::call_admission`
+/// (P2-1).
+mod scalar_call_admission;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod source_result_component_v4;
 mod text_exports;
@@ -1563,18 +1567,30 @@ fn emit_resolved_module_internal(
         section(&mut module, 5, memories);
     }
 
-    if !text_exports.is_empty() {
+    // Every executable function this emitter produces carries call-depth
+    // admission (issue #293 P2-2), so its private live-frame counter global
+    // is always present, appended after any text-export globals so their
+    // hardcoded indexes (0..=2, see `STATUS_GLOBAL_EXPORT` and friends below)
+    // stay unchanged.
+    let depth_global_index = if text_exports.is_empty() { 0 } else { 3 };
+    {
         let mut globals = crate::bounded_output::CappedVec::new();
-        write_u32(&mut globals, 3);
-        // Mutable exact invocation status.
-        globals.extend_bytes(&[I32, 0x01, 0x41, 0x00, 0x0b]);
-        // Immutable scratch base and capacity metadata.
-        globals.extend_bytes(&[I32, 0x00, 0x41]);
-        write_i32(&mut globals, text_exports::SCRATCH_BASE as i32);
-        globals.push(0x0b);
-        globals.extend_bytes(&[I32, 0x00, 0x41]);
-        write_i32(&mut globals, text_exports::SCRATCH_CAPACITY as i32);
-        globals.push(0x0b);
+        write_u32(
+            &mut globals,
+            u32::from(!text_exports.is_empty()) * 3 + scalar_call_admission::GLOBAL_COUNT,
+        );
+        if !text_exports.is_empty() {
+            // Mutable exact invocation status.
+            globals.extend_bytes(&[I32, 0x01, 0x41, 0x00, 0x0b]);
+            // Immutable scratch base and capacity metadata.
+            globals.extend_bytes(&[I32, 0x00, 0x41]);
+            write_i32(&mut globals, text_exports::SCRATCH_BASE as i32);
+            globals.push(0x0b);
+            globals.extend_bytes(&[I32, 0x00, 0x41]);
+            write_i32(&mut globals, text_exports::SCRATCH_CAPACITY as i32);
+            globals.push(0x0b);
+        }
+        scalar_call_admission::append_global(&mut globals);
         section(&mut module, 6, globals);
     }
 
@@ -1731,6 +1747,7 @@ fn emit_resolved_module_internal(
             write_u32(&mut body, 1);
             body.push(wasm_type(ty)?);
         }
+        scalar_call_admission::emit_admission(&mut body, depth_global_index);
         for contract in &function.requires {
             emit_expr(
                 &mut body,
@@ -1763,6 +1780,12 @@ fn emit_resolved_module_internal(
             )?;
             emit_contract_guard(&mut body, Some(2));
         }
+        // This function's one normal-return path: every entered frame
+        // incremented the live-frame counter exactly once in
+        // `scalar_call_admission::emit_admission`, and a refused frame never
+        // reaches here (see that module's documentation), so this decrement
+        // is unconditional.
+        scalar_call_admission::emit_decrement(&mut body, depth_global_index);
         body.push(0x20);
         write_u32(&mut body, result_local);
         body.push(0x0b);

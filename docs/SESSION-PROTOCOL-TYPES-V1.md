@@ -574,6 +574,38 @@ projected fact carries `"authority":"none"`.
   checked example module (`tests/documentation.rs::agent_quick_reference`
   parses, verifies with zero diagnostics, and byte-compares it against
   `format::canonical`, exactly like every other unmarked block on the page).
+- **Semantic-workspace rename, change, impact, and review (R21, issue #297
+  follow-on).** A `via` clause binds by persistent `@id`, never by display
+  name, so `src/semantic_workspace_operations.rs`'s rename derivation (which
+  changes only a declaration's display name, addressed by its immutable
+  `@id`) can never break a `via` binding by construction -- there is no
+  operation in this codebase that reassigns a declaration's `@id`. What a
+  rename or a general change *can* do is remove or alter the realizing
+  function outright; every candidate source set either derivation builds is
+  replayed through the same per-module pass that already binds `via` targets
+  against checked HIR (`retain_workspace_module` /
+  `session_protocol_decl::declaration_facts`), so a candidate that would
+  orphan a `via` fails closed with the ordinary stable diagnostic
+  (`SPX-K104`) rather than being silently admitted; pinned at the exact entry
+  points rename and change use
+  (`workspace_graph::build_owned_retaining_sources_for_operations` and
+  `_for_change`) by
+  `a_via_bound_functions_display_rename_is_admitted_by_operations_and_change_candidate_builds`
+  and
+  `removing_a_via_bound_function_is_refused_with_a_stable_diagnostic_by_operations_and_change_candidate_builds`
+  in `src/workspace_graph/session_protocol_decl.rs`. Impact and review
+  (`src/impact.rs`, wrapped unchanged by `src/review.rs`) gain a
+  `session_protocols_affected` fact array: one entry per session protocol in
+  the previewed module whose `via` names a declaration id the patch directly
+  changes (a rename target or the owner of a changed call instance),
+  restricted to the affected transitions, each carrying `protocol`,
+  `protocol_name`, `authority: "none"`, and the matched `via` edges. Omitted
+  entirely (not even `[]`) for a module with no session protocol or none
+  affected, so every existing pinned Impact/Review report stays
+  byte-identical; a session protocol's `via` is not a real call edge, so this
+  reporting is computed independently of, and never feeds, the reverse-call
+  closure (`reverse_closure`/`affected_functions`) that already exists for
+  real callers.
 
 ### Bundled dependency pruning
 
@@ -591,8 +623,6 @@ the Workspace Semantic Graph (v2, R21), the Package Semantic Graph (v2, R21),
 Manifest v1, `semaprax doc`, and `semaprax query --kind session_protocol`. The
 following omit declarations entirely, and nothing here claims otherwise:
 
-- semantic-workspace operations (rename, change, impact, review do not treat
-  a declaration or its `via` as a reference);
 - the VS Code grammar (`editors/`);
 - a CLI flag for `protocol_realizers_bound`;
 - typestate checking of `.spx` endpoint values, and any runtime enforcement

@@ -271,4 +271,77 @@ use function @id(\"fixture.session.begin\") from session_protocol.fixture.declar
         let error = declaration_facts(&program, &resolved).unwrap_err();
         assert_eq!(error[0].code, "SPX-K104");
     }
+
+    // Issue #297 follow-on: semantic-workspace operations (rename, change)
+    // build a candidate source set through the same two entry points these
+    // tests call directly. A `via` clause binds by persistent `@id`, so a
+    // display-name-only rename of its realizer must never break the binding,
+    // and a change that removes the realizer entirely must never be silently
+    // admitted -- both candidate builds replay the ordinary source checks
+    // (`SPX-K104`) that already refuse a dangling `via`, and this pins that
+    // fact at the exact entry points rename/change use, not only at
+    // `declaration_facts` in isolation (the case above).
+
+    /// A second, unrelated source: `build_owned` requires 2..32 files
+    /// (`SPX-G170`), and this pair's own declaring module is the only source
+    /// these two tests care about.
+    fn companion_source() -> WorkspaceSource {
+        source(
+            "b/other.spx",
+            "module session_protocol.fixture.other;\n\n\
+             @id(\"fixture.session.other_main\")\nfn main() -> i64 { 0 }\n",
+        )
+    }
+
+    #[test]
+    fn a_via_bound_functions_display_rename_is_admitted_by_operations_and_change_candidate_builds()
+    {
+        let renamed = DECLARED_A
+            .replace("fn begin() -> i64 { 1 }", "fn begin_v2() -> i64 { 1 }")
+            .replace("begin() + commit()", "begin_v2() + commit()");
+        assert_ne!(renamed, DECLARED_A);
+        let sources = vec![source("a/declared.spx", &renamed), companion_source()];
+        super::super::build_owned_retaining_sources_for_operations(
+            sources.clone(),
+            16 * 1024 * 1024,
+            4 * 1024 * 1024,
+        )
+        .expect("a display-name rename of a via-bound function must not break its binding");
+        super::super::build_owned_retaining_sources_for_change(sources, 4 * 1024 * 1024)
+            .expect("a display-name rename of a via-bound function must not break its binding");
+    }
+
+    #[test]
+    fn removing_a_via_bound_function_is_refused_with_a_stable_diagnostic_by_operations_and_change_candidate_builds(
+    ) {
+        let without_begin = DECLARED_A
+            .replace(
+                "@id(\"fixture.session.begin\")\nfn begin() -> i64 { 1 }\n\n",
+                "",
+            )
+            .replace("begin() + commit()", "commit()");
+        assert_ne!(without_begin, DECLARED_A);
+        let sources = vec![source("a/declared.spx", &without_begin), companion_source()];
+        // `WorkspaceGraphBuild`/`WorkspaceSource` are not `Debug`, so
+        // `unwrap_err` cannot be used here; match directly instead.
+        let operations_error = match super::super::build_owned_retaining_sources_for_operations(
+            sources.clone(),
+            16 * 1024 * 1024,
+            4 * 1024 * 1024,
+        ) {
+            Err(errors) => errors,
+            Ok(_) => panic!("a dangling via binding must not be silently admitted"),
+        };
+        assert!(operations_error
+            .iter()
+            .any(|error| error.code == "SPX-K104"));
+        let change_error = match super::super::build_owned_retaining_sources_for_change(
+            sources,
+            4 * 1024 * 1024,
+        ) {
+            Err(errors) => errors,
+            Ok(_) => panic!("a dangling via binding must not be silently admitted"),
+        };
+        assert!(change_error.iter().any(|error| error.code == "SPX-K104"));
+    }
 }

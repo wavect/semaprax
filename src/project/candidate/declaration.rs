@@ -158,6 +158,7 @@ pub(super) fn apply(
             return_type,
             effects,
             yields: None,
+            follows: None,
             requires,
             ensures,
             body,

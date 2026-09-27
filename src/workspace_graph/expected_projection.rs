@@ -878,6 +878,7 @@ pub(super) fn synthetic_program(
             return_type: Type::I64,
             effects: Vec::new(),
             yields: None,
+            follows: None,
             requires: Vec::new(),
             ensures: Vec::new(),
             body: Expr {
@@ -1527,8 +1528,7 @@ fn collect_expression_type_edges(
                     };
                     // Bounded `for` traversal is lowered, so its authored
                     // children keep the paths `hir::resolve_for::lower` gives
-                    // them rather than `.values` and `.body`.
-                    // `visit_ast_call_sites` names the same two.
+                    // them rather than `.values`/`.body`; `visit_ast_call_sites` names the same.
                     let segment = statement_segment::child(statement, child_index);
                     collect_expression_type_edges(
                         program,

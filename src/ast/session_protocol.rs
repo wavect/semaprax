@@ -111,3 +111,18 @@ pub struct SessionProtocolTransition {
     pub next: SessionProtocolNext,
     pub span: Span,
 }
+
+/// Endpoint typestate checking (issue #297 follow-on): a function's
+/// `follows session protocol "<protocol-id>"` clause. `protocol_id` is the
+/// persistent `@id` of a `session protocol` declaration in the same module
+/// (never a display name, and never a cross-module reference), mirroring how
+/// a transition's own `via` names its realizing function by persistent id
+/// rather than display name. `None` on every function that does not opt in,
+/// so existing programs are byte-for-byte unaffected. See
+/// `docs/SESSION-PROTOCOL-TYPES-V1.md#endpoint-typestate-checking-issue-297-follow-on`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SessionProtocolFollowsClause {
+    pub protocol_id: String,
+    pub protocol_id_span: Span,
+    pub span: Span,
+}

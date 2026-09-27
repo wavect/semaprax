@@ -87,6 +87,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
 
     check_function_declarations(program, &mut functions, &mut ids, &mut diagnostics);
     diagnostics.extend(crate::session_protocol::source::check(program));
+    diagnostics.extend(crate::session_protocol::typestate::check(program));
 
     check_class_methods(program, &types, &mut ids, &mut diagnostics);
 

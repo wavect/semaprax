@@ -12,6 +12,7 @@ pub(super) fn signature(function: &Function) -> Function {
         return_type: function.return_type.clone(),
         effects: function.effects.clone(),
         yields: None,
+        follows: None,
         requires: Vec::new(),
         ensures: Vec::new(),
         // Replaced by the rewritten return type's checked default before use.

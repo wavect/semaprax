@@ -1,19 +1,5 @@
 use super::*;
 
-fn fixture_executable() -> PathBuf {
-    static EXECUTABLE: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
-    EXECUTABLE
-        .get_or_init(|| {
-            let path = std::env::temp_dir().join(format!(
-                "semaprax-opencode-fixture-executable-{}",
-                std::process::id()
-            ));
-            std::fs::write(&path, b"fixture executable identity").unwrap();
-            path
-        })
-        .clone()
-}
-
 #[test]
 fn interrupted_staged_executable_cleanup_requires_matching_held_bytes() {
     let root = std::env::temp_dir().join(format!(

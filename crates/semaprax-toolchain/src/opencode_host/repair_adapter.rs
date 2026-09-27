@@ -291,7 +291,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
         let config = OpenCodeHostConfig::new(
-            PathBuf::from("/usr/bin/true"),
+            super::super::fixture_executable(),
             root.clone(),
             Duration::from_secs(1),
             OpenCodeGrammar {

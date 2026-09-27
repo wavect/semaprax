@@ -27,6 +27,20 @@ impl Drop for Fixture {
     }
 }
 
+#[path = "repair_tests/windows.rs"]
+#[cfg(windows)]
+mod windows;
+
+macro_rules! unix_checkpoint_host {
+    () => {
+        #[cfg(windows)]
+        {
+            windows::assert_checkpoint_host_refusal();
+            return;
+        }
+    };
+}
+
 const MANIFEST: &str = include_str!("../../../../examples/offline-repair-project/semaprax.toml");
 const APP: &str = include_str!("../../../../examples/offline-repair-project/src/app.spx");
 const TESTS_SPX: &str = include_str!("../../../../examples/offline-repair-project/src/tests.spx");
@@ -546,12 +560,15 @@ fn setup(fixture: &Fixture, migration_id: &str) -> (PathBuf, PathBuf) {
     (config, checkpoint)
 }
 
+// CheckpointDir deliberately refuses on Windows. Each durable run/replay test
+// verifies that refusal there and exercises the full success path on Unix.
 /// Generalization: the exact candidate-preview/source-diff/semantic-impact
 /// evidence the fixed `offline-repair` demo produces is reachable for a
 /// host-selected Project and target through operand config alone, with a
 /// durable (resumable) checkpoint rather than an in-memory-only journal.
 #[test]
 fn repair_run_generalizes_candidate_preview_for_a_host_selected_project() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint) = setup(&fixture, "test.repair.run.v1");
 
@@ -603,6 +620,7 @@ fn repair_run_generalizes_candidate_preview_for_a_host_selected_project() {
 /// that produced it holds that evidence.
 #[test]
 fn repair_resume_replays_terminal_checkpoint_without_redispatch_or_refabricated_evidence() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint) = setup(&fixture, "test.repair.resume.v1");
 
@@ -630,6 +648,7 @@ fn repair_resume_replays_terminal_checkpoint_without_redispatch_or_refabricated_
 /// edit could turn a read-only replay into a new pre-replay candidate action.
 #[test]
 fn repair_v1_terminal_resume_does_not_prederive_fixture_diagnostics() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint) = setup(&fixture, "test.repair.fixture-replay.v1");
     run_repair("run", &config, &checkpoint).unwrap();
@@ -659,6 +678,7 @@ fn repair_v1_terminal_resume_does_not_prederive_fixture_diagnostics() {
 /// mutate authoritative source or the checkpoint.
 #[test]
 fn repair_v2_settled_wire_terminal_resume_is_zero_dispatch_and_nonpublishing() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint, digest) = setup_v2(&fixture, "test.repair.v2-terminal.v1");
     let scratch = fixture.0.join("scratch");
@@ -788,6 +808,7 @@ fn repair_v2_settled_wire_terminal_resume_is_zero_dispatch_and_nonpublishing() {
 /// execution, candidate preview, or checkpoint write can occur.
 #[test]
 fn repair_v2_tampered_settled_wire_refuses_resume_without_redispatch() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint, digest) = setup_v2(&fixture, "test.repair.v2-tamper.v1");
     let scratch = fixture.0.join("scratch");
@@ -853,6 +874,7 @@ fn repair_v2_tampered_settled_wire_refuses_resume_without_redispatch() {
 mod recovery;
 #[test]
 fn v2_failed_candidate_test_is_bound_feedback_and_terminal_resume_never_redispatches_it() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint, digest) = setup_v2(&fixture, "test.repair.v2-test-failure.v1");
     let scratch = fixture.0.join("scratch");
@@ -947,6 +969,7 @@ fn v2_failed_candidate_test_is_bound_feedback_and_terminal_resume_never_redispat
 }
 #[test]
 fn v2_failed_candidate_test_feedback_reaches_the_next_real_provider_prompt() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint, digest) =
         setup_v2_with_feedback_turn(&fixture, "test.repair.v2-test-feedback.v1");
@@ -1002,6 +1025,7 @@ fn v2_failed_candidate_test_feedback_reaches_the_next_real_provider_prompt() {
 }
 #[test]
 fn v2_candidate_test_observation_refuses_malformed_oversized_and_withheld_output() {
+    unix_checkpoint_host!();
     for raw in [
         Vec::new(),
         b"{not canonical}".to_vec(),
@@ -1066,6 +1090,7 @@ fn v2_candidate_test_observation_refuses_malformed_oversized_and_withheld_output
 }
 #[test]
 fn v2_candidate_test_observation_refuses_foreign_bindings_and_noncanonical_fields() {
+    unix_checkpoint_host!();
     let replies = [
         CandidateTestReply::CanonicalOverride {
             field: "candidate_revision",
@@ -1136,6 +1161,7 @@ fn v2_candidate_test_observation_refuses_foreign_bindings_and_noncanonical_field
 }
 #[test]
 fn v2_candidate_test_capability_drift_refuses_resume_before_provider_or_test_dispatch() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint, digest) = setup_v2(&fixture, "test.repair.v2-test-binding.v1");
     let scratch = fixture.0.join("scratch");
@@ -1247,6 +1273,7 @@ fn repair_run_refuses_source_changed_after_project_authentication() {
 /// rather than associate it with source bytes it did not authenticate.
 #[test]
 fn repair_v2_refuses_source_changed_during_provider_run() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint, digest) = setup_v2(&fixture, "test.repair.exit-source-drift.v1");
     let scratch = fixture.0.join("scratch");
@@ -1299,6 +1326,7 @@ fn repair_v2_refuses_source_changed_during_provider_run() {
 /// leaves the checkpoint exactly as it was; it advances nothing.
 #[test]
 fn repair_resume_refuses_when_source_drifts_between_preview_and_resume() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint) = setup(&fixture, "test.repair.drift.v1");
 
@@ -1349,6 +1377,7 @@ fn repair_resume_refuses_when_source_drifts_between_preview_and_resume() {
 /// directly.
 #[test]
 fn repair_run_fails_when_the_required_prior_feedback_observation_is_withheld() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let manifest = write_project(&fixture, APP).canonicalize().unwrap();
     let digest = schema_digest(APP);

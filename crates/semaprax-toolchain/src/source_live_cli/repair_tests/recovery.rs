@@ -9,6 +9,7 @@ use super::*;
 /// to turn a replay into candidate construction.
 #[test]
 fn repair_v1_terminal_resume_skips_fixture_target_and_diagnostic_derivation() {
+    unix_checkpoint_host!();
     let fixture = Fixture::new();
     let (config, checkpoint) = setup(&fixture, "test.repair.fixture-preflight.v1");
     run_repair("run", &config, &checkpoint).unwrap();
@@ -40,6 +41,7 @@ fn repair_v1_terminal_resume_skips_fixture_target_and_diagnostic_derivation() {
 /// changed checked source or task.
 #[test]
 fn repair_v2_hostile_resume_inputs_have_stable_pre_replay_refusals() {
+    unix_checkpoint_host!();
     for (case, expected) in [
         (
             "malformed-settled-wire",

@@ -14,7 +14,6 @@ use semaprax::agent_lifecycle::{AgentReadOperation, AuthorizedRequest, Lifecycle
 use semaprax::agent_runtime::AgentCancellation;
 use semaprax::live_invocation::{CumulativeBudgetLedger, InvocationClock, ModelInvokeCapability};
 use std::cell::Cell;
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
@@ -132,7 +131,7 @@ fn config(grammar: OpenCodeGrammar) -> OpenCodeHostConfig {
     let _ = std::fs::remove_dir_all(&sandbox);
     std::fs::create_dir(&sandbox).expect("fresh sandbox");
     let config = OpenCodeHostConfig::new(
-        PathBuf::from("/usr/bin/true"),
+        fixture_executable(),
         sandbox.clone(),
         Duration::from_secs(1),
         grammar,

@@ -896,6 +896,24 @@ impl<R: OpenCodeRunner> OpenCodeModelHandler<R> {
     }
 }
 
+/// A small inert executable identity for injected-runner tests on every host.
+/// No test dispatches this file; the production config still snapshots and
+/// authenticates its exact regular-file bytes.
+#[cfg(test)]
+fn fixture_executable() -> PathBuf {
+    static EXECUTABLE: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+    EXECUTABLE
+        .get_or_init(|| {
+            let path = std::env::temp_dir().join(format!(
+                "semaprax-opencode-fixture-executable-{}",
+                std::process::id()
+            ));
+            std::fs::write(&path, b"fixture executable identity").unwrap();
+            path
+        })
+        .clone()
+}
+
 #[cfg(test)]
 mod bounds_tests;
 #[cfg(test)]

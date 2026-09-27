@@ -1540,6 +1540,10 @@ impl<'a> HirValidator<'a> {
         execution: &FunctionExecutionId,
     ) -> Result<(), Diagnostic> {
         crate::hir::iterator_loop::validate_function(function)?;
+        super::yield_aggregate::check_bytes_request_site_count(
+            &self.program.declarations,
+            function,
+        )?;
         if function.return_type == ResolvedType::Unit {
             return Err(hir_error(
                 "ordinary resolved functions cannot declare a unit result",

@@ -156,7 +156,7 @@ fn emit_value(output: &mut String, name: &str, value: &ResumableScalar) {
         // refuse every `yields`-declaring function's own emission
         // (`SPX-B116`), so an aggregate value can never reach this encoder
         // in practice.
-        ResumableScalar::Record(_) | ResumableScalar::Variant { .. } => unreachable!(
+        ResumableScalar::Record(_) | ResumableScalar::Variant { .. } | ResumableScalar::Bytes(_) => unreachable!(
             "the native resumable-effect parity runner does not encode an aggregate channel value"
         ),
     }

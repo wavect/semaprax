@@ -7,6 +7,24 @@ use std::path::Path;
 
 const MAX_STEPS: usize = 10_000;
 
+const BYTES_REQUEST_ASK: &str = r#"
+module test.resumable_channel_bytes;
+@id("bytes.make")
+fn make_buf() -> Bytes {
+    let bytes = [1u8, 2u8, 3u8];
+    bytes_copy(array_as_slice(bytes))
+}
+@id("app.prompt")
+record Prompt { @id("app.prompt.payload") payload: Bytes, }
+@id("app.ask")
+fn ask(seed: i64) -> i64 yields Prompt -> i64 {
+    let answer = yield Prompt { payload: make_buf() };
+    answer + seed
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
 /// Two sequential record-channel yields: the second request is built from
 /// the first answer's own field, and the final scalar result combines both
 /// answers. The function's own parameters and return type stay Copy-scalar
@@ -100,6 +118,46 @@ fn answer(value: i64, ok: bool) -> ResumableChannelValue {
         declaration: DeclarationId::new("app.answer"),
         fields: vec![ArgumentValue::Int(value), ArgumentValue::Bool(ok)],
     }
+}
+
+#[test]
+fn a_direct_sequential_bytes_request_suspends_and_resumes() {
+    let program = resolved(BYTES_REQUEST_ASK);
+    let started = run_sequential_channel_resumable_effect(
+        &program,
+        "app.ask",
+        &[ArgumentValue::Int(4)],
+        MAX_STEPS,
+    )
+    .unwrap();
+    let SequentialChannelResumableStep::Suspended { continuation } = started.step else {
+        panic!("byte request did not suspend")
+    };
+    let ResumableChannelValue::RecordBytes { fields, .. } = continuation.request() else {
+        panic!("request did not preserve its owned Bytes leaf")
+    };
+    assert_eq!(
+        fields,
+        &[super::super::channel_bytes::ChannelField::Bytes(vec![
+            1, 2, 3
+        ])]
+    );
+    let resumed = resume_sequential_channel_resumable_effect(
+        &program,
+        "app.ask",
+        &[ArgumentValue::Int(4)],
+        &continuation,
+        &ResumableChannelValue::Scalar(ArgumentValue::Int(8)),
+        MAX_STEPS,
+    )
+    .unwrap();
+    assert!(matches!(
+        resumed.step,
+        SequentialChannelResumableStep::Completed {
+            result: ArgumentValue::Int(12),
+            ..
+        }
+    ));
 }
 
 #[test]
@@ -342,4 +400,48 @@ fn a_resume_under_different_arguments_is_refused_before_replay() {
     )
     .unwrap_err();
     assert_eq!(error[0].code, "SPX-F115");
+}
+
+const BYTES_NAMED_LOCAL_REFUSAL: &str = r#"
+module test.resumable_channel_bytes_named;
+@id("bytes.make") fn make_buf() -> Bytes {
+    let bytes = [1u8, 2u8, 3u8];
+    bytes_copy(array_as_slice(bytes))
+}
+@id("app.prompt") record Prompt { @id("app.prompt.payload") payload: Bytes, }
+@id("app.ask") fn ask() -> i64 yields Prompt -> i64 {
+    let spare = make_buf();
+    yield Prompt { payload: make_buf() }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+#[test]
+fn a_named_bytes_local_before_an_aggregate_yield_stays_t303_refused() {
+    let program = crate::parse(
+        BYTES_NAMED_LOCAL_REFUSAL,
+        Path::new("bytes-named-local.spx"),
+    )
+    .unwrap();
+    let error = hir::resolve(&program).unwrap_err();
+    assert_eq!(error[0].code, "SPX-T303");
+}
+
+const TWO_BYTES_REQUESTS: &str = r#"
+module test.resumable_channel_bytes_replay;
+@id("bytes.make") fn make_buf() -> Bytes { let raw = [4u8, 5u8]; bytes_copy(array_as_slice(raw)) }
+@id("app.prompt") record Prompt { @id("app.prompt.payload") payload: Bytes, }
+@id("app.ask") fn ask() -> i64 yields Prompt -> i64 {
+    let first = yield Prompt { payload: make_buf() };
+    let second = yield Prompt { payload: make_buf() };
+    first + second
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+#[test]
+fn two_bytes_requests_refuse_before_unproved_owned_replay() {
+    let program = crate::parse(TWO_BYTES_REQUESTS, Path::new("two-bytes-requests.spx")).unwrap();
+    let errors = hir::resolve(&program).unwrap_err();
+    assert_eq!(errors[0].code, "SPX-T307");
 }

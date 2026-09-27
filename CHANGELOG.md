@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Carry one direct sequential `yields` request with bounded `Bytes` leaves
+  through interpreter suspension, a v6 authenticated checkpoint, and the
+  durable journal. Reject a second Bytes request site and Bytes responses at
+  checked admission; Agent operation migration remains open.
+
 - Add an opt-in public Agent live target route that records bounded semantic
   work, ordered cleanup events, and settlement for interpreter, native C11,
   and Core Wasm stages through the sealed dispatch. Focused local parity tests

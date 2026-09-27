@@ -513,8 +513,17 @@ impl Resolver<'_> {
             instance.function.cleanup_plan = cleanup_plan;
         }
         for function in &resolved.functions {
-            if function.yields.is_some() {
+            if let Some(yields) = &function.yields {
                 crate::cleanup_plan::admit_owned_bytes_profile(function)?;
+                if crate::hir::yield_aggregate::has_bytes_leaf(
+                    &resolved.declarations,
+                    &yields.request_type,
+                ) || crate::hir::yield_aggregate::has_bytes_leaf(
+                    &resolved.declarations,
+                    &yields.response_type,
+                ) {
+                    crate::cleanup_plan::admit_sequential_aggregate_bytes_profile(function)?;
+                }
             }
         }
         validate(&resolved)?;

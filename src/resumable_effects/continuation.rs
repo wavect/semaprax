@@ -333,7 +333,9 @@ fn channel_type(value: &ResumableChannelValue) -> Option<ResolvedType> {
     match value {
         ResumableChannelValue::Scalar(argument) => scalar(argument).map(|(_, ty, _)| ty),
         ResumableChannelValue::Record { declaration, .. }
-        | ResumableChannelValue::Variant { declaration, .. } => Some(ResolvedType::Nominal {
+        | ResumableChannelValue::Variant { declaration, .. }
+        | ResumableChannelValue::RecordBytes { declaration, .. }
+        | ResumableChannelValue::VariantBytes { declaration, .. } => Some(ResolvedType::Nominal {
             declaration: declaration.clone(),
             arguments: Vec::new(),
         }),
@@ -829,6 +831,7 @@ impl<'a> DurableInvocation<'a> {
                     &self.function_id,
                     &self.arguments,
                     &continuation,
+                    self.signature.has_aggregate_bytes(),
                 )
                 .map_err(ContinuationError::Envelope);
                 // A prior record is already acknowledged: any failure to
@@ -908,6 +911,7 @@ impl<'a> DurableInvocation<'a> {
                         control_dependent,
                         self.signature.carries_owned_bytes(),
                         self.signature.is_aggregate_channel(),
+                        self.signature.has_aggregate_bytes(),
                     )
                     .map_err(ContinuationError::Envelope)?;
                     if continuation.site() != *site {

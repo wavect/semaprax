@@ -22,9 +22,9 @@ use crate::interpreter::resumable::{
 use crate::interpreter::ArgumentValue;
 use crate::resumable_effects::source_checkpoint::{
     decode_source_checkpoint_v2, decode_source_checkpoint_v3, decode_source_checkpoint_v4,
-    decode_source_checkpoint_v5, encode_source_checkpoint_v2, encode_source_checkpoint_v3,
-    encode_source_checkpoint_v4, encode_source_checkpoint_v5, SourceCheckpointError,
-    SourceCheckpointKey, SourceCheckpointScope,
+    decode_source_checkpoint_v5, decode_source_checkpoint_v6, encode_source_checkpoint_v2,
+    encode_source_checkpoint_v3, encode_source_checkpoint_v4, encode_source_checkpoint_v5,
+    encode_source_checkpoint_v6, SourceCheckpointError, SourceCheckpointKey, SourceCheckpointScope,
 };
 
 #[derive(Clone, Debug)]
@@ -135,7 +135,10 @@ fn channel(step: SequentialChannelResumableStep) -> LaneStep {
 fn require_scalar_answer(answer: &ResumableChannelValue) -> Option<ArgumentValue> {
     match answer {
         ResumableChannelValue::Scalar(value) => Some(value.clone()),
-        ResumableChannelValue::Record { .. } | ResumableChannelValue::Variant { .. } => None,
+        ResumableChannelValue::Record { .. }
+        | ResumableChannelValue::Variant { .. }
+        | ResumableChannelValue::RecordBytes { .. }
+        | ResumableChannelValue::VariantBytes { .. } => None,
     }
 }
 
@@ -247,6 +250,7 @@ pub(super) fn encode(
     function_id: &str,
     arguments: &[ArgumentValue],
     carrier: &Carrier,
+    aggregate_bytes_channel: bool,
 ) -> Result<Vec<u8>, SourceCheckpointError> {
     match carrier {
         Carrier::Sequential(continuation) => {
@@ -259,7 +263,25 @@ pub(super) fn encode(
             encode_source_checkpoint_v4(program, key, scope, function_id, arguments, continuation)
         }
         Carrier::SequentialChannel(continuation) => {
-            encode_source_checkpoint_v5(program, key, scope, function_id, arguments, continuation)
+            if aggregate_bytes_channel {
+                encode_source_checkpoint_v6(
+                    program,
+                    key,
+                    scope,
+                    function_id,
+                    arguments,
+                    continuation,
+                )
+            } else {
+                encode_source_checkpoint_v5(
+                    program,
+                    key,
+                    scope,
+                    function_id,
+                    arguments,
+                    continuation,
+                )
+            }
         }
     }
 }
@@ -279,21 +301,31 @@ pub(super) fn decode(
     control_dependent: bool,
     carries_owned_bytes: bool,
     aggregate_channel: bool,
+    aggregate_bytes_channel: bool,
 ) -> Result<Carrier, SourceCheckpointError> {
-    match (control_dependent, carries_owned_bytes, aggregate_channel) {
-        (true, true, _) => {
+    match (
+        control_dependent,
+        carries_owned_bytes,
+        aggregate_channel,
+        aggregate_bytes_channel,
+    ) {
+        (true, true, _, _) => {
             decode_source_checkpoint_v4(program, key, scope, function_id, arguments, bytes)
                 .map(Carrier::Control)
         }
-        (true, false, _) => {
+        (true, false, _, _) => {
             decode_source_checkpoint_v3(program, key, scope, function_id, arguments, bytes)
                 .map(Carrier::Control)
         }
-        (false, _, true) => {
+        (false, _, true, true) => {
+            decode_source_checkpoint_v6(program, key, scope, function_id, arguments, bytes)
+                .map(Carrier::SequentialChannel)
+        }
+        (false, _, true, false) => {
             decode_source_checkpoint_v5(program, key, scope, function_id, arguments, bytes)
                 .map(Carrier::SequentialChannel)
         }
-        (false, _, false) => {
+        (false, _, false, _) => {
             decode_source_checkpoint_v2(program, key, scope, function_id, arguments, bytes)
                 .map(Carrier::Sequential)
         }

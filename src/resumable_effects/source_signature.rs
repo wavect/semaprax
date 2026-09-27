@@ -35,6 +35,7 @@ pub struct SourceEffectSignature {
     control_dependent: bool,
     carries_owned_bytes: bool,
     aggregate_channel: bool,
+    aggregate_bytes_channel: bool,
     table: EffectSignatureTable,
 }
 
@@ -80,6 +81,10 @@ impl SourceEffectSignature {
     /// this is always `false` when [`Self::is_control_dependent`] is `true`.
     pub fn is_aggregate_channel(&self) -> bool {
         self.aggregate_channel
+    }
+
+    pub fn has_aggregate_bytes(&self) -> bool {
+        self.aggregate_bytes_channel
     }
 
     pub fn table(&self) -> &EffectSignatureTable {
@@ -138,6 +143,11 @@ pub fn derive_source_effect_signature(
         .yields
         .as_ref()
         .ok_or_else(|| invalid("selected function has no `yields` clause"))?;
+    if crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.response_type) {
+        return Err(invalid(
+            "source signature does not admit a Bytes response channel",
+        ));
+    }
     let request_shape = source_shape(&program.declarations, &yields.request_type)?;
     let answer_shape = source_shape(&program.declarations, &yields.response_type)?;
     let effect = EffectSignature::new(function.id.as_str(), &request_shape, &answer_shape);
@@ -150,6 +160,8 @@ pub fn derive_source_effect_signature(
         .map_err(|_| invalid("resumable yield count does not fit its public field"))?;
     let aggregate_channel = matches!(yields.request_type, ResolvedType::Nominal { .. })
         || matches!(yields.response_type, ResolvedType::Nominal { .. });
+    let aggregate_bytes_channel = aggregate_has_bytes(&program.declarations, &yields.request_type)
+        || aggregate_has_bytes(&program.declarations, &yields.response_type);
     Ok(SourceEffectSignature {
         function_id: function.id.as_str().to_owned(),
         request_shape,
@@ -159,8 +171,33 @@ pub fn derive_source_effect_signature(
         control_dependent,
         carries_owned_bytes,
         aggregate_channel,
+        aggregate_bytes_channel,
         table,
     })
+}
+
+fn aggregate_has_bytes(declarations: &crate::hir::DeclarationIndex, ty: &ResolvedType) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if !arguments.is_empty() {
+        return false;
+    }
+    declarations
+        .record_fields(declaration)
+        .is_some_and(|fields| fields.iter().any(|field| field.ty == ResolvedType::Bytes))
+        || declarations
+            .variant_cases(declaration)
+            .is_some_and(|cases| {
+                cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .any(|field| field.ty == ResolvedType::Bytes)
+            })
 }
 
 fn selected_function<'a>(

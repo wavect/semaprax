@@ -463,6 +463,31 @@ pub(crate) fn admit_owned_bytes_profile(function: &ResolvedFunction) -> Result<(
     Ok(())
 }
 
+/// Admission for the direct sequential aggregate-`Bytes` channel.  The
+/// request expression itself is evaluated after this prefix query, so its
+/// temporary owned leaf is deliberately absent. Any named owned local already
+/// live before a yield would need durable carrying, which this lane does not
+/// implement.
+pub(crate) fn admit_sequential_aggregate_bytes_profile(
+    function: &ResolvedFunction,
+) -> Result<(), Diagnostic> {
+    for site in direct_yield_sites(function) {
+        let live = owned_locals_live_at(function, &site).map_err(|_| {
+            not_admitted(format!(
+                "function `{}` has owned liveness the sequential aggregate-Bytes channel cannot prove before a suspension",
+                function.name
+            ))
+        })?;
+        if !live.is_empty() {
+            return Err(not_admitted(format!(
+                "function `{}` has an owned local live before a sequential aggregate-Bytes yield; only an inline request is admitted",
+                function.name
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// The stable refusal an owned `Bytes` local that this increment does not
 /// admit keeps: the same `SPX-T303` `hir::resolve_yield::check_scalar`
 /// would have raised immediately, had it not deferred exactly this one type

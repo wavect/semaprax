@@ -1092,8 +1092,21 @@ fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnos
         instance.function.cleanup_plan = cleanup_plan;
     }
     for function in &program.functions {
-        if function.yields.is_some() {
+        if let Some(yields) = &function.yields {
+            crate::hir::yield_aggregate::check_bytes_request_site_count(
+                &program.declarations,
+                function,
+            )?;
             crate::cleanup_plan::admit_owned_bytes_profile(function)?;
+            if crate::hir::yield_aggregate::has_bytes_leaf(
+                &program.declarations,
+                &yields.request_type,
+            ) || crate::hir::yield_aggregate::has_bytes_leaf(
+                &program.declarations,
+                &yields.response_type,
+            ) {
+                crate::cleanup_plan::admit_sequential_aggregate_bytes_profile(function)?;
+            }
         }
     }
     Ok(())

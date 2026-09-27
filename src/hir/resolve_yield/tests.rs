@@ -538,3 +538,18 @@ fn a_resource_nested_inside_a_plain_record_field_is_still_the_resource_refusal()
         RESOURCE_ACROSS_YIELD
     );
 }
+
+#[test]
+fn a_bounded_bytes_response_is_refused_at_hir_admission() {
+    let source = r#"
+module test.resolve_yield_bytes_response;
+@id("app.answer") record Answer { @id("app.answer.payload") payload: Bytes, }
+@id("app.ask") fn ask() -> i64 yields i64 -> Answer {
+    let answer = yield 1;
+    0
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let error = resolve(source).unwrap_err();
+    assert_eq!(error.code, AGGREGATE_NOT_YET_ADMITTED);
+}

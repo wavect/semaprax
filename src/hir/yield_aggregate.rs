@@ -29,22 +29,54 @@
 //! re-deriving it.
 //!
 //! Depth is fixed at exactly one level: a record's own fields, or a
-//! variant's own case fields, must themselves be admitted Copy scalars --
+//! variant's own case fields, must themselves be admitted Copy scalars or
+//! direct owned `Bytes` leaves --
 //! never another record or variant. A field can therefore never reintroduce
 //! the enclosing declaration (or any other aggregate), so the shape is
 //! non-recursive by construction and needs no separate cycle check, and it
-//! is always fully `Copy` (`hir::DeclarationIndex::type_facts` would agree,
-//! though this check does not need to consult it: a flat tuple of Copy
-//! scalars needs no cleanup-plan exit path for `yield`, exactly like a bare
-//! scalar). Owned `Bytes` leaves are deliberately **not** part of this
-//! shape either: a record or variant field of type `Bytes` still fails this
-//! check, reserved for a still-later increment on top of this one.
+//! is fixed-depth by construction. `Bytes` leaves carry their own bounded
+//! external representation and are never copied through a scalar channel.
 //! `arguments.is_empty()` refuses any generic instantiation.
 
-use super::{DeclarationKind, ResolvedType};
+use super::{DeclarationKind, ResolvedExprKind, ResolvedFunction, ResolvedType};
+use crate::diagnostic::Diagnostic;
 
 pub(crate) const MAX_YIELD_AGGREGATE_FIELDS: usize = 8;
 pub(crate) const MAX_YIELD_AGGREGATE_CASES: usize = 8;
+pub(crate) const MAX_YIELD_AGGREGATE_BYTES_LEAVES: usize = 8;
+
+/// Recheck the v6 one-site bound on independently supplied or relinked HIR.
+/// This is structural, so it does not trust attached cleanup metadata.
+pub(crate) fn check_bytes_request_site_count(
+    declarations: &super::DeclarationIndex,
+    function: &ResolvedFunction,
+) -> Result<(), Diagnostic> {
+    let Some(yields) = &function.yields else {
+        return Ok(());
+    };
+    if !has_bytes_leaf(declarations, &yields.request_type) {
+        return Ok(());
+    }
+    let mut sites = 0usize;
+    let mut pending = vec![&function.body];
+    while let Some(expression) = pending.pop() {
+        if matches!(expression.kind, ResolvedExprKind::Yield { .. }) {
+            sites += 1;
+        }
+        super::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    if sites == 1 {
+        Ok(())
+    } else {
+        Err(Diagnostic::io(
+            "SPX-T307",
+            format!(
+                "function `{}` has {sites} bounded `Bytes` request sites; the v6 checkpoint profile admits exactly one",
+                function.name
+            ),
+        ))
+    }
+}
 
 /// `Ok(())` when `ty` is an admitted bounded aggregate; otherwise the exact
 /// bound or shape rule it fails, for `resolve_yield`'s `SPX-T307` message.
@@ -75,14 +107,9 @@ pub(crate) fn bounded_aggregate_refusal(
             if fields.len() > MAX_YIELD_AGGREGATE_FIELDS {
                 return Err("a record exceeds the admitted bounded-aggregate field count");
             }
-            if fields
-                .iter()
-                .any(|field| !super::is_scalar_resolved_type(&field.ty))
-            {
+            if !bounded_fields(fields.iter().map(|field| &field.ty)) {
                 return Err(
-                    "a record field is not an admitted Copy scalar; nested records, variants, \
-                     and owned types (including `Bytes`) are not yet admitted inside a yield \
-                     aggregate",
+                    "a record field is not an admitted scalar or direct owned `Bytes` leaf",
                 );
             }
             Ok(())
@@ -100,15 +127,14 @@ pub(crate) fn bounded_aggregate_refusal(
             {
                 return Err("a variant case exceeds the admitted bounded-aggregate field count");
             }
-            if cases
-                .iter()
-                .flat_map(|case| &case.fields)
-                .any(|field| !super::is_scalar_resolved_type(&field.ty))
-            {
+            if !bounded_fields(
+                cases
+                    .iter()
+                    .flat_map(|case| case.fields.iter())
+                    .map(|field| &field.ty),
+            ) {
                 return Err(
-                    "a variant case field is not an admitted Copy scalar; nested records, \
-                     variants, and owned types (including `Bytes`) are not yet admitted inside \
-                     a yield aggregate",
+                    "a variant case field is not an admitted scalar or direct owned `Bytes` leaf",
                 );
             }
             Ok(())
@@ -117,9 +143,47 @@ pub(crate) fn bounded_aggregate_refusal(
     }
 }
 
+/// Whether an already-admitted bounded aggregate carries any direct `Bytes` leaf.
+/// This is a checked schema fact, used to choose the v6 sequential envelope.
+pub(crate) fn has_bytes_leaf(declarations: &super::DeclarationIndex, ty: &ResolvedType) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if !arguments.is_empty() {
+        return false;
+    }
+    declarations
+        .record_fields(declaration)
+        .into_iter()
+        .flatten()
+        .any(|field| field.ty == ResolvedType::Bytes)
+        || declarations
+            .variant_cases(declaration)
+            .into_iter()
+            .flatten()
+            .flat_map(|case| case.fields.iter())
+            .any(|field| field.ty == ResolvedType::Bytes)
+}
+
+fn bounded_fields<'a>(mut types: impl Iterator<Item = &'a ResolvedType>) -> bool {
+    let mut bytes = 0usize;
+    types.all(|ty| {
+        if *ty == ResolvedType::Bytes {
+            bytes += 1;
+            bytes <= MAX_YIELD_AGGREGATE_BYTES_LEAVES
+        } else {
+            super::is_scalar_resolved_type(ty)
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
-    use super::bounded_aggregate_refusal;
+    use super::{bounded_aggregate_refusal, check_bytes_request_site_count};
     use crate::hir;
     use std::path::Path;
 
@@ -128,6 +192,38 @@ mod tests {
         hir::resolve(&program)
             .expect("fixture declarations resolve")
             .declarations
+    }
+
+    #[test]
+    fn relinked_hir_cannot_add_a_second_bytes_request_site() {
+        let source = r#"
+module test.yield_bytes_site_count;
+@id("bytes.make") fn make_buf() -> Bytes { let raw = [1u8]; bytes_copy(array_as_slice(raw)) }
+@id("app.prompt") record Prompt { @id("app.prompt.payload") payload: Bytes, }
+@id("app.ask") fn ask() -> i64 yields Prompt -> i64 {
+    let answer = yield Prompt { payload: make_buf() };
+    answer
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+        let ast = crate::parse(source, Path::new("yield-bytes-sites.spx")).unwrap();
+        let mut program = hir::resolve(&ast).unwrap();
+        let function = program
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "app.ask")
+            .unwrap();
+        let hir::ResolvedExprKind::Block { statements, .. } = &mut function.body.kind else {
+            panic!("fixture body is a block")
+        };
+        let duplicated = statements[0].clone();
+        statements.push(duplicated);
+        assert_eq!(
+            check_bytes_request_site_count(&program.declarations, function)
+                .unwrap_err()
+                .code,
+            "SPX-T307"
+        );
     }
 
     #[test]
@@ -175,7 +271,7 @@ fn main() -> i64 { 0 }
     }
 
     #[test]
-    fn a_bytes_leaf_does_not_fit_the_designed_shape() {
+    fn a_direct_bytes_leaf_fits_the_bounded_shape() {
         let declarations = declarations(
             r#"
 module test.yield_aggregate_bytes_leaf;
@@ -192,7 +288,7 @@ fn main() -> i64 { 0 }
             declaration: hir::DeclarationId::new("app.prompt"),
             arguments: Vec::new(),
         };
-        assert!(bounded_aggregate_refusal(&declarations, &ty).is_err());
+        assert_eq!(bounded_aggregate_refusal(&declarations, &ty), Ok(()));
     }
 
     #[test]

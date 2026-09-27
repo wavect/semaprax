@@ -185,6 +185,20 @@ impl Resolver<'_> {
         }
         let request_type = self.resolve_type(&yields.request_type, yields.span)?;
         let response_type = self.resolve_type(&yields.response_type, yields.span)?;
+        // v6 can authenticate a declared Bytes response without ambiguity, but
+        // the direct sequential interpreter cannot yet expose that owned answer
+        // to a suffix. Refuse here, before lowering, rather than leaking H006.
+        if yield_aggregate::has_bytes_leaf(&self.declarations, &response_type) {
+            return Err(self.error(
+                AGGREGATE_NOT_YET_ADMITTED,
+                format!(
+                    "function `{}` declares a `yields` response with a bounded `Bytes` leaf; \
+                     the current direct sequential profile admits `Bytes` leaves on requests only",
+                    function.name
+                ),
+                yields.span,
+            ));
+        }
         for (role, ty) in [("request", &request_type), ("response", &response_type)] {
             if is_scalar_resolved_type(ty) {
                 continue;
@@ -310,6 +324,16 @@ impl Resolver<'_> {
             return Err(self.error(
                 "SPX-T298",
                 format!("function `{function_name}` declares `yields` but its body never yields"),
+                yields.span,
+            ));
+        }
+        if yield_aggregate::has_bytes_leaf(&self.declarations, &yields.request_type) && found > 1 {
+            return Err(self.error(
+                AGGREGATE_NOT_YET_ADMITTED,
+                format!(
+                    "function `{function_name}` has more than one bounded `Bytes` request site; \
+                     the v6 checkpoint profile admits one direct suspension only"
+                ),
                 yields.span,
             ));
         }

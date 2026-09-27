@@ -441,6 +441,7 @@ fn scalar_type_text(value: &ResumableScalar) -> &'static str {
         // a diagnostic message, never a value this backend actually runs.
         ResumableScalar::Record(_) => "record",
         ResumableScalar::Variant { .. } => "variant",
+        ResumableScalar::Bytes(_) => "bytes",
     }
 }
 
@@ -473,6 +474,7 @@ fn scalar_debug(value: &ResumableScalar) -> String {
         // defensive, human-readable label rather than an assumed-total match.
         ResumableScalar::Record(fields) => format!("record:{}", fields.len()),
         ResumableScalar::Variant { case, fields } => format!("variant:{case}:{}", fields.len()),
+        ResumableScalar::Bytes(bytes) => format!("bytes:{}", bytes.len()),
     }
 }
 

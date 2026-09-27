@@ -834,6 +834,14 @@ untrusted store from rebinding answer history across those scopes. Decode
 rechecks the tag and facts, re-lowers the current checked program and
 reconstructs an inert continuation; the zeroized key grants no effect or resume
 authority, and the codec performs no dispatch or persistence.
+The bounded request-channel extension lives in
+`src/interpreter/resumable/channel_bytes.rs` and the v6 branch of
+`src/resumable_effects/source_checkpoint/channel.rs`. It admits one direct
+sequential suspension with up to eight 1 KiB owned `Bytes` leaves in a flat
+record or variant request. HIR validation and workspace relinking recheck the
+one-site bound; the interpreter and durable journal consume a canonical
+64 KiB-limited v6 checkpoint. A `Bytes` response and an Agent operation binding
+remain outside this profile.
 [Resumable Effects v1](RESUMABLE-EFFECTS-V1.md) owns the bounded contract and
 remaining general-lowering/runtime gaps.
 `src/resumable_effects/continuation.rs` is the public library driver for that

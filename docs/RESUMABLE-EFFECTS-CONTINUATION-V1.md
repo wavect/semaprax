@@ -530,19 +530,16 @@ Candidates considered:
 
 What blocks the two real Agent declarations, precisely:
 
-- **The request/answer channel type.** Section 1 admits only "Copy-scalar
-  parameters, request, answer, and result" (`hir::resolve_yield::check_scalar`,
-  `SPX-T301`/`SPX-T303`); section 11.6 additionally admits one whole owned
-  `Bytes` *local* carried across a suspension, but never as the `yield`
-  channel's own request or answer type. Every one of an Agent's own typed
-  roles -- `Task`, `State`/`Context`, `Observation`, `Proposal`, `Decision`,
-  `Outcome`, `Report` -- is a `record` or `variant` combining `Bytes` with one
-  or more `i64`/`bool`/`usize` fields (`Decision` and `FixtureAgent`'s own
-  `Step` are variants over such records). None is a Copy scalar, so none can
-  be a `yield`'s request or answer type without first collapsing it to a
-  single scalar -- which would not be "migrating this example unchanged" but
-  authoring a materially different one, exactly what the backlog item asks
-  this increment not to force.
+- **The request/answer channel type.** At this assessment's baseline, section 1
+  admitted only Copy-scalar parameters, requests, answers, and results; section
+  11.6 admitted one whole owned `Bytes` *local* across a suspension. Section
+  12.1 and the R20 Bytes-leaf boundary below describe later bounded aggregate
+  request admission and its remaining response/whole-function limits. The
+  fixture's `Observation` and `Proposal` are flat Copy aggregates, so a model
+  wait can use that channel shape once whole-function signatures and Agent
+  binding admit it. `Outcome` includes owned `Bytes`, while `Task`, `State`
+  and `Report` still require broader owned-state support. The bounded request
+  leaf admission alone therefore does not migrate the Agent lifecycle.
 - **Agent operations are not free, `yields`-eligible functions.** `yields` is
   a clause on an ordinary top-level `fn` (`parser::yields`,
   `hir::resolve_yield`), resolved and lowered by
@@ -553,9 +550,8 @@ What blocks the two real Agent declarations, precisely:
   through its own, separate pipeline (see
   `src/agent_lifecycle/source.rs`). Adding a `yields` clause to a role
   function would not connect it to that pipeline; it would just make that
-  same function additionally fail the whole-function Copy-scalar profile
-  once its declared parameter or return type is one of the record/variant
-  roles above.
+  same function additionally fail the current whole-function Copy-scalar
+  profile when its parameter or result is an aggregate role.
 - **The role that actually waits on a model declares an effect.**
   `propose` is a `model fn` and `execute` is an `effect fn` -- both cross a
   real host boundary today. `SPX-T302` refuses any `uses`-effect function a
@@ -606,9 +602,9 @@ would use -- rather than a live admission.
 
 A later R20 increment closes blocker (1) for the **direct top-level
 (sequential) `yield` placement**: every layer `require_scalar_expression_tree`
-above found missing now exists, and `hir::resolve_yield` admits the shape
-`hir::yield_aggregate` states, together with that runtime support, in the
-same change.
+above found missing now exists, and `hir::resolve_yield` admits that shape for request leaves, together with
+matching runtime support, in the same change. A Bytes response is refused at
+HIR admission because the current suffix profile cannot expose it safely.
 
 - **Shape and bounds.** Unchanged from the design record: a record's own
   fields, or a variant's own case fields, must themselves be
@@ -616,9 +612,9 @@ same change.
   variant (non-recursive by construction, always fully `Copy`); at most 8
   fields on a record and at most 8 cases of at most 8 fields each on a
   variant (`hir::yield_aggregate::MAX_YIELD_AGGREGATE_FIELDS`/
-  `MAX_YIELD_AGGREGATE_CASES`); a generic instantiation or an owned `Bytes`
-  (or `String`) leaf still fails the shape outright, `Bytes` leaves remaining
-  explicitly reserved for a still-later increment.
+  `MAX_YIELD_AGGREGATE_CASES`); up to 8 direct owned `Bytes` leaves are also
+  admitted, each capped at 1024 bytes. Generic instantiations, `String`, and
+  nested aggregates remain refused.
 - **Placement: sequential only.** `hir::resolve_yield`
   (`resolve_yields_clause`/`finish_yields_admission`) now admits the shape
   above for a `yields` request or response type, but only when every
@@ -629,8 +625,8 @@ same change.
   `resumable_effects::lowering::control` has no aggregate-channel runtime
   support, only the pre-existing owned-`Bytes`-carrying Copy-scalar profile
   (§11.6). A shape that does not fit the bound at all (too many
-  fields/cases, a nested aggregate, an owned `Bytes` leaf, or a generic
-  instantiation) keeps `SPX-T307` unconditionally, independent of
+  fields/cases, a nested aggregate, or a generic instantiation) keeps
+  `SPX-T307` unconditionally, independent of
   placement. `hir::validation`'s iterative validator re-derives the same
   admission at its own `Frame::Yield` (never trusting `resolve_yield`'s own
   work silently), and `resumable_effects::lowering`'s
@@ -679,11 +675,13 @@ same change.
   request/answer inline, and matching a variant answer in the suffix, both
   by value rather than through the owned-byte `Own`/`Borrow` machinery.
 - **Non-durable checkpoint envelope.** `resumable_effects::source_checkpoint`
-  gained a fifth schema, `v5` (`resumable_effects::source_checkpoint::channel`,
+  gained `v5` for scalar-only aggregates and `v6` for an aggregate whose
+  checked request shape has a `Bytes` leaf (`resumable_effects::source_checkpoint::channel`,
   wrapping a new `interpreter::resumable::checkpoint::encode_channel`/
-  `decode_channel` inner codec), signature-bound like `v2`. `v5` is used only
-  when `SourceEffectSignature::is_aggregate_channel()` is true; encoding a
-  scalar-channel continuation into it is refused
+  `decode_channel` inner codec), signature-bound like `v2`. Schema selection
+  is from the checked signature; source admission currently refuses a `Bytes`
+  response, and `v5` and `v6` never cross-decode. Encoding a scalar-channel
+  continuation into either is refused
   (`SourceCheckpointError::ProgramMismatch`), and no existing code path in
   `v1`-`v4` was touched. `channel_json`/`channel_from_json` render a
   `Scalar` value byte-for-byte identically to the pre-existing
@@ -790,3 +788,22 @@ unchanged, plus a crash/restart test through the durable journal -- once the
 request/answer profile or the Agent/`yields` seam above is widened enough to
 attempt it; this section records only what the admitted profile itself
 proves today, which does not yet include that.
+
+#### R20 Bytes-leaf boundary
+
+The v6 channel codec and signature derive the schema from the checked request
+shape so a stored envelope cannot be interpreted under the wrong
+schema. The presently executable source profile is narrower: an inline,
+direct sequential request may contain bounded `Bytes` leaves only when no
+owned local is live before the yield, and only one site is admitted. A v6
+inner carrier and outer envelope each have a separate 64 KiB cap, sufficient
+for eight 1 KiB leaves rendered as decimal JSON bytes in that one request.
+HIR validation and workspace relinking independently recheck this one-site
+bound before execution or checkpoint recovery.
+A declared `Bytes` response that reaches
+the current suffix lowering remains refused; it is not evidence of response
+side support. Borrowed views remain `SPX-T305`, named owned locals before the
+yield remain `SPX-T303`, and control-dependent aggregate channels remain
+`SPX-T307`. Two sequential `Bytes` requests are refused at HIR admission with
+`SPX-T307`; the one-site v6 round trip does not establish fresh request
+allocation after replay history.

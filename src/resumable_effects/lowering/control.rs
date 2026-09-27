@@ -188,6 +188,11 @@ pub(super) fn check_resumable_profile<'a>(
     // Copy scalar, unchanged: the control-dependent lane has no
     // aggregate-channel runtime support. Function parameters stay
     // Copy-scalar only either way; this widening never touches them.
+    if hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.response_type) {
+        return Err(invalid(
+            "resumable lowering admits bounded Bytes leaves on the request channel only",
+        ));
+    }
     let channel_type_ok = |ty: &ResolvedType| {
         hir::is_scalar_resolved_type(ty)
             || (allow_aggregate
@@ -237,12 +242,15 @@ pub(super) fn check_resumable_profile<'a>(
             "resumable lowering found owned cleanup state in the Copy-scalar profile",
         ));
     }
-    if function
-        .cleanup_plan
-        .slots
-        .iter()
-        .any(|slot| slot.ty != ResolvedType::Bytes)
-    {
+    if function.cleanup_plan.slots.iter().any(|slot| {
+        slot.ty != ResolvedType::Bytes
+            && !(allow_aggregate
+                && crate::hir::yield_aggregate::bounded_aggregate_refusal(
+                    &program.declarations,
+                    &slot.ty,
+                )
+                .is_ok())
+    }) {
         return Err(invalid(
             "resumable lowering found owned cleanup state outside the admitted owned-Bytes profile",
         ));

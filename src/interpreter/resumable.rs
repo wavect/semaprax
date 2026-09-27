@@ -790,6 +790,25 @@ pub(super) fn admit_entry<'p>(
     })
 }
 
+fn max_byte_allocation(value: &Value) -> u32 {
+    match value {
+        Value::Bytes(bytes) => bytes.allocation,
+        Value::Record(record) => record
+            .fields
+            .values()
+            .map(max_byte_allocation)
+            .max()
+            .unwrap_or(0),
+        Value::Variant(variant) => variant
+            .fields
+            .values()
+            .map(max_byte_allocation)
+            .max()
+            .unwrap_or(0),
+        _ => 0,
+    }
+}
+
 /// Evaluate one segment on the bounded-stack worker and settle it there.
 pub(super) fn run_worker<T: Send>(
     program: &hir::ResolvedProgram,
@@ -822,8 +841,20 @@ pub(super) fn run_worker<T: Send>(
                 // charge), so the counter starts pre-charged for exactly as
                 // many carried values as this resume substitutes. Every
                 // other lane's `carried` map is empty and this is a no-op.
-                if let Resumption::Replay { carried, .. } = &resumption {
-                    evaluator.next_byte_allocation = carried.len() as u32;
+                if let Resumption::Replay {
+                    carried,
+                    expected,
+                    answers,
+                    ..
+                } = &resumption
+                {
+                    evaluator.next_byte_allocation = carried
+                        .values()
+                        .chain(expected.iter())
+                        .chain(answers.iter())
+                        .map(max_byte_allocation)
+                        .max()
+                        .unwrap_or(0);
                 }
                 evaluator.resumption = resumption;
                 let settled = evaluator.evaluate_entry(entry, bound);
@@ -1149,6 +1180,7 @@ fn scalar_values_equal(left: &Value, right: &Value) -> bool {
     match (left, right) {
         (Value::Float32(left), Value::Float32(right)) => left.to_bits() == right.to_bits(),
         (Value::Float64(left), Value::Float64(right)) => left.to_bits() == right.to_bits(),
+        (Value::Bytes(left), Value::Bytes(right)) => left.bytes == right.bytes,
         (Value::Record(left), Value::Record(right)) => {
             left.record == right.record
                 && left.fields.len() == right.fields.len()
@@ -1194,7 +1226,18 @@ pub enum ResumableChannelValue {
         case: hir::DeclarationId,
         fields: Vec<ArgumentValue>,
     },
+    RecordBytes {
+        declaration: hir::DeclarationId,
+        fields: Vec<channel_bytes::ChannelField>,
+    },
+    VariantBytes {
+        declaration: hir::DeclarationId,
+        case: hir::DeclarationId,
+        fields: Vec<channel_bytes::ChannelField>,
+    },
 }
+
+pub use channel_bytes::ChannelField;
 
 impl From<ArgumentValue> for ResumableChannelValue {
     fn from(value: ArgumentValue) -> Self {
@@ -1211,7 +1254,8 @@ fn channel_of(
     value: &Value,
 ) -> Option<ResumableChannelValue> {
     match value {
-        Value::Record(record) => {
+        Value::Record(_) | Value::Variant(_) => channel_bytes::channel_of(declarations, value),
+        /*Value::Record(record) => {
             let canonical = declarations.record_fields(&record.record)?;
             let fields = canonical
                 .iter()
@@ -1233,7 +1277,7 @@ fn channel_of(
                 case: variant.case.clone(),
                 fields,
             })
-        }
+        }*/
         other => argument_of(other).map(ResumableChannelValue::Scalar),
     }
 }
@@ -1249,6 +1293,7 @@ fn value_of_channel(
     declarations: &hir::DeclarationIndex,
     declared: &ResolvedType,
     supplied: &ResumableChannelValue,
+    allocation: &mut u32,
 ) -> Option<Value> {
     match supplied {
         ResumableChannelValue::Scalar(argument) => scalar_of(declared, argument),
@@ -1313,6 +1358,10 @@ fn value_of_channel(
                 fields: built,
             })))
         }
+        owned @ (ResumableChannelValue::RecordBytes { .. }
+        | ResumableChannelValue::VariantBytes { .. }) => {
+            channel_bytes::value_of(declarations, declared, owned, allocation)
+        }
     }
 }
 
@@ -1336,6 +1385,8 @@ fn channel_to_resumable_scalar(value: &ResumableChannelValue) -> Option<Resumabl
                 .map(resumable_scalar_of)
                 .collect::<Option<Vec<_>>>()?,
         },
+        owned @ (ResumableChannelValue::RecordBytes { .. }
+        | ResumableChannelValue::VariantBytes { .. }) => channel_bytes::binding(owned)?,
     })
 }
 
@@ -1347,8 +1398,9 @@ fn typed_resume_channel_value(
     declared: &ResolvedType,
     supplied: &ResumableChannelValue,
     role: &str,
+    allocation: &mut u32,
 ) -> Result<Value, Vec<Diagnostic>> {
-    value_of_channel(declarations, declared, supplied).ok_or_else(|| {
+    value_of_channel(declarations, declared, supplied, allocation).ok_or_else(|| {
         vec![Diagnostic::io(
             RESUME_TYPE_MISMATCH,
             format!("resume {role} does not have the declared `yields` {role} type"),
@@ -1357,6 +1409,7 @@ fn typed_resume_channel_value(
 }
 
 pub mod channel;
+pub(crate) mod channel_bytes;
 pub mod control;
 #[cfg(test)]
 mod tests;

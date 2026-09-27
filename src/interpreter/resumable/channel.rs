@@ -164,18 +164,21 @@ fn evaluate_channel_resumable(
             }
             let mut expected = Vec::with_capacity(index + 1);
             let mut answers = Vec::with_capacity(index + 1);
+            let mut injected_allocations = 0_u32;
             for record in &continuation.history {
                 expected.push(typed_resume_channel_value(
                     declarations,
                     &yields.request_type,
                     &record.request,
                     "historical request",
+                    &mut injected_allocations,
                 )?);
                 answers.push(typed_resume_channel_value(
                     declarations,
                     &yields.response_type,
                     &record.answer,
                     "historical answer",
+                    &mut injected_allocations,
                 )?);
             }
             expected.push(typed_resume_channel_value(
@@ -183,12 +186,14 @@ fn evaluate_channel_resumable(
                 &yields.request_type,
                 &continuation.request,
                 "request",
+                &mut injected_allocations,
             )?);
             answers.push(typed_resume_channel_value(
                 declarations,
                 &yields.response_type,
                 &answer,
                 "answer",
+                &mut injected_allocations,
             )?);
             let mut channel_history = continuation.history.clone();
             channel_history.push(ChannelYieldRecord {

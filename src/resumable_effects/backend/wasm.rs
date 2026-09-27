@@ -133,7 +133,9 @@ fn argument_token(value: &ResumableScalar) -> String {
         // yield-free projection -- native/Wasm still refuse every
         // `yields`-declaring function's own emission (`SPX-W126`), so an
         // aggregate value can never reach this encoder in practice.
-        ResumableScalar::Record(_) | ResumableScalar::Variant { .. } => unreachable!(
+        ResumableScalar::Record(_)
+        | ResumableScalar::Variant { .. }
+        | ResumableScalar::Bytes(_) => unreachable!(
             "the Wasm resumable-effect parity runner does not encode an aggregate channel value"
         ),
     }

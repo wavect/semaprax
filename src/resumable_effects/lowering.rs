@@ -54,11 +54,8 @@ impl ResumableSuspensionBinding {
 /// Exact target-neutral scalar bits used to bind one suspension to the
 /// invocation arguments that produced it. Floats are bits, not IEEE equality.
 ///
-/// `Record` and `Variant` (issue #296 R20) represent a bounded, flat
-/// Copy-scalar `yields` request/response value
-/// (`hir::yield_aggregate::bounded_aggregate_refusal`): a record's own
-/// fields, or a variant's selected case's own fields, in canonical declared
-/// field order. Depth is fixed at one level by that same admission rule, so
+/// `Record` and `Variant` (issue #296 R20) represent a bounded channel in
+/// canonical declared field order. Depth is fixed at one level by admission, so
 /// neither ever recurses into another `Record` or `Variant`. Function
 /// *arguments* stay Copy-scalar only (the profile this widening does not
 /// touch), so only a suspension's request/answer history ever carries one of
@@ -78,6 +75,7 @@ pub enum ResumableScalar {
         case: String,
         fields: Vec<ResumableScalar>,
     },
+    Bytes(Vec<u8>),
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -322,13 +320,21 @@ pub fn lower_sequential(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<SequentialResumablePlan, Diagnostic> {
-    let yields = control::check_resumable_profile(program, function, false, true)?;
+    let aggregate_bytes_channel = function.yields.as_ref().is_some_and(|yields| {
+        crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.request_type)
+            || crate::hir::yield_aggregate::has_bytes_leaf(
+                &program.declarations,
+                &yields.response_type,
+            )
+    });
+    let yields =
+        control::check_resumable_profile(program, function, aggregate_bytes_channel, true)?;
     reject_yield_in_contracts(function)?;
     let sites = locate_direct_yields(function)?;
     for (yield_expression, request, _) in &sites {
         if request.ty != yields.request_type
             || yield_expression.ty != yields.response_type
-            || request.ownership != OwnershipMode::Value
+            || !matches!(request.ownership, OwnershipMode::Value | OwnershipMode::Own)
             || yield_expression.ownership != OwnershipMode::Value
         {
             return Err(invalid(
@@ -338,7 +344,7 @@ pub fn lower_sequential(
     }
     require_scalar_expression_tree(
         &function.body,
-        false,
+        aggregate_bytes_channel,
         Some((&yields.request_type, &yields.response_type)),
     )?;
     reject_reachable_resumable_callees(program, function)?;
@@ -448,6 +454,10 @@ fn hash_scalar(hasher: &mut Sha256, value: &ResumableScalar) {
             for field in fields {
                 hash_scalar(hasher, field);
             }
+        }
+        ResumableScalar::Bytes(bytes) => {
+            hasher.update([10u8]);
+            frame(hasher, bytes);
         }
     }
 }

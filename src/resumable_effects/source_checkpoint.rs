@@ -36,7 +36,9 @@ mod control_owned;
 mod migration;
 mod signature_bound;
 pub use channel::{
-    decode_source_checkpoint_v5, encode_source_checkpoint_v5, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V5,
+    decode_source_checkpoint_v5, decode_source_checkpoint_v6, encode_source_checkpoint_v5,
+    encode_source_checkpoint_v6, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V5,
+    SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V6,
 };
 pub use control::{
     decode_source_checkpoint_v3, encode_source_checkpoint_v3, SOURCE_RESUMABLE_CHECKPOINT_SCHEMA_V3,

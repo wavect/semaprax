@@ -730,10 +730,10 @@ lowering::control` would need its own aggregate-channel runtime support,
 including the owned-`Bytes`-carrying combination that placement already
 admits for a bare scalar channel).
 
-### 12.2 Next slice: aggregate whole-function carrier
+### 12.2 Bounded aggregate whole-function carrier
 
-The existing channel lane deliberately ends at scalar ordinary parameters and
-results. Widening only `lowering::control::check_resumable_profile` would be
+The original scalar channel lane deliberately ends at scalar ordinary parameters
+and results. Widening only `lowering::control::check_resumable_profile` would be
 unsound: the argument binding, suspension binding, completed value, durable
 outcome, and journal replay would then disagree about the invocation's exact
 meaning.
@@ -758,13 +758,13 @@ The first versioned carrier slice is interpreter-only:
   bit exactly.
 - Existing scalar `resumable_effects::continuation`, journal, and source
   checkpoint entries stay scalar-only and refuse aggregate function
-  parameters/results before creating storage. A later durable carrier needs a
+  parameters/results before creating storage. The separate durable carrier uses a
   new schema and `channel_json(argument)` plus LF framing per argument, so a
   scalar argument retains its existing digest bytes exactly. Its checkpoint
   envelope authenticates suspended state only; completion is journal/public
   result data.
 
-#### Durable aggregate carrier v7 design handoff
+#### Durable aggregate carrier v7
 
 The durable extension is a separate carrier, never a widening of
 `DurableInvocation::{start,recover}` or its `ArgumentValue` journal records.
@@ -817,15 +817,16 @@ and budget. It never selects a journal version from a filename or stored
 record. V1 keeps both of its v1 domains and is accepted only by scalar
 recovery.
 
-Implementation leases after this contract is fixed:
+Implementation ownership:
 
 - `src/interpreter/resumable/checkpoint.rs` and
   `src/resumable_effects/source_checkpoint/channel.rs`: v7 inner and
   authenticated envelope codecs plus v5/v6 cross-schema refusals.
 - `src/resumable_effects/source_signature.rs`,
   `src/resumable_effects/continuation/lane.rs`, and
-  `src/resumable_effects/continuation.rs`: checked aggregate plan selection,
-  separate aggregate invocation lifecycle, replay, and completion carrier.
+  `src/resumable_effects/continuation/aggregate.rs`: checked aggregate plan
+  selection, separate aggregate invocation lifecycle, replay, and completion
+  carrier; `continuation.rs` exports the distinct public aggregate facade.
 - `src/resumable_effects/continuation/journal.rs`: v2 record codec and
   canonical Started/Completed framing; scalar v1 codec remains unchanged.
 - Their owning test modules: two-yield success, changed argument and wrong
@@ -837,10 +838,11 @@ Implementation leases after this contract is fixed:
 
 The interpreter slice tests record and variant parameter/result success through
 two sequential yields, wrong nominal ID refusal, and replay with a changed
-aggregate argument. The future durable carrier must additionally cover wrong
-case ID, field count, and scalar leaf refusals before dispatch; source and
-graph canonical round trips; and its complete v2 crash matrix, proving no
-second dispatch or cleanup. Only after those pass may the Agent bridge add a distinct effect-free
+aggregate argument. The durable carrier tests wrong case ID, field count,
+scalar leaf and Bytes-carrier refusals before append, valid record/variant
+answers, and its v2 success/failure crash matrix, proving no second dispatch
+or cleanup. Source and graph canonical round trips remain a bridge gate.
+Only after those pass may the Agent bridge add a distinct effect-free
 `yields` wrapper around FixtureAgent's checked `model fn propose`; the model
 role itself cannot gain `yields`. The wrapper must dispatch through
 `DurableInvocation::dispatch` exactly once, consume the ordinary model grant

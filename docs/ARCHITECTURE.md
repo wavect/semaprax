@@ -804,7 +804,7 @@ in-memory scalar request/answer history for source replay.
 `src/interpreter/resumable_entry.rs` owns the checked whole-function entry
 binding; the separate sequential channel API admits bounded Copy-only
 record/variant parameters and results on the interpreter and binds their
-canonical leaves to replay. The scalar entry and durable journal retain their
+canonical leaves to replay. The scalar entry and v1 durable journal retain their
 existing scalar function boundary. This is not live
 frame or liveness lowering. Projection retains the
 selected function and authored-entrypoint direct-call closures in authored
@@ -857,7 +857,12 @@ owner-private directory descriptor the host passes in. Answers are bound to
 program digest, invocation, site and envelope digest and require the host's
 capability policy; recovery never redispatches a settled yield or reruns
 cleanup. [Resumable Effects Continuation v1](RESUMABLE-EFFECTS-CONTINUATION-V1.md)
-owns that contract.
+owns that contract. The separate `continuation/aggregate.rs` facade owns the
+Copy-only aggregate invocation lifecycle. It uses `continuation/journal/channel.rs`
+for the distinct v2 journal and `source_checkpoint/channel.rs` for the v7
+authenticated envelope, revalidating checked argument and answer shapes before
+append. The v1 scalar lifecycle and v5/v6 checkpoint codecs remain separate.
+This adds no Agent operation binding or scheduler.
 
 ### Native bootstrap backend
 

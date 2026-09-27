@@ -17,9 +17,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Admit bounded Copy-only record or variant parameters and results through a
   separate sequential interpreter `yields` entry point. Bind aggregate
   arguments to replay, preserve the existing scalar API and bounded Bytes
-  request channel, and refuse unsupported aggregate durable results before
-  journal creation. Aggregate function checkpoint and Agent-operation bridges
-  remain open.
+  request channel. Add a distinct aggregate durable invocation with a v2
+  authenticated journal and v7 checkpoint, checked answer refusal before
+  append, and success/failure crash recovery tests. The Agent-operation
+  bridge remains open.
 
 - Carry one direct sequential `yields` request with bounded `Bytes` leaves
   through interpreter suspension, a v6 authenticated checkpoint, and the

@@ -20,6 +20,7 @@
 //!
 //! [`docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md`]: ../../docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md
 
+mod aggregate;
 pub mod journal;
 mod lane;
 #[cfg(test)]
@@ -36,6 +37,9 @@ use crate::interpreter::resumable::checkpoint::scalar_json;
 use crate::interpreter::resumable::ResumableChannelValue;
 use crate::interpreter::{ArgumentValue, MAX_STEPS_LIMIT};
 use crate::resumable_effects::lowering::control::MAX_CONTROL_SUSPENSIONS;
+pub use aggregate::{
+    AggregateContinuationStatus, AggregateDurableInvocation, AggregateDurableOutcome,
+};
 use journal::{answer_digest, hex, sha256, Journal, Record};
 pub use journal::{JournalDirectory, TornTailPolicy, RESUMABLE_JOURNAL_SCHEMA_V1};
 use lane::{Carrier, LaneStep};

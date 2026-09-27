@@ -7,7 +7,10 @@ use super::DurableFailure;
 use crate::diagnostic::Diagnostic;
 use crate::hir::ResolvedProgram;
 use crate::interpreter::resumable::channel::{
-    resume_sequential_channel_resumable_effect, run_sequential_channel_resumable_effect,
+    resume_sequential_channel_resumable_effect,
+    resume_sequential_channel_resumable_effect_with_arguments,
+    run_sequential_channel_resumable_effect,
+    run_sequential_channel_resumable_effect_with_arguments, SequentialChannelArgumentsStep,
     SequentialChannelResumableStep,
 };
 use crate::interpreter::resumable::control::{
@@ -22,9 +25,10 @@ use crate::interpreter::resumable::{
 use crate::interpreter::ArgumentValue;
 use crate::resumable_effects::source_checkpoint::{
     decode_source_checkpoint_v2, decode_source_checkpoint_v3, decode_source_checkpoint_v4,
-    decode_source_checkpoint_v5, decode_source_checkpoint_v6, encode_source_checkpoint_v2,
-    encode_source_checkpoint_v3, encode_source_checkpoint_v4, encode_source_checkpoint_v5,
-    encode_source_checkpoint_v6, SourceCheckpointError, SourceCheckpointKey, SourceCheckpointScope,
+    decode_source_checkpoint_v5, decode_source_checkpoint_v6, decode_source_checkpoint_v7,
+    encode_source_checkpoint_v2, encode_source_checkpoint_v3, encode_source_checkpoint_v4,
+    encode_source_checkpoint_v5, encode_source_checkpoint_v6, encode_source_checkpoint_v7,
+    SourceCheckpointError, SourceCheckpointKey, SourceCheckpointScope,
 };
 
 #[derive(Clone, Debug)]
@@ -84,6 +88,91 @@ pub(super) enum LaneStep {
     Suspended(Carrier),
     Completed(ArgumentValue),
     Failed(DurableFailure),
+}
+
+pub(super) enum AggregateStep {
+    Suspended(ResumableChannelContinuation),
+    Completed(ResumableChannelValue),
+    Failed(DurableFailure),
+}
+
+fn aggregate(step: SequentialChannelArgumentsStep) -> AggregateStep {
+    match step {
+        SequentialChannelArgumentsStep::Suspended { continuation } => {
+            AggregateStep::Suspended(continuation)
+        }
+        SequentialChannelArgumentsStep::Completed { result, .. } => {
+            AggregateStep::Completed(result)
+        }
+        SequentialChannelArgumentsStep::LanguageFailure(_) => {
+            AggregateStep::Failed(DurableFailure::LanguageFailure)
+        }
+        SequentialChannelArgumentsStep::FuelExhausted => {
+            AggregateStep::Failed(DurableFailure::FuelExhausted)
+        }
+        SequentialChannelArgumentsStep::CallDepthExceeded => {
+            AggregateStep::Failed(DurableFailure::CallDepthExceeded)
+        }
+        SequentialChannelArgumentsStep::GuardError(_) => {
+            AggregateStep::Failed(DurableFailure::EvaluationRejected)
+        }
+    }
+}
+
+pub(super) fn start_aggregate(
+    program: &ResolvedProgram,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+    max_steps: usize,
+) -> Result<AggregateStep, Vec<Diagnostic>> {
+    run_sequential_channel_resumable_effect_with_arguments(
+        program,
+        function_id,
+        arguments,
+        max_steps,
+    )
+    .map(|evaluation| aggregate(evaluation.step))
+}
+
+pub(super) fn resume_aggregate(
+    program: &ResolvedProgram,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+    continuation: &ResumableChannelContinuation,
+    answer: &ResumableChannelValue,
+    max_steps: usize,
+) -> Result<AggregateStep, Vec<Diagnostic>> {
+    resume_sequential_channel_resumable_effect_with_arguments(
+        program,
+        function_id,
+        arguments,
+        continuation,
+        answer,
+        max_steps,
+    )
+    .map(|evaluation| aggregate(evaluation.step))
+}
+
+pub(super) fn encode_aggregate(
+    program: &ResolvedProgram,
+    key: &SourceCheckpointKey,
+    scope: &SourceCheckpointScope,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+    continuation: &ResumableChannelContinuation,
+) -> Result<Vec<u8>, SourceCheckpointError> {
+    encode_source_checkpoint_v7(program, key, scope, function_id, arguments, continuation)
+}
+
+pub(super) fn decode_aggregate(
+    program: &ResolvedProgram,
+    key: &SourceCheckpointKey,
+    scope: &SourceCheckpointScope,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+    bytes: &[u8],
+) -> Result<ResumableChannelContinuation, SourceCheckpointError> {
+    decode_source_checkpoint_v7(program, key, scope, function_id, arguments, bytes)
 }
 
 fn sequential(step: SequentialResumableStep) -> LaneStep {

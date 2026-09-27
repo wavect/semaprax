@@ -9,6 +9,7 @@ use std::os::unix::fs::{symlink, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+mod aggregate;
 mod channel;
 mod control;
 mod owned;

@@ -1,16 +1,12 @@
 # RFC 0005: Compute Kernel Profile v1
 
-- Status: Design-stage; the admission classifier is implemented and tested
-  offline (`src/compute_profile/classifier.rs`); a library-level
-  deterministic CPU reference executor for a closed kernel subset is
-  implemented and tested offline (`src/compute_profile/cpu_reference.rs`,
-  [Executable CPU reference semantics
-  v1](#executable-cpu-reference-semantics-v1)); an optional macOS-only Metal
-  backend for the elementwise-map subset has local physical-device evidence
-  on one Apple M3 Pro ([Executable Metal backend
-  v1](#executable-metal-backend-v1)); no new source syntax, compilation
-  route or CLI exists, and no hosted, multi-device or production accelerator
-  evidence backs any claim in this document
+- Status: Design-stage; admission classifier and a deterministic CPU
+  reference executor are implemented and tested offline; an optional macOS
+  Metal backend has local evidence on one Apple M3 Pro. See [Executable CPU
+  reference semantics v1](#executable-cpu-reference-semantics-v1) and
+  [Executable Metal backend v1](#executable-metal-backend-v1). No source
+  syntax, compilation route or CLI exists, and no hosted, multi-device or
+  production accelerator evidence backs any claim here
 - Version: 0.3
 - Audience: compiler contributors evaluating an eventual data-parallel
   kernel/GPU target, and reviewers of the admitted grammar and refusal

@@ -8,18 +8,19 @@
 mod build;
 mod deferred_commit;
 mod execute;
-// Owned-value-across-a-yield liveness query (issue #296, spec section 11.6),
-// first increment: not yet wired to any admission, envelope, or interpreter
-// path, so it has no caller outside its own tests. Gated on `cfg(test)`
-// entirely, rather than left reachable-but-uncalled in an ordinary build,
-// which would otherwise trip the `dead_code` lint under `-D warnings`.
-#[cfg(test)]
+// Owned-value-across-a-yield liveness query (issue #296, spec section 11.6).
+// `admit_owned_bytes_profile` is the second increment's real caller: the HIR
+// resolve pipeline calls it once a `yields`-declaring function's cleanup plan
+// is built, so an owned `Bytes` local live across a real suspension site can
+// leave the Copy-scalar profile; every other owned or aggregate value still
+// keeps its existing SPX-T303/T305/T306 refusal.
 mod owned_liveness;
 mod replay;
 mod validate;
 
 pub(crate) use build::build_plan;
 pub use execute::{execute_for_conformance, CleanupExecutionError, CleanupScenario};
+pub(crate) use owned_liveness::{admit_owned_bytes_profile, carried_locals_at};
 pub(crate) use replay::selected_schema;
 pub(crate) use validate::validate_program;
 

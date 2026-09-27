@@ -241,6 +241,19 @@ pub struct DurableInvocation<'a> {
     journal: Journal,
     phase: Phase,
     poisoned: bool,
+    /// Issue #296, spec section 11.6: the exact carried owned `Bytes` bytes
+    /// still awaiting settlement at the moment the sticky terminal outcome
+    /// was recorded -- non-empty only for `HandlerFailed`, `AnswerTypeMismatch`,
+    /// or `HostAbandoned`, the three failures recorded while a site was
+    /// dispatched (`DurableFailure::settles_dispatch`) and so never re-ran
+    /// the interpreter to its own natural, in-process drop. A `Completed` or
+    /// any other `Failed` outcome only ever follows a resume or start that
+    /// ran the interpreter through to that outcome, which already dropped
+    /// every carried value itself; this stays empty for those. A caller's
+    /// `CleanupHandler` reads this before calling [`Self::settle`] or
+    /// [`Self::drive`] to run the carried values' own settlement inside the
+    /// existing exactly-once `CleanupStarted`/`CleanupSettled` window.
+    pending_cleanup_carried: Vec<Vec<u8>>,
 }
 
 struct Facts {
@@ -419,7 +432,18 @@ impl<'a> DurableInvocation<'a> {
                 DurableFailure::EvaluationRejected,
             )),
             poisoned: false,
+            pending_cleanup_carried: Vec::new(),
         }
+    }
+
+    /// The exact carried owned `Bytes` bytes still awaiting settlement, in
+    /// cleanup-inventory order, valid while [`Self::status`] reports
+    /// [`ContinuationStatus::CleanupPending`] or
+    /// [`ContinuationStatus::CleanupInDoubt`]. Proof data only: reading it
+    /// dispatches nothing. See the field's own doc comment for exactly when
+    /// it is non-empty.
+    pub fn pending_cleanup_carried(&self) -> &[Vec<u8>] {
+        &self.pending_cleanup_carried
     }
 
     fn started_record(&self) -> Record {
@@ -551,7 +575,11 @@ impl<'a> DurableInvocation<'a> {
         if !policy.allows(&self.function_id) {
             return Err(ContinuationError::CapabilityDenied);
         }
-        self.terminal(DurableOutcome::Failed(DurableFailure::HostAbandoned))
+        let carried = self.dispatched_carried();
+        self.terminal(
+            DurableOutcome::Failed(DurableFailure::HostAbandoned),
+            carried,
+        )
     }
 
     /// Run terminal cleanup exactly once. `CleanupStarted` is durable before
@@ -567,9 +595,35 @@ impl<'a> DurableInvocation<'a> {
         };
         self.append(&Record::CleanupStarted)?;
         self.phase = Phase::CleanupInDoubt(outcome.clone());
-        let settlement = match cleanup.run(&outcome) {
-            Ok(()) => CleanupSettlement::Completed,
-            Err(_) => CleanupSettlement::Failed,
+        // Issue #296, spec section 11.6: `run` still settles the overall
+        // sticky outcome exactly once, as it always has. Mirroring
+        // `resumable_effects::core::resume`'s own per-op audit shape (a
+        // result recorded per item, never one outcome folded silently over
+        // several), every carried owned value this outcome left pending
+        // (`Self::pending_cleanup_carried`, empty unless a dispatched site's
+        // failure stranded one -- see that field's own doc comment) is
+        // settled through its own `run_carried` call, in that vector's own
+        // order. `Completed` requires every one of them, not merely the
+        // outcome itself, to have actually settled: a handler that skips or
+        // fails one -- including a handler that never overrides
+        // `run_carried`'s fail-closed default -- surfaces here, and in the
+        // durable journal's own `CleanupSettled` record, as `Failed`, never
+        // silently as `Completed`.
+        let outcome_settled = cleanup.run(&outcome).is_ok();
+        // Every carried item gets its own attempt -- exactly the per-op
+        // audit's promise -- so an earlier item's failure never skips a
+        // later one's own settlement the way a short-circuiting `all`
+        // would.
+        let carried_results: Vec<Result<(), String>> = self
+            .pending_cleanup_carried
+            .iter()
+            .map(|item| cleanup.run_carried(item))
+            .collect();
+        let carried_settled = carried_results.iter().all(Result::is_ok);
+        let settlement = if outcome_settled && carried_settled {
+            CleanupSettlement::Completed
+        } else {
+            CleanupSettlement::Failed
         };
         self.finish_cleanup(outcome, settlement)
     }
@@ -600,10 +654,19 @@ impl<'a> DurableInvocation<'a> {
                         Ok(value) if self.answer_type_matches(&value) => {
                             self.answer(policy, &request.bind_answer(value))?
                         }
-                        Ok(_) => self
-                            .terminal(DurableOutcome::Failed(DurableFailure::AnswerTypeMismatch))?,
+                        Ok(_) => {
+                            let carried = self.dispatched_carried();
+                            self.terminal(
+                                DurableOutcome::Failed(DurableFailure::AnswerTypeMismatch),
+                                carried,
+                            )?
+                        }
                         Err(_) => {
-                            self.terminal(DurableOutcome::Failed(DurableFailure::HandlerFailed))?
+                            let carried = self.dispatched_carried();
+                            self.terminal(
+                                DurableOutcome::Failed(DurableFailure::HandlerFailed),
+                                carried,
+                            )?
                         }
                     }
                 }
@@ -665,7 +728,20 @@ impl<'a> DurableInvocation<'a> {
         Ok(())
     }
 
-    fn terminal(&mut self, outcome: DurableOutcome) -> Result<(), ContinuationError> {
+    /// `carried` is the exact carried owned bytes still awaiting settlement,
+    /// which the caller -- not `terminal` itself -- knows: a failure recorded
+    /// while a site was dispatched (`HandlerFailed`, `AnswerTypeMismatch`,
+    /// `HostAbandoned`) passes its `Phase::AwaitingAnswer` pending carrier's
+    /// bytes, since the interpreter never re-ran to drop them in-process;
+    /// every other caller (a completion or a failure reached by actually
+    /// running the resumed suffix, including a request-drift rejection after
+    /// an already-appended `Answered` record) passes an empty vector, since
+    /// that run already dropped whatever it carried.
+    fn terminal(
+        &mut self,
+        outcome: DurableOutcome,
+        carried: Vec<Vec<u8>>,
+    ) -> Result<(), ContinuationError> {
         let record = match &outcome {
             DurableOutcome::Completed(result) => Record::Completed {
                 result: result.clone(),
@@ -675,8 +751,21 @@ impl<'a> DurableInvocation<'a> {
             },
         };
         self.append(&record)?;
+        self.pending_cleanup_carried = carried;
         self.phase = Phase::CleanupPending(outcome);
         Ok(())
+    }
+
+    /// The exact carried bytes of the current `Phase::AwaitingAnswer`
+    /// pending carrier, for a caller settling a dispatched site as a sticky
+    /// failure without re-entering the interpreter. Empty if called from any
+    /// other phase (defensive; every real caller only calls this from
+    /// `AwaitingAnswer`).
+    fn dispatched_carried(&self) -> Vec<Vec<u8>> {
+        match &self.phase {
+            Phase::AwaitingAnswer(pending, _) => pending.continuation.carried_bytes(),
+            _ => Vec::new(),
+        }
     }
 
     fn resume_with(
@@ -693,7 +782,10 @@ impl<'a> DurableInvocation<'a> {
             self.max_steps,
         ) {
             Ok(step) => self.settle_step(step),
-            Err(_) => self.terminal(DurableOutcome::Failed(DurableFailure::EvaluationRejected)),
+            Err(_) => self.terminal(
+                DurableOutcome::Failed(DurableFailure::EvaluationRejected),
+                Vec::new(),
+            ),
         }
     }
 
@@ -729,8 +821,10 @@ impl<'a> DurableInvocation<'a> {
                 });
                 Ok(())
             }
-            LaneStep::Completed(result) => self.terminal(DurableOutcome::Completed(result)),
-            LaneStep::Failed(failure) => self.terminal(DurableOutcome::Failed(failure)),
+            LaneStep::Completed(result) => {
+                self.terminal(DurableOutcome::Completed(result), Vec::new())
+            }
+            LaneStep::Failed(failure) => self.terminal(DurableOutcome::Failed(failure), Vec::new()),
         }
     }
 
@@ -742,8 +836,12 @@ impl<'a> DurableInvocation<'a> {
             Yielded(Pending),
             Dispatched(Pending),
             Answered(Pending, ArgumentValue),
-            Terminal(DurableOutcome),
-            CleanupStarted(DurableOutcome),
+            /// The second field is the exact carried owned `Bytes` bytes
+            /// still awaiting settlement -- see
+            /// `DurableInvocation::pending_cleanup_carried`'s own doc
+            /// comment for exactly when it is non-empty.
+            Terminal(DurableOutcome, Vec<Vec<u8>>),
+            CleanupStarted(DurableOutcome, Vec<Vec<u8>>),
             Settled(DurableOutcome, CleanupSettlement),
         }
         let control_dependent = self.signature.is_control_dependent();
@@ -778,6 +876,7 @@ impl<'a> DurableInvocation<'a> {
                         &self.arguments,
                         envelope.as_bytes(),
                         control_dependent,
+                        self.signature.carries_owned_bytes(),
                     )
                     .map_err(ContinuationError::Envelope)?;
                     if continuation.site() != *site {
@@ -813,7 +912,7 @@ impl<'a> DurableInvocation<'a> {
                     Tail::Answered(pending, answer.clone())
                 }
                 (Tail::Started | Tail::Answered(..), Record::Completed { result }) => {
-                    Tail::Terminal(DurableOutcome::Completed(result.clone()))
+                    Tail::Terminal(DurableOutcome::Completed(result.clone()), Vec::new())
                 }
                 (
                     prior @ (Tail::Started | Tail::Answered(..) | Tail::Dispatched(_)),
@@ -823,14 +922,21 @@ impl<'a> DurableInvocation<'a> {
                     if failure.settles_dispatch() != matches!(prior, Tail::Dispatched(_)) {
                         return Err(ContinuationError::TamperedJournal);
                     }
-                    Tail::Terminal(DurableOutcome::Failed(failure))
+                    let carried = match &prior {
+                        Tail::Dispatched(pending) => pending.continuation.carried_bytes(),
+                        _ => Vec::new(),
+                    };
+                    Tail::Terminal(DurableOutcome::Failed(failure), carried)
                 }
-                (Tail::Terminal(outcome), Record::CleanupStarted) => Tail::CleanupStarted(outcome),
-                (Tail::CleanupStarted(outcome), Record::CleanupSettled { settlement }) => {
+                (Tail::Terminal(outcome, carried), Record::CleanupStarted) => {
+                    Tail::CleanupStarted(outcome, carried)
+                }
+                (Tail::CleanupStarted(outcome, carried), Record::CleanupSettled { settlement }) => {
                     let settlement = CleanupSettlement::ALL
                         .into_iter()
                         .find(|candidate| candidate.class() == settlement)
                         .ok_or(ContinuationError::TamperedJournal)?;
+                    let _ = carried;
                     Tail::Settled(outcome, settlement)
                 }
                 _ => return Err(ContinuationError::TamperedJournal),
@@ -851,8 +957,14 @@ impl<'a> DurableInvocation<'a> {
             Tail::Yielded(pending) => self.phase = Phase::AwaitingDispatch(pending),
             Tail::Dispatched(pending) => self.phase = Phase::AwaitingAnswer(pending, true),
             Tail::Answered(pending, answer) => self.resume_with(&pending.continuation, &answer)?,
-            Tail::Terminal(outcome) => self.phase = Phase::CleanupPending(outcome),
-            Tail::CleanupStarted(outcome) => self.phase = Phase::CleanupInDoubt(outcome),
+            Tail::Terminal(outcome, carried) => {
+                self.pending_cleanup_carried = carried;
+                self.phase = Phase::CleanupPending(outcome);
+            }
+            Tail::CleanupStarted(outcome, carried) => {
+                self.pending_cleanup_carried = carried;
+                self.phase = Phase::CleanupInDoubt(outcome);
+            }
             Tail::Settled(outcome, settlement) => self.phase = Phase::Settled(outcome, settlement),
         }
         Ok(self)

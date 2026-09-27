@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 mod control;
+mod owned;
 
 // --- fault injection consulted by `journal::Journal::append` ---------------
 

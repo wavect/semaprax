@@ -145,6 +145,7 @@ fn forged_binding_or_recorded_site_is_refused() {
             0,
             &[ResumableScalar::I64(4)],
             &[(0, ResumableScalar::I64(5))],
+            &[],
         )
         .unwrap();
     let error = resume_control_resumable_effect(
@@ -168,6 +169,7 @@ fn forged_binding_or_recorded_site_is_refused() {
             0,
             &[ResumableScalar::I64(3)],
             &[(1, ResumableScalar::I64(5))],
+            &[],
         )
         .unwrap();
     let error = resume_control_resumable_effect(
@@ -200,6 +202,7 @@ fn forged_binding_or_recorded_site_is_refused() {
                 )
             })
             .collect(),
+        Vec::new(),
     )
     .unwrap();
     assert_eq!(rebuilt, genuine);
@@ -229,6 +232,8 @@ fn completion_or_failure_with_unconsumed_replay_history_is_drift() {
         history: Vec::new(),
         sites: None,
         parked_site: None,
+        parked_environment: None,
+        carried: std::collections::BTreeMap::new(),
     };
     // One of two expected records consumed: completion and failure are both
     // refused as drift, exactly like a per-site request mismatch.

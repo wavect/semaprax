@@ -33,6 +33,7 @@ pub struct SourceEffectSignature {
     plan_identity: [u8; 32],
     yield_count: u32,
     control_dependent: bool,
+    carries_owned_bytes: bool,
     table: EffectSignatureTable,
 }
 
@@ -58,10 +59,18 @@ impl SourceEffectSignature {
         self.yield_count
     }
 
-    /// True when the plan is the control-dependent (v3) plan rather than the
-    /// direct sequential one; the two identities never coincide.
+    /// True when the plan is the control-dependent (v3 or v4) plan rather
+    /// than the direct sequential one; the identities never coincide.
     pub fn is_control_dependent(&self) -> bool {
         self.control_dependent
+    }
+
+    /// True when the plan carries an owned `Bytes` local across some site
+    /// (issue #296, spec section 11.6): fixes the checkpoint envelope to the
+    /// v4 schema and the plan/binding identity to the v4 domain, rather than
+    /// v3. Always `false` for a sequential plan.
+    pub fn carries_owned_bytes(&self) -> bool {
+        self.carries_owned_bytes
     }
 
     pub fn table(&self) -> &EffectSignatureTable {
@@ -105,12 +114,16 @@ pub fn derive_source_effect_signature(
 ) -> Result<SourceEffectSignature, Diagnostic> {
     let function = selected_function(program, function_id)?;
     let control_dependent = lowering::control::is_control_dependent(function);
-    let (plan_identity, site_count) = if control_dependent {
+    let (plan_identity, site_count, carries_owned_bytes) = if control_dependent {
         let plan = lowering::control::lower_control(program, function)?;
-        (*plan.identity.as_bytes(), plan.sites.len())
+        (
+            *plan.identity.as_bytes(),
+            plan.sites.len(),
+            plan.carries_owned_bytes,
+        )
     } else {
         let plan = lowering::lower_sequential(program, function)?;
-        (*plan.identity.as_bytes(), plan.suspensions.len())
+        (*plan.identity.as_bytes(), plan.suspensions.len(), false)
     };
     let yields = function
         .yields
@@ -133,6 +146,7 @@ pub fn derive_source_effect_signature(
         plan_identity,
         yield_count,
         control_dependent,
+        carries_owned_bytes,
         table,
     })
 }

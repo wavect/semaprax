@@ -16,8 +16,9 @@ use crate::interpreter::resumable::{
 };
 use crate::interpreter::ArgumentValue;
 use crate::resumable_effects::source_checkpoint::{
-    decode_source_checkpoint_v2, decode_source_checkpoint_v3, encode_source_checkpoint_v2,
-    encode_source_checkpoint_v3, SourceCheckpointError, SourceCheckpointKey, SourceCheckpointScope,
+    decode_source_checkpoint_v2, decode_source_checkpoint_v3, decode_source_checkpoint_v4,
+    encode_source_checkpoint_v2, encode_source_checkpoint_v3, encode_source_checkpoint_v4,
+    SourceCheckpointError, SourceCheckpointKey, SourceCheckpointScope,
 };
 
 #[derive(Clone, Debug)]
@@ -41,6 +42,20 @@ impl Carrier {
             Self::Control(continuation) => continuation.history().len(),
         };
         u32::try_from(settled).expect("bounded suspension history")
+    }
+
+    /// The exact bytes of every owned value this carrier carries at its
+    /// current site, in cleanup-inventory order. Empty for a sequential
+    /// carrier or a non-carrying control plan.
+    pub(super) fn carried_bytes(&self) -> Vec<Vec<u8>> {
+        match self {
+            Self::Sequential(_) => Vec::new(),
+            Self::Control(continuation) => continuation
+                .carried()
+                .iter()
+                .map(|(_, bytes)| bytes.clone())
+                .collect(),
+        }
     }
 }
 
@@ -147,12 +162,19 @@ pub(super) fn encode(
         Carrier::Sequential(continuation) => {
             encode_source_checkpoint_v2(program, key, scope, function_id, arguments, continuation)
         }
-        Carrier::Control(continuation) => {
+        Carrier::Control(continuation) if continuation.carried().is_empty() => {
             encode_source_checkpoint_v3(program, key, scope, function_id, arguments, continuation)
+        }
+        Carrier::Control(continuation) => {
+            encode_source_checkpoint_v4(program, key, scope, function_id, arguments, continuation)
         }
     }
 }
 
+/// The lane, and within it the exact envelope schema, is fixed by the
+/// checked signature and never by stored bytes: `control_dependent` and
+/// `carries_owned_bytes` are both derived from the signature before this
+/// ever inspects `bytes`.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn decode(
     program: &ResolvedProgram,
@@ -162,12 +184,20 @@ pub(super) fn decode(
     arguments: &[ArgumentValue],
     bytes: &[u8],
     control_dependent: bool,
+    carries_owned_bytes: bool,
 ) -> Result<Carrier, SourceCheckpointError> {
-    if control_dependent {
-        decode_source_checkpoint_v3(program, key, scope, function_id, arguments, bytes)
-            .map(Carrier::Control)
-    } else {
-        decode_source_checkpoint_v2(program, key, scope, function_id, arguments, bytes)
-            .map(Carrier::Sequential)
+    match (control_dependent, carries_owned_bytes) {
+        (true, true) => {
+            decode_source_checkpoint_v4(program, key, scope, function_id, arguments, bytes)
+                .map(Carrier::Control)
+        }
+        (true, false) => {
+            decode_source_checkpoint_v3(program, key, scope, function_id, arguments, bytes)
+                .map(Carrier::Control)
+        }
+        (false, _) => {
+            decode_source_checkpoint_v2(program, key, scope, function_id, arguments, bytes)
+                .map(Carrier::Sequential)
+        }
     }
 }

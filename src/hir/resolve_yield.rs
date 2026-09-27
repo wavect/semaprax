@@ -239,7 +239,18 @@ fn check_scalar(
         expr.ownership,
         super::OwnershipMode::Borrow | super::OwnershipMode::Shared
     );
+    // Issue #296, spec section 11.6, second increment: an unborrowed value of
+    // type `Bytes` is deferred rather than refused here. Whether it is truly
+    // admitted -- a whole `let`-bound local live across a real suspension
+    // site -- is decided once `function.cleanup_plan` exists, by
+    // `cleanup_plan::admit_owned_bytes_profile`; this function runs before
+    // that plan is built and would otherwise refuse every owned value
+    // unconditionally. A borrowed `Bytes` (an unusual but syntactically
+    // possible `borrow Bytes`/`share Bytes`) still falls through to
+    // `profile_refusal` below and keeps `SPX-T305`.
     if !borrowed && (is_scalar_resolved_type(&expr.ty) || expr.ty == ResolvedType::Unit) {
+        Ok(())
+    } else if !borrowed && expr.ty == ResolvedType::Bytes {
         Ok(())
     } else {
         let (code, reason) = profile_refusal(resolver, &expr.ty, expr.ownership);

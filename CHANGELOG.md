@@ -92,6 +92,153 @@ format: `Unreleased` then release buckets, grouped by impact.
   identities at roughly the source bytes, eighteen to thirty-four times
   smaller than the full graph on the measured examples.
 
+- Merge the pending Dependabot bumps (`wasm-encoder`/`wasmparser` 0.259.0,
+  `argon2` 0.6.0, `x509-cert` 0.3.0, `rustix` 1.1.5, `reqwest` 0.13.5, the
+  pinned `dtolnay/rust-toolchain` action, and `actions/upload-artifact`
+  7.0.1; #264-#267, #311-#313) and fix the resulting API breaks (x509-cert's
+  private `tbs_certificate` field, argon2/password-hash 0.6 APIs, wasmparser
+  wire pins and KATs). Admit the transitional duplicate versions these bumps
+  introduce in `cargo-deny` (`deny.toml` skips for `x509-cert@0.2.5`,
+  `der@0.7.10`, `der_derive@0.7.3`, `spki@0.7.3`, `base64@0.22.1`) and
+  refresh the five standalone lockfiles the bumps left stale.
+
+- Pin single-runner CI jobs, and the Android JNI matrix entries, to
+  `ubuntu-24.04` ahead of GitHub's `ubuntu-latest` migration to Ubuntu 26
+  (2026-10-19). The six three-OS matrices keep their `ubuntu-latest` matrix
+  value, so required check names such as `Rust ubuntu-latest` are unchanged;
+  only `runs-on` resolves to `ubuntu-24.04`.
+
+- Prove the compiled public-generic Core Wasm provider's own ABI hostility
+  through the generated TypeScript consumer (#287): call-after-close, an
+  over-capacity/out-of-bounds declared length, a byte-mutated canonical
+  frame, export-before-call, release of a foreign/stale/already-consumed
+  handle, double release, and a handle foreign to a second simultaneously
+  live instance all refuse at the provider's own exact status with no
+  leaked handle and no duplicate dispatch. The regression drives the real
+  compiled `WebAssembly.Instance` through an intercepted `instantiate`,
+  never a hand-written re-read of `instance.exports`; the shipped generator
+  template is unchanged. Local, proof-only evidence; no PG-9 or support
+  decision changes.
+
+- Fix four defects the differential harnesses found in the compiled
+  public-generic Core Wasm provider (#288): a stubbed owned-byte runtime
+  that trapped on any allocating subject (`bytes_copy`/`bytes_zeroed`/
+  `bytes_set`) now has a real invocation-local implementation; `input_prepare`
+  no longer grows linear memory before the carrier frame is validated; the
+  input-payload window moved off the input aggregate record into its own
+  128 KiB region, fixing a silent overwrite of combined payloads above
+  2 KiB while the call still reported success; and the provider now emits
+  Wasm adapter ABI v2, reporting a semantic carrier-replay failure as its
+  own raw status 14 (`SPX-PG803`) instead of collapsing it to raw 5.
+  `result_export`'s destination pointer/length is now bounds-checked before
+  the memory copy (status 13), and the classifier's baked-in leaf count is
+  const-asserted against the endpoint's actual leaf count so the two can no
+  longer drift apart silently. Local, proof-only evidence.
+
+- Execute one closed, versioned settlement-matrix corpus
+  (`semaprax.public-generic.settlement-matrix.v1`, 14 cases over the checked
+  `Pair<Bytes>` identity/refusing/allocating subjects) across the retained
+  interpreter, raw authenticated native C11 (O0/O2 plus local ASan), the
+  compiled Core Wasm provider, and the generated C11/Rust/C++17/TypeScript
+  callers built from the same descriptor bytes (#301). Each engine reports
+  one receipt per case/cycle (primary/secondary status, returned bytes,
+  dispatch count, live/peak resources, physical release order); the harness
+  asserts an exact, non-vacuous 126-cell split. Following #288's provider
+  fixes, the matrix's former 8 known-defect cells now pass: 105 pass, 0
+  known-defect, 21 documented not-applicable. Local, proof-only evidence.
+
+- Add a Wasmtime 47.0.4 differential-conformance submodule to the private
+  Component runner (#292): the reference interpreter, the standalone
+  compiled Core Wasm provider, and the typed Component must agree on
+  returned leaves for two checked-in projects (a non-identity leaf swap,
+  and `requires false`), including stale-Component and stale-descriptor
+  refusal before instantiation, Core open refusal of a stale descriptor,
+  resource-arena recovery after both success and failure, and an
+  oversized-list trap followed by fresh-instance recovery. The differential
+  found the standalone provider's payload-overlap defect #288 later fixed.
+  Re-pinned all four component-runtime fixtures' provider/component digests
+  and raw component SHA-256 after #288 changed the compiled provider's
+  bytes (each fixture's descriptor digest, a pure function of checked
+  source, is unchanged); un-ignored the large-payload regression the fix
+  closed. Local, proof-only evidence.
+
+- Give Core Wasm call-depth admission equivalent to the interpreter's
+  `MAX_CALL_DEPTH` and native C11's `SPX_MAX_CALL_DEPTH` (256), across both
+  the aggregate byte/scalar-export emitter and the separate legacy
+  scalar-core emitter (#293). Both emitters use an always-on live-frame
+  counter reset at every genuine external entry, so a refused deep
+  recursion cannot poison a later, shallower call on the same module
+  instance; the executor-side status decode reports
+  `RetainedCallOutcome::CallDepthExceeded` consistently across native and
+  Core Wasm. Also add semantic fuel/cleanup metering parity across the
+  interpreter, native, and both Wasm Agent Stage executors, and fix a
+  macOS held-tool spawn issue. Local, proof-only evidence; the affected
+  Wasm-byte pins were re-derived field-by-field for the changed private
+  global.
+
+- Replace the durable HTTP-delivery library entry point's
+  whole-checkpoint-digest provisional probe with an identity-keyed
+  (deployment/invocation/idempotency-key) atomic create-new intent marker,
+  independent of capacity, policy, and restoration state (#295): an
+  existing marker, or any create/sync/recheck error, surfaces `Uncertain`
+  and never enters the adapter, and the marker commit is one atomic
+  create-new with no preceding read, so concurrent fresh workers cannot
+  both win. Loopback fixtures only; this remains a library entry point with
+  no caller in a runnable application or service policy package.
+
+- Add a Reference Service Host v1 (#303, `docs/REFERENCE-SERVICE-HOST-V1.md`):
+  the existing service scaffold (`examples/task-service-project`) now runs
+  as a real local loopback process — HTTP/1.1 serving, content-addressed
+  write-once snapshot persistence, held file-backed secrets, and durable
+  outbound webhook delivery over #295's identity-keyed marker — reusing
+  existing decision and adapter machinery and granting no new authority. No
+  SQL wire protocol (SQLite/PostgreSQL DSNs are held, never connected to),
+  no TLS server provisioning, no OTLP protobuf, and no hosted or production
+  support is implemented or claimed.
+
+- Add a resumable-effects continuation contract v1 (#296,
+  `docs/RESUMABLE-EFFECTS-CONTINUATION-V1.md`): a durable, fsync'd,
+  HMAC-chained, single-writer (flock) journal-backed library driver
+  (Unix only), extending the source-level resumable profile with
+  control-dependent yields (`if`/`else` branches and `while` bodies; v3
+  plan/envelope, up to 8 static sites, up to 16 suspensions; `SPX-T305`/
+  `SPX-T306` refusals) and a whole owned `Bytes` local carried across
+  `if`/`else`-nested yields in a v4 envelope with driver-enforced per-item
+  cleanup settlement. Loop-embedded carrying is refused (`SPX-T303`), not
+  silently narrowed. Native and Wasm code generation still refuse `yields`
+  (`SPX-B116`/`SPX-W126`); this is a library contract with local evidence
+  only, not a runtime scheduler or public continuation ABI.
+
+- Session protocol declarations (`session protocol`) are parsed,
+  canonically formatted, verified (`SPX-K101`-`SPX-K106`), and erased with
+  unchanged native/Wasm bytes (#297), and are bound to their `@id`, span,
+  and checked HIR `via` functions in the per-source graph
+  (`semaprax.graph.v48`, declaring programs only), `context`
+  (`session_protocol_kernel.declared`), Architecture Claims
+  (`protocol_realizers_bound`, attesting only that `via` targets are
+  checked call-graph nodes, not ordering), and Assurance Manifest v1 (a
+  closed `session_protocol` obligation kind, `compiler_proved` static
+  validation only; older verifiers reject such envelopes with `SPX-Z103`).
+  Canonical declarations of `project-agent-session-v1` and
+  `database-transaction-v1` are gated field-for-field against the kernel
+  specs the two live subsystems run. Legal declaration order grants no
+  runtime authority. Project semantic cache compatibility bumped to
+  `semaprax.project-checked-module-hir.v2`. Fixed a stale
+  `context --filters session_protocol` note that had claimed no subsystem
+  calls the kernel.
+
+- Add a Compute Kernel Profile (#306, RFC 0005): a deterministic CPU
+  reference executor (`semaprax.compute-cpu-reference.v1`) for
+  elementwise-map and sequential-fold kernels bound to checked functions by
+  `@id`, with capability-gated owned device-buffer lifecycle, sticky
+  failure selection, stale-artifact refusal, and diagnostics
+  `SPX-GC014`-`SPX-GC021`. Add an optional macOS `metal-device` Metal
+  backend (`objc2-metal`) for the elementwise map on `i32`/`i64` with
+  dispatch-time admission parity, including a fix for a 64-bit `ulong`
+  division that crashed the Metal compiler service. Local physical-device
+  evidence on one Apple M3 Pro only; no hosted, multi-device, or production
+  accelerator claim.
+
 ## 0.6.0 — 2026-09-24
 
 - Keep the frozen private Component v7 WIT identity at `0.5.0` while the crate

@@ -517,6 +517,65 @@ hand-assembled reversal endpoint under two V8 tiers, not a compiled generic
 provider ABI. Actual Rust-generator equality remains a separate required gate;
 no new PG-7 completion or hosted-green claim follows from local template runs.
 
+### Compiled Core Wasm provider hardening, 2026-09-26/27 (#287, #288, #301, #292; local evidence only)
+
+This addendum records local-only work on the separately-scoped
+`public-generic-wasm-provider.v1` profile
+([PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md](PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md),
+`src/wasm/public_generic_provider`) already distinguished above from PG-5/PG-6's
+own fixture-endpoint adapters. It does not change any PG-1 through PG-9 gate
+status, the fixture-endpoint characterization of PG-5/PG-6's own adapters, or
+issue #229's still-open compiled-`.wasm`-for-that-ABI requirement; no hosted
+run and no candidate freeze accompany any of it.
+
+- **#287**: the generated TypeScript consumer's own ABI hostility against this
+  compiled provider is now proven directly (call-after-close, an
+  over-capacity/out-of-bounds length, a byte-mutated canonical frame,
+  export-before-call, foreign/stale/double release, and cross-instance handle
+  confusion all refuse at the provider's own exact status), by intercepting
+  the real `WebAssembly.instantiate` rather than reading a hand-written
+  re-implementation; the shipped generator template is unchanged.
+- **#288**: this differential testing found and fixed four defects in the
+  compiled provider: a stubbed owned-byte runtime that trapped on any
+  allocating subject now has a real invocation-local implementation;
+  `input_prepare` no longer grows linear memory before the carrier frame is
+  validated; the input-payload window moved into its own 128 KiB region,
+  fixing a silent overwrite of combined payloads above 2 KiB; and the
+  provider now emits Wasm adapter ABI v2, reporting a semantic carrier-replay
+  failure as its own raw status 14 (`SPX-PG803`) instead of collapsing it to
+  raw 5.
+- **#301**: one closed, versioned settlement-matrix corpus
+  (`semaprax.public-generic.settlement-matrix.v1`, 14 cases over checked
+  `Pair<Bytes>` subjects) now runs this compiled provider side by side with
+  the retained interpreter, native C11 (O0/O2 plus local ASan), and the
+  generated C11/Rust/C++17/TypeScript callers across 126 asserted cells.
+  Following #288's fixes the matrix's former 8 known-defect cells (this
+  provider's own defects above) now pass: **105 pass, 0 known-defect, 21
+  not-applicable**, asserted exactly (not merely a floor) by
+  `shared_settlement_corpus_matrix_is_complete_and_asserted`.
+- **#292**: a Wasmtime 47.0.4 differential-conformance submodule added to the
+  private Component runner cross-checks the reference interpreter, this
+  standalone compiled provider, and the typed Component on two checked-in
+  projects, including stale-Component/descriptor refusal and resource-arena
+  recovery; it found the #288 payload-overlap defect before that fix landed.
+  Its four component-runtime fixtures' provider/component/component-SHA-256
+  digests were re-pinned after #288 changed the compiled provider's bytes
+  (each fixture's descriptor digest, a pure function of checked source, is
+  unchanged); the differential's own in-process re-derivation
+  (`component_runtime_ci_contract`) re-verifies every re-pinned value rather
+  than trusting the pinning commit.
+- **#293's** unrelated Core Wasm call-depth admission does not touch this
+  provider: its lowering path (`aggregate::provider_lowering::
+  lower_public_generic_provider_closure`) never calls
+  `aggregate::call_admission::activate`, confirmed by reading both modules,
+  so the #292 re-pinned digests above remain current for this profile.
+
+None of this is hosted evidence, an artifact-digest inventory from a hosted
+run, or a security/trust review; none of it is a #164 candidate freeze or a
+PG-9 change. See
+[PUBLIC-GENERIC-RELEASE-CANDIDATE-EVIDENCE-V1.md](PUBLIC-GENERIC-RELEASE-CANDIDATE-EVIDENCE-V1.md)
+for the fuller local-candidate accounting.
+
 ## Standing support and publication decision
 
 As of 2026-09-11: **public generic ownership is not supported and not

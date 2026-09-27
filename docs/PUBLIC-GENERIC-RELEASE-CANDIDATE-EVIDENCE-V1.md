@@ -24,6 +24,107 @@ run was cancelled by an unrelated superseded job. It was the first hosted
 `--lib public_generic_abi` selector run (307 passed); see corrected §2.16 and
 §3 item 4 for the complete citation and counts.
 
+**Third revision, 2026-09-27 (issue #305 audit — local candidate named,
+`public-generic-wasm-provider.v1` hardening, hosted evidence still absent):**
+this revision names the current **local** candidate this lane's own work
+applies to — commit `77d68e49` on the `wavect/v070` integration branch (base
+`f5e8531c` on `main`) — and records local-only fixes and corpora added to the
+separately-scoped `public-generic-wasm-provider.v1` profile
+(`src/wasm/public_generic_provider`, §1.2 row 6/§2.6.2's 2026-09-26 correction)
+since that correction. **This is not a #164 SHA freeze**: no fast-forward
+check, no fresh full local gate run of every section-B selector, no artifact
+digest inventory, no fresh hosted run, and no compatibility/security review
+accompany this revision — see the OPEN list this revision adds to §3 below.
+GitHub Actions credits are exhausted for this account as of this revision, so
+the hosted three-OS job, hosted artifact digests, and hosted security review
+items in §3 cannot be produced locally; they are recorded as explicitly OPEN,
+not skipped-and-called-green.
+
+- **#287 (issue audited 2026-09-26, already reflected in §1.2 row 6/§2.6.2
+  above)**: the generated TypeScript consumer's own ABI hostility against the
+  compiled provider is proven by intercepting the real
+  `WebAssembly.instantiate`, not a hand-written re-implementation; review
+  fixes dropped a vacuous cross-instance case and added a real module-level
+  "call after close" check. Local, proof-only evidence.
+- **#288**: four defects this session's predecessors found in the compiled
+  provider are fixed: the owned-byte runtime (`bytes_copy`/`bytes_zeroed`/
+  `bytes_set`) is a real invocation-local implementation rather than a stub
+  that trapped; `input_prepare` validates the carrier frame before growing
+  linear memory; the input-payload window is a dedicated 128 KiB region
+  (previously 2 KiB below the input aggregate record, silently overwriting
+  combined payloads above that bound while still reporting success); and the
+  provider emits Wasm adapter ABI v2, reporting a semantic carrier-replay
+  failure as its own raw status 14 (`SPX-PG803`) rather than collapsing it to
+  raw 5. `result_export`'s destination pointer/length is now bounds-checked
+  before the memory copy (status 13). Commands quoted from the fix commits:
+  `cargo test --locked --offline -p semaprax --test public_generic_native_adapter_v1 core_wasm`
+  → 4 passed (`wasm_large_payload`, `lifecycle`, `wasm_comparison`,
+  `same_subject`); `cargo test --locked --offline -p semaprax --test public_generic_wasm_adapter_v1 -- compiler_provider_artifact component_artifact`
+  → 7 passed. **Not re-run by this revision** — quoted from the commits that
+  introduced them, exactly as this document's own stated method requires.
+  Local, proof-only evidence.
+- **#301**: one closed, versioned settlement-matrix corpus
+  (`semaprax.public-generic.settlement-matrix.v1`, 14 cases over checked
+  `Pair<Bytes>` identity/refusing/allocating subjects, `tests/public_generic_native_adapter_v1/settlement_matrix.rs`
+  region) runs the retained interpreter, raw authenticated native C11 (O0/O2
+  plus local ASan), this compiled Core Wasm provider, and the generated
+  C11/Rust/C++17/TypeScript callers side by side, asserting an exact,
+  non-vacuous 126-cell split. Before #288's fixes landed, 8 of those cells
+  were one-line known-defect rows citing the four #288 defects above; after
+  #288, `shared_settlement_corpus_matrix_is_complete_and_asserted` asserts
+  the exact closed split **105 pass, 0 known-defect, 21 not-applicable**
+  (not merely a `passes >= N` floor a partially-broken matrix could still
+  clear). Quoted from the flip commit:
+  `cargo test --locked --offline -p semaprax --test public_generic_native_adapter_v1 settlement_matrix::`
+  → 2 passed, 0 failed. Local, proof-only evidence; no provider source is
+  touched by this corpus itself.
+- **#292**: a Wasmtime 47.0.4 differential-conformance submodule in the
+  private Component runner cross-checks the reference interpreter, this
+  standalone compiled provider, and the typed Component on two checked-in
+  projects (a non-identity leaf swap, and `requires false`), including
+  stale-Component/stale-descriptor refusal, Core open refusal of a stale
+  descriptor, resource-arena recovery after success and failure, and an
+  oversized-list trap with recovery. This differential found the #288
+  payload-overlap defect before the fix landed; an ignored selector
+  reproduced it, now un-ignored. After #288 changed the compiled provider's
+  bytes, all four component-runtime fixtures' provider digest, component
+  digest, and raw component SHA-256 were re-pinned (each fixture's
+  **descriptor** digest, a pure function of checked source, is measured
+  unchanged); `component_runtime_ci_contract.rs` independently recomputes and
+  re-verifies every re-pinned value rather than trusting the pinning commit's
+  numbers. Quoted from the re-pin commit:
+  `cargo test --offline --manifest-path platform-tests/component-runtime/Cargo.toml --all-features public_generic`
+  → 7 passed, 0 failed, 0 ignored (was 6 failed, 1 ignored before the re-pin);
+  `cargo test --locked --offline -p semaprax --test component_runtime_ci_contract`
+  → 4 passed, 0 failed. **Not re-run by this revision.** Local, proof-only
+  evidence; note (quoted verbatim from the re-pin commit) that `--locked` on
+  that manifest failed in that session's environment over transitive-dependency
+  registry-cache drift unrelated to this change, and the regenerated lock
+  file was deliberately not committed — this remains an open environment item,
+  not resolved by this revision.
+- **#293's** Core Wasm call-depth admission (issue #293, `wasm::aggregate::call_admission`)
+  was verified by this revision, by reading source rather than quoting another
+  document, **not to touch this provider's compiled bytes**: the provider's
+  lowering entry point (`aggregate::provider_lowering::lower_public_generic_provider_closure`,
+  `src/wasm/aggregate/provider_lowering.rs`) calls `super::emit_function`
+  directly and never calls `aggregate::call_admission::activate`, which is
+  the only thing that adds the depth global and check to a module build; a
+  repository-wide grep of `src/wasm/public_generic_provider/*.rs` for
+  `call_admission`/`activate(` returns no hits. The #292 re-pinned digests
+  above therefore remain current for candidate `77d68e49`, which includes
+  #293's merge.
+
+**Still entirely open after this revision** (in addition to every item §3
+already listed, none of which this revision closes): a fresh hosted run at
+the exact commit named above (or any later one) on Linux, macOS, and Windows;
+an authenticated artifact/corpus digest inventory for that run; a
+compatibility/delta review and a security/trust-boundary review of this
+candidate; and #164's own formal SHA-freeze protocol (fast-forward check,
+uncommitted-changes check, decision-packet template). GitHub Actions credits
+being exhausted is the specific, stated reason the hosted items cannot be
+produced right now — it is not evidence that they were run and passed, and
+it is not a basis for calling any of them green.
+
 ## What this document is, and is not
 
 This document assembles the two evidence sections of #164 that are

@@ -128,7 +128,8 @@ predates the current head and is not a frozen candidate under issue #164; no
 public generic signature, descriptor, carrier, calling convention, or support
 claim follows from any of it, and no public support follows from the
 versioned descriptor/carrier code that now exists. Every physical adapter
-still calls a fixture endpoint rather than a compiler-derived generic export.
+PG-5/PG-6 themselves define still calls a fixture endpoint rather than a
+compiler-derived generic export.
 The internal
 [`public-generic-wasm-provider.v1`](PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md)
 profile now admits and independently replays one checked generic endpoint and
@@ -136,8 +137,26 @@ emits a deterministic zero-import Core Wasm provider implementing the complete
 lifecycle ABI. Legacy artifact routes remain closed. The generated TypeScript
 runtime delegates lifecycle to the module and now emits canonical descriptor-
 bound carrier frames, so the focused package executes the compiled provider's
-complete lifecycle. #229 remains open for the broader hostile/settlement
-matrix, endpoint shapes, and hosted acceptance.
+complete lifecycle. **Local hardening since `7def8fb1…` (#287, #288, #301,
+#292; local candidate `77d68e49` on the unreleased `wavect/v070` integration
+branch, not itself a #164 candidate or on `main`):** the generated
+TypeScript consumer's own ABI hostility against the compiled provider is now
+proven directly (#287); four provider defects the differential harnesses
+found are fixed, and the provider now emits Wasm adapter ABI v2 (raw status
+14, `SPX-PG803`, for a semantic carrier-replay failure) (#288); one closed
+126-cell settlement-matrix corpus across the interpreter, native C11,
+this compiled provider, and all four generated callers now asserts an exact
+105 pass / 0 known-defect / 21 not-applicable split (#301); and a Wasmtime
+47.0.4 differential-conformance submodule cross-checks the interpreter, this
+provider, and the typed Component (#292). All of this is local, proof-only
+evidence with no hosted run — GitHub Actions credits are exhausted for this
+account, so a hosted three-OS run, an artifact-digest inventory, and a
+compatibility/security review for this candidate are explicitly open, not
+skipped-and-called-green; see the 2026-09-27 revision in
+[PUBLIC-GENERIC-RELEASE-CANDIDATE-EVIDENCE-V1.md](PUBLIC-GENERIC-RELEASE-CANDIDATE-EVIDENCE-V1.md).
+#229 remains open for the original PG-5/PG-6 physical-adapter fixture
+endpoints and their own compiled-`.wasm`-for-that-ABI requirement, which
+none of the above changes.
 The [runtime settlement corpus](PUBLIC-GENERIC-SETTLEMENT-CORPUS-V1.md)
 records the implemented native fixture subset, including bounded non-recycled
 identity/recreation, sibling settlement, explicit release-status propagation and

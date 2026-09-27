@@ -40,7 +40,16 @@ receipts never authorize mutation or publication.
 
 The [Public Generic Ownership milestone](PUBLIC-GENERIC-OWNERSHIP-MILESTONE-V1.md)
 owns PG-1 through PG-9. The cited PG-1–8 hosted run applies to its exact older
-commit, not automatically to current main.
+commit, not automatically to current main. Local-only hardening of the
+separately-scoped `public-generic-wasm-provider.v1` compiled-provider profile
+(#287, #288, #301, #292; local candidate `77d68e49` on the unreleased
+`wavect/v070` integration branch) has since narrowed the caller/carrier and
+physical-adapter evidence gap for that one profile further; it is not a
+hosted run, not a #164 candidate freeze, and does not change PG-9. The next
+boundary for ABI-09 remains: a fresh hosted three-OS run, an artifact-digest
+inventory, and a compatibility/security review at one exact frozen candidate
+— all currently open because hosted CI capacity (GitHub Actions credits) is
+exhausted for this account, not because the work was skipped.
 
 <a id="current-priority-post-v02-promotion-boundaries"></a>
 

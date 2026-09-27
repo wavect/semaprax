@@ -35,6 +35,7 @@ pub const KINDS: &[&str] = &[
     "resource",
     "interface",
     "protocol",
+    "session_protocol",
     "implementation",
     "function",
 ];

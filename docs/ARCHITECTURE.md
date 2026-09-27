@@ -1007,6 +1007,12 @@ own replacements-only evidence and publication. Operations and structural
 change are separate, bounded derivation layers in
 `src/semantic_workspace_operations.rs` and
 `src/semantic_workspace_structural_change.rs`.
+`src/workspace_graph/session_protocol_decl.rs` owns issue #297's follow-on
+(R21) projection of declared `.spx` `session protocol`s into the Workspace
+Semantic Graph: `semaprax.workspace-semantic-graph.v2`, selected only for a
+workspace with at least one declaring module, with one fact per declaration
+bound to its owning module, path, `@id`, span, and checked `via` functions
+(see `docs/SESSION-PROTOCOL-TYPES-V1.md`).
 
 Only the live workspace invocation may publish. Evidence capsules never carry
 reusable authority.

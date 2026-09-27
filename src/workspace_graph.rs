@@ -22,6 +22,7 @@ mod prelude_binding;
 mod project_render;
 mod retained_validation;
 mod retained_vectors;
+mod session_protocol_decl;
 pub(crate) mod source_callables;
 mod validation;
 use crate::ast::{
@@ -31,13 +32,11 @@ use crate::ast::{
 use crate::diagnostic::Diagnostic;
 use crate::{format, graph, hir, prelude, workspace};
 use diagnostics::{graph_error, limit_error, project_function_error, use_error};
-#[cfg(test)]
-use expected_projection::dependency_depths;
-#[cfg(test)]
-use expected_projection::synthetic_builder_bytes;
 use expected_projection::{
     collect_expected_edges, synthetic_program, validate_dependency_dag, verify_resolved_call_edges,
 };
+#[cfg(test)]
+use expected_projection::{dependency_depths, synthetic_builder_bytes};
 use operation_sidecar::build_operation_sidecar;
 pub(crate) use operation_sidecar::project_operation_sidecar;
 use project_render::render_project_graph_json;
@@ -3468,8 +3467,12 @@ fn render_graph_json(
         .find(|module| module.module == projection.entry_module)
         .expect("validated projection has exactly one entry module");
     let mut output = crate::bounded_output::CappedString::new();
+    let session_protocols = session_protocol_decl::recorded();
     output.push_str("{\"schema\":");
-    push_json_string(&mut output, WORKSPACE_GRAPH_SCHEMA);
+    push_json_string(
+        &mut output,
+        session_protocol_decl::schema(&session_protocols),
+    );
     output.push_str(",\"workspace_manifest_schema\":");
     push_json_string(&mut output, WORKSPACE_MANIFEST_SCHEMA);
     output.push_str(",\"workspace_revision\":");
@@ -3587,7 +3590,9 @@ fn render_graph_json(
         }
         push_json_string(&mut output, nonclaim);
     }
-    output.push_str("]}");
+    output.push(']');
+    output.push_str(&session_protocol_decl::render_trailing(&session_protocols));
+    output.push('}');
     output.into_string()
 }
 
@@ -3800,6 +3805,7 @@ fn build_owned_inner(
     retain_operation_programs: bool,
     mut frontend: Option<&mut crate::project::incremental::FrontendPass>,
 ) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
+    session_protocol_decl::reset();
     if sources.len() < 2 {
         return Err(vec![graph_error(
             "SPX-G170",
@@ -4231,6 +4237,7 @@ fn build_resolved_core(
             resolved
         };
         verify_resolved_call_edges(program, &resolved, authored)?;
+        session_protocol_decl::record(program, &resolved)?;
         if let Some(validation) = validation.as_mut() {
             validation.record_module(&program.module, &resolved, programs)?;
             let (module, imported_instances) = retain_workspace_module(

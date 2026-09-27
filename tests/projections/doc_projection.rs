@@ -298,3 +298,39 @@ fn cli_fails_closed() {
     }
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+/// R21 (issue #297 follow-on): a declared `session protocol` renders through
+/// the real CLI, not only through the library the other tests here exercise
+/// directly.
+#[test]
+fn cli_renders_a_declared_session_protocol() {
+    let source = include_str!("../../src/session_protocol/tests/fixtures/declared.spx");
+    let directory = fixture_dir();
+    let path = directory.join("declared.spx");
+    std::fs::write(&path, source).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("doc")
+        .arg(&path)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let markdown = String::from_utf8(output.stdout).unwrap();
+    assert!(markdown.contains("## Session protocols\n"));
+    assert!(markdown.contains("### `fixture-transaction-v1`\n"));
+    assert!(markdown.contains("- Identity: `fixture.session.transaction` (persistent)"));
+
+    let json_output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("doc")
+        .arg(&path)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(json_output.status.success());
+    let value: serde_json::Value = serde_json::from_slice(&json_output.stdout).unwrap();
+    let declarations = value["declarations"].as_array().unwrap();
+    assert!(declarations
+        .iter()
+        .any(|item| item["kind"] == "session_protocol"
+            && item["id"] == "fixture.session.transaction"));
+    std::fs::remove_dir_all(directory).unwrap();
+}

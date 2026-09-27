@@ -514,8 +514,7 @@ projected fact carries `"authority":"none"`.
   plus `static_validation` and `bounded_reachability`). Every `via` is first
   bound against the checked HIR of the same program. A program without a
   declaration keeps its existing schema and bytes; `to_legacy_json` refuses a
-  declaring program. The Workspace Semantic Graph does not yet project
-  declarations.
+  declaring program.
 - **Context.** With `--filters session_protocol`, the envelope's
   `session_protocol_kernel` object gains a `declared` array of the same facts
   when, and only when, the queried program declares a protocol.
@@ -526,6 +525,29 @@ projected fact carries `"authority":"none"`.
 - **Assurance.** One `session_protocol` obligation per declaration
   (see [Assurance Manifest v1](ASSURANCE-MANIFEST-V1.md)), `compiler_proved`
   for static validation only; never `model_checked`.
+- **Workspace Semantic Graph (R21, issue #297 follow-on).**
+  `workspace_graph::snapshot` selects `semaprax.workspace-semantic-graph.v2`
+  only when at least one managed module declares a session protocol; a
+  protocol-free workspace keeps `.v1` and byte-identical output, mirroring the
+  per-source graph's own v48 gating. A declaring workspace gains one trailing
+  `session_protocols` object: `base_schema` (the `.v1` schema it extends),
+  `authority: "none"`, and one fact per declaration, each the same canonical
+  fact the per-source graph emits plus `module` and `path` naming the exact
+  managed source that owns it. Every `via` is bound against the checked HIR
+  built from that same module before it is recorded, in the same per-module
+  pass that already binds cross-file call edges
+  (`src/workspace_graph/session_protocol_decl.rs`). The Package Semantic
+  Graph does not project declarations (see [Non-claims](#non-claims)).
+- **Documentation (R21).** `semaprax doc` renders a `session_protocol` entry
+  per declaration: the canonical declaration text as its signature (states,
+  initial, terminals with cleanup, and every transition, in source order),
+  and `States`/`Initial`/`Terminals`/`Authority` facts. Transitions have no
+  persistent identity of their own in the AST, so unlike a static `protocol`'s
+  methods they are not separately documented members.
+- **Declaration Query (R21).** `semaprax query --kind session_protocol`
+  selects the same `session_protocol` entries `semaprax doc` renders, for
+  both a single checked module and an authenticated Project, since both reuse
+  `crate::doc::document`.
 
 ### Bundled dependency pruning
 
@@ -536,16 +558,15 @@ name (`a_session_protocol_via_target_is_retained`).
 
 ### Non-claims
 
-A session protocol declaration is projected only by the per-source graph
-(v48), `context` (`--filters session_protocol`), Architecture Claims
-(`protocol_realizers_bound`, Rust API only) and single-file and Project
-Assurance Manifest v1. The following omit declarations entirely, and nothing
-here claims otherwise:
+A session protocol declaration is projected by the per-source graph (v48),
+the Workspace Semantic Graph (v2, R21), `context` (`--filters
+session_protocol`), Architecture Claims (`protocol_realizers_bound`, Rust API
+only), single-file and Project Assurance Manifest v1, `semaprax doc`, and
+`semaprax query --kind session_protocol`. The following omit declarations
+entirely, and nothing here claims otherwise:
 
-- the Workspace Semantic Graph and Package Semantic Graph documents (project
-  builds do run the `SPX-K1xx` checks, but emit no protocol facts);
-- `semaprax doc`;
-- `semaprax query --kind` (no session-protocol kind);
+- the Package Semantic Graph document (project builds do run the `SPX-K1xx`
+  checks, but emit no protocol facts);
 - the help shape catalog (`LANGUAGE-SHAPES-CATALOG`) and the agent quick
   reference;
 - semantic-workspace operations (rename, change, impact, review do not treat
@@ -666,6 +687,12 @@ tests), `graph::session_protocol_decl` and `graph::session_protocol_facet`
 (graph v48 and `context`), and `assurance_manifest::session_protocol`.
 `cargo test --locked -p semaprax --test workspace architecture_claims::`
 covers `protocol_realizers_bound` over real compiled revisions.
+`cargo test --locked -p semaprax --lib workspace_graph::session_protocol_decl`
+covers the Workspace Semantic Graph's v2 gating, module-bound facts,
+determinism, and the `via`-binding failure (R21); `cargo test --locked -p
+semaprax --test projections doc_projection::` and `query_projection::` cover
+`semaprax doc`'s `session_protocol` entry and `semaprax query --kind
+session_protocol` (R21).
 `cargo test --locked -p semaprax --doc session_protocol` (3 `compile_fail`
 doctests: grant-for-wrong-capability, double-use of a consumed `Endpoint`,
 and the capability module's own copy of the grant-for-wrong-capability

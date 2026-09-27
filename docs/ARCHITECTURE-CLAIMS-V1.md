@@ -1,5 +1,8 @@
 # Architecture Claims v1
 
+Audience: compiler contributors and reviewers of checked-fact-derived
+documentation and tooling.
+
 Status: initial slice. Two operators, `forbid_reaches` and
 `protocol_realizers_bound` (issue #297, see
 [`protocol_realizers_bound`](#protocol_realizers_bound-issue-297)), are implemented,
@@ -9,9 +12,6 @@ lists (unique/bounded writers, effect/capability attribution, dependency
 direction, deployment facts, authorization mint/consume), CLI/MCP wiring,
 candidate-review integration, and Assurance Manifest recording are **not**
 implemented and are not claimed as done anywhere in this document.
-
-Audience: compiler contributors and reviewers of checked-fact-derived
-documentation and tooling.
 
 An architecture claim asks a question about the checked program, not about a
 diagram someone drew. For one exact [`ProjectRevision`](../src/project/mod.rs),

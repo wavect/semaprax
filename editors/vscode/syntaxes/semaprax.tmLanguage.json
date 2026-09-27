@@ -82,7 +82,7 @@
       "patterns": [
         {
           "name": "keyword.declaration.semaprax",
-          "match": "\\b(module|use|permit|fn|record|variant|class|resource|interface|protocol|agent|impl|import|type|types|operations|canonical_json|drop|trivial)\\b"
+          "match": "\\b(module|use|permit|fn|record|variant|class|resource|interface|protocol|session|agent|impl|import|type|types|operations|canonical_json|drop|trivial)\\b"
         },
         {
           "name": "keyword.control.semaprax",
@@ -94,7 +94,7 @@
         },
         {
           "name": "keyword.other.contract.semaprax",
-          "match": "\\b(requires|ensures|uses|effects|permits|failure|infallible|status|consumes|always|yields)\\b"
+          "match": "\\b(requires|ensures|uses|effects|permits|failure|infallible|status|consumes|always|yields|states|initial|terminal|cleanup|on|via|choice|capability)\\b"
         },
         {
           "name": "keyword.other.import.semaprax",

@@ -782,13 +782,20 @@ module graph.v14;
         // footprints and eight slots for every node, and an imported function
         // is now charged as the stub the projection retains instead of as a
         // second copy of the provider's contract and body, and issue #83
-        // re-derived the identity copy factor from 64 to 16. Only
-        // `used_builder_bytes` and the digest over it move; every other field
-        // of the rendered document is byte for byte identical. Wire-order and
-        // independent replay below remain exact.
+        // re-derived the identity copy factor from 64 to 16. Re-pinned again:
+        // issue #297 (commit b8116173) added `Program.session_protocols:
+        // Vec<SessionProtocolDeclaration>`, growing `Program` by another
+        // `Vec`'s worth of bytes (24 on 64-bit) and moving every structural
+        // charge computed from `size_of::<Program>()`. A field-by-field diff
+        // of the rendered document against the pre-#297 JSON confirms only
+        // `budget.used_builder_bytes` (416669 -> 419069) and `graph_digest`
+        // moved; every other field, including wire order, is byte for byte
+        // identical. Only `used_builder_bytes` and the digest over it move;
+        // every other field of the rendered document is byte for byte
+        // identical. Wire-order and independent replay below remain exact.
         assert_eq!(
             document_sha,
-            "sha256:ddf1c68643f6e5f451be11a368a884b99bf97b7ee6755e25b129ceb27ad9e8ca"
+            "sha256:db7f9f2a8f0b920d8175973eab9ae9029dab3a13f2acdb3c38eb69a81bf7becc"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

@@ -380,7 +380,10 @@ fn tier_label(balance: i64) -> i64
     assert_eq!(result.status.code(), Some(1), "{result:?}");
     let report = document(&output);
     for language in ["rust", "typescript", "semaprax-project"] {
-        let record = result_for(&report, &format!("iterative-repair-attempt-one::{language}"));
+        let record = result_for(
+            &report,
+            &format!("iterative-repair-attempt-one::{language}"),
+        );
         assert_eq!(record["public"]["passed"], true, "{language}: {record}");
         assert_eq!(record["hidden"]["passed"], false, "{language}: {record}");
         assert_eq!(record["leak_check"], "ok", "{language}: {record}");

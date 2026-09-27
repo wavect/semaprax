@@ -283,6 +283,20 @@ format: `Unreleased` then release buckets, grouped by impact.
   toolchain identities and the reserved languages' provisioning needs (#298);
   the "Agent workflow" category's coverage awaits a maintainer scope decision,
   and the real two-model and second-host pilot remains open.
+- Admit nested owned records on the native boundary through a new, separately
+  versioned `authenticated-native-moves-nested.v1` profile (#292), with
+  positional leaf-path equality against the verified descriptor and the hostile
+  corpus rerun against a nested descriptor; the Component parity suite's native
+  column now uses the same checked endpoint and byte-identical descriptor as
+  the interpreter, Core Wasm and Component columns. `moves-v1` is unchanged.
+- Extend the optional Metal backend to sequential folds and to `u8`, `usize`
+  and `bool` (#306), with an order-preserving single-thread fold and a
+  division-free binary long division for 64-bit unsigned `/` and `%`, covered on
+  the local M3 Pro across divisor classes up to `u64::MAX`.
+- Add the benchmark's thirteenth task, `iterative-repair-workflow-v1`, for the
+  "Agent workflow" category (#298): two sequentially masked defects and a
+  preserved sibling behaviour, ported to every runnable lane. The maintainer
+  directed a dedicated task over orthogonal orchestrator coverage.
 
 ## 0.6.0 — 2026-09-24
 

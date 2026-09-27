@@ -377,19 +377,39 @@ Second increment (this document's own contract): the query is un-gated from
   non-`Bytes` owned value never reaches a plan slot in the first place, since
   `check_scalar` only ever defers `Bytes`. This is a compile-time gate, not a
   runtime one: a program that fails it never reaches lowering.
-  **A loop-embedded carried site is refused, not merely narrowed.** A
-  `while` body can suspend more than once per invocation, but the carrying
-  substitution (below) is a flat map keyed by the static `let` binding,
-  consumed on the *first* dynamic occurrence a resume's replay reaches;
-  resuming the Nth suspension of such a site would substitute that
-  iteration's bytes into the first iteration's own binding during replay,
-  silently running every earlier iteration with the wrong value.
-  `admit_owned_bytes_profile` therefore also refuses (`SPX-T303`) any site
-  that both carries something live and is reached through a `while` body
-  (`cleanup_plan::owned_liveness::site_is_loop_embedded`), until a later
-  slice makes the carrying substitution dynamic-occurrence-aware. Only an
-  if/else-nested site -- reached at most once per invocation -- admits a
-  carried value in this increment.
+  **A loop-embedded carried site admits exactly when the carried local's own
+  storage is untouched inside the loop.** A `while` body can suspend more
+  than once per invocation, and the carrying substitution (below) is a flat
+  map keyed by the static `let` binding, consumed on the *first* dynamic
+  occurrence a resume's replay reaches. That is sound exactly when the
+  carried local's own storage (its `Initialize`/`Renew`/`Transfer`/
+  `ReserveRenewal`/`CallCommit`-argument transitions) is never triggered
+  *inside* a `while` body: such a local's own `let`/assignment then reaches
+  exactly one dynamic occurrence per invocation regardless of how many times
+  the loop-embedded site downstream suspends, so the one recorded value is
+  the right one for every occurrence. `cleanup_plan::owned_liveness::
+  slot_touched_inside_while` decides this per live slot -- an exhaustive
+  structural walk (every expression kind via
+  `hir::push_resolved_expression_children_in_authored_order`, every statement
+  kind via `ResolvedStatement::child_count`/`child`, so a transition trigger
+  nested in a `match` arm or an `unsafe` boundary inside a `while` body is
+  found exactly like one nested in `if`/`else`, never missed by a narrower,
+  placement-grammar-restricted walk) -- rather than blanket-refusing every
+  live slot merely because the *site* sits inside a `while` body.
+  `admit_owned_bytes_profile` refuses (`SPX-T303`) a loop-embedded site's
+  live slot only when `slot_touched_inside_while` finds it touched inside the
+  loop: a local whose own storage *is* touched there can legitimately hold a
+  different value at each dynamic occurrence of its own binding, which the
+  flat map cannot represent (only the first would ever be consulted), so
+  that shape stays refused. In practice, `hir::resolve_statement`'s own
+  pre-existing Bounded While-Loops v1 admission (`SPX-T252`) already refuses
+  most ways of touching an owned `Bytes` local's storage inside a `while`
+  body (no owned-Bytes-producing or non-scalar-returning call, no record
+  construction, no method call), so `SPX-T303` here is a second line of
+  defence rather than the first for source admitted today; the admitted
+  shape that reaches lowering at all is a `Bytes` local defined -- and never
+  reassigned -- *before* the loop, live across a suspension reached through
+  it.
 - **Lowering.** `resumable_effects::lowering::control::lower_control` (the
   control-dependent plan only; the sequential plan still refuses any owned
   cleanup state) computes each `ControlSite`'s `carried: Vec<ValueId>` from
@@ -461,5 +481,11 @@ Second increment (this document's own contract): the query is un-gated from
 Scope carried over unchanged from the first increment, and still true of the
 second: only whole-storage `Bytes` locals, only the control-dependent plan,
 only the placements the increment 1 grammar note above already lists, and --
-new to this increment -- only an if/else-nested carried site, never a
-loop-embedded one, until dynamic-occurrence-aware carrying exists.
+new to this increment -- a loop-embedded carried site admits when the
+carried local's own storage is untouched inside the loop (in practice, a
+`Bytes` local defined and never reassigned before the loop); a carried local
+whose own storage is touched inside the loop stays refused (`SPX-T303`),
+since the flat, `ValueId`-keyed carrying substitution cannot soundly
+represent a value that legitimately differs across that binding's own
+dynamic occurrences. Making the substitution dynamic-occurrence-aware, to
+admit that broader shape too, remains future work.

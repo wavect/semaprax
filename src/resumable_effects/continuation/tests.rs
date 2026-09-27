@@ -11,6 +11,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 mod control;
 mod owned;
+mod owned_loop;
 
 // --- fault injection consulted by `journal::Journal::append` ---------------
 

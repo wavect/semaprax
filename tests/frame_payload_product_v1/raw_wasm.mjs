@@ -22,6 +22,10 @@ assert.deepEqual(WebAssembly.Module.exports(module),[
   {name:"memory",kind:"memory"},
   ...["__spx_data_status_v1","__spx_data_scratch_base_v1","__spx_data_scratch_capacity_v1"].map(name=>({name,kind:"global"})),
   ...ids.map(id=>({name:rawName(id),kind:"function"})),
+  // Issue #293 P2-1: every Public Useful Data Export v1 module now carries
+  // this sticky call-depth-exceeded marker unconditionally (see
+  // `wasm::aggregate::call_admission`).
+  {name:"spx_call_depth_exceeded",kind:"global"},
 ]);
 
 // Observe actual imported operations without replacing their meaning. The

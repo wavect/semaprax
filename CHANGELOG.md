@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add an opt-in public Agent live target route that records bounded semantic
+  work, ordered cleanup events, and settlement for interpreter, native C11,
+  and Core Wasm stages through the sealed dispatch. Focused local parity tests
+  cover the selected backends; durable routes retain reservation accounting.
+
 - Reject missing, empty, or byte-identical hidden overlays before scoring
   cross-language benchmark tasks, including caller-supplied inventories.
   Fixed scoring, agent scoring, and dry-run planning share the preflight;

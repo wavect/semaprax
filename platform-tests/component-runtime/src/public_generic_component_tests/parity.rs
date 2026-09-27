@@ -1,13 +1,16 @@
 //! Differential conformance for the private public-generic Component profile.
 //!
 //! One checked, explicitly acquired Project supplies a non-identity endpoint.
-//! The same retained revision is observed three ways: the reference
+//! The same retained revision is observed four ways: the reference
 //! interpreter's retained-call seam over the checked monomorphic
 //! `provider.witness` adapter (which calls the endpoint), its standalone compiled Core Wasm provider driven
-//! through the closed `spx_pg_v1_*` ABI, and its compiler-derived Component
-//! driven through typed Wasmtime Component Model bindings. The host adapter
-//! below admits Component bytes only after retained-revision replay binds them
-//! to the exact descriptor, provider, and Component identities.
+//! through the closed `spx_pg_v1_*` ABI, its compiler-derived Component
+//! driven through typed Wasmtime Component Model bindings, and (`native`
+//! submodule) the compiler-derived native C11 `-O0`/`-O2` provider driven
+//! through the generated C11 calling consumer, for the exact same admitted
+//! endpoint. The host adapter below admits Component bytes only after
+//! retained-revision replay binds them to the exact descriptor, provider,
+//! and Component identities.
 
 use std::{fmt::Write as _, path::Path};
 
@@ -33,6 +36,9 @@ use super::super::{
         PublicGenericComponentV1, exports::semaprax::public_generic_component::adapter::Failure,
     },
 };
+
+mod cancellation;
+mod native;
 
 // Independent known answers for the checked-in parity projects. Replay must
 // not accept identity claims supplied by the emitter under test.
@@ -142,6 +148,7 @@ struct Subject {
     input_binding: CarrierFrameBinding,
     result_binding: CarrierFrameBinding,
     interpreter: Vec<Outcome>,
+    native: native::NativeSubject,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -252,6 +259,7 @@ fn acquire(
     pins: Pins,
     stale: &[Candidate],
     cases: &[(Vec<u8>, Vec<u8>)],
+    native_requires_false: bool,
 ) -> HostResult<Subject> {
     with_authenticated_project(Path::new(manifest), |snapshot| {
         snapshot.check()?;
@@ -299,6 +307,8 @@ fn acquire(
             return Err(refusal("Core provider embeds a different descriptor"));
         }
         let interpreter = interpret(&revision, cases)?;
+        let native =
+            native::build(native_requires_false).map_err(|error| refusal(error.to_string()))?;
         Ok(Subject {
             component,
             provider_wasm: provider.wasm().to_vec(),
@@ -313,6 +323,7 @@ fn acquire(
                 Direction::Result,
             ),
             interpreter,
+            native,
         })
     })
     .map_err(|errors| failure(format!("parity project admission failed: {errors:?}")))
@@ -577,24 +588,28 @@ fn large_cases() -> Vec<(Vec<u8>, Vec<u8>)> {
 fn parity_failure(
     left: &[u8],
     right: &[u8],
-    agreement: [bool; 3],
+    agreement: [(&'static str, bool); 5],
     core_divergence: Option<usize>,
 ) -> Box<dyn std::error::Error> {
     failure(format!(
-        "interpreter/Component/Core agreement with the checked swap for {}+{} bytes: {agreement:?}; first Core divergence in result leaf 0: {core_divergence:?}",
+        "interpreter/Component/Core/native agreement with the checked swap for {}+{} bytes: {agreement:?}; first Core divergence in result leaf 0: {core_divergence:?}",
         left.len(),
         right.len(),
     ))
 }
 
-/// Compare the three engines for every case. `with_core` is false only for
+/// Compare the four engines for every case. `with_core` is false only for
 /// cases the standalone Core provider is known to corrupt (see below).
+/// `with_native` gates the compiler-derived native C11 `-O0`/`-O2` column
+/// (issue #292), driven through the generated calling consumer for the same
+/// admitted endpoint.
 fn compare_engines(
     engine: &Engine,
     subject: &Subject,
     cases: &[(Vec<u8>, Vec<u8>)],
     interpreter: &[Outcome],
     with_core: bool,
+    with_native: bool,
 ) -> HostResult<()> {
     if interpreter.len() != cases.len() {
         return Err(failure("interpreter skipped a parity case"));
@@ -609,7 +624,20 @@ fn compare_engines(
         } else {
             expected.clone()
         };
-        if *interpreter != expected || component != expected || core != expected {
+        let (native_o0, native_o2) = if with_native {
+            (
+                subject.native.call("-O0", left, right)?,
+                subject.native.call("-O2", left, right)?,
+            )
+        } else {
+            (expected.clone(), expected.clone())
+        };
+        if *interpreter != expected
+            || component != expected
+            || core != expected
+            || native_o0 != expected
+            || native_o2 != expected
+        {
             let divergence = match &core {
                 Outcome::Leaves(first, _) => first
                     .iter()
@@ -621,9 +649,11 @@ fn compare_engines(
                 left,
                 right,
                 [
-                    *interpreter == expected,
-                    component == expected,
-                    core == expected,
+                    ("interpreter", *interpreter == expected),
+                    ("component", component == expected),
+                    ("core", core == expected),
+                    ("native-O0", native_o0 == expected),
+                    ("native-O2", native_o2 == expected),
                 ],
                 divergence,
             ));
@@ -651,11 +681,11 @@ fn nonidentity_component_matches_interpreter_and_core_provider() -> HostResult<(
     let small = parity_cases();
     let large = large_cases();
     let cases = small.iter().chain(&large).cloned().collect::<Vec<_>>();
-    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &stale, &cases)?;
+    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &stale, &cases, false)?;
     let engine = engine()?;
     let (interpreter_small, interpreter_large) = subject.interpreter.split_at(small.len());
-    compare_engines(&engine, &subject, &small, interpreter_small, true)?;
-    compare_engines(&engine, &subject, &large, interpreter_large, false)?;
+    compare_engines(&engine, &subject, &small, interpreter_small, true, true)?;
+    compare_engines(&engine, &subject, &large, interpreter_large, false, true)?;
 
     // A stale descriptor is refused by the Core provider at open, before any
     // input is staged, mirroring host-side Component replay refusal above.
@@ -693,9 +723,9 @@ fn nonidentity_component_matches_interpreter_and_core_provider() -> HostResult<(
 #[test]
 fn large_payload_core_provider_matches_component_and_interpreter() -> HostResult<()> {
     let large = large_cases();
-    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &large)?;
+    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &large, false)?;
     let engine = engine()?;
-    compare_engines(&engine, &subject, &large, &subject.interpreter, true)
+    compare_engines(&engine, &subject, &large, &subject.interpreter, true, true)
 }
 
 #[test]
@@ -705,7 +735,13 @@ fn checked_contract_failure_matches_interpreter_and_core_provider() -> HostResul
         pins: PARITY_PINS,
     }];
     let cases = vec![(vec![1], vec![2])];
-    let subject = acquire(PARITY_FAILURE_MANIFEST, PARITY_FAILURE_PINS, &stale, &cases)?;
+    let subject = acquire(
+        PARITY_FAILURE_MANIFEST,
+        PARITY_FAILURE_PINS,
+        &stale,
+        &cases,
+        true,
+    )?;
     if subject.interpreter != [Outcome::ContractViolation] {
         return Err(failure(format!(
             "interpreter did not report the checked precondition: {:?}",
@@ -718,9 +754,15 @@ fn checked_contract_failure_matches_interpreter_and_core_provider() -> HostResul
         let component = component_call(&bindings, &mut store, &[1], &[2])?;
         let core = core_call(&engine, &subject, &subject.provider_descriptor, &[1], &[2])?
             .map_err(|status| failure(format!("Core provider refused open: {status}")))?;
-        if component != Outcome::ContractViolation || core != Outcome::ContractViolation {
+        let native_o0 = subject.native.call("-O0", &[1], &[2])?;
+        let native_o2 = subject.native.call("-O2", &[1], &[2])?;
+        if component != Outcome::ContractViolation
+            || core != Outcome::ContractViolation
+            || native_o0 != Outcome::ContractViolation
+            || native_o2 != Outcome::ContractViolation
+        {
             return Err(failure(format!(
-                "failure outcomes diverge: component={component:?} core={core:?}"
+                "failure outcomes diverge: component={component:?} core={core:?} native-O0={native_o0:?} native-O2={native_o2:?}"
             )));
         }
     }
@@ -730,7 +772,7 @@ fn checked_contract_failure_matches_interpreter_and_core_provider() -> HostResul
 
 #[test]
 fn oversized_list_traps_and_a_fresh_instance_recovers() -> HostResult<()> {
-    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &[])?;
+    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &[], false)?;
     let engine = engine()?;
     let (mut trapped, trapped_bindings) = instantiate(&engine, &subject.component)?;
     let oversized = vec![0x11; MAX_LIST_BYTES + 1];

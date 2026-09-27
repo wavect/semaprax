@@ -742,9 +742,12 @@ The smallest safe extension is a new sequential-only public entry point that
 takes `&[ResumableChannelValue]` and returns a
 `SequentialChannelResumableStep` whose `Completed` value is also a
 `ResumableChannelValue`. It admits each parameter and result only when it is
-an admitted scalar or `yield_aggregate::bounded_aggregate_refusal` succeeds;
-all parameter modes remain by-value. The existing `ArgumentValue` APIs stay
-unchanged.
+an admitted scalar or `yield_aggregate::bounded_aggregate_refusal` succeeds
+**and contains no `Bytes` leaf**. All parameter modes remain by-value. The
+existing `ArgumentValue` APIs stay unchanged. Owned bytes need the separate
+carried-owned-state and cleanup protocol; this carrier never treats the
+aggregate channel's bounded request-bytes exception as a whole-function
+parameter or result admission.
 
 Implementation must make these changes as one versioned carrier slice:
 
@@ -755,25 +758,27 @@ Implementation must make these changes as one versioned carrier slice:
   bit exactly.
 - `resumable_effects::continuation::{facts, DurableInvocation, lane}`:
   retain channel arguments and a channel completed value, and derive the
-  `Started.arguments_digest` from canonical channel JSON, including nominal
-  declaration and selected-case IDs. A scalar argument must retain its
-  existing digest bytes.
+  `Started.arguments_digest` from `channel_json(argument)` followed by one
+  LF for each argument, including nominal declaration and selected-case IDs.
+  A scalar argument therefore retains its existing digest bytes exactly.
 - `resumable_effects::continuation::journal`: introduce a new journal schema
   identity for aggregate `Started` arguments and aggregate `Completed`
   values. It must never reinterpret an existing scalar journal; recovery
   chooses the schema from the checked signature before accepting bytes.
 - `resumable_effects::source_checkpoint`: add a distinct envelope version for
-  aggregate invocation arguments and results. The version binds the same
-  signature, scope, plan, argument history, and scalar-leaf bit pattern as
-  the live carrier.
+  aggregate invocation arguments. It authenticates the suspended state,
+  never a completed result; completion remains the journal and public result
+  carrier. The version binds the same signature, scope, plan, argument
+  history, and scalar-leaf bit pattern as the live carrier.
 
 Required tests are: record and variant parameter/result success through two
 sequential yields; wrong nominal ID, case ID, field count, and scalar leaf
 refusals before dispatch; source and graph canonical round trips; replay with
 a changed aggregate argument; and a crash before and after every aggregate
 `Started`, `Answered`, and `Completed` record, proving no second dispatch or
-cleanup. Only after those pass may the Agent bridge bind FixtureAgent's
-effect-free checked `propose` wait: it must dispatch through
+cleanup. Only after those pass may the Agent bridge add a distinct effect-free
+`yields` wrapper around FixtureAgent's checked `model fn propose`; the model
+role itself cannot gain `yields`. The wrapper must dispatch through
 `DurableInvocation::dispatch` exactly once, consume the ordinary model grant
 there, and preserve the existing cancellation, replay, and refusal paths.
 

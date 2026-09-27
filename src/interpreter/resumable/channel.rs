@@ -31,17 +31,14 @@ use crate::conformance::NormalizedStatus;
 use crate::interpreter::{ArgumentValue, Flow, Value};
 
 use super::{
-    admit_entry, argument_error, argument_of, channel_of, channel_to_resumable_scalar,
-    resumable_scalars, run_worker, typed_resume_channel_value, Admitted, ChannelYieldRecord,
-    ResumableChannelContinuation, ResumableChannelValue, Resumption, REQUEST_DRIFT,
-    SUSPENDED_AT_YIELD, SUSPENSION_MISMATCH,
+    admit_channel_entry, argument_of, channel_of, channel_to_resumable_scalar, run_worker_values,
+    typed_resume_channel_value, ChannelAdmitted, ChannelYieldRecord, ResumableChannelContinuation,
+    ResumableChannelValue, Resumption, REQUEST_DRIFT, SUSPENDED_AT_YIELD, SUSPENSION_MISMATCH,
 };
 
-/// One settled outcome from a bounded record/variant-channel start or
-/// resume. The function's own overall result stays a Copy scalar (this
-/// increment widens only the `yields` channel, not a function's declared
-/// parameter or return type), so `Completed` stays `ArgumentValue`, exactly
-/// like [`super::SequentialResumableStep::Completed`].
+/// One settled outcome from a bounded record/variant-channel start or resume.
+/// The whole-function channel entry point returns the same checked bounded
+/// Copy value it accepts at its parameter boundary.
 #[derive(Clone, Debug, PartialEq)]
 pub enum SequentialChannelResumableStep {
     Suspended {
@@ -49,7 +46,7 @@ pub enum SequentialChannelResumableStep {
     },
     Completed {
         state: ResumableStateId,
-        result: ArgumentValue,
+        result: ResumableChannelValue,
     },
     LanguageFailure(NormalizedStatus),
     FuelExhausted,
@@ -72,6 +69,23 @@ pub fn run_sequential_channel_resumable_effect(
     arguments: &[ArgumentValue],
     max_steps: usize,
 ) -> Result<SequentialChannelResumableEvaluation, Vec<Diagnostic>> {
+    let arguments = arguments
+        .iter()
+        .cloned()
+        .map(ResumableChannelValue::Scalar)
+        .collect::<Vec<_>>();
+    evaluate_channel_resumable(program, function_id, &arguments, None, max_steps)
+}
+
+/// Run the sequential channel lane with its bounded Copy whole-function
+/// boundary. This is intentionally a new API: `ArgumentValue` remains the
+/// scalar-only boundary for every existing interpreter entry point.
+pub fn run_sequential_channel_resumable_effect_with_arguments(
+    program: &ResolvedProgram,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+    max_steps: usize,
+) -> Result<SequentialChannelResumableEvaluation, Vec<Diagnostic>> {
     evaluate_channel_resumable(program, function_id, arguments, None, max_steps)
 }
 
@@ -88,6 +102,31 @@ pub fn resume_sequential_channel_resumable_effect(
     answer: &ResumableChannelValue,
     max_steps: usize,
 ) -> Result<SequentialChannelResumableEvaluation, Vec<Diagnostic>> {
+    let arguments = arguments
+        .iter()
+        .cloned()
+        .map(ResumableChannelValue::Scalar)
+        .collect::<Vec<_>>();
+    evaluate_channel_resumable(
+        program,
+        function_id,
+        &arguments,
+        Some((continuation.clone(), answer.clone())),
+        max_steps,
+    )
+}
+
+/// Resume an aggregate whole-function channel invocation. The supplied
+/// arguments are replay-bound into the continuation binding before the
+/// answer is accepted, so a changed aggregate argument fails closed.
+pub fn resume_sequential_channel_resumable_effect_with_arguments(
+    program: &ResolvedProgram,
+    function_id: &str,
+    arguments: &[ResumableChannelValue],
+    continuation: &ResumableChannelContinuation,
+    answer: &ResumableChannelValue,
+    max_steps: usize,
+) -> Result<SequentialChannelResumableEvaluation, Vec<Diagnostic>> {
     evaluate_channel_resumable(
         program,
         function_id,
@@ -100,23 +139,19 @@ pub fn resume_sequential_channel_resumable_effect(
 fn evaluate_channel_resumable(
     program: &ResolvedProgram,
     function_id: &str,
-    arguments: &[ArgumentValue],
+    arguments: &[ResumableChannelValue],
     resume: Option<(ResumableChannelContinuation, ResumableChannelValue)>,
     max_steps: usize,
 ) -> Result<SequentialChannelResumableEvaluation, Vec<Diagnostic>> {
-    let Admitted {
+    let ChannelAdmitted {
         entry,
         yields,
         bound,
         admitted,
-    } = admit_entry(program, function_id, arguments, max_steps)?;
+        arguments: scalar_arguments,
+    } = admit_channel_entry(program, function_id, arguments, max_steps)?;
     let plan = lowering::lower_sequential(program, entry).map_err(|error| vec![error])?;
     let declarations = &program.declarations;
-    let scalar_arguments = resumable_scalars(arguments).ok_or_else(|| {
-        vec![argument_error(
-            "resumable invocation contains a non-scalar argument".to_owned(),
-        )]
-    })?;
 
     let (resumption, next_binding, channel_history) = match resume {
         None => (
@@ -234,11 +269,11 @@ fn evaluate_channel_resumable(
         }
     };
 
-    let (step, steps_used) = run_worker(
+    let (step, steps_used) = run_worker_values(
         program,
         &admitted,
         entry,
-        &bound,
+        bound,
         resumption,
         max_steps,
         |settled, resumption| {
@@ -277,7 +312,7 @@ enum ChannelStep {
     },
     Completed {
         state: ResumableStateId,
-        result: ArgumentValue,
+        result: ResumableChannelValue,
     },
     LanguageFailure(NormalizedStatus),
     FuelExhausted,
@@ -319,7 +354,7 @@ fn settle_channel_step(
     channel_history: &[ChannelYieldRecord],
 ) -> ChannelStep {
     match settled {
-        Ok(value) => match argument_of(&value) {
+        Ok(value) => match channel_of(declarations, &value) {
             Some(result) => ChannelStep::Completed {
                 state: plan.complete.id.clone(),
                 result,

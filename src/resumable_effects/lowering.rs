@@ -334,10 +334,16 @@ pub fn lower_sequential(
             ));
         }
     }
+    let mut admitted_boundary_types = vec![
+        &yields.request_type,
+        &yields.response_type,
+        &function.return_type,
+    ];
+    admitted_boundary_types.extend(function.params.iter().map(|parameter| &parameter.ty));
     require_scalar_expression_tree(
         &function.body,
         aggregate_bytes_channel,
-        Some((&yields.request_type, &yields.response_type)),
+        Some(&admitted_boundary_types),
     )?;
     reject_reachable_resumable_callees(program, function)?;
 
@@ -631,8 +637,9 @@ fn reject_yield_in_contracts(function: &ResolvedFunction) -> Result<(), Diagnost
     Ok(())
 }
 
-/// `admitted_channel`, when present, is the exact declared `(request_type,
-/// response_type)` of a bounded record/variant `yields` channel
+/// `admitted_boundary_types`, when present, are the exact declared
+/// request/response and whole-function boundary types of a bounded
+/// record/variant `yields` channel
 /// (`hir::yield_aggregate::bounded_aggregate_refusal` already checked its
 /// shape): an intermediate value of *exactly* one of those two types is
 /// admitted alongside the ordinary Copy-scalar profile (issue #296 R20). Only
@@ -642,13 +649,12 @@ fn reject_yield_in_contracts(function: &ResolvedFunction) -> Result<(), Diagnost
 fn require_scalar_expression_tree(
     root: &ResolvedExpr,
     allow_owned_bytes: bool,
-    admitted_channel: Option<(&ResolvedType, &ResolvedType)>,
+    admitted_boundary_types: Option<&[&ResolvedType]>,
 ) -> Result<(), Diagnostic> {
     let mut pending = vec![root];
     while let Some(expression) = pending.pop() {
-        let is_admitted_channel_value = admitted_channel.is_some_and(|(request, response)| {
-            expression.ty == *request || expression.ty == *response
-        });
+        let is_admitted_channel_value = admitted_boundary_types
+            .is_some_and(|types| types.iter().any(|ty| expression.ty == **ty));
         let admitted = expression.ty == ResolvedType::Unit
             || hir::is_scalar_resolved_type(&expression.ty)
             || (allow_owned_bytes && expression.ty == ResolvedType::Bytes)

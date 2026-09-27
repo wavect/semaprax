@@ -186,8 +186,9 @@ pub(super) fn check_resumable_profile<'a>(
     // independent re-check, not a second admission decision.
     // `lower_control`'s own call passes `false` and so keeps requiring a bare
     // Copy scalar, unchanged: the control-dependent lane has no
-    // aggregate-channel runtime support. Function parameters stay
-    // Copy-scalar only either way; this widening never touches them.
+    // aggregate-channel runtime support. The separate whole-function channel
+    // carrier also admits a bounded flat Copy aggregate parameter/result;
+    // it deliberately excludes the request channel's owned-Bytes extension.
     if hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.response_type) {
         return Err(invalid(
             "resumable lowering admits bounded Bytes leaves on the request channel only",
@@ -200,16 +201,25 @@ pub(super) fn check_resumable_profile<'a>(
                 && hir::yield_aggregate::bounded_aggregate_refusal(&program.declarations, ty)
                     .is_ok())
     };
+    let whole_function_type_ok = |ty: &ResolvedType| {
+        hir::is_scalar_resolved_type(ty)
+            || (allow_aggregate
+                && !hir::yield_aggregate::has_bytes_leaf(&program.declarations, ty)
+                && matches!(ty, ResolvedType::Nominal { .. })
+                && hir::yield_aggregate::bounded_aggregate_refusal(&program.declarations, ty)
+                    .is_ok())
+    };
     if !channel_type_ok(&yields.request_type)
         || !channel_type_ok(&yields.response_type)
         || function
             .params
             .iter()
-            .any(|parameter| !hir::is_scalar_resolved_type(&parameter.ty))
+            .any(|parameter| !whole_function_type_ok(&parameter.ty))
+        || !whole_function_type_ok(&function.return_type)
     {
         return Err(invalid(
             "resumable lowering requires a Copy-scalar (or, where admitted, bounded \
-             record/variant) request and response type, and Copy-scalar parameter types",
+             record/variant) request, response, parameter, and result type",
         ));
     }
     if (!allow_owned_bytes && !function.cleanup.flags.is_empty())

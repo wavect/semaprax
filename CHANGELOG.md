@@ -348,6 +348,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   are refused rather than approximated. The clause is erased before codegen.
   The project semantic cache tag is now
   `semaprax.project-checked-module-hir.v3`. Legal order grants no authority.
+- Refuse a record or variant `yields` request/response type with the
+  dedicated `SPX-T307` ("aggregate yield channel not yet admitted") instead of
+  the generic scalar refusal, and record the bounded aggregate shape and the
+  runtime work it still needs (#296).
 
 ## 0.6.0 — 2026-09-24
 

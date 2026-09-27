@@ -18,6 +18,9 @@ use crate::provider_adapter_sdk::StreamingSourceProposalAdapter;
 
 pub const MAX_ITERATIVE_PROPOSAL_BYTES: usize = 2 * 1024 * 1024;
 
+mod model_wait;
+pub use model_wait::SourceModelWaitBinding;
+
 pub struct AgentRuntimeV2 {
     project: Arc<ProjectRevision>,
     program_root: String,

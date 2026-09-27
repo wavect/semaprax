@@ -7,6 +7,7 @@ pub mod driver;
 )]
 pub mod effects;
 pub mod model;
+pub mod model_wait;
 mod render;
 pub mod source_live;
 mod step;

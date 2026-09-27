@@ -58,8 +58,8 @@ all; see `docs/METHODOLOGY.md`).
 
 ## Officially supported toolchain and success signal per language
 
-The three implemented adapters use their language's own official invocation,
-and each reports pass/fail through the convention that language actually
+The implemented adapters use their language's own official invocation, and
+each reports pass/fail through the convention that language actually
 uses — not a convention imposed on it. `adapters.json` records these as data,
 and `run.py`'s `success` predicate reads each one honestly:
 
@@ -68,6 +68,37 @@ and `run.py`'s `success` predicate reads each one honestly:
 | SEMAPRAX | `semaprax run digest.spx` | prints `app.main`'s `i64` result to stdout; `0` means every check passed. Process exit code is `0` whenever interpretation completes, pass or fail — SEMAPRAX's `run` does not use exit status to report test outcome, so the harness reads stdout instead. |
 | Rust | `rustc --edition 2021 --test main.rs -o test_bin` then `./test_bin` | process exit code (`0` = all `#[test]` fns passed) |
 | TypeScript | `tsc --strict --target ES2020 --module commonjs index.ts` then `node index.js` | process exit code (`0` = no uncaught assertion `Error`) |
+| C | `clang -std=c11 -Wall -Wextra -o test_bin main.c` then `./test_bin` | process exit code (`0` = every in-process check passed) |
+| Python | `python3 digest.py` (no build step; CPython is its own official interpreter) | process exit code (`0` = every in-process check passed) |
+| Swift | `swiftc -o test_bin main.swift` then `./test_bin` | process exit code (`0` = every in-process check passed) |
+| Java | `javac Main.java` then `java Main` (default classpath is the current directory) | process exit code (`0` = every in-process check passed) |
+
+**Independent review of the four newer ports (C, Python, Swift, Java; added
+under the `runnable_adapter_v2` extension, see
+`docs/CROSS-LANGUAGE-RUNNABLE-ADAPTER-V2.md`):** none of C, Python, Swift, or
+Java has a zero-install, zero-dependency unit-test convention as narrow as
+Rust's bare `#[test]` or a `node:assert`-shaped throw, so each port's `main`
+(or, for Python, its top-level module body) is itself the official test
+runner: it evaluates the same eight/ten check calls the other ports use,
+counts mismatches, and reports through the process's own exit code — the same
+"uncaught failure is the process's nonzero-exit signal" convention the
+existing TypeScript port already reduces to. This was checked line-by-line
+against the Rust and TypeScript reference ports for this task: same five
+fixed inputs, same four pure functions (`sum`/`count_even`/`count_negative`/
+`max`, spelled idiomatically per language exactly as the table above already
+tolerates for Rust vs. TypeScript), same two hidden-only vectors
+(`(0,0,0,0,0)` and `(-100,7,7,7,100)`), and no delegation to a language's own
+`sum`/`max`/"reduce" stdlib helper. Each port was independently compiled and
+run against both its positive vectors and a deliberately mutated (wrong)
+`max`/comparison implementation to confirm the hidden vectors actually fail a
+broken candidate before being committed; see the runnable-adapter v2 test
+suite's per-language fixture cases for the machine-checked form of that same
+review. Only `sequence-digest-v1` is ported to these four languages this
+round; the remaining eleven tasks in the canonical inventory are not, and
+each of these four adapters' `blocked`-by-omission status on every other task
+(a task simply not declaring the language) is the harness's ordinary,
+accurate "task declares no `<language>` implementation" outcome, not a
+failure.
 
 Two boundary choices are recorded here so they can be judged, not assumed:
 

@@ -20,7 +20,7 @@ OWNER_TASKS_SCHEMA = "benchmark.cross_language.tasks.v1"
 
 # SHA-256 of benchmarks/cross-language-v1/tasks.json's canonical owner bytes.
 # Updating this pin is a reviewed corpus change, not caller-supplied metadata.
-OWNER_TASK_INVENTORY_SHA256 = "sha256:f5cd390280bbdd82533fa6953d114ecf66a67d65c66d6571ccc6acb05a1113f1"
+OWNER_TASK_INVENTORY_SHA256 = "sha256:638d12d3fafe3217d71f997b2ce0c1354cafd9ecbbadef76e8d37c0f66bf40b2"
 
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9-]*\Z")

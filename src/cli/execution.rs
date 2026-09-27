@@ -394,7 +394,7 @@ mod tests {
         assert!(parse_test(&strings(&["--max-bytes", "0"])).is_err());
         assert!(parse_test(&strings(&["--max-steps", "01"])).is_err());
         assert!(parse_test(&strings(&["--max-steps", "-1"])).is_err());
-        assert!(parse_test(&strings(&["--max-steps", "100000001"])).is_err());
+        assert!(parse_test(&strings(&["--max-steps", "160000001"])).is_err());
         assert!(parse_test(&strings(&[
             DEFAULT_MANIFEST,
             "--manifest-path",

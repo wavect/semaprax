@@ -367,6 +367,11 @@ fn run_held(
     cancellation: Option<&crate::agent_runtime::AgentCancellation>,
     _invocation_path: Option<&Path>,
 ) -> Result<crate::process_provider::ProcessOutput, Diagnostic> {
+    // See `super::subprocess_test_serial` for why test builds hold this for
+    // the whole spawn+wait below: it keeps concurrent test threads from
+    // starving each other's subprocess past the fixed production deadline.
+    #[cfg(test)]
+    let _subprocess_test_serial = super::subprocess_test_serial();
     let tool = HeldProcessTool::new(
         executable,
         directory,

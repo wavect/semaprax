@@ -964,15 +964,7 @@ fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome:
     }
 
     fn target_backend_tools_available() -> bool {
-        crate::agent_lifecycle::tests::stage_process_host_supported()
-            && std::process::Command::new("clang")
-                .arg("--version")
-                .output()
-                .is_ok_and(|output| output.status.success())
-            && std::process::Command::new("node")
-                .arg("--version")
-                .output()
-                .is_ok_and(|output| output.status.success())
+        crate::agent_lifecycle::tests::native_wasm_tools_available()
     }
 
     fn target_run_on(

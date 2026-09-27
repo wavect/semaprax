@@ -529,7 +529,7 @@ fn the_sealed_dispatch_reaches_the_interpreter_and_matches_its_direct_evaluation
 // through `authorization::dispatch_on`.
 // ---------------------------------------------------------------------------
 
-fn native_wasm_tools_available() -> bool {
+pub(in crate::agent_lifecycle) fn native_wasm_tools_available() -> bool {
     stage_process_host_supported()
         && native_stage_host().is_some()
         && std::process::Command::new("node")

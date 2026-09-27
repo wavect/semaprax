@@ -248,6 +248,44 @@ exceeds the physical carrier's 64 KiB leaf bound. General allocation/status
 settlement and result-capacity admission remain separate prerequisites. This
 private, unpublished profile does not close R07 or claim public support.
 
+**`semaprax.authenticated-native-moves-nested.v1` (issue #292).** This carrier
+framing and `CarrierFrameBinding` never needed a change for nesting:
+`owned_leaves`/`leaf_paths()` were already a flat, structurally ordered
+sequence of leaf paths regardless of how many record levels a leaf sits under
+(see [`public_generic_type::describe`](../src/public_generic_type.rs) and its
+`collect_owned_leaves`), and `validate_frame`'s leaf-path-sequence check
+already covered every nested leaf the same one way it covers a flat one. What
+`moves-v1` could not do was *native codegen*: its C bridge assumed every
+top-level field of the owned parameter was itself a direct `Bytes` leaf, so a
+record whose field is itself an owned record (for example the component
+parity fixture's own `Envelope<LeafPair>`) was refused with `SPX-B103`
+("requires a flat Bytes movement body"), even though the carrier, the
+authenticated C prepare entry point, and every other backend already handled
+it. `moves-nested.v1` is a **separate, additively versioned physical profile**
+(never a silent widening of `moves-v1`'s own frozen contract or byte output):
+its admission
+([`native_emit::public_generic_bridge::admit_nested_moves`](../src/codegen/native_emit/public_generic_bridge.rs))
+reuses the same movement-body and literal-boolean-contract checks unchanged,
+then additionally walks the owned parameter's substituted type
+([`public_generic_type::owned_bytes_leaf_field_paths`](../src/public_generic_type.rs))
+to require every transitively reachable field be either a direct `Bytes` leaf
+or a further owned record instance, bounded by the same
+`MAX_RECORD_DEPTH`/`MAX_OWNED_LEAVES` the grammar itself already enforces, and
+refusing (still `SPX-B103`) the first Copy scalar leaf found anywhere in the
+closure. Its C field-access codegen then emits one dotted `.field.field…`
+access expression per leaf, one field-declaration-id per nesting level,
+instead of moves-v1's single bare field name; a flat body's own chain is
+exactly one step long, so the emitted access expression — and every byte moves-
+v1 already produced — is unchanged. See
+`tests/public_generic_native_adapter_v1/authenticated_handoff/checked_nested_moves.rs`
+for a compiled `-O0`/`-O2` proof (a two-level `Outer<Leaf>` swap and its
+`requires false` sibling) and the accompanying `moves-v1`-still-refuses
+regression, and the R14 native parity column
+(`platform-tests/component-runtime/.../parity/native.rs`) for the same nested
+`Envelope<LeafPair>` endpoint the interpreter, Core provider and Component
+columns already bind, with all four columns asserted to embed byte-identical
+descriptor bytes.
+
 The additive private `semaprax.authenticated-native-allocating.v1` profile
 addresses a bounded part of those prerequisites without widening identity-v1
 or moves-v1. Its compiler-owned admission closes the selected body and every

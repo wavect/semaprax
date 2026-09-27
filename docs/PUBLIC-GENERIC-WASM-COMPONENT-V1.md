@@ -176,34 +176,36 @@ adds native C11 execution, compiled and run at both `-O0` and `-O2`, as a
 fourth compared engine for the same two behavior families above (the
 non-identity swap and the `requires false` contract failure), over the same
 left/right byte vectors and the same expected `Outcome`. It compiles the
-compiler-derived `semaprax.authenticated-native-moves.v1` provider
-(`render_authenticated_moves_provider`, real checked HIR, never a
+compiler-derived `semaprax.authenticated-native-moves-nested.v1` provider
+(`render_authenticated_nested_moves_provider`, real checked HIR, never a
 hand-authored reimplementation of a checked body) and drives it through the
 generated C11 calling consumer
-(`generate_authenticated_moves_calling_consumer_v1`), the same way the
+(`generate_authenticated_nested_moves_calling_consumer_v1`), the same
+calling convention and `clang -std=c11 -Wall -Wextra -Werror` invocation the
 read-only reference
 `tests/public_generic_native_adapter_v1/authenticated_handoff/checked_moves.rs`
-does, using `clang -std=c11 -Wall -Wextra -Werror` at each optimization
-level.
+established, at each optimization level.
 
-**Scope, stated once.** The interpreter/Core-provider/Component columns
-above bind the checked-in parity fixtures' actual `provider.transform`
-endpoint, whose parameter is the nested `Envelope<LeafPair>` (a record
-wrapping a record). The native `authenticated-native-moves.v1` profile's own
-admission (`src/codegen/native_emit/public_generic_bridge.rs::admit`) only
-accepts a *flat* one-level owned-`Bytes` record body: driving it directly
-against `provider.transform`'s own descriptor was tried and is refused with
-`SPX-B103` ("requires a flat Bytes movement body"), because that profile's
-`input_facts().fields` is one record-typed `payload` field there, not two
-`Bytes` leaves. Widening that profile to admit nested records is a real
-compiler change to `native_emit`'s admission and C field-access codegen
-together, out of this addition's scope. The native column therefore checks
-the same two behavior families over a small inline *flat* two-field record
-fixture (`native.parity` / `Pair { left: Bytes, right: Bytes }`) the
-moves-v1 profile does admit, built the same way (`semaprax::check` +
-`hir::resolve`, no checked-in Project) as the reference test above -- real,
-compiled, executed native evidence for the claimed behavior, not a claim of
-byte-identical descriptor/endpoint bytes with the other three columns.
+**Same endpoint as every other column (issue #292).** The interpreter/
+Core-provider/Component columns above and the native column now all bind the
+SAME checked-in parity fixture's actual `provider.transform` endpoint, whose
+parameter is the nested `Envelope<LeafPair>` (a record wrapping a record) --
+`acquire()` derives one retained `endpoint`/`descriptor` and passes it to
+`native::build` directly, rather than the native column deriving a separate
+fixture. `admit_component`/`core_call`'s stale-descriptor refusals above and
+`acquire`'s own `native.descriptor_bytes() != endpoint.descriptor_bytes()`
+check together prove all four engines execute one identical checked body
+over byte-identical descriptor bytes, not four independently checked
+lookalikes.
+The flat-only `authenticated-native-moves.v1` profile
+(`src/codegen/native_emit/public_generic_bridge.rs::admit`) is unchanged and
+still refuses `provider.transform`'s own descriptor with `SPX-B103`
+("requires a flat Bytes movement body"), since its `input_facts().fields` is
+one record-typed `payload` field, not two `Bytes` leaves; the separate,
+additively versioned `authenticated-native-moves-nested.v1` profile
+(`admit_nested_moves`, `owned_bytes_leaf_field_paths`) is what admits and
+lowers this nested shape -- see `docs/PUBLIC-GENERIC-CARRIER-V1.md`'s own
+versioned section on it.
 
 ## Cancellation and mid-call interruption (v1)
 
@@ -220,7 +222,7 @@ is already enabled on every `Engine` this document's tests build).
 | Component | `Store::set_fuel` exhausted inside `invoke` | Wasmtime trap (`Err`, not a typed `failure`); the `Store` -- and every resource, including both still-owned inputs, it held -- is discarded; a fresh instance of the identical Component bytes is usable |
 | Core provider | `Store::set_fuel` exhausted inside `spx_pg_v1_call` | Wasmtime trap; `spx_pg_v1_provider_close` is never reached; the `Store` (the one Wasm linear memory everything the provider allocated lived in) is discarded; a fresh module instance is usable |
 | Interpreter | the retained-call step budget (`INTERPRETER_MAX_STEPS`, library default 1,000,000; see `docs/INTERPRETER-V1.md`) is exhausted before evaluation finishes | `RetainedCallOutcome::FuelExhausted`, a fail-closed interpreter capacity fact distinct from any language status; zero cleanup/settlement events are ever produced for an exhausted evaluation, so no partial result is published |
-| Native (`authenticated-native-moves.v1`) | not applicable | an in-process synchronous C call has no interruption primitive in this profile: no async work, thread, signal handler, or timeout is admitted (see `docs/PUBLIC-GENERIC-CARRIER-V1.md`'s native-adapter thread/signal restrictions); only killing the whole host process could stop a call short, which is not a documented or tested API guarantee here |
+| Native (`authenticated-native-moves-nested.v1`) | not applicable | an in-process synchronous C call has no interruption primitive in this profile: no async work, thread, signal handler, or timeout is admitted (see `docs/PUBLIC-GENERIC-CARRIER-V1.md`'s native-adapter thread/signal restrictions); only killing the whole host process could stop a call short, which is not a documented or tested API guarantee here |
 
 In every case that actually admits interruption (Component, Core provider,
 interpreter), no partial result is ever published and every resource the
@@ -286,11 +288,12 @@ The trapped instance is not claimed to support destructor re-entry; its Store
 is discarded. This is local failure-path and saturation evidence, not
 cross-target parity.
 
-Native C11 `-O0`/`-O2` execution evidence now exists (see above), scoped to
-the moves-v1 profile's own flat two-field fixture and the same two behavior
-families, not to `provider.transform`'s literal nested-record descriptor
-bytes; that gap -- widening the native moves-v1 profile to admit a nested
-record body -- remains unclaimed. Core-Wasm parity above 2048 combined input
+Native C11 `-O0`/`-O2` execution evidence now exists (see above) against
+`provider.transform`'s own literal nested-record descriptor bytes, over the
+same two behavior families as the other three columns, through the separate
+`authenticated-native-moves-nested.v1` profile; the previously stated gap
+(widening the native profile to admit a nested record body) is closed by that
+profile (issue #292). Core-Wasm parity above 2048 combined input
 bytes and broader resource/payload hostile cases also remain unclaimed. The
 interpreter/Core/Component/native differential and host-side
 stale-descriptor refusal described above are the only cross-engine claims.

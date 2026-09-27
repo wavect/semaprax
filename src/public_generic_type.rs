@@ -723,6 +723,110 @@ fn collect_owned_leaves(
     }
 }
 
+/// The field-declaration-id path (never a display name) to every transitive
+/// owned `Bytes` leaf of `ty`, in the same depth-first, declaration-order
+/// traversal [`collect_owned_leaves`] uses, so the returned paths line up
+/// positionally with [`InstanceFacts::owned_leaves`] one-for-one. Nesting may
+/// be zero levels deep (a flat record of direct `Bytes` fields) or several
+/// (a record whose field is itself an admitted record instance, and so on),
+/// bounded the same way any other projection here is: [`MAX_RECORD_DEPTH`]
+/// and [`MAX_VISITED_NODES`] via [`Budget::visit`], and [`MAX_OWNED_LEAVES`]
+/// via [`Budget::leaf`].
+///
+/// Returns `Ok(None)`, not an error, when some transitively reachable field
+/// position is not itself `Bytes` or a further nested record instance (a
+/// Copy scalar leaf, for example): that is a valid grammar term, just not a
+/// term this narrower "every leaf is owned `Bytes`" shape admits. A caller
+/// gating a Bytes-only physical bridge treats `None` as its own closed
+/// refusal reason; this function never repairs or drops the offending field
+/// to keep going. Genuine grammar defects (an unresolvable declaration, a
+/// missing field, an exceeded bound) still surface as `Err`.
+pub(crate) fn owned_bytes_leaf_field_paths(
+    inventory: &TypeInventory<'_>,
+    ty: &ResolvedType,
+) -> Result<Option<Vec<Vec<String>>>, Diagnostic> {
+    let mut budget = Budget::default();
+    let mut prefix = Vec::new();
+    let mut output = Vec::new();
+    if collect_bytes_only_leaf_paths(inventory, ty, &mut prefix, &mut output, &mut budget, 0)? {
+        Ok(Some(output))
+    } else {
+        Ok(None)
+    }
+}
+
+/// `Ok(true)` when every transitively reachable field position under `ty` is
+/// either a direct `Bytes` leaf (recorded into `output` with its full field
+/// path) or a further nested record instance; `Ok(false)` the first time a
+/// field position is neither (for example a Copy scalar), without treating
+/// that as a grammar-level error. See [`owned_bytes_leaf_field_paths`].
+fn collect_bytes_only_leaf_paths(
+    inventory: &TypeInventory<'_>,
+    ty: &ResolvedType,
+    prefix: &mut Vec<String>,
+    output: &mut Vec<Vec<String>>,
+    budget: &mut Budget,
+    depth: usize,
+) -> Result<bool, Diagnostic> {
+    budget.visit(depth)?;
+    match ty {
+        ResolvedType::Bytes => {
+            budget.leaf()?;
+            output.push(prefix.clone());
+            Ok(true)
+        }
+        ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } => {
+            let found = inventory.find(declaration.as_str())?;
+            for field in record_fields(found)? {
+                let concrete = substitute(
+                    &field.ty,
+                    declaration.as_str(),
+                    arguments,
+                    budget,
+                    depth + 1,
+                )?;
+                prefix.push(field.id.as_str().to_owned());
+                let admitted = collect_bytes_only_leaf_paths(
+                    inventory,
+                    &concrete,
+                    prefix,
+                    output,
+                    budget,
+                    depth + 1,
+                )?;
+                prefix.pop();
+                if !admitted {
+                    return Ok(false);
+                }
+            }
+            Ok(true)
+        }
+        _ => Ok(false),
+    }
+}
+
+/// Render one field-declaration-id path (as returned by
+/// [`owned_bytes_leaf_field_paths`]) into the exact canonical leaf-path
+/// string [`collect_owned_leaves`] itself would have produced for the same
+/// chain: [`write_identity`] per element, joined by `/`, with no leading
+/// `/`. A caller can use this to require full positional equality against a
+/// descriptor's own [`InstanceFacts::owned_leaves`] -- not merely an equal
+/// count, which would not by itself catch a reordered, renamed, or
+/// otherwise substituted leaf that still totals the same length.
+pub(crate) fn render_leaf_path(chain: &[String]) -> String {
+    let mut path = String::new();
+    for (index, id) in chain.iter().enumerate() {
+        if index > 0 {
+            path.push('/');
+        }
+        write_identity(&mut path, id);
+    }
+    path
+}
+
 /// Parse canonical bytes. Strict: no whitespace, no leading zeros in a length
 /// prefix, no trailing bytes, no repair.
 pub fn parse_term(text: &str) -> Result<GrammarTerm, Diagnostic> {

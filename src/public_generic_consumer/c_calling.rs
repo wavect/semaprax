@@ -160,6 +160,7 @@ pub use authenticated::{
     generate_authenticated_allocating_calling_consumer_v1,
     generate_authenticated_identity_calling_consumer_v1,
     generate_authenticated_moves_calling_consumer_v1,
+    generate_authenticated_nested_moves_calling_consumer_v1,
 };
 
 #[cfg(test)]

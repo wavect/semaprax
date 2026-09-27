@@ -259,7 +259,6 @@ fn acquire(
     pins: Pins,
     stale: &[Candidate],
     cases: &[(Vec<u8>, Vec<u8>)],
-    native_requires_false: bool,
 ) -> HostResult<Subject> {
     with_authenticated_project(Path::new(manifest), |snapshot| {
         snapshot.check()?;
@@ -307,8 +306,21 @@ fn acquire(
             return Err(refusal("Core provider embeds a different descriptor"));
         }
         let interpreter = interpret(&revision, cases)?;
-        let native =
-            native::build(native_requires_false).map_err(|error| refusal(error.to_string()))?;
+        let native = native::build(
+            revision.public_api_program(),
+            revision.project_revision(),
+            endpoint.descriptor(),
+        )
+        .map_err(|error| refusal(error.to_string()))?;
+        // The native column's own compiler-derived provider embeds the exact
+        // same descriptor bytes as the interpreter's checked program, the
+        // Core provider, and the Component -- all four columns execute the
+        // SAME checked endpoint, never four independently checked lookalikes.
+        if native.descriptor_bytes() != endpoint.descriptor_bytes() {
+            return Err(refusal(
+                "native column embeds a different descriptor than the other three columns",
+            ));
+        }
         Ok(Subject {
             component,
             provider_wasm: provider.wasm().to_vec(),
@@ -681,7 +693,7 @@ fn nonidentity_component_matches_interpreter_and_core_provider() -> HostResult<(
     let small = parity_cases();
     let large = large_cases();
     let cases = small.iter().chain(&large).cloned().collect::<Vec<_>>();
-    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &stale, &cases, false)?;
+    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &stale, &cases)?;
     let engine = engine()?;
     let (interpreter_small, interpreter_large) = subject.interpreter.split_at(small.len());
     compare_engines(&engine, &subject, &small, interpreter_small, true, true)?;
@@ -723,7 +735,7 @@ fn nonidentity_component_matches_interpreter_and_core_provider() -> HostResult<(
 #[test]
 fn large_payload_core_provider_matches_component_and_interpreter() -> HostResult<()> {
     let large = large_cases();
-    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &large, false)?;
+    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &large)?;
     let engine = engine()?;
     compare_engines(&engine, &subject, &large, &subject.interpreter, true, true)
 }
@@ -735,13 +747,7 @@ fn checked_contract_failure_matches_interpreter_and_core_provider() -> HostResul
         pins: PARITY_PINS,
     }];
     let cases = vec![(vec![1], vec![2])];
-    let subject = acquire(
-        PARITY_FAILURE_MANIFEST,
-        PARITY_FAILURE_PINS,
-        &stale,
-        &cases,
-        true,
-    )?;
+    let subject = acquire(PARITY_FAILURE_MANIFEST, PARITY_FAILURE_PINS, &stale, &cases)?;
     if subject.interpreter != [Outcome::ContractViolation] {
         return Err(failure(format!(
             "interpreter did not report the checked precondition: {:?}",
@@ -772,7 +778,7 @@ fn checked_contract_failure_matches_interpreter_and_core_provider() -> HostResul
 
 #[test]
 fn oversized_list_traps_and_a_fresh_instance_recovers() -> HostResult<()> {
-    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &[], false)?;
+    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &[])?;
     let engine = engine()?;
     let (mut trapped, trapped_bindings) = instantiate(&engine, &subject.component)?;
     let oversized = vec![0x11; MAX_LIST_BYTES + 1];

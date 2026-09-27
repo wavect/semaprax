@@ -14,6 +14,8 @@ use semaprax::public_generic_abi::{
 use sha2::{Digest as _, Sha256};
 use std::{fs, path::Path, process::Command};
 
+#[path = "authenticated_handoff/checked_nested_moves.rs"]
+mod checked_nested_moves;
 #[path = "authenticated_handoff/same_subject.rs"]
 mod same_subject;
 

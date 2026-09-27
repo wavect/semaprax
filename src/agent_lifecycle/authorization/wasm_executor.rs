@@ -1185,13 +1185,18 @@ fn run_through_injected_driver(
             // Reads the variant case's byte payload one byte at a time until
             // the module reports `-1` (past the end). The cap is a
             // fail-closed bound, not a silent truncation: exceeding it throws
-            // and the whole dispatch is refused.
+            // and the whole dispatch is refused. Reassembled into a real
+            // `Uint8Array`, not a hex string, so the shared `stage()`
+            // observer below classifies it exactly like an `OwnedBytes`
+            // driver's whole-value return -- the same `settled_owned_bytes`
+            // receipt tag, because it is the same real settlement, just
+            // reached through more Wasm calls.
             Projection::IndexedBytes => format!(
-                "(() => {{ let hex = ''; for (let i = 0; ; i += 1) {{ \
+                "(() => {{ const bytes = []; for (let i = 0; ; i += 1) {{ \
                  if (i > {BYTE_STREAM_CAP}) throw new Error('indexed byte stream cap'); \
                  const byte = api.functions['{}'](BigInt(i)); \
                  if (byte < 0n) break; \
-                 hex += Number(byte).toString(16).padStart(2, '0'); }} return hex; }})()",
+                 bytes.push(Number(byte)); }} return Uint8Array.from(bytes); }})()",
                 driver.id
             ),
         })
@@ -1239,9 +1244,23 @@ fn run_through_injected_driver(
     let mut leaves = Vec::with_capacity(drivers.len());
     let mut cleanup_events = Vec::new();
     for (driver, row) in drivers.iter().zip(&lines) {
-        let expected_owned = driver.projection == Projection::OwnedBytes;
+        // Both projections settle a real owned Bytes copy at the Wasm
+        // boundary and are strictly parsed as the same `settled_owned_bytes`
+        // receipt tag: a Record field returns its whole owned value
+        // directly (`OwnedBytes`); a variant case's Bytes leaf cannot leave
+        // a `match own` arm as an aggregate (SPX-T216/SPX-T258), so it is
+        // read back and reassembled one byte at a time (`IndexedBytes`) --
+        // more Wasm calls, the same real settlement. `Record` has no case
+        // selection, so every `OwnedBytes` driver's settlement below is one
+        // real output leaf; a `Variant`'s settled leaves are instead counted
+        // once the selected case is known, so a driver built for a case the
+        // call did not take is never counted twice or spuriously.
+        let expected_owned = matches!(
+            driver.projection,
+            Projection::OwnedBytes | Projection::IndexedBytes
+        );
         row.require_projection(expected_owned)?;
-        if expected_owned {
+        if driver.projection == Projection::OwnedBytes {
             cleanup_events.push(OwnedDataCleanupEvent::CopyOutAndSettleBytes);
         }
         let line = &row.text;
@@ -1311,6 +1330,14 @@ fn run_through_injected_driver(
                         .ok_or_else(|| invariant("wasm_executor.decode.arity"))?
                         .clone(),
                 });
+                // Only the selected case's own Bytes leaf was ever bound and
+                // consumed by the arm that actually executed; a driver built
+                // for a case the call did not take reads its designated
+                // field's dummy "past the end" sentinel and never calls the
+                // owned-consuming helper, so it settles nothing to report.
+                if field.leaf == Leaf::Bytes {
+                    cleanup_events.push(OwnedDataCleanupEvent::CopyOutAndSettleBytes);
+                }
             }
             RetainedCallOutcome::Returned(RetainedValue::Variant(RetainedVariant {
                 variant,

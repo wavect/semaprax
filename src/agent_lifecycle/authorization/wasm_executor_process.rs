@@ -179,6 +179,12 @@ fn run_held(
     cancellation: Option<&AgentCancellation>,
     output_budget: usize,
 ) -> Result<String, Diagnostic> {
+    // See `authorization::subprocess_test_serial` for why test builds hold
+    // this for the whole spawn+wait below: it keeps concurrent test threads
+    // from starving each other's node subprocess past the fixed production
+    // deadline.
+    #[cfg(test)]
+    let _subprocess_test_serial = super::super::subprocess_test_serial();
     let tool = HeldProcessTool::new(
         host.runtime
             .try_clone()

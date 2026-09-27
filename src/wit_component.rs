@@ -963,6 +963,25 @@ fn validate_generated_scalar_core_v2(
     if functions.is_empty() {
         return Err(PrivateComponentValidationError::Profile);
     }
+    // Issue #293 P2-2 (commit 10be59b4, following P2-1's fea670ee) gave the
+    // legacy scalar-core emitter -- this profile's only source: a
+    // plain-scalar/owned-Bytes/owned-String program with no authored
+    // record/class/variant, no concrete generic variant, no aggregate
+    // lowering -- an always-on call-depth live-frame counter: one private
+    // mutable i32 global, initialized zero, never exported. Before that
+    // commit this module had no globals section at all, so `semaprax_main`'s
+    // export immediately followed the function section; admit exactly this
+    // one global and nothing else. A program that instead reaches the
+    // aggregate builder gets a differently shaped globals section (more than
+    // one entry) and, on a refused build, an exported sticky marker global
+    // alongside `semaprax_main` -- neither matches this exact byte-for-byte
+    // section, so it still fails this profile check, as
+    // `checked_component_v2_ignores_only_implicit_prelude_templates` requires.
+    validate_exact_counted_section(
+        module.section(6)?,
+        &[0x7f, 0x01, 0x41, 0x00, 0x0b],
+        PrivateComponentValidationError::Profile,
+    )?;
     let mut exports = Cursor::new(module.section(7)?);
     exports.expect_u32(1, PrivateComponentValidationError::Profile)?;
     exports.expect_name("semaprax_main", PrivateComponentValidationError::Profile)?;

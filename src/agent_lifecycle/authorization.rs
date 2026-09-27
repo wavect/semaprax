@@ -47,6 +47,31 @@ pub use semantic_work::StageSemanticProfile;
 use wasm_executor::WasmStageExecutor;
 pub use wasm_executor::WasmStageHost;
 
+/// Serializes every test that drives a real subprocess through the native
+/// (`native_executor`) or Wasm (`wasm_executor::process`) stage executors.
+///
+/// Both executors hand their compile/run subprocesses to the shared
+/// process-provider boundary under a fixed, non-negotiable production
+/// deadline (`native_executor.process.deadline` at 2 s,
+/// `wasm_executor.process.deadline` at 2 s). That deadline is correct in
+/// production, where one stage call runs alone, but a full parallel `--lib`
+/// run can spawn dozens of these compile+run subprocesses at once; under
+/// that contention a subprocess can legitimately need more than 2 s of
+/// wall-clock scheduling even though it does negligible work once it runs,
+/// and the test then reports the same diagnostic a genuine host hang would.
+/// Rather than loosen the deadline, every test-only subprocess spawn takes
+/// this lock first, so at most one such subprocess is ever in flight and the
+/// deadline is measured against real work again, not scheduler queueing.
+#[cfg(test)]
+static SUBPROCESS_TEST_SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
+pub(in crate::agent_lifecycle) fn subprocess_test_serial() -> std::sync::MutexGuard<'static, ()> {
+    SUBPROCESS_TEST_SERIAL
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 const BINDING_DOMAIN: &[u8] = b"semaprax.agent-lifecycle.authorization.v1\0";
 
 /// One opaque, one-use authorization.
@@ -654,7 +679,11 @@ fn dispatch_on_admitted(
             max_steps,
             cancellation,
         ),
-        StageBackend::WasmHeld { host, source } => WasmStageExecutor { host, source }.execute(
+        StageBackend::WasmHeld { host, source } => WasmStageExecutor {
+            host: Some(host),
+            source,
+        }
+        .execute(
             authority,
             program,
             prepared,
@@ -729,16 +758,19 @@ pub(super) fn dispatch_on_metered(
             &profile,
             cancellation,
         ),
-        StageBackend::WasmHeld { host, source } => WasmStageExecutor { host, source }
-            .execute_metered(
-                authority,
-                program,
-                prepared,
-                arguments,
-                max_steps,
-                &profile,
-                cancellation,
-            ),
+        StageBackend::WasmHeld { host, source } => WasmStageExecutor {
+            host: Some(host),
+            source,
+        }
+        .execute_metered(
+            authority,
+            program,
+            prepared,
+            arguments,
+            max_steps,
+            &profile,
+            cancellation,
+        ),
     }?;
     // Every backend must report the admitted limit it actually metered.
     match &evaluation.semantic_work {

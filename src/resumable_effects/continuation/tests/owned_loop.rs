@@ -60,12 +60,15 @@ const ABANDONED_RECORDS: usize = 1 + 3 + 3 + 1 + 1;
 #[derive(Default)]
 struct Host;
 
-impl EffectHandler<ArgumentValue, ArgumentValue> for Host {
-    fn dispatch(&mut self, request: &ArgumentValue) -> Result<ArgumentValue, String> {
-        let ArgumentValue::Int(value) = request else {
+impl EffectHandler<ResumableChannelValue, ResumableChannelValue> for Host {
+    fn dispatch(
+        &mut self,
+        request: &ResumableChannelValue,
+    ) -> Result<ResumableChannelValue, String> {
+        let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) = request else {
             return Err("unexpected request".into());
         };
-        Ok(ArgumentValue::Int(value * 10 + 5))
+        Ok(ArgumentValue::Int(value * 10 + 5).into())
     }
 }
 
@@ -199,7 +202,8 @@ fn crash_at_every_record_recovers_the_same_result_as_an_uninterrupted_run() {
             let mut status = recovered.drive(&policy(), &mut host, &mut cleanup).unwrap();
             while let ContinuationStatus::AwaitingAnswer { request, in_doubt } = status.clone() {
                 assert!(in_doubt);
-                let ArgumentValue::Int(value) = request.request else {
+                let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) = request.request
+                else {
                     panic!()
                 };
                 let answer = ArgumentValue::Int(value * 10 + 5);
@@ -247,7 +251,8 @@ fn abandoning_a_loop_embedded_suspension_settles_its_carried_value_exactly_once(
             let crashed: Result<(), ContinuationError> =
                 open(&scratch, &key, &program, &invocation, true).and_then(|mut live| {
                     let request = live.dispatch(&policy())?;
-                    let ArgumentValue::Int(value) = request.request else {
+                    let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) = request.request
+                    else {
                         panic!()
                     };
                     let answer = ArgumentValue::Int(value * 10 + 5);
@@ -281,7 +286,9 @@ fn abandoning_a_loop_embedded_suspension_settles_its_carried_value_exactly_once(
                         let _ = host.dispatch(&request.request);
                     }
                     ContinuationStatus::AwaitingAnswer { request, .. } if request.site == 0 => {
-                        let ArgumentValue::Int(value) = request.request else {
+                        let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) =
+                            request.request
+                        else {
                             panic!()
                         };
                         let answer = ArgumentValue::Int(value * 10 + 5);

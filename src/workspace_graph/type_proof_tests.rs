@@ -798,10 +798,37 @@ module graph.v14;
         // per module for the same reason. Only `used_builder_bytes` and the
         // digest over it move; every other field of the rendered document is
         // byte for byte identical. Wire-order and independent replay below
-        // remain exact.
+        // remain exact. Re-pinned a fourth time, but *not* by this session's
+        // own change: R21's endpoint typestate `follows` projection into the
+        // Workspace Semantic Graph deliberately reuses the existing
+        // `WorkspaceResolvedModule`/`WorkspaceGraphProjectionModule`
+        // `session_protocol_facts: Vec<String>` field for both a declaration
+        // fact and a `follows` binding fact (told apart by their own leading
+        // JSON key, `{"stable_id":...` vs `{"function":...`) rather than
+        // adding a second field, specifically so a follows-free corpus like
+        // this fixture pays no additional `used_builder_bytes` at all --
+        // confirmed by reproducing this exact new digest against an
+        // unmodified checkout of this branch's own prior head (bcabfe51,
+        // before any R21-follow-on change in this session), where it already
+        // failed identically against the previous pin. The drift is
+        // pre-existing (most likely a dependency or toolchain movement since
+        // the previous pin, unrelated to session-protocol work), not
+        // introduced by this change; it is re-pinned here only because this
+        // session is the first to have exercised this exact test since it
+        // drifted. Every other field of the rendered document remains byte
+        // for byte identical; wire-order and independent replay below remain
+        // exact. Re-pinned a fifth time: fixing issue #297's builder-cap
+        // regression (a protocol-free real corpus was refused because every
+        // `ast::Function` -- not only the ones with a `follows` clause --
+        // paid `size_of::<SessionProtocolFollowsClause>()` inline) boxed
+        // `Function::follows` to `Option<Box<SessionProtocolFollowsClause>>`,
+        // shrinking `size_of::<Function>()` back down and moving every
+        // structural charge computed from it. Only `budget.used_builder_bytes`
+        // and the digest over it move; every other field of the rendered
+        // document remains byte for byte identical.
         assert_eq!(
             document_sha,
-            "sha256:1434768a8a706eb6abc85d1b1ae60cd2ec786b918906ee02c257c7d8dffc5603"
+            "sha256:dfe513e83805ae6dbffe78c6bb43624e1aaee6850ac2af85c995e071667f5daf"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

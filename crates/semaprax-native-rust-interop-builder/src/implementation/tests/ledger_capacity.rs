@@ -142,6 +142,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/resolve_box_call/iterator.rs"),
         include_str!("../../../../../src/hir/resolve_vec_call.rs"),
         include_str!("../../../../../src/hir/resolve_yield.rs"),
+        include_str!("../../../../../src/hir/yield_aggregate.rs"),
         include_str!("../../../../../src/hir/resolve_expr_frame.rs"),
         include_str!("../../../../../src/hir/resolve_expr_reference.rs"),
         include_str!("../../../../../src/hir/resolve_for.rs"),

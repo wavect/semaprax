@@ -108,6 +108,9 @@ fn expected_result() -> RetainedValue {
 
 #[test]
 fn native_multi_owner_cleanup_order_is_physical_and_hostile_mutants_reject() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let host = crate::agent_lifecycle::tests::native_stage_host()
         .expect("native cleanup evidence requires held clang");
     let program = hir::resolve(
@@ -275,6 +278,9 @@ static void test_free(void *p) {{
 
 #[test]
 fn native_active_variant_arm_multi_owner_cleanup_is_physical_and_hostile_mutants_reject() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let host = crate::agent_lifecycle::tests::native_stage_host()
         .expect("native cleanup evidence requires held clang");
     let program = hir::resolve(

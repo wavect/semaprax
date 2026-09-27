@@ -8,6 +8,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add caller-held native and Core Wasm selectors to durable Agent checkpoint
+  and checked migration execution. Both reuse the existing journal, preserve
+  target-neutral checkpoint identity, and refuse unavailable retained Wasm
+  source before a migration handoff is staged. Local parity and refusal tests
+  cover the new route; hosted target evidence remains open (#293).
+
+- Repartition slow macOS repair and Windows agent-runtime tests into distinct
+  release blockers without duplicating their coverage. Use a real macOS Git
+  executable for publication tests, keep unsupported Windows stage hosts
+  fail-closed, correct a Linux offline-worker fixture, and speed up the two
+  independent macOS desktop reproducibility builds.
+
 - Restore source-locked test coverage after recent HIR, graph, scaffold, and
   workspace-graph splits. The tests now bind the new submodule text or verify
   its quality-route classification; the existing coverage threshold is not
@@ -340,6 +352,34 @@ format: `Unreleased` then release buckets, grouped by impact.
   AddressSanitizer and UndefinedBehaviorSanitizer on macOS arm64 with zero
   reports; LeakSanitizer is unsupported there and the live-allocation
   counters remain the leak oracle. Not hosted or Linux evidence.
+- Check `.spx` endpoint typestate (#297): a function that declares
+  `follows session protocol "<id>"` must call the protocol's `via` functions
+  in a legal order along every straight-line and if/else path, ending in a
+  terminal state (`SPX-K107`-`SPX-K109`). Loops, recursion, closures,
+  indirect calls and branching `choice` continuations that reach a `via` call
+  are refused rather than approximated. The clause is erased before codegen.
+  The project semantic cache tag is now
+  `semaprax.project-checked-module-hir.v3`. Legal order grants no authority.
+- Refuse a record or variant `yields` request/response type with the
+  dedicated `SPX-T307` ("aggregate yield channel not yet admitted") instead of
+  the generic scalar refusal, and record the bounded aggregate shape and the
+  runtime work it still needs (#296).
+- Project `follows session protocol` bindings (function `@id` to protocol
+  `@id`, typestate checked) into the per-source graph (`semaprax.graph.v49`,
+  only for programs that use the clause), `context`, the Workspace and
+  Package Semantic Graphs (`.v3`) and the Assurance Manifest as a
+  `compiler_proved` call-order obligation (#297). `semaprax doc` shows the
+  binding on the function and the protocol, and `semaprax query` finds it
+  through the existing entry facts. A `follows` clause on a class method is
+  refused (`SPX-K109`) instead of being accepted unchecked.
+- Run a bounded, flat record or variant of Copy scalars (at most 8 fields,
+  or 8 cases of at most 8 fields) as a `yields` request/response channel for
+  top-level yields on the interpreter, the source-checkpoint driver (new
+  signature-bound v5 envelope; v1-v4 unchanged) and the durable journal
+  driver (#296). A `yield` inside `if`/`while` and any aggregate with a
+  `Bytes` leaf still refuse with `SPX-T307`. Journal lock acquisition now
+  retries briefly so a descriptor held across a concurrent fork no longer
+  reports a spurious `JournalBusy`.
 
 ## 0.6.0 — 2026-09-24
 

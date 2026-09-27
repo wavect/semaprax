@@ -183,10 +183,11 @@ fn state(count: i64) -> RetainedValue {
 }
 
 fn target_tools_available() -> bool {
-    Command::new("clang")
-        .arg("--version")
-        .output()
-        .is_ok_and(|output| output.status.success())
+    crate::agent_lifecycle::tests::stage_process_host_supported()
+        && Command::new("clang")
+            .arg("--version")
+            .output()
+            .is_ok_and(|output| output.status.success())
         && Command::new("node")
             .arg("--version")
             .output()
@@ -428,6 +429,9 @@ fn every_target_backend_executes_rich_proposal_grant_refusal_and_fail_transition
 /// stage. The exact diagnostic stays backend-independent.
 #[test]
 fn rich_target_backends_keep_cancellation_and_malformed_proposals_pre_dispatch() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let native_host = crate::agent_lifecycle::tests::native_stage_host()
         .expect("native stage test host is available");
     let stages = bind("target-pre-dispatch");

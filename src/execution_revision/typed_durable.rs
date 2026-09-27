@@ -1,7 +1,7 @@
 //! Store-backed direct Runtime v2 execution and evidence association.
 use super::*;
 use crate::agent_lifecycle::iterative::effects::{
-    DurableTypedFailure, DurableTypedRun, TypedEffectHandler,
+    DurableTypedFailure, DurableTypedRun, TargetStageBackend, TypedEffectHandler,
 };
 use crate::agent_lifecycle::iterative::source_live::{
     SourceIoLimits, SourceLiveFailure, SourceLiveMigrationEndpoint, SourceLiveOutcome,
@@ -170,6 +170,52 @@ impl AgentRuntimeV2 {
             retained_checkpoint,
             store,
             max_reserved_fuel,
+        )?;
+        let evidence = root(
+            "semaprax.evidence-root.v4",
+            json!({
+                "execution_revision": self.revision.digest(),
+                "instance_root": self.instance.digest(),
+                "typed_effect_evidence": run.run().evidence_digest(),
+                "checkpoint_digest": run.checkpoint_digest(),
+                "max_reserved_fuel": max_reserved_fuel,
+            }),
+        );
+        Ok(AgentRuntimeV2DurableEvidence {
+            run,
+            evidence,
+            revision: self.revision,
+            migration_handoff: None,
+            migrated_checkpoint: None,
+        })
+    }
+
+    /// Durable execution with a caller-held native or Core Wasm stage host.
+    /// Recovery preflight and journal replay are identical to `run_durable`;
+    /// selecting a target cannot authorize a new effect or change identity.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_durable_with_backend(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        retained_checkpoint: Option<&str>,
+        store: &mut dyn CheckpointStore,
+        max_reserved_fuel: u64,
+        selected: TargetStageBackend<'_>,
+    ) -> std::result::Result<AgentRuntimeV2DurableEvidence, DurableTypedFailure> {
+        let run = self.lifecycle.run_durable_with_backend(
+            &self.task,
+            &self.proposals,
+            handler,
+            self.budget,
+            self.effects,
+            cancellation,
+            self.revision.digest(),
+            &self.program_root,
+            retained_checkpoint,
+            store,
+            max_reserved_fuel,
+            selected,
         )?;
         let evidence = root(
             "semaprax.evidence-root.v4",

@@ -714,6 +714,7 @@ fn build_function(
         return_type,
         effects: vec![],
         yields: None,
+        follows: None,
         requires: vec![],
         ensures: vec![],
         body: block(tail, span),

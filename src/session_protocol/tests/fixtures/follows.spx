@@ -1,0 +1,27 @@
+module session_protocol.fixture.follows;
+
+@id("fixture.follows.begin")
+fn begin() -> i64 { 1 }
+
+@id("fixture.follows.commit")
+fn commit() -> i64 { 2 }
+
+@id("fixture.follows.protocol")
+session protocol "fixture-follows-v1" {
+    states { Idle, Open, Committed, Failed }
+    initial Idle;
+    terminal Committed cleanup { release }
+    terminal Failed cleanup { discard }
+    on Idle begin: send Unit via "fixture.follows.begin" -> Open;
+    on Idle misuse: fail Unit -> Failed;
+    on Open commit: send Unit via "fixture.follows.commit" -> Committed;
+    on Open abort: fail Unit -> Failed;
+}
+
+@id("fixture.follows.main")
+fn main() -> i64
+    follows session protocol "fixture.follows.protocol"
+{
+    let a = begin();
+    commit()
+}

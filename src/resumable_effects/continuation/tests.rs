@@ -9,6 +9,7 @@ use std::os::unix::fs::{symlink, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+mod channel;
 mod control;
 mod owned;
 mod owned_loop;
@@ -131,17 +132,20 @@ struct Host {
 
 const REQUESTS: [i64; 3] = [3, 60, 602];
 
-impl EffectHandler<ArgumentValue, ArgumentValue> for Host {
-    fn dispatch(&mut self, request: &ArgumentValue) -> Result<ArgumentValue, String> {
-        let ArgumentValue::Int(value) = request else {
+impl EffectHandler<ResumableChannelValue, ResumableChannelValue> for Host {
+    fn dispatch(
+        &mut self,
+        request: &ResumableChannelValue,
+    ) -> Result<ResumableChannelValue, String> {
+        let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) = request else {
             return Err("unexpected request".into());
         };
         let site = REQUESTS
             .iter()
             .position(|expected| expected == value)
             .expect("fixture request") as u32;
-        self.calls.push((site, request.clone()));
-        Ok(ArgumentValue::Int(value * 10))
+        self.calls.push((site, ArgumentValue::Int(*value)));
+        Ok(ArgumentValue::Int(value * 10).into())
     }
 }
 
@@ -222,7 +226,10 @@ fn multi_yield_run_completes_once_per_site_and_publishes_after_cleanup() {
         panic!("start did not suspend");
     };
     assert_eq!(first.site, 0);
-    assert_eq!(first.request, ArgumentValue::Int(3));
+    assert_eq!(
+        first.request,
+        ResumableChannelValue::Scalar(ArgumentValue::Int(3))
+    );
     assert_eq!(first.invocation_id, "inv-positive");
     let (mut host, mut cleanup) = (Host::default(), Cleanup::default());
     let status = invocation
@@ -285,7 +292,7 @@ fn explicit_request_answer_exchange_and_sticky_cleanup_failure() {
     let mut invocation = start(&scratch, &key, &program, "inv-explicit").unwrap();
     for _ in 0..3 {
         let request = invocation.dispatch(&policy()).unwrap();
-        let ArgumentValue::Int(value) = request.request else {
+        let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) = request.request else {
             panic!()
         };
         invocation
@@ -321,8 +328,8 @@ fn explicit_request_answer_exchange_and_sticky_cleanup_failure() {
 #[test]
 fn host_failure_is_sticky_and_answers_after_it_refuse() {
     struct Failing;
-    impl EffectHandler<ArgumentValue, ArgumentValue> for Failing {
-        fn dispatch(&mut self, _: &ArgumentValue) -> Result<ArgumentValue, String> {
+    impl EffectHandler<ResumableChannelValue, ResumableChannelValue> for Failing {
+        fn dispatch(&mut self, _: &ResumableChannelValue) -> Result<ResumableChannelValue, String> {
             Err("host failed".into())
         }
     }
@@ -388,7 +395,8 @@ fn crash_at_every_record_recovers_without_repeat_dispatch_or_cleanup() {
                 assert!(in_doubt);
                 answers_in_doubt += 1;
                 let dispatched_before = host.calls.len();
-                let ArgumentValue::Int(value) = request.request else {
+                let ResumableChannelValue::Scalar(ArgumentValue::Int(value)) = request.request
+                else {
                     panic!()
                 };
                 recovered

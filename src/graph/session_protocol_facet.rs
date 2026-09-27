@@ -161,8 +161,12 @@ fn spec_header_json(spec: &ProtocolSpec) -> String {
 ///
 /// `declared` is the queried program's bound declaration array
 /// (`session_protocol::source::declarations_json`), or empty when the program
-/// declares none, in which case the bytes carry no `declared` key.
-pub(super) fn summary_catalog_json(declared: &str) -> String {
+/// declares none, in which case the bytes carry no `declared` key. `follows`
+/// is the queried program's bound endpoint typestate `follows` binding array
+/// (issue #297 follow-on, R21; `session_protocol::source::follows_facts_json`),
+/// or empty when no function opts in, in which case the bytes carry no
+/// `follows` key.
+pub(super) fn summary_catalog_json(declared: &str, follows: &str) -> String {
     let specs = catalog()
         .iter()
         .map(|spec| format!("{{{}}}", spec_header_json(spec)))
@@ -173,11 +177,17 @@ pub(super) fn summary_catalog_json(declared: &str) -> String {
     } else {
         format!(",\"declared\":{declared}")
     };
+    let follows = if follows.is_empty() {
+        String::new()
+    } else {
+        format!(",\"follows\":{follows}")
+    };
     format!(
-        "{{\"note\":{},\"specs\":[{}]{}}}",
+        "{{\"note\":{},\"specs\":[{}]{}{}}}",
         quote_json(NOTE),
         specs,
-        declared
+        declared,
+        follows
     )
 }
 
@@ -216,7 +226,7 @@ mod tests {
 
     #[test]
     fn summary_catalog_is_deterministic_across_two_independent_calls() {
-        assert_eq!(summary_catalog_json(""), summary_catalog_json(""));
+        assert_eq!(summary_catalog_json("", ""), summary_catalog_json("", ""));
     }
 
     #[test]
@@ -240,7 +250,7 @@ mod tests {
 
     #[test]
     fn summary_catalog_omits_transition_detail_the_full_catalog_carries() {
-        let summary = summary_catalog_json("");
+        let summary = summary_catalog_json("", "");
         let full = full_catalog_json();
         assert!(!summary.contains("\"transitions\""), "{summary}");
         assert!(full.contains("\"transitions\""), "{full}");
@@ -252,7 +262,7 @@ mod tests {
         // Factual correction (issue #297): since e51226dd both real
         // subsystems run on the kernel, so the note must say so, and must
         // still disclose that this catalog is not bound to queried source.
-        for json in [summary_catalog_json(""), full_catalog_json()] {
+        for json in [summary_catalog_json("", ""), full_catalog_json()] {
             assert!(json.contains("not a fact about the queried"), "{json}");
             assert!(json.contains("no catalog entry here is bound"), "{json}");
             assert!(json.contains("appear under declared"), "{json}");

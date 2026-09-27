@@ -435,6 +435,12 @@ fn scalar_type_text(value: &ResumableScalar) -> &'static str {
         ResumableScalar::F32(_) => "f32",
         ResumableScalar::F64(_) => "f64",
         ResumableScalar::Bool(_) => "bool",
+        // Issue #296 R20: this parity runner's own plan arguments stay
+        // Copy-scalar always (an aggregate channel never widens a
+        // function's parameters), so this is purely defensive labeling for
+        // a diagnostic message, never a value this backend actually runs.
+        ResumableScalar::Record(_) => "record",
+        ResumableScalar::Variant { .. } => "variant",
     }
 }
 
@@ -462,6 +468,11 @@ fn scalar_debug(value: &ResumableScalar) -> String {
         ResumableScalar::F32(bits) => format!("f32:{bits:08x}"),
         ResumableScalar::F64(bits) => format!("f64:{bits:016x}"),
         ResumableScalar::Bool(value) => format!("bool:{}", u8::from(*value)),
+        // Issue #296 R20: this parity runner never actually replays an
+        // aggregate channel value (see `scalar_type_text`); this stays a
+        // defensive, human-readable label rather than an assumed-total match.
+        ResumableScalar::Record(fields) => format!("record:{}", fields.len()),
+        ResumableScalar::Variant { case, fields } => format!("variant:{case}:{}", fields.len()),
     }
 }
 

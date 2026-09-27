@@ -420,6 +420,13 @@ pub(crate) struct WorkspaceGraphProjectionModule {
     function_templates: Vec<hir::ResolvedFunctionTemplate>,
     function_instances: Vec<hir::ResolvedFunctionInstance>,
     signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
+    /// Canonical facts of this module's own declared session protocols
+    /// (issue #297) and endpoint typestate `follows` bindings (issue #297
+    /// follow-on, R21), in that order. A declaration fact starts
+    /// `{"stable_id":...`; a `follows` binding fact starts `{"function":...`
+    /// -- the two shapes are distinguished by that leading key alone, so no
+    /// extra discriminator field or second `Vec` is needed
+    /// (`render_graph_json` partitions on it).
     session_protocol_facts: Vec<String>,
 }
 pub(crate) struct WorkspaceGraphProjectionDeclaration {
@@ -486,7 +493,12 @@ struct WorkspaceResolvedModule {
     function_instances: Vec<hir::ResolvedFunctionInstance>,
     signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
     /// Canonical facts of this module's own declared session protocols
-    /// (issue #297 follow-on), bound to checked HIR by `retain_workspace_module`.
+    /// (issue #297) and endpoint typestate `follows` bindings (issue #297
+    /// follow-on, R21), in that order, bound by `retain_workspace_module`. A
+    /// declaration fact starts `{"stable_id":...`; a `follows` binding fact
+    /// starts `{"function":...` -- the two shapes are distinguished by that
+    /// leading key alone, so no extra discriminator field or second `Vec` is
+    /// needed (`render_graph_json` partitions on it).
     session_protocol_facts: Vec<String>,
 }
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -3475,20 +3487,26 @@ fn render_graph_json(
         .find(|module| module.module == projection.entry_module)
         .expect("validated projection has exactly one entry module");
     let mut output = crate::bounded_output::CappedString::new();
-    let session_protocols: Vec<(String, String, String)> = projection
-        .modules
-        .iter()
-        .flat_map(|module| {
-            module
-                .session_protocol_facts
-                .iter()
-                .map(|fact| (module.module.clone(), module.path.clone(), fact.clone()))
-        })
-        .collect();
+    // A declaration fact and a `follows` binding fact share one per-module
+    // `Vec` (see `WorkspaceResolvedModule::session_protocol_facts`'s own doc
+    // comment) and are told apart here by their own leading JSON key alone,
+    // costing no extra discriminator or second field.
+    let mut session_protocols: Vec<(String, String, String)> = Vec::new();
+    let mut session_protocol_follows: Vec<(String, String, String)> = Vec::new();
+    for module in &projection.modules {
+        for fact in &module.session_protocol_facts {
+            let row = (module.module.clone(), module.path.clone(), fact.clone());
+            if fact.starts_with("{\"function\":") {
+                session_protocol_follows.push(row);
+            } else {
+                session_protocols.push(row);
+            }
+        }
+    }
     output.push_str("{\"schema\":");
     push_json_string(
         &mut output,
-        session_protocol_decl::schema(&session_protocols),
+        session_protocol_decl::schema(&session_protocols, &session_protocol_follows),
     );
     output.push_str(",\"workspace_manifest_schema\":");
     push_json_string(&mut output, WORKSPACE_MANIFEST_SCHEMA);
@@ -3609,6 +3627,9 @@ fn render_graph_json(
     }
     output.push(']');
     output.push_str(&session_protocol_decl::render_trailing(&session_protocols));
+    output.push_str(&session_protocol_decl::render_follows_trailing(
+        &session_protocol_follows,
+    ));
     output.push('}');
     output.into_string()
 }
@@ -4348,7 +4369,13 @@ fn retain_workspace_module(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     retained_output_only: bool,
 ) -> Result<(WorkspaceResolvedModule, Vec<hir::ResolvedFunctionInstance>), Vec<Diagnostic>> {
-    let session_protocol_facts = session_protocol_decl::declaration_facts(program, &resolved)?;
+    // Declaration facts, then `follows` binding facts, in one `Vec`: the two
+    // JSON shapes are distinguished by their own leading key alone
+    // (`{"stable_id":...` vs `{"function":...`), so storing them together
+    // costs no second per-module `Vec` field -- see the field's own doc
+    // comment on `WorkspaceResolvedModule`.
+    let mut session_protocol_facts = session_protocol_decl::declaration_facts(program, &resolved)?;
+    session_protocol_facts.extend(session_protocol_decl::follows_facts(program)?);
     let types = filter_owned_vec(
         resolved.types,
         |item| {

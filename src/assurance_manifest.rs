@@ -198,6 +198,8 @@ pub fn generate(
         .extend(derive::derive_resolved_obligations(&resolved).map_err(|error| vec![error])?);
     obligations
         .extend(session_protocol::obligations(&program, &resolved).map_err(|error| vec![error])?);
+    obligations
+        .extend(session_protocol::follows_obligations(&program).map_err(|error| vec![error])?);
     obligations.extend(options.external_records.obligations.iter().cloned());
     let assumptions = options.external_records.assumptions.clone();
     validate_obligations_and_assumptions(&obligations, &assumptions)?;

@@ -14,6 +14,12 @@ runtime integration; the selectors below define the current inventory.
 `CompiledTypedEffects::run_durable` executes the same retained iterative stages
 and typed registry through the private IterativeDriver hooks. The ordinary
 one-read lifecycle and non-durable typed registry paths remain unchanged.
+`run_durable_with_backend` selects a caller-held native compiler or Core Wasm
+runtime through the same checkpoint driver. The selected target is absent from
+checkpoint identity, so an exact retained generation may resume on another
+admitted target. A selected Core Wasm route requires this registry's exact
+retained source before decode, store write or host dispatch. This is a local
+production-library route; hosted execution and full cleanup parity remain open.
 The joined Runtime v2 wrapper supplies its privately bound execution revision
 and ProgramRoot identities; the lower-level typed adapter treats root strings
 as binding inputs and does not independently grant Project authority.

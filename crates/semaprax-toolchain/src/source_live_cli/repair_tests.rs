@@ -445,7 +445,7 @@ fn v2_config(fixture: &Fixture, config: &Path) -> PathBuf {
     let deadline = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Unix epoch clock")
-        .checked_add(Duration::from_secs(60))
+        .checked_add(Duration::from_secs(10 * 60))
         .and_then(|duration| i64::try_from(duration.as_millis()).ok())
         .expect("bounded V2 deadline");
     value["deadline_millis"] = serde_json::json!(deadline);

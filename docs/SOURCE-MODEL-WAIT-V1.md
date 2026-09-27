@@ -24,8 +24,12 @@ model without its existing checked SourceModelBinding, live ModelGrant, or
 explicit adapter invocation capability. A source requiring a policy-v6 route
 must be refused by this profile. Profile composition requires a later contract.
 
-The additive API accepts a compiled lifecycle, checked wrapper selection,
-caller-owned `SourceCheckpointKey`, and all ordinary durable-run inputs. The key
+`AgentRuntimeV2::source_model_wait_binding(wrapper_id, evaluation_fuel)` derives
+an opaque checked binding. The additive
+`run_live_bound_model_durable_with_wait` accepts this binding, the ordinary
+`StreamingSourceProposalAdapter::new_bound_checkpointed` adapter, caller-owned
+`SourceCheckpointKey`, and all ordinary durable-run inputs. Unsupported profiles
+and mismatched binding inputs refuse before storage writes. The key
 is never persisted or derived from journal bytes. Existing APIs do not opt in.
 The bridge uses aggregate interpreter and source-checkpoint-v7 APIs directly;
 it does not construct `AggregateDurableInvocation`, whose separate journal and
@@ -137,7 +141,10 @@ F equals the bound positive evaluation_fuel, which is no larger than existing
 max_steps_per_stage. H is lowercase hex of at most 32768 decoded bytes; its
 decoded form is the exact v7 envelope. All references point backward, have the
 same Q/T/N, and cannot be reused or refer to another role/profile. Each
-reservation has at most one closing event. `wait_replay_checked` refers to the
+reservation has at most one closing event. Multiple replay reservations may
+reference the same original same-phase reservation; each is charged in full.
+There is exactly one causal prepared/completed event per attempt phase.
+`wait_replay_checked` refers to the
 original prepared/completed event and repeats its checkpoint/proposal digest.
 It cannot substitute a new result. Replays of replays reference the original,
 not another replay reservation.
@@ -161,8 +168,9 @@ failed model: existing model failure/Stop
 ```
 
 The compiler decoder runs before resume reservation. The valid Proposal carrier
-is reconstructed from that exact decoded document and full checked nominal
-shape. Completion must equal this carrier. A refused attempt's wait is closed
+is projected by the Proposal-schema owner from the already `DecodedProposal`,
+using exact checked nominal identity and declaration field order; it does not
+reparse model text. Completion must equal this carrier. A refused attempt's wait is closed
 by its existing ProposalRefused; a failed/stopped attempt by the existing failure
 or Stop. No completion, cleanup event, refund, or new model failure is fabricated.
 No next attempt starts until the previous outer attempt has closed normally.
@@ -170,10 +178,10 @@ No next attempt starts until the previous outer attempt has closed normally.
 ## 5. Fuel, capacity, and acknowledgments
 
 Every interpreter start/resume, including historical reconstruction, requires
-an acknowledged wait reservation first. Checkpoint decoding/replay work that
-executes the interpreter is included in that evaluation's F allowance; APIs
-must not run a hidden extra evaluator outside that allowance. Pure structural
-validation is bounded by the document/carrier/checkpoint limits.
+an acknowledged wait reservation first. Existing v7 encode/decode self-checks
+are structural and do not execute the interpreter; no accounting API extension
+is needed. Actual start/resume and historical evaluator reconstruction consume
+F. Structural validation is bounded by document/carrier/checkpoint limits.
 
 Each reservation commits F into the existing committed_stage_fuel total and
 max_total_steps ceiling. It does not increment Agent stages, max_stages,
@@ -191,22 +199,57 @@ preflight their maximum closure and terminal room before reserving. The existing
 16 MiB document and 65536-entry caps still apply; no model dispatch occurs when
 its bounded settlement and wait completion cannot fit. Overflow fails closed.
 
-The v7 preflight allowance, in addition to the serialized candidate, is
-`2 * 32768 + 2 * response_limit + 65536 + TERMINAL_ROOM_BYTES` bytes and
-12 future entries. `TERMINAL_ROOM_BYTES` is the existing execution profile's
-contracted bound. This allowance covers an interrupted start/resume closure,
-one replay reservation/check pair, model intent/settlement/usage, proposal
-decision and terminal records. Every subsequent append rechecks the same
-allowance until the wait closes; it is capacity proof, not reserved storage or
-permission to exceed limits. Exhausted capacity refuses additional replay;
-it does not erase prior charged reservations. Exact terminal appends use the
-existing terminal capacity rule.
+Preflight uses a decreasing, phase-specific outstanding allowance. Render the
+complete candidate document, then add only maximum canonical byte lengths and
+entry counts of rows still outstanding after that candidate. Include array
+commas and maximum sequence/generation decimal widths. Bounds use the canonical
+renderer and declared field limits: checkpoint hex is at most 65536 characters,
+settlement hex at most `2 * response_limit`. Existing `TERMINAL_ROOM_BYTES` and
+two terminal entries are retained. Check bytes/entries against 16 MiB/65536.
+
+| Candidate acknowledged | Outstanding allowance, plus terminal room |
+| --- | --- |
+| First start reservation | Prepared, ordinary intent, largest settlement-or-failure branch with optional usage, resume reservation, completed, proposal decision. |
+| Prepared | Intent, settlement-or-failure with optional usage, resume reservation, completed, proposal decision. |
+| Ordinary intent | Settlement-or-failure with optional usage, resume reservation, completed, proposal decision. No checkpoint/prepared/intent allowance remains. |
+| Raw settlement | Optional usage if still permitted, resume reservation, completed, proposal decision. No raw response allowance remains. |
+| Usage | Resume reservation, completed, proposal decision. |
+| Resume reservation | Completed, proposal decision. |
+| Completed | ProposalAdmitted. |
+| Model failure or ProposalRefused | Existing failure/refusal continuation and terminal rule; no resume/completion allowance. |
+| ProposalAdmitted | Existing outer continuation and terminal rule; wait allowance is zero. |
+
+Before decode, count the largest legal valid/refusal continuation; after branch
+selection, only that branch. Missing optional usage does not require a new row.
+For a reserved replay add only its still-missing first causal closure, if any,
+and replay check to the current phase allowance. Its reservation is already in
+the candidate. After closure, retain only the check and next phase allowance;
+after check, replay allowance is zero. Historical replay needs only its check
+and outstanding outer phase/terminal allowance.
+
+Additional recovery replay is preflighted before its new reservation and can be
+refused for capacity; unbounded future crashes are not reserved in advance.
+Closing an acknowledged boundary must not reintroduce allowances for emitted
+rows. Settlement tests its exact candidate plus remaining resume/completion/
+decision/terminal capacity guaranteed at intent ACK, never the old checkpoint,
+intent or raw response again. Exhausted replay capacity preserves all charges.
+Terminal appends use the existing rule. Arithmetic is checked.
 
 Evaluation only starts after reservation ACK; provider dispatch only after
 ordinary intent ACK; authorization only after checked wait completion ACK and
 existing admission. Store ACK loss poisons the session and forbids further
 in-memory actions. Reload latest generation before recovery. Guards at existing
 boundaries remain authoritative; a selected failure remains sticky.
+
+Pure wrapper fuel exhaustion selects the existing outer
+`Stop {status: BudgetExhausted, reason: BudgetExhausted}`. Wrapper call-depth or
+other checked-evaluation failure selects
+`Stop {status: Rejected, reason: StageRefused}`. These are local evaluation
+failures, never AttemptFailed/ModelFailed; all acknowledged fuel and model
+reservations remain charged. Cancellation/deadline select their existing Stop
+classes at their ordinary guards. A journal/checkpoint mismatch is recovery
+failure, never a malformed model Proposal. Malformed model output still records
+the ordinary ProposalRefused and bounded retry.
 
 ## 6. Recovery and negative matrix
 
@@ -231,14 +274,21 @@ the replay check is acknowledged. Capacity preflight includes both closing rows.
 If ACK loss leaves the causal closure but no replay check, recovery validates
 that closure, reserves another replay, and checks it; no unfinished replay grants
 free evaluation. Historical replay emits only reservation/check pairs.
+An interrupted replay reservation can remain without a check; it gives no
+credit, permission or completion claim. A later reservation referencing the same
+original phase is independently charged and has its own single check. The fold
+does not demand closing an interrupted reservation before the newly charged
+replay, nor treat multiple references as duplicate causal prepared/completed.
 
 Required negative gates reject changed wrapper/source/key/scope, wrong nominal
 declaration/field count/order/leaf, transformed identity wrapper, additional
 yield/call/effect, Bytes carriers, nonempty cleanup, other Agent, other attempt,
 duplicate closure, forged replay reference, digest/checkpoint mismatch, oversized
 checkpoint, arithmetic overflow, obsolete schema, and unsupported composition.
-Rejected host input leaves journal bytes unchanged and performs no provider or
-effect calls. Journal corruption is recovery failure, not model refusal.
+Rejected configuration/binding inputs leave journal bytes unchanged and perform
+no provider or effect calls. Runtime malformed model output and local evaluation
+failure append their contracted refusal/Stop evidence; they do not promise an
+unchanged journal. Journal corruption is recovery failure, not model refusal.
 
 Success gates use the real FixtureAgent model operation and explicit host
 adapter, inspect existing grants/reservations, recover every new ACK window,
@@ -247,6 +297,11 @@ the existing attempt count, charged model reservations, and failure/retry tags.
 Fuel gates distinguish wait fuel from Agent stage counts and exhaust replay fuel
 before any external boundary. Canonical source format/parse/recheck and graph
 assertions prove nominal signatures, one yield and compiler empty cleanup.
+Capacity gates place an acknowledged intent near the document/entry boundary:
+its exact settlement and all outstanding completion/terminal rows must fit
+without re-reserving emitted checkpoint/intent/response bytes. A new replay
+that cannot fit is refused before evaluator execution. Repeated crashes during
+one phase prove multiple charged replay reservations with one causal closure.
 
 ## 7. Evidence and implementation ownership
 
@@ -258,6 +313,19 @@ mint a ProgramRoot. Evidence is local interpreter/host-boundary evidence unless
 a separate provider execution gate establishes more. The draft has no executable
 completion claim.
 
+The additive evidence schema is `semaprax.source-model-wait.evidence.v1`.
+Its digest domain is `semaprax.source-model-wait.evidence.v1\0`. Canonical payload
+field order is `{"schema":SC,"terminal_evidence_digest":E,
+"wrapper_binding":B,"invocation":I,"waits":V,"total_wait_fuel":F}`.
+E is the digest of the ordinary terminal evidence, not a new terminal authority.
+V is ordered by first start-reservation sequence, with rows
+`{"wait":Q,"turn":T,"attempt":N,"prepared":C,"completed":D,
+"reservations":R}`. C/D are checkpoint/proposal digests or null if absent.
+R is the sequence-ordered array of all wait reservation sequence numbers,
+including interrupted and replay reservations. F is the checked sum of every
+reservation's fuel; it is included in, not added again to, committed_stage_fuel.
+Repeated closure and reordered reservation/wait inventories are invalid.
+
 Expected owners: source_live session and its existing harness own opt-in loop,
 decode/replay/guard association; source_journal profile/wire/fold and its harness
 own canonical records, capacity and accounting; checked model-operation and
@@ -267,20 +335,16 @@ hidden uncharged replay. No broad Agent owned-state API is required. Roots,
 linked wrapper retention, Bytes suspension and other journal profiles remain
 separate work.
 
-## 8. Review decisions still open
+## 8. Focused review and implementation boundary
 
 This draft fixes the wire/identity and authority contract; it does not authorize
-implementation before design review. Review must confirm the ordinary-v2-only
-first slice provides the intended real FixtureAgent adapter seam. Supporting a
+implementation before design review. The selected ordinary-v2-only first slice
+provides the intended real FixtureAgent adapter seam. Supporting a
 policy-v6-required adapter would need an explicit composed binding/profile;
 omitting its policy is forbidden.
 
-The exact additive Rust API/type names and compiler projection helper placement
-remain open. The helper must take the compiler-decoded Proposal and retained
-checked declarations, not independently parse model text. The checkpoint owner
-must confirm that admission/decode/resume expose a single bounded evaluation
-allowance; any currently hidden interpreter replay needs a narrow accounting
-API before this contract can be implemented. No fuel-free fallback is allowed.
-Independent review must also confirm the fixed capacity allowance covers the
-largest permitted field encodings and interrupted replay grammar. These are
-specific pre-code decisions, not implemented or tested guarantees.
+The additive API names and compiler projection ownership are fixed above.
+Existing v7 structural self-checks require no interpreter accounting extension.
+Focused review must confirm decreasing outstanding capacity bounds, interrupted
+replay closure grammar, and additive evidence encoding before code. None is an
+implemented or tested guarantee in this draft.

@@ -32,9 +32,10 @@ use crate::interpreter::prepared::PreparedCancellation;
 use crate::interpreter::{ArgumentValue, Evaluator, Flow, FunctionLookup, Value};
 
 use super::{
-    argument_error, argument_of, channel_of, channel_to_resumable_scalar, max_byte_allocation,
-    option_error, selection_error, typed_resume_channel_value, ChannelYieldRecord,
-    ResumableChannelContinuation, ResumableChannelValue, Resumption, EVALUATION_STACK_BYTES,
+    admitted_resolved_functions, argument_error, argument_of, channel_of,
+    channel_to_resumable_scalar, max_byte_allocation, option_error, scan_closure, selection_error,
+    typed_resume_channel_value, value_of_channel, ChannelYieldRecord, ResumableChannelContinuation,
+    ResumableChannelValue, Resumption, EVALUATION_STACK_BYTES, MAX_STEPS_LIMIT,
     REASON_AUTOMATIC_IDENTITY, REASON_NOT_RESUMABLE, REASON_OUTSIDE_PROFILE,
     REASON_UNSUPPORTED_CALLEE, REQUEST_DRIFT, SUSPENDED_AT_YIELD, SUSPENSION_MISMATCH,
 };
@@ -174,7 +175,7 @@ pub(super) fn run_worker_values<T: Send>(
     settle: impl FnOnce(Result<Value, Flow>, &mut Resumption) -> T + Send,
 ) -> Result<(T, usize), Vec<Diagnostic>> {
     let closure_functions =
-        super::closures::checked_functions(program).map_err(|error| vec![error])?;
+        crate::interpreter::closures::checked_functions(program).map_err(|error| vec![error])?;
     std::thread::scope(|scope| {
         let worker = std::thread::Builder::new()
             .name("semaprax-resumable-evaluate".to_owned())

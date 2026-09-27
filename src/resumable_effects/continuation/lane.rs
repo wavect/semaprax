@@ -110,13 +110,7 @@ fn channel(step: SequentialChannelResumableStep) -> LaneStep {
         SequentialChannelResumableStep::Suspended { continuation } => {
             LaneStep::Suspended(Carrier::SequentialChannel(continuation))
         }
-        SequentialChannelResumableStep::Completed { result, .. } => match result {
-            ResumableChannelValue::Scalar(result) => LaneStep::Completed(result),
-            // Durable v1 journal completion is scalar-only. The aggregate
-            // whole-function public carrier is intentionally not routed into
-            // this older record schema before its versioned completion slice.
-            _ => LaneStep::Failed(DurableFailure::EvaluationRejected),
-        },
+        SequentialChannelResumableStep::Completed { result, .. } => LaneStep::Completed(result),
         SequentialChannelResumableStep::LanguageFailure(_) => {
             LaneStep::Failed(DurableFailure::LanguageFailure)
         }

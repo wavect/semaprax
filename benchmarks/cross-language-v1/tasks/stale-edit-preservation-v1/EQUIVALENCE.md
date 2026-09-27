@@ -84,3 +84,26 @@ paths. No trial, correctness score, or repair transcript for this task may
 be exported for training or tuning reuse while it remains held out, for the
 same reason `bounded-counter-repair-v1/EQUIVALENCE.md` states for its own
 held-out declaration.
+
+## C, Python, Swift, and Java ports
+
+Added under the `runnable_adapter_v2` extension. C, Python, and Java keep
+the same candidate/entry split the Rust and TypeScript ports use
+(`candidate.c`/`candidate.py`/`Candidate.java` hold the unchanged
+`apply_discount`/`stale_note` functions; the hidden overlay replaces only
+`main.c`/`digest.py`/`Main.java`, via `#include`, `import`, and javac's
+same-directory auto-discovery respectively). Swift's fixed single-file
+`swiftc main.swift` invocation admits no such split, so both functions are
+repeated verbatim in both the public and hidden `main.swift`.
+
+Each port was authored independently against this file's floor-at-zero and
+unchanged-helper contract and the Rust/TypeScript references, not
+transliterated line-by-line, and was independently compiled/run against
+the public and hidden vectors above, then checked against a deliberately
+un-repaired candidate that omits the `raw < 0` floor entirely (returning
+the corrupted negative discount as-is): the mutant passes every public
+vector (neither public vector needs clamping) and fails both corrupted-
+percentage hidden vectors (`-50`/`-12` instead of the correct `0`/`0`) in
+all four languages, while `stale_note`'s own hidden checks still pass
+(that helper was never touched), confirming the hidden vectors are
+non-vacuous.

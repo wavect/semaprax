@@ -93,12 +93,14 @@ run against both its positive vectors and a deliberately mutated (wrong)
 `max`/comparison implementation to confirm the hidden vectors actually fail a
 broken candidate before being committed; see the runnable-adapter v2 test
 suite's per-language fixture cases for the machine-checked form of that same
-review. Only `sequence-digest-v1` is ported to these four languages this
-round; the remaining eleven tasks in the canonical inventory are not, and
-each of these four adapters' `blocked`-by-omission status on every other task
-(a task simply not declaring the language) is the harness's ordinary,
-accurate "task declares no `<language>` implementation" outcome, not a
-failure.
+review. `sequence-digest-v1` was the only task ported to these four
+languages in this pilot round; a follow-on round (issue #284) ported the
+remaining eleven tasks in the canonical inventory to the same four
+languages, so every task in this suite now has a `c`/`python`/`swift`/
+`java` port and none of these four adapters reports `blocked`-by-omission
+against the committed inventory any longer. Each other task's own
+`EQUIVALENCE.md` records its own port's independent review and negative
+control.
 
 Two boundary choices are recorded here so they can be judged, not assumed:
 

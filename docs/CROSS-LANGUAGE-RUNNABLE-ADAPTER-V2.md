@@ -158,37 +158,37 @@ authenticated official release, matching this suite's existing
 
 ## Newly ported task
 
-Only `sequence-digest-v1` is ported to `c`, `python`, `swift`, and `java` this
-round (`typescript` already had every task's ports before this extension;
-this round only wires its *execution*, which no runnable-adapter contract had
-done before). Each port was independently authored against
-`benchmarks/cross-language-v1/tasks/sequence-digest-v1/EQUIVALENCE.md`'s
-existing four-function, five-input, two-hidden-vector contract — same inputs,
-same functions, same hidden vectors as the Rust and TypeScript reference
-ports — and each was confirmed, before being committed, to (a) pass every
-public and hidden vector under its official toolchain invocation and (b) fail
-under a deliberately mutated (wrong) comparison/maximum implementation, so the
-hidden vectors are proven non-vacuous rather than merely present. See that
-file's "Independent review of the four newer ports" section for the full
-review record, and `test_runnable_adapter_v2.py`'s five
-`test_local_*_fixture_replays_the_existing_public_hidden_scorer` cases for the
-machine-checked, real-toolchain form of the same claim (`run.py` is invoked
-unmodified; nothing about the scorer, leak check, or success predicate is
-special-cased per lane).
+`sequence-digest-v1` was the pilot task ported to `c`, `python`, `swift`, and
+`java` at introduction (`typescript` already had every task's ports before
+this extension; that round only wired its *execution*, which no
+runnable-adapter contract had done before). A follow-on round (issue #284)
+ported the remaining eleven tasks in the canonical inventory to these same
+four languages, so every one of the 12 tasks now has a `c`/`python`/`swift`/
+`java` port. Each port was independently authored against its own task's
+`EQUIVALENCE.md` contract and the existing Rust/TypeScript reference ports —
+same inputs, same functions/predicates, same hidden vectors — rather than
+transliterated line-by-line, and each was confirmed, before being committed,
+to (a) pass every public and hidden vector under its official toolchain
+invocation and (b) fail under a deliberately mutated (wrong) candidate
+specific to that task, so the hidden vectors are proven non-vacuous rather
+than merely present. See each task's own `EQUIVALENCE.md` ("C, Python, Swift,
+and Java ports" section) for its specific mutation and observed divergence,
+and `sequence-digest-v1/EQUIVALENCE.md`'s "Independent review of the four
+newer ports" section for the pilot round's review record. C, Python, and Java
+keep the Rust/TypeScript candidate/entry split where a task has one (via
+`#include`, `import`, and javac's same-directory auto-discovery
+respectively, since this suite's C and Java adapters compile only the
+declared entry file); Swift's fixed single-file `swiftc main.swift`
+invocation admits no such split, so a Swift port with a candidate/entry
+split repeats its implementation verbatim in both the public and hidden
+`main.swift`.
 
 Each new adapter row is marked `implemented: true` in `adapters.json` because
 its toolchain is genuinely wired and provably executes a real canonical task
-end to end — not because every canonical task has a port for it yet. The
-harness's existing, unmodified `evaluate_pair` already handles this
-correctly: a task that does not declare a given language reports `blocked`
-with the exact reason `"task declares no <language> implementation"`, never
-`failed`. This was verified directly (`run.py --language c --language python
---language swift --language java`, no `--only`, against the full 12-task
-inventory): the four ported (task, language) pairs report `ok`; the remaining
-44 report `blocked` with that exact reason; none report `failed` or
-`drifted`. Porting the remaining eleven tasks to these four languages is
-future work, exactly as v1's own doc already states for its own partial
-Rust/TypeScript task coverage at introduction.
+end to end. This was verified directly (`run.py --language c --language
+python --language swift --language java`, no `--only`, against the full
+12-task inventory): all 48 (task, language) pairs report `ok`; none report
+`blocked`, `failed`, or `drifted`.
 
 ## Required future external evidence
 

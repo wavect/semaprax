@@ -50,3 +50,24 @@ the listed vectors.
 
 This fixture is held out. Its vectors and wrong-candidate control must not be
 used to tune a language adapter or admitted feature set.
+
+## C, Python, Swift, and Java ports
+
+Added under the `runnable_adapter_v2` extension. C, Python, and Java keep
+the same candidate/entry split the Rust and TypeScript ports use
+(`candidate.c`/`candidate.py`/`Candidate.java` hold the unchanged
+`release_allowed` predicate; the hidden overlay replaces only
+`main.c`/`digest.py`/`Main.java`, via `#include`, `import`, and javac's
+same-directory auto-discovery respectively). Swift's fixed single-file
+`swiftc main.swift` invocation admits no such split, so `releaseAllowed` is
+repeated verbatim in both the public and hidden `main.swift`.
+
+Each port was authored independently against this file's two-independent-
+band contract and the Rust/TypeScript references, not transliterated
+line-by-line, and was independently compiled/run against the public and
+hidden vectors above, then checked against a deliberately mutated candidate
+that ORs the two band checks instead of ANDing them (so a good reading in
+either sensor alone releases the shipment): the mutant passes every public
+vector (both bands happen to agree there) and fails both
+one-good-one-bad hidden vectors (`1` instead of the correct `0`) in all
+four languages, confirming the hidden vectors are non-vacuous.

@@ -123,3 +123,28 @@ transcript for this task may be exported for training or tuning reuse
 while it remains held out, for the same reason
 `bounded-counter-repair-v1/EQUIVALENCE.md` states for its own held-out
 declaration.
+
+## C, Python, Swift, and Java ports
+
+Added under the `runnable_adapter_v2` extension. This task's own
+"clean install" framing above is specific to SEMAPRAX's scaffolding
+command and to Rust/TypeScript having no analogous official scaffold in
+this suite's adapters; C, Python, Swift, and Java are new lanes with no
+such scaffolding claim to make, so each port is instead a hand-authored
+minimal two-function calculator module in that language's own idiom,
+solving the identical `add`/`subtract` problem and reusing the identical
+public/hidden vectors. C, Python, and Java keep the same candidate/entry
+split the Rust and TypeScript ports use (`candidate.c`/`candidate.py`/
+`Candidate.java` hold the unchanged functions; the hidden overlay replaces
+only `main.c`/`digest.py`/`Main.java`, via `#include`, `import`, and
+javac's same-directory auto-discovery respectively). Swift's fixed
+single-file `swiftc main.swift` invocation admits no such split, so both
+functions are repeated verbatim in both the public and hidden `main.swift`.
+
+Each port was independently compiled/run against the public and hidden
+vectors above, then checked against this file's own negative control (a
+`subtract` that clamps negative results at zero, the "bounded counter
+floor habit borrowed from a neighboring task" this file names): the mutant
+passes every public vector (neither needs clamping) and fails the
+`subtract(8, 50) == -42` hidden vector (returning `0` instead) in all four
+languages, confirming the hidden vectors are non-vacuous.

@@ -49,3 +49,23 @@ ordering to a library sorting routine.
 
 This fixture is held out. Its hidden vectors and strict-comparison negative
 control must not be used to tune an adapter or admitted feature set.
+
+## C, Python, Swift, and Java ports
+
+Added under the `runnable_adapter_v2` extension. C, Python, and Java keep
+the same candidate/entry split the Rust and TypeScript ports use
+(`candidate.c`/`candidate.py`/`Candidate.java` hold the unchanged
+`dispatch_order` function; the hidden overlay replaces only
+`main.c`/`digest.py`/`Main.java`, via `#include`, `import`, and javac's
+same-directory auto-discovery respectively). Swift's fixed single-file
+`swiftc main.swift` invocation admits no such split, so `dispatchOrder` is
+repeated verbatim in both the public and hidden `main.swift`.
+
+Each port was authored independently against this file's tie-preserving
+contract and the Rust/TypeScript references, not transliterated
+line-by-line, and was independently compiled/run against the public and
+hidden vectors above, then checked against this file's own
+strict-comparison negative control (every `<=` replaced with `<`): the
+mutant passes every public vector (all distinct priorities, so `<` and
+`<=` agree) and fails all four hidden tie vectors in all four languages,
+confirming the hidden vectors are non-vacuous.

@@ -196,8 +196,12 @@ class RunnableAdapterV2Tests(unittest.TestCase):
             )
 
     def test_task_not_declaring_the_adapter_refuses(self) -> None:
+        # A nonexistent task id hits the identical code path and reason as a
+        # real task that simply omits this language ("next(... , None)"
+        # yields no matching row either way), so this stays independent of
+        # which real tasks in the committed inventory declare `python`.
         descriptor = json.loads(self.descriptor("python"))
-        descriptor["execution"]["task_id"] = "bounded-counter-repair-v1"
+        descriptor["execution"]["task_id"] = "no-such-task-in-the-owner-inventory-v1"
         self.assertEqual(
             V2.admit_runnable_descriptor(canonical(descriptor), self.tasks, self.adapters)["reason"],
             "task_does_not_declare_adapter",

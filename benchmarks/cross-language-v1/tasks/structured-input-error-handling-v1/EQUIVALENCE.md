@@ -56,3 +56,28 @@ The harness copies the hidden overlay only into the separate hidden phase and
 checks that hidden-only files never enter the public build tree. No benchmark
 result is claimed by adding this fixture; execution requires the existing
 `run.py` with a provisioned adapter.
+
+## C, Python, Swift, and Java ports
+
+Added under the `runnable_adapter_v2` extension (see
+`sequence-digest-v1/EQUIVALENCE.md`'s "Independent review" section for the
+general convention). C, Python, and Java each keep the same candidate/entry
+split the Rust and TypeScript ports use: `candidate.c`/`candidate.py`/
+`Candidate.java` hold the unchanged `validate` function, and the hidden
+overlay replaces only `main.c`/`digest.py`/`Main.java`. C's entry uses
+`#include "candidate.c"` and Python's uses `import candidate` (the script's
+own directory is on `sys.path`); Java's `javac Main.java` auto-discovers and
+compiles `Candidate.java` from the same directory without a build file.
+Swift's fixed single-file `swiftc main.swift` invocation admits no such
+split, so its `validate` is repeated verbatim in both the public and hidden
+`main.swift`, the same limitation `sequence-digest-v1`'s Swift port already
+has.
+
+Each port was authored independently against this file's own precedence
+contract and the Rust/TypeScript references, not transliterated
+line-by-line, and was independently compiled/run against the public and
+hidden vectors above, then checked against a deliberately mutated candidate
+that checks version before kind (the same "version-first" bug the Rust
+self-test's name references): the mutant passes every public vector and
+fails hidden with `kind precedes version and length: expected 1, got 2` in
+all four languages, confirming the hidden vectors are non-vacuous.

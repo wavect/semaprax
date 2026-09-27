@@ -109,3 +109,26 @@ correctness score, or repair transcript for this task may be exported for
 training or tuning reuse while it remains held out, for the same reason
 `bounded-counter-repair-v1/EQUIVALENCE.md` states for its own held-out
 declaration.
+
+## C, Python, Swift, and Java ports
+
+Added under the `runnable_adapter_v2` extension. C, Python, and Java keep
+the same candidate/entry split the Rust and TypeScript ports use
+(`candidate.c`/`candidate.py`/`Candidate.java` hold the unchanged
+`merge_concurrent_deltas` function; the hidden overlay replaces only
+`main.c`/`digest.py`/`Main.java`, via `#include`, `import`, and javac's
+same-directory auto-discovery respectively). Swift's fixed single-file
+`swiftc main.swift` invocation admits no such split, so
+`mergeConcurrentDeltas` is repeated verbatim in both the public and hidden
+`main.swift`.
+
+Each port was authored independently against this file's clamp-once
+concurrent-merge contract and the Rust/TypeScript references, not
+transliterated line-by-line, and was independently compiled/run against
+the public and hidden vectors above, then checked against this file's own
+sequential-clamp negative control (`clamp(clamp(base + delta_a) +
+delta_b)` in place of `clamp(base + delta_a + delta_b)`): the mutant
+passes every public vector and fails both hidden vectors with the exact
+divergent values this file names above (`999950`/`15` instead of the
+correct `999960`/`5`) in all four languages, confirming the hidden vectors
+are non-vacuous.

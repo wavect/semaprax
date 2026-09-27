@@ -138,3 +138,37 @@ transcript for this task may be exported for training or tuning reuse
 while it remains held out, for the same reason
 `bounded-counter-repair-v1/EQUIVALENCE.md` states for its own held-out
 declaration.
+
+## C, Python, Swift, and Java ports
+
+Added under the `runnable_adapter_v2` extension. C, Python, and Java keep
+the same candidate/entry split the Rust and TypeScript ports use
+(`candidate.c`/`candidate.py`/`Candidate.java` hold the unchanged
+`combine_telemetry` function; the hidden overlay replaces only
+`main.c`/`digest.py`/`Main.java`, via `#include`, `import`, and javac's
+same-directory auto-discovery respectively). C uses `int32_t`/`INT32_MAX`/
+`INT32_MIN` from `<stdint.h>`; Java's `int` is already exactly 32-bit;
+Python has no native 32-bit width, so its port carries explicit
+`I32_MAX`/`I32_MIN` constants. In all three, the guard is evaluated before
+any addition that could overflow, so the guarded form never invokes C's
+signed-overflow undefined behavior or (for Swift, see below) Swift's
+trapping integer overflow. Swift's fixed single-file `swiftc main.swift`
+invocation admits no candidate/entry split, so `combineTelemetry` is
+repeated verbatim in both the public and hidden `main.swift`; it uses
+`Int32`/`Int32.max`/`Int32.min` for the same genuine 32-bit width.
+
+Each port was authored independently against this file's saturate-not-
+wrap-or-trap contract and the Rust/TypeScript references, not
+transliterated line-by-line, and was independently compiled/run against
+the public and hidden vectors above, then checked against this file's own
+plain-`delta_a + delta_b` negative control (the identical mutation the
+Rust/TypeScript/SEMAPRAX self-test already uses): the mutant passes every
+public vector and fails both hidden boundary vectors in all four
+languages, each failing a different way exactly as this file's "Why a
+literal interpreter/native-C11/Core-Wasm split is not in this file"
+section predicts for an unguarded combiner — C, Java, and Swift's
+wrapping variant (`&+`) silently flip to the opposite boundary
+(`-2147483648`/`2147483647` instead of the correct saturated values), while
+Python's arbitrary-precision integers overflow the declared range entirely
+(`2147483648`/`-2147483649`) — confirming the hidden vectors are
+non-vacuous.

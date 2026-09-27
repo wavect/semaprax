@@ -58,6 +58,22 @@
         "typescript": {
           "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/typescript",
           "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/typescript"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/bounded-counter-repair-v1/hidden/java"
         }
       }
     },
@@ -80,6 +96,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/structured-input-error-handling-v1/hidden/java"
         }
       }
     },
@@ -102,6 +134,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/module-import-refactor-v1/hidden/java"
         }
       }
     },
@@ -124,6 +172,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/java"
         }
       }
     },
@@ -146,6 +210,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/cold-chain-release-gate-v1/hidden/java"
         }
       }
     },
@@ -168,6 +248,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/stable-dispatch-order-v1/hidden/java"
         }
       }
     },
@@ -190,6 +286,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/java"
         }
       }
     },
@@ -212,6 +324,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/hidden/java"
         }
       }
     },
@@ -234,6 +362,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/telemetry-overflow-diagnosis-v1/hidden/java"
         }
       }
     },
@@ -256,6 +400,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/clean-install-calculator-v1/hidden/java"
         }
       }
     },
@@ -278,6 +438,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/concurrent-delta-merge-v1/hidden/java"
         }
       }
     }

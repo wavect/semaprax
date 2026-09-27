@@ -965,3 +965,77 @@ fn high_cardinality_patch_provenance_and_tight_byte_selection_are_deterministic(
         tight
     );
 }
+
+// Issue #297 follow-on: `session_protocols_affected` reports declared session
+// protocols whose `via` names a function this patch directly changes.
+
+#[test]
+fn rename_of_a_via_bound_function_reports_the_affected_session_protocol() {
+    let source = r#"module impact.session_protocol_rename;
+@id("helper.answer") fn answer()->i64{42}
+@id("app.main") fn main()->i64{answer()}
+@id("app.session")
+session protocol "app-session-v1" {
+    states { Idle, Done, Failed }
+    initial Idle;
+    terminal Done cleanup {}
+    terminal Failed cleanup {}
+    on Idle begin: send BeginRequest via "helper.answer" -> Done;
+    on Idle abort: fail Unit -> Failed;
+}
+"#;
+    let (fixture, revision) = Fixture::new("session-protocol-rename", source);
+    std::fs::write(
+        &fixture.patch,
+        format!("base {revision}\nrename helper.answer to computed\n"),
+    )
+    .unwrap();
+    let output = impact::preview(
+        &fixture.source,
+        &fixture.patch,
+        &impact::SemanticImpactOptions::default(),
+    )
+    .unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+    let affected = parsed["session_protocols_affected"].as_array().unwrap();
+    assert_eq!(affected.len(), 1);
+    assert_eq!(affected[0]["protocol"], "app.session");
+    assert_eq!(affected[0]["protocol_name"], "app-session-v1");
+    assert_eq!(affected[0]["authority"], "none");
+    assert_eq!(
+        affected[0]["via"],
+        serde_json::json!([{"from":"Idle","label":"begin","via":"helper.answer"}])
+    );
+}
+
+#[test]
+fn a_rename_unrelated_to_any_via_target_omits_the_session_protocols_affected_key() {
+    let source = r#"module impact.session_protocol_unrelated_rename;
+@id("helper.answer") fn answer()->i64{42}
+@id("helper.other") fn other()->i64{7}
+@id("app.main") fn main()->i64{answer()+other()}
+@id("app.session")
+session protocol "app-session-v1" {
+    states { Idle, Done, Failed }
+    initial Idle;
+    terminal Done cleanup {}
+    terminal Failed cleanup {}
+    on Idle begin: send BeginRequest via "helper.answer" -> Done;
+    on Idle abort: fail Unit -> Failed;
+}
+"#;
+    let (fixture, revision) = Fixture::new("session-protocol-unrelated-rename", source);
+    std::fs::write(
+        &fixture.patch,
+        format!("base {revision}\nrename helper.other to computed\n"),
+    )
+    .unwrap();
+    let output = impact::preview(
+        &fixture.source,
+        &fixture.patch,
+        &impact::SemanticImpactOptions::default(),
+    )
+    .unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+    assert!(parsed.get("session_protocols_affected").is_none());
+}

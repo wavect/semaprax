@@ -100,6 +100,10 @@ pub(crate) struct LinkedPackageSourceFact {
     pub(crate) source_revision: String,
     pub(crate) source_digest: String,
     pub(crate) source_bytes: usize,
+    /// Canonical facts of this package's own declared session protocols
+    /// (issue #297 follow-on: Package Semantic Graph), in source order.
+    /// Empty for a package that declares none.
+    pub(crate) session_protocol_facts: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -536,8 +536,21 @@ projected fact carries `"authority":"none"`.
   managed source that owns it. Every `via` is bound against the checked HIR
   built from that same module before it is recorded, in the same per-module
   pass that already binds cross-file call edges
-  (`src/workspace_graph/session_protocol_decl.rs`). The Package Semantic
-  Graph does not project declarations (see [Non-claims](#non-claims)).
+  (`src/workspace_graph/session_protocol_decl.rs`).
+- **Package Semantic Graph (R21, issue #297 follow-on).**
+  `PackageSemanticGraph::derive` selects `semaprax.package-semantic-graph.v2`
+  only when at least one selected package declares a session protocol; a
+  protocol-free package graph keeps `.v1` and byte-identical output, the
+  identical gating discipline the per-source graph and the Workspace Semantic
+  Graph already use. A declaring graph gains one trailing `session_protocols`
+  object: `base_schema`, `authority: "none"`, and one fact per declaration,
+  each the same canonical fact plus `package` and `version` naming the
+  selected coordinate that owns it. The package-source build reuses the
+  Workspace Semantic Graph's own per-module pass
+  (`workspace_graph::build_package_scalar_sources` calling
+  `retain_workspace_module`), so no protocol fact here is derived by a second,
+  independent code path; see [Package Semantic Graph
+  v1](PACKAGE-SEMANTIC-GRAPH-V1.md#declared-session-protocols-issue-297-follow-on).
 - **Documentation (R21).** `semaprax doc` renders a `session_protocol` entry
   per declaration: the canonical declaration text as its signature (states,
   initial, terminals with cleanup, and every transition, in source order),
@@ -548,6 +561,51 @@ projected fact carries `"authority":"none"`.
   selects the same `session_protocol` entries `semaprax doc` renders, for
   both a single checked module and an authenticated Project, since both reuse
   `crate::doc::document`.
+- **Help shape catalog and agent quick reference (R21, issue #297
+  follow-on).** `src/doc.rs`'s own `SECTIONS` (the order `semaprax doc`
+  renders) already carried `("session_protocol", "Session protocols")`;
+  `tests/projections/shapes_catalog.rs`'s separate `SECTIONS` (which
+  `semaprax help shapes` and `docs/LANGUAGE-SHAPES-CATALOG.{md,json}` are
+  generated from) now matches it. `examples/session_protocol.spx` is the
+  committed, compiler-verified example that gives the catalog its one
+  `session_protocol` entry. [The agent quick reference](AGENT-QUICK-REFERENCE.md#session-protocols)
+  gains a `## Session protocols` section: the shape's grammar, its
+  checked-and-erased/`via`/`requires capability` rules, and one compiler-
+  checked example module (`tests/documentation.rs::agent_quick_reference`
+  parses, verifies with zero diagnostics, and byte-compares it against
+  `format::canonical`, exactly like every other unmarked block on the page).
+- **Semantic-workspace rename, change, impact, and review (R21, issue #297
+  follow-on).** A `via` clause binds by persistent `@id`, never by display
+  name, so `src/semantic_workspace_operations.rs`'s rename derivation (which
+  changes only a declaration's display name, addressed by its immutable
+  `@id`) can never break a `via` binding by construction -- there is no
+  operation in this codebase that reassigns a declaration's `@id`. What a
+  rename or a general change *can* do is remove or alter the realizing
+  function outright; every candidate source set either derivation builds is
+  replayed through the same per-module pass that already binds `via` targets
+  against checked HIR (`retain_workspace_module` /
+  `session_protocol_decl::declaration_facts`), so a candidate that would
+  orphan a `via` fails closed with the ordinary stable diagnostic
+  (`SPX-K104`) rather than being silently admitted; pinned at the exact entry
+  points rename and change use
+  (`workspace_graph::build_owned_retaining_sources_for_operations` and
+  `_for_change`) by
+  `a_via_bound_functions_display_rename_is_admitted_by_operations_and_change_candidate_builds`
+  and
+  `removing_a_via_bound_function_is_refused_with_a_stable_diagnostic_by_operations_and_change_candidate_builds`
+  in `src/workspace_graph/session_protocol_decl.rs`. Impact and review
+  (`src/impact.rs`, wrapped unchanged by `src/review.rs`) gain a
+  `session_protocols_affected` fact array: one entry per session protocol in
+  the previewed module whose `via` names a declaration id the patch directly
+  changes (a rename target or the owner of a changed call instance),
+  restricted to the affected transitions, each carrying `protocol`,
+  `protocol_name`, `authority: "none"`, and the matched `via` edges. Omitted
+  entirely (not even `[]`) for a module with no session protocol or none
+  affected, so every existing pinned Impact/Review report stays
+  byte-identical; a session protocol's `via` is not a real call edge, so this
+  reporting is computed independently of, and never feeds, the reverse-call
+  closure (`reverse_closure`/`affected_functions`) that already exists for
+  real callers.
 
 ### Bundled dependency pruning
 
@@ -559,18 +617,12 @@ name (`a_session_protocol_via_target_is_retained`).
 ### Non-claims
 
 A session protocol declaration is projected by the per-source graph (v48),
-the Workspace Semantic Graph (v2, R21), `context` (`--filters
-session_protocol`), Architecture Claims (`protocol_realizers_bound`, Rust API
-only), single-file and Project Assurance Manifest v1, `semaprax doc`, and
-`semaprax query --kind session_protocol`. The following omit declarations
-entirely, and nothing here claims otherwise:
+the Workspace Semantic Graph (v2, R21), the Package Semantic Graph (v2, R21),
+`context` (`--filters session_protocol`), Architecture Claims
+(`protocol_realizers_bound`, Rust API only), single-file and Project Assurance
+Manifest v1, `semaprax doc`, and `semaprax query --kind session_protocol`. The
+following omit declarations entirely, and nothing here claims otherwise:
 
-- the Package Semantic Graph document (project builds do run the `SPX-K1xx`
-  checks, but emit no protocol facts);
-- the help shape catalog (`LANGUAGE-SHAPES-CATALOG`) and the agent quick
-  reference;
-- semantic-workspace operations (rename, change, impact, review do not treat
-  a declaration or its `via` as a reference);
 - the VS Code grammar (`editors/`);
 - a CLI flag for `protocol_realizers_bound`;
 - typestate checking of `.spx` endpoint values, and any runtime enforcement

@@ -12,12 +12,20 @@ use crate::package_resolver::{ResolutionInput, ResolutionOptions};
 use crate::package_source_capsule::{self, PackageSource, SourceCapsuleOptions};
 
 pub const PACKAGE_SEMANTIC_GRAPH_SCHEMA: &str = "semaprax.package-semantic-graph.v1";
+/// Selected only when at least one selected package declares a `.spx`
+/// `session protocol` (issue #297 follow-on). A protocol-free package graph
+/// keeps `PACKAGE_SEMANTIC_GRAPH_SCHEMA` and byte-identical output, mirroring
+/// the per-source graph's own `semaprax.graph.v48` gating and the Workspace
+/// Semantic Graph's own `.v2` gating.
+pub const PACKAGE_SEMANTIC_GRAPH_SCHEMA_V2: &str = "semaprax.package-semantic-graph.v2";
 pub const PACKAGE_SEMANTIC_SUMMARY_SCHEMA: &str = "semaprax.package-semantic-summary.v1";
 pub const PACKAGE_SEMANTIC_CONSUMERS_SCHEMA: &str = "semaprax.package-semantic-consumers.v1";
 pub const MAX_PACKAGE_SEMANTIC_GRAPH_BYTES: usize = 16 * 1024 * 1024;
 pub const MAX_PACKAGE_SEMANTIC_REPORT_BYTES: usize = 1024 * 1024;
 const MAX_CALLS: usize = 65_536;
 const MAX_INTERFACE_FUNCTIONS: usize = 4096;
+/// 4 selected packages times the parser's own 64-declarations-per-module cap.
+const MAX_SESSION_PROTOCOL_DECLARATIONS: usize = 256;
 
 /// Immutable descriptive graph. Construction independently authenticates the
 /// caller-supplied source, reports, resolution and exact capsule bytes. No raw
@@ -88,6 +96,7 @@ impl PackageSemanticGraph {
             .find(|coordinate| coordinate.package == verified.receipt.root_package())
             .ok_or_else(|| binding("package graph root coordinate is absent"))?;
         let mut packages = Vec::new();
+        let mut declared_session_protocols = Vec::new();
         let mut budget = ConstructionBudget { bytes: 16_384 };
         for (coordinate, fact) in &source_facts {
             let selected_exports = exports
@@ -110,6 +119,27 @@ impl PackageSemanticGraph {
                 "interface_digest":fact.interface_digest,"interface_source_revision":fact.interface_source_revision,
                 "source_revision":fact.source_revision,"source_digest":fact.source_digest,
                 "source_bytes":fact.source_bytes,"exports":selected_exports}));
+            if declared_session_protocols
+                .len()
+                .saturating_add(fact.session_protocol_facts.len())
+                > MAX_SESSION_PROTOCOL_DECLARATIONS
+            {
+                return Err(limit(
+                    "package graph session protocol declaration inventory exceeds its bound",
+                ));
+            }
+            for raw in &fact.session_protocol_facts {
+                budget.charge(raw.len(), 256)?;
+                let mut declared: Value = serde_json::from_str(raw).map_err(|_| {
+                    binding("package graph session protocol fact is not canonical JSON")
+                })?;
+                let object = declared.as_object_mut().ok_or_else(|| {
+                    binding("package graph session protocol fact is not a JSON object")
+                })?;
+                object.insert("package".to_owned(), json!(coordinate.package));
+                object.insert("version".to_owned(), json!(coordinate.version));
+                declared_session_protocols.push(declared);
+            }
         }
         let mut imports = Vec::new();
         for import in &verified.import_facts {
@@ -172,7 +202,12 @@ impl PackageSemanticGraph {
                 "target_source_revision":target.source_revision,"site":call.site,"expression":call.expression,
                 "ast_path":call.ast_path,"alias":call.alias,"ordinal":call.ordinal}));
         }
-        let facts = json!({"schema":PACKAGE_SEMANTIC_GRAPH_SCHEMA,
+        let schema = if declared_session_protocols.is_empty() {
+            PACKAGE_SEMANTIC_GRAPH_SCHEMA
+        } else {
+            PACKAGE_SEMANTIC_GRAPH_SCHEMA_V2
+        };
+        let mut facts = json!({"schema":schema,
             "source_capsule_digest":verified.receipt.digest(),"source_set_digest":verified.receipt.source_set_digest(),
             "link_digest":verified.receipt.link_digest(),"root_package":coordinate_value(root),
             "packages":packages,"imports":imports,"calls":calls,
@@ -180,6 +215,16 @@ impl PackageSemanticGraph {
                 "imports":verified.import_facts.len(),"cross_package_calls":verified.call_facts.len()},
             "project_association":"none","evidence_owner":"verified_package_source_capsule_and_workspace_calls",
             "source_authority":false,"execution":false,"publication_authority":false,"nonclaims":nonclaims()});
+        if !declared_session_protocols.is_empty() {
+            facts
+                .as_object_mut()
+                .ok_or_else(|| binding("package graph retained facts are invalid"))?
+                .insert(
+                    "session_protocols".to_owned(),
+                    json!({"base_schema":PACKAGE_SEMANTIC_GRAPH_SCHEMA,"authority":"none",
+                    "declarations":declared_session_protocols}),
+                );
+        }
         let json = render(facts.clone(), true, MAX_PACKAGE_SEMANTIC_GRAPH_BYTES)?;
         let digest = digest(
             b"semaprax.package-semantic-graph.digest.v1\0",

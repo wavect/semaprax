@@ -817,10 +817,18 @@ module graph.v14;
         // session is the first to have exercised this exact test since it
         // drifted. Every other field of the rendered document remains byte
         // for byte identical; wire-order and independent replay below remain
-        // exact.
+        // exact. Re-pinned a fifth time: fixing issue #297's builder-cap
+        // regression (a protocol-free real corpus was refused because every
+        // `ast::Function` -- not only the ones with a `follows` clause --
+        // paid `size_of::<SessionProtocolFollowsClause>()` inline) boxed
+        // `Function::follows` to `Option<Box<SessionProtocolFollowsClause>>`,
+        // shrinking `size_of::<Function>()` back down and moving every
+        // structural charge computed from it. Only `budget.used_builder_bytes`
+        // and the digest over it move; every other field of the rendered
+        // document remains byte for byte identical.
         assert_eq!(
             document_sha,
-            "sha256:7bd715e60f08488eee1396bb3944899944509d7105ae139923b4af029f69085b"
+            "sha256:dfe513e83805ae6dbffe78c6bb43624e1aaee6850ac2af85c995e071667f5daf"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

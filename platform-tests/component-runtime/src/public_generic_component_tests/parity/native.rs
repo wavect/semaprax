@@ -251,12 +251,12 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 fn decode_hex(text: &str) -> HostResult<Vec<u8>> {
-    if text.len() % 2 != 0 {
+    if !text.len().is_multiple_of(2) {
         return Err(failure("native probe hex leaf had odd length"));
     }
     let bytes = text.as_bytes();
     let mut out = Vec::with_capacity(bytes.len() / 2);
-    for chunk in bytes.chunks_exact(2) {
+    for chunk in bytes.as_chunks::<2>().0 {
         let pair = std::str::from_utf8(chunk)
             .map_err(|error| failure(format!("native probe hex leaf malformed: {error}")))?;
         out.push(

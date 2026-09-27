@@ -80,14 +80,15 @@ fn component_mid_call_fuel_interruption_discards_store_without_publishing() -> H
     prove_no_live_resources(&bindings, &mut store)
 }
 
+/// A live provider `Store`, its `call` export and the two i32 handles
+/// `spx_pg_v1_call` takes.
+type PreparedCall = (Store<()>, TypedFunc<(i32, i32), i64>, i32, i32);
+
 /// Drive the standalone compiled Core provider up to (not including) its own
 /// `spx_pg_v1_call`, exactly as [`super::core_call`] does for its own
 /// checked-in witness case, returning the live `Store`, the `call` export,
 /// and the two i32 handles `spx_pg_v1_call` itself takes.
-fn core_open_and_prepare(
-    engine: &Engine,
-    subject: &Subject,
-) -> HostResult<(Store<()>, TypedFunc<(i32, i32), i64>, i32, i32)> {
+fn core_open_and_prepare(engine: &Engine, subject: &Subject) -> HostResult<PreparedCall> {
     let module = Module::new(engine, &subject.provider_wasm)?;
     let mut store = Store::new(engine, ());
     store.set_fuel(FUEL)?;

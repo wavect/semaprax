@@ -284,6 +284,97 @@ fn loops_are_bounded_by_the_suspension_limit() {
     assert_eq!(sites.len(), MAX_CONTROL_SUSPENSIONS);
 }
 
+/// Mixed if/else and loop carrying (issue #296): one owned `Bytes` local
+/// (`buf`) defined before the `while` loop and carried across its
+/// loop-embedded site, and a *second*, unrelated owned `Bytes` local
+/// (`extra_buf`) carried across a separate if/else-nested site reached
+/// afterward. Both admit (the loop-embedded one because `buf`'s own storage
+/// is never touched inside the loop, the if/else one under the existing,
+/// unchanged rule), and driving the function through every suspension of
+/// both sites to completion, resuming from real, independently constructed
+/// continuations exactly as a caller would, produces the same result as a
+/// direct (non-suspending) computation of the same arithmetic.
+const MIXED_SOURCE: &str = r#"
+module test.control_owned_mixed;
+@id("bytes.make")
+fn make_buf() -> Bytes {
+    let bytes = [1u8, 2u8, 3u8];
+    bytes_copy(array_as_slice(bytes))
+}
+@id("bytes.consume")
+fn consume(value: own Bytes) -> i64 {
+    let _ = bytes_as_slice(value);
+    100
+}
+@id("app.ask")
+fn ask(limit: i64, flag: bool) -> i64
+    yields i64 -> i64
+{
+    let buf = make_buf();
+    let mut total = 0;
+    let mut round = 0;
+    while round < limit {
+        let answer = yield round;
+        total = total + answer;
+        round = round + 1;
+        round > 0
+    }
+    let branch_extra = if flag {
+        let extra_buf = make_buf();
+        let answer2 = yield total;
+        let extra = consume(extra_buf);
+        answer2 + extra
+    } else {
+        0
+    };
+    let used = consume(buf);
+    total + used + branch_extra
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+fn drive_mixed(limit: i64, flag: bool, answers: &[i64]) -> i64 {
+    let program = program(MIXED_SOURCE);
+    let arguments = [ArgumentValue::Int(limit), ArgumentValue::Bool(flag)];
+    let mut step = run_control_resumable_effect(&program, "app.ask", &arguments, STEPS)
+        .unwrap()
+        .step;
+    let mut next_answer = answers.iter();
+    while let ControlResumableStep::Suspended { continuation } = &step {
+        let answer = ArgumentValue::Int(*next_answer.next().expect("enough answers"));
+        step = resume_control_resumable_effect(
+            &program,
+            "app.ask",
+            &arguments,
+            continuation,
+            &answer,
+            STEPS,
+        )
+        .unwrap()
+        .step;
+    }
+    let ControlResumableStep::Completed { result, .. } = step else {
+        panic!("expected completion, got {step:?}")
+    };
+    let ArgumentValue::Int(result) = result else {
+        panic!("scalar result")
+    };
+    result
+}
+
+#[test]
+fn a_loop_embedded_and_an_if_else_nested_carried_local_coexist_and_settle_correctly() {
+    // Two loop suspensions (answers 5, 15; total = 20), then the branch
+    // suspension (answer 100): branch_extra = 100 + consume(extra_buf) =
+    // 100 + 100 = 200. used = consume(buf) = 100.
+    // Result = total + used + branch_extra = 20 + 100 + 200 = 320.
+    assert_eq!(drive_mixed(2, true, &[5, 15, 100]), 320);
+    // With the branch untaken, only the loop-embedded carried local is ever
+    // exercised: result = total + used + 0 = 20 + 100 = 120.
+    assert_eq!(drive_mixed(2, false, &[5, 15]), 120);
+}
+
 #[test]
 fn each_lane_refuses_the_other_profile() {
     let control = program(CONTROL_SOURCE);

@@ -378,22 +378,35 @@ pub(crate) fn admit_owned_bytes_profile(function: &ResolvedFunction) -> Result<(
         // *first* dynamic occurrence it is asked to substitute during one
         // resume's replay. A site reached through a `while` body can
         // suspend more than once per invocation (the loop's own bound is
-        // `MAX_CONTROL_SUSPENSIONS`, not one); resuming the Nth suspension
-        // would substitute that iteration's carried bytes into the first
-        // dynamic occurrence of the same static binding the replayed prefix
-        // reaches, silently running every earlier iteration with the wrong
-        // value instead of its own. Refusing every loop-embedded site that
-        // actually carries something -- rather than approximating
-        // dynamic-occurrence-aware carrying -- keeps this increment exact:
-        // only if/else-nested sites, which a single invocation reaches at
-        // most once, admit a carried value.
+        // `MAX_CONTROL_SUSPENSIONS`, not one), but that substitution is sound
+        // exactly when the carried local's own storage is never touched
+        // (defined, renewed, or transferred) *inside* the `while` body: such
+        // a local's own binding then reaches exactly one dynamic occurrence
+        // per invocation regardless of how many times the loop-embedded site
+        // itself suspends, so its one recorded value is the right one for
+        // every occurrence. A local whose own storage *is* touched inside
+        // the loop can legitimately hold a different value at each dynamic
+        // occurrence of its own binding, which the flat map cannot represent
+        // (only the first would ever be consulted): that shape stays
+        // refused. `slot_touched_inside_while` decides this per live slot,
+        // rather than blanket-refusing every live slot merely because the
+        // *site* sits inside a `while` body.
         if !live.is_empty() && site_is_loop_embedded(function, site) {
-            return Err(not_admitted(format!(
-                "function `{}` carries an owned `Bytes` value live across a suspension site \
-                 reached through a `while` loop body; only if/else-nested sites admit a \
-                 carried value in this increment",
-                function.name
-            )));
+            for slot_id in &live {
+                let Some(slot) = plan.slots.iter().find(|slot| slot.id == *slot_id) else {
+                    continue;
+                };
+                if slot_touched_inside_while(function, &slot.storage) {
+                    return Err(not_admitted(format!(
+                        "function `{}` carries an owned `Bytes` value defined or reassigned \
+                         inside a `while` loop body, live across a suspension site reached \
+                         through that same loop; only a value defined -- and never reassigned \
+                         -- outside every enclosing loop admits a carried value in this \
+                         increment",
+                        function.name
+                    )));
+                }
+            }
         }
         live_anywhere.extend(live);
     }
@@ -437,75 +450,114 @@ fn not_admitted(message: impl Into<String>) -> Diagnostic {
 }
 
 /// True when `site` is reached only by passing through at least one `while`
-/// loop's body (a loop-embedded site), walking exactly the same admitted
-/// if/else/while/block-valued nesting [`owned_locals_live_at`]'s own
-/// `locate_predecessors` does. `false` both when `site` sits entirely
-/// outside any `while` body and when `site` is not reachable through the
-/// admitted nesting at all (a separate refusal already handles the latter).
+/// loop's body or condition (a loop-embedded site). Unlike
+/// `locate_predecessors`'s own admitted-placement grammar, this walk is
+/// exhaustive over every expression and statement kind: `site` can be a
+/// transition's trigger expression anywhere in the function, not only a
+/// direct `let`/assignment value or tail reached through `if`/`else`/`while`/
+/// block-valued nesting. `false` when `site` sits entirely outside any
+/// `while` body/condition; also `false` (fail toward the caller's own
+/// separate refusal, never silently toward "safe") when `site` is not found
+/// at all, which does not occur for a trigger expression genuinely present
+/// in `function.body`.
 fn site_is_loop_embedded(function: &ResolvedFunction, site: &ExpressionId) -> bool {
-    find_while_membership_in_block(&function.body, true, false, site).unwrap_or(false)
-}
-
-/// Mirrors `locate_predecessors::find_in_block`'s own structural descent,
-/// but instead of accumulating "already executed" identities, threads
-/// whether the walk has already entered a `while` body and reports that flag
-/// at the exact statement or tail that names `site`. `Some(in_while)` once
-/// `site` is found; `None` if this block's walk never reaches it.
-fn find_while_membership_in_block(
-    expr: &ResolvedExpr,
-    top: bool,
-    in_while: bool,
-    site: &ExpressionId,
-) -> Option<bool> {
-    let ResolvedExprKind::Block { statements, tail } = &expr.kind else {
-        return None;
-    };
-    for statement in statements {
-        match statement {
-            ResolvedStatement::Let { value, .. } | ResolvedStatement::Assign { value, .. } => {
-                if let Some(found) = find_while_membership_in_value(value, in_while, site) {
-                    return Some(found);
+    // `(expression, already inside a while)`. Every statement kind
+    // (`Let`/`Assign`/`Unsafe`/`While`) and every expression kind reachable
+    // from `function.body` is covered: `While`'s own two children (condition,
+    // then body, per `ResolvedStatement::child_count`/`child`) are pushed
+    // `in_while = true`; every other statement's children, and every
+    // expression's own children via
+    // `hir::push_resolved_expression_children_in_authored_order` (an
+    // exhaustive match over `ResolvedExprKind`, so a new expression kind
+    // fails this to compile rather than silently skipping it), are pushed
+    // with the enclosing `in_while` unchanged.
+    let mut pending: Vec<(&ResolvedExpr, bool)> = vec![(&function.body, false)];
+    while let Some((expr, in_while)) = pending.pop() {
+        if expr.id == *site {
+            return in_while;
+        }
+        if let ResolvedExprKind::Block { statements, tail } = &expr.kind {
+            pending.push((tail, in_while));
+            for statement in statements.iter().rev() {
+                let statement_in_while =
+                    in_while || matches!(statement, ResolvedStatement::While { .. });
+                for index in (0..statement.child_count()).rev() {
+                    if let Some(child) = statement.child(index) {
+                        pending.push((child, statement_in_while));
+                    }
                 }
             }
-            ResolvedStatement::While { body, .. } => {
-                if let Some(found) = find_while_membership_in_block(body, false, true, site) {
-                    return Some(found);
-                }
-            }
-            ResolvedStatement::Unsafe { .. } => {}
+        } else {
+            let mut children = Vec::new();
+            hir::push_resolved_expression_children_in_authored_order(expr, &mut children);
+            pending.extend(children.into_iter().map(|child| (child, in_while)));
         }
     }
-    if top && tail.id == *site {
-        return Some(in_while);
-    }
-    None
+    false
 }
 
-/// Mirrors `locate_predecessors::find_in_value`'s own structural descent.
-fn find_while_membership_in_value(
-    expr: &ResolvedExpr,
-    in_while: bool,
-    site: &ExpressionId,
-) -> Option<bool> {
-    if expr.id == *site {
-        return Some(in_while);
-    }
-    match &expr.kind {
-        ResolvedExprKind::If {
-            then_branch,
-            else_branch,
+/// True when some transition touching `storage` -- as its `Initialize`/
+/// `InitializeVariant` destination, its `Renew`/`Transfer`/`TransferVariant`
+/// source or destination, its `ReserveRenewal` reservation, or a
+/// `CallCommit` argument it stages -- has a trigger expression reached only
+/// through a `while` body or condition (`site_is_loop_embedded`). This is
+/// the admission question for a loop-embedded carried site: a slot untouched
+/// inside every `while` body of the function is defined (and, if ever
+/// reassigned, only ever reassigned) *outside* any loop, so its own
+/// `let`/assignment reaches exactly one dynamic occurrence per invocation
+/// regardless of how many times a loop-embedded site downstream suspends --
+/// the shape `interpreter::resumable`'s carrying substitution proves sound.
+/// A slot touched inside a `while` body is the genuinely unsound shape this
+/// increment still refuses: reused rather than approximated.
+pub(crate) fn slot_touched_inside_while(function: &ResolvedFunction, storage: &StorageId) -> bool {
+    function
+        .cleanup_plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions)
+        .filter_map(|transition| transition_touch(transition, storage))
+        .any(|at| site_is_loop_embedded(function, at))
+}
+
+/// The trigger expression of `transition` when it touches `storage` as a
+/// source, destination, reservation, or committed call argument; `None` when
+/// it does not touch `storage` at all, or (`AuthenticateVariantCase`) only
+/// narrows an already-conditional entry that whole-storage admission never
+/// reaches.
+fn transition_touch<'t>(
+    transition: &'t CleanupTransition,
+    storage: &StorageId,
+) -> Option<&'t ExpressionId> {
+    match transition {
+        CleanupTransition::ReserveRenewal { at, binding } => {
+            (binding.storage == *storage).then_some(at)
+        }
+        CleanupTransition::Initialize { at, destination }
+        | CleanupTransition::InitializeVariant {
+            at, destination, ..
+        } => (destination.storage == *storage).then_some(at),
+        CleanupTransition::Renew {
+            at,
+            source,
+            destination,
+        }
+        | CleanupTransition::Transfer {
+            at,
+            source,
+            destination,
+        }
+        | CleanupTransition::TransferVariant {
+            at,
+            source,
+            destination,
             ..
-        } => {
-            if let Some(found) = find_while_membership_in_block(then_branch, false, in_while, site)
-            {
-                return Some(found);
-            }
-            find_while_membership_in_block(else_branch, false, in_while, site)
-        }
-        ResolvedExprKind::Block { .. } => {
-            find_while_membership_in_block(expr, false, in_while, site)
-        }
-        _ => None,
+        } => (source.storage == *storage || destination.storage == *storage).then_some(at),
+        CleanupTransition::AuthenticateVariantCase { .. } => None,
+        CleanupTransition::CallCommit { call, arguments } => arguments
+            .iter()
+            .any(|argument| argument.source.storage == *storage)
+            .then_some(call),
+        CleanupTransition::SelectFailure { .. } | CleanupTransition::StageCopyResult { .. } => None,
     }
 }
 
@@ -544,7 +596,14 @@ mod tests {
     use std::path::Path;
 
     use super::*;
-    use crate::hir::ResolvedProgram;
+    use crate::ast::Span;
+    use crate::cleanup_plan::{
+        BlockId, CleanupBlock, CleanupRegionId, CleanupTerminator, ExitTargetId,
+    };
+    use crate::hir::{
+        FunctionExecutionId, OwnershipMode, ResolvedMatchArm, ResolvedMatchMode,
+        ResolvedMatchPattern, ResolvedProgram,
+    };
     use crate::parse;
 
     const SOURCE: &str = r#"
@@ -779,5 +838,147 @@ fn no_owned() -> i64 {
         let error = owned_locals_live_at(target, &foreign_site)
             .expect_err("a site absent from this function's body is refused");
         assert_eq!(error.code, "SPX-H006");
+    }
+
+    fn leaf(owner: &FunctionExecutionId, path: &str, span: Span) -> ResolvedExpr {
+        ResolvedExpr {
+            id: ExpressionId::new(owner, path),
+            ty: ResolvedType::I64,
+            ownership: OwnershipMode::Value,
+            kind: ResolvedExprKind::Int(0),
+            span,
+        }
+    }
+
+    /// Issue #296, spec section 11.6, third increment: independent review
+    /// found `site_is_loop_embedded`'s previous structural descent (only
+    /// `If`/`Block` among expressions, `Let`/`Assign`/`While` among
+    /// statements) missed a transition trigger reached through a `match` arm
+    /// or an `unsafe` boundary nested inside a `while` body -- both are
+    /// refused at the surface today (`hir::resolve_statement`'s while-body
+    /// admission, `SPX-T252`), so this hand-builds the resolved HIR shape
+    /// directly ("bypassing surface parsing") to prove the *walker* itself,
+    /// not merely today's surface grammar, classifies them: a transition
+    /// whose trigger sits inside either nesting must be reported touched.
+    #[test]
+    fn slot_touched_inside_while_finds_a_trigger_nested_in_match_or_unsafe() {
+        let program = program();
+        let mut function = function(&program, "test.no_owned").clone();
+        let owner = FunctionExecutionId::Monomorphic(function.id.clone());
+        let span = Span {
+            start: 0,
+            end: 0,
+            line: 1,
+            column: 1,
+        };
+        let marker_in_unsafe = leaf(&owner, "test.marker_in_unsafe", span);
+        let marker_in_match = leaf(&owner, "test.marker_in_match", span);
+        let scrutinee = leaf(&owner, "test.scrutinee", span);
+        let condition = ResolvedExpr {
+            kind: ResolvedExprKind::Bool(true),
+            ty: ResolvedType::Bool,
+            ..leaf(&owner, "test.condition", span)
+        };
+        let match_tail = ResolvedExpr {
+            id: ExpressionId::new(&owner, "test.while_tail"),
+            kind: ResolvedExprKind::Match {
+                mode: ResolvedMatchMode::Value,
+                scrutinee: Box::new(scrutinee),
+                arms: vec![ResolvedMatchArm {
+                    pattern: ResolvedMatchPattern::Wildcard,
+                    guard: None,
+                    value: marker_in_match.clone(),
+                    span,
+                }],
+            },
+            ..leaf(&owner, "test.while_tail_leaf", span)
+        };
+        let while_body = ResolvedExpr {
+            id: ExpressionId::new(&owner, "test.while_body"),
+            kind: ResolvedExprKind::Block {
+                statements: vec![ResolvedStatement::Unsafe {
+                    audit: "test".to_owned(),
+                    body: Box::new(marker_in_unsafe.clone()),
+                    span,
+                }],
+                tail: Box::new(match_tail),
+            },
+            ..leaf(&owner, "test.while_body_leaf", span)
+        };
+        let while_statement = ResolvedStatement::While {
+            condition: Box::new(condition),
+            body: Box::new(while_body),
+            span,
+        };
+        let outer_tail = leaf(&owner, "test.outer_tail", span);
+        function.body = ResolvedExpr {
+            id: ExpressionId::new(&owner, "test.outer_body"),
+            kind: ResolvedExprKind::Block {
+                statements: vec![while_statement],
+                tail: Box::new(outer_tail),
+            },
+            ..leaf(&owner, "test.outer_body_leaf", span)
+        };
+
+        let unsafe_value = ValueId::intrinsic_parameter("test.slot_touched_unsafe", 0);
+        let match_value = ValueId::intrinsic_parameter("test.slot_touched_match", 0);
+        function.cleanup_plan.blocks = vec![CleanupBlock {
+            id: BlockId(0),
+            region: CleanupRegionId(0),
+            transitions: vec![
+                CleanupTransition::Initialize {
+                    at: marker_in_unsafe.id.clone(),
+                    destination: CleanupPlace::whole(StorageId::Value(unsafe_value.clone())),
+                },
+                CleanupTransition::Initialize {
+                    at: marker_in_match.id.clone(),
+                    destination: CleanupPlace::whole(StorageId::Value(match_value.clone())),
+                },
+            ],
+            terminator: CleanupTerminator::Exit(ExitTargetId(0)),
+        }];
+
+        assert!(
+            slot_touched_inside_while(&function, &StorageId::Value(unsafe_value.clone())),
+            "a transition triggered inside an `unsafe` boundary nested in a `while` body must \
+             be reported touched"
+        );
+        assert!(
+            slot_touched_inside_while(&function, &StorageId::Value(match_value.clone())),
+            "a transition triggered inside a `match` arm nested in a `while` body must be \
+             reported touched"
+        );
+
+        // A storage no transition touches at all is correctly untouched.
+        let absent = ValueId::intrinsic_parameter("test.slot_touched_absent", 0);
+        assert!(!slot_touched_inside_while(
+            &function,
+            &StorageId::Value(absent)
+        ));
+
+        // The same two markers, moved (by hand) to sit directly in the
+        // function's own top-level body -- outside any `while` -- are
+        // correctly reported untouched: this is the same walker, not a
+        // special case for the positive result above.
+        function.body = ResolvedExpr {
+            id: ExpressionId::new(&owner, "test.outer_body_no_while"),
+            kind: ResolvedExprKind::Block {
+                statements: vec![ResolvedStatement::Unsafe {
+                    audit: "test".to_owned(),
+                    body: Box::new(marker_in_unsafe.clone()),
+                    span,
+                }],
+                tail: Box::new(marker_in_match.clone()),
+            },
+            ..leaf(&owner, "test.outer_body_no_while_leaf", span)
+        };
+        assert!(!slot_touched_inside_while(
+            &function,
+            &StorageId::Value(unsafe_value)
+        ));
+        assert!(!slot_touched_inside_while(
+            &function,
+            &StorageId::Value(match_value)
+        ));
     }
 }

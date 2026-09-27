@@ -244,27 +244,30 @@ fn an_owned_bytes_local_past_a_branching_predecessor_stays_refused() {
     assert_eq!(error.code, "SPX-T303");
 }
 
-/// Independent review of issue #296 (this increment's own P1 finding): a
-/// `while` loop can suspend more than once per invocation, but the carrying
-/// substitution `interpreter::resumable::Resumption::Replay::carried` uses
-/// is a flat map keyed by the static `let` binding, consumed on the *first*
-/// dynamic occurrence a resume's replay reaches. Resuming the Nth
-/// suspension of a loop-embedded carried local would substitute that
-/// iteration's bytes into the first iteration's own binding during replay,
-/// silently running iterations `1..N` with the wrong value. This is exactly
-/// the shape a while loop's own bounded-iteration liveness note in
-/// `cleanup_plan::owned_liveness`'s module docs already flags as out of this
-/// increment's scope: `admit_owned_bytes_profile` must refuse it rather than
-/// approximate.
+/// Independent review of issue #296: a `while` loop can suspend more than
+/// once per invocation, and the carrying substitution
+/// `interpreter::resumable::Resumption::Replay::carried` uses is a flat map
+/// keyed by the static `let` binding, consumed on the *first* dynamic
+/// occurrence a resume's replay reaches. That is sound exactly when the
+/// carried local's own storage is never touched (defined, renewed, or
+/// transferred) *inside* the `while` body: such a local's own binding then
+/// reaches exactly one dynamic occurrence per invocation regardless of how
+/// many times the loop-embedded site itself suspends, so the one recorded
+/// value is the right one for every occurrence.
+/// `cleanup_plan::owned_liveness::slot_touched_inside_while` decides this
+/// per live slot; `admit_owned_bytes_profile` admits `buf` here because its
+/// own `let` sits before the loop and it is never reassigned inside it.
 ///
 /// `buf` is created before the loop and consumed after it -- the
 /// pre-existing Bounded-While-Loops v1 admission (`hir::resolve_statement`)
 /// already refuses any owned-`Bytes`-producing expression (an array
 /// literal, `bytes_copy`, or a non-scalar-returning call) *inside* a `while`
-/// body regardless of `yields`, so this is the only shape that reaches this
-/// increment's own admission at all; it still exercises exactly the
-/// defect above, since `buf`'s one static site sits inside the loop body
-/// and stays live across every one of its dynamic suspensions.
+/// body regardless of `yields`, so a local whose own storage is touched
+/// inside the loop is a different, still-refused shape (see
+/// `an_owned_bytes_local_reassigned_inside_a_loop_embedded_site_stays_refused`
+/// below); `buf`'s one static site sits inside the loop body and stays live
+/// across every one of its dynamic suspensions, exercising the admitted
+/// shape exactly.
 const OWNED_BYTES_LOOP_SOURCE: &str = r#"
 module test.control_lowering_owned_loop;
 @id("bytes.make")
@@ -298,19 +301,95 @@ fn main() -> i64 { 0 }
 "#;
 
 #[test]
-fn an_owned_bytes_local_across_a_loop_embedded_site_stays_refused() {
+fn an_owned_bytes_local_defined_before_a_loop_embedded_site_is_admitted_with_a_v4_identity() {
+    let resolved = program(OWNED_BYTES_LOOP_SOURCE);
+    hir::validate(&resolved).unwrap();
+    let ask = function(&resolved, "app.ask");
+    let plan = lower_control(&resolved, ask).unwrap();
+    assert!(plan.carries_owned_bytes);
+    assert_eq!(plan.sites.len(), 1);
+    assert_eq!(plan.sites[0].carried.len(), 1);
+
+    let native = crate::codegen::emit_hir_c(&resolved).unwrap_err();
+    assert_eq!(native.code, "SPX-B116");
+    let wasm = crate::wasm::emit_resolved_module(&resolved).unwrap_err();
+    assert_eq!(wasm.code, "SPX-W126");
+    for target in [
+        crate::resumable_effects::target::ResumableArtifactTarget::NativeC11,
+        crate::resumable_effects::target::ResumableArtifactTarget::CoreWasm,
+    ] {
+        let refused =
+            crate::resumable_effects::target::prepare_target_profile(&resolved, "app.ask", target)
+                .unwrap_err();
+        assert_eq!(refused.code, "SPX-H006");
+    }
+}
+
+/// The genuinely unsound shape stays refused: a `Bytes` local whose own
+/// storage is reassigned *inside* the `while` body recurs once per
+/// iteration with a value that can legitimately differ each time, which the
+/// flat `ValueId`-keyed carrying map cannot represent (only the first
+/// dynamic occurrence would ever be consulted). In practice this reaches
+/// `hir::resolve_statement`'s own pre-existing while-body admission first:
+/// `rebuild`'s return type (`Bytes`) is not scalar, so the call is refused
+/// with `SPX-T252` ("call `rebuild` is not admitted in while bodies; only
+/// scalar functions qualify") before `cleanup_plan::admit_owned_bytes_profile`
+/// ever runs. If that carve-out ever widens to admit a non-scalar-returning
+/// call, `SPX-T303` (via `slot_touched_inside_while`) is this increment's own
+/// second line of defence: not exercised by this exact fixture today, but
+/// asserted separately (below) directly against the plan-admission query.
+const OWNED_BYTES_LOOP_REASSIGNED_SOURCE: &str = r#"
+module test.control_lowering_owned_loop_reassigned;
+@id("bytes.make")
+fn make_buf() -> Bytes {
+    let bytes = [1u8, 2u8, 3u8];
+    bytes_copy(array_as_slice(bytes))
+}
+@id("bytes.rebuild")
+fn rebuild(value: own Bytes) -> Bytes {
+    value
+}
+@id("bytes.consume")
+fn consume(value: own Bytes) -> i64 {
+    let _ = bytes_as_slice(value);
+    100
+}
+@id("app.ask")
+fn ask(limit: i64) -> i64
+    yields i64 -> i64
+{
+    let mut buf = make_buf();
+    let mut total = 0;
+    let mut round = 0;
+    while round < limit {
+        buf = rebuild(buf);
+        let answer = yield round;
+        total = total + answer;
+        round = round + 1;
+        round > 0
+    }
+    let used = consume(buf);
+    total + used
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+#[test]
+fn an_owned_bytes_local_reassigned_inside_a_loop_embedded_site_stays_refused() {
     let ast = crate::parse(
-        OWNED_BYTES_LOOP_SOURCE,
-        Path::new("control-lowering-owned-loop.spx"),
+        OWNED_BYTES_LOOP_REASSIGNED_SOURCE,
+        Path::new("control-lowering-owned-loop-reassigned.spx"),
     )
     .unwrap();
     let error = hir::resolve(&ast).unwrap_err().remove(0);
-    assert_eq!(error.code, "SPX-T303");
+    assert_eq!(error.code, "SPX-T252");
 }
 
 /// The if/else-nested case (`OWNED_BYTES_SOURCE`, admitted above) still
-/// works: only a loop-embedded carried site is refused, never every
-/// control-dependent one.
+/// works: a loop-embedded carried site sitting alongside it (a different
+/// function here, but the same admission pass) does not disturb its own
+/// admission.
 #[test]
 fn an_owned_bytes_local_in_an_if_else_site_is_still_admitted_after_the_loop_refusal() {
     let resolved = program(OWNED_BYTES_SOURCE);

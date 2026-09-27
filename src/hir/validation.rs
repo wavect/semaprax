@@ -1527,13 +1527,11 @@ impl<'a> HirValidator<'a> {
         }
         Ok(())
     }
-
     fn reachable_function_instances(
         &self,
     ) -> Result<Vec<(FunctionInstanceId, DeclarationId, Vec<ResolvedType>)>, Diagnostic> {
         generic_template::reachable_instances(self.program)
     }
-
     fn validate_function(
         &mut self,
         function: &ResolvedFunction,
@@ -1717,7 +1715,6 @@ impl<'a> HirValidator<'a> {
                 function.id
             )));
         }
-
         for (index, contract) in function.requires.iter().enumerate() {
             let mut contract_scope = scope.clone();
             self.validate_expr(

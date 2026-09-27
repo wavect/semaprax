@@ -53,13 +53,9 @@ impl ResumableSuspensionBinding {
 
 /// Exact target-neutral scalar bits used to bind one suspension to the
 /// invocation arguments that produced it. Floats are bits, not IEEE equality.
-///
-/// `Record` and `Variant` (issue #296 R20) represent a bounded channel in
-/// canonical declared field order. Depth is fixed at one level by admission, so
-/// neither ever recurses into another `Record` or `Variant`. Function
-/// *arguments* stay Copy-scalar only (the profile this widening does not
-/// touch), so only a suspension's request/answer history ever carries one of
-/// these two variants.
+/// `Record` and `Variant` carry one bounded channel level in declared field
+/// order. Function arguments remain Copy-scalar; only request/answer history
+/// carries these shapes.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResumableScalar {
     I64(i64),
@@ -322,10 +318,6 @@ pub fn lower_sequential(
 ) -> Result<SequentialResumablePlan, Diagnostic> {
     let aggregate_bytes_channel = function.yields.as_ref().is_some_and(|yields| {
         crate::hir::yield_aggregate::has_bytes_leaf(&program.declarations, &yields.request_type)
-            || crate::hir::yield_aggregate::has_bytes_leaf(
-                &program.declarations,
-                &yields.response_type,
-            )
     });
     let yields =
         control::check_resumable_profile(program, function, aggregate_bytes_channel, true)?;

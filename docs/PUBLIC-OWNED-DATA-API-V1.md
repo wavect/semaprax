@@ -982,6 +982,28 @@ with Node 24.3, npm 11.4.2 and TypeScript 5.8.3, for both display names. The
 separate direct-consumer strict TypeScript gate also passed. The gates cover
 v8 only and do not establish registry publication or hosted promotion.
 
+The same test also applies four hostile-byte regressions directly to this
+genuine, compiler-produced package rather than a synthetic stand-in (issue
+#290/P3). Before packing, a bit-flip in `semaprax.bindings.js` and separately
+in `app.wasm` (a swapped Wasm binary) are each refused by the release-
+preparation script's preview digest check. After packing, a hostile copy of
+the real tarball whose `app.wasm` archive member path escapes the package
+root (`package/../app.wasm`) is refused by that script's own
+`_verify_npm_tarball_payload` byte-binding, reused unchanged against the
+genuine archive. Finally, a hostile copy of the real tarball with `app.wasm`
+content substituted is installed at the same `file:` dependency path the
+lockfile already recorded an integrity digest for; `npm ci` refuses it with
+`EINTEGRITY` once it is forced to re-verify from disk. A cache already warmed
+by the earlier lock-only install of the genuine tarball was found, this
+session, to mask that exact substitution instead of catching it -- the test
+therefore uses a cache the genuine artifact has never touched for that one
+check, and every other install in the test keeps using the shared cache. This
+target is not selected into any hosted CI job today (`--ignored` is not
+passed to it anywhere in `.github/workflows/ci.yml` or `scripts/ci-msrv.py`),
+so this remains local-only evidence; see
+[ADR 0003](decisions/0003-maintained-generated-package-support.md) row 14 for
+the full evidence record and what remains open for the npm route.
+
 ### Authored same-source Result-extrema gates
 
 `tests/support/owned_result_product.rs` supplies one canonical two-source v8

@@ -69,6 +69,89 @@ fn preview_tamper_is_refused(prepared: &Path, payload: &str) {
     );
 }
 
+// Build a hostile copy of a genuine packed npm tarball by rewriting exactly
+// one payload member (`app.wasm`) of the real, compiler-produced archive:
+// either its path (path traversal) or its content (a swapped/substituted
+// Wasm binary). Every other member is carried over byte-for-byte from the
+// real archive, so these mutations exercise the guards against the genuine
+// artifact, not a synthetic fixture.
+const NPM_TARBALL_MUTATION: &str = r#"
+import gzip, io, sys, tarfile
+from pathlib import Path
+
+MODE, TARBALL, OUTPUT = sys.argv[1:4]
+
+with tarfile.open(TARBALL, mode="r:gz") as source:
+    members = source.getmembers()
+    contents = {
+        member.name: source.extractfile(member).read() if member.isfile() else None
+        for member in members
+    }
+
+buffer = io.BytesIO()
+with tarfile.open(fileobj=buffer, mode="w", format=tarfile.USTAR_FORMAT) as archive:
+    for member in members:
+        data = contents[member.name]
+        if member.isfile() and member.name == "package/app.wasm":
+            if MODE == "traversal":
+                member = tarfile.TarInfo("package/../app.wasm")
+                member.size = len(data)
+            elif MODE == "substitute":
+                data = bytes([data[0] ^ 0xFF]) + data[1:]
+            else:
+                raise ValueError("unknown MODE: " + MODE)
+        archive.addfile(member, io.BytesIO(data) if data is not None else None)
+Path(OUTPUT).write_bytes(gzip.compress(buffer.getvalue(), mtime=0))
+"#;
+
+fn hostile_npm_tarball(mode: &str, tarball: &Path, output: &Path) {
+    let result = Command::new("python3")
+        .args(["-c", NPM_TARBALL_MUTATION, mode])
+        .arg(tarball)
+        .arg(output)
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "cannot build hostile {mode} tarball: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+}
+
+// Reuse the release-preparation script's own archive byte-binding guard
+// (`_verify_npm_tarball_payload`) directly, rather than reimplementing
+// archive-member admission, against a hostile tarball whose `app.wasm`
+// member path escapes the package root.
+const NPM_TARBALL_PAYLOAD_GUARD: &str = r#"
+import importlib.util, sys
+from pathlib import Path
+
+TARBALL, PACKAGE_DIR, RELEASE = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("release", RELEASE)
+release = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(release)
+
+expected = {path.name: path.read_bytes() for path in Path(PACKAGE_DIR).iterdir()}
+
+try:
+    release._verify_npm_tarball_payload(Path(TARBALL), expected)
+except release.Rejected as error:
+    print(f"refused[traversal]: {error}")
+else:
+    print("ERROR: accepted a path-traversing archive member", file=sys.stderr)
+    sys.exit(1)
+"#;
+
+fn npm_tarball_payload_guard(tarball: &Path, package_dir: &Path) -> Output {
+    Command::new("python3")
+        .args(["-c", NPM_TARBALL_PAYLOAD_GUARD])
+        .arg(tarball)
+        .arg(package_dir)
+        .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/generated-package-release.py"))
+        .output()
+        .unwrap()
+}
+
 fn inventory(path: &Path) -> Vec<String> {
     let mut files = fs::read_dir(path)
         .unwrap()
@@ -101,7 +184,7 @@ fn installed_owned_npm_package_resolves_and_runs_without_compiler() {
     fs::write(&config, b"").unwrap();
     let global_config = root.join("global.npmrc");
     fs::write(&global_config, b"").unwrap();
-    let npm_command = |directory: &Path| {
+    let npm_command_with_cache = |directory: &Path, cache: &Path| {
         let mut command = node(&executable, directory);
         for (key, _) in std::env::vars_os() {
             if key
@@ -126,9 +209,10 @@ fn installed_owned_npm_package_resolves_and_runs_without_compiler() {
             .arg("--globalconfig")
             .arg(&global_config)
             .arg("--cache")
-            .arg(root.join("npm-cache"));
+            .arg(cache);
         command
     };
+    let npm_command = |directory: &Path| npm_command_with_cache(directory, &root.join("npm-cache"));
     for renamed in [false, true] {
         let case = root.join(if renamed { "renamed" } else { "baseline" });
         fs::create_dir(&case).unwrap();
@@ -171,6 +255,10 @@ fn installed_owned_npm_package_resolves_and_runs_without_compiler() {
                 .arg(&preview),
         );
         preview_tamper_is_refused(&preview, "semaprax.bindings.js");
+        // A swapped Wasm binary is a byte tamper like any other payload
+        // member; the same digest-bound preview guard must catch it before
+        // the compiler-produced `app.wasm` is ever packed or shipped.
+        preview_tamper_is_refused(&preview, "app.wasm");
         success(
             release_preview_command()
                 .args(["check", "--kind", "npm", "--prepared-dir"])
@@ -248,6 +336,61 @@ fn installed_owned_npm_package_resolves_and_runs_without_compiler() {
             }
         }
         assert!(installed.get("dependencies").is_none());
+
+        let tarball_path = packed.join(TARBALL);
+
+        // Hostile guard: a packed archive whose member path escapes the
+        // package root (path traversal) must be refused by the same
+        // byte-binding verification the release-preparation script already
+        // applies to every packed npm tarball, exercised here against a
+        // hostile derivative of the genuine compiler-produced archive
+        // rather than a synthetic fixture.
+        let hostile_traversal = case.join("hostile-traversal.tgz");
+        hostile_npm_tarball("traversal", &tarball_path, &hostile_traversal);
+        let traversal = npm_tarball_payload_guard(&hostile_traversal, &package);
+        assert!(
+            traversal.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&traversal.stdout),
+            String::from_utf8_lossy(&traversal.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&traversal.stdout).contains("refused[traversal]"),
+            "a path-traversing archive member must be refused: {}",
+            String::from_utf8_lossy(&traversal.stdout)
+        );
+
+        // Hostile guard: a tarball substituted after the lockfile recorded
+        // its integrity (a stale lock pointed at swapped/substituted bytes
+        // -- here, a hostile derivative of the genuine tarball with its
+        // `app.wasm` member content changed) must be refused by npm's own
+        // subresource-integrity check before any installed byte is trusted.
+        // A cache already populated from the earlier lock-only install of
+        // the genuine tarball can otherwise mask a substituted `file:`
+        // dependency (reproduced separately against this exact npm), so
+        // this check uses a cache the genuine artifact has never touched.
+        let hostile_substitute = case.join("hostile-substitute.tgz");
+        hostile_npm_tarball("substitute", &tarball_path, &hostile_substitute);
+        let original_tarball = fs::read(&tarball_path).unwrap();
+        fs::copy(&hostile_substitute, &tarball_path).unwrap();
+        let hostile_cache = case.join("npm-cache-hostile");
+        fs::create_dir(&hostile_cache).unwrap();
+        let stale = npm_command_with_cache(&consumer, &hostile_cache)
+            .arg("ci")
+            .output()
+            .unwrap();
+        fs::write(&tarball_path, &original_tarball).unwrap();
+        assert!(
+            !stale.status.success(),
+            "a tarball substituted after the lockfile recorded its integrity must be refused"
+        );
+        assert!(
+            String::from_utf8_lossy(&stale.stderr).contains("EINTEGRITY"),
+            "stale-lock refusal must name the integrity mismatch: {}",
+            String::from_utf8_lossy(&stale.stderr)
+        );
+        assert!(!consumer.join("node_modules").exists());
+
         success(npm_command(&consumer).arg("ci"));
         assert_eq!(fs::read(consumer.join("package-lock.json")).unwrap(), lock);
         let installed = consumer.join("node_modules/frame-payload");

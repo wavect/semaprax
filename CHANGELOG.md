@@ -352,6 +352,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   dedicated `SPX-T307` ("aggregate yield channel not yet admitted") instead of
   the generic scalar refusal, and record the bounded aggregate shape and the
   runtime work it still needs (#296).
+- Project `follows session protocol` bindings (function `@id` to protocol
+  `@id`, typestate checked) into the per-source graph (`semaprax.graph.v49`,
+  only for programs that use the clause), `context`, the Workspace and
+  Package Semantic Graphs (`.v3`) and the Assurance Manifest as a
+  `compiler_proved` call-order obligation (#297). `doc` and `query` do not
+  render them.
 
 ## 0.6.0 — 2026-09-24
 

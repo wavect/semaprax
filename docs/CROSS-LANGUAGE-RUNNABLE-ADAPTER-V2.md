@@ -163,8 +163,10 @@ authenticated official release, matching this suite's existing
 this extension; that round only wired its *execution*, which no
 runnable-adapter contract had done before). A follow-on round (issue #284)
 ported the remaining eleven tasks in the canonical inventory to these same
-four languages, so every one of the 12 tasks now has a `c`/`python`/`swift`/
-`java` port. Each port was independently authored against its own task's
+four languages, and a later addition (`iterative-repair-workflow-v1`,
+issue #298) shipped with its own `c`/`python`/`swift`/`java` ports from the
+start, so every one of the 13 tasks now has a `c`/`python`/`swift`/`java`
+port. Each port was independently authored against its own task's
 `EQUIVALENCE.md` contract and the existing Rust/TypeScript reference ports —
 same inputs, same functions/predicates, same hidden vectors — rather than
 transliterated line-by-line, and each was confirmed, before being committed,

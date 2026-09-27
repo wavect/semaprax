@@ -33,6 +33,8 @@ mod clean_install_calculator;
 mod cold_chain_release_gate;
 #[path = "cross_language_benchmark_suite/concurrent_delta_merge.rs"]
 mod concurrent_delta_merge;
+#[path = "cross_language_benchmark_suite/iterative_repair_workflow.rs"]
+mod iterative_repair_workflow;
 #[path = "cross_language_benchmark_suite/owned_byte_sentinel_balance.rs"]
 mod owned_byte_sentinel_balance;
 #[path = "cross_language_benchmark_suite/reproducibility.rs"]

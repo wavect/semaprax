@@ -80,20 +80,27 @@ section for the full reasoning per task):
 | Security fix | `cold-chain-release-gate-v1` |
 | Ownership change | `owned-byte-sentinel-balance-v1` |
 | Requirement preservation | `bounded-counter-repair-v1`, `booking-window-conflict-v1` |
-| Agent workflow | *not represented as task content* — see below |
+| Agent workflow | `iterative-repair-workflow-v1` |
 | Concurrent change | `stable-dispatch-order-v1`, `concurrent-delta-merge-v1` |
 | Failure recovery | `telemetry-overflow-diagnosis-v1` |
 | Context-limited maintenance | `stale-edit-preservation-v1` |
 
-Ten of eleven categories are covered by task content. **"Agent workflow" is
-not** — it is demonstrated only orthogonally, by running
+All eleven categories are now covered by task content. "Agent workflow" was
+previously demonstrated only orthogonally, by running
 `structured-input-error-handling-v1` through `agent/orchestrator.py`'s full
-solver path instead of through a dedicated fixture. That resolution has never
-been put to a maintainer for sign-off: `docs/METHODOLOGY.md`'s "Open scope
-decision: is orthogonal coverage enough for 'Agent workflow'?" section states
-the two ways it could be closed (accept orthogonal coverage as sufficient, or
-commission a twelfth task built specifically to exercise multi-step/iterative
-solving) and asks for one of them, explicitly, rather than assuming either.
+solver path instead of through a dedicated fixture; that resolution was put
+to a maintainer for sign-off and, on 2026-09-27, was decided against —
+orthogonal coverage is not accepted, so this corpus gained a thirteenth,
+content-level task built specifically to exercise multi-step, iterative
+agent work: `iterative-repair-workflow-v1` has two sequentially-masked
+defects (its own public tests reveal only the first at a time), hidden
+tests that check both the fully corrected behavior and preservation of an
+unrelated sibling function, and a task statement that requires reading an
+earlier step's redacted output to find the second defect at all. See
+`docs/METHODOLOGY.md`'s "Decision: 'Agent workflow' needed a dedicated,
+content-level task" section for the full record; `agent/orchestrator.py`'s
+orthogonal demonstration through `structured-input-error-handling-v1`
+remains in this corpus as additional coverage, not the sole answer.
 
 ## Environment pinning
 

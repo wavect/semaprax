@@ -347,3 +347,18 @@ fn main() -> i64 { 0 }
     };
     assert_eq!(result, argument);
 }
+
+#[test]
+fn v7_owned_bytes_parameter_is_refused_by_checked_source() {
+    let source = SOURCE
+        .replace(
+            "    @id(\"app.input.urgent\") urgent: bool,",
+            "    @id(\"app.input.urgent\") urgent: bool,\n    @id(\"app.input.data\") data: Bytes,",
+        )
+        .replace("fn ask(input: Input)", "fn ask(input: own Input)");
+    let parsed = crate::parse(&source, std::path::Path::new("checkpoint-owned-input.spx")).unwrap();
+    assert_eq!(
+        crate::hir::resolve(&parsed).unwrap_err()[0].code,
+        "SPX-T303"
+    );
+}

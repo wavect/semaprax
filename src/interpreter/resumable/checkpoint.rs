@@ -536,17 +536,27 @@ pub(crate) fn checked_channel_arguments_plan(
         .map_err(|_| CheckpointError::ProgramMismatch)?;
     // v7 is selected by a genuine aggregate whole-function boundary, never
     // by caller-supplied checkpoint bytes. Owned channels remain on v6.
-    if !admitted
+    let has_aggregate_boundary = admitted
         .entry
         .params
         .iter()
         .any(|p| !hir::is_scalar_resolved_type(&p.ty))
-        && hir::is_scalar_resolved_type(&admitted.entry.return_type)
+        || !hir::is_scalar_resolved_type(&admitted.entry.return_type);
+    let has_owned_bytes = admitted
+        .entry
+        .params
+        .iter()
+        .any(|param| hir::yield_aggregate::has_bytes_leaf(&program.declarations, &param.ty))
+        || hir::yield_aggregate::has_bytes_leaf(&program.declarations, &admitted.entry.return_type)
         || hir::yield_aggregate::has_bytes_leaf(
             &program.declarations,
             &admitted.yields.request_type,
         )
-    {
+        || hir::yield_aggregate::has_bytes_leaf(
+            &program.declarations,
+            &admitted.yields.response_type,
+        );
+    if !has_aggregate_boundary || has_owned_bytes {
         return Err(CheckpointError::ProgramMismatch);
     }
     let plan = lowering::lower_sequential_with_arguments(program, admitted.entry)

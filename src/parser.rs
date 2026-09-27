@@ -897,7 +897,7 @@ impl Parser {
         } else {
             None
         };
-        let follows = self.session_protocol_follows_clause()?;
+        let follows = self.session_protocol_follows_clause()?.map(Box::new);
         let mut requires = Vec::new();
         let mut ensures = Vec::new();
         loop {

@@ -57,8 +57,25 @@ impl From<Refusal> for RendererRefusal {
 
 struct Renderer {
     /// Retain the exact binding, not merely its first translated program, so
-    /// old successful translation can never authorize changed component bytes.
+    /// a `source` byte-different from `validated_source` below (only the
+    /// drift-detection test below passes one) can never authorize changed
+    /// component bytes.
     binding: BoundTranslation,
+    /// The exact source bytes `same_source_program` below was independently
+    /// replayed against at construction time.
+    validated_source: String,
+    /// `binding.replay(&validated_source, ..)`'s own already-proven result,
+    /// reused whenever a later call's `source` is byte-identical to
+    /// `validated_source` (`bytes` below): re-parsing, re-resolving, and
+    /// re-validating this fixed, `include_str!`-embedded component source
+    /// again for that exact same input is deterministic per
+    /// `BoundTranslation::derive`'s own contract (same source bytes, same
+    /// entry, in, same program out -- see `AGENTS.md`'s "Source formatting
+    /// ... deterministic" invariant), so repeating it once per rendered
+    /// operator bought nothing beyond the first call and dominated this
+    /// renderer's cost under any caller that renders many operators from one
+    /// process (see issue #294).
+    same_source_program: KernelProgram,
 }
 
 impl Renderer {
@@ -69,7 +86,12 @@ impl Renderer {
     fn derive_from_source(source: &str) -> Result<Self, RendererRefusal> {
         let entry = DeclarationId::new("format.operator-render-byte");
         let binding = BoundTranslation::derive(source, &entry)?;
-        Ok(Self { binding })
+        let same_source_program = binding.replay(source, &entry)?.clone();
+        Ok(Self {
+            binding,
+            validated_source: source.to_owned(),
+            same_source_program,
+        })
     }
 
     fn int(
@@ -91,8 +113,12 @@ impl Renderer {
         if !(0..=MAX_OPCODE).contains(&opcode) {
             return Err(RendererRefusal::InvalidOpcode);
         }
-        let bound_entry = DeclarationId::new("format.operator-render-byte");
-        let program = self.binding.replay(source, &bound_entry)?;
+        let program = if source == self.validated_source {
+            &self.same_source_program
+        } else {
+            let bound_entry = DeclarationId::new("format.operator-render-byte");
+            self.binding.replay(source, &bound_entry)?
+        };
         let length = self.int(
             program,
             "format.operator-render-length",

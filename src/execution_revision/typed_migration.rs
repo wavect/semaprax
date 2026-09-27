@@ -7,6 +7,7 @@ mod handoff;
 #[path = "typed_migration/linked.rs"]
 mod linked;
 use super::*;
+use crate::agent_lifecycle::iterative::effects::TargetStageBackend;
 use crate::agent_lifecycle::iterative::IterativeStatus;
 use crate::agent_runtime_v2::checkpoint::CheckpointUsage;
 use crate::hir::{self, DeclarationId, ResolvedType, ResolvedTypeDeclarationKind};
@@ -121,6 +122,27 @@ impl MigratedAgentRuntimeV2 {
         handler: &mut dyn TypedEffectHandler,
         cancellation: &AgentCancellation,
     ) -> std::result::Result<AgentRuntimeV2MigrationEvidence, AgentRuntimeV2MigrationFailure> {
+        self.run_selected(handler, cancellation, None)
+    }
+
+    /// Continue the checked migrated State on an explicitly held stage target.
+    /// This selects destination stages only: the pure migration call has already
+    /// completed on the interpreter. Usage retains reservation accounting.
+    pub fn run_with_backend(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        selected: TargetStageBackend<'_>,
+    ) -> std::result::Result<AgentRuntimeV2MigrationEvidence, AgentRuntimeV2MigrationFailure> {
+        self.run_selected(handler, cancellation, Some(selected))
+    }
+
+    fn run_selected(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        selected: Option<TargetStageBackend<'_>>,
+    ) -> std::result::Result<AgentRuntimeV2MigrationEvidence, AgentRuntimeV2MigrationFailure> {
         let run = self
             .runtime
             .lifecycle
@@ -132,6 +154,7 @@ impl MigratedAgentRuntimeV2 {
                 self.runtime.effects,
                 cancellation,
                 &self.seed,
+                selected,
             )
             .map_err(|failure| AgentRuntimeV2MigrationFailure {
                 diagnostics: failure.diagnostics,

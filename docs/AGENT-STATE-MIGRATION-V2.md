@@ -58,3 +58,32 @@ profile. Automatic reconciliation remains separate functionality.
 preparation with persisted handoff and destination recovery. Its release
 evidence is hosted green under the same v0.4.0 baseline, with its own wire and
 trust boundaries.
+
+## Held-target destination continuation
+
+The additive `MigratedAgentRuntimeV2::run_with_backend` library method accepts
+`TargetStageBackend::Interpreter`, `Native` with a caller-held compiler, or
+`CoreWasmHeld` with a caller-held Node runtime. It continues the already migrated
+State through the same seeded driver and sealed stage dispatch as `run`.
+`run` retains its interpreter default. No destination initialize is executed;
+the continuation retains prior calls, bytes, iterations and stage reservations,
+and obtains fresh authorizations for its new effects. Evidence schemas and
+reservation accounting are unchanged and remain target-neutral.
+
+The selected Wasm route requires the destination registry's own retained source
+before any destination reservation or handler call; missing source is refused,
+with no fallback. Cancellation present before the first destination stage
+returns `Cancelled` with no stage or effect work and preserves all prior charges,
+including the already completed pure migration call's reservations.
+
+The focused local target gate is
+`cargo test --locked -p semaprax --test agent_runtime_v1 selected_migration_continuation_preserves_state_usage_and_precancellation`.
+It compares the default and three public selectors using an actual durable
+predecessor suspension and checked migration, including identical continuation
+results, evidence roots, cumulative accounting and cancellation before work.
+The library refusal gate is
+`cargo test --locked -p semaprax --lib selected_migration_missing_wasm_source_refuses_before_reservation_or_dispatch`.
+Held-target tests require explicitly opened `clang` and `node` tools; they do
+not establish hosted evidence. The pure `OldState -> NewState` migration call
+still executes twice on the interpreter during preparation. This addition does
+not add durable semantic metering or a new checkpoint format.

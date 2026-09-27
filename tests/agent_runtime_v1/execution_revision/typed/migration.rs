@@ -76,8 +76,7 @@ fn runtime(
     })
 }
 
-#[test]
-fn prepared_migration_consumes_actual_suspend_and_charges_old_and_new_work() {
+fn migration_fixtures() -> (Fixture, Fixture, EffectBudget) {
     let old_fixture = typed_fixture();
     let old_path = old_fixture.0.join("src/app.spx");
     let old_before = std::fs::read_to_string(&old_path).unwrap();
@@ -151,6 +150,12 @@ fn migrate(old: own State) -> NewState {
         max_result_bytes: 4096,
         max_total_bytes: 16_384,
     };
+    (old_fixture, new_fixture, effects)
+}
+
+#[test]
+fn prepared_migration_consumes_actual_suspend_and_charges_old_and_new_work() {
+    let (old_fixture, new_fixture, effects) = migration_fixtures();
     let old_for_run = runtime(&old_fixture, b"migration task", effects).unwrap();
     let old_revision = old_for_run.execution_revision().digest().to_owned();
     let old = runtime(&old_fixture, b"migration task", effects).unwrap();
@@ -361,6 +366,138 @@ fn migrate(old: own State) -> NewState {
     .expect("migration fuel must exhaust");
     assert_eq!(failure.usage().calls, before.calls);
     assert_eq!(failure.usage().reserved_fuel, before.reserved_fuel + 2);
+}
+
+#[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn selected_migration_continuation_preserves_state_usage_and_precancellation() {
+    use semaprax::agent_lifecycle::iterative::effects::{
+        NativeTargetHost, TargetStageBackend, WasmTargetHost,
+    };
+    let native = std::env::var_os("SEMAPRAX_TEST_NATIVE_STAGE_CLANG")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(
+            [
+                "/usr/bin/clang",
+                "/usr/local/bin/clang",
+                "/opt/homebrew/bin/clang",
+            ]
+            .map(std::path::PathBuf::from),
+        )
+        .find_map(|path| NativeTargetHost::open(path).ok())
+        .expect("migration parity requires an explicitly held compiler");
+    let wasm = std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain(
+            [
+                "/usr/bin/node",
+                "/usr/local/bin/node",
+                "/opt/homebrew/bin/node",
+            ]
+            .map(std::path::PathBuf::from),
+        )
+        .find_map(|path| WasmTargetHost::open(path).ok())
+        .expect("migration parity requires an explicitly held Node runtime");
+    let (old_fixture, new_fixture, effects) = migration_fixtures();
+    let mut expected = None;
+    for cancelled in [false, true] {
+        for selected in [
+            None,
+            Some(TargetStageBackend::Interpreter),
+            Some(TargetStageBackend::Native(&native)),
+            Some(TargetStageBackend::CoreWasmHeld(&wasm)),
+        ] {
+            let previous = runtime(&old_fixture, b"migration task", effects).unwrap();
+            let before = previous.execution_revision().digest().to_owned();
+            let mut old_handler = Handler {
+                calls: Vec::new(),
+                wrong: false,
+            };
+            let suspended = runtime(&old_fixture, b"migration task", effects)
+                .unwrap()
+                .run_durable(
+                    &mut old_handler,
+                    &AgentCancellation::new(),
+                    None,
+                    &mut MigrationStore::default(),
+                    10_000_000,
+                )
+                .unwrap();
+            assert_eq!(
+                suspended.run().run().lifecycle().status(),
+                IterativeStatus::Suspend
+            );
+            assert_eq!(old_handler.calls.len(), 3);
+            let prior = suspended.run().usage();
+            let prior_stages = suspended.run().run().lifecycle().stages().len();
+            let destination = runtime(&new_fixture, b"fresh destination input", effects).unwrap();
+            let after = destination.execution_revision().digest().to_owned();
+            let migration = migrate_suspended_agent_runtime_v2(
+                previous,
+                suspended,
+                destination,
+                &before,
+                &after,
+                "fixture.agent.fn.migrate",
+                10_000,
+                10_000_000,
+            )
+            .unwrap();
+            let cancellation = AgentCancellation::new();
+            if cancelled {
+                cancellation.cancel();
+            }
+            let mut handler = Handler {
+                calls: Vec::new(),
+                wrong: false,
+            };
+            let evidence = match selected {
+                None => migration.run(&mut handler, &cancellation),
+                Some(selected) => migration.run_with_backend(&mut handler, &cancellation, selected),
+            }
+            .unwrap();
+            let lifecycle = evidence.run().lifecycle();
+            assert!(lifecycle
+                .stages()
+                .iter()
+                .all(|stage| stage.role() != "initialize"));
+            if cancelled {
+                assert_eq!(lifecycle.status(), IterativeStatus::Cancelled);
+                assert!(handler.calls.is_empty());
+                assert!(lifecycle.stages().is_empty());
+                assert_eq!(evidence.stages(), prior_stages);
+                assert_eq!(evidence.iterations(), 3);
+                assert_eq!(evidence.usage().calls, prior.calls);
+                assert_eq!(evidence.usage().argument_bytes, prior.argument_bytes);
+                assert_eq!(evidence.usage().result_bytes, prior.result_bytes);
+                assert_eq!(evidence.usage().reserved_fuel, prior.reserved_fuel + 20_000);
+            } else {
+                assert_eq!(lifecycle.status(), IterativeStatus::Complete);
+                assert_eq!(handler.calls.len(), 3);
+                assert_eq!(evidence.usage().calls, 6);
+                assert_eq!(evidence.iterations(), 6);
+                assert_eq!(evidence.stages(), prior_stages + 9);
+                assert_eq!(
+                    evidence.usage().reserved_fuel,
+                    prior.reserved_fuel + 920_000
+                );
+                let observed = (
+                    lifecycle.value().cloned(),
+                    evidence.usage(),
+                    evidence.iterations(),
+                    evidence.stages(),
+                    evidence.evidence_root().digest().to_owned(),
+                );
+                if let Some(expected) = &expected {
+                    assert_eq!(&observed, expected);
+                } else {
+                    expected = Some(observed);
+                }
+            }
+        }
+    }
 }
 
 #[path = "migration/durable.rs"]

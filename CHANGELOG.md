@@ -239,6 +239,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   evidence on one Apple M3 Pro only; no hosted, multi-device, or production
   accelerator claim.
 
+- Add cross-language runnable-adapter contract v2 (#284,
+  `docs/CROSS-LANGUAGE-RUNNABLE-ADAPTER-V2.md`): C, Python, Swift and Java
+  lanes with independent ports of `sequence-digest-v1`, and real execution
+  of the already-admitted TypeScript lane, all bounded, offline and pinned to
+  exactly observed local toolchain paths and digests (local provenance only,
+  never official). v1 and its Rust lane are unchanged; the six reserved
+  external languages stay blocked with their recorded reasons.
+
 ## 0.6.0 — 2026-09-24
 
 - Keep the frozen private Component v7 WIT identity at `0.5.0` while the crate

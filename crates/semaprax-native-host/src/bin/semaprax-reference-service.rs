@@ -50,7 +50,7 @@ mod real {
 
     fn usage() -> i32 {
         eprintln!(
-            "usage: semaprax-reference-service serve --project <dir> --config <service.config.json> --state-dir <dir> --outbound-dir <dir> --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <sha256:hex>] [--deployment <id>] [--max-steps <n>] [--sync-namespace]"
+            "usage: semaprax-reference-service serve --project <dir> --config <service.config.json> --state-dir <dir> --outbound-dir <dir> --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <sha256:hex>] [--deployment <id>] [--max-steps <n>] [--sync-namespace] [--tls-certificate-secret <ref> --tls-private-key-secret <ref>]"
         );
         eprintln!(
             "       semaprax-reference-service bundle --config <service.config.json> --bundle-dir <dir>"
@@ -70,6 +70,13 @@ mod real {
         deployment: String,
         max_steps: usize,
         sync_mode: OutboundCheckpointSyncMode,
+        /// Both-or-neither: naming exactly one of the pair is a usage error.
+        /// Naming both requests TLS serving, resolved against `--secrets-dir`
+        /// exactly like the three password/session/webhook references; a
+        /// missing or invalid held file refuses startup before any listener
+        /// binds. Neither given keeps loopback plaintext serving, unchanged.
+        tls_certificate_secret: Option<String>,
+        tls_private_key_secret: Option<String>,
     }
 
     fn take_value(args: &[String], index: &mut usize, flag: &str) -> Option<String> {
@@ -93,6 +100,8 @@ mod real {
         let mut deployment = DEFAULT_DEPLOYMENT.to_owned();
         let mut max_steps = DECISION_MAX_STEPS;
         let mut sync_mode = OutboundCheckpointSyncMode::FileOnly;
+        let mut tls_certificate_secret = None;
+        let mut tls_private_key_secret = None;
         let mut index = 0;
         while index < args.len() {
             match args[index].as_str() {
@@ -125,6 +134,14 @@ mod real {
                     }
                 }
                 "--sync-namespace" => sync_mode = OutboundCheckpointSyncMode::NamespaceSynced,
+                "--tls-certificate-secret" => {
+                    tls_certificate_secret =
+                        take_value(args, &mut index, "--tls-certificate-secret")
+                }
+                "--tls-private-key-secret" => {
+                    tls_private_key_secret =
+                        take_value(args, &mut index, "--tls-private-key-secret")
+                }
                 flag => {
                     eprintln!("error: unknown flag {flag}");
                     return None;
@@ -150,6 +167,12 @@ mod real {
                 return None;
             }
         }
+        if tls_certificate_secret.is_some() != tls_private_key_secret.is_some() {
+            eprintln!(
+                "error: --tls-certificate-secret and --tls-private-key-secret must both be given, or neither"
+            );
+            return None;
+        }
         Some(ServeArgs {
             project: PathBuf::from(project.unwrap()),
             config: PathBuf::from(config.unwrap()),
@@ -162,6 +185,8 @@ mod real {
             deployment,
             max_steps,
             sync_mode,
+            tls_certificate_secret,
+            tls_private_key_secret,
         })
     }
 
@@ -274,6 +299,32 @@ mod real {
                 return 2;
             }
         };
+        // TLS serving is entirely optional and never implied by configuration
+        // intent alone: naming both flags requests it, and only a held
+        // certificate/key pair under `--secrets-dir` can satisfy that
+        // request. Naming one flag without the other was already refused in
+        // `parse_serve`.
+        let tls_material = match (
+            &options.tls_certificate_secret,
+            &options.tls_private_key_secret,
+        ) {
+            (Some(certificate_reference), Some(private_key_reference)) => {
+                match secrets::resolve_tls(
+                    &secrets_directory,
+                    certificate_reference,
+                    private_key_reference,
+                ) {
+                    Ok(material) => Some(material),
+                    Err(_) => {
+                        eprintln!(
+                            "refused: cannot resolve the held TLS certificate or private key"
+                        );
+                        return 2;
+                    }
+                }
+            }
+            _ => None,
+        };
         let grants = match HostGrants::from_trusted_host(
             &state_directory,
             &outbound_directory,
@@ -338,7 +389,24 @@ mod real {
             return 2;
         }
         println!("bundle {manifest_digest}");
-        let mut provider = TcpNetworkProvider::new();
+        let mut provider = match &tls_material {
+            Some(material) => {
+                let server_config = match semaprax::network_provider::server_tls_config_from_der(
+                    material.certificate_der().to_vec(),
+                    material.private_key_der().to_vec(),
+                ) {
+                    Ok(config) => config,
+                    Err(_) => {
+                        eprintln!(
+                            "refused: held TLS certificate/private key is not a usable server policy"
+                        );
+                        return 2;
+                    }
+                };
+                TcpNetworkProvider::with_server_tls_config(server_config)
+            }
+            None => TcpNetworkProvider::new(),
+        };
         let listener = match serve::listen_loopback(&mut provider, options.port) {
             Ok(listener) => listener,
             Err(_) => {
@@ -347,16 +415,20 @@ mod real {
             }
         };
         println!(
-            "ready port={} state={} seq={}",
+            "ready port={} state={} seq={} tls={}",
             options.port,
             committed.digest(),
-            committed.state.seq
+            committed.state.seq,
+            if tls_material.is_some() { "on" } else { "off" }
         );
         use std::io::Write as _;
         let _ = std::io::stdout().flush();
         let mut handler =
             |exchange: &serve::HttpExchange| mapping::handle(&mut host, &mut committed, exchange);
-        serve::serve_forever(&mut provider, listener, &mut handler);
+        match &tls_material {
+            Some(_) => serve::serve_forever_tls(&mut provider, listener, &mut handler),
+            None => serve::serve_forever(&mut provider, listener, &mut handler),
+        }
     }
 
     fn bundle_command(args: &[String]) -> i32 {

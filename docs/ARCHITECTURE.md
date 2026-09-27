@@ -795,12 +795,17 @@ closed-wire replay plus revision-bound closure/source checks. This split and
 its focused evidence are authored but unpromoted; the completion matrix remains
 the sole status authority.
 
-`src/resumable_effects/lowering.rs` owns the deterministic ordered-state HIR
+`src/resumable_effects/lowering.rs` and `lowering/sequential.rs` own the deterministic ordered-state HIR
 plan for one to eight direct sequential, Copy-scalar source `yield` sites. It
 derives exactly bound per-site suspension identities and independently
 validated, yield-free start and per-site resume projections;
 `src/interpreter/resumable.rs` consumes the same plan identities plus an opaque
-in-memory scalar request/answer history for source replay. This is not live
+in-memory scalar request/answer history for source replay.
+`src/interpreter/resumable_entry.rs` owns the checked whole-function entry
+binding; the separate sequential channel API admits bounded Copy-only
+record/variant parameters and results on the interpreter and binds their
+canonical leaves to replay. The scalar entry and durable journal retain their
+existing scalar function boundary. This is not live
 frame or liveness lowering. Projection retains the
 selected function and authored-entrypoint direct-call closures in authored
 order, prunes disconnected functions and correlated declaration-index facts,
@@ -2897,7 +2902,10 @@ checked symbolic calls through authenticated structural paths.
 rechecks old/new retained State schemas and executes the pure migration. Its
 private `MigrationSeed` is the only initial-state entry to the iterative driver;
 `iterative/effects/continuation` carries cumulative usage and binds subsequent
-execution to that seed. `typed_migration/handoff` owns the bounded handoff
+execution to that seed. Its opt-in `run_with_backend` selects a caller-held
+native or Core Wasm stage backend for the in-memory migrated continuation;
+the pure migration call still evaluates on the interpreter, and the default
+continuation remains interpreter-selected. `typed_migration/handoff` owns the bounded handoff
 codec, while `typed_migration/durable` commits the handoff before destination
 work and recovers only against caller-trusted snapshots and independently bound
 runtime roots. The recovered object exposes only durable execution.

@@ -8,6 +8,19 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add an opt-in held-target selector for the v2 in-memory migrated Agent
+  continuation. Interpreter, native C11, and Core Wasm retain the same
+  migration result and reservation accounting; backend instruction counts
+  remain distinct in evidence. Pure migration evaluation and general durable
+  metering remain interpreter-selected.
+
+- Admit bounded Copy-only record or variant parameters and results through a
+  separate sequential interpreter `yields` entry point. Bind aggregate
+  arguments to replay, preserve the existing scalar API and bounded Bytes
+  request channel, and refuse unsupported aggregate durable results before
+  journal creation. Aggregate function checkpoint and Agent-operation bridges
+  remain open.
+
 - Carry one direct sequential `yields` request with bounded `Bytes` leaves
   through interpreter suspension, a v6 authenticated checkpoint, and the
   durable journal. Reject a second Bytes request site and Bytes responses at

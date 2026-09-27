@@ -843,11 +843,13 @@ scalar leaf and Bytes-carrier refusals before append, valid record/variant
 answers, and its v2 success/failure crash matrix, proving no second dispatch
 or cleanup. A local source/graph regression checks canonical round trips,
 exact graph equality, and nominal boundary, field, ownership and yield facts.
-The next Agent bridge may add a distinct effect-free
-`yields` wrapper around FixtureAgent's checked `model fn propose`; the model
-role itself cannot gain `yields`. The wrapper must dispatch through
-`DurableInvocation::dispatch` exactly once, consume the ordinary model grant
-there, and preserve the existing cancellation, replay, and refusal paths.
+The next Agent bridge uses a distinct effect-free `yields` wrapper around
+FixtureAgent's checked `model fn propose`; the model role itself cannot gain
+`yields`. [Source Model Wait v1](SOURCE-MODEL-WAIT-V1.md) owns the reviewed
+single-journal contract. The Source Live ordinary model intent remains the
+sole grant/provider boundary; the wrapper shares that journal's causal owner
+and does not create an `AggregateDurableInvocation` or consume another grant.
+Existing cancellation, replay, refusal and accounting paths remain binding.
 
 ## 13. Assurance and conformance evidence for the admitted profile
 

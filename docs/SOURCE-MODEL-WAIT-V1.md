@@ -1,9 +1,9 @@
 # Source Model Wait v1
 
-Status: **DESIGN DRAFT FOR INDEPENDENT REVIEW; NOT IMPLEMENTED**.
+Status: **REVIEWED BOUNDED IMPLEMENTATION CONTRACT; NOT IMPLEMENTED**.
 Audience: source-runtime, checkpoint, and model-operation contributors.
 
-This document proposes the smallest R20 model-wait bridge for the direct
+This document defines the smallest R20 model-wait bridge for the direct
 standalone source runtime's FixtureAgent. It uses an interpreter continuation
 inside the authoritative Source Live journal. It does not claim complete Agent
 state migration, linked-project support, or C11/native/Wasm yield execution.

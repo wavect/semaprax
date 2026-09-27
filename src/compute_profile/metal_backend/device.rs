@@ -469,8 +469,9 @@ impl MetalSession {
     }
 
     /// `DeviceAlloc`: a zero-filled buffer of `len` elements of `kind`.
-    /// Only `i64`/`i32` are constructible; anything else refuses
-    /// (`SPX-GC018`) rather than silently degrading.
+    /// Every [`ScalarKind`] the CPU reference admits is constructible (see
+    /// [`element_size`]); `len` and this session's total live element count
+    /// are still bounded below.
     pub fn alloc(
         &mut self,
         kind: ScalarKind,

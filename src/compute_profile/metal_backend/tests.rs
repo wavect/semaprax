@@ -14,8 +14,8 @@ use crate::compute_profile::cpu_reference::kernel_ir::{
 };
 use crate::compute_profile::cpu_reference::session;
 use crate::compute_profile::cpu_reference::{
-    ComputeCapability, CpuReferenceSession, DispatchControl, KernelShape, STALE_HANDLE,
-    TRANSFER_OUT_OF_BOUNDS,
+    ComputeCapability, CpuReferenceSession, DispatchControl, KernelShape, KERNEL_SELECTION_REFUSED,
+    STALE_HANDLE, TRANSFER_OUT_OF_BOUNDS,
 };
 use crate::hir::ResolvedProgram;
 use crate::interpreter::{self, ArgumentValue, InterpreterOptions};
@@ -81,10 +81,22 @@ fn byte_mix(a: u8, b: u8) -> u8
     a * 2u8 + b / 7u8
 }
 
+@id("k.div_u8")
+fn div_u8(x: u8, y: u8) -> u8
+{
+    x / y
+}
+
 @id("k.index_scale")
 fn index_scale(n: usize) -> usize
 {
     n * 4usize - 1usize
+}
+
+@id("k.div_usize")
+fn div_usize(x: usize, y: usize) -> usize
+{
+    x / y
 }
 
 @id("k.rem_usize")
@@ -415,6 +427,20 @@ fn u8_map_normal_and_overflow_match_the_interpreter() {
     );
 }
 
+/// `x / y` on `u8` where `y` is a variable, non-constant-folded zero in one
+/// lane (invocation 1) among otherwise-valid divisors: the generated
+/// `checked_div_u8` guard must select `DivisionByZero` for exactly that
+/// lane, on real hardware, the same as it would for a constant `/ 0u8` the
+/// checked verifier would refuse at compile time were it written literally.
+#[test]
+fn u8_division_by_a_variable_zero_divisor_selects_the_failing_lane() {
+    differential_map(
+        "k.div_u8",
+        ScalarKind::U8,
+        vec![u8s(&[10, 20, 30]), u8s(&[2, 0, 5])],
+    );
+}
+
 #[test]
 fn usize_map_normal_and_underflow_match_the_interpreter() {
     differential_map(
@@ -433,6 +459,64 @@ fn usize_map_normal_and_underflow_match_the_interpreter() {
         ScalarKind::Usize,
         vec![usizes(&[9, 1]), usizes(&[4, 0])],
     );
+}
+
+/// `usize` (MSL `ulong`) `/` and `%` on real hardware, exercising every
+/// value class the checked bit-at-a-time software division
+/// (`checked_div_u64`/`checked_rem_u64`, see the `msl` module docs) must
+/// handle without ever emitting a native 64-bit unsigned `/`/`%`: divisor
+/// `1`; divisor spanning the low/high 32-bit halves (`2^32`, `2^40`);
+/// divisor at the sign-bit boundary (`2^63`) and just past it, in
+/// `(2^63, 2^64)` (`2^63 + 2^62`), both against `u64::MAX`; divisor
+/// `u64::MAX` itself against both `u64::MAX` and a small dividend; a zero
+/// dividend; and a divisor exceeding its dividend (quotient `0`). None of
+/// these selects a checked failure — `usize` has no signed-overflow case,
+/// only division/remainder by zero, covered separately below.
+#[test]
+fn usize_division_and_remainder_cover_every_value_class_on_hardware() {
+    let dividends = usizes(&[
+        12_345,
+        (1u64 << 40) + 5,
+        (1u64 << 41) + 7,
+        u64::MAX,
+        u64::MAX,
+        u64::MAX,
+        5,
+        0,
+        3,
+    ]);
+    let divisors = usizes(&[
+        1,
+        1u64 << 32,
+        1u64 << 40,
+        1u64 << 63,
+        (1u64 << 63) + (1u64 << 62),
+        u64::MAX,
+        u64::MAX,
+        7,
+        10,
+    ]);
+    differential_map(
+        "k.div_usize",
+        ScalarKind::Usize,
+        vec![dividends.clone(), divisors.clone()],
+    );
+    differential_map("k.rem_usize", ScalarKind::Usize, vec![dividends, divisors]);
+}
+
+/// `usize` division/remainder by zero, on real hardware, selects the
+/// lowest-ordinal failing lane exactly as the CPU reference does, for both
+/// `/` and `%`.
+#[test]
+fn usize_division_and_remainder_by_zero_select_the_lowest_failing_lane() {
+    let dividends = usizes(&[20, 9, 3]);
+    let divisors = usizes(&[4, 0, 0]);
+    differential_map(
+        "k.div_usize",
+        ScalarKind::Usize,
+        vec![dividends.clone(), divisors.clone()],
+    );
+    differential_map("k.rem_usize", ScalarKind::Usize, vec![dividends, divisors]);
 }
 
 #[test]
@@ -640,6 +724,79 @@ fn sequential_folds_match_left_to_right_interpreter_folds() {
         Scalar::Usize(0),
         u8s(&[1, 200, 9, 10, 0, 255]),
     );
+}
+
+/// A fold artifact can never be dispatched as a map, and a map artifact can
+/// never be dispatched as a fold: both guards live at the very top of
+/// `dispatch_map`/`dispatch_fold`, before any buffer is even inspected, so
+/// this only needs artifacts and buffers of the right *kind*, not a
+/// matching parameter count.
+#[test]
+fn dispatch_map_refuses_a_fold_artifact_and_dispatch_fold_refuses_a_map_artifact() {
+    device_or_skip!();
+    let program = resolve(KERNELS);
+    let mut session =
+        MetalSession::open(MetalCapability::all()).expect("device present (just checked)");
+
+    let fold_artifact = session
+        .load_fold_kernel(&program, "k.sum")
+        .expect("fold kernel admitted");
+    let output = session.alloc(ScalarKind::I64, 1).unwrap();
+    let refusal = session
+        .dispatch_map(&program, &fold_artifact, &[], output)
+        .unwrap_err();
+    assert_eq!(refusal.code(), KERNEL_SELECTION_REFUSED);
+
+    let map_artifact = session
+        .load_kernel(&program, "k.neg", 4)
+        .expect("map kernel admitted");
+    let input = session.alloc(ScalarKind::I64, 1).unwrap();
+    let accumulator = session.alloc(ScalarKind::I64, 1).unwrap();
+    let refusal = session
+        .dispatch_fold(&program, &map_artifact, Scalar::I64(0), input, accumulator)
+        .unwrap_err();
+    assert_eq!(refusal.code(), KERNEL_SELECTION_REFUSED);
+}
+
+/// An input handle that is also the fold's one-element accumulator/output
+/// handle is a `MayOverlap` claim the classifier never admits (`SPX-GC011`),
+/// exactly as for a map (see
+/// `aliased_input_output_buffer_refuses_identically_on_metal_and_the_cpu_reference`
+/// below): checked at dispatch time, against the real bound buffers, through
+/// the identical `cpu_reference::session::classify_fold_dispatch` call on
+/// both backends.
+#[test]
+fn aliased_fold_input_output_buffer_refuses_identically_on_metal_and_the_cpu_reference() {
+    device_or_skip!();
+    let program = resolve(KERNELS);
+
+    let mut session =
+        MetalSession::open(MetalCapability::all()).expect("device present (just checked)");
+    let artifact = session
+        .load_fold_kernel(&program, "k.sum")
+        .expect("fold kernel admitted");
+    let buffer = session.alloc(ScalarKind::I64, 1).unwrap();
+    let refusal = session
+        .dispatch_fold(&program, &artifact, Scalar::I64(0), buffer, buffer)
+        .unwrap_err();
+    assert_eq!(refusal.code(), ALIASING_BEYOND_CHECKED_RULE);
+
+    let mut cpu = CpuReferenceSession::open(ComputeCapability::cpu_reference_all());
+    let cpu_artifact = cpu
+        .load_kernel(&program, "k.sum", KernelShape::SequentialFold)
+        .expect("fold kernel admitted");
+    let cpu_buffer = cpu.alloc(ScalarKind::I64, 1).unwrap();
+    let cpu_refusal = cpu
+        .dispatch_fold(
+            &program,
+            &cpu_artifact,
+            Scalar::I64(0),
+            cpu_buffer,
+            cpu_buffer,
+            DispatchControl::default(),
+        )
+        .unwrap_err();
+    assert_eq!(cpu_refusal.code(), ALIASING_BEYOND_CHECKED_RULE);
 }
 
 /// Negative control for the fold shape: a `k.sum` artifact whose lowered

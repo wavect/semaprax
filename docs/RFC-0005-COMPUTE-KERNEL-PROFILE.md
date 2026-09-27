@@ -719,11 +719,13 @@ precedence on the Metal backend as on the CPU reference — never merely
 accepted because a backend never asked.
 
 **Evidence (local, physical device, not hosted):** the
-`compute_profile::metal_backend` suite (24 tests: 5 generator tests and 19
+`compute_profile::metal_backend` suite (29 tests: 5 generator tests and 24
 device tests, including map and fold overflow/division-by-zero/underflow
-selection, every admitted `ScalarKind`, bounds refusal, stale-artifact
-refusal, settlement order, and a negative-control mutant for each shape the
-differential oracle must reject) passed on
+selection across every value class the `usize`/`u8` checked division and
+remainder helpers must handle, every admitted `ScalarKind`, bounds refusal,
+stale-artifact refusal, settlement order, both shape-mismatch dispatch
+guards, fold aliasing refusal, and a negative-control mutant for each shape
+the differential oracle must reject) passed on
 `Metal device present: Apple M3 Pro (registryID 4294968899), Version 26.5.1
 (Build 25F80)` on 2026-09-27, comparing every output buffer and selected
 status against the ordinary reference interpreter. This is evidence for that
@@ -740,4 +742,12 @@ crash was scoped to the one division-based overflow check it was first
 observed at, they never emit a native MSL `/`/`%` on `ulong` operands at
 all, computing the quotient and remainder instead with an ordinary
 bit-at-a-time binary long division (shifts, comparisons, and subtraction
-only). This was exercised on the same device with no repeat of the crash.
+only). `checked_div_u64`/`checked_rem_u64` themselves — not merely the
+`mulhi`-based multiply guard — were dispatched and compared against the
+interpreter on this device: divisor `1`; a divisor spanning the low/high
+32-bit halves (`2^32`, `2^40`); a divisor at the sign-bit boundary (`2^63`)
+and just past it in `(2^63, 2^64)` (`2^63 + 2^62`), both against
+`u64::MAX`; divisor `u64::MAX` itself against both `u64::MAX` and a small
+dividend; a zero dividend; a divisor exceeding its dividend; and division/
+remainder by zero selecting the lowest-ordinal failing lane — with no
+repeat of the crash on any of them.

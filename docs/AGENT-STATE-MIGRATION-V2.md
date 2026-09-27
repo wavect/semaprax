@@ -68,7 +68,9 @@ State through the same seeded driver and sealed stage dispatch as `run`.
 `run` retains its interpreter default. No destination initialize is executed;
 the continuation retains prior calls, bytes, iterations and stage reservations,
 and obtains fresh authorizations for its new effects. Evidence schemas and
-reservation accounting are unchanged and remain target-neutral.
+reservation accounting are unchanged. Reservation totals are target-neutral;
+lifecycle evidence retains backend-specific instruction counts, so the resulting
+evidence roots need not be byte-identical across targets.
 
 The selected Wasm route requires the destination registry's own retained source
 before any destination reservation or handler call; missing source is refused,
@@ -80,7 +82,9 @@ The focused local target gate is
 `cargo test --locked -p semaprax --test agent_runtime_v1 selected_migration_continuation_preserves_state_usage_and_precancellation`.
 It compares the default and three public selectors using an actual durable
 predecessor suspension and checked migration, including identical continuation
-results, evidence roots, cumulative accounting and cancellation before work.
+results, stage outcomes, cumulative accounting and cancellation before work.
+It independently verifies each evidence root while checking instruction counts
+separately: interpreter stages report their steps; native and Wasm report zero.
 The library refusal gate is
 `cargo test --locked -p semaprax --lib selected_migration_missing_wasm_source_refuses_before_reservation_or_dispatch`.
 Held-target tests require explicitly opened `clang` and `node` tools and skip

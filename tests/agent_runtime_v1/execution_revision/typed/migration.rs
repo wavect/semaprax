@@ -459,11 +459,33 @@ fn selected_migration_continuation_preserves_state_usage_and_precancellation() {
                 calls: Vec::new(),
                 wrong: false,
             };
+            let interpreted = matches!(selected, None | Some(TargetStageBackend::Interpreter));
             let evidence = match selected {
                 None => migration.run(&mut handler, &cancellation),
                 Some(selected) => migration.run_with_backend(&mut handler, &cancellation, selected),
             }
             .unwrap();
+            // Independently verify the root's digest over the exact reported facts.
+            // Its nested lifecycle evidence retains backend-specific instruction
+            // counts, so byte-identical roots are not a cross-target invariant.
+            use sha2::{Digest, Sha256};
+            let mut root: serde_json::Value =
+                serde_json::from_str(evidence.evidence_root().canonical_json()).unwrap();
+            let declared = root.as_object_mut().unwrap().remove("digest").unwrap();
+            assert_eq!(declared, evidence.evidence_root().digest());
+            let mut hash = Sha256::new();
+            hash.update(root["schema"].as_str().unwrap().as_bytes());
+            hash.update([0]);
+            hash.update(format!("{root}\n").as_bytes());
+            let computed: String = hash
+                .finalize()
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect();
+            assert_eq!(
+                evidence.evidence_root().digest(),
+                format!("sha256:{computed}")
+            );
             let lifecycle = evidence.run().lifecycle();
             assert!(lifecycle
                 .stages()
@@ -489,12 +511,24 @@ fn selected_migration_continuation_preserves_state_usage_and_precancellation() {
                     evidence.usage().reserved_fuel,
                     prior.reserved_fuel + 920_000
                 );
+                let mut lifecycle_facts: serde_json::Value =
+                    serde_json::from_str(lifecycle.evidence()).unwrap();
+                for stage in lifecycle_facts["stages"].as_array_mut().unwrap() {
+                    let row = stage.as_array_mut().unwrap();
+                    assert_eq!(row.len(), 4);
+                    let instruction_steps = row.pop().unwrap().as_u64().unwrap();
+                    if interpreted {
+                        assert!(instruction_steps > 0);
+                    } else {
+                        assert_eq!(instruction_steps, 0);
+                    }
+                }
                 let observed = (
                     lifecycle.value().cloned(),
                     evidence.usage(),
                     evidence.iterations(),
                     evidence.stages(),
-                    evidence.evidence_root().digest().to_owned(),
+                    lifecycle_facts,
                 );
                 if let Some(expected) = &expected {
                     assert_eq!(&observed, expected);

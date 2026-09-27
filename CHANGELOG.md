@@ -297,6 +297,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   "Agent workflow" category (#298): two sequentially masked defects and a
   preserved sibling behaviour, ported to every runnable lane. The maintainer
   directed a dedicated task over orthogonal orchestrator coverage.
+- Admit an owned `Bytes` local carried across a loop-embedded resumable
+  yield when it is defined outside every enclosing `while` and never touched
+  inside it (#296), on the existing v4 envelope. The per-slot check walks
+  every nested expression and statement exhaustively and refuses otherwise;
+  reassignment inside the loop stays refused (SPX-T252).
 
 ## 0.6.0 — 2026-09-24
 

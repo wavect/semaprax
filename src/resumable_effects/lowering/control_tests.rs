@@ -399,3 +399,47 @@ fn an_owned_bytes_local_in_an_if_else_site_is_still_admitted_after_the_loop_refu
     assert!(plan.carries_owned_bytes);
     assert_eq!(plan.sites[0].carried.len(), 1);
 }
+
+/// Bug #296 (R20): a purely scalar control-dependent function -- no owned
+/// `Bytes` local anywhere, so `function.cleanup_plan.slots` is empty -- that
+/// reaches a top-level `yield` only past a preceding statement which itself
+/// branches (`first`'s own `if`/`else`, each arm holding its own `yield`)
+/// must lower, not refuse with `SPX-H006`.
+/// `resumable_effects::lowering::control::lower_control` calls
+/// `cleanup_plan::carried_locals_at` for every collected site unconditionally;
+/// that in turn calls `cleanup_plan::owned_liveness::owned_locals_live_at`,
+/// whose branching-predecessor refusal is scoped to a genuine owned-value
+/// join across branches and must never fire for a function with nothing
+/// live to join in the first place.
+const JOIN_SOURCE: &str = r#"
+module test.control_lowering_join;
+@id("app.ask_join")
+fn ask_join(seed: i64) -> i64
+    yields i64 -> i64
+{
+    let first = if seed > 0 {
+        let a = yield seed;
+        a
+    } else {
+        let b = yield 0;
+        b
+    };
+    let second = yield first + 1;
+    second
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+#[test]
+fn a_top_level_yield_past_a_scalar_branching_predecessor_lowers() {
+    let resolved = program(JOIN_SOURCE);
+    hir::validate(&resolved).unwrap();
+    let ask = function(&resolved, "app.ask_join");
+    assert!(ask.cleanup_plan.slots.is_empty());
+    assert!(is_control_dependent(ask));
+    let plan = lower_control(&resolved, ask).unwrap();
+    assert!(!plan.carries_owned_bytes);
+    assert_eq!(plan.sites.len(), 3);
+    assert!(plan.sites.iter().all(|site| site.carried.is_empty()));
+}

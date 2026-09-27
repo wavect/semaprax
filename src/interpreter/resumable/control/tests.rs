@@ -394,3 +394,79 @@ fn each_lane_refuses_the_other_profile() {
             .unwrap_err();
     assert_eq!(error[0].code, "SPX-H006");
 }
+
+/// Bug #296 (R20): a purely scalar control-dependent function (no owned
+/// `Bytes` local, an empty cleanup plan) reaching a top-level `yield` only
+/// past a preceding statement that itself branches (`first`'s own
+/// `if`/`else`, each arm holding its own `yield`) must run to completion
+/// exactly like any other admitted control-dependent plan, carrying nothing
+/// (`resumable_effects::lowering::control::carried_locals_at` is only ever
+/// asked about owned `Bytes` locals, and there are none here). Both branches
+/// are driven: the request each records, and the final scalar result, must
+/// be exactly the values this replay computes, not merely "some" result.
+const JOIN_SOURCE: &str = r#"
+module test.control_interpreter_join;
+@id("app.ask_join")
+fn ask_join(seed: i64) -> i64
+    yields i64 -> i64
+{
+    let first = if seed > 0 {
+        let a = yield seed;
+        a
+    } else {
+        let b = yield 0;
+        b
+    };
+    let second = yield first + 1;
+    second
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+fn drive_join(seed: i64, answers: &[i64]) -> (ArgumentValue, Vec<ArgumentValue>) {
+    let program = program(JOIN_SOURCE);
+    let arguments = [ArgumentValue::Int(seed)];
+    let mut step = run_control_resumable_effect(&program, "app.ask_join", &arguments, STEPS)
+        .unwrap()
+        .step;
+    let mut requests = Vec::new();
+    let mut next_answer = answers.iter();
+    while let ControlResumableStep::Suspended { continuation } = &step {
+        requests.push(continuation.request().clone());
+        let answer = ArgumentValue::Int(*next_answer.next().expect("enough answers"));
+        step = resume_control_resumable_effect(
+            &program,
+            "app.ask_join",
+            &arguments,
+            continuation,
+            &answer,
+            STEPS,
+        )
+        .unwrap()
+        .step;
+    }
+    let ControlResumableStep::Completed { result, .. } = step else {
+        panic!("expected completion, got {step:?}")
+    };
+    (result, requests)
+}
+
+#[test]
+fn a_top_level_yield_past_a_scalar_branching_predecessor_runs_to_completion() {
+    // `seed = 5` takes the `then` branch: first suspension requests `seed`
+    // (5), answered 100 so `first = 100`; the top-level site then requests
+    // `first + 1` (101), answered 7 so the final result is `second = 7`.
+    let (result, requests) = drive_join(5, &[100, 7]);
+    assert_eq!(requests, [ArgumentValue::Int(5), ArgumentValue::Int(101)]);
+    assert_eq!(result, ArgumentValue::Int(7));
+
+    // `seed = -1` takes the `else` branch instead: first suspension requests
+    // the literal `0`, answered 50 so `first = 50`; the same top-level site
+    // then requests `51`, answered 9 for a final result of `9`. The branch
+    // taken genuinely differs at runtime while the once-refused top-level
+    // site after it still replays correctly either way.
+    let (result, requests) = drive_join(-1, &[50, 9]);
+    assert_eq!(requests, [ArgumentValue::Int(0), ArgumentValue::Int(51)]);
+    assert_eq!(result, ArgumentValue::Int(9));
+}

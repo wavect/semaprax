@@ -340,6 +340,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   AddressSanitizer and UndefinedBehaviorSanitizer on macOS arm64 with zero
   reports; LeakSanitizer is unsupported there and the live-allocation
   counters remain the leak oracle. Not hosted or Linux evidence.
+- Check `.spx` endpoint typestate (#297): a function that declares
+  `follows session protocol "<id>"` must call the protocol's `via` functions
+  in a legal order along every straight-line and if/else path, ending in a
+  terminal state (`SPX-K107`-`SPX-K109`). Loops, recursion, closures,
+  indirect calls and branching `choice` continuations that reach a `via` call
+  are refused rather than approximated. The clause is erased before codegen.
+  The project semantic cache tag is now
+  `semaprax.project-checked-module-hir.v3`. Legal order grants no authority.
 
 ## 0.6.0 — 2026-09-24
 

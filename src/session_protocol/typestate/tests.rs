@@ -92,6 +92,32 @@ fn incomplete() -> i64\n    follows session protocol \"typestate.protocol\"\n{\n
 }
 
 #[test]
+fn a_via_bound_call_on_a_short_circuited_and_rhs_is_refused() {
+    // Before the lazy-RHS refusal, the checker advanced from Open to
+    // Committed even though `false` skips `commit()` at runtime, and then
+    // wrongly admitted the final non-transition expression.
+    let source = "\n@id(\"typestate.lazy_and\")\n\
+fn lazy_and() -> i64\n    follows session protocol \"typestate.protocol\"\n{\n    let a = begin();\n    let skipped = false && commit() == 2;\n    0\n}\n";
+    assert_eq!(codes(source), vec!["SPX-K109"]);
+}
+
+#[test]
+fn a_via_bound_call_on_a_short_circuited_or_rhs_is_refused() {
+    // As above: `true` skips `commit()` at runtime, but the former walk
+    // treated the right side as an unconditional Open -> Committed step.
+    let source = "\n@id(\"typestate.lazy_or\")\n\
+fn lazy_or() -> i64\n    follows session protocol \"typestate.protocol\"\n{\n    let a = begin();\n    let skipped = true || commit() == 2;\n    0\n}\n";
+    assert_eq!(codes(source), vec!["SPX-K109"]);
+}
+
+#[test]
+fn a_lazy_rhs_without_a_via_bound_call_preserves_the_checked_path() {
+    let source = "\n@id(\"typestate.lazy_control\")\n\
+fn lazy_control() -> i64\n    follows session protocol \"typestate.protocol\"\n{\n    let skipped = false && true;\n    let a = begin();\n    commit()\n}\n";
+    assert_eq!(codes(source), Vec::<&str>::new());
+}
+
+#[test]
 fn a_loop_reaching_a_via_bound_call_is_refused() {
     let source = "\n@id(\"typestate.looped\")\n\
 fn looped() -> i64\n    follows session protocol \"typestate.protocol\"\n{\n    let a = begin();\n    while false {\n        commit()\n    }\n    commit()\n}\n";

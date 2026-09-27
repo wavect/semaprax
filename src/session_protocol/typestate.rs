@@ -72,7 +72,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::ast::{
-    Expr, ExprKind, Function, Program, SessionProtocolDeclaration, SessionProtocolNext,
+    BinaryOp, Expr, ExprKind, Function, Program, SessionProtocolDeclaration, SessionProtocolNext,
     SessionProtocolTransition, Span, Statement,
 };
 use crate::diagnostic::Diagnostic;
@@ -598,8 +598,24 @@ fn walk_expr(
             })
         }
         ExprKind::Unary { value, .. } => walk_expr(context, value, states),
-        ExprKind::Binary { left, right, .. } => {
+        ExprKind::Binary { left, right, op } => {
             let states = walk_expr(context, left, states)?;
+            if matches!(op, BinaryOp::And | BinaryOp::Or) {
+                let via_names: BTreeSet<&str> = context.via_by_name.keys().copied().collect();
+                if contains_via_call(right, &via_names) {
+                    return Err(k_error(
+                        context.program,
+                        "SPX-K109",
+                        format!(
+                            "function `{}` follows session protocol `{}`, but calls one of its `via`-bound functions from the conditionally evaluated right-hand side of `{}`; typestate checking does not admit a call that may be skipped",
+                            context.function.name,
+                            context.protocol.name,
+                            op.text(),
+                        ),
+                        right.span,
+                    ));
+                }
+            }
             walk_expr(context, right, states)
         }
         ExprKind::Block { statements, tail } => {

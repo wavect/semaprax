@@ -760,6 +760,9 @@ silently admitted or silently skipped over:
   would then wrongly pass. Only a `via` transition with a `Then` continuation
   is checked; one with a `Choice` continuation is refused wherever a checked
   function actually calls it.
+- **The conditionally evaluated right-hand side of `&&` or `||`**: it may
+  execute or be skipped based on the left operand. A `via`-bound call there
+  is refused rather than treated as an unconditional state transition.
 - Every other expression shape the walk does not specifically know how to
   step through (`match`, method calls, record construction/update, `project`,
   `try`, `yield`) is treated as an opaque, state-preserving expression *only

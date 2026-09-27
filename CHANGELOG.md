@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Repartition slow macOS repair and Windows agent-runtime tests into distinct
+  release blockers without duplicating their coverage. Use a real macOS Git
+  executable for publication tests, keep unsupported Windows stage hosts
+  fail-closed, correct a Linux offline-worker fixture, and speed up the two
+  independent macOS desktop reproducibility builds.
+
 - Restore source-locked test coverage after recent HIR, graph, scaffold, and
   workspace-graph splits. The tests now bind the new submodule text or verify
   its quality-route classification; the existing coverage threshold is not

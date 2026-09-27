@@ -313,6 +313,9 @@ fn all_target_stage_legs_preserve_negative_i32_proposal_fields() {
 #[test]
 fn unsupported_target_result_leaf_refuses_before_artifact_execution_and_leaves_healthy_profile_intact(
 ) {
+    if !super::stage_process_host_supported() {
+        return;
+    }
     let native_host = native_stage_host().expect("native stage test host is available");
     let unsupported = unsupported_source();
     let compiled = compile(&unsupported);

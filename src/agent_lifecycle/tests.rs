@@ -530,11 +530,28 @@ fn the_sealed_dispatch_reaches_the_interpreter_and_matches_its_direct_evaluation
 // ---------------------------------------------------------------------------
 
 fn native_wasm_tools_available() -> bool {
-    native_stage_host().is_some()
+    stage_process_host_supported()
+        && native_stage_host().is_some()
         && std::process::Command::new("node")
             .arg("--version")
             .output()
             .is_ok_and(|output| output.status.success())
+}
+
+pub(in crate::agent_lifecycle) fn stage_process_host_supported() -> bool {
+    cfg!(any(target_os = "linux", target_os = "macos"))
+}
+
+#[cfg(windows)]
+#[test]
+fn unsupported_windows_stage_hosts_refuse_before_holding_or_dispatching() {
+    let executable = std::env::current_exe().expect("current test executable");
+    let native = authorization::NativeStageHost::open(&executable).unwrap_err();
+    assert_eq!(native.code, "SPX-G570");
+    assert!(native.message.contains("native_executor.host.unsupported"));
+    let wasm = authorization::WasmStageHost::open(&executable).unwrap_err();
+    assert_eq!(wasm.code, "SPX-G570");
+    assert!(wasm.message.contains("wasm_executor.host.unsupported"));
 }
 
 /// Test-only host fixture for the explicitly held native compiler capability.

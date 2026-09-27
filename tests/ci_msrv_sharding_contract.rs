@@ -220,7 +220,8 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
         "os: [ubuntu-latest, macos-latest, windows-latest]",
         "shard: [unit, integration-0, integration-1, integration-2, integration-3, integration-4]",
         "python3 scripts/ci-msrv.py --label \"Rust $RUNNER_OS\" --shard \"${{ matrix.shard }}\"",
-        "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop --nocapture",
+        "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop --nocapture @split",
+        "if ('${{ matrix.shard }}' -eq 'integration-3') { $split = @('--split-windows-agent-runtime') }",
     ] {
         assert!(tests.contains(required), "missing Rust shard contract: {required}");
     }
@@ -244,6 +245,20 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
         .unwrap()
         .0;
     assert!(release.contains("      - verify-tests\n"));
+    assert!(release.contains("      - macos-source-repair\n"));
+    assert!(release.contains("      - windows-agent-runtime-rest\n"));
+    let router = std::fs::read_to_string(root().join("scripts/ci-msrv.py")).unwrap();
+    assert!(router
+        .contains("test_arguments.extend((\"--skip\", \"source_live_cli::repair::tests::\"))"));
+    let repair = workflow
+        .split_once("\n  macos-source-repair:\n")
+        .unwrap()
+        .1
+        .split_once("\n  windows-agent-runtime-rest:\n")
+        .unwrap()
+        .0;
+    assert!(repair.contains("cargo test --locked --offline -p semaprax-toolchain --all-features --lib source_live_cli::repair::tests::"));
+    assert!(!repair.contains("continue-on-error"));
 }
 
 #[test]
@@ -263,6 +278,15 @@ fn windows_typed_agent_corpus_moves_without_losing_coverage() {
     let router = std::fs::read_to_string(root().join("scripts/ci-msrv.py")).unwrap();
     assert!(router.contains("args.label == \"Rust Windows\" and args.shard == \"integration-3\""));
     assert!(router.contains("test_arguments.extend((\"--skip\", \"execution_revision::typed::\"))"));
+    let dedicated = workflow
+        .split_once("\n  windows-agent-runtime-rest:\n")
+        .unwrap()
+        .1
+        .split_once("\n  desktop-native-product:\n")
+        .unwrap()
+        .0;
+    assert!(dedicated.contains("cargo test --locked --offline --workspace --all-features --exclude semaprax-native-rust-interop --test agent_runtime_v1 -- --skip execution_revision::typed::"));
+    assert!(!dedicated.contains("continue-on-error"));
 }
 
 const ROUTER_FAILURES: &str = r#"
@@ -270,6 +294,7 @@ import contextlib
 import copy
 import io
 import json
+from pathlib import Path
 import runpy
 import subprocess
 import sys
@@ -281,6 +306,15 @@ fallback_env = router['cargo_environment']({}, sys.executable)
 assert fallback_env == {'SEMAPRAX_TEST_PYTHON': sys.executable}
 explicit_env = router['cargo_environment']({'SEMAPRAX_TEST_PYTHON': sys.executable}, '/ignored')
 assert explicit_env == {'SEMAPRAX_TEST_PYTHON': sys.executable}
+assert router['macos_test_git']({}, lambda name: sys.executable) == {
+    'SEMAPRAX_TEST_GIT': str(Path(sys.executable).resolve())
+}
+try:
+    router['macos_test_git']({'SEMAPRAX_TEST_GIT': 'git'}, lambda name: None)
+except ValueError as error:
+    assert 'absolute Git file' in str(error), str(error)
+else:
+    raise AssertionError('relative Git executable was accepted')
 try:
     router['cargo_environment']({'SEMAPRAX_TEST_PYTHON': 'python3'}, sys.executable)
 except ValueError as error:
@@ -299,6 +333,16 @@ assert [len(shard['targets']) for shard in plan['shards']] == [4, 3, 1, 1, 1, 1]
 assert {'package': 'two', 'kind': 'example', 'name': 'embedding-api'} in plan['shards'][0]['targets']
 assert '--examples' in plan['shards'][0]['command']
 assert router['plan'](dict(metadata, packages=list(reversed(metadata['packages'])))) == plan
+split = copy.deepcopy(plan['shards'][4])
+split['targets'].append({'package': 'one', 'kind': 'test', 'name': 'agent_runtime_v1'})
+split['command'].extend(['--test', 'agent_runtime_v1'])
+assert router['without_dedicated_windows_agent_runtime'](split) == plan['shards'][4]['command']
+try:
+    router['without_dedicated_windows_agent_runtime'](plan['shards'][4])
+except ValueError as error:
+    assert 'exact integration-3 target' in str(error), str(error)
+else:
+    raise AssertionError('missing dedicated target was accepted')
 excluded = copy.deepcopy(metadata)
 excluded['packages'][0]['targets'].append(target('test', 'g'))
 excluded_plan = router['plan'](excluded, ['two'])

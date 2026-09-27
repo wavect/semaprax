@@ -1885,16 +1885,6 @@ jobs:
             cargo fetch --locked --manifest-path platform-tests/component-runtime/Cargo.toml
             cargo fetch --locked --manifest-path platform-tests/public-scalar-wit-interface/Cargo.toml
           fi
-      - name: Hold explicit native and Wasm test hosts (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $clang = (Get-Command clang.exe -ErrorAction Stop).Source
-          $node = (Get-Command node.exe -ErrorAction Stop).Source
-          if (-not [System.IO.Path]::IsPathFullyQualified($clang)) { throw "clang path is not absolute" }
-          if (-not [System.IO.Path]::IsPathFullyQualified($node)) { throw "node path is not absolute" }
-          "SEMAPRAX_TEST_NATIVE_STAGE_CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "SEMAPRAX_TEST_WASM_STAGE_NODE=$node" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Test the complete workspace target shard (Unix)
         if: runner.os != 'Windows'
         env:
@@ -1903,7 +1893,108 @@ jobs:
         run: python3 scripts/ci-msrv.py --label "Rust $RUNNER_OS" --shard "${{ matrix.shard }}"
       - name: Test the complete workspace target shard without duplicate Windows native interop
         if: runner.os == 'Windows'
-        run: python3 scripts/ci-msrv.py --label "Rust Windows" --shard "${{ matrix.shard }}" --exclude-package semaprax-native-rust-interop --nocapture
+        shell: pwsh
+        run: |
+          $split = @()
+          if ('${{ matrix.shard }}' -eq 'integration-3') { $split = @('--split-windows-agent-runtime') }
+          python3 scripts/ci-msrv.py --label "Rust Windows" --shard "${{ matrix.shard }}" --exclude-package semaprax-native-rust-interop --nocapture @split
+
+  macos-source-repair:
+    name: Rust macOS source repair
+    runs-on: macos-latest
+    timeout-minutes: 360
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.97.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Resolve held test tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
+          echo "CLANG=$(command -v clang)" >> "$GITHUB_ENV"
+          echo "SEMAPRAX_ARCHIVER=/usr/bin/libtool" >> "$GITHUB_ENV"
+          echo "SEMAPRAX_TEST_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
+      - name: Fetch locked dependencies
+        run: cargo fetch --locked
+      - name: Run every source-repair unit case once
+        run: |
+          cargo test --locked --offline -p semaprax-toolchain --all-features --lib source_live_cli::repair::tests::
+
+  windows-agent-runtime-rest:
+    name: Rust Windows agent runtime remainder
+    runs-on: windows-latest
+    timeout-minutes: 360
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "1"
+      LINK: "/STACK:8388608"
+    steps:
+      - name: Allow Windows to check out long evidence paths
+        shell: bash
+        run: git config --system core.longpaths true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.97.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Install TypeScript compiler for cross-language suite
+        run: npm install -g typescript@5.8.3
+      - name: Resolve held compiler images
+        shell: pwsh
+        run: |
+          "RUSTC=$(rustup which rustc)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $clang = (Get-Command clang.exe -ErrorAction Stop).Source
+          "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Resolve Windows SDK and MSVC environment
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSINSTALL=%%i"
+          if not defined VSINSTALL exit /b 1
+          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -no_logo -arch=x64 -host_arch=x64
+          if not defined VCToolsInstallDir exit /b 1
+          set "SEMAPRAX_VCTOOLS=%VCToolsInstallDir%"
+          if "%SEMAPRAX_VCTOOLS:~-1%"=="\" set "SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS:~0,-1%"
+          set "SEMAPRAX_LINKER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\link.exe"
+          set "SEMAPRAX_ARCHIVER=%SEMAPRAX_VCTOOLS%\bin\Hostx64\x64\lib.exe"
+          if not exist "%SEMAPRAX_LINKER%" exit /b 1
+          if not exist "%SEMAPRAX_ARCHIVER%" exit /b 1
+          echo INCLUDE=%INCLUDE%>>"%GITHUB_ENV%"
+          echo LIB=%LIB%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_VCTOOLS=%SEMAPRAX_VCTOOLS%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
+          echo SEMAPRAX_ARCHIVER=%SEMAPRAX_ARCHIVER%>>"%GITHUB_ENV%"
+          echo CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%SEMAPRAX_LINKER%>>"%GITHUB_ENV%"
+      - name: Fetch locked dependencies
+        run: cargo fetch --locked
+      - name: Test Windows agent runtime except the AGENT-06 typed corpus
+        run: |
+          cargo test --locked --offline --workspace --all-features --exclude semaprax-native-rust-interop --test agent_runtime_v1 -- --skip execution_revision::typed::
 
   desktop-native-product:
     name: Private desktop + native UI product (${{ matrix.os }})
@@ -2315,6 +2406,8 @@ jobs:
       - verify
       - verify-build
       - verify-tests
+      - macos-source-repair
+      - windows-agent-runtime-rest
       - desktop-native-product
       - doctor-macos-confinement
       - ios-static-cross-check
@@ -2340,7 +2433,7 @@ jobs:
           SEMAPRAX_CI_NEEDS: ${{ toJSON(needs) }}
         run: |
           python3 scripts/ci-required-checks.py \
-            --min-jobs 27 \
+            --min-jobs 29 \
             --sha "${{ github.sha }}" \
             --head-sha "$(git rev-parse HEAD)"
 

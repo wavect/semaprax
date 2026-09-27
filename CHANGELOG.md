@@ -323,6 +323,15 @@ format: `Unreleased` then release buckets, grouped by impact.
   protocol-free graphs stay v1 byte-identical), the help shape catalog and
   the agent quick reference, and report protocols whose `via` targets a
   changed declaration in semantic impact/review (#297).
+- Admit a resumable function whose later top-level yield follows an if/else
+  when no owned value is live: the branch-join refusal (SPX-H006) now applies
+  only to a genuine owned-`Bytes` join (#296).
+- Serve the Reference Service Host over TLS on loopback when the operator
+  holds certificate and key material (`--tls-certificate-secret`,
+  `--tls-private-key-secret`) (#303). TLS 1.2+ only, no plaintext fallback;
+  a request for TLS without held material is refused before bind. The full
+  login/CRUD/job/restart flow and wrong-issuer, wrong-hostname, expired and
+  plaintext-client cases run against a test CA. Local evidence only.
 
 ## 0.6.0 — 2026-09-24
 

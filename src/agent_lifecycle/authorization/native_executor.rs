@@ -469,6 +469,7 @@ impl StageExecutor for NativeStageExecutor<'_> {
         .map_err(|error| vec![error])
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn execute_metered(
         &self,
         _authority: ExecutionAuthority,

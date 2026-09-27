@@ -1,3 +1,10 @@
+/// Status domain `spx_rt_call_depth_failure` (below) registers a refused
+/// call-depth admission under. Mirrors the C string literal that function
+/// and `spx_public_failure`'s call-depth branch both embed; kept as a
+/// separate Rust constant rather than interpolated into the raw C block
+/// below, so the generated runtime text stays exactly as committed.
+pub(crate) const CALL_DEPTH_STATUS_DOMAIN: &str = "semaprax.runtime.v1";
+
 pub(super) const NATIVE_SCALAR_RUNTIME_C: &str = r#"#include <stdlib.h>
 
 static __attribute__((noreturn, unused)) void spx_runtime_invariant_failure(

@@ -3,6 +3,7 @@
 //! This is deliberately isolated from the scalar encoder so existing scalar,
 //! owned-resource, callable, and Component byte contracts remain unchanged.
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+pub(super) mod call_admission;
 mod cleanup;
 #[path = "closure.rs"]
 mod closure;
@@ -1904,6 +1905,7 @@ fn emit_byte_exports_profile(
                     .map_err(|_| error("byte-range private global count overflows u32"))?,
             )
             .and_then(|count| count.checked_add(semantic_work::global_count()))
+            .and_then(|count| count.checked_add(call_admission::GLOBAL_COUNT))
             .ok_or_else(|| error("byte-range global count overflows u32"))?,
     );
     globals.extend([I32, 0x01, 0x41]);
@@ -1946,6 +1948,9 @@ fn emit_byte_exports_profile(
     }
     let global_base = public_global_count + private_range_global_count as u32;
     semantic_work::append_globals(&mut globals, global_base);
+    call_admission::append_globals(&mut globals);
+    let call_admission_base = global_base + semantic_work::global_count();
+    let _call_admission = call_admission::activate(call_admission_base)?;
     section(&mut module, 6, globals);
 
     let mut exports = Vec::new();
@@ -1969,6 +1974,7 @@ fn emit_byte_exports_profile(
                 .map_err(|_| error("too many data exports"))?,
         )
         .and_then(|count| count.checked_add(semantic_work::export_count()))
+        .and_then(|count| count.checked_add(1))
         .ok_or_else(|| error("Public Useful Data export count overflows u32"))?,
     );
     write_name(&mut exports, super::data_exports::MEMORY_EXPORT);
@@ -2039,6 +2045,7 @@ fn emit_byte_exports_profile(
         );
     }
     semantic_work::append_exports(&mut exports);
+    call_admission::append_exports(&mut exports);
     section(&mut module, 7, exports);
 
     let closure_adapter_base = function_indexes.values().copied().max().unwrap_or(0)
@@ -2748,6 +2755,7 @@ fn emit_profile_with_scalar_exports(
                 u32::try_from(private_range_global_count)
                     .map_err(|_| error("byte-range private global count overflows u32"))?,
             )
+            .and_then(|count| count.checked_add(call_admission::GLOBAL_COUNT))
             .ok_or_else(|| error("byte-range global count overflows u32"))?,
     );
     globals.extend([I32, 0x01, 0x41]);
@@ -2766,6 +2774,9 @@ fn emit_profile_with_scalar_exports(
     for _ in 0..private_range_global_count {
         globals.extend([I64, 0x01, 0x42, 0x00, 0x0b]);
     }
+    call_admission::append_globals(&mut globals);
+    let call_admission_base = public_global_count + private_range_global_count as u32;
+    let _call_admission = call_admission::activate(call_admission_base)?;
     section(&mut module, 6, globals);
 
     let mut exports = Vec::new();
@@ -3163,6 +3174,7 @@ fn emit_function_profile(
         environment_utf8_index,
         standalone_strings,
     };
+    emitter.call_depth_admission()?;
     emitter.semantic_charge()?;
     for contract in &function.requires {
         let condition = emitter.emit_expr(contract)?;
@@ -3264,7 +3276,11 @@ fn emit_function_profile(
     drop(emitter);
     body.push(0x0b);
     // Every recoverable failure branches here. Canonical CleanupPlan actions
-    // have settled every live String carrier before reaching this edge.
+    // have settled every live String carrier before reaching this edge. Every
+    // entered frame incremented the call-depth counter exactly once in
+    // `call_depth_admission`, refused or not, so this decrement is
+    // unconditional too (see `call_admission`'s module documentation).
+    call_admission::emit_decrement(&mut body);
     body.push(0x20);
     write_u32(&mut body, plan.old_stack);
     body.push(0x24);

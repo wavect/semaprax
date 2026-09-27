@@ -484,6 +484,7 @@ impl StageExecutor for InterpreterStageExecutor {
         evaluate_retained_call(program, prepared, arguments, max_steps)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn execute_metered(
         &self,
         _authority: ExecutionAuthority,

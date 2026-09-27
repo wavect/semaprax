@@ -223,6 +223,7 @@ pub fn emit_hir_c(program: &ResolvedProgram) -> Result<String, Diagnostic> {
 pub(crate) use native_emit::{
     NativeSemanticMetering, SEMANTIC_EVENT_CAPACITY, SEMANTIC_FUEL_STATUS_DOMAIN,
 };
+pub(crate) use native_scalar_runtime::CALL_DEPTH_STATUS_DOMAIN;
 
 /// [`emit_hir_c`] instrumented for Agent Stage Semantic Work v1. Reserved for
 /// the private Agent-stage executor; no public build selects it.

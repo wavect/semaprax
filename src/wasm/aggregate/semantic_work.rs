@@ -5,9 +5,17 @@
 //! other emission leaves the scoped selection empty and stays byte-identical.
 //!
 //! The meter charges the same semantic points as the interpreter and native
-//! C11: one unit when a metered source function body is entered (before its
-//! preconditions) and one when a `while` body is entered after its condition
-//! evaluated `true`. A refused charge sets the sticky exhaustion global,
+//! C11: one unit when a metered source function body is entered (after that
+//! function's call-depth admission, before its preconditions) and one when a
+//! `while` body is entered after its condition evaluated `true`.
+//!
+//! Call-depth admission itself is unconditional and lives in the sibling
+//! `super::call_admission` module, not here: every emitted function checks it
+//! whether or not this metering selection is active, matching the
+//! interpreter and native C11, which enforce it regardless of whether a
+//! metered dispatch selected the call.
+//!
+//! A refused fuel charge sets the sticky exhaustion global,
 //! settles every live compiler-owned slot of the frame in the same canonical
 //! union finalizer order native C11 uses for every failure, and returns the
 //! private status [`SEMANTIC_FUEL_STATUS`] through the ordinary status lane;

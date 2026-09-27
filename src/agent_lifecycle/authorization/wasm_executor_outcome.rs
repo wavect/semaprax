@@ -30,6 +30,11 @@ pub(super) enum NodeStageRun {
     /// Agent Stage Semantic Work v1 exhaustion; only a metered observer
     /// produces it, never this ordinary decoder.
     FuelExhausted,
+    /// The same unconditional call-depth admission the interpreter and
+    /// native C11 backend enforce (`MAX_CALL_DEPTH`), refused before the
+    /// call was ever selected for metering; not a language-visible status,
+    /// so it never reaches `normalized_raw_status`.
+    CallDepthExceeded,
 }
 
 fn normalized_raw_status(raw: u64) -> Option<NormalizedStatus> {
@@ -68,6 +73,7 @@ pub(super) fn decode_node_outcomes(
     let row_count = rows.len();
     let mut values = Vec::with_capacity(expected);
     let mut failure: Option<NormalizedStatus> = None;
+    let mut call_depth_exceeded = false;
     for row in rows {
         let value: serde_json::Value =
             serde_json::from_str(row).map_err(|_| invariant("wasm_executor.outcome.json"))?;
@@ -119,6 +125,12 @@ pub(super) fn decode_node_outcomes(
                     settled_owned_bytes: true,
                 });
             }
+            Some("call_depth_exceeded") if object.len() == 2 => {
+                if !values.is_empty() || failure.is_some() {
+                    return Err(invariant("wasm_executor.outcome.mixed"));
+                }
+                call_depth_exceeded = true;
+            }
             Some("language_failure") if object.len() == 4 => {
                 if !values.is_empty() {
                     return Err(invariant("wasm_executor.outcome.mixed"));
@@ -151,10 +163,13 @@ pub(super) fn decode_node_outcomes(
             _ => return Err(invariant("wasm_executor.outcome.shape")),
         }
     }
-    match failure {
-        Some(status) if row_count == 1 => Ok(NodeStageRun::LanguageFailure(status)),
-        Some(_) => Err(invariant("wasm_executor.outcome.failure_arity")),
-        None if values.len() == expected => Ok(NodeStageRun::Returned(values)),
-        None => Err(invariant("wasm_executor.outcome.arity")),
+    match (failure, call_depth_exceeded) {
+        (Some(_), true) => Err(invariant("wasm_executor.outcome.mixed")),
+        (Some(status), false) if row_count == 1 => Ok(NodeStageRun::LanguageFailure(status)),
+        (Some(_), false) => Err(invariant("wasm_executor.outcome.failure_arity")),
+        (None, true) if row_count == 1 => Ok(NodeStageRun::CallDepthExceeded),
+        (None, true) => Err(invariant("wasm_executor.outcome.failure_arity")),
+        (None, false) if values.len() == expected => Ok(NodeStageRun::Returned(values)),
+        (None, false) => Err(invariant("wasm_executor.outcome.arity")),
     }
 }

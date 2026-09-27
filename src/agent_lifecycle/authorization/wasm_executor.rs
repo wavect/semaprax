@@ -374,6 +374,7 @@ impl StageExecutor for WasmStageExecutor<'_> {
         .map_err(|error| vec![error])
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn execute_metered(
         &self,
         _authority: ExecutionAuthority,
@@ -577,6 +578,14 @@ fn run_direct(
             return Ok(evaluation(
                 entry,
                 RetainedCallOutcome::FuelExhausted,
+                max_steps,
+                Vec::new(),
+            ));
+        }
+        NodeStageRun::CallDepthExceeded => {
+            return Ok(evaluation(
+                entry,
+                RetainedCallOutcome::CallDepthExceeded,
                 max_steps,
                 Vec::new(),
             ));
@@ -1213,6 +1222,14 @@ fn run_through_injected_driver(
             return Ok(evaluation(
                 entry,
                 RetainedCallOutcome::FuelExhausted,
+                max_steps,
+                Vec::new(),
+            ));
+        }
+        NodeStageRun::CallDepthExceeded => {
+            return Ok(evaluation(
+                entry,
+                RetainedCallOutcome::CallDepthExceeded,
                 max_steps,
                 Vec::new(),
             ));

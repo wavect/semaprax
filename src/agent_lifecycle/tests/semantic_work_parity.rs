@@ -102,13 +102,17 @@ fn arguments(budget: i64, divisor: i64, pivot: i64) -> Vec<RetainedValue> {
 fn legs(
     host: &authorization::NativeStageHost,
 ) -> Vec<(&'static str, authorization::StageBackend<'_>)> {
+    legs_on(host, SOURCE)
+}
+
+fn legs_on<'a>(
+    host: &'a authorization::NativeStageHost,
+    source: &'a str,
+) -> Vec<(&'static str, authorization::StageBackend<'a>)> {
     vec![
         ("native-O0", native_backend(host)),
         ("native-O2", native_o2_backend(host)),
-        (
-            "core-wasm",
-            authorization::StageBackend::Wasm { source: SOURCE },
-        ),
+        ("core-wasm", authorization::StageBackend::Wasm { source }),
     ]
 }
 
@@ -357,6 +361,138 @@ fn semantic_fuel_and_finalizer_events_agree_across_every_stage_backend() {
                 Some(first) => assert_eq!(&events, first, "{}: {leg} finalizer order", case.name),
             }
         }
+    }
+}
+
+// Issue #293 P2-1: a recursive metered function must refuse admission at the
+// same call-depth ceiling on every backend (`interpreter::MAX_CALL_DEPTH`,
+// native's `SPX_MAX_CALL_DEPTH`, and Core Wasm's `call_admission` module),
+// rather than diverging into fuel exhaustion or an uncontrolled host-engine
+// stack trap. `recurse` is metered by the same profile as `measure`/`weigh`/
+// `run` above; it carries no owned data, so cleanup events stay empty on
+// every leg and every path.
+const DEPTH_SOURCE: &str = r#"module test.stage_call_depth;
+
+@id("test.stage_call_depth.Step")
+record Step {
+    @id("test.stage_call_depth.Step.total") total: i64,
+}
+
+@id("test.stage_call_depth.recurse")
+fn recurse(depth: i64) -> Step
+{
+    if depth <= 0 {
+        Step { total: 0 }
+    } else {
+        let inner = recurse(depth - 1);
+        Step { total: 1 + inner.total }
+    }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+const DEPTH_ENTRY: &str = "test.stage_call_depth.recurse";
+/// Exceeds every backend's fixed call-depth ceiling (256).
+const DEEP_RECURSION: i64 = 300;
+
+fn depth_program() -> hir::ResolvedProgram {
+    let checked = crate::check(DEPTH_SOURCE, std::path::Path::new("stage-call-depth.spx"))
+        .expect("call-depth fixture checks");
+    let program = hir::resolve(&checked).expect("call-depth fixture resolves");
+    hir::validate(&program).expect("call-depth fixture validates");
+    program
+}
+
+fn depth_prepared(program: &hir::ResolvedProgram) -> PreparedRetainedCall {
+    prepare_retained_call(program, DEPTH_ENTRY).expect("call-depth stage prepares")
+}
+
+/// The native-only legs of [`legs_on`]. Core Wasm's *stage executor* builds a
+/// replay-verified owned-data npm package through
+/// `project::derive_public_api_descriptor`, which refuses any recursive
+/// selected closure outright (`"public API selected closure must be
+/// acyclic"`) -- a pre-existing, unrelated restriction of that packaging
+/// format, not of Core Wasm lowering itself. The same call-depth admission
+/// this test exercises for the interpreter and native C11 is proven directly
+/// against the compiled Core Wasm bytecode instead, bypassing that
+/// packaging, by
+/// `wasm::aggregate::tests::call_depth_admission_refuses_the_same_ceiling_every_backend_shares`.
+fn native_legs_on<'a>(
+    host: &'a authorization::NativeStageHost,
+) -> Vec<(&'static str, authorization::StageBackend<'a>)> {
+    vec![
+        ("native-O0", native_backend(host)),
+        ("native-O2", native_o2_backend(host)),
+    ]
+}
+
+#[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn call_depth_admission_agrees_across_every_stage_backend() {
+    let host = native_stage_host().expect("call depth parity requires held clang");
+    let program = depth_program();
+    let prepared = depth_prepared(&program);
+
+    // Depth alone is exhausted first: fuel is ample (recursing to 300 charges
+    // at most 300 units, and refusal at the 257th frame charges exactly 256).
+    let args = vec![RetainedValue::I64(DEEP_RECURSION)];
+    let expected = metered(
+        authorization::StageBackend::Interpreter,
+        &program,
+        &prepared,
+        &args,
+        100_000,
+    );
+    assert_eq!(
+        expected.outcome,
+        RetainedCallOutcome::CallDepthExceeded,
+        "depth-exceeded-before-fuel: interpreter outcome"
+    );
+    assert_eq!(
+        work(&expected).fuel_used,
+        256,
+        "depth-exceeded-before-fuel: interpreter charges every admitted frame, no more"
+    );
+    assert!(
+        !work(&expected).exhausted,
+        "depth-exceeded-before-fuel: refusal is a depth ceiling, not fuel exhaustion"
+    );
+    for (leg, backend) in native_legs_on(&host) {
+        let actual = metered(backend, &program, &prepared, &args, 100_000);
+        assert_eq!(
+            comparable(&actual),
+            comparable(&expected),
+            "depth-exceeded-before-fuel: {leg} semantic work"
+        );
+    }
+
+    // Fuel is exhausted first: the limit is far below the depth ceiling, so
+    // every backend must settle as ordinary fuel exhaustion, never depth.
+    let expected = metered(
+        authorization::StageBackend::Interpreter,
+        &program,
+        &prepared,
+        &args,
+        10,
+    );
+    assert_eq!(
+        expected.outcome,
+        RetainedCallOutcome::FuelExhausted,
+        "fuel-exhausted-before-depth: interpreter outcome"
+    );
+    assert!(
+        work(&expected).exhausted,
+        "fuel-exhausted-before-depth: fuel settles this call before depth can"
+    );
+    for (leg, backend) in native_legs_on(&host) {
+        let actual = metered(backend, &program, &prepared, &args, 10);
+        assert_eq!(
+            comparable(&actual),
+            comparable(&expected),
+            "fuel-exhausted-before-depth: {leg} semantic work"
+        );
     }
 }
 

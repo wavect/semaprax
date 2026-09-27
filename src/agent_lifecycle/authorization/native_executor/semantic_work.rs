@@ -9,7 +9,8 @@
 //! strictly; an omitted, extra, malformed or contradictory row fails closed.
 
 use crate::codegen::{
-    NativeSemanticMetering, SEMANTIC_EVENT_CAPACITY, SEMANTIC_FUEL_STATUS_DOMAIN,
+    NativeSemanticMetering, CALL_DEPTH_STATUS_DOMAIN, SEMANTIC_EVENT_CAPACITY,
+    SEMANTIC_FUEL_STATUS_DOMAIN,
 };
 use crate::interpreter::retained_call::SemanticWork;
 
@@ -75,6 +76,12 @@ pub(super) fn run_metered(
                 return Err(invariant("native_executor.semantic.exhaustion"));
             }
             RetainedCallOutcome::FuelExhausted
+        } else if domain == CALL_DEPTH_STATUS_DOMAIN && *code == 1 {
+            // The same unconditional call-depth admission every native
+            // function's prologue enforces (`SPX_MAX_CALL_DEPTH`), refused
+            // before this call was ever selected for metering; not a
+            // language-visible status.
+            RetainedCallOutcome::CallDepthExceeded
         } else {
             RetainedCallOutcome::LanguageFailure(compiler_status(domain, *code)?)
         };

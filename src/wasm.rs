@@ -55,6 +55,9 @@ use string_ops_v2_use::program_uses_string_ops_v2;
 mod source_result_component_v4;
 mod text_exports;
 mod vec_ops;
+/// Core Wasm call-depth admission (issue #293 P2-1): the sticky exported
+/// marker a refused build sets.
+pub(crate) use aggregate::call_admission::CALL_DEPTH_EXCEEDED_EXPORT;
 /// Agent Stage Semantic Work v1 selection for one private stage build.
 pub(crate) use aggregate::semantic_work::{
     with_semantic_metering, WasmSemanticMetering, EVENT_COUNT_EXPORT, EVENT_EXPORT_PREFIX,

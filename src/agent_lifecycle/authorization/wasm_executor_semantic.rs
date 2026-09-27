@@ -86,7 +86,7 @@ impl<'p> WasmMeter<'p> {
             let run = decode_node_outcomes(&ordinary, expected)?;
             let executed = match &run {
                 NodeStageRun::Returned(values) => values.len(),
-                NodeStageRun::LanguageFailure(_) => 1,
+                NodeStageRun::LanguageFailure(_) | NodeStageRun::CallDepthExceeded => 1,
                 NodeStageRun::FuelExhausted => 0,
             };
             if executed != rows.len() {
@@ -156,6 +156,7 @@ impl<'p> WasmMeter<'p> {
         let count = crate::wasm::EVENT_COUNT_EXPORT;
         let overflow = crate::wasm::EVENT_OVERFLOW_EXPORT;
         let prefix = crate::wasm::EVENT_EXPORT_PREFIX;
+        let depth_exceeded = crate::wasm::CALL_DEPTH_EXCEEDED_EXPORT;
         format!(
             r#"import fs from 'node:fs';
 import instantiate from './semaprax.bindings.js';
@@ -176,9 +177,9 @@ const global = name => {{
   if(!(value instanceof WebAssembly.Global)) throw new Error('SEMAPRAX semantic meter global');
   return value;
 }};
-const used = global('{used}'), exhausted = global('{exhausted}'), count = global('{count}'), overflow = global('{overflow}');
+const used = global('{used}'), exhausted = global('{exhausted}'), count = global('{count}'), overflow = global('{overflow}'), depthExceeded = global('{depth_exceeded}');
 const events = Array.from({{length:{capacity}}}, (_, index) => global('{prefix}' + index));
-const reset = () => {{ used.value = 0n; exhausted.value = 0; count.value = 0; overflow.value = 0; for(const event of events) event.value = 0n; }};
+const reset = () => {{ used.value = 0n; exhausted.value = 0; count.value = 0; overflow.value = 0; depthExceeded.value = 0; for(const event of events) event.value = 0n; }};
 const work = () => {{
   const n = count.value;
   if(!Number.isInteger(n) || n < 0 || n > {capacity}) throw new Error('SEMAPRAX semantic event count');
@@ -206,12 +207,15 @@ const calls = [
 for (const call of calls) {{
   reset();
   let result = null;
-  try {{ result = stage(call); }} catch(error) {{ if(exhausted.value !== 1) throw error; }}
+  try {{ result = stage(call); }} catch(error) {{
+    if(depthExceeded.value === 1) result = {{schema:'semaprax.agent-wasm-stage-outcome.v2',kind:'call_depth_exceeded'}};
+    else if(exhausted.value !== 1) throw error;
+  }}
   if(result !== null) out.push(result);
   out.push(work());
-  // Exhaustion and a checked failure each settle this invocation; no later
-  // projection runs against that instance.
-  if(result === null || result.kind === 'language_failure') break;
+  // Exhaustion, call-depth refusal and a checked failure each settle this
+  // invocation; no later projection runs against that instance.
+  if(result === null || result.kind === 'language_failure' || result.kind === 'call_depth_exceeded') break;
 }}
 process.stdout.write(out.map(value => JSON.stringify(value) + '\n').join(''));
 "#

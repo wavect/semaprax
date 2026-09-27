@@ -110,6 +110,15 @@ and at no other point:
    call-depth admission and before its preconditions; and
 2. entering a `while` body, charged after its condition evaluated `true`.
 
+Call-depth admission itself is unconditional and backend-neutral, not scoped
+to a metered dispatch: the interpreter, native C11, and Core Wasm each refuse
+one more frame at the identical fixed ceiling (256) before that frame's own
+semantic charge and preconditions, reporting `CallDepthExceeded` rather than
+diverging into fuel exhaustion or an uncontrolled host-engine stack trap.
+Core Wasm enforces it with an always-on module global incremented at every
+function's entry and decremented at its shared exit, present in every
+compiled module whether or not a semantic meter is selected for that build.
+
 A dispatch is admitted with a limit in `1..=1_000_000`. A charge made while the
 charged count equals the limit is refused and not counted. Refusal is sticky:
 the call stops at that exact semantic event with `FuelExhausted`, selects no

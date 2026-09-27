@@ -20,6 +20,27 @@ fn ask(seed: i64) -> i64
 fn main() -> i64 { 0 }
 "#;
 
+const CONTROL_SOURCE: &str = r#"
+module test.resumable_assurance_control;
+@id("app.ask_control")
+fn ask_control(seed: i64) -> i64
+    yields i64 -> i64
+    requires seed >= 0
+    ensures result >= 0
+{
+    let first = if seed > 0 {
+        let a = yield seed;
+        a
+    } else {
+        let b = yield 0;
+        b
+    };
+    first + 1
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
 fn program(source: &str) -> (crate::ast::Program, ResolvedProgram) {
     let parsed = crate::parse(source, Path::new("resumable-assurance.spx")).unwrap();
     let resolved = crate::hir::resolve(&parsed).unwrap();
@@ -215,4 +236,73 @@ fn one_site_contract_mapping_is_deterministic_and_unsupported_projection_refuses
     let unsupported = SOURCE.replace("fn main() -> i64 { 0 }", "fn main() -> i64 { ask(0) }");
     let (_, resolved) = program(&unsupported);
     assert_eq!(methods(&resolved).unwrap_err().code, "SPX-H006");
+}
+
+#[test]
+fn control_dependent_source_contracts_bind_entry_and_final_resume() {
+    let (parsed, resolved) = program(CONTROL_SOURCE);
+    let mut obligations = derive::derive_obligations(&parsed);
+    let original = obligations.clone();
+    attach(&resolved, &mut obligations).unwrap();
+    assert_eq!(
+        original.iter().map(|o| &o.id).collect::<Vec<_>>(),
+        obligations.iter().map(|o| &o.id).collect::<Vec<_>>(),
+        "attaching a control-dependent method must never mint a new obligation id"
+    );
+    let plan = lower_control(&resolved, &resolved.functions[0]).unwrap();
+    assert!(!plan.carries_owned_bytes);
+    assert_eq!(plan.sites.len(), 2);
+    let pre = obligations
+        .iter()
+        .find(|o| o.kind == ObligationKind::Precondition)
+        .unwrap();
+    let post = obligations
+        .iter()
+        .find(|o| o.kind == ObligationKind::Postcondition)
+        .unwrap();
+    assert_eq!(pre.methods.len(), 2);
+    assert_eq!(post.methods.len(), 2);
+    assert_eq!(pre.methods[1].class, AssuranceClass::RuntimeGuarded);
+    assert_eq!(pre.methods[1].inputs[3], plan.entry.id.as_str());
+    assert_eq!(pre.methods[1].inputs[4], plan.sites[0].state.id.as_str());
+    assert_eq!(
+        post.methods[1].inputs[3],
+        plan.sites.last().unwrap().state.id.as_str()
+    );
+    assert_eq!(post.methods[1].inputs[4], plan.complete.id.as_str());
+    assert_eq!(
+        pre.methods[1].bounds.as_deref(),
+        Some("control_dependent_copy_scalar_yields:2")
+    );
+    assert_eq!(
+        post.methods[1].bounds.as_deref(),
+        Some("control_dependent_copy_scalar_yields:2")
+    );
+    // No yield-free backend projection exists for the control-dependent plan
+    // (`SPX-H006`), unlike the sequential lane's `resumable_yield_free_projection`.
+    assert_eq!(pre.methods[1].target, None);
+    assert_eq!(post.methods[1].target, None);
+    let report = envelope(CONTROL_SOURCE);
+    verify_envelope(&report).unwrap();
+}
+
+#[test]
+fn control_dependent_source_drift_changes_plan_even_with_unchanged_contract_ids() {
+    let report = envelope(CONTROL_SOURCE);
+    let changed = CONTROL_SOURCE.replace("first + 1", "first + 2");
+    assert_eq!(
+        verify_source(&report, &changed, Path::new("test.spx"))
+            .unwrap_err()
+            .code,
+        "SPX-Z104"
+    );
+    let (_, first) = program(CONTROL_SOURCE);
+    let (_, second) = program(&changed);
+    let first = methods(&first).unwrap();
+    let second = methods(&second).unwrap();
+    assert_eq!(
+        first.keys().collect::<Vec<_>>(),
+        second.keys().collect::<Vec<_>>()
+    );
+    assert_ne!(first, second);
 }

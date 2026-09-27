@@ -233,7 +233,9 @@ compile the module.
   future work.
 - Ordinary native and Wasm emission of `yields` functions (`SPX-B116` and
   `SPX-W126` still refuse) and a durable driver for those engines.
-- Migration of an Agent lifecycle example onto this mechanism.
+- Migration of an Agent lifecycle example onto this mechanism: assessed and
+  currently blocked; see
+  [section 12](#12-agent-lifecycle-migration-assessment-issue-296).
 - One-site functions, rollback detection, a CLI or service surface, and
   hosted evidence.
 
@@ -489,3 +491,144 @@ since the flat, `ValueId`-keyed carrying substitution cannot soundly
 represent a value that legitimately differs across that binding's own
 dynamic occurrences. Making the substitution dynamic-occurrence-aware, to
 admit that broader shape too, remains future work.
+
+## 12. Agent lifecycle migration assessment (issue #296)
+
+Every candidate Agent lifecycle example in this repository was checked
+against sections 1 and 11 above. None fits the admitted profile today without
+changing its observable interface, so none was migrated; this section
+records exactly which construct blocks each one, per the "stop and report"
+instruction rather than forcing a fit.
+
+Candidates considered:
+
+- `examples/everyday-agent-project/src/agent.spx` (`agent EverydayAgent`) and
+  `examples/offline-repair-project/src/app.spx` (`agent FixtureAgent`): the
+  two real `agent { }` declarations in this repository, each with a
+  `runtime_v1` models/tools/policy block and the fixed six-role
+  `initialize`/`observe`/`propose`/`authorize`/`execute`/`reduce` operation
+  set. `FixtureAgent` additionally declares its own `Step` variant
+  (`Continue`/`Complete`/`Suspend`/`Fail`), a hand-authored duplicate of the
+  exact vocabulary `resumable_effects::core::Step` generalizes -- the
+  clearest instance in this repository of "a stage that waits for a
+  model/tool answer via a bespoke state machine" the backlog item describes.
+- `std/agent/src/agent.spx`: a plain, non-Agent-declaring stdlib package
+  (`initialize`/`observe`/`advance`/`stage_transition`/`retry_admitted`/
+  `retry_delay`). It has no suspension point at all -- every function
+  returns immediately from its own scalar/record arithmetic, and
+  `retry_admitted`/`retry_delay` are pure backoff-policy predicates a caller
+  could use around any wait, not a wait themselves. There is nothing here to
+  migrate.
+
+What blocks the two real Agent declarations, precisely:
+
+- **The request/answer channel type.** Section 1 admits only "Copy-scalar
+  parameters, request, answer, and result" (`hir::resolve_yield::check_scalar`,
+  `SPX-T301`/`SPX-T303`); section 11.6 additionally admits one whole owned
+  `Bytes` *local* carried across a suspension, but never as the `yield`
+  channel's own request or answer type. Every one of an Agent's own typed
+  roles -- `Task`, `State`/`Context`, `Observation`, `Proposal`, `Decision`,
+  `Outcome`, `Report` -- is a `record` or `variant` combining `Bytes` with one
+  or more `i64`/`bool`/`usize` fields (`Decision` and `FixtureAgent`'s own
+  `Step` are variants over such records). None is a Copy scalar, so none can
+  be a `yield`'s request or answer type without first collapsing it to a
+  single scalar -- which would not be "migrating this example unchanged" but
+  authoring a materially different one, exactly what the backlog item asks
+  this increment not to force.
+- **Agent operations are not free, `yields`-eligible functions.** `yields` is
+  a clause on an ordinary top-level `fn` (`parser::yields`,
+  `hir::resolve_yield`), resolved and lowered by
+  `resumable_effects::lowering`/`interpreter::resumable` directly. An Agent's
+  `operations { }` block instead binds already-declared `fn`s by `@id` into
+  one closed `semaprax.agent-definition.v1` document that
+  `agent_lifecycle`/`project::compile_source_agent_declaration` compiles
+  through its own, separate pipeline (see
+  `src/agent_lifecycle/source.rs`). Adding a `yields` clause to a role
+  function would not connect it to that pipeline; it would just make that
+  same function additionally fail the whole-function Copy-scalar profile
+  once its declared parameter or return type is one of the record/variant
+  roles above.
+- **The role that actually waits on a model declares an effect.**
+  `propose` is a `model fn` and `execute` is an `effect fn` -- both cross a
+  real host boundary today. `SPX-T302` refuses any `uses`-effect function a
+  `yields` clause at all, precisely because this profile's resume replays
+  the suspended prefix and would redispatch a real effect a second time.
+  This is not itself the blocking construct for the *shape* of suspension
+  (the continuation model already puts the actual host dispatch outside the
+  checked function, at the durable driver's `dispatch`/`answer` boundary,
+  section 3), but it means an Agent's own role signature cannot simply grow
+  a `yields` clause in place; it would need a distinct, effect-free
+  `yields`-declaring function whose request/answer *is* one of the fixed
+  roles above, which section 1's admitted profile already refuses on typing
+  grounds regardless.
+
+None of this contradicts [Resumable Effects v1](RESUMABLE-EFFECTS-V1.md)'s
+own acceptance table, which already records "Agents can progressively reuse
+the mechanism rather than remain a separate runtime island" as **Open**
+because "migrating even one Agent fixture requires ... a broader state
+profile than this private scalar plan provides." This assessment narrows
+that open item to the exact fields and clauses involved, so the increment
+that widens the admitted request/answer profile to a bounded record or
+variant shape (or gives an Agent role function its own effect-free `yields`
+seam) can check its work against a concrete target instead of re-deriving
+it. No source under `examples/`, `std/agent/`, or `src/agent_lifecycle/` was
+changed by this assessment.
+
+## 13. Assurance and conformance evidence for the admitted profile
+
+What is proved, and how, for both admitted `.spx` lanes -- sequential
+(v1/v2) and control-dependent (v3/v4) -- as of this increment:
+
+- **Compiler-checked admission is the primary proof**, not a downstream
+  test: `SPX-T297`/`SPX-T299`/`SPX-T301`/`SPX-T302`/`SPX-T303`/`SPX-T305`/
+  `SPX-T306` (section 11.5) reject every source shape outside the profile
+  before lowering ever runs, and `resumable_effects::lowering`/
+  `lowering::control` independently re-derive plan identity, state
+  identities, and (for a carrying control plan) each site's carried-locals
+  list rather than trusting authored labels.
+- **Runtime-guarded contract placement.** `src/assurance_manifest/resumable.rs`
+  binds every `requires`/`ensures` clause of a `yields`-declaring function to
+  the exact compiler-owned transition it runs across (`start`: entry to the
+  first suspension; `final_resume`: the last suspension to completion),
+  keyed to that function's own plan identity digest. This increment extends
+  it from the sequential lane only to both lanes: `is_control_dependent`
+  selects `lower_control` over `lower_sequential` the same way
+  `source_signature::derive_source_effect_signature` already does, so a
+  control-dependent function's contracts are bound and reported exactly like
+  a sequential one's, with its own `bounds` string recording the dynamic
+  suspension count and whether the plan carries an owned `Bytes` local
+  (`control_dependent_copy_scalar_yields:<n>[:carries_owned_bytes]`). Every
+  recorded method stays `AssuranceClass::RuntimeGuarded` with
+  `runtime_fallback: true` -- a checked placement backed by the interpreter's
+  own re-execution at every resume, never a static proof of the contract
+  itself. The sequential lane's method additionally names a `target`
+  (`resumable_yield_free_projection`, the one backend projection
+  `resumable_effects::backend`'s `cfg(test)`-only parity runners actually
+  execute); the control-dependent lane's method leaves `target` absent,
+  because no yield-free projection exists for it at all (`SPX-H006`) --
+  absence here is itself evidence, not an omission, of exactly what this
+  profile does not yet prove.
+- **Interpreter-only, by construction.** Every method this manifest records
+  for a `yields` function is `RuntimeGuarded`, and the sequential lane is the
+  only one with any target evidence, itself `cfg(test)`-only native/Wasm
+  *parity* against the interpreter's own semantics rather than a production
+  target claim (section "Compiler-owned lowering..." of
+  [Resumable Effects v1](RESUMABLE-EFFECTS-V1.md)). Ordinary native
+  (`SPX-B116`) and Wasm (`SPX-W126`) emission still refuse every `yields`
+  function outright, sequential or control-dependent, carrying or not. There
+  is no target evidence, hosted evidence, or production claim for the
+  control-dependent or owned-`Bytes`-carrying profile at any layer.
+- **What is tested, concretely.** Section 10's gate, plus
+  `cargo test --locked -p semaprax --lib assurance_manifest::resumable::` for
+  the contract-placement obligations above (both lanes: entry/first-site and
+  last-site/complete binding, the `bounds` string, source-drift detection
+  under unchanged contract ids, and the sequential lane's existing one-site
+  and unsupported-projection refusals). None of this is hosted or is a fresh
+  full test run beyond what each gate command itself performs.
+
+Migrating an Agent lifecycle example onto this mechanism (section 12) would
+add its own conformance oracle -- the example's existing tests passing
+unchanged, plus a crash/restart test through the durable journal -- once the
+request/answer profile or the Agent/`yields` seam above is widened enough to
+attempt it; this section records only what the admitted profile itself
+proves today, which does not yet include that.

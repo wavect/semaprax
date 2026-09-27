@@ -12,7 +12,8 @@ use crate::public_generic_abi::{
     native::{
         authenticated::{
             AuthenticatedNativeAllocatingArtifact, AuthenticatedNativeIdentityArtifact,
-            AuthenticatedNativeMovesArtifact, ALLOCATING_PROFILE, HEADER, MOVES_PROFILE, PROFILE,
+            AuthenticatedNativeMovesArtifact, AuthenticatedNativeNestedMovesArtifact,
+            ALLOCATING_PROFILE, HEADER, MOVES_PROFILE, NESTED_MOVES_PROFILE, PROFILE,
         },
         binding::NativeProviderBindingV1,
     },
@@ -47,6 +48,24 @@ pub fn generate_authenticated_moves_calling_consumer_v1(
         artifact.descriptor_bytes(),
         artifact.binding(),
         MOVES_PROFILE,
+    )
+}
+
+/// Private closed movement-body profile admitting a nested owned record
+/// (issue #292). Framing and settlement generation are identical to
+/// `moves-v1` above -- both walk `descriptor.input_facts().owned_leaves`/
+/// `result_facts().owned_leaves`, already a flat, nesting-agnostic sequence
+/// of leaf paths -- but only the independently admitted nested-moves
+/// artifact binds this distinct profile string.
+pub fn generate_authenticated_nested_moves_calling_consumer_v1(
+    descriptor: &VerifiedPublicGenericDescriptor,
+    artifact: &AuthenticatedNativeNestedMovesArtifact,
+) -> Result<CallingConsumer, Diagnostic> {
+    generate(
+        descriptor,
+        artifact.descriptor_bytes(),
+        artifact.binding(),
+        NESTED_MOVES_PROFILE,
     )
 }
 

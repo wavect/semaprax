@@ -26,7 +26,7 @@ use super::{
 
 #[test]
 fn component_mid_call_fuel_interruption_discards_store_without_publishing() -> HostResult<()> {
-    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &[], false)?;
+    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &[])?;
     let engine = engine()?;
 
     // Measure: a full successful call's own fuel cost from a known, ample
@@ -161,7 +161,7 @@ fn core_open_and_prepare(engine: &Engine, subject: &Subject) -> HostResult<Prepa
 
 #[test]
 fn core_provider_mid_call_fuel_interruption_discards_store_without_publishing() -> HostResult<()> {
-    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &[], false)?;
+    let subject = acquire(PARITY_MANIFEST, PARITY_PINS, &[], &[])?;
     let engine = engine()?;
 
     // Measure: `spx_pg_v1_call` itself's own fuel cost on a fully prepared,

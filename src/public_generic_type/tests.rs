@@ -574,3 +574,79 @@ fn template_identities_bind_owner_and_position() {
         vec![(0, 0, "bytes"), (1, 1, "bool")]
     );
 }
+
+/// A flat record of direct `Bytes` fields: every leaf path is exactly one
+/// field-declaration-id long, in declaration order, matching the existing
+/// flat native bridge's own field-per-leaf assumption exactly.
+#[test]
+fn owned_bytes_leaf_field_paths_of_a_flat_record_is_one_step_per_leaf() {
+    let program = program();
+    let paths = owned_bytes_leaf_field_paths(
+        &TypeInventory::of(&program),
+        &pair(vec![ResolvedType::Bytes, ResolvedType::Bytes]),
+    )
+    .unwrap()
+    .unwrap();
+    assert_eq!(
+        paths,
+        vec![
+            vec!["grammar.pair.left".to_owned()],
+            vec!["grammar.pair.right".to_owned()],
+        ]
+    );
+}
+
+/// A record nested inside a record, every leaf still `Bytes`: paths grow one
+/// field-declaration-id per nesting level, depth-first in declaration order,
+/// exactly the traversal [`InstanceFacts::owned_leaves`] itself uses.
+#[test]
+fn owned_bytes_leaf_field_paths_of_a_nested_bytes_only_record_walks_depth_first() {
+    let program = program();
+    let inner = pair(vec![ResolvedType::Bytes, ResolvedType::Bytes]);
+    let instance = pair(vec![inner, ResolvedType::Bytes]);
+    let inventory = TypeInventory::of(&program);
+    let paths = owned_bytes_leaf_field_paths(&inventory, &instance)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        paths,
+        vec![
+            vec![
+                "grammar.pair.left".to_owned(),
+                "grammar.pair.left".to_owned()
+            ],
+            vec![
+                "grammar.pair.left".to_owned(),
+                "grammar.pair.right".to_owned()
+            ],
+            vec!["grammar.pair.right".to_owned()],
+        ]
+    );
+    // The leaf count agrees with the grammar's own transitive leaf count.
+    let facts = describe(&inventory, &instance).unwrap();
+    assert_eq!(paths.len(), facts.owned_leaves.len());
+}
+
+/// A Copy scalar leaf anywhere in the closure (even nested) is a valid
+/// grammar term but is refused by this narrower Bytes-only predicate: `None`,
+/// not a repaired or partial path list.
+#[test]
+fn owned_bytes_leaf_field_paths_refuses_a_scalar_leaf_anywhere_in_the_closure() {
+    let program = program();
+    let inventory = TypeInventory::of(&program);
+    // A scalar leaf at the top level.
+    assert_eq!(
+        owned_bytes_leaf_field_paths(
+            &inventory,
+            &pair(vec![ResolvedType::Bytes, ResolvedType::Bool]),
+        )
+        .unwrap(),
+        None
+    );
+    // A scalar leaf nested one level down.
+    let inner = pair(vec![ResolvedType::Bytes, ResolvedType::Bool]);
+    assert_eq!(
+        owned_bytes_leaf_field_paths(&inventory, &pair(vec![inner, ResolvedType::Bytes])).unwrap(),
+        None
+    );
+}

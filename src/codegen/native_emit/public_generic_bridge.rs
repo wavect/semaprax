@@ -6,6 +6,7 @@ use super::*;
 use crate::public_generic_abi::descriptor::verify::{
     verify_public_generic_descriptor, VerificationOptions, VerifiedPublicGenericDescriptor,
 };
+use crate::public_generic_type::{owned_bytes_leaf_field_paths, TypeInventory};
 
 mod allocating;
 pub(crate) use allocating::emit_public_generic_allocating_bridge;
@@ -188,4 +189,157 @@ static spx_pg_status_v1 {endpoint}(uint32_t leaf_count,
     }
     bridge.push_str("    return status;\n}\n");
     Ok((source, bridge))
+}
+
+/// Private additive constructor for a NEW, separately versioned physical
+/// profile (`semaprax.authenticated-native-moves-nested.v1`, see
+/// [`super::authenticated::render_authenticated_nested_moves_provider`]).
+/// `moves-v1` itself ([`emit_public_generic_moves_bridge`]/[`admit`] above)
+/// stays exactly as written: still only a flat, one-level owned-Bytes record,
+/// same admission code path, same emitted bytes for every program it already
+/// admitted. Nested owned records (a record whose fields are themselves
+/// owned-Bytes-only record instances, to a bounded depth) are admitted only
+/// under this distinct profile, never by silently widening `moves-v1`'s own
+/// frozen contract.
+pub(crate) fn emit_public_generic_nested_moves_bridge(
+    program: &ResolvedProgram,
+    revision: &str,
+    descriptor: &VerifiedPublicGenericDescriptor,
+) -> Result<(String, String), Diagnostic> {
+    let (function, paths) = admit_nested_moves(program, revision, descriptor)?;
+    let functions = function_index(program)?;
+    let symbol = &functions[&FunctionExecutionId::Monomorphic(function.id.clone())].symbol;
+    let record = c_record_symbol(&function.params[0].ty);
+    let fields: Vec<String> = paths
+        .iter()
+        .map(|chain| field_access_chain(chain))
+        .collect();
+    let source = format!(
+        "#define SPX_NO_ENTRY_WRAPPER\n{}\n#undef SPX_NO_ENTRY_WRAPPER\n",
+        // The existing provider-carrier profile emits Bytes even when the
+        // selected function only moves an aggregate and contains no byte op.
+        emit_hir_c_with_labels(
+            program,
+            &HashMap::new(),
+            NativeOutputProfile::OwnedUtf8Provider,
+            None
+        )?
+    );
+    let endpoint = "spx_pg_endpoint_checked_nested_moves_v1";
+    let mut bridge = format!(
+        r#"
+static spx_pg_status_v1 {endpoint}(uint32_t leaf_count,
+    uint8_t *const *input_leaf_bytes, const size_t *input_leaf_lens,
+    uint8_t **out_leaf_bytes, size_t *out_leaf_lens) {{
+    if (leaf_count != {}u) return SPX_PG_STATUS_MALFORMED_CARRIER;
+    struct {record} input = {{0}}, result = {{0}};
+    struct spx_context context = {{0}};
+    struct spx_status_entry entries[1];
+    if (!spx_context_init(&context, UINT64_C(1), entries, 1, NULL, NULL, NULL))
+        return SPX_PG_STATUS_CONTRACT_FAILURE;
+    spx_pg_status_v1 status = SPX_PG_STATUS_OK;
+    uint32_t completed = 0;
+"#,
+        fields.len()
+    );
+    for (i, field) in fields.iter().enumerate() {
+        writeln!(bridge, "    input.{field}.len = input_leaf_lens[{i}];\n    input.{field}.ptr = input_leaf_lens[{i}] ? (uint8_t *)malloc(input_leaf_lens[{i}]) : NULL;\n    if (input_leaf_lens[{i}] && !input.{field}.ptr) {{ input.{field}.len = 0; status = SPX_PG_STATUS_ALLOCATION_FAILURE; goto prepare_failed; }}\n    if (input_leaf_lens[{i}]) memcpy(input.{field}.ptr, input_leaf_bytes[{i}], input_leaf_lens[{i}]);").unwrap();
+    }
+    writeln!(bridge, "    SPX_PG_OBSERVE_ENDPOINT();\n    if ({symbol}(&context, &input, &result) != SPX_STATUS_SUCCESS) return SPX_PG_STATUS_CONTRACT_FAILURE;").unwrap();
+    for (i, field) in fields.iter().enumerate() {
+        writeln!(bridge, "    if (spx_pg_physical_phase(SPX_PG_PHASE_RESULT_ALLOCATION_STARTED, 1, {i})) {{ status = SPX_PG_STATUS_ALLOCATION_FAILURE; goto result_failed; }}\n    out_leaf_lens[{i}] = (size_t)result.{field}.len;\n    out_leaf_bytes[{i}] = result.{field}.len ? (uint8_t *)spx_pg_alloc((size_t)result.{field}.len) : NULL;\n    if (result.{field}.len && !out_leaf_bytes[{i}]) {{ status = SPX_PG_STATUS_ALLOCATION_FAILURE; goto result_failed; }}\n    completed = {i} + 1;\n    if (spx_pg_physical_phase(SPX_PG_PHASE_RESULT_ALLOCATION_COMMITTED, 1, {i})) {{ status = SPX_PG_STATUS_ALLOCATION_FAILURE; goto result_failed; }}\n    if (result.{field}.len) memcpy(out_leaf_bytes[{i}], result.{field}.ptr, (size_t)result.{field}.len);\n    SPX_PG_OBSERVE_RESULT_PAYLOAD({i}, out_leaf_bytes[{i}], out_leaf_lens[{i}]);\n    if (spx_pg_physical_phase(SPX_PG_PHASE_RESULT_PAYLOAD_COPIED, 1, {i})) {{ status = SPX_PG_STATUS_CONTRACT_FAILURE; goto result_failed; }}").unwrap();
+    }
+    bridge.push_str("result_failed:\n    if (status != SPX_PG_STATUS_OK) {\n        spx_pg_select_primary_failure(status);\n        for (uint32_t i = completed; i-- > 0;) spx_pg_release_payload(out_leaf_bytes, out_leaf_lens, i, 1);\n    }\n");
+    for field in fields.iter().rev() {
+        writeln!(bridge, "    spx_bytes_drop(&result.{field});").unwrap();
+    }
+    bridge.push_str("    return status;\nprepare_failed:\n");
+    for field in fields.iter().rev() {
+        writeln!(bridge, "    spx_bytes_drop(&input.{field});").unwrap();
+    }
+    bridge.push_str("    return status;\n}\n");
+    Ok((source, bridge))
+}
+
+/// The dotted C field-access suffix (no leading `input`/`result`, no leading
+/// `.`) for one leaf's field-declaration-id path: `["a", "b"]` becomes
+/// `spx_field_<hex a>.spx_field_<hex b>`. A one-element chain renders
+/// exactly like [`emit_bridge`]'s own flat single-symbol field name, so a
+/// flat body's generated access expression is byte-identical either way.
+fn field_access_chain(chain: &[String]) -> String {
+    chain
+        .iter()
+        .map(|id| c_field_symbol(&DeclarationId::new(id)))
+        .collect::<Vec<_>>()
+        .join(".")
+}
+
+/// Admission for the nested-owned-record physical profile: everything
+/// [`admit`]'s `moves` branch already requires (exactly one owned parameter
+/// whose instance type matches the result's, a checked movement body, and
+/// literal boolean contracts — [`movement_body`] already walks `ConstructRecord`
+/// and place projections generically, so it needs no change for nesting),
+/// plus the additional, stricter shape [`emit_public_generic_nested_moves_bridge`]'s
+/// C bridge can actually marshal: every transitively reachable field of the
+/// owned parameter's type is either a direct `Bytes` leaf or a further owned
+/// record instance, bounded exactly the way the grammar itself already bounds
+/// record nesting and leaf count (see
+/// [`crate::public_generic_type::owned_bytes_leaf_field_paths`]).
+fn admit_nested_moves<'a>(
+    program: &'a ResolvedProgram,
+    revision: &str,
+    descriptor: &VerifiedPublicGenericDescriptor,
+) -> Result<(&'a ResolvedFunction, Vec<Vec<String>>), Diagnostic> {
+    hir::validate(program)?;
+    verify_public_generic_descriptor(
+        program,
+        revision,
+        descriptor.export_id(),
+        descriptor.program_root_digest(),
+        descriptor.accepted_bytes(),
+        &VerificationOptions::default(),
+    )?;
+    let function = program
+        .functions
+        .iter()
+        .find(|f| f.id.as_str() == descriptor.export_id())
+        .ok_or_else(|| backend_error("authenticated native nested-moves endpoint is missing"))?;
+    let shape_error = || {
+        backend_error(
+            "authenticated-native-moves-nested.v1 requires an owned Bytes-only movement body \
+             (flat or nested) and literal boolean contracts",
+        )
+    };
+    let input = &descriptor.input_facts();
+    if function.params.len() != 1
+        || input.instance_digest != descriptor.result_facts().instance_digest
+        || input.fields.is_empty()
+        || !movement_body(
+            &function.body,
+            &BTreeSet::from([function.params[0].id.clone()]),
+        )
+        || function
+            .requires
+            .iter()
+            .chain(&function.ensures)
+            .any(|guard| !matches!(guard.kind, ResolvedExprKind::Bool(_)))
+    {
+        return Err(shape_error());
+    }
+    // The stricter, additional check: `moves`'s own flat-fields-are-`bytes`
+    // check generalized to every transitively reachable field, bounded the
+    // same way the grammar itself bounds nesting and leaf count. A mixed
+    // record (some Bytes leaves, some Copy scalar leaves) is refused here,
+    // not silently narrowed to only its Bytes leaves.
+    let inventory = TypeInventory::of(program);
+    let paths = owned_bytes_leaf_field_paths(&inventory, &function.params[0].ty)?
+        .ok_or_else(shape_error)?;
+    // Defense in depth: the descriptor's own independently derived leaf count
+    // must agree with this module's independently walked leaf count. Both
+    // walk the same substituted closure the same depth-first way, so they
+    // can only disagree if one of the two implementations has drifted.
+    if paths.is_empty() || paths.len() != input.owned_leaves.len() {
+        return Err(shape_error());
+    }
+    Ok((function, paths))
 }

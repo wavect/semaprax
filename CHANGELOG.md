@@ -255,6 +255,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   cache masks `file:` integrity failures. Local evidence only; the npm
   support decision stays open (ADR 0003 answer 8).
 
+- Fix Core Wasm agent stages never reporting the settlement of an owned
+  `Bytes` leaf returned inside a multi-leaf variant (#293): the byte-stream
+  driver did settle the leaf but returned a hex string, so no
+  `CopyOutAndSettleBytes` receipt was recorded. Cleanup events are now counted
+  for the selected case only, and the Core Wasm special case that accepted
+  empty cleanup events in `rich_target_backends_preserve_raw_grant_and_continue_byte_payloads`
+  is removed, restoring the strict cross-backend assertion.
+
 ## 0.6.0 — 2026-09-24
 
 - Keep the frozen private Component v7 WIT identity at `0.5.0` while the crate

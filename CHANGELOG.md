@@ -272,6 +272,17 @@ format: `Unreleased` then release buckets, grouped by impact.
   drops from over four hours to about nine minutes locally (854 comparisons,
   0 disagreements, unchanged corpus and seed).
 
+- Extend public-generic Component conformance (#292): native C11 -O0/-O2 as
+  a fourth parity column (over an equivalent flat fixture, since native
+  admission does not yet accept the nested record the other columns use), and
+  mid-call fuel interruption for the Component and the Core Wasm provider,
+  which traps, discards the store without publishing and recovers on a fresh
+  instance. Private profile; no public-support claim.
+- Record the benchmark's issue #211 category coverage, observed local
+  toolchain identities and the reserved languages' provisioning needs (#298);
+  the "Agent workflow" category's coverage awaits a maintainer scope decision,
+  and the real two-model and second-host pilot remains open.
+
 ## 0.6.0 — 2026-09-24
 
 - Keep the frozen private Component v7 WIT identity at `0.5.0` while the crate

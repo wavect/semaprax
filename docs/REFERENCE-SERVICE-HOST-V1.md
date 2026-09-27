@@ -35,7 +35,7 @@ repository's existing machinery and adds no new authority:
 | Requirement (decoded intent) | Bound adapter |
 | --- | --- |
 | `sqlite` / `postgresql` + DSN ref | Durable snapshot store under `--state-dir`. No SQL wire protocol is implemented; the DSN value is held but never connected to. |
-| `native` + `modern` TLS + listen origin | Loopback plaintext HTTP/1.1 on `--port`. The listen origin is intent only; TLS provisioning is open (see below). |
+| `native` + `modern` TLS + listen origin | Loopback HTTP/1.1 on `--port`, plaintext by default. The listen origin is intent only and never itself provisions TLS; `--tls-certificate-secret`/`--tls-private-key-secret` opt in (see below). |
 | Three secret refs | Exact files under `--secrets-dir`, resolved before serving. |
 | `otlp` + endpoint origin | HTTPS POST to `<origin>/v1/events` through `deliver_http_durable`. No OTLP protobuf is emitted. |
 
@@ -82,21 +82,51 @@ runtime execution remains open.
 ```sh
 semaprax-reference-service serve --project examples/task-service-project \
   --config service.config.json --state-dir <dir> --outbound-dir <dir> \
-  --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <digest>]
+  --secrets-dir <dir> --bundle-dir <dir> --port <1-65535> [--state <digest>] \
+  [--tls-certificate-secret <ref> --tls-private-key-secret <ref>]
 ```
 
-The server prints `bundle <digest>` then `ready port=... state=... seq=...`
-and serves until stopped. There is no graceful shutdown; crash-safety
-comes from the store. All directories must already exist; all secrets must
-resolve; the port must be explicit and loopback-only.
+The server prints `bundle <digest>` then `ready port=... state=... seq=...
+tls=on|off` and serves until stopped. There is no graceful shutdown;
+crash-safety comes from the store. All directories must already exist; all
+secrets must resolve; the port must be explicit and loopback-only.
+
+## TLS serving (optional, operator-held material only)
+
+Serving is plaintext by default. An operator opts into TLS by naming both
+`--tls-certificate-secret` and `--tls-private-key-secret` -- exact
+references resolved against `--secrets-dir` through the same
+hold/read/recheck discipline as the three password/session/webhook
+secrets, holding one leaf certificate (DER) and its PKCS#8 private key
+(DER). Naming only one of the pair is a usage error; naming both without a
+held file under either name refuses before any listener binds, so
+configuration intent alone never mints TLS authority. When TLS is
+configured, the host serves *only* under `TcpNetworkProvider::accept_tls`
+(TLS 1.2/1.3 via Rustls) for the whole process lifetime; there is no
+plaintext fallback, and a plaintext client dialing a TLS-configured
+listener gets at most a raw TLS alert record, never a downgraded HTTP
+exchange. Restarting a TLS-configured deployment requires passing the
+same two flags again.
+
+Local evidence: `tests/runtime_host/reference_service_acceptance.rs` runs
+the full login/CRUD/job/restart flow over TLS with a checked-in test CA,
+plus hostile cases -- a client that does not trust the certificate's
+issuer, a client dialing a name the certificate does not cover, an
+already-expired test certificate, and a plaintext client against a
+TLS-configured listener -- and the certificate-config decoder builders
+(`server_tls_config_from_der`, `client_tls_config_trusting` in
+`semaprax::network_provider`) carry their own unit coverage. No hosted,
+public, or production TLS deployment is claimed; this is loopback and test
+material only.
 
 ## Non-claims
 
-No SQLite/PostgreSQL protocol, no TLS server provisioning (loopback
-plaintext only; `accept_tls` needs operator-supplied certificate material
-this host does not mint), no OTLP protobuf, no hosted/public/production
+No SQLite/PostgreSQL protocol, no OTLP protobuf, no hosted/public/production
 support, no graceful shutdown, and no per-request decisions outside the
-frozen invocation vocabulary. The `.invalid` origins in tests exist so no
+frozen invocation vocabulary. TLS server provisioning is now available but
+only from operator-held certificate/key material named on the command
+line, not from configuration intent, and not chained beyond the one leaf
+certificate this host holds. The `.invalid` origins in tests exist so no
 real peer can be contacted; delivery attempts there fail closed by design.
 Sessions never expire; only explicit logout retires one (`POST
 /v1/logout`) -- there is no tick, idle deadline, or absolute deadline

@@ -4,11 +4,20 @@
 //! [`TcpNetworkProvider`](semaprax::network_provider::TcpNetworkProvider):
 //! the host binds `127.0.0.1` on an explicit operator-chosen port, accepts
 //! one connection at a time, and speaks a closed subset of HTTP/1.1 (exact
-//! `Content-Length` framing only; no chunked encoding, no keep-alive, no
-//! TLS). Binding anything but loopback, or port zero (whose assigned port
-//! would be undiscoverable through the opaque listener token), is refused.
-//! TLS serving stays open: the provider's `accept_tls` path needs
-//! operator-supplied certificate material this host does not mint.
+//! `Content-Length` framing only; no chunked encoding, no keep-alive).
+//! Binding anything but loopback, or port zero (whose assigned port would be
+//! undiscoverable through the opaque listener token), is refused.
+//!
+//! Serving is plaintext by default ([`serve_one`]/[`serve_forever`], over
+//! [`NetworkProvider::accept`]). A host that resolved operator-held
+//! certificate/key material builds its `TcpNetworkProvider` with
+//! [`TcpNetworkProvider::with_server_tls_config`] and calls
+//! [`serve_one_tls`]/[`serve_forever_tls`] instead, over
+//! [`NetworkProvider::accept_tls`], exclusively: a caller picks one mode at
+//! startup and never mixes the two loops over the same listener, so a
+//! TLS-configured host never silently falls back to plaintext framing.
+//! `accept_tls` itself refuses with `AuthorityDenied` when the provider
+//! holds no server policy, so the TLS loop cannot silently downgrade either.
 
 use semaprax::network_provider::{
     NetworkProvider, ProviderConnection, ProviderListener, TcpNetworkProvider,
@@ -68,6 +77,62 @@ pub fn serve_one(
         Ok(connection) => connection,
         Err(_) => return,
     };
+    serve_accepted(provider, connection, handler);
+}
+
+/// Serve until the process is stopped by its operator. There is no graceful
+/// shutdown: crash-safety comes from the durable store, not from draining.
+pub fn serve_forever(
+    provider: &mut TcpNetworkProvider,
+    listener: ProviderListener,
+    handler: &mut impl FnMut(&HttpExchange) -> PendingResponse,
+) -> ! {
+    loop {
+        serve_one(provider, listener, handler);
+    }
+}
+
+/// Accept and serve exactly one connection under a TLS handshake, then
+/// close it. Requires a provider built with a server TLS policy
+/// ([`TcpNetworkProvider::with_server_tls_config`],
+/// [`TcpNetworkProvider::with_tls_configs`]); a handshake failure (an
+/// untrusted or expired certificate on a mutual-auth policy, or a plaintext
+/// client speaking to a TLS-only listener) is idle exactly like a plaintext
+/// accept failure -- the caller loops, and no partial exchange ever reaches
+/// `handler`.
+pub fn serve_one_tls(
+    provider: &mut TcpNetworkProvider,
+    listener: ProviderListener,
+    handler: &mut impl FnMut(&HttpExchange) -> PendingResponse,
+) {
+    let connection = match provider.accept_tls(listener) {
+        Ok(connection) => connection,
+        Err(_) => return,
+    };
+    serve_accepted(provider, connection, handler);
+}
+
+/// Serve under TLS until the process is stopped by its operator. See
+/// [`serve_forever`] for the plaintext loop this mirrors.
+pub fn serve_forever_tls(
+    provider: &mut TcpNetworkProvider,
+    listener: ProviderListener,
+    handler: &mut impl FnMut(&HttpExchange) -> PendingResponse,
+) -> ! {
+    loop {
+        serve_one_tls(provider, listener, handler);
+    }
+}
+
+/// The shared post-accept path: read one exchange, dispatch it (a handler
+/// panic becomes a 500 rather than a dead server), render, send, and close.
+/// Identical for a plaintext and a TLS connection, since both are already
+/// the same [`ProviderConnection`] abstraction by the time this runs.
+fn serve_accepted(
+    provider: &mut TcpNetworkProvider,
+    connection: ProviderConnection,
+    handler: &mut impl FnMut(&HttpExchange) -> PendingResponse,
+) {
     let response = match read_exchange(provider, connection) {
         Ok(exchange) => {
             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| handler(&exchange))).unwrap_or(
@@ -88,18 +153,6 @@ pub fn serve_one(
     };
     let _ = provider.send(connection, &render(&response));
     let _ = provider.close(connection);
-}
-
-/// Serve until the process is stopped by its operator. There is no graceful
-/// shutdown: crash-safety comes from the durable store, not from draining.
-pub fn serve_forever(
-    provider: &mut TcpNetworkProvider,
-    listener: ProviderListener,
-    handler: &mut impl FnMut(&HttpExchange) -> PendingResponse,
-) -> ! {
-    loop {
-        serve_one(provider, listener, handler);
-    }
 }
 
 fn render(response: &PendingResponse) -> Vec<u8> {
@@ -390,5 +443,98 @@ mod tests {
         assert_eq!(seen, "unparsed");
         let text = String::from_utf8(response).unwrap();
         assert!(text.starts_with("HTTP/1.1 400 Bad Request\r\n"), "{text}");
+    }
+
+    /// Test-only self-signed certificate/key material (`CN=localhost`,
+    /// issued by a private test CA), the same fixture the root crate's own
+    /// `network_provider::tcp` TLS tests already carry. It authenticates no
+    /// production identity.
+    const LEAF: &str = "MIIDSjCCAjKgAwIBAgIUK81c/KylyZTx6OJ/K9lJP7OLzBgwDQYJKoZIhvcNAQELBQAwGzEZMBcGA1UEAwwQU0VNQVBSQVggVGVzdCBDQTAeFw0yNjA5MDUxNDU3MTlaFw0zNjA5MDIxNDU3MTlaMBQxEjAQBgNVBAMMCWxvY2FsaG9zdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAM6ibgX7OJCn5nsP0DH497ZCdsxQN23ifpv3ZWWNbKScZi4k5R0nZqJb/asrOa/vgc/An5YBYdsHV/9SqE7CVxhgCj+sYo6W2RfyDV8PF3fztxg+1Varrm0RcI4DaZN2N7fqdxZPvpIl//3n3J2G6J2d919ZPZpog0ahqlHjfvmIh1ESeS2XIu1T4dHlBvW1m3AgoFneNZDHDQs9ziuKte6KShv2I6rOzIRSC5vHM4YsDC64NANbheAV0L98rc/51A6jJxziKQtpFDhBHGvAhag3JkOUyLP7fiIPiHBI0Qxmh70EBj2EgUo5OqV1pNytbH4zBrKlyjQj+R2o8ReNpY8CAwEAAaOBjDCBiTAUBgNVHREEDTALgglsb2NhbGhvc3QwDAYDVR0TAQH/BAIwADAOBgNVHQ8BAf8EBAMCBaAwEwYDVR0lBAwwCgYIKwYBBQUHAwEwHQYDVR0OBBYEFD69svZnO8+sMQfesN19Zk40CBU8MB8GA1UdIwQYMBaAFPgOD+1Gx7bGUU9Sgp9r/szlzjRWMA0GCSqGSIb3DQEBCwUAA4IBAQAwcYsnw9zK+9lMrIN6zSxry26FFIjOP/ZRXSeloNPA2Fd2p+16b7RoHL+tcn4P4NMCKsz2Y+faX6lzSzIi0lydRsM8rH3xY4/Y8UDoLyC6zDQXpZNbEyWQALgKoZjV8l4XEbtmhLx++h2wArD/eEneBW3aCL8QzNgTU6gyobp1y6AqxQPnl+2SpBlFtpnoz0W3CCOGc0UiaobxBNTYydtY37vGQPLs32drQ2E0o9RfD+4/MTTkS380fXI4pEW4XOm/AofuMwVz1zkWXY/CzYp+1czf7/sOLDTsuwt0/QJFhK3IGSBL1wH3lU8BUHC6LMysilY3Eujo+Ya7dHAyM0lb";
+    const LEAF_KEY: &str = "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDOom4F+ziQp+Z7D9Ax+Pe2QnbMUDdt4n6b92VljWyknGYuJOUdJ2aiW/2rKzmv74HPwJ+WAWHbB1f/UqhOwlcYYAo/rGKOltkX8g1fDxd387cYPtVWq65tEXCOA2mTdje36ncWT76SJf/959ydhuidnfdfWT2aaINGoapR4375iIdREnktlyLtU+HR5Qb1tZtwIKBZ3jWQxw0LPc4rirXuikob9iOqzsyEUgubxzOGLAwuuDQDW4XgFdC/fK3P+dQOoycc4ikLaRQ4QRxrwIWoNyZDlMiz+34iD4hwSNEMZoe9BAY9hIFKOTqldaTcrWx+Mwaypco0I/kdqPEXjaWPAgMBAAECggEAS9lKyq5HOq4vB8Aru5Q4lXH7Oo89cXwA3o5m7WqG1TvFtC193oA+h919lW3F/KNNgq2hxsXWHjipYAL+3f4vSzbBvFKyUMXlhYknyFt5UWIoNOGnnOtjGQ0cRDzTbbooxL1vnkSCXxJMz+5iyH4jd+vqyFixKLMxcOVZ6Do6OyzuFK2hq1dp2R+fk0TVyQAFTtqSVC5DR/dxzX+mIkkzJWJvfsTnlBZ19j9q8ft0XnOfEpHDSfxzoOXx1SdF+CvA15kjmWVUQbHTMgcPni90NhomPgdlhqXfHx+N+ar3GJO9+GJ8QGhwPXGRGpa81lkQZMTb0Q+rsbqws3Xvl1Nz4QKBgQDtKB7jWevWtakv6k8i6HVe4iGxBwYAHUKe8IrMZt5HQ0gs4iBU6kwZtgW9c02VeHYHnSf/oEF/2OnXpxyQjiHR5LkcZ87lnuivX0bZo8Ijt1dXfczQFZA/zCfpuoTHSQKD8Mw5MbrQ1XrRZaYZMlZ6f0OBPMN8P1657nVwCg3RIQKBgQDfDXj8HqC2blafwwb2dUvKQSH7J4biz7QFl/ZTCJyEu8SSLNJRnKyrIC5mewdJFM3CT9eqIklNkrxbIqd0URy0i512cVIjQmGTtaD0c3S361N9MStlKwsrCtj7Oy4qBdlq/lG03pMubWntRdXnm6e+l+KG6fZ+h+W5y6MEXLWwrwKBgHsfISoXPQEzPqrJklwlIwonjCZD5zGX/0ZUyzpjDXMh0w66Nt7e5LNUdJZujhDTgTNiu6lSoa6mBoEXGRVTNOurOw8sNZWwckzZwgarpda1EHszrGk7SLBWZUJKuzRbCxtEoEHxN3PD4QdlJl5ea9ccywcFbNfMbnlI+183WQUBAoGAVyqBrC0f6wsFiRuC/g9qldiMOgUBXmOC22i+V0aXO/vQ3rrrWf9bLui9mUjc2P9rRVNEWXVaphkAyLCrNfZ4vEmPOHkieyr2zO1+v+japQEuuE7dwYRnseNkVhGTgdKVW42VSpRseglCCvpulDss+3uJh+WocVwUN15QD2VXj3sCgYAyP2FCNPdfg1r2LcNMn06gwnLz+NHn4HK1PNjrRTQgrKYG9xf8gvM0HgoSdR1mfDjdPqgPMdLFG23jmpOG23waokgIsBl88SGdaCVJ/+Ti4WFHhKkhRwgmNX/4se+JsD5nSGaBwkrZ6uyLs+W39hFa0MQzDdRCQjsuuRWFsn7YpA==";
+
+    fn decode64(input: &str) -> Vec<u8> {
+        fn digit(byte: u8) -> Option<u8> {
+            match byte {
+                b'A'..=b'Z' => Some(byte - b'A'),
+                b'a'..=b'z' => Some(byte - b'a' + 26),
+                b'0'..=b'9' => Some(byte - b'0' + 52),
+                b'+' => Some(62),
+                b'/' => Some(63),
+                _ => None,
+            }
+        }
+        let mut output = Vec::new();
+        let mut bits = 0u32;
+        let mut count = 0u8;
+        for byte in input.bytes().filter(|byte| *byte != b'=') {
+            bits = (bits << 6) | u32::from(digit(byte).expect("test fixture is base64"));
+            count += 6;
+            if count >= 8 {
+                count -= 8;
+                output.push((bits >> count) as u8);
+                bits &= (1u32 << count) - 1;
+            }
+        }
+        output
+    }
+
+    /// A TLS-only listener must never fall back to plaintext framing: a
+    /// plaintext client's bytes fail the TLS handshake, so the peer gets at
+    /// most a raw TLS alert record (rustls flushes one fatal alert before
+    /// the connection closes) and never an HTTP response, and `handler` is
+    /// never entered.
+    #[test]
+    fn tls_listener_refuses_a_plaintext_client_without_any_response() {
+        if loopback_denied() {
+            eprintln!("skipping: sandbox denies loopback bind");
+            return;
+        }
+        let server_config = semaprax::network_provider::server_tls_config_from_der(
+            decode64(LEAF),
+            decode64(LEAF_KEY),
+        )
+        .expect("test fixture is a valid certificate/key pair");
+        let port = free_port();
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(false));
+        let worker_seen = seen.clone();
+        let worker = std::thread::spawn(move || {
+            let mut provider = TcpNetworkProvider::with_server_tls_config(server_config);
+            let listener = listen_loopback(&mut provider, port).unwrap();
+            let mut handler = |_: &HttpExchange| {
+                *worker_seen.lock().unwrap() = true;
+                PendingResponse {
+                    status: 200,
+                    body: r#"{"ok":true}"#.to_owned(),
+                }
+            };
+            serve_one_tls(&mut provider, listener, &mut handler);
+        });
+        let deadline = std::time::Instant::now() + Duration::from_secs(15);
+        let mut stream = loop {
+            match TcpStream::connect((LOOPBACK_HOST, port)) {
+                Ok(stream) => break stream,
+                Err(_) if std::time::Instant::now() < deadline => {
+                    std::thread::sleep(Duration::from_millis(20));
+                }
+                Err(error) => panic!("loopback connect failed: {error}"),
+            }
+        };
+        stream
+            .set_read_timeout(Some(Duration::from_secs(15)))
+            .unwrap();
+        let _ = stream
+            .write_all(b"GET /v1/health HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 0\r\n\r\n");
+        let mut response = Vec::new();
+        let _ = stream.read_to_end(&mut response);
+        assert!(
+            !response.starts_with(b"HTTP/"),
+            "a plaintext client must never get an HTTP response from a TLS-only listener \
+             (a raw TLS alert record, or nothing, is fine): {response:?}"
+        );
+        worker.join().unwrap();
+        assert!(
+            !*seen.lock().unwrap(),
+            "the handler must never be entered for a failed handshake"
+        );
     }
 }

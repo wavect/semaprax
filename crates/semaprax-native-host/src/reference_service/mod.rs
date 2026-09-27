@@ -20,17 +20,22 @@
 //!   [`deliver_http_durable`](crate::outbound_delivery_store::service_invocation::deliver_http_durable)
 //!   with the existing TLS client path;
 //! - HTTP serving is loopback-only over the existing
-//!   [`TcpNetworkProvider`](semaprax::network_provider::TcpNetworkProvider).
+//!   [`TcpNetworkProvider`](semaprax::network_provider::TcpNetworkProvider),
+//!   plaintext by default; TLS serving is available but only opt-in, and
+//!   only from operator-held certificate/key material named on the command
+//!   line (`--tls-certificate-secret`/`--tls-private-key-secret`, resolved
+//!   through [`secrets::resolve_tls`]) -- configuration intent alone never
+//!   mints it.
 //!
 //! Non-claims: no SQLite/PostgreSQL wire protocol is implemented (state is
-//! canonical snapshots in the durable store), no TLS server provisioning
-//! exists (loopback plaintext only; the provider's `accept_tls` path needs
-//! operator-supplied certificate material this host does not mint), no OTLP
-//! protobuf is emitted (telemetry is an HTTPS POST to the granted origin's
-//! fixed `/v1/events` route), and no hosted, public, or production support
-//! is claimed. Only the decisions whose signatures the frozen
-//! public-invocation vocabulary admits are invoked; the remaining scaffold
-//! decisions keep their existing fixture-mode coverage.
+//! canonical snapshots in the durable store), no OTLP protobuf is emitted
+//! (telemetry is an HTTPS POST to the granted origin's fixed `/v1/events`
+//! route), and no hosted, public, or production support is claimed -- TLS
+//! serving included: it is loopback and test/local evidence only, and this
+//! host never chains more than the one leaf certificate it holds. Only the
+//! decisions whose signatures the frozen public-invocation vocabulary
+//! admits are invoked; the remaining scaffold decisions keep their existing
+//! fixture-mode coverage.
 
 pub mod bundle;
 pub mod decisions;

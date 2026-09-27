@@ -14,20 +14,31 @@
 //!
 //! # Scope (v1)
 //!
-//! - **Shape:** [`KernelShape::ElementwiseMap`] only. Sequential folds are
-//!   inherently sequential and are not attempted on the GPU in this pass;
-//!   [`device::MetalSession::load_kernel`] only ever binds a map.
-//! - **Types:** only `i64`/`i32` buffer parameters and results. An
-//!   internal `bool` (from a comparison, `if` condition, or `&&`/`||`) is
-//!   admitted, since no non-trivial kernel body can avoid one; `u8` and
-//!   `usize`, anywhere in the body, are refused rather than given an
-//!   unproven MSL lowering.
+//! - **Shapes:** both [`KernelShape::ElementwiseMap`]
+//!   ([`device::MetalSession::load_kernel`]/[`device::MetalSession::dispatch_map`],
+//!   one GPU thread per element) and [`KernelShape::SequentialFold`]
+//!   ([`device::MetalSession::load_fold_kernel`]/[`device::MetalSession::dispatch_fold`]).
+//!   A fold is inherently sequential — the CPU reference's own
+//!   `acc = f(acc, in[i])` folds left to right one element at a time, and a
+//!   checked failure must select the exact same lowest-ordinal element a
+//!   reordering parallel reduction could not guarantee — so it compiles to
+//!   one single-thread kernel that loops internally (see
+//!   [`msl::generate_fold`]), never one GPU thread per element.
+//! - **Types:** every [`ScalarKind`] the CPU reference admits: `i64`/`i32`,
+//!   `u8`, `usize` (lowered to MSL's `ulong`; MSL has no type spelled
+//!   `usize` — see [`msl::msl_type`]), and `bool`, as both buffer
+//!   parameters/results and internal values.
 //! - **Checked failures:** MSL has no traps. Every checked arithmetic
 //!   operation the CPU reference recognizes (`+`, `-`, `*`, `/`, `%`,
 //!   unary `-`) is preceded by an explicit MSL guard that writes the exact
 //!   `semaprax.status.v1` code and returns from the invocation immediately
 //!   on failure — see [`msl`] for the generator and its checked-helper
-//!   preamble.
+//!   preamble. 64-bit unsigned (`usize`) division and remainder never emit
+//!   a native MSL `/`/`%`: the system Metal compiler service crashed,
+//!   deterministically, on 64-bit unsigned division reached through one such
+//!   use (see [`msl`]'s module docs), so every `checked_div_u64`/
+//!   `checked_rem_u64` computes its result with an ordinary bit-at-a-time
+//!   binary long division instead.
 //!
 //! Every refusal this backend reaches uses an existing `SPX-GC0xx` code
 //! (see [`device::MetalRefusal`]): the same admission and lowering path as

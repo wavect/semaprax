@@ -286,6 +286,22 @@
         "semaprax-project": {
           "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/semaprax",
           "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/semaprax"
+        },
+        "c": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/c",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/c"
+        },
+        "python": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/python",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/python"
+        },
+        "swift": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/swift",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/swift"
+        },
+        "java": {
+          "public": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/public/java",
+          "hidden": "benchmarks/cross-language-v1/tasks/owned-byte-sentinel-balance-v1/hidden/java"
         }
       }
     },

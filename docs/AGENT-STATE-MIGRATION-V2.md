@@ -83,7 +83,8 @@ predecessor suspension and checked migration, including identical continuation
 results, evidence roots, cumulative accounting and cancellation before work.
 The library refusal gate is
 `cargo test --locked -p semaprax --lib selected_migration_missing_wasm_source_refuses_before_reservation_or_dispatch`.
-Held-target tests require explicitly opened `clang` and `node` tools; they do
-not establish hosted evidence. The pure `OldState -> NewState` migration call
+Held-target tests require explicitly opened `clang` and `node` tools and skip
+when those optional tools are unavailable; skipped legs are not target evidence.
+Executed local legs do not establish hosted evidence. The pure `OldState -> NewState` migration call
 still executes twice on the interpreter during preparation. This addition does
 not add durable semantic metering or a new checkpoint format.

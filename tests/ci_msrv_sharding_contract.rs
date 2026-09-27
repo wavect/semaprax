@@ -218,7 +218,7 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
         "name: Rust tests ${{ matrix.os }} (${{ matrix.shard }})",
         "fail-fast: false",
         "os: [ubuntu-latest, macos-latest, windows-latest]",
-        "shard: [unit, integration-0, integration-1, integration-2, integration-3, integration-4]",
+        "shard: [unit, unit-heavy, integration-0, integration-1, integration-2, integration-3, integration-4]",
         "python3 scripts/ci-msrv.py --label \"Rust $RUNNER_OS\" --shard \"${{ matrix.shard }}\"",
         "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop --nocapture @split",
         "if ('${{ matrix.shard }}' -eq 'integration-3') { $split = @('--split-windows-agent-runtime') }",
@@ -248,6 +248,11 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
     assert!(release.contains("      - macos-source-repair\n"));
     assert!(release.contains("      - windows-agent-runtime-rest\n"));
     let router = std::fs::read_to_string(root().join("scripts/ci-msrv.py")).unwrap();
+    assert!(router.contains(
+        "HEAVY_UNIT_FILTERS = (\"kernel_zero::differential::\", \"workspace_graph::tests::\")"
+    ));
+    assert!(router.contains("if args.shard == HEAVY_UNIT_SHARD:"));
+    assert!(router.contains("if args.shard == \"unit\":"));
     assert!(router
         .contains("test_arguments.extend((\"--skip\", \"source_live_cli::repair::tests::\"))"));
     let repair = workflow
@@ -397,5 +402,22 @@ with patch('subprocess.run', side_effect=[
     with contextlib.redirect_stdout(io.StringIO()):
         assert router['main'](['--shard', 'integration-0', '--nocapture']) == 101
     assert run.call_args_list[1].args[0] == plan['shards'][1]['command'] + ['--', '--nocapture']
+with patch('subprocess.run', side_effect=[
+    subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
+    subprocess.CompletedProcess([], 0),
+    subprocess.CompletedProcess([], 0),
+]) as run:
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert router['main'](['--shard', 'unit-heavy']) == 0
+    assert [call.args[0][7] for call in run.call_args_list[1:]] == list(router['HEAVY_UNIT_FILTERS'])
+with patch('subprocess.run', side_effect=[
+    subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
+    subprocess.CompletedProcess([], 0),
+]) as run:
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert router['main'](['--shard', 'unit']) == 0
+    command = run.call_args_list[1].args[0]
+    assert command[:len(plan['shards'][0]['command'])] == plan['shards'][0]['command']
+    assert all(command[command.index(test_filter) - 1] == '--skip' for test_filter in router['HEAVY_UNIT_FILTERS'])
 sys.stdout.buffer.write(router_log.getvalue().encode('utf-8'))
 "#;

@@ -1773,7 +1773,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        shard: [unit, integration-0, integration-1, integration-2, integration-3, integration-4]
+        shard: [unit, unit-heavy, integration-0, integration-1, integration-2, integration-3, integration-4]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Allow Windows to check out long evidence paths
@@ -1879,7 +1879,7 @@ jobs:
             plan_args+=(--exclude-package semaprax-native-rust-interop)
           fi
           plan_json="$(python3 scripts/ci-msrv.py "${plan_args[@]}")"
-          if python3 -c 'import json,sys; p=json.load(sys.stdin); s=next(x for x in p["shards"] if x["name"]==sys.argv[1]); sys.exit(0 if any(t["name"]=="standalone_lockfiles" for t in s["targets"]) else 1)' '${{ matrix.shard }}' <<<"$plan_json"; then
+          if python3 -c 'import json,sys; p=json.load(sys.stdin); s=next((x for x in p["shards"] if x["name"]==sys.argv[1]), {"targets":[]}); sys.exit(0 if any(t["name"]=="standalone_lockfiles" for t in s["targets"]) else 1)' '${{ matrix.shard }}' <<<"$plan_json"; then
             cargo fetch --locked --manifest-path examples/calculator-rust/Cargo.toml
             cargo fetch --locked --manifest-path examples/embedding-api/Cargo.toml
             cargo fetch --locked --manifest-path platform-tests/component-runtime/Cargo.toml

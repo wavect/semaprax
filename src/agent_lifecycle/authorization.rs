@@ -597,7 +597,11 @@ fn dispatch_on_admitted(
             max_steps,
             cancellation,
         ),
-        StageBackend::WasmHeld { host, source } => WasmStageExecutor { host, source }.execute(
+        StageBackend::WasmHeld { host, source } => WasmStageExecutor {
+            host: Some(host),
+            source,
+        }
+        .execute(
             authority,
             program,
             prepared,

@@ -11,6 +11,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parent.parent
 SHARDS = ("unit", "integration-0", "integration-1", "integration-2", "integration-3", "integration-4")
+HEAVY_UNIT_SHARD = "unit-heavy"
+HEAVY_UNIT_FILTERS = ("kernel_zero::differential::", "workspace_graph::tests::")
 TEST = ["cargo", "test", "--locked", "--workspace", "--all-features"]
 
 
@@ -142,7 +144,7 @@ def plan(metadata, excluded_packages=()):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--shard", choices=SHARDS)
+    parser.add_argument("--shard", choices=(*SHARDS, HEAVY_UNIT_SHARD))
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--exclude-package", action="append", default=[])
     parser.add_argument("--split-windows-agent-runtime", action="store_true")
@@ -160,7 +162,20 @@ def main(argv=None):
     if args.plan_only:
         print(json.dumps(selected_plan, sort_keys=True))
         return 0
-    shard = next(shard for shard in selected_plan["shards"] if shard["name"] == args.shard)
+    shard = next((shard for shard in selected_plan["shards"] if shard["name"] == args.shard), None)
+    if args.shard == HEAVY_UNIT_SHARD:
+        if args.split_windows_agent_runtime:
+            raise ValueError("agent runtime split does not apply to heavy unit tests")
+        for test_filter in HEAVY_UNIT_FILTERS:
+            command = ["cargo", "test", "--locked", "-p", "semaprax", "--all-features", "--lib", test_filter]
+            if args.nocapture:
+                command += ["--", "--nocapture"]
+            print(f"{args.label} {args.shard}: {test_filter}", flush=True)
+            result = subprocess.run(command, cwd=ROOT, env=cargo_env, check=False)
+            if result.returncode:
+                return result.returncode
+        return 0
+    assert shard is not None
     if args.split_windows_agent_runtime and not (
         os.name == "nt" and args.label == "Rust Windows" and args.shard == "integration-3"
     ):
@@ -176,6 +191,11 @@ def main(argv=None):
     test_arguments = []
     if args.nocapture:
         test_arguments.append("--nocapture")
+    if args.shard == "unit":
+        # These two expensive semaprax lib-test families run in unit-heavy.
+        # Each test name is in exactly one side of this partition.
+        for test_filter in HEAVY_UNIT_FILTERS:
+            test_arguments.extend(("--skip", test_filter))
     if os.name == "nt" and args.label == "Rust Windows" and args.shard.startswith("integration-"):
         # C ABI fixtures allocate a 1 MiB aligned context on the stack, which
         # leaves no headroom under the Windows linker's 1 MiB default stack

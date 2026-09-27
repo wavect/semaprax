@@ -19,8 +19,8 @@
 //! admits the shape and enforces the declaration's capacity bounds.
 
 use crate::ast::{
-    SessionProtocolDeclaration, SessionProtocolKind, SessionProtocolName, SessionProtocolNext,
-    SessionProtocolTerminal, SessionProtocolTransition,
+    SessionProtocolDeclaration, SessionProtocolFollowsClause, SessionProtocolKind,
+    SessionProtocolName, SessionProtocolNext, SessionProtocolTerminal, SessionProtocolTransition,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::TokenKind;
@@ -222,5 +222,35 @@ impl Parser {
         }
         self.expect(&TokenKind::RBrace, &format!("`}}` after {set}"))?;
         Ok(names)
+    }
+
+    /// Endpoint typestate checking (issue #297 follow-on): a function's
+    /// optional `follows session protocol "<protocol-id>"` clause, parsed
+    /// exactly like this module's own declaration keywords. `None` when the
+    /// function does not open with `follows`.
+    pub(super) fn session_protocol_follows_clause(
+        &mut self,
+    ) -> Result<Option<SessionProtocolFollowsClause>, Diagnostic> {
+        if !self.at_keyword("follows") {
+            return Ok(None);
+        }
+        let start = self.bump().span;
+        self.keyword("session")?;
+        self.keyword("protocol")?;
+        let id_token = self.bump().clone();
+        let protocol_id = match id_token.kind {
+            TokenKind::String(value) if !value.is_empty() => value,
+            _ => {
+                return Err(self.error_previous(
+                    "SPX-P105",
+                    "expected a non-empty string literal session protocol id after `follows session protocol`",
+                ))
+            }
+        };
+        Ok(Some(SessionProtocolFollowsClause {
+            protocol_id,
+            protocol_id_span: id_token.span,
+            span: start.merge(self.previous_span()),
+        }))
     }
 }

@@ -575,6 +575,11 @@ pub(crate) fn write_canonical_commented(
             write_type(output, &yields.response_type);
             writeln!(output).unwrap();
         }
+        if let Some(follows) = &function.follows {
+            write!(output, "    follows session protocol \"").unwrap();
+            write_escaped(output, &follows.protocol_id);
+            writeln!(output, "\"").unwrap();
+        }
         for contract in &function.requires {
             write!(output, "    requires ").unwrap();
             write_record_literal_delimited_expr(output, contract);

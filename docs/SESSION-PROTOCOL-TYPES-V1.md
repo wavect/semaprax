@@ -625,10 +625,20 @@ following omit declarations entirely, and nothing here claims otherwise:
 
 - the VS Code grammar (`editors/`);
 - a CLI flag for `protocol_realizers_bound`;
-- typestate checking of `.spx` endpoint values, and any runtime enforcement
-  from a declaration: it is erased, and the two live lifecycles are enforced
-  by the Rust kernel, not by their `.spx` declarations;
-- ordering attestation of any kind by `protocol_realizers_bound`.
+- any runtime enforcement from a declaration: it is erased, and the two live
+  lifecycles are enforced by the Rust kernel, not by their `.spx`
+  declarations. A function's `follows` clause (below) is checked and erased
+  the same way, and grants no runtime authority either;
+- ordering attestation of any kind by `protocol_realizers_bound`;
+- a `follows`/typestate fact in any of the eight outputs named above, or in
+  the VS Code grammar -- see [Endpoint typestate
+  non-claims](#endpoint-typestate-non-claims);
+- typestate checking of an endpoint *value*'s flow through locals, fields, or
+  return positions (use-after-close, ownership) -- see [Endpoint typestate
+  non-claims](#endpoint-typestate-non-claims). What issue #297 follow-on (R21)
+  *does* check -- the call order of a function's own direct calls to a
+  protocol's `via`-bound functions -- is [Endpoint typestate
+  checking](#endpoint-typestate-checking-issue-297-follow-on-r21), below.
 
 ### The two canonical declarations and the drift gate
 
@@ -657,23 +667,198 @@ are terminal, and a `connection_lost` outside `Open` is refused. Binding one
 to the other would project a false fact, so the two stay separate and this
 difference is recorded here instead.
 
+## Endpoint typestate checking (issue #297 follow-on, R21)
+
+Declaring a protocol (above) is checked and erased, but until this slice
+nothing checked that a program's *use* of a declared protocol's endpoints
+follows the legal order it declares. This section is the design for the
+smallest admissible static check that is sound for the admitted subset, and
+records exactly what it does and does not check.
+
+### Opt-in: `follows session protocol "<protocol-id>"`
+
+A function opts in with a new, optional clause between `yields` and the
+`requires`/`ensures` contracts, admitted only there so the canonical
+formatter keeps one fixed spelling:
+
+```text
+fn name(params) -> T
+    uses { ... }
+    yields Request -> Response
+    follows session protocol "<protocol-id>"
+    requires ...
+    ensures ...
+{ body }
+```
+
+`<protocol-id>` is the persistent `@id` of a `session protocol` declaration in
+the *same module* -- never its versioned display name, and never a
+cross-module reference -- mirroring how a transition's own `via` names its
+realizing function by persistent id rather than display name
+([`crate::ast::SessionProtocolFollowsClause`]). A function that does not
+write `follows` is entirely unaffected, byte for byte: parsing, canonical
+formatting, verification, the semantic graph, and both backends produce
+identical output whether or not this feature exists for that function.
+Naming a protocol declared in another module, or one that does not exist, is
+refused (`SPX-K107`); this keeps the check local to one already-checked
+`Program`, exactly like the declaration's own `via` binding.
+
+### What is checked, and how
+
+Starting from the protocol's declared `initial` state (an explicit,
+separately declared entry state is a natural future extension this slice does
+not add -- see [Non-claims](#endpoint-typestate-non-claims)), the checker
+walks the opted-in function's own body once, left to right -- the same
+evaluation order [RFC 0001](RFC-0001.md) requires everywhere else -- tracking
+the *set* of protocol states the function could be in at each point. A set,
+not one state, because `if`/`else` genuinely can leave the function in either
+of two different states depending on a runtime condition this static check
+never evaluates: both branches are walked from the same incoming state(s),
+and their resulting states are unioned for whatever follows the `if`. A
+direct call to one of the protocol's `via`-bound functions advances every
+state currently in the set along that function's realized transition; a call
+the current state does not admit is refused (`SPX-K108`). Every path through
+the function's body must end in a declared terminal state (`SPX-K108`) --
+exactly "every exit path reaches a terminal state or a declared escape",
+since `Cancel`/`Timeout`/`Fail` transitions already land on an ordinary
+terminal state in this kernel, so no separate "escape" case is needed. The
+state set can never grow without bound across arbitrarily nested `if`/`else`:
+the number of distinct protocol states is already bounded at 64 (`SPX-K106`).
+
+### What is refused outright, rather than approximated
+
+This is a small, *sound* subset of possible programs, not an unsound
+approximation of a larger one: anything the walk cannot resolve statically
+and precisely is refused with a stable diagnostic (`SPX-K109`) rather than
+silently admitted or silently skipped over:
+
+- **Loops** (`while`, `for`, `for own`) whose condition/source or body
+  reaches a `via`-bound call: the number of iterations is not known
+  statically, so the call could execute any number of times, including zero
+  or unboundedly many.
+- **Recursion**: a followed function that calls itself anywhere in its own
+  body, `via`-bound or not. A straight-line/if-else walk has no model for a
+  re-entrant call, and the recursive invocation could revisit `via` calls an
+  unbounded number of times, the same hazard as a loop.
+- **Closures**: a `via`-bound call written inside a closure literal may run
+  zero, one, or many times, at a point this walk cannot order against the
+  rest of the function -- the same "escaping endpoint" hazard the issue
+  names, generalized to any deferred/uncertain-arity invocation rather than a
+  single "endpoint value" representation this slice does not add.
+- **Indirect or ambiguous calls**: a call whose callee name is shadowed
+  *anywhere* in the function by a parameter or `let` binding is never
+  resolved as a direct call to a `via`-bound function, even where the
+  shadowing does not lexically reach this exact call site (the check is
+  deliberately whole-function and scope-insensitive here, which can only
+  over-refuse, never under-refuse); likewise a `via`-bound function that
+  itself realizes more than one transition from the same current state.
+- **A `via` transition with a branching (`choice`) continuation**: which
+  branch a call actually took is a runtime fact (for example, the remote
+  peer's reply) this static check cannot observe. Admitting the union of
+  every declared branch's target state would be *unsound*, not merely
+  imprecise: a later call that is illegal on one branch but legal on another
+  would then wrongly pass. Only a `via` transition with a `Then` continuation
+  is checked; one with a `Choice` continuation is refused wherever a checked
+  function actually calls it.
+- Every other expression shape the walk does not specifically know how to
+  step through (`match`, method calls, record construction/update, `project`,
+  `try`, `yield`) is treated as an opaque, state-preserving expression *only
+  when it contains no reachable `via`-bound call at all*; otherwise it is
+  refused the same way, rather than silently skipped past a call it cannot
+  order.
+
+### Legal order is still not authority
+
+Exactly like a declaration itself: passing this check proves only that the
+checked function's own call sequence traces a legal path through the declared
+graph. It adds no effect, capability, or resource authority of its own; the
+ordinary effect checks (`SPX-E101`/`SPX-E102`/`SPX-E103`) and `SPX-K105`'s
+"ordering metadata cannot mint a capability" rule are unchanged and
+unaffected by whether a function opts in.
+
+### Erasure
+
+A `follows` clause has no HIR node, no native lowering, and no Wasm lowering.
+`hir::resolve` never reads `Function::follows`, so it cannot influence
+checked HIR, and both backends produce byte-identical output whether or not a
+function opts in --
+`session_protocol::typestate::tests::a_follows_clause_is_erased_from_native_and_wasm_output`
+asserts this directly by comparing `codegen::emit_c` and `wasm::emit_module`
+between two otherwise-identical programs that differ only in whether the
+one function's `follows` clause is present.
+
+### Diagnostics (`SPX-K107`..`SPX-K109`)
+
+| Code | Meaning |
+| --- | --- |
+| `SPX-K107` | A `follows` clause names no `session protocol` declaration in this module. |
+| `SPX-K108` | A call to a `via`-bound function is not legal from the function's current state at that point, or some path through the function ends in a non-terminal state. |
+| `SPX-K109` | The function contains a construct this subset does not admit reaching a `via`-bound call through: a loop, direct recursion, a closure, an indirect/ambiguous call, a `via` transition with a branching `choice` continuation, or any other unsupported expression shape. |
+
+### Endpoint typestate non-claims
+
+- **Projections.** This follow-on adds no `follows`/typestate fact to the
+  per-source graph, the Workspace or Package Semantic Graph, `context`,
+  Architecture Claims, Assurance Manifest, `semaprax doc`, or
+  `semaprax query`. A `follows` clause is parsed, canonically formatted, and
+  checked, and nothing else observes it. This is the one piece of the full
+  design this increment defers; extending each of those projections is
+  future, separately gated work, following the same v-bump-only-for-a-
+  declaring-program discipline `semaprax.graph.v48` already established for
+  the declaration itself.
+- **No explicit entry state.** Every followed function starts from the
+  protocol's declared `initial` state; a clause selecting a different,
+  explicitly declared entry state is a natural extension this slice does not
+  add.
+- **No cross-module protocol reference**, mirroring `via`'s own restriction to
+  ordinary functions of the same module.
+- **No interprocedural analysis.** Only calls written directly in the
+  checked function's own body are considered; a call to an ordinary
+  (non-`via`) function that itself calls a `via`-bound function elsewhere is
+  invisible to this check, exactly as issue #297's own request describes
+  ("within one function body").
+- **No compiler-checked ownership/use-after-close analysis of an endpoint
+  *value***. This checks the *order of calls by name*, never the flow of an
+  endpoint value through locals, fields, or return positions. Nothing here
+  represents an `Endpoint` in checked HIR, so "does this local still denote a
+  live, non-terminal endpoint" is not a question this check can ask or
+  answer; only `session_protocol::engine::Endpoint`'s own Rust-level affine
+  drop bomb (see above) answers that question, and only for the two Rust
+  reference kernels, not for `.spx` source.
+
+### Gate (endpoint typestate checking)
+
+`cargo test --locked -p semaprax --lib session_protocol::typestate` covers
+the parser, canonical formatter, `SPX-K107`..`SPX-K109`, canonical
+round-trip, cache-codec round-trip, and native/Wasm erasure for `follows`.
+It is exercised by the existing `cargo test --locked -p semaprax --lib
+session_protocol` selector alongside every other test in this module.
+
 ## Scope boundary
 
 Explicitly **not** done in this slice, and why:
 
-- **Superseded by issue #297 for declarations; still open for endpoint
-  values.** A `session protocol` declaration now exists end to end (see
-  [Declared session protocols](#declared-session-protocols-issue-297)). What
-  remains open is typestate checking of `.spx` endpoint values, which would
-  carry runtime meaning and so needs parser, HIR, verifier and both backends
-  together. The original rationale follows. The repository's change
-  protocol requires parser, canonical formatter, resolver/HIR, verifier,
-  semantic graph, native backend, and Wasm backend to move together once
-  syntax carries runtime meaning; landing a half-wired parser rule with no
-  checked HIR consumer would violate that protocol rather than satisfy it.
-  This is the same scope boundary `resumable_effects` and `live_invocation`
-  already document for their own boundaries, and this document is the
-  design a follow-up parser/HIR/graph tranche implements against. (A later
+- **Superseded by issue #297 for declarations, and by issue #297 follow-on
+  (R21) for call-order typestate checking; still open for endpoint values.**
+  A `session protocol` declaration now exists end to end (see [Declared
+  session protocols](#declared-session-protocols-issue-297)), and a function
+  may now opt in to a static call-order check over its own body (see
+  [Endpoint typestate
+  checking](#endpoint-typestate-checking-issue-297-follow-on-r21)). What
+  remains open is typestate checking of an `.spx` endpoint *value*'s flow
+  through locals, fields, and return positions (ownership, use-after-close),
+  which -- unlike the call-order check, which is checked and erased with no
+  HIR or backend representation of its own -- would carry runtime meaning if
+  it modeled a real endpoint value, and so needs parser, HIR, verifier and
+  both backends together. The original rationale follows. The repository's
+  change protocol requires parser, canonical formatter, resolver/HIR,
+  verifier, semantic graph, native backend, and Wasm backend to move
+  together once syntax carries runtime meaning; landing a half-wired parser
+  rule with no checked HIR consumer would violate that protocol rather than
+  satisfy it. This is the same scope boundary `resumable_effects` and
+  `live_invocation` already document for their own boundaries, and this
+  document is the design a follow-up parser/HIR/graph tranche implements
+  against. (A later
   session did add a `context` projection of this module's own fixed catalog
   -- `session_protocol_kernel`, declaration-independent reference data, not
   a projection of any `.spx`-declared protocol, since none exists -- plus a

@@ -202,6 +202,7 @@ mod ast {
         return_type,
         effects,
         yields,
+        follows,
         requires,
         ensures,
         body,
@@ -210,6 +211,11 @@ mod ast {
     codec_struct!(YieldsClause {
         request_type,
         response_type,
+        span
+    });
+    codec_struct!(SessionProtocolFollowsClause {
+        protocol_id,
+        protocol_id_span,
         span
     });
     codec_struct!(Param {

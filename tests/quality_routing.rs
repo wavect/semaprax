@@ -45,6 +45,10 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
         "pub fn session_protocol_decl() {}\n",
     );
     repository.write(
+        "src/graph/session_protocol_follows.rs",
+        "pub fn session_protocol_follows() {}\n",
+    );
+    repository.write(
         "src/graph/owned_iterator.rs",
         "pub fn owned_iterator() {}\n",
     );

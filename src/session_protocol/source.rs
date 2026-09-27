@@ -29,12 +29,21 @@
 //! capability, and cleanup-operation text never influence validation, so they
 //! lower to one placeholder. The pool is bounded for the process lifetime, so
 //! no compile leaks names of its own.
+//!
+//! # Endpoint typestate `follows` bindings (issue #297 follow-on, R21)
+//!
+//! [`bind_follows`] and [`follows_json`]/[`follows_facts_json`] are this same
+//! module's shared canonical-fact machinery, applied instead to a function's
+//! `follows session protocol "<id>"` opt-in ([`typestate::check`](super::typestate::check)):
+//! the function `@id` bound to the protocol `@id` it follows, plus the fixed
+//! result `"typestate_checked"`. Passing typestate checking is exactly as
+//! authority-free as a declaration itself.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Mutex;
 
 use crate::ast::{
-    Program, SessionProtocolDeclaration, SessionProtocolKind, SessionProtocolName,
+    Function, Program, SessionProtocolDeclaration, SessionProtocolKind, SessionProtocolName,
     SessionProtocolNext, Span,
 };
 use crate::diagnostic::{quote_json, Diagnostic};
@@ -505,6 +514,69 @@ pub(crate) fn bind_to_hir(
         }
     }
     Ok(())
+}
+
+/// Endpoint typestate checking (issue #297 follow-on, R21): every function's
+/// `follows` clause still names a `session protocol` declaration of this
+/// same program. Source verification already refused anything else
+/// (`SPX-K107`), so a miss here is an inconsistent program and fails closed.
+/// Every projection calls this before it emits a `follows` fact, exactly
+/// like [`bind_to_hir`] is called before a declaration fact.
+pub(crate) fn bind_follows(program: &Program) -> Result<(), Diagnostic> {
+    let declared: BTreeSet<&str> = program
+        .session_protocols
+        .iter()
+        .map(|declaration| declaration.stable_id.as_str())
+        .collect();
+    for function in &program.functions {
+        if let Some(follows) = &function.follows {
+            if !declared.contains(follows.protocol_id.as_str()) {
+                return Err(Diagnostic::io(
+                    "SPX-K107",
+                    format!(
+                        "function `{}` follows session protocol `{}`, which is not declared in this module",
+                        function.name, follows.protocol_id
+                    ),
+                )
+                .at_path(&program.path));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The canonical, deterministic fact one function's `follows` clause
+/// contributes to every projection (per-source graph, workspace/package
+/// graph, assurance manifest), or `None` for a function that does not opt
+/// in. Fixed key order; `authority` is always `"none"`, exactly like a
+/// declaration's own fact -- passing endpoint typestate checking proves only
+/// that this function's own call sequence traces a legal path through the
+/// named protocol's declared graph (`docs/SESSION-PROTOCOL-TYPES-V1.md`,
+/// "Legal order is still not authority"); it grants nothing.
+pub(crate) fn follows_json(function: &Function) -> Option<String> {
+    let follows = function.follows.as_ref()?;
+    Some(format!(
+        "{{\"function\":{},\"protocol\":{},\"result\":\"typestate_checked\",\"authority\":\"none\",\"span\":{}}}",
+        quote_json(&function.stable_id),
+        quote_json(&follows.protocol_id),
+        span_json(follows.span),
+    ))
+}
+
+/// JSON array of [`follows_json`] for every function of `program` that opts
+/// in, in source order. `"[]"` for a program with no `follows` clause at
+/// all, so a caller can always splice this in unconditionally once it has
+/// decided the program has at least one.
+pub(crate) fn follows_facts_json(program: &Program) -> String {
+    format!(
+        "[{}]",
+        program
+            .functions
+            .iter()
+            .filter_map(follows_json)
+            .collect::<Vec<_>>()
+            .join(",")
+    )
 }
 
 fn string_array<'a>(values: impl Iterator<Item = &'a str>) -> String {

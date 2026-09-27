@@ -787,6 +787,64 @@ asserts this directly by comparing `codegen::emit_c` and `wasm::emit_module`
 between two otherwise-identical programs that differ only in whether the
 one function's `follows` clause is present.
 
+### Projections
+
+Each fact below is the function `@id` bound to the protocol `@id` it
+follows, plus the fixed result `"typestate_checked"` -- exactly as
+authority-free as passing typestate checking itself
+(`crate::session_protocol::source::follows_json`). A program with no
+`follows` clause is unaffected, byte for byte, in every one of these
+projections, mirroring the declaration's own v-bump-only-for-a-declaring-
+program discipline.
+
+- **Per-source graph.** `graph::to_json` selects `semaprax.graph.v49` only
+  when the program has at least one `follows` clause -- always a strict
+  additional selection over `semaprax.graph.v48`, since a `follows` clause
+  names a protocol declared in the same module (`SPX-K107` refuses anything
+  else). The document is v48's own output (or the program's ordinary schema,
+  for a protocol-free program -- unreachable here since a `follows` clause
+  requires a declaration) with the v49 header and one trailing
+  `session_protocol_follows` object: `base_schema` (the schema it extends),
+  `authority: "none"`, and one binding fact per opted-in function (function,
+  protocol, result, span). A program with no `follows` clause keeps its v48
+  (or ordinary) schema and bytes (`src/graph/session_protocol_follows.rs`).
+- **Context.** With `--filters session_protocol`, the envelope's
+  `session_protocol_kernel` object gains a `follows` array of the same facts
+  when, and only when, the queried program has at least one `follows`
+  clause.
+- **Workspace Semantic Graph.** `workspace_graph::snapshot` selects
+  `semaprax.workspace-semantic-graph.v3` only when at least one managed
+  module has a `follows` clause; a workspace with none keeps `.v2` (or `.v1`)
+  and byte-identical output. A selecting workspace gains one trailing
+  `session_protocol_follows` object: `base_schema` (the `.v2` schema it
+  extends), `authority: "none"`, and one binding fact per opted-in function,
+  each carrying `module` and `path` naming the exact managed source that
+  owns it (`src/workspace_graph/session_protocol_decl.rs`).
+- **Package Semantic Graph.** `PackageSemanticGraph::derive` selects
+  `semaprax.package-semantic-graph.v3` only when at least one selected
+  package has a `follows` clause; a package graph with none keeps `.v2` (or
+  `.v1`) and byte-identical output. A selecting graph gains one trailing
+  `session_protocol_follows` object: `base_schema`, `authority: "none"`, and
+  one binding fact per opted-in function, each carrying `package` and
+  `version` naming the selected coordinate that owns it. The `summary`
+  projection copies this key generically, exactly like every other
+  top-level fact (`src/package_semantic_graph.rs`).
+- **Assurance.** One further `session_protocol` obligation per opted-in
+  function (locator `protocol:call-order-typestate`, distinct from a
+  declaration's own `protocol:static-validation`), `compiler_proved` for the
+  static call-order check only (`SPX-K107`..`SPX-K109`); never
+  `model_checked`, and explicitly not runtime authority
+  (`src/assurance_manifest/session_protocol.rs::follows_obligations`).
+- **`semaprax doc` and `semaprax query`.** Neither renders a `follows`
+  binding: both build their `session_protocol` entries directly from
+  `Program.session_protocols` (the declaration's own AST), not generically
+  from any of the graphs above, so there is no existing generic rendering
+  path this follow-on extends. Left unchanged; a `doc`/`query` fact for
+  `follows` is future, separately gated work.
+- **Not projected.** Architecture Claims (`protocol_realizers_bound`
+  attests only `via` targets, an orthogonal declaration-side fact) is
+  unaffected by this follow-on.
+
 ### Diagnostics (`SPX-K107`..`SPX-K109`)
 
 | Code | Meaning |
@@ -797,15 +855,20 @@ one function's `follows` clause is present.
 
 ### Endpoint typestate non-claims
 
-- **Projections.** This follow-on adds no `follows`/typestate fact to the
-  per-source graph, the Workspace or Package Semantic Graph, `context`,
-  Architecture Claims, Assurance Manifest, `semaprax doc`, or
-  `semaprax query`. A `follows` clause is parsed, canonically formatted, and
-  checked, and nothing else observes it. This is the one piece of the full
-  design this increment defers; extending each of those projections is
-  future, separately gated work, following the same v-bump-only-for-a-
-  declaring-program discipline `semaprax.graph.v48` already established for
-  the declaration itself.
+- **Projections (R21 follow-on).** The function `@id` bound to the protocol
+  `@id` it follows, plus the fixed result `"typestate_checked"`, is now
+  projected into the per-source graph (`semaprax.graph.v49`), `context`
+  (`--filters session_protocol`), the Workspace and Package Semantic Graphs
+  (`.v3`), and the Assurance Manifest (see [Projections](#projections)
+  above). `semaprax doc` and `semaprax query` do not: neither renders any
+  session-protocol fact generically from those graphs in the first place
+  (both build their `session_protocol` entries directly from
+  `Program.session_protocols`), so there is no existing generic path to
+  extend; and Architecture Claims' `protocol_realizers_bound` remains an
+  orthogonal, declaration-side (`via`) fact this follow-on does not touch.
+  Every projection keeps a program with no `follows` clause byte-for-byte
+  unaffected, exactly like `semaprax.graph.v48` already does for the
+  declaration itself.
 - **No explicit entry state.** Every followed function starts from the
   protocol's declared `initial` state; a clause selecting a different,
   explicitly declared entry state is a natural extension this slice does not
@@ -833,6 +896,20 @@ the parser, canonical formatter, `SPX-K107`..`SPX-K109`, canonical
 round-trip, cache-codec round-trip, and native/Wasm erasure for `follows`.
 It is exercised by the existing `cargo test --locked -p semaprax --lib
 session_protocol` selector alongside every other test in this module.
+
+The [Projections](#projections) above (R21) are covered by: `cargo test
+--locked -p semaprax --lib graph::session_protocol_follows` (graph v49 and
+`context`'s `follows` facet, including the byte-identical regression against
+the declaration-only golden and the dangling-binding negative control);
+`cargo test --locked -p semaprax --lib workspace_graph::session_protocol_decl`
+(the same module as the declaration's own v2 gating, extended with the v3
+`follows` gating, module-bound facts, and the dangling-binding negative
+control); `cargo test --locked -p semaprax --test offline_package
+semantic_graph::` (Package Semantic Graph's v3 gating and package-bound
+facts); and `cargo test --locked -p semaprax --lib
+assurance_manifest::session_protocol` (the `protocol:call-order-typestate`
+obligation, its coexistence with the declaration's own obligation in one
+generated envelope, and the dangling-binding negative control).
 
 ## Scope boundary
 

@@ -332,6 +332,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   a request for TLS without held material is refused before bind. The full
   login/CRUD/job/restart flow and wrong-issuer, wrong-hostname, expired and
   plaintext-client cases run against a test CA. Local evidence only.
+- Generate C++17 and Rust calling consumers for the
+  `authenticated-native-moves-nested.v1` profile and drive them through the
+  same O0/O2 positive controls and seven hostile recipes as the other
+  authenticated profiles (#288). The native hostile corpus and positive
+  controls for all four profiles now also run under local Clang
+  AddressSanitizer and UndefinedBehaviorSanitizer on macOS arm64 with zero
+  reports; LeakSanitizer is unsupported there and the live-allocation
+  counters remain the leak oracle. Not hosted or Linux evidence.
 
 ## 0.6.0 — 2026-09-24
 

@@ -348,3 +348,71 @@ fn the_smallest_admissible_module_still_renders_a_complete_document() {
         .expect("members")
         .is_empty());
 }
+
+/// R21 (issue #297 follow-on): a declared `session protocol` renders as a
+/// `session_protocol` entry with no members (transitions carry no persistent
+/// identity of their own), a canonical-syntax signature, and the facts a
+/// reader needs without opening the graph.
+const DECLARED_SESSION_PROTOCOL: &str =
+    include_str!("../session_protocol/tests/fixtures/declared.spx");
+
+#[test]
+fn a_declared_session_protocol_renders_as_a_documented_entry() {
+    let (program, comments) = parsed(DECLARED_SESSION_PROTOCOL);
+    let document = document(&program, &comments);
+    let entry = document
+        .entries
+        .iter()
+        .find(|entry| entry.kind == "session_protocol")
+        .expect("declaration is documented");
+    assert_eq!(entry.id, "fixture.session.transaction");
+    assert_eq!(entry.name, "fixture-transaction-v1");
+    assert!(entry.persistent);
+    assert!(entry.members.is_empty());
+    assert!(entry.signature.starts_with(
+        "@id(\"fixture.session.transaction\")\nsession protocol \"fixture-transaction-v1\" {\n"
+    ));
+    assert!(entry
+        .signature
+        .contains("    states { Idle, Open, Committed, Failed }\n"));
+    assert!(entry.signature.contains("    initial Idle;\n"));
+    assert!(entry
+        .signature
+        .contains("    terminal Committed cleanup { release_snapshot }\n"));
+    assert!(entry.signature.contains(
+        "    on Open commit: send CommitRequest requires capability db.write via \"fixture.session.commit\" -> choice { committed: Committed, refused: Failed };\n"
+    ));
+    let fact = |label: &str| {
+        entry
+            .facts
+            .iter()
+            .find(|fact| fact.label == label)
+            .unwrap_or_else(|| panic!("missing `{label}` fact"))
+    };
+    assert_eq!(fact("Initial").values, vec!["Idle".to_owned()]);
+    assert_eq!(
+        fact("Terminals").values,
+        vec!["Committed".to_owned(), "Failed".to_owned()]
+    );
+    assert_eq!(fact("Authority").values, vec!["none".to_owned()]);
+
+    let markdown_rendering = markdown(&program, &comments);
+    assert!(markdown_rendering.contains("## Session protocols\n"));
+    assert!(markdown_rendering.contains("### `fixture-transaction-v1`\n"));
+
+    let json_rendering = json(&program, &comments);
+    let value: serde_json::Value = serde_json::from_str(&json_rendering).unwrap();
+    let declarations = value["declarations"].as_array().unwrap();
+    let session_protocol = declarations
+        .iter()
+        .find(|item| item["kind"] == "session_protocol")
+        .unwrap();
+    assert_eq!(session_protocol["id"], "fixture.session.transaction");
+    assert_eq!(session_protocol["persistent"], true);
+    assert!(session_protocol["members"].as_array().unwrap().is_empty());
+
+    // Determinism: rendering twice from the same parsed program is byte
+    // identical, matching every other documented kind's guarantee.
+    assert_eq!(markdown(&program, &comments), markdown_rendering);
+    assert_eq!(json(&program, &comments), json_rendering);
+}

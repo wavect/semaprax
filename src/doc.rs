@@ -78,7 +78,7 @@ impl Location {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Entry {
     /// `record`, `variant`, `class`, `resource`, `interface`, `protocol`,
-    /// `implementation`, `function`, or `method`.
+    /// `session_protocol`, `implementation`, `function`, or `method`.
     pub kind: &'static str,
     pub id: String,
     pub name: String,
@@ -142,6 +142,9 @@ pub fn document(program: &Program, comments: &Comments) -> Document {
     }
     for protocol in &program.protocols {
         entries.push(protocol_entry(protocol, &placement));
+    }
+    for declaration in &program.session_protocols {
+        entries.push(session_protocol_entry(declaration, &placement));
     }
     for implementation in &program.implementations {
         entries.push(implementation_entry(implementation, &placement));
@@ -592,6 +595,121 @@ fn protocol_entry(protocol: &crate::ast::ProtocolDeclaration, placement: &Placem
     }
 }
 
+/// A declared `session protocol` (issue #297): checked and erased, so it has
+/// no runtime representation and grants no authority. Transitions have no
+/// persistent identity of their own in the AST, so unlike `protocol_entry`'s
+/// methods they are rendered as facts, not members.
+fn session_protocol_entry(
+    declaration: &crate::ast::SessionProtocolDeclaration,
+    placement: &Placement,
+) -> Entry {
+    let mut signature = String::new();
+    if declaration.explicit_id {
+        write_id_line(&mut signature, &declaration.stable_id, "");
+    }
+    write!(signature, "session protocol \"").unwrap();
+    write_escaped(&mut signature, &declaration.name);
+    writeln!(signature, "\" {{").unwrap();
+    write!(signature, "    states ").unwrap();
+    write_session_protocol_name_set(&mut signature, &declaration.states);
+    writeln!(signature).unwrap();
+    writeln!(signature, "    initial {};", declaration.initial.name).unwrap();
+    for terminal in &declaration.terminals {
+        write!(signature, "    terminal {} cleanup ", terminal.state.name).unwrap();
+        write_session_protocol_name_set(&mut signature, &terminal.cleanup);
+        writeln!(signature).unwrap();
+    }
+    for transition in &declaration.transitions {
+        write!(
+            signature,
+            "    on {} {}: {} {}",
+            transition.from.name,
+            transition.label.name,
+            transition.kind.keyword(),
+            transition.payload.name
+        )
+        .unwrap();
+        if let Some(capability) = &transition.capability {
+            write!(signature, " requires capability {}", capability.name).unwrap();
+        }
+        if transition.consumes_resource {
+            write!(signature, " consumes resource").unwrap();
+        }
+        if let Some(via) = &transition.via {
+            write!(signature, " via \"").unwrap();
+            write_escaped(&mut signature, &via.name);
+            write!(signature, "\"").unwrap();
+        }
+        match &transition.next {
+            crate::ast::SessionProtocolNext::Then(state) => {
+                writeln!(signature, " -> {};", state.name).unwrap();
+            }
+            crate::ast::SessionProtocolNext::Choice(branches) => {
+                write!(signature, " -> choice {{ ").unwrap();
+                for (index, (label, state)) in branches.iter().enumerate() {
+                    if index > 0 {
+                        write!(signature, ", ").unwrap();
+                    }
+                    write!(signature, "{}: {}", label.name, state.name).unwrap();
+                }
+                writeln!(signature, " }};").unwrap();
+            }
+        }
+    }
+    signature.push_str("}\n");
+    let mut facts = Vec::new();
+    push_fact(
+        &mut facts,
+        "States",
+        declaration
+            .states
+            .iter()
+            .map(|state| state.name.clone())
+            .collect(),
+    );
+    push_fact(
+        &mut facts,
+        "Initial",
+        vec![declaration.initial.name.clone()],
+    );
+    push_fact(
+        &mut facts,
+        "Terminals",
+        declaration
+            .terminals
+            .iter()
+            .map(|terminal| terminal.state.name.clone())
+            .collect(),
+    );
+    push_fact(&mut facts, "Authority", vec!["none".to_owned()]);
+    Entry {
+        kind: "session_protocol",
+        id: declaration.stable_id.clone(),
+        name: declaration.name.clone(),
+        persistent: declaration.explicit_id,
+        description: description(placement, declaration.span.start),
+        signature,
+        location: Location::of(declaration.name_span),
+        facts,
+        members: Vec::new(),
+    }
+}
+
+fn write_session_protocol_name_set(output: &mut String, names: &[crate::ast::SessionProtocolName]) {
+    if names.is_empty() {
+        output.push_str("{}");
+        return;
+    }
+    output.push_str("{ ");
+    for (index, name) in names.iter().enumerate() {
+        if index > 0 {
+            output.push_str(", ");
+        }
+        output.push_str(&name.name);
+    }
+    output.push_str(" }");
+}
+
 fn implementation_entry(
     implementation: &crate::ast::ProtocolImplementation,
     placement: &Placement,
@@ -657,6 +775,7 @@ const SECTIONS: &[(&str, &str)] = &[
     ("resource", "Resources"),
     ("interface", "Interfaces"),
     ("protocol", "Protocols"),
+    ("session_protocol", "Session protocols"),
     ("implementation", "Implementations"),
     ("function", "Functions"),
 ];

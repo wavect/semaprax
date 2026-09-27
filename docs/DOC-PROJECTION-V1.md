@@ -49,8 +49,8 @@ Both renderings are functions of one model, built by `semaprax::doc::document`:
 - `revision`, the value of `semaprax::graph::revision` for the program, which
   is the revision `graph` prints for the same file;
 - one entry per declaration in canonical order: types (records, variants,
-  classes, resources), class methods, interfaces, protocols, implementations,
-  then functions.
+  classes, resources), class methods, interfaces, protocols, session
+  protocols, implementations, then functions.
 
 Every entry carries its kind, stable identity, display name, whether the
 identity is persistent (written with `@id`) or automatic and revision-scoped,
@@ -61,14 +61,19 @@ its description, its signature, its facts, and its members.
   the comment marker and one leading space.
 - The signature is the declaration header in canonical source syntax with
   bodies omitted: the `@id` line when explicit, the `fn`, `record`, `variant`,
-  `class`, `resource`, `interface`, `protocol`, or `impl` header, `uses`,
-  `requires`, and `ensures` lines, fields, cases, lifecycles, imports, and
-  method headers.
+  `class`, `resource`, `interface`, `protocol`, `session protocol`, or `impl`
+  header, `uses`, `requires`, and `ensures` lines, fields, cases, lifecycles,
+  imports, and method headers. A `session protocol`'s signature is its full
+  canonical body (states, initial, terminals with cleanup, and every
+  transition), since its transitions carry no persistent identity of their
+  own and so are never members.
 - Facts are labelled lists: `Type parameters`, `Parameters` (canonical
   `name: mode Type` text, so ownership modes are visible), `Returns`,
   `Effects`, `Requires`, `Ensures`, `Extends`, `Methods`, `Owner`, `Permits`,
-  `Protocol`, and `Receiver`. A fact with no values is omitted, except
-  `Returns`.
+  `Protocol`, `Receiver`, and, for a `session_protocol` entry only, `States`,
+  `Initial`, `Terminals`, and `Authority` (always `none`; see
+  [Session/protocol types v1](SESSION-PROTOCOL-TYPES-V1.md)). A fact with no
+  values is omitted, except `Returns`.
 - Members are the identified parts of a declaration: fields, cases, case
   fields, drop lifecycles, imports, protocol methods, and implementation
   bindings, each with its identity, persistence, and canonical text.
@@ -79,7 +84,8 @@ The Markdown page starts with `` # Module `<module>` ``, a fixed three-line
 paragraph naming the source of the facts, then bullets for the graph revision,
 permits, and `use` lines. Entries are grouped under `## Records`, `## Variants`,
 `## Classes`, `## Methods`, `## Resources`, `## Interfaces`, `## Protocols`,
-`## Implementations`, and `## Functions`, in that order, omitting empty groups.
+`## Session protocols`, `## Implementations`, and `## Functions`, in that
+order, omitting empty groups.
 Each entry is `` ### `<name>` ``, the description lines, the signature in a
 `spx` fenced block, an `Identity` bullet, one bullet per fact, and one bullet
 per member kind with the members nested under it, each followed by its
@@ -137,8 +143,14 @@ declaration header leaves the entry unchanged except for the revision bullet.
   closed with no stdout.
 
 Protocols and implementations are documented from source but are not compared
-with the graph, because the program graph stays protocol-free
-([Static Protocol Conformance v1](STATIC-PROTOCOL-CONFORMANCE-V1.md)).
+with the program graph's `nodes`, because that graph stays protocol-free
+([Static Protocol Conformance v1](STATIC-PROTOCOL-CONFORMANCE-V1.md)). A
+declared `session protocol` is documented the same uncompared way; it does
+gain a graph fact, but as the per-source graph's own trailing
+`session_protocols` section (`semaprax.graph.v48`) and the Workspace Semantic
+Graph's equivalent (`semaprax.workspace-semantic-graph.v2`), never as a
+`nodes` entry -- see
+[Session/protocol types v1](SESSION-PROTOCOL-TYPES-V1.md).
 
 ## Bundled catalog
 

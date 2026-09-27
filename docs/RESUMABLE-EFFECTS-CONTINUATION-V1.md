@@ -582,80 +582,80 @@ seam) can check its work against a concrete target instead of re-deriving
 it. No source under `examples/`, `std/agent/`, or `src/agent_lifecycle/` was
 changed by this assessment.
 
-### 12.1 Blocker (1), first slice: bounded Copy-scalar aggregates (issue #296 R20)
+### 12.1 Blocker (1) design record: bounded Copy-scalar aggregates (issue #296 R20)
 
-This slice widens the request/answer channel-type admission the first bullet
-of §12 named, on the compiler-shared type check only
-(`hir::resolve_yield`/`hir::validation`, which every backend's `yields`
-resolution goes through): a `yields` request or response type, and an
-intermediate value in a `yields`-declaring function's body, is now also
-admitted when it is a **bounded, flat, non-recursive record or variant of
-Copy scalars** -- not only a bare Copy scalar. Native and Wasm emission are
-unaffected and keep refusing every `yields`-declaring function outright
-(`SPX-B116`/`SPX-W126`), exactly as before; nothing here grants ordinary
-compiled code any new authority.
+An R20 increment first widened the request/answer channel-type admission the
+first bullet of §12 named, at the compiler-shared type check only
+(`hir::resolve_yield`/`hir::validation`), to admit a `yields` request or
+response type that is a **bounded, flat, non-recursive record or variant of
+Copy scalars**, not only a bare Copy scalar. Coordinator review found that
+state not mergeable: `resumable_effects::lowering`'s own independent scalar
+re-check (`require_scalar_expression_tree`), every envelope schema
+(`source_checkpoint` v1-v4), the durable journal, and
+`interpreter::resumable`'s `ArgumentValue`/`ResumableScalar` request/answer
+representation were all still scalar-only, so a function that cleared the
+widened HIR admission was compiler-admitted but not runnable: attempting to
+lower it failed closed only much later, with the unrelated generic
+`SPX-H006` ("invalid resumable HIR plan") rather than a stable, shape-aware
+diagnostic. A checked program must either run or be refused with a stable
+diagnostic before it ever reaches lowering; "admitted here, `SPX-H006` at
+lowering" violates that, so **this admission was reverted**. Every
+`yields`-declaring function's request/response type is, today, exactly as
+narrow as §1 originally stated: an admitted Copy scalar, nothing else.
+
+What R20 keeps, as a **design record** rather than a live admission, is
+`hir::yield_aggregate`: a pure module stating the exact shape and bound a
+later increment's admission (and matching runtime support) would use, so
+that increment can check its work against a concrete target instead of
+re-deriving it, and its own unit tests keep exercising the rule directly.
 
 - **Shape.** A record's own fields, or a variant's own case fields, must
   themselves be `hir::is_scalar_resolved_type` Copy scalars -- never another
   record or variant. This bans nesting outright (a field can never
   reintroduce the enclosing declaration or any other aggregate), so the
   shape is non-recursive by construction and needs no separate cycle check;
-  and it is always fully `Copy` for the same reason `hir::TypeFacts::copy`
-  would say so of any all-scalar record. A generic instantiation
-  (non-empty `arguments`) is refused regardless of its argument types.
-- **Bounds.** At most 8 fields on an admitted record
+  and it would always be fully `Copy`, for the same reason
+  `hir::TypeFacts::copy` would say so of any all-scalar record. A generic
+  instantiation (non-empty `arguments`) fails the shape regardless of its
+  argument types. An owned `Bytes` (or `String`) leaf also fails the shape;
+  admitting one is explicitly left to a still-later increment on top of
+  this one, once whole-Copy-scalar aggregates themselves are wired end to
+  end.
+- **Bounds.** At most 8 fields on a record
   (`hir::yield_aggregate::MAX_YIELD_AGGREGATE_FIELDS`), and at most 8 cases
-  of at most 8 fields each on an admitted variant
-  (`hir::yield_aggregate::MAX_YIELD_AGGREGATE_CASES`),
-  matching the existing `MAX_RESUMABLE_YIELDS` order of magnitude elsewhere
-  in this contract rather than introducing an unrelated scale.
-- **Refusals.** `SPX-T307` is the new stable code for a record/variant that
-  fails one of the rules above (too many fields/cases, a generic
-  instantiation, or a field that is not itself a Copy scalar -- including a
-  nested record/variant or an owned `Bytes`/`String` leaf); it names the
-  exact rule in its message. Every pre-existing refusal is unchanged: a
-  borrow keeps `SPX-T305`, a resource keeps `SPX-T306` (including one nested
-  inside an otherwise-plain record field), and a type that is neither a
-  scalar nor a record/variant at all (bare `Bytes`, `String`, `str`, …)
-  keeps `SPX-T301`/`SPX-T303`.
-- **What is deliberately still refused here.** An owned `Bytes` leaf inside
-  the aggregate itself is refused (`SPX-T307`), not merely deferred: this
-  slice adds no envelope encoding, ownership-transfer, or cleanup-settlement
-  path for a `Bytes` value living inside a yielded record/variant, so
-  admitting the shape without that machinery would silently strand or
-  double-free it. Only §11.6's own whole-`Bytes`-*local* carrying (never as
-  part of the channel type itself) has that machinery, and this slice does
-  not extend it. Every one of an Agent's own typed roles (`Task`,
-  `State`/`Context`, `Observation`, `Proposal`, `Decision`, `Outcome`,
-  `Report`) combines `Bytes` with scalar fields, so **none of them is
-  admitted by this slice**; the first bullet of §12 stays accurate as
-  written. What this slice removes is only the part of that blocker that
-  was "a record/variant can never be the channel type at all" -- a
-  scalar-only role (none exist among the real Agent declarations examined)
-  would now be admitted.
-- **What is unchanged.** `resumable_effects::lowering`'s own independent
-  scalar re-check (`require_scalar_expression_tree`,
-  `resumable_effects::signature`'s per-effect shape derivation, every
-  envelope schema (`source_checkpoint` v1-v4), the durable journal, and
-  `interpreter::resumable`'s `ArgumentValue`/`ResumableScalar` request/answer
-  representation are untouched by this slice. A function that clears the
-  new HIR-level admission because its channel type is a bounded
-  Copy-scalar-only aggregate is therefore compiler-admitted but not yet
-  runnable through the interpreter/durable driver: attempting to lower it
-  today still fails closed, cleanly and non-panicking, with the existing
-  generic `SPX-H006` ("invalid resumable HIR plan") rather than a
-  shape-specific diagnostic, because `require_scalar_expression_tree` has
-  not yet been taught this admitted shape. Closing that gap -- giving the
-  interpreter/durable driver an actual `ResumableScalar::Aggregate`
-  representation, envelope encoding, and (for a future slice that also
-  admits `Bytes` leaves) the ownership-transfer and cleanup-settlement
-  machinery this file's own change protocol requires -- is exactly the
-  scope this R20 increment found too large to deliver soundly in one pass,
-  and is left as the concrete next step before blocker (1) is fully closed.
+  of at most 8 fields each on a variant
+  (`hir::yield_aggregate::MAX_YIELD_AGGREGATE_CASES`), matching the existing
+  `MAX_RESUMABLE_YIELDS` order of magnitude elsewhere in this contract
+  rather than introducing an unrelated scale.
+- **Live refusal.** `hir::resolve_yield` refuses **every** record or variant
+  `yields` request/response type with the dedicated, stable `SPX-T307`
+  ("aggregate yield channel not yet admitted") -- unconditionally, whether
+  or not it would fit the shape above; `bounded_aggregate_refusal` is
+  consulted only to make the message say which case it is (fits the shape
+  but lacks runtime support, or fails the shape outright), never to admit
+  anything. A record/variant used as an ordinary intermediate value in a
+  `yields`-declaring function's body (not the channel type) keeps the
+  original, unconditional `SPX-T303` it always had; the body-level walk was
+  never widened. Every pre-existing refusal for a non-aggregate type is
+  unchanged: a borrow keeps `SPX-T305`, a resource keeps `SPX-T306`
+  (including one nested inside an otherwise-plain record field), and any
+  other non-scalar, non-record/variant type (bare `Bytes`, `String`, `str`,
+  …) keeps `SPX-T301`.
+- **What closing blocker (1) for real still requires.** Everything R20's
+  first slice found too large to deliver soundly in one pass is still
+  exactly what is missing: an actual `ResumableScalar::Aggregate`
+  representation in `resumable_effects::lowering`, a new envelope version
+  (used only when an aggregate crosses a suspension; every existing version
+  stays byte-identical), durable-journal round-trip with crash/restart
+  coverage, and `interpreter::resumable`/the driver actually delivering the
+  request to a handler and resuming with the answer as the aggregate, field
+  order canonical. Only once that exists end to end should
+  `hir::resolve_yield` admit the shape `hir::yield_aggregate` already
+  states -- together, in the same increment, never admission first.
 
 Blocker (2) (Agent operations are not free, `yields`-eligible functions; the
 role that actually waits on a model declares an effect) is entirely
-untouched by this slice and remains exactly as described above.
+untouched and remains exactly as described above.
 
 ## 13. Assurance and conformance evidence for the admitted profile
 

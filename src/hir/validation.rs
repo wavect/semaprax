@@ -5666,14 +5666,14 @@ impl<'a> HirValidator<'a> {
                     if !matches!(expression.kind, ResolvedExprKind::Yield { .. }) {
                         unreachable!()
                     }
-                    // `hir::resolve_yield` admits a Copy scalar or a bounded
-                    // aggregate (issue #296 R20); re-derive that exact
-                    // admission (`yield_aggregate`) rather than trusting it.
-                    if !yield_aggregate::admits_yield_channel_type(
-                        &self.program.declarations,
-                        &expression.ty,
-                    ) {
-                        return Err(hir_error("yield expression is not an admitted type"));
+                    // `hir::resolve_yield` already fixed `expression.ty` up
+                    // to the declared response type and checked it is an
+                    // admitted Copy scalar; re-derive that fact rather than
+                    // trusting it silently.
+                    if !crate::hir::is_scalar_resolved_type(&expression.ty) {
+                        return Err(hir_error(
+                            "resolved `yield` expression type is not an admitted Copy scalar",
+                        ));
                     }
                     let ownership =
                         self.expected_ownership(&expression.ty, OwnershipMode::Value)?;

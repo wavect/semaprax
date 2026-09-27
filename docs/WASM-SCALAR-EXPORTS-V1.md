@@ -205,6 +205,14 @@ call to `semaprax.runtime.v1` code 1 -- the identical status the native C11
 backend reports for the same refusal -- rather than an unclassified Wasm
 trap.
 
+Because that trap does not discard the module instance -- production host
+glue catches exactly this class of failure and keeps calling the same
+instance afterward -- every genuine external entry (each selected export,
+never an internal call between program functions) resets the live-frame
+counter to zero as the first thing it does. A trapped call therefore cannot
+leave a later, unrelated call on the same instance refused at a phantom
+depth.
+
 ## Package and integrity binding
 
 The destination must not exist and its parent directory must already exist.

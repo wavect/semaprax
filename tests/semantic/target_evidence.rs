@@ -493,6 +493,21 @@ fn graph_v10_through_v14_target_projections_are_admitted() {
 ///   and every identity field (`base_revision`, `candidate_revision`,
 ///   `source.digest`, `patch.digest`, `graphs.*.digest`, `graphs.*.bytes`)
 ///   were confirmed byte-identical field by field before this re-take.
+/// * Re-taken a third time in the same P2-2 change: only the Wasm core
+///   target row moved again. `fixture 0`/`fixture 1` grew 258 -> 268 bytes;
+///   `fixture 2` grew 302 -> 313 bytes. A coordinator review of the first
+///   re-take found that a trapped call (refused call depth, checked-
+///   arithmetic overflow, a false contract) left the live-frame counter
+///   un-decremented forever after on that module instance, poisoning every
+///   later call the host glue made on it (production host glue catches and
+///   normalizes exactly this class of failure rather than discarding the
+///   instance). The fix resets the counter at every genuine external entry
+///   instead of inside a directly-exported function's own body (which may
+///   be recursive): `main`, previously exported directly with no wrapper of
+///   its own, now gets one purely to hold that reset, hence the extra
+///   bytes; `scalar_exports`/`text_exports` wrappers (not reached by these
+///   three fixtures) gained the identical reset in place. Identity fields
+///   were confirmed byte-identical field by field again before this re-take.
 #[test]
 fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     let reports = [
@@ -507,17 +522,17 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
             .each_ref()
             .map(|report| sha256(&report.replace("0.258.0", "0.256.0"))),
         [
-            "0a725aba4bd7c7ea0d6dfb00d5c0b8eae4781fa8d1bde214bcd1e7af5010bde5".to_owned(),
-            "9d801b3d2ce69f64051f5733fd4f603c68f83a79f84e24a863f020989f14447a".to_owned(),
-            "b498e45c167f25a3b26af494f2509f79135af1d23fc3596c9ddf9aeee4635c46".to_owned(),
+            "dc9d387f9d7775e1f6b73f075420577961c3bf91aba1055595e51515535dc8fc".to_owned(),
+            "c15b8729914463a06d8278fd6916e707d0846f905c91fecaadfad2c4048fb23b".to_owned(),
+            "d7f8a57320f14900188730eadeb5f64c212719551912c0791797a23da9dcca9f".to_owned(),
         ]
     );
     assert_eq!(
         reports.each_ref().map(|report| sha256(report)),
         [
-            "e17d8806f530300e17932e2d8b5f27442f2e269442fde1258cedc20eeeaafd6f".to_owned(),
-            "53d01193ce3e6a186becaaffd093d89629e19ab8f0a5c244afb8ed9fda40b4b1".to_owned(),
-            "3be7f74e7eb31ac8e21b010be0f5863f58d4086cc43cd6ca42d2f1dc05815fff".to_owned(),
+            "82a529051915b0cd4985eff4441621f0ab07d62bc1cbf90ae190d4f2dc432c5d".to_owned(),
+            "a2ebdb29af4ab10f522f4075a7e64f5d5b858df0df432100d759a95e68a9cc60".to_owned(),
+            "347f6b2fc020109bcb52ae56b94c4cd3e7cab3954d6d7a2c461da404b8d5a14d".to_owned(),
         ]
     );
 }

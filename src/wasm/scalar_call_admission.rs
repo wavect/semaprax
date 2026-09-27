@@ -36,13 +36,8 @@
 //! backstop for a hostile host that returns instead. A genuine
 //! `unreachable` trap unwinds the *entire* call activation back to the host
 //! boundary; it never resumes into this function's own decrement, nor any
-//! caller's. That is correct here, exactly as it already is for this
-//! backend's other failures: the live-frame counter is module-instance
-//! state, and a Wasm instance that ever traps is not defined to keep
-//! serving further calls with meaningful internal state -- the same
-//! non-guarantee `spx_add`/`spx_contract_fail`'s existing callers already
-//! depend on. A refused frame's increment is simply never paired with a
-//! decrement; nothing after the trap ever runs to need one.
+//! caller's, so a refused (or otherwise trapped) frame's increment is never
+//! paired with a decrement.
 //!
 //! Reporting reuses this backend's existing `spx_contract_fail` host import
 //! (see `emit_contract_guard`) rather than inventing a second channel: it
@@ -52,6 +47,27 @@
 //! code the native C11 backend's `spx_rt_call_depth_failure` reports (see
 //! `codegen::native_scalar_runtime::CALL_DEPTH_STATUS_DOMAIN`), so a caller
 //! observing the normalized status cannot tell which backend produced it.
+//!
+//! **A trap does not discard the module instance.** The live-frame counter
+//! is one instance's persistent state, and the production host glue
+//! (`wasm/browser_runtime.js`'s `invoke`) catches exactly this class of
+//! failure and keeps calling the same instance afterward -- that is the
+//! entire point of normalizing it to a typed status instead of leaking an
+//! uncaught exception. So an uncompensated increment left behind by one
+//! trapped call would poison every later call on that instance: a refused
+//! deep recursion would leave even a shallow, otherwise-successful later
+//! call refused too. [`emit_reset`] closes that gap: every genuine external
+//! entry -- the only point a host can call into this module afresh, never
+//! an internal call within it -- resets the counter to zero as the first
+//! thing its own bytecode does, so no earlier call's leftover increments
+//! survive into the next one. Internal calls between program functions
+//! never reset it; only [`emit_admission`]'s increment and [`emit_decrement`]
+//! ever touch it there. None of this emitter's host imports call back into
+//! any of its exports (each is a plain `(i64/i32...) -> i64/i32` numeric
+//! function per the ABI in `emit_resolved_module_internal`; the module
+//! grants them no table or function-reference capability to do so), so a
+//! reset at every export's own entry is exhaustive: nothing else can be a
+//! genuine external entry.
 
 use super::aggregate::call_admission::{CALL_DEPTH_STATUS, MAX_CALL_DEPTH};
 use super::{write_i32, write_u32, ByteOutput, I32};
@@ -100,6 +116,33 @@ pub(super) fn emit_admission(body: &mut impl ByteOutput, depth_global: u32) {
     write_u32(body, CONTRACT_FAIL_IMPORT);
     body.push(0x00); // unreachable: fail-closed fallback only, see module docs
     body.push(0x0b); // end if
+}
+
+/// Reset the live-frame counter to zero. Emitted once, as the first thing
+/// its own bytecode does (after its own locals declaration, which every
+/// Wasm function body must still lead with), at every genuine external
+/// entry this emitter produces -- see the module documentation for why that
+/// reset is exhaustive and why it must never run for an internal call
+/// between program functions.
+pub(super) fn emit_reset(body: &mut impl ByteOutput, depth_global: u32) {
+    body.push(0x41); // i32.const 0
+    body.push(0x00);
+    body.push(0x24); // global.set
+    write_u32(body, depth_global);
+}
+
+/// The bare legacy web target's synthesized `main` entry wrapper: reset the
+/// live-frame counter, then call straight into `main`'s own compiled body
+/// (which may itself be recursive, hence why this reset lives here and not
+/// inside that body -- see the module documentation). No locals: the
+/// call's i64 result is left on the stack for this function's own implicit
+/// return.
+pub(super) fn emit_main_entry_body(body: &mut impl ByteOutput, depth_global: u32, target: u32) {
+    write_u32(body, 0);
+    emit_reset(body, depth_global);
+    body.push(0x10); // call
+    write_u32(body, target);
+    body.push(0x0b);
 }
 
 /// Decrement the live-frame counter on this function's one normal-return

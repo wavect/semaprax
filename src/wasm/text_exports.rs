@@ -76,6 +76,7 @@ impl TextExportPlan {
         function_indexes: &HashMap<FunctionExecutionId, u32>,
         validator_index: u32,
         status_global_index: u32,
+        depth_global: u32,
     ) -> Result<(), Diagnostic> {
         // One i32 local carries validator status and one carries the exact
         // cumulative borrowed-input byte charge. Raw parameters precede both.
@@ -88,6 +89,13 @@ impl TextExportPlan {
 
         i32_const(body, 0);
         global_set(body, status_global_index);
+        // This wrapper is a genuine external entry (issue #293 P2-2): it may
+        // call into a reachable recursive function, never itself an internal
+        // call target. Reset the shared live-frame counter alongside this
+        // profile's own per-call status global, so a call that trapped on a
+        // previous invocation of this same module instance cannot leave
+        // later calls refused at a phantom depth.
+        super::scalar_call_admission::emit_reset(body, depth_global);
         i32_const(body, 0);
         local_set(body, cumulative_local);
 

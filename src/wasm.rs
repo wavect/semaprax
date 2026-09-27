@@ -51,9 +51,7 @@ mod scalar_algebra_component_v5;
 mod scalar_exports;
 mod string_ops_v2_use;
 use string_ops_v2_use::program_uses_string_ops_v2;
-/// Core Wasm call-depth admission for the legacy scalar-core emitter (issue
-/// #293 P2-2): the aggregate family's sibling in `aggregate::call_admission`
-/// (P2-1).
+/// Call-depth admission for the legacy scalar-core emitter (#293 P2-2).
 mod scalar_call_admission;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod source_result_component_v4;
@@ -1361,6 +1359,24 @@ fn emit_resolved_module_internal(
         };
         function_types.push(intern_type(signature, &mut types, &mut type_indexes));
     }
+    // #293 P2-2: `main`'s reset lives in a wrapper, not its recursive body.
+    let main_index = if has_public_profile {
+        None
+    } else {
+        let index = program
+            .functions
+            .iter()
+            .position(|function| function.id == program.entrypoint)
+            .ok_or_else(|| Diagnostic::io("SPX-W101", "web target requires a main function"))?;
+        let main = &program.functions[index];
+        if !main.params.is_empty() || main.return_type != ResolvedType::I64 {
+            return Err(Diagnostic::io(
+                "SPX-W101",
+                "resolved web entry point must have type `fn main() -> i64`",
+            ));
+        }
+        Some(index)
+    };
     let scalar_export_types = scalar_exports
         .iter()
         .map(|plan| {
@@ -1524,10 +1540,11 @@ fn emit_resolved_module_internal(
             + owned_function_types.len()
             + scalar_export_types.len()
             + usize::from(text_validator_type.is_some()) * 3
-            + text_export_types.len()) as u32,
+            + text_export_types.len()
+            + usize::from(main_index.is_some())) as u32,
     );
-    for type_index in function_types {
-        write_u32(&mut functions, type_index);
+    for type_index in &function_types {
+        write_u32(&mut functions, *type_index);
     }
     for type_index in owned_function_types {
         write_u32(&mut functions, type_index);
@@ -1542,6 +1559,10 @@ fn emit_resolved_module_internal(
     }
     for type_index in text_export_types {
         write_u32(&mut functions, type_index);
+    }
+    // The `main` entry wrapper (#293 P2-2) shares `main`'s own type.
+    if let Some(index) = main_index {
+        write_u32(&mut functions, function_types[index]);
     }
     section(&mut module, 3, functions);
 
@@ -1567,11 +1588,7 @@ fn emit_resolved_module_internal(
         section(&mut module, 5, memories);
     }
 
-    // Every executable function this emitter produces carries call-depth
-    // admission (issue #293 P2-2), so its private live-frame counter global
-    // is always present, appended after any text-export globals so their
-    // hardcoded indexes (0..=2, see `STATUS_GLOBAL_EXPORT` and friends below)
-    // stay unchanged.
+    // Counter global (#293 P2-2), appended after any text-export globals.
     let depth_global_index = if text_exports.is_empty() { 0 } else { 3 };
     {
         let mut globals = crate::bounded_output::CappedVec::new();
@@ -1610,35 +1627,25 @@ fn emit_resolved_module_internal(
             + text_exports.len() as u32
             + if text_exports.is_empty() { 0 } else { 4 },
     );
-    if !has_public_profile {
-        let main_index = program
-            .functions
-            .iter()
-            .position(|function| function.id == program.entrypoint)
-            .ok_or_else(|| Diagnostic::io("SPX-W101", "web target requires a main function"))?;
-        let main = &program.functions[main_index];
-        if !main.params.is_empty() || main.return_type != ResolvedType::I64 {
-            return Err(Diagnostic::io(
-                "SPX-W101",
-                "resolved web entry point must have type `fn main() -> i64`",
-            ));
-        }
+    let adapter_base = import_count + executable_functions.len() as u32;
+    // `main` (#293 P2-2) and the first scalar export share this slot: only
+    // one of the two families is ever non-empty at a time.
+    let scalar_export_base = adapter_base + owned_plans.len() as u32;
+    if main_index.is_some() {
         write_name(&mut exports, "semaprax_main");
         exports.push(0x00);
-        write_u32(&mut exports, import_count + main_index as u32);
+        write_u32(&mut exports, scalar_export_base);
         if !owned_plans.is_empty() || uses_strings {
             write_name(&mut exports, "memory");
             exports.push(0x02);
             write_u32(&mut exports, 0);
         }
     }
-    let adapter_base = import_count + executable_functions.len() as u32;
     for (ordinal, plan) in owned_plans.iter().enumerate() {
         write_name(&mut exports, &plan.export);
         exports.push(0x00);
         write_u32(&mut exports, adapter_base + ordinal as u32);
     }
-    let scalar_export_base = adapter_base + owned_plans.len() as u32;
     for (ordinal, plan) in scalar_exports.iter().enumerate() {
         write_name(&mut exports, &plan.wasm_export);
         exports.push(0x00);
@@ -1671,7 +1678,8 @@ fn emit_resolved_module_internal(
             + owned_plans.len()
             + scalar_exports.len()
             + if text_exports.is_empty() { 0 } else { 3 }
-            + text_exports.len()) as u32,
+            + text_exports.len()
+            + usize::from(main_index.is_some())) as u32,
     );
     for (function, _) in &executable_functions {
         let mut body = crate::bounded_output::CappedVec::new();
@@ -1780,11 +1788,7 @@ fn emit_resolved_module_internal(
             )?;
             emit_contract_guard(&mut body, Some(2));
         }
-        // This function's one normal-return path: every entered frame
-        // incremented the live-frame counter exactly once in
-        // `scalar_call_admission::emit_admission`, and a refused frame never
-        // reaches here (see that module's documentation), so this decrement
-        // is unconditional.
+        // This function's one normal-return path; see `emit_decrement`.
         scalar_call_admission::emit_decrement(&mut body, depth_global_index);
         body.push(0x20);
         write_u32(&mut body, result_local);
@@ -1800,7 +1804,7 @@ fn emit_resolved_module_internal(
     }
     for plan in scalar_exports {
         let mut body = crate::bounded_output::CappedVec::new();
-        plan.emit_wrapper_body(&mut body, &function_indexes)?;
+        plan.emit_wrapper_body(&mut body, &function_indexes, depth_global_index)?;
         write_u32(&mut code, body.len() as u32);
         code.extend_from_slice(&body);
     }
@@ -1817,10 +1821,27 @@ fn emit_resolved_module_internal(
         }
         for plan in text_exports {
             let mut body = crate::bounded_output::CappedVec::new();
-            plan.emit_wrapper_body(&mut body, &function_indexes, text_helper_base, 0)?;
+            plan.emit_wrapper_body(
+                &mut body,
+                &function_indexes,
+                text_helper_base,
+                0,
+                depth_global_index,
+            )?;
             write_u32(&mut code, body.len() as u32);
             code.extend_from_slice(&body);
         }
+    }
+    // The `main` entry wrapper (issue #293 P2-2, see `main_index` above).
+    if let Some(index) = main_index {
+        let mut body = crate::bounded_output::CappedVec::new();
+        scalar_call_admission::emit_main_entry_body(
+            &mut body,
+            depth_global_index,
+            import_count + index as u32,
+        );
+        write_u32(&mut code, body.len() as u32);
+        code.extend_from_slice(&body);
     }
     if !function_invocation_signatures.is_empty() {
         let mut elements = crate::bounded_output::CappedVec::new();

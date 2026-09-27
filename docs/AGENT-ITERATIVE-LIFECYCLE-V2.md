@@ -125,7 +125,11 @@ unconditionally alongside its increment; the legacy scalar-core emitter
 program with no aggregate lowering, instead reports a refused frame through
 its existing `spx_contract_fail`-plus-`unreachable` failure channel, which
 traps the whole call activation rather than returning through it, so only
-its one normal-return path decrements.
+its one normal-return path decrements. Because that trap does not discard
+the module instance, every genuine external entry the legacy emitter
+produces also resets the counter to zero as the first thing it does, so a
+trapped call cannot leave a later call on the same instance refused at a
+phantom depth.
 
 A dispatch is admitted with a limit in `1..=1_000_000`. A charge made while the
 charged count equals the limit is refused and not counted. Refusal is sticky:

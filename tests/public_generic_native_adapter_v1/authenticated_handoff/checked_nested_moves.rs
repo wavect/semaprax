@@ -27,7 +27,7 @@ use semaprax::public_generic_abi::native::authenticated::{
 };
 use semaprax::public_generic_consumer::c_calling::generate_authenticated_nested_moves_calling_consumer_v1;
 
-const SOURCE: &str = r#"
+pub(super) const SOURCE: &str = r#"
 module authenticated.nested;
 
 @id("auth.nested.leaf")
@@ -55,7 +55,7 @@ fn transform(value: own Outer<Leaf>) -> Outer<Leaf>
 @id("auth.nested.main")
 fn main() -> i64 { 0 }
 "#;
-const EXPORT_ID: &str = "auth.nested.transform";
+pub(super) const EXPORT_ID: &str = "auth.nested.transform";
 
 fn checked(source: &str) -> (semaprax::hir::ResolvedProgram, String) {
     let parsed = semaprax::check(source, Path::new("nested-moves.spx")).unwrap();

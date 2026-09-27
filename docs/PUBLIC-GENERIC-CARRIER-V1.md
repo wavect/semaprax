@@ -286,6 +286,33 @@ regression, and the R14 native parity column
 columns already bind, with all four columns asserted to embed byte-identical
 descriptor bytes.
 
+moves-nested.v1 initially shipped with only a generated C11 calling-consumer
+generator (issue #292's own scope). A follow-on (#288 follow-on) adds the
+C++17 and Rust generators
+(`generate_authenticated_nested_moves_calling_consumer_v1` in
+[`cxx_calling`](../src/public_generic_consumer/cxx_calling.rs) and
+[`rust_calling`](../src/public_generic_consumer/rust_calling/authenticated.rs)),
+reusing exactly the same `generate()`/`wrap_authenticated()` paths the C++/Rust
+moves-v1 and allocating-v1 generators already share: only the profile name and
+the Cargo/library names (`spx_pg_private_authenticated_moves_nested_rust_v1`)
+differ, and the move-only C++ wrapper is unchanged. Three selectors carry the
+real, compiled evidence:
+`moves_and_allocating_profiles_reject_the_hostile_corpus_before_physical_work`
+now drives moves-nested.v1 as a third profile through the same seven-recipe
+hostile corpus for both generated C11 and C++17 callers (see below);
+`generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physical_handoff`
+adds moves-nested.v1 as a third Rust profile, including its own canonical
+positive control (the checked `a`/`b` swap, verified against the real rendered
+provider) and the same seven recipes, legacy-flat refusal and three omission
+controls moves-v1/allocating-v1 already prove; and
+`generated_cxx_executes_the_checked_nested_movement_body`
+(`profile_cxx_nested.rs`) is the C++17 generator's own positive control at
+O0/O2 -- both the checked swap and its `requires false` contract-failure
+sibling -- which the hostile-corpus selector above does not carry (it drives
+only refusal cases). This is still native-only, private and unpublished
+evidence: no Core Wasm, hosted or public-support claim follows from any of the
+three.
+
 The additive private `semaprax.authenticated-native-allocating.v1` profile
 addresses a bounded part of those prerequisites without widening identity-v1
 or moves-v1. Its compiler-owned admission closes the selected body and every
@@ -334,38 +361,88 @@ The legacy runtime's exact 7,489-byte concatenation is pinned independently.
 This is native-only, private and unpublished: no full arbitrary-body,
 cross-backend, sanitizer, hosted, or public-support acceptance follows.
 
-All three private profiles share one authenticated prepare entry. The owning
+All four private profiles share one authenticated prepare entry. The owning
 `moves_and_allocating_profiles_reject_the_hostile_corpus_before_physical_work`
 selector drives the same seven frozen hostile-corpus recipes used for
 identity-v1 (stale, future and zero generation; provider-owned ticket;
 substituted cleanup plan; substituted leaf path; unknown leaf-kind tag)
 through the generated C11 and C++17 callers of moves-v1 (a real field-move
-body) and allocating-v1 (the allocating callee subject), plus the legacy
-flattened caller. Each must return its stable raw status (generation 8,
-ownership 7, cleanup plan and leaf path 14, leaf-kind tag and legacy flat 5)
-with zero endpoint entries and no provider allocation, consumed input, absent
-output and close-to-zero. Two omission controls per profile and language
-compile a provider without its generation check or without its cleanup-digest
-check; each must instead cross into allocation and endpoint entry. The
-selector runs 80 physical processes (two profiles, two languages, ten cases,
-O0/O2). This adds no Core Wasm comparison, sanitizer, hosted or
-public-support evidence.
+body), allocating-v1 (the allocating callee subject) and moves-nested.v1 (the
+genuinely two-level `Outer<Leaf>` subject `checked_nested_moves` owns), plus
+the legacy flattened caller for each. Each must return its stable raw status
+(generation 8, ownership 7, cleanup plan and leaf path 14, leaf-kind tag and
+legacy flat 5) with zero endpoint entries and no provider allocation, consumed
+input, absent output and close-to-zero. Two omission controls per profile and
+language compile a provider without its generation check or without its
+cleanup-digest check; each must instead cross into allocation and endpoint
+entry. The selector runs 120 physical processes (three profiles, two
+languages, ten cases, O0/O2). This adds no Core Wasm comparison, sanitizer,
+hosted or public-support evidence.
 
-Generated Rust callers for moves-v1 and allocating-v1 reuse the identity-v1
-Rust caller generator. Only the crate doc profile name, the Cargo package and
-library names (`spx-pg-private-authenticated-moves-rust-v1`,
-`spx-pg-private-authenticated-allocating-rust-v1`) and the separately bound
+Generated Rust callers for moves-v1, allocating-v1 and moves-nested.v1 reuse
+the identity-v1 Rust caller generator. Only the crate doc profile name, the
+Cargo package and library names
+(`spx-pg-private-authenticated-moves-rust-v1`,
+`spx-pg-private-authenticated-allocating-rust-v1`,
+`spx-pg-private-authenticated-moves-nested-rust-v1`) and the separately bound
 provider artifact differ; identity-v1 output is unchanged. The owning
-`generated_rust_moves_and_allocating_callers_admit_before_physical_handoff`
+`generated_rust_moves_allocating_and_nested_moves_callers_admit_before_physical_handoff`
 selector checks that sharing file by file and pins each generated package's
 bytes. It builds each package offline against the actual rendered provider at
-O0/O2 and runs 48 processes: a canonical control that executes the selected
-checked body exactly once per call, with exact moved or allocated leaves and
-live allocations returning to baseline and then to zero; the seven recipes,
-projected onto the generated ticket, cleanup constant and empty-frame template;
-the legacy flattened Rust caller; and generation-check, cleanup-check and
-checked-call omission controls, which must cross into physical work or fail
-the payload oracle.
+O0/O2 and runs 72 processes (three profiles, twelve cases, O0/O2): a canonical
+control that executes the selected checked body exactly once per call, with
+exact moved or allocated leaves and live allocations returning to baseline and
+then to zero; the seven recipes, projected onto the generated ticket, cleanup
+constant and empty-frame template; the legacy flattened Rust caller; and
+generation-check, cleanup-check and checked-call omission controls, which must
+cross into physical work or fail the payload oracle.
+
+**LOCAL Clang AddressSanitizer + UndefinedBehaviorSanitizer evidence (issue
+#288 follow-on).** `authenticated_handoff/sanitizer_evidence.rs` reruns this
+same hostile corpus and each profile's own canonical positive control through
+Clang `-fsanitize=address,undefined -fno-omit-frame-pointer
+-fno-sanitize-recover=all`, on whatever `clang`/`clang++` the developer
+machine provides (confirmed here: Apple Clang, arm64-apple-darwin, no extra
+provisioning needed for an ordinary unsigned binary). It does not carry a
+second copy of any profile's checked-body source or render closure:
+`identity_hostile_corpus_and_positive_control_under_asan_ubsan` reruns
+[`caller_hostility::run_identity_corpus`](../tests/public_generic_native_adapter_v1/authenticated_handoff/caller_hostility.rs)
+(identity-v1's own corpus, including its `"canonical"` case, the real checked
+call at mode 1, not only a refusal) and
+`moves_allocating_and_nested_moves_hostile_corpus_under_asan_ubsan` reruns
+[`profile_hostility::run_profile`](../tests/public_generic_native_adapter_v1/authenticated_handoff/profile_hostility.rs)
+for all three later profiles, both now through
+[`caller_hostility::run_sanitized`](../tests/public_generic_native_adapter_v1/authenticated_handoff/caller_hostility.rs)'s
+sanitized path. Every one of these processes must exit with its ordinary
+stable raw status (a real sanitizer violation aborts differently, so this is
+the same pass/fail oracle now also proving the compiled path clean under the
+sanitizer runtime) and leave no sanitizer report on stderr.
+
+LeakSanitizer is **not** claimed: `ASAN_OPTIONS=detect_leaks=1` against an
+otherwise-clean binary aborts immediately with `AddressSanitizer: detect_leaks
+is not supported on this platform` on this exact machine, a platform
+limitation, not a gap in this evidence. Leak detection is therefore not
+requested; the existing `auth_live`/`fixture_live` live-allocation counters
+every one of these fixtures already asserts back to baseline and then to zero
+at close remain the leak/settlement oracle, exactly as for the unsanitized
+runs. This is also not the hosted `rust-host-address-sanitizer` or
+`callable-host-sanitizers` Linux lanes
+[`docs/RUST-HOST-SANITIZERS.md`](RUST-HOST-SANITIZERS.md) documents: it is
+**LOCAL evidence on macOS arm64 only**, native C/C++ generated code only (no
+Rust host instrumentation), never run in hosted CI.
+
+`negative_control_one_byte_heap_overflow_is_caught_and_reverted` is this
+selector's own fail-closed proof: it shrinks a test-only in-memory copy of
+`allocations.c`'s `fixture_malloc` allocator by exactly one byte relative to
+what it reports allocating (`malloc(size)` &rarr; `malloc(size - 1)`, a
+`String` edit, never a write to `allocations.c` on disk -- there is nothing to
+revert on disk, which is the point: the mutation cannot leak into any other
+test), against identity-v1's own canonical fixture. The provider's own codec
+still writes the full, correct byte count into that now-one-byte-short heap
+block: a genuine one-byte heap-buffer-overflow. AddressSanitizer must report
+it and the process must not exit with its ordinary settled status, at both
+O0 and O2; every other test in this module compiles the same fixture's
+unmutated `allocations.c` and sees zero such reports.
 
 The owning `native_and_core_wasm_outcomes_are_measured_side_by_side` selector
 is the explicitly measured Core Wasm comparison for the identity, moves and

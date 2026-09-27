@@ -13,7 +13,8 @@ use crate::public_generic_abi::{
     native::{
         authenticated::{
             AuthenticatedNativeAllocatingArtifact, AuthenticatedNativeIdentityArtifact,
-            AuthenticatedNativeMovesArtifact, ALLOCATING_PROFILE, MOVES_PROFILE, PROFILE,
+            AuthenticatedNativeMovesArtifact, AuthenticatedNativeNestedMovesArtifact,
+            ALLOCATING_PROFILE, MOVES_PROFILE, NESTED_MOVES_PROFILE, PROFILE,
         },
         binding::NativeProviderBindingV1,
     },
@@ -45,6 +46,11 @@ const ALLOCATING: ProfileNames = ProfileNames {
     package: "spx-pg-private-authenticated-allocating-rust-v1",
     library: "spx_pg_private_authenticated_allocating_rust_v1",
 };
+const NESTED_MOVES: ProfileNames = ProfileNames {
+    profile: NESTED_MOVES_PROFILE,
+    package: "spx-pg-private-authenticated-moves-nested-rust-v1",
+    library: "spx_pg_private_authenticated_moves_nested_rust_v1",
+};
 
 /// Emit a private caller for the exact sealed descriptor/provider pair. No
 /// caller-authored shape, ordinary flat provider, shared ABI change or support
@@ -75,6 +81,24 @@ pub fn generate_authenticated_moves_calling_consumer_v1(
         artifact.descriptor_bytes(),
         artifact.binding(),
         &MOVES,
+    )
+}
+
+/// Private movement-body profile admitting a nested owned record (issue
+/// #292 / #288 follow-on). Framing, admission and settlement are identical to
+/// `moves-v1`'s own -- [`RecordShape`]'s leaves are already a flat,
+/// nesting-agnostic sequence of leaf paths -- but only the independently
+/// admitted nested-moves artifact binds this distinct, separately named
+/// package.
+pub fn generate_authenticated_nested_moves_calling_consumer_v1(
+    descriptor: &VerifiedPublicGenericDescriptor,
+    artifact: &AuthenticatedNativeNestedMovesArtifact,
+) -> Result<CallingConsumer, Diagnostic> {
+    generate(
+        descriptor,
+        artifact.descriptor_bytes(),
+        artifact.binding(),
+        &NESTED_MOVES,
     )
 }
 

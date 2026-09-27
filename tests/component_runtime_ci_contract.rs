@@ -406,8 +406,34 @@ fn capability_and_dependency_policy_are_fail_closed() {
         read("platform-tests/component-runtime/src/main.rs"),
         read("platform-tests/component-runtime/src/public_generic_component_tests.rs"),
         read("platform-tests/component-runtime/src/public_generic_component_tests/parity.rs"),
+        read("platform-tests/component-runtime/src/public_generic_component_tests/parity/cancellation.rs"),
     ]
     .join("\n");
+    // The native C11 differential column (issue #292) is a deliberately
+    // isolated harness -- its own separate Cargo workspace, compiling and
+    // running a native binary through a real `clang` invocation -- not the
+    // Wasmtime Component/Core-provider surface `runner` binds above. Its
+    // legitimate temp-directory and process-spawn use would trip the ambient-
+    // authority refusals below for a surface those refusals were never about,
+    // so it is checked on its own, for the real behavior it claims rather
+    // than folded into `runner`'s closed inventory.
+    let native = read(
+        "platform-tests/component-runtime/src/public_generic_component_tests/parity/native.rs",
+    );
+    for required in [
+        "SPX-B103",
+        "derive_admitted_public_generic_endpoint_v1",
+        "render_authenticated_moves_provider",
+        "generate_authenticated_moves_calling_consumer_v1",
+        "requires false",
+        "-O0",
+        "-O2",
+    ] {
+        assert!(
+            native.contains(required),
+            "native parity column missing expected surface: {required}"
+        );
+    }
     for required in [
         "/fixtures/public-generic-v1/semaprax.toml",
         "/fixtures/public-generic-contract-failure-v1/semaprax.toml",
@@ -774,8 +800,8 @@ fn capability_and_dependency_policy_are_fail_closed() {
     );
     assert_eq!(
         runner.matches("Module::new").count(),
-        6,
-        "only authenticated v6/v7/v8/v9/v10 embedded cores and the replayed parity Core provider may be instantiated directly"
+        7,
+        "only authenticated v6/v7/v8/v9/v10 embedded cores, the replayed parity Core provider, and the cancellation Core-provider fixture may be instantiated directly"
     );
     assert_eq!(
         runner.matches("usize::try_from(").count(),

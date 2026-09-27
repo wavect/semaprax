@@ -773,9 +773,11 @@ It uses these immutable identities:
 - journal schema `semaprax.resumable-journal.v2`, with a `Started` carrier
   discriminant `channel_arguments_v1` and `Completed.result` encoded as a
   `channel_json` value;
-- source-checkpoint schema
-  `semaprax.source-resumable-sequential-channel-checkpoint.v3`, authenticated
-  under a new v7 domain; and
+- outer source-checkpoint schema `semaprax.source-resumable-checkpoint.v7`,
+  authenticated under
+  `semaprax.source-resumable-checkpoint-authentication.v7\0`; its inner
+  sequential-channel continuation schema is separately
+  `semaprax.source-resumable-sequential-channel-checkpoint.v3`; and
 - a distinct aggregate durable entry/recovery API accepting
   `&[ResumableChannelValue]` and publishing a `ResumableChannelValue`
   completion.
@@ -805,6 +807,16 @@ before inspecting bytes, then verifies the inner continuation using those
 same channel arguments. Completed data remains the v2 journal record and the
 public aggregate outcome.
 
+Journal v2 keeps neither v1 authentication domain: each v2 line is MACed
+under `semaprax.resumable-journal-record.v2\0`, and its file name is derived
+from the invocation identity under `semaprax.resumable-journal-name.v2\0`.
+The filename remains only a safe path component; recovery binds the opened v2
+file through the authenticated `Started` function, program digest,
+invocation, policy epoch, carrier discriminant, arguments digest, yield count,
+and budget. It never selects a journal version from a filename or stored
+record. V1 keeps both of its v1 domains and is accepted only by scalar
+recovery.
+
 Implementation leases after this contract is fixed:
 
 - `src/interpreter/resumable/checkpoint.rs` and
@@ -818,16 +830,17 @@ Implementation leases after this contract is fixed:
   canonical Started/Completed framing; scalar v1 codec remains unchanged.
 - Their owning test modules: two-yield success, changed argument and wrong
   nominal/case/field/leaf refusal, v1/v2 and v5/v6/v7 cross-schema refusal,
-  recovery after every `Started`, `Answered`, and `Completed` append, and a
-  no-redispatch assertion for every recovered dispatched site.
+  recovery after a crash before and after every v2 `Started`, `Yielded`,
+  `Dispatched`, `Answered`, `Completed`, `Failed`, `CleanupStarted`, and
+  `CleanupSettled` append, and a recovered-`Dispatched` in-doubt/no-redispatch
+  assertion for every site.
 
 The interpreter slice tests record and variant parameter/result success through
 two sequential yields, wrong nominal ID refusal, and replay with a changed
 aggregate argument. The future durable carrier must additionally cover wrong
 case ID, field count, and scalar leaf refusals before dispatch; source and
-graph canonical round trips; and a crash before and after every aggregate
-`Started`, `Answered`, and `Completed` record, proving no second dispatch or
-cleanup. Only after those pass may the Agent bridge add a distinct effect-free
+graph canonical round trips; and its complete v2 crash matrix, proving no
+second dispatch or cleanup. Only after those pass may the Agent bridge add a distinct effect-free
 `yields` wrapper around FixtureAgent's checked `model fn propose`; the model
 role itself cannot gain `yields`. The wrapper must dispatch through
 `DurableInvocation::dispatch` exactly once, consume the ordinary model grant

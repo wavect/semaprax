@@ -407,19 +407,15 @@ fn validate_file(file: &File) -> Result<(), ContinuationError> {
     Ok(())
 }
 
-/// The kernel does not always make one open file description's `flock`
-/// release visible to an immediately following `flock` attempt on the exact
-/// same path, even from the exact same thread with the releasing `File`
-/// already synchronously dropped -- observed directly (issue #296
-/// coordinator diagnosis) under heavy concurrent syscall load: a `Journal`
-/// created, locked, and dropped, then reopened on the same thread a few
-/// instructions later, still transiently sees `WOULDBLOCK`. This is a
-/// kernel timing artifact in the lock's release, not a logic race in this
-/// crate's own `Drop` ordering (Rust's destructor ordering here is exact and
-/// synchronous). Bounded retries absorb exactly that transient window
-/// without ever waiting on a genuinely live writer, which holds the lock
-/// for many syscalls -- many milliseconds at least -- not a handful of
-/// microseconds.
+/// A `flock` belongs to the open file description, not to the `File`. When
+/// another thread of this process forks (for example `std::process::Command`
+/// in a concurrent caller) between this journal's `open` and its drop, the
+/// child briefly holds a duplicate of the descriptor until its `exec` closes
+/// it (`O_CLOEXEC`), so the lock outlives the dropped `File` by that window.
+/// A reopen on the same path during it sees `WOULDBLOCK`; this was observed
+/// under heavy parallel test load (issue #296). The bounded retry absorbs
+/// that window only: a genuinely live writer keeps the lock far longer than
+/// `LOCK_RETRY_ATTEMPTS * LOCK_RETRY_DELAY` and is still refused.
 const LOCK_RETRY_ATTEMPTS: u32 = 20;
 const LOCK_RETRY_DELAY: std::time::Duration = std::time::Duration::from_millis(1);
 

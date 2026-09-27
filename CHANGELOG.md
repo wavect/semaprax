@@ -360,6 +360,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   binding on the function and the protocol, and `semaprax query` finds it
   through the existing entry facts. A `follows` clause on a class method is
   refused (`SPX-K109`) instead of being accepted unchecked.
+- Run a bounded, flat record or variant of Copy scalars (at most 8 fields,
+  or 8 cases of at most 8 fields) as a `yields` request/response channel for
+  top-level yields on the interpreter, the source-checkpoint driver (new
+  signature-bound v5 envelope; v1-v4 unchanged) and the durable journal
+  driver (#296). A `yield` inside `if`/`while` and any aggregate with a
+  `Bytes` leaf still refuse with `SPX-T307`. Journal lock acquisition now
+  retries briefly so a descriptor held across a concurrent fork no longer
+  reports a spurious `JournalBusy`.
 
 ## 0.6.0 — 2026-09-24
 

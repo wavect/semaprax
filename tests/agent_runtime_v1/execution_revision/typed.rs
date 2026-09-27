@@ -214,6 +214,7 @@ mod linked;
 
 #[path = "typed/live_streaming.rs"]
 mod live_streaming;
+mod model_wait;
 
 #[path = "typed/repair.rs"]
 mod repair;

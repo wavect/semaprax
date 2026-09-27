@@ -7,7 +7,10 @@ impl AgentRuntimeV2 {
         &self,
         wrapper_id: &str,
         evaluation_fuel: usize,
-    ) -> Result<SourceModelWaitBinding, Vec<Diagnostic>> {
+    ) -> Result<SourceModelWaitBinding> {
+        if evaluation_fuel > self.budget.max_steps_per_stage {
+            return Err(refused("source.model_wait_stage_fuel"));
+        }
         self.lifecycle
             .source_lifecycle()
             .model_wait_binding(wrapper_id, evaluation_fuel)

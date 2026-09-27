@@ -33,6 +33,7 @@ mod owned_iterator;
 mod process;
 mod session_protocol_decl;
 mod session_protocol_facet;
+mod session_protocol_follows;
 use expression::expr_json;
 mod generic_instances;
 mod generic_mapping;
@@ -81,6 +82,7 @@ pub fn to_json(program: &Program) -> Result<String, Vec<Diagnostic>> {
     let resolved = hir::resolve(program)?;
     to_hir_json(&resolved, &revision)
         .and_then(|graph| session_protocol_decl::attach(program, &resolved, graph))
+        .and_then(|graph| session_protocol_follows::attach(program, graph))
         .map_err(|diagnostic| vec![diagnostic])
 }
 
@@ -218,6 +220,10 @@ pub struct AgentContextOptions {
     /// Issue #297: bound declared session protocols (JSON array), set only
     /// by `session_protocol_decl::context_options`; empty otherwise.
     declared_session_protocols: String,
+    /// Issue #297 follow-on (R21): bound endpoint typestate `follows`
+    /// bindings (JSON array), set only by
+    /// `session_protocol_follows::context_options`; empty otherwise.
+    follows_bindings: String,
 }
 
 /// One closed call-graph traversal direction understood by
@@ -314,6 +320,7 @@ impl Default for AgentContextOptions {
                 AgentContextFilter::Types,
             ]),
             declared_session_protocols: String::new(),
+            follows_bindings: String::new(),
         }
     }
 }
@@ -361,6 +368,7 @@ impl AgentContextOptions {
             max_nodes,
             filters,
             declared_session_protocols: String::new(),
+            follows_bindings: String::new(),
         })
     }
 
@@ -396,6 +404,7 @@ pub fn agent_context_json(
     let resolved = hir::resolve(program)?;
     reject_native_rust_imports(&resolved).map_err(|diagnostic| vec![diagnostic])?;
     session_protocol_decl::context_options(program, &resolved, options)
+        .and_then(|options| session_protocol_follows::context_options(program, &options))
         .and_then(|options| agent_context_hir_json(&resolved, &source_revision, symbol, &options))
         .map_err(|diagnostic| vec![diagnostic])
 }
@@ -413,6 +422,7 @@ pub fn agent_context_v2_json(
     reject_native_rust_imports(&resolved).map_err(|diagnostic| vec![diagnostic])?;
     let mut options = options.clone();
     options.base = session_protocol_decl::context_options(program, &resolved, &options.base)
+        .and_then(|options| session_protocol_follows::context_options(program, &options))
         .map_err(|diagnostic| vec![diagnostic])?;
     agent_context_v2_hir_json(&resolved, &source_revision, symbol, &options)
         .map_err(|diagnostic| vec![diagnostic])
@@ -3175,7 +3185,10 @@ fn render_agent_context(
     {
         format!(
             ",\"session_protocol_kernel\":{}",
-            session_protocol_facet::summary_catalog_json(&options.declared_session_protocols)
+            session_protocol_facet::summary_catalog_json(
+                &options.declared_session_protocols,
+                &options.follows_bindings,
+            )
         )
     } else {
         String::new()
@@ -3410,7 +3423,10 @@ fn render_agent_context_v2(
     {
         format!(
             ",\"session_protocol_kernel\":{}",
-            session_protocol_facet::summary_catalog_json(&options.base.declared_session_protocols)
+            session_protocol_facet::summary_catalog_json(
+                &options.base.declared_session_protocols,
+                &options.base.follows_bindings,
+            )
         )
     } else {
         String::new()

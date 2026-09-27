@@ -2,6 +2,7 @@
 //! and expected handoff digests are trusted inputs, never ambient authority.
 use super::{handoff::Handoff, *};
 use crate::agent_lifecycle::iterative::effects::DurableTypedFailure;
+use crate::agent_lifecycle::iterative::effects::TargetStageBackend;
 use crate::agent_lifecycle::{CheckpointStore, CheckpointStoreError};
 use serde_json::Value;
 
@@ -108,7 +109,18 @@ impl MigratedAgentRuntimeV2 {
         cancellation: &AgentCancellation,
         store: &mut dyn CheckpointStore,
     ) -> std::result::Result<AgentRuntimeV2DurableEvidence, DurableMigrationFailure> {
-        run(self, None, handler, cancellation, store)
+        run(self, None, handler, cancellation, store, None)
+    }
+
+    /// Run a migration-seeded destination with an explicitly held target host.
+    pub fn run_durable_with_backend(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        store: &mut dyn CheckpointStore,
+        selected: TargetStageBackend<'_>,
+    ) -> std::result::Result<AgentRuntimeV2DurableEvidence, DurableMigrationFailure> {
+        run(self, None, handler, cancellation, store, Some(selected))
     }
 }
 
@@ -134,6 +146,25 @@ impl ResumedMigratedAgentRuntimeV2 {
             handler,
             cancellation,
             store,
+            None,
+        )
+    }
+
+    /// Resume the retained migration handoff on a held target host.
+    pub fn run_durable_with_backend(
+        self,
+        handler: &mut dyn TypedEffectHandler,
+        cancellation: &AgentCancellation,
+        store: &mut dyn CheckpointStore,
+        selected: TargetStageBackend<'_>,
+    ) -> std::result::Result<AgentRuntimeV2DurableEvidence, DurableMigrationFailure> {
+        run(
+            self.migrated,
+            Some(self.snapshot),
+            handler,
+            cancellation,
+            store,
+            Some(selected),
         )
     }
 }
@@ -144,6 +175,7 @@ fn run(
     handler: &mut dyn TypedEffectHandler,
     cancellation: &AgentCancellation,
     store: &mut dyn CheckpointStore,
+    selected: Option<TargetStageBackend<'_>>,
 ) -> std::result::Result<AgentRuntimeV2DurableEvidence, DurableMigrationFailure> {
     let fresh = retained.is_none();
     let snapshot = match retained {
@@ -159,6 +191,17 @@ fn run(
             checkpoint: None,
         },
     };
+    if let Some(selected) = selected {
+        migrated
+            .runtime
+            .lifecycle
+            .validate_durable_backend(selected)
+            .map_err(|diagnostics| DurableMigrationFailure {
+                diagnostics,
+                checkpoint: snapshot.canonical_json(),
+                durable: None,
+            })?;
+    }
     let candidate = snapshot.canonical_json();
     if candidate.len() > MAX_BYTES {
         return Err(DurableMigrationFailure {
@@ -181,20 +224,37 @@ fn run(
     }
     let retained_checkpoint = store.snapshot.checkpoint.clone();
     let runtime = migrated.runtime;
-    let result = runtime.lifecycle.run_durable_from_seed(
-        &runtime.task,
-        &runtime.proposals,
-        handler,
-        runtime.budget,
-        runtime.effects,
-        cancellation,
-        runtime.revision.digest(),
-        &runtime.program_root,
-        retained_checkpoint.as_deref(),
-        &mut store,
-        migrated.seed.max_reserved_fuel(),
-        &migrated.seed,
-    );
+    let result = match selected {
+        Some(selected) => runtime.lifecycle.run_durable_from_seed_with_backend(
+            &runtime.task,
+            &runtime.proposals,
+            handler,
+            runtime.budget,
+            runtime.effects,
+            cancellation,
+            runtime.revision.digest(),
+            &runtime.program_root,
+            retained_checkpoint.as_deref(),
+            &mut store,
+            migrated.seed.max_reserved_fuel(),
+            &migrated.seed,
+            selected,
+        ),
+        None => runtime.lifecycle.run_durable_from_seed(
+            &runtime.task,
+            &runtime.proposals,
+            handler,
+            runtime.budget,
+            runtime.effects,
+            cancellation,
+            runtime.revision.digest(),
+            &runtime.program_root,
+            retained_checkpoint.as_deref(),
+            &mut store,
+            migrated.seed.max_reserved_fuel(),
+            &migrated.seed,
+        ),
+    };
     let result = result.map_err(|durable| DurableMigrationFailure {
         diagnostics: durable.diagnostics().to_vec(),
         checkpoint: store.candidate.clone(),

@@ -67,9 +67,12 @@ migration-seeded) continue to select the interpreter. The live route does not
 gain a backend selector.
 
 The checkpoint route (`agent_lifecycle::iterative::effects::CompiledTypedEffects::run_durable`)
-and the migration-seeded checkpoint route (`run_durable_from_seed`) gain the
-same kind of test-only backend selector: `run_durable_on`/`run_durable_from_seed_on`
-supply Interpreter, native C11 or Core Wasm explicitly to the same persisted,
+and the migration-seeded checkpoint route (`run_durable_from_seed`) retain their
+interpreter default. The additive production `run_durable_with_backend` and
+`run_durable_from_seed_with_backend` entries select Interpreter, native C11 or
+Core Wasm with an explicit held compiler/runtime capability; the existing
+`run_durable_on`/`run_durable_from_seed_on` parity entries remain test-only.
+All four use the same persisted,
 replay-checked journal driver. Checkpoint identity never depends on which
 backend is selected, so the same canonical checkpoint bytes produced under
 one backend decode and continue under any other -- including a genuinely
@@ -79,11 +82,10 @@ usage ledger and stage/iteration counts, and identical refusal of a tampered,
 foreign-root or stale-ceiling checkpoint on every backend. A selected Wasm
 executor that is not handed this exact registry's own retained source is
 refused before any identity, decode, store write or handler dispatch, on
-both the fresh and the resumed leg. Both production entries, `run_durable`
-and `run_durable_from_seed`, are unchanged and continue to select the
-interpreter only; this is local parity evidence for the sealed stage
-executors, exactly like `lifecycle_parity`, not a production or hosted
-backend-selection capability.
+both the fresh and the resumed leg. The joined Runtime v2 and checked
+migration wrappers also expose the held selector. Their local parity evidence
+does not establish hosted deployment, sanitizer coverage or full
+instruction/cleanup-event equivalence.
 
 Focused gate: `cargo test --locked -p semaprax --lib
 agent_lifecycle::iterative::effects::durable::tests`. It requires an explicit

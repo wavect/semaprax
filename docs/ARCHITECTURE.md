@@ -82,6 +82,14 @@ no host authority. The generic collection helper under `hir/generic_collection`
 owns exact private Box/Vec signature admission; source verification and HIR
 materialization independently validate concrete substitutions.
 
+The additive durable target selector in `iterative/effects/durable` and the
+joined Runtime v2/migration wrappers forward only caller-held native compiler
+or Core Wasm runtime capabilities into that same journal driver. The target
+does not enter checkpoint identity or grant effect authority. A linked Project
+without exact retained Wasm source refuses selection before the initial
+migration handoff store commit; accepted replay still checks the ordinary
+identity, limits, grant and observation sequence before further dispatch.
+
 Private generic collection and iterator-helper admission lives in
 `src/source_verify/declared_type/generic_collection.rs` and the independent
 `src/hir/generic_collection.rs` profile. Existing monomorphization and HIR

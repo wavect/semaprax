@@ -118,5 +118,10 @@ durable driver this migration route resumes through: the same
 [the iterative lifecycle's checkpoint-route parity evidence](AGENT-ITERATIVE-LIFECYCLE-V2.md),
 exercised here against a hand-built seed rather than the full checked
 handoff/snapshot pipeline. It requires an explicit held `clang` and `node`.
-The production `resume_migrated_agent_runtime_v2`/`run_durable_from_seed`
-route is unchanged and continues to select the interpreter only.
+The default `resume_migrated_agent_runtime_v2`/`run_durable_from_seed`
+route continues to select the interpreter. Additive `run_durable_with_backend`
+on fresh and resumed migrated runtimes selects an explicitly held native or
+Core Wasm stage host through the same checked handoff and persisted journal.
+Invalid Core Wasm source selection is refused before the destination handoff
+is staged. The parity evidence above is local; hosted migration evidence and
+full target cleanup-event parity remain open.

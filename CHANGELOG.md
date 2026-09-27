@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add caller-held native and Core Wasm selectors to durable Agent checkpoint
+  and checked migration execution. Both reuse the existing journal, preserve
+  target-neutral checkpoint identity, and refuse unavailable retained Wasm
+  source before a migration handoff is staged. Local parity and refusal tests
+  cover the new route; hosted target evidence remains open (#293).
+
 - Repartition slow macOS repair and Windows agent-runtime tests into distinct
   release blockers without duplicating their coverage. Use a real macOS Git
   executable for publication tests, keep unsupported Windows stage hosts

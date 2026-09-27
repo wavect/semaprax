@@ -302,6 +302,27 @@ format: `Unreleased` then release buckets, grouped by impact.
   inside it (#296), on the existing v4 envelope. The per-slot check walks
   every nested expression and statement exhaustively and refuses otherwise;
   reassignment inside the loop stays refused (SPX-T252).
+- Prove the composed registry path over a real loopback socket (#304): ten
+  acceptance cases drive mirror fetch, held commit, signed cache and
+  Resolver-v2/Lock-v3 replay through a 127.0.0.1 listener, covering clean
+  reproduction, swapped artifact, tampered metadata, stale timestamp,
+  rollback, publisher reassignment, yanked package, connection refusal and
+  timeout, each leaving the held store unchanged. Plain HTTP test transport
+  only; the mirror-flow spec now records its trust decisions and scope.
+- Bind resumable `requires`/`ensures` obligations for control-dependent
+  (v3/v4) functions, which previously failed obligation generation (#296).
+  The Agent lifecycle migration stays open; the continuation spec records
+  why no existing Agent example fits the admitted yield profile.
+- Restore ordinary and migration-seeded durable Agent checkpoints across
+  interpreter, native -O0 and Core Wasm in test-only routes (#293).
+  Checkpoint identity no longer binds the executing backend; a mismatched
+  Wasm stage source is refused explicitly. Production routes stay
+  interpreter-selected.
+- Project declared session protocols into the Package Semantic Graph
+  (`semaprax.package-semantic-graph.v2` for declaring packages only;
+  protocol-free graphs stay v1 byte-identical), the help shape catalog and
+  the agent quick reference, and report protocols whose `via` targets a
+  changed declaration in semantic impact/review (#297).
 
 ## 0.6.0 — 2026-09-24
 

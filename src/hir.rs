@@ -115,6 +115,7 @@ pub(crate) use type_reachability::{
 };
 mod validation;
 mod workspace_link;
+pub(crate) mod yield_aggregate;
 pub use agent_nodes::{
     ResolvedAgentDeclaration, ResolvedAgentOperationKind, ResolvedAgentOperationRole,
     ResolvedAgentOperationRoleKind, ResolvedAgentTypeRole, ResolvedAgentTypeRoleKind,

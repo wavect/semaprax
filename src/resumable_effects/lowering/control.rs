@@ -143,6 +143,7 @@ pub(super) fn check_resumable_profile<'a>(
     program: &ResolvedProgram,
     function: &'a ResolvedFunction,
     allow_owned_bytes: bool,
+    allow_aggregate: bool,
 ) -> Result<&'a ResolvedYieldsClause, Diagnostic> {
     let canonical = program
         .functions
@@ -177,15 +178,33 @@ pub(super) fn check_resumable_profile<'a>(
             "resumable lowering does not admit ordinary effects before suspension",
         ));
     }
-    if !hir::is_scalar_resolved_type(&yields.request_type)
-        || !hir::is_scalar_resolved_type(&yields.response_type)
+    // Issue #296 R20: `allow_aggregate` (true only for `lower_sequential`'s
+    // own preamble call) additionally admits a request/response type that is
+    // a bounded, flat record/variant of Copy scalars
+    // (`hir::yield_aggregate::bounded_aggregate_refusal`); `hir::resolve_yield`
+    // already checked this exact shape for that placement, and this is its
+    // independent re-check, not a second admission decision.
+    // `lower_control`'s own call passes `false` and so keeps requiring a bare
+    // Copy scalar, unchanged: the control-dependent lane has no
+    // aggregate-channel runtime support. Function parameters stay
+    // Copy-scalar only either way; this widening never touches them.
+    let channel_type_ok = |ty: &ResolvedType| {
+        hir::is_scalar_resolved_type(ty)
+            || (allow_aggregate
+                && matches!(ty, ResolvedType::Nominal { .. })
+                && hir::yield_aggregate::bounded_aggregate_refusal(&program.declarations, ty)
+                    .is_ok())
+    };
+    if !channel_type_ok(&yields.request_type)
+        || !channel_type_ok(&yields.response_type)
         || function
             .params
             .iter()
             .any(|parameter| !hir::is_scalar_resolved_type(&parameter.ty))
     {
         return Err(invalid(
-            "resumable lowering requires Copy-scalar request, response, and parameter types",
+            "resumable lowering requires a Copy-scalar (or, where admitted, bounded \
+             record/variant) request and response type, and Copy-scalar parameter types",
         ));
     }
     if (!allow_owned_bytes && !function.cleanup.flags.is_empty())
@@ -306,7 +325,7 @@ pub fn lower_control(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<ControlResumablePlan, Diagnostic> {
-    let yields = check_resumable_profile(program, function, true)?;
+    let yields = check_resumable_profile(program, function, true, false)?;
     reject_yield_in_contracts(function)?;
     if !is_control_dependent(function) {
         return Err(invalid(
@@ -352,7 +371,7 @@ pub fn lower_control(
             carried,
         });
     }
-    require_scalar_expression_tree(&function.body, true)?;
+    require_scalar_expression_tree(&function.body, true, None)?;
     reject_reachable_resumable_callees(program, function)?;
     let carries_owned_bytes = sites.iter().any(|site| !site.carried.is_empty());
     let identity_domain = if carries_owned_bytes {

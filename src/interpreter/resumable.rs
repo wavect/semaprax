@@ -80,8 +80,8 @@ use super::prepared::PreparedCancellation;
 use super::{
     admitted_resolved_functions, argument_error, option_error, resolved_signature_is_admitted,
     scan_closure, selection_error, ArgumentValue, Environment, Evaluator, Flow, FunctionLookup,
-    Value, EVALUATION_STACK_BYTES, MAX_STEPS_LIMIT, REASON_AUTOMATIC_IDENTITY,
-    REASON_UNSUPPORTED_CALLEE,
+    OwnedRecordValue, OwnedVariantValue, Value, EVALUATION_STACK_BYTES, MAX_STEPS_LIMIT,
+    REASON_AUTOMATIC_IDENTITY, REASON_UNSUPPORTED_CALLEE,
 };
 
 /// The function named for this lane declares no `yields` clause.
@@ -151,6 +151,52 @@ impl ResumableContinuation {
     pub(crate) fn history(
         &self,
     ) -> impl ExactSizeIterator<Item = (&ArgumentValue, &ArgumentValue)> {
+        self.history
+            .iter()
+            .map(|record| (&record.request, &record.answer))
+    }
+}
+
+/// Issue #296 R20: [`ResumableYieldRecord`] widened to
+/// [`ResumableChannelValue`]. Defined here, alongside
+/// [`ResumableContinuation`] and its own record type, rather than in
+/// `channel.rs`, so every descendant of this module (`channel`, `checkpoint`,
+/// and a future durable-journal bridge) can construct and destructure it
+/// directly, exactly as they already do for the scalar carrier.
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct ChannelYieldRecord {
+    request: ResumableChannelValue,
+    answer: ResumableChannelValue,
+}
+
+/// [`ResumableContinuation`]'s own shape and proof-data guarantees, widened
+/// to [`ResumableChannelValue`]: it grants no authority to answer a request,
+/// and decoding it independently re-derives the checked program, site,
+/// argument binding, and typed history rather than trusting stored bytes.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ResumableChannelContinuation {
+    state: ResumableStateId,
+    binding: ResumableSuspensionBinding,
+    request: ResumableChannelValue,
+    history: Vec<ChannelYieldRecord>,
+}
+
+impl ResumableChannelContinuation {
+    pub fn state(&self) -> &ResumableStateId {
+        &self.state
+    }
+
+    pub fn binding(&self) -> &ResumableSuspensionBinding {
+        &self.binding
+    }
+
+    pub fn request(&self) -> &ResumableChannelValue {
+        &self.request
+    }
+
+    pub(crate) fn history(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (&ResumableChannelValue, &ResumableChannelValue)> {
         self.history
             .iter()
             .map(|record| (&record.request, &record.answer))
@@ -948,22 +994,23 @@ fn settle_step(
 }
 
 fn resumable_scalars(arguments: &[ArgumentValue]) -> Option<Vec<ResumableScalar>> {
-    arguments
-        .iter()
-        .map(|argument| {
-            Some(match argument {
-                ArgumentValue::Int(value) => ResumableScalar::I64(*value),
-                ArgumentValue::Int32(value) => ResumableScalar::I32(*value),
-                ArgumentValue::Uint8(value) => ResumableScalar::U8(*value),
-                ArgumentValue::Usize(value) => ResumableScalar::Usize(*value),
-                ArgumentValue::Char(value) => ResumableScalar::Char(*value),
-                ArgumentValue::Float32(value) => ResumableScalar::F32(value.to_bits()),
-                ArgumentValue::Float64(value) => ResumableScalar::F64(value.to_bits()),
-                ArgumentValue::Bool(value) => ResumableScalar::Bool(*value),
-                _ => return None,
-            })
-        })
-        .collect()
+    arguments.iter().map(resumable_scalar_of).collect()
+}
+
+/// The [`ResumableScalar`] one admitted Copy-scalar `ArgumentValue` denotes,
+/// or `None` for a borrowed view the resumable profile never admits.
+fn resumable_scalar_of(argument: &ArgumentValue) -> Option<ResumableScalar> {
+    Some(match argument {
+        ArgumentValue::Int(value) => ResumableScalar::I64(*value),
+        ArgumentValue::Int32(value) => ResumableScalar::I32(*value),
+        ArgumentValue::Uint8(value) => ResumableScalar::U8(*value),
+        ArgumentValue::Usize(value) => ResumableScalar::Usize(*value),
+        ArgumentValue::Char(value) => ResumableScalar::Char(*value),
+        ArgumentValue::Float32(value) => ResumableScalar::F32(value.to_bits()),
+        ArgumentValue::Float64(value) => ResumableScalar::F64(value.to_bits()),
+        ArgumentValue::Bool(value) => ResumableScalar::Bool(*value),
+        _ => return None,
+    })
 }
 
 /// Bind the caller's arguments positionally, refusing an arity or type
@@ -1043,18 +1090,30 @@ fn argument_of(value: &Value) -> Option<ArgumentValue> {
     })
 }
 
+/// Issue #296 R20: a record or variant channel value clones the same way
+/// [`super::Evaluator::clone_value`] already does for any other reachable
+/// aggregate alias -- an `Arc::clone`, never a deep field-by-field copy.
+/// This is sound only because the admitted bounded-aggregate shape is always
+/// fully Copy (every field is itself a Copy scalar, never an owned or
+/// borrowed carrier), exactly like the scalars this function already
+/// cloned, so no unique-ownership or borrow invariant is ever shared this
+/// way.
 fn clone_scalar(value: &Value) -> Option<Value> {
-    argument_of(value).and_then(|argument| match argument {
-        ArgumentValue::Int(inner) => Some(Value::Int(inner)),
-        ArgumentValue::Int32(inner) => Some(Value::Int32(inner)),
-        ArgumentValue::Uint8(inner) => Some(Value::Uint8(inner)),
-        ArgumentValue::Usize(inner) => Some(Value::Usize(inner)),
-        ArgumentValue::Char(inner) => Some(Value::Char(inner)),
-        ArgumentValue::Float32(inner) => Some(Value::Float32(inner)),
-        ArgumentValue::Float64(inner) => Some(Value::Float64(inner)),
-        ArgumentValue::Bool(inner) => Some(Value::Bool(inner)),
-        _ => None,
-    })
+    match value {
+        Value::Record(record) => Some(Value::Record(std::sync::Arc::clone(record))),
+        Value::Variant(variant) => Some(Value::Variant(std::sync::Arc::clone(variant))),
+        other => argument_of(other).and_then(|argument| match argument {
+            ArgumentValue::Int(inner) => Some(Value::Int(inner)),
+            ArgumentValue::Int32(inner) => Some(Value::Int32(inner)),
+            ArgumentValue::Uint8(inner) => Some(Value::Uint8(inner)),
+            ArgumentValue::Usize(inner) => Some(Value::Usize(inner)),
+            ArgumentValue::Char(inner) => Some(Value::Char(inner)),
+            ArgumentValue::Float32(inner) => Some(Value::Float32(inner)),
+            ArgumentValue::Float64(inner) => Some(Value::Float64(inner)),
+            ArgumentValue::Bool(inner) => Some(Value::Bool(inner)),
+            _ => None,
+        }),
+    }
 }
 
 /// Issue #296, spec section 11.6: every binding of `environment` this
@@ -1080,15 +1139,224 @@ fn clone_environment_value(value: &Value) -> Option<Value> {
 
 /// Exact scalar identity for the drift check. Floats compare by bits, not by
 /// IEEE equality, so a replayed `NaN` request agrees with the recorded one
-/// and `-0.0` never silently passes for `0.0`.
+/// and `-0.0` never silently passes for `0.0`. Issue #296 R20: a record or
+/// variant channel value recurses field by field in canonical declared
+/// order, still by bits for any nested float, rather than falling through to
+/// `Value`'s own derived `PartialEq` (which would compare a nested `NaN`
+/// field by IEEE equality and spuriously report drift for a bit-identical
+/// replay).
 fn scalar_values_equal(left: &Value, right: &Value) -> bool {
     match (left, right) {
         (Value::Float32(left), Value::Float32(right)) => left.to_bits() == right.to_bits(),
         (Value::Float64(left), Value::Float64(right)) => left.to_bits() == right.to_bits(),
+        (Value::Record(left), Value::Record(right)) => {
+            left.record == right.record
+                && left.fields.len() == right.fields.len()
+                && left.fields.iter().zip(right.fields.iter()).all(
+                    |((left_id, left), (right_id, right))| {
+                        left_id == right_id && scalar_values_equal(left, right)
+                    },
+                )
+        }
+        (Value::Variant(left), Value::Variant(right)) => {
+            left.ty == right.ty
+                && left.variant == right.variant
+                && left.case == right.case
+                && left.fields.len() == right.fields.len()
+                && left.fields.iter().zip(right.fields.iter()).all(
+                    |((left_id, left), (right_id, right))| {
+                        left_id == right_id && scalar_values_equal(left, right)
+                    },
+                )
+        }
         (left, right) => argument_of(left).is_some() && left == right,
     }
 }
 
+/// One bounded Copy-scalar `yields` request or response value (issue #296
+/// R20): either a bare admitted scalar, or a value of the shape
+/// `hir::yield_aggregate::bounded_aggregate_refusal` admits -- a record's
+/// own fields, or a variant's selected case's own fields, in canonical
+/// declared field order, one level deep by construction. `channel.rs`'s
+/// sequential-channel evaluation is the only lane that ever produces or
+/// consumes `Record`/`Variant`; every other lane's request/answer stays
+/// `Scalar` (an admitted `ArgumentValue`), the exact profile this type
+/// otherwise matches.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ResumableChannelValue {
+    Scalar(ArgumentValue),
+    Record {
+        declaration: hir::DeclarationId,
+        fields: Vec<ArgumentValue>,
+    },
+    Variant {
+        declaration: hir::DeclarationId,
+        case: hir::DeclarationId,
+        fields: Vec<ArgumentValue>,
+    },
+}
+
+impl From<ArgumentValue> for ResumableChannelValue {
+    fn from(value: ArgumentValue) -> Self {
+        Self::Scalar(value)
+    }
+}
+
+/// The [`ResumableChannelValue`] a runtime `Value` denotes, in the
+/// declaration index's own canonical field order. `None` for a carrier this
+/// admitted profile never puts at a yield boundary (a borrow, a resource, an
+/// owned `Bytes`/`Vec`/`Box`, or a field that is itself one of those).
+fn channel_of(
+    declarations: &hir::DeclarationIndex,
+    value: &Value,
+) -> Option<ResumableChannelValue> {
+    match value {
+        Value::Record(record) => {
+            let canonical = declarations.record_fields(&record.record)?;
+            let fields = canonical
+                .iter()
+                .map(|field| record.fields.get(&field.id).and_then(argument_of))
+                .collect::<Option<Vec<_>>>()?;
+            Some(ResumableChannelValue::Record {
+                declaration: record.record.clone(),
+                fields,
+            })
+        }
+        Value::Variant(variant) => {
+            let canonical = declarations.case_fields(&variant.case)?;
+            let fields = canonical
+                .iter()
+                .map(|field| variant.fields.get(&field.id).and_then(argument_of))
+                .collect::<Option<Vec<_>>>()?;
+            Some(ResumableChannelValue::Variant {
+                declaration: variant.variant.clone(),
+                case: variant.case.clone(),
+                fields,
+            })
+        }
+        other => argument_of(other).map(ResumableChannelValue::Scalar),
+    }
+}
+
+/// The exact runtime `Value` a [`ResumableChannelValue`] denotes at
+/// `declared`, or `None` when the two disagree: a wrong declaration or case
+/// identity, a field-count mismatch, or a field outside the admitted scalar
+/// profile. Deliberately total and exact, mirroring [`scalar_of`]: no
+/// coercion, and the declared type's own identity -- not merely its field
+/// count -- must match, so a channel value manufactured for one nominal type
+/// can never be replayed in as another.
+fn value_of_channel(
+    declarations: &hir::DeclarationIndex,
+    declared: &ResolvedType,
+    supplied: &ResumableChannelValue,
+) -> Option<Value> {
+    match supplied {
+        ResumableChannelValue::Scalar(argument) => scalar_of(declared, argument),
+        ResumableChannelValue::Record {
+            declaration,
+            fields,
+        } => {
+            let ResolvedType::Nominal {
+                declaration: expected,
+                arguments,
+            } = declared
+            else {
+                return None;
+            };
+            if expected != declaration || !arguments.is_empty() {
+                return None;
+            }
+            let canonical = declarations.record_fields(declaration)?;
+            if canonical.len() != fields.len() {
+                return None;
+            }
+            let mut built = std::collections::BTreeMap::new();
+            for (field, argument) in canonical.iter().zip(fields) {
+                built.insert(field.id.clone(), scalar_of(&field.ty, argument)?);
+            }
+            Some(Value::Record(std::sync::Arc::new(OwnedRecordValue {
+                record: declaration.clone(),
+                fields: built,
+            })))
+        }
+        ResumableChannelValue::Variant {
+            declaration,
+            case,
+            fields,
+        } => {
+            let ResolvedType::Nominal {
+                declaration: expected,
+                arguments,
+            } = declared
+            else {
+                return None;
+            };
+            if expected != declaration || !arguments.is_empty() {
+                return None;
+            }
+            let cases = declarations.variant_cases(declaration)?;
+            if !cases.iter().any(|candidate| &candidate.id == case) {
+                return None;
+            }
+            let canonical = declarations.case_fields(case)?;
+            if canonical.len() != fields.len() {
+                return None;
+            }
+            let mut built = std::collections::BTreeMap::new();
+            for (field, argument) in canonical.iter().zip(fields) {
+                built.insert(field.id.clone(), scalar_of(&field.ty, argument)?);
+            }
+            Some(Value::Variant(std::sync::Arc::new(OwnedVariantValue {
+                ty: declared.clone(),
+                variant: declaration.clone(),
+                case: case.clone(),
+                fields: built,
+            })))
+        }
+    }
+}
+
+/// The [`ResumableScalar`] one [`ResumableChannelValue`] denotes, for the
+/// suspension binding hash. `None` when a field is outside the admitted
+/// scalar profile (unreachable for a value this module itself produced, but
+/// never assumed).
+fn channel_to_resumable_scalar(value: &ResumableChannelValue) -> Option<ResumableScalar> {
+    Some(match value {
+        ResumableChannelValue::Scalar(scalar) => resumable_scalar_of(scalar)?,
+        ResumableChannelValue::Record { fields, .. } => ResumableScalar::Record(
+            fields
+                .iter()
+                .map(resumable_scalar_of)
+                .collect::<Option<Vec<_>>>()?,
+        ),
+        ResumableChannelValue::Variant { case, fields, .. } => ResumableScalar::Variant {
+            case: case.as_str().to_owned(),
+            fields: fields
+                .iter()
+                .map(resumable_scalar_of)
+                .collect::<Option<Vec<_>>>()?,
+        },
+    })
+}
+
+/// Check one resume channel value against its declared type before the
+/// program runs. Mirrors [`typed_resume_value`], widened to
+/// [`ResumableChannelValue`].
+fn typed_resume_channel_value(
+    declarations: &hir::DeclarationIndex,
+    declared: &ResolvedType,
+    supplied: &ResumableChannelValue,
+    role: &str,
+) -> Result<Value, Vec<Diagnostic>> {
+    value_of_channel(declarations, declared, supplied).ok_or_else(|| {
+        vec![Diagnostic::io(
+            RESUME_TYPE_MISMATCH,
+            format!("resume {role} does not have the declared `yields` {role} type"),
+        )]
+    })
+}
+
+pub mod channel;
 pub mod control;
 #[cfg(test)]
 mod tests;

@@ -3,6 +3,9 @@ use super::super::{
     AssuranceManifestOptions,
 };
 use super::*;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 const SOURCE: &str = r#"
 module test.resumable_assurance;
@@ -51,10 +54,7 @@ fn write_source(source: &str) -> std::path::PathBuf {
     let path = std::env::temp_dir().join(format!(
         "semaprax-resumable-assurance-{}-{}.spx",
         std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
+        COUNTER.fetch_add(1, Ordering::SeqCst)
     ));
     std::fs::write(&path, source).unwrap();
     path

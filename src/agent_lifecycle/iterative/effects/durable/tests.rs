@@ -80,6 +80,19 @@ fn backend_label(selector: u8) -> &'static str {
     }
 }
 
+fn held_wasm_target() -> super::super::WasmTargetHost {
+    std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain([
+            std::path::PathBuf::from("/usr/bin/node"),
+            std::path::PathBuf::from("/usr/local/bin/node"),
+            std::path::PathBuf::from("/opt/homebrew/bin/node"),
+        ])
+        .find_map(|path| super::super::WasmTargetHost::open(path).ok())
+        .expect("durable target test requires an explicit held Node runtime")
+}
+
 /// The three claimed target routes, for cross-backend checkpoint parity.
 /// Native `-O2` is intentionally excluded here: it is the same executor and
 /// registry as `-O0`, already exercised per-backend above, and adding it
@@ -163,8 +176,107 @@ fn run_on_with_fuel(
     )
 }
 
+fn run_selected(
+    compiled: &CompiledTypedEffects,
+    handler: &mut Handler,
+    store: &mut Store,
+    retained: Option<&str>,
+    selected: super::super::TargetStageBackend<'_>,
+) -> Result<DurableTypedRun, DurableTypedFailure> {
+    compiled.run_durable_with_backend(
+        &task(),
+        &proposals(compiled),
+        handler,
+        IterativeBudget::default(),
+        budget(),
+        &AgentCancellation::new(),
+        &root(),
+        &root(),
+        retained,
+        store,
+        10_000_000,
+        selected,
+    )
+}
+
+#[test]
+fn public_durable_selector_replays_a_partial_checkpoint_across_targets() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
+    let native_fixture = crate::agent_lifecycle::tests::native_stage_host()
+        .expect("public durable selector needs a held native compiler");
+    let native = super::super::NativeTargetHost::open(native_fixture.compiler_path())
+        .expect("public native target reopens the held compiler");
+    let wasm = held_wasm_target();
+    let source = super::super::tests::typed_effect_source();
+    let compiled = super::super::tests::compile_from_source(&source);
+    let targets = [
+        super::super::TargetStageBackend::Interpreter,
+        super::super::TargetStageBackend::Native(&native),
+        super::super::TargetStageBackend::CoreWasmHeld(&wasm),
+    ];
+    let mut handler = Handler::default();
+    let mut store = Store {
+        fail_at: Some(11),
+        ..Default::default()
+    };
+    assert!(run_selected(&compiled, &mut handler, &mut store, None, targets[1]).is_err());
+    let retained = store.document.clone();
+    assert!(!retained.is_empty());
+    for selected in targets {
+        let mut handler = Handler::default();
+        let mut store = Store {
+            document: retained.clone(),
+            ..Default::default()
+        };
+        let restored = run_selected(
+            &compiled,
+            &mut handler,
+            &mut store,
+            Some(&retained),
+            selected,
+        )
+        .expect("public selector restores the exact partial checkpoint");
+        assert_eq!(
+            restored.run().lifecycle().status(),
+            IterativeStatus::Complete
+        );
+        assert_eq!(handler.calls, 1, "only outstanding dispatch may run");
+    }
+}
+
+#[test]
+fn held_wasm_durable_selector_refuses_missing_retained_source_before_store_or_host() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
+    let source = super::super::tests::typed_effect_source();
+    let mut compiled = super::super::tests::compile_from_source(&source);
+    compiled.target_source = None;
+    let wasm = held_wasm_target();
+    let mut handler = Handler::default();
+    let mut store = Store::default();
+    let failure = run_selected(
+        &compiled,
+        &mut handler,
+        &mut store,
+        None,
+        super::super::TargetStageBackend::CoreWasmHeld(&wasm),
+    )
+    .err()
+    .expect("missing retained source must refuse before checkpoint work");
+    assert!(failure.diagnostics()[0]
+        .message
+        .contains("backend.wasm_source"));
+    assert_eq!((handler.calls, store.commits), (0, 0));
+}
+
 #[test]
 fn native_o0_o2_durable_recovery_replays_the_checked_grant_without_a_second_handler_call() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let module_source = super::super::tests::typed_effect_source();
     let compiled = super::super::tests::compile_from_source(&module_source);
     for selector in [0, 1] {
@@ -205,6 +317,9 @@ fn native_o0_o2_durable_recovery_replays_the_checked_grant_without_a_second_hand
 
 #[test]
 fn core_wasm_durable_recovery_replays_without_host_delivery() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let module_source = super::super::tests::typed_effect_source();
     let compiled = super::super::tests::compile_from_source(&module_source);
     let mut handler = Handler::default();
@@ -351,6 +466,9 @@ fn retained_failure_replays_without_handler_and_wrong_root_rejects_before_store(
 
 #[test]
 fn target_backends_retain_terminal_failures_and_lost_acks_without_redelivery() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let module_source = super::super::tests::typed_effect_source();
     let compiled = super::super::tests::compile_from_source(&module_source);
     for selector in [0, 1, 2] {
@@ -437,6 +555,9 @@ fn target_backends_retain_terminal_failures_and_lost_acks_without_redelivery() {
 
 #[test]
 fn target_backend_fuel_refusal_cannot_replay_or_refund_handler_work() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     let module_source = super::super::tests::typed_effect_source();
     let compiled = super::super::tests::compile_from_source(&module_source);
     for selector in [0, 1, 2] {
@@ -745,11 +866,13 @@ fn hostile_checkpoints_are_refused_identically_on_every_backend() {
 
 /// R15 #293: the migration-seeded route ("migration ... target-parity")
 /// gains the same backend selector as the ordinary checkpoint route.
-/// Production migration resume (`run_durable_from_seed`) is unchanged and
-/// stays interpreter-only; this is local parity evidence only, exactly like
-/// `checkpoint_bytes_are_target_neutral_across_the_full_backend_matrix`.
+/// The production selected migration route uses the same checked seed and
+/// journal; this remains local target evidence only.
 #[test]
 fn migration_seeded_checkpoint_restores_on_a_different_backend_than_it_saved_on() {
+    if !crate::agent_lifecycle::tests::stage_process_host_supported() {
+        return;
+    }
     use crate::execution_revision::root as execution_root;
     use crate::execution_revision::typed::migration::MigrationSeed;
     use crate::hir::DeclarationId;
@@ -757,6 +880,9 @@ fn migration_seeded_checkpoint_restores_on_a_different_backend_than_it_saved_on(
 
     let native_host = crate::agent_lifecycle::tests::native_stage_host()
         .expect("migration backend parity requires an explicit held compiler");
+    let public_native = super::super::NativeTargetHost::open(native_host.compiler_path())
+        .expect("migration selector reopens the held compiler");
+    let held_wasm = held_wasm_target();
     let module_source = super::super::tests::typed_effect_source();
     let compiled = super::super::tests::compile_from_source(&module_source);
 
@@ -795,14 +921,24 @@ fn migration_seeded_checkpoint_restores_on_a_different_backend_than_it_saved_on(
     let mut expected_status = None;
     let mut expected_value = None;
     let mut retained: Option<String> = None;
-    for (label, backend) in matrix_backends(&module_source, &native_host) {
+    for (label, selected) in [
+        ("interpreter", super::super::TargetStageBackend::Interpreter),
+        (
+            "native -O0",
+            super::super::TargetStageBackend::Native(&public_native),
+        ),
+        (
+            "Core Wasm",
+            super::super::TargetStageBackend::CoreWasmHeld(&held_wasm),
+        ),
+    ] {
         let mut handler = Handler::default();
         let mut store = Store::default();
         if let Some(document) = &retained {
             store.document = document.clone();
         }
         let run = compiled
-            .run_durable_from_seed_on(
+            .run_durable_from_seed_with_backend(
                 &task(),
                 &proposals(&compiled),
                 &mut handler,
@@ -815,7 +951,7 @@ fn migration_seeded_checkpoint_restores_on_a_different_backend_than_it_saved_on(
                 &mut store,
                 10_000_000,
                 &seed,
-                backend,
+                selected,
             )
             .unwrap_or_else(|error| panic!("{label}: {error:?}"));
         assert_eq!(

@@ -301,9 +301,8 @@ impl CompiledIterativeLifecycle {
         )
     }
 
-    /// Local frozen-run parity only. Production and seeded callers retain the
-    /// interpreter; explicit Wasm source is data, never a filesystem lookup.
-    #[cfg(test)]
+    /// Run through one explicitly selected, held stage backend. The caller
+    /// still owns all host capabilities and the ordinary driver owns replay.
     pub(in crate::agent_lifecycle) fn run_with_driver_on(
         &self,
         task: &LifecycleTask,
@@ -316,12 +315,7 @@ impl CompiledIterativeLifecycle {
         self.run_with_driver_initial(task, proposals, driver, budget, cancellation, None, backend)
     }
 
-    /// Local migration-seeded parity only, symmetric with [`Self::run_with_driver_on`].
-    /// Production migration resume (`run_with_driver_seed`) retains the
-    /// interpreter; this proves the same seeded State/policy binding and
-    /// budget-continuation checks hold when the destination stage dispatch is
-    /// selected explicitly instead.
-    #[cfg(test)]
+    /// Migration-seeded counterpart of [`Self::run_with_driver_on`].
     #[allow(clippy::too_many_arguments)]
     pub(in crate::agent_lifecycle) fn run_with_driver_seed_on(
         &self,

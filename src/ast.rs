@@ -3,8 +3,8 @@ use std::{fmt, mem};
 #[path = "ast/session_protocol.rs"]
 mod session_protocol;
 pub use session_protocol::{
-    SessionProtocolDeclaration, SessionProtocolKind, SessionProtocolName, SessionProtocolNext,
-    SessionProtocolTerminal, SessionProtocolTransition,
+    SessionProtocolDeclaration, SessionProtocolFollowsClause, SessionProtocolKind,
+    SessionProtocolName, SessionProtocolNext, SessionProtocolTerminal, SessionProtocolTransition,
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -726,6 +726,15 @@ pub struct Function {
     /// Resumable Effects v1 (issue #204): `yields Request -> Response`.
     /// `None` for every ordinary function. See [`YieldsClause`].
     pub yields: Option<YieldsClause>,
+    /// Endpoint typestate checking (issue #297 follow-on): `follows session
+    /// protocol "<protocol-id>"`. `None` for every function that does not
+    /// opt in (every function before this feature existed, and almost every
+    /// function afterwards). Boxed because `Function` itself is charged by
+    /// its own fixed footprint at every builder-bytes pre-charge and live
+    /// resolve: an inline clause would bill every function in every checked
+    /// program for this rare opt-in, not only the ones that use it. See
+    /// [`SessionProtocolFollowsClause`].
+    pub follows: Option<Box<SessionProtocolFollowsClause>>,
     pub requires: Vec<Expr>,
     pub ensures: Vec<Expr>,
     pub body: Expr,

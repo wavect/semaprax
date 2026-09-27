@@ -34,6 +34,7 @@ pub struct SourceEffectSignature {
     yield_count: u32,
     control_dependent: bool,
     carries_owned_bytes: bool,
+    aggregate_channel: bool,
     table: EffectSignatureTable,
 }
 
@@ -71,6 +72,14 @@ impl SourceEffectSignature {
     /// v3. Always `false` for a sequential plan.
     pub fn carries_owned_bytes(&self) -> bool {
         self.carries_owned_bytes
+    }
+
+    /// True when the request or response type is a bounded record/variant
+    /// of Copy scalars (issue #296 R20) rather than a bare Copy scalar.
+    /// Admitted only for the direct top-level (sequential) placement, so
+    /// this is always `false` when [`Self::is_control_dependent`] is `true`.
+    pub fn is_aggregate_channel(&self) -> bool {
+        self.aggregate_channel
     }
 
     pub fn table(&self) -> &EffectSignatureTable {
@@ -129,8 +138,8 @@ pub fn derive_source_effect_signature(
         .yields
         .as_ref()
         .ok_or_else(|| invalid("selected function has no `yields` clause"))?;
-    let request_shape = source_shape(&yields.request_type)?;
-    let answer_shape = source_shape(&yields.response_type)?;
+    let request_shape = source_shape(&program.declarations, &yields.request_type)?;
+    let answer_shape = source_shape(&program.declarations, &yields.response_type)?;
     let effect = EffectSignature::new(function.id.as_str(), &request_shape, &answer_shape);
     let table = EffectSignatureTable::new(vec![effect]).map_err(|error| {
         invalid(format!(
@@ -139,6 +148,8 @@ pub fn derive_source_effect_signature(
     })?;
     let yield_count = u32::try_from(site_count)
         .map_err(|_| invalid("resumable yield count does not fit its public field"))?;
+    let aggregate_channel = matches!(yields.request_type, ResolvedType::Nominal { .. })
+        || matches!(yields.response_type, ResolvedType::Nominal { .. });
     Ok(SourceEffectSignature {
         function_id: function.id.as_str().to_owned(),
         request_shape,
@@ -147,6 +158,7 @@ pub fn derive_source_effect_signature(
         yield_count,
         control_dependent,
         carries_owned_bytes,
+        aggregate_channel,
         table,
     })
 }
@@ -162,10 +174,23 @@ fn selected_function<'a>(
         .ok_or_else(|| invalid(format!("resumable function `{function_id}` was not found")))
 }
 
-fn source_shape(ty: &ResolvedType) -> Result<String, Diagnostic> {
-    if !crate::hir::is_scalar_resolved_type(ty) {
+fn source_shape(
+    declarations: &crate::hir::DeclarationIndex,
+    ty: &ResolvedType,
+) -> Result<String, Diagnostic> {
+    // Issue #296 R20: a bounded record/variant of Copy scalars
+    // (`hir::yield_aggregate::bounded_aggregate_refusal`) is an admitted
+    // shape alongside a bare Copy scalar; `hir::resolve_yield` already
+    // checked it for the direct top-level (sequential) placement this
+    // derivation reuses. The `identity_key()` shape string already
+    // distinguishes any two distinct nominal types, so no separate encoding
+    // is needed for the aggregate case.
+    let is_bounded_aggregate = matches!(ty, ResolvedType::Nominal { .. })
+        && crate::hir::yield_aggregate::bounded_aggregate_refusal(declarations, ty).is_ok();
+    if !crate::hir::is_scalar_resolved_type(ty) && !is_bounded_aggregate {
         return Err(invalid(format!(
-            "source effect signature type `{}` is outside the Copy-scalar profile",
+            "source effect signature type `{}` is outside the admitted Copy-scalar or bounded \
+             aggregate profile",
             ty.identity_key()
         )));
     }

@@ -318,6 +318,44 @@ fn migrated(
 }
 
 #[test]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn selected_migration_runs_with_held_wasm_and_commits_checkpoint() {
+    use semaprax::agent_lifecycle::iterative::effects::{TargetStageBackend, WasmTargetHost};
+
+    let a = first();
+    let b = successor(&a, "State", "StateB", "b", &["marker"], false);
+    let (migration, _, _) = migrated(&a, &b);
+    // The selected route uses the destination's retained source and held Node.
+    let node = std::env::var_os("SEMAPRAX_TEST_WASM_STAGE_NODE")
+        .map(std::path::PathBuf::from)
+        .into_iter()
+        .chain([
+            std::path::PathBuf::from("/usr/bin/node"),
+            std::path::PathBuf::from("/usr/local/bin/node"),
+            std::path::PathBuf::from("/opt/homebrew/bin/node"),
+        ])
+        .find_map(|path| WasmTargetHost::open(path).ok())
+        .expect("selected migration test requires an explicit held Node runtime");
+    let mut host = handler();
+    let mut store = Store::default();
+    let complete = migration
+        .run_durable_with_backend(
+            &mut host,
+            &AgentCancellation::new(),
+            &mut store,
+            TargetStageBackend::CoreWasmHeld(&node),
+        )
+        .expect("held Core Wasm must run the checked migration destination");
+    assert_eq!(
+        complete.run().run().lifecycle().status(),
+        IterativeStatus::Complete
+    );
+    assert_eq!(host.calls.len(), 3);
+    assert!(store.commits > 0);
+    assert_eq!(complete.checkpoint(), store.document);
+}
+
+#[test]
 fn migrated_durable_complete_and_full_replay_preserve_payload_and_charges() {
     let a = first();
     let b = successor(&a, "State", "StateB", "b", &["marker"], false);

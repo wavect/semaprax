@@ -287,7 +287,7 @@ fn main() -> i64 { 0 }
         (INJECTED_SOURCE, &injected_program, &injected_prepared),
     ] {
         let cancelled = run_admitted(
-            &host,
+            Some(&host),
             source,
             program,
             prepared,
@@ -302,7 +302,7 @@ fn main() -> i64 { 0 }
 
         for max_steps in [0, 1_000_001] {
             let budget = run_admitted(
-                &host,
+                Some(&host),
                 source,
                 program,
                 prepared,

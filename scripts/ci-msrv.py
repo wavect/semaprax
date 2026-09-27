@@ -5,11 +5,14 @@ import argparse
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
 SHARDS = ("unit", "integration-0", "integration-1", "integration-2", "integration-3", "integration-4")
+HEAVY_UNIT_SHARD = "unit-heavy"
+HEAVY_UNIT_FILTERS = ("kernel_zero::differential::", "workspace_graph::tests::")
 TEST = ["cargo", "test", "--locked", "--workspace", "--all-features"]
 
 
@@ -23,6 +26,51 @@ def cargo_environment(environment=None, executable=None):
         raise ValueError("SEMAPRAX_TEST_PYTHON must select an absolute Python file")
     environment["SEMAPRAX_TEST_PYTHON"] = str(path)
     return environment
+
+
+def macos_test_git(environment, discover=shutil.which):
+    """Select the real Git binary for held-process tests, never Apple's shim."""
+    selected = environment.get("SEMAPRAX_TEST_GIT")
+    if selected is None:
+        discovered = discover("git")
+        selected = next(
+            (
+                candidate for candidate in (
+                    discovered,
+                    "/opt/homebrew/bin/git",
+                    "/usr/local/bin/git",
+                )
+                if candidate and Path(candidate).is_file()
+                and Path(candidate).resolve() != Path("/usr/bin/git")
+            ),
+            discovered,
+        )
+    if selected is None:
+        raise ValueError("macOS Git tests require a selected executable")
+    path = Path(selected)
+    if not path.is_absolute() or not path.is_file():
+        raise ValueError("SEMAPRAX_TEST_GIT must select an absolute Git file")
+    path = path.resolve()
+    if path == Path("/usr/bin/git"):
+        raise ValueError("macOS Git tests require the real Git binary, not the xcrun shim")
+    environment["SEMAPRAX_TEST_GIT"] = str(path)
+    return environment
+
+
+def without_dedicated_windows_agent_runtime(shard):
+    """Route this one target to its own Windows job without running it twice."""
+    if shard["name"] != "integration-3" or [
+        target["name"] for target in shard["targets"]
+    ].count("agent_runtime_v1") != 1:
+        raise ValueError("Windows agent runtime split requires its exact integration-3 target")
+    command = list(shard["command"])
+    position = command.index("agent_runtime_v1")
+    if command[position - 1] != "--test":
+        raise ValueError("Windows agent runtime target is not a Cargo test selector")
+    del command[position - 1:position + 1]
+    if "--test" not in command:
+        raise ValueError("Windows agent runtime split would empty its shard")
+    return command
 
 
 def plan(metadata, excluded_packages=()):
@@ -96,9 +144,10 @@ def plan(metadata, excluded_packages=()):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--shard", choices=SHARDS)
+    parser.add_argument("--shard", choices=(*SHARDS, HEAVY_UNIT_SHARD))
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--exclude-package", action="append", default=[])
+    parser.add_argument("--split-windows-agent-runtime", action="store_true")
     parser.add_argument("--nocapture", action="store_true")
     parser.add_argument("--label", default="MSRV")
     args = parser.parse_args(argv)
@@ -113,12 +162,40 @@ def main(argv=None):
     if args.plan_only:
         print(json.dumps(selected_plan, sort_keys=True))
         return 0
-    shard = next(shard for shard in selected_plan["shards"] if shard["name"] == args.shard)
-    print(f"{args.label} {args.shard}: {len(shard['targets'])} workspace targets", flush=True)
+    shard = next((shard for shard in selected_plan["shards"] if shard["name"] == args.shard), None)
+    if args.shard == HEAVY_UNIT_SHARD:
+        if args.split_windows_agent_runtime:
+            raise ValueError("agent runtime split does not apply to heavy unit tests")
+        for test_filter in HEAVY_UNIT_FILTERS:
+            command = ["cargo", "test", "--locked", "-p", "semaprax", "--all-features", "--lib", test_filter]
+            if args.nocapture:
+                command += ["--", "--nocapture"]
+            print(f"{args.label} {args.shard}: {test_filter}", flush=True)
+            result = subprocess.run(command, cwd=ROOT, env=cargo_env, check=False)
+            if result.returncode:
+                return result.returncode
+        return 0
+    assert shard is not None
+    if args.split_windows_agent_runtime and not (
+        os.name == "nt" and args.label == "Rust Windows" and args.shard == "integration-3"
+    ):
+        raise ValueError("agent runtime split is only valid for Rust Windows integration-3")
+    command = (
+        without_dedicated_windows_agent_runtime(shard)
+        if args.split_windows_agent_runtime
+        else list(shard["command"])
+    )
+    target_count = len(shard["targets"]) - int(args.split_windows_agent_runtime)
+    print(f"{args.label} {args.shard}: {target_count} workspace targets", flush=True)
 
     test_arguments = []
     if args.nocapture:
         test_arguments.append("--nocapture")
+    if args.shard == "unit":
+        # These two expensive semaprax lib-test families run in unit-heavy.
+        # Each test name is in exactly one side of this partition.
+        for test_filter in HEAVY_UNIT_FILTERS:
+            test_arguments.extend(("--skip", test_filter))
     if os.name == "nt" and args.label == "Rust Windows" and args.shard.startswith("integration-"):
         # C ABI fixtures allocate a 1 MiB aligned context on the stack, which
         # leaves no headroom under the Windows linker's 1 MiB default stack
@@ -139,22 +216,27 @@ def main(argv=None):
         # The LINK assignment above already covers the stack reserve.
         if "--test-threads=1" not in test_arguments:
             test_arguments.append("--test-threads=1")
-    if os.name == "nt" and args.label == "Rust Windows" and args.shard == "integration-3":
+    if os.name == "nt" and args.label == "Rust Windows" and args.shard == "integration-3" and not args.split_windows_agent_runtime:
         # The typed execution-revision corpus runs in AGENT-06 on Windows.
         # Keeping it here as well exceeded the hosted six-hour job ceiling.
         test_arguments.extend(("--skip", "execution_revision::typed::"))
+    if sys.platform == "darwin" and args.label == "Rust macOS" and args.shard == "unit":
+        # The same repair module runs in its own macOS release blocker, so
+        # its longer V2 deadline cannot push this near-six-hour shard over.
+        test_arguments.extend(("--skip", "source_live_cli::repair::tests::"))
     if (
         sys.platform == "darwin"
         and args.label == "Rust macOS"
         and any(target["name"] == "project" for target in shard["targets"])
     ):
-        # macOS /usr/bin/git is an xcrun shim. The bounded Git publication
-        # fixtures clear their environment, and concurrent shim invocations can
-        # exit 1 without output. Drive this merged harness one test at a time.
+        # The bounded Git fixtures clear their environment, so explicitly
+        # select the real binary before dispatch. Apple's /usr/bin/git shim
+        # can intermittently fail even when the host Git process is healthy.
+        macos_test_git(cargo_env)
         test_arguments.append("--test-threads=1")
 
     # One Cargo invocation; preserve its first failure and exact exit status.
-    command = shard["command"] + (["--", *test_arguments] if test_arguments else [])
+    command += ["--", *test_arguments] if test_arguments else []
     return subprocess.run(
         command, cwd=ROOT, env=cargo_env, check=False
     ).returncode

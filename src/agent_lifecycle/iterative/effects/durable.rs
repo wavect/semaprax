@@ -405,6 +405,93 @@ impl IterativeDriver for DurableDriver<'_> {
 }
 
 impl CompiledTypedEffects {
+    /// Run a durable checked lifecycle on an explicitly held target. The
+    /// selected target does not enter checkpoint identity; replay and store
+    /// ownership remain the same as for the interpreter entry.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_durable_with_backend(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        handler: &mut dyn TypedEffectHandler,
+        stages: IterativeBudget,
+        effects: EffectBudget,
+        cancellation: &AgentCancellation,
+        execution_revision_digest: &str,
+        program_root_digest: &str,
+        retained_checkpoint: Option<&str>,
+        store: &mut dyn CheckpointStore,
+        max_reserved_fuel: u64,
+        selected: super::TargetStageBackend<'_>,
+    ) -> Result<DurableTypedRun, DurableTypedFailure> {
+        let backend = self.durable_backend(selected, retained_checkpoint)?;
+        self.run_durable_inner(
+            task,
+            proposals,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            execution_revision_digest,
+            program_root_digest,
+            retained_checkpoint,
+            store,
+            max_reserved_fuel,
+            None,
+            Some(backend),
+        )
+    }
+
+    fn durable_backend<'a>(
+        &'a self,
+        selected: super::TargetStageBackend<'a>,
+        retained_checkpoint: Option<&str>,
+    ) -> Result<crate::agent_lifecycle::authorization::StageBackend<'a>, DurableTypedFailure> {
+        use crate::agent_lifecycle::authorization::StageBackend;
+        let backend = match selected {
+            super::TargetStageBackend::Interpreter => StageBackend::Interpreter,
+            super::TargetStageBackend::Native(host) => StageBackend::Native { host: &host.host },
+            #[cfg(test)]
+            super::TargetStageBackend::CoreWasm => {
+                let source = self
+                    .target_source
+                    .as_deref()
+                    .ok_or_else(|| DurableTypedFailure {
+                        diagnostics: diagnostic("backend.wasm_source"),
+                        terminal: None,
+                        checkpoint: retained_checkpoint.unwrap_or("").to_owned(),
+                    })?;
+                StageBackend::Wasm { source }
+            }
+            super::TargetStageBackend::CoreWasmHeld(host) => {
+                let source = self
+                    .target_source
+                    .as_deref()
+                    .ok_or_else(|| DurableTypedFailure {
+                        diagnostics: diagnostic("backend.wasm_source"),
+                        terminal: None,
+                        checkpoint: retained_checkpoint.unwrap_or("").to_owned(),
+                    })?;
+                StageBackend::WasmHeld {
+                    host: &host.host,
+                    source,
+                }
+            }
+        };
+        Ok(backend)
+    }
+
+    /// Validate a selected destination before a migration handoff can stage
+    /// its first checkpoint. This is read-only and grants no dispatch.
+    pub(crate) fn validate_durable_backend(
+        &self,
+        selected: super::TargetStageBackend<'_>,
+    ) -> Result<(), Vec<Diagnostic>> {
+        self.durable_backend(selected, None)
+            .map(|_| ())
+            .map_err(|failure| failure.diagnostics)
+    }
+
     /// `retained_checkpoint` must be read from the caller-authorized trusted
     /// store under exclusive writer authority. Hashes cannot authenticate
     /// caller-fabricated host observations. Root strings are binding inputs;
@@ -520,11 +607,7 @@ impl CompiledTypedEffects {
         )
     }
 
-    /// Local backend-parity entry for the migration-seeded durable route,
-    /// symmetric with [`Self::run_durable_on`]. Production migration resume
-    /// (`run_durable_from_seed`) retains the interpreter; this proves the
-    /// same seed-continuation budgets and checkpoint identity hold when the
-    /// destination stage dispatch is selected explicitly instead.
+    /// Local backend-parity entry for the migration-seeded durable route.
     #[cfg(test)]
     #[allow(clippy::too_many_arguments)]
     pub(in crate::agent_lifecycle) fn run_durable_from_seed_on(
@@ -543,6 +626,42 @@ impl CompiledTypedEffects {
         seed: &MigrationSeed,
         backend: crate::agent_lifecycle::authorization::StageBackend<'_>,
     ) -> Result<DurableTypedRun, DurableTypedFailure> {
+        self.run_durable_inner(
+            task,
+            proposals,
+            handler,
+            stages,
+            effects,
+            cancellation,
+            execution_revision_digest,
+            program_root_digest,
+            retained_checkpoint,
+            store,
+            max_reserved_fuel,
+            Some(seed),
+            Some(backend),
+        )
+    }
+
+    /// Resume a checked migration seed on an explicitly held target.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn run_durable_from_seed_with_backend(
+        &self,
+        task: &LifecycleTask,
+        proposals: &[String],
+        handler: &mut dyn TypedEffectHandler,
+        stages: IterativeBudget,
+        effects: EffectBudget,
+        cancellation: &AgentCancellation,
+        execution_revision_digest: &str,
+        program_root_digest: &str,
+        retained_checkpoint: Option<&str>,
+        store: &mut dyn CheckpointStore,
+        max_reserved_fuel: u64,
+        seed: &MigrationSeed,
+        selected: super::TargetStageBackend<'_>,
+    ) -> Result<DurableTypedRun, DurableTypedFailure> {
+        let backend = self.durable_backend(selected, retained_checkpoint)?;
         self.run_durable_inner(
             task,
             proposals,
@@ -747,43 +866,23 @@ impl CompiledTypedEffects {
                 effective_stages,
                 cancellation,
             ),
-            (None, Some(backend)) => {
-                #[cfg(test)]
-                {
-                    self.lifecycle.run_with_driver_on(
-                        task,
-                        proposals,
-                        &mut driver,
-                        effective_stages,
-                        cancellation,
-                        backend,
-                    )
-                }
-                #[cfg(not(test))]
-                {
-                    let _ = backend;
-                    unreachable!("backend durable parity is test-only")
-                }
-            }
-            (Some(seed), Some(backend)) => {
-                #[cfg(test)]
-                {
-                    self.lifecycle.run_with_driver_seed_on(
-                        task,
-                        proposals,
-                        &mut driver,
-                        effective_stages,
-                        cancellation,
-                        seed,
-                        backend,
-                    )
-                }
-                #[cfg(not(test))]
-                {
-                    let (_, _) = (seed, backend);
-                    unreachable!("seeded backend durable parity is test-only")
-                }
-            }
+            (None, Some(backend)) => self.lifecycle.run_with_driver_on(
+                task,
+                proposals,
+                &mut driver,
+                effective_stages,
+                cancellation,
+                backend,
+            ),
+            (Some(seed), Some(backend)) => self.lifecycle.run_with_driver_seed_on(
+                task,
+                proposals,
+                &mut driver,
+                effective_stages,
+                cancellation,
+                seed,
+                backend,
+            ),
         };
         let checkpoint = driver.journal.canonical_json();
         let checkpoint_digest = driver.journal.digest();

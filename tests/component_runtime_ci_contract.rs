@@ -420,18 +420,31 @@ fn capability_and_dependency_policy_are_fail_closed() {
     let native = read(
         "platform-tests/component-runtime/src/public_generic_component_tests/parity/native.rs",
     );
+    // The column runs the compiler-derived nested-moves profile (issue #292,
+    // 8cb29463) over the descriptor the other columns verified, rather than
+    // re-deriving its own flat-moves endpoint.
     for required in [
         "SPX-B103",
-        "derive_admitted_public_generic_endpoint_v1",
-        "render_authenticated_moves_provider",
-        "generate_authenticated_moves_calling_consumer_v1",
-        "requires false",
+        "VerifiedPublicGenericDescriptor",
+        "render_authenticated_nested_moves_provider",
+        "generate_authenticated_nested_moves_calling_consumer_v1",
         "-O0",
         "-O2",
     ] {
         assert!(
             native.contains(required),
             "native parity column missing expected surface: {required}"
+        );
+    }
+    // The checked contract failure is asserted on both native optimization
+    // levels by the shared parity test instead of an inline `requires false`.
+    for required in [
+        "native_o0 != Outcome::ContractViolation",
+        "native_o2 != Outcome::ContractViolation",
+    ] {
+        assert!(
+            runner.contains(required),
+            "native contract-failure parity missing: {required}"
         );
     }
     for required in [

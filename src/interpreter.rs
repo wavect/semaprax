@@ -2447,7 +2447,8 @@ fn scan_closure(
                 Err(reject_scan(expression, REASON_RECORD_CONSTRUCTION))
             }
             ResolvedExprKind::ConstructVariant { .. }
-                if variant_constructor_is_admitted(declarations, expression) =>
+                if variant_constructor_is_admitted(declarations, expression)
+                    || nested_owned::bc_construct(declarations, expression) =>
             {
                 Ok(())
             }
@@ -2509,11 +2510,13 @@ fn scan_closure(
                 );
                 let owned_byte_variant = is_admitted_resolved_scalar(&expression.ty)
                     && variant_pattern_is_admitted(declarations, *mode, &scrutinee.ty, arms);
+                let agg = nested_owned::bc_match(declarations, *mode, &scrutinee.ty, arms);
                 if (!scalar
                     && !option_u8
                     && !owned_byte_record
                     && !owned_byte_variant
-                    && !owned_record_result)
+                    && !owned_record_result
+                    && !agg)
                     || (scalar && !patterns_admitted)
                     || arms.is_empty()
                 {
@@ -4286,7 +4289,7 @@ impl Evaluator<'_> {
                 case,
                 fields,
             } => {
-                if !is_admitted_owned_variant(self.declarations, &expression.ty) {
+                if !nested_owned::construct_ok(self.declarations, expression) {
                     return Err(Flow::Guard(
                         "variant construction is outside owned byte variant v1",
                     ));
@@ -4812,7 +4815,8 @@ impl Evaluator<'_> {
                     return outcome;
                 }
                 if let Value::Variant(variant) = staged {
-                    if !variant_pattern_is_admitted(self.declarations, *mode, &scrutinee.ty, arms) {
+                    let agg = nested_owned::bc_match(self.declarations, *mode, &scrutinee.ty, arms);
+                    if !nested_owned::variant_ok(self.declarations, *mode, &scrutinee.ty, arms) {
                         return Err(Flow::Guard(
                             "owned byte variant match is outside the authenticated profile",
                         ));
@@ -4918,6 +4922,14 @@ impl Evaluator<'_> {
                                 }
                                 bindings.push((field.binding.id.clone(), self.clone_value(value)?));
                             }
+                        }
+                        hir::ResolvedMatchMode::Value if agg => {
+                            bindings = nested_owned::bc_bind_fields(
+                                self,
+                                &declared_fields,
+                                fields,
+                                &variant,
+                            )?;
                         }
                         hir::ResolvedMatchMode::Value => {
                             if !is_admitted_fieldless_variant(self.declarations, &variant.ty)

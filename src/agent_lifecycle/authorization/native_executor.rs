@@ -104,6 +104,9 @@ impl NativeStageHost {
     /// Holds one caller-selected native compiler. The supplied path must be
     /// absolute; it is resolved once before the file is held.
     pub(in crate::agent_lifecycle) fn open(compiler: &Path) -> Result<Self, Diagnostic> {
+        if cfg!(windows) {
+            return Err(invariant("native_executor.host.unsupported"));
+        }
         if !compiler.is_absolute() {
             return Err(invariant("native_executor.host.compiler_path"));
         }
@@ -367,6 +370,11 @@ fn run_held(
     cancellation: Option<&crate::agent_runtime::AgentCancellation>,
     _invocation_path: Option<&Path>,
 ) -> Result<crate::process_provider::ProcessOutput, Diagnostic> {
+    // See `super::subprocess_test_serial` for why test builds hold this for
+    // the whole spawn+wait below: it keeps concurrent test threads from
+    // starving each other's subprocess past the fixed production deadline.
+    #[cfg(test)]
+    let _subprocess_test_serial = super::subprocess_test_serial();
     let tool = HeldProcessTool::new(
         executable,
         directory,

@@ -36,6 +36,13 @@ use crate::session_protocol::source;
 /// protocol; otherwise `render_graph_json` keeps emitting
 /// `WORKSPACE_GRAPH_SCHEMA` unchanged.
 pub(super) const SCHEMA_V2: &str = "semaprax.workspace-semantic-graph.v2";
+/// Schema selected only when at least one module has a function that opts
+/// into endpoint typestate checking with `follows` (issue #297 follow-on,
+/// R21) -- always a strict additional selection over [`SCHEMA_V2`], since a
+/// `follows` clause names a protocol declared in the same module
+/// (`SPX-K107` refuses anything else), so a workspace with at least one
+/// `follows` binding already selected `SCHEMA_V2`.
+pub(super) const SCHEMA_V3: &str = "semaprax.workspace-semantic-graph.v3";
 
 /// Bind one module's declared session protocols against its own checked HIR
 /// and return one canonical fact per declaration, in source order. A no-op
@@ -57,9 +64,36 @@ pub(super) fn declaration_facts(
         .collect())
 }
 
-/// `WORKSPACE_GRAPH_SCHEMA` when nothing was recorded, `SCHEMA_V2` otherwise.
-pub(super) fn schema(recorded: &[(String, String, String)]) -> &'static str {
-    if recorded.is_empty() {
+/// Issue #297 follow-on (R21): every function's `follows` clause of `program`
+/// as one canonical fact each, bound first against this same program's own
+/// declarations (`source::bind_follows`) -- the workspace-level analogue of
+/// `declaration_facts`'s own HIR binding. A no-op (empty result) for a
+/// program with no `follows` clause.
+pub(super) fn follows_facts(program: &Program) -> Result<Vec<String>, Vec<Diagnostic>> {
+    if !program
+        .functions
+        .iter()
+        .any(|function| function.follows.is_some())
+    {
+        return Ok(Vec::new());
+    }
+    source::bind_follows(program).map_err(|error| vec![error])?;
+    Ok(program
+        .functions
+        .iter()
+        .filter_map(source::follows_json)
+        .collect())
+}
+
+/// `WORKSPACE_GRAPH_SCHEMA` when nothing was recorded, `SCHEMA_V2` when only
+/// declarations were, `SCHEMA_V3` when at least one `follows` binding was.
+pub(super) fn schema(
+    recorded: &[(String, String, String)],
+    follows_recorded: &[(String, String, String)],
+) -> &'static str {
+    if !follows_recorded.is_empty() {
+        SCHEMA_V3
+    } else if recorded.is_empty() {
         super::WORKSPACE_GRAPH_SCHEMA
     } else {
         SCHEMA_V2
@@ -89,6 +123,36 @@ pub(super) fn render_trailing(recorded: &[(String, String, String)]) -> String {
         ",\"session_protocols\":{{\"base_schema\":{},\"authority\":\"none\",\"declarations\":[{}]}}",
         quote_json(super::WORKSPACE_GRAPH_SCHEMA),
         declarations
+    )
+}
+
+/// The trailing `,"session_protocol_follows":{...}` fragment, or an empty
+/// string when no `follows` binding was recorded -- so a workspace with no
+/// `follows` clause anywhere (including a declaration-only, `SCHEMA_V2`
+/// workspace) is byte-for-byte unaffected by this fact's existence.
+/// `base_schema` names [`SCHEMA_V2`], the schema this section's own facts
+/// extend, mirroring `render_trailing`'s own base-schema field one layer
+/// down.
+pub(super) fn render_follows_trailing(recorded: &[(String, String, String)]) -> String {
+    if recorded.is_empty() {
+        return String::new();
+    }
+    let bindings = recorded
+        .iter()
+        .map(|(module, path, fact)| {
+            format!(
+                "{{\"module\":{},\"path\":{},{}",
+                quote_json(module),
+                quote_json(path),
+                &fact[1..]
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        ",\"session_protocol_follows\":{{\"base_schema\":{},\"authority\":\"none\",\"bindings\":[{}]}}",
+        quote_json(SCHEMA_V2),
+        bindings
     )
 }
 
@@ -343,5 +407,100 @@ use function @id(\"fixture.session.begin\") from session_protocol.fixture.declar
             Ok(_) => panic!("a dangling via binding must not be silently admitted"),
         };
         assert!(change_error.iter().any(|error| error.code == "SPX-K104"));
+    }
+
+    // Issue #297 follow-on (R21): endpoint typestate `follows` bindings.
+
+    const FOLLOWS_A: &str = include_str!("../session_protocol/tests/fixtures/follows.spx");
+    const FOLLOWS_ENTRY: &str = "module session_protocol.fixture.follows_entry;\n\n\
+use function @id(\"fixture.follows.main\") from session_protocol.fixture.follows as follows_main;\n\n\
+@id(\"fixture.follows.entry_main\")\nfn main() -> i64 { follows_main() }\n";
+
+    fn without_follows(source: &str) -> String {
+        source.replacen(
+            "\n    follows session protocol \"fixture.follows.protocol\"\n",
+            "\n",
+            1,
+        )
+    }
+
+    fn snapshot_of_follows(declaring: &str) -> WorkspaceSemanticGraph {
+        let sources = vec![
+            source("a/follows.spx", declaring),
+            source("b/follows_entry.spx", FOLLOWS_ENTRY),
+        ];
+        let source_facts = sources
+            .iter()
+            .map(|source| {
+                (
+                    source.path.clone(),
+                    AuthenticatedSourceFact {
+                        path: source.path.clone(),
+                        source_graph_schema: "semaprax.semantic-graph.v14".to_owned(),
+                        source_revision: format!("revision:{}", source.path),
+                        source_digest: format!("sha256:{:064x}", source.source.len()),
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let authenticated = AuthenticatedWorkspaceGraphBuild {
+            workspace_revision: "sha256:workspace".to_owned(),
+            sources: source_facts,
+            storage: AuthenticatedWorkspaceStorageUsage {
+                manifest_bytes: 1,
+                retained_generations: 1,
+                staging_attempts: 1,
+                unexpected_inventory_entries: 0,
+            },
+            graph: build_owned(sources).expect("fixture workspace must validate"),
+        };
+        super::super::render_semantic_graph(
+            authenticated
+                .project("session_protocol.fixture.follows_entry")
+                .unwrap(),
+        )
+        .expect("authenticated projection must render")
+    }
+
+    #[test]
+    fn a_follows_using_workspace_selects_v3_and_carries_a_module_bound_binding() {
+        let graph = snapshot_of_follows(FOLLOWS_A);
+        let value: serde_json::Value = serde_json::from_str(graph.to_json()).unwrap();
+        assert_eq!(value["schema"], SCHEMA_V3);
+        // Still carries the base v2 declaration fact this binding names.
+        assert_eq!(
+            value["session_protocols"]["declarations"][0]["stable_id"],
+            "fixture.follows.protocol"
+        );
+        assert_eq!(value["session_protocol_follows"]["base_schema"], SCHEMA_V2);
+        assert_eq!(value["session_protocol_follows"]["authority"], "none");
+        let bindings = value["session_protocol_follows"]["bindings"]
+            .as_array()
+            .unwrap();
+        assert_eq!(bindings.len(), 1);
+        let fact = &bindings[0];
+        assert_eq!(fact["module"], "session_protocol.fixture.follows");
+        assert_eq!(fact["path"], "a/follows.spx");
+        assert_eq!(fact["function"], "fixture.follows.main");
+        assert_eq!(fact["protocol"], "fixture.follows.protocol");
+        assert_eq!(fact["result"], "typestate_checked");
+        assert_eq!(fact["authority"], "none");
+    }
+
+    #[test]
+    fn a_declaring_workspace_without_a_follows_clause_keeps_v2_with_no_follows_key() {
+        let graph = snapshot_of_follows(&without_follows(FOLLOWS_A));
+        let value: serde_json::Value = serde_json::from_str(graph.to_json()).unwrap();
+        assert_eq!(value["schema"], SCHEMA_V2);
+        assert!(value.get("session_protocol_follows").is_none());
+    }
+
+    #[test]
+    fn follows_facts_refuses_a_binding_naming_no_declared_protocol() {
+        let source = "module x;\n\n\
+@id(\"x.f\")\nfn f() -> i64\n    follows session protocol \"x.missing\"\n{ 0 }\n";
+        let program = crate::parse(source, "x.spx").unwrap();
+        let error = follows_facts(&program).unwrap_err();
+        assert_eq!(error[0].code, "SPX-K107");
     }
 }

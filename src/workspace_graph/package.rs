@@ -146,10 +146,12 @@ pub(crate) struct PackageWorkspaceModule {
     pub(crate) package: String,
     pub(crate) interface: ScalarPackageInterface,
     /// Canonical facts of this module's own declared session protocols
-    /// (issue #297 follow-on: Package Semantic Graph), already bound to this
-    /// module's own checked HIR by `retain_workspace_module` -- the identical
-    /// field the Workspace Semantic Graph's own `session_protocol_decl`
-    /// projects, reused unchanged rather than recomputed.
+    /// (issue #297) and endpoint typestate `follows` bindings (issue #297
+    /// follow-on, R21: Package Semantic Graph), already bound by
+    /// `retain_workspace_module` -- the identical field the Workspace
+    /// Semantic Graph's own `session_protocol_decl` projects, reused
+    /// unchanged rather than recomputed. A declaration fact starts
+    /// `{"stable_id":...`; a `follows` binding fact starts `{"function":...`.
     pub(crate) session_protocol_facts: Vec<String>,
 }
 

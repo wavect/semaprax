@@ -630,9 +630,9 @@ following omit declarations entirely, and nothing here claims otherwise:
   declarations. A function's `follows` clause (below) is checked and erased
   the same way, and grants no runtime authority either;
 - ordering attestation of any kind by `protocol_realizers_bound`;
-- a `follows`/typestate fact in any of the eight outputs named above, or in
-  the VS Code grammar -- see [Endpoint typestate
-  non-claims](#endpoint-typestate-non-claims);
+- a `follows`/typestate fact in Architecture Claims or the VS Code grammar --
+  see [Endpoint typestate non-claims](#endpoint-typestate-non-claims) for
+  which of the eight outputs above do carry one;
 - typestate checking of an endpoint *value*'s flow through locals, fields, or
   return positions (use-after-close, ownership) -- see [Endpoint typestate
   non-claims](#endpoint-typestate-non-claims). What issue #297 follow-on (R21)
@@ -835,12 +835,29 @@ program discipline.
   static call-order check only (`SPX-K107`..`SPX-K109`); never
   `model_checked`, and explicitly not runtime authority
   (`src/assurance_manifest/session_protocol.rs::follows_obligations`).
-- **`semaprax doc` and `semaprax query`.** Neither renders a `follows`
-  binding: both build their `session_protocol` entries directly from
-  `Program.session_protocols` (the declaration's own AST), not generically
-  from any of the graphs above, so there is no existing generic rendering
-  path this follow-on extends. Left unchanged; a `doc`/`query` fact for
-  `follows` is future, separately gated work.
+- **`semaprax doc` and `semaprax query` (R21 follow-on's own extension).**
+  `semaprax doc` renders the binding on both sides of it: a following
+  function's entry gains `Follows` (the protocol `@id`), `Typestate`
+  (`"typestate_checked"`), and `Authority` (`"none"`) facts, and the named
+  protocol's own entry gains a `Following functions` fact (every opted-in
+  function `@id`, in source order) -- both read from the one canonical fact
+  every other projection shares (`follows_json`/`follows_facts_json`) rather
+  than re-derived (`src/doc.rs`). Only a top-level function ever gains these
+  facts: `session_protocol::source::check`/`bind_follows` and
+  `session_protocol::typestate::check` only ever validate and erasure-check a
+  `follows` clause on `Program::functions`, never on a class method, so a
+  method's clause (admitted by the shared function grammar but never checked
+  or bound) has no canonical fact to document. `semaprax query` needs no
+  separate code: `query::run` and `query::run_project` already render every
+  entry directly from `crate::doc::document`, so the new facts are queryable
+  exactly the way existing session-protocol facts already are (`States`,
+  `Initial`, `Terminals`, `Authority`, or a method's `Owner`) -- present on
+  the matched `Entry`'s `facts` once selected by the ordinary
+  `--kind`/`--name`/`--id` filters, with no dedicated `--follows` filter or
+  JSON field of its own. A program with no `follows` clause is unaffected,
+  byte for byte (`src/doc/tests.rs` and `tests/projections/doc_projection.rs`
+  keep their exact pre-existing fact sets and the pinned
+  `EFFECTS_MARKDOWN`/`declared.spx` goldens).
 - **Not projected.** Architecture Claims (`protocol_realizers_bound`
   attests only `via` targets, an orthogonal declaration-side fact) is
   unaffected by this follow-on.
@@ -856,19 +873,16 @@ program discipline.
 ### Endpoint typestate non-claims
 
 - **Projections (R21 follow-on).** The function `@id` bound to the protocol
-  `@id` it follows, plus the fixed result `"typestate_checked"`, is now
-  projected into the per-source graph (`semaprax.graph.v49`), `context`
-  (`--filters session_protocol`), the Workspace and Package Semantic Graphs
-  (`.v3`), and the Assurance Manifest (see [Projections](#projections)
-  above). `semaprax doc` and `semaprax query` do not: neither renders any
-  session-protocol fact generically from those graphs in the first place
-  (both build their `session_protocol` entries directly from
-  `Program.session_protocols`), so there is no existing generic path to
-  extend; and Architecture Claims' `protocol_realizers_bound` remains an
-  orthogonal, declaration-side (`via`) fact this follow-on does not touch.
-  Every projection keeps a program with no `follows` clause byte-for-byte
-  unaffected, exactly like `semaprax.graph.v48` already does for the
-  declaration itself.
+  `@id` it follows, plus the fixed result `"typestate_checked"`, is projected
+  into the per-source graph (`semaprax.graph.v49`), `context` (`--filters
+  session_protocol`), the Workspace and Package Semantic Graphs (`.v3`), the
+  Assurance Manifest, `semaprax doc`, and `semaprax query` (see
+  [Projections](#projections) above). Architecture Claims'
+  `protocol_realizers_bound` remains an orthogonal, declaration-side (`via`)
+  fact this follow-on does not touch, and the VS Code grammar does not parse
+  `follows` distinctly. Every projection keeps a program with no `follows`
+  clause byte-for-byte unaffected, exactly like `semaprax.graph.v48` already
+  does for the declaration itself.
 - **No explicit entry state.** Every followed function starts from the
   protocol's declared `initial` state; a clause selecting a different,
   explicitly declared entry state is a natural extension this slice does not
@@ -909,7 +923,15 @@ semantic_graph::` (Package Semantic Graph's v3 gating and package-bound
 facts); and `cargo test --locked -p semaprax --lib
 assurance_manifest::session_protocol` (the `protocol:call-order-typestate`
 obligation, its coexistence with the declaration's own obligation in one
-generated envelope, and the dangling-binding negative control).
+generated envelope, and the dangling-binding negative control); `cargo test
+--locked -p semaprax --lib doc::` (the `Follows`/`Typestate`/`Authority`
+facts on a following function, the `Following functions` fact on its
+protocol, their Markdown and JSON rendering, and the byte-identical
+regression against the declaration-only fixture); and `cargo test --locked
+-p semaprax --test projections doc_projection:: query_projection::` (the
+pinned `EFFECTS_MARKDOWN` golden staying unchanged, and the same facts
+surfacing through `semaprax query`'s ordinary `--kind`/`--name` filters with
+no dedicated query code of their own).
 
 ## Scope boundary
 

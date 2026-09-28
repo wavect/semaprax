@@ -96,7 +96,7 @@ fn hash_file(path: &Path) -> (u64, String) {
         length += read as u64;
         digest.update(&buffer[..read]);
     }
-    (length, format!("sha256:{:x}", digest.finalize()))
+    (length, format!("sha256:{}", hex(&digest.finalize())))
 }
 fn collect(root: &Path, path: &Path, files: &mut BTreeMap<String, Value>) -> std::io::Result<()> {
     if !path.exists() {
@@ -228,7 +228,7 @@ fn inventory_is_exact_and_does_not_follow_symlinks_or_keep_builds() {
     assert_eq!(files["artifact"]["bytes"], 11);
     assert_eq!(
         files["artifact"]["sha256"],
-        format!("sha256:{:x}", Sha256::digest(b"exact bytes"))
+        "sha256:e38e581aade78b64cc86f7ac9f3555ca78c2dcca747942a7f1d9b3275a834f75"
     );
     fs::write(root.join("artifact"), b"other bytes").unwrap();
     let mut changed = BTreeMap::new();

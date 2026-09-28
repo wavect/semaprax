@@ -855,7 +855,7 @@ pub(super) fn execute_all(
             &built.canonical_source,
             built.endpoint.descriptor_bytes(),
             &built.native.binding().encode(),
-            built.wasm.binding_bytes(),
+            &built.wasm.binding_bytes(),
         );
         let subject_root = root.join(format!("{subject:?}"));
         for engine in engines {

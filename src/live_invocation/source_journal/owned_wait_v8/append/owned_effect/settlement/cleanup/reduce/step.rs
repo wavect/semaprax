@@ -270,3 +270,5 @@ impl<'j> AppendSessionV8<'j> {
 mod tests;
 
 pub(super) mod r#continue;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use r#continue::VerifiedOwnedContinueSuccessorV8;

@@ -213,8 +213,24 @@ fn owned_reduce_capacity_status_dedup_preserves_every_original_failure_room() {
             // do not consume failure_statuses and remain unchanged.
             let limit = super::super::super::super::MAX_SOURCE_DOCUMENT_BYTES;
             for (basis, operations) in bases {
-                let before = failure(&plan, basis.clone(), &operations, fuel, &original).unwrap();
-                let after = failure(&plan, basis, &operations, fuel, &unique).unwrap();
+                let before = failure(
+                    &plan,
+                    basis.clone(),
+                    &operations,
+                    fuel,
+                    &original,
+                    maximum_turn(context),
+                )
+                .unwrap();
+                let after = failure(
+                    &plan,
+                    basis,
+                    &operations,
+                    fuel,
+                    &unique,
+                    maximum_turn(context),
+                )
+                .unwrap();
                 assert_eq!(before, after);
                 assert_eq!(after.either(after), after);
                 after.check(limit - after.bytes, 0).unwrap();

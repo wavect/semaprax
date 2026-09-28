@@ -225,6 +225,12 @@ impl FoldV8 {
         template.tail = TailV8::CommittedState;
         template
     }
+    pub(super) fn current_turn(&self) -> u32 {
+        self.current_turn
+    }
+    pub(super) fn failure_selected(&self) -> bool {
+        self.failure_selected
+    }
     pub(super) fn continuation_profile_selected(&self) -> bool {
         self.continuation_profile_selected
     }

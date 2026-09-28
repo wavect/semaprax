@@ -1101,7 +1101,9 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
     /// Only a real persisted ACK can advance this same token; no reopening/refund.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_continue_ack(
         &self,
-        witness:&super::super::settlement::cleanup::reduce::step::r#continue::VerifiedOwnedContinueSuccessorV8<'_>,
+        witness: &super::super::settlement::cleanup::reduce::step::VerifiedOwnedContinueSuccessorV8<
+            '_,
+        >,
         session: &AppendSessionV8<'_>,
     ) -> Result<(), SourceJournalError> {
         let result = (|| {

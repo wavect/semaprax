@@ -339,8 +339,8 @@ impl<'a> InventoryV8<'a> {
         let context = self.context.fold();
         let folded = fold::fold(context, &self.entries)?;
         if !context.cumulative_initialization
-            || !folded.continuation_profile_selected
-            || folded.failure_selected
+            || !folded.continuation_profile_selected()
+            || folded.failure_selected()
         {
             return Err(SourceJournalError::Order);
         }
@@ -350,13 +350,13 @@ impl<'a> InventoryV8<'a> {
                 turn,
                 case: super::super::SourceTransitionCase::Continue,
                 ..
-            }) if *turn == folded.current_turn
+            }) if *turn == folded.current_turn()
                 && folded.tail == fold::TailV8::Reduce
                 && folded
                     .reduce_fold()
                     .is_some_and(|r| r.tail() == super::reduce_fold::ReduceTailV8::Continued) => {}
             EntryV8::Owned(model::OwnedBodyV8::OwnedStateCommitted { turn, .. })
-                if *turn == folded.current_turn
+                if *turn == folded.current_turn()
                     && *turn > 0
                     && folded.tail == fold::TailV8::CommittedState => {}
             EntryV8::Ordinary(SourceJournalEntry::StageReservation {
@@ -364,7 +364,7 @@ impl<'a> InventoryV8<'a> {
                 attempt: None,
                 role: super::super::SourceStageRole::Observe,
                 fuel,
-            }) if *turn == folded.current_turn
+            }) if *turn == folded.current_turn()
                 && *turn > 0
                 && folded.tail == fold::TailV8::ObserveReserved
                 && Some(*fuel) == context.ordinary.max_steps_per_stage() => {}
@@ -374,7 +374,7 @@ impl<'a> InventoryV8<'a> {
         Ok((
             folded.reserved_total,
             folded.stages,
-            folded.current_turn,
+            folded.current_turn(),
             selected,
         ))
     }

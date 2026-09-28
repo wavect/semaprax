@@ -195,18 +195,14 @@ pub(crate) fn checked_owned_effect_settlement_after_prefix_v8(
 /// profile/prefix join can supply the sealed proof; it grants no live dispatch.
 pub(crate) fn checked_cumulative_owned_effect_request_v8<'a>(
     inputs: &OwnedEffectSettlementInputsV8<'a>,
-    prefix: &crate::live_invocation::source_journal::owned_wait_v8::CheckedCumulativeEffectPrefixV8<
-        '_,
-    >,
+    prefix: &crate::live_invocation::source_journal::CheckedCumulativeEffectPrefixV8<'_>,
 ) -> Result<CheckedOwnedEffectRequestV8<'a>, Error> {
     prefix.validate(inputs)?;
     request_after_prefix(inputs, prefix.previous())
 }
 pub(crate) fn checked_cumulative_owned_effect_settlement_v8(
     inputs: OwnedEffectSettlementInputsV8<'_>,
-    prefix: &crate::live_invocation::source_journal::owned_wait_v8::CheckedCumulativeEffectPrefixV8<
-        '_,
-    >,
+    prefix: &crate::live_invocation::source_journal::CheckedCumulativeEffectPrefixV8<'_>,
     ordinary: &SourceJournalEntry,
     evidence_wire: &[u8],
     result_wire: Option<&[u8]>,

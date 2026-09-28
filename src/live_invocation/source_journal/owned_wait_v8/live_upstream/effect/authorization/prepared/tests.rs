@@ -104,7 +104,14 @@ fn owned_wait_live_prepared_cancel_or_deadline_before_handoff_retains_owner_and_
             let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
             let (held, weak) = held(&journal, &cancel, &clock, &policy);
             if deadline {
-                clock.0.set(20);
+                clock.0.set(
+                    journal
+                        .context()
+                        .ordinary()
+                        .deadline_millis()
+                        .checked_add(1)
+                        .unwrap(),
+                );
             } else {
                 cancel.cancel();
             }
@@ -142,7 +149,14 @@ fn owned_wait_live_prepared_post_handoff_guard_loss_quarantines_same_physical_ow
                 .advance_authorization()
                 .unwrap_or_else(|_| panic!("actual preparation"));
             if deadline {
-                clock.0.set(20);
+                clock.0.set(
+                    journal
+                        .context()
+                        .ordinary()
+                        .deadline_millis()
+                        .checked_add(1)
+                        .unwrap(),
+                );
             } else {
                 cancel.cancel();
             }
@@ -169,6 +183,7 @@ struct HandoffClock<'a> {
     reads: Cell<usize>,
     armed: Cell<bool>,
     mode: u8,
+    expired: i64,
 }
 impl crate::live_invocation::InvocationClock for HandoffClock<'_> {
     fn now_millis(&self) -> i64 {
@@ -182,7 +197,7 @@ impl crate::live_invocation::InvocationClock for HandoffClock<'_> {
         if read == 6 {
             match self.mode {
                 0 => self.cancel.cancel(),
-                1 => return 20,
+                1 => return self.expired,
                 _ => panic!("actual Prepared postguard clock panic"),
             }
         }
@@ -206,6 +221,12 @@ fn owned_wait_live_prepared_guard_loss_during_handoff_retains_actual_prepared_no
                 reads: Cell::new(0),
                 armed: Cell::new(false),
                 mode,
+                expired: journal
+                    .context()
+                    .ordinary()
+                    .deadline_millis()
+                    .checked_add(1)
+                    .unwrap(),
             };
             let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
             let (ready, weak) = test_ready_obligation(&journal, &cancel, &clock, &policy);

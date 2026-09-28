@@ -220,7 +220,7 @@ fn owned_wait_typed_execution_binds_real_registry_task_and_each_effect_ceiling()
         let proposal = |sequence: usize| {
             let document = format!(r#"{{"schema":"semaprax.agent-proposal.v1","agent_id":"fixture.agent","proposal_schema_digest":"{}","value":{{"fields":{{"fixture.agent.type.proposal.budget":"3","fixture.agent.type.proposal.urgent":false,"fixture.agent.type.proposal.sequence":"{}"}}}}}}"#,
                 wait.lifecycle().proposal_schema().schema().digest(), sequence);
-            let decoded = wait.lifecycle().proposal_schema().decode(&document).unwrap();
+            let decoded = wait.lifecycle().proposal_schema().decode(&format!("{document}\n")).unwrap();
             bind_owned_wait_proposal_v8(&wait, &scope, &decoded).unwrap()
         };
         let checked = proposal(1);

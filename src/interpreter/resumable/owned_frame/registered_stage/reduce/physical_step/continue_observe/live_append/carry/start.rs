@@ -144,3 +144,15 @@ impl PreparedHeldContinuedWaitV2<'_> {
         permit.matches_held_store(&self.context.store)
     }
 }
+
+impl PreparedHeldContinuedWaitV2<'_> {
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn matches_ready_promotion_permit(
+        &self,
+        permit: &crate::live_invocation::source_journal::LiveContinuedReadyPromotionPermitV8<
+            '_,
+            '_,
+        >,
+    ) -> bool {
+        permit.matches_held_store(&self.context.store)
+    }
+}

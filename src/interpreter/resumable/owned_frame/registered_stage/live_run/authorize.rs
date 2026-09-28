@@ -179,6 +179,12 @@ pub(crate) fn promote_live_owned_authorization_v8(
     permit: LiveReadyPromotionPermitV8<'_, '_>,
     owner: LiveStagedAuthorizationV8,
 ) -> LiveReadyPromotionOutcomeV8 {
+    promote_with_guard_v8(ReadyPromotionGuardV8::Initial(&permit), owner)
+}
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn promote_with_guard_v8(
+    permit: ReadyPromotionGuardV8<'_, '_, '_>,
+    owner: LiveStagedAuthorizationV8,
+) -> LiveReadyPromotionOutcomeV8 {
     let binding = permit.binding();
     let valid = owner.checked_facts(binding).is_some_and(|(_, decision)| {
         decision["case"].as_str() == Some(binding.authorize().granted().as_str())
@@ -349,6 +355,33 @@ impl AuthorizeGuardV8<'_, '_, '_> {
         match self {
             Self::Initial(x) => x.fuel(),
             Self::Continued(x) => x.fuel(),
+        }
+    }
+}
+
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) enum ReadyPromotionGuardV8<
+    'g,
+    'p,
+    'j,
+> {
+    Initial(&'g LiveReadyPromotionPermitV8<'p, 'j>),
+    Continued(
+        &'g crate::live_invocation::source_journal::LiveContinuedReadyPromotionPermitV8<'p, 'j>,
+    ),
+}
+impl ReadyPromotionGuardV8<'_, '_, '_> {
+    fn binding(&self) -> &CheckedOwnedAgentWaitBindingV8 {
+        match self {
+            Self::Initial(p) => p.binding(),
+            Self::Continued(p) => p.binding(),
+        }
+    }
+    fn validate_guard(
+        &self,
+    ) -> Result<(), crate::live_invocation::source_journal::SourceJournalError> {
+        match self {
+            Self::Initial(p) => p.validate_guard(),
+            Self::Continued(p) => p.validate_guard(),
         }
     }
 }

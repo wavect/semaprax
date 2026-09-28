@@ -137,3 +137,5 @@ pub(crate) use live_upstream::{
 pub(crate) use live_upstream::{
     LiveContinuedAuthorizePermitV8, LiveContinuedStateTransferPermitV8,
 };
+
+pub(crate) use live_upstream::LiveContinuedReadyPromotionPermitV8;

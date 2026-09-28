@@ -100,3 +100,10 @@ pub(crate) use continued::model::authorize::{
 pub(crate) use continued::model::authorize::{
     test_continued_authorize_entries_v8, test_continued_authorize_entry_v8,
 };
+
+pub(crate) use continued::model::authorize::effect::{
+    promote_live_continued_authorization_v8, LiveContinuedReadyPromotionOutcomeV8,
+};
+
+#[cfg(test)]
+pub(crate) use continued::model::authorize::effect::test_continued_ready_promotions_v8;

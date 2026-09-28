@@ -196,3 +196,5 @@ impl LiveContinuedResumedStateV8<'_> {
         self.resumed.test_weak()
     }
 }
+
+pub(crate) mod effect;

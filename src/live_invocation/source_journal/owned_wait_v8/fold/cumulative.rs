@@ -216,3 +216,17 @@ impl FoldV8 {
         .then_some(self.current_turn)
     }
 }
+
+impl FoldV8 {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_effect_turn(
+        &self,
+    ) -> Option<u32> {
+        (self.continuation_profile_selected
+            && self.current_turn > 0
+            && matches!(
+                self.tail,
+                TailV8::PendingReady | TailV8::ResultDeliveryInDoubt | TailV8::ReadyPair
+            ))
+        .then_some(self.current_turn)
+    }
+}

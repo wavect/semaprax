@@ -180,6 +180,7 @@ impl LiveContinuedAuthorizePermitV8<'_, '_> {
     }
 }
 pub(super) enum ContinuedAuthorizationOutcomeV8<'j> {
+    Effect(effect::ContinuedEffectOutcomeV8<'j>),
     Transfer(LiveContinuedTransferOutcomeV8<'j>),
     Authorize(LiveContinuedAuthorizeOutcomeV8<'j>),
 }
@@ -402,3 +403,5 @@ impl<'j> ContinuedResumedWaitV8<'j> {
         self.lineage.step.origin().cancellation.cancel();
     }
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod effect;

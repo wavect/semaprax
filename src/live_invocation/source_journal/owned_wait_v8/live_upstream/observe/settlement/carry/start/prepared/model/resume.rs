@@ -258,3 +258,23 @@ impl<'j> ModelOwnerV8<'j> {
         }
     }
 }
+
+impl<'j> ModelOwnerV8<'j> {
+    pub(super) fn promote_effect_actual(
+        self,
+        session: &AppendSessionV8<'j>,
+        witness:&crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedEffectSuccessorV8<'j>,
+        proposal: &CheckedOwnedWaitProposalV8,
+    ) -> Self {
+        match self {
+            Self::Resumed(owner) => {
+                let ResumedModelOwnerV8 { owner, history } = owner;
+                Self::Resumed(ResumedModelOwnerV8 {
+                    owner: owner.promote_effect_actual(session, witness, proposal),
+                    history,
+                })
+            }
+            owner => owner,
+        }
+    }
+}

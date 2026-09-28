@@ -1437,3 +1437,6 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_mode
 
 pub(super) mod continued_authorize;
 pub(super) use continued_authorize::VerifiedOwnedContinuedAuthorizeSuccessorV8;
+
+pub(super) mod continued_effect;
+pub(super) use continued_effect::VerifiedOwnedContinuedEffectSuccessorV8;

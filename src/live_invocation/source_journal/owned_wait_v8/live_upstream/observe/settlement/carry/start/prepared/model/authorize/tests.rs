@@ -412,3 +412,34 @@ fn owned_continued_authorize_strict_before_and_actual_after_guards_keep_boundary
         );
     }
 }
+
+pub(super) fn test_staged(
+    callback: impl for<'j> FnOnce(
+        &'j SourceOwnedWaitJournalV8,
+        LiveContinuedAuthorizationV8<'j>,
+        Vec<std::sync::Weak<[u8]>>,
+        crate::agent_lifecycle::authorization::target_protocol::TargetAccounting,
+    ),
+    granted: bool,
+) {
+    test_completed(
+        |journal, completed, weak, ledger, _| {
+            let mut owner = ack(
+                journal,
+                completed
+                    .prepare_authorize()
+                    .unwrap_or_else(|_| panic!("actual Completed")),
+            );
+            for _ in 0..4 {
+                owner = ack(
+                    journal,
+                    owner
+                        .prepare_next()
+                        .unwrap_or_else(|_| panic!("actual A row")),
+                );
+            }
+            callback(journal, owner, weak, ledger);
+        },
+        granted,
+    );
+}

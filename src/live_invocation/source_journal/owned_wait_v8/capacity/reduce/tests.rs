@@ -98,8 +98,8 @@ fn failed_state_started_ack_preserves_exact_reserved_closure_edge() {
                 "receipt":templates::receipt(&operations).unwrap()
             }))
             .unwrap();
-            assert_eq!(failed_state_receipt(&operations).unwrap(), settled);
-            let remaining = failed_state_receipt(&operations)
+            assert_eq!(failed_state_receipt(&operations, 0).unwrap(), settled);
+            let remaining = failed_state_receipt(&operations, 0)
                 .unwrap()
                 .add(terminal())
                 .unwrap();

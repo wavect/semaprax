@@ -7,6 +7,7 @@ mod capacity;
 mod checked_context;
 mod fold;
 mod inventory;
+pub(crate) use inventory::CheckedCumulativeEffectPrefixV8;
 mod model;
 mod ready_commitment;
 mod reduce_fold;

@@ -23,7 +23,7 @@ pub(super) fn reserve_first(
 ) -> Result<ReservedTargetAccountingV8, Error> {
     reserve(None, request, limits)
 }
-fn reserve(
+pub(super) fn reserve(
     predecessor: Option<&CheckedTargetAccountingV8>,
     request: &[u8],
     limits: TargetLimits,

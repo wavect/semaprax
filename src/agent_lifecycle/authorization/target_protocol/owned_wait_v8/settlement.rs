@@ -47,7 +47,16 @@ impl CheckedOwnedEffectRequestV8<'_> {
 pub(crate) fn checked_owned_effect_request_v8<'a>(
     inputs: &OwnedEffectSettlementInputsV8<'a>,
 ) -> Result<CheckedOwnedEffectRequestV8<'a>, Error> {
-    if inputs.turn != 0 || inputs.attempt >= inputs.execution.ordinary().max_attempts() {
+    if inputs.turn != 0 {
+        return Err(Error::Binding);
+    }
+    request_after_prefix(inputs, None)
+}
+fn request_after_prefix<'a>(
+    inputs: &OwnedEffectSettlementInputsV8<'a>,
+    previous: Option<&accounting::CheckedTargetAccountingV8>,
+) -> Result<CheckedOwnedEffectRequestV8<'a>, Error> {
+    if inputs.attempt >= inputs.execution.ordinary().max_attempts() {
         return Err(Error::Binding);
     }
     let commitments = checked_owned_wait_ready_commitments_v8(
@@ -81,7 +90,7 @@ pub(crate) fn checked_owned_effect_request_v8<'a>(
     .canonical_wire();
     // Proof of this closed first-effect request only. This does not reset or
     // replace a live invocation's cumulative target accounting owner.
-    let first_dispatch = accounting::reserve_first(&request, plan.target_limits())?;
+    let first_dispatch = accounting::reserve(previous, &request, plan.target_limits())?;
     Ok(CheckedOwnedEffectRequestV8 {
         plan,
         request,
@@ -180,6 +189,38 @@ pub(crate) fn checked_owned_effect_settlement_after_prefix_v8(
         return Err(Error::Binding);
     }
     let checked = checked_owned_effect_request_v8(&inputs)?;
+    settle_checked(inputs, checked, ordinary, evidence_wire, result_wire)
+}
+/// Additive inert verifier entry. Only the source inventory's exact checked
+/// profile/prefix join can supply the sealed proof; it grants no live dispatch.
+pub(crate) fn checked_cumulative_owned_effect_request_v8<'a>(
+    inputs: &OwnedEffectSettlementInputsV8<'a>,
+    prefix: &crate::live_invocation::source_journal::owned_wait_v8::CheckedCumulativeEffectPrefixV8<
+        '_,
+    >,
+) -> Result<CheckedOwnedEffectRequestV8<'a>, Error> {
+    prefix.validate(inputs)?;
+    request_after_prefix(inputs, prefix.previous())
+}
+pub(crate) fn checked_cumulative_owned_effect_settlement_v8(
+    inputs: OwnedEffectSettlementInputsV8<'_>,
+    prefix: &crate::live_invocation::source_journal::owned_wait_v8::CheckedCumulativeEffectPrefixV8<
+        '_,
+    >,
+    ordinary: &SourceJournalEntry,
+    evidence_wire: &[u8],
+    result_wire: Option<&[u8]>,
+) -> Result<CheckedOwnedEffectSettlementV8, Error> {
+    let checked = checked_cumulative_owned_effect_request_v8(&inputs, prefix)?;
+    settle_checked(inputs, checked, ordinary, evidence_wire, result_wire)
+}
+fn settle_checked(
+    inputs: OwnedEffectSettlementInputsV8<'_>,
+    checked: CheckedOwnedEffectRequestV8<'_>,
+    ordinary: &SourceJournalEntry,
+    evidence_wire: &[u8],
+    result_wire: Option<&[u8]>,
+) -> Result<CheckedOwnedEffectSettlementV8, Error> {
     let plan = &checked.plan;
     let request = &checked.request;
     let evidence = TargetEvidence::decode(evidence_wire).map_err(|_| Error::Malformed)?;

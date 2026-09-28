@@ -92,6 +92,29 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn remaining_turns
         .ok_or(SourceJournalError::Capacity)
 }
 
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn effect_prefix_matches(
+    context: &FoldContextV8,
+    folded: &FoldV8,
+    turn: u32,
+    attempt: u32,
+    state: &Value,
+) -> bool {
+    context.cumulative_initialization
+        && context.initialized_task.is_some()
+        && folded.continuation_profile_selected
+        && folded.current_turn == turn
+        && turn < context.ordinary.max_iterations()
+        && folded
+            .wait
+            .as_ref()
+            .is_some_and(|wait| wait.attempt == attempt)
+        && folded.state.as_ref() == Some(state)
+        && matches!(
+            folded.tail,
+            TailV8::ReadyPair | TailV8::EffectSettlementUncommitted
+        )
+}
+
 /// Extend descriptive history only after the exact checked Continue transition.
 /// A physical actor must separately move the actual mapped State and use its
 /// fixed append permit. Generic producer appends cannot invoke that authority.

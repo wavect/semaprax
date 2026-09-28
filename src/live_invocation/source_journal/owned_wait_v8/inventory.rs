@@ -12,6 +12,8 @@ use crate::resumable_effects::owned_frame::{
 use crate::resumable_effects::source_checkpoint::{SourceCheckpointKey, SourceCheckpointScope};
 use serde_json::Value;
 mod accounting;
+mod cumulative;
+pub(crate) use cumulative::CheckedCumulativeEffectPrefixV8;
 
 pub(super) struct CheckedInventoryV8<'a> {
     entries: Vec<ValidatedEntryV8>,
@@ -317,7 +319,17 @@ fn check_entries_with_runtime<'a>(
                     &staged_decision,
                     &proposal_facts,
                 )?;
-                let facts = crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_owned_effect_request_v8(&inputs)?;
+                let facts = if context.cumulative_initialization {
+                    let preceding = accounting.as_ref().and_then(|a| a.preceding()).or_else(|| {
+                        recorded_effect
+                            .as_ref()
+                            .map(|(_, _, _, facts)| facts.accounting_proof())
+                    });
+                    let prefix = cumulative::checked_prefix(context, &rows, &inputs, preceding)?;
+                    crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_cumulative_owned_effect_request_v8(&inputs, &prefix)?
+                } else {
+                    crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_owned_effect_request_v8(&inputs)?
+                };
                 require(
                     facts.operation().operation_id() == operation
                         && facts.request_digest() == *request_digest,
@@ -360,7 +372,12 @@ fn check_entries_with_runtime<'a>(
                         })
                         .flatten()
                 });
-                let facts = crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_owned_effect_settlement_after_prefix_v8(inputs, preceding, ordinary, &evidence, result.as_deref())?;
+                let facts = if context.cumulative_initialization {
+                    let prefix = cumulative::checked_prefix(context, &rows, &inputs, preceding)?;
+                    crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_cumulative_owned_effect_settlement_v8(inputs, &prefix, ordinary, &evidence, result.as_deref())?
+                } else {
+                    crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_owned_effect_settlement_after_prefix_v8(inputs, preceding, ordinary, &evidence, result.as_deref())?
+                };
                 require(facts.evidence().digest() == evidence_digest)?;
                 match rows.get(*intent as usize).map(|r| &r.entry) {
                     Some(EntryV8::Ordinary(Ordinary::EffectIntent {

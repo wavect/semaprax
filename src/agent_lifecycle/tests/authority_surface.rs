@@ -14,6 +14,11 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     let durable = include_str!("../durable.rs");
     let checkpoint = include_str!("../durable/checkpoint.rs");
     let journal = include_str!("../durable/journal.rs");
+    let target_joined = [
+        include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
+        include_str!("../authorization/target_protocol/owned_wait_v8/settlement.rs"),
+    ]
+    .join("\n");
     let model_wait_sources = [
         (
             "live_invocation/source_journal/owned_wait_v8/effect_fold.rs",
@@ -33,8 +38,7 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
         ),
         (
             "authorization/target_protocol/owned_wait_v8.rs",
-            include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
-        include_str!("../authorization/target_protocol/owned_wait_v8/settlement.rs"),
+            target_joined.as_str(),
         ),
         (
             "iterative/effects/live/model_wait.rs",
@@ -149,6 +153,11 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     let durable = include_str!("../durable.rs");
     let checkpoint = include_str!("../durable/checkpoint.rs");
     let journal = include_str!("../durable/journal.rs");
+    let target_joined = [
+        include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
+        include_str!("../authorization/target_protocol/owned_wait_v8/settlement.rs"),
+    ]
+    .join("\n");
     let model_wait_sources = [
         (
             "live_invocation/source_journal/owned_wait_v8/effect_fold.rs",
@@ -168,8 +177,7 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
         ),
         (
             "authorization/target_protocol/owned_wait_v8.rs",
-            include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
-        include_str!("../authorization/target_protocol/owned_wait_v8/settlement.rs"),
+            target_joined.as_str(),
         ),
         (
             "iterative/effects/live/model_wait.rs",

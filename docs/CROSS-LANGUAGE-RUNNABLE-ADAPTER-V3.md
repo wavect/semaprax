@@ -1,6 +1,6 @@
 # Cross-language runnable adapter v3: official TypeScript lane
 
-Status: implemented locally; independent implementation review pending, not full R03 acceptance.
+Status: implemented locally with a known stale-edit oracle gap; §8 correction is a review candidate, not runtime admission or R03 acceptance.
 Audience: benchmark adapter implementers, independent reviewers and maintainers.
 
 ## 1. Scope and frozen behavior
@@ -296,3 +296,132 @@ These are design witnesses, not fresh canonical scoring, hosted verification,
 complete R03 evidence or a signed/public release. Independent design/source-pin review approved this contract before the
 implementation lease. These initial probes still do not replace the owning
 implementation selector or integrated acceptance evidence.
+
+
+## 8. Stale-edit correction subject: candidate for independent review
+
+The written `stale-edit-preservation-v1/EQUIVALENCE.md` requires
+`floor(price - price * pct / 100)`, clamped at zero. The frozen baseline
+TypeScript candidate instead subtracts the truncated discount: `(1, 50)`
+returns `1` instead of `0`. Its existing vectors miss that distinction. The
+prior 45/48-test results are retained historical observations with this known
+semantic gap; they establish neither all-13 oracle equivalence nor acceptance.
+The same formula discrepancy exists in the baseline's other language ports;
+this bounded correction admits no corrected result for those ports.
+
+Only v3's effective TypeScript subject changes. The original 298-file source
+manifest, source commit, written oracle, task inventory, all 182 denominator
+rows, v1/v2 helpers, unavailable-only baseline and scorer remain frozen. The
+12 other tasks retain their original effective source. The independently
+reviewed 13-task audit identifies stale-edit as the sole TypeScript mismatch.
+
+### Closed correction sidecar
+
+Candidate path:
+`benchmarks/cross-language-v1/provenance/typescript-official-v3-corrections.json`.
+Its schema is `benchmark.cross_language.official_ts_correction.v1`; the exact
+candidate is **15706 bytes**, SHA-256
+`7ebeac85f9443b5d90ffaf22bdb03fa5bd26db9260d1fe3ff03e9f99f1b59f3c`.
+This pin is proposed for independent approval. Runtime overlay admission is
+not implemented or authorized by recording the candidate hash here.
+
+Canonical JSON has recursively sorted object keys, indent 2, ASCII escaping,
+and exactly one final LF. Digests are 64 lowercase hexadecimal SHA-256 digits.
+The top-level key set is exactly `schema`, `baseline_source_origin`,
+`baseline_manifest_sha256`, `task_id`, `oracle`, `files`,
+`equivalence_review`, `mutants`. The baseline is exactly commit
+`8e2a1c58324fb17308084e3cef149494259bd585` and manifest hash
+`c69695fd5f16917d745ef4c47c1d54438455d541cc4801046dd764e50a0fb83c`;
+`task_id` is exactly `stale-edit-preservation-v1`.
+
+`oracle` has exactly `path`, `bytes`, `sha256`, `base64`, binding the unchanged
+6034-byte equivalence document at its baseline path, SHA-256
+`87327bf8cf64ab1a1c7a4bc1d2cdb5a0eb20f5aaef7dcb9e142175344c5dee2d`.
+`equivalence_review` is the exact rationale string in the reviewed sidecar,
+not a caller-supplied assertion or synthetic attestation. Independent approval
+must examine the oracle, effective bytes, and discriminating mutants together.
+
+`files` has exactly three rows in this fixed order, under
+`benchmarks/cross-language-v1/tasks/stale-edit-preservation-v1/`:
+
+| Relative path | Baseline bytes / SHA-256 | Effective bytes / SHA-256 |
+| --- | --- | --- |
+| `public/typescript/candidate.ts` | 569 / `b34373d11563e9103d7ce61ce9ac8d3b3fb3a3627a2bd1b55941493ce968aa6e` | 569 / `8a9a760abecf871a51442f6ec50f48ab157f8fbb8ee101aad41823a1e4e0f5e0` |
+| `public/typescript/index.ts` | 354 / `1c8b04a219163dc3ff7d12293afab5cb0dea0e0b5c3ea9d38a871441d5828648` | 528 / `bbbce2d6a258895a6b9c412c73b503973a739fd98ffa29bd0bc7d4cd662a85cd` |
+| `hidden/typescript/index.ts` | 544 / `455b803beb715421c45975a0d914453fe33bb9bd9d202986d681718f29eb1401` | 777 / `9c3044e0c34ee51584bccf393798d77919da89fc7eefd8fcde3bf3de75595fd2` |
+
+Each row has exactly `path`, `base`, `effective`; each payload has exactly
+`bytes`, `sha256`, `base64`. Base bytes must match both the fixed source manifest
+and captured admitted baseline bytes. Effective bytes are exact approved data,
+never regenerated from caller substitutions. Payload sizes are nonnegative
+integers, excluding booleans; Base64 is strict canonical RFC 4648 encoding.
+Unknown/missing/duplicate keys, wrong types, paths, row order, sizes, hashes,
+payloads, noncanonical JSON or trailing bytes refuse. No sorting, repair or
+caller-provided expected hash can turn a refusal into admission.
+
+After independent approval, implementation-owned expected sidecar bytes/hash
+must be fixed before runtime inputs are read. No-follow regular-file acquisition
+is capped at 64 KiB, followed by exact expected-hash/canonical/schema validation;
+all payload identities and baseline links are checked before any Node dispatch.
+First admit the complete frozen source snapshot, then replace only these three
+files in private host-only snapshot data and isolated phase staging. The public
+phase receives no hidden file. The hidden phase starts from the same effective
+public candidate and applies only the effective hidden assertion overlay.
+
+### Effective behavior and ordered negative controls
+
+The candidate changes exactly one line to
+`const raw = Math.floor(price - (price * pct) / 100);`. The prior-session
+`staleNote` text and zero clamp remain byte-identical. Public assertions append
+literal `(1, 50) -> 0` and `(3, 50) -> 1`; distinct hidden assertions append
+`(2, 25) -> 1`, `(7, 15) -> 5`, `(101, 1) -> 99`. Every prior assertion remains.
+Expected values come from the unchanged written oracle, not candidate output.
+
+Apply the approved correction first. Then apply exactly one fixed mutant to
+the effective candidate, proving its target occurs exactly once. `mutants` has
+exactly the following three rows in this order; each has exactly `id`, `path`,
+`target`, `replacement`, `public_passed`, `hidden_passed`, and uses
+`path: "candidate.ts"`:
+
+| Fixed identity | Mutation | Required runtime public / hidden |
+| --- | --- | --- |
+| `stale-edit-original-trunc-formula` | Replace the corrected raw line with the original truncated-discount line | fail / fail |
+| `stale-edit-missing-zero-clamp` | Replace `return raw < 0 ? 0 : raw;` with `return raw;` | pass / fail |
+| `stale-edit-damaged-stale-helper` | Replace `return tag * 2 + 7;` with `return tag * 2 + 8;` | pass / fail |
+
+The existing 13-task mutant inventory still exercises the missing-zero-clamp
+control; the other two are additional named regressions, not replacements.
+All three must compile successfully and execute actual public/hidden phases;
+compiler refusal or absent dispatch cannot satisfy their expected divergence.
+A corrected positive must pass both phases. Sidecar, baseline-link, oracle,
+effective candidate and vector substitutions, including reminted caller hashes,
+must refuse before Node dispatch. Host-only snapshot confinement and phase
+separation remain the previously accepted v3 controls.
+
+### Required effective-source evidence
+
+The bundle retains the original complete `source_manifest` unchanged. Add
+exact sidecar bytes as artifact `correction-subject.json`, referenced by result
+field `source_correction_sha256`. Add result `source_effective_files`, exactly
+three rows with `path`, `base_artifact`, `effective_artifact`; references resolve
+to exact payload identities in the sidecar and artifact inventory. The unchanged
+oracle artifact is referenced once as `source_correction_oracle_artifact`. Artifact
+names use `corrections/stale-edit-preservation-v1/base/` and
+`corrections/stale-edit-preservation-v1/effective/` followed by each row's
+public/hidden relative path; the oracle artifact is
+`corrections/stale-edit-preservation-v1/EQUIVALENCE.md`. Existing artifact rows
+retain `path`, `bytes`, `sha256`, `base64`. The sidecar already embeds those
+same exact payloads; evidence references must agree with them, never merely
+name a path. Every scored row records the closed `source_variant` tag
+(`stale_edit_floor_v1` for stale-edit; `baseline` for the 12 unaffected tasks),
+resolving to the one globally recorded correction hash, and its normal phase,
+command, effective emitted JavaScript and outcome evidence remains unchanged.
+Mutant observations additionally record their fixed identity and exact mutated
+source artifact/hash. Base provenance, approved correction and actual execution
+head are distinct; none is presented as an unchanged baseline-equivalence claim.
+The existing 256-KiB metadata and 8-MiB complete-bundle bounds stay in force.
+Record sidecar, full source/oracle/mutant bytes and review rationale once as
+artifacts; metadata carries compact references, not duplicate payloads. The
+prior 48-test result used 247591 metadata bytes, so the successor must verify
+complete delivery remains bounded with both additional mutant executions. No
+existing oracle, original mutant, hostile control or bound may be removed to fit.

@@ -16,6 +16,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   consuming host dispatch, settlement/Recorded ACKs, physical Decision cleanup,
   and guarded Outcome handoff with retained invocation accounting. Actual reducer
   stages expose inert compiler-checked Step/failure facts and observed fuel.
+  Original Reduce now spends that same hold only at its actual full-F reservation
+  ACK and enters the existing evaluator with the actual State and Outcome roots.
   Public owned Agent execution and durable recovery remain incomplete; full integrated
   acceptance is pending.
 

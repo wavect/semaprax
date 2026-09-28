@@ -661,3 +661,14 @@ Before CleanupStarted, clock, deadline, cancellation, current policy, process, a
 Outcome handoff restores the full clock, deadline, and cancellation guards before and after its one-use mint. Failure before mint retains the actual PendingReceipt; failure after mint retains the actual Executed State and Outcome. Neither path rewinds to a Released predecessor. Failed target or cleanup-observer paths retain the actual failed-State obligation for required later State cleanup; they cannot activate Reduce.
 
 Successful handoff supplies an actual Executed owner with the same ledger and hold. Original Reduce reservation and evaluation, physical Step settlement and transfer, cumulative turns, terminal cleanup and publication, and durable recovery remain unfinished successors. This private route is not public Agent lifecycle acceptance.
+
+
+## 36. Actual original Reduce reservation and evaluation
+
+The consuming Executed State and Outcome select the original full-F Reduce reservation from the same invocation Context and authentic successful Decision cleanup tail. The fixed append route keeps those actual roots, all four accounting dimensions, and the exclusive prospective Reduce hold together. It admits no caller fuel override, generic stage reservation, owner getter, reconstruction, or second host call.
+
+Only same-file durable verification and Pending acknowledgement construct the private reservation successor. Callback-free acknowledged-session comparison spends the same exclusive hold under the append marker, matching exact R+F and S+1. After marker completion, a fresh charged-prefix guard checks current authority before entering the existing source reducer with exactly F. Replay and prior wait fuel stay reserved; no credit is refunded or reset.
+
+The sole existing reducer evaluation returns the actual Staged holder, its observed consumed fuel and descriptive full-Step or selected-failure facts, with the same accounting ledger and Reduce lineage. Pre-prepare rejection retains Executed; post-prepare guard failure retains Prepared; evaluator or post-evaluation failure retains Staged. An actual language failure remains selected while authority errors are reported separately. No failed ACK enables evaluation or retry.
+
+Focused tests compare successful Continue and Complete values and consumed fuel with independent ordinary evaluation, preserve actual backing ownership, inject all four physical ACK failures, execute real source fuel/arithmetic/postcondition failures, and check owner retention at each guard boundary. These private foundations grant no physical Step release or transfer, cumulative execution, terminal result, recovery, or public Agent acceptance; those successors and integrated verification remain required.

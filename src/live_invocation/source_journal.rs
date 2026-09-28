@@ -1281,3 +1281,5 @@ pub(crate) use owned_wait_v8::{LiveAuthorizePermitV8, LiveStateTransferPermitV8}
 pub(crate) use owned_wait_v8::{LiveEffectAuthorizationPermitV8, LiveEffectIntentPermitV8};
 
 pub(crate) use owned_wait_v8::LiveEffectDecisionCleanupPermitV8;
+
+pub(crate) use owned_wait_v8::LiveReduceEvaluationPermitV8;

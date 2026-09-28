@@ -1,5 +1,6 @@
 //! Consuming inert append choreography. No sink, File, runtime owner, or ACK factory.
 use super::append::SourceOwnedWaitJournalV8;
+use super::live_upstream::effect::authorization::cleanup::reduce::FixedOwnedReduceReservationAppendPermitV8;
 use super::live_upstream::effect::authorization::cleanup::FixedOwnedEffectCleanupAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppendPermitV8;
@@ -10,6 +11,10 @@ enum ProducerV8<'p, 'j> {
     Cleanup(
         &'p SourceOwnedWaitJournalV8,
         &'p FixedOwnedEffectCleanupAppendPermitV8<'p, 'j>,
+    ),
+    OriginalReduce(
+        &'p SourceOwnedWaitJournalV8,
+        &'p FixedOwnedReduceReservationAppendPermitV8<'p, 'j>,
     ),
     Generic,
     Intent(
@@ -268,6 +273,48 @@ impl<'a> InventoryV8<'a> {
             selected,
         ))
     }
+    /// Authenticated successful effect cleanup only, never a failed target or
+    /// failed observer. This borrows proof data and creates no owner or ACK.
+    pub(super) fn released_reduce_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, u32, &EntryV8), SourceJournalError> {
+        let context = self.context.fold();
+        let folded = fold::fold(context, &self.entries)?;
+        if folded.tail != fold::TailV8::EffectDecisionReleased {
+            return Err(SourceJournalError::Order);
+        }
+        self.effect_cleanup_reduce_facts()
+    }
+    /// Full authenticated fold at the original Reduce reservation only. This
+    /// borrows proof data, never a stage budget, owner or restoration permit.
+    pub(super) fn original_reduce_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, u32, &EntryV8), SourceJournalError> {
+        let context = self.context.fold();
+        let folded = fold::fold(context, &self.entries)?;
+        if folded.tail != fold::TailV8::Reduce
+            || !folded
+                .reduce_fold()
+                .is_some_and(|r| r.tail() == reduce_fold::ReduceTailV8::Charged)
+        {
+            return Err(SourceJournalError::Order);
+        }
+        let selected = &self.entries.last().ok_or(SourceJournalError::Order)?.entry;
+        let EntryV8::Ordinary(SourceJournalEntry::StageReservation {
+            turn: 0,
+            attempt: Some(attempt),
+            role: super::super::SourceStageRole::Reduce,
+            fuel,
+        }) = selected
+        else {
+            return Err(SourceJournalError::Order);
+        };
+        if Some(*fuel) != context.ordinary.max_steps_per_stage() {
+            return Err(SourceJournalError::Binding);
+        }
+        capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
+        Ok((folded.reserved_total, folded.stages, 0, *attempt, selected))
+    }
     pub(super) fn sequence(&self) -> usize {
         self.entries.len()
     }
@@ -344,6 +391,31 @@ impl<'a> InventoryV8<'a> {
             self.prepare_inner(row, Some(lease), ProducerV8::Cleanup(journal, permit))
         }
     }
+    pub(super) fn prepare_fixed_original_reduce(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedReduceReservationAppendPermitV8<'_, '_>,
+    ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+        let row = permit.selected_row().clone();
+        #[cfg(test)]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::OriginalReduce(journal, permit),
+                None,
+            )
+        }
+        #[cfg(not(test))]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::OriginalReduce(journal, permit),
+            )
+        }
+    }
     fn prepare_inner(
         mut self,
         row: EntryV8,
@@ -417,6 +489,12 @@ impl<'a> InventoryV8<'a> {
                     permit.validate_selected_prefix(journal, &self)?;
                 }
                 ProducerV8::Cleanup(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
+                ProducerV8::OriginalReduce(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
                     }
@@ -560,6 +638,16 @@ impl<'a> PendingV8<'a> {
         &self,
         journal: &SourceOwnedWaitJournalV8,
         permit: &FixedOwnedEffectCleanupAppendPermitV8<'_, '_>,
+    ) -> Result<(), SourceJournalError> {
+        if self.0.row.entry != *permit.selected_row() {
+            return Err(SourceJournalError::Binding);
+        }
+        permit.validate_selected_prefix(journal, &self.0.inventory)
+    }
+    pub(super) fn validate_fixed_original_reduce_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedReduceReservationAppendPermitV8<'_, '_>,
     ) -> Result<(), SourceJournalError> {
         if self.0.row.entry != *permit.selected_row() {
             return Err(SourceJournalError::Binding);

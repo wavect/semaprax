@@ -183,6 +183,11 @@ Recorded ownership through fixed cleanup ACKs, physical Decision release,
 receipt settlement, and guarded one-use Outcome handoff with the same ledger
 and future-Reduce hold. Failed target or observer settlement retains its actual
 State obligation; postmint guard loss retains actual Executed ownership.
+The source and append `settlement/cleanup/reduce` children consume that actual
+Executed owner through the original full-F reservation ACK, spending the same
+prospective hold under the append marker. `registered_stage/reduce/live_stage`
+then enters the existing evaluator with those same roots and retains Staged
+ownership, observed fuel, accounting, and the fresh charged Reduce lineage.
 Default ObserveOnly remains separate.
 [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
 private successors; public Agent execution and partial-initialization recovery
@@ -878,9 +883,11 @@ per-operation cleanup observations and actual mapped Step moves; its
 The owned-wait adapter now connects actual live Authorize/Consumed/Intent
 ACKs through zero-call activation and consuming actual dispatch; the subsequent
 settlement and Recorded adapters retain that same Staged owner and ledger
-through actual durable ACKs; Decision cleanup, Outcome and Reduce still require
-their actual live obligations. Other ACK
-constructors remain test-only until those obligations are connected;
+through actual durable ACKs. Their cleanup and original Reduce children now
+connect actual Decision release, Outcome and original Reduce reservation and
+evaluation. Physical Step transfer, cumulative continuation and terminal
+delivery still require actual live obligations. Other ACK constructors remain
+test-only until those obligations are connected;
 unpublished durable holders release backing without claiming semantic cleanup.
 `registered_stage/live_run` consumes the separately bound live initialization
 permit, retaining actual Task Bytes provenance in initialized State.

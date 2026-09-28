@@ -167,10 +167,12 @@ fn owned_reduce_cancel_after_cleanup_start_still_releases_but_blocks_step_move()
     });
 }
 
+#[cfg(unix)]
 #[test]
 fn owned_reduce_normal_poisoned_or_foreign_drop_disarms_semantic_disposal() {
     for mode in 0..3 {
         with_staged_complete_reduce_v2(1000, |staged, weak, _, _, directory| {
+            let identity = staged.inputs.store.registration().identity();
             let ready = ready(
                 settle_executed_owned_reduce_v2(committed(staged), || true, |_| {})
                     .unwrap_or_else(|e| panic!("{:?}", e.diagnostic)),
@@ -180,13 +182,6 @@ fn owned_reduce_normal_poisoned_or_foreign_drop_disarms_semantic_disposal() {
             if mode == 2 {
                 held.creator = held.creator.wrapping_add(1);
             } else if mode == 1 {
-                let identity = held
-                    .inputs
-                    .as_ref()
-                    .unwrap()
-                    .store
-                    .registration()
-                    .identity();
                 let journal = pinned_journal_entry(directory, identity);
                 let displaced = directory.join("physical-step-displaced");
                 std::fs::rename(&journal, &displaced).unwrap();
@@ -210,6 +205,7 @@ fn owned_reduce_normal_poisoned_or_foreign_drop_disarms_semantic_disposal() {
     }
 }
 
+#[cfg(unix)]
 fn pinned_journal_entry(
     directory: &std::path::Path,
     identity: crate::resumable_effects::owned_frame::OwnedFrameStoreIdentity,

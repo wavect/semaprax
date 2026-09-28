@@ -586,3 +586,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) mod carry;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use carry::{
     LiveContinuedWaitV8, LiveTurnCarryFailureV8,
 };
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod failed_state;

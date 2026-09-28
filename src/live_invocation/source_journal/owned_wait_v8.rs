@@ -126,3 +126,5 @@ pub(crate) use live_upstream::effect::authorization::step::r#continue::LiveConti
 pub(crate) use live_upstream::test_initial_observe_entry_v8;
 
 pub(crate) use live_upstream::effect::authorization::observer_failed_state::state::LiveObserverFailedStateCleanupPermitV8;
+
+pub(crate) use live_upstream::LiveFailedObserveStateCleanupPermitV8;

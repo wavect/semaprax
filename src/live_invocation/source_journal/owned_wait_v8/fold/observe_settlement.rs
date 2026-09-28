@@ -222,3 +222,5 @@ pub(super) fn validate_stop(
 
 #[cfg(test)]
 mod tests;
+
+mod failed_cleanup;

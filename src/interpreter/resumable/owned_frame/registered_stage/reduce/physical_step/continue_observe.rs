@@ -200,3 +200,8 @@ pub(crate) use live_append::checked_continued_observe_facts_v8;
 pub(crate) use live_append::{
     prepare_continued_copy_wait_v8, ContinuedWaitPreparationFailureV8, PreparedHeldContinuedWaitV2,
 };
+
+mod failed_cleanup;
+pub(crate) use failed_cleanup::{
+    ContinuedObserveStateCleanupFailureV8, ReleasedContinuedObserveStateV8,
+};

@@ -13,6 +13,10 @@ use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
 enum ProducerV8<'p, 'j> {
+    FailedObserveState(
+        &'p SourceOwnedWaitJournalV8,
+        &'p super::live_upstream::FixedFailedObserveStateAppendPermitV8<'p, 'j>,
+    ),
     ObserverState(
         &'p SourceOwnedWaitJournalV8,
         &'p FixedObserverStateAppendPermitV8<'p, 'j>,
@@ -865,7 +869,16 @@ impl<'a> InventoryV8<'a> {
             };
             let previous = fold::fold(context, &self.entries)?;
             match producer {
-                ProducerV8::Generic => fold::validate_producer_transition(&previous, &checked)?,
+                ProducerV8::FailedObserveState(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
+                ProducerV8::Generic => {
+                    previous.validate_failed_observe_generic_successor(&checked.entry)?;
+                    fold::validate_producer_transition(&previous, &checked)?;
+                }
                 ProducerV8::Intent(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
@@ -1235,3 +1248,5 @@ impl TrustedAppendAckV8 {
         self.predecessor_seq += 1;
     }
 }
+
+mod failed_observe_state;

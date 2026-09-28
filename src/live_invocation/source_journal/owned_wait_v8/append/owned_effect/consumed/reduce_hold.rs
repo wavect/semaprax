@@ -1460,3 +1460,5 @@ mod spent_funding_tests {
 }
 
 mod observe_settlement;
+
+mod failed_observe_cleanup;

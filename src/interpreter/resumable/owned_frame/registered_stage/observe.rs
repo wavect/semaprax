@@ -261,3 +261,9 @@ impl FailedOwnedObserveV2 {
             .ok_or_else(|| rejected("failed Observe State schema differs"))
     }
 }
+
+mod failed_cleanup;
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) use failed_cleanup::capture_failed_observe_cleanup_v8;
+pub(crate) use failed_cleanup::{
+    ActualFailedObserveCleanupRejectionV8, ObservedFailedObserveCleanupV8,
+};

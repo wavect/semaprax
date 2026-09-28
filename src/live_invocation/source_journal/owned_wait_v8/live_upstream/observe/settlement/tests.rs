@@ -22,7 +22,7 @@ impl SourceInvocationClock for Clock {
         "owned.wait.test"
     }
 }
-fn initial<'j>(
+pub(super) fn initial<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     cancel: &'j AgentCancellation,
 ) -> InitializedLiveOwnedRunV8<'j> {
@@ -32,7 +32,7 @@ fn initial<'j>(
         _ => panic!("actual initialization"),
     }
 }
-fn ordinary(
+pub(super) fn ordinary(
     journal: &SourceOwnedWaitJournalV8,
     state: &serde_json::Value,
 ) -> crate::interpreter::retained_call::RetainedCallEvaluation {

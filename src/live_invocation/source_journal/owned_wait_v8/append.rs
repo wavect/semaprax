@@ -1411,3 +1411,7 @@ pub(super) mod observe_settlement;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe_settlement::VerifiedOwnedObserveSettlementSuccessorV8;
 
 mod observer_state;
+
+mod failed_observe_funnel;
+mod failed_observe_state;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use failed_observe_state::VerifiedFailedObserveStateSuccessorV8;

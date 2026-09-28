@@ -136,3 +136,5 @@ impl ContinuedObserveSettlementV8<'_> {
         self.owner.accounting()
     }
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod failed_state;

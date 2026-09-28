@@ -419,3 +419,7 @@ pub(crate) use physical_step::checked_continued_observe_facts_v8;
 pub(crate) use physical_step::{
     prepare_continued_copy_wait_v8, ContinuedWaitPreparationFailureV8, PreparedHeldContinuedWaitV2,
 };
+
+pub(crate) use physical_step::{
+    ContinuedObserveStateCleanupFailureV8, ReleasedContinuedObserveStateV8,
+};

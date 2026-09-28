@@ -297,3 +297,6 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settl
 
 #[cfg(test)]
 pub(crate) use observe::settlement::test_initial_observe_entry_v8;
+
+pub(crate) use observe::settlement::failed_state::LiveFailedObserveStateCleanupPermitV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::failed_state::{FailedObserveCacheV8, FailedObserveContextV8, FailedObserveOwnerV8, FailedObserveSourceV8, FixedFailedObserveStateAppendPermitV8, LiveFailedObserveStateAppendV8, LiveFailedObserveStateFailureV8, LiveFailedObserveStateAcknowledgedV8, advance_verified_failed_observe_state_v8};

@@ -174,3 +174,7 @@ pub(crate) use authorize::{
     LiveReadyEffectPreparationRejectionV8, LiveReadyPromotionOutcomeV8, LiveStagedAuthorizationV8,
     LiveStateTransferOutcomeV8, LiveTransferredStateV8,
 };
+
+pub(crate) use observe::{
+    InitialObserveStateCleanupFailureV8, LiveFailedObserveV8, ReleasedInitialObserveStateV8,
+};

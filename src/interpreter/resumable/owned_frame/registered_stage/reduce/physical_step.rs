@@ -368,3 +368,7 @@ pub(crate) use continue_observe::checked_continued_observe_facts_v8;
 pub(crate) use continue_observe::{
     prepare_continued_copy_wait_v8, ContinuedWaitPreparationFailureV8, PreparedHeldContinuedWaitV2,
 };
+
+pub(crate) use continue_observe::{
+    ContinuedObserveStateCleanupFailureV8, ReleasedContinuedObserveStateV8,
+};

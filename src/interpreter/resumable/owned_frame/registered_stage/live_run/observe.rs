@@ -146,3 +146,8 @@ impl LiveFailedObserveV8 {
         self.owner.live_state_facts_v8()
     }
 }
+
+mod failed_cleanup;
+pub(crate) use failed_cleanup::{
+    InitialObserveStateCleanupFailureV8, ReleasedInitialObserveStateV8,
+};

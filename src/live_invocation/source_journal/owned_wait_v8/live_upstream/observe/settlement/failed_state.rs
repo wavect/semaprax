@@ -1,5 +1,6 @@
 //! Actual failed Observe State cleanup. Descriptive facts never recreate State.
 use super::*;
+use crate::live_invocation::source_journal::owned_wait_v8::model::{self as journal_model, OwnedBodyV8};
 use crate::agent_lifecycle::authorization::target_protocol::TargetAccounting;
 use crate::interpreter::resumable::owned_frame::registered_stage::live_run::{
     InitialObserveStateCleanupFailureV8, ReleasedInitialObserveStateV8,
@@ -166,7 +167,7 @@ impl FailedObserveSourceV8<'_> {
             turn: self.cache.turn,
             attempt: None,
             wait: None,
-            owner: model::OwnerV8::State,
+            owner: journal_model::OwnerV8::State,
             basis: self.cache.basis,
             terminal: self.cache.terminal.clone(),
             operations: self.cache.operations.clone(),
@@ -211,7 +212,10 @@ impl<'j> LiveSettledObserveV8<'j> {
             let operations = crate::resumable_effects::owned_frame::v2::owned_wait_operations_v8(
                 &journal
                     .context()
-                    .checked_binding
+                    .ready_runtime()
+                    .ok_or(SourceJournalError::Binding)?
+                    .1
+                    .wait()
                     .observe()
                     .helper()
                     .liveness()
@@ -304,7 +308,7 @@ impl LiveFailedObserveStateCleanupPermitV8<'_, '_> {
             || !matches!(
                 self.lineage.acks[0].witness.selected_row(),
                 EntryV8::Owned(OwnedBodyV8::OwnedCleanupStarted {
-                    owner: model::OwnerV8::State,
+                    owner: journal_model::OwnerV8::State,
                     attempt: None,
                     wait: None,
                     ..
@@ -346,7 +350,10 @@ impl LiveFailedObserveStateCleanupPermitV8<'_, '_> {
             self.lineage
                 .journal()
                 .context()
-                .checked_binding
+                .ready_runtime()
+                .ok_or(SourceJournalError::Binding)?
+                .1
+                .wait()
                 .observe()
                 .helper(),
         ) || state != &c.state
@@ -432,7 +439,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveFailedObs
 impl<'j> LiveStartedFailedObserveStateV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn release(
         self,
-        observe: impl FnMut(&crate::hir::FinalizeAction),
+        observe: impl FnMut(&crate::cleanup_plan::FinalizeAction),
     ) -> Result<LiveReleasedFailedObserveStateV8<'j>, LiveFailedObserveStateFailureV8<'j>> {
         if let Err(error) = self.lineage.guard(true) {
             return Err(LiveFailedObserveStateFailureV8::Started { owner: self, error });
@@ -527,7 +534,7 @@ impl<'j> LiveReleasedFailedObserveStateV8<'j> {
             turn: self.lineage.cache.turn,
             attempt: None,
             wait: None,
-            owner: model::OwnerV8::State,
+            owner: journal_model::OwnerV8::State,
             started,
             receipt: self.receipt.clone(),
             receipt_digest: digest,

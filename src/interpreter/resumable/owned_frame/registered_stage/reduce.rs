@@ -427,3 +427,5 @@ pub(crate) use physical_step::{
 pub(in crate::interpreter::resumable::owned_frame::registered_stage) use physical_step::{
     enter_continued_wait_v8, EvaluatedContinuedWaitV2,
 };
+
+pub(crate) use physical_step::FailedHeldOwnedObserveV2;

@@ -488,7 +488,7 @@ fn failed_observe_state_cleanup_fresh_mac_drift_preserves_actual_history_and_nev
                 matches!(
                     e,
                     EntryV8::Owned(OwnedBodyV8::OwnedCleanupStarted {
-                        owner: model::OwnerV8::State,
+                        owner: journal_model::OwnerV8::State,
                         ..
                     })
                 )
@@ -500,7 +500,7 @@ fn failed_observe_state_cleanup_fresh_mac_drift_preserves_actual_history_and_nev
                 matches!(
                     e,
                     EntryV8::Owned(OwnedBodyV8::OwnedCleanupSettled {
-                        owner: model::OwnerV8::State,
+                        owner: journal_model::OwnerV8::State,
                         ..
                     })
                 )
@@ -512,7 +512,7 @@ fn failed_observe_state_cleanup_fresh_mac_drift_preserves_actual_history_and_nev
                 matches!(
                     e,
                     EntryV8::Owned(OwnedBodyV8::OwnedObserveSettled {
-                        settlement: model::ObserveSettlementV8::Failed { .. },
+                        settlement: journal_model::ObserveSettlementV8::Failed { .. },
                         ..
                     })
                 )

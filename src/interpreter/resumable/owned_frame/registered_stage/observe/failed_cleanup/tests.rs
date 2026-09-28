@@ -132,7 +132,10 @@ fn failed_observe_capture_current_guard_panic_is_not_an_observer_outcome() {
 #[test]
 fn failed_observe_capture_rejects_live_root_alias_before_any_release() {
     let (failed, weak) = failed();
-    let alias = failed.root.as_ref().unwrap().clone();
+    let Value::Record(record) = failed.root.as_ref().unwrap() else {
+        panic!("actual checked record")
+    };
+    let alias = Arc::clone(record);
     let mut work = 0;
     let actual = capture_failed_observe_cleanup_v8(failed, || true, |_| work += 1)
         .err()

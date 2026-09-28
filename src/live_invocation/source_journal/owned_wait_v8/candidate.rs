@@ -237,7 +237,8 @@ impl<'a> InventoryV8<'a> {
                     && next == wait
                     && self
                         .context
-                        .ordinary()
+                        .fold()
+                        .ordinary
                         .max_steps_per_stage()
                         .and_then(|f| u64::try_from(f).ok())
                         == Some(*fuel)

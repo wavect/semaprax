@@ -257,12 +257,6 @@ impl ContinuedStartedWaitV8<'_> {
             LiveContinuedWaitStartOutcomeV8::Refused(_) => None,
         }
     }
-    #[cfg(test)]
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_accounting(
-        &self,
-    ) -> &TargetAccounting {
-        &self.accounting
-    }
 }
 
 impl ContinuedStartedWaitV8<'_> {

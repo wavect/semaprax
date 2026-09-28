@@ -425,3 +425,4 @@ pub(crate) fn settle_owned_copy_wait_v2(
 mod tests;
 
 pub(crate) mod authorize;
+pub(crate) mod observe;

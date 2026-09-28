@@ -9,7 +9,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct HeldOwnedAu
     owner: VerifiedOwnedAuthorizationConsumedV8<'j>,
     hold: ProspectiveOwnedReduceHoldV8<'j>,
 }
-struct ProspectiveOwnedReduceHoldV8<'j> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ProspectiveOwnedReduceHoldV8<
+    'j,
+> {
     journal: &'j SourceOwnedWaitJournalV8,
     identity: u64,
 }
@@ -23,46 +25,91 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ReduceHoldR
     _owner: VerifiedOwnedAuthorizationConsumedV8<'j>,
     error: SourceJournalError,
 }
+impl ProspectiveOwnedReduceHoldV8<'_> {
+    /// Borrow-only Consumed-phase guard, never an owner/ACK/token producer.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_guard(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        sequence: usize,
+        acknowledged_bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            // Refuse before reading a foreign container; retire our own lineage.
+            if !std::ptr::eq(self.journal, journal) {
+                return Err(SourceJournalError::Binding);
+            }
+            journal.validate_guard()?;
+            let current = journal.begin_session()?;
+            let (reserved, stages, turn, attempt) = current.inventory.prospective_reduce_facts()?;
+            let ordinary = journal.context.ordinary();
+            let (_, execution) = journal
+                .context
+                .ready_runtime()
+                .ok_or(SourceJournalError::Binding)?;
+            let fuel = u64::try_from(execution.evaluation_fuel())
+                .map_err(|_| SourceJournalError::Capacity)?;
+            if Some(execution.evaluation_fuel()) != ordinary.max_steps_per_stage() {
+                return Err(SourceJournalError::Binding);
+            }
+            funding(
+                reserved,
+                stages,
+                fuel,
+                u64::try_from(
+                    ordinary
+                        .max_total_steps()
+                        .ok_or(SourceJournalError::Binding)?,
+                )
+                .map_err(|_| SourceJournalError::Capacity)?,
+                ordinary.max_stages(),
+            )?;
+            {
+                let registry = journal
+                    .prospective_reduce
+                    .try_borrow()
+                    .map_err(|_| SourceJournalError::Order)?;
+                let record = registry.as_ref().ok_or(SourceJournalError::Binding)?;
+                if record.identity != self.identity
+                    || record.turn != turn
+                    || record.attempt != attempt
+                    || record.fuel != fuel
+                    || record.sequence != sequence
+                    || record.bytes != acknowledged_bytes
+                    || current.sequence() != sequence
+                    || current.acknowledged_bytes() != acknowledged_bytes
+                    || record.authentication != current.inventory.authentication_tail()
+                {
+                    return Err(SourceJournalError::Binding);
+                }
+            }
+            // No registry borrow crosses this final physical guard.
+            journal.validate_guard()
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+}
 impl HeldOwnedAuthorizationConsumedV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {
-        let result = (|| {
-            self.hold.journal.validate_guard()?;
-            self.owner.validate_live()?;
-            let (_, _, turn, attempt) = self.owner.session.inventory.prospective_reduce_facts()?;
-            let expected_fuel = u64::try_from(
-                self.hold
-                    .journal
-                    .context
-                    .ready_runtime()
-                    .ok_or(SourceJournalError::Binding)?
-                    .1
-                    .evaluation_fuel(),
+        let guard = || {
+            self.hold.validate_guard(
+                self.owner.session.journal,
+                self.owner.session.sequence(),
+                self.owner.session.acknowledged_bytes(),
             )
-            .map_err(|_| SourceJournalError::Capacity)?;
-            let registry = self
-                .hold
-                .journal
-                .prospective_reduce
-                .try_borrow()
-                .map_err(|_| SourceJournalError::Order)?;
-            let record = registry.as_ref().ok_or(SourceJournalError::Binding)?;
-            if record.turn != turn
-                || record.attempt != attempt
-                || record.fuel != expected_fuel
-                || record.identity != self.hold.identity
-                || record.sequence != self.owner.session.sequence()
-                || record.bytes != self.owner.session.acknowledged_bytes()
-                || record.authentication != self.owner.session.inventory.authentication_tail()
-            {
-                return Err(SourceJournalError::Binding);
-            }
-            Ok(())
+        };
+        let result = (|| {
+            self.owner.validate_live()?;
+            guard()?;
+            self.owner.validate_live()?;
+            // Policy/clock callbacks have ended; re-read the physical prefix.
+            guard()
         })();
         result.inspect_err(|_| self.hold.journal.poisoned.set(true))
     }
 }
+
 fn funding(
     reserved: u64,
     stages: u32,

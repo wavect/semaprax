@@ -359,3 +359,149 @@ fn owned_reduce_hold_cancelled_acquisition_keeps_empty_registry_and_permanently_
         },
     );
 }
+
+#[test]
+fn owned_reduce_hold_sealed_guard_retires_wrong_coordinates_or_registry_mac_identity() {
+    for fault in 0..4 {
+        CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
+            true,
+            |context, lease, key, directory| {
+                let context = context.with_initialization(&lease).unwrap();
+                let journal =
+                    SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+                let cancel = AgentCancellation::new();
+                let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+                let (owner, weak) = consumed(&journal, &cancel, &policy);
+                let held = owner
+                    .reserve_owned_reduce()
+                    .unwrap_or_else(|_| panic!("acquire"));
+                held.validate_live().unwrap();
+                let before = bytes(&journal);
+                let sequence = held.owner.session.sequence();
+                let old_id = held.hold.identity;
+                let old_mac = held
+                    .owner
+                    .session
+                    .inventory
+                    .authentication_tail()
+                    .to_owned();
+                if fault >= 2 {
+                    let mut registry = journal.prospective_reduce.borrow_mut();
+                    let record = registry.as_mut().unwrap();
+                    if fault == 2 {
+                        let mut altered = old_mac.as_bytes().to_vec();
+                        altered[0] = if altered[0] == b'0' { b'1' } else { b'0' };
+                        record.authentication = String::from_utf8(altered).unwrap();
+                    } else {
+                        record.identity = record.identity.checked_add(1).unwrap();
+                    }
+                }
+                let error = held.hold.validate_guard(
+                    &journal,
+                    sequence + usize::from(fault == 0),
+                    before.len() + usize::from(fault == 1),
+                );
+                assert_eq!(error, Err(SourceJournalError::Binding));
+                // Restoring the private inert registry cannot restore retired credit.
+                {
+                    let mut registry = journal.prospective_reduce.borrow_mut();
+                    let record = registry.as_mut().unwrap();
+                    record.identity = old_id;
+                    record.authentication = old_mac;
+                }
+                let paths = std::fs::read_dir(directory)
+                    .unwrap()
+                    .map(|e| e.unwrap().path())
+                    .collect::<Vec<_>>();
+                assert_eq!(paths.len(), 1);
+                assert_eq!(std::fs::read(&paths[0]).unwrap(), before);
+                assert_eq!(
+                    held.hold.validate_guard(&journal, sequence, before.len()),
+                    Err(SourceJournalError::Poisoned)
+                );
+                assert!(journal.hold().is_err());
+                assert!(journal.begin_session().is_err());
+                assert!(weak.iter().all(|w| w.strong_count() == 1));
+                drop(held);
+                assert!(weak.iter().all(|w| w.upgrade().is_none()));
+            },
+        );
+    }
+}
+#[test]
+fn owned_reduce_hold_sealed_guard_reads_actual_prefix_and_never_revives_after_tail_restore() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
+        true,
+        |context, lease, key, directory| {
+            let context = context.with_initialization(&lease).unwrap();
+            let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+            let cancel = AgentCancellation::new();
+            let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+            let (owner, weak) = consumed(&journal, &cancel, &policy);
+            let held = owner
+                .reserve_owned_reduce()
+                .unwrap_or_else(|_| panic!("acquire"));
+            let before = bytes(&journal);
+            let sequence = held.owner.session.sequence();
+            let prefix_length = before[..before.len() - 1]
+                .iter()
+                .rposition(|b| *b == b'\n')
+                .unwrap()
+                + 1;
+            let paths = std::fs::read_dir(directory)
+                .unwrap()
+                .map(|e| e.unwrap().path())
+                .collect::<Vec<_>>();
+            assert_eq!(paths.len(), 1);
+            // Hostile same-inode removal of only the last authenticated Consumed row.
+            std::fs::write(&paths[0], &before[..prefix_length]).unwrap();
+            assert!(held
+                .hold
+                .validate_guard(&journal, sequence, before.len())
+                .is_err());
+            assert_eq!(std::fs::read(&paths[0]).unwrap(), before[..prefix_length]);
+            std::fs::write(&paths[0], &before).unwrap();
+            assert_eq!(
+                held.hold.validate_guard(&journal, sequence, before.len()),
+                Err(SourceJournalError::Poisoned)
+            );
+            assert!(journal.begin_session().is_err());
+            assert!(weak.iter().all(|w| w.strong_count() == 1));
+            drop(held);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        },
+    );
+}
+#[test]
+fn owned_reduce_hold_sealed_guard_rejects_foreign_container_before_its_io() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+        let context = context.with_initialization(&lease).unwrap();
+        let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+        let cancel = AgentCancellation::new();
+        let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let (owner, weak) = consumed(&journal, &cancel, &policy);
+        let held = owner
+            .reserve_owned_reduce()
+            .unwrap_or_else(|_| panic!("acquire"));
+        let sequence = held.owner.session.sequence();
+        let length = held.owner.session.acknowledged_bytes();
+        CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(
+            |other_context, other_lease, other_key| {
+                let other =
+                    SourceOwnedWaitJournalV8::open(Arc::new(other_context), other_key, other_lease)
+                        .unwrap();
+                let before = bytes(&other);
+                assert_eq!(
+                    held.hold.validate_guard(&other, sequence, length),
+                    Err(SourceJournalError::Binding)
+                );
+                assert_eq!(bytes(&other), before);
+                other.hold().unwrap().validate_guard().unwrap();
+                assert!(journal.hold().is_err());
+                assert!(weak.iter().all(|w| w.strong_count() == 1));
+            },
+        );
+        drop(held);
+        assert!(weak.iter().all(|w| w.upgrade().is_none()));
+    });
+}

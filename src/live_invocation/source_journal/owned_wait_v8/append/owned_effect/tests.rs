@@ -1,10 +1,10 @@
 //! Genuine source/SDK/authorize lineage and physical Ready persistence only.
 //! No target dispatch, effect execution, seal release, Outcome or Reduce ACK.
 use super::*;
-use crate::agent_lifecycle::authorization::CapabilityPolicy;
 use crate::agent_runtime::AgentCancellation;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::tests::test_ready_obligation;
 use crate::live_invocation::SourceInvocationClock;
+use crate::resumable_effects::CapabilityPolicy;
 use std::path::Path;
 
 struct Clock;

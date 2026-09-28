@@ -73,7 +73,7 @@ fn physical_guard(
                 inputs.runtime,
                 inputs.execution,
                 &inputs.store.registration().expected_facts().scope,
-                inputs.proposal,
+                &inputs.proposal,
             )
             .is_ok_and(|p| inputs.policy.allows(p.operation().effect_id()))
     };

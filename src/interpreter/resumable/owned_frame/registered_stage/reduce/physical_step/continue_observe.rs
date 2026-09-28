@@ -103,7 +103,7 @@ pub(crate) fn observe_continued_owned_state_v2<'a>(
         inputs.runtime,
         inputs.execution,
         &inputs.store.registration().expected_facts().scope,
-        inputs.proposal,
+        &inputs.proposal,
     )
     .map(|p| p.operation().effect_id().to_owned());
     let expected_turn = inputs.turn.checked_add(1);

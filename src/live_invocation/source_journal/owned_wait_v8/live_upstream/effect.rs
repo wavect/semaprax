@@ -5,9 +5,10 @@ use super::authorize::StagedLiveOwnedRunV8;
 use super::model::check_clock_v8;
 use super::*;
 use crate::agent_lifecycle::authorization::{
-    checked_owned_wait_ready_commitments_v8, CapabilityPolicy, CheckedOwnedWaitReadyCommitmentsV8,
+    checked_owned_wait_ready_commitments_v8, CheckedOwnedWaitReadyCommitmentsV8,
 };
 use crate::agent_lifecycle::iterative::effects::plan_owned_effect_v8;
+use crate::resumable_effects::CapabilityPolicy;
 
 /// No raw Ready/facts/sequence constructor and no physical ACK or owner getter.
 /// The future fixed adapter must keep this actual obligation inside its witness.

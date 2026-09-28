@@ -14,6 +14,7 @@ pub(crate) struct LiveContinuedTerminalStateV8<'j> {
     _terminal: OwnedCopyWaitTerminalV2,
     _predecessor: PreparedHeldContinuedWaitV2<'j>,
     pub(crate) error: Option<SourceJournalError>,
+    consumed: u64,
 }
 pub(crate) enum LiveContinuedWaitStartOutcomeV8<'j> {
     Parked(LiveContinuedParkedStateV8<'j>),
@@ -44,6 +45,7 @@ pub(crate) fn begin_live_continued_wait_v8<'j>(
                 _terminal: terminal,
                 _predecessor: predecessor,
                 error: guard_error,
+                consumed,
             })
         }
         OwnedCopyWaitStepV2::Parked(parked) => {
@@ -107,5 +109,11 @@ impl LiveContinuedParkedStateV8<'_> {
             .validate_retained_context()
             .map_err(|_| crate::resumable_effects::owned_frame::OwnedFrameError::Binding)?;
         Ok(result)
+    }
+}
+
+impl LiveContinuedTerminalStateV8<'_> {
+    pub(crate) fn consumed(&self) -> u64 {
+        self.consumed
     }
 }

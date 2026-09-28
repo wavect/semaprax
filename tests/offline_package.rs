@@ -3,6 +3,8 @@
 
 #[path = "offline_package/abi_report.rs"]
 mod abi_report;
+#[path = "offline_package/agent_execution.rs"]
+mod agent_execution;
 #[path = "offline_package/build.rs"]
 mod build;
 #[path = "offline_package/c_header_emission.rs"]

@@ -6,8 +6,21 @@ pub(super) fn validate(
     program: &ResolvedProgram,
     agent: &ResolvedAgentDeclaration,
 ) -> Result<(), Diagnostic> {
-    if agent.model_wait.is_none() && !agent.operations.iter().any(|op| op.embedded) {
+    if !agent.has_execution_metadata() && agent.source_association.is_none() {
         return Ok(());
+    }
+    let source = agent
+        .source_association
+        .as_ref()
+        .ok_or_else(|| invalid("checked Agent source association is missing"))?;
+    if source.module.is_empty()
+        || source.operations != agent.operations
+        || source.model_wait != agent.model_wait
+        || source.helper_top_level != agent.model_wait.is_some()
+    {
+        return Err(invalid(
+            "checked Agent metadata differs from its source association",
+        ));
     }
     for operation in &agent.operations {
         if operation.kind != ResolvedAgentOperationKind::Deterministic {
@@ -75,6 +88,83 @@ pub(super) fn validate(
             return Err(invalid(
                 "checked model wait helper must have a unique explicit identity",
             ));
+        }
+    }
+    Ok(())
+}
+
+/// Re-derive association provenance from retained original source, not decoded
+/// strings or a synthetic module's imported stubs. This walk allocates nothing.
+pub(crate) fn replay_agent_source_associations(
+    original: &crate::ast::Program,
+    resolved: &[ResolvedAgentDeclaration],
+) -> Result<(), Diagnostic> {
+    if original.agents.len() != resolved.len() {
+        return Err(invalid(
+            "source Agent inventory differs from retained checked metadata",
+        ));
+    }
+    for declaration in &original.agents {
+        declaration
+            .validate_execution_metadata(original)
+            .map_err(invalid)?;
+        let mut matches = resolved
+            .iter()
+            .filter(|agent| agent.stable_id.as_str() == declaration.stable_id);
+        let agent = matches
+            .next()
+            .ok_or_else(|| invalid("retained source Agent is missing"))?;
+        if matches.next().is_some()
+            || agent.name != declaration.name
+            || agent.runtime_v1_json != declaration.runtime_v1_json
+            || agent.types.len() != declaration.types.len()
+            || agent
+                .types
+                .iter()
+                .zip(&declaration.types)
+                .any(|(actual, expected)| {
+                    actual.role as u8 != expected.role as u8
+                        || actual.stable_id.as_str() != expected.stable_id
+                })
+            || agent.operations.len() != declaration.operations.len()
+            || agent
+                .operations
+                .iter()
+                .zip(&declaration.operations)
+                .any(|(actual, expected)| {
+                    actual.role as u8 != expected.role as u8
+                        || actual.kind as u8 != expected.kind as u8
+                        || actual.stable_id.as_str() != expected.stable_id
+                        || actual.embedded != expected.embedded_function_index.is_some()
+                })
+            || agent
+                .model_wait
+                .as_ref()
+                .map(|binding| binding.helper_id.as_str())
+                != declaration
+                    .model_wait
+                    .as_ref()
+                    .map(|binding| binding.helper_id.as_str())
+        {
+            return Err(invalid(
+                "checked Agent metadata does not replay against original source",
+            ));
+        }
+        match (
+            &agent.source_association,
+            declaration.has_execution_metadata(),
+        ) {
+            (Some(source), true)
+                if source.module == original.module
+                    && source.operations == agent.operations
+                    && source.model_wait == agent.model_wait
+                    && source.helper_top_level == declaration.model_wait.is_some() => {}
+            (None, false) => {}
+            _ => {
+                return Err(invalid(
+                    "checked Agent source association has no original module provenance",
+                ))
+            }
         }
     }
     Ok(())
@@ -150,5 +240,79 @@ mod tests {
             let decoded: hir::ResolvedProgram = cache_codec::decode(&bytes).unwrap();
             assert_eq!(hir::validate(&decoded).unwrap_err().code, "SPX-H006");
         }
+    }
+    #[test]
+    fn linked_foreign_helper_and_origin_changes_fail_even_when_functions_exist() {
+        let text = source().replace("yields i64 -> i64 { yield value }", "{ value }");
+        let ast = crate::check(&text, "agent-linked.spx").unwrap();
+        let original = hir::resolve(&ast).unwrap();
+        let foreign = hir::resolve(&crate::check(
+            "module foreign; @id(\"foreign.helper\") fn foreign_wait(value:i64)->i64 {value} @id(\"foreign.main\") fn main()->i64 {0}",
+            "foreign.spx").unwrap()).unwrap();
+        let functions = original
+            .functions
+            .iter()
+            .chain(
+                foreign
+                    .functions
+                    .iter()
+                    .filter(|function| function.id.as_str() == "foreign.helper"),
+            )
+            .map(|function| hir::LinkedScalarFunction {
+                function: function.clone(),
+                origin: hir::IdentityOrigin::Explicit,
+            })
+            .collect();
+        let mut linked = hir::link_package_scalar_workspace(
+            "linked".into(),
+            original.entrypoint.clone(),
+            functions,
+        )
+        .unwrap();
+        linked.agents = original.agents.clone();
+        hir::validate(&linked).unwrap();
+        super::replay_agent_source_associations(&ast, &linked.agents).unwrap();
+        assert!(linked
+            .functions
+            .iter()
+            .any(|function| function.id.as_str() == "foreign.helper"));
+        for origin_mutation in [false, true] {
+            let mut forged = linked.clone();
+            if origin_mutation {
+                forged.agents[0].operations[0].embedded = false;
+            } else {
+                forged.agents[0].model_wait.as_mut().unwrap().helper_id =
+                    hir::DeclarationId::new("foreign.helper");
+            }
+            assert_eq!(hir::validate(&forged).unwrap_err().code, "SPX-H006");
+        }
+        let mut foreign_module = linked.clone();
+        foreign_module.agents[0]
+            .source_association
+            .as_mut()
+            .unwrap()
+            .module = "foreign".into();
+        hir::validate(&foreign_module).unwrap();
+        assert_eq!(
+            super::replay_agent_source_associations(&ast, &foreign_module.agents)
+                .unwrap_err()
+                .code,
+            "SPX-H006"
+        );
+        // A fully reminted inert carrier can be internally consistent, but
+        // cannot acquire original-source provenance through codec roundtrip.
+        let mut reminted = linked.clone();
+        let agent = &mut reminted.agents[0];
+        agent.model_wait.as_mut().unwrap().helper_id = hir::DeclarationId::new("foreign.helper");
+        agent.source_association.as_mut().unwrap().model_wait = agent.model_wait.clone();
+        let bytes = cache_codec::encode(&reminted).unwrap();
+        let decoded: hir::ResolvedProgram = cache_codec::decode(&bytes).unwrap();
+        hir::validate(&decoded).unwrap();
+        assert_eq!(
+            super::replay_agent_source_associations(&ast, &decoded.agents)
+                .unwrap_err()
+                .code,
+            "SPX-H006"
+        );
     }
 }

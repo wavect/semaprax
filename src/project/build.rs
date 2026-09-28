@@ -122,7 +122,11 @@ fn finish_build(
             dependency_anchors: !manifest.dependency_sources().is_empty(),
         },
     )?;
-    if source_agents != semantic_parts.entry_program.agents {
+    let selected_source_agents = source_agents.iter().filter(|agent| {
+        !agent.has_execution_metadata()
+            || agent.execution_functions_present(&semantic_parts.entry_program.functions)
+    });
+    if !selected_source_agents.eq(semantic_parts.entry_program.agents.iter()) {
         return Err(vec![Diagnostic::io(
             "SPX-G559",
             "source Agent lowering disagrees with the retained linked HIR inventory",

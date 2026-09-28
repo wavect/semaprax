@@ -206,6 +206,8 @@ pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<ProjectFrontendCache> {
         if overflowed || canonical != entry.source {
             return Err(invalid("semantic snapshot source is not canonical"));
         }
+        crate::hir::replay_agent_source_associations(&program, &entry.resolved.agents)
+            .map_err(|error| vec![error])?;
         sources.push(ProjectFrontendSource::new(&entry.path, &entry.source)?);
         cache.entries.insert(
             entry.path.clone(),

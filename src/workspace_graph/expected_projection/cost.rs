@@ -214,6 +214,22 @@ impl StructuralCost {
                 self.embedded_string(&operation.stable_id)?;
             }
             self.embedded_string(&agent.runtime_v1_json)?;
+            if agent.has_execution_metadata() {
+                // The sealed HIR origin is a distinct retained allocation;
+                // account it before constructing/cloning the synthetic HIR.
+                self.add(std::mem::size_of::<
+                    crate::hir::AgentExecutionSourceAssociation,
+                >())?;
+                self.embedded_string(&program.module)?;
+                for operation in &agent.operations {
+                    self.add(std::mem::size_of::<crate::hir::ResolvedAgentOperationRole>())?;
+                    self.embedded_string(&operation.stable_id)?;
+                }
+                if let Some(binding) = &agent.model_wait {
+                    self.add(std::mem::size_of::<crate::hir::ResolvedAgentModelWaitBinding>())?;
+                    self.embedded_string(&binding.helper_id)?;
+                }
+            }
             if let Some(binding) = &agent.model_wait {
                 self.value(binding.as_ref())?;
                 self.embedded_string(&binding.helper_id)?;

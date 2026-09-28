@@ -439,7 +439,7 @@ impl Resolver<'_> {
             .program
             .agents
             .iter()
-            .map(resolve_agent_declaration)
+            .map(|declaration| resolve_agent_declaration(declaration, &self.program.module))
             .collect();
         let byte_slice_roots = derive_byte_slice_provenance(&functions, &self.declarations)?;
         let mut declarations = self.declarations;
@@ -1265,6 +1265,7 @@ impl Resolver<'_> {
 
 fn resolve_agent_declaration(
     declaration: &crate::ast::AgentDeclaration,
+    module: &str,
 ) -> super::ResolvedAgentDeclaration {
     super::ResolvedAgentDeclaration {
         stable_id: DeclarationId::new(declaration.stable_id.clone()),
@@ -1327,6 +1328,7 @@ fn resolve_agent_declaration(
                 embedded: operation.embedded_function_index.is_some(),
             })
             .collect(),
+        source_association: None,
         runtime_v1_json: declaration.runtime_v1_json.clone(),
         model_wait: declaration.model_wait.as_ref().map(|binding| {
             Box::new(super::ResolvedAgentModelWaitBinding {
@@ -1334,6 +1336,7 @@ fn resolve_agent_declaration(
             })
         }),
     }
+    .bind_source_association(module)
 }
 
 #[cfg(test)]

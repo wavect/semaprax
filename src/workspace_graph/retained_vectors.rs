@@ -129,10 +129,47 @@ pub(super) fn filter_owned_vec_accounted<T>(
     Ok(retained)
 }
 
-/// Reserve actual retained Agent clone carriers and payloads before linking.
-/// Legacy source bytes do not change, but the successor cache accounts its
-/// actual Rust metadata footprint even when optional helper metadata is absent.
-pub(super) fn reserve_agent_execution_metadata<'a>(
+/// Keep inert legacy inventory; execution metadata follows the actual linked
+/// module closure, whose original functions are retained together.
+pub(super) fn project_agents(
+    modules: &[WorkspaceResolvedModule],
+    linked: &hir::ResolvedProgram,
+) -> Result<Vec<hir::ResolvedAgentDeclaration>, Vec<Diagnostic>> {
+    let selected = || {
+        modules.iter().flat_map(|module| {
+            module.agents.iter().filter(move |agent| {
+                !agent.has_execution_metadata()
+                    || agent.execution_functions_present(&linked.functions)
+            })
+        })
+    };
+    clone_agents(selected)
+}
+
+fn clone_agents<'a, I: Iterator<Item = &'a hir::ResolvedAgentDeclaration>>(
+    selected: impl Fn() -> I,
+) -> Result<Vec<hir::ResolvedAgentDeclaration>, Vec<Diagnostic>> {
+    let count = selected()
+        .try_fold(0usize, |count, _| count.checked_add(1))
+        .ok_or_else(limit_error)?;
+    let mut retained = output_carrier::<hir::ResolvedAgentDeclaration>(
+        count,
+        std::mem::size_of::<hir::ResolvedAgentDeclaration>(),
+    )?;
+    reserve_agent_execution_payloads(selected())?;
+    for agent in selected() {
+        retained.push(agent.clone());
+    }
+    retained.sort_by(|left, right| {
+        left.stable_id
+            .as_str()
+            .as_bytes()
+            .cmp(right.stable_id.as_str().as_bytes())
+    });
+    Ok(retained)
+}
+
+fn reserve_agent_execution_payloads<'a>(
     agents: impl Iterator<Item = &'a hir::ResolvedAgentDeclaration>,
 ) -> Result<(), Vec<Diagnostic>> {
     let mut bytes = 0usize;
@@ -141,7 +178,6 @@ pub(super) fn reserve_agent_execution_metadata<'a>(
         Ok(())
     };
     for agent in agents {
-        add(std::mem::size_of_val(agent))?;
         for value in [
             agent.stable_id.as_str(),
             &agent.name,
@@ -161,6 +197,9 @@ pub(super) fn reserve_agent_execution_metadata<'a>(
             add(std::mem::size_of_val(binding.as_ref()))?;
             add(binding.helper_id.as_str().len())?;
         }
+        add(agent
+            .source_association_owned_bytes()
+            .ok_or_else(limit_error)?)?;
     }
     reserve_builder_structure(bytes)
 }
@@ -196,23 +235,39 @@ mod agent_execution_tests {
             for operation in &agent.operations {
                 expected += std::mem::size_of_val(operation) + operation.stable_id.as_str().len();
             }
+            expected += agent.source_association_owned_bytes().unwrap();
             if with_helper {
                 expected +=
                     std::mem::size_of::<hir::ResolvedAgentModelWaitBinding>() + "helper".len();
             }
-            let (result, overflow, used) =
-                crate::bounded_output::with_limit_usage(expected, || {
-                    reserve_agent_execution_metadata(std::iter::once(&agent))
-                });
-            result.unwrap();
-            assert!(!overflow);
-            assert_eq!(used, expected);
-            let (result, overflow, _) =
-                crate::bounded_output::with_limit_usage(expected - 1, || {
-                    reserve_agent_execution_metadata(std::iter::once(&agent))
-                });
-            assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
-            assert!(overflow);
+            for count in [1, 3] {
+                let (result, overflow, used) =
+                    crate::bounded_output::with_limit_usage(usize::MAX, || {
+                        clone_agents(|| std::iter::repeat_n(&agent, count))
+                    });
+                let retained = result.unwrap();
+                assert!(!overflow);
+                assert_eq!(retained.len(), count);
+                assert_eq!(
+                    used,
+                    expected * count
+                        + (retained.capacity() - count) * std::mem::size_of_val(&agent)
+                );
+                assert!(retained.iter().all(|copy| copy == &agent));
+                let (result, overflow, exact) =
+                    crate::bounded_output::with_limit_usage(used, || {
+                        clone_agents(|| std::iter::repeat_n(&agent, count))
+                    });
+                assert_eq!(result.unwrap().capacity(), retained.capacity());
+                assert!(!overflow);
+                assert_eq!(exact, used);
+                let (result, overflow, _) =
+                    crate::bounded_output::with_limit_usage(used - 1, || {
+                        clone_agents(|| std::iter::repeat_n(&agent, count))
+                    });
+                assert_eq!(result.unwrap_err()[0].code, "SPX-G171");
+                assert!(overflow);
+            }
         }
     }
 }

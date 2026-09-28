@@ -1,6 +1,6 @@
 //! Independent HIR validation for language-native Agent nodes.
 
-mod embedded;
+pub(crate) mod embedded;
 
 use std::collections::BTreeSet;
 

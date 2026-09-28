@@ -1506,22 +1506,7 @@ impl WorkspaceGraphBuild {
         &self,
         linked: &mut hir::ResolvedProgram,
     ) -> Result<(), Vec<Diagnostic>> {
-        retained_vectors::reserve_agent_execution_metadata(
-            self.hir.modules.iter().flat_map(|module| &module.agents),
-        )?;
-        let mut agents = self
-            .hir
-            .modules
-            .iter()
-            .flat_map(|module| module.agents.iter().cloned())
-            .collect::<Vec<_>>();
-        agents.sort_by(|left, right| {
-            left.stable_id
-                .as_str()
-                .as_bytes()
-                .cmp(right.stable_id.as_str().as_bytes())
-        });
-        linked.agents = agents;
+        linked.agents = retained_vectors::project_agents(&self.hir.modules, linked)?;
         hir::validate(linked).map_err(|error| vec![error])
     }
     /// Link the entry closure plus exact persistent additional roots.
@@ -4372,6 +4357,8 @@ fn retain_workspace_module(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     retained_output_only: bool,
 ) -> Result<(WorkspaceResolvedModule, Vec<hir::ResolvedFunctionInstance>), Vec<Diagnostic>> {
+    hir::replay_agent_source_associations(program, &resolved.agents)
+        .map_err(|error| vec![error])?;
     // Declaration facts, then `follows` binding facts, in one `Vec`: the two
     // JSON shapes are distinguished by their own leading key alone
     // (`{"stable_id":...` vs `{"function":...`), so storing them together

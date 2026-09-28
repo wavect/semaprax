@@ -427,12 +427,40 @@ mod tests {
             &[3; 32],
         )
         .unwrap();
-        for oversized in [false, true] {
+        for mode in 0..4 {
             let mut altered = bytes.clone();
-            if oversized {
+            if mode == 1 {
                 altered[40..44].copy_from_slice(&u32::MAX.to_le_bytes());
-            } else {
+            } else if mode == 0 {
                 altered[48] ^= 1;
+            } else {
+                let old = if mode == 2 {
+                    "semaprax.project-frontend-canonical-ast.v1"
+                } else {
+                    "semaprax.project-checked-module-hir.v3"
+                };
+                let current = crate::project::incremental::PROJECT_SEMANTIC_CACHE_COMPATIBILITY;
+                let mut context = compatibility();
+                let start = context
+                    .windows(current.len())
+                    .position(|slot| slot == current.as_bytes())
+                    .unwrap();
+                assert_eq!(
+                    u32::from_le_bytes(context[start - 4..start].try_into().unwrap()) as usize,
+                    current.len()
+                );
+                context.splice(
+                    start - 4..start + current.len(),
+                    (old.len() as u32)
+                        .to_le_bytes()
+                        .into_iter()
+                        .chain(old.bytes()),
+                );
+                let old_length = u32::from_le_bytes(bytes[40..44].try_into().unwrap()) as usize;
+                altered = bytes[..40].to_vec();
+                altered.extend_from_slice(&(context.len() as u32).to_le_bytes());
+                altered.extend_from_slice(&context);
+                altered.extend_from_slice(&bytes[44 + old_length..]);
             }
             // Only a private test seam can reseal arbitrary bytes. No public API can.
             let body = altered.len() - 32;
@@ -442,7 +470,7 @@ mod tests {
             altered[body..].copy_from_slice(&mac.finalize().into_bytes());
             code(
                 authenticate(&altered, &hash(&altered), &[7; 32], &[3; 32]),
-                if oversized { "SPX-G307" } else { "SPX-G308" },
+                if mode == 1 { "SPX-G307" } else { "SPX-G308" },
             );
         }
     }

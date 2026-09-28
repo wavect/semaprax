@@ -116,11 +116,13 @@ pub(crate) use type_reachability::{
 mod validation;
 mod workspace_link;
 pub(crate) mod yield_aggregate;
+pub(crate) use agent_nodes::AgentExecutionSourceAssociation;
 pub use agent_nodes::{
     ResolvedAgentDeclaration, ResolvedAgentModelWaitBinding, ResolvedAgentOperationKind,
     ResolvedAgentOperationRole, ResolvedAgentOperationRoleKind, ResolvedAgentTypeRole,
     ResolvedAgentTypeRoleKind,
 };
+pub(crate) use agent_validation::embedded::replay_agent_source_associations;
 pub(crate) use workspace_link::compiler_prelude_declarations;
 
 /// Validate resolved HIR and independently replay its canonical shared-loan

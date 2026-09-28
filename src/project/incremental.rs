@@ -421,6 +421,11 @@ impl FrontendPass {
         if entry.synthetic != *synthetic {
             return None;
         }
+        crate::hir::replay_agent_source_associations(
+            &self.entries.get(path)?.program,
+            &entry.resolved.agents,
+        )
+        .ok()?;
         self.checked_reused += 1;
         self.functions_reused += entry.resolved.functions.len();
         self.next_checked.insert(path.to_owned(), Arc::clone(entry));

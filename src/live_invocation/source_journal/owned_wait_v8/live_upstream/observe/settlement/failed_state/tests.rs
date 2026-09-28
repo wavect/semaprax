@@ -51,6 +51,18 @@ fn with_failed(
         );
     }
 }
+fn generic_refuses_without_io(journal: &SourceOwnedWaitJournalV8, row: EntryV8) {
+    let before = journal.test_observe_lease().borrow_mut().read().unwrap();
+    assert!(journal.begin_session().unwrap().append(row).is_err());
+    assert_eq!(
+        journal.test_observe_lease().borrow_mut().read().unwrap(),
+        before
+    );
+    assert!(
+        journal.hold().is_ok(),
+        "pure producer refusal preserves live authority"
+    );
+}
 fn start<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     failed: LiveSettledObserveV8<'j>,
@@ -65,6 +77,8 @@ fn start<'j>(
         FailedObserveOwnerV8::Initial(x) => x.test_cleanup_weak_v8(),
         FailedObserveOwnerV8::Continued { failed, .. } => failed.test_cleanup_weak_v8(),
     };
+    assert!(weak.iter().all(|w| w.strong_count() == 1));
+    generic_refuses_without_io(journal, obligation.selected_row().clone());
     assert!(weak.iter().all(|w| w.strong_count() == 1));
     let ack = journal
         .begin_session()
@@ -85,6 +99,7 @@ fn receipt<'j>(
     let selected = released
         .prepare_receipt()
         .unwrap_or_else(|_| panic!("actual exact receipt"));
+    generic_refuses_without_io(journal, selected.selected_row().clone());
     let ack = journal
         .begin_session()
         .unwrap()
@@ -148,6 +163,7 @@ fn failed_observe_state_cleanup_initial_and_continued_actual_receipt_sticky_stop
             assert!(
                 matches!(stop.selected_row(),EntryV8::Ordinary(SourceJournalEntry::Stop{turn:Some(t),attempt:None,status:SourceStopStatus::Rejected,reason:SourceStopReason::StageRefused})if *t==turn)
             );
+            generic_refuses_without_io(journal, stop.selected_row().clone());
             let terminal = journal
                 .begin_session()
                 .unwrap()

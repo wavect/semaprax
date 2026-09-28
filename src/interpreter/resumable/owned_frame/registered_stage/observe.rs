@@ -28,6 +28,29 @@ pub(crate) struct OwnedObserveRejectionV2 {
     pub(crate) argument: OwnedAgentStateArgument,
     pub(crate) diagnostic: Diagnostic,
 }
+// Admission currently mints the complete State's private logical namespace
+// 1..=N. Validate it by borrow before seeding the ordinary view evaluator;
+// observing a maximum alone would admit arbitrary forged allocation IDs.
+fn retained_allocation_ceiling(plan: &CheckedOwnedFrameHelperV2, root: &Value) -> Option<u32> {
+    if !root_valid(plan, root) {
+        return None;
+    }
+    let Value::Record(record) = root else {
+        return None;
+    };
+    let count = u32::try_from(plan.liveness().leaves.len()).ok()?;
+    let mut seen = Vec::new();
+    for leaf in &plan.liveness().leaves {
+        let Value::Bytes(bytes) = record.fields.get(&leaf.field)? else {
+            return None;
+        };
+        if bytes.allocation == 0 || bytes.allocation > count || seen.contains(&bytes.allocation) {
+            return None;
+        }
+        seen.push(bytes.allocation);
+    }
+    Some(count)
+}
 pub(crate) fn observe_owned_agent_state_v2(
     mut argument: OwnedAgentStateArgument,
     plan: &CheckedOwnedObserveV2,
@@ -35,16 +58,22 @@ pub(crate) fn observe_owned_agent_state_v2(
 ) -> Result<OwnedObserveStepV2, OwnedObserveRejectionV2> {
     if argument.creator != std::process::id()
         || !argument.plan.same_helper(plan.helper())
-        || !argument
+        || argument
             .root
             .as_ref()
-            .is_some_and(|v| root_valid(&argument.plan, v))
+            .and_then(|v| retained_allocation_ceiling(&argument.plan, v))
+            .is_none()
     {
         return Err(OwnedObserveRejectionV2 {
             argument,
             diagnostic: rejected("Observe helper/root/process mismatch"),
         });
     }
+    let allocation_ceiling = retained_allocation_ceiling(
+        &argument.plan,
+        argument.root.as_ref().expect("checked root"),
+    )
+    .expect("checked allocations");
     let root = argument.root.take();
     let helper = argument.plan.clone();
     let creator = argument.creator;
@@ -73,6 +102,7 @@ pub(crate) fn observe_owned_agent_state_v2(
         0,
         PreparedCancellation::Never,
     );
+    evaluator.next_byte_allocation = allocation_ceiling;
     // Enter the ordinary checked call frame with a scoped borrow of the real
     // State, not a RetainedValue carrier or freshly staged Bytes allocation.
     let evaluation = evaluator.call_frame(

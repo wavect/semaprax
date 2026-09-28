@@ -321,3 +321,38 @@ fn owned_frame_v2_observe_alias_refusal_and_interrupted_cleanup_never_retry() {
     drop(rejection);
     assert!(roots.iter().all(|w| w.upgrade().is_none()));
 }
+
+#[test]
+fn owned_frame_v2_observe_invalid_allocation_namespace_refuses_before_evaluation() {
+    let p = proof(SOURCE);
+    for allocation in [0, 3, 1] {
+        let mut a = argument(&p);
+        let roots = weak(a.root.as_ref().unwrap());
+        let Value::Record(r) = a.root.as_mut().unwrap() else {
+            panic!()
+        };
+        let r = Arc::get_mut(r).unwrap();
+        let Value::Bytes(b) = r.fields.get_mut(&DeclarationId::new("state.a")).unwrap() else {
+            panic!()
+        };
+        b.allocation = allocation; // zero, outside retained namespace, duplicate
+        let mut fuel = OwnedFrameBudget::new(100).unwrap();
+        let rejection = observe_owned_agent_state_v2(a, &p, &mut fuel)
+            .err()
+            .expect("invalid logical allocation");
+        assert_eq!(fuel.consumed(), 0);
+        assert!(roots.iter().all(|w| w.strong_count() == 1));
+        let Value::Record(r) = rejection.argument.root.as_ref().unwrap() else {
+            panic!()
+        };
+        let Value::Bytes(b) = &r.fields[&DeclarationId::new("state.a")] else {
+            panic!()
+        };
+        assert_eq!(
+            b.allocation, allocation,
+            "rejection preserves original owner facts"
+        );
+        drop(rejection);
+        assert!(roots.iter().all(|w| w.upgrade().is_none()));
+    }
+}

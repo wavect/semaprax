@@ -127,7 +127,7 @@ fn weak(root: &Value) -> Vec<Weak<[u8]>> {
     ["state.z", "state.a"]
         .iter()
         .map(|id| {
-            let Value::Bytes(b) = &r.fields[&DeclarationId::new(id)] else {
+            let Value::Bytes(b) = &r.fields[&DeclarationId::new(*id)] else {
                 panic!()
             };
             Arc::downgrade(&b.bytes)

@@ -64,8 +64,30 @@ pub(super) struct FoldContextV8 {
     granted: String,
     refused: String,
     refused_cleanup_empty: bool,
+    checked_reduce: Result<
+        std::sync::Arc<crate::resumable_effects::owned_frame::v2::CheckedOwnedReduceV2>,
+        SourceJournalError,
+    >,
     checked_binding:
         std::sync::Arc<crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8>,
+}
+
+impl FoldContextV8 {
+    // Immutable compiler proof only. Deferred refusal remains at its old use sites.
+    fn checked_reduce(
+        &self,
+    ) -> Result<
+        &std::sync::Arc<crate::resumable_effects::owned_frame::v2::CheckedOwnedReduceV2>,
+        SourceJournalError,
+    > {
+        let plan = self.checked_reduce.as_ref().map_err(|error| *error)?;
+        if plan.binding() != self.checked_binding.binding()
+            || !plan.helper().same_helper(self.checked_binding.helper())
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(plan)
+    }
 }
 
 pub(crate) use checked_context::{

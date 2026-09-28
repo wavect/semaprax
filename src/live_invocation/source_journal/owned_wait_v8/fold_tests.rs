@@ -54,7 +54,11 @@ fn copy(rows: &[ValidatedEntryV8]) -> Vec<ValidatedEntryV8> {
         .collect()
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) fn context() -> FoldContextV8 {
-    let checked = checked_binding();
+    context_with_binding(checked_binding())
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn context_with_binding(
+    checked: crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
+) -> FoldContextV8 {
     let authorize = checked.authorize();
     assert_eq!(authorize.disposal().len(), 1);
     assert_eq!(authorize.partial_disposal().len(), 1);
@@ -88,6 +92,11 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn context() -> Fo
                 .as_ref()
                 .is_some_and(|case| case.case != *authorize.refused())
         }),
+        checked_reduce: crate::resumable_effects::owned_frame::v2::compile_owned_reduce_v2(
+            &checked,
+        )
+        .map(std::sync::Arc::new)
+        .map_err(|_| SourceJournalError::Binding),
         checked_binding: std::sync::Arc::new(checked),
     }
 }

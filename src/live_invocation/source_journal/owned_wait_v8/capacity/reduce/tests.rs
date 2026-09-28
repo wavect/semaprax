@@ -226,3 +226,101 @@ fn owned_reduce_capacity_status_dedup_preserves_every_original_failure_room() {
         },
     );
 }
+
+#[test]
+fn owned_reduce_cached_proof_matches_fresh_plan_and_every_room_on_genuine_context() {
+    super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_reduce_arithmetic_store(
+        |context, _lease, _key, _directory| {
+            let context = context.fold();
+            let first = context.checked_reduce().unwrap();
+            assert!(std::sync::Arc::ptr_eq(
+                first,
+                context.checked_reduce().unwrap()
+            ));
+            let mut crossed = super::super::super::fold::tests::context();
+            crossed.checked_reduce = Ok(std::sync::Arc::clone(first));
+            assert_eq!(
+                crossed.checked_reduce().err().unwrap(),
+                SourceJournalError::Binding,
+                "a retained proof cannot be rebound to another checked source/helper"
+            );
+            let fresh = v2::compile_owned_reduce_v2(&context.checked_binding).unwrap();
+            assert_eq!(first.binding(), fresh.binding());
+            assert_eq!(first.function().id, fresh.function().id);
+            assert_eq!(
+                first.transfers().initial_disposal,
+                fresh.transfers().initial_disposal
+            );
+            assert_eq!(
+                first.transfers().completion_cleanup,
+                fresh.transfers().completion_cleanup
+            );
+            assert_eq!(
+                first.transfers().provisional_failure,
+                fresh.transfers().provisional_failure
+            );
+            assert_eq!(first.mappings().len(), fresh.mappings().len());
+            for (cached, fresh) in first.mappings().iter().zip(fresh.mappings()) {
+                assert_eq!(
+                    (&cached.case, cached.role, &cached.target, &cached.fields),
+                    (&fresh.case, fresh.role, &fresh.target, &fresh.fields)
+                );
+            }
+            assert_eq!(
+                rooms(context).unwrap(),
+                rooms_with_plan(context, &fresh).unwrap()
+            );
+            super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(
+                |other, _lease, _key| {
+                    let other = other.fold();
+                    assert!(
+                        !std::sync::Arc::ptr_eq(first, other.checked_reduce().unwrap()),
+                        "separate contexts never share a mutable/global proof cache"
+                    );
+                    assert_ne!(
+                        first.binding(),
+                        other.checked_reduce().unwrap().binding(),
+                        "different genuine source fixtures keep their distinct bindings"
+                    );
+                },
+            );
+        },
+    );
+}
+
+#[test]
+fn owned_reduce_cached_proof_preserves_deferred_refusal_for_real_unsupported_reducer() {
+    let original = include_str!("../../../../../../examples/offline-repair-project/src/app.spx");
+    let source = original.replace(
+        "    runtime_v1 {",
+        "    model_wait_v1 { propose = \"fixture.agent.fn.park\"; }\n    runtime_v1 {",
+    );
+    let source = format!("{source}\n@id(\"fixture.agent.fn.park\")\nfn park(state: own State, observation: Observation) -> State yields Observation -> Proposal {{\n    let proposal = yield observation;\n    state\n}}\n");
+    let source = source.replace(
+        "    if state.epoch < 2",
+        "    let extra = bytes_zeroed(1usize);\n    if state.epoch < 2",
+    );
+    assert!(source.contains("let extra = bytes_zeroed"));
+    let binding = v2::compile_owned_agent_wait_v8(
+        &source,
+        std::path::Path::new("deferred-reduce.spx"),
+        "fixture.agent",
+        "fixture.agent.type.step",
+    )
+    .unwrap();
+    assert_eq!(
+        v2::compile_owned_reduce_v2(&binding).err().unwrap().code,
+        "SPX-T303"
+    );
+    let context = super::super::super::fold::tests::context_with_binding(binding);
+    assert_eq!(
+        context.checked_reduce().err().unwrap(),
+        SourceJournalError::Binding
+    );
+    let rows = super::super::super::fold::tests::fixtures(&context);
+    assert!(
+        super::super::super::fold::fold(&context, &rows[..2]).is_ok(),
+        "unsupported reducer proof does not reject earlier default journal admission"
+    );
+    assert_eq!(rooms(&context).err().unwrap(), SourceJournalError::Binding);
+}

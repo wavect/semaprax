@@ -4,6 +4,7 @@ use crate::hir::ResolvedType;
 use crate::interpreter::{resumable::checkpoint, ArgumentValue};
 use crate::resumable_effects::owned_frame::v2;
 
+#[derive(Debug, Eq, PartialEq)]
 pub(super) struct ReduceRoomsV8 {
     pub before_stage: RoomV8,
     pub charged: RoomV8,
@@ -11,6 +12,7 @@ pub(super) struct ReduceRoomsV8 {
     pub mapped: RoomV8,
     pub failed_state: RoomV8,
 }
+#[derive(Debug, Eq, PartialEq)]
 pub(super) struct ReduceCaseRoomsV8 {
     pub case: String,
     pub staged: RoomV8,
@@ -208,8 +210,13 @@ fn transfer(
 }
 
 pub(super) fn rooms(context: &FoldContextV8) -> Result<ReduceRoomsV8, SourceJournalError> {
-    let plan = v2::compile_owned_reduce_v2(&context.checked_binding)
-        .map_err(|_| SourceJournalError::Binding)?;
+    rooms_with_plan(context, context.checked_reduce()?)
+}
+
+fn rooms_with_plan(
+    context: &FoldContextV8,
+    plan: &v2::CheckedOwnedReduceV2,
+) -> Result<ReduceRoomsV8, SourceJournalError> {
     let fuel = context
         .ordinary
         .max_steps_per_stage()

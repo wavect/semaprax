@@ -5,7 +5,7 @@ use super::*;
 use crate::resumable_effects::owned_frame::v2;
 
 pub(super) struct ReduceJournalV8 {
-    plan: v2::CheckedOwnedReduceV2,
+    plan: std::sync::Arc<v2::CheckedOwnedReduceV2>,
     fold: ReduceFoldV8,
 }
 impl ReduceJournalV8 {
@@ -273,8 +273,7 @@ pub(super) fn ordinary(
             coordinates(f, *turn, attempt)?;
             let (_, _, cleanup) = effect_refs(f, true)?;
             require(cleanup.checked_add(1) == Some(seq))?;
-            let plan = v2::compile_owned_reduce_v2(&context.checked_binding)
-                .map_err(|_| SourceJournalError::Binding)?;
+            let plan = std::sync::Arc::clone(context.checked_reduce()?);
             let allowance = u64::try_from(*fuel).map_err(|_| SourceJournalError::Capacity)?;
             let fold = ReduceFoldV8::after_checked_reservation(
                 &plan,

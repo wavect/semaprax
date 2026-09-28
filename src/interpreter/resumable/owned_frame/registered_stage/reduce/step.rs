@@ -255,7 +255,7 @@ fn root_for<'a>(
         &mut staged.step
     }
 }
-fn pending_matches(
+pub(super) fn pending_matches(
     staged: &StagedOwnedReduceV2,
     actions: &[FinalizeAction],
     active: &[crate::cleanup::LivenessFlagId],

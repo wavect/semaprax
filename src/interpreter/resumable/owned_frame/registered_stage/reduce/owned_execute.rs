@@ -15,6 +15,8 @@ pub(crate) struct StagedExecutedOwnedReduceV2<'a> {
     pub(super) staged: StagedOwnedReduceV2,
     pub(super) inputs: OwnedEffectInputsV8<'a>,
     pub(super) effect_settled: u32,
+    pub(super) allowance: usize,
+    pub(super) consumed: usize,
 }
 pub(crate) struct ExecutedOwnedReducePreparationRejectionV2<'a> {
     pub(crate) executed: ExecutedOwnedAgentTurnV2<'a>,
@@ -25,6 +27,9 @@ pub(crate) struct ExecutedOwnedReduceRejectionV2<'a> {
     pub(crate) diagnostic: Diagnostic,
 }
 impl StagedExecutedOwnedReduceV2<'_> {
+    pub(super) fn observed_fuel(&self) -> (usize, usize) {
+        (self.allowance, self.consumed)
+    }
     pub(crate) fn failure(&self) -> Option<&OwnedFrameFailure> {
         self.staged.failure()
     }
@@ -77,11 +82,16 @@ pub(crate) fn stage_executed_owned_reduce_v2<'a>(
             diagnostic: rejected("physical reducer stage authority differs"),
         });
     }
+    let allowance = budget.remaining;
     match stage_owned_reduce_v2(prepared.input, budget) {
         Ok(staged) => Ok(StagedExecutedOwnedReduceV2 {
             staged,
             inputs: prepared.inputs,
             effect_settled: prepared.effect_settled,
+            allowance,
+            consumed: allowance
+                .checked_sub(budget.remaining)
+                .expect("bounded evaluator charge"),
         }),
         Err(error) => Err(ExecutedOwnedReduceRejectionV2 {
             prepared: PreparedExecutedOwnedReduceV2 {

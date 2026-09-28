@@ -17,10 +17,22 @@ pub(crate) trait Codec: Sized {
 }
 
 pub(crate) fn encode<T: Codec>(value: &T) -> Result<Vec<u8>> {
+    encode_bounded(value, MAX_BYTES)
+}
+
+/// Enforce a caller's smaller encoded-work bound before every allocation.
+/// This does not measure or authorize the decoded/source/HIR retained heap.
+pub(crate) fn encode_bounded<T: Codec>(value: &T, byte_limit: usize) -> Result<Vec<u8>> {
+    if byte_limit > MAX_BYTES {
+        return Err(capacity(
+            "cache codec supplied byte limit exceeds its maximum",
+        ));
+    }
     let mut encoder = Encoder {
         bytes: Vec::new(),
         nodes: 0,
         depth: 0,
+        byte_limit,
     };
     value.encode(&mut encoder)?;
     Ok(encoder.bytes)
@@ -47,6 +59,7 @@ pub(crate) fn decode<T: Codec>(bytes: &[u8]) -> Result<T> {
 
 pub(crate) struct Encoder {
     bytes: Vec<u8>,
+    byte_limit: usize,
     nodes: usize,
     depth: usize,
 }
@@ -72,7 +85,7 @@ impl Encoder {
         Ok(())
     }
     fn raw(&mut self, bytes: &[u8]) -> Result<()> {
-        if bytes.len() > MAX_BYTES.saturating_sub(self.bytes.len()) {
+        if bytes.len() > self.byte_limit.saturating_sub(self.bytes.len()) {
             return Err(capacity("cache codec output exceeds its byte limit"));
         }
         let needed = self.bytes.len() + bytes.len();
@@ -81,7 +94,8 @@ impl Encoder {
                 self.bytes
                     .capacity()
                     .saturating_mul(2)
-                    .clamp(256, MAX_BYTES),
+                    .clamp(256, MAX_BYTES)
+                    .min(self.byte_limit),
             );
             self.bytes
                 .try_reserve_exact(target - self.bytes.len())
@@ -432,3 +446,7 @@ pub(crate) fn capacity(message: &'static str) -> Vec<Diagnostic> {
 #[cfg(test)]
 #[path = "cache_codec/nested_owned_records_tests.rs"]
 mod nested_owned_records_tests;
+
+#[cfg(test)]
+#[path = "cache_codec/bounded_tests.rs"]
+mod bounded_tests;

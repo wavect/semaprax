@@ -23,11 +23,17 @@ impl<'j> LiveSettledObserveV8<'j> {
             let LiveObserveSettlementOwnerV8::Continued(_) = &self.owner else {
                 return Err(SourceJournalError::Binding);
             };
-            if self.acks.len() != 2 || self.owner.data()?.failure.is_some() {
+            if self.acks.len() != 2 {
                 return Err(SourceJournalError::Order);
             }
             validate_current(&self)?;
-            let data = self.owner.data()?;
+            let data = self
+                .owner
+                .data()
+                .inspect_err(|_| self.owner.journal().quarantine())?;
+            if data.failure.is_some() {
+                return Err(SourceJournalError::Order);
+            }
             let held = self.owner.journal().hold()?;
             let (_, execution) = self
                 .owner

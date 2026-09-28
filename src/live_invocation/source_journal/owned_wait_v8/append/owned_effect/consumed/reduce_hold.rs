@@ -9,6 +9,8 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect
 pub(in crate::live_invocation::source_journal::owned_wait_v8::append) enum OwnedReduceHoldPhaseV8 {
     Consumed,
     Intent { selected: SourceJournalEntry },
+    Settlement { selected: EntryV8 },
+    Recorded { selected: EntryV8 },
 }
 
 /// The actual owner is retained first; credit never exists as a detached token.
@@ -228,6 +230,143 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
                 &record.authentication,
             )?;
             record.phase = OwnedReduceHoldPhaseV8::Intent { selected };
+            record.sequence = session.sequence();
+            record.bytes = session.acknowledged_bytes();
+            record.authentication = authentication;
+            Ok(())
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+
+    /// Exact existing settlement phases retain the same prospective credit.
+    /// This is callback-free; only the closed live obligation chooses a row.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_settlement_append_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        inventory: &super::super::super::super::candidate::InventoryV8<'_>,
+        selected: &EntryV8,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, journal) {
+                return Err(SourceJournalError::Binding);
+            }
+            match selected {
+                EntryV8::Ordinary(SourceJournalEntry::EffectObserved {turn,attempt,..} | SourceJournalEntry::EffectFailed {turn,attempt,..}) => {
+                    self.validate_intent_inventory(inventory,inventory.sequence(),inventory.acknowledged_bytes())?;
+                    let (_,_,actual_turn,actual_attempt,_)=inventory.effect_intent_reduce_facts()?;
+                    if (*turn,*attempt)!=(actual_turn,actual_attempt){return Err(SourceJournalError::Binding);}
+                }
+                EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectSettlementRecorded {turn,attempt,settlement,..}) => {
+                    self.validate_settlement_inventory(inventory,inventory.sequence(),inventory.acknowledged_bytes())?;
+                    let (_,_,actual_turn,actual_attempt,previous)=inventory.effect_settlement_reduce_facts()?;
+                    if (*turn,*attempt)!=(actual_turn,actual_attempt) || !matches!(previous,EntryV8::Ordinary(SourceJournalEntry::EffectObserved {..}|SourceJournalEntry::EffectFailed {..})) || usize::try_from(*settlement).ok().and_then(|seq|seq.checked_add(1))!=Some(inventory.sequence()) {return Err(SourceJournalError::Binding);}
+                }
+                _=>return Err(SourceJournalError::Binding),
+            }
+            Ok(())
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_settlement_guard(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        sequence: usize,
+        bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, journal) {
+                return Err(SourceJournalError::Binding);
+            }
+            journal.validate_guard()?;
+            let current = journal.begin_session()?;
+            self.validate_settlement_inventory(&current.inventory, sequence, bytes)?;
+            journal.validate_guard()
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    fn validate_settlement_inventory(
+        &self,
+        inventory: &super::super::super::super::candidate::InventoryV8<'_>,
+        sequence: usize,
+        bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        if !inventory.belongs_to_context(&self.journal.context) || self.journal.poisoned.get() {
+            return Err(SourceJournalError::Binding);
+        }
+        let (reserved, stages, turn, attempt, selected) =
+            inventory.effect_settlement_reduce_facts()?;
+        let fuel = self.checked_funding(reserved, stages)?;
+        let registry = self
+            .journal
+            .prospective_reduce
+            .try_borrow()
+            .map_err(|_| SourceJournalError::Order)?;
+        let record = registry.as_ref().ok_or(SourceJournalError::Binding)?;
+        let actual = match &record.phase {
+            OwnedReduceHoldPhaseV8::Settlement { selected }
+            | OwnedReduceHoldPhaseV8::Recorded { selected } => selected,
+            _ => return Err(SourceJournalError::Binding),
+        };
+        if actual != selected
+            || record.identity != self.identity
+            || record.fuel != fuel
+            || record.turn != turn
+            || record.attempt != attempt
+            || record.sequence != sequence
+            || inventory.sequence() != sequence
+            || record.bytes != bytes
+            || inventory.acknowledged_bytes() != bytes
+            || record.authentication != inventory.authentication_tail()
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    }
+    /// Only the real fixed append witness and its ACK session advance a phase.
+    /// No clock, policy, lease read or normal fresh guard under this marker.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_settlement_ack(
+        &self,
+        witness: &super::super::settlement::VerifiedOwnedEffectSettlementSuccessorV8<'_>,
+        session: &AppendSessionV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, session.journal)
+                || self.journal.poisoned.get()
+                || !self.journal.append_active.get()
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            witness.validate_against_acknowledged_session(session)?;
+            let (reserved, stages, turn, attempt, selected) =
+                session.inventory.effect_settlement_reduce_facts()?;
+            let fuel = self.checked_funding(reserved, stages)?;
+            let selected = selected.clone();
+            let authentication = session.inventory.authentication_tail().to_owned();
+            let mut registry = self
+                .journal
+                .prospective_reduce
+                .try_borrow_mut()
+                .map_err(|_| SourceJournalError::Order)?;
+            let record = registry.as_mut().ok_or(SourceJournalError::Binding)?;
+            if record.identity != self.identity
+                || record.fuel != fuel
+                || record.turn != turn
+                || record.attempt != attempt
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            witness.validate_previous_registry(
+                self.journal,
+                record.sequence,
+                record.bytes,
+                &record.authentication,
+            )?;
+            let phase=match (&record.phase,&selected){
+                (OwnedReduceHoldPhaseV8::Intent{..},EntryV8::Ordinary(SourceJournalEntry::EffectObserved{..}|SourceJournalEntry::EffectFailed{..}))=>OwnedReduceHoldPhaseV8::Settlement{selected},
+                (OwnedReduceHoldPhaseV8::Settlement{..},EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectSettlementRecorded{..}))=>OwnedReduceHoldPhaseV8::Recorded{selected},
+                _=>return Err(SourceJournalError::Binding),
+            };
+            record.phase = phase;
             record.sequence = session.sequence();
             record.bytes = session.acknowledged_bytes();
             record.authentication = authentication;

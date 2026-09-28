@@ -298,8 +298,15 @@ fn native_provider(built: &Built) -> String {
 }
 
 fn run(command: &mut Command, label: &str) -> Vec<u8> {
+    run_with_role(command, label, None)
+}
+fn run_tool(command: &mut Command, label: &str, role: &str) -> Vec<u8> {
+    run_with_role(command, label, Some(role))
+}
+fn run_with_role(command: &mut Command, label: &str, role: Option<&str>) -> Vec<u8> {
+    let cwd = super::evidence::effective_cwd(command);
     let result = command.output();
-    super::evidence::command(command, label, &result);
+    super::evidence::command(command, label, role, &cwd, &result);
     let output =
         result.unwrap_or_else(|error| panic!("{label}: required toolchain is missing: {error}"));
     assert!(
@@ -353,13 +360,14 @@ fn native_raw(
     if control {
         compile.arg("-DMX_SKIP_RESULT_RELEASE");
     }
-    run(
+    run_tool(
         compile
             .arg(directory.join("provider.c"))
             .arg(directory.join("driver.c"))
             .arg("-o")
             .arg(&executable),
         "raw native compile",
+        "c11-compiler",
     );
     let mut probe = Command::new(&executable);
     if control {
@@ -402,7 +410,7 @@ fn generated_c(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> {
     )
     .unwrap();
     let executable = directory.join(format!("probe{}", env::consts::EXE_SUFFIX));
-    run(
+    run_tool(
         tool("CLANG", "clang")
             .args(["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror"])
             .arg(directory.join("provider.c"))
@@ -410,6 +418,7 @@ fn generated_c(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> {
             .arg("-o")
             .arg(&executable),
         "generated C11 compile",
+        "c11-compiler",
     );
     run(&mut Command::new(executable), "generated C11 caller")
 }
@@ -442,18 +451,19 @@ fn generated_cxx(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> {
     let mut objects = Vec::new();
     for source in ["provider.c", c_calling::CONSUMER_SOURCE_FILE_NAME] {
         let object = directory.join(format!("{source}.o"));
-        run(
+        run_tool(
             tool("CLANG", "clang")
                 .args(["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "-c"])
                 .arg(directory.join(source))
                 .arg("-o")
                 .arg(&object),
             "generated C++17 C objects",
+            "c11-compiler",
         );
         objects.push(object);
     }
     let executable = directory.join(format!("probe{}", env::consts::EXE_SUFFIX));
-    run(
+    run_tool(
         tool("CLANGXX", "clang++")
             .args(["-std=c++17", "-O2", "-Wall", "-Wextra", "-Werror", "-I"])
             .arg(&directory)
@@ -462,6 +472,7 @@ fn generated_cxx(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> {
             .arg("-o")
             .arg(&executable),
         "generated C++17 link",
+        "cxx17-compiler",
     );
     run(&mut Command::new(executable), "generated C++17 caller")
 }
@@ -518,20 +529,22 @@ fn generated_rust(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> {
     let library = directory.join("provider-lib");
     fs::create_dir_all(&library).unwrap();
     let object = library.join("provider.o");
-    run(
+    run_tool(
         tool("CLANG", "clang")
             .args(["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "-c"])
             .arg(directory.join("provider.c"))
             .arg("-o")
             .arg(&object),
         "generated Rust provider object",
+        "c11-compiler",
     );
-    run(
+    run_tool(
         tool("AR", "ar")
             .arg("rcs")
             .arg(library.join("libspx_pg_reference_provider.a"))
             .arg(&object),
         "generated Rust provider archive",
+        "archiver",
     );
     let target = env::var_os("CARGO_TARGET_DIR")
         .map_or_else(
@@ -554,13 +567,15 @@ fn generated_rust(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> {
             .env_remove("RUSTC_WORKSPACE_WRAPPER");
         command
     };
-    run(
+    run_tool(
         cargo().args(["generate-lockfile", "--offline"]),
         "generated Rust lock",
+        "cargo",
     );
-    let receipts = run(
+    let receipts = run_tool(
         cargo().args(["run", "--locked", "--offline", "--quiet", "--bin", "matrix"]),
         "generated Rust caller",
+        "cargo",
     );
     super::evidence::external_artifact(
         &format!(
@@ -611,11 +626,12 @@ fn core_wasm(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> {
     )
     .unwrap();
     fs::write(directory.join("driver.mjs"), include_str!("core_wasm.mjs")).unwrap();
-    run(
+    run_tool(
         Command::new("node")
             .arg("driver.mjs")
             .current_dir(&directory),
         "Core Wasm driver (Node)",
+        "node",
     )
 }
 
@@ -623,8 +639,15 @@ fn checked_tsc(candidate: &Path) -> Option<PathBuf> {
     let resolved = candidate.canonicalize().ok()?;
     let mut command = Command::new(&resolved);
     command.arg("--version");
+    let cwd = super::evidence::effective_cwd(&command);
     let result = command.output();
-    super::evidence::command(&command, "TypeScript version admission", &result);
+    super::evidence::command(
+        &command,
+        "TypeScript version admission",
+        Some("typescript-compiler"),
+        &cwd,
+        &result,
+    );
     let version = result.ok()?;
     (version.status.success()
         && std::str::from_utf8(&version.stdout).is_ok_and(|text| text.trim() == "Version 5.8.3"))
@@ -687,17 +710,19 @@ fn generated_typescript(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> 
         include_str!("typescript.mjs"),
     )
     .unwrap();
-    run(
+    run_tool(
         Command::new(tsc())
             .current_dir(&package)
             .args(["-p", "tsconfig.json"]),
         "generated TypeScript tsc",
+        "typescript-compiler",
     );
-    run(
+    run_tool(
         Command::new("node")
             .current_dir(&package)
             .args(["test/matrix.mjs", "../provider.wasm"]),
         "generated TypeScript caller (Node)",
+        "node",
     )
 }
 

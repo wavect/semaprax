@@ -80,6 +80,10 @@ impl Drop for Capture {
     }
 }
 fn hash_file(path: &Path) -> (u64, String) {
+    assert!(
+        fs::symlink_metadata(path).unwrap().file_type().is_file(),
+        "artifact inventory requires a regular file and rejects symlinks"
+    );
     let mut file = fs::File::open(path).unwrap();
     let mut digest = Sha256::new();
     let mut length = 0;
@@ -142,17 +146,53 @@ pub(super) fn subject(
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
-pub(super) fn command(command: &Command, label: &str, result: &std::io::Result<Output>) {
+pub(super) fn effective_cwd(command: &Command) -> std::io::Result<PathBuf> {
+    let inherited = std::env::current_dir()?;
+    command
+        .get_current_dir()
+        .map_or(inherited.clone(), |cwd| {
+            if cwd.is_absolute() {
+                cwd.to_owned()
+            } else {
+                inherited.join(cwd)
+            }
+        })
+        .canonicalize()
+}
+fn version_command(command: &Command, effective_cwd: Option<&Path>) -> Command {
+    let mut version = Command::new(command.get_program());
+    version.arg("--version");
+    if let Some(cwd) = effective_cwd {
+        version.current_dir(cwd);
+    }
+    for (key, value) in command.get_envs() {
+        if let Some(value) = value {
+            version.env(key, value);
+        } else {
+            version.env_remove(key);
+        }
+    }
+    version
+}
+pub(super) fn command(
+    command: &Command,
+    label: &str,
+    role: Option<&str>,
+    cwd: &std::io::Result<PathBuf>,
+    result: &std::io::Result<Output>,
+) {
     ACTIVE.with(|slot| {if let Some(state)=slot.borrow_mut().as_mut(){
         let program=command.get_program().to_string_lossy().into_owned();
         let args=command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>();
         let observation=match result {Ok(output)=>json!({"code":output.status.code(),"success":output.status.success(),"status":output.status.to_string(),"stdout":String::from_utf8_lossy(&output.stdout),"stderr":String::from_utf8_lossy(&output.stderr)}),Err(error)=>json!({"spawn_error":error.to_string()})};
-        state.commands.push(json!({"label":label,"program":program,"args":args,"cwd":command.get_current_dir().map(|p|p.to_string_lossy().into_owned()),"env":command.get_envs().map(|(k,v)|(k.to_string_lossy().into_owned(),v.map(|v|v.to_string_lossy().into_owned()))).collect::<BTreeMap<_,_>>(),"result":observation}));
-        let filename=Path::new(&program).file_name().unwrap_or_default().to_string_lossy();
-        if (filename.starts_with("clang") || matches!(filename.as_ref(),"cargo"|"node"|"tsc"|"ar")) && !state.tools.contains_key(&program) {
-            let version=Command::new(command.get_program()).arg("--version").output();
-            let observed=match version {Ok(output)=>json!({"code":output.status.code(),"stdout":String::from_utf8_lossy(&output.stdout),"stderr":String::from_utf8_lossy(&output.stderr)}),Err(error)=>json!({"spawn_error":error.to_string()})};
-            state.tools.insert(program,observed);
+        state.commands.push(json!({"label":label,"tool_role":role,"program":program,"args":args,"cwd":cwd.as_ref().ok().map(|p|p.to_string_lossy().into_owned()),"cwd_error":cwd.as_ref().err().map(|error|error.to_string()),"configured_cwd":command.get_current_dir().map(|p|p.to_string_lossy().into_owned()),"env":command.get_envs().map(|(k,v)|(k.to_string_lossy().into_owned(),v.map(|v|v.to_string_lossy().into_owned()))).collect::<BTreeMap<_,_>>(),"result":observation}));
+        if let Some(role)=role {
+            let identity=format!("{role}:{program}");
+            if !state.tools.contains_key(&identity) {
+                let version=version_command(command,cwd.as_ref().ok().map(PathBuf::as_path)).output();
+                let observed=match version {Ok(output)=>json!({"code":output.status.code(),"success":output.status.success(),"stdout":String::from_utf8_lossy(&output.stdout),"stderr":String::from_utf8_lossy(&output.stderr)}),Err(error)=>json!({"spawn_error":error.to_string()})};
+                state.tools.insert(identity,json!({"role":role,"program":program,"args":["--version"],"cwd":cwd.as_ref().ok().map(|p|p.to_string_lossy().into_owned()),"result":observed}));
+            }
         }
     }});
 }
@@ -225,4 +265,83 @@ pub(super) fn receipts(engine: &str, receipts: &[super::Observation]) {
     ACTIVE.with(|slot|{if let Some(state)=slot.borrow_mut().as_mut(){
         for receipt in receipts {state.receipts.push(json!({"engine":engine,"case":receipt.label,"primary":receipt.primary,"secondary":receipt.secondary,"dispatch":receipt.dispatch,"live":receipt.live,"peak":receipt.peak,"release_order":receipt.order,"leaves":receipt.leaves.as_ref().map(|(l,r)|(hex(l),hex(r))),"notes":receipt.note}));}
     }});
+}
+
+#[test]
+fn provenance_records_effective_cwd_and_explicit_alias_roles_with_failed_versions() {
+    let inherited = Command::new("unused-provider");
+    let cwd = effective_cwd(&inherited).unwrap();
+    assert_eq!(
+        cwd,
+        std::env::current_dir().unwrap().canonicalize().unwrap()
+    );
+    let mut relative = Command::new("unused-provider");
+    relative.current_dir(".");
+    let relative_cwd = effective_cwd(&relative).unwrap();
+    assert_eq!(relative_cwd, cwd.clone());
+    let root = std::env::temp_dir().join(format!("spx-matrix-provenance-{}", std::process::id()));
+    fs::create_dir(&root).unwrap();
+    // The tool alias is deliberately named cc, not clang; an explicit role
+    // must preserve a failed version query even for wrappers/aliases.
+    let mut alias = Command::new(root.join("cc"));
+    alias
+        .env("MATRIX_TEST_OVERRIDE", "exact")
+        .env_remove("MATRIX_TEST_REMOVED");
+    let captured_cwd = effective_cwd(&alias);
+    let version = version_command(&alias, captured_cwd.as_ref().ok().map(PathBuf::as_path));
+    assert_eq!(version.get_program(), alias.get_program());
+    assert_eq!(version.get_current_dir(), Some(cwd.as_path()));
+    assert_eq!(
+        version.get_envs().collect::<Vec<_>>(),
+        alias.get_envs().collect::<Vec<_>>()
+    );
+    let state = Inventory {
+        output: root.join("unused"),
+        root: root.clone(),
+        commands: Vec::new(),
+        artifacts: BTreeMap::new(),
+        subjects: Vec::new(),
+        tools: BTreeMap::new(),
+        status: "incomplete",
+        matrix: None,
+        receipts: Vec::new(),
+        provenance: json!({"test":true}),
+    };
+    ACTIVE.with(|slot| {
+        assert!(slot.borrow().is_none());
+        *slot.borrow_mut() = Some(state);
+    });
+    command(
+        &alias,
+        "required compiler",
+        Some("c11-compiler"),
+        &captured_cwd,
+        &Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "missing alias",
+        )),
+    );
+    ACTIVE.with(|slot| {
+        let state = slot.borrow();
+        let state = state.as_ref().unwrap();
+        assert_eq!(state.commands[0]["cwd"], cwd.to_string_lossy().as_ref());
+        assert_eq!(state.tools.len(), 1);
+        let version = state.tools.values().next().unwrap();
+        assert_eq!(version["role"], "c11-compiler");
+        assert!(version["result"]["spawn_error"].is_string());
+    });
+    #[cfg(unix)]
+    {
+        fs::write(root.join("real"), b"binary").unwrap();
+        std::os::unix::fs::symlink(root.join("real"), root.join("binary-link")).unwrap();
+        let refused = std::panic::catch_unwind(|| {
+            external_artifact("executed-rust", &root.join("binary-link"))
+        });
+        assert!(refused.is_err());
+        ACTIVE.with(|slot| assert!(slot.borrow().as_ref().unwrap().artifacts.is_empty()));
+    }
+    ACTIVE.with(|slot| {
+        *slot.borrow_mut() = None;
+    });
+    fs::remove_dir_all(root).unwrap();
 }

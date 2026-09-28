@@ -1118,14 +1118,19 @@ build target or retained build tree.
 The manifest binds canonical source, exact descriptor/native/Wasm binding
 bytes, corpus identity, host OS/architecture, Git commit and dirty status,
 Rust compiler observation, actual tool version observations, exact command
-argument vectors/current directories/explicit environment overrides, exit
+argument vectors/effective working directories captured before execution (including
+inherited and relative directories)/explicit environment overrides, exit
 and spawn failures, stdout/stderr, normalized per-case/cycle observations,
 and sorted relative artifact paths with sizes and plain SHA-256 content
 hashes. Every generated scratch file is inventoried, including generated
 consumer files, drivers, provider bytes, Wasm, native objects/archives and
 executables. The actually executed generated Rust binary outside the scratch
 tree is separately inventoried; the rest of Cargo's cache is excluded.
-Version queries that fail are recorded as failures, not invented versions.
+Tool roles are explicitly registered at each compiler, Cargo, archiver, Node and
+TypeScript execution boundary; aliases and versioned/wrapper filenames do not
+decide whether provenance is captured. Version queries that fail are recorded
+as failures, not invented versions. Both scratch and external binary inventory
+paths reject symlinks and require regular files.
 
 `engine_execution_complete` means the runners returned, not that conformance
 passed. `matrix_asserted` is written only after both matrix assertions;

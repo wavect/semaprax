@@ -10,6 +10,7 @@ use crate::interpreter::resumable::owned_frame::registered_stage::effect::{
 };
 use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedEffectCleanupSuccessorV8;
 use crate::live_invocation::source_journal::owned_wait_v8::wire;
+use crate::live_invocation::source_journal::SourceEffectFailure;
 use serde_json::{json, Value};
 
 struct CleanupAckV8<'j> {

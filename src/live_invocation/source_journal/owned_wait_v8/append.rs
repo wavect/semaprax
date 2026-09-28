@@ -101,6 +101,10 @@ impl SourceOwnedWaitJournalV8 {
     pub(super) fn context(&self) -> &CheckedOwnedWaitJournalContextV8 {
         &self.context
     }
+    /// Retire the held container without reading, borrowing, or minting authority.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn quarantine(&self) {
+        self.poisoned.set(true);
+    }
     pub(crate) fn hold(&self) -> Result<HeldOwnedWaitStoreV8<'_>, SourceJournalError> {
         self.validate_guard()?;
         Ok(HeldOwnedWaitStoreV8 { journal: self })

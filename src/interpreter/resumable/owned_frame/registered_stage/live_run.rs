@@ -130,18 +130,16 @@ pub(crate) fn initialize_live_owned_run_v8(
     }
 }
 fn record_facts(state: &OwnedAgentStateArgument) -> Option<serde_json::Value> {
-    let root = state.root.as_ref()?;
-    if !root_valid(&state.plan, root) {
+    root_facts(&state.plan, state.root.as_ref()?)
+}
+fn root_facts(plan: &CheckedOwnedFrameHelperV2, root: &Value) -> Option<serde_json::Value> {
+    if !root_valid(plan, root) {
         return None;
     }
     let Value::Record(record) = root else {
         return None;
     };
-    let fields = state
-        .plan
-        .program()
-        .declarations
-        .record_fields(&record.record)?;
+    let fields = plan.program().declarations.record_fields(&record.record)?;
     let values = fields.iter().map(|field| {
         let value = match record.fields.get(&field.id)? {
             Value::Bytes(bytes) => serde_json::json!({"kind":"bytes","hex":crate::live_invocation::identity::hex(&bytes.bytes)}),
@@ -159,3 +157,6 @@ fn record_facts(state: &OwnedAgentStateArgument) -> Option<serde_json::Value> {
 
 mod observe;
 pub(crate) use observe::{observe_live_owned_run_v8, LiveObserveOutcomeV8, LiveObservedStateV8};
+
+mod wait;
+pub(crate) use wait::{begin_live_owned_wait_v8, LiveParkedStateV8, LiveWaitStartOutcomeV8};

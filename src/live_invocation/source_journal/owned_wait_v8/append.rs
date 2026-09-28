@@ -299,3 +299,5 @@ fn store_error(
 
 #[cfg(all(test, unix))]
 mod tests;
+
+mod checkpoint;

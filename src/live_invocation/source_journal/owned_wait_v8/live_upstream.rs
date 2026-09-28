@@ -46,7 +46,25 @@ impl LiveObservePermitV8<'_> {
         self.fuel
     }
 }
+/// Actual first Start ACK only; inert checked history cannot create entry.
+pub(crate) struct LiveWaitStartPermitV8<'j> {
+    held: HeldOwnedWaitStoreV8<'j>,
+    fuel: usize,
+    cancellation: &'j crate::agent_runtime::AgentCancellation,
+}
+impl LiveWaitStartPermitV8<'_> {
+    pub(crate) fn validate_guard(&self) -> Result<(), SourceJournalError> {
+        if self.cancellation.is_cancelled() {
+            return Err(SourceJournalError::Binding);
+        }
+        self.held.validate_guard()
+    }
+    pub(crate) fn fuel(&self) -> usize {
+        self.fuel
+    }
+}
 mod observe;
+mod wait;
 pub(super) struct InitializedLiveOwnedRunV8<'j> {
     // Backing roots must be disposed while the held container still exists.
     owner: LiveInitializedStateV8,

@@ -159,6 +159,41 @@ pub(crate) fn validate_owned_wait_checkpoint_v8(
         payload: payload.clone(),
     })
 }
+/// Only a sealed actual parked owner supplies frame facts. These signed bytes
+/// are inert; neither the key nor this structural check grants restoration.
+pub(crate) fn encode_live_owned_wait_checkpoint_v8(
+    binding: &CheckedOwnedAgentWaitBindingV8,
+    key: &SourceCheckpointKey,
+    expected: &OwnedWaitCheckpointExpectationV8<'_>,
+    parked:&crate::interpreter::resumable::owned_frame::registered_stage::live_run::LiveParkedStateV8,
+) -> Result<(Vec<u8>, CheckedOwnedWaitCheckpointV8), Error> {
+    let argument = parked.checked_facts(binding).ok_or(Error::Binding)?;
+    let observation =
+        super::bind_owned_wait_observation_v8(binding, expected.scope, parked.request())
+            .map_err(|_| Error::Binding)?;
+    if observation.copy_arguments() != expected.observation.copy_arguments()
+        || observation.request_digest() != expected.observation.request_digest()
+        || observation.ordinary_digest() != expected.observation.ordinary_digest()
+    {
+        return Err(Error::Binding);
+    }
+    let frame = frame(binding, &argument, observation.copy_arguments())?;
+    let payload = json!({"schema":SCHEMA,"scope":codec::scope(expected.scope)?,"plan_digest":binding.binding(),
+        "cleanup_plan_digest":binding.cleanup_digest(),"signature":binding.signature(),"argument_digest":expected.argument_digest,
+        "copy_arguments_digest":codec::fact_digest(b"semaprax.source-owned-frame-copy-args.v2\0",observation.copy_arguments()),
+        "frame_digest":codec::fact_digest(b"semaprax.source-owned-frame-frame.v2\0",&frame),"frame":frame,
+        "request":observation.copy_arguments()[0]["value"],"request_digest":observation.request_digest(),
+        "reserved_total":expected.reserved_total,"consumed_total":expected.consumed_total,"sequence":expected.sequence});
+    let authentication = key.authenticate(AUTH, &codec::canonical(&payload));
+    let mut bytes =
+        codec::canonical(&json!({"payload":payload,"authentication":codec::hex(&authentication)}));
+    bytes.push(b'\n');
+    if bytes.len() > 65536 {
+        return Err(Error::Capacity);
+    }
+    let checked = validate_owned_wait_checkpoint_v8(binding, key, expected, &bytes)?;
+    Ok((bytes, checked))
+}
 #[cfg(test)]
 mod tests;
 

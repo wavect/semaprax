@@ -1,0 +1,79 @@
+//! Actual first helper entry/park; no inert checkpoint can construct this owner.
+use super::observe::LiveObservedStateV8;
+use super::*;
+use crate::live_invocation::source_journal::LiveWaitStartPermitV8;
+use crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8;
+pub(crate) struct LiveParkedStateV8 {
+    parked: OwnedCopyWaitParkedV2,
+    consumed: u64,
+}
+impl LiveParkedStateV8 {
+    pub(crate) fn consumed(&self) -> u64 {
+        self.consumed
+    }
+    pub(crate) fn checked_facts(
+        &self,
+        binding: &CheckedOwnedAgentWaitBindingV8,
+    ) -> Option<serde_json::Value> {
+        if self.parked.creator != std::process::id()
+            || !self.parked.plan.same_helper(binding.helper())
+        {
+            return None;
+        }
+        let root = self.parked.root.as_ref()?;
+        if !self.parked.allocations.validate(&[root]) {
+            return None;
+        }
+        root_facts(&self.parked.plan, root)
+    }
+    pub(crate) fn request(&self) -> &ResumableChannelValue {
+        self.parked.request()
+    }
+    #[cfg(test)]
+    pub(crate) fn test_weak(&self) -> Vec<std::sync::Weak<[u8]>> {
+        super::super::super::snapshot::weak_leaves(self.parked.root.as_ref().unwrap())
+    }
+}
+pub(crate) enum LiveWaitStartOutcomeV8 {
+    Parked(LiveParkedStateV8),
+    Refused(LiveObservedStateV8),
+    Terminal(OwnedCopyWaitTerminalV2),
+    GuardLost(LiveParkedStateV8),
+}
+pub(crate) fn begin_live_owned_wait_v8(
+    permit: LiveWaitStartPermitV8<'_>,
+    mut observed: LiveObservedStateV8,
+) -> LiveWaitStartOutcomeV8 {
+    if permit.validate_guard().is_err() {
+        return LiveWaitStartOutcomeV8::Refused(observed);
+    }
+    let prepared = observed
+        .prepared
+        .take()
+        .expect("consuming live prepared owner");
+    let mut budget = OwnedFrameBudget::new(permit.fuel()).expect("checked positive F");
+    if permit.validate_guard().is_err() {
+        budget.cancel();
+    }
+    let step = match begin_owned_copy_wait_v2(prepared, &mut budget) {
+        Ok(step) => step,
+        Err(prepared) => {
+            observed.prepared = Some(prepared);
+            return LiveWaitStartOutcomeV8::Refused(observed);
+        }
+    };
+    match step {
+        OwnedCopyWaitStepV2::Terminal(t) => LiveWaitStartOutcomeV8::Terminal(t),
+        OwnedCopyWaitStepV2::Parked(parked) => {
+            let owner = LiveParkedStateV8 {
+                parked,
+                consumed: budget.consumed() as u64,
+            };
+            if permit.validate_guard().is_err() {
+                LiveWaitStartOutcomeV8::GuardLost(owner)
+            } else {
+                LiveWaitStartOutcomeV8::Parked(owner)
+            }
+        }
+    }
+}

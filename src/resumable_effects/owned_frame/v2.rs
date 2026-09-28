@@ -30,8 +30,8 @@ pub(crate) use observation_binding::{
 };
 
 pub(crate) use checkpoint::{
-    validate_owned_wait_checkpoint_v8, CheckedOwnedWaitCheckpointV8,
-    OwnedWaitCheckpointExpectationV8,
+    encode_live_owned_wait_checkpoint_v8, validate_owned_wait_checkpoint_v8,
+    CheckedOwnedWaitCheckpointV8, OwnedWaitCheckpointExpectationV8,
 };
 
 pub(crate) use proposal_binding::{bind_owned_wait_proposal_v8, CheckedOwnedWaitProposalV8};

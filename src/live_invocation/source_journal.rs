@@ -1270,4 +1270,6 @@ pub fn recover_source_checkpoint(
     })
 }
 
-pub(crate) use owned_wait_v8::{LiveInitializePermitV8, LiveObservePermitV8};
+pub(crate) use owned_wait_v8::{
+    LiveInitializePermitV8, LiveObservePermitV8, LiveWaitStartPermitV8,
+};

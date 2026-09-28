@@ -87,6 +87,48 @@ impl<'a> InventoryV8<'a> {
     pub(super) fn fold_for_live_test(&self) -> fold::FoldV8 {
         fold::fold(self.context.fold(), &self.entries).expect("actual ACKed inventory")
     }
+    pub(super) fn live_start_checkpoint_basis(
+        &self,
+        observation: &crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8,
+    ) -> Result<(u64, u64, String), SourceJournalError> {
+        let folded = fold::fold(self.context.fold(), &self.entries)?;
+        if folded.tail != fold::TailV8::StartReserved {
+            return Err(SourceJournalError::Order);
+        }
+        let [.., created, reserved] = self.entries.as_slice() else {
+            return Err(SourceJournalError::Order);
+        };
+        let EntryV8::Owned(model::OwnedBodyV8::OwnedWaitReserved {
+            turn: 0,
+            attempt: 0,
+            wait,
+            phase: model::PhaseV8::Start,
+            replay_of: None,
+            ..
+        }) = &reserved.entry
+        else {
+            return Err(SourceJournalError::Order);
+        };
+        let EntryV8::Owned(model::OwnedBodyV8::OwnedWaitCreated {
+            turn: 0,
+            attempt: 0,
+            wait: created_wait,
+            argument_digest,
+            copy_arguments,
+            ..
+        }) = &created.entry
+        else {
+            return Err(SourceJournalError::Order);
+        };
+        if wait != created_wait || copy_arguments != observation.copy_arguments() {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok((
+            folded.reserved_total,
+            folded.consumed_recorded,
+            argument_digest.clone(),
+        ))
+    }
     pub(super) fn sequence(&self) -> usize {
         self.entries.len()
     }

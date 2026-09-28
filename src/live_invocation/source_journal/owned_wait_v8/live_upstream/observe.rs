@@ -8,14 +8,14 @@ use crate::resumable_effects::owned_frame::v2::{
     CheckedOwnedWaitObservationV8,
 };
 pub(super) struct ObservedLiveOwnedRunV8<'j> {
-    owner: LiveObservedStateV8,
-    session: AppendSessionV8<'j>,
-    held: HeldOwnedWaitStoreV8<'j>,
-    journal: &'j SourceOwnedWaitJournalV8,
-    observation: CheckedOwnedWaitObservationV8,
-    reservation: u32,
-    observed: u32,
-    cancellation: &'j crate::agent_runtime::AgentCancellation,
+    pub(super) owner: LiveObservedStateV8,
+    pub(super) session: AppendSessionV8<'j>,
+    pub(super) held: HeldOwnedWaitStoreV8<'j>,
+    pub(super) journal: &'j SourceOwnedWaitJournalV8,
+    pub(super) observation: CheckedOwnedWaitObservationV8,
+    pub(super) reservation: u32,
+    pub(super) observed: u32,
+    pub(super) cancellation: &'j crate::agent_runtime::AgentCancellation,
 }
 pub(super) struct LiveObserveFailureV8<'j> {
     owner: LiveObserveOutcomeV8,

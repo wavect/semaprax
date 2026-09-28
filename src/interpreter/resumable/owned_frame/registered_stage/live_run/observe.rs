@@ -7,7 +7,7 @@ use super::*;
 use crate::live_invocation::source_journal::LiveObservePermitV8;
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedObserveV2;
 pub(crate) struct LiveObservedStateV8 {
-    prepared: Option<PreparedOwnedCopyWaitV2>,
+    pub(super) prepared: Option<PreparedOwnedCopyWaitV2>,
     facts: serde_json::Value,
     consumed: u64,
 }

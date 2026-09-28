@@ -65,6 +65,18 @@ impl CheckedOwnedWaitJournalContextV8 {
             .ok_or(SourceJournalError::Binding)?;
         self.with_initialized_runtime(runtime, lease)
     }
+    /// Select the additive versioned profile before decoding or writing rows.
+    /// The numeric ceiling is the existing authenticated invocation ceiling.
+    pub(crate) fn with_cumulative_initialization(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+    ) -> Result<Self, SourceJournalError> {
+        let mut context = self.with_initialization(lease)?;
+        context.fold.reduce_templates.reset();
+        context.fold.cumulative_initialization = true;
+        context.validate_lease(lease)?;
+        Ok(context)
+    }
     pub(super) fn ready_runtime(
         &self,
     ) -> Option<(&AgentRuntimeV2, &CheckedTypedOwnedWaitExecutionV8)> {
@@ -164,6 +176,7 @@ pub(crate) fn checked_owned_wait_journal_context_v8(
     };
     let fold = FoldContextV8 {
         initialized_task: None,
+        cumulative_initialization: false,
         ordinary: validation_ordinary,
         created,
         plan_digest: b.binding().into(),

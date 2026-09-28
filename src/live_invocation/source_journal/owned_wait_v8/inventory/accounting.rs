@@ -109,9 +109,10 @@ impl<'a> AccountingBuilderV8<'a> {
         {
             return Err(Error::Binding);
         }
-        // Current grammar is one first effect. A repeated record cannot reset
-        // this accumulator; cumulative source admission remains a successor.
-        if self.preceding().is_some() {
+        // Only the independently selected cumulative Context admits a later
+        // exchange. Final fold validation also requires the MAC-bound profile
+        // row and actual Continue lineage before this proof can be exported.
+        if self.preceding().is_some() && !self.proof.context.fold().cumulative_initialization {
             return Err(Error::Binding);
         }
         self.proof.exchanges.push((

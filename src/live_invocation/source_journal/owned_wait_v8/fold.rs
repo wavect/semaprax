@@ -2,6 +2,7 @@
 use super::super::{SourceStageRole, MAX_SOURCE_ENTRIES};
 use super::*;
 use model::{OwnedBodyV8 as Body, OwnerV8, PhaseV8};
+pub(super) mod cumulative;
 #[path = "effect_fold.rs"]
 mod effect_fold;
 mod initialization;
@@ -141,6 +142,8 @@ struct Cleanup {
 /// consumed field. It must never be advertised as exact terminal consumption.
 pub(super) struct FoldV8 {
     pub tail: TailV8,
+    continuation_profile_selected: bool,
+    current_turn: u32,
     pub reserved_total: u64,
     pub consumed_recorded: u64,
     pub stages: u32,
@@ -185,6 +188,8 @@ impl FoldV8 {
     fn empty() -> Self {
         Self {
             tail: TailV8::Empty,
+            continuation_profile_selected: false,
+            current_turn: 0,
             reserved_total: 0,
             consumed_recorded: 0,
             stages: 0,
@@ -212,6 +217,16 @@ impl FoldV8 {
     }
     pub(super) fn reduce_fold(&self) -> Option<&super::reduce_fold::ReduceFoldV8> {
         self.reduce.as_ref().map(|r| r.fold())
+    }
+    /// Descriptive capacity template only; no typed inventory or owner permit.
+    pub(super) fn capacity_fresh_turn(turn: u32) -> Self {
+        let mut template = Self::empty();
+        template.current_turn = turn;
+        template.tail = TailV8::CommittedState;
+        template
+    }
+    pub(super) fn continuation_profile_selected(&self) -> bool {
+        self.continuation_profile_selected
     }
     pub(super) fn failed_effect_state_fold(
         &self,
@@ -263,7 +278,7 @@ impl FoldV8 {
         attempt: u32,
         id: &str,
     ) -> Result<&mut Wait, SourceJournalError> {
-        if turn != 0 {
+        if turn != self.current_turn {
             return order();
         }
         self.wait
@@ -334,7 +349,8 @@ pub(super) fn fold(
         }
         if fold.effect.is_some() {
             require(
-                effect_fold::is_effect_row(&row.entry)
+                cumulative::is_next_state_commit(context, &fold, &row.entry)
+                    || effect_fold::is_effect_row(&row.entry)
                     || (is_reduce_row(&row.entry)
                         && matches!(
                             fold.tail,
@@ -423,6 +439,9 @@ fn owned(
     b: &Body,
     seq: u32,
 ) -> Result<(), SourceJournalError> {
+    if cumulative::commit_next_state(context, f, b, seq)? {
+        return Ok(());
+    }
     if reduce::owned(context, f, b, seq)? {
         return Ok(());
     }
@@ -430,6 +449,9 @@ fn owned(
         Body::OwnedRunCreated { .. } => {
             require(f.tail == TailV8::Empty && b == &context.created)?;
             f.tail = TailV8::Created;
+        }
+        Body::OwnedContinuationProfileSelected { .. } => {
+            cumulative::select_profile(context, f, b, seq)?;
         }
         Body::OwnedInitializationCommitted { .. } => initialization::commit(context, f, b)?,
         Body::OwnedReduceStaged { .. }
@@ -452,7 +474,7 @@ fn owned(
                     } else {
                         TailV8::Opened
                     }
-                    && *turn == 0
+                    && *turn == f.current_turn
                     && cleanup_plan_digest == &context.cleanup_plan_digest,
             )?;
             require(
@@ -484,7 +506,7 @@ fn owned(
             copy_arguments_digest,
         } => {
             require(
-                *turn == 0
+                *turn == f.current_turn
                     && matches!(f.tail, TailV8::Observed | TailV8::RearmedState)
                     && !f.failure_selected,
             )?;
@@ -848,7 +870,7 @@ fn owned(
         } => {
             require(
                 f.tail == TailV8::Admitted
-                    && *turn == 0
+                    && *turn == f.current_turn
                     && from == &context.helper
                     && to == &context.authorize
                     && f.state_digest.as_ref() == Some(state_digest),
@@ -927,7 +949,7 @@ fn owned(
         } => {
             require(
                 f.tail == TailV8::ChargedAuthorizeReplay
-                    && *turn == 0
+                    && *turn == f.current_turn
                     && f.state_digest.as_ref() == Some(state_digest),
             )?;
             require(
@@ -981,7 +1003,7 @@ fn owned(
         } => {
             require(
                 f.tail == TailV8::PendingReady
-                    && *turn == 0
+                    && *turn == f.current_turn
                     && f.wait.as_ref().is_some_and(|w| w.attempt == *attempt)
                     && f.state_digest.as_ref() == Some(state_digest)
                     && !f.failure_selected,
@@ -1014,7 +1036,7 @@ fn owned(
             operations_digest,
         } => {
             require(
-                *turn == 0
+                *turn == f.current_turn
                     && f.effect.is_none()
                     && !matches!(
                         f.tail,
@@ -1098,7 +1120,7 @@ fn owned(
         } => {
             require(
                 f.tail == TailV8::CleanupInDoubt
-                    && *turn == 0
+                    && *turn == f.current_turn
                     && attempt.map_or(f.wait.is_none(), |a| {
                         f.wait
                             .as_ref()
@@ -1153,7 +1175,10 @@ fn ordinary(
     }
     match e {
         E::RunOpened => {
-            require(f.tail == TailV8::Created)?;
+            require(
+                f.tail == TailV8::Created
+                    && f.continuation_profile_selected == context.cumulative_initialization,
+            )?;
             f.tail = TailV8::Opened;
         }
         E::StageReservation {
@@ -1162,7 +1187,7 @@ fn ordinary(
             role,
             fuel,
         } => {
-            require(*turn == 0 && !f.failure_selected)?;
+            require(*turn == f.current_turn && !f.failure_selected)?;
             match role {
                 SourceStageRole::Initialize => {
                     require(
@@ -1227,7 +1252,7 @@ fn ordinary(
             ..
         } => {
             require(
-                *turn == 0
+                *turn == f.current_turn
                     && f.tail == TailV8::ObserveReserved
                     && f.state_basis.is_some()
                     && crate::live_invocation::identity::looks_like_digest(state),
@@ -1238,7 +1263,7 @@ fn ordinary(
         }
         E::AttemptIntent { turn, attempt, .. } => {
             require(
-                *turn == 0
+                *turn == f.current_turn
                     && f.tail == TailV8::Prepared
                     && !f.failure_selected
                     && f.wait
@@ -1249,7 +1274,7 @@ fn ordinary(
         }
         E::AttemptSettled { turn, attempt, .. } | E::AttemptFailed { turn, attempt, .. } => {
             require(
-                *turn == 0
+                *turn == f.current_turn
                     && f.tail == TailV8::ModelDispatchInDoubt
                     && f.wait.as_ref().is_some_and(|w| w.attempt == *attempt),
             )?;
@@ -1259,7 +1284,7 @@ fn ordinary(
         }
         E::AttemptUsage { turn, attempt, .. } => {
             require(
-                *turn == 0
+                *turn == f.current_turn
                     && f.tail == TailV8::Settled
                     && f.model_usage_pending
                     && f.wait.as_ref().is_some_and(|w| w.attempt == *attempt),
@@ -1268,7 +1293,7 @@ fn ordinary(
         }
         E::ProposalRefused { turn, attempt, .. } => {
             require(
-                *turn == 0
+                *turn == f.current_turn
                     && f.tail == TailV8::Settled
                     && !f.model_usage_pending
                     && !f.model_failed
@@ -1286,7 +1311,7 @@ fn ordinary(
             proposal_digest,
         } => {
             require(
-                *turn == 0
+                *turn == f.current_turn
                     && f.tail == TailV8::Completed
                     && !f.model_failed
                     && f.wait.as_ref().is_some_and(|w| {
@@ -1304,7 +1329,7 @@ fn ordinary(
             grant_digest,
         } => {
             require(
-                *turn == 0
+                *turn == f.current_turn
                     && f.tail == TailV8::ResultDeliveryInDoubt
                     && !f.failure_selected
                     && f.wait.as_ref().is_some_and(|w| w.attempt == *attempt)
@@ -1320,7 +1345,7 @@ fn ordinary(
         }
         E::AuthorizationRefused { turn, attempt, .. } => {
             require(
-                *turn == 0
+                *turn == f.current_turn
                     && f.tail == TailV8::PendingRefusal
                     && f.wait.as_ref().is_some_and(|w| w.attempt == *attempt)
                     && f.decision.as_ref().is_some_and(|d| !d.granted),
@@ -1370,6 +1395,10 @@ pub(super) fn validate_producer_transition(
     row: &ValidatedEntryV8,
 ) -> Result<(), SourceJournalError> {
     require(!effect_fold::is_effect_row(&row.entry))?;
+    require(
+        !(previous.reduce.is_some()
+            && matches!(row.entry, EntryV8::Owned(Body::OwnedStateCommitted { .. }))),
+    )?;
     require(
         !is_reduce_row(&row.entry)
             || (previous.reduce.is_none()

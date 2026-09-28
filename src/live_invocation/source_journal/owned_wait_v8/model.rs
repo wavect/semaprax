@@ -27,6 +27,10 @@ pub(super) enum OwnedBodyV8 {
         limits: Value,
         store_identity: Value,
     },
+    OwnedContinuationProfileSelected {
+        profile: String,
+        max_iterations: u32,
+    },
     OwnedInitializationCommitted {
         reservation: u32,
         task: Value,

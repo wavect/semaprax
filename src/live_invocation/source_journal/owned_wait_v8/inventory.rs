@@ -155,7 +155,8 @@ fn check_entries_with_runtime<'a>(
     let mut staged_decision: Option<(u32, u32, usize, Value)> = None;
     // Retained only from this exact authenticated Recorded join. This proof
     // carries accepted bytes, never an Outcome owner or evaluator permission.
-    let mut recorded_effect = None;
+    let mut recorded_effect: Option<(u32, u32, usize,
+        crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::CheckedOwnedEffectSettlementV8)> = None;
     for entry in decoded {
         let mut row_obs = None;
         match &entry {
@@ -349,7 +350,17 @@ fn check_entries_with_runtime<'a>(
                     Some(EntryV8::Ordinary(e)) => e,
                     _ => return Err(Error::Binding),
                 };
-                let facts = crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_owned_effect_settlement_after_prefix_v8(inputs, accounting.as_ref().and_then(|a| a.preceding()), ordinary, &evidence, result.as_deref())?;
+                let preceding = accounting.as_ref().and_then(|a| a.preceding()).or_else(|| {
+                    context
+                        .cumulative_initialization
+                        .then(|| {
+                            recorded_effect
+                                .as_ref()
+                                .map(|(_, _, _, facts)| facts.accounting_proof())
+                        })
+                        .flatten()
+                });
+                let facts = crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::checked_owned_effect_settlement_after_prefix_v8(inputs, preceding, ordinary, &evidence, result.as_deref())?;
                 require(facts.evidence().digest() == evidence_digest)?;
                 match rows.get(*intent as usize).map(|r| &r.entry) {
                     Some(EntryV8::Ordinary(Ordinary::EffectIntent {

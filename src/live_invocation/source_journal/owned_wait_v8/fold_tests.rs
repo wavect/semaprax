@@ -77,6 +77,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn context_with_bi
     // synthetic: these tests establish no typed execution or physical authority.
     FoldContextV8 {
         initialized_task: None,
+        cumulative_initialization: false,
         ordinary,
         created,
         plan_digest: checked.binding().into(),

@@ -145,6 +145,20 @@ pub(super) fn initialize_live_actor_v8<'j>(
             }))
         }
     };
+    if context.fold().cumulative_initialization {
+        session = match session.append(EntryV8::Owned(fold::cumulative::profile_row(
+            context.fold(),
+        ))) {
+            Ok(session) => session,
+            Err(_) => {
+                return Ok(Err(LiveRunFailureV8 {
+                    owner: None,
+                    held,
+                    error: SourceJournalError::Uncertain,
+                }))
+            }
+        };
+    }
     session = match session.append(EntryV8::Ordinary(SourceJournalEntry::RunOpened)) {
         Ok(session) => session,
         Err(_) => {

@@ -9,6 +9,13 @@ pub(super) struct ReduceJournalV8 {
     fold: ReduceFoldV8,
 }
 impl ReduceJournalV8 {
+    #[cfg(test)]
+    pub(super) fn inert_test(plan: v2::CheckedOwnedReduceV2, fold: ReduceFoldV8) -> Self {
+        Self {
+            plan: std::sync::Arc::new(plan),
+            fold,
+        }
+    }
     pub(super) fn plan(&self) -> &v2::CheckedOwnedReduceV2 {
         &self.plan
     }
@@ -27,7 +34,7 @@ fn scope(context: &FoldContextV8) -> Result<&Value, SourceJournalError> {
     }
 }
 fn coordinates(f: &FoldV8, turn: u32, attempt: u32) -> Result<(), SourceJournalError> {
-    require(turn == 0 && f.wait.as_ref().is_some_and(|w| w.attempt == attempt))
+    require(turn == f.current_turn && f.wait.as_ref().is_some_and(|w| w.attempt == attempt))
 }
 /// These references have already been joined by effect_fold to the actual
 /// authenticated Recorded row and a complete observed Decision receipt. Never
@@ -199,7 +206,8 @@ pub(super) fn owned(
                 })
                 .ok_or(SourceJournalError::Order)?;
             let digest = f.state_digest.as_deref().ok_or(SourceJournalError::Order)?;
-            let mut failed = FailedEffectStateFoldV8::after_checked_effect_failure(
+            let mut failed = FailedEffectStateFoldV8::after_profile_effect_failure(
+                context,
                 &context.checked_binding,
                 scope(context)?,
                 *turn,
@@ -275,7 +283,8 @@ pub(super) fn ordinary(
             require(cleanup.checked_add(1) == Some(seq))?;
             let plan = std::sync::Arc::clone(context.checked_reduce()?);
             let allowance = u64::try_from(*fuel).map_err(|_| SourceJournalError::Capacity)?;
-            let fold = ReduceFoldV8::after_checked_reservation(
+            let fold = ReduceFoldV8::after_profile_reservation(
+                context,
                 &plan,
                 scope(context)?,
                 *turn,

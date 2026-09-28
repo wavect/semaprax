@@ -55,6 +55,7 @@ pub(super) struct ValidatedEntryV8 {
 pub(super) struct FoldContextV8 {
     ordinary: SourceInvocationBinding,
     initialized_task: Option<Value>,
+    cumulative_initialization: bool,
     created: model::OwnedBodyV8,
     plan_digest: String,
     cleanup_plan_digest: String,

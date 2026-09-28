@@ -66,7 +66,55 @@ impl ReduceFoldV8 {
         allowance: u64,
         effect_cleanup: u32,
     ) -> Result<Self, Error> {
-        require(turn == 0 && effect_cleanup.checked_add(1) == Some(reservation) && allowance > 0)?;
+        require(turn == 0)?;
+        Self::reservation(
+            plan,
+            scope,
+            turn,
+            attempt,
+            reservation,
+            allowance,
+            effect_cleanup,
+        )
+    }
+    /// Only the independently selected immutable profile admits later coordinates.
+    /// This is proof data, never an evaluator or physical-owner permit.
+    pub(super) fn after_profile_reservation(
+        context: &super::FoldContextV8,
+        plan: &v2::CheckedOwnedReduceV2,
+        scope: &Value,
+        turn: u32,
+        attempt: u32,
+        reservation: u32,
+        allowance: u64,
+        effect_cleanup: u32,
+    ) -> Result<Self, Error> {
+        require(
+            turn == 0
+                || (context.cumulative_initialization
+                    && context.initialized_task.is_some()
+                    && turn < context.ordinary.max_iterations()),
+        )?;
+        Self::reservation(
+            plan,
+            scope,
+            turn,
+            attempt,
+            reservation,
+            allowance,
+            effect_cleanup,
+        )
+    }
+    fn reservation(
+        plan: &v2::CheckedOwnedReduceV2,
+        scope: &Value,
+        turn: u32,
+        attempt: u32,
+        reservation: u32,
+        allowance: u64,
+        effect_cleanup: u32,
+    ) -> Result<Self, Error> {
+        require(effect_cleanup.checked_add(1) == Some(reservation) && allowance > 0)?;
         Ok(Self {
             binding: plan.binding().to_owned(),
             function: plan.function().id.as_str().to_owned(),
@@ -96,6 +144,16 @@ impl ReduceFoldV8 {
             active_operations: self.cleanup.as_ref().map(|c| c.active_operations()),
             failure: self.failure.is_some(),
         }
+    }
+    pub(super) fn continued_state(&self, next_sequence: u32) -> Result<&Value, Error> {
+        require(
+            self.tail == ReduceTailV8::Continued
+                && self.transition == Some(self.last)
+                && self.last.checked_add(1) == Some(next_sequence),
+        )?;
+        let step = self.step.as_ref().ok_or(Error::Order)?;
+        require(step.target()["kind"] == "continue")?;
+        step.target().get("state").ok_or(Error::Binding)
     }
     pub(super) fn tail(&self) -> ReduceTailV8 {
         self.tail
@@ -433,10 +491,63 @@ impl FailedEffectStateFoldV8 {
         failure: super::super::SourceEffectFailure,
         state_digest: &str,
     ) -> Result<Self, Error> {
-        use super::super::SourceEffectFailure as F;
+        require(turn == 0)?;
+        Self::effect_failure(
+            binding,
+            scope,
+            turn,
+            attempt,
+            settlement,
+            recorded,
+            decision_cleanup,
+            failure,
+            state_digest,
+        )
+    }
+    pub(super) fn after_profile_effect_failure(
+        context: &super::FoldContextV8,
+        binding: &v2::CheckedOwnedAgentWaitBindingV8,
+        scope: &Value,
+        turn: u32,
+        attempt: u32,
+        settlement: u32,
+        recorded: u32,
+        decision_cleanup: u32,
+        failure: super::super::SourceEffectFailure,
+        state_digest: &str,
+    ) -> Result<Self, Error> {
         require(
             turn == 0
-                && settlement.checked_add(1) == Some(recorded)
+                || (context.cumulative_initialization
+                    && context.initialized_task.is_some()
+                    && turn < context.ordinary.max_iterations()),
+        )?;
+        Self::effect_failure(
+            binding,
+            scope,
+            turn,
+            attempt,
+            settlement,
+            recorded,
+            decision_cleanup,
+            failure,
+            state_digest,
+        )
+    }
+    fn effect_failure(
+        binding: &v2::CheckedOwnedAgentWaitBindingV8,
+        scope: &Value,
+        turn: u32,
+        attempt: u32,
+        settlement: u32,
+        recorded: u32,
+        decision_cleanup: u32,
+        failure: super::super::SourceEffectFailure,
+        state_digest: &str,
+    ) -> Result<Self, Error> {
+        use super::super::SourceEffectFailure as F;
+        require(
+            settlement.checked_add(1) == Some(recorded)
                 && recorded < decision_cleanup
                 && matches!(failure, F::HandlerFailed | F::ResultLimit),
         )?;

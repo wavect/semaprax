@@ -1,4 +1,5 @@
 //! Private phase-specific closure room; acknowledged payloads are not reserved twice.
+mod cumulative;
 mod effect;
 mod reduce;
 pub(super) use reduce::ReduceTemplateCacheV8;
@@ -113,6 +114,22 @@ pub(super) fn outstanding(
     context: &FoldContextV8,
     folded: &FoldV8,
 ) -> Result<RoomV8, SourceJournalError> {
+    let room = cumulative::future(context, folded)?.add(outstanding_current(context, folded)?)?;
+    if context.cumulative_initialization
+        && !folded.continuation_profile_selected()
+        && matches!(folded.tail, TailV8::Empty | TailV8::Created)
+    {
+        row(serde_json::to_value(fold::cumulative::profile_row(context))
+            .map_err(|_| SourceJournalError::Binding)?)?
+        .add(room)
+    } else {
+        Ok(room)
+    }
+}
+fn outstanding_current(
+    context: &FoldContextV8,
+    folded: &FoldV8,
+) -> Result<RoomV8, SourceJournalError> {
     use TailV8::*;
     let facts = folded.capacity_facts();
     if matches!(folded.tail, Terminal | TerminalInDoubt) {
@@ -139,7 +156,8 @@ pub(super) fn outstanding(
         use super::reduce_fold::ReduceTailV8 as ReduceTail;
         return match failed.tail() {
             ReduceTail::CleanupInDoubt => {
-                reduce::failed_state_receipt(failed.operations())?.add(terminal)
+                reduce::failed_state_receipt(failed.operations(), reduce::maximum_turn(context))?
+                    .add(terminal)
             }
             ReduceTail::FailureCleaned => Ok(terminal),
             ReduceTail::TerminalPending => Ok(RoomV8 {

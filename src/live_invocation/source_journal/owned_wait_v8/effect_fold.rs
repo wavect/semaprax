@@ -29,7 +29,7 @@ impl EffectV8 {
     }
 }
 fn coordinates(f: &FoldV8, turn: u32, attempt: u32) -> Result<(), SourceJournalError> {
-    require(turn == 0 && f.wait.as_ref().is_some_and(|w| w.attempt == attempt))
+    require(turn == f.current_turn && f.wait.as_ref().is_some_and(|w| w.attempt == attempt))
 }
 pub(super) fn ordinary(
     f: &mut FoldV8,

@@ -6,6 +6,7 @@ use crate::resumable_effects::owned_frame::v2;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct ReduceRoomsV8 {
+    turn: u32,
     pub before_stage: RoomV8,
     pub charged: RoomV8,
     pub cases: Vec<ReduceCaseRoomsV8>,
@@ -42,12 +43,15 @@ impl ReduceRoomsV8 {
         match f.tail {
             Tail::Charged => Ok(self.charged),
             Tail::Staged => Ok(case()?.staged),
-            Tail::CleanupInDoubt => receipt(f.active_operations.ok_or(SourceJournalError::Order)?)?
-                .add(if f.failure {
-                    terminal()
-                } else {
-                    case()?.transfer
-                }),
+            Tail::CleanupInDoubt => receipt(
+                f.active_operations.ok_or(SourceJournalError::Order)?,
+                self.turn,
+            )?
+            .add(if f.failure {
+                terminal()
+            } else {
+                case()?.transfer
+            }),
             Tail::CleanupSucceeded => Ok(case()?.transfer),
             Tail::FailureCleaned => Ok(terminal()),
             Tail::TransferInDoubt => Ok(case()?.completed),
@@ -137,15 +141,18 @@ fn failure_statuses(plan: &v2::CheckedOwnedReduceV2) -> Result<Vec<Value>, Sourc
     }
     Ok(unique)
 }
-fn receipt(active: &Value) -> Result<RoomV8, SourceJournalError> {
+fn receipt(active: &Value, turn: u32) -> Result<RoomV8, SourceJournalError> {
     row(
-        json!({"kind":"owned_reduce_cleanup_settled","turn":0,"attempt":u32::MAX,
+        json!({"kind":"owned_reduce_cleanup_settled","turn":turn,"attempt":u32::MAX,
         "started":u32::MAX,"receipt":templates::receipt(active)?}),
     )
 }
-pub(super) fn failed_state_receipt(active: &Value) -> Result<RoomV8, SourceJournalError> {
+pub(super) fn failed_state_receipt(
+    active: &Value,
+    turn: u32,
+) -> Result<RoomV8, SourceJournalError> {
     row(
-        json!({"kind":"owned_effect_failure_state_cleanup_settled","turn":0,
+        json!({"kind":"owned_effect_failure_state_cleanup_settled","turn":turn,
         "attempt":u32::MAX,"started":u32::MAX,"receipt":templates::receipt(active)?}),
     )
 }
@@ -154,9 +161,10 @@ fn started(
     operations: &Value,
     binding: &str,
     fuel: usize,
+    turn: u32,
 ) -> Result<RoomV8, SourceJournalError> {
     row(
-        json!({"kind":"owned_reduce_cleanup_started","turn":0,"attempt":u32::MAX,
+        json!({"kind":"owned_reduce_cleanup_started","turn":turn,"attempt":u32::MAX,
         "plan":binding,"stage_reservation":u32::MAX,"effect_cleanup_settled":u32::MAX,
         "basis":basis,"basis_digest":hash(),"consumed":fuel,"operations":operations}),
     )
@@ -167,6 +175,7 @@ fn failure(
     operations: &Value,
     fuel: usize,
     statuses: &[Value],
+    turn: u32,
 ) -> Result<RoomV8, SourceJournalError> {
     let mut maximum = RoomV8::default();
     let mut admitted = false;
@@ -177,8 +186,8 @@ fn failure(
         };
         admitted = true;
         maximum = maximum.either(
-            started(&basis, operations, plan.binding(), fuel)?
-                .add(receipt(checked.active_operations())?)?
+            started(&basis, operations, plan.binding(), fuel, turn)?
+                .add(receipt(checked.active_operations(), turn)?)?
                 .add(terminal())?,
         );
     }
@@ -192,16 +201,17 @@ fn transfer(
     case: &str,
     target: &Value,
     cleanup: Value,
+    turn: u32,
 ) -> Result<(RoomV8, RoomV8), SourceJournalError> {
     v2::validate_owned_reduce_target_v8(plan, case, target)
         .map_err(|_| SourceJournalError::Binding)?;
     let completed = row(
-        json!({"kind":"owned_step_transfer_completed","turn":0,"attempt":u32::MAX,
+        json!({"kind":"owned_step_transfer_completed","turn":turn,"attempt":u32::MAX,
         "reserved":u32::MAX,"target":target,"transfer_digest":hash()}),
     )?
     .add(terminal())?;
     let full = row(
-        json!({"kind":"owned_step_transfer_reserved","turn":0,"attempt":u32::MAX,
+        json!({"kind":"owned_step_transfer_reserved","turn":turn,"attempt":u32::MAX,
         "plan":plan.binding(),"stage_reservation":u32::MAX,"staged":u32::MAX,
         "cleanup":cleanup,"case":case}),
     )?
@@ -225,17 +235,24 @@ impl ReduceTemplateCacheV8 {
     }
 }
 
+pub(super) fn maximum_turn(context: &FoldContextV8) -> u32 {
+    if context.cumulative_initialization {
+        context.ordinary.max_iterations() - 1
+    } else {
+        0
+    }
+}
 pub(super) fn rooms(context: &FoldContextV8) -> Result<ReduceRoomsV8, SourceJournalError> {
     // Compiler proof identity is checked even when static templates are retained.
     let plan = context.checked_reduce()?;
-    // Complete immutable builder inputs for the currently admitted turn-zero
-    // profile. Cumulative integration must add its actual maximum coordinate.
+    // Include the selected cumulative profile and its actual maximum coordinate.
     let key = wire::canonical(&json!({
         "created": serde_json::to_value(&context.created).map_err(|_| SourceJournalError::Malformed)?,
         "fuel": context.ordinary.max_steps_per_stage(),
         "iterations": context.ordinary.max_iterations(),
         "initialized": context.initialized_task.is_some(),
-        "coordinate_turn": 0,
+        "coordinate_turn": maximum_turn(context),
+        "cumulative": context.cumulative_initialization,
     }));
     let key = String::from_utf8(key).map_err(|_| SourceJournalError::Malformed)?;
     if let Some((actual, actual_plan, retained)) = context.reduce_templates.entry.borrow().as_ref()
@@ -254,6 +271,7 @@ fn rooms_with_plan(
     context: &FoldContextV8,
     plan: &v2::CheckedOwnedReduceV2,
 ) -> Result<ReduceRoomsV8, SourceJournalError> {
+    let turn = maximum_turn(context);
     let fuel = context
         .ordinary
         .max_steps_per_stage()
@@ -269,6 +287,7 @@ fn rooms_with_plan(
         &initial,
         fuel,
         &statuses,
+        turn,
     )?);
     for mapping in plan
         .mappings()
@@ -290,20 +309,20 @@ fn rooms_with_plan(
         };
         let digest = super::super::reduce_wire::recipe_digest(
             super::super::reduce_wire::ReduceRecipeV8::Step,
-            &json!({"scope":scope,"binding":plan.binding(),"plan":plan.binding(),"turn":0,"attempt":u32::MAX,
+            &json!({"scope":scope,"binding":plan.binding(),"plan":plan.binding(),"turn":turn,"attempt":u32::MAX,
                 "stage_reservation":u32::MAX,"step":step}),
         )?;
         let checked = super::super::reduce_inventory::checked_step(
             &plan,
             scope,
-            0,
+            turn,
             u32::MAX,
             u32::MAX,
             &step,
             &digest,
         )?;
         let staged = row(
-            json!({"kind":"owned_reduce_staged","turn":0,"attempt":u32::MAX,
+            json!({"kind":"owned_reduce_staged","turn":turn,"attempt":u32::MAX,
             "plan":plan.binding(),"stage_reservation":u32::MAX,"effect_cleanup_settled":u32::MAX,
             "step":step,"step_digest":hash(),"consumed":fuel}),
         )?;
@@ -333,12 +352,12 @@ fn rooms_with_plan(
                 json!({"kind":"observed","started":u32::MAX,"settled":u32::MAX})
             };
             let (mut closure, completed) =
-                transfer(&plan, c.case.as_str(), checked.target(), kind)?;
+                transfer(&plan, c.case.as_str(), checked.target(), kind, turn)?;
             transfer_max = transfer_max.either(closure);
             completed_max = completed_max.either(completed);
             if !empty {
-                closure = started(&basis, &ops, plan.binding(), fuel)?
-                    .add(receipt(cleanup.active_operations())?)?
+                closure = started(&basis, &ops, plan.binding(), fuel, turn)?
+                    .add(receipt(cleanup.active_operations(), turn)?)?
                     .add(closure)?;
             }
             after_staged = after_staged.either(closure);
@@ -349,7 +368,7 @@ fn rooms_with_plan(
                     "active_flags":actions.iter().map(|a|a.guard_flag.0).collect::<Vec<_>>()});
                 let ops = v2::owned_wait_operations_v8(actions)
                     .map_err(|_| SourceJournalError::Binding)?;
-                charged = charged.either(failure(&plan, basis, &ops, fuel, &statuses)?);
+                charged = charged.either(failure(&plan, basis, &ops, fuel, &statuses, turn)?);
             }
             let mut flags = c
                 .completion_live_flags
@@ -367,7 +386,7 @@ fn rooms_with_plan(
                 "case":c.case.as_str(),"active_flags":flags});
             let ops = v2::owned_wait_operations_v8(&plan.transfers().provisional_failure)
                 .map_err(|_| SourceJournalError::Binding)?;
-            charged = charged.either(failure(&plan, basis, &ops, fuel, &statuses)?);
+            charged = charged.either(failure(&plan, basis, &ops, fuel, &statuses, turn)?);
         }
         charged = charged.either(staged.add(after_staged)?);
         staged_rooms.push(ReduceCaseRoomsV8 {
@@ -378,7 +397,7 @@ fn rooms_with_plan(
         });
     }
     let stage = ordinary(SourceJournalEntry::StageReservation {
-        turn: 0,
+        turn,
         attempt: Some(u32::MAX),
         role: super::super::super::SourceStageRole::Reduce,
         fuel,
@@ -396,11 +415,12 @@ fn rooms_with_plan(
     let state_ops =
         v2::owned_wait_operations_v8(&context.checked_binding.helper().liveness().result_disposal)
             .map_err(|_| SourceJournalError::Binding)?;
-    let failed_state=row(json!({"kind":"owned_effect_failure_state_cleanup_started","turn":0,"attempt":u32::MAX,
+    let failed_state=row(json!({"kind":"owned_effect_failure_state_cleanup_started","turn":turn,"attempt":u32::MAX,
         "plan":plan.binding(),"settlement":u32::MAX,"recorded":u32::MAX,"decision_cleanup_settled":u32::MAX,
         "effect_failure":"handler_failed","state_digest":hash(),"operations":state_ops}))?
-        .add(failed_state_receipt(&state_ops)?)?.add(terminal())?;
+        .add(failed_state_receipt(&state_ops, turn)?)?.add(terminal())?;
     Ok(ReduceRoomsV8 {
+        turn,
         before_stage: stage.add(charged)?,
         charged,
         cases: staged_rooms,

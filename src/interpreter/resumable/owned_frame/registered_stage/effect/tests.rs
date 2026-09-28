@@ -758,7 +758,13 @@ pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn with_sta
                 |_| true,
             )
             .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
-            callback(staged, weak, outcome_weak.clone(), &cancellation, directory);
+            callback(
+                staged,
+                weak.clone(),
+                outcome_weak.clone(),
+                &cancellation,
+                directory,
+            );
             assert!(weak.iter().all(|w| w.upgrade().is_none()));
             assert!(outcome_weak.upgrade().is_none());
             assert_eq!(host.calls, 1);

@@ -6,6 +6,9 @@ fn plan() -> CheckedOwnedReduceV2 {
     plan_for(false)
 }
 fn plan_for(language: bool) -> CheckedOwnedReduceV2 {
+    plan_for_transfer(language, false)
+}
+fn plan_for_transfer(language: bool, outcome_result: bool) -> CheckedOwnedReduceV2 {
     let source = include_str!("../../../../../examples/offline-repair-project/src/app.spx");
     let source = source.replace(
         "    runtime_v1 {",
@@ -18,6 +21,14 @@ fn plan_for(language: bool) -> CheckedOwnedReduceV2 {
                 "-> Step\nrequires budget * 2 > 0\nensures budget / 2 > 0\n{",
             )
             .replace("state.epoch < 2", "state.epoch - 1 < 2")
+    } else {
+        source
+    };
+    let source = if outcome_result {
+        source.replace(
+            "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }",
+            "Step::Complete { summary: outcome.value, budget: state.budget, status: outcome.status }",
+        )
     } else {
         source
     };
@@ -120,7 +131,7 @@ fn owned_reduce_wire_proves_each_partial_prefix_without_host_count_or_flags() {
 }
 #[test]
 fn owned_reduce_wire_retains_false_guard_vector_but_observes_only_active_order() {
-    let p = plan();
+    let p = plan_for_transfer(false, true);
     let mut false_guard = false;
     for c in &p.transfers().cases {
         let basis = json!({"kind":"success","staged":42,"constructor":c.constructor.as_str(),"case":c.case.as_str(),"active_flags":c.completion_live_flags.iter().map(|f|f.0).collect::<Vec<_>>()});

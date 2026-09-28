@@ -43,6 +43,27 @@ impl OwnedFrameStoreRegistration {
         self.identity
     }
 }
+pub(crate) mod source_v8;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum StoreProfile {
+    OwnedFrameV1,
+    SourceOwnedWaitV8,
+}
+impl StoreProfile {
+    fn journal_limit(self) -> usize {
+        match self {
+            Self::OwnedFrameV1 => codec::MAX_JOURNAL,
+            Self::SourceOwnedWaitV8 => 16 * 1024 * 1024,
+        }
+    }
+    fn record_limit(self) -> usize {
+        match self {
+            Self::OwnedFrameV1 => codec::MAX_RECORD,
+            Self::SourceOwnedWaitV8 => self.journal_limit(),
+        }
+    }
+}
 #[cfg(unix)]
 mod unix;
 #[cfg(unix)]
@@ -52,6 +73,30 @@ pub(crate) struct RegisteredJournalLease;
 
 #[cfg(not(unix))]
 impl RegisteredJournalLease {
+    pub(super) fn fresh_profile(
+        _: File,
+        _: (u64, u64),
+        _: &SourceCheckpointScope,
+        _: StoreProfile,
+        _: String,
+    ) -> Result<Self, Error> {
+        Err(Error::UnsupportedStore)
+    }
+    pub(super) fn recover_profile(
+        _: File,
+        _: OwnedFrameStoreRegistration,
+        _: &SourceCheckpointScope,
+        _: StoreProfile,
+        _: String,
+    ) -> Result<Self, Error> {
+        Err(Error::UnsupportedStore)
+    }
+    pub(super) fn validate_process(&self) -> Result<(), Error> {
+        Err(Error::UnsupportedStore)
+    }
+    pub(super) fn validate_profile(&self, _: StoreProfile) -> Result<(), Error> {
+        Err(Error::UnsupportedStore)
+    }
     pub(crate) fn fresh(_: File, _: (u64, u64), _: &SourceCheckpointScope) -> Result<Self, Error> {
         Err(Error::UnsupportedStore)
     }

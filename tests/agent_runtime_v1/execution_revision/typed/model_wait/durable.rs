@@ -231,7 +231,7 @@ fn run(
     malformed: bool,
     checkpointed: bool,
     calls: Rc<Cell<usize>>,
-) -> Result<AgentRuntimeV2DurableModelWaitEvidence, AgentRuntimeV2DurableModelFailure> {
+) -> Result<AgentRuntimeV2DurableModelWaitEvidence, Box<AgentRuntimeV2DurableModelFailure>> {
     let source = &project.sources()[0];
     let compiled = compile_source_agent_lifecycle_v2(
         source.source(),
@@ -348,17 +348,19 @@ fn run(
         calls: vec![],
         wrong: false,
     };
-    runtime.run_live_bound_model_durable_with_wait(
-        &wait,
-        key,
-        &mut adapter,
-        &mut handler,
-        policy,
-        &Clock,
-        cancellation,
-        retained,
-        store,
-    )
+    runtime
+        .run_live_bound_model_durable_with_wait(
+            &wait,
+            key,
+            &mut adapter,
+            &mut handler,
+            policy,
+            &Clock,
+            cancellation,
+            retained,
+            store,
+        )
+        .map_err(Box::new)
 }
 
 #[test]

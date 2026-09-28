@@ -131,4 +131,5 @@ impl FreshTokenAcquisition {
 }
 
 #[cfg(test)]
+#[path = "session_endpoint/tests.rs"]
 mod tests;

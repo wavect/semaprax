@@ -16,6 +16,7 @@ use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
 
 pub(crate) const HOST_OWNERSHIP_SCHEMA_V1: &str = "semaprax.host-ownership.v1";
 
+#[path = "host_ownership/session_endpoint.rs"]
 pub(crate) mod session_endpoint;
 
 static NEXT_REGISTRY_NONCE: AtomicU64 = AtomicU64::new(1);

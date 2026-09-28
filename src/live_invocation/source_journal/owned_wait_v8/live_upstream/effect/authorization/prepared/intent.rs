@@ -51,6 +51,18 @@ impl FixedOwnedEffectIntentAppendPermitV8<'_, '_> {
             &self.obligation.selected,
         )
     }
+    /// Only the fixed adapter calls this with its actual acknowledged session
+    /// while the append marker remains held; no callback or physical read.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_registry(
+        &self,
+        witness: &crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedEffectIntentSuccessorV8<'_>,
+        session: &AppendSessionV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        self.obligation
+            .owner
+            .hold
+            .advance_intent_ack(witness, session)
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected_row(
         &self,
     ) -> &EntryV8 {
@@ -66,6 +78,13 @@ impl FixedOwnedEffectIntentAppendPermitV8<'_, '_> {
     }
 }
 impl<'j> LiveOwnedEffectIntentAppendV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_intent_successor(
+        &self,
+        witness:&crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedEffectIntentSuccessorV8<'j>,
+    ) -> Result<(), SourceJournalError> {
+        activation::validate_obligation_successor(self, witness)
+    }
+
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixed_append_permit(
         &self,
     ) -> Result<FixedOwnedEffectIntentAppendPermitV8<'_, 'j>, SourceJournalError> {
@@ -143,3 +162,10 @@ impl<'j> LivePreparedOwnedEffectV8<'j> {
 
 #[cfg(test)]
 mod tests;
+
+mod activation;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use activation::{
+    advance_verified_intent_v8, LiveActivatedOwnedEffectV8, LiveEffectIntentActivationFailureV8,
+};
+
+pub(crate) use activation::LiveEffectIntentPermitV8;

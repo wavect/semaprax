@@ -1,5 +1,5 @@
 //! Private successor effect engine. The sealed held-Consumed handoff constructs
-//! an authorization ACK; Intent, settlement and cleanup ACK producers remain
+//! authorization and Intent ACKs; settlement and cleanup ACK producers remain
 //! test-only until their actual fixed live append consumers are implemented.
 use super::authorize::{
     HeldOwnedEffectAuthorizationV8, OwnedEffectDecisionReleaseV8, OwnedEffectReleasedRootsV8,
@@ -772,3 +772,7 @@ pub(super) use tests::{
 };
 
 pub(super) mod live_append;
+
+pub(crate) use live_append::intent::{
+    activate_live_owned_effect_v8, ActivatedOwnedEffectV8, LiveEffectActivationRejectionV8,
+};

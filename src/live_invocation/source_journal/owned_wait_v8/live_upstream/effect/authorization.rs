@@ -342,7 +342,10 @@ mod tests;
 mod prepared;
 pub(crate) use prepared::LiveEffectAuthorizationPermitV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use prepared::{
-    advance_verified_authorization_v8, FixedOwnedEffectIntentAppendPermitV8,
-    LiveEffectAuthorizationFailureV8, LiveEffectIntentPreparationFailureV8,
-    LiveOwnedEffectIntentAppendV8, LivePreparedOwnedEffectV8,
+    advance_verified_authorization_v8, advance_verified_intent_v8,
+    FixedOwnedEffectIntentAppendPermitV8, LiveActivatedOwnedEffectV8,
+    LiveEffectAuthorizationFailureV8, LiveEffectIntentActivationFailureV8,
+    LiveEffectIntentPreparationFailureV8, LiveOwnedEffectIntentAppendV8, LivePreparedOwnedEffectV8,
 };
+
+pub(crate) use prepared::LiveEffectIntentPermitV8;

@@ -332,6 +332,9 @@ mod tests;
 
 mod intent;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use intent::{
-    FixedOwnedEffectIntentAppendPermitV8, LiveEffectIntentPreparationFailureV8,
+    advance_verified_intent_v8, FixedOwnedEffectIntentAppendPermitV8, LiveActivatedOwnedEffectV8,
+    LiveEffectIntentActivationFailureV8, LiveEffectIntentPreparationFailureV8,
     LiveOwnedEffectIntentAppendV8,
 };
+
+pub(crate) use intent::LiveEffectIntentPermitV8;

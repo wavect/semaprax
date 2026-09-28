@@ -1,6 +1,5 @@
 //! Current authenticated A-prefix facts are descriptive, never an owner factory.
 use super::*;
-use crate::live_invocation::source_journal::owned_wait_v8::append::AppendSessionV8;
 use crate::live_invocation::source_journal::SourceStageRole;
 impl InventoryV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_authorize_facts(
@@ -106,21 +105,6 @@ impl InventoryV8<'_> {
             return Err(SourceJournalError::Binding);
         }
         Ok(())
-    }
-}
-impl<'j> AppendSessionV8<'j> {
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_authorize_facts(
-        &self,
-    ) -> Result<(u64, u32, u32, &EntryV8), SourceJournalError> {
-        self.inventory.continued_authorize_facts()
-    }
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_authorize_accounting(
-        &self,
-    ) -> Result<
-        crate::agent_lifecycle::authorization::target_protocol::TargetAccounting,
-        SourceJournalError,
-    > {
-        self.inventory.continued_model_accounting()
     }
 }
 impl<'a> InventoryV8<'a> {

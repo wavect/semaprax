@@ -281,3 +281,19 @@ impl LiveOwnedContinuedAuthorizeAppendFailureV8<'_> {
         )
     }
 }
+
+impl<'j> AppendSessionV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_authorize_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, &EntryV8), SourceJournalError> {
+        self.inventory.continued_authorize_facts()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_authorize_accounting(
+        &self,
+    ) -> Result<
+        crate::agent_lifecycle::authorization::target_protocol::TargetAccounting,
+        SourceJournalError,
+    > {
+        self.inventory.continued_model_accounting()
+    }
+}

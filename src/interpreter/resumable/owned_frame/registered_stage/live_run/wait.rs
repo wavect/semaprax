@@ -4,8 +4,8 @@ use super::*;
 use crate::live_invocation::source_journal::LiveWaitStartPermitV8;
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8;
 pub(crate) struct LiveParkedStateV8 {
-    parked: OwnedCopyWaitParkedV2,
-    consumed: u64,
+    pub(super) parked: OwnedCopyWaitParkedV2,
+    pub(super) consumed: u64,
 }
 impl LiveParkedStateV8 {
     pub(crate) fn consumed(&self) -> u64 {

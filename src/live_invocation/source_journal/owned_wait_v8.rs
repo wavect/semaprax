@@ -76,3 +76,5 @@ mod live_upstream;
 pub(crate) use live_upstream::{
     LiveInitializePermitV8, LiveObservePermitV8, LiveWaitStartPermitV8,
 };
+
+pub(crate) use live_upstream::model::{LiveModelIntentPermitV8, LiveWaitResumePermitV8};

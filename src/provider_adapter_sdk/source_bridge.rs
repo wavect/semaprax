@@ -8,7 +8,7 @@ use crate::agent_lifecycle::iterative::driver::{ProposalRequest, ProposalSource}
 use crate::agent_lifecycle::iterative::source_live::{
     SourceAttemptIdentity, SourceProposalOutcome, SourceProposalPolicy,
 };
-use crate::agent_proposal::CompiledAgentProposalSchema;
+use crate::agent_proposal::{CompiledAgentProposalSchema, DecodedProposal};
 use crate::agent_runtime::AgentCancellation;
 use crate::agent_runtime_v2::source_model::source_request_digest;
 use crate::agent_runtime_v2::{
@@ -35,8 +35,13 @@ use super::adapter::{
 };
 use super::capability::{negotiate, RequiredCapabilities, StructuredOutputMode};
 
+mod dispatch;
+mod owned_wait_v8;
 mod policy;
 
+pub(crate) use owned_wait_v8::{
+    CheckedOwnedModelRequestV8, OwnedModelDispatchV8, OwnedModelSettlementV8,
+};
 use policy::SourceModelPolicySession;
 
 const MAX_SOURCE_POLLS: usize = 10_000;
@@ -80,6 +85,7 @@ pub struct StreamingSourceProposalAdapter<'a> {
     policy: Option<SourceModelPolicySession<'a>>,
     pending_reservation: Option<AttemptReservation>,
     last_dispatch: Option<SourceAdapterDispatchFact>,
+    last_owned_usage: Option<(u64, u64, i64)>,
     checkpoint: Option<(String, usize, i64)>,
     durable_cancellation: Option<AgentCancellation>,
     durable_deadline_millis: Option<i64>,
@@ -91,6 +97,7 @@ pub struct StreamingSourceProposalAdapter<'a> {
 /// wrapper without making raw response bytes part of public evidence.
 enum SourceAdapterDispatchFact {
     Settled {
+        decoded: DecodedProposal,
         response: Vec<u8>,
         usage: Option<(u64, u64, i64)>,
     },
@@ -104,6 +111,7 @@ enum SourceAdapterDispatchFact {
 /// until the durable checkpoint path records its closed settlement fact.
 enum SourceAdapterDispatch {
     Settled {
+        decoded: DecodedProposal,
         canonical: String,
         response: Vec<u8>,
         #[allow(dead_code)]
@@ -135,6 +143,7 @@ impl<'a> StreamingSourceProposalAdapter<'a> {
             policy: None,
             pending_reservation: None,
             last_dispatch: None,
+            last_owned_usage: None,
             checkpoint: None,
             durable_cancellation: None,
             durable_deadline_millis: None,
@@ -170,6 +179,7 @@ impl<'a> StreamingSourceProposalAdapter<'a> {
             policy: None,
             pending_reservation: None,
             last_dispatch: None,
+            last_owned_usage: None,
             checkpoint: None,
             durable_cancellation: None,
             durable_deadline_millis: None,
@@ -384,6 +394,10 @@ impl<'a> StreamingSourceProposalAdapter<'a> {
         tokens_out: Option<u64>,
         cost_micros: Option<i64>,
     ) {
+        self.last_owned_usage = match (tokens_in, tokens_out, cost_micros) {
+            (Some(input), Some(output), Some(cost)) if cost >= 0 => Some((input, output, cost)),
+            _ => self.last_owned_usage,
+        };
         self.last_dispatch = Some(SourceAdapterDispatchFact::Failed {
             reason: failure_from_terminal(terminal),
             attempted_bytes: response.map_or(0, <[u8]>::len),
@@ -439,15 +453,25 @@ impl<'a> StreamingSourceProposalAdapter<'a> {
         policy_already_reserved: bool,
     ) -> SourceAdapterDispatch {
         self.last_dispatch = None;
-        match self.propose_inner(request, source_clock, policy_already_reserved) {
+        let result = self.propose_inner(request, source_clock, policy_already_reserved);
+        self.finish_dispatch(result)
+    }
+    fn finish_dispatch(
+        &mut self,
+        result: Result<String, Vec<Diagnostic>>,
+    ) -> SourceAdapterDispatch {
+        match result {
             Ok(canonical) => match self.last_dispatch.take() {
-                Some(SourceAdapterDispatchFact::Settled { response, usage }) => {
-                    SourceAdapterDispatch::Settled {
-                        canonical,
-                        response,
-                        usage,
-                    }
-                }
+                Some(SourceAdapterDispatchFact::Settled {
+                    decoded,
+                    response,
+                    usage,
+                }) => SourceAdapterDispatch::Settled {
+                    decoded,
+                    canonical,
+                    response,
+                    usage,
+                },
                 _ => SourceAdapterDispatch::Failed {
                     diagnostics: Self::refusal("source.adapter_settlement"),
                     reason: SourceAttemptFailure::Refused,
@@ -928,350 +952,57 @@ impl StreamingSourceProposalAdapter<'_> {
             return Err(diagnostics);
         }
         let adapter_request = self.checked_adapter_request(&request)?;
-        let max_response_bytes = adapter_request.max_response_bytes;
-        if let Err(diagnostics) = self.check_deadline_at(source_clock) {
-            self.dispatch_failure(self.deadline_failure(), 0);
-            return Err(diagnostics);
-        }
-        if self.binding.is_some() && !self.evidence.can_record() {
-            return Err(Self::refusal("source.model_evidence_capacity"));
-        }
-        if !policy_already_reserved {
-            let policy_attempt = if let (Some(policy), Some(binding)) =
-                (self.policy.as_mut(), self.binding.as_ref())
-            {
-                policy
-                    .quote(&adapter_request, binding)
-                    .and_then(|quote| {
-                        policy
-                            .reserve(&quote)
-                            .map_err(|_| "policy_reservation_refused")
-                    })
-                    .map(Some)
-            } else {
-                Ok(None)
-            };
-            let policy_reservation = match policy_attempt {
-                Ok(reservation) => reservation,
-                Err(terminal) => {
-                    self.record(
-                        &adapter_request.request_bytes,
-                        None,
-                        terminal,
-                        None,
-                        None,
-                        None,
-                    );
-                    return Err(Self::refusal("source.model_policy"));
-                }
-            };
-            self.pending_reservation = policy_reservation;
-        }
-        let mut adapter = self.factory.create();
-        if self
-            .binding
-            .as_ref()
-            .is_some_and(|binding| !binding.adapter_matches(adapter.capabilities()))
-        {
-            self.record(
-                &adapter_request.request_bytes,
-                None,
-                "adapter_identity_refused",
-                None,
-                None,
-                None,
-            );
-            return Err(Self::refusal("source.model_adapter_identity"));
-        }
-        let required = RequiredCapabilities {
-            require_streaming: true,
-            require_structured_output_mode: Some(StructuredOutputMode::RawText),
-            max_request_bytes: adapter_request.request_bytes.len(),
-            max_response_bytes,
-        };
-        if negotiate(adapter.capabilities(), &required).is_err() {
-            self.record(
-                &adapter_request.request_bytes,
-                None,
-                "adapter_negotiation_refused",
-                None,
-                None,
-                None,
-            );
-            return Err(Self::refusal("source.adapter_negotiation"));
-        }
-        if let Err(diagnostics) = self.check_deadline_at(source_clock) {
-            self.record(
-                &adapter_request.request_bytes,
-                None,
-                "cancelled_or_timed_out",
-                None,
-                None,
-                None,
-            );
-            self.dispatch_failure(self.deadline_failure(), 0);
-            return Err(diagnostics);
-        }
-        if adapter.start(&self.capability, &adapter_request).is_err() {
-            adapter.cancel("source start refusal");
-            self.record(
-                &adapter_request.request_bytes,
-                None,
-                "adapter_start_refused",
-                None,
-                None,
-                None,
-            );
-            return Err(Self::refusal("source.adapter_negotiation"));
-        }
-        let mut decoder = SourceProposalStreamDecoder::new(self.schema);
-        let mut bytes = Vec::new();
-        let mut completed = false;
-        let mut usage: Option<(u64, u64, i64)> = None;
-        for _ in 0..MAX_SOURCE_POLLS {
-            if let Err(diagnostics) = self.check_deadline_at(source_clock) {
-                adapter.cancel("source cancellation or deadline");
-                self.record(
-                    &adapter_request.request_bytes,
-                    Some(&bytes),
-                    "cancelled_or_timed_out",
-                    usage.map(|value| value.0),
-                    usage.map(|value| value.1),
-                    usage.map(|value| value.2),
-                );
-                self.dispatch_failure(self.deadline_failure(), bytes.len());
-                return Err(diagnostics);
-            }
-            match adapter.poll() {
-                AdapterPoll::Pending => continue,
-                AdapterPoll::Event(AdapterEvent::Delta(chunk)) => {
-                    if completed {
-                        adapter.cancel("source stream after completion");
-                        self.record(
-                            &adapter_request.request_bytes,
-                            Some(&bytes),
-                            "stream_refused",
-                            usage.map(|value| value.0),
-                            usage.map(|value| value.1),
-                            usage.map(|value| value.2),
-                        );
-                        self.dispatch_failure(SourceAttemptFailure::MalformedResponse, bytes.len());
-                        return Err(Self::refusal("source.adapter_stream"));
-                    }
-                    if bytes.len().saturating_add(chunk.len()) > max_response_bytes {
-                        adapter.cancel("source stream bound");
-                        self.record(
-                            &adapter_request.request_bytes,
-                            Some(&bytes),
-                            "stream_refused",
-                            usage.map(|value| value.0),
-                            usage.map(|value| value.1),
-                            usage.map(|value| value.2),
-                        );
-                        self.dispatch_failure(
-                            SourceAttemptFailure::CapacityExceeded,
-                            bytes
-                                .len()
-                                .saturating_add(chunk.len())
-                                .min(max_response_bytes.saturating_add(1)),
-                        );
-                        return Err(Self::refusal("source.adapter_stream"));
-                    }
-                    bytes.extend_from_slice(&chunk);
-                    if matches!(decoder.push(&chunk), SourcePushOutcome::Refused(_)) {
-                        adapter.cancel("source decoder refusal");
-                        self.record(
-                            &adapter_request.request_bytes,
-                            Some(&bytes),
-                            "decode_refused",
-                            usage.map(|value| value.0),
-                            usage.map(|value| value.1),
-                            usage.map(|value| value.2),
-                        );
-                        self.dispatch_failure(SourceAttemptFailure::MalformedResponse, bytes.len());
-                        return Err(Self::refusal("source.adapter_decode"));
-                    }
-                }
-                AdapterPoll::Event(AdapterEvent::Completed) => {
-                    if completed {
-                        adapter.cancel("duplicate completion");
-                        self.record(
-                            &adapter_request.request_bytes,
-                            Some(&bytes),
-                            "stream_refused",
-                            usage.map(|value| value.0),
-                            usage.map(|value| value.1),
-                            usage.map(|value| value.2),
-                        );
-                        self.dispatch_failure(SourceAttemptFailure::MalformedResponse, bytes.len());
-                        return Err(Self::refusal("source.adapter_stream"));
-                    }
-                    completed = true;
-                }
-                AdapterPoll::Event(AdapterEvent::Usage {
-                    tokens_in,
-                    tokens_out,
-                    cost_micros,
-                }) => {
-                    if completed
-                        || cost_micros < 0
-                        || usage.is_some_and(|prior| {
-                            tokens_in < prior.0 || tokens_out < prior.1 || cost_micros < prior.2
-                        })
-                    {
-                        adapter.cancel("invalid usage");
-                        self.record(
-                            &adapter_request.request_bytes,
-                            Some(&bytes),
-                            "usage_refused",
-                            usage.map(|value| value.0),
-                            usage.map(|value| value.1),
-                            usage.map(|value| value.2),
-                        );
-                        self.dispatch_failure(SourceAttemptFailure::MalformedResponse, bytes.len());
-                        return Err(Self::refusal("source.adapter_usage"));
-                    }
-                    usage = Some((tokens_in, tokens_out, cost_micros));
-                    self.observe_pending_usage(tokens_in, tokens_out, cost_micros);
-                }
-                AdapterPoll::Settled(settlement) => {
-                    if let Err(diagnostics) = self.check_deadline_at(source_clock) {
-                        adapter.cancel("source cancellation or deadline at settlement");
-                        self.record(
-                            &adapter_request.request_bytes,
-                            Some(&bytes),
-                            "cancelled_or_timed_out",
-                            settlement.usage.tokens_in,
-                            settlement.usage.tokens_out,
-                            settlement.usage.cost_micros,
-                        );
-                        self.dispatch_failure(self.deadline_failure(), bytes.len());
-                        return Err(diagnostics);
-                    }
-                    if !completed
-                        || settlement.response_bytes != bytes
-                        || settlement.usage.cost_micros.is_some_and(|cost| cost < 0)
-                        || usage.is_some_and(|prior| {
-                            settlement.usage.tokens_in.is_some_and(|v| v < prior.0)
-                                || settlement.usage.tokens_out.is_some_and(|v| v < prior.1)
-                                || settlement.usage.cost_micros.is_some_and(|v| v < prior.2)
-                        })
-                    {
-                        adapter.cancel("settlement mismatch");
-                        self.record(
-                            &adapter_request.request_bytes,
-                            Some(&bytes),
-                            "settlement_refused",
-                            settlement.usage.tokens_in,
-                            settlement.usage.tokens_out,
-                            settlement.usage.cost_micros,
-                        );
-                        self.dispatch_failure(SourceAttemptFailure::MalformedResponse, bytes.len());
-                        return Err(Self::refusal("source.adapter_stream"));
-                    }
-                    if let (Some(tokens_in), Some(tokens_out), Some(cost_micros)) = (
-                        settlement.usage.tokens_in,
-                        settlement.usage.tokens_out,
-                        settlement.usage.cost_micros,
-                    ) {
-                        self.observe_pending_usage(tokens_in, tokens_out, cost_micros);
-                    }
-                    return match decoder.finish() {
-                        SourcePushOutcome::Accepted(value) => {
-                            self.record(
-                                &adapter_request.request_bytes,
-                                Some(&bytes),
-                                "admitted",
-                                settlement.usage.tokens_in,
-                                settlement.usage.tokens_out,
-                                settlement.usage.cost_micros,
-                            );
-                            self.last_dispatch = Some(SourceAdapterDispatchFact::Settled {
-                                response: bytes,
-                                usage: match (
-                                    settlement.usage.tokens_in,
-                                    settlement.usage.tokens_out,
-                                    settlement.usage.cost_micros,
-                                ) {
-                                    (Some(tokens_in), Some(tokens_out), Some(cost_micros)) => {
-                                        Some((tokens_in, tokens_out, cost_micros))
-                                    }
-                                    _ => None,
-                                },
-                            });
-                            Ok(value.canonical_json().to_owned())
-                        }
-                        _ => {
-                            self.record(
-                                &adapter_request.request_bytes,
-                                Some(&bytes),
-                                "decode_refused",
-                                settlement.usage.tokens_in,
-                                settlement.usage.tokens_out,
-                                settlement.usage.cost_micros,
-                            );
-                            self.dispatch_failure(
-                                SourceAttemptFailure::MalformedResponse,
-                                bytes.len(),
-                            );
-                            Err(Self::refusal("source.adapter_decode"))
-                        }
-                    };
-                }
-                AdapterPoll::Failed {
-                    failure,
-                    attempted_bytes,
-                } => {
-                    adapter.cancel("source adapter failed");
-                    self.record(
-                        &adapter_request.request_bytes,
-                        Some(&bytes),
-                        failure.as_str(),
-                        usage.map(|value| value.0),
-                        usage.map(|value| value.1),
-                        usage.map(|value| value.2),
-                    );
-                    self.dispatch_failure(
-                        source_failure_from_model(failure),
-                        attempted_bytes.min(max_response_bytes.saturating_add(1)),
-                    );
-                    return Err(Self::refusal("source.adapter_failed"));
-                }
-            }
-        }
-        adapter.cancel("source adapter poll budget");
-        self.record(
-            &adapter_request.request_bytes,
-            Some(&bytes),
-            "poll_budget_exhausted",
-            usage.map(|value| value.0),
-            usage.map(|value| value.1),
-            usage.map(|value| value.2),
-        );
-        self.dispatch_failure(SourceAttemptFailure::Timeout, bytes.len());
-        Err(Self::refusal("source.adapter_timeout"))
+        self.propose_adapter_inner(adapter_request, source_clock, policy_already_reserved, None)
     }
 }
 
+struct PromptParts<'a> {
+    task: &'a crate::agent_lifecycle::LifecycleTask,
+    source_revision: &'a str,
+    turn: usize,
+    attempt: usize,
+    remaining_iterations: usize,
+    state: &'a str,
+    observation: &'a str,
+    previous_effect: Option<&'a [u8]>,
+    previous_rejection: Option<&'a str>,
+    schema: &'a str,
+}
 fn canonical_prompt(request: &ProposalRequest<'_>, schema: &str) -> String {
+    let state = crate::agent_lifecycle::canonical_retained_value_json(request.state);
+    let observation = crate::agent_lifecycle::canonical_retained_value_json(request.observation);
+    canonical_prompt_parts(PromptParts {
+        task: request.task,
+        source_revision: request.source_revision,
+        turn: request.turn,
+        attempt: request.attempt,
+        remaining_iterations: request.remaining_iterations,
+        state: &state,
+        observation: &observation,
+        previous_effect: request.previous_effect,
+        previous_rejection: request.previous_rejection,
+        schema,
+    })
+}
+fn canonical_prompt_parts(parts: PromptParts<'_>) -> String {
     format!(
         "{{\"schema\":\"semaprax.source-adapter-prompt.v1\",\"task_hex\":{},\"task_budget\":{},\"source_revision\":{},\"turn\":{},\"attempt\":{},\"remaining_iterations\":{},\"state\":{},\"observation\":{},\"previous_effect_hex\":{},\"previous_rejection\":{},\"proposal_schema\":{}}}",
-        quote_json(&hex(&request.task.objective)),
-        request.task.budget,
-        quote_json(request.source_revision),
-        request.turn,
-        request.attempt,
-        request.remaining_iterations,
-        crate::agent_lifecycle::canonical_retained_value_json(request.state),
-        crate::agent_lifecycle::canonical_retained_value_json(request.observation),
-        request
+        quote_json(&hex(&parts.task.objective)),
+        parts.task.budget,
+        quote_json(parts.source_revision),
+        parts.turn,
+        parts.attempt,
+        parts.remaining_iterations,
+        parts.state,
+        parts.observation,
+        parts
             .previous_effect
             .map(hex)
             .map_or_else(|| "null".to_owned(), |value| quote_json(&value)),
-        request
+        parts
             .previous_rejection
             .map_or_else(|| "null".to_owned(), quote_json),
-        schema,
+        parts.schema,
     )
 }
 

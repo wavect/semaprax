@@ -63,6 +63,7 @@ impl LiveWaitStartPermitV8<'_> {
         self.fuel
     }
 }
+pub(super) mod model;
 mod observe;
 mod wait;
 pub(super) struct InitializedLiveOwnedRunV8<'j> {

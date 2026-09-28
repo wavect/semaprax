@@ -96,3 +96,7 @@ pub use vendor::{
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) use source_bridge::{
+    CheckedOwnedModelRequestV8, OwnedModelDispatchV8, OwnedModelSettlementV8,
+};

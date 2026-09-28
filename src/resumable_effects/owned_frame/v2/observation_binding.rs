@@ -12,6 +12,7 @@ use serde_json::{json, Value};
 #[derive(Clone)]
 pub(crate) struct CheckedOwnedWaitObservationV8 {
     ordinary_digest: String,
+    ordinary_bytes: String,
     request_digest: String,
     copy_arguments: Value,
     binding: String,
@@ -20,6 +21,9 @@ pub(crate) struct CheckedOwnedWaitObservationV8 {
 impl CheckedOwnedWaitObservationV8 {
     pub(crate) fn matches(&self, binding: &str, scope: &Value) -> bool {
         self.binding == binding && &self.scope == scope
+    }
+    pub(crate) fn ordinary_bytes(&self) -> &str {
+        &self.ordinary_bytes
     }
     pub(crate) fn ordinary_digest(&self) -> &str {
         &self.ordinary_digest
@@ -91,9 +95,10 @@ pub(crate) fn bind_owned_wait_observation_v8(
         record: declaration.clone(),
         fields,
     });
+    let ordinary_bytes = crate::agent_lifecycle::encode_value(&retained);
     let ordinary_digest = crate::live_invocation::identity::digest(
         b"semaprax.source-observation.v2\0",
-        crate::agent_lifecycle::encode_value(&retained).as_bytes(),
+        ordinary_bytes.as_bytes(),
     );
     let value = checkpoint::channel_json(observation);
     let copy_arguments =
@@ -105,6 +110,7 @@ pub(crate) fn bind_owned_wait_observation_v8(
     );
     Ok(CheckedOwnedWaitObservationV8 {
         ordinary_digest,
+        ordinary_bytes,
         request_digest,
         copy_arguments,
         binding: binding.binding().to_owned(),

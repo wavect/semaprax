@@ -5,15 +5,16 @@ use crate::interpreter::resumable::owned_frame::registered_stage::live_run::{
     begin_live_owned_wait_v8, LiveParkedStateV8, LiveWaitStartOutcomeV8,
 };
 pub(super) struct ParkedLiveOwnedRunV8<'j> {
-    owner: LiveParkedStateV8,
-    session: AppendSessionV8<'j>,
-    held: HeldOwnedWaitStoreV8<'j>,
-    journal: &'j SourceOwnedWaitJournalV8,
-    observation: crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8,
-    wait: String,
-    reservation: u32,
-    prepared: u32,
-    cancellation: &'j crate::agent_runtime::AgentCancellation,
+    pub(super) owner: LiveParkedStateV8,
+    pub(super) session: AppendSessionV8<'j>,
+    pub(super) held: HeldOwnedWaitStoreV8<'j>,
+    pub(super) journal: &'j SourceOwnedWaitJournalV8,
+    pub(super) observation:
+        crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8,
+    pub(super) wait: String,
+    pub(super) reservation: u32,
+    pub(super) prepared: u32,
+    pub(super) cancellation: &'j crate::agent_runtime::AgentCancellation,
 }
 pub(super) enum LiveWaitFailureOwnerV8 {
     Observed(

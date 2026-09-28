@@ -129,6 +129,20 @@ impl HeldOwnedWaitStoreV8<'_> {
     pub(crate) fn validate_guard(&self) -> Result<(), SourceJournalError> {
         self.journal.validate_guard()
     }
+    /// Proof-only current-tail check; this never returns a key, session or owner.
+    pub(crate) fn validate_prefix(
+        &self,
+        sequence: usize,
+        bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        self.validate_guard()?;
+        let current = self.journal.begin_session()?;
+        if current.sequence() != sequence || current.acknowledged_bytes() != bytes {
+            self.journal.poisoned.set(true);
+            return Err(SourceJournalError::Order);
+        }
+        self.validate_guard()
+    }
     pub(crate) fn generation(&self) -> &str {
         self.journal.context.generation()
     }

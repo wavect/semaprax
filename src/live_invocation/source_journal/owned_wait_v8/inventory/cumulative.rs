@@ -74,3 +74,6 @@ pub(super) fn checked_prefix<'a>(
         previous,
     })
 }
+
+#[cfg(test)]
+mod tests;

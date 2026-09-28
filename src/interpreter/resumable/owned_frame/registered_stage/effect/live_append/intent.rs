@@ -182,6 +182,10 @@ impl PreparedOwnedEffectV8<'_> {
     }
 }
 impl ActivatedOwnedEffectV8<'_> {
+    pub(crate) fn quarantine_live_intent(&self) {
+        self.staged.prepared.quarantine_live_authorization();
+    }
+
     pub(crate) fn validate_live_intent(
         &self,
         permit: &LiveEffectIntentPermitV8<'_, '_>,

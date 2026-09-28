@@ -135,7 +135,7 @@ impl LiveEffectIntentPermitV8<'_, '_> {
         &self,
         row: &crate::live_invocation::source_journal::SourceJournalEntry,
     ) -> bool {
-        self.selected == EntryV8::Ordinary(row.clone())
+        *self.selected == EntryV8::Ordinary(row.clone())
     }
 }
 
@@ -193,7 +193,7 @@ impl LiveActivatedOwnedEffectV8<'_> {
             self.activated.validate_live_intent(&permit)
         };
         if result.is_err() {
-            self.lineage.journal.quarantine();
+            self.activated.quarantine_live_intent();
         }
         result
     }
@@ -287,7 +287,6 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
         Ok(owner) => owner,
         Err(owner) => {
             let error = owner.error();
-            lineage.journal.quarantine();
             return Err(LiveEffectIntentActivationFailureV8::Preparation {
                 _owner: owner,
                 _lineage: lineage,

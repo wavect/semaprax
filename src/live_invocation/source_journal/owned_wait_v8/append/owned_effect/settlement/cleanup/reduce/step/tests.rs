@@ -152,6 +152,7 @@ fn owned_step_append_actual_continue_and_complete_keep_single_mapped_owner_and_s
     }
 }
 #[test]
+#[cfg(unix)]
 fn owned_step_append_actual_staged_faults_do_not_release_or_advance_spent_hold() {
     for mode in 0..4 {
         CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|c, l, k| {

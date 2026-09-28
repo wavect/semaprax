@@ -1410,11 +1410,11 @@ fn typed_resume_channel_value(
 
 pub mod channel;
 pub(crate) mod channel_bytes;
-pub mod control;
-#[cfg(test)]
-mod tests;
-
 /// Inner closed recovery bytes for the admitted scalar sequential lane. The
 /// public scoped envelope is `resumable_effects::source_checkpoint`; keeping
 /// this structural layer crate-private prevents bypassing its external scope.
 pub(crate) mod checkpoint;
+pub mod control;
+pub(crate) mod owned_frame;
+#[cfg(test)]
+mod tests;

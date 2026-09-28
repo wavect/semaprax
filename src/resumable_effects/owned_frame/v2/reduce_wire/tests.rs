@@ -341,6 +341,18 @@ fn owned_reduce_target_identity_uses_exact_frozen_ordinary_record_and_scalar_enc
         let bytes = owned_reduce_target_bytes_v8(&p, m.case.as_str(), &target).unwrap();
         assert!(!bytes.ends_with(b"\n"));
         assert_eq!(serde_json::from_slice::<Value>(&bytes).unwrap(), expected);
+        let literal = match m.role {
+            "Continue" | "Suspend" => {
+                r#"{"record":"fixture.agent.type.state","fields":[{"field":"fixture.agent.type.state.objective","value":{"bytes":"00ff"}},{"field":"fixture.agent.type.state.budget","value":"-11"},{"field":"fixture.agent.type.state.epoch","value":"-11"}]}"#
+            }
+            "Complete" => {
+                r#"{"record":"fixture.agent.type.result","fields":[{"field":"fixture.agent.type.result.summary","value":{"bytes":"00ff"}},{"field":"fixture.agent.type.result.budget","value":"-11"},{"field":"fixture.agent.type.result.status","value":"-11"}]}"#
+            }
+            "Fail" => r#""-11""#,
+            _ => panic!(),
+        };
+        assert_eq!(bytes, literal.as_bytes());
+
         if m.role == "Fail" {
             assert_eq!(bytes, b"\"-11\"");
         }

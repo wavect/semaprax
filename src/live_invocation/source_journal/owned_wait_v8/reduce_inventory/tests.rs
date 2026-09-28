@@ -74,7 +74,7 @@ fn owned_reduce_inventory_maps_actual_nominal_cases_without_target_substitution(
 
 #[test]
 fn owned_reduce_outcome_uses_only_the_actual_checked_recorded_exchange_payload() {
-    use super::super::super::{
+    use super::super::{
         model, wire, CheckedOwnedWaitJournalContextV8, EntryV8, ExpectedRowV8, SourceJournalEntry,
     };
     use crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::{

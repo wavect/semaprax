@@ -315,6 +315,9 @@ mod tests;
 
 #[cfg(all(test, unix))]
 impl SourceOwnedWaitLeaseV8 {
+    pub(crate) fn test_persisted_snapshot(&self) -> Result<Vec<u8>, Error> {
+        self.inner.test_persisted_snapshot()
+    }
     pub(crate) fn test_fail_before_write(&mut self, number: usize) {
         self.inner
             .fail_append_stage(number, super::unix::AppendFaultStage::BeforeWrite);

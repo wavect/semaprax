@@ -390,11 +390,24 @@ fn failed_observe_state_cleanup_actual_faults_all_three_phases_are_permanent() {
                 );
                 assert!(journal.hold().is_err());
                 assert!(journal.begin_session().is_err());
-                let after = journal.test_observe_lease().borrow_mut().read().unwrap();
+                let after = {
+                    let mut lease = journal.test_observe_lease().borrow_mut();
+                    assert!(matches!(
+                        lease.read(),
+                        Err(crate::resumable_effects::owned_frame::OwnedFrameError::InDoubt)
+                    ));
+                    let bytes = lease.test_persisted_snapshot().unwrap();
+                    assert!(matches!(
+                        lease.read(),
+                        Err(crate::resumable_effects::owned_frame::OwnedFrameError::InDoubt)
+                    ));
+                    bytes
+                };
                 if mode == 0 {
                     assert_eq!(after, before);
                 } else {
                     assert!(after.len() > before.len());
+                    assert!(after.starts_with(&before));
                 }
                 if phase == 0 {
                     assert!(weak.iter().all(|w| w.strong_count() == 1));
@@ -583,7 +596,7 @@ fn failed_observe_state_cleanup_fresh_mac_drift_preserves_actual_history_and_nev
             "positive authenticated current-context full cleanup history"
         );
         let before = journal.test_observe_lease().borrow_mut().read().unwrap();
-        for mode in 0..9 {
+        for mode in 0..12 {
             let mut rows = baseline.clone();
             if mode <= 2 {
                 let EntryV8::Owned(OwnedBodyV8::OwnedCleanupStarted {
@@ -647,12 +660,23 @@ fn failed_observe_state_cleanup_fresh_mac_drift_preserves_actual_history_and_nev
                 };
                 let last = binding.pop().unwrap();
                 binding.push(if last == '0' { '1' } else { '0' });
-            } else {
+            } else if mode == 8 {
                 let EntryV8::Owned(OwnedBodyV8::OwnedRunCreated { scope, .. }) = &mut rows[0]
                 else {
                     panic!()
                 };
                 scope["policy_epoch"] = json!(scope["policy_epoch"].as_u64().unwrap() + 1);
+            } else {
+                let EntryV8::Ordinary(SourceJournalEntry::Stop { turn, attempt, .. }) =
+                    rows.last_mut().unwrap()
+                else {
+                    panic!()
+                };
+                match mode {
+                    9 => *turn = Some(1),
+                    10 => *turn = None,
+                    _ => *attempt = Some(0),
+                }
             }
             assert!(!validate(&encode(&rows)), "reminted drift mode {mode}");
             assert_eq!(

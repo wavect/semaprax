@@ -224,3 +224,39 @@ pub(super) fn validate_stop(
 mod tests;
 
 mod failed_cleanup;
+
+/// The authenticated v8 row names turn zero even when Observe produced no
+/// ordinary TurnObserved. Only this inert projection uses the legacy initial
+/// BeforeTurn scope; the actual row and all v8 failure/receipt checks stay exact.
+pub(super) fn project_initial_failed_stop(
+    folded: &FoldV8,
+    projected: &mut [SourceJournalEntry],
+) -> Result<(), SourceJournalError> {
+    if folded.current_turn != 0
+        || !matches!(folded.tail, TailV8::Stopped | TailV8::Terminal)
+        || folded
+            .observe_settlement
+            .as_ref()
+            .and_then(|settled| settled.failure.as_ref())
+            .is_none()
+    {
+        return Ok(());
+    }
+    require(
+        folded.continuation_profile_selected
+            && folded.failure_selected
+            && folded.cleanup.as_ref().is_some_and(|cleanup| {
+                cleanup.owner == OwnerV8::State
+                    && cleanup.settled
+                    && cleanup.completed
+                    && !cleanup.host_confirmed
+            }),
+    )?;
+    for entry in projected {
+        if let SourceJournalEntry::Stop { turn, attempt, .. } = entry {
+            require(*turn == Some(0) && attempt.is_none())?;
+            *turn = None;
+        }
+    }
+    Ok(())
+}

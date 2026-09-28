@@ -422,6 +422,7 @@ pub(super) fn fold(
     // Replay references are independently checked at their true combined seqs
     // above, then remapped only inside this inert validation projection.
     let mut projected = fold.ordinary.clone();
+    observe_settlement::project_initial_failed_stop(&fold, &mut projected)?;
     for entry in &mut projected {
         if let SourceJournalEntry::ReplayStageReservation { causal_seq, .. } = entry {
             *causal_seq = u32::try_from(

@@ -297,6 +297,19 @@ impl RegisteredJournalLease {
         }
         Ok(bytes)
     }
+    /// Observe persisted bytes through the retained descriptor after a test
+    /// fault. This does not repair or authorize an uncertain live lease.
+    #[cfg(test)]
+    pub(super) fn test_persisted_snapshot(&self) -> Result<Vec<u8>, Error> {
+        use std::os::unix::fs::FileExt;
+        let length = self.file.metadata().map_err(failure)?.len();
+        if length > self.profile.journal_limit() as u64 {
+            return Err(Error::Capacity);
+        }
+        let mut bytes = vec![0; length as usize];
+        self.file.read_exact_at(&mut bytes, 0).map_err(failure)?;
+        Ok(bytes)
+    }
     pub(crate) fn append(&mut self, bytes: &[u8]) -> Result<(), Error> {
         self.check()?;
         if bytes.is_empty()

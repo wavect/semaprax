@@ -38,6 +38,47 @@ impl CheckedTypedOwnedWaitExecutionV8 {
     }
 }
 impl AgentRuntimeV2 {
+    /// Borrow the actual immutable registry only for this retained typed run.
+    /// This check and borrower grant no effect/ACK/owner authority.
+    pub(crate) fn owned_wait_effects_v8<'a>(
+        &'a self,
+        context: &CheckedTypedOwnedWaitExecutionV8,
+    ) -> std::result::Result<&'a CompiledTypedEffects, SourceJournalError> {
+        let schema = self.lifecycle.proposal_schema();
+        let plain: serde_json::Value =
+            serde_json::from_str(context.wait.lifecycle().canonical_json())
+                .map_err(|_| SourceJournalError::Binding)?;
+        let typed: serde_json::Value = serde_json::from_str(self.lifecycle.canonical_json())
+            .map_err(|_| SourceJournalError::Binding)?;
+        if !Arc::ptr_eq(&self.project, &context.project)
+            || self.revision.digest() != context.revision.digest()
+            || !context.model.runtime_matches(
+                self.deployment.digest(),
+                self.instance.digest(),
+                schema.source_revision(),
+                schema.schema().digest(),
+            )
+            || context.wait.agent().as_str() != schema.schema().agent_id()
+            || context.wait.lifecycle().source_revision() != schema.source_revision()
+            || context.wait.lifecycle().proposal_schema().schema().digest()
+                != schema.schema().digest()
+            || typed.get("lifecycle") != Some(&plain)
+            || context.evaluation_fuel == 0
+            || context.evaluation_fuel > self.budget.max_steps_per_stage
+            || !self.proposals.is_empty()
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(&self.lifecycle)
+    }
+    pub(crate) fn owned_wait_effect_limits_v8(
+        &self,
+        context: &CheckedTypedOwnedWaitExecutionV8,
+    ) -> std::result::Result<EffectBudget, SourceJournalError> {
+        self.owned_wait_effects_v8(context)?;
+        Ok(self.effects)
+    }
+
     /// Derive E only from this runtime's retained source, task, registry, effect
     /// ceilings and genuine model-bound ordinary checkpoint adapter.
     pub(crate) fn checked_owned_wait_execution_v8(

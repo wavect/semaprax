@@ -185,6 +185,25 @@ fn owned_wait_typed_execution_binds_real_registry_task_and_each_effect_ceiling()
         )?);
         let baseline = runtime(Arc::clone(&project), effects(), false, b"owned task");
         let c = context(&baseline, Arc::clone(&wait));
+        assert!(std::ptr::eq(
+            baseline.owned_wait_effects_v8(&c).unwrap(),
+            &baseline.lifecycle
+        ));
+        let actual_limits = baseline.owned_wait_effect_limits_v8(&c).unwrap();
+        assert_eq!(
+            (
+                actual_limits.max_calls,
+                actual_limits.max_argument_bytes,
+                actual_limits.max_result_bytes,
+                actual_limits.max_total_bytes
+            ),
+            (
+                baseline.effects.max_calls,
+                baseline.effects.max_argument_bytes,
+                baseline.effects.max_result_bytes,
+                baseline.effects.max_total_bytes
+            )
+        );
         assert_eq!(c.evaluation_fuel(), 1000);
         assert_eq!(c.wait().binding(), wait.binding());
         assert_eq!(
@@ -211,6 +230,14 @@ fn owned_wait_typed_execution_binds_real_registry_task_and_each_effect_ceiling()
                 } else {
                     b"owned task"
                 },
+            );
+            assert!(
+                other.owned_wait_effects_v8(&c).is_err(),
+                "foreign actual runtime dimension {change}"
+            );
+            assert!(
+                other.owned_wait_effect_limits_v8(&c).is_err(),
+                "foreign ceilings dimension {change}"
             );
             let other = context(&other, Arc::clone(&wait));
             assert_ne!(other.ordinary().invocation(), e, "dimension {change}");

@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[path = "public_native_rust_owned_data_sdk_v1/consumer_toolchain.rs"]
+mod consumer_toolchain;
 #[path = "support/native_rust_cargo.rs"]
 mod native_rust_cargo;
 #[path = "support/native_rust_target.rs"]
@@ -594,6 +596,8 @@ fn descriptor_replay_is_exact_and_display_rename_preserves_the_provider_api() {
             per ADR 0003 answer 6 so an unrelated shard failure cannot hide \
             its result; run explicitly with --ignored there"]
 fn packaged_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
+    let consumer_toolchain = consumer_toolchain::ConsumerToolchain::from_environment()
+        .expect("validate opt-in packaged consumer toolchain before generation");
     assert!(
         Command::new("clang")
             .arg("--version")
@@ -803,7 +807,8 @@ fn packaged_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
         &malicious_archive,
         &extracted,
         &snapshot,
-        native_rust_cargo::cargo_command()
+        consumer_toolchain
+            .cargo_command()
             .args(["run", "--offline", "--quiet"])
             .current_dir(&consumer)
             .env("CARGO_TARGET_DIR", consumer_target.path()),
@@ -827,7 +832,8 @@ fn packaged_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
         &packaged_tarball,
         &extracted,
         &snapshot,
-        native_rust_cargo::cargo_command()
+        consumer_toolchain
+            .cargo_command()
             .args(["run", "--offline", "--quiet"])
             .current_dir(&consumer)
             .env("CARGO_TARGET_DIR", consumer_target.path()),
@@ -853,7 +859,8 @@ fn packaged_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
         String::from_utf8_lossy(&verified.stderr)
     );
     run(
-        native_rust_cargo::cargo_command()
+        consumer_toolchain
+            .cargo_command()
             .args(["generate-lockfile", "--offline"])
             .current_dir(&consumer)
             .env("CARGO_TARGET_DIR", consumer_target.path()),
@@ -864,7 +871,8 @@ fn packaged_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
         &packaged_tarball,
         &extracted,
         &snapshot,
-        native_rust_cargo::cargo_command()
+        consumer_toolchain
+            .cargo_command()
             .args(["run", "--locked", "--offline", "--quiet"])
             .current_dir(&consumer)
             .env("CARGO_TARGET_DIR", consumer_target.path()),
@@ -927,7 +935,8 @@ fn packaged_safe_package_builds_offline_and_fail_stops_on_unsettled_handles() {
         std::fs::write(&harness, format!("#[path={:?}]mod ffi;fn main(){{let mode=std::env::args().nth(1).unwrap();let mut context=match ffi::Context::new(){{Ok(v)=>v,Err(_)=>std::process::exit(10)}};let result=context.invoke(|context|{{let raw=match context.call_spx_frame_dot_payload(b\"abc\"){{Ok(v)=>v,Err(_)=>std::process::exit(11)}};context.inject_fault(if mode==\"copy\"{{1}}else{{2}});context.copy_and_settle(raw.handle)}});if mode==\"copy\"{{if !matches!(result,Ok(Err(_))){{std::process::exit(12)}}println!(\"copy-settled\")}}else{{println!(\"value-published\")}}}}", test_ffi_path.display().to_string())).unwrap();
         let executable = fixture.0.join("settlement");
         run(
-            Command::new("rustc")
+            consumer_toolchain
+                .rustc_command()
                 .args(["--edition=2021"])
                 .arg(&harness)
                 .arg("-L")

@@ -3,13 +3,15 @@
 use super::*;
 use crate::interpreter::resumable::owned_frame::registered_stage::effect::OwnedEffectInputsV8;
 use crate::interpreter::resumable::owned_frame::registered_stage::reduce::{
-    CheckedLiveOwnedReduceStageFactsV8, ExecutedOwnedReduceSettledV2,
-    HeldExecutedOwnedStepV2, OwnedReduceCleanupOriginV8, ReadyExecutedOwnedStepV2,
-    StagedExecutedOwnedReduceV2,
+    CheckedLiveOwnedReduceStageFactsV8, ExecutedOwnedReduceSettledV2, HeldExecutedOwnedStepV2,
+    OwnedReduceCleanupOriginV8, ReadyExecutedOwnedStepV2, StagedExecutedOwnedReduceV2,
 };
-use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::reduce::step::VerifiedOwnedStepSuccessorV8;
-use crate::live_invocation::source_journal::owned_wait_v8::{model::OwnedBodyV8, reduce_wire::{self,ReduceRecipeV8}};
-use serde_json::{json,Value};
+use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedStepSuccessorV8;
+use crate::live_invocation::source_journal::owned_wait_v8::{
+    model::OwnedBodyV8,
+    reduce_wire::{self, ReduceRecipeV8},
+};
+use serde_json::{json, Value};
 
 struct StepAckV8<'j> {
     session: AppendSessionV8<'j>,
@@ -161,6 +163,11 @@ impl<'j> StepLineageV8<'j> {
                 .active_operations()
                 .as_array()
                 .is_some_and(|v| v.is_empty())
+            || !compiler_empty_eligible(
+                &plan,
+                self.facts.step().ok_or(SourceJournalError::Binding)?,
+                staged,
+            )?
         {
             return Err(SourceJournalError::Binding);
         }
@@ -170,6 +177,42 @@ impl<'j> StepLineageV8<'j> {
     }
 }
 
+fn compiler_empty_eligible(
+    plan: &crate::resumable_effects::owned_frame::v2::CheckedOwnedReduceV2,
+    step: &Value,
+    staged: u32,
+) -> Result<bool, SourceJournalError> {
+    let matching = plan
+        .transfers()
+        .cases
+        .iter()
+        .filter(|c| step["case"] == c.case.as_str())
+        .collect::<Vec<_>>();
+    if matching.is_empty() {
+        return Err(SourceJournalError::Binding);
+    }
+    let operations = crate::resumable_effects::owned_frame::v2::owned_wait_operations_v8(
+        &plan.transfers().completion_cleanup,
+    )
+    .map_err(|_| SourceJournalError::Binding)?;
+    for c in matching {
+        let basis = json!({"kind":"success","staged":staged,"constructor":c.constructor.as_str(),"case":c.case.as_str(),"active_flags":c.completion_live_flags.iter().map(|f|f.0).collect::<Vec<_>>()});
+        let checked = crate::resumable_effects::owned_frame::v2::validate_owned_reduce_cleanup_v8(
+            plan,
+            &basis,
+            &operations,
+        )
+        .map_err(|_| SourceJournalError::Binding)?;
+        if !checked
+            .active_operations()
+            .as_array()
+            .is_some_and(|v| v.is_empty())
+        {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
 pub(crate) struct LiveOwnedReduceCleanupPermitV8<'p, 'j> {
     lineage: &'p StepLineageV8<'j>,
 }
@@ -1050,5 +1093,24 @@ impl<'j> LiveMovedStepV8<'j> {
                 Err((self, e))
             }
         }
+    }
+}
+
+impl LiveMovedStepV8<'_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn kind(&self) -> &'static str {
+        self.held.kind()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn accounting(
+        &self,
+    ) -> &TargetAccounting {
+        &self.accounting
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
+        &self,
+    ) -> Result<(), SourceJournalError> {
+        self.lineage.validate_current(false)?;
+        self.lineage
+            .mapped_step()?
+            .matches_target(&self.held.live_target_v8()?)
     }
 }

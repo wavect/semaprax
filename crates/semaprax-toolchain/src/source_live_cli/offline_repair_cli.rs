@@ -33,6 +33,8 @@ use semaprax::provider_adapter_sdk::{
 use serde_json::{json, Value};
 
 use super::CliError;
+mod model_wait;
+pub(super) use model_wait::run as run_model_wait;
 
 const DEMO_SCHEMA: &str = "semaprax.private-offline-repair-demo.v1";
 const DEMO_MANIFEST: &str = "../../examples/offline-repair-project/semaprax.toml";
@@ -213,6 +215,14 @@ fn diagnostic_error(context: &str, diagnostics: Vec<semaprax::diagnostic::Diagno
 }
 
 fn execute(project: Arc<ProjectRevision>, source_before: Vec<u8>) -> Result<String, CliError> {
+    execute_profile(project, source_before, false)
+}
+
+fn execute_profile(
+    project: Arc<ProjectRevision>,
+    source_before: Vec<u8>,
+    wait_profile: bool,
+) -> Result<String, CliError> {
     let root = project
         .program_root()
         .map_err(|_| CliError::refused("offline repair demo ProgramRoot is unavailable"))?;
@@ -317,6 +327,17 @@ fn execute(project: Arc<ProjectRevision>, source_before: Vec<u8>) -> Result<Stri
             refuse_start,
         })
     };
+    let wait = if wait_profile {
+        Some(
+            runtime
+                .source_model_wait_binding(model_wait::WRAPPER_ID, model_wait::EVALUATION_FUEL)
+                .map_err(|diagnostics| {
+                    diagnostic_error("offline repair wait binding refused", diagnostics)
+                })?,
+        )
+    } else {
+        None
+    };
     let binding = runtime
         .source_model_binding(identity())
         .map_err(|diagnostics| {
@@ -335,22 +356,58 @@ fn execute(project: Arc<ProjectRevision>, source_before: Vec<u8>) -> Result<Stri
         diagnostic_error("offline repair source adapter refused", diagnostics)
     })?;
     let mut store = JournalStore::default();
-    let complete = runtime
-        .run_live_bound_model_durable(
-            &mut source,
-            &mut handler,
-            policy(&binding),
-            &FixedClock,
-            &cancellation,
+    let key = semaprax::resumable_effects::source_checkpoint::SourceCheckpointKey::new([68; 32]);
+    let (ordinary, waited) = if let Some(wait) = &wait {
+        (
             None,
-            &mut store,
+            Some(
+                runtime
+                    .run_live_bound_model_durable_with_wait(
+                        wait,
+                        &key,
+                        &mut source,
+                        &mut handler,
+                        policy(&binding),
+                        &FixedClock,
+                        &cancellation,
+                        None,
+                        &mut store,
+                    )
+                    .map_err(|failure| {
+                        diagnostic_error(
+                            "offline repair checked model wait execution refused",
+                            failure.failure().diagnostics.to_vec(),
+                        )
+                    })?,
+            ),
         )
-        .map_err(|failure| {
-            diagnostic_error(
-                "offline repair checked source execution refused",
-                failure.failure().diagnostics.to_vec(),
-            )
-        })?;
+    } else {
+        (
+            Some(
+                runtime
+                    .run_live_bound_model_durable(
+                        &mut source,
+                        &mut handler,
+                        policy(&binding),
+                        &FixedClock,
+                        &cancellation,
+                        None,
+                        &mut store,
+                    )
+                    .map_err(|failure| {
+                        diagnostic_error(
+                            "offline repair checked source execution refused",
+                            failure.failure().diagnostics.to_vec(),
+                        )
+                    })?,
+            ),
+            None,
+        )
+    };
+    let complete = ordinary
+        .as_ref()
+        .or_else(|| waited.as_ref().map(|e| e.model()))
+        .expect("selected execution profile returns one evidence value");
     drop(source);
     if starts.get() != 2 || handler.rejection_count() != 1 || store.documents.is_empty() {
         return Err(CliError::refused(
@@ -365,7 +422,11 @@ fn execute(project: Arc<ProjectRevision>, source_before: Vec<u8>) -> Result<Stri
             "offline repair candidate evidence disagrees with the fixed correction",
         ));
     }
-    let manifest = demo_manifest()?;
+    let manifest = if wait_profile {
+        model_wait::manifest()?
+    } else {
+        demo_manifest()?
+    };
     let source_path = manifest
         .parent()
         .expect("canonical manifest has a parent")
@@ -380,7 +441,7 @@ fn execute(project: Arc<ProjectRevision>, source_before: Vec<u8>) -> Result<Stri
         store.documents.last().expect("nonempty checked journal"),
         "offline repair journal rendering refused",
     )?;
-    let report = json!({
+    let mut report = json!({
         "schema": DEMO_SCHEMA,
         "target": DEMO_TARGET,
         "candidate_digest": preview.candidate().candidate_digest(),
@@ -397,6 +458,9 @@ fn execute(project: Arc<ProjectRevision>, source_before: Vec<u8>) -> Result<Stri
         "source_mutation": false,
         "publication_authority": false,
     });
+    if let Some(waited) = &waited {
+        model_wait::add_report(&mut report, waited)?;
+    }
     serde_json::to_string(&report)
         .map(|report| format!("{report}\n"))
         .map_err(|_| CliError::refused("offline repair report cannot be rendered"))

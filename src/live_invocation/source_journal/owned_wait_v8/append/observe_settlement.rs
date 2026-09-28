@@ -263,3 +263,41 @@ impl<'j> AppendSessionV8<'j> {
         Ok(envelope)
     }
 }
+
+impl SourceOwnedWaitJournalV8 {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_initial_observe_registry(
+        &self,
+    ) -> Result<(), SourceJournalError> {
+        if self
+            .prospective_reduce
+            .try_borrow()
+            .map_err(|_| SourceJournalError::Order)?
+            .is_some()
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    }
+    #[cfg(test)]
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_observe_lease(
+        &self,
+    ) -> &RefCell<SourceOwnedWaitLeaseV8> {
+        &self.lease
+    }
+}
+impl HeldOwnedWaitStoreV8<'_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn belongs_to(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+    ) -> bool {
+        std::ptr::eq(self.journal, journal)
+    }
+}
+impl<'a> AppendSessionV8<'a> {
+    #[cfg(test)]
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_observe_inventory(
+        &self,
+    ) -> &InventoryV8<'a> {
+        &self.inventory
+    }
+}

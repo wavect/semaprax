@@ -356,7 +356,7 @@ impl FixedOwnedObserveSettlementAppendPermitV8<'_, '_> {
         >,
     ) -> Result<(), SourceJournalError> {
         if !self.owner.belongs_to(journal)
-            || !inventory.belongs_to_context(&journal.context)
+            || !inventory.belongs_to_context(journal.context())
             || inventory.sequence() != self.owner.sequence()
             || inventory.acknowledged_bytes() != self.owner.acknowledged_bytes()
         {
@@ -364,17 +364,7 @@ impl FixedOwnedObserveSettlementAppendPermitV8<'_, '_> {
         }
         inventory.validate_observe_settlement_prefix(&self.owner.selected)?;
         match &self.owner.owner {
-            LiveObserveSettlementOwnerV8::Initial(_) => {
-                if journal
-                    .prospective_reduce
-                    .try_borrow()
-                    .map_err(|_| SourceJournalError::Order)?
-                    .is_some()
-                {
-                    return Err(SourceJournalError::Binding);
-                }
-                Ok(())
-            }
+            LiveObserveSettlementOwnerV8::Initial(_) => journal.validate_initial_observe_registry(),
             LiveObserveSettlementOwnerV8::Continued(c) => {
                 c.validate_append_prefix(journal, inventory, &self.owner.selected)
             }

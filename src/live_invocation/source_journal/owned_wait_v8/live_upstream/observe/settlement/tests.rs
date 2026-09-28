@@ -118,7 +118,7 @@ fn owned_observe_settlement_initial_actual_source_oracle_and_once_consumed() {
                 observed.observation.ordinary_bytes()
             );
             let session = journal.begin_session().unwrap();
-            let rows = &session.inventory.test_observe_entries();
+            let rows = &session.test_observe_inventory().test_observe_entries();
             let settled = &rows[rows.len() - 2].entry;
             let EntryV8::Owned(journal_model::OwnedBodyV8::OwnedObserveSettled {
                 consumed,
@@ -175,7 +175,7 @@ fn owned_observe_settlement_initial_ensures_retains_failed_cause_state_and_count
                 settlement: ObserveSettlementV8::Failed { status },
                 ..
             }) = &current
-                .inventory
+                .test_observe_inventory()
                 .test_observe_entries()
                 .last()
                 .unwrap()
@@ -208,7 +208,7 @@ fn owned_observe_settlement_initial_actual_append_faults_retain_owner_without_re
                     let count = entries();
                     let number = initialized.session.sequence() + if observed_row { 3 } else { 2 };
                     {
-                        let mut lease = journal.lease.borrow_mut();
+                        let mut lease = journal.test_observe_lease().borrow_mut();
                         match mode {
                             0 => lease.test_fail_before_write(number),
                             1 => lease.test_fail_after_write(number),
@@ -341,7 +341,10 @@ fn owned_observe_settlement_continued_actual_oracle_same_ledger_and_once_funding
         false,
         |journal, owner, weak, ledger, observation, consumed, _| {
             let before = journal.begin_session().unwrap();
-            let (r, s, turn, _) = before.inventory.observe_settlement_facts().unwrap();
+            let (r, s, turn, _) = before
+                .test_observe_inventory()
+                .observe_settlement_facts()
+                .unwrap();
             let settled = ack(journal, owner);
             let data = settled.owner.data().unwrap();
             assert_eq!(data.observation, observation);
@@ -357,7 +360,10 @@ fn owned_observe_settlement_continued_actual_oracle_same_ledger_and_once_funding
                     .unwrap_or_else(|_| panic!("immediate observed obligation")),
             );
             let current = journal.begin_session().unwrap();
-            let (nr, ns, next, _) = current.inventory.observe_settlement_facts().unwrap();
+            let (nr, ns, next, _) = current
+                .test_observe_inventory()
+                .observe_settlement_facts()
+                .unwrap();
             assert_eq!((nr, ns, next), (r, s, turn));
             assert!(weak.iter().any(|w| w.strong_count() == 1));
             drop(final_owner);
@@ -401,7 +407,7 @@ fn owned_observe_settlement_continued_actual_faults_and_postack_guard_loss_never
                 let count=crate::interpreter::resumable::owned_frame::registered_stage::reduce::test_continue_observe_entries_v8();
                 let number = owner.sequence() + 1;
                 {
-                    let mut lease = journal.lease.borrow_mut();
+                    let mut lease = journal.test_observe_lease().borrow_mut();
                     match mode {
                         0 => lease.test_fail_before_write(number),
                         1 => lease.test_fail_after_write(number),
@@ -437,7 +443,7 @@ fn owned_observe_settlement_fresh_mac_hostile_rows_cannot_replace_actual_source_
                 .unwrap_or_else(|_| panic!("actual initial Observe"));
             let current = journal.begin_session().unwrap();
             let baseline: Vec<_> = current
-                .inventory
+                .test_observe_inventory()
                 .test_observe_entries()
                 .iter()
                 .map(|v| v.entry.clone())
@@ -468,7 +474,7 @@ fn owned_observe_settlement_fresh_mac_hostile_rows_cannot_replace_actual_source_
                 document
             };
             let validate = |document: &[u8]| {
-                crate::live_invocation::source_journal::owned_wait_v8::inventory::checked_inventory_v8(journal.context(),&journal.lease.borrow(),&key,document).is_ok()
+                crate::live_invocation::source_journal::owned_wait_v8::inventory::checked_inventory_v8(journal.context(),&journal.test_observe_lease().borrow(),&key,document).is_ok()
             };
             assert!(
                 validate(&encode(&baseline)),

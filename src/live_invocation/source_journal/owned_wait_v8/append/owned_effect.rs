@@ -22,13 +22,13 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::{
 
 /// Move-only exact prefix, bound to the immutable actual E/B/store context.
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct OwnedEffectAppendCursorV8<'j> {
-    journal: &'j SourceOwnedWaitJournalV8,
-    sequence: usize,
-    bytes: usize,
-    authentication: String,
+    pub(super) journal: &'j SourceOwnedWaitJournalV8,
+    pub(super) sequence: usize,
+    pub(super) bytes: usize,
+    pub(super) authentication: String,
 }
 impl<'j> OwnedEffectAppendCursorV8<'j> {
-    fn capture(session: &AppendSessionV8<'j>) -> Self {
+    pub(super) fn capture(session: &AppendSessionV8<'j>) -> Self {
         Self {
             journal: session.journal,
             sequence: session.sequence(),
@@ -36,7 +36,7 @@ impl<'j> OwnedEffectAppendCursorV8<'j> {
             authentication: session.inventory.authentication_tail().into(),
         }
     }
-    fn validate_current(&self) -> Result<(), SourceJournalError> {
+    pub(super) fn validate_current(&self) -> Result<(), SourceJournalError> {
         self.journal.validate_guard()?;
         let current = self.journal.begin_session()?;
         if current.sequence() != self.sequence

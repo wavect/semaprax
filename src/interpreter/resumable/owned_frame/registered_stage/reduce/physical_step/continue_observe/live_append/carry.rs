@@ -92,11 +92,13 @@ impl PreparedHeldContinuedWaitV2<'_> {
         let valid = self.context.validate_guard()
             && argument.creator == std::process::id()
             && argument.root.as_ref().is_some_and(|root| {
-                crate::interpreter::resumable::owned_frame::root_valid(&argument.plan, root)
-                    && argument
-                        .allocations
-                        .as_ref()
-                        .is_some_and(|proof| proof.validate(&[root]))
+                crate::interpreter::resumable::owned_frame::registered_stage::root_valid(
+                    &argument.plan,
+                    root,
+                ) && argument
+                    .allocations
+                    .as_ref()
+                    .is_some_and(|proof| proof.validate(&[root]))
             });
         if !valid {
             self.context.store.quarantine();

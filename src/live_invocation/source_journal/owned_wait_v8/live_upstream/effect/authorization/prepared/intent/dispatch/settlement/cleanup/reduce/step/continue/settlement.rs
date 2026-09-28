@@ -31,7 +31,6 @@ impl<'j> ContinuedObserveSettlementV8<'j> {
             .lineage
             .current()
             .expect("actual Observe ACK")
-            .session
             .sequence()
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn bytes(&self) -> usize {
@@ -39,7 +38,6 @@ impl<'j> ContinuedObserveSettlementV8<'j> {
             .lineage
             .current()
             .expect("actual Observe ACK")
-            .session
             .acknowledged_bytes()
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn turn(&self) -> u32 {

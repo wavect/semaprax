@@ -56,7 +56,7 @@ fn owned_wait_effect_inventory_replays_real_exchange_and_keeps_cleanup_data_iner
             .unwrap();
         let scope = &context.registration().expected_facts().scope;
         let proposal = v2::bind_owned_wait_proposal_v8(execution.wait(), scope, &decoded).unwrap();
-        let (runtime, execution) = context.test_runtime_execution().unwrap();
+        let (runtime, execution) = context.test_runtime_execution();
         let inputs = OwnedEffectSettlementInputsV8 {
             runtime,
             execution,
@@ -261,6 +261,24 @@ fn owned_wait_effect_inventory_replays_real_exchange_and_keeps_cleanup_data_iner
                 _ => unreachable!(),
             }
             assert!(check(&bad).is_err(), "re-MACed variant {variant}");
+        }
+        let EntryV8::Owned(model::OwnedBodyV8::OwnedWaitCreated { wait, .. }) = &rows[5] else {
+            panic!()
+        };
+        for end in [20, 21, 23, 25] {
+            let mut legacy = rows[..end].to_vec();
+            legacy.push(EntryV8::Owned(model::OwnedBodyV8::OwnedWaitFailed {
+                turn: 0,
+                attempt: 0,
+                wait: wait.clone(),
+                reservation: None,
+                consumed: 0,
+                status: json!({"failure":"host_abandoned","language_status":null}),
+            }));
+            assert!(
+                check(&legacy).is_err(),
+                "legacy failure cannot replace effect tail {end}"
+            );
         }
         let mut failed = rows.clone();
         let EntryV8::Owned(model::OwnedBodyV8::OwnedEffectDecisionCleanupSettled {

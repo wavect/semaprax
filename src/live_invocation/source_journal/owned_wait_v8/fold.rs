@@ -314,6 +314,9 @@ pub(super) fn fold(
                 EntryV8::Ordinary(SourceJournalEntry::TerminalSnapshot { .. })
             ))?;
         }
+        if fold.effect.is_some() {
+            require(effect_fold::is_effect_row(&row.entry))?;
+        }
         match &row.entry {
             EntryV8::Owned(body) => {
                 if let Body::OwnedWaitCreated { copy_arguments, .. } = body {

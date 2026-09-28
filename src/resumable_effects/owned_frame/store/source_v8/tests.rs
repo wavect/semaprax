@@ -70,8 +70,7 @@ fn owned_frame_v8_store_fresh_registration_is_postcreate_retained_and_profile_sp
     assert_eq!(
         registration
             .acknowledge_retained_by_trusted_host(false)
-            .err()
-            .map(|e| e),
+            .err(),
         Some(Error::Policy)
     );
     lease
@@ -169,8 +168,7 @@ fn owned_frame_v8_store_scope_generation_pins_history_and_name_substitution_refu
         fresh_source_owned_wait_v8(
             prepare_fresh_source_owned_wait_v8(d.file(), facts, grant()).unwrap()
         )
-        .err()
-        .map(|e| e),
+        .err(),
         Some(Error::Binding)
     );
 }

@@ -1103,3 +1103,6 @@ mod owned_authorize;
 pub(crate) use owned_authorize::{
     owned_authorize_partial_disposal, owned_authorize_result_disposal,
 };
+
+mod owned_stage_transfer;
+pub(crate) use owned_stage_transfer::{owned_record_transfer_plan, OwnedRecordTransferPlan};

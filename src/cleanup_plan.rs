@@ -798,3 +798,5 @@ fn staged_result_bytes(source: &StagedCopyResultSource) -> Option<usize> {
         .checked_add(resolved_type_owned_capacity(target_instance)?),
     }
 }
+
+pub(crate) use owned_liveness::{owned_record_transfer_plan, OwnedRecordTransferPlan};

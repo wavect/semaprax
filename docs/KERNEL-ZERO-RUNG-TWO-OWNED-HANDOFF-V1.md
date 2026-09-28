@@ -19,6 +19,16 @@ one immutable move binding. Normal source/HIR ownership verification and
 canonical cleanup replay govern it. Rust remains formatter authority: only a
 fully settled Rust-equal candidate may enter the caller's 20-byte token.
 
+At source `27d8d8c`, this ordinary checked owned boundary is already
+implemented in the production candidate route. Admission authenticates the
+source/core-term/target binding before staging a byte owner; publication
+requires observed last-owner release and the existing
+`CopyOutAndSettleBytes` event. The wrapper transfers Rust-assembled scalar
+output; it does not make the scalar Kernel-0 renderer own a buffer or extend
+its ownership proof. Rust retains byte authority, refusal/cleanup and re-entry.
+Required accepted-head gates are pending; this source-fact correction reports
+no new test result, rung promotion or authority transfer.
+
 ## Synchronous admission and settlement
 
 `interpreter::retained_call::owned_handoff` owns a crate-private sealed product
@@ -120,11 +130,11 @@ records status only, and promotes nothing by itself.
 |---|---|---|---|
 | 1 | Kernel-0 type safety (Progress, Preservation) over the whole grammar, including `Let` and non-recursive `Call` | **Proved** (Lean 4, zero `sorry`/`admit`/custom axiom; `#print axioms` reports only `propext`/`Quot.sound`) | `docs/KERNEL-PROOF-MECHANIZATION-V1.md`; `docs/SEMANTIC-KERNEL-V1.md` "Paper safety proof". Wired into `quality.sh full` as `kernel0-lean-proof-gate`; a **hosted** verdict is still pending (not re-run this slice; no Actions credits). |
 | 2 | HIR-to-Kernel-0 reification predicate is real, mechanically checked code, not prose | **Tested** | `src/kernel_zero.rs` (`reifies_into_kernel_zero`) and its `tests` submodule. Deliberately inert: it narrows nothing it does not already reject. |
-| 3 | Reference interpreter agrees with the compiler's interpreter over a finite corpus | **Tested**, partial (finite corpus, not a proof); **not rerun to completion this slice** | `kernel_zero::differential::reference_interpreter_agrees_with_the_compiler_over_the_kernel_zero_corpus`. This slice's attempt to rerun it ran over 4 hours at 100% CPU on a shared build host and was killed by the coordinator before finishing (matches the prior session's own account and the hosted job's 60-minute cap on this same test); see "Local implementation evidence". Existing passing evidence is prior-session/hosted record only, not reconfirmed here. |
+| 3 | Reference interpreter agrees with the compiler's interpreter over a finite corpus | **Historical finite-corpus evidence**, not a proof; accepted-head gate pending | `kernel_zero::differential::reference_interpreter_agrees_with_the_compiler_over_the_kernel_zero_corpus`. The earlier over-four-hour interrupted attempt remains incomplete. Later retained local branch evidence records 854 comparisons with zero disagreements after renderer caching; see "Later historical cached run". Neither observation is a fresh accepted-head full-profile result. |
 | 4 | Native C11 (`-O0`/`-O2`) and Core Wasm agree with the reference interpreter over the same corpus | **Tested**, partial (finite corpus, not a proof); **reran to completion this slice** | `kernel_zero::differential::cross_backend::native_c11_and_core_wasm_agree_with_the_kernel_zero_reference_interpreter_over_the_corpus`: 2,562 comparisons, 0 disagreements, this slice. |
 | 5 | Rung 0 (one concrete program, same result on interpreter/native/Wasm) | **Reached** | `docs/SEMANTIC-KERNEL-V1.md` "Rung 0 evidence". Not rebuilt here. |
 | 6 | Rung 1 (kernel-sized pure computation, cross-backend agreement) | **Reached** | `rung_one_capacity_classifier_reifies_and_matches_reference_and_compiler_interpreters` and `...cross_backend::rung_one_capacity_classifier_agrees_across_native_o0_o2_and_core_wasm` (72 fixtures, 216 native/Wasm comparisons). Not rebuilt here. |
-| 7 | Rung 2 (self-hosted, pure, ownership/effect-free compiler component; broad differential; bootstrap-reproducible) | **Not reached** | `docs/SEMANTIC-KERNEL-V1.md` ladder still records "No" for rung 2. The five renderer lanes (`kernel_zero::rung_two_renderer::`, 14 passed) and the bootstrap artifact (`kernel_zero::rung_two_bootstrap::`, 10 passed) are local target/recovery evidence toward it, not the rung itself; this slice does not flip that status. |
+| 7 | Rung 2 (self-hosted, pure, ownership/effect-free compiler component; broad differential; bootstrap-reproducible) | **Not reached** | `docs/SEMANTIC-KERNEL-V1.md` ladder still records "No" for rung 2. The five renderer lanes (`kernel_zero::rung_two_renderer::`, 14 passed) and the bootstrap artifact (`kernel_zero::rung_two_bootstrap::`, 10 passed) are local target/recovery evidence toward it. The production route also has the checked ordinary owned wrapper around Rust-assembled scalar bytes, with last-owner/settlement evidence before publication; it is not an owned Kernel-0 renderer or a promotion decision. |
 | 8 | Owned `Bytes` boundary: exact source/term/target binding is authenticated, and no owner is allocated before that check | **Tested** | `rung_two_owned_handoff/binding.rs` (`Binding::authenticate`) and `rung_two_owned_handoff/tests.rs::reminted_owned_handoff_substitutions_refuse_before_owner_allocation` — 9 independent mutation classes (source, entry, maximum, core source order, core entry, core term, native target, Wasm target, descriptor) plus truncated/legacy bytes all refuse with zero owners staged. |
 | 9 | Owned `Bytes` boundary: bounded execution (admission caps, 0..=20-byte input, 1..=8 fuel) | **Tested** | `interpreter::retained_call::owned_handoff` + its `tests` module (`owned_handoff` selector, 10 passed). |
 | 10 | Owned `Bytes` boundary: a refused, exhausted, mismatched, or panicking candidate falls back to the authoritative Rust bytes, and a later invocation re-enters without double-applying effects | **Tested** | `tests.rs::owned_handoff_exhaustion_has_no_candidate_and_next_invocation_recovers` (fuel-exhaustion refusal, then a fresh successful call); `tests.rs::reminted_owned_handoff_substitutions_refuse_before_owner_allocation`'s final assertion (re-entry with `b"reentry"` after every mutation refusal); `targets.rs` native/Wasm hostile handle/copy-refusal-then-reentry rows. |
@@ -148,10 +158,10 @@ already-passing baselines):
 - `kernel_zero::rung_two_renderer::`: 14 passed.
 - `kernel_zero::rung_two_bootstrap::`: 10 passed with required native/Wasm targets.
 
-### This slice's own runs (issue #294)
+### Earlier issue #294 attempt (historical)
 
-The four-test `kernel_zero::differential::` selector remains **incomplete**,
-now for a second, independent reason. This slice reran it (one Cargo build job,
+This earlier four-test `kernel_zero::differential::` attempt was **incomplete**,
+for a second, independent reason. That slice reran it (one Cargo build job,
 disabled incremental/debug info, one test thread,
 `SEMAPRAX_REQUIRE_KERNEL_ZERO_CROSS_BACKEND=1`): its first two tests (both in
 `cross_backend`) passed --- the 2,562-comparison native C11 `-O0`/`-O2` and Core
@@ -162,11 +172,11 @@ target test passed (216 comparisons). The third test,
 shared build host without finishing; the coordinator killed it to free the
 shared slot. This matches the prior session's own account of this same test
 (terminated by user direction while active) and the hosted CI job's separate
-60-minute cap on it. The fourth test was again not reached. These are still
-partial observations, now with an additional data point: this specific
-interpreter-corpus test does not complete in a bounded local session and needs
-either a longer-lived hosted run or its own investigation, not a retry loop.
-Lean/formal and full quality gates were not run for this slice either.
+60-minute cap on it. The fourth test was again not reached. These remain partial historical observations: that attempt established no
+passing interpreter-corpus result. The later cached run below supersedes the
+claim that this test cannot complete locally; it does not complete or replace
+these interrupted attempts. Lean/formal and full quality gates were not run
+for that earlier slice either.
 
 This slice's negative-control mutant (row 12 of the table above) ran and
 reverted cleanly: `kernel_zero::rung_two_owned_handoff::tests::reminted_owned_handoff_substitutions_refuse_before_owner_allocation
@@ -176,3 +186,26 @@ confirming no residual change to `rung_two_owned_handoff.rs`.
 
 No full-gate, hosted, or accepted-revision conclusion follows from any of
 these local results, and no promotion flag is changed by this slice.
+
+
+### Later historical cached run
+
+The coordinator's retained branch record at `a3834de9` reports a completed
+cached interpreter corpus run with **854 comparisons, zero disagreements**;
+the renderer source-caching change preceded that record. The 27 September
+issue #294 update also records this completed cached corpus observation. It
+is local finite-corpus evidence from a prior head, not a theorem, hosted result
+or an accepted-head full-profile verdict.
+
+The execution-kit handoff separately records **5061 passed, zero failed** for
+`cargo test -p semaprax --lib` at `b27f9cb2`. This is a historical library-test
+result, not `scripts/quality.sh full` or a current-subject formal receipt.
+The handoff identifies two default-stack overflow tests as skipped; that
+qualification remains part of its record.
+
+The source-fact snapshot for this correction is `27d8d8c`. Its required
+owned-handoff, renderer/authority/bootstrap, real-target differential and Lean
+gates, plus the full profile, must be bound to the independently accepted exact
+revision. Those receipts are pending here. Existing Lean/proof assumptions,
+Rust formatter authority and the rung-1 status are unchanged; no maintainer
+promotion decision is inferred from this documentation update.

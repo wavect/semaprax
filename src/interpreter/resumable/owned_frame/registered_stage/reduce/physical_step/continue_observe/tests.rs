@@ -291,7 +291,8 @@ fn owned_continue_observe_does_not_treat_authored_task_budget_as_host_iteration_
                 .budget,
             0
         );
-        assert_eq!(inputs.execution.ordinary().max_iterations(), 32);
+        // Deployment narrows the requested 32 turns by max_turns=3 and max_tool_calls=2.
+        assert_eq!(inputs.execution.ordinary().max_iterations(), 2);
         let mut fuel = OwnedFrameBudget::new(1000).unwrap();
         let ContinuedOwnedObserveV2::Observed(observed) =
             observe_continued_owned_state_v2(committed, &mut fuel, || true)

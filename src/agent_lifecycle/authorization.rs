@@ -34,6 +34,7 @@ use super::stages::AuthorizeStage;
 use super::{encode_value, StageRecord};
 
 mod native_executor;
+pub(crate) mod owned_wait_v8;
 mod semantic_work;
 /// Target-neutral model/effect boundary for explicitly injected host adapters.
 /// Grant construction and dispatch remain crate-owned so callers cannot mint
@@ -170,18 +171,13 @@ pub(super) fn binding(
     grant_case: &hir::DeclarationId,
     seal: &[u8],
 ) -> String {
-    let mut hash = Sha256::new();
-    hash.update(BINDING_DOMAIN);
-    hash.update(policy_digest.as_bytes());
-    hash.update([0]);
-    hash.update(encode_value(state).as_bytes());
-    hash.update([0]);
-    hash.update(proposal_canonical.as_bytes());
-    hash.update([0]);
-    hash.update(grant_case.as_str().as_bytes());
-    hash.update([0]);
-    hash.update(seal);
-    format!("sha256:{:x}", crate::digest_hex::LowerHex(hash.finalize()))
+    owned_wait_v8::binding_from_canonical_state(
+        policy_digest,
+        &encode_value(state),
+        proposal_canonical,
+        grant_case,
+        seal,
+    )
 }
 
 /// The single mint site of the entire crate.

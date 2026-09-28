@@ -102,3 +102,30 @@ impl PreparedHeldContinuedWaitV2<'_> {
         self.context.execution.evaluation_fuel()
     }
 }
+
+impl PreparedHeldContinuedWaitV2<'_> {
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn matches_resume_permit(
+        &self,
+        permit: &crate::live_invocation::source_journal::LiveContinuedWaitResumePermitV8<'_, '_>,
+    ) -> bool {
+        permit.matches_held_store(&self.context.store)
+    }
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn evaluation_fuel(
+        &self,
+    ) -> usize {
+        self.context.execution.evaluation_fuel()
+    }
+}
+
+impl PreparedHeldContinuedWaitV2<'_> {
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn validate_incurred_context(
+        &self,
+    ) -> Result<(), SourceJournalError> {
+        if self.context.validate_incurred_guard() {
+            Ok(())
+        } else {
+            self.context.store.quarantine();
+            Err(SourceJournalError::Binding)
+        }
+    }
+}

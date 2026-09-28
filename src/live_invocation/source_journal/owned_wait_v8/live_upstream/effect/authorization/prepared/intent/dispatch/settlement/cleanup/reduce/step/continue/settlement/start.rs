@@ -375,3 +375,5 @@ impl ContinuedStartedWaitV8<'_> {
         &self.accounting
     }
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod model;

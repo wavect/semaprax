@@ -1299,3 +1299,8 @@ pub(crate) use owned_wait_v8::test_initial_observe_entry_v8;
 pub(crate) use owned_wait_v8::LiveObserverFailedStateCleanupPermitV8;
 
 pub(crate) use owned_wait_v8::LiveFailedObserveStateCleanupPermitV8;
+
+pub(crate) use owned_wait_v8::{
+    LiveContinuedModelIntentPermitV8, LiveContinuedModelRequestOriginV8,
+    LiveContinuedWaitResumePermitV8,
+};

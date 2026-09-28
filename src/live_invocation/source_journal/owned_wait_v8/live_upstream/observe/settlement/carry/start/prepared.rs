@@ -234,3 +234,5 @@ impl LiveContinuedPreparedPhaseV8<'_> {
         self.owner.owner.test_accounting()
     }
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod model;

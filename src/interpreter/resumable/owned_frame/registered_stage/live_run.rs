@@ -183,3 +183,8 @@ pub(crate) use wait::{
     begin_live_continued_wait_v8, LiveContinuedParkedStateV8, LiveContinuedTerminalStateV8,
     LiveContinuedWaitStartOutcomeV8,
 };
+
+pub(crate) use wait::{resume_live_continued_wait_v8, LiveContinuedWaitResumeOutcomeV8};
+
+#[cfg(test)]
+pub(crate) use wait::test_continued_resume_entries_v8;

@@ -12,6 +12,7 @@ use crate::resumable_effects::owned_frame::{
 use crate::resumable_effects::source_checkpoint::{SourceCheckpointKey, SourceCheckpointScope};
 use serde_json::Value;
 mod accounting;
+pub(super) use accounting::CheckedAccountingPrefixV8;
 mod cumulative;
 pub(crate) use cumulative::CheckedCumulativeEffectPrefixV8;
 
@@ -20,7 +21,16 @@ pub(super) struct CheckedInventoryV8<'a> {
     last_mac: String,
     accounting: Option<accounting::CheckedAccountingPrefixV8<'a>>,
 }
-impl CheckedInventoryV8<'_> {
+impl<'a> CheckedInventoryV8<'a> {
+    pub(super) fn into_authenticated_parts(
+        self,
+    ) -> (
+        Vec<ValidatedEntryV8>,
+        String,
+        Option<CheckedAccountingPrefixV8<'a>>,
+    ) {
+        (self.entries, self.last_mac, self.accounting)
+    }
     pub(super) fn into_parts(self) -> (Vec<ValidatedEntryV8>, String) {
         (self.entries, self.last_mac)
     }

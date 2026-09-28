@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private continued model SDK settlement and Resume transport through actual
+  durable ACKs, retaining authenticated accounting and the same spent token.
+  Owning runtime gates, next authorization and full public execution remain pending.
+
 - Add private fresh-cell acquisition certificates and native host custody,
   rollback and retirement on the existing owner registry. Owning runtime gates
   are pending; source endpoints and interpreter/Wasm admission remain unfinished.

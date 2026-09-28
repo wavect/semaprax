@@ -1,12 +1,12 @@
 //! Shared private SDK executor. The old path has no live guard; v8 supplies
 //! only its sealed actual Intent permit, never a caller authority callback.
+use super::owned_wait_v8::OwnedModelGuardV8;
 use super::*;
-use crate::live_invocation::source_journal::LiveModelIntentPermitV8;
 impl StreamingSourceProposalAdapter<'_> {
     pub(super) fn check_deadline_live_v8(
         &self,
         clock: Option<&dyn SourceInvocationClock>,
-        live: Option<&LiveModelIntentPermitV8<'_>>,
+        live: Option<&OwnedModelGuardV8<'_, '_>>,
     ) -> Result<(), Vec<Diagnostic>> {
         let Some(live) = live else {
             return self.check_deadline_at(clock);
@@ -45,7 +45,7 @@ impl StreamingSourceProposalAdapter<'_> {
         adapter_request: AdapterRequest,
         source_clock: Option<&dyn SourceInvocationClock>,
         policy_already_reserved: bool,
-        live: Option<&LiveModelIntentPermitV8<'_>>,
+        live: Option<&OwnedModelGuardV8<'_, '_>>,
     ) -> Result<String, Vec<Diagnostic>> {
         macro_rules! live_guard {
             ($bytes:expr) => {

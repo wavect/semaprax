@@ -16,6 +16,10 @@ use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
 enum ProducerV8<'p, 'j> {
+    ContinuedModel(
+        &'p SourceOwnedWaitJournalV8,
+        &'p super::live_upstream::FixedOwnedContinuedModelAppendPermitV8<'p, 'j>,
+    ),
     ContinuedPrepared(
         &'p SourceOwnedWaitJournalV8,
         &'p FixedOwnedContinuedPreparedAppendPermitV8<'p, 'j>,
@@ -89,12 +93,14 @@ pub(super) struct InventoryV8<'a> {
     generation: String,
     mac: String,
     document: Vec<u8>,
+    accounting: Option<inventory::CheckedAccountingPrefixV8<'a>>,
 }
 pub(super) struct CandidateV8<'a> {
     inventory: InventoryV8<'a>,
     row: ValidatedEntryV8,
     encoded: Vec<u8>,
     successor_mac: String,
+    successor_accounting: Option<inventory::CheckedAccountingPrefixV8<'a>>,
 }
 pub(super) struct PendingV8<'a>(CandidateV8<'a>);
 /// Append uncertainty permanently retires the retained data; no retry/extraction.
@@ -137,7 +143,7 @@ impl<'a> InventoryV8<'a> {
         document: &[u8],
     ) -> Result<Self, SourceJournalError> {
         let checked = inventory::checked_inventory_v8(context, lease, key, document)?;
-        let (entries, mac) = checked.into_parts();
+        let (entries, mac, accounting) = checked.into_authenticated_parts();
         Ok(Self {
             context: ContextV8::Checked(context),
             key,
@@ -146,6 +152,7 @@ impl<'a> InventoryV8<'a> {
             generation: context.generation().to_owned(),
             mac,
             document: document.to_vec(),
+            accounting,
         })
     }
     pub(super) fn fresh(
@@ -981,7 +988,7 @@ impl<'a> InventoryV8<'a> {
                 ordinary: &context.ordinary,
             };
             let encoded = wire::encode(&row, &expected, self.key)?;
-            let (checked, successor_mac) = match &self.context {
+            let (checked, successor_mac, successor_accounting) = match &self.context {
                 ContextV8::Checked(context) => {
                     let lease = lease.ok_or(SourceJournalError::Binding)?;
                     // No supplied proof pairs: authenticate the original ACK
@@ -998,11 +1005,15 @@ impl<'a> InventoryV8<'a> {
                             matches!(&failure, inventory::InventoryValidationErrorV8::Physical(_));
                         failure.error()
                     })?;
-                    let (mut entries, mac) = checked.into_parts();
+                    let (mut entries, mac, accounting) = checked.into_authenticated_parts();
                     if entries.len() != self.entries.len() + 1 {
                         return Err(SourceJournalError::Binding);
                     }
-                    (entries.pop().ok_or(SourceJournalError::Binding)?, mac)
+                    (
+                        entries.pop().ok_or(SourceJournalError::Binding)?,
+                        mac,
+                        accounting,
+                    )
                 }
                 #[cfg(test)]
                 ContextV8::Synthetic(_) => {
@@ -1017,11 +1028,18 @@ impl<'a> InventoryV8<'a> {
                             .as_str()
                             .ok_or(SourceJournalError::Malformed)?
                             .to_owned(),
+                        None,
                     )
                 }
             };
             let previous = fold::fold(context, &self.entries)?;
             match producer {
+                ProducerV8::ContinuedModel(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
                 ProducerV8::FailedObserveState(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
@@ -1113,14 +1131,15 @@ impl<'a> InventoryV8<'a> {
             self.document
                 .try_reserve(encoded.len())
                 .map_err(|_| SourceJournalError::Capacity)?;
-            Ok((row, encoded, successor_mac))
+            Ok((row, encoded, successor_mac, successor_accounting))
         })();
         match result {
-            Ok((row, encoded, successor_mac)) => Ok(CandidateV8 {
+            Ok((row, encoded, successor_mac, successor_accounting)) => Ok(CandidateV8 {
                 inventory: self,
                 row,
                 encoded,
                 successor_mac,
+                successor_accounting,
             }),
             Err(error) => Err(CandidateRejectionV8 {
                 inventory: self,
@@ -1195,6 +1214,7 @@ impl<'a> InventoryV8<'a> {
             generation,
             mac,
             document: document.to_vec(),
+            accounting: None,
         })
     }
     #[cfg(test)]
@@ -1407,10 +1427,13 @@ impl<'a> PendingV8<'a> {
             row,
             encoded,
             successor_mac,
+            successor_accounting,
         } = self.0;
         inventory.document.extend_from_slice(&encoded); // reserved before Pending
         inventory.mac = successor_mac;
         inventory.entries.push(row); // capacity retained by the preflight push/pop
+                                     // The authenticated successor becomes current ONLY at this ACK.
+        inventory.accounting = successor_accounting;
         inventory
     }
     #[cfg(test)]
@@ -1437,3 +1460,5 @@ impl TrustedAppendAckV8 {
 mod failed_observe_state;
 
 mod continued_prepared;
+
+mod continued_model;

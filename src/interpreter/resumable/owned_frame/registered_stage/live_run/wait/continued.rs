@@ -126,3 +126,16 @@ impl LiveContinuedTerminalStateV8<'_> {
 
 #[cfg(test)]
 mod tests_support;
+
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) mod model;
+
+impl LiveContinuedParkedStateV8<'_> {
+    // Only descriptive root facts for recording an already incurred SDK result.
+    pub(crate) fn checked_incurred_facts(
+        &self,
+        binding: &CheckedOwnedAgentWaitBindingV8,
+    ) -> Option<serde_json::Value> {
+        self.predecessor.validate_incurred_context().ok()?;
+        self.parked.checked_facts(binding)
+    }
+}

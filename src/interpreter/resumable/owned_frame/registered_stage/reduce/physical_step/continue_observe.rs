@@ -30,12 +30,15 @@ struct HeldOwnedTurnContextV2<'a> {
     creator: u32,
 }
 impl HeldOwnedTurnContextV2<'_> {
-    fn validate_guard(&self) -> bool {
+    // Incurred settlement retains physical authority after cancellation.
+    fn validate_incurred_guard(&self) -> bool {
         self.creator == std::process::id()
             && self.store.validate_guard().is_ok()
             && self.runtime.owned_wait_effects_v8(self.execution).is_ok()
             && self.policy.allows(&self.effect_id)
-            && !self.cancellation.is_cancelled()
+    }
+    fn validate_guard(&self) -> bool {
+        self.validate_incurred_guard() && !self.cancellation.is_cancelled()
     }
 }
 pub(crate) struct ObservedHeldOwnedStateV2<'a> {

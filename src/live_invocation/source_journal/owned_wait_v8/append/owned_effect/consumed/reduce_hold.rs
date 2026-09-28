@@ -11,6 +11,11 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8::append) enum Owned
         selected: EntryV8,
     },
     Consumed,
+    TurnModel {
+        selected: EntryV8,
+        reserved: u64,
+        stages: u32,
+    },
     TurnStart {
         selected: EntryV8,
         reserved: u64,
@@ -1471,3 +1476,5 @@ mod failed_observe_cleanup;
 mod turn_start;
 
 mod turn_prepared;
+
+mod turn_model;

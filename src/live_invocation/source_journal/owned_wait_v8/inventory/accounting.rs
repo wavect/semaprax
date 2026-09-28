@@ -6,7 +6,7 @@ use crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settl
 };
 
 /// Proof data only: no ledger mutation, lease, dispatch or owner restoration.
-pub(super) struct CheckedAccountingPrefixV8<'a> {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct CheckedAccountingPrefixV8<'a> {
     context: &'a CheckedOwnedWaitJournalContextV8,
     program_root: String,
     policy_epoch: u64,
@@ -20,7 +20,7 @@ pub(super) struct CheckedAccountingPrefixV8<'a> {
     exchanges: Vec<(usize, usize, usize, CheckedTargetAccountingV8)>,
 }
 impl CheckedAccountingPrefixV8<'_> {
-    pub(super) fn matches(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn matches(
         &self,
         context: &CheckedOwnedWaitJournalContextV8,
         bytes: usize,
@@ -38,7 +38,14 @@ impl CheckedAccountingPrefixV8<'_> {
             && self.prefix_rows == rows
             && self.prefix_mac == mac
     }
-    pub(super) fn previous(&self) -> Option<&CheckedTargetAccountingV8> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn previous_settlement_sequence(
+        &self,
+    ) -> Option<usize> {
+        self.exchanges.last().map(|e| e.1)
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn previous(
+        &self,
+    ) -> Option<&CheckedTargetAccountingV8> {
         self.exchanges.last().map(|e| &e.3)
     }
 }

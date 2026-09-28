@@ -920,6 +920,15 @@ existing evaluator and retain its actual Parked/Terminal/Refused owner. Fixed
 append children publish the checkpoint and Prepared witness before advancing
 the same hold cursor; continued SDK and target entry remain separate routes.
 Candidate continued-Prepared inventory checks live in an audited child.
+The continued `prepared/model`, `append/continued_model` and engine
+`wait/continued/model` children retain that actual owner through fixed Intent,
+settlement, Usage, Resume reservation and Completed ACKs. The existing SDK
+dispatcher uses a closed initial/continued request guard; incurred failed
+settlement keeps physical provenance checks while omitting new-work cancellation
+admission. Candidate `continued_model` retains the authenticated accounting proof,
+and `reduce_hold/turn_model` advances the same spent-token cursor only after a
+true durable ACK. Decoded proposal data grants no owner or dispatch authority.
+Next authorization, target dispatch, renewal and public recovery remain required.
 Static Reduce capacity templates are privately retained under exact Context and
 checked proof identity; all current fold/prefix/physical checks remain fresh.
 `registered_stage/live_run` consumes the separately bound live initialization

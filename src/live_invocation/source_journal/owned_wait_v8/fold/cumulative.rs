@@ -178,3 +178,21 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn commit_next_sta
 
 #[cfg(test)]
 mod tests;
+
+impl FoldV8 {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_model_turn(
+        &self,
+    ) -> Option<u32> {
+        (self.continuation_profile_selected
+            && self.current_turn > 0
+            && matches!(
+                self.tail,
+                TailV8::Prepared
+                    | TailV8::ModelDispatchInDoubt
+                    | TailV8::Settled
+                    | TailV8::ResumeReserved
+                    | TailV8::Completed
+            ))
+        .then_some(self.current_turn)
+    }
+}

@@ -1,7 +1,7 @@
 use super::*;
 
 impl InventoryV8<'_> {
-    pub(super) fn continued_prepared_facts(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_prepared_facts(
         &self,
     ) -> Result<(u64, u32, u32, &EntryV8), SourceJournalError> {
         let result = self.continued_start_facts()?;
@@ -13,7 +13,7 @@ impl InventoryV8<'_> {
         }
         Ok(result)
     }
-    pub(super) fn validate_continued_prepared_prefix(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_continued_prepared_prefix(
         &self,
         selected: &EntryV8,
     ) -> Result<(), SourceJournalError> {
@@ -31,7 +31,7 @@ impl InventoryV8<'_> {
 }
 
 impl InventoryV8<'_> {
-    pub(super) fn continued_start_checkpoint_basis(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_start_checkpoint_basis(
         &self,
         observation: &crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8,
     ) -> Result<(u64, u64, String), SourceJournalError> {

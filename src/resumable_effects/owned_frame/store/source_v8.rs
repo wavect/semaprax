@@ -107,6 +107,9 @@ pub(crate) struct SourceOwnedWaitStoreRegistrationV8 {
     generation: String,
 }
 impl SourceOwnedWaitStoreRegistrationV8 {
+    pub(crate) fn expected_facts(&self) -> &FreshSourceOwnedWaitFactsV8 {
+        &self.expected
+    }
     pub(crate) fn generation(&self) -> &str {
         &self.generation
     }

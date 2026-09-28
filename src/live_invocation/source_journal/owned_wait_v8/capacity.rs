@@ -7,6 +7,7 @@ use serde_json::json;
 
 pub(super) struct ClosureFactsV8<'a> {
     pub intent: bool,
+    pub model_failed: bool,
     pub response_closed: bool,
     pub usage_closed: bool,
     pub pending_historical: bool,
@@ -147,6 +148,25 @@ pub(super) fn outstanding(
     if folded.tail == FailedDecisionThenState {
         return Ok(decision_cleanup.either(partial_cleanup));
     }
+    if facts.model_failed {
+        let pending_usage = if facts.usage_closed {
+            RoomV8::default()
+        } else {
+            ordinary(SourceJournalEntry::AttemptUsage {
+                turn: u32::MAX,
+                attempt: u32::MAX,
+                reported: Some(super::super::SourceReportedUsage {
+                    total: Some(u64::MAX),
+                    input: Some(u64::MAX),
+                    output: Some(u64::MAX),
+                    reasoning: Some(u64::MAX),
+                    cache_read: Some(u64::MAX),
+                    cache_write: Some(u64::MAX),
+                }),
+            })?
+        };
+        return pending_usage.add(state_cleanup);
+    }
     let consumed = ordinary(SourceJournalEntry::AuthorizationConsumed {
         turn: u32::MAX,
         attempt: u32::MAX,
@@ -241,12 +261,16 @@ pub(super) fn outstanding(
     if folded.tail == Admitted {
         return transfer.add(pending_replay);
     }
-    let after_completed = admitted.add(transfer)?.either(state_cleanup);
+    // Evaluator failure selects its sticky status before State cleanup. This
+    // durable selection row is part of the legal closure, even if another
+    // successful branch happens to reserve more bytes.
+    let wait_failure = row(json!({"kind":"owned_wait_failed","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"reservation":u32::MAX,"status":max.terminal,"consumed":u64::MAX}))?.add(state_cleanup)?;
+    let after_completed = admitted.add(transfer)?.either(wait_failure);
     if folded.tail == Completed {
         return after_completed.add(pending_replay);
     }
     if folded.tail == ResumeReserved {
-        return completed.add(after_completed)?.either(state_cleanup);
+        return completed.add(after_completed)?.either(wait_failure);
     }
     let resume = row(
         json!({"kind":"owned_wait_reserved","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"phase":PhaseV8::Resume,"replay_of":u32::MAX,"fuel":u64::MAX}),
@@ -290,12 +314,12 @@ pub(super) fn outstanding(
         .add(future)?;
     }
     if matches!(folded.tail, Settled | ModelDispatchInDoubt | Prepared) {
-        return future.add(pending_replay)?.either(state_cleanup);
+        return future.add(pending_replay)?.either(wait_failure);
     }
     let prepared = row(
         json!({"kind":"owned_wait_prepared","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"reservation":u32::MAX,"observation_digest":hash(),"checkpoint_digest":hash(),"checkpoint":"ff".repeat(65536),"consumed":u64::MAX}),
     )?;
-    future = prepared.add(future)?.either(state_cleanup);
+    future = prepared.add(future)?.either(wait_failure);
     if folded.tail == StartReserved {
         return Ok(future);
     }
@@ -351,4 +375,14 @@ pub(super) fn outstanding(
         .and_then(|created| created.add(future));
     }
     Err(SourceJournalError::Order)
+}
+
+#[cfg(test)]
+impl RoomV8 {
+    pub(super) fn bytes_for_inert_test(self) -> usize {
+        self.bytes
+    }
+    pub(super) fn rows_for_inert_test(self) -> usize {
+        self.rows
+    }
 }

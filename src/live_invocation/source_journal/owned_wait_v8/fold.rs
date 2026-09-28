@@ -213,6 +213,7 @@ impl FoldV8 {
         }
         capacity::ClosureFactsV8 {
             intent,
+            model_failed: self.model_failed,
             response_closed,
             usage_closed,
             pending_historical: self.wait.as_ref().is_some_and(|w| {

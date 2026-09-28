@@ -951,3 +951,260 @@ fn sealed_observation_binds_exact_scope_and_preserves_observed_value_across_retr
     };
     assert!(fold(&c, &changed).is_err());
 }
+
+#[test]
+fn inert_candidate_requires_pending_before_bytes_and_exact_predecessor_ack() {
+    let c = context();
+    let rows = fixtures(&c);
+    let key = SourceCheckpointKey::new([73; 32]);
+    let mut inventory = candidate::InventoryV8::synthetic_fresh(&c, &key).unwrap();
+    let mut document = Vec::new();
+    for (seq, row) in rows.into_iter().enumerate() {
+        let pending = inventory
+            .synthetic_prepare(row)
+            .unwrap_or_else(|e| panic!("candidate {seq}: {:?}", e.error))
+            .into_pending();
+        document.extend_from_slice(pending.bytes());
+        let ack = pending.synthetic_ack_for_inert_test();
+        inventory = pending
+            .acknowledge(ack)
+            .unwrap_or_else(|e| panic!("ack: {:?}", e.error));
+        assert_eq!(inventory.sequence(), seq + 1);
+        assert_eq!(inventory.acknowledged_bytes(), document.len());
+    }
+    let recovered =
+        candidate::InventoryV8::synthetic_recover(&c, &key, &document, fixtures(&c)).unwrap();
+    assert_eq!(recovered.sequence(), inventory.sequence());
+    assert_eq!(
+        recovered.acknowledged_bytes(),
+        inventory.acknowledged_bytes()
+    );
+    assert!(candidate::InventoryV8::synthetic_recover(
+        &c,
+        &SourceCheckpointKey::new([74; 32]),
+        &document,
+        fixtures(&c)
+    )
+    .is_err());
+    let first = clone_row(&fixtures(&c)[0]);
+    let pending = candidate::InventoryV8::synthetic_fresh(&c, &key)
+        .unwrap()
+        .synthetic_prepare(first)
+        .unwrap_or_else(|e| panic!("{:?}", e.error))
+        .into_pending();
+    let mut ack = pending.synthetic_ack_for_inert_test();
+    ack.alter_predecessor_for_inert_test();
+    assert!(matches!(
+        pending.acknowledge(ack),
+        Err(candidate::AckRejectionV8 {
+            error: SourceJournalError::Binding,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn inert_candidate_rejects_early_stop_and_preserves_prior_inventory_without_io() {
+    let c = context();
+    let key = SourceCheckpointKey::new([73; 32]);
+    let mut inventory = candidate::InventoryV8::synthetic_fresh(&c, &key).unwrap();
+    for row in fixtures(&c).into_iter().take(3) {
+        let pending = inventory
+            .synthetic_prepare(row)
+            .unwrap_or_else(|e| panic!("{:?}", e.error))
+            .into_pending();
+        let ack = pending.synthetic_ack_for_inert_test();
+        inventory = pending
+            .acknowledge(ack)
+            .unwrap_or_else(|e| panic!("{:?}", e.error));
+    }
+    let before = inventory.acknowledged_bytes();
+    let rejected = inventory
+        .synthetic_prepare(ordinary(SourceJournalEntry::Stop {
+            turn: Some(0),
+            attempt: None,
+            status: super::super::super::SourceStopStatus::Cancelled,
+            reason: super::super::super::SourceStopReason::Cancelled,
+        }))
+        .err()
+        .expect("producer cannot emit early Stop");
+    assert_eq!(rejected.error, SourceJournalError::Order);
+    assert_eq!(rejected.inventory.sequence(), 3);
+    assert_eq!(rejected.inventory.acknowledged_bytes(), before);
+    assert!(matches!(
+        rejected.row,
+        EntryV8::Ordinary(SourceJournalEntry::Stop { .. })
+    ));
+}
+
+#[test]
+fn closure_room_removes_checkpoint_raw_response_usage_and_current_replay_only() {
+    let c = context();
+    let rows = fixtures(&c);
+    let room = |count| capacity::outstanding(&c, &fold(&c, &rows[..count]).unwrap()).unwrap();
+    // Compute boundary room privately; exact and +1 include the full JSONL row.
+    let room_before = room(9);
+    let room_after_raw = room(10);
+    let exact = super::super::super::MAX_SOURCE_DOCUMENT_BYTES - room_before.bytes_for_inert_test();
+    assert!(room_before.check(exact, 9).is_ok());
+    assert_eq!(
+        room_before.check(exact + 1, 9),
+        Err(SourceJournalError::Capacity)
+    );
+    let exact_rows = super::super::super::MAX_SOURCE_ENTRIES - room_before.rows_for_inert_test();
+    assert!(room_before.check(0, exact_rows).is_ok());
+    assert_eq!(
+        room_before.check(0, exact_rows + 1),
+        Err(SourceJournalError::Capacity)
+    );
+    assert!(room_after_raw.bytes_for_inert_test() < room_before.bytes_for_inert_test());
+    assert!(room(11).bytes_for_inert_test() < room_after_raw.bytes_for_inert_test());
+    assert!(room(8).bytes_for_inert_test() + 131072 <= room(7).bytes_for_inert_test());
+    let mut replayed = copy(&rows[..8]);
+    replayed.push(replay_wait(&replayed, PhaseV8::Start, 6));
+    let pending = capacity::outstanding(&c, &fold(&c, &replayed).unwrap()).unwrap();
+    replayed.push(owned(json!({"kind":"owned_wait_replay_checked","turn":0,"attempt":0,"wait":match &rows[5].entry {EntryV8::Owned(Body::OwnedWaitCreated{wait,..})=>wait,_=>panic!()},"reservation":8,"original":7,"result_digest":match &rows[7].entry {EntryV8::Owned(Body::OwnedWaitPrepared{checkpoint_digest,..})=>checkpoint_digest,_=>panic!()},"consumed":1})));
+    let closed = capacity::outstanding(&c, &fold(&c, &replayed).unwrap()).unwrap();
+    assert!(pending.bytes_for_inert_test() > closed.bytes_for_inert_test());
+    assert_eq!(closed, room(8));
+}
+
+#[test]
+fn near_capacity_authenticated_replays_leave_room_for_the_already_reserved_closure() {
+    // Only this inert fixture has a larger synthetic total-work limit. Its
+    // actual checked B remains unchanged; no production profile is patched.
+    let mut c = context();
+    match &mut c.ordinary.profile {
+        super::super::super::SourceProfile::ExecutionV2 {
+            max_total_steps, ..
+        } => {
+            *max_total_steps = 1_000_000_000;
+        }
+        _ => panic!("inert execution fixture"),
+    }
+    let mut rows = fixtures(&c).into_iter().take(8).collect::<Vec<_>>();
+    let key = SourceCheckpointKey::new([73; 32]);
+    let Body::OwnedRunCreated {
+        scope,
+        execution,
+        binding,
+        store_identity,
+        limits,
+        ..
+    } = &c.created
+    else {
+        panic!()
+    };
+    let invocation = wire::recipe_digest(
+        wire::RecipeV8::Invocation,
+        &json!({"execution":execution,"owned_wait_binding":binding}),
+    )
+    .unwrap();
+    let generation = wire::recipe_digest(wire::RecipeV8::Generation, &json!({"scope":scope,"execution":execution,"binding":binding,"store_identity":store_identity,"limits":limits})).unwrap();
+    let mut document = Vec::new();
+    let mut mac = "0".repeat(64);
+    let encode = |row: &ValidatedEntryV8, seq: usize, mac: &str| {
+        wire::encode(
+            &row.entry,
+            &ExpectedRowV8 {
+                invocation: &invocation,
+                generation: &generation,
+                seq: u32::try_from(seq).unwrap(),
+                prev_mac: mac,
+                ordinary: &c.ordinary,
+            },
+            &key,
+        )
+        .unwrap()
+    };
+    let append = |bytes: Vec<u8>, document: &mut Vec<u8>, mac: &mut String| {
+        *mac = wire::parse(&bytes[..bytes.len() - 1]).unwrap()["authentication"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        document.extend_from_slice(&bytes);
+    };
+    for (seq, row) in rows.iter().enumerate() {
+        append(encode(row, seq, &mac), &mut document, &mut mac);
+    }
+    let closed_room = capacity::outstanding(&c, &fold(&c, &rows).unwrap()).unwrap();
+    let wait = match &rows[5].entry {
+        EntryV8::Owned(Body::OwnedWaitCreated { wait, .. }) => wait.clone(),
+        _ => panic!(),
+    };
+    let result = match &rows[7].entry {
+        EntryV8::Owned(Body::OwnedWaitPrepared {
+            checkpoint_digest, ..
+        }) => checkpoint_digest.clone(),
+        _ => panic!(),
+    };
+    let mut cycles = 0;
+    loop {
+        let reservation = replay_wait(&rows, PhaseV8::Start, 6);
+        let checked = owned(
+            json!({"kind":"owned_wait_replay_checked","turn":0,"attempt":0,"wait":wait,"reservation":rows.len(),"original":7,"result_digest":result,"consumed":1}),
+        );
+        let reserved_bytes = encode(&reservation, rows.len(), &mac);
+        let next_mac = wire::parse(&reserved_bytes[..reserved_bytes.len() - 1]).unwrap()
+            ["authentication"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let checked_bytes = encode(&checked, rows.len() + 1, &next_mac);
+        let future_len = document.len() + reserved_bytes.len() + checked_bytes.len();
+        if closed_room.check(future_len, rows.len() + 2).is_err() {
+            break;
+        }
+        append(reserved_bytes, &mut document, &mut mac);
+        append(checked_bytes, &mut document, &mut mac);
+        rows.push(reservation);
+        rows.push(checked);
+        cycles += 1;
+    }
+    assert!(cycles > 1000, "nontrivial repeated-crash inventory");
+    assert!(
+        document.len() > 15 * 1024 * 1024,
+        "near whole-document byte cap"
+    );
+    let folded = fold(&c, &rows).unwrap();
+    assert_eq!(folded.reserved_total, 20 + cycles * 10);
+    assert_eq!(folded.consumed_recorded, 2 + cycles);
+    let offset = rows.len() - 8;
+    // Recover authenticated bytes once, then exercise consuming Candidate/ACK.
+    // The cfg(test) carrier path is explicitly not physical recovery evidence.
+    let mut inventory =
+        candidate::InventoryV8::synthetic_recover(&c, &key, &document, rows).unwrap();
+    let mut future = fixtures(&c).into_iter().skip(8).collect::<Vec<_>>();
+    let response = vec![255; 4096];
+    future[1] = ordinary(SourceJournalEntry::AttemptSettled {
+        turn: 0,
+        attempt: 0,
+        response_digest: super::super::super::source_response_digest(&response),
+        response,
+    });
+    for row in &mut future {
+        if let EntryV8::Owned(body) = &row.entry {
+            let mut value = serde_json::to_value(body).unwrap();
+            for key in ["reservation", "stage_reservation", "transfer", "staged"] {
+                if let Some(original) = value[key].as_u64() {
+                    value[key] = json!(original + offset as u64);
+                }
+            }
+            row.entry = EntryV8::Owned(serde_json::from_value(value).unwrap());
+        }
+    }
+    for row in future {
+        let pending = inventory
+            .synthetic_prepare(row)
+            .unwrap_or_else(|e| panic!("reserved closure: {:?}", e.error))
+            .into_pending();
+        document.extend_from_slice(pending.bytes());
+        let ack = pending.synthetic_ack_for_inert_test();
+        inventory = pending
+            .acknowledge(ack)
+            .unwrap_or_else(|e| panic!("ACK: {:?}", e.error));
+    }
+    assert_eq!(inventory.sequence(), 20 + offset);
+    assert_eq!(inventory.acknowledged_bytes(), document.len());
+    assert!(document.len() <= super::super::super::MAX_SOURCE_DOCUMENT_BYTES);
+}

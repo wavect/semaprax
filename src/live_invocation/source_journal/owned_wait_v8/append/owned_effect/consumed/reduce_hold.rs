@@ -1,6 +1,9 @@
 //! Exclusive future Reduce funding acquired only from the live Consumed owner.
 //! No fuel charge, Intent, host, matching-Reduce ACK debit or recovery producer.
 use super::*;
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::{
+    advance_verified_authorization_v8, LiveEffectAuthorizationFailureV8, LivePreparedOwnedEffectV8,
+};
 
 /// The actual owner is retained first; credit never exists as a detached token.
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct HeldOwnedAuthorizationConsumedV8<
@@ -88,7 +91,20 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
         result.inspect_err(|_| self.journal.poisoned.set(true))
     }
 }
-impl HeldOwnedAuthorizationConsumedV8<'_> {
+impl<'j> HeldOwnedAuthorizationConsumedV8<'j> {
+    /// Move the actual owner and SAME hold once through the closed core helper.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_authorization(
+        self,
+    ) -> Result<LivePreparedOwnedEffectV8<'j>, LiveEffectAuthorizationFailureV8<'j>> {
+        let Self { owner, hold } = self;
+        let VerifiedOwnedAuthorizationConsumedV8 {
+            obligation,
+            session,
+            witness,
+        } = owner;
+        advance_verified_authorization_v8(obligation, session, witness, hold)
+    }
+
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {

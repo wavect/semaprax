@@ -19,7 +19,7 @@ pub(crate) use observe_plan::{compile_owned_observe_v2, CheckedOwnedObserveV2};
 pub(crate) use plan::{compile_owned_frame_helper_v2, CheckedOwnedFrameHelperV2};
 pub(crate) use reduce_plan::{compile_owned_reduce_v2, CheckedOwnedReduceV2};
 pub(crate) use reduce_wire::{
-    validate_owned_reduce_cleanup_v8, validate_owned_reduce_step_v8,
+    owned_reduce_target_bytes_v8, validate_owned_reduce_cleanup_v8, validate_owned_reduce_step_v8,
     validate_owned_reduce_target_v8, CheckedOwnedReduceCleanupV8,
 };
 

@@ -23,12 +23,26 @@ fn owned_observer_terminal_expected_normal_poison_refusal_does_not_retire_live_s
         let j = SourceOwnedWaitJournalV8::open(Arc::new(c), k, l).unwrap();
         let cancel = AgentCancellation::new();
         let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let old_generic_session = j.begin_session().unwrap();
         test_observer_failed_receipt(&j, &cancel, &policy, &Clock, |owner, weak| {
             owner.validate_live().unwrap();
             assert!(matches!(j.hold(), Err(SourceJournalError::Poisoned)));
             assert!(matches!(
                 j.begin_session(),
                 Err(SourceJournalError::Poisoned)
+            ));
+            let ignored = EntryV8::Ordinary(SourceJournalEntry::Stop {
+                turn: None,
+                attempt: None,
+                status: crate::live_invocation::source_journal::SourceStopStatus::Rejected,
+                reason: crate::live_invocation::source_journal::SourceStopReason::StageRefused,
+            });
+            assert!(matches!(
+                old_generic_session.append(ignored),
+                Err(AppendFailureV8::PhysicalBeforeCandidate {
+                    error: SourceJournalError::Poisoned,
+                    ..
+                })
             ));
             owner.validate_live().unwrap();
             assert!(j.poisoned.get());

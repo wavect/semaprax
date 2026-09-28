@@ -415,14 +415,16 @@ pub(super) fn model_live_actor_v8<'j>(
         ));
     }
     let reservation = session.sequence() as u32;
-    let session = match session.append(EntryV8::Owned(model::OwnedBodyV8::OwnedWaitReserved {
-        turn: 0,
-        attempt: 0,
-        wait: wait.clone(),
-        phase: model::PhaseV8::Resume,
-        replay_of: None,
-        fuel: fuel as u64,
-    })) {
+    let session = match session.append(EntryV8::Owned(
+        journal_model::OwnedBodyV8::OwnedWaitReserved {
+            turn: 0,
+            attempt: 0,
+            wait: wait.clone(),
+            phase: journal_model::PhaseV8::Resume,
+            replay_of: None,
+            fuel: fuel as u64,
+        },
+    )) {
         Ok(session) => session,
         Err(_) => {
             return Err(fail!(
@@ -464,16 +466,18 @@ pub(super) fn model_live_actor_v8<'j>(
         ));
     }
     let completed = session.sequence() as u32;
-    let session = match session.append(EntryV8::Owned(model::OwnedBodyV8::OwnedWaitCompleted {
-        turn: 0,
-        attempt: 0,
-        wait,
-        reservation,
-        proposal: proposal.value().clone(),
-        proposal_digest: proposal.ordinary_digest().into(),
-        result_digest,
-        consumed: owner.consumed(),
-    })) {
+    let session = match session.append(EntryV8::Owned(
+        journal_model::OwnedBodyV8::OwnedWaitCompleted {
+            turn: 0,
+            attempt: 0,
+            wait,
+            reservation,
+            proposal: proposal.value().clone(),
+            proposal_digest: proposal.ordinary_digest().into(),
+            result_digest,
+            consumed: owner.consumed(),
+        },
+    )) {
         Ok(session) => session,
         Err(_) => {
             return Err(fail!(

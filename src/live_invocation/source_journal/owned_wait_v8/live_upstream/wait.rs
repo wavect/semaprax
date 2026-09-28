@@ -79,17 +79,19 @@ pub(super) fn start_live_actor_v8<'j>(
         b"semaprax.source-owned-frame-copy-args.v2\0",
         &wire::canonical(&copy_arguments),
     );
-    let session = match session.append(EntryV8::Owned(model::OwnedBodyV8::OwnedWaitCreated {
-        turn: 0,
-        attempt: 0,
-        wait: wait.clone(),
-        plan_digest: binding.binding().into(),
-        cleanup_plan_digest: binding.cleanup_digest().into(),
-        signature: binding.signature().clone(),
-        argument_digest,
-        copy_arguments,
-        copy_arguments_digest,
-    })) {
+    let session = match session.append(EntryV8::Owned(
+        journal_model::OwnedBodyV8::OwnedWaitCreated {
+            turn: 0,
+            attempt: 0,
+            wait: wait.clone(),
+            plan_digest: binding.binding().into(),
+            cleanup_plan_digest: binding.cleanup_digest().into(),
+            signature: binding.signature().clone(),
+            argument_digest,
+            copy_arguments,
+            copy_arguments_digest,
+        },
+    )) {
         Ok(session) => session,
         Err(_) => {
             return Err(fail!(
@@ -115,14 +117,16 @@ pub(super) fn start_live_actor_v8<'j>(
         ));
     }
     let reservation = session.sequence() as u32;
-    let session = match session.append(EntryV8::Owned(model::OwnedBodyV8::OwnedWaitReserved {
-        turn: 0,
-        attempt: 0,
-        wait: wait.clone(),
-        phase: model::PhaseV8::Start,
-        replay_of: None,
-        fuel: fuel as u64,
-    })) {
+    let session = match session.append(EntryV8::Owned(
+        journal_model::OwnedBodyV8::OwnedWaitReserved {
+            turn: 0,
+            attempt: 0,
+            wait: wait.clone(),
+            phase: journal_model::PhaseV8::Start,
+            replay_of: None,
+            fuel: fuel as u64,
+        },
+    )) {
         Ok(session) => session,
         Err(_) => {
             return Err(fail!(
@@ -166,16 +170,18 @@ pub(super) fn start_live_actor_v8<'j>(
         }
     };
     let prepared = session.sequence() as u32;
-    let session = match session.append(EntryV8::Owned(model::OwnedBodyV8::OwnedWaitPrepared {
-        turn: 0,
-        attempt: 0,
-        wait: wait.clone(),
-        reservation,
-        observation_digest: observation.request_digest().into(),
-        checkpoint_digest,
-        checkpoint: crate::live_invocation::identity::hex(&checkpoint),
-        consumed: owner.consumed(),
-    })) {
+    let session = match session.append(EntryV8::Owned(
+        journal_model::OwnedBodyV8::OwnedWaitPrepared {
+            turn: 0,
+            attempt: 0,
+            wait: wait.clone(),
+            reservation,
+            observation_digest: observation.request_digest().into(),
+            checkpoint_digest,
+            checkpoint: crate::live_invocation::identity::hex(&checkpoint),
+            consumed: owner.consumed(),
+        },
+    )) {
         Ok(session) => session,
         Err(_) => {
             return Err(fail!(

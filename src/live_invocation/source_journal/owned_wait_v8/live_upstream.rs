@@ -1,6 +1,7 @@
 //! Private fresh live actor. Actual roots remain attached to the held container;
 //! authenticated rows alone never mint an evaluator entry or live lineage.
 use super::append::{AppendSessionV8, HeldOwnedWaitStoreV8, SourceOwnedWaitJournalV8};
+use super::model as journal_model;
 use super::*;
 use crate::interpreter::resumable::owned_frame::{
     registered_stage::live_run::{
@@ -210,7 +211,7 @@ pub(super) fn initialize_live_actor_v8<'j>(
         .as_ref()
         .expect("sealed initialized mode")
         .clone();
-    let row = model::OwnedBodyV8::OwnedInitializationCommitted {
+    let row = journal_model::OwnedBodyV8::OwnedInitializationCommitted {
         reservation,
         task_digest: wire::record_argument_digest(&task),
         task,
@@ -229,12 +230,14 @@ pub(super) fn initialize_live_actor_v8<'j>(
         }
     };
     let state_commit = session.sequence() as u32; // already bounded by candidate inventory
-    session = match session.append(EntryV8::Owned(model::OwnedBodyV8::OwnedStateCommitted {
-        turn: 0,
-        state,
-        argument_digest: state_digest,
-        cleanup_plan_digest: context.fold().cleanup_plan_digest.clone(),
-    })) {
+    session = match session.append(EntryV8::Owned(
+        journal_model::OwnedBodyV8::OwnedStateCommitted {
+            turn: 0,
+            state,
+            argument_digest: state_digest,
+            cleanup_plan_digest: context.fold().cleanup_plan_digest.clone(),
+        },
+    )) {
         Ok(session) => session,
         Err(_) => {
             return Ok(Err(LiveRunFailureV8 {

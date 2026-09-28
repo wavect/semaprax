@@ -26,7 +26,7 @@ use crate::resumable_effects::owned_frame::v2::{
 pub(crate) struct OwnedEffectInputsV8<'a> {
     pub(crate) runtime: &'a AgentRuntimeV2,
     pub(crate) execution: &'a CheckedTypedOwnedWaitExecutionV8,
-    pub(crate) proposal: &'a CheckedOwnedWaitProposalV8,
+    pub(crate) proposal: CheckedOwnedWaitProposalV8,
     pub(crate) store: HeldOwnedWaitStoreV8<'a>,
     pub(crate) policy: &'a CapabilityPolicy,
     pub(crate) cancellation: &'a AgentCancellation,
@@ -235,7 +235,7 @@ impl<'a> ExecutedOwnedAgentTurnV2<'a> {
             self.inputs.runtime,
             self.inputs.execution,
             &self.inputs.store.registration().expected_facts().scope,
-            self.inputs.proposal,
+            &self.inputs.proposal,
         ) {
             Ok(plan) => plan,
             Err(_) => return Err(self),
@@ -328,7 +328,7 @@ pub(super) fn reducer_guard(
         inputs.runtime,
         inputs.execution,
         &inputs.store.registration().expected_facts().scope,
-        inputs.proposal,
+        &inputs.proposal,
     ) {
         Ok(plan) => plan,
         Err(_) => return false,
@@ -362,7 +362,7 @@ fn checked_basis_facts(
         inputs.attempt,
         &state,
         &decision,
-        inputs.proposal,
+        &inputs.proposal,
     )
     .ok()?;
     if facts.execution != inputs.execution.ordinary().invocation()
@@ -403,7 +403,7 @@ pub(crate) fn prepare_owned_effect_v8<'a>(
         inputs.runtime,
         inputs.execution,
         &facts.scope,
-        inputs.proposal,
+        &inputs.proposal,
     ) {
         Ok(plan) => plan,
         Err(diagnostic) => {
@@ -436,7 +436,7 @@ pub(crate) fn prepare_owned_effect_v8<'a>(
     }
     let owner = match ready.hold_for_effect(
         inputs.execution.wait(),
-        inputs.proposal,
+        &inputs.proposal,
         &facts.scope,
         || true,
     ) {

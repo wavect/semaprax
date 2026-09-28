@@ -118,7 +118,7 @@ fn owned_frame_v8_effect_matching_acks_release_seal_then_mint_unique_outcome_and
         let inputs = OwnedEffectInputsV8 {
             runtime,
             execution,
-            proposal: &k,
+            proposal: k.clone(),
             store,
             policy: &policy,
             cancellation: &cancellation,
@@ -296,7 +296,7 @@ fn owned_frame_v8_effect_observer_failure_and_post_callback_authority_loss_never
             let inputs = OwnedEffectInputsV8 {
                 runtime,
                 execution,
-                proposal: &k,
+                proposal: k.clone(),
                 store,
                 policy: &policy,
                 cancellation: &cancellation,
@@ -393,7 +393,7 @@ fn owned_frame_v8_effect_cancel_and_host_panic_keep_charges_and_block_success_af
             let inputs = OwnedEffectInputsV8 {
                 runtime,
                 execution,
-                proposal: &k,
+                proposal: k.clone(),
                 store,
                 policy: &policy,
                 cancellation: &cancellation,
@@ -495,7 +495,7 @@ fn owned_frame_v8_effect_policy_refusal_and_lost_cleanup_guard_preserve_owners_w
         let inputs = OwnedEffectInputsV8 {
             runtime,
             execution,
-            proposal: &k,
+            proposal: k.clone(),
             store,
             policy: &denied,
             cancellation: &cancellation,
@@ -582,7 +582,7 @@ fn owned_frame_v8_effect_final_guard_cancellation_refuses_outcome_and_reducer_en
             let inputs = OwnedEffectInputsV8 {
                 runtime,
                 execution,
-                proposal: &k,
+                proposal: k.clone(),
                 store,
                 policy: &policy,
                 cancellation: &cancellation,

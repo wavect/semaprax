@@ -427,6 +427,24 @@ fn validate_inner(
     entries: &[SourceJournalEntry],
     wait_fuel: u64,
 ) -> Result<ExecutionFold, SourceJournalError> {
+    validate_inner_seeded(
+        binding,
+        entries,
+        wait_fuel,
+        if binding.migration().is_some() {
+            validate::InitialStage::ObserveOnly
+        } else {
+            validate::InitialStage::InitializeThenObserve
+        },
+    )
+}
+
+pub(super) fn validate_inner_seeded(
+    binding: &SourceInvocationBinding,
+    entries: &[SourceJournalEntry],
+    wait_fuel: u64,
+    initial_stage: validate::InitialStage,
+) -> Result<ExecutionFold, SourceJournalError> {
     let Some(stage_allowance) = binding.max_steps_per_stage() else {
         return Err(SourceJournalError::Binding);
     };
@@ -494,7 +512,7 @@ fn validate_inner(
                     .get(pass.next)
                     .filter(|_| pass.next < pass.limit)
                     .ok_or(SourceJournalError::Order)?;
-                let first_role = if binding.migration().is_some() {
+                let first_role = if matches!(initial_stage, validate::InitialStage::ObserveOnly) {
                     SourceStageRole::Observe
                 } else {
                     SourceStageRole::Initialize
@@ -546,7 +564,7 @@ fn validate_inner(
         match entry {
             SourceJournalEntry::RunOpened => {
                 required = Some(RequiredStage {
-                    role: if binding.migration().is_some() {
+                    role: if matches!(initial_stage, validate::InitialStage::ObserveOnly) {
                         SourceStageRole::Observe
                     } else {
                         SourceStageRole::Initialize
@@ -705,13 +723,13 @@ fn validate_inner(
         last_causal = Some(entry);
     }
     if !causal.is_empty()
-        && validate::validate_with_initial(
+        && validate::validate_causal_with_initial(
             binding,
             &causal,
             prefix.turns,
             prefix.stages,
             prefix.model_units,
-            binding.migration().is_some(),
+            initial_stage,
         )? != fold.model_units
     {
         return Err(SourceJournalError::Malformed);

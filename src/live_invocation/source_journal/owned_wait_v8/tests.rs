@@ -290,3 +290,66 @@ fn all_sixteen_closed_owned_bodies_roundtrip_and_refuse_each_missing_key() {
         );
     }
 }
+
+#[test]
+fn observe_first_seed_has_no_fabricated_initialize_and_preserves_legacy_default() {
+    use super::super::{execution, validate, SourceStageRole};
+    let binding = binding();
+    let observe = vec![
+        SourceJournalEntry::RunOpened,
+        SourceJournalEntry::StageReservation {
+            turn: 0,
+            attempt: None,
+            role: SourceStageRole::Observe,
+            fuel: 10,
+        },
+        SourceJournalEntry::TurnObserved {
+            turn: 0,
+            state: d(),
+            observation: d(),
+            feedback: d(),
+        },
+    ];
+    assert!(execution::validate(&binding, &observe).is_err());
+    let fold = execution::validate_inner_seeded(
+        &binding,
+        &observe,
+        20,
+        validate::InitialStage::ObserveOnly,
+    )
+    .unwrap();
+    assert_eq!(
+        (fold.stages, fold.stage_fuel, fold.attempts, fold.effects),
+        (1, 30, 0, 0)
+    );
+    let mut ordinary = observe;
+    ordinary.insert(
+        1,
+        SourceJournalEntry::StageReservation {
+            turn: 0,
+            attempt: None,
+            role: SourceStageRole::Initialize,
+            fuel: 10,
+        },
+    );
+    let old = execution::validate(&binding, &ordinary).unwrap();
+    let seeded = execution::validate_inner_seeded(
+        &binding,
+        &ordinary,
+        0,
+        validate::InitialStage::InitializeThenObserve,
+    )
+    .unwrap();
+    assert_eq!(
+        (old.stages, old.stage_fuel, old.model_units),
+        (seeded.stages, seeded.stage_fuel, seeded.model_units)
+    );
+    assert_eq!((old.stages, old.stage_fuel), (2, 20));
+    assert!(execution::validate_inner_seeded(
+        &binding,
+        &ordinary,
+        0,
+        validate::InitialStage::ObserveOnly
+    )
+    .is_err());
+}

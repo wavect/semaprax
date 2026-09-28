@@ -105,6 +105,12 @@ pub(super) fn validate(
     validate_with_initial(binding, entries, 0, 0, 0, false)
 }
 
+#[derive(Clone, Copy)]
+pub(super) enum InitialStage {
+    InitializeThenObserve,
+    ObserveOnly,
+}
+
 pub(super) fn validate_with_initial(
     binding: &SourceInvocationBinding,
     entries: &[SourceJournalEntry],
@@ -112,6 +118,28 @@ pub(super) fn validate_with_initial(
     initial_stages: u32,
     initial_model_units: i64,
     migrated: bool,
+) -> Result<i64, SourceJournalError> {
+    validate_causal_with_initial(
+        binding,
+        entries,
+        initial_turns,
+        initial_stages,
+        initial_model_units,
+        if migrated {
+            InitialStage::ObserveOnly
+        } else {
+            InitialStage::InitializeThenObserve
+        },
+    )
+}
+
+pub(super) fn validate_causal_with_initial(
+    binding: &SourceInvocationBinding,
+    entries: &[SourceJournalEntry],
+    initial_turns: u32,
+    initial_stages: u32,
+    initial_model_units: i64,
+    initial_stage: InitialStage,
 ) -> Result<i64, SourceJournalError> {
     if entries.len() > MAX_SOURCE_ENTRIES {
         return Err(SourceJournalError::Capacity);
@@ -151,7 +179,14 @@ pub(super) fn validate_with_initial(
                 // Migration starts at observe over its checked carried State.
                 // Ordinary invocation still reserves initialize exactly once.
                 stages = stages
-                    .checked_add(if !migrated && turn == 0 { 2 } else { 1 })
+                    .checked_add(
+                        if matches!(initial_stage, InitialStage::InitializeThenObserve) && turn == 0
+                        {
+                            2
+                        } else {
+                            1
+                        },
+                    )
                     .ok_or(SourceJournalError::Capacity)?;
                 Phase::NeedAttempt {
                     turn,

@@ -211,7 +211,7 @@ fn owned_continue_observe_post_callback_pin_loss_is_sticky_and_retains_backing_o
             .store
             .registration()
             .identity();
-        let journal = pinned_journal_entry(directory, identity);
+        let journal = pinned_journal_entry(directory, (identity.file_device, identity.file_inode));
         let displaced = directory.join("continue-displaced");
         let result = observe_continued_owned_state_v2(committed, &mut fuel, || {
             calls += 1;
@@ -265,18 +265,14 @@ fn owned_continue_observe_aliased_state_diagnostic_preserves_owner_without_evalu
 }
 
 #[cfg(unix)]
-fn pinned_journal_entry(
-    directory: &std::path::Path,
-    identity: crate::resumable_effects::owned_frame::OwnedFrameStoreIdentity,
-) -> std::path::PathBuf {
+fn pinned_journal_entry(directory: &std::path::Path, identity: (u64, u64)) -> std::path::PathBuf {
     use std::os::unix::fs::MetadataExt;
     let matches: Vec<_> = std::fs::read_dir(directory)
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .filter(|path| {
             let metadata = std::fs::symlink_metadata(path).unwrap();
-            metadata.is_file()
-                && (metadata.dev(), metadata.ino()) == (identity.file_device, identity.file_inode)
+            metadata.is_file() && (metadata.dev(), metadata.ino()) == identity
         })
         .collect();
     assert_eq!(matches.len(), 1, "exact retained journal file pin");

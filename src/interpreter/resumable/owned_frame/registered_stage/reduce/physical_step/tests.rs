@@ -182,7 +182,8 @@ fn owned_reduce_normal_poisoned_or_foreign_drop_disarms_semantic_disposal() {
             if mode == 2 {
                 held.creator = held.creator.wrapping_add(1);
             } else if mode == 1 {
-                let journal = pinned_journal_entry(directory, identity);
+                let journal =
+                    pinned_journal_entry(directory, (identity.file_device, identity.file_inode));
                 let displaced = directory.join("physical-step-displaced");
                 std::fs::rename(&journal, &displaced).unwrap();
                 assert!(!held.validate_store());
@@ -206,18 +207,14 @@ fn owned_reduce_normal_poisoned_or_foreign_drop_disarms_semantic_disposal() {
 }
 
 #[cfg(unix)]
-fn pinned_journal_entry(
-    directory: &std::path::Path,
-    identity: crate::resumable_effects::owned_frame::OwnedFrameStoreIdentity,
-) -> std::path::PathBuf {
+fn pinned_journal_entry(directory: &std::path::Path, identity: (u64, u64)) -> std::path::PathBuf {
     use std::os::unix::fs::MetadataExt;
     let matches: Vec<_> = std::fs::read_dir(directory)
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .filter(|path| {
             let metadata = std::fs::symlink_metadata(path).unwrap();
-            metadata.is_file()
-                && (metadata.dev(), metadata.ino()) == (identity.file_device, identity.file_inode)
+            metadata.is_file() && (metadata.dev(), metadata.ino()) == identity
         })
         .collect();
     assert_eq!(matches.len(), 1, "exact retained journal file pin");

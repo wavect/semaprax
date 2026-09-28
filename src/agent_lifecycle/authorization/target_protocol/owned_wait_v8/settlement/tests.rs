@@ -32,6 +32,68 @@ impl TargetHostHandler for Host {
         Ok(())
     }
 }
+/// Bounded existing real target handler fixture for the combined journal gate.
+/// Its metadata grant is test-only; no source owner or successor ACK is minted.
+pub(crate) fn test_effect_exchange(
+    inputs: &OwnedEffectSettlementInputsV8<'_>,
+) -> (SourceJournalEntry, Vec<u8>, Option<Vec<u8>>) {
+    let request = checked_owned_effect_request_v8(inputs).unwrap();
+    let commitments = checked_owned_wait_ready_commitments_v8(
+        inputs.runtime,
+        inputs.execution,
+        inputs.scope,
+        inputs.turn,
+        inputs.attempt,
+        inputs.state,
+        inputs.decision,
+        inputs.proposal,
+    )
+    .unwrap();
+    let payload =
+        b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"value\",\"9\"]]}\n"
+            .to_vec();
+    assert_eq!(
+        request.plan.accepted_result(&payload),
+        Some(payload.clone())
+    );
+    let grant = TargetGrant {
+        grant_id: commitments.target_grant_digest().into(),
+        authorization_binding: commitments.authorization_binding().into(),
+        operation: request.operation().clone(),
+        argument_digest: commitments.argument_digest().into(),
+        turn: u64::from(inputs.turn),
+        granted_budget: commitments.budget(),
+    };
+    let mut host = Host {
+        calls: 0,
+        payload: payload.clone(),
+        malformed: false,
+        panic: false,
+    };
+    let run = crate::agent_lifecycle::authorization::target_protocol::dispatch(
+        grant,
+        request.plan.argument().clone(),
+        1,
+        request.limits(),
+        &mut TargetAccounting::default(),
+        &AgentCancellation::new(),
+        &mut host,
+    );
+    assert_eq!(host.calls, 1);
+    assert_eq!(run.evidence().settlement(), Settlement::Returned);
+    let ordinary = SourceJournalEntry::EffectObserved {
+        turn: inputs.turn,
+        attempt: inputs.attempt,
+        operation: request.operation().operation_id().into(),
+        observation_digest: source_effect_digest(&payload),
+        observation: payload,
+    };
+    (
+        ordinary,
+        run.evidence().canonical_wire(),
+        run.result().map(TypedCarrier::encode),
+    )
+}
 #[test]
 fn owned_wait_effect_settlement_replays_exact_exchange_and_refuses_result_or_phase_substitution() {
     CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, _lease, _key| {

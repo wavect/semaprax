@@ -1,6 +1,6 @@
 # Cross-language runnable adapter v3: official TypeScript lane
 
-Status: proposed contract; provisioning and authority probes only, not implemented or R03 acceptance.
+Status: implemented locally; independent implementation review pending, not full R03 acceptance.
 Audience: benchmark adapter implementers, independent reviewers and maintainers.
 
 ## 1. Scope and frozen behavior
@@ -221,8 +221,39 @@ unrelated file read/write, `/usr/bin/true` spawn, same-Node spawn and reachable
 loopback connection fail. The trusted host proves the listener reachable;
 ECONNREFUSED against an absent listener is not a network-denial observation.
 
-Owning future selector: Python unittest discovery for
-`test_runnable_adapter_v3.py`, with nonzero positive, mutant and hostile tests.
+Owning selector:
+
+```sh
+SPX_R03_V3_PROVENANCE=/absolute/authorized/provenance-directory \
+  python3 -m unittest discover -s benchmarks/cross-language-v1 \
+  -p test_runnable_adapter_v3.py -v
+```
+
+It requires the actual approved artifacts and the admitted host; missing tools
+fail rather than silently skip. The implemented route is `OfficialSession`
+with fixed corpus task IDs and the implementation-owned mutant inventory,
+never caller-provided source or caller-expected pins. Its CLI is:
+
+```sh
+python3 benchmarks/cross-language-v1/runnable_adapter_v3.py \
+  --provenance-directory /absolute/authorized/provenance-directory \
+  --output /absolute/authorized/existing-parent/new-evidence.json
+```
+
+The CLI scores all 13 positives. Tests additionally score all 13 fixed mutants.
+Bundle JSON has `result`, `source_manifest`, `artifacts`; artifacts carry exact
+bytes in Base64 with sizes/hashes. Command metadata references exact policy and
+stdout/stderr artifacts instead of duplicating their bytes. Canonical JSON
+uses sorted keys, indent 2, ASCII escaping and one LF. Exclusive delivery never
+overwrites evidence. The exact execution head, worktree dirty flag and v3
+implementation hashes are recorded separately from the immutable corpus origin.
+
+A local implementation-source run passed **45/45** tests: 13 positives, 13
+runtime mutants and 19 hostile/provenance/scoring controls. It retained 26
+scored rows and the complete 182-row denominator inventory. The earlier failed
+runs and their evidence remain in task-private scratch. This is a dirty-tree
+implementation witness; integration must obtain fresh evidence for the clean
+accepted execution commit. Independent implementation review remains required.
 The existing runnable-adapter and cross-language documentation harnesses must
 also remain green. No new top-level Rust harness is needed.
 
@@ -254,5 +285,6 @@ Retained scratch receipts under
 | `sysctl-probes.json` | `d22b6bf070164d0a09f474635f2872bbfa53dd4077551298eec73ac951c4e096` |
 
 These are design witnesses, not fresh canonical scoring, hosted verification,
-complete R03 evidence or a signed/public release. Independent design review
-must precede the implementation lease.
+complete R03 evidence or a signed/public release. Independent design/source-pin review approved this contract before the
+implementation lease. These initial probes still do not replace the owning
+implementation selector or integrated acceptance evidence.

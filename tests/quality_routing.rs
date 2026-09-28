@@ -49,6 +49,10 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
         "pub fn session_protocol_follows() {}\n",
     );
     repository.write(
+        "src/graph/agent_execution.rs",
+        "pub fn agent_execution() {}\n",
+    );
+    repository.write(
         "src/graph/owned_iterator.rs",
         "pub fn owned_iterator() {}\n",
     );
@@ -68,6 +72,9 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     ));
     assert!(plan.contains(
         "path\tsrc/graph/owned_iterator.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
+    ));
+    assert!(plan.contains(
+        "path\tsrc/graph/agent_execution.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
     ));
 }
 

@@ -89,6 +89,9 @@ impl LiveContinuedParkedStateV8<'_> {
         ),
         crate::resumable_effects::owned_frame::OwnedFrameError,
     > {
+        if !self.predecessor.matches_start_permit(permit) {
+            return Err(crate::resumable_effects::owned_frame::OwnedFrameError::Binding);
+        }
         permit
             .validate_guard()
             .map_err(|_| crate::resumable_effects::owned_frame::OwnedFrameError::Binding)?;
@@ -102,6 +105,9 @@ impl LiveContinuedParkedStateV8<'_> {
                 expected,
                 &self.parked,
             )?;
+        if !self.predecessor.matches_start_permit(permit) {
+            return Err(crate::resumable_effects::owned_frame::OwnedFrameError::Binding);
+        }
         permit
             .validate_guard()
             .map_err(|_| crate::resumable_effects::owned_frame::OwnedFrameError::Binding)?;

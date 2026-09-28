@@ -69,6 +69,12 @@ pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn enter_co
     })
 }
 impl PreparedHeldContinuedWaitV2<'_> {
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn matches_start_permit(
+        &self,
+        permit: &LiveWaitStartPermitV8<'_>,
+    ) -> bool {
+        permit.matches_held_store(&self.context.store)
+    }
     pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn validate_retained_context(
         &self,
     ) -> Result<(), SourceJournalError> {

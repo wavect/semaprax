@@ -320,9 +320,15 @@ The additive evidence schema is `semaprax.source-model-wait.evidence.v1`.
 Its digest domain is `semaprax.source-model-wait.evidence.v1\0`. Canonical payload
 bytes have no trailing LF; the joined evidence root hashes that exact payload
 under this domain, without an additional wrapper hash or payload.
-field order is `{"schema":SC,"terminal_evidence_digest":E,
+Field order is `{"schema":SC,"terminal_evidence_digest":E,
+"ordinary_model_evidence_digest":M,
 "wrapper_binding":B,"invocation":I,"waits":V,"total_wait_fuel":F}`.
-E is the digest of the ordinary terminal evidence, not a new terminal authority.
+E equals the validated Source Live TerminalSnapshot evidence digest. M is the
+actual ordinary durable-model evidence root for the same run, including its
+model and typed-registry/effect provenance. The typed runtime owner constructs
+M after that ordinary root exists; callers cannot supply it. The journal owner
+validates E against its terminal snapshot and M's canonical digest format, but
+does not independently attest M's provenance. Neither digest is new authority.
 V is ordered by first start-reservation sequence, with rows
 `{"wait":Q,"turn":T,"attempt":N,"prepared":C,"completed":D,
 "reservations":R}`. C/D are checkpoint/proposal digests or null if absent.

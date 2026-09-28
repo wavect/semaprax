@@ -34,7 +34,7 @@ impl Workspace {
             "[\"src/app.spx\", \"src/tests.spx\"]"
         };
         std::fs::write(value.0.join("semaprax.toml"), format!(
-            "schema = \"semaprax.manifest.v1\"\n[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n[modules]\nentry = \"fixture.app\"\nsources = {sources}\ntests = [\"fixture.tests\"]\n[exports]\nweb = [\"fixture.public\"]\n")).unwrap();
+            "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"fixture.app\"\nsources = {sources}\ntests = [\"fixture.tests\"]\n\n[exports]\nweb = [\"fixture.public\"]\n")).unwrap();
         value
     }
     fn write(&self, path: &str, source: &str) {

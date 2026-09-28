@@ -3,24 +3,32 @@
 use super::*;
 use std::cell::{Cell, RefCell};
 
-pub(in crate::interpreter::resumable::owned_frame::registered_stage) struct ObservedFailedObserveCleanupV8
-{
-    pub(in crate::interpreter::resumable::owned_frame::registered_stage) settled:
-        OwnedObserveSettledV2,
+pub(crate) struct ObservedFailedObserveCleanupV8 {
+    pub(crate) settled: OwnedObserveSettledV2,
     outcomes: Vec<bool>,
 }
 impl ObservedFailedObserveCleanupV8 {
-    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn outcomes(
-        &self,
-    ) -> &[bool] {
+    pub(crate) fn outcomes(&self) -> &[bool] {
         &self.outcomes
+    }
+}
+impl FailedOwnedObserveV2 {
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn validate_cleanup_binding_v8(
+        &self,
+        permit: &crate::live_invocation::source_journal::LiveFailedObserveStateCleanupPermitV8<
+            '_,
+            '_,
+        >,
+        state: &serde_json::Value,
+        consumed: u64,
+    ) -> Result<(), crate::live_invocation::source_journal::SourceJournalError> {
+        permit.validate_actual_failed(&self.plan, state, &self.failure, consumed)
     }
 }
 /// A rejected primitive retains its actual, possibly partly settled owner.
 /// A capture error after full release retains the actual released result and
 /// can never be treated as an observer failure or retried cleanup.
-pub(in crate::interpreter::resumable::owned_frame::registered_stage) enum ActualFailedObserveCleanupRejectionV8
-{
+pub(crate) enum ActualFailedObserveCleanupRejectionV8 {
     Owner(OwnedObserveSettlementRejectionV2),
     Capture {
         _settled: OwnedObserveSettledV2,

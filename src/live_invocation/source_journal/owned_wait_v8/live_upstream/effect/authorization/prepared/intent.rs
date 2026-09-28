@@ -36,6 +36,21 @@ impl FixedOwnedEffectIntentAppendPermitV8<'_, '_> {
         }
         self.obligation.validate_live()
     }
+    /// Fixed append checks already-authenticated proof data while its marker and
+    /// lease borrow are held. This path performs no callback or physical read.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_selected_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        inventory: &crate::live_invocation::source_journal::owned_wait_v8::candidate::InventoryV8<
+            '_,
+        >,
+    ) -> Result<(), SourceJournalError> {
+        self.obligation.owner.hold.validate_intent_append_prefix(
+            journal,
+            inventory,
+            &self.obligation.selected,
+        )
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected_row(
         &self,
     ) -> &EntryV8 {

@@ -254,6 +254,188 @@ fn project(
 pub(crate) struct ReadyOwnedAuthorizeV2 {
     staged: StagedOwnedAuthorizeV2,
 }
+/// Private consuming bridge boundary. This wrapper keeps the actual Ready
+/// holder intact; inert metadata cannot construct it or extract its roots.
+pub(super) struct HeldOwnedEffectAuthorizationV8 {
+    ready: ReadyOwnedAuthorizeV2,
+    release_started: bool,
+}
+pub(super) struct OwnedEffectDecisionReleaseV8 {
+    pub(super) holder: HeldOwnedEffectAuthorizationV8,
+    pub(super) operations: Vec<FinalizeAction>,
+    pub(super) observations_succeeded: bool,
+}
+pub(super) struct OwnedEffectDecisionReleaseRejectionV8 {
+    pub(super) holder: HeldOwnedEffectAuthorizationV8,
+    pub(super) diagnostic: Diagnostic,
+}
+impl ReadyOwnedAuthorizeV2 {
+    /// No root is taken until source identity, State schema, Proposal bits and
+    /// both physical inventories agree with the actual sealed Agent binding.
+    pub(super) fn hold_for_effect(
+        self,
+        binding: &crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
+        proposal: &crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitProposalV8,
+        scope: &crate::resumable_effects::source_checkpoint::SourceCheckpointScope,
+        mut current: impl FnMut() -> bool,
+    ) -> Result<HeldOwnedEffectAuthorizationV8, Self> {
+        let staged = &self.staged;
+        let scope = serde_json::json!({"program_root":scope.program_root(),"invocation":scope.invocation_id(),"policy_epoch":scope.policy_epoch()});
+        let valid = current_in_creator(staged.state.creator, &mut current)
+            && staged.failure.is_none()
+            && staged.provisional
+            && !staged.settlement_started
+            && staged.state.plan.same_helper(binding.helper())
+            && staged.plan.function().id == binding.authorize().function().id
+            && proposal.matches(binding.binding(), &scope)
+            && staged
+                .state
+                .root
+                .as_ref()
+                .is_some_and(|r| root_valid(binding.helper(), r));
+        let copies_equal = || {
+            let ty = &binding
+                .helper()
+                .function()
+                .yields
+                .as_ref()
+                .expect("checked yields")
+                .response_type;
+            let declarations = &binding.helper().program().declarations;
+            let left = channel_v2::value_of_copy(declarations, ty, &staged.state.proposal)?;
+            let right = channel_v2::value_of_copy(declarations, ty, proposal.carrier())?;
+            Some(crate::interpreter::resumable::scalar_values_equal(
+                &left, &right,
+            ))
+        };
+        if !valid || copies_equal() != Some(true) || !effect_roots_valid(staged) {
+            return Err(self);
+        }
+        Ok(HeldOwnedEffectAuthorizationV8 {
+            ready: self,
+            release_started: false,
+        })
+    }
+}
+fn effect_roots_valid(staged: &StagedOwnedAuthorizeV2) -> bool {
+    let Some(Value::Variant(decision)) = staged.decision.as_ref() else {
+        return false;
+    };
+    let Some(state) = staged.state.root.as_ref() else {
+        return false;
+    };
+    let Some(fields) = staged
+        .plan
+        .helper()
+        .program()
+        .declarations
+        .case_fields(staged.plan.granted())
+    else {
+        return false;
+    };
+    decision.ty == staged.plan.function().return_type
+        && decision.variant == *staged.plan.decision()
+        && decision.case == *staged.plan.granted()
+        && fields.len() == 2
+        && decision.fields.len() == 2
+        && matches!(decision.fields.get(&fields[0].id), Some(Value::Bytes(_)))
+        && matches!(decision.fields.get(&fields[1].id), Some(Value::Int(_)))
+        && exclusive_decision(staged.decision.as_ref().unwrap())
+        && root_valid(&staged.state.plan, state)
+        && staged
+            .state
+            .allocations
+            .validate(&[state, staged.decision.as_ref().unwrap()])
+}
+impl HeldOwnedEffectAuthorizationV8 {
+    /// This private primitive is called only after the effect owner validates
+    /// its distinct settlement and cleanup-start ACKs. It mints no ACK.
+    pub(super) fn release_decision(
+        mut self,
+        mut current: impl FnMut() -> bool,
+        mut observe: impl FnMut(&FinalizeAction),
+    ) -> Result<OwnedEffectDecisionReleaseV8, OwnedEffectDecisionReleaseRejectionV8> {
+        if self.release_started
+            || !effect_roots_valid(&self.ready.staged)
+            || !current_in_creator(self.ready.staged.state.creator, &mut current)
+        {
+            return Err(OwnedEffectDecisionReleaseRejectionV8 {
+                holder: self,
+                diagnostic: rejected("effect Decision release authority/inventory differs"),
+            });
+        }
+        let creator = self.ready.staged.state.creator;
+        let actions: Vec<_> = self
+            .ready
+            .staged
+            .plan
+            .disposal()
+            .iter()
+            .filter(|a| {
+                a.active_case
+                    .as_ref()
+                    .is_some_and(|c| c.case == *self.ready.staged.plan.granted())
+            })
+            .cloned()
+            .collect();
+        let Value::Variant(value) = self.ready.staged.decision.as_ref().unwrap() else {
+            unreachable!()
+        };
+        let leaves: Vec<_> = value
+            .fields
+            .iter()
+            .filter(|(_, v)| matches!(v, Value::Bytes(_)))
+            .map(|(id, _)| id)
+            .collect();
+        if actions.len() != leaves.len()
+            || actions.iter().any(|a| {
+                a.source.projections.len() != 2
+                    || a.source.projections[0] != value.case
+                    || !leaves.contains(&&a.source.projections[1])
+            })
+        {
+            return Err(OwnedEffectDecisionReleaseRejectionV8 {
+                holder: self,
+                diagnostic: rejected("effect Decision compiler vector differs"),
+            });
+        }
+        self.release_started = true;
+        let mut observations_succeeded = true;
+        for action in &actions {
+            if !current_in_creator(creator, &mut current) {
+                return Err(OwnedEffectDecisionReleaseRejectionV8 {
+                    holder: self,
+                    diagnostic: rejected("effect cleanup authority changed"),
+                });
+            }
+            let Some(Value::Variant(value)) = self.ready.staged.decision.as_mut() else {
+                unreachable!()
+            };
+            let value = Arc::get_mut(value).expect("checked exclusive Decision");
+            drop(
+                value
+                    .fields
+                    .remove(&action.source.projections[1])
+                    .expect("checked actual Decision leaf"),
+            );
+            if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| observe(action))).is_err() {
+                observations_succeeded = false;
+            }
+            if !current_in_creator(creator, &mut current) {
+                return Err(OwnedEffectDecisionReleaseRejectionV8 {
+                    holder: self,
+                    diagnostic: rejected("effect cleanup authority changed"),
+                });
+            }
+        }
+        drop(self.ready.staged.decision.take());
+        Ok(OwnedEffectDecisionReleaseV8 {
+            holder: self,
+            operations: actions,
+            observations_succeeded,
+        })
+    }
+}
 pub(crate) struct OwnedAuthorizeSettlementRejectionV2 {
     pub(crate) staged: StagedOwnedAuthorizeV2,
     pub(crate) diagnostic: Diagnostic,
@@ -404,3 +586,7 @@ pub(crate) fn settle_owned_authorize_v2(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "authorize/effect_tests.rs"]
+mod effect_tests;

@@ -96,6 +96,15 @@ pub(super) fn checked_step(
     expected_digest: &str,
 ) -> Result<CheckedReduceStepV8, Error> {
     v2::validate_owned_reduce_step_v8(plan, step).map_err(|_| Error::Binding)?;
+    if !plan
+        .transfers()
+        .cases
+        .iter()
+        .any(|c| step["case"] == c.case.as_str())
+    {
+        return Err(Error::Binding);
+    }
+
     let digest = recipe_digest(
         ReduceRecipeV8::Step,
         &json!({"scope":scope,

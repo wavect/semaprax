@@ -130,6 +130,14 @@ fn owned_frame_v2_accepted_result_mints_after_dead_ids_and_refuses_before_alloca
     assert_eq!(bytes.allocation, 3);
     assert_eq!(bytes.bytes.as_ref(), &[0, 1, 0]);
     assert_eq!(Arc::strong_count(&bytes.bytes), 1);
+    assert!(
+        token.seed(&[&state, &outcome]).is_err(),
+        "a Bytes leaf alone is not a retained root"
+    );
+    let outcome = Value::Record(Arc::new(OwnedRecordValue {
+        record: hir::DeclarationId::new("test.outcome"),
+        fields: BTreeMap::from([(hir::DeclarationId::new("test.outcome.bytes"), outcome)]),
+    }));
     assert_eq!(token.seed(&[&state, &outcome]).unwrap(), 3);
     let before = token.next;
     let payload = vec![2; 1025];
@@ -153,6 +161,11 @@ fn owned_frame_v2_accepted_result_mints_after_dead_ids_and_refuses_before_alloca
     };
     assert_eq!(bytes.allocation, 4);
     assert!(bytes.bytes.is_empty());
+    let empty = Value::Record(Arc::new(OwnedRecordValue {
+        record: hir::DeclarationId::new("test.outcome"),
+        fields: BTreeMap::from([(hir::DeclarationId::new("test.outcome.bytes"), empty)]),
+    }));
+    assert_eq!(token.seed(&[&state, &empty]).unwrap(), 4);
     token.next = u32::MAX;
     assert_eq!(
         token

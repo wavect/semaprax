@@ -49,7 +49,7 @@ fn admitted_argument(plan: &CheckedOwnedFramePlan) -> OwnedFrameArgument {
         Err(e) => panic!("{:?}", e.diagnostic),
     }
 }
-fn weak(root: &Value) -> Vec<Weak<[u8]>> {
+fn weak_backing(root: &Value) -> Vec<Weak<[u8]>> {
     let Value::Record(record) = root else {
         panic!()
     };
@@ -120,7 +120,7 @@ fn clear_observer() {
 fn real_owner_survives_park_resume_staged_terminal_and_result_transfer() {
     let plan = checked_plan(SOURCE);
     let argument = admitted_argument(&plan);
-    let weak = weak(argument.root.as_ref().unwrap());
+    let weak = weak_backing(argument.root.as_ref().unwrap());
     let mut budget = OwnedFrameBudget::new(100).unwrap();
     let park = parked(start_owned_frame(&plan, argument, &mut budget));
     assert_eq!(park.request(), &ArgumentValue::Int(5));
@@ -168,7 +168,7 @@ fn all_failure_classes_keep_pending_root_until_explicit_ordered_settlement() {
         };
         let plan = checked_plan(&source);
         let argument = admitted_argument(&plan);
-        let weak = weak(argument.root.as_ref().unwrap());
+        let weak = weak_backing(argument.root.as_ref().unwrap());
         let mut budget = OwnedFrameBudget::new(if case == "fuel" { 1 } else { 100 }).unwrap();
         if case == "cancel" {
             budget.cancel();
@@ -212,7 +212,7 @@ fn all_failure_classes_keep_pending_root_until_explicit_ordered_settlement() {
 fn hostile_alias_refuses_before_first_leaf_and_retains_unsettled_root() {
     let plan = checked_plan(SOURCE);
     let argument = admitted_argument(&plan);
-    let weak = weak(argument.root.as_ref().unwrap());
+    let weak = weak_backing(argument.root.as_ref().unwrap());
     let Value::Record(record) = argument.root.as_ref().unwrap() else {
         panic!()
     };
@@ -241,7 +241,7 @@ fn hostile_alias_refuses_before_first_leaf_and_retains_unsettled_root() {
 fn drop_unwind_disposes_backing_without_issuing_semantic_receipt_and_result_drop_is_ordered() {
     let plan = checked_plan(SOURCE);
     let argument = admitted_argument(&plan);
-    let weak = weak(argument.root.as_ref().unwrap());
+    let weak = weak_backing(argument.root.as_ref().unwrap());
     let mut budget = OwnedFrameBudget::new(100).unwrap();
     let park = parked(start_owned_frame(&plan, argument, &mut budget));
     let observed = observe_order(&weak);
@@ -250,7 +250,7 @@ fn drop_unwind_disposes_backing_without_issuing_semantic_receipt_and_result_drop
     assert!(observed.borrow().is_empty());
     assert!(weak.iter().all(|w| w.upgrade().is_none()));
     let argument = admitted_argument(&plan);
-    let weak = weak(argument.root.as_ref().unwrap());
+    let weak = weak_backing(argument.root.as_ref().unwrap());
     let terminal = staged(resume_owned_frame(
         parked(start_owned_frame(&plan, argument, &mut budget)),
         ArgumentValue::Int(1),
@@ -278,7 +278,7 @@ fn invalid_carrier_returns_original_inert_input_and_wrong_plan_never_evaluates()
     assert_eq!(rejected.input, original);
     let other = checked_plan(&SOURCE.replace("state.budget + 1", "state.budget + 2"));
     let argument = admitted_argument(&plan);
-    let weak = weak(argument.root.as_ref().unwrap());
+    let weak = weak_backing(argument.root.as_ref().unwrap());
     let mut budget = OwnedFrameBudget::new(100).unwrap();
     let terminal = staged(start_owned_frame(&other, argument, &mut budget));
     assert_eq!(
@@ -301,7 +301,7 @@ fn borrowed_copy_contracts_and_unwind_keep_owner_lifetime_distinct_from_settleme
     );
     let plan = checked_plan(&source);
     let argument = admitted_argument(&plan);
-    let weak = weak(argument.root.as_ref().unwrap());
+    let weak = weak_backing(argument.root.as_ref().unwrap());
     let mut budget = OwnedFrameBudget::new(100).unwrap();
     let terminal = staged(resume_owned_frame(
         parked(start_owned_frame(&plan, argument, &mut budget)),
@@ -313,7 +313,7 @@ fn borrowed_copy_contracts_and_unwind_keep_owner_lifetime_distinct_from_settleme
     assert!(weak.iter().all(|w| w.upgrade().is_none()));
     for phase in ["park", "terminal"] {
         let argument = admitted_argument(&plan);
-        let weak = weak(argument.root.as_ref().unwrap());
+        let weak = weak_backing(argument.root.as_ref().unwrap());
         let park = parked(start_owned_frame(&plan, argument, &mut budget));
         let observed = observe_order(&weak);
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -344,7 +344,7 @@ fn resume_fuel_and_cancel_keep_root_and_failure_selection() {
     for cancel in [false, true] {
         let plan = checked_plan(SOURCE);
         let argument = admitted_argument(&plan);
-        let weak = weak(argument.root.as_ref().unwrap());
+        let weak = weak_backing(argument.root.as_ref().unwrap());
         let mut budget = OwnedFrameBudget::new(100).unwrap();
         let park = parked(start_owned_frame(&plan, argument, &mut budget));
         if cancel {
@@ -520,7 +520,7 @@ fn inclusive_byte_capacity_and_precommit_disposal_use_real_backing() {
         Ok(a) => a,
         Err(e) => panic!("{:?}", e.diagnostic),
     };
-    let weak = weak(argument.root.as_ref().unwrap());
+    let weak = weak_backing(argument.root.as_ref().unwrap());
     let observed = observe_order(&weak);
     drop(argument); // precommit argument disposal is compiler ordered
     clear_observer();
@@ -543,7 +543,7 @@ fn rejected_result_handoff_preserves_original_owner_and_disposal_plan() {
     let plan = checked_plan(SOURCE);
     let changed = checked_plan(&SOURCE.replace("second: Bytes", "second: i64"));
     let argument = admitted_argument(&plan);
-    let weak = weak(argument.root.as_ref().unwrap());
+    let weak = weak_backing(argument.root.as_ref().unwrap());
     let mut budget = OwnedFrameBudget::new(100).unwrap();
     let result = completed(staged(resume_owned_frame(
         parked(start_owned_frame(&plan, argument, &mut budget)),

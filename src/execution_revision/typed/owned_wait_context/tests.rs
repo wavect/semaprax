@@ -512,6 +512,20 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
             crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
         ) -> T,
     ) -> T {
+        Self::test_with_actual_runtime_store(true, |context, lease, key, _directory| {
+            callback(context, lease, key)
+        })
+    }
+    /// The directory remains scoped to this genuine test fixture callback.
+    pub(crate) fn test_with_actual_runtime_store<T>(
+        retention_ack: bool,
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
         let f = fixture();
         with_authenticated_project(&f.0.join("semaprax.toml"), |snapshot| {
             let project = snapshot.retain_revision();
@@ -558,16 +572,18 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
                 .unwrap()
                 .with_runtime(baseline, &lease)
                 .unwrap();
-            lease
-                .authorize_fresh_start(
-                    registration
-                        .acknowledge_retained_by_trusted_host(true)
-                        .unwrap(),
-                )
-                .unwrap();
+            if retention_ack {
+                lease
+                    .authorize_fresh_start(
+                        registration
+                            .acknowledge_retained_by_trusted_host(true)
+                            .unwrap(),
+                    )
+                    .unwrap();
+            }
             let key =
                 crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]);
-            Ok(callback(checked, lease, key))
+            Ok(callback(checked, lease, key, &f.0.join("ready-journal")))
         })
         .unwrap()
     }

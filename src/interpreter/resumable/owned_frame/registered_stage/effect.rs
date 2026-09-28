@@ -52,8 +52,8 @@ struct AuthorizationBasisV8 {
     argument: String,
 }
 /// One-use authorization authority constructed only by the private live_append
-/// child from the actual Ready owner and sealed held-Consumed permit. Other
-/// phase ACKs below still have no production constructors in this foundation.
+/// child from the actual Ready owner and sealed held-Consumed permit. Intent
+/// has its own sealed successor producer; later settlement/cleanup ACKs remain closed.
 pub(crate) struct OwnedEffectAuthorizationAckV8 {
     basis: AuthorizationBasisV8,
     staged: u32,

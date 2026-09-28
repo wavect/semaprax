@@ -204,16 +204,26 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
     witness: VerifiedOwnedEffectIntentSuccessorV8<'j>,
 ) -> Result<LiveActivatedOwnedEffectV8<'j>, LiveEffectIntentActivationFailureV8<'j>> {
     // The original Consumed session is inert lineage after this acknowledged row.
-    let valid = if !session.belongs_to(obligation.owner.journal) {
-        Err(SourceJournalError::Binding)
-    } else {
+    let valid = (|| {
+        if !session.belongs_to(obligation.owner.journal)
+            || !obligation
+                .owner
+                .session
+                .belongs_to(obligation.owner.journal)
+            || obligation.owner.session.sequence() != obligation.owner.witness.sequence()
+            || obligation.owner.session.acknowledged_bytes()
+                != obligation.owner.witness.acknowledged_bytes()
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        witness.validate_against_acknowledged_session(&session)?;
         witness.validate_predecessor(
             obligation.owner.journal,
             obligation.sequence(),
             obligation.acknowledged_bytes(),
             &obligation.selected,
         )
-    };
+    })();
     if let Err(error) = valid {
         obligation.owner.prepared.quarantine_live_authorization();
         return Err(LiveEffectIntentActivationFailureV8::Before {

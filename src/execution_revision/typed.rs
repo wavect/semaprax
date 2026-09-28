@@ -20,7 +20,10 @@ pub const MAX_ITERATIVE_PROPOSAL_BYTES: usize = 2 * 1024 * 1024;
 
 #[path = "typed/model_wait.rs"]
 mod model_wait;
+#[path = "typed/owned_wait_context.rs"]
+mod owned_wait_context;
 pub use model_wait::SourceModelWaitBinding;
+pub(crate) use owned_wait_context::CheckedTypedOwnedWaitExecutionV8;
 
 pub struct AgentRuntimeV2 {
     project: Arc<ProjectRevision>,

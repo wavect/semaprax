@@ -117,6 +117,7 @@ struct Cleanup {
     seq: u32,
     owner: OwnerV8,
     basis: u32,
+    operations: Value,
     settled: bool,
     host_confirmed: bool,
 }
@@ -186,6 +187,41 @@ impl FoldV8 {
             model_failed: false,
             failure_selected: false,
             cleanup_terminal: None,
+        }
+    }
+    pub(super) fn capacity_facts(&self) -> capacity::ClosureFactsV8<'_> {
+        let attempt = self.wait.as_ref().map(|w| w.attempt);
+        let mut intent = false;
+        let mut response_closed = false;
+        let mut usage_closed = false;
+        for row in &self.ordinary {
+            match row {
+                SourceJournalEntry::AttemptIntent { attempt: a, .. } if Some(*a) == attempt => {
+                    intent = true
+                }
+                SourceJournalEntry::AttemptSettled { attempt: a, .. }
+                | SourceJournalEntry::AttemptFailed { attempt: a, .. }
+                    if Some(*a) == attempt =>
+                {
+                    response_closed = true
+                }
+                SourceJournalEntry::AttemptUsage { attempt: a, .. } if Some(*a) == attempt => {
+                    usage_closed = true
+                }
+                _ => {}
+            }
+        }
+        capacity::ClosureFactsV8 {
+            intent,
+            response_closed,
+            usage_closed,
+            pending_historical: self.wait.as_ref().is_some_and(|w| {
+                w.reservations
+                    .last()
+                    .is_some_and(|r| r.closure.is_none() && w.result(r.phase).is_some())
+            }),
+            cleanup_owner: self.cleanup.as_ref().map(|c| c.owner),
+            cleanup_operations: self.cleanup.as_ref().map(|c| &c.operations),
         }
     }
     fn current_wait(
@@ -981,6 +1017,7 @@ fn owned(
                 seq,
                 owner: *owner,
                 basis: *basis,
+                operations: operations.clone(),
                 settled: false,
                 host_confirmed: false,
             });

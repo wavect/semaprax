@@ -6,12 +6,15 @@ use super::*;
 fn committed(staged: StagedExecutedOwnedReduceV2<'_>) -> CommittedExecutedOwnedReduceCleanupV2<'_> {
     CommittedExecutedOwnedReduceCleanupV2 {
         staged,
-        started: 29,
+        started: OwnedReduceCleanupOriginV8::Observed { started: 29 },
         observations: Vec::new(),
     }
 }
 fn transfer(ready: ReadyExecutedOwnedStepV2<'_>) -> CommittedExecutedOwnedStepTransferV2<'_> {
-    assert_eq!(ready.cleanup_started, 29);
+    assert_eq!(
+        ready.cleanup_started,
+        OwnedReduceCleanupOriginV8::Observed { started: 29 }
+    );
     CommittedExecutedOwnedStepTransferV2 {
         ready,
         reserved: 31,

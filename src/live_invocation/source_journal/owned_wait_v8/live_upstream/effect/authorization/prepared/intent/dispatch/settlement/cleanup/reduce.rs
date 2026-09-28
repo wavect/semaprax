@@ -499,3 +499,5 @@ impl LiveExecutedOwnedEffectV8<'_> {
         self.executed.test_reduce_arguments_v8()
     }
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod step;

@@ -401,3 +401,8 @@ pub(crate) use live_stage::{
     evaluate_live_executed_owned_reduce_v2, CheckedLiveOwnedReduceStageFactsV8,
     LiveReduceEvaluationFailureV8,
 };
+
+pub(crate) use physical_step::{
+    consume_live_owned_step_v8, settle_live_owned_reduce_v8, LiveOwnedReduceCleanupFailureV8,
+    LiveOwnedStepTransferFailureV8, OwnedReduceCleanupOriginV8,
+};

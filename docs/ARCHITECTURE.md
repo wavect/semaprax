@@ -3080,3 +3080,6 @@ provider ABI, or allocator authority is introduced. The separate
 [`public-generic-wasm-provider.v1`](PUBLIC-GENERIC-WASM-PROVIDER-TARGET-V1.md)
 profile now owns compiler-derived generic endpoint admission and replay, but
 all artifact routes fail closed until its Core Wasm provider emitter exists.
+
+
+The private source-owned Step adapter lives under `append/owned_effect/settlement/cleanup/reduce/step`, with its consuming source obligations under the matching `live_upstream` child. `registered_stage/reduce/physical_step/live_append` joins sealed live permits to the existing physical cleanup and Step field mover. Both authority inventories include these production children. These adapters preserve the same accounting ledger and charged Reduce hold through exact durable successor ACKs; the public Agent driver and cumulative/terminal routes remain separate unfinished joins.

@@ -357,3 +357,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use prepared::{
 };
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use prepared::cleanup;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use cleanup::reduce::step;

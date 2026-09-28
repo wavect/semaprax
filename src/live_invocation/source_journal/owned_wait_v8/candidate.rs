@@ -2,12 +2,17 @@
 use super::append::SourceOwnedWaitJournalV8;
 use super::live_upstream::effect::authorization::cleanup::reduce::FixedOwnedReduceReservationAppendPermitV8;
 use super::live_upstream::effect::authorization::cleanup::FixedOwnedEffectCleanupAppendPermitV8;
+use super::live_upstream::effect::authorization::step::FixedOwnedStepAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppendPermitV8;
 use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
 enum ProducerV8<'p, 'j> {
+    Step(
+        &'p SourceOwnedWaitJournalV8,
+        &'p FixedOwnedStepAppendPermitV8<'p, 'j>,
+    ),
     Cleanup(
         &'p SourceOwnedWaitJournalV8,
         &'p FixedOwnedEffectCleanupAppendPermitV8<'p, 'j>,
@@ -315,6 +320,53 @@ impl<'a> InventoryV8<'a> {
         capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
         Ok((folded.reserved_total, folded.stages, 0, *attempt, selected))
     }
+    /// Authenticated first-turn Reduce lineage and complete closure check.
+    /// Includes charged original and all closed Step/Stop phases, not owners.
+    pub(super) fn step_reduce_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, u32, &EntryV8), SourceJournalError> {
+        let context = self.context.fold();
+        let folded = fold::fold(context, &self.entries)?;
+        if folded.tail != fold::TailV8::Reduce || folded.reduce_fold().is_none() {
+            return Err(SourceJournalError::Order);
+        }
+        let selected = &self.entries.last().ok_or(SourceJournalError::Order)?.entry;
+        let (turn, attempt) = match selected {
+            EntryV8::Owned(
+                model::OwnedBodyV8::OwnedReduceStaged { turn, attempt, .. }
+                | model::OwnedBodyV8::OwnedReduceCleanupStarted { turn, attempt, .. }
+                | model::OwnedBodyV8::OwnedReduceCleanupSettled { turn, attempt, .. }
+                | model::OwnedBodyV8::OwnedStepTransferReserved { turn, attempt, .. }
+                | model::OwnedBodyV8::OwnedStepTransferCompleted { turn, attempt, .. },
+            ) => (*turn, *attempt),
+            EntryV8::Ordinary(SourceJournalEntry::StageReservation {
+                turn,
+                attempt: Some(attempt),
+                role: super::super::SourceStageRole::Reduce,
+                fuel,
+            }) if Some(*fuel) == context.ordinary.max_steps_per_stage() => (*turn, *attempt),
+            EntryV8::Ordinary(SourceJournalEntry::Transition { turn, attempt, .. }) => {
+                (*turn, *attempt)
+            }
+            EntryV8::Ordinary(SourceJournalEntry::Stop {
+                turn: Some(turn),
+                attempt: Some(attempt),
+                ..
+            }) => (*turn, *attempt),
+            _ => return Err(SourceJournalError::Order),
+        };
+        if turn != 0 {
+            return Err(SourceJournalError::Binding);
+        }
+        capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
+        Ok((
+            folded.reserved_total,
+            folded.stages,
+            turn,
+            attempt,
+            selected,
+        ))
+    }
     pub(super) fn sequence(&self) -> usize {
         self.entries.len()
     }
@@ -416,6 +468,22 @@ impl<'a> InventoryV8<'a> {
             )
         }
     }
+    pub(super) fn prepare_fixed_step(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedStepAppendPermitV8<'_, '_>,
+    ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+        let row = permit.selected_row().clone();
+        #[cfg(test)]
+        {
+            self.prepare_inner(row, Some(lease), ProducerV8::Step(journal, permit), None)
+        }
+        #[cfg(not(test))]
+        {
+            self.prepare_inner(row, Some(lease), ProducerV8::Step(journal, permit))
+        }
+    }
     fn prepare_inner(
         mut self,
         row: EntryV8,
@@ -495,6 +563,12 @@ impl<'a> InventoryV8<'a> {
                     permit.validate_selected_prefix(journal, &self)?;
                 }
                 ProducerV8::OriginalReduce(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
+                ProducerV8::Step(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
                     }
@@ -648,6 +722,16 @@ impl<'a> PendingV8<'a> {
         &self,
         journal: &SourceOwnedWaitJournalV8,
         permit: &FixedOwnedReduceReservationAppendPermitV8<'_, '_>,
+    ) -> Result<(), SourceJournalError> {
+        if self.0.row.entry != *permit.selected_row() {
+            return Err(SourceJournalError::Binding);
+        }
+        permit.validate_selected_prefix(journal, &self.0.inventory)
+    }
+    pub(super) fn validate_fixed_step_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedStepAppendPermitV8<'_, '_>,
     ) -> Result<(), SourceJournalError> {
         if self.0.row.entry != *permit.selected_row() {
             return Err(SourceJournalError::Binding);

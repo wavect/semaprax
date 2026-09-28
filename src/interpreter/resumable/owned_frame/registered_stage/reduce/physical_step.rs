@@ -349,3 +349,9 @@ pub(crate) use continue_observe::{
     observe_continued_owned_state_v2, CommittedContinueObserveV2, ContinuedOwnedObserveV2,
     FailedHeldOwnedObserveV2, ObservedHeldOwnedStateV2,
 };
+
+mod live_append;
+pub(crate) use live_append::{
+    consume_live_owned_step_v8, settle_live_owned_reduce_v8, LiveOwnedReduceCleanupFailureV8,
+    LiveOwnedStepTransferFailureV8,
+};

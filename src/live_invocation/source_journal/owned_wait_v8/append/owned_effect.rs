@@ -230,3 +230,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cl
 
 #[cfg(test)]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::test_evaluated_failed;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::step::VerifiedOwnedStepSuccessorV8;

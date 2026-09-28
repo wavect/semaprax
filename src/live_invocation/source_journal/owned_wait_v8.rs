@@ -88,3 +88,7 @@ pub(crate) use live_upstream::effect::authorization::{
 pub(crate) use live_upstream::effect::authorization::cleanup::LiveEffectDecisionCleanupPermitV8;
 
 pub(crate) use live_upstream::effect::authorization::cleanup::reduce::LiveReduceEvaluationPermitV8;
+
+pub(crate) use live_upstream::effect::authorization::step::{
+    FixedOwnedStepAppendPermitV8, LiveOwnedReduceCleanupPermitV8, LiveOwnedStepTransferPermitV8,
+};

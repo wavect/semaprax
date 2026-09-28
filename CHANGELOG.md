@@ -3985,3 +3985,5 @@ format: `Unreleased` then release buckets, grouped by impact.
 ## Earlier releases
 
 The detailed 0.3.5, 0.2.0, and 0.1.0 history is preserved in the [changelog archive](docs/CHANGELOG-ARCHIVE.md).
+
+- R20 private actual Step successor: fixed same-hold cleanup/transfer/Transition ACKs, actual ordered release receipts and compiler-empty Complete origin; cumulative/public/terminal/recovery acceptance remains pending.

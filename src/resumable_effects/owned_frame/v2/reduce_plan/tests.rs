@@ -3,7 +3,7 @@ use crate::resumable_effects::owned_frame::v2::compile_owned_agent_wait_v8;
 use std::path::Path;
 
 fn source(terminal: &str) -> String {
-    let source = include_str!("../../../../../../examples/offline-repair-project/src/app.spx");
+    let source = include_str!("../../../../../examples/offline-repair-project/src/app.spx");
     let source = source.replace(
         "    runtime_v1 {",
         "    model_wait_v1 { propose = \"fixture.agent.fn.park\"; }\n    runtime_v1 {",

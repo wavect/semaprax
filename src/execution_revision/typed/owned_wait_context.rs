@@ -43,6 +43,10 @@ impl AgentRuntimeV2 {
         policy: &SourceLivePolicy,
         evaluation_fuel: usize,
     ) -> std::result::Result<CheckedTypedOwnedWaitExecutionV8, SourceJournalError> {
+        let plain: serde_json::Value = serde_json::from_str(wait.lifecycle().canonical_json())
+            .map_err(|_| SourceJournalError::Binding)?;
+        let typed: serde_json::Value = serde_json::from_str(self.lifecycle.canonical_json())
+            .map_err(|_| SourceJournalError::Binding)?;
         let schema = self.lifecycle.proposal_schema();
         let model = source
             .model_binding()
@@ -59,7 +63,7 @@ impl AgentRuntimeV2 {
             || evaluation_fuel > self.budget.max_steps_per_stage
             || wait.agent().as_str() != schema.schema().agent_id()
             || wait.lifecycle().source_revision() != schema.source_revision()
-            || wait.lifecycle().digest() != self.lifecycle.source_lifecycle().digest()
+            || typed.get("lifecycle") != Some(&plain)
             || wait.lifecycle().proposal_schema().schema().digest() != schema.schema().digest()
             || !self.proposals.is_empty()
             || !source.model_evidence().attempts().is_empty()

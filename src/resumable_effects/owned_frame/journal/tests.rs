@@ -10,9 +10,9 @@ use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 static NEXT: AtomicU64 = AtomicU64::new(0);
-struct Directory(PathBuf);
+pub(in crate::resumable_effects::owned_frame) struct Directory(PathBuf);
 impl Directory {
-    fn new() -> Self {
+    pub(in crate::resumable_effects::owned_frame) fn new() -> Self {
         let path = std::env::temp_dir().join(format!(
             "spx-owned-journal-{}-{}",
             std::process::id(),
@@ -22,10 +22,10 @@ impl Directory {
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
         Self(path)
     }
-    fn file(&self) -> File {
+    pub(in crate::resumable_effects::owned_frame) fn file(&self) -> File {
         File::open(&self.0).unwrap()
     }
-    fn identity(&self) -> (u64, u64) {
+    pub(in crate::resumable_effects::owned_frame) fn identity(&self) -> (u64, u64) {
         let m = std::fs::metadata(&self.0).unwrap();
         (m.dev(), m.ino())
     }
@@ -35,7 +35,7 @@ impl Drop for Directory {
         let _ = std::fs::remove_dir_all(&self.0);
     }
 }
-fn fixture() -> (
+pub(in crate::resumable_effects::owned_frame) fn fixture() -> (
     CheckedOwnedFramePlan,
     OwnedFrameInput,
     SourceCheckpointScope,

@@ -174,6 +174,7 @@ pub(super) struct Journal<'key> {
     pub(super) bytes: usize,
     pub(super) poisoned: bool,
     restoration_issued: bool,
+    claim_issued: bool,
 }
 impl<'key> Journal<'key> {
     pub(super) fn fresh(
@@ -190,6 +191,7 @@ impl<'key> Journal<'key> {
             bytes: 0,
             poisoned: false,
             restoration_issued: false,
+            claim_issued: false,
         })
     }
     pub(super) fn reopen(
@@ -367,6 +369,33 @@ impl<'key> Journal<'key> {
     }
 }
 
+pub(crate) struct OwnedFrameClaimPermit<'lease> {
+    lease: &'lease RegisteredJournalLease,
+    plan_digest: String,
+}
+impl OwnedFrameClaimPermit<'_> {
+    pub(crate) fn consume(self, plan: &CheckedOwnedFramePlan) -> Result<(), Error> {
+        self.lease.validate_current()?;
+        if self.plan_digest != plan.binding() {
+            return Err(Error::Binding);
+        }
+        Ok(())
+    }
+}
+impl Journal<'_> {
+    pub(super) fn claim_permit(&mut self) -> Result<OwnedFrameClaimPermit<'_>, Error> {
+        self.validate_current()?;
+        if self.state.phase != Phase::Claimed || self.claim_issued {
+            return Err(Error::Binding);
+        }
+        self.claim_issued = true;
+        Ok(OwnedFrameClaimPermit {
+            lease: &self.lease,
+            plan_digest: self.state.plan.binding().to_owned(),
+        })
+    }
+}
+
 // Only this authenticated journal can issue an interpreter restoration permit.
 // Its borrowed held lease outlives the one consuming materialization call.
 pub(crate) struct OwnedFrameRestorePermit<'lease> {
@@ -382,7 +411,6 @@ pub(crate) enum RestorationKind {
         failure: Option<OwnedFrameFailure>,
         provisional: bool,
     },
-    Unpublished,
 }
 impl OwnedFrameRestorePermit<'_> {
     pub(crate) fn consume(
@@ -424,18 +452,6 @@ impl Journal<'_> {
                     provisional,
                 }
             }
-            Phase::CleanupSettled
-                if self
-                    .state
-                    .terminal()
-                    .is_some_and(|row| row.kind == Kind::Completed)
-                    && self.state.cleanup_settled().is_some_and(|(_, row)| {
-                        row.fields["receipt"]["kind"] == "observed"
-                            && row.fields["receipt"]["settlement"] == "completed"
-                    }) =>
-            {
-                RestorationKind::Unpublished
-            }
             _ => return Err(Error::Binding),
         };
         self.restoration_issued = true;
@@ -466,4 +482,4 @@ pub(super) fn decode_failure(
 }
 
 #[cfg(all(test, unix))]
-mod tests;
+pub(super) mod tests;

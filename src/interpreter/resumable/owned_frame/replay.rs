@@ -1,6 +1,17 @@
 //! Shared borrowed phase evaluator: no owning Arc enters the Copy environment.
 use super::*;
 
+#[cfg(test)]
+thread_local! {static EVALUATIONS:std::cell::Cell<usize>=const{std::cell::Cell::new(0)};}
+#[cfg(test)]
+pub(super) fn evaluation_count() -> usize {
+    EVALUATIONS.with(std::cell::Cell::get)
+}
+#[cfg(test)]
+pub(super) fn reset_evaluations() {
+    EVALUATIONS.with(|count| count.set(0));
+}
+
 pub(super) type PhaseResult = Result<Option<(ArgumentValue, usize)>, Flow>;
 #[allow(clippy::too_many_arguments)]
 pub(super) fn evaluate(
@@ -12,6 +23,8 @@ pub(super) fn evaluate(
     start: bool,
     budget: &mut OwnedFrameBudget,
 ) -> (PhaseResult, Environment, bool) {
+    #[cfg(test)]
+    EVALUATIONS.with(|count| count.set(count.get() + 1));
     let entry = plan.function();
     let admitted = BTreeMap::new();
     let mut evaluator = Evaluator::new_prepared(

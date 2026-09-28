@@ -2,6 +2,15 @@
 use super::settlement::{DurableRelease, UnpublishedOwnedFrameResult};
 use super::*;
 
+#[cfg(test)]
+pub(crate) fn evaluation_count() -> usize {
+    replay::evaluation_count()
+}
+#[cfg(test)]
+pub(crate) fn reset_evaluations() {
+    replay::reset_evaluations();
+}
+
 /// Opaque across the interpreter boundary; no enum arm exposes private Value.
 pub(crate) struct DurableOwner {
     state: OwnerState,
@@ -41,6 +50,30 @@ impl OwnedFrameReplay {
     }
 }
 impl DurableOwner {
+    #[cfg(test)]
+    pub(crate) fn weak_leaves(&self) -> Vec<std::sync::Weak<[u8]>> {
+        snapshot::weak_leaves(self.root_and_plan().1)
+    }
+    pub(crate) fn from_unpublished(root: UnpublishedOwnedFrameResult) -> Self {
+        Self {
+            state: OwnerState::Unpublished(root),
+        }
+    }
+    pub(crate) fn claim(
+        self,
+        permit: crate::resumable_effects::owned_frame::journal::OwnedFrameClaimPermit<'_>,
+    ) -> Result<OwnedFrameResult, Self> {
+        if permit.consume(self.root_and_plan().0).is_err() {
+            return Err(self);
+        }
+        let OwnerState::Unpublished(root) = self.state else {
+            return Err(self);
+        };
+        Ok(OwnedFrameResult {
+            plan: root.plan,
+            root: Some(root.root),
+        })
+    }
     // Caller must ACK its phase reservation before entering either evaluator.
     pub(crate) fn replay_start(&self, budget: &mut OwnedFrameBudget) -> OwnedFrameReplay {
         let (plan, root) = self.root_and_plan();
@@ -57,7 +90,7 @@ impl DurableOwner {
     }
     pub(crate) fn replay_resume(
         &self,
-        start: OwnedFrameReplay,
+        start: &OwnedFrameReplay,
         answer: &ArgumentValue,
         budget: &mut OwnedFrameBudget,
     ) -> OwnedFrameReplay {
@@ -72,14 +105,30 @@ impl DurableOwner {
             answer,
         ) else {
             return OwnedFrameReplay {
+                environment: Environment::from(Vec::new()),
+                request: None,
+                next: 0,
                 failure: Some(OwnedFrameFailure::AnswerTypeMismatch),
-                ..start
+                provisional: false,
             };
         };
+        let environment = Environment::from(
+            start
+                .environment
+                .bindings
+                .iter()
+                .map(|(id, value)| {
+                    (
+                        id.clone(),
+                        super::super::clone_scalar(value).expect("Copy-only replay environment"),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        );
         let (outcome, environment, provisional) = replay::evaluate(
             plan,
             root,
-            start.environment,
+            environment,
             start.next,
             Some(scalar),
             false,
@@ -126,9 +175,6 @@ impl DurableOwner {
                     failure,
                     provisional,
                 }),
-                RestorationKind::Unpublished => {
-                    OwnerState::Unpublished(UnpublishedOwnedFrameResult { plan, root })
-                }
             },
         })
     }

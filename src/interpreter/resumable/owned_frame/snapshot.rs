@@ -1,6 +1,29 @@
 //! Borrowed inert projection. This module never creates an owner.
 use super::*;
 
+pub(crate) fn argument_binding(argument: &OwnedFrameArgument) -> &str {
+    argument.plan.binding()
+}
+
+#[cfg(test)]
+pub(crate) fn argument_weak(argument: &OwnedFrameArgument) -> Vec<std::sync::Weak<[u8]>> {
+    weak_leaves(argument.root.as_ref().expect("admitted root"))
+}
+#[cfg(test)]
+pub(super) fn weak_leaves(root: &Value) -> Vec<std::sync::Weak<[u8]>> {
+    let Value::Record(record) = root else {
+        panic!("checked record")
+    };
+    record
+        .fields
+        .values()
+        .filter_map(|value| match value {
+            Value::Bytes(bytes) => Some(Arc::downgrade(&bytes.bytes)),
+            _ => None,
+        })
+        .collect()
+}
+
 pub(crate) fn validate_input(
     plan: &CheckedOwnedFramePlan,
     input: &OwnedFrameInput,

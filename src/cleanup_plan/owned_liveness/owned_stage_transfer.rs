@@ -26,16 +26,8 @@ pub(crate) struct OwnedRecordTransferPlan {
     pub result_disposal: Vec<FinalizeAction>,
     pub completion_cleanup: Vec<FinalizeAction>,
 }
-#[track_caller]
 fn refused() -> Diagnostic {
-    #[cfg(test)]
-    let detail = format!(
-        "owned stage constructor transfer proof differs at {}",
-        std::panic::Location::caller()
-    );
-    #[cfg(not(test))]
-    let detail = "owned stage constructor transfer proof differs";
-    Diagnostic::io("SPX-T303", detail)
+    Diagnostic::io("SPX-T303", "owned stage constructor transfer proof differs")
 }
 
 /// The caller admits only one direct record constructor, consuming every Bytes
@@ -585,24 +577,35 @@ pub(crate) fn owned_step_transfer_plan(
         .iter()
         .flat_map(|(_, fields)| fields)
         .collect::<Vec<_>>();
-    let result_disposal = crate::cleanup_plan::build::canonical_conditional_finalizers_for(
-        &CleanupPlace {
-            storage: StorageId::ProvisionalResult,
-            projections: vec![],
-        },
-        variant,
-        &ordered,
-        |flag| {
-            let (_, place, lifecycle) = metadata
-                .iter()
-                .find(|(id, _, _)| *id == flag)
-                .expect("checked result flag");
-            (place.clone(), lifecycle.clone())
-        },
-        |_| true,
-    );
+    let conditional_finalizers = |ordered: &[(DeclarationId, Vec<LivenessFlagId>)]| {
+        crate::cleanup_plan::build::canonical_conditional_finalizers_for(
+            &CleanupPlace {
+                storage: StorageId::ProvisionalResult,
+                projections: vec![],
+            },
+            variant,
+            ordered,
+            |flag| {
+                let (_, place, lifecycle) = metadata
+                    .iter()
+                    .find(|(id, _, _)| *id == flag)
+                    .expect("checked result flag");
+                (place.clone(), lifecycle.clone())
+            },
+            |_| true,
+        )
+    };
+    let result_disposal = conditional_finalizers(&ordered);
+    // The ordinary return failure carries only cases reachable through the
+    // proven source constructors/whole-variant transfer chains. Keep their
+    // declaration inventory order; full result disposal remains separate.
+    let returned_cases = ordered
+        .iter()
+        .filter(|(case, _)| cases.iter().any(|constructor| &constructor.case == case))
+        .cloned()
+        .collect::<Vec<_>>();
     let mut provisional_failure = completion_cleanup.clone();
-    provisional_failure.extend(result_disposal.iter().cloned());
+    provisional_failure.extend(conditional_finalizers(&returned_cases));
     for exit in &function.cleanup_plan.exits {
         if matches!(exit.continuation, ExitContinuation::ReturnFailure { .. })
             && exit.finalize_in_order != initial_disposal
@@ -611,19 +614,6 @@ pub(crate) fn owned_step_transfer_plan(
                 .iter()
                 .any(|p| p.failure_by_prefix.contains(&exit.finalize_in_order))
         {
-            #[cfg(test)]
-            return Err(Diagnostic::io(
-                "SPX-T303",
-                format!(
-                    "owned stage failure vector differs: actual={:?}; prefixes={:?}",
-                    exit.finalize_in_order,
-                    cases
-                        .iter()
-                        .map(|c| &c.failure_by_prefix)
-                        .collect::<Vec<_>>()
-                ),
-            ));
-            #[cfg(not(test))]
             return Err(refused());
         }
     }

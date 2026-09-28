@@ -146,3 +146,77 @@ fn owned_frame_v2_reduce_plan_refuses_valid_extra_owner_and_owner_constructor() 
         assert_eq!(compile_owned_reduce_v2(&b).err().unwrap().code, "SPX-T303");
     }
 }
+
+#[test]
+fn owned_frame_v2_reduce_postcondition_vector_uses_only_proven_return_cases() {
+    let base = source(
+        "Step::Complete { summary: outcome.value, budget: state.budget, status: outcome.status }",
+    );
+    let source = base.replace("-> Step\n{", "-> Step\nensures false\n{");
+    assert_ne!(source, base);
+    let b = binding(&source);
+    let p = compile_owned_reduce_v2(&b).unwrap_or_else(|d| panic!("{d:?}"));
+    assert_eq!(p.transfers().cases.len(), 2);
+    let failure = p
+        .function()
+        .cleanup_plan
+        .exits
+        .iter()
+        .find(|e| {
+            matches!(
+                e.continuation,
+                crate::cleanup_plan::ExitContinuation::ReturnFailure { .. }
+            ) && e
+                .finalize_in_order
+                .iter()
+                .any(|a| a.source.storage == crate::cleanup_plan::StorageId::ProvisionalResult)
+        })
+        .expect("actual postcondition failure exit");
+    assert_eq!(p.transfers().provisional_failure, failure.finalize_in_order);
+    let conditional = p
+        .transfers()
+        .provisional_failure
+        .iter()
+        .filter_map(|a| a.active_case.as_ref())
+        .map(|a| a.case.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        conditional,
+        ["fixture.agent.step.complete", "fixture.agent.step.continue"]
+    );
+    assert!(
+        p.transfers().result_disposal.iter().any(|a| a
+            .active_case
+            .as_ref()
+            .is_some_and(|c| c.case.as_str() == "fixture.agent.step.suspend")),
+        "full declared disposal is retained separately"
+    );
+    let mut function = p.function().clone();
+    let exit = function
+        .cleanup_plan
+        .exits
+        .iter_mut()
+        .find(|e| e.finalize_in_order == failure.finalize_in_order)
+        .unwrap();
+    let unused = p
+        .transfers()
+        .result_disposal
+        .iter()
+        .find(|a| {
+            a.active_case
+                .as_ref()
+                .is_some_and(|c| c.case.as_str() == "fixture.agent.step.suspend")
+        })
+        .unwrap()
+        .clone();
+    exit.finalize_in_order.push(unused);
+    let mut constructors = Vec::new();
+    body(&function.body, &mut constructors).unwrap();
+    assert_eq!(
+        owned_step_transfer_plan(&p.helper().program().declarations, &function, &constructors)
+            .unwrap_err()
+            .code,
+        "SPX-T303",
+        "an unproven returned case is refused instead of repaired"
+    );
+}

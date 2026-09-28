@@ -98,11 +98,20 @@ impl<'j> ContinuedResumedWaitV8<'j> {
         proposal: &CheckedOwnedWaitProposalV8,
         commitments: &CheckedOwnedWaitReadyCommitmentsV8,
         references: (u32, u32, u32),
-    ) -> Self {
+    ) -> Result<Self, (Self, SourceJournalError)> {
+        if !matches!(
+            &self.outcome,
+            ContinuedResumeOutcomeV8::Authorization(ContinuedAuthorizationOutcomeV8::Effect(
+                ContinuedEffectOutcomeV8::Promotion(LiveContinuedReadyPromotionOutcomeV8::Ready(_))
+            ))
+        ) {
+            return Err((self, SourceJournalError::Order));
+        }
         let held = match self.lineage.journal().hold() {
             Ok(h) => h,
-            Err(_) => return self,
+            Err(error) => return Err((self, error)),
         };
+        let turn = self.turn();
         let permit = LiveContinuedEffectAuthorizationPermitV8 {
             held,
             lineage: &self.lineage,
@@ -112,13 +121,17 @@ impl<'j> ContinuedResumedWaitV8<'j> {
             commitments,
             references,
             accounting: &self.accounting,
-            turn: self.turn(),
+            turn,
         };
-        if permit.validate_current().is_err() {
-            return self;
+        #[cfg(test)]
+        ADMISSIONS.with(|n| n.set(n.get() + 1));
+        if let Err(error) = permit.validate_current() {
+            drop(permit);
+            return Err((self, error));
         }
-        drop(permit);
-        let turn = self.turn();
+        // Preserve the actual held handle from admission; no second fallible
+        // reacquisition and no callback occurs while rebuilding the permit.
+        let LiveContinuedEffectAuthorizationPermitV8 { held, .. } = permit;
         let Self {
             outcome,
             accounting,
@@ -128,29 +141,14 @@ impl<'j> ContinuedResumedWaitV8<'j> {
             ContinuedEffectOutcomeV8::Promotion(LiveContinuedReadyPromotionOutcomeV8::Ready(owner)),
         )) = outcome
         else {
-            return Self {
-                outcome,
-                accounting,
-                lineage,
-            };
-        };
-        // Admission above proves this same container remains held. Retain Ready
-        // if reacquisition fails; never manufacture a preparation rejection.
-        let held = match lineage.journal().hold() {
-            Ok(h) => h,
-            Err(_) => {
-                return Self {
-                    outcome: ContinuedResumeOutcomeV8::Authorization(
-                        ContinuedAuthorizationOutcomeV8::Effect(
-                            ContinuedEffectOutcomeV8::Promotion(
-                                LiveContinuedReadyPromotionOutcomeV8::Ready(owner),
-                            ),
-                        ),
-                    ),
+            return Err((
+                Self {
+                    outcome,
                     accounting,
                     lineage,
-                }
-            }
+                },
+                SourceJournalError::Order,
+            ));
         };
         let permit = LiveContinuedEffectAuthorizationPermitV8 {
             held,
@@ -164,7 +162,7 @@ impl<'j> ContinuedResumedWaitV8<'j> {
             turn,
         };
         let actual = prepare_live_continued_effect_v8(&permit, owner);
-        Self {
+        Ok(Self {
             outcome: ContinuedResumeOutcomeV8::Authorization(
                 ContinuedAuthorizationOutcomeV8::Effect(ContinuedEffectOutcomeV8::Preparation(
                     actual,
@@ -172,7 +170,7 @@ impl<'j> ContinuedResumedWaitV8<'j> {
             ),
             accounting,
             lineage,
-        }
+        })
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_prepared_effect(
         &self,
@@ -248,4 +246,12 @@ impl ContinuedResumedWaitV8<'_> {
     ) {
         self.accounting = accounting;
     }
+}
+
+#[cfg(test)]
+thread_local! { static ADMISSIONS: std::cell::Cell<usize> = const {std::cell::Cell::new(0)}; }
+#[cfg(test)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_continued_preparation_admissions(
+) -> usize {
+    ADMISSIONS.with(std::cell::Cell::get)
 }

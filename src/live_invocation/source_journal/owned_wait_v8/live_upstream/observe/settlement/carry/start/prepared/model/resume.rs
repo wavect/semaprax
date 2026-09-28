@@ -283,26 +283,28 @@ impl<'j> ModelOwnerV8<'j> {
     pub(super) fn prepare_effect_actual(
         self,
         session: &AppendSessionV8<'j>,
-        witness: &crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedEffectSuccessorV8<'j>,
+        witness:&crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedEffectSuccessorV8<'j>,
         proposal: &CheckedOwnedWaitProposalV8,
         commitments: &crate::agent_lifecycle::authorization::CheckedOwnedWaitReadyCommitmentsV8,
         references: (u32, u32, u32),
-    ) -> Self {
+    ) -> Result<Self, (Self, SourceJournalError)> {
         match self {
             Self::Resumed(owner) => {
                 let ResumedModelOwnerV8 { owner, history } = owner;
-                Self::Resumed(ResumedModelOwnerV8 {
-                    owner: owner.prepare_effect_actual(
-                        session,
-                        witness,
-                        proposal,
-                        commitments,
-                        references,
-                    ),
-                    history,
-                })
+                match owner.prepare_effect_actual(
+                    session,
+                    witness,
+                    proposal,
+                    commitments,
+                    references,
+                ) {
+                    Ok(owner) => Ok(Self::Resumed(ResumedModelOwnerV8 { owner, history })),
+                    Err((owner, error)) => {
+                        Err((Self::Resumed(ResumedModelOwnerV8 { owner, history }), error))
+                    }
+                }
             }
-            owner => owner,
+            owner => Err((owner, SourceJournalError::Order)),
         }
     }
 }

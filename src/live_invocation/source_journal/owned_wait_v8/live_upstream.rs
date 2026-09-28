@@ -326,3 +326,6 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settl
 pub(crate) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::LiveContinuedReadyPromotionPermitV8;
 
 pub(crate) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::prepared::LiveContinuedEffectAuthorizationPermitV8;
+
+#[cfg(test)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::prepared::test_continued_preparation_admissions;

@@ -180,10 +180,18 @@ fn owned_reduce_normal_poisoned_or_foreign_drop_disarms_semantic_disposal() {
             if mode == 2 {
                 held.creator = held.creator.wrapping_add(1);
             } else if mode == 1 {
-                let displaced = directory.with_file_name("ready-journal-physical-step-displaced");
-                std::fs::rename(directory, &displaced).unwrap();
+                let identity = held
+                    .inputs
+                    .as_ref()
+                    .unwrap()
+                    .store
+                    .registration()
+                    .identity();
+                let journal = pinned_journal_entry(directory, identity);
+                let displaced = directory.join("physical-step-displaced");
+                std::fs::rename(&journal, &displaced).unwrap();
                 assert!(!held.validate_store());
-                std::fs::rename(&displaced, directory).unwrap();
+                std::fs::rename(&displaced, &journal).unwrap();
                 assert!(
                     !held.validate_store(),
                     "restoring path cannot revive poisoned borrower"
@@ -200,4 +208,22 @@ fn owned_reduce_normal_poisoned_or_foreign_drop_disarms_semantic_disposal() {
             assert!(weak[0].upgrade().is_none());
         });
     }
+}
+
+fn pinned_journal_entry(
+    directory: &std::path::Path,
+    identity: crate::resumable_effects::owned_frame::OwnedFrameStoreIdentity,
+) -> std::path::PathBuf {
+    use std::os::unix::fs::MetadataExt;
+    let matches: Vec<_> = std::fs::read_dir(directory)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .filter(|path| {
+            let metadata = std::fs::symlink_metadata(path).unwrap();
+            metadata.is_file()
+                && (metadata.dev(), metadata.ino()) == (identity.file_device, identity.file_inode)
+        })
+        .collect();
+    assert_eq!(matches.len(), 1, "exact retained journal file pin");
+    matches.into_iter().next().unwrap()
 }

@@ -334,3 +334,189 @@ fn owned_reduce_fold_success_maps_exact_step_and_counts_consumption_once() {
         .transfer_completed(&p, &scope, seq + 2, 0, 0, seq, &target, &digest)
         .is_err());
 }
+
+#[test]
+fn owned_reduce_failure_stop_preserves_actual_owned_cause_and_budget_class() {
+    use super::super::super::{SourceStopReason as R, SourceStopStatus as S};
+    let p = plan();
+    let scope = json!({});
+    let ops = v2::owned_wait_operations_v8(&p.transfers().initial_disposal).unwrap();
+    for tag in [
+        "fuel_exhausted",
+        "call_depth_exceeded",
+        "evaluation_rejected",
+        "host_abandoned",
+    ] {
+        let basis = ReduceBasisV8::InitialFailure {
+            status: json!({"failure":tag,"language_status":null}),
+        };
+        let digest=recipe_digest(ReduceRecipeV8::Basis,&json!({"scope":scope,"binding":p.binding(),
+            "plan":p.binding(),"turn":0,"attempt":0,"stage_reservation":28,"basis":serde_json::to_value(&basis).unwrap()})).unwrap();
+        let mut f = ReduceFoldV8::after_checked_reservation(&p, &scope, 0, 0, 28, 10, 27).unwrap();
+        assert!(f.stop(29, 0, 0, S::Rejected, R::StageRefused).is_err());
+        f.cleanup_started(
+            &p,
+            p.binding(),
+            &scope,
+            29,
+            0,
+            0,
+            28,
+            27,
+            &basis,
+            &digest,
+            9,
+            &ops,
+        )
+        .unwrap();
+        f.cleanup_settled(
+            30,
+            0,
+            0,
+            29,
+            &receipt(f.cleanup.as_ref().unwrap().active_operations(), true),
+        )
+        .unwrap();
+        let (status, reason) = if matches!(tag, "fuel_exhausted" | "call_depth_exceeded") {
+            (S::BudgetExhausted, R::BudgetExhausted)
+        } else {
+            (S::Rejected, R::StageRefused)
+        };
+        assert!(f.stop(31, 0, 0, S::EffectFailed, R::EffectFailed).is_err());
+        f.stop(31, 0, 0, status, reason).unwrap();
+        assert_eq!(f.failure().unwrap()["failure"], tag);
+        assert_eq!(f.tail(), ReduceTailV8::TerminalPending);
+        assert!(f.stop(32, 0, 0, status, reason).is_err());
+    }
+}
+#[test]
+fn owned_failed_effect_state_cleanup_has_exact_failure_refs_vector_and_active_receipt() {
+    use super::super::super::{
+        SourceEffectFailure as F, SourceStopReason as R, SourceStopStatus as S,
+    };
+    let b = super::super::reduce_inventory::tests::binding_with_constructors(true);
+    let scope = json!({"inert_unit_scope":true});
+    // These unit seeds stand in for parent-authenticated lineage only; they do
+    // not establish a real State commitment, effect execution, or cleanup ACK.
+    for failure in [F::HandlerFailed, F::ResultLimit] {
+        for completed in [true, false] {
+            let mut f = FailedEffectStateFoldV8::after_checked_effect_failure(
+                &b,
+                &scope,
+                0,
+                0,
+                24,
+                25,
+                27,
+                failure,
+                "checked-parent-state",
+            )
+            .unwrap();
+            let ops = f.operations().clone();
+            assert!(f.stop(28, 0, 0, S::EffectFailed, R::EffectFailed).is_err());
+            assert!(f
+                .cleanup_started(
+                    b.binding(),
+                    &scope,
+                    28,
+                    0,
+                    0,
+                    23,
+                    25,
+                    27,
+                    failure.as_str(),
+                    "checked-parent-state",
+                    &ops
+                )
+                .is_err());
+            assert!(f
+                .cleanup_started(
+                    b.binding(),
+                    &scope,
+                    28,
+                    0,
+                    0,
+                    24,
+                    25,
+                    27,
+                    "deadline_exceeded",
+                    "checked-parent-state",
+                    &ops
+                )
+                .is_err());
+            assert!(f
+                .cleanup_started(
+                    b.binding(),
+                    &scope,
+                    28,
+                    0,
+                    0,
+                    24,
+                    25,
+                    27,
+                    failure.as_str(),
+                    "substituted-state",
+                    &ops
+                )
+                .is_err());
+            let mut reordered = ops.clone();
+            reordered.as_array_mut().unwrap().push(json!({}));
+            assert!(f
+                .cleanup_started(
+                    b.binding(),
+                    &scope,
+                    28,
+                    0,
+                    0,
+                    24,
+                    25,
+                    27,
+                    failure.as_str(),
+                    "checked-parent-state",
+                    &reordered
+                )
+                .is_err());
+            f.cleanup_started(
+                b.binding(),
+                &scope,
+                28,
+                0,
+                0,
+                24,
+                25,
+                27,
+                failure.as_str(),
+                "checked-parent-state",
+                &ops,
+            )
+            .unwrap();
+            let observed = receipt(&ops, completed);
+            let mut omitted = observed.clone();
+            omitted["operations"].as_array_mut().unwrap().pop();
+            assert!(f.cleanup_settled(29, 0, 0, 28, &omitted).is_err());
+            f.cleanup_settled(29, 0, 0, 28, &observed).unwrap();
+            if completed {
+                assert!(f.stop(30, 0, 0, S::Rejected, R::StageRefused).is_err());
+                f.stop(30, 0, 0, S::EffectFailed, R::EffectFailed).unwrap();
+                assert_eq!(f.tail(), ReduceTailV8::TerminalPending);
+            } else {
+                assert_eq!(f.tail(), ReduceTailV8::Quarantined);
+                assert!(f.stop(30, 0, 0, S::EffectFailed, R::EffectFailed).is_err());
+            }
+        }
+    }
+    for unsupported in [F::Cancelled, F::DeadlineExceeded] {
+        assert!(FailedEffectStateFoldV8::after_checked_effect_failure(
+            &b,
+            &scope,
+            0,
+            0,
+            24,
+            25,
+            27,
+            unsupported,
+            "checked-parent-state"
+        )
+        .is_err());
+    }
+}

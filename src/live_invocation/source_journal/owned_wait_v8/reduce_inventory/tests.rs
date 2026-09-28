@@ -4,6 +4,11 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn plan() -> v2::C
     plan_with_constructors(true)
 }
 fn plan_with_constructors(all: bool) -> v2::CheckedOwnedReduceV2 {
+    v2::compile_owned_reduce_v2(&binding_with_constructors(all)).unwrap()
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn binding_with_constructors(
+    all: bool,
+) -> v2::CheckedOwnedAgentWaitBindingV8 {
     let source = include_str!("../../../../../examples/offline-repair-project/src/app.spx")
         .replace(
             "    runtime_v1 {",
@@ -34,7 +39,7 @@ fn park(state: own State, observation: Observation) -> State yields Observation 
         "fixture.agent.type.step",
     )
     .unwrap();
-    v2::compile_owned_reduce_v2(&binding).unwrap()
+    binding
 }
 #[test]
 fn owned_reduce_inventory_maps_actual_nominal_cases_without_target_substitution() {

@@ -50,6 +50,12 @@ fn require(ok: bool) -> Result<(), Error> {
         Err(Error::Order)
     }
 }
+pub(super) struct ReduceClosureFactsV8<'a> {
+    pub tail: ReduceTailV8,
+    pub case: Option<&'a str>,
+    pub active_operations: Option<&'a Value>,
+    pub failure: bool,
+}
 impl ReduceFoldV8 {
     pub(super) fn after_checked_reservation(
         plan: &v2::CheckedOwnedReduceV2,
@@ -82,6 +88,14 @@ impl ReduceFoldV8 {
             transition: None,
             failure: None,
         })
+    }
+    pub(super) fn closure_facts(&self) -> ReduceClosureFactsV8<'_> {
+        ReduceClosureFactsV8 {
+            tail: self.tail,
+            case: self.step.as_ref().map(|s| s.case()),
+            active_operations: self.cleanup.as_ref().map(|c| c.active_operations()),
+            failure: self.failure.is_some(),
+        }
     }
     pub(super) fn tail(&self) -> ReduceTailV8 {
         self.tail
@@ -355,6 +369,183 @@ impl ReduceFoldV8 {
         } else {
             ReduceTailV8::TerminalPending
         };
+        Ok(())
+    }
+    /// Stop is only a causal join after successful failure cleanup; it does not
+    /// validate complete terminal accounting or grant result publication.
+    pub(super) fn stop(
+        &mut self,
+        seq: u32,
+        turn: u32,
+        attempt: u32,
+        status: super::super::SourceStopStatus,
+        reason: super::super::SourceStopReason,
+    ) -> Result<(), Error> {
+        self.coordinates(seq, turn, attempt)?;
+        require(self.tail == ReduceTailV8::FailureCleaned)?;
+        let failed = self.failure.as_ref().ok_or(Error::Order)?;
+        let budget = matches!(
+            failed["failure"].as_str(),
+            Some("fuel_exhausted" | "call_depth_exceeded")
+        );
+        use super::super::{SourceStopReason as R, SourceStopStatus as S};
+        require(
+            (status, reason)
+                == if budget {
+                    (S::BudgetExhausted, R::BudgetExhausted)
+                } else {
+                    (S::Rejected, R::StageRefused)
+                },
+        )?;
+        self.last = seq;
+        self.tail = ReduceTailV8::TerminalPending;
+        Ok(())
+    }
+}
+
+/// Seeded only by the parent after its authenticated EffectFailed/Recorded and
+/// complete Decision-release join. State digest is the parent's already checked
+/// owned-State commitment, not a caller credential or a restored owner.
+pub(super) struct FailedEffectStateFoldV8 {
+    binding: String,
+    scope: Value,
+    turn: u32,
+    attempt: u32,
+    settlement: u32,
+    recorded: u32,
+    decision_cleanup: u32,
+    failure: super::super::SourceEffectFailure,
+    state_digest: String,
+    operations: Value,
+    started: Option<u32>,
+    last: u32,
+    tail: ReduceTailV8,
+}
+impl FailedEffectStateFoldV8 {
+    pub(super) fn after_checked_effect_failure(
+        binding: &v2::CheckedOwnedAgentWaitBindingV8,
+        scope: &Value,
+        turn: u32,
+        attempt: u32,
+        settlement: u32,
+        recorded: u32,
+        decision_cleanup: u32,
+        failure: super::super::SourceEffectFailure,
+        state_digest: &str,
+    ) -> Result<Self, Error> {
+        use super::super::SourceEffectFailure as F;
+        require(
+            turn == 0
+                && settlement.checked_add(1) == Some(recorded)
+                && recorded < decision_cleanup
+                && matches!(failure, F::HandlerFailed | F::ResultLimit),
+        )?;
+        let actions = &binding.helper().liveness().result_disposal;
+        // Whole retained flat State has every leaf live, and no selected variant
+        // guards. Never infer a runtime branch from supplied receipt entries.
+        require(actions.iter().all(|a| a.active_case.is_none()))?;
+        let operations = v2::owned_wait_operations_v8(actions).map_err(|_| Error::Binding)?;
+        Ok(Self {
+            binding: binding.binding().to_owned(),
+            scope: scope.clone(),
+            turn,
+            attempt,
+            settlement,
+            recorded,
+            decision_cleanup,
+            failure,
+            state_digest: state_digest.to_owned(),
+            operations,
+            started: None,
+            last: decision_cleanup,
+            tail: ReduceTailV8::Charged,
+        })
+    }
+    pub(super) fn tail(&self) -> ReduceTailV8 {
+        self.tail
+    }
+    pub(super) fn operations(&self) -> &Value {
+        &self.operations
+    }
+    pub(super) fn cleanup_started(
+        &mut self,
+        row_plan: &str,
+        scope: &Value,
+        seq: u32,
+        turn: u32,
+        attempt: u32,
+        settlement: u32,
+        recorded: u32,
+        decision_cleanup: u32,
+        effect_failure: &str,
+        state_digest: &str,
+        operations: &Value,
+    ) -> Result<(), Error> {
+        require(
+            self.tail == ReduceTailV8::Charged
+                && self.last.checked_add(1) == Some(seq)
+                && turn == self.turn
+                && attempt == self.attempt
+                && settlement == self.settlement
+                && recorded == self.recorded
+                && decision_cleanup == self.decision_cleanup,
+        )?;
+        if row_plan != self.binding
+            || scope != &self.scope
+            || state_digest != self.state_digest
+            || effect_failure != self.failure.as_str()
+            || operations != &self.operations
+        {
+            return Err(Error::Binding);
+        }
+        self.started = Some(seq);
+        self.last = seq;
+        self.tail = ReduceTailV8::CleanupInDoubt;
+        Ok(())
+    }
+    pub(super) fn cleanup_settled(
+        &mut self,
+        seq: u32,
+        turn: u32,
+        attempt: u32,
+        started: u32,
+        receipt: &Value,
+    ) -> Result<(), Error> {
+        require(
+            self.tail == ReduceTailV8::CleanupInDoubt
+                && self.last.checked_add(1) == Some(seq)
+                && turn == self.turn
+                && attempt == self.attempt
+                && self.started == Some(started),
+        )?;
+        v2::validate_owned_wait_observed_receipt_v8(&self.operations, receipt)
+            .map_err(|_| Error::Binding)?;
+        self.tail = if receipt["settlement"] == "completed" {
+            ReduceTailV8::FailureCleaned
+        } else {
+            ReduceTailV8::Quarantined
+        };
+        self.last = seq;
+        Ok(())
+    }
+    pub(super) fn stop(
+        &mut self,
+        seq: u32,
+        turn: u32,
+        attempt: u32,
+        status: super::super::SourceStopStatus,
+        reason: super::super::SourceStopReason,
+    ) -> Result<(), Error> {
+        require(
+            self.tail == ReduceTailV8::FailureCleaned
+                && self.last.checked_add(1) == Some(seq)
+                && turn == self.turn
+                && attempt == self.attempt
+                && status == super::super::SourceStopStatus::EffectFailed
+                && reason == super::super::SourceStopReason::EffectFailed,
+        )?;
+        self.last = seq;
+        self.tail = ReduceTailV8::TerminalPending;
         Ok(())
     }
 }

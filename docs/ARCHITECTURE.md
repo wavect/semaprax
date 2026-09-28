@@ -162,7 +162,12 @@ ACKs, followed by one actual Observe and TurnObserved ACK, in an explicitly
 selected initialized profile. Its `wait` child retains the actual helper park;
 `append/checkpoint` seals the frozen v2 frame from the same held session and
 actual witness inventory without exposing the key or restoring an owner. Historical rows cannot
-mint physical owners or permits. Default ObserveOnly remains separate.
+mint physical owners or permits. `append/owned_effect/intent` owns the actual
+held Intent durable ACK and sealed successor; its callback-free registry
+transition retains the same exclusive future-Reduce hold. The consuming
+`live_upstream/effect/authorization/prepared/intent/activation` adapter owns
+fresh post-ACK checks and the zero-target-call engine activation permit.
+Default ObserveOnly remains separate.
 [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
 private successors; public Agent execution and partial-initialization recovery
 remain unfinished.
@@ -854,8 +859,10 @@ same held journal container through Decision release, fresh Outcome and Reduce.
 `registered_stage/reduce/physical_step` retains that lineage through ordered
 per-operation cleanup observations and actual mapped Step moves; its
 `continue_observe` child consumes the mapped State through one checked Observe.
-Their ACK
-constructors remain test-only until live journal obligations are connected;
+The owned-wait adapter now connects actual live Authorize/Consumed/Intent
+ACKs through zero-call activation; the subsequent dispatch, settlement and
+Reduce routes still require their actual live obligations. Other ACK
+constructors remain test-only until those obligations are connected;
 unpublished durable holders release backing without claiming semantic cleanup.
 `registered_stage/live_run` consumes the separately bound live initialization
 permit, retaining actual Task Bytes provenance in initialized State.

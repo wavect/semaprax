@@ -714,3 +714,5 @@ pub(crate) use live_append::intent::{
 };
 
 pub(crate) use live_append::intent::dispatch::dispatch_live_owned_effect_v8;
+
+pub(crate) use live_append::CheckedLiveOwnedEffectSettlementV8;

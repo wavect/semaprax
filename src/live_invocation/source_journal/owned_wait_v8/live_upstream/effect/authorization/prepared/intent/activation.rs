@@ -7,8 +7,8 @@ use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect:
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct IntentLineageV8<'j> {
     pub(super) session: AppendSessionV8<'j>,
-    witness: VerifiedOwnedEffectIntentSuccessorV8<'j>,
-    hold: ProspectiveOwnedReduceHoldV8<'j>,
+    pub(super) witness: VerifiedOwnedEffectIntentSuccessorV8<'j>,
+    pub(super) hold: ProspectiveOwnedReduceHoldV8<'j>,
     pub(super) journal: &'j SourceOwnedWaitJournalV8,
     selected: EntryV8,
     predecessor_sequence: usize,
@@ -17,10 +17,10 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct IntentLinea
     ready: u32,
     consumed: u32,
     commitments: CheckedOwnedWaitReadyCommitmentsV8,
-    proposal: crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitProposalV8,
-    policy: &'j CapabilityPolicy,
-    cancellation: &'j crate::agent_runtime::AgentCancellation,
-    clock: &'j dyn crate::live_invocation::SourceInvocationClock,
+    pub(super) proposal: crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitProposalV8,
+    pub(super) policy: &'j CapabilityPolicy,
+    pub(super) cancellation: &'j crate::agent_runtime::AgentCancellation,
+    pub(super) clock: &'j dyn crate::live_invocation::SourceInvocationClock,
 }
 /// Private fields; only the consuming actual Intent handoff creates this permit.
 pub(crate) struct LiveEffectIntentPermitV8<'p, 'j> {

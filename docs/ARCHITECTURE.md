@@ -865,7 +865,9 @@ per-operation cleanup observations and actual mapped Step moves; its
 `continue_observe` child consumes the mapped State through one checked Observe.
 The owned-wait adapter now connects actual live Authorize/Consumed/Intent
 ACKs through zero-call activation and consuming actual dispatch; the subsequent
-settlement and Reduce routes still require their actual live obligations. Other ACK
+settlement and Recorded adapters retain that same Staged owner and ledger
+through actual durable ACKs; Decision cleanup, Outcome and Reduce still require
+their actual live obligations. Other ACK
 constructors remain test-only until those obligations are connected;
 unpublished durable holders release backing without claiming semantic cleanup.
 `registered_stage/live_run` consumes the separately bound live initialization

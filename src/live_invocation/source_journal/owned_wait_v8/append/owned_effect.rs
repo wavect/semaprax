@@ -3,6 +3,7 @@ use super::*;
 
 mod consumed;
 mod intent;
+mod settlement;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::LiveOwnedEffectAppendV8;
 pub(super) use consumed::OwnedReduceHoldPhaseV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use consumed::{
@@ -13,6 +14,10 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use consumed::{
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use intent::{
     LiveOwnedEffectIntentAppendFailureV8, VerifiedOwnedEffectIntentAppendV8,
     VerifiedOwnedEffectIntentSuccessorV8,
+};
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::{
+    LiveOwnedEffectSettlementAppendFailureV8, VerifiedOwnedEffectSettlementAppendV8,
+    VerifiedOwnedEffectSettlementSuccessorV8,
 };
 
 /// Move-only exact prefix, bound to the immutable actual E/B/store context.

@@ -1,6 +1,7 @@
 //! Consuming inert append choreography. No sink, File, runtime owner, or ACK factory.
 use super::append::SourceOwnedWaitJournalV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPermitV8;
+use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppendPermitV8;
 use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
@@ -9,6 +10,10 @@ enum ProducerV8<'p, 'j> {
     Intent(
         &'p SourceOwnedWaitJournalV8,
         &'p FixedOwnedEffectIntentAppendPermitV8<'p, 'j>,
+    ),
+    Settlement(
+        &'p SourceOwnedWaitJournalV8,
+        &'p FixedOwnedEffectSettlementAppendPermitV8<'p, 'j>,
     ),
 }
 enum ContextV8<'a> {
@@ -188,6 +193,40 @@ impl<'a> InventoryV8<'a> {
             selected,
         ))
     }
+    // Only exact authenticated current effect settlement phases, no live ACK.
+    pub(super) fn effect_settlement_reduce_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, u32, &EntryV8), SourceJournalError> {
+        let context = self.context.fold();
+        let folded = fold::fold(context, &self.entries)?;
+        let selected = &self.entries.last().ok_or(SourceJournalError::Order)?.entry;
+        let (turn, attempt) = match (folded.tail, selected) {
+            (
+                fold::TailV8::EffectSettlementUncommitted,
+                EntryV8::Ordinary(
+                    SourceJournalEntry::EffectObserved { turn, attempt, .. }
+                    | SourceJournalEntry::EffectFailed { turn, attempt, .. },
+                ),
+            ) => (*turn, *attempt),
+            (
+                fold::TailV8::EffectSettled,
+                EntryV8::Owned(model::OwnedBodyV8::OwnedEffectSettlementRecorded {
+                    turn,
+                    attempt,
+                    ..
+                }),
+            ) => (*turn, *attempt),
+            _ => return Err(SourceJournalError::Order),
+        };
+        capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
+        Ok((
+            folded.reserved_total,
+            folded.stages,
+            turn,
+            attempt,
+            selected,
+        ))
+    }
     pub(super) fn sequence(&self) -> usize {
         self.entries.len()
     }
@@ -225,6 +264,27 @@ impl<'a> InventoryV8<'a> {
         #[cfg(not(test))]
         {
             self.prepare_inner(row, Some(lease), ProducerV8::Intent(journal, permit))
+        }
+    }
+    pub(super) fn prepare_fixed_settlement(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedEffectSettlementAppendPermitV8<'_, '_>,
+    ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+        let row = permit.selected_row().clone();
+        #[cfg(test)]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::Settlement(journal, permit),
+                None,
+            )
+        }
+        #[cfg(not(test))]
+        {
+            self.prepare_inner(row, Some(lease), ProducerV8::Settlement(journal, permit))
         }
     }
     fn prepare_inner(
@@ -288,6 +348,12 @@ impl<'a> InventoryV8<'a> {
             match producer {
                 ProducerV8::Generic => fold::validate_producer_transition(&previous, &checked)?,
                 ProducerV8::Intent(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
+                ProducerV8::Settlement(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
                     }
@@ -411,6 +477,16 @@ impl<'a> PendingV8<'a> {
         &self,
         journal: &SourceOwnedWaitJournalV8,
         permit: &FixedOwnedEffectIntentAppendPermitV8<'_, '_>,
+    ) -> Result<(), SourceJournalError> {
+        if self.0.row.entry != *permit.selected_row() {
+            return Err(SourceJournalError::Binding);
+        }
+        permit.validate_selected_prefix(journal, &self.0.inventory)
+    }
+    pub(super) fn validate_fixed_settlement_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedEffectSettlementAppendPermitV8<'_, '_>,
     ) -> Result<(), SourceJournalError> {
         if self.0.row.entry != *permit.selected_row() {
             return Err(SourceJournalError::Binding);

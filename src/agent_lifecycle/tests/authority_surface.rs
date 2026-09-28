@@ -112,6 +112,24 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
             ),
         ),
         (
+            "interpreter/resumable/owned_frame/registered_stage/effect/live_append/settlement.rs",
+            include_str!(
+                "../../interpreter/resumable/owned_frame/registered_stage/effect/live_append/settlement.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/settlement.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/settlement.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement.rs"
+            ),
+        ),
+        (
             "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold.rs",
             include_str!(
                 "../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold.rs"
@@ -407,6 +425,24 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
             "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch.rs",
             include_str!(
                 "../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch.rs"
+            ),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/effect/live_append/settlement.rs",
+            include_str!(
+                "../../interpreter/resumable/owned_frame/registered_stage/effect/live_append/settlement.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/settlement.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/settlement.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement.rs"
             ),
         ),
         (

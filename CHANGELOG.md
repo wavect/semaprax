@@ -13,7 +13,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   initialization uses exact typed Task and acknowledged stage reservations;
   historical data cannot mint owners. Actual held Authorize/Consumed/Intent
   ACKs now preserve the same owner and exclusive future-Reduce credit through
-  consuming host dispatch with retained invocation accounting. Public owned
+  consuming host dispatch and settlement/Recorded ACKs with retained invocation
+  accounting. Public owned
   Agent execution and durable recovery remain incomplete; full integrated
   acceptance is pending.
 

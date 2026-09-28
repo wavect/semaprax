@@ -142,3 +142,6 @@ impl PreparedOwnedEffectV8<'_> {
 mod tests;
 
 pub(super) mod intent;
+
+mod settlement;
+pub(crate) use settlement::CheckedLiveOwnedEffectSettlementV8;

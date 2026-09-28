@@ -745,3 +745,5 @@ pub(crate) fn ack_owned_effect_cleanup_v8<'a>(
 }
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+pub(super) use tests::with_staged_effect_reduce_v2;

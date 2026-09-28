@@ -127,40 +127,34 @@ impl HeldExecutedOwnedStepV2<'_> {
     }
 }
 impl ReadyExecutedOwnedStepV2<'_> {
-    fn discard_unheld_backing(&mut self) {
-        if self.quarantined || !self.validate_store() {
-            if let Some(ready) = &mut self.ready {
-                // Dispose backing while the borrower still lives. Prevent
-                // inner Drop from claiming compiler semantic settlement.
-                drop(ready.root.take());
-            }
+    fn discard_unpublished_backing(&mut self) {
+        if let Some(ready) = &mut self.ready {
+            // No result-disposal ACK/claim is supplied by this foundation.
+            // Drain backing under the retained borrower even with valid pins,
+            // so the inner Drop cannot perform semantic result settlement.
+            drop(ready.root.take());
         }
     }
 }
 impl HeldExecutedOwnedStepV2<'_> {
-    fn discard_unheld_backing(&mut self) {
-        if !self.validate_store() {
-            match self.owner.as_mut() {
-                Some(
-                    OwnedStepTransferV2::Continue(state) | OwnedStepTransferV2::Suspend(state),
-                ) => {
-                    drop(state.root.take());
-                }
-                Some(OwnedStepTransferV2::Complete(report)) => drop(report.root.take()),
-                _ => {}
+    fn discard_unpublished_backing(&mut self) {
+        match self.owner.as_mut() {
+            Some(OwnedStepTransferV2::Continue(state) | OwnedStepTransferV2::Suspend(state)) => {
+                drop(state.root.take());
             }
+            Some(OwnedStepTransferV2::Complete(report)) => drop(report.root.take()),
+            _ => {}
         }
     }
 }
-
 impl Drop for ReadyExecutedOwnedStepV2<'_> {
     fn drop(&mut self) {
-        self.discard_unheld_backing();
+        self.discard_unpublished_backing();
     }
 }
 impl Drop for HeldExecutedOwnedStepV2<'_> {
     fn drop(&mut self) {
-        self.discard_unheld_backing();
+        self.discard_unpublished_backing();
     }
 }
 

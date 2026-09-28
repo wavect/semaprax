@@ -1,6 +1,6 @@
 //! Actual root tests under genuine runtime/store; the committed envelope
 //! producers here bypass pending §23 journal ACKs and are test-only.
-use super::super::super::effect::tests::with_staged_effect_reduce_v2;
+use super::super::super::effect::with_staged_effect_reduce_v2;
 use super::*;
 
 fn committed(staged: StagedExecutedOwnedReduceV2<'_>) -> CommittedExecutedOwnedReduceCleanupV2<'_> {
@@ -168,8 +168,8 @@ fn owned_reduce_cancel_after_cleanup_start_still_releases_but_blocks_step_move()
 }
 
 #[test]
-fn owned_reduce_poisoned_store_or_foreign_drop_discards_backing_without_semantic_disposal() {
-    for foreign in [false, true] {
+fn owned_reduce_normal_poisoned_or_foreign_drop_disarms_semantic_disposal() {
+    for mode in 0..3 {
         with_staged_effect_reduce_v2(1000, |staged, weak, _, _, directory| {
             let ready = ready(
                 settle_executed_owned_reduce_v2(committed(staged), || true, |_| {})
@@ -177,9 +177,9 @@ fn owned_reduce_poisoned_store_or_foreign_drop_discards_backing_without_semantic
             );
             let mut held = consume_executed_owned_step_v2(transfer(ready), || true)
                 .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
-            if foreign {
+            if mode == 2 {
                 held.creator = held.creator.wrapping_add(1);
-            } else {
+            } else if mode == 1 {
                 let displaced = directory.with_file_name("ready-journal-physical-step-displaced");
                 std::fs::rename(directory, &displaced).unwrap();
                 assert!(!held.validate_store());
@@ -189,7 +189,7 @@ fn owned_reduce_poisoned_store_or_foreign_drop_discards_backing_without_semantic
                     "restoring path cannot revive poisoned borrower"
                 );
             }
-            held.discard_unheld_backing();
+            held.discard_unpublished_backing();
             let Some(OwnedStepTransferV2::Complete(report)) = &held.owner else {
                 panic!()
             };

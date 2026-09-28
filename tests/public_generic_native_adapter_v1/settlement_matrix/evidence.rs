@@ -188,11 +188,11 @@ pub(super) fn command(
         state.commands.push(json!({"label":label,"tool_role":role,"program":program,"args":args,"cwd":cwd.as_ref().ok().map(|p|p.to_string_lossy().into_owned()),"cwd_error":cwd.as_ref().err().map(|error|error.to_string()),"configured_cwd":command.get_current_dir().map(|p|p.to_string_lossy().into_owned()),"env":command.get_envs().map(|(k,v)|(k.to_string_lossy().into_owned(),v.map(|v|v.to_string_lossy().into_owned()))).collect::<BTreeMap<_,_>>(),"result":observation}));
         if let Some(role)=role {
             let identity=format!("{role}:{program}");
-            if !state.tools.contains_key(&identity) {
+            state.tools.entry(identity).or_insert_with(|| {
                 let version=version_command(command,cwd.as_ref().ok().map(PathBuf::as_path)).output();
                 let observed=match version {Ok(output)=>json!({"code":output.status.code(),"success":output.status.success(),"stdout":String::from_utf8_lossy(&output.stdout),"stderr":String::from_utf8_lossy(&output.stderr)}),Err(error)=>json!({"spawn_error":error.to_string()})};
-                state.tools.insert(identity,json!({"role":role,"program":program,"args":["--version"],"cwd":cwd.as_ref().ok().map(|p|p.to_string_lossy().into_owned()),"result":observed}));
-            }
+                json!({"role":role,"program":program,"args":["--version"],"cwd":cwd.as_ref().ok().map(|p|p.to_string_lossy().into_owned()),"result":observed})
+            });
         }
     }});
 }

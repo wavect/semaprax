@@ -285,14 +285,11 @@ fn c_cases(built: &Built, cases: &[usize]) -> String {
 
 fn native_provider(built: &Built) -> String {
     format!(
-        "{}\n{}\n{}\n#undef malloc\n#undef free\n{}",
+        "{}\n{}\n{}\n{}\n#undef malloc\n#undef free\n{}",
         include_str!("../allocations.c"),
         include_str!("../settlement_corpus/observations.c"),
-        format!(
-            "{}\n{}",
-            include_str!("pre_observe.c"),
-            built.native.source()
-        ),
+        include_str!("pre_observe.c"),
+        built.native.source(),
         include_str!("observe.c")
     )
 }
@@ -579,8 +576,8 @@ fn generated_rust(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> {
     );
     super::evidence::external_artifact(
         &format!(
-            "{}/generated-rust/executed-matrix{}",
-            format!("{:?}", built.subject),
+            "{:?}/generated-rust/executed-matrix{}",
+            built.subject,
             env::consts::EXE_SUFFIX
         ),
         &target

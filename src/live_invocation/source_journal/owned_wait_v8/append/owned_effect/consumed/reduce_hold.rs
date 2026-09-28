@@ -16,6 +16,11 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8::append) enum Owned
         reserved: u64,
         stages: u32,
     },
+    TurnAuthorize {
+        selected: EntryV8,
+        reserved: u64,
+        stages: u32,
+    },
     TurnStart {
         selected: EntryV8,
         reserved: u64,
@@ -1478,3 +1483,5 @@ mod turn_start;
 mod turn_prepared;
 
 mod turn_model;
+
+mod turn_authorize;

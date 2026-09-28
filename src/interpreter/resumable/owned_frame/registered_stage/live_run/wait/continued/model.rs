@@ -102,3 +102,5 @@ thread_local! {static RESUME_ENTRIES:std::cell::Cell<usize>=const{std::cell::Cel
 pub(crate) fn test_continued_resume_entries_v8() -> usize {
     RESUME_ENTRIES.with(std::cell::Cell::get)
 }
+
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) mod authorize;

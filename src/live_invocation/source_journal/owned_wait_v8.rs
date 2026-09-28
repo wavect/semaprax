@@ -133,3 +133,7 @@ pub(crate) use live_upstream::{
     LiveContinuedModelIntentPermitV8, LiveContinuedModelRequestOriginV8,
     LiveContinuedWaitResumePermitV8,
 };
+
+pub(crate) use live_upstream::{
+    LiveContinuedAuthorizePermitV8, LiveContinuedStateTransferPermitV8,
+};

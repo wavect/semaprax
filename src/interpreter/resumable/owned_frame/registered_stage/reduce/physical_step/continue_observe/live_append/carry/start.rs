@@ -129,3 +129,18 @@ impl PreparedHeldContinuedWaitV2<'_> {
         }
     }
 }
+
+impl PreparedHeldContinuedWaitV2<'_> {
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn matches_transfer_permit(
+        &self,
+        permit: &crate::live_invocation::source_journal::LiveContinuedStateTransferPermitV8<'_, '_>,
+    ) -> bool {
+        permit.matches_held_store(&self.context.store)
+    }
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn matches_authorize_permit(
+        &self,
+        permit: &crate::live_invocation::source_journal::LiveContinuedAuthorizePermitV8<'_, '_>,
+    ) -> bool {
+        permit.matches_held_store(&self.context.store)
+    }
+}

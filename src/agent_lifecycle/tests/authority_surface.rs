@@ -42,6 +42,34 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
             include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model.rs"),
         ),
         (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_authorize.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_authorize.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_authorize/funnel.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_authorize/funnel.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/candidate/continued_authorize.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/candidate/continued_authorize.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_authorize.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_authorize.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize.rs"),
+        ),
+        (
             "live_invocation/source_journal/owned_wait_v8/append/continued_model.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_model.rs"),
         ),
@@ -641,6 +669,34 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
         (
             "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model.rs",
             include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_authorize.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_authorize.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_authorize/funnel.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_authorize/funnel.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/candidate/continued_authorize.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/candidate/continued_authorize.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_authorize.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_authorize.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize.rs"),
         ),
         (
             "live_invocation/source_journal/owned_wait_v8/append/continued_model.rs",

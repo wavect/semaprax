@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private continued Transfer and Authorize transport into actual Granted or
+  Refused Staged outcomes, retaining the same token, ledger and measured source
+  consumption. Owning runtime gates and full public execution remain pending.
+
 - Add private continued model SDK settlement and Resume transport through actual
   durable ACKs, retaining authenticated accounting and the same spent token.
   Owning runtime gates, next authorization and full public execution remain pending.

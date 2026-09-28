@@ -188,3 +188,12 @@ pub(crate) use wait::{resume_live_continued_wait_v8, LiveContinuedWaitResumeOutc
 
 #[cfg(test)]
 pub(crate) use wait::test_continued_resume_entries_v8;
+
+pub(crate) use wait::{
+    authorize_live_continued_state_v8, transfer_live_continued_state_v8,
+    LiveContinuedAuthorizeOutcomeV8, LiveContinuedStagedAuthorizationV8,
+    LiveContinuedTransferOutcomeV8, LiveContinuedTransferredStateV8,
+};
+
+#[cfg(test)]
+pub(crate) use wait::{test_continued_authorize_entries_v8, test_continued_authorize_entry_v8};

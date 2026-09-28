@@ -1304,3 +1304,7 @@ pub(crate) use owned_wait_v8::{
     LiveContinuedModelIntentPermitV8, LiveContinuedModelRequestOriginV8,
     LiveContinuedWaitResumePermitV8,
 };
+
+pub(crate) use owned_wait_v8::{
+    LiveContinuedAuthorizePermitV8, LiveContinuedStateTransferPermitV8,
+};

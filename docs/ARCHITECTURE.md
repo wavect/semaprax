@@ -928,7 +928,14 @@ settlement keeps physical provenance checks while omitting new-work cancellation
 admission. Candidate `continued_model` retains the authenticated accounting proof,
 and `reduce_hold/turn_model` advances the same spent-token cursor only after a
 true durable ACK. Decoded proposal data grants no owner or dispatch authority.
-Next authorization, target dispatch, renewal and public recovery remain required.
+The continued `model/authorize`, `append/continued_authorize` and engine
+`wait/continued/model/authorize` children consume the actual Completed owner
+through Proposal, Transfer and full-F Authorize ACKs into a real Staged result.
+Candidate `continued_authorize` and `reduce_hold/turn_authorize` bind the actual
+accounting and advance the same registry token. Initial and continued paths
+share the existing checked authorization evaluator; partial source failure
+retains the actual holder and measured consumption. Ready, target dispatch,
+renewal and public recovery remain required.
 Static Reduce capacity templates are privately retained under exact Context and
 checked proof identity; all current fold/prefix/physical checks remain fresh.
 `registered_stage/live_run` consumes the separately bound live initialization

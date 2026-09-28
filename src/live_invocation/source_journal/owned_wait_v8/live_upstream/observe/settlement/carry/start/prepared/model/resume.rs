@@ -226,3 +226,35 @@ impl<'j> LiveContinuedModelV8<'j> {
         Ok(owner)
     }
 }
+
+impl<'j> ModelOwnerV8<'j> {
+    pub(super) fn transfer_actual(
+        self,
+        session: &AppendSessionV8<'j>,
+        witness: &super::authorize::VerifiedOwnedContinuedAuthorizeSuccessorV8<'j>,
+        proposal: &CheckedOwnedWaitProposalV8,
+    ) -> Self {
+        match self {
+            Self::Resumed(o) => Self::Resumed(ResumedModelOwnerV8 {
+                owner: o
+                    .owner
+                    .transfer_authorize_actual(session, witness, proposal),
+                history: o.history,
+            }),
+            Self::Parked(o) => Self::Parked(o),
+        }
+    }
+    pub(super) fn authorize_actual(
+        self,
+        session: &AppendSessionV8<'j>,
+        witness: &super::authorize::VerifiedOwnedContinuedAuthorizeSuccessorV8<'j>,
+    ) -> Self {
+        match self {
+            Self::Resumed(o) => Self::Resumed(ResumedModelOwnerV8 {
+                owner: o.owner.evaluate_authorize_actual(session, witness),
+                history: o.history,
+            }),
+            Self::Parked(o) => Self::Parked(o),
+        }
+    }
+}

@@ -36,8 +36,16 @@ impl TestProspectiveReduceLimitV8 {
     }
 }
 #[derive(Clone, Copy)]
+pub(crate) enum TestContinuedAuthorizeV8 {
+    Requires,
+    Ensures,
+    Arithmetic,
+    Fuel,
+}
+#[derive(Clone, Copy)]
 enum RuntimeFixture {
     Baseline,
+    ContinuedAuthorize(TestContinuedAuthorizeV8),
     Complete,
     EmptyComplete,
     ReduceFuel,
@@ -98,6 +106,21 @@ fn fixture_for(profile: RuntimeFixture) -> Fixture {
                 original,
                 &original.replace("budget: state.budget", &format!("budget: {budget}")),
             )
+        }
+        RuntimeFixture::ContinuedAuthorize(mode) => {
+            let signature="fn authorize(state: borrow State, budget: i64, urgent: bool, sequence: usize) -> Decision\n{";
+            assert_eq!(source.matches(signature).count(), 1);
+            match mode {
+                TestContinuedAuthorizeV8::Requires => source.replace(signature,"fn authorize(state: borrow State, budget: i64, urgent: bool, sequence: usize) -> Decision\n    requires state.epoch == 1\n{"),
+                TestContinuedAuthorizeV8::Ensures => source.replace(signature,"fn authorize(state: borrow State, budget: i64, urgent: bool, sequence: usize) -> Decision\n    ensures state.epoch == 1\n{"),
+                TestContinuedAuthorizeV8::Arithmetic | TestContinuedAuthorizeV8::Fuel => {
+                    fn balanced(depth:usize)->String {if depth==0 {"0".into()} else {let child=balanced(depth-1);format!("({child} + {child})")}}
+                    let original="seal: bytes_copy(array_as_slice(seal)), budget: budget";
+                    assert_eq!(source.matches(original).count(),1);
+                    let budget=match mode {TestContinuedAuthorizeV8::Arithmetic=>"(budget / (2 - state.epoch))".to_owned(),_=>format!("if state.epoch > 1 {{ {} }} else {{ budget }}",balanced(9))};
+                    source.replace(original,&format!("seal: bytes_copy(array_as_slice(seal)), budget: {budget}"))
+                }
+            }
         }
         RuntimeFixture::InitialObserveEnsures => {
             let original = "fn observe(state: borrow State) -> Observation\n{";
@@ -229,6 +252,7 @@ fn runtime_for(
         match profile {
             RuntimeFixture::Baseline
             | RuntimeFixture::BaselineTaskZero
+            | RuntimeFixture::ContinuedAuthorize(_)
             | RuntimeFixture::ReduceFuel
             | RuntimeFixture::ReduceArithmetic
             | RuntimeFixture::ReduceEnsures
@@ -675,6 +699,17 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
         ) -> T,
     ) -> T {
         Self::test_with_runtime_fixture(RuntimeFixture::Baseline, retention_ack, callback)
+    }
+    pub(crate) fn test_with_actual_continued_authorize_store<T>(
+        mode: TestContinuedAuthorizeV8,
+        callback: impl FnOnce(
+            CheckedOwnedWaitJournalContextV8,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ContinuedAuthorize(mode), true, callback)
     }
     pub(crate) fn test_with_actual_initial_observe_ensures_store<T>(
         callback: impl FnOnce(

@@ -452,6 +452,89 @@ fn owned_continued_model_accounting_proof_is_exact_current_context_prefix() {
     });
 }
 
+/// Genuine closed M boundary, never a raw owner or ACK factory.
+pub(super) fn test_completed(
+    callback: impl for<'j> FnOnce(
+        &'j SourceOwnedWaitJournalV8,
+        LiveContinuedModelV8<'j>,
+        Vec<std::sync::Weak<[u8]>>,
+        crate::agent_lifecycle::authorization::target_protocol::TargetAccounting,
+        serde_json::Value,
+    ),
+    granted: bool,
+) {
+    test_completed_profile(callback, granted, None);
+}
+pub(super) fn test_completed_profile(
+    callback: impl for<'j> FnOnce(
+        &'j SourceOwnedWaitJournalV8,
+        LiveContinuedModelV8<'j>,
+        Vec<std::sync::Weak<[u8]>>,
+        crate::agent_lifecycle::authorization::target_protocol::TargetAccounting,
+        serde_json::Value,
+    ),
+    granted: bool,
+    profile: Option<crate::execution_revision::typed::TestContinuedAuthorizeV8>,
+) {
+    super::super::super::super::super::tests::with_continued_authorize(
+        false,
+        profile,
+        |journal, owner, weak, ledger, _, _, _| {
+            let parked = prepared(journal, owner);
+            let binding = journal.context().ready_runtime().unwrap().1.wait();
+            let state = parked
+                .owner
+                .owner
+                .checked_model_facts(binding)
+                .expect("same actual continued State");
+            let counts = Rc::new(RefCell::new(Counts::default()));
+            let mut response = document(journal.context());
+            if !granted {
+                response = String::from_utf8(response)
+                    .unwrap()
+                    .replace("\"sequence\":\"1\"", "\"sequence\":\"2\"")
+                    .into_bytes();
+            }
+            let mut factory = factory(counts.clone(), script(&response), Rc::new(|_| {}));
+            let mut adapter = source(journal.context(), &mut factory);
+            let intent = acknowledge(
+                journal,
+                parked
+                    .prepare_model_intent(&adapter)
+                    .unwrap_or_else(|_| panic!("true M Intent")),
+            );
+            let actual = intent
+                .dispatch_model(&mut adapter)
+                .unwrap_or_else(|_| panic!("real second SDK"));
+            let settled = acknowledge(
+                journal,
+                actual.prepare_next().unwrap_or_else(|_| panic!("Settled")),
+            );
+            let usage = acknowledge(
+                journal,
+                settled.prepare_next().unwrap_or_else(|_| panic!("Usage")),
+            );
+            let resume = acknowledge(
+                journal,
+                usage
+                    .prepare_next()
+                    .unwrap_or_else(|_| panic!("full Resume F")),
+            );
+            let resumed = resume
+                .resume_actual()
+                .unwrap_or_else(|_| panic!("sole Resume"));
+            let completed = acknowledge(
+                journal,
+                resumed
+                    .prepare_next()
+                    .unwrap_or_else(|_| panic!("Completed")),
+            );
+            assert_eq!(counts.borrow().factories, 1);
+            assert_eq!(counts.borrow().starts, 1);
+            callback(journal, completed, weak, ledger, state);
+        },
+    );
+}
 #[test]
 fn owned_continued_model_cancel_does_not_mask_actual_tail_or_policy_loss() {
     for policy_loss in [false, true] {

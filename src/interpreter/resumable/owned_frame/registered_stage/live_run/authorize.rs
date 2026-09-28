@@ -45,6 +45,13 @@ pub(crate) fn transfer_live_owned_state_v8(
     owner: LiveResumedStateV8,
     proposal: &CheckedOwnedWaitProposalV8,
 ) -> LiveStateTransferOutcomeV8 {
+    transfer_with_guard_v8(TransferGuardV8::Initial(&permit), owner, proposal)
+}
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn transfer_with_guard_v8(
+    permit: TransferGuardV8<'_, '_, '_>,
+    owner: LiveResumedStateV8,
+    proposal: &CheckedOwnedWaitProposalV8,
+) -> LiveStateTransferOutcomeV8 {
     let t = &owner.terminal;
     // Prove no failure-vector path or physical finalizer can run before consuming.
     if permit.validate_guard().is_err()
@@ -221,6 +228,11 @@ pub(crate) fn promote_live_owned_authorization_v8(
     }
 }
 impl LiveStagedAuthorizationV8 {
+    pub(crate) fn failure(
+        &self,
+    ) -> Option<&crate::interpreter::resumable::owned_frame::OwnedFrameFailure> {
+        self.staged.failure()
+    }
     pub(crate) fn consumed(&self) -> u64 {
         self.consumed
     }
@@ -246,10 +258,20 @@ pub(crate) fn authorize_live_owned_state_v8(
     permit: LiveAuthorizePermitV8<'_>,
     owner: LiveTransferredStateV8,
 ) -> LiveAuthorizeOutcomeV8 {
+    authorize_with_guard_v8(AuthorizeGuardV8::Initial(&permit), owner)
+}
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn authorize_with_guard_v8(
+    permit: AuthorizeGuardV8<'_, '_, '_>,
+    owner: LiveTransferredStateV8,
+) -> LiveAuthorizeOutcomeV8 {
     if permit.validate_guard().is_err() {
         return LiveAuthorizeOutcomeV8::Refused(owner);
     }
     let mut budget = OwnedFrameBudget::new(permit.fuel()).expect("checked exact Authorize F");
+    #[cfg(test)]
+    if matches!(&permit, AuthorizeGuardV8::Continued(_)) {
+        super::test_continued_authorize_entry_v8();
+    }
     let staged =
         match stage_owned_authorize_v2(owner.state, permit.binding().authorize(), &mut budget) {
             Ok(staged) => staged,
@@ -270,5 +292,63 @@ pub(crate) fn authorize_live_owned_state_v8(
         LiveAuthorizeOutcomeV8::Failed(owner)
     } else {
         LiveAuthorizeOutcomeV8::Staged(owner)
+    }
+}
+
+/// Exhaustive compiler-owned stage guard: no caller trait or closure authority.
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) enum TransferGuardV8<
+    'g,
+    'p,
+    'j,
+> {
+    Initial(&'g LiveStateTransferPermitV8<'j>),
+    Continued(
+        &'g crate::live_invocation::source_journal::LiveContinuedStateTransferPermitV8<'p, 'j>,
+    ),
+}
+impl TransferGuardV8<'_, '_, '_> {
+    fn validate_guard(
+        &self,
+    ) -> Result<(), crate::live_invocation::source_journal::SourceJournalError> {
+        match self {
+            Self::Initial(x) => x.validate_guard(),
+            Self::Continued(x) => x.validate_guard(),
+        }
+    }
+    fn binding(&self) -> &CheckedOwnedAgentWaitBindingV8 {
+        match self {
+            Self::Initial(x) => x.binding(),
+            Self::Continued(x) => x.binding(),
+        }
+    }
+}
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) enum AuthorizeGuardV8<
+    'g,
+    'p,
+    'j,
+> {
+    Initial(&'g LiveAuthorizePermitV8<'j>),
+    Continued(&'g crate::live_invocation::source_journal::LiveContinuedAuthorizePermitV8<'p, 'j>),
+}
+impl AuthorizeGuardV8<'_, '_, '_> {
+    fn validate_guard(
+        &self,
+    ) -> Result<(), crate::live_invocation::source_journal::SourceJournalError> {
+        match self {
+            Self::Initial(x) => x.validate_guard(),
+            Self::Continued(x) => x.validate_guard(),
+        }
+    }
+    fn binding(&self) -> &CheckedOwnedAgentWaitBindingV8 {
+        match self {
+            Self::Initial(x) => x.binding(),
+            Self::Continued(x) => x.binding(),
+        }
+    }
+    fn fuel(&self) -> usize {
+        match self {
+            Self::Initial(x) => x.fuel(),
+            Self::Continued(x) => x.fuel(),
+        }
     }
 }

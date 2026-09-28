@@ -198,6 +198,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct ContinuedRe
 }
 enum ContinuedResumeOutcomeV8<'j> {
     Actual(LiveContinuedWaitResumeOutcomeV8<'j>),
+    Authorization(authorize::ContinuedAuthorizationOutcomeV8<'j>),
     Before(LiveContinuedWaitStartOutcomeV8<'j>, SourceJournalError),
 }
 impl<'j> ContinuedStartedWaitV8<'j> {
@@ -465,6 +466,7 @@ impl<'j> ContinuedResumedWaitV8<'j> {
     }
 }
 
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod authorize;
 impl ContinuedStartedWaitV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_sdk_live(
         &self,

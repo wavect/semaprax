@@ -16,6 +16,10 @@ use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
 enum ProducerV8<'p, 'j> {
+    ContinuedAuthorize(
+        &'p SourceOwnedWaitJournalV8,
+        &'p super::live_upstream::FixedOwnedContinuedAuthorizeAppendPermitV8<'p, 'j>,
+    ),
     ContinuedModel(
         &'p SourceOwnedWaitJournalV8,
         &'p super::live_upstream::FixedOwnedContinuedModelAppendPermitV8<'p, 'j>,
@@ -1034,6 +1038,12 @@ impl<'a> InventoryV8<'a> {
             };
             let previous = fold::fold(context, &self.entries)?;
             match producer {
+                ProducerV8::ContinuedAuthorize(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
                 ProducerV8::ContinuedModel(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
@@ -1462,3 +1472,5 @@ mod failed_observe_state;
 mod continued_prepared;
 
 mod continued_model;
+
+mod continued_authorize;

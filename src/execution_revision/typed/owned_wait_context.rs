@@ -155,3 +155,6 @@ impl AgentRuntimeV2 {
 mod tests;
 #[cfg(test)]
 pub(crate) use tests::TestProspectiveReduceLimitV8;
+
+#[cfg(test)]
+pub(crate) use tests::TestContinuedAuthorizeV8;

@@ -245,6 +245,21 @@ pub(super) fn with_continued(
         &'j AgentCancellation,
     ),
 ) {
+    with_continued_authorize(failed, None, callback);
+}
+pub(super) fn with_continued_authorize(
+    failed: bool,
+    authorize: Option<crate::execution_revision::typed::TestContinuedAuthorizeV8>,
+    callback: impl for<'j> FnOnce(
+        &'j SourceOwnedWaitJournalV8,
+        LiveOwnedObserveSettlementAppendV8<'j>,
+        Vec<std::sync::Weak<[u8]>>,
+        crate::agent_lifecycle::authorization::target_protocol::TargetAccounting,
+        Option<ResumableChannelValue>,
+        usize,
+        &'j AgentCancellation,
+    ),
+) {
     let run = |context: CheckedOwnedWaitJournalContextV8,
                lease: crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
                key: crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
@@ -317,7 +332,9 @@ pub(super) fn with_continued(
             },
         );
     };
-    if failed {
+    if let Some(mode) = authorize {
+        CheckedOwnedWaitJournalContextV8::test_with_actual_continued_authorize_store(mode, run)
+    } else if failed {
         CheckedOwnedWaitJournalContextV8::test_with_actual_continued_observe_ensures_store(run)
     } else {
         CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(true, run)

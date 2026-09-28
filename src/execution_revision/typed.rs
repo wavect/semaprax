@@ -675,3 +675,6 @@ pub use migration::{
     AgentRuntimeV2MigrationEvidence, AgentRuntimeV2MigrationFailure, DurableMigrationFailure,
     MigratedAgentRuntimeV2, ResumedMigratedAgentRuntimeV2,
 };
+
+#[cfg(test)]
+pub(crate) use owned_wait_context::TestContinuedAuthorizeV8;

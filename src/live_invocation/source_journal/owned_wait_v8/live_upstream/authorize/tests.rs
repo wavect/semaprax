@@ -195,6 +195,7 @@ fn owned_wait_live_authorize_rejects_unprojected_generation_before_transfer_writ
             .append(selected(&wrong))
             .err()
             .expect("old generation refused");
+        assert_eq!(append_failure_error(&failure), SourceJournalError::Order);
         let super::super::super::append::AppendFailureV8::CandidateRefused {
             session, error, ..
         } = failure

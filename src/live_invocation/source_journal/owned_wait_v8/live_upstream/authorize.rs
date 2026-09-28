@@ -1,5 +1,6 @@
 //! Actual successful helper lineage through transfer and source authorization.
 //! No data-only history, Ready permission, or target dispatch enters this route.
+use super::super::append::AppendFailureV8;
 use super::model::{check_clock_v8, CompletedLiveOwnedRunV8};
 use super::*;
 use crate::interpreter::resumable::owned_frame::registered_stage::live_run::{
@@ -92,6 +93,15 @@ pub(super) struct StagedLiveOwnedRunV8<'j> {
     #[cfg(test)]
     transfer_digest: String,
 }
+fn append_failure_error(failure: &AppendFailureV8<'_>) -> SourceJournalError {
+    match failure {
+        AppendFailureV8::PhysicalBeforeCandidate { error, .. }
+        | AppendFailureV8::CandidateRefused { error, .. }
+        | AppendFailureV8::PrewriteRefused { error, .. } => *error,
+        // Once a physical append was attempted, exact persistence is in doubt.
+        AppendFailureV8::InDoubt { .. } => SourceJournalError::Uncertain,
+    }
+}
 pub(super) fn authorize_live_actor_v8<'j>(
     completed: CompletedLiveOwnedRunV8<'j>,
 ) -> Result<StagedLiveOwnedRunV8<'j>, LiveAuthorizeFailureV8<'j>> {
@@ -179,10 +189,10 @@ pub(super) fn authorize_live_actor_v8<'j>(
         proposal_digest: proposal_digest.clone(),
     })) {
         Ok(session) => session,
-        Err(_) => {
+        Err(failure) => {
             return Err(fail!(
                 LiveAuthorizeFailureOwnerV8::Resumed(owner),
-                SourceJournalError::Uncertain
+                append_failure_error(&failure)
             ))
         }
     };
@@ -201,10 +211,10 @@ pub(super) fn authorize_live_actor_v8<'j>(
         },
     )) {
         Ok(session) => session,
-        Err(_) => {
+        Err(failure) => {
             return Err(fail!(
                 LiveAuthorizeFailureOwnerV8::Resumed(owner),
-                SourceJournalError::Uncertain
+                append_failure_error(&failure)
             ))
         }
     };
@@ -265,10 +275,10 @@ pub(super) fn authorize_live_actor_v8<'j>(
         },
     )) {
         Ok(session) => session,
-        Err(_) => {
+        Err(failure) => {
             return Err(fail!(
                 LiveAuthorizeFailureOwnerV8::Transferred(owner),
-                SourceJournalError::Uncertain
+                append_failure_error(&failure)
             ))
         }
     };
@@ -293,10 +303,10 @@ pub(super) fn authorize_live_actor_v8<'j>(
         fuel,
     })) {
         Ok(session) => session,
-        Err(_) => {
+        Err(failure) => {
             return Err(fail!(
                 LiveAuthorizeFailureOwnerV8::Transferred(owner),
-                SourceJournalError::Uncertain
+                append_failure_error(&failure)
             ))
         }
     };
@@ -365,10 +375,10 @@ pub(super) fn authorize_live_actor_v8<'j>(
         },
     )) {
         Ok(session) => session,
-        Err(_) => {
+        Err(failure) => {
             return Err(fail!(
                 LiveAuthorizeFailureOwnerV8::Staged(owner),
-                SourceJournalError::Uncertain
+                append_failure_error(&failure)
             ))
         }
     };

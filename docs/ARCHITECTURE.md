@@ -159,7 +159,9 @@ borrowers keep that container through owned stages. Physical uncertainty
 permanently poisons the container; pure prospective row refusal does not.
 `live_upstream` owns fresh initialization through real reservation and State
 ACKs, followed by one actual Observe and TurnObserved ACK, in an explicitly
-selected initialized profile. Historical rows cannot
+selected initialized profile. Its `wait` child retains the actual helper park;
+`append/checkpoint` seals the frozen v2 frame from the same held session and
+actual witness inventory without exposing the key or restoring an owner. Historical rows cannot
 mint physical owners or permits. Default ObserveOnly remains separate.
 [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
 private successors; public Agent execution and partial-initialization recovery

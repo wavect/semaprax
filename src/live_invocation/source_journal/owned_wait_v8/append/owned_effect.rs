@@ -1,6 +1,12 @@
 //! Actual Ready-only append. A persisted row never supplies an owner or host grant.
 use super::*;
+
+mod consumed;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::LiveOwnedEffectAppendV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use consumed::{
+    LiveOwnedAuthorizationConsumedAppendFailureV8, VerifiedOwnedAuthorizationConsumedSuccessorV8,
+    VerifiedOwnedAuthorizationConsumedV8,
+};
 
 /// Move-only exact prefix, bound to the immutable actual E/B/store context.
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct OwnedEffectAppendCursorV8<'j> {

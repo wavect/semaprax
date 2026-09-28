@@ -22,6 +22,26 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     .join("\n");
     let model_wait_sources = [
         (
+            "live_invocation/source_journal/owned_wait_v8/reduce_fold.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/reduce_fold.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/reduce_inventory.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/reduce_inventory.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/reduce_model.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/reduce_model.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/reduce_wire.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/reduce_wire.rs"),
+        ),
+        (
+            "resumable_effects/owned_frame/v2/reduce_wire.rs",
+            include_str!("../../resumable_effects/owned_frame/v2/reduce_wire.rs"),
+        ),
+        (
             "live_invocation/source_journal/owned_wait_v8/capacity/effect.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/capacity/effect.rs"),
         ),
@@ -165,6 +185,26 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     ]
     .join("\n");
     let model_wait_sources = [
+        (
+            "live_invocation/source_journal/owned_wait_v8/reduce_fold.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/reduce_fold.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/reduce_inventory.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/reduce_inventory.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/reduce_model.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/reduce_model.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/reduce_wire.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/reduce_wire.rs"),
+        ),
+        (
+            "resumable_effects/owned_frame/v2/reduce_wire.rs",
+            include_str!("../../resumable_effects/owned_frame/v2/reduce_wire.rs"),
+        ),
         (
             "live_invocation/source_journal/owned_wait_v8/capacity/effect.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/capacity/effect.rs"),

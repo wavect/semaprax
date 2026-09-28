@@ -9,6 +9,10 @@ mod fold;
 mod inventory;
 mod model;
 mod ready_commitment;
+mod reduce_fold;
+mod reduce_inventory;
+mod reduce_model;
+mod reduce_wire;
 pub(crate) use ready_commitment::owned_wait_ready_commitment_v8;
 #[cfg(test)]
 mod tests;

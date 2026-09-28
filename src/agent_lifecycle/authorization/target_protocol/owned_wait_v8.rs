@@ -1,5 +1,6 @@
 //! Shared frozen grant preimage; inert digest computation grants no dispatch.
 use super::*;
+pub(crate) mod physical;
 pub(crate) mod settlement;
 
 pub(in crate::agent_lifecycle) fn grant_id(

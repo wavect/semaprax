@@ -17,6 +17,7 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     let target_joined = [
         include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
         include_str!("../authorization/target_protocol/owned_wait_v8/settlement.rs"),
+        include_str!("../authorization/target_protocol/owned_wait_v8/physical.rs"),
     ]
     .join("\n");
     let model_wait_sources = [
@@ -160,6 +161,7 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     let target_joined = [
         include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
         include_str!("../authorization/target_protocol/owned_wait_v8/settlement.rs"),
+        include_str!("../authorization/target_protocol/owned_wait_v8/physical.rs"),
     ]
     .join("\n");
     let model_wait_sources = [

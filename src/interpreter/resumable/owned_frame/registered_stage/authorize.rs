@@ -265,9 +265,76 @@ pub(super) struct OwnedEffectDecisionReleaseV8 {
     pub(super) operations: Vec<FinalizeAction>,
     pub(super) observations_succeeded: bool,
 }
+pub(super) struct OwnedEffectReleasedRootsV8 {
+    pub(super) state: Option<Value>,
+    pub(super) outcome: Option<Value>,
+    pub(super) helper: CheckedOwnedFrameHelperV2,
+    pub(super) proposal: ResumableChannelValue,
+    pub(super) allocations: OwnedAllocationProvenanceV2,
+    pub(super) creator: u32,
+}
+impl OwnedEffectDecisionReleaseV8 {
+    /// The effect owner calls this only after matching the post-release receipt
+    /// ACK. This primitive itself cannot attest persistence or mint an ACK.
+    pub(super) fn into_outcome(
+        mut self,
+        binding: &crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
+        payload: Vec<u8>,
+        mut current: impl FnMut() -> bool,
+    ) -> Result<OwnedEffectReleasedRootsV8, (Self, Vec<u8>, Diagnostic)> {
+        let state = &self.holder.ready.staged.state;
+        if !self.observations_succeeded
+            || !self.holder.release_started
+            || self.holder.ready.staged.decision.is_some()
+            || !state.plan.same_helper(binding.helper())
+            || !state
+                .root
+                .as_ref()
+                .is_some_and(|r| root_valid(binding.helper(), r))
+            || !effect_current(state.creator, &mut current)
+        {
+            return Err((
+                self,
+                payload,
+                rejected("effect post-release handoff authority differs"),
+            ));
+        }
+        let state = &mut self.holder.ready.staged.state;
+        let bytes = match state
+            .allocations
+            .mint_accepted_bytes(&[state.root.as_ref().unwrap()], payload)
+        {
+            Ok(bytes) => bytes,
+            Err((payload, diagnostic)) => return Err((self, payload, diagnostic)),
+        };
+        let metadata = binding.lifecycle().owned_wait_outcome_v8();
+        let outcome = Value::Record(Arc::new(OwnedRecordValue {
+            record: metadata.id.clone(),
+            fields: BTreeMap::from([
+                (metadata.bytes_field.clone(), bytes),
+                (metadata.status_field.clone(), Value::Int(0)),
+            ]),
+        }));
+        // No user callback between the validated guard, fresh allocation and
+        // consuming transfer. The same surviving root/token move together.
+        let state = self.holder.ready.staged.state;
+        Ok(OwnedEffectReleasedRootsV8 {
+            state: state.root,
+            outcome: Some(outcome),
+            helper: state.plan,
+            proposal: state.proposal,
+            allocations: state.allocations,
+            creator: state.creator,
+        })
+    }
+}
+
 pub(super) struct OwnedEffectDecisionReleaseRejectionV8 {
     pub(super) holder: HeldOwnedEffectAuthorizationV8,
     pub(super) diagnostic: Diagnostic,
+}
+fn effect_current<F: FnMut() -> bool + ?Sized>(creator: u32, current: &mut F) -> bool {
+    current_in_creator(creator, current) && creator == std::process::id()
 }
 impl ReadyOwnedAuthorizeV2 {
     /// No root is taken until source identity, State schema, Proposal bits and
@@ -281,7 +348,7 @@ impl ReadyOwnedAuthorizeV2 {
     ) -> Result<HeldOwnedEffectAuthorizationV8, Self> {
         let staged = &self.staged;
         let scope = serde_json::json!({"program_root":scope.program_root(),"invocation":scope.invocation_id(),"policy_epoch":scope.policy_epoch()});
-        let valid = current_in_creator(staged.state.creator, &mut current)
+        let valid = effect_current(staged.state.creator, &mut current)
             && staged.failure.is_none()
             && staged.provisional
             && !staged.settlement_started
@@ -347,7 +414,87 @@ fn effect_roots_valid(staged: &StagedOwnedAuthorizeV2) -> bool {
             .allocations
             .validate(&[state, staged.decision.as_ref().unwrap()])
 }
+#[cfg(test)]
+impl ReadyOwnedAuthorizeV2 {
+    pub(super) fn effect_facts(&self) -> Option<(serde_json::Value, serde_json::Value, i64)> {
+        if self.staged.state.creator != std::process::id() || !effect_roots_valid(&self.staged) {
+            return None;
+        }
+        effect_facts(&self.staged)
+    }
+}
+fn effect_facts(
+    staged: &StagedOwnedAuthorizeV2,
+) -> Option<(serde_json::Value, serde_json::Value, i64)> {
+    let Value::Record(state) = staged.state.root.as_ref()? else {
+        return None;
+    };
+    let Value::Variant(decision) = staged.decision.as_ref()? else {
+        return None;
+    };
+    let state_fields = staged
+        .state
+        .plan
+        .program()
+        .declarations
+        .record_fields(&state.record)?;
+    let decision_fields = staged
+        .plan
+        .helper()
+        .program()
+        .declarations
+        .case_fields(&decision.case)?;
+    let field = |id: &hir::DeclarationId, value: &Value| -> Option<serde_json::Value> {
+        let value = match value {
+            Value::Bytes(bytes) => {
+                let mut hex = String::with_capacity(bytes.bytes.len() * 2);
+                use std::fmt::Write;
+                for byte in bytes.bytes.iter() {
+                    write!(hex, "{byte:02x}").ok()?;
+                }
+                serde_json::json!({"kind":"bytes","hex":hex})
+            }
+            Value::Int(value) => serde_json::json!({"tag":"i64","value":value}),
+            _ => return None,
+        };
+        Some(serde_json::json!({"identity":id.as_str(),"value":value}))
+    };
+    let state_values = state_fields
+        .iter()
+        .map(|f| field(&f.id, state.fields.get(&f.id)?))
+        .collect::<Option<Vec<_>>>()?;
+    let decision_values = decision_fields
+        .iter()
+        .map(|f| field(&f.id, decision.fields.get(&f.id)?))
+        .collect::<Option<Vec<_>>>()?;
+    let Value::Int(budget) = decision.fields.get(&decision_fields[1].id)? else {
+        return None;
+    };
+    Some((
+        serde_json::json!({"declaration":state.record.as_str(),"fields":state_values}),
+        serde_json::json!({"declaration":decision.variant.as_str(),"case":decision.case.as_str(),"fields":decision_values}),
+        *budget,
+    ))
+}
 impl HeldOwnedEffectAuthorizationV8 {
+    pub(super) fn into_ready(self) -> ReadyOwnedAuthorizeV2 {
+        assert!(
+            !self.release_started,
+            "released effect owner cannot become Ready"
+        );
+        self.ready
+    }
+    /// Bounded inert snapshots borrowed from the actual checked physical roots.
+    /// Bytes become hex text, never a second Bytes/RetainedValue owner.
+    pub(super) fn facts(&self) -> Option<(serde_json::Value, serde_json::Value, i64)> {
+        if self.release_started
+            || self.ready.staged.state.creator != std::process::id()
+            || !effect_roots_valid(&self.ready.staged)
+        {
+            return None;
+        }
+        effect_facts(&self.ready.staged)
+    }
     /// This private primitive is called only after the effect owner validates
     /// its distinct settlement and cleanup-start ACKs. It mints no ACK.
     pub(super) fn release_decision(
@@ -357,7 +504,7 @@ impl HeldOwnedEffectAuthorizationV8 {
     ) -> Result<OwnedEffectDecisionReleaseV8, OwnedEffectDecisionReleaseRejectionV8> {
         if self.release_started
             || !effect_roots_valid(&self.ready.staged)
-            || !current_in_creator(self.ready.staged.state.creator, &mut current)
+            || !effect_current(self.ready.staged.state.creator, &mut current)
         {
             return Err(OwnedEffectDecisionReleaseRejectionV8 {
                 holder: self,
@@ -402,7 +549,7 @@ impl HeldOwnedEffectAuthorizationV8 {
         self.release_started = true;
         let mut observations_succeeded = true;
         for action in &actions {
-            if !current_in_creator(creator, &mut current) {
+            if !effect_current(creator, &mut current) {
                 return Err(OwnedEffectDecisionReleaseRejectionV8 {
                     holder: self,
                     diagnostic: rejected("effect cleanup authority changed"),
@@ -421,7 +568,7 @@ impl HeldOwnedEffectAuthorizationV8 {
             if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| observe(action))).is_err() {
                 observations_succeeded = false;
             }
-            if !current_in_creator(creator, &mut current) {
+            if !effect_current(creator, &mut current) {
                 return Err(OwnedEffectDecisionReleaseRejectionV8 {
                     holder: self,
                     diagnostic: rejected("effect cleanup authority changed"),
@@ -589,4 +736,4 @@ mod tests;
 
 #[cfg(test)]
 #[path = "authorize/effect_tests.rs"]
-mod effect_tests;
+pub(super) mod effect_tests;

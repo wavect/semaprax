@@ -22,7 +22,9 @@ fn binding() -> CheckedOwnedAgentWaitBindingV8 {
     )
     .unwrap_or_else(|e| panic!("{e:?}"))
 }
-fn ready(b: &CheckedOwnedAgentWaitBindingV8) -> (ReadyOwnedAuthorizeV2, [Weak<[u8]>; 2]) {
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn ready(
+    b: &CheckedOwnedAgentWaitBindingV8,
+) -> (ReadyOwnedAuthorizeV2, [Weak<[u8]>; 2]) {
     let state = admit_owned_agent_state_input(
         b.helper(),
         OwnedFrameInput {
@@ -110,7 +112,7 @@ fn ready(b: &CheckedOwnedAgentWaitBindingV8) -> (ReadyOwnedAuthorizeV2, [Weak<[u
     };
     (ready, [state_backing, seal_backing])
 }
-fn proposal(
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn proposal(
     b: &CheckedOwnedAgentWaitBindingV8,
     scope: &SourceCheckpointScope,
 ) -> crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitProposalV8 {

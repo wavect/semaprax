@@ -1,5 +1,5 @@
 //! Actual consuming source reducer. The effect-completed input constructor is
-//! deliberately absent until the real effect owner supplies that sealed seam.
+//! supplied only by the ACK-gated physical effect holder, retaining its lease.
 use super::*;
 use crate::hir::DeclarationId;
 use crate::interpreter::resumable::clone_scalar;
@@ -176,7 +176,7 @@ fn roots(staged: &StagedOwnedReduceV2) -> Vec<&Value> {
         .filter_map(Option::as_ref)
         .collect()
 }
-fn outcome_valid(plan: &CheckedOwnedReduceV2, root: &Value) -> bool {
+pub(super) fn outcome_valid(plan: &CheckedOwnedReduceV2, root: &Value) -> bool {
     if !exclusive(root) {
         return false;
     }
@@ -373,6 +373,13 @@ fn contracts(
     }
     Ok(())
 }
+
+mod owned_execute;
+pub(crate) use owned_execute::{
+    prepare_executed_owned_reduce_v2, stage_executed_owned_reduce_v2,
+    ExecutedOwnedReducePreparationRejectionV2, ExecutedOwnedReduceRejectionV2,
+    PreparedExecutedOwnedReduceV2, StagedExecutedOwnedReduceV2,
+};
 
 mod step;
 pub(crate) use step::{

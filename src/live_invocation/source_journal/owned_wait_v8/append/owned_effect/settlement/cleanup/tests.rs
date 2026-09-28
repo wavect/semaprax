@@ -516,3 +516,138 @@ fn owned_effect_cleanup_append_reminted_started_vector_refs_and_settled_receipt_
         });
     }
 }
+struct CancelAtClock<'a> {
+    cancel: &'a AgentCancellation,
+    calls: Cell<usize>,
+    cancel_at: Cell<Option<usize>>,
+}
+impl crate::live_invocation::InvocationClock for CancelAtClock<'_> {
+    fn now_millis(&self) -> i64 {
+        let n = self.calls.get() + 1;
+        self.calls.set(n);
+        if self.cancel_at.get() == Some(n) {
+            self.cancel.cancel();
+        }
+        1
+    }
+}
+impl SourceInvocationClock for CancelAtClock<'_> {
+    fn clock_domain(&self) -> &str {
+        "owned.wait.test"
+    }
+}
+#[test]
+fn owned_effect_cleanup_append_postmint_guard_failure_retains_actual_executed_not_pending() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+        let context = context.with_initialization(&lease).unwrap();
+        let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+        let cancel = AgentCancellation::new();
+        let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let mut host = Host { calls: 0, mode: 0 };
+        let clock = CancelAtClock {
+            cancel: &cancel,
+            calls: Cell::new(0),
+            cancel_at: Cell::new(None),
+        };
+        let (selected, weak) = cleanup(&journal, &cancel, &policy, &mut host, &clock);
+        let selected = started(&journal, selected)
+            .release_decision(|_| {})
+            .unwrap_or_else(|_| panic!("release"))
+            .prepare_settled()
+            .unwrap_or_else(|_| panic!("receipt"));
+        let owner = cleaned(&journal, selected);
+        // Exact current callbacks before mint: source preguard(1), engine input
+        // guards(2), ACK current(1), into_outcome current(1). Callback six is
+        // the first engine postmint guard, after actual State/Outcome transfer.
+        clock
+            .cancel_at
+            .set(Some(clock.calls.get().checked_add(6).unwrap()));
+        let failure = owner
+            .advance_outcome()
+            .err()
+            .expect("postmint cancellation");
+        let LiveEffectCleanupFailureV8::Outcome{_owner:crate::interpreter::resumable::owned_frame::registered_stage::effect::LiveEffectOutcomeFailureV8::After{executed,..},_accounting,_lineage}=failure else{panic!("must retain actual Executed after mint, never Pending");};
+        let outcome = executed.test_live_outcome_weak_v8();
+        assert_eq!(outcome.strong_count(), 1);
+        assert_eq!([weak[0].strong_count(), weak[1].strong_count()], [1, 0]);
+        assert!(journal.hold().is_err());
+        assert_eq!(_accounting.calls(), 1);
+        drop(executed);
+        assert!(outcome.upgrade().is_none());
+        assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        drop(_lineage);
+    });
+}
+#[test]
+fn owned_effect_cleanup_append_stale_session_or_entry_cancel_refuses_before_physical_write() {
+    for cancel_entry in [false, true] {
+        CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+            let context = context.with_initialization(&lease).unwrap();
+            let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+            let cancel = AgentCancellation::new();
+            let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+            let mut host = Host { calls: 0, mode: 0 };
+            let old = journal.begin_session().unwrap();
+            let (selected, weak) = cleanup(&journal, &cancel, &policy, &mut host, &Clock);
+            let before = bytes(&journal);
+            let session = if cancel_entry {
+                cancel.cancel();
+                journal.begin_session().unwrap()
+            } else {
+                old
+            };
+            let failure = session
+                .append_owned_effect_cleanup(selected)
+                .err()
+                .expect("entry refusal");
+            assert!(matches!(
+                &failure,
+                LiveOwnedEffectCleanupAppendFailureV8::Before { .. }
+            ));
+            assert_eq!(bytes(&journal), before);
+            assert!(journal.hold().is_err());
+            assert!(weak.iter().all(|w| w.strong_count() == 1));
+            drop(failure);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+            assert_eq!(host.calls, 1);
+        });
+    }
+}
+#[test]
+fn owned_effect_cleanup_append_wrong_container_refuses_no_io_without_poisoning_foreign_store() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+        let context = context.with_initialization(&lease).unwrap();
+        let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+        let cancel = AgentCancellation::new();
+        let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let mut host = Host { calls: 0, mode: 0 };
+        let (selected, weak) = cleanup(&journal, &cancel, &policy, &mut host, &Clock);
+        let original = bytes(&journal);
+        CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+            let context = context.with_initialization(&lease).unwrap();
+            let foreign = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+            let before = bytes(&foreign);
+            let failure = foreign
+                .begin_session()
+                .unwrap()
+                .append_owned_effect_cleanup(selected)
+                .err()
+                .expect("wrong container");
+            assert!(matches!(
+                &failure,
+                LiveOwnedEffectCleanupAppendFailureV8::Before {
+                    error: SourceJournalError::Binding,
+                    ..
+                }
+            ));
+            assert_eq!(bytes(&foreign), before);
+            assert_eq!(bytes(&journal), original);
+            foreign.hold().unwrap();
+            journal.hold().unwrap();
+            assert!(weak.iter().all(|w| w.strong_count() == 1));
+            drop(failure);
+        });
+        assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        assert_eq!(host.calls, 1);
+    });
+}

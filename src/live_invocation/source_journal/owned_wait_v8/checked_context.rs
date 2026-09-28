@@ -151,6 +151,11 @@ mod runtime_tests;
 
 #[cfg(test)]
 impl CheckedOwnedWaitJournalContextV8 {
+    pub(crate) fn test_runtime_execution(
+        &self,
+    ) -> (&AgentRuntimeV2, &CheckedTypedOwnedWaitExecutionV8) {
+        self.ready_runtime().expect("genuine retained runtime fixture")
+    }
     pub(crate) fn test_state_document(&self, key: &SourceCheckpointKey, state: Value) -> Vec<u8> {
         let arg = crate::live_invocation::identity::digest(
             b"semaprax.source-owned-frame-args.v2\0",

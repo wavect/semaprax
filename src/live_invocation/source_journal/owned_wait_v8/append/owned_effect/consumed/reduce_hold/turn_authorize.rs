@@ -2,6 +2,7 @@
 //! Authorize F and one stage charge once; no future Reduce renewal occurs here.
 use super::*;
 use crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedAuthorizeSuccessorV8;
+use crate::live_invocation::source_journal::SourceStageRole;
 impl ProspectiveOwnedReduceHoldV8<'_> {
     fn validate_authorize_inventory(
         &self,

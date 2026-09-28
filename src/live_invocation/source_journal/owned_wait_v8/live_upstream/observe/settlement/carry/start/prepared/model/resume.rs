@@ -231,7 +231,7 @@ impl<'j> ModelOwnerV8<'j> {
     pub(super) fn transfer_actual(
         self,
         session: &AppendSessionV8<'j>,
-        witness: &super::authorize::VerifiedOwnedContinuedAuthorizeSuccessorV8<'j>,
+        witness: &crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedAuthorizeSuccessorV8<'j>,
         proposal: &CheckedOwnedWaitProposalV8,
     ) -> Self {
         match self {
@@ -247,7 +247,7 @@ impl<'j> ModelOwnerV8<'j> {
     pub(super) fn authorize_actual(
         self,
         session: &AppendSessionV8<'j>,
-        witness: &super::authorize::VerifiedOwnedContinuedAuthorizeSuccessorV8<'j>,
+        witness: &crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedAuthorizeSuccessorV8<'j>,
     ) -> Self {
         match self {
             Self::Resumed(o) => Self::Resumed(ResumedModelOwnerV8 {

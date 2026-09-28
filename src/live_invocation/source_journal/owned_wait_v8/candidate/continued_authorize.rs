@@ -1,5 +1,7 @@
 //! Current authenticated A-prefix facts are descriptive, never an owner factory.
 use super::*;
+use crate::live_invocation::source_journal::owned_wait_v8::append::AppendSessionV8;
+use crate::live_invocation::source_journal::SourceStageRole;
 impl InventoryV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_authorize_facts(
         &self,

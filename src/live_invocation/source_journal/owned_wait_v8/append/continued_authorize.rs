@@ -5,6 +5,7 @@ use super::super::live_upstream::{
 };
 use super::owned_effect::OwnedEffectAppendCursorV8;
 use super::*;
+use crate::live_invocation::source_journal::SourceStageRole;
 
 /// Only the fixed physical adapter constructs this after persisted/reread ACK.
 /// No Clone, public constructor or independently detachable cursor exists.

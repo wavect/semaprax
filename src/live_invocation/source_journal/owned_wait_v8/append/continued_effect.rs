@@ -304,3 +304,19 @@ impl SourceOwnedWaitJournalV8 {
         )
     }
 }
+
+impl<'j> AppendSessionV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_effect_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, &EntryV8), SourceJournalError> {
+        self.inventory.continued_effect_facts()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn continued_effect_accounting(
+        &self,
+    ) -> Result<
+        crate::agent_lifecycle::authorization::target_protocol::TargetAccounting,
+        SourceJournalError,
+    > {
+        self.inventory.continued_model_accounting()
+    }
+}

@@ -6,7 +6,7 @@ use serde_json::json;
 use std::path::Path;
 
 fn checked_binding() -> crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8 {
-    let source = include_str!("../../../../../examples/offline-repair-project/src/app.spx");
+    let source = include_str!("../../../../examples/offline-repair-project/src/app.spx");
     let source = format!(
         "{}\n{}",
         source.replace(

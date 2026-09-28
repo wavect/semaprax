@@ -1,12 +1,13 @@
 //! Compiler/evaluator foundation only; no checkpoint or durable ownership authority.
+mod facade;
 pub(crate) mod plan;
-pub(crate) use plan::{compile_owned_frame_plan, CheckedOwnedFramePlan};
+pub use facade::*;
 
 mod checkpoint;
 mod codec;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum OwnedFrameError {
+pub enum OwnedFrameError {
     Malformed,
     Authentication,
     Binding,

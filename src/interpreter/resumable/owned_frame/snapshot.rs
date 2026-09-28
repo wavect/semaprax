@@ -10,6 +10,10 @@ pub(crate) fn argument_weak(argument: &OwnedFrameArgument) -> Vec<std::sync::Wea
     weak_leaves(argument.root.as_ref().expect("admitted root"))
 }
 #[cfg(test)]
+pub(crate) fn observe_releases(observer: Option<Box<dyn FnMut(&hir::DeclarationId)>>) {
+    RELEASE_OBSERVER.with(|slot| *slot.borrow_mut() = observer);
+}
+#[cfg(test)]
 pub(super) fn weak_leaves(root: &Value) -> Vec<std::sync::Weak<[u8]>> {
     let Value::Record(record) = root else {
         panic!("checked record")

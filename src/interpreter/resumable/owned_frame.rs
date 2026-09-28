@@ -106,23 +106,23 @@ fn rejected(message: &str) -> Diagnostic {
 
 /// Inert data only. Cloning this carrier never clones a language owner.
 #[derive(Clone, Debug)]
-pub(crate) struct OwnedFrameInput {
-    pub(crate) declaration: hir::DeclarationId,
-    pub(crate) fields: Vec<OwnedFrameInputField>,
+pub struct OwnedFrameInput {
+    pub declaration: hir::DeclarationId,
+    pub fields: Vec<OwnedFrameInputField>,
 }
 #[derive(Clone, Debug)]
-pub(crate) struct OwnedFrameInputField {
-    pub(crate) identity: hir::DeclarationId,
-    pub(crate) value: OwnedFrameInputValue,
+pub struct OwnedFrameInputField {
+    pub identity: hir::DeclarationId,
+    pub value: OwnedFrameInputValue,
 }
 #[derive(Clone, Debug)]
-pub(crate) enum OwnedFrameInputValue {
+pub enum OwnedFrameInputValue {
     Bytes(Vec<u8>),
     Scalar(ArgumentValue),
 }
-pub(crate) struct OwnedFrameInputRejection {
-    pub(crate) input: OwnedFrameInput,
-    pub(crate) diagnostic: Diagnostic,
+pub struct OwnedFrameInputRejection {
+    pub input: OwnedFrameInput,
+    pub diagnostic: Diagnostic,
 }
 enum InputRef<'a> {
     Bytes(&'a [u8]),
@@ -624,6 +624,9 @@ pub(crate) fn settle_owned_frame(
     }
 }
 impl OwnedFrameArgument {
+    pub(crate) fn drop_backing_only(mut self) {
+        drop(self.root.take());
+    }
     fn dispose_backing(&mut self) {
         if self.root.is_some() {
             let _ = release(&mut self.root, &self.plan.liveness().failure_cleanup);
@@ -636,6 +639,9 @@ impl Drop for OwnedFrameArgument {
     }
 }
 impl OwnedFrameResult {
+    pub(crate) fn drop_backing_only(mut self) {
+        drop(self.root.take());
+    }
     pub(crate) fn dispose(mut self) -> Result<OwnedFrameReleaseReceipt, OwnedFrameResultRejection> {
         match release(&mut self.root, &self.plan.liveness().result_disposal) {
             Ok(receipt) => Ok(receipt),

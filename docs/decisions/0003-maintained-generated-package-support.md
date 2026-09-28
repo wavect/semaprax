@@ -60,7 +60,7 @@ needs a separate support decision rather than being folded into this one.
 | Claim | Exact value | Notes |
 | --- | --- | --- |
 | Targets (5, fixed) | `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc` | Per `docs/NATIVE-RUST-INTEROP-V1.md`'s "narrower five targets" rule, shared by the owned-data SDK's compiled-ABI admission (`docs/PUBLIC-OWNED-DATA-API-V1.md`). `aarch64-pc-windows-msvc` is explicitly excluded: its archive tool plan is not frozen. Musl, GNU-Windows, x32, and big-endian configurations are rejected before staging, not silently accepted. |
-| Generated crate declared MSRV | `rust-version = "1.85"` | Literal in every generated `Cargo.toml` (`crates/semaprax-native-rust-owned-data-package/src/render.rs:26`). No exact-1.85.0 end-to-end build of *this* crate has been found; the nearest cited toolchain evidence (1.85.1) is for the separate scalar SDK and is explicitly marked "not exact 1.85.0, repository MSRV, Windows or hosted evidence" in `docs/PUBLIC-OWNED-DATA-API-V1.md`. |
+| Generated crate declared MSRV | `rust-version = "1.85"` | Literal in every generated `Cargo.toml` (`crates/semaprax-native-rust-owned-data-package/src/render.rs:26`). The genuine archive consumer passed on exactly Cargo/rustc 1.85.0 at `0cdd26d312fd65653d24a46098195484720c78e9`, locally on macOS arm64; see the dated evidence below. This is the generated crate's consumer proof, not repository compiler MSRV or other-target evidence. |
 | Toolchains that actually build/test this repository's own harness for this profile | Rust 1.97.1 (`verify-tests` CI job) | The profile's own test file, `tests/public_native_rust_owned_data_sdk_v1.rs`, is unconditionally selected into the `verify-tests` shard plan (`integration-3`, confirmed via `python3 scripts/ci-msrv.py --plan-only` this session), which pins Rust 1.97.1 and Node 22 -- not 1.85 and not the 1.88 pinned by the unrelated `native-rust-sdk-v1` job. |
 | Package version scheme | Fixed literal `0.1.0` for every generated instance (`crates/semaprax-native-rust-owned-data-package/src/lib.rs:44-45`) | Compatibility is tracked by the exact public-API descriptor SHA-256 digest, not by incrementing this version (see the generated README template, `scripts/generated-package-release.py:262-270`). A registry requires monotonically increasing versions per crate name; publishing more than once under this scheme needs a version-assignment policy that does not exist yet (Open question 2). |
 | Host OS claims | Local only: Linux AArch64/Rust 1.88/Clang 14, macOS AArch64/Rust 1.98 (`docs/PUBLIC-OWNED-DATA-API-V1.md`, "Scoped local execution... on Linux AArch64/Rust 1.88/Clang 14 passes nine selected tests... does not establish... hosted promotion") | The owning spec's own words already mark this local, not hosted, despite the harness now also being CI-selected (see Evidence). |
@@ -122,9 +122,9 @@ running. That is a real gap between "the tests exist and are wired in" and
   the specific target actually executed and passed -- not just that the
   overall job did not fail for some other reason.
 - **Toolchain honesty.** The generated crate declares `rust-version = "1.85"`
-  but has not been shown to build end to end under exactly 1.85.0 anywhere in
-  this repository. Approving this route without resolving that (Open
-  question 3) means shipping an MSRV claim nothing currently verifies.
+  and now has an exact-1.85.0 generated archive consumer pass on macOS arm64.
+  Regeneration changes require fresh evidence; this does not prove another
+  target or the repository compiler itself works on 1.85.0.
 - **Irreversibility once real publication happens.** This ADR proposes no
   registry write, but if a later, separately approved step does publish, a
   published version can never be deleted or overwritten on crates.io or
@@ -303,3 +303,33 @@ Rejected because the issue's own guardrails ask that a design like this be
 accept or reject cleanly, and this repository's house convention for that is
 an ADR under `docs/decisions/`, not a standalone spec-shaped draft. The draft
 remains useful background detail and is retained, not deleted.
+
+## Local exact-MSRV evidence, 2026-09-28
+
+At clean source commit `0cdd26d312fd65653d24a46098195484720c78e9`, the genuine
+`packaged_safe_package_builds_offline_and_fail_stops_on_unsettled_handles`
+gate passed **1/1**, with no skipped selected test, in **186.41 seconds**.
+Compiler generation and archive packaging used the current toolchain; only
+the independently extracted generated SDK consumer and settlement exercises
+used exact Cargo/rustc **1.85.0**, host `aarch64-apple-darwin`. The selected
+compiler, disabled wrappers and fixed host target were checked by three
+configuration tests, which also passed **3/3**.
+
+The gate retained the real preview and archive byte-binding checks, hostile
+traversal/link/duplicate/dependency/target controls, and executable substitutions
+refused before Cargo/build/consumer entry. The fresh external consumer ran
+locked and offline, printed `42`, preserved its lockfile, and retained the
+existing ownership/cleanup fail-stop assertions. Generator, package and
+consumer targets were separate temporary directories.
+
+To reproduce after building the owning harness with the current toolchain,
+set `SEMAPRAX_NATIVE_RUST_CONSUMER_CARGO` and
+`SEMAPRAX_NATIVE_RUST_CONSUMER_RUSTC` to actual absolute 1.85.0 binaries, then
+select that exact ignored gate explicitly. Invalid or incomplete tool pairs
+refuse without fallback. These overrides apply only to the consumer route.
+
+This is local, unsigned evidence. It does not create release provenance or
+publish a package. Non-main hosted evidence follows the maintainer's waiver
+when hosted execution is the only missing item. Current support confirmation
+was requested because the accepted dated scope decision above and later
+issue comments disagree about its status; that confirmation remains pending.

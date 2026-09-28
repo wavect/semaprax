@@ -719,12 +719,14 @@ HIR admission because the current suffix profile cannot expose it safely.
   matrices; `hir::resolve_yield::tests` covers the new admission (record and
   variant, sequential placement), the still-refused control-dependent
   placement, and every out-of-bound shape (field/case count, nesting,
-  generics, an owned `Bytes` leaf) keeping `SPX-T307`.
+  generics) keeping `SPX-T307`. The later v6 Bytes-leaf boundary below
+  separately admits one direct inline Bytes request; the unchanged mixed
+  scalar/Bytes request fixture preserves declaration order at runtime.
 
 Blocker (2) (Agent operations are not free, `yields`-eligible functions; the
 role that actually waits on a model declares an effect) is entirely
 untouched and remains exactly as described above. Also still open, exactly
-as before: an owned `Bytes` leaf inside a bounded aggregate, and an
+as before: an owned `Bytes` response and an
 aggregate channel for the control-dependent placement (`resumable_effects::
 lowering::control` would need its own aggregate-channel runtime support,
 including the owned-`Bytes`-carrying combination that placement already

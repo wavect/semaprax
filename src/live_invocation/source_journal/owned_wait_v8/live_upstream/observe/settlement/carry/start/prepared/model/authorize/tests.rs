@@ -172,50 +172,73 @@ fn owned_continued_authorize_real_full_f_ack_matches_ordinary_granted_and_refuse
     }
 }
 #[cfg(unix)]
-#[test]
-fn owned_continued_authorize_all_ack_faults_are_in_doubt_and_never_repeat_source() {
-    for row in 0..5 {
-        for mode in 0..4 {
-            test_completed(
-                |journal, completed, weak, ledger, _| {
-                    let mut selected = completed
-                        .prepare_authorize()
-                        .unwrap_or_else(|_| panic!("true Completed"));
-                    for _ in 0..row {
-                        selected = ack(journal, selected)
-                            .prepare_next()
-                            .unwrap_or_else(|_| panic!("actual next A row"));
+fn assert_owned_continued_authorize_ack_fault_row(row: usize) {
+    for mode in 0..4 {
+        test_completed(
+            |journal, completed, weak, ledger, _| {
+                let mut selected = completed
+                    .prepare_authorize()
+                    .unwrap_or_else(|_| panic!("true Completed"));
+                for _ in 0..row {
+                    selected = ack(journal, selected)
+                        .prepare_next()
+                        .unwrap_or_else(|_| panic!("actual next A row"));
+                }
+                let before = entries();
+                let number = selected.sequence() + 1;
+                {
+                    let mut lease = journal.test_observe_lease().borrow_mut();
+                    match mode {
+                        0 => lease.test_fail_before_write(number),
+                        1 => lease.test_fail_after_write(number),
+                        2 => lease.test_fail_before_sync(number),
+                        _ => lease.test_fail_after_sync(number),
                     }
-                    let before = entries();
-                    let number = selected.sequence() + 1;
-                    {
-                        let mut lease = journal.test_observe_lease().borrow_mut();
-                        match mode {
-                            0 => lease.test_fail_before_write(number),
-                            1 => lease.test_fail_after_write(number),
-                            2 => lease.test_fail_before_sync(number),
-                            _ => lease.test_fail_after_sync(number),
-                        }
-                    }
-                    assert_eq!(*selected.owner.completed.owner.accounting(), ledger);
-                    let failed = journal
-                        .begin_session()
-                        .unwrap()
-                        .append_owned_continued_authorize(selected)
-                        .err()
-                        .expect("physical fault");
-                    assert!(failed.test_is_in_doubt(), "actual row {row}, window {mode}");
-                    assert_eq!(entries(), before);
-                    assert!(weak.iter().any(|w| w.strong_count() == 1));
-                    assert!(journal.hold().is_err());
-                    assert!(journal.begin_session().is_err());
-                    drop(failed);
-                    assert!(weak.iter().all(|w| w.upgrade().is_none()));
-                },
-                true,
-            );
-        }
+                }
+                assert_eq!(*selected.owner.completed.owner.accounting(), ledger);
+                let failed = journal
+                    .begin_session()
+                    .unwrap()
+                    .append_owned_continued_authorize(selected)
+                    .err()
+                    .expect("physical fault");
+                assert!(failed.test_is_in_doubt(), "actual row {row}, window {mode}");
+                assert_eq!(entries(), before);
+                assert!(weak.iter().any(|w| w.strong_count() == 1));
+                assert!(journal.hold().is_err());
+                assert!(journal.begin_session().is_err());
+                drop(failed);
+                assert!(weak.iter().all(|w| w.upgrade().is_none()));
+            },
+            true,
+        );
     }
+}
+
+#[cfg(unix)]
+#[test]
+fn owned_continued_authorize_all_ack_faults_are_in_doubt_and_never_repeat_source_row_0() {
+    assert_owned_continued_authorize_ack_fault_row(0);
+}
+#[cfg(unix)]
+#[test]
+fn owned_continued_authorize_all_ack_faults_are_in_doubt_and_never_repeat_source_row_1() {
+    assert_owned_continued_authorize_ack_fault_row(1);
+}
+#[cfg(unix)]
+#[test]
+fn owned_continued_authorize_all_ack_faults_are_in_doubt_and_never_repeat_source_row_2() {
+    assert_owned_continued_authorize_ack_fault_row(2);
+}
+#[cfg(unix)]
+#[test]
+fn owned_continued_authorize_all_ack_faults_are_in_doubt_and_never_repeat_source_row_3() {
+    assert_owned_continued_authorize_ack_fault_row(3);
+}
+#[cfg(unix)]
+#[test]
+fn owned_continued_authorize_all_ack_faults_are_in_doubt_and_never_repeat_source_row_4() {
+    assert_owned_continued_authorize_ack_fault_row(4);
 }
 
 #[test]

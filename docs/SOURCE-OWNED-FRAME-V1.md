@@ -117,6 +117,14 @@ separate `StartRejected { argument, diagnostic }` case.
 Prepare constructs the plan and pure carrier data only. It grants no key,
 filesystem, host-call, answer, cleanup or publication authority.
 
+Immediately before any Created/ArgumentCommitted write, start borrows and
+resnapshots the actual supplied opaque argument. It compares the plan binding,
+nominal and ordered field identities/types/count, every scalar bit and Bytes
+value, exclusive backing, argument digest, and all prepared admission, fuel
+and scope facts. A prewrite mismatch returns that original argument unchanged.
+Prepared facts for another owner cannot justify commit. Once a commit syscall
+is attempted, an ambiguous outcome cannot return the argument.
+
 ### 3.1 Owner lifetime and aliases
 
 There is one logical root credential per committed invocation, regardless of
@@ -362,6 +370,13 @@ append failure keeps the candidate owner in the poisoned live session, or
 requires exclusive authenticated recovery after a process crash. No driver
 callback cleans up a root the evaluator has already settled.
 
+Existing `CapabilityPolicy::allows(id)` authorizes only an ID. Each dispatch,
+answer, abandonment, cleanup and result action also checks the independent live
+expected scope/epoch, registered directory/file identities, generation and
+legal phase/causal references. Current policy must allow the checked function
+ID. Replayed bytes do not supply these expected facts. Policy denial leaves the
+logical obligation unsettled and grants no cleanup or publication authority.
+
 Terminal failure selects one primary status; cleanup cannot replace it.
 Abandonment after argument commit consumes the parked owner through the
 failure cleanup path, including a recovered in-doubt dispatch after an
@@ -377,9 +392,11 @@ or test-only ledger entries. A recovered CleanupStarted-without-CleanupSettled
 tail is CleanupInDoubt and never reruns settlement. `confirm_failed_cleanup` requires the caller to supply an explicit
 `CleanupConfirmation` grant under the pinned live lease and current capability
 policy. It is permitted only for CleanupInDoubt with a Failed terminal. The
-grant binds generation, terminal sequence, CleanupStarted sequence and exact
-cleanup digest; a genuine checkpoint, HMAC key or lock is insufficient. The
-HostConfirmed row records that grant digest, preserves the primary failure,
+grant binds scope, function, generation, terminal sequence, CleanupStarted
+sequence and exact cleanup digest; a genuine checkpoint, HMAC key or lock is
+insufficient. The
+CleanupSettled row with `receipt.kind = "host_confirmed"` records that grant
+digest, preserves the primary failure,
 and reports no observed physical receipt. Completed terminals cannot use this
 route; HostConfirmed never permits ResultClaimed. No no-argument confirmation
 method exists.
@@ -392,6 +409,17 @@ caller. Recovery of that row never hands out a second owner. A crash between
 claim append and delivery is ResultDeliveryInDoubt; it returns evidence, not a
 new result. This conservative loss window must be explicit in the public API.
 A settled failure has no result claim.
+
+The interpreter performs each compiler-ordered real leaf release; the host
+callback observes that completed physical boundary and cannot substitute for
+it. Catch callback unwind separately for each operation, record its observation
+outcome as `failed`, and continue all remaining real releases and callbacks.
+Returned callback errors have the same outcome. These outcomes describe
+observation success/failure, not a newly fallible Bytes deallocation. Preserve
+the selected source failure. A successful callback cannot create a receipt for
+an operation that was not physically released, and a no-op observer cannot
+replace finalization. Process abort/crash or uncertain CleanupSettled append
+leaves CleanupInDoubt; recovery never repeats release or observation.
 
 ## 6. New encodings and frozen preservation
 
@@ -411,6 +439,13 @@ control-owned, aggregate-channel, whole-function Copy, or Source Live codec:
 | Argument digest | `semaprax.source-owned-frame-arguments.v1\0` |
 | Frame digest | `semaprax.source-owned-frame-payload.v1\0` |
 | Generation digest | `semaprax.source-owned-frame-generation.v1\0` |
+| Checkpoint digest | `semaprax.source-owned-frame-checkpoint.v1\0` |
+| Request digest | `semaprax.source-owned-frame-request.v1\0` |
+| Answer digest | `semaprax.source-owned-frame-answer.v1\0` |
+| Result digest | `semaprax.source-owned-frame-result.v1\0` |
+| Pending-cleanup digest | `semaprax.source-owned-frame-cleanup.v1\0` |
+| Confirmation digest | `semaprax.source-owned-frame-confirmation.v1\0` |
+| Evidence digest | `semaprax.source-owned-frame-evidence.v1\0` |
 
 Schema selection comes from the checked profile, never a stored discriminant
 or filename. Existing v1/v2 journal and source checkpoint v1–v7 bytes, domains,
@@ -537,8 +572,9 @@ field_liveness entries, leaf/no_drop shapes); no generic model substitutes
 for this real metadata. The outer `plan_digest` hashes the complete checked owned-frame binding from
 section 2 under `semaprax.source-owned-frame-plan.v1\0`. It includes source
 and function/site identity, parameter/result/channel shapes, exact record
-liveness, cleanup vectors, profile, and the source cleanup schema plus
-`cleanup_plan_digest`. It is not the cleanup metadata digest. Signature
+liveness, cleanup vectors, profile, and the source cleanup schema and full
+cleanup bytes. The separate `cleanup_plan_digest` is a derived fact, not an
+extra concatenand in the implemented plan hash. Signature
 `plan_identity` binds this same full outer plan digest; no new signature wire
 fields are added.
 
@@ -569,6 +605,67 @@ enum but are not source language failures in this call-free, effect-free
 profile; they cannot be relabelled as contract/arithmetic. No invented
 "semantic" class is accepted. No defaulted/nullable invented replay fields
 or other scalar/schema fallback exists.
+
+### 6.2 Exact digest preimages
+
+Let `C(x)` be the exact recursively lexicographic compact UTF-8 JSON object
+or vector, without LF, retaining declaration/runtime vector order. Let
+`D(domain, bytes)` be SHA-256 of the domain's UTF-8 bytes, including its trailing
+NUL, followed by exactly `bytes`, rendered `sha256:` plus 64 lowercase hex
+digits. The domains in the table above have these exact preimages:
+
+| Digest | Bytes after domain |
+| --- | --- |
+| Arguments | `C({declaration, fields})`, with declaration-ordered `{identity, value}` fields |
+| Frame | `C(frame)`, the complete closed frame object above |
+| Checkpoint | Complete authenticated checkpoint UTF-8, including its final LF |
+| Request | `C(request)`, the frozen scalar object |
+| Answer | `C(answer)`, the frozen scalar object |
+| Result | `C({declaration, fields})`, the same inert data shape as arguments |
+| Pending cleanup | `C(pending_cleanup)`, the exact compiler-compared operation vector |
+| Confirmation | `C({cleanup_digest, cleanup_started_sequence, function, generation, scope, terminal_sequence})` |
+| Generation | `C({created, store_identity})`, as defined below |
+| Journal name | Exact UTF-8 invocation string |
+
+Confirmation scope is exactly `{invocation, policy_epoch, program_root}`.
+The explicit non-Clone grant binds every confirmation field to independent
+live facts and current policy before append. It grants only the Failed plus
+CleanupInDoubt route. The host-confirmed receipt has exactly `kind` and
+`confirmation_digest`, with no observed operations or settlement.
+
+Generation's `created` object contains exactly the Created row's additional
+fields: `argument`, `argument_digest`, `function`, `limits`,
+`max_reserved_fuel`, `max_steps`, `plan_digest`, `profile`, `scope`, `signature`.
+It excludes schema, kind, generation, sequence, previous MAC and authentication,
+so its definition is nonrecursive. `store_identity` contains exactly the
+independently registered u64 fields `directory_device`, `directory_inode`,
+`file_device`, `file_inode`. These are generation preimage inputs, not new
+Created wire fields. Fresh creation obtains an exclusive file before rendering
+generation/Created. Recovery uses caller-pinned identities, expected scope,
+fuel and plan alongside authenticated argument facts. This binding detects
+identity disagreement; it cannot detect a protected-history violation through
+a complete valid same-inode rollback.
+
+The new journal filename is the journal-name hash's 64 lowercase hex digits
+plus `.owned-frame.jsonl`, never a raw invocation pathname. Older journal
+names remain unchanged.
+
+Preserve the implemented plan identity exactly: SHA-256 of
+`semaprax.source-owned-frame-plan.v1\0`, then PROFILE bytes, exact function-ID
+bytes, exact `graph::to_hir_json(program, "semaprax.source-owned-frame-plan.v1")`
+bytes, then exact `graph_cleanup::cleanup_plan_json(entry.cleanup_plan)` bytes.
+No separators, JSON wrapper or separate cleanup hash are inserted. The graph
+and checked compiler proof bind actual liveness and cleanup provenance.
+Cleanup-plan digest separately hashes those exact cleanup JSON bytes under
+its own stated domain.
+
+Checkpoint MAC authenticates `C(envelope without authentication)` under the
+checkpoint-authentication domain. Journal MAC authenticates
+`C(row without authentication)` under the journal-record domain, including
+schema, generation, sequence, previous MAC, kind and the closed row fields.
+`previous_mac` is the preceding row's actual MAC, initially 64 zeroes. The final
+authenticated document/row has exactly one LF, excluded from its MAC preimage.
+No digest grants authority or changes any predecessor key/domain/wire meaning.
 
 ## 7. Exact bounds and preflight
 
@@ -627,6 +724,18 @@ Counters do not reset at restart; the journal commits reservation count,
 reserved total and observed consumed steps. Runtime root/evidence joins these
 facts to the exact terminal result/failure and cleanup receipt. Evidence alone
 never grants a result, owner, dispatch or cleanup capability.
+
+The evidence digest is
+`D("semaprax.source-owned-frame-evidence.v1\0", C(evidence))`. Evidence has
+exactly `cleanup_receipt`, `consumed_total`, `generation`, `journal_mac`,
+`journal_sequence`, `plan_digest`, `reservation_count`, `reserved_total`,
+`result_claimed_sequence`, `scope`, `terminal`. Terminal is null or an object
+with `kind` and exactly the recorded Completed/Failed additional fields.
+Cleanup receipt is null or the exact recorded typed receipt; claim sequence is
+null unless recorded. Journal sequence and MAC identify the current acknowledged
+tail. Consumed total sums only durably recorded observations, never invented
+work counts for a crash. Reserved total retains every fully charged reservation.
+This inert join grants no authority.
 
 ## 9. Acceptance gates required before implementation acceptance
 

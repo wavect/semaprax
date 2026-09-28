@@ -75,7 +75,10 @@ bytes remain unchanged. There is no implicit migration or profile detection
 from embedded checkpoint bytes.
 
 All hashes below are SHA-256 over the named domain bytes followed by canonical
-UTF-8 JSON bytes. Digests are lowercase 64-character hexadecimal. JSON has no
+UTF-8 JSON bytes. New digest strings use `sha256:` followed by exactly 64
+lowercase hexadecimal characters, matching the Source Live identity renderer.
+Embedded ordinary fields and source-checkpoint authentication retain their
+frozen encodings; no prefix is stripped or added inside those codecs. JSON has no
 insignificant whitespace, duplicate/unknown keys, floating numbers, or alternate
 number/string encodings. Field order below is normative. `\0` denotes one NUL
 byte in a domain, not two text characters.
@@ -337,14 +340,14 @@ separate work.
 
 ## 8. Focused review and implementation boundary
 
-This draft fixes the wire/identity and authority contract; it does not authorize
-implementation before design review. The selected ordinary-v2-only first slice
+Independent design review fixed the wire/identity and authority contract before
+implementation. The selected ordinary-v2-only first slice
 provides the intended real FixtureAgent adapter seam. Supporting a
 policy-v6-required adapter would need an explicit composed binding/profile;
 omitting its policy is forbidden.
 
 The additive API names and compiler projection ownership are fixed above.
 Existing v7 structural self-checks require no interpreter accounting extension.
-Focused review must confirm decreasing outstanding capacity bounds, interrupted
-replay closure grammar, and additive evidence encoding before code. None is an
-implemented or tested guarantee in this draft.
+The reviewed design includes decreasing outstanding capacity bounds, interrupted
+replay closure grammar, and additive evidence encoding. Implementation must pass
+their discriminating gates before any completion claim.

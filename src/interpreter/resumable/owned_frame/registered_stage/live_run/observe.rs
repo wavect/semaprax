@@ -45,10 +45,27 @@ impl LiveObservedStateV8 {
         )
     }
 }
+/// Actual failed Observe holder and consumption from its sole evaluator call.
+pub(crate) struct LiveFailedObserveV8 {
+    pub(super) owner: FailedOwnedObserveV2,
+    facts: serde_json::Value,
+    consumed: u64,
+}
+impl LiveFailedObserveV8 {
+    pub(crate) fn consumed(&self) -> u64 {
+        self.consumed
+    }
+    pub(crate) fn facts(&self) -> &serde_json::Value {
+        &self.facts
+    }
+    pub(crate) fn failure(&self) -> &OwnedFrameFailure {
+        self.owner.failure()
+    }
+}
 pub(crate) enum LiveObserveOutcomeV8 {
     Observed(LiveObservedStateV8),
     Refused(LiveInitializedStateV8),
-    Failed(FailedOwnedObserveV2),
+    Failed(LiveFailedObserveV8),
     GuardLost(LiveObservedStateV8),
 }
 pub(crate) fn observe_live_owned_run_v8(
@@ -79,7 +96,11 @@ pub(crate) fn observe_live_owned_run_v8(
         let OwnedObserveStepV2::Failed(failed) = step else {
             unreachable!()
         };
-        return LiveObserveOutcomeV8::Failed(failed);
+        return LiveObserveOutcomeV8::Failed(LiveFailedObserveV8 {
+            owner: failed,
+            facts: initialized.facts.clone(),
+            consumed: budget.consumed() as u64,
+        });
     };
     let prepared = prepare_observed_owned_copy_wait_v2(observed)
         .unwrap_or_else(|_| panic!("fresh checked Observe result and same root proof"));

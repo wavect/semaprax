@@ -22,6 +22,11 @@ pub(crate) struct FailedOwnedObserveV2 {
     settlement_started: bool,
     allocations: OwnedAllocationProvenanceV2,
 }
+impl FailedOwnedObserveV2 {
+    pub(crate) fn failure(&self) -> &OwnedFrameFailure {
+        &self.failure
+    }
+}
 pub(crate) enum OwnedObserveStepV2 {
     Observed(ObservedOwnedAgentStateV2),
     Failed(FailedOwnedObserveV2),

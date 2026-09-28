@@ -301,6 +301,45 @@ impl OwnedEffectDispatchPermitV8 {
         (self.request, self.argument_digest, self.budget)
     }
 }
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum LiveGuardV8 {
+    Current,
+    Cancelled,
+    AuthorityLost,
+}
+fn guard_status(
+    inputs: &OwnedEffectInputsV8<'_>,
+    creator: u32,
+    phase: OwnedEffectPhaseV8,
+    check: &mut impl FnMut(OwnedEffectPhaseV8) -> bool,
+    effect: &str,
+) -> LiveGuardV8 {
+    let cleanup = matches!(phase, OwnedEffectPhaseV8::CleanupStarted(_));
+    if creator != std::process::id()
+        || inputs.store.validate_guard().is_err()
+        || !inputs.policy.allows(effect)
+    {
+        return LiveGuardV8::AuthorityLost;
+    }
+    if !cleanup && inputs.cancellation.is_cancelled() {
+        return LiveGuardV8::Cancelled;
+    }
+    let allowed = check(phase);
+    // Keep the callback's actual refusal independently of cancellation. A
+    // simultaneous false+cancel can never be reclassified as cleanup permission.
+    if !allowed
+        || creator != std::process::id()
+        || inputs.store.validate_guard().is_err()
+        || !inputs.policy.allows(effect)
+    {
+        return LiveGuardV8::AuthorityLost;
+    }
+    if !cleanup && inputs.cancellation.is_cancelled() {
+        LiveGuardV8::Cancelled
+    } else {
+        LiveGuardV8::Current
+    }
+}
 fn current(
     inputs: &OwnedEffectInputsV8<'_>,
     creator: u32,
@@ -308,17 +347,7 @@ fn current(
     check: &mut impl FnMut(OwnedEffectPhaseV8) -> bool,
     effect: &str,
 ) -> bool {
-    creator == std::process::id()
-        && inputs.store.validate_guard().is_ok()
-        && inputs.policy.allows(effect)
-        && (matches!(phase, OwnedEffectPhaseV8::CleanupStarted(_))
-            || !inputs.cancellation.is_cancelled())
-        && check(phase)
-        && creator == std::process::id()
-        && inputs.store.validate_guard().is_ok()
-        && inputs.policy.allows(effect)
-        && (matches!(phase, OwnedEffectPhaseV8::CleanupStarted(_))
-            || !inputs.cancellation.is_cancelled())
+    guard_status(inputs, creator, phase, check, effect) == LiveGuardV8::Current
 }
 pub(super) fn reducer_guard(
     inputs: &OwnedEffectInputsV8<'_>,
@@ -518,19 +547,20 @@ pub(crate) fn dispatch_owned_effect_v8<'a>(
         authority_lost: false,
     };
     let phase = OwnedEffectPhaseV8::Intent(staged.intent);
-    if !current(
+    let entry_guard = guard_status(
         &staged.prepared.inputs,
         staged.prepared.creator,
         phase,
         &mut check,
         staged.prepared.plan.operation().effect_id(),
-    ) {
+    );
+    if entry_guard != LiveGuardV8::Current {
         staged.failure = Some(if staged.prepared.inputs.cancellation.is_cancelled() {
             OwnedEffectFailureV8::Cancelled
         } else {
             OwnedEffectFailureV8::AuthorityLost
         });
-        staged.authority_lost = staged.failure == Some(OwnedEffectFailureV8::AuthorityLost);
+        staged.authority_lost = entry_guard == LiveGuardV8::AuthorityLost;
         return Ok(staged);
     }
     let request = OwnedEffectTargetRequestV8 {
@@ -561,22 +591,16 @@ pub(crate) fn dispatch_owned_effect_v8<'a>(
     }
     // This guard is outside the target host panic catch and precedes accepted
     // result projection. Lost authority permanently retires physical release.
-    if !current(
+    let exit_guard = guard_status(
         &staged.prepared.inputs,
         staged.prepared.creator,
         phase,
         &mut check,
         staged.prepared.plan.operation().effect_id(),
-    ) {
+    );
+    if exit_guard != LiveGuardV8::Current {
         let cancelled = staged.prepared.inputs.cancellation.is_cancelled();
-        staged.authority_lost = staged.prepared.creator != std::process::id()
-            || staged.prepared.inputs.store.validate_guard().is_err()
-            || !staged
-                .prepared
-                .inputs
-                .policy
-                .allows(staged.prepared.plan.operation().effect_id())
-            || !cancelled;
+        staged.authority_lost = exit_guard == LiveGuardV8::AuthorityLost;
         staged.failure.get_or_insert(if cancelled {
             OwnedEffectFailureV8::Cancelled
         } else {

@@ -166,8 +166,26 @@ fn unreachable_opted_in_module_does_not_require_unlinked_agent_functions() {
         .iter()
         .any(|function| function.id.as_str().starts_with("spare.")));
     let graph: Value = serde_json::from_str(revision.semantic_graph()).unwrap();
-    assert!(graph.get("agent_execution").is_none());
-    assert_eq!(graph["schema"], "semaprax.project-semantic-graph.v1");
+    // The complete Project source projection retains inert provider facts;
+    // the separately checked executable closure above remains empty of them.
+    assert_eq!(graph["schema"], "semaprax.project-semantic-graph.v4");
+    let section = &graph["agent_execution"];
+    assert_eq!(section["base_schema"], "semaprax.project-semantic-graph.v1");
+    assert_eq!(section["authority"], "none");
+    let rows = section["agents"].as_array().unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["module"], "spare.app");
+    assert_eq!(rows[0]["path"], "src/spare.spx");
+    let parsed = semaprax::check(&executable_spare, "src/spare.spx").unwrap();
+    let source_graph: Value =
+        serde_json::from_str(&semaprax::graph::to_json(&parsed).unwrap()).unwrap();
+    let expected = &source_graph["agent_execution"]["agents"][0];
+    for key in ["agent", "operations", "model_wait"] {
+        assert_eq!(rows[0][key], expected[key]);
+    }
+    let managed = workspace.managed_graph();
+    assert_eq!(managed["schema"], "semaprax.workspace-semantic-graph.v1");
+    assert!(managed.get("agent_execution").is_none());
     // The provider contributes checked schema data, never executable roots.
     let contracts = revision.agent_interaction_contract_facts().unwrap();
     let provider = contracts.fact("spare.agent").unwrap();

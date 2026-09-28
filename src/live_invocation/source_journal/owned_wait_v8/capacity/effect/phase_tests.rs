@@ -73,7 +73,7 @@ fn effect_actual_authenticated_phase_edges_keep_reserved_room_and_refuse_produce
         else {
             panic!()
         };
-        let (runtime, execution) = context.test_runtime_execution().unwrap();
+        let (runtime, execution) = context.test_runtime_execution();
         let scope = &context.registration().expected_facts().scope;
         let decoded = execution
             .wait()

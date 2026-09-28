@@ -77,3 +77,13 @@ mod tests;
 
 #[cfg(test)]
 mod phase_tests;
+
+#[cfg(test)]
+fn check_edge(before: RoomV8, encoded: usize, after: RoomV8) {
+    let used = super::super::super::MAX_SOURCE_DOCUMENT_BYTES - before.bytes;
+    before.check(used, 0).unwrap();
+    assert_eq!(before.check(used + 1, 0), Err(SourceJournalError::Capacity));
+    after.check(used + encoded, 1).unwrap();
+    assert!(before.bytes >= encoded + after.bytes);
+    assert!(before.rows >= 1 + after.rows);
+}

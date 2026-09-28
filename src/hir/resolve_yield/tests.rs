@@ -253,11 +253,9 @@ fn main() -> i64 { 0 }
 }
 
 #[test]
-fn a_record_yields_signature_with_a_non_scalar_field_is_still_refused() {
-    // Even a record that also fails `bounded_aggregate_refusal`'s own
-    // future-admission shape (here, an owned `Bytes` leaf) is refused
-    // with the same dedicated `SPX-T307` as one that would fit it: no
-    // record/variant channel type is admitted today regardless.
+fn a_record_yields_request_with_an_inline_bytes_leaf_is_admitted() {
+    // Preserve the original refusal fixture: the later v6 profile deliberately
+    // admits this one direct request with no owned local live before the yield.
     let source = r#"
 module test.resolve_yield_non_scalar;
 @id("app.prompt")
@@ -270,6 +268,43 @@ fn ask() -> i64
     yields Prompt -> i64
 {
     let answer = yield Prompt { seed: 1, note: bytes_zeroed(1usize) };
+    answer
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let program = resolve(source).expect("the bounded v6 Bytes request is admitted");
+    let ask = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "app.ask")
+        .unwrap();
+    let yields = ask.yields.as_ref().unwrap();
+    assert_eq!(
+        yields.request_type,
+        hir::ResolvedType::Nominal {
+            declaration: hir::DeclarationId::new("app.prompt"),
+            arguments: Vec::new(),
+        }
+    );
+    assert_eq!(yields.response_type, hir::ResolvedType::I64);
+}
+
+#[test]
+fn a_record_yields_request_with_a_nested_record_leaf_is_still_refused() {
+    // v6 permits direct Bytes leaves, but never recursively nested aggregates.
+    let source = r#"
+module test.resolve_yield_nested_request;
+@id("app.note")
+record Note { @id("app.note.payload") payload: Bytes, }
+@id("app.prompt")
+record Prompt {
+    @id("app.prompt.seed") seed: i64,
+    @id("app.prompt.note") note: Note,
+}
+@id("app.ask")
+fn ask() -> i64 yields Prompt -> i64 {
+    let answer = yield Prompt { seed: 1, note: Note { payload: bytes_zeroed(1usize) } };
     answer
 }
 @id("app.main")

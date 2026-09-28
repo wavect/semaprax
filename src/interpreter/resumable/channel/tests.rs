@@ -183,6 +183,60 @@ fn a_direct_sequential_bytes_request_suspends_and_resumes() {
 }
 
 #[test]
+fn an_inline_mixed_scalar_and_bytes_request_preserves_declared_field_order() {
+    let program = resolved(
+        r#"
+module test.resolve_yield_non_scalar;
+@id("app.prompt")
+record Prompt {
+    @id("app.prompt.seed") seed: i64,
+    @id("app.prompt.note") note: Bytes,
+}
+@id("app.ask")
+fn ask() -> i64
+    yields Prompt -> i64
+{
+    let answer = yield Prompt { seed: 1, note: bytes_zeroed(1usize) };
+    answer
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#,
+    );
+    let started =
+        run_sequential_channel_resumable_effect(&program, "app.ask", &[], MAX_STEPS).unwrap();
+    let SequentialChannelResumableStep::Suspended { continuation } = started.step else {
+        panic!("mixed byte request did not suspend")
+    };
+    assert_eq!(
+        continuation.request(),
+        &ResumableChannelValue::RecordBytes {
+            declaration: DeclarationId::new("app.prompt"),
+            fields: vec![
+                super::super::channel_bytes::ChannelField::Scalar(ArgumentValue::Int(1)),
+                super::super::channel_bytes::ChannelField::Bytes(vec![0]),
+            ],
+        }
+    );
+    let resumed = resume_sequential_channel_resumable_effect(
+        &program,
+        "app.ask",
+        &[],
+        &continuation,
+        &ResumableChannelValue::Scalar(ArgumentValue::Int(8)),
+        MAX_STEPS,
+    )
+    .unwrap();
+    assert!(matches!(
+        resumed.step,
+        SequentialChannelResumableStep::Completed {
+            result: ArgumentValue::Int(8),
+            ..
+        }
+    ));
+}
+
+#[test]
 fn a_record_channel_suspends_twice_and_completes_with_the_combined_scalar_result() {
     let program = resolved(RECORD_ASK);
     let started = run_sequential_channel_resumable_effect(

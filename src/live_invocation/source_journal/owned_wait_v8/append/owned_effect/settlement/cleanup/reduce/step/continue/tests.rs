@@ -32,6 +32,18 @@ fn with_moved(
         true,
         |context, lease, key, _| {
             let context = context.with_cumulative_initialization(&lease).unwrap();
+            let crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedRunCreated { execution, .. } = &context.fold().created else {
+                panic!("actual Created execution");
+            };
+            assert_eq!(
+                execution,
+                context.ready_runtime().unwrap().1.ordinary().invocation()
+            );
+            assert_ne!(
+                execution,
+                context.ordinary().invocation(),
+                "E and derived I8 are distinct"
+            );
             let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
             let cancel = AgentCancellation::new();
             let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
@@ -188,6 +200,18 @@ fn owned_continue_failed_observe_retains_actual_state_and_observed_consumption()
     CheckedOwnedWaitJournalContextV8::test_with_actual_continued_observe_ensures_store(
         |context, lease, key, _| {
             let context = context.with_cumulative_initialization(&lease).unwrap();
+            let crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedRunCreated { execution, .. } = &context.fold().created else {
+                panic!("actual Created execution");
+            };
+            assert_eq!(
+                execution,
+                context.ready_runtime().unwrap().1.ordinary().invocation()
+            );
+            assert_ne!(
+                execution,
+                context.ordinary().invocation(),
+                "E and derived I8 are distinct"
+            );
             let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
             let cancel = AgentCancellation::new();
             let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();

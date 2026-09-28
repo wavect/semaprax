@@ -33,6 +33,9 @@ pub(super) fn checked_prefix<'a>(
 ) -> Result<CheckedCumulativeEffectPrefixV8<'a>, Error> {
     let folded = fold::fold(context, rows)?;
     let expected_scope = scope(context)?;
+    let Body::OwnedRunCreated { execution, .. } = &context.created else {
+        return Err(Error::Binding);
+    };
     require(
         inputs.scope.program_root() == expected_scope.program_root()
             && inputs.scope.invocation_id() == expected_scope.invocation_id()
@@ -46,7 +49,7 @@ pub(super) fn checked_prefix<'a>(
             inputs.attempt,
             inputs.state,
         ) && inputs.execution.wait().binding() == context.checked_binding.binding()
-            && inputs.execution.ordinary().invocation() == context.ordinary.invocation(),
+            && inputs.execution.ordinary().invocation() == execution,
     )?;
     if inputs.turn == 0 {
         require(previous.is_none())?;

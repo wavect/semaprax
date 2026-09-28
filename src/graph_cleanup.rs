@@ -439,7 +439,7 @@ fn exit_json(exit: &ExitTarget) -> String {
     )
 }
 
-fn finalize_action_json(action: &FinalizeAction) -> String {
+pub(crate) fn finalize_action_json(action: &FinalizeAction) -> String {
     if let Some(condition) = &action.active_case {
         return format!(
             "{{\"kind\":\"finalize\",\"source\":{},\"lifecycle_id\":{},\"guard_flag\":{},\"active_case\":{{\"storage\":{},\"variant\":{},\"case\":{}}}}}",

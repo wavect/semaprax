@@ -791,3 +791,5 @@ mod tests;
 pub(super) use tests::{
     with_staged_complete_reduce_v2, with_staged_effect_reduce_v2, with_staged_task_zero_reduce_v2,
 };
+
+pub(super) mod live_append;

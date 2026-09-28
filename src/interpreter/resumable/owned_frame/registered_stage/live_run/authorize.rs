@@ -99,6 +99,70 @@ impl LiveReadyAuthorizationV8 {
         self.ready.live_test_weak()
     }
 }
+/// Opaque rejection retains the exact pre- or post-handoff physical owner.
+pub(crate) enum LiveReadyEffectPreparationRejectionV8<'j> {
+    Before {
+        _owner: LiveReadyAuthorizationV8,
+        inputs: super::super::effect::OwnedEffectInputsV8<'j>,
+        error: crate::live_invocation::source_journal::SourceJournalError,
+    },
+    After {
+        _owner: super::super::effect::PreparedOwnedEffectV8<'j>,
+        _consumed: u64,
+        error: crate::live_invocation::source_journal::SourceJournalError,
+    },
+}
+impl LiveReadyEffectPreparationRejectionV8<'_> {
+    pub(crate) fn quarantine(&self) {
+        match self {
+            Self::Before { inputs, .. } => inputs.store.quarantine(),
+            Self::After { _owner, .. } => _owner.quarantine_live_authorization(),
+        }
+    }
+    pub(crate) fn error(&self) -> crate::live_invocation::source_journal::SourceJournalError {
+        match self {
+            Self::Before { error, .. } | Self::After { error, .. } => *error,
+        }
+    }
+}
+impl LiveReadyAuthorizationV8 {
+    pub(crate) fn prepare_live_effect_v8<'j>(
+        self,
+        inputs: super::super::effect::OwnedEffectInputsV8<'j>,
+        permit: &crate::live_invocation::source_journal::LiveEffectAuthorizationPermitV8<'_, 'j>,
+    ) -> Result<
+        super::super::effect::PreparedOwnedEffectV8<'j>,
+        LiveReadyEffectPreparationRejectionV8<'j>,
+    > {
+        let consumed = self.consumed;
+        super::super::effect::live_append::prepare_live_owned_effect_v8(inputs, self.ready, permit)
+            .map_err(|failed| match failed {
+                super::super::effect::live_append::LiveEffectPreparationRejectionV8::Before {
+                    rejected,
+                    error,
+                } => {
+                    let super::super::effect::OwnedEffectPreparationRejectionV8 {
+                        ready,
+                        inputs,
+                        ..
+                    } = rejected;
+                    LiveReadyEffectPreparationRejectionV8::Before {
+                        _owner: LiveReadyAuthorizationV8 { ready, consumed },
+                        inputs,
+                        error,
+                    }
+                }
+                super::super::effect::live_append::LiveEffectPreparationRejectionV8::After {
+                    prepared,
+                    error,
+                } => LiveReadyEffectPreparationRejectionV8::After {
+                    _owner: prepared,
+                    _consumed: consumed,
+                    error,
+                },
+            })
+    }
+}
 pub(crate) enum LiveReadyPromotionOutcomeV8 {
     Ready(LiveReadyAuthorizationV8),
     Refused(LiveStagedAuthorizationV8),

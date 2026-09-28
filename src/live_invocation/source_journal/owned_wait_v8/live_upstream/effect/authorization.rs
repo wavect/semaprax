@@ -338,3 +338,9 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
 }
 #[cfg(test)]
 mod tests;
+
+mod prepared;
+pub(crate) use prepared::LiveEffectAuthorizationPermitV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use prepared::{
+    advance_verified_authorization_v8, LiveEffectAuthorizationFailureV8, LivePreparedOwnedEffectV8,
+};

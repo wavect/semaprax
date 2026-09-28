@@ -148,8 +148,16 @@ fn suspension_cleanup_matches_existing_requires_failure_without_id_sorting() {
 
 #[test]
 fn owned_frame_refuses_additional_owned_local_assignment_call_and_second_yield() {
+    // The additional Bytes local is valid ordinary source. Its rejection must
+    // come from suspension admission, not a byte-operation type mismatch.
+    let ordinary = SOURCE.replace("yields i64 -> i64", "").replace(
+        "let answer = yield state.budget;",
+        "let extra = bytes_copy(bytes_as_slice(state.objective));",
+    );
+    hir::resolve(&crate::parse(&ordinary, Path::new("owned-frame-local-control.spx")).unwrap())
+        .expect("the additional owned local is well typed without suspension");
     for body in [
-        "let extra = bytes_copy([120u8]); let answer = yield state.budget; state",
+        "let extra = bytes_copy(bytes_as_slice(state.objective)); let answer = yield state.budget; state",
         "let answer = yield state.budget; let other = yield answer; state",
         "let answer = yield state.budget; state.budget = answer; state",
     ] {

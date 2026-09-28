@@ -14,7 +14,7 @@ impl Drop for Fixture {
 }
 fn fixture() -> Fixture {
     static SEQ: AtomicU64 = AtomicU64::new(0);
-    let path = std::env::temp_dir().join(format!(
+    let path = std::env::temp_dir().canonicalize().unwrap().join(format!(
         "spx-owned-wait-context-{}-{}",
         std::process::id(),
         SEQ.fetch_add(1, Ordering::Relaxed)
@@ -264,6 +264,19 @@ fn owned_wait_typed_execution_refuses_cross_runtime_and_profile_before_factory()
         }
         assert!(other
             .checked_owned_wait_execution_v8(Arc::clone(&wait), &adapter, &p, 1000)
+            .is_err());
+        let changed_source = source
+            .source()
+            .replace("sequence <= 1usize", "sequence <= 0usize");
+        assert_ne!(changed_source, source.source());
+        let changed_wait = Arc::new(compile_owned_agent_wait_v8(
+            &changed_source,
+            std::path::Path::new(source.path()),
+            "fixture.agent",
+            "fixture.agent.type.step",
+        )?);
+        assert!(r
+            .checked_owned_wait_execution_v8(changed_wait, &adapter, &p, 1000)
             .is_err());
         p.program_root = Some("forbidden".into());
         assert!(r

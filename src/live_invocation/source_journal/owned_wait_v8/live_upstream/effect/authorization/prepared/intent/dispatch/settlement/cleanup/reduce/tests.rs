@@ -1,9 +1,9 @@
 //! Actual same-root successful cleanup/Outcome, stopped before Reduce ACK.
 use super::*;
 use crate::agent_runtime::AgentCancellation;
-use crate::resumable_effects::CapabilityPolicy;
+use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::test_executed;
 use crate::live_invocation::SourceInvocationClock;
-use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::tests::test_executed;
+use crate::resumable_effects::CapabilityPolicy;
 use std::sync::Arc;
 struct Clock;
 impl crate::live_invocation::InvocationClock for Clock {

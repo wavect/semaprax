@@ -306,3 +306,31 @@ fn owned_original_reduce_postack_cancel_and_guard_losses_keep_exact_boundary_own
         });
     }
 }
+
+/// Genuine first-turn physical pipeline. The caller selects only an existing
+/// closed checked Context fixture; this helper creates no ACK or owner from data.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_evaluated<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    cancel: &'j AgentCancellation,
+    policy: &'j CapabilityPolicy,
+    clock: &'j dyn SourceInvocationClock,
+    callback: impl FnOnce(LiveEvaluatedOwnedReduceV8<'j>, Vec<std::sync::Weak<[u8]>>),
+) {
+    test_executed(journal, cancel, policy, clock, |executed, weak| {
+        let selected = executed
+            .prepare_reduce()
+            .unwrap_or_else(|_| panic!("actual original Reduce selection"));
+        let verified = journal
+            .begin_session()
+            .unwrap()
+            .append_owned_reduce_reservation(selected)
+            .unwrap_or_else(|_| panic!("actual original full-F ACK"));
+        let evaluated = verified
+            .advance_reduce()
+            .unwrap_or_else(|_| panic!("actual consuming reducer"));
+        evaluated.validate_live().unwrap();
+        assert!(evaluated.stage_facts().unwrap().step().is_some());
+        assert!(weak.iter().all(|leaf| leaf.strong_count() == 1));
+        callback(evaluated, weak);
+    });
+}

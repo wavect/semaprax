@@ -137,12 +137,12 @@ impl<'j> LiveOwnedReduceReservationAppendV8<'j> {
 #[cfg(test)]
 mod tests;
 
-use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::settlement::cleanup::reduce::VerifiedOwnedReduceReservationSuccessorV8;
-use crate::live_invocation::source_journal::owned_wait_v8::candidate::InventoryV8;
 use crate::interpreter::resumable::owned_frame::registered_stage::reduce::{
-    evaluate_live_executed_owned_reduce_v2, LiveReduceEvaluationFailureV8,
-    StagedExecutedOwnedReduceV2, CheckedLiveOwnedReduceStageFactsV8,
+    evaluate_live_executed_owned_reduce_v2, CheckedLiveOwnedReduceStageFactsV8,
+    LiveReduceEvaluationFailureV8, StagedExecutedOwnedReduceV2,
 };
+use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedReduceReservationSuccessorV8;
+use crate::live_invocation::source_journal::owned_wait_v8::candidate::InventoryV8;
 
 /// Borrowed only from the actual owner-containing reservation obligation.
 /// Full guards run outside the append marker; prefix checks contain no callbacks.

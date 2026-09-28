@@ -272,3 +272,6 @@ impl<'j> AppendSessionV8<'j> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use tests::test_evaluated;

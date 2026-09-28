@@ -419,7 +419,7 @@ fn owned_reduce_authenticated_history_joins_exact_refs_and_rejects_reminted_subs
 #[test]
 fn owned_reduce_authenticated_failed_cleanup_allows_only_the_selected_stop_after_observed_receipt()
 {
-    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|c, lease, key| {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|c, mut lease, key| {
         let (mut rows, _) = effect_history(&c, &key, false);
         let effect_cleanup = seq(&rows) - 1;
         let p = v2::compile_owned_reduce_v2(c.execution.wait()).unwrap();

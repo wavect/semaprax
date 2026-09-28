@@ -488,13 +488,30 @@ pub(super) fn test_completed_profile(
                 .checked_model_facts(binding)
                 .expect("same actual continued State");
             let counts = Rc::new(RefCell::new(Counts::default()));
-            let mut response = document(journal.context());
+            let original_response = document(journal.context());
+            let mut response = original_response.clone();
+            let expected_sequence = if granted { 1 } else { 2 };
             if !granted {
-                response = String::from_utf8(response)
-                    .unwrap()
-                    .replace("\"sequence\":\"1\"", "\"sequence\":\"2\"")
-                    .into_bytes();
+                let mut document: serde_json::Value = serde_json::from_slice(&response).unwrap();
+                let sequence = document
+                    .get_mut("value")
+                    .and_then(|value| value.get_mut("fields"))
+                    .and_then(|fields| fields.get_mut("fixture.agent.type.proposal.sequence"))
+                    .expect("actual stable Proposal sequence field");
+                assert_eq!(sequence.as_str(), Some("1"));
+                *sequence = serde_json::Value::String("2".into());
+                response = serde_json::to_vec(&document).unwrap();
+                response.push(b'\n');
+                assert_ne!(response, original_response, "Refused fixture must change K");
+            } else {
+                assert_eq!(response, original_response, "Granted response stays frozen");
             }
+            let response_document: serde_json::Value = serde_json::from_slice(&response).unwrap();
+            assert_eq!(
+                response_document["value"]["fields"]["fixture.agent.type.proposal.sequence"]
+                    .as_str(),
+                Some(if granted { "1" } else { "2" })
+            );
             let mut factory = factory(counts.clone(), script(&response), Rc::new(|_| {}));
             let mut adapter = source(journal.context(), &mut factory);
             let intent = acknowledge(
@@ -531,6 +548,24 @@ pub(super) fn test_completed_profile(
             );
             assert_eq!(counts.borrow().factories, 1);
             assert_eq!(counts.borrow().starts, 1);
+            let crate::interpreter::resumable::ResumableChannelValue::Record { fields, .. } =
+                completed
+                    .proposal
+                    .as_ref()
+                    .expect("actual checked K after Resume")
+                    .carrier()
+            else {
+                panic!("actual Proposal record");
+            };
+            assert!(
+                matches!(
+                    fields.as_slice(),
+                    [crate::interpreter::ArgumentValue::Int(3),
+                     crate::interpreter::ArgumentValue::Bool(false),
+                     crate::interpreter::ArgumentValue::Usize(sequence)] if *sequence == expected_sequence
+                ),
+                "checked actual Proposal must match requested Granted/Refused fixture"
+            );
             callback(journal, completed, weak, ledger, state);
         },
     );

@@ -158,7 +158,9 @@ fn wrapper_selection_fuel_type_and_identity_transformations_refuse() {
 fn already_decoded_proposal_projects_exact_order_and_rejects_other_schema() {
     let compiled = fixture(WRAPPER);
     let schema = compiled.proposal_schema();
-    let document = format!("{{\"schema\":\"semaprax.agent-proposal.v1\",\"agent_id\":\"fixture.agent\",\"proposal_schema_digest\":\"{}\",\"value\":{{\"fields\":{{\"fixture.agent.type.proposal.budget\":7,\"fixture.agent.type.proposal.urgent\":true,\"fixture.agent.type.proposal.sequence\":1}}}}}}\n", schema.schema().digest());
+    let document = format!("{{\"schema\":\"semaprax.agent-proposal.v1\",\"agent_id\":\"fixture.agent\",\"proposal_schema_digest\":\"{}\",\"value\":{{\"fields\":{{\"fixture.agent.type.proposal.budget\":\"7\",\"fixture.agent.type.proposal.urgent\":true,\"fixture.agent.type.proposal.sequence\":\"1\"}}}}}}\n", schema.schema().digest());
+    let numeric = document.replace("\"7\"", "7");
+    assert_eq!(schema.decode(&numeric).unwrap_err()[0].code, "SPX-G551");
     let decoded = schema.decode(&document).unwrap();
     assert_eq!(
         schema.model_wait_carrier(&decoded),

@@ -15,9 +15,7 @@ use crate::agent_lifecycle::authorization::{
 use crate::agent_lifecycle::iterative::effects::{plan_owned_effect_v8, CheckedOwnedEffectPlanV8};
 use crate::agent_lifecycle::AgentCancellation;
 use crate::execution_revision::typed::{AgentRuntimeV2, CheckedTypedOwnedWaitExecutionV8};
-use crate::live_invocation::source_journal::{
-    owned_wait_v8::HeldOwnedWaitStoreV8, SourceEffectFailure,
-};
+use crate::live_invocation::source_journal::{HeldOwnedWaitStoreV8, SourceEffectFailure};
 use crate::resumable_effects::capability::CapabilityPolicy;
 use crate::resumable_effects::owned_frame::v2::{
     owned_wait_operations_v8, CheckedOwnedAgentWaitBindingV8, CheckedOwnedWaitProposalV8,
@@ -79,6 +77,8 @@ pub(crate) struct OwnedEffectSettlementAckV8 {
 pub(crate) struct OwnedEffectCleanupStartedAckV8 {
     basis: AuthorizationBasisV8,
     settlement: u32,
+    recorded: u32,
+    evidence: String,
     started: u32,
     operations: serde_json::Value,
     staged: u32,
@@ -315,6 +315,8 @@ fn current(
         && check(phase)
         && creator == std::process::id()
         && inputs.store.validate_guard().is_ok()
+        && (matches!(phase, OwnedEffectPhaseV8::CleanupStarted(_))
+            || !inputs.cancellation.is_cancelled())
 }
 pub(super) fn reducer_guard(
     inputs: &OwnedEffectInputsV8<'_>,
@@ -617,7 +619,9 @@ pub(crate) fn release_owned_effect_decision_v8<'a>(
         && start.intent == staged.intent
         && start.basis == staged.prepared.basis
         && start.settlement == settlement.settlement
-        && start.started > start.settlement
+        && start.settlement.checked_add(1) == Some(start.recorded)
+        && start.recorded.checked_add(1) == Some(start.started)
+        && start.evidence == settlement.evidence
         && start.operations == operations;
     if !valid
         || !current(

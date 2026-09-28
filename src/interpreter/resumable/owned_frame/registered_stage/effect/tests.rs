@@ -6,7 +6,7 @@ use crate::agent_lifecycle::authorization::target_protocol::{
     TargetHostError, TargetHostRequest, TargetResponseSink,
 };
 use crate::live_invocation::source_journal::{
-    owned_wait_v8::SourceOwnedWaitJournalV8, CheckedOwnedWaitJournalContextV8,
+    CheckedOwnedWaitJournalContextV8, SourceOwnedWaitJournalV8,
 };
 use crate::resumable_effects::owned_frame::v2::compile_owned_reduce_v2;
 
@@ -73,7 +73,9 @@ fn settlement(
     let started = OwnedEffectCleanupStartedAckV8 {
         basis: staged.prepared.basis.clone(),
         settlement: 24,
-        started: 25,
+        recorded: 25,
+        evidence: settlement.evidence.clone(),
+        started: 26,
         operations: owned_wait_operations_v8(
             staged
                 .prepared
@@ -95,7 +97,7 @@ fn settled(pending: &PendingOwnedEffectReceiptV8<'_>) -> OwnedEffectCleanupSettl
     OwnedEffectCleanupSettledAckV8 {
         basis: pending.basis.clone(),
         started: pending.started,
-        settled: 26,
+        settled: 27,
         receipt: pending.receipt().clone(),
     }
 }
@@ -200,9 +202,26 @@ fn owned_frame_v8_effect_matching_acks_release_seal_then_mint_unique_outcome_and
                 .expect("exact accepted settlement payload");
         assert_eq!(observed, 0);
         assert_eq!(weak[1].strong_count(), 1);
-        let (ack, start) = settlement(&rejected.staged);
+        let mut retained = rejected.staged;
+        for mode in 0..2 {
+            let (ack, mut start) = settlement(&retained);
+            if mode == 0 {
+                start.recorded = start.settlement;
+            } else {
+                start.evidence = "wrong recorded evidence".into();
+            }
+            retained =
+                release_owned_effect_decision_v8(retained, ack, start, |_| true, |_| observed += 1)
+                    .err()
+                    .expect("matching immediate Recorded ACK required before release")
+                    .staged;
+            assert_eq!(observed, 0);
+            assert_eq!(weak[1].strong_count(), 1);
+            assert!(!retained.cleanup_started());
+        }
+        let (ack, start) = settlement(&retained);
         let pending = release_owned_effect_decision_v8(
-            rejected.staged,
+            retained,
             ack,
             start,
             |_| true,
@@ -543,4 +562,112 @@ fn owned_frame_v8_effect_policy_refusal_and_lost_cleanup_guard_preserve_owners_w
         drop(rejected);
         assert!(weak.iter().all(|w| w.upgrade().is_none()));
     });
+}
+
+#[test]
+fn owned_frame_v8_effect_final_guard_cancellation_refuses_outcome_and_reducer_entry() {
+    for mode in 0..3 {
+        CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+            let context = Arc::new(context);
+            let journal = SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
+            let (runtime, execution) = context.test_runtime_execution();
+            let store = journal.hold().unwrap();
+            let k = proposal(
+                execution.wait(),
+                &store.registration().expected_facts().scope,
+            );
+            let (ready, weak) = ready(execution.wait());
+            let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+            let cancellation = AgentCancellation::new();
+            let inputs = OwnedEffectInputsV8 {
+                runtime,
+                execution,
+                proposal: &k,
+                store,
+                policy: &policy,
+                cancellation: &cancellation,
+                turn: 0,
+                attempt: 0,
+            };
+            let ack = authorization(&inputs, &ready);
+            let prepared = prepare_owned_effect_v8(inputs, ready, ack, |_| true)
+                .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+            let ack = intent(&prepared);
+            let mut host = Host {
+                calls: 0,
+                cancel: None,
+                panic: false,
+            };
+            let staged = dispatch_owned_effect_v8(
+                prepared,
+                ack,
+                &mut TargetAccounting::default(),
+                |_| true,
+                &mut host,
+            )
+            .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+            let (ack, start) = settlement(&staged);
+            let pending = release_owned_effect_decision_v8(staged, ack, start, |_| true, |_| {})
+                .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+            let ack = settled(&pending);
+            if mode == 0 {
+                let mut checks = 0;
+                let rejected = ack_owned_effect_cleanup_v8(pending, ack, |_| {
+                    checks += 1;
+                    if checks == 2 {
+                        cancellation.cancel();
+                    }
+                    true
+                })
+                .err()
+                .expect("cancel on last pre-mint callback must be observed");
+                assert_eq!(checks, 2);
+                assert_eq!([weak[0].strong_count(), weak[1].strong_count()], [1, 0]);
+                assert_eq!(rejected.pending.accepted.as_deref(), Some(RESULT));
+                drop(rejected);
+            } else {
+                let executed = ack_owned_effect_cleanup_v8(pending, ack, |_| true)
+                    .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+                let plan = compile_owned_reduce_v2(execution.wait()).unwrap();
+                if mode == 1 {
+                    let rejected = super::super::reduce::prepare_executed_owned_reduce_v2(
+                        executed,
+                        &plan,
+                        |_| {
+                            cancellation.cancel();
+                            true
+                        },
+                    )
+                    .err()
+                    .expect("cancel on consuming handoff guard preserves Executed");
+                    assert!(rejected.executed.roots.outcome.is_some());
+                    assert_eq!([weak[0].strong_count(), weak[1].strong_count()], [1, 0]);
+                    drop(rejected);
+                } else {
+                    let prepared = super::super::reduce::prepare_executed_owned_reduce_v2(
+                        executed,
+                        &plan,
+                        |_| true,
+                    )
+                    .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+                    let mut fuel = OwnedFrameBudget::new(1000).unwrap();
+                    let rejected = super::super::reduce::stage_executed_owned_reduce_v2(
+                        prepared,
+                        &mut fuel,
+                        |_| {
+                            cancellation.cancel();
+                            true
+                        },
+                    )
+                    .err()
+                    .expect("cancel after entry callback prevents evaluator");
+                    assert_eq!(fuel.consumed(), 0);
+                    assert_eq!([weak[0].strong_count(), weak[1].strong_count()], [1, 0]);
+                    drop(rejected);
+                }
+            }
+            assert_eq!(host.calls, 1);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        });
+    }
 }

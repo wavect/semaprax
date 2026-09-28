@@ -55,7 +55,7 @@ pub(crate) struct ExecutedOwnedStepTransferRejectionV2<'a> {
 /// public delivery route is provided by this foundation.
 pub(crate) struct HeldExecutedOwnedStepV2<'a> {
     owner: Option<OwnedStepTransferV2>,
-    inputs: OwnedEffectInputsV8<'a>,
+    inputs: Option<OwnedEffectInputsV8<'a>>,
     creator: u32,
     effect_settled: u32,
     transfer_reserved: u32,
@@ -120,7 +120,11 @@ impl HeldExecutedOwnedStepV2<'_> {
         }
     }
     pub(crate) fn validate_store(&self) -> bool {
-        self.creator == std::process::id() && self.inputs.store.validate_guard().is_ok()
+        self.creator == std::process::id()
+            && self
+                .inputs
+                .as_ref()
+                .is_some_and(|i| i.store.validate_guard().is_ok())
     }
     pub(crate) fn causal_refs(&self) -> (u32, u32) {
         (self.effect_settled, self.transfer_reserved)
@@ -319,7 +323,7 @@ pub(crate) fn consume_executed_owned_step_v2<'a>(
     let inputs = committed.ready.inputs.take().expect("held inputs");
     Ok(HeldExecutedOwnedStepV2 {
         owner: Some(owner),
-        inputs,
+        inputs: Some(inputs),
         creator: committed.ready.creator,
         effect_settled: committed.ready.effect_settled,
         transfer_reserved: committed.reserved,
@@ -328,3 +332,9 @@ pub(crate) fn consume_executed_owned_step_v2<'a>(
 
 #[cfg(test)]
 mod tests;
+
+mod continue_observe;
+pub(crate) use continue_observe::{
+    observe_continued_owned_state_v2, CommittedContinueObserveV2, ContinuedOwnedObserveV2,
+    FailedHeldOwnedObserveV2, ObservedHeldOwnedStateV2,
+};

@@ -850,7 +850,9 @@ integration remain unfinished. Its `registered_stage/effect` child consumes
 actual State/Decision roots under sealed effect ACK envelopes and retains the
 same held journal container through Decision release, fresh Outcome and Reduce.
 `registered_stage/reduce/physical_step` retains that lineage through ordered
-per-operation cleanup observations and actual mapped Step moves. Their ACK
+per-operation cleanup observations and actual mapped Step moves; its
+`continue_observe` child consumes the mapped State through one checked Observe.
+Their ACK
 constructors remain test-only until live journal obligations are connected;
 unpublished durable holders release backing without claiming semantic cleanup.
 `registered_stage/live_run` consumes the separately bound live initialization

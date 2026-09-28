@@ -321,6 +321,14 @@ pub(super) fn validate(
     binding: &SourceInvocationBinding,
     entries: &[SourceJournalEntry],
 ) -> Result<ExecutionFold, SourceJournalError> {
+    validate_with_wait_fuel(binding, entries, 0)
+}
+
+pub(super) fn validate_with_wait_fuel(
+    binding: &SourceInvocationBinding,
+    entries: &[SourceJournalEntry],
+    wait_fuel: u64,
+) -> Result<ExecutionFold, SourceJournalError> {
     let priced = binding.priced_binding();
     let policy = binding.policy_binding();
     let mut projected = Vec::with_capacity(entries.len());
@@ -403,7 +411,7 @@ pub(super) fn validate(
             _ => projected.push(entry.clone()),
         }
     }
-    let mut fold = validate_inner(binding, &projected)?;
+    let mut fold = validate_inner(binding, &projected, wait_fuel)?;
     if priced.is_some() {
         fold.priced = Some(super::priced_v4::fold(binding, entries)?);
     }
@@ -417,6 +425,7 @@ pub(super) fn validate(
 fn validate_inner(
     binding: &SourceInvocationBinding,
     entries: &[SourceJournalEntry],
+    wait_fuel: u64,
 ) -> Result<ExecutionFold, SourceJournalError> {
     let Some(stage_allowance) = binding.max_steps_per_stage() else {
         return Err(SourceJournalError::Binding);
@@ -430,7 +439,11 @@ fn validate_inner(
     let prefix = migration::prefix(binding, entries)?;
     let mut fold = ExecutionFold {
         model_units: prefix.model_units,
-        stage_fuel: prefix.stage_fuel,
+        stage_fuel: prefix
+            .stage_fuel
+            .checked_add(wait_fuel)
+            .filter(|fuel| *fuel <= max_fuel as u64)
+            .ok_or(SourceJournalError::Capacity)?,
         stages: prefix.stages,
         effects: prefix.effects,
         attempts: prefix.attempts,

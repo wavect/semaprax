@@ -129,6 +129,26 @@ impl<'a> InventoryV8<'a> {
             argument_digest.clone(),
         ))
     }
+    // Authenticated current fold only; this returns no live credit/token.
+    pub(super) fn prospective_reduce_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, u32), SourceJournalError> {
+        let context = self.context.fold();
+        let folded = fold::fold(context, &self.entries)?;
+        if folded.tail != fold::TailV8::ReadyPair {
+            return Err(SourceJournalError::Order);
+        }
+        let Some(EntryV8::Ordinary(SourceJournalEntry::AuthorizationConsumed {
+            turn,
+            attempt,
+            ..
+        })) = self.entries.last().map(|e| &e.entry)
+        else {
+            return Err(SourceJournalError::Order);
+        };
+        capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
+        Ok((folded.reserved_total, folded.stages, *turn, *attempt))
+    }
     pub(super) fn sequence(&self) -> usize {
         self.entries.len()
     }

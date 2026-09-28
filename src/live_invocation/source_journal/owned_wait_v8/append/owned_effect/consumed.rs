@@ -1,7 +1,11 @@
 //! Fixed AuthorizationConsumed persistence, retaining the actual Ready owner.
 //! No Prepared/Intent/host, owner restoration, detachable ACK or witness factory.
 use super::*;
+mod reduce_hold;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::LiveAuthorizationConsumedAppendV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use reduce_hold::{
+    HeldOwnedAuthorizationConsumedV8, ProspectiveOwnedReduceHoldV8, ReduceHoldRejectionV8,
+};
 
 /// Constructed only after the selected row's fixed physical append succeeds.
 /// Neither this witness nor its envelope is Clone or independently detachable.
@@ -55,7 +59,12 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwn
     session: AppendSessionV8<'j>,
     witness: VerifiedOwnedAuthorizationConsumedSuccessorV8<'j>,
 }
-impl VerifiedOwnedAuthorizationConsumedV8<'_> {
+impl<'j> VerifiedOwnedAuthorizationConsumedV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn reserve_owned_reduce(
+        self,
+    ) -> Result<HeldOwnedAuthorizationConsumedV8<'j>, ReduceHoldRejectionV8<'j>> {
+        reduce_hold::reserve(self)
+    }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {

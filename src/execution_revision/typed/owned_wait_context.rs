@@ -153,3 +153,5 @@ impl AgentRuntimeV2 {
 #[cfg(test)]
 #[path = "owned_wait_context/tests.rs"]
 mod tests;
+#[cfg(test)]
+pub(crate) use tests::TestProspectiveReduceLimitV8;

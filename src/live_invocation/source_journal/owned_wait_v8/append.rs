@@ -13,9 +13,20 @@ pub(crate) struct SourceOwnedWaitJournalV8 {
     key: SourceCheckpointKey,
     poisoned: Cell<bool>,
     append_active: Cell<bool>,
+    prospective_reduce: RefCell<Option<ProspectiveReduceRegistryV8>>,
+    prospective_reduce_identity: Cell<u64>,
     #[cfg(test)]
     panic_after_append: Cell<bool>,
     lease: RefCell<SourceOwnedWaitLeaseV8>,
+}
+struct ProspectiveReduceRegistryV8 {
+    identity: u64,
+    sequence: usize,
+    bytes: usize,
+    authentication: String,
+    turn: u32,
+    attempt: u32,
+    fuel: u64,
 }
 /// Move-only guard retained by physical backing holders.
 pub(crate) struct HeldOwnedWaitStoreV8<'a> {
@@ -76,6 +87,8 @@ impl SourceOwnedWaitJournalV8 {
             key,
             poisoned: Cell::new(false),
             append_active: Cell::new(false),
+            prospective_reduce: RefCell::new(None),
+            prospective_reduce_identity: Cell::new(0),
             #[cfg(test)]
             panic_after_append: Cell::new(false),
             lease: RefCell::new(lease),
@@ -106,6 +119,18 @@ impl SourceOwnedWaitJournalV8 {
         self.context.validate_lease(&lease).inspect_err(|_| {
             self.poisoned.set(true);
         })
+    }
+    // Acquisition-only packet: no closed live phase route can bypass this.
+    fn validate_generic_write(&self) -> Result<(), SourceJournalError> {
+        if self
+            .prospective_reduce
+            .try_borrow()
+            .map_err(|_| SourceJournalError::Order)?
+            .is_some()
+        {
+            return Err(SourceJournalError::Order);
+        }
+        Ok(())
     }
     pub(super) fn begin_session(&self) -> Result<AppendSessionV8<'_>, SourceJournalError> {
         self.validate_guard()?;
@@ -171,6 +196,13 @@ impl<'a> AppendSessionV8<'a> {
             return Err(AppendFailureV8::PhysicalBeforeCandidate {
                 _session: self,
                 _row: row,
+                error,
+            });
+        }
+        if let Err(error) = journal.validate_generic_write() {
+            return Err(AppendFailureV8::CandidateRefused {
+                session: self,
+                row,
                 error,
             });
         }
@@ -271,6 +303,7 @@ fn physical_append(
 ) -> Result<AppendVerifiedV8, SourceJournalError> {
     let journal = attempting.journal;
     journal.validate_adapter_guard()?;
+    journal.validate_generic_write()?;
     {
         let mut lease = journal
             .lease
@@ -284,6 +317,7 @@ fn physical_append(
         lease
             .validate_append_authorized(journal.context.registration())
             .map_err(store_error)?;
+        journal.validate_generic_write()?;
         attempting.attempted.set(true);
         lease.append(pending.bytes()).map_err(store_error)?;
     }
@@ -301,6 +335,7 @@ fn physical_append(
         pending.check_written(&lease, &bytes)?;
     }
     journal.validate_adapter_guard()?;
+    journal.validate_generic_write()?;
     Ok(AppendVerifiedV8 { _sealed: () })
 }
 

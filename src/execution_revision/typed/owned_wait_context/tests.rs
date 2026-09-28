@@ -13,10 +13,34 @@ impl Drop for Fixture {
     }
 }
 #[derive(Clone, Copy)]
+pub(crate) enum TestProspectiveReduceLimitV8 {
+    ExactFuel,
+    FuelOneShort,
+    ExactStages,
+    StagesOneShort,
+}
+impl TestProspectiveReduceLimitV8 {
+    fn total(self) -> usize {
+        match self {
+            Self::ExactFuel => 6000,
+            Self::FuelOneShort => 5999,
+            Self::ExactStages | Self::StagesOneShort => 2_000_000,
+        }
+    }
+    fn stages(self) -> usize {
+        match self {
+            Self::ExactStages => 4,
+            Self::StagesOneShort => 3,
+            Self::ExactFuel | Self::FuelOneShort => IterativeBudget::default().max_stages,
+        }
+    }
+}
+#[derive(Clone, Copy)]
 enum RuntimeFixture {
     Baseline,
     Complete,
     BaselineTaskZero,
+    ProspectiveReduce(TestProspectiveReduceLimitV8),
 }
 fn fixture() -> Fixture {
     fixture_for(RuntimeFixture::Baseline)
@@ -45,7 +69,9 @@ fn fixture_for(profile: RuntimeFixture) -> Fixture {
         "    model_wait_v1 { propose = \"fixture.agent.fn.park\"; }\n    runtime_v1 {",
     );
     let source = match profile {
-        RuntimeFixture::Baseline | RuntimeFixture::BaselineTaskZero => source,
+        RuntimeFixture::Baseline
+        | RuntimeFixture::BaselineTaskZero
+        | RuntimeFixture::ProspectiveReduce(_) => source,
         RuntimeFixture::Complete => {
             let original = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
             assert_eq!(source.matches(original).count(), 1);
@@ -145,6 +171,11 @@ fn runtime_for(
                 max_steps_per_stage: 1000,
                 ..IterativeBudget::default()
             },
+            RuntimeFixture::ProspectiveReduce(limits) => IterativeBudget {
+                max_steps_per_stage: 1000,
+                max_stages: limits.stages(),
+                ..IterativeBudget::default()
+            },
             RuntimeFixture::Complete => IterativeBudget {
                 max_iterations: 2,
                 max_stages: 7,
@@ -190,8 +221,16 @@ fn context(
     runtime: &AgentRuntimeV2,
     wait: Arc<CheckedOwnedAgentWaitBindingV8>,
 ) -> CheckedTypedOwnedWaitExecutionV8 {
+    context_for(runtime, wait, 2_000_000)
+}
+fn context_for(
+    runtime: &AgentRuntimeV2,
+    wait: Arc<CheckedOwnedAgentWaitBindingV8>,
+    total: usize,
+) -> CheckedTypedOwnedWaitExecutionV8 {
     let model = runtime.source_model_binding(identity()).unwrap();
-    let policy = policy(&model);
+    let mut policy = policy(&model);
+    policy.max_total_steps = total;
     let mut factory = || -> Box<dyn ProviderAdapter> { panic!("pure preflight dispatched") };
     let source = StreamingSourceProposalAdapter::new_bound_checkpointed(
         &mut factory,
@@ -571,6 +610,18 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
     ) -> T {
         Self::test_with_runtime_fixture(RuntimeFixture::Baseline, retention_ack, callback)
     }
+    /// Limits enter actual runtime/policy/model/E/registration construction.
+    pub(crate) fn test_with_actual_reduce_hold_limits_store<T>(
+        limits: TestProspectiveReduceLimitV8,
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ProspectiveReduce(limits), true, callback)
+    }
     /// Authored Task budget is data, not the host iteration ceiling.
     pub(crate) fn test_with_actual_task_zero_store<T>(
         callback: impl FnOnce(
@@ -625,7 +676,11 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
                 b"owned task",
                 profile,
             ));
-            let e = Arc::new(context(&baseline, Arc::clone(&wait)));
+            let total = match profile {
+                RuntimeFixture::ProspectiveReduce(limits) => limits.total(),
+                _ => 2_000_000,
+            };
+            let e = Arc::new(context_for(&baseline, Arc::clone(&wait), total));
             if matches!(profile, RuntimeFixture::Complete) {
                 assert_eq!(e.ordinary().max_iterations(), 2);
                 assert_eq!(e.ordinary().max_stages(), 7);

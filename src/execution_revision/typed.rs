@@ -24,6 +24,8 @@ mod model_wait;
 mod owned_wait_context;
 pub use model_wait::SourceModelWaitBinding;
 pub(crate) use owned_wait_context::CheckedTypedOwnedWaitExecutionV8;
+#[cfg(test)]
+pub(crate) use owned_wait_context::TestProspectiveReduceLimitV8;
 
 pub struct AgentRuntimeV2 {
     project: Arc<ProjectRevision>,

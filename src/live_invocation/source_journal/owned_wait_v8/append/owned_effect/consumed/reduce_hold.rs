@@ -28,6 +28,11 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8::append) enum Owned
         reserved: u64,
         stages: u32,
     },
+    Step {
+        selected: EntryV8,
+        reserved: u64,
+        stages: u32,
+    },
 }
 
 /// The actual owner is retained first; credit never exists as a detached token.
@@ -716,6 +721,163 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
             {
                 return Err(SourceJournalError::Binding);
             }
+            journal.validate_guard()
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    /// Borrow-only exact spent lineage for the closed Step producer. The fold
+    /// has already charged the original F and stage; no future funding is added.
+    fn validate_step_inventory(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        inventory: &super::super::super::super::candidate::InventoryV8<'_>,
+        sequence: usize,
+        bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        if !std::ptr::eq(self.journal, journal)
+            || journal.poisoned.get()
+            || !inventory.belongs_to_context(&journal.context)
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        let (reserved, stages, turn, attempt, selected) = inventory.step_reduce_facts()?;
+        let fuel = self.checked_spent_funding(reserved, stages)?;
+        let registry = journal
+            .prospective_reduce
+            .try_borrow()
+            .map_err(|_| SourceJournalError::Order)?;
+        let record = registry.as_ref().ok_or(SourceJournalError::Binding)?;
+        let (actual, charged, charged_stages) = match &record.phase {
+            OwnedReduceHoldPhaseV8::SpentReduce {
+                selected,
+                reserved,
+                stages,
+            }
+            | OwnedReduceHoldPhaseV8::Step {
+                selected,
+                reserved,
+                stages,
+            } => (selected, *reserved, *stages),
+            _ => return Err(SourceJournalError::Binding),
+        };
+        if actual != selected
+            || charged != reserved
+            || charged_stages != stages
+            || record.identity != self.identity
+            || record.fuel != fuel
+            || record.turn != turn
+            || record.attempt != attempt
+            || record.sequence != sequence
+            || inventory.sequence() != sequence
+            || record.bytes != bytes
+            || inventory.acknowledged_bytes() != bytes
+            || record.authentication != inventory.authentication_tail()
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        Ok(())
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_step_append_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        inventory: &super::super::super::super::candidate::InventoryV8<'_>,
+        selected: &EntryV8,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            self.validate_step_inventory(
+                journal,
+                inventory,
+                inventory.sequence(),
+                inventory.acknowledged_bytes(),
+            )?;
+            if !matches!(selected,
+                EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceStaged{..}
+                    |crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceCleanupStarted{..}
+                    |crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedReduceCleanupSettled{..}
+                    |crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStepTransferReserved{..}
+                    |crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStepTransferCompleted{..})
+                |EntryV8::Ordinary(SourceJournalEntry::Transition{..}|SourceJournalEntry::Stop{..})) {
+                return Err(SourceJournalError::Binding);
+            }
+            Ok(())
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    /// Callback-free, real ACK-only phase update under the physical marker.
+    /// Retain the charged aggregate R/S and the same identity/F forever.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_step_ack(
+        &self,
+        witness: &super::super::settlement::cleanup::reduce::step::VerifiedOwnedStepSuccessorV8<'_>,
+        session: &AppendSessionV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, session.journal)
+                || self.journal.poisoned.get()
+                || !self.journal.append_active.get()
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            witness.validate_against_acknowledged_session(session)?;
+            let (reserved, stages, turn, attempt, selected) =
+                session.inventory.step_reduce_facts()?;
+            let fuel = self.checked_spent_funding(reserved, stages)?;
+            let selected = selected.clone();
+            let authentication = session.inventory.authentication_tail().to_owned();
+            let mut registry = self
+                .journal
+                .prospective_reduce
+                .try_borrow_mut()
+                .map_err(|_| SourceJournalError::Order)?;
+            let record = registry.as_mut().ok_or(SourceJournalError::Binding)?;
+            let (charged, charged_stages) = match &record.phase {
+                OwnedReduceHoldPhaseV8::SpentReduce {
+                    reserved, stages, ..
+                }
+                | OwnedReduceHoldPhaseV8::Step {
+                    reserved, stages, ..
+                } => (*reserved, *stages),
+                _ => return Err(SourceJournalError::Binding),
+            };
+            if charged != reserved
+                || charged_stages != stages
+                || record.identity != self.identity
+                || record.fuel != fuel
+                || record.turn != turn
+                || record.attempt != attempt
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            witness.validate_previous_registry(
+                self.journal,
+                record.sequence,
+                record.bytes,
+                &record.authentication,
+            )?;
+            record.phase = OwnedReduceHoldPhaseV8::Step {
+                selected,
+                reserved,
+                stages,
+            };
+            record.sequence = session.sequence();
+            record.bytes = session.acknowledged_bytes();
+            record.authentication = authentication;
+            Ok(())
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_step_guard(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        sequence: usize,
+        bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, journal) {
+                return Err(SourceJournalError::Binding);
+            }
+            journal.validate_guard()?;
+            let current = journal.begin_session()?;
+            self.validate_step_inventory(journal, &current.inventory, sequence, bytes)?;
             journal.validate_guard()
         })();
         result.inspect_err(|_| self.journal.poisoned.set(true))

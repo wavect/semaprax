@@ -5,11 +5,18 @@ use super::super::effect::OwnedEffectInputsV8;
 use super::*;
 use crate::agent_lifecycle::iterative::effects::plan_owned_effect_v8;
 
+/// Closed true lineage. Compiler-empty cleanup has no Started/Settled row;
+/// its actual Staged ACK remains the origin, never a synthetic sequence zero.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum OwnedReduceCleanupOriginV8 {
+    Observed { started: u32 },
+    CompilerEmpty { staged: u32 },
+}
 /// The original staged owner travels inside the cleanup-start ACK envelope.
 /// Matching facts or a boolean cannot create this envelope in production.
 pub(crate) struct CommittedExecutedOwnedReduceCleanupV2<'a> {
     staged: StagedExecutedOwnedReduceV2<'a>,
-    started: u32,
+    started: OwnedReduceCleanupOriginV8,
     observations: Vec<OwnedReduceObservationV2>,
 }
 pub(crate) struct ExecutedOwnedReduceCleanupRejectionV2<'a> {
@@ -26,7 +33,7 @@ pub(crate) struct ReadyExecutedOwnedStepV2<'a> {
     inputs: Option<OwnedEffectInputsV8<'a>>,
     creator: u32,
     effect_settled: u32,
-    cleanup_started: u32,
+    cleanup_started: OwnedReduceCleanupOriginV8,
     receipt_valid: bool,
     quarantined: bool,
     observations: Vec<OwnedReduceObservationV2>,

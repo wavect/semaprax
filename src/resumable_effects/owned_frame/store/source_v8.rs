@@ -14,7 +14,7 @@ pub(crate) struct SourceOwnedWaitLimitsV8 {
     pub(crate) response_limit: usize,
 }
 impl SourceOwnedWaitLimitsV8 {
-    fn json(&self) -> Result<Value, Error> {
+    pub(crate) fn json(&self) -> Result<Value, Error> {
         if self.max_steps_per_stage == 0
             || self.max_steps_per_stage > 1_000_000
             || self.max_total_steps < self.max_steps_per_stage as u64
@@ -140,6 +140,17 @@ pub(crate) struct SourceOwnedWaitLeaseV8 {
     start_authorized: bool,
 }
 impl SourceOwnedWaitLeaseV8 {
+    pub(crate) fn validate_registration(
+        &self,
+        registration: &SourceOwnedWaitStoreRegistrationV8,
+    ) -> Result<(), Error> {
+        self.inner.validate_process()?;
+        if &self.registration != registration {
+            return Err(Error::Binding);
+        }
+        self.validate(registration.expected_facts(), registration.generation())
+    }
+
     pub(crate) fn validate(
         &self,
         expected: &FreshSourceOwnedWaitFactsV8,

@@ -12,7 +12,7 @@ pub(crate) struct OwnedFrameStoreIdentity {
     pub(crate) file_inode: u64,
 }
 impl OwnedFrameStoreIdentity {
-    pub(super) fn json(self) -> Value {
+    pub(crate) fn json(self) -> Value {
         json!({"directory_device":self.directory_device,"directory_inode":self.directory_inode,"file_device":self.file_device,"file_inode":self.file_inode})
     }
 }

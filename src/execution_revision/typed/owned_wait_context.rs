@@ -14,6 +14,10 @@ pub(crate) struct CheckedTypedOwnedWaitExecutionV8 {
     evaluation_fuel: usize,
 }
 impl CheckedTypedOwnedWaitExecutionV8 {
+    pub(crate) fn wait_arc(&self) -> Arc<CheckedOwnedAgentWaitBindingV8> {
+        Arc::clone(&self.wait)
+    }
+
     pub(crate) fn ordinary(&self) -> &SourceInvocationBinding {
         &self.ordinary
     }

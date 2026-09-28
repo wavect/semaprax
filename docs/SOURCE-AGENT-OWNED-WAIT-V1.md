@@ -344,3 +344,11 @@ A selected Refused Decision can retire structurally before State cleanup without
 Structural checkpoint validation obtains all three expected facts from the independently validated candidate fold and compares them exactly. It never takes expected accounting from the checkpoint itself. Authentic checkpoint bytes grant no authority to append, evaluate, restore a root, publish a result or dispatch.
 
 The 65536-byte checkpoint bound includes the complete canonical envelope and its single trailing LF. At the ceiling, closed shape checks still apply; one additional byte is refused before parsing or owner allocation.
+
+## 16. Checked v8 ordinary validation identity
+
+The actual typed execution binding E remains unchanged and is recorded in `OwnedRunCreated.execution`. A separate private v8 ordinary validation binding retains every checked ordinary execution field and uses only the independently recomputed `I = D(source-id.v8, {execution:E,owned_wait_binding:B})` as its invocation identity. Ordinary attempt, model intent and causal validation within v8 therefore use I; no host digest setter or mutation of E exists.
+
+The closed context constructor joins genuine checked typed E and B with the held v8 lease and complete independently retained registration. It checks creator PID first, complete registration equality, all four current physical pins, exact standalone source revision, expected I/scope/epoch, E/B and all limits. The first route uses the full fixed ordinary stage fuel ceiling for helper evaluation; a differing evaluation fuel proof is refused by this context.
+
+Context construction and structural validators are data-only. They do not acknowledge registration retention, enable append, restore an owner, dispatch a model/effect, or publish evidence. The live route still needs independent retention ACK and must recheck the held lease and current policy before and after every callback and physical operation.

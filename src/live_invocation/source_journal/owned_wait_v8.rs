@@ -1,5 +1,6 @@
 //! Inert v8 combined journal proof data. No store, owner, or evidence authority.
 //! Production binding and physical append adapters are owned by the typed runtime.
+mod checked_context;
 mod fold;
 mod model;
 #[cfg(test)]
@@ -54,3 +55,7 @@ pub(super) struct FoldContextV8 {
     checked_binding:
         std::sync::Arc<crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8>,
 }
+
+pub(crate) use checked_context::{
+    checked_owned_wait_journal_context_v8, CheckedOwnedWaitJournalContextV8,
+};

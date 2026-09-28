@@ -295,3 +295,111 @@ fn owned_wait_typed_execution_refuses_cross_runtime_and_profile_before_factory()
     })
     .unwrap();
 }
+
+#[cfg(unix)]
+fn registered_context_store(
+    root: &std::path::Path,
+    label: &str,
+    execution: &CheckedTypedOwnedWaitExecutionV8,
+    change_limit: bool,
+) -> (
+    crate::resumable_effects::owned_frame::SourceOwnedWaitStoreRegistrationV8,
+    crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+) {
+    use crate::resumable_effects::owned_frame::*;
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    let path = root.join(label);
+    std::fs::create_dir(&path).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let metadata = std::fs::metadata(&path).unwrap();
+    let ordinary = execution.ordinary();
+    let invocation=crate::live_invocation::identity::digest(b"semaprax.live-invocation.source-id.v8\0",
+        serde_json::to_string(&serde_json::json!({"execution":ordinary.invocation(),"owned_wait_binding":execution.wait().binding()})).unwrap().as_bytes());
+    let facts = FreshSourceOwnedWaitFactsV8 {
+        scope: crate::resumable_effects::source_checkpoint::SourceCheckpointScope::new(
+            execution.wait().lifecycle().source_revision(),
+            invocation,
+            7,
+        )
+        .unwrap(),
+        execution: ordinary.invocation().into(),
+        binding: execution.wait().binding().into(),
+        directory_identity: (metadata.dev(), metadata.ino()),
+        limits: SourceOwnedWaitLimitsV8 {
+            max_steps_per_stage: ordinary.max_steps_per_stage().unwrap(),
+            max_total_steps: ordinary.max_total_steps().unwrap() as u64,
+            max_stages: ordinary.max_stages() as usize,
+            max_attempts: ordinary.max_attempts() as usize,
+            response_limit: ordinary.response_limit() + usize::from(change_limit),
+        },
+    };
+    fresh_source_owned_wait_v8(
+        prepare_fresh_source_owned_wait_v8(
+            std::fs::File::open(&path).unwrap(),
+            facts,
+            ExplicitStoreRegistrationGrant::for_trusted_host(true).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+}
+#[cfg(unix)]
+#[test]
+fn owned_wait_typed_context_joins_actual_execution_and_complete_physical_registration() {
+    use crate::live_invocation::source_journal::checked_owned_wait_journal_context_v8;
+    let f = fixture();
+    with_authenticated_project(&f.0.join("semaprax.toml"), |snapshot| {
+        let project = snapshot.retain_revision();
+        let source = project
+            .sources()
+            .iter()
+            .find(|s| s.path() == "src/app.spx")
+            .unwrap();
+        let wait = Arc::new(compile_owned_agent_wait_v8(
+            source.source(),
+            std::path::Path::new(source.path()),
+            "fixture.agent",
+            "fixture.agent.type.step",
+        )?);
+        let baseline = runtime(Arc::clone(&project), effects(), false, b"owned task");
+        let e = Arc::new(context(&baseline, Arc::clone(&wait)));
+        let (registration, mut lease) = registered_context_store(&f.0, "journal", &e, false);
+        // A context is data-only and does not bypass independent retention ACK.
+        let checked =
+            checked_owned_wait_journal_context_v8(Arc::clone(&e), &lease, &registration).unwrap();
+        assert_eq!(checked.binding(), wait.binding());
+        assert_eq!(checked.generation(), registration.generation());
+        checked.validate_lease(&lease).unwrap();
+        assert_eq!(
+            checked.ordinary().invocation(),
+            registration.expected_facts().scope.invocation_id()
+        );
+        assert_ne!(checked.ordinary().invocation(), e.ordinary().invocation());
+        assert!(lease.append(b"no registration ACK\n").is_err());
+        lease
+            .authorize_fresh_start(
+                registration
+                    .acknowledge_retained_by_trusted_host(true)
+                    .unwrap(),
+            )
+            .unwrap();
+        checked.validate_lease(&lease).unwrap();
+        let other = runtime(Arc::clone(&project), effects(), true, b"changed task");
+        let other_e = Arc::new(context(&other, Arc::clone(&wait)));
+        assert!(checked_owned_wait_journal_context_v8(other_e, &lease, &registration).is_err());
+        let (other_registration, other_lease) =
+            registered_context_store(&f.0, "other-journal", &e, false);
+        assert!(
+            checked_owned_wait_journal_context_v8(Arc::clone(&e), &lease, &other_registration)
+                .is_err()
+        );
+        assert!(checked.validate_lease(&other_lease).is_err());
+        let (wrong_limit, wrong_lease) = registered_context_store(&f.0, "wrong-limit", &e, true);
+        assert!(
+            checked_owned_wait_journal_context_v8(Arc::clone(&e), &wrong_lease, &wrong_limit)
+                .is_err()
+        );
+        Ok(())
+    })
+    .unwrap();
+}

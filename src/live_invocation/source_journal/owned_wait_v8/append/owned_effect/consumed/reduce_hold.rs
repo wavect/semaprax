@@ -8,11 +8,26 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect
 /// Closed metadata phase. Neither variant changes credit or grants a write.
 pub(in crate::live_invocation::source_journal::owned_wait_v8::append) enum OwnedReduceHoldPhaseV8 {
     Consumed,
-    Intent { selected: SourceJournalEntry },
-    Settlement { selected: EntryV8 },
-    Recorded { selected: EntryV8 },
-    CleanupStarted { selected: EntryV8 },
-    CleanupSettled { selected: EntryV8 },
+    Intent {
+        selected: SourceJournalEntry,
+    },
+    Settlement {
+        selected: EntryV8,
+    },
+    Recorded {
+        selected: EntryV8,
+    },
+    CleanupStarted {
+        selected: EntryV8,
+    },
+    CleanupSettled {
+        selected: EntryV8,
+    },
+    SpentReduce {
+        selected: EntryV8,
+        reserved: u64,
+        stages: u32,
+    },
 }
 
 /// The actual owner is retained first; credit never exists as a detached token.
@@ -558,6 +573,174 @@ impl ProspectiveOwnedReduceHoldV8<'_> {
         result.inspect_err(|_| self.journal.poisoned.set(true))
     }
 
+    /// The actual owner selects one original full-F Reduce reservation. This
+    /// pure check neither charges it nor permits a failed effect to reduce.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_reduce_append_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        inventory: &super::super::super::super::candidate::InventoryV8<'_>,
+        selected: &EntryV8,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, journal) {
+                return Err(SourceJournalError::Binding);
+            }
+            self.validate_cleanup_inventory(
+                inventory,
+                inventory.sequence(),
+                inventory.acknowledged_bytes(),
+            )?;
+            let (reserved, stages, turn, attempt, previous) = inventory.released_reduce_facts()?;
+            let fuel = self.checked_funding(reserved, stages)?;
+            let EntryV8::Ordinary(SourceJournalEntry::StageReservation {
+                turn: actual_turn,
+                attempt: Some(actual_attempt),
+                role: crate::live_invocation::source_journal::SourceStageRole::Reduce,
+                fuel: actual_fuel,
+            }) = selected
+            else {
+                return Err(SourceJournalError::Binding);
+            };
+            if (*actual_turn,*actual_attempt)!=(turn,attempt)||u64::try_from(*actual_fuel).ok()!=Some(fuel)||!matches!(previous,EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedEffectDecisionCleanupSettled{..})){return Err(SourceJournalError::Binding);}
+            Ok(())
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    /// Under the append marker only the actual fixed ACK and exact session can
+    /// consume the one prospective slot. The fold already charged F and a stage.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_reduce_ack(
+        &self,
+        witness:&super::super::settlement::cleanup::reduce::VerifiedOwnedReduceReservationSuccessorV8<'_>,
+        session: &AppendSessionV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, session.journal)
+                || self.journal.poisoned.get()
+                || !self.journal.append_active.get()
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            witness.validate_against_acknowledged_session(session)?;
+            let (reserved, stages, turn, attempt, selected) =
+                session.inventory.original_reduce_facts()?;
+            let fuel = self.checked_spent_funding(reserved, stages)?;
+            let EntryV8::Ordinary(SourceJournalEntry::StageReservation {
+                fuel: actual_fuel, ..
+            }) = selected
+            else {
+                return Err(SourceJournalError::Binding);
+            };
+            if u64::try_from(*actual_fuel).ok() != Some(fuel) {
+                return Err(SourceJournalError::Binding);
+            }
+            let selected = selected.clone();
+            let authentication = session.inventory.authentication_tail().to_owned();
+            let mut registry = self
+                .journal
+                .prospective_reduce
+                .try_borrow_mut()
+                .map_err(|_| SourceJournalError::Order)?;
+            let record = registry.as_mut().ok_or(SourceJournalError::Binding)?;
+            if !matches!(&record.phase, OwnedReduceHoldPhaseV8::CleanupSettled { .. })
+                || record.identity != self.identity
+                || record.fuel != fuel
+                || record.turn != turn
+                || record.attempt != attempt
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            witness.validate_previous_registry(
+                self.journal,
+                record.sequence,
+                record.bytes,
+                &record.authentication,
+            )?;
+            // No refund, new identity, reset, second F addition or second debit.
+            record.phase = OwnedReduceHoldPhaseV8::SpentReduce {
+                selected,
+                reserved,
+                stages,
+            };
+            record.sequence = session.sequence();
+            record.bytes = session.acknowledged_bytes();
+            record.authentication = authentication;
+            Ok(())
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    /// Exact current original-Reduce prefix after the single recorded charge.
+    /// Future Step rows require their own closed phase, never this old cursor.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_spent_reduce_guard(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        sequence: usize,
+        bytes: usize,
+    ) -> Result<(), SourceJournalError> {
+        let result = (|| {
+            if !std::ptr::eq(self.journal, journal) {
+                return Err(SourceJournalError::Binding);
+            }
+            journal.validate_guard()?;
+            let current = journal.begin_session()?;
+            let inventory = &current.inventory;
+            if !inventory.belongs_to_context(&journal.context) {
+                return Err(SourceJournalError::Binding);
+            }
+            let (reserved, stages, turn, attempt, selected) = inventory.original_reduce_facts()?;
+            let fuel = self.checked_spent_funding(reserved, stages)?;
+            let registry = journal
+                .prospective_reduce
+                .try_borrow()
+                .map_err(|_| SourceJournalError::Order)?;
+            let record = registry.as_ref().ok_or(SourceJournalError::Binding)?;
+            let OwnedReduceHoldPhaseV8::SpentReduce {
+                selected: actual,
+                reserved: charged,
+                stages: charged_stages,
+            } = &record.phase
+            else {
+                return Err(SourceJournalError::Binding);
+            };
+            if actual != selected
+                || *charged != reserved
+                || *charged_stages != stages
+                || record.identity != self.identity
+                || record.fuel != fuel
+                || record.turn != turn
+                || record.attempt != attempt
+                || record.sequence != sequence
+                || inventory.sequence() != sequence
+                || record.bytes != bytes
+                || inventory.acknowledged_bytes() != bytes
+                || record.authentication != inventory.authentication_tail()
+            {
+                return Err(SourceJournalError::Binding);
+            }
+            journal.validate_guard()
+        })();
+        result.inspect_err(|_| self.journal.poisoned.set(true))
+    }
+    fn checked_spent_funding(&self, reserved: u64, stages: u32) -> Result<u64, SourceJournalError> {
+        let ordinary = self.journal.context.ordinary();
+        let (_, execution) = self
+            .journal
+            .context
+            .ready_runtime()
+            .ok_or(SourceJournalError::Binding)?;
+        let fuel =
+            u64::try_from(execution.evaluation_fuel()).map_err(|_| SourceJournalError::Capacity)?;
+        if Some(execution.evaluation_fuel()) != ordinary.max_steps_per_stage() {
+            return Err(SourceJournalError::Binding);
+        }
+        let total = u64::try_from(
+            ordinary
+                .max_total_steps()
+                .ok_or(SourceJournalError::Binding)?,
+        )
+        .map_err(|_| SourceJournalError::Capacity)?;
+        spent_funding(reserved, stages, fuel, total, ordinary.max_stages())?;
+        Ok(fuel)
+    }
     /// Borrow-only Consumed-phase guard, never an owner/ACK/token producer.
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_guard(
         &self,
@@ -764,3 +947,47 @@ pub(super) fn reserve<'j>(
 
 #[cfg(test)]
 mod tests;
+
+// Pure already-charged arithmetic. Prospective funding() intentionally adds
+// F/one slot; this must not, and must reject an impossible uncharged ledger.
+fn spent_funding(
+    reserved: u64,
+    stages: u32,
+    fuel: u64,
+    total: u64,
+    max_stages: u32,
+) -> Result<(), SourceJournalError> {
+    if reserved < fuel || stages == 0 || reserved > total || stages > max_stages {
+        return Err(SourceJournalError::Capacity);
+    }
+    Ok(())
+}
+#[cfg(test)]
+mod spent_funding_tests {
+    use super::*;
+    #[test]
+    fn owned_reduce_spent_funding_exact_limit_does_not_charge_twice() {
+        assert_eq!(funding(5000, 3, 1000, 6000, 4), Ok(()));
+        assert_eq!(spent_funding(6000, 4, 1000, 6000, 4), Ok(()));
+        assert_eq!(
+            spent_funding(6001, 4, 1000, 6000, 4),
+            Err(SourceJournalError::Capacity)
+        );
+        assert_eq!(
+            spent_funding(6000, 5, 1000, 6000, 4),
+            Err(SourceJournalError::Capacity)
+        );
+        assert_eq!(
+            spent_funding(999, 1, 1000, 6000, 4),
+            Err(SourceJournalError::Capacity)
+        );
+        assert_eq!(
+            spent_funding(1000, 0, 1000, 6000, 4),
+            Err(SourceJournalError::Capacity)
+        );
+        assert_eq!(
+            spent_funding(u64::MAX, u32::MAX, 1, u64::MAX, u32::MAX),
+            Ok(())
+        );
+    }
+}

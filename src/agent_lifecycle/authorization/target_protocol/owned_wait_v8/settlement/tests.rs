@@ -65,6 +65,9 @@ fn owned_wait_effect_settlement_replays_exact_exchange_and_refuses_result_or_pha
             decision: &decision,
             proposal: &proposal,
         };
+        let request = checked_owned_effect_request_v8(&inputs()).unwrap();
+        assert_eq!(request.limits().max_fuel, request.limits().max_calls);
+        assert_eq!(request.operation().effect_id(), "read");
         let commitments = checked_owned_wait_ready_commitments_v8(
             runtime, execution, &scope, 0, 0, &state, &decision, &proposal,
         )
@@ -137,6 +140,8 @@ fn owned_wait_effect_settlement_replays_exact_exchange_and_refuses_result_or_pha
             )
             .unwrap();
             assert_eq!(checked.operation(), plan.operation());
+            assert_eq!(request.request_wire(), checked.request_wire());
+            assert_eq!(request.request_digest(), checked.request_digest());
             assert_eq!(checked.evidence().digest(), run.evidence().digest());
             assert_eq!(
                 checked.result_wire_limit(),

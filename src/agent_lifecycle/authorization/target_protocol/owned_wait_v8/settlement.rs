@@ -2,7 +2,7 @@
 //! dispatch permit, append ACK, cleanup authority or physical runtime owner.
 use super::super::*;
 use crate::agent_lifecycle::authorization::checked_owned_wait_ready_commitments_v8;
-use crate::agent_lifecycle::iterative::effects::plan_owned_effect_v8;
+use crate::agent_lifecycle::iterative::effects::{plan_owned_effect_v8, CheckedOwnedEffectPlanV8};
 use crate::execution_revision::typed::{AgentRuntimeV2, CheckedTypedOwnedWaitExecutionV8};
 use crate::live_invocation::source_journal::{
     source_effect_digest, SourceEffectFailure, SourceJournalEntry, SourceJournalError as Error,
@@ -22,6 +22,63 @@ pub(crate) struct OwnedEffectSettlementInputsV8<'a> {
     pub(crate) decision: &'a serde_json::Value,
     pub(crate) proposal: &'a CheckedOwnedWaitProposalV8,
 }
+/// Exact checked request proof data. No TargetGrant or dispatch permit can be
+/// recovered from it; retaining the plan borrows the actual effect registry.
+pub(crate) struct CheckedOwnedEffectRequestV8<'a> {
+    plan: CheckedOwnedEffectPlanV8<'a>,
+    request: Vec<u8>,
+}
+impl CheckedOwnedEffectRequestV8<'_> {
+    pub(crate) fn operation(&self) -> &TargetOperation {
+        self.plan.operation()
+    }
+    pub(crate) fn request_wire(&self) -> &[u8] {
+        &self.request
+    }
+    pub(crate) fn request_digest(&self) -> String {
+        digest(REQUEST_DOMAIN, &self.request)
+    }
+    pub(crate) fn limits(&self) -> TargetLimits {
+        self.plan.target_limits()
+    }
+}
+pub(crate) fn checked_owned_effect_request_v8<'a>(
+    inputs: &OwnedEffectSettlementInputsV8<'a>,
+) -> Result<CheckedOwnedEffectRequestV8<'a>, Error> {
+    if inputs.turn >= inputs.execution.ordinary().max_stages()
+        || inputs.attempt >= inputs.execution.ordinary().max_attempts()
+    {
+        return Err(Error::Binding);
+    }
+    let commitments = checked_owned_wait_ready_commitments_v8(
+        inputs.runtime,
+        inputs.execution,
+        inputs.scope,
+        inputs.turn,
+        inputs.attempt,
+        inputs.state,
+        inputs.decision,
+        inputs.proposal,
+    )?;
+    let plan = plan_owned_effect_v8(
+        inputs.runtime,
+        inputs.execution,
+        inputs.scope,
+        inputs.proposal,
+    )
+    .map_err(|_| Error::Binding)?;
+    let request = TargetHostRequest {
+        grant_id: commitments.target_grant_digest().into(),
+        authorization_binding: commitments.authorization_binding().into(),
+        operation: plan.operation().clone(),
+        turn: u64::from(inputs.turn),
+        argument: plan.argument().clone(),
+        fuel: 1,
+    }
+    .canonical_wire();
+    Ok(CheckedOwnedEffectRequestV8 { plan, request })
+}
+
 pub(crate) struct CheckedOwnedEffectSettlementV8 {
     operation: TargetOperation,
     request: Vec<u8>,
@@ -82,39 +139,11 @@ pub(crate) fn checked_owned_effect_settlement_v8(
     evidence_wire: &[u8],
     result_wire: Option<&[u8]>,
 ) -> Result<CheckedOwnedEffectSettlementV8, Error> {
-    if inputs.turn >= inputs.execution.ordinary().max_stages()
-        || inputs.attempt >= inputs.execution.ordinary().max_attempts()
-    {
-        return Err(Error::Binding);
-    }
-    let commitments = checked_owned_wait_ready_commitments_v8(
-        inputs.runtime,
-        inputs.execution,
-        inputs.scope,
-        inputs.turn,
-        inputs.attempt,
-        inputs.state,
-        inputs.decision,
-        inputs.proposal,
-    )?;
-    let plan = plan_owned_effect_v8(
-        inputs.runtime,
-        inputs.execution,
-        inputs.scope,
-        inputs.proposal,
-    )
-    .map_err(|_| Error::Binding)?;
-    let request = TargetHostRequest {
-        grant_id: commitments.target_grant_digest().into(),
-        authorization_binding: commitments.authorization_binding().into(),
-        operation: plan.operation().clone(),
-        turn: u64::from(inputs.turn),
-        argument: plan.argument().clone(),
-        fuel: 1,
-    }
-    .canonical_wire();
+    let checked = checked_owned_effect_request_v8(&inputs)?;
+    let plan = &checked.plan;
+    let request = &checked.request;
     let evidence = TargetEvidence::decode(evidence_wire).map_err(|_| Error::Malformed)?;
-    evidence.replay_wire(&request).map_err(|_| Error::Binding)?;
+    evidence.replay_wire(request).map_err(|_| Error::Binding)?;
     let matches_phase = |turn: u32, attempt: u32, operation: &str| {
         turn == inputs.turn
             && attempt == inputs.attempt
@@ -126,7 +155,7 @@ pub(crate) fn checked_owned_effect_settlement_v8(
             return Err(Error::Binding);
         }
         evidence
-            .replay_exchange_wire(&request, Some(result_wire))
+            .replay_exchange_wire(request, Some(result_wire))
             .map_err(|_| Error::Binding)?;
         let carrier = TypedCarrier::decode(result_wire, plan.operation().result_type())
             .map_err(|_| Error::Malformed)?;
@@ -164,7 +193,7 @@ pub(crate) fn checked_owned_effect_settlement_v8(
             return Err(Error::Malformed);
         }
         evidence
-            .replay_exchange_wire(&request, None)
+            .replay_exchange_wire(request, None)
             .map_err(|_| Error::Binding)?;
         let expected = match evidence.settlement() {
             Settlement::Cancelled | Settlement::CancelledAfterDispatch => {
@@ -181,7 +210,7 @@ pub(crate) fn checked_owned_effect_settlement_v8(
     }
     Ok(CheckedOwnedEffectSettlementV8 {
         operation: plan.operation().clone(),
-        request,
+        request: checked.request,
         evidence,
         result_wire_limit: plan.target_limits().max_result_bytes,
     })

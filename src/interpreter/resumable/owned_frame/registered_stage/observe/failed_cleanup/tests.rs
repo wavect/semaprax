@@ -128,3 +128,26 @@ fn failed_observe_capture_current_guard_panic_is_not_an_observer_outcome() {
     assert_eq!(observations, 0);
     assert!(weak.iter().all(|w| w.upgrade().is_none()));
 }
+
+#[test]
+fn failed_observe_capture_rejects_live_root_alias_before_any_release() {
+    let (failed, weak) = failed();
+    let alias = failed.root.as_ref().unwrap().clone();
+    let mut work = 0;
+    let actual = capture_failed_observe_cleanup_v8(failed, || true, |_| work += 1)
+        .err()
+        .expect("actual aliased root");
+    assert!(matches!(
+        actual,
+        ActualFailedObserveCleanupRejectionV8::Owner(_)
+    ));
+    let ActualFailedObserveCleanupRejectionV8::Owner(ref rejection) = actual else {
+        panic!("actual rejection owner")
+    };
+    assert!(rejection.failed.settlement_started);
+    assert_eq!(work, 0);
+    assert!(weak.iter().all(|w| w.strong_count() == 1));
+    drop(actual);
+    drop(alias);
+    assert!(weak.iter().all(|w| w.upgrade().is_none()));
+}

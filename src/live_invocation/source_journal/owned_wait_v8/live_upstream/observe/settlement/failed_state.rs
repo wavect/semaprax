@@ -200,7 +200,7 @@ impl<'j> LiveSettledObserveV8<'j> {
                 return Err(SourceJournalError::Binding);
             }
             let (_, _, turn, basis, state_digest, status, selected) =
-                session.inventory.failed_observe_cleanup_facts()?;
+                session.failed_observe_cleanup_facts()?;
             if selected != ack.witness.selected_row()
                 || state_digest != wire::record_argument_digest(&data.state)
                 || status != &terminal
@@ -721,13 +721,7 @@ impl FixedFailedObserveStateAppendPermitV8<'_, '_> {
         }
         match self.owner.context() {
             FailedObserveContextV8::Initial(_) => {
-                if j.prospective_reduce
-                    .try_borrow()
-                    .map_err(|_| SourceJournalError::Order)?
-                    .is_some()
-                {
-                    return Err(SourceJournalError::Binding);
-                }
+                j.validate_initial_observe_registry()?;
                 i.validate_failed_observe_cleanup_prefix(self.owner.selected_row())
             }
             FailedObserveContextV8::Continued(c) => c.append_prefix(i, self.owner.selected_row()),
@@ -740,14 +734,7 @@ impl FixedFailedObserveStateAppendPermitV8<'_, '_> {
     ) -> Result<(), SourceJournalError> {
         match self.owner.context() {
             FailedObserveContextV8::Initial(_) => {
-                if s.journal
-                    .prospective_reduce
-                    .try_borrow()
-                    .map_err(|_| SourceJournalError::Order)?
-                    .is_some()
-                {
-                    return Err(SourceJournalError::Binding);
-                }
+                self.owner.journal().validate_initial_observe_registry()?;
                 w.validate_against_acknowledged_session(s)
             }
             FailedObserveContextV8::Continued(c) => c.advance_ack(w, s),
@@ -801,3 +788,6 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

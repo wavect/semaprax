@@ -182,3 +182,10 @@ impl<'j> FailedHeldOwnedObserveV2<'j> {
         Ok(released)
     }
 }
+
+#[cfg(test)]
+impl FailedHeldOwnedObserveV2<'_> {
+    pub(crate) fn test_cleanup_weak_v8(&self) -> Vec<std::sync::Weak<[u8]>> {
+        self.failed.test_cleanup_weak_v8()
+    }
+}

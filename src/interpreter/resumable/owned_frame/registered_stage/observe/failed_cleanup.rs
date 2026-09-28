@@ -68,7 +68,12 @@ pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn capture_
             }
         },
     )
-    .map_err(ActualFailedObserveCleanupRejectionV8::Owner)?;
+    .map_err(|mut rejection| {
+        // An attempted cleanup envelope is consumed even if prevalidation
+        // refuses before the first leaf; it cannot become a retry permit.
+        rejection.failed.settlement_started = true;
+        ActualFailedObserveCleanupRejectionV8::Owner(rejection)
+    })?;
     let slots = slots.into_inner();
     if mismatch.get()
         || next.get() != actions.len()
@@ -92,3 +97,12 @@ pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn capture_
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+impl FailedOwnedObserveV2 {
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn test_cleanup_weak_v8(
+        &self,
+    ) -> Vec<std::sync::Weak<[u8]>> {
+        super::super::super::snapshot::weak_leaves(self.root.as_ref().expect("actual failed root"))
+    }
+}

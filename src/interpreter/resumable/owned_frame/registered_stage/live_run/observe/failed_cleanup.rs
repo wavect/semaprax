@@ -119,3 +119,10 @@ impl LiveFailedObserveV8 {
         Ok(released)
     }
 }
+
+#[cfg(test)]
+impl LiveFailedObserveV8 {
+    pub(crate) fn test_cleanup_weak_v8(&self) -> Vec<std::sync::Weak<[u8]>> {
+        self.owner.test_cleanup_weak_v8()
+    }
+}

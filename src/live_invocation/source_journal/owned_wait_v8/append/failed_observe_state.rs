@@ -261,3 +261,12 @@ impl<'j> AppendSessionV8<'j> {
         Ok(envelope)
     }
 }
+
+impl AppendSessionV8<'_> {
+    /// Descriptive authenticated failed-Observe basis; never an owner or ACK.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn failed_observe_cleanup_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, u32, &str, &serde_json::Value, &EntryV8), SourceJournalError> {
+        self.inventory.failed_observe_cleanup_facts()
+    }
+}

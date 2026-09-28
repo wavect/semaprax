@@ -189,11 +189,20 @@ fn owned_continue_observe_post_callback_pin_loss_is_sticky_and_retains_backing_o
     with_continue(|committed, weak, _, directory| {
         let mut fuel = OwnedFrameBudget::new(1000).unwrap();
         let mut calls = 0;
-        let displaced = directory.with_file_name("ready-journal-continue-displaced");
+        let identity = committed
+            .held
+            .inputs
+            .as_ref()
+            .unwrap()
+            .store
+            .registration()
+            .identity();
+        let journal = pinned_journal_entry(directory, identity);
+        let displaced = directory.join("continue-displaced");
         let result = observe_continued_owned_state_v2(committed, &mut fuel, || {
             calls += 1;
             if calls == 2 {
-                std::fs::rename(directory, &displaced).unwrap();
+                std::fs::rename(&journal, &displaced).unwrap();
             }
             true
         })
@@ -204,7 +213,7 @@ fn owned_continue_observe_post_callback_pin_loss_is_sticky_and_retains_backing_o
         assert_eq!(calls, 2);
         assert!(fuel.consumed() > 0);
         assert!(!tail.context.store.validate_guard().is_ok());
-        std::fs::rename(displaced, directory).unwrap();
+        std::fs::rename(displaced, &journal).unwrap();
         assert!(
             !tail.context.store.validate_guard().is_ok(),
             "path restoration grants no revival"
@@ -239,4 +248,22 @@ fn owned_continue_observe_aliased_state_diagnostic_preserves_owner_without_evalu
         drop(rejected);
         assert!(weak.upgrade().is_none());
     });
+}
+
+fn pinned_journal_entry(
+    directory: &std::path::Path,
+    identity: crate::resumable_effects::owned_frame::OwnedFrameStoreIdentity,
+) -> std::path::PathBuf {
+    use std::os::unix::fs::MetadataExt;
+    let matches: Vec<_> = std::fs::read_dir(directory)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .filter(|path| {
+            let metadata = std::fs::symlink_metadata(path).unwrap();
+            metadata.is_file()
+                && (metadata.dev(), metadata.ino()) == (identity.file_device, identity.file_inode)
+        })
+        .collect();
+    assert_eq!(matches.len(), 1, "exact retained journal file pin");
+    matches.into_iter().next().unwrap()
 }

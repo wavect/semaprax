@@ -273,3 +273,121 @@ fn owned_cumulative_observe_failed_consumption_retains_cause_and_requires_succes
         }
     });
 }
+
+#[test]
+fn owned_cumulative_observe_cleanup_reminted_vectors_and_receipts_cannot_bypass_consumption() {
+    with_prefix(|context, make, mut body, sequence| {
+        let status = json!({"failure":"fuel_exhausted","language_status":null});
+        let Body::OwnedObserveSettled { settlement, .. } = &mut body else {
+            panic!()
+        };
+        *settlement = ObserveSettlementV8::Failed {
+            status: status.clone(),
+        };
+        let operations = v2::owned_wait_operations_v8(
+            &context
+                .checked_binding
+                .observe()
+                .helper()
+                .liveness()
+                .failure_cleanup,
+        )
+        .unwrap();
+        let started = |operations: Value| {
+            let basis = make().state_basis.unwrap();
+            let owner = OwnerV8::State;
+            let digest = wire::recipe_digest(
+                wire::RecipeV8::Operations,
+                &json!({"owner":owner,"basis":basis,"terminal":status,"operations":operations}),
+            )
+            .unwrap();
+            Body::OwnedCleanupStarted {
+                turn: 0,
+                attempt: None,
+                wait: None,
+                owner,
+                basis,
+                terminal: status.clone(),
+                operations,
+                operations_digest: digest,
+            }
+        };
+        let mut missing = make();
+        assert!(super::super::owned(
+            context,
+            &mut missing,
+            &started(operations.clone()),
+            sequence
+        )
+        .is_err());
+        for mutated in [json!([]), json!([{}])] {
+            let mut folded = make();
+            settle(context, &mut folded, &body, sequence).unwrap();
+            assert!(
+                super::super::owned(context, &mut folded, &started(mutated), sequence + 1).is_err()
+            );
+        }
+        let receipt = json!({"kind":"observed","settlement":"completed","operations":operations.as_array().unwrap().iter().map(|op|json!({"operation":op,"outcome":"completed"})).collect::<Vec<_>>()});
+        for mutation in 0..5 {
+            let mut folded = make();
+            settle(context, &mut folded, &body, sequence).unwrap();
+            super::super::owned(
+                context,
+                &mut folded,
+                &started(operations.clone()),
+                sequence + 1,
+            )
+            .unwrap();
+            let mut value = receipt.clone();
+            match mutation {
+                0 => value["kind"] = json!("host_confirmed"),
+                1 => value["operations"] = json!([]),
+                2 => value["operations"].as_array_mut().unwrap().push(json!({})),
+                3 => value["operations"][0]["outcome"] = json!("unknown"),
+                _ => value["extra"] = json!(true),
+            }
+            let digest = wire::recipe_digest(wire::RecipeV8::Receipt, &value).unwrap();
+            let settled = Body::OwnedCleanupSettled {
+                turn: 0,
+                attempt: None,
+                wait: None,
+                owner: OwnerV8::State,
+                started: sequence + 1,
+                receipt: value,
+                receipt_digest: digest,
+            };
+            assert!(super::super::owned(context, &mut folded, &settled, sequence + 2).is_err());
+        }
+        let mut folded = make();
+        settle(context, &mut folded, &body, sequence).unwrap();
+        super::super::owned(
+            context,
+            &mut folded,
+            &started(operations.clone()),
+            sequence + 1,
+        )
+        .unwrap();
+        let digest = wire::recipe_digest(wire::RecipeV8::Receipt, &receipt).unwrap();
+        super::super::owned(
+            context,
+            &mut folded,
+            &Body::OwnedCleanupSettled {
+                turn: 0,
+                attempt: None,
+                wait: None,
+                owner: OwnerV8::State,
+                started: sequence + 1,
+                receipt,
+                receipt_digest: digest,
+            },
+            sequence + 2,
+        )
+        .unwrap();
+        validate_stop(
+            &folded,
+            crate::live_invocation::source_journal::SourceStopStatus::BudgetExhausted,
+            crate::live_invocation::source_journal::SourceStopReason::BudgetExhausted,
+        )
+        .unwrap();
+    });
+}

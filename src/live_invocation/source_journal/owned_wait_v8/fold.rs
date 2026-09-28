@@ -450,6 +450,7 @@ fn owned(
     b: &Body,
     seq: u32,
 ) -> Result<(), SourceJournalError> {
+    observe_settlement::validate_cleanup(context, f, b)?;
     if observe_settlement::settle(context, f, b, seq)? {
         return Ok(());
     }

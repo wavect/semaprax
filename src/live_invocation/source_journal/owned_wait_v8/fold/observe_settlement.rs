@@ -117,6 +117,52 @@ pub(super) fn settle(
     Ok(true)
 }
 
+pub(super) fn validate_cleanup(
+    context: &FoldContextV8,
+    folded: &FoldV8,
+    body: &Body,
+) -> Result<(), SourceJournalError> {
+    if !context.cumulative_initialization {
+        return Ok(());
+    }
+    if matches!(body, Body::OwnedCleanupStarted { .. }) && folded.tail == TailV8::ObserveReserved {
+        return order();
+    }
+    let Some(settled) = &folded.observe_settlement else {
+        return Ok(());
+    };
+    let Some(failure) = &settled.failure else {
+        return Ok(());
+    };
+    let actual = &context
+        .checked_binding
+        .observe()
+        .helper()
+        .liveness()
+        .failure_cleanup;
+    match body {
+        Body::OwnedCleanupStarted {
+            owner,
+            terminal,
+            operations,
+            ..
+        } => {
+            require(*owner == OwnerV8::State && terminal == failure)?;
+            v2::validate_owned_wait_operations_v8(actual, operations)
+                .map_err(|_| SourceJournalError::Binding)?;
+        }
+        Body::OwnedCleanupSettled { owner, receipt, .. } => {
+            require(*owner == OwnerV8::State)?;
+            let operations =
+                v2::owned_wait_operations_v8(actual).map_err(|_| SourceJournalError::Binding)?;
+            v2::validate_owned_wait_observed_receipt_v8(&operations, receipt)
+                .map_err(|_| SourceJournalError::Binding)?;
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 pub(super) fn validate_observed(
     context: &FoldContextV8,
     folded: &FoldV8,

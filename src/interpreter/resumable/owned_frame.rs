@@ -132,20 +132,7 @@ pub(crate) fn admit_owned_frame_input(
     plan: &CheckedOwnedFramePlan,
     input: OwnedFrameInput,
 ) -> Result<OwnedFrameArgument, OwnedFrameInputRejection> {
-    let checked = validate_fields(
-        plan,
-        &input.declaration,
-        input.fields.len(),
-        input.fields.iter().map(|f| {
-            (
-                &f.identity,
-                match &f.value {
-                    OwnedFrameInputValue::Bytes(b) => InputRef::Bytes(b),
-                    OwnedFrameInputValue::Scalar(s) => InputRef::Scalar(s),
-                },
-            )
-        }),
-    );
+    let checked = snapshot::validate_input(plan, &input);
     if let Err(diagnostic) = checked {
         return Err(OwnedFrameInputRejection { input, diagnostic });
     }
@@ -382,64 +369,14 @@ fn failure(flow: Flow) -> OwnedFrameFailure {
 fn evaluate_phase(
     plan: CheckedOwnedFramePlan,
     root: Value,
-    mut environment: Environment,
+    environment: Environment,
     next: usize,
     answer: Option<Value>,
     start: bool,
     budget: &mut OwnedFrameBudget,
 ) -> OwnedFrameFoundationStep {
-    let entry = plan.function();
-    let admitted = BTreeMap::new();
-    let mut evaluator = Evaluator::new_prepared(
-        FunctionLookup::Borrowed(&admitted),
-        BTreeMap::new(),
-        &plan.program().declarations,
-        budget.remaining,
-        0,
-        PreparedCancellation::Never,
-    );
-    let mut provisional = false;
-    let evaluated: Result<Option<(ArgumentValue, usize)>, Flow> = (|| {
-        if start {
-            evaluator.charge()?; // frame entry, charged in the consuming lane
-            check_contracts(&mut evaluator, entry, &root, &mut environment, true)?;
-        }
-        let ResolvedExprKind::Block { statements, .. } = &entry.body.kind else {
-            return Err(Flow::Guard("checked body changed"));
-        };
-        let mut answer = answer;
-        for (index, statement) in statements.iter().enumerate().skip(next) {
-            let ResolvedStatement::Let { binding, value, .. } = statement else {
-                return Err(Flow::Guard("checked statement changed"));
-            };
-            if let ResolvedExprKind::Yield { request } = &value.kind {
-                if start {
-                    evaluator.charge()?; // yield node
-                    let produced =
-                        evaluate_copy(&mut evaluator, request, entry, &root, &mut environment)?;
-                    let request =
-                        super::argument_of(&produced).ok_or(Flow::Guard("non-scalar request"))?;
-                    return Ok(Some((request, index)));
-                }
-                evaluator.charge()?; // resumed yield node
-                environment.push((
-                    binding.id.clone(),
-                    answer.take().ok_or(Flow::Guard("missing answer"))?,
-                ));
-            } else {
-                let value = evaluate_copy(&mut evaluator, value, entry, &root, &mut environment)?;
-                environment.push((binding.id.clone(), value));
-            }
-        }
-        evaluator.charge()?; // whole identity tail transfers the retained root
-        provisional = true;
-        check_contracts(&mut evaluator, entry, &root, &mut environment, false)?;
-        Ok(None)
-    })();
-    let steps = evaluator.steps;
-    drop(evaluator); // no owning root was ever installed in its environment
-    budget.remaining -= steps;
-    budget.consumed += steps;
+    let (evaluated, environment, provisional) =
+        replay::evaluate(&plan, &root, environment, next, answer, start, budget);
     match evaluated {
         Ok(Some((request, next))) => OwnedFrameFoundationStep::Parked(OwnedFrameParked {
             plan,
@@ -560,6 +497,13 @@ fn release(
     root: &mut Option<Value>,
     actions: &[FinalizeAction],
 ) -> Result<OwnedFrameReleaseReceipt, Diagnostic> {
+    release_observed(root, actions, |_| {})
+}
+fn release_observed(
+    root: &mut Option<Value>,
+    actions: &[FinalizeAction],
+    mut observe: impl FnMut(&FinalizeAction),
+) -> Result<OwnedFrameReleaseReceipt, Diagnostic> {
     let value = root
         .as_mut()
         .ok_or_else(|| rejected("root already consumed"))?;
@@ -596,6 +540,7 @@ fn release(
                 .remove(&action.source.projections[0])
                 .expect("validated canonical leaf"),
         );
+        observe(action);
         #[cfg(test)]
         RELEASE_OBSERVER.with(|observer| {
             if let Some(observer) = observer.borrow_mut().as_mut() {
@@ -731,3 +676,8 @@ fn root_matches(plan: &CheckedOwnedFramePlan, root: &Value) -> bool {
         None => false,
     })
 }
+
+pub(crate) mod durable;
+mod replay;
+pub(crate) mod settlement;
+pub(crate) mod snapshot;

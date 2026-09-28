@@ -560,3 +560,5 @@ fn rejected_result_handoff_preserves_original_owner_and_disposal_plan() {
     clear_observer();
     assert_eq!(&*observed.borrow(), &["fixture.state.a", "fixture.state.z"]);
 }
+
+mod durable;

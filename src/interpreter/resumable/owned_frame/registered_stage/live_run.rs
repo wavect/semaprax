@@ -13,7 +13,7 @@ pub(crate) enum LiveInitializeOutcomeV8 {
     Failed(LiveFailedInitializeV8),
 }
 pub(crate) struct LiveInitializedStateV8 {
-    state: OwnedAgentStateArgument,
+    state: Option<OwnedAgentStateArgument>,
     facts: serde_json::Value,
     consumed: u64,
     #[cfg(test)]
@@ -22,6 +22,16 @@ pub(crate) struct LiveInitializedStateV8 {
 pub(crate) struct LiveFailedInitializeV8 {
     staged: StagedOwnedInitializeV2,
     consumed: u64,
+}
+impl Drop for LiveInitializedStateV8 {
+    fn drop(&mut self) {
+        // The ordinary foundation's Argument Drop is a semantic disposer.
+        // Live abandonment has no CleanupStarted ACK: disarm it first, then
+        // release process backing only while the enclosing actor holds store.
+        if let Some(state) = self.state.as_mut() {
+            drop(state.root.take());
+        }
+    }
 }
 impl LiveInitializedStateV8 {
     pub(crate) fn facts(&self) -> &serde_json::Value {
@@ -43,7 +53,12 @@ impl LiveInitializedStateV8 {
     #[cfg(test)]
     pub(crate) fn test_weak(&self) -> Vec<std::sync::Weak<[u8]>> {
         super::super::snapshot::weak_leaves(
-            self.state.root.as_ref().expect("actual initialized State"),
+            self.state
+                .as_ref()
+                .expect("live State")
+                .root
+                .as_ref()
+                .expect("actual initialized State"),
         )
     }
 }
@@ -94,7 +109,7 @@ pub(crate) fn initialize_live_owned_run_v8(
             let facts = record_facts(&state).expect("checked complete State profile");
             Ok(LiveInitializeOutcomeV8::Initialized(
                 LiveInitializedStateV8 {
-                    state,
+                    state: Some(state),
                     facts,
                     consumed,
                     #[cfg(test)]

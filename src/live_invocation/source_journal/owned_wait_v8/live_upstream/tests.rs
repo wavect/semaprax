@@ -66,8 +66,20 @@ fn owned_wait_live_initialize_has_real_task_owner_charge_and_acknowledged_state(
         assert_eq!(live.session.fold_for_live_test().reserved_total, allowance);
         assert_eq!(live.session.fold_for_live_test().stages, 1);
         drop(recovered);
+        let semantic_releases = std::rc::Rc::new(std::cell::Cell::new(0));
+        let seen = std::rc::Rc::clone(&semantic_releases);
+        crate::interpreter::resumable::owned_frame::snapshot::observe_releases(Some(Box::new(
+            move |_| seen.set(seen.get() + 1),
+        )));
         drop(live);
+        crate::interpreter::resumable::owned_frame::snapshot::observe_releases(None);
+        assert_eq!(
+            semantic_releases.get(),
+            0,
+            "abandonment disarms foundation semantic disposer"
+        );
         assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        journal.hold().unwrap().validate_guard().unwrap();
     });
 }
 #[test]

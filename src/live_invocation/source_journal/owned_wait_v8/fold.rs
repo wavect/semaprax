@@ -961,7 +961,7 @@ fn owned(
         Body::OwnedEffectSettlementRecorded { .. }
         | Body::OwnedEffectDecisionCleanupStarted { .. }
         | Body::OwnedEffectDecisionCleanupSettled { .. } => {
-            effect_fold::owned(context, f, body, seq)?
+            effect_fold::owned(context, f, b, seq)?
         }
         Body::OwnedCleanupStarted {
             turn,

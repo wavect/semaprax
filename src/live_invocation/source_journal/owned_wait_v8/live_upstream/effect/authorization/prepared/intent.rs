@@ -169,3 +169,8 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use activation::{
 };
 
 pub(crate) use activation::LiveEffectIntentPermitV8;
+
+mod dispatch;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use dispatch::{
+    LiveDispatchedOwnedEffectV8, LiveEffectDispatchFailureV8,
+};

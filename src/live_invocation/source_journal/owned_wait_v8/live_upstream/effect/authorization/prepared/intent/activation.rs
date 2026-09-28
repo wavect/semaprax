@@ -6,10 +6,10 @@ use crate::interpreter::resumable::owned_frame::registered_stage::effect::{
 use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::VerifiedOwnedEffectIntentSuccessorV8;
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct IntentLineageV8<'j> {
-    session: AppendSessionV8<'j>,
+    pub(super) session: AppendSessionV8<'j>,
     witness: VerifiedOwnedEffectIntentSuccessorV8<'j>,
     hold: ProspectiveOwnedReduceHoldV8<'j>,
-    journal: &'j SourceOwnedWaitJournalV8,
+    pub(super) journal: &'j SourceOwnedWaitJournalV8,
     selected: EntryV8,
     predecessor_sequence: usize,
     predecessor_bytes: usize,
@@ -141,8 +141,9 @@ impl LiveEffectIntentPermitV8<'_, '_> {
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveActivatedOwnedEffectV8<'j>
 {
-    activated: ActivatedOwnedEffectV8<'j>,
-    lineage: IntentLineageV8<'j>,
+    pub(super) activated: ActivatedOwnedEffectV8<'j>,
+    pub(super) accounting: crate::agent_lifecycle::authorization::target_protocol::TargetAccounting,
+    pub(super) lineage: IntentLineageV8<'j>,
 }
 pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveEffectIntentActivationFailureV8<
     'j,
@@ -294,7 +295,14 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
             });
         }
     };
-    let actual = LiveActivatedOwnedEffectV8 { activated, lineage };
+    // Only this successful actual first-Intent handoff creates the invocation
+    // ledger. No recovered prefix or caller-provided ledger enters this route.
+    let actual = LiveActivatedOwnedEffectV8 {
+        activated,
+        accounting:
+            crate::agent_lifecycle::authorization::target_protocol::TargetAccounting::default(),
+        lineage,
+    };
     if let Err(error) = actual.validate_live() {
         return Err(LiveEffectIntentActivationFailureV8::After {
             _owner: actual,
@@ -338,4 +346,34 @@ pub(super) fn validate_obligation_successor(
         o.prepared.quarantine_live_authorization();
     }
     result
+}
+
+impl IntentLineageV8<'_> {
+    pub(super) fn permit(&self) -> LiveEffectIntentPermitV8<'_, '_> {
+        LiveEffectIntentPermitV8 {
+            journal: self.journal,
+            witness: &self.witness,
+            hold: &self.hold,
+            selected: &self.selected,
+            predecessor_sequence: self.predecessor_sequence,
+            predecessor_bytes: self.predecessor_bytes,
+            staged: self.staged,
+            ready: self.ready,
+            consumed: self.consumed,
+            commitments: &self.commitments,
+            proposal: &self.proposal,
+            policy: self.policy,
+            cancellation: self.cancellation,
+            clock: self.clock,
+        }
+    }
+    pub(super) fn validate_live(&self) -> Result<(), SourceJournalError> {
+        if !self.session.belongs_to(self.journal)
+            || self.session.sequence() != self.witness.sequence()
+            || self.session.acknowledged_bytes() != self.witness.acknowledged_bytes()
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        self.permit().validate_current()
+    }
 }

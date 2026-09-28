@@ -521,81 +521,17 @@ pub(crate) fn dispatch_owned_effect_v8<'a>(
     prepared: PreparedOwnedEffectV8<'a>,
     ack: OwnedEffectIntentAckV8,
     accounting: &mut TargetAccounting,
-    mut check: impl FnMut(OwnedEffectPhaseV8) -> bool,
+    check: impl FnMut(OwnedEffectPhaseV8) -> bool,
     handler: &mut dyn TargetHostHandler,
 ) -> Result<StagedOwnedEffectV8<'a>, OwnedEffectDispatchRejectionV8<'a>> {
-    let mut staged = live_append::intent::activate_ack_owned_effect_v8(prepared, ack)?.staged;
-    let phase = OwnedEffectPhaseV8::Intent(staged.intent);
-    let entry_guard = guard_status(
-        &staged.prepared.inputs,
-        staged.prepared.creator,
-        phase,
-        &mut check,
-        staged.prepared.plan.operation().effect_id(),
-    );
-    if entry_guard != LiveGuardV8::Current {
-        staged.failure = Some(if staged.prepared.inputs.cancellation.is_cancelled() {
-            OwnedEffectFailureV8::Cancelled
-        } else {
-            OwnedEffectFailureV8::AuthorityLost
-        });
-        staged.authority_lost = entry_guard == LiveGuardV8::AuthorityLost;
-        return Ok(staged);
-    }
-    let request = OwnedEffectTargetRequestV8 {
-        grant: staged.prepared.request.grant.clone(),
-        authorization: staged.prepared.request.authorization.clone(),
-        operation: staged.prepared.request.operation.clone(),
-        argument: staged.prepared.request.argument.clone(),
-        turn: staged.prepared.request.turn,
-        limits: staged.prepared.request.limits,
-    };
-    let permit = OwnedEffectDispatchPermitV8 {
-        request,
-        argument_digest: staged.prepared.basis.argument.clone(),
-        budget: staged.prepared.budget,
-    };
-    let dispatch = target_protocol::owned_wait_v8::physical::dispatch(
-        permit,
-        accounting,
-        staged.prepared.inputs.cancellation,
-        handler,
-    );
-    // The target's selected failure is sticky even if a subsequent callback
-    // loses authority. Retirement is separate from the selected status.
-    if dispatch.evidence().settlement() != Settlement::Returned {
-        staged.failure = Some(OwnedEffectFailureV8::Target(
-            dispatch.evidence().settlement(),
-        ));
-    }
-    // This guard is outside the target host panic catch and precedes accepted
-    // result projection. Lost authority permanently retires physical release.
-    let exit_guard = guard_status(
-        &staged.prepared.inputs,
-        staged.prepared.creator,
-        phase,
-        &mut check,
-        staged.prepared.plan.operation().effect_id(),
-    );
-    if exit_guard != LiveGuardV8::Current {
-        let cancelled = staged.prepared.inputs.cancellation.is_cancelled();
-        staged.authority_lost = exit_guard == LiveGuardV8::AuthorityLost;
-        staged.failure.get_or_insert(if cancelled {
-            OwnedEffectFailureV8::Cancelled
-        } else {
-            OwnedEffectFailureV8::AuthorityLost
-        });
-    } else if dispatch.evidence().settlement() == Settlement::Returned {
-        staged.accepted = dispatch
-            .result()
-            .and_then(|carrier| staged.prepared.plan.accepted_result(carrier.payload()));
-        if staged.accepted.is_none() {
-            staged.failure = Some(OwnedEffectFailureV8::ResultShape);
-        }
-    }
-    staged.dispatch = Some(dispatch);
-    Ok(staged)
+    let activated = live_append::intent::activate_ack_owned_effect_v8(prepared, ack)?;
+    Ok(
+        live_append::intent::dispatch::dispatch_activated_owned_effect_v8(
+            activated, accounting, check, handler,
+        ),
+    )
 }
+
 pub(crate) fn release_owned_effect_decision_v8<'a>(
     mut staged: StagedOwnedEffectV8<'a>,
     settlement: OwnedEffectSettlementAckV8,
@@ -776,3 +712,5 @@ pub(super) mod live_append;
 pub(crate) use live_append::intent::{
     activate_live_owned_effect_v8, ActivatedOwnedEffectV8, LiveEffectActivationRejectionV8,
 };
+
+pub(crate) use live_append::intent::dispatch::dispatch_live_owned_effect_v8;

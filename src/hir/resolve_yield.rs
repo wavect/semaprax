@@ -248,27 +248,29 @@ impl Resolver<'_> {
                 yields.span,
             ));
         }
-        if let Some(offender) = params.iter().find(|param| {
-            param.ownership != super::OwnershipMode::Value
-                || (!is_scalar_resolved_type(&param.ty)
-                    && (!matches!(param.ty, ResolvedType::Nominal { .. })
-                        || yield_aggregate::has_bytes_leaf(&self.declarations, &param.ty)
-                        || yield_aggregate::bounded_aggregate_refusal(
-                            &self.declarations,
-                            &param.ty,
-                        )
-                        .is_err()))
-        }) {
-            let (code, reason) = profile_refusal(self, &offender.ty, offender.ownership);
-            return Err(self.error(
-                code,
-                format!(
-                    "function `{}` declares `yields` but parameter `{}` is outside the \
+        if !crate::cleanup_plan::owned_frame_parameter(&self.declarations, params) {
+            if let Some(offender) = params.iter().find(|param| {
+                param.ownership != super::OwnershipMode::Value
+                    || (!is_scalar_resolved_type(&param.ty)
+                        && (!matches!(param.ty, ResolvedType::Nominal { .. })
+                            || yield_aggregate::has_bytes_leaf(&self.declarations, &param.ty)
+                            || yield_aggregate::bounded_aggregate_refusal(
+                                &self.declarations,
+                                &param.ty,
+                            )
+                            .is_err()))
+            }) {
+                let (code, reason) = profile_refusal(self, &offender.ty, offender.ownership);
+                return Err(self.error(
+                    code,
+                    format!(
+                        "function `{}` declares `yields` but parameter `{}` is outside the \
                      resumable profile: {reason}",
-                    function.name, offender.name
-                ),
-                offender.span,
-            ));
+                        function.name, offender.name
+                    ),
+                    offender.span,
+                ));
+            }
         }
         Ok(Some(ResolvedYieldsClause {
             request_type,
@@ -314,6 +316,17 @@ impl Resolver<'_> {
                      placement"
                 ),
                 yields.span,
+            ));
+        }
+        if crate::cleanup_plan::owned_frame_parameter(&self.declarations, params)
+            && (!is_scalar_resolved_type(&yields.request_type)
+                || !is_scalar_resolved_type(&yields.response_type)
+                || !crate::cleanup_plan::owned_frame_body(params, return_type, body))
+        {
+            return Err(self.error(
+                NON_SCALAR_BODY,
+                "owned frame requires one direct Copy yield and whole identity return",
+                body.span,
             ));
         }
         let mut found = 0usize;
@@ -1116,3 +1129,6 @@ fn scan_statement(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod owned_frame_tests;

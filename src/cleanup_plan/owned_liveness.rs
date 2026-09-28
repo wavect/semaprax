@@ -1087,3 +1087,9 @@ fn scalar_branch_join(flag: bool) -> i64 {
         ));
     }
 }
+
+mod owned_frame;
+pub(crate) use owned_frame::{
+    owned_frame_body, owned_frame_copy_expression, owned_frame_liveness, owned_frame_parameter,
+    OwnedFrameLiveness,
+};

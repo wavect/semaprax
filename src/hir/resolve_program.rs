@@ -514,7 +514,14 @@ impl Resolver<'_> {
         }
         for function in &resolved.functions {
             if let Some(yields) = &function.yields {
-                crate::cleanup_plan::admit_owned_bytes_profile(function)?;
+                if crate::cleanup_plan::owned_frame_parameter(
+                    &resolved.declarations,
+                    &function.params,
+                ) {
+                    crate::cleanup_plan::owned_frame_liveness(&resolved.declarations, function)?;
+                } else {
+                    crate::cleanup_plan::admit_owned_bytes_profile(function)?;
+                }
                 if crate::hir::yield_aggregate::has_bytes_leaf(
                     &resolved.declarations,
                     &yields.request_type,

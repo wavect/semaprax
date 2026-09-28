@@ -1097,7 +1097,11 @@ fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnos
                 &program.declarations,
                 function,
             )?;
-            crate::cleanup_plan::admit_owned_bytes_profile(function)?;
+            if crate::cleanup_plan::owned_frame_parameter(&program.declarations, &function.params) {
+                crate::cleanup_plan::owned_frame_liveness(&program.declarations, function)?;
+            } else {
+                crate::cleanup_plan::admit_owned_bytes_profile(function)?;
+            }
             if crate::hir::yield_aggregate::has_bytes_leaf(
                 &program.declarations,
                 &yields.request_type,

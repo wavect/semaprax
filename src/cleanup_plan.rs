@@ -23,6 +23,10 @@ pub use execute::{execute_for_conformance, CleanupExecutionError, CleanupScenari
 pub(crate) use owned_liveness::{
     admit_owned_bytes_profile, admit_sequential_aggregate_bytes_profile, carried_locals_at,
 };
+pub(crate) use owned_liveness::{
+    owned_frame_body, owned_frame_copy_expression, owned_frame_liveness, owned_frame_parameter,
+    OwnedFrameLiveness,
+};
 pub(crate) use replay::selected_schema;
 pub(crate) use validate::validate_program;
 

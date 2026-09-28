@@ -25,6 +25,8 @@ use super::{
     CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4,
 };
 
+mod owned_frame_finalizers;
+pub(crate) use owned_frame_finalizers::canonical_finalizers_for;
 mod bounded_box;
 mod bounded_vec;
 #[cfg(test)]
@@ -1446,20 +1448,14 @@ impl<'a> PlanBuilder<'a> {
         state: &FlowState,
         included: impl Fn(&CleanupPlace) -> bool,
     ) -> Vec<FinalizeAction> {
-        let mut actions = state
-            .live_order
-            .iter()
-            .rev()
-            .filter_map(|flag| {
-                let metadata = &self.leaves[flag];
-                included(&metadata.place).then(|| FinalizeAction {
-                    source: metadata.place.clone(),
-                    lifecycle_id: metadata.lifecycle.clone(),
-                    guard_flag: *flag,
-                    active_case: None,
-                })
-            })
-            .collect::<Vec<_>>();
+        let mut actions = canonical_finalizers_for(
+            &state.live_order,
+            |flag| {
+                let leaf = &self.leaves[&flag];
+                (leaf.place.clone(), leaf.lifecycle.clone())
+            },
+            &included,
+        );
         for variant in state.conditional_variants.iter().rev() {
             for (case, flags) in variant.cases.iter().rev() {
                 for flag in flags.iter().rev() {

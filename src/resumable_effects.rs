@@ -110,6 +110,7 @@ pub mod continuation;
 pub mod core;
 pub(crate) mod lowering;
 pub mod migration;
+pub(crate) mod owned_frame;
 pub mod signature;
 pub mod source_checkpoint;
 pub mod source_driver;

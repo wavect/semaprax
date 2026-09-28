@@ -347,13 +347,19 @@ fn root_valid(plan: &CheckedOwnedFrameHelperV2, root: &Value) -> bool {
             }
         })
 }
+fn current_in_creator<F: FnMut() -> bool + ?Sized>(creator: u32, current: &mut F) -> bool {
+    if creator != std::process::id() {
+        return false;
+    }
+    let allowed = current();
+    allowed && creator == std::process::id()
+}
 pub(crate) fn settle_owned_copy_wait_v2(
     mut terminal: OwnedCopyWaitTerminalV2,
     mut current_authority: impl FnMut() -> bool,
     mut observe: impl FnMut(&FinalizeAction),
 ) -> Result<OwnedCopyWaitSettledV2, OwnedCopyWaitSettlementRejectionV2> {
-    if terminal.creator != std::process::id()
-        || !current_authority()
+    if !current_in_creator(terminal.creator, &mut current_authority)
         || !terminal
             .root
             .as_ref()
@@ -375,7 +381,7 @@ pub(crate) fn settle_owned_copy_wait_v2(
         let released = release_guarded(
             &mut terminal.root,
             actions,
-            || creator == std::process::id() && current_authority(),
+            || current_in_creator(creator, &mut current_authority),
             |action| {
                 if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| observe(action)))
                     .is_err()
@@ -399,8 +405,7 @@ pub(crate) fn settle_owned_copy_wait_v2(
     if !terminal.provisional
         || !terminal.plan.liveness().completion_cleanup.is_empty()
         || terminal.proposal.is_none()
-        || terminal.creator != std::process::id()
-        || !current_authority()
+        || !current_in_creator(terminal.creator, &mut current_authority)
     {
         return Err(OwnedCopyWaitSettlementRejectionV2 {
             terminal,

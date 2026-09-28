@@ -259,10 +259,8 @@ pub(crate) fn settle_owned_authorize_v2(
     mut current: impl FnMut() -> bool,
     mut observe: impl FnMut(&FinalizeAction),
 ) -> Result<OwnedAuthorizeSettledV2, OwnedAuthorizeSettlementRejectionV2> {
-    let guard =
-        |current: &mut dyn FnMut() -> bool| staged.state.creator == std::process::id() && current();
     if staged.settlement_started
-        || !guard(&mut current)
+        || !current_in_creator(staged.state.creator, &mut current)
         || !staged
             .state
             .root
@@ -324,7 +322,7 @@ pub(crate) fn settle_owned_authorize_v2(
         }
         drop(bytes);
         for action in selected {
-            if creator != std::process::id() || !current() {
+            if !current_in_creator(creator, &mut current) {
                 return Err(OwnedAuthorizeSettlementRejectionV2 {
                     staged,
                     diagnostic: rejected("authorize authority changed"),
@@ -340,7 +338,7 @@ pub(crate) fn settle_owned_authorize_v2(
             if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| observe(action))).is_err() {
                 observations_succeeded = false;
             }
-            if creator != std::process::id() || !current() {
+            if !current_in_creator(creator, &mut current) {
                 return Err(OwnedAuthorizeSettlementRejectionV2 {
                     staged,
                     diagnostic: rejected("authorize authority changed"),
@@ -353,7 +351,7 @@ pub(crate) fn settle_owned_authorize_v2(
     let receipt = release_guarded(
         &mut staged.state.root,
         actions,
-        || creator == std::process::id() && current(),
+        || current_in_creator(creator, &mut current),
         |a| {
             if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| observe(a))).is_err() {
                 observations_succeeded = false;

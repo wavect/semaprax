@@ -242,7 +242,13 @@ fn owned_wait_typed_execution_binds_real_registry_task_and_each_effect_ceiling()
         assert!(effect_plan.accepted_result(&vec![b'x'; 1025]).is_none());
         let lower = runtime(Arc::clone(&project), EffectBudget { max_result_bytes: 32, ..effects() }, false, b"owned task");
         let lower_context = context(&lower, Arc::clone(&wait));
-        let lower_plan = plan_owned_effect_v8(&lower, &lower_context, &scope, &checked).unwrap();
+        assert!(plan_owned_effect_v8(&lower, &lower_context, &scope, &checked).is_err(), "different E cannot reuse the old scoped Proposal");
+        let lower_invocation = crate::live_invocation::identity::digest(b"semaprax.live-invocation.source-id.v8\0",
+            serde_json::to_string(&serde_json::json!({"execution":lower_context.ordinary().invocation(),"owned_wait_binding":wait.binding()})).unwrap().as_bytes());
+        let lower_scope = SourceCheckpointScope::new(wait.lifecycle().source_revision(), lower_invocation, 7).unwrap();
+        let lower_decoded = wait.lifecycle().proposal_schema().decode(checked.canonical_proposal()).unwrap();
+        let lower_proposal = bind_owned_wait_proposal_v8(&wait, &lower_scope, &lower_decoded).unwrap();
+        let lower_plan = plan_owned_effect_v8(&lower, &lower_context, &lower_scope, &lower_proposal).unwrap();
         assert_eq!(lower_plan.target_limits().max_result_bytes, 32);
         assert!(lower_plan.accepted_result(accepted).is_none());
         let wrong_scope = SourceCheckpointScope::new(scope.program_root(), "other", 7).unwrap();

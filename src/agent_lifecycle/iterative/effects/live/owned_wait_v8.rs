@@ -156,7 +156,17 @@ pub(crate) fn plan_owned_effect_v8<'a>(
             .min(1024),
         max_total_bytes: limits.max_total_bytes.min(compiled.limits.max_total_bytes),
     };
-    let scope = serde_json::json!({"program_root":scope.program_root(),"invocation_id":scope.invocation_id(),"policy_epoch":scope.policy_epoch()});
+    let invocation = crate::live_invocation::identity::digest(
+        b"semaprax.live-invocation.source-id.v8\0",
+        serde_json::to_string(&serde_json::json!({"execution":execution.ordinary().invocation(),"owned_wait_binding":execution.wait().binding()}))
+            .map_err(|_| error("owned_wait.execution_scope"))?.as_bytes(),
+    );
+    if scope.program_root() != execution.wait().lifecycle().source_revision()
+        || scope.invocation_id() != invocation
+    {
+        return Err(error("owned_wait.execution_scope"));
+    }
+    let scope = serde_json::json!({"program_root":scope.program_root(),"invocation":scope.invocation_id(),"policy_epoch":scope.policy_epoch()});
     if !proposal.matches(execution.wait().binding(), &scope) {
         return Err(error("owned_wait.proposal_binding"));
     }

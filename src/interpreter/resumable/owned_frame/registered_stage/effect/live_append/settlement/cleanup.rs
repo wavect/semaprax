@@ -212,3 +212,63 @@ impl ExecutedOwnedAgentTurnV2<'_> {
         std::sync::Arc::downgrade(&bytes.bytes)
     }
 }
+
+/// Test data for an independent ordinary evaluator oracle. Borrowing this
+/// projection never clones the physical backing or re-admits a live owner.
+#[cfg(test)]
+impl ExecutedOwnedAgentTurnV2<'_> {
+    pub(crate) fn test_reduce_arguments_v8(
+        &self,
+    ) -> Vec<crate::interpreter::retained_call::RetainedValue> {
+        use crate::interpreter::retained_call::{
+            RetainedField, RetainedRecord, RetainedValue as R,
+        };
+        let project = |value: &Value| {
+            let Value::Record(record) = value else {
+                panic!("actual flat record")
+            };
+            let fields = self
+                .roots
+                .helper
+                .program()
+                .declarations
+                .record_fields(&record.record)
+                .unwrap();
+            R::Record(RetainedRecord {
+                record: record.record.clone(),
+                fields: fields
+                    .iter()
+                    .map(|field| {
+                        let value = match &record.fields[&field.id] {
+                            Value::Bytes(bytes) => R::Bytes(bytes.bytes.to_vec()),
+                            Value::Int(value) => R::I64(*value),
+                            Value::Int32(value) => R::I32(*value),
+                            Value::Bool(value) => R::Bool(*value),
+                            Value::Uint8(value) => R::U8(*value),
+                            Value::Usize(value) => R::Usize(*value),
+                            _ => panic!("actual admitted test leaf"),
+                        };
+                        RetainedField {
+                            field: field.id.clone(),
+                            value,
+                        }
+                    })
+                    .collect(),
+            })
+        };
+        let mut args = vec![project(self.roots.state.as_ref().unwrap())];
+        let ResumableChannelValue::Record { fields, .. } = &self.roots.proposal else {
+            panic!("actual Copy Proposal")
+        };
+        args.extend(fields.iter().map(|field| match field {
+            ArgumentValue::Int(value) => R::I64(*value),
+            ArgumentValue::Int32(value) => R::I32(*value),
+            ArgumentValue::Bool(value) => R::Bool(*value),
+            ArgumentValue::Uint8(value) => R::U8(*value),
+            ArgumentValue::Usize(value) => R::Usize(*value),
+            _ => panic!("actual admitted test Proposal leaf"),
+        }));
+        args.push(project(self.roots.outcome.as_ref().unwrap()));
+        args
+    }
+}

@@ -159,3 +159,113 @@ fn status(failure: &OwnedFrameFailure) -> Result<Json, Diagnostic> {
 }
 #[cfg(test)]
 mod tests;
+
+use super::super::effect::ExecutedOwnedAgentTurnV2;
+use crate::live_invocation::source_journal::{LiveReduceEvaluationPermitV8, SourceJournalError};
+
+/// Every failure preserves the physical owner at the actual boundary. A guard
+/// error is separate from the source's already selected sticky failure.
+pub(crate) enum LiveReduceEvaluationFailureV8<'j> {
+    Executed {
+        owner: ExecutedOwnedAgentTurnV2<'j>,
+        error: SourceJournalError,
+        diagnostic: Option<Diagnostic>,
+    },
+    Prepared {
+        owner: PreparedExecutedOwnedReduceV2<'j>,
+        error: SourceJournalError,
+        diagnostic: Option<Diagnostic>,
+    },
+    Staged {
+        owner: StagedExecutedOwnedReduceV2<'j>,
+        error: SourceJournalError,
+    },
+}
+pub(crate) fn evaluate_live_executed_owned_reduce_v2<'j>(
+    executed: ExecutedOwnedAgentTurnV2<'j>,
+    plan: &CheckedOwnedReduceV2,
+    permit: &LiveReduceEvaluationPermitV8<'_, 'j>,
+) -> Result<StagedExecutedOwnedReduceV2<'j>, LiveReduceEvaluationFailureV8<'j>> {
+    let fuel = match permit.validate_plan(plan).and_then(|_| permit.fuel()) {
+        Ok(fuel) => fuel,
+        Err(error) => {
+            return Err(LiveReduceEvaluationFailureV8::Executed {
+                owner: executed,
+                error,
+                diagnostic: None,
+            })
+        }
+    };
+    let mut guard_error = None;
+    let prepared = match prepare_executed_owned_reduce_v2(executed, plan, |_| {
+        match permit.validate_current() {
+            Ok(()) => true,
+            Err(error) => {
+                guard_error.get_or_insert(error);
+                false
+            }
+        }
+    }) {
+        Ok(prepared) => prepared,
+        Err(rejected) => {
+            return Err(LiveReduceEvaluationFailureV8::Executed {
+                owner: rejected.executed,
+                error: guard_error.unwrap_or(SourceJournalError::Binding),
+                diagnostic: Some(rejected.diagnostic),
+            })
+        }
+    };
+    if let Err(error) = permit.validate_current() {
+        return Err(LiveReduceEvaluationFailureV8::Prepared {
+            owner: prepared,
+            error,
+            diagnostic: None,
+        });
+    }
+    // This local allowance is created only AFTER the actual original full-F
+    // ACK has spent the same hold. It does not restore/refund a journal budget.
+    let mut budget = match OwnedFrameBudget::new(fuel) {
+        Ok(budget) => budget,
+        Err(diagnostic) => {
+            return Err(LiveReduceEvaluationFailureV8::Prepared {
+                owner: prepared,
+                error: SourceJournalError::Binding,
+                diagnostic: Some(diagnostic),
+            })
+        }
+    };
+    if let Err(error) = permit.validate_current() {
+        return Err(LiveReduceEvaluationFailureV8::Prepared {
+            owner: prepared,
+            error,
+            diagnostic: None,
+        });
+    }
+    let staged = match stage_executed_owned_reduce_v2(prepared, &mut budget, |_| {
+        match permit.validate_current() {
+            Ok(()) => true,
+            Err(error) => {
+                guard_error.get_or_insert(error);
+                false
+            }
+        }
+    }) {
+        Ok(staged) => staged,
+        Err(rejected) => {
+            return Err(LiveReduceEvaluationFailureV8::Prepared {
+                owner: rejected.prepared,
+                error: guard_error.unwrap_or(SourceJournalError::Binding),
+                diagnostic: Some(rejected.diagnostic),
+            })
+        }
+    };
+    if let Err(error) = permit.validate_current() {
+        return Err(LiveReduceEvaluationFailureV8::Staged {
+            owner: staged,
+            error,
+        });
+    }
+    // A source requires/ensures/fuel/arithmetic failure stays in this exact
+    // staged root. No full Step or language status is fabricated here.
+    Ok(staged)
+}

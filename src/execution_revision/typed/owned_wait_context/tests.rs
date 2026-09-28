@@ -39,6 +39,9 @@ impl TestProspectiveReduceLimitV8 {
 enum RuntimeFixture {
     Baseline,
     Complete,
+    ReduceFuel,
+    ReduceArithmetic,
+    ReduceEnsures,
     BaselineTaskZero,
     ProspectiveReduce(TestProspectiveReduceLimitV8),
 }
@@ -72,6 +75,32 @@ fn fixture_for(profile: RuntimeFixture) -> Fixture {
         RuntimeFixture::Baseline
         | RuntimeFixture::BaselineTaskZero
         | RuntimeFixture::ProspectiveReduce(_) => source,
+        RuntimeFixture::ReduceFuel | RuntimeFixture::ReduceArithmetic => {
+            fn balanced_zero(depth: usize) -> String {
+                if depth == 0 {
+                    "0".into()
+                } else {
+                    let child = balanced_zero(depth - 1);
+                    format!("({child} + {child})")
+                }
+            }
+            let budget = if matches!(profile, RuntimeFixture::ReduceFuel) {
+                balanced_zero(9)
+            } else {
+                "(state.budget / 0)".into()
+            };
+            let original = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
+            assert_eq!(source.matches(original).count(), 1);
+            source.replace(
+                original,
+                &original.replace("budget: state.budget", &format!("budget: {budget}")),
+            )
+        }
+        RuntimeFixture::ReduceEnsures => {
+            let original="fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome: own Outcome) -> Step\n{";
+            assert_eq!(source.matches(original).count(), 1);
+            source.replace(original,"fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome: own Outcome) -> Step\n    ensures false\n{")
+        }
         RuntimeFixture::Complete => {
             let original = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
             assert_eq!(source.matches(original).count(), 1);
@@ -167,7 +196,11 @@ fn runtime_for(
             },
         },
         match profile {
-            RuntimeFixture::Baseline | RuntimeFixture::BaselineTaskZero => IterativeBudget {
+            RuntimeFixture::Baseline
+            | RuntimeFixture::BaselineTaskZero
+            | RuntimeFixture::ReduceFuel
+            | RuntimeFixture::ReduceArithmetic
+            | RuntimeFixture::ReduceEnsures => IterativeBudget {
                 max_steps_per_stage: 1000,
                 ..IterativeBudget::default()
             },
@@ -644,6 +677,42 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
         ) -> T,
     ) -> T {
         Self::test_with_runtime_fixture(RuntimeFixture::Complete, true, callback)
+    }
+    /// Closed source variant rebuilt through actual source/B/E/registration;
+    /// the full per-stage allowance remains 1000 in every stage.
+    pub(crate) fn test_with_actual_reduce_fuel_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ReduceFuel, true, callback)
+    }
+    /// Closed source variant rebuilt through actual source/B/E/registration;
+    /// the full per-stage allowance remains 1000 in every stage.
+    pub(crate) fn test_with_actual_reduce_arithmetic_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ReduceArithmetic, true, callback)
+    }
+    /// Closed source variant rebuilt through actual source/B/E/registration;
+    /// the full per-stage allowance remains 1000 in every stage.
+    pub(crate) fn test_with_actual_reduce_ensures_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::ReduceEnsures, true, callback)
     }
     fn test_with_runtime_fixture<T>(
         profile: RuntimeFixture,

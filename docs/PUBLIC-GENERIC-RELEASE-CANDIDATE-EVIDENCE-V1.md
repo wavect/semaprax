@@ -125,6 +125,53 @@ being exhausted is the specific, stated reason the hosted items cannot be
 produced right now — it is not evidence that they were run and passed, and
 it is not a basis for calling any of them green.
 
+### Current scoped provider and R08 evidence facts (2026-09-28)
+
+Source inspection at `6a68fded` corrects the historical universal
+"every adapter is fixture-only/no compiled provider" statements below.
+The legacy reference adapters retain their fixture scope; distinct closed,
+versioned compiler-backed routes now exist:
+
+- Native `semaprax.authenticated-native-identity.v1` and
+  `semaprax.authenticated-native-allocating.v1` receive the selected checked HIR.
+  `native/authenticated.rs:152-169` derives the checked C body and bridge;
+  `:216-237` removes the reversal fixture body and replaces its sole call with
+  that checked endpoint. `codegen/native_emit/public_generic_bridge.rs:143-153,178`
+  uses the ordinary native emitter and invokes the selected function symbol.
+  The allocating owner is `native/authenticated/allocating.rs:22-43`, with the
+  actual symbol invocation in `codegen/native_emit/public_generic_bridge/allocating.rs:105`.
+  These paths are under `src/public_generic_abi` and `src` respectively;
+  descriptor provenance alone is not the execution claim.
+- The `public-generic-wasm-provider.v1` route emits a closed compiled provider
+  from the same admitted endpoint. `src/wasm/public_generic_provider/mod.rs:286-341`
+  binds its descriptor and v2 provider binding and lowers the selected checked
+  closure; `src/wasm/aggregate/provider_lowering.rs:122-145` emits that closure's
+  actual checked function bodies. This does not reinterpret the legacy
+  `WasmProvider` struct or its frozen adapter profile.
+- `tests/public_generic_native_adapter_v1/settlement_matrix/engines.rs:135-156`
+  checks/canonicalizes/resolves each source, derives its admitted endpoint,
+  and feeds the same program to those native/Wasm routes while asserting
+  descriptor equality. Its native runners compile the emitted provider.
+
+The [complete R08 local evidence supplement](evidence/public-generic-settlement-v2/README.md)
+freezes conformance subject `888ac18e416303c3a78544194cf3937d9ff4c5ff`, not a
+public release candidate. It records the owning selector's local **5/5**,
+frozen v1 **105 pass / 0 known defect / 21 N/A**, and additive v2
+**123 pass / 0 known defect / 30 N/A**, including local ASan and the three
+physical commit/result-root-acquisition failure rows. Its complete compressed
+inventory contains 210 artifact entries and three source/descriptor/binding
+subjects, with exact raw/compressed hashes, commands and tool observations.
+This fills that scoped R08 delivery gap; it is not a complete Sections C–H
+release packet or an exact-current-head rerun at `6a68fded`.
+
+No new gate was run for this documentation correction. A formal candidate
+freeze, complete local gate record, candidate-specific compatibility/delta and
+security review, and decision-packet linkage remain separate work. The
+maintainer's hosted-only waiver permits recording hosted execution as waived,
+not passed; it does not waive those local obligations. Historical hosted runs
+remain historical. PG-9 remains **unsupported/unpublished**; neither these
+closed profiles nor this conformance inventory expands that decision.
+
 ## What this document is, and is not
 
 This document assembles the two evidence sections of #164 that are
@@ -479,7 +526,7 @@ diagnostic/reason range, CI job/step, and support/publication standing.
 - **Generator entry point**: `generate_typescript_calling_consumer(descriptor_bytes, binding, input, output)`
 - **Focused test selector**: `tests/public_generic_wasm_adapter_v1/typescript_calling_consumer.rs`; toolchain pin `tsc` 5.8.3 — `docs/PUBLIC-GENERIC-CONSUMERS-V1.md:594-596`
 - **Canonical golden fixture**: `tests/public_generic_wasm_adapter_v1/reference_wasm_module.rs` (same test-only stand-in named in §2.6.2)
-- **Support/publication standing**: Local, proof-only evidence — `docs/PUBLIC-GENERIC-CONSUMERS-V1.md:465-466`; the document's own "load-bearing honest limitation" states no compiled `.wasm` implements the full provider ABI (`docs/PUBLIC-GENERIC-CONSUMERS-V1.md:474-489`)
+- **Support/publication standing**: Local, proof-only evidence — `docs/PUBLIC-GENERIC-CONSUMERS-V1.md:465-466`; the dated "load-bearing honest limitation" describes this legacy fixture route (`docs/PUBLIC-GENERIC-CONSUMERS-V1.md:474-489`); it is not an absence claim for the separate compiled-provider profile in the current scoped correction above
 
 ### 2.11 Shared hostile corpus (issue #160, #173)
 
@@ -623,8 +670,8 @@ mistaken for the frozen #164 record. The following remain **entirely open**:
    PG-8 beyond their currently-recorded hosted/local evidence states, and
    nothing here was an input the maintainer needed beyond what the milestone
    document itself already cited.
-8. **The two structural blockers under PG-5/PG-6/PG-7 are unresolved and
-   unaddressed by this document**: (a) every physical adapter (interpreter,
+8. **Historical structural blockers under PG-5/PG-6/PG-7 at the original
+   audit baseline** (current scoped correction above): (a) every physical adapter (interpreter,
    native, Wasm) still binds a fixture endpoint, not a function body
    codegenned from a real admitted public-generic `.spx` export
    (`src/public_generic_abi/native.rs:20-30`,

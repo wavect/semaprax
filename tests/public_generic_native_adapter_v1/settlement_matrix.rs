@@ -356,8 +356,7 @@ const NA_INTERPRETER_FRAME: &str =
 const NA_INTERPRETER_INJECTION: &str =
     "the interpreter exposes no authorized physical allocation or release injection seam";
 const NA_WASM_INJECTION: &str = "the compiled Core provider has no physical injection hooks; adding them would change its closed export inventory";
-const NA_GENERATED_EXPORT: &str =
-    "the generated caller sizes and retries the export buffer internally; the raw ABI cells own this path";
+const NA_GENERATED_EXPORT: &str = "the generated caller sizes and retries the export buffer internally; the raw ABI cells own this path";
 const NA_GENERATED_FRAME: &str = "the generated caller derives canonical leaf paths from the descriptor and cannot express a wrong path without mutating generated source";
 
 /// Known defects on this base, one row per cell: (case, engine, defect,
@@ -385,14 +384,14 @@ pub(crate) fn expected_cell(case: &Case, engine: Engine) -> Expect {
                     NA_GENERATED_EXPORT
                 } else {
                     NA_GENERATED_FRAME
-                })
+                });
             }
             Engine::GeneratedTypeScript => {
                 return Expect::NotApplicable(if case.kind == Kind::ShortExport {
                     NA_GENERATED_EXPORT
                 } else {
                     NA_GENERATED_FRAME
-                })
+                });
             }
             _ => {}
         },
@@ -512,7 +511,7 @@ fn expected_leaves(case: &Case) -> Option<(Vec<u8>, Vec<u8>)> {
 fn expected_primary(case: &Case) -> &'static str {
     match (case.subject, case.kind) {
         (Subject::Refusing, _) | (_, Kind::InjectExportRelease | Kind::InjectResultCommit) => "11",
-        (_, Kind::InjectInputCommit) => "9",
+        (_, Kind::InjectInputCommit) => "7",
         (_, Kind::InjectResultAcquisition) => "10",
         (_, Kind::WrongPath | Kind::RefusalEffects) => "14",
         (_, Kind::InjectPrepare) => "10",
@@ -568,7 +567,11 @@ fn check_observation(
     require(
         &mut problems,
         "primary",
-        expected_primary(case),
+        if engine == Engine::GeneratedRust && case.kind == Kind::InjectInputCommit {
+            "carrier_rejected"
+        } else {
+            expected_primary(case)
+        },
         &observation.primary,
     );
     if observation.primary == "trap" {
@@ -716,6 +719,15 @@ fn check_notes(
             }
         }
         Engine::GeneratedRust => {
+            if case.kind == Kind::InjectInputCommit {
+                require_note(problems, observation, "rust_error", "carrier-rejected");
+                require_note(
+                    problems,
+                    observation,
+                    "rust_reason",
+                    "illegal-handle-or-lifecycle",
+                );
+            }
             if last {
                 for (key, value) in [("handles", "0"), ("close", "0"), ("armed", "0")] {
                     require_note(problems, observation, key, value);
@@ -825,7 +837,7 @@ fn native_agreement(
                     facts,
                     first.label(),
                     expected
-                ))
+                ));
             }
             Some(_) => {}
         }
@@ -1045,6 +1057,56 @@ fn v2_failure_receipts_require_consumed_physical_faults_and_exact_dispatch() {
             ]),
         };
         assert!(check_observation(case, Engine::NativeO2, &receipt, true).is_empty());
+        if case.kind == Kind::InjectInputCommit {
+            let mut rust = receipt.clone();
+            rust.primary = "carrier_rejected".into();
+            rust.note
+                .insert("rust_error".into(), "carrier-rejected".into());
+            rust.note
+                .insert("rust_reason".into(), "illegal-handle-or-lifecycle".into());
+            assert!(check_observation(case, Engine::GeneratedRust, &rust, true).is_empty());
+            // The safe wrapper exposes a closed error category, not raw status 7.
+            // Reject flattening, a different variant/reason, and missing physical evidence.
+            for (primary, key, value, mismatch) in [
+                ("7", "rust_error", "carrier-rejected", "primary:"),
+                ("7", "rust_error", "execution-failed", "note rust_error:"),
+                ("-1", "rust_error", "other", "primary:"),
+                (
+                    "carrier_rejected",
+                    "rust_error",
+                    "execution-failed",
+                    "note rust_error:",
+                ),
+                (
+                    "carrier_rejected",
+                    "rust_reason",
+                    "different-reason",
+                    "note rust_reason:",
+                ),
+                ("carrier_rejected", "fault", "0", "note fault:"),
+                ("carrier_rejected", "armed", "1", "note armed:"),
+            ] {
+                let mut hostile = rust.clone();
+                hostile.primary = primary.into();
+                hostile.note.insert(key.into(), value.into());
+                assert!(
+                    check_observation(case, Engine::GeneratedRust, &hostile, true)
+                        .iter()
+                        .any(|p| p.starts_with(mismatch))
+                );
+            }
+            let mut missing_fault = rust.clone();
+            missing_fault.note.remove("fault");
+            assert!(
+                check_observation(case, Engine::GeneratedRust, &missing_fault, true)
+                    .iter()
+                    .any(|p| p == "note fault: missing")
+            );
+            rust.dispatch = Some(1);
+            assert!(check_observation(case, Engine::GeneratedRust, &rust, true)
+                .iter()
+                .any(|p| p.starts_with("dispatch:")));
+        }
         receipt.note.insert("fault".into(), "0".into());
         assert!(check_observation(case, Engine::NativeO2, &receipt, true)
             .iter()

@@ -22,7 +22,7 @@ fn leaf(bytes: Option<&[u8]>) -> String {
         Some(bytes) => bytes.iter().map(|byte| format!("{byte:02x}")).collect(),
     }
 }
-fn emit(id: &str, primary: i64, secondary: Option<i32>, leaves: Option<(&[u8], &[u8])>, note: &str) {
+fn emit(id: &str, primary: &str, secondary: Option<i32>, leaves: Option<(&[u8], &[u8])>, note: &str) {
     let mut order = [0_u8; 512];
     // SAFETY: test-only observers; `order` is a live buffer of the stated size.
     let (dispatch, live, peak, handles) = unsafe {
@@ -62,11 +62,16 @@ fn main() {
                 note.push_str(&format!(",handles={handles},close={},armed={armed}", u8::from(!closed)));
             }
             match result {
-                Ok(output) => emit(&label, 0, secondary, Some((&output.@OUTPUT0@, &output.@OUTPUT1@)), &note),
-                Err(Error::ExecutionFailed(status)) => emit(&label, i64::from(status), secondary, None, &note),
+                Ok(output) => emit(&label, "0", secondary, Some((&output.@OUTPUT0@, &output.@OUTPUT1@)), &note),
+                Err(Error::CarrierRejected(reason)) if kind == 7 => {
+                    assert_eq!(reason, "the native provider rejected an illegal handle or lifecycle transition");
+                    note.push_str(",rust_error=carrier-rejected,rust_reason=illegal-handle-or-lifecycle");
+                    emit(&label, "carrier_rejected", secondary, None, &note);
+                }
+                Err(Error::ExecutionFailed(status)) => emit(&label, &status.to_string(), secondary, None, &note),
                 Err(other) => {
                     note.push_str(&format!(",error={other:?}").replace(' ', "_"));
-                    emit(&label, -1, secondary, None, &note);
+                    emit(&label, "-1", secondary, None, &note);
                 }
             }
         }

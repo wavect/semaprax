@@ -1075,8 +1075,15 @@ unchanged, and appends three named failure rows over the same checked
 `auth.identity` / `Pair<Bytes>` source and exact descriptor:
 
 - `injected-input-transfer-commit-failure`: the existing occurrence seam
-  rejects after input registry removal, before endpoint entry; primary 9,
-  zero endpoint dispatches, input release `0.1,0.0`, no result.
+  rejects after input registry removal, before endpoint entry; native/raw C/C++ primary 7
+  (`SPX_PG_STATUS_ILLEGAL_TRANSITION`, SPX-PG804), zero endpoint dispatches,
+  input release `0.1,0.0`, no result. The generated Rust safe wrapper exposes
+  `Error::CarrierRejected` with the exact reason "the native provider rejected
+  an illegal handle or lifecycle transition"; its receipt preserves the
+  `carrier_rejected` token and checked class/reason notes. That category groups
+  illegal-transition and invalid-handle failures; it does not expose raw status 7.
+  Numeric 7, `ExecutionFailed(7)`, a generic error, or a different reason cannot
+  satisfy this Rust cell.
 - `injected-result-commit-failure`: the physical result-commit-pending seam
   rejects before result publication; primary 11, one endpoint dispatch,
   input then result release `0.1,0.0,1.1,1.0`, no result.

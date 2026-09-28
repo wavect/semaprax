@@ -250,7 +250,7 @@ fn owned_continued_model_real_sdk_resume_completed_keeps_owner_and_all_ledger_di
 #[cfg(unix)]
 #[test]
 fn owned_continued_model_ack_faults_never_repeat_sdk_or_resume() {
-    for row in [0, 3, 4] {
+    for row in 0..5 {
         for mode in 0..4 {
             with_continued(false, |journal, owner, weak, ledger, _, _, _| {
                 let parked = prepared(journal, owner);
@@ -268,15 +268,15 @@ fn owned_continued_model_ack_faults_never_repeat_sdk_or_resume() {
                     let mut owner = acknowledge(journal, selected)
                         .dispatch_model(&mut adapter)
                         .unwrap_or_else(|_| panic!("SDK"));
-                    owner = acknowledge(
-                        journal,
-                        owner.prepare_next().unwrap_or_else(|_| panic!("Settled")),
-                    );
-                    owner = acknowledge(
-                        journal,
-                        owner.prepare_next().unwrap_or_else(|_| panic!("Usage")),
-                    );
-                    selected = owner.prepare_next().unwrap_or_else(|_| panic!("Resume"));
+                    selected = owner.prepare_next().unwrap_or_else(|_| panic!("Settled"));
+                    if row >= 2 {
+                        owner = acknowledge(journal, selected);
+                        selected = owner.prepare_next().unwrap_or_else(|_| panic!("Usage"));
+                    }
+                    if row >= 3 {
+                        owner = acknowledge(journal, selected);
+                        selected = owner.prepare_next().unwrap_or_else(|_| panic!("Resume"));
+                    }
                     if row == 4 {
                         selected = acknowledge(journal, selected)
                             .resume_actual()
@@ -304,6 +304,10 @@ fn owned_continued_model_ack_faults_never_repeat_sdk_or_resume() {
                     .append_owned_continued_model(selected)
                     .err()
                     .expect("real persistence uncertainty");
+                assert!(
+                    failure.test_is_in_doubt(),
+                    "row {row}, physical window {mode} must reach InDoubt"
+                );
                 assert_eq!(counts.borrow().polls, calls);
                 assert_eq!(resume_entries(), entries);
                 assert!(journal.hold().is_err());

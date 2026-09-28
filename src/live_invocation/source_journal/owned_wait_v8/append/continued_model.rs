@@ -289,3 +289,18 @@ impl AppendSessionV8<'_> {
         self.inventory.continued_model_request_basis()
     }
 }
+
+#[cfg(test)]
+impl LiveOwnedContinuedModelAppendFailureV8<'_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_is_in_doubt(
+        &self,
+    ) -> bool {
+        matches!(
+            self,
+            Self::Append {
+                _failure: AppendFailureV8::InDoubt { .. },
+                ..
+            }
+        )
+    }
+}

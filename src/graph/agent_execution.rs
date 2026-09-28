@@ -26,6 +26,24 @@ pub(crate) fn facts(program: &Program) -> Result<Vec<String>, Diagnostic> {
             agent
                 .validate_execution_metadata(program)
                 .map_err(|message| Diagnostic::io("SPX-G559", message))?;
+            let expected = [
+                AgentOperationRole::Initialize,
+                AgentOperationRole::Observe,
+                AgentOperationRole::Authorize,
+                AgentOperationRole::Reduce,
+            ];
+            if !agent
+                .operations
+                .iter()
+                .filter(|operation| operation.kind == AgentOperationKind::Deterministic)
+                .map(|operation| operation.role)
+                .eq(expected)
+            {
+                return Err(Diagnostic::io(
+                    "SPX-G559",
+                    "checked Agent deterministic roles are not canonical",
+                ));
+            }
             let mut operation_rows = agent
                 .operations
                 .iter()
@@ -45,8 +63,12 @@ pub(crate) fn facts(program: &Program) -> Result<Vec<String>, Diagnostic> {
                 });
             // Validation fixes this carrier at four deterministic roles; retain
             // it on the stack rather than allocating an uncharged Vec.
-            let operation_rows: [String; 4] =
-                std::array::from_fn(|_| operation_rows.next().unwrap_or_default());
+            let mut next_row = || {
+                operation_rows.next().ok_or_else(|| {
+                    Diagnostic::io("SPX-G559", "checked Agent deterministic role is missing")
+                })
+            };
+            let operation_rows = [next_row()?, next_row()?, next_row()?, next_row()?];
             let operations = operation_rows.budgeted_join(",");
             let wait = if let Some(binding) = &agent.model_wait {
                 let model = agent
@@ -114,6 +136,33 @@ mod tests {
         let agent = agent.split("@id(\"main\")").next().unwrap();
         let source = format!("{}\n{agent}\n@id(\"loan.consume\") fn consume(value:own Bytes)->i64 {{7}}\n@id(\"loan.observe\") fn borrowed()->i64 {{ let owned=bytes_zeroed(2usize); let view=bytes_as_slice(owned); let size=byte_len(view); consume(owned) + if size==2usize {{1}} else {{0}} }}", include_str!("../session_protocol/tests/fixtures/follows.spx"));
         crate::check(&source, "combined.spx").unwrap()
+    }
+
+    #[test]
+    fn facts_refuse_missing_extra_or_reordered_deterministic_roles() {
+        let program = combined();
+        for mutation in 0..3 {
+            let mut forged = program.clone();
+            let agent = &mut forged.agents[0];
+            let index = agent
+                .operations
+                .iter()
+                .position(|operation| operation.role == AgentOperationRole::Observe)
+                .unwrap();
+            match mutation {
+                0 => {
+                    agent.operations.remove(index);
+                }
+                1 => {
+                    let extra = agent.operations[index].clone();
+                    agent.operations.push(extra);
+                }
+                _ => {
+                    agent.operations.swap(index, 0);
+                }
+            }
+            assert_eq!(facts(&forged).unwrap_err().code, "SPX-G559");
+        }
     }
 
     #[test]

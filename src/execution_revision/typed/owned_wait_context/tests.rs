@@ -237,6 +237,7 @@ fn owned_wait_typed_execution_binds_real_registry_task_and_each_effect_ceiling()
         assert_eq!(effect_plan.limits().max_calls, baseline.effects.max_calls);
         assert_eq!(baseline.effects.max_result_bytes, 4096);
         assert_eq!(effect_plan.target_limits().max_result_bytes, 1024);
+        assert_eq!(effect_plan.target_limits().max_fuel, effect_plan.target_limits().max_calls);
         assert_eq!(c.ordinary().invocation(), context(&baseline, Arc::clone(&wait)).ordinary().invocation(),
             "profile intersection leaves the committed typed execution unchanged");
         assert!(effect_plan.accepted_result(&vec![b'x'; 1025]).is_none());

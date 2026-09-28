@@ -121,7 +121,8 @@ impl CheckedOwnedEffectPlanV8<'_> {
             max_request_bytes: self.limits.max_argument_bytes as u64,
             max_result_bytes: self.limits.max_result_bytes as u64,
             max_total_bytes: self.limits.max_total_bytes as u64,
-            max_fuel: 1,
+            // One unit per call under the invocation-wide accounting ceiling.
+            max_fuel: self.limits.max_calls as u64,
         }
     }
     pub(crate) fn accepted_result(&self, payload: &[u8]) -> Option<Vec<u8>> {

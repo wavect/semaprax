@@ -135,7 +135,8 @@ fn check_entries<'a>(
 ) -> Result<CheckedInventoryV8<'a>, Error> {
     check_entries_with_runtime(context, key, decoded, None, None)
 }
-/// Cleanup remains refused until actual selected stage obligations are joined.
+/// Only the joined cumulative failed-Observe State cleanup is replayable here.
+/// Authenticated rows describe facts; fixed actual-owner permits authorize writes.
 fn check_entries_with_runtime<'a>(
     context: &super::FoldContextV8,
     key: &SourceCheckpointKey,
@@ -418,8 +419,36 @@ fn check_entries_with_runtime<'a>(
                     status,
                 ))?;
             }
-            EntryV8::Owned(Body::OwnedCleanupStarted { .. } | Body::OwnedCleanupSettled { .. }) => {
-                return Err(Error::Binding)
+            EntryV8::Owned(
+                Body::OwnedCleanupStarted {
+                    turn,
+                    attempt,
+                    wait,
+                    owner,
+                    ..
+                }
+                | Body::OwnedCleanupSettled {
+                    turn,
+                    attempt,
+                    wait,
+                    owner,
+                    ..
+                },
+            ) => {
+                // Authenticate and check the original failure prefix before
+                // accepting this inert replay branch. The final fold checks
+                // its exact compiler vector/receipt and causal row references.
+                require(context.cumulative_initialization)?;
+                let previous = fold::fold(context, &rows)?;
+                let cleanup_turn = previous
+                    .failed_observe_cleanup_turn()
+                    .map_err(|_| Error::Binding)?;
+                require(
+                    cleanup_turn == *turn
+                        && *owner == super::model::OwnerV8::State
+                        && attempt.is_none()
+                        && wait.is_none(),
+                )?;
             }
             EntryV8::Ordinary(Ordinary::ProposalRefused { turn, attempt, .. }) => {
                 let (rt, ra, response) = raw.as_ref().ok_or(Error::Binding)?;

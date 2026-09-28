@@ -23,6 +23,7 @@ Audience: all documentation readers.
 - [Agent target host-call protocol v1](AGENT-TARGET-HOST-PROTOCOL-V1.md)
 - [Direct Agent Runtime v2](AGENT-RUNTIME-V2.md)
 - [Source Model Operation v1](SOURCE-MODEL-OPERATION-V1.md)
+- [Source Model Wait v1](SOURCE-MODEL-WAIT-V1.md)
 - [Live Repair Smoke v1](LIVE-REPAIR-SMOKE-V1.md)
 - [Project Linked Agent Lifecycle v1](PROJECT-LINKED-AGENT-LIFECYCLE-V1.md)
 - [Project Linked Agent Migration v1](PROJECT-LINKED-AGENT-MIGRATION-V1.md)
@@ -570,3 +571,5 @@ Audience: all documentation readers.
 - [Generic Template Rename v1](PROJECT-GENERIC-RENAME-V1.md)
 - [Owned Result Signature Wrap v1](PROJECT-SIGNATURE-OWNED-RESULT-WRAP-V1.md)
 - [v0.4.0 full documentation audit](DOCUMENTATION-AUDIT-0.4.0.md)
+
+- [Local settlement evidence supplement](evidence/public-generic-settlement-v2/README.md)

@@ -1,5 +1,8 @@
 # Local settlement evidence supplement
 
+Status: local conformance evidence; scoped unpublished subjects.
+Audience: implementers and release reviewers.
+
 Frozen conformance subject: `888ac18e416303c3a78544194cf3937d9ff4c5ff`.
 This supplements the release-evidence ticket without selecting a new public
 release candidate or granting support/publication authority.

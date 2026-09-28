@@ -58,10 +58,25 @@ impl PreparedOwnedFrame {
     }
 }
 pub(super) struct OwnedFrameInvocation<'key> {
-    journal: Journal<'key>,
     owner: Option<DurableOwner>,
+    journal: Journal<'key>,
     replay_checked: bool,
     historical_resume_pending: bool,
+}
+#[cfg(test)]
+thread_local! {static DROP_OBSERVER:std::cell::RefCell<Option<Box<dyn FnOnce()>>>=std::cell::RefCell::new(None);}
+impl Drop for OwnedFrameInvocation<'_> {
+    fn drop(&mut self) {
+        // The registered lock must still exclude recovery until the final
+        // process backing owner has gone. This issues no semantic receipt.
+        drop(self.owner.take());
+        #[cfg(test)]
+        DROP_OBSERVER.with(|slot| {
+            if let Some(observer) = slot.borrow_mut().take() {
+                observer();
+            }
+        });
+    }
 }
 pub(super) enum OwnedFrameStart<'key> {
     Rejected {
@@ -78,6 +93,40 @@ pub(super) struct OwnedFrameCleanupConfirmation {
     facts: Value,
 }
 impl<'key> OwnedFrameInvocation<'key> {
+    pub(super) fn status(&self) -> super::OwnedFrameInvocationStatus {
+        use super::{OwnedFrameActivePhase as Active, OwnedFrameInvocationStatus as Status};
+        if self.journal.poisoned {
+            return Status::PersistenceInDoubt;
+        }
+        let failed = self
+            .journal
+            .state
+            .terminal()
+            .is_some_and(|row| row.kind == Kind::Failed);
+        match self.journal.state.phase {
+            Phase::Empty => Status::UncommittedStart { created: false },
+            Phase::Created => Status::UncommittedStart { created: true },
+            Phase::Committed => Status::Active(Active::Committed),
+            Phase::Starting => Status::Active(Active::StartReserved),
+            Phase::Yielded => Status::Active(Active::Yielded),
+            Phase::Dispatched => Status::Active(Active::DispatchedInDoubt),
+            Phase::Answered => Status::Active(Active::Answered),
+            Phase::Resuming => Status::Active(Active::ResumeReserved),
+            Phase::Completed | Phase::Failed => Status::PendingCleanup { failed },
+            Phase::CleanupStarted => Status::CleanupInDoubt { failed },
+            Phase::CleanupSettled if !failed && self.owner.is_some() => Status::ReadyToClaim,
+            Phase::CleanupSettled if !failed => Status::ResultDeliveryInDoubt,
+            Phase::CleanupSettled => Status::Settled {
+                failed,
+                host_confirmed: self
+                    .journal
+                    .state
+                    .cleanup_settled()
+                    .is_some_and(|(_, row)| row.fields["receipt"]["kind"] == "host_confirmed"),
+            },
+            Phase::Claimed => Status::ResultDeliveryInDoubt,
+        }
+    }
     pub(super) fn grant_cleanup_confirmation_for_trusted_host(
         &self,
         policy: &CapabilityPolicy,

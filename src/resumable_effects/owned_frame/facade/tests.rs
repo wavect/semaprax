@@ -34,6 +34,10 @@ fn owned_frame_public_facade_claims_one_real_owner_and_refuses_foreign_consumpti
     invocation.resume(&policy(), &scope).unwrap();
     invocation.settle(&policy(), &scope, &mut |_| true).unwrap();
     let mut result = invocation.claim(&policy(), &scope).unwrap();
+    assert_eq!(
+        invocation.status().unwrap(),
+        OwnedFrameInvocationStatus::ResultDeliveryInDoubt
+    );
     assert!(weak.iter().all(|leaf| leaf.strong_count() == 1));
     let releases = Rc::new(Cell::new(0));
     let counter = releases.clone();

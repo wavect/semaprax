@@ -288,7 +288,12 @@ fn owned_frame_durable_all_original_ack_windows_before_and_after_persistence_poi
             )
             .unwrap();
             validation.unwrap();
+            use super::super::OwnedFrameInvocationStatus as Status;
             if recovered.journal.state.phase == Phase::Dispatched {
+                assert_eq!(
+                    recovered.status(),
+                    Status::Active(super::super::OwnedFrameActivePhase::DispatchedInDoubt)
+                );
                 let mut recovered_calls = 0;
                 assert_eq!(
                     recovered.dispatch(&policy(), &scope, &mut |_| {
@@ -312,6 +317,14 @@ fn owned_frame_durable_all_original_ack_windows_before_and_after_persistence_poi
                     "forbidden remint tail {:?}",
                     recovered.journal.state.phase
                 );
+                let expected = match recovered.journal.state.phase {
+                    Phase::Empty => Status::UncommittedStart { created: false },
+                    Phase::Created => Status::UncommittedStart { created: true },
+                    Phase::CleanupStarted => Status::CleanupInDoubt { failed: false },
+                    Phase::CleanupSettled | Phase::Claimed => Status::ResultDeliveryInDoubt,
+                    _ => panic!("classified tail"),
+                };
+                assert_eq!(recovered.status(), expected);
                 assert!(recovered.claim(&policy(), &scope).is_err());
             }
         }
@@ -596,4 +609,41 @@ fn owned_frame_durable_capacity_after_replay_ack_keeps_fresh_retry_reservation()
             .iter()
             .any(|branch| branch.iter().any(|row| row.kind == retry)));
     }
+}
+
+#[test]
+fn owned_frame_durable_drop_disposes_last_backing_before_releasing_registered_lock() {
+    let directory = Directory::new();
+    let (plan, input, scope, key) = fixture();
+    let invocation = started(&directory, &key, &plan, input, &scope, None);
+    let identity = invocation.journal.lease.identity();
+    let weak = invocation.owner.as_ref().unwrap().weak_leaves();
+    let observed = std::rc::Rc::new(std::cell::Cell::new(false));
+    let output = observed.clone();
+    let held = directory.file();
+    let expected = scope.clone();
+    DROP_OBSERVER.with(|slot| {
+        *slot.borrow_mut() = Some(Box::new(move || {
+            assert!(
+                weak.iter().all(|leaf| leaf.upgrade().is_none()),
+                "actual backing still owned when lock could release"
+            );
+            let grant =
+                OwnedFrameStoreRegistration::grant_for_trusted_host(identity, &expected, true)
+                    .unwrap();
+            assert_eq!(
+                RegisteredJournalLease::recover(held, grant, &expected).err(),
+                Some(Error::Busy)
+            );
+            output.set(true);
+        }))
+    });
+    drop(invocation);
+    assert!(observed.get());
+    let grant =
+        OwnedFrameStoreRegistration::grant_for_trusted_host(identity, &scope, true).unwrap();
+    assert!(
+        RegisteredJournalLease::recover(directory.file(), grant, &scope).is_ok(),
+        "control: lease is released after backing disposal"
+    );
 }

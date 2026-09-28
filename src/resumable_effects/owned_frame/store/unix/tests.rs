@@ -194,6 +194,7 @@ fn owned_frame_foreign_process_guard_and_whole_drop_do_not_unlock_shared_descrip
         file: lease.file.try_clone().unwrap(),
         identity,
         name: lease.name.clone(),
+        scope: lease.scope.clone(),
         length: lease.length,
         poisoned: false,
         creator_process: std::process::id().wrapping_add(1),

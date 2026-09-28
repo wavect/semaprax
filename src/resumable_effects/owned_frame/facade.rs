@@ -285,7 +285,32 @@ pub struct OwnedFrameCleanupConfirmation {
     inner: driver::OwnedFrameCleanupConfirmation,
     creator: u32,
 }
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OwnedFrameActivePhase {
+    Committed,
+    StartReserved,
+    Yielded,
+    DispatchedInDoubt,
+    Answered,
+    ResumeReserved,
+}
+/// Read-only classification. It never grants evaluator/cleanup/result authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OwnedFrameInvocationStatus {
+    UncommittedStart { created: bool },
+    Active(OwnedFrameActivePhase),
+    PendingCleanup { failed: bool },
+    ReadyToClaim,
+    Settled { failed: bool, host_confirmed: bool },
+    CleanupInDoubt { failed: bool },
+    ResultDeliveryInDoubt,
+    PersistenceInDoubt,
+}
 impl<'key> OwnedFrameInvocation<'key> {
+    pub fn status(&self) -> Result<OwnedFrameInvocationStatus, OwnedFrameError> {
+        self.current()?;
+        Ok(self.inner.status())
+    }
     fn current(&self) -> Result<(), OwnedFrameError> {
         if self.creator == std::process::id() {
             Ok(())

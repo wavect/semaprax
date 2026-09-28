@@ -187,6 +187,9 @@ fn started(owner: &LiveFailedOwnedEffectV8<'_>) -> Result<EntryV8, SourceJournal
         }
         _ => return Err(SourceJournalError::Binding),
     };
+    if owner.pending.live_failed_state_reason_v8() != Some(reason) {
+        return Err(SourceJournalError::Binding);
+    }
     if owner.pending.receipt()["settlement"] != "completed" || l.settled.is_none() {
         return Err(SourceJournalError::Binding);
     }

@@ -35,6 +35,21 @@ pub(crate) enum LiveFailedEffectStateReleaseFailureV8<'j> {
     },
 }
 impl PendingOwnedEffectReceiptV8<'_> {
+    pub(crate) fn live_failed_state_reason_v8(&self) -> Option<SourceEffectFailure> {
+        match self.failure? {
+            OwnedEffectFailureV8::Target(Settlement::ResultBudget) => {
+                Some(SourceEffectFailure::ResultLimit)
+            }
+            OwnedEffectFailureV8::Target(
+                Settlement::HostFailed
+                | Settlement::HostPanicked
+                | Settlement::MalformedResult
+                | Settlement::ResultTypeMismatch,
+            )
+            | OwnedEffectFailureV8::ResultShape => Some(SourceEffectFailure::HandlerFailed),
+            _ => None,
+        }
+    }
     pub(crate) fn live_failed_state_facts_v8(
         &self,
     ) -> Result<serde_json::Value, SourceJournalError> {

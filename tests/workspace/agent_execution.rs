@@ -113,10 +113,22 @@ fn workspace_v4_preserves_each_dynamic_base_and_exact_source_agent_rows() {
             );
             assert_eq!(rows[0]["operations"].as_array().unwrap().len(), 4);
             if version >= 2 {
-                assert!(graph.get("session_protocols").is_some());
+                let protocols = &graph["session_protocols"];
+                assert_eq!(
+                    protocols["base_schema"],
+                    format!("semaprax.{family}-semantic-graph.v1")
+                );
+                assert_eq!(protocols["authority"], "none");
+                assert!(!protocols["declarations"].as_array().unwrap().is_empty());
             }
             if version == 3 {
-                assert!(graph.get("session_protocol_follows").is_some());
+                let follows = &graph["session_protocol_follows"];
+                assert_eq!(
+                    follows["base_schema"],
+                    format!("semaprax.{family}-semantic-graph.v2")
+                );
+                assert_eq!(follows["authority"], "none");
+                assert!(!follows["bindings"].as_array().unwrap().is_empty());
             }
         }
     }

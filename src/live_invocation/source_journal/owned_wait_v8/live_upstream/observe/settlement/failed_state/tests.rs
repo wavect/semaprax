@@ -521,8 +521,12 @@ fn failed_observe_state_cleanup_fresh_mac_drift_preserves_actual_history_and_nev
                     0 => *basis += 1,
                     1 => terminal["language_status"]["code"] = json!("foreign_status"),
                     _ => {
-                        assert!(operations.as_array().unwrap().len() > 1);
-                        operations.as_array_mut().unwrap().reverse();
+                        // The genuine baseline has one objective Bytes leaf.
+                        // Duplicate its exact canonical action: a reminted digest
+                        // must not make a second physical release admissible.
+                        assert_eq!(operations.as_array().unwrap().len(), 1);
+                        let duplicate = operations[0].clone();
+                        operations.as_array_mut().unwrap().push(duplicate);
                     }
                 }
                 *operations_digest=wire::recipe_digest(wire::RecipeV8::Operations,&json!({"owner":"state","basis":basis,"terminal":terminal,"operations":operations})).unwrap();
@@ -539,7 +543,14 @@ fn failed_observe_state_cleanup_fresh_mac_drift_preserves_actual_history_and_nev
                 match mode {
                     3 => *started += 1,
                     4 => receipt["operations"][0]["outcome"] = json!("failed"),
-                    _ => receipt["operations"].as_array_mut().unwrap().reverse(),
+                    _ => {
+                        assert_eq!(receipt["operations"].as_array().unwrap().len(), 1);
+                        let duplicate = receipt["operations"][0].clone();
+                        receipt["operations"]
+                            .as_array_mut()
+                            .unwrap()
+                            .push(duplicate);
+                    }
                 }
                 *receipt_digest = wire::recipe_digest(wire::RecipeV8::Receipt, receipt).unwrap();
             } else if mode == 6 {

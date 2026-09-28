@@ -511,8 +511,12 @@ impl<'j> LiveReleasedFailedObserveStateV8<'j> {
         if self.lineage.acks.len() != 1 {
             return Err(SourceJournalError::Order);
         }
-        let started = u32::try_from(self.lineage.acks[0].session.sequence())
-            .map_err(|_| SourceJournalError::Capacity)?;
+        let started = self.lineage.acks[0]
+            .session
+            .sequence()
+            .checked_sub(1)
+            .and_then(|n| u32::try_from(n).ok())
+            .ok_or(SourceJournalError::Capacity)?;
         crate::resumable_effects::owned_frame::v2::validate_owned_wait_observed_receipt_v8(
             &self.lineage.cache.operations,
             &self.receipt,

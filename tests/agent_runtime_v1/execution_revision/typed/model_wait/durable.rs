@@ -41,21 +41,38 @@ impl SourceInvocationClock for Clock {
 struct Store {
     documents: Vec<String>,
     fail: Option<(&'static str, Option<&'static str>)>,
+    fail_before_persistence: bool,
+    attempted: Vec<String>,
     cancel_intent: Option<AgentCancellation>,
 }
 impl CheckpointStore for Store {
     fn commit(&mut self, _: u64, document: &str) -> Result<(), CheckpointStoreError> {
         let value: serde_json::Value = serde_json::from_str(document).unwrap();
         let entry = value["entries"].as_array().unwrap().last().unwrap();
+        self.attempted
+            .push(entry["kind"].as_str().unwrap().to_owned());
+        let phase = entry.get("phase").or_else(|| {
+            entry
+                .get("reservation")
+                .and_then(|r| r.as_u64())
+                .and_then(|r| value["entries"].get(r as usize))
+                .and_then(|r| r.get("phase"))
+        });
+        let fail = self.fail.is_some_and(|(kind, expected)| {
+            entry["kind"] == kind
+                && expected.is_none_or(|p| phase.is_some_and(|actual| actual == p))
+        });
+        if fail && self.fail_before_persistence {
+            self.fail = None;
+            return Err(CheckpointStoreError);
+        }
         self.documents.push(document.to_owned());
         if entry["kind"] == "attempt_intent" {
             if let Some(cancel) = &self.cancel_intent {
                 cancel.cancel();
             }
         }
-        if self.fail.is_some_and(|(kind, phase)| {
-            entry["kind"] == kind && phase.is_none_or(|p| entry["phase"] == p)
-        }) {
+        if fail {
             self.fail = None;
             return Err(CheckpointStoreError);
         }
@@ -91,6 +108,115 @@ fn policy(binding: &SourceModelBinding) -> SourceLivePolicy {
         max_total_steps: 300_000,
         program_root: None,
     }
+}
+
+fn reservations(document: &str) -> Vec<(u64, u64)> {
+    let value: serde_json::Value = serde_json::from_str(document).unwrap();
+    value["entries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| e["kind"] == "wait_evaluation_reserved")
+        .map(|e| (e["seq"].as_u64().unwrap(), e["fuel"].as_u64().unwrap()))
+        .collect()
+}
+
+#[test]
+fn historical_start_and_resume_replay_ack_faults_keep_charges_and_one_closure() {
+    let fixture = fixture();
+    with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        let project = snapshot.retain_revision();
+        let root = project.program_root()?;
+        let key = SourceCheckpointKey::new([17; 32]);
+        for fail_before_persistence in [true, false] {
+            for phase in ["start", "resume"] {
+                for kind in ["wait_evaluation_reserved", "wait_replay_checked"] {
+                    let calls = Rc::new(Cell::new(0));
+                    let mut store = Store {
+                        fail: Some(("wait_completed", None)),
+                        ..Store::default()
+                    };
+                    assert!(run(
+                        project.clone(),
+                        &root,
+                        &key,
+                        1000,
+                        None,
+                        &mut store,
+                        &AgentCancellation::new(),
+                        false,
+                        true,
+                        calls.clone()
+                    )
+                    .is_err());
+                    assert_eq!(calls.get(), 1);
+                    let mut retained = store.documents.last().unwrap().clone();
+                    for _ in 0..2 {
+                        store.fail = Some((kind, Some(phase)));
+                        store.fail_before_persistence = fail_before_persistence;
+                        let before = reservations(&retained);
+                        assert!(run(
+                            project.clone(),
+                            &root,
+                            &key,
+                            1000,
+                            Some(&retained),
+                            &mut store,
+                            &AgentCancellation::new(),
+                            false,
+                            true,
+                            calls.clone()
+                        )
+                        .is_err());
+                        assert_eq!(store.attempted.last().unwrap(), kind);
+                        assert_eq!(calls.get(), 1, "historical settlement cannot redispatch");
+                        retained = store.documents.last().unwrap().clone();
+                        assert!(reservations(&retained).starts_with(&before));
+                        let rows: serde_json::Value = serde_json::from_str(&retained).unwrap();
+                        for closure in ["wait_prepared", "wait_completed"] {
+                            assert_eq!(
+                                rows["entries"]
+                                    .as_array()
+                                    .unwrap()
+                                    .iter()
+                                    .filter(|e| e["kind"] == closure
+                                        && e["turn"] == 0
+                                        && e["attempt"] == 0)
+                                    .count(),
+                                1
+                            );
+                        }
+                    }
+                    let before = reservations(&retained);
+                    let result = run(
+                        project.clone(),
+                        &root,
+                        &key,
+                        1000,
+                        Some(&retained),
+                        &mut store,
+                        &AgentCancellation::new(),
+                        false,
+                        true,
+                        calls.clone(),
+                    )
+                    .ok()
+                    .expect("interrupted historical phases resume");
+                    assert_eq!(calls.get(), 3);
+                    let final_reservations = reservations(store.documents.last().unwrap());
+                    assert!(final_reservations.starts_with(&before));
+                    let evidence: serde_json::Value =
+                        serde_json::from_slice(result.wait_evidence()).unwrap();
+                    assert_eq!(
+                        evidence["total_wait_fuel"].as_u64().unwrap(),
+                        final_reservations.iter().map(|(_, fuel)| fuel).sum::<u64>()
+                    );
+                }
+            }
+        }
+        Ok(())
+    })
+    .unwrap();
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -336,61 +462,76 @@ fn wait_ack_windows_recover_without_model_redispatch() {
         let project = snapshot.retain_revision();
         let root = project.program_root()?;
         let key = SourceCheckpointKey::new([17; 32]);
-        for fail in [
-            ("wait_evaluation_reserved", Some("start")),
-            ("wait_prepared", None),
-            ("wait_evaluation_reserved", Some("resume")),
-            ("wait_completed", None),
-            ("attempt_intent", None),
-        ] {
-            let calls = Rc::new(Cell::new(0));
-            let mut store = Store {
-                fail: Some(fail),
-                ..Store::default()
-            };
-            let failed = run(
-                project.clone(),
-                &root,
-                &key,
-                1000,
-                None,
-                &mut store,
-                &AgentCancellation::new(),
-                false,
-                true,
-                calls.clone(),
-            );
-            assert!(failed.is_err());
-            let retained = store.documents.last().unwrap().clone();
-            let before = calls.get();
-            let resumed = run(
-                project.clone(),
-                &root,
-                &key,
-                1000,
-                Some(&retained),
-                &mut store,
-                &AgentCancellation::new(),
-                false,
-                true,
-                calls.clone(),
-            );
-            if fail.0 == "attempt_intent" {
-                assert!(resumed.is_err());
-                assert_eq!(calls.get(), before);
-            } else {
-                let result = resumed.ok().expect("settled or pure wait prefix resumes");
-                assert_eq!(
-                    result
-                        .model()
-                        .run()
-                        .checkpoint
-                        .terminal_snapshot()
-                        .unwrap()
-                        .status(),
-                    SourceTerminalStatus::Complete
+        for fail_before_persistence in [true, false] {
+            for fail in [
+                ("wait_evaluation_reserved", Some("start")),
+                ("wait_prepared", None),
+                ("wait_evaluation_reserved", Some("resume")),
+                ("wait_completed", None),
+                ("attempt_intent", None),
+            ] {
+                let calls = Rc::new(Cell::new(0));
+                let mut store = Store {
+                    fail: Some(fail),
+                    fail_before_persistence,
+                    ..Store::default()
+                };
+                let failed = run(
+                    project.clone(),
+                    &root,
+                    &key,
+                    1000,
+                    None,
+                    &mut store,
+                    &AgentCancellation::new(),
+                    false,
+                    true,
+                    calls.clone(),
                 );
-                assert_eq!(calls.get(), 3);
+                assert!(failed.is_err());
+                assert_eq!(
+                    store.attempted.last().unwrap(),
+                    fail.0,
+                    "failed ACK must stop before any evaluation closure or later dispatch row"
+                );
+                if fail == ("wait_evaluation_reserved", Some("start")) {
+                    assert_eq!(calls.get(), 0);
+                } else if fail == ("wait_evaluation_reserved", Some("resume")) {
+                    assert_eq!(calls.get(), 1);
+                }
+                let retained = store.documents.last().unwrap().clone();
+                let charged = reservations(&retained);
+                let before = calls.get();
+                let resumed = run(
+                    project.clone(),
+                    &root,
+                    &key,
+                    1000,
+                    Some(&retained),
+                    &mut store,
+                    &AgentCancellation::new(),
+                    false,
+                    true,
+                    calls.clone(),
+                );
+                if fail.0 == "attempt_intent" && !fail_before_persistence {
+                    assert!(resumed.is_err());
+                    assert_eq!(calls.get(), before);
+                } else {
+                    let result = resumed.ok().expect("settled or pure wait prefix resumes");
+                    assert_eq!(
+                        result
+                            .model()
+                            .run()
+                            .checkpoint
+                            .terminal_snapshot()
+                            .unwrap()
+                            .status(),
+                        SourceTerminalStatus::Complete
+                    );
+                    assert_eq!(calls.get(), 3);
+                    assert!(reservations(store.documents.last().unwrap()).starts_with(&charged));
+                }
             }
         }
         Ok(())

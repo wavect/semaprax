@@ -74,13 +74,17 @@ impl<'j> LiveContinuedEffectV8<'j> {
             proposal,
         } = completed;
         let current = acks.last().expect("real C ACK");
-        let owner = owner.prepare_effect_actual(
+        let prepared_result = owner.prepare_effect_actual(
             &current.session,
             &current.witness,
             proposal.as_ref().expect("checked actual K"),
             &commitments,
             references,
         );
+        let (owner, admission_error) = match prepared_result {
+            Ok(owner) => (owner, None),
+            Err((owner, error)) => (owner, Some(error)),
+        };
         let completed = super::super::super::LiveContinuedModelV8 {
             owner,
             request,
@@ -102,6 +106,9 @@ impl<'j> LiveContinuedEffectV8<'j> {
             staged,
             acks,
         };
+        if let Some(error) = admission_error {
+            return Err(LiveContinuedEffectPreparationFailureV8::Before { owner, error });
+        }
         let actual = LivePreparedContinuedEffectV8 { owner };
         match actual.validate_live() {
             Ok(()) => Ok(actual),

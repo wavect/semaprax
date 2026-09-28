@@ -233,3 +233,89 @@ fn owned_continued_preparation_reset_ledger_refuses_before_handoff() {
         true,
     );
 }
+
+fn admissions() -> usize {
+    crate::live_invocation::source_journal::owned_wait_v8::live_upstream::test_continued_preparation_admissions()
+}
+thread_local! {
+    static LATE_AT:Cell<usize>=const{Cell::new(usize::MAX)};
+    static LATE_READS:Cell<usize>=const{Cell::new(0)};
+}
+struct LateAdmissionClock;
+impl crate::live_invocation::InvocationClock for LateAdmissionClock {
+    fn now_millis(&self) -> i64 {
+        if admissions() > LATE_AT.with(Cell::get) {
+            LATE_READS.with(|n| n.set(n.get() + 1));
+            EXPIRED.with(Cell::get)
+        } else {
+            1
+        }
+    }
+}
+impl SourceInvocationClock for LateAdmissionClock {
+    fn clock_domain(&self) -> &str {
+        "owned.wait.test"
+    }
+}
+#[test]
+fn owned_continued_preparation_late_admission_failure_is_before_with_original_error() {
+    test_staged(
+        |journal, staged, _, ledger| {
+            let mut owner = renew(journal, staged);
+            let leaves = owner
+                .authorization
+                .actual()
+                .unwrap()
+                .owner
+                .test_effect_weak();
+            let n = entries();
+            let a = admissions();
+            LATE_AT.with(|x| x.set(a));
+            LATE_READS.with(|x| x.set(0));
+            EXPIRED.with(|x| {
+                x.set(
+                    journal
+                        .context()
+                        .ordinary()
+                        .deadline_millis()
+                        .checked_add(1)
+                        .unwrap(),
+                )
+            });
+            let ModelOwnerV8::Resumed(actual) = &mut owner.authorization.completed.owner else {
+                panic!("actual continued")
+            };
+            actual.owner.test_authorize_clock(&LateAdmissionClock);
+            let failed = owner
+                .prepare_actual_effect()
+                .err()
+                .expect("later pre-entry clock failure");
+            let LiveContinuedEffectPreparationFailureV8::Before { owner, error } = &failed else {
+                panic!("Ready never entered preparation")
+            };
+            assert_eq!(*error, SourceJournalError::Time);
+            assert_eq!(entries(), n);
+            assert_eq!(admissions(), a + 1);
+            assert_eq!(
+                LATE_READS.with(Cell::get),
+                1,
+                "no revalidation after original refusal"
+            );
+            assert!(!owner
+                .authorization
+                .actual()
+                .unwrap()
+                .owner
+                .test_prepared_effect_after());
+            assert_eq!(*owner.authorization.completed.owner.accounting(), ledger);
+            assert!(leaves.iter().all(|w| w.strong_count() == 1));
+            assert!(journal.hold().is_err());
+            assert!(journal.begin_session().is_err());
+            assert_eq!(LATE_READS.with(Cell::get), 1);
+            LATE_AT.with(|x| x.set(usize::MAX));
+            drop(failed);
+            assert!(leaves.iter().all(|w| w.upgrade().is_none()));
+        },
+        true,
+    );
+}

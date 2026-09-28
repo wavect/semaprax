@@ -190,12 +190,12 @@ these local results, and no promotion flag is changed by this slice.
 
 ### Later historical cached run
 
-The coordinator's retained branch record at `a3834de9` reports a completed
-cached interpreter corpus run with **854 comparisons, zero disagreements**;
-the renderer source-caching change preceded that record. The 27 September
-issue #294 update also records this completed cached corpus observation. It
-is local finite-corpus evidence from a prior head, not a theorem, hosted result
-or an accepted-head full-profile verdict.
+The [27 September issue #294 update](https://github.com/wavect/semaprax/issues/294#issuecomment-5859291312)
+reports a completed cached interpreter corpus run with **854 comparisons, zero
+disagreements** on the prior branch. It does not bind that specific observation
+to an exact execution commit, so this document makes no exact-head claim for
+that run. It is reported local finite-corpus evidence, not a theorem, hosted
+result or an accepted-head full-profile verdict.
 
 The execution-kit handoff separately records **5061 passed, zero failed** for
 `cargo test -p semaprax --lib` at `b27f9cb2`. This is a historical library-test

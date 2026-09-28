@@ -76,8 +76,7 @@ impl AgentRuntimeV2 {
     pub(crate) fn owned_wait_task_v8<'a>(
         &'a self,
         context: &CheckedTypedOwnedWaitExecutionV8,
-    ) -> std::result::Result<&'a crate::interpreter::retained_call::RetainedValue, SourceJournalError>
-    {
+    ) -> std::result::Result<&'a crate::agent_lifecycle::LifecycleTask, SourceJournalError> {
         self.owned_wait_effects_v8(context)?;
         Ok(&self.task)
     }

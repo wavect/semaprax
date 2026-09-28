@@ -70,7 +70,7 @@ pub(super) fn initialize_live_actor_v8<'j>(
         Ok(task) => task,
         Err(error) => return Err(reject(input, error)),
     };
-    if !exact_runtime_task_v8(&input, task) {
+    if !exact_runtime_task_v8(&input, task, execution.wait()) {
         return Err(reject(input, SourceJournalError::Binding));
     }
     let plan = match live_initializer_plan_v8(execution.wait()) {

@@ -3,10 +3,10 @@
 use super::{
     compile_owned_initialize_v2, CheckedOwnedAgentWaitBindingV8, CheckedOwnedInitializeV2,
 };
+use crate::agent_lifecycle::LifecycleTask;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedAgentOperationKind as Kind, ResolvedAgentOperationRoleKind as Role};
 use crate::interpreter::resumable::owned_frame::{OwnedFrameInput, OwnedFrameInputValue};
-use crate::interpreter::retained_call::RetainedValue;
 use crate::interpreter::ArgumentValue;
 
 pub(crate) fn live_initializer_plan_v8(
@@ -31,80 +31,39 @@ pub(crate) fn live_initializer_plan_v8(
 fn refused() -> Diagnostic {
     Diagnostic::io("SPX-T303", "initialized owned Agent source proof differs")
 }
-/// Pure ordered equality against actual retained typed Task, before admission.
-/// The retained carrier has no Char/F32/F64 variants: no approximation or
-/// nominal-only acceptance can silently substitute those into the instance.
-pub(crate) fn exact_runtime_task_v8(input: &OwnedFrameInput, task: &RetainedValue) -> bool {
-    let RetainedValue::Record(record) = task else {
-        return false;
-    };
-    input.declaration == record.record
-        && input.fields.len() == record.fields.len()
-        && input.fields.iter().all(|field| {
-            let Some(retained) = record
-                .fields
-                .iter()
-                .find(|retained| retained.field == field.identity)
-            else {
-                return false;
-            };
-            field.identity == retained.field
-                && match (&field.value, &retained.value) {
-                    (OwnedFrameInputValue::Bytes(a), RetainedValue::Bytes(b)) => a == b,
-                    (
-                        OwnedFrameInputValue::Scalar(ArgumentValue::Bool(a)),
-                        RetainedValue::Bool(b),
-                    ) => a == b,
-                    (
-                        OwnedFrameInputValue::Scalar(ArgumentValue::Int32(a)),
-                        RetainedValue::I32(b),
-                    ) => a == b,
-                    (
-                        OwnedFrameInputValue::Scalar(ArgumentValue::Int(a)),
-                        RetainedValue::I64(b),
-                    ) => a == b,
-                    (
-                        OwnedFrameInputValue::Scalar(ArgumentValue::Uint8(a)),
-                        RetainedValue::U8(b),
-                    ) => a == b,
-                    (
-                        OwnedFrameInputValue::Scalar(ArgumentValue::Usize(a)),
-                        RetainedValue::Usize(b),
-                    ) => a == b,
-                    _ => false,
-                }
+/// Pure nominal and declaration-ordered equality against the actual typed Task.
+/// Field roles come from retained compiled PayloadShape, never field spelling,
+/// position, or a guessed unique scalar in host data.
+pub(crate) fn exact_runtime_task_v8(
+    input: &OwnedFrameInput,
+    task: &LifecycleTask,
+    binding: &CheckedOwnedAgentWaitBindingV8,
+) -> bool {
+    let metadata = binding.lifecycle().owned_wait_task_v8();
+    input.declaration == *metadata.id && input.fields.len() == metadata.fields().count()
+        && input.fields.iter().zip(metadata.fields()).all(|(field,(identity,ty))| {
+            if field.identity != *identity { return false; }
+            if identity == metadata.objective_field && *ty == crate::hir::ResolvedType::Bytes {
+                matches!(&field.value,OwnedFrameInputValue::Bytes(bytes) if bytes == &task.objective)
+            } else if identity == metadata.budget_field && *ty == crate::hir::ResolvedType::I64 {
+                matches!(&field.value,OwnedFrameInputValue::Scalar(ArgumentValue::Int(value)) if *value == task.budget)
+            } else { false }
         })
 }
-
-/// Inert ordered Task facts borrowed from the typed instance, no language owner.
+/// Descriptive inert projection, preserving actual compiled declaration order.
+/// Hex text grants no language backing, grant or owner restoration authority.
 pub(crate) fn runtime_task_document_v8(
-    task: &RetainedValue,
-    plan: &CheckedOwnedInitializeV2,
+    task: &LifecycleTask,
+    binding: &CheckedOwnedAgentWaitBindingV8,
 ) -> Option<serde_json::Value> {
-    let RetainedValue::Record(record) = task else {
-        return None;
-    };
-    let declaration = plan.function().params[0].ty.nominal_id()?;
-    let declared = plan
-        .helper()
-        .program()
-        .declarations
-        .record_fields(declaration)?;
-    if record.record != *declaration || record.fields.len() != declared.len() {
-        return None;
-    }
-    let fields = declared.iter().map(|declared| {
-        let field = record.fields.iter().find(|field| field.field == declared.id)?;
-        let value = match &field.value {
-            RetainedValue::Bytes(bytes) => serde_json::json!({"kind":"bytes","hex":crate::live_invocation::identity::hex(bytes)}),
-            RetainedValue::Bool(v) => serde_json::json!({"tag":"bool","value":v}),
-            RetainedValue::I32(v) => serde_json::json!({"tag":"i32","value":v}),
-            RetainedValue::I64(v) => serde_json::json!({"tag":"i64","value":v}),
-            RetainedValue::U8(v) => serde_json::json!({"tag":"u8","value":v}),
-            RetainedValue::Usize(v) => serde_json::json!({"tag":"usize","value":v}),
-            _ => return None,
-        };
-        Some(serde_json::json!({"identity":field.field.as_str(),"value":value}))
+    let metadata = binding.lifecycle().owned_wait_task_v8();
+    let fields = metadata.fields().map(|(id,ty)| {
+        let value = if id == metadata.objective_field && *ty == crate::hir::ResolvedType::Bytes {
+            serde_json::json!({"kind":"bytes","hex":crate::live_invocation::identity::hex(&task.objective)})
+        } else if id == metadata.budget_field && *ty == crate::hir::ResolvedType::I64 {
+            serde_json::json!({"tag":"i64","value":task.budget})
+        } else { return None; };
+        Some(serde_json::json!({"identity":id.as_str(),"value":value}))
     }).collect::<Option<Vec<_>>>()?;
-    Some(serde_json::json!({"declaration":record.record.as_str(),"fields":fields}))
+    Some(serde_json::json!({"declaration":metadata.id.as_str(),"fields":fields}))
 }

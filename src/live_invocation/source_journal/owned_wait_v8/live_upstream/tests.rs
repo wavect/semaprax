@@ -1,31 +1,25 @@
 use super::*;
 use crate::interpreter::resumable::owned_frame::{OwnedFrameInputField, OwnedFrameInputValue};
-use crate::interpreter::{retained_call::RetainedValue, ArgumentValue};
+use crate::interpreter::ArgumentValue;
 use std::sync::Arc;
 fn input(context: &CheckedOwnedWaitJournalContextV8) -> OwnedFrameInput {
     let (runtime, execution) = context.ready_runtime().expect("actual runtime");
-    let RetainedValue::Record(record) = runtime.owned_wait_task_v8(execution).unwrap() else {
-        panic!("actual Task")
-    };
+    let task = runtime.owned_wait_task_v8(execution).unwrap();
+    let metadata = execution.wait().lifecycle().owned_wait_task_v8();
     OwnedFrameInput {
-        declaration: record.record.clone(),
-        fields: record
-            .fields
-            .iter()
-            .map(|field| {
-                let value = match &field.value {
-                    RetainedValue::Bytes(v) => OwnedFrameInputValue::Bytes(v.clone()),
-                    RetainedValue::Bool(v) => OwnedFrameInputValue::Scalar(ArgumentValue::Bool(*v)),
-                    RetainedValue::I32(v) => OwnedFrameInputValue::Scalar(ArgumentValue::Int32(*v)),
-                    RetainedValue::I64(v) => OwnedFrameInputValue::Scalar(ArgumentValue::Int(*v)),
-                    RetainedValue::U8(v) => OwnedFrameInputValue::Scalar(ArgumentValue::Uint8(*v)),
-                    RetainedValue::Usize(v) => {
-                        OwnedFrameInputValue::Scalar(ArgumentValue::Usize(*v))
-                    }
-                    _ => panic!("flat checked Task"),
+        declaration: metadata.id.clone(),
+        fields: metadata
+            .fields()
+            .map(|(id, _)| {
+                let value = if id == metadata.objective_field {
+                    OwnedFrameInputValue::Bytes(task.objective.clone())
+                } else if id == metadata.budget_field {
+                    OwnedFrameInputValue::Scalar(ArgumentValue::Int(task.budget))
+                } else {
+                    panic!("actual compiler Task map")
                 };
                 OwnedFrameInputField {
-                    identity: field.field.clone(),
+                    identity: id.clone(),
                     value,
                 }
             })

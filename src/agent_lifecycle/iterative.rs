@@ -137,6 +137,9 @@ pub struct CompiledIterativeLifecycle {
     step: step::StepShape,
 }
 impl CompiledIterativeLifecycle {
+    pub(crate) fn owned_wait_task_v8(&self) -> owned_wait_metadata::OwnedWaitTaskMetadataV8<'_> {
+        owned_wait_metadata::task(&self.inner)
+    }
     pub(crate) fn owned_wait_outcome_v8(
         &self,
     ) -> owned_wait_metadata::OwnedWaitOutcomeMetadataV8<'_> {

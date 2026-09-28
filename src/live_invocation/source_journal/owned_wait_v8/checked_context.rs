@@ -37,14 +37,15 @@ impl CheckedOwnedWaitJournalContextV8 {
     ) -> Result<Self, SourceJournalError> {
         self.validate_lease(lease)?;
         let task = runtime.owned_wait_task_v8(&self.execution)?;
-        let plan =
+        let _plan =
             crate::resumable_effects::owned_frame::v2::live_run_plan::live_initializer_plan_v8(
                 self.execution.wait(),
             )
             .map_err(|_| SourceJournalError::Binding)?;
         self.fold.initialized_task = Some(
             crate::resumable_effects::owned_frame::v2::live_run_plan::runtime_task_document_v8(
-                task, &plan,
+                task,
+                self.execution.wait(),
             )
             .ok_or(SourceJournalError::Binding)?,
         );

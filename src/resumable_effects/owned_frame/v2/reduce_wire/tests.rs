@@ -253,7 +253,7 @@ fn owned_reduce_wire_language_contract_status_matches_actual_phase_and_frozen_fi
         assert!(validate_owned_reduce_cleanup_v8(&p, &basis, &ops).is_err());
         let (basis, ops) = failed_basis(&p, "partial_failure", status.clone());
         assert!(validate_owned_reduce_cleanup_v8(&p, &basis, &ops).is_err());
-        for field in ["schema", "domain", "code", "class", "retryable"] {
+        for field in ["schema", "domain_id", "code", "class", "retryable"] {
             let mut status = status.clone();
             status["language_status"][field] = json!("reminted");
             let (basis, ops) = failed_basis(&p, kind, status);

@@ -334,3 +334,37 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_evaluated<
         callback(evaluated, weak);
     });
 }
+
+/// The same genuine pipeline for existing closed failed-source fixtures. A
+/// failed constructor stays in its actual staged holder, never a full Step.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_evaluated_failed<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    cancel: &'j AgentCancellation,
+    policy: &'j CapabilityPolicy,
+    clock: &'j dyn SourceInvocationClock,
+    callback: impl FnOnce(LiveEvaluatedOwnedReduceV8<'j>, Vec<std::sync::Weak<[u8]>>),
+) {
+    test_executed(journal, cancel, policy, clock, |executed, weak| {
+        let selected = executed
+            .prepare_reduce()
+            .unwrap_or_else(|_| panic!("actual original Reduce selection"));
+        let verified = journal
+            .begin_session()
+            .unwrap()
+            .append_owned_reduce_reservation(selected)
+            .unwrap_or_else(|_| panic!("actual original full-F ACK"));
+        let evaluated = verified
+            .advance_reduce()
+            .unwrap_or_else(|_| panic!("actual consuming failed reducer"));
+        evaluated.validate_live().unwrap();
+        let facts = evaluated.stage_facts().unwrap();
+        assert!(facts.step().is_none());
+        let basis = facts.cleanup_basis(None).unwrap();
+        assert!(matches!(
+            basis["status"]["failure"].as_str(),
+            Some("fuel_exhausted" | "language_failure")
+        ));
+        assert!(weak.iter().all(|leaf| leaf.strong_count() == 1));
+        callback(evaluated, weak);
+    });
+}

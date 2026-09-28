@@ -44,13 +44,8 @@ impl ConsumerToolchain {
         let Some(exact) = &self.exact else {
             return super::native_rust_cargo::cargo_command();
         };
-        let mut command = Command::new(&exact.cargo);
+        let mut command = exact_cargo_command(exact);
         super::native_rust_cargo::bind_nested_cargo_linker_path(&mut command);
-        command
-            .env("RUSTC", &exact.rustc)
-            .env("RUSTC_WRAPPER", "")
-            .env("RUSTC_WORKSPACE_WRAPPER", "")
-            .env("CARGO_BUILD_TARGET", &exact.host);
         command
     }
 
@@ -62,6 +57,18 @@ impl ConsumerToolchain {
         command.arg("--target").arg(&exact.host);
         command
     }
+}
+
+// Pure construction permits command inspection without provisioning a linker.
+// Real dispatch additionally binds the existing platform linker above.
+fn exact_cargo_command(exact: &ExactToolchain) -> Command {
+    let mut command = Command::new(&exact.cargo);
+    command
+        .env("RUSTC", &exact.rustc)
+        .env("RUSTC_WRAPPER", "")
+        .env("RUSTC_WORKSPACE_WRAPPER", "")
+        .env("CARGO_BUILD_TARGET", &exact.host);
+    command
 }
 
 fn validate_pair(
@@ -202,12 +209,9 @@ mod tests {
         assert!(validate_pair(Some("".into()), Some("".into())).is_err());
         assert!(validate_pair(Some("cargo".into()), Some("rustc".into())).is_err());
         let fixture = super::super::Fixture::new("consumer-toolchain-config");
-        let cargo = fixture
-            .0
-            .join(if cfg!(windows) { "cargo.exe" } else { "cargo" });
-        let rustc = fixture
-            .0
-            .join(if cfg!(windows) { "rustc.exe" } else { "rustc" });
+        let directory = fixture.0.canonicalize().unwrap();
+        let cargo = directory.join(if cfg!(windows) { "cargo.exe" } else { "cargo" });
+        let rustc = directory.join(if cfg!(windows) { "rustc.exe" } else { "rustc" });
         assert!(validate_pair(Some(cargo.clone().into()), Some(rustc.clone().into())).is_err());
         assert!(validate_path(directory.join("rustup").into(), "cargo").is_err());
         std::fs::create_dir(&cargo).unwrap();
@@ -260,7 +264,7 @@ mod tests {
                 host: "aarch64-apple-darwin".into(),
             }),
         };
-        let command = exact.cargo_command();
+        let command = exact_cargo_command(exact.exact.as_ref().unwrap());
         assert_eq!(command.get_program(), "/exact/cargo");
         let env: std::collections::BTreeMap<_, _> = command.get_envs().collect();
         assert_eq!(

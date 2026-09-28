@@ -129,3 +129,85 @@ fn owned_frame_store_uncertain_append_before_and_after_persistence_requires_new_
         );
     }
 }
+
+#[test]
+fn owned_frame_inherited_lease_refuses_before_io_and_child_drop_preserves_parent_lock() {
+    use std::os::unix::process::CommandExt;
+    let directory = Directory::new();
+    let lease =
+        RegisteredJournalLease::fresh(directory.file(), directory.identity(), &scope()).unwrap();
+    let identity = lease.identity();
+    let mut inherited = Some(lease);
+    let mut child = std::process::Command::new(std::env::current_exe().unwrap());
+    child.args([
+        "__owned_frame_inherited_child_has_no_matching_test",
+        "--test-threads=1",
+    ]);
+    // No allocation, locks, evaluation or authority in the fork child: the
+    // process check is the first read/append gate. Drop only closes its FD.
+    unsafe {
+        child.pre_exec(move || {
+            let Some(lease) = inherited.take() else {
+                return Err(std::io::Error::from_raw_os_error(22));
+            };
+            let mut lease = std::mem::ManuallyDrop::new(lease);
+            if lease.validate_current() != Err(Error::Policy)
+                || lease.read() != Err(Error::Policy)
+                || lease.append(b"forbidden-child-write\n") != Err(Error::Policy)
+            {
+                return Err(std::io::Error::from_raw_os_error(22));
+            }
+            // Run only the custom Drop body (getpid + foreign branch), then
+            // close its descriptor. Do not free the inherited heap/String.
+            std::ops::Drop::drop(&mut *lease);
+            use std::os::fd::{AsRawFd, FromRawFd};
+            drop(File::from_raw_fd(lease.file.as_raw_fd()));
+            Ok(())
+        });
+    }
+    assert!(child.output().unwrap().status.success());
+    // The parent Command retains its original copy of the pre_exec closure;
+    // dropping the child's inherited open description did not unlock it.
+    assert_eq!(
+        RegisteredJournalLease::recover(directory.file(), grant(identity), &scope()).err(),
+        Some(Error::Busy)
+    );
+    assert!(
+        std::fs::read(directory.0.join(super::super::name(&scope())))
+            .unwrap()
+            .is_empty()
+    );
+    drop(child);
+    let mut reopened =
+        RegisteredJournalLease::recover(directory.file(), grant(identity), &scope()).unwrap();
+    assert!(reopened.read().unwrap().is_empty());
+}
+
+#[test]
+fn owned_frame_foreign_process_guard_and_whole_drop_do_not_unlock_shared_description() {
+    let directory = Directory::new();
+    let lease =
+        RegisteredJournalLease::fresh(directory.file(), directory.identity(), &scope()).unwrap();
+    let identity = lease.identity();
+    let mut foreign = RegisteredJournalLease {
+        directory: lease.directory.try_clone().unwrap(),
+        file: lease.file.try_clone().unwrap(),
+        identity,
+        name: lease.name.clone(),
+        length: lease.length,
+        poisoned: false,
+        creator_process: std::process::id().wrapping_add(1),
+        fault: None,
+        writes: 0,
+    };
+    assert_eq!(foreign.validate_current(), Err(Error::Policy));
+    assert_eq!(foreign.read(), Err(Error::Policy));
+    assert_eq!(foreign.append(b"forbidden\n"), Err(Error::Policy));
+    drop(foreign); // actual whole Drop, safely exercised in the parent process
+    assert_eq!(
+        RegisteredJournalLease::recover(directory.file(), grant(identity), &scope()).err(),
+        Some(Error::Busy)
+    );
+    drop(lease);
+    assert!(RegisteredJournalLease::recover(directory.file(), grant(identity), &scope()).is_ok());
+}

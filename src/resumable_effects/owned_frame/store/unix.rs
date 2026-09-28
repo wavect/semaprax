@@ -11,6 +11,7 @@ pub(crate) struct RegisteredJournalLease {
     name: String,
     length: u64,
     poisoned: bool,
+    creator_process: u32,
     #[cfg(test)]
     pub(super) fault: Option<(usize, bool)>,
     #[cfg(test)]
@@ -101,6 +102,7 @@ impl RegisteredJournalLease {
             name,
             length,
             poisoned: false,
+            creator_process: std::process::id(),
             #[cfg(test)]
             fault: None,
             #[cfg(test)]
@@ -147,6 +149,7 @@ impl RegisteredJournalLease {
             name,
             length,
             poisoned: false,
+            creator_process: std::process::id(),
             #[cfg(test)]
             fault: None,
             #[cfg(test)]
@@ -155,10 +158,16 @@ impl RegisteredJournalLease {
         lease.check()?;
         Ok(lease)
     }
+    pub(crate) fn validate_current(&self) -> Result<(), Error> {
+        self.check()
+    }
     pub(crate) fn identity(&self) -> OwnedFrameStoreIdentity {
         self.identity
     }
     fn check(&self) -> Result<(), Error> {
+        if self.creator_process != std::process::id() {
+            return Err(Error::Policy);
+        }
         if self.poisoned {
             return Err(Error::InDoubt);
         }
@@ -242,7 +251,11 @@ impl RegisteredJournalLease {
 }
 impl Drop for RegisteredJournalLease {
     fn drop(&mut self) {
-        let _ = rustix::fs::flock(self.file.as_fd(), FlockOperation::Unlock);
+        if self.creator_process == std::process::id() {
+            let _ = rustix::fs::flock(self.file.as_fd(), FlockOperation::Unlock);
+        }
+        // Inherited open descriptions are close-only here; LOCK_UN would
+        // unlock the creator process's still-active lease.
     }
 }
 

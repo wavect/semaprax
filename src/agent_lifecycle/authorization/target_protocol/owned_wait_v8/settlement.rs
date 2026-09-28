@@ -273,4 +273,4 @@ pub(crate) fn checked_owned_effect_settlement_v8(
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
-pub(crate) use tests::test_effect_exchange;
+pub(crate) use tests::{test_effect_exchange, test_failed_effect_exchange};

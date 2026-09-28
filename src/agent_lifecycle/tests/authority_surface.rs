@@ -22,6 +22,62 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     .join("\n");
     let model_wait_sources = [
         (
+            "live_invocation/source_journal/owned_wait_v8/capacity/reduce.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/capacity/reduce.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/fold/reduce.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/fold/reduce.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/wait.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/wait.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/model.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/model.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/authorize.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/authorize.rs"
+            ),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/resume.rs",
+            include_str!(
+                "../../interpreter/resumable/owned_frame/registered_stage/live_run/resume.rs"
+            ),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/authorize.rs",
+            include_str!(
+                "../../interpreter/resumable/owned_frame/registered_stage/live_run/authorize.rs"
+            ),
+        ),
+        (
+            "provider_adapter_sdk/source_bridge/dispatch.rs",
+            include_str!("../../provider_adapter_sdk/source_bridge/dispatch.rs"),
+        ),
+        (
+            "provider_adapter_sdk/source_bridge/owned_wait_v8.rs",
+            include_str!("../../provider_adapter_sdk/source_bridge/owned_wait_v8.rs"),
+        ),
+        (
             "live_invocation/source_journal/owned_wait_v8/reduce_fold.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/reduce_fold.rs"),
         ),
@@ -185,6 +241,62 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     ]
     .join("\n");
     let model_wait_sources = [
+        (
+            "live_invocation/source_journal/owned_wait_v8/capacity/reduce.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/capacity/reduce.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/fold/reduce.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/fold/reduce.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/wait.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/wait.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/model.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/model.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/authorize.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/authorize.rs"
+            ),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/resume.rs",
+            include_str!(
+                "../../interpreter/resumable/owned_frame/registered_stage/live_run/resume.rs"
+            ),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/authorize.rs",
+            include_str!(
+                "../../interpreter/resumable/owned_frame/registered_stage/live_run/authorize.rs"
+            ),
+        ),
+        (
+            "provider_adapter_sdk/source_bridge/dispatch.rs",
+            include_str!("../../provider_adapter_sdk/source_bridge/dispatch.rs"),
+        ),
+        (
+            "provider_adapter_sdk/source_bridge/owned_wait_v8.rs",
+            include_str!("../../provider_adapter_sdk/source_bridge/owned_wait_v8.rs"),
+        ),
         (
             "live_invocation/source_journal/owned_wait_v8/reduce_fold.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/reduce_fold.rs"),

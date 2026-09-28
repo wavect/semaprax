@@ -132,6 +132,12 @@ fn receipt(active: &Value) -> Result<RoomV8, SourceJournalError> {
         "started":u32::MAX,"receipt":templates::receipt(active)?}),
     )
 }
+pub(super) fn failed_state_receipt(active: &Value) -> Result<RoomV8, SourceJournalError> {
+    row(
+        json!({"kind":"owned_effect_failure_state_cleanup_settled","turn":0,
+        "attempt":u32::MAX,"started":u32::MAX,"receipt":templates::receipt(active)?}),
+    )
+}
 fn started(
     basis: &Value,
     operations: &Value,
@@ -340,8 +346,7 @@ pub(super) fn rooms(context: &FoldContextV8) -> Result<ReduceRoomsV8, SourceJour
     let failed_state=row(json!({"kind":"owned_effect_failure_state_cleanup_started","turn":0,"attempt":u32::MAX,
         "plan":plan.binding(),"settlement":u32::MAX,"recorded":u32::MAX,"decision_cleanup_settled":u32::MAX,
         "effect_failure":"handler_failed","state_digest":hash(),"operations":state_ops}))?
-        .add(row(json!({"kind":"owned_effect_failure_state_cleanup_settled","turn":0,"attempt":u32::MAX,
-            "started":u32::MAX,"receipt":templates::receipt(&state_ops)?}))?)?.add(terminal())?;
+        .add(failed_state_receipt(&state_ops)?)?.add(terminal())?;
     Ok(ReduceRoomsV8 {
         before_stage: stage.add(charged)?,
         charged,

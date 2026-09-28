@@ -138,6 +138,9 @@ fn check_entries_with_runtime(
     let mut state_value: Option<Value> = None;
     let mut proposal_facts: Option<(u32, u32, v2::CheckedOwnedWaitProposalV8)> = None;
     let mut staged_decision: Option<(u32, u32, usize, Value)> = None;
+    // Retained only from this exact authenticated Recorded join. This proof
+    // carries accepted bytes, never an Outcome owner or evaluator permission.
+    let mut recorded_effect = None;
     for entry in decoded {
         let mut row_obs = None;
         match &entry {
@@ -347,6 +350,20 @@ fn check_entries_with_runtime(
                     )?,
                     _ => return Err(Error::Binding),
                 }
+                recorded_effect = Some((*turn, *attempt, rows.len(), facts));
+            }
+            EntryV8::Ordinary(Ordinary::StageReservation {
+                turn,
+                attempt: Some(attempt),
+                role: crate::live_invocation::source_journal::SourceStageRole::Reduce,
+                ..
+            }) => {
+                let (rt, ra, recorded, facts) = recorded_effect.as_ref().ok_or(Error::Binding)?;
+                require(rt == turn && ra == attempt)?;
+                // The causal fold additionally requires the immediately prior
+                // successful whole Decision receipt and exact reservation F.
+                require(*recorded < rows.len())?;
+                super::reduce_inventory::checked_outcome(b, facts)?;
             }
             EntryV8::Owned(Body::OwnedWaitFailed { status, .. }) => {
                 typed(v2::validate_owned_wait_failure_v8(

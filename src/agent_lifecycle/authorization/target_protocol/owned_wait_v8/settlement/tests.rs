@@ -37,6 +37,19 @@ impl TargetHostHandler for Host {
 pub(crate) fn test_effect_exchange(
     inputs: &OwnedEffectSettlementInputsV8<'_>,
 ) -> (SourceJournalEntry, Vec<u8>, Option<Vec<u8>>) {
+    test_effect_exchange_mode(inputs, false)
+}
+/// Real host-panic exchange: the target protocol produces the evidence and
+/// accounting. Changing an ordinary row cannot substitute for this exchange.
+pub(crate) fn test_failed_effect_exchange(
+    inputs: &OwnedEffectSettlementInputsV8<'_>,
+) -> (SourceJournalEntry, Vec<u8>, Option<Vec<u8>>) {
+    test_effect_exchange_mode(inputs, true)
+}
+fn test_effect_exchange_mode(
+    inputs: &OwnedEffectSettlementInputsV8<'_>,
+    host_panics: bool,
+) -> (SourceJournalEntry, Vec<u8>, Option<Vec<u8>>) {
     let request = checked_owned_effect_request_v8(inputs).unwrap();
     let commitments = checked_owned_wait_ready_commitments_v8(
         inputs.runtime,
@@ -68,7 +81,7 @@ pub(crate) fn test_effect_exchange(
         calls: 0,
         payload: payload.clone(),
         malformed: false,
-        panic: false,
+        panic: host_panics,
     };
     let run = crate::agent_lifecycle::authorization::target_protocol::dispatch(
         grant,
@@ -80,13 +93,29 @@ pub(crate) fn test_effect_exchange(
         &mut host,
     );
     assert_eq!(host.calls, 1);
-    assert_eq!(run.evidence().settlement(), Settlement::Returned);
-    let ordinary = SourceJournalEntry::EffectObserved {
-        turn: inputs.turn,
-        attempt: inputs.attempt,
-        operation: request.operation().operation_id().into(),
-        observation_digest: source_effect_digest(&payload),
-        observation: payload,
+    assert_eq!(
+        run.evidence().settlement(),
+        if host_panics {
+            Settlement::HostPanicked
+        } else {
+            Settlement::Returned
+        }
+    );
+    let ordinary = if host_panics {
+        SourceJournalEntry::EffectFailed {
+            turn: inputs.turn,
+            attempt: inputs.attempt,
+            operation: request.operation().operation_id().into(),
+            reason: SourceEffectFailure::HandlerFailed,
+        }
+    } else {
+        SourceJournalEntry::EffectObserved {
+            turn: inputs.turn,
+            attempt: inputs.attempt,
+            operation: request.operation().operation_id().into(),
+            observation_digest: source_effect_digest(&payload),
+            observation: payload,
+        }
     };
     (
         ordinary,

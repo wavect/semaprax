@@ -1,5 +1,6 @@
 //! Private phase-specific closure room; acknowledged payloads are not reserved twice.
 mod effect;
+mod reduce;
 mod templates;
 use super::*;
 use fold::{FoldV8, TailV8};
@@ -129,6 +130,25 @@ pub(super) fn outstanding(
     if folded.tail == MetadataOnly {
         return Ok(terminal);
     }
+    let reduce_rooms = reduce::rooms(context)?;
+    if let Some(reduce) = folded.reduce_fold() {
+        return reduce_rooms.outstanding(reduce);
+    }
+    if let Some(failed) = folded.failed_effect_state_fold() {
+        use super::reduce_fold::ReduceTailV8 as ReduceTail;
+        return match failed.tail() {
+            ReduceTail::CleanupInDoubt => {
+                reduce::failed_state_receipt(failed.operations())?.add(terminal)
+            }
+            ReduceTail::FailureCleaned => Ok(terminal),
+            ReduceTail::TerminalPending => Ok(RoomV8 {
+                rows: 1,
+                ..terminal
+            }),
+            ReduceTail::Quarantined => Ok(RoomV8::default()),
+            _ => Err(SourceJournalError::Order),
+        };
+    }
     let max = templates::maxima(context)?;
     let state_cleanup = cleanup(&max, OwnerV8::State, &max.state_operations)?
         .add(terminal)?
@@ -137,7 +157,10 @@ pub(super) fn outstanding(
         cleanup(&max, OwnerV8::Decision, &max.decision_operations)?.add(state_cleanup)?;
     let partial_cleanup =
         cleanup(&max, OwnerV8::Decision, &max.partial_operations)?.add(state_cleanup)?;
-    let effect = effect::rooms(&max, state_cleanup)?;
+    // All earlier successful authorize/model/retry branches carry the complete
+    // exclusive success-Reduce or failed-effect State closure forward.
+    let after_effect = reduce_rooms.after_effect();
+    let effect = effect::rooms(&max, after_effect)?;
     match folded.tail {
         ReadyPair => return Ok(effect.ready),
         EffectInDoubt => return Ok(effect.intent),
@@ -145,13 +168,13 @@ pub(super) fn outstanding(
         EffectSettled => return Ok(effect.recorded),
         EffectCleanupInDoubt => {
             return effect::receipt(facts.effect_operations.ok_or(SourceJournalError::Order)?)?
-                .add(state_cleanup)
+                .add(after_effect)
         }
         EffectDecisionReleased if !facts.effect_observed => return Err(SourceJournalError::Order),
         EffectFailedState if facts.effect_observed => return Err(SourceJournalError::Order),
-        EffectDecisionReleased | EffectFailedState | EffectCleanupFailed => {
-            return Ok(effect.cleanup)
-        }
+        EffectDecisionReleased => return Ok(reduce_rooms.before_stage),
+        EffectFailedState => return Ok(reduce_rooms.failed_state),
+        EffectCleanupFailed => return Ok(state_cleanup),
         _ => {}
     }
 

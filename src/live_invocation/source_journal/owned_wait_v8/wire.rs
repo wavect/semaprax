@@ -231,7 +231,9 @@ pub(super) fn decode(
 fn validate_owned(value: &Value) -> Result<(), SourceJournalError> {
     let fields = value.as_object().ok_or(SourceJournalError::Malformed)?;
     for (name, value) in fields {
-        if name.ends_with("_digest") || matches!(name.as_str(), "wait" | "execution" | "binding") {
+        if name.ends_with("_digest")
+            || matches!(name.as_str(), "wait" | "execution" | "binding" | "plan")
+        {
             if !value.is_null() && !value.as_str().is_some_and(looks_like_digest) {
                 return Err(SourceJournalError::Binding);
             }
@@ -249,6 +251,10 @@ fn validate_owned(value: &Value) -> Result<(), SourceJournalError> {
                 | "operations"
                 | "status"
                 | "terminal"
+                | "step"
+                | "basis"
+                | "target"
+                | "effect_failure"
         ) && canonical(value).len() > super::super::MAX_SOURCE_CARRIER_BYTES
         {
             return Err(SourceJournalError::Capacity);

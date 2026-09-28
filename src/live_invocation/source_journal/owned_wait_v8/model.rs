@@ -1,4 +1,5 @@
 //! Exact closed v8 owned-body inventory (§8.4); snapshots remain inert JSON.
+use super::reduce_model::{ReduceBasisV8, ReduceCleanupV8, ReduceTargetV8};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -201,5 +202,65 @@ pub(super) enum OwnedBodyV8 {
         started: u32,
         receipt: Value,
         receipt_digest: String,
+    },
+    OwnedReduceStaged {
+        turn: u32,
+        attempt: u32,
+        plan: String,
+        stage_reservation: u32,
+        effect_cleanup_settled: u32,
+        step: Value,
+        step_digest: String,
+        consumed: u64,
+    },
+    OwnedReduceCleanupStarted {
+        turn: u32,
+        attempt: u32,
+        plan: String,
+        stage_reservation: u32,
+        effect_cleanup_settled: u32,
+        basis: ReduceBasisV8,
+        basis_digest: String,
+        consumed: u64,
+        operations: Value,
+    },
+    OwnedReduceCleanupSettled {
+        turn: u32,
+        attempt: u32,
+        started: u32,
+        receipt: Value,
+    },
+    OwnedStepTransferReserved {
+        turn: u32,
+        attempt: u32,
+        plan: String,
+        stage_reservation: u32,
+        staged: u32,
+        cleanup: ReduceCleanupV8,
+        case: String,
+    },
+    OwnedStepTransferCompleted {
+        turn: u32,
+        attempt: u32,
+        reserved: u32,
+        target: ReduceTargetV8,
+        transfer_digest: String,
+    },
+    OwnedEffectFailureStateCleanupStarted {
+        turn: u32,
+        attempt: u32,
+        plan: String,
+        settlement: u32,
+        recorded: u32,
+        decision_cleanup_settled: u32,
+        effect_failure: Value,
+        state_digest: String,
+        operations: Value,
+    },
+    OwnedEffectFailureStateCleanupSettled {
+        turn: u32,
+        attempt: u32,
+        started: u32,
+        receipt: Value,
     },
 }

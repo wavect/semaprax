@@ -5,9 +5,12 @@ use model::{OwnedBodyV8 as Body, OwnerV8, PhaseV8};
 #[path = "effect_fold.rs"]
 mod effect_fold;
 mod initialization;
+#[path = "fold/reduce.rs"]
+mod reduce;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum TailV8 {
+    Reduce,
     Empty,
     Created,
     Opened,
@@ -150,6 +153,8 @@ pub(super) struct FoldV8 {
     decision: Option<Decision>,
     cleanup: Option<Cleanup>,
     effect: Option<effect_fold::EffectV8>,
+    reduce: Option<reduce::ReduceJournalV8>,
+    failed_effect_state: Option<super::reduce_fold::FailedEffectStateFoldV8>,
     stage_originals: Vec<(u32, SourceStageRole, u64)>,
     stage_current: Option<(u32, SourceStageRole, u64)>,
     ordinary: Vec<SourceJournalEntry>,
@@ -192,6 +197,8 @@ impl FoldV8 {
             decision: None,
             cleanup: None,
             effect: None,
+            reduce: None,
+            failed_effect_state: None,
             stage_originals: Vec::new(),
             stage_current: None,
             ordinary: Vec::new(),
@@ -202,6 +209,14 @@ impl FoldV8 {
             failure_selected: false,
             cleanup_terminal: None,
         }
+    }
+    pub(super) fn reduce_fold(&self) -> Option<&super::reduce_fold::ReduceFoldV8> {
+        self.reduce.as_ref().map(|r| r.fold())
+    }
+    pub(super) fn failed_effect_state_fold(
+        &self,
+    ) -> Option<&super::reduce_fold::FailedEffectStateFoldV8> {
+        self.failed_effect_state.as_ref()
     }
     pub(super) fn capacity_facts(&self) -> capacity::ClosureFactsV8<'_> {
         let attempt = self.wait.as_ref().map(|w| w.attempt);
@@ -318,7 +333,16 @@ pub(super) fn fold(
             ))?;
         }
         if fold.effect.is_some() {
-            require(effect_fold::is_effect_row(&row.entry))?;
+            require(
+                effect_fold::is_effect_row(&row.entry)
+                    || (is_reduce_row(&row.entry)
+                        && matches!(
+                            fold.tail,
+                            TailV8::EffectDecisionReleased
+                                | TailV8::EffectFailedState
+                                | TailV8::Reduce
+                        )),
+            )?;
         }
         match &row.entry {
             EntryV8::Owned(body) => {
@@ -399,12 +423,22 @@ fn owned(
     b: &Body,
     seq: u32,
 ) -> Result<(), SourceJournalError> {
+    if reduce::owned(context, f, b, seq)? {
+        return Ok(());
+    }
     match b {
         Body::OwnedRunCreated { .. } => {
             require(f.tail == TailV8::Empty && b == &context.created)?;
             f.tail = TailV8::Created;
         }
         Body::OwnedInitializationCommitted { .. } => initialization::commit(context, f, b)?,
+        Body::OwnedReduceStaged { .. }
+        | Body::OwnedReduceCleanupStarted { .. }
+        | Body::OwnedReduceCleanupSettled { .. }
+        | Body::OwnedStepTransferReserved { .. }
+        | Body::OwnedStepTransferCompleted { .. }
+        | Body::OwnedEffectFailureStateCleanupStarted { .. }
+        | Body::OwnedEffectFailureStateCleanupSettled { .. } => return order(),
         Body::OwnedStateCommitted {
             turn,
             state,
@@ -1123,6 +1157,11 @@ fn ordinary(
     seq: u32,
 ) -> Result<(), SourceJournalError> {
     use SourceJournalEntry as E;
+    if reduce::ordinary(context, f, e, seq)? {
+        f.ordinary_sequences.push(seq);
+        f.ordinary.push(e.clone());
+        return Ok(());
+    }
     match e {
         E::RunOpened => {
             require(f.tail == TailV8::Created)?;
@@ -1342,6 +1381,15 @@ pub(super) fn validate_producer_transition(
     row: &ValidatedEntryV8,
 ) -> Result<(), SourceJournalError> {
     require(!effect_fold::is_effect_row(&row.entry))?;
+    require(
+        !is_reduce_row(&row.entry)
+            || (previous.reduce.is_none()
+                && previous.failed_effect_state.is_none()
+                && matches!(
+                    row.entry,
+                    EntryV8::Ordinary(SourceJournalEntry::Stop { .. })
+                )),
+    )?;
     if matches!(
         row.entry,
         EntryV8::Ordinary(SourceJournalEntry::Stop { .. })
@@ -1352,4 +1400,25 @@ pub(super) fn validate_producer_transition(
         previous.tail,
         TailV8::StopInDoubt | TailV8::TerminalInDoubt
     ))
+}
+
+fn is_reduce_row(row: &EntryV8) -> bool {
+    matches!(
+        row,
+        EntryV8::Owned(
+            Body::OwnedReduceStaged { .. }
+                | Body::OwnedReduceCleanupStarted { .. }
+                | Body::OwnedReduceCleanupSettled { .. }
+                | Body::OwnedStepTransferReserved { .. }
+                | Body::OwnedStepTransferCompleted { .. }
+                | Body::OwnedEffectFailureStateCleanupStarted { .. }
+                | Body::OwnedEffectFailureStateCleanupSettled { .. }
+        ) | EntryV8::Ordinary(
+            SourceJournalEntry::StageReservation {
+                role: SourceStageRole::Reduce,
+                ..
+            } | SourceJournalEntry::Transition { .. }
+                | SourceJournalEntry::Stop { .. }
+        )
+    )
 }

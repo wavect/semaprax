@@ -71,3 +71,56 @@ fn owned_reduce_capacity_reserves_actual_stage_and_all_checked_case_closures() {
         },
     );
 }
+
+#[test]
+fn failed_state_started_ack_preserves_exact_reserved_closure_edge() {
+    super::super::super::CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(
+        |context, _lease, _key| {
+            let context = context.fold();
+            let plan = v2::compile_owned_reduce_v2(&context.checked_binding).unwrap();
+            let operations = v2::owned_wait_operations_v8(
+                &context.checked_binding.helper().liveness().result_disposal,
+            )
+            .unwrap();
+            let started = row(json!({
+                "kind":"owned_effect_failure_state_cleanup_started","turn":0,
+                "attempt":u32::MAX,"plan":plan.binding(),"settlement":u32::MAX,
+                "recorded":u32::MAX,"decision_cleanup_settled":u32::MAX,
+                "effect_failure":"handler_failed","state_digest":hash(),
+                "operations":operations
+            }))
+            .unwrap();
+            // Independently render the frozen receipt shape: it has no Decision
+            // digest. The acknowledged Started row must consume only its own room.
+            let settled = row(json!({
+                "kind":"owned_effect_failure_state_cleanup_settled","turn":0,
+                "attempt":u32::MAX,"started":u32::MAX,
+                "receipt":templates::receipt(&operations).unwrap()
+            }))
+            .unwrap();
+            assert_eq!(failed_state_receipt(&operations).unwrap(), settled);
+            let remaining = failed_state_receipt(&operations)
+                .unwrap()
+                .add(terminal())
+                .unwrap();
+            let before = rooms(context).unwrap().failed_state;
+            assert_eq!(before, started.add(remaining).unwrap());
+            let byte_limit = super::super::super::super::MAX_SOURCE_DOCUMENT_BYTES;
+            let row_limit = super::super::super::super::MAX_SOURCE_ENTRIES;
+            let used_bytes = byte_limit - before.bytes;
+            let used_rows = row_limit - before.rows;
+            before.check(used_bytes, used_rows).unwrap();
+            remaining
+                .check(used_bytes + started.bytes, used_rows + started.rows)
+                .unwrap();
+            assert_eq!(
+                remaining.check(used_bytes + started.bytes + 1, used_rows + started.rows),
+                Err(SourceJournalError::Capacity)
+            );
+            assert_eq!(
+                remaining.check(used_bytes + started.bytes, used_rows + started.rows + 1),
+                Err(SourceJournalError::Capacity)
+            );
+        },
+    );
+}

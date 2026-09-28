@@ -319,3 +319,6 @@ fn store_error(
 mod tests;
 
 mod checkpoint;
+
+// Only the fixed child may mint a live Ready successor witness.
+pub(super) mod owned_effect;

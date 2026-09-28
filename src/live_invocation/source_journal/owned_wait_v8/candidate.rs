@@ -135,6 +135,9 @@ impl<'a> InventoryV8<'a> {
     pub(super) fn acknowledged_bytes(&self) -> usize {
         self.document.len()
     }
+    pub(super) fn authentication_tail(&self) -> &str {
+        &self.mac
+    }
     pub(super) fn prepare(
         self,
         lease: &SourceOwnedWaitLeaseV8,

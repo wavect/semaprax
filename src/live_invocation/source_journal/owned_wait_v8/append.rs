@@ -20,6 +20,7 @@ pub(crate) struct SourceOwnedWaitJournalV8 {
     lease: RefCell<SourceOwnedWaitLeaseV8>,
 }
 struct ProspectiveReduceRegistryV8 {
+    phase: owned_effect::OwnedReduceHoldPhaseV8,
     identity: u64,
     sequence: usize,
     bytes: usize,

@@ -58,6 +58,14 @@ pub(super) struct TrustedAppendAckV8 {
     encoded_bytes: usize,
 }
 impl<'a> InventoryV8<'a> {
+    /// Immutable context membership only; synthetic unit inventories are excluded.
+    pub(super) fn belongs_to_context(&self, expected: &CheckedOwnedWaitJournalContextV8) -> bool {
+        match self.context {
+            ContextV8::Checked(actual) => std::ptr::eq(actual, expected),
+            #[cfg(test)]
+            ContextV8::Synthetic(_) => false,
+        }
+    }
     pub(super) fn recover(
         context: &'a CheckedOwnedWaitJournalContextV8,
         lease: &SourceOwnedWaitLeaseV8,

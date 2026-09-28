@@ -2,6 +2,7 @@
 //! No Prepared/Intent/host, owner restoration, detachable ACK or witness factory.
 use super::*;
 mod reduce_hold;
+pub(in crate::live_invocation::source_journal::owned_wait_v8::append) use reduce_hold::OwnedReduceHoldPhaseV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::LiveAuthorizationConsumedAppendV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use reduce_hold::{
     HeldOwnedAuthorizationConsumedV8, ProspectiveOwnedReduceHoldV8, ReduceHoldRejectionV8,

@@ -2,6 +2,7 @@
 use super::*;
 
 mod consumed;
+pub(super) use consumed::OwnedReduceHoldPhaseV8;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::LiveOwnedEffectAppendV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use consumed::{
     HeldOwnedAuthorizationConsumedV8, LiveOwnedAuthorizationConsumedAppendFailureV8,

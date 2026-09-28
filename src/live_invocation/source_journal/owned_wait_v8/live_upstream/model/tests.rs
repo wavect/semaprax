@@ -179,16 +179,23 @@ fn owned_wait_live_model_real_sdk_settlement_usage_and_resume_keep_same_owner() 
             prompt["task_hex"],
             crate::live_invocation::identity::hex(b"owned task")
         );
+        let expected_state = crate::resumable_effects::owned_frame::v2::ordinary_state_bytes(
+            journal.context().test_runtime_execution().1.wait(),
+            &completed
+                .owner
+                .checked_facts(journal.context().test_runtime_execution().1.wait())
+                .unwrap(),
+        )
+        .unwrap();
         assert_eq!(
             prompt["state"],
-            crate::resumable_effects::owned_frame::v2::ordinary_state_bytes(
-                journal.context().test_runtime_execution().1.wait(),
-                &completed
-                    .owner
-                    .checked_facts(journal.context().test_runtime_execution().1.wait())
-                    .unwrap()
-            )
-            .unwrap()
+            serde_json::from_str::<serde_json::Value>(&expected_state).unwrap()
+        );
+        assert!(
+            std::str::from_utf8(&counts.borrow().requests[0])
+                .unwrap()
+                .contains(&format!(",\"state\":{expected_state},\"observation\":")),
+            "actual SDK prompt embeds the exact frozen declaration-order State bytes"
         );
         let folded = completed.session.fold_for_live_test();
         assert_eq!(
@@ -312,10 +319,8 @@ fn owned_wait_live_model_malformed_sdk_is_exact_failed_settlement_without_resume
         );
         assert_eq!(counts.borrow().polls, 1);
         assert_eq!(journal.begin_session().unwrap().sequence(), 13);
-        assert!(failed
-            .diagnostics
-            .iter()
-            .any(|d| d.message.contains("source.adapter_decode")));
+        assert_eq!(failed.diagnostics.len(), 1);
+        assert_eq!(failed.diagnostics[0].code, "source.adapter_decode");
     });
 }
 #[test]

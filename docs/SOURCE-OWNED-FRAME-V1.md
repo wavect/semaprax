@@ -800,3 +800,40 @@ all of its specified gates. Any proposed change to those
 choices amends this contract for review; implementation cannot approve its own
 scope reduction. This document grants no completed R20 acceptance, deployment,
 hosted evidence, issue mutation, asynchronous scheduler or storage authority.
+
+## Additive checked Copy-channel helper v2 (v070 candidate)
+
+The separate `source-owned-frame.v2` helper has exactly two parameters: one
+`own` State with the v1 flat owned-record shape, followed by one declaration-
+ordered flat Copy Observation record of at most eight scalar fields. Its
+request is that exact Observation type and its response is a flat Copy Proposal
+record of at most eight scalar fields. The result is the exact State type.
+The body is exactly `let proposal = yield observation; state`, with one direct
+top-level site and no other statements, calls, owned locals or effects.
+Contracts retain the v1 call-free Copy-only profile. This is a distinct checked
+profile; the v1 predicate and existing direct Bytes-request channel are unchanged.
+
+The compiler derives liveness from the real checked two-parameter function,
+then applies the shared whole-root proof only after the v2 profile's independent
+preconditions. It does not strip a parameter, synthesize HIR or substitute a
+look-alike function. Actual storage identities, leaf flags, entry, provisional,
+failure and success cleanup vectors are retained unchanged. Malformed admitted
+HIR fails closed; unsupported source profiles retain their ordinary diagnostics
+and `SPX-T303` shape refusals. Native and Wasm ordinary emission still refuse
+yields with `SPX-B116` and `SPX-W126`. Canonical formatting and graph retain both
+parameters, channel types and the compiler's actual ownership metadata.
+
+The private evaluator foundation consumes one checked State owner and a checked
+Copy Observation sidecar, parks the same root, validates the Proposal before
+resuming, and returns an opaque non-Clone staged State with inert Copy Proposal.
+Actual State backing and compiler cleanup order are preserved across park/resume;
+postcondition, fuel, cancellation and process mismatch do not create a second
+owner or replace the selected failure. No public Value or restore credential
+escapes. This foundation is not an Agent association, a combined SourceLive-v8
+journal, a durable recovery route or complete Agent lifecycle. Those consumers
+require separately checked source role bindings, charged execution/replay and
+ordinary caller-held authority before any write or owner transfer.
+
+Focused compiler and private evaluator gates are recorded separately from the
+mandatory integrated full profile. No runtime support or R20 completion is
+implied by this candidate addendum.

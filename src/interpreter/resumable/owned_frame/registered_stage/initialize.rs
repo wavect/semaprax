@@ -10,6 +10,12 @@ pub(crate) struct OwnedTaskArgumentV2 {
     creator: u32,
     allocations: Option<OwnedAllocationProvenanceV2>,
 }
+#[cfg(test)]
+impl OwnedTaskArgumentV2 {
+    pub(super) fn test_weak(&self) -> Vec<std::sync::Weak<[u8]>> {
+        super::super::snapshot::weak_leaves(self.root.as_ref().expect("actual admitted Task"))
+    }
+}
 impl Drop for OwnedTaskArgumentV2 {
     fn drop(&mut self) {
         if self.creator == std::process::id() && self.root.is_some() {
@@ -23,21 +29,7 @@ pub(crate) fn admit_owned_task_input_v2(
     plan: &CheckedOwnedInitializeV2,
     input: OwnedFrameInput,
 ) -> Result<OwnedTaskArgumentV2, OwnedFrameInputRejection> {
-    if let Err(diagnostic) = validate_fields_for(
-        &plan.helper().program().declarations,
-        &plan.function().params[0].ty,
-        &input.declaration,
-        input.fields.len(),
-        input.fields.iter().map(|f| {
-            (
-                &f.identity,
-                match &f.value {
-                    OwnedFrameInputValue::Bytes(v) => InputRef::Bytes(v),
-                    OwnedFrameInputValue::Scalar(v) => InputRef::Scalar(v),
-                },
-            )
-        }),
-    ) {
+    if let Err(diagnostic) = validate_owned_task_input_v2(plan, &input) {
         return Err(OwnedFrameInputRejection { input, diagnostic });
     }
     let root = stage_root_for(
@@ -54,6 +46,26 @@ pub(crate) fn admit_owned_task_input_v2(
         allocations: Some(allocations),
     })
 }
+pub(crate) fn validate_owned_task_input_v2(
+    plan: &CheckedOwnedInitializeV2,
+    input: &OwnedFrameInput,
+) -> Result<(), Diagnostic> {
+    validate_fields_for(
+        &plan.helper().program().declarations,
+        &plan.function().params[0].ty,
+        &input.declaration,
+        input.fields.len(),
+        input.fields.iter().map(|f| {
+            (
+                &f.identity,
+                match &f.value {
+                    OwnedFrameInputValue::Bytes(v) => InputRef::Bytes(v),
+                    OwnedFrameInputValue::Scalar(v) => InputRef::Scalar(v),
+                },
+            )
+        }),
+    )
+}
 pub(crate) struct StagedOwnedInitializeV2 {
     plan: CheckedOwnedInitializeV2,
     task: Option<Value>,
@@ -66,6 +78,11 @@ pub(crate) struct StagedOwnedInitializeV2 {
     allocations: OwnedAllocationProvenanceV2,
 }
 impl StagedOwnedInitializeV2 {
+    pub(super) fn abandon_after_live_guard(&mut self) {
+        if self.failure.is_none() {
+            self.failure = Some(OwnedFrameFailure::HostAbandoned);
+        }
+    }
     pub(crate) fn failure(&self) -> Option<&OwnedFrameFailure> {
         self.failure.as_ref()
     }

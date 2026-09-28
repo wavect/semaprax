@@ -4,12 +4,15 @@ use super::*;
 use model::{OwnedBodyV8 as Body, OwnerV8, PhaseV8};
 #[path = "effect_fold.rs"]
 mod effect_fold;
+mod initialization;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum TailV8 {
     Empty,
     Created,
     Opened,
+    InitializeReserved,
+    Initialized,
     CommittedState,
     ObserveReserved,
     Observed,
@@ -378,7 +381,11 @@ pub(super) fn fold(
         &context.ordinary,
         &projected,
         fold.wait_fuel,
-        super::super::validate::InitialStage::ObserveOnly,
+        if context.initialized_task.is_some() {
+            super::super::validate::InitialStage::InitializeThenObserve
+        } else {
+            super::super::validate::InitialStage::ObserveOnly
+        },
     )?;
     require(
         ordinary_fold.stage_fuel == fold.reserved_total && ordinary_fold.stages == fold.stages,
@@ -397,6 +404,7 @@ fn owned(
             require(f.tail == TailV8::Empty && b == &context.created)?;
             f.tail = TailV8::Created;
         }
+        Body::OwnedInitializationCommitted { .. } => initialization::commit(context, f, b)?,
         Body::OwnedStateCommitted {
             turn,
             state,
@@ -404,7 +412,12 @@ fn owned(
             cleanup_plan_digest,
         } => {
             require(
-                f.tail == TailV8::Opened
+                f.tail
+                    == if context.initialized_task.is_some() {
+                        TailV8::Initialized
+                    } else {
+                        TailV8::Opened
+                    }
                     && *turn == 0
                     && cleanup_plan_digest == &context.cleanup_plan_digest,
             )?;
@@ -414,6 +427,12 @@ fn owned(
                     &wire::canonical(state),
                 ) == *argument_digest,
             )?;
+            if context.initialized_task.is_some() {
+                require(
+                    f.state.as_ref() == Some(state)
+                        && f.state_digest.as_ref() == Some(argument_digest),
+                )?;
+            }
             f.state = Some(state.clone());
             f.state_digest = Some(argument_digest.clone());
             f.state_basis = Some(seq);
@@ -960,9 +979,7 @@ fn owned(
         }
         Body::OwnedEffectSettlementRecorded { .. }
         | Body::OwnedEffectDecisionCleanupStarted { .. }
-        | Body::OwnedEffectDecisionCleanupSettled { .. } => {
-            effect_fold::owned(context, f, b, seq)?
-        }
+        | Body::OwnedEffectDecisionCleanupSettled { .. } => effect_fold::owned(context, f, b, seq)?,
         Body::OwnedCleanupStarted {
             turn,
             attempt,
@@ -1119,6 +1136,14 @@ fn ordinary(
         } => {
             require(*turn == 0 && !f.failure_selected)?;
             match role {
+                SourceStageRole::Initialize => {
+                    require(
+                        context.initialized_task.is_some()
+                            && f.tail == TailV8::Opened
+                            && attempt.is_none(),
+                    )?;
+                    f.tail = TailV8::InitializeReserved;
+                }
                 SourceStageRole::Observe => {
                     require(f.tail == TailV8::CommittedState && attempt.is_none())?;
                     f.tail = TailV8::ObserveReserved;

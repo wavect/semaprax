@@ -83,6 +83,10 @@ impl<'a> InventoryV8<'a> {
     ) -> Result<Self, SourceJournalError> {
         Self::recover(context, lease, key, &[])
     }
+    #[cfg(test)]
+    pub(super) fn fold_for_live_test(&self) -> fold::FoldV8 {
+        fold::fold(self.context.fold(), &self.entries).expect("actual ACKed inventory")
+    }
     pub(super) fn sequence(&self) -> usize {
         self.entries.len()
     }

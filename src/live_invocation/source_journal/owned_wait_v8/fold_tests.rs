@@ -72,6 +72,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn context() -> Fo
     // B and compiler metadata are checked. E and protocol/store identity remain
     // synthetic: these tests establish no typed execution or physical authority.
     FoldContextV8 {
+        initialized_task: None,
         ordinary,
         created,
         plan_digest: checked.binding().into(),

@@ -28,6 +28,41 @@ impl CheckedOwnedWaitJournalContextV8 {
         self.validate_lease(lease)?;
         Ok(self)
     }
+    /// Expected mode is selected from actual retained runtime and compiler
+    /// initializer proof before any bytes are decoded. Rows cannot select it.
+    pub(crate) fn with_initialized_runtime(
+        mut self,
+        runtime: Arc<AgentRuntimeV2>,
+        lease: &SourceOwnedWaitLeaseV8,
+    ) -> Result<Self, SourceJournalError> {
+        self.validate_lease(lease)?;
+        let task = runtime.owned_wait_task_v8(&self.execution)?;
+        let plan =
+            crate::resumable_effects::owned_frame::v2::live_run_plan::live_initializer_plan_v8(
+                self.execution.wait(),
+            )
+            .map_err(|_| SourceJournalError::Binding)?;
+        self.fold.initialized_task = Some(
+            crate::resumable_effects::owned_frame::v2::live_run_plan::runtime_task_document_v8(
+                task, &plan,
+            )
+            .ok_or(SourceJournalError::Binding)?,
+        );
+        self.runtime = Some(runtime);
+        self.validate_lease(lease)?;
+        Ok(self)
+    }
+    pub(crate) fn with_initialization(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+    ) -> Result<Self, SourceJournalError> {
+        let runtime = self
+            .runtime
+            .as_ref()
+            .map(Arc::clone)
+            .ok_or(SourceJournalError::Binding)?;
+        self.with_initialized_runtime(runtime, lease)
+    }
     pub(super) fn ready_runtime(
         &self,
     ) -> Option<(&AgentRuntimeV2, &CheckedTypedOwnedWaitExecutionV8)> {
@@ -126,6 +161,7 @@ pub(crate) fn checked_owned_wait_journal_context_v8(
         ..ordinary.clone()
     };
     let fold = FoldContextV8 {
+        initialized_task: None,
         ordinary: validation_ordinary,
         created,
         plan_digest: b.binding().into(),

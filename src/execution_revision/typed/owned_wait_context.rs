@@ -71,6 +71,17 @@ impl AgentRuntimeV2 {
         }
         Ok(&self.lifecycle)
     }
+    /// Exact inert Task retained by this typed instance. Schema equality alone
+    /// cannot substitute another Task into the initialized live invocation.
+    pub(crate) fn owned_wait_task_v8<'a>(
+        &'a self,
+        context: &CheckedTypedOwnedWaitExecutionV8,
+    ) -> std::result::Result<&'a crate::interpreter::retained_call::RetainedValue, SourceJournalError>
+    {
+        self.owned_wait_effects_v8(context)?;
+        Ok(&self.task)
+    }
+
     pub(crate) fn owned_wait_effect_limits_v8(
         &self,
         context: &CheckedTypedOwnedWaitExecutionV8,

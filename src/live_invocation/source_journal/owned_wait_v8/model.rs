@@ -26,6 +26,14 @@ pub(super) enum OwnedBodyV8 {
         limits: Value,
         store_identity: Value,
     },
+    OwnedInitializationCommitted {
+        reservation: u32,
+        task: Value,
+        task_digest: String,
+        state: Value,
+        state_digest: String,
+        consumed: u64,
+    },
     OwnedStateCommitted {
         turn: u32,
         state: Value,

@@ -39,3 +39,5 @@ pub(crate) use proposal_binding::{bind_owned_wait_proposal_v8, CheckedOwnedWaitP
 #[cfg(test)]
 pub(crate) use checkpoint::test_encode_owned_wait_checkpoint_v8;
 pub(crate) use state_projection::{ordinary_state_bytes, owned_wait_ordinary_state_digest_v8};
+
+pub(crate) mod live_run_plan;

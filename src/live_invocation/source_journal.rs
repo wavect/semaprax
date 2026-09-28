@@ -1269,3 +1269,5 @@ pub fn recover_source_checkpoint(
         io_totals,
     })
 }
+
+pub(crate) use owned_wait_v8::LiveInitializePermitV8;

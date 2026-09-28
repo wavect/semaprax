@@ -50,6 +50,7 @@ pub(super) struct ValidatedEntryV8 {
 /// join. Neither codec bytes nor generic callbacks can mint this context.
 pub(super) struct FoldContextV8 {
     ordinary: SourceInvocationBinding,
+    initialized_task: Option<Value>,
     created: model::OwnedBodyV8,
     plan_digest: String,
     cleanup_plan_digest: String,
@@ -66,3 +67,6 @@ pub(super) struct FoldContextV8 {
 pub(crate) use checked_context::{
     checked_owned_wait_journal_context_v8, CheckedOwnedWaitJournalContextV8,
 };
+
+mod live_upstream;
+pub(crate) use live_upstream::LiveInitializePermitV8;

@@ -142,6 +142,10 @@ fn check_entries_with_runtime(
         let mut row_obs = None;
         match &entry {
             EntryV8::Owned(body) => match body {
+                Body::OwnedInitializationCommitted { task, state, .. } => {
+                    require(context.initialized_task.as_ref() == Some(task))?;
+                    typed(v2::validate_owned_wait_state_v8(b, state))?;
+                }
                 Body::OwnedStateCommitted { state, .. }
                 | Body::OwnedStateRearmed { state, .. }
                 | Body::OwnedStateTransferCompleted { state, .. } => {

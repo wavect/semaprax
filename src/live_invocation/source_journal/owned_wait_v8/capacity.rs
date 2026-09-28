@@ -445,6 +445,26 @@ pub(super) fn outstanding(
         return Ok(future);
     }
     future = row(json!({"kind":"owned_state_committed","turn":u32::MAX,"state":max.state,"argument_digest":hash(),"cleanup_plan_digest":context.cleanup_plan_digest}))?.add(future)?;
+    if folded.tail == Initialized {
+        return Ok(future);
+    }
+    if let Some(task) = &context.initialized_task {
+        future = row(json!({"kind":"owned_initialization_committed","reservation":u32::MAX,
+            "task":task,"task_digest":hash(),"state":max.state,"state_digest":hash(),"consumed":u64::MAX}))?.add(future)?;
+        if folded.tail == InitializeReserved {
+            return Ok(future);
+        }
+        future = ordinary(SourceJournalEntry::StageReservation {
+            turn: 0,
+            attempt: None,
+            role: super::super::SourceStageRole::Initialize,
+            fuel: context
+                .ordinary
+                .max_steps_per_stage()
+                .ok_or(SourceJournalError::Binding)?,
+        })?
+        .add(future)?;
+    }
     if folded.tail == Opened {
         return Ok(future);
     }

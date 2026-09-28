@@ -81,6 +81,9 @@ impl SourceOwnedWaitJournalV8 {
             lease: RefCell::new(lease),
         })
     }
+    pub(super) fn context(&self) -> &CheckedOwnedWaitJournalContextV8 {
+        &self.context
+    }
     pub(crate) fn hold(&self) -> Result<HeldOwnedWaitStoreV8<'_>, SourceJournalError> {
         self.validate_guard()?;
         Ok(HeldOwnedWaitStoreV8 { journal: self })
@@ -134,6 +137,10 @@ impl HeldOwnedWaitStoreV8<'_> {
     }
 }
 impl<'a> AppendSessionV8<'a> {
+    #[cfg(test)]
+    pub(super) fn fold_for_live_test(&self) -> super::fold::FoldV8 {
+        self.inventory.fold_for_live_test()
+    }
     pub(super) fn sequence(&self) -> usize {
         self.inventory.sequence()
     }

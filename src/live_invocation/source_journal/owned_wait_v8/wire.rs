@@ -239,6 +239,7 @@ fn validate_owned(value: &Value) -> Result<(), SourceJournalError> {
         if matches!(
             name.as_str(),
             "state"
+                | "task"
                 | "proposal"
                 | "decision"
                 | "observation"
@@ -422,4 +423,11 @@ pub(super) fn decode_inventory(
         entries.push(entry);
     }
     Ok(entries)
+}
+
+pub(super) fn record_argument_digest(value: &Value) -> String {
+    crate::live_invocation::identity::digest(
+        b"semaprax.source-owned-frame-args.v2\0",
+        &canonical(value),
+    )
 }

@@ -132,6 +132,7 @@ fn owned_original_reduce_actual_ack_spends_once_and_evaluates_same_roots() {
     CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(true, exercise);
     CheckedOwnedWaitJournalContextV8::test_with_actual_complete_store(exercise);
 }
+#[cfg(unix)]
 #[test]
 fn owned_original_reduce_real_ack_faults_never_enter_evaluator_or_release_roots() {
     for mode in 0..4 {

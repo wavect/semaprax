@@ -304,6 +304,15 @@ fn owned_wait_effect_settlement_replays_exact_exchange_and_refuses_result_or_pha
                 );
             }
 
+            match &ordinary {
+                SourceJournalEntry::EffectObserved { observation, .. } => {
+                    assert_eq!(checked.accepted_payload(), Some(observation.as_slice()));
+                }
+                SourceJournalEntry::EffectFailed { .. } => {
+                    assert_eq!(checked.accepted_payload(), None);
+                }
+                _ => unreachable!(),
+            }
             assert_eq!(request.request_wire(), checked.request_wire());
             assert_eq!(request.request_digest(), checked.request_digest());
             assert_eq!(checked.evidence().digest(), run.evidence().digest());

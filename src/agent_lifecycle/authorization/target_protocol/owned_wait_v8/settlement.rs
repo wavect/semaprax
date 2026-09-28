@@ -95,6 +95,7 @@ pub(crate) struct CheckedOwnedEffectSettlementV8 {
     operation: TargetOperation,
     request: Vec<u8>,
     evidence: TargetEvidence,
+    accepted_payload: Option<Vec<u8>>,
     result_wire_limit: u64,
 }
 impl CheckedOwnedEffectSettlementV8 {
@@ -109,6 +110,11 @@ impl CheckedOwnedEffectSettlementV8 {
     }
     pub(crate) fn evidence(&self) -> &TargetEvidence {
         &self.evidence
+    }
+    /// Exact inert payload matched to the successful ordinary observation.
+    /// This carries no runtime owner, evaluator or dispatch authority.
+    pub(crate) fn accepted_payload(&self) -> Option<&[u8]> {
+        self.accepted_payload.as_deref()
     }
     /// The actual admitted target response sink ceiling, before host I/O.
     pub(crate) fn result_wire_limit(&self) -> u64 {
@@ -160,6 +166,7 @@ pub(crate) fn checked_owned_effect_settlement_v8(
         return Err(Error::Binding);
     }
     let mut expected = checked.first_dispatch;
+    let mut accepted_payload = None;
     let matches_phase = |turn: u32, attempt: u32, operation: &str| {
         turn == inputs.turn
             && attempt == inputs.attempt
@@ -207,6 +214,7 @@ pub(crate) fn checked_owned_effect_settlement_v8(
         if !valid {
             return Err(Error::Binding);
         }
+        accepted_payload = accepted;
     } else {
         if result_wire.is_some() {
             return Err(Error::Malformed);
@@ -257,6 +265,7 @@ pub(crate) fn checked_owned_effect_settlement_v8(
         operation: plan.operation().clone(),
         request: checked.request,
         evidence,
+        accepted_payload,
         result_wire_limit: plan.target_limits().max_result_bytes,
     })
 }

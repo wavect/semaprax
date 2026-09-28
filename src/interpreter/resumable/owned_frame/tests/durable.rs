@@ -68,18 +68,19 @@ fn owned_frame_durable_callback_panic_observes_real_drop_and_continues_every_lea
     let terminal = DurableOwner::from_argument(argument).start(&mut budget);
     let primary = terminal.failure().cloned().unwrap();
     let mut observed = Vec::new();
+    let mut first_drop_facts = None;
     let release = terminal
         .settle(&mut |action| {
             observed.push(action.source.projections[0].as_str().to_owned());
             if observed.len() == 1 {
-                assert!(weak[1].upgrade().is_none());
-                assert!(weak[0].upgrade().is_some());
+                first_drop_facts = Some((weak[1].upgrade().is_none(), weak[0].upgrade().is_some()));
                 panic!("interrupted host observation after actual first drop");
             }
             assert!(weak.iter().all(|leaf| leaf.upgrade().is_none()));
             true
         })
         .unwrap_or_else(|(_, e)| panic!("{e:?}"));
+    assert_eq!(first_drop_facts, Some((true, true)));
     assert_eq!(observed, ["fixture.state.a", "fixture.state.z"]);
     assert_eq!(release.failure, Some(primary));
     assert!(release.unpublished.is_none());

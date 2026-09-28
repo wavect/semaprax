@@ -359,6 +359,8 @@ mod tests {
             Err(Error::Malformed)
         );
         assert_eq!(parse(b"1.5", MAX_RECORD), Err(Error::Malformed));
+        let nested = format!("{}null{}", "[".repeat(25), "]".repeat(25));
+        assert_eq!(parse(nested.as_bytes(), MAX_RECORD), Err(Error::Malformed));
         assert_eq!(
             parse(&vec![b' '; MAX_RECORD + 1], MAX_RECORD),
             Err(Error::Capacity)

@@ -250,5 +250,3 @@ impl<'j> AppendSessionV8<'j> {
 }
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod tests;

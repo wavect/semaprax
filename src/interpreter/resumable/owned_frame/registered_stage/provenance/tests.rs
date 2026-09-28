@@ -115,3 +115,51 @@ module owned.provenance.exhaustion;
         .unwrap();
     assert!(provenance.validate(&[&state]));
 }
+
+#[test]
+fn owned_frame_v2_accepted_result_mints_after_dead_ids_and_refuses_before_allocation() {
+    let state = root(&[1]);
+    let mut token = OwnedAllocationProvenanceV2::fresh(&state).unwrap();
+    let seal = root(&[2]);
+    token.record_frame(&[&state, &seal], 2).unwrap();
+    drop(seal);
+    let outcome = token.mint_accepted_bytes(&[&state], vec![0, 1, 0]).unwrap();
+    let Value::Bytes(bytes) = &outcome else {
+        panic!()
+    };
+    assert_eq!(bytes.allocation, 3);
+    assert_eq!(bytes.bytes.as_ref(), &[0, 1, 0]);
+    assert_eq!(Arc::strong_count(&bytes.bytes), 1);
+    assert_eq!(token.seed(&[&state, &outcome]).unwrap(), 3);
+    let before = token.next;
+    let payload = vec![2; 1025];
+    assert_eq!(
+        token
+            .mint_accepted_bytes(&[&state, &outcome], payload.clone())
+            .unwrap_err()
+            .0,
+        payload
+    );
+    assert_eq!(token.next, before);
+    assert!(
+        token.mint_accepted_bytes(&[&state], vec![]).is_err(),
+        "live Outcome cannot be omitted"
+    );
+    assert_eq!(token.next, before);
+    drop(outcome);
+    let empty = token.mint_accepted_bytes(&[&state], vec![]).unwrap();
+    let Value::Bytes(bytes) = &empty else {
+        panic!()
+    };
+    assert_eq!(bytes.allocation, 4);
+    assert!(bytes.bytes.is_empty());
+    token.next = u32::MAX;
+    assert_eq!(
+        token
+            .mint_accepted_bytes(&[&state, &empty], vec![7])
+            .unwrap_err()
+            .0,
+        vec![7]
+    );
+    assert_eq!(token.next, u32::MAX);
+}

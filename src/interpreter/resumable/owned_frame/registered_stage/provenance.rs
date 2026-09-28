@@ -44,6 +44,32 @@ impl OwnedAllocationProvenanceV2 {
     /// This caller owns an actual evaluator seeded with `seed()`. Its counter
     /// may advance on a failed frame even when a new allocation already died;
     /// keep that high-water permanently, registering only actual retained roots.
+    /// Only the checked effect-result owner calls this after result acceptance
+    /// and acknowledged physical Decision disposal. This witness operation
+    /// itself supplies no journal, effect, result or restoration authority.
+    pub(super) fn mint_accepted_bytes(
+        &mut self,
+        roots: &[&Value],
+        payload: Vec<u8>,
+    ) -> Result<Value, (Vec<u8>, Diagnostic)> {
+        if payload.len() > 1024 || !self.validate(roots) {
+            return Err((
+                payload,
+                rejected("accepted allocation inventory/capacity differs"),
+            ));
+        }
+        let Some(next) = self.next.checked_add(1) else {
+            return Err((payload, rejected("allocation namespace exhausted")));
+        };
+        let bytes: Arc<[u8]> = Arc::from(payload);
+        self.witnesses.insert(next, Arc::downgrade(&bytes));
+        self.next = next;
+        Ok(Value::Bytes(OwnedBytesValue {
+            allocation: next,
+            bytes,
+        }))
+    }
+
     pub(super) fn record_frame(&mut self, roots: &[&Value], next: u32) -> Result<(), Diagnostic> {
         if next < self.next {
             return Err(rejected("allocation high-water regressed"));

@@ -1,4 +1,5 @@
 //! Consuming Ready promotion. Matching inert history cannot construct a permit.
+use super::super::super::append::owned_effect::VerifiedOwnedAuthorizationConsumedSuccessorV8;
 use super::*;
 use crate::interpreter::resumable::owned_frame::registered_stage::live_run::{
     promote_live_owned_authorization_v8, LiveReadyAuthorizationV8, LiveReadyPromotionOutcomeV8,
@@ -129,28 +130,50 @@ impl LiveAuthorizationConsumedAppendV8<'_> {
         }
         result
     }
-    fn validate_inner(&self) -> Result<(), SourceJournalError> {
-        let guard = || {
-            LiveReadyPromotionPermitV8 {
-                journal: self.journal,
-                held: &self.held,
-                witness: &self.witness,
-                selected: &self.ready_row,
-                predecessor_sequence: self.predecessor_sequence,
-                predecessor_bytes: self.predecessor_bytes,
-                policy: self.policy,
-                proposal: &self.proposal,
-                cancellation: self.cancellation,
-                clock: self.clock,
-            }
-            .validate_guard()
+    /// The fixed adapter alone supplies this actual post-Consumed witness.
+    /// The original Ready session and witness remain unchanged lineage facts.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_consumed_successor(
+        &self,
+        witness: &VerifiedOwnedAuthorizationConsumedSuccessorV8<'_>,
+    ) -> Result<(), SourceJournalError> {
+        let authenticate = || {
+            witness.validate_predecessor(
+                self.journal,
+                self.sequence(),
+                self.acknowledged_bytes(),
+                &self.selected,
+            )
         };
-        guard()?;
+        let result = authenticate().and_then(|_| {
+            self.validate_at(witness.sequence(), witness.acknowledged_bytes())?;
+            authenticate()
+        });
+        if result.is_err() {
+            self.held.quarantine();
+        }
+        result
+    }
+    fn validate_inner(&self) -> Result<(), SourceJournalError> {
+        let authenticate = || {
+            self.witness.validate_predecessor(
+                self.journal,
+                self.predecessor_sequence,
+                self.predecessor_bytes,
+                &self.ready_row,
+            )
+        };
+        authenticate()?;
+        self.validate_at(self.sequence(), self.acknowledged_bytes())?;
+        authenticate()
+    }
+    fn validate_at(&self, sequence: usize, bytes: usize) -> Result<(), SourceJournalError> {
+        // This comparison is inert lineage, not an old-prefix freshness check.
         if self.sequence() != self.witness.sequence()
             || self.acknowledged_bytes() != self.witness.acknowledged_bytes()
         {
             return Err(SourceJournalError::Binding);
         }
+        self.validate_guard_at(sequence, bytes)?;
         let (state, decision) = self
             .owner
             .checked_facts(&self.journal.context().fold().checked_binding)
@@ -184,7 +207,32 @@ impl LiveAuthorizationConsumedAppendV8<'_> {
         {
             return Err(SourceJournalError::Binding);
         }
-        guard()
+        self.validate_guard_at(sequence, bytes)
+    }
+    fn validate_guard_at(&self, sequence: usize, bytes: usize) -> Result<(), SourceJournalError> {
+        let context = self.journal.context();
+        check_clock_v8(
+            &self.held,
+            sequence,
+            bytes,
+            self.cancellation,
+            self.clock,
+            context.ordinary().clock_domain(),
+            context.ordinary().initial_millis(),
+            context.ordinary().deadline_millis(),
+        )?;
+        let (runtime, execution) = context.ready_runtime().ok_or(SourceJournalError::Binding)?;
+        let plan = plan_owned_effect_v8(
+            runtime,
+            execution,
+            &self.held.registration().expected_facts().scope,
+            &self.proposal,
+        )
+        .map_err(|_| SourceJournalError::Binding)?;
+        if !self.policy.allows(plan.operation().effect_id()) {
+            return Err(SourceJournalError::Binding);
+        }
+        self.held.validate_prefix(sequence, bytes)
     }
 }
 

@@ -32,7 +32,7 @@ fn with_continue_fixture(
         assert!(staged.inputs.execution.ordinary().max_iterations() >= 2);
         let cleanup = CommittedExecutedOwnedReduceCleanupV2 {
             staged,
-            started: 29,
+            started: OwnedReduceCleanupOriginV8::Observed { started: 29 },
             observations: Vec::new(),
         };
         let ExecutedOwnedReduceSettledV2::Ready(ready) =

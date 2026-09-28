@@ -324,3 +324,5 @@ pub(crate) use effect::authorization::step::r#continue::settlement::start::model
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::carry::start::prepared::model::authorize::effect::{advance_verified_continued_effect_v8,FixedOwnedContinuedEffectAppendPermitV8,LiveContinuedEffectAcknowledgmentFailureV8,LiveContinuedEffectV8,LiveOwnedContinuedEffectAppendV8};
 pub(crate) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::LiveContinuedReadyPromotionPermitV8;
+
+pub(crate) use effect::authorization::step::r#continue::settlement::start::model::authorize::effect::prepared::LiveContinuedEffectAuthorizationPermitV8;

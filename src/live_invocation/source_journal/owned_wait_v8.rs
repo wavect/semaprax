@@ -139,3 +139,5 @@ pub(crate) use live_upstream::{
 };
 
 pub(crate) use live_upstream::LiveContinuedReadyPromotionPermitV8;
+
+pub(crate) use live_upstream::LiveContinuedEffectAuthorizationPermitV8;

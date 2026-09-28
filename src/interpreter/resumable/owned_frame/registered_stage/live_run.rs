@@ -204,3 +204,11 @@ pub(crate) use wait::{
 
 #[cfg(test)]
 pub(crate) use wait::test_continued_ready_promotions_v8;
+
+pub(crate) use wait::continued::model::authorize::effect::prepared::{
+    prepare_live_continued_effect_v8, LiveContinuedEffectPreparationV8,
+};
+#[cfg(test)]
+pub(crate) use wait::continued::model::authorize::effect::prepared::{
+    test_continued_effect_preparations_v8, test_note_preparation,
+};

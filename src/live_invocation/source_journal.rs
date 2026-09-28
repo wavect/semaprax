@@ -1310,3 +1310,5 @@ pub(crate) use owned_wait_v8::{
 };
 
 pub(crate) use owned_wait_v8::LiveContinuedReadyPromotionPermitV8;
+
+pub(crate) use owned_wait_v8::LiveContinuedEffectAuthorizationPermitV8;

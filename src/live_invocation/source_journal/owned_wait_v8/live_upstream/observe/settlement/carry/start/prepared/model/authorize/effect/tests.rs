@@ -4,7 +4,7 @@ use super::*;
 fn promotions() -> usize {
     crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_ready_promotions_v8()
 }
-fn ack<'j>(
+pub(super) fn ack<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     obligation: LiveOwnedContinuedEffectAppendV8<'j>,
 ) -> LiveContinuedEffectV8<'j> {

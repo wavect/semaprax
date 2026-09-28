@@ -141,8 +141,21 @@ impl LiveReadyAuthorizationV8 {
         super::super::effect::PreparedOwnedEffectV8<'j>,
         LiveReadyEffectPreparationRejectionV8<'j>,
     > {
+        self.prepare_with_guard_v8(
+            inputs,
+            super::super::effect::live_append::EffectPreparationGuardV8::Initial(permit),
+        )
+    }
+    pub(crate) fn prepare_with_guard_v8<'j>(
+        self,
+        inputs: super::super::effect::OwnedEffectInputsV8<'j>,
+        permit: super::super::effect::live_append::EffectPreparationGuardV8<'_, '_, 'j>,
+    ) -> Result<
+        super::super::effect::PreparedOwnedEffectV8<'j>,
+        LiveReadyEffectPreparationRejectionV8<'j>,
+    > {
         let consumed = self.consumed;
-        super::super::effect::live_append::prepare_live_owned_effect_v8(inputs, self.ready, permit)
+        super::super::effect::live_append::prepare_with_guard_v8(inputs, self.ready, permit)
             .map_err(|failed| match failed {
                 super::super::effect::live_append::LiveEffectPreparationRejectionV8::Before {
                     rejected,

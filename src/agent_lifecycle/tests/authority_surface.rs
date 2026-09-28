@@ -70,6 +70,18 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
             include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize/effect.rs"),
         ),
         (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize/effect/prepared.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize/effect/prepared.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize/effect/prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize/effect/prepared.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize/effect/prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize/effect/prepared.rs"),
+        ),
+        (
             "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize/effect.rs",
             include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize/effect.rs"),
         ),
@@ -725,6 +737,18 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
         (
             "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize/effect.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize/effect.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize/effect/prepared.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize/effect/prepared.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize/effect/prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared/model/authorize/effect/prepared.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize/effect/prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start/model/authorize/effect/prepared.rs"),
         ),
         (
             "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued/model/authorize/effect.rs",

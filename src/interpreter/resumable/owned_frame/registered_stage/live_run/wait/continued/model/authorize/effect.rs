@@ -96,3 +96,5 @@ thread_local! {static PROMOTIONS:std::cell::Cell<usize>=const{std::cell::Cell::n
 pub(crate) fn test_continued_ready_promotions_v8() -> usize {
     PROMOTIONS.with(std::cell::Cell::get)
 }
+
+pub(crate) mod prepared;

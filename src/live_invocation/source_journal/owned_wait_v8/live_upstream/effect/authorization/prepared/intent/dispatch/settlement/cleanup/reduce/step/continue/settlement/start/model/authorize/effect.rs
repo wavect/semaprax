@@ -132,6 +132,7 @@ impl LiveContinuedReadyPromotionPermitV8<'_, '_> {
     }
 }
 pub(super) enum ContinuedEffectOutcomeV8<'j> {
+    Preparation(prepared::LiveContinuedEffectPreparationV8<'j>),
     Promotion(LiveContinuedReadyPromotionOutcomeV8<'j>),
 }
 impl<'j> ContinuedResumedWaitV8<'j> {
@@ -256,3 +257,5 @@ impl<'j> ContinuedResumedWaitV8<'j> {
         }
     }
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod prepared;

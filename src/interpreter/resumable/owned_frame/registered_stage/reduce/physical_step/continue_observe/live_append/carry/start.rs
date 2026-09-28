@@ -156,3 +156,15 @@ impl PreparedHeldContinuedWaitV2<'_> {
         permit.matches_held_store(&self.context.store)
     }
 }
+
+impl PreparedHeldContinuedWaitV2<'_> {
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn matches_effect_preparation_permit(
+        &self,
+        permit: &crate::live_invocation::source_journal::LiveContinuedEffectAuthorizationPermitV8<
+            '_,
+            '_,
+        >,
+    ) -> bool {
+        permit.matches_held_store(&self.context.store)
+    }
+}

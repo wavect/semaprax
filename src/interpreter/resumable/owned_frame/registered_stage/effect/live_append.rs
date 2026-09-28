@@ -1,5 +1,6 @@
 //! Production authorization ACK derived only from a held actual live envelope.
 use super::*;
+use crate::agent_lifecycle::authorization::CheckedOwnedWaitReadyCommitmentsV8;
 use crate::live_invocation::source_journal::{LiveEffectAuthorizationPermitV8, SourceJournalError};
 use std::cell::Cell;
 
@@ -18,10 +19,53 @@ pub(crate) enum LiveEffectPreparationRejectionV8<'j> {
     },
 }
 
+pub(crate) enum EffectPreparationGuardV8<'g, 'p, 'j> {
+    Initial(&'g LiveEffectAuthorizationPermitV8<'p, 'j>),
+    Continued(
+        &'g crate::live_invocation::source_journal::LiveContinuedEffectAuthorizationPermitV8<
+            'p,
+            'j,
+        >,
+    ),
+}
+impl EffectPreparationGuardV8<'_, '_, '_> {
+    fn validate_guard(&self, inputs: &OwnedEffectInputsV8<'_>) -> Result<(), SourceJournalError> {
+        match self {
+            Self::Initial(p) => p.validate_guard(inputs),
+            Self::Continued(p) => p.validate_guard(inputs),
+        }
+    }
+    fn validate_current(&self) -> Result<(), SourceJournalError> {
+        match self {
+            Self::Initial(p) => p.validate_current(),
+            Self::Continued(p) => p.validate_current(),
+        }
+    }
+    fn references(&self) -> (u32, u32, u32) {
+        match self {
+            Self::Initial(p) => p.references(),
+            Self::Continued(p) => p.references(),
+        }
+    }
+    fn matches_commitments(&self, actual: &CheckedOwnedWaitReadyCommitmentsV8) -> bool {
+        match self {
+            Self::Initial(p) => p.matches_commitments(actual),
+            Self::Continued(p) => p.matches_commitments(actual),
+        }
+    }
+}
+
 pub(crate) fn prepare_live_owned_effect_v8<'j>(
     inputs: OwnedEffectInputsV8<'j>,
     ready: ReadyOwnedAuthorizeV2,
     permit: &LiveEffectAuthorizationPermitV8<'_, 'j>,
+) -> Result<PreparedOwnedEffectV8<'j>, LiveEffectPreparationRejectionV8<'j>> {
+    prepare_with_guard_v8(inputs, ready, EffectPreparationGuardV8::Initial(permit))
+}
+pub(crate) fn prepare_with_guard_v8<'j>(
+    inputs: OwnedEffectInputsV8<'j>,
+    ready: ReadyOwnedAuthorizeV2,
+    permit: EffectPreparationGuardV8<'_, '_, 'j>,
 ) -> Result<PreparedOwnedEffectV8<'j>, LiveEffectPreparationRejectionV8<'j>> {
     let fail = |ready, inputs, error| LiveEffectPreparationRejectionV8::Before {
         rejected: OwnedEffectPreparationRejectionV8 {
@@ -79,9 +123,13 @@ pub(crate) fn prepare_live_owned_effect_v8<'j>(
             false
         }
     });
+    #[cfg(test)]
+    if result.is_ok() && matches!(&permit, EffectPreparationGuardV8::Continued(_)) {
+        crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_note_preparation();
+    }
     match result {
         Ok(prepared) => {
-            if let Err(error) = prepared.validate_live_authorization(permit) {
+            if let Err(error) = prepared.validate_preparation_guard(&permit) {
                 prepared.quarantine_live_authorization();
                 return Err(LiveEffectPreparationRejectionV8::After { prepared, error });
             }
@@ -98,6 +146,12 @@ impl PreparedOwnedEffectV8<'_> {
         &self,
         permit: &LiveEffectAuthorizationPermitV8<'_, '_>,
     ) -> Result<(), SourceJournalError> {
+        self.validate_preparation_guard(&EffectPreparationGuardV8::Initial(permit))
+    }
+    pub(crate) fn validate_preparation_guard(
+        &self,
+        permit: &EffectPreparationGuardV8<'_, '_, '_>,
+    ) -> Result<(), SourceJournalError> {
         let result = self.validate_authorization_inner(permit);
         if result.is_err() {
             self.inputs.store.quarantine();
@@ -106,7 +160,7 @@ impl PreparedOwnedEffectV8<'_> {
     }
     fn validate_authorization_inner(
         &self,
-        permit: &LiveEffectAuthorizationPermitV8<'_, '_>,
+        permit: &EffectPreparationGuardV8<'_, '_, '_>,
     ) -> Result<(), SourceJournalError> {
         permit.validate_guard(&self.inputs)?;
         let Some((basis, budget)) = checked_basis(&self.inputs, &self.owner) else {

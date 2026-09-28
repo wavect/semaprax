@@ -1,0 +1,76 @@
+//! Serialized closure maxima for inert effect history; no dispatch/ACK authority.
+use super::*;
+
+pub(super) const MAX_EVIDENCE_BYTES: usize = 1_475;
+pub(super) const MAX_RESULT_WIRE_BYTES: usize = 65_536;
+
+pub(super) struct EffectRoomsV8 {
+    pub ready: RoomV8,
+    pub intent: RoomV8,
+    pub settlement: RoomV8,
+    pub recorded: RoomV8,
+    pub cleanup: RoomV8,
+}
+/// Each component is a complete maximum canonical row, including LF and chain
+/// envelope. Alternative settlement outcomes are bounded without summing them.
+pub(super) fn rooms(
+    max: &templates::Maxima,
+    state_cleanup: RoomV8,
+) -> Result<EffectRoomsV8, SourceJournalError> {
+    let intent = ordinary(SourceJournalEntry::EffectIntent {
+        turn: u32::MAX,
+        attempt: u32::MAX,
+        operation: "a".repeat(240),
+        request_digest: hash(),
+    })?;
+    let observed = ordinary(SourceJournalEntry::EffectObserved {
+        turn: u32::MAX,
+        attempt: u32::MAX,
+        operation: "a".repeat(240),
+        observation: vec![255; super::super::super::MAX_SOURCE_EFFECT_BYTES],
+        observation_digest: hash(),
+    })?;
+    let failed = ordinary(SourceJournalEntry::EffectFailed {
+        turn: u32::MAX,
+        attempt: u32::MAX,
+        operation: "a".repeat(240),
+        reason: super::super::super::SourceEffectFailure::DeadlineExceeded,
+    })?;
+    let recorded = row(json!({
+        "kind":"owned_effect_settlement_recorded", "turn":u32::MAX,
+        "attempt":u32::MAX, "intent":u32::MAX, "settlement":u32::MAX,
+        "evidence":"ff".repeat(MAX_EVIDENCE_BYTES), "evidence_digest":hash(),
+        "result_wire":"ff".repeat(MAX_RESULT_WIRE_BYTES)
+    }))?;
+    let started = row(json!({
+        "kind":"owned_effect_decision_cleanup_started", "turn":u32::MAX,
+        "attempt":u32::MAX, "staged":u32::MAX, "ready":u32::MAX,
+        "consumed":u32::MAX, "intent":u32::MAX, "settlement":u32::MAX,
+        "recorded":u32::MAX, "decision_digest":hash(),
+        "operations":max.decision_operations, "operations_digest":hash()
+    }))?;
+    let cleanup = started
+        .add(receipt(&max.decision_operations)?)?
+        .add(state_cleanup)?;
+    let recorded = recorded.add(cleanup)?;
+    let settlement = observed.either(failed).add(recorded)?;
+    let intent = intent.add(settlement)?;
+    Ok(EffectRoomsV8 {
+        ready: intent,
+        intent: settlement,
+        settlement: recorded,
+        recorded: cleanup,
+        cleanup: state_cleanup,
+    })
+}
+/// Used only after ACKed Started; preserve the selected actual compiler vector.
+pub(super) fn receipt(operations: &Value) -> Result<RoomV8, SourceJournalError> {
+    row(json!({
+        "kind":"owned_effect_decision_cleanup_settled", "turn":u32::MAX,
+        "attempt":u32::MAX, "started":u32::MAX,
+        "receipt":templates::receipt(operations)?, "receipt_digest":hash()
+    }))
+}
+
+#[cfg(test)]
+mod tests;

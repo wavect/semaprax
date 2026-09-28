@@ -1,4 +1,5 @@
 //! Private phase-specific closure room; acknowledged payloads are not reserved twice.
+mod effect;
 mod templates;
 use super::*;
 use fold::{FoldV8, TailV8};
@@ -112,7 +113,7 @@ pub(super) fn outstanding(
 ) -> Result<RoomV8, SourceJournalError> {
     use TailV8::*;
     let facts = folded.capacity_facts();
-    if matches!(folded.tail, ReadyPair | Terminal | TerminalInDoubt) {
+    if matches!(folded.tail, Terminal | TerminalInDoubt) {
         return Ok(RoomV8::default());
     }
     let terminal = RoomV8 {
@@ -136,6 +137,24 @@ pub(super) fn outstanding(
         cleanup(&max, OwnerV8::Decision, &max.decision_operations)?.add(state_cleanup)?;
     let partial_cleanup =
         cleanup(&max, OwnerV8::Decision, &max.partial_operations)?.add(state_cleanup)?;
+    let effect = effect::rooms(&max, state_cleanup)?;
+    match folded.tail {
+        ReadyPair => return Ok(effect.ready),
+        EffectInDoubt => return Ok(effect.intent),
+        EffectSettlementUncommitted => return Ok(effect.settlement),
+        EffectSettled => return Ok(effect.recorded),
+        EffectCleanupInDoubt => {
+            return effect::receipt(facts.effect_operations.ok_or(SourceJournalError::Order)?)?
+                .add(state_cleanup)
+        }
+        EffectDecisionReleased if !facts.effect_observed => return Err(SourceJournalError::Order),
+        EffectFailedState if facts.effect_observed => return Err(SourceJournalError::Order),
+        EffectDecisionReleased | EffectFailedState | EffectCleanupFailed => {
+            return Ok(effect.cleanup)
+        }
+        _ => {}
+    }
+
     if folded.tail == CleanupInDoubt {
         return cleanup_receipt(
             facts.cleanup_owner.ok_or(SourceJournalError::Order)?,
@@ -181,10 +200,10 @@ pub(super) fn outstanding(
         json!({"kind":"owned_authorization_ready","turn":u32::MAX,"attempt":u32::MAX,"staged":u32::MAX,"state_digest":hash(),"decision_digest":hash(),"grant_digest":hash()}),
     )?;
     if folded.tail == ResultDeliveryInDoubt {
-        return Ok(consumed);
+        return consumed.add(effect.ready);
     }
     if folded.tail == PendingReady {
-        return ready.add(consumed);
+        return ready.add(consumed)?.add(effect.ready);
     }
     let refused = ordinary(SourceJournalEntry::AuthorizationRefused {
         turn: u32::MAX,
@@ -204,6 +223,7 @@ pub(super) fn outstanding(
     let authorize = staged
         .add(ready)?
         .add(consumed)?
+        .add(effect.ready)?
         .either(partial_cleanup)
         .either(staged.add(refused)?.add(if context.refused_cleanup_empty {
             state_cleanup

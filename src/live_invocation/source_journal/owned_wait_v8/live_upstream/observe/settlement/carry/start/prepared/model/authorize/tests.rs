@@ -209,6 +209,7 @@ fn owned_continued_authorize_all_ack_faults_are_in_doubt_and_never_repeat_source
                     assert!(weak.iter().any(|w| w.strong_count() == 1));
                     assert!(journal.hold().is_err());
                     assert!(journal.begin_session().is_err());
+                    drop(failed);
                     assert!(weak.iter().all(|w| w.upgrade().is_none()));
                 },
                 true,

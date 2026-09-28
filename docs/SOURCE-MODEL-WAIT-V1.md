@@ -318,6 +318,8 @@ completion claim.
 
 The additive evidence schema is `semaprax.source-model-wait.evidence.v1`.
 Its digest domain is `semaprax.source-model-wait.evidence.v1\0`. Canonical payload
+bytes have no trailing LF; the joined evidence root hashes that exact payload
+under this domain, without an additional wrapper hash or payload.
 field order is `{"schema":SC,"terminal_evidence_digest":E,
 "wrapper_binding":B,"invocation":I,"waits":V,"total_wait_fuel":F}`.
 E is the digest of the ordinary terminal evidence, not a new terminal authority.

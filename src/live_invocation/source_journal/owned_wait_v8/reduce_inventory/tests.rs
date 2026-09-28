@@ -1,5 +1,6 @@
 use super::*;
-fn plan() -> v2::CheckedOwnedReduceV2 {
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn plan() -> v2::CheckedOwnedReduceV2
+{
     let source = include_str!("../../../../../examples/offline-repair-project/src/app.spx")
         .replace(
             "    runtime_v1 {",

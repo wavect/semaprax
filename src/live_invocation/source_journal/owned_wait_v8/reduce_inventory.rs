@@ -143,4 +143,4 @@ pub(super) fn checked_step(
 
 #[cfg(test)]
 #[path = "reduce_inventory/tests.rs"]
-mod tests;
+pub(super) mod tests;

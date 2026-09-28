@@ -297,6 +297,7 @@ fn validate_owned(value: &Value) -> Result<(), SourceJournalError> {
                 | "basis"
                 | "target"
                 | "effect_failure"
+                | "settlement"
         ) && canonical(value).len() > super::super::MAX_SOURCE_CARRIER_BYTES
         {
             return Err(SourceJournalError::Capacity);

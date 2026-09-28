@@ -6,6 +6,7 @@ pub(super) mod cumulative;
 #[path = "effect_fold.rs"]
 mod effect_fold;
 mod initialization;
+mod observe_settlement;
 #[path = "fold/reduce.rs"]
 mod reduce;
 
@@ -19,6 +20,7 @@ pub(super) enum TailV8 {
     Initialized,
     CommittedState,
     ObserveReserved,
+    ObserveSettled,
     Observed,
     WaitCreated,
     StartReserved,
@@ -136,6 +138,7 @@ struct Cleanup {
     operations: Value,
     settled: bool,
     host_confirmed: bool,
+    completed: bool,
 }
 
 /// Recorded consumption is a lower bound: ordinary Observe has no durable
@@ -151,6 +154,7 @@ pub(super) struct FoldV8 {
     state_digest: Option<String>,
     state: Option<Value>,
     observation: Option<String>,
+    observe_settlement: Option<observe_settlement::ObserveSettlementFactsV8>,
     wait: Option<Wait>,
     transfer: Option<Transfer>,
     decision: Option<Decision>,
@@ -197,6 +201,7 @@ impl FoldV8 {
             state_digest: None,
             state: None,
             observation: None,
+            observe_settlement: None,
             wait: None,
             transfer: None,
             decision: None,
@@ -445,6 +450,9 @@ fn owned(
     b: &Body,
     seq: u32,
 ) -> Result<(), SourceJournalError> {
+    if observe_settlement::settle(context, f, b, seq)? {
+        return Ok(());
+    }
     if cumulative::commit_next_state(context, f, b, seq)? {
         return Ok(());
     }
@@ -460,7 +468,8 @@ fn owned(
             cumulative::select_profile(context, f, b, seq)?;
         }
         Body::OwnedInitializationCommitted { .. } => initialization::commit(context, f, b)?,
-        Body::OwnedReduceStaged { .. }
+        Body::OwnedObserveSettled { .. }
+        | Body::OwnedReduceStaged { .. }
         | Body::OwnedReduceCleanupStarted { .. }
         | Body::OwnedReduceCleanupSettled { .. }
         | Body::OwnedStepTransferReserved { .. }
@@ -1112,6 +1121,7 @@ fn owned(
                 operations: operations.clone(),
                 settled: false,
                 host_confirmed: false,
+                completed: false,
             });
             f.tail = TailV8::CleanupInDoubt;
         }
@@ -1146,6 +1156,7 @@ fn owned(
             require(matches!(kind, "observed" | "host_confirmed"))?;
             c.settled = true;
             c.host_confirmed = kind == "host_confirmed";
+            c.completed = receipt["settlement"] == "completed";
             match owner {
                 OwnerV8::State => {
                     f.state = None;
@@ -1259,10 +1270,10 @@ fn ordinary(
         } => {
             require(
                 *turn == f.current_turn
-                    && f.tail == TailV8::ObserveReserved
                     && f.state_basis.is_some()
                     && crate::live_invocation::identity::looks_like_digest(state),
             )?;
+            observe_settlement::validate_observed(context, f, seq, state, observation)?;
             f.observation = Some(observation.clone());
             f.stage_current = None;
             f.tail = TailV8::Observed;
@@ -1359,8 +1370,9 @@ fn ordinary(
             f.failure_selected = true;
             f.tail = TailV8::FailedDecisionThenState;
         }
-        E::Stop { .. } => {
+        E::Stop { status, reason, .. } => {
             require(f.effect.is_none())?;
+            observe_settlement::validate_stop(f, *status, *reason)?;
             if f.tail == TailV8::MetadataOnly && f.state_basis.is_none() && f.decision.is_none() {
                 f.tail = TailV8::Stopped;
             } else {
@@ -1401,6 +1413,10 @@ pub(super) fn validate_producer_transition(
     row: &ValidatedEntryV8,
 ) -> Result<(), SourceJournalError> {
     require(!effect_fold::is_effect_row(&row.entry))?;
+    require(!matches!(
+        row.entry,
+        EntryV8::Owned(Body::OwnedObserveSettled { .. })
+    ))?;
     require(
         !(previous.reduce.is_some()
             && matches!(row.entry, EntryV8::Owned(Body::OwnedStateCommitted { .. }))),

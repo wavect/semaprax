@@ -18,6 +18,18 @@ pub(super) enum OwnerV8 {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub(super) enum ObserveSettlementV8 {
+    Observed {
+        observation: Value,
+        observation_digest: String,
+    },
+    Failed {
+        status: Value,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub(super) enum OwnedBodyV8 {
     OwnedRunCreated {
         scope: Value,
@@ -38,6 +50,13 @@ pub(super) enum OwnedBodyV8 {
         state: Value,
         state_digest: String,
         consumed: u64,
+    },
+    OwnedObserveSettled {
+        turn: u32,
+        reservation: u32,
+        state_digest: String,
+        consumed: u64,
+        settlement: ObserveSettlementV8,
     },
     OwnedStateCommitted {
         turn: u32,

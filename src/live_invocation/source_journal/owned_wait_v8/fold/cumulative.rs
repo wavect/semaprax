@@ -160,6 +160,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn commit_next_sta
     folded.state_digest = Some(argument_digest.clone());
     folded.state_basis = Some(sequence);
     folded.observation = None;
+    folded.observe_settlement = None;
     folded.wait = None;
     folded.transfer = None;
     folded.decision = None;

@@ -470,6 +470,12 @@ fn outstanding_current(
         feedback: hash(),
     })?;
     future = observed.add(future)?.either(state_cleanup);
+    if folded.tail == ObserveSettled {
+        return Ok(future);
+    }
+    if context.cumulative_initialization {
+        future = observe_settlement_room(&max)?.add(future)?;
+    }
     if folded.tail == ObserveReserved {
         return Ok(future);
     }
@@ -531,4 +537,14 @@ impl RoomV8 {
     pub(super) fn rows_for_inert_test(self) -> usize {
         self.rows
     }
+}
+
+fn observe_settlement_room(max: &templates::Maxima) -> Result<RoomV8, SourceJournalError> {
+    let observed = row(json!({"kind":"owned_observe_settled","turn":u32::MAX,
+        "reservation":u32::MAX,"state_digest":hash(),"consumed":u64::MAX,
+        "settlement":{"kind":"observed","observation":max.observation,"observation_digest":hash()}}))?;
+    let failed = row(json!({"kind":"owned_observe_settled","turn":u32::MAX,
+        "reservation":u32::MAX,"state_digest":hash(),"consumed":u64::MAX,
+        "settlement":{"kind":"failed","status":max.terminal}}))?;
+    Ok(observed.either(failed))
 }

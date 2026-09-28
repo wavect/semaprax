@@ -24,8 +24,8 @@ use crate::agent_definition::compile_agent_definition;
 use crate::diagnostic::{quote_json, Diagnostic};
 
 mod clients;
-mod model_wait;
 pub(crate) mod decode;
+mod model_wait;
 mod runtime_v1;
 pub(crate) mod shape;
 pub(crate) mod stream_grammar;

@@ -4,8 +4,9 @@
 pub use crate::execution_revision::typed::{
     bind_agent_runtime_v2, bind_agent_runtime_v2_live, bind_linked_agent_runtime_v2,
     AgentRuntimeV2, AgentRuntimeV2DurableEvidence, AgentRuntimeV2DurableModelEvidence,
-    AgentRuntimeV2DurableModelFailure, AgentRuntimeV2Evidence, AgentRuntimeV2ModelEvidence,
-    AgentRuntimeV2ModelFailure,
+    AgentRuntimeV2DurableModelFailure, AgentRuntimeV2DurableModelWaitEvidence,
+    AgentRuntimeV2Evidence, AgentRuntimeV2ModelEvidence, AgentRuntimeV2ModelFailure,
+    SourceModelWaitBinding,
 };
 pub use crate::execution_revision::typed_repair::{
     OfflineRepairEnvelope, OfflineRepairHandler, OfflineRepairPreview, OfflineRepairRejection,

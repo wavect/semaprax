@@ -200,6 +200,42 @@ fn owned_frame_v2_reduce_moves_state_outcome_step_without_remint_and_matches_sou
         )
         .unwrap();
         assert_eq!(fuel.consumed(), ordinary.steps_used);
+        let crate::interpreter::retained_call::RetainedCallOutcome::Returned(R::Variant(expected)) =
+            &ordinary.outcome
+        else {
+            panic!(
+                "ordinary reducer did not return Step: {:?}",
+                ordinary.outcome
+            )
+        };
+        let Value::Variant(actual) = staged.step.as_ref().expect("staged Step") else {
+            panic!("staged non-variant")
+        };
+        assert_eq!(actual.variant, expected.variant);
+        assert_eq!(actual.case, expected.case);
+        let mapping = p
+            .mappings()
+            .iter()
+            .find(|m| m.case == expected.case)
+            .expect("checked case mapping");
+        assert_eq!(
+            expected.fields.iter().map(|f| &f.field).collect::<Vec<_>>(),
+            mapping
+                .fields
+                .iter()
+                .map(|(source, _)| source)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(actual.fields.len(), expected.fields.len());
+        for field in &expected.fields {
+            match (&actual.fields[&field.field], &field.value) {
+                (Value::Bytes(actual), R::Bytes(expected)) => {
+                    assert_eq!(actual.bytes.as_ref(), expected.as_slice())
+                }
+                (Value::Int(actual), R::I64(expected)) => assert_eq!(actual, expected),
+                other => panic!("unexpected reducer leaf: {other:?}"),
+            }
+        }
         let ready = ready(staged);
         let transfer = consume_owned_step_v2(ready).unwrap_or_else(|_| panic!("checked Step"));
         match transfer {
@@ -256,7 +292,7 @@ fn owned_frame_v2_reduce_moves_state_outcome_step_without_remint_and_matches_sou
 #[test]
 fn owned_frame_v2_reduce_suspend_and_fail_do_real_nonresult_cleanup() {
     for (terminal,fail) in [("Step::Suspend { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 }",false),("Step::Fail { code: outcome.status }",true)] {
-        let p=plan(&source(terminal)); let (input,weak)=input(&p,2,10); let mut fuel=OwnedFrameBudget::new(100).unwrap();
+        let p=plan(&source(terminal)); let (input,weak)=prepared_input(&p,2,10); let mut fuel=OwnedFrameBudget::new(100).unwrap();
         let staged=stage_owned_reduce_v2(input,&mut fuel).unwrap_or_else(|r|panic!("{:?}",r.diagnostic));
         let mut observations=Vec::new();
         let settled=settle_owned_reduce_v2(staged,||true,|a|observations.push((a.clone(),weak[0].strong_count(),weak[1].strong_count()))).unwrap_or_else(|r|panic!("{:?}",r.diagnostic));

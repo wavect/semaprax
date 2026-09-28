@@ -183,6 +183,14 @@ Recorded ownership through fixed cleanup ACKs, physical Decision release,
 receipt settlement, and guarded one-use Outcome handoff with the same ledger
 and future-Reduce hold. Failed target or observer settlement retains its actual
 State obligation; postmint guard loss retains actual Executed ownership.
+The `observe/settlement/failed_state` and closed continued descendant retain
+actual failed Observe ownership through fixed State-cleanup ACKs. Engine
+`observe/failed_cleanup` captures real per-action outcomes around the existing
+release primitive; postrelease checks use actual released holders and cached
+facts. Append, candidate and fold `failed_observe` children bind the exact
+failure/vector/Started index and current lineage. Continued cleanup retains the
+same ledger and Reduce hold; initial cleanup creates neither. These private
+routes require owning runtime verification before acceptance.
 The source and append `settlement/cleanup/reduce` children consume that actual
 Executed owner through the original full-F reservation ACK, spending the same
 prospective hold under the append marker. `registered_stage/reduce/live_stage`

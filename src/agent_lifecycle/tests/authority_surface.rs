@@ -22,6 +22,46 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     .join("\n");
     let model_wait_sources = [
         (
+            "interpreter/resumable/owned_frame/registered_stage/observe/failed_cleanup.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/observe/failed_cleanup.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/observe/failed_cleanup.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/observe/failed_cleanup.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/failed_cleanup.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/failed_cleanup.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/failed_state.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/failed_state.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/failed_state.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/failed_state.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/failed_observe_state.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/failed_observe_state.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/fold/observe_settlement/failed_cleanup.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/fold/observe_settlement/failed_cleanup.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/candidate/failed_observe_state.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/candidate/failed_observe_state.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/failed_observe_funnel.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/failed_observe_funnel.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/failed_observe_cleanup.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/failed_observe_cleanup.rs"),
+        ),
+        (
             "live_invocation/source_journal/owned_wait_v8/capacity/reduce.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/capacity/reduce.rs"),
         ),
@@ -489,6 +529,46 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     ]
     .join("\n");
     let model_wait_sources = [
+        (
+            "interpreter/resumable/owned_frame/registered_stage/observe/failed_cleanup.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/observe/failed_cleanup.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/observe/failed_cleanup.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/observe/failed_cleanup.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/failed_cleanup.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/failed_cleanup.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/failed_state.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/failed_state.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/failed_state.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/failed_state.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/failed_observe_state.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/failed_observe_state.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/fold/observe_settlement/failed_cleanup.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/fold/observe_settlement/failed_cleanup.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/candidate/failed_observe_state.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/candidate/failed_observe_state.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/failed_observe_funnel.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/failed_observe_funnel.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/failed_observe_cleanup.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/failed_observe_cleanup.rs"),
+        ),
         (
             "live_invocation/source_journal/owned_wait_v8/capacity/reduce.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/capacity/reduce.rs"),

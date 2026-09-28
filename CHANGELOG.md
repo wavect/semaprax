@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private actual failed-Observe State cleanup ownership, per-action release
+  capture and fixed durable ACK transport. Owning runtime verification and
+  public lifecycle acceptance remain pending.
+
 - Add private actual Decision-observer State cleanup through a monotonic seal
   and fixed ACKs, plus retained continuation preparation foundations.
   Integrated runtime verification and public lifecycle acceptance are pending.

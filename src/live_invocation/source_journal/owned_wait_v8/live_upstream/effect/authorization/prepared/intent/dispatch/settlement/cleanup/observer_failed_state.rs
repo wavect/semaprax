@@ -138,3 +138,5 @@ fn validate_sealed_owner(
     })();
     result.inspect_err(|_| lineage.recorded.intent.journal.quarantine())
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod state;

@@ -2,6 +2,7 @@
 //! Reducers retain Outcome{Bytes,i64}; Bytes contains the canonical typed result.
 pub(crate) mod continuation;
 mod live;
+pub(crate) use live::owned_wait_v8::{plan_owned_effect_v8, CheckedOwnedEffectPlanV8};
 mod metered;
 use super::*;
 pub use metered::{MeteredTargetEffectRun, StageSemanticObservation};

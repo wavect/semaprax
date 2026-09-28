@@ -211,6 +211,43 @@ fn owned_wait_typed_execution_binds_real_registry_task_and_each_effect_ceiling()
             baseline.execution_revision().digest()
         );
         assert_eq!(c.project().project_revision(), project.project_revision());
+        use crate::agent_lifecycle::iterative::effects::plan_owned_effect_v8;
+        use crate::resumable_effects::owned_frame::v2::bind_owned_wait_proposal_v8;
+        use crate::resumable_effects::source_checkpoint::SourceCheckpointScope;
+        let invocation = crate::live_invocation::identity::digest(b"semaprax.live-invocation.source-id.v8\0",
+            serde_json::to_string(&serde_json::json!({"execution":c.ordinary().invocation(),"owned_wait_binding":wait.binding()})).unwrap().as_bytes());
+        let scope = SourceCheckpointScope::new(wait.lifecycle().source_revision(), invocation, 7).unwrap();
+        let proposal = |sequence: usize| {
+            let document = format!(r#"{{"schema":"semaprax.agent-proposal.v1","agent_id":"fixture.agent","proposal_schema_digest":"{}","value":{{"fields":{{"fixture.agent.type.proposal.budget":"3","fixture.agent.type.proposal.urgent":false,"fixture.agent.type.proposal.sequence":"{}"}}}}}}"#,
+                wait.lifecycle().proposal_schema().schema().digest(), sequence);
+            let decoded = wait.lifecycle().proposal_schema().decode(&document).unwrap();
+            bind_owned_wait_proposal_v8(&wait, &scope, &decoded).unwrap()
+        };
+        let checked = proposal(1);
+        let effect_plan = plan_owned_effect_v8(&baseline, &c, &scope, &checked).unwrap_or_else(|e| panic!("{e:?}"));
+        assert_eq!(effect_plan.operation().operation_id(), "fixture.read.second");
+        assert_eq!(effect_plan.operation().effect_id(), "read");
+        assert_eq!(effect_plan.argument().type_id(), effect_plan.operation().argument_type());
+        assert_eq!(effect_plan.argument().payload(), b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"query\",\"3\"]]}\n");
+        let accepted = b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"value\",\"9\"]]}\n";
+        assert_eq!(effect_plan.accepted_result(accepted).unwrap(), accepted);
+        assert!(effect_plan.accepted_result(b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"value\",\"09\"]]}\n").is_none());
+        assert!(effect_plan.accepted_result(b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"other\",\"9\"]]}\n").is_none());
+        assert!(effect_plan.accepted_result(b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[]}\n").is_none());
+        assert_eq!(effect_plan.limits().max_calls, baseline.effects.max_calls);
+        assert_eq!(baseline.effects.max_result_bytes, 4096);
+        assert_eq!(effect_plan.target_limits().max_result_bytes, 1024);
+        assert_eq!(c.ordinary().invocation(), context(&baseline, Arc::clone(&wait)).ordinary().invocation(),
+            "profile intersection leaves the committed typed execution unchanged");
+        assert!(effect_plan.accepted_result(&vec![b'x'; 1025]).is_none());
+        let lower = runtime(Arc::clone(&project), EffectBudget { max_result_bytes: 32, ..effects() }, false, b"owned task");
+        let lower_context = context(&lower, Arc::clone(&wait));
+        let lower_plan = plan_owned_effect_v8(&lower, &lower_context, &scope, &checked).unwrap();
+        assert_eq!(lower_plan.target_limits().max_result_bytes, 32);
+        assert!(lower_plan.accepted_result(accepted).is_none());
+        let wrong_scope = SourceCheckpointScope::new(scope.program_root(), "other", 7).unwrap();
+        assert!(plan_owned_effect_v8(&baseline, &c, &wrong_scope, &checked).is_err());
+        assert!(plan_owned_effect_v8(&baseline, &c, &scope, &proposal(2)).is_err());
         let e = c.ordinary().invocation();
         for change in 0..6 {
             let mut limits = effects();
@@ -239,6 +276,7 @@ fn owned_wait_typed_execution_binds_real_registry_task_and_each_effect_ceiling()
                 other.owned_wait_effect_limits_v8(&c).is_err(),
                 "foreign ceilings dimension {change}"
             );
+            assert!(plan_owned_effect_v8(&other, &c, &scope, &checked).is_err(), "foreign planner dimension {change}");
             let other = context(&other, Arc::clone(&wait));
             assert_ne!(other.ordinary().invocation(), e, "dimension {change}");
             assert_ne!(

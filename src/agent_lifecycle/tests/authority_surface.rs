@@ -15,6 +15,10 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     let journal = include_str!("../durable/journal.rs");
     let model_wait_sources = [
         (
+            "iterative/effects/live/owned_wait_v8.rs",
+            include_str!("../iterative/effects/live/owned_wait_v8.rs"),
+        ),
+        (
             "authorization/target_protocol/owned_wait_v8.rs",
             include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
         ),
@@ -132,6 +136,10 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     let journal = include_str!("../durable/journal.rs");
     let model_wait_sources = [
         (
+            "iterative/effects/live/owned_wait_v8.rs",
+            include_str!("../iterative/effects/live/owned_wait_v8.rs"),
+        ),
+        (
             "authorization/target_protocol/owned_wait_v8.rs",
             include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
         ),
@@ -159,7 +167,12 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     let rich_stage = include_str!("../rich_stage.rs");
     let driver = include_str!("../iterative/driver.rs");
     let live = include_str!("../iterative/driver/live.rs");
-    let target_live = include_str!("../iterative/effects/live.rs");
+    let target_live_joined = [
+        include_str!("../iterative/effects/live.rs"),
+        include_str!("../iterative/effects/live/owned_wait_v8.rs"),
+    ]
+    .join("\n");
+    let target_live = target_live_joined.as_str();
     let target_metered = include_str!("../iterative/effects/metered.rs");
 
     // `StageExecutor` is implemented exactly three times in the whole tree:

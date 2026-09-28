@@ -12,7 +12,15 @@ impl Drop for Fixture {
         std::fs::remove_dir_all(&self.0).unwrap();
     }
 }
+#[derive(Clone, Copy)]
+enum RuntimeFixture {
+    Baseline,
+    Complete,
+}
 fn fixture() -> Fixture {
+    fixture_for(RuntimeFixture::Baseline)
+}
+fn fixture_for(profile: RuntimeFixture) -> Fixture {
     static SEQ: AtomicU64 = AtomicU64::new(0);
     let path = std::env::temp_dir().canonicalize().unwrap().join(format!(
         "spx-owned-wait-context-{}-{}",
@@ -35,6 +43,14 @@ fn fixture() -> Fixture {
         "    runtime_v1 {",
         "    model_wait_v1 { propose = \"fixture.agent.fn.park\"; }\n    runtime_v1 {",
     );
+    let source = match profile {
+        RuntimeFixture::Baseline => source,
+        RuntimeFixture::Complete => {
+            let original = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
+            assert_eq!(source.matches(original).count(), 1);
+            source.replace(original, "Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch }")
+        }
+    };
     std::fs::write(
         path.join("src/app.spx"),
         format!(
@@ -78,6 +94,21 @@ fn runtime(
     reverse_registry: bool,
     objective: &[u8],
 ) -> AgentRuntimeV2 {
+    runtime_for(
+        project,
+        effects,
+        reverse_registry,
+        objective,
+        RuntimeFixture::Baseline,
+    )
+}
+fn runtime_for(
+    project: Arc<ProjectRevision>,
+    effects: EffectBudget,
+    reverse_registry: bool,
+    objective: &[u8],
+    profile: RuntimeFixture,
+) -> AgentRuntimeV2 {
     let root = project.program_root().unwrap();
     let (_, deployment) = migrate_agent_definition_v1(
         project.agent_definitions()[0]
@@ -104,9 +135,16 @@ fn runtime(
             objective: objective.to_vec(),
             budget: 12,
         },
-        IterativeBudget {
-            max_steps_per_stage: 1000,
-            ..IterativeBudget::default()
+        match profile {
+            RuntimeFixture::Baseline => IterativeBudget {
+                max_steps_per_stage: 1000,
+                ..IterativeBudget::default()
+            },
+            RuntimeFixture::Complete => IterativeBudget {
+                max_iterations: 2,
+                max_stages: 7,
+                max_steps_per_stage: 1000,
+            },
         },
         effects,
     )
@@ -526,7 +564,31 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
             &std::path::Path,
         ) -> T,
     ) -> T {
-        let f = fixture();
+        Self::test_with_runtime_fixture(RuntimeFixture::Baseline, retention_ack, callback)
+    }
+    /// Closed Complete source and two-turn execution budget; E/B/model/store
+    /// are rebuilt from the authenticated altered source, not reused proofs.
+    pub(crate) fn test_with_actual_complete_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::Complete, true, callback)
+    }
+    fn test_with_runtime_fixture<T>(
+        profile: RuntimeFixture,
+        retention_ack: bool,
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        let f = fixture_for(profile);
         with_authenticated_project(&f.0.join("semaprax.toml"), |snapshot| {
             let project = snapshot.retain_revision();
             let source = project
@@ -540,20 +602,26 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
                 "fixture.agent",
                 "fixture.agent.type.step",
             )?);
-            let baseline = Arc::new(runtime(
+            let baseline = Arc::new(runtime_for(
                 Arc::clone(&project),
                 effects(),
                 false,
                 b"owned task",
+                profile,
             ));
             let e = Arc::new(context(&baseline, Arc::clone(&wait)));
+            if matches!(profile, RuntimeFixture::Complete) {
+                assert_eq!(e.ordinary().max_iterations(), 2);
+                assert_eq!(e.ordinary().max_stages(), 7);
+            }
             let (registration, mut lease) =
                 registered_context_store(&f.0, "ready-journal", &e, false);
-            let wrong_runtime = Arc::new(runtime(
+            let wrong_runtime = Arc::new(runtime_for(
                 Arc::clone(&project),
                 effects(),
                 true,
                 b"changed task",
+                profile,
             ));
             let wrong =
                 crate::live_invocation::source_journal::checked_owned_wait_journal_context_v8(

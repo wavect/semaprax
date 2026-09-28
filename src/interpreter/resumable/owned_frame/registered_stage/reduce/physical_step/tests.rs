@@ -1,6 +1,6 @@
 //! Actual root tests under genuine runtime/store; the committed envelope
 //! producers here bypass pending §23 journal ACKs and are test-only.
-use super::super::super::effect::with_staged_effect_reduce_v2;
+use super::super::super::effect::{with_staged_complete_reduce_v2, with_staged_effect_reduce_v2};
 use super::*;
 
 fn committed(staged: StagedExecutedOwnedReduceV2<'_>) -> CommittedExecutedOwnedReduceCleanupV2<'_> {
@@ -26,7 +26,7 @@ fn ready(settled: ExecutedOwnedReduceSettledV2<'_>) -> ReadyExecutedOwnedStepV2<
 
 #[test]
 fn owned_reduce_held_step_moves_original_state_backing_to_report_and_retains_store() {
-    with_staged_effect_reduce_v2(1000, |staged, weak, outcome, _, _| {
+    with_staged_complete_reduce_v2(1000, |staged, weak, outcome, _, _| {
         assert!(staged.failure().is_none());
         let mut observed = 0;
         let ready = ready(
@@ -170,7 +170,7 @@ fn owned_reduce_cancel_after_cleanup_start_still_releases_but_blocks_step_move()
 #[test]
 fn owned_reduce_normal_poisoned_or_foreign_drop_disarms_semantic_disposal() {
     for mode in 0..3 {
-        with_staged_effect_reduce_v2(1000, |staged, weak, _, _, directory| {
+        with_staged_complete_reduce_v2(1000, |staged, weak, _, _, directory| {
             let ready = ready(
                 settle_executed_owned_reduce_v2(committed(staged), || true, |_| {})
                     .unwrap_or_else(|e| panic!("{:?}", e.diagnostic)),

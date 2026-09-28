@@ -203,4 +203,4 @@ impl ActivatedOwnedEffectV8<'_> {
     }
 }
 
-pub(super) mod dispatch;
+pub(in crate::interpreter::resumable::owned_frame::registered_stage::effect) mod dispatch;

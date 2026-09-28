@@ -3,6 +3,7 @@
 mod agent_binding;
 mod authorize_plan;
 mod data;
+mod observation_binding;
 mod observe_plan;
 mod plan;
 
@@ -16,4 +17,7 @@ pub(crate) use data::{
     owned_wait_operations_v8, validate_owned_wait_decision_v8, validate_owned_wait_failure_v8,
     validate_owned_wait_observed_receipt_v8, validate_owned_wait_operations_v8,
     validate_owned_wait_state_v8,
+};
+pub(crate) use observation_binding::{
+    bind_owned_wait_observation_v8, CheckedOwnedWaitObservationV8,
 };

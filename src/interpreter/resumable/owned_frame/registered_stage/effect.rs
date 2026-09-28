@@ -1,5 +1,6 @@
-//! Private successor effect engine. ACK producers remain test-only: the current
-//! v8 fold cannot authorize effects or successful Decision consumption.
+//! Private successor effect engine. The sealed held-Consumed handoff constructs
+//! an authorization ACK; Intent, settlement and cleanup ACK producers remain
+//! test-only until their actual fixed live append consumers are implemented.
 use super::authorize::{
     HeldOwnedEffectAuthorizationV8, OwnedEffectDecisionReleaseV8, OwnedEffectReleasedRootsV8,
     ReadyOwnedAuthorizeV2,
@@ -50,8 +51,9 @@ struct AuthorizationBasisV8 {
     target_grant: String,
     argument: String,
 }
-/// Each ACK is one-use authority for a specific current causal phase. The
-/// private fields have no production constructor in this foundation.
+/// One-use authorization authority constructed only by the private live_append
+/// child from the actual Ready owner and sealed held-Consumed permit. Other
+/// phase ACKs below still have no production constructors in this foundation.
 pub(crate) struct OwnedEffectAuthorizationAckV8 {
     basis: AuthorizationBasisV8,
     staged: u32,

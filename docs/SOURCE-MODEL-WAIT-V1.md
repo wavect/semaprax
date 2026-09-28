@@ -1,6 +1,6 @@
 # Source Model Wait v1
 
-Status: **REVIEWED BOUNDED IMPLEMENTATION CONTRACT; NOT IMPLEMENTED**.
+Status: **IMPLEMENTED BOUNDED INTERPRETER ROUTE; LOCAL CONFORMANCE**.
 Audience: source-runtime, checkpoint, and model-operation contributors.
 
 This document defines the smallest R20 model-wait bridge for the direct
@@ -359,3 +359,26 @@ Existing v7 structural self-checks require no interpreter accounting extension.
 The reviewed design includes decreasing outstanding capacity bounds, interrupted
 replay closure grammar, and additive evidence encoding. Implementation must pass
 their discriminating gates before any completion claim.
+
+The public SDK rejects malformed wire proposals with `source.adapter_decode`
+and `ModelFailed` before the outer decoder can retry them. This failure retains
+one model dispatch and its charged Start reservation, without Resume, admission,
+or effects. The outer session's acknowledged malformed-settlement retry is a
+separate lower-layer gate; it does not weaken SDK decoding. The real example's
+feedback retry uses a well-formed proposal whose repair candidate fails checked
+validation.
+
+`examples/offline-repair-model-wait-project` supplies the checked wrapper and
+the `source-live offline-repair-model-wait` command exercises the public route.
+Its key and checkpoint store are explicit in-memory fixtures. The owning
+toolchain gate checks canonical source/graph facts, two real model/effect calls,
+one checked feedback retry, v7 journal records, 4000 wait fuel, and exact evidence.
+
+Focused local gates include `--lib source_journal`, the `agent_runtime_v1`
+`model_wait` selectors, the two lifecycle authority audits, and
+`--lib acknowledged_malformed_proposal_retries_through_real_model_wait_session`.
+The toolchain's `--lib offline_repair` selector preserves the old command and
+checks the explicit example. These gates cover pre/post-persistence ACK faults,
+repeated Start/Resume replay checks, uncertain no-redispatch, key/binding refusal,
+and fuel/cancellation boundaries. They do not establish other engine support or
+complete Agent owned-state migration.

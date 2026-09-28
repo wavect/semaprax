@@ -149,6 +149,9 @@ charged replay reservations, optional usage observations, and terminal snapshots
 `source_journal/io_v5` owns additive cumulative request/response reservations
 and their nonrefundable migration carry; [Source Live I/O v5](SOURCE-LIVE-IO-V5.md)
 defines the bound limits and the private CLI v3 projection.
+`source_journal/wait_v7` owns the opt-in combined model-wait inventory, canonical
+wire, replay closure grammar, fuel and phase-specific capacity; `sink` retains
+the one caller-owned checkpoint writer. Frozen v1-v6 profiles remain separate.
 `source_journal/policy_v6` owns independently folded quote reservations, observed
 and unknown exposure, and cumulative policy carry. Its V6 profile composes I/O
 limits and restores reservations before source continuation.
@@ -206,6 +209,13 @@ intent before adapter dispatch, and restores typed effect accounting from exact
 acknowledged observations without redispatch. The source adapter retains raw
 settlement bytes for that journal; canonical decoded proposals alone enter
 source authorization. It adds no provider transport or ambient authority.
+`execution_revision/typed_durable/model_wait` exposes the separate ordinary-v2
+interpreter wait route. `agent_lifecycle/iterative/model_wait` derives its opaque
+checked wrapper binding; `agent_proposal/model_wait` projects decoded Copy
+carriers. The source-live session owns charged preparation/resume/replay inside
+the same journal and retains the existing model-intent dispatch boundary.
+The typed owner joins the actual terminal and ordinary model evidence roots.
+[Source Model Wait v1](SOURCE-MODEL-WAIT-V1.md) owns this bounded profile.
 `agent_lifecycle/iterative/model` owns the separate bounded local target-parity
 model boundary. It projects the lifecycle-owned Proposal request into one
 canonical authority-free request, consumes a private per-turn grant, reserves

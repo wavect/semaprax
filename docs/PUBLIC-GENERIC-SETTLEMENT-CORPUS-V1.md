@@ -1148,5 +1148,9 @@ asset or a standalone replay bundle. The coordinator must bind a successful
 clean exact-commit inventory to the frozen candidate ticket. Hosted execution,
 compatibility/security review, support and publication remain separate.
 
-This implementation's tests are unrun until the owning gate executes on the
-integrated candidate; no new pass count is claimed by adding these rows.
+The owning selector passed 5/5 locally on clean `888ac18e`: frozen v1 is
+105 pass / 0 known defect / 21 fixed N/A; v2 is 123 pass / 0 known defect /
+30 fixed N/A. This includes actual local ASan, all three new native failure
+rows, strict receipt controls, and artifact/provenance negatives. The exact
+matrix and complete inventory are retained in the local evidence supplement;
+this does not expand hosted, public support or publication claims.

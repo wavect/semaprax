@@ -48,6 +48,17 @@ candidate, selects a network provider, accepts a target/path/model operand, or
 claims physical recovery. It is local demonstration evidence for the checked
 repair path, not a general offline repair interface.
 
+`offline-repair-model-wait` accepts no operands and selects the separate bundled
+`examples/offline-repair-model-wait-project`. It uses the same checked repair
+runner, grants, candidate validation and feedback guard through the opt-in
+interpreter [Source Model Wait v1](SOURCE-MODEL-WAIT-V1.md) route. Its
+`semaprax.private-offline-repair-model-wait-demo.v1` report additionally retains
+the exact canonical wait evidence bytes, their parsed view and contracted root,
+wrapper binding, engine, fuel and v7 source journal. The fixture supplies an
+in-memory key/store; this command does not claim physically persisted recovery
+or complete owned Agent state suspension. The original `offline-repair`
+command and report remain unchanged.
+
 `repair` is the durable, host-selected candidate-preview route for issue #116.
 Its canonical JSON configuration selects the retained Project, source Agent,
 target declaration, bounded typed effect contract and task; it never supplies

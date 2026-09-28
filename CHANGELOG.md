@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add an opt-in interpreter model wait through one combined Source Live v7
+  journal, with checked Copy carriers, precharged evaluation/replay, crash
+  recovery, and exact joined evidence. Migrate an explicit offline repair
+  example through the public route; retain existing SDK malformed-response
+  failure and frozen journal profiles. Full owned Agent state remains open.
+
+- Extend the local public-generic settlement corpus with versioned physical
+  input/result commit and result-root acquisition failures, strict Rust error
+  category checks, and an opt-in complete artifact/provenance inventory.
+
 - Add an opt-in held-target selector for the v2 in-memory migrated Agent
   continuation. Interpreter, native C11, and Core Wasm retain the same
   migration result and reservation accounting; backend instruction counts

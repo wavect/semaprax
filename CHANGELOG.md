@@ -8,6 +8,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add candidate embedded ordinary Agent operation bodies and same-module model-wait helper associations, with original-source replay before checked HIR cache reuse. Source graph v50 and workspace/package graph v4 preserve their selected legacy bases and carry descriptive execution associations. The owned Agent lifecycle remains incomplete; integrated acceptance gates are pending.
+
 - Add an opt-in interpreter model wait through one combined Source Live v7
   journal, with checked Copy carriers, precharged evaluation/replay, crash
   recovery, and exact joined evidence. Migrate an explicit offline repair

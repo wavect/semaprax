@@ -137,3 +137,7 @@ coordinate and revision selection, import/call distinctions, independent
 Project association, startup-only attachment, method availability and retained
 read behavior. The released regression corpus is HOSTED GREEN; the full graph-operational
 programme remains incomplete.
+
+## Additive scalar-source Agent metadata (v070 candidate)
+
+An already admitted scalar package source can contain inert Agent metadata with embedded scalar operation bodies. Such checked facts select `semaprax.package-semantic-graph.v4` and append `agent_execution` containing the actual v1/v2/v3 `base_schema`, `authority: "none"`, and package/version-qualified Agent rows. The [source syntax contract](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md#additive-embedded-execution-metadata-v070-candidate) owns the row shape. The inventory is bounded to 256 rows over the existing four-package limit and 64 Agents per source. Existing protocol/follows limits and legacy graph bytes remain unchanged. This metadata does not broaden the scalar package ABI: nominal owned-State lifecycle sources still receive the existing `SPX-PS504` refusal. Authentication remains mandatory and these facts grant no runtime authority.

@@ -81,3 +81,7 @@ successful acyclic pass, refusal and injected-effect failure, and stable
 missing-Agent or incompatible-role rejection. Lifecycle replay additionally binds
 the checked module's semantic revision, so a role-body change fails closed even
 when the frozen Lifecycle v1 document intentionally remains byte-identical.
+
+## Additive embedded operation association
+
+The [syntax extension](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md#additive-embedded-execution-metadata-v070-candidate) retains each embedded deterministic body as one ordinary function. Opt-in Agents carry a private original-source association in checked HIR; fresh linking and authenticated cache reuse replay that association against the original module before selecting the actual linked function closure. An opt-in Agent is retained only when all four deterministic operations and its optional model-wait helper are linked. Legacy reference-only Agent inventory and frozen compatibility products retain their existing behavior. This metadata does not execute the owned Agent lifecycle.

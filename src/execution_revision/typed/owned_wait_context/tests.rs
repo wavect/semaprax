@@ -234,7 +234,8 @@ fn owned_wait_typed_execution_binds_real_registry_task_and_each_effect_ceiling()
         assert!(effect_plan.accepted_result(b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"value\",\"09\"]]}\n").is_none());
         assert!(effect_plan.accepted_result(b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"other\",\"9\"]]}\n").is_none());
         assert!(effect_plan.accepted_result(b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[]}\n").is_none());
-        assert_eq!(effect_plan.limits().max_calls, baseline.effects.max_calls);
+        assert_eq!(baseline.effects.max_calls, 3);
+        assert_eq!(effect_plan.limits().max_calls, 2, "actual source tool ceiling intersects retained caller ceiling");
         assert_eq!(baseline.effects.max_result_bytes, 4096);
         assert_eq!(effect_plan.target_limits().max_result_bytes, 1024);
         assert_eq!(effect_plan.target_limits().max_fuel, effect_plan.target_limits().max_calls);

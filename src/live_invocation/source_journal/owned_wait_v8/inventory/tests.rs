@@ -96,18 +96,10 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn rows_for(
         attempt: 0,
         proposal_digest: proposal.ordinary_digest().into(),
     });
-    let Body::OwnedRunCreated {
-        scope,
-        execution,
-        binding,
-        store_identity,
-        limits,
-        ..
-    } = &c.created
-    else {
+    let Body::OwnedRunCreated { scope, .. } = &c.created else {
         panic!()
     };
-    let generation=wire::recipe_digest(wire::RecipeV8::Generation,&json!({"scope":scope,"execution":execution,"binding":binding,"store_identity":store_identity,"limits":limits})).unwrap();
+    let generation = wire::generation_digest_from_created(&c.created).unwrap();
     let EntryV8::Owned(Body::OwnedStateTransferReserved { wait, .. }) = &rows[14] else {
         panic!()
     };

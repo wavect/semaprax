@@ -24,6 +24,48 @@ pub(super) fn canonical(value: &Value) -> Vec<u8> {
     serde_json::to_vec(&ordered(value)).expect("JSON values serialize")
 }
 
+/// Created uses the frozen wire scope spelling. Registration's one generation
+/// recipe uses the independently expected scope spelling; no second identity.
+pub(super) fn generation_digest_from_created(
+    created: &model::OwnedBodyV8,
+) -> Result<String, SourceJournalError> {
+    let model::OwnedBodyV8::OwnedRunCreated {
+        scope,
+        execution,
+        binding,
+        store_identity,
+        limits,
+        ..
+    } = created
+    else {
+        return Err(SourceJournalError::Binding);
+    };
+    let fields = scope.as_object().ok_or(SourceJournalError::Malformed)?;
+    if fields.len() != 3
+        || ["program_root", "invocation", "policy_epoch"]
+            .iter()
+            .any(|key| !fields.contains_key(*key))
+    {
+        return Err(SourceJournalError::Malformed);
+    }
+    let program_root = scope["program_root"]
+        .as_str()
+        .ok_or(SourceJournalError::Malformed)?;
+    let invocation = scope["invocation"]
+        .as_str()
+        .ok_or(SourceJournalError::Malformed)?;
+    let policy_epoch = scope["policy_epoch"]
+        .as_u64()
+        .ok_or(SourceJournalError::Malformed)?;
+    recipe_digest(
+        RecipeV8::Generation,
+        &serde_json::json!({
+            "scope":{"program_root":program_root,"invocation_id":invocation,"policy_epoch":policy_epoch},
+            "execution":execution,"binding":binding,"store_identity":store_identity,"limits":limits,
+        }),
+    )
+}
+
 struct StrictValue(usize);
 impl<'de> DeserializeSeed<'de> for StrictValue {
     type Value = Value;

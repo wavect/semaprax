@@ -89,6 +89,8 @@ pub(super) struct StagedLiveOwnedRunV8<'j> {
     pub(super) staged: u32,
     pub(super) cancellation: &'j crate::agent_runtime::AgentCancellation,
     pub(super) clock: &'j dyn SourceInvocationClock,
+    #[cfg(test)]
+    transfer_digest: String,
 }
 pub(super) fn authorize_live_actor_v8<'j>(
     completed: CompletedLiveOwnedRunV8<'j>,
@@ -169,6 +171,8 @@ pub(super) fn authorize_live_actor_v8<'j>(
         Ok(digest) => digest,
         Err(error) => return Err(fail!(LiveAuthorizeFailureOwnerV8::Resumed(owner), error)),
     };
+    #[cfg(test)]
+    let selected_transfer_digest = transfer_digest.clone();
     let session = match session.append(EntryV8::Ordinary(SourceJournalEntry::ProposalAdmitted {
         turn: 0,
         attempt: 0,
@@ -380,6 +384,8 @@ pub(super) fn authorize_live_actor_v8<'j>(
         staged,
         cancellation,
         clock,
+        #[cfg(test)]
+        transfer_digest: selected_transfer_digest,
     })
 }
 #[cfg(test)]

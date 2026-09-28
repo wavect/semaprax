@@ -256,12 +256,7 @@ impl<'a> InventoryV8<'a> {
         entries: Vec<ValidatedEntryV8>,
     ) -> Result<Self, SourceJournalError> {
         let model::OwnedBodyV8::OwnedRunCreated {
-            scope,
-            execution,
-            binding,
-            store_identity,
-            limits,
-            ..
+            execution, binding, ..
         } = &context.created
         else {
             return Err(SourceJournalError::Binding);
@@ -270,10 +265,7 @@ impl<'a> InventoryV8<'a> {
             wire::RecipeV8::Invocation,
             &serde_json::json!({"execution":execution,"owned_wait_binding":binding}),
         )?;
-        let generation = wire::recipe_digest(
-            wire::RecipeV8::Generation,
-            &serde_json::json!({"scope":scope,"execution":execution,"binding":binding,"store_identity":store_identity,"limits":limits}),
-        )?;
+        let generation = wire::generation_digest_from_created(&context.created)?;
         let zero = "0".repeat(64);
         let decoded = wire::decode_inventory(
             document,

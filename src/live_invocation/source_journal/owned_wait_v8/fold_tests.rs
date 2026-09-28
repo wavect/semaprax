@@ -132,8 +132,6 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixtures(
         scope,
         execution,
         binding,
-        limits,
-        store_identity,
         ..
     } = &c.created
     else {
@@ -149,7 +147,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixtures(
         &json!({"invocation":invocation,"turn":0,"attempt":0,"binding":binding}),
     )
     .unwrap();
-    let generation=wire::recipe_digest(wire::RecipeV8::Generation,&json!({"scope":scope,"execution":execution,"binding":binding,"store_identity":store_identity,"limits":limits})).unwrap();
+    let generation = wire::generation_digest_from_created(&c.created).unwrap();
     let state = json!({"declaration":"state","fields":[{"identity":"state.z","value":{"kind":"bytes","hex":""}},{"identity":"state.a","value":{"kind":"bytes","hex":"00"}},{"identity":"state.budget","value":{"kind":"i64","value":10}}]});
     let state_digest = digest(
         b"semaprax.source-owned-frame-args.v2\0",
@@ -1106,12 +1104,7 @@ fn near_capacity_authenticated_replays_leave_room_for_the_already_reserved_closu
     let mut rows = fixtures(&c).into_iter().take(8).collect::<Vec<_>>();
     let key = SourceCheckpointKey::new([73; 32]);
     let Body::OwnedRunCreated {
-        scope,
-        execution,
-        binding,
-        store_identity,
-        limits,
-        ..
+        execution, binding, ..
     } = &c.created
     else {
         panic!()
@@ -1121,7 +1114,7 @@ fn near_capacity_authenticated_replays_leave_room_for_the_already_reserved_closu
         &json!({"execution":execution,"owned_wait_binding":binding}),
     )
     .unwrap();
-    let generation = wire::recipe_digest(wire::RecipeV8::Generation, &json!({"scope":scope,"execution":execution,"binding":binding,"store_identity":store_identity,"limits":limits})).unwrap();
+    let generation = wire::generation_digest_from_created(&c.created).unwrap();
     let mut document = Vec::new();
     let mut mac = "0".repeat(64);
     let encode = |row: &ValidatedEntryV8, seq: usize, mac: &str| {

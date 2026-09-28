@@ -27,6 +27,9 @@ fn owned_wait_live_authorize_same_root_granted_and_refused_have_true_refs_and_ex
                 3
             };
             let completed = completed_test_actor(&journal, &cancel, &Clock, budget);
+            let transfer_wait = completed.wait.clone();
+            let transfer_state = completed.owner.checked_facts(execution.wait()).unwrap();
+            let transfer_proposal = completed.proposal.ordinary_digest().to_owned();
             let old = completed.owner.test_weak();
             let prior = completed.session.fold_for_live_test();
             let staged = authorize_live_actor_v8(completed)
@@ -41,6 +44,37 @@ fn owned_wait_live_authorize_same_root_granted_and_refused_have_true_refs_and_ex
                 (17, 18, 19, 20)
             );
             let binding = execution.wait();
+            // Real retained registration and Created projection have exactly
+            // one generation; the ACTUAL selected Transfer is fold-admitted.
+            let created = &journal.context().fold().created;
+            let generation = wire::generation_digest_from_created(created).unwrap();
+            assert_eq!(generation, staged.held.generation());
+            let journal_model::OwnedBodyV8::OwnedRunCreated {
+                scope,
+                execution: created_execution,
+                binding: created_binding,
+                store_identity,
+                limits,
+                ..
+            } = created
+            else {
+                panic!("Created");
+            };
+            let wrong_generation = wire::recipe_digest(wire::RecipeV8::Generation,
+                &serde_json::json!({"scope":scope,"execution":created_execution,"binding":created_binding,"store_identity":store_identity,"limits":limits})).unwrap();
+            assert_ne!(generation, wrong_generation);
+            assert_eq!(
+                staged.transfer_digest,
+                wire::recipe_digest(
+                    wire::RecipeV8::Transfer,
+                    &serde_json::json!({"scope":scope,"generation":generation,"turn":0,"attempt":0,
+                    "wait":transfer_wait,"from":binding.helper().function().id.as_str(),
+                    "to":binding.authorize().function().id.as_str(),
+                    "state_digest":wire::record_argument_digest(&transfer_state),
+                    "proposal_digest":transfer_proposal})
+                )
+                .unwrap()
+            );
             let (_, decision) = staged.owner.checked_facts(binding).unwrap();
             assert_eq!(
                 decision["declaration"],
@@ -98,6 +132,121 @@ fn owned_wait_live_authorize_same_root_granted_and_refused_have_true_refs_and_ex
             assert!(leaves.iter().all(|w| w.upgrade().is_none()));
         });
     }
+}
+
+#[test]
+fn owned_wait_live_authorize_rejects_unprojected_generation_before_transfer_write() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+        let context = context.with_initialization(&lease).unwrap();
+        let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+        let cancel = crate::agent_runtime::AgentCancellation::new();
+        let completed = completed_test_actor(&journal, &cancel, &Clock, 3);
+        let binding = journal.context().test_runtime_execution().1.wait();
+        let state = completed.owner.checked_facts(binding).unwrap();
+        let weak = completed.owner.test_weak();
+        let digest = completed.proposal.ordinary_digest().to_owned();
+        let journal_model::OwnedBodyV8::OwnedRunCreated {
+            scope,
+            execution,
+            binding: binding_id,
+            store_identity,
+            limits,
+            ..
+        } = &journal.context().fold().created
+        else {
+            panic!("Created");
+        };
+        let correct =
+            wire::generation_digest_from_created(&journal.context().fold().created).unwrap();
+        assert_eq!(correct, completed.held.generation());
+        let wrong = wire::recipe_digest(wire::RecipeV8::Generation, &serde_json::json!({
+            "scope":scope,"execution":execution,"binding":binding_id,"store_identity":store_identity,"limits":limits,
+        })).unwrap();
+        assert_ne!(correct, wrong);
+        let selected = |generation| {
+            let transfer_digest = wire::recipe_digest(wire::RecipeV8::Transfer, &serde_json::json!({
+                "scope":scope,"generation":generation,"turn":0,"attempt":0,"wait":completed.wait,
+                "from":binding.helper().function().id.as_str(),"to":binding.authorize().function().id.as_str(),
+                "state_digest":wire::record_argument_digest(&state),"proposal_digest":digest,
+            })).unwrap();
+            EntryV8::Owned(journal_model::OwnedBodyV8::OwnedStateTransferReserved {
+                turn: 0,
+                attempt: 0,
+                wait: completed.wait.clone(),
+                from: binding.helper().function().id.as_str().into(),
+                to: binding.authorize().function().id.as_str().into(),
+                state_digest: wire::record_argument_digest(&state),
+                proposal_digest: digest.clone(),
+                transfer_digest,
+            })
+        };
+        let session = match journal.begin_session().unwrap().append(EntryV8::Ordinary(
+            SourceJournalEntry::ProposalAdmitted {
+                turn: 0,
+                attempt: 0,
+                proposal_digest: digest.clone(),
+            },
+        )) {
+            Ok(session) => session,
+            Err(_) => panic!("actual admitted Proposal"),
+        };
+        let bytes = session.acknowledged_bytes();
+        let failure = session
+            .append(selected(&wrong))
+            .err()
+            .expect("old generation refused");
+        let super::super::super::append::AppendFailureV8::CandidateRefused {
+            session, error, ..
+        } = failure
+        else {
+            panic!("pure candidate refusal, no physical uncertainty");
+        };
+        assert_eq!(error, SourceJournalError::Order);
+        assert_eq!(
+            (session.sequence(), session.acknowledged_bytes()),
+            (16, bytes)
+        );
+        completed.held.validate_guard().unwrap();
+        assert!(weak.iter().all(|w| w.strong_count() == 1));
+        let session = match session.append(selected(&correct)) {
+            Ok(session) => session,
+            Err(_) => panic!("single canonical generation admitted"),
+        };
+        assert_eq!(session.sequence(), 17);
+        assert!(weak.iter().all(|w| w.strong_count() == 1));
+        drop(completed);
+        assert!(weak.iter().all(|w| w.upgrade().is_none()));
+    });
+}
+
+#[test]
+fn owned_wait_live_authorize_generation_projection_refuses_scope_substitution() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+        let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+        let original = &journal.context().fold().created;
+        for edit in [0, 1, 2, 3] {
+            let mut created = original.clone();
+            let journal_model::OwnedBodyV8::OwnedRunCreated { scope, .. } = &mut created else {
+                panic!("Created");
+            };
+            match edit {
+                0 => {
+                    let invocation = scope.as_object_mut().unwrap().remove("invocation").unwrap();
+                    scope["invocation_id"] = invocation;
+                }
+                1 => scope["program_root"] = false.into(),
+                2 => scope["policy_epoch"] = (-1).into(),
+                3 => scope["extra"] = 0.into(),
+                _ => unreachable!(),
+            }
+            assert_eq!(
+                wire::generation_digest_from_created(&created),
+                Err(SourceJournalError::Malformed)
+            );
+        }
+        assert_eq!(journal.begin_session().unwrap().sequence(), 0);
+        journal.hold().unwrap();
+    });
 }
 fn weak(owner: &LiveAuthorizeFailureOwnerV8) -> Vec<std::sync::Weak<[u8]>> {
     match owner {

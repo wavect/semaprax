@@ -859,21 +859,10 @@ fn owned(
                     && w.ready(PhaseV8::Resume)
                     && w.proposal.as_ref() == Some(proposal_digest),
             )?;
-            let Body::OwnedRunCreated {
-                scope,
-                execution,
-                binding,
-                store_identity,
-                limits,
-                ..
-            } = &context.created
-            else {
+            let Body::OwnedRunCreated { scope, .. } = &context.created else {
                 return order();
             };
-            let generation = wire::recipe_digest(
-                wire::RecipeV8::Generation,
-                &serde_json::json!({"scope":scope,"execution":execution,"binding":binding,"store_identity":store_identity,"limits":limits}),
-            )?;
+            let generation = wire::generation_digest_from_created(&context.created)?;
             require(
                 wire::recipe_digest(
                     wire::RecipeV8::Transfer,

@@ -123,6 +123,13 @@ impl LiveAuthorizationConsumedAppendV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {
+        let result = self.validate_inner();
+        if result.is_err() {
+            self.held.quarantine();
+        }
+        result
+    }
+    fn validate_inner(&self) -> Result<(), SourceJournalError> {
         let guard = || {
             LiveReadyPromotionPermitV8 {
                 journal: self.journal,

@@ -1,6 +1,7 @@
 # Source owned frame v1 — proposed bounded contract
 
 Status: **proposal for independent review; no implementation or completion claim**.
+Audience: compiler, interpreter and durable-runtime implementers and reviewers.
 Base: `5ae54dd4`. This is a proposed additive R20/#296 dependency slice, not
 approval to close R20 or widen any backend's support policy.
 
@@ -84,7 +85,8 @@ binding even if payload bytes still look identical.
 
 ## 3. Consuming opaque API and argument commit
 
-Proposed API roles, with final Rust spellings subject to review:
+The following sealed API roles are fixed by this contract (Rust modules may
+re-export these names without exposing their representations):
 
 - `CheckedOwnedFramePlan`: opaque immutable compiler derivation.
 - `OwnedFrameArgument`: non-Clone opaque owner, created by checked carrier
@@ -105,11 +107,94 @@ may evaluate preconditions or execute the prefix. A false precondition is a
 postcommit terminal failure with the parameter cleanup obligation; it does not
 return caller ownership. After this boundary no error returns an argument
 owner to the caller. A crash after the append leaves recovery, not the caller,
-responsible for that owner. An ambiguous append poisons the session and must
-be reopened/replayed under the same exclusive authority before any decision.
+responsible for that owner. An ambiguous commit append returns `StartUncertain(PoisonedOwnedFrameInvocation)`,
+which retains the argument internally and exposes no argument/result extraction.
+It never returns `OwnedFrameArgument`, even when no complete row was observed
+by that write attempt. Only an authenticated re-open under the same pinned
+authority can decide the committed tail. A proven precommit rejection is the
+separate `StartRejected { argument, diagnostic }` case.
 
 Prepare constructs the plan and pure carrier data only. It grants no key,
 filesystem, host-call, answer, cleanup or publication authority.
+
+### 3.1 Owner lifetime and aliases
+
+There is one logical root credential per committed invocation, regardless of
+how many inert byte snapshots or internal reference-counted aliases exist.
+`Value::Record` and Bytes backing currently use Arc; ordinary
+`clone_value` also aliases the result for postconditions (`interpreter.rs`
+`call_frame_inner`). The new mode uses borrowed Copy-only contract projections, retaining the exact
+pending root rather than invoking ordinary `clone_value` for ensures. The old
+scalar `evaluate_entry`, `call_frame_inner` automatic Drop and ensures-clone
+paths remain unchanged. It drains all evaluator environment, result-binding,
+borrow-view and parked-frame aliases on both success and failure. It cannot
+settle through a newly decoded look-alike record. Before last-owner settlement
+or outward transfer, audit the actual root and owned-leaf backing references:
+no unaccounted Arc alias may survive. An alias mismatch fails closed with the
+root retained as unsettled, never a fabricated successful cleanup receipt.
+
+| Action | Ownership and physical meaning |
+| --- | --- |
+| Park | Moves the root into the invocation; drops only non-owning evaluator aliases. No semantic cleanup. |
+| Close live invocation | Explicit abandonment under current caller authority, then the normal durable terminal/cleanup protocol; no implicit success. |
+| Drop or unwind before commit | Disposes the opaque argument through its checked argument-disposal plan, once; no durable owner exists. A normal StartRejected instead returns it untouched. |
+| Drop/unwind after commit or uncertain commit | Drops process backing references only; performs no source finalizer, host cleanup, answer or result claim. Durable logical obligation remains unresolved and exclusively recoverable. |
+| Drop inert decoded checkpoint | Disposes data backing only, with no owner credential or semantic cleanup. |
+| Explicit failure settlement | Drains aliases and performs the real root's ordered checked leaf cleanup once, inside the recorded cleanup window. |
+| Successful result claim | Moves the root credential to the one non-Clone result and removes it from invocation cleanup authority. |
+| Result Drop | After transfer to caller, drains its private aliases and disposes that result through its checked result-disposal plan once. It does not alter/repeat invocation cleanup. |
+| Consuming result handoff | `OwnedFrameResult::into_argument(self, checked_plan)` transfers the same whole owner to a newly admitted opaque argument. Rejection returns the untouched result; no clone, naked Value, byte-export constructor or second credential. |
+
+Non-owning backing disposal may free allocations after the last process Arc
+is gone; it is not evidence that a durable language cleanup obligation was
+observed or settled. Forgotten/drop-after-commit sessions must report unresolved
+obligations in recovery, not zero-owner success based on freed backing. Rust
+unwinding cannot hide an uncertain commit by running an argument-return path.
+The compiler/evaluator foundation exposes explicit park/resume/settle and
+sealed result consumption; it makes no durable recovery claim until section 4's
+store authority and wire packet have passed their own gates. Its consuming
+interface is fixed as follows (all named owner-bearing types are opaque and
+non-Clone; outcome accessors expose data/status only):
+
+```rust
+compile_owned_frame_plan(program: &ResolvedProgram, function: &DeclarationId)
+    -> Result<CheckedOwnedFramePlan, Diagnostic>;
+admit_owned_frame_argument(plan: &CheckedOwnedFramePlan, input: RetainedValue)
+    -> Result<OwnedFrameArgument, OwnedFrameArgumentRejection>;
+start_owned_frame(plan: &CheckedOwnedFramePlan, argument: OwnedFrameArgument,
+                  budget: &mut OwnedFrameBudget) -> OwnedFrameFoundationStep;
+resume_owned_frame(parked: OwnedFrameParked, answer: ArgumentValue,
+                   budget: &mut OwnedFrameBudget) -> OwnedFrameFoundationStep;
+settle_owned_frame(terminal: OwnedFrameStagedTerminal)
+    -> Result<OwnedFrameSettledOutcome, OwnedFrameSettlementRejection>;
+```
+
+ArgumentRejection returns the original inert input, not a constructed owner.
+FoundationStep is exactly Parked(OwnedFrameParked) or
+Terminal(OwnedFrameStagedTerminal). Fuel/cancellation/guard/answer failures
+retain the pending root in Terminal, never a bare error that silently disposes
+it. The budget is caller-owned metering/cancellation data, not host authority.
+SettledOutcome is exactly Completed(OwnedFrameResult, release_receipt) or
+Failed(primary_status, release_receipt). SettlementRejection retains the
+unsettled terminal root and reason. None expose private interpreter Value.
+Result offers consuming `dispose(self)` and `into_argument(self, checked_plan)`;
+no result clone or borrowed owning-payload projection exists.
+
+Foundation park/terminal Drop or unwind disposes process backing but exposes no
+semantic release receipt, successful terminal status or durable recoverability.
+Tests distinguish it from explicit settle. Once a durable session owns these
+values, the authoritative journal retains the unresolved logical obligation
+as specified above. Public APIs must document this distinction; a freed Weak
+pointer is not itself a semantic settlement receipt.
+
+Observe actual two-Bytes record backing, including empty and embedded-zero
+payloads, using private Weak references and strong-count assertions around
+park, resume, staged terminal, failure and final owner disposal. No test adds
+an externally retained strong alias to simulate the successful path. A hostile
+alias test instead proves retained/unsettled refusal. Declaration order and
+compiler canonical vectors govern serialization and release: the current
+interpreter's BTreeMap field-key order never supplies cleanup order.
+
 
 ## 4. Replay and restoration
 
@@ -118,6 +203,27 @@ extracts the compiler-proven whole record into the owned frame. Resume binds
 that frame root directly, without recreating an owned argument or evaluating
 an owning prefix. The pure Copy prefix is replayed only to recheck request,
 site, argument facts and binding; all that work is metered.
+
+Restoration is scoped to one caller-authorized **authoritative** directory and
+journal file. The caller supplies held directory/file identities (device/inode
+or equivalent platform identity), and operations remain relative to those held
+handles with no symlink traversal. Fresh creation is exclusive. Every reopen
+checks those pinned identities before authentication or ownership restoration.
+Replacement, copied journals/snapshots, hardlink aliases under another
+registration, and rebinding the invocation to another directory/file are
+outside this authority and rejected. Exclusive locking is on that registered
+identity, not merely a pathname that could name a different file.
+
+The caller must protect the authoritative store from full authenticated-tail
+rollback, copying and replacement for the invocation lifetime, including after
+ResultClaimed. Ordinary HMAC chaining/flock do not detect an attacker restoring
+an earlier complete valid file or taking a copied file to another machine.
+This contract provides no global uniqueness, anti-rollback hardware, arbitrary
+backup restore or cross-directory/fork recovery. The store registration denies
+those operations; if its monotonic authoritative history cannot be assured,
+restoration fails closed. A torn-tail policy cannot justify deleting a complete
+valid record. This same trust scope applies to argument, cleanup and result
+claims, not only to dispatch.
 
 Restore requires, in this order:
 
@@ -131,8 +237,11 @@ Restore requires, in this order:
 Decode verifies data and returns only an inert checkpoint. It never inserts
 an owner into an evaluator, dispatches, cleans up, delivers a result or grants
 answer authority. No public conversion from inert checkpoint to argument or
-result exists. Recovery never accepts an additional caller argument owner to
-replace the committed root. Independent expected scope/key facts are not
+result exists. Created-only recovery returns `UncommittedStart` evidence with no owner,
+argument token, result or disposal obligation reconstructed from Created data.
+Before a durable ArgumentCommitted record, those bytes are inert input facts.
+Recovery never accepts an additional caller argument owner to replace the
+committed root. Independent expected scope/key facts are not
 read from the untrusted checkpoint to justify its own admission.
 
 ## 5. Durable states and authority
@@ -149,14 +258,58 @@ Created -> ArgumentCommitted -> StartReserved -> Yielded
         -> ResultClaimed (success only)
 ```
 
-Pure recovery work has a durable `ReplayReserved` record before evaluation.
-Every reservation refers to one causal state and monotonically increases
-cumulative reserved fuel. ReplayValidated follows successful metered replay,
-refers to that reservation and original causal state, and binds the unchanged
-checkpoint digest. It changes no ownership/dispatch phase. An interrupted
-ReplayReserved can be followed by another reservation for the same causal
-state; it cannot skip replay validation before the next phase transition. A interrupted reservation remains charged; a later
-replay reserves again. A reservation is not dispatch authority.
+### 5.1 Phase-specific replay grammar
+
+Structural fold performs no source evaluation. A Created-only tail is inert
+and cannot reserve/evaluate start. ArgumentCommitted owns the root even before
+StartReserved exists. The pre-yield root is exactly its immutable argument
+payload plus committed storage/leaf flags: this profile does not mutate it.
+Recovery may allocate fresh process backing for that **same committed logical
+owner** under its exclusive lease; it never reprojects a fresh argument token
+or transfers caller ownership a second time. Live interrupted evaluation
+retains the existing root instead of allocating a replacement.
+
+ReplayReserved has a closed `basis` object; variants are mutually exclusive:
+
+| basis.kind | Exact additional fields | Allowed next work |
+| --- | --- | --- |
+| `pre_yield` | `created_sequence`, `argument_committed_sequence`, `argument_digest` | Recheck or retry start on the existing committed root. No checkpoint digest exists yet. |
+| `yielded` | `yielded_sequence`, `checkpoint_digest` | Recheck parked state/request; preserve dispatch phase. |
+| `answered` | `yielded_sequence`, `checkpoint_digest`, `answered_sequence`, `answer_digest` | Recheck recorded answer or retry pure resume; no host entry. |
+| `terminal_completed` | `completed_sequence`, `result_digest`, `cleanup_digest` | Structural terminal restoration only; no source replay or reservation. |
+| `terminal_failed` | `failed_sequence`, `argument_digest`, `cleanup_digest` | Structural restoration of pending obligation only; no source replay or reservation. |
+
+The two terminal bases are used by the internal restore result only, never
+ReplayReserved/ReplayValidated. They do not pretend a failed-before-yield
+terminal owns a Yielded checkpoint. Completed restores one unpublished result
+only before ResultClaimed, as permitted by the authoritative store history;
+Failed restores only its pending obligation before CleanupStarted. Settled,
+CleanupInDoubt and ResultDeliveryInDoubt tails expose evidence/status and
+never re-run source or remint a result. CleanupInDoubt retains the unresolved
+logical obligation; it does not create another callable cleanup owner.
+
+A StartReserved/ResumeReserved row proves budget spent, not evaluation success.
+An interrupted start/resume retries with a new respective reservation after a
+charged replay reservation and ReplayValidated for its causal basis. A prior
+StartReserved/ResumeReserved is then closed as interrupted in the structural
+fold; it is never closed a second time by the new evaluation. A first
+start/resume uses its first reservation directly; recovery never reuses an
+old reservation as fresh fuel. Repeated interrupted ReplayReserved rows are
+allowed for the same original causal basis and remain spent. ReplayValidated
+references the latest outstanding replay reservation, repeats its exact basis,
+and reports consumed steps; only then may another phase transition occur.
+A pre-yield validation refers to argument facts, not an invented null or future
+checkpoint digest. Successful start closes its current StartReserved with
+Yielded/Failed; resume closes ResumeReserved with Completed/Failed. A replay
+validation does not itself close an interrupted start/resume or authorize
+Yielded/dispatch. Each source-evaluating retry requires that fresh reservation.
+
+Fuel exhaustion can select Failed without another evaluation/reservation and
+retain the root for cleanup. After terminal selection, structural recovery
+needs no replay fuel. Fold rejects stale causal references, wrong basis,
+missing validation, unused or multiply closed reservations, cross-phase rows,
+and any phase change after result claim. Cleanup and publication authority do
+not arise from replay validation.
 
 `Dispatched` is synchronized before the injected host operation. A recovered
 Dispatched-without-Answered tail is in doubt: never redispatch. A genuine
@@ -189,10 +342,15 @@ earlier operation fails, recording the per-operation outcome in the bounded
 CleanupSettled receipt. A default/no-op sink cannot claim owned settlement.
 Callbacks observe the real evaluator's Bytes owners, not fabricated values
 or test-only ledger entries. A recovered CleanupStarted-without-CleanupSettled
-tail is CleanupInDoubt and never reruns settlement. Any host-confirmation route
-must require explicit confirmation evidence under the live lease, preserve
-the primary status, and identify itself as HostConfirmed rather than claiming
-an observed physical cleanup receipt.
+tail is CleanupInDoubt and never reruns settlement. `confirm_failed_cleanup` requires the caller to supply an explicit
+`CleanupConfirmation` grant under the pinned live lease and current capability
+policy. It is permitted only for CleanupInDoubt with a Failed terminal. The
+grant binds generation, terminal sequence, CleanupStarted sequence and exact
+cleanup digest; a genuine checkpoint, HMAC key or lock is insufficient. The
+HostConfirmed row records that grant digest, preserves the primary failure,
+and reports no observed physical receipt. Completed terminals cannot use this
+route; HostConfirmed never permits ResultClaimed. No no-argument confirmation
+method exists.
 
 Success retains the root as the unpublished result owner while non-result
 cleanup finishes. Failed postconditions settle that root instead. Only
@@ -249,7 +407,8 @@ field identities and values, whole storage identity, leaf live flags,
 and canonical suspension/failure/completion cleanup facts. No host handles,
 keys, pointers or completed result are encoded in the checkpoint.
 
-Started binds profile, exact scope/function/plan/signature, canonical admitted
+The row is named `Created` everywhere; there is no `Started` alias. It binds
+profile, exact scope/function/plan/signature, canonical admitted
 argument and its digest, maximum steps/fuel, and fixed capacity limits. Generation is the hash of the canonical Created facts (without common
 row/MAC fields) under its generation domain. A reused journal identity is
 refused by fresh start. Recovery derives generation again from trusted
@@ -258,48 +417,108 @@ same generation and true combined sequence. Yielded stores the
 checkpoint and its digest; Answered binds site and exact answer. Completed
 stores inert result data, not a fresh public owner. CleanupSettled stores the
 exact ordered obligation/outcome receipt; ResultClaimed binds its completed
-result digest. The proposed closed field tables below must be independently reviewed before
-wire implementation. Common row fields are `schema`, `generation`, `sequence`,
+result digest. The following closed field tables define this proposed wire contract. Common row fields are `schema`, `generation`, `sequence`,
 `previous_mac`, `kind`, and `authentication`; each row has exactly those plus
 its listed fields. Integer counters are unsigned, except ordinary signed
 scalar payloads. A fresh previous MAC is 64 zero hex digits.
 
 | Row kind | Additional fields |
 | --- | --- |
-| Created | `scope`, `function`, `plan_digest`, `signature`, `argument`, `argument_digest`, `max_steps`, `max_reserved_fuel`, `limits` |
+| Created | `profile`, `scope`, `function`, `plan_digest`, `signature`, `argument`, `argument_digest`, `max_steps`, `max_reserved_fuel`, `limits` |
 | ArgumentCommitted | `argument_digest`, `storage`, `leaf_flags` |
 | StartReserved | `causal_sequence`, `reservation`, `reserved_total` |
 | Yielded | `causal_sequence`, `checkpoint`, `checkpoint_digest`, `consumed_steps` |
 | Dispatched | `yielded_sequence`, `checkpoint_digest`, `request_digest` |
 | Answered | `dispatched_sequence`, `answer`, `answer_digest` |
 | ResumeReserved | `answered_sequence`, `reservation`, `reserved_total` |
-| ReplayReserved | `causal_sequence`, `reservation`, `reserved_total` |
-| ReplayValidated | `reservation_sequence`, `causal_sequence`, `checkpoint_digest`, `consumed_steps` |
+| ReplayReserved | `basis`, `reservation`, `reserved_total` |
+| ReplayValidated | `reservation_sequence`, `basis`, `consumed_steps` |
 | Completed | `causal_sequence`, `result`, `result_digest`, `pending_cleanup`, `consumed_steps` |
-| Failed | `causal_sequence`, `failure`, `pending_cleanup`, `consumed_steps` |
+| Failed | `causal_sequence`, `failure`, `language_status`, `pending_cleanup`, `consumed_steps` |
 | CleanupStarted | `terminal_sequence`, `cleanup_digest` |
-| CleanupSettled | `cleanup_started_sequence`, `settlement`, `operations` |
+| CleanupSettled | `cleanup_started_sequence`, `receipt` |
 | ResultClaimed | `completed_sequence`, `cleanup_settled_sequence`, `result_digest` |
 
 `scope` has exactly `program_root`, `invocation`, `policy_epoch`. Frame has
 exactly `declaration`, `fields`, `storage`, `leaf_flags`, `suspension_cleanup`,
 `failure_cleanup`, `completion_cleanup`; each field has `identity`, `value`.
 A Bytes value has exactly `kind: "bytes"`, `hex`; Copy values use the frozen
-canonical scalar data encoding. Storage, leaf flags and cleanup operations
-use the existing graph cleanup metadata encoding and exact ordered vectors;
-codec acceptance additionally validates the compiler-derived profile-specific
-subset. `limits` has exactly `record_fields: 8`, `bytes_leaves: 8`,
+canonical scalar data encoding. Storage, leaf flags and cleanup operations use the pinned metadata subset
+below, with exact ordered vectors and independent compiler agreement. `limits` has exactly `record_fields: 8`, `bytes_leaves: 8`,
 `bytes_per_leaf: 1024`, `total_bytes: 8192`, `stable_identity_bytes: 256`,
 `invocation_identity_bytes: 128`, `carrier_bytes: 32768`,
 `checkpoint_bytes: 65536`, `record_bytes: 163840`, `journal_bytes: 524288`,
 `records: 64`.
-`operations` is the ordered array of `{operation, outcome}`; outcomes are
-`completed` or `failed`. Settlement is `completed`, `failed` or
-`host_confirmed`. HostConfirmed has an empty physical operations array and
-must never be represented as an observed successful cleanup receipt.
-`failure` uses the existing stable durable failure vocabulary. No exception
-message enters it. Review must pin the reused signature/cleanup/scalar codecs
-by version before implementation; no fallback or open key vocabulary exists.
+`receipt` is a closed tagged object: `{kind: "observed", settlement,
+operations}` with settlement `completed`/`failed` and the canonical ordered
+`{operation, outcome}` array, or `{kind: "host_confirmed", confirmation_digest}`
+with no operations/observed settlement. Operation outcome is `completed` or
+`failed`. The confirmation variant is allowed only for Failed as above.
+Cancellation selects `host_abandoned` in this first profile; it does not add
+a new wire failure class. `failure` is one of `language_failure`, `fuel_exhausted`,
+`call_depth_exceeded`, `evaluation_rejected`, `handler_failed`,
+`answer_type_mismatch`, `host_abandoned`. Language status is retained separately
+in the Failed row as `language_status` (null except language_failure), using
+the normalized status object's domain/code/class; no exception message enters
+it. All statuses must match the compiler/runtime owner, never a free string.
+
+### 6.1 Pinned value encodings
+
+This profile fixes the existing eight scalar codec semantics at base
+`5ae54dd4`, `interpreter::resumable::checkpoint::{scalar_json,scalar_from_json}`:
+`{tag: "i64"|"i32"|"u8"|"usize"|"char"|"bool", value}` with checked
+integer ranges, Unicode scalar validity, bool type, and `{tag: "f32"|"f64",
+bits}` with exactly 8/16 lowercase hex digits. Float payloads bind bit-for-bit,
+including negative zero and NaNs. New owned-frame wire only uses the admitted
+native64/wasm32-independent usize range 0..=4294967295. This restriction is
+profile-specific and does not alter old scalar wire acceptance.
+
+Signature is the v7 four-field source signature data shape pinned at that
+base: exactly `request_shape`, `answer_shape`, `plan_identity`, `yield_count`.
+Shapes are `semaprax.resolved-type.v1:` plus the checked type identity key;
+plan identity uses this new owned-frame plan domain; yield_count is exactly 1.
+This preserves the shape encoding, not v7 admission or its authority rules.
+
+The source cleanup plan has one of the explicitly closed
+`semaprax.cleanup-plan.v2` through `semaprax.cleanup-plan.v13` identities,
+selected and independently replay-validated by the compiler at this base.
+No later plan schema is implicitly accepted. Plan digest hashes the exact
+`graph_cleanup::cleanup_plan_json` bytes from this base under
+`semaprax.source-owned-frame-cleanup-plan.v1\0`; their existing field order is
+preserved, not reserialized through the new lexicographic wire renderer.
+The owned wire embeds only this fixed subset, rederived from that plan:
+
+- storage: `{kind: "value", value: <ValueId>}` for the parameter/root, or
+  `{kind: "provisional_result"}` only for the unpublished terminal root;
+- leaf flag: `{field: <DeclarationId>, flag: <u32>, live: true,
+  lifecycle: <DeclarationId>}` in structural field order;
+- cleanup operation: `{kind: "finalize", source: {kind: "cleanup_place",
+  storage, projections: [<field DeclarationId>]}, lifecycle_id,
+  guard_flag: <u32>}` in the plan's runtime order. No active_case, resource,
+  nested path or unknown kind is admitted. Empty operations are explicit `[]`.
+
+The checked binding additionally includes the full record liveness shape
+from `graph_cleanup::liveness_shape_json` at the same base (record root,
+field_liveness entries, leaf/no_drop shapes); no generic model substitutes
+for this real metadata. Source plan schema/digest are included in signature
+binding's plan digest input, with no new signature wire fields.
+
+`profile` is exactly `semaprax.source-owned-frame.v1`, `kind` is the exact
+case-sensitive row name in the table, and `schema` is the stated new journal
+identity. `created_sequence` is 0 and each sequence increments by one.
+Row sequences, causal references, counts, reservation and fuel totals are u64;
+site is exactly the checked single suspension's persistent identity; generations
+and digest fields are sha256-prefixed strings; authentication/previous_mac are
+64-digit lowercase hex. Stable declaration/value/site strings have the stated
+UTF-8 bounds. `argument`, `result`, `frame`, `answer`, `request`, `signature`,
+`pending_cleanup` and `limits` are typed objects/vectors as defined above, not
+JSON strings or arbitrary blobs. Pending cleanup is exactly the canonical
+operation vector. `checkpoint` is the complete canonical envelope UTF-8 string
+including its LF; byte cap counts decoded UTF-8 and record cap counts escaped
+rendering. `scope.policy_epoch` is u64. `language_status` is exactly null or
+`{domain: <string>, code: <u32>, class: "semantic"}`, rederived from the
+selected checked source failure. No defaulted/nullable invented replay fields
+or other scalar/schema fallback exists.
 
 ## 7. Exact bounds and preflight
 
@@ -387,7 +606,19 @@ never grants a result, owner, dispatch or cleanup capability.
    fail closed before source evaluation or authority-bearing action.
 8. Capacity/fuel exact edges, repeated interrupted charged replay, near-full
    post-dispatch settlement, wrong consumed-step counter and overflow controls.
-9. Frozen scalar/control/Copy journal/checkpoint fixtures and backend refusal
+9. Created-only restoration returns no token/owner; uncertain commit never
+   returns an argument. Pinned-directory/file substitution, complete valid-tail
+   rollback injection violates the protected-store scope and must make the
+   store registration unavailable; copying/replacement/second registration
+   are refused before owner restoration. Do not claim an HMAC detects an
+   in-place complete valid-tail rollback in an unprotected directory. Pre-yield retry has no checkpoint digest; every
+   interrupted start/resume/replay retry consumes fresh fuel. Terminal bases
+   never enter source replay. HostConfirmed cannot claim any result.
+10. Foundation real Weak/strong-count lifetime tests cover precondition,
+   postcondition, fuel, cancellation, park Drop/unwind, terminal Drop/unwind,
+   explicit settlement, result Drop and consuming result handoff. Unsettled
+   backing disposal never masquerades as semantic release.
+11. Frozen scalar/control/Copy journal/checkpoint fixtures and backend refusal
    selectors remain unchanged. No target parity claim from interpreter tests.
 
 Place tests in existing owning harness/modules; do not add a new top-level
@@ -400,9 +631,13 @@ and target implementations require their own reviewed follow-up packet.
 
 ## 10. Review boundary
 
-Independent review must settle the consuming API, actual parameter/record
-liveness proof, wire field tables, capacity renderer and conservative
-result-delivery uncertainty before code begins. Any proposed change to those
+Independent review must approve these consuming API, parameter/record
+liveness, authoritative-store, wire and uncertainty choices before code begins.
+Implementation is split into two review packets: first compiler liveness plus
+the sealed consuming evaluator with real Arc/owner lifetime tests; then the
+pinned durable codecs/store/fold and crash gates. Approval of the foundation
+does not authorize shipping durable recovery before the second packet passes
+all of its specified gates. Any proposed change to those
 choices amends this contract for review; implementation cannot approve its own
 scope reduction. This document grants no completed R20 acceptance, deployment,
 hosted evidence, issue mutation, asynchronous scheduler or storage authority.

@@ -430,9 +430,40 @@ fn near_capacity_intent_ack_keeps_room_for_maximum_settlement_and_completion() {
     sink.append_at(terminal, 0).unwrap();
     assert!(sink
         .journal()
-        .wait_evidence(&evidence_digest)
+        .wait_evidence(&evidence_digest, &hash("ordinary-model-evidence"))
         .unwrap()
         .starts_with(b"{\"schema\":\"semaprax.source-model-wait.evidence.v1\""));
+    let model_digest = hash("ordinary-model-evidence");
+    let payload = sink
+        .journal()
+        .wait_evidence(&evidence_digest, &model_digest)
+        .unwrap();
+    let prefix=format!("{{\"schema\":\"semaprax.source-model-wait.evidence.v1\",\"terminal_evidence_digest\":{},\"ordinary_model_evidence_digest\":{},",quote_json(&evidence_digest),quote_json(&model_digest));
+    assert!(payload.starts_with(prefix.as_bytes()));
+    assert!(!payload.ends_with(b"\n"));
+    assert_eq!(
+        sink.journal()
+            .wait_evidence_digest(&evidence_digest, &model_digest)
+            .unwrap(),
+        digest(EVIDENCE_DOMAIN, &payload)
+    );
+    assert_ne!(
+        sink.journal()
+            .wait_evidence_digest(&evidence_digest, &model_digest)
+            .unwrap(),
+        sink.journal()
+            .wait_evidence_digest(&evidence_digest, &hash("other-model-evidence"))
+            .unwrap()
+    );
+    assert_eq!(
+        sink.journal().wait_evidence(&evidence_digest, "invalid"),
+        Err(SourceJournalError::Malformed)
+    );
+    assert_eq!(
+        sink.journal()
+            .wait_evidence(&hash("other-terminal"), &model_digest),
+        Err(SourceJournalError::Binding)
+    );
     drop(sink);
     assert!(store.document.len() <= MAX_SOURCE_DOCUMENT_BYTES);
     recover_source_checkpoint(&store.document, &b).unwrap();
@@ -505,4 +536,71 @@ fn wait_fuel_limit_refuses_reservation_before_checkpoint_ack() {
     );
     assert_eq!(sink.generation(), 4);
     assert_eq!(sink.journal().wait_fuel().unwrap(), 0);
+}
+
+#[test]
+fn unchecked_start_replay_cannot_cross_resume_or_admission_boundaries() {
+    for replay_after_resume in [false, true] {
+        let b = binding();
+        let mut store = Store::default();
+        let mut sink = SourceCheckpointSink::new(&mut store, b.clone());
+        begin(&mut sink);
+        sink.append_wait_at(reserved(&b, SourceModelWaitPhaseV7::Start, None), 0)
+            .unwrap();
+        sink.append_wait_at(prepared(&b), 0).unwrap();
+        sink.append_at(intent(&b), 0).unwrap();
+        sink.append_at(raw(b"proposal".to_vec()), 0).unwrap();
+        let mut resume = sink.generation() as u32;
+        if replay_after_resume {
+            sink.append_wait_at(reserved(&b, SourceModelWaitPhaseV7::Resume, None), 0)
+                .unwrap();
+        }
+        // Multiple interrupted reconstructions remain allowed and fully charged.
+        sink.append_wait_at(reserved(&b, SourceModelWaitPhaseV7::Start, Some(4)), 0)
+            .unwrap();
+        let latest_start = sink.generation() as u32;
+        sink.append_wait_at(reserved(&b, SourceModelWaitPhaseV7::Start, Some(4)), 0)
+            .unwrap();
+        let completed = |reservation| SourceModelWaitEntryV7::Completed {
+            turn: 0,
+            attempt: 0,
+            wait: b.model_wait_id(0, 0).unwrap(),
+            reservation,
+            proposal_digest: hash("proposal"),
+        };
+        let admitted = SourceJournalEntry::ProposalAdmitted {
+            turn: 0,
+            attempt: 0,
+            proposal_digest: hash("proposal"),
+        };
+        let mut hostile = sink.journal().clone();
+        if replay_after_resume {
+            sink.append_wait_at(completed(resume), 0).unwrap();
+            assert_eq!(
+                sink.preflight_at(&admitted, 0),
+                Err(SourceJournalError::Order)
+            );
+            push_wait(&mut hostile, completed(resume));
+        } else {
+            let row = reserved(&b, SourceModelWaitPhaseV7::Resume, None);
+            assert_eq!(
+                sink.preflight_wait_at(&row, 0),
+                Err(SourceJournalError::Order)
+            );
+            let hostile_resume = hostile.combined_len() as u32;
+            push_wait(&mut hostile, row);
+            push_wait(&mut hostile, completed(hostile_resume));
+        }
+        hostile.entries.push(admitted.clone());
+        assert!(matches!(fold(&hostile), Err(SourceJournalError::Order)));
+        sink.append_wait_at(checked(&b, latest_start), 0).unwrap();
+        if !replay_after_resume {
+            resume = sink.generation() as u32;
+            sink.append_wait_at(reserved(&b, SourceModelWaitPhaseV7::Resume, None), 0)
+                .unwrap();
+            sink.append_wait_at(completed(resume), 0).unwrap();
+        }
+        sink.append_at(admitted, 0).unwrap();
+        assert_eq!(sink.journal().wait_fuel().unwrap(), 20);
+    }
 }

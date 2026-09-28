@@ -255,8 +255,10 @@ impl SourceJournal {
     pub(crate) fn wait_evidence(
         &self,
         terminal_digest: &str,
+        ordinary_model_evidence_digest: &str,
     ) -> Result<Vec<u8>, SourceJournalError> {
-        if !looks_like_digest(terminal_digest) {
+        if !looks_like_digest(terminal_digest) || !looks_like_digest(ordinary_model_evidence_digest)
+        {
             return Err(SourceJournalError::Malformed);
         }
         if !matches!(self.entries.last(), Some(SourceJournalEntry::TerminalSnapshot { evidence_digest, .. }) if evidence_digest == terminal_digest)
@@ -304,15 +306,16 @@ impl SourceJournal {
             .wait
             .as_ref()
             .ok_or(SourceJournalError::Binding)?;
-        Ok(format!("{{\"schema\":\"semaprax.source-model-wait.evidence.v1\",\"terminal_evidence_digest\":{},\"wrapper_binding\":{},\"invocation\":{},\"waits\":[{}],\"total_wait_fuel\":{}}}",quote_json(terminal_digest),quote_json(profile.wrapper_binding()),quote_json(self.binding.invocation()),rows.join(","),folded.fuel).into_bytes())
+        Ok(format!("{{\"schema\":\"semaprax.source-model-wait.evidence.v1\",\"terminal_evidence_digest\":{},\"ordinary_model_evidence_digest\":{},\"wrapper_binding\":{},\"invocation\":{},\"waits\":[{}],\"total_wait_fuel\":{}}}",quote_json(terminal_digest),quote_json(ordinary_model_evidence_digest),quote_json(profile.wrapper_binding()),quote_json(self.binding.invocation()),rows.join(","),folded.fuel).into_bytes())
     }
     pub(crate) fn wait_evidence_digest(
         &self,
         terminal_digest: &str,
+        ordinary_model_evidence_digest: &str,
     ) -> Result<String, SourceJournalError> {
         Ok(digest(
             EVIDENCE_DOMAIN,
-            &self.wait_evidence(terminal_digest)?,
+            &self.wait_evidence(terminal_digest, ordinary_model_evidence_digest)?,
         ))
     }
 }
@@ -443,6 +446,7 @@ fn fold(journal: &SourceJournal) -> Result<WaitFold, SourceJournalError> {
                         .ok_or(SourceJournalError::Order)?;
                     if state.closed
                         || !state.settled
+                        || !state.ready(SourceModelWaitPhaseV7::Start)
                         || !state.ready(SourceModelWaitPhaseV7::Resume)
                     {
                         return Err(SourceJournalError::Order);
@@ -515,6 +519,7 @@ fn fold(journal: &SourceJournal) -> Result<WaitFold, SourceJournalError> {
                         if *fuel != profile.evaluation_fuel || *fuel == 0 {
                             return Err(SourceJournalError::Binding);
                         }
+                        let start_ready = state.ready(SourceModelWaitPhaseV7::Start);
                         let original = match phase {
                             SourceModelWaitPhaseV7::Start => &mut state.public.start_reservation,
                             SourceModelWaitPhaseV7::Resume => &mut state.public.resume_reservation,
@@ -527,7 +532,7 @@ fn fold(journal: &SourceJournal) -> Result<WaitFold, SourceJournalError> {
                             if original.is_some()
                                 || state.closed
                                 || (*phase == SourceModelWaitPhaseV7::Resume
-                                    && (!state.settled || state.public.prepared.is_none()))
+                                    && (!state.settled || !start_ready))
                             {
                                 return Err(SourceJournalError::Order);
                             }
@@ -696,13 +701,17 @@ impl RecoveredSourceCheckpoint {
     pub(crate) fn wait_evidence(
         &self,
         terminal_digest: &str,
+        ordinary_model_evidence_digest: &str,
     ) -> Result<Vec<u8>, SourceJournalError> {
-        self.journal.wait_evidence(terminal_digest)
+        self.journal
+            .wait_evidence(terminal_digest, ordinary_model_evidence_digest)
     }
     pub(crate) fn wait_evidence_digest(
         &self,
         terminal_digest: &str,
+        ordinary_model_evidence_digest: &str,
     ) -> Result<String, SourceJournalError> {
-        self.journal.wait_evidence_digest(terminal_digest)
+        self.journal
+            .wait_evidence_digest(terminal_digest, ordinary_model_evidence_digest)
     }
 }

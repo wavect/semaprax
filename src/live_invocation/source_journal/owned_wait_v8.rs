@@ -51,6 +51,6 @@ pub(super) struct FoldContextV8 {
     granted: String,
     refused: String,
     refused_cleanup_empty: bool,
-    #[cfg(test)]
-    test_binding: crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
+    checked_binding:
+        std::sync::Arc<crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8>,
 }

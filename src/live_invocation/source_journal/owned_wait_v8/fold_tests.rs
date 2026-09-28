@@ -87,7 +87,7 @@ fn context() -> FoldContextV8 {
                 .as_ref()
                 .is_some_and(|case| case.case != *authorize.refused())
         }),
-        test_binding: checked,
+        checked_binding: std::sync::Arc::new(checked),
     }
 }
 fn observation_facts(
@@ -95,7 +95,7 @@ fn observation_facts(
     budget: i64,
 ) -> crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8 {
     let scope = crate::resumable_effects::source_checkpoint::SourceCheckpointScope::new(
-        c.test_binding.binding(),
+        c.checked_binding.binding(),
         "inert-v8-fold",
         0,
     )
@@ -108,7 +108,7 @@ fn observation_facts(
         ],
     };
     crate::resumable_effects::owned_frame::v2::bind_owned_wait_observation_v8(
-        &c.test_binding,
+        &c.checked_binding,
         &scope,
         &observation,
     )
@@ -918,7 +918,7 @@ fn sealed_observation_binds_exact_scope_and_preserves_observed_value_across_retr
     let c = context();
     let rows = fixtures(&c);
     let scope = crate::resumable_effects::source_checkpoint::SourceCheckpointScope::new(
-        c.test_binding.binding(),
+        c.checked_binding.binding(),
         "different-invocation",
         0,
     )
@@ -931,7 +931,7 @@ fn sealed_observation_binds_exact_scope_and_preserves_observed_value_across_retr
         ],
     };
     let other = crate::resumable_effects::owned_frame::v2::bind_owned_wait_observation_v8(
-        &c.test_binding,
+        &c.checked_binding,
         &scope,
         &observation,
     )

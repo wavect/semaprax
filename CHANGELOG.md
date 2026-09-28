@@ -11,8 +11,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Add private owned-wait v8 authenticated effect history, retained-container
   append checks and physical effect/reducer ownership foundations. Fresh
   initialization uses exact typed Task and acknowledged stage reservations;
-  historical data cannot mint owners. Public owned Agent execution and durable
-  recovery remain incomplete; current integrated gates are pending.
+  historical data cannot mint owners. Actual held Authorize/Consumed/Intent
+  ACKs now preserve the same owner and exclusive future-Reduce credit through
+  consuming host dispatch with retained invocation accounting. Public owned
+  Agent execution and durable recovery remain incomplete; full integrated
+  acceptance is pending.
 
 - Add candidate embedded ordinary Agent operation bodies and same-module model-wait helper associations, with original-source replay before checked HIR cache reuse. Source graph v50 and workspace/package graph v4 preserve their selected legacy bases and carry descriptive execution associations. The owned Agent lifecycle remains incomplete; integrated acceptance gates are pending.
 

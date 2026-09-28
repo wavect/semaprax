@@ -126,7 +126,7 @@ pub(crate) fn stage_owned_initialize_v2(
         .allocations
         .seed(&[staged.task.as_ref().expect("consumed Task")])
         .expect("validated Task allocation provenance");
-    let mut frame = Environment::default();
+    let mut frame = Environment::from(Vec::new());
     let outcome = (|| {
         evaluator.semantic_charge()?; // actual checked call frame
         contracts(&mut evaluator, plan, &staged, &mut frame, true)?;

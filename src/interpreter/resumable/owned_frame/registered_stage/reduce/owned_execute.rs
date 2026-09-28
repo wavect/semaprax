@@ -12,9 +12,9 @@ pub(crate) struct PreparedExecutedOwnedReduceV2<'a> {
     effect_settled: u32,
 }
 pub(crate) struct StagedExecutedOwnedReduceV2<'a> {
-    staged: StagedOwnedReduceV2,
-    inputs: OwnedEffectInputsV8<'a>,
-    effect_settled: u32,
+    pub(super) staged: StagedOwnedReduceV2,
+    pub(super) inputs: OwnedEffectInputsV8<'a>,
+    pub(super) effect_settled: u32,
 }
 pub(crate) struct ExecutedOwnedReducePreparationRejectionV2<'a> {
     pub(crate) executed: ExecutedOwnedAgentTurnV2<'a>,

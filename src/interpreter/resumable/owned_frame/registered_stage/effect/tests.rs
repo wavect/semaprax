@@ -671,3 +671,97 @@ fn owned_frame_v8_effect_final_guard_cancellation_refuses_outcome_and_reducer_en
         });
     }
 }
+
+/// Shared actual physical fixture. All ACK construction here is deliberately
+/// test-only and bypasses the pending production §22/§23 append obligations.
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn with_staged_effect_reduce_v2(
+    fuel: usize,
+    callback: impl FnOnce(
+        super::super::reduce::StagedExecutedOwnedReduceV2<'_>,
+        [std::sync::Weak<[u8]>; 2],
+        std::sync::Weak<[u8]>,
+        &AgentCancellation,
+        &std::path::Path,
+    ),
+) {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
+        true,
+        |context, lease, key, directory| {
+            let context = Arc::new(context);
+            let journal = SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
+            let (runtime, execution) = context.test_runtime_execution();
+            let b = execution.wait();
+            let store = journal.hold().unwrap();
+            let k = proposal(b, &store.registration().expected_facts().scope);
+            let (ready, weak) = ready(b);
+            let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+            let cancellation = AgentCancellation::new();
+            let inputs = OwnedEffectInputsV8 {
+                runtime,
+                execution,
+                proposal: &k,
+                store,
+                policy: &policy,
+                cancellation: &cancellation,
+                turn: 0,
+                attempt: 0,
+            };
+            let ack = authorization(&inputs, &ready);
+            let prepared = prepare_owned_effect_v8(inputs, ready, ack, |_| true)
+                .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+            let ack = intent(&prepared);
+            let mut host = Host {
+                calls: 0,
+                cancel: None,
+                panic: false,
+            };
+            let mut accounting = TargetAccounting::default();
+            let staged =
+                dispatch_owned_effect_v8(prepared, ack, &mut accounting, |_| true, &mut host)
+                    .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+            assert_eq!(host.calls, 1);
+            assert_eq!(accounting.calls(), 1);
+            let (ack, started) = settlement(&staged);
+            let mut observed = 0;
+            let pending = release_owned_effect_decision_v8(
+                staged,
+                ack,
+                started,
+                |_| true,
+                |_| {
+                    observed += 1;
+                    assert_eq!([weak[0].strong_count(), weak[1].strong_count()], [1, 0]);
+                },
+            )
+            .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+            assert_eq!(observed, 1);
+            let ack = settled(&pending);
+            let executed = ack_owned_effect_cleanup_v8(pending, ack, |_| true)
+                .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+            let Value::Record(outcome) = executed.roots.outcome.as_ref().unwrap() else {
+                panic!()
+            };
+            let Value::Bytes(bytes) =
+                &outcome.fields[&b.lifecycle().owned_wait_outcome_v8().bytes_field]
+            else {
+                panic!()
+            };
+            assert_eq!(bytes.allocation, 3);
+            let outcome_weak = Arc::downgrade(&bytes.bytes);
+            let plan = compile_owned_reduce_v2(b).unwrap();
+            let prepared =
+                super::super::reduce::prepare_executed_owned_reduce_v2(executed, &plan, |_| true)
+                    .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+            let staged = super::super::reduce::stage_executed_owned_reduce_v2(
+                prepared,
+                &mut OwnedFrameBudget::new(fuel).unwrap(),
+                |_| true,
+            )
+            .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+            callback(staged, weak, outcome_weak.clone(), &cancellation, directory);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+            assert!(outcome_weak.upgrade().is_none());
+            assert_eq!(host.calls, 1);
+        },
+    );
+}

@@ -201,7 +201,7 @@ pub(crate) fn settle_owned_reduce_v2(
         observations_succeeded,
     }))
 }
-fn actions(staged: &StagedOwnedReduceV2) -> Vec<FinalizeAction> {
+pub(super) fn actions(staged: &StagedOwnedReduceV2) -> Vec<FinalizeAction> {
     if staged.provisional {
         if staged.failure.is_some() {
             staged.plan.transfers().provisional_failure.clone()
@@ -214,7 +214,7 @@ fn actions(staged: &StagedOwnedReduceV2) -> Vec<FinalizeAction> {
         staged.plan.transfers().initial_disposal.clone()
     }
 }
-fn active_flags(staged: &StagedOwnedReduceV2) -> Vec<crate::cleanup::LivenessFlagId> {
+pub(super) fn active_flags(staged: &StagedOwnedReduceV2) -> Vec<crate::cleanup::LivenessFlagId> {
     if !staged.provisional {
         return actions(staged).iter().map(|a| a.guard_flag).collect();
     }

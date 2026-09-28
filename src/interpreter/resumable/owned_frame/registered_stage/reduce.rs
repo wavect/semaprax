@@ -381,6 +381,13 @@ pub(crate) use owned_execute::{
     PreparedExecutedOwnedReduceV2, StagedExecutedOwnedReduceV2,
 };
 
+mod physical_step;
+pub(crate) use physical_step::{
+    consume_executed_owned_step_v2, settle_executed_owned_reduce_v2,
+    CommittedExecutedOwnedReduceCleanupV2, CommittedExecutedOwnedStepTransferV2,
+    ExecutedOwnedReduceSettledV2, HeldExecutedOwnedStepV2, ReadyExecutedOwnedStepV2,
+};
+
 mod step;
 pub(crate) use step::{
     consume_owned_step_v2, settle_owned_reduce_v2, OwnedReduceSettledV2,

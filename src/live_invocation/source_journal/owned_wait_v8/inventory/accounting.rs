@@ -6,8 +6,8 @@ use crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settl
 };
 
 /// Proof data only: no ledger mutation, lease, dispatch or owner restoration.
-pub(super) struct CheckedAccountingPrefixV8 {
-    context_identity: usize,
+pub(super) struct CheckedAccountingPrefixV8<'a> {
+    context: &'a CheckedOwnedWaitJournalContextV8,
     program_root: String,
     policy_epoch: u64,
     invocation: String,
@@ -19,7 +19,7 @@ pub(super) struct CheckedAccountingPrefixV8 {
     prefix_mac: String,
     exchanges: Vec<(usize, usize, usize, CheckedTargetAccountingV8)>,
 }
-impl CheckedAccountingPrefixV8 {
+impl CheckedAccountingPrefixV8<'_> {
     pub(super) fn matches(
         &self,
         context: &CheckedOwnedWaitJournalContextV8,
@@ -27,7 +27,7 @@ impl CheckedAccountingPrefixV8 {
         rows: usize,
         mac: &str,
     ) -> bool {
-        self.context_identity == context as *const CheckedOwnedWaitJournalContextV8 as usize
+        std::ptr::eq(self.context, context)
             && self.program_root == context.registration().expected_facts().scope.program_root()
             && self.policy_epoch == context.registration().expected_facts().scope.policy_epoch()
             && self.invocation == context.ordinary().invocation()
@@ -43,16 +43,16 @@ impl CheckedAccountingPrefixV8 {
     }
 }
 
-pub(super) struct AccountingBuilderV8 {
-    proof: CheckedAccountingPrefixV8,
+pub(super) struct AccountingBuilderV8<'a> {
+    proof: CheckedAccountingPrefixV8<'a>,
     boundaries: Vec<(usize, String)>,
 }
-impl AccountingBuilderV8 {
+impl<'a> AccountingBuilderV8<'a> {
     /// Caller must already have authenticated EVERY row via decode_inventory.
     /// This parses only already-authenticated envelope metadata, not a second
     /// MAC verifier or a history supplied by a caller with a prefix index.
     pub(super) fn authenticated(
-        context: &CheckedOwnedWaitJournalContextV8,
+        context: &'a CheckedOwnedWaitJournalContextV8,
         bytes: &[u8],
     ) -> Result<Self, Error> {
         let mut end = 0usize;
@@ -70,7 +70,7 @@ impl AccountingBuilderV8 {
         }
         Ok(Self {
             proof: CheckedAccountingPrefixV8 {
-                context_identity: context as *const CheckedOwnedWaitJournalContextV8 as usize,
+                context,
                 program_root: context
                     .registration()
                     .expected_facts()
@@ -139,7 +139,7 @@ impl AccountingBuilderV8 {
         Ok(())
     }
     /// Called only AFTER final fold and the physical lease postguard.
-    pub(super) fn finish(self) -> Result<CheckedAccountingPrefixV8, Error> {
+    pub(super) fn finish(self) -> Result<CheckedAccountingPrefixV8<'a>, Error> {
         if self.proof.prefix_rows != self.boundaries.len() {
             return Err(Error::Binding);
         }

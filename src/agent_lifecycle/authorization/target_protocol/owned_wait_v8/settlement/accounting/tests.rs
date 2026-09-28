@@ -193,3 +193,31 @@ fn owned_wait_accounting_remaining_total_exhaustion_and_exact_overflow_sentinel(
     )
     .is_err());
 }
+
+#[test]
+fn owned_wait_accounting_second_raw_total_overflow_has_no_guessed_charge_basis() {
+    let mut ledger = TargetAccounting::default();
+    let (request, first, _) = exchange(&mut ledger, 0, limits(), false, false);
+    let prefix = checked(None, &request, &first, limits()).unwrap();
+    let result_len = first.result().unwrap().encode().len() as u64;
+    // The second request fits and its raw carrier fits the actual sink, but
+    // previous result bytes make charge_result fail the cumulative total.
+    let narrow = TargetLimits {
+        max_total_bytes: ledger.request_bytes() + request.len() as u64 + 2 * result_len - 1,
+        ..limits()
+    };
+    let (next, second, calls) = exchange(&mut ledger, 1, narrow, false, false);
+    assert_eq!(calls, 1);
+    assert_eq!(second.evidence().settlement(), Settlement::ResultBudget);
+    assert!(second.result().is_none());
+    assert_eq!(ledger.calls(), 2);
+    assert_eq!(ledger.result_bytes(), 2 * result_len);
+    assert!(
+        checked(Some(&prefix), &next, &second, narrow).is_err(),
+        "omitted raw response commitment cannot attest the reported delta or a guessed sentinel"
+    );
+    assert!(
+        checked(None, &next, &second, narrow).is_err(),
+        "resetting prior charges cannot rescue the evidence"
+    );
+}

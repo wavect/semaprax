@@ -20,6 +20,7 @@ pub use policy_v6::{
     SourcePolicyQuoteV6, SourcePolicyTotalsV6,
 };
 mod migration;
+mod owned_wait_v8;
 mod priced_v4;
 mod sink;
 mod validate;

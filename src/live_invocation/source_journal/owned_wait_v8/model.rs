@@ -1,0 +1,168 @@
+//! Exact closed v8 owned-body inventory (§8.4); snapshots remain inert JSON.
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(super) enum PhaseV8 {
+    Start,
+    Resume,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(super) enum OwnerV8 {
+    State,
+    Decision,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub(super) enum OwnedBodyV8 {
+    OwnedRunCreated {
+        scope: Value,
+        execution: String,
+        binding: String,
+        signature: Value,
+        limits: Value,
+        store_identity: Value,
+    },
+    OwnedStateCommitted {
+        turn: u32,
+        state: Value,
+        argument_digest: String,
+        cleanup_plan_digest: String,
+    },
+    OwnedWaitCreated {
+        turn: u32,
+        attempt: u32,
+        wait: String,
+        plan_digest: String,
+        cleanup_plan_digest: String,
+        signature: Value,
+        argument_digest: String,
+        copy_arguments: Value,
+        copy_arguments_digest: String,
+    },
+    OwnedWaitReserved {
+        turn: u32,
+        attempt: u32,
+        wait: String,
+        phase: PhaseV8,
+        replay_of: Option<u32>,
+        fuel: u64,
+    },
+    OwnedWaitPrepared {
+        turn: u32,
+        attempt: u32,
+        wait: String,
+        reservation: u32,
+        observation_digest: String,
+        checkpoint_digest: String,
+        checkpoint: String,
+        consumed: u64,
+    },
+    OwnedWaitCompleted {
+        turn: u32,
+        attempt: u32,
+        wait: String,
+        reservation: u32,
+        proposal: Value,
+        proposal_digest: String,
+        result_digest: String,
+        consumed: u64,
+    },
+    OwnedWaitFailed {
+        turn: u32,
+        attempt: u32,
+        wait: String,
+        reservation: Option<u32>,
+        status: Value,
+        consumed: u64,
+    },
+    OwnedWaitReplayChecked {
+        turn: u32,
+        attempt: u32,
+        wait: String,
+        reservation: u32,
+        original: u32,
+        result_digest: String,
+        consumed: u64,
+    },
+    OwnedWaitRetired {
+        turn: u32,
+        attempt: u32,
+        wait: String,
+        prepared: u32,
+        state_digest: String,
+        observation_digest: String,
+    },
+    OwnedStateRearmed {
+        turn: u32,
+        attempt: u32,
+        wait: String,
+        retired: u32,
+        state: Value,
+        state_digest: String,
+        observation: Value,
+        observation_digest: String,
+    },
+    OwnedCleanupStarted {
+        turn: u32,
+        attempt: Option<u32>,
+        wait: Option<String>,
+        owner: OwnerV8,
+        basis: u32,
+        terminal: Value,
+        operations: Value,
+        operations_digest: String,
+    },
+    OwnedCleanupSettled {
+        turn: u32,
+        attempt: Option<u32>,
+        wait: Option<String>,
+        owner: OwnerV8,
+        started: u32,
+        receipt: Value,
+        receipt_digest: String,
+    },
+    OwnedStateTransferReserved {
+        turn: u32,
+        attempt: u32,
+        wait: String,
+        from: String,
+        to: String,
+        state_digest: String,
+        proposal_digest: String,
+        transfer_digest: String,
+    },
+    OwnedStateTransferCompleted {
+        turn: u32,
+        attempt: u32,
+        wait: String,
+        reservation: u32,
+        state: Value,
+        state_digest: String,
+        proposal: Value,
+        proposal_digest: String,
+        transfer_digest: String,
+    },
+    OwnedAuthorizationStaged {
+        turn: u32,
+        attempt: u32,
+        stage_reservation: u32,
+        transfer: u32,
+        state_digest: String,
+        proposal_digest: String,
+        decision: Value,
+        decision_digest: String,
+        consumed: u64,
+    },
+    OwnedAuthorizationReady {
+        turn: u32,
+        attempt: u32,
+        staged: u32,
+        state_digest: String,
+        decision_digest: String,
+        grant_digest: String,
+    },
+}

@@ -53,6 +53,40 @@ fn with_failed(
 }
 fn generic_refuses_without_io(journal: &SourceOwnedWaitJournalV8, row: EntryV8) {
     let before = journal.test_observe_lease().borrow_mut().read().unwrap();
+    if let EntryV8::Ordinary(SourceJournalEntry::Stop { turn, attempt, .. }) = &row {
+        let mut coordinate_free = row.clone();
+        let EntryV8::Ordinary(SourceJournalEntry::Stop {
+            turn: t,
+            attempt: a,
+            ..
+        }) = &mut coordinate_free
+        else {
+            unreachable!()
+        };
+        *t = None;
+        *a = None;
+        assert!(journal
+            .begin_session()
+            .unwrap()
+            .append(coordinate_free)
+            .is_err());
+        let mut different_attempt = row.clone();
+        let EntryV8::Ordinary(SourceJournalEntry::Stop {
+            turn: t,
+            attempt: a,
+            ..
+        }) = &mut different_attempt
+        else {
+            unreachable!()
+        };
+        *t = *turn;
+        *a = Some(attempt.unwrap_or(0).checked_add(1).unwrap());
+        assert!(journal
+            .begin_session()
+            .unwrap()
+            .append(different_attempt)
+            .is_err());
+    }
     assert!(journal.begin_session().unwrap().append(row).is_err());
     assert_eq!(
         journal.test_observe_lease().borrow_mut().read().unwrap(),

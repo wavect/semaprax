@@ -822,6 +822,20 @@ order, prunes disconnected functions and correlated declaration-index facts,
 and rederives byte provenance. Retained functions must remain explicit,
 effect-free and Copy-scalar with no owned cleanup; authored nominal/authority surfaces,
 generic calls, function references and retained yielding callees fail closed.
+
+The separate `src/resumable_effects/owned_frame/plan.rs` seals a private checked
+whole-owned-record plan. `src/cleanup_plan/owned_liveness/owned_frame.rs` derives
+actual record-field liveness; `src/cleanup_plan/build/owned_frame_finalizers.rs`
+shares the ordinary builder's canonical finalizer order.
+`src/interpreter/resumable/owned_frame.rs` owns the consuming evaluator: it
+validates inert declaration-ordered Bytes and scalar input before creating one
+opaque live root, retains that root through park/resume and staged terminal
+failures, and performs explicit ordered settlement or consuming result handoff.
+Its environments contain Copy observations, and alias checks precede physical
+leaf release. This private foundation is separate from scalar replay. Durable
+checkpoint/restore and journal authority, target emission, and Agent session
+integration are not implemented by this subtree.
+
 `src/resumable_effects/target.rs` owns the public, authority-free production
 preparation profile for those already authenticated projections. It emits an
 exact bounded inventory of deterministic native C11 source or Core-Wasm bytes

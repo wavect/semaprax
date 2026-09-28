@@ -391,3 +391,89 @@ fn full_row_capacity_includes_the_terminal_lf_for_decode_and_encode() {
         Err(SourceJournalError::Capacity)
     );
 }
+
+#[test]
+fn hash_recipes_preserve_canonical_operation_order_and_checkpoint_lf() {
+    use wire::RecipeV8;
+    let operations = json!({"owner":"state","basis":7,"terminal":{"code":1},"operations":[{"slot":2},{"slot":1}]});
+    assert_eq!(
+        wire::recipe_digest(RecipeV8::Operations, &operations).unwrap(),
+        "sha256:b4bc92cc74cf8a93c70884977cd8065317a2dfeabf5dda3782f06f49ff7d8217"
+    );
+    let mut reversed = operations.clone();
+    reversed["operations"].as_array_mut().unwrap().reverse();
+    assert_ne!(
+        wire::recipe_digest(RecipeV8::Operations, &reversed).unwrap(),
+        wire::recipe_digest(RecipeV8::Operations, &operations).unwrap()
+    );
+    let envelope = json!({"payload":{"schema":"semaprax.source-owned-frame-checkpoint.v2"},"authentication":"0".repeat(64)});
+    let mut bytes = wire::canonical(&envelope);
+    bytes.push(b'\n');
+    assert_eq!(
+        wire::checkpoint_bytes_digest(&bytes).unwrap(),
+        "sha256:6b1e3da93f57bd3986b889b4a5536df70c5677841d680dcd74689b38e09a6292"
+    );
+    assert!(wire::checkpoint_bytes_digest(&bytes[..bytes.len() - 1]).is_err());
+    let mut extra = envelope;
+    extra["extra"] = 0.into();
+    let mut bytes = wire::canonical(&extra);
+    bytes.push(b'\n');
+    assert!(wire::checkpoint_bytes_digest(&bytes).is_err());
+}
+
+#[test]
+fn hash_recipes_have_closed_payload_keys_and_domain_separation() {
+    use wire::RecipeV8;
+    let fixtures = [
+        (
+            RecipeV8::Invocation,
+            json!({"execution":d(),"owned_wait_binding":d()}),
+        ),
+        (
+            RecipeV8::Attempt,
+            json!({"invocation":d(),"turn":0,"attempt":0,"binding":d()}),
+        ),
+        (
+            RecipeV8::Generation,
+            json!({"scope":{},"execution":d(),"binding":d(),"store_identity":{},"limits":{}}),
+        ),
+        (
+            RecipeV8::Transfer,
+            json!({"scope":{},"generation":d(),"turn":0,"attempt":0,"wait":d(),"from":"helper","to":"authorize","state_digest":d(),"proposal_digest":d()}),
+        ),
+        (
+            RecipeV8::Operations,
+            json!({"owner":"state","basis":0,"terminal":{},"operations":[]}),
+        ),
+        (
+            RecipeV8::Decision,
+            json!({"scope":{},"turn":0,"attempt":0,"authorize":"authorize","decision":{}}),
+        ),
+        (
+            RecipeV8::Grant,
+            json!({"scope":{},"turn":0,"attempt":0,"state_digest":d(),"proposal_digest":d(),"decision_digest":d(),"authorization_binding":d(),"budget":1}),
+        ),
+    ];
+    let mut hashes = std::collections::BTreeSet::new();
+    for (recipe, value) in fixtures {
+        assert!(hashes.insert(wire::recipe_digest(recipe, &value).unwrap()));
+        let mut unknown = value.clone();
+        unknown["extra"] = 1.into();
+        assert!(wire::recipe_digest(recipe, &unknown).is_err());
+        for field in value.as_object().unwrap().keys() {
+            let mut missing = value.clone();
+            missing.as_object_mut().unwrap().remove(field);
+            assert!(wire::recipe_digest(recipe, &missing).is_err());
+        }
+    }
+    // The receipt codec owner supplies its own closed shape; hashing is inert.
+    let receipt = json!({"kind":"observed","operations":[]});
+    assert_ne!(
+        wire::recipe_digest(RecipeV8::Receipt, &receipt).unwrap(),
+        wire::recipe_digest(
+            RecipeV8::Decision,
+            &json!({"scope":{},"turn":0,"attempt":0,"authorize":"authorize","decision":receipt})
+        )
+        .unwrap()
+    );
+}

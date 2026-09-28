@@ -264,3 +264,105 @@ fn validate_owned(value: &Value) -> Result<(), SourceJournalError> {
     }
     Ok(())
 }
+
+/// Closed hash recipes only. Computing a digest does not authenticate its inputs
+/// or grant the caller a checked context, store registration, or runtime owner.
+#[derive(Clone, Copy)]
+pub(super) enum RecipeV8 {
+    Invocation,
+    Attempt,
+    Generation,
+    Transfer,
+    Operations,
+    Receipt,
+    Decision,
+    Grant,
+}
+impl RecipeV8 {
+    fn domain(self) -> &'static [u8] {
+        match self {
+            Self::Invocation => b"semaprax.live-invocation.source-id.v8\0",
+            Self::Attempt => b"semaprax.source-agent-owned-wait.attempt.v1\0",
+            Self::Generation => b"semaprax.source-agent-owned-wait.generation.v1\0",
+            Self::Transfer => b"semaprax.source-agent-owned-wait.transfer.v1\0",
+            Self::Operations => b"semaprax.source-agent-owned-wait.operations.v1\0",
+            Self::Receipt => b"semaprax.source-agent-owned-wait.receipt.v1\0",
+            Self::Decision => b"semaprax.source-agent-owned-wait.decision.v1\0",
+            Self::Grant => b"semaprax.source-agent-owned-wait.grant.v1\0",
+        }
+    }
+    fn fields(self) -> Option<&'static [&'static str]> {
+        Some(match self {
+            Self::Invocation => &["execution", "owned_wait_binding"],
+            Self::Attempt => &["invocation", "turn", "attempt", "binding"],
+            Self::Generation => &["scope", "execution", "binding", "store_identity", "limits"],
+            Self::Transfer => &[
+                "scope",
+                "generation",
+                "turn",
+                "attempt",
+                "wait",
+                "from",
+                "to",
+                "state_digest",
+                "proposal_digest",
+            ],
+            Self::Operations => &["owner", "basis", "terminal", "operations"],
+            Self::Receipt => return None,
+            Self::Decision => &["scope", "turn", "attempt", "authorize", "decision"],
+            Self::Grant => &[
+                "scope",
+                "turn",
+                "attempt",
+                "state_digest",
+                "proposal_digest",
+                "decision_digest",
+                "authorization_binding",
+                "budget",
+            ],
+        })
+    }
+}
+pub(super) fn recipe_digest(recipe: RecipeV8, value: &Value) -> Result<String, SourceJournalError> {
+    if let Some(keys) = recipe.fields() {
+        let fields = value.as_object().ok_or(SourceJournalError::Malformed)?;
+        if fields.len() != keys.len() || !keys.iter().all(|key| fields.contains_key(*key)) {
+            return Err(SourceJournalError::Malformed);
+        }
+    }
+    let bytes = canonical(value);
+    // Reject float/depth/size even for in-memory producers; arrays remain ordered.
+    parse(&bytes)?;
+    Ok(crate::live_invocation::identity::digest(
+        recipe.domain(),
+        &bytes,
+    ))
+}
+pub(super) fn checkpoint_bytes_digest(bytes: &[u8]) -> Result<String, SourceJournalError> {
+    if bytes.len() > super::super::MAX_SOURCE_CARRIER_BYTES {
+        return Err(SourceJournalError::Capacity);
+    }
+    if !bytes.ends_with(b"\n") {
+        return Err(SourceJournalError::Malformed);
+    }
+    let envelope = parse(&bytes[..bytes.len() - 1])?;
+    let fields = envelope.as_object().ok_or(SourceJournalError::Malformed)?;
+    if fields.len() != 2
+        || !fields.contains_key("payload")
+        || !fields
+            .get("authentication")
+            .and_then(Value::as_str)
+            .is_some_and(tag_valid)
+    {
+        return Err(SourceJournalError::Malformed);
+    }
+    let mut canonical_bytes = canonical(&envelope);
+    canonical_bytes.push(b'\n');
+    if canonical_bytes != bytes {
+        return Err(SourceJournalError::Malformed);
+    }
+    Ok(crate::live_invocation::identity::digest(
+        b"semaprax.source-agent-owned-wait.checkpoint.v1\0",
+        bytes,
+    ))
+}

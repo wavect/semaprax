@@ -212,6 +212,12 @@ fn started(owner: &LiveFailedOwnedEffectV8<'_>) -> Result<EntryV8, SourceJournal
     Ok(row)
 }
 impl<'j> LiveFailedOwnedEffectV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn accounting(
+        &self,
+    ) -> &TargetAccounting {
+        &self.accounting
+    }
+
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_failed_state(
         self,
     ) -> Result<LiveFailedEffectStateAppendV8<'j>, LiveFailedEffectStateFailureV8<'j>> {
@@ -334,6 +340,12 @@ impl<'j> LiveStartedFailedEffectStateV8<'j> {
     }
 }
 impl<'j> LiveReleasedFailedEffectStateV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn accounting(
+        &self,
+    ) -> &TargetAccounting {
+        &self.accounting
+    }
+
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_receipt(
         self,
     ) -> Result<LiveFailedEffectStateAppendV8<'j>, LiveFailedEffectStateFailureV8<'j>> {

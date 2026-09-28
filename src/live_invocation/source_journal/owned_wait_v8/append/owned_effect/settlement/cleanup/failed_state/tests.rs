@@ -78,6 +78,7 @@ fn owned_failed_state_append_actual_handler_and_result_failure_preserve_sticky_s
                     TestFailedTargetV8::HandlerFailed
                 },
                 |o, weak| {
+                    let ledger = *o.accounting();
                     let old = j.begin_session().unwrap();
                     let (r, s, _, _, last) = old.inventory.failed_effect_state_facts().unwrap();
                     let seq = old.sequence();
@@ -108,6 +109,7 @@ fn owned_failed_state_append_actual_handler_and_result_failure_preserve_sticky_s
                         })
                         .unwrap_or_else(|_| panic!("actual State physical drop"));
                     assert_eq!(observations, 1);
+                    assert_eq!(*o.accounting(), ledger);
                     assert!(weak.iter().all(|w| w.upgrade().is_none()));
                     let selected = o
                         .prepare_receipt()
@@ -127,6 +129,7 @@ fn owned_failed_state_append_actual_handler_and_result_failure_preserve_sticky_s
                     let LiveFailedEffectStateAcknowledgedV8::Released(o) = ack(&j, selected) else {
                         panic!()
                     };
+                    assert_eq!(*o.accounting(), ledger);
                     let current = j.begin_session().unwrap();
                     let (nr, ns, _, _, _) = current.inventory.failed_effect_state_facts().unwrap();
                     assert_eq!((nr, ns), (r, s));

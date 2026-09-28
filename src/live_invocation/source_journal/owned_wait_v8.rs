@@ -15,7 +15,7 @@ const MAX_DEPTH: usize = 24;
 
 /// Inert body only; even authenticated decoding cannot construct a runtime owner.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) enum EntryV8 {
+enum EntryV8 {
     Ordinary(SourceJournalEntry),
     Owned(model::OwnedBodyV8),
 }

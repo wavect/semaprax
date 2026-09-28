@@ -5,7 +5,7 @@ use crate::interpreter::resumable::owned_frame::registered_stage::observe::prepa
 use crate::interpreter::resumable::owned_frame::registered_stage::PreparedOwnedCopyWaitV2;
 
 pub(crate) struct PreparedHeldContinuedWaitV2<'j> {
-    prepared: PreparedOwnedCopyWaitV2,
+    prepared: Option<PreparedOwnedCopyWaitV2>,
     context: HeldOwnedTurnContextV2<'j>,
     turn: u32,
     transition: u32,
@@ -16,7 +16,9 @@ impl Drop for PreparedHeldContinuedWaitV2<'_> {
     fn drop(&mut self) {
         // Durable abandonment is backing-only. The retained context/store
         // outlives the physical root; no foundation semantic receipt is minted.
-        drop(self.prepared.argument.root.take());
+        if let Some(prepared) = self.prepared.as_mut() {
+            drop(prepared.argument.root.take());
+        }
     }
 }
 pub(crate) enum ContinuedWaitPreparationFailureV8<'j> {
@@ -70,7 +72,7 @@ pub(crate) fn prepare_continued_copy_wait_v8<'j>(
         }
     };
     let actual = PreparedHeldContinuedWaitV2 {
-        prepared,
+        prepared: Some(prepared),
         context,
         turn,
         transition,
@@ -88,7 +90,11 @@ pub(crate) fn prepare_continued_copy_wait_v8<'j>(
 }
 impl PreparedHeldContinuedWaitV2<'_> {
     pub(crate) fn validate_store(&self) -> Result<(), SourceJournalError> {
-        let argument = &self.prepared.argument;
+        let argument = &self
+            .prepared
+            .as_ref()
+            .ok_or(SourceJournalError::Binding)?
+            .argument;
         let valid = self.context.validate_guard()
             && argument.creator == std::process::id()
             && argument.root.as_ref().is_some_and(|root| {
@@ -109,3 +115,8 @@ impl PreparedHeldContinuedWaitV2<'_> {
 }
 #[cfg(test)]
 mod tests;
+
+mod start;
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) use start::{
+    enter_continued_wait_v8, EvaluatedContinuedWaitV2,
+};

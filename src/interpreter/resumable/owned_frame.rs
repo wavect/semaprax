@@ -233,12 +233,26 @@ fn validate_fields<'a>(
     count: usize,
     fields: impl Iterator<Item = (&'a hir::DeclarationId, InputRef<'a>)>,
 ) -> Result<(), Diagnostic> {
-    let ResolvedType::Nominal { declaration, .. } = &plan.function().params[0].ty else {
+    validate_fields_for(
+        &plan.program().declarations,
+        &plan.function().params[0].ty,
+        nominal,
+        count,
+        fields,
+    )
+}
+fn validate_fields_for<'a>(
+    declarations: &hir::DeclarationIndex,
+    root_type: &ResolvedType,
+    nominal: &hir::DeclarationId,
+    count: usize,
+    fields: impl Iterator<Item = (&'a hir::DeclarationId, InputRef<'a>)>,
+) -> Result<(), Diagnostic> {
+    let ResolvedType::Nominal { declaration, .. } = root_type else {
         unreachable!()
     };
-    let declared = plan
-        .program()
-        .declarations
+
+    let declared = declarations
         .record_fields(declaration)
         .expect("checked declaration");
     if nominal != declaration || count != declared.len() {
@@ -263,12 +277,22 @@ fn stage_input(plan: &CheckedOwnedFramePlan, input: OwnedFrameInput) -> OwnedFra
 }
 // Only checked admission or the consuming registered-lease permit calls this.
 fn stage_root(plan: &CheckedOwnedFramePlan, input: OwnedFrameInput) -> Value {
-    let ResolvedType::Nominal { declaration, .. } = &plan.function().params[0].ty else {
+    stage_root_for(
+        &plan.program().declarations,
+        &plan.function().params[0].ty,
+        input,
+    )
+}
+fn stage_root_for(
+    declarations: &hir::DeclarationIndex,
+    root_type: &ResolvedType,
+    input: OwnedFrameInput,
+) -> Value {
+    let ResolvedType::Nominal { declaration, .. } = root_type else {
         unreachable!()
     };
-    let declared = plan
-        .program()
-        .declarations
+
+    let declared = declarations
         .record_fields(declaration)
         .expect("checked fields");
     let mut fields = BTreeMap::new();
@@ -710,3 +734,6 @@ pub(crate) mod durable;
 mod replay;
 pub(crate) mod settlement;
 pub(crate) mod snapshot;
+
+pub(crate) mod channel_v2;
+pub(crate) mod registered_stage;

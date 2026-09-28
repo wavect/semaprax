@@ -211,14 +211,19 @@ impl<'j> AppendSessionV8<'j> {
             }
         };
         let selected = permit.selected_row().clone();
+        let journal = self.journal;
         let (pending, verified, attempting) =
             match self.begin_fixed_failed_observe_state_append(&permit) {
                 Ok(completion) => completion,
                 Err(failure) => {
+                    // This exact owner and container passed preflight. A fixed
+                    // cleanup append fault retires them even before the first
+                    // write; the retained obligation cannot become a retry.
+                    journal.quarantine();
                     return Err(LiveFailedObserveStateAppendFailureV8::Append {
                         _obligation: obligation,
                         _failure: failure,
-                    })
+                    });
                 }
             };
         let session = AppendSessionV8 {

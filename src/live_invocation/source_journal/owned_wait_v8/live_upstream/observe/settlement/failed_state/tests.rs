@@ -97,6 +97,27 @@ fn generic_refuses_without_io(journal: &SourceOwnedWaitJournalV8, row: EntryV8) 
         "pure producer refusal preserves live authority"
     );
 }
+fn append_failure_description(
+    failure: &crate::live_invocation::source_journal::owned_wait_v8::append::failed_observe_state::LiveFailedObserveStateAppendFailureV8<'_>,
+) -> String {
+    use crate::live_invocation::source_journal::owned_wait_v8::append::{
+        failed_observe_state::LiveFailedObserveStateAppendFailureV8 as Actual,
+        AppendFailureV8 as Append,
+    };
+    match failure {
+        Actual::Before { error, .. } => format!("Before: {error:?}"),
+        Actual::Acknowledged { error, .. } => format!("Acknowledged: {error:?}"),
+        Actual::After { error, .. } => format!("After: {error:?}"),
+        Actual::Append { _failure, .. } => match _failure {
+            Append::PhysicalBeforeCandidate { error, .. } => {
+                format!("PhysicalBeforeCandidate: {error:?}")
+            }
+            Append::CandidateRefused { error, .. } => format!("CandidateRefused: {error:?}"),
+            Append::PrewriteRefused { error, .. } => format!("PrewriteRefused: {error:?}"),
+            Append::InDoubt { error, .. } => format!("InDoubt: {error:?}"),
+        },
+    }
+}
 fn start<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     failed: LiveSettledObserveV8<'j>,
@@ -118,7 +139,9 @@ fn start<'j>(
         .begin_session()
         .unwrap()
         .append_failed_observe_state(obligation)
-        .unwrap_or_else(|_| panic!("true Started ACK"))
+        .unwrap_or_else(|failure| {
+            panic!("true Started ACK: {}", append_failure_description(&failure))
+        })
         .advance_failed_observe_state()
         .unwrap_or_else(|_| panic!("same owner Started successor"));
     let LiveFailedObserveStateAcknowledgedV8::Started(started) = ack else {
@@ -359,6 +382,13 @@ fn failed_observe_state_cleanup_actual_faults_all_three_phases_are_permanent() {
                     .append_failed_observe_state(obligation)
                     .err()
                     .expect("physical fault cannot mint ACK");
+                assert!(
+                    matches!(&actual,
+                        crate::live_invocation::source_journal::owned_wait_v8::append::failed_observe_state::LiveFailedObserveStateAppendFailureV8::Append {
+                            _failure: crate::live_invocation::source_journal::owned_wait_v8::append::AppendFailureV8::InDoubt { .. }, ..
+                        }),
+                    "physical phase {phase} mode {mode}: {}", append_failure_description(&actual)
+                );
                 assert!(journal.hold().is_err());
                 assert!(journal.begin_session().is_err());
                 let after = journal.test_observe_lease().borrow_mut().read().unwrap();

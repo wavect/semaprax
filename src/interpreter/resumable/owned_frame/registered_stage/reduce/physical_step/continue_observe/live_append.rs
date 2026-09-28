@@ -99,3 +99,6 @@ mod tests;
 use tests::CONTINUE_OBSERVE_ENTRIES;
 #[cfg(test)]
 pub(crate) use tests::{test_continue_observe_entries_v8, test_continue_observe_oracle_v8};
+
+mod settlement;
+pub(crate) use settlement::checked_continued_observe_facts_v8;

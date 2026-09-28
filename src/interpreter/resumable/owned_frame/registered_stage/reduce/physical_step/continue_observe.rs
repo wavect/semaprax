@@ -194,3 +194,5 @@ pub(crate) use live_append::{observe_live_continued_state_v8, LiveContinuedObser
 
 #[cfg(test)]
 pub(crate) use live_append::{test_continue_observe_entries_v8, test_continue_observe_oracle_v8};
+
+pub(crate) use live_append::checked_continued_observe_facts_v8;

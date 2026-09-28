@@ -194,6 +194,30 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
             include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/failed_state.rs"),
         ),
         (
+            "live_invocation/source_journal/owned_wait_v8/fold/observe_settlement.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/fold/observe_settlement.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/live_append/settlement.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/live_append/settlement.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/observe_settlement.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/observe_settlement.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/observe_settlement.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/observe_settlement.rs"),
+        ),
+        (
             "live_invocation/source_journal/owned_wait_v8/fold/cumulative.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/fold/cumulative.rs"),
         ),
@@ -612,6 +636,30 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
         (
             "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/failed_state.rs",
             include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/failed_state.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/fold/observe_settlement.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/fold/observe_settlement.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/live_append/settlement.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/live_append/settlement.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/observe_settlement.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/observe_settlement.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/observe_settlement.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/observe_settlement.rs"),
         ),
         (
             "live_invocation/source_journal/owned_wait_v8/fold/cumulative.rs",

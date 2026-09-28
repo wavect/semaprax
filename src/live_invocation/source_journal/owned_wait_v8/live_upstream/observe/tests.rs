@@ -75,23 +75,23 @@ fn owned_wait_live_observe_ack_faults_keep_owner_and_never_repeat_source() {
                         Err(x) => x,
                         Ok(_) => panic!("no live continuation after failed ACK"),
                     };
-                    assert_eq!(failed.error, SourceJournalError::Uncertain);
+                    let LiveObserveFailureV8::Legacy { owner, held, error } = &failed else {
+                        panic!("default legacy failure")
+                    };
+                    assert_eq!(*error, SourceJournalError::Uncertain);
                     if append == 6 {
                         assert!(
-                            matches!(&failed.owner, LiveObserveOutcomeV8::Refused(_)),
+                            matches!(owner, LiveObserveOutcomeV8::Refused(_)),
                             "no Observe evaluation without reservation ACK"
                         );
                     } else {
-                        let LiveObserveOutcomeV8::GuardLost(owner) = &failed.owner else {
+                        let LiveObserveOutcomeV8::GuardLost(owner) = owner else {
                             panic!("actual observed owner retained")
                         };
                         assert!(owner.consumed() > 0);
                     }
                     assert!(weak.iter().all(|w| w.strong_count() == 1));
-                    assert_eq!(
-                        failed.held.validate_guard(),
-                        Err(SourceJournalError::Poisoned)
-                    );
+                    assert_eq!(held.validate_guard(), Err(SourceJournalError::Poisoned));
                     assert!(journal.begin_session().is_err());
                     drop(failed);
                     assert!(weak.iter().all(|w| w.upgrade().is_none()));
@@ -117,7 +117,13 @@ fn owned_wait_live_observe_cancellation_preserves_initialized_owner_and_history(
             Err(x) => x,
             Ok(_) => panic!("cancelled Observe"),
         };
-        assert!(matches!(&failed.owner, LiveObserveOutcomeV8::Refused(_)));
+        assert!(matches!(
+            &failed,
+            LiveObserveFailureV8::Legacy {
+                owner: LiveObserveOutcomeV8::Refused(_),
+                ..
+            }
+        ));
         assert_eq!(journal.begin_session().unwrap().sequence(), 5);
         assert!(weak.iter().all(|w| w.strong_count() == 1));
         drop(failed);

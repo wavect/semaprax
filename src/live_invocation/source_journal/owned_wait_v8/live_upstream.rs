@@ -289,3 +289,11 @@ pub(super) fn initialize_live_actor_v8<'j>(
 
 #[cfg(test)]
 mod tests;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::{
+    advance_verified_observe_settlement_v8, FixedOwnedObserveSettlementAppendPermitV8,
+    LiveObserveSettlementFailureV8, LiveOwnedObserveSettlementAppendV8, LiveSettledObserveV8,
+};
+
+#[cfg(test)]
+pub(crate) use observe::settlement::test_initial_observe_entry_v8;

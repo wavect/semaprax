@@ -895,7 +895,12 @@ require actual live obligations. Other ACK constructors remain
 test-only until those obligations are connected;
 unpublished durable holders release backing without claiming semantic cleanup.
 The fixed Continue children carry actual mapped State through State and original
-Observe ACKs, retaining the same ledger and hold. The observer-terminal child
+Observe ACKs, retaining the same ledger and hold. The initial and continued
+Observe settlement children retain actual engine holders through fixed settlement
+and TurnObserved ACKs. Their hold child advances the same registry cursor with
+unchanged R/S; profile-only fold grammar requires sole-evaluator consumption
+and exact full failure cleanup receipt. Failed State cleanup and next exchange
+remain separate live obligations. The observer-terminal child
 owns permanent normal poison plus independent monotonic cleanup-seal retirement;
 its authorize/effect children borrow actual failed full-receipt State provenance.
 Static Reduce capacity templates are privately retained under exact Context and

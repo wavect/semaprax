@@ -85,6 +85,8 @@ pub(crate) fn observe_live_owned_run_v8(
     if permit.validate_guard().is_err() {
         budget.cancel();
     }
+    #[cfg(test)]
+    crate::live_invocation::source_journal::test_initial_observe_entry_v8();
     let step = match observe_owned_agent_state_v2(argument, plan, &mut budget) {
         Ok(step) => step,
         Err(rejection) => {
@@ -113,5 +115,34 @@ pub(crate) fn observe_live_owned_run_v8(
         LiveObserveOutcomeV8::GuardLost(live)
     } else {
         LiveObserveOutcomeV8::Observed(live)
+    }
+}
+
+impl LiveObservedStateV8 {
+    pub(crate) fn live_state_facts_v8(&self) -> Result<serde_json::Value, Diagnostic> {
+        let prepared = self
+            .prepared
+            .as_ref()
+            .ok_or_else(|| rejected("live Observe prepared root missing"))?;
+        let argument = &prepared.argument;
+        let root = argument
+            .root
+            .as_ref()
+            .ok_or_else(|| rejected("live Observe State missing"))?;
+        if argument.creator != std::process::id()
+            || !argument
+                .allocations
+                .as_ref()
+                .is_some_and(|proof| proof.validate(&[root]))
+        {
+            return Err(rejected("live Observe creator/allocation witnesses differ"));
+        }
+        super::root_facts(&argument.plan, root)
+            .ok_or_else(|| rejected("live Observe State schema differs"))
+    }
+}
+impl LiveFailedObserveV8 {
+    pub(crate) fn live_state_facts_v8(&self) -> Result<serde_json::Value, Diagnostic> {
+        self.owner.live_state_facts_v8()
     }
 }

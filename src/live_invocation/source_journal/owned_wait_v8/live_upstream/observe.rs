@@ -17,10 +17,13 @@ pub(super) struct ObservedLiveOwnedRunV8<'j> {
     pub(super) observed: u32,
     pub(super) cancellation: &'j crate::agent_runtime::AgentCancellation,
 }
-pub(super) struct LiveObserveFailureV8<'j> {
-    owner: LiveObserveOutcomeV8,
-    held: HeldOwnedWaitStoreV8<'j>,
-    error: SourceJournalError,
+pub(super) enum LiveObserveFailureV8<'j> {
+    Legacy {
+        owner: LiveObserveOutcomeV8,
+        held: HeldOwnedWaitStoreV8<'j>,
+        error: SourceJournalError,
+    },
+    Settlement(settlement::LiveObserveSettlementActorFailureV8<'j>),
 }
 pub(super) fn observe_live_actor_v8<'j>(
     initialized: InitializedLiveOwnedRunV8<'j>,
@@ -35,7 +38,7 @@ pub(super) fn observe_live_actor_v8<'j>(
     } = initialized;
     macro_rules! fail {
         ($owner:expr, $error:expr $(,)?) => {
-            LiveObserveFailureV8 {
+            LiveObserveFailureV8::Legacy {
                 owner: $owner,
                 held,
                 error: $error,
@@ -89,6 +92,17 @@ pub(super) fn observe_live_actor_v8<'j>(
         cancellation,
     };
     let outcome = observe_live_owned_run_v8(permit, owner, execution.wait().observe());
+    if context.fold().cumulative_initialization {
+        return settlement::settle_initial_observe_v8(
+            outcome,
+            journal,
+            session,
+            held,
+            reservation,
+            cancellation,
+        )
+        .map_err(LiveObserveFailureV8::Settlement);
+    }
     let LiveObserveOutcomeV8::Observed(owner) = outcome else {
         return Err(fail!(outcome, SourceJournalError::Binding));
     };
@@ -162,3 +176,5 @@ pub(super) fn observe_live_actor_v8<'j>(
 
 #[cfg(test)]
 mod tests;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod settlement;

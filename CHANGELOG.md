@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private initial and continued Observe settlement producers with actual
+  State provenance, evaluator consumption and fixed durable ACKs. Owning
+  integration verification and cumulative lifecycle execution remain pending.
+
 - Add private actual Continue State/Observe ACK carry and irreversible observer
   cleanup-seal foundations; retain static Reduce capacity templates per exact
   Context. Cumulative physical execution and integration gates remain pending.

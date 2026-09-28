@@ -224,3 +224,40 @@ pub(crate) fn settle_failed_owned_observe_v2(
 
 #[cfg(test)]
 mod tests;
+
+impl ObservedOwnedAgentStateV2 {
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn live_state_facts_v8(
+        &self,
+    ) -> Result<serde_json::Value, Diagnostic> {
+        let root = self
+            .root
+            .as_ref()
+            .ok_or_else(|| rejected("Observe root missing"))?;
+        if self.creator != std::process::id() {
+            return Err(rejected("Observe creator differs"));
+        }
+        if !self.allocations.validate(&[root]) {
+            return Err(rejected("Observe allocation witnesses differ"));
+        }
+        super::live_run::root_facts(&self.plan, root)
+            .ok_or_else(|| rejected("Observe State schema differs"))
+    }
+}
+impl FailedOwnedObserveV2 {
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn live_state_facts_v8(
+        &self,
+    ) -> Result<serde_json::Value, Diagnostic> {
+        let root = self
+            .root
+            .as_ref()
+            .ok_or_else(|| rejected("failed Observe root missing"))?;
+        if self.creator != std::process::id() || self.settlement_started {
+            return Err(rejected("failed Observe no longer live"));
+        }
+        if !self.allocations.validate(&[root]) {
+            return Err(rejected("Observe allocation witnesses differ"));
+        }
+        super::live_run::root_facts(&self.plan, root)
+            .ok_or_else(|| rejected("failed Observe State schema differs"))
+    }
+}

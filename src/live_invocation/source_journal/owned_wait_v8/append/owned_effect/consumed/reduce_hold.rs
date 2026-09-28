@@ -1455,3 +1455,5 @@ mod spent_funding_tests {
         );
     }
 }
+
+mod observe_settlement;

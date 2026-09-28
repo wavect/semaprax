@@ -532,7 +532,7 @@ fn owned_step_append_compiler_empty_complete_moves_both_original_leaves_without_
 }
 
 /// Genuine successful SDK/target/Reduce/Step pipeline; no synthetic ACKs.
-pub(super) fn test_moved<'j>(
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_moved<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     cancel: &'j AgentCancellation,
     policy: &'j CapabilityPolicy,

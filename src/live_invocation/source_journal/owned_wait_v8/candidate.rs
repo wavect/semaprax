@@ -7,10 +7,15 @@ use super::live_upstream::effect::authorization::step::r#continue::FixedOwnedCon
 use super::live_upstream::effect::authorization::step::FixedOwnedStepAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppendPermitV8;
+use super::live_upstream::FixedOwnedObserveSettlementAppendPermitV8;
 use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
 enum ProducerV8<'p, 'j> {
+    ObserveSettlement(
+        &'p SourceOwnedWaitJournalV8,
+        &'p FixedOwnedObserveSettlementAppendPermitV8<'p, 'j>,
+    ),
     Continue(
         &'p SourceOwnedWaitJournalV8,
         &'p FixedOwnedContinueAppendPermitV8<'p, 'j>,
@@ -333,6 +338,83 @@ impl<'a> InventoryV8<'a> {
     /// Authenticated first-turn Reduce lineage and complete closure check.
     /// Includes charged original and all closed Step/Stop phases, not owners.
     /// Authenticated closed continuation prefix, never owner authority.
+    #[cfg(test)]
+    pub(super) fn test_observe_entries(&self) -> &[ValidatedEntryV8] {
+        &self.entries
+    }
+    pub(super) fn observe_settlement_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, &EntryV8), SourceJournalError> {
+        let context = self.context.fold();
+        let folded = fold::fold(context, &self.entries)?;
+        if !context.cumulative_initialization || !folded.continuation_profile_selected() {
+            return Err(SourceJournalError::Order);
+        }
+        let selected = &self.entries.last().ok_or(SourceJournalError::Order)?.entry;
+        match selected {
+            EntryV8::Ordinary(SourceJournalEntry::StageReservation {
+                turn,
+                attempt: None,
+                role: super::super::SourceStageRole::Observe,
+                fuel,
+            }) if *turn == folded.current_turn()
+                && folded.tail == fold::TailV8::ObserveReserved
+                && !folded.failure_selected()
+                && Some(*fuel) == context.ordinary.max_steps_per_stage() => {}
+            EntryV8::Owned(model::OwnedBodyV8::OwnedObserveSettled { turn, .. })
+                if *turn == folded.current_turn()
+                    && matches!(
+                        folded.tail,
+                        fold::TailV8::ObserveSettled | fold::TailV8::FailedState
+                    ) => {}
+            EntryV8::Ordinary(SourceJournalEntry::TurnObserved { turn, .. })
+                if *turn == folded.current_turn()
+                    && folded.tail == fold::TailV8::Observed
+                    && !folded.failure_selected() => {}
+            _ => return Err(SourceJournalError::Order),
+        }
+        capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
+        Ok((
+            folded.reserved_total,
+            folded.stages,
+            folded.current_turn(),
+            selected,
+        ))
+    }
+    pub(super) fn validate_observe_settlement_prefix(
+        &self,
+        selected: &EntryV8,
+    ) -> Result<(), SourceJournalError> {
+        let (_, _, turn, last) = self.observe_settlement_facts()?;
+        match (last, selected) {
+            (
+                EntryV8::Ordinary(SourceJournalEntry::StageReservation {
+                    role: super::super::SourceStageRole::Observe,
+                    attempt: None,
+                    ..
+                }),
+                EntryV8::Owned(model::OwnedBodyV8::OwnedObserveSettled {
+                    turn: t,
+                    reservation,
+                    ..
+                }),
+            ) if *t == turn
+                && *reservation
+                    == u32::try_from(self.sequence() - 1)
+                        .map_err(|_| SourceJournalError::Capacity)? =>
+            {
+                Ok(())
+            }
+            (
+                EntryV8::Owned(model::OwnedBodyV8::OwnedObserveSettled {
+                    settlement: model::ObserveSettlementV8::Observed { .. },
+                    ..
+                }),
+                EntryV8::Ordinary(SourceJournalEntry::TurnObserved { turn: t, .. }),
+            ) if *t == turn => Ok(()),
+            _ => Err(SourceJournalError::Order),
+        }
+    }
     pub(super) fn continuation_facts(
         &self,
     ) -> Result<(u64, u32, u32, &EntryV8), SourceJournalError> {
@@ -576,6 +658,31 @@ impl<'a> InventoryV8<'a> {
             )
         }
     }
+    pub(super) fn prepare_fixed_observe_settlement(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedObserveSettlementAppendPermitV8<'_, '_>,
+    ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+        let row = permit.selected_row().clone();
+        #[cfg(test)]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::ObserveSettlement(journal, permit),
+                None,
+            )
+        }
+        #[cfg(not(test))]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::ObserveSettlement(journal, permit),
+            )
+        }
+    }
     pub(super) fn prepare_fixed_continue(
         self,
         lease: &SourceOwnedWaitLeaseV8,
@@ -713,6 +820,12 @@ impl<'a> InventoryV8<'a> {
                     permit.validate_selected_prefix(journal, &self)?;
                 }
                 ProducerV8::OriginalReduce(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
+                ProducerV8::ObserveSettlement(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
                     }
@@ -884,6 +997,16 @@ impl<'a> PendingV8<'a> {
         &self,
         journal: &SourceOwnedWaitJournalV8,
         permit: &FixedOwnedReduceReservationAppendPermitV8<'_, '_>,
+    ) -> Result<(), SourceJournalError> {
+        if self.0.row.entry != *permit.selected_row() {
+            return Err(SourceJournalError::Binding);
+        }
+        permit.validate_selected_prefix(journal, &self.0.inventory)
+    }
+    pub(super) fn validate_fixed_observe_settlement_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedObserveSettlementAppendPermitV8<'_, '_>,
     ) -> Result<(), SourceJournalError> {
         if self.0.row.entry != *permit.selected_row() {
             return Err(SourceJournalError::Binding);

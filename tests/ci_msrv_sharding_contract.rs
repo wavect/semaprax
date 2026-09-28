@@ -402,6 +402,27 @@ with patch('subprocess.run', side_effect=[
     with contextlib.redirect_stdout(io.StringIO()):
         assert router['main'](['--shard', 'integration-0', '--nocapture']) == 101
     assert run.call_args_list[1].args[0] == plan['shards'][1]['command'] + ['--', '--nocapture']
+for harness in ('project', 'project_candidate'):
+    git_metadata = copy.deepcopy(metadata)
+    git_metadata['packages'][0]['targets'][-1]['name'] = harness
+    git_plan = router['plan'](git_metadata)
+    git_shard = next(shard for shard in git_plan['shards']
+                     if any(row['name'] == harness for row in shard['targets']))
+    selected_git = []
+    def select_git(environment):
+        selected_git.append(True)
+        environment['SEMAPRAX_TEST_GIT'] = sys.executable
+    with patch('sys.platform', 'darwin'), patch.dict(
+        router['main'].__globals__, {'macos_test_git': select_git}
+    ), patch('subprocess.run', side_effect=[
+        subprocess.CompletedProcess([], 0, stdout=json.dumps(git_metadata)),
+        subprocess.CompletedProcess([], 0),
+    ]) as run:
+        with contextlib.redirect_stdout(io.StringIO()):
+            assert router['main'](['--label', 'Rust macOS', '--shard', git_shard['name']]) == 0
+        assert selected_git == [True], harness
+        assert run.call_args_list[1].kwargs['env']['SEMAPRAX_TEST_GIT'] == sys.executable
+        assert run.call_args_list[1].args[0][-2:] == ['--', '--test-threads=1']
 with patch('subprocess.run', side_effect=[
     subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
     subprocess.CompletedProcess([], 0),

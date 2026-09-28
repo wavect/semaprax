@@ -227,7 +227,7 @@ def main(argv=None):
     if (
         sys.platform == "darwin"
         and args.label == "Rust macOS"
-        and any(target["name"] == "project" for target in shard["targets"])
+        and any(target["name"] in ("project", "project_candidate") for target in shard["targets"])
     ):
         # The bounded Git fixtures clear their environment, so explicitly
         # select the real binary before dispatch. Apple's /usr/bin/git shim

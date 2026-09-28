@@ -96,6 +96,21 @@ fn config(digest: &str) -> OpenCodeHostConfig {
     config
 }
 
+#[cfg(unix)]
+#[test]
+fn staged_executable_releases_its_writer_before_dispatch() {
+    let config = config("grammar");
+    std::fs::create_dir(&config.sandbox).unwrap();
+    let mut staged = StagedExecutable::create(&config).unwrap();
+    let flags = rustix::fs::fcntl_getfl(&staged.file).unwrap();
+    assert!(!flags.intersects(rustix::fs::OFlags::WRONLY | rustix::fs::OFlags::RDWR));
+    assert!(staged.authenticate(&config.executable_bytes));
+    let path = staged.path.clone();
+    drop(staged);
+    assert!(!path.exists());
+    std::fs::remove_dir(&config.sandbox).unwrap();
+}
+
 #[test]
 fn configured_handler_returns_only_validated_raw_text_for_the_existing_decoder() {
     let request = ModelInvocationRequest {

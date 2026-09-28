@@ -241,6 +241,34 @@ impl StagedExecutable {
         if !held_file_matches(&mut staged.file, &config.executable_bytes) {
             return Err(OpenCodeRunnerFailure::Refused);
         }
+        // Linux rejects exec while this inode has a writable descriptor
+        // (ETXTBSY). Open and authenticate a read-only pin before releasing
+        // the writer; retain the same inode and exact bytes through dispatch.
+        let read_only = std::fs::File::from(
+            rustix::fs::open(
+                &staged.path,
+                rustix::fs::OFlags::RDONLY
+                    | rustix::fs::OFlags::NOFOLLOW
+                    | rustix::fs::OFlags::NONBLOCK
+                    | rustix::fs::OFlags::CLOEXEC,
+                rustix::fs::Mode::empty(),
+            )
+            .map_err(|_| OpenCodeRunnerFailure::Refused)?,
+        );
+        let before = staged
+            .file
+            .metadata()
+            .map_err(|_| OpenCodeRunnerFailure::Refused)?;
+        let after = read_only
+            .metadata()
+            .map_err(|_| OpenCodeRunnerFailure::Refused)?;
+        if before.dev() != after.dev() || before.ino() != after.ino() {
+            return Err(OpenCodeRunnerFailure::Refused);
+        }
+        staged.file = read_only;
+        if !staged.authenticate(&config.executable_bytes) {
+            return Err(OpenCodeRunnerFailure::Refused);
+        }
         Ok(staged)
     }
 

@@ -1,11 +1,22 @@
 use super::*;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) fn plan() -> v2::CheckedOwnedReduceV2
 {
+    plan_with_constructors(true)
+}
+fn plan_with_constructors(all: bool) -> v2::CheckedOwnedReduceV2 {
     let source = include_str!("../../../../../examples/offline-repair-project/src/app.spx")
         .replace(
             "    runtime_v1 {",
             "    model_wait_v1 { propose = \"fixture.agent.fn.park\"; }\n    runtime_v1 {",
         );
+    let source = if all {
+        source.replace(
+            "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }",
+            "if state.epoch < 0 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { if state.epoch < 1 { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } } else { if state.epoch < 2 { Step::Suspend { objective: state.objective, budget: state.budget, epoch: state.epoch } } else { Step::Fail { code: 1 } } } }",
+        )
+    } else {
+        source
+    };
     let source = format!(
         "{source}\n{}",
         r#"
@@ -162,4 +173,29 @@ fn owned_reduce_outcome_uses_only_the_actual_checked_recorded_exchange_payload()
         )
         .is_err());
     });
+}
+
+#[test]
+fn owned_reduce_inventory_refuses_declared_case_without_actual_constructor() {
+    let p = plan_with_constructors(false);
+    let m = p.mappings().iter().find(|m| m.role == "Fail").unwrap();
+    assert!(!p.transfers().cases.iter().any(|c| c.case == m.case));
+    let field = &p
+        .helper()
+        .program()
+        .declarations
+        .case_fields(&m.case)
+        .unwrap()[0];
+    let step = json!({"declaration":p.function().return_type.nominal_id().unwrap().as_str(),
+        "case":m.case.as_str(),"fields":[{"identity":field.id.as_str(),"value":{"tag":"i64","value":1}}]});
+    v2::validate_owned_reduce_step_v8(&p, &step).unwrap();
+    let scope = json!({});
+    let digest = recipe_digest(
+        ReduceRecipeV8::Step,
+        &json!({"scope":scope,"binding":p.binding(),
+        "plan":p.binding(),"turn":0,"attempt":0,"stage_reservation":29,"step":step}),
+    )
+    .unwrap();
+    assert!(checked_step(&p, &scope, 0, 0, 29, &step, &digest).is_err());
+    assert_eq!(plan().transfers().cases.len(), 4);
 }

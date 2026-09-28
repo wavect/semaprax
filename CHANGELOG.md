@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private actual Decision-observer State cleanup through a monotonic seal
+  and fixed ACKs, plus retained continuation preparation foundations.
+  Integrated runtime verification and public lifecycle acceptance are pending.
+
 - Add private initial and continued Observe settlement producers with actual
   State provenance, evaluator consumption and fixed durable ACKs. Owning
   integration verification and cumulative lifecycle execution remain pending.

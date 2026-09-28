@@ -726,3 +726,8 @@ pub(crate) use live_append::settlement::cleanup::{
     release_live_failed_effect_state_v8, LiveFailedEffectStateReleaseFailureV8,
     ReleasedFailedEffectStateV8,
 };
+
+pub(crate) use live_append::settlement::cleanup::{
+    release_live_observer_failed_state_v8, LiveObserverFailedStateReleaseFailureV8,
+    ReleasedObserverFailedStateV8,
+};

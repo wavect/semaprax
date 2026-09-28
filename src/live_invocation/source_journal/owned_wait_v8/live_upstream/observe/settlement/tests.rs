@@ -233,7 +233,7 @@ fn owned_observe_settlement_initial_actual_append_faults_retain_owner_without_re
     }
 }
 
-fn with_continued(
+pub(super) fn with_continued(
     failed: bool,
     callback: impl for<'j> FnOnce(
         &'j SourceOwnedWaitJournalV8,
@@ -323,7 +323,7 @@ fn with_continued(
         CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(true, run)
     }
 }
-fn ack<'j>(
+pub(super) fn ack<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     owner: LiveOwnedObserveSettlementAppendV8<'j>,
 ) -> LiveSettledObserveV8<'j> {

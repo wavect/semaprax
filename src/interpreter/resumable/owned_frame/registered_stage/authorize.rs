@@ -824,3 +824,7 @@ pub(super) use effect_failed_state::{
 };
 
 mod observer_failed_state;
+
+pub(super) use observer_failed_state::{
+    ObserverFailedStateReleaseRejectionV8, ObserverFailedStateReleaseV8,
+};

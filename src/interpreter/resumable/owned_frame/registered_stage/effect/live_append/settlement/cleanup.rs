@@ -280,3 +280,8 @@ pub(crate) use failed_state::{
 };
 
 mod observer_failed_state;
+
+pub(crate) use observer_failed_state::{
+    release_live_observer_failed_state_v8, LiveObserverFailedStateReleaseFailureV8,
+    ReleasedObserverFailedStateV8,
+};

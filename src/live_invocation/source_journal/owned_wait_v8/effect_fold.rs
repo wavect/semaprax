@@ -13,6 +13,7 @@ pub(super) struct EffectV8 {
     pub recorded: Option<u32>,
     pub cleanup_started: Option<u32>,
     pub operations: Option<Value>,
+    pub cleanup_receipt_digest: Option<String>,
 }
 impl EffectV8 {
     pub(super) fn consumed(seq: u32) -> Self {
@@ -25,6 +26,7 @@ impl EffectV8 {
             recorded: None,
             cleanup_started: None,
             operations: None,
+            cleanup_receipt_digest: None,
         }
     }
 }
@@ -190,6 +192,10 @@ pub(super) fn owned(
             } else {
                 TailV8::EffectFailedState
             };
+            f.effect
+                .as_mut()
+                .ok_or(SourceJournalError::Order)?
+                .cleanup_receipt_digest = Some(receipt_digest.clone());
             f.decision = None;
         }
         _ => return order(),

@@ -7,6 +7,9 @@ use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect
 
 /// Closed metadata phase. Neither variant changes credit or grants a write.
 pub(in crate::live_invocation::source_journal::owned_wait_v8::append) enum OwnedReduceHoldPhaseV8 {
+    ObserverState {
+        selected: EntryV8,
+    },
     Consumed,
     Continuation {
         selected: EntryV8,

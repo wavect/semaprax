@@ -5,7 +5,7 @@ use super::super::super::super::effect::{
 };
 use super::*;
 
-fn with_continue(
+pub(super) fn with_continue(
     callback: impl FnOnce(
         CommittedContinueObserveV2<'_>,
         std::sync::Weak<[u8]>,

@@ -591,3 +591,8 @@ pub(super) fn settle_initial_observe_v8<'j>(
 mod tests;
 #[cfg(test)]
 pub(crate) use tests::test_initial_observe_entry_v8;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod carry;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use carry::{
+    LiveContinuedWaitV8, LiveTurnCarryFailureV8,
+};

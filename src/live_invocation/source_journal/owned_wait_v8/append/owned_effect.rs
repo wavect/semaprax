@@ -244,3 +244,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cl
 
 #[cfg(test)]
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::reduce::step::test_moved;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::observer_failed_state::VerifiedObserverFailedStateSuccessorV8;
+#[cfg(test)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::tests::{test_observer_failed_receipt_mode, TestObserverTargetV8};

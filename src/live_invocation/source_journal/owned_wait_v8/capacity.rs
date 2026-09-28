@@ -148,6 +148,16 @@ fn outstanding_current(
     if folded.tail == MetadataOnly {
         return Ok(terminal);
     }
+    if let Some(observer) = folded.observer_state_fold() {
+        if !observer.settled() {
+            return observer_receipt(observer.operations())?.add(terminal);
+        }
+        return Ok(if observer.observed() {
+            terminal
+        } else {
+            RoomV8::default()
+        });
+    }
     let reduce_rooms = reduce::rooms(context)?;
     if let Some(reduce) = folded.reduce_fold() {
         return reduce_rooms.outstanding(reduce);
@@ -178,7 +188,8 @@ fn outstanding_current(
         cleanup(&max, OwnerV8::Decision, &max.partial_operations)?.add(state_cleanup)?;
     // All earlier successful authorize/model/retry branches carry the complete
     // exclusive success-Reduce or failed-effect State closure forward.
-    let after_effect = reduce_rooms.after_effect();
+    let observer_closure = observer_room(&max.result_operations)?.add(terminal)?;
+    let after_effect = reduce_rooms.after_effect().either(observer_closure);
     let effect = effect::rooms(&max, after_effect)?;
     match folded.tail {
         ReadyPair => return Ok(effect.ready),
@@ -193,7 +204,7 @@ fn outstanding_current(
         EffectFailedState if facts.effect_observed => return Err(SourceJournalError::Order),
         EffectDecisionReleased => return Ok(reduce_rooms.before_stage),
         EffectFailedState => return Ok(reduce_rooms.failed_state),
-        EffectCleanupFailed => return Ok(state_cleanup),
+        EffectCleanupFailed => return Ok(observer_closure),
         _ => {}
     }
 
@@ -547,4 +558,13 @@ fn observe_settlement_room(max: &templates::Maxima) -> Result<RoomV8, SourceJour
         "reservation":u32::MAX,"state_digest":hash(),"consumed":u64::MAX,
         "settlement":{"kind":"failed","status":max.terminal}}))?;
     Ok(observed.either(failed))
+}
+
+fn observer_receipt(operations: &Value) -> Result<RoomV8, SourceJournalError> {
+    row(
+        json!({"kind":"owned_effect_observer_failure_state_cleanup_settled","turn":u32::MAX,"attempt":u32::MAX,"started":u32::MAX,"receipt":templates::receipt(operations)?}),
+    )
+}
+fn observer_room(operations: &Value) -> Result<RoomV8, SourceJournalError> {
+    row(json!({"kind":"owned_effect_observer_failure_state_cleanup_started","turn":u32::MAX,"attempt":u32::MAX,"plan":hash(),"settlement":u32::MAX,"recorded":u32::MAX,"decision_cleanup_settled":u32::MAX,"decision_receipt_digest":hash(),"cause":"decision_observation_failed","selected_effect_failure":"handler_failed","state_digest":hash(),"operations":operations}))?.add(observer_receipt(operations)?)
 }

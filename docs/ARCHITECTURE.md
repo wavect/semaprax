@@ -903,6 +903,10 @@ and exact full failure cleanup receipt. Failed State cleanup and next exchange
 remain separate live obligations. The observer-terminal child
 owns permanent normal poison plus independent monotonic cleanup-seal retirement;
 its authorize/effect children borrow actual failed full-receipt State provenance.
+The observer State source/append/fold children use that seal through actual
+State disposal, ordered receipt and sticky Stop; ordinary authority stays closed.
+Continuation carry children retain real successful Observe lineage and move its
+State into existing helper preparation without evaluator/model/target entry.
 Static Reduce capacity templates are privately retained under exact Context and
 checked proof identity; all current fold/prefix/physical checks remain fresh.
 `registered_stage/live_run` consumes the separately bound live initialization

@@ -3,6 +3,7 @@ use super::append::SourceOwnedWaitJournalV8;
 use super::live_upstream::effect::authorization::cleanup::reduce::FixedOwnedReduceReservationAppendPermitV8;
 use super::live_upstream::effect::authorization::cleanup::FixedOwnedEffectCleanupAppendPermitV8;
 use super::live_upstream::effect::authorization::failed_state::FixedFailedEffectStateAppendPermitV8;
+use super::live_upstream::effect::authorization::observer_failed_state::state::FixedObserverStateAppendPermitV8;
 use super::live_upstream::effect::authorization::step::r#continue::FixedOwnedContinueAppendPermitV8;
 use super::live_upstream::effect::authorization::step::FixedOwnedStepAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPermitV8;
@@ -12,6 +13,10 @@ use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
 enum ProducerV8<'p, 'j> {
+    ObserverState(
+        &'p SourceOwnedWaitJournalV8,
+        &'p FixedObserverStateAppendPermitV8<'p, 'j>,
+    ),
     ObserveSettlement(
         &'p SourceOwnedWaitJournalV8,
         &'p FixedOwnedObserveSettlementAppendPermitV8<'p, 'j>,
@@ -557,6 +562,45 @@ impl<'a> InventoryV8<'a> {
             selected,
         ))
     }
+    pub(super) fn observer_state_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, u32, &EntryV8), SourceJournalError> {
+        let context = self.context.fold();
+        let folded = fold::fold(context, &self.entries)?;
+        let selected = &self.entries.last().ok_or(SourceJournalError::Order)?.entry;
+        let (turn, attempt) = match selected {
+            EntryV8::Owned(
+                model::OwnedBodyV8::OwnedEffectObserverFailureStateCleanupStarted {
+                    turn,
+                    attempt,
+                    ..
+                }
+                | model::OwnedBodyV8::OwnedEffectObserverFailureStateCleanupSettled {
+                    turn,
+                    attempt,
+                    ..
+                },
+            ) if folded.tail == fold::TailV8::ObserverFailureState => (*turn, *attempt),
+            EntryV8::Ordinary(SourceJournalEntry::Stop {
+                turn: Some(turn),
+                attempt: Some(attempt),
+                ..
+            }) if folded.tail == fold::TailV8::Stopped
+                && folded.observer_state_fold().is_some_and(|o| o.stopped()) =>
+            {
+                (*turn, *attempt)
+            }
+            _ => return Err(SourceJournalError::Order),
+        };
+        capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
+        Ok((
+            folded.reserved_total,
+            folded.stages,
+            turn,
+            attempt,
+            selected,
+        ))
+    }
     pub(super) fn sequence(&self) -> usize {
         self.entries.len()
     }
@@ -741,6 +785,27 @@ impl<'a> InventoryV8<'a> {
             self.prepare_inner(row, Some(lease), ProducerV8::FailedState(journal, permit))
         }
     }
+    pub(super) fn prepare_fixed_observer_state(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedObserverStateAppendPermitV8<'_, '_>,
+    ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+        let row = permit.selected_row().clone();
+        #[cfg(test)]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::ObserverState(journal, permit),
+                None,
+            )
+        }
+        #[cfg(not(test))]
+        {
+            self.prepare_inner(row, Some(lease), ProducerV8::ObserverState(journal, permit))
+        }
+    }
     fn prepare_inner(
         mut self,
         row: EntryV8,
@@ -844,6 +909,12 @@ impl<'a> InventoryV8<'a> {
                     permit.validate_selected_prefix(journal, &self)?;
                 }
                 ProducerV8::FailedState(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
+                ProducerV8::ObserverState(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
                     }
@@ -1088,6 +1159,16 @@ impl<'a> PendingV8<'a> {
         &self,
         journal: &SourceOwnedWaitJournalV8,
         permit: &FixedFailedEffectStateAppendPermitV8<'_, '_>,
+    ) -> Result<(), SourceJournalError> {
+        if self.0.row.entry != *permit.selected_row() {
+            return Err(SourceJournalError::Binding);
+        }
+        permit.validate_selected_prefix(journal, &self.0.inventory)
+    }
+    pub(super) fn validate_fixed_observer_state_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedObserverStateAppendPermitV8<'_, '_>,
     ) -> Result<(), SourceJournalError> {
         if self.0.row.entry != *permit.selected_row() {
             return Err(SourceJournalError::Binding);

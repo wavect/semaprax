@@ -702,7 +702,39 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_observer_f
     clock: &'j dyn SourceInvocationClock,
     callback: impl FnOnce(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::cleanup::LiveCleanedOwnedEffectV8<'j>, Vec<Weak<[u8]>>),
 ) {
-    let mut host = Host { calls: 0, mode: 0 };
+    test_observer_failed_receipt_mode(
+        journal,
+        cancel,
+        policy,
+        clock,
+        TestObserverTargetV8::Observed,
+        callback,
+    );
+}
+#[derive(Clone, Copy)]
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum TestObserverTargetV8 {
+    Observed,
+    HandlerFailed,
+    ResultLimit,
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_observer_failed_receipt_mode<
+    'j,
+>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    cancel: &'j AgentCancellation,
+    policy: &'j CapabilityPolicy,
+    clock: &'j dyn SourceInvocationClock,
+    mode: TestObserverTargetV8,
+    callback:impl FnOnce(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::cleanup::LiveCleanedOwnedEffectV8<'j>,Vec<Weak<[u8]>>),
+) {
+    let mut host = Host {
+        calls: 0,
+        mode: match mode {
+            TestObserverTargetV8::Observed => 0,
+            TestObserverTargetV8::HandlerFailed => 1,
+            TestObserverTargetV8::ResultLimit => 2,
+        },
+    };
     let (selected, weak) = cleanup(journal, cancel, policy, &mut host, clock);
     let owner = started(journal, selected)
         .release_decision(|_| panic!("actual failed Decision observer"))

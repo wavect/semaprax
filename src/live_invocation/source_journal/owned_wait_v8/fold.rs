@@ -7,6 +7,7 @@ pub(super) mod cumulative;
 mod effect_fold;
 mod initialization;
 mod observe_settlement;
+mod observer;
 #[path = "fold/reduce.rs"]
 mod reduce;
 
@@ -46,6 +47,7 @@ pub(super) enum TailV8 {
     EffectCleanupInDoubt,
     EffectDecisionReleased,
     EffectCleanupFailed,
+    ObserverFailureState,
     EffectFailedState,
     FailedState,
     FailedDecisionThenState,
@@ -162,6 +164,7 @@ pub(super) struct FoldV8 {
     effect: Option<effect_fold::EffectV8>,
     reduce: Option<reduce::ReduceJournalV8>,
     failed_effect_state: Option<super::reduce_fold::FailedEffectStateFoldV8>,
+    observer_state: Option<observer::ObserverStateFoldV8>,
     stage_originals: Vec<(u32, SourceStageRole, u64)>,
     stage_current: Option<(u32, SourceStageRole, u64)>,
     ordinary: Vec<SourceJournalEntry>,
@@ -209,6 +212,7 @@ impl FoldV8 {
             effect: None,
             reduce: None,
             failed_effect_state: None,
+            observer_state: None,
             stage_originals: Vec::new(),
             stage_current: None,
             ordinary: Vec::new(),
@@ -362,6 +366,7 @@ pub(super) fn fold(
             require(
                 cumulative::is_next_state_commit(context, &fold, &row.entry)
                     || effect_fold::is_effect_row(&row.entry)
+                    || observer::extends_effect(fold.tail, &row.entry)
                     || (is_reduce_row(&row.entry)
                         && matches!(
                             fold.tail,
@@ -457,7 +462,7 @@ fn owned(
     if cumulative::commit_next_state(context, f, b, seq)? {
         return Ok(());
     }
-    if reduce::owned(context, f, b, seq)? {
+    if observer::owned(context, f, b, seq)? || reduce::owned(context, f, b, seq)? {
         return Ok(());
     }
     match b {
@@ -476,7 +481,9 @@ fn owned(
         | Body::OwnedStepTransferReserved { .. }
         | Body::OwnedStepTransferCompleted { .. }
         | Body::OwnedEffectFailureStateCleanupStarted { .. }
-        | Body::OwnedEffectFailureStateCleanupSettled { .. } => return order(),
+        | Body::OwnedEffectFailureStateCleanupSettled { .. }
+        | Body::OwnedEffectObserverFailureStateCleanupStarted { .. }
+        | Body::OwnedEffectObserverFailureStateCleanupSettled { .. } => return order(),
         Body::OwnedStateCommitted {
             turn,
             state,
@@ -1186,7 +1193,7 @@ fn ordinary(
     seq: u32,
 ) -> Result<(), SourceJournalError> {
     use SourceJournalEntry as E;
-    if reduce::ordinary(context, f, e, seq)? {
+    if observer::ordinary(f, e, seq)? || reduce::ordinary(context, f, e, seq)? {
         f.ordinary_sequences.push(seq);
         f.ordinary.push(e.clone());
         return Ok(());
@@ -1413,7 +1420,7 @@ pub(super) fn validate_producer_transition(
     previous: &FoldV8,
     row: &ValidatedEntryV8,
 ) -> Result<(), SourceJournalError> {
-    require(!effect_fold::is_effect_row(&row.entry))?;
+    require(!effect_fold::is_effect_row(&row.entry) && !observer::is_owned_row(&row.entry))?;
     require(!matches!(
         row.entry,
         EntryV8::Owned(Body::OwnedObserveSettled { .. })

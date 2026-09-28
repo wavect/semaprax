@@ -1409,3 +1409,5 @@ pub(super) mod observer_terminal;
 
 pub(super) mod observe_settlement;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe_settlement::VerifiedOwnedObserveSettlementSuccessorV8;
+
+mod observer_state;

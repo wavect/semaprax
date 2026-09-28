@@ -286,4 +286,23 @@ pub(super) enum OwnedBodyV8 {
         started: u32,
         receipt: Value,
     },
+    OwnedEffectObserverFailureStateCleanupStarted {
+        turn: u32,
+        attempt: u32,
+        plan: String,
+        settlement: u32,
+        recorded: u32,
+        decision_cleanup_settled: u32,
+        decision_receipt_digest: String,
+        cause: String,
+        selected_effect_failure: Option<String>,
+        state_digest: String,
+        operations: Value,
+    },
+    OwnedEffectObserverFailureStateCleanupSettled {
+        turn: u32,
+        attempt: u32,
+        started: u32,
+        receipt: Value,
+    },
 }

@@ -273,3 +273,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) mod failed_state;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use tests::{
     test_failed_target, TestFailedTargetV8,
 };
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod observer_failed_state;

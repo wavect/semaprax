@@ -415,3 +415,7 @@ pub(crate) use physical_step::{
 pub(crate) use physical_step::{test_continue_observe_entries_v8, test_continue_observe_oracle_v8};
 
 pub(crate) use physical_step::checked_continued_observe_facts_v8;
+
+pub(crate) use physical_step::{
+    prepare_continued_copy_wait_v8, ContinuedWaitPreparationFailureV8, PreparedHeldContinuedWaitV2,
+};

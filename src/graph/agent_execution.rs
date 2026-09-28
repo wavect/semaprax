@@ -26,7 +26,7 @@ pub(crate) fn facts(program: &Program) -> Result<Vec<String>, Diagnostic> {
             agent
                 .validate_execution_metadata(program)
                 .map_err(|message| Diagnostic::io("SPX-G559", message))?;
-            let operations = agent
+            let mut operation_rows = agent
                 .operations
                 .iter()
                 .filter(|operation| operation.kind == AgentOperationKind::Deterministic)
@@ -42,8 +42,12 @@ pub(crate) fn facts(program: &Program) -> Result<Vec<String>, Diagnostic> {
                             "reference"
                         })
                     )
-                })
-                .budgeted_join(",");
+                });
+            // Validation fixes this carrier at four deterministic roles; retain
+            // it on the stack rather than allocating an uncharged Vec.
+            let operation_rows: [String; 4] =
+                std::array::from_fn(|_| operation_rows.next().unwrap_or_default());
+            let operations = operation_rows.budgeted_join(",");
             let wait = if let Some(binding) = &agent.model_wait {
                 let model = agent
                     .operations
@@ -77,7 +81,7 @@ pub(super) fn attach(program: &Program, mut graph: String) -> Result<String, Dia
     if !has_agent_execution(program) {
         return Ok(graph);
     }
-    let rows = facts(program)?.into_iter().budgeted_join(",");
+    let rows = facts(program)?.budgeted_join(",");
     let base = serde_json::from_str::<serde_json::Value>(&graph)
         .map_err(|_| Diagnostic::io("SPX-G411", "invalid checked graph payload"))?["schema"]
         .as_str()

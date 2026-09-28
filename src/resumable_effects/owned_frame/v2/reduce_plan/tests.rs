@@ -214,7 +214,8 @@ fn owned_frame_v2_reduce_postcondition_vector_uses_only_proven_return_cases() {
     body(&function.body, &mut constructors).unwrap();
     assert_eq!(
         owned_step_transfer_plan(&p.helper().program().declarations, &function, &constructors)
-            .unwrap_err()
+            .err()
+            .expect("unproven case refused")
             .code,
         "SPX-T303",
         "an unproven returned case is refused instead of repaired"

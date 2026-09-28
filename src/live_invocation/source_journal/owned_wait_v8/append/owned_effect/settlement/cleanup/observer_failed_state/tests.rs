@@ -147,7 +147,7 @@ fn owned_observer_state_actual_cleanup_preserves_success_and_two_target_causes()
                 assert_eq!((r, s), (reserved, stages));
                 assert_eq!(before, *envelope.obligation.owner_accounting_for_test());
                 assert!(j.poisoned.get());
-                assert!(!j.poisoned.retired.get());
+                assert!(!j.poisoned.retired_for_test());
                 assert!(j.hold().is_err());
                 assert!(j.begin_session().is_err());
                 assert!(weak.iter().all(|w| w.upgrade().is_none()));
@@ -188,7 +188,7 @@ fn owned_observer_state_cancellation_after_started_allows_release_receipt_but_no
                 assert_eq!(clock.0.get(), calls);
                 let bytes = j.lease.try_borrow_mut().unwrap().read().unwrap();
                 assert!(o.prepare_stop().is_err());
-                assert!(j.poisoned.retired.get());
+                assert!(j.poisoned.retired_for_test());
                 assert_eq!(j.lease.try_borrow_mut().unwrap().read().unwrap(), bytes);
                 assert!(weak.iter().all(|w| w.upgrade().is_none()));
             },
@@ -226,7 +226,7 @@ fn owned_observer_state_failed_state_observation_records_real_failure_and_quaran
                     panic!()
                 };
                 let bytes = j.lease.try_borrow_mut().unwrap().read().unwrap();
-                assert!(j.poisoned.retired.get());
+                assert!(j.poisoned.retired_for_test());
                 assert!(o.prepare_stop().is_err());
                 assert_eq!(j.lease.try_borrow_mut().unwrap().read().unwrap(), bytes);
                 assert!(weak.iter().all(|w| w.upgrade().is_none()));
@@ -280,7 +280,7 @@ fn owned_observer_state_pin_loss_restore_after_started_permanently_forbids_state
                 assert!(result.is_err());
                 assert_eq!(calls.get(), 0);
                 assert_eq!(weak[0].strong_count(), 1);
-                assert!(j.poisoned.retired.get());
+                assert!(j.poisoned.retired_for_test());
                 assert_eq!(j.lease.try_borrow_mut().unwrap().read().unwrap(), before);
                 drop(result);
             },
@@ -345,7 +345,7 @@ fn owned_observer_state_reminted_cause_refs_binding_vector_and_generic_route_nev
                 // is inferred from that refusal. The owning seal remains valid after it.
                 assert!(j.begin_session().is_err());
                 o.validate_live().unwrap();
-                assert!(!j.poisoned.retired.get());
+                assert!(!j.poisoned.retired_for_test());
                 drop(o);
             },
         );
@@ -372,7 +372,7 @@ fn owned_observer_state_entry_cancellation_never_writes_or_releases_state() {
                 assert!(result.is_err());
                 assert_eq!(j.lease.try_borrow_mut().unwrap().read().unwrap(), before);
                 assert_eq!(weak[0].strong_count(), 1);
-                assert!(j.poisoned.retired.get());
+                assert!(j.poisoned.retired_for_test());
                 drop(result);
             },
         );
@@ -415,7 +415,7 @@ fn owned_observer_state_four_persistence_faults_never_release_without_actual_sta
                         let result = session.append_observer_state(o);
                         assert!(result.is_err());
                         assert_eq!(weak[0].strong_count(), 1);
-                        assert!(j.poisoned.retired.get());
+                        assert!(j.poisoned.retired_for_test());
                         let files: Vec<_> = std::fs::read_dir(directory)
                             .unwrap()
                             .map(|e| e.unwrap().path())
@@ -466,7 +466,7 @@ fn owned_observer_state_wrong_container_has_zero_io_and_retains_original_state()
                         other_before
                     );
                     assert!(!other.poisoned.get());
-                    assert!(!j.poisoned.retired.get());
+                    assert!(!j.poisoned.retired_for_test());
                     drop(result);
                 });
             },

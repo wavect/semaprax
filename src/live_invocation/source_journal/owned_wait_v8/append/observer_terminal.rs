@@ -1,5 +1,5 @@
 //! One live failed-receipt seal; independent retirement is never reset.
-//! No terminal writer, raw ACK factory, owner recovery, or generic bypass exists.
+//! The sealed State writer leaves ordinary poison closed; no recovery or generic bypass.
 use super::*;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::observer_failed_state::FailedDecisionReceiptSealProofV8;
 
@@ -25,6 +25,10 @@ impl ObserverRetirementV8 {
     pub(super) fn retire(&self) {
         self.retired.set(true);
         self.poisoned.set(true);
+    }
+    #[cfg(test)]
+    pub(super) fn retired_for_test(&self) -> bool {
+        self.retired.get()
     }
     fn healthy(&self) -> bool {
         !self.poisoned.get() && !self.retired.get() && self.active.get().is_none()

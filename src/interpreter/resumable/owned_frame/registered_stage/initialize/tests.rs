@@ -355,7 +355,7 @@ fn owned_frame_v2_initialize_preflight_preserves_task_input_and_rejects_extra_ow
     assert!(roots.iter().all(|w| w.upgrade().is_none()));
     let extra = SOURCE.replace(
         "State { first: task.first",
-        "let text = \"x\";\n let extra = bytes_copy(str_as_bytes(string_as_str(text)));\n State { first: task.first",
+        "let seed = [1u8];\n let extra = bytes_copy(array_as_slice(seed));\n State { first: task.first",
     );
     let ordinary = hir::resolve(&crate::check(&extra, "initialize-extra.spx").unwrap()).unwrap();
     let helper = compile_owned_frame_helper_v2(&ordinary, &DeclarationId::new("park")).unwrap();

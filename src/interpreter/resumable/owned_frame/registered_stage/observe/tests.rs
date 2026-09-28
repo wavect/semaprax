@@ -223,7 +223,7 @@ fn owned_frame_v2_observe_preflight_preserves_argument_and_source_profile_refuse
     assert!(roots.iter().all(|w| w.upgrade().is_none()));
     let source = SOURCE.replace(
         "let view =",
-        "let text = \"x\";\n let extra = bytes_copy(str_as_bytes(string_as_str(text)));\n let view =",
+        "let seed = [1u8];\n let extra = bytes_copy(array_as_slice(seed));\n let view =",
     );
     let ordinary = hir::resolve(&crate::check(&source, "observe-extra.spx").unwrap()).unwrap();
     let h = compile_owned_frame_helper_v2(&ordinary, &DeclarationId::new("park")).unwrap();

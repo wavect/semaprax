@@ -525,7 +525,7 @@ impl<'j> LiveEvaluatedOwnedReduceV8<'j> {
     }
 }
 
-impl LiveOwnedStepAppendV8<'_> {
+impl<'j> LiveOwnedStepAppendV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn selected_row(
         &self,
     ) -> &EntryV8 {
@@ -554,7 +554,7 @@ impl LiveOwnedStepAppendV8<'_> {
     }
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixed_append_permit(
         &self,
-    ) -> Result<FixedOwnedStepAppendPermitV8<'_, '_>, SourceJournalError> {
+    ) -> Result<FixedOwnedStepAppendPermitV8<'_, 'j>, SourceJournalError> {
         self.validate_live()?;
         Ok(FixedOwnedStepAppendPermitV8 { obligation: self })
     }

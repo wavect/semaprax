@@ -184,7 +184,7 @@ fn owned_frame_v8_effect_matching_acks_release_seal_then_mint_unique_outcome_and
                     attempt: 0,
                     state: &staged.prepared.basis.state,
                     decision: &staged.prepared.basis.decision,
-                    proposal: &k,
+                    proposal: k.clone(),
                 },
                 &ordinary,
                 &target_wire,
@@ -743,7 +743,7 @@ fn with_staged_reduce_fixture(
         let inputs = OwnedEffectInputsV8 {
             runtime,
             execution,
-            proposal: &k,
+            proposal: k.clone(),
             store,
             policy: &policy,
             cancellation: &cancellation,
@@ -823,4 +823,86 @@ fn with_staged_reduce_fixture(
             CheckedOwnedWaitJournalContextV8::test_with_actual_task_zero_store(exercise)
         }
     }
+}
+
+#[test]
+fn owned_frame_v8_effect_target_failure_is_sticky_but_later_authority_loss_retires_release() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, lease, key| {
+        let context = Arc::new(context);
+        let journal = SourceOwnedWaitJournalV8::open(Arc::clone(&context), key, lease).unwrap();
+        let (runtime, execution) = context.test_runtime_execution();
+        let store = journal.hold().unwrap();
+        let k = proposal(
+            execution.wait(),
+            &store.registration().expected_facts().scope,
+        );
+        let (ready, weak) = ready(execution.wait());
+        let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let cancellation = AgentCancellation::new();
+        let inputs = OwnedEffectInputsV8 {
+            runtime,
+            execution,
+            proposal: k,
+            store,
+            policy: &policy,
+            cancellation: &cancellation,
+            turn: 0,
+            attempt: 0,
+        };
+        let ack = authorization(&inputs, &ready);
+        let prepared = prepare_owned_effect_v8(inputs, ready, ack, |_| true)
+            .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+        let ack = intent(&prepared);
+        let mut host = Host {
+            calls: 0,
+            cancel: None,
+            panic: true,
+        };
+        let mut accounting = TargetAccounting::default();
+        let mut guards = 0;
+        let staged = dispatch_owned_effect_v8(
+            prepared,
+            ack,
+            &mut accounting,
+            |_| {
+                guards += 1;
+                guards == 1
+            },
+            &mut host,
+        )
+        .unwrap_or_else(|e| panic!("{:?}", e.diagnostic));
+        assert_eq!(host.calls, 1);
+        assert_eq!((accounting.calls(), accounting.fuel()), (1, 1));
+        assert_eq!(
+            staged.failure(),
+            Some(OwnedEffectFailureV8::Target(Settlement::HostPanicked))
+        );
+        assert_eq!(staged.reason(), Some(SourceEffectFailure::HandlerFailed));
+        assert!(staged.authority_lost);
+        let (ack, start) = settlement(&staged);
+        let mut observations = 0;
+        let rejected =
+            release_owned_effect_decision_v8(staged, ack, start, |_| true, |_| observations += 1)
+                .err()
+                .expect("guard loss permanently retires release");
+        assert_eq!(observations, 0);
+        assert_eq!([weak[0].strong_count(), weak[1].strong_count()], [1, 1]);
+        let (ack, start) = settlement(&rejected.staged);
+        let rejected = release_owned_effect_decision_v8(
+            rejected.staged,
+            ack,
+            start,
+            |_| true,
+            |_| observations += 1,
+        )
+        .err()
+        .expect("later guard cannot reopen release");
+        assert_eq!(observations, 0);
+        assert_eq!(
+            rejected.staged.failure(),
+            Some(OwnedEffectFailureV8::Target(Settlement::HostPanicked))
+        );
+        drop(rejected);
+        assert!(weak.iter().all(|w| w.upgrade().is_none()));
+    });
 }

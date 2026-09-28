@@ -139,6 +139,7 @@ pub(crate) struct StagedOwnedEffectV8<'a> {
     accepted: Option<Vec<u8>>,
     failure: Option<OwnedEffectFailureV8>,
     cleanup_started: bool,
+    authority_lost: bool,
 }
 impl StagedOwnedEffectV8<'_> {
     pub(crate) fn failure(&self) -> Option<OwnedEffectFailureV8> {
@@ -315,6 +316,7 @@ fn current(
         && check(phase)
         && creator == std::process::id()
         && inputs.store.validate_guard().is_ok()
+        && inputs.policy.allows(effect)
         && (matches!(phase, OwnedEffectPhaseV8::CleanupStarted(_))
             || !inputs.cancellation.is_cancelled())
 }
@@ -513,6 +515,7 @@ pub(crate) fn dispatch_owned_effect_v8<'a>(
         accepted: None,
         failure: None,
         cleanup_started: false,
+        authority_lost: false,
     };
     let phase = OwnedEffectPhaseV8::Intent(staged.intent);
     if !current(
@@ -527,6 +530,7 @@ pub(crate) fn dispatch_owned_effect_v8<'a>(
         } else {
             OwnedEffectFailureV8::AuthorityLost
         });
+        staged.authority_lost = staged.failure == Some(OwnedEffectFailureV8::AuthorityLost);
         return Ok(staged);
     }
     let request = OwnedEffectTargetRequestV8 {
@@ -548,8 +552,15 @@ pub(crate) fn dispatch_owned_effect_v8<'a>(
         staged.prepared.inputs.cancellation,
         handler,
     );
-    // This guard is outside the target's host panic catch. No callback,
-    // physical release, append, evaluator or owner handoff follows on loss.
+    // The target's selected failure is sticky even if a subsequent callback
+    // loses authority. Retirement is separate from the selected status.
+    if dispatch.evidence().settlement() != Settlement::Returned {
+        staged.failure = Some(OwnedEffectFailureV8::Target(
+            dispatch.evidence().settlement(),
+        ));
+    }
+    // This guard is outside the target host panic catch and precedes accepted
+    // result projection. Lost authority permanently retires physical release.
     if !current(
         &staged.prepared.inputs,
         staged.prepared.creator,
@@ -557,16 +568,21 @@ pub(crate) fn dispatch_owned_effect_v8<'a>(
         &mut check,
         staged.prepared.plan.operation().effect_id(),
     ) {
-        staged.failure = Some(if staged.prepared.inputs.cancellation.is_cancelled() {
+        let cancelled = staged.prepared.inputs.cancellation.is_cancelled();
+        staged.authority_lost = staged.prepared.creator != std::process::id()
+            || staged.prepared.inputs.store.validate_guard().is_err()
+            || !staged
+                .prepared
+                .inputs
+                .policy
+                .allows(staged.prepared.plan.operation().effect_id())
+            || !cancelled;
+        staged.failure.get_or_insert(if cancelled {
             OwnedEffectFailureV8::Cancelled
         } else {
             OwnedEffectFailureV8::AuthorityLost
         });
-    } else if dispatch.evidence().settlement() != Settlement::Returned {
-        staged.failure = Some(OwnedEffectFailureV8::Target(
-            dispatch.evidence().settlement(),
-        ));
-    } else {
+    } else if dispatch.evidence().settlement() == Settlement::Returned {
         staged.accepted = dispatch
             .result()
             .and_then(|carrier| staged.prepared.plan.accepted_result(carrier.payload()));
@@ -602,6 +618,7 @@ pub(crate) fn release_owned_effect_decision_v8<'a>(
         }
     };
     let valid = !staged.cleanup_started
+        && !staged.authority_lost
         && staged.failure != Some(OwnedEffectFailureV8::AuthorityLost)
         && settlement.basis == staged.prepared.basis
         && settlement.intent == staged.intent
@@ -664,6 +681,7 @@ pub(crate) fn release_owned_effect_decision_v8<'a>(
                     accepted: staged.accepted,
                     failure: staged.failure,
                     cleanup_started: true,
+                    authority_lost: staged.authority_lost,
                 },
                 diagnostic: error.diagnostic,
             })

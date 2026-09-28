@@ -817,3 +817,8 @@ mod tests;
 #[cfg(test)]
 #[path = "authorize/effect_tests.rs"]
 pub(super) mod effect_tests;
+
+mod effect_failed_state;
+pub(super) use effect_failed_state::{
+    FailedEffectStateReleaseRejectionV8, FailedEffectStateReleaseV8,
+};

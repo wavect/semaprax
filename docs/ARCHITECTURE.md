@@ -885,8 +885,13 @@ ACKs through zero-call activation and consuming actual dispatch; the subsequent
 settlement and Recorded adapters retain that same Staged owner and ledger
 through actual durable ACKs. Their cleanup and original Reduce children now
 connect actual Decision release, Outcome and original Reduce reservation and
-evaluation. Physical Step transfer, cumulative continuation and terminal
-delivery still require actual live obligations. Other ACK constructors remain
+evaluation. Fixed Step append children connect actual cleanup, transfer and
+frozen Transition ACKs. The failed-State children of the source adapter and
+registered effect/authorize stages consume only actual failed-target State
+through ordered disposal and sticky Stop, preserving the same ledger and hold.
+Context retains immutable checked Reduce proof; current inventory and physical
+guards are recomputed. Cumulative continuation and terminal delivery still
+require actual live obligations. Other ACK constructors remain
 test-only until those obligations are connected;
 unpublished durable holders release backing without claiming semantic cleanup.
 `registered_stage/live_run` consumes the separately bound live initialization

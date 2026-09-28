@@ -2,6 +2,7 @@
 use super::append::SourceOwnedWaitJournalV8;
 use super::live_upstream::effect::authorization::cleanup::reduce::FixedOwnedReduceReservationAppendPermitV8;
 use super::live_upstream::effect::authorization::cleanup::FixedOwnedEffectCleanupAppendPermitV8;
+use super::live_upstream::effect::authorization::failed_state::FixedFailedEffectStateAppendPermitV8;
 use super::live_upstream::effect::authorization::step::FixedOwnedStepAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppendPermitV8;
@@ -9,6 +10,10 @@ use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
 enum ProducerV8<'p, 'j> {
+    FailedState(
+        &'p SourceOwnedWaitJournalV8,
+        &'p FixedFailedEffectStateAppendPermitV8<'p, 'j>,
+    ),
     Step(
         &'p SourceOwnedWaitJournalV8,
         &'p FixedOwnedStepAppendPermitV8<'p, 'j>,
@@ -367,6 +372,58 @@ impl<'a> InventoryV8<'a> {
             selected,
         ))
     }
+    /// Exact authenticated target-failure State closure, never failed observer
+    /// receipt or successful effect/Reduce. This yields no physical authority.
+    pub(super) fn failed_effect_state_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, u32, &EntryV8), SourceJournalError> {
+        let context = self.context.fold();
+        let folded = fold::fold(context, &self.entries)?;
+        let selected = &self.entries.last().ok_or(SourceJournalError::Order)?.entry;
+        let (turn, attempt) = match (folded.tail, selected) {
+            (
+                fold::TailV8::EffectFailedState,
+                EntryV8::Owned(model::OwnedBodyV8::OwnedEffectDecisionCleanupSettled {
+                    turn,
+                    attempt,
+                    receipt,
+                    ..
+                }),
+            ) if receipt["settlement"] == "completed" => (*turn, *attempt),
+            (
+                fold::TailV8::Reduce,
+                EntryV8::Owned(
+                    model::OwnedBodyV8::OwnedEffectFailureStateCleanupStarted {
+                        turn, attempt, ..
+                    }
+                    | model::OwnedBodyV8::OwnedEffectFailureStateCleanupSettled {
+                        turn, attempt, ..
+                    },
+                ),
+            ) if folded.failed_effect_state_fold().is_some() => (*turn, *attempt),
+            (
+                fold::TailV8::Reduce,
+                EntryV8::Ordinary(SourceJournalEntry::Stop {
+                    turn: Some(turn),
+                    attempt: Some(attempt),
+                    status: super::super::SourceStopStatus::EffectFailed,
+                    reason: super::super::SourceStopReason::EffectFailed,
+                }),
+            ) if folded.failed_effect_state_fold().is_some() => (*turn, *attempt),
+            _ => return Err(SourceJournalError::Order),
+        };
+        if turn != 0 {
+            return Err(SourceJournalError::Binding);
+        }
+        capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
+        Ok((
+            folded.reserved_total,
+            folded.stages,
+            turn,
+            attempt,
+            selected,
+        ))
+    }
     pub(super) fn sequence(&self) -> usize {
         self.entries.len()
     }
@@ -484,6 +541,27 @@ impl<'a> InventoryV8<'a> {
             self.prepare_inner(row, Some(lease), ProducerV8::Step(journal, permit))
         }
     }
+    pub(super) fn prepare_fixed_failed_state(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedFailedEffectStateAppendPermitV8<'_, '_>,
+    ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+        let row = permit.selected_row().clone();
+        #[cfg(test)]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::FailedState(journal, permit),
+                None,
+            )
+        }
+        #[cfg(not(test))]
+        {
+            self.prepare_inner(row, Some(lease), ProducerV8::FailedState(journal, permit))
+        }
+    }
     fn prepare_inner(
         mut self,
         row: EntryV8,
@@ -569,6 +647,12 @@ impl<'a> InventoryV8<'a> {
                     permit.validate_selected_prefix(journal, &self)?;
                 }
                 ProducerV8::Step(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
+                ProducerV8::FailedState(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
                     }
@@ -789,6 +873,16 @@ impl<'a> PendingV8<'a> {
         Ok(())
     }
     /// Only the fixed adapter can construct this sealed postappend witness.
+    pub(super) fn validate_fixed_failed_state_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedFailedEffectStateAppendPermitV8<'_, '_>,
+    ) -> Result<(), SourceJournalError> {
+        if self.0.row.entry != *permit.selected_row() {
+            return Err(SourceJournalError::Binding);
+        }
+        permit.validate_selected_prefix(journal, &self.0.inventory)
+    }
     pub(super) fn acknowledge_verified(
         self,
         _verified: super::append::AppendVerifiedV8,

@@ -1287,3 +1287,5 @@ pub(crate) use owned_wait_v8::LiveReduceEvaluationPermitV8;
 pub(crate) use owned_wait_v8::{
     FixedOwnedStepAppendPermitV8, LiveOwnedReduceCleanupPermitV8, LiveOwnedStepTransferPermitV8,
 };
+
+pub(crate) use owned_wait_v8::LiveFailedEffectStateCleanupPermitV8;

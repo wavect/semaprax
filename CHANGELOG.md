@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Retain immutable checked Reduce proof per invocation and add private actual
+  failed-target State disposal through fixed durable ACKs with unchanged
+  accounting. Focused integration verification remains required.
+
 - Add private owned-wait v8 authenticated effect history, retained-container
   append checks and physical effect/reducer ownership foundations. Fresh
   initialization uses exact typed Task and acknowledged stage reservations;

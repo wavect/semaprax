@@ -114,3 +114,5 @@ pub(crate) use live_upstream::effect::authorization::cleanup::reduce::LiveReduce
 pub(crate) use live_upstream::effect::authorization::step::{
     FixedOwnedStepAppendPermitV8, LiveOwnedReduceCleanupPermitV8, LiveOwnedStepTransferPermitV8,
 };
+
+pub(crate) use live_upstream::effect::authorization::failed_state::LiveFailedEffectStateCleanupPermitV8;

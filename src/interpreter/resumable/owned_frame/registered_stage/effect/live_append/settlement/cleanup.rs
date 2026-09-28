@@ -272,3 +272,9 @@ impl ExecutedOwnedAgentTurnV2<'_> {
         args
     }
 }
+
+mod failed_state;
+pub(crate) use failed_state::{
+    release_live_failed_effect_state_v8, LiveFailedEffectStateReleaseFailureV8,
+    ReleasedFailedEffectStateV8,
+};

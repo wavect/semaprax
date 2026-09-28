@@ -2,6 +2,7 @@
 use super::candidate::{CandidateRejectionV8, InventoryV8, PendingV8};
 use super::live_upstream::effect::authorization::cleanup::reduce::FixedOwnedReduceReservationAppendPermitV8;
 use super::live_upstream::effect::authorization::cleanup::FixedOwnedEffectCleanupAppendPermitV8;
+use super::live_upstream::effect::authorization::failed_state::FixedFailedEffectStateAppendPermitV8;
 use super::live_upstream::effect::authorization::step::FixedOwnedStepAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppendPermitV8;
@@ -199,6 +200,92 @@ impl<'a> AppendSessionV8<'a> {
         journal: &SourceOwnedWaitJournalV8,
     ) -> bool {
         std::ptr::eq(self.journal, journal)
+    }
+    fn begin_fixed_failed_state_append(
+        self,
+        permit: &FixedFailedEffectStateAppendPermitV8<'_, 'a>,
+    ) -> Result<(PendingV8<'a>, AppendVerifiedV8, Attempting<'a>), AppendFailureV8<'a>> {
+        let journal = self.journal;
+        let row = permit.selected_row().clone();
+        if let Err(error) = journal.validate_guard() {
+            return Err(AppendFailureV8::PhysicalBeforeCandidate {
+                _session: self,
+                _row: row,
+                error,
+            });
+        }
+        if let Err(error) = permit
+            .validate_preflight(journal)
+            .and_then(|_| permit.validate_selected_prefix(journal, &self.inventory))
+        {
+            return Err(AppendFailureV8::PhysicalBeforeCandidate {
+                _session: self,
+                _row: row,
+                error,
+            });
+        }
+        let prepared = {
+            let lease = match journal.lease.try_borrow() {
+                Ok(lease) => lease,
+                Err(_) => {
+                    return Err(AppendFailureV8::CandidateRefused {
+                        session: self,
+                        row,
+                        error: SourceJournalError::Order,
+                    })
+                }
+            };
+            self.inventory
+                .prepare_fixed_failed_state(&lease, journal, permit)
+        };
+        let candidate = match prepared {
+            Ok(c) => c,
+            Err(rejected) => return Err(reject_candidate(journal, rejected)),
+        };
+        let pending = candidate.into_pending();
+        // Pending exists before physical preflight; every callback is outside a
+        // lease borrow and the active marker. Final callback-free checks follow.
+        if let Err(error) = permit
+            .validate_preflight(journal)
+            .and_then(|_| journal.validate_guard())
+            .and_then(|_| pending.validate_fixed_failed_state_prefix(journal, permit))
+        {
+            journal.poisoned.set(true);
+            return Err(AppendFailureV8::PrewriteRefused {
+                _journal: journal,
+                _pending: pending,
+                error,
+            });
+        }
+        journal.append_active.set(true);
+        let attempting = Attempting {
+            journal,
+            attempted: Cell::new(false),
+            complete: Cell::new(false),
+        };
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            physical_append_fixed_failed_state(&attempting, &pending, permit)
+        }));
+        match result {
+            Ok(Ok(verified)) => Ok((pending, verified, attempting)),
+            Ok(Err(error)) if !attempting.attempted.get() => {
+                Err(AppendFailureV8::PrewriteRefused {
+                    _journal: journal,
+                    _pending: pending,
+                    error,
+                })
+            }
+            Ok(Err(error)) => Err(AppendFailureV8::InDoubt {
+                _journal: journal,
+                _pending: pending,
+                error,
+            }),
+            Err(_) => Err(AppendFailureV8::InDoubt {
+                _journal: journal,
+                _pending: pending,
+                error: SourceJournalError::Uncertain,
+            }),
+        }
     }
     pub(super) fn sequence(&self) -> usize {
         self.inventory.sequence()
@@ -1015,3 +1102,46 @@ mod checkpoint;
 
 // Only the fixed child may mint a live Ready successor witness.
 pub(super) mod owned_effect;
+
+fn physical_append_fixed_failed_state(
+    attempting: &Attempting<'_>,
+    pending: &PendingV8<'_>,
+    permit: &FixedFailedEffectStateAppendPermitV8<'_, '_>,
+) -> Result<AppendVerifiedV8, SourceJournalError> {
+    let journal = attempting.journal;
+    journal.validate_adapter_guard()?;
+    pending.validate_fixed_failed_state_prefix(journal, permit)?;
+    {
+        let mut lease = journal
+            .lease
+            .try_borrow_mut()
+            .map_err(|_| SourceJournalError::Order)?;
+        lease
+            .validate_append_authorized(journal.context.registration())
+            .map_err(store_error)?;
+        let bytes = lease.read().map_err(store_error)?;
+        pending.check_prefix(&lease, &bytes)?;
+        lease
+            .validate_append_authorized(journal.context.registration())
+            .map_err(store_error)?;
+        pending.validate_fixed_failed_state_prefix(journal, permit)?;
+        attempting.attempted.set(true);
+        lease.append(pending.bytes()).map_err(store_error)?;
+    }
+    #[cfg(test)]
+    if journal.panic_after_append.get() {
+        panic!("closed postappend panic fault");
+    }
+    journal.validate_adapter_guard()?;
+    {
+        let mut lease = journal
+            .lease
+            .try_borrow_mut()
+            .map_err(|_| SourceJournalError::Order)?;
+        let bytes = lease.read().map_err(store_error)?;
+        pending.check_written(&lease, &bytes)?;
+    }
+    journal.validate_adapter_guard()?;
+    pending.validate_fixed_failed_state_prefix(journal, permit)?;
+    Ok(AppendVerifiedV8 { _sealed: () })
+}

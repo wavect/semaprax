@@ -651,3 +651,43 @@ fn owned_effect_cleanup_append_wrong_container_refuses_no_io_without_poisoning_f
         assert_eq!(host.calls, 1);
     });
 }
+
+/// Closed genuine target failures; observer failure is not a target failure.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum TestFailedTargetV8 {
+    HandlerFailed,
+    ResultLimit,
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_failed_target<'j>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    cancel: &'j AgentCancellation,
+    policy: &'j CapabilityPolicy,
+    clock: &'j dyn SourceInvocationClock,
+    mode: TestFailedTargetV8,
+    callback: impl FnOnce(crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::authorization::cleanup::LiveFailedOwnedEffectV8<'j>, Vec<Weak<[u8]>>),
+) {
+    let mut host = Host {
+        calls: 0,
+        mode: match mode {
+            TestFailedTargetV8::HandlerFailed => 1,
+            TestFailedTargetV8::ResultLimit => 2,
+        },
+    };
+    let (selected, weak) = cleanup(journal, cancel, policy, &mut host, clock);
+    let released = started(journal, selected)
+        .release_decision(|_| assert_eq!(weak[1].strong_count(), 0))
+        .unwrap_or_else(|_| panic!("actual failed target Decision release"));
+    let selected = released
+        .prepare_settled()
+        .unwrap_or_else(|_| panic!("actual Decision receipt"));
+    let actual = cleaned(journal, selected)
+        .advance_outcome()
+        .unwrap_or_else(|_| panic!("actual failed target owner"));
+    let LiveOutcomeV8::Failed(owner) = actual else {
+        panic!("closed target failure has no Outcome")
+    };
+    assert_eq!(weak[0].strong_count(), 1);
+    assert_eq!(weak[1].strong_count(), 0);
+    assert_eq!(host.calls, 1);
+    callback(owner, weak);
+    assert_eq!(host.calls, 1);
+}

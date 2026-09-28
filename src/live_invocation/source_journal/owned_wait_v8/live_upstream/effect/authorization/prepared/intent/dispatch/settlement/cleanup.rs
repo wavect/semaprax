@@ -747,3 +747,5 @@ impl LiveExecutedOwnedEffectV8<'_> {
 }
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) mod reduce;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod failed_state;

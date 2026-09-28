@@ -681,3 +681,12 @@ The successful actual Staged Reduce owner selects its compiler cleanup basis and
 A compiler-empty successful basis skips Started and Settled. Its distinct sealed origin binds the actual Staged predecessor; it cannot invent an observed cleanup or a zero sequence. Transfer moves the existing Step fields into the mapped State or Report, preserving their actual Bytes backings, and publishes only the frozen ordinary Transition carrier after the complete typed transfer has passed verification.
 
 Incurred cleanup and its receipt use the narrow cancellation/deadline exception; field transfer and Transition restore full current guards. A selected language failure remains sticky, and every rejected append or interrupted operation retains its actual boundary owner. Failed source evaluation does not fabricate a full Step. Genuine owning tests cover Continue, Complete, compiler-empty Complete, ordered physical observations, guards and physical persistence faults. Integrated runtime verification remains required; these private joins do not implement cumulative execution, terminal result publication, durable recovery or public Agent acceptance.
+
+
+## 38. Actual failed-target State cleanup
+
+After an actual failed target and completed Decision cleanup receipt, the retained failed owner selects its compiler-derived State result disposal vector. Only its fixed same-file Started ACK authorizes the existing physical release; the ordered actual receipt selects Settled and the sticky ordinary EffectFailed Stop. Observer failure cannot enter this target-failure route. No Outcome, Reduce, retry or new target dispatch is admitted.
+
+The same actual State, accounting ledger and charged Reduce hold remain bound throughout. All four accounting dimensions remain unchanged. Failed or uncertain ACKs quarantine the owner; unsuccessful physical receipts cannot publish Stop. Genuine owning tests cover handler failure, result limit, ordered release, cancellation, wrong binding and persistence faults. Integrated runtime verification remains required; public lifecycle acceptance and terminal publication remain unfinished.
+
+Immutable checked Reduce proof is retained once per invocation Context. Its accessor verifies the exact binding and helper identity. Capacity and reservation borrow that proof while recomputing current prefix and physical guards; no physical authority or capacity result is cached. Unsupported proof errors retain their original deferred failure boundary.

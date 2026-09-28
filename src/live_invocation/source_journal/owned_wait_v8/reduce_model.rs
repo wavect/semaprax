@@ -31,7 +31,7 @@ pub(super) enum ReduceBasisV8 {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub(super) enum ReduceCleanupV8 {
-    CompilerEmpty,
+    CompilerEmpty {},
     Observed { started: u32, settled: u32 },
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

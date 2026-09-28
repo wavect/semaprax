@@ -264,7 +264,7 @@ impl ReduceFoldV8 {
                     && self.cleanup_started == Some(*started)
                     && self.cleanup_settled == Some(*settled),
             )?,
-            ReduceCleanupV8::CompilerEmpty => {
+            ReduceCleanupV8::CompilerEmpty {} => {
                 require(self.tail == ReduceTailV8::Staged)?;
                 let matching = plan
                     .transfers()

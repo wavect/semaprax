@@ -203,7 +203,7 @@ fn owned_reduce_fold_success_maps_exact_step_and_counts_consumption_once() {
     let ops = v2::owned_wait_operations_v8(&p.transfers().completion_cleanup).unwrap();
     let active = v2::validate_owned_reduce_cleanup_v8(&p, &value, &ops).unwrap();
     let (seq, cleanup) = if active.active_operations().as_array().unwrap().is_empty() {
-        (30, ReduceCleanupV8::CompilerEmpty)
+        (30, ReduceCleanupV8::CompilerEmpty {})
     } else {
         let digest = recipe_digest(
             ReduceRecipeV8::Basis,

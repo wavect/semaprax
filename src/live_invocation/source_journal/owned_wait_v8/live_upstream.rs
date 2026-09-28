@@ -29,9 +29,28 @@ impl LiveInitializePermitV8<'_> {
         self.fuel
     }
 }
+/// Only this actor's ACKed actual Observe reservation creates evaluator entry.
+pub(crate) struct LiveObservePermitV8<'j> {
+    held: HeldOwnedWaitStoreV8<'j>,
+    fuel: usize,
+    cancellation: &'j crate::agent_runtime::AgentCancellation,
+}
+impl LiveObservePermitV8<'_> {
+    pub(crate) fn validate_guard(&self) -> Result<(), SourceJournalError> {
+        if self.cancellation.is_cancelled() {
+            return Err(SourceJournalError::Binding);
+        }
+        self.held.validate_guard()
+    }
+    pub(crate) fn fuel(&self) -> usize {
+        self.fuel
+    }
+}
+mod observe;
 pub(super) struct InitializedLiveOwnedRunV8<'j> {
     // Backing roots must be disposed while the held container still exists.
     owner: LiveInitializedStateV8,
+    journal: &'j SourceOwnedWaitJournalV8,
     session: AppendSessionV8<'j>,
     held: HeldOwnedWaitStoreV8<'j>,
     initialization: u32,
@@ -221,6 +240,7 @@ pub(super) fn initialize_live_actor_v8<'j>(
     }
     Ok(Ok(InitializedLiveOwnedRunV8 {
         owner,
+        journal,
         session,
         held,
         initialization,

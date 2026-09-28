@@ -2,7 +2,7 @@ use super::*;
 use crate::interpreter::resumable::owned_frame::{OwnedFrameInputField, OwnedFrameInputValue};
 use crate::interpreter::ArgumentValue;
 use std::sync::Arc;
-fn input(context: &CheckedOwnedWaitJournalContextV8) -> OwnedFrameInput {
+pub(super) fn input(context: &CheckedOwnedWaitJournalContextV8) -> OwnedFrameInput {
     let (runtime, execution) = context.ready_runtime().expect("actual runtime");
     let task = runtime.owned_wait_task_v8(execution).unwrap();
     let metadata = execution.wait().lifecycle().owned_wait_task_v8();

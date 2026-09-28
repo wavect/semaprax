@@ -69,4 +69,4 @@ pub(crate) use checked_context::{
 };
 
 mod live_upstream;
-pub(crate) use live_upstream::LiveInitializePermitV8;
+pub(crate) use live_upstream::{LiveInitializePermitV8, LiveObservePermitV8};

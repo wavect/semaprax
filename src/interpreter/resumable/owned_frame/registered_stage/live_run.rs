@@ -156,3 +156,6 @@ fn record_facts(state: &OwnedAgentStateArgument) -> Option<serde_json::Value> {
     }).collect::<Option<Vec<_>>>()?;
     Some(serde_json::json!({"declaration":record.record.as_str(),"fields":values}))
 }
+
+mod observe;
+pub(crate) use observe::{observe_live_owned_run_v8, LiveObserveOutcomeV8, LiveObservedStateV8};

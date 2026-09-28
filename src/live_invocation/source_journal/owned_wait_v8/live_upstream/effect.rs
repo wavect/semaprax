@@ -9,6 +9,7 @@ use crate::agent_lifecycle::authorization::{
 };
 use crate::agent_lifecycle::iterative::effects::plan_owned_effect_v8;
 use crate::resumable_effects::CapabilityPolicy;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod authorization;
 
 /// No raw Ready/facts/sequence constructor and no physical ACK or owner getter.
 /// The future fixed adapter must keep this actual obligation inside its witness.

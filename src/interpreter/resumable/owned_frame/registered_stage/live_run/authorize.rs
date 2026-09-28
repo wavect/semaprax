@@ -1,6 +1,10 @@
 //! Same-root stage handoff, authorized only by the actual live ACK producer.
+use super::super::authorize::{
+    settle_owned_authorize_v2, OwnedAuthorizeSettledV2, ReadyOwnedAuthorizeV2,
+};
 use super::super::authorize::{stage_owned_authorize_v2, StagedOwnedAuthorizeV2};
 use super::*;
+use crate::live_invocation::source_journal::LiveReadyPromotionPermitV8;
 use crate::live_invocation::source_journal::{LiveAuthorizePermitV8, LiveStateTransferPermitV8};
 use crate::resumable_effects::owned_frame::v2::{
     CheckedOwnedAgentWaitBindingV8, CheckedOwnedWaitProposalV8,
@@ -74,6 +78,83 @@ pub(crate) fn transfer_live_owned_state_v8(
 pub(crate) struct LiveStagedAuthorizationV8 {
     staged: StagedOwnedAuthorizeV2,
     consumed: u64,
+}
+/// Unpublished success owner. Abandonment drops backing only; no semantic Drop.
+pub(crate) struct LiveReadyAuthorizationV8 {
+    ready: ReadyOwnedAuthorizeV2,
+    consumed: u64,
+}
+impl LiveReadyAuthorizationV8 {
+    pub(crate) fn consumed(&self) -> u64 {
+        self.consumed
+    }
+    pub(crate) fn checked_facts(
+        &self,
+        binding: &CheckedOwnedAgentWaitBindingV8,
+    ) -> Option<(serde_json::Value, serde_json::Value)> {
+        self.ready.live_checked_facts(binding)
+    }
+    #[cfg(test)]
+    pub(crate) fn test_weak(&self) -> Vec<std::sync::Weak<[u8]>> {
+        self.ready.live_test_weak()
+    }
+}
+pub(crate) enum LiveReadyPromotionOutcomeV8 {
+    Ready(LiveReadyAuthorizationV8),
+    Refused(LiveStagedAuthorizationV8),
+    GuardLost(LiveReadyAuthorizationV8),
+}
+pub(crate) fn promote_live_owned_authorization_v8(
+    permit: LiveReadyPromotionPermitV8<'_, '_>,
+    owner: LiveStagedAuthorizationV8,
+) -> LiveReadyPromotionOutcomeV8 {
+    let binding = permit.binding();
+    let valid = owner.checked_facts(binding).is_some_and(|(_, decision)| {
+        decision["case"].as_str() == Some(binding.authorize().granted().as_str())
+    });
+    let mut commits = binding
+        .authorize()
+        .function()
+        .cleanup_plan
+        .exits
+        .iter()
+        .filter(|e| {
+            matches!(
+                e.continuation,
+                crate::cleanup_plan::ExitContinuation::CommitResult { .. }
+            )
+        });
+    if !valid
+        || commits
+            .next()
+            .is_none_or(|e| !e.finalize_in_order.is_empty())
+        || commits.next().is_some()
+        || permit.validate_guard().is_err()
+    {
+        return LiveReadyPromotionOutcomeV8::Refused(owner);
+    }
+    let consumed = owner.consumed;
+    let ready = match settle_owned_authorize_v2(
+        owner.staged,
+        || permit.validate_guard().is_ok(),
+        |_| unreachable!("proved empty success vector"),
+    ) {
+        Ok(OwnedAuthorizeSettledV2::Ready(ready)) => LiveReadyAuthorizationV8 { ready, consumed },
+        Ok(OwnedAuthorizeSettledV2::Failed { .. }) => {
+            unreachable!("preproved successful full Decision")
+        }
+        Err(rejected) => {
+            return LiveReadyPromotionOutcomeV8::Refused(LiveStagedAuthorizationV8 {
+                staged: rejected.staged,
+                consumed,
+            })
+        }
+    };
+    if permit.validate_guard().is_err() {
+        LiveReadyPromotionOutcomeV8::GuardLost(ready)
+    } else {
+        LiveReadyPromotionOutcomeV8::Ready(ready)
+    }
 }
 impl LiveStagedAuthorizationV8 {
     pub(crate) fn consumed(&self) -> u64 {

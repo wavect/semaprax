@@ -318,6 +318,19 @@ fn project(
 pub(crate) struct ReadyOwnedAuthorizeV2 {
     staged: StagedOwnedAuthorizeV2,
 }
+impl ReadyOwnedAuthorizeV2 {
+    /// Descriptive checked facts, retaining both actual physical roots here.
+    pub(crate) fn live_checked_facts(
+        &self,
+        binding: &crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
+    ) -> Option<(serde_json::Value, serde_json::Value)> {
+        self.staged.live_staged_facts(binding)
+    }
+    #[cfg(test)]
+    pub(crate) fn live_test_weak(&self) -> Vec<std::sync::Weak<[u8]>> {
+        self.staged.live_test_weak()
+    }
+}
 /// Private consuming bridge boundary. This wrapper keeps the actual Ready
 /// holder intact; inert metadata cannot construct it or extract its roots.
 pub(super) struct HeldOwnedEffectAuthorizationV8 {

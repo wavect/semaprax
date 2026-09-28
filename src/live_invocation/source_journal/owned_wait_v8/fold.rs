@@ -1470,3 +1470,15 @@ fn is_reduce_row(row: &EntryV8) -> bool {
         )
     )
 }
+
+impl FoldV8 {
+    pub(super) fn continued_start_turn(&self) -> Option<u32> {
+        (self.continuation_profile_selected
+            && self.current_turn > 0
+            && matches!(
+                self.tail,
+                TailV8::Observed | TailV8::WaitCreated | TailV8::StartReserved | TailV8::Prepared
+            ))
+        .then_some(self.current_turn)
+    }
+}

@@ -915,6 +915,11 @@ The observer State source/append/fold children use that seal through actual
 State disposal, ordered receipt and sticky Stop; ordinary authority stays closed.
 Continuation carry children retain real successful Observe lineage and move its
 State into existing helper preparation without evaluator/model/target entry.
+Their Start and Prepared children bind actual Created/reservation ACKs to the
+existing evaluator and retain its actual Parked/Terminal/Refused owner. Fixed
+append children publish the checkpoint and Prepared witness before advancing
+the same hold cursor; continued SDK and target entry remain separate routes.
+Candidate continued-Prepared inventory checks live in an audited child.
 Static Reduce capacity templates are privately retained under exact Context and
 checked proof identity; all current fold/prefix/physical checks remain fresh.
 `registered_stage/live_run` consumes the separately bound live initialization

@@ -7,6 +7,7 @@ use super::live_upstream::effect::authorization::step::r#continue::FixedOwnedCon
 use super::live_upstream::effect::authorization::step::FixedOwnedStepAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppendPermitV8;
+use super::live_upstream::FixedOwnedContinuedStartAppendPermitV8;
 use super::live_upstream::FixedOwnedObserveSettlementAppendPermitV8;
 use super::*;
 use crate::resumable_effects::owned_frame::{
@@ -1415,3 +1416,16 @@ mod observer_state;
 mod failed_observe_funnel;
 mod failed_observe_state;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use failed_observe_state::VerifiedFailedObserveStateSuccessorV8;
+
+pub(super) mod continued_start;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_start::VerifiedOwnedContinuedStartSuccessorV8;
+
+impl HeldOwnedWaitStoreV8<'_> {
+    /// Descriptive identity comparison only; neither handle can be extracted.
+    pub(crate) fn same_container(&self, other: &HeldOwnedWaitStoreV8<'_>) -> bool {
+        std::ptr::eq(self.journal, other.journal)
+    }
+}
+
+pub(super) mod continued_prepared;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use continued_prepared::VerifiedOwnedContinuedPreparedSuccessorV8;

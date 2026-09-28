@@ -178,3 +178,8 @@ pub(crate) use authorize::{
 pub(crate) use observe::{
     InitialObserveStateCleanupFailureV8, LiveFailedObserveV8, ReleasedInitialObserveStateV8,
 };
+
+pub(crate) use wait::{
+    begin_live_continued_wait_v8, LiveContinuedParkedStateV8, LiveContinuedTerminalStateV8,
+    LiveContinuedWaitStartOutcomeV8,
+};

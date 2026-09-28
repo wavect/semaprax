@@ -22,6 +22,59 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     .join("\n");
     let model_wait_sources = [
         (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/live_append/carry/start.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/live_append/carry/start.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_prepared.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_prepared/funnel.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_prepared/funnel.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_start.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_start.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_start/checkpoint.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_start/checkpoint.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_start/funnel.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_start/funnel.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_prepared.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_start.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_start.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/candidate/continued_prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/candidate/continued_prepared.rs"),
+        ),
+
+        (
             "interpreter/resumable/owned_frame/registered_stage/observe/failed_cleanup.rs",
             include_str!("../../interpreter/resumable/owned_frame/registered_stage/observe/failed_cleanup.rs"),
         ),
@@ -529,6 +582,59 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     ]
     .join("\n");
     let model_wait_sources = [
+        (
+            "interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/live_run/wait/continued.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/live_append/carry/start.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/reduce/physical_step/continue_observe/live_append/carry/start.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_prepared.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_prepared/funnel.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_prepared/funnel.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_start.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_start.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_start/checkpoint.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_start/checkpoint.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/continued_start/funnel.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/continued_start/funnel.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup/reduce/step/continue/settlement/start.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/observe/settlement/carry/start/prepared.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_prepared.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_start.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold/turn_start.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/candidate/continued_prepared.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/candidate/continued_prepared.rs"),
+        ),
+
         (
             "interpreter/resumable/owned_frame/registered_stage/observe/failed_cleanup.rs",
             include_str!("../../interpreter/resumable/owned_frame/registered_stage/observe/failed_cleanup.rs"),

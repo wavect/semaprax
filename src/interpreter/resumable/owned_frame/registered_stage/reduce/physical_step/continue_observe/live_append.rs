@@ -108,3 +108,7 @@ mod carry;
 pub(crate) use carry::{
     prepare_continued_copy_wait_v8, ContinuedWaitPreparationFailureV8, PreparedHeldContinuedWaitV2,
 };
+
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) use carry::{
+    enter_continued_wait_v8, EvaluatedContinuedWaitV2,
+};

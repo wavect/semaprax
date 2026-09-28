@@ -205,3 +205,7 @@ mod failed_cleanup;
 pub(crate) use failed_cleanup::{
     ContinuedObserveStateCleanupFailureV8, ReleasedContinuedObserveStateV8,
 };
+
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) use live_append::{
+    enter_continued_wait_v8, EvaluatedContinuedWaitV2,
+};

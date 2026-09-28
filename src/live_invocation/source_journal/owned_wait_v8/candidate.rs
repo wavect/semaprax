@@ -9,10 +9,21 @@ use super::live_upstream::effect::authorization::step::FixedOwnedStepAppendPermi
 use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPermitV8;
 use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppendPermitV8;
 use super::live_upstream::FixedOwnedObserveSettlementAppendPermitV8;
+use super::live_upstream::{
+    FixedOwnedContinuedPreparedAppendPermitV8, FixedOwnedContinuedStartAppendPermitV8,
+};
 use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
 enum ProducerV8<'p, 'j> {
+    ContinuedPrepared(
+        &'p SourceOwnedWaitJournalV8,
+        &'p FixedOwnedContinuedPreparedAppendPermitV8<'p, 'j>,
+    ),
+    ContinuedStart(
+        &'p SourceOwnedWaitJournalV8,
+        &'p FixedOwnedContinuedStartAppendPermitV8<'p, 'j>,
+    ),
     FailedObserveState(
         &'p SourceOwnedWaitJournalV8,
         &'p super::live_upstream::FixedFailedObserveStateAppendPermitV8<'p, 'j>,
@@ -147,6 +158,97 @@ impl<'a> InventoryV8<'a> {
     #[cfg(test)]
     pub(super) fn fold_for_live_test(&self) -> fold::FoldV8 {
         fold::fold(self.context.fold(), &self.entries).expect("actual ACKed inventory")
+    }
+    /// Authenticated descriptive current-turn facts, never a live owner/token.
+    pub(super) fn continued_start_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, &EntryV8), SourceJournalError> {
+        let context = self.context.fold();
+        let folded = fold::fold(context, &self.entries)?;
+        let turn = folded
+            .continued_start_turn()
+            .ok_or(SourceJournalError::Order)?;
+        let selected = &self.entries.last().ok_or(SourceJournalError::Order)?.entry;
+        let valid = match (folded.tail, selected) {
+            (
+                fold::TailV8::Observed,
+                EntryV8::Ordinary(SourceJournalEntry::TurnObserved { turn: t, .. }),
+            ) => *t == turn,
+            (
+                fold::TailV8::WaitCreated,
+                EntryV8::Owned(model::OwnedBodyV8::OwnedWaitCreated {
+                    turn: t,
+                    attempt: 0,
+                    ..
+                }),
+            ) => *t == turn,
+            (
+                fold::TailV8::StartReserved,
+                EntryV8::Owned(model::OwnedBodyV8::OwnedWaitReserved {
+                    turn: t,
+                    attempt: 0,
+                    phase: model::PhaseV8::Start,
+                    replay_of: None,
+                    ..
+                }),
+            ) => *t == turn,
+            (
+                fold::TailV8::Prepared,
+                EntryV8::Owned(model::OwnedBodyV8::OwnedWaitPrepared {
+                    turn: t,
+                    attempt: 0,
+                    ..
+                }),
+            ) => *t == turn,
+            _ => false,
+        };
+        if !valid {
+            return Err(SourceJournalError::Order);
+        }
+        capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
+        Ok((folded.reserved_total, folded.stages, turn, selected))
+    }
+    pub(super) fn validate_continued_start_prefix(
+        &self,
+        selected: &EntryV8,
+    ) -> Result<(), SourceJournalError> {
+        let (_, _, turn, previous) = self.continued_start_facts()?;
+        let allowed = match (previous, selected) {
+            (
+                EntryV8::Ordinary(SourceJournalEntry::TurnObserved { .. }),
+                EntryV8::Owned(model::OwnedBodyV8::OwnedWaitCreated {
+                    turn: t,
+                    attempt: 0,
+                    ..
+                }),
+            ) => *t == turn,
+            (
+                EntryV8::Owned(model::OwnedBodyV8::OwnedWaitCreated { wait, .. }),
+                EntryV8::Owned(model::OwnedBodyV8::OwnedWaitReserved {
+                    turn: t,
+                    attempt: 0,
+                    wait: next,
+                    phase: model::PhaseV8::Start,
+                    replay_of: None,
+                    fuel,
+                }),
+            ) => {
+                *t == turn
+                    && next == wait
+                    && self
+                        .context
+                        .ordinary()
+                        .max_steps_per_stage()
+                        .and_then(|f| u64::try_from(f).ok())
+                        == Some(*fuel)
+            }
+            _ => false,
+        };
+        if allowed {
+            Ok(())
+        } else {
+            Err(SourceJournalError::Order)
+        }
     }
     pub(super) fn live_start_checkpoint_basis(
         &self,
@@ -706,6 +808,56 @@ impl<'a> InventoryV8<'a> {
             )
         }
     }
+    pub(super) fn prepare_fixed_continued_prepared(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedContinuedPreparedAppendPermitV8<'_, '_>,
+    ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+        let row = permit.selected_row().clone();
+        #[cfg(test)]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::ContinuedPrepared(journal, permit),
+                None,
+            )
+        }
+        #[cfg(not(test))]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::ContinuedPrepared(journal, permit),
+            )
+        }
+    }
+    pub(super) fn prepare_fixed_continued_start(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedContinuedStartAppendPermitV8<'_, '_>,
+    ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+        let row = permit.selected_row().clone();
+        #[cfg(test)]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::ContinuedStart(journal, permit),
+                None,
+            )
+        }
+        #[cfg(not(test))]
+        {
+            self.prepare_inner(
+                row,
+                Some(lease),
+                ProducerV8::ContinuedStart(journal, permit),
+            )
+        }
+    }
     pub(super) fn prepare_fixed_observe_settlement(
         self,
         lease: &SourceOwnedWaitLeaseV8,
@@ -915,6 +1067,18 @@ impl<'a> InventoryV8<'a> {
                     }
                     permit.validate_selected_prefix(journal, &self)?;
                 }
+                ProducerV8::ContinuedStart(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
+                ProducerV8::ContinuedPrepared(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
                 ProducerV8::Step(journal, permit) => {
                     if checked.entry != *permit.selected_row() {
                         return Err(SourceJournalError::Binding);
@@ -1097,6 +1261,26 @@ impl<'a> PendingV8<'a> {
         }
         permit.validate_selected_prefix(journal, &self.0.inventory)
     }
+    pub(super) fn validate_fixed_continued_prepared_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedContinuedPreparedAppendPermitV8<'_, '_>,
+    ) -> Result<(), SourceJournalError> {
+        if self.0.row.entry != *permit.selected_row() {
+            return Err(SourceJournalError::Binding);
+        }
+        permit.validate_selected_prefix(journal, &self.0.inventory)
+    }
+    pub(super) fn validate_fixed_continued_start_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedContinuedStartAppendPermitV8<'_, '_>,
+    ) -> Result<(), SourceJournalError> {
+        if self.0.row.entry != *permit.selected_row() {
+            return Err(SourceJournalError::Binding);
+        }
+        permit.validate_selected_prefix(journal, &self.0.inventory)
+    }
     pub(super) fn validate_fixed_continue_prefix(
         &self,
         journal: &SourceOwnedWaitJournalV8,
@@ -1250,3 +1434,5 @@ impl TrustedAppendAckV8 {
 }
 
 mod failed_observe_state;
+
+mod continued_prepared;

@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private continued Start and Prepared ACK transport around the actual
+  retained owner and existing evaluator, preserving its ledger and hold.
+  Owning runtime verification and the next real SDK exchange remain pending.
+
 - Add private actual failed-Observe State cleanup ownership, per-action release
   capture and fixed durable ACK transport. Owning runtime verification and
   public lifecycle acceptance remain pending.

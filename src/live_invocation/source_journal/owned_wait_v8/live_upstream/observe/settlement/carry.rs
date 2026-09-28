@@ -127,3 +127,5 @@ impl LiveContinuedWaitV8<'_> {
 }
 #[cfg(test)]
 mod tests;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod start;

@@ -746,3 +746,12 @@ The receipt row references the actual Started row index. After release, guards u
 The generic append classifier denies all State cleanup and Stop spellings at a checked failed cumulative Observe prefix. Only sealed actual-owner permits can advance this writer.
 
 The capture and actual initial/continued writer harnesses include canonical mixed observer outcomes, persistence faults at all three row boundaries, cancellation, pin loss/restore, reminted history and owner lifetime. Their central runtime gate remains pending. This private writer supplies no public terminal publication, recovery delivery or second exchange. Source integration and review are separate from runtime acceptance.
+
+
+## 46. Actual continued Start and Prepared transport
+
+A successful continued Observe owner and both authentic settlement ACKs may prepare the next helper using the same actual State, four-dimensional ledger, Reduce hold and authenticated lineage. Only fixed Created and full-F Start reservation ACKs permit entry into the existing next-wait evaluator. Entry moves the actual owner once; its Parked, Terminal or Refused result retains real evaluator consumption and accounting. Cancellation before either ACK boundary cannot enter or replay source work.
+
+The checkpoint encoder borrows the actual retained container through its matching permit. Prepared is derived from the actual parked observation and original Start allowance. Its row uses the actual reservation index and next sequence; a sealed successor exists only after the same-descriptor write, synchronization and reread ACK. Registry advancement preserves the same hold identity and accounting, retires the previous reservation guard, and installs the actual Prepared prefix only after that ACK. Wrong containers, persistence faults and stale guards retain their actual owner and permanently retire ordinary authority where incurred.
+
+Owning tests cover genuine parked results and consumption against the ordinary evaluator, cancellation around the durable boundaries, all Prepared persistence faults and no premature evaluation or replay. Central runtime verification remains pending. This private route supplies no next SDK exchange, target authorization, public multi-exchange acceptance or recovery delivery.

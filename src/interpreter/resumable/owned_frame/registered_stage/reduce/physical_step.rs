@@ -372,3 +372,7 @@ pub(crate) use continue_observe::{
 pub(crate) use continue_observe::{
     ContinuedObserveStateCleanupFailureV8, ReleasedContinuedObserveStateV8,
 };
+
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) use continue_observe::{
+    enter_continued_wait_v8, EvaluatedContinuedWaitV2,
+};

@@ -77,3 +77,9 @@ pub(crate) fn begin_live_owned_wait_v8(
         }
     }
 }
+
+mod continued;
+pub(crate) use continued::{
+    begin_live_continued_wait_v8, LiveContinuedParkedStateV8, LiveContinuedTerminalStateV8,
+    LiveContinuedWaitStartOutcomeV8,
+};

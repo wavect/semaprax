@@ -92,3 +92,34 @@ fn owned_frame_durable_callback_panic_observes_real_drop_and_continues_every_lea
     );
     assert!(weak.iter().all(|leaf| leaf.upgrade().is_none()));
 }
+
+#[test]
+fn owned_frame_durable_authority_loss_after_callback_stops_before_next_release() {
+    let source = SOURCE.replace("yields i64 -> i64 {", "yields i64 -> i64 requires false {");
+    let plan = checked_plan(&source);
+    let argument = admitted_argument(&plan);
+    let weak = weak_backing(argument.root.as_ref().unwrap());
+    let terminal =
+        DurableOwner::from_argument(argument).start(&mut OwnedFrameBudget::new(100).unwrap());
+    let primary = terminal.failure().cloned();
+    let current = std::cell::Cell::new(true);
+    let mut observed = Vec::new();
+    let rejected = terminal.settle_guarded(
+        &mut |action| {
+            observed.push(action.source.projections[0].as_str().to_owned());
+            current.set(false); // models inherited process/current-lease loss
+            true
+        },
+        &mut || current.get(),
+    );
+    let (retained, _) = match rejected {
+        Err(rejected) => rejected,
+        Ok(_) => panic!("authority loss cannot produce receipt"),
+    };
+    assert_eq!(observed, ["fixture.state.a"]);
+    assert_eq!(retained.failure().cloned(), primary);
+    assert!(weak[1].upgrade().is_none());
+    assert!(weak[0].upgrade().is_some()); // second physical release was refused
+    drop(retained); // unresolved backing disposal, no semantic receipt
+    assert!(weak.iter().all(|leaf| leaf.upgrade().is_none()));
+}

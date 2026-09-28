@@ -108,10 +108,17 @@ impl DurableOwner {
         self,
         observer: &mut dyn FnMut(&FinalizeAction) -> bool,
     ) -> Result<DurableRelease, (Self, Diagnostic)> {
+        self.settle_guarded(observer, &mut || true)
+    }
+    pub(crate) fn settle_guarded(
+        self,
+        observer: &mut dyn FnMut(&FinalizeAction) -> bool,
+        current_authority: &mut dyn FnMut() -> bool,
+    ) -> Result<DurableRelease, (Self, Diagnostic)> {
         let OwnerState::Terminal(terminal) = self.state else {
             panic!("checked terminal phase")
         };
-        settlement::settle(terminal, observer).map_err(|e| {
+        settlement::settle_guarded(terminal, observer, current_authority).map_err(|e| {
             (
                 Self {
                     state: OwnerState::Terminal(e.terminal),

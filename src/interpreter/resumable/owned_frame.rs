@@ -504,6 +504,17 @@ fn release_observed(
     actions: &[FinalizeAction],
     mut observe: impl FnMut(&FinalizeAction),
 ) -> Result<OwnedFrameReleaseReceipt, Diagnostic> {
+    release_guarded(root, actions, || true, &mut observe)
+}
+fn release_guarded(
+    root: &mut Option<Value>,
+    actions: &[FinalizeAction],
+    mut current_authority: impl FnMut() -> bool,
+    mut observe: impl FnMut(&FinalizeAction),
+) -> Result<OwnedFrameReleaseReceipt, Diagnostic> {
+    if !current_authority() {
+        return Err(rejected("durable lease authority changed"));
+    }
     let value = root
         .as_mut()
         .ok_or_else(|| rejected("root already consumed"))?;
@@ -534,6 +545,9 @@ fn release_observed(
     }
     drop(expected);
     for action in actions {
+        if !current_authority() {
+            return Err(rejected("durable lease authority changed"));
+        }
         drop(
             record
                 .fields
@@ -541,6 +555,9 @@ fn release_observed(
                 .expect("validated canonical leaf"),
         );
         observe(action);
+        if !current_authority() {
+            return Err(rejected("durable lease authority changed"));
+        }
         #[cfg(test)]
         RELEASE_OBSERVER.with(|observer| {
             if let Some(observer) = observer.borrow_mut().as_mut() {

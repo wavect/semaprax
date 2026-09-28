@@ -16,6 +16,19 @@ pub(crate) fn settle(
     terminal: OwnedFrameStagedTerminal,
     observer: &mut dyn FnMut(&FinalizeAction) -> bool,
 ) -> Result<DurableRelease, OwnedFrameSettlementRejection> {
+    settle_guarded(terminal, observer, &mut || true)
+}
+pub(crate) fn settle_guarded(
+    terminal: OwnedFrameStagedTerminal,
+    observer: &mut dyn FnMut(&FinalizeAction) -> bool,
+    current_authority: &mut dyn FnMut() -> bool,
+) -> Result<DurableRelease, OwnedFrameSettlementRejection> {
+    if !current_authority() {
+        return Err(OwnedFrameSettlementRejection {
+            terminal,
+            diagnostic: rejected("durable lease authority changed"),
+        });
+    }
     if !exclusive(&terminal.root) {
         return Err(OwnedFrameSettlementRejection {
             terminal,
@@ -45,7 +58,7 @@ pub(crate) fn settle(
     } = terminal;
     let mut root = Some(root);
     let mut observations = Vec::new();
-    let released = release_observed(&mut root, &actions, |action| {
+    let released = release_guarded(&mut root, &actions, current_authority, |action| {
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| observer(action)))
             .unwrap_or(false);
         observations.push((action.clone(), outcome));

@@ -26,6 +26,10 @@ pub(crate) fn stage_owned_authorize_v2(
     budget: &mut OwnedFrameBudget,
 ) -> Result<StagedOwnedAuthorizeV2, OwnedAuthorizeRejectionV2> {
     if state.creator != std::process::id()
+        || !state
+            .root
+            .as_ref()
+            .is_some_and(|r| state.allocations.validate(&[r]))
         || !state.plan.same_helper(plan.helper())
         || !state
             .root
@@ -81,6 +85,11 @@ pub(crate) fn stage_owned_authorize_v2(
         PreparedCancellation::Never,
     );
     let root = staged.state.root.as_ref().expect("consumed state");
+    evaluator.next_byte_allocation = staged
+        .state
+        .allocations
+        .seed(&[root])
+        .expect("checked allocation provenance");
     let result = (|| {
         evaluator.semantic_charge()?;
         contracts(&mut evaluator, f, root, &mut frame, true)?;
@@ -151,10 +160,23 @@ pub(crate) fn stage_owned_authorize_v2(
         contracts(&mut evaluator, f, root, &mut frame, false)
     })();
     let steps = evaluator.steps;
+    let next_allocation = evaluator.next_byte_allocation;
     drop(evaluator);
     drop(frame); // only Copy parameters/array; never an owning State alias
     budget.remaining -= steps;
     budget.consumed += steps;
+    let mut roots = vec![staged.state.root.as_ref().expect("retained State")];
+    if let Some(decision) = staged.decision.as_ref() {
+        roots.push(decision);
+    }
+    if staged
+        .state
+        .allocations
+        .record_frame(&roots, next_allocation)
+        .is_err()
+    {
+        staged.failure = Some(OwnedFrameFailure::EvaluationRejected);
+    }
     if let Err(flow) = result {
         staged.failure = Some(failure(flow));
     }
@@ -260,6 +282,16 @@ pub(crate) fn settle_owned_authorize_v2(
     mut current: impl FnMut() -> bool,
     mut observe: impl FnMut(&FinalizeAction),
 ) -> Result<OwnedAuthorizeSettledV2, OwnedAuthorizeSettlementRejectionV2> {
+    let mut roots = vec![staged.state.root.as_ref().expect("retained State")];
+    if let Some(decision) = staged.decision.as_ref() {
+        roots.push(decision);
+    }
+    if !staged.state.allocations.validate(&roots) {
+        return Err(OwnedAuthorizeSettlementRejectionV2 {
+            staged,
+            diagnostic: rejected("authorize allocation witnesses differ"),
+        });
+    }
     if staged.settlement_started
         || !current_in_creator(staged.state.creator, &mut current)
         || !staged

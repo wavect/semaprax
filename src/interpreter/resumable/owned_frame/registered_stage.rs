@@ -1,12 +1,15 @@
 //! Sealed consuming two-parameter helper foundation; not a durable/store route.
 use super::*;
+mod provenance;
 use crate::interpreter::resumable::ResumableChannelValue;
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedFrameHelperV2;
+use provenance::OwnedAllocationProvenanceV2;
 
 pub(crate) struct OwnedAgentStateArgument {
     plan: CheckedOwnedFrameHelperV2,
     root: Option<Value>,
     creator: u32,
+    allocations: Option<OwnedAllocationProvenanceV2>,
 }
 pub(crate) fn admit_owned_agent_state_input(
     plan: &CheckedOwnedFrameHelperV2,
@@ -30,14 +33,17 @@ pub(crate) fn admit_owned_agent_state_input(
     if let Err(diagnostic) = result {
         return Err(OwnedFrameInputRejection { input, diagnostic });
     }
+    let root = stage_root_for(
+        &plan.program().declarations,
+        &plan.function().params[0].ty,
+        input,
+    );
+    let allocations = OwnedAllocationProvenanceV2::fresh(&root).expect("checked fresh staging");
     Ok(OwnedAgentStateArgument {
         plan: plan.clone(),
-        root: Some(stage_root_for(
-            &plan.program().declarations,
-            &plan.function().params[0].ty,
-            input,
-        )),
+        root: Some(root),
         creator: std::process::id(),
+        allocations: Some(allocations),
     })
 }
 impl Drop for OwnedAgentStateArgument {
@@ -81,6 +87,7 @@ pub(crate) fn prepare_owned_copy_wait_v2(
     })
 }
 pub(crate) struct OwnedCopyWaitParkedV2 {
+    allocations: OwnedAllocationProvenanceV2,
     plan: CheckedOwnedFrameHelperV2,
     root: Option<Value>,
     observation: ResumableChannelValue,
@@ -92,6 +99,7 @@ impl OwnedCopyWaitParkedV2 {
     }
 }
 pub(crate) struct OwnedCopyWaitTerminalV2 {
+    allocations: OwnedAllocationProvenanceV2,
     plan: CheckedOwnedFrameHelperV2,
     root: Option<Value>,
     proposal: Option<ResumableChannelValue>,
@@ -117,8 +125,10 @@ fn terminal(
     failure: OwnedFrameFailure,
     provisional: bool,
     creator: u32,
+    allocations: OwnedAllocationProvenanceV2,
 ) -> OwnedCopyWaitStepV2 {
     OwnedCopyWaitStepV2::Terminal(OwnedCopyWaitTerminalV2 {
+        allocations,
         plan,
         root,
         proposal: None,
@@ -131,9 +141,22 @@ pub(crate) fn begin_owned_copy_wait_v2(
     mut prepared: PreparedOwnedCopyWaitV2,
     budget: &mut OwnedFrameBudget,
 ) -> Result<OwnedCopyWaitStepV2, PreparedOwnedCopyWaitV2> {
-    if prepared.argument.creator != std::process::id() {
+    if prepared.argument.creator != std::process::id()
+        || !prepared.argument.root.as_ref().is_some_and(|r| {
+            prepared
+                .argument
+                .allocations
+                .as_ref()
+                .is_some_and(|p| p.validate(&[r]))
+        })
+    {
         return Err(prepared);
     }
+    let allocations = prepared
+        .argument
+        .allocations
+        .take()
+        .expect("checked provenance");
     let root = prepared.argument.root.take();
     let plan = prepared.argument.plan.clone();
     let creator = prepared.argument.creator;
@@ -144,6 +167,7 @@ pub(crate) fn begin_owned_copy_wait_v2(
             OwnedFrameFailure::HostAbandoned,
             false,
             creator,
+            allocations,
         ));
     }
     let mut env = Environment::from(Vec::new());
@@ -163,9 +187,17 @@ pub(crate) fn begin_owned_copy_wait_v2(
     );
     drop(env);
     if let Err(flow) = result {
-        return Ok(terminal(plan, root, failure(flow), provisional, creator));
+        return Ok(terminal(
+            plan,
+            root,
+            failure(flow),
+            provisional,
+            creator,
+            allocations,
+        ));
     }
     Ok(OwnedCopyWaitStepV2::Parked(OwnedCopyWaitParkedV2 {
+        allocations,
         plan,
         root,
         observation: prepared.observation,
@@ -177,10 +209,16 @@ pub(crate) fn resume_owned_copy_wait_v2(
     proposal: ResumableChannelValue,
     budget: &mut OwnedFrameBudget,
 ) -> Result<OwnedCopyWaitStepV2, (OwnedCopyWaitParkedV2, ResumableChannelValue)> {
-    if parked.creator != std::process::id() {
+    if parked.creator != std::process::id()
+        || !parked
+            .root
+            .as_ref()
+            .is_some_and(|r| parked.allocations.validate(&[r]))
+    {
         return Err((parked, proposal));
     }
     let OwnedCopyWaitParkedV2 {
+        allocations,
         plan,
         root,
         observation,
@@ -193,6 +231,7 @@ pub(crate) fn resume_owned_copy_wait_v2(
             OwnedFrameFailure::HostAbandoned,
             false,
             creator,
+            allocations,
         ));
     }
     let ty = &plan
@@ -209,6 +248,7 @@ pub(crate) fn resume_owned_copy_wait_v2(
             OwnedFrameFailure::AnswerTypeMismatch,
             false,
             creator,
+            allocations,
         ));
     };
     let mut env = Environment::from(Vec::new());
@@ -237,9 +277,17 @@ pub(crate) fn resume_owned_copy_wait_v2(
     );
     drop(env);
     if let Err(flow) = result {
-        return Ok(terminal(plan, root, failure(flow), provisional, creator));
+        return Ok(terminal(
+            plan,
+            root,
+            failure(flow),
+            provisional,
+            creator,
+            allocations,
+        ));
     }
     Ok(OwnedCopyWaitStepV2::Terminal(OwnedCopyWaitTerminalV2 {
+        allocations,
         plan,
         root,
         proposal: Some(proposal),
@@ -304,6 +352,7 @@ fn evaluate_contract_phase(
 }
 
 pub(crate) struct CompletedOwnedAgentStateV2 {
+    allocations: OwnedAllocationProvenanceV2,
     plan: CheckedOwnedFrameHelperV2,
     root: Option<Value>,
     proposal: ResumableChannelValue,
@@ -363,6 +412,10 @@ pub(crate) fn settle_owned_copy_wait_v2(
         || !terminal
             .root
             .as_ref()
+            .is_some_and(|r| terminal.allocations.validate(&[r]))
+        || !terminal
+            .root
+            .as_ref()
             .is_some_and(|root| root_valid(&terminal.plan, root))
     {
         return Err(OwnedCopyWaitSettlementRejectionV2 {
@@ -414,6 +467,7 @@ pub(crate) fn settle_owned_copy_wait_v2(
     }
     Ok(OwnedCopyWaitSettledV2::Completed(
         CompletedOwnedAgentStateV2 {
+            allocations: terminal.allocations,
             plan: terminal.plan,
             root: terminal.root,
             proposal: terminal.proposal.expect("checked answer"),

@@ -149,6 +149,26 @@ fn owned_frame_v2_authorize_real_checked_decision_preserves_state_and_matches_or
                 panic!()
             };
             assert_eq!(v.case.as_str(), case);
+            assert_eq!(
+                staged
+                    .state
+                    .allocations
+                    .seed(&[
+                        staged.state.root.as_ref().unwrap(),
+                        staged.decision.as_ref().unwrap()
+                    ])
+                    .unwrap(),
+                if case == "decision.granted" { 3 } else { 2 }
+            );
+            if case == "decision.granted" {
+                let Value::Bytes(seal) = &v.fields[p.seal()] else {
+                    panic!()
+                };
+                assert_eq!(
+                    seal.allocation, 3,
+                    "new seal never aliases State logical IDs"
+                );
+            }
             let seal = seal_weak(&staged);
             if let Some(seal) = &seal {
                 assert_eq!(&*seal.upgrade().unwrap(), &[65, 90]);

@@ -7,6 +7,7 @@ pub(crate) struct ObservedOwnedAgentStateV2 {
     root: Option<Value>,
     observation: ResumableChannelValue,
     creator: u32,
+    allocations: OwnedAllocationProvenanceV2,
 }
 impl ObservedOwnedAgentStateV2 {
     pub(crate) fn observation(&self) -> &ResumableChannelValue {
@@ -19,6 +20,7 @@ pub(crate) struct FailedOwnedObserveV2 {
     failure: OwnedFrameFailure,
     creator: u32,
     settlement_started: bool,
+    allocations: OwnedAllocationProvenanceV2,
 }
 pub(crate) enum OwnedObserveStepV2 {
     Observed(ObservedOwnedAgentStateV2),
@@ -27,29 +29,6 @@ pub(crate) enum OwnedObserveStepV2 {
 pub(crate) struct OwnedObserveRejectionV2 {
     pub(crate) argument: OwnedAgentStateArgument,
     pub(crate) diagnostic: Diagnostic,
-}
-// Admission currently mints the complete State's private logical namespace
-// 1..=N. Validate it by borrow before seeding the ordinary view evaluator;
-// observing a maximum alone would admit arbitrary forged allocation IDs.
-fn retained_allocation_ceiling(plan: &CheckedOwnedFrameHelperV2, root: &Value) -> Option<u32> {
-    if !root_valid(plan, root) {
-        return None;
-    }
-    let Value::Record(record) = root else {
-        return None;
-    };
-    let count = u32::try_from(plan.liveness().leaves.len()).ok()?;
-    let mut seen = Vec::new();
-    for leaf in &plan.liveness().leaves {
-        let Value::Bytes(bytes) = record.fields.get(&leaf.field)? else {
-            return None;
-        };
-        if bytes.allocation == 0 || bytes.allocation > count || seen.contains(&bytes.allocation) {
-            return None;
-        }
-        seen.push(bytes.allocation);
-    }
-    Some(count)
 }
 pub(crate) fn observe_owned_agent_state_v2(
     mut argument: OwnedAgentStateArgument,
@@ -61,7 +40,12 @@ pub(crate) fn observe_owned_agent_state_v2(
         || argument
             .root
             .as_ref()
-            .and_then(|v| retained_allocation_ceiling(&argument.plan, v))
+            .and_then(|v| {
+                argument
+                    .allocations
+                    .as_ref()
+                    .and_then(|p| p.seed(&[v]).ok())
+            })
             .is_none()
     {
         return Err(OwnedObserveRejectionV2 {
@@ -69,25 +53,30 @@ pub(crate) fn observe_owned_agent_state_v2(
             diagnostic: rejected("Observe helper/root/process mismatch"),
         });
     }
-    let allocation_ceiling = retained_allocation_ceiling(
-        &argument.plan,
-        argument.root.as_ref().expect("checked root"),
-    )
-    .expect("checked allocations");
+    let allocation_ceiling = argument
+        .allocations
+        .as_ref()
+        .expect("checked provenance")
+        .seed(&[argument.root.as_ref().expect("checked root")])
+        .expect("checked allocations");
+    let allocations = argument.allocations.take().expect("consumed provenance");
     let root = argument.root.take();
     let helper = argument.plan.clone();
     let creator = argument.creator;
-    let failed = |root, failure| {
-        OwnedObserveStepV2::Failed(FailedOwnedObserveV2 {
-            plan: helper.clone(),
-            root,
-            failure,
-            creator,
-            settlement_started: false,
-        })
-    };
+    macro_rules! failed {
+        ($failure:expr) => {
+            OwnedObserveStepV2::Failed(FailedOwnedObserveV2 {
+                plan: helper.clone(),
+                root,
+                failure: $failure,
+                creator,
+                settlement_started: false,
+                allocations,
+            })
+        };
+    }
     if budget.cancelled {
-        return Ok(failed(root, OwnedFrameFailure::HostAbandoned));
+        return Ok(failed!(OwnedFrameFailure::HostAbandoned));
     }
     let Value::Record(state) = root.as_ref().expect("consumed state") else {
         unreachable!()
@@ -115,7 +104,7 @@ pub(crate) fn observe_owned_agent_state_v2(
     budget.remaining -= steps;
     budget.consumed += steps;
     match evaluation {
-        Err(flow) => Ok(failed(root, failure(flow))),
+        Err(flow) => Ok(failed!(failure(flow))),
         Ok(value) => {
             let observation =
                 super::super::super::channel_of(&helper.program().declarations, &value);
@@ -127,16 +116,17 @@ pub(crate) fn observe_owned_agent_state_v2(
                     v,
                 )
             }) else {
-                return Ok(failed(root, OwnedFrameFailure::EvaluationRejected));
+                return Ok(failed!(OwnedFrameFailure::EvaluationRejected));
             };
             if !root.as_ref().is_some_and(|r| root_valid(&helper, r)) {
-                return Ok(failed(root, OwnedFrameFailure::EvaluationRejected));
+                return Ok(failed!(OwnedFrameFailure::EvaluationRejected));
             }
             Ok(OwnedObserveStepV2::Observed(ObservedOwnedAgentStateV2 {
                 plan: helper.clone(),
                 root,
                 observation,
                 creator,
+                allocations,
             }))
         }
     }
@@ -145,6 +135,10 @@ pub(crate) fn prepare_observed_owned_copy_wait_v2(
     observed: ObservedOwnedAgentStateV2,
 ) -> Result<PreparedOwnedCopyWaitV2, ObservedOwnedAgentStateV2> {
     if observed.creator != std::process::id()
+        || !observed
+            .root
+            .as_ref()
+            .is_some_and(|r| observed.allocations.validate(&[r]))
         || !channel_v2::valid_copy_carrier(
             &observed.plan.program().declarations,
             &observed.plan.function().params[1].ty,
@@ -162,6 +156,7 @@ pub(crate) fn prepare_observed_owned_copy_wait_v2(
             plan: observed.plan,
             root: observed.root,
             creator: observed.creator,
+            allocations: Some(observed.allocations),
         },
         observation: observed.observation,
     })
@@ -181,6 +176,10 @@ pub(crate) fn settle_failed_owned_observe_v2(
     mut observe: impl FnMut(&FinalizeAction),
 ) -> Result<OwnedObserveSettledV2, OwnedObserveSettlementRejectionV2> {
     if failed.settlement_started
+        || !failed
+            .root
+            .as_ref()
+            .is_some_and(|r| failed.allocations.validate(&[r]))
         || !current_in_creator(failed.creator, &mut current)
         || !failed
             .root

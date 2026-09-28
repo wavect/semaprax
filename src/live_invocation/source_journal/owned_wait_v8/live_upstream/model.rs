@@ -66,7 +66,7 @@ impl LiveWaitResumePermitV8<'_> {
         self.fuel
     }
 }
-fn check_clock_v8(
+pub(super) fn check_clock_v8(
     held: &HeldOwnedWaitStoreV8<'_>,
     sequence: usize,
     bytes: usize,
@@ -137,13 +137,15 @@ pub(super) struct LiveModelFailureV8<'j> {
 }
 /// Same physical State remains staged. Transfer/Authorize have not occurred.
 pub(super) struct CompletedLiveOwnedRunV8<'j> {
-    owner: LiveResumedStateV8,
-    session: AppendSessionV8<'j>,
-    held: HeldOwnedWaitStoreV8<'j>,
-    journal: &'j SourceOwnedWaitJournalV8,
-    proposal: CheckedOwnedWaitProposalV8,
-    completed: u32,
-    cancellation: &'j crate::agent_runtime::AgentCancellation,
+    pub(super) owner: LiveResumedStateV8,
+    pub(super) session: AppendSessionV8<'j>,
+    pub(super) held: HeldOwnedWaitStoreV8<'j>,
+    pub(super) journal: &'j SourceOwnedWaitJournalV8,
+    pub(super) proposal: CheckedOwnedWaitProposalV8,
+    pub(super) completed: u32,
+    pub(super) cancellation: &'j crate::agent_runtime::AgentCancellation,
+    pub(super) wait: String,
+    pub(super) clock: &'j dyn SourceInvocationClock,
 }
 fn reported_usage(value: Option<(u64, u64, i64)>) -> Option<SourceReportedUsage> {
     value.map(|(input, output, _)| SourceReportedUsage {
@@ -470,7 +472,7 @@ pub(super) fn model_live_actor_v8<'j>(
         journal_model::OwnedBodyV8::OwnedWaitCompleted {
             turn: 0,
             attempt: 0,
-            wait,
+            wait: wait.clone(),
             reservation,
             proposal: proposal.value().clone(),
             proposal_digest: proposal.ordinary_digest().into(),
@@ -504,7 +506,9 @@ pub(super) fn model_live_actor_v8<'j>(
         proposal,
         completed,
         cancellation,
+        wait,
+        clock,
     })
 }
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;

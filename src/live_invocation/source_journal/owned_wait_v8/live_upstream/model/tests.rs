@@ -669,3 +669,43 @@ fn owned_wait_live_model_clock_panics_before_and_after_intent_preserve_real_owne
         });
     }
 }
+
+/// A real model/ACK/source fixture, not a trusted ACK or owner constructor.
+pub(in crate::live_invocation::source_journal::owned_wait_v8::live_upstream) fn completed_test_actor<
+    'j,
+>(
+    journal: &'j SourceOwnedWaitJournalV8,
+    cancel: &'j crate::agent_runtime::AgentCancellation,
+    clock: &'j dyn SourceInvocationClock,
+    budget: i64,
+) -> CompletedLiveOwnedRunV8<'j> {
+    let response = String::from_utf8(document(journal.context()))
+        .unwrap()
+        .replace(
+            "proposal.budget\":\"3",
+            &format!("proposal.budget\":\"{budget}"),
+        );
+    let parked = park(journal, cancel);
+    let counts = Rc::new(RefCell::new(Counts::default()));
+    let mut factory = factory(
+        Rc::clone(&counts),
+        script(response.as_bytes()),
+        Rc::new(|_| {}),
+    );
+    let mut adapter = source(journal.context(), &mut factory);
+    let completed = model_live_actor_v8(parked, &mut adapter, clock).unwrap_or_else(|failed| {
+        panic!(
+            "real SDK/Resume {:?} {:?}",
+            failed.error, failed.diagnostics
+        )
+    });
+    assert_eq!(
+        (
+            counts.borrow().factories,
+            counts.borrow().starts,
+            counts.borrow().polls
+        ),
+        (1, 1, 3)
+    );
+    completed
+}

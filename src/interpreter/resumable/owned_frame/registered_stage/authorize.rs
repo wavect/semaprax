@@ -15,6 +15,70 @@ impl StagedOwnedAuthorizeV2 {
     pub(crate) fn failure(&self) -> Option<&OwnedFrameFailure> {
         self.failure.as_ref()
     }
+    #[cfg(test)]
+    pub(crate) fn live_test_weak(&self) -> Vec<std::sync::Weak<[u8]>> {
+        let mut leaves = super::super::snapshot::weak_leaves(self.state.root.as_ref().unwrap());
+        if let Some(decision) = &self.decision {
+            leaves.extend(super::super::snapshot::weak_leaves(decision));
+        }
+        leaves
+    }
+    /// Borrow checked full source facts only; no owner or restore authority.
+    pub(crate) fn live_staged_facts(
+        &self,
+        binding: &crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8,
+    ) -> Option<(serde_json::Value, serde_json::Value)> {
+        if self.failure.is_some()
+            || !self.provisional
+            || self.settlement_started
+            || self.state.creator != std::process::id()
+            || !self.state.plan.same_helper(binding.helper())
+            || self.plan.function().id != binding.authorize().function().id
+        {
+            return None;
+        }
+        let root = self.state.root.as_ref()?;
+        let decision_root = self.decision.as_ref()?;
+        if !exclusive(root)
+            || !exclusive(decision_root)
+            || !self.state.allocations.validate(&[root, decision_root])
+        {
+            return None;
+        }
+        let state = super::live_run::root_facts(&self.state.plan, root)?;
+        let Value::Variant(decision) = decision_root else {
+            return None;
+        };
+        if decision.variant != *self.plan.decision()
+            || (decision.case != *self.plan.granted() && decision.case != *self.plan.refused())
+        {
+            return None;
+        }
+        let fields = self
+            .plan
+            .helper()
+            .program()
+            .declarations
+            .case_fields(&decision.case)?;
+        if decision.fields.len() != fields.len() {
+            return None;
+        }
+        let values = fields.iter().map(|field| {
+            let value = decision.fields.get(&field.id)?;
+            let value = match value {
+                Value::Bytes(bytes) if field.ty == ResolvedType::Bytes && bytes.bytes.len() <= 1024 =>
+                    serde_json::json!({"kind":"bytes","hex":crate::live_invocation::identity::hex(&bytes.bytes)}),
+                Value::Int(v) if field.ty == ResolvedType::I64 =>
+                    serde_json::json!({"tag":"i64","value":v}),
+                _ => return None,
+            };
+            Some(serde_json::json!({"identity":field.id.as_str(),"value":value}))
+        }).collect::<Option<Vec<_>>>()?;
+        Some((
+            state,
+            serde_json::json!({"declaration":decision.variant.as_str(),"case":decision.case.as_str(),"fields":values}),
+        ))
+    }
 }
 pub(crate) struct OwnedAuthorizeRejectionV2 {
     pub(crate) state: CompletedOwnedAgentStateV2,

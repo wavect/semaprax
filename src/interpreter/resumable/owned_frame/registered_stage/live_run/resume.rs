@@ -3,8 +3,8 @@ use super::*;
 use crate::live_invocation::source_journal::LiveWaitResumePermitV8;
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedAgentWaitBindingV8;
 pub(crate) struct LiveResumedStateV8 {
-    terminal: OwnedCopyWaitTerminalV2,
-    consumed: u64,
+    pub(super) terminal: OwnedCopyWaitTerminalV2,
+    pub(super) consumed: u64,
 }
 impl LiveResumedStateV8 {
     pub(crate) fn consumed(&self) -> u64 {
@@ -27,6 +27,22 @@ impl LiveResumedStateV8 {
             return None;
         }
         root_facts(&t.plan, root)
+    }
+    pub(crate) fn transfer_ready(
+        &self,
+        binding: &CheckedOwnedAgentWaitBindingV8,
+        proposal: &crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitProposalV8,
+    ) -> bool {
+        self.checked_facts(binding).is_some()
+            && self.terminal.plan.liveness().completion_cleanup.is_empty()
+            && self.terminal.proposal.as_ref() == Some(proposal.carrier())
+    }
+    #[cfg(test)]
+    pub(crate) fn test_substitute_answer(&mut self) {
+        let Some(ResumableChannelValue::Record { fields, .. }) = &mut self.terminal.proposal else {
+            panic!("actual record answer");
+        };
+        fields[0] = crate::interpreter::ArgumentValue::Int(99);
     }
     #[cfg(test)]
     pub(crate) fn test_weak(&self) -> Vec<std::sync::Weak<[u8]>> {

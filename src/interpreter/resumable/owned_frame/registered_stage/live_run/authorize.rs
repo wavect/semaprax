@@ -1,0 +1,129 @@
+//! Same-root stage handoff, authorized only by the actual live ACK producer.
+use super::super::authorize::{stage_owned_authorize_v2, StagedOwnedAuthorizeV2};
+use super::*;
+use crate::live_invocation::source_journal::{LiveAuthorizePermitV8, LiveStateTransferPermitV8};
+use crate::resumable_effects::owned_frame::v2::{
+    CheckedOwnedAgentWaitBindingV8, CheckedOwnedWaitProposalV8,
+};
+
+pub(crate) struct LiveTransferredStateV8 {
+    state: CompletedOwnedAgentStateV2,
+}
+impl LiveTransferredStateV8 {
+    pub(crate) fn checked_facts(
+        &self,
+        binding: &CheckedOwnedAgentWaitBindingV8,
+        proposal: &CheckedOwnedWaitProposalV8,
+    ) -> Option<serde_json::Value> {
+        let state = &self.state;
+        let root = state.root.as_ref()?;
+        if state.creator != std::process::id()
+            || !state.plan.same_helper(binding.helper())
+            || state.proposal != *proposal.carrier()
+            || !state.allocations.validate(&[root])
+        {
+            return None;
+        }
+        root_facts(&state.plan, root)
+    }
+    #[cfg(test)]
+    pub(crate) fn test_weak(&self) -> Vec<std::sync::Weak<[u8]>> {
+        super::super::super::snapshot::weak_leaves(self.state.root.as_ref().unwrap())
+    }
+}
+pub(crate) enum LiveStateTransferOutcomeV8 {
+    Moved(LiveTransferredStateV8),
+    Refused(LiveResumedStateV8),
+    GuardLost(LiveTransferredStateV8),
+}
+pub(crate) fn transfer_live_owned_state_v8(
+    permit: LiveStateTransferPermitV8<'_>,
+    owner: LiveResumedStateV8,
+    proposal: &CheckedOwnedWaitProposalV8,
+) -> LiveStateTransferOutcomeV8 {
+    let t = &owner.terminal;
+    // Prove no failure-vector path or physical finalizer can run before consuming.
+    if permit.validate_guard().is_err()
+        || owner.checked_facts(permit.binding()).is_none()
+        || !t.plan.liveness().completion_cleanup.is_empty()
+        || t.proposal.as_ref() != Some(proposal.carrier())
+    {
+        return LiveStateTransferOutcomeV8::Refused(owner);
+    }
+    let consumed = owner.consumed;
+    let moved = match settle_owned_copy_wait_v2(
+        owner.terminal,
+        || permit.validate_guard().is_ok(),
+        |_| unreachable!("checked empty completion vector"),
+    ) {
+        Ok(OwnedCopyWaitSettledV2::Completed(state)) => LiveTransferredStateV8 { state },
+        Ok(OwnedCopyWaitSettledV2::Failed { .. }) => unreachable!("preproved successful helper"),
+        Err(rejected) => {
+            return LiveStateTransferOutcomeV8::Refused(LiveResumedStateV8 {
+                terminal: rejected.terminal,
+                consumed,
+            })
+        }
+    };
+    if permit.validate_guard().is_err() {
+        LiveStateTransferOutcomeV8::GuardLost(moved)
+    } else {
+        LiveStateTransferOutcomeV8::Moved(moved)
+    }
+}
+pub(crate) struct LiveStagedAuthorizationV8 {
+    staged: StagedOwnedAuthorizeV2,
+    consumed: u64,
+}
+impl LiveStagedAuthorizationV8 {
+    pub(crate) fn consumed(&self) -> u64 {
+        self.consumed
+    }
+    pub(crate) fn checked_facts(
+        &self,
+        binding: &CheckedOwnedAgentWaitBindingV8,
+    ) -> Option<(serde_json::Value, serde_json::Value)> {
+        self.staged.live_staged_facts(binding)
+    }
+    #[cfg(test)]
+    pub(crate) fn test_weak(&self) -> Vec<std::sync::Weak<[u8]>> {
+        // Actual combined inventory, not inert Decision bytes.
+        self.staged.live_test_weak()
+    }
+}
+pub(crate) enum LiveAuthorizeOutcomeV8 {
+    Staged(LiveStagedAuthorizationV8),
+    Refused(LiveTransferredStateV8),
+    Failed(LiveStagedAuthorizationV8),
+    GuardLost(LiveStagedAuthorizationV8),
+}
+pub(crate) fn authorize_live_owned_state_v8(
+    permit: LiveAuthorizePermitV8<'_>,
+    owner: LiveTransferredStateV8,
+) -> LiveAuthorizeOutcomeV8 {
+    if permit.validate_guard().is_err() {
+        return LiveAuthorizeOutcomeV8::Refused(owner);
+    }
+    let mut budget = OwnedFrameBudget::new(permit.fuel()).expect("checked exact Authorize F");
+    let staged =
+        match stage_owned_authorize_v2(owner.state, permit.binding().authorize(), &mut budget) {
+            Ok(staged) => staged,
+            Err(rejected) => {
+                return LiveAuthorizeOutcomeV8::Refused(LiveTransferredStateV8 {
+                    state: rejected.state,
+                })
+            }
+        };
+    let failed = staged.failure().is_some();
+    let owner = LiveStagedAuthorizationV8 {
+        staged,
+        consumed: budget.consumed() as u64,
+    };
+    if permit.validate_guard().is_err() {
+        LiveAuthorizeOutcomeV8::GuardLost(owner)
+    } else if failed {
+        LiveAuthorizeOutcomeV8::Failed(owner)
+    } else {
+        LiveAuthorizeOutcomeV8::Staged(owner)
+    }
+}

@@ -64,6 +64,7 @@ impl LiveWaitStartPermitV8<'_> {
         self.fuel
     }
 }
+pub(super) mod authorize;
 pub(super) mod model;
 mod observe;
 mod wait;

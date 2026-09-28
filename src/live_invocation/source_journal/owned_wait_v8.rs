@@ -78,3 +78,5 @@ pub(crate) use live_upstream::{
 };
 
 pub(crate) use live_upstream::model::{LiveModelIntentPermitV8, LiveWaitResumePermitV8};
+
+pub(crate) use live_upstream::authorize::{LiveAuthorizePermitV8, LiveStateTransferPermitV8};

@@ -132,7 +132,10 @@ pub(crate) fn initialize_live_owned_run_v8(
 fn record_facts(state: &OwnedAgentStateArgument) -> Option<serde_json::Value> {
     root_facts(&state.plan, state.root.as_ref()?)
 }
-fn root_facts(plan: &CheckedOwnedFrameHelperV2, root: &Value) -> Option<serde_json::Value> {
+pub(super) fn root_facts(
+    plan: &CheckedOwnedFrameHelperV2,
+    root: &Value,
+) -> Option<serde_json::Value> {
     if !root_valid(plan, root) {
         return None;
     }
@@ -163,3 +166,9 @@ pub(crate) use wait::{begin_live_owned_wait_v8, LiveParkedStateV8, LiveWaitStart
 
 mod resume;
 pub(crate) use resume::{resume_live_owned_wait_v8, LiveResumedStateV8, LiveWaitResumeOutcomeV8};
+
+mod authorize;
+pub(crate) use authorize::{
+    authorize_live_owned_state_v8, transfer_live_owned_state_v8, LiveAuthorizeOutcomeV8,
+    LiveStagedAuthorizationV8, LiveStateTransferOutcomeV8, LiveTransferredStateV8,
+};

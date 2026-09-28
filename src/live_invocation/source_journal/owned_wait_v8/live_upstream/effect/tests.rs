@@ -2,6 +2,7 @@
 use super::super::authorize::authorize_live_actor_v8;
 use super::super::model::tests::completed_test_actor;
 use super::*;
+use crate::live_invocation::SourceInvocationClock;
 use std::sync::Arc;
 
 struct Clock;
@@ -24,8 +25,8 @@ fn owned_wait_live_effect_ready_requires_current_policy_and_retains_actual_roots
         let cancel = crate::agent_runtime::AgentCancellation::new();
         let completed = completed_test_actor(&journal, &cancel, &Clock, 3);
         let state = completed.owner.test_weak();
-        let staged = authorize_live_actor_v8(completed)
-            .unwrap_or_else(|failed| panic!("actual authorize {:?}", failed.error));
+        let staged =
+            authorize_live_actor_v8(completed).unwrap_or_else(|_| panic!("actual authorize"));
         let leaves = staged.owner.test_weak();
         let prior = staged.session.fold_for_live_test();
         let denied = CapabilityPolicy::new(vec![]).unwrap();
@@ -86,8 +87,8 @@ fn owned_wait_live_effect_ready_refused_and_cancelled_keep_staged_owner_without_
                 3
             };
             let completed = completed_test_actor(&journal, &cancel, &Clock, budget);
-            let staged = authorize_live_actor_v8(completed)
-                .unwrap_or_else(|failed| panic!("actual authorize {:?}", failed.error));
+            let staged =
+                authorize_live_actor_v8(completed).unwrap_or_else(|_| panic!("actual authorize"));
             let leaves = staged.owner.test_weak();
             let before = staged.session.acknowledged_bytes();
             if !refused {
@@ -114,8 +115,8 @@ fn owned_wait_live_effect_ready_inert_generic_append_cannot_refresh_live_prefix(
         let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
         let cancel = crate::agent_runtime::AgentCancellation::new();
         let completed = completed_test_actor(&journal, &cancel, &Clock, 3);
-        let staged = authorize_live_actor_v8(completed)
-            .unwrap_or_else(|failed| panic!("actual authorize {:?}", failed.error));
+        let staged =
+            authorize_live_actor_v8(completed).unwrap_or_else(|_| panic!("actual authorize"));
         let leaves = staged.owner.test_weak();
         let allowed = CapabilityPolicy::new(vec!["read".into()]).unwrap();
         let obligation = prepare_live_effect_ready_v8(staged, &allowed)

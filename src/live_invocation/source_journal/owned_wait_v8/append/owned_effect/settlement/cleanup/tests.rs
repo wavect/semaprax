@@ -85,7 +85,20 @@ fn obligation<'j>(
         .begin_session()
         .unwrap()
         .append_owned_effect_intent(intent)
-        .unwrap_or_else(|_| panic!("Intent ACK"));
+         .unwrap_or_else(|failure| {
+            use crate::live_invocation::source_journal::owned_wait_v8::append::owned_effect::LiveOwnedEffectIntentAppendFailureV8 as IntentFailure;
+            match failure {
+                IntentFailure::Before { error, .. } => panic!("Intent ACK before: {error:?}"),
+                IntentFailure::Acknowledged { error, .. } => panic!("Intent ACK acknowledged: {error:?}"),
+                IntentFailure::After { error, .. } => panic!("Intent ACK after: {error:?}"),
+                IntentFailure::Append { _failure, .. } => match _failure {
+                    AppendFailureV8::PhysicalBeforeCandidate { error, .. } => panic!("Intent ACK physical: {error:?}"),
+                    AppendFailureV8::CandidateRefused { error, .. } => panic!("Intent ACK candidate: {error:?}"),
+                    AppendFailureV8::PrewriteRefused { error, .. } => panic!("Intent ACK prewrite: {error:?}"),
+                    AppendFailureV8::InDoubt { error, .. } => panic!("Intent ACK uncertain: {error:?}"),
+                },
+            }
+        });
     let activated = intent
         .advance_intent()
         .unwrap_or_else(|_| panic!("actual activation"));

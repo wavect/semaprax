@@ -531,6 +531,7 @@ Audience: all documentation readers.
 - [Cross-language Agent benchmark laboratory v1](CROSS-LANGUAGE-BENCHMARK-V1.md)
 - [Cross-language runnable adapter v1](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V1.md)
 - [Cross-language runnable adapter v2](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V2.md)
+- [Cross-language runnable adapter v3: official TypeScript lane](CROSS-LANGUAGE-RUNNABLE-ADAPTER-V3.md)
 - [Catalog normalizer oracle v1](CATALOG-NORMALIZER-ORACLE-V1.md)
 - [Economic Agent](ECONOMIC-AGENT-V1.md)
 - [Deterministic ARC zone model](ARC-ZONES-V1.md)

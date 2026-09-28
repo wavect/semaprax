@@ -249,13 +249,18 @@ impl RegisteredJournalLease {
         Ok(())
     }
 }
-impl Drop for RegisteredJournalLease {
-    fn drop(&mut self) {
+impl RegisteredJournalLease {
+    fn unlock_creator_only(&self) {
         if self.creator_process == std::process::id() {
             let _ = rustix::fs::flock(self.file.as_fd(), FlockOperation::Unlock);
         }
         // Inherited open descriptions are close-only here; LOCK_UN would
         // unlock the creator process's still-active lease.
+    }
+}
+impl Drop for RegisteredJournalLease {
+    fn drop(&mut self) {
+        self.unlock_creator_only();
     }
 }
 

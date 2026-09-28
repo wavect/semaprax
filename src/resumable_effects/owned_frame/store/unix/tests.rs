@@ -157,9 +157,9 @@ fn owned_frame_inherited_lease_refuses_before_io_and_child_drop_preserves_parent
             {
                 return Err(std::io::Error::from_raw_os_error(22));
             }
-            // Run only the custom Drop body (getpid + foreign branch), then
+            // Run only the helper used by Drop (getpid + foreign branch), then
             // close its descriptor. Do not free the inherited heap/String.
-            std::ops::Drop::drop(&mut *lease);
+            lease.unlock_creator_only();
             use std::os::fd::{AsRawFd, FromRawFd};
             drop(File::from_raw_fd(lease.file.as_raw_fd()));
             Ok(())

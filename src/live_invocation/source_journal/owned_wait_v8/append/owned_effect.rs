@@ -2,12 +2,17 @@
 use super::*;
 
 mod consumed;
-pub(super) use consumed::OwnedReduceHoldPhaseV8;
+mod intent;
 use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::effect::LiveOwnedEffectAppendV8;
+pub(super) use consumed::OwnedReduceHoldPhaseV8;
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use consumed::{
     HeldOwnedAuthorizationConsumedV8, LiveOwnedAuthorizationConsumedAppendFailureV8,
     ProspectiveOwnedReduceHoldV8, ReduceHoldRejectionV8,
     VerifiedOwnedAuthorizationConsumedSuccessorV8, VerifiedOwnedAuthorizationConsumedV8,
+};
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use intent::{
+    LiveOwnedEffectIntentAppendFailureV8, VerifiedOwnedEffectIntentAppendV8,
+    VerifiedOwnedEffectIntentSuccessorV8,
 };
 
 /// Move-only exact prefix, bound to the immutable actual E/B/store context.

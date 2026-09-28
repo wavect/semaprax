@@ -1,7 +1,16 @@
 //! Consuming inert append choreography. No sink, File, runtime owner, or ACK factory.
+use super::append::SourceOwnedWaitJournalV8;
+use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPermitV8;
 use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
+enum ProducerV8<'p, 'j> {
+    Generic,
+    Intent(
+        &'p SourceOwnedWaitJournalV8,
+        &'p FixedOwnedEffectIntentAppendPermitV8<'p, 'j>,
+    ),
+}
 enum ContextV8<'a> {
     Checked(&'a CheckedOwnedWaitJournalContextV8),
     #[cfg(test)]
@@ -157,6 +166,28 @@ impl<'a> InventoryV8<'a> {
         capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
         Ok((folded.reserved_total, folded.stages, *turn, *attempt))
     }
+    pub(super) fn effect_intent_reduce_facts(
+        &self,
+    ) -> Result<(u64, u32, u32, u32, &EntryV8), SourceJournalError> {
+        let context = self.context.fold();
+        let folded = fold::fold(context, &self.entries)?;
+        if folded.tail != fold::TailV8::EffectInDoubt {
+            return Err(SourceJournalError::Order);
+        }
+        let selected = &self.entries.last().ok_or(SourceJournalError::Order)?.entry;
+        let EntryV8::Ordinary(SourceJournalEntry::EffectIntent { turn, attempt, .. }) = selected
+        else {
+            return Err(SourceJournalError::Order);
+        };
+        capacity::outstanding(context, &folded)?.check(self.document.len(), self.entries.len())?;
+        Ok((
+            folded.reserved_total,
+            folded.stages,
+            *turn,
+            *attempt,
+            selected,
+        ))
+    }
     pub(super) fn sequence(&self) -> usize {
         self.entries.len()
     }
@@ -173,17 +204,34 @@ impl<'a> InventoryV8<'a> {
     ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
         #[cfg(test)]
         {
-            self.prepare_inner(row, Some(lease), None)
+            self.prepare_inner(row, Some(lease), ProducerV8::Generic, None)
         }
         #[cfg(not(test))]
         {
-            self.prepare_inner(row, Some(lease))
+            self.prepare_inner(row, Some(lease), ProducerV8::Generic)
+        }
+    }
+    pub(super) fn prepare_fixed_intent(
+        self,
+        lease: &SourceOwnedWaitLeaseV8,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedEffectIntentAppendPermitV8<'_, '_>,
+    ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+        let row = permit.selected_row().clone();
+        #[cfg(test)]
+        {
+            self.prepare_inner(row, Some(lease), ProducerV8::Intent(journal, permit), None)
+        }
+        #[cfg(not(test))]
+        {
+            self.prepare_inner(row, Some(lease), ProducerV8::Intent(journal, permit))
         }
     }
     fn prepare_inner(
         mut self,
         row: EntryV8,
         lease: Option<&SourceOwnedWaitLeaseV8>,
+        producer: ProducerV8<'_, '_>,
         #[cfg(test)] synthetic: Option<ValidatedEntryV8>,
     ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
         let mut physical = false;
@@ -237,7 +285,15 @@ impl<'a> InventoryV8<'a> {
                 }
             };
             let previous = fold::fold(context, &self.entries)?;
-            fold::validate_producer_transition(&previous, &checked)?;
+            match producer {
+                ProducerV8::Generic => fold::validate_producer_transition(&previous, &checked)?,
+                ProducerV8::Intent(journal, permit) => {
+                    if checked.entry != *permit.selected_row() {
+                        return Err(SourceJournalError::Binding);
+                    }
+                    permit.validate_selected_prefix(journal, &self)?;
+                }
+            }
             self.entries.push(checked);
             let next = fold::fold(context, &self.entries);
             let row = self.entries.pop().expect("prospective row retained");
@@ -341,7 +397,7 @@ impl<'a> InventoryV8<'a> {
         self,
         row: ValidatedEntryV8,
     ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
-        self.prepare_inner(row.entry.clone(), None, Some(row))
+        self.prepare_inner(row.entry.clone(), None, ProducerV8::Generic, Some(row))
     }
 }
 impl<'a> CandidateV8<'a> {
@@ -351,6 +407,16 @@ impl<'a> CandidateV8<'a> {
     }
 }
 impl<'a> PendingV8<'a> {
+    pub(super) fn validate_fixed_intent_prefix(
+        &self,
+        journal: &SourceOwnedWaitJournalV8,
+        permit: &FixedOwnedEffectIntentAppendPermitV8<'_, '_>,
+    ) -> Result<(), SourceJournalError> {
+        if self.0.row.entry != *permit.selected_row() {
+            return Err(SourceJournalError::Binding);
+        }
+        permit.validate_selected_prefix(journal, &self.0.inventory)
+    }
     /// Only Pending exposes bytes to the future adapter; Candidate cannot I/O.
     pub(super) fn bytes(&self) -> &[u8] {
         &self.0.encoded

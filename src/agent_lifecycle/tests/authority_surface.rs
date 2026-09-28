@@ -88,6 +88,18 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
             ),
         ),
         (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/intent.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/intent.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/activation.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/activation.rs"
+            ),
+        ),
+        (
             "live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold.rs",
             include_str!(
                 "../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/consumed/reduce_hold.rs"
@@ -359,6 +371,18 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
             "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent.rs",
             include_str!(
                 "../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/intent.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/intent.rs"
+            ),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/activation.rs",
+            include_str!(
+                "../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/activation.rs"
             ),
         ),
         (

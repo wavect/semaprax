@@ -146,6 +146,8 @@ fn owned_effect_ready_append_witness_refuses_intervening_legal_inert_consumed_ro
         };
         assert_eq!(advanced.sequence(), envelope.session.sequence() + 1);
         assert_eq!(envelope.validate_live(), Err(SourceJournalError::Order));
+        assert!(journal.hold().is_err());
+        assert!(journal.begin_session().is_err());
         assert!(weak.iter().all(|w| w.strong_count() == 1));
         drop(envelope);
         assert!(weak.iter().all(|w| w.upgrade().is_none()));

@@ -16,6 +16,8 @@ pub(super) enum ReduceTailV8 {
     Quarantined,
     TransferInDoubt,
     Mapped,
+    Continued,
+    TerminalPending,
 }
 /// Created only by parent glue after authenticated successful EffectRecorded,
 /// whole Decision receipt and the original ordinary Reduce reservation check.
@@ -38,6 +40,7 @@ pub(super) struct ReduceFoldV8 {
     cleanup_settled: Option<u32>,
     cleanup: Option<v2::CheckedOwnedReduceCleanupV8>,
     transfer: Option<u32>,
+    transition: Option<u32>,
     failure: Option<Value>,
 }
 fn require(ok: bool) -> Result<(), Error> {
@@ -76,6 +79,7 @@ impl ReduceFoldV8 {
             cleanup_settled: None,
             cleanup: None,
             transfer: None,
+            transition: None,
             failure: None,
         })
     }
@@ -311,6 +315,46 @@ impl ReduceFoldV8 {
         require(step.transfer_digest(scope, plan, turn, attempt, reserved)? == digest)?;
         self.last = seq;
         self.tail = ReduceTailV8::Mapped;
+        Ok(())
+    }
+    /// Only the exact frozen identity join is checked here. Terminal evidence,
+    /// delivery, next-turn accounting and owner handoff remain separate gates.
+    pub(super) fn transition(
+        &mut self,
+        plan: &v2::CheckedOwnedReduceV2,
+        seq: u32,
+        turn: u32,
+        attempt: u32,
+        case: super::super::SourceTransitionCase,
+        carrier_digest: &str,
+    ) -> Result<(), Error> {
+        use super::super::SourceTransitionCase as Case;
+        self.plan(plan, None)?;
+        self.coordinates(seq, turn, attempt)?;
+        require(self.tail == ReduceTailV8::Mapped)?;
+        let step = self.step.as_ref().ok_or(Error::Order)?;
+        let selected = match step.target()["kind"].as_str() {
+            Some("continue") => Case::Continue,
+            Some("suspend") => Case::Suspend,
+            Some("complete") => Case::Complete,
+            Some("fail") => Case::Fail,
+            _ => return Err(Error::Binding),
+        };
+        let bytes = step.ordinary_carrier_bytes(plan)?;
+        require(
+            case == selected
+                && crate::live_invocation::identity::digest(
+                    b"semaprax.agent-step.value.v2\0",
+                    &bytes,
+                ) == carrier_digest,
+        )?;
+        self.last = seq;
+        self.transition = Some(seq);
+        self.tail = if case == Case::Continue {
+            ReduceTailV8::Continued
+        } else {
+            ReduceTailV8::TerminalPending
+        };
         Ok(())
     }
 }

@@ -303,3 +303,46 @@ fn owned_reduce_wire_arithmetic_status_reaches_only_actual_expression_segment() 
         "nonvacuous initial/partial/provisional arithmetic"
     );
 }
+
+#[test]
+fn owned_reduce_target_identity_uses_exact_frozen_ordinary_record_and_scalar_encoding() {
+    let p = plan();
+    for m in p.mappings() {
+        let (target, expected) = if m.role == "Fail" {
+            (json!({"kind":"fail","code":-11}), json!("-11"))
+        } else {
+            let declared = p
+                .helper()
+                .program()
+                .declarations
+                .record_fields(&m.target)
+                .unwrap();
+            let fields = declared
+                .iter()
+                .map(|f| {
+                    json!({"identity":f.id.as_str(),"value":if f.ty==ResolvedType::Bytes {
+                json!({"kind":"bytes","hex":"00ff"})
+            } else {json!({"tag":"i64","value":-11})}})
+                })
+                .collect::<Vec<_>>();
+            let record = json!({"declaration":m.target.as_str(),"fields":fields});
+            let target = match m.role {
+                "Continue" => json!({"kind":"continue","state":record}),
+                "Suspend" => json!({"kind":"suspend","state":record}),
+                "Complete" => json!({"kind":"complete","report":record}),
+                _ => panic!(),
+            };
+            let expected = json!({"record":m.target.as_str(),"fields":declared.iter().map(|f|
+                json!({"field":f.id.as_str(),"value":if f.ty==ResolvedType::Bytes {
+                    json!({"bytes":"00ff"})
+                } else {json!("-11")}})).collect::<Vec<_>>()});
+            (target, expected)
+        };
+        let bytes = owned_reduce_target_bytes_v8(&p, m.case.as_str(), &target).unwrap();
+        assert!(!bytes.ends_with(b"\n"));
+        assert_eq!(serde_json::from_slice::<Value>(&bytes).unwrap(), expected);
+        if m.role == "Fail" {
+            assert_eq!(bytes, b"\"-11\"");
+        }
+    }
+}

@@ -295,6 +295,40 @@ fn owned_reduce_fold_success_maps_exact_step_and_counts_consumption_once() {
     f.transfer_completed(&p, &scope, seq + 1, 0, 0, seq, &target, &digest)
         .unwrap();
     assert_eq!(f.tail(), ReduceTailV8::Mapped);
+    let bytes = f.step.as_ref().unwrap().ordinary_carrier_bytes(&p).unwrap();
+    let carrier =
+        crate::live_invocation::identity::digest(b"semaprax.agent-step.value.v2\0", &bytes);
+    assert!(f
+        .transition(
+            &p,
+            seq + 2,
+            0,
+            0,
+            super::super::super::SourceTransitionCase::Complete,
+            &carrier
+        )
+        .is_err());
+    assert!(f
+        .transition(
+            &p,
+            seq + 2,
+            0,
+            0,
+            super::super::super::SourceTransitionCase::Continue,
+            "wrong-digest"
+        )
+        .is_err());
+    f.transition(
+        &p,
+        seq + 2,
+        0,
+        0,
+        super::super::super::SourceTransitionCase::Continue,
+        &carrier,
+    )
+    .unwrap();
+    assert_eq!(f.tail(), ReduceTailV8::Continued);
+
     assert_eq!(f.consumed(), Some(7));
     assert!(f
         .transfer_completed(&p, &scope, seq + 2, 0, 0, seq, &target, &digest)

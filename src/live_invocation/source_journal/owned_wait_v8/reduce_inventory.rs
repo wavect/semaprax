@@ -21,6 +21,13 @@ impl CheckedReduceStepV8 {
     pub(super) fn target(&self) -> &Value {
         &self.target
     }
+    pub(super) fn ordinary_carrier_bytes(
+        &self,
+        plan: &v2::CheckedOwnedReduceV2,
+    ) -> Result<Vec<u8>, Error> {
+        v2::owned_reduce_target_bytes_v8(plan, &self.case, &self.target).map_err(|_| Error::Binding)
+    }
+
     pub(super) fn transfer_digest(
         &self,
         scope: &Value,
@@ -43,6 +50,38 @@ impl CheckedReduceStepV8 {
             Err(Error::Binding)
         }
     }
+}
+
+/// The parent supplies this exact proof from its authenticated Recorded join.
+/// The accepted SDK mapper has already run inside that proof; never re-decode
+/// result wire here or accept an independently supplied byte snapshot.
+pub(super) fn checked_outcome(
+    binding: &v2::CheckedOwnedAgentWaitBindingV8,
+    settlement:&crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::CheckedOwnedEffectSettlementV8,
+) -> Result<Value, Error> {
+    let payload = settlement.accepted_payload().ok_or(Error::Binding)?;
+    if payload.len() > 1024 {
+        return Err(Error::Capacity);
+    }
+    let metadata = binding.lifecycle().owned_wait_outcome_v8();
+    let fields = metadata
+        .fields()
+        .map(|(id, ty)| {
+            let value = if id == metadata.bytes_field && *ty == crate::hir::ResolvedType::Bytes {
+                json!({"kind":"bytes","hex":crate::live_invocation::identity::hex(payload)})
+            } else if id == metadata.status_field && *ty == crate::hir::ResolvedType::I64 {
+                json!({"tag":"i64","value":0})
+            } else {
+                return Err(Error::Binding);
+            };
+            Ok(json!({"identity":id.as_str(),"value":value}))
+        })
+        .collect::<Result<Vec<_>, Error>>()?;
+    if fields.len() != 2 {
+        return Err(Error::Binding);
+    }
+    // Structural data only: no interpreter Value, backing owner or admission.
+    Ok(json!({"declaration":metadata.id.as_str(),"fields":fields}))
 }
 
 /// Inputs have already passed the parent's authenticated ordinary/owned inventory.

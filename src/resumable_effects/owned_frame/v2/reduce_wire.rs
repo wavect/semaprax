@@ -147,6 +147,71 @@ pub(crate) fn validate_owned_reduce_target_v8(
         .ok_or(Error::Binding)?;
     fields(&record["fields"], declared.iter().map(|f| (&f.id, &f.ty)))
 }
+/// Exact frozen ordinary identity bytes, constructed only from a checked inert
+/// mapped target. RetainedValue here is identity data; never re-admit it as an
+/// interpreter owner or use it to publish/recover a result.
+pub(crate) fn owned_reduce_target_bytes_v8(
+    plan: &CheckedOwnedReduceV2,
+    case: &str,
+    target: &Value,
+) -> Result<Vec<u8>, Error> {
+    use crate::interpreter::retained_call::{RetainedField, RetainedRecord, RetainedValue};
+    validate_owned_reduce_target_v8(plan, case, target)?;
+    let mapping = plan
+        .mappings()
+        .iter()
+        .find(|m| m.case.as_str() == case)
+        .ok_or(Error::Binding)?;
+    let value = if mapping.role == "Fail" {
+        RetainedValue::I64(target["code"].as_i64().ok_or(Error::Binding)?)
+    } else {
+        let key = if mapping.role == "Complete" {
+            "report"
+        } else {
+            "state"
+        };
+        let declared = plan
+            .helper()
+            .program()
+            .declarations
+            .record_fields(&mapping.target)
+            .ok_or(Error::Binding)?;
+        let fields = target[key]["fields"].as_array().ok_or(Error::Binding)?;
+        let fields = declared
+            .iter()
+            .zip(fields)
+            .map(|(field, wire)| {
+                let value = &wire["value"];
+                let retained = if field.ty == ResolvedType::Bytes {
+                    RetainedValue::Bytes(codec::unhex(
+                        value["hex"].as_str().ok_or(Error::Malformed)?,
+                        1024,
+                    )?)
+                } else {
+                    match codec::decode_scalar(value)? {
+                        ArgumentValue::Bool(v) => RetainedValue::Bool(v),
+                        ArgumentValue::Int32(v) => RetainedValue::I32(v),
+                        ArgumentValue::Int(v) => RetainedValue::I64(v),
+                        ArgumentValue::Uint8(v) => RetainedValue::U8(v),
+                        ArgumentValue::Usize(v) => RetainedValue::Usize(v),
+                        // Preserve the frozen ordinary identity seam's exclusions.
+                        _ => return Err(Error::Binding),
+                    }
+                };
+                Ok(RetainedField {
+                    field: field.id.clone(),
+                    value: retained,
+                })
+            })
+            .collect::<Result<Vec<_>, Error>>()?;
+        RetainedValue::Record(RetainedRecord {
+            record: mapping.target.clone(),
+            fields,
+        })
+    };
+    Ok(crate::agent_lifecycle::encode_value(&value).into_bytes())
+}
+
 // The checked Reduce profile has empty Block prefixes, scalar-copy conditions
 // and direct constructors; it admits no let/call prefix. Restrict arithmetic to
 // exactly the evaluation segment represented by the committed-owner basis.

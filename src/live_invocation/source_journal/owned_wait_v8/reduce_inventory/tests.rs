@@ -71,3 +71,95 @@ fn owned_reduce_inventory_maps_actual_nominal_cases_without_target_substitution(
         );
     }
 }
+
+#[test]
+fn owned_reduce_outcome_uses_only_the_actual_checked_recorded_exchange_payload() {
+    use super::super::super::{
+        model, wire, CheckedOwnedWaitJournalContextV8, EntryV8, ExpectedRowV8, SourceJournalEntry,
+    };
+    use crate::agent_lifecycle::authorization::target_protocol::owned_wait_v8::settlement::{
+        checked_owned_effect_settlement_v8, test_effect_exchange, OwnedEffectSettlementInputsV8,
+    };
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|context, _lease, key| {
+        let (base, _) = context.test_ready_documents(&key);
+        let rows = wire::decode_inventory(
+            &base,
+            &ExpectedRowV8 {
+                invocation: context.ordinary().invocation(),
+                generation: context.generation(),
+                seq: 0,
+                prev_mac: &"0".repeat(64),
+                ordinary: context.ordinary(),
+            },
+            &key,
+        )
+        .unwrap();
+        let EntryV8::Owned(model::OwnedBodyV8::OwnedStateTransferCompleted { state, .. }) =
+            &rows[15]
+        else {
+            panic!()
+        };
+        let EntryV8::Owned(model::OwnedBodyV8::OwnedAuthorizationStaged { decision, .. }) =
+            &rows[17]
+        else {
+            panic!()
+        };
+        let EntryV8::Ordinary(SourceJournalEntry::AttemptSettled { response, .. }) = &rows[9]
+        else {
+            panic!()
+        };
+        let (runtime, execution) = context.test_runtime_execution();
+        let scope = &context.registration().expected_facts().scope;
+        let decoded = execution
+            .wait()
+            .lifecycle()
+            .proposal_schema()
+            .decode(std::str::from_utf8(response).unwrap())
+            .unwrap();
+        let proposal = v2::bind_owned_wait_proposal_v8(execution.wait(), scope, &decoded).unwrap();
+        let inputs = || OwnedEffectSettlementInputsV8 {
+            runtime,
+            execution,
+            scope,
+            turn: 0,
+            attempt: 0,
+            state,
+            decision,
+            proposal: &proposal,
+        };
+        let (ordinary, evidence, result) = test_effect_exchange(&inputs());
+        let checked =
+            checked_owned_effect_settlement_v8(inputs(), &ordinary, &evidence, result.as_deref())
+                .unwrap();
+        let payload = checked.accepted_payload().unwrap();
+        assert!(!payload.is_empty());
+        let outcome = checked_outcome(execution.wait(), &checked).unwrap();
+        let metadata = execution.wait().lifecycle().owned_wait_outcome_v8();
+        assert_eq!(outcome["declaration"], metadata.id.as_str());
+        let fields = outcome["fields"].as_array().unwrap();
+        assert_eq!(fields.len(), 2);
+        for (field, (id, ty)) in fields.iter().zip(metadata.fields()) {
+            assert_eq!(field["identity"], id.as_str());
+            if *ty == crate::hir::ResolvedType::Bytes {
+                assert_eq!(
+                    field["value"],
+                    json!({"kind":"bytes","hex":crate::live_invocation::identity::hex(payload)})
+                );
+            } else {
+                assert_eq!(field["value"], json!({"tag":"i64","value":0}));
+            }
+        }
+        let mut hostile = ordinary.clone();
+        let SourceJournalEntry::EffectObserved { observation, .. } = &mut hostile else {
+            panic!()
+        };
+        observation.push(0);
+        assert!(checked_owned_effect_settlement_v8(
+            inputs(),
+            &hostile,
+            &evidence,
+            result.as_deref()
+        )
+        .is_err());
+    });
+}

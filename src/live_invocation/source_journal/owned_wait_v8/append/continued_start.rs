@@ -259,3 +259,5 @@ impl<'j> AppendSessionV8<'j> {
         Ok(envelope)
     }
 }
+
+mod funnel;

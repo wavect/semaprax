@@ -198,11 +198,13 @@ fn owned_wait_effect_settlement_replays_exact_exchange_and_refuses_result_or_pha
             .is_err(),
             "genuine pre-dispatch cancellation is outside dispatched §21"
         );
-        for shape in 0..4 {
+        for shape in 0..5 {
             let mut host = Host {
                 calls: 0,
                 payload: if shape == 1 {
                     b"{\"schema\":\"semaprax.agent-effect-fields.v1\",\"fields\":[[\"wrong\",\"9\"]]}\n".to_vec()
+                } else if shape == 4 {
+                    vec![b'x'; 1025]
                 } else {
                     payload.clone()
                 },
@@ -232,7 +234,11 @@ fn owned_wait_effect_settlement_replays_exact_exchange_and_refuses_result_or_pha
                     turn: 0,
                     attempt: 0,
                     operation: plan.operation().operation_id().into(),
-                    reason: SourceEffectFailure::HandlerFailed,
+                    reason: if shape == 4 {
+                        SourceEffectFailure::ResultLimit
+                    } else {
+                        SourceEffectFailure::HandlerFailed
+                    },
                 }
             };
             let evidence = run.evidence().canonical_wire();
@@ -254,6 +260,23 @@ fn owned_wait_effect_settlement_replays_exact_exchange_and_refuses_result_or_pha
             )
             .unwrap();
             assert_eq!(checked.operation(), plan.operation());
+            if shape == 4 {
+                assert_eq!(run.evidence().settlement(), Settlement::ResultBudget);
+                assert_eq!(run.evidence().accounting().result_bytes(), 1025);
+                let mut less = run.evidence().clone();
+                less.accounting.result_bytes -= 1;
+                assert!(
+                    checked_owned_effect_settlement_v8(
+                        inputs(),
+                        &ordinary,
+                        &less.canonical_wire(),
+                        None
+                    )
+                    .is_err(),
+                    "overflow charge is the exact sentinel, not any bounded number"
+                );
+            }
+
             for field in 0..4 {
                 let mut reminted = run.evidence().clone();
                 match field {

@@ -39,6 +39,7 @@ impl TestProspectiveReduceLimitV8 {
 enum RuntimeFixture {
     Baseline,
     Complete,
+    EmptyComplete,
     ReduceFuel,
     ReduceArithmetic,
     ReduceEnsures,
@@ -100,6 +101,18 @@ fn fixture_for(profile: RuntimeFixture) -> Fixture {
             let original="fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome: own Outcome) -> Step\n{";
             assert_eq!(source.matches(original).count(), 1);
             source.replace(original,"fn reduce(state: own State, budget: i64, urgent: bool, sequence: usize, outcome: own Outcome) -> Step\n    ensures false\n{")
+        }
+        RuntimeFixture::EmptyComplete => {
+            let report = "    @id(\"fixture.agent.type.result.summary\")\n    summary: Bytes,";
+            let case =
+                "        @id(\"fixture.agent.step.complete.summary\")\n        summary: Bytes,";
+            let body = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
+            assert_eq!(source.matches(report).count(), 1);
+            assert_eq!(source.matches(case).count(), 1);
+            assert_eq!(source.matches(body).count(), 1);
+            source.replace(report, &format!("{report}\n    @id(\"fixture.agent.type.result.receipt\")\n    receipt: Bytes,"))
+                .replace(case, &format!("{case}\n        @id(\"fixture.agent.step.complete.receipt\")\n        receipt: Bytes,"))
+                .replace(body, "Step::Complete { summary: state.objective, receipt: outcome.value, budget: state.budget, status: state.epoch }")
         }
         RuntimeFixture::Complete => {
             let original = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
@@ -209,7 +222,7 @@ fn runtime_for(
                 max_stages: limits.stages(),
                 ..IterativeBudget::default()
             },
-            RuntimeFixture::Complete => IterativeBudget {
+            RuntimeFixture::Complete | RuntimeFixture::EmptyComplete => IterativeBudget {
                 max_iterations: 2,
                 max_stages: 7,
                 max_steps_per_stage: 1000,
@@ -678,6 +691,18 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
     ) -> T {
         Self::test_with_runtime_fixture(RuntimeFixture::Complete, true, callback)
     }
+    /// Closed two-Bytes Complete source. Both original State/Outcome leaves
+    /// move to Report; zero active success cleanup is proved by the compiler.
+    pub(crate) fn test_with_actual_empty_complete_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::EmptyComplete, true, callback)
+    }
     /// Closed source variant rebuilt through actual source/B/E/registration;
     /// the full per-stage allowance remains 1000 in every stage.
     pub(crate) fn test_with_actual_reduce_fuel_store<T>(
@@ -750,7 +775,10 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
                 _ => 2_000_000,
             };
             let e = Arc::new(context_for(&baseline, Arc::clone(&wait), total));
-            if matches!(profile, RuntimeFixture::Complete) {
+            if matches!(
+                profile,
+                RuntimeFixture::Complete | RuntimeFixture::EmptyComplete
+            ) {
                 assert_eq!(e.ordinary().max_iterations(), 2);
                 assert_eq!(e.ordinary().max_stages(), 7);
             }

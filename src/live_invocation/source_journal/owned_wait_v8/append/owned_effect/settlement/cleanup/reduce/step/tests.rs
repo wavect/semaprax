@@ -438,3 +438,95 @@ fn owned_step_append_wrong_container_has_zero_io_and_does_not_poison_foreign_con
         });
     });
 }
+#[test]
+fn owned_step_append_compiler_empty_complete_moves_both_original_leaves_without_cleanup_rows() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_empty_complete_store(|c, l, k, _| {
+        let j = journal(c, l, k);
+        let cancel = AgentCancellation::new();
+        let policy = CapabilityPolicy::new(vec!["read".into()]).unwrap();
+        let clock = Clock::new();
+        test_evaluated(&j, &cancel, &policy, &clock, |e, weak| {
+            let facts = e.stage_facts().unwrap();
+            let old = j.begin_session().unwrap();
+            let (r, s, _, _, _) = old.inventory.original_reduce_facts().unwrap();
+            let seq = old.sequence();
+            let LiveStepAcknowledgedV8::Staged(o) = ack(
+                &j,
+                e.prepare_step()
+                    .unwrap_or_else(|_| panic!("actual empty Staged")),
+            ) else {
+                panic!()
+            };
+            let staged = j
+                .begin_session()
+                .unwrap()
+                .sequence()
+                .checked_sub(1)
+                .unwrap();
+            let basis = facts.cleanup_basis(Some(staged as u32)).unwrap();
+            let (_, e) = j.context().ready_runtime().unwrap();
+            let plan = crate::resumable_effects::owned_frame::v2::compile_owned_reduce_v2(e.wait())
+                .unwrap();
+            let checked =
+                crate::resumable_effects::owned_frame::v2::validate_owned_reduce_cleanup_v8(
+                    &plan,
+                    &basis,
+                    facts.operations(),
+                )
+                .unwrap();
+            assert_eq!(checked.active_operations(), &serde_json::json!([]));
+            assert!(weak.iter().all(|w| w.strong_count() == 1));
+            let mut observed = 0;
+            let released = o
+                .release(|_| observed += 1)
+                .unwrap_or_else(|_| panic!("compiler-empty pure cleanup"));
+            assert_eq!(observed, 0);
+            assert!(weak.iter().all(|w| w.strong_count() == 1));
+            let ready = released
+                .into_ready()
+                .unwrap_or_else(|_| panic!("actual Ready without fictitious ACK"));
+            let selected = ready
+                .prepare_transfer()
+                .unwrap_or_else(|_| panic!("empty transfer"));
+            let EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedStepTransferReserved{cleanup,staged:actual,..})=selected.selected_row()else{panic!()};
+            assert_eq!(*actual, staged as u32);
+            assert!(matches!(cleanup,crate::live_invocation::source_journal::owned_wait_v8::reduce_model::ReduceCleanupV8::CompilerEmpty{}));
+            let LiveStepAcknowledgedV8::Ready(ready) = ack(&j, selected) else {
+                panic!()
+            };
+            let moved = ready
+                .move_fields()
+                .unwrap_or_else(|_| panic!("both actual leaves move to Report"));
+            assert!(weak.iter().all(|w| w.strong_count() == 1));
+            let LiveStepAcknowledgedV8::Moved(moved) = ack(
+                &j,
+                moved
+                    .prepare_completed()
+                    .unwrap_or_else(|_| panic!("full mapped Report")),
+            ) else {
+                panic!()
+            };
+            let LiveStepAcknowledgedV8::Moved(moved) = ack(
+                &j,
+                moved
+                    .prepare_transition()
+                    .unwrap_or_else(|_| panic!("actual frozen Report carrier")),
+            ) else {
+                panic!()
+            };
+            moved.validate_live().unwrap();
+            assert_eq!(moved.kind(), "complete");
+            let current = j.begin_session().unwrap();
+            let (nr, ns, _, _, _) = current.inventory.step_reduce_facts().unwrap();
+            assert_eq!((nr, ns), (r, s));
+            assert_eq!(current.sequence(), seq + 4);
+            let bytes = j.lease.try_borrow_mut().unwrap().read().unwrap();
+            let text = std::str::from_utf8(&bytes).unwrap();
+            assert!(!text.contains("owned_reduce_cleanup_started"));
+            assert!(!text.contains("owned_reduce_cleanup_settled"));
+            assert!(weak.iter().all(|w| w.strong_count() == 1));
+            drop(moved);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        });
+    });
+}

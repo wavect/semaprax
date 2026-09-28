@@ -348,8 +348,8 @@ pub(super) fn validate_obligation_successor(
     result
 }
 
-impl IntentLineageV8<'_> {
-    pub(super) fn permit(&self) -> LiveEffectIntentPermitV8<'_, '_> {
+impl<'j> IntentLineageV8<'j> {
+    pub(super) fn permit(&self) -> LiveEffectIntentPermitV8<'_, 'j> {
         LiveEffectIntentPermitV8 {
             journal: self.journal,
             witness: &self.witness,

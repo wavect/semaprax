@@ -45,8 +45,12 @@ impl<'j> LiveActivatedOwnedEffectV8<'j> {
             mut accounting,
             lineage,
         } = self;
-        let (staged, selected) =
-            dispatch_live_owned_effect_v8(activated, &mut accounting, &lineage.permit(), handler);
+        let (staged, selected) = {
+            // The permit borrows lineage only for validation/dispatch. Its
+            // held-store lifetime remains 'j; no returned owner borrows it.
+            let permit = lineage.permit();
+            dispatch_live_owned_effect_v8(activated, &mut accounting, &permit, handler)
+        };
         let actual = LiveDispatchedOwnedEffectV8 {
             staged,
             accounting,

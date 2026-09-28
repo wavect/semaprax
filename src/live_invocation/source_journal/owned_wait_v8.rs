@@ -84,3 +84,5 @@ pub(crate) use live_upstream::authorize::{LiveAuthorizePermitV8, LiveStateTransf
 pub(crate) use live_upstream::effect::authorization::{
     LiveEffectAuthorizationPermitV8, LiveEffectIntentPermitV8,
 };
+
+pub(crate) use live_upstream::effect::authorization::cleanup::LiveEffectDecisionCleanupPermitV8;

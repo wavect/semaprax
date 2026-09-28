@@ -716,3 +716,8 @@ pub(crate) use live_append::intent::{
 pub(crate) use live_append::intent::dispatch::dispatch_live_owned_effect_v8;
 
 pub(crate) use live_append::CheckedLiveOwnedEffectSettlementV8;
+
+pub(crate) use live_append::settlement::cleanup::{
+    ack_live_owned_effect_cleanup_v8, release_live_owned_effect_decision_v8,
+    LiveEffectDecisionReleaseFailureV8, LiveEffectOutcomeFailureV8,
+};

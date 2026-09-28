@@ -108,3 +108,5 @@ impl StagedOwnedEffectV8<'_> {
         })
     }
 }
+
+pub(in crate::interpreter::resumable::owned_frame::registered_stage::effect) mod cleanup;

@@ -13,9 +13,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   initialization uses exact typed Task and acknowledged stage reservations;
   historical data cannot mint owners. Actual held Authorize/Consumed/Intent
   ACKs now preserve the same owner and exclusive future-Reduce credit through
-  consuming host dispatch and settlement/Recorded ACKs with retained invocation
-  accounting. Public owned
-  Agent execution and durable recovery remain incomplete; full integrated
+  consuming host dispatch, settlement/Recorded ACKs, physical Decision cleanup,
+  and guarded Outcome handoff with retained invocation accounting. Actual reducer
+  stages expose inert compiler-checked Step/failure facts and observed fuel.
+  Public owned Agent execution and durable recovery remain incomplete; full integrated
   acceptance is pending.
 
 - Add candidate embedded ordinary Agent operation bodies and same-module model-wait helper associations, with original-source replay before checked HIR cache reuse. Source graph v50 and workspace/package graph v4 preserve their selected legacy bases and carry descriptive execution associations. The owned Agent lifecycle remains incomplete; integrated acceptance gates are pending.

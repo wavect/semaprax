@@ -143,5 +143,5 @@ mod tests;
 
 pub(super) mod intent;
 
-mod settlement;
+pub(in crate::interpreter::resumable::owned_frame::registered_stage::effect) mod settlement;
 pub(crate) use settlement::CheckedLiveOwnedEffectSettlementV8;

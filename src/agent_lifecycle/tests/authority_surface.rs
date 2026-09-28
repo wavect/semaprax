@@ -182,6 +182,18 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
             include_str!("../../interpreter/resumable/owned_frame/registered_stage/reduce/live_stage.rs"),
         ),
         (
+            "interpreter/resumable/owned_frame/registered_stage/effect/live_append/settlement/cleanup.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/effect/live_append/settlement/cleanup.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/settlement/cleanup.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/settlement/cleanup.rs"),
+        ),
+        (
             "provider_adapter_sdk/source_bridge/dispatch.rs",
             include_str!("../../provider_adapter_sdk/source_bridge/dispatch.rs"),
         ),
@@ -512,6 +524,18 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
         (
             "interpreter/resumable/owned_frame/registered_stage/reduce/live_stage.rs",
             include_str!("../../interpreter/resumable/owned_frame/registered_stage/reduce/live_stage.rs"),
+        ),
+        (
+            "interpreter/resumable/owned_frame/registered_stage/effect/live_append/settlement/cleanup.rs",
+            include_str!("../../interpreter/resumable/owned_frame/registered_stage/effect/live_append/settlement/cleanup.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/live_upstream/effect/authorization/prepared/intent/dispatch/settlement/cleanup.rs"),
+        ),
+        (
+            "live_invocation/source_journal/owned_wait_v8/append/owned_effect/settlement/cleanup.rs",
+            include_str!("../../live_invocation/source_journal/owned_wait_v8/append/owned_effect/settlement/cleanup.rs"),
         ),
         (
             "provider_adapter_sdk/source_bridge/dispatch.rs",

@@ -216,3 +216,8 @@ impl<'j> AppendSessionV8<'j> {
 
 #[cfg(test)]
 mod tests;
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use settlement::cleanup::{
+    LiveOwnedEffectCleanupAppendFailureV8, VerifiedOwnedEffectCleanupAppendV8,
+    VerifiedOwnedEffectCleanupSuccessorV8,
+};

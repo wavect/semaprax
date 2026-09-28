@@ -178,6 +178,11 @@ and live dispatch body.
 from the actual physical reducer stage, including canonical cleanup vectors
 and observed evaluator fuel; descriptive facts grant no execution or cleanup
 authority.
+The source, append, and engine `settlement/cleanup` children retain actual
+Recorded ownership through fixed cleanup ACKs, physical Decision release,
+receipt settlement, and guarded one-use Outcome handoff with the same ledger
+and future-Reduce hold. Failed target or observer settlement retains its actual
+State obligation; postmint guard loss retains actual Executed ownership.
 Default ObserveOnly remains separate.
 [Source Agent owned wait v1](SOURCE-AGENT-OWNED-WAIT-V1.md) owns these bounded
 private successors; public Agent execution and partial-initialization recovery

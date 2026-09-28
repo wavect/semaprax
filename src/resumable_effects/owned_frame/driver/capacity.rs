@@ -196,8 +196,8 @@ fn maximum_scalar(ty: &ResolvedType) -> Result<ArgumentValue, Error> {
         ResolvedType::U8 => ArgumentValue::Uint8(u8::MAX),
         ResolvedType::Usize => ArgumentValue::Usize(u32::MAX as u64),
         ResolvedType::Char => ArgumentValue::Char(0x10ffff),
-        ResolvedType::F32 => ArgumentValue::Float32(u32::MAX),
-        ResolvedType::F64 => ArgumentValue::Float64(u64::MAX),
+        ResolvedType::F32 => ArgumentValue::Float32(f32::from_bits(u32::MAX)),
+        ResolvedType::F64 => ArgumentValue::Float64(f64::from_bits(u64::MAX)),
         ResolvedType::Bool => ArgumentValue::Bool(false),
         _ => return Err(Error::Binding),
     })

@@ -124,7 +124,7 @@ fn seal_weak(staged: &StagedOwnedAuthorizeV2) -> Option<Weak<[u8]>> {
 }
 
 #[test]
-fn owned_authorize_real_checked_decision_preserves_state_and_matches_ordinary_charges() {
+fn owned_frame_v2_authorize_real_checked_decision_preserves_state_and_matches_ordinary_charges() {
     let p = proof(SOURCE);
     for (budget, case) in [(5, "decision.granted"), (11, "decision.refused")] {
         let state = completed(&p, budget);
@@ -190,7 +190,7 @@ fn owned_authorize_real_checked_decision_preserves_state_and_matches_ordinary_ch
 }
 
 #[test]
-fn owned_authorize_failures_retain_real_partial_and_provisional_cleanup_roots() {
+fn owned_frame_v2_authorize_failures_retain_real_partial_and_provisional_cleanup_roots() {
     for mode in ["requires", "ensures", "fuel", "cancel", "partial"] {
         let source = match mode {
             "requires" => SOURCE.replace("-> Decision {", "-> Decision requires false {"),
@@ -291,7 +291,7 @@ fn owned_authorize_failures_retain_real_partial_and_provisional_cleanup_roots() 
 }
 
 #[test]
-fn owned_authorize_rejects_wrong_binding_and_alias_before_source_or_cleanup() {
+fn owned_frame_v2_authorize_rejects_wrong_binding_and_alias_before_source_or_cleanup() {
     let p = proof(SOURCE);
     let other = proof(SOURCE);
     let state = completed(&p, 5);
@@ -348,7 +348,7 @@ fn owned_authorize_rejects_wrong_binding_and_alias_before_source_or_cleanup() {
 }
 
 #[test]
-fn owned_authorize_callback_panics_continue_each_actual_release_and_preserve_failure() {
+fn owned_frame_v2_authorize_callback_panics_continue_each_actual_release_and_preserve_failure() {
     let p = proof(&SOURCE.replace("-> Decision {", "-> Decision ensures false {"));
     let state = completed(&p, 5);
     let backing = state_weak(&state);
@@ -397,7 +397,7 @@ fn owned_authorize_callback_panics_continue_each_actual_release_and_preserve_fai
 }
 
 #[test]
-fn owned_authorize_actual_source_graph_conditional_and_partial_flags_are_compiler_owned() {
+fn owned_frame_v2_authorize_actual_source_graph_conditional_and_partial_flags_are_compiler_owned() {
     let checked = crate::check(SOURCE, "owned-authorize.spx").unwrap();
     let canonical = crate::format::canonical(&checked);
     let again = crate::check(&canonical, "owned-authorize.spx").unwrap();

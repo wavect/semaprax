@@ -23,7 +23,7 @@ mod migration;
 mod owned_wait_v8;
 pub(crate) use owned_wait_v8::{
     checked_owned_wait_journal_context_v8, owned_wait_ready_commitment_v8,
-    CheckedOwnedWaitJournalContextV8,
+    CheckedOwnedWaitJournalContextV8, HeldOwnedWaitStoreV8, SourceOwnedWaitJournalV8,
 };
 mod priced_v4;
 mod sink;

@@ -7,14 +7,53 @@ use crate::interpreter::resumable::owned_frame::registered_stage::live_run::{
 use crate::live_invocation::source_journal::owned_wait_v8::append::VerifiedOwnedContinuedModelSuccessorV8;
 use crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitProposalV8;
 
+/// Private typed admission disposition. Authority loss is always Err; neither
+/// cancellation nor a future deadline can reclassify a failed physical check.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum SdkModelAdmissionV8 {
+    Current,
+    Cancelled,
+    Deadline,
+}
+impl SdkModelAdmissionV8 {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn failure(
+        &self,
+    ) -> Option<crate::live_invocation::source_journal::SourceAttemptFailure> {
+        use crate::live_invocation::source_journal::SourceAttemptFailure;
+        match self {
+            Self::Current => None,
+            Self::Cancelled => Some(SourceAttemptFailure::Cancelled),
+            Self::Deadline => Some(SourceAttemptFailure::Timeout),
+        }
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn error(
+        &self,
+    ) -> Option<SourceJournalError> {
+        match self {
+            Self::Current => None,
+            Self::Cancelled => Some(SourceJournalError::Binding),
+            Self::Deadline => Some(SourceJournalError::Time),
+        }
+    }
+}
 fn guard_model(
     lineage: &ContinueLineageV8<'_>,
     session: &AppendSessionV8<'_>,
     witness: &VerifiedOwnedContinuedModelSuccessorV8<'_>,
     strict: bool,
 ) -> Result<(), SourceJournalError> {
+    let result = guard_model_checked(lineage, session, witness, strict, None)
+        .and_then(|admission| admission.error().map_or(Ok(()), Err));
+    result.inspect_err(|_| lineage.journal().quarantine())
+}
+fn guard_model_checked(
+    lineage: &ContinueLineageV8<'_>,
+    session: &AppendSessionV8<'_>,
+    witness: &VerifiedOwnedContinuedModelSuccessorV8<'_>,
+    strict: bool,
+    actual_park: Option<&crate::interpreter::resumable::owned_frame::registered_stage::live_run::LiveContinuedParkedStateV8<'_>>,
+) -> Result<SdkModelAdmissionV8, SourceJournalError> {
     let journal = lineage.journal();
-    let result = (|| {
+    (|| {
         if !session.belongs_to(journal) {
             return Err(SourceJournalError::Binding);
         }
@@ -43,6 +82,15 @@ fn guard_model(
         if !origin.policy.allows(plan.operation().effect_id()) {
             return Err(SourceJournalError::Binding);
         }
+        let check_root = || {
+            if let Some(owner) = actual_park {
+                owner
+                    .checked_incurred_facts(execution.wait())
+                    .ok_or(SourceJournalError::Binding)?;
+            }
+            Ok(())
+        };
+        check_root()?;
         if strict {
             let ordinary = journal.context().ordinary();
             // Every clock callback is external. Its postguard checks BOTH the
@@ -56,12 +104,16 @@ fn guard_model(
                     session.acknowledged_bytes(),
                 )?;
                 witness.validate_current_session(session)?;
+                check_root()?;
                 if origin.cancellation.is_cancelled() {
-                    return Err(SourceJournalError::Binding);
+                    return Ok(SdkModelAdmissionV8::Cancelled);
                 }
-                Ok(())
+                Ok(SdkModelAdmissionV8::Current)
             };
-            clock_guard()?;
+            match clock_guard()? {
+                SdkModelAdmissionV8::Current => (),
+                refusal => return Ok(refusal),
+            }
             let domain = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 origin.clock.clock_domain()
             }));
@@ -72,9 +124,13 @@ fn guard_model(
                     return Err(SourceJournalError::Poisoned);
                 }
             };
-            clock_guard()?;
+            let admission = clock_guard()?;
             if domain != ordinary.clock_domain() {
                 return Err(SourceJournalError::Binding);
+            }
+            match admission {
+                SdkModelAdmissionV8::Current => (),
+                refusal => return Ok(refusal),
             }
             let now = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 origin.clock.now_millis()
@@ -86,9 +142,16 @@ fn guard_model(
                     return Err(SourceJournalError::Poisoned);
                 }
             };
-            clock_guard()?;
-            if now < ordinary.initial_millis() || now >= ordinary.deadline_millis() {
+            let admission = clock_guard()?;
+            if now < ordinary.initial_millis() {
                 return Err(SourceJournalError::Time);
+            }
+            match admission {
+                SdkModelAdmissionV8::Current => (),
+                refusal => return Ok(refusal),
+            }
+            if now >= ordinary.deadline_millis() {
+                return Ok(SdkModelAdmissionV8::Deadline);
             }
         }
         origin.hold.validate_continued_model_guard(
@@ -96,9 +159,10 @@ fn guard_model(
             session.sequence(),
             session.acknowledged_bytes(),
         )?;
-        witness.validate_current_session(session)
-    })();
-    result.inspect_err(|_| journal.quarantine())
+        witness.validate_current_session(session)?;
+        check_root()?;
+        Ok(SdkModelAdmissionV8::Current)
+    })()
 }
 
 /// Private construction occurs only below, from the actual whole park and true
@@ -398,5 +462,35 @@ impl<'j> ContinuedResumedWaitV8<'j> {
             .origin()
             .hold
             .advance_continued_model_ack(witness, session)
+    }
+}
+
+impl ContinuedStartedWaitV8<'_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_sdk_live(
+        &self,
+        session: &AppendSessionV8<'_>,
+        witness: &VerifiedOwnedContinuedModelSuccessorV8<'_>,
+    ) -> Result<SdkModelAdmissionV8, SourceJournalError> {
+        let checked = (|| {
+            let LiveContinuedWaitStartOutcomeV8::Parked(owner) = &self.outcome else {
+                return Err(SourceJournalError::Binding);
+            };
+            let admission =
+                guard_model_checked(&self.lineage, session, witness, true, Some(owner))?;
+            // Even an admission refusal is followed by fresh physical/root guards.
+            guard_model_checked(&self.lineage, session, witness, false, Some(owner))?;
+            Ok(admission)
+        })();
+        checked.inspect_err(|_| self.model_journal().quarantine())
+    }
+}
+
+#[cfg(test)]
+impl<'j> ContinuedStartedWaitV8<'j> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_model_policy(
+        &mut self,
+        policy: &'j crate::resumable_effects::capability::CapabilityPolicy,
+    ) {
+        self.lineage.step.reduce.cleanup.recorded.intent.policy = policy;
     }
 }

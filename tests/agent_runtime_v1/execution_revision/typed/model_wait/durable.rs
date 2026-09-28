@@ -383,8 +383,17 @@ fn real_model_wait_preserves_malformed_retry_and_complete_terminal_fuel() {
                 true,
                 calls.clone(),
             )
-            .ok()
-            .expect("real wait completes");
+            .unwrap_or_else(|failure| {
+                let details = failure.failure();
+                panic!(
+                    "real wait completes (malformed={malformed}, provider_calls={}): diagnostics={:?}, selected={:?}, journal_error={:?}, last_attempted={:?}",
+                    calls.get(),
+                    details.diagnostics,
+                    details.selected,
+                    details.journal_error,
+                    store.attempted.last(),
+                )
+            });
             let checkpoint = &result.model().run().checkpoint;
             assert_eq!(
                 checkpoint.terminal_snapshot().unwrap().status(),

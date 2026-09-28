@@ -652,7 +652,13 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     ];
     let rich_stage = include_str!("../rich_stage.rs");
     let driver = include_str!("../iterative/driver.rs");
-    let live = include_str!("../iterative/driver/live.rs");
+    let live_joined = [
+        include_str!("../iterative/driver/live.rs"),
+        include_str!("../iterative/driver/live/kernel.rs"),
+        include_str!("../iterative/driver/live/retained.rs"),
+    ]
+    .join("\n");
+    let live = live_joined.as_str();
     let target_live_joined = [
         include_str!("../iterative/effects/live.rs"),
         include_str!("../iterative/effects/live/owned_wait_v8.rs"),

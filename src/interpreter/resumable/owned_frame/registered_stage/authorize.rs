@@ -18,8 +18,11 @@ impl StagedOwnedAuthorizeV2 {
     #[cfg(test)]
     pub(crate) fn live_test_weak(&self) -> Vec<std::sync::Weak<[u8]>> {
         let mut leaves = super::super::snapshot::weak_leaves(self.state.root.as_ref().unwrap());
-        if let Some(decision) = &self.decision {
-            leaves.extend(super::super::snapshot::weak_leaves(decision));
+        if let Some(Value::Variant(decision)) = &self.decision {
+            leaves.extend(decision.fields.values().filter_map(|value| match value {
+                Value::Bytes(bytes) => Some(Arc::downgrade(&bytes.bytes)),
+                _ => None,
+            }));
         }
         leaves
     }
@@ -40,7 +43,7 @@ impl StagedOwnedAuthorizeV2 {
         let root = self.state.root.as_ref()?;
         let decision_root = self.decision.as_ref()?;
         if !exclusive(root)
-            || !exclusive(decision_root)
+            || !exclusive_decision(decision_root)
             || !self.state.allocations.validate(&[root, decision_root])
         {
             return None;

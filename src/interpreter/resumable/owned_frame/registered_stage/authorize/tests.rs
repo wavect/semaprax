@@ -625,3 +625,48 @@ fn owned_frame_v2_authorize_actual_source_graph_conditional_and_partial_flags_ar
         "SPX-T303"
     );
 }
+
+#[test]
+fn owned_frame_v2_authorize_live_variant_witnesses_and_exclusive_proof_are_actual() {
+    let p = proof(SOURCE);
+    for budget in [5, 11] {
+        let state = completed(&p, budget);
+        let old = state_weak(&state);
+        let staged = stage_owned_authorize_v2(state, &p, &mut OwnedFrameBudget::new(100).unwrap())
+            .unwrap_or_else(|r| panic!("{:?}", r.diagnostic));
+        assert!(staged.failure().is_none());
+        let decision = staged.decision.as_ref().unwrap();
+        assert!(!exclusive(decision), "legacy record predicate stays closed");
+        assert!(exclusive_decision(decision));
+        let leaves = staged.live_test_weak();
+        assert_eq!(leaves.len(), old.len() + usize::from(budget == 5));
+        assert!(old
+            .iter()
+            .all(|w| leaves.iter().any(|actual| Weak::ptr_eq(w, actual))));
+        assert!(leaves.iter().all(|w| w.strong_count() == 1));
+        let Value::Variant(variant) = decision else {
+            panic!("actual Decision");
+        };
+        let alias = Arc::clone(variant);
+        assert!(
+            !exclusive_decision(decision),
+            "variant shell alias is refused"
+        );
+        drop(alias);
+        if let Some(Value::Bytes(seal)) = variant.fields.get(p.seal()) {
+            let alias = Arc::clone(&seal.bytes);
+            assert!(
+                !exclusive_decision(decision),
+                "seal backing alias is refused"
+            );
+            drop(alias);
+        }
+        assert!(exclusive_decision(decision));
+        assert!(staged
+            .state
+            .allocations
+            .validate(&[staged.state.root.as_ref().unwrap(), decision,]));
+        drop(staged);
+        assert!(leaves.iter().all(|w| w.upgrade().is_none()));
+    }
+}

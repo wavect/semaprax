@@ -451,3 +451,58 @@ fn owned_continued_model_accounting_proof_is_exact_current_context_prefix() {
         assert!(weak.iter().all(|w| w.upgrade().is_none()));
     });
 }
+
+#[test]
+fn owned_continued_model_cancel_does_not_mask_actual_tail_or_policy_loss() {
+    for policy_loss in [false, true] {
+        static DENIED: std::sync::OnceLock<crate::resumable_effects::CapabilityPolicy> =
+            std::sync::OnceLock::new();
+        let denied = DENIED
+            .get_or_init(|| crate::resumable_effects::CapabilityPolicy::new(Vec::new()).unwrap());
+        with_continued(false, |journal, owner, weak, ledger, _, _, cancel| {
+            let parked = prepared(journal, owner);
+            let counts = Rc::new(RefCell::new(Counts::default()));
+            let mut factory = factory(
+                counts.clone(),
+                script(&document(journal.context())),
+                Rc::new(|_| {}),
+            );
+            let adapter = source(journal.context(), &mut factory);
+            let selected = parked
+                .prepare_model_intent(&adapter)
+                .unwrap_or_else(|_| panic!("true Intent"));
+            let mut intent = acknowledge(journal, selected);
+            if policy_loss {
+                let ModelOwnerV8::Parked(parked) = &mut intent.owner else {
+                    panic!("actual park");
+                };
+                parked.owner.owner.test_model_policy(denied);
+            } else {
+                journal
+                    .test_observe_lease()
+                    .borrow_mut()
+                    .append(b"x")
+                    .unwrap();
+            }
+            cancel.cancel();
+            let entry = resume_entries();
+            let permit = LiveContinuedModelIntentPermitV8 {
+                owner: &intent,
+                admission: std::cell::Cell::new(None),
+            };
+            assert!(permit.validate_guard().is_err());
+            assert!(
+                permit.validate_store().is_err(),
+                "admission refusal cannot revive authority loss"
+            );
+            assert_eq!(intent.owner.accounting(), &ledger);
+            assert_eq!(counts.borrow().factories, 0);
+            assert_eq!(resume_entries(), entry);
+            assert!(journal.hold().is_err());
+            assert!(journal.begin_session().is_err());
+            assert!(weak.iter().any(|w| w.strong_count() == 1));
+            drop(intent);
+            assert!(weak.iter().all(|w| w.upgrade().is_none()));
+        });
+    }
+}

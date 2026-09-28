@@ -325,13 +325,44 @@ fn reported_usage(
 /// Borrowed only by the fixed SDK call after this owner's actual Intent ACK.
 pub(crate) struct LiveContinuedModelIntentPermitV8<'p, 'j> {
     owner: &'p LiveContinuedModelV8<'j>,
+    admission: std::cell::Cell<Option<SourceAttemptFailure>>,
 }
 impl LiveContinuedModelIntentPermitV8<'_, '_> {
     pub(crate) fn validate_guard(&self) -> Result<(), SourceJournalError> {
         if self.owner.acks.len() != 1 || self.owner.dispatched.is_some() {
             return Err(SourceJournalError::Order);
         }
-        self.owner.validate_at(true)
+        let checked = (|| {
+            let ModelOwnerV8::Parked(parked) = &self.owner.owner else {
+                return Err(SourceJournalError::Order);
+            };
+            let ack = self.owner.acks.last().ok_or(SourceJournalError::Order)?;
+            let admission = parked
+                .owner
+                .owner
+                .validate_sdk_live(&ack.session, &ack.witness)?;
+            let (_, _, turn, _) = ack.session.continued_model_facts()?;
+            let actual = ack.session.continued_model_accounting()?;
+            if turn != self.owner.turn() || actual != *self.owner.owner.accounting() {
+                return Err(SourceJournalError::Binding);
+            }
+            ack.witness.validate_current_session(&ack.session)?;
+            Ok(admission)
+        })();
+        match checked {
+            Err(error) => {
+                self.owner.journal().quarantine();
+                Err(error)
+            }
+            Ok(admission) => {
+                if let Some(failure) = admission.failure() {
+                    if self.admission.get().is_none() {
+                        self.admission.set(Some(failure));
+                    }
+                }
+                admission.error().map_or(Ok(()), Err)
+            }
+        }
     }
     pub(crate) fn validate_store(&self) -> Result<(), SourceJournalError> {
         if self.owner.acks.len() != 1 {
@@ -346,11 +377,13 @@ impl LiveContinuedModelIntentPermitV8<'_, '_> {
         self.owner.owner.clock()
     }
     pub(crate) fn guard_failure(&self) -> SourceAttemptFailure {
-        if self.owner.owner.cancelled() {
-            SourceAttemptFailure::Cancelled
-        } else {
-            SourceAttemptFailure::Refused
-        }
+        self.admission.get().unwrap_or_else(|| {
+            if self.owner.owner.cancelled() {
+                SourceAttemptFailure::Cancelled
+            } else {
+                SourceAttemptFailure::Refused
+            }
+        })
     }
     pub(crate) fn quarantine(&self) {
         self.owner.journal().quarantine()
@@ -372,7 +405,10 @@ impl<'j> LiveContinuedModelV8<'j> {
         }
         self.owner.configure_adapter(adapter);
         let result = {
-            let permit = LiveContinuedModelIntentPermitV8 { owner: &self };
+            let permit = LiveContinuedModelIntentPermitV8 {
+                owner: &self,
+                admission: std::cell::Cell::new(None),
+            };
             adapter.dispatch_continued_wait_v8(&permit)
         };
         // SDK's guarded panic bracket preserves its already selected source

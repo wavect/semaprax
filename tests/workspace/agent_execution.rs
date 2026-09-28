@@ -29,9 +29,9 @@ impl Workspace {
             value.write("src/spare.spx", spare);
         }
         let sources = if spare.is_some() {
-            "[\"src/app.spx\",\"src/spare.spx\",\"src/tests.spx\"]"
+            "[\"src/app.spx\", \"src/spare.spx\", \"src/tests.spx\"]"
         } else {
-            "[\"src/app.spx\",\"src/tests.spx\"]"
+            "[\"src/app.spx\", \"src/tests.spx\"]"
         };
         std::fs::write(value.0.join("semaprax.toml"), format!(
             "schema = \"semaprax.manifest.v1\"\n[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n[modules]\nentry = \"fixture.app\"\nsources = {sources}\ntests = [\"fixture.tests\"]\n[exports]\nweb = [\"fixture.public\"]\n")).unwrap();

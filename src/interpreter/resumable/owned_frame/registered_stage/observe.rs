@@ -37,6 +37,10 @@ pub(crate) fn observe_owned_agent_state_v2(
 ) -> Result<OwnedObserveStepV2, OwnedObserveRejectionV2> {
     if argument.creator != std::process::id()
         || !argument.plan.same_helper(plan.helper())
+        || !argument
+            .root
+            .as_ref()
+            .is_some_and(|r| root_valid(&argument.plan, r))
         || argument
             .root
             .as_ref()

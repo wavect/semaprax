@@ -223,7 +223,7 @@ fn owned_frame_v2_observe_preflight_preserves_argument_and_source_profile_refuse
     assert!(roots.iter().all(|w| w.upgrade().is_none()));
     let source = SOURCE.replace(
         "let view =",
-        "let extra = bytes_copy(str_as_bytes(\"x\"));\n let view =",
+        "let text = \"x\";\n let extra = bytes_copy(str_as_bytes(string_as_str(text)));\n let view =",
     );
     let ordinary = hir::resolve(&crate::check(&source, "observe-extra.spx").unwrap()).unwrap();
     let h = compile_owned_frame_helper_v2(&ordinary, &DeclarationId::new("park")).unwrap();
@@ -295,7 +295,7 @@ fn owned_frame_v2_observe_canonical_graph_borrow_loans_and_empty_cleanup() {
         .find(|n| n["id"] == "observe")
         .unwrap();
     assert_eq!(node["params"][0]["ownership_mode"], "borrow");
-    assert_eq!(node["return_type_id"], "observation");
+    assert_eq!(node["return_type_id"], "nominal:11:observation:0:");
 }
 
 #[test]
@@ -391,4 +391,49 @@ fn owned_frame_v2_observe_direct_projected_slice_view_remains_source_refused() {
     let source = SOURCE.replace("bytes_as_slice(second)", "bytes_as_slice(state.second)");
     let diagnostics = crate::check(&source, "observe-direct-view.spx").unwrap_err();
     assert_eq!(diagnostics[0].code, "SPX-T266");
+}
+
+#[test]
+fn owned_frame_v2_observe_schema_refusal_preserves_valid_backing_witnesses() {
+    let p = proof(SOURCE);
+    for wrong_nominal in [true, false] {
+        let mut a = argument(&p);
+        let roots = weak(a.root.as_ref().unwrap());
+        let Value::Record(r) = a.root.as_mut().unwrap() else {
+            panic!()
+        };
+        let r = Arc::get_mut(r).unwrap();
+        if wrong_nominal {
+            r.record = DeclarationId::new("wrong.state");
+        } else {
+            r.fields
+                .insert(DeclarationId::new("state.budget"), Value::Bool(true));
+        }
+        assert!(
+            a.allocations
+                .as_ref()
+                .unwrap()
+                .validate(&[a.root.as_ref().unwrap()]),
+            "continuity alone is not State schema"
+        );
+        let mut fuel = OwnedFrameBudget::new(100).unwrap();
+        let rejection = observe_owned_agent_state_v2(a, &p, &mut fuel)
+            .err()
+            .expect("tampered State schema");
+        assert_eq!(fuel.consumed(), 0);
+        assert!(roots.iter().all(|w| w.strong_count() == 1));
+        let Value::Record(r) = rejection.argument.root.as_ref().unwrap() else {
+            panic!()
+        };
+        if wrong_nominal {
+            assert_eq!(r.record.as_str(), "wrong.state");
+        } else {
+            assert_eq!(
+                r.fields[&DeclarationId::new("state.budget")],
+                Value::Bool(true)
+            );
+        }
+        drop(rejection);
+        assert!(roots.iter().all(|w| w.upgrade().is_none()));
+    }
 }

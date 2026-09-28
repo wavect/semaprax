@@ -1,4 +1,5 @@
-//! Compiler/evaluator foundation only; no checkpoint or durable ownership authority.
+//! Checked owned-frame plans and the opt-in registered durable interpreter route.
+//! Authenticated inert facts carry no ownership or cleanup authority by themselves.
 mod facade;
 pub(crate) mod plan;
 pub use facade::*;

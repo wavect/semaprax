@@ -304,3 +304,95 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_verifie
 
 #[cfg(test)]
 mod tests;
+
+/// Actual source result comes first; all earlier ACKs are immutable lineage,
+/// while the same accounting/held token remain nested in this result owner.
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct LiveContinuedStartedPhaseV8<'j> {
+    owner: crate::live_invocation::source_journal::owned_wait_v8::live_upstream::ContinuedStartedWaitV8<'j>,
+    observation: CheckedOwnedWaitObservationV8,
+    _observe_acks: Vec<ObserveSettlementAckV8<'j>>,
+    acks: Vec<ContinuedStartAckV8<'j>>,
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinuedSourceEntryFailureV8<
+    'j,
+> {
+    Before {owner:LiveContinuedStartPhaseV8<'j>,error:SourceJournalError},
+    Source {
+        owner:crate::live_invocation::source_journal::owned_wait_v8::live_upstream::ContinuedStartEntryFailureV8<'j>,
+        _observation:CheckedOwnedWaitObservationV8,
+        _observe_acks:Vec<ObserveSettlementAckV8<'j>>,
+        _acks:Vec<ContinuedStartAckV8<'j>>,
+    },
+}
+impl<'j> LiveContinuedStartPhaseV8<'j> {
+    /// This consuming route cannot be called from Created alone. The sole
+    /// evaluator receives the actual Reserved successor and physical owner.
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn enter_actual_source(
+        self,
+    ) -> Result<LiveContinuedStartedPhaseV8<'j>, LiveContinuedSourceEntryFailureV8<'j>> {
+        let before = (|| {
+            if self.acks.len() != 2 {
+                return Err(SourceJournalError::Order);
+            }
+            self.validate_live()?;
+            if !matches!(
+                self.acks
+                    .last()
+                    .expect("actual Start")
+                    .witness
+                    .selected_row(),
+                EntryV8::Owned(journal_model::OwnedBodyV8::OwnedWaitReserved {
+                    phase: journal_model::PhaseV8::Start,
+                    replay_of: None,
+                    ..
+                })
+            ) {
+                return Err(SourceJournalError::Binding);
+            }
+            Ok(())
+        })();
+        if let Err(error) = before {
+            return Err(LiveContinuedSourceEntryFailureV8::Before { owner: self, error });
+        }
+        let LiveContinuedStartPhaseV8 { owner, acks } = self;
+        let LiveContinuedWaitV8 { owner, observation } = owner;
+        let LiveSettledObserveV8 {
+            owner,
+            acks: observe_acks,
+        } = owner;
+        let LiveObserveSettlementOwnerV8::Continued(owner) = owner else {
+            unreachable!("actual continued owner preflight")
+        };
+        let current = acks.last().expect("actual full-F Start ACK");
+        let started = match owner.enter_actual_wait(&current.session, &current.witness) {
+            Ok(owner) => owner,
+            Err(owner) => {
+                return Err(LiveContinuedSourceEntryFailureV8::Source {
+                    owner,
+                    _observation: observation,
+                    _observe_acks: observe_acks,
+                    _acks: acks,
+                })
+            }
+        };
+        Ok(LiveContinuedStartedPhaseV8 {
+            owner: started,
+            observation,
+            _observe_acks: observe_acks,
+            acks,
+        })
+    }
+}
+impl LiveContinuedStartedPhaseV8<'_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
+        &self,
+    ) -> Result<(), SourceJournalError> {
+        let current = self.acks.last().ok_or(SourceJournalError::Order)?;
+        self.owner.validate_live(&current.session, &current.witness)
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn consumed(
+        &self,
+    ) -> Option<u64> {
+        self.owner.consumed()
+    }
+}

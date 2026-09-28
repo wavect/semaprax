@@ -13,7 +13,7 @@ pub(crate) fn owned_wait_ordinary_state_digest_v8(
         bytes.as_bytes(),
     ))
 }
-fn ordinary_state_bytes(
+pub(crate) fn ordinary_state_bytes(
     binding: &CheckedOwnedAgentWaitBindingV8,
     state: &Value,
 ) -> Result<String, Error> {

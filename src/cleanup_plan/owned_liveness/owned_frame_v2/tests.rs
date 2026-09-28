@@ -129,6 +129,8 @@ fn owned_frame_v2_exact_helper_body_and_copy_shapes_refuse_stably() {
         let errors=hir::resolve(&crate::parse(&source,Path::new("owned-frame-v2-negative.spx")).unwrap()).unwrap_err();
         assert!(errors.iter().any(|e|e.code=="SPX-T303"),"body={body}: {errors:?}");
     }
+    // Borrowing this Copy nominal value is already refused by the ordinary
+    // ownership-mode checker before suspension profile admission.
     let source = SOURCE.replace(
         "observation: Observation",
         "observation: borrow Observation",
@@ -136,7 +138,7 @@ fn owned_frame_v2_exact_helper_body_and_copy_shapes_refuse_stably() {
     let errors =
         hir::resolve(&crate::parse(&source, Path::new("owned-frame-v2-borrow.spx")).unwrap())
             .unwrap_err();
-    assert!(errors.iter().any(|e| e.code == "SPX-T303"), "{errors:?}");
+    assert!(errors.iter().any(|e| e.code == "SPX-O002"), "{errors:?}");
     let p = program(SOURCE);
     for ty in [&ResolvedType::Bytes, &ResolvedType::I64] {
         assert!(!flat_copy_record(&p.declarations, ty));

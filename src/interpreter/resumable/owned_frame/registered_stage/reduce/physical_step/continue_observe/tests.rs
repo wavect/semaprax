@@ -1,6 +1,8 @@
 //! Genuine baseline Continue/E/store and actual effect; all ACK envelope
 //! construction is test-only, not proof of an enabled §23 producer/driver.
-use super::super::super::super::effect::with_staged_effect_reduce_v2;
+use super::super::super::super::effect::{
+    with_staged_effect_reduce_v2, with_staged_task_zero_reduce_v2,
+};
 use super::*;
 
 fn with_continue(
@@ -11,17 +13,23 @@ fn with_continue(
         &std::path::Path,
     ),
 ) {
-    with_staged_effect_reduce_v2(1000, |staged, weak, outcome, cancel, directory| {
+    with_continue_fixture(false, callback)
+}
+fn with_continue_fixture(
+    task_zero: bool,
+    callback: impl FnOnce(
+        CommittedContinueObserveV2<'_>,
+        std::sync::Weak<[u8]>,
+        &crate::agent_runtime::AgentCancellation,
+        &std::path::Path,
+    ),
+) {
+    let exercise = |staged: super::super::super::StagedExecutedOwnedReduceV2<'_>,
+                    weak: [std::sync::Weak<[u8]>; 2],
+                    outcome: std::sync::Weak<[u8]>,
+                    cancel: &crate::agent_runtime::AgentCancellation,
+                    directory: &std::path::Path| {
         assert!(staged.inputs.execution.ordinary().max_iterations() >= 2);
-        assert!(
-            staged
-                .inputs
-                .runtime
-                .owned_wait_task_v8(staged.inputs.execution)
-                .unwrap()
-                .budget
-                >= 2
-        );
         let cleanup = CommittedExecutedOwnedReduceCleanupV2 {
             staged,
             started: 29,
@@ -69,7 +77,12 @@ fn with_continue(
             cancel,
             directory,
         );
-    });
+    };
+    if task_zero {
+        with_staged_task_zero_reduce_v2(1000, exercise)
+    } else {
+        with_staged_effect_reduce_v2(1000, exercise)
+    }
 }
 
 #[test]
@@ -184,6 +197,7 @@ fn owned_continue_observe_pre_cancel_refuses_and_post_cancel_quarantines_actual_
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn owned_continue_observe_post_callback_pin_loss_is_sticky_and_retains_backing_only() {
     with_continue(|committed, weak, _, directory| {
@@ -250,6 +264,7 @@ fn owned_continue_observe_aliased_state_diagnostic_preserves_owner_without_evalu
     });
 }
 
+#[cfg(unix)]
 fn pinned_journal_entry(
     directory: &std::path::Path,
     identity: crate::resumable_effects::owned_frame::OwnedFrameStoreIdentity,
@@ -266,4 +281,33 @@ fn pinned_journal_entry(
         .collect();
     assert_eq!(matches.len(), 1, "exact retained journal file pin");
     matches.into_iter().next().unwrap()
+}
+
+#[test]
+fn owned_continue_observe_does_not_treat_authored_task_budget_as_host_iteration_limit() {
+    with_continue_fixture(true, |committed, weak, _, _| {
+        let inputs = committed.held.inputs.as_ref().unwrap();
+        assert_eq!(
+            inputs
+                .runtime
+                .owned_wait_task_v8(inputs.execution)
+                .unwrap()
+                .budget,
+            0
+        );
+        assert_eq!(inputs.execution.ordinary().max_iterations(), 32);
+        let mut fuel = OwnedFrameBudget::new(1000).unwrap();
+        let ContinuedOwnedObserveV2::Observed(observed) =
+            observe_continued_owned_state_v2(committed, &mut fuel, || true)
+                .unwrap_or_else(|e| panic!("{:?}", e.diagnostic))
+        else {
+            panic!("authored Task budget is not a host limit")
+        };
+        assert_eq!(observed.turn(), 1);
+        assert!(observed.consumed() > 0);
+        assert!(observed.validate_store());
+        assert_eq!(weak.strong_count(), 1);
+        drop(observed);
+        assert!(weak.upgrade().is_none());
+    });
 }

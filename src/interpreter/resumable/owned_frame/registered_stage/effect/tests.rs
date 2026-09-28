@@ -684,7 +684,7 @@ pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn with_sta
         &std::path::Path,
     ),
 ) {
-    with_staged_reduce_fixture(fuel, false, callback)
+    with_staged_reduce_fixture(fuel, ReduceFixture::Baseline, callback)
 }
 /// Genuine rebuilt Complete-source E/B/model/store for Report controls.
 pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn with_staged_complete_reduce_v2(
@@ -697,11 +697,28 @@ pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn with_sta
         &std::path::Path,
     ),
 ) {
-    with_staged_reduce_fixture(fuel, true, callback)
+    with_staged_reduce_fixture(fuel, ReduceFixture::Complete, callback)
+}
+pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn with_staged_task_zero_reduce_v2(
+    fuel: usize,
+    callback: impl FnOnce(
+        super::super::reduce::StagedExecutedOwnedReduceV2<'_>,
+        [std::sync::Weak<[u8]>; 2],
+        std::sync::Weak<[u8]>,
+        &AgentCancellation,
+        &std::path::Path,
+    ),
+) {
+    with_staged_reduce_fixture(fuel, ReduceFixture::TaskZero, callback)
+}
+enum ReduceFixture {
+    Baseline,
+    Complete,
+    TaskZero,
 }
 fn with_staged_reduce_fixture(
     fuel: usize,
-    complete_source: bool,
+    profile: ReduceFixture,
     callback: impl FnOnce(
         super::super::reduce::StagedExecutedOwnedReduceV2<'_>,
         [std::sync::Weak<[u8]>; 2],
@@ -795,9 +812,15 @@ fn with_staged_reduce_fixture(
         assert!(outcome_weak.upgrade().is_none());
         assert_eq!(host.calls, 1);
     };
-    if complete_source {
-        CheckedOwnedWaitJournalContextV8::test_with_actual_complete_store(exercise)
-    } else {
-        CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(true, exercise)
+    match profile {
+        ReduceFixture::Complete => {
+            CheckedOwnedWaitJournalContextV8::test_with_actual_complete_store(exercise)
+        }
+        ReduceFixture::Baseline => {
+            CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(true, exercise)
+        }
+        ReduceFixture::TaskZero => {
+            CheckedOwnedWaitJournalContextV8::test_with_actual_task_zero_store(exercise)
+        }
     }
 }

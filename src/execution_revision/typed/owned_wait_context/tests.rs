@@ -16,6 +16,7 @@ impl Drop for Fixture {
 enum RuntimeFixture {
     Baseline,
     Complete,
+    BaselineTaskZero,
 }
 fn fixture() -> Fixture {
     fixture_for(RuntimeFixture::Baseline)
@@ -44,7 +45,7 @@ fn fixture_for(profile: RuntimeFixture) -> Fixture {
         "    model_wait_v1 { propose = \"fixture.agent.fn.park\"; }\n    runtime_v1 {",
     );
     let source = match profile {
-        RuntimeFixture::Baseline => source,
+        RuntimeFixture::Baseline | RuntimeFixture::BaselineTaskZero => source,
         RuntimeFixture::Complete => {
             let original = "if state.epoch < 2 { Step::Continue { objective: state.objective, budget: state.budget, epoch: state.epoch + 1 } } else { Step::Complete { summary: state.objective, budget: state.budget, status: state.epoch } }";
             assert_eq!(source.matches(original).count(), 1);
@@ -133,10 +134,14 @@ fn runtime_for(
         &deployment,
         LifecycleTask {
             objective: objective.to_vec(),
-            budget: 12,
+            budget: if matches!(profile, RuntimeFixture::BaselineTaskZero) {
+                0
+            } else {
+                12
+            },
         },
         match profile {
-            RuntimeFixture::Baseline => IterativeBudget {
+            RuntimeFixture::Baseline | RuntimeFixture::BaselineTaskZero => IterativeBudget {
                 max_steps_per_stage: 1000,
                 ..IterativeBudget::default()
             },
@@ -565,6 +570,17 @@ impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
         ) -> T,
     ) -> T {
         Self::test_with_runtime_fixture(RuntimeFixture::Baseline, retention_ack, callback)
+    }
+    /// Authored Task budget is data, not the host iteration ceiling.
+    pub(crate) fn test_with_actual_task_zero_store<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+            &std::path::Path,
+        ) -> T,
+    ) -> T {
+        Self::test_with_runtime_fixture(RuntimeFixture::BaselineTaskZero, true, callback)
     }
     /// Closed Complete source and two-turn execution budget; E/B/model/store
     /// are rebuilt from the authenticated altered source, not reused proofs.

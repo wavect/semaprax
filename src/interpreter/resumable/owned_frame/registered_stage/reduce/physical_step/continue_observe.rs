@@ -108,15 +108,10 @@ pub(crate) fn observe_continued_owned_state_v2<'a>(
     .map(|p| p.operation().effect_id().to_owned());
     let expected_turn = inputs.turn.checked_add(1);
     let expected_fuel = inputs.execution.evaluation_fuel();
-    let turn_budget = inputs
-        .runtime
-        .owned_wait_task_v8(inputs.execution)
-        .map(|task| task.budget);
     let valid = effect.is_ok()
         && committed.held.kind() == "continue"
         && expected_turn == Some(committed.turn)
         && committed.turn < inputs.execution.ordinary().max_iterations()
-        && turn_budget.is_ok_and(|limit| i64::from(committed.turn) < limit)
         && committed.transition > committed.held.transfer_reserved
         && committed.reservation > committed.transition
         && committed.fuel == expected_fuel

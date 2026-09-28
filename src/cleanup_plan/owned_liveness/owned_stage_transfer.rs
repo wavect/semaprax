@@ -26,8 +26,16 @@ pub(crate) struct OwnedRecordTransferPlan {
     pub result_disposal: Vec<FinalizeAction>,
     pub completion_cleanup: Vec<FinalizeAction>,
 }
+#[track_caller]
 fn refused() -> Diagnostic {
-    Diagnostic::io("SPX-T303", "owned stage constructor transfer proof differs")
+    #[cfg(test)]
+    let detail = format!(
+        "owned stage constructor transfer proof differs at {}",
+        std::panic::Location::caller()
+    );
+    #[cfg(not(test))]
+    let detail = "owned stage constructor transfer proof differs";
+    Diagnostic::io("SPX-T303", detail)
 }
 
 /// The caller admits only one direct record constructor, consuming every Bytes

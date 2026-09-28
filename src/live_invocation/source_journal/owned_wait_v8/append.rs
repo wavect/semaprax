@@ -1,5 +1,5 @@
 //! Fixed physical append adapter. No owner restoration or phase grant.
-use super::candidate::{InventoryV8, PendingV8};
+use super::candidate::{CandidateRejectionV8, InventoryV8, PendingV8};
 use super::*;
 use crate::resumable_effects::owned_frame::{
     SourceOwnedWaitLeaseV8, SourceOwnedWaitStoreRegistrationV8,
@@ -26,6 +26,11 @@ pub(super) struct AppendSessionV8<'a> {
     inventory: InventoryV8<'a>,
 }
 pub(super) enum AppendFailureV8<'a> {
+    PhysicalBeforeCandidate {
+        _session: AppendSessionV8<'a>,
+        _row: EntryV8,
+        error: SourceJournalError,
+    },
     CandidateRefused {
         session: AppendSessionV8<'a>,
         row: EntryV8,
@@ -95,18 +100,21 @@ impl SourceOwnedWaitJournalV8 {
             .lease
             .try_borrow()
             .map_err(|_| SourceJournalError::Order)?;
-        self.context.validate_lease(&lease)
+        self.context.validate_lease(&lease).inspect_err(|_| {
+            self.poisoned.set(true);
+        })
     }
     pub(super) fn begin_session(&self) -> Result<AppendSessionV8<'_>, SourceJournalError> {
         self.validate_guard()?;
-        let inventory = {
+        let recovered = (|| {
             let mut lease = self
                 .lease
                 .try_borrow_mut()
                 .map_err(|_| SourceJournalError::Order)?;
             let bytes = lease.read().map_err(store_error)?;
-            InventoryV8::recover(&self.context, &lease, &self.key, &bytes)?
-        };
+            InventoryV8::recover(&self.context, &lease, &self.key, &bytes)
+        })();
+        let inventory = recovered.inspect_err(|_| self.poisoned.set(true))?;
         self.validate_guard()?;
         Ok(AppendSessionV8 {
             journal: self,
@@ -134,6 +142,13 @@ impl<'a> AppendSessionV8<'a> {
     }
     pub(super) fn append(self, row: EntryV8) -> Result<Self, AppendFailureV8<'a>> {
         let journal = self.journal;
+        if let Err(error) = journal.validate_guard() {
+            return Err(AppendFailureV8::PhysicalBeforeCandidate {
+                _session: self,
+                _row: row,
+                error,
+            });
+        }
         let prepared = {
             let lease = match journal.lease.try_borrow() {
                 Ok(lease) => lease,
@@ -149,16 +164,7 @@ impl<'a> AppendSessionV8<'a> {
         };
         let candidate = match prepared {
             Ok(candidate) => candidate,
-            Err(rejected) => {
-                return Err(AppendFailureV8::CandidateRefused {
-                    session: Self {
-                        journal,
-                        inventory: rejected.inventory,
-                    },
-                    row: rejected.row,
-                    error: rejected.error,
-                })
-            }
+            Err(rejected) => return Err(reject_candidate(journal, rejected)),
         };
         let pending = candidate.into_pending();
         // Pending exists before the first append-adapter physical call.
@@ -205,6 +211,35 @@ impl<'a> AppendSessionV8<'a> {
         }
     }
 }
+fn reject_candidate<'a>(
+    journal: &'a SourceOwnedWaitJournalV8,
+    rejected: CandidateRejectionV8<'a>,
+) -> AppendFailureV8<'a> {
+    let physical = if rejected.physical {
+        journal.poisoned.set(true);
+        Some(rejected.error)
+    } else {
+        journal.validate_guard().err()
+    };
+    let session = AppendSessionV8 {
+        journal,
+        inventory: rejected.inventory,
+    };
+    if let Some(error) = physical {
+        AppendFailureV8::PhysicalBeforeCandidate {
+            _session: session,
+            _row: rejected.row,
+            error,
+        }
+    } else {
+        AppendFailureV8::CandidateRefused {
+            session,
+            row: rejected.row,
+            error: rejected.error,
+        }
+    }
+}
+
 fn physical_append(
     attempting: &Attempting<'_>,
     pending: &PendingV8<'_>,

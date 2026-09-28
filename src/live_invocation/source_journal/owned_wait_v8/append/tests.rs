@@ -202,6 +202,7 @@ fn owned_wait_physical_append_replaced_file_and_foreign_pid_are_prewrite_refusal
                 let row = rows(&context)[0].clone();
                 let journal =
                     SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+                let held = journal.hold().unwrap();
                 let session = journal.begin_session().unwrap();
                 let path = physical_path(directory);
                 if foreign {
@@ -210,11 +211,22 @@ fn owned_wait_physical_append_replaced_file_and_foreign_pid_are_prewrite_refusal
                     std::fs::rename(&path, path.with_extension("retained")).unwrap();
                     std::fs::write(&path, b"replacement").unwrap();
                 }
-                // Candidate's closed validation may reject known changed pins first.
-                assert!(session.append(row).is_err());
-                assert!(journal.hold().is_err());
+                assert!(matches!(
+                    session.append(row),
+                    Err(AppendFailureV8::PhysicalBeforeCandidate { .. })
+                ));
+                assert_eq!(held.validate_guard(), Err(SourceJournalError::Poisoned));
                 if !foreign {
                     assert_eq!(std::fs::read(&path).unwrap(), b"replacement");
+                    std::fs::remove_file(&path).unwrap();
+                    std::fs::rename(path.with_extension("retained"), &path).unwrap();
+                    assert_eq!(std::fs::read(&path).unwrap(), b"");
+                    assert_eq!(
+                        held.validate_guard(),
+                        Err(SourceJournalError::Poisoned),
+                        "restoring original pins cannot reactivate handles"
+                    );
+                    assert!(journal.begin_session().is_err());
                 }
             },
         );
@@ -271,6 +283,60 @@ fn owned_wait_physical_append_uncertainty_retains_exclusive_lock_until_container
                 durable,
                 "backing-only Drop leaves exact uncertain physical bytes"
             );
+        },
+    );
+}
+
+#[test]
+fn owned_wait_physical_begin_session_detected_pin_failure_is_permanent_after_restore() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
+        true,
+        |context, lease, key, directory| {
+            let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+            let held = journal.hold().unwrap();
+            let path = physical_path(directory);
+            std::fs::rename(&path, path.with_extension("retained")).unwrap();
+            std::fs::write(&path, b"replacement").unwrap();
+            assert!(journal.begin_session().is_err());
+            std::fs::remove_file(&path).unwrap();
+            std::fs::rename(path.with_extension("retained"), &path).unwrap();
+            assert_eq!(std::fs::read(&path).unwrap(), b"");
+            assert_eq!(held.validate_guard(), Err(SourceJournalError::Poisoned));
+            assert!(journal.begin_session().is_err());
+        },
+    );
+}
+
+#[test]
+fn owned_wait_physical_factory_failure_cause_survives_restored_pins_before_adapter() {
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime_store(
+        true,
+        |context, lease, key, directory| {
+            let row = rows(&context)[0].clone();
+            let journal = SourceOwnedWaitJournalV8::open(Arc::new(context), key, lease).unwrap();
+            let held = journal.hold().unwrap();
+            let session = journal.begin_session().unwrap();
+            let path = physical_path(directory);
+            std::fs::rename(&path, path.with_extension("retained")).unwrap();
+            std::fs::write(&path, b"replacement").unwrap();
+            let rejected = match session.inventory.prepare(&journal.lease.borrow(), row) {
+                Err(rejected) => rejected,
+                Ok(_) => panic!("actual factory must detect changed physical pins"),
+            };
+            assert!(rejected.physical);
+            std::fs::remove_file(&path).unwrap();
+            std::fs::rename(path.with_extension("retained"), &path).unwrap();
+            journal
+                .context
+                .validate_lease(&journal.lease.borrow())
+                .unwrap();
+            assert!(matches!(
+                reject_candidate(&journal, rejected),
+                AppendFailureV8::PhysicalBeforeCandidate { .. }
+            ));
+            assert_eq!(held.validate_guard(), Err(SourceJournalError::Poisoned));
+            assert!(journal.begin_session().is_err());
+            assert_eq!(std::fs::read(&path).unwrap(), b"");
         },
     );
 }

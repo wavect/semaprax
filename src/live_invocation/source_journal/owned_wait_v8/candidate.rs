@@ -41,6 +41,7 @@ pub(super) struct CandidateRejectionV8<'a> {
     pub inventory: InventoryV8<'a>,
     pub row: EntryV8,
     pub error: SourceJournalError,
+    pub physical: bool,
 }
 pub(super) struct AckRejectionV8<'a> {
     pub error: SourceJournalError,
@@ -108,6 +109,7 @@ impl<'a> InventoryV8<'a> {
         lease: Option<&SourceOwnedWaitLeaseV8>,
         #[cfg(test)] synthetic: Option<ValidatedEntryV8>,
     ) -> Result<CandidateV8<'a>, CandidateRejectionV8<'a>> {
+        let mut physical = false;
         let result = (|| {
             let context = self.context.fold();
             let expected = ExpectedRowV8 {
@@ -123,13 +125,18 @@ impl<'a> InventoryV8<'a> {
                     let lease = lease.ok_or(SourceJournalError::Binding)?;
                     // No supplied proof pairs: authenticate the original ACK
                     // prefix and derive this row's facts from that same history.
-                    let checked = inventory::checked_candidate_inventory_v8(
+                    let checked = inventory::checked_candidate_inventory_tagged_v8(
                         context,
                         lease,
                         self.key,
                         &self.document,
                         &encoded,
-                    )?;
+                    )
+                    .map_err(|failure| {
+                        physical =
+                            matches!(&failure, inventory::InventoryValidationErrorV8::Physical(_));
+                        failure.error()
+                    })?;
                     let (mut entries, mac) = checked.into_parts();
                     if entries.len() != self.entries.len() + 1 {
                         return Err(SourceJournalError::Binding);
@@ -181,6 +188,7 @@ impl<'a> InventoryV8<'a> {
                 inventory: self,
                 row,
                 error,
+                physical,
             }),
         }
     }

@@ -223,6 +223,7 @@ fn owned_frame_inherited_child_probe() {
         creator_process,
         fault: None,
         writes: 0,
+        stage_fault: None,
     };
     assert_eq!(inherited.validate_current(), Err(Error::Policy));
     assert_eq!(inherited.read(), Err(Error::Policy));
@@ -255,6 +256,7 @@ fn owned_frame_foreign_process_guard_and_whole_drop_do_not_unlock_shared_descrip
         creator_process: std::process::id().wrapping_add(1),
         fault: None,
         writes: 0,
+        stage_fault: None,
     };
     assert_eq!(foreign.validate_current(), Err(Error::Policy));
     assert_eq!(foreign.read(), Err(Error::Policy));

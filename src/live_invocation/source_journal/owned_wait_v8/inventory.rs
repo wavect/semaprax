@@ -35,13 +35,36 @@ fn typed<T, E>(value: Result<T, E>) -> Result<T, Error> {
     value.map_err(|_| Error::Binding)
 }
 
+/// Preserve physical provenance even if external pins change again later.
+pub(super) enum InventoryValidationErrorV8 {
+    Physical(Error),
+    Proof(Error),
+}
+impl InventoryValidationErrorV8 {
+    pub(super) fn error(self) -> Error {
+        match self {
+            Self::Physical(error) | Self::Proof(error) => error,
+        }
+    }
+}
 pub(super) fn checked_inventory_v8(
     context: &CheckedOwnedWaitJournalContextV8,
     lease: &SourceOwnedWaitLeaseV8,
     key: &SourceCheckpointKey,
     bytes: &[u8],
 ) -> Result<CheckedInventoryV8, Error> {
-    context.validate_lease(lease)?;
+    checked_inventory_tagged_v8(context, lease, key, bytes)
+        .map_err(InventoryValidationErrorV8::error)
+}
+pub(super) fn checked_inventory_tagged_v8(
+    context: &CheckedOwnedWaitJournalContextV8,
+    lease: &SourceOwnedWaitLeaseV8,
+    key: &SourceCheckpointKey,
+    bytes: &[u8],
+) -> Result<CheckedInventoryV8, InventoryValidationErrorV8> {
+    context
+        .validate_lease(lease)
+        .map_err(InventoryValidationErrorV8::Physical)?;
     let zero = "0".repeat(64);
     let expected = ExpectedRowV8 {
         invocation: context.ordinary().invocation(),
@@ -50,11 +73,15 @@ pub(super) fn checked_inventory_v8(
         prev_mac: &zero,
         ordinary: context.ordinary(),
     };
-    let decoded = wire::decode_inventory(bytes, &expected, key)?;
+    let decoded =
+        wire::decode_inventory(bytes, &expected, key).map_err(InventoryValidationErrorV8::Proof)?;
     let mut result =
-        check_entries_with_runtime(context.fold(), key, decoded, context.ready_runtime())?;
-    result.last_mac = document_mac(bytes)?;
-    context.validate_lease(lease)?;
+        check_entries_with_runtime(context.fold(), key, decoded, context.ready_runtime())
+            .map_err(InventoryValidationErrorV8::Proof)?;
+    result.last_mac = document_mac(bytes).map_err(InventoryValidationErrorV8::Proof)?;
+    context
+        .validate_lease(lease)
+        .map_err(InventoryValidationErrorV8::Physical)?;
     Ok(result)
 }
 fn scope(context: &super::FoldContextV8) -> Result<SourceCheckpointScope, Error> {
@@ -301,23 +328,37 @@ pub(super) fn checked_candidate_inventory_v8(
     prefix: &[u8],
     row: &[u8],
 ) -> Result<CheckedInventoryV8, Error> {
-    let acknowledged = checked_inventory_v8(context, lease, key, prefix)?;
+    checked_candidate_inventory_tagged_v8(context, lease, key, prefix, row)
+        .map_err(InventoryValidationErrorV8::error)
+}
+pub(super) fn checked_candidate_inventory_tagged_v8(
+    context: &CheckedOwnedWaitJournalContextV8,
+    lease: &SourceOwnedWaitLeaseV8,
+    key: &SourceCheckpointKey,
+    prefix: &[u8],
+    row: &[u8],
+) -> Result<CheckedInventoryV8, InventoryValidationErrorV8> {
+    let acknowledged = checked_inventory_tagged_v8(context, lease, key, prefix)?;
     let expected = ExpectedRowV8 {
         invocation: context.ordinary().invocation(),
         generation: context.generation(),
-        seq: u32::try_from(acknowledged.entries.len()).map_err(|_| Error::Capacity)?,
+        seq: u32::try_from(acknowledged.entries.len())
+            .map_err(|_| InventoryValidationErrorV8::Proof(Error::Capacity))?,
         prev_mac: &acknowledged.last_mac,
         ordinary: context.ordinary(),
     };
-    wire::decode(row, &expected, key)?;
-    let length = prefix.len().checked_add(row.len()).ok_or(Error::Capacity)?;
+    wire::decode(row, &expected, key).map_err(InventoryValidationErrorV8::Proof)?;
+    let length = prefix
+        .len()
+        .checked_add(row.len())
+        .ok_or(InventoryValidationErrorV8::Proof(Error::Capacity))?;
     if length > super::super::MAX_SOURCE_DOCUMENT_BYTES {
-        return Err(Error::Capacity);
+        return Err(InventoryValidationErrorV8::Proof(Error::Capacity));
     }
     let mut bytes = Vec::with_capacity(length);
     bytes.extend_from_slice(prefix);
     bytes.extend_from_slice(row);
-    checked_inventory_v8(context, lease, key, &bytes)
+    checked_inventory_tagged_v8(context, lease, key, &bytes)
 }
 #[cfg(test)]
 pub(super) mod tests;

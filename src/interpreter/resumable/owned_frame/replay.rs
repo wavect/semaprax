@@ -41,8 +41,8 @@ pub(super) fn evaluate(
                     evaluator.charge()?; // yield node
                     let produced =
                         evaluate_copy(&mut evaluator, request, entry, root, &mut environment)?;
-                    let request =
-                        super::argument_of(&produced).ok_or(Flow::Guard("non-scalar request"))?;
+                    let request = super::super::argument_of(&produced)
+                        .ok_or(Flow::Guard("non-scalar request"))?;
                     return Ok(Some((request, index)));
                 }
                 evaluator.charge()?; // resumed yield node

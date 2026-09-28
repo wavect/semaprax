@@ -1,7 +1,7 @@
 //! Actual typed execution plus independently retained physical registration.
 //! A context proves expected journal facts; it grants no append/owner authority.
 use super::*;
-use crate::execution_revision::typed::CheckedTypedOwnedWaitExecutionV8;
+use crate::execution_revision::typed::{AgentRuntimeV2, CheckedTypedOwnedWaitExecutionV8};
 use crate::resumable_effects::owned_frame::{
     SourceOwnedWaitLeaseV8, SourceOwnedWaitLimitsV8, SourceOwnedWaitStoreRegistrationV8,
 };
@@ -13,8 +13,28 @@ pub(crate) struct CheckedOwnedWaitJournalContextV8 {
     registration: SourceOwnedWaitStoreRegistrationV8,
     fold: FoldContextV8,
     creator: u32,
+    runtime: Option<Arc<AgentRuntimeV2>>,
 }
 impl CheckedOwnedWaitJournalContextV8 {
+    /// Retain the genuine immutable registry; this grants no live authority.
+    pub(crate) fn with_runtime(
+        mut self,
+        runtime: Arc<AgentRuntimeV2>,
+        lease: &SourceOwnedWaitLeaseV8,
+    ) -> Result<Self, SourceJournalError> {
+        self.validate_lease(lease)?;
+        runtime.owned_wait_effects_v8(&self.execution)?;
+        self.runtime = Some(runtime);
+        self.validate_lease(lease)?;
+        Ok(self)
+    }
+    pub(super) fn ready_runtime(
+        &self,
+    ) -> Option<(&AgentRuntimeV2, &CheckedTypedOwnedWaitExecutionV8)> {
+        self.runtime
+            .as_deref()
+            .map(|r| (r, self.execution.as_ref()))
+    }
     pub(super) fn fold(&self) -> &FoldContextV8 {
         &self.fold
     }
@@ -120,8 +140,12 @@ pub(crate) fn checked_owned_wait_journal_context_v8(
         registration: registration.clone(),
         fold,
         creator: std::process::id(),
+        runtime: None,
     })
 }
+#[cfg(test)]
+mod runtime_tests;
+
 #[cfg(test)]
 impl CheckedOwnedWaitJournalContextV8 {
     pub(crate) fn test_state_document(&self, key: &SourceCheckpointKey, state: Value) -> Vec<u8> {

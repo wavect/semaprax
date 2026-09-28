@@ -1,6 +1,7 @@
 //! Pure frozen authorization commitment over borrowed canonical State/seal.
 //! Computing this digest mints no Authorized, grant, ACK or dispatch authority.
 use super::*;
+pub(super) mod journal;
 
 pub(in crate::agent_lifecycle) fn binding_from_canonical_state(
     policy_digest: &str,

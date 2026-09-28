@@ -27,7 +27,14 @@ fn fixtures() -> (
 ) {
     let c = seed::context();
     let key = SourceCheckpointKey::new([44; 32]);
-    let mut rows = seed::fixtures(&c)
+    let rows = rows_for(&c, &key);
+    (c, key, rows)
+}
+pub(in crate::live_invocation::source_journal::owned_wait_v8) fn rows_for(
+    c: &super::super::FoldContextV8,
+    key: &SourceCheckpointKey,
+) -> Vec<EntryV8> {
+    let mut rows = seed::fixtures(c)
         .into_iter()
         .map(|r| r.entry)
         .collect::<Vec<_>>();
@@ -57,7 +64,7 @@ fn fixtures() -> (
         argument_digest: &arg,
         observation: &obs,
         sequence: 7,
-        reserved_total: 20,
+        reserved_total: (c.ordinary.max_steps_per_stage().unwrap() as u64) * 2,
         consumed_total: 2,
     };
     let checkpoint = v2::test_encode_owned_wait_checkpoint_v8(b, &key, &expected, &state);
@@ -137,7 +144,7 @@ fn fixtures() -> (
         v["decision_digest"] = json!(dd)
     });
     rows.truncate(18);
-    (c, key, rows)
+    rows
 }
 fn authenticated(
     c: &super::super::FoldContextV8,

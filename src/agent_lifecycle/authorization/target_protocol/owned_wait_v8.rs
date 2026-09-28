@@ -1,7 +1,7 @@
 //! Shared frozen grant preimage; inert digest computation grants no dispatch.
 use super::*;
 
-pub(super) fn grant_id(
+pub(in crate::agent_lifecycle) fn grant_id(
     authorization_binding: &str,
     seal: &[u8],
     invocation_root: &str,
@@ -24,6 +24,10 @@ pub(super) fn grant_id(
     operation.canonical(&mut bytes);
     frame(&mut bytes, argument_digest.as_bytes());
     digest(GRANT_DOMAIN, &bytes)
+}
+
+pub(in crate::agent_lifecycle) fn argument_digest(argument: &TypedCarrier) -> String {
+    digest(ARGUMENT_DOMAIN, &argument.encode())
 }
 
 #[cfg(test)]

@@ -35,6 +35,9 @@ use super::{encode_value, StageRecord};
 
 mod native_executor;
 pub(crate) mod owned_wait_v8;
+pub(crate) use owned_wait_v8::journal::{
+    checked_owned_wait_ready_commitments_v8, CheckedOwnedWaitReadyCommitmentsV8,
+};
 mod semantic_work;
 /// Target-neutral model/effect boundary for explicitly injected host adapters.
 /// Grant construction and dispatch remain crate-owned so callers cannot mint

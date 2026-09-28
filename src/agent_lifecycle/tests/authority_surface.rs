@@ -5,6 +5,7 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     let authorization_joined = [
         include_str!("../authorization.rs"),
         include_str!("../authorization/owned_wait_v8.rs"),
+        include_str!("../authorization/owned_wait_v8/journal.rs"),
     ]
     .join("\n");
     let authorization = authorization_joined.as_str();
@@ -14,6 +15,10 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     let checkpoint = include_str!("../durable/checkpoint.rs");
     let journal = include_str!("../durable/journal.rs");
     let model_wait_sources = [
+        (
+            "authorization/owned_wait_v8/journal.rs",
+            include_str!("../authorization/owned_wait_v8/journal.rs"),
+        ),
         (
             "iterative/effects/live/owned_wait_v8.rs",
             include_str!("../iterative/effects/live/owned_wait_v8.rs"),
@@ -124,6 +129,7 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     let authorization_joined = [
         include_str!("../authorization.rs"),
         include_str!("../authorization/owned_wait_v8.rs"),
+        include_str!("../authorization/owned_wait_v8/journal.rs"),
     ]
     .join("\n");
     let authorization = authorization_joined.as_str();
@@ -135,6 +141,10 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     let checkpoint = include_str!("../durable/checkpoint.rs");
     let journal = include_str!("../durable/journal.rs");
     let model_wait_sources = [
+        (
+            "authorization/owned_wait_v8/journal.rs",
+            include_str!("../authorization/owned_wait_v8/journal.rs"),
+        ),
         (
             "iterative/effects/live/owned_wait_v8.rs",
             include_str!("../iterative/effects/live/owned_wait_v8.rs"),

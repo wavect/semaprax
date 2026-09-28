@@ -502,3 +502,95 @@ fn owned_wait_typed_context_joins_actual_execution_and_complete_physical_registr
     })
     .unwrap();
 }
+
+impl crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8 {
+    /// Shared genuine runtime/physical lease fixture; no synthetic E or pins.
+    pub(crate) fn test_with_actual_runtime<T>(
+        callback: impl FnOnce(
+            Self,
+            crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8,
+            crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+        ) -> T,
+    ) -> T {
+        let f = fixture();
+        with_authenticated_project(&f.0.join("semaprax.toml"), |snapshot| {
+            let project = snapshot.retain_revision();
+            let source = project
+                .sources()
+                .iter()
+                .find(|s| s.path() == "src/app.spx")
+                .unwrap();
+            let wait = Arc::new(compile_owned_agent_wait_v8(
+                source.source(),
+                std::path::Path::new(source.path()),
+                "fixture.agent",
+                "fixture.agent.type.step",
+            )?);
+            let baseline = Arc::new(runtime(
+                Arc::clone(&project),
+                effects(),
+                false,
+                b"owned task",
+            ));
+            let e = Arc::new(context(&baseline, Arc::clone(&wait)));
+            let (registration, mut lease) =
+                registered_context_store(&f.0, "ready-journal", &e, false);
+            let wrong_runtime = Arc::new(runtime(
+                Arc::clone(&project),
+                effects(),
+                true,
+                b"changed task",
+            ));
+            let wrong =
+                crate::live_invocation::source_journal::checked_owned_wait_journal_context_v8(
+                    Arc::clone(&e),
+                    &lease,
+                    &registration,
+                )
+                .unwrap();
+            assert!(wrong.with_runtime(wrong_runtime, &lease).is_err());
+            let checked =
+                crate::live_invocation::source_journal::checked_owned_wait_journal_context_v8(
+                    e,
+                    &lease,
+                    &registration,
+                )
+                .unwrap()
+                .with_runtime(baseline, &lease)
+                .unwrap();
+            lease
+                .authorize_fresh_start(
+                    registration
+                        .acknowledge_retained_by_trusted_host(true)
+                        .unwrap(),
+                )
+                .unwrap();
+            let key =
+                crate::resumable_effects::source_checkpoint::SourceCheckpointKey::new([73; 32]);
+            Ok(callback(checked, lease, key))
+        })
+        .unwrap()
+    }
+}
+
+#[test]
+fn owned_wait_ready_inventory_joins_real_runtime_and_physical_lease_without_authority() {
+    use crate::live_invocation::source_journal::CheckedOwnedWaitJournalContextV8;
+    CheckedOwnedWaitJournalContextV8::test_with_actual_runtime(|checked, mut lease, key| {
+        let (document, wrong_documents) = checked.test_ready_documents(&key);
+        assert_eq!(
+            checked.test_inventory_len(&lease, &key, &document).unwrap(),
+            20
+        );
+        for (index, wrong) in wrong_documents.iter().enumerate() {
+            assert!(
+                checked.test_inventory_len(&lease, &key, wrong).is_err(),
+                "authenticated stale commitment/causal variant {index}"
+            );
+        }
+        assert!(checked
+            .test_ready_without_runtime(&lease, &key, &document)
+            .is_err());
+        assert_eq!(lease.read().unwrap(), b"", "data admission never appends");
+    });
+}

@@ -94,10 +94,13 @@ fn observation_facts(
     c: &FoldContextV8,
     budget: i64,
 ) -> crate::resumable_effects::owned_frame::v2::CheckedOwnedWaitObservationV8 {
+    let Body::OwnedRunCreated { scope, .. } = &c.created else {
+        panic!()
+    };
     let scope = crate::resumable_effects::source_checkpoint::SourceCheckpointScope::new(
-        c.checked_binding.binding(),
-        "inert-v8-fold",
-        0,
+        scope["program_root"].as_str().unwrap(),
+        scope["invocation"].as_str().unwrap(),
+        scope["policy_epoch"].as_u64().unwrap(),
     )
     .unwrap();
     let observation = crate::interpreter::resumable::ResumableChannelValue::Record {
@@ -187,7 +190,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixtures(
             turn: 0,
             attempt: None,
             role: SourceStageRole::Observe,
-            fuel: 10,
+            fuel: c.ordinary.max_steps_per_stage().unwrap(),
         }),
         ordinary(SourceJournalEntry::TurnObserved {
             turn: 0,
@@ -199,7 +202,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixtures(
             json!({"kind":"owned_wait_created","turn":0,"attempt":0,"wait":wait,"plan_digest":c.plan_digest,"cleanup_plan_digest":c.cleanup_plan_digest,"signature":c.signature,"argument_digest":state_digest,"copy_arguments":args,"copy_arguments_digest":args_digest}),
         ),
         owned(
-            json!({"kind":"owned_wait_reserved","turn":0,"attempt":0,"wait":wait,"phase":"start","replay_of":null,"fuel":10}),
+            json!({"kind":"owned_wait_reserved","turn":0,"attempt":0,"wait":wait,"phase":"start","replay_of":null,"fuel":c.ordinary.max_steps_per_stage().unwrap()}),
         ),
         owned(
             json!({"kind":"owned_wait_prepared","turn":0,"attempt":0,"wait":wait,"reservation":6,"observation_digest":facts.request_digest(),"checkpoint_digest":checkpoint_digest,"checkpoint":crate::live_invocation::identity::hex(&checkpoint),"consumed":2}),
@@ -226,7 +229,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixtures(
             reported: None,
         }),
         owned(
-            json!({"kind":"owned_wait_reserved","turn":0,"attempt":0,"wait":wait,"phase":"resume","replay_of":null,"fuel":10}),
+            json!({"kind":"owned_wait_reserved","turn":0,"attempt":0,"wait":wait,"phase":"resume","replay_of":null,"fuel":c.ordinary.max_steps_per_stage().unwrap()}),
         ),
         owned(
             json!({"kind":"owned_wait_completed","turn":0,"attempt":0,"wait":wait,"reservation":11,"proposal":proposal,"proposal_digest":proposal_digest,"result_digest":hash("result"),"consumed":3}),
@@ -246,7 +249,7 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) fn fixtures(
             turn: 0,
             attempt: Some(0),
             role: SourceStageRole::Authorize,
-            fuel: 10,
+            fuel: c.ordinary.max_steps_per_stage().unwrap(),
         }),
         owned(
             json!({"kind":"owned_authorization_staged","turn":0,"attempt":0,"stage_reservation":16,"transfer":15,"state_digest":state_digest,"proposal_digest":proposal_digest,"decision":decision,"decision_digest":decision_digest,"consumed":4}),

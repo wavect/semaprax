@@ -51,7 +51,8 @@ pub(super) fn checked_inventory_v8(
         ordinary: context.ordinary(),
     };
     let decoded = wire::decode_inventory(bytes, &expected, key)?;
-    let mut result = check_entries(context.fold(), key, decoded)?;
+    let mut result =
+        check_entries_with_runtime(context.fold(), key, decoded, context.ready_runtime())?;
     result.last_mac = document_mac(bytes)?;
     context.validate_lease(lease)?;
     Ok(result)
@@ -82,12 +83,24 @@ fn observation(
     require(facts.copy_arguments() == copy)?;
     Ok(facts)
 }
-/// Successful wait/transfer prefix only. Cleanup rows stay refused until the
-/// actual failed-stage obligation binder is joined; no heuristic vector selection.
+/// Pure prefixes have no retained runtime, so Ready remains refused.
+#[cfg(test)]
 fn check_entries(
     context: &super::FoldContextV8,
     key: &SourceCheckpointKey,
     decoded: Vec<EntryV8>,
+) -> Result<CheckedInventoryV8, Error> {
+    check_entries_with_runtime(context, key, decoded, None)
+}
+/// Cleanup remains refused until actual selected stage obligations are joined.
+fn check_entries_with_runtime(
+    context: &super::FoldContextV8,
+    key: &SourceCheckpointKey,
+    decoded: Vec<EntryV8>,
+    ready: Option<(
+        &crate::execution_revision::typed::AgentRuntimeV2,
+        &crate::execution_revision::typed::CheckedTypedOwnedWaitExecutionV8,
+    )>,
 ) -> Result<CheckedInventoryV8, Error> {
     let b = &context.checked_binding;
     let scope = scope(context)?;
@@ -95,6 +108,9 @@ fn check_entries(
     let mut obs: Option<CheckedOwnedWaitObservationV8> = None;
     let mut raw: Option<(u32, u32, Vec<u8>)> = None;
     let mut state_digest: Option<String> = None;
+    let mut state_value: Option<Value> = None;
+    let mut proposal_facts: Option<(u32, u32, v2::CheckedOwnedWaitProposalV8)> = None;
+    let mut staged_decision: Option<(u32, u32, usize, Value)> = None;
     for entry in decoded {
         let mut row_obs = None;
         match &entry {
@@ -103,6 +119,7 @@ fn check_entries(
                 | Body::OwnedStateRearmed { state, .. }
                 | Body::OwnedStateTransferCompleted { state, .. } => {
                     typed(v2::validate_owned_wait_state_v8(b, state))?;
+                    state_value = Some(state.clone());
                     state_digest = Some(typed(v2::owned_wait_ordinary_state_digest_v8(b, state))?);
                 }
                 _ => {}
@@ -125,6 +142,8 @@ fn check_entries(
                 obs = Some(observation(context, &scope, copy_arguments)?);
                 row_obs = obs.clone();
                 raw = None;
+                proposal_facts = None;
+                staged_decision = None;
             }
             EntryV8::Owned(Body::OwnedWaitPrepared {
                 checkpoint: encoded,
@@ -191,9 +210,46 @@ fn check_entries(
                         && facts.ordinary_digest() == proposal_digest
                         && typed(facts.result_digest(argument))? == *result_digest,
                 )?;
+                proposal_facts = Some((*turn, *attempt, facts));
             }
-            EntryV8::Owned(Body::OwnedAuthorizationStaged { decision, .. }) => {
+            EntryV8::Owned(Body::OwnedAuthorizationStaged {
+                turn,
+                attempt,
+                decision,
+                ..
+            }) => {
                 typed(v2::validate_owned_wait_decision_v8(b, decision))?;
+                staged_decision = Some((*turn, *attempt, rows.len(), decision.clone()));
+            }
+            EntryV8::Owned(Body::OwnedAuthorizationReady {
+                turn,
+                attempt,
+                staged,
+                grant_digest,
+                ..
+            }) => {
+                let (runtime, execution) = ready.ok_or(Error::Binding)?;
+                let (st, sa, sequence, decision) =
+                    staged_decision.as_ref().ok_or(Error::Binding)?;
+                let (pt, pa, proposal) = proposal_facts.as_ref().ok_or(Error::Binding)?;
+                require(
+                    st == turn
+                        && sa == attempt
+                        && pt == turn
+                        && pa == attempt
+                        && u32::try_from(*sequence).ok() == Some(*staged),
+                )?;
+                let facts =
+                    crate::agent_lifecycle::authorization::checked_owned_wait_ready_commitments_v8(
+                        runtime,
+                        execution,
+                        &scope,
+                        *turn,
+                        state_value.as_ref().ok_or(Error::Binding)?,
+                        decision,
+                        proposal,
+                    )?;
+                require(facts.grant_digest() == grant_digest)?;
             }
             EntryV8::Owned(Body::OwnedWaitFailed { status, .. }) => {
                 typed(v2::validate_owned_wait_failure_v8(
@@ -202,11 +258,9 @@ fn check_entries(
                     status,
                 ))?;
             }
-            EntryV8::Owned(
-                Body::OwnedCleanupStarted { .. }
-                | Body::OwnedCleanupSettled { .. }
-                | Body::OwnedAuthorizationReady { .. },
-            ) => return Err(Error::Binding),
+            EntryV8::Owned(Body::OwnedCleanupStarted { .. } | Body::OwnedCleanupSettled { .. }) => {
+                return Err(Error::Binding)
+            }
             EntryV8::Ordinary(Ordinary::ProposalRefused { turn, attempt, .. }) => {
                 let (rt, ra, response) = raw.as_ref().ok_or(Error::Binding)?;
                 require(rt == turn && ra == attempt)?;
@@ -265,4 +319,4 @@ pub(super) fn checked_candidate_inventory_v8(
     checked_inventory_v8(context, lease, key, &bytes)
 }
 #[cfg(test)]
-mod tests;
+pub(super) mod tests;

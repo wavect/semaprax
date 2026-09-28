@@ -218,3 +218,5 @@ pub(crate) use wait::continued::model::authorize::effect::prepared::intent::Live
 pub(crate) use wait::continued::model::authorize::effect::prepared::intent::{
     test_continued_activations, test_note_continued_activation,
 };
+
+pub(crate) use wait::continued::model::authorize::effect::prepared::intent::dispatch::LiveContinuedDispatchedEffectV8;

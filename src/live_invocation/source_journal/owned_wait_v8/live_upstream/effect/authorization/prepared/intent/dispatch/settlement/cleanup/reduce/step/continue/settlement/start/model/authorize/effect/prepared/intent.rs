@@ -429,3 +429,5 @@ impl<'j> ContinuedResumedWaitV8<'j> {
         matches!(&self.outcome,ContinuedResumeOutcomeV8::Authorization(ContinuedAuthorizationOutcomeV8::Effect(ContinuedEffectOutcomeV8::Activation(owner))) if owner.test_after())
     }
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod dispatch;

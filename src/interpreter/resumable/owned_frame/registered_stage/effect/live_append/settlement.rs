@@ -38,6 +38,25 @@ impl StagedOwnedEffectV8<'_> {
         &self,
         accounting: &TargetAccounting,
     ) -> Result<CheckedLiveOwnedEffectSettlementV8, SourceJournalError> {
+        self.checked_settlement_with_guard(accounting, None)
+    }
+    pub(crate) fn checked_live_continued_settlement_v8(
+        &self,
+        accounting: &TargetAccounting,
+        permit: &crate::live_invocation::source_journal::LiveContinuedSettlementPermitV8<'_, '_>,
+    ) -> Result<CheckedLiveOwnedEffectSettlementV8, SourceJournalError> {
+        permit.validate_guard(&self.prepared.inputs)?;
+        let facts = self.checked_settlement_with_guard(accounting, Some(permit))?;
+        permit.validate_guard(&self.prepared.inputs)?;
+        Ok(facts)
+    }
+    fn checked_settlement_with_guard(
+        &self,
+        accounting: &TargetAccounting,
+        continued: Option<
+            &crate::live_invocation::source_journal::LiveContinuedSettlementPermitV8<'_, '_>,
+        >,
+    ) -> Result<CheckedLiveOwnedEffectSettlementV8, SourceJournalError> {
         if self.cleanup_started
             || self.authority_lost
             || self.prepared.creator != std::process::id()
@@ -79,21 +98,26 @@ impl StagedOwnedEffectV8<'_> {
         let evidence = dispatch.evidence().canonical_wire();
         let result = self.target_result_wire();
         let inputs = &self.prepared.inputs;
-        let facts = checked_owned_effect_settlement_v8(
-            OwnedEffectSettlementInputsV8 {
-                runtime: inputs.runtime,
-                execution: inputs.execution,
-                scope: &inputs.store.registration().expected_facts().scope,
-                turn: inputs.turn,
-                attempt: inputs.attempt,
-                state: &basis.state,
-                decision: &basis.decision,
-                proposal: &inputs.proposal,
-            },
-            &ordinary,
-            &evidence,
-            result.as_deref(),
-        )?;
+        let actual_inputs = OwnedEffectSettlementInputsV8 {
+            runtime: inputs.runtime,
+            execution: inputs.execution,
+            scope: &inputs.store.registration().expected_facts().scope,
+            turn: inputs.turn,
+            attempt: inputs.attempt,
+            state: &basis.state,
+            decision: &basis.decision,
+            proposal: &inputs.proposal,
+        };
+        let facts = if let Some(permit) = continued {
+            permit.check_settlement(actual_inputs, &ordinary, &evidence, result.as_deref())?
+        } else {
+            checked_owned_effect_settlement_v8(
+                actual_inputs,
+                &ordinary,
+                &evidence,
+                result.as_deref(),
+            )?
+        };
         if facts.accepted_payload() != self.observation()
             || facts.evidence().accounting() != *accounting
         {

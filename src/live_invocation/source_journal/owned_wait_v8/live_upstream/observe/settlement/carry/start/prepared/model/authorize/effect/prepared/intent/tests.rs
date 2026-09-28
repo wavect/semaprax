@@ -1,5 +1,5 @@
 //! Genuine continued Ready/Consumed/Prepared and fixed Intent ACK; zero host.
-use super::super::super::super::tests::test_staged;
+pub(super) use super::super::super::super::tests::test_staged;
 use super::super::tests::renew;
 use super::*;
 use crate::live_invocation::SourceInvocationClock;
@@ -7,7 +7,7 @@ use std::cell::Cell;
 fn entries() -> usize {
     crate::interpreter::resumable::owned_frame::registered_stage::live_run::test_continued_activations()
 }
-fn prepared<'j>(
+pub(super) fn prepared<'j>(
     journal: &'j SourceOwnedWaitJournalV8,
     staged: LiveContinuedAuthorizationV8<'j>,
 ) -> (

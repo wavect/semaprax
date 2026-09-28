@@ -90,6 +90,32 @@ pub(crate) fn dispatch_live_owned_effect_v8<'j>(
     permit: &LiveEffectIntentPermitV8<'_, 'j>,
     handler: &mut dyn TargetHostHandler,
 ) -> (StagedOwnedEffectV8<'j>, Option<SourceJournalError>) {
+    dispatch_with_guard(
+        activated,
+        accounting,
+        LiveIntentGuardV8::Initial(permit),
+        handler,
+    )
+}
+pub(crate) fn dispatch_continued_owned_effect_v8<'j>(
+    activated: ActivatedOwnedEffectV8<'j>,
+    accounting: &mut TargetAccounting,
+    permit: &crate::live_invocation::source_journal::LiveContinuedIntentPermitV8<'_, 'j>,
+    handler: &mut dyn TargetHostHandler,
+) -> (StagedOwnedEffectV8<'j>, Option<SourceJournalError>) {
+    dispatch_with_guard(
+        activated,
+        accounting,
+        LiveIntentGuardV8::Continued(permit),
+        handler,
+    )
+}
+fn dispatch_with_guard<'j>(
+    activated: ActivatedOwnedEffectV8<'j>,
+    accounting: &mut TargetAccounting,
+    permit: LiveIntentGuardV8<'_, '_, 'j>,
+    handler: &mut dyn TargetHostHandler,
+) -> (StagedOwnedEffectV8<'j>, Option<SourceJournalError>) {
     let selected = Cell::new(None);
     let staged = dispatch_activated_owned_effect_v8(
         activated,
@@ -128,5 +154,15 @@ impl StagedOwnedEffectV8<'_> {
     #[cfg(test)]
     pub(crate) fn live_test_retired(&self) -> bool {
         self.authority_lost
+    }
+}
+
+impl StagedOwnedEffectV8<'_> {
+    pub(crate) fn validate_continued_dispatch(
+        &self,
+        permit: &crate::live_invocation::source_journal::LiveContinuedIntentPermitV8<'_, '_>,
+    ) -> Result<(), SourceJournalError> {
+        self.prepared
+            .validate_intent_guard(&LiveIntentGuardV8::Continued(permit))
     }
 }

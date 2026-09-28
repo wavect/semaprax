@@ -134,6 +134,12 @@ pub(crate) enum LiveIntentGuardV8<'g, 'p, 'j> {
     Continued(&'g crate::live_invocation::source_journal::LiveContinuedIntentPermitV8<'p, 'j>),
 }
 impl LiveIntentGuardV8<'_, '_, '_> {
+    fn validate_current(&self) -> Result<(), SourceJournalError> {
+        match self {
+            Self::Initial(p) => p.validate_current(),
+            Self::Continued(p) => p.validate_current(),
+        }
+    }
     fn validate_guard(&self, inputs: &OwnedEffectInputsV8<'_>) -> Result<(), SourceJournalError> {
         match self {
             Self::Initial(p) => p.validate_guard(inputs),

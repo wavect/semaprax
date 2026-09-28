@@ -10,12 +10,14 @@ use super::live_upstream::effect::authorization::FixedOwnedEffectIntentAppendPer
 use super::live_upstream::effect::authorization::FixedOwnedEffectSettlementAppendPermitV8;
 use super::live_upstream::FixedOwnedObserveSettlementAppendPermitV8;
 use super::live_upstream::{
-    FixedOwnedContinuedPreparedAppendPermitV8, FixedOwnedContinuedStartAppendPermitV8,
+    FixedOwnedContinuedPreparedAppendPermitV8, FixedOwnedContinuedSettlementAppendPermitV8,
+    FixedOwnedContinuedStartAppendPermitV8,
 };
 use super::*;
 use crate::resumable_effects::owned_frame::SourceOwnedWaitLeaseV8;
 
 enum ProducerV8<'p, 'j> {
+    ContinuedSettlement(&'p FixedOwnedContinuedSettlementAppendPermitV8<'p, 'j>),
     ContinuedIntent(&'p super::live_upstream::FixedOwnedContinuedIntentAppendPermitV8<'p, 'j>),
     ContinuedEffect(
         &'p SourceOwnedWaitJournalV8,
@@ -1043,6 +1045,9 @@ impl<'a> InventoryV8<'a> {
             };
             let previous = fold::fold(context, &self.entries)?;
             match producer {
+                ProducerV8::ContinuedSettlement(permit) => {
+                    permit.validate_candidate(&checked.entry, &self)?
+                }
                 ProducerV8::ContinuedIntent(permit) => {
                     permit.validate_candidate(&checked.entry, &self)?
                 }
@@ -1492,3 +1497,4 @@ mod continued_authorize;
 mod continued_effect;
 
 mod continued_intent;
+mod continued_settlement;

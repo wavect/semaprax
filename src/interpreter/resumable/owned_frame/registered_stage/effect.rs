@@ -733,3 +733,5 @@ pub(crate) use live_append::settlement::cleanup::{
 };
 
 pub(crate) use live_append::intent::{activate_with_guard_v8, LiveIntentGuardV8};
+
+pub(crate) use live_append::intent::dispatch::dispatch_continued_owned_effect_v8;

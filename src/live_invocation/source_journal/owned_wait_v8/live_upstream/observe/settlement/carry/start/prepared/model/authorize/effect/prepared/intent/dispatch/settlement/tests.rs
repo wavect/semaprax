@@ -91,70 +91,79 @@ fn owned_continued_settlement_recorded_all_supported_targets_match_current_total
     }
 }
 #[cfg(unix)]
-#[test]
-fn owned_continued_settlement_both_ack_rows_all_physical_windows_are_in_doubt() {
-    for phase in 0..2 {
-        for mode in 0..4 {
-            test_staged(
-                |journal, staged, _, _| {
-                    let (actual, leaves) = activated(journal, staged);
-                    let mut host = host(0);
-                    let owner = actual
-                        .dispatch(&mut host)
-                        .unwrap_or_else(|_| panic!("host"));
-                    let mut selected = owner
-                        .prepare_settlement()
-                        .unwrap_or_else(|_| panic!("settlement"));
-                    if phase == 1 {
-                        let LiveContinuedSettlementAcknowledgedV8::Settled(owner) =
-                            ack(journal, selected)
-                        else {
-                            panic!("settled")
-                        };
-                        selected = owner
-                            .prepare_recorded()
-                            .unwrap_or_else(|_| panic!("Recorded"));
+fn assert_continued_settlement_physical_ack_row(phase: usize) {
+    for mode in 0..4 {
+        test_staged(
+            |journal, staged, _, _| {
+                let (actual, leaves) = activated(journal, staged);
+                let mut host = host(0);
+                let owner = actual
+                    .dispatch(&mut host)
+                    .unwrap_or_else(|_| panic!("host"));
+                let mut selected = owner
+                    .prepare_settlement()
+                    .unwrap_or_else(|_| panic!("settlement"));
+                if phase == 1 {
+                    let LiveContinuedSettlementAcknowledgedV8::Settled(owner) =
+                        ack(journal, selected)
+                    else {
+                        panic!("settled")
+                    };
+                    selected = owner
+                        .prepare_recorded()
+                        .unwrap_or_else(|_| panic!("Recorded"));
+                }
+                let before = bytes(journal);
+                let mut expected = before.clone();
+                expected.extend(journal.test_continued_settlement_encoded(&selected, &before));
+                let number = selected.sequence() + 1;
+                {
+                    let mut lease = journal.test_observe_lease().borrow_mut();
+                    match mode {
+                        0 => lease.test_fail_before_write(number),
+                        1 => lease.test_fail_after_write(number),
+                        2 => lease.test_fail_before_sync(number),
+                        _ => lease.test_fail_after_sync(number),
                     }
-                    let before = bytes(journal);
-                    let mut expected = before.clone();
-                    expected.extend(journal.test_continued_settlement_encoded(&selected, &before));
-                    let number = selected.sequence() + 1;
-                    {
-                        let mut lease = journal.test_observe_lease().borrow_mut();
-                        match mode {
-                            0 => lease.test_fail_before_write(number),
-                            1 => lease.test_fail_after_write(number),
-                            2 => lease.test_fail_before_sync(number),
-                            _ => lease.test_fail_after_sync(number),
-                        }
-                    }
-                    let failure = journal
-                        .begin_session()
-                        .unwrap()
-                        .append_owned_continued_settlement(selected)
-                        .err()
-                        .expect("physical failure");
-                    assert!(failure.test_is_in_doubt(), "phase {phase} mode {mode}");
-                    assert_eq!(host.calls, 1);
-                    {
-                        let mut lease = journal.test_observe_lease().borrow_mut();
-                        assert!(lease.read().is_err());
-                        assert_eq!(
-                            lease.test_persisted_snapshot().unwrap(),
-                            if mode == 0 { before } else { expected }
-                        );
-                        assert!(lease.read().is_err());
-                    }
-                    assert!(journal.hold().is_err());
-                    assert!(journal.begin_session().is_err());
-                    assert!(leaves.iter().all(|w| w.strong_count() == 1));
-                    drop(failure);
-                    assert!(leaves.iter().all(|w| w.upgrade().is_none()));
-                },
-                true,
-            );
-        }
+                }
+                let failure = journal
+                    .begin_session()
+                    .unwrap()
+                    .append_owned_continued_settlement(selected)
+                    .err()
+                    .expect("physical failure");
+                assert!(failure.test_is_in_doubt(), "phase {phase} mode {mode}");
+                assert_eq!(host.calls, 1);
+                {
+                    let mut lease = journal.test_observe_lease().borrow_mut();
+                    assert!(lease.read().is_err());
+                    assert_eq!(
+                        lease.test_persisted_snapshot().unwrap(),
+                        if mode == 0 { before } else { expected }
+                    );
+                    assert!(lease.read().is_err());
+                }
+                assert!(journal.hold().is_err());
+                assert!(journal.begin_session().is_err());
+                assert!(leaves.iter().all(|w| w.strong_count() == 1));
+                drop(failure);
+                assert!(leaves.iter().all(|w| w.upgrade().is_none()));
+            },
+            true,
+        );
     }
+}
+
+#[cfg(unix)]
+#[test]
+fn owned_continued_settlement_both_ack_rows_all_physical_windows_are_in_doubt_row_0() {
+    assert_continued_settlement_physical_ack_row(0);
+}
+
+#[cfg(unix)]
+#[test]
+fn owned_continued_settlement_both_ack_rows_all_physical_windows_are_in_doubt_row_1() {
+    assert_continued_settlement_physical_ack_row(1);
 }
 #[test]
 fn owned_continued_settlement_selected_ordinary_and_recorded_substitutions_refuse_before_write() {

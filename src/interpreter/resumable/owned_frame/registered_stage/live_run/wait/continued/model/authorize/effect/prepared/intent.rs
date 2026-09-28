@@ -152,3 +152,5 @@ pub(crate) fn test_note_continued_activation() {
 pub(crate) fn test_continued_activations() -> usize {
     ACTIVATIONS.with(std::cell::Cell::get)
 }
+
+pub(crate) mod dispatch;

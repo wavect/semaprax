@@ -338,3 +338,5 @@ impl LiveOwnedContinuedIntentAppendV8<'_> {
             .test_authorize_cancel();
     }
 }
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod dispatch;

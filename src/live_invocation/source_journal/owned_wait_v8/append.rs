@@ -1443,3 +1443,6 @@ pub(super) use continued_effect::VerifiedOwnedContinuedEffectSuccessorV8;
 
 mod continued_intent;
 pub(super) use continued_intent::VerifiedOwnedContinuedIntentSuccessorV8;
+
+mod continued_settlement;
+pub(super) use continued_settlement::VerifiedOwnedContinuedSettlementSuccessorV8;

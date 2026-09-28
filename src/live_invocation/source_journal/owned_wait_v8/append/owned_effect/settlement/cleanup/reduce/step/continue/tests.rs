@@ -57,6 +57,7 @@ fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumula
     with_moved(|journal, moved, weak, _, _| {
         let before = journal.begin_session().unwrap();
         let (r, s, turn, _) = before.inventory.continuation_facts().unwrap();
+        let (ordinary_observation, ordinary_consumed) = moved.test_observe_oracle();
         let ledger = *moved.accounting();
         let fuel = journal.context().ordinary().max_steps_per_stage().unwrap() as u64;
         let selected = moved
@@ -84,6 +85,8 @@ fn owned_continue_actual_state_and_observe_acks_preserve_owner_ledger_and_cumula
             panic!("actual observed/failed owner")
         };
         assert!(observed.is_observed());
+        assert_eq!(observed.test_observation(), &ordinary_observation);
+        assert_eq!(observed.consumed(), ordinary_consumed);
         assert_eq!(observed.turn(), turn + 1);
         assert_eq!(observed.accounting(), &ledger);
         assert!(observed.consumed() > 0 && observed.consumed() <= fuel as usize);
@@ -139,6 +142,7 @@ fn owned_continue_state_and_observe_real_append_faults_never_evaluate_or_remint(
     for observe in [false, true] {
         for after in [false, true] {
             with_moved(|journal, moved, weak, _, _| {
+                let entries_before = crate::interpreter::resumable::owned_frame::registered_stage::reduce::test_continue_observe_entries_v8();
                 let mut obligation = moved
                     .prepare_continue()
                     .unwrap_or_else(|_| panic!("State selection"));
@@ -168,6 +172,7 @@ fn owned_continue_state_and_observe_real_append_faults_never_evaluate_or_remint(
                     .append_owned_continue(obligation)
                     .err()
                     .expect("actual persistence failure");
+                assert_eq!(crate::interpreter::resumable::owned_frame::registered_stage::reduce::test_continue_observe_entries_v8(), entries_before);
                 assert!(weak.iter().any(|w| w.strong_count() == 1));
                 assert!(journal.hold().is_err());
                 assert!(journal.begin_session().is_err());

@@ -132,6 +132,16 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveContinueA
     Observed(LiveObservedContinueV8<'j>),
 }
 impl LiveObservedContinueV8<'_> {
+    #[cfg(test)]
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_observation(
+        &self,
+    ) -> &crate::interpreter::resumable::ResumableChannelValue {
+        let ContinuedOwnedObserveV2::Observed(observed) = &self.outcome else {
+            panic!("actual observation")
+        };
+        observed.observation()
+    }
+
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn is_observed(&self) -> bool {
         matches!(self.outcome, ContinuedOwnedObserveV2::Observed(_))
     }
@@ -151,6 +161,13 @@ impl LiveObservedContinueV8<'_> {
     }
 }
 impl<'j> LiveMovedStepV8<'j> {
+    #[cfg(test)]
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn test_observe_oracle(
+        &self,
+    ) -> (crate::interpreter::resumable::ResumableChannelValue, usize) {
+        crate::interpreter::resumable::owned_frame::registered_stage::reduce::test_continue_observe_oracle_v8(&self.held)
+    }
+
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn prepare_continue(
         self,
     ) -> Result<LiveOwnedContinueAppendV8<'j>, LiveContinueFailureV8<'j>> {

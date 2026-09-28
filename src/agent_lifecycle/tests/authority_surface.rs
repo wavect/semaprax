@@ -2,13 +2,22 @@
 
 #[test]
 fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
-    let authorization = include_str!("../authorization.rs");
+    let authorization_joined = [
+        include_str!("../authorization.rs"),
+        include_str!("../authorization/owned_wait_v8.rs"),
+    ]
+    .join("\n");
+    let authorization = authorization_joined.as_str();
     let lifecycle = include_str!("../../agent_lifecycle.rs");
     let stages = include_str!("../stages.rs");
     let durable = include_str!("../durable.rs");
     let checkpoint = include_str!("../durable/checkpoint.rs");
     let journal = include_str!("../durable/journal.rs");
     let model_wait_sources = [
+        (
+            "authorization/target_protocol/owned_wait_v8.rs",
+            include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
+        ),
         (
             "iterative/effects/live/model_wait.rs",
             include_str!("../iterative/effects/live/model_wait.rs"),
@@ -108,7 +117,12 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
 
 #[test]
 fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_route() {
-    let authorization = include_str!("../authorization.rs");
+    let authorization_joined = [
+        include_str!("../authorization.rs"),
+        include_str!("../authorization/owned_wait_v8.rs"),
+    ]
+    .join("\n");
+    let authorization = authorization_joined.as_str();
     let native_executor = include_str!("../authorization/native_executor.rs");
     let wasm_executor = include_str!("../authorization/wasm_executor.rs");
     let lifecycle = include_str!("../../agent_lifecycle.rs");
@@ -117,6 +131,10 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
     let checkpoint = include_str!("../durable/checkpoint.rs");
     let journal = include_str!("../durable/journal.rs");
     let model_wait_sources = [
+        (
+            "authorization/target_protocol/owned_wait_v8.rs",
+            include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
+        ),
         (
             "iterative/effects/live/model_wait.rs",
             include_str!("../iterative/effects/live/model_wait.rs"),

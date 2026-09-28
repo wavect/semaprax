@@ -316,5 +316,5 @@ pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settl
 
 pub(in crate::live_invocation::source_journal::owned_wait_v8) use observe::settlement::carry::start::prepared::model::{advance_verified_continued_model_v8,FixedOwnedContinuedModelAppendPermitV8,LiveContinuedModelAcknowledgmentFailureV8,LiveContinuedModelV8,LiveOwnedContinuedModelAppendV8};
 pub(crate) use observe::settlement::carry::start::prepared::model::{LiveContinuedModelRequestOriginV8,LiveContinuedModelIntentPermitV8};
-pub(crate) use effect::authorization::prepared::intent::dispatch::settlement::cleanup::reduce::step::r#continue::settlement::start::model::LiveContinuedWaitResumePermitV8;
-pub(in crate::live_invocation::source_journal::owned_wait_v8) use effect::authorization::prepared::intent::dispatch::settlement::cleanup::reduce::step::r#continue::settlement::start::model::ContinuedResumedWaitV8;
+pub(crate) use effect::authorization::step::r#continue::settlement::start::model::LiveContinuedWaitResumePermitV8;
+pub(in crate::live_invocation::source_journal::owned_wait_v8) use effect::authorization::step::r#continue::settlement::start::model::ContinuedResumedWaitV8;

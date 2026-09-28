@@ -7,7 +7,9 @@ use crate::provider_adapter_sdk::adapter::{
 };
 use crate::provider_adapter_sdk::capability::AdapterCapabilities;
 use crate::provider_adapter_sdk::fixture_adapters::{base_capabilities, usage};
-use crate::provider_adapter_sdk::{AdapterInvocationCapability, ProviderAdapter};
+use crate::provider_adapter_sdk::{
+    AdapterInvocationCapability, ProviderAdapter, StreamingSourceProposalAdapter,
+};
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 #[derive(Default)]
 struct Counts {

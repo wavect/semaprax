@@ -248,7 +248,9 @@ impl Resolver<'_> {
                 yields.span,
             ));
         }
-        if !crate::cleanup_plan::owned_frame_parameter(&self.declarations, params) {
+        if !crate::cleanup_plan::owned_frame_parameter(&self.declarations, params)
+            && !crate::cleanup_plan::owned_frame_v2_parameter(&self.declarations, params)
+        {
             if let Some(offender) = params.iter().find(|param| {
                 param.ownership != super::OwnershipMode::Value
                     || (!is_scalar_resolved_type(&param.ty)
@@ -326,6 +328,21 @@ impl Resolver<'_> {
             return Err(self.error(
                 NON_SCALAR_BODY,
                 "owned frame requires one direct Copy yield and whole identity return",
+                body.span,
+            ));
+        }
+        if crate::cleanup_plan::owned_frame_v2_parameter(&self.declarations, params)
+            && !crate::cleanup_plan::owned_frame_v2_body(
+                &self.declarations,
+                params,
+                return_type,
+                yields,
+                body,
+            )
+        {
+            return Err(self.error(
+                NON_SCALAR_BODY,
+                "owned frame v2 requires one identity Copy record yield and whole State return",
                 body.span,
             ));
         }

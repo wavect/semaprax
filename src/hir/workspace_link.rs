@@ -1099,6 +1099,11 @@ fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnos
             )?;
             if crate::cleanup_plan::owned_frame_parameter(&program.declarations, &function.params) {
                 crate::cleanup_plan::owned_frame_liveness(&program.declarations, function)?;
+            } else if crate::cleanup_plan::owned_frame_v2_parameter(
+                &program.declarations,
+                &function.params,
+            ) {
+                crate::cleanup_plan::owned_frame_v2_liveness(&program.declarations, function)?;
             } else {
                 crate::cleanup_plan::admit_owned_bytes_profile(function)?;
             }

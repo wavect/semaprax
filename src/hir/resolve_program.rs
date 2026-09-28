@@ -519,6 +519,11 @@ impl Resolver<'_> {
                     &function.params,
                 ) {
                     crate::cleanup_plan::owned_frame_liveness(&resolved.declarations, function)?;
+                } else if crate::cleanup_plan::owned_frame_v2_parameter(
+                    &resolved.declarations,
+                    &function.params,
+                ) {
+                    crate::cleanup_plan::owned_frame_v2_liveness(&resolved.declarations, function)?;
                 } else {
                     crate::cleanup_plan::admit_owned_bytes_profile(function)?;
                 }

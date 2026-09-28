@@ -11,13 +11,19 @@ pub(crate) fn owned_frame_parameter(
     declarations: &DeclarationIndex,
     params: &[ResolvedParam],
 ) -> bool {
-    if params.len() != 1 || params[0].ownership != OwnershipMode::Own {
+    params.len() == 1 && owned_frame_root_parameter(declarations, &params[0])
+}
+pub(super) fn owned_frame_root_parameter(
+    declarations: &DeclarationIndex,
+    param: &ResolvedParam,
+) -> bool {
+    if param.ownership != OwnershipMode::Own {
         return false;
     }
     let ResolvedType::Nominal {
         declaration,
         arguments,
-    } = &params[0].ty
+    } = &param.ty
     else {
         return false;
     };
@@ -152,6 +158,15 @@ pub(crate) fn owned_frame_liveness(
     {
         return Err(refused("channel is not Copy scalar"));
     }
+    owned_frame_root_liveness(declarations, function)
+}
+
+/// Shared compiler proof over the ACTUAL function/cleanup inventory. Profile
+/// wrappers validate their own complete signature/body before calling this.
+pub(super) fn owned_frame_root_liveness(
+    declarations: &DeclarationIndex,
+    function: &ResolvedFunction,
+) -> Result<OwnedFrameLiveness, Diagnostic> {
     let sites = super::direct_yield_sites(function);
     if sites.len() != 1 {
         return Err(refused("expected one direct site"));

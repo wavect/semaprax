@@ -25,7 +25,7 @@ pub(crate) use owned_liveness::{
 };
 pub(crate) use owned_liveness::{
     owned_frame_body, owned_frame_copy_expression, owned_frame_liveness, owned_frame_parameter,
-    OwnedFrameLiveness,
+    owned_frame_v2_body, owned_frame_v2_liveness, owned_frame_v2_parameter, OwnedFrameLiveness,
 };
 pub(crate) use replay::selected_schema;
 pub(crate) use validate::validate_program;

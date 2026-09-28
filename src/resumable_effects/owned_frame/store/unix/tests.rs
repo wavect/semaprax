@@ -137,7 +137,11 @@ fn owned_frame_inherited_lease_refuses_before_io_and_child_drop_preserves_parent
         RegisteredJournalLease::fresh(directory.file(), directory.identity(), &scope()).unwrap();
     let identity = lease.identity();
     let mut child = std::process::Command::new(std::env::current_exe().unwrap());
-    child.args(["owned_frame_inherited_child_probe", "--test-threads=1"]);
+    child.args([
+        "owned_frame_inherited_child_probe",
+        "--test-threads=1",
+        "--nocapture",
+    ]);
     child.env("SPX_OWNED_FRAME_CHILD_DIRECTORY", &directory.0);
     child.env(
         "SPX_OWNED_FRAME_CHILD_CREATOR",
@@ -161,6 +165,12 @@ fn owned_frame_inherited_lease_refuses_before_io_and_child_drop_preserves_parent
         output.status.success(),
         "{}",
         String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stdout)
+            .contains("SPX_INHERITED_LEASE_GUARD_AND_DROP_COMPLETED"),
+        "child probe did not execute: {}",
+        String::from_utf8_lossy(&output.stdout)
     );
     assert_eq!(
         RegisteredJournalLease::recover(directory.file(), grant(identity), &scope()).err(),
@@ -223,6 +233,7 @@ fn owned_frame_inherited_child_probe() {
     // Actual whole Drop in a different process must never unlock the parent's
     // shared flock. The parent tests Busy before releasing its own live lease.
     drop(inherited);
+    println!("SPX_INHERITED_LEASE_GUARD_AND_DROP_COMPLETED");
 }
 
 #[test]

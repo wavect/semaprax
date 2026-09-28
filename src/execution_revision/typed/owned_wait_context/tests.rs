@@ -49,6 +49,9 @@ fn park(state: own State, observation: Observation) -> State yields Observation 
         ),
     )
     .unwrap();
+    let app = path.join("src/app.spx");
+    let parsed = crate::parse(&std::fs::read_to_string(&app).unwrap(), &app).unwrap();
+    std::fs::write(&app, crate::format::canonical(&parsed)).unwrap();
     Fixture(path)
 }
 fn operations() -> Vec<EffectOperation> {

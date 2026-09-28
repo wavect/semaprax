@@ -1,10 +1,10 @@
-//! Fixed continued Start funnel; the common verified append body is unchanged.
+//! Fixed continued Prepared funnel; the common verified append body is unchanged.
 use super::*;
-use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::FixedOwnedContinuedStartAppendPermitV8;
+use crate::live_invocation::source_journal::owned_wait_v8::live_upstream::FixedOwnedContinuedPreparedAppendPermitV8;
 impl<'a> AppendSessionV8<'a> {
-    pub(super) fn begin_fixed_continued_start_append(
+    pub(super) fn begin_fixed_continued_prepared_append(
         self,
-        permit: &FixedOwnedContinuedStartAppendPermitV8<'_, 'a>,
+        permit: &FixedOwnedContinuedPreparedAppendPermitV8<'_, 'a>,
     ) -> Result<(PendingV8<'a>, AppendVerifiedV8, Attempting<'a>), AppendFailureV8<'a>> {
         let journal = self.journal;
         let row = permit.selected_row().clone();
@@ -37,7 +37,7 @@ impl<'a> AppendSessionV8<'a> {
                 }
             };
             self.inventory
-                .prepare_fixed_continued_start(&lease, journal, permit)
+                .prepare_fixed_continued_prepared(&lease, journal, permit)
         };
         let candidate = match prepared {
             Ok(c) => c,
@@ -49,7 +49,7 @@ impl<'a> AppendSessionV8<'a> {
         if let Err(error) = permit
             .validate_preflight(journal)
             .and_then(|_| journal.validate_guard())
-            .and_then(|_| pending.validate_fixed_continued_start_prefix(journal, permit))
+            .and_then(|_| pending.validate_fixed_continued_prepared_prefix(journal, permit))
         {
             journal.quarantine();
             return Err(AppendFailureV8::PrewriteRefused {
@@ -65,7 +65,7 @@ impl<'a> AppendSessionV8<'a> {
             complete: Cell::new(false),
         };
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            Self::physical_append_fixed_continued_start(&attempting, &pending, permit)
+            Self::physical_append_fixed_continued_prepared(&attempting, &pending, permit)
         }));
         match result {
             Ok(Ok(verified)) => Ok((pending, verified, attempting)),
@@ -88,14 +88,14 @@ impl<'a> AppendSessionV8<'a> {
             }),
         }
     }
-    fn physical_append_fixed_continued_start(
+    fn physical_append_fixed_continued_prepared(
         attempting: &Attempting<'_>,
         pending: &PendingV8<'_>,
-        permit: &FixedOwnedContinuedStartAppendPermitV8<'_, '_>,
+        permit: &FixedOwnedContinuedPreparedAppendPermitV8<'_, '_>,
     ) -> Result<AppendVerifiedV8, SourceJournalError> {
         let journal = attempting.journal;
         journal.validate_adapter_guard()?;
-        pending.validate_fixed_continued_start_prefix(journal, permit)?;
+        pending.validate_fixed_continued_prepared_prefix(journal, permit)?;
         {
             let mut lease = journal
                 .lease
@@ -109,7 +109,7 @@ impl<'a> AppendSessionV8<'a> {
             lease
                 .validate_append_authorized(journal.context.registration())
                 .map_err(store_error)?;
-            pending.validate_fixed_continued_start_prefix(journal, permit)?;
+            pending.validate_fixed_continued_prepared_prefix(journal, permit)?;
             attempting.attempted.set(true);
             lease.append(pending.bytes()).map_err(store_error)?;
         }
@@ -127,7 +127,7 @@ impl<'a> AppendSessionV8<'a> {
             pending.check_written(&lease, &bytes)?;
         }
         journal.validate_adapter_guard()?;
-        pending.validate_fixed_continued_start_prefix(journal, permit)?;
+        pending.validate_fixed_continued_prepared_prefix(journal, permit)?;
         Ok(AppendVerifiedV8 { _sealed: () })
     }
 }

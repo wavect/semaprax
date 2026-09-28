@@ -123,3 +123,6 @@ impl LiveContinuedTerminalStateV8<'_> {
         self.consumed
     }
 }
+
+#[cfg(test)]
+mod tests_support;

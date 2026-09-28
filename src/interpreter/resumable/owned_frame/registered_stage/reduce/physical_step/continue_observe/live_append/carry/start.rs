@@ -47,6 +47,8 @@ pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn enter_co
         owner.context.store.quarantine();
         return Err(owner);
     }
+    #[cfg(test)]
+    START_ENTRIES.with(|entries| entries.set(entries.get() + 1));
     let outcome = match begin_owned_copy_wait_v2(prepared, &mut budget) {
         Ok(step) => step,
         Err(prepared) => {
@@ -84,5 +86,19 @@ impl PreparedHeldContinuedWaitV2<'_> {
             self.context.store.quarantine();
             Err(SourceJournalError::Binding)
         }
+    }
+}
+
+#[cfg(test)]
+thread_local! { static START_ENTRIES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
+#[cfg(test)]
+impl PreparedHeldContinuedWaitV2<'_> {
+    pub(crate) fn test_start_entries() -> usize {
+        START_ENTRIES.with(std::cell::Cell::get)
+    }
+    pub(in crate::interpreter::resumable::owned_frame::registered_stage) fn test_fuel(
+        &self,
+    ) -> usize {
+        self.context.execution.evaluation_fuel()
     }
 }

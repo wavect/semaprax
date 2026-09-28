@@ -396,3 +396,50 @@ impl LiveContinuedStartedPhaseV8<'_> {
         self.owner.consumed()
     }
 }
+
+impl LiveContinuedStartedPhaseV8<'_> {
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn journal(
+        &self,
+    ) -> &SourceOwnedWaitJournalV8 {
+        self.owner.journal()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn sequence(&self) -> usize {
+        self.acks
+            .last()
+            .expect("actual Start ACK")
+            .session
+            .sequence()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn acknowledged_bytes(
+        &self,
+    ) -> usize {
+        self.acks
+            .last()
+            .expect("actual Start ACK")
+            .session
+            .acknowledged_bytes()
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn observation(
+        &self,
+    ) -> &CheckedOwnedWaitObservationV8 {
+        &self.observation
+    }
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn encode_current_checkpoint(
+        &self,
+        session: &AppendSessionV8<'_>,
+        key: &crate::resumable_effects::source_checkpoint::SourceCheckpointKey,
+        expected: &crate::resumable_effects::owned_frame::v2::OwnedWaitCheckpointExpectationV8<'_>,
+    ) -> Result<(Vec<u8>, String), SourceJournalError> {
+        if !session.belongs_to(self.journal())
+            || session.sequence() != self.sequence()
+            || session.acknowledged_bytes() != self.acknowledged_bytes()
+        {
+            return Err(SourceJournalError::Binding);
+        }
+        let current = self.acks.last().ok_or(SourceJournalError::Order)?;
+        self.owner
+            .encode_checkpoint(session, &current.witness, key, expected)
+    }
+}
+
+pub(in crate::live_invocation::source_journal::owned_wait_v8) mod prepared;

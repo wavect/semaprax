@@ -1,21 +1,21 @@
-//! Fixed ContinuedStart ACK lineage. The witness is never an owner or dispatch grant.
+//! Fixed ContinuedPrepared ACK lineage. The witness is never an owner or dispatch grant.
 use super::super::live_upstream::{
-    advance_verified_continued_start_v8, LiveContinuedStartFailureV8, LiveContinuedStartPhaseV8,
-    LiveOwnedContinuedStartAppendV8,
+    advance_verified_continued_prepared_v8, LiveContinuedPreparedFailureV8,
+    LiveContinuedPreparedPhaseV8, LiveOwnedContinuedPreparedAppendV8,
 };
 use super::owned_effect::OwnedEffectAppendCursorV8;
 use super::*;
 
 /// Only the fixed physical adapter constructs this after persisted/reread ACK.
 /// No Clone, public constructor or independently detachable cursor exists.
-pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedContinuedStartSuccessorV8<
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedContinuedPreparedSuccessorV8<
     'j,
 > {
     predecessor: OwnedEffectAppendCursorV8<'j>,
     successor: OwnedEffectAppendCursorV8<'j>,
     selected: EntryV8,
 }
-impl VerifiedOwnedContinuedStartSuccessorV8<'_> {
+impl VerifiedOwnedContinuedPreparedSuccessorV8<'_> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_predecessor(
         &self,
         journal: &SourceOwnedWaitJournalV8,
@@ -39,7 +39,7 @@ impl VerifiedOwnedContinuedStartSuccessorV8<'_> {
             || self.predecessor.bytes != bytes
             || &self.selected != selected
             || !matches!(selected,
-                EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitCreated{..}|crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitReserved{phase:crate::live_invocation::source_journal::owned_wait_v8::model::PhaseV8::Start,replay_of:None,..}))
+                EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitPrepared{..}))
             || self.successor.sequence
                 != sequence
                     .checked_add(1)
@@ -63,7 +63,7 @@ impl VerifiedOwnedContinuedStartSuccessorV8<'_> {
             self.predecessor.bytes,
             &self.selected,
         )?;
-        let (_, _, _, selected) = session.inventory.continued_start_facts()?;
+        let (_, _, _, selected) = session.inventory.continued_prepared_facts()?;
         if !session
             .inventory
             .belongs_to_context(&session.journal.context)
@@ -113,14 +113,14 @@ impl VerifiedOwnedContinuedStartSuccessorV8<'_> {
 }
 
 /// The actual unchanged obligation is first. Session/witness never stand alone.
-pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedContinuedStartAppendV8<
+pub(in crate::live_invocation::source_journal::owned_wait_v8) struct VerifiedOwnedContinuedPreparedAppendV8<
     'j,
 > {
-    obligation: LiveOwnedContinuedStartAppendV8<'j>,
+    obligation: LiveOwnedContinuedPreparedAppendV8<'j>,
     session: AppendSessionV8<'j>,
-    witness: VerifiedOwnedContinuedStartSuccessorV8<'j>,
+    witness: VerifiedOwnedContinuedPreparedSuccessorV8<'j>,
 }
-impl<'j> VerifiedOwnedContinuedStartAppendV8<'j> {
+impl<'j> VerifiedOwnedContinuedPreparedAppendV8<'j> {
     pub(in crate::live_invocation::source_journal::owned_wait_v8) fn validate_live(
         &self,
     ) -> Result<(), SourceJournalError> {
@@ -129,53 +129,55 @@ impl<'j> VerifiedOwnedContinuedStartAppendV8<'j> {
             .inspect_err(|_| self.session.journal.quarantine())
     }
     /// Closed move into the actual engine ACK consumer; no host or parts API.
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_continued_start(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn advance_continued_prepared(
         self,
-    ) -> Result<LiveContinuedStartPhaseV8<'j>, LiveContinuedStartFailureV8<'j>> {
+    ) -> Result<LiveContinuedPreparedPhaseV8<'j>, LiveContinuedPreparedFailureV8<'j>> {
         let Self {
             obligation,
             session,
             witness,
         } = self;
-        advance_verified_continued_start_v8(obligation, session, witness)
+        advance_verified_continued_prepared_v8(obligation, session, witness)
     }
 }
-pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveOwnedContinuedStartAppendFailureV8<
+pub(in crate::live_invocation::source_journal::owned_wait_v8) enum LiveOwnedContinuedPreparedAppendFailureV8<
     'j,
 > {
     Before {
-        _obligation: LiveOwnedContinuedStartAppendV8<'j>,
+        _obligation: LiveOwnedContinuedPreparedAppendV8<'j>,
         _session: AppendSessionV8<'j>,
         error: SourceJournalError,
     },
     Append {
-        _obligation: LiveOwnedContinuedStartAppendV8<'j>,
+        _obligation: LiveOwnedContinuedPreparedAppendV8<'j>,
         _failure: AppendFailureV8<'j>,
     },
     Acknowledged {
-        _obligation: LiveOwnedContinuedStartAppendV8<'j>,
+        _obligation: LiveOwnedContinuedPreparedAppendV8<'j>,
         _session: AppendSessionV8<'j>,
-        _witness: VerifiedOwnedContinuedStartSuccessorV8<'j>,
+        _witness: VerifiedOwnedContinuedPreparedSuccessorV8<'j>,
         error: SourceJournalError,
     },
     After {
-        _verified: VerifiedOwnedContinuedStartAppendV8<'j>,
+        _verified: VerifiedOwnedContinuedPreparedAppendV8<'j>,
         error: SourceJournalError,
     },
 }
 impl<'j> AppendSessionV8<'j> {
-    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continued_start(
+    pub(in crate::live_invocation::source_journal::owned_wait_v8) fn append_owned_continued_prepared(
         self,
-        obligation: LiveOwnedContinuedStartAppendV8<'j>,
-    ) -> Result<VerifiedOwnedContinuedStartAppendV8<'j>, LiveOwnedContinuedStartAppendFailureV8<'j>>
-    {
+        obligation: LiveOwnedContinuedPreparedAppendV8<'j>,
+    ) -> Result<
+        VerifiedOwnedContinuedPreparedAppendV8<'j>,
+        LiveOwnedContinuedPreparedAppendFailureV8<'j>,
+    > {
         let same_journal = obligation.belongs_to(self.journal);
         let predecessor = match (|| {
             if !same_journal
                 || obligation.sequence() != self.sequence()
                 || obligation.acknowledged_bytes() != self.acknowledged_bytes()
                 || !matches!(obligation.selected(),
-                    EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitCreated{..}|crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitReserved{phase:crate::live_invocation::source_journal::owned_wait_v8::model::PhaseV8::Start,replay_of:None,..}))
+                    EntryV8::Owned(crate::live_invocation::source_journal::owned_wait_v8::model::OwnedBodyV8::OwnedWaitPrepared{..}))
             {
                 return Err(SourceJournalError::Binding);
             }
@@ -189,7 +191,7 @@ impl<'j> AppendSessionV8<'j> {
                 if same_journal {
                     self.journal.quarantine();
                 }
-                return Err(LiveOwnedContinuedStartAppendFailureV8::Before {
+                return Err(LiveOwnedContinuedPreparedAppendFailureV8::Before {
                     _obligation: obligation,
                     _session: self,
                     error,
@@ -201,7 +203,7 @@ impl<'j> AppendSessionV8<'j> {
             Ok(permit) => permit,
             Err(error) => {
                 self.journal.quarantine();
-                return Err(LiveOwnedContinuedStartAppendFailureV8::Before {
+                return Err(LiveOwnedContinuedPreparedAppendFailureV8::Before {
                     _obligation: obligation,
                     _session: self,
                     error,
@@ -209,23 +211,23 @@ impl<'j> AppendSessionV8<'j> {
             }
         };
         let selected = permit.selected_row().clone();
-        let (pending, verified, attempting) = match self.begin_fixed_continued_start_append(&permit)
-        {
-            Ok(completion) => completion,
-            Err(failure) => {
-                return Err(LiveOwnedContinuedStartAppendFailureV8::Append {
-                    _obligation: obligation,
-                    _failure: failure,
-                })
-            }
-        };
+        let (pending, verified, attempting) =
+            match self.begin_fixed_continued_prepared_append(&permit) {
+                Ok(completion) => completion,
+                Err(failure) => {
+                    return Err(LiveOwnedContinuedPreparedAppendFailureV8::Append {
+                        _obligation: obligation,
+                        _failure: failure,
+                    })
+                }
+            };
         let session = AppendSessionV8 {
             journal: attempting.journal,
             inventory: pending.acknowledge_verified(verified),
         };
         // Sole literal constructor: actual same-FD write/sync/reread has ACKed
         // this Pending. Recovered inventory never reaches this construction.
-        let witness = VerifiedOwnedContinuedStartSuccessorV8 {
+        let witness = VerifiedOwnedContinuedPreparedSuccessorV8 {
             predecessor,
             successor: OwnedEffectAppendCursorV8::capture(&session),
             selected,
@@ -236,7 +238,7 @@ impl<'j> AppendSessionV8<'j> {
         if let Err(error) = advanced {
             // Attempting remains incomplete and poisons before any return.
             drop(attempting);
-            return Err(LiveOwnedContinuedStartAppendFailureV8::Acknowledged {
+            return Err(LiveOwnedContinuedPreparedAppendFailureV8::Acknowledged {
                 _obligation: obligation,
                 _session: session,
                 _witness: witness,
@@ -245,13 +247,13 @@ impl<'j> AppendSessionV8<'j> {
         }
         attempting.complete.set(true);
         drop(attempting); // continuation postguard requires current cancellation/clock
-        let envelope = VerifiedOwnedContinuedStartAppendV8 {
+        let envelope = VerifiedOwnedContinuedPreparedAppendV8 {
             obligation,
             session,
             witness,
         };
         if let Err(error) = envelope.validate_live() {
-            return Err(LiveOwnedContinuedStartAppendFailureV8::After {
+            return Err(LiveOwnedContinuedPreparedAppendFailureV8::After {
                 _verified: envelope,
                 error,
             });
@@ -261,5 +263,3 @@ impl<'j> AppendSessionV8<'j> {
 }
 
 mod funnel;
-
-mod checkpoint;

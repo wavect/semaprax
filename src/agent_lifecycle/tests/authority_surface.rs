@@ -34,6 +34,7 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
         (
             "authorization/target_protocol/owned_wait_v8.rs",
             include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
+        include_str!("../authorization/target_protocol/owned_wait_v8/settlement.rs"),
         ),
         (
             "iterative/effects/live/model_wait.rs",
@@ -168,6 +169,7 @@ fn the_stage_executor_seam_has_exactly_three_implementations_and_one_dispatch_ro
         (
             "authorization/target_protocol/owned_wait_v8.rs",
             include_str!("../authorization/target_protocol/owned_wait_v8.rs"),
+        include_str!("../authorization/target_protocol/owned_wait_v8/settlement.rs"),
         ),
         (
             "iterative/effects/live/model_wait.rs",

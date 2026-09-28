@@ -285,7 +285,7 @@ pub(super) fn outstanding(
         return after_completed.add(pending_replay);
     }
     if folded.tail == ResumeReserved {
-        return completed.add(after_completed)?.either(wait_failure);
+        return Ok(completed.add(after_completed)?.either(wait_failure));
     }
     let resume = row(
         json!({"kind":"owned_wait_reserved","turn":u32::MAX,"attempt":u32::MAX,"wait":hash(),"phase":PhaseV8::Resume,"replay_of":u32::MAX,"fuel":u64::MAX}),

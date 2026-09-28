@@ -436,14 +436,20 @@ fn real_model_wait_preserves_malformed_retry_and_complete_terminal_fuel() {
                 } => evidence_digest,
                 _ => unreachable!(),
             };
-            assert_eq!(evidence["terminal_evidence_digest"], terminal);
+            assert_eq!(evidence["terminal_evidence_digest"], terminal.as_str());
             use sha2::{Digest, Sha256};
             let mut hash = Sha256::new();
             hash.update(b"semaprax.source-model-wait.evidence.v1\0");
             hash.update(result.wait_evidence());
             assert_eq!(
                 result.evidence_root().digest(),
-                format!("sha256:{:x}", hash.finalize())
+                format!(
+                    "sha256:{}",
+                    hash.finalize()
+                        .iter()
+                        .map(|byte| format!("{byte:02x}"))
+                        .collect::<String>()
+                )
             );
             assert_eq!(
                 result.evidence_root().canonical_json().as_bytes(),

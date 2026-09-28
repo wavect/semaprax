@@ -66,11 +66,11 @@ fn workspace_v4_preserves_each_dynamic_base_and_exact_source_agent_rows() {
         let workspace = Workspace::new(&source, None);
         let revision = workspace.revision();
         let graph: Value = serde_json::from_str(revision.semantic_graph()).unwrap();
-        assert_eq!(graph["schema"], "semaprax.workspace-graph.v4");
+        assert_eq!(graph["schema"], "semaprax.workspace-semantic-graph.v4");
         let section = &graph["agent_execution"];
         assert_eq!(
             section["base_schema"],
-            format!("semaprax.workspace-graph.v{version}")
+            format!("semaprax.workspace-semantic-graph.v{version}")
         );
         assert_eq!(section["authority"], "none");
         let rows = section["agents"].as_array().unwrap();
@@ -113,7 +113,7 @@ fn legacy_source_retains_its_base_schema_without_execution_facts() {
     let second = workspace.revision();
     assert_eq!(first.semantic_graph(), second.semantic_graph());
     let graph: Value = serde_json::from_str(first.semantic_graph()).unwrap();
-    assert_eq!(graph["schema"], "semaprax.workspace-graph.v1");
+    assert_eq!(graph["schema"], "semaprax.workspace-semantic-graph.v1");
     assert!(graph.get("agent_execution").is_none());
     let source_graph: Value = serde_json::from_str(
         &semaprax::graph::to_json(&semaprax::check(&source, "src/app.spx").unwrap()).unwrap(),
@@ -137,7 +137,7 @@ fn unreachable_opted_in_module_does_not_require_unlinked_agent_functions() {
         .any(|function| function.id.as_str().starts_with("spare.")));
     let graph: Value = serde_json::from_str(revision.semantic_graph()).unwrap();
     assert!(graph.get("agent_execution").is_none());
-    assert_eq!(graph["schema"], "semaprax.workspace-graph.v1");
+    assert_eq!(graph["schema"], "semaprax.workspace-semantic-graph.v1");
 }
 
 #[test]

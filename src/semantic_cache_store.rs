@@ -434,6 +434,8 @@ mod tests {
             } else if mode == 0 {
                 altered[48] ^= 1;
             } else {
+                // The HIR slot has no separate AST envelope: mode 2 is a
+                // wrong-family AST-v1 string; mode 3 is the real old HIR tag.
                 let old = if mode == 2 {
                     "semaprax.project-frontend-canonical-ast.v1"
                 } else {

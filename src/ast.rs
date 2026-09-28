@@ -557,8 +557,7 @@ impl AgentDeclaration {
         if !self.has_execution_metadata() {
             return Ok(());
         }
-        let mut origins = std::collections::BTreeSet::new();
-        for operation in &self.operations {
+        for (index, operation) in self.operations.iter().enumerate() {
             if operation.kind != AgentOperationKind::Deterministic {
                 if operation.embedded_function_index.is_some() {
                     return Err("model and effect Agent operations cannot carry bodies");
@@ -579,7 +578,9 @@ impl AgentDeclaration {
                 && (self
                     .embedded_function(operation, &program.functions)
                     .is_none()
-                    || !origins.insert(operation.embedded_function_index.unwrap()))
+                    || self.operations[..index].iter().any(|prior| {
+                        prior.embedded_function_index == operation.embedded_function_index
+                    }))
             {
                 return Err("embedded Agent function origin is invalid");
             }

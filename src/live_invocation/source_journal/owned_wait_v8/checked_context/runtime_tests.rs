@@ -203,14 +203,14 @@ impl CheckedOwnedWaitJournalContextV8 {
             .into_bytes();
         *response_digest = super::super::super::source_response_digest(response);
         negatives.push(encode(self, key, &sdk));
-        let mut state = rows.clone();
+        let mut state_rows = rows.clone();
         let EntryV8::Owned(model::OwnedBodyV8::OwnedStateTransferCompleted { state, .. }) =
-            &mut state[15]
+            &mut state_rows[15]
         else {
             panic!()
         };
         state["fields"][1]["value"]["value"] = serde_json::json!(11);
-        negatives.push(encode(self, key, &state));
+        negatives.push(encode(self, key, &state_rows));
         (positive, negatives)
     }
 }

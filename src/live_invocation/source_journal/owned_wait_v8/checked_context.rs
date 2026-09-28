@@ -41,6 +41,9 @@ impl CheckedOwnedWaitJournalContextV8 {
     pub(crate) fn generation(&self) -> &str {
         self.registration.generation()
     }
+    pub(super) fn registration(&self) -> &SourceOwnedWaitStoreRegistrationV8 {
+        &self.registration
+    }
     pub(crate) fn ordinary(&self) -> &SourceInvocationBinding {
         &self.fold.ordinary
     }

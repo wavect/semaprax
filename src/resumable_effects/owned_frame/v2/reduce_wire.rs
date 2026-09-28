@@ -5,7 +5,7 @@ use super::data::{
 };
 use super::reduce_plan::CheckedOwnedReduceV2;
 use crate::cleanup_plan::FinalizeAction;
-use crate::hir::{DeclarationId, ResolvedType};
+use crate::hir::{DeclarationId, ExpressionId, ResolvedExpr, ResolvedExprKind, ResolvedType};
 use crate::interpreter::ArgumentValue;
 use crate::resumable_effects::owned_frame::{codec, OwnedFrameError as Error};
 use serde_json::Value;
@@ -147,7 +147,104 @@ pub(crate) fn validate_owned_reduce_target_v8(
         .ok_or(Error::Binding)?;
     fields(&record["fields"], declared.iter().map(|f| (&f.id, &f.ty)))
 }
-fn failure(plan: &CheckedOwnedReduceV2, status: &Value) -> Result<(), Error> {
+// The checked Reduce profile has empty Block prefixes, scalar-copy conditions
+// and direct constructors; it admits no let/call prefix. Restrict arithmetic to
+// exactly the evaluation segment represented by the committed-owner basis.
+fn copy_contains(expr: &ResolvedExpr, at: &ExpressionId) -> bool {
+    if expr.id == *at {
+        return true;
+    }
+    match &expr.kind {
+        ResolvedExprKind::Unary { value, .. } => copy_contains(value, at),
+        ResolvedExprKind::Binary { left, right, .. } => {
+            copy_contains(left, at) || copy_contains(right, at)
+        }
+        _ => false,
+    }
+}
+fn conditions_contain(expr: &ResolvedExpr, at: &ExpressionId) -> bool {
+    match &expr.kind {
+        ResolvedExprKind::Block { statements, tail } if statements.is_empty() => {
+            conditions_contain(tail, at)
+        }
+        ResolvedExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            copy_contains(condition, at)
+                || conditions_contain(then_branch, at)
+                || conditions_contain(else_branch, at)
+        }
+        _ => false,
+    }
+}
+fn constructor<'a>(expr: &'a ResolvedExpr, at: &str) -> Option<&'a ResolvedExpr> {
+    if expr.id.as_str() == at && matches!(expr.kind, ResolvedExprKind::ConstructVariant { .. }) {
+        return Some(expr);
+    }
+    match &expr.kind {
+        ResolvedExprKind::Block { statements, tail } if statements.is_empty() => {
+            constructor(tail, at)
+        }
+        ResolvedExprKind::If {
+            then_branch,
+            else_branch,
+            ..
+        } => constructor(then_branch, at).or_else(|| constructor(else_branch, at)),
+        _ => None,
+    }
+}
+fn arithmetic_reachable(plan: &CheckedOwnedReduceV2, basis: &Value, at: &ExpressionId) -> bool {
+    let f = plan.function();
+    match basis["kind"].as_str() {
+        Some("initial_failure") => {
+            f.requires.iter().any(|e| copy_contains(e, at)) || conditions_contain(&f.body, at)
+        }
+        Some("provisional_failure") => f.ensures.iter().any(|e| copy_contains(e, at)),
+        Some("partial_failure") => {
+            let Some(case) = plan.transfers().cases.iter().find(|c| {
+                basis["constructor"] == c.constructor.as_str() && basis["case"] == c.case.as_str()
+            }) else {
+                return false;
+            };
+            let Some(prefix) = basis["transfer_prefix"].as_array() else {
+                return false;
+            };
+            let Some(expr) = constructor(&f.body, case.constructor.as_str()) else {
+                return false;
+            };
+            let ResolvedExprKind::ConstructVariant { fields, .. } = &expr.kind else {
+                return false;
+            };
+            let start = if prefix.is_empty() {
+                0
+            } else {
+                match case
+                    .fields
+                    .get(prefix.len() - 1)
+                    .and_then(|field| field.field_index.checked_add(1))
+                {
+                    Some(n) => n,
+                    None => return false,
+                }
+            };
+            let end = match case.fields.get(prefix.len()) {
+                Some(field) => match field.field_index.checked_add(1) {
+                    Some(n) => n,
+                    None => return false,
+                },
+                None => fields.len(),
+            };
+            fields
+                .get(start..end)
+                .is_some_and(|segment| segment.iter().any(|field| copy_contains(&field.value, at)))
+        }
+        _ => false,
+    }
+}
+fn failure(plan: &CheckedOwnedReduceV2, basis: &Value) -> Result<(), Error> {
+    let status = &basis["status"];
     bounded(status)?;
     codec::keys(status, &["failure", "language_status"])?;
     let tag = status["failure"].as_str().ok_or(Error::Malformed)?;
@@ -167,18 +264,35 @@ fn failure(plan: &CheckedOwnedReduceV2, status: &Value) -> Result<(), Error> {
         }
         return Ok(());
     }
-    for source in &plan.function().cleanup_plan.status_sources {
-        use crate::cleanup_plan::StatusProducer;
+    let f = plan.function();
+    for source in &f.cleanup_plan.status_sources {
+        use crate::cleanup_plan::{ContractPhase, StatusProducer};
         let values = match &source.producer {
-            StatusProducer::ContractFalse { phase, .. } => {
+            StatusProducer::ContractFalse { phase, ordinal } => {
+                let (kind, contracts) = match phase {
+                    ContractPhase::Requires => ("initial_failure", &f.requires),
+                    ContractPhase::Ensures => ("provisional_failure", &f.ensures),
+                };
+                if basis["kind"] != kind
+                    || !contracts
+                        .get(*ordinal as usize)
+                        .is_some_and(|c| c.id == source.id.expression)
+                {
+                    continue;
+                }
                 vec![crate::conformance::NormalizedStatus::contract(*phase)]
             }
             StatusProducer::CheckedArithmetic {
                 normalized_cases, ..
-            } => normalized_cases
-                .iter()
-                .map(|c| crate::conformance::NormalizedStatus::arithmetic(*c))
-                .collect(),
+            } => {
+                if !arithmetic_reachable(plan, basis, &source.id.expression) {
+                    continue;
+                }
+                normalized_cases
+                    .iter()
+                    .map(|c| crate::conformance::NormalizedStatus::arithmetic(*c))
+                    .collect()
+            }
             StatusProducer::PropagatedCall { .. } => Vec::new(),
         };
         for value in values {
@@ -199,9 +313,6 @@ pub(crate) fn validate_owned_reduce_cleanup_v8(
     bounded(basis)?;
     let kind = basis["kind"].as_str().ok_or(Error::Malformed)?;
     let failed = kind != "success";
-    if failed {
-        failure(plan, &basis["status"])?;
-    }
     let (actions, flags): (&[FinalizeAction], Vec<u32>) = if kind == "initial_failure" {
         codec::keys(basis, &["kind", "status"])?;
         let actions = &plan.transfers().initial_disposal;
@@ -285,6 +396,9 @@ pub(crate) fn validate_owned_reduce_cleanup_v8(
         }
         (actions, flags)
     };
+    if failed {
+        failure(plan, basis)?;
+    }
     validate_owned_wait_operations_v8(actions, full_operations)?;
     let active: Vec<_> = actions
         .iter()

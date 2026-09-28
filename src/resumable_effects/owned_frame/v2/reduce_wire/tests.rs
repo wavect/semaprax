@@ -3,11 +3,24 @@ use super::*;
 use serde_json::json;
 
 fn plan() -> CheckedOwnedReduceV2 {
+    plan_for(false)
+}
+fn plan_for(language: bool) -> CheckedOwnedReduceV2 {
     let source = include_str!("../../../../../examples/offline-repair-project/src/app.spx");
     let source = source.replace(
         "    runtime_v1 {",
         "    model_wait_v1 { propose = \"fixture.agent.fn.park\"; }\n    runtime_v1 {",
     );
+    let source = if language {
+        source
+            .replace(
+                "-> Step\n{",
+                "-> Step\nrequires budget * 2 > 0\nensures budget / 2 > 0\n{",
+            )
+            .replace("state.epoch < 2", "state.epoch - 1 < 2")
+    } else {
+        source
+    };
     let source = format!(
         "{source}\n{}",
         r#"
@@ -160,4 +173,133 @@ fn owned_reduce_wire_observed_receipt_keeps_mixed_first_and_last_failures() {
         omitted["operations"].as_array_mut().unwrap().pop();
         assert!(facts.validate_receipt(&omitted).is_err());
     }
+}
+
+fn failed_basis(p: &CheckedOwnedReduceV2, kind: &str, status: Value) -> (Value, Value) {
+    if kind == "initial_failure" {
+        return (
+            json!({"kind":kind,"status":status}),
+            owned_wait_operations_v8(&p.transfers().initial_disposal).unwrap(),
+        );
+    }
+    let case = p
+        .transfers()
+        .cases
+        .iter()
+        .find(|c| {
+            p.mappings()
+                .iter()
+                .any(|m| m.case == c.case && m.role == "Continue")
+        })
+        .unwrap();
+    let (actions, flags, prefix) = if kind == "partial_failure" {
+        assert!(!case.fields.is_empty());
+        let prefix = case
+            .fields
+            .iter()
+            .take(1)
+            .map(|f| f.at.as_str())
+            .collect::<Vec<_>>();
+        let actions = &case.failure_by_prefix[1];
+        (
+            actions,
+            actions.iter().map(|a| a.guard_flag.0).collect::<Vec<_>>(),
+            Some(prefix),
+        )
+    } else {
+        let mut flags = case
+            .completion_live_flags
+            .iter()
+            .map(|f| f.0)
+            .collect::<Vec<_>>();
+        flags.extend(
+            p.transfers()
+                .result_disposal
+                .iter()
+                .filter(|a| a.active_case.as_ref().is_some_and(|c| c.case == case.case))
+                .map(|a| a.guard_flag.0),
+        );
+        (&p.transfers().provisional_failure, flags, None)
+    };
+    let mut basis = json!({"kind":kind,"status":status,"constructor":case.constructor.as_str(),"case":case.case.as_str(),"active_flags":flags});
+    if let Some(prefix) = prefix {
+        basis["transfer_prefix"] = json!(prefix);
+    }
+    (basis, owned_wait_operations_v8(actions).unwrap())
+}
+fn language(status: crate::conformance::NormalizedStatus) -> Value {
+    json!({"failure":"language_failure","language_status":codec::parse(status.to_json().as_bytes(),codec::MAX_CARRIER).unwrap()})
+}
+#[test]
+fn owned_reduce_wire_language_contract_status_matches_actual_phase_and_frozen_fields() {
+    use crate::cleanup_plan::ContractPhase;
+    let p = plan_for(true);
+    for (phase, kind, wrong) in [
+        (
+            ContractPhase::Requires,
+            "initial_failure",
+            "provisional_failure",
+        ),
+        (
+            ContractPhase::Ensures,
+            "provisional_failure",
+            "initial_failure",
+        ),
+    ] {
+        let status = language(crate::conformance::NormalizedStatus::contract(phase));
+        let (basis, ops) = failed_basis(&p, kind, status.clone());
+        validate_owned_reduce_cleanup_v8(&p, &basis, &ops).unwrap();
+        let (basis, ops) = failed_basis(&p, wrong, status.clone());
+        assert!(validate_owned_reduce_cleanup_v8(&p, &basis, &ops).is_err());
+        let (basis, ops) = failed_basis(&p, "partial_failure", status.clone());
+        assert!(validate_owned_reduce_cleanup_v8(&p, &basis, &ops).is_err());
+        for field in ["schema", "domain", "code", "class", "retryable"] {
+            let mut status = status.clone();
+            status["language_status"][field] = json!("reminted");
+            let (basis, ops) = failed_basis(&p, kind, status);
+            assert!(
+                validate_owned_reduce_cleanup_v8(&p, &basis, &ops).is_err(),
+                "{field}"
+            );
+        }
+    }
+}
+#[test]
+fn owned_reduce_wire_arithmetic_status_reaches_only_actual_expression_segment() {
+    use crate::cleanup_plan::StatusProducer;
+    let p = plan_for(true);
+    let mut phases = [false; 3];
+    for source in &p.function().cleanup_plan.status_sources {
+        let StatusProducer::CheckedArithmetic {
+            normalized_cases, ..
+        } = &source.producer
+        else {
+            continue;
+        };
+        for code in normalized_cases {
+            for (index, kind) in ["initial_failure", "partial_failure", "provisional_failure"]
+                .iter()
+                .enumerate()
+            {
+                let (basis, ops) = failed_basis(
+                    &p,
+                    kind,
+                    language(crate::conformance::NormalizedStatus::arithmetic(*code)),
+                );
+                let reachable = arithmetic_reachable(&p, &basis, &source.id.expression);
+                let accepted = validate_owned_reduce_cleanup_v8(&p, &basis, &ops).is_ok();
+                // Each phase uses a distinct opcode in this fixture: multiply /
+                // subtract before the constructor, add after Bytes transfer,
+                // divide only in Ensures. No equivalent-code alternative site.
+                assert_eq!(accepted, reachable, "{kind} {:?}", source.id.expression);
+                if reachable {
+                    phases[index] = true;
+                }
+            }
+        }
+    }
+    assert_eq!(
+        phases, [true; 3],
+        "nonvacuous initial/partial/provisional arithmetic"
+    );
 }

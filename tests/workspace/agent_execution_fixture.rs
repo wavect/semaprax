@@ -122,7 +122,7 @@ pub(super) fn workspace_source(embedded: bool, wait: bool) -> String {
         ("observation", "Observation"),
         ("proposal", "Proposal"),
         ("outcome", "Outcome"),
-        ("result", "Result"),
+        ("result", "Report"),
     ] {
         declarations.push_str(&format!(
             "@id(\"fixture.agent.type.{role}\") record {name} {{ @id(\"fixture.agent.type.{role}.value\") value:i64, }}\n"

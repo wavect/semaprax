@@ -78,6 +78,12 @@ class OfficialSession:
             runtime_root = self.root / "runtime"
             runtime_root.mkdir(mode=0o700)
             self.runtime, self.provenance = extraction.prepare(self.provenance_directory, runtime_root)
+            # Frozen scorer helpers inspect only this bounded host-only tree,
+            # reconstructed from admitted bytes. Node receives no read grant.
+            self.host_sources = self.root / "host-source-snapshot"
+            self.host_sources.mkdir(mode=0o700)
+            for name, content in self.sources.items():
+                v1._write_snapshot_file(self.host_sources / name, content)
             self.authority = authority.Authority(self.runtime)
             self.observations.append(self.authority.preflight(self.root))
             # Load the pinned existing scorer only after exact source admission.
@@ -184,12 +190,12 @@ class OfficialSession:
                   "mutant": mutant, "source_manifest_sha256": p.SOURCE_HASH}
         try:
             self._copy_phase(public, paths["public"])
-            problem = self.scorer.hidden_overlay_problem(p.ROOT / paths["public"], p.ROOT / paths["hidden"])
+            problem = self.scorer.hidden_overlay_problem(self.host_sources / paths["public"], self.host_sources / paths["hidden"])
             if problem:
                 raise p.Error("hidden_overlay_refused:" + problem)
             if mutant:
                 record["mutation"] = self._mutate(public, self.mutants[task_id])
-            hidden_only = self.scorer.relative_files(p.ROOT / paths["hidden"]) - self.scorer.relative_files(p.ROOT / paths["public"])
+            hidden_only = self.scorer.relative_files(self.host_sources / paths["hidden"]) - self.scorer.relative_files(self.host_sources / paths["public"])
             record["public"] = self._stage(public)
             self._capture(public, task_id + ("/mutant/public" if mutant else "/positive/public"))
             record["leak_check"] = "ok" if not hidden_only.intersection(self.scorer.relative_files(public)) else "failed"
@@ -227,7 +233,13 @@ class OfficialSession:
     def evidence(self):
         # Preserve exact command streams and policy bytes once as artifacts;
         # metadata references them rather than duplicating large SBPL strings.
-        artifacts = list(self.artifacts)
+        artifacts = list(self.artifacts) + self.provenance["receipt_artifacts"]
+        provenance = {key: value for key, value in self.provenance.items() if key != "receipt_artifacts"}
+        provenance["original_receipt_artifacts"] = [row["path"] for row in self.provenance["receipt_artifacts"]]
+        inventory = [dict(row, v3_availability="admitted" if row["adapter_id"] == "typescript" else "unavailable",
+                          v3_reason=None if row["adapter_id"] == "typescript" else (
+                              row["blocked_reason"] or "adapter_not_admitted_under_runnable_adapter_v3"))
+                     for row in self.manifest["comparison_inventory"]]
         command_rows = []
         policy_names = set()
         def artifact(name, data):
@@ -247,8 +259,8 @@ class OfficialSession:
                                  "stderr_artifact": artifact(f"commands/{index}/stderr.txt", base64.b64decode(row["stderr_base64"]))})
         result = {"schema": SCHEMA, "status": "official_conformance_observed", "source_origin": p.SOURCE_COMMIT,
                   "source_manifest_sha256": p.SOURCE_HASH, "execution_subject": self.subject,
-                  "host": self.host, "provenance": self.provenance, "authority": self.observations,
-                  "comparison_inventory": self.manifest["comparison_inventory"], "results": self.results,
+                  "host": self.host, "provenance": provenance, "authority": self.observations,
+                  "comparison_inventory": inventory, "results": self.results,
                   "commands": command_rows}
         if len(p.canonical(result)) > v1.MAX_RESULT_BYTES:
             raise p.Error("result_metadata_exceeds_bound")

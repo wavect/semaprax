@@ -211,7 +211,11 @@ task-specific wrong candidate for each task. Prove the selected mutation target
 exists and the required public/hidden divergence from its equivalence review;
 a missing target, compile-only failure or vacuous assertion is not success.
 Bind all observations to the exact checkout and input snapshots. Preserve all
-182 denominator rows and unsupported reasons.
+182 denominator rows and unsupported reasons. Each result row additionally
+records v3 availability and its reason; earlier inventory flags remain unchanged.
+Scorer helpers inspect a bounded private host-only tree reconstructed exclusively
+from admitted snapshot bytes, outside every candidate phase grant. Unlisted live
+files, links and subsequent drift cannot enter those helper reads.
 
 Hostile gates cover artifact/receipt/runtime/source/review substitution,
 unsafe archive entries, excessive expansion, dependency drift, environment
@@ -242,7 +246,8 @@ python3 benchmarks/cross-language-v1/runnable_adapter_v3.py \
 
 The CLI scores all 13 positives. Tests additionally score all 13 fixed mutants.
 Bundle JSON has `result`, `source_manifest`, `artifacts`; artifacts carry exact
-bytes in Base64 with sizes/hashes. Command metadata references exact policy and
+bytes in Base64 with sizes/hashes, including both exact original provenance
+metadata receipts. Command metadata references exact policy and
 stdout/stderr artifacts instead of duplicating their bytes. Canonical JSON
 uses sorted keys, indent 2, ASCII escaping and one LF. Exclusive delivery never
 overwrites evidence. The exact execution head, worktree dirty flag and v3
@@ -253,7 +258,10 @@ runtime mutants and 19 hostile/provenance/scoring controls. It retained 26
 scored rows and the complete 182-row denominator inventory. The earlier failed
 runs and their evidence remain in task-private scratch. This is a dirty-tree
 implementation witness; integration must obtain fresh evidence for the clean
-accepted execution commit. Independent implementation review remains required.
+accepted execution commit. Independent implementation review remains required. Three additional review
+regressions cover unlisted live symlink/oversize/drift isolation, explicit v3
+unavailability for all 169 non-TypeScript rows, and exact raw-receipt
+reconstruction. The resulting owning selector contains 48 tests.
 The existing runnable-adapter and cross-language documentation harnesses must
 also remain green. No new top-level Rust harness is needed.
 

@@ -111,7 +111,12 @@ def approved_archives(directory):
     if base64.b64encode(hashlib.sha512(typescript).digest()).decode() != TS_INTEGRITY:
         raise Error("typescript_archive_identity_drifted")
     return node, typescript, {"node_receipt": receipt.decode(), "typescript_receipt": json.loads(metadata),
-                              "node_archive_sha256": digest(node), "typescript_archive_sha256": digest(typescript)}
+                              "node_archive_sha256": digest(node), "typescript_archive_sha256": digest(typescript),
+                              "receipt_artifacts": [
+                                  {"path": "provenance/node-shasums256.txt", "bytes": len(receipt), "sha256": digest(receipt),
+                                   "base64": base64.b64encode(receipt).decode()},
+                                  {"path": "provenance/typescript-registry.json", "bytes": len(metadata), "sha256": digest(metadata),
+                                   "base64": base64.b64encode(metadata).decode()}]}
 
 
 def source_snapshot(root=None):

@@ -186,6 +186,66 @@ class OfficialRuntimeTests(unittest.TestCase):
         self.assertTrue(all(row.endswith(":EPERM") for row in proof["denials"]))
         self.assertTrue(any(str(self.session.runtime.node) in row for row in proof["denials"]))
 
+    def test_exact_original_receipts_reconstruct_approved_bytes(self):
+        bundle = self.session.evidence()
+        artifacts = {row["path"]: row for row in bundle["artifacts"]}
+        for name, original, expected in (
+                ("provenance/typescript-registry.json", "typescript5.8.3-registry.json", p.TS_RECEIPT_HASH),
+                ("provenance/node-shasums256.txt", "node22.12.0-SHASUMS256.txt", p.NODE_RECEIPT_HASH)):
+            row = artifacts[name]
+            raw = base64.b64decode(row["base64"])
+            self.assertEqual(len(raw), row["bytes"])
+            self.assertEqual(p.digest(raw), expected)
+            self.assertEqual(row["sha256"], expected)
+            self.assertEqual(raw, p.read_regular(self.provision / original, 65536))
+
+    def test_every_non_typescript_row_has_explicit_v3_unavailability(self):
+        bundle = self.session.evidence()
+        rows = bundle["result"]["comparison_inventory"]
+        self.assertEqual(len(rows), 182)
+        non_ts = [row for row in rows if row["adapter_id"] != "typescript"]
+        self.assertEqual(len(non_ts), 169)
+        self.assertTrue(all(row["v3_availability"] == "unavailable" and row["v3_reason"] for row in non_ts))
+        for actual, expected in zip(rows, self.session.manifest["comparison_inventory"]):
+            self.assertEqual({k: value for k, value in actual.items() if not k.startswith("v3_")}, expected)
+        self.assertTrue(all(row["v3_availability"] == "admitted" and row["v3_reason"] is None
+                            for row in rows if row["adapter_id"] == "typescript"))
+
+    def test_unlisted_live_symlink_oversize_and_drift_never_feed_scorer_helpers(self):
+        with tempfile.TemporaryDirectory(prefix="r03-live-tree-hostile-") as temporary:
+            root = pathlib.Path(temporary).resolve()
+            live = root / "repo"
+            for name, data in self.session.sources.items():
+                target = live / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+            hidden = live / "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/typescript"
+            outside = root / "outside-target"
+            outside.write_bytes(b"outside" * 300000)
+            symlink = hidden / "unlisted-link.ts"
+            symlink.symlink_to(outside)
+            oversized = hidden / "unlisted-oversize.ts"
+            oversized.write_bytes(b"x" * (v3.v1.MAX_SOURCE_FILE_BYTES + 1))
+            (hidden / "unlisted-drift.ts").write_text("unreviewed drift")
+            forbidden = {outside, symlink, oversized, hidden / "unlisted-drift.ts"}
+            original_read = pathlib.Path.read_bytes
+            original_stat = pathlib.Path.stat
+            def guarded_read(path):
+                self.assertNotIn(path, forbidden, "live unlisted target was read")
+                return original_read(path)
+            def guarded_stat(path, *args, **kwargs):
+                self.assertNotIn(path, forbidden, "live unlisted target was followed")
+                return original_stat(path, *args, **kwargs)
+            with mock.patch.object(p, "ROOT", live), mock.patch.object(pathlib.Path, "read_bytes", guarded_read), mock.patch.object(pathlib.Path, "stat", guarded_stat):
+                result = self.session.score("booking-window-conflict-v1")
+            self.assertEqual(result["status"], "ok")
+            # Host-only source snapshots are also outside the child's grant.
+            phase = self.phase()
+            path = self.session.host_sources / "benchmarks/cross-language-v1/tasks/booking-window-conflict-v1/hidden/typescript/index.ts"
+            code = "try{require('fs').readFileSync(" + json.dumps(str(path)) + ");process.exitCode=1}catch(e){console.log(e.code)}"
+            status, out, _ = self.session.authority.launch([str(self.session.runtime.node), "-e", code], phase, time.monotonic() + 10)
+            self.assertEqual((status, out), (0, "EPERM\n"))
+
     def test_closed_environment_ignores_startup_and_loader_injection(self):
         phase = self.phase()
         code = "console.log(JSON.stringify(process.env))"

@@ -15,6 +15,7 @@ size_t mx_allocations(void);
 size_t mx_peak_allocations(void);
 size_t mx_peak_handles(void);
 size_t mx_armed(void);
+size_t mx_fault_hits(void);
 void mx_order(char *out, size_t capacity);
 #ifdef __cplusplus
 }
@@ -27,7 +28,8 @@ struct mx_case {
     const uint8_t *frame; size_t frame_len;
 };
 enum { MX_TRANSFORM = 0, MX_REPEATED = 1, MX_SHORT_EXPORT = 2, MX_WRONG_PATH = 3,
-       MX_REFUSAL_EFFECTS = 4, MX_INJECT_EXPORT_RELEASE = 5, MX_INJECT_PREPARE = 6 };
+       MX_REFUSAL_EFFECTS = 4, MX_INJECT_EXPORT_RELEASE = 5, MX_INJECT_PREPARE = 6, MX_INJECT_INPUT_COMMIT = 7, MX_INJECT_RESULT_COMMIT = 8,
+       MX_INJECT_RESULT_ACQUISITION = 9 };
 static void mx_leaf(int present, const uint8_t *bytes, size_t length) {
     if (!present) { fputs(" -", stdout); return; }
     if (length == 0) { fputs(" e", stdout); return; }
@@ -46,5 +48,5 @@ static void mx_emit(const struct mx_case *c, unsigned cycle, long primary, long 
            mx_peak_handles(), order);
     mx_leaf(present, l, ln);
     mx_leaf(present, r, rn);
-    printf(" %s\n", note && note[0] ? note : "-");
+    printf(" %s,fault=%zu\n", note && note[0] ? note : "-", mx_fault_hits());
 }

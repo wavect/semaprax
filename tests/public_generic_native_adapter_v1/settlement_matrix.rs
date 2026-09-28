@@ -18,6 +18,8 @@
 
 #[path = "settlement_matrix/engines.rs"]
 mod engines;
+#[path = "settlement_matrix/evidence.rs"]
+mod evidence;
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -63,6 +65,9 @@ pub(crate) enum Kind {
     RefusalEffects = 4,
     InjectExportRelease = 5,
     InjectPrepare = 6,
+    InjectInputCommit = 7,
+    InjectResultCommit = 8,
+    InjectResultAcquisition = 9,
 }
 
 #[derive(Clone, Copy)]
@@ -82,6 +87,7 @@ impl Payload {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(crate) struct Case {
     pub(crate) id: &'static str,
     pub(crate) subject: Subject,
@@ -240,6 +246,47 @@ pub(crate) const CASES: &[Case] = &[
     ),
 ];
 
+pub(crate) const CORPUS_VERSION_V2: &str = "semaprax.public-generic.settlement-matrix.v2";
+/// V1's exact fourteen cases remain frozen above. V2 appends named physical
+/// boundaries on the identical checked identity subject.
+pub(crate) const V2_CASES: &[Case] = &[
+    CASES[0],
+    CASES[1],
+    CASES[2],
+    CASES[3],
+    CASES[4],
+    CASES[5],
+    CASES[6],
+    CASES[7],
+    CASES[8],
+    CASES[9],
+    CASES[10],
+    CASES[11],
+    CASES[12],
+    CASES[13],
+    case(
+        "injected-input-transfer-commit-failure",
+        Subject::Identity,
+        Kind::InjectInputCommit,
+        SMALL_LEFT,
+        SMALL_RIGHT,
+    ),
+    case(
+        "injected-result-commit-failure",
+        Subject::Identity,
+        Kind::InjectResultCommit,
+        SMALL_LEFT,
+        SMALL_RIGHT,
+    ),
+    case(
+        "injected-result-root-acquisition-failure",
+        Subject::Identity,
+        Kind::InjectResultAcquisition,
+        SMALL_LEFT,
+        SMALL_RIGHT,
+    ),
+];
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum Engine {
     Interpreter,
@@ -349,7 +396,11 @@ pub(crate) fn expected_cell(case: &Case, engine: Engine) -> Expect {
             }
             _ => {}
         },
-        Kind::InjectExportRelease | Kind::InjectPrepare => {
+        Kind::InjectExportRelease
+        | Kind::InjectPrepare
+        | Kind::InjectInputCommit
+        | Kind::InjectResultCommit
+        | Kind::InjectResultAcquisition => {
             if engine == Engine::Interpreter {
                 return Expect::NotApplicable(NA_INTERPRETER_INJECTION);
             }
@@ -446,7 +497,13 @@ fn expected_leaves(case: &Case) -> Option<(Vec<u8>, Vec<u8>)> {
     match (case.subject, case.kind) {
         (Subject::Refusing, _)
         | (_, Kind::WrongPath | Kind::RefusalEffects | Kind::InjectPrepare) => None,
-        (_, Kind::InjectExportRelease) => None,
+        (
+            _,
+            Kind::InjectExportRelease
+            | Kind::InjectInputCommit
+            | Kind::InjectResultCommit
+            | Kind::InjectResultAcquisition,
+        ) => None,
         (Subject::Allocating, _) => Some((case.left.bytes(), vec![9, 0, 0])),
         (Subject::Identity, _) => Some((case.left.bytes(), case.right.bytes())),
     }
@@ -454,7 +511,9 @@ fn expected_leaves(case: &Case) -> Option<(Vec<u8>, Vec<u8>)> {
 
 fn expected_primary(case: &Case) -> &'static str {
     match (case.subject, case.kind) {
-        (Subject::Refusing, _) | (_, Kind::InjectExportRelease) => "11",
+        (Subject::Refusing, _) | (_, Kind::InjectExportRelease | Kind::InjectResultCommit) => "11",
+        (_, Kind::InjectInputCommit) => "9",
+        (_, Kind::InjectResultAcquisition) => "10",
         (_, Kind::WrongPath | Kind::RefusalEffects) => "14",
         (_, Kind::InjectPrepare) => "10",
         _ => "0",
@@ -474,7 +533,7 @@ fn expected_secondary(case: &Case) -> &'static str {
 fn expected_order(case: &Case) -> &'static str {
     match (case.subject, case.kind) {
         (_, Kind::WrongPath | Kind::RefusalEffects | Kind::InjectPrepare) => "none",
-        (Subject::Refusing, _) => "0.1,0.0",
+        (Subject::Refusing, _) | (_, Kind::InjectInputCommit) => "0.1,0.0",
         _ => "0.1,0.0,1.1,1.0",
     }
 }
@@ -536,7 +595,7 @@ fn check_observation(
     if let Some(dispatch) = observation.dispatch {
         let per_cycle = u64::from(!matches!(
             case.kind,
-            Kind::WrongPath | Kind::RefusalEffects | Kind::InjectPrepare
+            Kind::WrongPath | Kind::RefusalEffects | Kind::InjectPrepare | Kind::InjectInputCommit
         ));
         // Observers count cumulatively since the case reset.
         let expected = per_cycle * (cycle + 1);
@@ -572,6 +631,14 @@ fn check_notes(
     problems: &mut Vec<String>,
 ) {
     let succeeded = expected_leaves(case).is_some();
+    if engine.native()
+        && matches!(
+            case.kind,
+            Kind::InjectInputCommit | Kind::InjectResultCommit | Kind::InjectResultAcquisition
+        )
+    {
+        require_note(problems, observation, "fault", "1");
+    }
     match engine {
         Engine::NativeO0 | Engine::NativeO2 | Engine::NativeAsan => {
             match case.kind {
@@ -767,13 +834,15 @@ fn native_agreement(
 }
 
 pub(crate) struct Matrix {
+    corpus: &'static str,
+    cases: &'static [Case],
     pub(crate) cells: Vec<(usize, Engine, Expect, Outcome)>,
 }
 
 impl Matrix {
     fn render(&self) -> String {
-        let mut text = format!("{CORPUS_VERSION}\n");
-        for (index, case) in CASES.iter().enumerate() {
+        let mut text = format!("{}\n", self.corpus);
+        for (index, case) in self.cases.iter().enumerate() {
             let _ = write!(text, "{:<38}", case.id);
             for engine in ENGINES {
                 let cell = self
@@ -798,9 +867,16 @@ impl Matrix {
 /// Decide the asserted matrix from observed receipts. Panics with the full
 /// rendered matrix on any cell whose outcome differs from its expectation.
 pub(crate) fn assert_matrix(observed: &BTreeMap<(usize, Engine), Vec<Observation>>) -> Matrix {
+    assert_matrix_for(observed, CASES, CORPUS_VERSION)
+}
+fn assert_matrix_for(
+    observed: &BTreeMap<(usize, Engine), Vec<Observation>>,
+    cases: &'static [Case],
+    corpus: &'static str,
+) -> Matrix {
     let mut cells = Vec::new();
     let mut failures = Vec::new();
-    for (index, case) in CASES.iter().enumerate() {
+    for (index, case) in cases.iter().enumerate() {
         let per_engine: BTreeMap<Engine, Vec<Observation>> = ENGINES
             .iter()
             .filter_map(|engine| {
@@ -841,7 +917,11 @@ pub(crate) fn assert_matrix(observed: &BTreeMap<(usize, Engine), Vec<Observation
             cells.push((index, engine, expect, outcome));
         }
     }
-    let matrix = Matrix { cells };
+    let matrix = Matrix {
+        cells,
+        cases,
+        corpus,
+    };
     eprintln!("{}", matrix.render());
     assert!(
         failures.is_empty(),
@@ -865,6 +945,18 @@ fn shared_settlement_corpus_matrix_is_complete_and_asserted() {
     }
     let observed = engines::execute_all(&ENGINES, false);
     let matrix = assert_matrix(&observed);
+    let v2 = assert_matrix_for(&observed, V2_CASES, CORPUS_VERSION_V2);
+    let v2_pass = v2
+        .cells
+        .iter()
+        .filter(|cell| matches!((&cell.2, &cell.3), (Expect::Pass, Outcome::Pass)))
+        .count();
+    let v2_na = v2
+        .cells
+        .iter()
+        .filter(|cell| matches!(cell.2, Expect::NotApplicable(_)))
+        .count();
+    assert_eq!((v2_pass, v2_na, v2.cells.len()), (123, 30, 153));
     let passes = matrix
         .cells
         .iter()
@@ -890,6 +982,7 @@ fn shared_settlement_corpus_matrix_is_complete_and_asserted() {
         "settlement matrix split changed: {passes} pass, {known} known-defect, \
          {not_applicable} not-applicable cells"
     );
+    evidence::matrix(&v2.render());
     eprintln!(
         "{CORPUS_VERSION}: {passes} pass, {known} known-defect, {not_applicable} not-applicable cells"
     );
@@ -924,4 +1017,46 @@ fn skipped_release_negative_control_fails_its_cell() {
             .any(|problem| problem.starts_with("note close:")),
         "{problems:?}"
     );
+}
+
+#[test]
+fn v2_failure_receipts_require_consumed_physical_faults_and_exact_dispatch() {
+    // Independent receipt mutations prove the new failure cells cannot pass
+    // merely by returning an error from an unarmed or wrong boundary.
+    for case in &V2_CASES[CASES.len()..] {
+        let dispatch = u64::from(case.kind != Kind::InjectInputCommit);
+        let mut receipt = Observation {
+            label: case.id.into(),
+            primary: expected_primary(case).into(),
+            secondary: None,
+            dispatch: Some(dispatch),
+            live: Some(0),
+            peak: Some("observed".into()),
+            order: Some(expected_order(case).into()),
+            leaves: None,
+            note: BTreeMap::from([
+                ("dup".into(), "8".into()),
+                ("redispatch".into(), "0".into()),
+                ("release".into(), "8".into()),
+                ("handles".into(), "0".into()),
+                ("close".into(), "0".into()),
+                ("armed".into(), "0".into()),
+                ("fault".into(), "1".into()),
+            ]),
+        };
+        assert!(check_observation(case, Engine::NativeO2, &receipt, true).is_empty());
+        receipt.note.insert("fault".into(), "0".into());
+        assert!(check_observation(case, Engine::NativeO2, &receipt, true)
+            .iter()
+            .any(|p| p.starts_with("note fault:")));
+        receipt.note.insert("fault".into(), "1".into());
+        receipt.dispatch = Some(dispatch + 1);
+        assert!(check_observation(case, Engine::NativeO2, &receipt, true)
+            .iter()
+            .any(|p| p.starts_with("dispatch:")));
+        assert!(matches!(
+            expected_cell(case, Engine::CoreWasm),
+            Expect::NotApplicable(NA_WASM_INJECTION)
+        ));
+    }
 }

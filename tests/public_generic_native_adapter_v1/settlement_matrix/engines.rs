@@ -2,7 +2,8 @@
 //! Every runner builds from the one checked subject below and reports the
 //! shared receipt; missing toolchains fail the gate rather than skipping.
 use super::{
-    expected_cell, parse_receipts, Case, Engine, Expect, Kind, Observation, Subject, CASES,
+    expected_cell, parse_receipts, Case, Engine, Expect, Kind, Observation, Subject,
+    V2_CASES as CASES,
 };
 use semaprax::{
     conformance::{StatusClass, CONTRACT_REQUIRES_FALSE_CODE, CONTRACT_STATUS_DOMAIN_V1},
@@ -122,6 +123,7 @@ impl NativeArtifact {
 
 struct Built {
     subject: Subject,
+    canonical_source: String,
     program: ResolvedProgram,
     endpoint: AdmittedPublicGenericEndpointV1,
     native: NativeArtifact,
@@ -162,6 +164,7 @@ fn build(subject: Subject) -> Built {
         CarrierFrameBinding::from_verified_descriptor(endpoint.descriptor(), Direction::Result);
     Built {
         subject,
+        canonical_source: revision,
         program,
         endpoint,
         native,
@@ -285,15 +288,20 @@ fn native_provider(built: &Built) -> String {
         "{}\n{}\n{}\n#undef malloc\n#undef free\n{}",
         include_str!("../allocations.c"),
         include_str!("../settlement_corpus/observations.c"),
-        built.native.source(),
+        format!(
+            "{}\n{}",
+            include_str!("pre_observe.c"),
+            built.native.source()
+        ),
         include_str!("observe.c")
     )
 }
 
 fn run(command: &mut Command, label: &str) -> Vec<u8> {
-    let output = command
-        .output()
-        .unwrap_or_else(|error| panic!("{label}: required toolchain is missing: {error}"));
+    let result = command.output();
+    super::evidence::command(command, label, &result);
+    let output =
+        result.unwrap_or_else(|error| panic!("{label}: required toolchain is missing: {error}"));
     assert!(
         output.status.success(),
         "{label}: {}\n{}",
@@ -550,10 +558,21 @@ fn generated_rust(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> {
         cargo().args(["generate-lockfile", "--offline"]),
         "generated Rust lock",
     );
-    run(
+    let receipts = run(
         cargo().args(["run", "--locked", "--offline", "--quiet", "--bin", "matrix"]),
         "generated Rust caller",
-    )
+    );
+    super::evidence::external_artifact(
+        &format!(
+            "{}/generated-rust/executed-matrix{}",
+            format!("{:?}", built.subject),
+            env::consts::EXE_SUFFIX
+        ),
+        &target
+            .join("debug")
+            .join(format!("matrix{}", env::consts::EXE_SUFFIX)),
+    );
+    receipts
 }
 
 fn json_cases(built: &Built, cases: &[usize], with_frames: bool) -> Vec<serde_json::Value> {
@@ -602,7 +621,11 @@ fn core_wasm(built: &Built, cases: &[usize], root: &Path) -> Vec<u8> {
 
 fn checked_tsc(candidate: &Path) -> Option<PathBuf> {
     let resolved = candidate.canonicalize().ok()?;
-    let version = Command::new(&resolved).arg("--version").output().ok()?;
+    let mut command = Command::new(&resolved);
+    command.arg("--version");
+    let result = command.output();
+    super::evidence::command(&command, "TypeScript version admission", &result);
+    let version = result.ok()?;
     (version.status.success()
         && std::str::from_utf8(&version.stdout).is_ok_and(|text| text.trim() == "Version 5.8.3"))
     .then_some(resolved)
@@ -798,9 +821,17 @@ pub(super) fn execute_all(
         }
     }
     let _cleanup = Cleanup(root.clone());
+    let _capture = super::evidence::Capture::start(&root);
     let mut observed = BTreeMap::new();
     for subject in [Subject::Identity, Subject::Refusing, Subject::Allocating] {
         let built = build(subject);
+        super::evidence::subject(
+            &format!("{subject:?}"),
+            &built.canonical_source,
+            built.endpoint.descriptor_bytes(),
+            &built.native.binding().encode(),
+            built.wasm.binding_bytes(),
+        );
         let subject_root = root.join(format!("{subject:?}"));
         for engine in engines {
             let cases = CASES
@@ -840,6 +871,7 @@ pub(super) fn execute_all(
                     &no_frame,
                 ),
             };
+            super::evidence::receipts(engine.label(), &receipts);
             for receipt in receipts {
                 let id = receipt.label.split('#').next().unwrap().to_owned();
                 let index = cases

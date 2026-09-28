@@ -1067,3 +1067,74 @@ refuses. This is a permanent selector, not a one-off demonstration.
 
 The ASan column is local macOS evidence only. There is no hosted, Windows,
 TSan or publication claim, and PG-7/PG-9 status is unchanged.
+
+### Additive same-subject settlement matrix v2 (R08)
+
+`semaprax.public-generic.settlement-matrix.v2` retains the fourteen v1 rows,
+unchanged, and appends three named failure rows over the same checked
+`auth.identity` / `Pair<Bytes>` source and exact descriptor:
+
+- `injected-input-transfer-commit-failure`: the existing occurrence seam
+  rejects after input registry removal, before endpoint entry; primary 9,
+  zero endpoint dispatches, input release `0.1,0.0`, no result.
+- `injected-result-commit-failure`: the physical result-commit-pending seam
+  rejects before result publication; primary 11, one endpoint dispatch,
+  input then result release `0.1,0.0,1.1,1.0`, no result.
+- `injected-result-root-acquisition-failure`: a test-only occurrence observer
+  arms the next real provider allocation after `ExecutionFinished`. That
+  allocation acquires the result root; it actually fails, after checked
+  execution and input cleanup, before a result handle exists. Primary 10,
+  one endpoint dispatch, input then result release, no result. This does not
+  claim a complete per-leaf physical allocation failure matrix. The legacy
+  ordinals 8/9 reject post-hoc after leaf allocation and are not used here.
+
+All three rows execute through raw native O0/O2/ASan and the generated C11,
+Rust and C++17 consumers. Interpreter, Core Wasm and generated TypeScript
+cells remain explicitly N/A because those routes expose no corresponding
+physical injection seam. No missing toolchain becomes N/A. The gate asserts
+153 cells: 123 pass, zero known defects and 30 N/A. It also independently
+asserts the frozen v1 split, 105/0/21, from the same run's fourteen original
+rows; this avoids rebuilding all engines twice. Native receipts require an
+exactly-once fault-hit marker, consumed fault recipe, no result publication,
+zero final resources and cross-route dispatch/peak/release agreement. Raw
+native duplicate-call probes must still refuse with 8 and never redispatch.
+The existing export/release dual-failure row retains sticky failure evidence.
+
+The owning selector remains:
+
+```sh
+cargo test --locked --offline -p semaprax --test public_generic_native_adapter_v1 settlement_matrix:: -- --nocapture --test-threads=1
+```
+
+#### Opt-in local artifact inventory
+
+Set `SPX_PG_MATRIX_EVIDENCE` to an explicitly chosen local directory for the
+selector above. Each run creates one new child directory and delivers a
+reviewable `inventory.json`, bounded to 16 MiB and 2048 artifacts. Default
+runs retain nothing. Generated scratch trees are removed on every exit;
+Cargo caches stay in the existing private target directory, with no new
+build target or retained build tree.
+
+The manifest binds canonical source, exact descriptor/native/Wasm binding
+bytes, corpus identity, host OS/architecture, Git commit and dirty status,
+Rust compiler observation, actual tool version observations, exact command
+argument vectors/current directories/explicit environment overrides, exit
+and spawn failures, stdout/stderr, normalized per-case/cycle observations,
+and sorted relative artifact paths with sizes and plain SHA-256 content
+hashes. Every generated scratch file is inventoried, including generated
+consumer files, drivers, provider bytes, Wasm, native objects/archives and
+executables. The actually executed generated Rust binary outside the scratch
+tree is separately inventoried; the rest of Cargo's cache is excluded.
+Version queries that fail are recorded as failures, not invented versions.
+
+`engine_execution_complete` means the runners returned, not that conformance
+passed. `matrix_asserted` is written only after both matrix assertions;
+`failed` records runner unwind with partial command/artifact inventory.
+Source inspection or a manifest alone supplies no executed result. These
+files deliver an artifact **inventory**, not a retained distribution of every
+asset or a standalone replay bundle. The coordinator must bind a successful
+clean exact-commit inventory to the frozen candidate ticket. Hosted execution,
+compatibility/security review, support and publication remain separate.
+
+This implementation's tests are unrun until the owning gate executes on the
+integrated candidate; no new pass count is claimed by adding these rows.

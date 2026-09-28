@@ -12,6 +12,7 @@ extern "C" {
     fn mx_peak_allocations() -> usize;
     fn mx_peak_handles() -> usize;
     fn mx_armed() -> usize;
+    fn mx_fault_hits() -> usize;
     fn mx_order(out: *mut u8, capacity: usize);
 }
 fn leaf(bytes: Option<&[u8]>) -> String {
@@ -31,6 +32,8 @@ fn emit(id: &str, primary: i64, secondary: Option<i32>, leaves: Option<(&[u8], &
     let end = order.iter().position(|byte| *byte == 0).unwrap();
     let order = std::str::from_utf8(&order[..end]).unwrap();
     let secondary = secondary.map_or_else(|| "-".to_owned(), |status| status.to_string());
+    // SAFETY: test-only scalar fault observation.
+    let note = format!("{note},fault={}",unsafe {mx_fault_hits()});
     println!(
         "{id} {primary} {secondary} {dispatch} {live} {peak}/{handles} {order} {} {} {note}",
         leaf(leaves.map(|pair| pair.0)),
